@@ -1,0 +1,473 @@
+---
+globs: *.test.ts,*.spec.ts,*.test.js,*.spec.js
+description: 테스트 작성 및 실행 규칙
+---
+
+# 테스트 규칙
+
+## 🧪 테스트 프레임워크
+
+### Jest 설정
+```json
+{
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/src", "<rootDir>/tests"],
+    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts",
+      "!src/**/index.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
+  }
+}
+```
+
+## 📝 테스트 작성 규칙
+
+### 파일 명명
+- **단위 테스트**: `*.test.ts`
+- **통합 테스트**: `*.integration.test.ts`
+- **E2E 테스트**: `*.e2e.test.ts`
+- **픽스처**: `*.fixture.ts`
+
+### 테스트 구조 (AAA 패턴)
+```typescript
+describe('MemoryManager', () => {
+  describe('remember', () => {
+    it('should store memory successfully', async () => {
+      // Arrange (준비)
+      const memoryManager = new MemoryManager(mockClient);
+      const content = 'Test memory content';
+      const options = { type: 'episodic', importance: 0.8 };
+      
+      // Act (실행)
+      const result = await memoryManager.remember(content, options);
+      
+      // Assert (검증)
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+    });
+  });
+});
+```
+
+## 🔧 단위 테스트
+
+### MCP Tools 테스트
+```typescript
+// tests/unit/tools/remember.test.ts
+import { RememberTool } from '@/server/tools/remember';
+import { MemoryRepository } from '@/server/database/memory-repository';
+
+describe('RememberTool', () => {
+  let rememberTool: RememberTool;
+  let mockRepository: jest.Mocked<MemoryRepository>;
+  
+  beforeEach(() => {
+    mockRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn()
+    } as any;
+    
+    rememberTool = new RememberTool(mockRepository);
+  });
+  
+  it('should create memory with valid parameters', async () => {
+    // Given
+    const params = {
+      content: 'Test content',
+      type: 'episodic',
+      importance: 0.8
+    };
+    
+    mockRepository.create.mockResolvedValue('memory-123');
+    
+    // When
+    const result = await rememberTool.execute(params);
+    
+    // Then
+    expect(result).toEqual({ memory_id: 'memory-123' });
+    expect(mockRepository.create).toHaveBeenCalledWith({
+      content: 'Test content',
+      type: 'episodic',
+      importance: 0.8,
+      created_at: expect.any(Date)
+    });
+  });
+  
+  it('should throw error for invalid content', async () => {
+    // Given
+    const params = { content: '', type: 'episodic' };
+    
+    // When & Then
+    await expect(rememberTool.execute(params))
+      .rejects
+      .toThrow('Content cannot be empty');
+  });
+});
+```
+
+### 알고리즘 테스트
+```typescript
+// tests/unit/algorithms/search-ranking.test.ts
+import { SearchRanking } from '@/algorithms/search-ranking';
+
+describe('SearchRanking', () => {
+  let searchRanking: SearchRanking;
+  
+  beforeEach(() => {
+    searchRanking = new SearchRanking();
+  });
+  
+  describe('calculateFinalScore', () => {
+    it('should calculate correct final score', () => {
+      // Given
+      const features = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2
+      };
+      
+      // When
+      const score = searchRanking.calculateFinalScore(features);
+      
+      // Then
+      expect(score).toBeCloseTo(0.8 * 0.5 + 0.6 * 0.2 + 0.7 * 0.2 + 0.5 * 0.1 - 0.2 * 0.15);
+    });
+  });
+});
+```
+
+## 🔗 통합 테스트
+
+### MCP 서버 통합 테스트
+```typescript
+// tests/integration/mcp-server.test.ts
+import { MCPClient } from '@modelcontextprotocol/sdk';
+import { MCPServer } from '@/server';
+
+describe('MCP Server Integration', () => {
+  let server: MCPServer;
+  let client: MCPClient;
+  
+  beforeAll(async () => {
+    // 서버 시작
+    server = new MCPServer();
+    await server.start();
+    
+    // 클라이언트 연결
+    client = new MCPClient({
+      name: 'test-client',
+      version: '1.0.0'
+    });
+    await client.connect({
+      command: 'node',
+      args: ['dist/server/index.js']
+    });
+  });
+  
+  afterAll(async () => {
+    await client.close();
+    await server.stop();
+  });
+  
+  it('should handle remember tool', async () => {
+    // Given
+    const params = {
+      content: 'Integration test memory',
+      type: 'episodic'
+    };
+    
+    // When
+    const result = await client.callTool('remember', params);
+    
+    // Then
+    expect(result).toHaveProperty('memory_id');
+    expect(typeof result.memory_id).toBe('string');
+  });
+  
+  it('should handle recall tool', async () => {
+    // Given
+    const query = 'test memory';
+    
+    // When
+    const result = await client.callTool('recall', { query });
+    
+    // Then
+    expect(Array.isArray(result.items)).toBe(true);
+  });
+});
+```
+
+### 데이터베이스 통합 테스트
+```typescript
+// tests/integration/database.test.ts
+import { Database } from '@/server/database';
+import { MemoryItem } from '@/shared/types';
+
+describe('Database Integration', () => {
+  let db: Database;
+  
+  beforeAll(async () => {
+    db = new Database(':memory:'); // 인메모리 SQLite
+    await db.initialize();
+  });
+  
+  afterAll(async () => {
+    await db.close();
+  });
+  
+  beforeEach(async () => {
+    await db.clear(); // 각 테스트 전 데이터 정리
+  });
+  
+  it('should create and retrieve memory', async () => {
+    // Given
+    const memory: Omit<MemoryItem, 'id' | 'created_at'> = {
+      content: 'Test memory',
+      type: 'episodic',
+      importance: 0.8
+    };
+    
+    // When
+    const created = await db.createMemory(memory);
+    const retrieved = await db.getMemory(created.id);
+    
+    // Then
+    expect(retrieved).toMatchObject(memory);
+    expect(retrieved.id).toBe(created.id);
+  });
+});
+```
+
+## 🎭 Mock 및 Stub
+
+### MCP 클라이언트 Mock
+```typescript
+// tests/mocks/mcp-client.mock.ts
+export class MockMCPClient {
+  private tools: Map<string, jest.Mock> = new Map();
+  
+  constructor() {
+    this.setupDefaultMocks();
+  }
+  
+  private setupDefaultMocks() {
+    this.tools.set('remember', jest.fn().mockResolvedValue({ memory_id: 'mock-123' }));
+    this.tools.set('recall', jest.fn().mockResolvedValue({ items: [] }));
+    this.tools.set('forget', jest.fn().mockResolvedValue({ success: true }));
+  }
+  
+  async callTool(name: string, params: any) {
+    const mock = this.tools.get(name);
+    if (!mock) {
+      throw new Error(`Tool ${name} not found`);
+    }
+    return mock(params);
+  }
+  
+  setMockTool(name: string, mock: jest.Mock) {
+    this.tools.set(name, mock);
+  }
+}
+```
+
+### 데이터베이스 Mock
+```typescript
+// tests/mocks/database.mock.ts
+export class MockDatabase {
+  private memories: Map<string, MemoryItem> = new Map();
+  
+  async createMemory(memory: Omit<MemoryItem, 'id' | 'created_at'>): Promise<MemoryItem> {
+    const id = `memory-${Date.now()}`;
+    const created: MemoryItem = {
+      ...memory,
+      id,
+      created_at: new Date()
+    };
+    this.memories.set(id, created);
+    return created;
+  }
+  
+  async getMemory(id: string): Promise<MemoryItem | null> {
+    return this.memories.get(id) || null;
+  }
+  
+  async searchMemories(query: string): Promise<MemoryItem[]> {
+    return Array.from(this.memories.values())
+      .filter(memory => memory.content.includes(query));
+  }
+}
+```
+
+## 📊 테스트 커버리지
+
+### 커버리지 설정
+```json
+{
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts",
+      "!src/**/index.ts",
+      "!src/**/*.test.ts",
+      "!src/**/*.spec.ts"
+    ],
+    "coverageReporters": ["text", "lcov", "html"],
+    "coverageDirectory": "coverage"
+  }
+}
+```
+
+### 커버리지 임계값
+```json
+{
+  "jest": {
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      },
+      "./src/server/": {
+        "branches": 90,
+        "functions": 90,
+        "lines": 90,
+        "statements": 90
+      }
+    }
+  }
+}
+```
+
+## 🚀 테스트 실행
+
+### npm 스크립트
+```json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:e2e": "jest --testPathPattern=e2e",
+    "test:ci": "jest --ci --coverage --watchAll=false"
+  }
+}
+```
+
+### 테스트 실행 명령어
+```bash
+# 모든 테스트 실행
+npm test
+
+# 감시 모드
+npm run test:watch
+
+# 커버리지 포함
+npm run test:coverage
+
+# 단위 테스트만
+npm run test:unit
+
+# 통합 테스트만
+npm run test:integration
+
+# CI 환경
+npm run test:ci
+```
+
+## 🔍 테스트 디버깅
+
+### Jest 디버깅
+```bash
+# 특정 테스트 디버깅
+npm test -- --testNamePattern="should create memory"
+
+# 상세 로그
+npm test -- --verbose
+
+# 실패한 테스트만 재실행
+npm test -- --onlyFailures
+```
+
+### VS Code 디버깅 설정
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Jest Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": ["--runInBand"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}
+```
+
+## 📋 테스트 체크리스트
+
+### 단위 테스트
+- [ ] 모든 public 메서드 테스트
+- [ ] 경계값 테스트 (null, undefined, 빈 문자열)
+- [ ] 예외 상황 테스트
+- [ ] Mock 사용으로 외부 의존성 격리
+
+### 통합 테스트
+- [ ] MCP 서버와 클라이언트 통신
+- [ ] 데이터베이스 CRUD 작업
+- [ ] 검색 알고리즘 동작
+- [ ] 에러 처리 및 복구
+
+### E2E 테스트
+- [ ] 전체 워크플로우 테스트
+- [ ] 사용자 시나리오 테스트
+- [ ] 성능 테스트
+- [ ] 보안 테스트
+
+## 🎯 테스트 모범 사례
+
+### 1. 테스트 명명
+- **Given-When-Then** 패턴 사용
+- 구체적이고 명확한 테스트 이름
+- 예: `should return error when content is empty`
+
+### 2. 테스트 격리
+- 각 테스트는 독립적으로 실행 가능
+- 공유 상태 사용 금지
+- 테스트 간 의존성 제거
+
+### 3. 테스트 데이터
+- 픽스처 파일로 테스트 데이터 관리
+- 실제 데이터와 유사한 테스트 데이터 사용
+- 민감한 정보는 마스킹
+
+### 4. 에러 테스트
+- 정상 케이스와 에러 케이스 모두 테스트
+- 예외 메시지 검증
+- 로깅 및 모니터링 테스트
+
+### 5. 성능 테스트
+- 응답 시간 측정
+- 메모리 사용량 모니터링
+- 동시성 테스트

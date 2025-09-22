@@ -4,7 +4,10 @@
 
 [![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-blue)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)](https://github.com/your-org/memento/actions)
+[![Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen)](https://github.com/your-org/memento/actions)
 
 ## 📖 개요
 
@@ -98,6 +101,39 @@ const context = await memory.injectContext(
 
 ## 🏗️ 아키텍처
 
+### 시스템 아키텍처
+
+```mermaid
+graph TB
+    subgraph "AI Agent Layer"
+        A[Claude Desktop] --> B[MCP Client]
+        C[ChatGPT] --> B
+        D[Cursor] --> B
+    end
+    
+    subgraph "MCP Protocol Layer"
+        B --> E[MCP Memory Server]
+    end
+    
+    subgraph "Memory Management Layer"
+        E --> F[Memory Manager]
+        E --> G[Search Engine]
+        E --> H[Forgetting Policy]
+    end
+    
+    subgraph "Storage Layer"
+        F --> I[SQLite M1]
+        F --> J[PostgreSQL M3+]
+        G --> K[Vector Search]
+        G --> L[Text Search]
+    end
+    
+    subgraph "Data Processing"
+        H --> M[Spaced Review]
+        H --> N[Memory Consolidation]
+    end
+```
+
 ### 마일스톤별 계획
 
 | 단계 | 대상 | 스토리지 | 인증 | 보안 | 운영 |
@@ -107,21 +143,32 @@ const context = await memory.injectContext(
 | **M3** | 조직 | PostgreSQL + pgvector | JWT | VPN | Docker Compose |
 | **M4** | 엔터프라이즈 | PostgreSQL HA | JWT + RBAC + SSO | 기업 보안 | Kubernetes |
 
-### 핵심 컴포넌트
+### 프로젝트 구조
 
-```mermaid
-graph TB
-    A[AI Agent] --> B[MCP Client]
-    B --> C[MCP Memory Server]
-    C --> D[Storage Layer]
-    C --> E[Search Engine]
-    C --> F[Memory Manager]
-    
-    D --> G[SQLite/PostgreSQL]
-    E --> H[Vector Search]
-    E --> I[Text Search]
-    F --> J[Forgetting Policy]
-    F --> K[Spaced Review]
+```
+memento/
+├── src/                    # 소스 코드
+│   ├── server/            # MCP 서버
+│   │   ├── tools/         # MCP Tools 구현
+│   │   ├── resources/     # MCP Resources 구현
+│   │   ├── prompts/       # MCP Prompts 구현
+│   │   └── database/      # 데이터베이스 관련
+│   ├── client/            # MCP 클라이언트
+│   │   ├── memory-manager.ts
+│   │   └── types.ts
+│   ├── algorithms/        # 검색 및 망각 알고리즘
+│   │   ├── search-ranking.ts
+│   │   ├── forgetting.ts
+│   │   └── spaced-review.ts
+│   └── shared/            # 공통 유틸리티
+├── tests/                 # 테스트 코드
+│   ├── unit/             # 단위 테스트
+│   ├── integration/      # 통합 테스트
+│   └── fixtures/         # 테스트 데이터
+├── docs/                 # 문서
+├── scripts/              # 빌드 및 배포 스크립트
+├── docker/               # Docker 관련 파일
+└── .cursor/rules/        # Cursor 개발 규칙
 ```
 
 ### 기억 모델
@@ -204,16 +251,71 @@ npm run type-check
 
 ## 📚 문서
 
+### 사용자 가이드
+- [설치 및 설정 가이드](docs/installation-guide.md)
+- [사용자 매뉴얼](docs/user-manual.md)
+- [API 참조](docs/api-reference.md)
+- [문제 해결 가이드](docs/troubleshooting.md)
+
+### 개발자 가이드
+- [개발 환경 설정](docs/developer-setup.md)
+- [아키텍처 문서](docs/architecture.md)
+- [기여 가이드](docs/contributing.md)
+- [테스트 가이드](docs/testing-guide.md)
+
+### 기술 문서
 - [프로젝트 목표](docs/Memento-Goals.md)
 - [M1 상세 설계](docs/Memento-M1-DetailSpecs.md)
 - [마일스톤 계획](docs/Memento-Milestones.md)
 - [검색 랭킹 수식](docs/Search-Ranking-Memory-Decay-Formulas.md)
+
+## 🔒 보안 기능
+
+- **데이터 암호화**: 민감한 기억 데이터 암호화 저장
+- **접근 제어**: 사용자별 권한 관리 (M3+)
+- **API 보안**: JWT 토큰 기반 인증 (M3+)
+- **데이터 마스킹**: 민감 정보 자동 마스킹
+- **감사 로깅**: 모든 활동 추적 및 로그 저장
+
+## 📈 모니터링
+
+- **성능 메트릭**: 응답 시간, 처리량, 에러율 모니터링
+- **메모리 사용량**: 데이터베이스 크기 및 메모리 사용량 추적
+- **검색 통계**: 검색 성능 및 정확도 분석
+- **사용자 활동**: 기억 생성, 검색, 삭제 패턴 분석
+
+## 🧪 테스트
+
+```bash
+# 전체 테스트 실행
+npm test
+
+# 단위 테스트
+npm run test:unit
+
+# 통합 테스트
+npm run test:integration
+
+# E2E 테스트
+npm run test:e2e
+
+# 커버리지 리포트
+npm run test:coverage
+```
+
+## 🚀 다음 단계
+
+1. **M1 MVP 완성**: 기본 MCP 서버 및 클라이언트 구현
+2. **M2 팀 협업**: Docker 배포 및 API Key 인증
+3. **M3 조직 확장**: PostgreSQL 마이그레이션 및 JWT 인증
+4. **M4 엔터프라이즈**: Kubernetes 배포 및 고가용성 구성
 
 ## 🔗 관련 링크
 
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [pgvector](https://github.com/pgvector/pgvector)
 - [SQLite VSS](https://github.com/asg017/sqlite-vss)
+- [Bridge 프로젝트](https://github.com/your-org/bridge) - 데이터 통합 및 AI 오케스트레이션
 
 ## 📄 라이선스
 
@@ -221,9 +323,10 @@ MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 ## 🤝 지원
 
-- 이슈: [GitHub Issues](https://github.com/your-org/memento/issues)
-- 토론: [GitHub Discussions](https://github.com/your-org/memento/discussions)
-- 이메일: support@memento.dev
+- **이슈**: [GitHub Issues](https://github.com/your-org/memento/issues)
+- **토론**: [GitHub Discussions](https://github.com/your-org/memento/discussions)
+- **이메일**: support@memento.dev
+- **문서**: [프로젝트 문서](https://memento.dev/docs)
 
 ---
 

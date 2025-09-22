@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["dist/server/index.js"],
+      "cwd": "C:\\Users\\jee1l\\git\\memento",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

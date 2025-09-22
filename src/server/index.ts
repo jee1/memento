@@ -8,12 +8,13 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
-import { MemoryType, PrivacyScope } from '../types/index.js';
-import Database from 'better-sqlite3';
+import type { MemoryType, PrivacyScope } from '../types/index.js';
+import { DatabaseUtils } from '../utils/database.js';
+import sqlite3 from 'sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
-let db: Database.Database;
+let db: sqlite3.Database;
 
 // MCP Tools 스키마 정의
 const RememberSchema = z.object({
@@ -59,17 +60,22 @@ async function handleRemember(params: z.infer<typeof RememberSchema>) {
   const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // 데이터베이스에 저장
-  const stmt = db.prepare(`
+  await DatabaseUtils.run(db, `
     INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `);
-  
-  stmt.run(id, type, content, importance, privacy_scope, 
-           tags ? JSON.stringify(tags) : null, source);
+  `, [id, type, content, importance, privacy_scope, 
+      tags ? JSON.stringify(tags) : null, source]);
   
   return {
-    memory_id: id,
-    message: `기억이 저장되었습니다: ${id}`
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({
+          memory_id: id,
+          message: `기억이 저장되었습니다: ${id}`
+        })
+      }
+    ]
   };
 }
 
@@ -78,8 +84,9 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
   
   // 간단한 검색 구현 (FTS5 사용)
   let sql = `
-    SELECT id, content, type, importance, created_at, last_accessed, pinned, tags, source
-    FROM memory_item_fts
+    SELECT m.id, m.content, m.type, m.importance, m.created_at, m.last_accessed, m.pinned, m.tags, m.source
+    FROM memory_item_fts f
+    JOIN memory_item m ON f.rowid = m.rowid
     WHERE memory_item_fts MATCH ?
   `;
   
@@ -87,17 +94,17 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
   const params_array: any[] = [query];
   
   if (filters?.type && filters.type.length > 0) {
-    conditions.push(`type IN (${filters.type.map(() => '?').join(',')})`);
+    conditions.push(`m.type IN (${filters.type.map(() => '?').join(',')})`);
     params_array.push(...filters.type);
   }
   
   if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
-    conditions.push(`privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
+    conditions.push(`m.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
     params_array.push(...filters.privacy_scope);
   }
   
   if (filters?.pinned !== undefined) {
-    conditions.push(`pinned = ?`);
+    conditions.push(`m.pinned = ?`);
     params_array.push(filters.pinned);
   }
   
@@ -105,25 +112,31 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
     sql += ` AND ${conditions.join(' AND ')}`;
   }
   
-  sql += ` ORDER BY created_at DESC LIMIT ?`;
+  sql += ` ORDER BY m.created_at DESC LIMIT ?`;
   params_array.push(limit);
   
-  const stmt = db.prepare(sql);
-  const results = stmt.all(...params_array);
+  const results = await DatabaseUtils.all(db, sql, params_array);
   
   return {
-    items: results.map((row: any) => ({
-      id: row.id,
-      content: row.content,
-      type: row.type,
-      importance: row.importance,
-      created_at: row.created_at,
-      last_accessed: row.last_accessed,
-      pinned: row.pinned,
-      tags: row.tags ? JSON.parse(row.tags) : [],
-      score: 1.0, // 임시 점수
-      recall_reason: `FTS5 검색: "${query}"`
-    }))
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({
+          items: results.map((row: any) => ({
+            id: row.id,
+            content: row.content,
+            type: row.type,
+            importance: row.importance,
+            created_at: row.created_at,
+            last_accessed: row.last_accessed,
+            pinned: row.pinned,
+            tags: row.tags ? JSON.parse(row.tags) : [],
+            score: 1.0, // 임시 점수
+            recall_reason: `FTS5 검색: "${query}"`
+          }))
+        })
+      }
+    ]
   };
 }
 
@@ -132,51 +145,83 @@ async function handleForget(params: z.infer<typeof ForgetSchema>) {
   
   if (hard) {
     // 하드 삭제
-    const stmt = db.prepare('DELETE FROM memory_item WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [id]);
     
     if (result.changes === 0) {
       throw new Error(`Memory with ID ${id} not found`);
     }
     
-    return { message: `기억이 완전히 삭제되었습니다: ${id}` };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            message: `기억이 완전히 삭제되었습니다: ${id}`
+          })
+        }
+      ]
+    };
   } else {
     // 소프트 삭제 (pinned 해제 후 TTL에 의해 삭제)
-    const stmt = db.prepare('UPDATE memory_item SET pinned = FALSE WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
     
     if (result.changes === 0) {
       throw new Error(`Memory with ID ${id} not found`);
     }
     
-    return { message: `기억이 삭제 대상으로 표시되었습니다: ${id}` };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            message: `기억이 삭제 대상으로 표시되었습니다: ${id}`
+          })
+        }
+      ]
+    };
   }
 }
 
 async function handlePin(params: z.infer<typeof PinSchema>) {
   const { id } = params;
   
-  const stmt = db.prepare('UPDATE memory_item SET pinned = TRUE WHERE id = ?');
-  const result = stmt.run(id);
+  const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
   
   if (result.changes === 0) {
     throw new Error(`Memory with ID ${id} not found`);
   }
   
-  return { message: `기억이 고정되었습니다: ${id}` };
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({
+          message: `기억이 고정되었습니다: ${id}`
+        })
+      }
+    ]
+  };
 }
 
 async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
   const { id } = params;
   
-  const stmt = db.prepare('UPDATE memory_item SET pinned = FALSE WHERE id = ?');
-  const result = stmt.run(id);
+  const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
   
   if (result.changes === 0) {
     throw new Error(`Memory with ID ${id} not found`);
   }
   
-  return { message: `기억 고정이 해제되었습니다: ${id}` };
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({
+          message: `기억 고정이 해제되었습니다: ${id}`
+        })
+      }
+    ]
+  };
 }
 
 // MCP 서버 초기화
@@ -337,9 +382,11 @@ async function initializeServer() {
       }
     });
     
-    console.log('🚀 Memento MCP Server가 시작되었습니다!');
-    console.log(`📊 서버: ${mementoConfig.serverName} v${mementoConfig.serverVersion}`);
-    console.log(`🗄️  데이터베이스: ${mementoConfig.dbPath}`);
+    // MCP 서버는 stdio 프로토콜을 사용하므로 console.log 사용 금지
+    // 로그는 stderr로 출력
+    console.error('🚀 Memento MCP Server가 시작되었습니다!');
+    console.error(`📊 서버: ${mementoConfig.serverName} v${mementoConfig.serverVersion}`);
+    console.error(`🗄️  데이터베이스: ${mementoConfig.dbPath}`);
     
   } catch (error) {
     console.error('❌ 서버 초기화 실패:', error);
@@ -355,7 +402,7 @@ async function startServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   
-  console.log('🔗 MCP 클라이언트 연결 대기 중...');
+  console.error('🔗 MCP 클라이언트 연결 대기 중...');
 }
 
 // 정리 함수
@@ -363,7 +410,7 @@ async function cleanup() {
   if (db) {
     closeDatabase(db);
   }
-  console.log('👋 Memento MCP Server 종료');
+  console.error('👋 Memento MCP Server 종료');
 }
 
 // 프로세스 종료 시 정리
@@ -376,7 +423,8 @@ process.on('uncaughtException', (error) => {
 });
 
 // 서버 시작
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && process.argv[1].endsWith('index.js')) {
+  console.error('🚀 Memento MCP Server 시작 중...');
   startServer().catch(error => {
     console.error('❌ 서버 시작 실패:', error);
     process.exit(1);

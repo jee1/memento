@@ -1,0 +1,249 @@
+---
+globs: *.ts,*.js,*.json
+description: 프로젝트 구조 및 파일 명명 규칙
+---
+
+# 프로젝트 구조 규칙
+
+## 📁 디렉토리 구조
+
+```
+memento/
+├── src/                    # 소스 코드
+│   ├── server/            # MCP 서버
+│   │   ├── index.ts       # 서버 진입점
+│   │   ├── tools/         # MCP Tools 구현
+│   │   ├── resources/     # MCP Resources 구현
+│   │   ├── prompts/       # MCP Prompts 구현
+│   │   └── database/      # 데이터베이스 관련
+│   ├── client/            # MCP 클라이언트
+│   │   ├── index.ts       # 클라이언트 진입점
+│   │   ├── memory-manager.ts
+│   │   └── types.ts
+│   ├── algorithms/        # 검색 및 망각 알고리즘
+│   │   ├── search-ranking.ts
+│   │   ├── forgetting.ts
+│   │   └── spaced-review.ts
+│   └── shared/            # 공통 유틸리티
+│       ├── types.ts
+│       ├── utils.ts
+│       └── constants.ts
+├── tests/                 # 테스트 코드
+│   ├── unit/             # 단위 테스트
+│   ├── integration/      # 통합 테스트
+│   └── fixtures/         # 테스트 데이터
+├── docs/                 # 문서
+├── scripts/              # 빌드 및 배포 스크립트
+├── docker/               # Docker 관련 파일
+└── .cursor/rules/        # Cursor 개발 규칙
+```
+
+## 📝 파일 명명 규칙
+
+### TypeScript 파일
+- **컴포넌트**: PascalCase (예: `MemoryManager.ts`)
+- **유틸리티**: kebab-case (예: `search-ranking.ts`)
+- **타입 정의**: `types.ts` 또는 `interfaces.ts`
+- **상수**: `constants.ts` 또는 `config.ts`
+
+### 테스트 파일
+- **단위 테스트**: `*.test.ts`
+- **통합 테스트**: `*.integration.test.ts`
+- **E2E 테스트**: `*.e2e.test.ts`
+- **픽스처**: `*.fixture.ts`
+
+### 설정 파일
+- **환경별**: `.env.development`, `.env.production`
+- **빌드**: `webpack.config.js`, `tsconfig.json`
+- **Docker**: `Dockerfile`, `docker-compose.yml`
+
+## 🏗️ 모듈 구조
+
+### MCP 서버 모듈
+```typescript
+// src/server/tools/remember.ts
+export class RememberTool {
+  async execute(params: RememberParams): Promise<RememberResult> {
+    // 구현
+  }
+}
+
+// src/server/tools/index.ts
+export { RememberTool } from './remember';
+export { RecallTool } from './recall';
+// ... 다른 도구들
+```
+
+### 클라이언트 모듈
+```typescript
+// src/client/memory-manager.ts
+export class MemoryManager {
+  constructor(private client: MCPClient) {}
+  
+  async remember(content: string, options?: RememberOptions): Promise<string> {
+    // 구현
+  }
+}
+```
+
+### 알고리즘 모듈
+```typescript
+// src/algorithms/search-ranking.ts
+export class SearchRanking {
+  calculateScore(features: SearchFeatures): number {
+    // 구현
+  }
+}
+```
+
+## 🔗 의존성 관리
+
+### 내부 의존성
+- **서버 → 공통**: `src/server` → `src/shared`
+- **클라이언트 → 공통**: `src/client` → `src/shared`
+- **알고리즘 → 공통**: `src/algorithms` → `src/shared`
+
+### 외부 의존성
+- **MCP SDK**: `@modelcontextprotocol/sdk`
+- **데이터베이스**: `better-sqlite3` (M1), `pg` (M3+)
+- **벡터 검색**: `sqlite-vss` (M1), `pgvector` (M3+)
+- **테스트**: `jest`, `@types/jest`
+
+## 📦 패키지 구조
+
+### package.json 스크립트
+```json
+{
+  "scripts": {
+    "dev": "tsx src/server/index.ts",
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  }
+}
+```
+
+### TypeScript 설정
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/server/*": ["src/server/*"],
+      "@/client/*": ["src/client/*"],
+      "@/shared/*": ["src/shared/*"]
+    }
+  }
+}
+```
+
+## 🧪 테스트 구조
+
+### 단위 테스트
+```typescript
+// tests/unit/memory-manager.test.ts
+import { MemoryManager } from '@/client/memory-manager';
+
+describe('MemoryManager', () => {
+  let memoryManager: MemoryManager;
+  
+  beforeEach(() => {
+    // 테스트 설정
+  });
+  
+  it('should remember content', async () => {
+    // 테스트 구현
+  });
+});
+```
+
+### 통합 테스트
+```typescript
+// tests/integration/mcp-server.test.ts
+import { MCPClient } from '@modelcontextprotocol/sdk';
+
+describe('MCP Server Integration', () => {
+  let client: MCPClient;
+  
+  beforeAll(async () => {
+    // 서버 시작
+  });
+  
+  afterAll(async () => {
+    // 서버 종료
+  });
+});
+```
+
+## 🐳 Docker 구조
+
+### Dockerfile
+```dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY dist/ ./dist/
+EXPOSE 8080
+
+CMD ["node", "dist/server/index.js"]
+```
+
+### docker-compose.yml
+```yaml
+version: '3.8'
+services:
+  memento-server:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./data:/app/data
+```
+
+## 📋 코드 조직 원칙
+
+### 1. 단일 책임 원칙
+- 각 모듈은 하나의 명확한 책임을 가져야 함
+- MCP Tools는 각각 독립적인 파일로 분리
+
+### 2. 의존성 역전
+- 구체적인 구현보다는 추상화에 의존
+- 인터페이스를 통한 느슨한 결합
+
+### 3. 설정 분리
+- 환경별 설정은 별도 파일로 관리
+- 하드코딩된 값은 상수로 분리
+
+### 4. 에러 처리
+- 각 레이어에서 적절한 에러 처리
+- 사용자 친화적인 에러 메시지
+
+### 5. 로깅
+- 구조화된 로깅 사용
+- 민감한 정보는 마스킹
+
+## 🔄 마이그레이션 가이드
+
+### M1 → M2
+- SQLite 서버 모드 전환
+- API Key 인증 추가
+- Docker 컨테이너화
+
+### M2 → M3
+- PostgreSQL 마이그레이션
+- JWT 인증 시스템
+- Docker Compose 구성
+
+### M3 → M4
+- 고가용성 구성
+- Kubernetes 배포
+- 모니터링 시스템

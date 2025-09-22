@@ -1,0 +1,596 @@
+---
+globs: Dockerfile,docker-compose*.yml,*.yaml,*.json
+description: 배포 및 컨테이너화 규칙
+---
+
+# 배포 규칙
+
+## 🐳 Docker 컨테이너화
+
+### Dockerfile (M1 - SQLite)
+```dockerfile
+# Multi-stage build for Memento MCP Server
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY src/ ./src/
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Install SQLite and VSS extension
+RUN apk add --no-cache sqlite sqlite-dev
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S memento -u 1001
+
+# Change ownership
+RUN chown -R memento:nodejs /app
+USER memento
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node dist/health-check.js
+
+# Start application
+CMD ["node", "dist/server/index.js"]
+```
+
+### Dockerfile (M3+ - PostgreSQL)
+```dockerfile
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY src/ ./src/
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S memento -u 1001
+
+# Change ownership
+RUN chown -R memento:nodejs /app
+USER memento
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node dist/health-check.js
+
+# Start application
+CMD ["node", "dist/server/index.js"]
+```
+
+## 🐙 Docker Compose
+
+### M1 - 개발 환경
+```yaml
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  memento-server:
+    build:
+      context: .
+      target: builder
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - DB_PATH=/app/data/memory.db
+      - LOG_LEVEL=debug
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: npm run dev
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+```
+
+### M2 - 팀 환경
+```yaml
+# docker-compose.team.yml
+version: '3.8'
+
+services:
+  memento-server:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/app/data/memory.db
+      - API_KEY=${API_KEY}
+      - LOG_LEVEL=info
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+```
+
+### M3 - 조직 환경
+```yaml
+# docker-compose.org.yml
+version: '3.8'
+
+services:
+  memento-server:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+## ☸️ Kubernetes 배포
+
+### Namespace
+```yaml
+# k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: memento
+  labels:
+    name: memento
+```
+
+### ConfigMap
+```yaml
+# k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memento-config
+  namespace: memento
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  DB_PATH: "/app/data/memory.db"
+```
+
+### Secret
+```yaml
+# k8s/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: memento-secret
+  namespace: memento
+type: Opaque
+data:
+  API_KEY: <base64-encoded-api-key>
+  JWT_SECRET: <base64-encoded-jwt-secret>
+  DATABASE_URL: <base64-encoded-database-url>
+```
+
+### Deployment
+```yaml
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memento-server
+  namespace: memento
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: memento-server
+  template:
+    metadata:
+      labels:
+        app: memento-server
+    spec:
+      containers:
+      - name: memento-server
+        image: memento:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: memento-config
+              key: NODE_ENV
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: memento-secret
+              key: API_KEY
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: memento-data-pvc
+```
+
+### Service
+```yaml
+# k8s/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: memento-service
+  namespace: memento
+spec:
+  selector:
+    app: memento-server
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+```
+
+### Ingress
+```yaml
+# k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memento-ingress
+  namespace: memento
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - memento.example.com
+    secretName: memento-tls
+  rules:
+  - host: memento.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: memento-service
+            port:
+              number: 80
+```
+
+## 🔧 환경 설정
+
+### 환경 변수
+```bash
+# .env.development
+NODE_ENV=development
+DB_PATH=./data/memory.db
+LOG_LEVEL=debug
+API_KEY=dev-key-123
+
+# .env.production
+NODE_ENV=production
+DATABASE_URL=postgresql://user:pass@localhost:5432/memento
+JWT_SECRET=your-jwt-secret
+LOG_LEVEL=info
+API_KEY=prod-key-456
+```
+
+### 환경별 설정
+```typescript
+// src/config/environment.ts
+export interface EnvironmentConfig {
+  nodeEnv: string;
+  port: number;
+  database: {
+    type: 'sqlite' | 'postgresql';
+    url?: string;
+    path?: string;
+  };
+  auth: {
+    apiKey?: string;
+    jwtSecret?: string;
+  };
+  logging: {
+    level: string;
+  };
+}
+
+export function loadConfig(): EnvironmentConfig {
+  return {
+    nodeEnv: process.env.NODE_ENV || 'development',
+    port: parseInt(process.env.PORT || '8080'),
+    database: {
+      type: process.env.DATABASE_TYPE as 'sqlite' | 'postgresql' || 'sqlite',
+      url: process.env.DATABASE_URL,
+      path: process.env.DB_PATH
+    },
+    auth: {
+      apiKey: process.env.API_KEY,
+      jwtSecret: process.env.JWT_SECRET
+    },
+    logging: {
+      level: process.env.LOG_LEVEL || 'info'
+    }
+  };
+}
+```
+
+## 🚀 배포 스크립트
+
+### 빌드 스크립트
+```bash
+#!/bin/bash
+# scripts/build.sh
+
+set -e
+
+echo "Building Memento MCP Server..."
+
+# Install dependencies
+npm ci
+
+# Run tests
+npm run test:ci
+
+# Build application
+npm run build
+
+# Build Docker image
+docker build -t memento:latest .
+
+echo "Build completed successfully!"
+```
+
+### 배포 스크립트
+```bash
+#!/bin/bash
+# scripts/deploy.sh
+
+set -e
+
+ENVIRONMENT=${1:-development}
+VERSION=${2:-latest}
+
+echo "Deploying Memento MCP Server to $ENVIRONMENT..."
+
+# Build image
+docker build -t memento:$VERSION .
+
+# Tag for registry
+docker tag memento:$VERSION registry.example.com/memento:$VERSION
+
+# Push to registry
+docker push registry.example.com/memento:$VERSION
+
+# Deploy to Kubernetes
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
+
+# Wait for deployment
+kubectl rollout status deployment/memento-server -n memento
+
+echo "Deployment completed successfully!"
+```
+
+## 📊 모니터링 및 로깅
+
+### Prometheus 메트릭
+```typescript
+// src/monitoring/metrics.ts
+import { register, Counter, Histogram, Gauge } from 'prom-client';
+
+export const memoryCounter = new Counter({
+  name: 'memento_memories_total',
+  help: 'Total number of memories created',
+  labelNames: ['type']
+});
+
+export const searchDuration = new Histogram({
+  name: 'memento_search_duration_seconds',
+  help: 'Duration of search operations',
+  buckets: [0.1, 0.5, 1, 2, 5]
+});
+
+export const activeConnections = new Gauge({
+  name: 'memento_active_connections',
+  help: 'Number of active MCP connections'
+});
+```
+
+### 로깅 설정
+```typescript
+// src/logging/logger.ts
+import winston from 'winston';
+
+export const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  ]
+});
+```
+
+## 🔒 보안 설정
+
+### Docker 보안
+```dockerfile
+# 보안 강화된 Dockerfile
+FROM node:20-alpine AS production
+
+# 보안 업데이트
+RUN apk update && apk upgrade
+
+# 비루트 사용자 생성
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S memento -u 1001
+
+# 필요한 권한만 부여
+RUN chown -R memento:nodejs /app
+USER memento
+
+# 읽기 전용 파일시스템
+RUN chmod -R 755 /app
+```
+
+### Kubernetes 보안
+```yaml
+# SecurityContext 설정
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  fsGroup: 1001
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+```
+
+## 📋 배포 체크리스트
+
+### M1 (개인용)
+- [ ] SQLite 데이터베이스 설정
+- [ ] 로컬 실행 스크립트
+- [ ] 기본 로깅 설정
+- [ ] 헬스 체크 엔드포인트
+
+### M2 (팀)
+- [ ] Docker 컨테이너화
+- [ ] API Key 인증
+- [ ] Redis 캐싱
+- [ ] 로그 수집
+
+### M3 (조직)
+- [ ] PostgreSQL 마이그레이션
+- [ ] JWT 인증
+- [ ] Docker Compose 구성
+- [ ] 모니터링 설정
+
+### M4 (엔터프라이즈)
+- [ ] Kubernetes 배포
+- [ ] 고가용성 구성
+- [ ] 보안 강화
+- [ ] 자동 스케일링

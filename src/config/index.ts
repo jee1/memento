@@ -3,7 +3,7 @@
  */
 
 import { config } from 'dotenv';
-import { MementoConfig } from '../types/index.js';
+import type { MementoConfig } from '../types/index.js';
 
 // 환경 변수 로드
 config();
@@ -18,7 +18,7 @@ export const mementoConfig: MementoConfig = {
   port: parseInt(process.env.MCP_SERVER_PORT || '3000', 10),
   
   // OpenAI 설정
-  openaiApiKey: process.env.OPENAI_API_KEY,
+  openaiApiKey: process.env.OPENAI_API_KEY || undefined,
   openaiModel: process.env.OPENAI_MODEL || 'text-embedding-3-small',
   embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '1536', 10),
   
@@ -36,7 +36,7 @@ export const mementoConfig: MementoConfig = {
   
   // 로깅 설정
   logLevel: process.env.LOG_LEVEL || 'info',
-  logFile: process.env.LOG_FILE,
+  logFile: process.env.LOG_FILE || undefined,
   
   // 개발 설정
   nodeEnv: process.env.NODE_ENV || 'development'

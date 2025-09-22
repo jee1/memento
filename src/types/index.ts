@@ -54,7 +54,7 @@ export interface MementoConfig {
   serverName: string;
   serverVersion: string;
   port: number;
-  openaiApiKey?: string;
+  openaiApiKey: string | undefined;
   openaiModel: string;
   embeddingDimensions: number;
   searchDefaultLimit: number;
@@ -66,7 +66,7 @@ export interface MementoConfig {
     procedural: number;
   };
   logLevel: string;
-  logFile?: string;
+  logFile: string | undefined;
   nodeEnv: string;
 }
 
