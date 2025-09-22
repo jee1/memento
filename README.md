@@ -49,7 +49,14 @@ cd memento
 # 의존성 설치
 npm install
 
-# 개발 환경 설정
+# 환경 변수 설정
+cp env.example .env
+# .env 파일을 편집하여 필요한 설정을 입력하세요
+
+# 데이터베이스 초기화
+npm run db:init
+
+# 개발 서버 시작
 npm run dev
 ```
 
@@ -145,9 +152,10 @@ memento/
 ├── docs/                    # 설계 문서
 ├── src/
 │   ├── server/             # MCP 서버
-│   ├── client/             # MCP 클라이언트
 │   ├── database/           # 데이터베이스 스키마
-│   └── algorithms/         # 검색 및 망각 알고리즘
+│   ├── types/              # TypeScript 타입 정의
+│   ├── config/             # 설정 관리
+│   └── utils/              # 유틸리티 함수
 ├── .cursor/rules/          # Cursor 개발 규칙
 └── tests/                  # 테스트 코드
 ```
@@ -156,7 +164,16 @@ memento/
 
 ```bash
 # 개발 의존성 설치
-npm install -D
+npm install
+
+# 데이터베이스 초기화
+npm run db:init
+
+# 개발 서버 시작 (핫 리로드)
+npm run dev
+
+# 빌드
+npm run build
 
 # 테스트 실행
 npm test
@@ -167,6 +184,16 @@ npm run lint
 # 타입 체크
 npm run type-check
 ```
+
+### MCP Tools
+
+현재 구현된 MCP Tools:
+
+1. **remember** - 기억 저장
+2. **recall** - 기억 검색
+3. **forget** - 기억 삭제
+4. **pin** - 기억 고정
+5. **unpin** - 기억 고정 해제
 
 ### 기여 방법
 

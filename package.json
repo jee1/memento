@@ -1,0 +1,59 @@
+{
+  "name": "memento-mcp-server",
+  "version": "0.1.0",
+  "description": "AI Agent 기억 보조 MCP 서버 - 사람의 기억 구조를 모사한 스토리지+검색+요약+망각 메커니즘",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit",
+    "db:init": "tsx src/database/init.ts",
+    "db:migrate": "tsx src/database/migrate.ts"
+  },
+  "keywords": [
+    "mcp",
+    "memory",
+    "ai",
+    "agent",
+    "sqlite",
+    "vector-search",
+    "typescript"
+  ],
+  "author": "Memento Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "sqlite3": "^5.1.6",
+    "sqlite-vss": "^0.1.2",
+    "better-sqlite3": "^9.2.2",
+    "zod": "^3.22.4",
+    "uuid": "^9.0.1",
+    "openai": "^4.20.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/memento.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/memento/issues"
+  },
+  "homepage": "https://github.com/your-org/memento#readme"
+}
