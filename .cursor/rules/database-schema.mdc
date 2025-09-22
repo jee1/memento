@@ -1,0 +1,344 @@
+---
+globs: *.sql,*.ts
+description: 데이터베이스 스키마 및 마이그레이션 규칙
+---
+
+# 데이터베이스 스키마 규칙
+
+## 📋 M1 (SQLite) 스키마
+
+### 메인 테이블
+```sql
+-- 기억 아이템 테이블
+CREATE TABLE memory_item (
+  id TEXT PRIMARY KEY,
+  type TEXT CHECK (type IN ('working','episodic','semantic','procedural')),
+  content TEXT NOT NULL,
+  importance REAL CHECK (importance >= 0 AND importance <= 1) DEFAULT 0.5,
+  privacy_scope TEXT CHECK (privacy_scope IN ('private','team','public')) DEFAULT 'private',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_accessed TIMESTAMP,
+  pinned BOOLEAN DEFAULT FALSE,
+  source TEXT,
+  agent_id TEXT,
+  user_id TEXT,
+  project_id TEXT,
+  origin_trace TEXT -- JSON 형태
+);
+
+-- 임베딩 테이블
+CREATE TABLE memory_embedding (
+  memory_id TEXT PRIMARY KEY,
+  embedding BLOB, -- 벡터 데이터
+  dim INTEGER NOT NULL,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+-- 태그 테이블 (N:N 관계)
+CREATE TABLE memory_tag (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL
+);
+
+-- 기억-태그 관계 테이블
+CREATE TABLE memory_item_tag (
+  memory_id TEXT,
+  tag_id INTEGER,
+  PRIMARY KEY (memory_id, tag_id),
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES memory_tag(id) ON DELETE CASCADE
+);
+
+-- 기억 간 관계 테이블
+CREATE TABLE memory_link (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+-- 피드백 이벤트 테이블
+CREATE TABLE feedback_event (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  memory_id TEXT NOT NULL,
+  event_type TEXT CHECK (event_type IN ('used', 'edited', 'neglected', 'helpful', 'not_helpful')),
+  score REAL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+-- 작업기억 버퍼 테이블
+CREATE TABLE wm_buffer (
+  session_id TEXT PRIMARY KEY,
+  items TEXT NOT NULL, -- JSON 형태
+  token_budget INTEGER DEFAULT 4000,
+  expires_at TIMESTAMP NOT NULL
+);
+```
+
+### 인덱스 설정
+```sql
+-- FTS5 텍스트 검색 인덱스
+CREATE VIRTUAL TABLE memory_item_fts USING fts5(
+  content,
+  content='memory_item',
+  content_rowid='rowid'
+);
+
+-- VSS 벡터 검색 인덱스 (1536차원)
+CREATE VIRTUAL TABLE memory_item_vss USING vss0(
+  embedding(1536)
+);
+
+-- 일반 인덱스
+CREATE INDEX idx_memory_item_type ON memory_item(type);
+CREATE INDEX idx_memory_item_created_at ON memory_item(created_at);
+CREATE INDEX idx_memory_item_last_accessed ON memory_item(last_accessed);
+CREATE INDEX idx_memory_item_importance ON memory_item(importance);
+CREATE INDEX idx_memory_item_pinned ON memory_item(pinned);
+CREATE INDEX idx_memory_item_user_id ON memory_item(user_id);
+CREATE INDEX idx_memory_item_project_id ON memory_item(project_id);
+```
+
+## 📋 M3+ (PostgreSQL) 스키마
+
+### 메인 테이블
+```sql
+-- 기억 아이템 테이블
+CREATE TABLE memory_item (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT CHECK (type IN ('working','episodic','semantic','procedural')),
+  content TEXT NOT NULL,
+  importance REAL CHECK (importance >= 0 AND importance <= 1) DEFAULT 0.5,
+  privacy_scope TEXT CHECK (privacy_scope IN ('private','team','public')) DEFAULT 'private',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  last_accessed TIMESTAMPTZ,
+  pinned BOOLEAN DEFAULT FALSE,
+  source TEXT,
+  agent_id TEXT,
+  user_id TEXT NOT NULL,
+  project_id TEXT,
+  origin_trace JSONB,
+  -- 자동 생성 컬럼
+  content_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED
+);
+
+-- 임베딩 테이블 (pgvector 사용)
+CREATE TABLE memory_embedding (
+  memory_id UUID PRIMARY KEY,
+  embedding vector(1536), -- pgvector 확장
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+-- 태그 테이블
+CREATE TABLE memory_tag (
+  id SERIAL PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+
+-- 기억-태그 관계 테이블
+CREATE TABLE memory_item_tag (
+  memory_id UUID,
+  tag_id INTEGER,
+  PRIMARY KEY (memory_id, tag_id),
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES memory_tag(id) ON DELETE CASCADE
+);
+
+-- 기억 간 관계 테이블
+CREATE TABLE memory_link (
+  id SERIAL PRIMARY KEY,
+  source_id UUID NOT NULL,
+  target_id UUID NOT NULL,
+  relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+-- 피드백 이벤트 테이블
+CREATE TABLE feedback_event (
+  id SERIAL PRIMARY KEY,
+  memory_id UUID NOT NULL,
+  event_type TEXT CHECK (event_type IN ('used', 'edited', 'neglected', 'helpful', 'not_helpful')),
+  score REAL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+-- 작업기억 버퍼 테이블
+CREATE TABLE wm_buffer (
+  session_id TEXT PRIMARY KEY,
+  items JSONB NOT NULL,
+  token_budget INTEGER DEFAULT 4000,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+```
+
+### 인덱스 설정
+```sql
+-- pgvector 인덱스
+CREATE INDEX ON memory_embedding USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- GIN 인덱스 (tsvector)
+CREATE INDEX ON memory_item USING GIN (content_tsv);
+
+-- 일반 인덱스
+CREATE INDEX idx_memory_item_type ON memory_item(type);
+CREATE INDEX idx_memory_item_created_at ON memory_item(created_at);
+CREATE INDEX idx_memory_item_last_accessed ON memory_item(last_accessed);
+CREATE INDEX idx_memory_item_importance ON memory_item(importance);
+CREATE INDEX idx_memory_item_pinned ON memory_item(pinned);
+CREATE INDEX idx_memory_item_user_id ON memory_item(user_id);
+CREATE INDEX idx_memory_item_project_id ON memory_item(project_id);
+
+-- 복합 인덱스
+CREATE INDEX idx_memory_item_user_type ON memory_item(user_id, type);
+CREATE INDEX idx_memory_item_project_type ON memory_item(project_id, type);
+CREATE INDEX idx_memory_item_created_type ON memory_item(created_at, type);
+```
+
+## 🔄 마이그레이션 가이드
+
+### SQLite → PostgreSQL 마이그레이션
+```typescript
+class DatabaseMigrator {
+  async migrateFromSQLite(sqlitePath: string, postgresUrl: string): Promise<void> {
+    // 1. SQLite에서 데이터 추출
+    const sqliteData = await this.extractSQLiteData(sqlitePath);
+    
+    // 2. PostgreSQL 스키마 생성
+    await this.createPostgreSQLSchema(postgresUrl);
+    
+    // 3. 데이터 변환 및 삽입
+    await this.transformAndInsertData(sqliteData, postgresUrl);
+    
+    // 4. 임베딩 재계산
+    await this.recalculateEmbeddings(postgresUrl);
+  }
+  
+  private async extractSQLiteData(sqlitePath: string): Promise<any> {
+    // SQLite 데이터 추출 로직
+  }
+  
+  private async createPostgreSQLSchema(postgresUrl: string): Promise<void> {
+    // PostgreSQL 스키마 생성 로직
+  }
+  
+  private async transformAndInsertData(data: any, postgresUrl: string): Promise<void> {
+    // 데이터 변환 및 삽입 로직
+  }
+  
+  private async recalculateEmbeddings(postgresUrl: string): Promise<void> {
+    // 임베딩 재계산 로직
+  }
+}
+```
+
+### 마이그레이션 스크립트
+```sql
+-- 1. SQLite 데이터 추출
+.mode csv
+.headers on
+.output memory_items.csv
+SELECT * FROM memory_item;
+
+-- 2. PostgreSQL 데이터 삽입
+\copy memory_item FROM 'memory_items.csv' WITH CSV HEADER;
+
+-- 3. 임베딩 재계산 (Python 스크립트)
+-- python recalculate_embeddings.py
+```
+
+## 🔍 검색 최적화
+
+### SQLite 검색 쿼리
+```sql
+-- FTS5 + VSS 결합 검색
+WITH vector_search AS (
+  SELECT memory_id, similarity
+  FROM memory_item_vss
+  WHERE vss_search(embedding, ?)
+  ORDER BY similarity DESC
+  LIMIT 50
+),
+text_search AS (
+  SELECT rowid, rank
+  FROM memory_item_fts
+  WHERE memory_item_fts MATCH ?
+  ORDER BY rank
+  LIMIT 50
+)
+SELECT mi.*, 
+       COALESCE(vs.similarity, 0) as vector_score,
+       COALESCE(ts.rank, 0) as text_score
+FROM memory_item mi
+LEFT JOIN vector_search vs ON mi.id = vs.memory_id
+LEFT JOIN text_search ts ON mi.rowid = ts.rowid
+WHERE vs.memory_id IS NOT NULL OR ts.rowid IS NOT NULL
+ORDER BY (vector_score + text_score) DESC;
+```
+
+### PostgreSQL 검색 쿼리
+```sql
+-- pgvector + tsvector 결합 검색
+WITH vector_search AS (
+  SELECT id, 1 - (embedding <=> ?) as similarity
+  FROM memory_embedding
+  ORDER BY embedding <=> ?
+  LIMIT 50
+),
+text_search AS (
+  SELECT id, ts_rank(content_tsv, plainto_tsquery('english', ?)) as rank
+  FROM memory_item
+  WHERE content_tsv @@ plainto_tsquery('english', ?)
+  ORDER BY rank DESC
+  LIMIT 50
+)
+SELECT mi.*,
+       COALESCE(vs.similarity, 0) as vector_score,
+       COALESCE(ts.rank, 0) as text_score
+FROM memory_item mi
+LEFT JOIN vector_search vs ON mi.id = vs.id
+LEFT JOIN text_search ts ON mi.id = ts.id
+WHERE vs.id IS NOT NULL OR ts.id IS NOT NULL
+ORDER BY (vector_score + text_score) DESC;
+```
+
+## 🧹 데이터 정리 정책
+
+### 망각 정책 구현
+```sql
+-- 소프트 삭제 후보 선정
+CREATE VIEW forget_candidates AS
+SELECT id, type, created_at, last_accessed, importance, pinned,
+       CASE 
+         WHEN type = 'working' AND created_at < now() - interval '2 days' THEN true
+         WHEN type = 'episodic' AND created_at < now() - interval '90 days' THEN true
+         ELSE false
+       END as should_forget
+FROM memory_item
+WHERE pinned = false
+  AND (type = 'working' OR type = 'episodic');
+
+-- 하드 삭제 실행
+DELETE FROM memory_item 
+WHERE id IN (
+  SELECT id FROM forget_candidates 
+  WHERE should_forget = true
+);
+```
+
+### 백업 및 복원
+```sql
+-- 백업
+pg_dump -h localhost -U username -d memory_db > backup.sql
+
+-- 복원
+psql -h localhost -U username -d memory_db < backup.sql
+```
+ 
+ 

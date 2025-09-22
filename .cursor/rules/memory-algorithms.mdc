@@ -1,0 +1,502 @@
+---
+globs: *.ts,*.js
+description: 기억 알고리즘 및 검색 랭킹 수식 구현 규칙
+---
+
+# 기억 알고리즘 및 검색 랭킹 수식 규칙
+
+## 📊 검색 랭킹 공식 구현
+
+### 최종 점수 계산
+```typescript
+interface SearchScore {
+  relevance: number;
+  recency: number;
+  importance: number;
+  usage: number;
+  duplication_penalty: number;
+  final_score: number;
+}
+
+class SearchRanking {
+  // 기본 계수 (M1 추천값)
+  private readonly ALPHA = 0.50;  // relevance
+  private readonly BETA = 0.20;   // recency
+  private readonly GAMMA = 0.20;  // importance
+  private readonly DELTA = 0.10;  // usage
+  private readonly EPSILON = 0.15; // duplication_penalty
+
+  calculateFinalScore(score: Omit<SearchScore, 'final_score'>): number {
+    return this.ALPHA * score.relevance +
+           this.BETA * score.recency +
+           this.GAMMA * score.importance +
+           this.DELTA * score.usage -
+           this.EPSILON * score.duplication_penalty;
+  }
+}
+```
+
+### 관련성(relevance) 계산
+```typescript
+class RelevanceCalculator {
+  // 관련성 가중치 (M1 추천값)
+  private readonly WEIGHT_EMBEDDING = 0.60;
+  private readonly WEIGHT_KEYWORD = 0.30;
+  private readonly WEIGHT_TAG = 0.05;
+  private readonly WEIGHT_TITLE = 0.05;
+
+  calculateRelevance(
+    embeddingSimilarity: number,
+    bm25Score: number,
+    tagMatch: number,
+    titleHit: number
+  ): number {
+    return this.WEIGHT_EMBEDDING * embeddingSimilarity +
+           this.WEIGHT_KEYWORD * this.normalizeBM25(bm25Score) +
+           this.WEIGHT_TAG * tagMatch +
+           this.WEIGHT_TITLE * titleHit;
+  }
+
+  // BM25 정규화
+  private normalizeBM25(bm25Score: number, kNorm: number = 2.0): number {
+    return bm25Score / (bm25Score + kNorm);
+  }
+
+  // 임베딩 유사도 (코사인)
+  calculateEmbeddingSimilarity(queryEmbedding: number[], docEmbedding: number[]): number {
+    const dotProduct = this.dotProduct(queryEmbedding, docEmbedding);
+    const magnitudeA = this.magnitude(queryEmbedding);
+    const magnitudeB = this.magnitude(docEmbedding);
+    
+    const cosine = dotProduct / (magnitudeA * magnitudeB);
+    return Math.max(0, cosine); // 음수 방지
+  }
+
+  // 태그 매칭 (자카드 유사도)
+  calculateTagMatch(queryTags: string[], docTags: string[]): number {
+    const intersection = new Set(queryTags.filter(tag => docTags.includes(tag)));
+    const union = new Set([...queryTags, ...docTags]);
+    
+    return intersection.size / union.size;
+  }
+
+  // 타이틀 히트
+  calculateTitleHit(query: string, title: string): number {
+    const queryLower = query.toLowerCase();
+    const titleLower = title.toLowerCase();
+    
+    let score = 0;
+    
+    // 정확 매치
+    if (titleLower === queryLower) score += 1.0;
+    // 접두 매치
+    else if (titleLower.startsWith(queryLower)) score += 0.5;
+    // N-gram 매치
+    else if (this.hasNgramMatch(queryLower, titleLower)) score += 0.2;
+    
+    return score;
+  }
+}
+```
+
+### 최근성(recency) 계산
+```typescript
+class RecencyCalculator {
+  // 반감기 설정 (일 단위)
+  private readonly HALF_LIFE = {
+    working: 2,
+    episodic: 30,
+    semantic: 180
+  };
+
+  calculateRecency(createdAt: Date, type: string): number {
+    const ageDays = this.getAgeInDays(createdAt);
+    const halfLife = this.HALF_LIFE[type as keyof typeof this.HALF_LIFE] || 30;
+    
+    return Math.exp(-Math.log(2) * ageDays / halfLife);
+  }
+
+  private getAgeInDays(date: Date): number {
+    const now = new Date();
+    const diffTime = now.getTime() - date.getTime();
+    return diffTime / (1000 * 60 * 60 * 24);
+  }
+}
+```
+
+### 중요도(importance) 계산
+```typescript
+class ImportanceCalculator {
+  calculateImportance(
+    userImportance: number,
+    isPinned: boolean,
+    type: string
+  ): number {
+    const pinnedBoost = isPinned ? 0.20 : 0;
+    const typeBoost = this.getTypeBoost(type);
+    
+    return Math.max(0, Math.min(1, 
+      userImportance + pinnedBoost + typeBoost
+    ));
+  }
+
+  private getTypeBoost(type: string): number {
+    switch (type) {
+      case 'semantic': return 0.10;
+      case 'episodic': return 0.00;
+      case 'working': return -0.05;
+      case 'procedural': return 0.05;
+      default: return 0.00;
+    }
+  }
+}
+```
+
+### 사용성(usage) 계산
+```typescript
+class UsageCalculator {
+  calculateUsage(
+    viewCount: number,
+    citeCount: number,
+    editCount: number,
+    batchMin: number,
+    batchMax: number
+  ): number {
+    const rawUsage = 
+      Math.log(1 + viewCount) +
+      2 * Math.log(1 + citeCount) +
+      0.5 * Math.log(1 + editCount);
+    
+    return this.normalize(rawUsage, batchMin, batchMax);
+  }
+
+  private normalize(value: number, min: number, max: number, epsilon: number = 1e-6): number {
+    return (value - min) / (max - min + epsilon);
+  }
+}
+```
+
+### 중복 패널티(duplication_penalty) 계산
+```typescript
+class DuplicationPenaltyCalculator {
+  calculateDuplicationPenalty(
+    candidateEmbedding: number[],
+    selectedEmbeddings: number[][]
+  ): number {
+    if (selectedEmbeddings.length === 0) return 0;
+    
+    let maxSimilarity = 0;
+    
+    for (const selectedEmbedding of selectedEmbeddings) {
+      const similarity = this.cosineSimilarity(candidateEmbedding, selectedEmbedding);
+      maxSimilarity = Math.max(maxSimilarity, similarity);
+    }
+    
+    return maxSimilarity;
+  }
+
+  private cosineSimilarity(a: number[], b: number[]): number {
+    const dotProduct = this.dotProduct(a, b);
+    const magnitudeA = this.magnitude(a);
+    const magnitudeB = this.magnitude(b);
+    
+    return dotProduct / (magnitudeA * magnitudeB);
+  }
+}
+```
+
+## 🧠 망각 알고리즘 구현
+
+### 망각 점수 계산
+```typescript
+class ForgetScoreCalculator {
+  // 망각 점수 계수 (M1 추천값)
+  private readonly U1 = 0.35; // recency 가중치
+  private readonly U2 = 0.25; // usage 가중치
+  private readonly U3 = 0.20; // duplication 가중치
+  private readonly U4 = 0.15; // importance 가중치
+  private readonly U5 = 0.30; // pinned 가중치
+
+  calculateForgetScore(
+    recency: number,
+    usage: number,
+    dupRatio: number,
+    importance: number,
+    isPinned: boolean
+  ): number {
+    return this.U1 * (1 - recency) +
+           this.U2 * (1 - usage) +
+           this.U3 * dupRatio -
+           this.U4 * importance -
+           this.U5 * (isPinned ? 1 : 0);
+  }
+}
+```
+
+### 망각 정책 적용
+```typescript
+class ForgetPolicy {
+  // TTL 설정 (일 단위)
+  private readonly TTL_SOFT = {
+    working: 2,
+    episodic: 30,
+    semantic: Infinity
+  };
+  
+  private readonly TTL_HARD = {
+    working: 7,
+    episodic: 180,
+    semantic: Infinity
+  };
+
+  // 소프트 삭제 후보 선정
+  isSoftDeleteCandidate(
+    memory: MemoryItem,
+    forgetScore: number
+  ): boolean {
+    const ageDays = this.getAgeInDays(memory.created_at);
+    const ttl = this.TTL_SOFT[memory.type as keyof typeof this.TTL_SOFT];
+    
+    return forgetScore >= 0.6 && 
+           ageDays >= ttl && 
+           !memory.pinned;
+  }
+
+  // 하드 삭제 후보 선정
+  isHardDeleteCandidate(
+    memory: MemoryItem,
+    forgetScore: number
+  ): boolean {
+    const ageDays = this.getAgeInDays(memory.created_at);
+    const ttl = this.TTL_HARD[memory.type as keyof typeof this.TTL_HARD];
+    
+    return forgetScore >= 0.8 && 
+           ageDays >= ttl && 
+           !memory.pinned;
+  }
+}
+```
+
+## 🔄 간격 반복 알고리즘
+
+### 간격 반복 스케줄러
+```typescript
+class SpacedReviewScheduler {
+  // 간격 반복 계수
+  private readonly A1 = 0.6; // importance 가중치
+  private readonly A2 = 0.4; // usage 가중치
+  private readonly A3 = 0.5; // helpful feedback 가중치
+  private readonly A4 = 0.7; // bad feedback 가중치
+
+  calculateNextReviewInterval(
+    currentInterval: number,
+    importance: number,
+    usage: number,
+    helpfulFeedback: number,
+    badFeedback: number
+  ): number {
+    const multiplier = 1 + 
+      this.A1 * importance +
+      this.A2 * usage +
+      this.A3 * helpfulFeedback -
+      this.A4 * badFeedback;
+    
+    return Math.ceil(currentInterval * multiplier);
+  }
+
+  // 리뷰 확률 계산
+  calculateRecallProbability(
+    timeSinceLastReview: number,
+    interval: number
+  ): number {
+    return Math.exp(-timeSinceLastReview / interval);
+  }
+
+  // 리뷰 필요 여부 판단
+  needsReview(
+    timeSinceLastReview: number,
+    interval: number,
+    threshold: number = 0.7
+  ): boolean {
+    const recallProb = this.calculateRecallProbability(timeSinceLastReview, interval);
+    return recallProb <= threshold;
+  }
+}
+```
+
+## 🔍 2단계 검색 파이프라인
+
+### 검색 파이프라인 구현
+```typescript
+class SearchPipeline {
+  constructor(
+    private vectorSearch: VectorSearchService,
+    private textSearch: TextSearchService,
+    private rankingCalculator: SearchRanking
+  ) {}
+
+  async search(
+    query: string,
+    filters: SearchFilters,
+    limit: number = 10
+  ): Promise<SearchResult[]> {
+    // 1. 후보 생성
+    const candidates = await this.generateCandidates(query, filters);
+    
+    // 2. 특징 계산
+    const features = await this.computeFeatures(candidates, query);
+    
+    // 3. 점수 계산
+    const scoredResults = this.calculateScores(candidates, features);
+    
+    // 4. 다양화 (MMR)
+    const diversifiedResults = this.diversifyResults(scoredResults, limit);
+    
+    // 5. 임계값 필터링
+    return this.filterByThreshold(diversifiedResults, 0.35);
+  }
+
+  private async generateCandidates(
+    query: string,
+    filters: SearchFilters
+  ): Promise<MemoryItem[]> {
+    // 벡터 검색 (ANN)
+    const vectorResults = await this.vectorSearch.search(query, 50);
+    
+    // 텍스트 검색 (BM25)
+    const textResults = await this.textSearch.search(query, 50);
+    
+    // 합집합 생성
+    const candidateMap = new Map<string, MemoryItem>();
+    
+    vectorResults.forEach(item => candidateMap.set(item.id, item));
+    textResults.forEach(item => candidateMap.set(item.id, item));
+    
+    return Array.from(candidateMap.values());
+  }
+
+  private async computeFeatures(
+    candidates: MemoryItem[],
+    query: string
+  ): Promise<FeatureVector[]> {
+    // 각 후보에 대해 특징 계산
+    return Promise.all(candidates.map(async (candidate) => {
+      const relevance = await this.calculateRelevance(candidate, query);
+      const recency = this.calculateRecency(candidate.created_at, candidate.type);
+      const importance = this.calculateImportance(candidate);
+      const usage = await this.calculateUsage(candidate.id);
+      
+      return {
+        memory_id: candidate.id,
+        relevance,
+        recency,
+        importance,
+        usage,
+        duplication_penalty: 0 // 초기값
+      };
+    }));
+  }
+}
+```
+
+## 📈 성능 최적화
+
+### 배치 정규화
+```typescript
+class BatchNormalizer {
+  normalizeFeatures(features: FeatureVector[]): FeatureVector[] {
+    const normalized = [...features];
+    
+    // usage 정규화
+    const usageValues = features.map(f => f.usage);
+    const usageMin = Math.min(...usageValues);
+    const usageMax = Math.max(...usageValues);
+    
+    normalized.forEach(feature => {
+      feature.usage = this.normalize(feature.usage, usageMin, usageMax);
+    });
+    
+    return normalized;
+  }
+
+  private normalize(value: number, min: number, max: number): number {
+    return (value - min) / (max - min + 1e-6);
+  }
+}
+```
+
+### MMR 다양화
+```typescript
+class MMRDiversifier {
+  diversify(
+    results: ScoredResult[],
+    limit: number,
+    lambda: number = 0.8
+  ): ScoredResult[] {
+    const selected: ScoredResult[] = [];
+    const remaining = [...results];
+    
+    while (selected.length < limit && remaining.length > 0) {
+      let bestIndex = 0;
+      let bestScore = -Infinity;
+      
+      remaining.forEach((candidate, index) => {
+        const mmrScore = this.calculateMMRScore(
+          candidate,
+          selected,
+          lambda
+        );
+        
+        if (mmrScore > bestScore) {
+          bestScore = mmrScore;
+          bestIndex = index;
+        }
+      });
+      
+      selected.push(remaining[bestIndex]);
+      remaining.splice(bestIndex, 1);
+    }
+    
+    return selected;
+  }
+
+  private calculateMMRScore(
+    candidate: ScoredResult,
+    selected: ScoredResult[],
+    lambda: number
+  ): number {
+    const relevanceScore = candidate.final_score;
+    const maxSimilarity = this.getMaxSimilarity(candidate, selected);
+    
+    return lambda * relevanceScore - (1 - lambda) * maxSimilarity;
+  }
+}
+```
+
+## 🧪 테스트 가이드
+
+### 단위 테스트 예시
+```typescript
+describe('SearchRanking', () => {
+  let ranking: SearchRanking;
+  
+  beforeEach(() => {
+    ranking = new SearchRanking();
+  });
+  
+  it('should calculate final score correctly', () => {
+    const score = {
+      relevance: 0.8,
+      recency: 0.6,
+      importance: 0.7,
+      usage: 0.5,
+      duplication_penalty: 0.2
+    };
+    
+    const result = ranking.calculateFinalScore(score);
+    expect(result).toBeCloseTo(0.8 * 0.5 + 0.6 * 0.2 + 0.7 * 0.2 + 0.5 * 0.1 - 0.2 * 0.15);
+  });
+});
+```
+ 
+ 
