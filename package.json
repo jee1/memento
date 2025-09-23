@@ -14,7 +14,8 @@
     "type-check": "tsc --noEmit",
     "db:init": "tsx src/database/init.ts",
     "db:migrate": "tsx src/database/migrate.ts",
-    "test:client": "tsx src/test-client.ts"
+    "test:client": "tsx src/test-client.ts",
+    "test:search": "tsx src/test-search.ts"
   },
   "keywords": [
     "mcp",
