@@ -1,0 +1,250 @@
+---
+globs: *.ts,*.js
+description: 실제 구현된 기능들에 대한 개발 규칙
+---
+
+# 실제 구현 규칙
+
+## 📋 현재 구현 상태
+
+### ✅ 구현 완료된 기능들
+
+#### 1. MCP 서버 (`src/server/index.ts`)
+- **파일 크기**: 432줄
+- **구현된 Tools**:
+  - `remember`: 기억 저장 (Zod 스키마 검증 포함)
+  - `recall`: 기억 검색 (필터링 지원)
+  - `forget`: 기억 삭제 (소프트/하드)
+  - `pin`/`unpin`: 기억 고정/해제
+- **에러 처리**: 구조화된 에러 응답
+- **로깅**: 상세한 로그 출력
+
+#### 2. 검색 엔진 (`src/algorithms/search-engine.ts`)
+- **파일 크기**: 233줄
+- **구현된 기능**:
+  - FTS5 텍스트 검색
+  - 검색 랭킹 알고리즘
+  - 필터링 시스템
+  - 결과 정렬 및 제한
+- **성능 최적화**: 인덱스 활용
+
+#### 3. 검색 랭킹 (`src/algorithms/search-ranking.ts`)
+- **구현된 알고리즘**:
+  - 관련성 계산
+  - 최근성 계산
+  - 중요도 계산
+  - 사용성 계산
+  - 중복 패널티 계산
+
+#### 4. 데이터베이스 (`src/database/init.ts`)
+- **파일 크기**: 102줄
+- **구현된 기능**:
+  - SQLite 데이터베이스 초기화
+  - 스키마 생성
+  - 인덱스 설정
+  - 연결 관리
+
+#### 5. 클라이언트 (`src/client/index.ts`)
+- **구현된 기능**:
+  - MCP 서버 연결
+  - 기억 관리 API
+  - 에러 처리
+
+#### 6. 테스트 파일들
+- **`test-client.ts`**: 클라이언트 테스트 (152줄)
+- **`test-search.ts`**: 검색 기능 테스트 (152줄)
+
+## 🏗️ 실제 아키텍처
+
+### 현재 구현된 구조
+```
+src/
+├── algorithms/        # 검색 알고리즘
+│   ├── search-engine.ts    # 메인 검색 엔진
+│   └── search-ranking.ts   # 랭킹 알고리즘
+├── client/           # MCP 클라이언트
+│   └── index.ts      # 클라이언트 구현
+├── config/           # 설정 관리
+│   └── index.ts      # 설정 파일
+├── database/         # 데이터베이스
+│   ├── init.ts       # 초기화 로직
+│   └── schema.sql    # SQLite 스키마
+├── server/           # MCP 서버
+│   └── index.ts      # 서버 메인 (432줄)
+├── types/            # 타입 정의
+│   └── index.ts      # 공통 타입
+├── utils/            # 유틸리티
+│   └── database.ts   # DB 유틸리티
+├── test-client.ts    # 클라이언트 테스트
+└── test-search.ts    # 검색 테스트
+```
+
+## 🔧 실제 사용 가능한 명령어
+
+### 개발 명령어
+```bash
+# 개발 서버 실행 (핫 리로드)
+npm run dev
+
+# 빌드 (TypeScript 컴파일 + 에셋 복사)
+npm run build
+
+# 프로덕션 실행
+npm run start
+
+# 타입 체크
+npm run type-check
+
+# 린트 검사
+npm run lint
+```
+
+### 테스트 명령어
+```bash
+# Vitest 테스트 실행
+npm run test
+
+# 클라이언트 테스트
+npm run test:client
+
+# 검색 기능 테스트
+npm run test:search
+```
+
+### 데이터베이스 명령어
+```bash
+# 데이터베이스 초기화
+npm run db:init
+
+# 데이터베이스 마이그레이션
+npm run db:migrate
+```
+
+## 📦 실제 의존성
+
+### 프로덕션 의존성
+```json
+{
+  "@modelcontextprotocol/sdk": "^0.5.0",
+  "sqlite3": "^5.1.6",
+  "zod": "^3.22.4",
+  "uuid": "^9.0.1",
+  "openai": "^4.20.1",
+  "dotenv": "^16.3.1"
+}
+```
+
+### 개발 의존성
+```json
+{
+  "@types/node": "^20.10.0",
+  "@types/uuid": "^9.0.7",
+  "@typescript-eslint/eslint-plugin": "^6.13.0",
+  "@typescript-eslint/parser": "^6.13.0",
+  "eslint": "^8.54.0",
+  "tsx": "^4.6.0",
+  "typescript": "^5.3.0",
+  "vitest": "^1.0.0"
+}
+```
+
+## 🧪 실제 테스트 구조
+
+### 테스트 파일들
+- **`test-client.ts`**: MCP 클라이언트 통합 테스트
+- **`test-search.ts`**: 검색 기능 상세 테스트
+- **Vitest 설정**: `vitest.config.ts`
+
+### 테스트 실행 방법
+```bash
+# 모든 테스트 실행
+npm run test
+
+# 특정 테스트 실행
+npm run test:client
+npm run test:search
+
+# 테스트 감시 모드
+npm run test -- --watch
+```
+
+## 🔍 실제 검색 구현
+
+### 검색 엔진 특징
+- **FTS5 활용**: SQLite의 Full-Text Search
+- **랭킹 알고리즘**: 관련성, 최근성, 중요도, 사용성 종합
+- **필터링**: 타입, 태그, 시간 범위, 고정 여부
+- **성능 최적화**: 인덱스 기반 검색
+
+### 검색 쿼리 예시
+```typescript
+// 기본 검색
+const results = await searchEngine.search(db, {
+  query: "React Hook",
+  limit: 10
+});
+
+// 필터링된 검색
+const filteredResults = await searchEngine.search(db, {
+  query: "TypeScript",
+  filters: {
+    type: ['episodic', 'semantic'],
+    tags: ['programming'],
+    pinned: false
+  },
+  limit: 5
+});
+```
+
+## 🗄️ 실제 데이터베이스 구조
+
+### SQLite 스키마
+- **`memory_item`**: 기억 아이템 테이블
+- **`memory_embedding`**: 임베딩 테이블
+- **`memory_tag`**: 태그 테이블
+- **`memory_item_tag`**: 기억-태그 관계 테이블
+- **`memory_link`**: 기억 간 관계 테이블
+- **`feedback_event`**: 피드백 이벤트 테이블
+- **`wm_buffer`**: 작업기억 버퍼 테이블
+
+### 인덱스
+- **FTS5**: 텍스트 검색용
+- **일반 인덱스**: 타입, 생성일, 중요도, 고정 여부
+- **복합 인덱스**: 사용자별, 프로젝트별 검색 최적화
+
+## 🚀 실제 배포 상태
+
+### 빌드 결과물
+- **`dist/`**: TypeScript 컴파일 결과
+- **소스맵**: `.js.map` 파일들
+- **타입 정의**: `.d.ts` 파일들
+- **에셋 복사**: `schema.sql` 등
+
+### 환경 설정
+- **`env.example`**: 환경 변수 예시
+- **`mcp.json`**: MCP 설정 파일
+- **`tsconfig.json`**: TypeScript 설정
+- **`vitest.config.ts`**: 테스트 설정
+
+## 📋 개발 가이드라인
+
+### 코드 작성 규칙
+1. **TypeScript 엄격 모드**: 모든 타입 명시
+2. **Zod 스키마**: 입력 검증 필수
+3. **에러 처리**: 구조화된 에러 응답
+4. **로깅**: 상세한 로그 출력
+5. **테스트**: 각 기능별 테스트 작성
+
+### 파일 구조 규칙
+1. **모듈 분리**: 기능별 파일 분리
+2. **타입 정의**: `types/index.ts`에 집중
+3. **유틸리티**: `utils/` 폴더에 공통 함수
+4. **설정**: `config/` 폴더에 설정 관리
+5. **테스트**: `test-*.ts` 형식으로 테스트 파일
+
+### 성능 고려사항
+1. **인덱스 활용**: 데이터베이스 쿼리 최적화
+2. **캐싱**: 검색 결과 캐싱 고려
+3. **배치 처리**: 대량 데이터 처리 시 배치 사용
+4. **메모리 관리**: 연결 풀 관리
+5. **에러 복구**: 데이터베이스 연결 실패 시 재시도

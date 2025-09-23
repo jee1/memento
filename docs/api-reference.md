@@ -37,6 +37,12 @@ interface RememberResult {
 #### 사용 예시
 
 ```typescript
+// 실제 구현된 클라이언트 사용법
+import { createMementoClient } from './src/client/index.js';
+
+const client = createMementoClient();
+await client.connect();
+
 // 기본 사용법
 const result = await client.callTool('remember', {
   content: "사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다."

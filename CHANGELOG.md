@@ -25,9 +25,9 @@
 ### 추가됨
 
 #### 🎯 프로젝트 초기 설정
-- TypeScript 5.0+ 기반 MCP 서버 프로젝트 구조 생성
-- ESLint, Prettier, Jest 테스트 프레임워크 설정
-- GitHub Actions CI/CD 파이프라인 구성
+- TypeScript 5.3.0 기반 MCP 서버 프로젝트 구조 생성
+- ESLint, Vitest 테스트 프레임워크 설정
+- tsx 개발 도구 통합
 - .gitignore 파일 생성 (Node.js, TypeScript, MCP 특화)
 
 #### 📚 문서화 시스템
@@ -47,9 +47,10 @@
   - `mcp-client-development.mdc` - MCP 클라이언트 개발 규칙 (TypeScript/JavaScript)
   - `database-schema.mdc` - 데이터베이스 스키마 규칙 (SQL/TypeScript)
   - `memory-algorithms.mdc` - 기억 알고리즘 구현 규칙 (TypeScript/JavaScript)
-  - `project-structure.mdc` - 프로젝트 구조 및 파일 명명 규칙
+  - `project-structure.mdc` - 프로젝트 구조 및 파일 명명 규칙 (실제 구조 반영)
   - `testing.mdc` - 테스트 작성 및 실행 규칙
   - `deployment.mdc` - 배포 및 컨테이너화 규칙
+  - `implementation.mdc` - 실제 구현된 기능들에 대한 개발 규칙 (신규)
 
 #### 🏗️ 아키텍처 설계
 - **4단계 마일스톤 계획**:
@@ -77,21 +78,55 @@
 - **간격 반복 알고리즘**: 중요도 기반 주기적 리뷰
 - **수면 통합 배치 작업**: 야간 기억 통합 및 요약
 
+#### 🚀 실제 구현 완료 (M1 MVP)
+- **MCP 서버 구현** (`src/server/index.ts` - 432줄):
+  - remember, recall, forget, pin/unpin Tools 구현
+  - Zod 스키마 기반 입력 검증
+  - 구조화된 에러 처리 및 로깅
+  - MCP 프로토콜 완전 준수
+
+- **검색 엔진 구현** (`src/algorithms/search-engine.ts` - 233줄):
+  - FTS5 텍스트 검색 통합
+  - 검색 랭킹 알고리즘 구현
+  - 고급 필터링 시스템 (타입, 태그, 시간, 고정 여부)
+  - 성능 최적화된 인덱스 활용
+
+- **데이터베이스 시스템** (`src/database/init.ts` - 102줄):
+  - SQLite 데이터베이스 초기화
+  - 완전한 스키마 생성 (7개 테이블)
+  - FTS5 및 일반 인덱스 설정
+  - 안전한 연결 관리
+
+- **클라이언트 구현** (`src/client/index.ts`):
+  - MCP 프로토콜 기반 클라이언트
+  - 서버 연결 및 통신 관리
+  - 에러 처리 및 재시도 로직
+
+- **테스트 시스템**:
+  - `test-client.ts` (152줄): 클라이언트 통합 테스트
+  - `test-search.ts` (152줄): 검색 기능 상세 테스트
+  - Vitest 설정 및 모던 테스트 환경
+
+- **빌드 시스템**:
+  - TypeScript 컴파일 및 소스맵 생성
+  - 에셋 복사 자동화 (schema.sql)
+  - 개발/프로덕션 환경 분리
+
 ### 기술 스택
 
 #### 핵심 기술
-- **언어**: TypeScript 5.0+
-- **런타임**: Node.js 20+
-- **프레임워크**: MCP SDK (Model Context Protocol)
+- **언어**: TypeScript 5.3.0
+- **런타임**: Node.js 20.10.0+
+- **프레임워크**: MCP SDK 0.5.0 (Model Context Protocol)
 
 #### 데이터베이스
-- **M1**: SQLite + FTS5 + sqlite-vss
-- **M3+**: PostgreSQL + pgvector + tsvector
+- **M1 (구현 완료)**: SQLite 5.1.6 + FTS5 + 완전한 스키마
+- **M3+ (계획)**: PostgreSQL + pgvector + tsvector
 
 #### 개발 도구
-- **테스트**: Jest, @types/jest
-- **린팅**: ESLint, Prettier
-- **빌드**: TypeScript Compiler
+- **테스트**: Vitest 1.0.0 (구현 완료)
+- **린팅**: ESLint 8.54.0, @typescript-eslint
+- **빌드**: TypeScript 5.3.0, tsx 4.6.0
 - **컨테이너**: Docker, Docker Compose
 
 #### 배포 및 운영
@@ -104,15 +139,35 @@
 ```
 memento/
 ├── src/                    # 소스 코드
-│   ├── server/            # MCP 서버
-│   ├── client/            # MCP 클라이언트
 │   ├── algorithms/        # 검색 및 망각 알고리즘
-│   └── shared/            # 공통 유틸리티
-├── tests/                 # 테스트 코드
+│   │   ├── search-engine.ts    # 검색 엔진 (233줄)
+│   │   └── search-ranking.ts   # 검색 랭킹 알고리즘
+│   ├── client/            # MCP 클라이언트
+│   │   └── index.ts       # 클라이언트 구현
+│   ├── config/            # 설정 관리
+│   │   └── index.ts       # 설정 파일
+│   ├── database/          # 데이터베이스 관련
+│   │   ├── init.ts        # 데이터베이스 초기화 (102줄)
+│   │   └── schema.sql     # SQLite 스키마
+│   ├── server/            # MCP 서버
+│   │   └── index.ts       # 서버 메인 (432줄)
+│   ├── types/             # TypeScript 타입 정의
+│   │   └── index.ts       # 공통 타입 정의
+│   ├── utils/             # 유틸리티 함수
+│   │   └── database.ts    # 데이터베이스 유틸리티
+│   ├── test-client.ts     # 클라이언트 테스트 (152줄)
+│   └── test-search.ts     # 검색 테스트 (152줄)
+├── dist/                  # 빌드 결과물
+├── data/                  # 데이터 파일
+│   ├── memory.db         # SQLite 데이터베이스
+│   ├── memory.db-shm     # SQLite 공유 메모리
+│   └── memory.db-wal     # SQLite WAL 파일
 ├── docs/                 # 문서
-├── scripts/              # 빌드 및 배포 스크립트
-├── docker/               # Docker 관련 파일
-└── .cursor/rules/        # Cursor 개발 규칙
+├── .cursor/rules/        # Cursor 개발 규칙 (9개)
+├── package.json          # 프로젝트 설정
+├── tsconfig.json         # TypeScript 설정
+├── vitest.config.ts      # Vitest 설정
+└── env.example           # 환경 변수 예시
 ```
 
 ### 문서화

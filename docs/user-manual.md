@@ -33,7 +33,7 @@ cp .env.example .env
 # 데이터베이스 초기화
 npm run db:init
 
-# 서버 시작
+# 서버 시작 (핫 리로드)
 npm run dev
 ```
 
@@ -84,19 +84,27 @@ curl http://localhost:8080/health
 
 AI Agent와의 대화에서 중요한 정보를 기억으로 저장할 수 있습니다.
 
-#### 기본 저장
+#### 실제 구현된 클라이언트 사용법
 
-```
-@memento remember "사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다."
-```
+```typescript
+import { createMementoClient } from './src/client/index.js';
 
-#### 태그와 함께 저장
+const client = createMementoClient();
+await client.connect();
 
-```
-@memento remember "프로젝트에서 TypeScript를 도입하기로 결정했다." --tags "typescript,decision,project" --importance 0.8
-```
+// 기본 저장
+const memoryId = await client.callTool('remember', {
+  content: "사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다."
+});
 
-#### 기억 타입 지정
+// 태그와 함께 저장
+const memoryId = await client.callTool('remember', {
+  content: "프로젝트에서 TypeScript를 도입하기로 결정했다.",
+  tags: ['typescript', 'decision', 'project'],
+  importance: 0.8
+});
+
+// 기억 타입 지정
 
 ```
 @memento remember "React Hook 사용법" --type "semantic" --tags "react,hooks,programming"

@@ -10,11 +10,13 @@ import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import type { MemoryType, PrivacyScope } from '../types/index.js';
 import { DatabaseUtils } from '../utils/database.js';
+import { SearchEngine } from '../algorithms/search-engine.js';
 import sqlite3 from 'sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
 let db: sqlite3.Database | null = null;
+let searchEngine: SearchEngine;
 
 // MCP Tools 스키마 정의
 const RememberSchema = z.object({
@@ -86,62 +88,27 @@ async function handleRemember(params: z.infer<typeof RememberSchema>) {
 async function handleRecall(params: z.infer<typeof RecallSchema>) {
   const { query, filters, limit } = params;
   
-  // 간단한 검색 구현 (FTS5 사용)
-  let sql = `
-    SELECT m.id, m.content, m.type, m.importance, m.created_at, m.last_accessed, m.pinned, m.tags, m.source
-    FROM memory_item_fts f
-    JOIN memory_item m ON f.rowid = m.rowid
-    WHERE memory_item_fts MATCH ?
-  `;
-  
-  const conditions: string[] = [];
-  const params_array: any[] = [query];
-  
-  if (filters?.type && filters.type.length > 0) {
-    conditions.push(`m.type IN (${filters.type.map(() => '?').join(',')})`);
-    params_array.push(...filters.type);
-  }
-  
-  if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
-    conditions.push(`m.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
-    params_array.push(...filters.privacy_scope);
-  }
-  
-  if (filters?.pinned !== undefined) {
-    conditions.push(`m.pinned = ?`);
-    params_array.push(filters.pinned);
-  }
-  
-  if (conditions.length > 0) {
-    sql += ` AND ${conditions.join(' AND ')}`;
-  }
-  
-  sql += ` ORDER BY m.created_at DESC LIMIT ?`;
-  params_array.push(limit);
-  
   if (!db) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
   }
   
-  const results = await DatabaseUtils.all(db, sql, params_array);
+  if (!searchEngine) {
+    throw new Error('검색 엔진이 초기화되지 않았습니다');
+  }
+  
+  // 개선된 검색 엔진 사용
+  const results = await searchEngine.search(db, {
+    query,
+    filters,
+    limit
+  });
   
   return {
     content: [
       {
         type: 'text',
         text: JSON.stringify({
-          items: results.map((row: any) => ({
-            id: row.id,
-            content: row.content,
-            type: row.type,
-            importance: row.importance,
-            created_at: row.created_at,
-            last_accessed: row.last_accessed,
-            pinned: row.pinned,
-            tags: row.tags ? JSON.parse(row.tags) : [],
-            score: 1.0, // 임시 점수
-            recall_reason: `FTS5 검색: "${query}"`
-          }))
+          items: results
         })
       }
     ]
@@ -252,6 +219,9 @@ async function initializeServer() {
     
     // 데이터베이스 초기화
     db = await initializeDatabase();
+    
+    // 검색 엔진 초기화
+    searchEngine = new SearchEngine();
     
     // MCP 서버 생성
     server = new Server(

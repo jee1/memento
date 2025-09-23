@@ -20,12 +20,12 @@ export interface MemoryItem {
 }
 
 export interface MemorySearchFilters {
-  type?: MemoryType[];
-  tags?: string[];
-  privacy_scope?: PrivacyScope[];
-  time_from?: Date;
-  time_to?: Date;
-  pinned?: boolean;
+  type?: MemoryType[] | undefined;
+  tags?: string[] | undefined;
+  privacy_scope?: PrivacyScope[] | undefined;
+  time_from?: string | undefined;
+  time_to?: string | undefined;
+  pinned?: boolean | undefined;
 }
 
 export interface MemorySearchResult {

@@ -17,9 +17,9 @@
 
 ### 필수 요구사항
 
-- **Node.js**: 20.0.0 이상
+- **Node.js**: 20.10.0 이상 (실제 구현 기준)
 - **npm**: 10.0.0 이상
-- **TypeScript**: 5.0.0 이상
+- **TypeScript**: 5.3.0 (실제 구현 기준)
 - **Git**: 2.30.0 이상
 
 ### 개발 도구
@@ -29,7 +29,7 @@
   - TypeScript and JavaScript Language Features
   - ESLint
   - Prettier
-  - Jest
+  - Vitest (실제 사용)
   - GitLens
 
 ### 환경 설정
@@ -44,11 +44,18 @@ cd memento
 #### 2. 의존성 설치
 
 ```bash
-# 프로덕션 의존성
+# 모든 의존성 설치 (package.json 기준)
 npm install
 
-# 개발 의존성
-npm install -D
+# 실제 사용된 의존성들:
+# - @modelcontextprotocol/sdk: ^0.5.0
+# - sqlite3: ^5.1.6
+# - zod: ^3.22.4
+# - uuid: ^9.0.1
+# - openai: ^4.20.1
+# - dotenv: ^16.3.1
+# - vitest: ^1.0.0 (테스트)
+# - tsx: ^4.6.0 (개발)
 ```
 
 #### 3. 환경 변수 설정
