@@ -136,11 +136,46 @@ npm run test:watch
 
 ## 프로젝트 구조
 
+### 새로운 서비스 레이어 (`src/services/`)
+
+Memento는 새로운 서비스 레이어를 도입하여 외부 API 연동과 복잡한 비즈니스 로직을 분리했습니다.
+
+```
+src/services/
+├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
+└── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+```
+
+**서비스 레이어의 역할**:
+- **외부 API 연동**: OpenAI API, 데이터베이스 연동
+- **비즈니스 로직**: 임베딩 생성, 벡터 검색, 유사도 계산
+- **에러 처리**: API 호출 실패, 재시도 로직
+- **캐싱**: 임베딩 결과 캐싱, 성능 최적화
+
+### 하이브리드 검색 엔진 (`src/algorithms/hybrid-search-engine.ts`)
+
+기존 검색 엔진에 하이브리드 검색 기능이 추가되었습니다.
+
+```
+src/algorithms/
+├── search-engine.ts        # 기본 검색 엔진 (233줄)
+├── hybrid-search-engine.ts # 하이브리드 검색 엔진 (200줄)
+└── search-ranking.ts       # 검색 랭킹 알고리즘
+```
+
+**하이브리드 검색의 특징**:
+- **FTS5 + 벡터 검색**: 텍스트 검색과 벡터 검색 결합
+- **가중치 조정**: 벡터 60%, 텍스트 40% (기본값)
+- **점수 정규화**: 0-1 범위로 점수 정규화
+- **결과 결합**: 두 검색 결과를 통합한 최종 점수
+
+### 전체 프로젝트 구조
+
 ```
 memento/
 ├── src/                          # 소스 코드
 │   ├── server/                   # MCP 서버
-│   │   ├── index.ts             # 서버 진입점
+│   │   ├── index.ts             # 서버 진입점 (521줄)
 │   │   ├── tools/               # MCP Tools 구현
 │   │   │   ├── remember.ts      # remember 도구
 │   │   │   ├── recall.ts        # recall 도구

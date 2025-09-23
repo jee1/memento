@@ -112,7 +112,25 @@ const memoryId = await client.callTool('remember', {
 
 ### 2. 기억 검색하기
 
-저장된 기억을 검색하여 관련 정보를 찾을 수 있습니다.
+저장된 기억을 검색하여 관련 정보를 찾을 수 있습니다. Memento는 기본 검색과 하이브리드 검색을 제공합니다.
+
+#### 하이브리드 검색 (권장)
+
+FTS5 텍스트 검색과 벡터 검색을 결합한 하이브리드 검색을 사용하면 더 정확한 결과를 얻을 수 있습니다.
+
+```typescript
+// 기본 하이브리드 검색 (벡터 60%, 텍스트 40%)
+const result = await client.callTool('hybrid_search', {
+  query: "React Hook 사용법"
+});
+
+// 가중치 조정 (벡터 검색 비중 높이기)
+const result = await client.callTool('hybrid_search', {
+  query: "TypeScript 인터페이스",
+  vectorWeight: 0.8,  // 벡터 검색 80%
+  textWeight: 0.2     // 텍스트 검색 20%
+});
+```
 
 #### 기본 검색
 
@@ -132,7 +150,50 @@ const memoryId = await client.callTool('remember', {
 @memento recall "프로젝트 결정" --from "2024-01-01" --to "2024-12-31"
 ```
 
-### 3. 기억 관리하기
+### 3. 임베딩 기능 사용하기
+
+Memento는 OpenAI의 `text-embedding-3-small` 모델을 사용하여 의미적 유사성 기반 검색을 제공합니다.
+
+#### 임베딩 기능 설정
+
+1. **OpenAI API 키 설정**:
+```bash
+# .env 파일에 추가
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+2. **임베딩 서비스 확인**:
+```bash
+# 임베딩 기능 테스트
+npm run test:embedding
+```
+
+#### 임베딩 기능의 장점
+
+- **의미적 검색**: 키워드가 아닌 의미를 기반으로 한 검색
+- **동의어 인식**: "자동차"와 "차량"을 같은 의미로 인식
+- **관련 개념 검색**: "프로그래밍"과 "코딩"을 연관된 개념으로 인식
+- **자동 임베딩 생성**: 기억 저장 시 자동으로 벡터 생성
+
+#### 임베딩 검색 사용법
+
+```typescript
+// 기억 저장 시 자동으로 임베딩이 생성됩니다
+const result = await client.callTool('remember', {
+  content: "React Hook에 대한 상세한 설명과 사용 예시",
+  type: 'semantic',
+  tags: ['react', 'hooks', 'javascript']
+});
+
+// 하이브리드 검색에서 벡터 검색 활용
+const searchResult = await client.callTool('hybrid_search', {
+  query: "React 상태 관리",
+  vectorWeight: 0.7,  // 벡터 검색 비중 높이기
+  textWeight: 0.3
+});
+```
+
+### 4. 기억 관리하기
 
 #### 기억 고정하기
 

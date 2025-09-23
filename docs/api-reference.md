@@ -204,6 +204,81 @@ const result = await client.callTool('forget', {
 });
 ```
 
+### hybrid_search
+
+하이브리드 검색을 수행하는 도구입니다. FTS5 텍스트 검색과 벡터 검색을 결합하여 더 정확한 검색 결과를 제공합니다.
+
+#### 파라미터
+
+```typescript
+interface HybridSearchParams {
+  query: string;                     // 검색 쿼리 (필수)
+  filters?: {
+    type?: ('episodic' | 'semantic')[];  // 기억 타입 필터
+    tags?: string[];                 // 태그 필터
+    project_id?: string;             // 프로젝트 ID 필터
+    time_from?: string;              // 시작 시간 (ISO 8601)
+    time_to?: string;                // 종료 시간 (ISO 8601)
+  };
+  limit?: number;                    // 결과 수 제한 (기본값: 10)
+  vectorWeight?: number;             // 벡터 검색 가중치 (0.0-1.0, 기본값: 0.6)
+  textWeight?: number;               // 텍스트 검색 가중치 (0.0-1.0, 기본값: 0.4)
+}
+```
+
+#### 응답
+
+```typescript
+interface HybridSearchResult {
+  items: HybridSearchItem[];         // 검색된 기억 목록
+  total_count: number;               // 전체 결과 수
+  query_time: number;                // 검색 소요 시간 (ms)
+  search_type: 'hybrid';             // 검색 타입
+}
+
+interface HybridSearchItem {
+  id: string;                        // 기억 ID
+  content: string;                   // 기억 내용
+  type: string;                      // 기억 타입
+  importance: number;                // 중요도
+  created_at: string;                // 생성 시간
+  last_accessed?: string;            // 마지막 접근 시간
+  pinned: boolean;                   // 고정 여부
+  tags?: string[];                   // 태그 목록
+  textScore: number;                 // FTS5 텍스트 검색 점수
+  vectorScore: number;               // 벡터 유사도 점수
+  finalScore: number;                // 최종 하이브리드 점수
+  recall_reason: string;             // 검색 이유
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 기본 하이브리드 검색
+const result = await client.callTool('hybrid_search', {
+  query: "React Hook 사용법"
+});
+
+// 가중치 조정된 하이브리드 검색
+const result = await client.callTool('hybrid_search', {
+  query: "TypeScript 인터페이스",
+  vectorWeight: 0.7,  // 벡터 검색 70%
+  textWeight: 0.3,    // 텍스트 검색 30%
+  limit: 5
+});
+
+// 필터링된 하이브리드 검색
+const result = await client.callTool('hybrid_search', {
+  query: "프로젝트 관리",
+  filters: {
+    type: ['episodic', 'semantic'],
+    tags: ['project', 'management']
+  },
+  limit: 8
+});
+```
+
 ### summarize_thread
 
 현재 세션의 대화를 요약하여 기억으로 저장하는 도구입니다.

@@ -11,8 +11,11 @@ import { mementoConfig } from '../config/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// MCP 서버에서는 모든 로그 출력을 완전히 차단
+const log = (...args: any[]) => {};
+
 export async function initializeDatabase(): Promise<sqlite3.Database> {
-  console.log('🗄️  SQLite 데이터베이스 초기화 중...');
+  log('🗄️  SQLite 데이터베이스 초기화 중...');
   
   // 데이터 디렉토리 생성
   const dbDir = dirname(mementoConfig.dbPath);
@@ -26,7 +29,7 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
     // SQLite 데이터베이스 연결
     const db = new sqlite3.Database(mementoConfig.dbPath, (err) => {
       if (err) {
-        console.error('❌ 데이터베이스 연결 실패:', err);
+        log('❌ 데이터베이스 연결 실패:', err);
         reject(err);
         return;
       }
@@ -37,16 +40,23 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
       // 외래키 제약 조건 활성화
       db.run('PRAGMA foreign_keys = ON');
       
-      // 잠금 타임아웃 설정 (30초로 단축)
-      db.run('PRAGMA busy_timeout = 30000');
+      // 잠금 타임아웃 설정 (60초로 증가)
+      db.run('PRAGMA busy_timeout = 60000');
       
       // 동시성 설정 최적화
       db.run('PRAGMA synchronous = NORMAL');
       db.run('PRAGMA cache_size = 20000'); // 캐시 크기 증가
       db.run('PRAGMA temp_store = MEMORY');
       db.run('PRAGMA mmap_size = 268435456'); // 256MB 메모리 맵핑
-      db.run('PRAGMA wal_autocheckpoint = 1000'); // WAL 자동 체크포인트
-      db.run('PRAGMA journal_size_limit = 67108864'); // 64MB WAL 크기 제한
+      
+      // WAL 설정 최적화 (락 문제 해결)
+      db.run('PRAGMA wal_autocheckpoint = 100'); // 더 자주 체크포인트 (100페이지마다)
+      db.run('PRAGMA journal_size_limit = 33554432'); // 32MB WAL 크기 제한 (더 작게)
+      db.run('PRAGMA wal_checkpoint(TRUNCATE)'); // WAL 파일 정리
+      
+      // 추가 안정성 설정
+      db.run('PRAGMA locking_mode = NORMAL'); // 정상 잠금 모드
+      db.run('PRAGMA read_uncommitted = 0'); // 커밋된 읽기만 허용
       
       // 스키마 파일 읽기 및 실행
       const schemaPath = join(__dirname, 'schema.sql');
@@ -55,13 +65,13 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
       // 스키마 실행
       db.exec(schema, (err) => {
         if (err) {
-          console.error('❌ 스키마 실행 실패:', err);
+          log('❌ 스키마 실행 실패:', err);
           reject(err);
           return;
         }
         
-        console.log('✅ 데이터베이스 초기화 완료');
-        console.log(`📁 데이터베이스 경로: ${mementoConfig.dbPath}`);
+        log('✅ 데이터베이스 초기화 완료');
+        log(`📁 데이터베이스 경로: ${mementoConfig.dbPath}`);
         resolve(db);
       });
     });
@@ -70,7 +80,7 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
 
 export function closeDatabase(db: sqlite3.Database): void {
   if (!db) {
-    console.log('🔒 데이터베이스가 이미 닫혔습니다');
+    log('🔒 데이터베이스가 이미 닫혔습니다');
     return;
   }
   
@@ -78,12 +88,12 @@ export function closeDatabase(db: sqlite3.Database): void {
     if (err) {
       // SQLITE_MISUSE 오류는 데이터베이스가 이미 닫혔을 때 발생하므로 무시
       if ((err as any).code === 'SQLITE_MISUSE') {
-        console.log('🔒 데이터베이스가 이미 닫혔습니다');
+        log('🔒 데이터베이스가 이미 닫혔습니다');
       } else {
-        console.error('❌ 데이터베이스 종료 실패:', err);
+        log('❌ 데이터베이스 종료 실패:', err);
       }
     } else {
-      console.log('🔒 데이터베이스 연결 종료');
+      log('🔒 데이터베이스 연결 종료');
     }
   });
 }

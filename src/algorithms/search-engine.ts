@@ -106,16 +106,29 @@ export class SearchEngine {
    * 대소문자 구분 문제 해결
    */
   private buildFTSQuery(query: string): string {
+    // FTS5 특수 문자 이스케이프
+    const escapeFTS5 = (str: string): string => {
+      return str.replace(/["'\\]/g, '\\$&');
+    };
+    
     // 공백으로 분리된 단어들을 OR로 연결
-    const words = query.trim().split(/\s+/);
+    const words = query.trim().split(/\s+/).filter(word => word.length > 0);
+    
+    if (words.length === 0) {
+      return '*'; // 빈 쿼리인 경우 모든 문서 검색
+    }
     
     if (words.length === 1) {
       // 단일 단어: 대소문자 구분 없이 검색
-      return `"${words[0]}" OR ${words[0]}`;
+      const escapedWord = escapeFTS5(words[0]!);
+      return `"${escapedWord}" OR ${escapedWord}`;
     } else {
       // 여러 단어: 각 단어를 OR로 연결하고 전체 구문도 포함
-      const wordQueries = words.map(word => `"${word}" OR ${word}`);
-      const phraseQuery = `"${query}"`;
+      const wordQueries = words.map(word => {
+        const escapedWord = escapeFTS5(word);
+        return `"${escapedWord}" OR ${escapedWord}`;
+      });
+      const phraseQuery = `"${escapeFTS5(query)}"`;
       
       return `${phraseQuery} OR ${wordQueries.join(' OR ')}`;
     }

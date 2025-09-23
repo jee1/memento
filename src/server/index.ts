@@ -22,6 +22,14 @@ let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 
+// MCP 서버에서는 모든 로그 출력을 완전히 차단
+// 모든 console 메서드를 빈 함수로 교체
+console.log = () => {};
+console.error = () => {};
+console.warn = () => {};
+console.info = () => {};
+console.debug = () => {};
+
 // MCP Tools 스키마 정의
 const RememberSchema = z.object({
   content: z.string().min(1, 'Content cannot be empty'),
@@ -71,48 +79,52 @@ async function handleRemember(params: z.infer<typeof RememberSchema>) {
   }
   
   try {
-    // 트랜잭션으로 원자성 보장
-    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
+    // 개선된 트랜잭션 재시도 로직 사용
+    const result = await DatabaseUtils.runTransaction(db!, async () => {
+      await DatabaseUtils.run(db!, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `, [id, type, content, importance, privacy_scope, 
+          tags ? JSON.stringify(tags) : null, source]);
+      
+      return { id, type, content, importance, privacy_scope, tags, source };
+    });
     
-    await DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `, [id, type, content, importance, privacy_scope, 
-        tags ? JSON.stringify(tags) : null, source]);
+    // 임베딩 생성 (비동기, 실패해도 메모리 저장은 성공)
+    if (embeddingService.isAvailable()) {
+      embeddingService.createAndStoreEmbedding(db, id, content, type)
+        .then(result => {
+          if (result) {
+            // 임베딩 생성 완료
+          }
+        })
+        .catch(error => {
+          console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
+        });
+    }
     
-     await DatabaseUtils.run(db, 'COMMIT');
-     
-     // 임베딩 생성 (비동기, 실패해도 메모리 저장은 성공)
-     if (embeddingService.isAvailable()) {
-       embeddingService.createAndStoreEmbedding(db, id, content, type)
-         .then(result => {
-           if (result) {
-             console.log(`✅ 임베딩 생성 완료: ${id} (${result.embedding.length}차원)`);
-           }
-         })
-         .catch(error => {
-           console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
-         });
-     }
-     
-     return {
-       content: [
-         {
-           type: 'text',
-           text: JSON.stringify({
-             memory_id: id,
-             message: `기억이 저장되었습니다: ${id}`,
-             embedding_created: embeddingService.isAvailable()
-           })
-         }
-       ]
-     };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            memory_id: id,
+            message: `기억이 저장되었습니다: ${id}`,
+            embedding_created: embeddingService.isAvailable()
+          })
+        }
+      ]
+    };
   } catch (error) {
-    // 오류 발생 시 롤백
-    try {
-      await DatabaseUtils.run(db, 'ROLLBACK');
-    } catch (rollbackError) {
-      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
+    if ((error as any).code === 'SQLITE_BUSY') {
+      // 데이터베이스 락 감지, WAL 체크포인트 시도
+      try {
+        await DatabaseUtils.checkpointWAL(db);
+        // WAL 체크포인트 완료
+      } catch (checkpointError) {
+        // WAL 체크포인트 실패
+      }
     }
     throw error;
   }
@@ -160,61 +172,59 @@ async function handleForget(params: z.infer<typeof ForgetSchema>) {
   }
   
   try {
-    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
+    // 개선된 트랜잭션 재시도 로직 사용
+    const result = await DatabaseUtils.runTransaction(db!, async () => {
+      if (hard) {
+        // 하드 삭제
+        const deleteResult = await DatabaseUtils.run(db!, 'DELETE FROM memory_item WHERE id = ?', [id]);
+        
+        if (deleteResult.changes === 0) {
+          throw new Error(`Memory with ID ${id} not found`);
+        }
+        
+        return { type: 'hard', changes: deleteResult.changes };
+      } else {
+        // 소프트 삭제 (pinned 해제 후 TTL에 의해 삭제)
+        const updateResult = await DatabaseUtils.run(db!, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
+        
+        if (updateResult.changes === 0) {
+          throw new Error(`Memory with ID ${id} not found`);
+        }
+        
+        return { type: 'soft', changes: updateResult.changes };
+      }
+    });
     
-    if (hard) {
-      // 하드 삭제
-      const result = await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [id]);
-      
-      if (result.changes === 0) {
-        await DatabaseUtils.run(db, 'ROLLBACK');
-        throw new Error(`Memory with ID ${id} not found`);
+    // 임베딩도 삭제 (하드 삭제인 경우)
+    if (hard && embeddingService.isAvailable()) {
+      try {
+        await embeddingService.deleteEmbedding(db, id);
+      } catch (embeddingError) {
+        console.warn(`⚠️ 임베딩 삭제 실패 (${id}):`, embeddingError);
       }
-      
-       await DatabaseUtils.run(db, 'COMMIT');
-       
-       // 임베딩도 삭제
-       if (embeddingService.isAvailable()) {
-         await embeddingService.deleteEmbedding(db, id);
-       }
-       
-       return {
-         content: [
-           {
-             type: 'text',
-             text: JSON.stringify({
-               message: `기억이 완전히 삭제되었습니다: ${id}`
-             })
-           }
-         ]
-       };
-    } else {
-      // 소프트 삭제 (pinned 해제 후 TTL에 의해 삭제)
-      const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
-      
-      if (result.changes === 0) {
-        await DatabaseUtils.run(db, 'ROLLBACK');
-        throw new Error(`Memory with ID ${id} not found`);
-      }
-      
-      await DatabaseUtils.run(db, 'COMMIT');
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              message: `기억이 삭제 대상으로 표시되었습니다: ${id}`
-            })
-          }
-        ]
-      };
     }
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            memory_id: id,
+            message: hard ? `기억이 완전히 삭제되었습니다: ${id}` : `기억이 삭제 대상으로 표시되었습니다: ${id}`
+          })
+        }
+      ]
+    };
   } catch (error) {
-    try {
-      await DatabaseUtils.run(db, 'ROLLBACK');
-    } catch (rollbackError) {
-      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
+    if ((error as any).code === 'SQLITE_BUSY') {
+      // 데이터베이스 락 감지, WAL 체크포인트 시도
+      try {
+        await DatabaseUtils.checkpointWAL(db);
+        // WAL 체크포인트 완료
+      } catch (checkpointError) {
+        // WAL 체크포인트 실패
+      }
     }
     throw error;
   }
@@ -228,32 +238,38 @@ async function handlePin(params: z.infer<typeof PinSchema>) {
   }
   
   try {
-    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
-    
-    const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
-    
-    if (result.changes === 0) {
-      await DatabaseUtils.run(db, 'ROLLBACK');
-      throw new Error(`Memory with ID ${id} not found`);
-    }
-    
-    await DatabaseUtils.run(db, 'COMMIT');
+    // 개선된 트랜잭션 재시도 로직 사용
+    await DatabaseUtils.runTransaction(db!, async () => {
+      const result = await DatabaseUtils.run(db!, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
+      
+      if (result.changes === 0) {
+        throw new Error(`Memory with ID ${id} not found`);
+      }
+      
+      return result;
+    });
     
     return {
       content: [
         {
           type: 'text',
           text: JSON.stringify({
+            memory_id: id,
             message: `기억이 고정되었습니다: ${id}`
           })
         }
       ]
     };
   } catch (error) {
-    try {
-      await DatabaseUtils.run(db, 'ROLLBACK');
-    } catch (rollbackError) {
-      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
+    if ((error as any).code === 'SQLITE_BUSY') {
+      // 데이터베이스 락 감지, WAL 체크포인트 시도
+      try {
+        await DatabaseUtils.checkpointWAL(db);
+        // WAL 체크포인트 완료
+      } catch (checkpointError) {
+        // WAL 체크포인트 실패
+      }
     }
     throw error;
   }
@@ -267,50 +283,94 @@ async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
   }
   
   try {
-    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
-    
-    const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
-    
-    if (result.changes === 0) {
-      await DatabaseUtils.run(db, 'ROLLBACK');
-      throw new Error(`Memory with ID ${id} not found`);
-    }
-    
-    await DatabaseUtils.run(db, 'COMMIT');
+    // 개선된 트랜잭션 재시도 로직 사용
+    await DatabaseUtils.runTransaction(db!, async () => {
+      const result = await DatabaseUtils.run(db!, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
+      
+      if (result.changes === 0) {
+        throw new Error(`Memory with ID ${id} not found`);
+      }
+      
+      return result;
+    });
     
     return {
       content: [
         {
           type: 'text',
           text: JSON.stringify({
+            memory_id: id,
             message: `기억 고정이 해제되었습니다: ${id}`
           })
         }
       ]
     };
   } catch (error) {
-    try {
-      await DatabaseUtils.run(db, 'ROLLBACK');
-    } catch (rollbackError) {
-      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
+    if ((error as any).code === 'SQLITE_BUSY') {
+      // 데이터베이스 락 감지, WAL 체크포인트 시도
+      try {
+        await DatabaseUtils.checkpointWAL(db);
+        // WAL 체크포인트 완료
+      } catch (checkpointError) {
+        // WAL 체크포인트 실패
+      }
     }
     throw error;
   }
 }
 
+// 데이터베이스 상태 모니터링
+async function monitorDatabaseStatus() {
+  if (!db) return;
+  
+  try {
+    const status = await DatabaseUtils.getDatabaseStatus(db);
+    log('📊 데이터베이스 상태:', {
+      journalMode: status.journalMode,
+      walAutoCheckpoint: status.walAutoCheckpoint,
+      busyTimeout: status.busyTimeout,
+      isLocked: status.isLocked ? '🔒 잠김' : '🔓 정상'
+    });
+    
+    // 락이 감지되면 WAL 체크포인트 실행
+    if (status.isLocked) {
+      log('⚠️ 데이터베이스 락 감지, WAL 체크포인트 실행...');
+      await DatabaseUtils.checkpointWAL(db);
+    }
+  } catch (error) {
+    // 데이터베이스 상태 모니터링 실패
+  }
+}
+
+// MCP 모드 감지 (stdio를 통해 실행되는지 확인)
+const isMCPMode = process.stdin.isTTY === false && process.stdout.isTTY === false;
+
+// MCP 모드에서는 로그를 stderr로 출력
+const log = isMCPMode ? console.error : console.log;
+
 // MCP 서버 초기화
 async function initializeServer() {
   try {
+    process.stderr.write('🚀 MCP 서버 초기화 시작...\n');
+    
     // 설정 검증
     validateConfig();
+    process.stderr.write('✅ 설정 검증 완료\n');
     
     // 데이터베이스 초기화
     db = await initializeDatabase();
+    process.stderr.write('✅ 데이터베이스 초기화 완료\n');
+    
+    // 데이터베이스 상태 모니터링
+    await monitorDatabaseStatus();
+    process.stderr.write('✅ 데이터베이스 상태 모니터링 완료\n');
     
     // 검색 엔진 초기화
     searchEngine = new SearchEngine();
     hybridSearchEngine = new HybridSearchEngine();
     embeddingService = new MemoryEmbeddingService();
+    process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
     // MCP 서버 생성
     server = new Server(
@@ -326,9 +386,11 @@ async function initializeServer() {
         }
       }
     );
+    process.stderr.write('✅ MCP 서버 생성 완료\n');
     
     // Tools 등록
     server.setRequestHandler(ListToolsRequestSchema, async () => {
+      process.stderr.write('📋 도구 목록 요청 처리\n');
       return {
         tools: [
           {
@@ -437,6 +499,7 @@ async function initializeServer() {
     // Tool 실행 핸들러
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+      process.stderr.write(`🔧 도구 실행 요청: ${name}\n`);
       
       try {
         switch (name) {
@@ -461,27 +524,49 @@ async function initializeServer() {
       }
     });
     
-    // MCP 서버는 stdio 프로토콜을 사용하므로 console.log 사용 금지
-    // 로그는 stderr로 출력
-    console.error('🚀 Memento MCP Server가 시작되었습니다!');
-    console.error(`📊 서버: ${mementoConfig.serverName} v${mementoConfig.serverVersion}`);
-    console.error(`🗄️  데이터베이스: ${mementoConfig.dbPath}`);
+    process.stderr.write('✅ MCP 서버 초기화 완료\n');
+    process.stderr.write('🚀 Memento MCP Server가 시작되었습니다!\n');
     
   } catch (error) {
-    console.error('❌ 서버 초기화 실패:', error);
+    process.stderr.write(`❌ 서버 초기화 실패: ${error}\n`);
     process.exit(1);
   }
 }
 
 // 서버 시작
 async function startServer() {
-  await initializeServer();
-  
-  // Stdio 전송 계층 사용
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  
-  console.error('🔗 MCP 클라이언트 연결 대기 중...');
+  try {
+    await initializeServer();
+    process.stderr.write('✅ 서버 초기화 완료\n');
+    
+    // Stdio 전송 계층 사용
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    process.stderr.write('✅ MCP 전송 계층 연결 완료\n');
+    
+    // MCP 클라이언트 연결 대기 중
+    process.stderr.write('🔗 MCP 클라이언트 연결 대기 중...\n');
+    
+    // 서버가 종료될 때까지 대기
+    return new Promise<void>((resolve) => {
+      process.on('SIGINT', () => {
+        process.stderr.write('👋 서버 종료 신호 수신\n');
+        cleanup().then(() => {
+          process.exit(0);
+        });
+      });
+
+      process.on('SIGTERM', () => {
+        process.stderr.write('👋 서버 종료 신호 수신\n');
+        cleanup().then(() => {
+          process.exit(0);
+        });
+      });
+    });
+  } catch (error) {
+    process.stderr.write(`❌ 서버 시작 실패: ${error}\n`);
+    process.exit(1);
+  }
 }
 
 // 정리 함수
@@ -498,23 +583,21 @@ async function cleanup() {
     closeDatabase(db);
     db = null; // 참조 제거
   }
-  console.error('👋 Memento MCP Server 종료');
+  // Memento MCP Server 종료
 }
 
 // 프로세스 종료 시 정리
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 process.on('uncaughtException', (error) => {
-  console.error('❌ 예상치 못한 오류:', error);
+  // 예상치 못한 오류
   cleanup();
   process.exit(1);
 });
 
 // 서버 시작
 if (process.argv[1] && process.argv[1].endsWith('index.js')) {
-  console.error('🚀 Memento MCP Server 시작 중...');
   startServer().catch(error => {
-    console.error('❌ 서버 시작 실패:', error);
     process.exit(1);
   });
 }

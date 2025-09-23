@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server/index.ts",
+    "dev:http": "tsx watch src/server/http-server.ts",
     "build": "tsc && npm run copy:assets",
     "copy:assets": "powershell -Command \"if (!(Test-Path 'dist/database')) { New-Item -ItemType Directory -Path 'dist/database' -Force }; Copy-Item 'src/database/schema.sql' 'dist/database/' -Force\"",
     "start": "node dist/server/index.js",
+    "start:http": "node dist/server/http-server.js",
     "test": "vitest",
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit",
@@ -31,15 +33,21 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
-    "sqlite3": "^5.1.6",
-    "zod": "^3.22.4",
-    "uuid": "^9.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0",
     "openai": "^4.20.1",
-    "dotenv": "^16.3.1"
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.3",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "eslint": "^8.54.0",

@@ -333,6 +333,54 @@ interface Feedback {
 
 ## 검색 시스템
 
+### 하이브리드 검색 아키텍처
+
+Memento는 FTS5 텍스트 검색과 벡터 검색을 결합한 하이브리드 검색 시스템을 제공합니다.
+
+```mermaid
+graph TB
+    subgraph "하이브리드 검색 엔진"
+        A[사용자 쿼리] --> B[하이브리드 검색 엔진]
+        B --> C[FTS5 텍스트 검색]
+        B --> D[벡터 검색]
+        C --> E[텍스트 점수]
+        D --> F[벡터 점수]
+        E --> G[점수 정규화]
+        F --> G
+        G --> H[가중치 적용]
+        H --> I[최종 하이브리드 점수]
+        I --> J[결과 정렬 및 반환]
+    end
+    
+    subgraph "임베딩 서비스"
+        K[텍스트 입력] --> L[OpenAI API]
+        L --> M[1536차원 벡터]
+        M --> N[데이터베이스 저장]
+        N --> O[벡터 검색 인덱스]
+    end
+```
+
+### 임베딩 서비스 아키텍처
+
+```mermaid
+graph TB
+    subgraph "임베딩 서비스 레이어"
+        A[텍스트 입력] --> B[EmbeddingService]
+        B --> C[OpenAI API 호출]
+        C --> D[text-embedding-3-small]
+        D --> E[1536차원 벡터]
+        E --> F[MemoryEmbeddingService]
+        F --> G[데이터베이스 저장]
+        G --> H[벡터 검색 인덱스]
+    end
+    
+    subgraph "에러 처리 및 캐싱"
+        I[API 재시도 로직]
+        J[임베딩 결과 캐싱]
+        K[에러 복구 메커니즘]
+    end
+```
+
 ### 1. 2단계 검색 파이프라인
 
 #### 1단계: 벡터 검색 (ANN)
