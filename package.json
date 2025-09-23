@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server/index.ts",
     "dev:http": "tsx watch src/server/http-server.ts",
     "build": "tsc && npm run copy:assets",
-    "copy:assets": "powershell -Command \"if (!(Test-Path 'dist/database')) { New-Item -ItemType Directory -Path 'dist/database' -Force }; Copy-Item 'src/database/schema.sql' 'dist/database/' -Force\"",
+    "copy:assets": "mkdir -p dist/database && cp src/database/schema.sql dist/database/",
     "start": "node dist/server/index.js",
     "start:http": "node dist/server/http-server.js",
     "test": "vitest",
