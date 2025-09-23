@@ -249,9 +249,8 @@ npm run test:monitoring  # 성능 모니터링 테스트
 
 ## 📞 지원
 
-- 이슈 리포트: [GitHub Issues](https://github.com/your-org/memento/issues)
-- 문서: [Wiki](https://github.com/your-org/memento/wiki)
-- 이메일: support@memento.dev
+- 이슈 리포트: [GitHub Issues](https://github.com/jee1/memento/issues)
+- 문서: [Wiki](https://github.com/jee1/memento/wiki)
 
 ## 🙏 감사의 말
 
