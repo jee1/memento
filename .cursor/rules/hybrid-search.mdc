@@ -1,0 +1,424 @@
+---
+globs: "src/algorithms/hybrid-search-engine.ts,src/services/*.ts"
+description: 하이브리드 검색 엔진 및 임베딩 서비스 개발 규칙
+---
+
+# 하이브리드 검색 및 임베딩 서비스 규칙
+
+## 📋 하이브리드 검색 엔진
+
+### 현재 구현 상태
+- **파일**: `src/algorithms/hybrid-search-engine.ts` (200줄)
+- **기능**: FTS5 텍스트 검색 + 벡터 검색 결합
+- **가중치**: 벡터 검색 60%, 텍스트 검색 40% (기본값)
+
+### 핵심 인터페이스
+
+```typescript
+interface HybridSearchQuery {
+  query: string;
+  filters?: MemorySearchFilters;
+  limit?: number;
+  vectorWeight?: number; // 벡터 검색 가중치 (0.0 ~ 1.0)
+  textWeight?: number;   // 텍스트 검색 가중치 (0.0 ~ 1.0)
+}
+
+interface HybridSearchResult {
+  id: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string;
+  last_accessed?: string;
+  pinned: boolean;
+  tags?: string[];
+  textScore: number;    // FTS5 텍스트 검색 점수
+  vectorScore: number;  // 벡터 유사도 점수
+  finalScore: number;   // 최종 결합 점수
+  recall_reason: string;
+}
+```
+
+### 구현 가이드라인
+
+#### 1. 가중치 관리
+```typescript
+// 기본 가중치 설정
+private readonly defaultVectorWeight = 0.6; // 벡터 검색 60%
+private readonly defaultTextWeight = 0.4;   // 텍스트 검색 40%
+
+// 가중치 검증
+private validateWeights(vectorWeight: number, textWeight: number): void {
+  if (vectorWeight < 0 || vectorWeight > 1) {
+    throw new Error('vectorWeight must be between 0 and 1');
+  }
+  if (textWeight < 0 || textWeight > 1) {
+    throw new Error('textWeight must be between 0 and 1');
+  }
+  if (Math.abs(vectorWeight + textWeight - 1.0) > 0.01) {
+    throw new Error('vectorWeight + textWeight must equal 1.0');
+  }
+}
+```
+
+#### 2. 점수 정규화
+```typescript
+// 점수 정규화 (0-1 범위로 변환)
+private normalizeScore(score: number, min: number, max: number): number {
+  if (max === min) return 0.5; // 모든 점수가 같을 때
+  return (score - min) / (max - min);
+}
+```
+
+#### 3. 결과 결합
+```typescript
+// 하이브리드 점수 계산
+private calculateHybridScore(
+  textScore: number,
+  vectorScore: number,
+  vectorWeight: number,
+  textWeight: number
+): number {
+  return vectorWeight * vectorScore + textWeight * textScore;
+}
+```
+
+## 🧠 임베딩 서비스
+
+### 현재 구현 상태
+- **파일**: `src/services/embedding-service.ts` (196줄)
+- **모델**: OpenAI `text-embedding-3-small` (1536차원)
+- **기능**: 텍스트 벡터화, 유사도 검색
+
+### 핵심 인터페이스
+
+```typescript
+interface EmbeddingResult {
+  embedding: number[];
+  model: string;
+  usage: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+}
+
+interface SimilarityResult {
+  id: string;
+  content: string;
+  similarity: number;
+  score: number;
+}
+```
+
+### 구현 가이드라인
+
+#### 1. OpenAI API 초기화
+```typescript
+private initializeOpenAI(): void {
+  if (!mementoConfig.openaiApiKey) {
+    console.warn('⚠️ OpenAI API 키가 설정되지 않았습니다.');
+    return;
+  }
+
+  try {
+    this.openai = new OpenAI({
+      apiKey: mementoConfig.openaiApiKey,
+    });
+    console.log('✅ OpenAI 임베딩 서비스 초기화 완료');
+  } catch (error) {
+    console.error('❌ OpenAI 초기화 실패:', error);
+    this.openai = null;
+  }
+}
+```
+
+#### 2. 텍스트 전처리
+```typescript
+private preprocessText(text: string): string {
+  // 토큰 제한 확인
+  if (text.length > this.maxTokens * 4) { // 대략적인 문자-토큰 비율
+    text = text.substring(0, this.maxTokens * 4);
+    console.warn('⚠️ 텍스트가 너무 길어 잘렸습니다.');
+  }
+  
+  return text.trim();
+}
+```
+
+#### 3. 유사도 계산
+```typescript
+private calculateCosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error('벡터 차원이 일치하지 않습니다');
+  }
+
+  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
+  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+
+  if (magnitudeA === 0 || magnitudeB === 0) {
+    return 0;
+  }
+
+  return dotProduct / (magnitudeA * magnitudeB);
+}
+```
+
+## 🔗 메모리 임베딩 서비스
+
+### 현재 구현 상태
+- **파일**: `src/services/memory-embedding-service.ts` (237줄)
+- **기능**: 메모리와 임베딩을 데이터베이스에 저장 및 검색
+
+### 핵심 인터페이스
+
+```typescript
+interface MemoryEmbedding {
+  memory_id: string;
+  embedding: number[];
+  created_at: string;
+}
+
+interface VectorSearchResult {
+  id: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string;
+  last_accessed?: string;
+  pinned: boolean;
+  tags?: string[];
+  similarity: number;
+  score: number;
+}
+```
+
+### 구현 가이드라인
+
+#### 1. 임베딩 저장
+```typescript
+async createAndStoreEmbedding(
+  db: any,
+  memoryId: string,
+  content: string,
+  type: MemoryType
+): Promise<EmbeddingResult | null> {
+  if (!this.embeddingService.isAvailable()) {
+    console.warn('⚠️ 임베딩 서비스가 사용 불가능합니다.');
+    return null;
+  }
+
+  try {
+    // 임베딩 생성
+    const embeddingResult = await this.embeddingService.createEmbedding(content);
+    
+    // 데이터베이스에 저장
+    await this.storeEmbedding(db, memoryId, embeddingResult.embedding);
+    
+    return embeddingResult;
+  } catch (error) {
+    console.error('❌ 임베딩 생성 및 저장 실패:', error);
+    return null;
+  }
+}
+```
+
+#### 2. 벡터 검색
+```typescript
+async searchSimilarMemories(
+  db: any,
+  query: string,
+  limit: number = 10,
+  threshold: number = 0.7
+): Promise<VectorSearchResult[]> {
+  if (!this.embeddingService.isAvailable()) {
+    return [];
+  }
+
+  try {
+    // 쿼리 임베딩 생성
+    const queryEmbedding = await this.embeddingService.createEmbedding(query);
+    
+    // 유사도 검색
+    const results = await this.performVectorSearch(
+      db, 
+      queryEmbedding.embedding, 
+      limit, 
+      threshold
+    );
+    
+    return results;
+  } catch (error) {
+    console.error('❌ 벡터 검색 실패:', error);
+    return [];
+  }
+}
+```
+
+## 🧪 테스트 가이드라인
+
+### 하이브리드 검색 테스트
+```typescript
+// 하이브리드 검색 테스트
+describe('HybridSearchEngine', () => {
+  let hybridEngine: HybridSearchEngine;
+  let mockDb: any;
+
+  beforeEach(() => {
+    hybridEngine = new HybridSearchEngine();
+    mockDb = createMockDatabase();
+  });
+
+  it('should combine text and vector search results', async () => {
+    const query = {
+      query: "React Hook 사용법",
+      vectorWeight: 0.6,
+      textWeight: 0.4,
+      limit: 5
+    };
+
+    const results = await hybridEngine.search(mockDb, query);
+    
+    expect(results).toHaveLength(5);
+    expect(results[0]).toHaveProperty('textScore');
+    expect(results[0]).toHaveProperty('vectorScore');
+    expect(results[0]).toHaveProperty('finalScore');
+  });
+});
+```
+
+### 임베딩 서비스 테스트
+```typescript
+// 임베딩 서비스 테스트
+describe('EmbeddingService', () => {
+  let embeddingService: EmbeddingService;
+
+  beforeEach(() => {
+    embeddingService = new EmbeddingService();
+  });
+
+  it('should create embedding for text', async () => {
+    const text = "React Hook에 대해 설명합니다.";
+    const result = await embeddingService.createEmbedding(text);
+    
+    expect(result.embedding).toHaveLength(1536);
+    expect(result.model).toBe('text-embedding-3-small');
+  });
+
+  it('should calculate similarity correctly', async () => {
+    const text1 = "React Hook 사용법";
+    const text2 = "React Hook에 대한 설명";
+    
+    const similarity = await embeddingService.calculateSimilarity(text1, text2);
+    
+    expect(similarity).toBeGreaterThan(0.5);
+    expect(similarity).toBeLessThanOrEqual(1.0);
+  });
+});
+```
+
+## 📊 성능 최적화
+
+### 1. 임베딩 캐싱
+```typescript
+// 임베딩 결과 캐싱
+private embeddingCache = new Map<string, EmbeddingResult>();
+
+async createEmbedding(text: string): Promise<EmbeddingResult> {
+  const cacheKey = this.generateCacheKey(text);
+  
+  if (this.embeddingCache.has(cacheKey)) {
+    return this.embeddingCache.get(cacheKey)!;
+  }
+
+  const result = await this.callOpenAI(text);
+  this.embeddingCache.set(cacheKey, result);
+  
+  return result;
+}
+```
+
+### 2. 배치 처리
+```typescript
+// 여러 텍스트를 한 번에 임베딩
+async createEmbeddingsBatch(texts: string[]): Promise<EmbeddingResult[]> {
+  const results = await this.openai.embeddings.create({
+    model: this.model,
+    input: texts,
+  });
+
+  return results.data.map(item => ({
+    embedding: item.embedding,
+    model: item.model,
+    usage: results.usage
+  }));
+}
+```
+
+### 3. 에러 처리
+```typescript
+// 재시도 로직
+async createEmbeddingWithRetry(text: string, maxRetries: number = 3): Promise<EmbeddingResult> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await this.createEmbedding(text);
+    } catch (error) {
+      if (attempt === maxRetries) {
+        throw new Error(`임베딩 생성 실패 (${maxRetries}회 시도): ${error.message}`);
+      }
+      
+      const delay = Math.pow(2, attempt - 1) * 1000; // 지수 백오프
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+```
+
+## 🔧 설정 관리
+
+### 환경 변수
+```bash
+# .env 파일
+OPENAI_API_KEY=your_openai_api_key_here
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_MAX_TOKENS=8191
+VECTOR_WEIGHT=0.6
+TEXT_WEIGHT=0.4
+```
+
+### 설정 검증
+```typescript
+// 설정 검증
+private validateConfig(): void {
+  if (!mementoConfig.openaiApiKey) {
+    throw new Error('OPENAI_API_KEY가 설정되지 않았습니다');
+  }
+  
+  if (mementoConfig.vectorWeight + mementoConfig.textWeight !== 1.0) {
+    throw new Error('벡터 가중치와 텍스트 가중치의 합이 1.0이어야 합니다');
+  }
+}
+```
+
+## 📋 개발 체크리스트
+
+### 하이브리드 검색 엔진
+- [ ] 가중치 검증 로직 구현
+- [ ] 점수 정규화 함수 구현
+- [ ] 결과 결합 알고리즘 구현
+- [ ] 에러 처리 및 로깅 추가
+- [ ] 단위 테스트 작성
+
+### 임베딩 서비스
+- [ ] OpenAI API 초기화 로직
+- [ ] 텍스트 전처리 함수
+- [ ] 유사도 계산 함수
+- [ ] 캐싱 메커니즘 구현
+- [ ] 재시도 로직 구현
+
+### 메모리 임베딩 서비스
+- [ ] 임베딩 저장 로직
+- [ ] 벡터 검색 구현
+- [ ] 데이터베이스 연동
+- [ ] 성능 최적화
+- [ ] 통합 테스트 작성

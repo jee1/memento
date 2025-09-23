@@ -79,11 +79,13 @@
 - **수면 통합 배치 작업**: 야간 기억 통합 및 요약
 
 #### 🚀 실제 구현 완료 (M1 MVP)
-- **MCP 서버 구현** (`src/server/index.ts` - 432줄):
+- **MCP 서버 구현** (`src/server/index.ts` - 521줄):
   - remember, recall, forget, pin/unpin Tools 구현
   - Zod 스키마 기반 입력 검증
   - 구조화된 에러 처리 및 로깅
   - MCP 프로토콜 완전 준수
+  - 하이브리드 검색 엔진 통합
+  - 임베딩 서비스 통합
 
 - **검색 엔진 구현** (`src/algorithms/search-engine.ts` - 233줄):
   - FTS5 텍스트 검색 통합
@@ -91,11 +93,29 @@
   - 고급 필터링 시스템 (타입, 태그, 시간, 고정 여부)
   - 성능 최적화된 인덱스 활용
 
+- **하이브리드 검색 엔진 구현** (`src/algorithms/hybrid-search-engine.ts` - 200줄):
+  - FTS5 텍스트 검색 + 벡터 검색 결합
+  - 가중치 조정 시스템 (벡터 60%, 텍스트 40%)
+  - 하이브리드 점수 계산 및 정규화
+  - 고성능 하이브리드 검색 결과 제공
+
 - **데이터베이스 시스템** (`src/database/init.ts` - 102줄):
   - SQLite 데이터베이스 초기화
   - 완전한 스키마 생성 (7개 테이블)
   - FTS5 및 일반 인덱스 설정
   - 안전한 연결 관리
+
+- **임베딩 서비스 구현** (`src/services/embedding-service.ts` - 196줄):
+  - OpenAI API 연동 (`text-embedding-3-small` 모델)
+  - 텍스트를 1536차원 벡터로 변환
+  - 코사인 유사도 기반 검색
+  - 에러 처리 및 재시도 로직
+
+- **메모리 임베딩 서비스 구현** (`src/services/memory-embedding-service.ts` - 237줄):
+  - 메모리와 임베딩을 데이터베이스에 저장
+  - 벡터 검색 및 유사도 계산
+  - 자동 임베딩 생성 및 관리
+  - 성능 최적화된 벡터 검색
 
 - **클라이언트 구현** (`src/client/index.ts`):
   - MCP 프로토콜 기반 클라이언트
@@ -105,6 +125,7 @@
 - **테스트 시스템**:
   - `test-client.ts` (152줄): 클라이언트 통합 테스트
   - `test-search.ts` (152줄): 검색 기능 상세 테스트
+  - `test-embedding.ts` (154줄): 임베딩 기능 테스트
   - Vitest 설정 및 모던 테스트 환경
 
 - **빌드 시스템**:

@@ -50,9 +50,25 @@ description: 실제 구현된 기능들에 대한 개발 규칙
   - 기억 관리 API
   - 에러 처리
 
-#### 6. 테스트 파일들
+#### 6. 하이브리드 검색 엔진 (`src/algorithms/hybrid-search-engine.ts` - 200줄)
+- **FTS5 + 벡터 검색 결합**: 텍스트 검색과 벡터 검색을 결합한 하이브리드 검색
+- **가중치 조정**: 벡터 검색 60%, 텍스트 검색 40% (기본값)
+- **하이브리드 점수**: 텍스트 점수와 벡터 점수를 결합한 최종 점수
+
+#### 7. 임베딩 서비스 (`src/services/embedding-service.ts` - 196줄)
+- **OpenAI API 연동**: `text-embedding-3-small` 모델 사용
+- **벡터 변환**: 텍스트를 1536차원 벡터로 변환
+- **유사도 검색**: 코사인 유사도 기반 검색
+
+#### 8. 메모리 임베딩 서비스 (`src/services/memory-embedding-service.ts` - 237줄)
+- **임베딩 저장**: 메모리와 임베딩을 데이터베이스에 저장
+- **벡터 검색**: 저장된 임베딩을 활용한 유사도 검색
+- **자동 임베딩 생성**: 메모리 저장 시 자동으로 임베딩 생성
+
+#### 9. 테스트 파일들
 - **`test-client.ts`**: 클라이언트 테스트 (152줄)
 - **`test-search.ts`**: 검색 기능 테스트 (152줄)
+- **`test-embedding.ts`**: 임베딩 기능 테스트 (154줄)
 
 ## 🏗️ 실제 아키텍처
 
@@ -70,13 +86,17 @@ src/
 │   ├── init.ts       # 초기화 로직
 │   └── schema.sql    # SQLite 스키마
 ├── server/           # MCP 서버
-│   └── index.ts      # 서버 메인 (432줄)
+│   └── index.ts      # 서버 메인 (521줄)
+├── services/         # 서비스 레이어 (신규)
+│   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
+│   └── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
 ├── types/            # 타입 정의
 │   └── index.ts      # 공통 타입
 ├── utils/            # 유틸리티
 │   └── database.ts   # DB 유틸리티
 ├── test-client.ts    # 클라이언트 테스트
-└── test-search.ts    # 검색 테스트
+├── test-search.ts    # 검색 테스트
+└── test-embedding.ts # 임베딩 테스트
 ```
 
 ## 🔧 실제 사용 가능한 명령어
@@ -109,6 +129,9 @@ npm run test:client
 
 # 검색 기능 테스트
 npm run test:search
+
+# 임베딩 기능 테스트
+npm run test:embedding
 ```
 
 ### 데이터베이스 명령어

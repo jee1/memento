@@ -15,7 +15,8 @@
     "db:init": "tsx src/database/init.ts",
     "db:migrate": "tsx src/database/migrate.ts",
     "test:client": "tsx src/test-client.ts",
-    "test:search": "tsx src/test-search.ts"
+    "test:search": "tsx src/test-search.ts",
+    "test:embedding": "tsx src/test-embedding.ts"
   },
   "keywords": [
     "mcp",

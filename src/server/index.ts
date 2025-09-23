@@ -11,12 +11,16 @@ import { mementoConfig, validateConfig } from '../config/index.js';
 import type { MemoryType, PrivacyScope } from '../types/index.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
+import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import sqlite3 from 'sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
 let db: sqlite3.Database | null = null;
 let searchEngine: SearchEngine;
+let hybridSearchEngine: HybridSearchEngine;
+let embeddingService: MemoryEmbeddingService;
 
 // MCP Tools 스키마 정의
 const RememberSchema = z.object({
@@ -76,19 +80,33 @@ async function handleRemember(params: z.infer<typeof RememberSchema>) {
     `, [id, type, content, importance, privacy_scope, 
         tags ? JSON.stringify(tags) : null, source]);
     
-    await DatabaseUtils.run(db, 'COMMIT');
-    
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            memory_id: id,
-            message: `기억이 저장되었습니다: ${id}`
-          })
-        }
-      ]
-    };
+     await DatabaseUtils.run(db, 'COMMIT');
+     
+     // 임베딩 생성 (비동기, 실패해도 메모리 저장은 성공)
+     if (embeddingService.isAvailable()) {
+       embeddingService.createAndStoreEmbedding(db, id, content, type)
+         .then(result => {
+           if (result) {
+             console.log(`✅ 임베딩 생성 완료: ${id} (${result.embedding.length}차원)`);
+           }
+         })
+         .catch(error => {
+           console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
+         });
+     }
+     
+     return {
+       content: [
+         {
+           type: 'text',
+           text: JSON.stringify({
+             memory_id: id,
+             message: `기억이 저장되었습니다: ${id}`,
+             embedding_created: embeddingService.isAvailable()
+           })
+         }
+       ]
+     };
   } catch (error) {
     // 오류 발생 시 롤백
     try {
@@ -107,15 +125,17 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
   }
   
-  if (!searchEngine) {
-    throw new Error('검색 엔진이 초기화되지 않았습니다');
+  if (!hybridSearchEngine) {
+    throw new Error('하이브리드 검색 엔진이 초기화되지 않았습니다');
   }
   
-  // 개선된 검색 엔진 사용
-  const results = await searchEngine.search(db, {
+  // 하이브리드 검색 엔진 사용 (텍스트 + 벡터 검색)
+  const results = await hybridSearchEngine.search(db, {
     query,
     filters,
-    limit
+    limit,
+    vectorWeight: 0.6, // 벡터 검색 60%
+    textWeight: 0.4,   // 텍스트 검색 40%
   });
   
   return {
@@ -123,7 +143,9 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
       {
         type: 'text',
         text: JSON.stringify({
-          items: results
+          items: results,
+          search_type: 'hybrid',
+          vector_search_available: hybridSearchEngine.isEmbeddingAvailable()
         })
       }
     ]
@@ -149,18 +171,23 @@ async function handleForget(params: z.infer<typeof ForgetSchema>) {
         throw new Error(`Memory with ID ${id} not found`);
       }
       
-      await DatabaseUtils.run(db, 'COMMIT');
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              message: `기억이 완전히 삭제되었습니다: ${id}`
-            })
-          }
-        ]
-      };
+       await DatabaseUtils.run(db, 'COMMIT');
+       
+       // 임베딩도 삭제
+       if (embeddingService.isAvailable()) {
+         await embeddingService.deleteEmbedding(db, id);
+       }
+       
+       return {
+         content: [
+           {
+             type: 'text',
+             text: JSON.stringify({
+               message: `기억이 완전히 삭제되었습니다: ${id}`
+             })
+           }
+         ]
+       };
     } else {
       // 소프트 삭제 (pinned 해제 후 TTL에 의해 삭제)
       const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
@@ -282,6 +309,8 @@ async function initializeServer() {
     
     // 검색 엔진 초기화
     searchEngine = new SearchEngine();
+    hybridSearchEngine = new HybridSearchEngine();
+    embeddingService = new MemoryEmbeddingService();
     
     // MCP 서버 생성
     server = new Server(
