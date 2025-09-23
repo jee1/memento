@@ -84,10 +84,10 @@ export class DatabaseOptimizer {
       // 행 수
       const rowCount = await DatabaseUtils.all(this.db, `SELECT COUNT(*) as count FROM ${tableName}`);
       
-      // 테이블 크기
+      // 테이블 크기 (간단한 추정)
       const size = await DatabaseUtils.all(this.db, `
         SELECT page_count * page_size as size 
-        FROM pragma_page_count('${tableName}'), pragma_page_size('${tableName}')
+        FROM pragma_page_count(), pragma_page_size()
       `);
       
       // 인덱스 수
@@ -121,10 +121,10 @@ export class DatabaseOptimizer {
     const stats: Record<string, any> = {};
 
     for (const index of indexes) {
-      // 인덱스 크기
+      // 인덱스 크기 (간단한 추정 - 인덱스는 테이블이 아니므로 페이지 정보를 직접 가져올 수 없음)
       const size = await DatabaseUtils.all(this.db, `
         SELECT page_count * page_size as size 
-        FROM pragma_page_count('${index.name}'), pragma_page_size('${index.name}')
+        FROM pragma_page_count(), pragma_page_size()
       `);
 
       // 컬럼 추출 (간단한 파싱)
@@ -134,7 +134,7 @@ export class DatabaseOptimizer {
         name: index.name,
         table: index.tbl_name,
         columns,
-        size: size[0].size,
+        size: size[0].size, // 전체 데이터베이스 크기로 추정
         usage: 0 // 실제로는 SQLite 통계에서 가져와야 함
       };
     }
@@ -199,10 +199,14 @@ export class DatabaseOptimizer {
       .map(([query]) => query);
 
     for (const query of complexQueries) {
+      const tableMatch = query.match(/FROM\s+(\w+)/i);
+      if (!tableMatch || !tableMatch[1]) continue;
+      const tableName = tableMatch[1];
+      
       const columns = this.extractColumnsFromQuery(query);
       if (columns.length > 1) {
         recommendations.push({
-          table: 'memory_item',
+          table: tableName,
           columns,
           type: 'btree',
           priority: 'high',
@@ -222,20 +226,25 @@ export class DatabaseOptimizer {
     const patterns: Array<{ type: string; table: string; columns: string[]; frequency: number }> = [];
     
     for (const [query, stats] of this.queryHistory) {
+      // 쿼리에서 테이블명 추출
+      const tableMatch = query.match(/FROM\s+(\w+)/i);
+      if (!tableMatch || !tableMatch[1]) continue;
+      const tableName = tableMatch[1];
+      
       if (query.includes('WHERE')) {
         const whereClause = query.match(/WHERE\s+(.+?)(?:\s+ORDER|\s+GROUP|\s+LIMIT|$)/i);
-      if (whereClause && whereClause[1]) {
-        const conditions = whereClause[1].split('AND').map(c => c.trim());
+        if (whereClause && whereClause[1]) {
+          const conditions = whereClause[1].split('AND').map(c => c.trim());
           for (const condition of conditions) {
             const column = this.extractColumnFromCondition(condition);
             if (column) {
-              const existing = patterns.find(p => p.table === 'memory_item' && p.columns.includes(column));
+              const existing = patterns.find(p => p.table === tableName && p.columns.includes(column));
               if (existing) {
                 existing.frequency += stats.count;
               } else {
                 patterns.push({
                   type: 'filter',
-                  table: 'memory_item',
+                  table: tableName,
                   columns: [column],
                   frequency: stats.count
                 });
