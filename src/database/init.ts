@@ -31,14 +31,19 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
         return;
       }
       
-      // WAL 모드 대신 DELETE 모드 사용 (개발 단계에서 잠금 문제 방지)
-      db.run('PRAGMA journal_mode = DELETE');
+      // WAL 모드 사용 (동시 읽기 성능 향상)
+      db.run('PRAGMA journal_mode = WAL');
       
       // 외래키 제약 조건 활성화
       db.run('PRAGMA foreign_keys = ON');
       
-      // 잠금 타임아웃 설정 (30초)
-      db.run('PRAGMA busy_timeout = 30000');
+      // 잠금 타임아웃 설정 (60초)
+      db.run('PRAGMA busy_timeout = 60000');
+      
+      // 동시성 설정
+      db.run('PRAGMA synchronous = NORMAL');
+      db.run('PRAGMA cache_size = 10000');
+      db.run('PRAGMA temp_store = MEMORY');
       
       // 스키마 파일 읽기 및 실행
       const schemaPath = join(__dirname, 'schema.sql');
@@ -61,9 +66,19 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
 }
 
 export function closeDatabase(db: sqlite3.Database): void {
+  if (!db) {
+    console.log('🔒 데이터베이스가 이미 닫혔습니다');
+    return;
+  }
+  
   db.close((err) => {
     if (err) {
-      console.error('❌ 데이터베이스 종료 실패:', err);
+      // SQLITE_MISUSE 오류는 데이터베이스가 이미 닫혔을 때 발생하므로 무시
+      if ((err as any).code === 'SQLITE_MISUSE') {
+        console.log('🔒 데이터베이스가 이미 닫혔습니다');
+      } else {
+        console.error('❌ 데이터베이스 종료 실패:', err);
+      }
     } else {
       console.log('🔒 데이터베이스 연결 종료');
     }

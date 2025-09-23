@@ -14,7 +14,7 @@ import sqlite3 from 'sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
-let db: sqlite3.Database;
+let db: sqlite3.Database | null = null;
 
 // MCP Tools 스키마 정의
 const RememberSchema = z.object({
@@ -60,6 +60,10 @@ async function handleRemember(params: z.infer<typeof RememberSchema>) {
   const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // 데이터베이스에 저장
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
   await DatabaseUtils.run(db, `
     INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -115,6 +119,10 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
   sql += ` ORDER BY m.created_at DESC LIMIT ?`;
   params_array.push(limit);
   
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
   const results = await DatabaseUtils.all(db, sql, params_array);
   
   return {
@@ -142,6 +150,10 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
 
 async function handleForget(params: z.infer<typeof ForgetSchema>) {
   const { id, hard } = params;
+  
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
   
   if (hard) {
     // 하드 삭제
@@ -185,6 +197,10 @@ async function handleForget(params: z.infer<typeof ForgetSchema>) {
 async function handlePin(params: z.infer<typeof PinSchema>) {
   const { id } = params;
   
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
   const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
   
   if (result.changes === 0) {
@@ -205,6 +221,10 @@ async function handlePin(params: z.infer<typeof PinSchema>) {
 
 async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
   const { id } = params;
+  
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
   
   const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
   
@@ -406,9 +426,18 @@ async function startServer() {
 }
 
 // 정리 함수
+let isCleaningUp = false;
+
 async function cleanup() {
+  if (isCleaningUp) {
+    return; // 이미 정리 중이면 중복 실행 방지
+  }
+  
+  isCleaningUp = true;
+  
   if (db) {
     closeDatabase(db);
+    db = null; // 참조 제거
   }
   console.error('👋 Memento MCP Server 종료');
 }
