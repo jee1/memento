@@ -54,35 +54,50 @@ const UnpinSchema = z.object({
   id: z.string().min(1, 'Memory ID cannot be empty')
 });
 
-// Tool 핸들러들 (임시 구현)
+// Tool 핸들러들 (개선된 구현)
 async function handleRemember(params: z.infer<typeof RememberSchema>) {
   const { content, type, tags, importance, source, privacy_scope } = params;
   
   // UUID 생성 (임시로 간단한 ID 사용)
   const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
-  // 데이터베이스에 저장
+  // 데이터베이스 연결 확인
   if (!db) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
   }
   
-  await DatabaseUtils.run(db, `
-    INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `, [id, type, content, importance, privacy_scope, 
-      tags ? JSON.stringify(tags) : null, source]);
-  
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify({
-          memory_id: id,
-          message: `기억이 저장되었습니다: ${id}`
-        })
-      }
-    ]
-  };
+  try {
+    // 트랜잭션으로 원자성 보장
+    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
+    
+    await DatabaseUtils.run(db, `
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `, [id, type, content, importance, privacy_scope, 
+        tags ? JSON.stringify(tags) : null, source]);
+    
+    await DatabaseUtils.run(db, 'COMMIT');
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            memory_id: id,
+            message: `기억이 저장되었습니다: ${id}`
+          })
+        }
+      ]
+    };
+  } catch (error) {
+    // 오류 발생 시 롤백
+    try {
+      await DatabaseUtils.run(db, 'ROLLBACK');
+    } catch (rollbackError) {
+      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    }
+    throw error;
+  }
 }
 
 async function handleRecall(params: z.infer<typeof RecallSchema>) {
@@ -122,42 +137,59 @@ async function handleForget(params: z.infer<typeof ForgetSchema>) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
   }
   
-  if (hard) {
-    // 하드 삭제
-    const result = await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [id]);
+  try {
+    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
     
-    if (result.changes === 0) {
-      throw new Error(`Memory with ID ${id} not found`);
+    if (hard) {
+      // 하드 삭제
+      const result = await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [id]);
+      
+      if (result.changes === 0) {
+        await DatabaseUtils.run(db, 'ROLLBACK');
+        throw new Error(`Memory with ID ${id} not found`);
+      }
+      
+      await DatabaseUtils.run(db, 'COMMIT');
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              message: `기억이 완전히 삭제되었습니다: ${id}`
+            })
+          }
+        ]
+      };
+    } else {
+      // 소프트 삭제 (pinned 해제 후 TTL에 의해 삭제)
+      const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
+      
+      if (result.changes === 0) {
+        await DatabaseUtils.run(db, 'ROLLBACK');
+        throw new Error(`Memory with ID ${id} not found`);
+      }
+      
+      await DatabaseUtils.run(db, 'COMMIT');
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              message: `기억이 삭제 대상으로 표시되었습니다: ${id}`
+            })
+          }
+        ]
+      };
     }
-    
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            message: `기억이 완전히 삭제되었습니다: ${id}`
-          })
-        }
-      ]
-    };
-  } else {
-    // 소프트 삭제 (pinned 해제 후 TTL에 의해 삭제)
-    const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
-    
-    if (result.changes === 0) {
-      throw new Error(`Memory with ID ${id} not found`);
+  } catch (error) {
+    try {
+      await DatabaseUtils.run(db, 'ROLLBACK');
+    } catch (rollbackError) {
+      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
     }
-    
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            message: `기억이 삭제 대상으로 표시되었습니다: ${id}`
-          })
-        }
-      ]
-    };
+    throw error;
   }
 }
 
@@ -168,22 +200,36 @@ async function handlePin(params: z.infer<typeof PinSchema>) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
   }
   
-  const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
-  
-  if (result.changes === 0) {
-    throw new Error(`Memory with ID ${id} not found`);
+  try {
+    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
+    
+    const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
+    
+    if (result.changes === 0) {
+      await DatabaseUtils.run(db, 'ROLLBACK');
+      throw new Error(`Memory with ID ${id} not found`);
+    }
+    
+    await DatabaseUtils.run(db, 'COMMIT');
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            message: `기억이 고정되었습니다: ${id}`
+          })
+        }
+      ]
+    };
+  } catch (error) {
+    try {
+      await DatabaseUtils.run(db, 'ROLLBACK');
+    } catch (rollbackError) {
+      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    }
+    throw error;
   }
-  
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify({
-          message: `기억이 고정되었습니다: ${id}`
-        })
-      }
-    ]
-  };
 }
 
 async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
@@ -193,22 +239,36 @@ async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
   }
   
-  const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
-  
-  if (result.changes === 0) {
-    throw new Error(`Memory with ID ${id} not found`);
+  try {
+    await DatabaseUtils.run(db, 'BEGIN TRANSACTION');
+    
+    const result = await DatabaseUtils.run(db, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
+    
+    if (result.changes === 0) {
+      await DatabaseUtils.run(db, 'ROLLBACK');
+      throw new Error(`Memory with ID ${id} not found`);
+    }
+    
+    await DatabaseUtils.run(db, 'COMMIT');
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            message: `기억 고정이 해제되었습니다: ${id}`
+          })
+        }
+      ]
+    };
+  } catch (error) {
+    try {
+      await DatabaseUtils.run(db, 'ROLLBACK');
+    } catch (rollbackError) {
+      console.error('❌ 트랜잭션 롤백 실패:', rollbackError);
+    }
+    throw error;
   }
-  
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify({
-          message: `기억 고정이 해제되었습니다: ${id}`
-        })
-      }
-    ]
-  };
 }
 
 // MCP 서버 초기화

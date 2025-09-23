@@ -37,13 +37,16 @@ export async function initializeDatabase(): Promise<sqlite3.Database> {
       // 외래키 제약 조건 활성화
       db.run('PRAGMA foreign_keys = ON');
       
-      // 잠금 타임아웃 설정 (60초)
-      db.run('PRAGMA busy_timeout = 60000');
+      // 잠금 타임아웃 설정 (30초로 단축)
+      db.run('PRAGMA busy_timeout = 30000');
       
-      // 동시성 설정
+      // 동시성 설정 최적화
       db.run('PRAGMA synchronous = NORMAL');
-      db.run('PRAGMA cache_size = 10000');
+      db.run('PRAGMA cache_size = 20000'); // 캐시 크기 증가
       db.run('PRAGMA temp_store = MEMORY');
+      db.run('PRAGMA mmap_size = 268435456'); // 256MB 메모리 맵핑
+      db.run('PRAGMA wal_autocheckpoint = 1000'); // WAL 자동 체크포인트
+      db.run('PRAGMA journal_size_limit = 67108864'); // 64MB WAL 크기 제한
       
       // 스키마 파일 읽기 및 실행
       const schemaPath = join(__dirname, 'schema.sql');
