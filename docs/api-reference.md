@@ -622,6 +622,217 @@ const schedule = await client.callTool('schedule_review', {
 });
 ```
 
+## 10. 성능 모니터링
+
+### `get_performance_metrics`
+
+시스템의 성능 메트릭을 조회합니다.
+
+#### 매개변수
+
+```typescript
+{
+  timeRange?: '1h' | '24h' | '7d' | '30d';  // 시간 범위
+  includeDetails?: boolean;                  // 상세 정보 포함 여부
+}
+```
+
+#### 응답
+
+```typescript
+{
+  success: boolean;
+  result: {
+    database: {
+      totalMemories: number;
+      memoryByType: Record<string, number>;
+      averageMemorySize: number;
+      databaseSize: number;
+      queryPerformance: {
+        averageQueryTime: number;
+        slowQueries: Array<{ query: string; time: number; count: number }>;
+      };
+    };
+    search: {
+      totalSearches: number;
+      averageSearchTime: number;
+      cacheHitRate: number;
+      embeddingSearchRate: number;
+    };
+    memory: {
+      usage: number;
+      heapUsed: number;
+      heapTotal: number;
+      rss: number;
+    };
+    system: {
+      uptime: number;
+      cpuUsage: number;
+      loadAverage: number[];
+    };
+  };
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 기본 성능 메트릭 조회
+const metrics = await client.callTool('get_performance_metrics', {});
+
+// 24시간 상세 메트릭 조회
+const metrics = await client.callTool('get_performance_metrics', {
+  timeRange: '24h',
+  includeDetails: true
+});
+
+console.log(`총 메모리 수: ${metrics.result.database.totalMemories}`);
+console.log(`평균 검색 시간: ${metrics.result.search.averageSearchTime}ms`);
+console.log(`캐시 히트율: ${(metrics.result.search.cacheHitRate * 100).toFixed(1)}%`);
+```
+
+## 11. 캐시 관리
+
+### `get_cache_stats`
+
+캐시 시스템의 통계를 조회합니다.
+
+#### 매개변수
+
+```typescript
+{
+  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
+}
+```
+
+#### 응답
+
+```typescript
+{
+  success: boolean;
+  result: {
+    hits: number;
+    misses: number;
+    totalRequests: number;
+    hitRate: number;
+    size: number;
+    memoryUsage: number;
+  };
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 전체 캐시 통계 조회
+const stats = await client.callTool('get_cache_stats', {});
+
+// 검색 캐시만 조회
+const stats = await client.callTool('get_cache_stats', {
+  cacheType: 'search'
+});
+
+console.log(`캐시 히트율: ${(stats.result.hitRate * 100).toFixed(1)}%`);
+console.log(`캐시 크기: ${stats.result.size}개 항목`);
+console.log(`메모리 사용량: ${(stats.result.memoryUsage / 1024 / 1024).toFixed(2)}MB`);
+```
+
+### `clear_cache`
+
+캐시를 초기화합니다.
+
+#### 매개변수
+
+```typescript
+{
+  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
+  pattern?: string;                             // 제거할 패턴 (정규식)
+}
+```
+
+#### 응답
+
+```typescript
+{
+  success: boolean;
+  result: {
+    clearedCount: number;                       // 제거된 항목 수
+    remainingCount: number;                     // 남은 항목 수
+  };
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 전체 캐시 초기화
+const result = await client.callTool('clear_cache', {});
+
+// 검색 캐시만 초기화
+const result = await client.callTool('clear_cache', {
+  cacheType: 'search'
+});
+
+// 특정 패턴의 캐시 제거
+const result = await client.callTool('clear_cache', {
+  pattern: 'search:.*test.*'
+});
+
+console.log(`제거된 항목: ${result.result.clearedCount}개`);
+```
+
+## 12. 데이터베이스 최적화
+
+### `optimize_database`
+
+데이터베이스 성능을 최적화합니다.
+
+#### 매개변수
+
+```typescript
+{
+  actions?: ('analyze' | 'index' | 'vacuum' | 'all')[];  // 수행할 작업
+  autoCreateIndexes?: boolean;                           // 자동 인덱스 생성
+}
+```
+
+#### 응답
+
+```typescript
+{
+  success: boolean;
+  result: {
+    analyzedQueries: number;
+    createdIndexes: number;
+    optimizedTables: number;
+    recommendations: Array<{
+      type: 'index' | 'query' | 'table';
+      priority: 'high' | 'medium' | 'low';
+      description: string;
+      estimatedImprovement: string;
+    }>;
+  };
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 전체 데이터베이스 최적화
+const result = await client.callTool('optimize_database', {
+  actions: ['all'],
+  autoCreateIndexes: true
+});
+
+// 쿼리 분석만 수행
+const result = await client.callTool('optimize_database', {
+  actions: ['analyze']
+});
+
+console.log(`생성된 인덱스: ${result.result.createdIndexes}개`);
+console.log(`최적화된 테이블: ${result.result.optimizedTables}개`);
+```
+
 ## MCP Prompts
 
 ### memory_injection

@@ -1,0 +1,498 @@
+---
+globs: "src/services/cache-service.ts"
+description: 캐시 서비스 개발 규칙
+---
+
+# 캐시 서비스 개발 규칙
+
+## 📋 캐시 서비스
+
+### 현재 구현 상태
+- **파일**: `src/services/cache-service.ts` (352줄)
+- **기능**: 메모리 캐싱, 검색 결과 캐싱, 성능 최적화
+- **특징**: LRU 정책, TTL 관리, 통계 수집
+
+### 핵심 인터페이스
+
+```typescript
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+  accessCount: number;
+  lastAccessed: number;
+}
+
+interface CacheStats {
+  hits: number;
+  misses: number;
+  totalRequests: number;
+  hitRate: number;
+  size: number;
+  memoryUsage: number;
+}
+
+interface CacheConfig {
+  maxSize: number;
+  defaultTTL: number;
+  cleanupInterval: number;
+  enableStatistics: boolean;
+}
+```
+
+## 🔧 캐시 서비스 구현
+
+### 1. 기본 캐시 서비스
+
+```typescript
+export class CacheService<T = any> {
+  private cache: Map<string, CacheEntry<T>> = new Map();
+  private accessOrder: string[] = [];
+  private hits: number = 0;
+  private misses: number = 0;
+  private maxSize: number;
+  private defaultTTL: number;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  constructor(
+    maxSize: number = 1000,
+    defaultTTL: number = 300000, // 5분
+    cleanupInterval: number = 60000 // 1분
+  ) {
+    this.maxSize = maxSize;
+    this.defaultTTL = defaultTTL;
+    this.startCleanup(cleanupInterval);
+  }
+}
+```
+
+### 2. 캐시 조회 (GET)
+
+```typescript
+get(key: string): T | null {
+  const entry = this.cache.get(key);
+  
+  if (!entry) {
+    this.misses++;
+    return null;
+  }
+  
+  // TTL 확인
+  if (this.isExpired(entry)) {
+    this.cache.delete(key);
+    this.removeFromAccessOrder(key);
+    this.misses++;
+    return null;
+  }
+  
+  // LRU 업데이트
+  this.updateAccessOrder(key);
+  entry.accessCount++;
+  entry.lastAccessed = Date.now();
+  this.hits++;
+  
+  return entry.data;
+}
+
+private isExpired(entry: CacheEntry<T>): boolean {
+  return Date.now() - entry.timestamp > entry.ttl;
+}
+```
+
+### 3. 캐시 저장 (SET)
+
+```typescript
+set(key: string, data: T, ttl?: number): void {
+  // 캐시 크기 확인 및 LRU 제거
+  if (this.cache.size >= this.maxSize) {
+    this.evictLRU();
+  }
+  
+  const entry: CacheEntry<T> = {
+    data,
+    timestamp: Date.now(),
+    ttl: ttl || this.defaultTTL,
+    accessCount: 0,
+    lastAccessed: Date.now()
+  };
+  
+  this.cache.set(key, entry);
+  this.updateAccessOrder(key);
+}
+```
+
+### 4. LRU 제거 로직
+
+```typescript
+private evictLRU(): void {
+  if (this.accessOrder.length === 0) return;
+  
+  const lruKey = this.accessOrder[0];
+  this.cache.delete(lruKey);
+  this.removeFromAccessOrder(lruKey);
+}
+
+private updateAccessOrder(key: string): void {
+  // 기존 위치에서 제거
+  this.removeFromAccessOrder(key);
+  // 맨 뒤에 추가 (가장 최근 사용)
+  this.accessOrder.push(key);
+}
+
+private removeFromAccessOrder(key: string): void {
+  const index = this.accessOrder.indexOf(key);
+  if (index > -1) {
+    this.accessOrder.splice(index, 1);
+  }
+}
+```
+
+### 5. 캐시 무효화
+
+```typescript
+delete(key: string): boolean {
+  const deleted = this.cache.delete(key);
+  if (deleted) {
+    this.removeFromAccessOrder(key);
+  }
+  return deleted;
+}
+
+clear(): void {
+  this.cache.clear();
+  this.accessOrder = [];
+  this.hits = 0;
+  this.misses = 0;
+}
+
+invalidatePattern(pattern: RegExp): number {
+  let invalidatedCount = 0;
+  
+  for (const key of this.cache.keys()) {
+    if (pattern.test(key)) {
+      this.delete(key);
+      invalidatedCount++;
+    }
+  }
+  
+  return invalidatedCount;
+}
+```
+
+## 🔍 검색 결과 캐싱
+
+### 1. 검색 캐시 서비스
+
+```typescript
+export class SearchCacheService extends CacheService<SearchResult[]> {
+  private queryCache: Map<string, string> = new Map();
+  
+  generateCacheKey(query: string, filters?: SearchFilters): string {
+    const filterStr = filters ? this.serializeFilters(filters) : '';
+    const normalizedQuery = this.normalizeQuery(query);
+    return `search:${normalizedQuery}:${filterStr}`;
+  }
+  
+  private normalizeQuery(query: string): string {
+    return query.toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+  
+  private serializeFilters(filters: SearchFilters): string {
+    const sorted = Object.keys(filters)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = filters[key];
+        return result;
+      }, {} as any);
+    
+    return JSON.stringify(sorted);
+  }
+}
+```
+
+### 2. 검색 결과 캐싱
+
+```typescript
+async getCachedSearch(
+  query: string,
+  filters?: SearchFilters
+): Promise<SearchResult[] | null> {
+  const key = this.generateCacheKey(query, filters);
+  return this.get(key);
+}
+
+async cacheSearch(
+  query: string,
+  results: SearchResult[],
+  filters?: SearchFilters,
+  ttl: number = 300000 // 5분
+): Promise<void> {
+  const key = this.generateCacheKey(query, filters);
+  this.set(key, results, ttl);
+}
+
+async invalidateSearchCache(query?: string): Promise<number> {
+  if (query) {
+    const pattern = new RegExp(`^search:${this.normalizeQuery(query)}:`, 'i');
+    return this.invalidatePattern(pattern);
+  } else {
+    const pattern = /^search:/;
+    return this.invalidatePattern(pattern);
+  }
+}
+```
+
+### 3. 임베딩 캐시
+
+```typescript
+export class EmbeddingCacheService extends CacheService<number[]> {
+  generateCacheKey(text: string): string {
+    const normalized = text.toLowerCase().trim();
+    return `embedding:${this.hashText(normalized)}`;
+  }
+  
+  private hashText(text: string): string {
+    // 간단한 해시 함수 (실제로는 crypto.createHash 사용)
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 32비트 정수로 변환
+    }
+    return Math.abs(hash).toString(36);
+  }
+  
+  async getCachedEmbedding(text: string): Promise<number[] | null> {
+    const key = this.generateCacheKey(text);
+    return this.get(key);
+  }
+  
+  async cacheEmbedding(text: string, embedding: number[], ttl: number = 3600000): Promise<void> {
+    const key = this.generateCacheKey(text);
+    this.set(key, embedding, ttl);
+  }
+}
+```
+
+## 📊 캐시 통계 및 모니터링
+
+### 1. 통계 수집
+
+```typescript
+getStats(): CacheStats {
+  const totalRequests = this.hits + this.misses;
+  const hitRate = totalRequests > 0 ? this.hits / totalRequests : 0;
+  
+  let memoryUsage = 0;
+  for (const entry of this.cache.values()) {
+    memoryUsage += this.estimateMemoryUsage(entry);
+  }
+  
+  return {
+    hits: this.hits,
+    misses: this.misses,
+    totalRequests,
+    hitRate,
+    size: this.cache.size,
+    memoryUsage
+  };
+}
+
+private estimateMemoryUsage(entry: CacheEntry<T>): number {
+  // 간단한 메모리 사용량 추정
+  let size = 0;
+  
+  // 키 크기 (문자열)
+  size += entry.data.toString().length * 2; // UTF-16
+  
+  // 메타데이터 크기
+  size += 32; // timestamp, ttl, accessCount, lastAccessed
+  
+  return size;
+}
+```
+
+### 2. 성능 모니터링
+
+```typescript
+class CacheMonitor {
+  private cacheService: CacheService;
+  private metrics: CacheMetrics[] = [];
+  private monitoringInterval: NodeJS.Timeout | null = null;
+  
+  startMonitoring(interval: number = 60000): void {
+    this.monitoringInterval = setInterval(() => {
+      this.collectMetrics();
+    }, interval);
+  }
+  
+  private collectMetrics(): void {
+    const stats = this.cacheService.getStats();
+    const timestamp = new Date();
+    
+    this.metrics.push({
+      timestamp,
+      ...stats,
+      memoryUsageMB: stats.memoryUsage / (1024 * 1024)
+    });
+    
+    // 오래된 메트릭 제거 (24시간)
+    const cutoff = new Date(timestamp.getTime() - 24 * 60 * 60 * 1000);
+    this.metrics = this.metrics.filter(m => m.timestamp > cutoff);
+  }
+  
+  getMetrics(timeRange?: { start: Date; end: Date }): CacheMetrics[] {
+    if (!timeRange) return this.metrics;
+    
+    return this.metrics.filter(m => 
+      m.timestamp >= timeRange.start && m.timestamp <= timeRange.end
+    );
+  }
+}
+```
+
+### 3. 캐시 최적화
+
+```typescript
+class CacheOptimizer {
+  private cacheService: CacheService;
+  
+  constructor(cacheService: CacheService) {
+    this.cacheService = cacheService;
+  }
+  
+  optimize(): OptimizationResult {
+    const stats = this.cacheService.getStats();
+    const recommendations: string[] = [];
+    
+    // 히트율이 낮으면 TTL 조정
+    if (stats.hitRate < 0.5) {
+      recommendations.push('Consider increasing TTL for better hit rate');
+    }
+    
+    // 메모리 사용량이 높으면 크기 조정
+    if (stats.memoryUsage > 100 * 1024 * 1024) { // 100MB
+      recommendations.push('Consider reducing cache size or implementing compression');
+    }
+    
+    // 캐시 크기가 작으면 확장
+    if (stats.size >= this.cacheService.maxSize * 0.9) {
+      recommendations.push('Consider increasing cache size');
+    }
+    
+    return {
+      currentStats: stats,
+      recommendations,
+      estimatedImprovement: this.calculateImprovement(stats)
+    };
+  }
+}
+```
+
+## 🧪 캐시 테스트
+
+### 1. 기본 기능 테스트
+
+```typescript
+describe('CacheService', () => {
+  let cache: CacheService<string>;
+  
+  beforeEach(() => {
+    cache = new CacheService(10, 1000); // 10개 항목, 1초 TTL
+  });
+  
+  it('should store and retrieve data', () => {
+    cache.set('key1', 'value1');
+    expect(cache.get('key1')).toBe('value1');
+  });
+  
+  it('should return null for non-existent key', () => {
+    expect(cache.get('nonexistent')).toBeNull();
+  });
+  
+  it('should respect TTL', async () => {
+    cache.set('key1', 'value1', 100); // 100ms TTL
+    expect(cache.get('key1')).toBe('value1');
+    
+    await new Promise(resolve => setTimeout(resolve, 150));
+    expect(cache.get('key1')).toBeNull();
+  });
+  
+  it('should implement LRU eviction', () => {
+    // 캐시 크기만큼 데이터 추가
+    for (let i = 0; i < 10; i++) {
+      cache.set(`key${i}`, `value${i}`);
+    }
+    
+    // 첫 번째 항목에 접근
+    cache.get('key0');
+    
+    // 새 항목 추가 (LRU 제거 발생)
+    cache.set('key10', 'value10');
+    
+    // key0은 접근했으므로 남아있어야 함
+    expect(cache.get('key0')).toBe('value0');
+    // key1은 LRU로 제거되어야 함
+    expect(cache.get('key1')).toBeNull();
+  });
+});
+```
+
+### 2. 성능 테스트
+
+```typescript
+describe('CacheService Performance', () => {
+  it('should handle high throughput', () => {
+    const cache = new CacheService(10000, 60000);
+    const iterations = 100000;
+    
+    const startTime = Date.now();
+    
+    // 대량 데이터 저장
+    for (let i = 0; i < iterations; i++) {
+      cache.set(`key${i}`, `value${i}`);
+    }
+    
+    // 대량 데이터 조회
+    for (let i = 0; i < iterations; i++) {
+      cache.get(`key${i}`);
+    }
+    
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    expect(duration).toBeLessThan(5000); // 5초 이내
+  });
+});
+```
+
+## 📋 개발 체크리스트
+
+### 기본 캐시 기능
+- [ ] LRU 캐시 구현
+- [ ] TTL 관리 시스템 구현
+- [ ] 캐시 통계 수집 구현
+- [ ] 메모리 사용량 추정 구현
+- [ ] 자동 정리 시스템 구현
+- [ ] 단위 테스트 작성
+
+### 검색 캐시
+- [ ] 검색 결과 캐싱 구현
+- [ ] 쿼리 정규화 구현
+- [ ] 필터 직렬화 구현
+- [ ] 캐시 무효화 구현
+- [ ] 성능 테스트 작성
+
+### 임베딩 캐시
+- [ ] 임베딩 캐싱 구현
+- [ ] 텍스트 해싱 구현
+- [ ] 임베딩 검색 최적화 구현
+- [ ] 메모리 효율성 개선
+- [ ] 통합 테스트 작성
+
+### 모니터링 및 최적화
+- [ ] 실시간 모니터링 구현
+- [ ] 성능 메트릭 수집 구현
+- [ ] 최적화 추천 시스템 구현
+- [ ] 대시보드 연동 구현
+- [ ] 부하 테스트 작성

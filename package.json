@@ -19,7 +19,9 @@
     "test:client": "tsx src/test-client.ts",
     "test:search": "tsx src/test-search.ts",
     "test:embedding": "tsx src/test-embedding.ts",
-    "test:forgetting": "tsx src/test-forgetting.ts"
+    "test:forgetting": "tsx src/test-forgetting.ts",
+    "test:performance": "tsx src/test/performance-benchmark.ts",
+    "test:monitoring": "tsx src/test-performance-monitoring.ts"
   },
   "keywords": [
     "mcp",

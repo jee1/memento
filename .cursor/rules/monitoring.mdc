@@ -1,0 +1,622 @@
+---
+globs: "src/services/performance-monitor.ts,src/test/performance-benchmark.ts,src/test-performance-monitoring.ts"
+description: 성능 모니터링 및 벤치마크 개발 규칙
+---
+
+# 성능 모니터링 및 벤치마크 개발 규칙
+
+## 📋 성능 모니터링 시스템
+
+### 현재 구현 상태
+- **성능 모니터링**: `src/services/performance-monitor.ts` (367줄)
+- **성능 벤치마크**: `src/test/performance-benchmark.ts` (497줄)
+- **모니터링 테스트**: `src/test-performance-monitoring.ts` (172줄)
+
+### 핵심 인터페이스
+
+```typescript
+interface PerformanceMetrics {
+  database: {
+    totalMemories: number;
+    memoryByType: Record<string, number>;
+    averageMemorySize: number;
+    databaseSize: number;
+    indexUsage: Record<string, number>;
+    queryPerformance: {
+      averageQueryTime: number;
+      slowQueries: Array<{ query: string; time: number; count: number }>;
+    };
+  };
+  search: {
+    totalSearches: number;
+    averageSearchTime: number;
+    searchByType: Record<string, number>;
+    cacheHitRate: number;
+    embeddingSearchRate: number;
+  };
+  memory: {
+    usage: number;
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
+    rss: number;
+  };
+  system: {
+    uptime: number;
+    cpuUsage: number;
+    loadAverage: number[];
+    diskUsage: number;
+  };
+}
+```
+
+## 📊 성능 모니터링 서비스
+
+### 1. 메트릭 수집
+
+```typescript
+export class PerformanceMonitor {
+  private metrics: PerformanceMetrics;
+  private collectionInterval: number = 5000; // 5초
+  private intervalId: NodeJS.Timeout | null = null;
+  private db: sqlite3.Database;
+  
+  constructor(db: sqlite3.Database) {
+    this.db = db;
+    this.metrics = this.initializeMetrics();
+  }
+  
+  startMonitoring(): void {
+    if (this.intervalId) return;
+    
+    this.intervalId = setInterval(() => {
+      this.collectMetrics();
+    }, this.collectionInterval);
+  }
+  
+  private async collectMetrics(): Promise<void> {
+    try {
+      // 데이터베이스 메트릭 수집
+      this.metrics.database = await this.collectDatabaseMetrics();
+      
+      // 검색 메트릭 수집
+      this.metrics.search = await this.collectSearchMetrics();
+      
+      // 메모리 메트릭 수집
+      this.metrics.memory = await this.collectMemoryMetrics();
+      
+      // 시스템 메트릭 수집
+      this.metrics.system = await this.collectSystemMetrics();
+      
+      // 임계값 확인
+      this.checkThresholds();
+    } catch (error) {
+      console.error('Failed to collect metrics:', error);
+    }
+  }
+}
+```
+
+### 2. 데이터베이스 메트릭 수집
+
+```typescript
+private async collectDatabaseMetrics(): Promise<DatabaseMetrics> {
+  const totalMemories = await this.getTotalMemories();
+  const memoryByType = await this.getMemoryByType();
+  const averageMemorySize = await this.getAverageMemorySize();
+  const databaseSize = await this.getDatabaseSize();
+  const indexUsage = await this.getIndexUsage();
+  const queryPerformance = await this.getQueryPerformance();
+  
+  return {
+    totalMemories,
+    memoryByType,
+    averageMemorySize,
+    databaseSize,
+    indexUsage,
+    queryPerformance
+  };
+}
+
+private async getTotalMemories(): Promise<number> {
+  const result = await this.db.get('SELECT COUNT(*) as count FROM memory_item');
+  return result.count;
+}
+
+private async getMemoryByType(): Promise<Record<string, number>> {
+  const result = await this.db.all(`
+    SELECT type, COUNT(*) as count 
+    FROM memory_item 
+    GROUP BY type
+  `);
+  
+  return result.reduce((acc, row) => {
+    acc[row.type] = row.count;
+    return acc;
+  }, {} as Record<string, number>);
+}
+```
+
+### 3. 검색 메트릭 수집
+
+```typescript
+private async collectSearchMetrics(): Promise<SearchMetrics> {
+  const totalSearches = await this.getTotalSearches();
+  const averageSearchTime = await this.getAverageSearchTime();
+  const searchByType = await this.getSearchByType();
+  const cacheHitRate = await this.getCacheHitRate();
+  const embeddingSearchRate = await this.getEmbeddingSearchRate();
+  
+  return {
+    totalSearches,
+    averageSearchTime,
+    searchByType,
+    cacheHitRate,
+    embeddingSearchRate
+  };
+}
+
+private async getTotalSearches(): Promise<number> {
+  const result = await this.db.get(`
+    SELECT COUNT(*) as count 
+    FROM search_log 
+    WHERE created_at > datetime('now', '-24 hours')
+  `);
+  return result.count;
+}
+```
+
+### 4. 메모리 메트릭 수집
+
+```typescript
+private async collectMemoryMetrics(): Promise<MemoryMetrics> {
+  const usage = process.memoryUsage();
+  
+  return {
+    usage: usage.heapUsed / usage.heapTotal,
+    heapUsed: usage.heapUsed,
+    heapTotal: usage.heapTotal,
+    external: usage.external,
+    rss: usage.rss
+  };
+}
+```
+
+### 5. 시스템 메트릭 수집
+
+```typescript
+private async collectSystemMetrics(): Promise<SystemMetrics> {
+  const uptime = process.uptime();
+  const cpuUsage = await this.getCpuUsage();
+  const loadAverage = await this.getLoadAverage();
+  const diskUsage = await this.getDiskUsage();
+  
+  return {
+    uptime,
+    cpuUsage,
+    loadAverage,
+    diskUsage
+  };
+}
+
+private async getCpuUsage(): Promise<number> {
+  const startUsage = process.cpuUsage();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const endUsage = process.cpuUsage(startUsage);
+  
+  const totalUsage = endUsage.user + endUsage.system;
+  const totalTime = 100000; // 100ms in microseconds
+  return totalUsage / totalTime;
+}
+```
+
+## 🚨 임계값 모니터링
+
+### 1. 임계값 설정
+
+```typescript
+interface PerformanceThresholds {
+  maxResponseTime: number;
+  maxMemoryUsage: number;
+  minCacheHitRate: number;
+  maxErrorRate: number;
+  maxCpuUsage: number;
+  maxDiskUsage: number;
+}
+
+class PerformanceMonitor {
+  private thresholds: PerformanceThresholds = {
+    maxResponseTime: 1000,      // 1초
+    maxMemoryUsage: 0.8,        // 80%
+    minCacheHitRate: 0.7,       // 70%
+    maxErrorRate: 0.05,         // 5%
+    maxCpuUsage: 0.8,           // 80%
+    maxDiskUsage: 0.9           // 90%
+  };
+  
+  setThresholds(thresholds: Partial<PerformanceThresholds>): void {
+    this.thresholds = { ...this.thresholds, ...thresholds };
+  }
+}
+```
+
+### 2. 임계값 확인 및 알림
+
+```typescript
+private checkThresholds(): void {
+  const alerts: Alert[] = [];
+  
+  // 응답 시간 확인
+  if (this.metrics.search.averageSearchTime > this.thresholds.maxResponseTime) {
+    alerts.push({
+      type: 'performance',
+      severity: 'warning',
+      message: `Search response time exceeded threshold: ${this.metrics.search.averageSearchTime}ms`,
+      timestamp: new Date(),
+      value: this.metrics.search.averageSearchTime,
+      threshold: this.thresholds.maxResponseTime
+    });
+  }
+  
+  // 메모리 사용량 확인
+  if (this.metrics.memory.usage > this.thresholds.maxMemoryUsage) {
+    alerts.push({
+      type: 'memory',
+      severity: 'critical',
+      message: `Memory usage exceeded threshold: ${(this.metrics.memory.usage * 100).toFixed(1)}%`,
+      timestamp: new Date(),
+      value: this.metrics.memory.usage,
+      threshold: this.thresholds.maxMemoryUsage
+    });
+  }
+  
+  // 캐시 히트율 확인
+  if (this.metrics.search.cacheHitRate < this.thresholds.minCacheHitRate) {
+    alerts.push({
+      type: 'cache',
+      severity: 'warning',
+      message: `Cache hit rate below threshold: ${(this.metrics.search.cacheHitRate * 100).toFixed(1)}%`,
+      timestamp: new Date(),
+      value: this.metrics.search.cacheHitRate,
+      threshold: this.thresholds.minCacheHitRate
+    });
+  }
+  
+  // 알림 처리
+  if (alerts.length > 0) {
+    this.handleAlerts(alerts);
+  }
+}
+```
+
+### 3. 알림 처리
+
+```typescript
+private handleAlerts(alerts: Alert[]): void {
+  for (const alert of alerts) {
+    // 로그 출력
+    console.log(`[${alert.severity.toUpperCase()}] ${alert.message}`);
+    
+    // 심각한 알림은 즉시 처리
+    if (alert.severity === 'critical') {
+      this.handleCriticalAlert(alert);
+    }
+    
+    // 알림 히스토리 저장
+    this.saveAlert(alert);
+  }
+}
+
+private handleCriticalAlert(alert: Alert): void {
+  // 메모리 사용량이 임계값을 초과하면 가비지 컬렉션 강제 실행
+  if (alert.type === 'memory') {
+    if (global.gc) {
+      global.gc();
+    }
+  }
+  
+  // 추가적인 복구 작업 수행
+  this.performRecoveryActions(alert);
+}
+```
+
+## 📈 성능 리포트 생성
+
+### 1. 리포트 생성
+
+```typescript
+async generateReport(timeRange: string = '24h'): Promise<PerformanceReport> {
+  const startTime = this.getTimeRangeStart(timeRange);
+  const endTime = new Date();
+  
+  const report: PerformanceReport = {
+    timeRange: { start: startTime, end: endTime },
+    summary: {
+      totalRequests: this.metrics.search.totalSearches,
+      averageResponseTime: this.metrics.search.averageSearchTime,
+      cacheHitRate: this.metrics.search.cacheHitRate,
+      errorRate: this.calculateErrorRate(),
+      memoryUsage: this.metrics.memory.usage,
+      uptime: this.metrics.system.uptime
+    },
+    trends: await this.analyzeTrends(startTime, endTime),
+    recommendations: await this.generateRecommendations(),
+    alerts: this.getRecentAlerts(startTime, endTime)
+  };
+  
+  return report;
+}
+```
+
+### 2. 트렌드 분석
+
+```typescript
+private async analyzeTrends(startTime: Date, endTime: Date): Promise<TrendAnalysis> {
+  const metrics = await this.getHistoricalMetrics(startTime, endTime);
+  
+  return {
+    responseTime: this.calculateTrend(metrics, 'averageSearchTime'),
+    memoryUsage: this.calculateTrend(metrics, 'memoryUsage'),
+    cacheHitRate: this.calculateTrend(metrics, 'cacheHitRate'),
+    throughput: this.calculateTrend(metrics, 'totalSearches')
+  };
+}
+
+private calculateTrend(metrics: any[], field: string): TrendDirection {
+  if (metrics.length < 2) return 'stable';
+  
+  const values = metrics.map(m => m[field]);
+  const firstHalf = values.slice(0, Math.floor(values.length / 2));
+  const secondHalf = values.slice(Math.floor(values.length / 2));
+  
+  const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+  const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+  
+  const change = (secondAvg - firstAvg) / firstAvg;
+  
+  if (Math.abs(change) < 0.05) return 'stable';
+  return change > 0 ? 'increasing' : 'decreasing';
+}
+```
+
+### 3. 최적화 추천
+
+```typescript
+private async generateRecommendations(): Promise<OptimizationRecommendation[]> {
+  const recommendations: OptimizationRecommendation[] = [];
+  
+  // 응답 시간이 느린 경우
+  if (this.metrics.search.averageSearchTime > 500) {
+    recommendations.push({
+      type: 'performance',
+      priority: 'high',
+      title: 'Optimize search performance',
+      description: 'Average search time is above 500ms. Consider optimizing queries or adding indexes.',
+      actions: [
+        'Review slow queries in query performance metrics',
+        'Add missing database indexes',
+        'Consider implementing query caching'
+      ]
+    });
+  }
+  
+  // 캐시 히트율이 낮은 경우
+  if (this.metrics.search.cacheHitRate < 0.5) {
+    recommendations.push({
+      type: 'cache',
+      priority: 'medium',
+      title: 'Improve cache hit rate',
+      description: 'Cache hit rate is below 50%. Consider adjusting cache TTL or size.',
+      actions: [
+        'Increase cache TTL for frequently accessed data',
+        'Review cache invalidation strategy',
+        'Consider increasing cache size'
+      ]
+    });
+  }
+  
+  // 메모리 사용량이 높은 경우
+  if (this.metrics.memory.usage > 0.7) {
+    recommendations.push({
+      type: 'memory',
+      priority: 'high',
+      title: 'Optimize memory usage',
+      description: 'Memory usage is above 70%. Consider optimizing data structures or implementing cleanup.',
+      actions: [
+        'Review memory-intensive operations',
+        'Implement periodic cleanup routines',
+        'Consider data compression or archiving'
+      ]
+    });
+  }
+  
+  return recommendations;
+}
+```
+
+## 🧪 성능 벤치마크
+
+### 1. 벤치마크 클래스
+
+```typescript
+export class PerformanceBenchmark {
+  private client: any;
+  private performanceMonitor: PerformanceMonitor | null = null;
+  private results: BenchmarkResult[] = [];
+  
+  constructor(client: any) {
+    this.client = client;
+  }
+  
+  async runComprehensiveBenchmark(): Promise<BenchmarkResult[]> {
+    console.log('🚀 Starting comprehensive performance benchmark...');
+    
+    const results: BenchmarkResult[] = [];
+    
+    // 1. 메모리 저장 벤치마크
+    results.push(await this.benchmarkMemoryStorage());
+    
+    // 2. 검색 성능 벤치마크
+    results.push(await this.benchmarkSearchPerformance());
+    
+    // 3. 캐시 성능 벤치마크
+    results.push(await this.benchmarkCachePerformance());
+    
+    // 4. 동시성 벤치마크
+    results.push(await this.benchmarkConcurrency());
+    
+    // 5. 메모리 사용량 벤치마크
+    results.push(await this.benchmarkMemoryUsage());
+    
+    this.results = results;
+    return results;
+  }
+}
+```
+
+### 2. 메모리 저장 벤치마크
+
+```typescript
+private async benchmarkMemoryStorage(): Promise<BenchmarkResult> {
+  const testName = 'Memory Storage';
+  const iterations = 1000;
+  const times: number[] = [];
+  const errors: string[] = [];
+  
+  console.log(`📝 Running ${testName} benchmark (${iterations} iterations)...`);
+  
+  const memoryBefore = process.memoryUsage();
+  
+  for (let i = 0; i < iterations; i++) {
+    try {
+      const startTime = Date.now();
+      
+      await this.client.remember({
+        content: `Benchmark memory ${i}: Testing memory storage performance`,
+        type: 'episodic',
+        tags: ['benchmark', 'storage'],
+        importance: 0.5
+      });
+      
+      const endTime = Date.now();
+      times.push(endTime - startTime);
+    } catch (error) {
+      errors.push(`Iteration ${i}: ${error.message}`);
+    }
+  }
+  
+  const memoryAfter = process.memoryUsage();
+  
+  return this.calculateBenchmarkResult(
+    testName,
+    iterations,
+    times,
+    errors,
+    memoryBefore,
+    memoryAfter
+  );
+}
+```
+
+### 3. 검색 성능 벤치마크
+
+```typescript
+private async benchmarkSearchPerformance(): Promise<BenchmarkResult> {
+  const testName = 'Search Performance';
+  const iterations = 500;
+  const times: number[] = [];
+  const errors: string[] = [];
+  
+  console.log(`🔍 Running ${testName} benchmark (${iterations} iterations)...`);
+  
+  const memoryBefore = process.memoryUsage();
+  
+  for (let i = 0; i < iterations; i++) {
+    try {
+      const startTime = Date.now();
+      
+      await this.client.recall({
+        query: `benchmark search ${i}`,
+        limit: 10
+      });
+      
+      const endTime = Date.now();
+      times.push(endTime - startTime);
+    } catch (error) {
+      errors.push(`Iteration ${i}: ${error.message}`);
+    }
+  }
+  
+  const memoryAfter = process.memoryUsage();
+  
+  return this.calculateBenchmarkResult(
+    testName,
+    iterations,
+    times,
+    errors,
+    memoryBefore,
+    memoryAfter
+  );
+}
+```
+
+### 4. 동시성 벤치마크
+
+```typescript
+private async benchmarkConcurrency(): Promise<BenchmarkResult> {
+  const testName = 'Concurrency';
+  const concurrentUsers = 10;
+  const requestsPerUser = 50;
+  const times: number[] = [];
+  const errors: string[] = [];
+  
+  console.log(`👥 Running ${testName} benchmark (${concurrentUsers} users, ${requestsPerUser} requests each)...`);
+  
+  const memoryBefore = process.memoryUsage();
+  const startTime = Date.now();
+  
+  const userPromises = Array.from({ length: concurrentUsers }, (_, userIndex) =>
+    this.simulateUser(userIndex, requestsPerUser, times, errors)
+  );
+  
+  await Promise.all(userPromises);
+  
+  const endTime = Date.now();
+  const memoryAfter = process.memoryUsage();
+  
+  return this.calculateBenchmarkResult(
+    testName,
+    concurrentUsers * requestsPerUser,
+    times,
+    errors,
+    memoryBefore,
+    memoryAfter
+  );
+}
+```
+
+## 📋 개발 체크리스트
+
+### 성능 모니터링
+- [ ] 메트릭 수집 시스템 구현
+- [ ] 임계값 모니터링 구현
+- [ ] 알림 시스템 구현
+- [ ] 성능 리포트 생성 구현
+- [ ] 트렌드 분석 구현
+- [ ] 최적화 추천 시스템 구현
+
+### 성능 벤치마크
+- [ ] 종합 벤치마크 구현
+- [ ] 메모리 저장 벤치마크 구현
+- [ ] 검색 성능 벤치마크 구현
+- [ ] 캐시 성능 벤치마크 구현
+- [ ] 동시성 벤치마크 구현
+- [ ] 메모리 사용량 벤치마크 구현
+
+### 모니터링 테스트
+- [ ] 모니터링 도구 테스트 구현
+- [ ] 통합 테스트 구현
+- [ ] 실시간 모니터링 테스트 구현
+- [ ] 성능 임계값 테스트 구현
+- [ ] 알림 시스템 테스트 구현
+- [ ] 리포트 생성 테스트 구현

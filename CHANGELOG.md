@@ -146,11 +146,35 @@
   - MCP 프로토콜과의 콘솔 로그 충돌 해결
   - Express + WebSocket 통합 아키텍처
 
-- **테스트 시스템**:
+- **성능 최적화 시스템** (1,608줄):
+  - **비동기 처리 최적화** (`src/services/async-optimizer.ts` - 447줄):
+    - 워커 풀 관리 및 병렬 처리
+    - 우선순위 기반 작업 큐 시스템
+    - 배치 처리 및 재시도 로직
+    - 성능 최적화된 비동기 작업 처리
+  - **캐시 서비스** (`src/services/cache-service.ts` - 352줄):
+    - LRU 캐시 구현 및 TTL 관리
+    - 검색 결과 캐싱 및 임베딩 캐싱
+    - 캐시 통계 수집 및 성능 모니터링
+    - 메모리 효율적인 캐시 관리
+  - **데이터베이스 최적화** (`src/services/database-optimizer.ts` - 442줄):
+    - 자동 인덱스 추천 및 생성
+    - 쿼리 성능 분석 및 최적화
+    - 데이터베이스 성능 튜닝
+    - 통계 수집 및 성능 개선
+  - **성능 모니터링** (`src/services/performance-monitor.ts` - 367줄):
+    - 실시간 메트릭 수집 및 분석
+    - 임계값 모니터링 및 알림
+    - 성능 리포트 생성 및 트렌드 분석
+    - 시스템 상태 모니터링
+
+- **테스트 시스템** (1,290줄):
   - `test-client.ts` (152줄): 클라이언트 통합 테스트
   - `test-search.ts` (152줄): 검색 기능 상세 테스트
   - `test-embedding.ts` (154줄): 임베딩 기능 테스트
   - `test-forgetting.ts` (163줄): 망각 정책 테스트
+  - `test-performance-monitoring.ts` (172줄): 성능 모니터링 기능 테스트
+  - `test/performance-benchmark.ts` (497줄): 종합 성능 벤치마크 테스트
   - Vitest 설정 및 모던 테스트 환경
 
 - **빌드 시스템**:
@@ -208,18 +232,25 @@ memento/
 │   ├── services/          # 서비스 레이어 (신규)
 │   │   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
 │   │   ├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
-│   │   └── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
+│   │   ├── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
+│   │   ├── async-optimizer.ts          # 비동기 처리 최적화 (447줄)
+│   │   ├── cache-service.ts            # 캐시 서비스 (352줄)
+│   │   ├── database-optimizer.ts       # 데이터베이스 최적화 (442줄)
+│   │   └── performance-monitor.ts      # 성능 모니터링 (367줄)
+│   ├── test/              # 테스트 디렉토리 (신규)
+│   │   └── performance-benchmark.ts # 성능 벤치마크 (497줄)
 │   ├── test-client.ts     # 클라이언트 테스트 (152줄)
 │   ├── test-search.ts     # 검색 테스트 (152줄)
 │   ├── test-embedding.ts  # 임베딩 테스트 (154줄)
-│   └── test-forgetting.ts # 망각 정책 테스트 (163줄)
+│   ├── test-forgetting.ts # 망각 정책 테스트 (163줄)
+│   └── test-performance-monitoring.ts # 성능 모니터링 테스트 (172줄)
 ├── dist/                  # 빌드 결과물
 ├── data/                  # 데이터 파일
 │   ├── memory.db         # SQLite 데이터베이스
 │   ├── memory.db-shm     # SQLite 공유 메모리
 │   └── memory.db-wal     # SQLite WAL 파일
 ├── docs/                 # 문서
-├── .cursor/rules/        # Cursor 개발 규칙 (9개)
+├── .cursor/rules/        # Cursor 개발 규칙 (12개)
 ├── package.json          # 프로젝트 설정
 ├── tsconfig.json         # TypeScript 설정
 ├── vitest.config.ts      # Vitest 설정

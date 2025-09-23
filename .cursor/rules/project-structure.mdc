@@ -29,16 +29,23 @@ memento/
 │   ├── services/          # 서비스 레이어 (신규)
 │   │   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
 │   │   ├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
-│   │   └── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
+│   │   ├── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
+│   │   ├── async-optimizer.ts          # 비동기 처리 최적화 (447줄)
+│   │   ├── cache-service.ts            # 캐시 서비스 (352줄)
+│   │   ├── database-optimizer.ts       # 데이터베이스 최적화 (442줄)
+│   │   └── performance-monitor.ts      # 성능 모니터링 (367줄)
 │   ├── tools/             # MCP Tools 구현 (빈 폴더)
 │   ├── types/             # TypeScript 타입 정의
 │   │   └── index.ts       # 공통 타입 정의
 │   ├── utils/             # 유틸리티 함수
 │   │   └── database.ts    # 데이터베이스 유틸리티
+│   ├── test/              # 테스트 디렉토리 (신규)
+│   │   └── performance-benchmark.ts # 성능 벤치마크 (497줄)
 │   ├── test-client.ts     # 클라이언트 테스트 (152줄)
 │   ├── test-search.ts     # 검색 테스트 (152줄)
 │   ├── test-embedding.ts  # 임베딩 테스트 (154줄)
-│   └── test-forgetting.ts # 망각 정책 테스트 (163줄)
+│   ├── test-forgetting.ts # 망각 정책 테스트 (163줄)
+│   └── test-performance-monitoring.ts # 성능 모니터링 테스트 (172줄)
 ├── dist/                  # 빌드 결과물
 │   ├── algorithms/        # 컴파일된 알고리즘
 │   ├── client/           # 컴파일된 클라이언트

@@ -14,6 +14,9 @@ import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import { PerformanceMonitor } from '../services/performance-monitor.js';
+import { SearchCacheService } from '../services/cache-service.js';
+import { DatabaseOptimizer } from '../services/database-optimizer.js';
 import sqlite3 from 'sqlite3';
 
 // MCP 서버 인스턴스
@@ -23,6 +26,9 @@ let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 let forgettingPolicyService: ForgettingPolicyService;
+let performanceMonitor: PerformanceMonitor;
+let searchCache: SearchCacheService;
+let databaseOptimizer: DatabaseOptimizer;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
@@ -74,6 +80,13 @@ const CleanupMemorySchema = z.object({
 });
 
 const ForgettingStatsSchema = z.object({});
+
+// 성능 모니터링 관련 스키마
+const PerformanceStatsSchema = z.object({});
+const DatabaseOptimizeSchema = z.object({
+  analyze: z.boolean().default(false).optional(),
+  create_indexes: z.boolean().default(false).optional()
+});
 
 // Tool 핸들러들 (개선된 구현)
 async function handleRemember(params: z.infer<typeof RememberSchema>) {
@@ -426,6 +439,93 @@ async function handleForgettingStats(params: z.infer<typeof ForgettingStatsSchem
   }
 }
 
+// 성능 모니터링 핸들러들
+async function handlePerformanceStats(params: z.infer<typeof PerformanceStatsSchema>) {
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
+  if (!performanceMonitor) {
+    throw new Error('성능 모니터가 초기화되지 않았습니다');
+  }
+  
+  try {
+    const metrics = await performanceMonitor.collectMetrics();
+    const report = await performanceMonitor.generateReport();
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            metrics: {
+              database: metrics.database,
+              search: metrics.search,
+              memory: metrics.memory,
+              system: metrics.system
+            },
+            report: report,
+            message: '성능 통계 조회 완료'
+          })
+        }
+      ]
+    };
+  } catch (error) {
+    throw new Error(`성능 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+async function handleDatabaseOptimize(params: z.infer<typeof DatabaseOptimizeSchema>) {
+  const { analyze, create_indexes } = params;
+  
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
+  if (!databaseOptimizer) {
+    throw new Error('데이터베이스 최적화기가 초기화되지 않았습니다');
+  }
+  
+  try {
+    const results: any = {
+      message: '데이터베이스 최적화 완료',
+      operations: []
+    };
+    
+    if (analyze) {
+      await databaseOptimizer.analyzeDatabase();
+      results.operations.push('데이터베이스 분석 완료');
+    }
+    
+    if (create_indexes) {
+      const recommendations = await databaseOptimizer.generateIndexRecommendations();
+      const highPriorityRecs = recommendations.filter(r => r.priority === 'high');
+      
+      for (const rec of highPriorityRecs) {
+        const indexName = `idx_${rec.table}_${rec.columns.join('_')}`;
+        await databaseOptimizer.createIndex(indexName, rec.table, rec.columns);
+        results.operations.push(`인덱스 생성: ${indexName}`);
+      }
+    }
+    
+    const report = await databaseOptimizer.generateOptimizationReport();
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            ...results,
+            report: report
+          })
+        }
+      ]
+    };
+  } catch (error) {
+    throw new Error(`데이터베이스 최적화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 // 데이터베이스 상태 모니터링
 async function monitorDatabaseStatus() {
   if (!db) return;
@@ -477,6 +577,9 @@ async function initializeServer() {
     hybridSearchEngine = new HybridSearchEngine();
     embeddingService = new MemoryEmbeddingService();
     forgettingPolicyService = new ForgettingPolicyService();
+    performanceMonitor = new PerformanceMonitor(db);
+    searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
+    databaseOptimizer = new DatabaseOptimizer(db);
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
     // MCP 서버 생성
@@ -620,6 +723,33 @@ async function initializeServer() {
               type: 'object',
               properties: {}
             }
+          },
+          {
+            name: 'performance_stats',
+            description: '성능 통계를 조회합니다',
+            inputSchema: {
+              type: 'object',
+              properties: {}
+            }
+          },
+          {
+            name: 'database_optimize',
+            description: '데이터베이스 최적화를 수행합니다',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                analyze: { 
+                  type: 'boolean', 
+                  description: '데이터베이스 분석 실행',
+                  default: false
+                },
+                create_indexes: { 
+                  type: 'boolean', 
+                  description: '추천 인덱스 생성',
+                  default: false
+                }
+              }
+            }
           }
         ]
       };
@@ -648,6 +778,12 @@ async function initializeServer() {
           
           case 'forgetting_stats':
             return await handleForgettingStats(ForgettingStatsSchema.parse(args));
+          
+          case 'performance_stats':
+            return await handlePerformanceStats(PerformanceStatsSchema.parse(args));
+          
+          case 'database_optimize':
+            return await handleDatabaseOptimize(DatabaseOptimizeSchema.parse(args));
           
           default:
             throw new Error(`Unknown tool: ${name}`);

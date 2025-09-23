@@ -1,0 +1,563 @@
+---
+globs: "src/services/async-optimizer.ts,src/services/cache-service.ts,src/services/database-optimizer.ts,src/services/performance-monitor.ts"
+description: 성능 최적화 서비스 개발 규칙
+---
+
+# 성능 최적화 서비스 개발 규칙
+
+## 📋 성능 최적화 서비스
+
+### 현재 구현 상태
+- **비동기 처리 최적화**: `src/services/async-optimizer.ts` (447줄)
+- **캐시 서비스**: `src/services/cache-service.ts` (352줄)
+- **데이터베이스 최적화**: `src/services/database-optimizer.ts` (442줄)
+- **성능 모니터링**: `src/services/performance-monitor.ts` (367줄)
+
+### 핵심 아키텍처
+
+```typescript
+// 비동기 처리 최적화
+export class AsyncTaskQueue<T = any> {
+  private workers: Worker[] = [];
+  private queue: Task<T>[] = [];
+  private processing: Set<string> = new Set();
+  private completed: Map<string, TaskResult<T>> = new Map();
+  private failed: Map<string, TaskResult<T>> = new Map();
+}
+
+// 캐시 서비스
+export class CacheService<T = any> {
+  private cache: Map<string, CacheEntry<T>> = new Map();
+  private hits: number = 0;
+  private misses: number = 0;
+  private maxSize: number;
+  private defaultTTL: number;
+}
+
+// 데이터베이스 최적화
+export class DatabaseOptimizer {
+  private db: sqlite3.Database;
+  private queryHistory: QueryAnalysis[] = [];
+  private indexRecommendations: IndexRecommendation[] = [];
+}
+
+// 성능 모니터링
+export class PerformanceMonitor {
+  private metrics: PerformanceMetrics = {
+    database: { /* ... */ },
+    search: { /* ... */ },
+    memory: { /* ... */ },
+    system: { /* ... */ }
+  };
+}
+```
+
+## 🔧 비동기 처리 최적화
+
+### 1. 워커 풀 관리
+
+```typescript
+class AsyncTaskQueue<T = any> {
+  private workers: Worker[] = [];
+  private maxWorkers: number;
+  private queue: Task<T>[] = [];
+  private processing: Set<string> = new Set();
+  
+  constructor(maxWorkers: number = 4) {
+    this.maxWorkers = maxWorkers;
+    this.initializeWorkers();
+  }
+  
+  private initializeWorkers(): void {
+    for (let i = 0; i < this.maxWorkers; i++) {
+      const worker = new Worker('./worker.js');
+      worker.on('message', this.handleWorkerMessage.bind(this));
+      worker.on('error', this.handleWorkerError.bind(this));
+      this.workers.push(worker);
+    }
+  }
+}
+```
+
+### 2. 우선순위 큐 시스템
+
+```typescript
+interface Task<T = any> {
+  id: string;
+  type: string;
+  data: any;
+  priority: number;        // 1-10, 높을수록 우선순위
+  createdAt: Date;
+  maxRetries: number;
+  retryCount: number;
+  timeout: number;
+}
+
+class PriorityQueue<T> {
+  private items: T[] = [];
+  
+  enqueue(item: T, priority: number): void {
+    const queueElement = { item, priority };
+    let added = false;
+    
+    for (let i = 0; i < this.items.length; i++) {
+      if (queueElement.priority > this.items[i].priority) {
+        this.items.splice(i, 0, queueElement);
+        added = true;
+        break;
+      }
+    }
+    
+    if (!added) {
+      this.items.push(queueElement);
+    }
+  }
+}
+```
+
+### 3. 배치 처리 최적화
+
+```typescript
+async processBatch<T>(
+  tasks: Task<T>[],
+  batchSize: number = 10,
+  delayBetweenBatches: number = 100
+): Promise<TaskResult<T>[]> {
+  const results: TaskResult<T>[] = [];
+  
+  for (let i = 0; i < tasks.length; i += batchSize) {
+    const batch = tasks.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map(task => this.processTask(task))
+    );
+    results.push(...batchResults);
+    
+    if (i + batchSize < tasks.length) {
+      await this.delay(delayBetweenBatches);
+    }
+  }
+  
+  return results;
+}
+```
+
+### 4. 재시도 로직
+
+```typescript
+async processTask<T>(task: Task<T>): Promise<TaskResult<T>> {
+  const startTime = Date.now();
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= task.maxRetries; attempt++) {
+    try {
+      const result = await this.executeTask(task);
+      return {
+        taskId: task.id,
+        success: true,
+        data: result,
+        executionTime: Date.now() - startTime,
+        retryCount: attempt
+      };
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt < task.maxRetries) {
+        const delay = this.calculateRetryDelay(attempt);
+        await this.delay(delay);
+      }
+    }
+  }
+  
+  return {
+    taskId: task.id,
+    success: false,
+    error: lastError?.message || 'Unknown error',
+    executionTime: Date.now() - startTime,
+    retryCount: task.maxRetries
+  };
+}
+```
+
+## 💾 캐시 서비스
+
+### 1. LRU 캐시 구현
+
+```typescript
+class CacheService<T = any> {
+  private cache: Map<string, CacheEntry<T>> = new Map();
+  private accessOrder: string[] = [];
+  
+  get(key: string): T | null {
+    const entry = this.cache.get(key);
+    
+    if (!entry) {
+      this.misses++;
+      return null;
+    }
+    
+    // TTL 확인
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      this.removeFromAccessOrder(key);
+      this.misses++;
+      return null;
+    }
+    
+    // LRU 업데이트
+    this.updateAccessOrder(key);
+    entry.accessCount++;
+    entry.lastAccessed = Date.now();
+    this.hits++;
+    
+    return entry.data;
+  }
+  
+  set(key: string, data: T, ttl?: number): void {
+    // 캐시 크기 확인
+    if (this.cache.size >= this.maxSize) {
+      this.evictLRU();
+    }
+    
+    const entry: CacheEntry<T> = {
+      data,
+      timestamp: Date.now(),
+      ttl: ttl || this.defaultTTL,
+      accessCount: 0,
+      lastAccessed: Date.now()
+    };
+    
+    this.cache.set(key, entry);
+    this.updateAccessOrder(key);
+  }
+}
+```
+
+### 2. 캐시 통계 수집
+
+```typescript
+getStats(): CacheStats {
+  const totalRequests = this.hits + this.misses;
+  const hitRate = totalRequests > 0 ? this.hits / totalRequests : 0;
+  
+  let memoryUsage = 0;
+  for (const entry of this.cache.values()) {
+    memoryUsage += this.estimateMemoryUsage(entry);
+  }
+  
+  return {
+    hits: this.hits,
+    misses: this.misses,
+    totalRequests,
+    hitRate,
+    size: this.cache.size,
+    memoryUsage
+  };
+}
+```
+
+### 3. 검색 결과 캐싱
+
+```typescript
+class SearchCacheService extends CacheService<SearchResult[]> {
+  generateCacheKey(query: string, filters?: SearchFilters): string {
+    const filterStr = filters ? JSON.stringify(filters) : '';
+    return `search:${query}:${filterStr}`;
+  }
+  
+  async getCachedSearch(
+    query: string,
+    filters?: SearchFilters
+  ): Promise<SearchResult[] | null> {
+    const key = this.generateCacheKey(query, filters);
+    return this.get(key);
+  }
+  
+  async cacheSearch(
+    query: string,
+    results: SearchResult[],
+    filters?: SearchFilters,
+    ttl: number = 300000 // 5분
+  ): Promise<void> {
+    const key = this.generateCacheKey(query, filters);
+    this.set(key, results, ttl);
+  }
+}
+```
+
+## 🗄️ 데이터베이스 최적화
+
+### 1. 인덱스 추천 시스템
+
+```typescript
+class DatabaseOptimizer {
+  async analyzeIndexes(): Promise<IndexRecommendation[]> {
+    const recommendations: IndexRecommendation[] = [];
+    
+    // 테이블별 분석
+    const tables = await this.getTables();
+    for (const table of tables) {
+      const queries = await this.getQueriesForTable(table);
+      const analysis = await this.analyzeQueryPatterns(queries);
+      
+      for (const pattern of analysis.patterns) {
+        if (pattern.frequency > 10 && !pattern.hasIndex) {
+          recommendations.push({
+            table: table.name,
+            columns: pattern.columns,
+            type: pattern.type,
+            priority: this.calculatePriority(pattern),
+            reason: `Frequent query pattern: ${pattern.query}`,
+            estimatedImprovement: `${pattern.estimatedImprovement}%`
+          });
+        }
+      }
+    }
+    
+    return recommendations.sort((a, b) => 
+      this.getPriorityValue(b.priority) - this.getPriorityValue(a.priority)
+    );
+  }
+}
+```
+
+### 2. 쿼리 성능 분석
+
+```typescript
+async analyzeQuery(query: string): Promise<QueryAnalysis> {
+  const startTime = Date.now();
+  
+  // EXPLAIN QUERY PLAN 실행
+  const explainPlan = await this.db.all(`EXPLAIN QUERY PLAN ${query}`);
+  
+  const executionTime = Date.now() - startTime;
+  const complexity = this.assessComplexity(explainPlan);
+  const recommendations = this.generateRecommendations(explainPlan);
+  
+  return {
+    query,
+    executionTime,
+    explainPlan,
+    recommendations,
+    complexity
+  };
+}
+```
+
+### 3. 자동 인덱스 생성
+
+```typescript
+async createRecommendedIndexes(): Promise<void> {
+  const recommendations = await this.analyzeIndexes();
+  
+  for (const rec of recommendations) {
+    if (rec.priority === 'high') {
+      try {
+        await this.createIndex(rec);
+        console.log(`✅ Created index: ${rec.table}.${rec.columns.join(',')}`);
+      } catch (error) {
+        console.error(`❌ Failed to create index: ${error.message}`);
+      }
+    }
+  }
+}
+
+private async createIndex(rec: IndexRecommendation): Promise<void> {
+  const indexName = `idx_${rec.table}_${rec.columns.join('_')}`;
+  const columns = rec.columns.join(', ');
+  
+  let sql = `CREATE INDEX IF NOT EXISTS ${indexName} ON ${rec.table} (${columns})`;
+  
+  if (rec.type === 'partial') {
+    sql += ` WHERE ${rec.condition}`;
+  }
+  
+  await this.db.run(sql);
+}
+```
+
+## 📊 성능 모니터링
+
+### 1. 실시간 메트릭 수집
+
+```typescript
+class PerformanceMonitor {
+  private metrics: PerformanceMetrics;
+  private collectionInterval: number = 5000; // 5초
+  private intervalId: NodeJS.Timeout | null = null;
+  
+  startMonitoring(): void {
+    this.intervalId = setInterval(() => {
+      this.collectMetrics();
+    }, this.collectionInterval);
+  }
+  
+  private async collectMetrics(): Promise<void> {
+    // 데이터베이스 메트릭
+    this.metrics.database = await this.collectDatabaseMetrics();
+    
+    // 검색 메트릭
+    this.metrics.search = await this.collectSearchMetrics();
+    
+    // 메모리 메트릭
+    this.metrics.memory = await this.collectMemoryMetrics();
+    
+    // 시스템 메트릭
+    this.metrics.system = await this.collectSystemMetrics();
+  }
+}
+```
+
+### 2. 성능 임계값 모니터링
+
+```typescript
+interface PerformanceThresholds {
+  maxResponseTime: number;
+  maxMemoryUsage: number;
+  minCacheHitRate: number;
+  maxErrorRate: number;
+}
+
+class PerformanceMonitor {
+  private thresholds: PerformanceThresholds = {
+    maxResponseTime: 1000,      // 1초
+    maxMemoryUsage: 0.8,        // 80%
+    minCacheHitRate: 0.7,       // 70%
+    maxErrorRate: 0.05          // 5%
+  };
+  
+  checkThresholds(): Alert[] {
+    const alerts: Alert[] = [];
+    
+    if (this.metrics.search.averageSearchTime > this.thresholds.maxResponseTime) {
+      alerts.push({
+        type: 'performance',
+        severity: 'warning',
+        message: `Search response time exceeded threshold: ${this.metrics.search.averageSearchTime}ms`
+      });
+    }
+    
+    if (this.metrics.memory.usage > this.thresholds.maxMemoryUsage) {
+      alerts.push({
+        type: 'memory',
+        severity: 'critical',
+        message: `Memory usage exceeded threshold: ${(this.metrics.memory.usage * 100).toFixed(1)}%`
+      });
+    }
+    
+    return alerts;
+  }
+}
+```
+
+### 3. 성능 리포트 생성
+
+```typescript
+async generateReport(timeRange: string = '24h'): Promise<PerformanceReport> {
+  const startTime = this.getTimeRangeStart(timeRange);
+  const endTime = new Date();
+  
+  const report: PerformanceReport = {
+    timeRange: { start: startTime, end: endTime },
+    summary: {
+      totalRequests: this.metrics.search.totalSearches,
+      averageResponseTime: this.metrics.search.averageSearchTime,
+      cacheHitRate: this.metrics.search.cacheHitRate,
+      errorRate: this.calculateErrorRate(),
+      memoryUsage: this.metrics.memory.usage
+    },
+    trends: await this.analyzeTrends(startTime, endTime),
+    recommendations: await this.generateRecommendations(),
+    alerts: this.checkThresholds()
+  };
+  
+  return report;
+}
+```
+
+## 🧪 성능 벤치마크
+
+### 1. 벤치마크 테스트 클래스
+
+```typescript
+class PerformanceBenchmark {
+  private client: any;
+  private performanceMonitor: PerformanceMonitor | null = null;
+  
+  async runComprehensiveBenchmark(): Promise<BenchmarkResult[]> {
+    const results: BenchmarkResult[] = [];
+    
+    // 1. 메모리 저장 벤치마크
+    results.push(await this.benchmarkMemoryStorage());
+    
+    // 2. 검색 성능 벤치마크
+    results.push(await this.benchmarkSearchPerformance());
+    
+    // 3. 캐시 성능 벤치마크
+    results.push(await this.benchmarkCachePerformance());
+    
+    // 4. 동시성 벤치마크
+    results.push(await this.benchmarkConcurrency());
+    
+    // 5. 메모리 사용량 벤치마크
+    results.push(await this.benchmarkMemoryUsage());
+    
+    return results;
+  }
+}
+```
+
+### 2. 부하 테스트
+
+```typescript
+async runLoadTest(
+  concurrentUsers: number,
+  requestsPerUser: number,
+  duration: number
+): Promise<LoadTestResult> {
+  const startTime = Date.now();
+  const endTime = startTime + duration;
+  const results: RequestResult[] = [];
+  
+  const userPromises = Array.from({ length: concurrentUsers }, (_, i) =>
+    this.simulateUser(i, requestsPerUser, endTime, results)
+  );
+  
+  await Promise.all(userPromises);
+  
+  return this.analyzeLoadTestResults(results, startTime, endTime);
+}
+```
+
+## 📋 개발 체크리스트
+
+### 비동기 처리 최적화
+- [ ] 워커 풀 구현
+- [ ] 우선순위 큐 시스템 구현
+- [ ] 배치 처리 로직 구현
+- [ ] 재시도 메커니즘 구현
+- [ ] 에러 처리 및 로깅 추가
+- [ ] 단위 테스트 작성
+
+### 캐시 서비스
+- [ ] LRU 캐시 구현
+- [ ] TTL 관리 시스템 구현
+- [ ] 캐시 통계 수집 구현
+- [ ] 메모리 사용량 모니터링 구현
+- [ ] 캐시 무효화 로직 구현
+- [ ] 단위 테스트 작성
+
+### 데이터베이스 최적화
+- [ ] 인덱스 추천 시스템 구현
+- [ ] 쿼리 성능 분석 구현
+- [ ] 자동 인덱스 생성 구현
+- [ ] 쿼리 히스토리 관리 구현
+- [ ] 성능 통계 수집 구현
+- [ ] 단위 테스트 작성
+
+### 성능 모니터링
+- [ ] 실시간 메트릭 수집 구현
+- [ ] 임계값 모니터링 구현
+- [ ] 알림 시스템 구현
+- [ ] 성능 리포트 생성 구현
+- [ ] 대시보드 API 구현
+- [ ] 단위 테스트 작성
