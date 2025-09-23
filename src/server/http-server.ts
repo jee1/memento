@@ -59,6 +59,25 @@ let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 
+type TestDependencies = {
+  database: sqlite3.Database;
+  searchEngine?: SearchEngine;
+  hybridSearchEngine?: HybridSearchEngine;
+  embeddingService?: MemoryEmbeddingService;
+};
+
+function setTestDependencies({
+  database,
+  searchEngine: search,
+  hybridSearchEngine: hybrid,
+  embeddingService: embedding
+}: TestDependencies): void {
+  db = database;
+  searchEngine = search ?? new SearchEngine();
+  hybridSearchEngine = hybrid ?? new HybridSearchEngine();
+  embeddingService = embedding ?? new MemoryEmbeddingService();
+}
+
 // Tool 핸들러들 (기존과 동일)
 async function handleRemember(params: z.infer<typeof RememberSchema>) {
   const { content, type, tags, importance, source, privacy_scope } = params;
@@ -546,5 +565,15 @@ if (process.argv[1] && process.argv[1].endsWith('http-server.js')) {
     process.exit(1);
   });
 }
+
+export const __test = {
+  setTestDependencies,
+  getApp: () => app,
+  getServer: () => server,
+  getDatabase: () => db,
+  getSearchEngine: () => searchEngine,
+  getHybridSearchEngine: () => hybridSearchEngine,
+  getEmbeddingService: () => embeddingService
+};
 
 export { startServer, cleanup };
