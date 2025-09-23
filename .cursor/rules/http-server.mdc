@@ -1,0 +1,432 @@
+---
+globs: "src/server/http-server.ts"
+description: HTTP/WebSocket 서버 개발 규칙
+---
+
+# HTTP/WebSocket 서버 개발 규칙
+
+## 📋 HTTP 서버 구현
+
+### 현재 구현 상태
+- **파일**: `src/server/http-server.ts` (551줄)
+- **기능**: HTTP/WebSocket 기반 MCP 서버
+- **특징**: CORS 지원, 콘솔 로그 충돌 해결, 실시간 통신
+
+### 핵심 아키텍처
+
+```typescript
+// Express + WebSocket 서버
+const app = express();
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
+
+// CORS 설정
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  credentials: true
+}));
+
+// MCP 프로토콜 처리
+wss.on('connection', (ws) => {
+  // WebSocket 연결 처리
+});
+```
+
+### 구현 가이드라인
+
+#### 1. 서버 초기화
+```typescript
+async function initializeHttpServer(): Promise<void> {
+  try {
+    // 데이터베이스 초기화
+    await initializeDatabase();
+    
+    // 서비스 초기화
+    const searchEngine = new SearchEngine();
+    const hybridSearchEngine = new HybridSearchEngine();
+    const embeddingService = new MemoryEmbeddingService();
+    
+    // HTTP 서버 시작
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+      console.log(`🚀 HTTP MCP Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Server initialization failed:', error);
+    process.exit(1);
+  }
+}
+```
+
+#### 2. WebSocket 연결 처리
+```typescript
+wss.on('connection', (ws: WebSocket) => {
+  console.log('🔌 New WebSocket connection established');
+  
+  ws.on('message', async (data: Buffer) => {
+    try {
+      const message = JSON.parse(data.toString());
+      const response = await handleMCPMessage(message);
+      ws.send(JSON.stringify(response));
+    } catch (error) {
+      console.error('❌ WebSocket message error:', error);
+      ws.send(JSON.stringify({
+        error: 'Invalid message format',
+        code: 'INVALID_MESSAGE'
+      }));
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('🔌 WebSocket connection closed');
+  });
+  
+  ws.on('error', (error) => {
+    console.error('❌ WebSocket error:', error);
+  });
+});
+```
+
+#### 3. MCP 메시지 처리
+```typescript
+async function handleMCPMessage(message: any): Promise<any> {
+  const { method, params, id } = message;
+  
+  try {
+    switch (method) {
+      case 'tools/call':
+        return await handleToolCall(params, id);
+      case 'tools/list':
+        return await handleToolsList(id);
+      case 'resources/list':
+        return await handleResourcesList(id);
+      case 'resources/read':
+        return await handleResourceRead(params, id);
+      default:
+        throw new Error(`Unknown method: ${method}`);
+    }
+  } catch (error) {
+    return {
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error.message
+      },
+      id
+    };
+  }
+}
+```
+
+#### 4. Tool 호출 처리
+```typescript
+async function handleToolCall(params: any, id: string): Promise<any> {
+  const { name, arguments: args } = params;
+  
+  try {
+    switch (name) {
+      case 'remember':
+        const rememberResult = await rememberTool(args);
+        return { content: [{ type: 'text', text: JSON.stringify(rememberResult) }], id };
+      
+      case 'recall':
+        const recallResult = await recallTool(args);
+        return { content: [{ type: 'text', text: JSON.stringify(recallResult) }], id };
+      
+      case 'hybrid_search':
+        const hybridResult = await hybridSearchTool(args);
+        return { content: [{ type: 'text', text: JSON.stringify(hybridResult) }], id };
+      
+      case 'forget':
+        const forgetResult = await forgetTool(args);
+        return { content: [{ type: 'text', text: JSON.stringify(forgetResult) }], id };
+      
+      case 'pin':
+        const pinResult = await pinTool(args);
+        return { content: [{ type: 'text', text: JSON.stringify(pinResult) }], id };
+      
+      case 'unpin':
+        const unpinResult = await unpinTool(args);
+        return { content: [{ type: 'text', text: JSON.stringify(unpinResult) }], id };
+      
+      default:
+        throw new Error(`Unknown tool: ${name}`);
+    }
+  } catch (error) {
+    return {
+      error: {
+        code: 'TOOL_EXECUTION_ERROR',
+        message: error.message
+      },
+      id
+    };
+  }
+}
+```
+
+## 🔧 CORS 및 보안 설정
+
+### CORS 설정
+```typescript
+// CORS 미들웨어 설정
+app.use(cors({
+  origin: (origin, callback) => {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['*'];
+    
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+```
+
+### 보안 헤더
+```typescript
+// 보안 헤더 설정
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
+```
+
+## 📊 로깅 및 모니터링
+
+### 구조화된 로깅
+```typescript
+interface LogEntry {
+  timestamp: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  metadata?: any;
+}
+
+function log(level: 'info' | 'warn' | 'error', message: string, metadata?: any): void {
+  const entry: LogEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    metadata
+  };
+  
+  console.log(JSON.stringify(entry));
+}
+
+// 사용 예시
+log('info', 'WebSocket connection established', { clientId: 'client-123' });
+log('error', 'Tool execution failed', { tool: 'remember', error: error.message });
+```
+
+### 메트릭 수집
+```typescript
+interface ServerMetrics {
+  connections: number;
+  messagesProcessed: number;
+  errors: number;
+  uptime: number;
+}
+
+class MetricsCollector {
+  private metrics: ServerMetrics = {
+    connections: 0,
+    messagesProcessed: 0,
+    errors: 0,
+    uptime: Date.now()
+  };
+  
+  incrementConnections(): void {
+    this.metrics.connections++;
+  }
+  
+  incrementMessages(): void {
+    this.metrics.messagesProcessed++;
+  }
+  
+  incrementErrors(): void {
+    this.metrics.errors++;
+  }
+  
+  getMetrics(): ServerMetrics {
+    return {
+      ...this.metrics,
+      uptime: Date.now() - this.metrics.uptime
+    };
+  }
+}
+```
+
+## 🧪 테스트 가이드라인
+
+### HTTP 서버 테스트
+```typescript
+import request from 'supertest';
+import { createHttpServer } from '../src/server/http-server.js';
+
+describe('HTTP Server', () => {
+  let server: any;
+  
+  beforeAll(async () => {
+    server = await createHttpServer();
+  });
+  
+  afterAll(async () => {
+    await server.close();
+  });
+  
+  it('should handle tool calls via HTTP', async () => {
+    const response = await request(server)
+      .post('/mcp')
+      .send({
+        method: 'tools/call',
+        params: {
+          name: 'remember',
+          arguments: {
+            content: 'Test memory',
+            type: 'episodic'
+          }
+        },
+        id: 'test-1'
+      });
+    
+    expect(response.status).toBe(200);
+    expect(response.body.id).toBe('test-1');
+  });
+  
+  it('should handle WebSocket connections', (done) => {
+    const ws = new WebSocket('ws://localhost:3000');
+    
+    ws.on('open', () => {
+      ws.send(JSON.stringify({
+        method: 'tools/list',
+        id: 'test-2'
+      }));
+    });
+    
+    ws.on('message', (data) => {
+      const response = JSON.parse(data.toString());
+      expect(response.id).toBe('test-2');
+      ws.close();
+      done();
+    });
+  });
+});
+```
+
+### WebSocket 테스트
+```typescript
+import WebSocket from 'ws';
+
+describe('WebSocket Server', () => {
+  let wss: WebSocketServer;
+  let ws: WebSocket;
+  
+  beforeAll((done) => {
+    wss = new WebSocketServer({ port: 0 });
+    wss.on('listening', () => {
+      ws = new WebSocket(`ws://localhost:${wss.address().port}`);
+      ws.on('open', done);
+    });
+  });
+  
+  afterAll(() => {
+    ws.close();
+    wss.close();
+  });
+  
+  it('should handle MCP messages', (done) => {
+    ws.send(JSON.stringify({
+      method: 'tools/call',
+      params: {
+        name: 'recall',
+        arguments: { query: 'test' }
+      },
+      id: 'test-3'
+    }));
+    
+    ws.on('message', (data) => {
+      const response = JSON.parse(data.toString());
+      expect(response.id).toBe('test-3');
+      done();
+    });
+  });
+});
+```
+
+## 🚀 배포 및 운영
+
+### Docker 설정
+```dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY dist/ ./dist/
+EXPOSE 3000
+
+CMD ["node", "dist/server/http-server.js"]
+```
+
+### Docker Compose
+```yaml
+version: '3.8'
+services:
+  memento-http:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+```
+
+### 환경 변수
+```bash
+# .env 파일
+PORT=3000
+NODE_ENV=production
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+LOG_LEVEL=info
+MAX_CONNECTIONS=1000
+```
+
+## 📋 개발 체크리스트
+
+### HTTP 서버
+- [ ] Express 서버 설정
+- [ ] CORS 미들웨어 구성
+- [ ] 보안 헤더 설정
+- [ ] 에러 처리 미들웨어
+- [ ] 로깅 시스템 구현
+
+### WebSocket 서버
+- [ ] WebSocket 서버 설정
+- [ ] 연결 관리 로직
+- [ ] 메시지 처리 로직
+- [ ] 에러 처리 및 복구
+- [ ] 연결 상태 모니터링
+
+### MCP 프로토콜
+- [ ] Tool 호출 처리
+- [ ] Resource 읽기 처리
+- [ ] 에러 응답 형식
+- [ ] 메시지 검증
+- [ ] 프로토콜 호환성
+
+### 테스트
+- [ ] HTTP API 테스트
+- [ ] WebSocket 연결 테스트
+- [ ] MCP 프로토콜 테스트
+- [ ] 통합 테스트
+- [ ] 성능 테스트

@@ -178,6 +178,39 @@ export class MementoClient {
   isConnected(): boolean {
     return this.connected;
   }
+
+  /**
+   * 일반적인 도구 호출
+   */
+  async callTool(name: string, args: Record<string, any> = {}): Promise<any> {
+    if (!this.connected) {
+      throw new Error('서버에 연결되지 않았습니다');
+    }
+
+    try {
+      const result = await this.client.callTool({
+        name,
+        arguments: args as Record<string, unknown>
+      });
+
+      // 결과 파싱
+      if (result.content && Array.isArray(result.content) && result.content.length > 0) {
+        const content = result.content[0] as any;
+        if (content.type === 'text') {
+          try {
+            return JSON.parse(content.text);
+          } catch {
+            return content.text;
+          }
+        }
+        return content;
+      }
+
+      return result;
+    } catch (error) {
+      throw new Error(`도구 호출 실패 (${name}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 /**

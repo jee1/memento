@@ -223,7 +223,110 @@ const searchResult = await client.callTool('hybrid_search', {
 
 ## 고급 기능
 
-### 1. 세션 요약
+### 1. 망각 정책 사용하기
+
+#### 망각 정책이란?
+
+망각 정책은 메모리의 수명을 관리하는 시스템입니다. 인간의 기억 시스템을 모방하여:
+
+- **자동 망각**: 오래되고 사용되지 않는 기억을 자동으로 삭제
+- **간격 반복**: 중요한 기억을 주기적으로 리뷰하여 강화
+- **TTL 관리**: 메모리 타입별로 다른 수명 정책 적용
+
+#### 망각 정책 적용
+
+```typescript
+// 기본 망각 정책 적용
+const result = await client.callTool('apply_forgetting_policy', {});
+
+console.log('소프트 삭제된 메모리:', result.softDeleted);
+console.log('하드 삭제된 메모리:', result.hardDeleted);
+console.log('리뷰 예정된 메모리:', result.scheduledForReview);
+```
+
+#### 사용자 정의 망각 정책
+
+```typescript
+// 사용자 정의 설정으로 망각 정책 적용
+const result = await client.callTool('apply_forgetting_policy', {
+  config: {
+    forgetThreshold: 0.7,        // 망각 임계값 (0.7)
+    softDeleteThreshold: 0.7,    // 소프트 삭제 임계값 (0.7)
+    hardDeleteThreshold: 0.9,    // 하드 삭제 임계값 (0.9)
+    ttlSoft: {
+      working: 3,      // 작업기억 3일
+      episodic: 45,    // 일화기억 45일
+      semantic: 200,   // 의미기억 200일
+      procedural: 120  // 절차기억 120일
+    }
+  }
+});
+```
+
+#### 간격 반복 스케줄링
+
+```typescript
+// 리뷰 스케줄 생성
+const schedule = await client.callTool('schedule_review', {
+  memory_id: 'memory-123',
+  features: {
+    importance: 0.8,        // 중요도 80%
+    usage: 0.6,            // 사용성 60%
+    helpful_feedback: 0.7, // 도움됨 피드백 70%
+    bad_feedback: 0.1      // 나쁨 피드백 10%
+  }
+});
+
+console.log('다음 리뷰 날짜:', schedule.next_review);
+console.log('리콜 확률:', schedule.recall_probability);
+```
+
+### 2. HTTP 서버 사용하기
+
+#### HTTP 서버란?
+
+HTTP 서버는 WebSocket을 지원하는 실시간 통신 서버입니다. 웹 클라이언트와의 통신을 위해 설계되었습니다.
+
+#### HTTP 서버 시작
+
+```bash
+# HTTP 서버 시작
+npm run dev:http
+
+# 또는 직접 실행
+node dist/server/http-server.js
+```
+
+#### WebSocket 연결
+
+```javascript
+// 웹 클라이언트에서 WebSocket 연결
+const ws = new WebSocket('ws://localhost:3000');
+
+ws.on('open', () => {
+  console.log('WebSocket 연결됨');
+  
+  // MCP 메시지 전송
+  ws.send(JSON.stringify({
+    method: 'tools/call',
+    params: {
+      name: 'remember',
+      arguments: {
+        content: '웹에서 저장한 기억',
+        type: 'episodic'
+      }
+    },
+    id: 'web-1'
+  }));
+});
+
+ws.on('message', (data) => {
+  const response = JSON.parse(data);
+  console.log('서버 응답:', response);
+});
+```
+
+### 3. 세션 요약
 
 대화 세션을 요약하여 기억으로 저장할 수 있습니다.
 
@@ -231,7 +334,7 @@ const searchResult = await client.callTool('hybrid_search', {
 @memento summarize_thread session-456 --importance 0.8
 ```
 
-### 2. 기억 간 관계 생성
+### 4. 기억 간 관계 생성
 
 기억들 간의 관계를 설정하여 더 나은 검색 결과를 얻을 수 있습니다.
 
@@ -245,7 +348,7 @@ const searchResult = await client.callTool('hybrid_search', {
 - `duplicates`: 중복 관계
 - `contradicts`: 모순 관계
 
-### 3. 기억 내보내기
+### 5. 기억 내보내기
 
 저장된 기억을 다양한 형식으로 내보낼 수 있습니다.
 

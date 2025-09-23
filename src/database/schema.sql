@@ -13,7 +13,10 @@ CREATE TABLE IF NOT EXISTS memory_item (
   pinned BOOLEAN DEFAULT FALSE,
   tags TEXT, -- JSON 배열로 저장
   source TEXT,
-  embedding BLOB -- 벡터 임베딩 (BLOB로 저장)
+  embedding BLOB, -- 벡터 임베딩 (BLOB로 저장)
+  view_count INTEGER DEFAULT 0,
+  cite_count INTEGER DEFAULT 0,
+  edit_count INTEGER DEFAULT 0
 );
 
 -- 태그 테이블 (N:N 관계)

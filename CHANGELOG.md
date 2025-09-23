@@ -122,10 +122,35 @@
   - 서버 연결 및 통신 관리
   - 에러 처리 및 재시도 로직
 
+- **망각 시스템 구현** (`src/algorithms/forgetting-algorithm.ts` - 244줄):
+  - Memento-Goals.md의 망각 공식 구현
+  - 최근성, 사용성, 중복 비율, 중요도, 고정 여부를 종합한 망각 점수 계산
+  - U1-U5 계수를 사용한 가중치 시스템
+  - 망각 결정 로직 및 특징 계산 함수
+
+- **간격 반복 알고리즘 구현** (`src/algorithms/spaced-repetition.ts` - 239줄):
+  - 중요도와 사용성 기반 리뷰 간격 계산
+  - 시간 경과에 따른 리콜 확률 계산
+  - 피드백에 따른 동적 간격 조정
+  - 간격 반복 스케줄링 시스템
+
+- **망각 정책 서비스 구현** (`src/services/forgetting-policy-service.ts` - 335줄):
+  - 망각 알고리즘과 간격 반복 통합
+  - TTL 기반 정책 (타입별 수명 관리)
+  - 소프트/하드 삭제 단계적 정책
+  - 배치 처리 및 메모리 관리
+
+- **HTTP 서버 구현** (`src/server/http-server.ts` - 551줄):
+  - WebSocket 지원 실시간 통신 서버
+  - CORS 설정으로 웹 클라이언트 지원
+  - MCP 프로토콜과의 콘솔 로그 충돌 해결
+  - Express + WebSocket 통합 아키텍처
+
 - **테스트 시스템**:
   - `test-client.ts` (152줄): 클라이언트 통합 테스트
   - `test-search.ts` (152줄): 검색 기능 상세 테스트
   - `test-embedding.ts` (154줄): 임베딩 기능 테스트
+  - `test-forgetting.ts` (163줄): 망각 정책 테스트
   - Vitest 설정 및 모던 테스트 환경
 
 - **빌드 시스템**:
@@ -161,8 +186,11 @@
 memento/
 ├── src/                    # 소스 코드
 │   ├── algorithms/        # 검색 및 망각 알고리즘
-│   │   ├── search-engine.ts    # 검색 엔진 (233줄)
-│   │   └── search-ranking.ts   # 검색 랭킹 알고리즘
+│   │   ├── search-engine.ts        # 검색 엔진 (233줄)
+│   │   ├── hybrid-search-engine.ts # 하이브리드 검색 엔진 (200줄)
+│   │   ├── search-ranking.ts       # 검색 랭킹 알고리즘
+│   │   ├── forgetting-algorithm.ts # 망각 알고리즘 (244줄)
+│   │   └── spaced-repetition.ts    # 간격 반복 알고리즘 (239줄)
 │   ├── client/            # MCP 클라이언트
 │   │   └── index.ts       # 클라이언트 구현
 │   ├── config/            # 설정 관리
@@ -171,13 +199,20 @@ memento/
 │   │   ├── init.ts        # 데이터베이스 초기화 (102줄)
 │   │   └── schema.sql     # SQLite 스키마
 │   ├── server/            # MCP 서버
-│   │   └── index.ts       # 서버 메인 (432줄)
+│   │   ├── index.ts       # 서버 메인 (521줄)
+│   │   └── http-server.ts # HTTP/WebSocket 서버 (551줄)
 │   ├── types/             # TypeScript 타입 정의
 │   │   └── index.ts       # 공통 타입 정의
 │   ├── utils/             # 유틸리티 함수
 │   │   └── database.ts    # 데이터베이스 유틸리티
+│   ├── services/          # 서비스 레이어 (신규)
+│   │   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
+│   │   ├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+│   │   └── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
 │   ├── test-client.ts     # 클라이언트 테스트 (152줄)
-│   └── test-search.ts     # 검색 테스트 (152줄)
+│   ├── test-search.ts     # 검색 테스트 (152줄)
+│   ├── test-embedding.ts  # 임베딩 테스트 (154줄)
+│   └── test-forgetting.ts # 망각 정책 테스트 (163줄)
 ├── dist/                  # 빌드 결과물
 ├── data/                  # 데이터 파일
 │   ├── memory.db         # SQLite 데이터베이스

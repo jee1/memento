@@ -13,6 +13,7 @@ import { DatabaseUtils } from '../utils/database.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
 import sqlite3 from 'sqlite3';
 
 // MCP 서버 인스턴스
@@ -21,6 +22,7 @@ let db: sqlite3.Database | null = null;
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
+let forgettingPolicyService: ForgettingPolicyService;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
@@ -65,6 +67,13 @@ const PinSchema = z.object({
 const UnpinSchema = z.object({
   id: z.string().min(1, 'Memory ID cannot be empty')
 });
+
+// 망각 정책 관련 스키마
+const CleanupMemorySchema = z.object({
+  dry_run: z.boolean().default(false).optional()
+});
+
+const ForgettingStatsSchema = z.object({});
 
 // Tool 핸들러들 (개선된 구현)
 async function handleRemember(params: z.infer<typeof RememberSchema>) {
@@ -320,6 +329,103 @@ async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
   }
 }
 
+// 망각 정책 핸들러들
+async function handleCleanupMemory(params: z.infer<typeof CleanupMemorySchema>) {
+  const { dry_run } = params;
+  
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
+  if (!forgettingPolicyService) {
+    throw new Error('망각 정책 서비스가 초기화되지 않았습니다');
+  }
+  
+  try {
+    if (dry_run) {
+      // 드라이런 모드: 실제 삭제 없이 분석만 수행
+      const stats = await forgettingPolicyService.generateForgettingStats(db);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              mode: 'dry_run',
+              stats: {
+                totalMemories: stats.totalMemories,
+                forgetCandidates: stats.forgetCandidates,
+                reviewCandidates: stats.reviewCandidates,
+                averageForgetScore: stats.averageForgetScore,
+                memoryDistribution: stats.memoryDistribution
+              },
+              message: '망각 후보 분석 완료 (실제 삭제 없음)'
+            })
+          }
+        ]
+      };
+    } else {
+      // 실제 정리 실행
+      const result = await forgettingPolicyService.executeMemoryCleanup(db);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              mode: 'execution',
+              result: {
+                softDeleted: result.softDeleted,
+                hardDeleted: result.hardDeleted,
+                reviewed: result.reviewed,
+                totalProcessed: result.totalProcessed,
+                summary: result.summary
+              },
+              message: `메모리 정리 완료: 소프트 삭제 ${result.summary.actualSoftDeletes}개, 하드 삭제 ${result.summary.actualHardDeletes}개, 리뷰 ${result.summary.actualReviews}개`
+            })
+          }
+        ]
+      };
+    }
+  } catch (error) {
+    throw new Error(`메모리 정리 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+async function handleForgettingStats(params: z.infer<typeof ForgettingStatsSchema>) {
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
+  if (!forgettingPolicyService) {
+    throw new Error('망각 정책 서비스가 초기화되지 않았습니다');
+  }
+  
+  try {
+    const stats = await forgettingPolicyService.generateForgettingStats(db);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            stats: {
+              totalMemories: stats.totalMemories,
+              forgetCandidates: stats.forgetCandidates,
+              reviewCandidates: stats.reviewCandidates,
+              averageForgetScore: stats.averageForgetScore,
+              memoryDistribution: stats.memoryDistribution
+            },
+            message: '망각 통계 조회 완료'
+          })
+        }
+      ]
+    };
+  } catch (error) {
+    throw new Error(`망각 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 // 데이터베이스 상태 모니터링
 async function monitorDatabaseStatus() {
   if (!db) return;
@@ -370,6 +476,7 @@ async function initializeServer() {
     searchEngine = new SearchEngine();
     hybridSearchEngine = new HybridSearchEngine();
     embeddingService = new MemoryEmbeddingService();
+    forgettingPolicyService = new ForgettingPolicyService();
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
     // MCP 서버 생성
@@ -491,6 +598,28 @@ async function initializeServer() {
               },
               required: ['id']
             }
+          },
+          {
+            name: 'cleanup_memory',
+            description: '망각 정책에 따라 메모리를 정리합니다',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                dry_run: { 
+                  type: 'boolean', 
+                  description: '드라이런 모드 (실제 삭제 없이 분석만)',
+                  default: false
+                }
+              }
+            }
+          },
+          {
+            name: 'forgetting_stats',
+            description: '망각 통계를 조회합니다',
+            inputSchema: {
+              type: 'object',
+              properties: {}
+            }
           }
         ]
       };
@@ -513,6 +642,13 @@ async function initializeServer() {
             return await handlePin(PinSchema.parse(args));
           case 'unpin':
             return await handleUnpin(UnpinSchema.parse(args));
+          
+          case 'cleanup_memory':
+            return await handleCleanupMemory(CleanupMemorySchema.parse(args));
+          
+          case 'forgetting_stats':
+            return await handleForgettingStats(ForgettingStatsSchema.parse(args));
+          
           default:
             throw new Error(`Unknown tool: ${name}`);
         }

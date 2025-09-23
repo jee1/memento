@@ -1,0 +1,426 @@
+---
+globs: "src/algorithms/forgetting-algorithm.ts,src/services/forgetting-policy-service.ts"
+description: 망각 알고리즘 및 망각 정책 서비스 개발 규칙
+---
+
+# 망각 알고리즘 및 망각 정책 서비스 규칙
+
+## 📋 망각 알고리즘
+
+### 현재 구현 상태
+- **파일**: `src/algorithms/forgetting-algorithm.ts` (244줄)
+- **기능**: Memento-Goals.md의 망각 공식 구현
+- **특징**: 최근성, 사용성, 중복 비율, 중요도, 고정 여부를 종합한 망각 점수 계산
+
+### 핵심 인터페이스
+
+```typescript
+interface ForgettingFeatures {
+  recency: number;        // 최근성 (0-1)
+  usage: number;          // 사용성 (0-1)
+  duplication_ratio: number; // 중복 비율 (0-1)
+  importance: number;     // 중요도 (0-1)
+  pinned: boolean;        // 고정 여부
+}
+
+interface ForgettingWeights {
+  recency: number;        // U1 = 0.35
+  usage: number;          // U2 = 0.25
+  duplication: number;    // U3 = 0.20
+  importance: number;     // U4 = 0.15
+  pinned: number;         // U5 = 0.30
+}
+
+interface ForgettingResult {
+  memory_id: string;
+  forget_score: number;
+  should_forget: boolean;
+  reason: string;
+  features: ForgettingFeatures;
+}
+```
+
+### 구현 가이드라인
+
+#### 1. 망각 점수 계산
+```typescript
+calculateForgetScore(features: ForgettingFeatures): number {
+  const { recency, usage, duplication_ratio, importance, pinned } = features;
+  
+  // 망각 점수 공식: U1*(1-recency) + U2*(1-usage) + U3*duplication - U4*importance - U5*pinned
+  const score = 
+    this.weights.recency * (1 - recency) +
+    this.weights.usage * (1 - usage) +
+    this.weights.duplication * duplication_ratio -
+    this.weights.importance * importance -
+    this.weights.pinned * (pinned ? 1 : 0);
+  
+  return Math.max(0, Math.min(1, score));
+}
+```
+
+#### 2. 특징 계산
+```typescript
+// 최근성 계산 (지수 감쇠)
+calculateRecency(createdAt: Date, type: string): number {
+  const ageDays = this.getAgeInDays(createdAt);
+  const halfLife = this.getHalfLife(type);
+  return Math.exp(-Math.log(2) * ageDays / halfLife);
+}
+
+// 사용성 계산 (로그 스케일)
+calculateUsage(viewCount: number, citeCount: number, editCount: number): number {
+  const rawUsage = 
+    Math.log(1 + viewCount) +
+    2 * Math.log(1 + citeCount) +
+    0.5 * Math.log(1 + editCount);
+  
+  return this.normalize(rawUsage, this.batchMin, this.batchMax);
+}
+
+// 중복 비율 계산
+calculateDuplicationRatio(memoryId: string, similarMemories: string[]): number {
+  if (similarMemories.length === 0) return 0;
+  
+  const similarityScores = similarMemories.map(id => 
+    this.calculateSimilarity(memoryId, id)
+  );
+  
+  return Math.max(...similarityScores);
+}
+```
+
+#### 3. 망각 결정
+```typescript
+shouldForget(features: ForgettingFeatures, threshold: number = 0.6): boolean {
+  const forgetScore = this.calculateForgetScore(features);
+  return forgetScore >= threshold && !features.pinned;
+}
+```
+
+## 🔄 간격 반복 알고리즘
+
+### 현재 구현 상태
+- **파일**: `src/algorithms/spaced-repetition.ts` (239줄)
+- **기능**: 중요도와 사용성 기반 리뷰 간격 계산
+- **특징**: 피드백에 따른 동적 간격 조정
+
+### 핵심 인터페이스
+
+```typescript
+interface SpacedRepetitionFeatures {
+  importance: number;        // 중요도 (0-1)
+  usage: number;            // 사용성 (0-1)
+  helpful_feedback: number; // 도움됨 피드백 (0-1)
+  bad_feedback: number;     // 나쁨 피드백 (0-1)
+}
+
+interface ReviewSchedule {
+  memory_id: string;
+  current_interval: number;  // 현재 간격 (일)
+  next_review: Date;        // 다음 리뷰 날짜
+  recall_probability: number; // 리콜 확률
+  needs_review: boolean;    // 리뷰 필요 여부
+  multiplier: number;       // 간격 배수
+}
+```
+
+### 구현 가이드라인
+
+#### 1. 간격 계산
+```typescript
+calculateNextInterval(
+  currentInterval: number,
+  features: SpacedRepetitionFeatures
+): number {
+  const multiplier = 1 + 
+    this.weights.importance * features.importance +
+    this.weights.usage * features.usage +
+    this.weights.helpful_feedback * features.helpful_feedback -
+    this.weights.bad_feedback * features.bad_feedback;
+  
+  return Math.ceil(currentInterval * multiplier);
+}
+```
+
+#### 2. 리콜 확률 계산
+```typescript
+calculateRecallProbability(
+  timeSinceLastReview: number,
+  interval: number
+): number {
+  return Math.exp(-timeSinceLastReview / interval);
+}
+```
+
+#### 3. 리뷰 필요 여부 판단
+```typescript
+needsReview(
+  timeSinceLastReview: number,
+  interval: number,
+  threshold: number = 0.7
+): boolean {
+  const recallProb = this.calculateRecallProbability(timeSinceLastReview, interval);
+  return recallProb <= threshold;
+}
+```
+
+## 🧠 망각 정책 서비스
+
+### 현재 구현 상태
+- **파일**: `src/services/forgetting-policy-service.ts` (335줄)
+- **기능**: 망각 알고리즘과 간격 반복을 통합한 메모리 관리
+- **특징**: TTL 기반 정책, 소프트/하드 삭제
+
+### 핵심 인터페이스
+
+```typescript
+interface ForgettingPolicyConfig {
+  forgetThreshold: number;        // 망각 임계값 (기본: 0.6)
+  softDeleteThreshold: number;    // 소프트 삭제 임계값 (기본: 0.6)
+  hardDeleteThreshold: number;    // 하드 삭제 임계값 (기본: 0.8)
+  
+  ttlSoft: {
+    working: number;
+    episodic: number;
+    semantic: number;
+    procedural: number;
+  };
+  
+  ttlHard: {
+    working: number;
+    episodic: number;
+    semantic: number;
+    procedural: number;
+  };
+}
+```
+
+### 구현 가이드라인
+
+#### 1. 정책 적용
+```typescript
+async applyForgettingPolicy(): Promise<ForgettingPolicyResult> {
+  const memories = await this.getMemoriesForReview();
+  const results: ForgettingPolicyResult = {
+    softDeleted: [],
+    hardDeleted: [],
+    scheduledForReview: []
+  };
+  
+  for (const memory of memories) {
+    const features = await this.calculateFeatures(memory);
+    const forgetScore = this.forgettingAlgorithm.calculateForgetScore(features);
+    
+    if (forgetScore >= this.config.hardDeleteThreshold) {
+      await this.hardDelete(memory.id);
+      results.hardDeleted.push(memory.id);
+    } else if (forgetScore >= this.config.softDeleteThreshold) {
+      await this.softDelete(memory.id);
+      results.softDeleted.push(memory.id);
+    } else {
+      const schedule = await this.scheduleReview(memory, features);
+      if (schedule.needs_review) {
+        results.scheduledForReview.push(schedule);
+      }
+    }
+  }
+  
+  return results;
+}
+```
+
+#### 2. TTL 검사
+```typescript
+isTTLExpired(memory: MemoryItem, type: 'soft' | 'hard'): boolean {
+  const ageDays = this.getAgeInDays(memory.created_at);
+  const ttl = type === 'soft' ? 
+    this.config.ttlSoft[memory.type] : 
+    this.config.ttlHard[memory.type];
+  
+  return ageDays >= ttl;
+}
+```
+
+#### 3. 배치 처리
+```typescript
+async processBatchForgetting(batchSize: number = 100): Promise<void> {
+  const memories = await this.getMemoriesBatch(batchSize);
+  
+  for (const memory of memories) {
+    try {
+      await this.processMemoryForgetting(memory);
+    } catch (error) {
+      console.error(`Failed to process memory ${memory.id}:`, error);
+    }
+  }
+}
+```
+
+## 🧪 테스트 가이드라인
+
+### 망각 알고리즘 테스트
+```typescript
+describe('ForgettingAlgorithm', () => {
+  let algorithm: ForgettingAlgorithm;
+  
+  beforeEach(() => {
+    algorithm = new ForgettingAlgorithm();
+  });
+  
+  it('should calculate forget score correctly', () => {
+    const features: ForgettingFeatures = {
+      recency: 0.2,
+      usage: 0.1,
+      duplication_ratio: 0.8,
+      importance: 0.3,
+      pinned: false
+    };
+    
+    const score = algorithm.calculateForgetScore(features);
+    expect(score).toBeGreaterThan(0.6);
+  });
+  
+  it('should not forget pinned memories', () => {
+    const features: ForgettingFeatures = {
+      recency: 0.1,
+      usage: 0.1,
+      duplication_ratio: 0.9,
+      importance: 0.2,
+      pinned: true
+    };
+    
+    const shouldForget = algorithm.shouldForget(features);
+    expect(shouldForget).toBe(false);
+  });
+});
+```
+
+### 간격 반복 테스트
+```typescript
+describe('SpacedRepetitionAlgorithm', () => {
+  let algorithm: SpacedRepetitionAlgorithm;
+  
+  beforeEach(() => {
+    algorithm = new SpacedRepetitionAlgorithm();
+  });
+  
+  it('should calculate next interval correctly', () => {
+    const features: SpacedRepetitionFeatures = {
+      importance: 0.8,
+      usage: 0.6,
+      helpful_feedback: 0.7,
+      bad_feedback: 0.1
+    };
+    
+    const nextInterval = algorithm.calculateNextInterval(7, features);
+    expect(nextInterval).toBeGreaterThan(7);
+  });
+  
+  it('should determine review need correctly', () => {
+    const needsReview = algorithm.needsReview(10, 7, 0.7);
+    expect(needsReview).toBe(true);
+  });
+});
+```
+
+## 📊 성능 최적화
+
+### 1. 배치 처리
+```typescript
+// 대량 메모리 처리 시 배치 단위로 처리
+async processMemoriesInBatches(memories: MemoryItem[], batchSize: number = 100) {
+  for (let i = 0; i < memories.length; i += batchSize) {
+    const batch = memories.slice(i, i + batchSize);
+    await Promise.all(batch.map(memory => this.processMemory(memory)));
+  }
+}
+```
+
+### 2. 캐싱
+```typescript
+// 특징 계산 결과 캐싱
+private featureCache = new Map<string, ForgettingFeatures>();
+
+async getCachedFeatures(memoryId: string): Promise<ForgettingFeatures> {
+  if (this.featureCache.has(memoryId)) {
+    return this.featureCache.get(memoryId)!;
+  }
+  
+  const features = await this.calculateFeatures(memoryId);
+  this.featureCache.set(memoryId, features);
+  return features;
+}
+```
+
+### 3. 인덱스 최적화
+```sql
+-- 망각 정책 쿼리 최적화를 위한 인덱스
+CREATE INDEX idx_memory_item_forgetting ON memory_item(
+  created_at, last_accessed, importance, pinned
+);
+
+CREATE INDEX idx_memory_item_type_created ON memory_item(type, created_at);
+```
+
+## 🔧 설정 관리
+
+### 환경 변수
+```bash
+# .env 파일
+FORGET_THRESHOLD=0.6
+SOFT_DELETE_THRESHOLD=0.6
+HARD_DELETE_THRESHOLD=0.8
+
+# TTL 설정 (일 단위)
+TTL_SOFT_WORKING=2
+TTL_SOFT_EPISODIC=30
+TTL_SOFT_SEMANTIC=180
+TTL_SOFT_PROCEDURAL=90
+
+TTL_HARD_WORKING=7
+TTL_HARD_EPISODIC=180
+TTL_HARD_SEMANTIC=365
+TTL_HARD_PROCEDURAL=180
+```
+
+### 설정 검증
+```typescript
+private validateConfig(config: ForgettingPolicyConfig): void {
+  if (config.forgetThreshold < 0 || config.forgetThreshold > 1) {
+    throw new Error('forgetThreshold must be between 0 and 1');
+  }
+  
+  if (config.softDeleteThreshold >= config.hardDeleteThreshold) {
+    throw new Error('softDeleteThreshold must be less than hardDeleteThreshold');
+  }
+  
+  // TTL 값 검증
+  Object.values(config.ttlSoft).forEach(ttl => {
+    if (ttl <= 0) throw new Error('TTL values must be positive');
+  });
+}
+```
+
+## 📋 개발 체크리스트
+
+### 망각 알고리즘
+- [ ] 망각 점수 계산 로직 구현
+- [ ] 특징 계산 함수 구현
+- [ ] 망각 결정 로직 구현
+- [ ] 에러 처리 및 로깅 추가
+- [ ] 단위 테스트 작성
+
+### 간격 반복 알고리즘
+- [ ] 간격 계산 로직 구현
+- [ ] 리콜 확률 계산 함수
+- [ ] 리뷰 필요 여부 판단 로직
+- [ ] 피드백 처리 로직
+- [ ] 단위 테스트 작성
+
+### 망각 정책 서비스
+- [ ] 정책 적용 로직 구현
+- [ ] TTL 검사 로직
+- [ ] 배치 처리 구현
+- [ ] 데이터베이스 연동
+- [ ] 통합 테스트 작성

@@ -13,7 +13,9 @@ memento/
 │   ├── algorithms/        # 검색 및 망각 알고리즘
 │   │   ├── search-engine.ts        # 기본 검색 엔진 (233줄)
 │   │   ├── hybrid-search-engine.ts # 하이브리드 검색 엔진 (200줄)
-│   │   └── search-ranking.ts       # 검색 랭킹 알고리즘
+│   │   ├── search-ranking.ts       # 검색 랭킹 알고리즘
+│   │   ├── forgetting-algorithm.ts # 망각 알고리즘 (244줄)
+│   │   └── spaced-repetition.ts    # 간격 반복 알고리즘 (239줄)
 │   ├── client/            # MCP 클라이언트
 │   │   └── index.ts       # 클라이언트 진입점
 │   ├── config/            # 설정 관리
@@ -22,10 +24,12 @@ memento/
 │   │   ├── init.ts        # 데이터베이스 초기화 (102줄)
 │   │   └── schema.sql     # SQLite 스키마
 │   ├── server/            # MCP 서버
-│   │   └── index.ts       # 서버 진입점 (521줄)
+│   │   ├── index.ts       # 서버 진입점 (521줄)
+│   │   └── http-server.ts # HTTP/WebSocket 서버 (551줄)
 │   ├── services/          # 서비스 레이어 (신규)
 │   │   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
-│   │   └── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+│   │   ├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+│   │   └── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
 │   ├── tools/             # MCP Tools 구현 (빈 폴더)
 │   ├── types/             # TypeScript 타입 정의
 │   │   └── index.ts       # 공통 타입 정의
@@ -33,7 +37,8 @@ memento/
 │   │   └── database.ts    # 데이터베이스 유틸리티
 │   ├── test-client.ts     # 클라이언트 테스트 (152줄)
 │   ├── test-search.ts     # 검색 테스트 (152줄)
-│   └── test-embedding.ts  # 임베딩 테스트 (154줄)
+│   ├── test-embedding.ts  # 임베딩 테스트 (154줄)
+│   └── test-forgetting.ts # 망각 정책 테스트 (163줄)
 ├── dist/                  # 빌드 결과물
 │   ├── algorithms/        # 컴파일된 알고리즘
 │   ├── client/           # 컴파일된 클라이언트

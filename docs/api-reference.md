@@ -512,6 +512,116 @@ interface SearchResource {
 }
 ```
 
+## 8. apply_forgetting_policy
+
+망각 정책을 적용합니다. 망각 알고리즘과 간격 반복을 통합하여 메모리를 관리합니다.
+
+### Parameters
+
+- `config` (object, optional): 망각 정책 설정
+  - `forgetThreshold` (number, optional): 망각 임계값 (기본값: 0.6)
+  - `softDeleteThreshold` (number, optional): 소프트 삭제 임계값 (기본값: 0.6)
+  - `hardDeleteThreshold` (number, optional): 하드 삭제 임계값 (기본값: 0.8)
+  - `ttlSoft` (object, optional): 소프트 TTL 설정 (일 단위)
+    - `working` (number, optional): 작업기억 TTL (기본값: 2)
+    - `episodic` (number, optional): 일화기억 TTL (기본값: 30)
+    - `semantic` (number, optional): 의미기억 TTL (기본값: 180)
+    - `procedural` (number, optional): 절차기억 TTL (기본값: 90)
+  - `ttlHard` (object, optional): 하드 TTL 설정 (일 단위)
+    - `working` (number, optional): 작업기억 TTL (기본값: 7)
+    - `episodic` (number, optional): 일화기억 TTL (기본값: 180)
+    - `semantic` (number, optional): 의미기억 TTL (기본값: 365)
+    - `procedural` (number, optional): 절차기억 TTL (기본값: 180)
+
+### Response
+
+```typescript
+interface ForgettingPolicyResult {
+  softDeleted: string[];
+  hardDeleted: string[];
+  scheduledForReview: ReviewSchedule[];
+  processedCount: number;
+  errorCount: number;
+}
+
+interface ReviewSchedule {
+  memory_id: string;
+  current_interval: number;
+  next_review: string;
+  recall_probability: number;
+  needs_review: boolean;
+  multiplier: number;
+}
+```
+
+### Usage Example
+
+```typescript
+// 기본 망각 정책 적용
+const result = await client.callTool('apply_forgetting_policy', {});
+
+// 사용자 정의 설정으로 망각 정책 적용
+const result = await client.callTool('apply_forgetting_policy', {
+  config: {
+    forgetThreshold: 0.7,
+    softDeleteThreshold: 0.7,
+    hardDeleteThreshold: 0.9,
+    ttlSoft: {
+      working: 3,
+      episodic: 45,
+      semantic: 200,
+      procedural: 120
+    }
+  }
+});
+```
+
+## 9. schedule_review
+
+간격 반복을 위한 리뷰 스케줄을 생성합니다.
+
+### Parameters
+
+- `memory_id` (string, required): 메모리 ID
+- `features` (object, optional): 간격 반복 특징
+  - `importance` (number, optional): 중요도 (0-1)
+  - `usage` (number, optional): 사용성 (0-1)
+  - `helpful_feedback` (number, optional): 도움됨 피드백 (0-1)
+  - `bad_feedback` (number, optional): 나쁨 피드백 (0-1)
+
+### Response
+
+```typescript
+interface ReviewSchedule {
+  memory_id: string;
+  current_interval: number;
+  next_review: string;
+  recall_probability: number;
+  needs_review: boolean;
+  multiplier: number;
+}
+```
+
+### Usage Example
+
+```typescript
+// 기본 리뷰 스케줄 생성
+const schedule = await client.callTool('schedule_review', {
+  memory_id: 'memory-123'
+});
+
+// 특징을 고려한 리뷰 스케줄 생성
+const schedule = await client.callTool('schedule_review', {
+  memory_id: 'memory-123',
+  features: {
+    importance: 0.8,
+    usage: 0.6,
+    helpful_feedback: 0.7,
+    bad_feedback: 0.1
+  }
+});
+```
+
 ## MCP Prompts
 
 ### memory_injection

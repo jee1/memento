@@ -65,10 +65,31 @@ description: 실제 구현된 기능들에 대한 개발 규칙
 - **벡터 검색**: 저장된 임베딩을 활용한 유사도 검색
 - **자동 임베딩 생성**: 메모리 저장 시 자동으로 임베딩 생성
 
-#### 9. 테스트 파일들
+#### 9. 망각 알고리즘 (`src/algorithms/forgetting-algorithm.ts` - 244줄)
+- **망각 점수 계산**: Memento-Goals.md의 망각 공식 구현
+- **특징 기반 망각**: 최근성, 사용성, 중복 비율, 중요도, 고정 여부 고려
+- **가중치 시스템**: U1-U5 계수를 사용한 망각 점수 계산
+
+#### 10. 간격 반복 알고리즘 (`src/algorithms/spaced-repetition.ts` - 239줄)
+- **간격 반복 스케줄링**: 중요도와 사용성 기반 리뷰 간격 계산
+- **리콜 확률 계산**: 시간 경과에 따른 기억 강도 측정
+- **동적 간격 조정**: 피드백에 따른 간격 배수 조정
+
+#### 11. 망각 정책 서비스 (`src/services/forgetting-policy-service.ts` - 335줄)
+- **통합 메모리 관리**: 망각 알고리즘과 간격 반복 통합
+- **TTL 기반 정책**: 타입별 수명 관리 (working, episodic, semantic, procedural)
+- **소프트/하드 삭제**: 단계적 삭제 정책
+
+#### 12. HTTP 서버 (`src/server/http-server.ts` - 551줄)
+- **WebSocket 지원**: 실시간 통신을 위한 WebSocket 서버
+- **CORS 설정**: 웹 클라이언트 지원
+- **콘솔 로그 충돌 해결**: MCP 프로토콜과의 호환성 개선
+
+#### 13. 테스트 파일들
 - **`test-client.ts`**: 클라이언트 테스트 (152줄)
 - **`test-search.ts`**: 검색 기능 테스트 (152줄)
 - **`test-embedding.ts`**: 임베딩 기능 테스트 (154줄)
+- **`test-forgetting.ts`**: 망각 정책 테스트 (163줄)
 
 ## 🏗️ 실제 아키텍처
 
@@ -86,17 +107,20 @@ src/
 │   ├── init.ts       # 초기화 로직
 │   └── schema.sql    # SQLite 스키마
 ├── server/           # MCP 서버
-│   └── index.ts      # 서버 메인 (521줄)
+│   ├── index.ts      # 서버 메인 (521줄)
+│   └── http-server.ts # HTTP/WebSocket 서버 (551줄)
 ├── services/         # 서비스 레이어 (신규)
 │   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
-│   └── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+│   ├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+│   └── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
 ├── types/            # 타입 정의
 │   └── index.ts      # 공통 타입
 ├── utils/            # 유틸리티
 │   └── database.ts   # DB 유틸리티
 ├── test-client.ts    # 클라이언트 테스트
 ├── test-search.ts    # 검색 테스트
-└── test-embedding.ts # 임베딩 테스트
+├── test-embedding.ts # 임베딩 테스트
+└── test-forgetting.ts # 망각 정책 테스트
 ```
 
 ## 🔧 실제 사용 가능한 명령어
@@ -132,6 +156,9 @@ npm run test:search
 
 # 임베딩 기능 테스트
 npm run test:embedding
+
+# 망각 정책 테스트
+npm run test:forgetting
 ```
 
 ### 데이터베이스 명령어
