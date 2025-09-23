@@ -1,0 +1,129 @@
+---
+globs: "src/services/lightweight-embedding-service.ts"
+description: "Memento 프로젝트의 경량 하이브리드 임베딩 서비스 개발 규칙입니다. TF-IDF + 키워드 매칭 기반 벡터화를 통해 OpenAI 없이도 임베딩 기능을 제공하는 fallback 솔루션의 가이드라인을 제공합니다."
+---
+# 경량 하이브리드 임베딩 서비스 개발 규칙
+
+Memento 프로젝트는 OpenAI API가 없을 때 사용할 수 있는 경량 하이브리드 임베딩 서비스를 구현했습니다. 이 문서는 `src/services/lightweight-embedding-service.ts` 파일의 개발 규칙과 아키텍처를 설명합니다.
+
+## 1. 경량 하이브리드 임베딩 아키텍처 (`src/services/lightweight-embedding-service.ts` - 321줄)
+
+### 1.1. 목적
+- **Fallback 솔루션**: OpenAI API가 없거나 사용할 수 없을 때 사용하는 대체 임베딩 서비스
+- **경량 구현**: TF-IDF + 키워드 매칭 기반으로 가벼운 벡터화 제공
+- **다국어 지원**: 한국어와 영어를 모두 지원하는 텍스트 처리
+
+### 1.2. 핵심 기능
+- **TF-IDF 벡터화**: Term Frequency-Inverse Document Frequency 기반 벡터 생성
+- **키워드 매칭**: 중요한 키워드에 대한 가중치 적용
+- **불용어 제거**: 한국어/영어 불용어 자동 제거
+- **코사인 유사도**: 벡터 간 유사도 계산을 통한 검색
+
+### 1.3. 주요 특징
+- **고정 차원**: 512차원 벡터로 일관된 크기 유지
+- **모델명**: `lightweight-hybrid`로 식별
+- **사용량 추적**: OpenAI API와 동일한 사용량 인터페이스 제공
+
+## 2. 주요 클래스 및 인터페이스
+
+### 2.1. `LightweightEmbeddingService` 클래스
+- `generateEmbedding(text: string): Promise<LightweightEmbeddingResult | null>`: 텍스트를 512차원 벡터로 변환
+- `calculateSimilarity(embedding1: number[], embedding2: number[]): number`: 두 벡터 간 코사인 유사도 계산
+- `searchSimilar(queryEmbedding: number[], memories: MemoryItem[], limit: number): LightweightSimilarityResult[]`: 유사한 메모리 검색
+
+### 2.2. `LightweightEmbeddingResult` 인터페이스
+```typescript
+export interface LightweightEmbeddingResult {
+  embedding: number[];        // 512차원 벡터
+  model: string;             // 'lightweight-hybrid'
+  usage: {
+    prompt_tokens: number;   // 입력 토큰 수
+    total_tokens: number;    // 총 토큰 수
+  };
+}
+```
+
+### 2.3. `LightweightSimilarityResult` 인터페이스
+```typescript
+export interface LightweightSimilarityResult {
+  id: string;                // 메모리 ID
+  content: string;           // 메모리 내용
+  similarity: number;        // 코사인 유사도 (0-1)
+  score: number;             // 최종 점수
+}
+```
+
+## 3. 텍스트 처리 파이프라인
+
+### 3.1. 전처리 단계
+1. **텍스트 정규화**: 소문자 변환, 특수문자 제거
+2. **토큰화**: 공백 기준 단어 분리
+3. **불용어 제거**: 한국어/영어 불용어 필터링
+4. **어간 추출**: 기본적인 형태소 분석
+
+### 3.2. TF-IDF 계산
+- **Term Frequency (TF)**: 문서 내 단어 빈도
+- **Inverse Document Frequency (IDF)**: 전체 문서 집합에서의 단어 희귀성
+- **TF-IDF 점수**: `TF * IDF`로 단어의 중요도 계산
+
+### 3.3. 벡터 생성
+- **512차원 벡터**: 고정된 크기의 벡터 생성
+- **정규화**: 벡터 크기를 1로 정규화하여 코사인 유사도 계산 최적화
+
+## 4. 통합 및 사용
+
+### 4.1. MCP 서버 통합
+- **자동 Fallback**: `EmbeddingService`에서 OpenAI API 실패 시 자동으로 경량 서비스로 전환
+- **투명한 인터페이스**: 기존 임베딩 API와 동일한 인터페이스 제공
+
+### 4.2. 사용 예시
+```typescript
+// 경량 임베딩 서비스 직접 사용
+const lightweightService = new LightweightEmbeddingService();
+
+// 임베딩 생성
+const result = await lightweightService.generateEmbedding("안녕하세요");
+
+// 유사도 검색
+const similar = lightweightService.searchSimilar(
+  result.embedding, 
+  memories, 
+  10
+);
+```
+
+### 4.3. 성능 특성
+- **빠른 처리**: 로컬 TF-IDF 계산으로 빠른 응답
+- **메모리 효율**: 사전 학습된 모델 없이 가벼운 구현
+- **정확도**: 키워드 기반 검색에 특화된 정확도
+
+## 5. 개발 가이드라인
+
+### 5.1. 코드 스타일
+- **TypeScript**: 엄격한 타입 정의 사용
+- **에러 처리**: 명확한 에러 메시지와 예외 처리
+- **로깅**: 디버깅을 위한 상세한 로그 출력
+
+### 5.2. 테스트 전략
+- **단위 테스트**: 각 메서드별 개별 테스트
+- **통합 테스트**: 전체 파이프라인 테스트
+- **성능 테스트**: 대용량 텍스트 처리 성능 검증
+
+### 5.3. 확장 가능성
+- **언어 지원**: 추가 언어에 대한 불용어 및 처리 로직 확장
+- **알고리즘 개선**: 더 정교한 TF-IDF 계산 방법 적용
+- **캐싱**: 자주 사용되는 임베딩 결과 캐싱
+
+## 6. 제한사항 및 고려사항
+
+### 6.1. 성능 제한
+- **정확도**: OpenAI 임베딩 대비 상대적으로 낮은 정확도
+- **컨텍스트 이해**: 단순 키워드 매칭으로 인한 제한적 의미 이해
+- **다국어**: 기본적인 다국어 지원 수준
+
+### 6.2. 사용 권장사항
+- **Fallback 용도**: OpenAI API의 대체 수단으로만 사용
+- **단순 검색**: 복잡한 의미적 검색보다는 키워드 기반 검색에 적합
+- **성능 우선**: 정확도보다는 속도가 중요한 경우에 사용
+
+이 경량 하이브리드 임베딩 서비스는 Memento MCP 서버의 안정성과 가용성을 크게 향상시키는 중요한 fallback 솔루션입니다.

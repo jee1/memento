@@ -1,10 +1,12 @@
 /**
  * OpenAI API를 사용한 임베딩 서비스
  * 텍스트를 벡터로 변환하고 유사도 검색 제공
+ * OpenAI가 없을 때는 경량 하이브리드 서비스로 fallback
  */
 
 import OpenAI from 'openai';
 import { mementoConfig } from '../config/index.js';
+import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -24,10 +26,12 @@ export interface SimilarityResult {
 
 export class EmbeddingService {
   private openai: OpenAI | null = null;
+  private lightweightService: LightweightEmbeddingService;
   private readonly model = 'text-embedding-3-small'; // 1536차원
   private readonly maxTokens = 8191; // text-embedding-3-small 최대 토큰
 
   constructor() {
+    this.lightweightService = new LightweightEmbeddingService();
     this.initializeOpenAI();
   }
 
@@ -55,39 +59,57 @@ export class EmbeddingService {
    * 텍스트를 임베딩으로 변환
    */
   async generateEmbedding(text: string): Promise<EmbeddingResult | null> {
-    if (!this.openai) {
-      throw new Error('OpenAI API가 초기화되지 않았습니다');
-    }
-
     if (!text || text.trim().length === 0) {
       throw new Error('텍스트가 비어있습니다');
     }
 
-    // 토큰 수 제한 확인
-    const truncatedText = this.truncateText(text);
-    
-    try {
-      const response = await this.openai.embeddings.create({
-        model: this.model,
-        input: truncatedText,
-        encoding_format: 'float',
-      });
+    // OpenAI가 사용 가능한 경우
+    if (this.openai) {
+      try {
+        // 토큰 수 제한 확인
+        const truncatedText = this.truncateText(text);
+        
+        const response = await this.openai.embeddings.create({
+          model: this.model,
+          input: truncatedText,
+          encoding_format: 'float',
+        });
 
-      const embedding = response.data[0]?.embedding;
-      if (!embedding) {
-        throw new Error('임베딩 생성에 실패했습니다');
+        const embedding = response.data[0]?.embedding;
+        if (!embedding) {
+          throw new Error('임베딩 생성에 실패했습니다');
+        }
+        
+        return {
+          embedding,
+          model: this.model,
+          usage: {
+            prompt_tokens: response.usage.prompt_tokens,
+            total_tokens: response.usage.total_tokens,
+          },
+        };
+      } catch (error) {
+        console.warn('⚠️ OpenAI 임베딩 실패, 경량 서비스로 fallback:', error);
+        // OpenAI 실패 시 경량 서비스로 fallback
       }
-      
+    }
+
+    // OpenAI가 없거나 실패한 경우 경량 서비스 사용
+    console.log('🔄 경량 하이브리드 임베딩 서비스 사용');
+    try {
+      const lightweightResult = await this.lightweightService.generateEmbedding(text);
+      if (!lightweightResult) {
+        return null;
+      }
+
+      // 경량 서비스 결과를 OpenAI 형식으로 변환
       return {
-        embedding,
-        model: this.model,
-        usage: {
-          prompt_tokens: response.usage.prompt_tokens,
-          total_tokens: response.usage.total_tokens,
-        },
+        embedding: lightweightResult.embedding,
+        model: lightweightResult.model,
+        usage: lightweightResult.usage,
       };
     } catch (error) {
-      console.error('❌ 임베딩 생성 실패:', error);
+      console.error('❌ 경량 임베딩 생성 실패:', error);
       throw new Error(`임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -101,11 +123,7 @@ export class EmbeddingService {
     limit: number = 10,
     threshold: number = 0.7
   ): Promise<SimilarityResult[]> {
-    if (!this.openai) {
-      throw new Error('OpenAI API가 초기화되지 않았습니다');
-    }
-
-    // 쿼리 임베딩 생성
+    // 쿼리 임베딩 생성 (fallback 로직 포함)
     const queryEmbedding = await this.generateEmbedding(query);
     if (!queryEmbedding) {
       return [];
@@ -179,17 +197,21 @@ export class EmbeddingService {
    * 서비스 사용 가능 여부 확인
    */
   isAvailable(): boolean {
-    return this.openai !== null;
+    return this.openai !== null || this.lightweightService.isAvailable();
   }
 
   /**
    * 모델 정보 반환
    */
   getModelInfo(): { model: string; dimensions: number; maxTokens: number } {
-    return {
-      model: this.model,
-      dimensions: 1536, // text-embedding-3-small 차원
-      maxTokens: this.maxTokens,
-    };
+    if (this.openai) {
+      return {
+        model: this.model,
+        dimensions: 1536, // text-embedding-3-small 차원
+        maxTokens: this.maxTokens,
+      };
+    } else {
+      return this.lightweightService.getModelInfo();
+    }
   }
 }

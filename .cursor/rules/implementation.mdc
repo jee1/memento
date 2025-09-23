@@ -110,6 +110,13 @@ description: 실제 구현된 기능들에 대한 개발 규칙
   - 성능 리포트 생성 및 트렌드 분석
   - 시스템 상태 모니터링
 
+- **경량 하이브리드 임베딩** (`src/services/lightweight-embedding-service.ts` - 321줄):
+  - TF-IDF + 키워드 매칭 기반 벡터화
+  - OpenAI API 없이 사용 가능한 fallback 솔루션
+  - 512차원 고정 벡터 생성
+  - 한국어/영어 불용어 제거 및 텍스트 전처리
+  - 코사인 유사도 기반 검색
+
 #### 14. 성능 벤치마크 및 테스트
 - **성능 벤치마크** (`src/test/performance-benchmark.ts` - 497줄):
   - 종합 성능 벤치마크 시스템

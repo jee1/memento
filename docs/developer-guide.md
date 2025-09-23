@@ -19,6 +19,17 @@
 
 - **Node.js**: 20.10.0 이상 (실제 구현 기준)
 - **npm**: 10.0.0 이상
+
+### 저장소 가이드라인 (`AGENTS.md`)
+
+프로젝트에는 개발자 가이드라인이 포함되어 있습니다:
+
+- **프로젝트 구조**: `src/` 하위 모듈별 조직화
+- **빌드/테스트 명령어**: `npm run dev`, `npm run build`, `npm run test` 등
+- **코딩 스타일**: Node.js ≥ 20, TypeScript ES 모듈, 2칸 들여쓰기
+- **테스트 가이드라인**: Vitest 기반, `src/test/` 또는 `*.spec.ts` 파일
+- **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
+- **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리
 - **TypeScript**: 5.3.0 (실제 구현 기준)
 - **Git**: 2.30.0 이상
 
@@ -143,7 +154,8 @@ Memento는 새로운 서비스 레이어를 도입하여 외부 API 연동과 �
 ```
 src/services/
 ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
-└── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+└── lightweight-embedding-service.ts # 경량 하이브리드 임베딩 서비스 (321줄)
 ```
 
 **서비스 레이어의 역할**:
@@ -151,6 +163,7 @@ src/services/
 - **비즈니스 로직**: 임베딩 생성, 벡터 검색, 유사도 계산
 - **에러 처리**: API 호출 실패, 재시도 로직
 - **캐싱**: 임베딩 결과 캐싱, 성능 최적화
+- **Fallback 솔루션**: 경량 하이브리드 임베딩 서비스로 OpenAI API 대체
 
 ### 하이브리드 검색 엔진 (`src/algorithms/hybrid-search-engine.ts`)
 

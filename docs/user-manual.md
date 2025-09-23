@@ -152,13 +152,13 @@ const result = await client.callTool('hybrid_search', {
 
 ### 3. 임베딩 기능 사용하기
 
-Memento는 OpenAI의 `text-embedding-3-small` 모델을 사용하여 의미적 유사성 기반 검색을 제공합니다.
+Memento는 OpenAI의 `text-embedding-3-small` 모델을 사용하여 의미적 유사성 기반 검색을 제공합니다. OpenAI API가 없는 경우 자동으로 경량 하이브리드 임베딩 서비스(TF-IDF + 키워드 매칭)를 사용합니다.
 
 #### 임베딩 기능 설정
 
 1. **OpenAI API 키 설정**:
 ```bash
-# .env 파일에 추가
+# .env 파일에 추가 (선택사항 - 없으면 경량 임베딩 사용)
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 

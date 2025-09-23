@@ -18,6 +18,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **FTS5 텍스트 검색**: SQLite의 Full-Text Search
 - **벡터 검색**: OpenAI 임베딩 기반 의미적 검색
 - **하이브리드 검색**: 텍스트와 벡터 검색의 결합
+- **경량 임베딩**: TF-IDF + 키워드 매칭 기반 fallback 솔루션
 - **태그 기반 필터링**: 메타데이터 기반 검색
 
 ### 🧹 망각 정책
@@ -158,8 +159,13 @@ const results = await client.callTool({
 | `pin` | 기억 고정 | memory_id |
 | `unpin` | 기억 고정 해제 | memory_id |
 | `forget` | 기억 삭제 | memory_id, hard |
-| `forgetting_stats` | 망각 통계 조회 | - |
-| `cleanup_memory` | 메모리 정리 | dry_run |
+| `hybrid_search` | 하이브리드 검색 | query, filters, limit, vectorWeight, textWeight |
+| `apply_forgetting_policy` | 망각 정책 적용 | config |
+| `schedule_review` | 리뷰 스케줄링 | memory_id, features |
+| `get_performance_metrics` | 성능 메트릭 조회 | timeRange, includeDetails |
+| `get_cache_stats` | 캐시 통계 조회 | cacheType |
+| `clear_cache` | 캐시 정리 | cacheType |
+| `optimize_database` | 데이터베이스 최적화 | actions, autoCreateIndexes |
 
 ### Resources
 
@@ -209,6 +215,16 @@ npm run test:forgetting  # 망각 정책 테스트
 npm run test:performance # 성능 벤치마크
 npm run test:monitoring  # 성능 모니터링 테스트
 ```
+
+## 📚 개발자 가이드라인
+
+### 저장소 가이드라인 (`AGENTS.md`)
+- **프로젝트 구조**: `src/` 하위 모듈별 조직화
+- **빌드/테스트 명령어**: `npm run dev`, `npm run build`, `npm run test` 등
+- **코딩 스타일**: Node.js ≥ 20, TypeScript ES 모듈, 2칸 들여쓰기
+- **테스트 가이드라인**: Vitest 기반, `src/test/` 또는 `*.spec.ts` 파일
+- **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
+- **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리
 
 ## 📊 성능 지표
 

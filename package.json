@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server/index.ts",
     "dev:http": "tsx watch src/server/http-server.ts",
     "build": "tsc && npm run copy:assets",
-    "copy:assets": "mkdir -p dist/database && cp src/database/schema.sql dist/database/",
+    "copy:assets": "if not exist dist\\database mkdir dist\\database && copy src\\database\\schema.sql dist\\database\\",
     "start": "node dist/server/index.js",
     "start:http": "node dist/server/http-server.js",
     "test": "vitest",
@@ -19,6 +19,7 @@
     "test:client": "tsx src/test-client.ts",
     "test:search": "tsx src/test-search.ts",
     "test:embedding": "tsx src/test-embedding.ts",
+    "test:lightweight-embedding": "tsx src/test-lightweight-embedding.ts",
     "test:forgetting": "tsx src/test-forgetting.ts",
     "test:performance": "tsx src/test/performance-benchmark.ts",
     "test:monitoring": "tsx src/test-performance-monitoring.ts"
