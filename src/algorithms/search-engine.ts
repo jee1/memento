@@ -158,7 +158,7 @@ export class SearchEngine {
     return results
       .map((row: any) => {
         // 관련성 계산
-        const relevance = this.ranking.calculateRelevance(
+        const relevance = this.ranking.calculateRelevanceSimple(
           query,
           row.content,
           row.tags ? JSON.parse(row.tags) : []
@@ -177,10 +177,13 @@ export class SearchEngine {
           row.type
         );
         
-        // 사용성 계산
-        const usage = this.ranking.calculateUsage(
-          row.last_accessed ? new Date(row.last_accessed) : undefined
-        );
+        // 사용성 계산 (기본 메트릭 사용)
+        const usage = this.ranking.calculateUsage({
+          viewCount: 1, // 기본값
+          citeCount: 0,
+          editCount: 0,
+          lastAccessed: row.last_accessed ? new Date(row.last_accessed) : undefined
+        });
         
         // 중복 패널티 계산
         const duplicationPenalty = this.ranking.calculateDuplicationPenalty(
