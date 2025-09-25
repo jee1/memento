@@ -18,11 +18,11 @@ import { SearchCacheService } from '../services/cache-service.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
-let db: sqlite3.Database | null = null;
+let db: Database.Database | null = null;
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;

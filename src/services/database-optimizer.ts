@@ -4,7 +4,7 @@
  */
 
 import { DatabaseUtils } from '../utils/database.js';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 
 export interface IndexRecommendation {
   table: string;
@@ -45,10 +45,10 @@ export interface DatabaseStats {
 }
 
 export class DatabaseOptimizer {
-  private db: sqlite3.Database;
+  private db: Database.Database;
   private queryHistory: Map<string, { count: number; totalTime: number; lastUsed: Date }> = new Map();
 
-  constructor(db: sqlite3.Database) {
+  constructor(db: Database.Database) {
     this.db = db;
   }
 

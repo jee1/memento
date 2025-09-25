@@ -14,16 +14,16 @@ import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 
 // 전역 변수
-let db: sqlite3.Database | null = null;
+let db: Database.Database | null = null;
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 
 type TestDependencies = {
-  database: sqlite3.Database;
+  database: Database.Database;
   searchEngine?: SearchEngine;
   hybridSearchEngine?: HybridSearchEngine;
   embeddingService?: MemoryEmbeddingService;
@@ -223,7 +223,15 @@ if (process.argv[1] && process.argv[1].endsWith('http-server.js')) {
   });
 }
 
-export const __test = {
+export const __test: {
+  setTestDependencies: (deps: TestDependencies) => void;
+  getApp: () => express.Application;
+  getServer: () => any;
+  getDatabase: () => Database.Database | null;
+  getSearchEngine: () => SearchEngine | undefined;
+  getHybridSearchEngine: () => HybridSearchEngine | undefined;
+  getEmbeddingService: () => MemoryEmbeddingService | undefined;
+} = {
   setTestDependencies,
   getApp: () => app,
   getServer: () => server,

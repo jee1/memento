@@ -17,11 +17,11 @@ import { ForgettingPolicyService } from '../services/forgetting-policy-service.j
 import { PerformanceMonitor } from '../services/performance-monitor.js';
 import { SearchCacheService } from '../services/cache-service.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
-let db: sqlite3.Database | null = null;
+let db: Database.Database | null = null;
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;

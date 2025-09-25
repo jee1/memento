@@ -4,7 +4,7 @@
  */
 
 import { DatabaseUtils } from '../utils/database.js';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 
 export interface PerformanceMetrics {
   // 데이터베이스 메트릭
@@ -60,9 +60,9 @@ export class PerformanceMonitor {
   private queryStats: Map<string, QueryStats> = new Map();
   private searchStats: Map<string, number> = new Map();
   private startTime: Date = new Date();
-  private db: sqlite3.Database | null = null;
+  private db: Database.Database | null = null;
 
-  constructor(db: sqlite3.Database) {
+  constructor(db: Database.Database) {
     this.db = db;
   }
 
