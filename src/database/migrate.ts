@@ -46,11 +46,14 @@ function migrateDatabase() {
     
     db.exec(`
       CREATE TABLE IF NOT EXISTS memory_embedding (
-        memory_id TEXT PRIMARY KEY,
-        embedding BLOB,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memory_id TEXT NOT NULL,
+        embedding TEXT NOT NULL,
         dim INTEGER NOT NULL,
+        model TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+        UNIQUE(memory_id)
       )
     `);
     

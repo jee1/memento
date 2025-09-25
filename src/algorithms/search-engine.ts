@@ -138,15 +138,12 @@ export class SearchEngine {
    * 데이터베이스 쿼리 실행
    */
   private async executeQuery(db: any, sql: string, params: any[]): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      db.all(sql, params, (err: any, rows: any[]) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+    // better-sqlite3는 동기적이므로 직접 실행
+    try {
+      return db.prepare(sql).all(params);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**

@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS memory_item (
   pinned BOOLEAN DEFAULT FALSE,
   tags TEXT, -- JSON 배열로 저장
   source TEXT,
-  embedding BLOB, -- 벡터 임베딩 (BLOB로 저장)
   view_count INTEGER DEFAULT 0,
   cite_count INTEGER DEFAULT 0,
   edit_count INTEGER DEFAULT 0
@@ -106,6 +105,23 @@ CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item 
   INSERT INTO memory_item_fts(rowid, content, tags, source)
   VALUES (new.rowid, new.content, new.tags, new.source);
 END;
+
+-- 임베딩 저장 테이블
+CREATE TABLE IF NOT EXISTS memory_embedding (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  memory_id TEXT NOT NULL,
+  embedding TEXT NOT NULL, -- JSON 배열로 저장
+  dim INTEGER NOT NULL, -- 벡터 차원
+  model TEXT, -- 사용된 모델명
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  UNIQUE(memory_id)
+);
+
+-- 임베딩 테이블 인덱스
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_dim ON memory_embedding(dim);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model);
 
 -- VSS 가상 테이블 (벡터 검색) - sqlite-vss 확장 필요
 -- 주의: sqlite-vss 확장이 설치되어 있어야 함
