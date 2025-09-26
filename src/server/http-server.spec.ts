@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import { AddressInfo } from 'net';
 import type { Server } from 'http';
 import { WebSocket } from 'ws';
@@ -14,7 +14,7 @@ import type { MemoryEmbeddingService } from '../services/memory-embedding-servic
 type HttpServerModule = typeof import('./http-server.js');
 
 let httpModule: HttpServerModule;
-let db: sqlite3.Database;
+let db: Database.Database;
 let server: Server | null = null;
 let baseUrl: string;
 
@@ -59,7 +59,7 @@ beforeAll(async () => {
 
   httpModule = await import('./http-server.js');
 
-  db = new sqlite3.Database(':memory:');
+  db = new Database(':memory:');
 
   const schemaPath = join(__dirname, '../database/schema.sql');
   const schema = readFileSync(schemaPath, 'utf-8');
@@ -83,7 +83,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await stopTestServer();
-  await new Promise<void>((resolve, reject) => db.close(err => err ? reject(err) : resolve()));
+  db.close();
 });
 
 beforeEach(async () => {

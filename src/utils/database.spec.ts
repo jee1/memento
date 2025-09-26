@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
 
-let db: sqlite3.Database;
+let db: Database.Database;
 
 beforeEach(async () => {
-  db = new sqlite3.Database(':memory:');
+  db = new Database(':memory:');
   await DatabaseUtils.run(
     db,
     `CREATE TABLE test_items (
@@ -15,16 +15,8 @@ beforeEach(async () => {
   );
 });
 
-afterEach(async () => {
-  await new Promise<void>((resolve, reject) => {
-    db.close((err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
+afterEach(() => {
+  db.close();
 });
 
 describe('DatabaseUtils.runTransaction', () => {
@@ -50,8 +42,8 @@ describe('DatabaseUtils.runTransaction', () => {
     const result = await DatabaseUtils.runTransaction(db, async () => {
       attempts += 1;
       if (attempts < 3) {
-        const error: NodeJS.ErrnoException = new Error('busy');
-        error.code = 'SQLITE_BUSY';
+        const error = new Error('database is locked');
+        (error as any).code = 'SQLITE_BUSY';
         throw error;
       }
 

@@ -78,6 +78,9 @@ export class SearchRanking {
   calculateRelevance(input: RelevanceInput): number {
     const { query, content, title, tags, embeddingSimilarity, bm25Result } = input;
     
+    // 입력 검증
+    if (!query || !content) return 0;
+    
     // 1. 임베딩 유사도 (60% 가중치)
     const embeddingScore = embeddingSimilarity 
       ? this.calculateEmbeddingSimilarity(embeddingSimilarity.queryEmbedding, embeddingSimilarity.docEmbedding)
@@ -128,6 +131,9 @@ export class SearchRanking {
    * 간단한 BM25 구현 (실제 BM25가 없는 경우)
    */
   private calculateSimpleBM25(query: string, content: string): number {
+    // 입력 검증
+    if (!query || !content) return 0;
+    
     const queryTerms = query.toLowerCase().split(/\s+/);
     const contentTerms = content.toLowerCase().split(/\s+/);
     const termFreq = new Map<string, number>();
@@ -146,7 +152,7 @@ export class SearchRanking {
     for (const term of queryTerms) {
       const tf = termFreq.get(term) || 0;
       if (tf > 0) {
-        const idf = Math.log((1 + 1) / (1 + 1)); // 간단한 IDF (실제로는 전체 문서 수 필요)
+        const idf = Math.log(2); // 간단한 IDF (실제로는 전체 문서 수 필요)
         const normalizedTf = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (docLength / avgDocLength)));
         score += idf * normalizedTf;
       }
@@ -256,12 +262,20 @@ export class SearchRanking {
    * viewCount + citeCount(2배) + editCount(0.5배) 로그 스케일 집계
    */
   calculateUsage(metrics: UsageMetrics, batchMin?: number, batchMax?: number): number {
+    // 입력 검증
+    if (!metrics) return 0;
+    
     const { viewCount, citeCount, editCount } = metrics;
     
     // 로그 스케일 집계
     const rawUsage = Math.log(1 + viewCount) + 
                      2 * Math.log(1 + citeCount) + 
                      0.5 * Math.log(1 + editCount);
+    
+    // 모든 값이 0인 경우 기본값 제공
+    if (rawUsage === 0) {
+      return 0.1; // 기본 사용성 점수
+    }
     
     // 배치 정규화 (전체 배치에서 정규화)
     if (batchMin !== undefined && batchMax !== undefined) {

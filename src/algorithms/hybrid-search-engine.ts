@@ -107,6 +107,7 @@ export class HybridSearchEngine {
 
     // 텍스트 검색 결과 추가
     textResults.forEach(result => {
+      const textScore = result.score || 0; // undefined인 경우 0으로 처리
       resultMap.set(result.id, {
         id: result.id,
         content: result.content,
@@ -116,10 +117,10 @@ export class HybridSearchEngine {
         last_accessed: result.last_accessed,
         pinned: result.pinned,
         tags: result.tags,
-        textScore: result.score,
+        textScore: textScore,
         vectorScore: 0,
-        finalScore: result.score * textWeight,
-        recall_reason: result.recall_reason,
+        finalScore: textScore * textWeight,
+        recall_reason: result.recall_reason || '텍스트 검색 결과',
       });
     });
 

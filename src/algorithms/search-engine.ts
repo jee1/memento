@@ -70,7 +70,7 @@ export class SearchEngine {
     
     if (filters?.pinned !== undefined) {
       conditions.push(`m.pinned = ?`);
-      params.push(filters.pinned);
+      params.push(filters.pinned ? 1 : 0); // boolean을 숫자로 변환
     }
     
     if (filters?.time_from) {
@@ -155,11 +155,11 @@ export class SearchEngine {
     return results
       .map((row: any) => {
         // 관련성 계산
-        const relevance = this.ranking.calculateRelevanceSimple(
+        const relevance = this.ranking.calculateRelevance({
           query,
-          row.content,
-          row.tags ? JSON.parse(row.tags) : []
-        );
+          content: row.content,
+          tags: row.tags ? JSON.parse(row.tags) : []
+        });
         
         // 최근성 계산
         const recency = this.ranking.calculateRecency(
@@ -178,8 +178,7 @@ export class SearchEngine {
         const usage = this.ranking.calculateUsage({
           viewCount: 1, // 기본값
           citeCount: 0,
-          editCount: 0,
-          lastAccessed: row.last_accessed ? new Date(row.last_accessed) : undefined
+          editCount: 0
         });
         
         // 중복 패널티 계산

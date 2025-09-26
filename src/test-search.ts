@@ -68,7 +68,7 @@ async function testSearchFunctionality() {
         const results = await client.recall({ query, limit: 5 });
         console.log(`   결과: ${results.length}개`);
         results.forEach((result, index) => {
-          console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}... (점수: ${result.score})`);
+          console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}... (점수: ${result.score || 'N/A'})`);
         });
       } catch (error) {
         console.error(`   ❌ 검색 실패: ${error}`);

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import { SearchEngine } from './search-engine.js';
 import { DatabaseUtils } from '../utils/database.js';
 
@@ -22,11 +22,11 @@ interface MemorySeed {
 }
 
 describe('SearchEngine', () => {
-  let db: sqlite3.Database;
+  let db: Database.Database;
   let engine: SearchEngine;
 
   beforeEach(async () => {
-    db = new sqlite3.Database(':memory:');
+    db = new Database(':memory:');
     engine = new SearchEngine();
 
     await DatabaseUtils.exec(
@@ -54,10 +54,8 @@ describe('SearchEngine', () => {
     );
   });
 
-  afterEach(async () => {
-    await new Promise<void>((resolve, reject) => {
-      db.close((err) => (err ? reject(err) : resolve()));
-    });
+  afterEach(() => {
+    db.close();
   });
 
   const insertMemory = async (seed: MemorySeed): Promise<void> => {

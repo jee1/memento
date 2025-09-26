@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import { ForgettingPolicyService } from './forgetting-policy-service.js';
 import { DatabaseUtils } from '../utils/database.js';
 
@@ -8,21 +8,16 @@ const daysAgo = (days: number): string => {
   return date.toISOString();
 };
 
-const closeDatabase = (db: sqlite3.Database): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    db.close((err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
+const closeDatabase = (db: Database.Database): void => {
+  db.close();
 };
 
 describe('ForgettingPolicyService.executeMemoryCleanup', () => {
-  let db: sqlite3.Database;
+  let db: Database.Database;
   let service: ForgettingPolicyService;
 
   beforeEach(async () => {
-    db = new sqlite3.Database(':memory:');
+    db = new Database(':memory:');
     service = new ForgettingPolicyService({ hardDeleteThreshold: 0.7 });
 
     await DatabaseUtils.exec(
@@ -100,8 +95,8 @@ describe('ForgettingPolicyService.executeMemoryCleanup', () => {
     );
   });
 
-  afterEach(async () => {
-    await closeDatabase(db);
+  afterEach(() => {
+    closeDatabase(db);
   });
 
   it('망각 정책에 따라 소프트/하드 삭제 및 리뷰 업데이트를 수행한다', async () => {

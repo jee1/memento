@@ -112,11 +112,11 @@ export class DatabaseUtils {
   /**
    * 트랜잭션을 재시도 로직과 함께 실행
    */
-  static runTransaction<T>(
+  static async runTransaction<T>(
     db: Database.Database, 
-    transactionFn: () => T, 
+    transactionFn: () => T | Promise<T>, 
     maxRetries: number = 3
-  ): T {
+  ): Promise<T> {
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -125,7 +125,7 @@ export class DatabaseUtils {
         this.run(db, 'BEGIN TRANSACTION');
         
         // 트랜잭션 함수 실행
-        const result = transactionFn();
+        const result = await transactionFn();
         
         // 커밋
         this.run(db, 'COMMIT');
