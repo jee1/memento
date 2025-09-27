@@ -53,6 +53,12 @@ const UnpinSchema = z.object({
   id: z.string().min(1, 'Memory ID cannot be empty')
 });
 
+const ContextInjectionSchema = z.object({
+  query: z.string().min(1, 'Query cannot be empty'),
+  context: z.string().min(1, 'Context cannot be empty'),
+  limit: z.number().min(1).max(50).default(5)
+});
+
 // 전역 변수
 let db: Database.Database | null = null;
 let searchEngine: SearchEngine;
@@ -281,6 +287,52 @@ async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
   }
 }
 
+async function handleContextInjection(params: z.infer<typeof ContextInjectionSchema>) {
+  const { query, context, limit } = params;
+  
+  if (!db) {
+    throw new Error('데이터베이스가 초기화되지 않았습니다');
+  }
+  
+  try {
+    // 쿼리로 관련 기억 검색
+    const searchResult = await hybridSearchEngine.search(db, {
+      query,
+      limit: limit * 2, // 더 많은 후보를 가져와서 컨텍스트와 매칭
+      vectorWeight: 0.6,
+      textWeight: 0.4
+    });
+    
+    // 컨텍스트와 관련성 높은 기억들 필터링
+    const relevantMemories = searchResult.items
+      .filter(memory => {
+        // 간단한 키워드 매칭으로 관련성 판단
+        const contextKeywords = context.toLowerCase().split(/\s+/);
+        const memoryContent = memory.content.toLowerCase();
+        return contextKeywords.some(keyword => memoryContent.includes(keyword));
+      })
+      .slice(0, limit);
+    
+    return {
+      memories: relevantMemories,
+      total_count: relevantMemories.length,
+      context: context,
+      query: query
+    };
+  } catch (error) {
+    if ((error as any).code === 'SQLITE_BUSY') {
+      console.log('🔧 데이터베이스 락 감지, WAL 체크포인트 시도...');
+      try {
+        await DatabaseUtils.checkpointWAL(db);
+        console.log('✅ WAL 체크포인트 완료, 재시도 가능');
+      } catch (checkpointError) {
+        console.error('❌ WAL 체크포인트 실패:', checkpointError);
+      }
+    }
+    throw error;
+  }
+}
+
 // Express 앱 생성
 const app = express();
 const server = createServer(app);
@@ -413,6 +465,9 @@ app.post('/tools/:name', async (req, res) => {
       case 'unpin':
         result = await handleUnpin(UnpinSchema.parse(params));
         break;
+      case 'context-injection':
+        result = await handleContextInjection(ContextInjectionSchema.parse(params));
+        break;
       default:
         return res.status(404).json({ error: `Unknown tool: ${name}` });
     }
@@ -527,28 +582,59 @@ async function initializeServer() {
 }
 
 // 정리 함수
+let isCleaningUp = false;
 async function cleanup() {
-  if (db) {
-    closeDatabase(db);
-    db = null;
+  if (isCleaningUp) {
+    return; // 이미 정리 중이면 중복 실행 방지
   }
-  console.log('👋 HTTP/WebSocket MCP 서버 종료');
+  
+  isCleaningUp = true;
+  
+  try {
+    if (db) {
+      closeDatabase(db);
+      db = null;
+    }
+    console.log('👋 HTTP/WebSocket MCP 서버 종료');
+  } catch (error) {
+    console.error('❌ 정리 중 오류:', error);
+  }
 }
 
-// 프로세스 종료 시 정리
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
-process.on('uncaughtException', (error) => {
-  console.error('❌ 예상치 못한 오류:', error);
-  cleanup();
-  process.exit(1);
-});
+// 프로세스 종료 시 정리 (한 번만 등록)
+let cleanupRegistered = false;
+function registerCleanupHandlers() {
+  if (cleanupRegistered) {
+    return;
+  }
+  
+  cleanupRegistered = true;
+  
+  process.on('SIGINT', async () => {
+    await cleanup();
+    process.exit(0);
+  });
+  
+  process.on('SIGTERM', async () => {
+    await cleanup();
+    process.exit(0);
+  });
+  
+  process.on('uncaughtException', async (error) => {
+    console.error('❌ 예상치 못한 오류:', error);
+    await cleanup();
+    process.exit(1);
+  });
+}
 
 // 서버 시작
 const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   await initializeServer();
+  
+  // 정리 핸들러 등록
+  registerCleanupHandlers();
   
   server.listen(PORT, () => {
     console.log(`🌐 HTTP 서버: http://localhost:${PORT}`);

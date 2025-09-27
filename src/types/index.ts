@@ -20,6 +20,7 @@ export interface MemoryItem {
 }
 
 export interface MemorySearchFilters {
+  id?: string[] | undefined;
   type?: MemoryType[] | undefined;
   tags?: string[] | undefined;
   privacy_scope?: PrivacyScope[] | undefined;

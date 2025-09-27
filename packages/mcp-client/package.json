@@ -1,0 +1,58 @@
+{
+  "name": "@memento/client",
+  "version": "0.1.0",
+  "description": "Memento MCP Server client library for AI Agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "memento",
+    "mcp",
+    "memory",
+    "ai",
+    "agent",
+    "context",
+    "typescript"
+  ],
+  "author": "Memento Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/memento.git",
+    "directory": "packages/mcp-client"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/memento/issues"
+  },
+  "homepage": "https://github.com/your-org/memento#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.9.36",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

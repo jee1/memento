@@ -47,7 +47,7 @@ export class HybridSearchEngine {
   async search(
     db: any,
     query: HybridSearchQuery
-  ): Promise<HybridSearchResult[]> {
+  ): Promise<{ items: HybridSearchResult[], total_count: number, query_time: number }> {
     const {
       query: searchQuery,
       filters,
@@ -64,11 +64,14 @@ export class HybridSearchEngine {
     console.log(`🔍 하이브리드 검색: "${searchQuery}" (벡터:${normalizedVectorWeight.toFixed(2)}, 텍스트:${normalizedTextWeight.toFixed(2)})`);
 
     // 1. 텍스트 검색 실행
-    const textResults = await this.textSearchEngine.search(db, {
+    const textSearchResult = await this.textSearchEngine.search(db, {
       query: searchQuery,
       filters,
       limit: limit * 2, // 더 많은 후보를 가져와서 결합
     });
+    console.log('🔍 SearchEngine 결과:', JSON.stringify(textSearchResult, null, 2));
+    const textResults = textSearchResult.items;
+    console.log('🔍 textResults:', textResults.length, '개');
 
     // 2. 벡터 검색 실행 (임베딩 서비스 사용 가능한 경우)
     let vectorResults: VectorSearchResult[] = [];
@@ -89,9 +92,15 @@ export class HybridSearchEngine {
     );
 
     // 4. 최종 점수로 정렬하고 제한
-    return combinedResults
+    const finalResults = combinedResults
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, limit);
+    
+    return {
+      items: finalResults,
+      total_count: finalResults.length,
+      query_time: textSearchResult.query_time // SearchEngine의 쿼리 시간 사용
+    };
   }
 
   /**
@@ -107,7 +116,7 @@ export class HybridSearchEngine {
 
     // 텍스트 검색 결과 추가
     textResults.forEach(result => {
-      const textScore = result.score || 0; // undefined인 경우 0으로 처리
+      const textScore = typeof result.score === 'number' ? result.score : 0; // 안전한 점수 처리
       resultMap.set(result.id, {
         id: result.id,
         content: result.content,

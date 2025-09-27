@@ -67,28 +67,29 @@ export class RememberTool extends BaseTool {
     const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     try {
-      // 개선된 트랜잭션 재시도 로직 사용
-      const result = await DatabaseUtils.runTransaction(context.db!, async () => {
+      // 메모리 저장 (트랜잭션 사용)
+      await DatabaseUtils.runTransaction(context.db!, async () => {
         await DatabaseUtils.run(context.db!, `
           INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         `, [id, type, content, importance, privacy_scope, 
             tags ? JSON.stringify(tags) : null, source]);
-        
-        return { id, type, content, importance, privacy_scope, tags, source };
       });
       
-      // 임베딩 생성 (비동기, 실패해도 메모리 저장은 성공)
+      // 메모리 저장 완료 후 임베딩 생성 (비동기, 실패해도 메모리 저장은 성공)
       if (context.services.embeddingService?.isAvailable()) {
-        context.services.embeddingService.createAndStoreEmbedding(context.db, id, content, type)
-        .then((result: any) => {
-          if (result) {
-            // 임베딩 생성 완료
-          }
-        })
-        .catch((error: any) => {
-          console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
-        });
+        // 약간의 지연을 두어 트랜잭션이 완전히 커밋되도록 함
+        setTimeout(() => {
+          context.services.embeddingService.createAndStoreEmbedding(context.db, id, content, type)
+          .then((result: any) => {
+            if (result) {
+              // 임베딩 생성 완료
+            }
+          })
+          .catch((error: any) => {
+            console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
+          });
+        }, 100); // 100ms 지연
       }
       
       return this.createSuccessResult({

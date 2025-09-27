@@ -100,7 +100,8 @@ export class MementoClient {
     
     if (result.content && Array.isArray(result.content) && result.content[0] && 'text' in result.content[0]) {
       const response = JSON.parse((result.content[0] as any).text);
-      return response.items;
+      // 응답 구조: { items: { items: [...], total_count: ..., query_time: ... }, ... }
+      return response.items?.items || [];
     }
     
     throw new Error('기억 검색에 실패했습니다');

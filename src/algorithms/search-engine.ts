@@ -38,26 +38,36 @@ export class SearchEngine {
   async search(
     db: any,
     query: SearchQuery
-  ): Promise<SearchResult[]> {
+  ): Promise<{ items: SearchResult[], total_count: number, query_time: number }> {
     const { query: searchQuery, filters, limit = 10 } = query;
     
-    // 1. FTS5 검색 쿼리 구성
-    const ftsQuery = this.buildFTSQuery(searchQuery);
+    // 1. ID 필터가 있으면 내용 검색 조건을 건너뛰기
+    const hasIdFilter = filters?.id && filters.id.length > 0;
     
     // 2. 기본 SQL 쿼리 구성
     let sql = `
       SELECT 
         m.id, m.content, m.type, m.importance, m.created_at, 
         m.last_accessed, m.pinned, m.tags, m.source
-      FROM memory_item_fts fts
-      JOIN memory_item m ON fts.rowid = m.rowid
-      WHERE memory_item_fts MATCH ?
+      FROM memory_item m
     `;
     
     const conditions: string[] = [];
-    const params: any[] = [ftsQuery];
+    const params: any[] = [];
+    
+    // 3. 내용 검색 조건 (ID 필터가 없을 때만)
+    if (!hasIdFilter) {
+      const likeQuery = `%${searchQuery}%`;
+      conditions.push(`m.content LIKE ?`);
+      params.push(likeQuery);
+    }
     
     // 3. 필터 조건 추가
+    if (filters?.id && filters.id.length > 0) {
+      conditions.push(`m.id IN (${filters.id.map(() => '?').join(',')})`);
+      params.push(...filters.id);
+    }
+    
     if (filters?.type && filters.type.length > 0) {
       conditions.push(`m.type IN (${filters.type.map(() => '?').join(',')})`);
       params.push(...filters.type);
@@ -84,7 +94,7 @@ export class SearchEngine {
     }
     
     if (conditions.length > 0) {
-      sql += ` AND ${conditions.join(' AND ')}`;
+      sql += ` WHERE ${conditions.join(' AND ')}`;
     }
     
     // 4. 결과 제한
@@ -98,7 +108,13 @@ export class SearchEngine {
     const rankedResults = this.applyRanking(results, searchQuery);
     
     // 7. 최종 결과 반환 (limit 적용)
-    return rankedResults.slice(0, limit);
+    const finalResults = rankedResults.slice(0, limit);
+    
+    return {
+      items: finalResults,
+      total_count: finalResults.length,
+      query_time: 0 // TODO: 실제 쿼리 시간 측정
+    };
   }
 
   /**
@@ -106,32 +122,22 @@ export class SearchEngine {
    * 대소문자 구분 문제 해결
    */
   private buildFTSQuery(query: string): string {
-    // FTS5 특수 문자 이스케이프
-    const escapeFTS5 = (str: string): string => {
-      return str.replace(/["'\\]/g, '\\$&');
-    };
+    // 안전한 FTS5 쿼리 생성
+    const cleanQuery = query.trim();
     
-    // 공백으로 분리된 단어들을 OR로 연결
-    const words = query.trim().split(/\s+/).filter(word => word.length > 0);
-    
-    if (words.length === 0) {
+    if (cleanQuery.length === 0) {
       return '*'; // 빈 쿼리인 경우 모든 문서 검색
     }
     
-    if (words.length === 1) {
-      // 단일 단어: 대소문자 구분 없이 검색
-      const escapedWord = escapeFTS5(words[0]!);
-      return `"${escapedWord}" OR ${escapedWord}`;
-    } else {
-      // 여러 단어: 각 단어를 OR로 연결하고 전체 구문도 포함
-      const wordQueries = words.map(word => {
-        const escapedWord = escapeFTS5(word);
-        return `"${escapedWord}" OR ${escapedWord}`;
-      });
-      const phraseQuery = `"${escapeFTS5(query)}"`;
-      
-      return `${phraseQuery} OR ${wordQueries.join(' OR ')}`;
+    // 한글과 영문만 허용하고 나머지는 제거
+    const safeQuery = cleanQuery.replace(/[^a-zA-Z0-9가-힣]/g, '');
+    
+    if (safeQuery.length === 0) {
+      return '*';
     }
+    
+    // 단일 단어 검색 (한글도 지원)
+    return safeQuery;
   }
 
   /**

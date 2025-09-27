@@ -64,7 +64,7 @@ export class RecallTool extends BaseTool {
     
     try {
       // 하이브리드 검색 엔진 사용 (텍스트 + 벡터 검색)
-      const results = await context.services.hybridSearchEngine.search(context.db, {
+      const searchResult = await context.services.hybridSearchEngine.search(context.db, {
         query,
         filters,
         limit,
@@ -73,7 +73,7 @@ export class RecallTool extends BaseTool {
       });
       
       return this.createSuccessResult({
-        items: results,
+        ...searchResult,
         search_type: 'hybrid',
         vector_search_available: context.services.hybridSearchEngine.isEmbeddingAvailable()
       });
