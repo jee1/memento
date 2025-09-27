@@ -42,7 +42,7 @@ async function testMementoClient() {
     });
     console.log(`✅ 검색 결과 (${searchResults.length}개):`);
     searchResults.forEach((result, index) => {
-      console.log(`  ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}... (점수: ${result.finalScore || result.score || 'N/A'})`);
+      console.log(`  ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}... (점수: ${result.score || 'N/A'})`);
     });
     
     // 4. 기억 고정 테스트
