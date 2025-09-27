@@ -565,6 +565,20 @@ describe('MCP Server Integration', () => {
 - **도구**: Jest + MCP 클라이언트
 - **위치**: `tests/e2e/`
 
+### 4. 에러 로깅 테스트
+
+- **목적**: 에러 로깅 시스템의 정상 동작 검증
+- **범위**: ErrorLoggingService, 에러 통계, 에러 해결
+- **도구**: tsx + 직접 서비스 테스트
+- **위치**: `src/test-error-logging.ts`
+
+### 5. 성능 알림 테스트
+
+- **목적**: 성능 알림 시스템의 정상 동작 검증
+- **범위**: PerformanceAlertService, 실시간 모니터링, 알림 관리
+- **도구**: tsx + 직접 서비스 테스트
+- **위치**: `src/test-performance-alerts.ts`
+
 ### 테스트 작성 가이드
 
 #### 1. 테스트 구조 (AAA 패턴)
@@ -642,6 +656,8 @@ npm run test:lightweight-embedding
 npm run test:forgetting
 npm run test:performance
 npm run test:monitoring
+npm run test:error-logging
+npm run test:performance-alerts
 
 # 커버리지 포함 테스트
 npm run test -- --coverage
@@ -791,6 +807,189 @@ feat(tools): add summarize_thread tool
 fix(database): resolve memory leak in SQLite connection
 docs(api): update remember tool documentation
 test(integration): add MCP server integration tests
+```
+
+## 에러 로깅 및 성능 모니터링 개발 가이드
+
+### 에러 로깅 시스템
+
+#### 1. 에러 로깅 서비스 사용
+
+```typescript
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
+
+// 에러 로깅 서비스 초기화
+const errorLoggingService = new ErrorLoggingService();
+
+// 에러 로깅
+try {
+  // 위험한 작업 수행
+  await riskyOperation();
+} catch (error) {
+  errorLoggingService.logError(
+    error instanceof Error ? error : new Error(String(error)),
+    ErrorSeverity.HIGH,
+    ErrorCategory.TOOL_EXECUTION,
+    {
+      operation: 'risky_operation',
+      userId: 'user123',
+      timestamp: new Date().toISOString()
+    }
+  );
+}
+```
+
+#### 2. 에러 통계 조회
+
+```typescript
+// 기본 에러 통계
+const stats = await errorLoggingService.getErrorStats();
+
+// 필터링된 에러 통계
+const highErrors = await errorLoggingService.getErrorStats({
+  severity: ErrorSeverity.HIGH,
+  hours: 24
+});
+
+// 데이터베이스 관련 에러만 조회
+const dbErrors = await errorLoggingService.getErrorStats({
+  category: ErrorCategory.DATABASE,
+  limit: 10
+});
+```
+
+#### 3. 에러 해결 처리
+
+```typescript
+// 에러 해결
+const resolved = await errorLoggingService.resolveError(
+  'error-123',
+  'admin',
+  '데이터베이스 연결 문제 해결됨'
+);
+```
+
+### 성능 알림 시스템
+
+#### 1. 성능 알림 서비스 사용
+
+```typescript
+import { PerformanceAlertService, AlertLevel, AlertType } from '../services/performance-alert-service.js';
+
+// 성능 알림 서비스 초기화
+const alertService = new PerformanceAlertService('./logs');
+
+// 알림 생성
+const alert = alertService.createAlert(
+  AlertLevel.WARNING,
+  AlertType.RESPONSE_TIME,
+  '평균 응답시간',
+  150,
+  100,
+  '🟡 응답시간이 임계값을 초과했습니다',
+  { component: 'search_engine', operation: 'search' }
+);
+
+// 알림 해결
+const resolvedAlert = alertService.resolveAlert(
+  alert.id,
+  'admin',
+  '성능 최적화 완료'
+);
+```
+
+#### 2. 실시간 모니터링 설정
+
+```typescript
+import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
+
+// 모니터링 통합 서비스 초기화
+const monitoringIntegration = new PerformanceMonitoringIntegration(
+  db,
+  alertService,
+  {
+    enableRealTimeMonitoring: true,
+    monitoringInterval: 30000, // 30초마다 체크
+    alertThresholds: {
+      responseTime: { warning: 100, critical: 500 },
+      memoryUsage: { warning: 100, critical: 200 },
+      errorRate: { warning: 5, critical: 10 },
+      throughput: { warning: 10, critical: 5 }
+    }
+  }
+);
+
+// 실시간 모니터링 시작
+monitoringIntegration.startRealTimeMonitoring();
+```
+
+### 테스트 작성
+
+#### 1. 에러 로깅 테스트
+
+```typescript
+// src/test-error-logging.ts
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from './services/error-logging-service.js';
+
+async function testErrorLogging() {
+  const errorService = new ErrorLoggingService();
+  
+  // 에러 로깅 테스트
+  errorService.logError(
+    new Error('Test error'),
+    ErrorSeverity.HIGH,
+    ErrorCategory.SYSTEM,
+    { test: true }
+  );
+  
+  // 통계 조회 테스트
+  const stats = errorService.getErrorStats();
+  console.log('Error stats:', stats);
+  
+  // 에러 해결 테스트
+  const errors = errorService.searchErrors({ limit: 1 });
+  if (errors.length > 0) {
+    const resolved = errorService.resolveError(
+      errors[0].id,
+      'test_user',
+      'Test resolution'
+    );
+    console.log('Error resolved:', resolved);
+  }
+}
+```
+
+#### 2. 성능 알림 테스트
+
+```typescript
+// src/test-performance-alerts.ts
+import { PerformanceAlertService, AlertLevel, AlertType } from './services/performance-alert-service.js';
+
+async function testPerformanceAlerts() {
+  const alertService = new PerformanceAlertService('./logs');
+  
+  // 알림 생성 테스트
+  const alert = alertService.createAlert(
+    AlertLevel.WARNING,
+    AlertType.MEMORY_USAGE,
+    '메모리 사용량',
+    150,
+    100,
+    '🟡 메모리 사용량 초과'
+  );
+  
+  // 알림 통계 조회
+  const stats = alertService.getStats();
+  console.log('Alert stats:', stats);
+  
+  // 알림 해결 테스트
+  const resolved = alertService.resolveAlert(
+    alert.id,
+    'test_user',
+    'Test resolution'
+  );
+  console.log('Alert resolved:', resolved);
+}
 ```
 
 ## 추가 리소스

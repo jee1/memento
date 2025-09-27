@@ -21,6 +21,8 @@ export interface ToolContext {
     performanceMonitor?: any;
     databaseOptimizer?: any;
     errorLoggingService?: any;
+    performanceAlertService?: any;
+    performanceMonitoringIntegration?: any;
   };
 }
 

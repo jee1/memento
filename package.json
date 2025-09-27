@@ -24,6 +24,7 @@
     "test:performance": "tsx src/test/performance-benchmark.ts",
     "test:monitoring": "tsx src/test-performance-monitoring.ts",
     "test:error-logging": "tsx src/test-error-logging.ts",
+    "test:performance-alerts": "tsx src/test-performance-alerts.ts",
     "build:client": "cd packages/mcp-client && npm run build",
     "dev:client": "cd packages/mcp-client && npm run dev",
     "clean:client": "cd packages/mcp-client && npm run clean",

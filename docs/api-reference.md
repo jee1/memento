@@ -772,7 +772,209 @@ const schedule = await client.callTool('schedule_review', {
 });
 ```
 
-## 10. 성능 모니터링 및 최적화
+## 10. 에러 로깅 및 관리
+
+### 에러 로깅 Tools
+
+#### `error_stats`
+
+에러 통계를 조회하고 필터링된 에러 로그를 반환합니다.
+
+**파라미터:**
+```typescript
+{
+  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';  // 에러 심각도
+  category?: 'UNKNOWN' | 'DATABASE' | 'NETWORK' | 'TOOL_EXECUTION' | 'VALIDATION' | 'SYSTEM';  // 에러 카테고리
+  hours?: number;                                      // 지난 몇 시간 동안의 에러 조회
+  limit?: number;                                      // 반환할 에러 로그의 최대 개수
+}
+```
+
+**응답:**
+```typescript
+{
+  success: boolean;
+  stats: {
+    total: number;                                     // 총 에러 수
+    bySeverity: Record<string, number>;               // 심각도별 에러 수
+    byCategory: Record<string, number>;               // 카테고리별 에러 수
+    recentErrors: Array<{
+      id: string;
+      message: string;
+      severity: string;
+      category: string;
+      timestamp: string;
+      resolved: boolean;
+      context?: Record<string, any>;
+    }>;
+  };
+}
+```
+
+**사용 예시:**
+```typescript
+// 기본 에러 통계 조회
+const stats = await client.callTool('error_stats', {});
+
+// HIGH 심각도 에러만 조회
+const highErrors = await client.callTool('error_stats', {
+  severity: 'HIGH',
+  hours: 24
+});
+
+// 데이터베이스 관련 에러 조회
+const dbErrors = await client.callTool('error_stats', {
+  category: 'DATABASE',
+  limit: 10
+});
+```
+
+#### `resolve_error`
+
+특정 에러를 해결 상태로 표시합니다.
+
+**파라미터:**
+```typescript
+{
+  error_id: string;                                   // 해결할 에러의 고유 ID (필수)
+  resolved_by?: string;                               // 에러를 해결한 주체 (기본값: 'system')
+  resolution?: string;                                // 에러 해결에 대한 설명
+}
+```
+
+**응답:**
+```typescript
+{
+  success: boolean;
+  message: string;                                    // 결과 메시지
+  resolvedError?: {
+    id: string;
+    message: string;
+    resolvedAt: string;
+    resolvedBy: string;
+    resolution?: string;
+  };
+}
+```
+
+**사용 예시:**
+```typescript
+// 에러 해결
+const result = await client.callTool('resolve_error', {
+  error_id: 'error-123',
+  resolved_by: 'admin',
+  resolution: '데이터베이스 연결 문제 해결됨'
+});
+```
+
+## 11. 성능 알림 시스템
+
+### 성능 알림 Tools
+
+#### `performance_alerts`
+
+실시간 성능 알림을 조회, 검색 및 관리합니다.
+
+**파라미터:**
+```typescript
+{
+  action: 'stats' | 'list' | 'search' | 'resolve';   // 수행할 작업
+  alertId?: string;                                   // 해결할 알림의 고유 ID (action이 "resolve"일 때)
+  resolvedBy?: string;                                // 알림을 해결한 주체
+  resolution?: string;                                // 알림 해결에 대한 설명
+  level?: 'INFO' | 'WARNING' | 'CRITICAL';           // 조회할 알림의 심각도
+  type?: 'response_time' | 'memory_usage' | 'error_rate' | 'throughput' | 'custom';  // 조회할 알림의 유형
+  includeResolved?: boolean;                          // 해결된 알림을 포함할지 여부 (기본값: false)
+  hours?: number;                                     // 지난 몇 시간 동안의 알림 조회
+  limit?: number;                                     // 반환할 알림 로그의 최대 개수 (기본값: 10)
+}
+```
+
+**응답:**
+```typescript
+// action: 'stats'
+{
+  success: boolean;
+  stats: {
+    total: number;                                    // 총 알림 수
+    resolved: number;                                 // 해결된 알림 수
+    active: number;                                   // 활성 알림 수
+    levelCounts: Record<string, number>;             // 심각도별 알림 수
+    typeCounts: Record<string, number>;              // 유형별 알림 수
+    recentAlerts: Array<{
+      id: string;
+      timestamp: string;
+      level: string;
+      type: string;
+      metric: string;
+      value: number;
+      threshold: number;
+      message: string;
+      resolved: boolean;
+      resolvedAt?: string;
+    }>;
+  };
+}
+
+// action: 'list' 또는 'search'
+{
+  success: boolean;
+  activeAlerts: Array<{
+    id: string;
+    timestamp: string;
+    level: string;
+    type: string;
+    metric: string;
+    value: number;
+    threshold: number;
+    message: string;
+    context?: Record<string, any>;
+  }>;
+}
+
+// action: 'resolve'
+{
+  success: boolean;
+  message: string;
+  resolvedAlert?: {
+    id: string;
+    timestamp: string;
+    message: string;
+    resolvedAt: string;
+    resolvedBy: string;
+    resolution?: string;
+  };
+}
+```
+
+**사용 예시:**
+```typescript
+// 알림 통계 조회
+const stats = await client.callTool('performance_alerts', { action: 'stats' });
+
+// 활성 알림 목록 조회
+const activeAlerts = await client.callTool('performance_alerts', { 
+  action: 'list',
+  includeResolved: false 
+});
+
+// WARNING 레벨 알림 검색
+const warnings = await client.callTool('performance_alerts', {
+  action: 'search',
+  level: 'WARNING',
+  hours: 1
+});
+
+// 알림 해결
+const resolved = await client.callTool('performance_alerts', {
+  action: 'resolve',
+  alertId: 'alert-123',
+  resolvedBy: 'admin',
+  resolution: '성능 최적화 완료'
+});
+```
+
+## 12. 성능 모니터링 및 최적화
 
 ### 성능 모니터링 Tools
 

@@ -17,6 +17,8 @@ import { PerformanceMonitor } from '../services/performance-monitor.js';
 import { SearchCacheService } from '../services/cache-service.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
+import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
+import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
@@ -32,6 +34,8 @@ let performanceMonitor: PerformanceMonitor;
 let searchCache: SearchCacheService;
 let databaseOptimizer: DatabaseOptimizer;
 let errorLoggingService: ErrorLoggingService;
+let performanceAlertService: PerformanceAlertService;
+let performanceMonitoringIntegration: PerformanceMonitoringIntegration;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
@@ -129,6 +133,21 @@ async function initializeServer() {
     searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
     databaseOptimizer = new DatabaseOptimizer(db);
     errorLoggingService = new ErrorLoggingService();
+    performanceAlertService = new PerformanceAlertService('./logs');
+    performanceMonitoringIntegration = new PerformanceMonitoringIntegration(
+      db,
+      performanceAlertService,
+      {
+        enableRealTimeMonitoring: true,
+        monitoringInterval: 30000, // 30초마다 체크
+        alertThresholds: {
+          responseTime: { warning: 100, critical: 500 },
+          memoryUsage: { warning: 100, critical: 200 },
+          errorRate: { warning: 5, critical: 10 },
+          throughput: { warning: 10, critical: 5 }
+        }
+      }
+    );
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
     // MCP 서버 생성
@@ -183,7 +202,9 @@ async function initializeServer() {
             forgettingPolicyService,
             performanceMonitor,
             databaseOptimizer,
-            errorLoggingService
+            errorLoggingService,
+            performanceAlertService,
+            performanceMonitoringIntegration
           }
         };
         
@@ -216,7 +237,12 @@ async function initializeServer() {
     });
     
     process.stderr.write('✅ MCP 서버 초기화 완료\n');
+    
+    // 실시간 성능 모니터링 시작
+    performanceMonitoringIntegration.startRealTimeMonitoring();
+    
     process.stderr.write('🚀 Memento MCP Server가 시작되었습니다!\n');
+    process.stderr.write('📊 실시간 성능 모니터링이 활성화되었습니다\n');
     
   } catch (error) {
     process.stderr.write(`❌ 서버 초기화 실패: ${error}\n`);

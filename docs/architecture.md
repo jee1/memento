@@ -37,20 +37,28 @@ graph TB
         F --> H[Search Engine]
         F --> I[Forgetting Policy]
         F --> J[Spaced Review]
+        F --> K[Error Logging Service]
+        F --> L[Performance Alert Service]
+        F --> M[Performance Monitoring Integration]
     end
     
     subgraph "Storage Layer"
-        G --> K[SQLite M1]
-        G --> L[PostgreSQL M3+]
-        H --> M[Vector Search]
-        H --> N[Text Search]
-        I --> O[Memory Queue]
+        G --> N[SQLite M1]
+        G --> O[PostgreSQL M3+]
+        H --> P[Vector Search]
+        H --> Q[Text Search]
+        I --> R[Memory Queue]
+        K --> S[Error Logs]
+        L --> T[Alert Logs]
     end
     
     subgraph "Data Processing"
-        J --> P[Memory Consolidation]
-        I --> Q[Memory Deletion]
-        P --> R[Memory Summary]
+        J --> U[Memory Consolidation]
+        I --> V[Memory Deletion]
+        U --> W[Memory Summary]
+        M --> X[Real-time Monitoring]
+        K --> Y[Error Analysis]
+        L --> Z[Alert Management]
     end
 ```
 
@@ -67,9 +75,9 @@ graph TB
 - **특징**: Tools, Resources, Prompts를 통한 기능 제공
 
 #### 3. Memory Management Layer
-- **역할**: 기억의 생성, 검색, 관리, 삭제
-- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review
-- **특징**: 인간의 기억 체계를 모사한 관리
+- **역할**: 기억의 생성, 검색, 관리, 삭제 및 시스템 모니터링
+- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration
+- **특징**: 인간의 기억 체계를 모사한 관리 및 실시간 시스템 모니터링
 
 #### 4. Storage Layer
 - **역할**: 데이터 영구 저장 및 검색
@@ -252,6 +260,130 @@ interface SpacedReview {
   adjustInterval(memory: MemoryItem, performance: number): void;
 }
 ```
+
+### 6. Error Logging Service
+
+#### 구조
+
+```typescript
+interface ErrorLoggingService {
+  // 에러 로깅
+  logError(error: Error, severity: ErrorSeverity, category: ErrorCategory, context?: Record<string, any>): void;
+  
+  // 에러 통계 조회
+  getErrorStats(filters?: ErrorFilters): Promise<ErrorStats>;
+  
+  // 에러 해결
+  resolveError(errorId: string, resolvedBy: string, resolution?: string): Promise<boolean>;
+  
+  // 에러 검색
+  searchErrors(filters: ErrorSearchFilters): Promise<ErrorLog[]>;
+}
+
+enum ErrorSeverity {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM', 
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+
+enum ErrorCategory {
+  UNKNOWN = 'UNKNOWN',
+  DATABASE = 'DATABASE',
+  NETWORK = 'NETWORK',
+  TOOL_EXECUTION = 'TOOL_EXECUTION',
+  VALIDATION = 'VALIDATION',
+  SYSTEM = 'SYSTEM'
+}
+```
+
+#### 주요 기능
+
+- **구조화된 에러 로깅**: 심각도, 카테고리, 컨텍스트 정보 포함
+- **에러 통계 수집**: 심각도별, 카테고리별 에러 분석
+- **에러 해결 추적**: 에러 해결 상태 및 해결 방법 기록
+- **실시간 모니터링**: 에러 발생 패턴 분석 및 알림
+
+### 7. Performance Alert Service
+
+#### 구조
+
+```typescript
+interface PerformanceAlertService {
+  // 알림 생성
+  createAlert(level: AlertLevel, type: AlertType, metric: string, value: number, threshold: number, message: string, context?: Record<string, any>): PerformanceAlert;
+  
+  // 알림 해결
+  resolveAlert(alertId: string, resolvedBy: string, resolution?: string): PerformanceAlert | null;
+  
+  // 활성 알림 조회
+  getActiveAlerts(): PerformanceAlert[];
+  
+  // 알림 검색
+  searchAlerts(filters: AlertSearchFilters): PerformanceAlert[];
+  
+  // 알림 통계
+  getStats(): AlertStats;
+}
+
+enum AlertLevel {
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  CRITICAL = 'CRITICAL'
+}
+
+enum AlertType {
+  RESPONSE_TIME = 'response_time',
+  MEMORY_USAGE = 'memory_usage',
+  ERROR_RATE = 'error_rate',
+  THROUGHPUT = 'throughput',
+  CUSTOM = 'custom'
+}
+```
+
+#### 주요 기능
+
+- **임계값 기반 알림**: 성능 메트릭이 임계값을 초과할 때 자동 알림
+- **알림 관리**: 알림 생성, 해결, 검색, 통계 기능
+- **로그 파일 저장**: 알림을 JSONL 형식으로 파일에 저장
+- **콘솔 출력**: 심각도별 색상 구분된 콘솔 알림
+
+### 8. Performance Monitoring Integration
+
+#### 구조
+
+```typescript
+interface PerformanceMonitoringIntegration {
+  // 실시간 모니터링 시작
+  startRealTimeMonitoring(): void;
+  
+  // 실시간 모니터링 중지
+  stopRealTimeMonitoring(): void;
+  
+  // 성능 체크
+  private checkPerformance(): Promise<void>;
+  
+  // 임계값 확인
+  private checkResponseTime(avgResponseTime: number): void;
+  private checkMemoryUsage(heapUsedMB: number): void;
+  private checkErrorRate(errorRate: number): void;
+  private checkThroughput(throughput: number): void;
+}
+
+interface AlertThresholds {
+  responseTime: { warning: number; critical: number }; // ms
+  memoryUsage: { warning: number; critical: number }; // MB
+  errorRate: { warning: number; critical: number }; // %
+  throughput: { warning: number; critical: number }; // ops/sec
+}
+```
+
+#### 주요 기능
+
+- **실시간 모니터링**: 30초마다 자동 성능 체크
+- **임계값 기반 알림**: 설정된 임계값 초과 시 자동 알림 생성
+- **통합 모니터링**: PerformanceMonitor와 PerformanceAlertService 연동
+- **자동 복구**: 심각한 문제 발생 시 자동 복구 작업 수행
 
 #### 간격 반복 알고리즘
 

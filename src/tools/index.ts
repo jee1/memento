@@ -15,6 +15,7 @@ import { PerformanceStatsTool } from './performance-stats-tool.js';
 import { DatabaseOptimizeTool } from './database-optimize-tool.js';
 import { errorStatsTool, executeErrorStats } from './error-stats.js';
 import { resolveErrorTool, executeResolveError } from './resolve-error.js';
+import { performanceAlertsTool, executePerformanceAlerts } from './performance-alerts.js';
 
 /**
  * 모든 도구 인스턴스 생성
@@ -52,6 +53,13 @@ toolRegistry.register({
   description: resolveErrorTool.description,
   inputSchema: resolveErrorTool.inputSchema,
   handler: executeResolveError
+});
+
+toolRegistry.register({
+  name: performanceAlertsTool.name,
+  description: performanceAlertsTool.description,
+  inputSchema: performanceAlertsTool.inputSchema,
+  handler: executePerformanceAlerts
 });
 
 /**
