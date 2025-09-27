@@ -13,6 +13,8 @@ import { CleanupMemoryTool } from './cleanup-memory-tool.js';
 import { ForgettingStatsTool } from './forgetting-stats-tool.js';
 import { PerformanceStatsTool } from './performance-stats-tool.js';
 import { DatabaseOptimizeTool } from './database-optimize-tool.js';
+import { errorStatsTool, executeErrorStats } from './error-stats.js';
+import { resolveErrorTool, executeResolveError } from './resolve-error.js';
 
 /**
  * 모든 도구 인스턴스 생성
@@ -36,6 +38,21 @@ export const toolRegistry = new ToolRegistry();
 
 // 모든 도구 등록
 toolRegistry.registerAll(tools.map(tool => tool.getDefinition()));
+
+// 에러 로깅 도구들 등록
+toolRegistry.register({
+  name: errorStatsTool.name,
+  description: errorStatsTool.description,
+  inputSchema: errorStatsTool.inputSchema,
+  handler: executeErrorStats
+});
+
+toolRegistry.register({
+  name: resolveErrorTool.name,
+  description: resolveErrorTool.description,
+  inputSchema: resolveErrorTool.inputSchema,
+  handler: executeResolveError
+});
 
 /**
  * 도구 레지스트리 반환

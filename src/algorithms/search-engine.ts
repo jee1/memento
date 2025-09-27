@@ -33,36 +33,55 @@ export class SearchEngine {
   }
 
   /**
-   * 개선된 검색 구현
+   * 개선된 검색 구현 - FTS5 최적화
    */
   async search(
     db: any,
     query: SearchQuery
   ): Promise<{ items: SearchResult[], total_count: number, query_time: number }> {
+    const startTime = process.hrtime.bigint();
     const { query: searchQuery, filters, limit = 10 } = query;
     
     // 1. ID 필터가 있으면 내용 검색 조건을 건너뛰기
     const hasIdFilter = filters?.id && filters.id.length > 0;
     
-    // 2. 기본 SQL 쿼리 구성
-    let sql = `
-      SELECT 
-        m.id, m.content, m.type, m.importance, m.created_at, 
-        m.last_accessed, m.pinned, m.tags, m.source
-      FROM memory_item m
-    `;
-    
-    const conditions: string[] = [];
+    let sql: string;
     const params: any[] = [];
     
-    // 3. 내용 검색 조건 (ID 필터가 없을 때만)
-    if (!hasIdFilter) {
-      const likeQuery = `%${searchQuery}%`;
-      conditions.push(`m.content LIKE ?`);
-      params.push(likeQuery);
+    // 2. FTS5 검색 사용 (ID 필터가 없고 검색어가 있을 때)
+    if (!hasIdFilter && searchQuery.trim().length > 0) {
+      const ftsQuery = this.buildFTSQuery(searchQuery);
+      sql = `
+        SELECT 
+          m.id, m.content, m.type, m.importance, m.created_at, 
+          m.last_accessed, m.pinned, m.tags, m.source,
+          fts.rank as fts_rank
+        FROM memory_item_fts fts
+        JOIN memory_item m ON fts.rowid = m.rowid
+        WHERE memory_item_fts MATCH ?
+      `;
+      params.push(ftsQuery);
+    } else {
+      // 3. 기본 SQL 쿼리 구성 (ID 필터가 있거나 검색어가 없을 때)
+      sql = `
+        SELECT 
+          m.id, m.content, m.type, m.importance, m.created_at, 
+          m.last_accessed, m.pinned, m.tags, m.source,
+          0 as fts_rank
+        FROM memory_item m
+      `;
+      
+      // 내용 검색 조건 (검색어가 있을 때만)
+      if (!hasIdFilter && searchQuery.trim().length > 0) {
+        const likeQuery = `%${searchQuery}%`;
+        sql += ` WHERE m.content LIKE ?`;
+        params.push(likeQuery);
+      }
     }
     
-    // 3. 필터 조건 추가
+    // 4. 필터 조건 추가
+    const conditions: string[] = [];
+    
     if (filters?.id && filters.id.length > 0) {
       conditions.push(`m.id IN (${filters.id.map(() => '?').join(',')})`);
       params.push(...filters.id);
@@ -93,27 +112,33 @@ export class SearchEngine {
       params.push(filters.time_to);
     }
     
+    // WHERE 절 추가
     if (conditions.length > 0) {
-      sql += ` WHERE ${conditions.join(' AND ')}`;
+      const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';
+      sql += whereClause + conditions.join(' AND ');
     }
     
-    // 4. 결과 제한
-    sql += ` ORDER BY m.created_at DESC LIMIT ?`;
-    params.push(limit * 2); // 더 많은 후보를 가져와서 랭킹 적용
+    // 5. 결과 제한 및 정렬 최적화
+    sql += ` ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?`;
+    params.push(limit * 3); // FTS5 랭킹을 고려하여 더 많은 후보 가져오기
     
-    // 5. 데이터베이스 쿼리 실행
+    // 6. 데이터베이스 쿼리 실행
     const results = await this.executeQuery(db, sql, params);
     
-    // 6. 랭킹 알고리즘 적용
+    // 7. 랭킹 알고리즘 적용 (FTS5 랭킹 활용)
     const rankedResults = this.applyRanking(results, searchQuery);
     
-    // 7. 최종 결과 반환 (limit 적용)
+    // 8. 최종 결과 반환 (limit 적용)
     const finalResults = rankedResults.slice(0, limit);
+    
+    // 9. 쿼리 시간 측정
+    const endTime = process.hrtime.bigint();
+    const queryTime = Number(endTime - startTime) / 1_000_000; // 밀리초로 변환
     
     return {
       items: finalResults,
       total_count: finalResults.length,
-      query_time: 0 // TODO: 실제 쿼리 시간 측정
+      query_time: queryTime
     };
   }
 
@@ -153,19 +178,22 @@ export class SearchEngine {
   }
 
   /**
-   * 랭킹 알고리즘 적용
+   * 랭킹 알고리즘 적용 - FTS5 랭킹 활용
    */
   private applyRanking(results: any[], query: string): SearchResult[] {
     const selectedContents: string[] = [];
     
     return results
       .map((row: any) => {
-        // 관련성 계산
-        const relevance = this.ranking.calculateRelevance({
-          query,
-          content: row.content,
-          tags: row.tags ? JSON.parse(row.tags) : []
-        });
+        // FTS5 랭킹이 있으면 활용, 없으면 기본 관련성 계산
+        const ftsRank = row.fts_rank || 0;
+        const relevance = ftsRank > 0 ? 
+          Math.min(ftsRank / 100, 1.0) : // FTS5 랭킹을 0-1 범위로 정규화
+          this.ranking.calculateRelevance({
+            query,
+            content: row.content,
+            tags: row.tags ? JSON.parse(row.tags) : []
+          });
         
         // 최근성 계산
         const recency = this.ranking.calculateRecency(
@@ -193,14 +221,22 @@ export class SearchEngine {
           selectedContents
         );
         
-        // 최종 점수 계산
-        const finalScore = this.ranking.calculateFinalScore({
-          relevance,
-          recency,
-          importance,
-          usage,
-          duplication_penalty: duplicationPenalty
-        });
+        // 최종 점수 계산 (FTS5 랭킹 가중치 적용)
+        const finalScore = ftsRank > 0 ? 
+          ftsRank * 0.7 + this.ranking.calculateFinalScore({
+            relevance: 0.3,
+            recency,
+            importance,
+            usage,
+            duplication_penalty: duplicationPenalty
+          }) * 0.3 :
+          this.ranking.calculateFinalScore({
+            relevance,
+            recency,
+            importance,
+            usage,
+            duplication_penalty: duplicationPenalty
+          });
         
         // 선택된 콘텐츠에 추가 (다양성 확보)
         selectedContents.push(row.content);
@@ -215,7 +251,7 @@ export class SearchEngine {
           pinned: row.pinned,
           tags: row.tags ? JSON.parse(row.tags) : [],
           score: finalScore,
-          recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore)
+          recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0)
         };
       })
       .sort((a, b) => b.score - a.score); // 점수 내림차순 정렬
@@ -228,10 +264,14 @@ export class SearchEngine {
     relevance: number,
     recency: number,
     importance: number,
-    finalScore: number
+    finalScore: number,
+    isFTS: boolean = false
   ): string {
     const reasons: string[] = [];
     
+    if (isFTS) {
+      reasons.push('FTS5 전문 검색');
+    }
     if (relevance > 0.7) {
       reasons.push('높은 관련성');
     }

@@ -16,6 +16,7 @@ import { ForgettingPolicyService } from '../services/forgetting-policy-service.j
 import { PerformanceMonitor } from '../services/performance-monitor.js';
 import { SearchCacheService } from '../services/cache-service.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
@@ -30,6 +31,7 @@ let forgettingPolicyService: ForgettingPolicyService;
 let performanceMonitor: PerformanceMonitor;
 let searchCache: SearchCacheService;
 let databaseOptimizer: DatabaseOptimizer;
+let errorLoggingService: ErrorLoggingService;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
@@ -38,6 +40,39 @@ console.error = () => {};
 console.warn = () => {};
 console.info = () => {};
 console.debug = () => {};
+
+// 동시성 제한을 위한 세마포어
+class Semaphore {
+  private permits: number;
+  private waiting: Array<() => void> = [];
+
+  constructor(permits: number) {
+    this.permits = permits;
+  }
+
+  async acquire(): Promise<void> {
+    if (this.permits > 0) {
+      this.permits--;
+      return;
+    }
+
+    return new Promise(resolve => {
+      this.waiting.push(resolve);
+    });
+  }
+
+  release(): void {
+    this.permits++;
+    if (this.waiting.length > 0) {
+      const resolve = this.waiting.shift()!;
+      this.permits--;
+      resolve();
+    }
+  }
+}
+
+// 동시 처리 제한 (최대 20개 동시 요청)
+const concurrencyLimiter = new Semaphore(20);
 
 // 데이터베이스 상태 모니터링
 async function monitorDatabaseStatus() {
@@ -93,6 +128,7 @@ async function initializeServer() {
     performanceMonitor = new PerformanceMonitor(db);
     searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
     databaseOptimizer = new DatabaseOptimizer(db);
+    errorLoggingService = new ErrorLoggingService();
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
     // MCP 서버 생성
@@ -128,10 +164,13 @@ async function initializeServer() {
       };
     });
     
-    // Tool 실행 핸들러
+    // Tool 실행 핸들러 - 동시성 제한 적용
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       process.stderr.write(`🔧 도구 실행 요청: ${name}\n`);
+      
+      // 동시성 제한 적용
+      await concurrencyLimiter.acquire();
       
       try {
         // 도구 컨텍스트 생성
@@ -143,7 +182,8 @@ async function initializeServer() {
             embeddingService,
             forgettingPolicyService,
             performanceMonitor,
-            databaseOptimizer
+            databaseOptimizer,
+            errorLoggingService
           }
         };
         
@@ -151,10 +191,27 @@ async function initializeServer() {
         const result = await toolRegistry.execute(name, args, context);
         return result;
       } catch (error) {
+        // 에러 로깅
+        if (errorLoggingService) {
+          errorLoggingService.logError(
+            error instanceof Error ? error : new Error(String(error)),
+            ErrorSeverity.HIGH,
+            ErrorCategory.UNKNOWN,
+            {
+              operation: 'tool_execution',
+              toolName: name,
+              requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            }
+          );
+        }
+        
         if (error instanceof Error) {
           throw new Error(`Tool execution failed: ${error.message}`);
         }
         throw error;
+      } finally {
+        // 동시성 제한 해제
+        concurrencyLimiter.release();
       }
     });
     

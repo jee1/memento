@@ -23,6 +23,7 @@
     "test:forgetting": "tsx src/test-forgetting.ts",
     "test:performance": "tsx src/test/performance-benchmark.ts",
     "test:monitoring": "tsx src/test-performance-monitoring.ts",
+    "test:error-logging": "tsx src/test-error-logging.ts",
     "build:client": "cd packages/mcp-client && npm run build",
     "dev:client": "cd packages/mcp-client && npm run dev",
     "clean:client": "cd packages/mcp-client && npm run clean",

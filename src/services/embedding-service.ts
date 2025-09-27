@@ -29,6 +29,9 @@ export class EmbeddingService {
   private lightweightService: LightweightEmbeddingService;
   private readonly model = 'text-embedding-3-small'; // 1536차원
   private readonly maxTokens = 8191; // text-embedding-3-small 최대 토큰
+  private embeddingCache: Map<string, EmbeddingResult> = new Map(); // 임베딩 캐시
+  private batchQueue: string[] = []; // 배치 처리 큐
+  private batchTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
     this.lightweightService = new LightweightEmbeddingService();
@@ -56,14 +59,21 @@ export class EmbeddingService {
   }
 
   /**
-   * 텍스트를 임베딩으로 변환
+   * 텍스트를 임베딩으로 변환 - 캐시 최적화
    */
   async generateEmbedding(text: string): Promise<EmbeddingResult | null> {
     if (!text || text.trim().length === 0) {
       throw new Error('텍스트가 비어있습니다');
     }
 
-    // OpenAI가 사용 가능한 경우
+    // 1. 캐시 확인
+    const cacheKey = this.generateCacheKey(text);
+    const cached = this.embeddingCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // 2. OpenAI가 사용 가능한 경우
     if (this.openai) {
       try {
         // 토큰 수 제한 확인
@@ -80,7 +90,7 @@ export class EmbeddingService {
           throw new Error('임베딩 생성에 실패했습니다');
         }
         
-        return {
+        const result = {
           embedding,
           model: this.model,
           usage: {
@@ -88,13 +98,19 @@ export class EmbeddingService {
             total_tokens: response.usage.total_tokens,
           },
         };
+
+        // 캐시에 저장
+        this.embeddingCache.set(cacheKey, result);
+        this.cleanupCache();
+        
+        return result;
       } catch (error) {
         console.warn('⚠️ OpenAI 임베딩 실패, 경량 서비스로 fallback:', error);
         // OpenAI 실패 시 경량 서비스로 fallback
       }
     }
 
-    // OpenAI가 없거나 실패한 경우 경량 서비스 사용
+    // 3. OpenAI가 없거나 실패한 경우 경량 서비스 사용
     console.log('🔄 경량 하이브리드 임베딩 서비스 사용');
     try {
       const lightweightResult = await this.lightweightService.generateEmbedding(text);
@@ -102,12 +118,17 @@ export class EmbeddingService {
         return null;
       }
 
-      // 경량 서비스 결과를 OpenAI 형식으로 변환
-      return {
+      const result = {
         embedding: lightweightResult.embedding,
         model: lightweightResult.model,
         usage: lightweightResult.usage,
       };
+
+      // 캐시에 저장
+      this.embeddingCache.set(cacheKey, result);
+      this.cleanupCache();
+      
+      return result;
     } catch (error) {
       console.error('❌ 경량 임베딩 생성 실패:', error);
       throw new Error(`임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -175,6 +196,42 @@ export class EmbeddingService {
     }
 
     return dotProduct / (normA * normB);
+  }
+
+  /**
+   * 캐시 키 생성
+   */
+  private generateCacheKey(text: string): string {
+    // 텍스트 해시를 사용하여 캐시 키 생성
+    return `embedding:${this.hashText(text)}`;
+  }
+
+  /**
+   * 텍스트 해시 생성
+   */
+  private hashText(text: string): string {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 32비트 정수로 변환
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * 캐시 정리
+   */
+  private cleanupCache(): void {
+    const maxCacheSize = 1000;
+    if (this.embeddingCache.size > maxCacheSize) {
+      const entries = Array.from(this.embeddingCache.entries());
+      this.embeddingCache.clear();
+      // 최신 500개만 유지
+      entries.slice(-500).forEach(([key, value]) => {
+        this.embeddingCache.set(key, value);
+      });
+    }
   }
 
   /**

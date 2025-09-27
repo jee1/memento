@@ -20,6 +20,7 @@ export interface ToolContext {
     forgettingPolicyService?: any;
     performanceMonitor?: any;
     databaseOptimizer?: any;
+    errorLoggingService?: any;
   };
 }
 
