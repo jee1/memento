@@ -58,17 +58,22 @@ beforeEach(() => {
 describe('HybridSearchEngine', () => {
   it('텍스트와 벡터 검색 결과를 가중치로 결합한다', async () => {
     mockIsEmbeddingAvailable.mockReturnValue(true);
-    mockTextSearch.mockResolvedValue([
-      createTextResult({ id: 'memory-text', score: 0.9 }),
-      createTextResult({ id: 'memory-both', content: '텍스트+벡터 결과', score: 0.6 })
-    ]);
+    mockTextSearch.mockResolvedValue({
+      items: [
+        createTextResult({ id: 'memory-text', score: 0.9 }),
+        createTextResult({ id: 'memory-both', content: '텍스트+벡터 결과', score: 0.6 })
+      ],
+      total_count: 2,
+      query_time: 0
+    });
     mockVectorSearch.mockResolvedValue([
       createVectorResult({ id: 'memory-both', content: '텍스트+벡터 결과', similarity: 0.8 }),
       createVectorResult({ id: 'memory-vector', similarity: 0.9 })
     ]);
 
     const engine = new HybridSearchEngine();
-    const results = await engine.search({}, { query: '기억 검색', limit: 3 });
+    const searchResult = await engine.search({}, { query: '기억 검색', limit: 3 });
+    const results = searchResult.items;
 
     expect(mockTextSearch).toHaveBeenCalledWith({}, expect.objectContaining({
       query: '기억 검색',
@@ -106,12 +111,17 @@ describe('HybridSearchEngine', () => {
 
   it('임베딩 서비스가 비활성화되면 텍스트 결과만 반환한다', async () => {
     mockIsEmbeddingAvailable.mockReturnValue(false);
-    mockTextSearch.mockResolvedValue([
-      createTextResult({ id: 'memory-alpha', score: 0.7 })
-    ]);
+    mockTextSearch.mockResolvedValue({
+      items: [
+        createTextResult({ id: 'memory-alpha', score: 0.7 })
+      ],
+      total_count: 1,
+      query_time: 0
+    });
 
     const engine = new HybridSearchEngine();
-    const results = await engine.search({}, { query: '테스트', limit: 2 });
+    const searchResult = await engine.search({}, { query: '테스트', limit: 2 });
+    const results = searchResult.items;
 
     expect(mockVectorSearch).not.toHaveBeenCalled();
     expect(results).toHaveLength(1);

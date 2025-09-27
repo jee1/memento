@@ -139,7 +139,8 @@ describe('SearchEngine', () => {
       tags: ['cooking']
     });
 
-    const results = await engine.search(db, { query: 'hybrid search', limit: 5 });
+    const searchResult = await engine.search(db, { query: 'hybrid search', limit: 5 });
+    const results = searchResult.items;
 
     expect(results.map(r => r.id)).toEqual([
       'memory-recent',
@@ -172,18 +173,20 @@ describe('SearchEngine', () => {
       tags: ['search', 'vector']
     });
 
-    const pinnedResults = await engine.search(db, {
+    const pinnedSearchResult = await engine.search(db, {
       query: 'hybrid search',
       filters: { pinned: true }
     });
+    const pinnedResults = pinnedSearchResult.items;
 
     expect(pinnedResults).toHaveLength(1);
     expect(pinnedResults[0]?.id).toBe('memory-old-pinned');
 
-    const typeFiltered = await engine.search(db, {
+    const typeFilteredResult = await engine.search(db, {
       query: 'hybrid search',
       filters: { type: ['semantic'], pinned: false }
     });
+    const typeFiltered = typeFilteredResult.items;
 
     expect(typeFiltered).toHaveLength(1);
     expect(typeFiltered[0]?.id).toBe('memory-recent');
