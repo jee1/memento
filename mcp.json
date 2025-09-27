@@ -2,8 +2,7 @@
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["dist/server/index.js"],
-      "cwd": "C:\\Users\\jee1l\\git\\memento",
+      "args": ["./mcp-client.js"],
       "env": {
         "NODE_ENV": "production"
       }

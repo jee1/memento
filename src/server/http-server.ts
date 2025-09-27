@@ -628,7 +628,7 @@ function registerCleanupHandlers() {
 }
 
 // 서버 시작
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 9001;
 
 async function startServer() {
   await initializeServer();

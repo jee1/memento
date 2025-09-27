@@ -39,16 +39,19 @@ RUN mkdir -p /app/data
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S memento -u 1001
 
-# Change ownership
+# Change ownership (data directory will be mounted, so we'll set permissions at runtime)
 RUN chown -R memento:nodejs /app
 USER memento
 
 # Expose port
-EXPOSE 8080
+EXPOSE 9001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "console.log('Health check passed')" || exit 1
 
+# Copy startup script
+COPY --chmod=755 scripts/start-container.sh /app/start-container.sh
+
 # Start application
-CMD ["node", "dist/server/index.js"]
+CMD ["/app/start-container.sh"]

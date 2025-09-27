@@ -1,25 +1,21 @@
-version: '3.8'
-
 services:
-  memento-server:
+  memento-mcp-server:
     build: .
     ports:
-      - "3000:3000"
+      - "9001:9001"
     environment:
       - NODE_ENV=production
       - DB_PATH=/app/data/memory.db
       - LOG_LEVEL=info
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PORT=9001
     volumes:
       - ./data:/app/data
     restart: unless-stopped
-    command: npm run start:http
-    healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
+    user: root
+    command: ["/app/start-container.sh"]
+    stdin_open: true
+    tty: true
 
   # Redis for caching (optional)
   # redis:
