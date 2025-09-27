@@ -39,7 +39,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ```bash
 # 저장소 클론
-git clone https://github.com/your-org/memento.git
+git clone https://github.com/jee1/memento.git
 cd memento
 
 # 의존성 설치
@@ -48,26 +48,30 @@ npm install
 # 환경 변수 설정
 cp env.example .env
 # .env 파일에서 OPENAI_API_KEY 설정 (선택사항)
+# OPENAI_API_KEY가 없어도 경량 임베딩 서비스로 동작
 ```
 
 ### 2. 개발 서버 실행
 
 ```bash
-# 개발 모드 (핫 리로드)
+# MCP 서버 개발 모드 (핫 리로드)
 npm run dev
 
-# HTTP/WebSocket 서버
+# HTTP/WebSocket 서버 개발 모드
 npm run dev:http
 ```
 
 ### 3. 프로덕션 빌드
 
 ```bash
-# 빌드
+# TypeScript 컴파일 및 에셋 복사
 npm run build
 
-# 프로덕션 실행
+# MCP 서버 프로덕션 실행
 npm run start
+
+# HTTP/WebSocket 서버 프로덕션 실행
+npm run start:http
 ```
 
 ### 4. Docker 배포
@@ -76,8 +80,11 @@ npm run start
 # Docker 이미지 빌드
 docker build -t memento-mcp-server .
 
-# Docker 실행
+# MCP 서버 Docker 실행
 docker run -p 8080:8080 -v $(pwd)/data:/app/data memento-mcp-server
+
+# HTTP/WebSocket 서버 Docker 실행
+docker run -p 8080:8080 -v $(pwd)/data:/app/data memento-mcp-server npm run start:http
 
 # Docker Compose 실행
 docker-compose up -d
@@ -204,16 +211,23 @@ TTL_SOFT_PROCEDURAL=90
 ## 🧪 테스트
 
 ```bash
-# 모든 테스트 실행
+# 모든 테스트 실행 (Vitest)
 npm run test
 
 # 개별 테스트 실행
-npm run test:client      # 클라이언트 테스트
-npm run test:search      # 검색 기능 테스트
-npm run test:embedding   # 임베딩 기능 테스트
-npm run test:forgetting  # 망각 정책 테스트
-npm run test:performance # 성능 벤치마크
-npm run test:monitoring  # 성능 모니터링 테스트
+npm run test:client                    # 클라이언트 테스트
+npm run test:search                    # 검색 기능 테스트
+npm run test:embedding                 # 임베딩 기능 테스트
+npm run test:lightweight-embedding     # 경량 임베딩 테스트
+npm run test:forgetting                # 망각 정책 테스트
+npm run test:performance               # 성능 벤치마크
+npm run test:monitoring                # 성능 모니터링 테스트
+
+# 테스트 감시 모드
+npm run test -- --watch
+
+# 커버리지 포함 테스트
+npm run test -- --coverage
 ```
 
 ## 📚 개발자 가이드라인
@@ -228,18 +242,32 @@ npm run test:monitoring  # 성능 모니터링 테스트
 
 ## 📊 성능 지표
 
+### 기본 성능
 - **데이터베이스 성능**: 평균 쿼리 시간 0.16-0.22ms
 - **검색 성능**: 0.78-4.24ms (캐시 효과로 개선)
 - **메모리 사용량**: 11-15MB 힙 사용량
 - **동시 연결**: 최대 1000개 연결 지원
 
+### 고급 성능 최적화
+- **캐시 히트율**: 80% 이상 (검색 결과 캐싱)
+- **임베딩 캐싱**: 24시간 TTL로 비용 절약
+- **비동기 처리**: 워커 풀 기반 병렬 처리
+- **데이터베이스 최적화**: 자동 인덱스 추천 및 생성
+
+### 경량 임베딩 성능
+- **TF-IDF 벡터화**: 512차원 고정 벡터 생성
+- **다국어 지원**: 한국어/영어 불용어 제거
+- **로컬 처리**: OpenAI API 없이 동작
+- **코사인 유사도**: 빠른 벡터 검색
+
 ## 🏗️ 아키텍처
 
 ### M1: 개인용 (현재 구현)
-- **스토리지**: SQLite 임베디드
+- **스토리지**: better-sqlite3 임베디드
 - **인덱스**: FTS5 + sqlite-vss
 - **인증**: 없음 (로컬 전용)
 - **운영**: 로컬 실행
+- **추가 기능**: 경량 임베딩, 성능 모니터링, 캐시 시스템
 
 ### M2: 팀 협업 (계획)
 - **스토리지**: SQLite 서버 모드
@@ -255,9 +283,25 @@ npm run test:monitoring  # 성능 모니터링 테스트
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+3. Commit your Changes (`git commit -m 'feat: add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+### 개발 환경 설정
+```bash
+# 저장소 포크 후 클론
+git clone https://github.com/your-username/memento.git
+cd memento
+
+# 의존성 설치
+npm install
+
+# 개발 서버 시작
+npm run dev
+
+# 테스트 실행
+npm run test
+```
 
 ## 📄 라이선스
 
@@ -267,10 +311,14 @@ npm run test:monitoring  # 성능 모니터링 테스트
 
 - 이슈 리포트: [GitHub Issues](https://github.com/jee1/memento/issues)
 - 문서: [Wiki](https://github.com/jee1/memento/wiki)
+- 개발자 가이드: [docs/developer-guide.md](docs/developer-guide.md)
+- API 참조: [docs/api-reference.md](docs/api-reference.md)
 
 ## 🙏 감사의 말
 
 - [Model Context Protocol](https://modelcontextprotocol.io/) - MCP 프로토콜
 - [OpenAI](https://openai.com/) - 임베딩 서비스
-- [SQLite](https://sqlite.org/) - 데이터베이스 엔진
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) - 고성능 SQLite 드라이버
+- [Express](https://expressjs.com/) - 웹 프레임워크
+- [Vitest](https://vitest.dev/) - 테스트 프레임워크
 - [TypeScript](https://www.typescriptlang.org/) - 개발 언어

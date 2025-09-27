@@ -39,7 +39,7 @@ description: 실제 구현된 기능들에 대한 개발 규칙
 #### 4. 데이터베이스 (`src/database/init.ts`)
 - **파일 크기**: 102줄
 - **구현된 기능**:
-  - SQLite 데이터베이스 초기화
+  - better-sqlite3 데이터베이스 초기화
   - 스키마 생성
   - 인덱스 설정
   - 연결 관리
@@ -81,6 +81,7 @@ description: 실제 구현된 기능들에 대한 개발 규칙
 - **소프트/하드 삭제**: 단계적 삭제 정책
 
 #### 12. HTTP 서버 (`src/server/http-server.ts` - 551줄)
+- **Express 기반**: RESTful API 및 WebSocket 서버
 - **WebSocket 지원**: 실시간 통신을 위한 WebSocket 서버
 - **CORS 설정**: 웹 클라이언트 지원
 - **콘솔 로그 충돌 해결**: MCP 프로토콜과의 호환성 개선
@@ -231,19 +232,27 @@ npm run db:migrate
 ```json
 {
   "@modelcontextprotocol/sdk": "^0.5.0",
-  "sqlite3": "^5.1.6",
-  "zod": "^3.22.4",
-  "uuid": "^9.0.1",
+  "axios": "^1.12.2",
+  "better-sqlite3": "^12.4.1",
+  "cors": "^2.8.5",
+  "dotenv": "^16.3.1",
+  "express": "^5.1.0",
   "openai": "^4.20.1",
-  "dotenv": "^16.3.1"
+  "uuid": "^9.0.1",
+  "ws": "^8.18.3",
+  "zod": "^3.22.4"
 }
 ```
 
 ### 개발 의존성
 ```json
 {
+  "@types/better-sqlite3": "^7.6.13",
+  "@types/cors": "^2.8.19",
+  "@types/express": "^5.0.3",
   "@types/node": "^20.10.0",
   "@types/uuid": "^9.0.7",
+  "@types/ws": "^8.18.1",
   "@typescript-eslint/eslint-plugin": "^6.13.0",
   "@typescript-eslint/parser": "^6.13.0",
   "eslint": "^8.54.0",
@@ -262,12 +271,17 @@ npm run db:migrate
 
 ### 테스트 실행 방법
 ```bash
-# 모든 테스트 실행
+# 모든 테스트 실행 (Vitest)
 npm run test
 
 # 특정 테스트 실행
 npm run test:client
 npm run test:search
+npm run test:embedding
+npm run test:lightweight-embedding
+npm run test:forgetting
+npm run test:performance
+npm run test:monitoring
 
 # 테스트 감시 모드
 npm run test -- --watch
@@ -303,7 +317,7 @@ const filteredResults = await searchEngine.search(db, {
 
 ## 🗄️ 실제 데이터베이스 구조
 
-### SQLite 스키마
+### better-sqlite3 스키마
 - **`memory_item`**: 기억 아이템 테이블
 - **`memory_embedding`**: 임베딩 테이블
 - **`memory_tag`**: 태그 테이블

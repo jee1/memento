@@ -25,6 +25,135 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 - **메모리 효율**: 사전 학습된 모델 없이 가벼운 구현
 - **정확도**: 키워드 기반 검색에 특화된 정확도
 
+### 성능 모니터링 Tools
+
+#### get_performance_metrics
+
+시스템의 성능 메트릭을 조회합니다.
+
+**파라미터:**
+```typescript
+{
+  timeRange?: '1h' | '24h' | '7d' | '30d';  // 시간 범위
+  includeDetails?: boolean;                  // 상세 정보 포함 여부
+}
+```
+
+**응답:**
+```typescript
+{
+  success: boolean;
+  result: {
+    database: {
+      totalMemories: number;
+      memoryByType: Record<string, number>;
+      averageMemorySize: number;
+      databaseSize: number;
+      queryPerformance: {
+        averageQueryTime: number;
+        slowQueries: Array<{ query: string; time: number; count: number }>;
+      };
+    };
+    search: {
+      totalSearches: number;
+      averageSearchTime: number;
+      cacheHitRate: number;
+      embeddingSearchRate: number;
+    };
+    memory: {
+      usage: number;
+      heapUsed: number;
+      heapTotal: number;
+      rss: number;
+    };
+    system: {
+      uptime: number;
+      cpuUsage: number;
+      loadAverage: number[];
+    };
+  };
+}
+```
+
+#### get_cache_stats
+
+캐시 시스템의 통계를 조회합니다.
+
+**파라미터:**
+```typescript
+{
+  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
+}
+```
+
+**응답:**
+```typescript
+{
+  success: boolean;
+  result: {
+    hits: number;
+    misses: number;
+    totalRequests: number;
+    hitRate: number;
+    size: number;
+    memoryUsage: number;
+  };
+}
+```
+
+#### clear_cache
+
+캐시를 초기화합니다.
+
+**파라미터:**
+```typescript
+{
+  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
+  pattern?: string;                             // 제거할 패턴 (정규식)
+}
+```
+
+**응답:**
+```typescript
+{
+  success: boolean;
+  result: {
+    clearedCount: number;                       // 제거된 항목 수
+    remainingCount: number;                     // 남은 항목 수
+  };
+}
+```
+
+#### optimize_database
+
+데이터베이스 성능을 최적화합니다.
+
+**파라미터:**
+```typescript
+{
+  actions?: ('analyze' | 'index' | 'vacuum' | 'all')[];  // 수행할 작업
+  autoCreateIndexes?: boolean;                           // 자동 인덱스 생성
+}
+```
+
+**응답:**
+```typescript
+{
+  success: boolean;
+  result: {
+    analyzedQueries: number;
+    createdIndexes: number;
+    optimizedTables: number;
+    recommendations: Array<{
+      type: 'index' | 'query' | 'table';
+      priority: 'high' | 'medium' | 'low';
+      description: string;
+      estimatedImprovement: string;
+    }>;
+  };
+}
+```
+
 ## MCP Tools
 
 ### remember
@@ -643,14 +772,15 @@ const schedule = await client.callTool('schedule_review', {
 });
 ```
 
-## 10. 성능 모니터링
+## 10. 성능 모니터링 및 최적화
 
-### `get_performance_metrics`
+### 성능 모니터링 Tools
+
+#### `get_performance_metrics`
 
 시스템의 성능 메트릭을 조회합니다.
 
-#### 매개변수
-
+**파라미터:**
 ```typescript
 {
   timeRange?: '1h' | '24h' | '7d' | '30d';  // 시간 범위
@@ -658,8 +788,7 @@ const schedule = await client.callTool('schedule_review', {
 }
 ```
 
-#### 응답
-
+**응답:**
 ```typescript
 {
   success: boolean;
@@ -695,8 +824,7 @@ const schedule = await client.callTool('schedule_review', {
 }
 ```
 
-#### 사용 예시
-
+**사용 예시:**
 ```typescript
 // 기본 성능 메트릭 조회
 const metrics = await client.callTool('get_performance_metrics', {});
@@ -712,22 +840,20 @@ console.log(`평균 검색 시간: ${metrics.result.search.averageSearchTime}ms`
 console.log(`캐시 히트율: ${(metrics.result.search.cacheHitRate * 100).toFixed(1)}%`);
 ```
 
-## 11. 캐시 관리
+### 캐시 관리 Tools
 
-### `get_cache_stats`
+#### `get_cache_stats`
 
 캐시 시스템의 통계를 조회합니다.
 
-#### 매개변수
-
+**파라미터:**
 ```typescript
 {
   cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
 }
 ```
 
-#### 응답
-
+**응답:**
 ```typescript
 {
   success: boolean;
@@ -742,8 +868,7 @@ console.log(`캐시 히트율: ${(metrics.result.search.cacheHitRate * 100).toFi
 }
 ```
 
-#### 사용 예시
-
+**사용 예시:**
 ```typescript
 // 전체 캐시 통계 조회
 const stats = await client.callTool('get_cache_stats', {});
@@ -758,12 +883,11 @@ console.log(`캐시 크기: ${stats.result.size}개 항목`);
 console.log(`메모리 사용량: ${(stats.result.memoryUsage / 1024 / 1024).toFixed(2)}MB`);
 ```
 
-### `clear_cache`
+#### `clear_cache`
 
 캐시를 초기화합니다.
 
-#### 매개변수
-
+**파라미터:**
 ```typescript
 {
   cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
@@ -771,8 +895,7 @@ console.log(`메모리 사용량: ${(stats.result.memoryUsage / 1024 / 1024).toF
 }
 ```
 
-#### 응답
-
+**응답:**
 ```typescript
 {
   success: boolean;
@@ -783,8 +906,7 @@ console.log(`메모리 사용량: ${(stats.result.memoryUsage / 1024 / 1024).toF
 }
 ```
 
-#### 사용 예시
-
+**사용 예시:**
 ```typescript
 // 전체 캐시 초기화
 const result = await client.callTool('clear_cache', {});
@@ -802,14 +924,13 @@ const result = await client.callTool('clear_cache', {
 console.log(`제거된 항목: ${result.result.clearedCount}개`);
 ```
 
-## 12. 데이터베이스 최적화
+### 데이터베이스 최적화 Tools
 
-### `optimize_database`
+#### `optimize_database`
 
 데이터베이스 성능을 최적화합니다.
 
-#### 매개변수
-
+**파라미터:**
 ```typescript
 {
   actions?: ('analyze' | 'index' | 'vacuum' | 'all')[];  // 수행할 작업
@@ -817,8 +938,7 @@ console.log(`제거된 항목: ${result.result.clearedCount}개`);
 }
 ```
 
-#### 응답
-
+**응답:**
 ```typescript
 {
   success: boolean;
@@ -836,8 +956,7 @@ console.log(`제거된 항목: ${result.result.clearedCount}개`);
 }
 ```
 
-#### 사용 예시
-
+**사용 예시:**
 ```typescript
 // 전체 데이터베이스 최적화
 const result = await client.callTool('optimize_database', {

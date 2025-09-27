@@ -588,17 +588,21 @@ graph TB
 
 #### 특징
 
-- **스토리지**: SQLite 임베디드
+- **스토리지**: better-sqlite3 임베디드
 - **검색**: FTS5 + sqlite-vss
 - **인증**: 없음 (로컬 전용)
 - **배포**: 로컬 실행
+- **추가 기능**: 경량 임베딩, 성능 모니터링, 캐시 시스템
 - **확장성**: 단일 사용자
 
 #### 기술 스택
 
-- **데이터베이스**: SQLite 3.45+
+- **데이터베이스**: better-sqlite3 12.4+
 - **벡터 검색**: sqlite-vss
 - **텍스트 검색**: FTS5
+- **웹 서버**: Express 5.1+
+- **WebSocket**: ws 8.18+
+- **테스트**: Vitest 1.0+
 - **런타임**: Node.js 20+
 
 ### M2: 팀 협업
@@ -700,14 +704,15 @@ graph TB
 
 ### 1. 검색 성능
 
-#### 벡터 검색 최적화
+#### 하이브리드 검색 최적화
 
 ```typescript
-interface VectorSearchOptimization {
-  // 인덱스 최적화
-  optimizeIndex(): void {
-    this.createIndex('memory_embedding', 'embedding', 'ivfflat');
-    this.analyzeTable('memory_embedding');
+interface HybridSearchOptimization {
+  // FTS5 + 벡터 검색 결합
+  optimizeHybridSearch(): void {
+    this.createFTSIndex('memory_item_fts', 'content');
+    this.createVectorIndex('memory_embedding', 'embedding', 'ivfflat');
+    this.analyzeTable('memory_item');
   }
   
   // 배치 처리
@@ -721,25 +726,73 @@ interface VectorSearchOptimization {
 }
 ```
 
+#### 경량 임베딩 최적화
+
+```typescript
+interface LightweightEmbeddingOptimization {
+  // TF-IDF 벡터화
+  optimizeTFIDF(): void {
+    this.updateVocabulary();
+    this.calculateIDF();
+    this.normalizeVectors();
+  }
+  
+  // 다국어 지원
+  preprocessText(text: string): string {
+    return this.removeStopWords(text)
+      .normalizeUnicode()
+      .tokenize()
+      .stem();
+  }
+}
+```
+
 #### 캐싱 전략
 
 ```typescript
 interface CachingStrategy {
-  // 검색 결과 캐싱
+  // LRU 캐시 구현
   cacheSearchResult(query: string, result: SearchResult): void {
     const key = `search:${this.hashQuery(query)}`;
-    this.redis.setex(key, 3600, JSON.stringify(result)); // 1시간 캐시
+    this.lruCache.set(key, result, 3600); // 1시간 TTL
+  }
+  
+  // 임베딩 캐싱
+  cacheEmbedding(text: string, embedding: number[]): void {
+    const key = `embedding:${this.hashText(text)}`;
+    this.lruCache.set(key, embedding, 86400); // 24시간 TTL
   }
   
   // 인기 검색어 캐싱
   cachePopularQueries(): void {
     const popular = this.getPopularQueries(100);
-    this.redis.setex('popular_queries', 86400, JSON.stringify(popular)); // 24시간 캐시
+    this.lruCache.set('popular_queries', popular, 86400); // 24시간 TTL
   }
 }
 ```
 
 ### 2. 메모리 사용량
+
+#### 성능 모니터링
+
+```typescript
+interface PerformanceMonitoring {
+  // 메모리 사용량 모니터링
+  monitorMemoryUsage(): void {
+    const usage = process.memoryUsage();
+    this.metrics.record('memory.heapUsed', usage.heapUsed);
+    this.metrics.record('memory.heapTotal', usage.heapTotal);
+    this.metrics.record('memory.rss', usage.rss);
+  }
+  
+  // 캐시 성능 모니터링
+  monitorCachePerformance(): void {
+    this.metrics.record('cache.hitRate', this.cache.getHitRate());
+    this.metrics.record('cache.size', this.cache.getSize());
+    this.metrics.record('cache.memoryUsage', this.cache.getMemoryUsage());
+  }
+}
+```
 
 #### 메모리 풀 관리
 
@@ -787,7 +840,7 @@ interface GCOptimization {
 
 ### 3. 데이터베이스 성능
 
-#### 쿼리 최적화
+#### better-sqlite3 최적화
 
 ```sql
 -- 인덱스 최적화
@@ -807,6 +860,28 @@ CREATE VIRTUAL TABLE memory_fts USING fts5(
   content='memory_item',
   content_rowid='id'
 );
+```
+
+#### 데이터베이스 최적화 서비스
+
+```typescript
+interface DatabaseOptimization {
+  // 자동 인덱스 추천
+  recommendIndexes(): IndexRecommendation[] {
+    const slowQueries = this.analyzeSlowQueries();
+    return slowQueries.map(query => this.generateIndexRecommendation(query));
+  }
+  
+  // 쿼리 성능 분석
+  analyzeQueryPerformance(): QueryAnalysis {
+    return {
+      averageQueryTime: this.getAverageQueryTime(),
+      slowQueries: this.getSlowQueries(),
+      indexUsage: this.getIndexUsage(),
+      recommendations: this.generateRecommendations()
+    };
+  }
+}
 ```
 
 #### 연결 풀 관리

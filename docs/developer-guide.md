@@ -17,7 +17,7 @@
 
 ### 필수 요구사항
 
-- **Node.js**: 20.10.0 이상 (실제 구현 기준)
+- **Node.js**: 20.0.0 이상 (package.json 기준)
 - **npm**: 10.0.0 이상
 
 ### 저장소 가이드라인 (`AGENTS.md`)
@@ -60,7 +60,10 @@ npm install
 
 # 실제 사용된 의존성들:
 # - @modelcontextprotocol/sdk: ^0.5.0
-# - sqlite3: ^5.1.6
+# - better-sqlite3: ^12.4.1
+# - express: ^5.1.0
+# - cors: ^2.8.5
+# - ws: ^8.18.3
 # - zod: ^3.22.4
 # - uuid: ^9.0.1
 # - openai: ^4.20.1
@@ -82,21 +85,24 @@ cp .env.example .env
 #### 4. 데이터베이스 초기화
 
 ```bash
-# SQLite 데이터베이스 초기화
+# better-sqlite3 데이터베이스 초기화
 npm run db:init
 
-# 테스트 데이터베이스 초기화
-npm run db:init:test
+# 데이터베이스 마이그레이션
+npm run db:migrate
 ```
 
 #### 5. 개발 서버 시작
 
 ```bash
-# 핫 리로드와 함께 개발 서버 시작
+# MCP 서버 개발 모드 (핫 리로드)
 npm run dev
 
+# HTTP/WebSocket 서버 개발 모드
+npm run dev:http
+
 # 별도 터미널에서 테스트 실행
-npm run test:watch
+npm run test -- --watch
 ```
 
 ### VS Code 설정
@@ -110,8 +116,8 @@ npm run test:watch
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
-  "jest.jestCommandLine": "npm run test",
-  "jest.autoRun": "watch"
+  "vitest.commandLine": "npm run test",
+  "vitest.autoRun": "watch"
 }
 ```
 
@@ -136,8 +142,8 @@ npm run test:watch
       "name": "Debug Tests",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["--runInBand", "--no-cache"],
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": ["--run"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
     }
@@ -153,9 +159,14 @@ Memento는 새로운 서비스 레이어를 도입하여 외부 API 연동과 �
 
 ```
 src/services/
-├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
-├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
-└── lightweight-embedding-service.ts # 경량 하이브리드 임베딩 서비스 (321줄)
+├── embedding-service.ts              # OpenAI 임베딩 서비스 (196줄)
+├── memory-embedding-service.ts       # 메모리 임베딩 서비스 (237줄)
+├── lightweight-embedding-service.ts  # 경량 하이브리드 임베딩 서비스 (321줄)
+├── forgetting-policy-service.ts      # 망각 정책 서비스 (335줄)
+├── async-optimizer.ts                # 비동기 처리 최적화 (447줄)
+├── cache-service.ts                  # 캐시 서비스 (352줄)
+├── database-optimizer.ts             # 데이터베이스 최적화 (442줄)
+└── performance-monitor.ts            # 성능 모니터링 (367줄)
 ```
 
 **서비스 레이어의 역할**:
@@ -164,6 +175,8 @@ src/services/
 - **에러 처리**: API 호출 실패, 재시도 로직
 - **캐싱**: 임베딩 결과 캐싱, 성능 최적화
 - **Fallback 솔루션**: 경량 하이브리드 임베딩 서비스로 OpenAI API 대체
+- **성능 최적화**: 비동기 처리, 캐시 관리, 데이터베이스 최적화
+- **모니터링**: 실시간 성능 메트릭 수집 및 분석
 
 ### 하이브리드 검색 엔진 (`src/algorithms/hybrid-search-engine.ts`)
 
@@ -618,23 +631,23 @@ expect(mockDatabase.createMemory).toHaveBeenCalledWith(expectedParams);
 ### 테스트 실행
 
 ```bash
-# 모든 테스트 실행
+# 모든 테스트 실행 (Vitest)
 npm test
 
-# 단위 테스트만
-npm run test:unit
+# 특정 테스트 실행
+npm run test:client
+npm run test:search
+npm run test:embedding
+npm run test:lightweight-embedding
+npm run test:forgetting
+npm run test:performance
+npm run test:monitoring
 
-# 통합 테스트만
-npm run test:integration
-
-# E2E 테스트만
-npm run test:e2e
-
-# 커버리지 포함
-npm run test:coverage
+# 커버리지 포함 테스트
+npm run test -- --coverage
 
 # 감시 모드
-npm run test:watch
+npm run test -- --watch
 ```
 
 ## 기여 방법
