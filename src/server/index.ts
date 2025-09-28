@@ -148,6 +148,17 @@ async function initializeServer() {
         }
       }
     );
+    
+    // 임베딩 프로바이더 정보 표시
+    process.stderr.write(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}\n`);
+    if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
+      process.stderr.write(`   📝 모델: ${mementoConfig.openaiModel} (${mementoConfig.embeddingDimensions}차원)\n`);
+    } else if (mementoConfig.embeddingProvider === 'gemini' && mementoConfig.geminiApiKey) {
+      process.stderr.write(`   📝 모델: ${mementoConfig.geminiModel} (${mementoConfig.embeddingDimensions}차원)\n`);
+    } else if (mementoConfig.embeddingProvider === 'lightweight') {
+      process.stderr.write(`   📝 모델: lightweight-hybrid (512차원)\n`);
+    }
+    
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
     // MCP 서버 생성

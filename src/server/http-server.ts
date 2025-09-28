@@ -636,6 +636,16 @@ async function initializeServer() {
     hybridSearchEngine = new HybridSearchEngine();
     embeddingService = new MemoryEmbeddingService();
     
+    // 임베딩 프로바이더 정보 표시
+    console.log(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}`);
+    if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
+      console.log(`   📝 모델: ${mementoConfig.openaiModel} (${mementoConfig.embeddingDimensions}차원)`);
+    } else if (mementoConfig.embeddingProvider === 'gemini' && mementoConfig.geminiApiKey) {
+      console.log(`   📝 모델: ${mementoConfig.geminiModel} (${mementoConfig.embeddingDimensions}차원)`);
+    } else if (mementoConfig.embeddingProvider === 'lightweight') {
+      console.log(`   📝 모델: lightweight-hybrid (512차원)`);
+    }
+    
     console.log('✅ 서버 초기화 완료');
     console.log(`📊 서버: ${mementoConfig.serverName} v${mementoConfig.serverVersion}`);
     console.log(`🗄️  데이터베이스: ${mementoConfig.dbPath}`);

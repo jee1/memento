@@ -8,6 +8,10 @@ services:
       - DB_PATH=/app/data/memory.db
       - LOG_LEVEL=info
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS}
       - PORT=9001
     volumes:
       - ./data:/app/data
