@@ -3,7 +3,7 @@
  */
 
 import { config } from 'dotenv';
-import type { MementoConfig } from '../types/index.js';
+import type { MementoConfig, EmbeddingProvider } from '../types/index.js';
 
 // 환경 변수 로드
 config();
@@ -17,9 +17,12 @@ export const mementoConfig: MementoConfig = {
   serverVersion: process.env.MCP_SERVER_VERSION || '0.1.0',
   port: parseInt(process.env.MCP_SERVER_PORT || '3000', 10),
   
-  // OpenAI 설정
+  // 임베딩 설정
+  embeddingProvider: (process.env.EMBEDDING_PROVIDER as EmbeddingProvider) || 'openai',
   openaiApiKey: process.env.OPENAI_API_KEY || undefined,
   openaiModel: process.env.OPENAI_MODEL || 'text-embedding-3-small',
+  geminiApiKey: process.env.GEMINI_API_KEY || undefined,
+  geminiModel: process.env.GEMINI_MODEL || 'text-embedding-004',
   embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '1536', 10),
   
   // 검색 설정
@@ -61,7 +64,16 @@ export const defaultTags = {
 
 // 유효성 검사
 export function validateConfig(): void {
-  if (!mementoConfig.openaiApiKey && mementoConfig.nodeEnv === 'production') {
+  // 임베딩 제공자별 API 키 검증
+  if (mementoConfig.embeddingProvider === 'openai' && !mementoConfig.openaiApiKey) {
+    throw new Error('OPENAI_API_KEY is required when using OpenAI embedding provider');
+  }
+  
+  if (mementoConfig.embeddingProvider === 'gemini' && !mementoConfig.geminiApiKey) {
+    throw new Error('GEMINI_API_KEY is required when using Gemini embedding provider');
+  }
+  
+  if (mementoConfig.embeddingProvider === 'openai' && !mementoConfig.openaiApiKey && mementoConfig.nodeEnv === 'production') {
     throw new Error('OPENAI_API_KEY is required in production environment');
   }
   

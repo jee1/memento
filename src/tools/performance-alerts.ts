@@ -9,17 +9,59 @@ import type { ToolContext } from './types.js';
 export const performanceAlertsTool = {
   name: 'performance_alerts',
   description: '성능 알림 정보를 조회하고 관리합니다',
-  inputSchema: z.object({
-    action: z.enum(['stats', 'list', 'search', 'resolve']).default('stats').describe('수행할 작업'),
-    hours: z.number().min(1).max(168).default(24).describe('조회할 시간 범위 (시간 단위)'),
-    level: z.enum(['info', 'warning', 'critical']).optional().describe('알림 레벨 필터'),
-    type: z.enum(['response_time', 'memory_usage', 'error_rate', 'throughput', 'database_performance', 'cache_performance']).optional().describe('알림 타입 필터'),
-    resolved: z.boolean().optional().describe('해결된 알림 포함 여부'),
-    limit: z.number().min(1).max(100).default(50).describe('결과 제한 수'),
-    alertId: z.string().optional().describe('해결할 알림 ID (resolve 작업시)'),
-    resolvedBy: z.string().default('system').describe('해결 처리자'),
-    resolution: z.string().optional().describe('해결 사유')
-  })
+  inputSchema: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['stats', 'list', 'search', 'resolve'],
+        default: 'stats',
+        description: '수행할 작업'
+      },
+      hours: {
+        type: 'number',
+        minimum: 1,
+        maximum: 168,
+        default: 24,
+        description: '조회할 시간 범위 (시간 단위)'
+      },
+      level: {
+        type: 'string',
+        enum: ['info', 'warning', 'critical'],
+        description: '알림 레벨 필터'
+      },
+      type: {
+        type: 'string',
+        enum: ['response_time', 'memory_usage', 'error_rate', 'throughput', 'database_performance', 'cache_performance'],
+        description: '알림 타입 필터'
+      },
+      resolved: {
+        type: 'boolean',
+        description: '해결된 알림 포함 여부'
+      },
+      limit: {
+        type: 'number',
+        minimum: 1,
+        maximum: 100,
+        default: 50,
+        description: '결과 제한 수'
+      },
+      alertId: {
+        type: 'string',
+        description: '해결할 알림 ID (resolve 작업시)'
+      },
+      resolvedBy: {
+        type: 'string',
+        default: 'system',
+        description: '해결 처리자'
+      },
+      resolution: {
+        type: 'string',
+        description: '해결 사유'
+      }
+    },
+    required: []
+  }
 };
 
 export async function executePerformanceAlerts(args: any, context: ToolContext) {

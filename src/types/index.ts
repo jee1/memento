@@ -50,13 +50,19 @@ export interface SearchRankingWeights {
   duplication_penalty: number; // ε = 0.15
 }
 
+export type EmbeddingProvider = 'openai' | 'gemini' | 'lightweight';
+
 export interface MementoConfig {
   dbPath: string;
   serverName: string;
   serverVersion: string;
   port: number;
+  // 임베딩 설정
+  embeddingProvider: EmbeddingProvider;
   openaiApiKey: string | undefined;
   openaiModel: string;
+  geminiApiKey: string | undefined;
+  geminiModel: string;
   embeddingDimensions: number;
   searchDefaultLimit: number;
   searchMaxLimit: number;

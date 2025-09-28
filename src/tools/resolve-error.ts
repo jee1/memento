@@ -9,11 +9,25 @@ import type { ToolContext } from './types.js';
 export const resolveErrorTool = {
   name: 'resolve_error',
   description: '특정 에러를 해결된 상태로 표시합니다',
-  inputSchema: z.object({
-    errorId: z.string().describe('해결할 에러 ID'),
-    resolvedBy: z.string().default('system').describe('해결 처리자'),
-    reason: z.string().optional().describe('해결 사유')
-  })
+  inputSchema: {
+    type: 'object',
+    properties: {
+      errorId: {
+        type: 'string',
+        description: '해결할 에러 ID'
+      },
+      resolvedBy: {
+        type: 'string',
+        default: 'system',
+        description: '해결 처리자'
+      },
+      reason: {
+        type: 'string',
+        description: '해결 사유'
+      }
+    },
+    required: ['errorId']
+  }
 };
 
 export async function executeResolveError(args: any, context: ToolContext) {

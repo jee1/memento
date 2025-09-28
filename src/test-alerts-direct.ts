@@ -81,18 +81,20 @@ async function testAlertsDirect() {
     // 4. 알림 해결 테스트
     if (activeAlerts.length > 0) {
       const firstAlert = activeAlerts[0];
-      console.log(`\n🔧 알림 해결 테스트: ${firstAlert.id}`);
-      
-      const resolved = alertService.resolveAlert(
-        firstAlert.id,
-        'test_user',
-        '테스트용 해결'
-      );
-      
-      if (resolved) {
-        console.log('✅ 알림 해결 성공');
-      } else {
-        console.log('❌ 알림 해결 실패');
+      if (firstAlert) {
+        console.log(`\n🔧 알림 해결 테스트: ${firstAlert.id}`);
+        
+        const resolved = alertService.resolveAlert(
+          firstAlert.id,
+          'test_user',
+          '테스트용 해결'
+        );
+        
+        if (resolved) {
+          console.log('✅ 알림 해결 성공');
+        } else {
+          console.log('❌ 알림 해결 실패');
+        }
       }
     }
 
@@ -108,7 +110,7 @@ async function testAlertsDirect() {
     if (fs.existsSync(logDir)) {
       const files = fs.readdirSync(logDir);
       console.log(`로그 파일 수: ${files.length}`);
-      files.forEach(file => {
+      files.forEach((file: string) => {
         console.log(`- ${file}`);
       });
     } else {

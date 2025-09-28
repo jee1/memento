@@ -9,13 +9,41 @@ import type { ToolContext } from './types.js';
 export const errorStatsTool = {
   name: 'error_stats',
   description: '에러 통계 및 로그 정보를 조회합니다',
-  inputSchema: z.object({
-    hours: z.number().min(1).max(168).default(24).describe('조회할 시간 범위 (시간 단위, 1-168)'),
-    severity: z.enum(['low', 'medium', 'high', 'critical']).optional().describe('심각도 필터'),
-    category: z.enum(['database', 'network', 'validation', 'authentication', 'performance', 'memory', 'search', 'embedding', 'cache', 'unknown']).optional().describe('카테고리 필터'),
-    includeResolved: z.boolean().default(false).describe('해결된 에러 포함 여부'),
-    limit: z.number().min(1).max(100).default(50).describe('결과 제한 수')
-  })
+  inputSchema: {
+    type: 'object',
+    properties: {
+      hours: {
+        type: 'number',
+        minimum: 1,
+        maximum: 168,
+        default: 24,
+        description: '조회할 시간 범위 (시간 단위, 1-168)'
+      },
+      severity: {
+        type: 'string',
+        enum: ['low', 'medium', 'high', 'critical'],
+        description: '심각도 필터'
+      },
+      category: {
+        type: 'string',
+        enum: ['database', 'network', 'validation', 'authentication', 'performance', 'memory', 'search', 'embedding', 'cache', 'unknown'],
+        description: '카테고리 필터'
+      },
+      includeResolved: {
+        type: 'boolean',
+        default: false,
+        description: '해결된 에러 포함 여부'
+      },
+      limit: {
+        type: 'number',
+        minimum: 1,
+        maximum: 100,
+        default: 50,
+        description: '결과 제한 수'
+      }
+    },
+    required: []
+  }
 };
 
 export async function executeErrorStats(args: any, context: ToolContext) {

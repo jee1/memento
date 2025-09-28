@@ -1,11 +1,12 @@
 /**
- * OpenAI API를 사용한 임베딩 서비스
- * 텍스트를 벡터로 변환하고 유사도 검색 제공
- * OpenAI가 없을 때는 경량 하이브리드 서비스로 fallback
+ * 통합 임베딩 서비스
+ * OpenAI, Gemini, 경량 하이브리드 서비스 중 선택하여 사용
+ * 설정에 따라 자동으로 적절한 제공자 선택
  */
 
 import OpenAI from 'openai';
 import { mementoConfig } from '../config/index.js';
+import { GeminiEmbeddingService, type GeminiEmbeddingResult, type GeminiSimilarityResult } from './gemini-embedding-service.js';
 import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
 
 export interface EmbeddingResult {
@@ -26,6 +27,7 @@ export interface SimilarityResult {
 
 export class EmbeddingService {
   private openai: OpenAI | null = null;
+  private geminiService: GeminiEmbeddingService;
   private lightweightService: LightweightEmbeddingService;
   private readonly model = 'text-embedding-3-small'; // 1536차원
   private readonly maxTokens = 8191; // text-embedding-3-small 최대 토큰
@@ -34,6 +36,7 @@ export class EmbeddingService {
   private batchTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
+    this.geminiService = new GeminiEmbeddingService();
     this.lightweightService = new LightweightEmbeddingService();
     this.initializeOpenAI();
   }
@@ -73,66 +76,100 @@ export class EmbeddingService {
       return cached;
     }
 
-    // 2. OpenAI가 사용 가능한 경우
-    if (this.openai) {
-      try {
-        // 토큰 수 제한 확인
-        const truncatedText = this.truncateText(text);
-        
-        const response = await this.openai.embeddings.create({
-          model: this.model,
-          input: truncatedText,
-          encoding_format: 'float',
-        });
+    // 2. 설정에 따른 제공자 선택
+    const provider = mementoConfig.embeddingProvider;
+    let result: EmbeddingResult | null = null;
 
-        const embedding = response.data[0]?.embedding;
-        if (!embedding) {
-          throw new Error('임베딩 생성에 실패했습니다');
-        }
-        
-        const result = {
-          embedding,
-          model: this.model,
-          usage: {
-            prompt_tokens: response.usage.prompt_tokens,
-            total_tokens: response.usage.total_tokens,
-          },
-        };
-
-        // 캐시에 저장
-        this.embeddingCache.set(cacheKey, result);
-        this.cleanupCache();
-        
-        return result;
-      } catch (error) {
-        console.warn('⚠️ OpenAI 임베딩 실패, 경량 서비스로 fallback:', error);
-        // OpenAI 실패 시 경량 서비스로 fallback
+    try {
+      switch (provider) {
+        case 'openai':
+          result = await this.generateOpenAIEmbedding(text);
+          break;
+        case 'gemini':
+          result = await this.generateGeminiEmbedding(text);
+          break;
+        case 'lightweight':
+          result = await this.generateLightweightEmbedding(text);
+          break;
+        default:
+          console.warn(`⚠️ 알 수 없는 임베딩 제공자: ${provider}, 경량 서비스로 fallback`);
+          result = await this.generateLightweightEmbedding(text);
       }
+    } catch (error) {
+      console.warn(`⚠️ ${provider} 임베딩 실패, 경량 서비스로 fallback:`, error);
+      result = await this.generateLightweightEmbedding(text);
     }
 
-    // 3. OpenAI가 없거나 실패한 경우 경량 서비스 사용
-    console.log('🔄 경량 하이브리드 임베딩 서비스 사용');
-    try {
-      const lightweightResult = await this.lightweightService.generateEmbedding(text);
-      if (!lightweightResult) {
-        return null;
-      }
-
-      const result = {
-        embedding: lightweightResult.embedding,
-        model: lightweightResult.model,
-        usage: lightweightResult.usage,
-      };
-
+    if (result) {
       // 캐시에 저장
       this.embeddingCache.set(cacheKey, result);
       this.cleanupCache();
-      
-      return result;
-    } catch (error) {
-      console.error('❌ 경량 임베딩 생성 실패:', error);
-      throw new Error(`임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+
+    return result;
+  }
+
+  /**
+   * OpenAI 임베딩 생성
+   */
+  private async generateOpenAIEmbedding(text: string): Promise<EmbeddingResult | null> {
+    if (!this.openai) {
+      throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다');
+    }
+
+    const truncatedText = this.truncateText(text);
+    
+    const response = await this.openai.embeddings.create({
+      model: this.model,
+      input: truncatedText,
+      encoding_format: 'float',
+    });
+
+    const embedding = response.data[0]?.embedding;
+    if (!embedding) {
+      throw new Error('임베딩 생성에 실패했습니다');
+    }
+    
+    return {
+      embedding,
+      model: this.model,
+      usage: {
+        prompt_tokens: response.usage.prompt_tokens,
+        total_tokens: response.usage.total_tokens,
+      },
+    };
+  }
+
+  /**
+   * Gemini 임베딩 생성
+   */
+  private async generateGeminiEmbedding(text: string): Promise<EmbeddingResult | null> {
+    const geminiResult = await this.geminiService.generateEmbedding(text);
+    if (!geminiResult) {
+      return null;
+    }
+
+    return {
+      embedding: geminiResult.embedding,
+      model: geminiResult.model,
+      usage: geminiResult.usage,
+    };
+  }
+
+  /**
+   * 경량 임베딩 생성
+   */
+  private async generateLightweightEmbedding(text: string): Promise<EmbeddingResult | null> {
+    const lightweightResult = await this.lightweightService.generateEmbedding(text);
+    if (!lightweightResult) {
+      return null;
+    }
+
+    return {
+      embedding: lightweightResult.embedding,
+      model: lightweightResult.model,
+      usage: lightweightResult.usage,
+    };
   }
 
   /**
@@ -254,21 +291,39 @@ export class EmbeddingService {
    * 서비스 사용 가능 여부 확인
    */
   isAvailable(): boolean {
-    return this.openai !== null || this.lightweightService.isAvailable();
+    const provider = mementoConfig.embeddingProvider;
+    
+    switch (provider) {
+      case 'openai':
+        return this.openai !== null;
+      case 'gemini':
+        return this.geminiService.isAvailable();
+      case 'lightweight':
+        return this.lightweightService.isAvailable();
+      default:
+        return this.lightweightService.isAvailable();
+    }
   }
 
   /**
    * 모델 정보 반환
    */
   getModelInfo(): { model: string; dimensions: number; maxTokens: number } {
-    if (this.openai) {
-      return {
-        model: this.model,
-        dimensions: 1536, // text-embedding-3-small 차원
-        maxTokens: this.maxTokens,
-      };
-    } else {
-      return this.lightweightService.getModelInfo();
+    const provider = mementoConfig.embeddingProvider;
+    
+    switch (provider) {
+      case 'openai':
+        return {
+          model: this.model,
+          dimensions: 1536, // text-embedding-3-small 차원
+          maxTokens: this.maxTokens,
+        };
+      case 'gemini':
+        return this.geminiService.getModelInfo();
+      case 'lightweight':
+        return this.lightweightService.getModelInfo();
+      default:
+        return this.lightweightService.getModelInfo();
     }
   }
 }
