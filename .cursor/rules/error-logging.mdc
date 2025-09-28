@@ -1,322 +1,298 @@
 ---
-globs: "src/services/error-logging-service.ts,src/tools/error-stats.ts,src/tools/resolve-error.ts,src/test-error-logging.ts"
-description: 에러 로깅 시스템 개발 규칙
+globs: *error-logging*
+description: Memento 프로젝트의 에러 로깅 시스템 개발 규칙입니다. 구조화된 에러 로깅, 통계 수집, 해결 추적을 통한 시스템 안정성 향상을 위한 가이드라인을 제공합니다.
 ---
 
 # 에러 로깅 시스템 개발 규칙
 
-## 📋 에러 로깅 시스템 개요
+## 🎯 개요
 
-### 현재 구현 상태
-- **에러 로깅 서비스**: `src/services/error-logging-service.ts`
-- **에러 통계 도구**: `src/tools/error-stats.ts`
-- **에러 해결 도구**: `src/tools/resolve-error.ts`
-- **에러 로깅 테스트**: `src/test-error-logging.ts`
+에러 로깅 시스템은 Memento MCP Server의 안정성을 보장하기 위한 핵심 컴포넌트입니다. 구조화된 에러 로깅, 통계 수집, 해결 추적을 통해 시스템의 신뢰성을 향상시킵니다.
 
-### 핵심 인터페이스
+## 📁 파일 구조
 
+```
+src/services/
+├── error-logging-service.ts    # 메인 서비스
+└── test-error-logging.ts       # 테스트 파일
+```
+
+## 🔧 핵심 기능
+
+### 1. 구조화된 에러 로깅
+- **심각도 분류**: LOW, MEDIUM, HIGH, CRITICAL
+- **카테고리 분류**: DATABASE, NETWORK, TOOL_EXECUTION, VALIDATION, SYSTEM
+- **컨텍스트 정보**: 사용자 ID, 작업 유형, 타임스탬프
+- **스택 트레이스**: 상세한 에러 정보
+
+### 2. 에러 통계 수집
+- **심각도별 통계**: 에러 분포 분석
+- **카테고리별 통계**: 문제 영역 식별
+- **시간별 통계**: 트렌드 분석
+- **해결률 통계**: 처리 효율성 측정
+
+### 3. 에러 해결 추적
+- **해결 상태 관리**: PENDING, IN_PROGRESS, RESOLVED
+- **해결자 추적**: 담당자 식별
+- **해결 방법 기록**: 문제 해결 과정
+- **재발 방지**: 근본 원인 분석
+
+## 🛠️ 개발 가이드라인
+
+### 서비스 인터페이스
 ```typescript
 interface ErrorLoggingService {
   // 에러 로깅
-  logError(error: Error, severity: ErrorSeverity, category: ErrorCategory, context?: Record<string, any>): void;
-  
-  // 에러 통계 조회
-  getErrorStats(filters?: ErrorFilters): Promise<ErrorStats>;
-  
-  // 에러 해결
-  resolveError(errorId: string, resolvedBy: string, resolution?: string): Promise<boolean>;
-  
-  // 에러 검색
-  searchErrors(filters: ErrorSearchFilters): Promise<ErrorLog[]>;
-}
-
-enum ErrorSeverity {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
-}
-
-enum ErrorCategory {
-  UNKNOWN = 'UNKNOWN',
-  DATABASE = 'DATABASE',
-  NETWORK = 'NETWORK',
-  TOOL_EXECUTION = 'TOOL_EXECUTION',
-  VALIDATION = 'VALIDATION',
-  SYSTEM = 'SYSTEM'
-}
-```
-
-## 🔧 에러 로깅 서비스 구현
-
-### 1. 에러 로깅 메서드
-
-```typescript
-export class ErrorLoggingService {
-  private errors: Map<string, ErrorLog> = new Map();
-  private logDirectory: string;
-  private maxErrors = 1000; // 최대 저장 에러 수
-
-  constructor(logDirectory: string = './logs') {
-    this.logDirectory = logDirectory;
-    if (!existsSync(this.logDirectory)) {
-      mkdirSync(this.logDirectory, { recursive: true });
-    }
-  }
-
-  /**
-   * 에러를 로깅합니다.
-   */
   logError(
     error: Error,
     severity: ErrorSeverity,
     category: ErrorCategory,
     context?: Record<string, any>
-  ): void {
-    const id = uuidv4();
-    const errorLog: ErrorLog = {
-      id,
-      message: error.message,
-      stack: error.stack,
-      severity,
-      category,
-      context,
-      timestamp: new Date(),
-      resolved: false
-    };
-
-    this.errors.set(id, errorLog);
-    this.cleanupOldErrors();
-    this.logToFile(errorLog);
-    this.logToConsole(errorLog);
-  }
-}
-```
-
-### 2. 에러 통계 수집
-
-```typescript
-/**
-   * 에러 통계를 반환합니다.
-   */
-  getErrorStats(filters?: ErrorFilters): ErrorStats {
-    let filteredErrors = Array.from(this.errors.values());
-
-    // 필터 적용
-    if (filters?.severity) {
-      filteredErrors = filteredErrors.filter(e => e.severity === filters.severity);
-    }
-    if (filters?.category) {
-      filteredErrors = filteredErrors.filter(e => e.category === filters.category);
-    }
-    if (filters?.hours) {
-      const cutoffTime = new Date(Date.now() - filters.hours * 60 * 60 * 1000);
-      filteredErrors = filteredErrors.filter(e => e.timestamp >= cutoffTime);
-    }
-
-    // 통계 계산
-    const total = filteredErrors.length;
-    const bySeverity: Record<string, number> = {};
-    const byCategory: Record<string, number> = {};
-    const resolved = filteredErrors.filter(e => e.resolved).length;
-
-    filteredErrors.forEach(error => {
-      bySeverity[error.severity] = (bySeverity[error.severity] || 0) + 1;
-      byCategory[error.category] = (byCategory[error.category] || 0) + 1;
-    });
-
-    return {
-      total,
-      resolved,
-      active: total - resolved,
-      bySeverity,
-      byCategory,
-      recentErrors: filteredErrors
-        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-        .slice(0, filters?.limit || 10)
-    };
-  }
-```
-
-### 3. 에러 해결 처리
-
-```typescript
-/**
-   * 특정 에러를 해결 상태로 표시합니다.
-   */
-  resolveError(errorId: string, resolvedBy: string, resolution?: string): boolean {
-    const error = this.errors.get(errorId);
-    if (error) {
-      error.resolved = true;
-      error.resolvedAt = new Date();
-      error.resolvedBy = resolvedBy;
-      error.resolution = resolution;
-      
-      console.log(`[INFO] 에러 해결됨: ${errorId} by ${resolvedBy}`);
-      this.logToFile(error); // 해결된 상태로 다시 로깅
-      return true;
-    }
-    return false;
-  }
-```
-
-## 🛠️ MCP 도구 구현
-
-### 1. error_stats 도구
-
-```typescript
-export const errorStatsTool: ToolDefinition = {
-  name: 'error_stats',
-  description: '에러 통계를 조회하고 필터링된 에러 로그를 반환합니다.',
-  inputSchema: z.object({
-    severity: z.nativeEnum(ErrorSeverity).optional().describe('조회할 에러의 심각도 (LOW, MEDIUM, HIGH, CRITICAL).'),
-    category: z.nativeEnum(ErrorCategory).optional().describe('조회할 에러의 카테고리 (UNKNOWN, DATABASE, NETWORK, TOOL_EXECUTION, VALIDATION, SYSTEM).'),
-    hours: z.number().min(1).optional().describe('지난 몇 시간 동안의 에러를 조회할지 지정합니다.'),
-    limit: z.number().min(1).max(100).optional().default(10).describe('반환할 에러 로그의 최대 개수.'),
-  }),
-  handler: async (params: z.infer<typeof errorStatsTool.inputSchema>, context: ToolContext) => {
-    return executeErrorStats(params, context);
-  },
-};
-```
-
-### 2. resolve_error 도구
-
-```typescript
-export const resolveErrorTool: ToolDefinition = {
-  name: 'resolve_error',
-  description: '특정 에러를 해결 상태로 표시합니다.',
-  inputSchema: z.object({
-    error_id: z.string().min(1).describe('해결할 에러의 고유 ID.'),
-    resolved_by: z.string().optional().default('system').describe('에러를 해결한 주체.'),
-    resolution: z.string().optional().describe('에러 해결에 대한 설명.'),
-  }),
-  handler: async (params: z.infer<typeof resolveErrorTool.inputSchema>, context: ToolContext) => {
-    return executeResolveError(params, context);
-  },
-};
-```
-
-## 📊 로깅 및 모니터링
-
-### 1. 파일 로깅
-
-```typescript
-private logToFile(error: ErrorLog): void {
-  const date = error.timestamp.toISOString().split('T')[0];
-  const logFilePath = join(this.logDirectory, `errors-${date}.jsonl`);
-  appendFileSync(logFilePath, JSON.stringify(error) + '\n');
-}
-```
-
-### 2. 콘솔 로깅
-
-```typescript
-private logToConsole(error: ErrorLog): void {
-  let color = '';
-  switch (error.severity) {
-    case ErrorSeverity.LOW:
-      color = '\x1b[32m'; // Green
-      break;
-    case ErrorSeverity.MEDIUM:
-      color = '\x1b[33m'; // Yellow
-      break;
-    case ErrorSeverity.HIGH:
-      color = '\x1b[31m'; // Red
-      break;
-    case ErrorSeverity.CRITICAL:
-      color = '\x1b[35m'; // Magenta
-      break;
-  }
-  const resetColor = '\x1b[0m';
-  console.error(`${color}[${error.severity}] ${error.category}${resetColor}\n  ID: ${error.id}\n  Message: ${error.message}\n  Time: ${error.timestamp.toISOString()}\n  Context: ${JSON.stringify(error.context, null, 2)}\n`);
-}
-```
-
-### 3. 오래된 에러 정리
-
-```typescript
-private cleanupOldErrors(): void {
-  if (this.errors.size > this.maxErrors) {
-    const sortedErrors = Array.from(this.errors.values())
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    
-    for (let i = 0; i < this.errors.size - this.maxErrors; i++) {
-      this.errors.delete(sortedErrors[i].id);
-    }
-  }
-}
-```
-
-## 🧪 테스트 작성
-
-### 1. 에러 로깅 테스트
-
-```typescript
-// src/test-error-logging.ts
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from './services/error-logging-service.js';
-
-async function testErrorLogging() {
-  console.log('🚨 에러 로깅 시스템 테스트 시작');
+  ): void;
   
-  const errorService = new ErrorLoggingService('./logs');
+  // 에러 통계 조회
+  getErrorStats(filters?: ErrorFilters): Promise<ErrorStats>;
   
-  // 1. 다양한 심각도의 에러 로깅
-  errorService.logError(
-    new Error('Low severity test error'),
-    ErrorSeverity.LOW,
+  // 에러 해결
+  resolveError(
+    errorId: string,
+    resolvedBy: string,
+    resolution?: string
+  ): Promise<boolean>;
+  
+  // 에러 검색
+  searchErrors(filters: ErrorSearchFilters): Promise<ErrorLog[]>;
+}
+```
+
+### 에러 심각도 정의
+```typescript
+enum ErrorSeverity {
+  LOW = 'LOW',           // 정보성 에러 (로깅만)
+  MEDIUM = 'MEDIUM',     // 경고성 에러 (모니터링)
+  HIGH = 'HIGH',         // 심각한 에러 (알림 필요)
+  CRITICAL = 'CRITICAL'  // 치명적 에러 (즉시 대응)
+}
+```
+
+### 에러 카테고리 정의
+```typescript
+enum ErrorCategory {
+  UNKNOWN = 'UNKNOWN',           // 알 수 없는 에러
+  DATABASE = 'DATABASE',         // 데이터베이스 관련
+  NETWORK = 'NETWORK',           // 네트워크 관련
+  TOOL_EXECUTION = 'TOOL_EXECUTION', // 도구 실행 관련
+  VALIDATION = 'VALIDATION',     // 입력 검증 관련
+  SYSTEM = 'SYSTEM'              // 시스템 관련
+}
+```
+
+### 에러 로깅 예시
+```typescript
+// 기본 에러 로깅
+errorLoggingService.logError(
+  new Error('Database connection failed'),
+  ErrorSeverity.HIGH,
+  ErrorCategory.DATABASE,
+  {
+    operation: 'memory_search',
+    userId: 'user123',
+    timestamp: new Date().toISOString()
+  }
+);
+
+// 복잡한 에러 로깅
+try {
+  await riskyOperation();
+} catch (error) {
+  errorLoggingService.logError(
+    error instanceof Error ? error : new Error(String(error)),
+    ErrorSeverity.CRITICAL,
     ErrorCategory.SYSTEM,
-    { test: true, iteration: 1 }
+    {
+      operation: 'memory_creation',
+      userId: 'user456',
+      memoryId: 'memory-789',
+      stackTrace: error.stack,
+      additionalContext: {
+        memoryType: 'episodic',
+        contentLength: content.length
+      }
+    }
   );
-  
-  errorService.logError(
-    new Error('High severity test error'),
-    ErrorSeverity.HIGH,
-    ErrorCategory.DATABASE,
-    { test: true, iteration: 2 }
-  );
-  
-  // 2. 에러 통계 조회
-  const stats = errorService.getErrorStats();
-  console.log('📊 에러 통계:', stats);
-  
-  // 3. 에러 해결 테스트
-  const errors = errorService.searchErrors({ limit: 1 });
-  if (errors.length > 0) {
-    const resolved = errorService.resolveError(
-      errors[0].id,
-      'test_user',
-      '테스트 해결'
-    );
-    console.log('✅ 에러 해결:', resolved);
-  }
 }
 ```
 
-## 📋 개발 체크리스트
+## 📊 통계 및 분석
 
-### 에러 로깅 서비스
-- [ ] ErrorLoggingService 클래스 구현
-- [ ] 에러 심각도 및 카테고리 분류
-- [ ] 에러 통계 수집 및 분석
-- [ ] 에러 해결 추적 시스템
-- [ ] 파일 및 콘솔 로깅
-- [ ] 오래된 에러 자동 정리
+### 에러 통계 구조
+```typescript
+interface ErrorStats {
+  totalErrors: number;
+  errorsBySeverity: Record<ErrorSeverity, number>;
+  errorsByCategory: Record<ErrorCategory, number>;
+  errorsByHour: Record<number, number>;
+  resolutionRate: number;
+  averageResolutionTime: number;
+  topErrors: Array<{
+    message: string;
+    count: number;
+    lastOccurred: Date;
+  }>;
+}
+```
 
-### MCP 도구
-- [ ] error_stats 도구 구현
-- [ ] resolve_error 도구 구현
-- [ ] 도구 등록 및 통합
-- [ ] 에러 처리 및 검증
+### 통계 조회 예시
+```typescript
+// 전체 통계
+const stats = await errorLoggingService.getErrorStats();
 
-### 테스트
-- [ ] 에러 로깅 테스트 스크립트
-- [ ] 통합 테스트 구현
-- [ ] 성능 테스트 구현
-- [ ] 에러 시나리오 테스트
+// 필터링된 통계
+const highErrors = await errorLoggingService.getErrorStats({
+  severity: ErrorSeverity.HIGH,
+  hours: 24
+});
 
-### 모니터링
-- [ ] 실시간 에러 모니터링
-- [ ] 에러 패턴 분석
-- [ ] 알림 시스템 연동
-- [ ] 대시보드 통합
+// 카테고리별 통계
+const dbErrors = await errorLoggingService.getErrorStats({
+  category: ErrorCategory.DATABASE,
+  limit: 10
+});
+```
+
+## 🔍 에러 해결 워크플로우
+
+### 1. 에러 발견
+```typescript
+// 에러 로깅 시 자동으로 해결 대기 상태로 설정
+const errorId = errorLoggingService.logError(error, severity, category, context);
+```
+
+### 2. 에러 분석
+```typescript
+// 에러 상세 정보 조회
+const errorDetails = await errorLoggingService.getErrorDetails(errorId);
+
+// 관련 에러 검색
+const relatedErrors = await errorLoggingService.searchErrors({
+  message: errorDetails.message,
+  category: errorDetails.category,
+  timeRange: '24h'
+});
+```
+
+### 3. 에러 해결
+```typescript
+// 에러 해결 처리
+const resolved = await errorLoggingService.resolveError(
+  errorId,
+  'admin',
+  '데이터베이스 연결 풀 크기 증가로 해결'
+);
+
+// 해결 확인
+if (resolved) {
+  console.log('에러가 성공적으로 해결되었습니다.');
+}
+```
+
+## 🧪 테스트 가이드라인
+
+### 단위 테스트
+```typescript
+describe('ErrorLoggingService', () => {
+  let service: ErrorLoggingService;
+  
+  beforeEach(() => {
+    service = new ErrorLoggingService();
+  });
+  
+  it('should log error with correct severity', () => {
+    const error = new Error('Test error');
+    service.logError(error, ErrorSeverity.HIGH, ErrorCategory.SYSTEM);
+    
+    const stats = service.getErrorStats();
+    expect(stats.errorsBySeverity[ErrorSeverity.HIGH]).toBe(1);
+  });
+  
+  it('should resolve error correctly', async () => {
+    const error = new Error('Test error');
+    service.logError(error, ErrorSeverity.MEDIUM, ErrorCategory.VALIDATION);
+    
+    const errors = service.searchErrors({ limit: 1 });
+    const errorId = errors[0].id;
+    
+    const resolved = await service.resolveError(errorId, 'test_user', 'Test resolution');
+    expect(resolved).toBe(true);
+  });
+});
+```
+
+### 통합 테스트
+```typescript
+describe('ErrorLogging Integration', () => {
+  it('should integrate with MCP server', async () => {
+    const server = new MCPServer();
+    const errorService = new ErrorLoggingService();
+    
+    // 서버에 에러 로깅 서비스 연결
+    server.setErrorLogger(errorService);
+    
+    // 에러 발생 시나리오
+    try {
+      await server.executeTool('invalid_tool', {});
+    } catch (error) {
+      // 에러가 자동으로 로깅되는지 확인
+      const stats = errorService.getErrorStats();
+      expect(stats.totalErrors).toBeGreaterThan(0);
+    }
+  });
+});
+```
+
+## 📈 모니터링 및 알림
+
+### 실시간 모니터링
+```typescript
+// 에러 발생 시 실시간 알림
+errorLoggingService.on('error', (errorLog) => {
+  if (errorLog.severity === ErrorSeverity.CRITICAL) {
+    // 즉시 알림 전송
+    alertService.sendCriticalAlert(errorLog);
+  }
+});
+```
+
+### 대시보드 메트릭
+- **에러 발생률**: 시간당 에러 수
+- **해결률**: 해결된 에러 비율
+- **평균 해결 시간**: 에러 해결 소요 시간
+- **심각도 분포**: 에러 심각도별 분포
+
+## 🚀 배포 고려사항
+
+### 환경 변수
+```bash
+# 에러 로깅 설정
+ERROR_LOGGING_ENABLED=true
+ERROR_LOGGING_LEVEL=INFO
+ERROR_LOGGING_RETENTION_DAYS=30
+ERROR_LOGGING_ALERT_THRESHOLD=10
+```
+
+### 로그 저장소
+- **로컬 파일**: 개발 환경
+- **데이터베이스**: 프로덕션 환경
+- **외부 서비스**: ELK Stack, Splunk 등
+
+### 성능 최적화
+- **비동기 로깅**: 논블로킹 에러 로깅
+- **배치 처리**: 여러 에러를 한 번에 처리
+- **압축**: 오래된 로그 압축 저장
+
+## 📚 참고 자료
+
+- [Node.js Error Handling](https://nodejs.org/api/errors.html)
+- [Winston Logger](https://github.com/winstonjs/winston)
+- [Structured Logging](https://www.elastic.co/guide/en/ecs/current/index.html)
+- [Error Monitoring Best Practices](https://sentry.io/for/error-monitoring/)

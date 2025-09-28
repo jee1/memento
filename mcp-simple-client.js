@@ -78,6 +78,7 @@ async function handleRequest(request) {
   const { method, params, id } = request;
   
   process.stderr.write(`📨 요청 수신: ${method} (ID: ${id})\n`);
+  process.stderr.write(`📋 요청 내용: ${JSON.stringify(request).substring(0, 200)}...\n`);
   
   try {
     if (method === 'initialize') {
@@ -92,9 +93,6 @@ async function handleRequest(request) {
           version: '1.0.0'
         }
       });
-    } else if (method === 'notifications/initialized') {
-      // This is a notification. Do not send a response.
-      process.stderr.write(`🔔 initialized 알림 수신, 무시합니다.\n`);
     } else if (method === 'tools/list') {
       process.stderr.write(`📋 tools/list 요청 처리 중...\n`);
       const tools = await getHttpTools();
@@ -103,6 +101,7 @@ async function handleRequest(request) {
     } else if (method === 'tools/call') {
       const { name, arguments: args } = params;
       process.stderr.write(`🔧 도구 실행: ${name}\n`);
+      process.stderr.write(`📝 인수: ${JSON.stringify(args).substring(0, 100)}...\n`);
       const result = await callHttpTool(name, args);
       
       sendResponse(id, {
@@ -114,28 +113,19 @@ async function handleRequest(request) {
         ]
       });
     } else {
-      // Unknown method
-      if (id !== undefined && id !== null) {
-        // Only send an error if it was a request (i.e., it had an ID).
-        process.stderr.write(`❌ 알 수 없는 메서드: ${method}\n`);
-        sendResponse(id, null, {
-          code: -32601,
-          message: 'Method not found'
-        });
-      } else {
-        // It's an unknown notification, ignore it silently.
-        process.stderr.write(`🔔 알 수 없는 알림 수신, 무시합니다: ${method}\n`);
-      }
+      process.stderr.write(`❌ 알 수 없는 메서드: ${method}\n`);
+      sendResponse(id, null, {
+        code: -32601,
+        message: 'Method not found'
+      });
     }
   } catch (error) {
     process.stderr.write(`❌ 요청 처리 실패: ${error.message}\n`);
-    if (id !== undefined && id !== null) {
-      sendResponse(id, null, {
-        code: -32603,
-        message: 'Internal error',
-        data: error.message
-      });
-    }
+    sendResponse(id, null, {
+      code: -32603,
+      message: 'Internal error',
+      data: error.message
+    });
   }
 }
 
@@ -172,20 +162,27 @@ async function main() {
   
   process.stdin.on('data', async (chunk) => {
     const data = chunk.toString();
+    process.stderr.write(`📥 데이터 수신: ${data.length} bytes\n`);
+    process.stderr.write(`📝 원시 데이터: ${data.substring(0, 100)}...\n`);
+    
     buffer += data;
     
-    // Process complete JSON objects
+    // 완전한 JSON 객체들을 처리
     const lines = buffer.split('\n');
-    buffer = lines.pop() || ''; // Keep the last incomplete line in the buffer
+    buffer = lines.pop() || ''; // 마지막 불완전한 라인은 버퍼에 보관
+    
+    process.stderr.write(`📋 처리할 라인 수: ${lines.length}\n`);
     
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed) {
+        process.stderr.write(`🔍 라인 처리: ${trimmed.substring(0, 100)}...\n`);
         try {
           const request = JSON.parse(trimmed);
           await handleRequest(request);
         } catch (error) {
-          process.stderr.write(`❌ JSON 파싱 오류: ${error.message} on line: ${trimmed}\n`);
+          process.stderr.write(`❌ JSON 파싱 오류: ${error.message}\n`);
+          process.stderr.write(`❌ 문제가 된 라인: ${trimmed}\n`);
         }
       }
     }

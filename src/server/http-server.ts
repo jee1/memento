@@ -554,6 +554,314 @@ app.post('/tools/:name', async (req, res) => {
   }
 });
 
+// MCP SSE 엔드포인트 - MCP SDK 호환 구현
+// Store transports by session ID
+const transports: { [sessionId: string]: any } = {};
+
+// SSE endpoint for establishing the stream
+app.get('/mcp', async (req, res) => {
+  console.log('🔗 MCP SSE 클라이언트 연결 요청');
+  
+  try {
+    // SSE 헤더 설정
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'X-Accel-Buffering': 'no' // nginx 버퍼링 비활성화
+    });
+
+    // Generate session ID
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Send the endpoint event with session ID
+    const endpointUrl = `/messages?sessionId=${sessionId}`;
+    res.write(`event: endpoint\ndata: ${endpointUrl}\n\n`);
+    
+    // MCP 서버 준비 완료 알림 (클라이언트가 initialize를 보내야 함)
+    res.write(`data: {"type": "ready"}\n\n`);
+    
+    // 즉시 응답 플러시 (Express에서는 자동으로 처리됨)
+    
+    // Keep-alive ping 전송
+    const keepAliveInterval = setInterval(() => {
+      if (res.writableEnded) {
+        clearInterval(keepAliveInterval);
+        return;
+      }
+      try {
+        res.write(`data: {"type": "ping"}\n\n`);
+      } catch (error) {
+        clearInterval(keepAliveInterval);
+      }
+    }, 30000); // 30초마다 ping
+    
+    // Store the transport info
+    transports[sessionId] = {
+      res: res,
+      sessionId: sessionId,
+      keepAliveInterval: keepAliveInterval
+    };
+
+    // 연결 종료 처리
+    req.on('close', () => {
+      console.log(`🔌 MCP SSE 클라이언트 연결 정상 종료됨 (session: ${sessionId})`);
+      clearInterval(keepAliveInterval);
+      delete transports[sessionId];
+    });
+
+    req.on('error', (error) => {
+      // ECONNRESET은 정상적인 연결 종료이므로 에러로 처리하지 않음
+      if ((error as any).code === 'ECONNRESET') {
+        console.log(`🔌 MCP SSE 클라이언트 연결 정상 종료됨 (session: ${sessionId})`);
+      } else {
+        console.error(`❌ MCP SSE 연결 에러 (session: ${sessionId}):`, error);
+      }
+      clearInterval(keepAliveInterval);
+      delete transports[sessionId];
+    });
+
+    console.log(`✅ MCP SSE 스트림 설정 완료 (session: ${sessionId})`);
+    
+  } catch (error) {
+    console.error('❌ SSE 스트림 설정 실패:', error);
+    if (!res.headersSent) {
+      res.status(500).send('Error establishing SSE stream');
+    }
+  }
+});
+
+// Messages endpoint for receiving client JSON-RPC requests
+app.post('/messages', express.json(), async (req, res) => {
+  console.log('📨 MCP 메시지 수신:', req.body.method);
+  
+  // Extract session ID from URL query parameter
+  const sessionId = req.query.sessionId as string;
+  if (!sessionId) {
+    console.error('❌ No session ID provided in request URL');
+    res.status(400).send('Missing sessionId parameter');
+    return;
+  }
+
+  const transport = transports[sessionId];
+  if (!transport) {
+    console.error(`❌ No active transport found for session ID: ${sessionId}`);
+    res.status(404).send('Session not found');
+    return;
+  }
+
+  let message = req.body;
+  let result;
+  
+  console.log(`🔍 MCP 메시지 처리 중: ${message.method}`, JSON.stringify(message, null, 2));
+  
+  try {
+    
+    if (message.method === 'initialize') {
+      console.log('🚀 MCP initialize 요청 처리 중...');
+      result = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: {
+            tools: {}
+          },
+          serverInfo: {
+            name: 'memento-memory',
+            version: '0.1.0'
+          }
+        }
+      };
+      console.log('✅ MCP initialize 응답 생성 완료:', JSON.stringify(result, null, 2));
+    } else if (message.method === 'notifications/initialized') {
+      console.log('🔔 MCP initialized 알림 수신');
+      result = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {}
+      };
+    } else if (message.method === 'tools/list') {
+      console.log('📋 MCP tools/list 요청 처리 중...');
+      
+      try {
+        // 간단한 도구 목록으로 테스트
+        const simpleTools = [
+          {
+            name: 'remember',
+            description: '기억을 저장합니다',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                content: { type: 'string', description: '저장할 기억 내용' }
+              },
+              required: ['content']
+            }
+          },
+          {
+            name: 'recall',
+            description: '기억을 검색합니다',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: '검색 쿼리' }
+              },
+              required: ['query']
+            }
+          }
+        ];
+        
+        console.log('🔍 간단한 도구 목록 사용, 길이:', simpleTools.length);
+        
+        result = {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { tools: simpleTools }
+        };
+        
+        console.log('✅ MCP tools/list 응답 생성 완료, tools 개수:', simpleTools.length);
+        console.log('🔍 응답 크기:', JSON.stringify(result).length, 'bytes');
+        
+        // SSE 응답 즉시 전송
+        console.log('📤 SSE 응답 즉시 전송 중...');
+        if (transport && transport.res && !transport.res.writableEnded) {
+          const sseData = `data: ${JSON.stringify(result)}\n\n`;
+          transport.res.write(sseData);
+          console.log('✅ SSE 응답 즉시 전송 완료, 크기:', sseData.length, 'bytes');
+        } else {
+          console.error('❌ SSE transport가 유효하지 않음');
+        }
+        
+        // HTTP 응답 전송
+        res.json({ status: 'ok' });
+        return;
+        
+      } catch (toolsError) {
+        console.error('❌ tools/list 처리 중 오류:', toolsError);
+        const errorResult = {
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32603,
+            message: 'Internal error',
+            data: toolsError instanceof Error ? toolsError.message : String(toolsError)
+          }
+        };
+        
+        if (transport && transport.res && !transport.res.writableEnded) {
+          transport.res.write(`data: ${JSON.stringify(errorResult)}\n\n`);
+        }
+        res.json({ status: 'error' });
+        return;
+      }
+    } else if (message.method === 'tools/call') {
+      const { name, arguments: args } = message.params;
+      
+      switch (name) {
+        case 'remember':
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            result: { content: [{ type: 'text', text: JSON.stringify(await handleRemember(RememberSchema.parse(args))) }] }
+          };
+          break;
+        case 'recall':
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            result: { content: [{ type: 'text', text: JSON.stringify(await handleRecall(RecallSchema.parse(args))) }] }
+          };
+          break;
+        case 'forget':
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            result: { content: [{ type: 'text', text: JSON.stringify(await handleForget(ForgetSchema.parse(args))) }] }
+          };
+          break;
+        case 'pin':
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            result: { content: [{ type: 'text', text: JSON.stringify(await handlePin(PinSchema.parse(args))) }] }
+          };
+          break;
+        case 'unpin':
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            result: { content: [{ type: 'text', text: JSON.stringify(await handleUnpin(UnpinSchema.parse(args))) }] }
+          };
+          break;
+        default:
+          throw new Error(`Unknown tool: ${name}`);
+      }
+    } else {
+      result = {
+        jsonrpc: '2.0',
+        id: message.id,
+        error: {
+          code: -32601,
+          message: 'Method not found'
+        }
+      };
+    }
+    
+    // Send response via SSE
+    console.log('📤 SSE 응답 전송 중:', JSON.stringify(result).substring(0, 200) + '...');
+    try {
+      // transport 객체 유효성 확인
+      if (!transport || !transport.res || transport.res.writableEnded) {
+        console.error('❌ SSE transport가 유효하지 않음');
+        res.status(500).json({ error: 'SSE transport invalid' });
+        return;
+      }
+      
+      // SSE 응답 전송
+      const sseData = `data: ${JSON.stringify(result)}\n\n`;
+      transport.res.write(sseData);
+      console.log('✅ SSE 응답 전송 완료, 크기:', sseData.length, 'bytes');
+    } catch (sseError) {
+      console.error('❌ SSE 응답 전송 실패:', sseError);
+      // SSE 전송 실패 시에도 HTTP 응답은 정상 처리
+    }
+    
+    // Send HTTP response
+    res.json({ status: 'ok' });
+    
+  } catch (error) {
+    console.error('❌ MCP 메시지 처리 실패:', error);
+    const errorResponse = {
+      jsonrpc: '2.0',
+      id: message?.id || null,
+      error: {
+        code: -32603,
+        message: 'Internal error',
+        data: error instanceof Error ? error.message : 'Unknown error'
+      }
+    };
+    
+    // Send error via SSE
+    try {
+      if (transport && transport.res && !transport.res.writableEnded) {
+        const errorSseData = `data: ${JSON.stringify(errorResponse)}\n\n`;
+        transport.res.write(errorSseData);
+        console.log('✅ SSE 에러 응답 전송 완료');
+      } else {
+        console.error('❌ SSE transport가 유효하지 않아 에러 응답 전송 실패');
+      }
+    } catch (errorSseError) {
+      console.error('❌ SSE 에러 응답 전송 실패:', errorSseError);
+    }
+    
+    // Send HTTP response
+    res.json({ status: 'error' });
+  }
+});
+
 // WebSocket 서버 설정
 const wss = new WebSocketServer({ server });
 
@@ -711,11 +1019,20 @@ async function startServer() {
   // 정리 핸들러 등록
   registerCleanupHandlers();
   
-  server.listen(PORT, () => {
-    console.log(`🌐 HTTP 서버: http://localhost:${PORT}`);
-    console.log(`🔌 WebSocket 서버: ws://localhost:${PORT}`);
-    console.log(`📋 API 문서: http://localhost:${PORT}/tools`);
-    console.log(`❤️  헬스 체크: http://localhost:${PORT}/health`);
+  // Express app을 사용하여 모든 인터페이스에 바인딩
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`🌐 HTTP 서버: http://0.0.0.0:${PORT}`);
+    console.log(`🔌 WebSocket 서버: ws://0.0.0.0:${PORT}`);
+    console.log(`📋 API 문서: http://0.0.0.0:${PORT}/tools`);
+    console.log(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
+  });
+  
+  // 추가: 모든 인터페이스에 바인딩 확인
+  server.on('listening', () => {
+    const address = server.address();
+    if (address && typeof address === 'object') {
+      console.log(`🔗 서버가 ${address.address}:${address.port}에 바인딩됨`);
+    }
   });
 }
 

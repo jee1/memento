@@ -2,9 +2,11 @@
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["./mcp-client.js"],
+      "args": ["./mcp-simple-client.js"],
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "MEMENTO_SERVER_URL": "http://localhost:9001",
+        "MEMENTO_API_KEY": "default-key"
       }
     }
   }

@@ -29,13 +29,33 @@ memento/
 │   ├── services/          # 서비스 레이어 (신규)
 │   │   ├── embedding-service.ts        # OpenAI 임베딩 서비스 (196줄)
 │   │   ├── memory-embedding-service.ts # 메모리 임베딩 서비스 (237줄)
+│   │   ├── lightweight-embedding-service.ts # 경량 하이브리드 임베딩 서비스 (321줄)
+│   │   ├── gemini-embedding-service.ts # Gemini 임베딩 서비스
 │   │   ├── forgetting-policy-service.ts # 망각 정책 서비스 (335줄)
 │   │   ├── async-optimizer.ts          # 비동기 처리 최적화 (447줄)
 │   │   ├── cache-service.ts            # 캐시 서비스 (352줄)
 │   │   ├── database-optimizer.ts       # 데이터베이스 최적화 (442줄)
 │   │   ├── performance-monitor.ts      # 성능 모니터링 (367줄)
-│   │   └── lightweight-embedding-service.ts # 경량 하이브리드 임베딩 서비스 (321줄)
-│   ├── tools/             # MCP Tools 구현 (빈 폴더)
+│   │   ├── performance-alert-service.ts # 성능 알림 서비스
+│   │   ├── performance-monitoring-integration.ts # 성능 모니터링 통합
+│   │   └── error-logging-service.ts    # 에러 로깅 서비스
+│   ├── tools/             # MCP Tools 구현
+│   │   ├── base-tool.ts   # 기본 도구 클래스
+│   │   ├── remember-tool.ts # remember 도구
+│   │   ├── recall-tool.ts # recall 도구
+│   │   ├── pin-tool.ts    # pin 도구
+│   │   ├── unpin-tool.ts  # unpin 도구
+│   │   ├── forget-tool.ts # forget 도구
+│   │   ├── cleanup-memory-tool.ts # 메모리 정리 도구
+│   │   ├── database-optimize-tool.ts # 데이터베이스 최적화 도구
+│   │   ├── performance-stats-tool.ts # 성능 통계 도구
+│   │   ├── performance-alerts.ts # 성능 알림 도구
+│   │   ├── error-stats.ts # 에러 통계 도구
+│   │   ├── resolve-error.ts # 에러 해결 도구
+│   │   ├── forgetting-stats-tool.ts # 망각 통계 도구
+│   │   ├── tool-registry.ts # 도구 등록
+│   │   ├── types.ts       # 도구 타입 정의
+│   │   └── index.ts       # 도구 내보내기
 │   ├── types/             # TypeScript 타입 정의
 │   │   └── index.ts       # 공통 타입 정의
 │   ├── utils/             # 유틸리티 함수
@@ -45,8 +65,14 @@ memento/
 │   ├── test-client.ts     # 클라이언트 테스트 (152줄)
 │   ├── test-search.ts     # 검색 테스트 (152줄)
 │   ├── test-embedding.ts  # 임베딩 테스트 (154줄)
+│   ├── test-lightweight-embedding.ts # 경량 임베딩 테스트
+│   ├── test-gemini-embedding.ts # Gemini 임베딩 테스트
 │   ├── test-forgetting.ts # 망각 정책 테스트 (163줄)
-│   └── test-performance-monitoring.ts # 성능 모니터링 테스트 (172줄)
+│   ├── test-performance-monitoring.ts # 성능 모니터링 테스트 (172줄)
+│   ├── test-performance-alerts.ts # 성능 알림 테스트
+│   ├── test-error-logging.ts # 에러 로깅 테스트
+│   ├── test-simple-alerts.ts # 간단한 알림 테스트
+│   └── test-alerts-direct.ts # 직접 알림 테스트
 ├── dist/                  # 빌드 결과물
 │   ├── algorithms/        # 컴파일된 알고리즘
 │   ├── client/           # 컴파일된 클라이언트

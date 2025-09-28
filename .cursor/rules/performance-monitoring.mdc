@@ -1,148 +1,345 @@
 ---
-globs: *.ts,*.js
-description: 성능 모니터링 및 최적화 서비스 개발 규칙
+globs: *performance-monitoring*,*performance-alert*
+description: Memento 프로젝트의 성능 모니터링 및 알림 시스템 개발 규칙입니다. 실시간 성능 추적, 임계값 기반 알림, 자동 복구를 통한 시스템 안정성 보장을 위한 가이드라인을 제공합니다.
 ---
 
-# 성능 모니터링 및 최적화 서비스 개발 규칙
+# 성능 모니터링 및 알림 시스템 개발 규칙
 
-## 📊 성능 모니터링 서비스
+## 🎯 개요
 
-### 핵심 컴포넌트
+성능 모니터링 시스템은 Memento MCP Server의 성능을 실시간으로 추적하고, 임계값 기반 알림을 통해 시스템 안정성을 보장합니다. 자동 복구 메커니즘을 통해 문제 발생 시 즉시 대응할 수 있습니다.
 
-#### 1. Performance Monitor (`src/services/performance-monitor.ts` - 367줄)
-- **실시간 메트릭 수집**: 메모리, CPU, 데이터베이스 성능 모니터링
-- **임계값 모니터링**: 설정된 임계값 초과 시 알림
-- **성능 리포트 생성**: 트렌드 분석 및 성능 개선 제안
-- **시스템 상태 모니터링**: 전체 시스템 상태 추적
+## 📁 파일 구조
 
-#### 2. Cache Service (`src/services/cache-service.ts` - 352줄)
-- **LRU 캐시 구현**: 최근 사용 항목 우선 유지
-- **TTL 관리**: 시간 기반 캐시 만료
-- **검색 결과 캐싱**: 검색 성능 향상
-- **임베딩 캐싱**: 임베딩 생성 비용 절약
-- **메모리 효율적 관리**: 캐시 크기 제한 및 정리
+```
+src/services/
+├── performance-monitor.ts                    # 기본 성능 모니터링
+├── performance-alert-service.ts              # 성능 알림 서비스
+├── performance-monitoring-integration.ts     # 통합 모니터링
+└── test-performance-monitoring.ts            # 테스트 파일
+```
 
-#### 3. Database Optimizer (`src/services/database-optimizer.ts` - 442줄)
-- **자동 인덱스 추천**: 쿼리 패턴 분석 기반
-- **쿼리 성능 분석**: 느린 쿼리 식별 및 최적화
-- **데이터베이스 성능 튜닝**: 설정 최적화
-- **통계 수집**: 성능 개선 지표 제공
+## 🔧 핵심 기능
 
-#### 4. Async Optimizer (`src/services/async-optimizer.ts` - 447줄)
-- **워커 풀 관리**: 병렬 처리 최적화
-- **우선순위 기반 작업 큐**: 중요한 작업 우선 처리
-- **배치 처리**: 대량 데이터 효율적 처리
-- **재시도 로직**: 실패한 작업 자동 재시도
+### 1. 실시간 성능 모니터링
+- **메모리 사용량**: 힙 사용량, RSS, 외부 메모리
+- **CPU 사용률**: 프로세스 CPU 사용률
+- **응답 시간**: 평균/최대 응답 시간
+- **처리량**: 초당 요청 수
+- **에러율**: 에러 발생 비율
 
-## 🧪 성능 테스트
+### 2. 임계값 기반 알림
+- **경고 알림**: 성능 저하 경고
+- **심각 알림**: 시스템 위험 상태
+- **자동 복구**: 문제 발생 시 자동 대응
+- **알림 관리**: 알림 생성, 해결, 통계
 
-### 벤치마크 테스트 (`src/test/performance-benchmark.ts` - 497줄)
-- **종합 성능 벤치마크**: 전체 시스템 성능 측정
-- **메모리 저장 성능**: 기억 저장 속도 테스트
-- **검색 성능**: 검색 응답 시간 측정
-- **캐시 성능**: 캐시 히트율 및 응답 시간
-- **동시성 테스트**: 동시 요청 처리 능력
-- **부하 테스트**: 높은 부하 상황에서의 성능
+### 3. 성능 최적화
+- **자동 인덱스 생성**: 느린 쿼리 최적화
+- **캐시 정리**: 메모리 사용량 최적화
+- **연결 풀 관리**: 데이터베이스 연결 최적화
+- **가비지 컬렉션**: 메모리 정리
 
-### 모니터링 테스트 (`src/test-performance-monitoring.ts` - 172줄)
-- **모니터링 도구 기능 검증**: 각 모니터링 기능 테스트
-- **실시간 성능 지표 확인**: 메트릭 수집 정확성 검증
-- **통합 모니터링 시스템 테스트**: 전체 모니터링 파이프라인 검증
+## 🛠️ 개발 가이드라인
 
-## 📈 성능 지표
+### 성능 모니터링 서비스
+```typescript
+interface PerformanceMonitor {
+  // 메트릭 수집
+  collectMetrics(): Promise<PerformanceMetrics>;
+  
+  // 성능 체크
+  checkPerformance(): Promise<PerformanceStatus>;
+  
+  // 메트릭 기록
+  recordMetric(name: string, value: number, tags?: Record<string, string>): void;
+  
+  // 성능 리포트 생성
+  generateReport(timeRange: string): Promise<PerformanceReport>;
+}
+```
 
-### 메모리 성능
-- **힙 사용량**: 11-15MB (일반적인 사용)
-- **RSS 메모리**: 프로세스 실제 메모리 사용량
-- **가비지 컬렉션**: GC 빈도 및 소요 시간
+### 성능 알림 서비스
+```typescript
+interface PerformanceAlertService {
+  // 알림 생성
+  createAlert(
+    level: AlertLevel,
+    type: AlertType,
+    metric: string,
+    value: number,
+    threshold: number,
+    message: string,
+    context?: Record<string, any>
+  ): PerformanceAlert;
+  
+  // 알림 해결
+  resolveAlert(alertId: string, resolvedBy: string, resolution?: string): PerformanceAlert | null;
+  
+  // 활성 알림 조회
+  getActiveAlerts(): PerformanceAlert[];
+  
+  // 알림 통계
+  getStats(): AlertStats;
+}
+```
 
-### 데이터베이스 성능
-- **평균 쿼리 시간**: 0.16-0.22ms
-- **인덱스 활용률**: 쿼리 최적화 정도
-- **연결 풀 상태**: 활성/대기 연결 수
+### 성능 모니터링 통합
+```typescript
+interface PerformanceMonitoringIntegration {
+  // 실시간 모니터링 시작
+  startRealTimeMonitoring(): void;
+  
+  // 실시간 모니터링 중지
+  stopRealTimeMonitoring(): void;
+  
+  // 성능 체크
+  private checkPerformance(): Promise<void>;
+  
+  // 임계값 확인
+  private checkResponseTime(avgResponseTime: number): void;
+  private checkMemoryUsage(heapUsedMB: number): void;
+  private checkErrorRate(errorRate: number): void;
+  private checkThroughput(throughput: number): void;
+}
+```
 
-### 검색 성능
-- **평균 검색 시간**: 0.78-4.24ms (캐시 효과 포함)
-- **캐시 히트율**: 검색 결과 캐시 효율성
-- **벡터 검색 성능**: 임베딩 검색 속도
+## 📊 성능 메트릭
 
-### 캐시 성능
-- **캐시 크기**: 메모리 사용량 제한
-- **캐시 히트율**: 캐시 효과성 측정
-- **캐시 정리**: 만료된 항목 자동 제거
+### 기본 메트릭
+```typescript
+interface PerformanceMetrics {
+  memory: {
+    usage: number;        // 메모리 사용량 (MB)
+    heapUsed: number;     // 힙 사용량 (MB)
+    heapTotal: number;    // 힙 총량 (MB)
+    rss: number;          // RSS 메모리 (MB)
+    external: number;     // 외부 메모리 (MB)
+  };
+  
+  cpu: {
+    usage: number;        // CPU 사용률 (%)
+    loadAverage: number[]; // 로드 평균
+  };
+  
+  database: {
+    totalMemories: number;        // 총 메모리 수
+    memoryByType: Record<string, number>; // 타입별 메모리 수
+    averageMemorySize: number;    // 평균 메모리 크기
+    databaseSize: number;         // 데이터베이스 크기
+    queryPerformance: {
+      averageQueryTime: number;   // 평균 쿼리 시간
+      slowQueries: Array<{        // 느린 쿼리
+        query: string;
+        time: number;
+        count: number;
+      }>;
+    };
+  };
+  
+  search: {
+    totalSearches: number;        // 총 검색 수
+    averageSearchTime: number;    // 평균 검색 시간
+    cacheHitRate: number;         // 캐시 히트율
+    embeddingSearchRate: number;  // 임베딩 검색 비율
+  };
+  
+  system: {
+    uptime: number;               // 업타임 (초)
+    cpuUsage: number;             // CPU 사용률
+    loadAverage: number[];        // 로드 평균
+  };
+}
+```
 
-## 🔧 성능 최적화 가이드라인
+### 알림 임계값
+```typescript
+interface AlertThresholds {
+  responseTime: {
+    warning: number;    // 경고 임계값 (ms)
+    critical: number;   // 심각 임계값 (ms)
+  };
+  memoryUsage: {
+    warning: number;    // 경고 임계값 (MB)
+    critical: number;   // 심각 임계값 (MB)
+  };
+  errorRate: {
+    warning: number;    // 경고 임계값 (%)
+    critical: number;   // 심각 임계값 (%)
+  };
+  throughput: {
+    warning: number;    // 경고 임계값 (ops/sec)
+    critical: number;   // 심각 임계값 (ops/sec)
+  };
+}
+```
 
-### 메모리 최적화
-1. **연결 풀 관리**: 데이터베이스 연결 재사용
-2. **캐시 크기 제한**: 메모리 사용량 제어
-3. **가비지 컬렉션**: 불필요한 객체 정리
-4. **스트리밍 처리**: 대용량 데이터 처리
+## 🚨 알림 시스템
 
-### 데이터베이스 최적화
-1. **인덱스 활용**: 적절한 인덱스 생성
-2. **쿼리 최적화**: 효율적인 쿼리 작성
-3. **배치 처리**: 대량 데이터 처리
-4. **연결 관리**: 연결 풀 최적화
+### 알림 레벨
+```typescript
+enum AlertLevel {
+  INFO = 'INFO',         // 정보성 알림
+  WARNING = 'WARNING',   // 경고 알림
+  CRITICAL = 'CRITICAL'  // 심각 알림
+}
+```
 
-### 검색 최적화
-1. **캐시 활용**: 검색 결과 캐싱
-2. **인덱스 최적화**: FTS5 및 벡터 인덱스
-3. **병렬 처리**: 동시 검색 처리
-4. **결과 제한**: 불필요한 데이터 로딩 방지
+### 알림 타입
+```typescript
+enum AlertType {
+  RESPONSE_TIME = 'response_time',    // 응답 시간
+  MEMORY_USAGE = 'memory_usage',      // 메모리 사용량
+  ERROR_RATE = 'error_rate',          // 에러율
+  THROUGHPUT = 'throughput',          // 처리량
+  CUSTOM = 'custom'                   // 사용자 정의
+}
+```
 
-## 🚨 모니터링 알림
+### 알림 생성 예시
+```typescript
+// 응답 시간 알림
+const alert = alertService.createAlert(
+  AlertLevel.WARNING,
+  AlertType.RESPONSE_TIME,
+  '평균 응답시간',
+  150,
+  100,
+  '🟡 응답시간이 임계값을 초과했습니다',
+  { component: 'search_engine', operation: 'search' }
+);
 
-### 임계값 설정
-- **메모리 사용량**: 80% 초과 시 경고
-- **CPU 사용률**: 90% 초과 시 경고
-- **데이터베이스 연결**: 90% 초과 시 경고
-- **응답 시간**: 1초 초과 시 경고
+// 메모리 사용량 알림
+const alert = alertService.createAlert(
+  AlertLevel.CRITICAL,
+  AlertType.MEMORY_USAGE,
+  '힙 메모리 사용량',
+  200,
+  150,
+  '🔴 메모리 사용량이 위험 수준입니다',
+  { component: 'memory_manager', operation: 'create_memory' }
+);
+```
 
-### 알림 처리
-1. **로그 기록**: 상세한 에러 로그
-2. **메트릭 수집**: 성능 데이터 저장
-3. **자동 복구**: 일부 문제 자동 해결
-4. **수동 개입**: 심각한 문제 시 알림
+## 🔄 자동 복구 시스템
 
-## 📊 성능 리포트
+### 복구 전략
+```typescript
+interface RecoveryStrategy {
+  // 메모리 정리
+  cleanupMemory(): Promise<void>;
+  
+  // 캐시 정리
+  clearCache(): Promise<void>;
+  
+  // 데이터베이스 최적화
+  optimizeDatabase(): Promise<void>;
+  
+  // 연결 풀 재시작
+  restartConnectionPool(): Promise<void>;
+}
+```
 
-### 일일 리포트
-- **전체 성능 요약**: 주요 지표 요약
-- **트렌드 분석**: 성능 변화 추이
-- **문제점 식별**: 성능 저하 원인
-- **개선 제안**: 최적화 방안 제시
+### 자동 복구 실행
+```typescript
+// 심각한 메모리 사용량 시 자동 복구
+if (heapUsedMB > criticalThreshold) {
+  console.log('🔴 메모리 사용량이 위험 수준입니다. 자동 복구를 시작합니다...');
+  
+  await recoveryStrategy.cleanupMemory();
+  await recoveryStrategy.clearCache();
+  
+  console.log('✅ 자동 복구가 완료되었습니다.');
+}
+```
 
-### 주간 리포트
-- **성능 트렌드**: 장기 성능 변화
-- **용량 계획**: 리소스 사용량 예측
-- **최적화 효과**: 개선 사항 효과 측정
-- **향후 계획**: 추가 최적화 방안
+## 🧪 테스트 가이드라인
 
-## 🔍 디버깅 가이드
+### 단위 테스트
+```typescript
+describe('PerformanceMonitor', () => {
+  let monitor: PerformanceMonitor;
+  
+  beforeEach(() => {
+    monitor = new PerformanceMonitor();
+  });
+  
+  it('should collect memory metrics', async () => {
+    const metrics = await monitor.collectMetrics();
+    
+    expect(metrics.memory.heapUsed).toBeGreaterThan(0);
+    expect(metrics.memory.rss).toBeGreaterThan(0);
+  });
+  
+  it('should detect performance issues', async () => {
+    // 성능 저하 시뮬레이션
+    await simulateHighMemoryUsage();
+    
+    const status = await monitor.checkPerformance();
+    expect(status.hasIssues).toBe(true);
+  });
+});
+```
 
-### 성능 문제 진단
-1. **메트릭 확인**: 현재 성능 지표 확인
-2. **로그 분석**: 에러 및 경고 로그 검토
-3. **프로파일링**: 코드 실행 시간 분석
-4. **리소스 모니터링**: 시스템 리소스 사용량 확인
+### 통합 테스트
+```typescript
+describe('PerformanceMonitoring Integration', () => {
+  it('should create alerts when thresholds exceeded', async () => {
+    const monitoring = new PerformanceMonitoringIntegration(
+      db,
+      alertService,
+      { enableRealTimeMonitoring: true }
+    );
+    
+    // 임계값 초과 시뮬레이션
+    await simulateHighResponseTime();
+    
+    // 알림 생성 확인
+    const alerts = alertService.getActiveAlerts();
+    expect(alerts.length).toBeGreaterThan(0);
+    expect(alerts[0].type).toBe(AlertType.RESPONSE_TIME);
+  });
+});
+```
 
-### 일반적인 문제 해결
-- **메모리 누수**: 가비지 컬렉션 및 객체 정리
-- **느린 쿼리**: 인덱스 추가 및 쿼리 최적화
-- **높은 CPU 사용률**: 비효율적인 코드 최적화
-- **캐시 미스**: 캐시 전략 조정
+## 📈 모니터링 대시보드
 
-## 🎯 성능 목표
+### 실시간 메트릭
+- **시스템 상태**: CPU, 메모리, 디스크 사용률
+- **애플리케이션 성능**: 응답 시간, 처리량, 에러율
+- **데이터베이스 성능**: 쿼리 시간, 연결 수, 인덱스 사용률
+- **검색 성능**: 검색 시간, 캐시 히트율, 임베딩 생성률
 
-### 응답 시간 목표
-- **기억 저장**: < 100ms
-- **기억 검색**: < 50ms
-- **기억 삭제**: < 50ms
-- **API 응답**: < 200ms
+### 알림 관리
+- **활성 알림**: 현재 발생한 알림 목록
+- **알림 통계**: 알림 발생 빈도, 해결 시간
+- **알림 설정**: 임계값 조정, 알림 채널 설정
 
-### 처리량 목표
-- **동시 연결**: 최대 1000개
-- **초당 요청**: 최대 1000 RPS
-- **메모리 효율성**: < 100MB 힙 사용량
-- **가용성**: 99.9% 업타임
+## 🚀 배포 고려사항
+
+### 환경 변수
+```bash
+# 성능 모니터링 설정
+PERFORMANCE_MONITORING_ENABLED=true
+PERFORMANCE_MONITORING_INTERVAL=30000
+PERFORMANCE_ALERT_ENABLED=true
+PERFORMANCE_ALERT_WEBHOOK_URL=https://hooks.slack.com/...
+```
+
+### 모니터링 도구
+- **Prometheus**: 메트릭 수집
+- **Grafana**: 대시보드 시각화
+- **AlertManager**: 알림 관리
+- **Jaeger**: 분산 추적
+
+### 성능 최적화
+- **메트릭 샘플링**: 불필요한 메트릭 제거
+- **압축**: 오래된 메트릭 압축 저장
+- **배치 처리**: 여러 메트릭을 한 번에 처리
+
+## 📚 참고 자료
+
+- [Node.js Performance Monitoring](https://nodejs.org/api/perf_hooks.html)
+- [Prometheus Metrics](https://prometheus.io/docs/concepts/metric_types/)
+- [Grafana Dashboards](https://grafana.com/docs/grafana/latest/dashboards/)
+- [Performance Monitoring Best Practices](https://www.datadoghq.com/blog/monitoring-101-alerting/)
