@@ -1,6 +1,6 @@
 /**
- * Tools 모듈 인덱스
- * 모든 도구들을 등록하고 관리
+ * MCP 클라이언트용 핵심 도구들
+ * AI Agent가 사용하는 기본 메모리 관리 기능만 포함
  */
 
 import { ToolRegistry } from './tool-registry.js';
@@ -9,58 +9,25 @@ import { RecallTool } from './recall-tool.js';
 import { ForgetTool } from './forget-tool.js';
 import { PinTool } from './pin-tool.js';
 import { UnpinTool } from './unpin-tool.js';
-import { CleanupMemoryTool } from './cleanup-memory-tool.js';
-import { ForgettingStatsTool } from './forgetting-stats-tool.js';
-import { PerformanceStatsTool } from './performance-stats-tool.js';
-import { DatabaseOptimizeTool } from './database-optimize-tool.js';
-import { errorStatsTool, executeErrorStats } from './error-stats.js';
-import { resolveErrorTool, executeResolveError } from './resolve-error.js';
-import { performanceAlertsTool, executePerformanceAlerts } from './performance-alerts.js';
 
 /**
- * 모든 도구 인스턴스 생성
+ * 핵심 도구 인스턴스 생성 (5개만)
  */
-const tools = [
+const coreTools = [
   new RememberTool(),
   new RecallTool(),
   new ForgetTool(),
   new PinTool(),
   new UnpinTool(),
-  new CleanupMemoryTool(),
-  new ForgettingStatsTool(),
-  new PerformanceStatsTool(),
-  new DatabaseOptimizeTool(),
 ];
 
 /**
- * 도구 레지스트리 생성 및 등록
+ * MCP 클라이언트용 도구 레지스트리 생성 및 등록
  */
 export const toolRegistry = new ToolRegistry();
 
-// 모든 도구 등록
-toolRegistry.registerAll(tools.map(tool => tool.getDefinition()));
-
-// 에러 로깅 도구들 등록
-toolRegistry.register({
-  name: errorStatsTool.name,
-  description: errorStatsTool.description,
-  inputSchema: errorStatsTool.inputSchema,
-  handler: executeErrorStats
-});
-
-toolRegistry.register({
-  name: resolveErrorTool.name,
-  description: resolveErrorTool.description,
-  inputSchema: resolveErrorTool.inputSchema,
-  handler: executeResolveError
-});
-
-toolRegistry.register({
-  name: performanceAlertsTool.name,
-  description: performanceAlertsTool.description,
-  inputSchema: performanceAlertsTool.inputSchema,
-  handler: executePerformanceAlerts
-});
+// 핵심 도구들만 등록
+toolRegistry.registerAll(coreTools.map(tool => tool.getDefinition()));
 
 /**
  * 도구 레지스트리 반환
@@ -90,16 +57,12 @@ export async function executeTool(name: string, params: any, context: any) {
   return await toolRegistry.execute(name, params, context);
 }
 
-// 개별 도구들도 export (필요한 경우)
+// 핵심 도구들만 export
 export {
   RememberTool,
   RecallTool,
   ForgetTool,
   PinTool,
   UnpinTool,
-  CleanupMemoryTool,
-  ForgettingStatsTool,
-  PerformanceStatsTool,
-  DatabaseOptimizeTool,
 };
 

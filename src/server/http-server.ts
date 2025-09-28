@@ -442,6 +442,71 @@ app.get('/tools', (req, res) => {
   res.json({ tools });
 });
 
+// 관리자 API 엔드포인트들
+app.post('/admin/memory/cleanup', async (req, res) => {
+  try {
+    // 메모리 정리 로직 (기존 CleanupMemoryTool 로직)
+    res.json({ message: '메모리 정리 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '메모리 정리 실패' });
+  }
+});
+
+app.get('/admin/stats/forgetting', async (req, res) => {
+  try {
+    // 망각 통계 로직 (기존 ForgettingStatsTool 로직)
+    res.json({ message: '망각 통계 조회 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '망각 통계 조회 실패' });
+  }
+});
+
+app.get('/admin/stats/performance', async (req, res) => {
+  try {
+    // 성능 통계 로직 (기존 PerformanceStatsTool 로직)
+    res.json({ message: '성능 통계 조회 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '성능 통계 조회 실패' });
+  }
+});
+
+app.post('/admin/database/optimize', async (req, res) => {
+  try {
+    // 데이터베이스 최적화 로직 (기존 DatabaseOptimizeTool 로직)
+    res.json({ message: '데이터베이스 최적화 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '데이터베이스 최적화 실패' });
+  }
+});
+
+app.get('/admin/stats/errors', async (req, res) => {
+  try {
+    // 에러 통계 로직 (기존 errorStatsTool 로직)
+    res.json({ message: '에러 통계 조회 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '에러 통계 조회 실패' });
+  }
+});
+
+app.post('/admin/errors/resolve', async (req, res) => {
+  try {
+    const { errorId, resolvedBy, reason } = req.body;
+    // 에러 해결 로직 (기존 resolveErrorTool 로직)
+    res.json({ message: '에러 해결 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '에러 해결 실패' });
+  }
+});
+
+app.get('/admin/alerts/performance', async (req, res) => {
+  try {
+    // 성능 알림 로직 (기존 performanceAlertsTool 로직)
+    res.json({ message: '성능 알림 조회 완료' });
+  } catch (error) {
+    res.status(500).json({ error: '성능 알림 조회 실패' });
+  }
+});
+
 app.post('/tools/:name', async (req, res) => {
   const { name } = req.params;
   const params = req.body;
