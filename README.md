@@ -8,7 +8,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ## ✨ 주요 기능
 
-### 🧠 기억 관리
+### 🧠 핵심 메모리 관리 (MCP 클라이언트)
 - **기억 저장**: 4가지 타입의 기억 저장 (working, episodic, semantic, procedural)
 - **기억 검색**: 하이브리드 검색 (텍스트 + 벡터)
 - **기억 고정**: 중요한 기억 고정/해제
@@ -27,7 +27,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **TTL 관리**: 타입별 수명 관리
 - **자동 정리**: 소프트/하드 삭제 자동화
 
-### 📊 성능 모니터링
+### 📊 성능 모니터링 (HTTP 관리 API)
 - **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
 - **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림
 - **에러 로깅**: 구조화된 에러 로깅 및 통계 수집
@@ -159,7 +159,10 @@ const results = await client.callTool({
 
 ## 📋 API 문서
 
-### Tools
+### MCP Tools (핵심 5개만)
+
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 5개만 노출합니다.  
+> 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.
 
 | Tool | 설명 | 파라미터 |
 |------|------|----------|
@@ -168,16 +171,18 @@ const results = await client.callTool({
 | `pin` | 기억 고정 | memory_id |
 | `unpin` | 기억 고정 해제 | memory_id |
 | `forget` | 기억 삭제 | memory_id, hard |
-| `hybrid_search` | 하이브리드 검색 | query, filters, limit, vectorWeight, textWeight |
-| `apply_forgetting_policy` | 망각 정책 적용 | config |
-| `schedule_review` | 리뷰 스케줄링 | memory_id, features |
-| `get_performance_metrics` | 성능 메트릭 조회 | timeRange, includeDetails |
-| `get_cache_stats` | 캐시 통계 조회 | cacheType |
-| `clear_cache` | 캐시 정리 | cacheType |
-| `optimize_database` | 데이터베이스 최적화 | actions, autoCreateIndexes |
-| `error_stats` | 에러 통계 조회 | severity, category, hours, limit |
-| `resolve_error` | 에러 해결 처리 | error_id, resolved_by, resolution |
-| `performance_alerts` | 성능 알림 관리 | action, alert_id, level, type, includeResolved, hours, limit |
+
+### HTTP 관리 API
+
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
+| `/admin/memory/cleanup` | 메모리 정리 | POST |
+| `/admin/stats/forgetting` | 망각 통계 조회 | GET |
+| `/admin/stats/performance` | 성능 통계 조회 | GET |
+| `/admin/stats/errors` | 에러 통계 조회 | GET |
+| `/admin/errors/resolve` | 에러 해결 | POST |
+| `/admin/alerts/performance` | 성능 알림 조회 | GET |
+| `/admin/database/optimize` | 데이터베이스 최적화 | POST |
 
 ### Resources
 
@@ -277,6 +282,8 @@ npm run test -- --coverage
 - **인덱스**: FTS5 + sqlite-vss
 - **인증**: 없음 (로컬 전용)
 - **운영**: 로컬 실행
+- **MCP 클라이언트**: 핵심 5개 도구만 노출
+- **관리 기능**: HTTP API로 분리
 - **추가 기능**: 경량 임베딩, 성능 모니터링, 캐시 시스템
 
 ### M2: 팀 협업 (계획)

@@ -1,0 +1,205 @@
+---
+globs: *.ts,*.js
+description: MCP 도구 아키텍처 분리 가이드라인
+---
+
+# MCP 도구 아키텍처 분리 가이드라인
+
+## 🎯 아키텍처 원칙
+
+### 핵심 분리 원칙
+- **MCP 클라이언트**: AI Agent가 직접 사용하는 핵심 기능만 노출
+- **HTTP 관리 API**: 시스템 관리자용 기능은 별도 엔드포인트로 분리
+- **보안성**: 관리 기능이 클라이언트에 노출되지 않음
+- **단순성**: AI Agent는 핵심 기능에만 집중
+
+## 🛠️ MCP 클라이언트 도구 (5개만)
+
+### 핵심 메모리 관리
+```typescript
+// 1. remember - 기억 저장
+{
+  name: "remember",
+  description: "기억을 저장합니다",
+  inputSchema: {
+    content: { type: "string", required: true },
+    type: { type: "string", enum: ["working", "episodic", "semantic", "procedural"] },
+    tags: { type: "array", items: { type: "string" } },
+    importance: { type: "number", minimum: 0, maximum: 1 },
+    source: { type: "string" },
+    privacy_scope: { type: "string", enum: ["private", "team", "public"] }
+  }
+}
+
+// 2. recall - 기억 검색
+{
+  name: "recall",
+  description: "기억을 검색합니다",
+  inputSchema: {
+    query: { type: "string", required: true },
+    filters: { type: "object" },
+    limit: { type: "number", minimum: 1, maximum: 50 }
+  }
+}
+
+// 3. pin - 기억 고정
+{
+  name: "pin",
+  description: "기억을 고정합니다",
+  inputSchema: {
+    id: { type: "string", required: true }
+  }
+}
+
+// 4. unpin - 기억 고정 해제
+{
+  name: "unpin",
+  description: "기억 고정을 해제합니다",
+  inputSchema: {
+    id: { type: "string", required: true }
+  }
+}
+
+// 5. forget - 기억 삭제
+{
+  name: "forget",
+  description: "기억을 삭제합니다",
+  inputSchema: {
+    id: { type: "string", required: true },
+    hard: { type: "boolean", default: false }
+  }
+}
+```
+
+## 🌐 HTTP 관리 API 엔드포인트
+
+### 메모리 관리
+```typescript
+// 메모리 정리
+POST /admin/memory/cleanup
+Response: { message: "메모리 정리 완료" }
+
+// 망각 통계
+GET /admin/stats/forgetting
+Response: { message: "망각 통계 조회 완료" }
+```
+
+### 성능 모니터링
+```typescript
+// 성능 통계
+GET /admin/stats/performance
+Response: { message: "성능 통계 조회 완료" }
+
+// 성능 알림
+GET /admin/alerts/performance
+Response: { message: "성능 알림 조회 완료" }
+```
+
+### 에러 관리
+```typescript
+// 에러 통계
+GET /admin/stats/errors
+Response: { message: "에러 통계 조회 완료" }
+
+// 에러 해결
+POST /admin/errors/resolve
+Body: { errorId: string, resolvedBy: string, reason?: string }
+Response: { message: "에러 해결 완료" }
+```
+
+### 데이터베이스 관리
+```typescript
+// 데이터베이스 최적화
+POST /admin/database/optimize
+Response: { message: "데이터베이스 최적화 완료" }
+```
+
+## 🔧 구현 가이드라인
+
+### MCP 서버 구현
+```typescript
+// src/tools/index.ts
+const coreTools = [
+  new RememberTool(),
+  new RecallTool(),
+  new ForgetTool(),
+  new PinTool(),
+  new UnpinTool(),
+];
+
+// 핵심 도구들만 등록
+toolRegistry.registerAll(coreTools.map(tool => tool.getDefinition()));
+```
+
+### HTTP 서버 구현
+```typescript
+// src/server/http-server.ts
+// 관리자 API 엔드포인트들
+app.post('/admin/memory/cleanup', async (req, res) => {
+  // 메모리 정리 로직
+});
+
+app.get('/admin/stats/performance', async (req, res) => {
+  // 성능 통계 로직
+});
+```
+
+## 📋 도구 분류 기준
+
+### MCP 클라이언트 도구 (포함)
+- ✅ AI Agent가 직접 사용하는 기능
+- ✅ 기억의 CRUD 작업
+- ✅ 사용자 인터랙션과 직접 관련
+- ✅ 실시간으로 자주 호출되는 기능
+
+### HTTP 관리 API (제외)
+- ❌ 시스템 관리자용 기능
+- ❌ 성능 모니터링 및 통계
+- ❌ 에러 로깅 및 디버깅
+- ❌ 데이터베이스 최적화
+- ❌ 배치 작업 및 유지보수
+
+## 🚀 마이그레이션 가이드
+
+### 기존 코드에서 제거할 도구들
+```typescript
+// 제거된 관리 도구들
+- cleanup_memory
+- forgetting_stats
+- performance_stats
+- database_optimize
+- error_stats
+- resolve_error
+- performance_alerts
+```
+
+### 새로운 HTTP API 사용법
+```typescript
+// 기존 MCP 도구 대신 HTTP API 사용
+const response = await fetch('/admin/stats/performance');
+const stats = await response.json();
+```
+
+## 🔒 보안 고려사항
+
+### MCP 클라이언트 보안
+- 핵심 기능만 노출하여 공격 표면 최소화
+- AI Agent가 불필요한 시스템 접근 불가
+- 민감한 관리 기능 격리
+
+### HTTP 관리 API 보안
+- 별도 인증 메커니즘 필요 (향후)
+- 관리자 권한 검증
+- 로그 및 감사 추적
+
+## 📊 성능 최적화
+
+### MCP 클라이언트 최적화
+- 도구 수 감소로 응답 시간 단축
+- 메모리 사용량 감소
+- 네트워크 오버헤드 감소
+
+### HTTP 관리 API 최적화
+- 별도 스레드에서 처리
+- 캐싱 전략 적용
+- 비동기 처리로 메인 서비스 영향 최소화

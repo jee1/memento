@@ -154,7 +154,11 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools
+## MCP Tools (핵심 5개만)
+
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 5개만 노출합니다.  
+> 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.  
+> 자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
 
 ### remember
 
@@ -354,249 +358,134 @@ const result = await client.callTool('forget', {
 });
 ```
 
-### hybrid_search
+## 관리자 API
 
-하이브리드 검색을 수행하는 도구입니다. FTS5 텍스트 검색과 벡터 검색을 결합하여 더 정확한 검색 결과를 제공합니다.
+> **참고**: 다음 기능들은 MCP 클라이언트에서 제거되고 HTTP API 엔드포인트로 분리되었습니다.
 
-#### 파라미터
+### 메모리 관리 API
 
-```typescript
-interface HybridSearchParams {
-  query: string;                     // 검색 쿼리 (필수)
-  filters?: {
-    type?: ('episodic' | 'semantic')[];  // 기억 타입 필터
-    tags?: string[];                 // 태그 필터
-    project_id?: string;             // 프로젝트 ID 필터
-    time_from?: string;              // 시작 시간 (ISO 8601)
-    time_to?: string;                // 종료 시간 (ISO 8601)
-  };
-  limit?: number;                    // 결과 수 제한 (기본값: 10)
-  vectorWeight?: number;             // 벡터 검색 가중치 (0.0-1.0, 기본값: 0.6)
-  textWeight?: number;               // 텍스트 검색 가중치 (0.0-1.0, 기본값: 0.4)
+#### 메모리 정리
+```http
+POST /admin/memory/cleanup
+```
+메모리를 정리합니다.
+
+**응답:**
+```json
+{
+  "message": "메모리 정리 완료"
 }
 ```
 
-#### 응답
+#### 망각 통계
+```http
+GET /admin/stats/forgetting
+```
+망각 통계를 조회합니다.
 
-```typescript
-interface HybridSearchResult {
-  items: HybridSearchItem[];         // 검색된 기억 목록
-  total_count: number;               // 전체 결과 수
-  query_time: number;                // 검색 소요 시간 (ms)
-  search_type: 'hybrid';             // 검색 타입
-}
-
-interface HybridSearchItem {
-  id: string;                        // 기억 ID
-  content: string;                   // 기억 내용
-  type: string;                      // 기억 타입
-  importance: number;                // 중요도
-  created_at: string;                // 생성 시간
-  last_accessed?: string;            // 마지막 접근 시간
-  pinned: boolean;                   // 고정 여부
-  tags?: string[];                   // 태그 목록
-  textScore: number;                 // FTS5 텍스트 검색 점수
-  vectorScore: number;               // 벡터 유사도 점수
-  finalScore: number;                // 최종 하이브리드 점수
-  recall_reason: string;             // 검색 이유
+**응답:**
+```json
+{
+  "message": "망각 통계 조회 완료"
 }
 ```
 
-#### 사용 예시
+### 성능 모니터링 API
 
-```typescript
-// 기본 하이브리드 검색
-const result = await client.callTool('hybrid_search', {
-  query: "React Hook 사용법"
-});
-
-// 가중치 조정된 하이브리드 검색
-const result = await client.callTool('hybrid_search', {
-  query: "TypeScript 인터페이스",
-  vectorWeight: 0.7,  // 벡터 검색 70%
-  textWeight: 0.3,    // 텍스트 검색 30%
-  limit: 5
-});
-
-// 필터링된 하이브리드 검색
-const result = await client.callTool('hybrid_search', {
-  query: "프로젝트 관리",
-  filters: {
-    type: ['episodic', 'semantic'],
-    tags: ['project', 'management']
-  },
-  limit: 8
-});
+#### 성능 통계
+```http
+GET /admin/stats/performance
 ```
+성능 통계를 조회합니다.
 
-### summarize_thread
-
-현재 세션의 대화를 요약하여 기억으로 저장하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface SummarizeThreadParams {
-  session_id: string;               // 세션 ID (필수)
-  thread_data?: {
-    messages: Message[];            // 대화 메시지 배열
-    context?: string;               // 추가 컨텍스트
-  };
-  importance?: number;              // 중요도 (기본값: 0.7)
+**응답:**
+```json
+{
+  "message": "성능 통계 조회 완료"
 }
 ```
 
-#### 응답
+#### 성능 알림
+```http
+GET /admin/alerts/performance
+```
+성능 알림을 조회합니다.
 
-```typescript
-interface SummarizeThreadResult {
-  memory_id: string;               // 생성된 기억 ID
-  summary: string;                 // 요약 내용
-  key_points: string[];            // 핵심 포인트
-  created_at: string;              // 생성 시간
+**응답:**
+```json
+{
+  "message": "성능 알림 조회 완료"
 }
 ```
 
-#### 사용 예시
+### 에러 관리 API
 
-```typescript
-const result = await client.callTool('summarize_thread', {
-  session_id: 'session-456',
-  thread_data: {
-    messages: [
-      { role: 'user', content: 'React Hook에 대해 설명해주세요' },
-      { role: 'assistant', content: 'React Hook은...' }
-    ],
-    context: '프론트엔드 개발 관련 질문'
-  },
-  importance: 0.8
-});
+#### 에러 통계
+```http
+GET /admin/stats/errors
 ```
+에러 통계를 조회합니다.
 
-### link
-
-기억 간의 관계를 생성하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface LinkParams {
-  source_id: string;                // 소스 기억 ID (필수)
-  target_id: string;                // 대상 기억 ID (필수)
-  relation_type: 'cause_of' | 'derived_from' | 'duplicates' | 'contradicts';  // 관계 타입 (필수)
+**응답:**
+```json
+{
+  "message": "에러 통계 조회 완료"
 }
 ```
 
-#### 응답
+#### 에러 해결
+```http
+POST /admin/errors/resolve
+Content-Type: application/json
 
-```typescript
-interface LinkResult {
-  success: boolean;                 // 성공 여부
-  link_id: string;                 // 생성된 링크 ID
-  source_id: string;               // 소스 기억 ID
-  target_id: string;               // 대상 기억 ID
-  relation_type: string;           // 관계 타입
-  created_at: string;              // 생성 시간
+{
+  "errorId": "error-123",
+  "resolvedBy": "admin",
+  "reason": "데이터베이스 연결 문제 해결됨"
+}
+```
+에러를 해결 상태로 표시합니다.
+
+**응답:**
+```json
+{
+  "message": "에러 해결 완료"
 }
 ```
 
-#### 사용 예시
+### 데이터베이스 관리 API
 
-```typescript
-const result = await client.callTool('link', {
-  source_id: 'memory-123',
-  target_id: 'memory-456',
-  relation_type: 'derived_from'
-});
+#### 데이터베이스 최적화
+```http
+POST /admin/database/optimize
 ```
+데이터베이스를 최적화합니다.
 
-### export
-
-기억을 다양한 형식으로 내보내는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface ExportParams {
-  format: 'json' | 'csv' | 'markdown';  // 내보내기 형식 (필수)
-  filters?: {
-    type?: string[];                // 기억 타입 필터
-    tags?: string[];                // 태그 필터
-    date_from?: string;             // 시작 날짜
-    date_to?: string;               // 종료 날짜
-  };
-  include_metadata?: boolean;       // 메타데이터 포함 여부 (기본값: true)
+**응답:**
+```json
+{
+  "message": "데이터베이스 최적화 완료"
 }
 ```
 
-#### 응답
+## 제거된 MCP Tools
 
-```typescript
-interface ExportResult {
-  success: boolean;                 // 성공 여부
-  format: string;                   // 내보내기 형식
-  data: string;                     // 내보내기 데이터
-  count: number;                    // 내보낸 기억 수
-  exported_at: string;              // 내보내기 시간
-}
-```
+다음 도구들은 MCP 클라이언트에서 제거되었습니다:
 
-#### 사용 예시
-
-```typescript
-// JSON 형식으로 내보내기
-const result = await client.callTool('export', {
-  format: 'json',
-  filters: {
-    type: ['episodic', 'semantic'],
-    date_from: '2024-01-01'
-  }
-});
-
-// Markdown 형식으로 내보내기
-const result = await client.callTool('export', {
-  format: 'markdown',
-  include_metadata: true
-});
-```
-
-### feedback
-
-기억의 유용성에 대한 피드백을 제공하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface FeedbackParams {
-  memory_id: string;                // 피드백할 기억 ID (필수)
-  helpful: boolean;                 // 유용성 여부 (필수)
-  comment?: string;                 // 추가 코멘트 (선택)
-  score?: number;                   // 점수 (0-1, 선택)
-}
-```
-
-#### 응답
-
-```typescript
-interface FeedbackResult {
-  success: boolean;                 // 성공 여부
-  memory_id: string;               // 기억 ID
-  feedback_id: string;             // 피드백 ID
-  helpful: boolean;                // 유용성 여부
-  created_at: string;              // 피드백 시간
-}
-```
-
-#### 사용 예시
-
-```typescript
-const result = await client.callTool('feedback', {
-  memory_id: 'memory-123',
-  helpful: true,
-  comment: '매우 유용한 정보였습니다',
-  score: 0.9
-});
-```
+- `hybrid_search` - 하이브리드 검색 (기본 `recall`로 대체)
+- `summarize_thread` - 세션 요약 (향후 구현 예정)
+- `link` - 기억 관계 생성 (향후 구현 예정)
+- `export` - 기억 내보내기 (향후 구현 예정)
+- `feedback` - 피드백 제공 (향후 구현 예정)
+- `apply_forgetting_policy` - 망각 정책 적용 (HTTP API로 이동)
+- `schedule_review` - 리뷰 스케줄링 (HTTP API로 이동)
+- `get_performance_metrics` - 성능 메트릭 조회 (HTTP API로 이동)
+- `get_cache_stats` - 캐시 통계 조회 (HTTP API로 이동)
+- `clear_cache` - 캐시 정리 (HTTP API로 이동)
+- `optimize_database` - 데이터베이스 최적화 (HTTP API로 이동)
+- `error_stats` - 에러 통계 조회 (HTTP API로 이동)
+- `resolve_error` - 에러 해결 (HTTP API로 이동)
+- `performance_alerts` - 성능 알림 관리 (HTTP API로 이동)
 
 ## MCP Resources
 
@@ -662,518 +551,6 @@ interface SearchResource {
 }
 ```
 
-## 8. apply_forgetting_policy
-
-망각 정책을 적용합니다. 망각 알고리즘과 간격 반복을 통합하여 메모리를 관리합니다.
-
-### Parameters
-
-- `config` (object, optional): 망각 정책 설정
-  - `forgetThreshold` (number, optional): 망각 임계값 (기본값: 0.6)
-  - `softDeleteThreshold` (number, optional): 소프트 삭제 임계값 (기본값: 0.6)
-  - `hardDeleteThreshold` (number, optional): 하드 삭제 임계값 (기본값: 0.8)
-  - `ttlSoft` (object, optional): 소프트 TTL 설정 (일 단위)
-    - `working` (number, optional): 작업기억 TTL (기본값: 2)
-    - `episodic` (number, optional): 일화기억 TTL (기본값: 30)
-    - `semantic` (number, optional): 의미기억 TTL (기본값: 180)
-    - `procedural` (number, optional): 절차기억 TTL (기본값: 90)
-  - `ttlHard` (object, optional): 하드 TTL 설정 (일 단위)
-    - `working` (number, optional): 작업기억 TTL (기본값: 7)
-    - `episodic` (number, optional): 일화기억 TTL (기본값: 180)
-    - `semantic` (number, optional): 의미기억 TTL (기본값: 365)
-    - `procedural` (number, optional): 절차기억 TTL (기본값: 180)
-
-### Response
-
-```typescript
-interface ForgettingPolicyResult {
-  softDeleted: string[];
-  hardDeleted: string[];
-  scheduledForReview: ReviewSchedule[];
-  processedCount: number;
-  errorCount: number;
-}
-
-interface ReviewSchedule {
-  memory_id: string;
-  current_interval: number;
-  next_review: string;
-  recall_probability: number;
-  needs_review: boolean;
-  multiplier: number;
-}
-```
-
-### Usage Example
-
-```typescript
-// 기본 망각 정책 적용
-const result = await client.callTool('apply_forgetting_policy', {});
-
-// 사용자 정의 설정으로 망각 정책 적용
-const result = await client.callTool('apply_forgetting_policy', {
-  config: {
-    forgetThreshold: 0.7,
-    softDeleteThreshold: 0.7,
-    hardDeleteThreshold: 0.9,
-    ttlSoft: {
-      working: 3,
-      episodic: 45,
-      semantic: 200,
-      procedural: 120
-    }
-  }
-});
-```
-
-## 9. schedule_review
-
-간격 반복을 위한 리뷰 스케줄을 생성합니다.
-
-### Parameters
-
-- `memory_id` (string, required): 메모리 ID
-- `features` (object, optional): 간격 반복 특징
-  - `importance` (number, optional): 중요도 (0-1)
-  - `usage` (number, optional): 사용성 (0-1)
-  - `helpful_feedback` (number, optional): 도움됨 피드백 (0-1)
-  - `bad_feedback` (number, optional): 나쁨 피드백 (0-1)
-
-### Response
-
-```typescript
-interface ReviewSchedule {
-  memory_id: string;
-  current_interval: number;
-  next_review: string;
-  recall_probability: number;
-  needs_review: boolean;
-  multiplier: number;
-}
-```
-
-### Usage Example
-
-```typescript
-// 기본 리뷰 스케줄 생성
-const schedule = await client.callTool('schedule_review', {
-  memory_id: 'memory-123'
-});
-
-// 특징을 고려한 리뷰 스케줄 생성
-const schedule = await client.callTool('schedule_review', {
-  memory_id: 'memory-123',
-  features: {
-    importance: 0.8,
-    usage: 0.6,
-    helpful_feedback: 0.7,
-    bad_feedback: 0.1
-  }
-});
-```
-
-## 10. 에러 로깅 및 관리
-
-### 에러 로깅 Tools
-
-#### `error_stats`
-
-에러 통계를 조회하고 필터링된 에러 로그를 반환합니다.
-
-**파라미터:**
-```typescript
-{
-  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';  // 에러 심각도
-  category?: 'UNKNOWN' | 'DATABASE' | 'NETWORK' | 'TOOL_EXECUTION' | 'VALIDATION' | 'SYSTEM';  // 에러 카테고리
-  hours?: number;                                      // 지난 몇 시간 동안의 에러 조회
-  limit?: number;                                      // 반환할 에러 로그의 최대 개수
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  stats: {
-    total: number;                                     // 총 에러 수
-    bySeverity: Record<string, number>;               // 심각도별 에러 수
-    byCategory: Record<string, number>;               // 카테고리별 에러 수
-    recentErrors: Array<{
-      id: string;
-      message: string;
-      severity: string;
-      category: string;
-      timestamp: string;
-      resolved: boolean;
-      context?: Record<string, any>;
-    }>;
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 기본 에러 통계 조회
-const stats = await client.callTool('error_stats', {});
-
-// HIGH 심각도 에러만 조회
-const highErrors = await client.callTool('error_stats', {
-  severity: 'HIGH',
-  hours: 24
-});
-
-// 데이터베이스 관련 에러 조회
-const dbErrors = await client.callTool('error_stats', {
-  category: 'DATABASE',
-  limit: 10
-});
-```
-
-#### `resolve_error`
-
-특정 에러를 해결 상태로 표시합니다.
-
-**파라미터:**
-```typescript
-{
-  error_id: string;                                   // 해결할 에러의 고유 ID (필수)
-  resolved_by?: string;                               // 에러를 해결한 주체 (기본값: 'system')
-  resolution?: string;                                // 에러 해결에 대한 설명
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  message: string;                                    // 결과 메시지
-  resolvedError?: {
-    id: string;
-    message: string;
-    resolvedAt: string;
-    resolvedBy: string;
-    resolution?: string;
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 에러 해결
-const result = await client.callTool('resolve_error', {
-  error_id: 'error-123',
-  resolved_by: 'admin',
-  resolution: '데이터베이스 연결 문제 해결됨'
-});
-```
-
-## 11. 성능 알림 시스템
-
-### 성능 알림 Tools
-
-#### `performance_alerts`
-
-실시간 성능 알림을 조회, 검색 및 관리합니다.
-
-**파라미터:**
-```typescript
-{
-  action: 'stats' | 'list' | 'search' | 'resolve';   // 수행할 작업
-  alertId?: string;                                   // 해결할 알림의 고유 ID (action이 "resolve"일 때)
-  resolvedBy?: string;                                // 알림을 해결한 주체
-  resolution?: string;                                // 알림 해결에 대한 설명
-  level?: 'INFO' | 'WARNING' | 'CRITICAL';           // 조회할 알림의 심각도
-  type?: 'response_time' | 'memory_usage' | 'error_rate' | 'throughput' | 'custom';  // 조회할 알림의 유형
-  includeResolved?: boolean;                          // 해결된 알림을 포함할지 여부 (기본값: false)
-  hours?: number;                                     // 지난 몇 시간 동안의 알림 조회
-  limit?: number;                                     // 반환할 알림 로그의 최대 개수 (기본값: 10)
-}
-```
-
-**응답:**
-```typescript
-// action: 'stats'
-{
-  success: boolean;
-  stats: {
-    total: number;                                    // 총 알림 수
-    resolved: number;                                 // 해결된 알림 수
-    active: number;                                   // 활성 알림 수
-    levelCounts: Record<string, number>;             // 심각도별 알림 수
-    typeCounts: Record<string, number>;              // 유형별 알림 수
-    recentAlerts: Array<{
-      id: string;
-      timestamp: string;
-      level: string;
-      type: string;
-      metric: string;
-      value: number;
-      threshold: number;
-      message: string;
-      resolved: boolean;
-      resolvedAt?: string;
-    }>;
-  };
-}
-
-// action: 'list' 또는 'search'
-{
-  success: boolean;
-  activeAlerts: Array<{
-    id: string;
-    timestamp: string;
-    level: string;
-    type: string;
-    metric: string;
-    value: number;
-    threshold: number;
-    message: string;
-    context?: Record<string, any>;
-  }>;
-}
-
-// action: 'resolve'
-{
-  success: boolean;
-  message: string;
-  resolvedAlert?: {
-    id: string;
-    timestamp: string;
-    message: string;
-    resolvedAt: string;
-    resolvedBy: string;
-    resolution?: string;
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 알림 통계 조회
-const stats = await client.callTool('performance_alerts', { action: 'stats' });
-
-// 활성 알림 목록 조회
-const activeAlerts = await client.callTool('performance_alerts', { 
-  action: 'list',
-  includeResolved: false 
-});
-
-// WARNING 레벨 알림 검색
-const warnings = await client.callTool('performance_alerts', {
-  action: 'search',
-  level: 'WARNING',
-  hours: 1
-});
-
-// 알림 해결
-const resolved = await client.callTool('performance_alerts', {
-  action: 'resolve',
-  alertId: 'alert-123',
-  resolvedBy: 'admin',
-  resolution: '성능 최적화 완료'
-});
-```
-
-## 12. 성능 모니터링 및 최적화
-
-### 성능 모니터링 Tools
-
-#### `get_performance_metrics`
-
-시스템의 성능 메트릭을 조회합니다.
-
-**파라미터:**
-```typescript
-{
-  timeRange?: '1h' | '24h' | '7d' | '30d';  // 시간 범위
-  includeDetails?: boolean;                  // 상세 정보 포함 여부
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    database: {
-      totalMemories: number;
-      memoryByType: Record<string, number>;
-      averageMemorySize: number;
-      databaseSize: number;
-      queryPerformance: {
-        averageQueryTime: number;
-        slowQueries: Array<{ query: string; time: number; count: number }>;
-      };
-    };
-    search: {
-      totalSearches: number;
-      averageSearchTime: number;
-      cacheHitRate: number;
-      embeddingSearchRate: number;
-    };
-    memory: {
-      usage: number;
-      heapUsed: number;
-      heapTotal: number;
-      rss: number;
-    };
-    system: {
-      uptime: number;
-      cpuUsage: number;
-      loadAverage: number[];
-    };
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 기본 성능 메트릭 조회
-const metrics = await client.callTool('get_performance_metrics', {});
-
-// 24시간 상세 메트릭 조회
-const metrics = await client.callTool('get_performance_metrics', {
-  timeRange: '24h',
-  includeDetails: true
-});
-
-console.log(`총 메모리 수: ${metrics.result.database.totalMemories}`);
-console.log(`평균 검색 시간: ${metrics.result.search.averageSearchTime}ms`);
-console.log(`캐시 히트율: ${(metrics.result.search.cacheHitRate * 100).toFixed(1)}%`);
-```
-
-### 캐시 관리 Tools
-
-#### `get_cache_stats`
-
-캐시 시스템의 통계를 조회합니다.
-
-**파라미터:**
-```typescript
-{
-  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    hits: number;
-    misses: number;
-    totalRequests: number;
-    hitRate: number;
-    size: number;
-    memoryUsage: number;
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 전체 캐시 통계 조회
-const stats = await client.callTool('get_cache_stats', {});
-
-// 검색 캐시만 조회
-const stats = await client.callTool('get_cache_stats', {
-  cacheType: 'search'
-});
-
-console.log(`캐시 히트율: ${(stats.result.hitRate * 100).toFixed(1)}%`);
-console.log(`캐시 크기: ${stats.result.size}개 항목`);
-console.log(`메모리 사용량: ${(stats.result.memoryUsage / 1024 / 1024).toFixed(2)}MB`);
-```
-
-#### `clear_cache`
-
-캐시를 초기화합니다.
-
-**파라미터:**
-```typescript
-{
-  cacheType?: 'search' | 'embedding' | 'all';  // 캐시 타입
-  pattern?: string;                             // 제거할 패턴 (정규식)
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    clearedCount: number;                       // 제거된 항목 수
-    remainingCount: number;                     // 남은 항목 수
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 전체 캐시 초기화
-const result = await client.callTool('clear_cache', {});
-
-// 검색 캐시만 초기화
-const result = await client.callTool('clear_cache', {
-  cacheType: 'search'
-});
-
-// 특정 패턴의 캐시 제거
-const result = await client.callTool('clear_cache', {
-  pattern: 'search:.*test.*'
-});
-
-console.log(`제거된 항목: ${result.result.clearedCount}개`);
-```
-
-### 데이터베이스 최적화 Tools
-
-#### `optimize_database`
-
-데이터베이스 성능을 최적화합니다.
-
-**파라미터:**
-```typescript
-{
-  actions?: ('analyze' | 'index' | 'vacuum' | 'all')[];  // 수행할 작업
-  autoCreateIndexes?: boolean;                           // 자동 인덱스 생성
-}
-```
-
-**응답:**
-```typescript
-{
-  success: boolean;
-  result: {
-    analyzedQueries: number;
-    createdIndexes: number;
-    optimizedTables: number;
-    recommendations: Array<{
-      type: 'index' | 'query' | 'table';
-      priority: 'high' | 'medium' | 'low';
-      description: string;
-      estimatedImprovement: string;
-    }>;
-  };
-}
-```
-
-**사용 예시:**
-```typescript
-// 전체 데이터베이스 최적화
-const result = await client.callTool('optimize_database', {
-  actions: ['all'],
-  autoCreateIndexes: true
-});
-
-// 쿼리 분석만 수행
-const result = await client.callTool('optimize_database', {
-  actions: ['analyze']
-});
-
-console.log(`생성된 인덱스: ${result.result.createdIndexes}개`);
-console.log(`최적화된 테이블: ${result.result.optimizedTables}개`);
-```
 
 ## MCP Prompts
 
