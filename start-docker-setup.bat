@@ -15,7 +15,7 @@ echo ✅ Docker Desktop이 실행 중입니다.
 echo.
 
 echo 2. 도커 이미지 빌드...
-docker-compose build
+docker-compose build --no-cache
 
 echo 3. 도커 컨테이너 시작...
 docker-compose up -d

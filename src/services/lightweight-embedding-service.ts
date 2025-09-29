@@ -4,7 +4,7 @@
  * OpenAI가 없을 때 사용하는 fallback 솔루션
  */
 
-import { getStopWords } from '../utils/stopwords';
+import { getStopWords } from '../utils/stopwords.js';
 
 export interface LightweightEmbeddingResult {
   embedding: number[];
