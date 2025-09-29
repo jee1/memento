@@ -29,6 +29,8 @@
     "test:docker": "node test-docker.js",
     "backup:embeddings": "node scripts/backup-embeddings.js",
     "regenerate:embeddings": "node scripts/regenerate-embeddings.js",
+    "debug:embeddings": "node scripts/debug-embeddings.js",
+    "fix:vector-dimensions": "node scripts/fix-vector-dimensions.js",
     "fix:vectors": "npm run backup:embeddings && npm run regenerate:embeddings",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
@@ -51,6 +53,7 @@
   "author": "Memento Team",
   "license": "MIT",
   "dependencies": {
+    "@google/genai": "^1.21.0",
     "@google/generative-ai": "^0.24.1",
     "@memento/client": "file:packages/mcp-client",
     "@modelcontextprotocol/sdk": "^1.18.2",

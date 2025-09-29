@@ -4,7 +4,7 @@
  * OpenAI와 동일한 인터페이스를 제공하여 교체 가능
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../config/index.js';
 import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
 
@@ -25,7 +25,7 @@ export interface GeminiSimilarityResult {
 }
 
 export class GeminiEmbeddingService {
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GoogleGenAI | null = null;
   private lightweightService: LightweightEmbeddingService;
   private readonly model: string;
   private readonly maxTokens = 2048; // Gemini text-embedding-004 최대 토큰
@@ -49,7 +49,7 @@ export class GeminiEmbeddingService {
     }
 
     try {
-      this.genAI = new GoogleGenerativeAI(mementoConfig.geminiApiKey);
+      this.genAI = new GoogleGenAI({ apiKey: mementoConfig.geminiApiKey });
       console.log('✅ Gemini 임베딩 서비스 초기화 완료');
     } catch (error) {
       console.error('❌ Gemini 초기화 실패:', error);
@@ -78,16 +78,21 @@ export class GeminiEmbeddingService {
         // 토큰 수 제한 확인
         const truncatedText = this.truncateText(text);
         
-        const model = this.genAI.getGenerativeModel({ model: this.model });
-        const result = await model.embedContent(truncatedText);
+        const result = await this.genAI.models.embedContent({
+          model: this.model,
+          contents: [{ parts: [{ text: truncatedText }] }],
+          config: {
+            outputDimensionality: mementoConfig.embeddingDimensions
+          }
+        });
         
-        const embedding = result.embedding.values;
+        const embedding = result.embeddings?.[0]?.values;
         if (!embedding || embedding.length === 0) {
           throw new Error('임베딩 생성에 실패했습니다');
         }
         
         const embeddingResult = {
-          embedding: Array.from(embedding),
+          embedding: Array.from(embedding) as number[],
           model: this.model,
           usage: {
             prompt_tokens: this.estimateTokens(truncatedText),
