@@ -3,7 +3,7 @@
  * 망각 알고리즘과 간격 반복 테스트
  */
 
-import { createMementoClient } from './client/index.js';
+import { createMementoClient } from '../client/index.js';
 
 async function testForgettingFunctionality() {
   console.log('🧠 망각 정책 기능 테스트 시작');

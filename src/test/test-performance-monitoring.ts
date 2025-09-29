@@ -3,7 +3,7 @@
  * Memento MCP 서버의 성능 모니터링 도구들 테스트
  */
 
-import { createMementoClient } from './client/index.js';
+import { createMementoClient } from '../client/index.js';
 
 async function testPerformanceMonitoring() {
   console.log('📊 성능 모니터링 기능 테스트 시작');

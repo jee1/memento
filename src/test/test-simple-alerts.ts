@@ -3,7 +3,7 @@
  * console.log 차단을 우회하여 테스트
  */
 
-import { PerformanceAlertService, AlertType, AlertLevel } from './services/performance-alert-service.js';
+import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
 
 // console.log 복원
 const originalLog = console.log;

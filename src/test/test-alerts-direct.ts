@@ -3,8 +3,8 @@
  * MCP 서버 없이 직접 성능 알림 서비스를 테스트
  */
 
-import { PerformanceAlertService, AlertType, AlertLevel } from './services/performance-alert-service.js';
-import { PerformanceMonitoringIntegration } from './services/performance-monitoring-integration.js';
+import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
+import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
 import Database from 'better-sqlite3';
 
 async function testAlertsDirect() {

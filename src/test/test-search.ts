@@ -2,7 +2,7 @@
  * 검색 기능 상세 테스트
  */
 
-import { createMementoClient } from './client/index.js';
+import { createMementoClient } from '../client/index.js';
 
 async function testSearchFunctionality() {
   console.log('🔍 검색 기능 상세 테스트 시작');

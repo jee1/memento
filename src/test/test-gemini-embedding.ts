@@ -3,9 +3,9 @@
  * Gemini API를 사용한 임베딩 생성 및 검색 기능 테스트
  */
 
-import { GeminiEmbeddingService } from './services/gemini-embedding-service.js';
-import { EmbeddingService } from './services/embedding-service.js';
-import { mementoConfig } from './config/index.js';
+import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
+import { EmbeddingService } from '../services/embedding-service.js';
+import { mementoConfig } from '../config/index.js';
 
 async function testGeminiEmbeddingService() {
   console.log('🧪 Gemini 임베딩 서비스 테스트 시작\n');

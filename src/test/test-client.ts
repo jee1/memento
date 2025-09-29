@@ -2,7 +2,7 @@
  * Memento MCP Client 테스트 스크립트
  */
 
-import { createMementoClient } from './client/index.js';
+import { createMementoClient } from '../client/index.js';
 
 async function testMementoClient() {
   console.log('🧪 Memento MCP Client 테스트 시작');

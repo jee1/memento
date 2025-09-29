@@ -3,8 +3,8 @@
  * 에러 로깅 서비스의 기능을 테스트하고 통계를 확인
  */
 
-import { createMementoClient } from './client/index.js';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from './services/error-logging-service.js';
+import { createMementoClient } from '../client/index.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
 
 async function testErrorLogging() {
   console.log('🔍 에러 로깅 시스템 테스트 시작');
