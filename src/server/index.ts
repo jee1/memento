@@ -184,6 +184,10 @@ async function initializeServer() {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       process.stderr.write('📋 도구 목록 요청 처리\n');
       const tools = toolRegistry.getAll();
+      process.stderr.write(`📋 등록된 도구 개수: ${tools.length}\n`);
+      tools.forEach(tool => {
+        process.stderr.write(`   - ${tool.name}: ${tool.description}\n`);
+      });
       
       return {
         tools: tools.map(tool => ({
@@ -198,6 +202,7 @@ async function initializeServer() {
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       process.stderr.write(`🔧 도구 실행 요청: ${name}\n`);
+      process.stderr.write(`🔧 도구 인수: ${JSON.stringify(args)}\n`);
       
       // 동시성 제한 적용
       await concurrencyLimiter.acquire();
@@ -219,8 +224,10 @@ async function initializeServer() {
           }
         };
         
+        process.stderr.write(`🔧 도구 실행 시작: ${name}\n`);
         // 도구 실행
         const result = await toolRegistry.execute(name, args, context);
+        process.stderr.write(`🔧 도구 실행 완료: ${name}\n`);
         return result;
       } catch (error) {
         // 에러 로깅

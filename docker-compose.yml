@@ -5,6 +5,7 @@ services:
       - "9001:9001"
     environment:
       - NODE_ENV=production
+      - DOCKER=true
       - DB_PATH=/app/data/memory.db
       - LOG_LEVEL=info
       - OPENAI_API_KEY=${OPENAI_API_KEY}

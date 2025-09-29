@@ -38,6 +38,22 @@ export function initializeDatabase(): Database.Database {
     // 외래키 제약 조건 활성화
     db.pragma('foreign_keys = ON');
     
+    // FTS5 확장 로드 시도 (Docker 환경에서는 더 안정적)
+    try {
+      // Docker 환경에서는 FTS5가 기본적으로 포함되어 있음
+      if (process.env.NODE_ENV === 'production' || process.env.DOCKER === 'true') {
+        // Docker 환경에서는 FTS5가 기본 포함되어 있으므로 로드 시도하지 않음
+        log('🐳 Docker 환경에서 FTS5 사용 가능');
+      } else {
+        // 로컬 환경에서만 확장 로드 시도
+        db.loadExtension('fts5');
+        log('✅ FTS5 확장 로드 완료');
+      }
+    } catch (error) {
+      log('⚠️  FTS5 확장 로드 실패, 기본 검색으로 전환:', error);
+      // FTS5가 없어도 기본 기능은 동작하도록 계속 진행
+    }
+    
     // 잠금 타임아웃 설정 (60초로 증가)
     db.pragma('busy_timeout = 60000');
     

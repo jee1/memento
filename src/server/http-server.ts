@@ -145,18 +145,21 @@ async function handleRecall(params: z.infer<typeof RecallSchema>) {
   }
   
   try {
-    const results = await searchEngine.search(db, {
+    console.log('🔍 HTTP 서버에서 하이브리드 검색 엔진 호출 시작');
+    const results = await hybridSearchEngine.search(db, {
       query,
       filters: filters || {},
       limit
     });
+    console.log('🔍 HTTP 서버에서 하이브리드 검색 엔진 호출 완료, 결과 개수:', results.items.length);
     
     return {
       items: results,
-      search_type: 'text',
-      vector_search_available: false
+      search_type: 'hybrid',
+      vector_search_available: true
     };
   } catch (error) {
+    console.error('❌ 하이브리드 검색 엔진 호출 실패:', error);
     throw error;
   }
 }

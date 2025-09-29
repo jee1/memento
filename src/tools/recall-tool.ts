@@ -54,7 +54,9 @@ export class RecallTool extends BaseTool {
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
+    console.log('🔍 Recall 도구 호출됨:', params);
     const { query, filters, limit } = RecallSchema.parse(params);
+    console.log('🔍 파싱된 파라미터:', { query, filters, limit });
     
     // 데이터베이스 연결 확인
     this.validateDatabase(context);

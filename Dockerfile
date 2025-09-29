@@ -19,7 +19,7 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
-# Install SQLite and VSS extension
+# Install SQLite and development tools (FTS5 is included in SQLite)
 RUN apk add --no-cache python3 make g++ sqlite sqlite-dev
 
 WORKDIR /app

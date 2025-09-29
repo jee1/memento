@@ -50,17 +50,34 @@ export class SearchEngine {
     
     // 2. FTS5 검색 사용 (ID 필터가 없고 검색어가 있을 때)
     if (!hasIdFilter && searchQuery.trim().length > 0) {
-      const ftsQuery = this.buildFTSQuery(searchQuery);
-      sql = `
-        SELECT 
-          m.id, m.content, m.type, m.importance, m.created_at, 
-          m.last_accessed, m.pinned, m.tags, m.source,
-          fts.rank as fts_rank
-        FROM memory_item_fts fts
-        JOIN memory_item m ON fts.rowid = m.rowid
-        WHERE memory_item_fts MATCH ?
-      `;
-      params.push(ftsQuery);
+      // FTS5 사용 가능 여부 확인
+      const ftsAvailable = await this.checkFTS5Availability(db);
+      
+      if (ftsAvailable) {
+        const ftsQuery = this.buildFTSQuery(searchQuery);
+        sql = `
+          SELECT 
+            m.id, m.content, m.type, m.importance, m.created_at, 
+            m.last_accessed, m.pinned, m.tags, m.source,
+            memory_item_fts.rank as fts_rank
+          FROM memory_item_fts
+          JOIN memory_item m ON memory_item_fts.rowid = m.rowid
+          WHERE memory_item_fts MATCH ?
+        `;
+        params.push(ftsQuery);
+      } else {
+        // FTS5가 없으면 기본 LIKE 검색 사용
+        const likeQuery = `%${searchQuery}%`;
+        sql = `
+          SELECT 
+            m.id, m.content, m.type, m.importance, m.created_at, 
+            m.last_accessed, m.pinned, m.tags, m.source,
+            0 as fts_rank
+          FROM memory_item m
+          WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?
+        `;
+        params.push(likeQuery, likeQuery, likeQuery);
+      }
     } else {
       // 3. 기본 SQL 쿼리 구성 (ID 필터가 있거나 검색어가 없을 때)
       sql = `
@@ -123,7 +140,10 @@ export class SearchEngine {
     params.push(limit * 3); // FTS5 랭킹을 고려하여 더 많은 후보 가져오기
     
     // 6. 데이터베이스 쿼리 실행
+    console.log('🔍 검색 쿼리:', sql);
+    console.log('🔍 검색 파라미터:', params);
     const results = await this.executeQuery(db, sql, params);
+    console.log('🔍 검색 결과 개수:', results.length);
     
     // 7. 랭킹 알고리즘 적용 (FTS5 랭킹 활용)
     const rankedResults = this.applyRanking(results, searchQuery);
@@ -144,25 +164,66 @@ export class SearchEngine {
 
   /**
    * FTS5 검색 쿼리 구성
-   * 대소문자 구분 문제 해결
+   * 아키텍처 문서에 따른 쿼리 전처리 구현
    */
   private buildFTSQuery(query: string): string {
-    // 안전한 FTS5 쿼리 생성
-    const cleanQuery = query.trim();
+    console.log('🔍 원본 쿼리:', `"${query}"`);
     
-    if (cleanQuery.length === 0) {
+    // 1. 쿼리 전처리
+    const preprocessedQuery = this.preprocessQuery(query);
+    console.log('🔍 전처리 후:', `"${preprocessedQuery}"`);
+    
+    if (preprocessedQuery.length === 0) {
+      console.log('🔍 빈 쿼리, 모든 문서 검색');
       return '*'; // 빈 쿼리인 경우 모든 문서 검색
     }
     
-    // 한글과 영문만 허용하고 나머지는 제거
-    const safeQuery = cleanQuery.replace(/[^a-zA-Z0-9가-힣]/g, '');
+    // 2. FTS5 안전 쿼리 생성
+    const safeQuery = this.makeFTSSafe(preprocessedQuery);
+    console.log('🔍 FTS5 안전 쿼리:', `"${safeQuery}"`);
     
     if (safeQuery.length === 0) {
+      console.log('🔍 안전 쿼리 빈 문자열, 모든 문서 검색');
       return '*';
     }
     
-    // 단일 단어 검색 (한글도 지원)
     return safeQuery;
+  }
+
+  /**
+   * 쿼리 전처리 - 아키텍처 문서의 전처리 과정 구현
+   */
+  private preprocessQuery(query: string): string {
+    // 1. 공백 정규화
+    let processed = query.trim().replace(/\s+/g, ' ');
+    
+    // 2. 한글과 영문, 숫자, 공백만 유지 (특수문자 제거)
+    processed = processed.replace(/[^a-zA-Z0-9가-힣\s]/g, ' ');
+    
+    // 3. 연속된 공백 제거
+    processed = processed.replace(/\s+/g, ' ');
+    
+    // 4. 불용어 제거 (간단한 한국어/영어 불용어)
+    const stopWords = ['은', '는', '이', '가', '을', '를', '의', '에', '에서', '로', '으로', '와', '과', '도', '만', '부터', '까지', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
+    const words = processed.split(' ').filter(word => 
+      word.length > 0 && !stopWords.includes(word.toLowerCase())
+    );
+    
+    // 5. FTS5를 위한 공백으로 구분된 쿼리 반환
+    return words.join(' ');
+  }
+
+  /**
+   * FTS5 안전 쿼리 생성
+   */
+  private makeFTSSafe(query: string): string {
+    // FTS5에서 특수문자 이스케이프
+    return query
+      .replace(/"/g, '""')  // 따옴표 이스케이프
+      .replace(/'/g, "''")  // 작은따옴표 이스케이프
+      .replace(/[\[\]{}()]/g, ' ') // 대괄호, 중괄호, 소괄호 제거
+      .replace(/\s+/g, ' ') // 연속 공백 정리
+      .trim();
   }
 
   /**
@@ -255,6 +316,46 @@ export class SearchEngine {
         };
       })
       .sort((a, b) => b.score - a.score); // 점수 내림차순 정렬
+  }
+
+  /**
+   * FTS5 사용 가능 여부 확인
+   */
+  private async checkFTS5Availability(db: any): Promise<boolean> {
+    try {
+      // FTS5 테이블 존재 여부 확인
+      const result = db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='memory_item_fts'
+      `).get();
+      
+      if (!result) {
+        console.log('⚠️  FTS5 테이블이 존재하지 않음, 기본 검색으로 전환');
+        return false;
+      }
+      
+      // FTS5 테이블에 데이터가 있는지 확인
+      const count = db.prepare('SELECT COUNT(*) as count FROM memory_item_fts').get();
+      const hasData = count && count.count > 0;
+      
+      if (!hasData) {
+        console.log('⚠️  FTS5 테이블에 데이터가 없음, 기본 검색으로 전환');
+        return false;
+      }
+      
+      // FTS5 쿼리 테스트
+      try {
+        db.prepare('SELECT * FROM memory_item_fts LIMIT 1').get();
+        console.log('✅ FTS5 사용 가능');
+        return true;
+      } catch (ftsError) {
+        console.log('⚠️  FTS5 쿼리 실패, 기본 검색으로 전환:', ftsError);
+        return false;
+      }
+    } catch (error) {
+      console.log('⚠️  FTS5 사용 불가능, 기본 검색으로 전환:', error);
+      return false;
+    }
   }
 
   /**

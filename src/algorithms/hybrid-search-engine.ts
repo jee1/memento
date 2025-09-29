@@ -50,14 +50,17 @@ export class HybridSearchEngine {
     db: any,
     query: HybridSearchQuery
   ): Promise<{ items: HybridSearchResult[], total_count: number, query_time: number }> {
-    const startTime = process.hrtime.bigint();
-    const {
-      query: searchQuery,
-      filters,
-      limit = 10,
-      vectorWeight = this.defaultVectorWeight,
-      textWeight = this.defaultTextWeight,
-    } = query;
+    try {
+      console.log('🚀 하이브리드 검색 엔진 시작!');
+      console.log('🔍 하이브리드 검색 엔진 호출됨:', query);
+      const startTime = process.hrtime.bigint();
+      const {
+        query: searchQuery,
+        filters,
+        limit = 10,
+        vectorWeight = this.defaultVectorWeight,
+        textWeight = this.defaultTextWeight,
+      } = query;
 
     // 1. 적응형 가중치 계산
     const adaptiveWeights = this.calculateAdaptiveWeights(searchQuery, vectorWeight, textWeight);
@@ -67,6 +70,7 @@ export class HybridSearchEngine {
     console.log(`🔍 하이브리드 검색: "${searchQuery}" (벡터:${normalizedVectorWeight.toFixed(2)}, 텍스트:${normalizedTextWeight.toFixed(2)})`);
 
     // 2. 텍스트 검색 실행
+    console.log('🔍 하이브리드에서 SearchEngine 호출:', searchQuery);
     const textSearchResult = await this.textSearchEngine.search(db, {
       query: searchQuery,
       filters,
@@ -111,6 +115,10 @@ export class HybridSearchEngine {
       total_count: finalResults.length,
       query_time: queryTime
     };
+    } catch (error) {
+      console.error('❌ 하이브리드 검색 엔진 에러:', error);
+      throw error;
+    }
   }
 
   /**

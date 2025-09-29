@@ -268,7 +268,7 @@ export class GeminiEmbeddingService {
     if (this.genAI) {
       return {
         model: this.model,
-        dimensions: 768, // Gemini text-embedding-004 차원
+        dimensions: mementoConfig.embeddingDimensions, // 환경 변수에서 차원 가져오기
         maxTokens: this.maxTokens,
       };
     } else {
