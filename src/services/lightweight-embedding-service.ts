@@ -4,6 +4,8 @@
  * OpenAI가 없을 때 사용하는 fallback 솔루션
  */
 
+import { getStopWords } from '../utils/stopwords';
+
 export interface LightweightEmbeddingResult {
   embedding: number[];
   model: string;
@@ -26,12 +28,10 @@ export class LightweightEmbeddingService {
   private vocabulary: Map<string, number> = new Map();
   private documentFrequencies: Map<string, number> = new Map();
   private totalDocuments = 0;
-  private readonly stopWords = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
-    '이', '그', '저', '의', '가', '을', '를', '에', '에서', '로', '으로', '와', '과', '도', '는', '은'
-  ]);
+  private readonly stopWords: Set<string>;
 
   constructor() {
+    this.stopWords = getStopWords();
     console.log('✅ 경량 하이브리드 임베딩 서비스 초기화 완료');
   }
 
