@@ -70,7 +70,7 @@ async function regenerateEmbeddings() {
 
         // 데이터베이스에 저장
         db.prepare(`
-          INSERT INTO memory_embedding (memory_id, embedding, dim, model, created_at)
+          INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, model, created_at)
           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
         `).run(
           memory.id,

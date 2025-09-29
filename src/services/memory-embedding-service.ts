@@ -56,12 +56,13 @@ export class MemoryEmbeddingService {
 
       // 데이터베이스에 저장
       await DatabaseUtils.run(db, `
-        INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, created_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, model, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         memoryId,
         JSON.stringify(embeddingResult.embedding),
         embeddingResult.embedding.length,
+        embeddingResult.model,
       ]);
 
       console.log(`✅ 임베딩 저장 완료: ${memoryId} (${embeddingResult.embedding.length}차원)`);
