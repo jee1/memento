@@ -41,60 +41,43 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ## 🚀 빠른 시작
 
-### 1. 설치
+### 🥇 **원클릭 설치 (권장)**
+```bash
+# 자동 설치 스크립트 실행
+curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
+```
 
+### 🥈 **npx 방식 (개발자용)**
+```bash
+# 즉시 실행 (설치 없이)
+npx memento-mcp-server@latest dev
+
+# 자동 설정 후 실행
+npx memento-mcp-server@latest setup
+npx memento-mcp-server@latest start
+```
+
+### 🥉 **Docker 방식 (프로덕션용)**
+```bash
+# 개발 환경
+docker-compose -f docker-compose.dev.yml up -d
+
+# 프로덕션 환경
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 🛠️ **소스코드 방식 (개발자용)**
 ```bash
 # 저장소 클론
 git clone https://github.com/jee1/memento.git
 cd memento
 
-# 의존성 설치
-npm install
-
-# 환경 변수 설정
-cp env.example .env
-# .env 파일에서 OPENAI_API_KEY 설정 (선택사항)
-# OPENAI_API_KEY가 없어도 경량 임베딩 서비스로 동작
+# 원클릭 설치 및 실행
+npm run quick-start
 ```
 
-### 2. 개발 서버 실행
-
-```bash
-# MCP 서버 개발 모드 (핫 리로드)
-npm run dev
-
-# HTTP/WebSocket 서버 개발 모드
-npm run dev:http
-```
-
-### 3. 프로덕션 빌드
-
-```bash
-# TypeScript 컴파일 및 에셋 복사
-npm run build
-
-# MCP 서버 프로덕션 실행
-npm run start
-
-# HTTP/WebSocket 서버 프로덕션 실행
-npm run start:http
-```
-
-### 4. Docker 배포
-
-```bash
-# Docker 이미지 빌드
-docker build -t memento-mcp-server .
-
-# MCP 서버 Docker 실행
-docker run -p 8080:8080 -v $(pwd)/data:/app/data memento-mcp-server
-
-# HTTP/WebSocket 서버 Docker 실행
-docker run -p 8080:8080 -v $(pwd)/data:/app/data memento-mcp-server npm run start:http
-
-# Docker Compose 실행
-docker-compose up -d
-```
+### 📚 **상세 설치 가이드**
+자세한 설치 방법은 [INSTALL.md](INSTALL.md)를 참조하세요.
 
 ## 🛠️ 사용법
 

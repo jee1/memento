@@ -3,7 +3,7 @@
  * 모듈화된 구조의 HTTP 서버 v2 기능 검증
  */
 
-import { startServer, cleanup, __test } from '../server/http-server-v2.js';
+import { startServer, cleanup, __test } from '../server/http-server.js';
 import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';

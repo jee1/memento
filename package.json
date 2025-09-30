@@ -4,6 +4,11 @@
   "description": "AI Agent 기억 보조 MCP 서버 - 사람의 기억 구조를 모사한 스토리지+검색+요약+망각 메커니즘",
   "main": "dist/server.js",
   "type": "module",
+  "bin": {
+    "memento-mcp": "./dist/server/index.js",
+    "memento-dev": "./dist/server/http-server.js",
+    "memento-setup": "./scripts/auto-setup.js"
+  },
   "scripts": {
     "dev": "tsx watch src/server/index.ts",
     "dev:http": "tsx watch src/server/http-server.ts",
@@ -30,6 +35,9 @@
     "test:error-logging": "tsx src/test/test-error-logging.ts",
     "test:performance-alerts": "tsx src/test/test-performance-alerts.ts",
     "test:docker": "node test-docker.js",
+    "setup": "node scripts/auto-setup.js",
+    "postinstall": "node scripts/auto-setup.js",
+    "quick-start": "npm install && npm run setup && npm run dev",
     "backup:embeddings": "node scripts/backup-embeddings.js",
     "regenerate:embeddings": "node scripts/regenerate-embeddings.js",
     "debug:embeddings": "node scripts/debug-embeddings.js",
@@ -39,6 +47,10 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "docker:dev:logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "docker:prod:logs": "docker-compose -f docker-compose.prod.yml logs -f",
     "build:client": "cd packages/mcp-client && npm run build",
     "dev:client": "cd packages/mcp-client && npm run dev",
     "clean:client": "cd packages/mcp-client && npm run clean",

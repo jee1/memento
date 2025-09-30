@@ -2,7 +2,7 @@ services:
   memento-mcp-server:
     build: .
     ports:
-      - "9001:9001"
+      - "8080:8080"
     environment:
       - NODE_ENV=production
       - DOCKER=true
@@ -10,17 +10,24 @@ services:
       - LOG_LEVEL=info
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}
-      - GEMINI_MODEL=${GEMINI_MODEL}
-      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS}
-      - PORT=9001
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-lightweight}
+      - GEMINI_MODEL=${GEMINI_MODEL:-text-embedding-004}
+      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-512}
+      - PORT=8080
     volumes:
       - ./data:/app/data
+      - ./logs:/app/logs
     restart: unless-stopped
     user: root
     command: ["/app/start-container.sh"]
     stdin_open: true
     tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Redis for caching (optional)
   # redis:
