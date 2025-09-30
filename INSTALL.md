@@ -1,5 +1,9 @@
 # 🚀 Memento MCP Server 설치 가이드
 
+<div align="center">
+  [🇰🇷 한국어](INSTALL.md) | [🇺🇸 English](INSTALL.en.md)
+</div>
+
 AI Agent 기억 보조 MCP 서버의 다양한 설치 방법을 제공합니다.
 
 ## 📋 설치 방법 선택

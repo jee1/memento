@@ -2,6 +2,8 @@
 
 <div align="center">
   <img src="static/logo.png" alt="Memento Logo" width="200" height="200">
+  
+  [🇰🇷 한국어](README.md) | [🇺🇸 English](README.en.md)
 </div>
 
 AI Agent 기억 보조 MCP 서버 - 사람의 기억 구조를 모사한 스토리지+검색+요약+망각 메커니즘
