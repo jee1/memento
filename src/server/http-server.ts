@@ -1,6 +1,6 @@
 /**
- * HTTP/WebSocket 기반 MCP 서버
- * 콘솔 로그와 MCP 프로토콜 충돌 문제를 해결
+ * HTTP/WebSocket 기반 MCP 서버 v2
+ * 모듈화된 구조로 새로 구현
  */
 
 import express from 'express';
@@ -9,55 +9,12 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
-import { DatabaseUtils } from '../utils/database.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import type { MemoryType, PrivacyScope } from '../types/index.js';
+import { getToolRegistry } from '../tools/index.js';
+import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
-import { z } from 'zod';
-
-// MCP Tools 스키마 정의
-const RememberSchema = z.object({
-  content: z.string().min(1, 'Content cannot be empty'),
-  type: z.enum(['working', 'episodic', 'semantic', 'procedural']).default('episodic'),
-  tags: z.array(z.string()).optional(),
-  importance: z.number().min(0).max(1).default(0.5),
-  source: z.string().optional(),
-  privacy_scope: z.enum(['private', 'team', 'public']).default('private')
-});
-
-const RecallSchema = z.object({
-  query: z.string().min(1, 'Query cannot be empty'),
-  filters: z.object({
-    type: z.array(z.enum(['working', 'episodic', 'semantic', 'procedural'])).optional(),
-    tags: z.array(z.string()).optional(),
-    privacy_scope: z.array(z.enum(['private', 'team', 'public'])).optional(),
-    time_from: z.string().optional(),
-    time_to: z.string().optional(),
-    pinned: z.boolean().optional()
-  }).optional(),
-  limit: z.number().min(1).max(50).default(10)
-});
-
-const ForgetSchema = z.object({
-  id: z.string().min(1, 'Memory ID cannot be empty'),
-  hard: z.boolean().default(false)
-});
-
-const PinSchema = z.object({
-  id: z.string().min(1, 'Memory ID cannot be empty')
-});
-
-const UnpinSchema = z.object({
-  id: z.string().min(1, 'Memory ID cannot be empty')
-});
-
-const ContextInjectionSchema = z.object({
-  query: z.string().min(1, 'Query cannot be empty'),
-  context: z.string().min(1, 'Context cannot be empty'),
-  limit: z.number().min(1).max(50).default(5)
-});
 
 // 전역 변수
 let db: Database.Database | null = null;
@@ -84,474 +41,78 @@ function setTestDependencies({
   embeddingService = embedding ?? new MemoryEmbeddingService();
 }
 
-// Tool 핸들러들 (기존과 동일)
-async function handleRemember(params: z.infer<typeof RememberSchema>) {
-  const { content, type, tags, importance, source, privacy_scope } = params;
-  
-  const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
-  if (!db) {
-    throw new Error('데이터베이스가 초기화되지 않았습니다');
-  }
-  
-  try {
-    const result = await DatabaseUtils.runTransaction(db!, async () => {
-      await DatabaseUtils.run(db!, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [id, type, content, importance, privacy_scope, 
-          tags ? JSON.stringify(tags) : null, source]);
-      
-      return { id, type, content, importance, privacy_scope, tags, source };
-    });
-    
-    // 임베딩 생성 (비동기)
-    if (embeddingService.isAvailable()) {
-      embeddingService.createAndStoreEmbedding(db, id, content, type)
-        .then(result => {
-          if (result) {
-            console.log(`✅ 임베딩 생성 완료: ${id} (${result.embedding.length}차원)`);
-          }
-        })
-        .catch(error => {
-          console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
-        });
-    }
-    
-    return {
-      memory_id: id,
-      message: `기억이 저장되었습니다: ${id}`,
-      embedding_created: embeddingService.isAvailable()
-    };
-  } catch (error) {
-    if ((error as any).code === 'SQLITE_BUSY') {
-      console.log('🔧 데이터베이스 락 감지, WAL 체크포인트 시도...');
-      try {
-        await DatabaseUtils.checkpointWAL(db);
-        console.log('✅ WAL 체크포인트 완료, 재시도 가능');
-      } catch (checkpointError) {
-        console.error('❌ WAL 체크포인트 실패:', checkpointError);
-      }
-    }
-    throw error;
-  }
-}
-
-async function handleRecall(params: z.infer<typeof RecallSchema>) {
-  const { query, filters, limit } = params;
-  
-  if (!db) {
-    throw new Error('데이터베이스가 초기화되지 않았습니다');
-  }
-  
-  try {
-    console.log('🔍 HTTP 서버에서 하이브리드 검색 엔진 호출 시작');
-    const results = await hybridSearchEngine.search(db, {
-      query,
-      filters: filters || {},
-      limit
-    });
-    console.log('🔍 HTTP 서버에서 하이브리드 검색 엔진 호출 완료, 결과 개수:', results.items.length);
-    
-    return {
-      items: results,
-      search_type: 'hybrid',
-      vector_search_available: true
-    };
-  } catch (error) {
-    console.error('❌ 하이브리드 검색 엔진 호출 실패:', error);
-    throw error;
-  }
-}
-
-async function handleForget(params: z.infer<typeof ForgetSchema>) {
-  const { id, hard } = params;
-  
-  if (!db) {
-    throw new Error('데이터베이스가 초기화되지 않았습니다');
-  }
-  
-  try {
-    const result = await DatabaseUtils.runTransaction(db!, async () => {
-      if (hard) {
-        const deleteResult = await DatabaseUtils.run(db!, 'DELETE FROM memory_item WHERE id = ?', [id]);
-        
-        if (deleteResult.changes === 0) {
-          throw new Error(`Memory with ID ${id} not found`);
-        }
-        
-        return { type: 'hard', changes: deleteResult.changes };
-      } else {
-        const updateResult = await DatabaseUtils.run(db!, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
-        
-        if (updateResult.changes === 0) {
-          throw new Error(`Memory with ID ${id} not found`);
-        }
-        
-        return { type: 'soft', changes: updateResult.changes };
-      }
-    });
-    
-    if (hard && embeddingService.isAvailable()) {
-      try {
-        await embeddingService.deleteEmbedding(db, id);
-      } catch (embeddingError) {
-        console.warn(`⚠️ 임베딩 삭제 실패 (${id}):`, embeddingError);
-      }
-    }
-    
-    return {
-      memory_id: id,
-      message: hard ? `기억이 완전히 삭제되었습니다: ${id}` : `기억이 삭제 대상으로 표시되었습니다: ${id}`
-    };
-  } catch (error) {
-    if ((error as any).code === 'SQLITE_BUSY') {
-      console.log('🔧 데이터베이스 락 감지, WAL 체크포인트 시도...');
-      try {
-        await DatabaseUtils.checkpointWAL(db);
-        console.log('✅ WAL 체크포인트 완료, 재시도 가능');
-      } catch (checkpointError) {
-        console.error('❌ WAL 체크포인트 실패:', checkpointError);
-      }
-    }
-    throw error;
-  }
-}
-
-async function handlePin(params: z.infer<typeof PinSchema>) {
-  const { id } = params;
-  
-  if (!db) {
-    throw new Error('데이터베이스가 초기화되지 않았습니다');
-  }
-  
-  try {
-    await DatabaseUtils.runTransaction(db!, async () => {
-      const result = await DatabaseUtils.run(db!, 'UPDATE memory_item SET pinned = TRUE WHERE id = ?', [id]);
-      
-      if (result.changes === 0) {
-        throw new Error(`Memory with ID ${id} not found`);
-      }
-      
-      return result;
-    });
-    
-    return {
-      memory_id: id,
-      message: `기억이 고정되었습니다: ${id}`
-    };
-  } catch (error) {
-    if ((error as any).code === 'SQLITE_BUSY') {
-      console.log('🔧 데이터베이스 락 감지, WAL 체크포인트 시도...');
-      try {
-        await DatabaseUtils.checkpointWAL(db);
-        console.log('✅ WAL 체크포인트 완료, 재시도 가능');
-      } catch (checkpointError) {
-        console.error('❌ WAL 체크포인트 실패:', checkpointError);
-      }
-    }
-    throw error;
-  }
-}
-
-async function handleUnpin(params: z.infer<typeof UnpinSchema>) {
-  const { id } = params;
-  
-  if (!db) {
-    throw new Error('데이터베이스가 초기화되지 않았습니다');
-  }
-  
-  try {
-    await DatabaseUtils.runTransaction(db!, async () => {
-      const result = await DatabaseUtils.run(db!, 'UPDATE memory_item SET pinned = FALSE WHERE id = ?', [id]);
-      
-      if (result.changes === 0) {
-        throw new Error(`Memory with ID ${id} not found`);
-      }
-      
-      return result;
-    });
-    
-    return {
-      memory_id: id,
-      message: `기억 고정이 해제되었습니다: ${id}`
-    };
-  } catch (error) {
-    if ((error as any).code === 'SQLITE_BUSY') {
-      console.log('🔧 데이터베이스 락 감지, WAL 체크포인트 시도...');
-      try {
-        await DatabaseUtils.checkpointWAL(db);
-        console.log('✅ WAL 체크포인트 완료, 재시도 가능');
-      } catch (checkpointError) {
-        console.error('❌ WAL 체크포인트 실패:', checkpointError);
-      }
-    }
-    throw error;
-  }
-}
-
-async function handleContextInjection(params: z.infer<typeof ContextInjectionSchema>) {
-  const { query, context, limit } = params;
-  
-  if (!db) {
-    throw new Error('데이터베이스가 초기화되지 않았습니다');
-  }
-  
-  try {
-    // 쿼리로 관련 기억 검색
-    const searchResult = await hybridSearchEngine.search(db, {
-      query,
-      limit: limit * 2, // 더 많은 후보를 가져와서 컨텍스트와 매칭
-      vectorWeight: 0.6,
-      textWeight: 0.4
-    });
-    
-    // 컨텍스트와 관련성 높은 기억들 필터링
-    const relevantMemories = searchResult.items
-      .filter(memory => {
-        // 간단한 키워드 매칭으로 관련성 판단
-        const contextKeywords = context.toLowerCase().split(/\s+/);
-        const memoryContent = memory.content.toLowerCase();
-        return contextKeywords.some(keyword => memoryContent.includes(keyword));
-      })
-      .slice(0, limit);
-    
-    return {
-      memories: relevantMemories,
-      total_count: relevantMemories.length,
-      context: context,
-      query: query
-    };
-  } catch (error) {
-    if ((error as any).code === 'SQLITE_BUSY') {
-      console.log('🔧 데이터베이스 락 감지, WAL 체크포인트 시도...');
-      try {
-        await DatabaseUtils.checkpointWAL(db);
-        console.log('✅ WAL 체크포인트 완료, 재시도 가능');
-      } catch (checkpointError) {
-        console.error('❌ WAL 체크포인트 실패:', checkpointError);
-      }
-    }
-    throw error;
-  }
-}
-
 // Express 앱 생성
 const app = express();
 const server = createServer(app);
 
 // 미들웨어 설정
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// MCP Tools 목록
-const tools = [
-  {
-    name: 'remember',
-    description: '기억을 저장합니다',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        content: { type: 'string', description: '저장할 기억 내용' },
-        type: { 
-          type: 'string', 
-          enum: ['working', 'episodic', 'semantic', 'procedural'],
-          default: 'episodic',
-          description: '기억 타입'
-        },
-        tags: { type: 'array', items: { type: 'string' }, description: '태그 목록' },
-        importance: { type: 'number', minimum: 0, maximum: 1, default: 0.5, description: '중요도 (0-1)' },
-        source: { type: 'string', description: '출처' },
-        privacy_scope: { 
-          type: 'string', 
-          enum: ['private', 'team', 'public'],
-          default: 'private',
-          description: '프라이버시 범위'
-        }
-      },
-      required: ['content']
-    }
-  },
-  {
-    name: 'recall',
-    description: '기억을 검색합니다',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: '검색 쿼리' },
-        filters: {
-          type: 'object',
-          properties: {
-            type: { type: 'array', items: { type: 'string' }, description: '기억 타입 필터' },
-            tags: { type: 'array', items: { type: 'string' }, description: '태그 필터' },
-            privacy_scope: { type: 'array', items: { type: 'string' }, description: '프라이버시 범위 필터' },
-            time_from: { type: 'string', description: '시작 시간' },
-            time_to: { type: 'string', description: '종료 시간' },
-            pinned: { type: 'boolean', description: '고정된 기억만' }
-          }
-        },
-        limit: { type: 'number', minimum: 1, maximum: 50, default: 10, description: '결과 개수 제한' }
-      },
-      required: ['query']
-    }
-  },
-  {
-    name: 'forget',
-    description: '기억을 삭제합니다',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: '삭제할 기억 ID' },
-        hard: { type: 'boolean', default: false, description: '완전 삭제 여부' }
-      },
-      required: ['id']
-    }
-  },
-  {
-    name: 'pin',
-    description: '기억을 고정합니다',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: '고정할 기억 ID' }
-      },
-      required: ['id']
-    }
-  },
-  {
-    name: 'unpin',
-    description: '기억 고정을 해제합니다',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: '고정 해제할 기억 ID' }
-      },
-      required: ['id']
-    }
-  }
-];
-
-// API 엔드포인트
+// 기본 API 엔드포인트
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     server: mementoConfig.serverName,
     version: mementoConfig.serverVersion,
-    database: db ? 'connected' : 'disconnected'
+    database: db ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
   });
 });
 
 app.get('/tools', (req, res) => {
-  res.json({ tools });
-});
-
-// 관리자 API 엔드포인트들
-app.post('/admin/memory/cleanup', async (req, res) => {
   try {
-    // 메모리 정리 로직 (기존 CleanupMemoryTool 로직)
-    res.json({ message: '메모리 정리 완료' });
+    const toolRegistry = getToolRegistry();
+    const tools = toolRegistry.getAll();
+    res.json({ 
+      tools,
+      count: tools.length,
+      server: mementoConfig.serverName
+    });
   } catch (error) {
-    res.status(500).json({ error: '메모리 정리 실패' });
+    console.error('❌ 도구 목록 조회 실패:', error);
+    res.status(500).json({ 
+      error: 'Failed to get tools',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
-app.get('/admin/stats/forgetting', async (req, res) => {
-  try {
-    // 망각 통계 로직 (기존 ForgettingStatsTool 로직)
-    res.json({ message: '망각 통계 조회 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '망각 통계 조회 실패' });
-  }
-});
-
-app.get('/admin/stats/performance', async (req, res) => {
-  try {
-    // 성능 통계 로직 (기존 PerformanceStatsTool 로직)
-    res.json({ message: '성능 통계 조회 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '성능 통계 조회 실패' });
-  }
-});
-
-app.post('/admin/database/optimize', async (req, res) => {
-  try {
-    // 데이터베이스 최적화 로직 (기존 DatabaseOptimizeTool 로직)
-    res.json({ message: '데이터베이스 최적화 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '데이터베이스 최적화 실패' });
-  }
-});
-
-app.get('/admin/stats/errors', async (req, res) => {
-  try {
-    // 에러 통계 로직 (기존 errorStatsTool 로직)
-    res.json({ message: '에러 통계 조회 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '에러 통계 조회 실패' });
-  }
-});
-
-app.post('/admin/errors/resolve', async (req, res) => {
-  try {
-    const { errorId, resolvedBy, reason } = req.body;
-    // 에러 해결 로직 (기존 resolveErrorTool 로직)
-    res.json({ message: '에러 해결 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '에러 해결 실패' });
-  }
-});
-
-app.get('/admin/alerts/performance', async (req, res) => {
-  try {
-    // 성능 알림 로직 (기존 performanceAlertsTool 로직)
-    res.json({ message: '성능 알림 조회 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '성능 알림 조회 실패' });
-  }
-});
-
+// 도구 실행 엔드포인트
 app.post('/tools/:name', async (req, res) => {
   const { name } = req.params;
   const params = req.body;
   
   try {
-    let result;
+    const toolRegistry = getToolRegistry();
     
-    switch (name) {
-      case 'remember':
-        result = await handleRemember(RememberSchema.parse(params));
-        break;
-      case 'recall':
-        result = await handleRecall(RecallSchema.parse(params));
-        break;
-      case 'forget':
-        result = await handleForget(ForgetSchema.parse(params));
-        break;
-      case 'pin':
-        result = await handlePin(PinSchema.parse(params));
-        break;
-      case 'unpin':
-        result = await handleUnpin(UnpinSchema.parse(params));
-        break;
-      case 'context-injection':
-        result = await handleContextInjection(ContextInjectionSchema.parse(params));
-        break;
-      default:
-        return res.status(404).json({ error: `Unknown tool: ${name}` });
-    }
+    // 도구 컨텍스트 생성
+    const context: ToolContext = {
+      db,
+      services: {
+        searchEngine,
+        hybridSearchEngine,
+        embeddingService
+      }
+    };
     
-    return res.json({ result });
+    // 도구 실행
+    const result = await toolRegistry.execute(name, params, context);
+    return res.json({ 
+      result,
+      tool: name,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Invalid parameters', 
-        details: error.errors.map(e => e.message).join(', ')
-      });
-    }
-    
     console.error(`❌ Tool ${name} 실행 실패:`, error);
     return res.status(500).json({ 
-      error: 'Internal server error',
+      error: 'Tool execution failed',
+      tool: name,
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -586,8 +147,6 @@ app.get('/mcp', async (req, res) => {
     
     // MCP 서버 준비 완료 알림 (클라이언트가 initialize를 보내야 함)
     res.write(`data: {"type": "ready"}\n\n`);
-    
-    // 즉시 응답 플러시 (Express에서는 자동으로 처리됨)
     
     // Keep-alive ping 전송
     const keepAliveInterval = setInterval(() => {
@@ -691,41 +250,18 @@ app.post('/messages', express.json(), async (req, res) => {
       console.log('📋 MCP tools/list 요청 처리 중...');
       
       try {
-        // 간단한 도구 목록으로 테스트
-        const simpleTools = [
-          {
-            name: 'remember',
-            description: '기억을 저장합니다',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                content: { type: 'string', description: '저장할 기억 내용' }
-              },
-              required: ['content']
-            }
-          },
-          {
-            name: 'recall',
-            description: '기억을 검색합니다',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: '검색 쿼리' }
-              },
-              required: ['query']
-            }
-          }
-        ];
+        const toolRegistry = getToolRegistry();
+        const tools = toolRegistry.getAll();
         
-        console.log('🔍 간단한 도구 목록 사용, 길이:', simpleTools.length);
+        console.log('🔍 도구 목록 사용, 길이:', tools.length);
         
         result = {
           jsonrpc: '2.0',
           id: message.id,
-          result: { tools: simpleTools }
+          result: { tools }
         };
         
-        console.log('✅ MCP tools/list 응답 생성 완료, tools 개수:', simpleTools.length);
+        console.log('✅ MCP tools/list 응답 생성 완료, tools 개수:', tools.length);
         console.log('🔍 응답 크기:', JSON.stringify(result).length, 'bytes');
         
         // SSE 응답 즉시 전송
@@ -763,45 +299,26 @@ app.post('/messages', express.json(), async (req, res) => {
     } else if (message.method === 'tools/call') {
       const { name, arguments: args } = message.params;
       
-      switch (name) {
-        case 'remember':
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(await handleRemember(RememberSchema.parse(args))) }] }
-          };
-          break;
-        case 'recall':
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(await handleRecall(RecallSchema.parse(args))) }] }
-          };
-          break;
-        case 'forget':
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(await handleForget(ForgetSchema.parse(args))) }] }
-          };
-          break;
-        case 'pin':
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(await handlePin(PinSchema.parse(args))) }] }
-          };
-          break;
-        case 'unpin':
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(await handleUnpin(UnpinSchema.parse(args))) }] }
-          };
-          break;
-        default:
-          throw new Error(`Unknown tool: ${name}`);
-      }
+      const toolRegistry = getToolRegistry();
+      
+      // 도구 컨텍스트 생성
+      const context: ToolContext = {
+        db,
+        services: {
+          searchEngine,
+          hybridSearchEngine,
+          embeddingService
+        }
+      };
+      
+      // 도구 실행
+      const toolResult = await toolRegistry.execute(name, args, context);
+      
+      result = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
+      };
     } else {
       result = {
         jsonrpc: '2.0',
@@ -865,76 +382,187 @@ app.post('/messages', express.json(), async (req, res) => {
   }
 });
 
-// WebSocket 서버 설정
-const wss = new WebSocketServer({ server });
-
-wss.on('connection', (ws) => {
-  console.log('🔗 WebSocket 클라이언트 연결됨');
-  
-  ws.on('message', async (data) => {
-    let message: any;
-    try {
-      message = JSON.parse(data.toString());
-      
-      if (message.method === 'tools/list') {
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { tools }
-        }));
-      } else if (message.method === 'tools/call') {
-        const { name, arguments: args } = message.params;
-        let result;
-        
-        switch (name) {
-          case 'remember':
-            result = await handleRemember(RememberSchema.parse(args));
-            break;
-          case 'recall':
-            result = await handleRecall(RecallSchema.parse(args));
-            break;
-          case 'forget':
-            result = await handleForget(ForgetSchema.parse(args));
-            break;
-          case 'pin':
-            result = await handlePin(PinSchema.parse(args));
-            break;
-          case 'unpin':
-            result = await handleUnpin(UnpinSchema.parse(args));
-            break;
-          default:
-            throw new Error(`Unknown tool: ${name}`);
-        }
-        
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { content: [{ type: 'text', text: JSON.stringify(result) }] }
-        }));
-      }
-    } catch (error) {
-      console.error('❌ WebSocket 메시지 처리 실패:', error);
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        id: message?.id || null,
-        error: {
-          code: -32603,
-          message: 'Internal error',
-          data: error instanceof Error ? error.message : 'Unknown error'
-        }
-      }));
+// 관리자 API 엔드포인트들
+app.post('/admin/memory/cleanup', async (req, res) => {
+  try {
+    // 메모리 정리 로직 (기존 CleanupMemoryTool 로직)
+    if (!db) {
+      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
     }
-  });
-  
-  ws.on('close', () => {
-    console.log('🔌 WebSocket 클라이언트 연결 해제됨');
-  });
+    
+    // 간단한 메모리 정리 구현
+    const result = await db.prepare(`
+      DELETE FROM memory_item 
+      WHERE pinned = FALSE 
+        AND type = 'working' 
+        AND created_at < datetime('now', '-2 days')
+    `).run();
+    
+    return res.json({ 
+      message: '메모리 정리 완료',
+      deleted_count: result.changes,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 메모리 정리 실패:', error);
+    return res.status(500).json({ 
+      error: '메모리 정리 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/stats/forgetting', async (req, res) => {
+  try {
+    // 망각 통계 로직 (기존 ForgettingStatsTool 로직)
+    if (!db) {
+      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+    }
+    
+    const stats = await db.prepare(`
+      SELECT 
+        type,
+        COUNT(*) as total_count,
+        COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_count,
+        COUNT(CASE WHEN created_at < datetime('now', '-30 days') THEN 1 END) as old_count
+      FROM memory_item 
+      GROUP BY type
+    `).all();
+    
+    return res.json({ 
+      message: '망각 통계 조회 완료',
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 망각 통계 조회 실패:', error);
+    return res.status(500).json({ 
+      error: '망각 통계 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/stats/performance', async (req, res) => {
+  try {
+    // 성능 통계 로직 (기존 PerformanceStatsTool 로직)
+    if (!db) {
+      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+    }
+    
+    const stats = await db.prepare(`
+      SELECT 
+        COUNT(*) as total_memories,
+        COUNT(CASE WHEN type = 'working' THEN 1 END) as working_memories,
+        COUNT(CASE WHEN type = 'episodic' THEN 1 END) as episodic_memories,
+        COUNT(CASE WHEN type = 'semantic' THEN 1 END) as semantic_memories,
+        COUNT(CASE WHEN type = 'procedural' THEN 1 END) as procedural_memories,
+        COUNT(CASE WHEN pinned = TRUE THEN 1 END) as pinned_memories
+      FROM memory_item
+    `).get();
+    
+    return res.json({ 
+      message: '성능 통계 조회 완료',
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 성능 통계 조회 실패:', error);
+    return res.status(500).json({ 
+      error: '성능 통계 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/database/optimize', async (req, res) => {
+  try {
+    // 데이터베이스 최적화 로직 (기존 DatabaseOptimizeTool 로직)
+    if (!db) {
+      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+    }
+    
+    // VACUUM 실행
+    await db.prepare('VACUUM').run();
+    
+    // ANALYZE 실행
+    await db.prepare('ANALYZE').run();
+    
+    return res.json({ 
+      message: '데이터베이스 최적화 완료',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 데이터베이스 최적화 실패:', error);
+    return res.status(500).json({ 
+      error: '데이터베이스 최적화 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/stats/errors', async (req, res) => {
+  try {
+    // 에러 통계 로직 (기존 errorStatsTool 로직)
+    res.json({ 
+      message: '에러 통계 조회 완료',
+      stats: {
+        total_errors: 0,
+        recent_errors: [],
+        error_types: {}
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 에러 통계 조회 실패:', error);
+    res.status(500).json({ 
+      error: '에러 통계 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/errors/resolve', async (req, res) => {
+  try {
+    const { errorId, resolvedBy, reason } = req.body;
+    // 에러 해결 로직 (기존 resolveErrorTool 로직)
+    res.json({ 
+      message: '에러 해결 완료',
+      errorId,
+      resolvedBy,
+      reason,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 에러 해결 실패:', error);
+    res.status(500).json({ 
+      error: '에러 해결 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/alerts/performance', async (req, res) => {
+  try {
+    // 성능 알림 로직 (기존 performanceAlertsTool 로직)
+    res.json({ 
+      message: '성능 알림 조회 완료',
+      alerts: [],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 성능 알림 조회 실패:', error);
+    res.status(500).json({ 
+      error: '성능 알림 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // 서버 초기화
 async function initializeServer() {
   try {
-    console.log('🚀 HTTP/WebSocket MCP 서버 시작 중...');
+    console.log('🚀 HTTP/WebSocket MCP 서버 v2 시작 중...');
     
     // 설정 검증
     validateConfig();
@@ -971,7 +599,7 @@ async function initializeServer() {
 let isCleaningUp = false;
 async function cleanup() {
   if (isCleaningUp) {
-    return; // 이미 정리 중이면 중복 실행 방지
+    return;
   }
   
   isCleaningUp = true;
@@ -981,13 +609,13 @@ async function cleanup() {
       closeDatabase(db);
       db = null;
     }
-    console.log('👋 HTTP/WebSocket MCP 서버 종료');
+    console.log('👋 HTTP/WebSocket MCP 서버 v2 종료');
   } catch (error) {
     console.error('❌ 정리 중 오류:', error);
   }
 }
 
-// 프로세스 종료 시 정리 (한 번만 등록)
+// 프로세스 종료 시 정리
 let cleanupRegistered = false;
 function registerCleanupHandlers() {
   if (cleanupRegistered) {
@@ -1012,6 +640,73 @@ function registerCleanupHandlers() {
     process.exit(1);
   });
 }
+
+// WebSocket 서버 설정
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws) => {
+  console.log('🔗 WebSocket 클라이언트 연결됨');
+  
+  ws.on('message', async (data) => {
+    let message: any;
+    try {
+      message = JSON.parse(data.toString());
+      
+      if (message.method === 'tools/list') {
+        const toolRegistry = getToolRegistry();
+        const tools = toolRegistry.getAll();
+        
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { tools }
+        }));
+      } else if (message.method === 'tools/call') {
+        const { name, arguments: args } = message.params;
+        
+        const toolRegistry = getToolRegistry();
+        
+        // 도구 컨텍스트 생성
+        const context: ToolContext = {
+          db,
+          services: {
+            searchEngine,
+            hybridSearchEngine,
+            embeddingService
+          }
+        };
+        
+        // 도구 실행
+        const result = await toolRegistry.execute(name, args, context);
+        
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { content: [{ type: 'text', text: JSON.stringify(result) }] }
+        }));
+      }
+    } catch (error) {
+      console.error('❌ WebSocket 메시지 처리 실패:', error);
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        id: message?.id || null,
+        error: {
+          code: -32603,
+          message: 'Internal error',
+          data: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }));
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('🔌 WebSocket 클라이언트 연결 해제됨');
+  });
+  
+  ws.on('error', (error) => {
+    console.error('❌ WebSocket 에러:', error);
+  });
+});
 
 // 서버 시작
 const PORT = process.env.PORT || 9001;
@@ -1040,7 +735,7 @@ async function startServer() {
 }
 
 // 서버 시작
-if (process.argv[1] && process.argv[1].endsWith('http-server.js')) {
+if (process.argv[1] && (process.argv[1].includes('http-server'))) {
   startServer().catch(error => {
     console.error('❌ 서버 시작 실패:', error);
     process.exit(1);
