@@ -27,7 +27,9 @@ The project includes developer guidelines:
 - **Project Structure**: Module organization under `src/`
 - **Build/Test Commands**: `npm run dev`, `npm run build`, `npm run test`, etc.
 - **Coding Style**: Node.js ≥ 20, TypeScript ES modules, 2-space indentation
-- **Testing Guidelines**: Vitest based, `src/test/` or `*.spec.ts` files
+- **Testing Guidelines**: Vitest based with clear naming conventions:
+  - Unit Tests (`.spec.ts`): Place in module directories (e.g., `src/algorithms/search-engine.spec.ts`)
+  - E2E Tests (`test-*.ts`): Place in `src/test/` directory (e.g., `src/test/test-client.ts`)
 - **Commit/PR Guidelines**: Conventional Commits, Korean context included
 - **Environment/Database**: `.env` configuration, `data/` folder management
 - **TypeScript**: 5.3.0 (actual implementation standard)

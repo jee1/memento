@@ -243,19 +243,21 @@ memento/
 │       ├── utils.ts             # 유틸리티 함수
 │       ├── constants.ts         # 상수 정의
 │       └── validation.ts        # 검증 함수
-├── tests/                       # 테스트 코드
-│   ├── unit/                    # 단위 테스트
-│   │   ├── tools/              # 도구 테스트
-│   │   ├── algorithms/         # 알고리즘 테스트
-│   │   └── utils/              # 유틸리티 테스트
-│   ├── integration/            # 통합 테스트
-│   │   ├── mcp-server.test.ts  # MCP 서버 통합 테스트
-│   │   └── database.test.ts    # 데이터베이스 통합 테스트
-│   ├── e2e/                    # E2E 테스트
-│   │   └── memory-workflow.test.ts
-│   └── fixtures/               # 테스트 데이터
-│       ├── memories.json       # 샘플 기억 데이터
-│       └── test-db.sql         # 테스트 데이터베이스
+├── src/                         # 소스 코드
+│   ├── algorithms/             # 알고리즘 모듈
+│   │   ├── search-engine.ts
+│   │   ├── search-engine.spec.ts    # 단위 테스트
+│   │   ├── forgetting-algorithm.ts
+│   │   └── forgetting-algorithm.spec.ts  # 단위 테스트
+│   ├── services/               # 서비스 모듈
+│   │   ├── embedding-service.ts
+│   │   └── forgetting-policy-service.spec.ts  # 단위 테스트
+│   ├── test/                   # E2E 테스트
+│   │   ├── test-client.ts      # 클라이언트 E2E 테스트
+│   │   ├── test-search.ts      # 검색 E2E 테스트
+│   │   └── test-embedding.ts   # 임베딩 E2E 테스트
+│   └── fixtures/               # 테스트 데이터 (필요시)
+│       └── test-data.json      # 샘플 테스트 데이터
 ├── docs/                       # 문서
 ├── scripts/                    # 빌드 및 배포 스크립트
 │   ├── build.js               # 빌드 스크립트
@@ -544,26 +546,27 @@ describe('MCP Server Integration', () => {
 
 ### 테스트 전략
 
-#### 1. 단위 테스트 (Unit Tests)
+#### 1. 단위 테스트 (Unit Tests) - `.spec.ts`
 
 - **목적**: 개별 함수/클래스의 동작 검증
 - **범위**: 모든 public 메서드
-- **도구**: Jest
-- **위치**: `tests/unit/`
+- **도구**: Vitest
+- **위치**: 각 모듈 폴더 내부
+- **예시**: 
+  - `src/algorithms/search-engine.spec.ts`
+  - `src/services/forgetting-policy-service.spec.ts`
+  - `src/utils/database.spec.ts`
 
-#### 2. 통합 테스트 (Integration Tests)
-
-- **목적**: 컴포넌트 간 상호작용 검증
-- **범위**: MCP 서버, 데이터베이스 연동
-- **도구**: Jest + 실제 데이터베이스
-- **위치**: `tests/integration/`
-
-#### 3. E2E 테스트 (End-to-End Tests)
+#### 2. E2E 테스트 (End-to-End Tests) - `test-*.ts`
 
 - **목적**: 전체 워크플로우 검증
-- **범위**: 사용자 시나리오
-- **도구**: Jest + MCP 클라이언트
-- **위치**: `tests/e2e/`
+- **범위**: 실제 MCP 서버와의 통신
+- **도구**: tsx + MCP 클라이언트
+- **위치**: `src/test/` 폴더
+- **예시**:
+  - `src/test/test-client.ts`
+  - `src/test/test-search.ts`
+  - `src/test/test-embedding.ts`
 
 ### 4. 에러 로깅 테스트
 
