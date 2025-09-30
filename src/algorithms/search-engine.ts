@@ -5,6 +5,7 @@
 
 import { SearchRanking } from './search-ranking.js';
 import type { MemorySearchResult, MemorySearchFilters } from '../types/index.js';
+import { getStopWords } from '../utils/stopwords.js';
 
 export interface SearchQuery {
   query: string;
@@ -203,10 +204,10 @@ export class SearchEngine {
     // 3. 연속된 공백 제거
     processed = processed.replace(/\s+/g, ' ');
     
-    // 4. 불용어 제거 (간단한 한국어/영어 불용어)
-    const stopWords = ['은', '는', '이', '가', '을', '를', '의', '에', '에서', '로', '으로', '와', '과', '도', '만', '부터', '까지', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
+    // 4. 불용어 제거 (한국어/영어 불용어)
+    const stopWords = getStopWords();
     const words = processed.split(' ').filter(word => 
-      word.length > 0 && !stopWords.includes(word.toLowerCase())
+      word.length > 0 && !stopWords.has(word.toLowerCase())
     );
     
     // 5. FTS5를 위한 공백으로 구분된 쿼리 반환
