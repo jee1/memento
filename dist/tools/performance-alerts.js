@@ -1,0 +1,208 @@
+/**
+ * 성능 알림 도구
+ * 성능 알림 조회, 해결, 통계 확인을 위한 MCP 도구
+ */
+import { z } from 'zod';
+export const performanceAlertsTool = {
+    name: 'performance_alerts',
+    description: '성능 알림 정보를 조회하고 관리합니다',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            action: {
+                type: 'string',
+                enum: ['stats', 'list', 'search', 'resolve'],
+                default: 'stats',
+                description: '수행할 작업'
+            },
+            hours: {
+                type: 'number',
+                minimum: 1,
+                maximum: 168,
+                default: 24,
+                description: '조회할 시간 범위 (시간 단위)'
+            },
+            level: {
+                type: 'string',
+                enum: ['info', 'warning', 'critical'],
+                description: '알림 레벨 필터'
+            },
+            type: {
+                type: 'string',
+                enum: ['response_time', 'memory_usage', 'error_rate', 'throughput', 'database_performance', 'cache_performance'],
+                description: '알림 타입 필터'
+            },
+            resolved: {
+                type: 'boolean',
+                description: '해결된 알림 포함 여부'
+            },
+            limit: {
+                type: 'number',
+                minimum: 1,
+                maximum: 100,
+                default: 50,
+                description: '결과 제한 수'
+            },
+            alertId: {
+                type: 'string',
+                description: '해결할 알림 ID (resolve 작업시)'
+            },
+            resolvedBy: {
+                type: 'string',
+                default: 'system',
+                description: '해결 처리자'
+            },
+            resolution: {
+                type: 'string',
+                description: '해결 사유'
+            }
+        },
+        required: []
+    }
+};
+export async function executePerformanceAlerts(args, context) {
+    const { action, hours, level, type, resolved, limit, alertId, resolvedBy, resolution } = args;
+    try {
+        // 성능 알림 서비스가 없으면 기본 응답
+        if (!context.services.performanceAlertService) {
+            return {
+                success: false,
+                error: 'Performance alert service not available',
+                stats: {
+                    totalAlerts: 0,
+                    alertsByLevel: { info: 0, warning: 0, critical: 0 },
+                    alertsByType: { response_time: 0, memory_usage: 0, error_rate: 0, throughput: 0, database_performance: 0, cache_performance: 0 },
+                    recentAlerts: [],
+                    averageResolutionTime: 0,
+                    activeAlerts: 0
+                }
+            };
+        }
+        switch (action) {
+            case 'stats':
+                return await handleStats(context, hours);
+            case 'list':
+                return await handleList(context, hours, limit);
+            case 'search':
+                return await handleSearch(context, { level, type, resolved, hours, limit });
+            case 'resolve':
+                return await handleResolve(context, alertId, resolvedBy, resolution);
+            default:
+                return {
+                    success: false,
+                    error: `Unknown action: ${action}`
+                };
+        }
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+async function handleStats(context, hours) {
+    const stats = context.services.performanceAlertService.getAlertStats(hours);
+    return {
+        success: true,
+        stats: {
+            ...stats,
+            recentAlerts: stats.recentAlerts.map((alert) => ({
+                id: alert.id,
+                timestamp: alert.timestamp.toISOString(),
+                level: alert.level,
+                type: alert.type,
+                metric: alert.metric,
+                value: alert.value,
+                threshold: alert.threshold,
+                message: alert.message,
+                resolved: alert.resolved,
+                resolvedAt: alert.resolvedAt?.toISOString()
+            }))
+        },
+        summary: {
+            totalAlerts: stats.totalAlerts,
+            activeAlerts: stats.activeAlerts,
+            criticalAlerts: stats.alertsByLevel.critical,
+            averageResolutionTime: Math.round(stats.averageResolutionTime / 1000) // 초 단위로 변환
+        }
+    };
+}
+async function handleList(context, hours, limit) {
+    const activeAlerts = context.services.performanceAlertService.getActiveAlerts();
+    const recentAlerts = context.services.performanceAlertService.searchAlerts({
+        startDate: new Date(Date.now() - hours * 60 * 60 * 1000),
+        limit
+    });
+    return {
+        success: true,
+        activeAlerts: activeAlerts.map((alert) => ({
+            id: alert.id,
+            timestamp: alert.timestamp.toISOString(),
+            level: alert.level,
+            type: alert.type,
+            metric: alert.metric,
+            value: alert.value,
+            threshold: alert.threshold,
+            message: alert.message,
+            context: alert.context
+        })),
+        recentAlerts: recentAlerts.map((alert) => ({
+            id: alert.id,
+            timestamp: alert.timestamp.toISOString(),
+            level: alert.level,
+            type: alert.type,
+            metric: alert.metric,
+            value: alert.value,
+            threshold: alert.threshold,
+            message: alert.message,
+            resolved: alert.resolved,
+            resolvedAt: alert.resolvedAt?.toISOString()
+        }))
+    };
+}
+async function handleSearch(context, filters) {
+    const alerts = context.services.performanceAlertService.searchAlerts(filters);
+    return {
+        success: true,
+        alerts: alerts.map((alert) => ({
+            id: alert.id,
+            timestamp: alert.timestamp.toISOString(),
+            level: alert.level,
+            type: alert.type,
+            metric: alert.metric,
+            value: alert.value,
+            threshold: alert.threshold,
+            message: alert.message,
+            context: alert.context,
+            resolved: alert.resolved,
+            resolvedAt: alert.resolvedAt?.toISOString()
+        })),
+        total: alerts.length
+    };
+}
+async function handleResolve(context, alertId, resolvedBy, resolution) {
+    if (!alertId) {
+        return {
+            success: false,
+            error: 'Alert ID is required for resolve action'
+        };
+    }
+    const success = context.services.performanceAlertService.resolveAlert(alertId, resolvedBy, resolution);
+    if (!success) {
+        return {
+            success: false,
+            error: 'Alert not found or already resolved',
+            alertId
+        };
+    }
+    return {
+        success: true,
+        message: `Alert ${alertId} has been resolved by ${resolvedBy}`,
+        alertId,
+        resolvedBy,
+        resolution,
+        resolvedAt: new Date().toISOString()
+    };
+}
+//# sourceMappingURL=performance-alerts.js.map
