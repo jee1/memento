@@ -5,7 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-dist/
+# dist/ - Commented out to allow GitHub Actions to commit dist folder
 build/
 *.tsbuildinfo
 
@@ -85,7 +85,7 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
+# dist - Commented out to allow GitHub Actions to commit dist folder
 
 # Gatsby files
 .cache/

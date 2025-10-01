@@ -43,20 +43,76 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ## 🚀 빠른 시작
 
+### 🎯 **Cursor IDE 설정 (npx 즉시 사용)**
+```bash
+# Cursor IDE에서 mcp.json 파일 생성
+# 프로젝트 루트에 mcp.json 파일을 생성하고 다음 내용 추가:
+```
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "git+https://github.com/jee1/memento.git#main", "memento-mcp"],
+      "env": {
+        "NODE_ENV": "production",
+        "MEMENTO_SERVER_URL": "http://localhost:9001",
+        "MEMENTO_API_KEY": "default-key"
+      }
+    }
+  }
+}
+```
+
+### 🤖 **Claude 설정 (npx 즉시 사용)**
+```bash
+# Claude Desktop에서 mcp.json 파일 설정
+# ~/.config/claude-desktop/mcp.json 파일에 다음 내용 추가:
+```
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "git+https://github.com/jee1/memento.git#main", "memento-mcp"],
+      "env": {
+        "NODE_ENV": "production",
+        "MEMENTO_SERVER_URL": "http://localhost:9001",
+        "MEMENTO_API_KEY": "default-key"
+      }
+    }
+  }
+}
+```
+
+### ⚡ **npx 즉시 실행 (개발자용)**
+```bash
+# MCP 서버 즉시 실행 (설치 없이)
+npx -y git+https://github.com/jee1/memento.git#main memento-mcp
+
+# HTTP/WebSocket 서버 즉시 실행
+npx -y git+https://github.com/jee1/memento.git#main memento-dev
+
+# 자동 설정 후 실행
+npx -y git+https://github.com/jee1/memento.git#main memento-setup
+npx -y git+https://github.com/jee1/memento.git#main memento-mcp
+```
+
+### 🐳 **Docker 즉시 실행 (프로덕션용)**
+```bash
+# Docker로 즉시 실행 (설치 없이)
+docker-compose up -d
+
+# 또는 개발 환경
+docker-compose -f docker-compose.dev.yml up -d
+```
+
 ### 🥇 **원클릭 설치 (권장)**
 ```bash
 # 자동 설치 스크립트 실행
 curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
-```
-
-### 🥈 **npx 방식 (개발자용)**
-```bash
-# 즉시 실행 (설치 없이)
-npx memento-mcp-server@latest dev
-
-# 자동 설정 후 실행
-npx memento-mcp-server@latest setup
-npx memento-mcp-server@latest start
 ```
 
 ### 🥉 **Docker 방식 (프로덕션용)**

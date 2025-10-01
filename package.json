@@ -103,10 +103,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/memento.git"
+    "url": "https://github.com/jee1/memento.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/memento/issues"
+    "url": "https://github.com/jee1/memento/issues"
   },
-  "homepage": "https://github.com/your-org/memento#readme"
+  "homepage": "https://github.com/jee1/memento#readme"
 }

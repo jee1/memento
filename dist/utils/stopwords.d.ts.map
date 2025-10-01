@@ -1,0 +1,1 @@
+{"version":3,"file":"stopwords.d.ts","sourceRoot":"","sources":["../../src/utils/stopwords.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAmGH;;GAEG;AACH,wBAAgB,YAAY,IAAI,GAAG,CAAC,MAAM,CAAC,CAG1C;AAED;;GAEG;AACH,wBAAgB,mBAAmB,IAAI,GAAG,CAAC,MAAM,CAAC,CAEjD;AAED,wBAAgB,kBAAkB,IAAI,GAAG,CAAC,MAAM,CAAC,CAEhD;AAED;;GAEG;AACH,wBAAgB,UAAU,CAAC,IAAI,EAAE,MAAM,GAAG,OAAO,CAGhD"}
