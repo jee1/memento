@@ -3,6 +3,7 @@
  * FTS5 + 랭킹 알고리즘 + 필터링 결합
  */
 import { SearchRanking } from './search-ranking.js';
+import { getStopWords } from '../utils/stopwords.js';
 export class SearchEngine {
     ranking;
     constructor() {
