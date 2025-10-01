@@ -1,1 +1,0 @@
-{"version":3,"file":"forgetting-stats-tool.d.ts","sourceRoot":"","sources":["../../src/tools/forgetting-stats-tool.ts"],"names":[],"mappings":"AAAA;;GAEG;AAGH,OAAO,EAAE,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAC1C,OAAO,KAAK,EAAE,WAAW,EAAE,UAAU,EAAE,MAAM,YAAY,CAAC;AAI1D,qBAAa,mBAAoB,SAAQ,QAAQ;;IAYzC,MAAM,CAAC,MAAM,EAAE,GAAG,EAAE,OAAO,EAAE,WAAW,GAAG,OAAO,CAAC,UAAU,CAAC;CAwBrE"}
