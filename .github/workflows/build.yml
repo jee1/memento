@@ -44,6 +44,12 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        
+        # 충돌 방지: main 브랜치와 병합
+        git fetch origin main
+        git merge origin/main --strategy-option=theirs || true
+        
+        # dist 폴더 강제 추가 및 커밋
         git add -f dist/
         if git diff --staged --quiet; then
           echo "No changes to commit"
