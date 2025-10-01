@@ -45,8 +45,12 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ### 🎯 **Cursor IDE 설정 (npx 즉시 사용)**
 ```bash
-# Cursor IDE에서 mcp.json 파일 생성
+# 1. 현재 브랜치 확인
+git branch --show-current
+
+# 2. Cursor IDE에서 mcp.json 파일 생성
 # 프로젝트 루트에 mcp.json 파일을 생성하고 다음 내용 추가:
+# {CURRENT_BRANCH}를 위에서 확인한 브랜치명으로 교체
 ```
 
 ```json
@@ -54,7 +58,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
   "mcpServers": {
     "memento": {
       "command": "npx",
-      "args": ["-y", "git+https://github.com/jee1/memento.git#main", "memento-mcp"],
+      "args": ["-y", "git+https://github.com/jee1/memento.git#{CURRENT_BRANCH}", "memento-mcp"],
       "env": {
         "NODE_ENV": "production",
         "MEMENTO_SERVER_URL": "http://localhost:9001",
@@ -63,6 +67,27 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
     }
   }
 }
+```
+
+### 🔄 **자동 브랜치 감지 스크립트**
+```bash
+# 현재 브랜치를 자동으로 감지하여 mcp.json 생성
+CURRENT_BRANCH=$(git branch --show-current)
+cat > mcp.json << EOF
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "git+https://github.com/jee1/memento.git#$CURRENT_BRANCH", "memento-mcp"],
+      "env": {
+        "NODE_ENV": "production",
+        "MEMENTO_SERVER_URL": "http://localhost:9001",
+        "MEMENTO_API_KEY": "default-key"
+      }
+    }
+  }
+}
+EOF
 ```
 
 ### 🤖 **Claude 설정 (npx 즉시 사용)**

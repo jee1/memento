@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [ '*' ]  # 모든 브랜치 지원
   pull_request:
     branches: [ main ]
 
@@ -49,5 +49,5 @@ jobs:
           echo "No changes to commit"
         else
           git commit -m "chore: build dist folder [skip ci]"
-          git push origin main
+          git push origin ${{ github.ref_name }}
         fi
