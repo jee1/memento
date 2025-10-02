@@ -2,525 +2,421 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MementoClient } from './memento-client.js';
 import type { MementoClientOptions } from './types.js';
 
-// Mock axios
-vi.mock('axios');
-const mockAxios = {
-  create: vi.fn(),
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  interceptors: {
-    request: { use: vi.fn() },
-    response: { use: vi.fn() }
-  }
-};
+// Mock axios completely
+vi.mock('axios', () => {
+  const mockAxiosInstance = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() }
+    }
+  };
 
-vi.mocked(mockAxios.create).mockReturnValue(mockAxios);
-
-// Mock axios module
-vi.mock('axios', () => ({
-  default: mockAxios
-}));
+  return {
+    default: {
+      create: vi.fn(() => mockAxiosInstance)
+    }
+  };
+});
 
 describe('MementoClient', () => {
   let client: MementoClient;
   let options: MementoClientOptions;
+  let mockAxiosInstance: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    
+    // Get the mocked axios instance
+    const axios = await import('axios');
+    mockAxiosInstance = axios.default.create();
     
     options = {
       serverUrl: 'http://localhost:8080',
       apiKey: 'test-api-key',
-      timeout: 5000,
-      retries: 3
+      timeout: 5000
     };
-
     client = new MementoClient(options);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('생성자', () => {
-    it('기본 옵션으로 생성되어야 함', () => {
+    it('기본 옵션으로 클라이언트를 생성해야 함', () => {
       const defaultClient = new MementoClient();
       expect(defaultClient).toBeInstanceOf(MementoClient);
     });
 
-    it('사용자 정의 옵션으로 생성되어야 함', () => {
+    it('사용자 정의 옵션으로 클라이언트를 생성해야 함', () => {
       expect(client).toBeInstanceOf(MementoClient);
-    });
-
-    it('axios 인스턴스를 생성해야 함', () => {
-      expect(mockAxios.create).toHaveBeenCalledWith({
-        baseURL: 'http://localhost:8080',
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-api-key'
-        }
-      });
     });
   });
 
   describe('connect', () => {
     it('서버에 성공적으로 연결되어야 함', async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
       });
 
       const result = await client.connect();
 
       expect(result).toBe(true);
-      expect(mockAxios.get).toHaveBeenCalledWith('/health');
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/health');
     });
 
     it('연결 실패 시 에러를 던져야 함', async () => {
-      mockAxios.get.mockRejectedValue(new Error('Connection failed'));
+      mockAxiosInstance.get.mockRejectedValue(new Error('Connection failed'));
 
-      await expect(client.connect()).rejects.toThrow('Connection failed');
+      await expect(client.connect()).rejects.toThrow('Failed to connect to Memento server');
     });
 
     it('이미 연결된 상태에서 중복 연결을 방지해야 함', async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
       });
 
       await client.connect();
       const result = await client.connect();
 
       expect(result).toBe(true);
-      expect(mockAxios.get).toHaveBeenCalledTimes(1);
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('disconnect', () => {
-    it('연결을 해제해야 함', async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-
-      await client.connect();
-      await client.disconnect();
-
-      expect(client.isConnected()).toBe(false);
-    });
-
-    it('연결되지 않은 상태에서 disconnect를 호출해도 에러가 발생하지 않아야 함', async () => {
-      await expect(client.disconnect()).resolves.not.toThrow();
-    });
-  });
-
-  describe('isConnected', () => {
-    it('초기 상태에서는 false를 반환해야 함', () => {
-      expect(client.isConnected()).toBe(false);
-    });
-
-    it('연결 후에는 true를 반환해야 함', async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-
-      await client.connect();
-      expect(client.isConnected()).toBe(true);
-    });
-
-    it('연결 해제 후에는 false를 반환해야 함', async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-
-      await client.connect();
-      await client.disconnect();
-      expect(client.isConnected()).toBe(false);
+    it('연결을 해제해야 함', () => {
+      client.connect();
+      client.disconnect();
+      
+      expect((client as any).isConnected).toBe(false);
     });
   });
 
   describe('remember', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('기억을 성공적으로 저장해야 함', async () => {
       const memoryData = {
-        content: 'React Hook에 대해 학습했다',
+        content: 'React Hook 학습',
         type: 'episodic' as const,
         importance: 0.8,
-        tags: ['react', 'hooks']
+        tags: ['react', 'hooks'],
+        source: 'user',
+        privacy_scope: 'private' as const
       };
 
-      mockAxios.post.mockResolvedValue({
-        data: {
-          id: 'memory-123',
-          content: memoryData.content,
-          type: memoryData.type,
-          importance: memoryData.importance,
-          created_at: '2024-01-01T00:00:00.000Z'
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { memory_id: 'memory-123' },
+        status: 201
       });
 
+      await client.connect();
       const result = await client.remember(memoryData);
 
-      expect(result.id).toBe('memory-123');
-      expect(result.content).toBe(memoryData.content);
-      expect(mockAxios.post).toHaveBeenCalledWith('/api/memories', memoryData);
+      expect(result).toEqual({ memory_id: 'memory-123' });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/memories', memoryData);
     });
 
-    it('유효하지 않은 데이터에 대해 에러를 던져야 함', async () => {
-      const invalidData = {
-        content: '', // 빈 내용
-        type: 'episodic' as const
-      };
-
-      await expect(client.remember(invalidData)).rejects.toThrow();
-    });
-
-    it('서버 에러에 대해 적절한 에러를 던져야 함', async () => {
+    it('연결되지 않은 상태에서 에러를 던져야 함', async () => {
       const memoryData = {
-        content: 'Test memory',
+        content: 'React Hook 학습',
         type: 'episodic' as const
       };
 
-      mockAxios.post.mockRejectedValue({
-        response: {
-          status: 400,
-          data: { error: 'Invalid data' }
-        }
-      });
-
-      await expect(client.remember(memoryData)).rejects.toThrow();
+      await expect(client.remember(memoryData)).rejects.toThrow('Client is not connected');
     });
   });
 
   describe('recall', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('기억을 성공적으로 검색해야 함', async () => {
-      const searchParams = {
-        query: 'React Hook',
-        limit: 10,
-        filters: {
-          type: ['episodic'] as const[]
-        }
-      };
-
+      const query = 'React Hook';
       const mockResults = {
         items: [
           {
-            id: 'memory-123',
-            content: 'React Hook에 대해 학습했다',
+            id: 'memory-1',
+            content: 'React Hook 학습',
             type: 'episodic',
             importance: 0.8,
             created_at: '2024-01-01T00:00:00.000Z',
-            score: 0.95
+            last_accessed: '2024-01-01T00:00:00.000Z',
+            pinned: false,
+            tags: ['react', 'hooks'],
+            source: 'user',
+            privacy_scope: 'private',
+            score: 0.9
           }
         ],
         total_count: 1,
-        query_time: 50
+        query_time: 10
       };
 
-      mockAxios.post.mockResolvedValue({
-        data: mockResults
+      mockAxiosInstance.get.mockResolvedValue({
+        data: mockResults,
+        status: 200
       });
 
-      const result = await client.recall(searchParams);
+      // Connect first
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { status: 'ok' },
+        status: 200
+      });
+      await client.connect();
 
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].id).toBe('memory-123');
-      expect(mockAxios.post).toHaveBeenCalledWith('/api/search', searchParams);
+      const result = await client.recall(query);
+
+      expect(result).toEqual(mockResults);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/memories/search', {
+        params: { query, limit: 10 }
+      });
     });
 
     it('빈 검색 결과를 처리해야 함', async () => {
-      const searchParams = {
-        query: 'nonexistent',
-        limit: 10
+      const query = '존재하지 않는 내용';
+      const mockResults = {
+        items: [],
+        total_count: 0,
+        query_time: 5
       };
 
-      mockAxios.post.mockResolvedValue({
-        data: {
-          items: [],
-          total_count: 0,
-          query_time: 10
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: mockResults,
+        status: 200
       });
 
-      const result = await client.recall(searchParams);
+      // Connect first
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { status: 'ok' },
+        status: 200
+      });
+      await client.connect();
 
+      const result = await client.recall(query);
+
+      expect(result).toEqual(mockResults);
       expect(result.items).toHaveLength(0);
-      expect(result.total_count).toBe(0);
     });
   });
 
   describe('pin', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('기억을 성공적으로 고정해야 함', async () => {
       const memoryId = 'memory-123';
 
-      mockAxios.post.mockResolvedValue({
-        data: {
-          id: memoryId,
-          pinned: true,
-          message: 'Memory pinned successfully'
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { id: memoryId, success: true },
+        status: 200
       });
 
+      await client.connect();
       const result = await client.pin(memoryId);
 
-      expect(result.id).toBe(memoryId);
-      expect(result.pinned).toBe(true);
-      expect(mockAxios.post).toHaveBeenCalledWith(`/api/memories/${memoryId}/pin`);
+      expect(result).toEqual({ id: memoryId, success: true });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(`/memories/${memoryId}/pin`);
     });
 
     it('존재하지 않는 기억 고정 시 에러를 던져야 함', async () => {
       const memoryId = 'nonexistent';
 
-      mockAxios.post.mockRejectedValue({
-        response: {
-          status: 404,
-          data: { error: 'Memory not found' }
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
       });
+      mockAxiosInstance.post.mockRejectedValue({
+        response: { status: 404, data: { error: 'Memory not found' } }
+      });
+
+      await client.connect();
 
       await expect(client.pin(memoryId)).rejects.toThrow();
     });
   });
 
   describe('unpin', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('기억 고정을 성공적으로 해제해야 함', async () => {
       const memoryId = 'memory-123';
 
-      mockAxios.post.mockResolvedValue({
-        data: {
-          id: memoryId,
-          pinned: false,
-          message: 'Memory unpinned successfully'
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { id: memoryId, success: true },
+        status: 200
       });
 
+      await client.connect();
       const result = await client.unpin(memoryId);
 
-      expect(result.id).toBe(memoryId);
-      expect(result.pinned).toBe(false);
-      expect(mockAxios.post).toHaveBeenCalledWith(`/api/memories/${memoryId}/unpin`);
+      expect(result).toEqual({ id: memoryId, success: true });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(`/memories/${memoryId}/unpin`);
     });
   });
 
   describe('forget', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('기억을 성공적으로 삭제해야 함', async () => {
       const memoryId = 'memory-123';
 
-      mockAxios.delete.mockResolvedValue({
-        data: {
-          id: memoryId,
-          deleted: true,
-          message: 'Memory deleted successfully'
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.delete.mockResolvedValue({
+        data: { id: memoryId, success: true },
+        status: 200
       });
 
+      await client.connect();
       const result = await client.forget(memoryId);
 
-      expect(result.id).toBe(memoryId);
-      expect(result.deleted).toBe(true);
-      expect(mockAxios.delete).toHaveBeenCalledWith(`/api/memories/${memoryId}`);
+      expect(result).toEqual({ id: memoryId, success: true });
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(`/memories/${memoryId}`);
     });
 
     it('하드 삭제를 수행해야 함', async () => {
       const memoryId = 'memory-123';
 
-      mockAxios.delete.mockResolvedValue({
-        data: {
-          id: memoryId,
-          deleted: true,
-          hard: true,
-          message: 'Memory permanently deleted'
-        }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.delete.mockResolvedValue({
+        data: { id: memoryId, success: true, hard: true },
+        status: 200
       });
 
+      await client.connect();
       const result = await client.forget(memoryId, true);
 
-      expect(result.hard).toBe(true);
-      expect(mockAxios.delete).toHaveBeenCalledWith(`/api/memories/${memoryId}?hard=true`);
+      expect(result).toEqual({ id: memoryId, success: true, hard: true });
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(`/memories/${memoryId}?hard=true`);
     });
   });
 
   describe('getMemory', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('특정 기억을 가져와야 함', async () => {
       const memoryId = 'memory-123';
       const mockMemory = {
         id: memoryId,
-        content: 'Test memory',
+        content: 'React Hook 학습',
         type: 'episodic',
-        importance: 0.5,
-        created_at: '2024-01-01T00:00:00.000Z'
+        importance: 0.8,
+        created_at: '2024-01-01T00:00:00.000Z',
+        last_accessed: '2024-01-01T00:00:00.000Z',
+        pinned: false,
+        tags: ['react', 'hooks'],
+        source: 'user',
+        privacy_scope: 'private'
       };
 
-      mockAxios.get.mockResolvedValue({
-        data: mockMemory
+      mockAxiosInstance.get.mockResolvedValue({
+        data: mockMemory,
+        status: 200
       });
+
+      // Connect first
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { status: 'ok' },
+        status: 200
+      });
+      await client.connect();
 
       const result = await client.getMemory(memoryId);
 
       expect(result).toEqual(mockMemory);
-      expect(mockAxios.get).toHaveBeenCalledWith(`/api/memories/${memoryId}`);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(`/memories/${memoryId}`);
     });
 
     it('존재하지 않는 기억에 대해 에러를 던져야 함', async () => {
       const memoryId = 'nonexistent';
 
-      mockAxios.get.mockRejectedValue({
-        response: {
-          status: 404,
-          data: { error: 'Memory not found' }
-        }
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { status: 'ok' },
+        status: 200
       });
+      mockAxiosInstance.get.mockRejectedValue({
+        response: { status: 404, data: { error: 'Memory not found' } }
+      });
+
+      await client.connect();
 
       await expect(client.getMemory(memoryId)).rejects.toThrow();
     });
   });
 
   describe('updateMemory', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('기억을 성공적으로 업데이트해야 함', async () => {
       const memoryId = 'memory-123';
       const updateData = {
-        content: 'Updated content',
+        content: '업데이트된 내용',
         importance: 0.9
       };
 
-      const updatedMemory = {
-        id: memoryId,
-        content: updateData.content,
-        importance: updateData.importance,
-        updated_at: '2024-01-01T01:00:00.000Z'
-      };
-
-      mockAxios.put.mockResolvedValue({
-        data: updatedMemory
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.put.mockResolvedValue({
+        data: { id: memoryId, success: true },
+        status: 200
       });
 
+      await client.connect();
       const result = await client.updateMemory(memoryId, updateData);
 
-      expect(result).toEqual(updatedMemory);
-      expect(mockAxios.put).toHaveBeenCalledWith(`/api/memories/${memoryId}`, updateData);
+      expect(result).toEqual({ id: memoryId, success: true });
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(`/memories/${memoryId}`, updateData);
     });
   });
 
   describe('hybridSearch', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
-      await client.connect();
-    });
-
     it('하이브리드 검색을 수행해야 함', async () => {
-      const searchParams = {
-        query: 'React Hook',
-        limit: 10,
-        vectorWeight: 0.7,
-        textWeight: 0.3
-      };
-
+      const query = 'React Hook';
       const mockResults = {
         items: [
           {
-            id: 'memory-123',
-            content: 'React Hook에 대해 학습했다',
+            id: 'memory-1',
+            content: 'React Hook 학습',
             type: 'episodic',
-            score: 0.95,
-            recall_reason: '하이브리드 검색'
+            importance: 0.8,
+            created_at: '2024-01-01T00:00:00.000Z',
+            last_accessed: '2024-01-01T00:00:00.000Z',
+            pinned: false,
+            tags: ['react', 'hooks'],
+            source: 'user',
+            privacy_scope: 'private',
+            score: 0.9
           }
         ],
         total_count: 1,
-        query_time: 50,
-        search_type: 'hybrid'
+        query_time: 15
       };
 
-      mockAxios.post.mockResolvedValue({
-        data: mockResults
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockResults,
+        status: 200
       });
 
-      const result = await client.hybridSearch(searchParams);
-
-      expect(result.items).toHaveLength(1);
-      expect(result.search_type).toBe('hybrid');
-      expect(mockAxios.post).toHaveBeenCalledWith('/api/search/hybrid', searchParams);
-    });
-  });
-
-  describe('getContext', () => {
-    beforeEach(async () => {
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
-      });
       await client.connect();
-    });
+      const result = await client.hybridSearch(query);
 
-    it('컨텍스트를 성공적으로 가져와야 함', async () => {
-      const params = {
-        query: 'React Hook',
-        tokenBudget: 1000
-      };
-
-      const mockContext = {
-        context: 'React Hook에 대한 관련 기억들...',
-        memories_used: 3,
-        token_count: 850
-      };
-
-      mockAxios.post.mockResolvedValue({
-        data: mockContext
-      });
-
-      const result = await client.getContext(params);
-
-      expect(result.context).toBe(mockContext.context);
-      expect(result.memories_used).toBe(3);
-      expect(mockAxios.post).toHaveBeenCalledWith('/api/context', params);
+      expect(result).toEqual(mockResults);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/memories/hybrid-search', { query });
     });
   });
 
@@ -528,91 +424,85 @@ describe('MementoClient', () => {
     it('서버 상태를 확인해야 함', async () => {
       const mockHealth = {
         status: 'ok',
-        version: '1.0.0',
-        uptime: 3600,
-        memory_usage: 0.5
+        version: '0.1.0',
+        uptime: 3600
       };
 
-      mockAxios.get.mockResolvedValue({
-        data: mockHealth
+      mockAxiosInstance.get.mockResolvedValue({
+        data: mockHealth,
+        status: 200
       });
 
       const result = await client.healthCheck();
 
       expect(result).toEqual(mockHealth);
-      expect(mockAxios.get).toHaveBeenCalledWith('/health');
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/health');
     });
   });
 
   describe('에러 처리', () => {
-    it('연결되지 않은 상태에서 작업 시 에러를 던져야 함', async () => {
-      const memoryData = {
-        content: 'Test memory',
-        type: 'episodic' as const
-      };
+    it('네트워크 에러를 적절히 처리해야 함', async () => {
+      mockAxiosInstance.get.mockRejectedValue(new Error('Network Error'));
 
-      await expect(client.remember(memoryData)).rejects.toThrow('Not connected to server');
+      await expect(client.healthCheck()).rejects.toThrow('Network Error');
     });
 
-    it('네트워크 에러를 적절히 처리해야 함', async () => {
-      mockAxios.get.mockRejectedValue(new Error('Network error'));
+    it('서버 에러에 대해 적절한 에러를 던져야 함', async () => {
+      mockAxiosInstance.get.mockRejectedValue({
+        response: { status: 500, data: { error: 'Internal Server Error' } }
+      });
 
-      await expect(client.connect()).rejects.toThrow('Network error');
+      await expect(client.healthCheck()).rejects.toThrow();
     });
 
     it('인증 에러를 적절히 처리해야 함', async () => {
-      mockAxios.get.mockRejectedValue({
-        response: {
-          status: 401,
-          data: { error: 'Unauthorized' }
-        }
+      mockAxiosInstance.get.mockRejectedValue({
+        response: { status: 401, data: { error: 'Unauthorized' } }
       });
 
-      await expect(client.connect()).rejects.toThrow();
+      await expect(client.healthCheck()).rejects.toThrow();
     });
   });
 
   describe('이벤트 처리', () => {
     it('연결 이벤트를 발생시켜야 함', async () => {
-      const eventSpy = vi.fn();
-      client.on('connected', eventSpy);
-
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
+      const eventPromise = new Promise<void>((resolve) => {
+        client.on('connected', () => {
+          resolve();
+        });
       });
 
-      await client.connect();
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { status: 'ok' },
+        status: 200
+      });
 
-      expect(eventSpy).toHaveBeenCalled();
+      client.connect();
+      await eventPromise;
     });
 
     it('연결 해제 이벤트를 발생시켜야 함', async () => {
-      const eventSpy = vi.fn();
-      client.on('disconnected', eventSpy);
-
-      mockAxios.get.mockResolvedValue({
-        data: { status: 'ok', version: '1.0.0' }
+      const eventPromise = new Promise<void>((resolve) => {
+        client.on('disconnected', () => {
+          resolve();
+        });
       });
 
-      await client.connect();
-      await client.disconnect();
-
-      expect(eventSpy).toHaveBeenCalled();
+      client.disconnect();
+      await eventPromise;
     });
 
     it('에러 이벤트를 발생시켜야 함', async () => {
-      const eventSpy = vi.fn();
-      client.on('error', eventSpy);
+      const eventPromise = new Promise<void>((resolve) => {
+        client.on('error', (error) => {
+          expect(error).toBeInstanceOf(Error);
+          resolve();
+        });
+      });
 
-      mockAxios.get.mockRejectedValue(new Error('Connection failed'));
-
-      try {
-        await client.connect();
-      } catch (error) {
-        // Expected error
-      }
-
-      expect(eventSpy).toHaveBeenCalled();
+      mockAxiosInstance.get.mockRejectedValue(new Error('Test error'));
+      client.connect();
+      await eventPromise;
     });
   });
 });

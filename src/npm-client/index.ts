@@ -38,6 +38,15 @@ export { MementoClient } from './memento-client.js';
 export { MemoryManager } from './memory-manager.js';
 export { ContextInjector } from './context-injector.js';
 
+// 에러 클래스들
+export {
+  MementoError,
+  ConnectionError,
+  AuthenticationError,
+  ValidationError,
+  NotFoundError
+} from './types.js';
+
 // 타입들
 export type {
   // 클라이언트 설정
@@ -70,12 +79,6 @@ export type {
   ContextInjectionParams,
   ContextInjectionResult,
   
-  // 에러 타입들
-  MementoError,
-  ConnectionError,
-  AuthenticationError,
-  ValidationError,
-  NotFoundError,
   
   // 이벤트 타입들
   MementoClientEvents,

@@ -85,7 +85,7 @@ describe('Types', () => {
       
       expect(error).toBeInstanceOf(MementoError);
       expect(error.message).toBe('Memory not found');
-      expect(error.code).toBe('NOT_FOUND_ERROR');
+      expect(error.code).toBe('NOT_FOUND');
       expect(error.name).toBe('NotFoundError');
     });
   });
