@@ -74,8 +74,9 @@ export async function initializeDatabase(): Promise<Database.Database> {
     
         // sqlite-vec 확장 로드
         try {
-          // .so 확장자 없이 로드 (better-sqlite3가 자동으로 .so를 추가함)
-          db.loadExtension('/usr/lib/vec0');
+          const { getLoadablePath } = await import('sqlite-vec');
+          const extensionPath = getLoadablePath();
+          db.loadExtension(extensionPath);
           console.log('✅ sqlite-vec 확장 로드 성공');
         } catch (error) {
           console.warn('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
