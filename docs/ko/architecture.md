@@ -714,14 +714,14 @@ graph TB
     B --> C[MCP Memory Server]
     C --> D[SQLite Database]
     C --> E[FTS5 Index]
-    C --> F[VSS Index]
+    C --> F[VEC Index]
     C --> G[Local File System]
 ```
 
 #### 특징
 
 - **스토리지**: better-sqlite3 임베디드
-- **검색**: FTS5 + sqlite-vss
+- **검색**: FTS5 + sqlite-vec
 - **인증**: 없음 (로컬 전용)
 - **배포**: 로컬 실행
 - **추가 기능**: 경량 임베딩, 성능 모니터링, 캐시 시스템
@@ -730,7 +730,7 @@ graph TB
 #### 기술 스택
 
 - **데이터베이스**: better-sqlite3 12.4+
-- **벡터 검색**: sqlite-vss
+- **벡터 검색**: sqlite-vec
 - **텍스트 검색**: FTS5
 - **웹 서버**: Express 5.1+
 - **WebSocket**: ws 8.18+

@@ -30,7 +30,7 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
-# Install SQLite and VSS extension
+# Install SQLite and VEC extension
 RUN apk add --no-cache sqlite sqlite-dev
 
 WORKDIR /app
