@@ -2,7 +2,7 @@ services:
   memento-mcp-server:
     build: .
     ports:
-      - "8080:8080"
+      - "9001:9001"
     environment:
       - NODE_ENV=production
       - DOCKER=true
@@ -13,7 +13,7 @@ services:
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-lightweight}
       - GEMINI_MODEL=${GEMINI_MODEL:-text-embedding-004}
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-512}
-      - PORT=8080
+      - PORT=9001
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -23,7 +23,7 @@ services:
     stdin_open: true
     tty: true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
       interval: 30s
       timeout: 10s
       retries: 3

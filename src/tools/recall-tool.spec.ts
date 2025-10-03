@@ -24,7 +24,8 @@ describe('RecallTool', () => {
           search: vi.fn()
         },
         hybridSearchEngine: {
-          search: vi.fn()
+          search: vi.fn(),
+          isEmbeddingAvailable: vi.fn().mockReturnValue(true)
         }
       },
       performanceMonitor: {

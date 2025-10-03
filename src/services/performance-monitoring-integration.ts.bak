@@ -30,7 +30,8 @@ export class PerformanceMonitoringIntegration {
     alertService: PerformanceAlertService,
     config: MonitoringConfig
   ) {
-    this.performanceMonitor = new PerformanceMonitor(db);
+    this.performanceMonitor = new PerformanceMonitor();
+    this.performanceMonitor.initialize(db);
     this.alertService = alertService;
     this.config = config;
   }
