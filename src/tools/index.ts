@@ -9,9 +9,10 @@ import { RecallTool } from './recall-tool.js';
 import { ForgetTool } from './forget-tool.js';
 import { PinTool } from './pin-tool.js';
 import { UnpinTool } from './unpin-tool.js';
+import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
 
 /**
- * 핵심 도구 인스턴스 생성 (5개만)
+ * 핵심 도구 인스턴스 생성 (6개)
  */
 const coreTools = [
   new RememberTool(),
@@ -19,6 +20,7 @@ const coreTools = [
   new ForgetTool(),
   new PinTool(),
   new UnpinTool(),
+  new MemoryInjectionPrompt(),
 ];
 
 /**
@@ -64,5 +66,6 @@ export {
   ForgetTool,
   PinTool,
   UnpinTool,
+  MemoryInjectionPrompt,
 };
 

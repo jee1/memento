@@ -20,7 +20,7 @@
 ### 🔹 M1. 개인용 (MVP)
 
 - **DB**: SQLite (memory.db)
-- **인덱스**: FTS5, sqlite-vss (벡터 검색)
+- **인덱스**: FTS5, sqlite-vec (벡터 검색)
 - **MCP Tools**: remember, recall, forget, pin
 - **망각 정책**: TTL 기반 (working 48h, episodic 90d, semantic 무기한)
 - **운영**: 로컬 실행 (node memory-server.js)

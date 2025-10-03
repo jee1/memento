@@ -21,7 +21,7 @@ Implement an AI Agent memory assistant MCP server that mimics human memory struc
 ### 🔹 M1. Personal Use (MVP)
 
 - **DB**: SQLite (memory.db)
-- **Indexes**: FTS5, sqlite-vss (vector search)
+- **Indexes**: FTS5, sqlite-vec (vector search)
 - **MCP Tools**: remember, recall, forget, pin
 - **Forgetting Policy**: TTL-based (working 48h, episodic 90d, semantic indefinite)
 - **Operation**: Local execution (node memory-server.js)

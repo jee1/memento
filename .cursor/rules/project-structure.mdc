@@ -163,7 +163,7 @@ export class SearchRanking {
 ### 외부 의존성
 - **MCP SDK**: `@modelcontextprotocol/sdk`
 - **데이터베이스**: `better-sqlite3` (M1), `pg` (M3+)
-- **벡터 검색**: `sqlite-vss` (M1), `pgvector` (M3+)
+- **벡터 검색**: `sqlite-vec` (M1), `pgvector` (M3+)
 - **테스트**: `jest`, `@types/jest`
 
 ## 📦 패키지 구조

@@ -22,7 +22,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ### 🔍 고급 검색
 - **FTS5 텍스트 검색**: SQLite의 Full-Text Search
-- **벡터 검색**: OpenAI 임베딩 기반 의미적 검색
+- **벡터 검색**: sqlite-vec 기반 의미적 검색 (OpenAI 임베딩 지원)
 - **하이브리드 검색**: 텍스트와 벡터 검색의 결합
 - **경량 임베딩**: TF-IDF + 키워드 매칭 기반 fallback 솔루션
 - **태그 기반 필터링**: 메타데이터 기반 검색
@@ -109,7 +109,7 @@ await client.connect({
 await client.connect({
   transport: {
     type: "websocket",
-    url: "ws://localhost:8080/mcp"
+    url: "ws://localhost:9001/mcp"
   }
 });
 ```
@@ -187,7 +187,7 @@ const results = await client.callTool({
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
 | `NODE_ENV` | development | 실행 환경 |
-| `PORT` | 8080 | 서버 포트 |
+| `PORT` | 9001 | 서버 포트 |
 | `DB_PATH` | ./data/memory.db | 데이터베이스 경로 |
 | `LOG_LEVEL` | info | 로그 레벨 |
 | `OPENAI_API_KEY` | - | OpenAI API 키 (선택사항) |

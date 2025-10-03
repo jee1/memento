@@ -123,9 +123,25 @@ CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(me
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_dim ON memory_embedding(dim);
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model);
 
--- VSS 가상 테이블 (벡터 검색) - sqlite-vss 확장 필요
--- 주의: sqlite-vss 확장이 설치되어 있어야 함
--- CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vss USING vss0(embedding(1536));
+-- VEC 가상 테이블 (벡터 검색) - sqlite-vec 확장 필요
+-- 주의: sqlite-vec 확장이 설치되어 있어야 함
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[1536]);
+
+-- VEC 테이블 트리거 (임베딩이 생성될 때 자동으로 VEC 테이블에 추가)
+CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
+  INSERT INTO memory_item_vec(rowid, embedding) 
+  VALUES (NEW.memory_id, json_extract(NEW.embedding, '$'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
+  UPDATE memory_item_vec 
+  SET embedding = json_extract(NEW.embedding, '$') 
+  WHERE rowid = NEW.memory_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
+  DELETE FROM memory_item_vec WHERE rowid = OLD.memory_id;
+END;
 
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)

@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 const log = (...args: any[]) => {};
 
-export function initializeDatabase(): Database.Database {
+export async function initializeDatabase(): Promise<Database.Database> {
   log('🗄️  SQLite 데이터베이스 초기화 중...');
   
   // 데이터 디렉토리 생성
@@ -72,6 +72,16 @@ export function initializeDatabase(): Database.Database {
     db.pragma('locking_mode = NORMAL'); // 정상 잠금 모드
     db.pragma('read_uncommitted = 0'); // 커밋된 읽기만 허용
     
+        // sqlite-vec 확장 로드
+        try {
+          const { getLoadablePath } = await import('sqlite-vec');
+          const extensionPath = getLoadablePath();
+          db.loadExtension(extensionPath);
+          console.log('✅ sqlite-vec 확장 로드 성공');
+        } catch (error) {
+          console.warn('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
+        }
+    
     // 스키마 파일 읽기 및 실행
     const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf-8');
@@ -106,13 +116,15 @@ export function closeDatabase(db: Database.Database): void {
 // CLI에서 직접 실행할 때
 if (process.argv[1] && process.argv[1].endsWith('init.ts')) {
   console.log('🚀 데이터베이스 초기화 스크립트 시작');
-  try {
-    const db = initializeDatabase();
-    console.log('🎉 데이터베이스 초기화 성공!');
-    closeDatabase(db);
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ 데이터베이스 초기화 실패:', error);
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      const db = await initializeDatabase();
+      console.log('🎉 데이터베이스 초기화 성공!');
+      closeDatabase(db);
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ 데이터베이스 초기화 실패:', error);
+      process.exit(1);
+    }
+  })();
 }

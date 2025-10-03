@@ -714,14 +714,14 @@ graph TB
     B --> C[MCP Memory Server]
     C --> D[SQLite Database]
     C --> E[FTS5 Index]
-    C --> F[VSS Index]
+    C --> F[VEC Index]
     C --> G[Local File System]
 ```
 
 #### Features
 
 - **Storage**: better-sqlite3 embedded
-- **Search**: FTS5 + sqlite-vss
+- **Search**: FTS5 + sqlite-vec
 - **Authentication**: None (local only)
 - **Deployment**: Local execution
 - **Additional Features**: Lightweight embedding, performance monitoring, cache system
@@ -730,7 +730,7 @@ graph TB
 #### Technology Stack
 
 - **Database**: better-sqlite3 12.4+
-- **Vector Search**: sqlite-vss
+- **Vector Search**: sqlite-vec
 - **Text Search**: FTS5
 - **Web Server**: Express 5.1+
 - **WebSocket**: ws 8.18+

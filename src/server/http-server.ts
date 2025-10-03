@@ -11,7 +11,10 @@ import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { getBatchScheduler } from '../services/batch-scheduler.js';
+import { getPerformanceMonitor } from '../services/performance-monitor.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
@@ -20,6 +23,7 @@ import Database from 'better-sqlite3';
 let db: Database.Database | null = null;
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
+let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
 let embeddingService: MemoryEmbeddingService;
 
 type TestDependencies = {
@@ -187,12 +191,14 @@ app.get('/mcp', async (req, res) => {
     });
 
     console.log(`✅ MCP SSE 스트림 설정 완료 (session: ${sessionId})`);
+    return;
     
   } catch (error) {
     console.error('❌ SSE 스트림 설정 실패:', error);
     if (!res.headersSent) {
       res.status(500).send('Error establishing SSE stream');
     }
+    return;
   }
 });
 
@@ -319,6 +325,122 @@ app.post('/messages', express.json(), async (req, res) => {
         id: message.id,
         result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
       };
+    } else if (message.method === 'prompts/list') {
+      console.log('📋 MCP prompts/list 요청 처리 중...');
+      
+      const prompts = [
+        {
+          name: 'memory_injection',
+          description: '관련 기억을 요약하여 프롬프트에 주입',
+          arguments: [
+            {
+              name: 'query',
+              description: '검색할 쿼리',
+              required: true
+            },
+            {
+              name: 'token_budget',
+              description: '토큰 예산 (기본값: 1000)',
+              required: false
+            },
+            {
+              name: 'max_memories',
+              description: '최대 기억 개수 (기본값: 5)',
+              required: false
+            }
+          ]
+        }
+      ];
+      
+      result = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: { prompts }
+      };
+      
+      console.log('✅ MCP prompts/list 응답 생성 완료');
+    } else if (message.method === 'prompts/get') {
+      const { name } = message.params;
+      
+      if (name === 'memory_injection') {
+        result = {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            description: '관련 기억을 요약하여 프롬프트에 주입',
+            arguments: [
+              {
+                name: 'query',
+                description: '검색할 쿼리',
+                required: true
+              },
+              {
+                name: 'token_budget',
+                description: '토큰 예산 (기본값: 1000)',
+                required: false
+              },
+              {
+                name: 'max_memories',
+                description: '최대 기억 개수 (기본값: 5)',
+                required: false
+              }
+            ]
+          }
+        };
+      } else {
+        result = {
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32601,
+            message: 'Prompt not found'
+          }
+        };
+      }
+    } else if (message.method === 'prompts/call') {
+      const { name, arguments: args } = message.params;
+      
+      if (name === 'memory_injection') {
+        try {
+          // MemoryInjectionPrompt 도구 사용
+          const toolRegistry = getToolRegistry();
+          const context: ToolContext = {
+            db,
+            services: {
+              searchEngine,
+              hybridSearchEngine,
+              embeddingService
+            }
+          };
+          
+          const promptResult = await toolRegistry.execute('memory_injection', args, context);
+          
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            result: promptResult
+          };
+        } catch (error) {
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32603,
+              message: 'Prompt execution failed',
+              data: error instanceof Error ? error.message : 'Unknown error'
+            }
+          };
+        }
+      } else {
+        result = {
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32601,
+            message: 'Prompt not found'
+          }
+        };
+      }
     } else {
       result = {
         jsonrpc: '2.0',
@@ -559,6 +681,139 @@ app.get('/admin/alerts/performance', async (req, res) => {
   }
 });
 
+// 배치 스케줄러 관리 API
+app.get('/admin/batch/status', async (req, res) => {
+  try {
+    const batchScheduler = getBatchScheduler();
+    const status = batchScheduler.getStatus();
+    
+    res.json({ 
+      message: '배치 스케줄러 상태 조회 완료',
+      status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 배치 스케줄러 상태 조회 실패:', error);
+    res.status(500).json({ 
+      error: '배치 스케줄러 상태 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/batch/run', async (req, res) => {
+  try {
+    const { jobType } = req.body;
+    
+    if (!jobType || !['cleanup', 'monitoring'].includes(jobType)) {
+      return res.status(400).json({ 
+        error: 'Invalid job type. Must be "cleanup" or "monitoring"'
+      });
+    }
+    
+    const batchScheduler = getBatchScheduler();
+    const result = await batchScheduler.runJob(jobType);
+    
+    return res.json({ 
+      message: `배치 작업 ${jobType} 실행 완료`,
+      result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 배치 작업 실행 실패:', error);
+    return res.status(500).json({ 
+      error: '배치 작업 실행 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// 성능 모니터링 API
+app.get('/admin/performance/metrics', async (req, res) => {
+  try {
+    const monitor = getPerformanceMonitor();
+    const metrics = await monitor.collectMetrics();
+    
+    res.json({ 
+      message: '성능 지표 수집 완료',
+      metrics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 성능 지표 수집 실패:', error);
+    res.status(500).json({ 
+      error: '성능 지표 수집 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/performance/alerts', async (req, res) => {
+  try {
+    const monitor = getPerformanceMonitor();
+    const alerts = monitor.getActiveAlerts();
+    
+    res.json({ 
+      message: '성능 알림 조회 완료',
+      alerts,
+      count: alerts.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 성능 알림 조회 실패:', error);
+    res.status(500).json({ 
+      error: '성능 알림 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/performance/summary', async (req, res) => {
+  try {
+    const monitor = getPerformanceMonitor();
+    const summary = monitor.getPerformanceSummary();
+    
+    res.json({ 
+      message: '성능 요약 조회 완료',
+      summary,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 성능 요약 조회 실패:', error);
+    res.status(500).json({ 
+      error: '성능 요약 조회 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/performance/alerts/:alertId/resolve', async (req, res) => {
+  try {
+    const { alertId } = req.params;
+    const monitor = getPerformanceMonitor();
+    const resolved = monitor.resolveAlert(alertId);
+    
+    if (resolved) {
+      res.json({ 
+        message: '알림 해결 완료',
+        alertId,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(404).json({ 
+        error: '알림을 찾을 수 없습니다',
+        alertId
+      });
+    }
+  } catch (error) {
+    console.error('❌ 알림 해결 실패:', error);
+    res.status(500).json({ 
+      error: '알림 해결 실패',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // 서버 초기화
 async function initializeServer() {
   try {
@@ -573,7 +828,14 @@ async function initializeServer() {
     // 검색 엔진 초기화
     searchEngine = new SearchEngine();
     hybridSearchEngine = new HybridSearchEngine();
+    vectorSearchEngine = getVectorSearchEngine();
+    vectorSearchEngine.initialize(db);
     embeddingService = new MemoryEmbeddingService();
+    
+    // 배치 스케줄러 시작
+    const batchScheduler = getBatchScheduler();
+    await batchScheduler.start(db);
+    console.log('⏰ 배치 스케줄러 시작됨');
     
     // 임베딩 프로바이더 정보 표시
     console.log(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}`);
@@ -605,6 +867,11 @@ async function cleanup() {
   isCleaningUp = true;
   
   try {
+    // 배치 스케줄러 중지
+    const batchScheduler = getBatchScheduler();
+    batchScheduler.stop();
+    console.log('⏰ 배치 스케줄러 중지됨');
+    
     if (db) {
       closeDatabase(db);
       db = null;

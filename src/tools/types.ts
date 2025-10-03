@@ -33,6 +33,7 @@ export interface ToolResult {
     type: 'text';
     text: string;
   }>;
+  [key: string]: any; // 추가 필드들을 허용
 }
 
 export interface ToolError {

@@ -8,19 +8,33 @@
 ## [Unreleased]
 
 ### 계획된 기능
-- M1 MVP 구현 완료
-- 기본 MCP Tools 구현 (remember, recall, forget, pin)
-- SQLite 기반 스토리지 구현
-- FTS5 + VSS 벡터 검색 구현
-- 검색 랭킹 알고리즘 구현
-- 망각 정책 및 간격 반복 구현
+- M2 팀 협업 기능 구현
+- PostgreSQL 마이그레이션
+- JWT 인증 시스템
+- 고가용성 구성
+
+## [1.5.0] - 2025-10-03
+
+### 추가됨
+- **sqlite-vec 마이그레이션**: sqlite-vss에서 더 안정적인 sqlite-vec로 전환
+- **MCP 도구 스키마 수정**: memory_injection 도구의 inputSchema를 JSON Schema 형식으로 수정
+
+### 수정됨
+- **Feedback Event 스키마**: pin, unpin, forget 도구의 이벤트 로깅을 데이터베이스 제약조건에 맞게 수정
+- **벡터 검색 엔진**: sqlite-vec 기반으로 완전히 재구현
+- **Docker 설정**: Debian 기반 이미지로 변경하여 sqlite-vec 호환성 확보
+
+### 해결됨
+- **MCP 도구 인식 문제**: 모든 6개 도구가 정상적으로 인식되도록 수정
+- **데이터베이스 제약조건 오류**: feedback_event 테이블의 CHECK 제약조건 위반 문제 해결
+- **Docker 빌드 오류**: sqlite-vec 설치 및 설정 문제 해결
 
 ### 변경사항
 - 프로젝트 초기 설정
 - Cursor Rules 생성
 - 문서 구조 정립
 
-## [0.1.0] - 2025-09-22
+## [1.0.0] - 2025-09-22
 
 ### 추가됨
 
