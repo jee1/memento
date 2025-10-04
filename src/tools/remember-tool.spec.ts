@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RememberTool } from './remember-tool.js';
 
 // DatabaseUtils 모킹
@@ -19,6 +19,7 @@ describe('RememberTool', () => {
   let mockContext: any;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     
     rememberTool = new RememberTool();
@@ -42,6 +43,11 @@ describe('RememberTool', () => {
         logError: vi.fn()
       }
     };
+  });
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers(); // 대기 중인 타이머 실행
+    vi.useRealTimers(); // 실제 타이머로 복원
   });
 
   describe('생성자', () => {
