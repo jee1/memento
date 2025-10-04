@@ -10,10 +10,12 @@ import { CommonSchemas } from './types.js';
 import { DatabaseUtils } from '../utils/database.js';
 
 const UnpinSchema = z.object({
-  id: CommonSchemas.MemoryId,
+  id: CommonSchemas.MemoryId.optional(),
   reason: z.string().optional().describe('고정 해제 사유'),
   batch: z.array(z.string()).optional().describe('배치 고정 해제할 ID 목록'),
   confirm: z.boolean().optional().describe('고정 해제 확인')
+}).refine((data) => data.id || data.batch, {
+  message: "id 또는 batch 중 하나는 필수입니다"
 });
 
 export class UnpinTool extends BaseTool {

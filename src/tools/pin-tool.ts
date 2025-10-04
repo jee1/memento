@@ -10,10 +10,12 @@ import { CommonSchemas } from './types.js';
 import { DatabaseUtils } from '../utils/database.js';
 
 const PinSchema = z.object({
-  id: CommonSchemas.MemoryId,
+  id: CommonSchemas.MemoryId.optional(),
   reason: z.string().optional().describe('고정 사유'),
   priority: z.number().min(1).max(5).optional().describe('우선순위 (1-5)'),
   batch: z.array(z.string()).optional().describe('배치 고정할 ID 목록')
+}).refine((data) => data.id || data.batch, {
+  message: "id 또는 batch 중 하나는 필수입니다"
 });
 
 export class PinTool extends BaseTool {
