@@ -10,23 +10,19 @@ import { CommonSchemas } from './types.js';
 
 const RecallSchema = z.object({
   query: CommonSchemas.Query,
-  filters: z.object({
-    type: z.array(CommonSchemas.MemoryType).optional(),
-    tags: z.array(z.string()).optional(),
-    privacy_scope: z.array(CommonSchemas.PrivacyScope).optional(),
-    time_from: z.string().optional(),
-    time_to: z.string().optional(),
-    pinned: z.boolean().optional(),
-    importance_min: z.number().min(0).max(1).optional(),
-    importance_max: z.number().min(0).max(1).optional()
-  }).optional(),
+  memory_types: z.array(CommonSchemas.MemoryType).optional(),
+  tags: z.array(z.string()).optional(),
+  privacy_scope: z.array(CommonSchemas.PrivacyScope).optional(),
+  time_from: z.string().optional(),
+  time_to: z.string().optional(),
+  pinned: z.boolean().optional(),
+  importance_min: z.number().min(0).max(1).optional(),
+  importance_max: z.number().min(0).max(1).optional(),
   limit: CommonSchemas.Limit,
-  search_options: z.object({
-    vector_weight: z.number().min(0).max(1).optional(),
-    text_weight: z.number().min(0).max(1).optional(),
-    enable_hybrid: z.boolean().optional(),
-    include_metadata: z.boolean().optional()
-  }).optional()
+  vector_weight: z.number().min(0).max(1).optional(),
+  text_weight: z.number().min(0).max(1).optional(),
+  enable_hybrid: z.boolean().optional(),
+  include_metadata: z.boolean().optional()
 });
 
 export class RecallTool extends BaseTool {
@@ -37,52 +33,48 @@ export class RecallTool extends BaseTool {
       {
         type: 'object',
         properties: {
-          query: { type: 'string', description: '검색 쿼리' },
-          filters: {
-            type: 'object',
-            properties: {
-              type: { 
-                type: 'array', 
-                items: { type: 'string', enum: ['working', 'episodic', 'semantic', 'procedural'] },
-                description: '기억 타입 필터'
-              },
-              tags: { 
-                type: 'array', 
-                items: { type: 'string' },
-                description: '태그 필터'
-              },
-              privacy_scope: { 
-                type: 'array', 
-                items: { type: 'string', enum: ['private', 'team', 'public'] },
-                description: '프라이버시 범위 필터'
-              },
-              time_from: { 
-                type: 'string', 
-                format: 'date-time',
-                description: '시작 시간'
-              },
-              time_to: { 
-                type: 'string', 
-                format: 'date-time',
-                description: '종료 시간'
-              },
-              pinned: { 
-                type: 'boolean',
-                description: '핀된 기억만 검색'
-              },
-              importance_min: {
-                type: 'number',
-                minimum: 0,
-                maximum: 1,
-                description: '최소 중요도'
-              },
-              importance_max: {
-                type: 'number',
-                minimum: 0,
-                maximum: 1,
-                description: '최대 중요도'
-              }
-            }
+          query: { 
+            type: 'string', 
+            description: '검색 쿼리' 
+          },
+          memory_types: { 
+            type: 'array', 
+            items: { type: 'string', enum: ['working', 'episodic', 'semantic', 'procedural'] },
+            description: '기억 타입 필터 (선택사항)'
+          },
+          tags: { 
+            type: 'array', 
+            items: { type: 'string' },
+            description: '태그 필터 (선택사항)'
+          },
+          privacy_scope: { 
+            type: 'array', 
+            items: { type: 'string', enum: ['private', 'team', 'public'] },
+            description: '프라이버시 범위 필터 (선택사항)'
+          },
+          time_from: { 
+            type: 'string', 
+            description: '시작 시간 (ISO 8601 형식, 선택사항)'
+          },
+          time_to: { 
+            type: 'string', 
+            description: '종료 시간 (ISO 8601 형식, 선택사항)'
+          },
+          pinned: { 
+            type: 'boolean',
+            description: '핀된 기억만 검색 (선택사항)'
+          },
+          importance_min: {
+            type: 'number',
+            minimum: 0,
+            maximum: 1,
+            description: '최소 중요도 (선택사항)'
+          },
+          importance_max: {
+            type: 'number',
+            minimum: 0,
+            maximum: 1,
+            description: '최대 중요도 (선택사항)'
           },
           limit: { 
             type: 'number', 
@@ -91,34 +83,29 @@ export class RecallTool extends BaseTool {
             default: 10,
             description: '최대 결과 수'
           },
-          search_options: {
-            type: 'object',
-            properties: {
-              vector_weight: {
-                type: 'number',
-                minimum: 0,
-                maximum: 1,
-                default: 0.6,
-                description: '벡터 검색 가중치'
-              },
-              text_weight: {
-                type: 'number',
-                minimum: 0,
-                maximum: 1,
-                default: 0.4,
-                description: '텍스트 검색 가중치'
-              },
-              enable_hybrid: {
-                type: 'boolean',
-                default: true,
-                description: '하이브리드 검색 사용 여부'
-              },
-              include_metadata: {
-                type: 'boolean',
-                default: true,
-                description: '메타데이터 포함 여부'
-              }
-            }
+          vector_weight: {
+            type: 'number',
+            minimum: 0,
+            maximum: 1,
+            default: 0.6,
+            description: '벡터 검색 가중치 (선택사항)'
+          },
+          text_weight: {
+            type: 'number',
+            minimum: 0,
+            maximum: 1,
+            default: 0.4,
+            description: '텍스트 검색 가중치 (선택사항)'
+          },
+          enable_hybrid: {
+            type: 'boolean',
+            default: true,
+            description: '하이브리드 검색 사용 여부 (선택사항)'
+          },
+          include_metadata: {
+            type: 'boolean',
+            default: true,
+            description: '메타데이터 포함 여부 (선택사항)'
           }
         },
         required: ['query']
@@ -130,9 +117,34 @@ export class RecallTool extends BaseTool {
     this.logInfo('Recall 도구 호출됨', { params });
     
     try {
-      // 파라미터 검증 및 파싱
-      const { query, filters, limit, search_options } = RecallSchema.parse(params);
-      this.logInfo('파라미터 파싱 완료', { query, filters, limit, search_options });
+      // 파라미터 검증 및 파싱 - 평면화된 스키마 사용
+      const { 
+        query, 
+        memory_types, 
+        tags, 
+        privacy_scope, 
+        time_from, 
+        time_to, 
+        pinned, 
+        importance_min, 
+        importance_max, 
+        limit, 
+        vector_weight, 
+        text_weight, 
+        enable_hybrid, 
+        include_metadata 
+      } = RecallSchema.parse(params);
+      
+      this.logInfo('파라미터 파싱 완료', { 
+        query, 
+        memory_types, 
+        tags, 
+        privacy_scope, 
+        limit, 
+        vector_weight, 
+        text_weight, 
+        enable_hybrid 
+      });
       
       // 입력 검증
       this.validateString(query, '검색 쿼리', 1000);
@@ -146,11 +158,23 @@ export class RecallTool extends BaseTool {
       
       const startTime = Date.now();
       
+      // 필터 객체 재구성 (하위 호환성을 위해)
+      const filters = {
+        type: memory_types,
+        tags,
+        privacy_scope,
+        time_from,
+        time_to,
+        pinned,
+        importance_min,
+        importance_max
+      };
+      
       // 검색 옵션 설정
-      const vectorWeight = search_options?.vector_weight ?? 0.6;
-      const textWeight = search_options?.text_weight ?? 0.4;
-      const enableHybrid = search_options?.enable_hybrid ?? true;
-      const includeMetadata = search_options?.include_metadata ?? true;
+      const vectorWeight = vector_weight ?? 0.6;
+      const textWeight = text_weight ?? 0.4;
+      const enableHybrid = enable_hybrid ?? true;
+      const includeMetadata = include_metadata ?? true;
       
       // 가중치 정규화
       const totalWeight = vectorWeight + textWeight;
