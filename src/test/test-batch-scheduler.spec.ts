@@ -404,8 +404,8 @@ describe('BatchScheduler', () => {
       const originalRunJob = batchScheduler.runJob;
       batchScheduler.runJob = vi.fn().mockRejectedValue(new Error('Job execution failed'));
       
-      // Should not throw
-      expect(() => batchScheduler.runJob('cleanup')).not.toThrow();
+      // Should throw the expected error (비동기 함수이므로 await와 rejects 사용)
+      await expect(batchScheduler.runJob('cleanup')).rejects.toThrow('Job execution failed');
       
       // Restore original method
       batchScheduler.runJob = originalRunJob;

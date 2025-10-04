@@ -64,16 +64,24 @@ describe('MementoClient', () => {
         status: 200
       });
 
-      const result = await client.connect();
+      await client.connect();
 
-      expect(result).toBe(true);
+      expect(client.connected).toBe(true);
       expect(mockAxiosInstance.get).toHaveBeenCalledWith('/health');
     });
 
     it('연결 실패 시 에러를 던져야 함', async () => {
+      const errorPromise = new Promise<void>((resolve) => {
+        client.on('error', (error) => {
+          expect(error).toBeInstanceOf(Error);
+          resolve();
+        });
+      });
+
       mockAxiosInstance.get.mockRejectedValue(new Error('Connection failed'));
 
       await expect(client.connect()).rejects.toThrow('Failed to connect to Memento server');
+      await errorPromise;
     });
 
     it('이미 연결된 상태에서 중복 연결을 방지해야 함', async () => {
@@ -83,10 +91,10 @@ describe('MementoClient', () => {
       });
 
       await client.connect();
-      const result = await client.connect();
+      await client.connect();
 
-      expect(result).toBe(true);
-      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+      expect(client.connected).toBe(true);
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -115,7 +123,7 @@ describe('MementoClient', () => {
         status: 200
       });
       mockAxiosInstance.post.mockResolvedValue({
-        data: { memory_id: 'memory-123' },
+        data: { result: { memory_id: 'memory-123' } },
         status: 201
       });
 
@@ -123,7 +131,7 @@ describe('MementoClient', () => {
       const result = await client.remember(memoryData);
 
       expect(result).toEqual({ memory_id: 'memory-123' });
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/memories', memoryData);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/remember', memoryData);
     });
 
     it('연결되지 않은 상태에서 에러를 던져야 함', async () => {
@@ -159,8 +167,8 @@ describe('MementoClient', () => {
         query_time: 10
       };
 
-      mockAxiosInstance.get.mockResolvedValue({
-        data: mockResults,
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { result: mockResults },
         status: 200
       });
 
@@ -174,8 +182,8 @@ describe('MementoClient', () => {
       const result = await client.recall(query);
 
       expect(result).toEqual(mockResults);
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/memories/search', {
-        params: { query, limit: 10 }
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/recall', {
+        query, filters: undefined, limit: undefined
       });
     });
 
@@ -187,8 +195,8 @@ describe('MementoClient', () => {
         query_time: 5
       };
 
-      mockAxiosInstance.get.mockResolvedValue({
-        data: mockResults,
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { result: mockResults },
         status: 200
       });
 
@@ -215,7 +223,7 @@ describe('MementoClient', () => {
         status: 200
       });
       mockAxiosInstance.post.mockResolvedValue({
-        data: { id: memoryId, success: true },
+        data: { result: { id: memoryId, success: true } },
         status: 200
       });
 
@@ -223,7 +231,7 @@ describe('MementoClient', () => {
       const result = await client.pin(memoryId);
 
       expect(result).toEqual({ id: memoryId, success: true });
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(`/memories/${memoryId}/pin`);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/pin', { id: memoryId });
     });
 
     it('존재하지 않는 기억 고정 시 에러를 던져야 함', async () => {
@@ -252,7 +260,7 @@ describe('MementoClient', () => {
         status: 200
       });
       mockAxiosInstance.post.mockResolvedValue({
-        data: { id: memoryId, success: true },
+        data: { result: { id: memoryId, success: true } },
         status: 200
       });
 
@@ -260,7 +268,7 @@ describe('MementoClient', () => {
       const result = await client.unpin(memoryId);
 
       expect(result).toEqual({ id: memoryId, success: true });
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(`/memories/${memoryId}/unpin`);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/unpin', { id: memoryId });
     });
   });
 
@@ -272,8 +280,8 @@ describe('MementoClient', () => {
         data: { status: 'ok' },
         status: 200
       });
-      mockAxiosInstance.delete.mockResolvedValue({
-        data: { id: memoryId, success: true },
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { result: { id: memoryId, success: true } },
         status: 200
       });
 
@@ -281,7 +289,7 @@ describe('MementoClient', () => {
       const result = await client.forget(memoryId);
 
       expect(result).toEqual({ id: memoryId, success: true });
-      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(`/memories/${memoryId}`);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/forget', { id: memoryId, hard: false });
     });
 
     it('하드 삭제를 수행해야 함', async () => {
@@ -291,8 +299,8 @@ describe('MementoClient', () => {
         data: { status: 'ok' },
         status: 200
       });
-      mockAxiosInstance.delete.mockResolvedValue({
-        data: { id: memoryId, success: true, hard: true },
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { result: { id: memoryId, success: true, hard: true } },
         status: 200
       });
 
@@ -300,7 +308,7 @@ describe('MementoClient', () => {
       const result = await client.forget(memoryId, true);
 
       expect(result).toEqual({ id: memoryId, success: true, hard: true });
-      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(`/memories/${memoryId}?hard=true`);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/forget', { id: memoryId, hard: true });
     });
   });
 
@@ -320,8 +328,8 @@ describe('MementoClient', () => {
         privacy_scope: 'private'
       };
 
-      mockAxiosInstance.get.mockResolvedValue({
-        data: mockMemory,
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { result: { items: [mockMemory], total_count: 1, query_time: 10 } },
         status: 200
       });
 
@@ -335,7 +343,7 @@ describe('MementoClient', () => {
       const result = await client.getMemory(memoryId);
 
       expect(result).toEqual(mockMemory);
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith(`/memories/${memoryId}`);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/recall', { query: 'memory', filters: { id: [memoryId] }, limit: 1 });
     });
 
     it('존재하지 않는 기억에 대해 에러를 던져야 함', async () => {
@@ -363,20 +371,48 @@ describe('MementoClient', () => {
         importance: 0.9
       };
 
+      const mockMemory = {
+        id: memoryId,
+        content: 'React Hook 학습',
+        type: 'episodic',
+        importance: 0.8,
+        created_at: '2024-01-01T00:00:00.000Z',
+        last_accessed: '2024-01-01T00:00:00.000Z',
+        pinned: false,
+        tags: ['react', 'hooks'],
+        source: 'user',
+        privacy_scope: 'private'
+      };
+
       mockAxiosInstance.get.mockResolvedValue({
         data: { status: 'ok' },
         status: 200
       });
-      mockAxiosInstance.put.mockResolvedValue({
-        data: { id: memoryId, success: true },
+      // getMemory을 위한 모킹 (recall 호출)
+      mockAxiosInstance.post.mockResolvedValueOnce({
+        data: { result: { items: [mockMemory], total_count: 1, query_time: 10 } },
         status: 200
+      });
+      // forget을 위한 모킹
+      mockAxiosInstance.post.mockResolvedValueOnce({
+        data: { result: { id: memoryId, success: true } },
+        status: 200
+      });
+      // remember을 위한 모킹
+      mockAxiosInstance.post.mockResolvedValueOnce({
+        data: { result: { memory_id: memoryId } },
+        status: 201
       });
 
       await client.connect();
       const result = await client.updateMemory(memoryId, updateData);
 
-      expect(result).toEqual({ id: memoryId, success: true });
-      expect(mockAxiosInstance.put).toHaveBeenCalledWith(`/memories/${memoryId}`, updateData);
+      expect(result).toEqual(expect.objectContaining({
+        content: '업데이트된 내용',
+        importance: 0.9
+      }));
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/forget', { id: memoryId, hard: false });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/remember', expect.objectContaining(updateData));
     });
   });
 
@@ -396,11 +432,15 @@ describe('MementoClient', () => {
             tags: ['react', 'hooks'],
             source: 'user',
             privacy_scope: 'private',
-            score: 0.9
+            score: 0.9,
+            finalScore: 0.9,
+            textScore: 0.9,
+            vectorScore: 0
           }
         ],
         total_count: 1,
-        query_time: 15
+        query_time: 15,
+        search_type: 'hybrid'
       };
 
       mockAxiosInstance.get.mockResolvedValue({
@@ -408,15 +448,15 @@ describe('MementoClient', () => {
         status: 200
       });
       mockAxiosInstance.post.mockResolvedValue({
-        data: mockResults,
+        data: { result: mockResults },
         status: 200
       });
 
       await client.connect();
-      const result = await client.hybridSearch(query);
+      const result = await client.hybridSearch({ query });
 
       expect(result).toEqual(mockResults);
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/memories/hybrid-search', { query });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tools/recall', { query, filters: undefined, limit: undefined });
     });
   });
 
@@ -493,7 +533,7 @@ describe('MementoClient', () => {
     });
 
     it('에러 이벤트를 발생시켜야 함', async () => {
-      const eventPromise = new Promise<void>((resolve) => {
+      const errorPromise = new Promise<void>((resolve) => {
         client.on('error', (error) => {
           expect(error).toBeInstanceOf(Error);
           resolve();
@@ -501,8 +541,9 @@ describe('MementoClient', () => {
       });
 
       mockAxiosInstance.get.mockRejectedValue(new Error('Test error'));
-      client.connect();
-      await eventPromise;
+
+      await expect(client.connect()).rejects.toThrow('Failed to connect to Memento server');
+      await errorPromise;
     });
   });
 });

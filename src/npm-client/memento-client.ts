@@ -170,6 +170,7 @@ export class MementoClient extends EventEmitter {
       }
     } catch (error) {
       this.isConnected = false;
+      this.emit('error', error);
       throw new ConnectionError('Failed to connect to Memento server', error);
     }
   }
