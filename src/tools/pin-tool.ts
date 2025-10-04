@@ -70,6 +70,9 @@ export class PinTool extends BaseTool {
     }
     
     // 단일 고정 처리
+    if (!id) {
+      throw new Error('기억 ID가 필요합니다');
+    }
     return await this.handleSinglePin(id, reason, priority, context);
   }
 

@@ -46,7 +46,7 @@ console.info = () => {};
 console.debug = () => {};
 
 // 동시성 제한을 위한 세마포어
-class Semaphore {
+export class Semaphore {
   private permits: number;
   private waiting: Array<() => void> = [];
 
