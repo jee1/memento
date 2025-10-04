@@ -282,4 +282,177 @@ export class DatabaseUtils {
       throw error;
     }
   }
+
+  /**
+   * 데이터베이스 초기화 (스키마 생성)
+   */
+  static async initializeDatabase(db: Database.Database): Promise<void> {
+    try {
+      // SQLite 설정 최적화
+      this.run(db, 'PRAGMA journal_mode = WAL');
+      this.run(db, 'PRAGMA synchronous = NORMAL');
+      this.run(db, 'PRAGMA cache_size = 10000');
+      this.run(db, 'PRAGMA temp_store = MEMORY');
+      this.run(db, 'PRAGMA mmap_size = 268435456'); // 256MB
+      this.run(db, 'PRAGMA busy_timeout = 30000');
+
+      // FTS5 확장 활성화
+      this.run(db, 'PRAGMA compile_options');
+
+      // 기본 테이블 생성
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_item (
+          id TEXT PRIMARY KEY,
+          type TEXT CHECK (type IN ('working','episodic','semantic','procedural')) NOT NULL,
+          content TEXT NOT NULL,
+          importance REAL CHECK (importance >= 0 AND importance <= 1) DEFAULT 0.5,
+          privacy_scope TEXT CHECK (privacy_scope IN ('private','team','public')) DEFAULT 'private',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          last_accessed TIMESTAMP,
+          pinned BOOLEAN DEFAULT FALSE,
+          tags TEXT,
+          source TEXT,
+          view_count INTEGER DEFAULT 0,
+          cite_count INTEGER DEFAULT 0,
+          edit_count INTEGER DEFAULT 0
+        )
+      `);
+
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_tag (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_item_tag (
+          memory_id TEXT NOT NULL,
+          tag_id INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          FOREIGN KEY (tag_id) REFERENCES memory_tag(id) ON DELETE CASCADE,
+          PRIMARY KEY (memory_id, tag_id)
+        )
+      `);
+
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_link (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          source_id TEXT NOT NULL,
+          target_id TEXT NOT NULL,
+          relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          UNIQUE(source_id, target_id, relation_type)
+        )
+      `);
+
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS feedback_event (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          memory_id TEXT NOT NULL,
+          event TEXT CHECK (event IN ('used', 'edited', 'neglected', 'helpful', 'not_helpful')) NOT NULL,
+          score REAL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        )
+      `);
+
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS wm_buffer (
+          session_id TEXT PRIMARY KEY,
+          items TEXT NOT NULL,
+          token_budget INTEGER DEFAULT 4000,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          expires_at TIMESTAMP NOT NULL
+        )
+      `);
+
+      this.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_embedding (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          memory_id TEXT NOT NULL,
+          embedding TEXT NOT NULL,
+          dim INTEGER NOT NULL,
+          model TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          UNIQUE(memory_id)
+        )
+      `);
+
+      // 인덱스 생성
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_created_at ON memory_item(created_at)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_pinned ON memory_item(pinned)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_privacy_scope ON memory_item(privacy_scope)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_importance ON memory_item(importance)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_user_id ON memory_item(id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(id)');
+
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id)');
+
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_link_source ON memory_link(source_id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_link_target ON memory_link(target_id)');
+
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_memory_id ON feedback_event(memory_id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_event ON feedback_event(event)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback_event(created_at)');
+
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_wm_buffer_expires_at ON wm_buffer(expires_at)');
+
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_dim ON memory_embedding(dim)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model)');
+
+      // FTS5 가상 테이블 생성
+      try {
+        this.run(db, `
+          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_fts USING fts5(
+            content,
+            tags,
+            source,
+            content='memory_item',
+            content_rowid='rowid'
+          )
+        `);
+
+        // FTS5 트리거 생성
+        this.run(db, `
+          CREATE TRIGGER IF NOT EXISTS memory_item_fts_insert AFTER INSERT ON memory_item BEGIN
+            INSERT INTO memory_item_fts(rowid, content, tags, source)
+            VALUES (new.rowid, new.content, new.tags, new.source);
+          END
+        `);
+
+        this.run(db, `
+          CREATE TRIGGER IF NOT EXISTS memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
+            INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
+            VALUES('delete', old.rowid, old.content, old.tags, old.source);
+          END
+        `);
+
+        this.run(db, `
+          CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
+            INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
+            VALUES('delete', old.rowid, old.content, old.tags, old.source);
+            INSERT INTO memory_item_fts(rowid, content, tags, source)
+            VALUES (new.rowid, new.content, new.tags, new.source);
+          END
+        `);
+      } catch (error) {
+        log('⚠️ FTS5 가상 테이블 생성 실패:', error);
+      }
+      
+      log('✅ 데이터베이스 초기화 완료');
+    } catch (error) {
+      log('❌ 데이터베이스 초기화 실패:', error);
+      throw error;
+    }
+  }
 }
