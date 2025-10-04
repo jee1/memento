@@ -220,8 +220,8 @@ export class RecallTool extends BaseTool {
       
       const executionTime = Date.now() - startTime;
       
-      // 결과 후처리
-      const processedResults = this.processSearchResults(searchResult.items, includeMetadata);
+      // 결과 후처리 - searchResult가 undefined인 경우 처리
+      const processedResults = this.processSearchResults(searchResult?.items || [], includeMetadata);
       
       this.logInfo('검색 완료', { 
         resultCount: processedResults.length, 
@@ -231,10 +231,10 @@ export class RecallTool extends BaseTool {
       
       return this.createSuccessResult({
         items: processedResults,
-        total_count: searchResult.total_count || processedResults.length,
+        total_count: searchResult?.total_count || processedResults.length,
         query_time: executionTime,
         search_type: enableHybrid ? 'hybrid' : 'text',
-        vector_search_available: context.services.hybridSearchEngine.isEmbeddingAvailable(),
+        vector_search_available: context.services.hybridSearchEngine?.isEmbeddingAvailable() || false,
         filters_applied: this.getAppliedFilters(filters),
         search_options: {
           vector_weight: normalizedVectorWeight,
