@@ -100,6 +100,9 @@ export class ForgetTool extends BaseTool {
       
       // 단일 삭제 처리
       this.logInfo('단일 삭제 시작', { id, hard });
+      if (!id) {
+        throw new Error('기억 ID가 필요합니다');
+      }
       return await this.handleSingleDelete(id, hard, reason, context);
       
     } catch (error) {

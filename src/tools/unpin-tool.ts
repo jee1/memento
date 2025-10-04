@@ -68,6 +68,9 @@ export class UnpinTool extends BaseTool {
     }
     
     // 단일 고정 해제 처리
+    if (!id) {
+      throw new Error('기억 ID가 필요합니다');
+    }
     return await this.handleSingleUnpin(id, reason, confirm, context);
   }
 
