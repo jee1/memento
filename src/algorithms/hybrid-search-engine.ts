@@ -473,3 +473,17 @@ export class HybridSearchEngine {
     return this.embeddingService.isAvailable();
   }
 }
+
+// 싱글톤 인스턴스
+let hybridSearchEngineInstance: HybridSearchEngine | null = null;
+
+export function getHybridSearchEngine(): HybridSearchEngine {
+  if (!hybridSearchEngineInstance) {
+    hybridSearchEngineInstance = new HybridSearchEngine();
+  }
+  return hybridSearchEngineInstance;
+}
+
+export function createHybridSearchEngine(): HybridSearchEngine {
+  return new HybridSearchEngine();
+}
