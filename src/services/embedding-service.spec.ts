@@ -59,6 +59,35 @@ describe('EmbeddingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     embeddingService = new EmbeddingService();
+    
+    // 내부 서비스들을 직접 모킹
+    (embeddingService as any).lightweightService = {
+      generateEmbedding: vi.fn().mockResolvedValue({
+        embedding: [0.4, 0.5, 0.6],
+        model: 'lightweight-model',
+        usage: { prompt_tokens: 5, total_tokens: 5 }
+      }),
+      isAvailable: vi.fn().mockReturnValue(true),
+      getModelInfo: vi.fn().mockReturnValue({
+        model: 'lightweight-model',
+        dimensions: 512,
+        maxTokens: 2000
+      })
+    };
+    
+    (embeddingService as any).geminiService = {
+      generateEmbedding: vi.fn().mockResolvedValue({
+        embedding: [0.1, 0.2, 0.3],
+        model: 'gemini-model',
+        usage: { prompt_tokens: 10, total_tokens: 10 }
+      }),
+      isAvailable: vi.fn().mockReturnValue(true),
+      getModelInfo: vi.fn().mockReturnValue({
+        model: 'gemini-model',
+        dimensions: 768,
+        maxTokens: 1000
+      })
+    };
   });
 
   afterEach(() => {

@@ -62,17 +62,21 @@ export class CacheService<T = any> {
    * 캐시에 데이터 저장
    */
   set(key: string, data: T, ttl?: number): void {
-    // 캐시 크기 제한 확인
-    if (this.cache.size >= this.maxSize) {
+    // 기존 키가 아닌 경우에만 크기 제한 확인
+    if (!this.cache.has(key) && this.cache.size >= this.maxSize) {
       this.evictLeastRecentlyUsed();
     }
 
+    // 기존 항목이 있으면 접근 통계 유지
+    const existingEntry = this.cache.get(key);
+    const now = Date.now();
+    
     const entry: CacheEntry<T> = {
       data,
-      timestamp: Date.now(),
+      timestamp: now,
       ttl: ttl || this.defaultTTL,
-      accessCount: 0,
-      lastAccessed: Date.now()
+      accessCount: existingEntry ? existingEntry.accessCount + 1 : 0,
+      lastAccessed: now
     };
 
     this.cache.set(key, entry);
@@ -140,7 +144,7 @@ export class CacheService<T = any> {
    */
   private evictLeastRecentlyUsed(): void {
     let oldestKey = '';
-    let oldestTime = Date.now();
+    let oldestTime = Number.MAX_SAFE_INTEGER;
 
     for (const [key, entry] of this.cache) {
       if (entry.lastAccessed < oldestTime) {
@@ -191,6 +195,90 @@ export class CacheService<T = any> {
    */
   generateStatsKey(type: string): string {
     return `stats:${type}`;
+  }
+
+  /**
+   * 모든 키 반환
+   */
+  keys(): string[] {
+    return Array.from(this.cache.keys());
+  }
+
+  /**
+   * 모든 값 반환
+   */
+  values(): T[] {
+    return Array.from(this.cache.values()).map(entry => entry.data);
+  }
+
+  /**
+   * 모든 키-값 쌍 반환
+   */
+  entries(): [string, T][] {
+    return Array.from(this.cache.entries()).map(([key, entry]) => [key, entry.data]);
+  }
+
+  /**
+   * 각 항목에 대해 콜백 실행
+   */
+  forEach(callback: (value: T, key: string) => void): void {
+    for (const [key, entry] of this.cache) {
+      callback(entry.data, key);
+    }
+  }
+
+  /**
+   * 가장 오래된 항목 반환 (LRU)
+   */
+  getLeastRecentlyUsed(): T | null {
+    let oldestKey = '';
+    let oldestTime = Date.now();
+
+    for (const [key, entry] of this.cache) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    return oldestKey ? this.cache.get(oldestKey)?.data || null : null;
+  }
+
+  /**
+   * 캐시 크기 반환
+   */
+  size(): number {
+    return this.cache.size;
+  }
+
+  /**
+   * 메모리 사용량 반환
+   */
+  getMemoryUsage(): number {
+    let memoryUsage = 0;
+    for (const [key, entry] of this.cache) {
+      memoryUsage += key.length * 2; // 문자열 크기 (UTF-16)
+      memoryUsage += JSON.stringify(entry.data).length * 2;
+      memoryUsage += 100; // 메타데이터 오버헤드
+    }
+    return memoryUsage;
+  }
+
+  /**
+   * 가장 오래된 항목 반환 (타임스탬프 기준)
+   */
+  getOldestEntry(): T | null {
+    let oldestKey = '';
+    let oldestTime = Date.now();
+
+    for (const [key, entry] of this.cache) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+
+    return oldestKey ? this.cache.get(oldestKey)?.data || null : null;
   }
 }
 
