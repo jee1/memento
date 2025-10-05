@@ -58,8 +58,6 @@ export class HybridSearchEngine {
     const startTime = process.hrtime.bigint();
     
     try {
-      this.logSearchStart(searchId, query);
-      
       const {
         query: searchQuery,
         filters,
@@ -67,6 +65,8 @@ export class HybridSearchEngine {
         vectorWeight = this.defaultVectorWeight,
         textWeight = this.defaultTextWeight,
       } = query;
+      
+      this.logSearchStart(searchId, { ...query, vectorWeight, textWeight });
 
     // 1. 적응형 가중치 계산
     const adaptiveWeights = this.calculateAdaptiveWeights(searchQuery, vectorWeight, textWeight);
