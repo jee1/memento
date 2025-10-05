@@ -24,7 +24,7 @@ vi.mock('../services/memory-embedding-service.js', () => {
   };
 });
 
-const createTextResult = (overrides: Partial<any> = {}) => ({
+const createTextResult = (overrides: Partial<HybridSearchResult> = {}) => ({
   id: 'memory-text',
   content: '텍스트 전용 결과',
   type: 'episodic',
@@ -38,7 +38,7 @@ const createTextResult = (overrides: Partial<any> = {}) => ({
   ...overrides,
 });
 
-const createVectorResult = (overrides: Partial<any> = {}) => ({
+const createVectorResult = (overrides: Partial<HybridSearchResult> = {}) => ({
   id: 'memory-vector',
   content: '벡터 전용 결과',
   type: 'episodic',

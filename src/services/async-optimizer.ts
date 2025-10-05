@@ -3,10 +3,10 @@
  * 워커 풀, 큐 시스템, 배치 처리 최적화
  */
 
-export interface Task<T = any> {
+export interface Task<T = unknown> {
   id: string;
   type: string;
-  data: any;
+  data: T;
   priority: number;
   createdAt: Date;
   maxRetries: number;
@@ -14,7 +14,7 @@ export interface Task<T = any> {
   timeout: number;
 }
 
-export interface TaskResult<T = any> {
+export interface TaskResult<T = unknown> {
   taskId: string;
   success: boolean;
   data?: T;
@@ -58,7 +58,7 @@ export class AsyncTaskQueue {
   /**
    * 작업 추가
    */
-  addTask<T>(task: Omit<Task<T>, 'id' | 'createdAt' | 'retryCount'>): string | false {
+  addTask<T>(task: Omit<Task<T>, 'id' | 'createdAt' | 'retryCount'> & { id?: string }): string | false {
     // ID 중복 검사
     if (task.id && (this.queue.some(t => t.id === task.id) || this.processing.has(task.id) || this.completed.has(task.id) || this.failed.has(task.id))) {
       return false;
@@ -212,7 +212,7 @@ export class AsyncTaskQueue {
    * 다음 작업 가져오기
    */
   getNextTask(): Task | null {
-    return this.queue.length > 0 ? this.queue[0] : null;
+    return this.queue.length > 0 ? this.queue[0]! : null;
   }
 
   /**
@@ -267,13 +267,13 @@ export class AsyncTaskQueue {
     // 실패한 작업의 원본 정보를 복원
     const originalTask: Task = {
       id: taskId,
-      type: failedResult.data?.type || 'unknown',
-      data: failedResult.data?.data || {},
-      priority: failedResult.data?.priority || 0,
-      createdAt: failedResult.data?.createdAt || new Date(),
-      maxRetries: failedResult.data?.maxRetries || 3,
+      type: (failedResult.data as any)?.type || 'unknown',
+      data: (failedResult.data as any)?.data || {},
+      priority: (failedResult.data as any)?.priority || 0,
+      createdAt: (failedResult.data as any)?.createdAt || new Date(),
+      maxRetries: (failedResult.data as any)?.maxRetries || 3,
       retryCount: failedResult.retryCount,
-      timeout: failedResult.data?.timeout || 30000
+      timeout: (failedResult.data as any)?.timeout || 30000
     };
 
     if (originalTask.retryCount >= originalTask.maxRetries) {
@@ -415,8 +415,8 @@ class Worker {
   /**
    * 메모리 작업 처리
    */
-  private async processMemoryOperation(): Promise<any> {
-    const { operation, content, type, tags, importance } = this.task.data;
+  private async processMemoryOperation(): Promise<unknown> {
+    const { operation, content, type, tags, importance } = this.task.data as any;
     
     // 실제 MCP 클라이언트 호출 시뮬레이션
     if (operation === 'remember') {
@@ -469,7 +469,7 @@ class Worker {
   private async processBatchInsert(): Promise<any> {
     // 배치 삽입 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
-    return { inserted: this.task.data.length };
+    return { inserted: (this.task.data as any[]).length };
   }
 
   /**

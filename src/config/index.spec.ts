@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { mementoConfig, searchRankingWeights, defaultTags, validateConfig } from './index.js';
+import { mementoConfig, searchRankingWeights, defaultTags } from './index.js';
 
 // Mock dotenv
 vi.mock('dotenv', () => ({
@@ -7,7 +7,7 @@ vi.mock('dotenv', () => ({
 }));
 
 describe('Config', () => {
-  let originalEnv: NodeJS.ProcessEnv;
+  let originalEnv: typeof process.env;
 
   beforeEach(() => {
     originalEnv = { ...process.env };

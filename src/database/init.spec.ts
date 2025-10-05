@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { initializeDatabase } from './init.js';
 import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
-import { mementoConfig } from '../config/index.js';
+// import { mementoConfig } from '../config/index.js';
 
 // Mock dependencies
 vi.mock('better-sqlite3');

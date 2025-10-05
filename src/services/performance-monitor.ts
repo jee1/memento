@@ -90,6 +90,11 @@ export class PerformanceMonitor {
     
     // 데이터베이스 지표
     const dbMetrics = await this.getDatabaseMetrics();
+    const dbMetricsForPerformance = {
+      size: dbMetrics.databaseSize,
+      memoryCount: dbMetrics.totalMemories,
+      queryTime: 0 // 실제 쿼리 시간은 별도로 측정
+    };
     
     // 검색 지표
     const searchMetrics = this.getSearchMetrics();
@@ -97,10 +102,9 @@ export class PerformanceMonitor {
     // 시스템 지표
     const systemMetrics = this.getSystemMetrics();
     
-    const metrics = {
+    const metrics: PerformanceMetrics = {
       timestamp: new Date(),
-      database: dbMetrics,
-      search: searchMetrics,
+      database: dbMetricsForPerformance,
       memory: {
         rss: memUsage.rss,
         heapTotal: memUsage.heapTotal,
@@ -111,14 +115,14 @@ export class PerformanceMonitor {
         user: cpuUsage.user,
         system: cpuUsage.system
       },
-      system: systemMetrics
+      uptime: process.uptime()
     };
 
     // 지표 히스토리에 추가
-    this.addToHistory(metrics as PerformanceMetrics);
+    this.addToHistory(metrics);
     
     // 알림 검사
-    await this.checkAlerts(metrics as PerformanceMetrics);
+    await this.checkAlerts(metrics);
     
     const collectionTime = Date.now() - startTime;
     this.log(`Metrics collected in ${collectionTime}ms`);
@@ -126,37 +130,6 @@ export class PerformanceMonitor {
     return metrics;
   }
 
-  /**
-   * 데이터베이스 지표 수집
-   */
-  private async getDatabaseMetrics(): Promise<{ size: number; memoryCount: number; queryTime: number }> {
-    if (!this.db) {
-      return { size: 0, memoryCount: 0, queryTime: 0 };
-    }
-
-    const startTime = Date.now();
-    
-    try {
-      // DB 크기
-      const pageCount = this.db.prepare('PRAGMA page_count').get() as { page_count: number };
-      const pageSize = this.db.prepare('PRAGMA page_size').get() as { page_size: number };
-      const size = pageCount.page_count * pageSize.page_size;
-      
-      // 메모리 개수
-      const memoryCount = this.db.prepare('SELECT COUNT(*) as count FROM memory_item').get() as { count: number };
-      
-      const queryTime = Date.now() - startTime;
-      
-      return {
-        size,
-        memoryCount: memoryCount.count,
-        queryTime
-      };
-    } catch (error) {
-      this.log('Database metrics collection failed:', error);
-      return { size: 0, memoryCount: 0, queryTime: 0 };
-    }
-  }
 
   /**
    * 알림 검사
@@ -285,19 +258,6 @@ export class PerformanceMonitor {
     }
   }
 
-  /**
-   * 활성 알림 조회
-   */
-  getActiveAlerts(): PerformanceAlert[] {
-    return Array.from(this.alerts.values()).filter(alert => !alert.resolved);
-  }
-
-  /**
-   * 모든 알림 조회
-   */
-  getAllAlerts(): PerformanceAlert[] {
-    return Array.from(this.alerts.values());
-  }
 
   /**
    * 알림 해결
@@ -333,22 +293,17 @@ export class PerformanceMonitor {
    * 활성 알림 조회
    */
   getAlerts(): PerformanceAlert[] {
+    return Array.from(this.alerts.values());
+  }
+
+  getActiveAlerts(): PerformanceAlert[] {
     return Array.from(this.alerts.values()).filter(alert => !alert.resolved);
   }
 
-  /**
-   * 활성 알림 조회 (getAlerts와 동일)
-   */
-  getActiveAlerts(): PerformanceAlert[] {
-    return this.getAlerts();
-  }
-
-  /**
-   * 모든 알림 조회
-   */
   getAllAlerts(): PerformanceAlert[] {
     return Array.from(this.alerts.values());
   }
+
 
   /**
    * 알림 초기화
@@ -376,7 +331,7 @@ export class PerformanceMonitor {
   }> {
     const summary = this.getPerformanceSummary();
     const metrics = this.getMetricsHistory();
-    const alerts = this.getAllAlerts();
+    const alerts = this.getAlerts();
     const recommendations = this.generateRecommendations(alerts);
 
     return {
@@ -638,7 +593,7 @@ export class PerformanceMonitor {
     const alerts = this.getActiveAlerts();
     
     // 심각한 알림이 있으면 비정상
-    const criticalAlerts = alerts.filter(alert => alert.severity === 'critical');
+    const criticalAlerts = alerts.filter((alert: PerformanceAlert) => alert.severity === 'critical');
     return criticalAlerts.length === 0;
   }
 
@@ -647,7 +602,7 @@ export class PerformanceMonitor {
    */
   async exportMetrics(): Promise<string> {
     const metrics = this.getMetricsHistory();
-    const alerts = this.getAllAlerts();
+    const alerts = this.getAlerts();
     const currentMetrics = await this.collectMetrics();
     
     return JSON.stringify({
@@ -725,7 +680,7 @@ export class PerformanceMonitor {
     };
   } {
     const current = this.metricsHistory[this.metricsHistory.length - 1] || null;
-    const activeAlerts = this.getActiveAlerts();
+    const activeAlerts = this.getAlerts();
     const allAlerts = this.getAllAlerts();
 
     // 트렌드 분석 (최근 10개 지표 기준)

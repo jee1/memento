@@ -5,7 +5,7 @@
  */
 
 import { ForgettingPolicyService, type MemoryCleanupResult } from './forgetting-policy-service.js';
-import { getPerformanceMonitor } from './performance-monitor.js';
+import { getPerformanceMonitor, type PerformanceAlert } from './performance-monitor.js';
 import { DatabaseUtils } from '../utils/database.js';
 import Database from 'better-sqlite3';
 
@@ -397,8 +397,8 @@ export class BatchScheduler {
         stats, 
         alerts: {
           count: alerts.length,
-          critical: alerts.filter(a => a.severity === 'critical').length,
-          warning: alerts.filter(a => a.severity === 'warning').length
+          critical: alerts.filter((a: PerformanceAlert) => a.severity === 'critical').length,
+          warning: alerts.filter((a: PerformanceAlert) => a.severity === 'warning').length
         }
       };
 

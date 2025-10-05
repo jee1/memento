@@ -7,7 +7,8 @@ import { SearchEngine } from './search-engine.js';
 import { MemoryEmbeddingService, type VectorSearchResult } from '../services/memory-embedding-service.js';
 import { EmbeddingService } from '../services/embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
-import type { MemorySearchFilters } from '../types/index.js';
+import type { MemorySearchFilters, MemoryType } from '../types/index.js';
+import Database from 'better-sqlite3';
 
 export interface HybridSearchQuery {
   query: string;
@@ -51,7 +52,7 @@ export class HybridSearchEngine {
    * 하이브리드 검색 실행 - 적응형 가중치 적용
    */
   async search(
-    db: any,
+    db: Database.Database,
     query: HybridSearchQuery
   ): Promise<{ items: HybridSearchResult[], total_count: number, query_time: number }> {
     const searchId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -163,7 +164,7 @@ export class HybridSearchEngine {
         if (this.embeddingService.isAvailable()) {
           const fallbackStart = process.hrtime.bigint();
           vectorResults = await this.embeddingService.searchBySimilarity(db, searchQuery, {
-            type: filters?.type as any,
+            type: filters?.type as MemoryType[],
             limit: limit * 2,
             threshold: 0.5,
           });
@@ -182,7 +183,7 @@ export class HybridSearchEngine {
       if (this.embeddingService.isAvailable()) {
         const fallbackStart = process.hrtime.bigint();
         vectorResults = await this.embeddingService.searchBySimilarity(db, searchQuery, {
-          type: filters?.type as any,
+          type: filters?.type as MemoryType[],
           limit: limit * 2,
           threshold: 0.5,
         });
@@ -213,7 +214,6 @@ export class HybridSearchEngine {
     });
 
     // 5. 최종 점수로 정렬하고 제한
-    const sortStart = process.hrtime.bigint();
     const finalResults = combinedResults
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, limit);
@@ -229,8 +229,7 @@ export class HybridSearchEngine {
     // 최종 결과 로깅
     this.logSearchComplete(searchId, {
       items: finalResults,
-      total_count: finalResults.length,
-      query_time: queryTime
+      total_count: finalResults.length
     }, queryTime);
 
     return {
@@ -248,37 +247,37 @@ export class HybridSearchEngine {
    * 검색 시작 로깅
    */
   private logSearchStart(searchId: string, query: HybridSearchQuery): void {
-    console.log(`🔍 [${searchId}] 하이브리드 검색 시작`, {
-      query: query.query,
-      limit: query.limit,
-      vectorWeight: query.vectorWeight,
-      textWeight: query.textWeight,
-      filters: query.filters
-    });
+    // console.log(`🔍 [${searchId}] 하이브리드 검색 시작`, {
+    //   query: query.query,
+    //   limit: query.limit,
+    //   vectorWeight: query.vectorWeight,
+    //   textWeight: query.textWeight,
+    //   filters: query.filters
+    // });
   }
 
   /**
    * 검색 완료 로깅
    */
-  private logSearchComplete(searchId: string, result: any, queryTime: number): void {
-    console.log(`✅ [${searchId}] 하이브리드 검색 완료`, {
-      resultCount: result.items.length,
-      totalCount: result.total_count,
-      queryTime: `${queryTime.toFixed(2)}ms`,
-      searchType: 'hybrid'
-    });
+  private logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
+    // console.log(`✅ [${searchId}] 하이브리드 검색 완료`, {
+    //   resultCount: result.items.length,
+    //   totalCount: result.total_count,
+    //   queryTime: `${queryTime.toFixed(2)}ms`,
+    //   searchType: 'hybrid'
+    // });
   }
 
   /**
    * 검색 에러 로깅
    */
-  private logSearchError(searchId: string, error: any, query: HybridSearchQuery): void {
-    console.error(`❌ [${searchId}] 하이브리드 검색 에러`, {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      query: query.query,
-      limit: query.limit
-    });
+  private logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void {
+    // console.error(`❌ [${searchId}] 하이브리드 검색 에러`, {
+    //   error: error instanceof Error ? error.message : String(error),
+    //   stack: error instanceof Error ? error.stack : undefined,
+    //   query: query.query,
+    //   limit: query.limit
+    // });
   }
 
   /**

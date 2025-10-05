@@ -4,7 +4,8 @@
  */
 
 import { SearchRanking } from './search-ranking.js';
-import type { MemorySearchFilters } from '../types/index.js';
+import type { MemorySearchFilters, MemorySearchResult } from '../types/index.js';
+import Database from 'better-sqlite3';
 import { getStopWords } from '../utils/stopwords.js';
 
 export interface SearchQuery {
@@ -13,18 +14,6 @@ export interface SearchQuery {
   limit?: number | undefined;
 }
 
-export interface SearchResult {
-  id: string;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string;
-  last_accessed?: string;
-  pinned: boolean;
-  tags?: string[];
-  score: number;
-  recall_reason: string;
-}
 
 export class SearchEngine {
   private ranking: SearchRanking;
@@ -39,7 +28,7 @@ export class SearchEngine {
   async search(
     db: any,
     query: SearchQuery
-  ): Promise<{ items: SearchResult[], total_count: number, query_time: number }> {
+  ): Promise<{ items: MemorySearchResult[], total_count: number, query_time: number }> {
     const startTime = process.hrtime.bigint();
     const { query: searchQuery, filters, limit = 10 } = query;
     
@@ -222,7 +211,7 @@ export class SearchEngine {
     return query
       .replace(/"/g, '""')  // 따옴표 이스케이프
       .replace(/'/g, "''")  // 작은따옴표 이스케이프
-      .replace(/[\[\]{}()]/g, ' ') // 대괄호, 중괄호, 소괄호 제거
+      .replace(/[[\]{}()]/g, ' ') // 대괄호, 중괄호, 소괄호 제거
       .replace(/\s+/g, ' ') // 연속 공백 정리
       .trim();
   }
@@ -230,19 +219,15 @@ export class SearchEngine {
   /**
    * 데이터베이스 쿼리 실행
    */
-  private async executeQuery(db: any, sql: string, params: any[]): Promise<any[]> {
+  private async executeQuery(db: Database.Database, sql: string, params: unknown[]): Promise<unknown[]> {
     // better-sqlite3는 동기적이므로 직접 실행
-    try {
-      return db.prepare(sql).all(params);
-    } catch (error) {
-      throw error;
-    }
+    return db.prepare(sql).all(params);
   }
 
   /**
    * 랭킹 알고리즘 적용 - FTS5 랭킹 활용
    */
-  private applyRanking(results: any[], query: string): SearchResult[] {
+  private applyRanking(results: any[], query: string): MemorySearchResult[] {
     const selectedContents: string[] = [];
     
     return results
