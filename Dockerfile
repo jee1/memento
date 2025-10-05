@@ -62,6 +62,7 @@ COPY --from=builder /app/package*.json ./
 RUN npm ci --only=production --ignore-scripts && \
     npm rebuild better-sqlite3 --build-from-source && \
     npm install sqlite-vec --build-from-source && \
+    npm install --platform=linux --arch=x64 sharp && \
     npm cache clean --force
 
 # Create data directory

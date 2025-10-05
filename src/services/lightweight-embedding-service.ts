@@ -6,9 +6,12 @@
 
 import { getStopWords } from '../utils/stopwords.js';
 
+import type { EmbeddingProvider } from '../types/embedding.types.js';
+
 export interface LightweightEmbeddingResult {
   embedding: number[];
   model: string;
+  provider?: EmbeddingProvider;
   usage: {
     prompt_tokens: number;
     total_tokens: number;
@@ -62,6 +65,7 @@ export class LightweightEmbeddingService {
       return {
         embedding: finalVector,
         model: this.model,
+        provider: 'tfidf' as EmbeddingProvider,
         usage: {
           prompt_tokens: this.estimateTokens(text),
           total_tokens: this.estimateTokens(text),
