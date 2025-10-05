@@ -24,11 +24,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
-          # sqlite-vec 확장 설치
-          wget https://github.com/asg017/sqlite-vec/releases/latest/download/sqlite-vec-linux-x64.tar.gz
-          tar -xzf sqlite-vec-linux-x64.tar.gz
-          sudo cp sqlite-vec-linux-x64/sqlite-vec.so /usr/lib/x86_64-linux-gnu/
-          echo "✅ sqlite-vec 확장 설치 완료"
+          # sqlite-vec 확장 설치 시도
+          echo "📦 sqlite-vec 설치 시도 중..."
+          
+          # 방법 1: npm 패키지 설치 시도
+          if npm install -g sqlite-vec 2>/dev/null; then
+            echo "✅ sqlite-vec 확장 설치 완료 (npm)"
+          else
+            echo "⚠️ npm 설치 실패, 바이너리 다운로드 시도..."
+            
+            # 방법 2: 바이너리 다운로드 시도
+            if wget -q https://github.com/asg017/sqlite-vec/releases/latest/download/sqlite-vec-linux-x64.tar.gz && \
+               tar -xzf sqlite-vec-linux-x64.tar.gz && \
+               sudo cp sqlite-vec-linux-x64/sqlite-vec.so /usr/lib/x86_64-linux-gnu/; then
+              echo "✅ sqlite-vec 확장 설치 완료 (바이너리)"
+            else
+              echo "⚠️ sqlite-vec 설치 실패, 기본 SQLite로 계속 진행"
+            fi
+          fi
           
       - name: Install dependencies
         run: npm ci
