@@ -31,9 +31,6 @@ export default defineConfig({
         '**/*.config.*',
         '**/coverage/**'
       ]
-    },
-    // CI 환경에서 에러 처리 설정
-    onUnhandledRejection: 'warn',
-    onConsoleLog: 'warn'
+    }
   }
 });
