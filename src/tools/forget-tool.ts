@@ -62,6 +62,24 @@ export class ForgetTool extends BaseTool {
     );
   }
 
+  /**
+   * 제공자별 vec0 테이블명 반환
+   */
+  private getVectorTableName(provider: string): string {
+    switch (provider) {
+      case 'tfidf':
+        return 'memory_item_vec_tfidf';
+      case 'minilm':
+        return 'memory_item_vec_minilm';
+      case 'openai':
+        return 'memory_item_vec_openai';
+      case 'gemini':
+        return 'memory_item_vec_gemini';
+      default:
+        return 'memory_item_vec_tfidf'; // 기본값
+    }
+  }
+
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
     this.logInfo('Forget 도구 호출됨', { params });
     
@@ -345,12 +363,23 @@ export class ForgetTool extends BaseTool {
         [id]
       );
       
-      // VSS 테이블에서 삭제
-      await DatabaseUtils.run(
+      // 제공자별 vec0 테이블에서 삭제
+      const embeddingInfo = await DatabaseUtils.get(
         context.db!,
-        'DELETE FROM memory_item_vec WHERE rowid = ?',
+        'SELECT embedding_provider FROM memory_embedding WHERE memory_id = ?',
         [id]
       );
+      
+      if (embeddingInfo) {
+        const provider = embeddingInfo.embedding_provider || 'tfidf';
+        const tableName = this.getVectorTableName(provider);
+        
+        await DatabaseUtils.run(
+          context.db!,
+          `DELETE FROM ${tableName} WHERE rowid = ?`,
+          [id]
+        );
+      }
       
       // 임베딩 테이블에서 삭제
       await DatabaseUtils.run(

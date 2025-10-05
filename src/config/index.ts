@@ -18,12 +18,12 @@ export const mementoConfig: MementoConfig = {
   port: parseInt(process.env.MCP_SERVER_PORT || '3000', 10),
   
   // 임베딩 설정
-  embeddingProvider: (process.env.EMBEDDING_PROVIDER as EmbeddingProvider) || 'openai',
+  embeddingProvider: (process.env.EMBEDDING_PROVIDER as EmbeddingProvider) || 'minilm',
   openaiApiKey: process.env.OPENAI_API_KEY || undefined,
   openaiModel: process.env.OPENAI_MODEL || 'text-embedding-3-small',
   geminiApiKey: process.env.GEMINI_API_KEY || undefined,
   geminiModel: process.env.GEMINI_MODEL || 'text-embedding-004',
-  embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '1536', 10),
+  embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '384', 10), // MiniLM 기본값
   
   // 검색 설정
   searchDefaultLimit: parseInt(process.env.SEARCH_DEFAULT_LIMIT || '10', 10),
@@ -73,8 +73,23 @@ export function validateConfig(): void {
     throw new Error('GEMINI_API_KEY is required when using Gemini embedding provider');
   }
   
-  if (mementoConfig.embeddingProvider === 'openai' && !mementoConfig.openaiApiKey && mementoConfig.nodeEnv === 'production') {
-    throw new Error('OPENAI_API_KEY is required in production environment');
+  // 유효한 임베딩 제공자 확인
+  const validProviders = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'];
+  if (!validProviders.includes(mementoConfig.embeddingProvider)) {
+    throw new Error(`Invalid embedding provider: ${mementoConfig.embeddingProvider}. Must be one of: ${validProviders.join(', ')}`);
+  }
+  
+  // 차원 수 검증 (제공자별 권장값)
+  const providerDimensions = {
+    tfidf: 512,
+    minilm: 384,
+    openai: 1536,
+    gemini: 768
+  };
+  
+  const expectedDimensions = providerDimensions[mementoConfig.embeddingProvider as keyof typeof providerDimensions];
+  if (mementoConfig.embeddingDimensions !== expectedDimensions) {
+    console.warn(`⚠️ 권장 차원 수와 다릅니다. ${mementoConfig.embeddingProvider}는 ${expectedDimensions}차원을 권장합니다.`);
   }
   
   if (mementoConfig.embeddingDimensions <= 0) {

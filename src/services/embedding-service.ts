@@ -1,7 +1,11 @@
 /**
- * 통합 임베딩 서비스
- * OpenAI, Gemini, 경량 하이브리드 서비스 중 선택하여 사용
- * 설정에 따라 자동으로 적절한 제공자 선택
+ * 통합 임베딩 서비스 (레거시)
+ * 새로운 UnifiedEmbeddingService로 대체됨
+ * 
+ * @deprecated 이 클래스는 더 이상 사용되지 않습니다.
+ * @see UnifiedEmbeddingService 새로운 통합 서비스를 사용하세요.
+ * @since 0.1.0
+ * @removed 0.2.0 이 클래스는 제거될 예정입니다.
  */
 
 import OpenAI from 'openai';

@@ -47,6 +47,24 @@ export class VectorSearchEngine {
   }
 
   /**
+   * 제공자별 vec0 테이블명 반환
+   */
+  private getVectorTableName(provider: string): string {
+    switch (provider) {
+      case 'tfidf':
+        return 'memory_item_vec_tfidf';
+      case 'minilm':
+        return 'memory_item_vec_minilm';
+      case 'openai':
+        return 'memory_item_vec_openai';
+      case 'gemini':
+        return 'memory_item_vec_gemini';
+      default:
+        return 'memory_item_vec_tfidf'; // 기본값
+    }
+  }
+
+  /**
    * 데이터베이스 초기화
    */
   initialize(db: Database.Database): void {
@@ -66,24 +84,29 @@ export class VectorSearchEngine {
     }
 
     try {
-      // 1. sqlite-vec 확장 로드 여부 확인
-      const extensionCheck = this.db.prepare(`
+      // 1. 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
+      const tableCheck = this.db.prepare(`
         SELECT name FROM sqlite_master 
-        WHERE type='table' AND name='memory_item_vec'
-      `).get();
+        WHERE type='table' AND name IN (
+          'memory_item_vec_tfidf',
+          'memory_item_vec_minilm', 
+          'memory_item_vec_openai',
+          'memory_item_vec_gemini'
+        )
+      `).all();
 
-      if (!extensionCheck) {
+      if (tableCheck.length === 0) {
         console.log('⚠️ VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
         this.isVecAvailable = false;
         this.vecExtensionLoaded = false;
         return;
       }
 
-      // 2. VEC 함수 사용 가능 여부 확인
+      // 2. VEC 함수 사용 가능 여부 확인 (첫 번째 테이블로 테스트)
       try {
-        // vec_search 함수가 사용 가능한지 테스트
+        const testTable = (tableCheck[0] as any).name;
         this.db.prepare(`
-          SELECT distance FROM memory_item_vec 
+          SELECT distance FROM ${testTable} 
           WHERE embedding MATCH ? 
           LIMIT 0
         `).get(JSON.stringify(new Array(this.defaultDimensions).fill(0)));
@@ -108,7 +131,8 @@ export class VectorSearchEngine {
    */
   async search(
     queryVector: number[], 
-    options: VectorSearchOptions = {}
+    options: VectorSearchOptions = {},
+    provider: string = 'tfidf'
   ): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
       console.warn('⚠️ VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
@@ -130,7 +154,10 @@ export class VectorSearchEngine {
     }
 
     try {
-      // VEC 검색 쿼리 (sqlite-vec의 vec0 테이블 사용)
+      // 제공자별 테이블명 결정
+      const tableName = this.getVectorTableName(provider);
+      
+      // VEC 검색 쿼리 (제공자별 vec0 테이블 사용)
       const vecQuery = `
         SELECT 
           vec.rowid as memory_id,
@@ -142,7 +169,7 @@ export class VectorSearchEngine {
           mi.last_accessed,
           mi.pinned,
           mi.tags
-        FROM memory_item_vec vec
+        FROM ${tableName} vec
         JOIN memory_item mi ON vec.rowid = mi.id
         WHERE vec.embedding MATCH ?
         ${type ? 'AND mi.type = ?' : ''}
@@ -189,7 +216,8 @@ export class VectorSearchEngine {
   async hybridSearch(
     queryVector: number[],
     textQuery: string,
-    options: VectorSearchOptions = {}
+    options: VectorSearchOptions = {},
+    provider: string = 'tfidf'
   ): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
       console.warn('⚠️ VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
@@ -211,6 +239,9 @@ export class VectorSearchEngine {
     }
 
     try {
+      // 제공자별 테이블명 결정
+      const tableName = this.getVectorTableName(provider);
+      
       // 벡터 검색과 텍스트 검색을 결합한 하이브리드 쿼리 (SQLite 호환)
       const hybridQuery = `
         WITH vector_search AS (
@@ -224,7 +255,7 @@ export class VectorSearchEngine {
             mi.last_accessed,
             mi.pinned,
             mi.tags
-          FROM memory_item_vec vec
+          FROM ${tableName} vec
           JOIN memory_item mi ON vec.rowid = mi.id
           WHERE vec.embedding MATCH ?
           ${type ? 'AND mi.type = ?' : ''}
@@ -331,8 +362,17 @@ export class VectorSearchEngine {
       let recordCount = 0;
 
       if (tableExists) {
-        const result = this.db.prepare('SELECT COUNT(*) as count FROM memory_item_vec').get() as { count: number };
-        recordCount = result.count;
+        // 모든 제공자별 테이블의 레코드 수 합계
+        const providers = ['tfidf', 'minilm', 'openai', 'gemini'];
+        for (const provider of providers) {
+          const tableName = this.getVectorTableName(provider);
+          try {
+            const result = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`).get() as { count: number };
+            recordCount += result.count;
+          } catch (error) {
+            // 테이블이 존재하지 않는 경우 무시
+          }
+        }
       }
 
       return {

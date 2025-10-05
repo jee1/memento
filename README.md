@@ -22,9 +22,11 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ### 🔍 고급 검색
 - **FTS5 텍스트 검색**: SQLite의 Full-Text Search
-- **벡터 검색**: sqlite-vec 기반 의미적 검색 (OpenAI 임베딩 지원)
+- **벡터 검색**: sqlite-vec 기반 의미적 검색
 - **하이브리드 검색**: 텍스트와 벡터 검색의 결합
-- **경량 임베딩**: TF-IDF + 키워드 매칭 기반 fallback 솔루션
+- **다중 임베딩 제공자**: TF-IDF, MiniLM, OpenAI, Gemini 지원
+- **자동 제공자 선택**: 설정 기반 최적 제공자 자동 선택
+- **폴백 메커니즘**: 제공자 실패 시 자동 대체
 - **태그 기반 필터링**: 메타데이터 기반 검색
 
 ### 🧹 망각 정책
@@ -145,6 +147,13 @@ const results = await client.callTool({
   }
 });
 ```
+
+## 📚 문서
+
+- [임베딩 서비스 가이드](docs/ko/embedding-service-guide.md) - 임베딩 서비스 사용법
+- [성능 벤치마크](docs/ko/embedding-performance-benchmark.md) - 성능 비교 결과
+- [API 레퍼런스](docs/ko/embedding-api-reference.md) - API 상세 문서
+- [설정 가이드](docs/ko/embedding-configuration.md) - 환경 설정 방법
 
 ## 📋 API 문서
 

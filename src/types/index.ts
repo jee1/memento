@@ -50,7 +50,7 @@ export interface SearchRankingWeights {
   duplication_penalty: number; // ε = 0.15
 }
 
-export type EmbeddingProvider = 'openai' | 'gemini' | 'lightweight';
+export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
 
 export interface MementoConfig {
   dbPath: string;

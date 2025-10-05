@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MemoryEmbeddingService, MemoryEmbedding, VectorSearchResult } from './memory-embedding-service.js';
-import { EmbeddingService } from './embedding-service.js';
+import { UnifiedEmbeddingService } from './unified-embedding-service.js';
 import { DatabaseUtils } from '../utils/database.js';
 import type { MemoryType } from '../types/index.js';
 
 // Mock dependencies
-vi.mock('./embedding-service.js', () => ({
-  EmbeddingService: vi.fn().mockImplementation(() => ({
+vi.mock('./unified-embedding-service.js', () => ({
+  UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
     isAvailable: vi.fn(() => true),
     generateEmbedding: vi.fn(),
     searchSimilar: vi.fn(),
     getModelInfo: vi.fn(() => ({
-      model: 'test-model',
+      model: 'unified-embedding',
       dimensions: 768,
       maxTokens: 2048
     }))
@@ -43,9 +43,9 @@ describe('MemoryEmbeddingService', () => {
   });
 
   describe('constructor', () => {
-    it('should initialize with EmbeddingService', () => {
+    it('should initialize with UnifiedEmbeddingService', () => {
       expect(service).toBeInstanceOf(MemoryEmbeddingService);
-      expect(EmbeddingService).toHaveBeenCalled();
+      expect(UnifiedEmbeddingService).toHaveBeenCalled();
     });
   });
 

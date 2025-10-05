@@ -3,7 +3,8 @@
  * 데이터베이스와 임베딩 서비스를 연동
  */
 
-import { EmbeddingService, type EmbeddingResult } from './embedding-service.js';
+import { UnifiedEmbeddingService } from './unified-embedding-service.js';
+import type { EmbeddingResult } from '../types/embedding.types.js';
 import { DatabaseUtils } from '../utils/database.js';
 import type { MemoryType } from '../types/index.js';
 
@@ -27,10 +28,21 @@ export interface VectorSearchResult {
 }
 
 export class MemoryEmbeddingService {
-  private embeddingService: EmbeddingService;
+  private embeddingService: UnifiedEmbeddingService;
 
   constructor() {
-    this.embeddingService = new EmbeddingService();
+    this.embeddingService = new UnifiedEmbeddingService();
+  }
+
+  /**
+   * sqlite-vec 확장 로드
+   */
+  private loadVecExtension(db: any): void {
+    try {
+      db.loadExtension('/usr/lib/vec0');
+    } catch (error) {
+      console.warn('⚠️ sqlite-vec 확장 로드 실패:', error);
+    }
   }
 
   /**
@@ -48,29 +60,64 @@ export class MemoryEmbeddingService {
     }
 
     try {
+      // sqlite-vec 확장 로드
+      this.loadVecExtension(db);
+      
       // 임베딩 생성
       const embeddingResult = await this.embeddingService.generateEmbedding(content);
       if (!embeddingResult) {
         return null;
       }
 
-      // 데이터베이스에 저장
+      // 제공자별 테이블명 결정
+      const tableName = this.getVectorTableName(embeddingResult.provider || 'tfidf');
+      
+      // memory_embedding 테이블에 저장
       await DatabaseUtils.run(db, `
-        INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, model, created_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, model, embedding_provider, dimensions, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         memoryId,
         JSON.stringify(embeddingResult.embedding),
         embeddingResult.embedding.length,
         embeddingResult.model,
+        embeddingResult.provider,
+        embeddingResult.embedding.length,
       ]);
 
-      console.log(`✅ 임베딩 저장 완료: ${memoryId} (${embeddingResult.embedding.length}차원)`);
+      // vec0 테이블에 저장
+      await DatabaseUtils.run(db, `
+        INSERT OR REPLACE INTO ${tableName} (rowid, embedding)
+        VALUES ((SELECT rowid FROM memory_embedding WHERE memory_id = ?), ?)
+      `, [
+        memoryId,
+        JSON.stringify(embeddingResult.embedding)
+      ]);
+
+      console.log(`✅ 임베딩 저장 완료: ${memoryId} (${embeddingResult.embedding.length}차원, ${embeddingResult.provider})`);
       return embeddingResult;
 
     } catch (error) {
       console.error(`❌ 임베딩 저장 실패 (${memoryId}):`, error);
       return null;
+    }
+  }
+
+  /**
+   * 제공자별 vec0 테이블명 반환
+   */
+  private getVectorTableName(provider: string): string {
+    switch (provider) {
+      case 'tfidf':
+        return 'memory_item_vec_tfidf';
+      case 'minilm':
+        return 'memory_item_vec_minilm';
+      case 'openai':
+        return 'memory_item_vec_openai';
+      case 'gemini':
+        return 'memory_item_vec_gemini';
+      default:
+        return 'memory_item_vec_tfidf'; // 기본값
     }
   }
 
@@ -98,40 +145,48 @@ export class MemoryEmbeddingService {
         return [];
       }
 
-      // 모든 임베딩 가져오기
-      const embeddings = await this.getAllEmbeddings(db, filters?.type);
-      if (embeddings.length === 0) {
-        return [];
-      }
-
-      // 유사도 검색
-      const similarities = await this.embeddingService.searchSimilar(
-        query,
-        embeddings,
-        filters?.limit || 10,
-        filters?.threshold || 0.7
-      );
+      // 제공자별 테이블에서 검색
+      const tableName = this.getVectorTableName(queryEmbedding.provider || 'tfidf');
+      
+      // vec0 테이블에서 유사도 검색
+      const similarities = await DatabaseUtils.all(db, `
+        SELECT 
+          m.id,
+          m.content,
+          m.type,
+          m.importance,
+          m.created_at,
+          m.last_accessed,
+          m.pinned,
+          m.tags,
+          v.distance as similarity,
+          (1 - v.distance) as score
+        FROM memory_item m
+        JOIN memory_embedding me ON m.id = me.memory_id
+        JOIN ${tableName} v ON me.rowid = v.rowid
+        WHERE me.embedding_provider = ?
+        ${filters?.type ? `AND m.type IN (${filters.type.map(() => '?').join(',')})` : ''}
+        ORDER BY v.distance ASC
+        LIMIT ?
+      `, [
+        queryEmbedding.provider,
+        ...(filters?.type || []),
+        filters?.limit || 10
+      ]);
 
       // 결과를 VectorSearchResult 형태로 변환
-      const results: VectorSearchResult[] = [];
-      
-      for (const similarity of similarities) {
-        const memory = await this.getMemoryById(db, similarity.id);
-        if (memory) {
-          results.push({
-            id: memory.id,
-            content: memory.content,
-            type: memory.type,
-            importance: memory.importance,
-            created_at: memory.created_at,
-            last_accessed: memory.last_accessed,
-            pinned: memory.pinned,
-            tags: memory.tags ? JSON.parse(memory.tags) : [],
-            similarity: similarity.similarity,
-            score: similarity.score,
-          });
-        }
-      }
+      const results: VectorSearchResult[] = similarities.map((row: any) => ({
+        id: row.id,
+        content: row.content,
+        type: row.type,
+        importance: row.importance,
+        created_at: row.created_at,
+        last_accessed: row.last_accessed,
+        pinned: row.pinned,
+        tags: row.tags ? JSON.parse(row.tags) : [],
+        similarity: row.similarity,
+        score: row.score,
+      }));
 
       return results;
 
@@ -141,53 +196,27 @@ export class MemoryEmbeddingService {
     }
   }
 
-  /**
-   * 모든 임베딩 가져오기
-   */
-  private async getAllEmbeddings(
-    db: any,
-    typeFilter?: MemoryType[]
-  ): Promise<Array<{ id: string; content: string; embedding: number[] }>> {
-    let sql = `
-      SELECT me.memory_id, mi.content, me.embedding
-      FROM memory_embedding me
-      JOIN memory_item mi ON me.memory_id = mi.id
-    `;
-    
-    const params: any[] = [];
-    
-    if (typeFilter && typeFilter.length > 0) {
-      sql += ` WHERE mi.type IN (${typeFilter.map(() => '?').join(',')})`;
-      params.push(...typeFilter);
-    }
-
-    const rows = await DatabaseUtils.all(db, sql, params);
-    
-    return rows.map((row: any) => ({
-      id: row.memory_id,
-      content: row.content,
-      embedding: JSON.parse(row.embedding),
-    }));
-  }
-
-  /**
-   * 메모리 ID로 메모리 정보 가져오기
-   */
-  private async getMemoryById(db: any, memoryId: string): Promise<any | null> {
-    const rows = await DatabaseUtils.all(db, `
-      SELECT id, content, type, importance, created_at, last_accessed, pinned, tags
-      FROM memory_item
-      WHERE id = ?
-    `, [memoryId]);
-
-    return rows.length > 0 ? rows[0] : null;
-  }
 
   /**
    * 임베딩 삭제
    */
   async deleteEmbedding(db: any, memoryId: string): Promise<void> {
     try {
+      // 제공자 정보 가져오기
+      const embeddingInfo = await DatabaseUtils.get(db, `
+        SELECT embedding_provider FROM memory_embedding WHERE memory_id = ?
+      `, [memoryId]);
+
+      if (embeddingInfo) {
+        // 해당 제공자의 vec0 테이블에서 삭제
+        const tableName = this.getVectorTableName(embeddingInfo.embedding_provider);
+        await DatabaseUtils.run(db, `
+          DELETE FROM ${tableName} 
+          WHERE rowid = (SELECT rowid FROM memory_embedding WHERE memory_id = ?)
+        `, [memoryId]);
+      }
+
+      // memory_embedding 테이블에서 삭제
       await DatabaseUtils.run(db, 'DELETE FROM memory_embedding WHERE memory_id = ?', [memoryId]);
       console.log(`✅ 임베딩 삭제 완료: ${memoryId}`);
     } catch (error) {
@@ -209,13 +238,30 @@ export class MemoryEmbeddingService {
     totalEmbeddings: number;
     averageDimensions: number;
     model: string;
+    providerStats: Array<{
+      provider: string;
+      count: number;
+      dimensions: number;
+    }>;
   }> {
     try {
+      // 전체 통계
       const stats = await DatabaseUtils.all(db, `
         SELECT 
           COUNT(*) as total_embeddings,
-          AVG(dim) as avg_dimensions
+          AVG(dimensions) as avg_dimensions
         FROM memory_embedding
+      `);
+
+      // 제공자별 통계
+      const providerStats = await DatabaseUtils.all(db, `
+        SELECT 
+          embedding_provider as provider,
+          COUNT(*) as count,
+          AVG(dimensions) as dimensions
+        FROM memory_embedding
+        GROUP BY embedding_provider
+        ORDER BY count DESC
       `);
 
       const stat = stats[0];
@@ -224,6 +270,11 @@ export class MemoryEmbeddingService {
         totalEmbeddings: stat.total_embeddings || 0,
         averageDimensions: stat.avg_dimensions || 0,
         model: this.embeddingService.getModelInfo().model,
+        providerStats: providerStats.map((row: any) => ({
+          provider: row.provider,
+          count: row.count,
+          dimensions: Math.round(row.dimensions),
+        })),
       };
     } catch (error) {
       console.error('❌ 임베딩 통계 조회 실패:', error);
@@ -231,6 +282,7 @@ export class MemoryEmbeddingService {
         totalEmbeddings: 0,
         averageDimensions: 0,
         model: 'unknown',
+        providerStats: [],
       };
     }
   }
