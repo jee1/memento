@@ -20,6 +20,9 @@ describe('M1 Performance Optimization Integration Tests', () => {
   let performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
   let memoryInjectionPrompt: MemoryInjectionPrompt;
 
+  // CI 환경에서 DB 테스트 스킵
+  const shouldSkipDBTests = process.env.CI === 'true' || process.env.SKIP_DB_TESTS === 'true';
+
   beforeEach(async () => {
     // Create in-memory database for testing
     db = new Database(':memory:');

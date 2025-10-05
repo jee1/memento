@@ -19,6 +19,7 @@
     "start:http": "node dist/server/http-server.js",
     "start:http-v2": "node dist/server/http-server-v2.js",
     "test": "vitest",
+    "test:ci": "vitest --run --reporter=basic",
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit",
     "db:init": "tsx src/database/init.ts",
