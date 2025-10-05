@@ -1,12 +1,18 @@
-# Memento MCP Server
+# 🧠 Memento MCP Server
 
 <div align="center">
   <img src="static/logo.png" alt="Memento Logo" width="200" height="200">
   
+  <h3>✨ AI Agent의 기억을 영원히 기억하세요 ✨</h3>
+  
+  <p><strong>사람의 기억 구조를 모사한 지능형 메모리 관리 시스템</strong></p>
+  
   [🇰🇷 한국어](README.md) | [🇺🇸 English](README.en.md)
 </div>
 
-AI Agent 기억 보조 MCP 서버 - 사람의 기억 구조를 모사한 스토리지+검색+요약+망각 메커니즘
+> **🚀 혁신적인 AI Agent 기억 보조 시스템**  
+> Memento는 AI Agent가 사람처럼 기억을 저장, 검색, 관리할 수 있도록 도와주는 MCP(Model Context Protocol) 서버입니다.  
+> 작업기억, 일화기억, 의미기억, 절차기억을 모사하여 **진정한 장기 기억**을 구현합니다.
 
 ## 🎯 프로젝트 개요
 
@@ -82,6 +88,59 @@ npm run quick-start
 
 ### 📚 **상세 설치 가이드**
 자세한 설치 방법은 [INSTALL.md](INSTALL.md)를 참조하세요.
+
+## 💡 사용 예시
+
+### 🤖 AI Agent와의 연동
+```typescript
+// AI Agent가 학습한 내용을 기억에 저장
+await client.callTool({
+  name: "remember",
+  arguments: {
+    content: "사용자는 React Hook을 학습했습니다. useState는 상태를 관리하고, useEffect는 사이드 이펙트를 처리합니다.",
+    type: "episodic",
+    tags: ["react", "hooks", "javascript"],
+    importance: 0.8
+  }
+});
+
+// 나중에 관련 정보를 검색
+const results = await client.callTool({
+  name: "recall",
+  arguments: {
+    query: "React Hook 사용법",
+    limit: 5
+  }
+});
+```
+
+### 📚 지식 관리 시스템
+```typescript
+// 중요한 지식을 의미기억으로 저장
+await client.callTool({
+  name: "remember",
+  arguments: {
+    content: "TypeScript의 제네릭은 타입을 매개변수화하여 재사용 가능한 컴포넌트를 만드는 기능입니다.",
+    type: "semantic",
+    tags: ["typescript", "generics", "programming"],
+    importance: 0.9
+  }
+});
+```
+
+### 🔧 절차 기억 관리
+```typescript
+// 작업 절차를 절차기억으로 저장
+await client.callTool({
+  name: "remember",
+  arguments: {
+    content: "Docker 컨테이너 빌드 및 배포 절차: 1) Dockerfile 작성 2) docker build 실행 3) docker run으로 테스트 4) 레지스트리에 푸시",
+    type: "procedural",
+    tags: ["docker", "deployment", "devops"],
+    importance: 0.7
+  }
+});
+```
 
 ## 🛠️ 사용법
 
@@ -294,13 +353,36 @@ npm run test -- --coverage
 - **인증**: JWT
 - **운영**: Docker Compose
 
+## ❓ 자주 묻는 질문 (FAQ)
+
+### Q: Memento는 어떤 AI Agent와 호환되나요?
+A: MCP(Model Context Protocol)를 지원하는 모든 AI Agent와 호환됩니다. Claude, GPT-4, Gemini 등과 연동 가능합니다.
+
+### Q: 기억 데이터는 어디에 저장되나요?
+A: 기본적으로 로컬 SQLite 데이터베이스(`./data/memory.db`)에 저장됩니다. Docker를 사용하는 경우 컨테이너 내부에 저장됩니다.
+
+### Q: OpenAI API 키가 필요한가요?
+A: 선택사항입니다. OpenAI API 키가 없어도 TF-IDF 기반 경량 임베딩으로 동작합니다. 더 정확한 검색을 원한다면 OpenAI API 키를 설정하세요.
+
+### Q: 기억 용량에 제한이 있나요?
+A: SQLite 데이터베이스의 제한에 따라 달라집니다. 일반적으로 수백만 개의 기억을 저장할 수 있습니다.
+
+### Q: 다른 사용자와 기억을 공유할 수 있나요?
+A: 현재 M1 버전은 개인용입니다. M2 버전부터 팀 협업 기능이 추가될 예정입니다.
+
+### Q: 기억이 자동으로 삭제되나요?
+A: 네, 망각 정책에 따라 자동으로 삭제됩니다. 중요한 기억은 `pin` 기능으로 고정할 수 있습니다.
+
 ## 🤝 기여하기
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'feat: add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Memento 프로젝트에 기여하고 싶으신가요? 자세한 가이드는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조하세요.
+
+### 빠른 기여 시작
+1. **Fork** the Project
+2. **Create** your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. **Commit** your Changes (`git commit -m 'feat: add some AmazingFeature'`)
+4. **Push** to the Branch (`git push origin feature/AmazingFeature`)
+5. **Open** a Pull Request
 
 ### 개발 환경 설정
 ```bash
@@ -317,6 +399,12 @@ npm run dev
 # 테스트 실행
 npm run test
 ```
+
+### 기여 방법
+- 🐛 **버그 리포트**: [GitHub Issues](https://github.com/jee1/memento/issues)에서 버그를 신고하세요
+- 💡 **기능 제안**: 새로운 아이디어를 제안해주세요
+- 📝 **문서 개선**: 문서를 더 명확하게 만들어주세요
+- 🔧 **코드 기여**: 새로운 기능이나 버그 수정을 도와주세요
 
 ## 📄 라이선스
 
