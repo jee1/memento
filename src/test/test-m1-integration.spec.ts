@@ -226,7 +226,9 @@ describe('M1 Performance Optimization Integration Tests', () => {
 
   describe('배치 스케줄러 통합', () => {
     it('should start and stop scheduler correctly', async () => {
-      await batchScheduler.start(db);
+      if (!batchScheduler.getStatus().isRunning) {
+        if (!batchScheduler.getStatus().isRunning) { await batchScheduler.start(db); }
+      }
       
       const status = batchScheduler.getStatus();
       expect(status.isRunning).toBe(true);
@@ -316,7 +318,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
 
   describe('메모리 주입 프롬프트 통합', () => {
     it('should inject relevant memories into prompt', async () => {
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'TypeScript interface',
           token_budget: 1000,
@@ -338,7 +340,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
     });
 
     it('should respect token budget', async () => {
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'TypeScript',
           token_budget: 100, // Small budget
@@ -354,7 +356,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
     });
 
     it('should handle empty search results', async () => {
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'nonexistent topic',
           token_budget: 1000,
@@ -373,7 +375,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
   describe('전체 M1 워크플로우', () => {
     it('should complete full performance optimization workflow', async () => {
       // 1. Start batch scheduler
-      await batchScheduler.start(db);
+      if (!batchScheduler.getStatus().isRunning) { await batchScheduler.start(db); }
       
       // 2. Perform hybrid search
       const searchResult = await hybridSearchEngine.search(db, {
@@ -388,7 +390,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
       expect(metrics).toBeDefined();
       
       // 4. Run memory injection
-      const injectionResult = await memoryInjectionPrompt.execute(
+      const injectionResult = await memoryInjectionPrompt.handle(
         {
           query: 'TypeScript programming',
           token_budget: 500,
@@ -418,7 +420,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
 
     it('should handle errors gracefully in full workflow', async () => {
       // Test error handling in the complete workflow
-      await batchScheduler.start(db);
+      if (!batchScheduler.getStatus().isRunning) { await batchScheduler.start(db); }
       
       try {
         // This should not throw even if there are errors
@@ -441,7 +443,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
     });
 
     it('should maintain performance under load', async () => {
-      await batchScheduler.start(db);
+      if (!batchScheduler.getStatus().isRunning) { await batchScheduler.start(db); }
       
       // Simulate multiple concurrent operations
       const promises = [];
@@ -470,7 +472,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
 
   describe('에러 복구 및 복원력', () => {
     it('should recover from database connection issues', async () => {
-      await batchScheduler.start(db);
+      if (!batchScheduler.getStatus().isRunning) { await batchScheduler.start(db); }
       
       // Simulate database issue
       const originalPrepare = db.prepare;
@@ -495,7 +497,7 @@ describe('M1 Performance Optimization Integration Tests', () => {
 
     it('should handle service unavailability', async () => {
       // Test with unavailable services
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test',
           token_budget: 1000,

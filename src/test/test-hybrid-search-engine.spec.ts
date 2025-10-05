@@ -45,9 +45,10 @@ describe('HybridSearchEngine', () => {
         content_rowid='rowid'
       );
       
-      CREATE VIRTUAL TABLE memory_item_vec USING vec0(
-        embedding float[1536]
-      );
+      -- VEC 테이블은 sqlite-vec 확장이 필요하므로 테스트에서는 스킵
+      -- CREATE VIRTUAL TABLE memory_item_vec USING vec0(
+      --   embedding float[1536]
+      -- );
     `);
 
     // Mock search engine

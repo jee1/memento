@@ -232,7 +232,7 @@ describe('Error Handling and Recovery Tests', () => {
         if (params.query === null) continue;
         
         try {
-          const result = await memoryInjectionPrompt.execute(
+          const result = await memoryInjectionPrompt.handle(
             params as any,
             {
               db,
