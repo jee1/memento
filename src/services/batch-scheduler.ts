@@ -81,6 +81,9 @@ export class BatchScheduler {
       ...config
     };
 
+    // 생성자에서 설정 검증
+    this.validateConfig();
+
     this.forgettingService = new ForgettingPolicyService();
     this.performanceMonitor = getPerformanceMonitor();
   }
@@ -633,12 +636,20 @@ export class BatchScheduler {
    * 특정 작업 재시작
    */
   restartJob(jobName: string): boolean {
-    if (this.stopJob(jobName)) {
-      // 작업 재시작 로직은 각 작업 타입에 따라 구현
-      this.log(`Restarted job: ${jobName}`);
-      return true;
+    // 작업 재시작 로직 (stopJob을 호출하지 않음)
+    if (jobName === 'cleanup') {
+      this.scheduleJob('cleanup', this.config.cleanupInterval, async () => { await this.runMemoryCleanup(); }, 1);
+    } else if (jobName === 'monitoring') {
+      this.scheduleJob('monitoring', this.config.monitoringInterval, async () => { await this.runMonitoring(); }, 2);
+    } else if (jobName === 'healthcheck') {
+      this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
+    } else {
+      this.log(`Unknown job type for restart: ${jobName}`);
+      return false;
     }
-    return false;
+    
+    this.log(`Restarted job: ${jobName}`);
+    return true;
   }
 
   /**

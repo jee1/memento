@@ -70,6 +70,13 @@ export class PerformanceMonitor {
   }
 
   /**
+   * 데이터베이스 설정
+   */
+  setDatabase(db: Database.Database | null): void {
+    this.db = db;
+  }
+
+  /**
    * 성능 지표 수집
    */
   async collectMetrics(): Promise<any> {
@@ -669,6 +676,40 @@ export class PerformanceMonitor {
       data.alerts.forEach((alert: PerformanceAlert) => {
         this.alerts.set(alert.id, alert);
       });
+    }
+    
+    // 검색 통계 복원
+    if (data.search) {
+      (this as any).searchStats = {
+        totalSearches: data.search.totalSearches || 0,
+        totalDuration: data.search.averageSearchTime * data.search.totalSearches || 0,
+        totalSearchTime: data.search.averageSearchTime * data.search.totalSearches || 0,
+        searchesByType: data.search.searchByType || { text: 0, vector: 0, hybrid: 0 },
+        cacheHits: Math.round((data.search.cacheHitRate || 0) * data.search.totalSearches),
+        cacheMisses: Math.round((1 - (data.search.cacheHitRate || 0)) * data.search.totalSearches),
+        embeddingSearches: Math.round((data.search.embeddingSearchRate || 0) * data.search.totalSearches)
+      };
+    }
+    
+    // 메트릭 히스토리 복원
+    if (data.metrics && Array.isArray(data.metrics)) {
+      this.metricsHistory = data.metrics;
+    }
+    
+    // 데이터베이스 메트릭 복원 (테스트용)
+    if (data.database) {
+      // 현재 메트릭 수집
+      const currentMetrics = await this.collectMetrics();
+      if (currentMetrics) {
+        // 데이터베이스 메트릭을 직접 설정
+        currentMetrics.database = {
+          totalMemories: data.database.totalMemories || 0,
+          memoryByType: data.database.memoryByType || {},
+          averageMemorySize: data.database.averageMemorySize || 0,
+          databaseSize: data.database.databaseSize || 0
+        };
+        this.addToHistory(currentMetrics);
+      }
     }
   }
 

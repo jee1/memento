@@ -352,9 +352,17 @@ describe('CacheService', () => {
 
   describe('LRU 정책', () => {
     it('최대 크기 초과 시 LRU 항목을 제거해야 함', () => {
-      // 캐시를 가득 채움
+      // 캐시를 가득 채움 (시간 간격을 두고)
       for (let i = 0; i < 10; i++) {
         cacheService.set(`key-${i}`, `value-${i}`);
+        // 각 항목마다 약간의 시간 간격을 둠
+        if (i < 9) {
+          // 마지막 항목을 제외하고 약간의 지연
+          const start = Date.now();
+          while (Date.now() - start < 1) {
+            // 1ms 대기
+          }
+        }
       }
       
       // key-0을 접근하여 최근 사용으로 만듦
@@ -370,6 +378,38 @@ describe('CacheService', () => {
       expect(cacheService.get('key-1')).toBeNull();
       expect(cacheService.get('key-0')).toBe('value-0');
       expect(cacheService.get('new-key')).toBe('new-value');
+    });
+
+    it('LRU 정책이 올바르게 작동해야 함', () => {
+      // 작은 캐시 크기로 설정
+      const smallCache = new CacheService<string>(3);
+      
+      // 3개 항목 추가
+      smallCache.set('a', 'value-a');
+      const time1 = Date.now();
+      
+      // 약간의 지연
+      while (Date.now() - time1 < 2) {}
+      
+      smallCache.set('b', 'value-b');
+      const time2 = Date.now();
+      
+      // 약간의 지연
+      while (Date.now() - time2 < 2) {}
+      
+      smallCache.set('c', 'value-c');
+      
+      // 'a'를 접근하여 최근 사용으로 만듦
+      smallCache.get('a');
+      
+      // 4번째 항목 추가 (LRU 제거 발생)
+      smallCache.set('d', 'value-d');
+      
+      // 'b'가 제거되어야 함 (가장 오래된 항목)
+      expect(smallCache.get('a')).toBe('value-a'); // 접근했으므로 유지
+      expect(smallCache.get('b')).toBeNull(); // 제거됨
+      expect(smallCache.get('c')).toBe('value-c'); // 유지
+      expect(smallCache.get('d')).toBe('value-d'); // 새로 추가됨
     });
   });
 });

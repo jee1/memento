@@ -40,7 +40,7 @@ export class AsyncTaskQueue {
   private failed: Map<string, TaskResult> = new Map();
   private workers: Set<Worker> = new Set();
   private maxWorkers: number;
-  private isRunning: boolean = false;
+  private running: boolean = false;
   private stats: QueueStats = {
     pending: 0,
     processing: 0,
@@ -58,8 +58,13 @@ export class AsyncTaskQueue {
   /**
    * 작업 추가
    */
-  addTask<T>(task: Omit<Task<T>, 'id' | 'createdAt' | 'retryCount'>): string {
-    const id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  addTask<T>(task: Omit<Task<T>, 'id' | 'createdAt' | 'retryCount'>): string | false {
+    // ID 중복 검사
+    if (task.id && (this.queue.some(t => t.id === task.id) || this.processing.has(task.id) || this.completed.has(task.id) || this.failed.has(task.id))) {
+      return false;
+    }
+
+    const id = task.id || `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const fullTask: Task<T> = {
       ...task,
       id,
@@ -79,23 +84,31 @@ export class AsyncTaskQueue {
   /**
    * 작업 처리 시작
    */
-  start(): void {
-    this.isRunning = true;
+  async start(): Promise<boolean> {
+    if (this.running) {
+      return false;
+    }
+    this.running = true;
     this.processNext();
+    return true;
   }
 
   /**
    * 작업 처리 중지
    */
-  stop(): void {
-    this.isRunning = false;
+  async stop(): Promise<boolean> {
+    if (!this.running) {
+      return false;
+    }
+    this.running = false;
+    return true;
   }
 
   /**
    * 다음 작업 처리 - 최적화된 버전
    */
   private async processNext(): Promise<void> {
-    if (!this.isRunning || this.queue.length === 0 || this.workers.size >= this.maxWorkers) {
+    if (!this.running || this.queue.length === 0 || this.workers.size >= this.maxWorkers) {
       return;
     }
 
@@ -142,11 +155,12 @@ export class AsyncTaskQueue {
   /**
    * 작업 상태 확인
    */
-  getTaskStatus(taskId: string): 'pending' | 'processing' | 'completed' | 'failed' {
+  getTaskStatus(taskId: string): 'pending' | 'processing' | 'completed' | 'failed' | null {
     if (this.processing.has(taskId)) return 'processing';
     if (this.completed.has(taskId)) return 'completed';
     if (this.failed.has(taskId)) return 'failed';
-    return 'pending';
+    if (this.queue.some(task => task.id === taskId)) return 'pending';
+    return null;
   }
 
   /**
@@ -192,6 +206,136 @@ export class AsyncTaskQueue {
   onTaskFailed(taskId: string, result: TaskResult): void {
     this.failed.set(taskId, result);
     this.updateStats();
+  }
+
+  /**
+   * 다음 작업 가져오기
+   */
+  getNextTask(): Task | null {
+    return this.queue.length > 0 ? this.queue[0] : null;
+  }
+
+  /**
+   * 실행 상태 확인
+   */
+  isRunning(): boolean {
+    return this.running;
+  }
+
+  /**
+   * 작업 취소
+   */
+  cancelTask(taskId: string): boolean {
+    const taskIndex = this.queue.findIndex(task => task.id === taskId);
+    if (taskIndex !== -1) {
+      this.queue.splice(taskIndex, 1);
+      this.updateStats();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 모든 대기 중인 작업 제거
+   */
+  clear(): void {
+    this.queue = [];
+    this.updateStats();
+  }
+
+  /**
+   * 완료된 작업 목록 반환
+   */
+  getCompletedTasks(): TaskResult[] {
+    return Array.from(this.completed.values());
+  }
+
+  /**
+   * 실패한 작업 목록 반환
+   */
+  getFailedTasks(): TaskResult[] {
+    return Array.from(this.failed.values());
+  }
+
+  /**
+   * 작업 재시도
+   */
+  retryTask(taskId: string): boolean {
+    const failedResult = this.failed.get(taskId);
+    if (!failedResult) return false;
+
+    // 실패한 작업의 원본 정보를 복원
+    const originalTask: Task = {
+      id: taskId,
+      type: failedResult.data?.type || 'unknown',
+      data: failedResult.data?.data || {},
+      priority: failedResult.data?.priority || 0,
+      createdAt: failedResult.data?.createdAt || new Date(),
+      maxRetries: failedResult.data?.maxRetries || 3,
+      retryCount: failedResult.retryCount,
+      timeout: failedResult.data?.timeout || 30000
+    };
+
+    if (originalTask.retryCount >= originalTask.maxRetries) {
+      return false;
+    }
+
+    // 실패한 작업을 다시 큐에 추가
+    this.failed.delete(taskId);
+    this.queue.push(originalTask);
+    this.queue.sort((a, b) => b.priority - a.priority);
+    this.updateStats();
+    return true;
+  }
+
+  /**
+   * 큐 길이 반환
+   */
+  getQueueLength(): number {
+    return this.queue.length;
+  }
+
+  /**
+   * 큐가 비어있는지 확인
+   */
+  isQueueEmpty(): boolean {
+    return this.queue.length === 0;
+  }
+
+  /**
+   * 처리 중인 작업 목록 반환
+   */
+  getProcessingTasks(): Task[] {
+    return Array.from(this.processing.values());
+  }
+
+  /**
+   * ID로 작업 찾기
+   */
+  getTaskById(taskId: string): Task | null {
+    // 큐에서 찾기
+    const queuedTask = this.queue.find(task => task.id === taskId);
+    if (queuedTask) return queuedTask;
+
+    // 처리 중인 작업에서 찾기
+    const processingTask = this.processing.get(taskId);
+    if (processingTask) return processingTask;
+
+    return null;
+  }
+
+  /**
+   * 타입별 작업 찾기
+   */
+  getTasksByType(type: string): Task[] {
+    return this.queue.filter(task => task.type === type);
+  }
+
+  /**
+   * 우선순위별 작업 찾기
+   */
+  getTasksByPriority(priority: number): Task[] {
+    return this.queue.filter(task => task.priority === priority);
   }
 }
 

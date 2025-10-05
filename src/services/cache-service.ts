@@ -67,7 +67,7 @@ export class CacheService<T = any> {
       this.evictLeastRecentlyUsed();
     }
 
-    // 기존 항목이 있으면 접근 통계 유지
+    // 기존 항목이 있으면 접근 통계 업데이트
     const existingEntry = this.cache.get(key);
     const now = Date.now();
     
@@ -76,7 +76,7 @@ export class CacheService<T = any> {
       timestamp: now,
       ttl: ttl || this.defaultTTL,
       accessCount: existingEntry ? existingEntry.accessCount + 1 : 0,
-      lastAccessed: existingEntry ? existingEntry.lastAccessed : now
+      lastAccessed: existingEntry ? existingEntry.lastAccessed : now // 기존 항목의 lastAccessed 유지
     };
 
     this.cache.set(key, entry);

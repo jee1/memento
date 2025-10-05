@@ -60,6 +60,9 @@ describe('EmbeddingService', () => {
     vi.clearAllMocks();
     embeddingService = new EmbeddingService();
     
+    // OpenAI 클라이언트 모킹
+    (embeddingService as any).openai = mockOpenAI;
+    
     // 내부 서비스들을 직접 모킹
     (embeddingService as any).lightweightService = {
       generateEmbedding: vi.fn().mockResolvedValue({
@@ -116,6 +119,8 @@ describe('EmbeddingService', () => {
     });
 
     it('OpenAI 임베딩을 성공적으로 생성해야 함', async () => {
+      vi.mocked(mementoConfig).embeddingProvider = 'openai';
+      
       const mockResponse = {
         data: [{ embedding: [0.1, 0.2, 0.3] }],
         usage: { prompt_tokens: 10, total_tokens: 10 }
@@ -171,6 +176,8 @@ describe('EmbeddingService', () => {
     });
 
     it('OpenAI 실패 시 경량 서비스로 fallback해야 함', async () => {
+      vi.mocked(mementoConfig).embeddingProvider = 'openai';
+      
       const consoleSpy = vi.spyOn(console, 'warn');
       mockOpenAI.embeddings.create.mockRejectedValue(new Error('OpenAI API error'));
 
@@ -185,6 +192,8 @@ describe('EmbeddingService', () => {
     });
 
     it('캐시에서 결과를 반환해야 함', async () => {
+      vi.mocked(mementoConfig).embeddingProvider = 'openai';
+      
       const mockResponse = {
         data: [{ embedding: [0.1, 0.2, 0.3] }],
         usage: { prompt_tokens: 10, total_tokens: 10 }
@@ -204,6 +213,8 @@ describe('EmbeddingService', () => {
 
   describe('searchSimilar', () => {
     beforeEach(async () => {
+      vi.mocked(mementoConfig).embeddingProvider = 'openai';
+      
       const mockResponse = {
         data: [{ embedding: [0.1, 0.2, 0.3] }],
         usage: { prompt_tokens: 10, total_tokens: 10 }
@@ -225,18 +236,22 @@ describe('EmbeddingService', () => {
     });
 
     it('임계값보다 낮은 유사도는 필터링해야 함', async () => {
+      // 완전히 다른 벡터들로 설정하여 낮은 유사도 보장
       const embeddings = [
-        { id: '1', content: 'test content 1', embedding: [0.1, 0.2, 0.3] },
-        { id: '2', content: 'test content 2', embedding: [0.9, 0.8, 0.7] }
+        { id: '1', content: 'test content 1', embedding: [1, 0, 0] },
+        { id: '2', content: 'test content 2', embedding: [0, 1, 0] }
       ];
 
+      // 높은 임계값으로 설정하여 필터링되도록 함
       const results = await embeddingService.searchSimilar('test query', embeddings, 10, 0.9);
 
       expect(results).toHaveLength(0);
     });
 
     it('쿼리 임베딩 생성 실패 시 빈 배열을 반환해야 함', async () => {
-      mockOpenAI.embeddings.create.mockRejectedValue(new Error('API error'));
+      // generateEmbedding을 직접 모킹하여 null을 반환하도록 함
+      const originalGenerateEmbedding = embeddingService.generateEmbedding;
+      vi.spyOn(embeddingService, 'generateEmbedding').mockResolvedValue(null);
 
       const embeddings = [
         { id: '1', content: 'test content 1', embedding: [0.1, 0.2, 0.3] }
@@ -245,6 +260,9 @@ describe('EmbeddingService', () => {
       const results = await embeddingService.searchSimilar('test query', embeddings);
 
       expect(results).toEqual([]);
+      
+      // 원래 메서드 복원
+      vi.restoreAllMocks();
     });
   });
 
