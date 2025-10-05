@@ -76,7 +76,7 @@ export class CacheService<T = any> {
       timestamp: now,
       ttl: ttl || this.defaultTTL,
       accessCount: existingEntry ? existingEntry.accessCount + 1 : 0,
-      lastAccessed: now
+      lastAccessed: existingEntry ? existingEntry.lastAccessed : now
     };
 
     this.cache.set(key, entry);

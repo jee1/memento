@@ -49,6 +49,7 @@ export class PerformanceMonitor {
   private alerts: Map<string, PerformanceAlert> = new Map();
   private metricsHistory: PerformanceMetrics[] = [];
   private maxHistorySize = 1000;
+  private monitoringInterval: NodeJS.Timeout | null = null;
 
   constructor(thresholds?: Partial<AlertThresholds>) {
     this.thresholds = {
@@ -71,7 +72,7 @@ export class PerformanceMonitor {
   /**
    * 성능 지표 수집
    */
-  async collectMetrics(): Promise<PerformanceMetrics> {
+  async collectMetrics(): Promise<any> {
     const startTime = Date.now();
     
     // 메모리 사용량
@@ -83,8 +84,16 @@ export class PerformanceMonitor {
     // 데이터베이스 지표
     const dbMetrics = await this.getDatabaseMetrics();
     
-    const metrics: PerformanceMetrics = {
+    // 검색 지표
+    const searchMetrics = this.getSearchMetrics();
+    
+    // 시스템 지표
+    const systemMetrics = this.getSystemMetrics();
+    
+    const metrics = {
       timestamp: new Date(),
+      database: dbMetrics,
+      search: searchMetrics,
       memory: {
         rss: memUsage.rss,
         heapTotal: memUsage.heapTotal,
@@ -95,15 +104,14 @@ export class PerformanceMonitor {
         user: cpuUsage.user,
         system: cpuUsage.system
       },
-      database: dbMetrics,
-      uptime: process.uptime()
+      system: systemMetrics
     };
 
     // 지표 히스토리에 추가
-    this.addToHistory(metrics);
+    this.addToHistory(metrics as PerformanceMetrics);
     
     // 알림 검사
-    await this.checkAlerts(metrics);
+    await this.checkAlerts(metrics as PerformanceMetrics);
     
     const collectionTime = Date.now() - startTime;
     this.log(`Metrics collected in ${collectionTime}ms`);
@@ -298,6 +306,13 @@ export class PerformanceMonitor {
   }
 
   /**
+   * 현재 성능 지표 조회
+   */
+  async getMetrics(): Promise<PerformanceMetrics> {
+    return await this.collectMetrics();
+  }
+
+  /**
    * 성능 지표 히스토리 조회
    */
   getMetricsHistory(limit?: number): PerformanceMetrics[] {
@@ -305,6 +320,356 @@ export class PerformanceMonitor {
       return this.metricsHistory.slice(-limit);
     }
     return [...this.metricsHistory];
+  }
+
+  /**
+   * 활성 알림 조회
+   */
+  getAlerts(): PerformanceAlert[] {
+    return Array.from(this.alerts.values()).filter(alert => !alert.resolved);
+  }
+
+  /**
+   * 활성 알림 조회 (getAlerts와 동일)
+   */
+  getActiveAlerts(): PerformanceAlert[] {
+    return this.getAlerts();
+  }
+
+  /**
+   * 모든 알림 조회
+   */
+  getAllAlerts(): PerformanceAlert[] {
+    return Array.from(this.alerts.values());
+  }
+
+  /**
+   * 알림 초기화
+   */
+  clearAlerts(): void {
+    this.alerts.clear();
+  }
+
+  /**
+   * 성능 리포트 생성
+   */
+  async getPerformanceReport(): Promise<{
+    summary: {
+      current: PerformanceMetrics | null;
+      alerts: { active: number; total: number };
+      trends: {
+        memoryTrend: 'increasing' | 'decreasing' | 'stable';
+        dbSizeTrend: 'increasing' | 'decreasing' | 'stable';
+      };
+    };
+    metrics: PerformanceMetrics[];
+    alerts: PerformanceAlert[];
+    recommendations: string[];
+    timestamp: Date;
+  }> {
+    const summary = this.getPerformanceSummary();
+    const metrics = this.getMetricsHistory();
+    const alerts = this.getAllAlerts();
+    const recommendations = this.generateRecommendations(alerts);
+
+    return {
+      summary,
+      metrics,
+      alerts,
+      recommendations,
+      timestamp: new Date()
+    };
+  }
+
+  /**
+   * 권장사항 생성
+   */
+  private generateRecommendations(alerts: PerformanceAlert[]): string[] {
+    const recommendations: string[] = [];
+    
+    const memoryAlerts = alerts.filter(alert => alert.type === 'memory' && !alert.resolved);
+    const cpuAlerts = alerts.filter(alert => alert.type === 'cpu' && !alert.resolved);
+    const dbAlerts = alerts.filter(alert => alert.type === 'database' && !alert.resolved);
+    
+    if (memoryAlerts.length > 0) {
+      recommendations.push('메모리 사용량이 높습니다. 캐시 크기를 줄이거나 메모리 정리를 고려하세요.');
+    }
+    
+    if (cpuAlerts.length > 0) {
+      recommendations.push('CPU 사용량이 높습니다. 쿼리 최적화나 인덱스 추가를 고려하세요.');
+    }
+    
+    if (dbAlerts.length > 0) {
+      recommendations.push('데이터베이스 크기가 큽니다. 오래된 데이터 정리나 아카이빙을 고려하세요.');
+    }
+    
+    if (recommendations.length === 0) {
+      recommendations.push('시스템이 정상적으로 작동하고 있습니다.');
+    }
+    
+    return recommendations;
+  }
+
+  /**
+   * 모니터링 시작
+   */
+  startMonitoring(intervalMs: number = 60000): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+    }
+
+    this.monitoringInterval = setInterval(async () => {
+      try {
+        await this.collectMetrics();
+      } catch (error) {
+        console.error('성능 모니터링 중 오류:', error);
+      }
+    }, intervalMs);
+  }
+
+  /**
+   * 모니터링 중지
+   */
+  stopMonitoring(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+  }
+
+  /**
+   * 모니터링 상태 확인
+   */
+  isMonitoring(): boolean {
+    return this.monitoringInterval !== null;
+  }
+
+  /**
+   * 검색 통계 기록
+   */
+  recordSearch(type: 'text' | 'vector' | 'hybrid', duration: number, cacheHit: boolean = false): void {
+    if (!(this as any).searchStats) {
+      (this as any).searchStats = {
+        totalSearches: 0,
+        totalDuration: 0,
+        totalSearchTime: 0,
+        searchesByType: { text: 0, vector: 0, hybrid: 0 },
+        cacheHits: 0,
+        cacheMisses: 0,
+        embeddingSearches: 0
+      };
+    }
+
+    const stats = (this as any).searchStats;
+    stats.totalSearches++;
+    stats.totalDuration += duration;
+    stats.totalSearchTime += duration;
+    stats.searchesByType[type]++;
+    
+    if (type === 'vector') {
+      stats.embeddingSearches++;
+    }
+    
+    if (cacheHit) {
+      stats.cacheHits++;
+    } else {
+      stats.cacheMisses++;
+    }
+  }
+
+  /**
+   * 검색 메트릭 조회
+   */
+  getSearchMetrics(): {
+    totalSearches: number;
+    averageSearchTime: number;
+    searchByType: { text: number; vector: number; hybrid: number };
+    cacheHitRate: number;
+    embeddingSearchRate: number;
+  } {
+    const stats = (this as any).searchStats || {
+      totalSearches: 0,
+      totalDuration: 0,
+      searchesByType: { text: 0, vector: 0, hybrid: 0 },
+      cacheHits: 0,
+      cacheMisses: 0,
+      embeddingSearches: 0
+    };
+
+    const averageSearchTime = stats.totalSearches > 0 ? stats.totalDuration / stats.totalSearches : 0;
+    const totalCacheRequests = stats.cacheHits + stats.cacheMisses;
+    const cacheHitRate = totalCacheRequests > 0 ? stats.cacheHits / totalCacheRequests : 0;
+    const embeddingSearchRate = stats.totalSearches > 0 ? stats.embeddingSearches / stats.totalSearches : 0;
+
+    return {
+      totalSearches: stats.totalSearches,
+      averageSearchTime,
+      searchByType: stats.searchesByType,
+      cacheHitRate,
+      embeddingSearchRate
+    };
+  }
+
+  /**
+   * 메모리 메트릭 조회
+   */
+  getMemoryMetrics(): {
+    heapUsed: number;
+    heapTotal: number;
+    rss: number;
+    external: number;
+    usagePercent: number;
+  } {
+    const memUsage = process.memoryUsage();
+    const totalMemory = 1024 * 1024 * 1024; // 1GB 가정
+    const usagePercent = (memUsage.heapUsed / totalMemory) * 100;
+
+    return {
+      heapUsed: memUsage.heapUsed,
+      heapTotal: memUsage.heapTotal,
+      rss: memUsage.rss,
+      external: memUsage.external,
+      usagePercent
+    };
+  }
+
+  /**
+   * 시스템 메트릭 조회
+   */
+  getSystemMetrics(): {
+    uptime: number;
+    cpuUsage: number;
+    loadAverage: number[];
+  } {
+    const uptime = process.uptime();
+    const cpuUsage = process.cpuUsage();
+    const loadAverage = require('os').loadavg();
+
+    return {
+      uptime,
+      cpuUsage: (cpuUsage.user + cpuUsage.system) / 1000000, // 마이크로초를 초로 변환
+      loadAverage
+    };
+  }
+
+  /**
+   * 데이터베이스 메트릭 조회
+   */
+  async getDatabaseMetrics(): Promise<{
+    totalMemories: number;
+    memoryByType: Record<string, number>;
+    averageMemorySize: number;
+    databaseSize: number;
+  }> {
+    if (!this.db) {
+      return {
+        totalMemories: 0,
+        memoryByType: {},
+        averageMemorySize: 0,
+        databaseSize: 0
+      };
+    }
+
+    try {
+      const totalMemories = this.db.prepare('SELECT COUNT(*) as count FROM memory_item').get() as { count: number };
+      const memoryByType = this.db.prepare(`
+        SELECT type, COUNT(*) as count 
+        FROM memory_item 
+        GROUP BY type
+      `).all() as { type: string; count: number }[];
+
+      const typeMap: Record<string, number> = {};
+      memoryByType.forEach(row => {
+        typeMap[row.type] = row.count;
+      });
+
+      const averageSize = this.db.prepare(`
+        SELECT AVG(LENGTH(content)) as avgSize 
+        FROM memory_item
+      `).get() as { avgSize: number };
+
+      const dbSize = this.db.prepare('PRAGMA page_count').get() as { page_count: number };
+      const pageSize = this.db.prepare('PRAGMA page_size').get() as { page_size: number };
+      const databaseSize = dbSize.page_count * pageSize.page_size;
+
+      return {
+        totalMemories: totalMemories.count,
+        memoryByType: typeMap,
+        averageMemorySize: averageSize.avgSize || 0,
+        databaseSize
+      };
+    } catch (error) {
+      return {
+        totalMemories: 0,
+        memoryByType: {},
+        averageMemorySize: 0,
+        databaseSize: 0
+      };
+    }
+  }
+
+  /**
+   * 통계 초기화
+   */
+  resetStats(): void {
+    (this as any).searchStats = {
+      totalSearches: 0,
+      totalDuration: 0,
+      totalSearchTime: 0,
+      searchesByType: { text: 0, vector: 0, hybrid: 0 },
+      cacheHits: 0,
+      cacheMisses: 0,
+      embeddingSearches: 0
+    };
+  }
+
+  /**
+   * 시스템 건강 상태 확인
+   */
+  async isHealthy(): Promise<boolean> {
+    const metrics = await this.collectMetrics();
+    const alerts = this.getActiveAlerts();
+    
+    // 심각한 알림이 있으면 비정상
+    const criticalAlerts = alerts.filter(alert => alert.severity === 'critical');
+    return criticalAlerts.length === 0;
+  }
+
+  /**
+   * 메트릭 내보내기
+   */
+  async exportMetrics(): Promise<string> {
+    const metrics = this.getMetricsHistory();
+    const alerts = this.getAllAlerts();
+    const currentMetrics = await this.collectMetrics();
+    
+    return JSON.stringify({
+      database: currentMetrics.database,
+      search: currentMetrics.search,
+      memory: currentMetrics.memory,
+      system: currentMetrics.system,
+      metrics,
+      alerts,
+      exportedAt: new Date().toISOString()
+    });
+  }
+
+  /**
+   * 메트릭 가져오기
+   */
+  async importMetrics(json: string): Promise<void> {
+    const data = JSON.parse(json);
+    
+    if (data.metrics) {
+      this.metricsHistory = data.metrics;
+    }
+    
+    if (data.alerts) {
+      this.alerts.clear();
+      data.alerts.forEach((alert: PerformanceAlert) => {
+        this.alerts.set(alert.id, alert);
+      });
+    }
   }
 
   /**

@@ -363,6 +363,9 @@ describe('CacheService', () => {
       // 새로운 항목 추가
       cacheService.set('new-key', 'new-value');
       
+      // 캐시 크기가 10을 유지해야 함
+      expect(cacheService.size()).toBe(10);
+      
       // key-1이 제거되어야 함 (key-0은 최근 접근됨)
       expect(cacheService.get('key-1')).toBeNull();
       expect(cacheService.get('key-0')).toBe('value-0');
