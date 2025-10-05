@@ -14,13 +14,10 @@ vi.mock('../config/index.js', () => ({
 }));
 
 // Mock file system
-const mockMkdirSync = vi.fn();
-const mockExistsSync = vi.fn();
-
 vi.mock('fs', () => ({
   readFileSync: vi.fn(),
-  existsSync: mockExistsSync,
-  mkdirSync: mockMkdirSync
+  existsSync: vi.fn(),
+  mkdirSync: vi.fn()
 }));
 
 // Mock path and url modules
@@ -39,6 +36,11 @@ describe('Database Init', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
+    // Mock file system functions
+    const { existsSync, mkdirSync } = require('fs');
+    existsSync.mockReturnValue(false);
+    mkdirSync.mockImplementation(() => {});
+    
     // Mock database instance
     mockDb = {
       pragma: vi.fn(),
@@ -53,8 +55,6 @@ describe('Database Init', () => {
     };
 
     vi.mocked(Database).mockImplementation(() => mockDb);
-    mockExistsSync.mockReturnValue(false);
-    mockMkdirSync.mockImplementation(() => {});
     vi.mocked(readFileSync).mockReturnValue('CREATE TABLE test (id INTEGER PRIMARY KEY);');
   });
 

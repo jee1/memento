@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HybridSearchEngine, type HybridSearchQuery, type HybridSearchResult } from './hybrid-search-engine.js';
+import { HybridSearchEngine, type HybridSearchQuery } from './hybrid-search-engine.js';
 
 const mockTextSearch = vi.fn();
 const mockIsEmbeddingAvailable = vi.fn();

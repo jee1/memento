@@ -217,7 +217,7 @@ export class HybridSearchEngine {
     const finalResults = combinedResults
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, limit);
-    const sortTime = Number(process.hrtime.bigint() - sortStart) / 1_000_000;
+    // const sortTime = Number(process.hrtime.bigint() - sortStart) / 1_000_000;
 
     // 6. 검색 통계 업데이트
     this.updateSearchStats(searchQuery, textResults.length, vectorResults.length);

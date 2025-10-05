@@ -4,7 +4,7 @@
  */
 
 import { SearchRanking } from './search-ranking.js';
-import type { MemorySearchResult, MemorySearchFilters } from '../types/index.js';
+import type { MemorySearchFilters } from '../types/index.js';
 import { getStopWords } from '../utils/stopwords.js';
 
 export interface SearchQuery {
