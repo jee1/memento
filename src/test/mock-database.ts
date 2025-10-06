@@ -140,11 +140,17 @@ export class MockDatabase {
 
     // 테이블 존재 확인 쿼리
     if (lowerSql.includes('sqlite_master')) {
+      // memory_item_fts 테이블 존재 확인 쿼리
+      if (lowerSql.includes("name='memory_item_fts'")) {
+        return [{ name: 'memory_item_fts' }];
+      }
+      
       return [
         { name: 'memory_item_vec_tfidf' },
         { name: 'memory_item_vec_minilm' },
         { name: 'memory_item_vec_openai' },
-        { name: 'memory_item_vec_gemini' }
+        { name: 'memory_item_vec_gemini' },
+        { name: 'memory_item_fts' }
       ];
     }
 
