@@ -8,6 +8,8 @@ import { ForgettingPolicyService, type MemoryCleanupResult } from './forgetting-
 import { getPerformanceMonitor, type PerformanceAlert } from './performance-monitor.js';
 import { DatabaseUtils } from '../utils/database.js';
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -559,8 +561,6 @@ export class BatchScheduler {
    */
   private logToFile(logEntry: any): void {
     try {
-      const fs = require('fs');
-      const path = require('path');
       const logDir = path.join(process.cwd(), 'logs');
       
       // 로그 디렉토리 생성

@@ -3,7 +3,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { readFileSync } from 'fs';
+import fs, { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mementoConfig } from '../config/index.js';
@@ -20,7 +20,6 @@ export async function initializeDatabase(): Promise<Database.Database> {
   // 데이터 디렉토리 생성
   const dbDir = dirname(mementoConfig.dbPath);
   try {
-    const fs = require('fs');
     if (!fs.existsSync(dbDir)) {
       fs.mkdirSync(dbDir, { recursive: true });
     }

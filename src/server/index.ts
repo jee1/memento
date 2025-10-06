@@ -11,6 +11,7 @@ import { mementoConfig, validateConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
 import { PerformanceMonitor } from '../services/performance-monitor.js';
@@ -126,7 +127,7 @@ async function initializeServer() {
     
     // 검색 엔진 초기화
     searchEngine = new SearchEngine();
-    hybridSearchEngine = new HybridSearchEngine();
+    hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
     embeddingService = new MemoryEmbeddingService();
     forgettingPolicyService = new ForgettingPolicyService();
     performanceMonitor = new PerformanceMonitor();

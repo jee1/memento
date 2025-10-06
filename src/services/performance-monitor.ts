@@ -4,6 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
+import os from 'os';
 
 export interface PerformanceMetrics {
   timestamp: Date;
@@ -505,7 +506,7 @@ export class PerformanceMonitor {
   } {
     const uptime = process.uptime();
     const cpuUsage = process.cpuUsage();
-    const loadAverage = require('os').loadavg();
+    const loadAverage = os.loadavg();
 
     return {
       uptime,

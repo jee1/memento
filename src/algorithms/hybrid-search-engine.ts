@@ -10,297 +10,69 @@ import { getVectorSearchEngine } from './vector-search-engine.js';
 import type { MemorySearchFilters, MemoryType } from '../types/index.js';
 import Database from 'better-sqlite3';
 
-export interface HybridSearchQuery {
-  query: string;
-  filters?: MemorySearchFilters | undefined;
-  limit?: number | undefined;
-  vectorWeight?: number | undefined; // 벡터 검색 가중치 (0.0 ~ 1.0)
-  textWeight?: number | undefined;   // 텍스트 검색 가중치 (0.0 ~ 1.0)
+// 인터페이스 정의
+export interface ITextSearchEngine {
+  search(db: Database.Database, query: { query: string; filters?: MemorySearchFilters; limit?: number }): Promise<{ items: any[]; total_count: number; query_time: number }>;
 }
 
-export interface HybridSearchResult {
-  id: string;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string;
-  last_accessed?: string | undefined;
-  pinned: boolean;
-  tags?: string[] | undefined;
-  textScore: number;
-  vectorScore: number;
-  finalScore: number;
-  recall_reason: string;
+export interface IEmbeddingService {
+  isAvailable(): boolean;
+  searchBySimilarity(db: Database.Database, query: string, options: { type?: MemoryType[]; limit?: number; threshold?: number }): Promise<VectorSearchResult[]>;
+  getEmbeddingStats(db: Database.Database): Promise<any>;
 }
 
-export class HybridSearchEngine {
-  private textSearchEngine: SearchEngine;
-  private embeddingService: MemoryEmbeddingService;
-  private vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
-  private readonly defaultVectorWeight = 0.6; // 벡터 검색 60%
-  private readonly defaultTextWeight = 0.4;   // 텍스트 검색 40%
-  private searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }> = new Map();
-  private adaptiveWeights: Map<string, { vectorWeight: number, textWeight: number }> = new Map();
+export interface IVectorSearchEngine {
+  initialize(db: Database.Database): void;
+  getIndexStatus(): { available: boolean };
+  search(vector: number[], options: { limit?: number; threshold?: number; type?: string; includeContent?: boolean }): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
+}
 
-  constructor() {
-    this.textSearchEngine = new SearchEngine();
-    this.embeddingService = new MemoryEmbeddingService();
-    this.vectorSearchEngine = getVectorSearchEngine();
+export interface ISearchResultCombiner {
+  combine(textResults: any[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[];
+}
+
+export interface IAdaptiveWeightCalculator {
+  calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number; textWeight: number };
+}
+
+export interface ISearchLogger {
+  logSearchStart(searchId: string, query: HybridSearchQuery): void;
+  logSearchStep(searchId: string, step: string, data: any): void;
+  logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void;
+  logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void;
+}
+
+// 에러 타입 정의
+export enum SearchErrorType {
+  EMBEDDING_GENERATION_FAILED = 'EMBEDDING_GENERATION_FAILED',
+  VECTOR_SEARCH_FAILED = 'VECTOR_SEARCH_FAILED',
+  TEXT_SEARCH_FAILED = 'TEXT_SEARCH_FAILED',
+  RESULT_COMBINATION_FAILED = 'RESULT_COMBINATION_FAILED',
+  DATABASE_CONNECTION_FAILED = 'DATABASE_CONNECTION_FAILED',
+  INVALID_QUERY = 'INVALID_QUERY',
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE'
+}
+
+export class SearchError extends Error {
+  constructor(
+    public type: SearchErrorType,
+    message: string,
+    public originalError?: Error,
+    public context?: any
+  ) {
+    super(message);
+    this.name = 'SearchError';
   }
+}
 
-  /**
-   * 하이브리드 검색 실행 - 적응형 가중치 적용
-   */
-  async search(
-    db: Database.Database,
-    query: HybridSearchQuery
-  ): Promise<{ items: HybridSearchResult[], total_count: number, query_time: number }> {
-    const searchId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const startTime = process.hrtime.bigint();
-    
-    try {
-      const {
-        query: searchQuery,
-        filters,
-        limit = 10,
-        vectorWeight = this.defaultVectorWeight,
-        textWeight = this.defaultTextWeight,
-      } = query;
-      
-      this.logSearchStart(searchId, { ...query, vectorWeight, textWeight });
-
-    // 1. 적응형 가중치 계산
-    const adaptiveWeights = this.calculateAdaptiveWeights(searchQuery, vectorWeight, textWeight);
-    const normalizedVectorWeight = adaptiveWeights.vectorWeight;
-    const normalizedTextWeight = adaptiveWeights.textWeight;
-
-    this.logSearchStep(searchId, '적응형 가중치 계산 완료', {
-      vectorWeight: normalizedVectorWeight.toFixed(3),
-      textWeight: normalizedTextWeight.toFixed(3),
-      originalVector: vectorWeight,
-      originalText: textWeight
-    });
-
-    // 2. 텍스트 검색 실행
-    const textSearchStart = process.hrtime.bigint();
-    this.logSearchStep(searchId, '텍스트 검색 시작', { query: searchQuery });
-    
-    const textSearchResult = await this.textSearchEngine.search(db, {
-      query: searchQuery,
-      filters,
-      limit: limit * 2, // 더 많은 후보를 가져와서 결합
-    });
-    
-    const textSearchTime = Number(process.hrtime.bigint() - textSearchStart) / 1_000_000;
-    const textResults = textSearchResult.items;
-    
-    this.logSearchStep(searchId, '텍스트 검색 완료', {
-      resultCount: textResults.length,
-      searchTime: `${textSearchTime.toFixed(2)}ms`
-    });
-
-    // 3. 벡터 검색 실행 (VEC 사용 가능한 경우)
-    let vectorResults: VectorSearchResult[] = [];
-    const vectorSearchStart = process.hrtime.bigint();
-    
-    this.logSearchStep(searchId, '벡터 검색 시작', { 
-      query: searchQuery,
-      embeddingAvailable: this.embeddingService.isAvailable()
-    });
-    
-    // VectorSearchEngine 초기화
-    this.vectorSearchEngine.initialize(db);
-    
-    if (this.vectorSearchEngine.getIndexStatus().available) {
-      try {
-        // 쿼리를 벡터로 변환
-        const embeddingStart = process.hrtime.bigint();
-        const embeddingService = new EmbeddingService();
-        const embeddingResult = await embeddingService.generateEmbedding(searchQuery);
-        if (!embeddingResult) {
-          throw new Error('임베딩 생성에 실패했습니다');
-        }
-        const queryVector = embeddingResult.embedding;
-        const embeddingTime = Number(process.hrtime.bigint() - embeddingStart) / 1_000_000;
-        
-        this.logSearchStep(searchId, '임베딩 생성 완료', {
-          embeddingTime: `${embeddingTime.toFixed(2)}ms`,
-          vectorLength: queryVector.length
-        });
-        
-        // VEC를 사용한 벡터 검색
-        const vecStart = process.hrtime.bigint();
-        const vecResults = await this.vectorSearchEngine.search(queryVector, {
-          limit: limit * 2,
-          threshold: 0.5,
-          type: filters?.type?.join(','),
-          includeContent: true
-        });
-        const vecTime = Number(process.hrtime.bigint() - vecStart) / 1_000_000;
-        
-        // VectorSearchResult 형식으로 변환
-        vectorResults = vecResults.map(result => ({
-          id: result.memory_id,
-          content: result.content,
-          type: result.type,
-          importance: result.importance,
-          created_at: result.created_at,
-          pinned: false,
-          score: result.similarity,
-          similarity: result.similarity
-        }));
-        
-        this.logSearchStep(searchId, 'VEC 벡터 검색 완료', {
-          resultCount: vectorResults.length,
-          vecTime: `${vecTime.toFixed(2)}ms`,
-          totalVectorTime: `${(Number(process.hrtime.bigint() - vectorSearchStart) / 1_000_000).toFixed(2)}ms`
-        });
-      } catch (error) {
-        this.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
-          error: error instanceof Error ? error.message : String(error)
-        });
-        
-        // Fallback: 기존 임베딩 서비스 사용
-        if (this.embeddingService.isAvailable()) {
-          const fallbackStart = process.hrtime.bigint();
-          vectorResults = await this.embeddingService.searchBySimilarity(db, searchQuery, {
-            type: filters?.type as MemoryType[],
-            limit: limit * 2,
-            threshold: 0.5,
-          });
-          const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
-          
-          this.logSearchStep(searchId, 'Fallback 벡터 검색 완료', {
-            resultCount: vectorResults.length,
-            fallbackTime: `${fallbackTime.toFixed(2)}ms`
-          });
-        }
-      }
-    } else {
-      this.logSearchStep(searchId, 'VEC 사용 불가, 기존 임베딩 서비스 사용', {});
-      
-      // Fallback: 기존 임베딩 서비스 사용
-      if (this.embeddingService.isAvailable()) {
-        const fallbackStart = process.hrtime.bigint();
-        vectorResults = await this.embeddingService.searchBySimilarity(db, searchQuery, {
-          type: filters?.type as MemoryType[],
-          limit: limit * 2,
-          threshold: 0.5,
-        });
-        const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
-        
-        this.logSearchStep(searchId, 'Fallback 벡터 검색 완료', {
-          resultCount: vectorResults.length,
-          fallbackTime: `${fallbackTime.toFixed(2)}ms`
-        });
-      }
-    }
-
-    // 4. 결과 결합 및 점수 계산
-    const combineStart = process.hrtime.bigint();
-    const combinedResults = this.combineResults(
-      textResults,
-      vectorResults,
-      normalizedTextWeight,
-      normalizedVectorWeight
-    );
-    const combineTime = Number(process.hrtime.bigint() - combineStart) / 1_000_000;
-
-    this.logSearchStep(searchId, '결과 결합 완료', {
-      combinedCount: combinedResults.length,
-      combineTime: `${combineTime.toFixed(2)}ms`,
-      textWeight: normalizedTextWeight.toFixed(3),
-      vectorWeight: normalizedVectorWeight.toFixed(3)
-    });
-
-    // 5. 최종 점수로 정렬하고 제한
-    const finalResults = combinedResults
-      .sort((a, b) => b.finalScore - a.finalScore)
-      .slice(0, limit);
-    // const sortTime = Number(process.hrtime.bigint() - sortStart) / 1_000_000;
-
-    // 6. 검색 통계 업데이트
-    this.updateSearchStats(searchQuery, textResults.length, vectorResults.length);
-    
-    // 7. 쿼리 시간 계산
-    const endTime = process.hrtime.bigint();
-    const queryTime = Number(endTime - startTime) / 1_000_000; // 밀리초로 변환
-
-    // 최종 결과 로깅
-    this.logSearchComplete(searchId, {
-      items: finalResults,
-      total_count: finalResults.length
-    }, queryTime);
-
-    return {
-      items: finalResults,
-      total_count: finalResults.length,
-      query_time: queryTime
-    };
-    } catch (error) {
-      this.logSearchError(searchId, error, query);
-      throw error;
-    }
-  }
-
-  /**
-   * 검색 시작 로깅
-   */
-  private logSearchStart(searchId: string, query: HybridSearchQuery): void {
-    // console.log(`🔍 [${searchId}] 하이브리드 검색 시작`, {
-    //   query: query.query,
-    //   limit: query.limit,
-    //   vectorWeight: query.vectorWeight,
-    //   textWeight: query.textWeight,
-    //   filters: query.filters
-    // });
-  }
-
-  /**
-   * 검색 완료 로깅
-   */
-  private logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
-    // console.log(`✅ [${searchId}] 하이브리드 검색 완료`, {
-    //   resultCount: result.items.length,
-    //   totalCount: result.total_count,
-    //   queryTime: `${queryTime.toFixed(2)}ms`,
-    //   searchType: 'hybrid'
-    // });
-  }
-
-  /**
-   * 검색 에러 로깅
-   */
-  private logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void {
-    // console.error(`❌ [${searchId}] 하이브리드 검색 에러`, {
-    //   error: error instanceof Error ? error.message : String(error),
-    //   stack: error instanceof Error ? error.stack : undefined,
-    //   query: query.query,
-    //   limit: query.limit
-    // });
-  }
-
-  /**
-   * 검색 단계 로깅
-   */
-  private logSearchStep(searchId: string, step: string, data: any): void {
-    console.log(`🔍 [${searchId}] ${step}`, data);
-  }
-
-  /**
-   * 텍스트 검색과 벡터 검색 결과 결합
-   */
-  private combineResults(
-    textResults: any[],
-    vectorResults: VectorSearchResult[],
-    textWeight: number,
-    vectorWeight: number
-  ): HybridSearchResult[] {
+// 책임별 클래스들
+export class SearchResultCombiner implements ISearchResultCombiner {
+  combine(textResults: any[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[] {
     const resultMap = new Map<string, HybridSearchResult>();
 
     // 텍스트 검색 결과 추가
     textResults.forEach(result => {
-      const textScore = typeof result.score === 'number' ? result.score : 0; // 안전한 점수 처리
+      const textScore = typeof result.score === 'number' ? result.score : 0;
       resultMap.set(result.id, {
         id: result.id,
         content: result.content,
@@ -348,9 +120,6 @@ export class HybridSearchEngine {
     return Array.from(resultMap.values());
   }
 
-  /**
-   * 하이브리드 검색 이유 생성
-   */
   private generateHybridReason(textScore: number, vectorScore: number): string {
     const reasons: string[] = [];
     
@@ -366,11 +135,12 @@ export class HybridSearchEngine {
     
     return reasons.length > 0 ? reasons.join(', ') : '하이브리드 검색';
   }
+}
 
-  /**
-   * 적응형 가중치 계산
-   */
-  private calculateAdaptiveWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number, textWeight: number } {
+export class AdaptiveWeightCalculator implements IAdaptiveWeightCalculator {
+  private adaptiveWeights: Map<string, { vectorWeight: number, textWeight: number }> = new Map();
+
+  calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number, textWeight: number } {
     const queryKey = this.normalizeQuery(query);
     
     // 기존 적응형 가중치가 있으면 사용
@@ -410,9 +180,6 @@ export class HybridSearchEngine {
     return weights;
   }
 
-  /**
-   * 쿼리 특성 분석
-   */
   private analyzeQuery(query: string): { isTechnicalTerm: boolean, isPhrase: boolean, isShortQuery: boolean } {
     const normalizedQuery = query.toLowerCase().trim();
     
@@ -423,12 +190,312 @@ export class HybridSearchEngine {
     };
   }
 
-  /**
-   * 쿼리 정규화
-   */
   private normalizeQuery(query: string): string {
     return query.toLowerCase().trim().replace(/\s+/g, ' ');
   }
+}
+
+export class SearchLogger implements ISearchLogger {
+  logSearchStart(searchId: string, query: HybridSearchQuery): void {
+    // console.log(`🔍 [${searchId}] 하이브리드 검색 시작`, {
+    //   query: query.query,
+    //   limit: query.limit,
+    //   vectorWeight: query.vectorWeight,
+    //   textWeight: query.textWeight,
+    //   filters: query.filters
+    // });
+  }
+
+  logSearchStep(searchId: string, step: string, data: any): void {
+    console.log(`🔍 [${searchId}] ${step}`, data);
+  }
+
+  logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
+    // console.log(`✅ [${searchId}] 하이브리드 검색 완료`, {
+    //   resultCount: result.items.length,
+    //   totalCount: result.total_count,
+    //   queryTime: `${queryTime.toFixed(2)}ms`,
+    //   searchType: 'hybrid'
+    // });
+  }
+
+  logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void {
+    // console.error(`❌ [${searchId}] 하이브리드 검색 에러`, {
+    //   error: error instanceof Error ? error.message : String(error),
+    //   stack: error instanceof Error ? error.stack : undefined,
+    //   query: query.query,
+    //   limit: query.limit
+    // });
+  }
+}
+
+export interface HybridSearchQuery {
+  query: string;
+  filters?: MemorySearchFilters | undefined;
+  limit?: number | undefined;
+  vectorWeight?: number | undefined; // 벡터 검색 가중치 (0.0 ~ 1.0)
+  textWeight?: number | undefined;   // 텍스트 검색 가중치 (0.0 ~ 1.0)
+}
+
+export interface HybridSearchResult {
+  id: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string;
+  last_accessed?: string | undefined;
+  pinned: boolean;
+  tags?: string[] | undefined;
+  textScore: number;
+  vectorScore: number;
+  finalScore: number;
+  recall_reason: string;
+}
+
+export class HybridSearchEngine {
+  private readonly defaultVectorWeight = 0.6; // 벡터 검색 60%
+  private readonly defaultTextWeight = 0.4;   // 텍스트 검색 40%
+  private searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }> = new Map();
+
+  constructor(
+    private textSearchEngine: ITextSearchEngine,
+    private embeddingService: IEmbeddingService,
+    private vectorSearchEngine: IVectorSearchEngine,
+    private resultCombiner: ISearchResultCombiner,
+    private weightCalculator: IAdaptiveWeightCalculator,
+    private logger: ISearchLogger
+  ) {}
+
+  /**
+   * 하이브리드 검색 실행 - 적응형 가중치 적용
+   */
+  async search(
+    db: Database.Database,
+    query: HybridSearchQuery
+  ): Promise<{ items: HybridSearchResult[], total_count: number, query_time: number }> {
+    const searchId = this.generateSearchId();
+    const startTime = process.hrtime.bigint();
+    
+    try {
+      this.logger.logSearchStart(searchId, query);
+      
+      // 1. 적응형 가중치 계산
+      const weights = this.calculateAdaptiveWeights(query);
+      this.logger.logSearchStep(searchId, '적응형 가중치 계산 완료', weights);
+
+      // 2. 텍스트 검색 실행
+      const textResults = await this.executeTextSearch(db, query, searchId);
+
+      // 3. 벡터 검색 실행
+      const vectorResults = await this.executeVectorSearch(db, query, searchId);
+
+      // 4. 결과 결합 및 정렬
+      const finalResults = this.combineAndSortResults(textResults, vectorResults, weights, query.limit || 10);
+
+      // 5. 통계 업데이트 및 결과 반환
+      this.updateSearchStats(query.query, textResults.length, vectorResults.length);
+      
+      const queryTime = this.calculateQueryTime(startTime);
+      this.logger.logSearchComplete(searchId, {
+        items: finalResults,
+        total_count: finalResults.length
+      }, queryTime);
+
+      return {
+        items: finalResults,
+        total_count: finalResults.length,
+        query_time: queryTime
+      };
+    } catch (error) {
+      this.logger.logSearchError(searchId, error, query);
+      throw error;
+    }
+  }
+
+  private generateSearchId(): string {
+    return `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private calculateAdaptiveWeights(query: HybridSearchQuery): { vectorWeight: number, textWeight: number, originalVector: number, originalText: number } {
+    const vectorWeight = query.vectorWeight ?? this.defaultVectorWeight;
+    const textWeight = query.textWeight ?? this.defaultTextWeight;
+    
+    const adaptiveWeights = this.weightCalculator.calculateWeights(query.query, vectorWeight, textWeight);
+    
+    return {
+      vectorWeight: adaptiveWeights.vectorWeight,
+      textWeight: adaptiveWeights.textWeight,
+      originalVector: vectorWeight,
+      originalText: textWeight
+    };
+  }
+
+  private async executeTextSearch(db: Database.Database, query: HybridSearchQuery, searchId: string): Promise<any[]> {
+    try {
+      const textSearchStart = process.hrtime.bigint();
+      this.logger.logSearchStep(searchId, '텍스트 검색 시작', { query: query.query });
+      
+      const textSearchResult = await this.textSearchEngine.search(db, {
+        query: query.query,
+        filters: query.filters,
+        limit: (query.limit || 10) * 2,
+      });
+      
+      const textSearchTime = Number(process.hrtime.bigint() - textSearchStart) / 1_000_000;
+      this.logger.logSearchStep(searchId, '텍스트 검색 완료', {
+        resultCount: textSearchResult.items.length,
+        searchTime: `${textSearchTime.toFixed(2)}ms`
+      });
+      
+      return textSearchResult.items;
+    } catch (error) {
+      throw new SearchError(
+        SearchErrorType.TEXT_SEARCH_FAILED,
+        '텍스트 검색 실행 중 오류가 발생했습니다',
+        error instanceof Error ? error : new Error(String(error)),
+        { query: query.query, searchId }
+      );
+    }
+  }
+
+  private async executeVectorSearch(db: Database.Database, query: HybridSearchQuery, searchId: string): Promise<VectorSearchResult[]> {
+    const vectorSearchStart = process.hrtime.bigint();
+    this.logger.logSearchStep(searchId, '벡터 검색 시작', { 
+      query: query.query,
+      embeddingAvailable: this.embeddingService.isAvailable()
+    });
+    
+    this.vectorSearchEngine.initialize(db);
+    
+    if (this.vectorSearchEngine.getIndexStatus().available) {
+      return await this.executeVecSearch(db, query, searchId, vectorSearchStart);
+    } else {
+      return await this.executeFallbackSearch(db, query, searchId, vectorSearchStart);
+    }
+  }
+
+  private async executeVecSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
+    try {
+      const queryVector = await this.generateQueryVector(query.query, searchId);
+      const vecResults = await this.vectorSearchEngine.search(queryVector, {
+        limit: (query.limit || 10) * 2,
+        threshold: 0.5,
+        type: query.filters?.type?.join(','),
+        includeContent: true
+      });
+      
+      const vectorResults = vecResults.map(result => ({
+        id: result.memory_id,
+        content: result.content,
+        type: result.type,
+        importance: result.importance,
+        created_at: result.created_at,
+        pinned: false,
+        score: result.similarity,
+        similarity: result.similarity
+      }));
+      
+      this.logger.logSearchStep(searchId, 'VEC 벡터 검색 완료', {
+        resultCount: vectorResults.length,
+        totalVectorTime: `${(Number(process.hrtime.bigint() - startTime) / 1_000_000).toFixed(2)}ms`
+      });
+      
+      return vectorResults;
+    } catch (error) {
+      this.logger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      return await this.executeFallbackSearch(db, query, searchId, startTime);
+    }
+  }
+
+  private async executeFallbackSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
+    if (!this.embeddingService.isAvailable()) {
+      this.logger.logSearchStep(searchId, '임베딩 서비스 사용 불가', {});
+      return [];
+    }
+    
+    const fallbackStart = process.hrtime.bigint();
+    const vectorResults = await this.embeddingService.searchBySimilarity(db, query.query, {
+      type: query.filters?.type as MemoryType[],
+      limit: (query.limit || 10) * 2,
+      threshold: 0.5,
+    });
+    const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
+    
+    this.logger.logSearchStep(searchId, 'Fallback 벡터 검색 완료', {
+      resultCount: vectorResults.length,
+      fallbackTime: `${fallbackTime.toFixed(2)}ms`
+    });
+    
+    return vectorResults;
+  }
+
+  private async generateQueryVector(query: string, searchId: string): Promise<number[]> {
+    try {
+      const embeddingStart = process.hrtime.bigint();
+      const embeddingService = new EmbeddingService();
+      const embeddingResult = await embeddingService.generateEmbedding(query);
+      
+      if (!embeddingResult) {
+        throw new SearchError(
+          SearchErrorType.EMBEDDING_GENERATION_FAILED,
+          '임베딩 생성에 실패했습니다',
+          undefined,
+          { query, searchId }
+        );
+      }
+      
+      const embeddingTime = Number(process.hrtime.bigint() - embeddingStart) / 1_000_000;
+      
+      this.logger.logSearchStep(searchId, '임베딩 생성 완료', {
+        embeddingTime: `${embeddingTime.toFixed(2)}ms`,
+        vectorLength: embeddingResult.embedding.length
+      });
+      
+      return embeddingResult.embedding;
+    } catch (error) {
+      if (error instanceof SearchError) {
+        throw error;
+      }
+      
+      throw new SearchError(
+        SearchErrorType.EMBEDDING_GENERATION_FAILED,
+        '임베딩 생성 중 오류가 발생했습니다',
+        error instanceof Error ? error : new Error(String(error)),
+        { query, searchId }
+      );
+    }
+  }
+
+  private combineAndSortResults(textResults: any[], vectorResults: VectorSearchResult[], weights: any, limit: number): HybridSearchResult[] {
+    try {
+      const combinedResults = this.resultCombiner.combine(
+        textResults,
+        vectorResults,
+        weights.textWeight,
+        weights.vectorWeight
+      );
+      
+      return combinedResults
+        .sort((a, b) => b.finalScore - a.finalScore)
+        .slice(0, limit);
+    } catch (error) {
+      throw new SearchError(
+        SearchErrorType.RESULT_COMBINATION_FAILED,
+        '결과 결합 중 오류가 발생했습니다',
+        error instanceof Error ? error : new Error(String(error)),
+        { textResultsCount: textResults.length, vectorResultsCount: vectorResults.length, weights }
+      );
+    }
+  }
+
+  private calculateQueryTime(startTime: bigint): number {
+    const endTime = process.hrtime.bigint();
+    return Number(endTime - startTime) / 1_000_000;
+  }
+
 
   /**
    * 검색 통계 업데이트
@@ -444,6 +511,10 @@ export class HybridSearchEngine {
     this.searchStats.set(queryKey, stats);
   }
 
+  private normalizeQuery(query: string): string {
+    return query.toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
   /**
    * 검색 통계 정보
    */
@@ -452,7 +523,6 @@ export class HybridSearchEngine {
     vectorSearchAvailable: boolean;
     embeddingStats: any;
     searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }>;
-    adaptiveWeights: Map<string, { vectorWeight: number, textWeight: number }>;
   }> {
     const embeddingStats = await this.embeddingService.getEmbeddingStats(db);
     
@@ -461,7 +531,6 @@ export class HybridSearchEngine {
       vectorSearchAvailable: this.embeddingService.isAvailable(),
       embeddingStats,
       searchStats: this.searchStats,
-      adaptiveWeights: this.adaptiveWeights,
     };
   }
 
@@ -473,16 +542,31 @@ export class HybridSearchEngine {
   }
 }
 
-// 싱글톤 인스턴스
+// 팩토리 함수들
+export function createHybridSearchEngine(
+  textSearchEngine?: ITextSearchEngine,
+  embeddingService?: IEmbeddingService,
+  vectorSearchEngine?: IVectorSearchEngine,
+  resultCombiner?: ISearchResultCombiner,
+  weightCalculator?: IAdaptiveWeightCalculator,
+  logger?: ISearchLogger
+): HybridSearchEngine {
+  return new HybridSearchEngine(
+    textSearchEngine ?? new SearchEngine(),
+    embeddingService ?? new MemoryEmbeddingService(),
+    vectorSearchEngine ?? getVectorSearchEngine(),
+    resultCombiner ?? new SearchResultCombiner(),
+    weightCalculator ?? new AdaptiveWeightCalculator(),
+    logger ?? new SearchLogger()
+  );
+}
+
+// 기존 호환성을 위한 싱글톤 (deprecated)
 let hybridSearchEngineInstance: HybridSearchEngine | null = null;
 
 export function getHybridSearchEngine(): HybridSearchEngine {
   if (!hybridSearchEngineInstance) {
-    hybridSearchEngineInstance = new HybridSearchEngine();
+    hybridSearchEngineInstance = createHybridSearchEngine();
   }
   return hybridSearchEngineInstance;
-}
-
-export function createHybridSearchEngine(): HybridSearchEngine {
-  return new HybridSearchEngine();
 }

@@ -134,22 +134,72 @@ CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model)
 
 -- VEC 가상 테이블 (벡터 검색) - sqlite-vec 확장 필요
 -- 주의: sqlite-vec 확장이 설치되어 있어야 함
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[1536]);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384]);
+
+-- 제공자별 VEC 테이블들
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf USING vec0(embedding float[384]);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_minilm USING vec0(embedding float[384]);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_openai USING vec0(embedding float[1536]);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_gemini USING vec0(embedding float[768]);
 
 -- VEC 테이블 트리거 (임베딩이 생성될 때 자동으로 VEC 테이블에 추가)
+-- 제공자별 테이블에 저장하도록 수정
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
+  -- 기본 테이블에도 저장 (하위 호환성)
   INSERT INTO memory_item_vec(rowid, embedding) 
   VALUES (NEW.memory_id, json_extract(NEW.embedding, '$'));
+  
+  -- 제공자별 테이블에 저장
+  INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
+  SELECT NEW.memory_id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'tfidf';
+  
+  INSERT INTO memory_item_vec_minilm(rowid, embedding) 
+  SELECT NEW.memory_id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'minilm';
+  
+  INSERT INTO memory_item_vec_openai(rowid, embedding) 
+  SELECT NEW.memory_id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'openai';
+  
+  INSERT INTO memory_item_vec_gemini(rowid, embedding) 
+  SELECT NEW.memory_id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'gemini';
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
+  -- 기본 테이블 업데이트
   UPDATE memory_item_vec 
   SET embedding = json_extract(NEW.embedding, '$')
   WHERE rowid = NEW.memory_id;
+  
+  -- 제공자별 테이블 업데이트
+  UPDATE memory_item_vec_tfidf 
+  SET embedding = json_extract(NEW.embedding, '$')
+  WHERE rowid = NEW.memory_id AND NEW.embedding_provider = 'tfidf';
+  
+  UPDATE memory_item_vec_minilm 
+  SET embedding = json_extract(NEW.embedding, '$')
+  WHERE rowid = NEW.memory_id AND NEW.embedding_provider = 'minilm';
+  
+  UPDATE memory_item_vec_openai 
+  SET embedding = json_extract(NEW.embedding, '$')
+  WHERE rowid = NEW.memory_id AND NEW.embedding_provider = 'openai';
+  
+  UPDATE memory_item_vec_gemini 
+  SET embedding = json_extract(NEW.embedding, '$')
+  WHERE rowid = NEW.memory_id AND NEW.embedding_provider = 'gemini';
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
+  -- 기본 테이블에서 삭제
   DELETE FROM memory_item_vec WHERE rowid = OLD.memory_id;
+  
+  -- 제공자별 테이블에서 삭제
+  DELETE FROM memory_item_vec_tfidf WHERE rowid = OLD.memory_id AND OLD.embedding_provider = 'tfidf';
+  DELETE FROM memory_item_vec_minilm WHERE rowid = OLD.memory_id AND OLD.embedding_provider = 'minilm';
+  DELETE FROM memory_item_vec_openai WHERE rowid = OLD.memory_id AND OLD.embedding_provider = 'openai';
+  DELETE FROM memory_item_vec_gemini WHERE rowid = OLD.memory_id AND OLD.embedding_provider = 'gemini';
 END;
 
 -- 초기 데이터 삽입 (선택사항)

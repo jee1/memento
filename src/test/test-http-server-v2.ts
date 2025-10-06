@@ -9,6 +9,8 @@ import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import Database from 'better-sqlite3';
+import WebSocket from 'ws';
+import EventSource from 'eventsource';
 
 // 테스트용 데이터베이스 설정
 const TEST_DB_PATH = 'data/memory-test-v2.db';
@@ -334,7 +336,6 @@ async function testWebSocket() {
   console.log('\n🧪 4️⃣ WebSocket 연결 테스트');
   
   return new Promise((resolve, reject) => {
-    const WebSocket = require('ws');
     const ws = new WebSocket('ws://localhost:9001');
     
     let testPassed = 0;
@@ -415,7 +416,6 @@ async function testSSE() {
   console.log('\n🧪 5️⃣ SSE 엔드포인트 테스트');
   
   return new Promise((resolve, reject) => {
-    const EventSource = require('eventsource');
     let sessionId: string | null = null;
     let testPassed = 0;
     const totalTests = 3;

@@ -1,90 +1,38 @@
 /**
- * 벡터 검색 엔진
- * sqlite-vec를 사용한 벡터 유사도 검색
- * Memento MCP Server의 핵심 벡터 검색 컴포넌트
+ * 벡터 검색 리포지토리 구현
+ * 데이터베이스 접근 로직 분리
  */
 
 import Database from 'better-sqlite3';
+import type { 
+  VectorSearchQuery, 
+  VectorSearchResult, 
+  VectorIndexStatus,
+  HybridSearchResult 
+} from '../types/vector-search.types';
+import type { VectorSearchRepository } from '../interfaces/database.interface';
+import { VECTOR_SEARCH_CONFIG } from '../config/vector-search.config';
 
-export interface VectorSearchResult {
-  memory_id: string;
-  similarity: number;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string;
-  last_accessed?: string;
-  pinned: boolean;
-  tags?: string[];
-}
-
-export interface VectorSearchOptions {
-  limit?: number;
-  threshold?: number;  // 최소 유사도 임계값
-  type?: string;       // 메모리 타입 필터 (단일 타입)
-  includeContent?: boolean;
-  includeMetadata?: boolean; // 메타데이터 포함 여부
-}
-
-export interface VectorIndexStatus {
-  available: boolean;
-  tableExists: boolean;
-  recordCount: number;
-  dimensions: number;
-  vecExtensionLoaded: boolean;
-}
-
-export class VectorSearchEngine {
+export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   private db: Database.Database | null = null;
   private isVecAvailable = false;
-  private vecExtensionLoaded = false;
-  private readonly defaultDimensions = 384;
-  private readonly defaultThreshold = 0.7;
-  private readonly defaultLimit = 10;
 
-  constructor() {
-    // VEC 사용 가능 여부는 데이터베이스 연결 시 확인
-  }
-
-  /**
-   * 제공자별 vec0 테이블명 반환
-   */
-  private getVectorTableName(provider: string): string {
-    switch (provider) {
-      case 'tfidf':
-        return 'memory_item_vec_tfidf';
-      case 'minilm':
-        return 'memory_item_vec_minilm';
-      case 'openai':
-        return 'memory_item_vec_openai';
-      case 'gemini':
-        return 'memory_item_vec_gemini';
-      default:
-        return 'memory_item_vec_tfidf'; // 기본값
-    }
-  }
-
-  /**
-   * 데이터베이스 초기화
-   */
-  initialize(db: Database.Database): void {
+  constructor(db: Database.Database) {
     this.db = db;
     this.checkVecAvailability();
   }
 
   /**
    * VEC 사용 가능 여부 확인
-   * sqlite-vec 확장 로드 여부와 테이블 존재를 모두 확인
    */
-  private checkVecAvailability(): void {
+  checkVecAvailability(): boolean {
     if (!this.db) {
       this.isVecAvailable = false;
-      this.vecExtensionLoaded = false;
-      return;
+      return false;
     }
 
     try {
-      // 1. 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
+      // 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
       const tableCheck = this.db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN (
@@ -98,66 +46,54 @@ export class VectorSearchEngine {
       if (tableCheck.length === 0) {
         console.log('⚠️ VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
         this.isVecAvailable = false;
-        this.vecExtensionLoaded = false;
-        return;
+        return false;
       }
 
-      // 2. VEC 함수 사용 가능 여부 확인 (첫 번째 테이블로 테스트)
+      // VEC 함수 사용 가능 여부 확인
       try {
         const testTable = (tableCheck[0] as any).name;
         this.db.prepare(`
           SELECT distance FROM ${testTable} 
           WHERE embedding MATCH ? 
           LIMIT 0
-        `).get(JSON.stringify(new Array(this.defaultDimensions).fill(0)));
+        `).get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
         
-        this.vecExtensionLoaded = true;
         this.isVecAvailable = true;
         console.log('✅ VEC (Vector Search) 사용 가능');
+        return true;
       } catch (vecError) {
         console.warn('⚠️ VEC 함수를 사용할 수 없습니다:', vecError);
-        this.vecExtensionLoaded = false;
         this.isVecAvailable = false;
+        return false;
       }
     } catch (error) {
       console.error('❌ VEC 가용성 확인 실패:', error);
       this.isVecAvailable = false;
-      this.vecExtensionLoaded = false;
+      return false;
     }
   }
 
   /**
    * 벡터 검색 실행
    */
-  async search(
-    queryVector: number[], 
-    options: VectorSearchOptions = {},
-    provider: string = 'tfidf'
-  ): Promise<VectorSearchResult[]> {
+  async search(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
       console.warn('⚠️ VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
       return [];
     }
 
-    const {
-      limit = this.defaultLimit,
-      threshold = this.defaultThreshold,
-      type,
-      includeContent = true,
-      includeMetadata = false
-    } = options;
+    const { queryVector, options, provider } = query;
+    const { limit = VECTOR_SEARCH_CONFIG.defaultLimit, threshold = VECTOR_SEARCH_CONFIG.defaultThreshold, type } = options;
 
     // 벡터 차원 검증
-    if (queryVector.length !== this.defaultDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 예상 ${this.defaultDimensions}, 실제 ${queryVector.length}`);
+    if (queryVector.length !== VECTOR_SEARCH_CONFIG.defaultDimensions) {
+      console.error(`❌ 벡터 차원 불일치: 예상 ${VECTOR_SEARCH_CONFIG.defaultDimensions}, 실제 ${queryVector.length}`);
       return [];
     }
 
     try {
-      // 제공자별 테이블명 결정
-      const tableName = this.getVectorTableName(provider);
+      const tableName = this.getTableName(provider);
       
-      // VEC 검색 쿼리 (제공자별 vec0 테이블 사용)
       const vecQuery = `
         SELECT 
           vec.rowid as memory_id,
@@ -180,26 +116,27 @@ export class VectorSearchEngine {
       const params = [JSON.stringify(queryVector), ...(type ? [type] : []), limit];
       const results = this.db.prepare(vecQuery).all(...params) as any[];
 
-      // 유사도를 0-1 범위로 정규화 (distance는 작을수록 유사함)
+      // 유사도를 0-1 범위로 정규화
       const normalizedResults = results
         .map(result => ({
           ...result,
-          similarity: Math.max(0, 1 - result.similarity), // distance를 similarity로 변환
+          similarity: Math.max(0, 1 - result.similarity),
           tags: result.tags ? JSON.parse(result.tags) : undefined
         }))
         .filter(result => result.similarity >= threshold)
         .map(result => ({
           memory_id: result.memory_id,
           similarity: result.similarity,
-          content: includeContent ? result.content : '',
+          content: options.includeContent ? result.content : '',
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed: includeMetadata ? result.last_accessed : undefined,
-          pinned: includeMetadata ? Boolean(result.pinned) : false,
-          tags: includeMetadata ? result.tags : undefined
+          last_accessed: options.includeMetadata ? result.last_accessed : undefined,
+          pinned: options.includeMetadata ? Boolean(result.pinned) : false,
+          tags: options.includeMetadata ? result.tags : undefined
         }));
 
+      console.log(`🔍 벡터 검색 완료: ${normalizedResults.length}개 결과 (임계값: ${threshold})`);
       return normalizedResults;
 
     } catch (error) {
@@ -209,39 +146,26 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 하이브리드 검색 (벡터 + 메타데이터)
-   * SQLite 호환성을 위해 LEFT JOIN 사용
+   * 하이브리드 검색 실행
    */
-  async hybridSearch(
-    queryVector: number[],
-    textQuery: string,
-    options: VectorSearchOptions = {},
-    provider: string = 'tfidf'
-  ): Promise<VectorSearchResult[]> {
+  async hybridSearch(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
       console.warn('⚠️ VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
       return [];
     }
 
-    const {
-      limit = this.defaultLimit,
-      threshold = this.defaultThreshold,
-      type,
-      includeContent = true,
-      includeMetadata = true
-    } = options;
+    const { queryVector, textQuery, options, provider } = query;
+    const { limit = VECTOR_SEARCH_CONFIG.defaultLimit, threshold = VECTOR_SEARCH_CONFIG.defaultThreshold, type } = options;
 
     // 벡터 차원 검증
-    if (queryVector.length !== this.defaultDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 예상 ${this.defaultDimensions}, 실제 ${queryVector.length}`);
+    if (queryVector.length !== VECTOR_SEARCH_CONFIG.defaultDimensions) {
+      console.error(`❌ 벡터 차원 불일치: 예상 ${VECTOR_SEARCH_CONFIG.defaultDimensions}, 실제 ${queryVector.length}`);
       return [];
     }
 
     try {
-      // 제공자별 테이블명 결정
-      const tableName = this.getVectorTableName(provider);
+      const tableName = this.getTableName(provider);
       
-      // 벡터 검색과 텍스트 검색을 결합한 하이브리드 쿼리 (SQLite 호환)
       const hybridQuery = `
         WITH vector_search AS (
           SELECT 
@@ -311,7 +235,7 @@ export class VectorSearchEngine {
       const params = [
         JSON.stringify(queryVector),
         ...(type ? [type] : []),
-        textQuery,
+        textQuery || '',
         ...(type ? [type] : []),
         limit
       ];
@@ -322,14 +246,14 @@ export class VectorSearchEngine {
       const normalizedResults = results
         .map(result => ({
           memory_id: result.memory_id,
-          similarity: result.vector_similarity * 0.6 + result.text_similarity * 0.4,
-          content: includeContent ? result.content : '',
+          similarity: result.vector_similarity * 0.6 + result.text_similarity * 0.4, // similarity로 통일
+          content: options.includeContent ? result.content : '',
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed: includeMetadata ? result.last_accessed : undefined,
-          pinned: includeMetadata ? Boolean(result.pinned) : false,
-          tags: includeMetadata && result.tags ? JSON.parse(result.tags) : undefined
+          last_accessed: options.includeMetadata ? result.last_accessed : undefined,
+          pinned: options.includeMetadata ? Boolean(result.pinned) : false,
+          tags: options.includeMetadata && result.tags ? JSON.parse(result.tags) : undefined
         }))
         .filter(result => result.similarity >= threshold);
 
@@ -343,7 +267,7 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 인덱스 상태 확인
+   * 인덱스 상태 확인
    */
   getIndexStatus(): VectorIndexStatus {
     if (!this.db) {
@@ -351,7 +275,7 @@ export class VectorSearchEngine {
         available: false, 
         tableExists: false, 
         recordCount: 0, 
-        dimensions: this.defaultDimensions,
+        dimensions: VECTOR_SEARCH_CONFIG.defaultDimensions,
         vecExtensionLoaded: false
       };
     }
@@ -364,7 +288,7 @@ export class VectorSearchEngine {
         // 모든 제공자별 테이블의 레코드 수 합계
         const providers = ['tfidf', 'minilm', 'openai', 'gemini'];
         for (const provider of providers) {
-          const tableName = this.getVectorTableName(provider);
+          const tableName = this.getTableName(provider);
           try {
             const result = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`).get() as { count: number };
             recordCount += result.count;
@@ -378,8 +302,8 @@ export class VectorSearchEngine {
         available: this.isVecAvailable,
         tableExists,
         recordCount,
-        dimensions: this.defaultDimensions,
-        vecExtensionLoaded: this.vecExtensionLoaded
+        dimensions: VECTOR_SEARCH_CONFIG.defaultDimensions,
+        vecExtensionLoaded: this.isVecAvailable
       };
     } catch (error) {
       console.error('❌ 인덱스 상태 확인 실패:', error);
@@ -387,14 +311,14 @@ export class VectorSearchEngine {
         available: false, 
         tableExists: false, 
         recordCount: 0, 
-        dimensions: this.defaultDimensions,
+        dimensions: VECTOR_SEARCH_CONFIG.defaultDimensions,
         vecExtensionLoaded: false
       };
     }
   }
 
   /**
-   * 벡터 인덱스 재구성
+   * 인덱스 재구성
    */
   async rebuildIndex(): Promise<boolean> {
     if (!this.db || !this.isVecAvailable) {
@@ -404,7 +328,6 @@ export class VectorSearchEngine {
 
     try {
       console.log('🔄 벡터 인덱스 재구성 시작...');
-      
       // VEC 인덱스 재구성 (sqlite-vec는 자동으로 인덱스를 관리)
       console.log('✅ 벡터 인덱스 재구성 완료 (sqlite-vec는 자동 인덱스 관리)');
       return true;
@@ -415,90 +338,17 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 검색 성능 테스트
+   * 테이블명 반환
    */
-  async performanceTest(queryVector: number[], iterations: number = 10): Promise<{
-    averageTime: number;
-    minTime: number;
-    maxTime: number;
-    results: number;
-    successRate: number;
-  }> {
-    if (!this.db || !this.isVecAvailable) {
-      return { averageTime: 0, minTime: 0, maxTime: 0, results: 0, successRate: 0 };
-    }
-
-    const times: number[] = [];
-    let resultCount = 0;
-    let successCount = 0;
-
-    for (let i = 0; i < iterations; i++) {
-      try {
-        const startTime = Date.now();
-        const results = await this.search(queryVector, { limit: 10 });
-        const endTime = Date.now();
-        
-        times.push(endTime - startTime);
-        if (i === 0) resultCount = results.length;
-        successCount++;
-      } catch (error) {
-        console.warn(`⚠️ 성능 테스트 ${i + 1}회차 실패:`, error);
-        times.push(0);
-      }
-    }
-
-    const averageTime = times.reduce((a, b) => a + b, 0) / times.length;
-    const minTime = Math.min(...times.filter(t => t > 0));
-    const maxTime = Math.max(...times);
-    const successRate = successCount / iterations;
-
-    console.log(`🔍 벡터 검색 성능 테스트: 평균 ${averageTime.toFixed(2)}ms (${iterations}회, 성공률: ${(successRate * 100).toFixed(1)}%)`);
-
-    return {
-      averageTime,
-      minTime: minTime || 0,
-      maxTime,
-      results: resultCount,
-      successRate
-    };
+  getTableName(provider: string): string {
+    const tableName = VECTOR_SEARCH_CONFIG.tableNames[provider as keyof typeof VECTOR_SEARCH_CONFIG.tableNames];
+    return (tableName ?? VECTOR_SEARCH_CONFIG.tableNames.tfidf) as string;
   }
 
   /**
-   * 벡터 차원 확인
+   * VEC 사용 가능 여부 확인 (VectorIndexRepository 인터페이스 구현)
    */
-  getDimensions(): number {
-    return this.defaultDimensions;
+  checkAvailability(): boolean {
+    return this.checkVecAvailability();
   }
-
-  /**
-   * VEC 사용 가능 여부 확인
-   */
-  isAvailable(): boolean {
-    return this.isVecAvailable;
-  }
-
-  /**
-   * 데이터베이스 연결 상태 확인
-   */
-  isConnected(): boolean {
-    return this.db !== null;
-  }
-}
-
-// 싱글톤 인스턴스
-let vectorSearchEngineInstance: VectorSearchEngine | null = null;
-
-export function getVectorSearchEngine(): VectorSearchEngine {
-  if (!vectorSearchEngineInstance) {
-    vectorSearchEngineInstance = new VectorSearchEngine();
-  }
-  return vectorSearchEngineInstance;
-}
-
-export function createVectorSearchEngine(): VectorSearchEngine {
-  return new VectorSearchEngine();
-}
-
-export function resetVectorSearchEngine(): void {
-  vectorSearchEngineInstance = null;
 }

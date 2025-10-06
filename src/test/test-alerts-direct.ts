@@ -6,6 +6,7 @@
 import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
 import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
 import Database from 'better-sqlite3';
+import fs from 'fs';
 
 async function testAlertsDirect() {
   console.log('🚨 성능 알림 시스템 직접 테스트 시작');
@@ -105,7 +106,6 @@ async function testAlertsDirect() {
 
     // 6. 로그 파일 확인
     console.log('\n📁 로그 파일 확인:');
-    const fs = require('fs');
     const logDir = './logs';
     if (fs.existsSync(logDir)) {
       const files = fs.readdirSync(logDir);
