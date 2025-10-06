@@ -4,6 +4,7 @@
  */
 
 import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
+import fs from 'fs';
 
 // console.log 복원
 const originalLog = console.log;
@@ -97,7 +98,6 @@ function testSimpleAlerts() {
 
     // 8. 로그 파일 확인
     console.log('\n📁 로그 파일 확인:');
-    const fs = require('fs');
     const logDir = './logs';
     if (fs.existsSync(logDir)) {
       const files = fs.readdirSync(logDir);

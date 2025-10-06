@@ -69,10 +69,7 @@ export class MemoryEmbeddingService {
         return null;
       }
 
-      // 제공자별 테이블명 결정
-      const tableName = this.getVectorTableName(embeddingResult.provider || 'tfidf');
-      
-      // memory_embedding 테이블에 저장
+      // memory_embedding 테이블에 저장 (트리거가 자동으로 vec0 테이블에 저장)
       await DatabaseUtils.run(db, `
         INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, model, embedding_provider, dimensions, created_at)
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -83,15 +80,6 @@ export class MemoryEmbeddingService {
         embeddingResult.model,
         embeddingResult.provider,
         embeddingResult.embedding.length,
-      ]);
-
-      // vec0 테이블에 저장
-      await DatabaseUtils.run(db, `
-        INSERT OR REPLACE INTO ${tableName} (rowid, embedding)
-        VALUES ((SELECT rowid FROM memory_embedding WHERE memory_id = ?), ?)
-      `, [
-        memoryId,
-        JSON.stringify(embeddingResult.embedding)
       ]);
 
       console.log(`✅ 임베딩 저장 완료: ${memoryId} (${embeddingResult.embedding.length}차원, ${embeddingResult.provider})`);
@@ -202,21 +190,7 @@ export class MemoryEmbeddingService {
    */
   async deleteEmbedding(db: any, memoryId: string): Promise<void> {
     try {
-      // 제공자 정보 가져오기
-      const embeddingInfo = await DatabaseUtils.get(db, `
-        SELECT embedding_provider FROM memory_embedding WHERE memory_id = ?
-      `, [memoryId]);
-
-      if (embeddingInfo) {
-        // 해당 제공자의 vec0 테이블에서 삭제
-        const tableName = this.getVectorTableName(embeddingInfo.embedding_provider);
-        await DatabaseUtils.run(db, `
-          DELETE FROM ${tableName} 
-          WHERE rowid = (SELECT rowid FROM memory_embedding WHERE memory_id = ?)
-        `, [memoryId]);
-      }
-
-      // memory_embedding 테이블에서 삭제
+      // memory_embedding 테이블에서 삭제 (트리거가 자동으로 vec0 테이블에서도 삭제)
       await DatabaseUtils.run(db, 'DELETE FROM memory_embedding WHERE memory_id = ?', [memoryId]);
       console.log(`✅ 임베딩 삭제 완료: ${memoryId}`);
     } catch (error) {

@@ -38,7 +38,7 @@ export class VectorSearchEngine {
   private db: Database.Database | null = null;
   private isVecAvailable = false;
   private vecExtensionLoaded = false;
-  private readonly defaultDimensions = 1536;
+  private readonly defaultDimensions = 384;
   private readonly defaultThreshold = 0.7;
   private readonly defaultLimit = 10;
 
@@ -200,7 +200,6 @@ export class VectorSearchEngine {
           tags: includeMetadata ? result.tags : undefined
         }));
 
-      console.log(`🔍 벡터 검색 완료: ${normalizedResults.length}개 결과 (임계값: ${threshold})`);
       return normalizedResults;
 
     } catch (error) {

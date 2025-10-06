@@ -11,6 +11,7 @@ import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { getBatchScheduler } from '../services/batch-scheduler.js';
@@ -41,7 +42,7 @@ function setTestDependencies({
 }: TestDependencies): void {
   db = database;
   searchEngine = search ?? new SearchEngine();
-  hybridSearchEngine = hybrid ?? new HybridSearchEngine();
+  hybridSearchEngine = hybrid ?? HybridSearchFactory.createDefaultEngine(db);
   embeddingService = embedding ?? new MemoryEmbeddingService();
 }
 
@@ -827,7 +828,7 @@ async function initializeServer() {
     
     // 검색 엔진 초기화
     searchEngine = new SearchEngine();
-    hybridSearchEngine = new HybridSearchEngine();
+    hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
     vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);
     embeddingService = new MemoryEmbeddingService();

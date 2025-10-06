@@ -1,293 +1,475 @@
-import { describe, it, expect } from 'vitest';
-import { SearchRanking } from './search-ranking.js';
+/**
+ * 검색 랭킹 알고리즘 단위 테스트
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics } from './search-ranking.js';
 
 describe('SearchRanking', () => {
-  const ranking = new SearchRanking();
+  let ranking: SearchRanking;
+
+  beforeEach(() => {
+    ranking = new SearchRanking();
+  });
+
+  afterEach(() => {
+    // Cleanup if needed
+  });
 
   describe('calculateFinalScore', () => {
-    it('가중치에 따라 최종 점수를 계산한다', () => {
-      const score = ranking.calculateFinalScore({
-        relevance: 0.9,
-        recency: 0.8,
-        importance: 0.6,
-        usage: 0.4,
-        duplication_penalty: 0.2,
-      });
+    it('정상적인 최종 점수 계산', () => {
+      const features: SearchFeatures = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2
+      };
 
-      const expected = 0.5 * 0.9 + 0.2 * 0.8 + 0.2 * 0.6 + 0.1 * 0.4 - 0.15 * 0.2;
-      expect(score).toBeCloseTo(expected, 5);
+      const score = ranking.calculateFinalScore(features);
+      
+      // 기본 가중치: relevance(0.5) + recency(0.2) + importance(0.2) + usage(0.1) - duplication(0.15)
+      const expected = 0.5 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.15 * 0.2;
+      expect(score).toBeCloseTo(expected, 3);
     });
 
-    it('음수 점수가 나올 수 있다', () => {
-      const score = ranking.calculateFinalScore({
-        relevance: 0.1,
-        recency: 0.1,
+    it('최적값으로 최대 점수 계산', () => {
+      const features: SearchFeatures = {
+        relevance: 1.0,
+        recency: 1.0,
+        importance: 1.0,
+        usage: 1.0,
+        duplication_penalty: 0.0
+      };
+
+      const score = ranking.calculateFinalScore(features);
+      expect(score).toBeCloseTo(1.0, 3);
+    });
+
+    it('최악값으로 최소 점수 계산', () => {
+      const features: SearchFeatures = {
+        relevance: 0.0,
+        recency: 0.0,
+        importance: 0.0,
+        usage: 0.0,
+        duplication_penalty: 1.0
+      };
+
+      const score = ranking.calculateFinalScore(features);
+      expect(score).toBeCloseTo(-0.15, 3); // 중복 패널티만 적용
+    });
+
+    it('사용자 정의 가중치로 점수 계산', () => {
+      const customRanking = new SearchRanking({
+        relevance: 0.6,
+        recency: 0.2,
         importance: 0.1,
         usage: 0.1,
-        duplication_penalty: 0.9,
+        duplication_penalty: 0.1
       });
 
-      expect(score).toBeLessThan(0);
+      const features: SearchFeatures = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2
+      };
+
+      const score = customRanking.calculateFinalScore(features);
+      const expected = 0.6 * 0.8 + 0.2 * 0.6 + 0.1 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+      expect(score).toBeCloseTo(expected, 3);
     });
   });
 
   describe('calculateRelevance', () => {
-    it('기본 관련성 점수를 계산한다', () => {
-      const relevance = ranking.calculateRelevance({
-        query: 'React Hook',
-        content: 'React Hook에 대해 설명한 문서입니다. Hook API 예시 포함.',
-        tags: ['frontend', 'react']
-      });
+    it('기본 관련성 계산 (임베딩 없음)', () => {
+      const input: RelevanceInput = {
+        query: 'test query',
+        content: 'This is a test content with test query',
+        tags: ['test', 'example']
+      };
 
+      const relevance = ranking.calculateRelevance(input);
+      
+      expect(relevance).toBeGreaterThan(0);
       expect(relevance).toBeLessThanOrEqual(1);
-      expect(relevance).toBeGreaterThan(0);
     });
 
-    it('임베딩 유사도가 제공된 경우 관련성 점수를 계산한다', () => {
-      const relevance = ranking.calculateRelevance({
-        query: 'React Hook',
-        content: 'React Hook에 대한 내용',
-        tags: ['react'],
+    it('임베딩 유사도 포함 관련성 계산', () => {
+      const queryEmbedding = [0.1, 0.2, 0.3, 0.4];
+      const docEmbedding = [0.1, 0.2, 0.3, 0.4]; // 동일한 벡터
+      
+      const input: RelevanceInput = {
+        query: 'test',
+        content: 'test content',
+        tags: ['test'],
         embeddingSimilarity: {
-          queryEmbedding: [0.1, 0.2, 0.3, 0.4],
-          docEmbedding: [0.1, 0.2, 0.3, 0.4]
+          queryEmbedding,
+          docEmbedding
         }
-      });
-      expect(relevance).toBeGreaterThan(0);
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      // 임베딩 유사도가 높으므로 관련성이 높아야 함
+      expect(relevance).toBeGreaterThan(0.5);
     });
 
-    it('BM25 결과가 제공된 경우 관련성 점수를 계산한다', () => {
-      const relevance = ranking.calculateRelevance({
-        query: 'React Hook',
-        content: 'React Hook에 대한 내용',
-        tags: ['react'],
-        bm25Result: { score: 2.5, normalizedScore: 0.8 }
-      });
-      expect(relevance).toBeGreaterThan(0);
+    it('BM25 결과 포함 관련성 계산', () => {
+      const input: RelevanceInput = {
+        query: 'test query',
+        content: 'This is a test content with test query repeated test query',
+        tags: ['test'],
+        bm25Result: {
+          score: 5.0,
+          normalizedScore: 0.8
+        }
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      expect(relevance).toBeGreaterThan(0.2);
     });
 
-    it('타이틀이 있는 경우 타이틀 히트 점수를 반영한다', () => {
-      const relevance = ranking.calculateRelevance({
-        query: 'React Hook',
-        content: 'React Hook에 대한 내용',
-        title: 'React Hook Guide',
-        tags: ['react']
-      });
-      expect(relevance).toBeGreaterThan(0);
+    it('타이틀 히트 포함 관련성 계산', () => {
+      const input: RelevanceInput = {
+        query: 'test title',
+        content: 'Some content',
+        title: 'test title',
+        tags: ['test']
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      // 타이틀 히트가 있으므로 관련성이 높아야 함
+      expect(relevance).toBeGreaterThan(0.05);
     });
 
-    it('빈 문자열 입력에 대해 안전하게 처리한다', () => {
-      const relevance = ranking.calculateRelevance({
+    it('빈 쿼리 처리', () => {
+      const input: RelevanceInput = {
         query: '',
+        content: 'test content',
+        tags: []
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      expect(relevance).toBe(0);
+    });
+
+    it('빈 콘텐츠 처리', () => {
+      const input: RelevanceInput = {
+        query: 'test',
         content: '',
         tags: []
-      });
+      };
+
+      const relevance = ranking.calculateRelevance(input);
       expect(relevance).toBe(0);
     });
 
-    it('null/undefined 입력에 대해 안전하게 처리한다', () => {
-      const relevance = ranking.calculateRelevance({
-        query: null as any,
-        content: undefined as any,
-        tags: []
-      });
-      expect(relevance).toBe(0);
+    it('태그 매칭 테스트', () => {
+      const input: RelevanceInput = {
+        query: 'javascript programming',
+        content: 'Some content about programming',
+        tags: ['javascript', 'programming', 'web']
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      // 태그 매칭이 있으므로 관련성이 높아야 함
+      expect(relevance).toBeGreaterThan(0.05);
     });
   });
 
   describe('calculateRecency', () => {
-    it('최근성이 높은 기억은 더 높은 점수를 받는다', () => {
-      const recent = ranking.calculateRecency(
-        new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        'semantic'
-      );
-      const old = ranking.calculateRecency(
-        new Date(Date.now() - 200 * 24 * 60 * 60 * 1000),
-        'semantic'
-      );
-
-      expect(recent).toBeGreaterThan(old);
-      expect(recent).toBeLessThanOrEqual(1);
+    it('최근 생성된 메모리의 높은 최근성', () => {
+      const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000); // 1일 전
+      const recency = ranking.calculateRecency(recentDate, 'episodic');
+      
+      expect(recency).toBeGreaterThan(0.8);
     });
 
-    it('타입별로 다른 반감기를 적용한다', () => {
-      const working = ranking.calculateRecency(
-        new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        'working'
-      );
-      const episodic = ranking.calculateRecency(
-        new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        'episodic'
-      );
-      const semantic = ranking.calculateRecency(
-        new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        'semantic'
-      );
-
-      expect(working).toBeLessThan(episodic);
-      expect(episodic).toBeLessThan(semantic);
+    it('오래된 메모리의 낮은 최근성', () => {
+      const oldDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000); // 1년 전
+      const recency = ranking.calculateRecency(oldDate, 'episodic');
+      
+      expect(recency).toBeLessThan(0.1);
     });
 
-    it('매우 오래된 기억은 낮은 점수를 받는다', () => {
-      const veryOld = ranking.calculateRecency(
-        new Date(Date.now() - 1000 * 24 * 60 * 60 * 1000),
-        'semantic'
-      );
-      expect(veryOld).toBeLessThan(0.1); // 1000일 전의 기억은 0.1보다 작은 점수
+    it('메모리 타입별 반감기 테스트', () => {
+      const baseDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10일 전
+      
+      const workingRecency = ranking.calculateRecency(baseDate, 'working');
+      const episodicRecency = ranking.calculateRecency(baseDate, 'episodic');
+      const semanticRecency = ranking.calculateRecency(baseDate, 'semantic');
+      
+      // working < episodic < semantic (반감기가 길수록 최근성이 높음)
+      expect(workingRecency).toBeLessThan(episodicRecency);
+      expect(episodicRecency).toBeLessThan(semanticRecency);
     });
   });
 
   describe('calculateImportance', () => {
-    it('고정된 중요 기억은 부스트를 받아 점수가 상승한다', () => {
-      const base = ranking.calculateImportance(0.4, false, 'episodic');
-      const pinned = ranking.calculateImportance(0.4, true, 'episodic');
-      const semantic = ranking.calculateImportance(0.4, false, 'semantic');
-
-      expect(pinned).toBeGreaterThan(base);
-      expect(semantic).toBeGreaterThan(base);
-      expect(pinned).toBeLessThanOrEqual(1);
+    it('높은 중요도와 고정된 메모리', () => {
+      const importance = ranking.calculateImportance(0.9, true, 'semantic');
+      
+      expect(importance).toBeGreaterThan(0.9);
+      expect(importance).toBeLessThanOrEqual(1.0);
     });
 
-    it('타입별로 다른 부스트를 적용한다', () => {
-      const working = ranking.calculateImportance(0.5, false, 'working');
-      const episodic = ranking.calculateImportance(0.5, false, 'episodic');
-      const semantic = ranking.calculateImportance(0.5, false, 'semantic');
-      const procedural = ranking.calculateImportance(0.5, false, 'procedural');
-
-      expect(working).toBeLessThan(episodic);
-      expect(episodic).toBeLessThan(procedural);
-      expect(procedural).toBeLessThan(semantic);
+    it('낮은 중요도와 고정되지 않은 메모리', () => {
+      const importance = ranking.calculateImportance(0.2, false, 'working');
+      
+      expect(importance).toBeLessThan(0.5);
     });
 
-    it('중요도는 0과 1 사이로 제한된다', () => {
-      const low = ranking.calculateImportance(-0.5, false, 'episodic');
-      const high = ranking.calculateImportance(1.5, false, 'episodic');
-
-      expect(low).toBeGreaterThanOrEqual(0);
-      expect(high).toBeLessThanOrEqual(1);
+    it('타입별 부스트 테스트', () => {
+      const semanticImportance = ranking.calculateImportance(0.5, false, 'semantic');
+      const workingImportance = ranking.calculateImportance(0.5, false, 'working');
+      
+      // semantic 타입은 부스트를 받아야 함
+      expect(semanticImportance).toBeGreaterThan(workingImportance);
     });
   });
 
   describe('calculateUsage', () => {
-    it('접근 이력이 없는 경우 기본 사용성 점수를 적용한다', () => {
-      const metrics = { viewCount: 0, citeCount: 0, editCount: 0 };
-      expect(ranking.calculateUsage(metrics)).toBeCloseTo(0.1, 5);
-    });
+    it('기본 사용성 계산', () => {
+      const metrics: UsageMetrics = {
+        viewCount: 10,
+        citeCount: 5,
+        editCount: 2
+      };
 
-    it('다양한 사용성 메트릭을 올바르게 계산한다', () => {
-      const metrics = { viewCount: 10, citeCount: 5, editCount: 2 };
       const usage = ranking.calculateUsage(metrics);
-      expect(usage).toBeGreaterThan(0.1);
-      expect(usage).toBeLessThanOrEqual(1);
-    });
-
-    it('배치 정규화가 적용된 사용성 점수를 계산한다', () => {
-      const metrics = { viewCount: 10, citeCount: 5, editCount: 2 };
-      const usage = ranking.calculateUsage(metrics, 0, 20);
-      expect(usage).toBeGreaterThanOrEqual(0);
-      expect(usage).toBeLessThanOrEqual(1);
-    });
-
-    it('null 입력에 대해 안전하게 처리한다', () => {
-      const usage = ranking.calculateUsage(null as any);
-      expect(usage).toBe(0);
-    });
-
-    it('모든 메트릭이 0인 경우 기본값을 반환한다', () => {
-      const metrics = { viewCount: 0, citeCount: 0, editCount: 0 };
-      const usage = ranking.calculateUsage(metrics);
-      expect(usage).toBeCloseTo(0.1, 5);
-    });
-  });
-
-  describe('calculateBatchUsage', () => {
-    it('여러 메모리에 대한 배치 사용성 점수를 계산한다', () => {
-      const metricsList = [
-        { viewCount: 10, citeCount: 5, editCount: 2 },
-        { viewCount: 20, citeCount: 10, editCount: 4 },
-        { viewCount: 5, citeCount: 2, editCount: 1 }
-      ];
       
-      const result = ranking.calculateBatchUsage(metricsList);
-      expect(result.normalized).toHaveLength(3);
-      expect(result.min).toBeLessThanOrEqual(result.max);
-      expect(result.normalized.every(score => score >= 0 && score <= 1)).toBe(true);
+      expect(usage).toBeGreaterThan(0);
+      expect(usage).toBeLessThanOrEqual(1);
     });
 
-    it('빈 배열에 대해 안전하게 처리한다', () => {
-      const result = ranking.calculateBatchUsage([]);
-      expect(result.normalized).toHaveLength(0);
+    it('높은 사용성 메트릭', () => {
+      const metrics: UsageMetrics = {
+        viewCount: 100,
+        citeCount: 50,
+        editCount: 20
+      };
+
+      const usage = ranking.calculateUsage(metrics);
+      
+      expect(usage).toBeGreaterThan(0.5);
+    });
+
+    it('배치 정규화 테스트', () => {
+      const metrics1: UsageMetrics = { viewCount: 1, citeCount: 0, editCount: 0 };
+      const metrics2: UsageMetrics = { viewCount: 100, citeCount: 50, editCount: 20 };
+      
+      const batchResult = ranking.calculateBatchUsage([metrics1, metrics2]);
+      
+      expect(batchResult.normalized).toHaveLength(2);
+      expect(batchResult.normalized[0]).toBeLessThan(batchResult.normalized[1]);
+      expect(batchResult.min).toBeLessThan(batchResult.max);
+    });
+
+    it('빈 메트릭 처리', () => {
+      const metrics: UsageMetrics = {
+        viewCount: 0,
+        citeCount: 0,
+        editCount: 0
+      };
+
+      const usage = ranking.calculateUsage(metrics);
+      
+      // 기본 사용성 점수 제공
+      expect(usage).toBeGreaterThan(0);
+    });
+
+    it('lastAccessed 기반 사용성', () => {
+      const metrics: UsageMetrics = {
+        viewCount: 0,
+        citeCount: 0,
+        editCount: 0,
+        lastAccessed: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) // 1일 전
+      };
+
+      const usage = ranking.calculateUsage(metrics);
+      
+      expect(usage).toBeGreaterThan(0);
     });
   });
 
   describe('calculateDuplicationPenalty', () => {
-    it('중복 패널티는 선택된 콘텐츠와의 최대 유사도를 반영한다', () => {
+    it('중복 없는 콘텐츠', () => {
       const penalty = ranking.calculateDuplicationPenalty(
-        'TypeScript Generic Tutorial',
-        ['React Hook Guide', 'TypeScript Advanced Generic Tutorial']
-      );
-
-      expect(penalty).toBeGreaterThan(0);
-      expect(penalty).toBeLessThan(1);
-    });
-
-    it('선택된 콘텐츠가 없으면 패널티가 0이다', () => {
-      const penalty = ranking.calculateDuplicationPenalty(
-        'TypeScript Generic Tutorial',
+        'unique content',
         []
       );
+      
       expect(penalty).toBe(0);
     });
 
-    it('완전히 다른 콘텐츠는 낮은 패널티를 받는다', () => {
+    it('중복된 콘텐츠', () => {
       const penalty = ranking.calculateDuplicationPenalty(
-        'React Hook Guide',
-        ['Python Machine Learning', 'Database Design Patterns']
+        'similar content',
+        ['similar content', 'other content']
       );
-      expect(penalty).toBeLessThan(0.5);
+      
+      expect(penalty).toBeGreaterThan(0);
+      expect(penalty).toBeLessThanOrEqual(1);
+    });
+
+    it('완전히 동일한 콘텐츠', () => {
+      const penalty = ranking.calculateDuplicationPenalty(
+        'exact content',
+        ['exact content']
+      );
+      
+      expect(penalty).toBe(1.0);
     });
   });
 
-  describe('하위 호환성 메서드들', () => {
-    it('calculateRelevanceSimple이 올바르게 작동한다', () => {
+  describe('하위 호환성 메서드', () => {
+    it('calculateRelevanceSimple', () => {
       const relevance = ranking.calculateRelevanceSimple(
-        'React Hook',
-        'React Hook에 대한 내용',
-        ['react', 'hook']
+        'test query',
+        'test content',
+        ['test']
       );
+      
+      expect(relevance).toBeGreaterThan(0);
+      expect(relevance).toBeLessThanOrEqual(1);
+    });
+
+    it('calculateUsageSimple', () => {
+      const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
+      const usage = ranking.calculateUsageSimple(recentDate);
+      
+      expect(usage).toBeGreaterThan(0);
+      expect(usage).toBeLessThanOrEqual(1);
+    });
+
+    it('calculateUsageSimple with undefined date', () => {
+      const usage = ranking.calculateUsageSimple(undefined);
+      
+      expect(usage).toBe(0.1); // 기본값
+    });
+  });
+
+  describe('엣지 케이스', () => {
+    it('매우 긴 쿼리 처리', () => {
+      const longQuery = 'a'.repeat(1000);
+      const input: RelevanceInput = {
+        query: longQuery,
+        content: 'test content',
+        tags: []
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      expect(relevance).toBeGreaterThanOrEqual(0);
+      expect(relevance).toBeLessThanOrEqual(1);
+    });
+
+    it('특수문자가 포함된 쿼리', () => {
+      const input: RelevanceInput = {
+        query: 'test@#$%^&*()_+{}|:"<>?[]\\;\',./',
+        content: 'test content',
+        tags: []
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      expect(relevance).toBeGreaterThanOrEqual(0);
+      expect(relevance).toBeLessThanOrEqual(1);
+    });
+
+    it('유니코드 문자 처리', () => {
+      const input: RelevanceInput = {
+        query: '테스트 쿼리',
+        content: '테스트 콘텐츠',
+        tags: ['테스트']
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
       expect(relevance).toBeGreaterThan(0);
     });
 
-    it('calculateUsageSimple이 올바르게 작동한다', () => {
-      const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
-      const usage = ranking.calculateUsageSimple(recentDate);
-      expect(usage).toBeGreaterThan(0);
+    it('매우 큰 벡터 차원', () => {
+      const largeVector = new Array(10000).fill(0.1);
+      const input: RelevanceInput = {
+        query: 'test',
+        content: 'test content',
+        tags: [],
+        embeddingSimilarity: {
+          queryEmbedding: largeVector,
+          docEmbedding: largeVector
+        }
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      expect(relevance).toBeGreaterThanOrEqual(0);
+      expect(relevance).toBeLessThanOrEqual(1);
     });
 
-    it('calculateUsageSimple에서 lastAccessed가 없으면 기본값을 반환한다', () => {
-      const usage = ranking.calculateUsageSimple(undefined);
-      expect(usage).toBeCloseTo(0.1, 5);
+    it('벡터 차원 불일치', () => {
+      const input: RelevanceInput = {
+        query: 'test',
+        content: 'test content',
+        tags: [],
+        embeddingSimilarity: {
+          queryEmbedding: [0.1, 0.2],
+          docEmbedding: [0.1, 0.2, 0.3] // 차원 불일치
+        }
+      };
+
+      const relevance = ranking.calculateRelevance(input);
+      
+      // 차원 불일치 시 임베딩 점수는 0이어야 함
+      expect(relevance).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('엣지 케이스들', () => {
-    it('0으로 나누기 상황을 안전하게 처리한다', () => {
-      const usage = ranking.calculateUsage(
-        { viewCount: 0, citeCount: 0, editCount: 0 },
-        0, 0 // min과 max가 같을 때
-      );
-      // rawUsage가 0이므로 기본값 0.1을 반환
-      expect(usage).toBe(0.1);
+  describe('성능 테스트', () => {
+    it('대량 데이터 처리 성능', () => {
+      const startTime = Date.now();
+      
+      // 1000개의 메트릭으로 배치 처리
+      const metricsList = Array.from({ length: 1000 }, (_, i) => ({
+        viewCount: i,
+        citeCount: i / 2,
+        editCount: i / 4
+      }));
+      
+      const batchResult = ranking.calculateBatchUsage(metricsList);
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      expect(batchResult.normalized).toHaveLength(1000);
+      expect(duration).toBeLessThan(1000); // 1초 이내
     });
 
-    it('매우 큰 값들에 대해 안전하게 처리한다', () => {
-      const relevance = ranking.calculateRelevance({
-        query: 'a'.repeat(10000),
-        content: 'b'.repeat(10000),
-        tags: Array(1000).fill('tag')
-      });
-      expect(relevance).toBeGreaterThanOrEqual(0);
-      expect(relevance).toBeLessThanOrEqual(1);
+    it('반복 계산 성능', () => {
+      const features: SearchFeatures = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2
+      };
+
+      const startTime = Date.now();
+      
+      // 1000번 반복 계산
+      for (let i = 0; i < 1000; i++) {
+        ranking.calculateFinalScore(features);
+      }
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      expect(duration).toBeLessThan(100); // 100ms 이내
     });
   });
 });

@@ -77,7 +77,7 @@ describe('MemoryInjectionPrompt', () => {
 
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000,
@@ -99,7 +99,7 @@ describe('MemoryInjectionPrompt', () => {
     it('should handle empty search results', async () => {
       mockHybridSearchEngine.search.mockResolvedValue({ items: [] });
 
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000,
@@ -138,7 +138,7 @@ describe('MemoryInjectionPrompt', () => {
 
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 50, // Very small budget
@@ -169,7 +169,7 @@ describe('MemoryInjectionPrompt', () => {
 
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000,
@@ -194,7 +194,7 @@ describe('MemoryInjectionPrompt', () => {
   describe('에러 처리', () => {
     it('should throw error when database not available', async () => {
       await expect(
-        memoryInjectionPrompt.execute(
+        memoryInjectionPrompt.handle(
           {
             query: 'test query',
             token_budget: 1000,
@@ -210,7 +210,7 @@ describe('MemoryInjectionPrompt', () => {
 
     it('should throw error when hybrid search engine not available', async () => {
       await expect(
-        memoryInjectionPrompt.execute(
+        memoryInjectionPrompt.handle(
           {
             query: 'test query',
             token_budget: 1000,
@@ -228,7 +228,7 @@ describe('MemoryInjectionPrompt', () => {
       mockHybridSearchEngine.search.mockRejectedValue(new Error('Search failed'));
 
       await expect(
-        memoryInjectionPrompt.execute(
+        memoryInjectionPrompt.handle(
           {
             query: 'test query',
             token_budget: 1000,
@@ -284,7 +284,7 @@ describe('MemoryInjectionPrompt', () => {
 
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000,
@@ -328,7 +328,7 @@ describe('MemoryInjectionPrompt', () => {
 
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      const result = await memoryInjectionPrompt.execute(
+      const result = await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000,
@@ -351,7 +351,7 @@ describe('MemoryInjectionPrompt', () => {
       const mockSearchResults = { items: [] };
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      await memoryInjectionPrompt.execute(
+      await memoryInjectionPrompt.handle(
         {
           query: 'test query'
         },
@@ -369,7 +369,7 @@ describe('MemoryInjectionPrompt', () => {
       const mockSearchResults = { items: [] };
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      await memoryInjectionPrompt.execute(
+      await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000

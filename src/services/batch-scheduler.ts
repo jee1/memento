@@ -5,9 +5,11 @@
  */
 
 import { ForgettingPolicyService, type MemoryCleanupResult } from './forgetting-policy-service.js';
-import { getPerformanceMonitor } from './performance-monitor.js';
+import { getPerformanceMonitor, type PerformanceAlert } from './performance-monitor.js';
 import { DatabaseUtils } from '../utils/database.js';
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -80,6 +82,9 @@ export class BatchScheduler {
       retryDelay: 1000,                   // 1초
       ...config
     };
+
+    // 생성자에서 설정 검증
+    this.validateConfig();
 
     this.forgettingService = new ForgettingPolicyService();
     this.performanceMonitor = getPerformanceMonitor();
@@ -394,8 +399,8 @@ export class BatchScheduler {
         stats, 
         alerts: {
           count: alerts.length,
-          critical: alerts.filter(a => a.severity === 'critical').length,
-          warning: alerts.filter(a => a.severity === 'warning').length
+          critical: alerts.filter((a: PerformanceAlert) => a.severity === 'critical').length,
+          warning: alerts.filter((a: PerformanceAlert) => a.severity === 'warning').length
         }
       };
 
@@ -556,8 +561,6 @@ export class BatchScheduler {
    */
   private logToFile(logEntry: any): void {
     try {
-      const fs = require('fs');
-      const path = require('path');
       const logDir = path.join(process.cwd(), 'logs');
       
       // 로그 디렉토리 생성
@@ -633,12 +636,20 @@ export class BatchScheduler {
    * 특정 작업 재시작
    */
   restartJob(jobName: string): boolean {
-    if (this.stopJob(jobName)) {
-      // 작업 재시작 로직은 각 작업 타입에 따라 구현
-      this.log(`Restarted job: ${jobName}`);
-      return true;
+    // 작업 재시작 로직 (stopJob을 호출하지 않음)
+    if (jobName === 'cleanup') {
+      this.scheduleJob('cleanup', this.config.cleanupInterval, async () => { await this.runMemoryCleanup(); }, 1);
+    } else if (jobName === 'monitoring') {
+      this.scheduleJob('monitoring', this.config.monitoringInterval, async () => { await this.runMonitoring(); }, 2);
+    } else if (jobName === 'healthcheck') {
+      this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
+    } else {
+      this.log(`Unknown job type for restart: ${jobName}`);
+      return false;
     }
-    return false;
+    
+    this.log(`Restarted job: ${jobName}`);
+    return true;
   }
 
   /**

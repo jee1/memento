@@ -62,9 +62,14 @@ curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
 # 즉시 실행 (설치 없이)
 npx memento-mcp-server@latest dev
 
-# 자동 설정 후 실행
+# MCP 서버 실행
+npx memento-mcp-server@latest
+
+# HTTP 서버 실행
+npx memento-mcp-server@latest http
+
+# 자동 설정
 npx memento-mcp-server@latest setup
-npx memento-mcp-server@latest start
 ```
 
 ### 🥉 **Docker 방식 (프로덕션용)**

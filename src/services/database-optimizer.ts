@@ -98,9 +98,9 @@ export class DatabaseOptimizer {
       `);
 
       stats[tableName] = {
-        rowCount: rowCount[0].count,
-        size: size[0].size,
-        indexCount: indexCount[0].count,
+        rowCount: rowCount[0]?.count || 0,
+        size: size[0]?.size || 0,
+        indexCount: indexCount[0]?.count || 0,
         lastAnalyzed: new Date()
       };
     }
@@ -300,8 +300,8 @@ export class DatabaseOptimizer {
     if (query.includes('UNION')) complexity += 2;
     if (query.includes('SELECT') && (query.match(/SELECT/g) || []).length > 1) complexity += 2;
     
-    if (complexity <= 1) return 'simple';
-    if (complexity <= 3) return 'medium';
+    if (complexity < 1) return 'simple';
+    if (complexity < 3) return 'medium';
     return 'complex';
   }
 
@@ -329,7 +329,7 @@ export class DatabaseOptimizer {
   async createIndex(name: string, table: string, columns: string[], unique: boolean = false): Promise<void> {
     const uniqueKeyword = unique ? 'UNIQUE' : '';
     const columnsStr = columns.join(', ');
-    const sql = `CREATE ${uniqueKeyword} INDEX IF NOT EXISTS ${name} ON ${table} (${columnsStr})`;
+    const sql = `CREATE ${uniqueKeyword ? uniqueKeyword + ' ' : ''}INDEX IF NOT EXISTS ${name} ON ${table} (${columnsStr})`;
     
     await DatabaseUtils.run(this.db, sql);
   }

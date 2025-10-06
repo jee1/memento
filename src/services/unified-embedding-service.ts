@@ -131,7 +131,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       return this.currentProvider.getModelInfo();
     }
 
-    // 기본값 반환
+    // 기본값 반환 (MiniLM 기준)
     return {
       model: 'unified-embedding',
       dimensions: 384,
