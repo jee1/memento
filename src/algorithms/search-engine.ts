@@ -45,16 +45,28 @@ export class SearchEngine {
       
       if (ftsAvailable) {
         const ftsQuery = this.buildFTSQuery(searchQuery);
-        sql = `
-          SELECT 
-            m.id, m.content, m.type, m.importance, m.created_at, 
-            m.last_accessed, m.pinned, m.tags, m.source,
-            memory_item_fts.rank as fts_rank
-          FROM memory_item_fts
-          JOIN memory_item m ON memory_item_fts.rowid = m.rowid
-          WHERE memory_item_fts MATCH ?
-        `;
-        params.push(ftsQuery);
+        
+        // 빈 쿼리인 경우 FTS5를 사용하지 않고 일반 SQL 사용
+        if (ftsQuery === '""' || ftsQuery.length === 0) {
+          sql = `
+            SELECT 
+              m.id, m.content, m.type, m.importance, m.created_at, 
+              m.last_accessed, m.pinned, m.tags, m.source,
+              0 as fts_rank
+            FROM memory_item m
+          `;
+        } else {
+          sql = `
+            SELECT 
+              m.id, m.content, m.type, m.importance, m.created_at, 
+              m.last_accessed, m.pinned, m.tags, m.source,
+              memory_item_fts.rank as fts_rank
+            FROM memory_item_fts
+            JOIN memory_item m ON memory_item_fts.rowid = m.rowid
+            WHERE memory_item_fts MATCH ?
+          `;
+          params.push(ftsQuery);
+        }
       } else {
         // FTS5가 없으면 기본 LIKE 검색 사용
         const likeQuery = `%${searchQuery}%`;
@@ -165,7 +177,7 @@ export class SearchEngine {
     
     if (preprocessedQuery.length === 0) {
       console.log('🔍 빈 쿼리, 모든 문서 검색');
-      return '*'; // 빈 쿼리인 경우 모든 문서 검색
+      return '""'; // 빈 쿼리인 경우 빈 문자열로 검색 (모든 문서 매치)
     }
     
     // 2. FTS5 안전 쿼리 생성
@@ -174,7 +186,7 @@ export class SearchEngine {
     
     if (safeQuery.length === 0) {
       console.log('🔍 안전 쿼리 빈 문자열, 모든 문서 검색');
-      return '*';
+      return '""'; // 빈 쿼리인 경우 빈 문자열로 검색 (모든 문서 매치)
     }
     
     return safeQuery;
