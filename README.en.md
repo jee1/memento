@@ -22,9 +22,10 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 
 ### 🔍 Advanced Search
 - **FTS5 Text Search**: SQLite's Full-Text Search
-- **Vector Search**: OpenAI embedding-based semantic search
+- **Vector Search**: OpenAI embedding-based semantic search (falls back to lightweight embeddings when unavailable)
 - **Hybrid Search**: Combination of text and vector search
-- **Lightweight Embedding**: TF-IDF + keyword matching based fallback solution
+- **Multi-provider Support**: TF-IDF, MiniLM, OpenAI, Gemini with automatic selection
+- **Lightweight Embedding**: TF-IDF + keyword matching fallback solution
 - **Tag-based Filtering**: Metadata-based search
 
 ### 🧹 Forgetting Policy

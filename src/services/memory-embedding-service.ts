@@ -11,6 +11,9 @@ import type { MemoryType } from '../types/index.js';
 export interface MemoryEmbedding {
   memory_id: string;
   embedding: number[];
+  embedding_provider?: string;
+  dimensions?: number;
+  created_by?: string;
   created_at: string;
 }
 
@@ -29,6 +32,8 @@ export interface VectorSearchResult {
 
 export class MemoryEmbeddingService {
   private embeddingService: UnifiedEmbeddingService;
+  private readonly defaultProvider = 'tfidf';
+  private readonly createdByTag = 'memory_embedding_service';
 
   constructor() {
     this.embeddingService = new UnifiedEmbeddingService();
@@ -39,6 +44,7 @@ export class MemoryEmbeddingService {
    */
   private loadVecExtension(db: any): void {
     try {
+      // Windows/로컬 경로 보호 - 실패하더라도 치명적이지 않도록 처리
       db.loadExtension('/usr/lib/vec0');
     } catch (error) {
       console.warn('⚠️ sqlite-vec 확장 로드 실패:', error);
@@ -69,21 +75,50 @@ export class MemoryEmbeddingService {
         return null;
       }
 
+      const embeddingVector = Array.isArray(embeddingResult.embedding) ? embeddingResult.embedding : [];
+      if (embeddingVector.length === 0) {
+        console.warn(`⚠️ 임베딩 결과가 비어 있어 저장을 건너뜁니다. memoryId=${memoryId}`);
+        return null;
+      }
+
+      const provider = this.normalizeProvider(
+        embeddingResult.provider || this.embeddingService.getCurrentProviderName()
+      );
+      const serializedEmbedding = JSON.stringify(embeddingVector);
+      const dimensions = embeddingVector.length;
+
+      // metadata 보정 (기존 레거시 행 대비)
+      await this.ensureMetadataDefaults(db);
+
       // memory_embedding 테이블에 저장 (트리거가 자동으로 vec0 테이블에 저장)
       await DatabaseUtils.run(db, `
-        INSERT OR REPLACE INTO memory_embedding (memory_id, embedding, dim, model, embedding_provider, dimensions, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT OR REPLACE INTO memory_embedding (
+          memory_id,
+          embedding,
+          dim,
+          model,
+          embedding_provider,
+          dimensions,
+          created_by,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         memoryId,
-        JSON.stringify(embeddingResult.embedding),
-        embeddingResult.embedding.length,
+        serializedEmbedding,
+        dimensions,
         embeddingResult.model,
-        embeddingResult.provider,
-        embeddingResult.embedding.length,
+        provider,
+        dimensions,
+        this.createdByTag
       ]);
 
-      console.log(`✅ 임베딩 저장 완료: ${memoryId} (${embeddingResult.embedding.length}차원, ${embeddingResult.provider})`);
-      return embeddingResult;
+      console.log(`✅ 임베딩 저장 완료: ${memoryId} (${dimensions}차원, ${provider})`);
+      return {
+        ...embeddingResult,
+        provider: provider as EmbeddingResult['provider'],
+        embedding: embeddingVector
+      };
 
     } catch (error) {
       console.error(`❌ 임베딩 저장 실패 (${memoryId}):`, error);
@@ -127,6 +162,9 @@ export class MemoryEmbeddingService {
     }
 
     try {
+      // 레거시 데이터에 대해 메타데이터 보정
+      await this.ensureMetadataDefaults(db);
+
       // 쿼리 임베딩 생성
       const queryEmbedding = await this.embeddingService.generateEmbedding(query);
       if (!queryEmbedding) {
@@ -134,7 +172,8 @@ export class MemoryEmbeddingService {
       }
 
       // 제공자별 테이블에서 검색
-      const tableName = this.getVectorTableName(queryEmbedding.provider || 'tfidf');
+      const provider = this.normalizeProvider(queryEmbedding.provider);
+      const tableName = this.getVectorTableName(provider);
       
       // vec0 테이블에서 유사도 검색
       const similarities = await DatabaseUtils.all(db, `
@@ -151,13 +190,13 @@ export class MemoryEmbeddingService {
           (1 - v.distance) as score
         FROM memory_item m
         JOIN memory_embedding me ON m.id = me.memory_id
-        JOIN ${tableName} v ON me.rowid = v.rowid
+        JOIN ${tableName} v ON me.id = v.rowid
         WHERE me.embedding_provider = ?
         ${filters?.type ? `AND m.type IN (${filters.type.map(() => '?').join(',')})` : ''}
         ORDER BY v.distance ASC
         LIMIT ?
       `, [
-        queryEmbedding.provider,
+        provider,
         ...(filters?.type || []),
         filters?.limit || 10
       ]);
@@ -170,8 +209,8 @@ export class MemoryEmbeddingService {
         importance: row.importance,
         created_at: row.created_at,
         last_accessed: row.last_accessed,
-        pinned: row.pinned,
-        tags: row.tags ? JSON.parse(row.tags) : [],
+        pinned: Boolean(row.pinned),
+        tags: this.safeParseTags(row.tags),
         similarity: row.similarity,
         score: row.score,
       }));
@@ -198,6 +237,20 @@ export class MemoryEmbeddingService {
     }
   }
 
+  private safeParseTags(rawTags: string | null | undefined): string[] {
+    if (!rawTags) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(rawTags);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', error);
+      return [];
+    }
+  }
+
   /**
    * 임베딩 서비스 사용 가능 여부 확인
    */
@@ -219,6 +272,8 @@ export class MemoryEmbeddingService {
     }>;
   }> {
     try {
+      await this.ensureMetadataDefaults(db);
+
       // 전체 통계
       const stats = await DatabaseUtils.all(db, `
         SELECT 
@@ -245,9 +300,9 @@ export class MemoryEmbeddingService {
         averageDimensions: stat.avg_dimensions || 0,
         model: this.embeddingService.getModelInfo().model,
         providerStats: providerStats.map((row: any) => ({
-          provider: row.provider,
+          provider: this.normalizeProvider(row.provider),
           count: row.count,
-          dimensions: Math.round(row.dimensions),
+          dimensions: Math.round(row.dimensions || 0),
         })),
       };
     } catch (error) {
@@ -258,6 +313,45 @@ export class MemoryEmbeddingService {
         model: 'unknown',
         providerStats: [],
       };
+    }
+  }
+
+  private normalizeProvider(provider?: string | null): string {
+    const normalized = (provider || '').toLowerCase();
+    switch (normalized) {
+      case 'tfidf':
+      case 'minilm':
+      case 'openai':
+      case 'gemini':
+        return normalized;
+      default:
+        return this.defaultProvider;
+    }
+  }
+
+  private async ensureMetadataDefaults(db: any): Promise<void> {
+    try {
+      await DatabaseUtils.run(db, `
+        UPDATE memory_embedding
+        SET embedding_provider = COALESCE(
+          NULLIF(embedding_provider, ''),
+          CASE
+            WHEN model IN ('lightweight-hybrid', 'tfidf') THEN 'tfidf'
+            WHEN model LIKE '%minilm%' THEN 'minilm'
+            WHEN model LIKE '%openai%' THEN 'openai'
+            WHEN model LIKE '%gemini%' THEN 'gemini'
+            ELSE ?
+          END
+        ),
+        dimensions = COALESCE(dimensions, dim),
+        created_by = COALESCE(created_by, 'legacy')
+        WHERE embedding_provider IS NULL
+           OR embedding_provider = ''
+           OR dimensions IS NULL
+           OR created_by IS NULL
+      `, [this.defaultProvider]);
+    } catch (error) {
+      console.warn('⚠️ 임베딩 메타데이터 보정 실패:', error);
     }
   }
 }

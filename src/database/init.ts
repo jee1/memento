@@ -41,45 +41,34 @@ export async function initializeDatabase(): Promise<Database.Database> {
     try {
       // Docker 환경에서는 FTS5가 기본적으로 포함되어 있음
       if (process.env.NODE_ENV === 'production' || process.env.DOCKER === 'true') {
-        // Docker 환경에서는 FTS5가 기본 포함되어 있으므로 로드 시도하지 않음
         log('🐳 Docker 환경에서 FTS5 사용 가능');
       } else {
-        // 로컬 환경에서만 확장 로드 시도
         db.loadExtension('fts5');
         log('✅ FTS5 확장 로드 완료');
       }
     } catch (error) {
       log('⚠️  FTS5 확장 로드 실패, 기본 검색으로 전환:', error);
-      // FTS5가 없어도 기본 기능은 동작하도록 계속 진행
     }
     
-    // 잠금 타임아웃 설정 (60초로 증가)
     db.pragma('busy_timeout = 60000');
-    
-    // 동시성 설정 최적화
     db.pragma('synchronous = NORMAL');
-    db.pragma('cache_size = 20000'); // 캐시 크기 증가
+    db.pragma('cache_size = 20000');
     db.pragma('temp_store = MEMORY');
-    db.pragma('mmap_size = 268435456'); // 256MB 메모리 맵핑
+    db.pragma('mmap_size = 268435456');
+    db.pragma('wal_autocheckpoint = 100');
+    db.pragma('journal_size_limit = 33554432');
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    db.pragma('locking_mode = NORMAL');
+    db.pragma('read_uncommitted = 0');
     
-    // WAL 설정 최적화 (락 문제 해결)
-    db.pragma('wal_autocheckpoint = 100'); // 더 자주 체크포인트 (100페이지마다)
-    db.pragma('journal_size_limit = 33554432'); // 32MB WAL 크기 제한 (더 작게)
-    db.pragma('wal_checkpoint(TRUNCATE)'); // WAL 파일 정리
-    
-    // 추가 안정성 설정
-    db.pragma('locking_mode = NORMAL'); // 정상 잠금 모드
-    db.pragma('read_uncommitted = 0'); // 커밋된 읽기만 허용
-    
-        // sqlite-vec 확장 로드
-        try {
-          const { getLoadablePath } = await import('sqlite-vec');
-          const extensionPath = getLoadablePath();
-          db.loadExtension(extensionPath);
-          console.log('✅ sqlite-vec 확장 로드 성공');
-        } catch (error) {
-          console.warn('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
-        }
+    try {
+      const { getLoadablePath } = await import('sqlite-vec');
+      const extensionPath = getLoadablePath();
+      db.loadExtension(extensionPath);
+      console.log('✅ sqlite-vec 확장 로드 성공');
+    } catch (error) {
+      console.warn('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
+    }
     
     // 스키마 파일 읽기 및 실행
     const schemaPath = join(__dirname, 'schema.sql');

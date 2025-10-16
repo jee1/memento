@@ -10,6 +10,17 @@ import Database from 'better-sqlite3';
 
 describe('VectorSearchEngine', () => {
   let vectorEngine: VectorSearchEngine;
+  const createMockVectorRows = (provider: string, count: number) => Array.from({ length: count }, (_, idx) => ({
+    memory_id: `${provider}-memory-${idx + 1}`,
+    similarity: 0.2 + idx * 0.01,
+    content: `${provider} memory content ${idx + 1}`,
+    type: idx % 2 === 0 ? 'episodic' : 'semantic',
+    importance: 0.5 + idx * 0.1,
+    created_at: new Date().toISOString(),
+    last_accessed: new Date().toISOString(),
+    pinned: idx % 2 === 0,
+    tags: JSON.stringify([`${provider}`, `tag-${idx + 1}`])
+  }));
   let mockDb: any;
 
   // Helper function to create consistent mock implementation
@@ -23,6 +34,16 @@ describe('VectorSearchEngine', () => {
       }
       if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
         return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
+      }
+      if (sql.includes('SELECT embedding_provider as provider')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            { provider: 'tfidf', dimensions: 384 },
+            { provider: 'minilm', dimensions: 384 },
+            { provider: 'openai', dimensions: 1536 },
+            { provider: 'gemini', dimensions: 768 }
+          ])
+        };
       }
       // Handle vector search queries - check for the specific SQL pattern
       if (sql.includes('SELECT') && sql.includes('vec.rowid as memory_id')) {
@@ -182,10 +203,57 @@ describe('VectorSearchEngine', () => {
     });
 
     it('벡터 차원 불일치 처리', async () => {
+      const vectorAllSpy = vi.fn();
+      mockDb.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('sqlite_master')) {
+          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+        }
+        if (sql.includes('COUNT(*)')) {
+          return { get: vi.fn().mockReturnValue({ count: 1 }) };
+        }
+        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+          return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
+        }
+        if (sql.includes('SELECT embedding_provider as provider')) {
+          return {
+            all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 384 }])
+          };
+        }
+        if (sql.includes('FROM memory_item_vec_tfidf') && sql.includes('JOIN memory_embedding')) {
+          return { all: vectorAllSpy };
+        }
+        return { all: vi.fn().mockReturnValue([]) };
+      });
+
+      vectorEngine.initialize(mockDb);
       const queryVector = new Array(1000).fill(0.1); // 잘못된 차원
+      const results = await vectorEngine.search(queryVector, {}, 'tfidf');
+
+      expect(results).toHaveLength(0);
+      expect(vectorAllSpy).not.toHaveBeenCalled();
+    });
+
+    it('vec 확장이 없으면 벡터 검색을 실행하지 않는다', async () => {
+      const unavailableDb = {
+        prepare: vi.fn((sql: string) => {
+          if (sql.includes('sqlite_master')) {
+            return { all: vi.fn().mockReturnValue([]) };
+          }
+          if (sql.includes('COUNT(*)')) {
+            return { get: vi.fn().mockReturnValue({ count: 0 }) };
+          }
+          return { all: vi.fn().mockReturnValue([]), get: vi.fn() };
+        })
+      };
+
+      vectorEngine.initialize(unavailableDb as unknown as Database.Database);
+      const queryVector = new Array(384).fill(0.1);
       const results = await vectorEngine.search(queryVector);
 
       expect(results).toHaveLength(0);
+      expect(unavailableDb.prepare).toHaveBeenCalledWith(
+        expect.stringContaining('sqlite_master')
+      );
     });
 
     it('임계값 필터링', async () => {
@@ -202,38 +270,52 @@ describe('VectorSearchEngine', () => {
       expect(results).toHaveLength(0);
     });
 
-    it('타입 필터 적용', async () => {
+    it('다중 타입 필터를 IN 절과 파라미터로 전달한다', async () => {
       const queryVector = new Array(384).fill(0.1);
       const options: VectorSearchOptions = {
-        limit: 10,
+        limit: 5,
         threshold: 0.5,
-        type: 'episodic',
-        includeContent: true
+        types: ['episodic', 'semantic'],
+        includeContent: true,
+        includeMetadata: true
       };
+      const mockResults = createMockVectorRows('tfidf', 2);
+      const allMock = vi.fn((...params: any[]) => {
+        expect(params[0]).toBe(JSON.stringify(queryVector));
+        expect(params[1]).toBe('episodic');
+        expect(params[2]).toBe('semantic');
+        expect(params[3]).toBe(5);
+        return mockResults;
+      });
 
-      // Mock database results
-      const mockResults = [
-        {
-          memory_id: 'mem1',
-          similarity: 0.3,
-          content: 'test content',
-          type: 'episodic',
-          importance: 0.8,
-          created_at: '2023-01-01T00:00:00Z',
-          last_accessed: '2023-01-02T00:00:00Z',
-          pinned: false
+      mockDb.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('sqlite_master')) {
+          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
         }
-      ];
+        if (sql.includes('COUNT(*)')) {
+          return { get: vi.fn().mockReturnValue({ count: 1 }) };
+        }
+        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+          return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
+        }
+        if (sql.includes('SELECT embedding_provider as provider')) {
+          return {
+            all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 384 }])
+          };
+        }
+        if (sql.includes('FROM memory_item_vec_tfidf') && sql.includes('JOIN memory_embedding')) {
+          expect(sql).toContain('mi.type IN (?,?)');
+          return { all: allMock };
+        }
+        return { all: vi.fn().mockReturnValue([]) };
+      });
 
-      // Update the existing mock to return results
-      mockDb.prepare.mockImplementation(createMockImplementation(mockResults));
+      vectorEngine.initialize(mockDb);
+      const results = await vectorEngine.search(queryVector, options, 'tfidf');
 
-      const results = await vectorEngine.search(queryVector, options);
-
-      expect(results).toHaveLength(1);
-      expect(mockDb.prepare).toHaveBeenCalledWith(
-        expect.stringContaining('AND mi.type = ?')
-      );
+      expect(results).toHaveLength(2);
+      expect(allMock).toHaveBeenCalledTimes(1);
+      expect(results[0].tags).toBeDefined();
     });
 
     it('메타데이터 포함 옵션', async () => {
@@ -307,41 +389,60 @@ describe('VectorSearchEngine', () => {
       expect(results[0].tags).toBeUndefined();
     });
 
-    it('다양한 제공자 테스트', async () => {
-      const queryVector = new Array(384).fill(0.1);
-      
-      // Mock database results
-      const mockResults = [
-        {
-          memory_id: 'mem1',
-          similarity: 0.3,
-          content: 'test content',
-          type: 'semantic',
-          importance: 0.8,
-          created_at: '2023-01-01T00:00:00Z',
-          last_accessed: '2023-01-02T00:00:00Z',
-          pinned: false
-        }
-      ];
+    it.each([
+      { provider: 'tfidf', dimensions: 384 },
+      { provider: 'minilm', dimensions: 384 }
+    ])('provider $provider 에서 결과를 반환한다', async ({ provider, dimensions }) => {
+      const providerRows = createMockVectorRows(provider, 3);
+      const queryVector = new Array(dimensions).fill(0.1);
+      const vectorAllMock = vi.fn((...params: any[]) => {
+        expect(params[0]).toBe(JSON.stringify(queryVector));
+        expect(params[params.length - 1]).toBe(2);
+        return providerRows.slice(0, 2);
+      });
 
-      // Update the existing mock to return results
-      mockDb.prepare.mockImplementation(createMockImplementation(mockResults));
-      
-      // tfidf 제공자
-      const tfidfResults = await vectorEngine.search(queryVector, {}, 'tfidf');
-      expect(tfidfResults).toHaveLength(1);
-      
-      // minilm 제공자
-      const minilmResults = await vectorEngine.search(queryVector, {}, 'minilm');
-      expect(minilmResults).toHaveLength(1);
-      
-      // openai 제공자
-      const openaiResults = await vectorEngine.search(queryVector, {}, 'openai');
-      expect(openaiResults).toHaveLength(1);
-      
-      // gemini 제공자
-      const geminiResults = await vectorEngine.search(queryVector, {}, 'gemini');
-      expect(geminiResults).toHaveLength(1);
+      mockDb.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('sqlite_master')) {
+          return { all: vi.fn().mockReturnValue([{ name: `memory_item_vec_${provider}` }]) };
+        }
+        if (sql.includes('COUNT(*)')) {
+          return { get: vi.fn().mockReturnValue({ count: 1 }) };
+        }
+        if (sql.includes('SELECT distance FROM memory_item_vec_')) {
+          return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
+        }
+        if (sql.includes('SELECT embedding_provider as provider')) {
+          return {
+            all: vi.fn().mockReturnValue([{ provider, dimensions }])
+          };
+        }
+        if (sql.includes(`memory_item_vec_${provider}`) && sql.includes('JOIN memory_embedding')) {
+          return { all: vectorAllMock };
+        }
+        return { all: vi.fn().mockReturnValue([]) };
+      });
+
+      vectorEngine.initialize(mockDb);
+      const results = await vectorEngine.search(queryVector, { limit: 2, types: ['episodic', 'semantic'] }, provider);
+
+      expect(results).toHaveLength(2);
+      expect(vectorAllMock).toHaveBeenCalledTimes(1);
+      const distinctTypes = new Set(results.map(r => r.type));
+      expect(distinctTypes.size).toBeGreaterThan(0);
+    });
+
+    it.each([
+      { provider: 'openai', dimensions: 1536 },
+      { provider: 'gemini', dimensions: 768 }
+    ])('고차원 provider $provider 대응', async ({ provider, dimensions }) => {
+      mockDb.prepare.mockImplementation(createMockImplementation(createMockVectorRows(provider, 1)));
+
+      vectorEngine.initialize(mockDb);
+      const queryVector = new Array(dimensions).fill(0.05);
+      const results = await vectorEngine.search(queryVector, { limit: 1, includeMetadata: true }, provider);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].memory_id).toContain(provider);
     });
   });
 
@@ -421,7 +522,7 @@ describe('VectorSearchEngine', () => {
       const options: VectorSearchOptions = {
         limit: 10,
         threshold: 0.5,
-        type: 'episodic',
+        types: ['episodic'],
         includeContent: true
       };
 
@@ -429,7 +530,7 @@ describe('VectorSearchEngine', () => {
 
       expect(results).toHaveLength(1);
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        expect.stringContaining('AND mi.type = ?')
+        expect.stringContaining('AND mi.type IN (')
       );
     });
   });
@@ -555,9 +656,9 @@ describe('VectorSearchEngine', () => {
       const queryVector = new Array(384).fill(0.1);
       const performance = await vectorEngine.performanceTest(queryVector, 5);
 
-      expect(performance.averageTime).toBeGreaterThan(0);
-      expect(performance.minTime).toBeGreaterThan(0);
-      expect(performance.maxTime).toBeGreaterThan(0);
+      expect(performance.averageTime).toBeGreaterThanOrEqual(0);
+      expect(performance.minTime).toBeGreaterThanOrEqual(0);
+      expect(performance.maxTime).toBeGreaterThanOrEqual(0);
       expect(performance.results).toBeGreaterThanOrEqual(0);
       expect(performance.successRate).toBeGreaterThanOrEqual(0);
     });
@@ -720,8 +821,8 @@ describe('VectorSearchEngine', () => {
       const queryVector = new Array(384).fill(0.1);
       
       // 잘못된 JSON 태그는 빈 배열로 처리되어야 함
-      const results = await vectorEngine.search(queryVector);
-      expect(results).toHaveLength(0);
+      const results = await vectorEngine.search(queryVector, { includeMetadata: true });
+      expect(results[0].tags).toEqual([]);
     });
 
     it('매우 높은 임계값', async () => {

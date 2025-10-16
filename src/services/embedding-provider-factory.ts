@@ -13,6 +13,7 @@ import { mementoConfig } from '../config/index.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from './gemini-embedding-service.js';
+import { OpenAIEmbeddingService } from './openai-embedding-service.js';
 
 /**
  * 임베딩 제공자 팩토리
@@ -44,7 +45,7 @@ export class EmbeddingProviderFactory {
     this.providers.set('minilm', new MiniLMEmbeddingService());
     this.providers.set('tfidf', new LightweightEmbeddingService());
     this.providers.set('gemini', new GeminiEmbeddingService());
-    // OpenAI는 설정에 따라 동적 생성
+    this.providers.set('openai', new OpenAIEmbeddingService());
   }
 
   /**
@@ -52,7 +53,11 @@ export class EmbeddingProviderFactory {
    * 클린코드: 단일 책임 원칙 - 제공자 반환만 담당
    */
   getProvider(provider: EmbeddingProvider): EmbeddingServiceInterface | null {
-    return this.providers.get(provider) || null;
+    const normalized = this.normalizeProviderName(provider);
+    if (!normalized) {
+      return null;
+    }
+    return this.providers.get(normalized) || null;
   }
 
   /**
@@ -67,7 +72,7 @@ export class EmbeddingProviderFactory {
     providerInfos.push({
       name: 'minilm',
       available: minilm?.isAvailable() || false,
-      priority: 1,
+      priority: 3,
       cost: 'free',
       performance: 'high'
     });
@@ -92,11 +97,12 @@ export class EmbeddingProviderFactory {
       performance: 'high'
     });
 
-    // OpenAI (동적 생성)
+    // OpenAI
+    const openai = this.providers.get('openai');
     providerInfos.push({
       name: 'openai',
-      available: this.isOpenAIAvailable(),
-      priority: 3,
+      available: openai?.isAvailable() || false,
+      priority: 1,
       cost: 'paid',
       performance: 'high'
     });
@@ -113,18 +119,23 @@ export class EmbeddingProviderFactory {
     
     // 1. 명시적으로 요청된 제공자 우선
     if (preferredProvider) {
-      const preferred = availableProviders.find(p => p.name === preferredProvider && p.available);
+      const normalizedPreferred = this.normalizeProviderName(preferredProvider);
+      const preferred = normalizedPreferred
+        ? availableProviders.find(p => p.name === normalizedPreferred && p.available)
+        : undefined;
       if (preferred) {
-        console.log(`🎯 요청된 제공자 사용: ${preferredProvider}`);
+        console.log(`🎯 요청된 제공자 사용: ${preferred.name}`);
         return this.getProvider(preferred.name);
       }
     }
 
     // 2. 설정에서 기본 제공자 사용
-    const defaultProvider = mementoConfig.embeddingProvider;
-    const defaultAvailable = availableProviders.find(p => p.name === defaultProvider && p.available);
+    const defaultProvider = this.normalizeProviderName(mementoConfig.embeddingProvider);
+    const defaultAvailable = defaultProvider
+      ? availableProviders.find(p => p.name === defaultProvider && p.available)
+      : undefined;
     if (defaultAvailable) {
-      console.log(`⚙️ 설정된 기본 제공자 사용: ${defaultProvider}`);
+      console.log(`⚙️ 설정된 기본 제공자 사용: ${defaultAvailable.name}`);
       return this.getProvider(defaultAvailable.name);
     }
 
@@ -144,8 +155,8 @@ export class EmbeddingProviderFactory {
    * 클린코드: 단일 책임 원칙 - OpenAI 상태 확인만 담당
    */
   private isOpenAIAvailable(): boolean {
-    // 환경 변수나 설정 확인
-    return process.env.OPENAI_API_KEY !== undefined;
+    const openai = this.providers.get('openai');
+    return openai?.isAvailable() ?? false;
   }
 
   /**
@@ -153,14 +164,19 @@ export class EmbeddingProviderFactory {
    * 클린코드: 개방-폐쇄 원칙 - 확장에는 열려있음
    */
   registerProvider(provider: EmbeddingProvider, service: EmbeddingServiceInterface): void {
-    this.providers.set(provider, service);
+    const normalized = this.normalizeProviderName(provider);
+    if (!normalized) {
+      return;
+    }
+    this.providers.set(normalized, service);
   }
 
   /**
    * 제공자 제거
    */
   unregisterProvider(provider: EmbeddingProvider): boolean {
-    return this.providers.delete(provider);
+    const normalized = this.normalizeProviderName(provider);
+    return normalized ? this.providers.delete(normalized) : false;
   }
 
   /**
@@ -169,5 +185,26 @@ export class EmbeddingProviderFactory {
   reset(): void {
     this.providers.clear();
     this.initializeProviders();
+  }
+
+  private normalizeProviderName(provider?: string | null): EmbeddingProvider | null {
+    if (!provider) {
+      return null;
+    }
+    const normalized = provider.toLowerCase();
+    switch (normalized) {
+      case 'tfidf':
+        return 'tfidf';
+      case 'minilm':
+        return 'minilm';
+      case 'openai':
+        return 'openai';
+      case 'gemini':
+        return 'gemini';
+      case 'lightweight':
+        return 'tfidf';
+      default:
+        return null;
+    }
   }
 }

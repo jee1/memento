@@ -78,8 +78,18 @@ export class MementoClient {
     });
     
     if (result.content && Array.isArray(result.content) && result.content[0] && 'text' in result.content[0]) {
-      const response = JSON.parse((result.content[0] as any).text);
-      return response.memory_id;
+      const rawText = (result.content[0] as any).text;
+      const parsed = JSON.parse(rawText);
+      const response = (parsed && typeof parsed === 'object' && Array.isArray(parsed.content))
+        ? JSON.parse(parsed.content[0]?.text ?? '{}')
+        : parsed;
+      const memoryId = response.memory_id ?? response.memoryId ?? response.id ?? response.memory?.id;
+
+      if (!memoryId || typeof memoryId !== 'string') {
+        throw new Error(`기억 저장 응답에서 memory_id를 찾을 수 없습니다: ${rawText}`);
+      }
+
+      return memoryId;
     }
     
     throw new Error('기억 저장에 실패했습니다');
@@ -97,9 +107,12 @@ export class MementoClient {
     });
     
     if (result.content && Array.isArray(result.content) && result.content[0] && 'text' in result.content[0]) {
-      const response = JSON.parse((result.content[0] as any).text);
-      // 응답 구조: { items: { items: [...], total_count: ..., query_time: ... }, ... }
-      return response.items?.items || [];
+      const rawText = (result.content[0] as any).text;
+      const parsed = JSON.parse(rawText);
+      const response = (parsed && typeof parsed === 'object' && Array.isArray(parsed.content))
+        ? JSON.parse(parsed.content[0]?.text ?? '{}')
+        : parsed;
+      return response.items?.items || response.items || [];
     }
     
     throw new Error('기억 검색에 실패했습니다');
@@ -117,8 +130,12 @@ export class MementoClient {
     });
     
     if (result.content && Array.isArray(result.content) && result.content[0] && 'text' in result.content[0]) {
-      const response = JSON.parse((result.content[0] as any).text);
-      return response.message;
+      const rawText = (result.content[0] as any).text;
+      const parsed = JSON.parse(rawText);
+      const response = (parsed && typeof parsed === 'object' && Array.isArray(parsed.content))
+        ? JSON.parse(parsed.content[0]?.text ?? '{}')
+        : parsed;
+      return response.message ?? response.result ?? rawText;
     }
     
     throw new Error('기억 삭제에 실패했습니다');
@@ -136,8 +153,12 @@ export class MementoClient {
     });
     
     if (result.content && Array.isArray(result.content) && result.content[0] && 'text' in result.content[0]) {
-      const response = JSON.parse((result.content[0] as any).text);
-      return response.message;
+      const rawText = (result.content[0] as any).text;
+      const parsed = JSON.parse(rawText);
+      const response = (parsed && typeof parsed === 'object' && Array.isArray(parsed.content))
+        ? JSON.parse(parsed.content[0]?.text ?? '{}')
+        : parsed;
+      return response.message ?? response.result ?? rawText;
     }
     
     throw new Error('기억 고정에 실패했습니다');
@@ -155,8 +176,12 @@ export class MementoClient {
     });
     
     if (result.content && Array.isArray(result.content) && result.content[0] && 'text' in result.content[0]) {
-      const response = JSON.parse((result.content[0] as any).text);
-      return response.message;
+      const rawText = (result.content[0] as any).text;
+      const parsed = JSON.parse(rawText);
+      const response = (parsed && typeof parsed === 'object' && Array.isArray(parsed.content))
+        ? JSON.parse(parsed.content[0]?.text ?? '{}')
+        : parsed;
+      return response.message ?? response.result ?? rawText;
     }
     
     throw new Error('기억 고정 해제에 실패했습니다');
