@@ -29,6 +29,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
   constructor() {
     this.factory = EmbeddingProviderFactory.getInstance();
     console.log('✅ 통합 임베딩 서비스 초기화 완료');
+    this.syncFallbackProviders();
     console.log(`📋 사용 가능한 제공자: ${this.factory.getAvailableProviders().map(p => p.name).join(', ')}`);
   }
 
@@ -177,7 +178,14 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
    * 폴백 제공자 설정
    */
   setFallbackProviders(providers: EmbeddingProvider[]): void {
-    this.fallbackProviders = providers;
+    this.fallbackProviders = Array.from(new Set(providers)) as EmbeddingProvider[];
+    this.syncFallbackProviders();
+  }
+
+  private syncFallbackProviders(): void {
+    const orderedProviders = this.factory.getAvailableProviders().map(p => p.name as EmbeddingProvider);
+    const merged = [...orderedProviders, ...this.fallbackProviders];
+    this.fallbackProviders = Array.from(new Set(merged)) as EmbeddingProvider[];
   }
 
   /**
@@ -195,7 +203,9 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
    * 클린코드: 단일 책임 원칙 - 선택 로직만 담당
    */
   private selectProvider(preferredProvider?: EmbeddingProvider): EmbeddingServiceInterface | null {
-    return this.factory.selectProvider(preferredProvider);
+    const provider = this.factory.selectProvider(preferredProvider);
+    this.syncFallbackProviders();
+    return provider;
   }
 
   /**

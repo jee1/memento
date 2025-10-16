@@ -51,6 +51,9 @@ function migrateDatabase() {
         embedding TEXT NOT NULL,
         dim INTEGER NOT NULL,
         model TEXT,
+        embedding_provider TEXT DEFAULT 'tfidf',
+        dimensions INTEGER,
+        created_by TEXT DEFAULT 'system',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
         UNIQUE(memory_id)
@@ -58,6 +61,97 @@ function migrateDatabase() {
     `);
     
     console.log('✅ 임베딩 테이블 생성 완료');
+    
+    console.log('🧩 임베딩 메타데이터 컬럼 동기화 중...');
+    const embeddingColumns = [
+      "embedding_provider TEXT DEFAULT 'tfidf'",
+      'dimensions INTEGER',
+      "created_by TEXT DEFAULT 'system'"
+    ];
+    
+    for (const column of embeddingColumns) {
+      try {
+        db.exec(`ALTER TABLE memory_embedding ADD COLUMN ${column}`);
+      } catch (err: any) {
+        if (!err.message.includes('duplicate column name')) {
+          throw err;
+        }
+      }
+    }
+    console.log('✅ 임베딩 메타데이터 컬럼 동기화 완료');
+    
+    console.log('🧾 임베딩 인덱스 및 트리거 정비 중...');
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider ON memory_embedding(embedding_provider);
+    `);
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions);
+    `);
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_created_by ON memory_embedding(created_by);
+    `);
+    
+    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
+    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
+    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete;');
+    
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
+        INSERT INTO memory_item_vec(rowid, embedding)
+        VALUES (NEW.id, json_extract(NEW.embedding, '$'));
+      
+        INSERT INTO memory_item_vec_tfidf(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'tfidf';
+      
+        INSERT INTO memory_item_vec_minilm(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'minilm';
+      
+        INSERT INTO memory_item_vec_openai(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'openai';
+      
+        INSERT INTO memory_item_vec_gemini(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'gemini';
+      END
+    `);
+    
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
+        UPDATE memory_item_vec
+        SET embedding = json_extract(NEW.embedding, '$')
+        WHERE rowid = NEW.id;
+      
+        UPDATE memory_item_vec_tfidf
+        SET embedding = json_extract(NEW.embedding, '$')
+        WHERE rowid = NEW.id AND NEW.embedding_provider = 'tfidf';
+      
+        UPDATE memory_item_vec_minilm
+        SET embedding = json_extract(NEW.embedding, '$')
+        WHERE rowid = NEW.id AND NEW.embedding_provider = 'minilm';
+      
+        UPDATE memory_item_vec_openai
+        SET embedding = json_extract(NEW.embedding, '$')
+        WHERE rowid = NEW.id AND NEW.embedding_provider = 'openai';
+      
+        UPDATE memory_item_vec_gemini
+        SET embedding = json_extract(NEW.embedding, '$')
+        WHERE rowid = NEW.id AND NEW.embedding_provider = 'gemini';
+      END
+    `);
+    
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
+        DELETE FROM memory_item_vec WHERE rowid = OLD.id;
+        DELETE FROM memory_item_vec_tfidf WHERE rowid = OLD.id;
+        DELETE FROM memory_item_vec_minilm WHERE rowid = OLD.id;
+        DELETE FROM memory_item_vec_openai WHERE rowid = OLD.id;
+        DELETE FROM memory_item_vec_gemini WHERE rowid = OLD.id;
+      END
+    `);
+    console.log('✅ 임베딩 인덱스 및 트리거 정비 완료');
     
     // 기존 데이터에 기본값 설정
     console.log('🔧 기존 데이터 업데이트 중...');

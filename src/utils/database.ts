@@ -378,6 +378,9 @@ export class DatabaseUtils {
           embedding TEXT NOT NULL,
           dim INTEGER NOT NULL,
           model TEXT,
+          embedding_provider TEXT DEFAULT 'tfidf',
+          dimensions INTEGER,
+          created_by TEXT DEFAULT 'system',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
           UNIQUE(memory_id)
@@ -409,6 +412,9 @@ export class DatabaseUtils {
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_dim ON memory_embedding(dim)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider ON memory_embedding(embedding_provider)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_embedding_created_by ON memory_embedding(created_by)');
 
       // FTS5 가상 테이블 생성
       try {

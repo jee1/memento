@@ -24,7 +24,7 @@ export interface IEmbeddingService {
 export interface IVectorSearchEngine {
   initialize(db: Database.Database): void;
   getIndexStatus(): { available: boolean };
-  search(vector: number[], options: { limit?: number; threshold?: number; type?: string; includeContent?: boolean }): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
+  search(vector: number[], options: { limit?: number; threshold?: number; types?: MemoryType[]; includeContent?: boolean }): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
 }
 
 export interface ISearchResultCombiner {
@@ -380,7 +380,7 @@ export class HybridSearchEngine {
       const vecResults = await this.vectorSearchEngine.search(queryVector, {
         limit: (query.limit || 10) * 2,
         threshold: 0.5,
-        type: query.filters?.type?.join(','),
+        types: query.filters?.type,
         includeContent: true
       });
       

@@ -149,6 +149,74 @@ describe('HybridSearchEngine', () => {
       await expect(hybridSearchEngine.search(mockDb, query)).rejects.toThrow(SearchError);
       await expect(hybridSearchEngine.search(mockDb, query)).rejects.toThrow('결과 결합 중 오류가 발생했습니다');
     });
+
+    it('벡터 검색 시 다중 타입 필터를 전달해야 함', async () => {
+      const typeFilters = ['episodic', 'semantic'];
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockVectorEngine.search as Mock).mockResolvedValue([
+        {
+          memory_id: 'mem1',
+          content: 'vector content',
+          type: 'episodic',
+          importance: 0.6,
+          created_at: '2024-01-01',
+          similarity: 0.9
+        }
+      ]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      const vectorSpy = vi.spyOn(hybridSearchEngine as any, 'generateQueryVector').mockResolvedValue(new Array(384).fill(0.1));
+
+      const query = {
+        query: 'test query',
+        limit: 5,
+        filters: { type: typeFilters }
+      };
+
+      await hybridSearchEngine.search(mockDb, query);
+
+      expect(mockVectorEngine.search).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.objectContaining({
+          types: typeFilters,
+          limit: 10,
+          threshold: 0.5,
+          includeContent: true
+        })
+      );
+      vectorSpy.mockRestore();
+    });
+
+    it('벡터 인덱스가 비활성화된 경우 폴백 검색에 타입 배열을 전달해야 함', async () => {
+      const typeFilters = ['episodic', 'semantic'];
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+
+      const query = {
+        query: 'test query',
+        limit: 5,
+        filters: { type: typeFilters }
+      };
+
+      await hybridSearchEngine.search(mockDb, query);
+
+      expect(mockVectorEngine.search).not.toHaveBeenCalled();
+      expect(mockEmbeddingService.searchBySimilarity).toHaveBeenCalledWith(
+        mockDb,
+        'test query',
+        expect.objectContaining({
+          type: typeFilters,
+          limit: 10,
+          threshold: 0.5
+        })
+      );
+    });
   });
 
   describe('에러 처리 테스트', () => {
