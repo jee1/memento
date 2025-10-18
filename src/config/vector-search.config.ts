@@ -14,6 +14,12 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
     minilm: 'memory_item_vec_minilm',
     openai: 'memory_item_vec_openai',
     gemini: 'memory_item_vec_gemini'
+  },
+  providerDimensions: {
+    tfidf: 512,
+    minilm: 384,
+    openai: 1536,
+    gemini: 768
   }
 } as const;
 

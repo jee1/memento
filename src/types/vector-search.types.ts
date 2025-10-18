@@ -1,3 +1,5 @@
+import type { EmbeddingProvider } from './embedding.types.js';
+
 /**
  * 벡터 검색 관련 타입 정의
  * 클린코드 원칙에 따른 인터페이스 분리
@@ -51,6 +53,7 @@ export interface VectorSearchConfig {
   defaultThreshold: number;
   defaultLimit: number;
   tableNames: Record<string, string>;
+  providerDimensions: Record<string, number>;
 }
 
 export interface HybridSearchResult {
@@ -65,4 +68,40 @@ export interface HybridSearchResult {
   last_accessed?: string;
   pinned: boolean;
   tags?: string[];
+}
+
+export interface ProviderHybridQuery {
+  query: VectorSearchQuery;
+  text?: string;
+  useHybrid?: boolean;
+  useAvailableProviders?: boolean;
+  overrideProviders?: EmbeddingProvider[];
+  vectorLimit?: number;
+}
+
+export interface ProviderHybridResult {
+  provider: EmbeddingProvider;
+  vectorResults: VectorSearchResult[];
+  hybridResults: VectorSearchResult[];
+  vectorLatencyMs: number;
+  hybridLatencyMs?: number;
+}
+
+export interface UnifiedSearchHit {
+  memoryId: string;
+  provider: EmbeddingProvider;
+  normalizedScore: number;
+  vectorSimilarity: number;
+  hybridSimilarity?: number;
+  content: string;
+  type: string;
+  importance: number;
+  createdAt: string;
+  tags?: string[];
+  source: 'vector' | 'hybrid';
+}
+
+export interface UnifiedSearchResponse {
+  providers: ProviderHybridResult[];
+  unified: UnifiedSearchHit[];
 }

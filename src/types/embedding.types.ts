@@ -64,7 +64,7 @@ export interface EmbeddingServiceInterface {
 /**
  * 임베딩 제공자 타입
  */
-export type EmbeddingProvider = 'tfidf' | 'minilm' | 'openai' | 'gemini';
+export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
 
 /**
  * 임베딩 제공자 정보
@@ -75,4 +75,57 @@ export interface ProviderInfo {
   priority: number;
   cost: 'free' | 'paid';
   performance: 'low' | 'medium' | 'high';
+}
+
+export type VectorExpansionStrategy = 'zero-pad' | 'repeat' | 'interpolate';
+export type VectorReductionStrategy = 'truncate' | 'average-pool';
+export type VectorNormalization = 'none' | 'l2' | 'min-max';
+
+export type ProjectionType =
+  | 'native'
+  | 'zero_pad'
+  | 'repeat_upsample'
+  | 'interpolate'
+  | 'truncate'
+  | 'average_pool';
+
+export interface VectorProjectionOptions {
+  targetDimensions: number;
+  expansionStrategy?: VectorExpansionStrategy;
+  reductionStrategy?: VectorReductionStrategy;
+  normalization?: VectorNormalization;
+}
+
+export interface VectorProjectionResult {
+  vector: number[];
+  sourceDimensions: number;
+  targetDimensions: number;
+  projectionType: ProjectionType;
+  normalized: boolean;
+  expansionStrategy?: VectorExpansionStrategy;
+  reductionStrategy?: VectorReductionStrategy;
+}
+
+export type VectorCompatibilitySeverity = 'warning' | 'error';
+
+export type VectorCompatibilityIssueCode =
+  | 'dimension_mismatch'
+  | 'non_finite_values'
+  | 'empty_vector'
+  | 'zero_vector';
+
+export interface VectorCompatibilityIssue {
+  code: VectorCompatibilityIssueCode;
+  message: string;
+  severity: VectorCompatibilitySeverity;
+}
+
+export interface VectorCompatibilityAssessment {
+  isCompatible: boolean;
+  needsProjection: boolean;
+  issues: VectorCompatibilityIssue[];
+  actualDimensions: number;
+  expectedDimensions: number;
+  projection: VectorProjectionResult;
+  provider?: EmbeddingProvider;
 }

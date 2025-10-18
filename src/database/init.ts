@@ -14,6 +14,224 @@ const __dirname = dirname(__filename);
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 const log = (...args: any[]) => {};
 
+interface VecTableConfig {
+  name: string;
+  dimension: number;
+  filter: string;
+}
+
+function addMissingColumn(
+  db: Database.Database,
+  tableName: string,
+  columnName: string,
+  definition: string,
+  postUpdateSql?: string
+): void {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+  const hasColumn = columns.some(column => column.name === columnName);
+
+  if (!hasColumn) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+    if (postUpdateSql) {
+      db.exec(postUpdateSql);
+    }
+  }
+}
+
+function ensureLegacySchema(db: Database.Database): VecTableConfig[] {
+  const vecTablesToRepopulate: VecTableConfig[] = [];
+
+  try {
+    const hasEmbeddingTable = !!db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'`)
+      .get();
+
+    if (hasEmbeddingTable) {
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'embedding_provider',
+        "TEXT NOT NULL DEFAULT 'tfidf'",
+        `
+          UPDATE memory_embedding
+          SET embedding_provider = COALESCE(NULLIF(embedding_provider, ''), 'tfidf')
+          WHERE embedding_provider IS NULL OR embedding_provider = ''
+        `
+      );
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'projection_type',
+        "TEXT NOT NULL DEFAULT 'native'",
+        `
+          UPDATE memory_embedding
+          SET projection_type = COALESCE(NULLIF(projection_type, ''), 'native')
+          WHERE projection_type IS NULL OR projection_type = ''
+        `
+      );
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'dimensions',
+        'INTEGER DEFAULT 0',
+        `
+          UPDATE memory_embedding
+          SET dimensions = CASE
+            WHEN dimensions IS NULL OR dimensions <= 0 THEN COALESCE(NULLIF(dim, 0), dimensions)
+            ELSE dimensions
+          END
+        `
+      );
+      addMissingColumn(db, 'memory_embedding', 'model', 'TEXT');
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'precision',
+        'INTEGER DEFAULT 32',
+        `
+          UPDATE memory_embedding
+          SET precision = COALESCE(NULLIF(precision, 0), 32)
+        `
+      );
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'normalized',
+        'BOOLEAN DEFAULT FALSE',
+        `
+          UPDATE memory_embedding
+          SET normalized = COALESCE(normalized, 0)
+        `
+      );
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'version',
+        'INTEGER DEFAULT 1',
+        `
+          UPDATE memory_embedding
+          SET version = COALESCE(NULLIF(version, 0), 1)
+        `
+      );
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'created_by',
+        "TEXT DEFAULT 'system'",
+        `
+          UPDATE memory_embedding
+          SET created_by = COALESCE(NULLIF(created_by, ''), 'system')
+        `
+      );
+      addMissingColumn(
+        db,
+        'memory_embedding',
+        'created_at',
+        'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+      );
+    }
+
+    const hasRegistryTable = !!db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='embedding_model_registry'`)
+      .get();
+
+    if (hasRegistryTable) {
+      const registryColumns = db
+        .prepare('PRAGMA table_info(embedding_model_registry)')
+        .all() as Array<{ name: string }>;
+      const hasRegistryProjectionType = registryColumns.some(column => column.name === 'projection_type');
+
+      if (!hasRegistryProjectionType) {
+        db.exec(`
+          ALTER TABLE embedding_model_registry
+          ADD COLUMN projection_type TEXT NOT NULL DEFAULT 'native'
+        `);
+        db.exec(`
+          UPDATE embedding_model_registry
+          SET projection_type = 'native'
+          WHERE projection_type IS NULL OR projection_type = ''
+        `);
+      }
+    }
+
+    const vecTables: VecTableConfig[] = [
+      {
+        name: 'memory_item_vec',
+        dimension: 384,
+        filter: 'dimensions = 384'
+      },
+      {
+        name: 'memory_item_vec_tfidf',
+        dimension: 384,
+        filter: "embedding_provider = 'tfidf' AND dimensions = 384 AND projection_type = 'native'"
+      },
+      {
+        name: 'memory_item_vec_minilm',
+        dimension: 384,
+        filter: "embedding_provider = 'minilm' AND dimensions = 384 AND projection_type = 'native'"
+      },
+      {
+        name: 'memory_item_vec_openai',
+        dimension: 1536,
+        filter: "embedding_provider = 'openai' AND dimensions = 1536 AND projection_type = 'native'"
+      },
+      {
+        name: 'memory_item_vec_gemini',
+        dimension: 768,
+        filter: "embedding_provider = 'gemini' AND dimensions = 768 AND projection_type = 'native'"
+      }
+    ];
+
+    for (const config of vecTables) {
+      const existing = db
+        .prepare(`SELECT sql FROM sqlite_master WHERE type IN ('table','view') AND name = ?`)
+        .get(config.name) as { sql?: string } | undefined;
+      const expectedToken = `float[${config.dimension}]`;
+
+      if (!existing?.sql || !existing.sql.includes(expectedToken)) {
+        db.exec(`DROP TABLE IF EXISTS ${config.name}`);
+        db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${config.name} USING vec0(embedding float[${config.dimension}])`);
+        vecTablesToRepopulate.push(config);
+      }
+    }
+
+    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert');
+    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update');
+    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete');
+  } catch (error) {
+    console.warn('⚠️ 레거시 스키마 호환성 조정 실패:', error);
+  }
+
+  return vecTablesToRepopulate;
+}
+
+function populateVecTables(db: Database.Database, configs: VecTableConfig[]): void {
+  if (!configs.length) {
+    return;
+  }
+
+  const hasEmbeddingTable = !!db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'`)
+    .get();
+
+  if (!hasEmbeddingTable) {
+    return;
+  }
+
+  for (const config of configs) {
+    try {
+      db.exec(`
+        INSERT OR IGNORE INTO ${config.name}(rowid, embedding)
+        SELECT id, json_extract(embedding, '$')
+        FROM memory_embedding
+        WHERE ${config.filter}
+      `);
+    } catch (error) {
+      console.warn(`⚠️ ${config.name} 재구축 중 오류 발생:`, error);
+    }
+  }
+}
+
 export async function initializeDatabase(): Promise<Database.Database> {
   log('🗄️  SQLite 데이터베이스 초기화 중...');
   
@@ -73,9 +291,12 @@ export async function initializeDatabase(): Promise<Database.Database> {
     // 스키마 파일 읽기 및 실행
     const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf-8');
+
+    const vecTablesToRepopulate = ensureLegacySchema(db);
     
     // 스키마 실행
     db.exec(schema);
+    populateVecTables(db, vecTablesToRepopulate);
     
     log('✅ 데이터베이스 초기화 완료');
     log(`📁 데이터베이스 경로: ${mementoConfig.dbPath}`);

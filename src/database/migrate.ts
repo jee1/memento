@@ -41,107 +41,198 @@ function migrateDatabase() {
     
     console.log('✅ 사용성 통계 컬럼 추가 완료');
     
-    // 임베딩 테이블 생성 (기존에 없다면)
-    console.log('🧠 임베딩 테이블 생성 중...');
-    
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS memory_embedding (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        memory_id TEXT NOT NULL,
-        embedding TEXT NOT NULL,
-        dim INTEGER NOT NULL,
-        model TEXT,
-        embedding_provider TEXT DEFAULT 'tfidf',
-        dimensions INTEGER,
-        created_by TEXT DEFAULT 'system',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
-        UNIQUE(memory_id)
-      )
-    `);
-    
-    console.log('✅ 임베딩 테이블 생성 완료');
-    
-    console.log('🧩 임베딩 메타데이터 컬럼 동기화 중...');
-    const embeddingColumns = [
-      "embedding_provider TEXT DEFAULT 'tfidf'",
-      'dimensions INTEGER',
-      "created_by TEXT DEFAULT 'system'"
-    ];
-    
-    for (const column of embeddingColumns) {
-      try {
-        db.exec(`ALTER TABLE memory_embedding ADD COLUMN ${column}`);
-      } catch (err: any) {
-        if (!err.message.includes('duplicate column name')) {
-          throw err;
-        }
+    console.log('🧠 임베딩 테이블 구조 확인 중...');
+    const hasEmbeddingTable = !!db.prepare(`
+      SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'
+    `).get();
+
+    const columnInfo = hasEmbeddingTable
+      ? db.prepare(`PRAGMA table_info(memory_embedding)`).all() as Array<{ name: string; }>
+      : [];
+
+    const hasProjectionType = columnInfo.some(column => column.name === 'projection_type');
+    const needsRebuild = !hasEmbeddingTable || !hasProjectionType;
+
+    if (needsRebuild) {
+      console.log('🧱 memory_embedding 테이블 재구성 중...');
+
+      db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
+      db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
+      db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete;');
+
+      db.exec(`
+        CREATE TABLE memory_embedding__new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          memory_id TEXT NOT NULL,
+          embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
+          projection_type TEXT NOT NULL DEFAULT 'native',
+          embedding TEXT NOT NULL,
+          dim INTEGER NOT NULL,
+          dimensions INTEGER DEFAULT 0,
+          model TEXT,
+          precision INTEGER DEFAULT 32,
+          normalized BOOLEAN DEFAULT FALSE,
+          version INTEGER DEFAULT 1,
+          created_by TEXT DEFAULT 'system',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          UNIQUE(memory_id, embedding_provider, projection_type)
+        )
+      `);
+
+      if (hasEmbeddingTable) {
+        const hasProvider = columnInfo.some(column => column.name === 'embedding_provider');
+        const hasDimensions = columnInfo.some(column => column.name === 'dimensions');
+        const hasCreatedBy = columnInfo.some(column => column.name === 'created_by');
+
+        const providerSelect = hasProvider
+          ? "COALESCE(NULLIF(embedding_provider, ''), 'tfidf')"
+          : "'tfidf'";
+        const dimensionsSelect = hasDimensions
+          ? 'COALESCE(NULLIF(dimensions, 0), dim)'
+          : 'dim';
+        const createdBySelect = hasCreatedBy
+          ? "COALESCE(NULLIF(created_by, ''), 'system')"
+          : "'system'";
+
+        db.exec(`
+          INSERT INTO memory_embedding__new (
+            id,
+            memory_id,
+            embedding_provider,
+            projection_type,
+            embedding,
+            dim,
+            dimensions,
+            model,
+            precision,
+            normalized,
+            version,
+            created_by,
+            created_at
+          )
+          SELECT
+            id,
+            memory_id,
+            ${providerSelect},
+            'native',
+            embedding,
+            dim,
+            ${dimensionsSelect},
+            model,
+            32,
+            0,
+            1,
+            ${createdBySelect},
+            created_at
+          FROM memory_embedding
+        `);
+
+        db.exec('DROP TABLE memory_embedding;');
       }
+
+      db.exec('ALTER TABLE memory_embedding__new RENAME TO memory_embedding;');
+      console.log('✅ memory_embedding 테이블 재구성 완료');
+    } else {
+      console.log('✅ memory_embedding 테이블은 최신 구조입니다');
     }
-    console.log('✅ 임베딩 메타데이터 컬럼 동기화 완료');
-    
+
     console.log('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider ON memory_embedding(embedding_provider);
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
+    `);
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_provider ON memory_embedding(memory_id, embedding_provider);
+    `);
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider_projection ON memory_embedding(embedding_provider, projection_type);
     `);
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions);
     `);
     db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_memory_embedding_created_by ON memory_embedding(created_by);
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model);
     `);
-    
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_embedding_version ON memory_embedding(version);
+    `);
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS embedding_model_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        projection_type TEXT NOT NULL DEFAULT 'native',
+        dimensions INTEGER NOT NULL,
+        vec_table TEXT,
+        priority INTEGER DEFAULT 100,
+        status TEXT CHECK (status IN ('active','inactive','deprecated')) DEFAULT 'active',
+        last_checked TIMESTAMP,
+        metadata TEXT,
+        UNIQUE(provider, projection_type),
+        UNIQUE(provider, model),
+        UNIQUE(vec_table)
+      )
+    `);
+
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete;');
-    
+
     db.exec(`
       CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
         INSERT INTO memory_item_vec(rowid, embedding)
-        VALUES (NEW.id, json_extract(NEW.embedding, '$'));
-      
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.dimensions = 384;
+
         INSERT INTO memory_item_vec_tfidf(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'tfidf';
-      
+        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+
         INSERT INTO memory_item_vec_minilm(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'minilm';
-      
+        WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+
         INSERT INTO memory_item_vec_openai(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'openai';
-      
+        WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
+
         INSERT INTO memory_item_vec_gemini(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'gemini';
+        WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
       END
     `);
-    
+
     db.exec(`
       CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
-        UPDATE memory_item_vec
-        SET embedding = json_extract(NEW.embedding, '$')
-        WHERE rowid = NEW.id;
-      
-        UPDATE memory_item_vec_tfidf
-        SET embedding = json_extract(NEW.embedding, '$')
-        WHERE rowid = NEW.id AND NEW.embedding_provider = 'tfidf';
-      
-        UPDATE memory_item_vec_minilm
-        SET embedding = json_extract(NEW.embedding, '$')
-        WHERE rowid = NEW.id AND NEW.embedding_provider = 'minilm';
-      
-        UPDATE memory_item_vec_openai
-        SET embedding = json_extract(NEW.embedding, '$')
-        WHERE rowid = NEW.id AND NEW.embedding_provider = 'openai';
-      
-        UPDATE memory_item_vec_gemini
-        SET embedding = json_extract(NEW.embedding, '$')
-        WHERE rowid = NEW.id AND NEW.embedding_provider = 'gemini';
+        DELETE FROM memory_item_vec WHERE rowid = NEW.id;
+        DELETE FROM memory_item_vec_tfidf WHERE rowid = NEW.id;
+        DELETE FROM memory_item_vec_minilm WHERE rowid = NEW.id;
+        DELETE FROM memory_item_vec_openai WHERE rowid = NEW.id;
+        DELETE FROM memory_item_vec_gemini WHERE rowid = NEW.id;
+
+        INSERT INTO memory_item_vec(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.dimensions = 384;
+
+        INSERT INTO memory_item_vec_tfidf(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+
+        INSERT INTO memory_item_vec_minilm(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+
+        INSERT INTO memory_item_vec_openai(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
+
+        INSERT INTO memory_item_vec_gemini(rowid, embedding)
+        SELECT NEW.id, json_extract(NEW.embedding, '$')
+        WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
       END
     `);
-    
+
     db.exec(`
       CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
         DELETE FROM memory_item_vec WHERE rowid = OLD.id;

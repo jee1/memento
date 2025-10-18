@@ -1,7 +1,7 @@
 /**
  * 임베딩 제공자 팩토리
  * 전략 패턴을 사용하여 순환 의존성 방지
- * 
+ *
  * 클린코드 원칙:
  * - 단일 책임 원칙: 제공자 생성만 담당
  * - 의존성 역전: 인터페이스에 의존
@@ -9,11 +9,13 @@
  */
 
 import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../types/embedding.types.js';
+import type { ProviderFallbackDecision, ProviderHealthStatus } from '../types/embedding-provider-monitoring.types.js';
 import { mementoConfig } from '../config/index.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from './gemini-embedding-service.js';
 import { OpenAIEmbeddingService } from './openai-embedding-service.js';
+import { ModelAvailabilityService } from './model-availability-service.js';
 
 /**
  * 임베딩 제공자 팩토리
@@ -22,9 +24,14 @@ import { OpenAIEmbeddingService } from './openai-embedding-service.js';
 export class EmbeddingProviderFactory {
   private static instance: EmbeddingProviderFactory;
   private providers: Map<EmbeddingProvider, EmbeddingServiceInterface> = new Map();
+  private readonly availabilityService: ModelAvailabilityService;
 
   private constructor() {
     this.initializeProviders();
+    this.availabilityService = new ModelAvailabilityService(
+      provider => this.providers.get(provider) ?? null,
+      () => this.getPriorityProviders()
+    );
   }
 
   /**
@@ -42,10 +49,10 @@ export class EmbeddingProviderFactory {
    * 클린코드: 단일 책임 원칙 - 초기화만 담당
    */
   private initializeProviders(): void {
-    this.providers.set('minilm', new MiniLMEmbeddingService());
-    this.providers.set('tfidf', new LightweightEmbeddingService());
-    this.providers.set('gemini', new GeminiEmbeddingService());
-    this.providers.set('openai', new OpenAIEmbeddingService());
+    this.providers.set('minilm', this.createService('minilm'));
+    this.providers.set('tfidf', this.createService('tfidf'));
+    this.providers.set('gemini', this.createService('gemini'));
+    this.providers.set('openai', this.createService('openai'));
   }
 
   /**
@@ -69,9 +76,10 @@ export class EmbeddingProviderFactory {
 
     // MiniLM
     const minilm = this.providers.get('minilm');
+    const minilmStatus = this.availabilityService.getLastStatus('minilm');
     providerInfos.push({
       name: 'minilm',
-      available: minilm?.isAvailable() || false,
+      available: this.resolveAvailability('minilm', minilm, minilmStatus),
       priority: 3,
       cost: 'free',
       performance: 'high'
@@ -81,7 +89,7 @@ export class EmbeddingProviderFactory {
     const tfidf = this.providers.get('tfidf');
     providerInfos.push({
       name: 'tfidf',
-      available: tfidf?.isAvailable() || false,
+      available: this.resolveAvailability('tfidf', tfidf, this.availabilityService.getLastStatus('tfidf')),
       priority: 4,
       cost: 'free',
       performance: 'low'
@@ -89,9 +97,10 @@ export class EmbeddingProviderFactory {
 
     // Gemini
     const gemini = this.providers.get('gemini');
+    const geminiStatus = this.availabilityService.getLastStatus('gemini');
     providerInfos.push({
       name: 'gemini',
-      available: gemini?.isAvailable() || false,
+      available: this.resolveAvailability('gemini', gemini, geminiStatus),
       priority: 2,
       cost: 'paid',
       performance: 'high'
@@ -99,9 +108,10 @@ export class EmbeddingProviderFactory {
 
     // OpenAI
     const openai = this.providers.get('openai');
+    const openaiStatus = this.availabilityService.getLastStatus('openai');
     providerInfos.push({
       name: 'openai',
-      available: openai?.isAvailable() || false,
+      available: this.resolveAvailability('openai', openai, openaiStatus),
       priority: 1,
       cost: 'paid',
       performance: 'high'
@@ -116,7 +126,7 @@ export class EmbeddingProviderFactory {
    */
   selectProvider(preferredProvider?: EmbeddingProvider): EmbeddingServiceInterface | null {
     const availableProviders = this.getAvailableProviders();
-    
+
     // 1. 명시적으로 요청된 제공자 우선
     if (preferredProvider) {
       const normalizedPreferred = this.normalizeProviderName(preferredProvider);
@@ -150,13 +160,12 @@ export class EmbeddingProviderFactory {
     return null;
   }
 
-  /**
-   * OpenAI 사용 가능 여부 확인
-   * 클린코드: 단일 책임 원칙 - OpenAI 상태 확인만 담당
-   */
-  private isOpenAIAvailable(): boolean {
-    const openai = this.providers.get('openai');
-    return openai?.isAvailable() ?? false;
+  async selectProviderWithHealthCheck(
+    preferredProvider?: EmbeddingProvider
+  ): Promise<{ service: EmbeddingServiceInterface | null; decision: ProviderFallbackDecision }> {
+    const decision = await this.availabilityService.selectBestProvider(preferredProvider);
+    const service = this.getProvider(decision.selectedProvider);
+    return { service, decision };
   }
 
   /**
@@ -177,6 +186,17 @@ export class EmbeddingProviderFactory {
   unregisterProvider(provider: EmbeddingProvider): boolean {
     const normalized = this.normalizeProviderName(provider);
     return normalized ? this.providers.delete(normalized) : false;
+  }
+
+  private resolveAvailability(
+    provider: EmbeddingProvider,
+    service: EmbeddingServiceInterface | undefined | null,
+    status?: ProviderHealthStatus
+  ): boolean {
+    if (status) {
+      return status.state === 'available';
+    }
+    return service?.isAvailable() ?? false;
   }
 
   /**
@@ -205,6 +225,46 @@ export class EmbeddingProviderFactory {
         return 'tfidf';
       default:
         return null;
+    }
+  }
+
+  private getPriorityProviders(): EmbeddingProvider[] {
+    return Array.from(this.providers.keys());
+  }
+
+  handleProviderFailure(provider: EmbeddingProvider): void {
+    const normalized = this.normalizeProviderName(provider);
+    if (!normalized) {
+      return;
+    }
+    console.warn(`⚠️ ${normalized} 제공자 재초기화 시도`);
+    this.providers.set(normalized, this.createService(normalized));
+  }
+
+  getProviderName(service: EmbeddingServiceInterface | null): EmbeddingProvider | null {
+    if (!service) {
+      return null;
+    }
+    for (const [name, instance] of this.providers.entries()) {
+      if (instance === service) {
+        return name;
+      }
+    }
+    return null;
+  }
+
+  private createService(provider: EmbeddingProvider): EmbeddingServiceInterface {
+    switch (provider) {
+      case 'minilm':
+        return new MiniLMEmbeddingService();
+      case 'tfidf':
+        return new LightweightEmbeddingService();
+      case 'gemini':
+        return new GeminiEmbeddingService();
+      case 'openai':
+        return new OpenAIEmbeddingService();
+      default:
+        return new LightweightEmbeddingService();
     }
   }
 }

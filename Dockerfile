@@ -23,6 +23,11 @@ RUN npm run build
 # Production stage
 FROM node:20-slim AS production
 
+# Use the same cache directory as the builder stage
+ENV XDG_CACHE_HOME=/app/.cache
+ENV TRANSFORMERS_CACHE=/app/.cache/transformers
+RUN mkdir -p "$TRANSFORMERS_CACHE"
+
 # Install SQLite and development tools (FTS5 is included in SQLite)
 # Install dependencies for sqlite-vec compilation
 RUN apt-get update && apt-get install -y \
@@ -63,7 +68,12 @@ RUN npm ci --only=production --ignore-scripts && \
     npm rebuild better-sqlite3 --build-from-source && \
     npm install sqlite-vec --build-from-source && \
     npm install --platform=linux --arch=x64 sharp && \
-    npm cache clean --force
+    npm cache clean --force && \
+    node --input-type=module -e "\
+      import { pipeline } from '@xenova/transformers'; \
+      const embed = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2'); \
+      await embed('cache warmup'); \
+    "
 
 # Create data directory
 RUN mkdir -p /app/data

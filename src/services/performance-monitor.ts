@@ -5,6 +5,8 @@
 
 import Database from 'better-sqlite3';
 import os from 'os';
+import { logger } from '../utils/logger.js';
+import { alertNotificationService } from './alert-notification-service.js';
 
 export interface PerformanceMetrics {
   timestamp: Date;
@@ -13,10 +15,12 @@ export interface PerformanceMetrics {
     heapTotal: number;
     heapUsed: number;
     external: number;
+    usagePercent: number;
   };
   cpu: {
     user: number;
     system: number;
+    percent: number;
   };
   database: {
     size: number;
@@ -24,6 +28,13 @@ export interface PerformanceMetrics {
     queryTime: number;
   };
   uptime: number;
+  search?: {
+    total: number;
+    averageTime: number;
+    byType: { text: number; vector: number; hybrid: number };
+    cacheHitRate: number;
+    embeddingSearchRate: number;
+  };
 }
 
 export interface AlertThresholds {
@@ -67,7 +78,7 @@ export class PerformanceMonitor {
    */
   initialize(db: Database.Database): void {
     this.db = db;
-    this.log('PerformanceMonitor initialized');
+    logger.info('PerformanceMonitor initialized');
   }
 
   /**
@@ -85,10 +96,10 @@ export class PerformanceMonitor {
     
     // 메모리 사용량
     const memUsage = process.memoryUsage();
-    
+
     // CPU 사용량
     const cpuUsage = process.cpuUsage();
-    
+
     // 데이터베이스 지표
     const dbMetrics = await this.getDatabaseMetrics();
     const dbMetricsForPerformance = {
@@ -96,13 +107,16 @@ export class PerformanceMonitor {
       memoryCount: dbMetrics.totalMemories,
       queryTime: 0 // 실제 쿼리 시간은 별도로 측정
     };
-    
+
     // 검색 지표
     const searchMetrics = this.getSearchMetrics();
-    
+
     // 시스템 지표
     const systemMetrics = this.getSystemMetrics();
-    
+
+    const memoryUsagePercent = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
+    const cpuUsagePercent = this.calculateCpuUsage(cpuUsage);
+
     const metrics: PerformanceMetrics = {
       timestamp: new Date(),
       database: dbMetricsForPerformance,
@@ -110,13 +124,22 @@ export class PerformanceMonitor {
         rss: memUsage.rss,
         heapTotal: memUsage.heapTotal,
         heapUsed: memUsage.heapUsed,
-        external: memUsage.external
+        external: memUsage.external,
+        usagePercent: memoryUsagePercent
       },
       cpu: {
         user: cpuUsage.user,
-        system: cpuUsage.system
+        system: cpuUsage.system,
+        percent: cpuUsagePercent
       },
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      search: {
+        total: searchMetrics.totalSearches,
+        averageTime: searchMetrics.averageSearchTime,
+        byType: searchMetrics.searchByType,
+        cacheHitRate: searchMetrics.cacheHitRate,
+        embeddingSearchRate: searchMetrics.embeddingSearchRate
+      }
     };
 
     // 지표 히스토리에 추가
@@ -126,7 +149,7 @@ export class PerformanceMonitor {
     await this.checkAlerts(metrics);
     
     const collectionTime = Date.now() - startTime;
-    this.log(`Metrics collected in ${collectionTime}ms`);
+    logger.debug('Performance metrics collected', { collectionTimeMs: collectionTime });
     
     return metrics;
   }
@@ -234,12 +257,24 @@ export class PerformanceMonitor {
     // 알림 저장 및 로깅
     for (const alert of alerts) {
       this.alerts.set(alert.id, alert);
-      this.log(`Alert generated: ${alert.type} - ${alert.message}`, {
+      logger.warn('Performance alert generated', {
+        type: alert.type,
         severity: alert.severity,
         value: alert.value,
         threshold: alert.threshold
       });
-      
+      alertNotificationService.emitAlert({
+        id: alert.id,
+        source: 'performance',
+        severity: alert.severity,
+        message: alert.message,
+        metadata: {
+          type: alert.type,
+          value: alert.value,
+          threshold: alert.threshold
+        }
+      });
+
       // 심각한 알림의 경우 추가 처리
       if (alert.severity === 'critical') {
         await this.handleCriticalAlert(alert, metrics);
@@ -267,7 +302,8 @@ export class PerformanceMonitor {
     const alert = this.alerts.get(alertId);
     if (alert) {
       alert.resolved = true;
-      this.log(`Alert resolved: ${alertId}`);
+      logger.info('Performance alert resolved', { alertId });
+      alertNotificationService.acknowledgeAlert(alertId);
       return true;
     }
     return false;
@@ -328,18 +364,21 @@ export class PerformanceMonitor {
     metrics: PerformanceMetrics[];
     alerts: PerformanceAlert[];
     recommendations: string[];
+    analytics: ReturnType<PerformanceMonitor['getMetricsAnalytics']>;
     timestamp: Date;
   }> {
     const summary = this.getPerformanceSummary();
     const metrics = this.getMetricsHistory();
     const alerts = this.getAlerts();
     const recommendations = this.generateRecommendations(alerts);
+    const analytics = this.getMetricsAnalytics();
 
     return {
       summary,
       metrics,
       alerts,
       recommendations,
+      analytics,
       timestamp: new Date()
     };
   }
@@ -385,7 +424,7 @@ export class PerformanceMonitor {
       try {
         await this.collectMetrics();
       } catch (error) {
-        console.error('성능 모니터링 중 오류:', error);
+        logger.error('성능 모니터링 중 오류', { error: error instanceof Error ? error.message : String(error) });
       }
     }, intervalMs);
   }
@@ -702,6 +741,109 @@ export class PerformanceMonitor {
     };
   }
 
+  getMetricsAnalytics(limit: number = 50): {
+    memory: {
+      averageHeapUsedMB: number;
+      peakHeapUsedMB: number;
+      averageUsagePercent: number;
+      history: number[];
+    };
+    cpu: {
+      averagePercent: number;
+      peakPercent: number;
+      history: number[];
+    };
+    database: {
+      averageSizeMB: number;
+      lastSizeMB: number;
+      growthRate: number;
+    };
+    search: {
+      totalSearches: number;
+      averageSearchTime: number;
+      cacheHitRate: number;
+      textShare: number;
+      vectorShare: number;
+      hybridShare: number;
+    };
+  } {
+    const history = this.metricsHistory.slice(-limit);
+    if (!history.length) {
+      return {
+        memory: {
+          averageHeapUsedMB: 0,
+          peakHeapUsedMB: 0,
+          averageUsagePercent: 0,
+          history: []
+        },
+        cpu: {
+          averagePercent: 0,
+          peakPercent: 0,
+          history: []
+        },
+        database: {
+          averageSizeMB: 0,
+          lastSizeMB: 0,
+          growthRate: 0
+        },
+        search: {
+          totalSearches: 0,
+          averageSearchTime: 0,
+          cacheHitRate: 0,
+          textShare: 0,
+          vectorShare: 0,
+          hybridShare: 0
+        }
+      };
+    }
+
+    const toMb = (bytes: number): number => bytes / (1024 * 1024);
+    const average = (values: number[]): number => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+
+    const memoryUsed = history.map(m => m.memory.heapUsed);
+    const memoryPercentHistory = history.map(m => m.memory.usagePercent ?? (m.memory.heapTotal ? (m.memory.heapUsed / m.memory.heapTotal) * 100 : 0));
+    const cpuPercentHistory = history.map(m => m.cpu.percent ?? this.calculateCpuUsage(m.cpu));
+    const dbSizesMB = history.map(m => toMb(m.database.size));
+
+    const latestEntry = history[history.length - 1];
+    const latestSearch = latestEntry?.search;
+    const totalSearches = latestSearch?.total ?? 0;
+    const totalByType = latestSearch?.byType ?? { text: 0, vector: 0, hybrid: 0 };
+    const totalByTypeSum = totalByType.text + totalByType.vector + totalByType.hybrid;
+    const lastDbSize = dbSizesMB[dbSizesMB.length - 1] ?? 0;
+    const firstDbSize = dbSizesMB[0] ?? 0;
+
+    return {
+      memory: {
+        averageHeapUsedMB: toMb(average(memoryUsed)),
+        peakHeapUsedMB: toMb(Math.max(...memoryUsed)),
+        averageUsagePercent: average(memoryPercentHistory),
+        history: memoryPercentHistory
+      },
+      cpu: {
+        averagePercent: average(cpuPercentHistory),
+        peakPercent: Math.max(...cpuPercentHistory),
+        history: cpuPercentHistory
+      },
+      database: {
+        averageSizeMB: average(dbSizesMB),
+        lastSizeMB: lastDbSize,
+        growthRate:
+          dbSizesMB.length > 1 && firstDbSize > 0
+            ? (lastDbSize - firstDbSize) / firstDbSize
+            : 0
+      },
+      search: {
+        totalSearches,
+        averageSearchTime: latestSearch?.averageTime ?? 0,
+        cacheHitRate: latestSearch?.cacheHitRate ?? 0,
+        textShare: totalByTypeSum > 0 ? totalByType.text / totalByTypeSum : 0,
+        vectorShare: totalByTypeSum > 0 ? totalByType.vector / totalByTypeSum : 0,
+        hybridShare: totalByTypeSum > 0 ? totalByType.hybrid / totalByTypeSum : 0
+      }
+    };
+  }
+
   /**
    * 트렌드 분석
    */
@@ -725,7 +867,7 @@ export class PerformanceMonitor {
    */
   updateThresholds(newThresholds: Partial<AlertThresholds>): void {
     this.thresholds = { ...this.thresholds, ...newThresholds };
-    this.log('Thresholds updated', this.thresholds);
+    logger.info('Performance thresholds updated', { ...this.thresholds });
   }
 
   /**
@@ -755,8 +897,8 @@ export class PerformanceMonitor {
    * 심각한 알림 처리
    */
   private async handleCriticalAlert(alert: PerformanceAlert, metrics: PerformanceMetrics): Promise<void> {
-    this.log(`Critical alert handling: ${alert.type}`, {
-      alert: alert,
+    logger.error('Critical performance alert handling', {
+      alert,
       metrics: {
         memoryUsage: (metrics.memory.heapUsed / metrics.memory.heapTotal) * 100,
         dbSize: metrics.database.size / (1024 * 1024),
@@ -766,23 +908,23 @@ export class PerformanceMonitor {
 
     // 메모리 정리 시도
     if (alert.type === 'memory' && global.gc) {
-      this.log('Triggering garbage collection due to high memory usage');
+      logger.warn('Triggering garbage collection due to high memory usage');
       global.gc();
     }
 
     // 데이터베이스 최적화 시도
     if (alert.type === 'database' && this.db) {
       try {
-        this.log('Running database optimization due to large size');
+        logger.warn('Running database optimization due to large database size');
         await this.optimizeDatabase();
       } catch (error) {
-        this.log('Database optimization failed:', error);
+        logger.error('Database optimization failed', { error: error instanceof Error ? error.message : String(error) });
       }
     }
 
     // 쿼리 최적화 시도
     if (alert.type === 'query') {
-      this.log('Query optimization recommended due to slow queries');
+      logger.warn('Query optimization recommended due to slow queries');
       // 여기에 쿼리 최적화 로직 추가 가능
     }
   }
@@ -796,18 +938,18 @@ export class PerformanceMonitor {
     try {
       // VACUUM 실행
       this.db.exec('VACUUM');
-      this.log('Database VACUUM completed');
+      logger.info('Database VACUUM completed');
       
       // ANALYZE 실행
       this.db.exec('ANALYZE');
-      this.log('Database ANALYZE completed');
+      logger.info('Database ANALYZE completed');
       
       // WAL 체크포인트
       this.db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-      this.log('WAL checkpoint completed');
+      logger.info('WAL checkpoint completed');
       
     } catch (error) {
-      this.log('Database optimization failed:', error);
+      logger.error('Database optimization failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -866,7 +1008,7 @@ export class PerformanceMonitor {
     }
     
     if (removedCount > 0) {
-      this.log(`Cleaned up ${removedCount} old alerts`);
+      logger.info('Old alerts cleaned', { removedCount });
     }
   }
 

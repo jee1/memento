@@ -4,7 +4,8 @@
  */
 
 import { UnifiedEmbeddingService } from './unified-embedding-service.js';
-import type { EmbeddingResult } from '../types/embedding.types.js';
+import { vectorCompatibilityService } from './vector-compatibility-service.js';
+import type { EmbeddingProvider, EmbeddingResult } from '../types/embedding.types.js';
 import { DatabaseUtils } from '../utils/database.js';
 import type { MemoryType } from '../types/index.js';
 
@@ -32,7 +33,7 @@ export interface VectorSearchResult {
 
 export class MemoryEmbeddingService {
   private embeddingService: UnifiedEmbeddingService;
-  private readonly defaultProvider = 'tfidf';
+  private readonly defaultProvider: EmbeddingProvider = 'tfidf';
   private readonly createdByTag = 'memory_embedding_service';
 
   constructor() {
@@ -84,8 +85,44 @@ export class MemoryEmbeddingService {
       const provider = this.normalizeProvider(
         embeddingResult.provider || this.embeddingService.getCurrentProviderName()
       );
-      const serializedEmbedding = JSON.stringify(embeddingVector);
-      const dimensions = embeddingVector.length;
+
+      const compatibility = vectorCompatibilityService.assessProviderCompatibility(
+        embeddingVector,
+        provider
+      );
+
+      const blockingIssues = compatibility.issues.filter(
+        issue => issue.severity === 'error' && issue.code !== 'dimension_mismatch'
+      );
+
+      if (blockingIssues.length > 0) {
+        console.error('❌ 임베딩 벡터 검증 실패:', blockingIssues.map(issue => issue.message));
+        return null;
+      }
+
+      const projection = compatibility.projection;
+      const storedVector = projection.vector;
+      const serializedEmbedding = JSON.stringify(storedVector);
+      const sourceDimensions = projection.sourceDimensions;
+      const storedDimensions = projection.targetDimensions;
+      const projectionType = projection.projectionType;
+      const normalized = projection.normalized ? 1 : 0;
+
+      if (compatibility.needsProjection) {
+        const dimensionIssue = compatibility.issues.find(
+          issue => issue.code === 'dimension_mismatch'
+        );
+        if (dimensionIssue) {
+          console.warn(`⚠️ ${dimensionIssue.message}`);
+        }
+        console.log(
+          `🔄 벡터 차원 조정: ${sourceDimensions} → ${storedDimensions} (${projectionType})`
+        );
+      }
+
+      compatibility.issues
+        .filter(issue => issue.severity === 'warning')
+        .forEach(issue => console.warn(`⚠️ 임베딩 경고: ${issue.message}`));
 
       // metadata 보정 (기존 레거시 행 대비)
       await this.ensureMetadataDefaults(db);
@@ -94,30 +131,38 @@ export class MemoryEmbeddingService {
       await DatabaseUtils.run(db, `
         INSERT OR REPLACE INTO memory_embedding (
           memory_id,
+          embedding_provider,
+          projection_type,
           embedding,
           dim,
           model,
-          embedding_provider,
           dimensions,
+          precision,
+          normalized,
+          version,
           created_by,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         memoryId,
-        serializedEmbedding,
-        dimensions,
-        embeddingResult.model,
         provider,
-        dimensions,
+        projectionType,
+        serializedEmbedding,
+        sourceDimensions,
+        embeddingResult.model,
+        storedDimensions,
+        32,
+        normalized,
+        1,
         this.createdByTag
       ]);
 
-      console.log(`✅ 임베딩 저장 완료: ${memoryId} (${dimensions}차원, ${provider})`);
+      console.log(`✅ 임베딩 저장 완료: ${memoryId} (${storedDimensions}차원, ${provider})`);
       return {
         ...embeddingResult,
-        provider: provider as EmbeddingResult['provider'],
-        embedding: embeddingVector
+        provider,
+        embedding: storedVector
       };
 
     } catch (error) {
@@ -316,14 +361,14 @@ export class MemoryEmbeddingService {
     }
   }
 
-  private normalizeProvider(provider?: string | null): string {
+  private normalizeProvider(provider?: string | null): EmbeddingProvider {
     const normalized = (provider || '').toLowerCase();
     switch (normalized) {
       case 'tfidf':
       case 'minilm':
       case 'openai':
       case 'gemini':
-        return normalized;
+        return normalized as EmbeddingProvider;
       default:
         return this.defaultProvider;
     }
@@ -343,11 +388,30 @@ export class MemoryEmbeddingService {
             ELSE ?
           END
         ),
-        dimensions = COALESCE(dimensions, dim),
+        projection_type = COALESCE(NULLIF(projection_type, ''), 'native'),
+        precision = COALESCE(precision, 32),
+        normalized = COALESCE(normalized, 0),
+        version = COALESCE(version, 1),
+        dim = CASE
+          WHEN dim IS NULL OR dim = 0 THEN json_array_length(embedding)
+          ELSE dim
+        END,
+        dimensions = CASE
+          WHEN dimensions IS NULL OR dimensions = 0 THEN json_array_length(embedding)
+          ELSE dimensions
+        END,
         created_by = COALESCE(created_by, 'legacy')
         WHERE embedding_provider IS NULL
            OR embedding_provider = ''
            OR dimensions IS NULL
+           OR dimensions = 0
+           OR projection_type IS NULL
+           OR projection_type = ''
+           OR precision IS NULL
+           OR precision = 0
+           OR normalized IS NULL
+           OR version IS NULL
+           OR version = 0
            OR created_by IS NULL
       `, [this.defaultProvider]);
     } catch (error) {

@@ -4,45 +4,61 @@
 
 import { config } from 'dotenv';
 import type { MementoConfig, EmbeddingProvider } from '../types/index.js';
+import { validateConfiguration } from '../utils/configuration-validator.js';
+import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
+import {
+  providerDimensionDefaults,
+  resolveNumber,
+  resolveOptionalNumber,
+  resolveOptionalString,
+  resolveString
+} from './environment.js';
 
 // 환경 변수 로드
 config();
 
+const embeddingProvider = (resolveString('EMBEDDING_PROVIDER') as EmbeddingProvider) || 'minilm';
+
+const embeddingDimensions: number =
+  (resolveOptionalNumber('EMBEDDING_DIMENSIONS') ??
+  providerDimensionDefaults[embeddingProvider] ??
+  providerDimensionDefaults.minilm) as number;
+
 export const mementoConfig: MementoConfig = {
   // 데이터베이스 설정
-  dbPath: process.env.DB_PATH || './data/memory.db',
-  
+  dbPath: resolveString('DB_PATH'),
+
   // MCP 서버 설정
-  serverName: process.env.MCP_SERVER_NAME || 'memento-memory',
-  serverVersion: process.env.MCP_SERVER_VERSION || '0.1.0',
-  port: parseInt(process.env.MCP_SERVER_PORT || '3000', 10),
-  
+  serverName: resolveString('MCP_SERVER_NAME'),
+  serverVersion: resolveString('MCP_SERVER_VERSION'),
+  port: resolveNumber('MCP_SERVER_PORT', { fallbackKeys: ['PORT'] }),
+
   // 임베딩 설정
-  embeddingProvider: (process.env.EMBEDDING_PROVIDER as EmbeddingProvider) || 'minilm',
-  openaiApiKey: process.env.OPENAI_API_KEY || undefined,
-  openaiModel: process.env.OPENAI_MODEL || 'text-embedding-3-small',
-  geminiApiKey: process.env.GEMINI_API_KEY || undefined,
-  geminiModel: process.env.GEMINI_MODEL || 'text-embedding-004',
-  embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '384', 10), // MiniLM 기본값
-  
+  embeddingProvider,
+  openaiApiKey: resolveOptionalString('OPENAI_API_KEY'),
+  openaiModel: resolveString('OPENAI_MODEL'),
+  geminiApiKey: resolveOptionalString('GEMINI_API_KEY'),
+  geminiModel: resolveString('GEMINI_MODEL'),
+  embeddingDimensions,
+
   // 검색 설정
-  searchDefaultLimit: parseInt(process.env.SEARCH_DEFAULT_LIMIT || '10', 10),
-  searchMaxLimit: parseInt(process.env.SEARCH_MAX_LIMIT || '50', 10),
-  
+  searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),
+  searchMaxLimit: resolveNumber('SEARCH_MAX_LIMIT'),
+
   // 망각 정책 설정 (시간 단위: 시간)
   forgetTTL: {
-    working: parseInt(process.env.FORGET_WORKING_TTL || '48', 10),
-    episodic: parseInt(process.env.FORGET_EPISODIC_TTL || '2160', 10), // 90일
-    semantic: parseInt(process.env.FORGET_SEMANTIC_TTL || '-1', 10),   // 무기한
-    procedural: parseInt(process.env.FORGET_PROCEDURAL_TTL || '-1', 10) // 무기한
+    working: resolveNumber('FORGET_WORKING_TTL'),
+    episodic: resolveNumber('FORGET_EPISODIC_TTL'),
+    semantic: resolveNumber('FORGET_SEMANTIC_TTL'),
+    procedural: resolveNumber('FORGET_PROCEDURAL_TTL')
   },
-  
+
   // 로깅 설정
-  logLevel: process.env.LOG_LEVEL || 'info',
-  logFile: process.env.LOG_FILE || undefined,
-  
+  logLevel: resolveString('LOG_LEVEL'),
+  logFile: resolveOptionalString('LOG_FILE'),
+
   // 개발 설정
-  nodeEnv: process.env.NODE_ENV || 'development'
+  nodeEnv: resolveString('NODE_ENV')
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)
@@ -64,43 +80,8 @@ export const defaultTags = {
 
 // 유효성 검사
 export function validateConfig(): void {
-  // 임베딩 제공자별 API 키 검증
-  if (mementoConfig.embeddingProvider === 'openai' && !mementoConfig.openaiApiKey) {
-    throw new Error('OPENAI_API_KEY is required when using OpenAI embedding provider');
+  if (!isValidConfigurationEnvironment()) {
+    return;
   }
-  
-  if (mementoConfig.embeddingProvider === 'gemini' && !mementoConfig.geminiApiKey) {
-    throw new Error('GEMINI_API_KEY is required when using Gemini embedding provider');
-  }
-  
-  // 유효한 임베딩 제공자 확인
-  const validProviders = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'];
-  if (!validProviders.includes(mementoConfig.embeddingProvider)) {
-    throw new Error(`Invalid embedding provider: ${mementoConfig.embeddingProvider}. Must be one of: ${validProviders.join(', ')}`);
-  }
-  
-  // 차원 수 검증 (제공자별 권장값)
-  const providerDimensions = {
-    tfidf: 512,
-    minilm: 384,
-    openai: 1536,
-    gemini: 768
-  };
-  
-  const expectedDimensions = providerDimensions[mementoConfig.embeddingProvider as keyof typeof providerDimensions];
-  if (mementoConfig.embeddingDimensions !== expectedDimensions) {
-    console.warn(`⚠️ 권장 차원 수와 다릅니다. ${mementoConfig.embeddingProvider}는 ${expectedDimensions}차원을 권장합니다.`);
-  }
-  
-  if (mementoConfig.embeddingDimensions <= 0) {
-    throw new Error('EMBEDDING_DIMENSIONS must be a positive number');
-  }
-  
-  if (mementoConfig.searchDefaultLimit <= 0 || mementoConfig.searchMaxLimit <= 0) {
-    throw new Error('Search limits must be positive numbers');
-  }
-  
-  if (mementoConfig.searchDefaultLimit > mementoConfig.searchMaxLimit) {
-    throw new Error('SEARCH_DEFAULT_LIMIT cannot be greater than SEARCH_MAX_LIMIT');
-  }
+  validateConfiguration(mementoConfig);
 }

@@ -5,7 +5,7 @@
 
 import { SearchEngine } from './search-engine.js';
 import { MemoryEmbeddingService, type VectorSearchResult } from '../services/memory-embedding-service.js';
-import { EmbeddingService } from '../services/embedding-service.js';
+import { UnifiedEmbeddingService } from '../services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import type { MemorySearchFilters, MemoryType } from '../types/index.js';
 import Database from 'better-sqlite3';
@@ -263,7 +263,8 @@ export class HybridSearchEngine {
     private vectorSearchEngine: IVectorSearchEngine,
     private resultCombiner: ISearchResultCombiner,
     private weightCalculator: IAdaptiveWeightCalculator,
-    private logger: ISearchLogger
+    private logger: ISearchLogger,
+    private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService()
   ) {}
 
   /**
@@ -435,8 +436,7 @@ export class HybridSearchEngine {
   private async generateQueryVector(query: string, searchId: string): Promise<number[]> {
     try {
       const embeddingStart = process.hrtime.bigint();
-      const embeddingService = new EmbeddingService();
-      const embeddingResult = await embeddingService.generateEmbedding(query);
+      const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
       
       if (!embeddingResult) {
         throw new SearchError(

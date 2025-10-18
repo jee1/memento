@@ -58,7 +58,12 @@ type EmbeddingRecord = {
   rowId: number;
   memoryId: string;
   provider: EmbeddingProvider;
+  projectionType: string;
+  dim: number;
   dimensions: number;
+  precision: number;
+  normalized: number;
+  version: number;
   embedding: number[];
 };
 
@@ -100,14 +105,31 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
 
     runSpy = vi.spyOn(DatabaseUtils, 'run').mockImplementation((db: any, sql: string, params: any[] = []) => {
       if (sql.includes('INSERT OR REPLACE INTO memory_embedding')) {
-        const [memoryId, embeddingJson, dim, _model, provider, dimensions] = params;
+        const [
+          memoryId,
+          provider,
+          projectionType,
+          embeddingJson,
+          dim,
+          _model,
+          dimensions,
+          precision,
+          normalized,
+          version,
+          _createdBy
+        ] = params;
         const existingIdx = embeddingRows.findIndex(row => row.memoryId === memoryId);
         const rowId = existingIdx >= 0 ? embeddingRows[existingIdx].rowId : nextRowId++;
         const record: EmbeddingRecord = {
           rowId,
           memoryId,
           provider,
+          projectionType,
+          dim,
           dimensions,
+          precision,
+          normalized,
+          version,
           embedding: JSON.parse(embeddingJson)
         };
         if (existingIdx >= 0) {
@@ -122,7 +144,12 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
         const fallbackProvider = params[0] ?? 'tfidf';
         embeddingRows = embeddingRows.map(row => ({
           ...row,
-          provider: row.provider || fallbackProvider,
+          provider: row.provider || (fallbackProvider as EmbeddingProvider),
+          projectionType: row.projectionType || 'native',
+          precision: row.precision || 32,
+          normalized: row.normalized ?? 0,
+          version: row.version || 1,
+          dim: row.dim || row.embedding.length,
           dimensions: row.dimensions || row.embedding.length
         }));
         return { changes: embeddingRows.length } as any;
@@ -170,11 +197,14 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
 
       await embeddingService.createAndStoreEmbedding(dbStub as any, memoryId, memoryRecord.content, type);
 
-      expect(runSpy).toHaveBeenCalledWith(
-        dbStub,
-        expect.stringContaining('INSERT OR REPLACE INTO memory_embedding'),
-        expect.arrayContaining([memoryId, expect.any(String), dimensions, expect.any(String), provider, dimensions])
+      const insertCall = runSpy.mock.calls.find(
+        ([targetDb, sql]) => targetDb === dbStub && typeof sql === 'string' && sql.includes('INSERT OR REPLACE INTO memory_embedding')
       );
+      expect(insertCall).toBeDefined();
+      const [, , insertParams] = insertCall!;
+      expect(insertParams[0]).toBe(memoryId);
+      expect(insertParams[1]).toBe(provider);
+      expect(typeof insertParams[2]).toBe('string');
 
       vectorEngine.initialize(dbStub as any);
 
@@ -197,7 +227,44 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
       expect(stored).toBeDefined();
       expect(stored?.provider).toBe(provider);
       expect(stored?.dimensions).toBe(dimensions);
+      expect(stored?.projectionType).toBe('native');
     });
+  });
+
+  it('pads legacy 384-dimension embeddings for openai provider', async () => {
+    const provider: EmbeddingProvider = 'openai';
+    const legacyDimensions = 384;
+    const targetDimensions = 1536;
+    const mockEmbedding = Array.from({ length: legacyDimensions }, (_, idx) => (idx + 1) / legacyDimensions);
+    setMockEmbedding(provider, mockEmbedding);
+
+    const memoryId = 'legacy-openai-memory';
+    const memoryRecord: MemoryItemRecord = {
+      id: memoryId,
+      content: 'legacy openai memory content',
+      type: 'semantic',
+      importance: 0.7,
+      created_at: new Date().toISOString(),
+      last_accessed: new Date().toISOString(),
+      pinned: false,
+      tags: ['legacy-openai']
+    };
+    memoryItems.set(memoryId, memoryRecord);
+
+    const dbStub = createDbStub(() => embeddingRows, () => memoryItems);
+    const embeddingService = new MemoryEmbeddingService();
+
+    await embeddingService.createAndStoreEmbedding(dbStub as any, memoryId, memoryRecord.content, memoryRecord.type);
+
+    const stored = embeddingRows.find(row => row.memoryId === memoryId);
+    expect(stored).toBeDefined();
+    expect(stored?.provider).toBe(provider);
+    expect(stored?.dim).toBe(legacyDimensions);
+    expect(stored?.dimensions).toBe(targetDimensions);
+    expect(stored?.projectionType).toBe('zero_pad');
+    expect(stored?.embedding).toHaveLength(targetDimensions);
+    expect(stored?.embedding.slice(0, legacyDimensions)).toEqual(mockEmbedding);
+    expect(stored?.embedding.slice(legacyDimensions).every(value => value === 0)).toBe(true);
   });
 });
 
