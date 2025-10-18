@@ -7,7 +7,10 @@ import type {
   VectorSearchQuery, 
   VectorSearchResult, 
   VectorIndexStatus,
-  PerformanceTestResult 
+  PerformanceTestResult,
+  ProviderHybridQuery,
+  ProviderHybridResult,
+  UnifiedSearchResponse
 } from '../../types/vector-search.types';
 import { VectorSearchService } from './vector-search.service';
 import { VectorIndexManager } from './vector-index-manager';
@@ -17,6 +20,7 @@ import type {
   VectorIndexRepository, 
   VectorPerformanceRepository 
 } from '../../interfaces/database.interface';
+import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 
 export class VectorSearchFacade {
   private searchService: VectorSearchService;
@@ -45,6 +49,20 @@ export class VectorSearchFacade {
    */
   async hybridSearch(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     return await this.searchService.hybridSearch(query);
+  }
+
+  async providerHybridSearch(
+    query: ProviderHybridQuery,
+    embeddingService: UnifiedEmbeddingService
+  ): Promise<ProviderHybridResult[]> {
+    return await this.searchService.providerHybridSearch(embeddingService, query);
+  }
+
+  async unifiedSearch(
+    query: ProviderHybridQuery,
+    embeddingService: UnifiedEmbeddingService
+  ): Promise<UnifiedSearchResponse> {
+    return await this.searchService.unifiedSearch(embeddingService, query);
   }
 
   /**

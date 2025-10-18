@@ -2,42 +2,26 @@ version: '3.8'
 
 services:
   memento-prod:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+    extends:
+      file: docker-compose.base.yml
+      service: memento-base
     environment:
-      - NODE_ENV=production
-      - DOCKER=true
-      - DB_PATH=/app/data/memory.db
-      - LOG_LEVEL=info
-      - PORT=8080
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-lightweight}
-      - GEMINI_MODEL=${GEMINI_MODEL:-text-embedding-004}
-      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-512}
-      - MAX_CONNECTIONS=${MAX_CONNECTIONS:-1000}
-      - CACHE_TTL=${CACHE_TTL:-300000}
-      - CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-1000}
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-    restart: unless-stopped
+      NODE_ENV: production
+      MCP_SERVER_PORT: ${MCP_SERVER_PORT:-8080}
+      PORT: ${PORT:-8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${MCP_SERVER_PORT:-8080}:${MCP_SERVER_PORT:-8080}"
     command: ["/app/start-container.sh"]
-    stdin_open: true
-    tty: true
     networks:
       - memento-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${MCP_SERVER_PORT:-8080}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # 프로덕션용 Redis (캐싱)
   redis-prod:
     image: redis:7-alpine
     ports:
@@ -54,7 +38,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Nginx 리버스 프록시 (선택사항)
   nginx:
     image: nginx:alpine
     ports:

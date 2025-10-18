@@ -24,6 +24,7 @@ import { EmbeddingProviderFactory } from './embedding-provider-factory.js';
 export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
   private factory: EmbeddingProviderFactory;
   private currentProvider: EmbeddingServiceInterface | null = null;
+  private currentProviderName: EmbeddingProvider | null = null;
   private fallbackProviders: EmbeddingProvider[] = ['minilm', 'openai', 'gemini', 'tfidf'];
 
   constructor() {
@@ -41,19 +42,19 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     this.validateInput(text);
 
     try {
-      const provider = this.selectProvider(preferredProvider);
-      if (!provider) {
+      const selection = await this.selectProvider(preferredProvider);
+      if (!selection) {
         throw new Error('사용 가능한 임베딩 제공자가 없습니다');
       }
 
-      this.currentProvider = provider;
-      const result = await provider.generateEmbedding(text);
+      this.currentProvider = selection.service;
+      this.currentProviderName = selection.provider;
+      const result = await selection.service.generateEmbedding(text);
       
       if (result) {
         // provider 정보 추가
-        const providerName = this.getCurrentProviderName();
-        result.provider = providerName as EmbeddingProvider;
-        console.log(`✅ 임베딩 생성 완료 (${providerName})`);
+        result.provider = selection.provider;
+        console.log(`✅ 임베딩 생성 완료 (${selection.provider})`);
         return result;
       }
 
@@ -62,6 +63,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       console.error('❌ 임베딩 생성 실패:', error);
+      this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
       try {
@@ -86,13 +88,14 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     this.validateInput(query);
 
     try {
-      const provider = this.selectProvider(preferredProvider);
+      const provider = await this.selectProvider(preferredProvider);
       if (!provider) {
         throw new Error('사용 가능한 임베딩 제공자가 없습니다');
       }
 
-      this.currentProvider = provider;
-      const results = await provider.searchSimilar(query, embeddings, limit, threshold);
+      this.currentProvider = provider.service;
+      this.currentProviderName = provider.provider;
+      const results = await provider.service.searchSimilar(query, embeddings, limit, threshold);
       
       if (results.length > 0) {
         console.log(`✅ 유사도 검색 완료 (${this.getCurrentProviderName()})`);
@@ -104,6 +107,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       console.error('❌ 유사도 검색 실패:', error);
+      this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
       try {
@@ -153,25 +157,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
    * 현재 사용 중인 제공자 이름 반환
    */
   getCurrentProviderName(): string {
-    if (!this.currentProvider) {
-      return 'none';
-    }
-
-    try {
-      const availableProviders = this.factory.getAvailableProviders();
-      if (!availableProviders) {
-        return 'unknown';
-      }
-      
-      const current = availableProviders.find(p => 
-        this.factory.getProvider(p.name) === this.currentProvider
-      );
-      
-      return current?.name || 'unknown';
-    } catch (error) {
-      console.error('❌ 현재 제공자 이름 조회 실패:', error);
-      return 'unknown';
-    }
+    return this.currentProviderName ?? 'none';
   }
 
   /**
@@ -202,10 +188,15 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
    * 제공자 선택
    * 클린코드: 단일 책임 원칙 - 선택 로직만 담당
    */
-  private selectProvider(preferredProvider?: EmbeddingProvider): EmbeddingServiceInterface | null {
-    const provider = this.factory.selectProvider(preferredProvider);
+  private async selectProvider(
+    preferredProvider?: EmbeddingProvider
+  ): Promise<{ service: EmbeddingServiceInterface; provider: EmbeddingProvider } | null> {
+    const { service, decision } = await this.factory.selectProviderWithHealthCheck(preferredProvider);
     this.syncFallbackProviders();
-    return provider;
+    if (!service) {
+      return null;
+    }
+    return { service, provider: decision.selectedProvider };
   }
 
   /**
@@ -213,24 +204,18 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
    * 클린코드: 단일 책임 원칙 - 폴백 처리만 담당
    */
   private async tryFallbackProviders(text: string): Promise<EmbeddingResult | null> {
-    for (const providerName of this.fallbackProviders) {
-      try {
-        const provider = this.factory.getProvider(providerName);
-        if (provider && provider.isAvailable()) {
-          console.log(`🔄 폴백 시도: ${providerName}`);
-          const result = await provider.generateEmbedding(text);
-          if (result) {
-            this.currentProvider = provider;
-            result.provider = providerName;
-            return result;
-          }
-        }
-      } catch (error) {
-        console.warn(`⚠️ 폴백 제공자 ${providerName} 실패:`, error);
-        continue;
-      }
+    const { service, decision } = await this.factory.selectProviderWithHealthCheck();
+    if (!service) {
+      throw new Error('모든 폴백 제공자 실패');
     }
-    
+    console.log(`🔄 폴백 시도: ${decision.selectedProvider}`);
+    const result = await service.generateEmbedding(text);
+    if (result) {
+      this.currentProvider = service;
+      this.currentProviderName = decision.selectedProvider;
+      result.provider = decision.selectedProvider;
+      return result;
+    }
     throw new Error('모든 폴백 제공자 실패');
   }
 
@@ -243,23 +228,24 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     limit: number,
     threshold: number
   ): Promise<SimilarityResult[]> {
-    for (const providerName of this.fallbackProviders) {
-      try {
-        const provider = this.factory.getProvider(providerName);
-        if (provider && provider.isAvailable()) {
-          console.log(`🔄 폴백 검색 시도: ${providerName}`);
-          const results = await provider.searchSimilar(query, embeddings, limit, threshold);
-          if (results.length > 0) {
-            this.currentProvider = provider;
-            return results;
-          }
-        }
-      } catch (error) {
-        console.warn(`⚠️ 폴백 검색 제공자 ${providerName} 실패:`, error);
-        continue;
-      }
+    const { service, decision } = await this.factory.selectProviderWithHealthCheck();
+    if (!service) {
+      return [];
     }
-    
+    console.log(`🔄 폴백 검색 시도: ${decision.selectedProvider}`);
+    const results = await service.searchSimilar(query, embeddings, limit, threshold);
+    if (results.length > 0) {
+      this.currentProvider = service;
+      this.currentProviderName = decision.selectedProvider;
+      return results;
+    }
     return [];
+  }
+
+  private handleProviderFailure(provider: EmbeddingProvider | null): void {
+    if (!provider) {
+      return;
+    }
+    this.factory.handleProviderFailure(provider);
   }
 }

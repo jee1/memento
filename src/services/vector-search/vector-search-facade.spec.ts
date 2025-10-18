@@ -56,7 +56,7 @@ describe('VectorSearchFacade', () => {
     it('should delegate search to search service', async () => {
       // Given
       const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
+        queryVector: new Array(512).fill(0.1),
         options: { limit: 10 },
         provider: 'tfidf'
       };
@@ -88,7 +88,7 @@ describe('VectorSearchFacade', () => {
     it('should delegate hybrid search to search service', async () => {
       // Given
       const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
+        queryVector: new Array(512).fill(0.1),
         textQuery: 'test query',
         options: { limit: 10 },
         provider: 'tfidf'
@@ -115,6 +115,27 @@ describe('VectorSearchFacade', () => {
       expect(results).toEqual(expectedResults);
       expect(mockRepositories.searchRepository.hybridSearch).toHaveBeenCalledWith(query);
     });
+  });
+
+  it('should delegate unified search to search service', async () => {
+    const expected = { providers: [], unified: [] };
+    (facade as any).searchService = {
+      unifiedSearch: vi.fn().mockResolvedValue(expected)
+    };
+
+    const result = await facade.unifiedSearch(
+      {
+        query: {
+          queryVector: new Array(512).fill(0.1),
+          options: { limit: 5 },
+          provider: 'minilm'
+        }
+      },
+      {} as any
+    );
+
+    expect(result).toBe(expected);
+    expect((facade as any).searchService.unifiedSearch).toHaveBeenCalled();
   });
 
   describe('getIndexStatus', () => {

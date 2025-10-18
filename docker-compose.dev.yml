@@ -2,35 +2,23 @@ version: '3.8'
 
 services:
   memento-dev:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+    extends:
+      file: docker-compose.base.yml
+      service: memento-base
     environment:
-      - NODE_ENV=development
-      - DOCKER=true
-      - DB_PATH=/app/data/memory.db
-      - LOG_LEVEL=debug
-      - PORT=8080
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-lightweight}
-      - GEMINI_MODEL=${GEMINI_MODEL:-text-embedding-004}
-      - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-512}
+      NODE_ENV: development
+      MCP_SERVER_PORT: ${MCP_SERVER_PORT:-8080}
+      PORT: ${PORT:-8080}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "${MCP_SERVER_PORT:-8080}:${MCP_SERVER_PORT:-8080}"
     volumes:
-      - ./data:/app/data
       - ./src:/app/src
-      - ./logs:/app/logs
       - /app/node_modules
-    restart: unless-stopped
     command: ["npm", "run", "dev:http"]
-    stdin_open: true
-    tty: true
     networks:
       - memento-network
 
-  # 개발용 Redis (캐싱)
   redis-dev:
     image: redis:7-alpine
     ports:

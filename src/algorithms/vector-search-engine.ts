@@ -205,11 +205,15 @@ export class VectorSearchEngine {
       // 제공자별 테이블명 결정
       const tableName = this.getVectorTableName(normalizedProvider);
       
+      // 타입 필터가 있는 경우 더 많은 결과를 가져와서 필터링 후 최종 limit을 적용
+      const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
+
       // VEC 검색 쿼리 (제공자별 vec0 테이블 사용)
+      // JOIN 전에 서브쿼리로 vec 검색을 먼저 수행하여 LIMIT을 적용해야 함
       const vecQuery = `
         SELECT 
           me.memory_id as memory_id,
-          vec.distance as similarity,
+          t.distance as similarity,
           mi.content,
           mi.type,
           mi.importance,
@@ -217,17 +221,24 @@ export class VectorSearchEngine {
           mi.last_accessed,
           mi.pinned,
           mi.tags
-        FROM ${tableName} vec
-        JOIN memory_embedding me ON vec.rowid = me.id
+        FROM (
+          SELECT rowid, distance 
+          FROM ${tableName}
+          WHERE embedding MATCH ?
+          ORDER BY distance ASC
+          LIMIT ?
+        ) t
+        JOIN memory_embedding me ON t.rowid = me.id
         JOIN memory_item mi ON mi.id = me.memory_id
-        WHERE vec.embedding MATCH ?
+        WHERE 1=1
         ${typeClause}
-        ORDER BY vec.distance ASC
+        ORDER BY t.distance ASC
         LIMIT ?
       `;
 
       const params = [
         JSON.stringify(queryVector),
+        prefetchLimit,
         ...typeFilters,
         limit
       ];

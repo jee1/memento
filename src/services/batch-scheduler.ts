@@ -540,7 +540,7 @@ export class BatchScheduler {
     
     // 구조화된 로그 출력
     const logData = data ? JSON.stringify(data, null, 2) : '';
-    const contextInfo = `[Uptime: ${logEntry.uptime}ms, Active: ${logEntry.activeJobs}, Queue: ${logEntry.queueSize}]`;
+    const contextInfo = `[Uptime: ${this.formatUptime(logEntry.uptime)}, Active: ${logEntry.activeJobs}, Queue: ${logEntry.queueSize}]`;
     
     switch (level) {
       case 'error':
@@ -576,6 +576,39 @@ export class BatchScheduler {
       // 파일 로깅 실패는 무시
       console.warn('Failed to write to log file:', error);
     }
+  }
+
+  /**
+   * 밀리초를 사람이 읽기 쉬운 형태로 변환
+   * @param milliseconds 밀리초
+   * @returns 포맷된 시간 문자열 (예: "2h 30m 15s", "45s", "1d 3h")
+   */
+  private formatUptime(milliseconds: number): string {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    // 일 단위가 있으면 일로 표시
+    if (days > 0) {
+      const remainingHours = hours % 24;
+      return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+    }
+    
+    // 시간 단위가 있으면 시간으로 표시
+    if (hours > 0) {
+      const remainingMinutes = minutes % 60;
+      return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    }
+    
+    // 분 단위가 있으면 분으로 표시
+    if (minutes > 0) {
+      const remainingSeconds = seconds % 60;
+      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+    }
+    
+    // 초 단위만 있으면 초로 표시
+    return `${seconds}s`;
   }
 
   /**

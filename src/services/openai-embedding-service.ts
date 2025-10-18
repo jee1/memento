@@ -36,7 +36,10 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
    */
   private initializeClient(): void {
     if (!mementoConfig.openaiApiKey) {
-      console.warn('⚠️ OpenAI API 키가 설정되지 않아 OpenAI 임베딩이 비활성화됩니다.');
+      console.warn(
+        '⚠️ OPENAI_API_KEY가 설정되지 않아 OpenAI 임베딩이 비활성화됩니다. ' +
+          '고품질 임베딩이 필요하면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm으로 변경하세요.'
+      );
       this.client = null;
       return;
     }
@@ -45,7 +48,10 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       this.client = new OpenAI({ apiKey: mementoConfig.openaiApiKey });
       console.log('✅ OpenAI 임베딩 서비스 초기화 완료');
     } catch (error) {
-      console.error('❌ OpenAI 초기화 실패:', error);
+      console.error(
+        '❌ OpenAI 초기화 실패. OPENAI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM/TFiDF 모델로 폴백하세요:',
+        error
+      );
       this.client = null;
     }
   }
@@ -72,6 +78,10 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
     }
 
     try {
+      if (!this.client && mementoConfig.openaiApiKey) {
+        this.initializeClient();
+      }
+
       const result = await this.generateOpenAIEmbedding(text);
       if (result) {
         this.cache.set(cacheKey, result);

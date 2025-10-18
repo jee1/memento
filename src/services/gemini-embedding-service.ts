@@ -6,7 +6,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../config/index.js';
-import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
+import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 
 export interface GeminiEmbeddingResult {
   embedding: number[];
@@ -26,7 +26,7 @@ export interface GeminiSimilarityResult {
 
 export class GeminiEmbeddingService {
   private genAI: GoogleGenAI | null = null;
-  private lightweightService: LightweightEmbeddingService;
+  private miniLMService: MiniLMEmbeddingService;
   private readonly model: string;
   private readonly maxTokens = 2048; // Gemini text-embedding-004 최대 토큰
   private embeddingCache: Map<string, GeminiEmbeddingResult> = new Map(); // 임베딩 캐시
@@ -34,7 +34,7 @@ export class GeminiEmbeddingService {
   private batchTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.lightweightService = new LightweightEmbeddingService();
+    this.miniLMService = new MiniLMEmbeddingService();
     this.model = mementoConfig.geminiModel;
     this.initializeGemini();
   }
@@ -44,7 +44,10 @@ export class GeminiEmbeddingService {
    */
   private initializeGemini(): void {
     if (!mementoConfig.geminiApiKey) {
-      console.warn('⚠️ Gemini API 키가 설정되지 않았습니다. 임베딩 기능이 비활성화됩니다.');
+      console.warn(
+        '⚠️ GEMINI_API_KEY가 설정되지 않아 Gemini 임베딩이 비활성화됩니다. ' +
+          'Gemini를 사용하려면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm과 같은 로컬 모델로 유지하세요.'
+      );
       return;
     }
 
@@ -52,7 +55,10 @@ export class GeminiEmbeddingService {
       this.genAI = new GoogleGenAI({ apiKey: mementoConfig.geminiApiKey });
       console.log('✅ Gemini 임베딩 서비스 초기화 완료');
     } catch (error) {
-      console.error('❌ Gemini 초기화 실패:', error);
+      console.error(
+        '❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM 모델을 사용하세요:',
+        error
+      );
       this.genAI = null;
     }
   }
@@ -73,8 +79,16 @@ export class GeminiEmbeddingService {
     }
 
     // 2. Gemini가 사용 가능한 경우
-    if (this.genAI) {
+    if (this.genAI || mementoConfig.geminiApiKey) {
       try {
+        if (!this.genAI && mementoConfig.geminiApiKey) {
+          this.initializeGemini();
+        }
+
+        if (!this.genAI) {
+          throw new Error('Gemini 클라이언트가 초기화되지 않았습니다');
+        }
+
         // 토큰 수 제한 확인
         const truncatedText = this.truncateText(text);
         
@@ -106,23 +120,23 @@ export class GeminiEmbeddingService {
         
         return embeddingResult;
       } catch (error) {
-        console.warn('⚠️ Gemini 임베딩 실패, 경량 서비스로 fallback:', error);
-        // Gemini 실패 시 경량 서비스로 fallback
+        console.warn('⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback:', error);
+        // Gemini 실패 시 MiniLM 서비스로 fallback
       }
     }
 
-    // 3. Gemini가 없거나 실패한 경우 경량 서비스 사용
-    console.log('🔄 경량 하이브리드 임베딩 서비스 사용');
+    // 3. Gemini가 없거나 실패한 경우 MiniLM 서비스 사용
+    console.log('🔄 MiniLM 임베딩 서비스 사용');
     try {
-      const lightweightResult = await this.lightweightService.generateEmbedding(text);
-      if (!lightweightResult) {
+      const miniLMResult = await this.miniLMService.generateEmbedding(text);
+      if (!miniLMResult) {
         return null;
       }
 
       const result = {
-        embedding: lightweightResult.embedding,
-        model: lightweightResult.model,
-        usage: lightweightResult.usage,
+        embedding: miniLMResult.embedding,
+        model: miniLMResult.model,
+        usage: miniLMResult.usage,
       };
 
       // 캐시에 저장
@@ -131,7 +145,7 @@ export class GeminiEmbeddingService {
       
       return result;
     } catch (error) {
-      console.error('❌ 경량 임베딩 생성 실패:', error);
+      console.error('❌ MiniLM 임베딩 생성 실패:', error);
       throw new Error(`임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -263,7 +277,7 @@ export class GeminiEmbeddingService {
    * 서비스 사용 가능 여부 확인
    */
   isAvailable(): boolean {
-    return this.genAI !== null || this.lightweightService.isAvailable();
+    return this.genAI !== null || this.miniLMService.isAvailable();
   }
 
   /**
@@ -277,7 +291,7 @@ export class GeminiEmbeddingService {
         maxTokens: this.maxTokens,
       };
     } else {
-      return this.lightweightService.getModelInfo();
+      return this.miniLMService.getModelInfo();
     }
   }
 }

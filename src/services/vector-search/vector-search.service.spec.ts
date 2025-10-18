@@ -6,7 +6,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VectorSearchService } from './vector-search.service';
 import type { VectorSearchRepository } from '../../interfaces/database.interface';
-import type { VectorSearchQuery, VectorSearchResult } from '../../types/vector-search.types';
+import type { VectorSearchQuery, VectorSearchResult, ProviderHybridQuery } from '../../types/vector-search.types';
+import type { EmbeddingResult } from '../../types/embedding.types';
 
 // Mock 리포지토리 생성
 const createMockRepository = (): any => ({
@@ -31,7 +32,7 @@ describe('VectorSearchService', () => {
     it('should search vectors successfully', async () => {
       // Given
       const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
+        queryVector: new Array(512).fill(0.1),
         options: { limit: 10 },
         provider: 'tfidf'
       };
@@ -73,7 +74,7 @@ describe('VectorSearchService', () => {
     it('should throw error for invalid limit', async () => {
       // Given
       const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
+        queryVector: new Array(512).fill(0.1),
         options: { limit: 150 }, // 잘못된 제한
         provider: 'tfidf'
       };
@@ -85,7 +86,7 @@ describe('VectorSearchService', () => {
     it('should handle repository errors', async () => {
       // Given
       const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
+        queryVector: new Array(512).fill(0.1),
         options: { limit: 10 },
         provider: 'tfidf'
       };
@@ -101,7 +102,7 @@ describe('VectorSearchService', () => {
     it('should perform hybrid search successfully', async () => {
       // Given
       const query: VectorSearchQuery = {
-        queryVector: new Array(384).fill(0.1),
+        queryVector: new Array(512).fill(0.1),
         textQuery: 'test query',
         options: { limit: 10 },
         provider: 'tfidf'
@@ -162,5 +163,144 @@ describe('VectorSearchService', () => {
       // Then
       expect(result).toEqual(options);
     });
+  });
+
+  describe('providerHybridSearch', () => {
+    it('should aggregate results across providers', async () => {
+      const embeddingService: any = {
+        generateEmbedding: vi.fn(async (_text: string, provider: string) => {
+          const length = provider === 'openai' ? 1536 : 384;
+          return {
+            embedding: new Array(length).fill(0.2),
+            model: provider,
+            provider
+          } satisfies EmbeddingResult;
+        }),
+        getAvailableProviders: vi.fn(() => ['minilm', 'openai'])
+      };
+
+      mockRepository.search.mockImplementation(async query => [
+        {
+          memory_id: `${query.provider}-vec`,
+          similarity: 0.85,
+          content: `${query.provider} vector`,
+          type: 'semantic',
+          importance: 0.6,
+          created_at: '2024-01-01T00:00:00Z',
+          pinned: false
+        }
+      ]);
+
+      mockRepository.hybridSearch.mockImplementation(async query => [
+        {
+          memory_id: `${query.provider}-hybrid`,
+          similarity: 0.9,
+          content: `${query.provider} hybrid`,
+          type: 'semantic',
+          importance: 0.7,
+          created_at: '2024-01-01T00:00:00Z',
+          pinned: false
+        }
+      ]);
+
+      const hybridQuery: ProviderHybridQuery = {
+        query: {
+          queryVector: new Array(384).fill(0.1),
+          options: { limit: 5 },
+          provider: 'minilm'
+        },
+        text: 'sample query',
+        useHybrid: true,
+        useAvailableProviders: true
+      };
+
+      const results = await service.providerHybridSearch(embeddingService, hybridQuery);
+
+      expect(results).toHaveLength(2);
+      for (const result of results) {
+        expect(result.vectorResults).toHaveLength(1);
+        expect(result.vectorLatencyMs).toBeGreaterThanOrEqual(0);
+        expect(result.hybridResults).toHaveLength(1);
+        expect(result.hybridLatencyMs).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('should skip providers when embedding cannot be generated', async () => {
+      const embeddingService: any = {
+        generateEmbedding: vi.fn(async (_text: string, provider: string) => {
+          if (provider === 'openai') {
+            return null;
+          }
+          return {
+            embedding: new Array(384).fill(0.2),
+            model: provider,
+            provider
+          } satisfies EmbeddingResult;
+        }),
+        getAvailableProviders: vi.fn(() => ['minilm', 'openai'])
+      };
+
+      mockRepository.search.mockResolvedValue([
+        {
+          memory_id: 'minilm-vec',
+          similarity: 0.8,
+          content: 'vector',
+          type: 'semantic',
+          importance: 0.6,
+          created_at: '2024-01-01T00:00:00Z',
+          pinned: false
+        }
+      ]);
+
+      const hybridQuery: ProviderHybridQuery = {
+        query: {
+          queryVector: new Array(384).fill(0.1),
+          options: { limit: 5 },
+          provider: 'minilm'
+        },
+        text: 'sample query',
+        useAvailableProviders: true
+      };
+
+      const results = await service.providerHybridSearch(embeddingService, hybridQuery);
+      expect(results).toHaveLength(1);
+      expect(results[0].provider).toBe('minilm');
+    });
+  });
+
+  it('should build unified search response', async () => {
+    const embeddingService: any = {
+      generateEmbedding: vi.fn(async () => ({
+        embedding: new Array(384).fill(0.1),
+        model: 'minilm',
+        provider: 'minilm'
+      })),
+      getAvailableProviders: vi.fn(() => ['minilm'])
+    };
+
+    mockRepository.search.mockResolvedValue([
+      {
+        memory_id: 'm1',
+        similarity: 0.9,
+        content: 'Result',
+        type: 'semantic',
+        importance: 0.7,
+        created_at: '2024-01-01T00:00:00Z',
+        pinned: false
+      }
+    ]);
+
+    const response = await service.unifiedSearch(embeddingService, {
+      query: {
+        queryVector: new Array(384).fill(0.1),
+        options: { limit: 5 },
+        provider: 'minilm'
+      },
+      useAvailableProviders: true
+    });
+
+    expect(response.providers).toHaveLength(1);
+    expect(response.unified).toHaveLength(1);
+    expect(response.unified[0].normalizedScore).toBeGreaterThanOrEqual(0);
   });
 });

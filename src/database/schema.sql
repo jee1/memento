@@ -115,25 +115,49 @@ CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item 
   VALUES (new.rowid, new.content, new.tags, new.source);
 END;
 
--- 임베딩 저장 테이블
+-- 임베딩 저장 테이블 (다중 제공자/차원 지원)
 CREATE TABLE IF NOT EXISTS memory_embedding (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   memory_id TEXT NOT NULL,
+  embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
+  projection_type TEXT NOT NULL DEFAULT 'native',
   embedding TEXT NOT NULL, -- JSON 배열로 저장
-  dim INTEGER NOT NULL, -- 벡터 차원
+  dim INTEGER NOT NULL, -- 원본 벡터 차원
+  dimensions INTEGER DEFAULT 0, -- 저장된 벡터 차원 (패딩/축소 적용 후)
   model TEXT, -- 사용된 모델명
-  embedding_provider TEXT DEFAULT 'tfidf',
-  dimensions INTEGER,
+  precision INTEGER DEFAULT 32, -- 벡터 정밀도 (float32 등)
+  normalized BOOLEAN DEFAULT FALSE, -- 정규화 여부
+  version INTEGER DEFAULT 1, -- 임베딩 버전
   created_by TEXT DEFAULT 'system',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
-  UNIQUE(memory_id)
+  UNIQUE(memory_id, embedding_provider, projection_type)
 );
 
 -- 임베딩 테이블 인덱스
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
-CREATE INDEX IF NOT EXISTS idx_memory_embedding_dim ON memory_embedding(dim);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_provider ON memory_embedding(memory_id, embedding_provider);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider_projection ON memory_embedding(embedding_provider, projection_type);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions);
 CREATE INDEX IF NOT EXISTS idx_memory_embedding_model ON memory_embedding(model);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding_version ON memory_embedding(version);
+
+-- 임베딩 모델 레지스트리 (제공자별 차원 및 메타데이터)
+CREATE TABLE IF NOT EXISTS embedding_model_registry (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  projection_type TEXT NOT NULL DEFAULT 'native',
+  dimensions INTEGER NOT NULL,
+  vec_table TEXT, -- sqlite-vec 테이블명
+  priority INTEGER DEFAULT 100,
+  status TEXT CHECK (status IN ('active','inactive','deprecated')) DEFAULT 'active',
+  last_checked TIMESTAMP,
+  metadata TEXT,
+  UNIQUE(provider, projection_type),
+  UNIQUE(provider, model),
+  UNIQUE(vec_table)
+);
 
 -- VEC 가상 테이블 (벡터 검색) - sqlite-vec 확장 필요
 -- 주의: sqlite-vec 확장이 설치되어 있어야 함
@@ -149,45 +173,52 @@ CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_gemini USING vec0(embedding f
 -- 제공자별 테이블에 저장하도록 수정
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
   INSERT INTO memory_item_vec(rowid, embedding) 
-  VALUES (NEW.id, json_extract(NEW.embedding, '$'));
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.dimensions = 384;
   
   INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'tfidf';
+  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_minilm(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'minilm';
+  WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_openai(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'openai';
+  WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_gemini(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'gemini';
+  WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
-  UPDATE memory_item_vec 
-  SET embedding = json_extract(NEW.embedding, '$')
-  WHERE rowid = NEW.id;
+  DELETE FROM memory_item_vec WHERE rowid = NEW.id;
+  DELETE FROM memory_item_vec_tfidf WHERE rowid = NEW.id;
+  DELETE FROM memory_item_vec_minilm WHERE rowid = NEW.id;
+  DELETE FROM memory_item_vec_openai WHERE rowid = NEW.id;
+  DELETE FROM memory_item_vec_gemini WHERE rowid = NEW.id;
+
+  INSERT INTO memory_item_vec(rowid, embedding) 
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.dimensions = 384;
   
-  UPDATE memory_item_vec_tfidf 
-  SET embedding = json_extract(NEW.embedding, '$')
-  WHERE rowid = NEW.id AND NEW.embedding_provider = 'tfidf';
+  INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
   
-  UPDATE memory_item_vec_minilm 
-  SET embedding = json_extract(NEW.embedding, '$')
-  WHERE rowid = NEW.id AND NEW.embedding_provider = 'minilm';
+  INSERT INTO memory_item_vec_minilm(rowid, embedding) 
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
   
-  UPDATE memory_item_vec_openai 
-  SET embedding = json_extract(NEW.embedding, '$')
-  WHERE rowid = NEW.id AND NEW.embedding_provider = 'openai';
+  INSERT INTO memory_item_vec_openai(rowid, embedding) 
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
   
-  UPDATE memory_item_vec_gemini 
-  SET embedding = json_extract(NEW.embedding, '$')
-  WHERE rowid = NEW.id AND NEW.embedding_provider = 'gemini';
+  INSERT INTO memory_item_vec_gemini(rowid, embedding) 
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN

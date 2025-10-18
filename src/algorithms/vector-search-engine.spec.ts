@@ -281,10 +281,12 @@ describe('VectorSearchEngine', () => {
       };
       const mockResults = createMockVectorRows('tfidf', 2);
       const allMock = vi.fn((...params: any[]) => {
+        // 변경된 파라미터 순서 검증: query, prefetchLimit, type1, type2, limit
         expect(params[0]).toBe(JSON.stringify(queryVector));
-        expect(params[1]).toBe('episodic');
-        expect(params[2]).toBe('semantic');
-        expect(params[3]).toBe(5);
+        expect(params[1]).toBe(options.limit! * 5); // prefetchLimit
+        expect(params[2]).toBe('episodic');
+        expect(params[3]).toBe('semantic');
+        expect(params[4]).toBe(options.limit); // final limit
         return mockResults;
       });
 
@@ -303,10 +305,14 @@ describe('VectorSearchEngine', () => {
             all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 384 }])
           };
         }
-        if (sql.includes('FROM memory_item_vec_tfidf') && sql.includes('JOIN memory_embedding')) {
+        
+        // 정규식을 사용하여 공백/줄바꿈에 관계없이 쿼리 구조를 확인
+        const isVectorSearchQuery = /FROM\s+\(\s*SELECT\s+rowid,\s+distance/.test(sql);
+        if (isVectorSearchQuery) {
           expect(sql).toContain('mi.type IN (?,?)');
           return { all: allMock };
         }
+        
         return { all: vi.fn().mockReturnValue([]) };
       });
 

@@ -1,0 +1,34 @@
+version: '3.8'
+
+x-default-environment: &default-environment
+  DOCKER: 'true'
+  MCP_SERVER_NAME: ${MCP_SERVER_NAME:-memento-memory}
+  MCP_SERVER_VERSION: ${MCP_SERVER_VERSION:-0.1.0}
+  DB_PATH: ${DB_PATH:-/app/data/memory.db}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  LOG_FILE: ${LOG_FILE:-}
+  EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-minilm}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-text-embedding-3-small}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GEMINI_MODEL: ${GEMINI_MODEL:-text-embedding-004}
+  SEARCH_DEFAULT_LIMIT: ${SEARCH_DEFAULT_LIMIT:-10}
+  SEARCH_MAX_LIMIT: ${SEARCH_MAX_LIMIT:-50}
+  FORGET_WORKING_TTL: ${FORGET_WORKING_TTL:-48}
+  FORGET_EPISODIC_TTL: ${FORGET_EPISODIC_TTL:-2160}
+  FORGET_SEMANTIC_TTL: ${FORGET_SEMANTIC_TTL:--1}
+  FORGET_PROCEDURAL_TTL: ${FORGET_PROCEDURAL_TTL:--1}
+
+services:
+  memento-base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      <<: *default-environment
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
