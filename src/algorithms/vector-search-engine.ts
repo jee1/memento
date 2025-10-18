@@ -250,7 +250,15 @@ export class VectorSearchEngine {
           ...result,
           similarity: Math.max(0, 1 - result.similarity), // distance를 similarity로 변환
           tags: this.safeParseTags(result.tags)
-        }))
+        }));
+
+      // 디버깅: 임계값 적용 전 상위 5개 결과의 유사도 점수 로깅
+      console.log('🔍 [Debug] Top 5 results before threshold filtering:');
+      normalizedResults.slice(0, 5).forEach(r => {
+        console.log(`  - Memory ID: ${r.memory_id}, Similarity: ${r.similarity.toFixed(4)}`);
+      });
+      
+      const finalResults = normalizedResults
         .filter(result => result.similarity >= threshold)
         .map(result => ({
           memory_id: result.memory_id,
@@ -264,7 +272,7 @@ export class VectorSearchEngine {
           tags: includeMetadata ? result.tags : undefined
         }));
 
-      return normalizedResults;
+      return finalResults;
 
     } catch (error) {
       console.error('❌ 벡터 검색 실패:', error);
