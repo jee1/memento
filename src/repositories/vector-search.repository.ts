@@ -44,7 +44,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const tableRows = typeof tableStatement.all === 'function'
         ? tableStatement.all()
         : [];
-      const tableCheck = Array.isArray(tableRows) ? tableRows : [];
+      const tableCheck = Array.isArray(tableRows)
+        ? (tableRows as Array<{ name: string; type: string }>)
+        : [];
 
       if (tableCheck.length === 0) {
         console.log('⚠️ VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
@@ -54,7 +56,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
       // VEC 함수 사용 가능 여부 확인
       try {
-        const testTableEntry = tableCheck.find((table: any) => typeof table?.name === 'string');
+        const testTableEntry = tableCheck.find((table): table is { name: string; type: string } => 
+          typeof table === 'object' && table !== null && typeof (table as any).name === 'string'
+        );
         const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
         const testStatement = this.db.prepare(`
           SELECT distance FROM ${testTable} 
