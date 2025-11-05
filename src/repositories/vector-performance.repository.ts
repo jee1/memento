@@ -27,7 +27,7 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
     }
 
     try {
-      const tableCheck = this.db.prepare(`
+      const tableStatement = this.db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN (
           'memory_item_vec_tfidf',
@@ -35,7 +35,11 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
           'memory_item_vec_openai',
           'memory_item_vec_gemini'
         )
-      `).all();
+      `);
+      const tableRows = typeof tableStatement.all === 'function'
+        ? tableStatement.all()
+        : [];
+      const tableCheck = Array.isArray(tableRows) ? tableRows : [];
 
       if (tableCheck.length === 0) {
         this.isVecAvailable = false;
@@ -44,12 +48,20 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
 
       // VEC 함수 사용 가능 여부 확인
       try {
-        const testTable = (tableCheck[0] as any).name;
-        this.db.prepare(`
+        const testTableEntry = tableCheck.find((table: any) => typeof table?.name === 'string');
+        const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
+        const testStatement = this.db.prepare(`
           SELECT distance FROM ${testTable} 
           WHERE embedding MATCH ? 
           LIMIT 0
-        `).get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
+        `);
+
+        if (typeof testStatement.get !== 'function') {
+          this.isVecAvailable = false;
+          return;
+        }
+
+        testStatement.get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
         
         this.isVecAvailable = true;
       } catch (vecError) {
@@ -125,8 +137,13 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
         LIMIT 10
       `;
 
-      const results = this.db.prepare(query).all(JSON.stringify(queryVector));
-      return results;
+      const statement = this.db.prepare(query);
+      if (typeof statement.all !== 'function') {
+        console.warn('⚠️ 성능 테스트 검색을 실행할 수 없습니다: all() 메서드가 없습니다.');
+        return [];
+      }
+      const rawResults = statement.all(JSON.stringify(queryVector));
+      return Array.isArray(rawResults) ? rawResults : [];
     } catch (error) {
       throw new Error(`검색 실행 실패: ${error}`);
     }

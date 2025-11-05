@@ -33,7 +33,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
     try {
       // 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
-      const tableCheck = this.db.prepare(`
+      const tableStatement = this.db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN (
           'memory_item_vec_tfidf',
@@ -41,7 +41,11 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           'memory_item_vec_openai',
           'memory_item_vec_gemini'
         )
-      `).all();
+      `);
+      const tableRows = typeof tableStatement.all === 'function'
+        ? tableStatement.all()
+        : [];
+      const tableCheck = Array.isArray(tableRows) ? tableRows : [];
 
       if (tableCheck.length === 0) {
         console.log('⚠️ VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
@@ -51,12 +55,21 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
       // VEC 함수 사용 가능 여부 확인
       try {
-        const testTable = (tableCheck[0] as any).name;
-        this.db.prepare(`
+        const testTableEntry = tableCheck.find((table: any) => typeof table?.name === 'string');
+        const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
+        const testStatement = this.db.prepare(`
           SELECT distance FROM ${testTable} 
           WHERE embedding MATCH ? 
           LIMIT 0
-        `).get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
+        `);
+
+        if (typeof testStatement.get !== 'function') {
+          console.warn('⚠️ VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.');
+          this.isVecAvailable = false;
+          return false;
+        }
+
+        testStatement.get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
         
         this.isVecAvailable = true;
         console.log('✅ VEC (Vector Search) 사용 가능');
@@ -83,20 +96,28 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     }
 
     const { queryVector, options, provider } = query;
-    const { limit = VECTOR_SEARCH_CONFIG.defaultLimit, threshold = VECTOR_SEARCH_CONFIG.defaultThreshold, type } = options;
+    const normalizedOptions = options ?? {};
+    const {
+      limit = VECTOR_SEARCH_CONFIG.defaultLimit,
+      threshold = VECTOR_SEARCH_CONFIG.defaultThreshold,
+      type,
+      includeContent = true,
+      includeMetadata = false
+    } = normalizedOptions;
+    const expectedDimensions = this.getExpectedDimensions(provider);
 
     // 벡터 차원 검증
-    if (queryVector.length !== VECTOR_SEARCH_CONFIG.defaultDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 예상 ${VECTOR_SEARCH_CONFIG.defaultDimensions}, 실제 ${queryVector.length}`);
+    if (queryVector.length !== expectedDimensions) {
+      console.error(`❌ 벡터 차원 불일치: 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
       return [];
     }
 
     try {
-      const tableName = this.getTableName(provider);
+      const tableName = this.getTableName(provider ?? 'tfidf');
       
       const vecQuery = `
         SELECT 
-          vec.rowid as memory_id,
+          me.memory_id as memory_id,
           vec.distance as similarity,
           mi.content,
           mi.type,
@@ -106,7 +127,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           mi.pinned,
           mi.tags
         FROM ${tableName} vec
-        JOIN memory_item mi ON vec.rowid = mi.id
+        JOIN memory_embedding me ON vec.rowid = me.id
+        JOIN memory_item mi ON mi.id = me.memory_id
         WHERE vec.embedding MATCH ?
         ${type ? 'AND mi.type = ?' : ''}
         ORDER BY vec.distance ASC
@@ -114,26 +136,32 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       `;
 
       const params = [JSON.stringify(queryVector), ...(type ? [type] : []), limit];
-      const results = this.db.prepare(vecQuery).all(...params) as any[];
+      const statement = this.db.prepare(vecQuery);
+      if (typeof statement.all !== 'function') {
+        console.warn('⚠️ 벡터 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
+        return [];
+      }
+      const rawResults = statement.all(...params);
+      const results = Array.isArray(rawResults) ? rawResults as any[] : [];
 
       // 유사도를 0-1 범위로 정규화
       const normalizedResults = results
         .map(result => ({
           ...result,
           similarity: Math.max(0, 1 - result.similarity),
-          tags: result.tags ? JSON.parse(result.tags) : undefined
+          tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
         }))
         .filter(result => result.similarity >= threshold)
         .map(result => ({
           memory_id: result.memory_id,
           similarity: result.similarity,
-          content: options.includeContent ? result.content : '',
+          content: includeContent ? result.content : '',
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed: options.includeMetadata ? result.last_accessed : undefined,
-          pinned: options.includeMetadata ? Boolean(result.pinned) : false,
-          tags: options.includeMetadata ? result.tags : undefined
+          last_accessed: includeMetadata ? result.last_accessed : undefined,
+          pinned: includeMetadata ? Boolean(result.pinned) : false,
+          tags: includeMetadata ? result.tags : undefined
         }));
 
       console.log(`🔍 벡터 검색 완료: ${normalizedResults.length}개 결과 (임계값: ${threshold})`);
@@ -155,21 +183,29 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     }
 
     const { queryVector, textQuery, options, provider } = query;
-    const { limit = VECTOR_SEARCH_CONFIG.defaultLimit, threshold = VECTOR_SEARCH_CONFIG.defaultThreshold, type } = options;
+    const normalizedOptions = options ?? {};
+    const {
+      limit = VECTOR_SEARCH_CONFIG.defaultLimit,
+      threshold = VECTOR_SEARCH_CONFIG.defaultThreshold,
+      type,
+      includeContent = true,
+      includeMetadata = false
+    } = normalizedOptions;
+    const expectedDimensions = this.getExpectedDimensions(provider);
 
     // 벡터 차원 검증
-    if (queryVector.length !== VECTOR_SEARCH_CONFIG.defaultDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 예상 ${VECTOR_SEARCH_CONFIG.defaultDimensions}, 실제 ${queryVector.length}`);
+    if (queryVector.length !== expectedDimensions) {
+      console.error(`❌ 벡터 차원 불일치: 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
       return [];
     }
 
     try {
-      const tableName = this.getTableName(provider);
+      const tableName = this.getTableName(provider ?? 'tfidf');
       
       const hybridQuery = `
         WITH vector_search AS (
           SELECT 
-            vec.rowid as memory_id,
+            me.memory_id as memory_id,
             vec.distance as vector_distance,
             mi.content,
             mi.type,
@@ -179,7 +215,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
             mi.pinned,
             mi.tags
           FROM ${tableName} vec
-          JOIN memory_item mi ON vec.rowid = mi.id
+          JOIN memory_embedding me ON vec.rowid = me.id
+          JOIN memory_item mi ON mi.id = me.memory_id
           WHERE vec.embedding MATCH ?
           ${type ? 'AND mi.type = ?' : ''}
         ),
@@ -240,20 +277,26 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         limit
       ];
 
-      const results = this.db.prepare(hybridQuery).all(...params) as any[];
+      const statement = this.db.prepare(hybridQuery);
+      if (typeof statement.all !== 'function') {
+        console.warn('⚠️ 하이브리드 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
+        return [];
+      }
+      const rawResults = statement.all(...params);
+      const results = Array.isArray(rawResults) ? rawResults as any[] : [];
 
       // 결과 정규화
       const normalizedResults = results
         .map(result => ({
           memory_id: result.memory_id,
           similarity: result.vector_similarity * 0.6 + result.text_similarity * 0.4, // similarity로 통일
-          content: options.includeContent ? result.content : '',
+          content: includeContent ? result.content : '',
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed: options.includeMetadata ? result.last_accessed : undefined,
-          pinned: options.includeMetadata ? Boolean(result.pinned) : false,
-          tags: options.includeMetadata && result.tags ? JSON.parse(result.tags) : undefined
+          last_accessed: includeMetadata ? result.last_accessed : undefined,
+          pinned: includeMetadata ? Boolean(result.pinned) : false,
+          tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
         }))
         .filter(result => result.similarity >= threshold);
 
@@ -290,8 +333,14 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         for (const provider of providers) {
           const tableName = this.getTableName(provider);
           try {
-            const result = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`).get() as { count: number };
-            recordCount += result.count;
+            const statement = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`);
+            if (typeof statement.get !== 'function') {
+              continue;
+            }
+            const result = statement.get() as { count: number } | undefined;
+            if (result && typeof result.count === 'number') {
+              recordCount += result.count;
+            }
           } catch (error) {
             // 테이블이 존재하지 않는 경우 무시
           }
@@ -341,7 +390,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    * 테이블명 반환
    */
   getTableName(provider: string): string {
-    const tableName = VECTOR_SEARCH_CONFIG.tableNames[provider as keyof typeof VECTOR_SEARCH_CONFIG.tableNames];
+    const normalized = (provider ?? 'tfidf').toLowerCase() as keyof typeof VECTOR_SEARCH_CONFIG.tableNames;
+    const tableName = VECTOR_SEARCH_CONFIG.tableNames[normalized];
     return (tableName ?? VECTOR_SEARCH_CONFIG.tableNames.tfidf) as string;
   }
 
@@ -350,5 +400,25 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   checkAvailability(): boolean {
     return this.checkVecAvailability();
+  }
+
+  private getExpectedDimensions(provider?: string): number {
+    if (!provider) {
+      return VECTOR_SEARCH_CONFIG.defaultDimensions;
+    }
+    return VECTOR_SEARCH_CONFIG.providerDimensions[provider] ?? VECTOR_SEARCH_CONFIG.defaultDimensions;
+  }
+
+  private safeParseTags(raw: string | null | undefined): string[] {
+    if (!raw) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', error);
+      return [];
+    }
   }
 }

@@ -92,7 +92,7 @@ export class VectorSearchEngine {
 
     try {
       // 1. 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
-      const tableCheck = this.db.prepare(`
+      const tableStatement = this.db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN (
           'memory_item_vec_tfidf',
@@ -100,7 +100,11 @@ export class VectorSearchEngine {
           'memory_item_vec_openai',
           'memory_item_vec_gemini'
         )
-      `).all();
+      `);
+      const tableRows = typeof tableStatement.all === 'function'
+        ? tableStatement.all()
+        : [];
+      const tableCheck = Array.isArray(tableRows) ? tableRows : [];
 
       if (tableCheck.length === 0) {
         console.log('⚠️ VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
@@ -111,12 +115,22 @@ export class VectorSearchEngine {
 
       // 2. VEC 함수 사용 가능 여부 확인 (첫 번째 테이블로 테스트)
       try {
-        const testTable = (tableCheck[0] as any).name;
-        this.db.prepare(`
+        const testTableEntry = tableCheck.find((table: any) => typeof table?.name === 'string');
+        const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
+        const testStatement = this.db.prepare(`
           SELECT distance FROM ${testTable} 
           WHERE embedding MATCH ? 
           LIMIT 0
-        `).get(JSON.stringify(new Array(this.defaultDimensions).fill(0)));
+        `);
+
+        if (typeof testStatement.get !== 'function') {
+          console.warn('⚠️ VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.');
+          this.vecExtensionLoaded = false;
+          this.isVecAvailable = false;
+          return;
+        }
+
+        testStatement.get(JSON.stringify(new Array(this.defaultDimensions).fill(0)));
         
         this.vecExtensionLoaded = true;
         this.isVecAvailable = true;
@@ -142,14 +156,20 @@ export class VectorSearchEngine {
     }
 
     try {
-      const rows = this.db.prepare(`
+      const dimensionStatement = this.db.prepare(`
         SELECT embedding_provider as provider, MAX(dimensions) as dimensions
         FROM memory_embedding
         WHERE embedding_provider IS NOT NULL
           AND embedding_provider != ''
           AND dimensions IS NOT NULL
         GROUP BY embedding_provider
-      `).all() as Array<{ provider: string; dimensions: number | null }>;
+      `);
+      const dimensionRows = typeof dimensionStatement.all === 'function'
+        ? dimensionStatement.all()
+        : [];
+      const rows = Array.isArray(dimensionRows)
+        ? dimensionRows as Array<{ provider: string; dimensions: number | null }>
+        : [];
 
       for (const row of rows) {
         const provider = (row.provider || '').toLowerCase();
@@ -242,7 +262,13 @@ export class VectorSearchEngine {
         ...typeFilters,
         limit
       ];
-      const results = this.db.prepare(vecQuery).all(...params) as any[];
+      const queryStatement = this.db.prepare(vecQuery);
+      if (typeof queryStatement.all !== 'function') {
+        console.warn('⚠️ 벡터 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
+        return [];
+      }
+      const rawResults = queryStatement.all(...params);
+      const results = Array.isArray(rawResults) ? rawResults as any[] : [];
 
       // 유사도를 0-1 범위로 정규화 (distance는 작을수록 유사함)
       const normalizedResults = results
@@ -400,7 +426,13 @@ export class VectorSearchEngine {
         limit
       ];
 
-      const results = this.db.prepare(hybridQuery).all(...params) as any[];
+      const hybridStatement = this.db.prepare(hybridQuery);
+      if (typeof hybridStatement.all !== 'function') {
+        console.warn('⚠️ 하이브리드 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
+        return [];
+      }
+      const hybridResults = hybridStatement.all(...params);
+      const results = Array.isArray(hybridResults) ? hybridResults as any[] : [];
 
       // 결과 정규화
       const normalizedResults = results
