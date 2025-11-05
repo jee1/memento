@@ -7,8 +7,7 @@ import Database from 'better-sqlite3';
 import type { 
   VectorSearchQuery, 
   VectorSearchResult, 
-  VectorIndexStatus,
-  HybridSearchResult 
+  VectorIndexStatus
 } from '../types/vector-search.types';
 import type { VectorSearchRepository } from '../interfaces/database.interface';
 import { VECTOR_SEARCH_CONFIG } from '../config/vector-search.config';
