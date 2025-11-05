@@ -118,7 +118,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jee1/memento.git"
+    "url": "git+https://github.com/jee1/memento.git"
   },
   "bugs": {
     "url": "https://github.com/jee1/memento/issues"
