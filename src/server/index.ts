@@ -341,9 +341,7 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// 서버 시작
-if (process.argv[1] && process.argv[1].endsWith('index.js')) {
-  startServer().catch(error => {
-    process.exit(1);
-  });
-}
+// 서버 시작 (MCP 서버는 항상 시작되어야 함)
+startServer().catch(error => {
+  process.exit(1);
+});
