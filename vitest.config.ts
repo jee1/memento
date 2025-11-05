@@ -18,7 +18,9 @@ export default defineConfig({
         'src/test/**/*integration*.{test,spec}.{js,ts}',
         'src/test/**/*m1*.{test,spec}.{js,ts}',
         'src/test/**/*performance*.{test,spec}.{js,ts}',
-        'src/test/**/*error-handling*.{test,spec}.{js,ts}'
+        'src/test/**/*error-handling*.{test,spec}.{js,ts}',
+        // CI 환경에서 네이티브 모듈을 사용하는 테스트 제외
+        'src/services/**/*migration*.spec.ts'
       ]
     }),
     coverage: {
@@ -31,6 +33,6 @@ export default defineConfig({
         '**/*.config.*',
         '**/coverage/**'
       ]
-    }
+    },
   }
 });

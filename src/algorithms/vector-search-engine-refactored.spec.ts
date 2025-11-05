@@ -10,12 +10,32 @@ import {
   createVectorSearchEngine,
   resetVectorSearchEngine
 } from './vector-search-engine-refactored';
-import { VectorSearchContainer } from '../services/vector-search/vector-search-container';
 import Database from 'better-sqlite3';
 
 // Mock Database
 vi.mock('better-sqlite3');
 const MockDatabase = Database as any;
+
+// Mock @xenova/transformers to prevent onnxruntime-node loading
+vi.mock('@xenova/transformers', () => {
+  return {
+    pipeline: vi.fn().mockResolvedValue({
+      __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    })
+  };
+});
+
+// Mock VectorSearchContainer to prevent native module loading
+vi.mock('../services/vector-search/vector-search-container', () => {
+  return {
+    VectorSearchContainer: {
+      getInstance: vi.fn()
+    }
+  };
+});
+
+// Import after mocking to ensure mocked version is used
+import { VectorSearchContainer } from '../services/vector-search/vector-search-container';
 
 describe('VectorSearchEngineRefactored', () => {
   let engine: VectorSearchEngineRefactored;
