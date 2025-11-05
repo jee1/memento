@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["C:\\Users\\YOUR_USERNAME\\git\\memento\\dist\\server\\index.js"],
+      "env": {
+        "NODE_ENV": "production",
+        "DATA_DIR": "C:\\Users\\YOUR_USERNAME\\git\\memento\\data"
+      }
+    }
+  }
+}
+

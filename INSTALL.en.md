@@ -233,11 +233,77 @@ After installation, you can access the following addresses:
 - **WebSocket**: `ws://localhost:8080`
 - **Admin Dashboard**: `http://localhost:8080/admin`
 
+## 🪟 Platform-Specific Execution
+
+### Windows
+
+#### PowerShell/CMD
+```powershell
+# npx method (recommended)
+npx memento-mcp-server@latest dev
+npx memento-mcp-server@latest setup
+
+# Using npm exec
+npm exec -- memento-mcp-server@latest dev
+
+# After global installation
+npm install -g memento-mcp-server
+memento-mcp-server dev
+```
+
+#### WSL (Windows Subsystem for Linux)
+```bash
+# Same as Linux
+npx memento-mcp-server@latest dev
+```
+
+### Linux/macOS
+
+```bash
+# npx method (recommended)
+npx memento-mcp-server@latest dev
+npx memento-mcp-server@latest setup
+
+# Using npm exec
+npm exec -- memento-mcp-server@latest dev
+
+# After global installation
+npm install -g memento-mcp-server
+memento-mcp-server dev
+```
+
+### Platform Differences
+
+| Item | Windows | Linux/macOS |
+|------|---------|-------------|
+| Path separator | `\` | `/` |
+| Execution permissions | Auto-handled | Requires `chmod +x` |
+| Shebang | Ignored (npm handles) | Used |
+| npm exec | Requires explicit command | Requires explicit command |
+| npx | Recommended | Recommended |
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
 
-#### 1. Node.js Version Error
+#### 1. npm exec Error: "could not determine executable to run"
+
+**Cause**: npm exec requires you to explicitly specify the command to run.
+
+**Solution**:
+```bash
+# ❌ Incorrect usage
+npm exec memento-mcp-server@latest
+
+# ✅ Correct usage
+npm exec -- memento-mcp-server@latest dev
+npm exec -- memento-mcp-server@latest setup
+
+# Or use npx (recommended)
+npx memento-mcp-server@latest dev
+```
+
+#### 2. Node.js Version Error
 ```bash
 # Node.js 20+ required
 node --version

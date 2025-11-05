@@ -7,6 +7,25 @@
 
 ## [Unreleased]
 
+### 추가됨
+- **npm 패키지 개선**: `prepublishOnly` 스크립트 추가로 빌드 보장
+- **bin 파일 검증**: `verify-bin` 스크립트로 npm publish 전 bin 파일 검증
+- **Cursor MCP 설정 가이드**: Cursor에서 MCP 서버 사용 가이드 문서 추가
+- **플랫폼별 실행 가이드**: Windows/Linux/macOS별 실행 방법 문서화
+
+### 수정됨
+- **http-server.ts**: shebang 추가로 bin 파일로 직접 실행 가능
+- **package.json**: bin 필드 순서 최적화 (패키지 이름과 동일한 bin을 첫 번째로)
+- **package.json**: `@memento/client` file: 의존성 제거 (npx 실행 시 오류 해결)
+- **INSTALL.md**: 플랫폼별 실행 방법 및 npm exec 문제 해결 가이드 추가
+- **README.md**: Cursor MCP 설정 링크 추가
+
+### 개선됨
+- **npm 패키지 구조**: npx 실행 시 안정성 향상
+  - file: 프로토콜 의존성 제거로 npm 레지스트리 호환성 확보
+  - `Cannot destructure property 'package' of 'node.target' as it is null` 오류 해결
+- **문서화**: 플랫폼별 차이점 및 문제 해결 가이드 상세화
+
 ### 계획된 기능
 - M2 팀 협업 기능 구현
 - PostgreSQL 마이그레이션

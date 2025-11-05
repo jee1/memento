@@ -72,12 +72,15 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/jee1/memento/main/inst
 bash install.sh
 ```
 
-### 2. npx 방식
+### 2. npx 방식 (권장)
 
 #### 기본 사용법
 ```bash
 # 개발 모드 (핫 리로드)
 npx memento-mcp-server@latest dev
+
+# MCP 서버 실행
+npx memento-mcp-server@latest
 
 # 프로덕션 모드
 npx memento-mcp-server@latest start
@@ -87,6 +90,16 @@ npx memento-mcp-server@latest dev-http
 
 # 자동 설정
 npx memento-mcp-server@latest setup
+```
+
+#### npm exec 사용법
+```bash
+# 명령어를 명시적으로 지정해야 합니다
+npm exec -- memento-mcp-server@latest dev
+npm exec -- memento-mcp-server@latest setup
+
+# 또는 간단하게 npx 사용 (권장)
+npx memento-mcp-server@latest dev
 ```
 
 #### 전역 설치
@@ -233,11 +246,106 @@ npm run regenerate:embeddings # 임베딩 재생성
 - **WebSocket**: `ws://localhost:8080`
 - **관리 대시보드**: `http://localhost:8080/admin`
 
+## 🎯 Cursor MCP 설정
+
+Cursor에서 Memento MCP Server를 사용하려면:
+
+1. **프로젝트 빌드**
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. **Cursor 설정 추가**
+   - Cursor 설정 → MCP Servers에 추가
+   - 또는 `.cursor/mcp.json` 파일 생성
+   - 상세 가이드: [Cursor MCP 설정 가이드](docs/cursor-mcp-setup.ko.md)
+
+**빠른 설정 예시 (Windows):**
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["C:\\Users\\YOUR_USERNAME\\git\\memento\\dist\\server\\index.js"]
+    }
+  }
+}
+```
+
+> **참고**: `npx -y memento-mcp-server@latest` 방식이 실패하는 경우, 로컬 경로를 사용하는 방법을 권장합니다.
+
+## 🪟 플랫폼별 실행 방법
+
+### Windows
+
+#### PowerShell/CMD
+```powershell
+# npx 방식 (권장)
+npx memento-mcp-server@latest dev
+npx memento-mcp-server@latest setup
+
+# npm exec 사용 시
+npm exec -- memento-mcp-server@latest dev
+
+# 전역 설치 후
+npm install -g memento-mcp-server
+memento-mcp-server dev
+```
+
+#### WSL (Windows Subsystem for Linux)
+```bash
+# Linux와 동일하게 사용
+npx memento-mcp-server@latest dev
+```
+
+### Linux/macOS
+
+```bash
+# npx 방식 (권장)
+npx memento-mcp-server@latest dev
+npx memento-mcp-server@latest setup
+
+# npm exec 사용 시
+npm exec -- memento-mcp-server@latest dev
+
+# 전역 설치 후
+npm install -g memento-mcp-server
+memento-mcp-server dev
+```
+
+### 플랫폼별 차이점
+
+| 항목 | Windows | Linux/macOS |
+|------|---------|-------------|
+| 경로 구분자 | `\` | `/` |
+| 실행 권한 | 자동 처리 | `chmod +x` 필요 |
+| Shebang | 무시됨 (npm이 처리) | 사용됨 |
+| npm exec | 명령어 명시 필요 | 명령어 명시 필요 |
+| npx | 권장 | 권장 |
+
 ## 🚨 문제 해결
 
 ### 일반적인 문제들
 
-#### 1. Node.js 버전 오류
+#### 1. npm exec 오류: "could not determine executable to run"
+
+**원인**: npm exec는 실행할 명령어를 명시적으로 지정해야 합니다.
+
+**해결 방법**:
+```bash
+# ❌ 잘못된 사용법
+npm exec memento-mcp-server@latest
+
+# ✅ 올바른 사용법
+npm exec -- memento-mcp-server@latest dev
+npm exec -- memento-mcp-server@latest setup
+
+# 또는 npx 사용 (권장)
+npx memento-mcp-server@latest dev
+```
+
+#### 2. Node.js 버전 오류
 ```bash
 # Node.js 20 이상 필요
 node --version
@@ -246,23 +354,32 @@ node --version
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 nvm install 20
 nvm use 20
+
+# Windows에서 nvm 사용
+# nvm-windows 설치: https://github.com/coreybutler/nvm-windows
+nvm install 20
+nvm use 20
 ```
 
-#### 2. 포트 충돌
+#### 3. 포트 충돌
 ```bash
 # 포트 8080이 사용 중인 경우
 # .env 파일에서 PORT 변경
 PORT=8081
 ```
 
-#### 3. 데이터베이스 오류
+#### 4. 데이터베이스 오류
 ```bash
-# 데이터베이스 재초기화
+# Linux/macOS
 rm -rf data/memory.db*
+npm run db:init
+
+# Windows (PowerShell)
+Remove-Item data\memory.db* -Force
 npm run db:init
 ```
 
-#### 4. Docker 오류
+#### 5. Docker 오류
 ```bash
 # Docker 컨테이너 완전 정리
 docker-compose down -v

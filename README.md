@@ -57,7 +57,21 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
 ```
 
-### 🥈 **npx 방식 (개발자용)**
+### 🥈 **npx 방식 (개발자용) - 모든 플랫폼 지원**
+
+#### Windows (PowerShell/CMD)
+```powershell
+# 즉시 실행 (설치 없이)
+npx memento-mcp-server@latest dev
+
+# MCP 서버 실행
+npx memento-mcp-server@latest
+
+# 자동 설정
+npx memento-mcp-server@latest setup
+```
+
+#### Linux/macOS
 ```bash
 # 즉시 실행 (설치 없이)
 npx memento-mcp-server@latest dev
@@ -65,12 +79,14 @@ npx memento-mcp-server@latest dev
 # MCP 서버 실행
 npx memento-mcp-server@latest
 
-# HTTP 서버 실행
-npx memento-mcp-server@latest http
-
 # 자동 설정
 npx memento-mcp-server@latest setup
 ```
+
+> **참고**: `npm exec` 사용 시 명령어를 명시적으로 지정해야 합니다:
+> ```bash
+> npm exec -- memento-mcp-server@latest dev
+> ```
 
 ### 🥉 **Docker 방식 (프로덕션용)**
 ```bash
@@ -92,7 +108,8 @@ npm run quick-start
 ```
 
 ### 📚 **상세 설치 가이드**
-자세한 설치 방법은 [INSTALL.md](INSTALL.md)를 참조하세요.
+- [INSTALL.md](INSTALL.md) - 전체 설치 가이드
+- [Cursor MCP 설정 가이드](docs/cursor-mcp-setup.ko.md) - Cursor에서 MCP 서버 사용하기
 
 ## 💡 사용 예시
 

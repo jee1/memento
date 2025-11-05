@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * HTTP/WebSocket 기반 MCP 서버 v2
  * 모듈화된 구조로 새로 구현
