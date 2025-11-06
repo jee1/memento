@@ -1,137 +1,49 @@
-# Cursor MCP 설정 가이드
+# Cursor MCP Setup Guide
 
-Cursor에서 Memento MCP Server를 사용하기 위한 설정 방법입니다.
+How to configure Memento MCP Server in Cursor.
 
-## 🚨 문제 해결: "Cannot destructure property 'package' of 'node.target' as it is null"
+## 🚨 Troubleshooting: "Cannot destructure property 'package' of 'node.target' as it is null"
 
-이 오류는 `npx -y memento-mcp-server@latest`를 사용할 때 npm의 내부 오류로 발생할 수 있습니다.
+This error can occur when using `npx -y memento-mcp-server@latest` due to an internal npm error.
 
-## ✅ 해결 방법
+> **Latest Update**: We've improved the package by adding `prepublishOnly` scripts and bin file validation to ensure builds are guaranteed during npm publish. Future versions should work more reliably.
 
-### 방법 1: 로컬 경로 사용 (권장)
+## ✅ Solutions
 
-로컬에 클론한 프로젝트의 빌드된 파일을 직접 사용합니다.
+### Method 1: Use Local Path (Recommended) ⭐
 
-#### 1. 프로젝트 빌드
+Use the built files from your locally cloned project directly.
+
+#### 1. Build the Project
 
 ```bash
-# 프로젝트 디렉토리에서
+# From the project directory
+cd /path/to/memento
 npm install
 npm run build
 ```
 
-#### 2. Cursor MCP 설정
+#### 2. Configure Cursor MCP
 
-Cursor 설정 파일 (`.cursor/mcp.json` 또는 Cursor 설정에서)에 다음을 추가:
+Add the following to your Cursor settings file or `.cursor/mcp.json`:
 
+**Windows:**
 ```json
 {
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\jee1l\\git\\memento\\dist\\server\\index.js"],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-```
-
-**Windows 경로 예시:**
-```json
-{
-  "mcpServers": {
-    "memento": {
-      "command": "node",
-      "args": ["C:\\Users\\YOUR_USERNAME\\git\\memento\\dist\\server\\index.js"]
-    }
-  }
-}
-```
-
-**Linux/macOS 경로 예시:**
-```json
-{
-  "mcpServers": {
-    "memento": {
-      "command": "node",
-      "args": ["/home/username/git/memento/dist/server/index.js"]
-    }
-  }
-}
-```
-
-### 방법 2: 전역 설치 후 사용
-
-#### 1. 전역 설치
-
-```bash
-npm install -g memento-mcp-server
-```
-
-#### 2. Cursor MCP 설정
-
-```json
-{
-  "mcpServers": {
-    "memento": {
-      "command": "memento-mcp-server"
-    }
-  }
-}
-```
-
-### 방법 3: npm 캐시 정리 후 재시도
-
-npm 캐시 문제일 수 있으므로 다음을 시도:
-
-```bash
-# npm 캐시 정리
-npm cache clean --force
-
-# 다시 시도
-npx -y memento-mcp-server@latest
-```
-
-### 방법 4: 직접 npx 실행 스크립트 사용
-
-Cursor 설정에서 직접 npx 명령을 실행:
-
-```json
-{
-  "mcpServers": {
-    "memento": {
-      "command": "npx",
-      "args": ["-y", "memento-mcp-server@latest"]
-    }
-  }
-}
-```
-
-하지만 이 방법도 같은 오류가 발생할 수 있으므로 **방법 1 (로컬 경로)을 권장**합니다.
-
-## 📋 전체 설정 예시
-
-### Windows (PowerShell)
-
-```json
-{
-  "mcpServers": {
-    "memento": {
-      "command": "node",
-      "args": ["C:\\Users\\jee1l\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
-        "DATA_DIR": "C:\\Users\\jee1l\\git\\memento\\data"
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
       }
     }
   }
 }
 ```
 
-### Linux/macOS
-
+**Linux/macOS:**
 ```json
 {
   "mcpServers": {
@@ -140,42 +52,260 @@ Cursor 설정에서 직접 npx 명령을 실행:
       "args": ["/home/username/git/memento/dist/server/index.js"],
       "env": {
         "NODE_ENV": "production",
-        "DATA_DIR": "/home/username/git/memento/data"
+        "DB_PATH": "/home/username/git/memento/data/memory.db"
       }
     }
   }
 }
 ```
 
-## 🔍 문제 진단
+> **Note**: Change the paths to match your actual project path.
 
-### 1. 빌드 확인
+### Method 2: Direct Execution with npx (Simple Method)
 
-```bash
-# dist 디렉토리에 파일이 있는지 확인
-ls dist/server/index.js  # Linux/macOS
-dir dist\server\index.js  # Windows
+Use npx to run the package directly without downloading it first.
+
+#### Cursor MCP Configuration
+
+Add the following to your Cursor settings file or `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "memento-mcp-server@latest"],
+      "env": {
+        "DB_PATH": "./data/memory.db"
+      }
+    }
+  }
+}
 ```
 
-### 2. Node.js 실행 확인
+> **DB_PATH Configuration Notes**:
+> - Default value: `./data/memory.db` (relative to current working directory)
+> - Windows absolute path example: `"DB_PATH": "C:\\Users\\username\\memento\\data\\memory.db"`
+> - Linux/macOS absolute path example: `"DB_PATH": "/home/username/memento/data/memory.db"`
+> - Relative paths may vary depending on the working directory when npx runs, so using absolute paths is recommended.
+
+> **Notes**: 
+> - The `-y` flag automatically accepts package installation prompts.
+> - `@latest` uses the latest version. You can specify a version like `@1.0.0` if needed.
+> - The package will be automatically downloaded on first run.
+
+#### Advantages
+- No separate installation process required
+- Always uses the latest version
+- Can be used without global installation
+
+#### Disadvantages
+- May take time to download on first run
+- May fail due to npm cache issues (see Method 4 for troubleshooting)
+
+### Method 3: Global Installation
+
+#### 1. Global Installation
 
 ```bash
-# 직접 실행 테스트
+npm install -g memento-mcp-server
+```
+
+#### 2. Cursor MCP Configuration
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "memento-mcp-server",
+      "env": {
+        "DB_PATH": "./data/memory.db"
+      }
+    }
+  }
+}
+```
+
+> **DB_PATH Configuration Note**: It's recommended to explicitly set DB_PATH even with global installation. Using absolute paths is recommended.
+
+### Method 4: Troubleshooting (npm Cache Cleanup)
+
+If you encounter the "Cannot destructure property 'package' of 'node.target' as it is null" error when using npx:
+
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Check Node.js version (requires 20 or higher)
+node --version
+
+# Try again
+npx -y memento-mcp-server@latest
+```
+
+If the problem persists, we recommend Method 1 (using local path).
+
+## 📋 Detailed Configuration Examples
+
+### Windows (Complete Example)
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "env": {
+        "NODE_ENV": "production",
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
+      }
+    }
+  }
+}
+```
+
+### Using Relative Path (Within Project)
+
+Create a `.cursor/mcp.json` file in the project root:
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["./dist/server/index.js"],
+      "cwd": "C:\\Users\\username\\git\\memento",
+      "env": {
+        "NODE_ENV": "production",
+        "DB_PATH": "./data/memory.db"
+      }
+    }
+  }
+}
+```
+
+> **Note**: Since `cwd` is set, `DB_PATH` can use a relative path. However, using absolute paths is recommended.
+
+## 🔍 Troubleshooting
+
+### 1. Verify Build
+
+```bash
+# Windows
+dir dist\server\index.js
+
+# Linux/macOS
+ls -la dist/server/index.js
+```
+
+### 2. Direct Execution Test
+
+```bash
+# From the project directory
 node dist/server/index.js
 ```
 
-### 3. 로그 확인
+If it runs successfully, the MCP server has started.
 
-Cursor의 MCP 로그를 확인하여 정확한 오류 메시지를 확인하세요.
+### 3. Check Node.js Version
 
-## 🎯 권장 설정
+```bash
+node --version  # Should be 20.0.0 or higher
+```
 
-**가장 안정적인 방법:**
+### 4. Verify Dependencies
 
-1. 프로젝트를 로컬에 클론
-2. `npm install && npm run build` 실행
-3. Cursor 설정에서 로컬 경로 사용
-4. Cursor 재시작
+```bash
+npm install
+npm run build
+```
 
-이 방법은 npm 레지스트리나 캐시 문제에 영향을 받지 않습니다.
+## 🎯 Recommended Setup Steps
 
+1. ✅ Clone the project (already done)
+   ```bash
+   cd /path/to/memento
+   ```
+
+2. ✅ Install dependencies and build
+   ```bash
+   npm install
+   npm run build
+   ```
+
+3. ✅ Add local path to Cursor settings
+   - Cursor Settings → MCP Servers
+   - Or create a `.cursor/mcp.json` file
+
+4. ✅ Restart Cursor
+
+5. ✅ Test connection
+
+## 💡 Additional Tips
+
+### Environment Variable Configuration
+
+If you need specific environment variables:
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "env": {
+        "NODE_ENV": "production",
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
+        "OPENAI_API_KEY": "your-key-here",
+        "GEMINI_API_KEY": "your-key-here",
+        "EMBEDDING_PROVIDER": "minilm",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
+```
+
+#### Key Environment Variables
+
+- **DB_PATH** (Recommended): Database file path
+  - Default: `./data/memory.db`
+  - Windows example: `C:\\Users\\username\\memento\\data\\memory.db`
+  - Linux/macOS example: `/home/username/memento/data/memory.db`
+  - Using absolute paths is recommended (relative paths may vary depending on execution location)
+
+- **NODE_ENV**: Execution environment (`development` or `production`)
+- **OPENAI_API_KEY**: OpenAI API key (when using OpenAI embeddings)
+- **GEMINI_API_KEY**: Google Gemini API key (when using Gemini embeddings)
+- **EMBEDDING_PROVIDER**: Embedding provider (`tfidf`, `lightweight`, `minilm`, `openai`, `gemini`)
+- **LOG_LEVEL**: Log level (`debug`, `info`, `warn`, `error`)
+
+### Debug Mode
+
+If you're developing, you can run the source file directly:
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "tsx", "src/server/index.ts"],
+      "cwd": "C:\\Users\\username\\git\\memento",
+      "env": {
+        "NODE_ENV": "development",
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
+        "LOG_LEVEL": "debug"
+      }
+    }
+  }
+}
+```
+
+## ⚠️ Important Notes
+
+- On Windows, you must escape backslashes (`\`) by using two backslashes (`\\`).
+- Using absolute paths is most reliable.
+- The `npx` method is convenient but may fail due to npm cache issues. In such cases, we recommend Method 1 (using local path).
+- Method 2 (npx) requires an internet connection as it downloads the package on first run.
+- **DB_PATH Configuration**: It's recommended to explicitly set the database file path. If not set, the default value (`./data/memory.db`) will be used, but the database may be created in an unexpected location depending on the execution location.
+- **Database Directory**: If the directory specified in DB_PATH doesn't exist, it will be created automatically. However, write permissions are required, so specify an appropriate location.

@@ -18,7 +18,7 @@ Cursor에서 Memento MCP Server를 사용하기 위한 설정 방법입니다.
 
 ```bash
 # 프로젝트 디렉토리에서
-cd C:\Users\jee1l\git\memento
+cd C:\Users\username\git\memento
 npm install
 npm run build
 ```
@@ -33,9 +33,10 @@ Cursor 설정 파일 또는 `.cursor/mcp.json`에 다음을 추가:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\jee1l\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
       }
     }
   }
@@ -50,7 +51,8 @@ Cursor 설정 파일 또는 `.cursor/mcp.json`에 다음을 추가:
       "command": "node",
       "args": ["/home/username/git/memento/dist/server/index.js"],
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "DB_PATH": "/home/username/git/memento/data/memory.db"
       }
     }
   }
@@ -59,7 +61,49 @@ Cursor 설정 파일 또는 `.cursor/mcp.json`에 다음을 추가:
 
 > **참고**: 경로를 실제 프로젝트 경로로 변경하세요.
 
-### 방법 2: 전역 설치 후 사용
+### 방법 2: npx로 직접 실행 (간단한 방법)
+
+npx를 사용하여 패키지를 다운로드 없이 직접 실행할 수 있습니다.
+
+#### Cursor MCP 설정
+
+Cursor 설정 파일 또는 `.cursor/mcp.json`에 다음을 추가:
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "memento-mcp-server@latest"],
+      "env": {
+        "DB_PATH": "./data/memory.db"
+      }
+    }
+  }
+}
+```
+
+> **DB_PATH 설정 참고**:
+> - 기본값: `./data/memory.db` (현재 작업 디렉토리 기준)
+> - Windows 절대 경로 예시: `"DB_PATH": "C:\\Users\\username\\memento\\data\\memory.db"`
+> - Linux/macOS 절대 경로 예시: `"DB_PATH": "/home/username/memento/data/memory.db"`
+> - 상대 경로는 npx 실행 시 작업 디렉토리에 따라 달라질 수 있으므로, 절대 경로 사용을 권장합니다.
+
+> **참고**: 
+> - `-y` 플래그는 패키지 설치 확인을 자동으로 승인합니다.
+> - `@latest`는 최신 버전을 사용합니다. 특정 버전을 사용하려면 `@1.0.0` 형식으로 지정할 수 있습니다.
+> - 첫 실행 시 패키지가 자동으로 다운로드됩니다.
+
+#### 장점
+- 별도의 설치 과정이 필요 없습니다
+- 항상 최신 버전을 사용할 수 있습니다
+- 전역 설치 없이 사용 가능합니다
+
+#### 단점
+- 첫 실행 시 다운로드 시간이 소요될 수 있습니다
+- npm 캐시 문제로 실패할 수 있습니다 (이 경우 방법 4 참고)
+
+### 방법 3: 전역 설치 후 사용
 
 #### 1. 전역 설치
 
@@ -73,15 +117,20 @@ npm install -g memento-mcp-server
 {
   "mcpServers": {
     "memento": {
-      "command": "memento-mcp-server"
+      "command": "memento-mcp-server",
+      "env": {
+        "DB_PATH": "./data/memory.db"
+      }
     }
   }
 }
 ```
 
-### 방법 3: npm 캐시 정리
+> **DB_PATH 설정 참고**: 전역 설치 시에도 DB_PATH를 명시적으로 설정하는 것을 권장합니다. 절대 경로 사용을 권장합니다.
 
-npm 캐시 문제일 수 있으므로:
+### 방법 4: 문제 해결 (npm 캐시 정리)
+
+npx 사용 시 "Cannot destructure property 'package' of 'node.target' as it is null" 오류가 발생하는 경우:
 
 ```bash
 # npm 캐시 정리
@@ -94,6 +143,8 @@ node --version
 npx -y memento-mcp-server@latest
 ```
 
+여전히 문제가 발생한다면 방법 1 (로컬 경로 사용)을 권장합니다.
+
 ## 📋 상세 설정 예시
 
 ### Windows (완전한 예시)
@@ -103,10 +154,10 @@ npx -y memento-mcp-server@latest
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\jee1l\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
-        "DATA_DIR": "C:\\Users\\jee1l\\git\\memento\\data"
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
       }
     }
   }
@@ -123,11 +174,17 @@ npx -y memento-mcp-server@latest
     "memento": {
       "command": "node",
       "args": ["./dist/server/index.js"],
-      "cwd": "C:\\Users\\jee1l\\git\\memento"
+      "cwd": "C:\\Users\\username\\git\\memento",
+      "env": {
+        "NODE_ENV": "production",
+        "DB_PATH": "./data/memory.db"
+      }
     }
   }
 }
 ```
+
+> **참고**: `cwd`가 설정되어 있으므로 `DB_PATH`는 상대 경로로도 사용 가능합니다. 하지만 절대 경로 사용을 권장합니다.
 
 ## 🔍 문제 진단
 
@@ -167,7 +224,7 @@ npm run build
 
 1. ✅ 프로젝트 클론 (이미 완료)
    ```bash
-   cd C:\Users\jee1l\git\memento
+   cd C:\Users\username\git\memento
    ```
 
 2. ✅ 의존성 설치 및 빌드
@@ -195,17 +252,33 @@ npm run build
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\jee1l\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
-        "DATA_DIR": "C:\\Users\\jee1l\\git\\memento\\data",
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
         "OPENAI_API_KEY": "your-key-here",
-        "GEMINI_API_KEY": "your-key-here"
+        "GEMINI_API_KEY": "your-key-here",
+        "EMBEDDING_PROVIDER": "minilm",
+        "LOG_LEVEL": "info"
       }
     }
   }
 }
 ```
+
+#### 주요 환경 변수 설명
+
+- **DB_PATH** (필수 권장): 데이터베이스 파일 경로
+  - 기본값: `./data/memory.db`
+  - Windows 예시: `C:\\Users\\username\\memento\\data\\memory.db`
+  - Linux/macOS 예시: `/home/username/memento/data/memory.db`
+  - 절대 경로 사용을 권장합니다 (상대 경로는 실행 위치에 따라 달라질 수 있음)
+
+- **NODE_ENV**: 실행 환경 (`development` 또는 `production`)
+- **OPENAI_API_KEY**: OpenAI API 키 (OpenAI 임베딩 사용 시)
+- **GEMINI_API_KEY**: Google Gemini API 키 (Gemini 임베딩 사용 시)
+- **EMBEDDING_PROVIDER**: 임베딩 제공자 (`tfidf`, `lightweight`, `minilm`, `openai`, `gemini`)
+- **LOG_LEVEL**: 로그 레벨 (`debug`, `info`, `warn`, `error`)
 
 ### 디버깅 모드
 
@@ -217,7 +290,12 @@ npm run build
     "memento": {
       "command": "npx",
       "args": ["-y", "tsx", "src/server/index.ts"],
-      "cwd": "C:\\Users\\jee1l\\git\\memento"
+      "cwd": "C:\\Users\\username\\git\\memento",
+      "env": {
+        "NODE_ENV": "development",
+        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
+        "LOG_LEVEL": "debug"
+      }
     }
   }
 }
@@ -227,5 +305,8 @@ npm run build
 
 - Windows에서는 경로에 백슬래시(`\`)를 두 개(`\\`)로 이스케이프해야 합니다.
 - 절대 경로를 사용하는 것이 가장 안정적입니다.
-- `npx`를 사용하는 방법은 npm 캐시 문제로 실패할 수 있으므로 로컬 경로 사용을 권장합니다.
+- `npx`를 사용하는 방법은 간편하지만, npm 캐시 문제로 실패할 수 있습니다. 이 경우 방법 1 (로컬 경로 사용)을 권장합니다.
+- 방법 2 (npx)는 첫 실행 시 패키지를 다운로드하므로 인터넷 연결이 필요합니다.
+- **DB_PATH 설정**: 데이터베이스 파일 경로를 명시적으로 설정하는 것을 권장합니다. 설정하지 않으면 기본값(`./data/memory.db`)이 사용되지만, 실행 위치에 따라 예상치 못한 위치에 데이터베이스가 생성될 수 있습니다.
+- **데이터베이스 디렉토리**: DB_PATH에 지정한 디렉토리가 존재하지 않으면 자동으로 생성됩니다. 하지만 쓰기 권한이 필요하므로 적절한 위치를 지정하세요.
 
