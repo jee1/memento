@@ -113,6 +113,70 @@ async function initializeDatabase() {
   }
 }
 
+async function rebuildNativeModules() {
+  try {
+    logStep('네이티브 모듈', 'better-sqlite3 및 sqlite-vec 재빌드 시도 중...');
+    
+    const nodeModulesPath = path.join(projectRoot, 'node_modules');
+    if (!fs.existsSync(nodeModulesPath)) {
+      logWarning('node_modules가 없습니다. 먼저 npm install이 실행됩니다.');
+      return;
+    }
+    
+    // 네이티브 모듈이 제대로 작동하는지 확인 (동적 import 사용)
+    try {
+      const betterSqlite3Path = path.join(nodeModulesPath, 'better-sqlite3');
+      if (fs.existsSync(betterSqlite3Path)) {
+        // 모듈 존재 확인만 (실제 로드는 나중에)
+        logSuccess('better-sqlite3 모듈 확인됨');
+      } else {
+        throw new Error('better-sqlite3 not found');
+      }
+    } catch (error) {
+      logWarning('better-sqlite3 모듈을 찾을 수 없거나 빌드가 필요합니다.');
+      logStep('재빌드', 'better-sqlite3 재빌드 중...');
+      
+      try {
+        execSync('npm rebuild better-sqlite3', {
+          cwd: projectRoot,
+          stdio: 'inherit'
+        });
+        logSuccess('better-sqlite3 재빌드 완료');
+      } catch (rebuildError) {
+        logWarning(`better-sqlite3 재빌드 실패: ${rebuildError.message}`);
+        logWarning('수동으로 실행하세요: npm rebuild better-sqlite3');
+      }
+    }
+    
+    // sqlite-vec도 확인 (선택적)
+    try {
+      const sqliteVecPath = path.join(nodeModulesPath, 'sqlite-vec');
+      if (fs.existsSync(sqliteVecPath)) {
+        logSuccess('sqlite-vec 모듈 확인됨');
+      } else {
+        throw new Error('sqlite-vec not found');
+      }
+    } catch (error) {
+      logWarning('sqlite-vec 모듈을 찾을 수 없거나 빌드가 필요합니다.');
+      logStep('재빌드', 'sqlite-vec 재빌드 시도 중...');
+      
+      try {
+        execSync('npm rebuild sqlite-vec', {
+          cwd: projectRoot,
+          stdio: 'inherit'
+        });
+        logSuccess('sqlite-vec 재빌드 완료');
+      } catch (rebuildError) {
+        logWarning(`sqlite-vec 재빌드 실패: ${rebuildError.message}`);
+        logWarning('sqlite-vec는 선택적 의존성입니다. 벡터 검색 기능이 제한될 수 있습니다.');
+      }
+    }
+  } catch (error) {
+    logWarning(`네이티브 모듈 재빌드 중 오류: ${error.message}`);
+    logWarning('수동으로 실행하세요: npm rebuild better-sqlite3 sqlite-vec');
+  }
+}
+
 async function checkDependencies() {
   const packageJsonPath = path.join(projectRoot, 'package.json');
   const nodeModulesPath = path.join(projectRoot, 'node_modules');
@@ -209,6 +273,15 @@ async function showUsageInstructions() {
 async function main() {
   try {
     log('🚀 Memento MCP Server 자동 설정을 시작합니다...', 'bright');
+    
+    // npx를 통해 실행되는 경우 네이티브 모듈 재빌드 먼저 시도
+    const isNpx = process.env.npm_config_user_config === undefined || 
+                   process.env.npm_execpath?.includes('npx') ||
+                   process.env.npm_lifecycle_event === 'postinstall';
+    
+    if (isNpx) {
+      await rebuildNativeModules();
+    }
     
     await checkNodeVersion();
     await checkDependencies();

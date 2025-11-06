@@ -10,8 +10,12 @@
 ### 추가됨
 - **npm 패키지 개선**: `prepublishOnly` 스크립트 추가로 빌드 보장
 - **bin 파일 검증**: `verify-bin` 스크립트로 npm publish 전 bin 파일 검증
+- **네이티브 모듈 재빌드**: `rebuild-native` 스크립트 추가 (Node.js 버전 문제 해결)
+- **npx 자동 재빌드**: postinstall 스크립트에서 npx 감지 시 자동으로 네이티브 모듈 재빌드 시도
 - **Cursor MCP 설정 가이드**: Cursor에서 MCP 서버 사용 가이드 문서 추가
 - **플랫폼별 실행 가이드**: Windows/Linux/macOS별 실행 방법 문서화
+- **Node.js 버전 호환성 가이드**: SQLite 네이티브 모듈 문제 해결 가이드 추가
+- **npx 사용자 가이드**: npx를 사용하는 일반 사용자를 위한 문제 해결 가이드 추가
 
 ### 수정됨
 - **http-server.ts**: shebang 추가로 bin 파일로 직접 실행 가능

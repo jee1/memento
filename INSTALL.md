@@ -379,7 +379,35 @@ Remove-Item data\memory.db* -Force
 npm run db:init
 ```
 
-#### 5. Docker 오류
+#### 5. Node.js 버전으로 인한 SQLite 모듈 오류
+
+**증상**: "SQLite를 사용할 수 없습니다" 또는 "Module not found: better-sqlite3" 오류
+
+**원인**: Node.js 버전이 높거나 낮아서 네이티브 모듈이 빌드되지 않음
+
+**해결 방법**:
+
+```bash
+# 방법 1: 네이티브 모듈 재빌드 (권장)
+npm rebuild better-sqlite3 sqlite-vec
+
+# 방법 2: 소스에서 빌드
+npm install better-sqlite3 sqlite-vec --build-from-source
+
+# 방법 3: Node.js 버전 확인 및 변경 (20.x 권장)
+node --version  # 20.x 이상이어야 함
+
+# 방법 4: 완전 재설치
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install --build-from-source
+```
+
+**상세 가이드**: 
+- [Node.js 버전 호환성 문제 해결 가이드](docs/troubleshooting-node-version.md)
+- [npx 사용자 문제 해결 가이드](docs/npx-troubleshooting.md)
+
+#### 6. Docker 오류
 ```bash
 # Docker 컨테이너 완전 정리
 docker-compose down -v

@@ -110,6 +110,7 @@ npm run quick-start
 ### 📚 **상세 설치 가이드**
 - [INSTALL.md](INSTALL.md) - 전체 설치 가이드
 - [Cursor MCP 설정 가이드](docs/cursor-mcp-setup.ko.md) - Cursor에서 MCP 서버 사용하기
+- [npx 사용자 문제 해결](docs/npx-troubleshooting.md) - npx 실행 시 문제 해결
 
 ## 💡 사용 예시
 

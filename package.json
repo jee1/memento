@@ -49,6 +49,7 @@
     "test:docker": "node test-docker.js",
     "setup": "node scripts/auto-setup.js",
     "postinstall": "node scripts/auto-setup.js",
+    "rebuild-native": "npm rebuild better-sqlite3 sqlite-vec",
     "prepublishOnly": "npm run build && npm run verify-bin",
     "verify-bin": "node scripts/verify-bin.js",
     "quick-start": "npm install && npm run setup && npm run dev",
