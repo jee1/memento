@@ -29,16 +29,28 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          VERSION=${VERSION#v}  # Remove 'v' prefix if present
+          # release 이벤트인 경우 github.event.release.tag_name 사용
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          else
+            # workflow_dispatch 또는 태그 푸시인 경우
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+          fi
+          
+          VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Extracted version: $VERSION"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION from tag: $TAG_NAME"
           
       - name: Update package.json version
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          npm version $VERSION --no-git-tag-version
-          echo "Updated package.json to version: $VERSION"
+          if [ -n "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+            echo "Updated package.json to version: $VERSION"
+          else
+            echo "⚠️ Version not found, skipping package.json update"
+          fi
           
       - name: Build package
         run: npm run build
@@ -58,19 +70,50 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           
+      - name: Check if Release exists
+        id: check_release
+        run: |
+          # release 이벤트인 경우 이미 Release가 존재함
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Release event triggered - Release already exists for tag: $TAG_NAME"
+          else
+            # workflow_dispatch 또는 태그 푸시인 경우 확인 필요
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            if [ -z "$TAG_NAME" ]; then
+              # GITHUB_REF가 태그가 아닌 경우 version step에서 가져옴
+              TAG_NAME="${{ steps.version.outputs.tag_name }}"
+            fi
+            
+            # GitHub API를 사용하여 Release 존재 여부 확인
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME")
+            
+            if [ "$RESPONSE" = "200" ]; then
+              echo "exists=true" >> $GITHUB_OUTPUT
+              echo "✅ Release already exists for tag: $TAG_NAME"
+            else
+              echo "exists=false" >> $GITHUB_OUTPUT
+              echo "ℹ️ Release does not exist for tag: $TAG_NAME"
+            fi
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.check_release.outputs.tag_name }}
+          name: Release ${{ steps.check_release.outputs.tag_name }}
           body: |
-            ## 🚀 Memento MCP Server ${{ github.ref_name }}
+            ## 🚀 Memento MCP Server ${{ steps.check_release.outputs.tag_name }}
             
             ### 📦 npm 패키지
             ```bash
-            npx memento-mcp-server@${{ github.ref_name }}
+            npx memento-mcp-server@${{ steps.check_release.outputs.tag_name }}
             ```
             
             ### 🔧 설치 방법
@@ -79,7 +122,7 @@ jobs:
             npx memento-mcp-server@latest
             
             # 특정 버전
-            npx memento-mcp-server@${{ github.ref_name }}
+            npx memento-mcp-server@${{ steps.check_release.outputs.tag_name }}
             ```
             
             ### 📚 문서
@@ -92,3 +135,11 @@ jobs:
             - [npm Package](https://www.npmjs.com/package/memento-mcp-server)
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip Release creation (already exists)
+        if: steps.check_release.outputs.exists == 'true'
+        run: |
+          echo "ℹ️ Release already exists for tag ${{ steps.check_release.outputs.tag_name }}. Skipping creation."
+          echo "✅ npm package published successfully!"
