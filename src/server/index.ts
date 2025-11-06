@@ -206,6 +206,10 @@ async function initializeServer() {
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
       process.stderr.write('📋 리소스 목록 요청 처리\n');
       
+      if (!db) {
+        throw new Error('Database not initialized');
+      }
+      
       // 모든 메모리 ID 조회
       const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
       
@@ -231,8 +235,16 @@ async function initializeServer() {
       }
       
       const memoryId = uriMatch[1];
+      if (!memoryId) {
+        throw new Error(`Invalid memory ID in URI: ${uri}`);
+      }
+      
       const queryString = uriMatch[2] || '';
       const includeNeighbors = queryString.includes('include_neighbors=true');
+      
+      if (!db) {
+        throw new Error('Database not initialized');
+      }
       
       // 메모리 조회
       const memory = await DatabaseUtils.get(
