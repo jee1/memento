@@ -6,7 +6,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
@@ -23,6 +23,8 @@ import { PerformanceAlertService, AlertType, AlertLevel } from '../services/perf
 // import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
+import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
+import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
 
 // MCP 서버 인스턴스
@@ -197,6 +199,99 @@ async function initializeServer() {
           description: tool.description,
           inputSchema: tool.inputSchema
         }))
+      };
+    });
+    
+    // Resources 목록 핸들러
+    server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      process.stderr.write('📋 리소스 목록 요청 처리\n');
+      
+      // 모든 메모리 ID 조회
+      const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
+      
+      return {
+        resources: memories.map((memory: any) => ({
+          uri: `memory://${memory.id}`,
+          name: `Memory ${memory.id}`,
+          description: `Memory item with ID: ${memory.id}`,
+          mimeType: 'application/json'
+        }))
+      };
+    });
+    
+    // Resource 읽기 핸들러
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const { uri } = request.params;
+      process.stderr.write(`📖 리소스 읽기 요청: ${uri}\n`);
+      
+      // URI 파싱: memory://{id}?include_neighbors=true
+      const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
+      if (!uriMatch) {
+        throw new Error(`Invalid resource URI: ${uri}`);
+      }
+      
+      const memoryId = uriMatch[1];
+      const queryString = uriMatch[2] || '';
+      const includeNeighbors = queryString.includes('include_neighbors=true');
+      
+      // 메모리 조회
+      const memory = await DatabaseUtils.get(
+        db,
+        'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
+        [memoryId]
+      );
+      
+      if (!memory) {
+        throw new Error(`Memory not found: ${memoryId}`);
+      }
+      
+      // 메모리 데이터 구성
+      const memoryData: any = {
+        id: memory.id,
+        type: memory.type,
+        content: memory.content,
+        importance: memory.importance,
+        privacy_scope: memory.privacy_scope,
+        tags: memory.tags ? JSON.parse(memory.tags) : [],
+        source: memory.source,
+        created_at: memory.created_at,
+        last_accessed: memory.last_accessed,
+        pinned: memory.pinned === 1
+      };
+      
+      // 이웃 기억 포함 여부 확인
+      if (includeNeighbors) {
+        try {
+          const vectorSearchEngine = getVectorSearchEngine();
+          const neighborService = new MemoryNeighborService(
+            vectorSearchEngine,
+            embeddingService
+          );
+          neighborService.setDatabase(db);
+          
+          const neighborsResult = await neighborService.getNeighbors(memoryId, {
+            limit: 5,
+            similarity_threshold: 0.8
+          });
+          
+          memoryData.neighbors = neighborsResult.neighbors;
+          memoryData.neighbors_count = neighborsResult.total_count;
+          memoryData.neighbors_query_time = neighborsResult.query_time;
+        } catch (error) {
+          process.stderr.write(`⚠️ 이웃 기억 조회 실패: ${error instanceof Error ? error.message : String(error)}\n`);
+          memoryData.neighbors = [];
+          memoryData.neighbors_count = 0;
+        }
+      }
+      
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify(memoryData, null, 2)
+          }
+        ]
       };
     });
     

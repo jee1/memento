@@ -8,6 +8,12 @@
 ## [Unreleased]
 
 ### 추가됨
+- **벡터 기반 기억 이웃 탐색 및 추천**: 특정 기억과 유사한 이웃 기억을 자동으로 찾아 추천하는 기능
+  - `get_memory_neighbors` MCP Tool 추가: 벡터 유사도 기반 이웃 기억 조회
+  - `GET /memories/:id/neighbors` HTTP API 엔드포인트 추가
+  - `MemoryNeighborService` 서비스 구현: 벡터 검색 엔진을 활용한 유사 기억 탐색
+  - 실시간 인접 기억 갱신: 새 기억 저장 시 자동으로 인접 기억 목록 업데이트
+  - MCP Resource 확장: `memory://{id}?include_neighbors=true`로 이웃 기억 포함 조회 지원
 - **npm 패키지 개선**: `prepublishOnly` 스크립트 추가로 빌드 보장
 - **bin 파일 검증**: `verify-bin` 스크립트로 npm publish 전 bin 파일 검증
 - **네이티브 모듈 재빌드**: `rebuild-native` 스크립트 추가 (Node.js 버전 문제 해결)

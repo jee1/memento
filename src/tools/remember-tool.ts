@@ -7,6 +7,9 @@ import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { CommonSchemas } from './types.js';
 import { DatabaseUtils } from '../utils/database.js';
+import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
+import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 
 const RememberSchema = z.object({
   content: CommonSchemas.Content,
@@ -81,9 +84,37 @@ export class RememberTool extends BaseTool {
         // 약간의 지연을 두어 트랜잭션이 완전히 커밋되도록 함
         setTimeout(() => {
           context.services.embeddingService.createAndStoreEmbedding(context.db, id, content, type)
-          .then((result: any) => {
+          .then(async (result: any) => {
             if (result) {
               // 임베딩 생성 완료
+              
+              // PRD 3.1-3.3: 인접 기억 갱신 (비동기, 실패해도 메모리 저장은 성공)
+              try {
+                const vectorSearchEngine = getVectorSearchEngine();
+                const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
+                
+                const neighborService = new MemoryNeighborService(
+                  vectorSearchEngine,
+                  embeddingService
+                );
+                
+                neighborService.setDatabase(context.db!);
+                
+                // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
+                const neighborIds = await neighborService.updateNeighborsForNewMemory(id, 0.8);
+                
+                if (neighborIds.length > 0) {
+                  this.logInfo('인접 기억 갱신 완료', {
+                    memory_id: id,
+                    neighbor_count: neighborIds.length
+                  });
+                }
+              } catch (error) {
+                // 인접 기억 갱신 실패해도 메모리 저장은 성공했으므로 경고만 출력
+                this.logWarning(`인접 기억 갱신 실패 (${id})`, {
+                  error: error instanceof Error ? error.message : String(error)
+                });
+              }
             }
           })
           .catch((error: any) => {

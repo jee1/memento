@@ -154,9 +154,9 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools (핵심 5개만)
+## MCP Tools (핵심 6개만)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 5개만 노출합니다.  
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 6개만 노출합니다.  
 > 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.  
 > 자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
 
@@ -276,6 +276,62 @@ const result = await client.callTool('recall', {
 });
 ```
 
+### get_memory_neighbors
+
+특정 기억과 유사한 이웃 기억을 조회하는 도구입니다. 벡터 유사도를 기반으로 의미적으로 유사한 기억들을 자동으로 찾아 추천합니다.
+
+#### 파라미터
+
+```typescript
+interface GetMemoryNeighborsParams {
+  memory_id: string;                  // 조회할 기억 ID (필수)
+  limit?: number;                     // 반환할 이웃 기억의 최대 개수 (기본값: 5, 최대: 50)
+  similarity_threshold?: number;      // 유사도 임계값 (0.0 ~ 1.0, 기본값: 0.8)
+}
+```
+
+#### 응답
+
+```typescript
+interface GetMemoryNeighborsResult {
+  memory_id: string;                  // 조회한 기억 ID
+  neighbors: NeighborMemory[];        // 이웃 기억 목록
+  total_count: number;                 // 반환된 이웃 기억 개수
+  query_time: number;                  // 쿼리 실행 시간 (ms)
+}
+
+interface NeighborMemory {
+  id: string;                         // 이웃 기억 ID
+  content: string;                    // 이웃 기억 내용
+  type: string;                       // 이웃 기억 타입
+  similarity: number;                 // 유사도 점수 (0.0 ~ 1.0)
+  importance?: number;                // 중요도
+  created_at?: string;                // 생성 시간
+  tags?: string[];                    // 태그
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 기본 사용법 (5개 이웃 기억 조회, 유사도 0.8 이상)
+const result = await client.callTool('get_memory_neighbors', {
+  memory_id: 'mem_123'
+});
+
+// 고급 사용법 (10개 이웃 기억 조회, 유사도 0.7 이상)
+const result = await client.callTool('get_memory_neighbors', {
+  memory_id: 'mem_123',
+  limit: 10,
+  similarity_threshold: 0.7
+});
+
+// 결과 활용
+result.neighbors.forEach(neighbor => {
+  console.log(`유사한 기억: ${neighbor.content} (유사도: ${neighbor.similarity})`);
+});
+```
+
 ### pin / unpin
 
 기억을 고정하거나 고정 해제하는 도구입니다.
@@ -363,6 +419,42 @@ const result = await client.callTool('forget', {
 > **참고**: 다음 기능들은 MCP 클라이언트에서 제거되고 HTTP API 엔드포인트로 분리되었습니다.
 
 ### 메모리 관리 API
+
+#### 이웃 기억 조회
+```http
+GET /memories/:id/neighbors?limit=5&similarity_threshold=0.8
+```
+특정 기억과 유사한 이웃 기억을 조회합니다.
+
+**쿼리 파라미터:**
+- `limit` (optional): 반환할 이웃 기억의 최대 개수 (기본값: 5, 최대: 50)
+- `similarity_threshold` (optional): 유사도 임계값 (기본값: 0.8, 범위: 0.0 ~ 1.0)
+
+**응답:**
+```json
+{
+  "memory_id": "mem_123",
+  "neighbors": [
+    {
+      "id": "mem_456",
+      "content": "유사한 기억 내용",
+      "type": "episodic",
+      "similarity": 0.85,
+      "importance": 0.7,
+      "created_at": "2024-01-01T00:00:00Z",
+      "tags": ["tag1", "tag2"]
+    }
+  ],
+  "total_count": 1,
+  "query_time": 45,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+**에러 응답:**
+- `404`: 메모리를 찾을 수 없음
+- `400`: 잘못된 파라미터
+- `500`: 서버 오류
 
 #### 메모리 정리
 ```http

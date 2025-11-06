@@ -154,9 +154,9 @@ Optimizes database performance.
 }
 ```
 
-## MCP Tools (Core 5 Only)
+## MCP Tools (Core 6 Only)
 
-> **Important**: MCP client only exposes 5 core memory management functions.  
+> **Important**: MCP client only exposes 6 core memory management functions.  
 > Management functions are separated into HTTP API endpoints.  
 > See [Administrator API](#administrator-api) section for details.
 
@@ -276,6 +276,62 @@ const result = await client.callTool('recall', {
 });
 ```
 
+### get_memory_neighbors
+
+Tool for retrieving neighbor memories similar to a specific memory. Automatically finds and recommends semantically similar memories based on vector similarity.
+
+#### Parameters
+
+```typescript
+interface GetMemoryNeighborsParams {
+  memory_id: string;                  // Memory ID to query (required)
+  limit?: number;                     // Maximum number of neighbor memories to return (default: 5, max: 50)
+  similarity_threshold?: number;      // Similarity threshold (0.0 ~ 1.0, default: 0.8)
+}
+```
+
+#### Response
+
+```typescript
+interface GetMemoryNeighborsResult {
+  memory_id: string;                  // Queried memory ID
+  neighbors: NeighborMemory[];        // List of neighbor memories
+  total_count: number;                 // Number of returned neighbor memories
+  query_time: number;                  // Query execution time (ms)
+}
+
+interface NeighborMemory {
+  id: string;                         // Neighbor memory ID
+  content: string;                    // Neighbor memory content
+  type: string;                       // Neighbor memory type
+  similarity: number;                 // Similarity score (0.0 ~ 1.0)
+  importance?: number;                // Importance
+  created_at?: string;                // Creation time
+  tags?: string[];                    // Tags
+}
+```
+
+#### Usage Example
+
+```typescript
+// Basic usage (retrieve 5 neighbor memories with similarity >= 0.8)
+const result = await client.callTool('get_memory_neighbors', {
+  memory_id: 'mem_123'
+});
+
+// Advanced usage (retrieve 10 neighbor memories with similarity >= 0.7)
+const result = await client.callTool('get_memory_neighbors', {
+  memory_id: 'mem_123',
+  limit: 10,
+  similarity_threshold: 0.7
+});
+
+// Use results
+result.neighbors.forEach(neighbor => {
+  console.log(`Similar memory: ${neighbor.content} (similarity: ${neighbor.similarity})`);
+});
+```
+
 ### pin / unpin
 
 Tool for pinning or unpinning memories.
@@ -363,6 +419,42 @@ const result = await client.callTool('forget', {
 > **Note**: The following functions have been removed from MCP client and separated into HTTP API endpoints.
 
 ### Memory Management API
+
+#### Get Memory Neighbors
+```http
+GET /memories/:id/neighbors?limit=5&similarity_threshold=0.8
+```
+Retrieves neighbor memories similar to a specific memory.
+
+**Query Parameters:**
+- `limit` (optional): Maximum number of neighbor memories to return (default: 5, max: 50)
+- `similarity_threshold` (optional): Similarity threshold (default: 0.8, range: 0.0 ~ 1.0)
+
+**Response:**
+```json
+{
+  "memory_id": "mem_123",
+  "neighbors": [
+    {
+      "id": "mem_456",
+      "content": "Similar memory content",
+      "type": "episodic",
+      "similarity": 0.85,
+      "importance": 0.7,
+      "created_at": "2024-01-01T00:00:00Z",
+      "tags": ["tag1", "tag2"]
+    }
+  ],
+  "total_count": 1,
+  "query_time": 45,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+**Error Responses:**
+- `404`: Memory not found
+- `400`: Invalid parameters
+- `500`: Server error
 
 #### Memory Cleanup
 ```http

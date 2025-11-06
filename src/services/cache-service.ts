@@ -300,7 +300,7 @@ export class SearchCacheService {
   getSearchResults(query: string, filters?: any, limit?: number): any[] | null {
     // 1. 정확한 키로 먼저 시도
     const exactKey = this.cache.generateSearchKey(query, filters, limit);
-    let results = this.cache.get(exactKey);
+    const results = this.cache.get(exactKey);
     
     if (results) {
       this.searchStats.set(query, (this.searchStats.get(query) || 0) + 1);

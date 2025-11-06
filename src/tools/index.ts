@@ -10,9 +10,10 @@ import { ForgetTool } from './forget-tool.js';
 import { PinTool } from './pin-tool.js';
 import { UnpinTool } from './unpin-tool.js';
 import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
+import { GetMemoryNeighborsTool } from './get-memory-neighbors-tool.js';
 
 /**
- * 핵심 도구 인스턴스 생성 (6개)
+ * 핵심 도구 인스턴스 생성 (7개)
  */
 const coreTools = [
   new RememberTool(),
@@ -21,6 +22,7 @@ const coreTools = [
   new PinTool(),
   new UnpinTool(),
   new MemoryInjectionPrompt(),
+  new GetMemoryNeighborsTool(),
 ];
 
 /**
@@ -67,5 +69,6 @@ export {
   PinTool,
   UnpinTool,
   MemoryInjectionPrompt,
+  GetMemoryNeighborsTool,
 };
 

@@ -15,6 +15,7 @@ import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryNeighborService, MemoryNotFoundError } from '../services/memory-neighbor-service.js';
 import { getBatchScheduler } from '../services/batch-scheduler.js';
 import { getPerformanceMonitor } from '../services/performance-monitor.js';
 import { getToolRegistry } from '../tools/index.js';
@@ -124,6 +125,81 @@ app.post('/tools/:name', async (req, res) => {
   }
 });
 
+// 이웃 기억 조회 엔드포인트
+app.get('/memories/:id/neighbors', async (req, res) => {
+  const { id } = req.params;
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 5;
+  const similarityThreshold = req.query.similarity_threshold 
+    ? parseFloat(req.query.similarity_threshold as string) 
+    : 0.8;
+  
+  try {
+    // 데이터베이스 연결 확인
+    if (!db) {
+      return res.status(500).json({ 
+        error: 'Database not connected',
+        message: '데이터베이스가 연결되지 않았습니다'
+      });
+    }
+    
+    // 파라미터 검증
+    if (isNaN(limit) || limit < 1 || limit > 50) {
+      return res.status(400).json({ 
+        error: 'Invalid limit parameter',
+        message: 'limit은 1 이상 50 이하여야 합니다'
+      });
+    }
+    
+    if (isNaN(similarityThreshold) || similarityThreshold < 0 || similarityThreshold > 1) {
+      return res.status(400).json({ 
+        error: 'Invalid similarity_threshold parameter',
+        message: 'similarity_threshold는 0 이상 1 이하여야 합니다'
+      });
+    }
+    
+    // MemoryNeighborService 인스턴스 생성
+    const vectorSearchEngine = getVectorSearchEngine();
+    const neighborService = new MemoryNeighborService(
+      vectorSearchEngine,
+      embeddingService
+    );
+    
+    // 데이터베이스 설정
+    neighborService.setDatabase(db);
+    
+    // 이웃 기억 조회
+    const result = await neighborService.getNeighbors(id, {
+      limit,
+      similarity_threshold: similarityThreshold
+    });
+    
+    return res.json({
+      memory_id: result.memory_id,
+      neighbors: result.neighbors,
+      total_count: result.total_count,
+      query_time: result.query_time,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    // MemoryNotFoundError 처리 (404)
+    if (error instanceof MemoryNotFoundError) {
+      return res.status(404).json({ 
+        error: 'Memory not found',
+        message: `메모리를 찾을 수 없습니다: ${id}`,
+        memory_id: id
+      });
+    }
+    
+    // 기타 에러 처리 (500)
+    console.error(`❌ 이웃 기억 조회 실패 (${id}):`, error);
+    return res.status(500).json({ 
+      error: 'Failed to get memory neighbors',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      memory_id: id
+    });
+  }
+});
+
 // MCP SSE 엔드포인트 - MCP SDK 호환 구현
 // Store transports by session ID
 const transports: { [sessionId: string]: any } = {};
@@ -223,7 +299,7 @@ app.post('/messages', express.json(), async (req, res) => {
     return;
   }
 
-  let message = req.body;
+  const message = req.body;
   let result;
   
   console.log(`🔍 MCP 메시지 처리 중: ${message.method}`, JSON.stringify(message, null, 2));
