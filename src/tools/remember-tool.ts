@@ -79,26 +79,54 @@ export class RememberTool extends BaseTool {
             tags ? JSON.stringify(tags) : null, source]);
       });
       
-      // 메모리 저장 완료 후 임베딩 생성 (비동기, 실패해도 메모리 저장은 성공)
-      if (context.services.embeddingService?.isAvailable()) {
-        // 약간의 지연을 두어 트랜잭션이 완전히 커밋되도록 함
-        setTimeout(() => {
-          context.services.embeddingService.createAndStoreEmbedding(context.db, id, content, type)
-          .then(async (result: any) => {
-            if (result) {
-              // 임베딩 생성 완료
-              
-              // PRD 3.1-3.3: 인접 기억 갱신 (비동기, 실패해도 메모리 저장은 성공)
+      // 메모리 저장 완료 후 임베딩 생성 및 인접 기억 갱신 (비동기, 실패해도 메모리 저장은 성공)
+      // 데이터베이스 참조를 미리 저장하여 비동기 콜백에서 안전하게 사용
+      const dbRef = context.db;
+      const embeddingServiceRef = context.services.embeddingService;
+      
+      if (embeddingServiceRef?.isAvailable() && dbRef) {
+        // 비동기 작업을 별도로 실행 (fire-and-forget 패턴)
+        // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신은 백그라운드에서 처리
+        (async () => {
+          try {
+            // 트랜잭션이 완전히 커밋되도록 짧은 지연
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
+            try {
+              DatabaseUtils.get(dbRef, 'SELECT 1');
+            } catch (dbError) {
+              this.logWarning('데이터베이스 연결이 유효하지 않아 임베딩 생성을 건너뜁니다', { 
+                memory_id: id,
+                error: dbError instanceof Error ? dbError.message : String(dbError)
+              });
+              return;
+            }
+            
+            // 임베딩 생성
+            const embeddingResult = await embeddingServiceRef.createAndStoreEmbedding(dbRef, id, content, type);
+            
+            if (embeddingResult) {
+              // PRD 3.1-3.3: 인접 기억 갱신
               try {
-                const vectorSearchEngine = getVectorSearchEngine();
-                const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
+                // 데이터베이스 연결 재확인
+                try {
+                  DatabaseUtils.get(dbRef, 'SELECT 1');
+                } catch (dbError) {
+                  this.logWarning('데이터베이스 연결이 유효하지 않아 인접 기억 갱신을 건너뜁니다', { 
+                    memory_id: id,
+                    error: dbError instanceof Error ? dbError.message : String(dbError)
+                  });
+                  return;
+                }
                 
+                const vectorSearchEngine = getVectorSearchEngine();
                 const neighborService = new MemoryNeighborService(
                   vectorSearchEngine,
-                  embeddingService
+                  embeddingServiceRef
                 );
                 
-                neighborService.setDatabase(context.db!);
+                neighborService.setDatabase(dbRef);
                 
                 // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
                 const neighborIds = await neighborService.updateNeighborsForNewMemory(id, 0.8);
@@ -116,11 +144,18 @@ export class RememberTool extends BaseTool {
                 });
               }
             }
-          })
-          .catch((error: any) => {
-            console.warn(`⚠️ 임베딩 생성 실패 (${id}):`, error.message);
+          } catch (error) {
+            // 임베딩 생성 실패해도 메모리 저장은 성공했으므로 경고만 출력
+            this.logWarning(`임베딩 생성 실패 (${id})`, {
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+        })().catch((error) => {
+          // 예상치 못한 에러 처리
+          this.logWarning(`백그라운드 작업 실패 (${id})`, {
+            error: error instanceof Error ? error.message : String(error)
           });
-        }, 100); // 100ms 지연
+        });
       }
       
       return this.createSuccessResult({
