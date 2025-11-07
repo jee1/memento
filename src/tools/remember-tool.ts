@@ -10,14 +10,48 @@ import { DatabaseUtils } from '../utils/database.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { isMemoryItemType, type MemoryTypeRequest } from '../types/index.js';
+import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
+import { CoreMemoryService } from '../services/core-memory-service.js';
+import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
+import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
+import { validateTypeParam } from '../utils/type-param-validator.js';
+import { mementoConfig } from '../config/index.js';
 
 const RememberSchema = z.object({
   content: CommonSchemas.Content,
-  type: CommonSchemas.MemoryType.default('episodic'),
+  type: CommonSchemas.MemoryType.optional(), // optional - validateTypeParam에서 기본값 처리
+  // Core Memory / Knowledge Vault용 필드
+  key: CommonSchemas.Key.optional(),
+  value: CommonSchemas.Value.optional(),
+  always_load: CommonSchemas.AlwaysLoad,
+  immutable: CommonSchemas.Immutable,
+  // Procedural Memory용 필드
+  task_goal: CommonSchemas.TaskGoal,
+  steps: CommonSchemas.Steps,
+  reflection_notes: CommonSchemas.ReflectionNotes,
+  // 기존 필드 유지
   tags: CommonSchemas.Tags,
   importance: CommonSchemas.Importance.default(0.5),
   source: CommonSchemas.Source,
   privacy_scope: CommonSchemas.PrivacyScope.default('private'),
+}).refine((data) => {
+  // 조건부 필수 검증
+  if (data.type === 'core' || data.type === 'vault') {
+    // type='core' 또는 'vault'일 때는 key, value 필수
+    if (!data.key || !data.value) {
+      return false;
+    }
+  } else {
+    // 나머지 타입은 content 필수
+    if (!data.content) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content가 필수입니다"
 });
 
 export class RememberTool extends BaseTool {
@@ -28,13 +62,49 @@ export class RememberTool extends BaseTool {
       {
         type: 'object',
         properties: {
-          content: { type: 'string', description: '저장할 내용' },
+          content: { 
+            type: 'string', 
+            description: '저장할 내용 (type이 core/vault가 아닐 때 필수)'
+          },
           type: { 
             type: 'string', 
-            enum: ['working', 'episodic', 'semantic', 'procedural'],
+            enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'],
             description: '기억 타입',
             default: 'episodic'
           },
+          // Core Memory / Knowledge Vault용 필드
+          key: { 
+            type: 'string', 
+            description: 'Core Memory 또는 Knowledge Vault의 키 (type이 core/vault일 때 필수)'
+          },
+          value: { 
+            type: 'string', 
+            description: 'Core Memory 또는 Knowledge Vault의 값 (type이 core/vault일 때 필수)'
+          },
+          always_load: { 
+            type: 'boolean', 
+            description: '서버 시작 시 자동 로드 여부 (Core Memory용, 기본값: false)',
+            default: false
+          },
+          immutable: { 
+            type: 'boolean', 
+            description: '불변 데이터 여부 (Knowledge Vault용, 기본값: true)',
+            default: true
+          },
+          // Procedural Memory용 필드
+          task_goal: { 
+            type: 'string', 
+            description: '작업 목표 (Procedural Memory용)'
+          },
+          steps: { 
+            type: 'string', 
+            description: '단계별 절차 (JSON 배열 문자열, Procedural Memory용)'
+          },
+          reflection_notes: { 
+            type: 'string', 
+            description: 'Reflexion 기록 (JSON 객체 문자열, Procedural Memory용)'
+          },
+          // 기존 필드 유지
           tags: { 
             type: 'array', 
             items: { type: 'string' },
@@ -55,140 +125,270 @@ export class RememberTool extends BaseTool {
             default: 'private'
           }
         },
-        required: ['content']
+        required: [] // 조건부 필수는 Zod 스키마에서 검증
       }
     );
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
-    const { content, type, tags, importance, source, privacy_scope } = RememberSchema.parse(params);
+    const { 
+      content, 
+      type: rawType, 
+      key, 
+      value, 
+      always_load, 
+      immutable, 
+      task_goal, 
+      steps, 
+      reflection_notes,
+      tags, 
+      importance, 
+      source, 
+      privacy_scope 
+    } = RememberSchema.parse(params);
+    
+    // type 파라미터 롤아웃 모드 검증
+    const typeParamMode = mementoConfig.typeParamMode;
+    const typeValidation = validateTypeParam(rawType, typeParamMode, 'remember');
+    
+    // 에러 모드인 경우 에러 발생
+    if (!typeValidation.isValid) {
+      throw new Error(typeValidation.message || "type 파라미터는 필수입니다.");
+    }
+    
+    // 경고/Deprecation 메시지 출력
+    if (typeValidation.message) {
+      if (typeParamMode === 'warn') {
+        this.logWarning(typeValidation.message);
+      } else if (typeParamMode === 'deprecate') {
+        this.logWarning(typeValidation.message);
+      }
+    }
+    
+    // type 파라미터 결정 (제공된 값 또는 기본값)
+    const type = (rawType || typeValidation.defaultType || 'episodic') as MemoryTypeRequest;
     
     // 데이터베이스 연결 확인
     this.validateDatabase(context);
 
-    // UUID 생성 (임시로 간단한 ID 사용)
-    const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    try {
-      // 메모리 저장 (트랜잭션 사용)
-      await DatabaseUtils.runTransaction(context.db!, async () => {
-        await DatabaseUtils.run(context.db!, `
-          INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `, [id, type, content, importance, privacy_scope, 
-            tags ? JSON.stringify(tags) : null, source]);
+    // origin_source 생성 (JSON 형식)
+    const origin_source = JSON.stringify({
+      tool: 'remember',
+      caller: 'user',
+      timestamp: new Date().toISOString(),
+      context: {
+        type,
+        has_content: !!content,
+        has_key: !!key,
+        has_value: !!value,
+        type_param_mode: typeParamMode,
+        type_was_defaulted: !rawType
+      }
+    });
+
+    // type에 따른 분기 처리
+    if (type === 'core') {
+      // Core Memory 저장
+      if (!key || !value) {
+        throw new Error("type='core'일 때는 key와 value가 필수입니다");
+      }
+
+      const coreMemoryRepository = new CoreMemoryRepository(context.db!);
+      const coreMemoryCache = new CoreMemoryCacheService();
+      const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
+
+      const agent_id = 'default'; // TODO: 향후 context에서 가져오기
+
+      const record = await coreMemoryService.create({
+        agent_id,
+        key,
+        value,
+        always_load: always_load || false,
+        origin_source
       });
+
+      return this.createSuccessResult({
+        memory_id: record.core_id,
+        type: 'core',
+        key: record.key,
+        value: record.value,
+        always_load: record.always_load,
+        message: `Core Memory가 저장되었습니다: ${record.core_id}`
+      });
+    } else if (type === 'vault') {
+      // Knowledge Vault 저장
+      if (!key || !value) {
+        throw new Error("type='vault'일 때는 key와 value가 필수입니다");
+      }
+
+      const knowledgeVaultRepository = new KnowledgeVaultRepository(context.db!);
+      const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
+
+      const agent_id = 'default'; // TODO: 향후 context에서 가져오기
+
+      const record = await knowledgeVaultService.create({
+        agent_id,
+        key,
+        value,
+        immutable: immutable !== false, // 기본값 true
+        origin_source
+      });
+
+      return this.createSuccessResult({
+        memory_id: record.vault_id,
+        type: 'vault',
+        key: record.key,
+        value: record.value,
+        immutable: record.immutable,
+        message: `Knowledge Vault가 저장되었습니다: ${record.vault_id}`
+      });
+    } else {
+      // 기존 memory_item 저장 (episodic, semantic, procedural, working)
+      if (!content) {
+        throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
+      }
+
+      // 타입 가드로 검증
+      if (!isMemoryItemType(type)) {
+        throw new Error(`Invalid memory type: ${type}`);
+      }
+
+      // UUID 생성 (임시로 간단한 ID 사용)
+      const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // 메모리 저장 완료 후 임베딩 생성 및 인접 기억 갱신 (비동기, 실패해도 메모리 저장은 성공)
-      // 데이터베이스 참조를 미리 저장하여 비동기 콜백에서 안전하게 사용
-      const dbRef = context.db;
-      const embeddingServiceRef = context.services.embeddingService;
-      
-      if (embeddingServiceRef?.isAvailable() && dbRef) {
-        // 비동기 작업을 별도로 실행 (fire-and-forget 패턴)
-        // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신은 백그라운드에서 처리
-        (async () => {
-          try {
-            // 트랜잭션이 완전히 커밋되도록 짧은 지연
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
-            // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
+      try {
+        // 메모리 저장 (트랜잭션 사용)
+        await DatabaseUtils.runTransaction(context.db!, async () => {
+          await DatabaseUtils.run(context.db!, `
+            INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, origin_source, task_goal, steps, reflection_notes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          `, [
+            id, 
+            type, 
+            content, 
+            importance, 
+            privacy_scope, 
+            tags ? JSON.stringify(tags) : null, 
+            source || null,
+            origin_source,
+            task_goal || null,
+            steps || null,
+            reflection_notes || null
+          ]);
+        });
+        
+        // 메모리 저장 완료 후 임베딩 생성 및 인접 기억 갱신 (비동기, 실패해도 메모리 저장은 성공)
+        // 데이터베이스 참조를 미리 저장하여 비동기 콜백에서 안전하게 사용
+        const dbRef = context.db;
+        const embeddingServiceRef = context.services.embeddingService;
+        
+        if (embeddingServiceRef?.isAvailable() && dbRef) {
+          // 비동기 작업을 별도로 실행 (fire-and-forget 패턴)
+          // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신은 백그라운드에서 처리
+          (async () => {
             try {
-              await new Promise<void>((resolve, reject) => {
-                try {
-                  DatabaseUtils.get(dbRef, 'SELECT 1');
-                  resolve();
-                } catch (error) {
-                  reject(error);
-                }
-              });
-            } catch (dbError) {
-              this.logWarning('데이터베이스 연결이 유효하지 않아 임베딩 생성을 건너뜁니다', { 
-                memory_id: id,
-                error: dbError instanceof Error ? dbError.message : String(dbError)
-              });
-              return;
-            }
-            
-            // 임베딩 생성
-            const embeddingResult = await embeddingServiceRef.createAndStoreEmbedding(dbRef, id, content, type);
-            
-            if (embeddingResult) {
-              // PRD 3.1-3.3: 인접 기억 갱신
+              // 트랜잭션이 완전히 커밋되도록 짧은 지연
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
+              // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
               try {
-                // 데이터베이스 연결 재확인
-                // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
-                try {
-                  await new Promise<void>((resolve, reject) => {
-                    try {
-                      DatabaseUtils.get(dbRef, 'SELECT 1');
-                      resolve();
-                    } catch (error) {
-                      reject(error);
-                    }
-                  });
-                } catch (dbError) {
-                  this.logWarning('데이터베이스 연결이 유효하지 않아 인접 기억 갱신을 건너뜁니다', { 
-                    memory_id: id,
-                    error: dbError instanceof Error ? dbError.message : String(dbError)
-                  });
-                  return;
-                }
-                
-                const vectorSearchEngine = getVectorSearchEngine();
-                const neighborService = new MemoryNeighborService(
-                  vectorSearchEngine,
-                  embeddingServiceRef
-                );
-                
-                neighborService.setDatabase(dbRef);
-                
-                // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
-                const neighborIds = await neighborService.updateNeighborsForNewMemory(id, 0.8);
-                
-                if (neighborIds.length > 0) {
-                  this.logInfo('인접 기억 갱신 완료', {
-                    memory_id: id,
-                    neighbor_count: neighborIds.length
-                  });
-                }
-              } catch (error) {
-                // 인접 기억 갱신 실패해도 메모리 저장은 성공했으므로 경고만 출력
-                this.logWarning(`인접 기억 갱신 실패 (${id})`, {
-                  error: error instanceof Error ? error.message : String(error)
+                await new Promise<void>((resolve, reject) => {
+                  try {
+                    DatabaseUtils.get(dbRef, 'SELECT 1');
+                    resolve();
+                  } catch (error) {
+                    reject(error);
+                  }
                 });
+              } catch (dbError) {
+                this.logWarning('데이터베이스 연결이 유효하지 않아 임베딩 생성을 건너뜁니다', { 
+                  memory_id: id,
+                  error: dbError instanceof Error ? dbError.message : String(dbError)
+                });
+                return;
               }
+              
+              // 임베딩 생성
+              const embeddingResult = await embeddingServiceRef.createAndStoreEmbedding(dbRef, id, content, type);
+              
+              if (embeddingResult) {
+                // PRD 3.1-3.3: 인접 기억 갱신
+                try {
+                  // 데이터베이스 연결 재확인
+                  // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
+                  try {
+                    await new Promise<void>((resolve, reject) => {
+                      try {
+                        DatabaseUtils.get(dbRef, 'SELECT 1');
+                        resolve();
+                      } catch (error) {
+                        reject(error);
+                      }
+                    });
+                  } catch (dbError) {
+                    this.logWarning('데이터베이스 연결이 유효하지 않아 인접 기억 갱신을 건너뜁니다', { 
+                      memory_id: id,
+                      error: dbError instanceof Error ? dbError.message : String(dbError)
+                    });
+                    return;
+                  }
+                  
+                  const vectorSearchEngine = getVectorSearchEngine();
+                  const neighborService = new MemoryNeighborService(
+                    vectorSearchEngine,
+                    embeddingServiceRef
+                  );
+                  
+                  neighborService.setDatabase(dbRef);
+                  
+                  // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
+                  const neighborIds = await neighborService.updateNeighborsForNewMemory(id, 0.8);
+                  
+                  if (neighborIds.length > 0) {
+                    this.logInfo('인접 기억 갱신 완료', {
+                      memory_id: id,
+                      neighbor_count: neighborIds.length
+                    });
+                  }
+                } catch (error) {
+                  // 인접 기억 갱신 실패해도 메모리 저장은 성공했으므로 경고만 출력
+                  this.logWarning(`인접 기억 갱신 실패 (${id})`, {
+                    error: error instanceof Error ? error.message : String(error)
+                  });
+                }
+              }
+            } catch (error) {
+              // 임베딩 생성 실패해도 메모리 저장은 성공했으므로 경고만 출력
+              this.logWarning(`임베딩 생성 실패 (${id})`, {
+                error: error instanceof Error ? error.message : String(error)
+              });
             }
-          } catch (error) {
-            // 임베딩 생성 실패해도 메모리 저장은 성공했으므로 경고만 출력
-            this.logWarning(`임베딩 생성 실패 (${id})`, {
+          })().catch((error) => {
+            // 예상치 못한 에러 처리
+            this.logWarning(`백그라운드 작업 실패 (${id})`, {
               error: error instanceof Error ? error.message : String(error)
             });
-          }
-        })().catch((error) => {
-          // 예상치 못한 에러 처리
-          this.logWarning(`백그라운드 작업 실패 (${id})`, {
-            error: error instanceof Error ? error.message : String(error)
           });
-        });
-      }
-      
-      return this.createSuccessResult({
-        memory_id: id,
-        message: `기억이 저장되었습니다: ${id}`,
-        embedding_created: context.services.embeddingService?.isAvailable() || false
-      });
-    } catch (error) {
-      // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
-      if ((error as any).code === 'SQLITE_BUSY') {
-        try {
-          await DatabaseUtils.checkpointWAL(context.db);
-        } catch (checkpointError) {
-          // WAL 체크포인트 실패
         }
+        
+        return this.createSuccessResult({
+          memory_id: id,
+          type: type,
+          message: `기억이 저장되었습니다: ${id}`,
+          embedding_created: context.services.embeddingService?.isAvailable() || false
+        });
+      } catch (error) {
+        // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
+        if ((error as any).code === 'SQLITE_BUSY') {
+          try {
+            await DatabaseUtils.checkpointWAL(context.db);
+          } catch (checkpointError) {
+            // WAL 체크포인트 실패
+          }
+        }
+        throw error;
       }
-      throw error;
     }
   }
 }

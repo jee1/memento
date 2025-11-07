@@ -7,6 +7,11 @@ import fs, { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mementoConfig } from '../config/index.js';
+import { MigrationDetector } from './migration/migration-detector.js';
+import { MigrationRunner } from './migration/migration-runner.js';
+import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
+import { CoreMemoryService } from '../services/core-memory-service.js';
+import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -297,6 +302,72 @@ export async function initializeDatabase(): Promise<Database.Database> {
     // 스키마 실행
     db.exec(schema);
     populateVecTables(db, vecTablesToRepopulate);
+    
+    // 마이그레이션 자동 실행
+    try {
+      log('🔄 마이그레이션 자동 감지 중...');
+      const detector = new MigrationDetector();
+      const detectionResult = await detector.detectPendingMigrations(db);
+      
+      if (detectionResult.pendingMigrations.length > 0) {
+        log(`📦 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+        
+        const runner = new MigrationRunner(db);
+        const migrations = detectionResult.pendingMigrations.map(d => d.migration);
+        const results = await runner.runMigrations(migrations, {
+          createBackup: true,
+          autoRollback: true,
+          validate: true
+        });
+        
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.filter(r => !r.success).length;
+        
+        log(`✅ 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+        
+        if (failCount > 0) {
+          log('⚠️  일부 마이그레이션이 실패했습니다. 로그를 확인하세요.');
+          const failedMigrations = results.filter(r => !r.success);
+          for (const failed of failedMigrations) {
+            log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+          }
+        }
+      } else {
+        log('✅ 실행해야 할 마이그레이션이 없습니다.');
+      }
+    } catch (migrationError) {
+      log('⚠️  마이그레이션 실행 중 오류 발생:', migrationError);
+      // 마이그레이션 실패해도 서버는 계속 실행 (기존 스키마 사용)
+      log('   기존 스키마로 계속 진행합니다.');
+    }
+    
+    // Core Memory 자동 로드 (always_load=true인 항목만)
+    try {
+      log('🔄 Core Memory 자동 로드 중...');
+      const coreMemoryRepository = new CoreMemoryRepository(db);
+      const coreMemoryCache = new CoreMemoryCacheService();
+      const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
+      
+      // always_load=true인 항목 조회 및 캐시에 로드
+      const alwaysLoadItems = await coreMemoryService.findAlwaysLoad();
+      
+      if (alwaysLoadItems.length > 0) {
+        log(`📦 Core Memory 자동 로드: ${alwaysLoadItems.length}개 항목`);
+        
+        for (const item of alwaysLoadItems) {
+          const cacheKey = `${item.agent_id}:${item.key}`;
+          coreMemoryCache.set(cacheKey, item);
+        }
+        
+        log(`✅ Core Memory 캐시 로드 완료: ${coreMemoryCache.size()}개 항목`);
+      } else {
+        log('✅ Core Memory 자동 로드할 항목이 없습니다.');
+      }
+    } catch (coreMemoryError) {
+      log('⚠️  Core Memory 자동 로드 중 오류 발생:', coreMemoryError);
+      // Core Memory 로드 실패해도 서버는 계속 실행
+      log('   Core Memory 없이 계속 진행합니다.');
+    }
     
     log('✅ 데이터베이스 초기화 완료');
     log(`📁 데이터베이스 경로: ${mementoConfig.dbPath}`);

@@ -88,6 +88,7 @@ export interface MementoConfig {
   logLevel: string;
   logFile: string | undefined;
   nodeEnv: string;
+  typeParamMode: 'warn' | 'deprecate' | 'error';
 }
 
 export interface RememberParams {

@@ -58,7 +58,10 @@ export const mementoConfig: MementoConfig = {
   logFile: resolveOptionalString('LOG_FILE'),
 
   // 개발 설정
-  nodeEnv: resolveString('NODE_ENV')
+  nodeEnv: resolveString('NODE_ENV'),
+
+  // type 파라미터 롤아웃 모드 설정
+  typeParamMode: resolveString('MEMENTO_TYPE_PARAM_MODE') as 'warn' | 'deprecate' | 'error'
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

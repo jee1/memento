@@ -1,0 +1,194 @@
+/**
+ * 마이그레이션 자동 감지 시스템
+ * 
+ * migrations/ 디렉토리에서 마이그레이션 스크립트를 자동으로 감지하고,
+ * 현재 스키마 버전과 비교하여 실행해야 할 마이그레이션을 찾습니다.
+ */
+
+import type Database from 'better-sqlite3';
+import { readdir } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import type { Migration } from './types.js';
+import { SchemaVersionManager } from './schema-version-manager.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * 마이그레이션 감지 결과
+ */
+export interface DetectedMigration {
+  /**
+   * 마이그레이션 인스턴스
+   */
+  migration: Migration;
+
+  /**
+   * 마이그레이션 파일 경로
+   */
+  filePath: string;
+
+  /**
+   * 마이그레이션 버전 번호 (숫자)
+   */
+  versionNumber: number;
+}
+
+/**
+ * 마이그레이션 감지 결과
+ */
+export interface MigrationDetectionResult {
+  /**
+   * 실행해야 할 마이그레이션 목록 (버전 순서대로 정렬됨)
+   */
+  pendingMigrations: DetectedMigration[];
+
+  /**
+   * 이미 실행된 마이그레이션 목록
+   */
+  appliedMigrations: DetectedMigration[];
+
+  /**
+   * 현재 스키마 버전
+   */
+  currentVersion: string | null;
+}
+
+/**
+ * 마이그레이션 자동 감지기
+ */
+export class MigrationDetector {
+  private migrationsDir: string;
+
+  constructor(migrationsDir?: string) {
+    this.migrationsDir = migrationsDir || join(__dirname, 'migrations');
+  }
+
+  /**
+   * 모든 마이그레이션 파일 감지
+   */
+  async detectAllMigrations(): Promise<DetectedMigration[]> {
+    const files = await readdir(this.migrationsDir);
+    const migrationFiles = files.filter(file => 
+      file.endsWith('.ts') && 
+      !file.endsWith('.spec.ts') &&
+      /^\d{3}-/.test(file)
+    );
+
+    const migrations: DetectedMigration[] = [];
+
+    for (const file of migrationFiles) {
+      try {
+        const filePath = join(this.migrationsDir, file);
+        const module = await import(`file://${filePath}`);
+        
+        // default export 또는 named export 찾기
+        let MigrationClass: any = module.default;
+        
+        // named export에서 Migration 클래스 찾기
+        if (!MigrationClass || typeof MigrationClass !== 'function') {
+          const exportedKeys = Object.keys(module);
+          for (const key of exportedKeys) {
+            const exported = module[key];
+            // 클래스이고 version, name, up 메서드를 가진 경우
+            if (typeof exported === 'function' && exported.prototype && 
+                (exported.prototype.version || exported.prototype.name)) {
+              MigrationClass = exported;
+              break;
+            }
+          }
+        }
+
+        if (!MigrationClass || typeof MigrationClass !== 'function') {
+          console.warn(`⚠️  마이그레이션 파일 ${file}에서 유효한 마이그레이션 클래스를 찾을 수 없습니다.`);
+          continue;
+        }
+
+        // 클래스 인스턴스 생성
+        const migration = new MigrationClass() as Migration;
+
+        if (!migration || !migration.version || !migration.up) {
+          console.warn(`⚠️  마이그레이션 파일 ${file}에서 유효한 마이그레이션 인스턴스를 생성할 수 없습니다.`);
+          continue;
+        }
+
+        const versionNumber = this.parseVersionNumber(migration.version);
+        if (versionNumber === null) {
+          console.warn(`⚠️  마이그레이션 ${file}의 버전 형식이 올바르지 않습니다: ${migration.version}`);
+          continue;
+        }
+
+        migrations.push({
+          migration,
+          filePath,
+          versionNumber
+        });
+      } catch (error) {
+        console.error(`❌ 마이그레이션 파일 ${file} 로드 실패:`, error);
+      }
+    }
+
+    // 버전 번호로 정렬
+    migrations.sort((a, b) => a.versionNumber - b.versionNumber);
+
+    return migrations;
+  }
+
+  /**
+   * 실행해야 할 마이그레이션 감지
+   */
+  async detectPendingMigrations(db: Database.Database): Promise<MigrationDetectionResult> {
+    const allMigrations = await this.detectAllMigrations();
+    const versionManager = new SchemaVersionManager(db);
+    const currentVersion = await versionManager.getCurrentVersion();
+
+    const appliedVersions = currentVersion !== null
+      ? await versionManager.getAppliedVersions() 
+      : [];
+
+    const pendingMigrations: DetectedMigration[] = [];
+    const appliedMigrations: DetectedMigration[] = [];
+
+    for (const detected of allMigrations) {
+      if (appliedVersions.includes(detected.migration.version)) {
+        appliedMigrations.push(detected);
+      } else {
+        pendingMigrations.push(detected);
+      }
+    }
+
+    return {
+      pendingMigrations,
+      appliedMigrations,
+      currentVersion
+    };
+  }
+
+  /**
+   * 버전 문자열을 숫자로 변환
+   * 예: "002" -> 2, "001" -> 1
+   */
+  private parseVersionNumber(version: string | undefined): number | null {
+    if (!version) {
+      return null;
+    }
+    const match = version.match(/^(\d+)/);
+    if (!match || !match[1]) {
+      return null;
+    }
+    return parseInt(match[1], 10);
+  }
+
+  /**
+   * 특정 버전의 마이그레이션 찾기
+   */
+  async findMigrationByVersion(version: string | undefined): Promise<DetectedMigration | null> {
+    if (!version) {
+      return null;
+    }
+    const allMigrations = await this.detectAllMigrations();
+    return allMigrations.find(m => m.migration.version === version) || null;
+  }
+}
+
