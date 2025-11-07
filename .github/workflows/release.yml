@@ -26,21 +26,56 @@ jobs:
       - name: Run tests
         run: npm run test
         
-      - name: Extract version from tag
+      - name: Extract version and release info
         id: version
         run: |
-          # release 이벤트인 경우 github.event.release.tag_name 사용
+          # release 이벤트인 경우 GitHub Release 정보 직접 사용
           if [ "${{ github.event_name }}" = "release" ]; then
             TAG_NAME="${{ github.event.release.tag_name }}"
+            # GitHub Release UI의 "Set as a pre-release" 체크박스 값 사용
+            IS_PRERELEASE="${{ github.event.release.prerelease }}"
+            echo "✅ Release event: Using GitHub Release prerelease flag = $IS_PRERELEASE"
           else
-            # workflow_dispatch 또는 태그 푸시인 경우
+            # workflow_dispatch 또는 태그 푸시인 경우 GitHub API로 Release 정보 조회
             TAG_NAME=${GITHUB_REF#refs/tags/}
+            if [ -z "$TAG_NAME" ]; then
+              echo "❌ Error: Tag name not found"
+              exit 1
+            fi
+            
+            echo "🔍 Checking GitHub Release for tag: $TAG_NAME"
+            # GitHub API로 Release 정보 조회
+            RELEASE_INFO=$(curl -s \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME")
+            
+            if [ -z "$RELEASE_INFO" ] || echo "$RELEASE_INFO" | grep -q '"message":"Not Found"'; then
+              echo "⚠️ Release not found for tag $TAG_NAME, defaulting to regular release"
+              IS_PRERELEASE="false"
+            else
+              # GitHub Release의 prerelease 필드 추출
+              IS_PRERELEASE=$(echo "$RELEASE_INFO" | grep -o '"prerelease":[^,]*' | cut -d: -f2 | tr -d ' ')
+              echo "✅ Found Release: prerelease = $IS_PRERELEASE"
+            fi
           fi
           
           VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
+          
+          # npm 태그 결정: pre-release는 "next", 정식 릴리스는 "latest"
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            NPM_TAG="next"
+          else
+            NPM_TAG="latest"
+          fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "npm_tag=$NPM_TAG" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION from tag: $TAG_NAME"
+          echo "Is pre-release (from GitHub Release UI): $IS_PRERELEASE"
+          echo "npm tag: $NPM_TAG"
           
       - name: Update package.json version
         run: |
@@ -65,7 +100,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          NPM_TAG="${{ steps.version.outputs.npm_tag }}"
+          if [ -z "$NPM_TAG" ]; then
+            NPM_TAG="latest"
+          fi
+          echo "Publishing to npm with tag: $NPM_TAG"
+          npm publish --access public --tag "$NPM_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -102,39 +143,78 @@ jobs:
           fi
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
 
+      - name: Prepare Release Body
+        id: release_body
+        run: |
+          TAG_NAME="${{ steps.check_release.outputs.tag_name }}"
+          IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
+          NPM_TAG="${{ steps.version.outputs.npm_tag }}"
+          
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            RELEASE_NAME="Pre-release $TAG_NAME"
+            RELEASE_TITLE="🧪 Memento MCP Server Pre-release $TAG_NAME"
+            WARNING="⚠️ **이것은 pre-release 버전입니다. 프로덕션 환경에서 사용하지 마세요.**"
+            INSTALL_LINE1="# Pre-release 버전 (태그: $NPM_TAG)"
+            INSTALL_LINE2="npx memento-mcp-server@$NPM_TAG"
+          else
+            RELEASE_NAME="Release $TAG_NAME"
+            RELEASE_TITLE="🚀 Memento MCP Server $TAG_NAME"
+            WARNING=""
+            INSTALL_LINE1="# 최신 정식 버전"
+            INSTALL_LINE2="npx memento-mcp-server@latest"
+          fi
+          
+          # Multi-line output을 위해 delimiter 사용
+          DELIMITER=$(dd if=/dev/urandom bs=15 count=1 2>/dev/null | base64 | tr -d '\n')
+          
+          # Release name 출력
+          {
+            echo "name<<$DELIMITER"
+            echo "$RELEASE_NAME"
+            echo "$DELIMITER"
+          } >> $GITHUB_OUTPUT
+          
+          # Release body 출력
+          {
+            echo "body<<$DELIMITER"
+            echo "$RELEASE_TITLE"
+            echo ""
+            echo "$WARNING"
+            echo ""
+            echo "### 📦 npm 패키지"
+            echo "\`\`\`bash"
+            echo "npx memento-mcp-server@$TAG_NAME"
+            echo "\`\`\`"
+            echo ""
+            echo "### 🔧 설치 방법"
+            echo "\`\`\`bash"
+            echo "$INSTALL_LINE1"
+            echo "$INSTALL_LINE2"
+            echo ""
+            echo "# 특정 버전"
+            echo "npx memento-mcp-server@$TAG_NAME"
+            echo "\`\`\`"
+            echo ""
+            echo "### 📚 문서"
+            echo "- [README](https://github.com/jee1/memento#readme)"
+            echo "- [API 문서](https://github.com/jee1/memento/blob/main/docs/ko/api-reference.md)"
+            echo "- [설치 가이드](https://github.com/jee1/memento/blob/main/INSTALL.md)"
+            echo ""
+            echo "### 🔗 링크"
+            echo "- [GitHub Repository](https://github.com/jee1/memento)"
+            echo "- [npm Package](https://www.npmjs.com/package/memento-mcp-server)"
+            echo "$DELIMITER"
+          } >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.check_release.outputs.tag_name }}
-          name: Release ${{ steps.check_release.outputs.tag_name }}
-          body: |
-            ## 🚀 Memento MCP Server ${{ steps.check_release.outputs.tag_name }}
-            
-            ### 📦 npm 패키지
-            ```bash
-            npx memento-mcp-server@${{ steps.check_release.outputs.tag_name }}
-            ```
-            
-            ### 🔧 설치 방법
-            ```bash
-            # 최신 버전
-            npx memento-mcp-server@latest
-            
-            # 특정 버전
-            npx memento-mcp-server@${{ steps.check_release.outputs.tag_name }}
-            ```
-            
-            ### 📚 문서
-            - [README](https://github.com/jee1/memento#readme)
-            - [API 문서](https://github.com/jee1/memento/blob/main/docs/ko/api-reference.md)
-            - [설치 가이드](https://github.com/jee1/memento/blob/main/INSTALL.md)
-            
-            ### 🔗 링크
-            - [GitHub Repository](https://github.com/jee1/memento)
-            - [npm Package](https://www.npmjs.com/package/memento-mcp-server)
+          name: ${{ steps.release_body.outputs.name }}
+          body: ${{ steps.release_body.outputs.body }}
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
