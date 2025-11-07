@@ -7,7 +7,8 @@
 // 기본 타입들
 // ============================================================================
 
-export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
+// 클라이언트 라이브러리용 타입 (서버의 MemoryTypeRequest와 동일한 값)
+export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core' | 'vault';
 export type PrivacyScope = 'private' | 'team' | 'public';
 
 // ============================================================================
@@ -48,8 +49,19 @@ export interface MemoryItem {
 }
 
 export interface CreateMemoryParams {
-  content: string;
+  // content는 optional - core/vault일 때는 key/value 사용
+  content?: string;
   type?: MemoryType;
+  // Core Memory / Knowledge Vault용 필드
+  key?: string;
+  value?: string;
+  always_load?: boolean; // Core Memory용
+  immutable?: boolean; // Knowledge Vault용
+  // Procedural Memory용 필드
+  task_goal?: string;
+  steps?: string; // JSON 배열 문자열
+  reflection_notes?: string; // JSON 객체 문자열
+  // 기존 필드
   tags?: string[];
   importance?: number;
   source?: string;
@@ -59,8 +71,19 @@ export interface CreateMemoryParams {
 }
 
 export interface UpdateMemoryParams {
+  // content는 optional - core/vault일 때는 value 사용
   content?: string;
   type?: MemoryType;
+  // Core Memory / Knowledge Vault용 필드
+  key?: string;
+  value?: string;
+  always_load?: boolean; // Core Memory용
+  immutable?: boolean; // Knowledge Vault용
+  // Procedural Memory용 필드
+  task_goal?: string;
+  steps?: string; // JSON 배열 문자열
+  reflection_notes?: string; // JSON 객체 문자열
+  // 기존 필드
   tags?: string[];
   importance?: number;
   source?: string;

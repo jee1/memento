@@ -6,12 +6,14 @@
 import { BaseTool } from './base-tool.js';
 import type { ToolContext } from './types.js';
 import { z } from 'zod';
+import { CommonSchemas } from './types.js';
+import { isMemoryItemType, type MemoryTypeRequest } from '../types/index.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 쿼리'),
   token_budget: z.number().optional().describe('토큰 예산 (기본값: 1000)'),
   max_memories: z.number().optional().describe('최대 기억 개수 (기본값: 5)'),
-  memory_types: z.array(z.enum(['working', 'episodic', 'semantic', 'procedural'])).optional().describe('포함할 기억 타입들'),
+  memory_types: z.array(CommonSchemas.MemoryType).optional().describe('포함할 기억 타입들'),
   importance_threshold: z.number().optional().describe('중요도 임계값 (기본값: 0.5)')
 });
 
@@ -41,9 +43,9 @@ export class MemoryInjectionPrompt extends BaseTool {
             type: 'array',
             items: {
               type: 'string',
-              enum: ['working', 'episodic', 'semantic', 'procedural']
+              enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault']
             },
-            description: '포함할 기억 타입들',
+            description: '포함할 기억 타입들 (core/vault는 자동으로 제거됩니다)',
             default: ['working', 'episodic', 'semantic', 'procedural']
           },
           importance_threshold: { 
@@ -77,11 +79,35 @@ export class MemoryInjectionPrompt extends BaseTool {
         throw new Error('하이브리드 검색 엔진이 사용할 수 없습니다');
       }
 
+      // memory_types 배열 전처리 ('core'/'vault' 제거)
+      let filteredMemoryTypes = memory_types;
+      if (memory_types && memory_types.length > 0) {
+        const invalidTypes = memory_types.filter(t => t === 'core' || t === 'vault');
+        if (invalidTypes.length > 0) {
+          this.logWarning('memory_types 배열에서 core/vault는 memory_item 검색에 사용할 수 없습니다. 자동으로 제거합니다.', {
+            invalid_types: invalidTypes,
+            original_memory_types: memory_types,
+            suggestion: 'Core/Vault 조회는 recall Tool의 type 파라미터를 사용하세요.'
+          });
+          filteredMemoryTypes = memory_types.filter(t => t !== 'core' && t !== 'vault');
+          if (filteredMemoryTypes.length === 0) {
+            throw new Error("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다.");
+          }
+        }
+        
+        // 타입 가드 적용: MemoryTypeRequest[] -> MemoryType[]
+        const validMemoryTypes = filteredMemoryTypes.filter(isMemoryItemType);
+        if (validMemoryTypes.length === 0) {
+          throw new Error("memory_types 배열에 유효한 타입이 없습니다.");
+        }
+        filteredMemoryTypes = validMemoryTypes;
+      }
+
       // 1. 관련 기억 검색
       const searchResult = await context.services.hybridSearchEngine.search(context.db, {
         query,
         filters: {
-          type: memory_types.length === 4 ? undefined : memory_types as any,
+          type: filteredMemoryTypes.length === 4 ? undefined : filteredMemoryTypes as any,
           importance_min: importance_threshold
         },
         limit: max_memories * 2, // 더 많은 후보를 가져와서 요약

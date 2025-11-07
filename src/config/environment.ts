@@ -19,7 +19,8 @@ const ENV_DEFAULTS: Record<string, string> = {
   FORGET_WORKING_TTL: '48',
   FORGET_EPISODIC_TTL: '2160',
   FORGET_SEMANTIC_TTL: '-1',
-  FORGET_PROCEDURAL_TTL: '-1'
+  FORGET_PROCEDURAL_TTL: '-1',
+  MEMENTO_TYPE_PARAM_MODE: 'warn'
 };
 
 interface ResolveEnvOptions {

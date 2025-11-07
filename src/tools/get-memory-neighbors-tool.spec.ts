@@ -7,6 +7,15 @@ import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import * as vectorSearchEngineModule from '../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 
+// Mock @xenova/transformers to prevent onnxruntime-node loading
+vi.mock('@xenova/transformers', () => {
+  return {
+    pipeline: vi.fn().mockResolvedValue({
+      __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    })
+  };
+});
+
 describe('GetMemoryNeighborsTool', () => {
   let db: Database.Database;
   let tool: GetMemoryNeighborsTool;

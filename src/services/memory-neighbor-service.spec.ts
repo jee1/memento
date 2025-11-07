@@ -5,6 +5,15 @@ import { MemoryNeighborService, MemoryNotFoundError } from './memory-neighbor-se
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from './memory-embedding-service.js';
 
+// Mock @xenova/transformers to prevent onnxruntime-node loading
+vi.mock('@xenova/transformers', () => {
+  return {
+    pipeline: vi.fn().mockResolvedValue({
+      __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    })
+  };
+});
+
 describe('MemoryNeighborService', () => {
   let db: Database.Database;
   let neighborService: MemoryNeighborService;

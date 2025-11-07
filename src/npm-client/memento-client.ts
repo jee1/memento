@@ -315,28 +315,58 @@ export class MementoClient extends EventEmitter {
     
     // 기존 기억 정보 가져오기
     const existingMemory = await this.getMemory(id);
+    const memoryType = params.type || existingMemory.type;
     
     // MCP 서버는 기억 업데이트를 지원하지 않으므로 삭제 후 재생성
     await this.forget(id);
     
     // UpdateMemoryParams를 CreateMemoryParams로 변환 (기존 값과 병합)
+    // 타입에 따라 다른 필드를 병합해야 함
+    // 일관성: 모든 필드는 !== undefined 체크를 사용하여 명시적으로 제공된 값(빈 문자열, false 등 포함)을 업데이트
     const createParams: CreateMemoryParams = {
-      content: params.content || existingMemory.content,
-      type: params.type || existingMemory.type,
-      tags: params.tags || existingMemory.tags,
+      type: memoryType,
+      // 공통 필드 - 일관된 병합 로직 사용
+      tags: params.tags !== undefined ? params.tags : existingMemory.tags,
       importance: params.importance !== undefined ? params.importance : existingMemory.importance,
-      source: params.source || existingMemory.source,
-      privacy_scope: params.privacy_scope || existingMemory.privacy_scope,
-      project_id: params.project_id || existingMemory.project_id,
-      metadata: params.metadata || existingMemory.metadata
+      source: params.source !== undefined ? params.source : existingMemory.source,
+      privacy_scope: params.privacy_scope !== undefined ? params.privacy_scope : existingMemory.privacy_scope,
+      project_id: params.project_id !== undefined ? params.project_id : existingMemory.project_id,
+      metadata: params.metadata !== undefined ? params.metadata : existingMemory.metadata
     };
+    
+    // 타입별 필드 병합
+    if (memoryType === 'core') {
+      // Core Memory: key, value, always_load 사용
+      const existingAny = existingMemory as any;
+      createParams.key = params.key !== undefined ? params.key : existingAny.key;
+      createParams.value = params.value !== undefined ? params.value : existingAny.value;
+      createParams.always_load = params.always_load !== undefined ? params.always_load : existingAny.always_load;
+      // content는 사용하지 않음
+    } else if (memoryType === 'vault') {
+      // Knowledge Vault: key, value, immutable 사용
+      const existingAny = existingMemory as any;
+      createParams.key = params.key !== undefined ? params.key : existingAny.key;
+      createParams.value = params.value !== undefined ? params.value : existingAny.value;
+      createParams.immutable = params.immutable !== undefined ? params.immutable : existingAny.immutable;
+      // content는 사용하지 않음
+    } else {
+      // 기타 타입 (working, episodic, semantic, procedural): content 사용
+      createParams.content = params.content !== undefined ? params.content : existingMemory.content;
+      // Procedural Memory 특화 필드
+      if (memoryType === 'procedural') {
+        const existingAny = existingMemory as any;
+        createParams.task_goal = params.task_goal !== undefined ? params.task_goal : existingAny.task_goal;
+        createParams.steps = params.steps !== undefined ? params.steps : existingAny.steps;
+        createParams.reflection_notes = params.reflection_notes !== undefined ? params.reflection_notes : existingAny.reflection_notes;
+      }
+    }
     
     const rememberResult = await this.remember(createParams);
     
     // RememberResult를 MemoryItem으로 변환
     const memoryItem: MemoryItem = {
       id: rememberResult.memory_id,
-      content: createParams.content,
+      content: createParams.content || '', // content가 없을 수 있으므로 기본값 설정
       type: createParams.type || 'episodic',
       importance: createParams.importance || 0.5,
       created_at: rememberResult.created_at,

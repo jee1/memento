@@ -6,12 +6,14 @@ import { config } from 'dotenv';
 import type { MementoConfig, EmbeddingProvider } from '../types/index.js';
 import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
+import { parseTypeParamMode } from '../utils/type-param-validator.js';
 import {
   providerDimensionDefaults,
   resolveNumber,
   resolveOptionalNumber,
   resolveOptionalString,
-  resolveString
+  resolveString,
+  getRawEnvValue
 } from './environment.js';
 
 // 환경 변수 로드
@@ -58,7 +60,10 @@ export const mementoConfig: MementoConfig = {
   logFile: resolveOptionalString('LOG_FILE'),
 
   // 개발 설정
-  nodeEnv: resolveString('NODE_ENV')
+  nodeEnv: resolveString('NODE_ENV'),
+
+  // type 파라미터 롤아웃 모드 설정 (안전한 파싱)
+  typeParamMode: parseTypeParamMode(getRawEnvValue('MEMENTO_TYPE_PARAM_MODE'))
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

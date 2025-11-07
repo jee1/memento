@@ -47,9 +47,9 @@ export interface ToolError {
  */
 export const CommonSchemas = {
   MemoryId: z.string().min(1, 'Memory ID cannot be empty'),
-  Content: z.string().min(1, 'Content cannot be empty'),
+  Content: z.string().min(1, 'Content cannot be empty').optional(), // optional로 변경
   Query: z.string().min(1, 'Query cannot be empty'),
-  MemoryType: z.enum(['working', 'episodic', 'semantic', 'procedural']),
+  MemoryType: z.enum(['working', 'episodic', 'semantic', 'procedural', 'core', 'vault']),
   PrivacyScope: z.enum(['private', 'team', 'public']),
   Importance: z.number().min(0).max(1),
   Limit: z.number().min(1).max(50).default(10),
@@ -59,5 +59,14 @@ export const CommonSchemas = {
   DryRun: z.boolean().default(false).optional(),
   Analyze: z.boolean().default(false).optional(),
   CreateIndexes: z.boolean().default(false).optional(),
+  // Core Memory / Knowledge Vault용 필드
+  Key: z.string().min(1, 'Key cannot be empty'),
+  Value: z.string().min(1, 'Value cannot be empty'),
+  AlwaysLoad: z.boolean().default(false).optional(),
+  Immutable: z.boolean().default(true).optional(),
+  // Procedural Memory용 필드
+  TaskGoal: z.string().optional(),
+  Steps: z.string().optional(), // JSON 배열 문자열
+  ReflectionNotes: z.string().optional(), // JSON 객체 문자열
 };
 

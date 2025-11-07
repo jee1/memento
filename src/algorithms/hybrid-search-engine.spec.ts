@@ -8,6 +8,15 @@ import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorT
 import type { ITextSearchEngine, IEmbeddingService, IVectorSearchEngine, ISearchResultCombiner, IAdaptiveWeightCalculator, ISearchLogger } from './hybrid-search-engine.js';
 import Database from 'better-sqlite3';
 
+// Mock @xenova/transformers to prevent onnxruntime-node loading
+vi.mock('@xenova/transformers', () => {
+  return {
+    pipeline: vi.fn().mockResolvedValue({
+      __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    })
+  };
+});
+
 // EmbeddingService 모듈 Mock
 vi.mock('../services/embedding-service.js', () => ({
   EmbeddingService: vi.fn().mockImplementation(() => ({
