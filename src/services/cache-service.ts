@@ -331,7 +331,10 @@ export class SearchCacheService {
     // 정규화된 쿼리로도 저장
     const normalizedQuery = this.normalizeQuery(query);
     if (normalizedQuery !== query) {
-        const normalizedKey = this.cache.generateSearchKey(normalizedQuery, filters || {}, limit);
+      // filters를 그대로 전달하여 캐시 키 일관성 유지
+      // generateSearchKey 내부에서 filters가 undefined일 때 빈 문자열로 처리하므로
+      // filters || {}를 사용하면 캐시 키 불일치 발생
+      const normalizedKey = this.cache.generateSearchKey(normalizedQuery, filters, limit);
       this.cache.set(normalizedKey, results, ttl);
     }
     
