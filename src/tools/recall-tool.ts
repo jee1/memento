@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { CommonSchemas } from './types.js';
-import { isMemoryItemType, type MemoryTypeRequest } from '../types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../types/index.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
@@ -183,6 +183,7 @@ export class RecallTool extends BaseTool {
       // PRD 요구사항: Phase 1/2에서는 type 파라미터가 없으면 항상 경고/Deprecated 메시지를 띄워야 함
       // memory_types만 있어도 경고를 띄워야 하므로, type이 없으면 항상 검증 수행
       const typeParamMode = mementoConfig.typeParamMode;
+      const originalTypeProvided = !!type; // 원래 type 파라미터가 제공되었는지 추적
       let validatedType = type;
       
       // type 파라미터가 없는 경우 항상 검증 수행 (memory_types로 우회 불가)
@@ -330,7 +331,8 @@ export class RecallTool extends BaseTool {
         this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
         
         // type과 memory_types 동시 사용 시 경고
-        if (validatedType && memory_types && memory_types.length > 0) {
+        // 원래 type 파라미터가 제공되었는지 확인 (기본값이 아닌 경우)
+        if (originalTypeProvided && memory_types && memory_types.length > 0) {
           this.logWarning('type 파라미터와 memory_types를 동시에 사용했습니다. type 파라미터를 우선 적용하고 memory_types는 무시합니다.', {
             type: validatedType,
             memory_types
@@ -338,7 +340,8 @@ export class RecallTool extends BaseTool {
         }
         
         // memory_types 배열 전처리 ('core'/'vault' 제거)
-        let filteredMemoryTypes = validatedType ? [validatedType] : memory_types;
+        // 원래 type 파라미터가 제공되었는지 확인하여 fallback 동작 보장
+        let filteredMemoryTypes: MemoryTypeRequest[] | undefined = originalTypeProvided ? (validatedType ? [validatedType] : undefined) : memory_types;
         if (filteredMemoryTypes && filteredMemoryTypes.length > 0) {
           const invalidTypes = filteredMemoryTypes.filter(t => t === 'core' || t === 'vault');
           if (invalidTypes.length > 0) {
@@ -347,14 +350,14 @@ export class RecallTool extends BaseTool {
               original_memory_types: filteredMemoryTypes,
               suggestion: 'Core/Vault 조회는 단일 type 파라미터를 사용하세요.'
             });
-            filteredMemoryTypes = filteredMemoryTypes.filter(t => t !== 'core' && t !== 'vault');
+            filteredMemoryTypes = filteredMemoryTypes.filter(t => t !== 'core' && t !== 'vault') as MemoryTypeRequest[];
             if (filteredMemoryTypes.length === 0) {
               throw new Error("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type 파라미터를 사용하여 Core/Vault를 조회하세요.");
             }
           }
           
           // 타입 가드 적용: MemoryTypeRequest[] -> MemoryType[]
-          const validMemoryTypes = filteredMemoryTypes.filter(isMemoryItemType);
+          const validMemoryTypes = filteredMemoryTypes.filter((t): t is MemoryType => isMemoryItemType(t));
           if (validMemoryTypes.length === 0) {
             throw new Error("memory_types 배열에 유효한 타입이 없습니다.");
           }
