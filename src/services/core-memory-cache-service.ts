@@ -118,3 +118,31 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
   }
 }
 
+// 싱글톤 인스턴스
+let cacheInstance: CoreMemoryCacheService | null = null;
+
+/**
+ * 전역 Core Memory Cache 인스턴스 가져오기
+ * 서버 초기화 시 생성된 캐시를 공유합니다.
+ */
+export function getCoreMemoryCache(): CoreMemoryCacheService {
+  if (!cacheInstance) {
+    cacheInstance = new CoreMemoryCacheService();
+  }
+  return cacheInstance;
+}
+
+/**
+ * Core Memory Cache 인스턴스 설정 (초기화 시 사용)
+ */
+export function setCoreMemoryCache(cache: CoreMemoryCacheService): void {
+  cacheInstance = cache;
+}
+
+/**
+ * Core Memory Cache 인스턴스 초기화 (테스트용)
+ */
+export function resetCoreMemoryCache(): void {
+  cacheInstance = null;
+}
+

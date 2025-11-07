@@ -381,12 +381,24 @@ export function validateCreateMemoryParams(params: any): {
 } {
   const errors: string[] = [];
 
-  if (!params.content || typeof params.content !== 'string') {
-    errors.push('content는 필수이며 문자열이어야 합니다');
+  // type에 따른 조건부 검증
+  if (params.type === 'core' || params.type === 'vault') {
+    // Core Memory / Knowledge Vault는 key와 value가 필수
+    if (!params.key || typeof params.key !== 'string') {
+      errors.push('type이 "core" 또는 "vault"일 때 key는 필수이며 문자열이어야 합니다');
+    }
+    if (!params.value || typeof params.value !== 'string') {
+      errors.push('type이 "core" 또는 "vault"일 때 value는 필수이며 문자열이어야 합니다');
+    }
+  } else {
+    // 나머지 타입은 content가 필수
+    if (!params.content || typeof params.content !== 'string') {
+      errors.push('content는 필수이며 문자열이어야 합니다 (type이 "core" 또는 "vault"가 아닌 경우)');
+    }
   }
 
   if (params.type && !isValidMemoryType(params.type)) {
-    errors.push('type은 working, episodic, semantic, procedural 중 하나여야 합니다');
+    errors.push('type은 working, episodic, semantic, procedural, core, vault 중 하나여야 합니다');
   }
 
   if (params.importance !== undefined && !isValidImportance(params.importance)) {
@@ -399,6 +411,16 @@ export function validateCreateMemoryParams(params: any): {
 
   if (params.tags && !Array.isArray(params.tags)) {
     errors.push('tags는 배열이어야 합니다');
+  }
+
+  // always_load는 boolean이어야 함
+  if (params.always_load !== undefined && typeof params.always_load !== 'boolean') {
+    errors.push('always_load는 boolean이어야 합니다');
+  }
+
+  // immutable은 boolean이어야 함
+  if (params.immutable !== undefined && typeof params.immutable !== 'boolean') {
+    errors.push('immutable은 boolean이어야 합니다');
   }
 
   return {

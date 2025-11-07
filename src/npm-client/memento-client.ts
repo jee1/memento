@@ -321,14 +321,21 @@ export class MementoClient extends EventEmitter {
     
     // UpdateMemoryParams를 CreateMemoryParams로 변환 (기존 값과 병합)
     const createParams: CreateMemoryParams = {
-      content: params.content || existingMemory.content,
+      content: params.content !== undefined ? params.content : existingMemory.content,
       type: params.type || existingMemory.type,
-      tags: params.tags || existingMemory.tags,
+      key: params.key,
+      value: params.value,
+      always_load: params.always_load,
+      immutable: params.immutable,
+      task_goal: params.task_goal,
+      steps: params.steps,
+      reflection_notes: params.reflection_notes,
+      tags: params.tags !== undefined ? params.tags : existingMemory.tags,
       importance: params.importance !== undefined ? params.importance : existingMemory.importance,
-      source: params.source || existingMemory.source,
+      source: params.source !== undefined ? params.source : existingMemory.source,
       privacy_scope: params.privacy_scope || existingMemory.privacy_scope,
-      project_id: params.project_id || existingMemory.project_id,
-      metadata: params.metadata || existingMemory.metadata
+      project_id: params.project_id !== undefined ? params.project_id : existingMemory.project_id,
+      metadata: params.metadata !== undefined ? params.metadata : existingMemory.metadata
     };
     
     const rememberResult = await this.remember(createParams);
@@ -336,7 +343,7 @@ export class MementoClient extends EventEmitter {
     // RememberResult를 MemoryItem으로 변환
     const memoryItem: MemoryItem = {
       id: rememberResult.memory_id,
-      content: createParams.content,
+      content: createParams.content || '', // content가 없을 수 있으므로 기본값 설정
       type: createParams.type || 'episodic',
       importance: createParams.importance || 0.5,
       created_at: rememberResult.created_at,

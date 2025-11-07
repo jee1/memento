@@ -92,8 +92,15 @@ export interface MementoConfig {
 }
 
 export interface RememberParams {
-  content: string;
-  type?: MemoryType;
+  content?: string; // optional - core/vault일 때는 key/value 사용
+  type?: MemoryTypeRequest; // 확장된 타입 지원
+  key?: string; // Core Memory / Knowledge Vault용
+  value?: string; // Core Memory / Knowledge Vault용
+  always_load?: boolean; // Core Memory용
+  immutable?: boolean; // Knowledge Vault용
+  task_goal?: string; // Procedural Memory용
+  steps?: string; // Procedural Memory용 (JSON 배열 문자열)
+  reflection_notes?: string; // Procedural Memory용 (JSON 객체 문자열)
   tags?: string[];
   importance?: number;
   source?: string;
@@ -101,7 +108,10 @@ export interface RememberParams {
 }
 
 export interface RecallParams {
-  query: string;
+  query?: string; // optional - core/vault일 때는 key 사용
+  type?: MemoryTypeRequest; // 확장된 타입 지원
+  key?: string; // Core Memory / Knowledge Vault용
+  agent_id?: string; // Core Memory / Knowledge Vault용
   filters?: MemorySearchFilters;
   limit?: number;
 }

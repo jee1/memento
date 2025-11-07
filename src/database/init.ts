@@ -293,59 +293,137 @@ export async function initializeDatabase(): Promise<Database.Database> {
       console.warn('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
     }
     
-    // 스키마 파일 읽기 및 실행
-    const schemaPath = join(__dirname, 'schema.sql');
-    const schema = readFileSync(schemaPath, 'utf-8');
-
-    const vecTablesToRepopulate = ensureLegacySchema(db);
-    
-    // 스키마 실행
-    db.exec(schema);
-    populateVecTables(db, vecTablesToRepopulate);
-    
-    // 마이그레이션 자동 실행
+    // 마이그레이션 자동 실행 (스키마 실행 전에 확인)
+    // 기존 DB가 있는지 확인하여 마이그레이션을 먼저 실행할지 결정
+    let isExistingDatabase = false;
     try {
-      log('🔄 마이그레이션 자동 감지 중...');
-      const detector = new MigrationDetector();
-      const detectionResult = await detector.detectPendingMigrations(db);
+      const existingTables = db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name IN ('memory_item', 'core_memory', 'knowledge_vault')
+      `).all() as Array<{ name: string }>;
       
-      if (detectionResult.pendingMigrations.length > 0) {
-        log(`📦 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+      isExistingDatabase = existingTables.length > 0;
+    } catch (error) {
+      // 테이블 확인 실패 시 새 DB로 간주
+      isExistingDatabase = false;
+    }
+    
+    // 기존 DB가 있으면 마이그레이션을 먼저 실행
+    if (isExistingDatabase) {
+      try {
+        log('🔄 기존 데이터베이스 감지 - 마이그레이션 먼저 실행');
+        const detector = new MigrationDetector();
+        const detectionResult = await detector.detectPendingMigrations(db);
         
-        const runner = new MigrationRunner(db);
-        const migrations = detectionResult.pendingMigrations.map(d => d.migration);
-        const results = await runner.runMigrations(migrations, {
-          createBackup: true,
-          autoRollback: true,
-          validate: true
-        });
+        if (detectionResult.pendingMigrations.length > 0) {
+          log(`📦 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+          
+          const runner = new MigrationRunner(db);
+          const migrations = detectionResult.pendingMigrations.map(d => d.migration);
+          const results = await runner.runMigrations(migrations, {
+            createBackup: true,
+            autoRollback: true,
+            validate: true
+          });
+          
+          const successCount = results.filter(r => r.success).length;
+          const failCount = results.filter(r => !r.success).length;
+          
+          log(`✅ 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+          
+          if (failCount > 0) {
+            log('⚠️  일부 마이그레이션이 실패했습니다. 로그를 확인하세요.');
+            const failedMigrations = results.filter(r => !r.success);
+            for (const failed of failedMigrations) {
+              log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+            }
+          }
+        } else {
+          log('✅ 실행해야 할 마이그레이션이 없습니다.');
+        }
+      } catch (migrationError) {
+        log('⚠️  마이그레이션 실행 중 오류 발생:', migrationError);
+        // 마이그레이션 실패해도 서버는 계속 실행 (기존 스키마 사용)
+        log('   기존 스키마로 계속 진행합니다.');
+      }
+    } else {
+      // 새 DB인 경우 schema.sql 실행 (초기 설치용)
+      log('📋 새 데이터베이스 감지 - 초기 스키마 적용');
+      const schemaPath = join(__dirname, 'schema.sql');
+      const schema = readFileSync(schemaPath, 'utf-8');
+
+      const vecTablesToRepopulate = ensureLegacySchema(db);
+      
+      // 스키마 실행
+      db.exec(schema);
+      populateVecTables(db, vecTablesToRepopulate);
+      
+      // 초기 스키마 버전 기록
+      try {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS memento_schema_version (
+            version TEXT PRIMARY KEY,
+            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            migration_name TEXT NOT NULL,
+            checksum TEXT,
+            applied_by TEXT DEFAULT 'system',
+            description TEXT
+          )
+        `);
+        db.exec(`
+          INSERT OR IGNORE INTO memento_schema_version (version, migration_name, description, applied_by)
+          VALUES ('2.0', 'initial-schema-v2', 'Initial Memento MCP Server schema (v2.0 with MIRIX)', 'system')
+        `);
+      } catch (error) {
+        // 스키마 버전 테이블 생성 실패는 무시 (마이그레이션 시스템이 나중에 처리)
+      }
+    }
+    
+    // 새 DB인 경우 schema.sql 실행 후 마이그레이션 확인 (향후 확장용)
+    // 현재는 schema.sql에 최신 스키마가 포함되어 있으므로 마이그레이션이 없을 수 있음
+    if (!isExistingDatabase) {
+      // schema.sql 실행 후에도 마이그레이션 확인 (향후 버전 업그레이드 대비)
+      try {
+        const detector = new MigrationDetector();
+        const detectionResult = await detector.detectPendingMigrations(db);
         
-        const successCount = results.filter(r => r.success).length;
-        const failCount = results.filter(r => !r.success).length;
-        
-        log(`✅ 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
-        
-        if (failCount > 0) {
-          log('⚠️  일부 마이그레이션이 실패했습니다. 로그를 확인하세요.');
-          const failedMigrations = results.filter(r => !r.success);
-          for (const failed of failedMigrations) {
-            log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+        if (detectionResult.pendingMigrations.length > 0) {
+          log(`📦 추가 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+          
+          const runner = new MigrationRunner(db);
+          const migrations = detectionResult.pendingMigrations.map(d => d.migration);
+          const results = await runner.runMigrations(migrations, {
+            createBackup: true,
+            autoRollback: true,
+            validate: true
+          });
+          
+          const successCount = results.filter(r => r.success).length;
+          const failCount = results.filter(r => !r.success).length;
+          
+          if (successCount > 0) {
+            log(`✅ 추가 마이그레이션 완료: 성공 ${successCount}개`);
+          }
+          
+          if (failCount > 0) {
+            log('⚠️  일부 마이그레이션이 실패했습니다. 로그를 확인하세요.');
           }
         }
-      } else {
-        log('✅ 실행해야 할 마이그레이션이 없습니다.');
+      } catch (migrationError) {
+        // 새 DB에서 마이그레이션 확인 실패는 무시 (schema.sql이 최신이므로)
       }
-    } catch (migrationError) {
-      log('⚠️  마이그레이션 실행 중 오류 발생:', migrationError);
-      // 마이그레이션 실패해도 서버는 계속 실행 (기존 스키마 사용)
-      log('   기존 스키마로 계속 진행합니다.');
     }
     
     // Core Memory 자동 로드 (always_load=true인 항목만)
     try {
       log('🔄 Core Memory 자동 로드 중...');
       const coreMemoryRepository = new CoreMemoryRepository(db);
-      const coreMemoryCache = new CoreMemoryCacheService();
+      const { getCoreMemoryCache, setCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
+      
+      // 전역 캐시 인스턴스 생성 및 설정
+      const coreMemoryCache = getCoreMemoryCache();
+      setCoreMemoryCache(coreMemoryCache);
+      
       const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
       
       // always_load=true인 항목 조회 및 캐시에 로드

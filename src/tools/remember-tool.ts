@@ -194,7 +194,8 @@ export class RememberTool extends BaseTool {
       }
 
       const coreMemoryRepository = new CoreMemoryRepository(context.db!);
-      const coreMemoryCache = new CoreMemoryCacheService();
+      const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
+      const coreMemoryCache = getCoreMemoryCache();
       const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
 
       const agent_id = 'default'; // TODO: 향후 context에서 가져오기

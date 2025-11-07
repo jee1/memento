@@ -179,9 +179,44 @@ export class RecallTool extends BaseTool {
         include_metadata 
       } = RecallSchema.parse(params);
       
+      // type 파라미터 롤아웃 모드 검증
+      // PRD 요구사항: Phase 1/2에서는 type 파라미터가 없으면 항상 경고/Deprecated 메시지를 띄워야 함
+      // memory_types만 있어도 경고를 띄워야 하므로, type이 없으면 항상 검증 수행
+      const typeParamMode = mementoConfig.typeParamMode;
+      let validatedType = type;
+      
+      // type 파라미터가 없는 경우 항상 검증 수행 (memory_types로 우회 불가)
+      if (!type) {
+        const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
+        
+        // error 모드에서는 에러 발생
+        if (!typeValidation.isValid) {
+          throw new Error(typeValidation.message || "type 파라미터는 필수입니다.");
+        }
+        
+        // warn/deprecate 모드에서는 경고/Deprecation 메시지 출력
+        // memory_types가 있어도 경고는 항상 출력되어야 함
+        if (typeValidation.message) {
+          if (typeParamMode === 'warn') {
+            this.logWarning(typeValidation.message);
+          } else if (typeParamMode === 'deprecate') {
+            this.logWarning(typeValidation.message);
+          }
+        }
+        
+        // 기본값 설정 (memory_types가 없을 때만)
+        // memory_types가 있으면 validatedType은 undefined로 유지하여 나중에 memory_types 사용
+        if (!memory_types || memory_types.length === 0) {
+          if (typeValidation.defaultType) {
+            validatedType = typeValidation.defaultType as MemoryTypeRequest;
+          }
+        }
+        // memory_types가 있으면 validatedType은 undefined로 유지 (나중에 memory_types 사용)
+      }
+      
       this.logInfo('파라미터 파싱 완료', { 
         query, 
-        type,
+        type: validatedType,
         key,
         agent_id,
         memory_types, 
@@ -200,7 +235,7 @@ export class RecallTool extends BaseTool {
       const agentId = agent_id || 'default';
       
       // type 파라미터에 따른 분기 처리
-      if (type === 'core') {
+      if (validatedType === 'core') {
         // Core Memory 조회
         if (query) {
           this.logWarning('type="core"일 때 query 파라미터는 무시됩니다', { query });
@@ -210,7 +245,8 @@ export class RecallTool extends BaseTool {
         }
         
         const coreMemoryRepository = new CoreMemoryRepository(context.db!);
-        const coreMemoryCache = new CoreMemoryCacheService();
+        const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
+        const coreMemoryCache = getCoreMemoryCache();
         const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
         
         let records;
@@ -241,7 +277,7 @@ export class RecallTool extends BaseTool {
           query_time: executionTime,
           search_type: 'direct'
         });
-      } else if (type === 'vault') {
+      } else if (validatedType === 'vault') {
         // Knowledge Vault 조회
         if (query) {
           this.logWarning('type="vault"일 때 query 파라미터는 무시됩니다', { query });
@@ -297,15 +333,15 @@ export class RecallTool extends BaseTool {
         this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
         
         // type과 memory_types 동시 사용 시 경고
-        if (type && memory_types && memory_types.length > 0) {
+        if (validatedType && memory_types && memory_types.length > 0) {
           this.logWarning('type 파라미터와 memory_types를 동시에 사용했습니다. type 파라미터를 우선 적용하고 memory_types는 무시합니다.', {
-            type,
+            type: validatedType,
             memory_types
           });
         }
         
         // memory_types 배열 전처리 ('core'/'vault' 제거)
-        let filteredMemoryTypes = type ? [type] : memory_types;
+        let filteredMemoryTypes = validatedType ? [validatedType] : memory_types;
         if (filteredMemoryTypes && filteredMemoryTypes.length > 0) {
           const invalidTypes = filteredMemoryTypes.filter(t => t === 'core' || t === 'vault');
           if (invalidTypes.length > 0) {
