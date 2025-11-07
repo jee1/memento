@@ -93,8 +93,16 @@ export class RememberTool extends BaseTool {
             await new Promise(resolve => setTimeout(resolve, 100));
             
             // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
+            // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
             try {
-              DatabaseUtils.get(dbRef, 'SELECT 1');
+              await new Promise<void>((resolve, reject) => {
+                try {
+                  DatabaseUtils.get(dbRef, 'SELECT 1');
+                  resolve();
+                } catch (error) {
+                  reject(error);
+                }
+              });
             } catch (dbError) {
               this.logWarning('데이터베이스 연결이 유효하지 않아 임베딩 생성을 건너뜁니다', { 
                 memory_id: id,
@@ -110,8 +118,16 @@ export class RememberTool extends BaseTool {
               // PRD 3.1-3.3: 인접 기억 갱신
               try {
                 // 데이터베이스 연결 재확인
+                // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
                 try {
-                  DatabaseUtils.get(dbRef, 'SELECT 1');
+                  await new Promise<void>((resolve, reject) => {
+                    try {
+                      DatabaseUtils.get(dbRef, 'SELECT 1');
+                      resolve();
+                    } catch (error) {
+                      reject(error);
+                    }
+                  });
                 } catch (dbError) {
                   this.logWarning('데이터베이스 연결이 유효하지 않아 인접 기억 갱신을 건너뜁니다', { 
                     memory_id: id,
