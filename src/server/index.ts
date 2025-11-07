@@ -26,6 +26,7 @@ import type { ToolContext } from '../tools/types.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
+import packageJson from '../../package.json' with { type: 'json' };
 
 // MCP 서버 인스턴스
 let server: Server;
@@ -114,6 +115,7 @@ const log = isMCPMode ? console.error : console.log;
 // MCP 서버 초기화
 async function initializeServer() {
   try {
+    process.stderr.write(`📦 Memento MCP Server v${packageJson.version}\n`);
     process.stderr.write('🚀 MCP 서버 초기화 시작...\n');
     
     // 설정 검증

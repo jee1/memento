@@ -21,6 +21,7 @@ import { getPerformanceMonitor } from '../services/performance-monitor.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
+import packageJson from '../../package.json' with { type: 'json' };
 
 // 전역 변수
 let db: Database.Database | null = null;
@@ -895,6 +896,7 @@ app.post('/admin/performance/alerts/:alertId/resolve', async (req, res) => {
 // 서버 초기화
 async function initializeServer() {
   try {
+    console.log(`📦 Memento HTTP/WebSocket MCP Server v${packageJson.version}`);
     console.log('🚀 HTTP/WebSocket MCP 서버 v2 시작 중...');
     
     // 설정 검증
