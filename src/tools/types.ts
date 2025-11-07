@@ -49,7 +49,7 @@ export const CommonSchemas = {
   MemoryId: z.string().min(1, 'Memory ID cannot be empty'),
   Content: z.string().min(1, 'Content cannot be empty'),
   Query: z.string().min(1, 'Query cannot be empty'),
-  MemoryType: z.enum(['working', 'episodic', 'semantic', 'procedural']),
+  MemoryType: z.enum(['working', 'episodic', 'semantic', 'procedural', 'core', 'vault']),
   PrivacyScope: z.enum(['private', 'team', 'public']),
   Importance: z.number().min(0).max(1),
   Limit: z.number().min(1).max(50).default(10),

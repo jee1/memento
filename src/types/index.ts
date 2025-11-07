@@ -2,7 +2,20 @@
  * Memento MCP Server 타입 정의
  */
 
+// 도메인 모델용 타입 (memory_item 테이블용, 변경 없음)
 export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
+
+// 요청 파라미터용 타입 (MCP Tool 파라미터용, 확장)
+export type MemoryTypeRequest = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core' | 'vault';
+
+/**
+ * 타입 가드 함수: MemoryTypeRequest가 MemoryType인지 확인
+ * 'core'와 'vault'는 memory_item 테이블에 저장되지 않으므로 false 반환
+ */
+export function isMemoryItemType(type: MemoryTypeRequest): type is MemoryType {
+  return type === 'working' || type === 'episodic' || type === 'semantic' || type === 'procedural';
+}
+
 export type PrivacyScope = 'private' | 'team' | 'public';
 
 export interface MemoryItem {

@@ -7,7 +7,8 @@
 // 기본 타입들
 // ============================================================================
 
-export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
+// 클라이언트 라이브러리용 타입 (서버의 MemoryTypeRequest와 동일한 값)
+export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core' | 'vault';
 export type PrivacyScope = 'private' | 'team' | 'public';
 
 // ============================================================================

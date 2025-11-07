@@ -13,7 +13,7 @@ import type { MemoryType, PrivacyScope, MemoryItem } from './types.js';
  * 유효한 메모리 타입인지 확인
  */
 export function isValidMemoryType(type: string): type is MemoryType {
-  return ['working', 'episodic', 'semantic', 'procedural'].includes(type);
+  return ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'].includes(type);
 }
 
 /**
@@ -149,6 +149,22 @@ export function getDefaultSettingsForType(type: MemoryType): {
         privacyScope: 'team',
         ttlDays: 180
       };
+    case 'core':
+      return {
+        importance: 1.0,
+        privacyScope: 'private'
+        // ttlDays: undefined // 무기한
+      };
+    case 'vault':
+      return {
+        importance: 1.0,
+        privacyScope: 'private'
+        // ttlDays: undefined // 무기한
+      };
+    default:
+      // 타입 가드로 인해 이 케이스는 발생하지 않지만, TypeScript를 위해 필요
+      const _exhaustive: never = type;
+      throw new Error(`Unknown memory type: ${_exhaustive}`);
   }
 }
 
@@ -318,7 +334,9 @@ export function memoriesToMarkdown(memories: MemoryItem[]): string {
       working: '⚡',
       episodic: '📅',
       semantic: '🧠',
-      procedural: '🔧'
+      procedural: '🔧',
+      core: '⭐',
+      vault: '🔒'
     }[memory.type] || '📝';
 
     const importanceBar = '★'.repeat(Math.round(memory.importance * 5)) + 
