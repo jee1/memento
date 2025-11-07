@@ -204,14 +204,11 @@ export class RecallTool extends BaseTool {
           }
         }
         
-        // 기본값 설정 (memory_types가 없을 때만)
-        // memory_types가 있으면 validatedType은 undefined로 유지하여 나중에 memory_types 사용
-        if (!memory_types || memory_types.length === 0) {
-          if (typeValidation.defaultType) {
-            validatedType = typeValidation.defaultType as MemoryTypeRequest;
-          }
+        // 기본값 설정 (일관성을 위해 항상 설정)
+        // memory_types가 있어도 기본 타입을 설정하되, 나중에 memory_types를 사용할 때는 무시됨
+        if (typeValidation.defaultType) {
+          validatedType = typeValidation.defaultType as MemoryTypeRequest;
         }
-        // memory_types가 있으면 validatedType은 undefined로 유지 (나중에 memory_types 사용)
       }
       
       this.logInfo('파라미터 파싱 완료', { 

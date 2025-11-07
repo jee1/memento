@@ -347,18 +347,12 @@ export async function initializeDatabase(): Promise<Database.Database> {
         log('   기존 스키마로 계속 진행합니다.');
       }
     } else {
-      // 새 DB인 경우 schema.sql 실행 (초기 설치용)
-      log('📋 새 데이터베이스 감지 - 초기 스키마 적용');
-      const schemaPath = join(__dirname, 'schema.sql');
-      const schema = readFileSync(schemaPath, 'utf-8');
-
-      const vecTablesToRepopulate = ensureLegacySchema(db);
+      // 새 DB인 경우: 마이그레이션을 먼저 체크하여 schema.sql과의 충돌 방지
+      // 마이그레이션이 있으면 마이그레이션을 실행하고 schema.sql은 스킵
+      // 마이그레이션이 없으면 schema.sql을 실행 (최신 스키마 포함)
+      log('📋 새 데이터베이스 감지 - 초기화 전략 결정 중...');
       
-      // 스키마 실행
-      db.exec(schema);
-      populateVecTables(db, vecTablesToRepopulate);
-      
-      // 초기 스키마 버전 기록
+      // 스키마 버전 테이블 먼저 생성 (마이그레이션 감지에 필요)
       try {
         db.exec(`
           CREATE TABLE IF NOT EXISTS memento_schema_version (
@@ -370,26 +364,21 @@ export async function initializeDatabase(): Promise<Database.Database> {
             description TEXT
           )
         `);
-        db.exec(`
-          INSERT OR IGNORE INTO memento_schema_version (version, migration_name, description, applied_by)
-          VALUES ('2.0', 'initial-schema-v2', 'Initial Memento MCP Server schema (v2.0 with MIRIX)', 'system')
-        `);
       } catch (error) {
-        // 스키마 버전 테이블 생성 실패는 무시 (마이그레이션 시스템이 나중에 처리)
+        // 스키마 버전 테이블 생성 실패는 무시
       }
-    }
-    
-    // 새 DB인 경우 schema.sql 실행 후 마이그레이션 확인 (향후 확장용)
-    // 현재는 schema.sql에 최신 스키마가 포함되어 있으므로 마이그레이션이 없을 수 있음
-    if (!isExistingDatabase) {
-      // schema.sql 실행 후에도 마이그레이션 확인 (향후 버전 업그레이드 대비)
+      
+      // 마이그레이션 감지
+      let hasPendingMigrations = false;
       try {
         const detector = new MigrationDetector();
         const detectionResult = await detector.detectPendingMigrations(db);
+        hasPendingMigrations = detectionResult.pendingMigrations.length > 0;
         
-        if (detectionResult.pendingMigrations.length > 0) {
-          log(`📦 추가 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+        if (hasPendingMigrations) {
+          log(`📦 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개 - 마이그레이션 우선 실행`);
           
+          // 마이그레이션 실행
           const runner = new MigrationRunner(db);
           const migrations = detectionResult.pendingMigrations.map(d => d.migration);
           const results = await runner.runMigrations(migrations, {
@@ -401,16 +390,45 @@ export async function initializeDatabase(): Promise<Database.Database> {
           const successCount = results.filter(r => r.success).length;
           const failCount = results.filter(r => !r.success).length;
           
-          if (successCount > 0) {
-            log(`✅ 추가 마이그레이션 완료: 성공 ${successCount}개`);
-          }
+          log(`✅ 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
           
           if (failCount > 0) {
             log('⚠️  일부 마이그레이션이 실패했습니다. 로그를 확인하세요.');
+            const failedMigrations = results.filter(r => !r.success);
+            for (const failed of failedMigrations) {
+              log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+            }
           }
+          
+          // 마이그레이션 실행 후 VEC 테이블 초기화
+          populateVecTables(db, []);
         }
       } catch (migrationError) {
-        // 새 DB에서 마이그레이션 확인 실패는 무시 (schema.sql이 최신이므로)
+        log('⚠️  마이그레이션 감지/실행 중 오류 발생:', migrationError);
+        hasPendingMigrations = false; // 오류 발생 시 schema.sql 사용
+      }
+      
+      // 마이그레이션이 없거나 실패한 경우 schema.sql 실행 (최신 스키마 포함)
+      if (!hasPendingMigrations) {
+        log('📋 schema.sql 실행 (최신 스키마 적용)');
+        const schemaPath = join(__dirname, 'schema.sql');
+        const schema = readFileSync(schemaPath, 'utf-8');
+        
+        // 스키마 실행
+        db.exec(schema);
+        
+        // VEC 테이블 초기화
+        populateVecTables(db, []);
+        
+        // 초기 스키마 버전 기록 (schema.sql이 최신이므로)
+        try {
+          db.exec(`
+            INSERT OR IGNORE INTO memento_schema_version (version, migration_name, description, applied_by)
+            VALUES ('2.0', 'initial-schema-v2', 'Initial Memento MCP Server schema (v2.0 with MIRIX)', 'system')
+          `);
+        } catch (error) {
+          // 스키마 버전 기록 실패는 무시
+        }
       }
     }
     
