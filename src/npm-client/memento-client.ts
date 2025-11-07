@@ -322,13 +322,14 @@ export class MementoClient extends EventEmitter {
     
     // UpdateMemoryParams를 CreateMemoryParams로 변환 (기존 값과 병합)
     // 타입에 따라 다른 필드를 병합해야 함
+    // 일관성: 모든 필드는 !== undefined 체크를 사용하여 명시적으로 제공된 값(빈 문자열, false 등 포함)을 업데이트
     const createParams: CreateMemoryParams = {
       type: memoryType,
-      // 공통 필드
+      // 공통 필드 - 일관된 병합 로직 사용
       tags: params.tags !== undefined ? params.tags : existingMemory.tags,
       importance: params.importance !== undefined ? params.importance : existingMemory.importance,
       source: params.source !== undefined ? params.source : existingMemory.source,
-      privacy_scope: params.privacy_scope || existingMemory.privacy_scope,
+      privacy_scope: params.privacy_scope !== undefined ? params.privacy_scope : existingMemory.privacy_scope,
       project_id: params.project_id !== undefined ? params.project_id : existingMemory.project_id,
       metadata: params.metadata !== undefined ? params.metadata : existingMemory.metadata
     };
