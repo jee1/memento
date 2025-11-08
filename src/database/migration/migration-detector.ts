@@ -70,9 +70,11 @@ export class MigrationDetector {
    */
   async detectAllMigrations(): Promise<DetectedMigration[]> {
     const files = await readdir(this.migrationsDir);
+    // .ts와 .js 파일 모두 지원 (개발 환경: .ts, 빌드 환경: .js)
     const migrationFiles = files.filter(file => 
-      file.endsWith('.ts') && 
+      (file.endsWith('.ts') || file.endsWith('.js')) && 
       !file.endsWith('.spec.ts') &&
+      !file.endsWith('.spec.js') &&
       /^\d{3}-/.test(file)
     );
 
@@ -81,7 +83,12 @@ export class MigrationDetector {
     for (const file of migrationFiles) {
       try {
         const filePath = join(this.migrationsDir, file);
-        const module = await import(`file://${filePath}`);
+        // ESM 모듈 import: .js 파일은 확장자 포함, .ts 파일은 file:// 프로토콜 사용
+        // 빌드된 환경에서는 .js 파일을 직접 import
+        const importPath = file.endsWith('.js') 
+          ? filePath  // .js 파일은 전체 경로 사용
+          : `file://${filePath}`;  // .ts 파일은 file:// 프로토콜 사용
+        const module = await import(importPath);
         
         // default export 또는 named export 찾기
         let MigrationClass: any = module.default;
