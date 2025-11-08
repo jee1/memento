@@ -71,10 +71,13 @@ export class MigrationDetector {
   async detectAllMigrations(): Promise<DetectedMigration[]> {
     const files = await readdir(this.migrationsDir);
     // .ts와 .js 파일 모두 지원 (개발 환경: .ts, 빌드 환경: .js)
+    // .d.ts, .spec.ts, .spec.js 파일은 제외
     const migrationFiles = files.filter(file => 
       (file.endsWith('.ts') || file.endsWith('.js')) && 
+      !file.endsWith('.d.ts') &&
       !file.endsWith('.spec.ts') &&
       !file.endsWith('.spec.js') &&
+      !file.endsWith('.js.map') &&
       /^\d{3}-/.test(file)
     );
 
@@ -98,17 +101,26 @@ export class MigrationDetector {
           const exportedKeys = Object.keys(module);
           for (const key of exportedKeys) {
             const exported = module[key];
-            // 클래스이고 version, name, up 메서드를 가진 경우
-            if (typeof exported === 'function' && exported.prototype && 
-                (exported.prototype.version || exported.prototype.name)) {
-              MigrationClass = exported;
-              break;
+            // 클래스인지 확인 (함수이고 prototype이 있는 경우)
+            if (typeof exported === 'function' && exported.prototype) {
+              // 인스턴스를 생성해서 version과 up 메서드가 있는지 확인
+              try {
+                const testInstance = new exported();
+                if (testInstance && testInstance.version && typeof testInstance.up === 'function') {
+                  MigrationClass = exported;
+                  break;
+                }
+              } catch {
+                // 인스턴스 생성 실패 시 다음으로
+                continue;
+              }
             }
           }
         }
 
         if (!MigrationClass || typeof MigrationClass !== 'function') {
           console.warn(`⚠️  마이그레이션 파일 ${file}에서 유효한 마이그레이션 클래스를 찾을 수 없습니다.`);
+          console.warn(`   사용 가능한 exports: ${Object.keys(module).join(', ')}`);
           continue;
         }
 
@@ -117,6 +129,7 @@ export class MigrationDetector {
 
         if (!migration || !migration.version || !migration.up) {
           console.warn(`⚠️  마이그레이션 파일 ${file}에서 유효한 마이그레이션 인스턴스를 생성할 수 없습니다.`);
+          console.warn(`   version: ${migration?.version}, up: ${typeof migration?.up}`);
           continue;
         }
 
