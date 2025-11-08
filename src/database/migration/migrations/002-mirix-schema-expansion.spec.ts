@@ -209,8 +209,19 @@ describe('MirixSchemaExpansionMigration', () => {
     });
 
     it('should record schema version 2.0', async () => {
-      await migration.up(db);
+      // MigrationRunner를 사용하여 마이그레이션 실행 (스키마 버전 기록 포함)
+      const { MigrationRunner } = await import('../migration-runner.js');
+      const runner = new MigrationRunner(db);
+      
+      const result = await runner.runMigration(migration, {
+        createBackup: false,
+        autoRollback: false,
+        validate: true
+      });
 
+      expect(result.success).toBe(true);
+
+      // MigrationRunner가 스키마 버전을 기록했는지 확인
       const version = db.prepare(`
         SELECT version, migration_name FROM memento_schema_version WHERE version = ?
       `).get('2.0') as { version: string; migration_name: string } | undefined;

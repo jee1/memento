@@ -22,10 +22,8 @@ CREATE TABLE IF NOT EXISTS memento_schema_version (
 -- 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_schema_version_applied_at ON memento_schema_version(applied_at);
 
--- 초기 스키마 버전 기록 (기존 데이터베이스가 있는 경우)
--- 마이그레이션 전 스키마는 버전 1.0으로 간주
-INSERT OR IGNORE INTO memento_schema_version (version, migration_name, description, applied_by)
-VALUES ('1.0', 'initial-schema', 'Initial Memento MCP Server schema', 'system');
+-- Note: Initial schema version (1.0) should be recorded separately, not in migration SQL
+-- MigrationRunner will record the migration version (2.0) after successful execution
 
 COMMIT;
 PRAGMA foreign_keys = ON;

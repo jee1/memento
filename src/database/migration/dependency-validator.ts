@@ -242,6 +242,30 @@ export class DependencyValidator {
     db: Database.Database
   ): Promise<DependencyValidationResult> {
     try {
+      // 먼저 VEC 확장이 사용 가능한지 확인
+      let vecExtensionAvailable = false;
+      try {
+        const vecTable = db.prepare(`
+          SELECT name FROM sqlite_master 
+          WHERE type='table' AND name LIKE '%vec%'
+        `).get();
+        vecExtensionAvailable = !!vecTable;
+      } catch {
+        // VEC 확장이 없을 수 있음
+        vecExtensionAvailable = false;
+      }
+
+      // VEC 확장이 없으면 검증을 건너뜀 (선택적 의존성)
+      if (!vecExtensionAvailable) {
+        return {
+          name: 'vec_triggers',
+          success: true,
+          details: {
+            note: 'VEC extension not available, skipping trigger validation'
+          }
+        };
+      }
+
       const requiredTriggers = [
         'memory_embedding_vec_insert',
         'memory_embedding_vec_update',

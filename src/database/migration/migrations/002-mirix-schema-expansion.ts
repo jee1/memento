@@ -25,7 +25,7 @@ const __dirname = dirname(__filename);
  * 4. Creates memento_schema_version table for schema version tracking
  */
 export class MirixSchemaExpansionMigration implements Migration {
-  version = '002';
+  version = '2.0';  // 스키마 버전과 일치하도록 변경 (002 -> 2.0)
   name = 'mirix-schema-expansion';
   description = 'Expand Memento schema to support MIRIX-based 5-memory architecture (Core, Episodic, Semantic, Procedural, Vault)';
 
@@ -39,9 +39,28 @@ export class MirixSchemaExpansionMigration implements Migration {
 
   /**
    * Execute SQL script
+   * Removes transaction commands (BEGIN TRANSACTION, COMMIT) as MigrationRunner manages transactions
    */
   private executeSQL(db: Database.Database, sql: string): void {
-    db.exec(sql);
+    // MigrationRunner가 트랜잭션을 관리하므로 SQL에서 트랜잭션 명령 제거
+    let cleanedSQL = sql
+      // BEGIN TRANSACTION 제거
+      .replace(/BEGIN\s+TRANSACTION\s*;/gi, '')
+      // COMMIT 제거
+      .replace(/COMMIT\s*;/gi, '')
+      // PRAGMA foreign_keys 명령은 유지 (트랜잭션 외부에서도 작동)
+      .trim();
+    
+    // 빈 줄 제거 및 정리
+    cleanedSQL = cleanedSQL
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .join('\n');
+    
+    if (cleanedSQL.length > 0) {
+      db.exec(cleanedSQL);
+    }
   }
 
   /**
@@ -104,12 +123,8 @@ export class MirixSchemaExpansionMigration implements Migration {
     const memoryItemSQL = this.loadSQLFile('002-mirix-schema-expansion-memory-item.sql');
     this.executeSQL(db, memoryItemSQL);
 
-    // 5. Record schema version
-    db.prepare(`
-      INSERT OR REPLACE INTO memento_schema_version 
-      (version, migration_name, description, applied_by)
-      VALUES (?, ?, ?, ?)
-    `).run('2.0', this.name, this.description, 'system');
+    // Note: Schema version is recorded by MigrationRunner, not here
+    // MigrationRunner.recordVersion() will be called after successful migration
   }
 
   /**
@@ -161,14 +176,8 @@ export class MirixSchemaExpansionMigration implements Migration {
       }
     }
 
-    // Verify schema version was recorded
-    const version = db.prepare(`
-      SELECT version FROM memento_schema_version WHERE version = ?
-    `).get('2.0') as { version: string } | undefined;
-    
-    if (!version) {
-      throw new Error('Schema version 2.0 was not recorded');
-    }
+    // Note: Schema version recording is handled by MigrationRunner after validateAfter
+    // We only verify that the schema changes were applied correctly
 
     // Verify existing dependencies are intact using DependencyValidator
     const dependencyReport = await DependencyValidator.validateAll(db);

@@ -76,8 +76,56 @@ function createBaseSchema(db: Database.Database): void {
         VALUES (new.rowid, new.content, new.tags, new.source);
       END;
     `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source);
+      END;
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source);
+        INSERT INTO memory_item_fts(rowid, content, tags, source)
+        VALUES (new.rowid, new.content, new.tags, new.source);
+      END;
+    `);
   } catch (error) {
     // FTS5가 사용 불가능할 수 있으므로 무시
+  }
+
+  // VEC 트리거 생성 (의존성 검증용, 선택적)
+  try {
+    db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384]);
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
+        INSERT INTO memory_item_vec(rowid, embedding)
+        SELECT id, json_extract(embedding, '$')
+        FROM memory_embedding
+        WHERE id = NEW.id;
+      END;
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
+        UPDATE memory_item_vec
+        SET embedding = json_extract(NEW.embedding, '$')
+        WHERE rowid = NEW.id;
+      END;
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
+        DELETE FROM memory_item_vec WHERE rowid = OLD.id;
+      END;
+    `);
+  } catch (error) {
+    // VEC가 사용 불가능할 수 있으므로 무시
   }
 }
 
