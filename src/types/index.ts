@@ -89,6 +89,8 @@ export interface MementoConfig {
   logFile: string | undefined;
   nodeEnv: string;
   typeParamMode: 'warn' | 'deprecate' | 'error';
+  // Consolidation Score System 설정
+  consolidationScoreEnabled: boolean;
 }
 
 export interface RememberParams {

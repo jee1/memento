@@ -7,6 +7,7 @@ import { SearchRanking } from './search-ranking.js';
 import type { MemorySearchFilters, MemorySearchResult } from '../types/index.js';
 import Database from 'better-sqlite3';
 import { getStopWords } from '../utils/stopwords.js';
+import { mementoConfig } from '../config/index.js';
 
 export interface SearchQuery {
   query: string;
@@ -52,6 +53,7 @@ export class SearchEngine {
             SELECT 
               m.id, m.content, m.type, m.importance, m.created_at, 
               m.last_accessed, m.pinned, m.tags, m.source,
+              m.consolidation_score,
               0 as fts_rank
             FROM memory_item m
           `;
@@ -60,6 +62,7 @@ export class SearchEngine {
             SELECT 
               m.id, m.content, m.type, m.importance, m.created_at, 
               m.last_accessed, m.pinned, m.tags, m.source,
+              m.consolidation_score,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
             JOIN memory_item m ON memory_item_fts.rowid = m.rowid
@@ -74,6 +77,7 @@ export class SearchEngine {
           SELECT 
             m.id, m.content, m.type, m.importance, m.created_at, 
             m.last_accessed, m.pinned, m.tags, m.source,
+            m.consolidation_score,
             0 as fts_rank
           FROM memory_item m
           WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?
@@ -86,6 +90,7 @@ export class SearchEngine {
         SELECT 
           m.id, m.content, m.type, m.importance, m.created_at, 
           m.last_accessed, m.pinned, m.tags, m.source,
+          m.consolidation_score,
           0 as fts_rank
         FROM memory_item m
       `;
@@ -280,27 +285,46 @@ export class SearchEngine {
           selectedContents
         );
         
-        // 최종 점수 계산 (FTS5 랭킹 가중치 적용)
-        const finalScore = ftsRank > 0 ? 
-          ftsRank * 0.7 + this.ranking.calculateFinalScore({
-            relevance: 0.3,
-            recency,
-            importance,
-            usage,
-            duplication_penalty: duplicationPenalty
-          }) * 0.3 :
-          this.ranking.calculateFinalScore({
-            relevance,
-            recency,
-            importance,
-            usage,
-            duplication_penalty: duplicationPenalty
-          });
+        // Consolidation Score 조회
+        const consolidationScore = row.consolidation_score !== null && row.consolidation_score !== undefined
+          ? Number(row.consolidation_score)
+          : undefined;
+
+        // 최종 점수 계산
+        let finalScore: number;
+        
+        // Consolidation Score가 활성화되어 있고 값이 있으면 사용
+        if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
+          // 벡터 유사도는 relevance로 간주
+          const vectorSimilarity = relevance;
+          finalScore = this.ranking.calculateFinalScoreWithConsolidation(
+            vectorSimilarity,
+            consolidationScore,
+            'balanced' // 기본 프로파일, 향후 쿼리 파라미터로 받을 수 있음
+          );
+        } else {
+          // 기존 점수 계산 방식
+          finalScore = ftsRank > 0 ? 
+            ftsRank * 0.7 + this.ranking.calculateFinalScore({
+              relevance: 0.3,
+              recency,
+              importance,
+              usage,
+              duplication_penalty: duplicationPenalty
+            }) * 0.3 :
+            this.ranking.calculateFinalScore({
+              relevance,
+              recency,
+              importance,
+              usage,
+              duplication_penalty: duplicationPenalty
+            });
+        }
         
         // 선택된 콘텐츠에 추가 (다양성 확보)
         selectedContents.push(row.content);
         
-        return {
+        const result: any = {
           id: row.id,
           content: row.content,
           type: row.type,
@@ -312,6 +336,13 @@ export class SearchEngine {
           score: finalScore,
           recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0)
         };
+
+        // Consolidation Score 포함 (기능 플래그 활성화 시)
+        if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
+          result.consolidation_score = consolidationScore;
+        }
+
+        return result;
       })
       .sort((a, b) => b.score - a.score); // 점수 내림차순 정렬
   }

@@ -9,6 +9,8 @@ import { UnifiedEmbeddingService } from '../services/unified-embedding-service.j
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import type { MemorySearchFilters, MemoryType } from '../types/index.js';
 import Database from 'better-sqlite3';
+import { SearchRanking } from './search-ranking.js';
+import { mementoConfig } from '../config/index.js';
 
 // 인터페이스 정의
 export interface ITextSearchEngine {
@@ -250,12 +252,14 @@ export interface HybridSearchResult {
   vectorScore: number;
   finalScore: number;
   recall_reason: string;
+  consolidation_score?: number; // Consolidation Score (선택적)
 }
 
 export class HybridSearchEngine {
   private readonly defaultVectorWeight = 0.6; // 벡터 검색 60%
   private readonly defaultTextWeight = 0.4;   // 텍스트 검색 40%
   private searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }> = new Map();
+  private ranking: SearchRanking;
 
   constructor(
     private textSearchEngine: ITextSearchEngine,
@@ -265,7 +269,9 @@ export class HybridSearchEngine {
     private weightCalculator: IAdaptiveWeightCalculator,
     private logger: ISearchLogger,
     private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService()
-  ) {}
+  ) {
+    this.ranking = new SearchRanking();
+  }
 
   /**
    * 하이브리드 검색 실행 - 적응형 가중치 적용
@@ -290,8 +296,8 @@ export class HybridSearchEngine {
       // 3. 벡터 검색 실행
       const vectorResults = await this.executeVectorSearch(db, query, searchId);
 
-      // 4. 결과 결합 및 정렬
-      const finalResults = this.combineAndSortResults(textResults, vectorResults, weights, query.limit || 10);
+      // 4. 결과 결합 및 정렬 (데이터베이스 전달하여 consolidation_score 조회)
+      const finalResults = this.combineAndSortResults(textResults, vectorResults, weights, query.limit || 10, db);
 
       // 5. 통계 업데이트 및 결과 반환
       this.updateSearchStats(query.query, textResults.length, vectorResults.length);
@@ -469,7 +475,13 @@ export class HybridSearchEngine {
     }
   }
 
-  private combineAndSortResults(textResults: any[], vectorResults: VectorSearchResult[], weights: any, limit: number): HybridSearchResult[] {
+  private combineAndSortResults(
+    textResults: any[], 
+    vectorResults: VectorSearchResult[], 
+    weights: any, 
+    limit: number,
+    db?: Database.Database
+  ): HybridSearchResult[] {
     try {
       const combinedResults = this.resultCombiner.combine(
         textResults,
@@ -477,6 +489,30 @@ export class HybridSearchEngine {
         weights.textWeight,
         weights.vectorWeight
       );
+      
+      // Consolidation Score가 활성화되어 있으면 finalScore 재계산
+      if (mementoConfig.consolidationScoreEnabled && db) {
+        // 데이터베이스에서 consolidation_score 조회 및 finalScore 재계산
+        const memoryIds = combinedResults.map(r => r.id);
+        if (memoryIds.length > 0) {
+          const consolidationScores = this.fetchConsolidationScores(db, memoryIds);
+          
+          combinedResults.forEach(result => {
+            const consolidationScore = consolidationScores.get(result.id);
+            if (consolidationScore !== undefined) {
+              result.consolidation_score = consolidationScore;
+              
+              // 벡터 유사도는 vectorScore로 간주
+              const vectorSimilarity = result.vectorScore;
+              result.finalScore = this.ranking.calculateFinalScoreWithConsolidation(
+                vectorSimilarity,
+                consolidationScore,
+                'balanced' // 기본 프로파일, 향후 쿼리 파라미터로 받을 수 있음
+              );
+            }
+          });
+        }
+      }
       
       return combinedResults
         .sort((a, b) => b.finalScore - a.finalScore)
@@ -489,6 +525,34 @@ export class HybridSearchEngine {
         { textResultsCount: textResults.length, vectorResultsCount: vectorResults.length, weights }
       );
     }
+  }
+
+  /**
+   * 데이터베이스에서 consolidation_score 조회
+   */
+  private fetchConsolidationScores(db: Database.Database, memoryIds: string[]): Map<string, number> {
+    const scores = new Map<string, number>();
+    
+    if (memoryIds.length === 0) {
+      return scores;
+    }
+    
+    try {
+      const placeholders = memoryIds.map(() => '?').join(',');
+      const sql = `SELECT id, consolidation_score FROM memory_item WHERE id IN (${placeholders})`;
+      const results = db.prepare(sql).all(...memoryIds) as Array<{ id: string; consolidation_score: number | null }>;
+      
+      results.forEach(row => {
+        if (row.consolidation_score !== null && row.consolidation_score !== undefined) {
+          scores.set(row.id, Number(row.consolidation_score));
+        }
+      });
+    } catch (error) {
+      // 에러 발생 시 빈 Map 반환 (기존 finalScore 유지)
+      console.warn('⚠️ Consolidation Score 조회 실패:', error);
+    }
+    
+    return scores;
   }
 
   private calculateQueryTime(startTime: bigint): number {

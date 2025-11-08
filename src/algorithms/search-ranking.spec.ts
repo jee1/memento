@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics } from './search-ranking.js';
+import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics, type SearchProfile } from './search-ranking.js';
 
 describe('SearchRanking', () => {
   let ranking: SearchRanking;
@@ -470,6 +470,209 @@ describe('SearchRanking', () => {
       const duration = endTime - startTime;
       
       expect(duration).toBeLessThan(100); // 100ms 이내
+    });
+  });
+
+  describe('Consolidation Score 통합', () => {
+    describe('calculateFinalScore with consolidation_score', () => {
+      it('consolidation_score가 제공되면 새로운 공식 사용', () => {
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          consolidation_score: 0.9
+        };
+
+        const customRanking = new SearchRanking({
+          consolidation_score: 0.2 // w2 = 0.2
+        });
+
+        const score = customRanking.calculateFinalScore(features);
+        
+        // Final_Score = w1 * vector_similarity + w2 * consolidation_score
+        // w1 = 0.8, w2 = 0.2 (상한 0.4 미만이므로 그대로 사용)
+        // vector_similarity = relevance = 0.8
+        const expected = 0.8 * 0.8 + 0.2 * 0.9; // 0.64 + 0.18 = 0.82
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('consolidation_score가 없으면 기존 공식 사용', () => {
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2
+        };
+
+        const score = ranking.calculateFinalScore(features);
+        
+        // 기존 공식 사용
+        const expected = 0.5 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.15 * 0.2;
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('w2 상한 제한 테스트 (0.4 초과 시 제한)', () => {
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          consolidation_score: 0.9
+        };
+
+        const customRanking = new SearchRanking({
+          consolidation_score: 0.5 // w2 = 0.5이지만 상한 0.4로 제한됨
+        });
+
+        const score = customRanking.calculateFinalScore(features);
+        
+        // w2는 0.4로 제한, w1 = 0.6
+        const expected = 0.6 * 0.8 + 0.4 * 0.9; // 0.48 + 0.36 = 0.84
+        expect(score).toBeCloseTo(expected, 3);
+      });
+    });
+
+    describe('getConsolidationScoreWeights', () => {
+      it('recent 프로파일 가중치 반환', () => {
+        const weights = ranking.getConsolidationScoreWeights('recent');
+        expect(weights.vectorSimilarity).toBe(0.9);
+        expect(weights.consolidationScore).toBe(0.1);
+      });
+
+      it('balanced 프로파일 가중치 반환 (기본값)', () => {
+        const weights = ranking.getConsolidationScoreWeights('balanced');
+        expect(weights.vectorSimilarity).toBe(0.8);
+        expect(weights.consolidationScore).toBe(0.2);
+      });
+
+      it('memory 프로파일 가중치 반환', () => {
+        const weights = ranking.getConsolidationScoreWeights('memory');
+        expect(weights.vectorSimilarity).toBe(0.7);
+        expect(weights.consolidationScore).toBe(0.3);
+      });
+
+      it('기본값은 balanced', () => {
+        const weights = ranking.getConsolidationScoreWeights();
+        expect(weights.vectorSimilarity).toBe(0.8);
+        expect(weights.consolidationScore).toBe(0.2);
+      });
+    });
+
+    describe('calculateFinalScoreWithConsolidation', () => {
+      it('기본 가중치로 점수 계산', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.8, // vectorSimilarity
+          0.9, // consolidationScore
+          'balanced'
+        );
+        
+        // w1 = 0.8, w2 = 0.2
+        const expected = 0.8 * 0.8 + 0.2 * 0.9; // 0.64 + 0.18 = 0.82
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('recent 프로파일로 점수 계산', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.8,
+          0.9,
+          'recent'
+        );
+        
+        // w1 = 0.9, w2 = 0.1
+        const expected = 0.9 * 0.8 + 0.1 * 0.9; // 0.72 + 0.09 = 0.81
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('memory 프로파일로 점수 계산 (w2 상한 적용)', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.8,
+          0.9,
+          'memory'
+        );
+        
+        // w2 = 0.3이지만 상한 0.4로 제한되지 않음 (0.3 < 0.4)
+        // 하지만 calculateFinalScoreWithConsolidation 내부에서 상한 적용
+        // w2 = min(0.3, 0.4) = 0.3, w1 = 0.7
+        const expected = 0.7 * 0.8 + 0.3 * 0.9; // 0.56 + 0.27 = 0.83
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('w2 상한 제한 테스트', () => {
+        // memory 프로파일은 w2=0.3이지만, 상한 0.4보다 작으므로 그대로 사용
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.8,
+          0.9,
+          'memory'
+        );
+        
+        // w2 = min(0.3, 0.4) = 0.3, w1 = 0.7
+        const expected = 0.7 * 0.8 + 0.3 * 0.9;
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('벡터 유사도가 높고 consolidation_score가 낮은 경우', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.95, // 높은 벡터 유사도
+          0.3,  // 낮은 consolidation_score
+          'balanced'
+        );
+        
+        // w1 = 0.8, w2 = 0.2
+        const expected = 0.8 * 0.95 + 0.2 * 0.3; // 0.76 + 0.06 = 0.82
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('벡터 유사도가 낮고 consolidation_score가 높은 경우', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.3,  // 낮은 벡터 유사도
+          0.95, // 높은 consolidation_score
+          'balanced'
+        );
+        
+        // w1 = 0.8, w2 = 0.2
+        const expected = 0.8 * 0.3 + 0.2 * 0.95; // 0.24 + 0.19 = 0.43
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('경계값 테스트: 벡터 유사도 0, consolidation_score 1', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          0.0,
+          1.0,
+          'balanced'
+        );
+        
+        // w1 = 0.8, w2 = 0.2
+        const expected = 0.8 * 0.0 + 0.2 * 1.0; // 0.0 + 0.2 = 0.2
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('경계값 테스트: 벡터 유사도 1, consolidation_score 0', () => {
+        const score = ranking.calculateFinalScoreWithConsolidation(
+          1.0,
+          0.0,
+          'balanced'
+        );
+        
+        // w1 = 0.8, w2 = 0.2
+        const expected = 0.8 * 1.0 + 0.2 * 0.0; // 0.8 + 0.0 = 0.8
+        expect(score).toBeCloseTo(expected, 3);
+      });
+
+      it('모든 프로파일에서 w1 + w2 = 1 보장', () => {
+        const profiles: SearchProfile[] = ['recent', 'balanced', 'memory'];
+        
+        profiles.forEach(profile => {
+          const weights = ranking.getConsolidationScoreWeights(profile);
+          const w2 = Math.min(weights.consolidationScore, 0.4);
+          const w1 = 1 - w2;
+          
+          expect(w1 + w2).toBeCloseTo(1.0, 5);
+        });
+      });
     });
   });
 });

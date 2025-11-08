@@ -108,6 +108,46 @@ cd memento
 npm run quick-start
 ```
 
+### 🔌 **다중 에이전트 운영을 위한 HTTP MCP 서버**
+
+SQLite는 WAL 모드를 사용해도 동시에 하나의 writer만 허용합니다. 여러 AI Agent가 각각 프로세스로 `remember`/`forget`을 호출하면 `SQLITE_BUSY`가 발생할 수 있으므로, **반드시 MCP 서버 프로세스를 하나만 띄워 DB를 전담**하도록 구성하는 것을 권장합니다.
+
+```bash
+# 개발 모드 (Hot Reload)
+npm run dev:http
+
+# 빌드 후 프로덕션 실행
+npm run build
+npm run start:http      # 또는 node dist/server/http-server.js
+```
+
+이 방식으로 `src/server/http-server.ts` 기반 MCP 서비스를 띄워 두면, 모든 에이전트는 HTTP/WebSocket 인터페이스를 통해 이 서버에만 접속하게 되고 실제 SQLite writer는 단일 프로세스로 제한됩니다. npx로도 동일하게 실행할 수 있으니, 다중 에이전트 환경에서는 이 구조를 반드시 적용해 주세요.
+
+#### MCP 클라이언트 설정 예시 (`mcp.json`)
+
+```json
+{
+  "clients": {
+    "memento": {
+      "command": "node",
+      "args": [
+        "/path/to/memento/dist/server/http-server.js"
+      ],
+      "env": {
+        "DB_PATH": "/absolute/path/to/data/memory.db",
+        "MCP_SERVER_PORT": "7777"
+      },
+      "transport": {
+        "type": "http",
+        "url": "http://127.0.0.1:7777"
+      }
+    }
+  }
+}
+```
+
+Cursor 등의 MCP 호스트에서는 위와 같이 `mcp.json`에 HTTP MCP 서버 정보를 등록한 뒤, 모든 AI Agent가 동일한 포트(예: 7777)로 접속하도록 맞춰 주시면 됩니다.
+
 ### 📚 **상세 설치 가이드**
 - [INSTALL.md](INSTALL.md) - 전체 설치 가이드
 - [Cursor MCP 설정 가이드](docs/cursor-mcp-setup.ko.md) - Cursor에서 MCP 서버 사용하기

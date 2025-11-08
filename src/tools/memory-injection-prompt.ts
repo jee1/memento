@@ -7,7 +7,11 @@ import { BaseTool } from './base-tool.js';
 import type { ToolContext } from './types.js';
 import { z } from 'zod';
 import { CommonSchemas } from './types.js';
-import { isMemoryItemType, type MemoryTypeRequest } from '../types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../types/index.js';
+import { mementoConfig } from '../config/index.js';
+import { DatabaseUtils } from '../utils/database.js';
+import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import type { WriteCoalescingManager } from '../utils/write-coalescing.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 쿼리'),
@@ -117,6 +121,16 @@ export class MemoryInjectionPrompt extends BaseTool {
 
       const memories = searchResult.items;
       console.log(`🔍 검색된 기억: ${memories.length}개`);
+
+      // Consolidation Score System 업데이트 (기능 플래그 확인)
+      if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && memories.length > 0) {
+        await this.updateConsolidationScoreMetadata(
+          context.db,
+          context.services.consolidationScoreService,
+          context.services.writeCoalescingManager,
+          memories
+        );
+      }
 
       if (memories.length === 0) {
         return this.createSuccessResult({
@@ -279,5 +293,136 @@ export class MemoryInjectionPrompt extends BaseTool {
   private estimateTokens(text: string): number {
     // 대략적인 토큰 수 추정 (실제로는 더 정확한 토크나이저 사용 가능)
     return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Consolidation Score 메타데이터 업데이트
+   * 검색 결과로 반환된 메모리들의 recall_count, last_accessed_at, g_value 업데이트
+   * Write Coalescing을 사용하여 I/O 부하를 줄입니다.
+   * (recall-tool.ts와 동일한 로직)
+   * 
+   * @param db 데이터베이스 연결
+   * @param consolidationScoreService Consolidation Score 서비스
+   * @param writeCoalescingManager Write Coalescing Manager (선택적)
+   * @param searchItems 검색 결과 아이템 배열
+   */
+  private async updateConsolidationScoreMetadata(
+    db: any,
+    consolidationScoreService: ConsolidationScoreService,
+    writeCoalescingManager: WriteCoalescingManager | undefined,
+    searchItems: any[]
+  ): Promise<void> {
+    if (!searchItems || searchItems.length === 0) {
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const nowISO = now.toISOString();
+
+      // 각 검색 결과에 대해 업데이트
+      for (const item of searchItems) {
+        const memoryId = item.id || item.memory_id;
+        if (!memoryId) {
+          continue; // ID가 없으면 스킵
+        }
+
+        try {
+          // 기존 메모리 정보 조회 (recall_count, last_accessed_at, g_value, created_at, type, pinned)
+          const memory = DatabaseUtils.get(
+            db,
+            `SELECT 
+              recall_count, 
+              last_accessed_at, 
+              g_value, 
+              created_at, 
+              type, 
+              pinned 
+            FROM memory_item 
+            WHERE id = ?`,
+            [memoryId]
+          ) as {
+            recall_count: number;
+            last_accessed_at: string | null;
+            g_value: number | null;
+            created_at: string;
+            type: MemoryType;
+            pinned: boolean | number;
+          } | undefined;
+
+          if (!memory) {
+            this.logWarning(`메모리를 찾을 수 없습니다: ${memoryId}`);
+            continue;
+          }
+
+          // recall_count 증가
+          const newRecallCount = (memory.recall_count || 0) + 1;
+
+          // 경과 시간 계산 (last_accessed_at이 있으면 사용, 없으면 created_at 사용)
+          const lastAccessedAt = memory.last_accessed_at 
+            ? new Date(memory.last_accessed_at) 
+            : new Date(memory.created_at);
+          const timeElapsed = consolidationScoreService.calculateTimeElapsed(
+            lastAccessedAt,
+            new Date(memory.created_at),
+            now
+          );
+
+          // g_value 업데이트
+          const newGValue = consolidationScoreService.updateGValueForRecall({
+            previousGValue: memory.g_value,
+            timeElapsed
+          });
+
+          // consolidation_score 계산
+          const scoreResult = consolidationScoreService.calculateScore({
+            recallCount: newRecallCount,
+            lastAccessedAt: now,
+            createdAt: new Date(memory.created_at),
+            gValue: newGValue,
+            type: memory.type,
+            pinned: memory.pinned === 1 || memory.pinned === true
+          });
+
+          // Write Coalescing 사용 여부 확인
+          if (writeCoalescingManager) {
+            // 버퍼에 추가 (주기적으로 flush됨)
+            writeCoalescingManager.addWrite({
+              memoryId,
+              fields: {
+                recall_count: newRecallCount,
+                last_accessed_at: nowISO,
+                g_value: newGValue,
+                consolidation_score: scoreResult.score
+              }
+            });
+          } else {
+            // Write Coalescing이 없으면 즉시 업데이트
+            DatabaseUtils.run(
+              db,
+              `UPDATE memory_item 
+               SET 
+                 recall_count = ?,
+                 last_accessed_at = ?,
+                 g_value = ?,
+                 consolidation_score = ?
+               WHERE id = ?`,
+              [newRecallCount, nowISO, newGValue, scoreResult.score, memoryId]
+            );
+          }
+
+        } catch (error) {
+          // 개별 메모리 업데이트 실패해도 다른 메모리는 계속 업데이트
+          this.logWarning(`메모리 업데이트 실패 (${memoryId})`, {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+    } catch (error) {
+      // 전체 업데이트 실패해도 검색 결과는 정상 반환
+      this.logError(error as Error, 'Consolidation Score 메타데이터 업데이트 실패', {
+        itemCount: searchItems.length
+      });
+    }
   }
 }

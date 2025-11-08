@@ -31,8 +31,17 @@ function initializeTestDatabase(db: Database.Database): void {
       origin_source TEXT,
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+      -- Consolidation Score 필드
+      recall_count INTEGER NOT NULL DEFAULT 0,
+      last_accessed_at TIMESTAMP,
+      consolidation_score REAL,
+      g_value REAL
     );
+
+    CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
+    CREATE INDEX IF NOT EXISTS idx_memory_item_consol_active ON memory_item(consolidation_score) WHERE consolidation_score > 0.2;
 
     CREATE TABLE IF NOT EXISTS core_memory (
       core_id TEXT PRIMARY KEY,

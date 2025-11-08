@@ -10,12 +10,17 @@ import { DatabaseUtils } from '../utils/database.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
+import { ConsolidationScoreWorker } from '../workers/consolidation-score-worker.js';
+import { mementoConfig } from '../config/index.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
   cleanupInterval: number;        // 메모리 정리 간격 (기본: 1시간)
   monitoringInterval: number;     // 모니터링 간격 (기본: 5분)
   healthCheckInterval: number;    // 헬스체크 간격 (기본: 30초)
+  consolidationScoreIncrementalInterval: number;  // Consolidation Score 증분 재계산 간격 (기본: 1시간)
+  consolidationScoreFullSweepInterval: number;   // Consolidation Score 전체 스윕 간격 (기본: 24시간)
+  consolidationScoreFullSweepHour: number;        // 전체 스윕 실행 시간 (0-23, 기본: 3시)
   
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
@@ -57,6 +62,7 @@ export class BatchScheduler {
   private config: BatchJobConfig;
   private forgettingService: ForgettingPolicyService;
   private performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
+  private consolidationScoreWorker: ConsolidationScoreWorker | null = null;
   private db: Database.Database | null = null;
   private intervals: Map<string, NodeJS.Timeout> = new Map();
   private isRunning = false;
@@ -72,6 +78,9 @@ export class BatchScheduler {
       cleanupInterval: 60 * 60 * 1000,    // 1시간
       monitoringInterval: 5 * 60 * 1000,   // 5분
       healthCheckInterval: 30 * 1000,      // 30초
+      consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
+      consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000, // 24시간
+      consolidationScoreFullSweepHour: 3,  // 새벽 3시
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -88,6 +97,11 @@ export class BatchScheduler {
 
     this.forgettingService = new ForgettingPolicyService();
     this.performanceMonitor = getPerformanceMonitor();
+    
+    // Consolidation Score 기능이 활성화되어 있으면 워커 초기화
+    if (mementoConfig.consolidationScoreEnabled) {
+      this.consolidationScoreWorker = new ConsolidationScoreWorker();
+    }
   }
 
   /**
@@ -114,6 +128,20 @@ export class BatchScheduler {
 
     // 헬스체크 작업 스케줄링
     this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
+
+    // Consolidation Score 재계산 작업 스케줄링 (기능 플래그 활성화 시)
+    if (mementoConfig.consolidationScoreEnabled && this.consolidationScoreWorker) {
+      // 시간당 증분 재계산
+      this.scheduleJob(
+        'consolidation_score_incremental',
+        this.config.consolidationScoreIncrementalInterval,
+        async () => { await this.runConsolidationScoreIncremental(); },
+        4
+      );
+
+      // 야간 전체 스윕 (하루 1회, 지정된 시간에 실행)
+      this.scheduleConsolidationScoreFullSweep();
+    }
 
     // 작업 큐 처리 시작
     this.startJobProcessor();
@@ -477,6 +505,155 @@ export class BatchScheduler {
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : String(error));
       this.log('Health check failed:', error, 'error');
+    } finally {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - result.startTime.getTime();
+    }
+
+    return result;
+  }
+
+  /**
+   * Consolidation Score 증분 재계산 작업 실행
+   */
+  private async runConsolidationScoreIncremental(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'consolidation_score_incremental',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      if (!this.db) {
+        throw new Error('Database not initialized');
+      }
+
+      if (!this.consolidationScoreWorker) {
+        throw new Error('ConsolidationScoreWorker not initialized');
+      }
+
+      this.log('Starting consolidation score incremental recalculation');
+
+      const recalculationResult = await this.consolidationScoreWorker.runIncrementalRecalculation(this.db);
+
+      result.success = recalculationResult.success;
+      result.processed = recalculationResult.processed;
+      result.details = recalculationResult;
+      
+      if (recalculationResult.errors.length > 0) {
+        result.errors.push(...recalculationResult.errors);
+      }
+      if (recalculationResult.warnings.length > 0) {
+        result.warnings.push(...recalculationResult.warnings);
+      }
+
+      this.log('Consolidation score incremental recalculation completed', {
+        processed: recalculationResult.processed,
+        updated: recalculationResult.updated,
+        skipped: recalculationResult.skipped,
+        errors: recalculationResult.errors.length
+      });
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : String(error));
+      this.log('Consolidation score incremental recalculation failed:', error, 'error');
+    } finally {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - result.startTime.getTime();
+    }
+
+    return result;
+  }
+
+  /**
+   * Consolidation Score 전체 스윕 작업 스케줄링
+   * 지정된 시간에 하루 1회 실행
+   */
+  private scheduleConsolidationScoreFullSweep(): void {
+    const checkAndRun = async () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      // 지정된 시간에 실행
+      if (currentHour === this.config.consolidationScoreFullSweepHour) {
+        // 이미 오늘 실행했는지 확인 (lastExecution 체크)
+        const lastExecution = this.lastExecution.get('consolidation_score_full_sweep');
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (!lastExecution || lastExecution < today) {
+          await this.runConsolidationScoreFullSweep();
+        }
+      }
+    };
+
+    // 매 시간마다 체크 (config 기반 간격 사용)
+    const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
+    const intervalId = setInterval(checkAndRun, checkInterval);
+    
+    // intervals Map에 저장하여 stop()에서 정리 가능하도록 함
+    this.intervals.set('consolidation_score_full_sweep', intervalId);
+    
+    // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
+    checkAndRun();
+  }
+
+  /**
+   * Consolidation Score 전체 스윕 작업 실행
+   */
+  private async runConsolidationScoreFullSweep(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'consolidation_score_full_sweep',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      if (!this.db) {
+        throw new Error('Database not initialized');
+      }
+
+      if (!this.consolidationScoreWorker) {
+        throw new Error('ConsolidationScoreWorker not initialized');
+      }
+
+      this.log('Starting consolidation score full sweep recalculation');
+
+      const recalculationResult = await this.consolidationScoreWorker.runFullSweep(this.db);
+
+      result.success = recalculationResult.success;
+      result.processed = recalculationResult.processed;
+      result.details = recalculationResult;
+      
+      if (recalculationResult.errors.length > 0) {
+        result.errors.push(...recalculationResult.errors);
+      }
+      if (recalculationResult.warnings.length > 0) {
+        result.warnings.push(...recalculationResult.warnings);
+      }
+
+      this.log('Consolidation score full sweep recalculation completed', {
+        processed: recalculationResult.processed,
+        updated: recalculationResult.updated,
+        skipped: recalculationResult.skipped,
+        errors: recalculationResult.errors.length,
+        duration: recalculationResult.duration
+      });
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : String(error));
+      this.log('Consolidation score full sweep recalculation failed:', error, 'error');
     } finally {
       result.endTime = new Date();
       result.duration = result.endTime.getTime() - result.startTime.getTime();

@@ -18,6 +18,7 @@ import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-reposi
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../utils/type-param-validator.js';
 import { mementoConfig } from '../config/index.js';
+import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
 
 const RememberSchema = z.object({
   content: CommonSchemas.Content,
@@ -260,9 +261,33 @@ export class RememberTool extends BaseTool {
       try {
         // 메모리 저장 (트랜잭션 사용)
         await DatabaseUtils.runTransaction(context.db!, async () => {
+          // Consolidation Score System 초기화 값 설정
+          const createdAt = new Date().toISOString();
+          const recallCount = mementoConfig.consolidationScoreEnabled ? 1 : 0; // 기능 활성화 시 1, 비활성화 시 0
+          const gValue = mementoConfig.consolidationScoreEnabled ? 1.0 : null; // 기능 활성화 시 1.0, 비활성화 시 NULL
+          const lastAccessedAt = mementoConfig.consolidationScoreEnabled ? createdAt : null; // 기능 활성화 시 created_at과 동일, 비활성화 시 NULL
+
+          // consolidation_score 계산 (기능 활성화 시)
+          let consolidationScore: number | null = null;
+          if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService) {
+            const scoreResult = context.services.consolidationScoreService.calculateScore({
+              recallCount: 1,
+              lastAccessedAt: new Date(createdAt),
+              createdAt: new Date(createdAt),
+              gValue: 1.0,
+              type: type,
+              pinned: false
+            });
+            consolidationScore = scoreResult.score;
+          }
+
           await DatabaseUtils.run(context.db!, `
-            INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, origin_source, task_goal, steps, reflection_notes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO memory_item (
+              id, type, content, importance, privacy_scope, tags, source, origin_source, 
+              task_goal, steps, reflection_notes, created_at,
+              recall_count, last_accessed_at, g_value, consolidation_score
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
             id, 
             type, 
@@ -274,7 +299,12 @@ export class RememberTool extends BaseTool {
             origin_source,
             task_goal || null,
             steps || null,
-            reflection_notes || null
+            reflection_notes || null,
+            createdAt,
+            recallCount,
+            lastAccessedAt,
+            gValue,
+            consolidationScore
           ]);
         });
         
