@@ -18,6 +18,9 @@ import { MemoryEmbeddingService } from '../services/memory-embedding-service.js'
 import { MemoryNeighborService, MemoryNotFoundError } from '../services/memory-neighbor-service.js';
 import { getBatchScheduler } from '../services/batch-scheduler.js';
 import { getPerformanceMonitor } from '../services/performance-monitor.js';
+import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
+import { DatabaseUtils } from '../utils/database.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
@@ -29,6 +32,8 @@ let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
 let embeddingService: MemoryEmbeddingService;
+let consolidationScoreService: ConsolidationScoreService | null = null;
+let writeCoalescingManager: WriteCoalescingManager | null = null;
 
 type TestDependencies = {
   database: Database.Database;
@@ -105,7 +110,9 @@ app.post('/tools/:name', async (req, res) => {
       services: {
         searchEngine,
         hybridSearchEngine,
-        embeddingService
+        embeddingService,
+        consolidationScoreService: consolidationScoreService || undefined,
+        writeCoalescingManager: writeCoalescingManager || undefined
       }
     };
     
@@ -392,7 +399,9 @@ app.post('/messages', express.json(), async (req, res) => {
         services: {
           searchEngine,
           hybridSearchEngine,
-          embeddingService
+          embeddingService,
+          consolidationScoreService: consolidationScoreService || undefined,
+          writeCoalescingManager: writeCoalescingManager || undefined
         }
       };
       
@@ -912,6 +921,72 @@ async function initializeServer() {
     vectorSearchEngine.initialize(db);
     embeddingService = new MemoryEmbeddingService();
     
+    // Consolidation Score Service 초기화 (기능 플래그 확인)
+    if (mementoConfig.consolidationScoreEnabled) {
+      consolidationScoreService = new ConsolidationScoreService();
+      
+      // Write Coalescing Manager 초기화 (초당 1회 flush)
+      writeCoalescingManager = new WriteCoalescingManager(
+        1000, // 1초마다 flush
+        async (writes: CoalescedWrite[]) => {
+          // 배치 업데이트 실행
+          if (!db || writes.length === 0) {
+            return;
+          }
+
+          // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
+          const currentDb = db;
+          if (!currentDb) {
+            return;
+          }
+
+          try {
+            // 트랜잭션으로 배치 업데이트
+            await DatabaseUtils.runTransaction(currentDb, async () => {
+              for (const write of writes) {
+                const updates: string[] = [];
+                const params: any[] = [];
+
+                if (write.fields.recall_count !== undefined) {
+                  updates.push('recall_count = ?');
+                  params.push(write.fields.recall_count);
+                }
+                if (write.fields.last_accessed_at !== undefined) {
+                  updates.push('last_accessed_at = ?');
+                  params.push(write.fields.last_accessed_at);
+                }
+                if (write.fields.g_value !== undefined) {
+                  updates.push('g_value = ?');
+                  params.push(write.fields.g_value);
+                }
+                if (write.fields.consolidation_score !== undefined) {
+                  updates.push('consolidation_score = ?');
+                  params.push(write.fields.consolidation_score);
+                }
+
+                if (updates.length > 0) {
+                  params.push(write.memoryId);
+                  DatabaseUtils.run(
+                    currentDb,
+                    `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
+                    params
+                  );
+                }
+              }
+            });
+          } catch (error) {
+            // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
+            console.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      );
+      
+      console.log('✅ Consolidation Score Service 초기화 완료');
+      console.log('✅ Write Coalescing Manager 초기화 완료');
+    } else {
+      console.log('ℹ️ Consolidation Score System 비활성화됨');
+    }
+    
     // 배치 스케줄러 시작
     const batchScheduler = getBatchScheduler();
     await batchScheduler.start(db);
@@ -947,6 +1022,13 @@ async function cleanup() {
   isCleaningUp = true;
   
   try {
+    // Write Coalescing Manager 정리
+    if (writeCoalescingManager) {
+      await writeCoalescingManager.flush();
+      writeCoalescingManager.destroy();
+      console.log('✅ Write Coalescing Manager 정리 완료');
+    }
+    
     // 배치 스케줄러 중지
     const batchScheduler = getBatchScheduler();
     batchScheduler.stop();
@@ -1019,7 +1101,9 @@ wss.on('connection', (ws) => {
           services: {
             searchEngine,
             hybridSearchEngine,
-            embeddingService
+            embeddingService,
+            consolidationScoreService: consolidationScoreService || undefined,
+            writeCoalescingManager: writeCoalescingManager || undefined
           }
         };
         
