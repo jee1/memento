@@ -26,6 +26,7 @@
     "db:init": "tsx src/database/init.ts",
     "db:migrate": "tsx src/database/migrate.ts",
     "db:check-migration": "tsx src/scripts/check-migration-status.ts",
+    "db:check-migration:help": "echo 'Usage: npm run db:check-migration [database-path]'",
     "test:client": "tsx src/test/test-client.ts",
     "test:http-v2": "tsx src/test/test-http-server-v2.ts",
     "test:search": "tsx src/test/test-search.ts",

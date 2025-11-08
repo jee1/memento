@@ -4,29 +4,47 @@
 
 ## 🚀 빠른 확인 (CLI 스크립트)
 
-### 방법 1: npm 스크립트 사용
+### 방법 1: npm 스크립트 사용 (기본 경로)
 
 ```bash
 npm run db:check-migration
 ```
 
-이 명령어는 다음 정보를 표시합니다:
+이 명령어는 환경 변수 `DB_PATH` 또는 기본값(`./data/memory.db`)을 사용합니다.
+
+### 방법 2: 특정 데이터베이스 경로 지정
+
+npx로 설치된 환경이나 다른 경로의 데이터베이스를 확인하려면 경로를 인자로 전달하세요:
+
+```bash
+npm run db:check-migration /home/jee1lee/git/data/memento.db
+```
+
+### 방법 3: 환경 변수 사용
+
+환경 변수 `DB_PATH`를 설정하여 데이터베이스 경로를 지정할 수도 있습니다:
+
+```bash
+DB_PATH=/home/jee1lee/git/data/memento.db npm run db:check-migration
+```
+
+### 방법 4: 직접 실행
+
+```bash
+# 빌드 후 실행
+npm run build
+node dist/scripts/check-migration-status.js [database-path]
+
+# 또는 개발 모드로 실행
+tsx src/scripts/check-migration-status.ts [database-path]
+```
+
+**표시되는 정보:**
 - ✅ 데이터베이스 파일 존재 여부
 - 📋 현재 스키마 버전
 - 📝 적용된 마이그레이션 목록
 - ⏳ 대기 중인 마이그레이션 목록
 - 📊 주요 테이블 존재 여부
-
-### 방법 2: 직접 실행
-
-```bash
-# 빌드 후 실행
-npm run build
-node dist/scripts/check-migration-status.js
-
-# 또는 개발 모드로 실행
-tsx src/scripts/check-migration-status.ts
-```
 
 ## 🔍 SQL로 직접 확인
 
@@ -124,14 +142,29 @@ memento_schema_version 테이블: 없음
 
 ### 문제 1: 데이터베이스 파일을 찾을 수 없음
 
-```bash
-# 환경 변수 확인
-echo $DB_PATH
+**원인:** npx로 설치된 환경이나 다른 경로의 데이터베이스를 확인하려고 할 때 발생할 수 있습니다.
 
-# 기본 경로: ./data/memory.db
-# 절대 경로로 지정 가능
-export DB_PATH=/path/to/your/memory.db
-```
+**해결 방법:**
+
+1. **경로를 인자로 지정:**
+   ```bash
+   npm run db:check-migration /path/to/your/memory.db
+   ```
+
+2. **환경 변수 설정:**
+   ```bash
+   # 환경 변수 확인
+   echo $DB_PATH
+   
+   # 기본 경로: ./data/memory.db
+   # 절대 경로로 지정 가능
+   export DB_PATH=/path/to/your/memory.db
+   npm run db:check-migration
+   ```
+
+3. **npx 환경에서 사용하는 데이터베이스 경로 확인:**
+   - Cursor MCP 설정에서 `DB_PATH` 환경 변수 확인
+   - 서버 로그에서 "📁 데이터베이스 경로" 메시지 확인
 
 ### 문제 2: 읽기 전용 모드 오류
 

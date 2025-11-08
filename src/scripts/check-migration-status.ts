@@ -90,7 +90,11 @@ function tableExists(db: Database.Database, tableName: string): boolean {
  * 마이그레이션 상태 확인
  */
 async function checkMigrationStatus(): Promise<void> {
-  const dbPath = mementoConfig.dbPath;
+  // 명령줄 인자로 경로가 제공된 경우 사용
+  const args = process.argv.slice(2);
+  const customDbPath = args.find(arg => !arg.startsWith('--'));
+  
+  const dbPath = customDbPath || mementoConfig.dbPath;
   const absoluteDbPath = dbPath.startsWith('/') 
     ? dbPath 
     : join(process.cwd(), dbPath);
@@ -99,6 +103,10 @@ async function checkMigrationStatus(): Promise<void> {
   
   // 1. 데이터베이스 파일 존재 확인
   logInfo('데이터베이스 경로', absoluteDbPath);
+  logInfo('환경 변수 DB_PATH', process.env.DB_PATH || '(기본값 사용)');
+  if (customDbPath) {
+    logInfo('사용자 지정 경로', customDbPath);
+  }
   
   if (!checkDatabaseExists(absoluteDbPath)) {
     logError(`데이터베이스 파일이 존재하지 않습니다: ${absoluteDbPath}`);
