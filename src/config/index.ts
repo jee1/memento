@@ -13,6 +13,7 @@ import {
   resolveOptionalNumber,
   resolveOptionalString,
   resolveString,
+  resolveBoolean,
   getRawEnvValue
 } from './environment.js';
 
@@ -63,7 +64,10 @@ export const mementoConfig: MementoConfig = {
   nodeEnv: resolveString('NODE_ENV'),
 
   // type 파라미터 롤아웃 모드 설정 (안전한 파싱)
-  typeParamMode: parseTypeParamMode(getRawEnvValue('MEMENTO_TYPE_PARAM_MODE'))
+  typeParamMode: parseTypeParamMode(getRawEnvValue('MEMENTO_TYPE_PARAM_MODE')),
+
+  // Consolidation Score System 설정 (기본값: false - 비활성화)
+  consolidationScoreEnabled: resolveBoolean('CONSOLIDATION_SCORE_ENABLED', { defaultValue: false })
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

@@ -23,6 +23,8 @@ export interface ToolContext {
     errorLoggingService?: any;
     performanceAlertService?: any;
     performanceMonitoringIntegration?: any;
+    consolidationScoreService?: any;
+    writeCoalescingManager?: any;
   };
 }
 

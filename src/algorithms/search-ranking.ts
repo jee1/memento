@@ -9,6 +9,7 @@ export interface SearchFeatures {
   importance: number;
   usage: number;
   duplication_penalty: number;
+  consolidation_score?: number; // Consolidation Score (선택적)
 }
 
 export interface EmbeddingSimilarity {
@@ -43,6 +44,20 @@ export interface SearchRankingWeights {
   importance: number;   // γ = 0.20
   usage: number;        // δ = 0.10
   duplication_penalty: number; // ε = 0.15
+  consolidation_score?: number; // w2 = 0.2 (기본값, 최대 0.4)
+}
+
+/**
+ * 검색 프로파일 타입
+ */
+export type SearchProfile = 'recent' | 'balanced' | 'memory';
+
+/**
+ * Consolidation Score 가중치 설정
+ */
+export interface ConsolidationScoreWeights {
+  vectorSimilarity: number; // w1
+  consolidationScore: number; // w2 (최대 0.4)
 }
 
 export class SearchRanking {
@@ -62,13 +77,74 @@ export class SearchRanking {
   /**
    * 최종 검색 점수 계산
    * S = α * relevance + β * recency + γ * importance + δ * usage - ε * duplication_penalty
+   * 
+   * Consolidation Score가 제공되면:
+   * Final_Score = w1 * vector_similarity + w2 * consolidation_score
+   * (기존 공식과 별도로 계산하여 통합)
    */
   calculateFinalScore(features: SearchFeatures): number {
-    return this.weights.relevance * features.relevance +
-           this.weights.recency * features.recency +
-           this.weights.importance * features.importance +
-           this.weights.usage * features.usage -
-           this.weights.duplication_penalty * features.duplication_penalty;
+    const baseScore = this.weights.relevance * features.relevance +
+                      this.weights.recency * features.recency +
+                      this.weights.importance * features.importance +
+                      this.weights.usage * features.usage -
+                      this.weights.duplication_penalty * features.duplication_penalty;
+
+    // Consolidation Score가 제공되면 통합
+    if (features.consolidation_score !== undefined && this.weights.consolidation_score !== undefined) {
+      // w2 상한 제한 (최대 0.4)
+      const w2 = Math.min(this.weights.consolidation_score, 0.4);
+      const w1 = 1 - w2; // w1 + w2 = 1 보장
+      
+      // vector_similarity는 relevance로 간주 (임베딩 유사도 포함)
+      const vectorSimilarity = features.relevance;
+      const consolidationScore = features.consolidation_score;
+      
+      // 최종 점수 = w1 * vector_similarity + w2 * consolidation_score
+      return w1 * vectorSimilarity + w2 * consolidationScore;
+    }
+
+    return baseScore;
+  }
+
+  /**
+   * Consolidation Score 가중치를 검색 프로파일에 따라 설정
+   * 
+   * @param profile 검색 프로파일 ('recent', 'balanced', 'memory')
+   * @returns Consolidation Score 가중치 설정
+   */
+  getConsolidationScoreWeights(profile: SearchProfile = 'balanced'): ConsolidationScoreWeights {
+    switch (profile) {
+      case 'recent':
+        return { vectorSimilarity: 0.9, consolidationScore: 0.1 };
+      case 'balanced':
+        return { vectorSimilarity: 0.8, consolidationScore: 0.2 };
+      case 'memory':
+        return { vectorSimilarity: 0.7, consolidationScore: 0.3 }; // 상한 0.4 적용됨
+      default:
+        return { vectorSimilarity: 0.8, consolidationScore: 0.2 };
+    }
+  }
+
+  /**
+   * Consolidation Score를 사용한 최종 점수 계산
+   * 
+   * @param vectorSimilarity 벡터 유사도 (0-1)
+   * @param consolidationScore Consolidation Score (0-1)
+   * @param profile 검색 프로파일 (기본값: 'balanced')
+   * @returns 최종 점수 (0-1)
+   */
+  calculateFinalScoreWithConsolidation(
+    vectorSimilarity: number,
+    consolidationScore: number,
+    profile: SearchProfile = 'balanced'
+  ): number {
+    const weights = this.getConsolidationScoreWeights(profile);
+    
+    // w2 상한 제한 (최대 0.4)
+    const w2 = Math.min(weights.consolidationScore, 0.4);
+    const w1 = 1 - w2; // w1 + w2 = 1 보장
+    
+    return w1 * vectorSimilarity + w2 * consolidationScore;
   }
 
   /**

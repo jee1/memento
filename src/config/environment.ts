@@ -136,6 +136,36 @@ export function resolveOptionalNumber(
   return parsed;
 }
 
+interface ResolveBooleanOptions {
+  fallbackKeys?: string[];
+  allowEmpty?: boolean;
+  useDefault?: boolean;
+  defaultValue?: boolean;
+}
+
+export function resolveBoolean(
+  key: string,
+  options: ResolveBooleanOptions = {}
+): boolean {
+  const { defaultValue, fallbackKeys, allowEmpty, useDefault } = options;
+  const raw = resolveEnv(key, {
+    fallbackKeys,
+    allowEmpty,
+    useDefault: useDefault ?? true,
+    defaultValue: defaultValue !== undefined ? String(defaultValue) : undefined
+  });
+  const fallback =
+    defaultValue ??
+    (ENV_DEFAULTS[key] !== undefined ? ENV_DEFAULTS[key] === 'true' : undefined);
+
+  if (raw === undefined) {
+    return fallback ?? false;
+  }
+
+  const normalized = raw.toLowerCase().trim();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
 export const providerDimensionDefaults: Record<string, number> = {
   tfidf: 512,
   lightweight: 384,

@@ -21,6 +21,8 @@ import { DatabaseOptimizer } from '../services/database-optimizer.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
 import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
 // import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
+import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
@@ -40,6 +42,8 @@ let searchCache: SearchCacheService;
 let databaseOptimizer: DatabaseOptimizer;
 let errorLoggingService: ErrorLoggingService;
 let performanceAlertService: PerformanceAlertService;
+let consolidationScoreService: ConsolidationScoreService | null = null;
+let writeCoalescingManager: WriteCoalescingManager | null = null;
 // let performanceMonitoringIntegration: PerformanceMonitoringIntegration;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
@@ -140,6 +144,73 @@ async function initializeServer() {
     databaseOptimizer = new DatabaseOptimizer(db);
     errorLoggingService = new ErrorLoggingService();
     performanceAlertService = new PerformanceAlertService('./logs');
+    
+    // Consolidation Score Service 초기화 (기능 플래그 확인)
+    if (mementoConfig.consolidationScoreEnabled) {
+      consolidationScoreService = new ConsolidationScoreService();
+      
+      // Write Coalescing Manager 초기화 (초당 1회 flush)
+      writeCoalescingManager = new WriteCoalescingManager(
+        1000, // 1초마다 flush
+        async (writes: CoalescedWrite[]) => {
+          // 배치 업데이트 실행
+          if (!db || writes.length === 0) {
+            return;
+          }
+
+          // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
+          const currentDb = db;
+          if (!currentDb) {
+            return;
+          }
+
+          try {
+            // 트랜잭션으로 배치 업데이트
+            await DatabaseUtils.runTransaction(currentDb, async () => {
+              for (const write of writes) {
+                const updates: string[] = [];
+                const params: any[] = [];
+
+                if (write.fields.recall_count !== undefined) {
+                  updates.push('recall_count = ?');
+                  params.push(write.fields.recall_count);
+                }
+                if (write.fields.last_accessed_at !== undefined) {
+                  updates.push('last_accessed_at = ?');
+                  params.push(write.fields.last_accessed_at);
+                }
+                if (write.fields.g_value !== undefined) {
+                  updates.push('g_value = ?');
+                  params.push(write.fields.g_value);
+                }
+                if (write.fields.consolidation_score !== undefined) {
+                  updates.push('consolidation_score = ?');
+                  params.push(write.fields.consolidation_score);
+                }
+
+                if (updates.length > 0) {
+                  params.push(write.memoryId);
+                  DatabaseUtils.run(
+                    currentDb,
+                    `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
+                    params
+                  );
+                }
+              }
+            });
+          } catch (error) {
+            // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
+            process.stderr.write(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}\n`);
+          }
+        }
+      );
+      
+      process.stderr.write('✅ Consolidation Score Service 초기화 완료\n');
+      process.stderr.write('✅ Write Coalescing Manager 초기화 완료\n');
+    } else {
+      process.stderr.write('ℹ️ Consolidation Score System 비활성화됨\n');
+    }
+    
     // performanceMonitoringIntegration = new PerformanceMonitoringIntegration(
     //   db,
     //   performanceAlertService,
@@ -330,7 +401,9 @@ async function initializeServer() {
             performanceMonitor,
             databaseOptimizer,
             errorLoggingService,
-            performanceAlertService
+            performanceAlertService,
+            consolidationScoreService: consolidationScoreService || undefined,
+            writeCoalescingManager: writeCoalescingManager || undefined
             // performanceMonitoringIntegration
           }
         };
@@ -433,6 +506,16 @@ async function cleanup() {
   }
   
   isCleaningUp = true;
+  
+  // Write Coalescing Manager의 남은 버퍼 flush
+  if (writeCoalescingManager) {
+    try {
+      await writeCoalescingManager.flush();
+      writeCoalescingManager.destroy();
+    } catch (error) {
+      process.stderr.write(`⚠️ Write coalescing flush 실패 (종료 시): ${error instanceof Error ? error.message : String(error)}\n`);
+    }
+  }
   
   if (db) {
     closeDatabase(db);
