@@ -3,7 +3,7 @@
  * 클린코드 원칙에 따른 테스트 가능한 구조 검증
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchService } from './vector-search.service';
 import type { VectorSearchRepository } from '../../interfaces/database.interface';
 import type { VectorSearchQuery, VectorSearchResult, ProviderHybridQuery } from '../../types/vector-search.types';
@@ -14,7 +14,11 @@ vi.mock('@xenova/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
-    })
+    }),
+    env: {
+      useBrowserCache: false,
+      useCustomCache: false
+    }
   };
 });
 
@@ -35,6 +39,14 @@ describe('VectorSearchService', () => {
   beforeEach(() => {
     mockRepository = createMockRepository();
     service = new VectorSearchService(mockRepository);
+  });
+
+  afterEach(() => {
+    // Mock 정리
+    vi.clearAllMocks();
+    // 서비스 인스턴스 정리
+    service = null as any;
+    mockRepository = null;
   });
 
   describe('search', () => {

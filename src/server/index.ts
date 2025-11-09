@@ -335,7 +335,8 @@ async function initializeServer() {
             errorLoggingService: serverServices.errorLoggingService,
             performanceAlertService: serverServices.performanceAlertService,
             consolidationScoreService: serverServices.consolidationScoreService,
-            writeCoalescingManager: serverServices.writeCoalescingManager
+            writeCoalescingManager: serverServices.writeCoalescingManager,
+            anchorManager: serverServices.anchorManager
             // performanceMonitoringIntegration
           }
         };
@@ -443,7 +444,7 @@ async function cleanup() {
   if (writeCoalescingManager) {
     try {
       await writeCoalescingManager.flush();
-      writeCoalescingManager.destroy();
+      await writeCoalescingManager.destroy();
     } catch (error) {
       process.stderr.write(`⚠️ Write coalescing flush 실패 (종료 시): ${error instanceof Error ? error.message : String(error)}\n`);
     }

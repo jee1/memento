@@ -13,7 +13,11 @@ vi.mock('@xenova/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
-    })
+    }),
+    env: {
+      useBrowserCache: false,
+      useCustomCache: false
+    }
   };
 });
 
@@ -176,7 +180,7 @@ describe('HybridSearchEngine', () => {
       ]);
       (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
       (mockResultCombiner.combine as Mock).mockReturnValue([]);
-      const vectorSpy = vi.spyOn(hybridSearchEngine as any, 'generateQueryVector').mockResolvedValue(new Array(384).fill(0.1));
+      const vectorSpy = vi.spyOn(hybridSearchEngine as any, 'generateQueryVector').mockResolvedValue(new Array(512).fill(0.1)); // TF-IDF는 512차원
 
       const query = {
         query: 'test query',
@@ -193,7 +197,8 @@ describe('HybridSearchEngine', () => {
           limit: 10,
           threshold: 0.5,
           includeContent: true
-        })
+        }),
+        expect.any(String) // provider 파라미터
       );
       vectorSpy.mockRestore();
     });

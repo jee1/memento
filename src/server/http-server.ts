@@ -75,6 +75,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Static 파일 서빙 (대시보드 및 UI 리소스)
+app.use('/static', express.static('static'));
+
 // 기본 API 엔드포인트
 app.get('/health', (req, res) => {
   res.json({ 
@@ -104,6 +107,197 @@ app.get('/tools', (req, res) => {
   }
 });
 
+/**
+ * Anchor Map 업데이트를 WebSocket 구독자에게 브로드캐스트
+ */
+async function broadcastAnchorMapUpdate(agentId: string) {
+  if (!anchorMapSubscribers.has(agentId) || anchorMapSubscribers.get(agentId)!.size === 0) {
+    return; // 구독자가 없으면 브로드캐스트하지 않음
+  }
+  
+  try {
+    // Anchor Map 데이터 생성 (API 엔드포인트와 동일한 로직)
+    if (!db || !serverServices || !serverServices.anchorManager) {
+      return;
+    }
+    
+    const anchorManager = serverServices.anchorManager;
+    const anchors = await anchorManager.getAnchor(agentId);
+    
+    if (!anchors || (Array.isArray(anchors) && anchors.length === 0)) {
+      // 앵커가 없어도 빈 데이터로 브로드캐스트
+      const updateData = {
+        agent_id: agentId,
+        anchors: [],
+        nodes: [],
+        links: [],
+        timestamp: new Date().toISOString()
+      };
+      
+      const subscribers = anchorMapSubscribers.get(agentId)!;
+      for (const ws of subscribers) {
+        if (ws.readyState === 1) { // WebSocket.OPEN
+          ws.send(JSON.stringify({
+            type: 'anchor_map_update',
+            data: updateData
+          }));
+        }
+      }
+      return;
+    }
+    
+    const anchorList = Array.isArray(anchors) ? anchors : [anchors];
+    
+    // 각 앵커 주변의 관련 메모리 검색 및 네트워크 데이터 구성
+    const nodes: Array<{
+      id: string;
+      type: 'anchor' | 'memory';
+      slot?: string;
+      content: string;
+      hop_distance?: number;
+      similarity?: number;
+      importance?: number;
+      created_at?: string;
+    }> = [];
+    
+    const links: Array<{
+      source: string;
+      target: string;
+      type: 'anchor' | 'hop' | 'link';
+      hop_distance?: number;
+      similarity?: number;
+    }> = [];
+    
+    const processedMemoryIds = new Set<string>();
+    
+    // 각 앵커에 대해 처리
+    for (const anchor of anchorList) {
+      if (!anchor.memory_id) continue;
+      
+      const anchorMemory = db.prepare(`
+        SELECT id, content, type, importance, created_at
+        FROM memory_item
+        WHERE id = ?
+      `).get(anchor.memory_id) as {
+        id: string;
+        content: string;
+        type: string;
+        importance: number;
+        created_at: string;
+      } | undefined;
+      
+      if (anchorMemory) {
+        nodes.push({
+          id: anchor.memory_id,
+          type: 'anchor',
+          slot: anchor.slot,
+          content: anchorMemory.content.substring(0, 100),
+          importance: anchorMemory.importance,
+          created_at: anchorMemory.created_at
+        });
+        processedMemoryIds.add(anchor.memory_id);
+        
+        try {
+          const slotConfig = anchorManager.getSlotConfig(anchor.slot);
+          const searchResult = await anchorManager.searchLocal(
+            agentId,
+            anchor.slot,
+            undefined,
+            slotConfig.hop_limit,
+            { limit: 50 }
+          );
+          
+          for (const item of searchResult.items) {
+            if (processedMemoryIds.has(item.id)) continue;
+            
+            nodes.push({
+              id: item.id,
+              type: 'memory',
+              content: item.content.substring(0, 100),
+              hop_distance: item.hop_distance || 0,
+              similarity: item.similarity,
+              importance: item.importance,
+              created_at: item.created_at
+            });
+            processedMemoryIds.add(item.id);
+            
+            if (item.hop_distance === 1) {
+              links.push({
+                source: anchor.memory_id,
+                target: item.id,
+                type: 'hop',
+                hop_distance: 1,
+                similarity: item.similarity
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`❌ 앵커 ${anchor.slot} 주변 메모리 검색 실패:`, error);
+        }
+      }
+    }
+    
+    // memory_link 테이블 활용
+    for (const node of nodes) {
+      if (node.type === 'anchor') continue;
+      
+      const linkedMemories = db.prepare(`
+        SELECT target_memory_id, similarity, created_at
+        FROM memory_link
+        WHERE source_memory_id = ?
+        UNION
+        SELECT source_memory_id, similarity, created_at
+        FROM memory_link
+        WHERE target_memory_id = ?
+      `).all(node.id, node.id) as Array<{
+        target_memory_id?: string;
+        source_memory_id?: string;
+        similarity: number;
+        created_at: string;
+      }>;
+      
+      for (const link of linkedMemories) {
+        const linkedId = link.target_memory_id || link.source_memory_id;
+        if (linkedId && processedMemoryIds.has(linkedId)) {
+          links.push({
+            source: node.id,
+            target: linkedId,
+            type: 'link',
+            similarity: link.similarity
+          });
+        }
+      }
+    }
+    
+    const updateData = {
+      agent_id: agentId,
+      anchors: anchorList,
+      nodes,
+      links,
+      timestamp: new Date().toISOString()
+    };
+    
+    // 구독자에게 브로드캐스트
+    const subscribers = anchorMapSubscribers.get(agentId)!;
+    for (const ws of subscribers) {
+      if (ws.readyState === 1) { // WebSocket.OPEN
+        try {
+          ws.send(JSON.stringify({
+            type: 'anchor_map_update',
+            data: updateData
+          }));
+        } catch (error) {
+          console.error('❌ WebSocket 브로드캐스트 실패:', error);
+        }
+      }
+    }
+    
+    console.log(`📡 Anchor Map 업데이트 브로드캐스트: agent_id=${agentId}, subscribers=${subscribers.size}`);
+  } catch (error) {
+    console.error(`❌ Anchor Map 브로드캐스트 실패 (agent: ${agentId}):`, error);
+  }
+}
+
 // 도구 실행 엔드포인트
 app.post('/tools/:name', async (req, res) => {
   const { name } = req.params;
@@ -132,7 +326,8 @@ app.post('/tools/:name', async (req, res) => {
         errorLoggingService: serverServices.errorLoggingService,
         performanceAlertService: serverServices.performanceAlertService,
         consolidationScoreService: serverServices.consolidationScoreService,
-        writeCoalescingManager: serverServices.writeCoalescingManager
+        writeCoalescingManager: serverServices.writeCoalescingManager,
+        anchorManager: serverServices.anchorManager
       }
     };
     
@@ -155,6 +350,17 @@ app.post('/tools/:name', async (req, res) => {
       }
     }
     
+    // 앵커 관련 도구 실행 후 WebSocket 브로드캐스트
+    if (name === 'set_anchor' || name === 'clear_anchor') {
+      const agentId = params.agent_id || 'default';
+      // 비동기로 브로드캐스트 (응답 지연 방지)
+      setImmediate(() => {
+        broadcastAnchorMapUpdate(agentId).catch(error => {
+          console.error('❌ Anchor Map 브로드캐스트 실패:', error);
+        });
+      });
+    }
+    
     return res.json({ 
       result: actualResult,
       tool: name,
@@ -166,6 +372,198 @@ app.post('/tools/:name', async (req, res) => {
       error: 'Tool execution failed',
       tool: name,
       message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// 대시보드 라우트
+app.get('/dashboard', (req, res) => {
+  res.sendFile('dashboard.html', { root: 'static' }, (err) => {
+    if (err) {
+      console.error('❌ 대시보드 파일 로드 실패:', err);
+      res.status(404).send('Dashboard not found');
+    }
+  });
+});
+
+// Anchor Map API 엔드포인트
+app.get('/api/anchors/map', async (req, res) => {
+  const agentId = (req.query.agent_id as string) || 'default';
+  
+  try {
+    // 데이터베이스 연결 확인
+    if (!db || !serverServices) {
+      return res.status(500).json({ 
+        error: 'Services not initialized',
+        message: '서비스가 초기화되지 않았습니다'
+      });
+    }
+    
+    const anchorManager = serverServices.anchorManager;
+    if (!anchorManager) {
+      return res.status(500).json({ 
+        error: 'AnchorManager not available',
+        message: 'AnchorManager가 사용할 수 없습니다'
+      });
+    }
+    
+    // 앵커 정보 조회
+    const anchors = await anchorManager.getAnchor(agentId);
+    if (!anchors || (Array.isArray(anchors) && anchors.length === 0)) {
+      return res.json({
+        agent_id: agentId,
+        anchors: [],
+        nodes: [],
+        links: [],
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    const anchorList = Array.isArray(anchors) ? anchors : [anchors];
+    
+    // 각 앵커 주변의 관련 메모리 검색 및 네트워크 데이터 구성
+    const nodes: Array<{
+      id: string;
+      type: 'anchor' | 'memory';
+      slot?: string;
+      content: string;
+      hop_distance?: number;
+      similarity?: number;
+      importance?: number;
+      created_at?: string;
+    }> = [];
+    
+    const links: Array<{
+      source: string;
+      target: string;
+      type: 'anchor' | 'hop' | 'link';
+      hop_distance?: number;
+      similarity?: number;
+    }> = [];
+    
+    const processedMemoryIds = new Set<string>();
+    
+    // 각 앵커에 대해 처리
+    for (const anchor of anchorList) {
+      if (!anchor.memory_id) continue;
+      
+      // 앵커 노드 추가
+      const anchorMemory = db.prepare(`
+        SELECT id, content, type, importance, created_at
+        FROM memory_item
+        WHERE id = ?
+      `).get(anchor.memory_id) as {
+        id: string;
+        content: string;
+        type: string;
+        importance: number;
+        created_at: string;
+      } | undefined;
+      
+      if (anchorMemory) {
+        nodes.push({
+          id: anchor.memory_id,
+          type: 'anchor',
+          slot: anchor.slot,
+          content: anchorMemory.content.substring(0, 100), // 처음 100자만
+          importance: anchorMemory.importance,
+          created_at: anchorMemory.created_at
+        });
+        processedMemoryIds.add(anchor.memory_id);
+        
+        // 앵커 주변 메모리 검색 (hop 거리별)
+        try {
+          const slotConfig = anchorManager.getSlotConfig(anchor.slot);
+          const searchResult = await anchorManager.searchLocal(
+            agentId,
+            anchor.slot,
+            undefined, // query 없이 앵커 기반 recall
+            slotConfig.hop_limit,
+            { limit: 50 } // 충분한 수의 메모리 가져오기
+          );
+          
+          // 검색 결과를 노드와 링크로 변환
+          for (const item of searchResult.items) {
+            if (processedMemoryIds.has(item.id)) continue;
+            
+            nodes.push({
+              id: item.id,
+              type: 'memory',
+              content: item.content.substring(0, 100),
+              hop_distance: item.hop_distance || 0,
+              similarity: item.similarity,
+              importance: item.importance,
+              created_at: item.created_at
+            });
+            processedMemoryIds.add(item.id);
+            
+            // 링크 추가 (앵커에서 메모리로)
+            if (item.hop_distance === 1) {
+              links.push({
+                source: anchor.memory_id,
+                target: item.id,
+                type: 'hop',
+                hop_distance: 1,
+                similarity: item.similarity
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`❌ 앵커 ${anchor.slot} 주변 메모리 검색 실패:`, error);
+        }
+      }
+    }
+    
+    // memory_link 테이블을 활용한 직접 연결 정보 추가
+    for (const node of nodes) {
+      if (node.type === 'anchor') continue;
+      
+      // memory_link 테이블 스키마: source_id, target_id, relation_type, created_at
+      const linkedMemories = db.prepare(`
+        SELECT target_id, relation_type, created_at
+        FROM memory_link
+        WHERE source_id = ?
+        UNION
+        SELECT source_id, relation_type, created_at
+        FROM memory_link
+        WHERE target_id = ?
+      `).all(node.id, node.id) as Array<{
+        target_id?: string;
+        source_id?: string;
+        relation_type: string;
+        created_at: string;
+      }>;
+      
+      for (const link of linkedMemories) {
+        const linkedId = link.target_id || link.source_id;
+        if (linkedId && processedMemoryIds.has(linkedId)) {
+          // 이미 노드에 있는 메모리와의 직접 연결
+          // relation_type을 기반으로 similarity 추정 (기본값 0.7)
+          const similarity = link.relation_type === 'derived_from' ? 0.9 : 
+                            link.relation_type === 'cause_of' ? 0.8 : 0.7;
+          links.push({
+            source: node.id,
+            target: linkedId,
+            type: 'link',
+            similarity: similarity
+          });
+        }
+      }
+    }
+    
+    return res.json({
+      agent_id: agentId,
+      anchors: anchorList,
+      nodes,
+      links,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Anchor Map 데이터 조회 실패 (agent: ${agentId}):`, error);
+    return res.status(500).json({ 
+      error: 'Failed to get anchor map data',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      agent_id: agentId
     });
   }
 });
@@ -454,7 +852,8 @@ app.post('/messages', express.json(), async (req, res) => {
             errorLoggingService: serverServices.errorLoggingService,
             performanceAlertService: serverServices.performanceAlertService,
             consolidationScoreService: serverServices.consolidationScoreService,
-            writeCoalescingManager: serverServices.writeCoalescingManager
+            writeCoalescingManager: serverServices.writeCoalescingManager,
+            anchorManager: serverServices.anchorManager
           }
         };
         
@@ -1054,7 +1453,7 @@ async function cleanup() {
     // Write Coalescing Manager 정리
     if (writeCoalescingManager) {
       await writeCoalescingManager.flush();
-      writeCoalescingManager.destroy();
+      await writeCoalescingManager.destroy();
       console.log('✅ Write Coalescing Manager 정리 완료');
     }
     
@@ -1102,6 +1501,9 @@ function registerCleanupHandlers() {
 // WebSocket 서버 설정
 const wss = new WebSocketServer({ server });
 
+// WebSocket 클라이언트 관리 (Anchor Map 업데이트용)
+const anchorMapSubscribers = new Map<string, Set<any>>(); // agent_id -> WebSocket Set
+
 wss.on('connection', (ws) => {
   console.log('🔗 WebSocket 클라이언트 연결됨');
   
@@ -1109,6 +1511,30 @@ wss.on('connection', (ws) => {
     let message: any;
     try {
       message = JSON.parse(data.toString());
+      
+      // Anchor Map 업데이트 구독 처리
+      if (message.method === 'subscribe' && message.params?.type === 'anchor_map_updates') {
+        const agentId = message.params.agent_id || 'default';
+        
+        if (!anchorMapSubscribers.has(agentId)) {
+          anchorMapSubscribers.set(agentId, new Set());
+        }
+        anchorMapSubscribers.get(agentId)!.add(ws);
+        
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { subscribed: true, agent_id: agentId }
+        }));
+        
+        console.log(`📡 Anchor Map 업데이트 구독: agent_id=${agentId}`);
+        return;
+      }
+      
+      // Keep-alive ping/pong 처리
+      if (message.type === 'pong') {
+        return; // ping 응답만 처리
+      }
       
       if (message.method === 'tools/list') {
         const toolRegistry = getToolRegistry();
@@ -1150,7 +1576,8 @@ wss.on('connection', (ws) => {
             errorLoggingService: serverServices.errorLoggingService,
             performanceAlertService: serverServices.performanceAlertService,
             consolidationScoreService: serverServices.consolidationScoreService,
-            writeCoalescingManager: serverServices.writeCoalescingManager
+            writeCoalescingManager: serverServices.writeCoalescingManager,
+            anchorManager: serverServices.anchorManager
           }
         };
         
@@ -1179,6 +1606,14 @@ wss.on('connection', (ws) => {
   
   ws.on('close', () => {
     console.log('🔌 WebSocket 클라이언트 연결 해제됨');
+    
+    // 구독 목록에서 제거
+    for (const [agentId, subscribers] of anchorMapSubscribers.entries()) {
+      subscribers.delete(ws);
+      if (subscribers.size === 0) {
+        anchorMapSubscribers.delete(agentId);
+      }
+    }
   });
   
   ws.on('error', (error) => {

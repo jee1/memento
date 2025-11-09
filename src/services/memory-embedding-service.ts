@@ -42,13 +42,22 @@ export class MemoryEmbeddingService {
 
   /**
    * sqlite-vec 확장 로드
+   * init.ts와 동일한 방식으로 sqlite-vec 패키지의 getLoadablePath() 사용
    */
-  private loadVecExtension(db: any): void {
+  private async loadVecExtension(db: any): Promise<void> {
     try {
-      // Windows/로컬 경로 보호 - 실패하더라도 치명적이지 않도록 처리
-      db.loadExtension('/usr/lib/vec0');
+      // sqlite-vec 패키지에서 올바른 경로 가져오기
+      const { getLoadablePath } = await import('sqlite-vec');
+      const extensionPath = getLoadablePath();
+      db.loadExtension(extensionPath);
+      // 성공 시 로그는 출력하지 않음 (너무 많은 로그 방지)
     } catch (error) {
-      console.warn('⚠️ sqlite-vec 확장 로드 실패:', error);
+      // 실패해도 치명적이지 않음 (TF-IDF fallback 사용)
+      // 로그는 한 번만 출력하도록 조건부 처리
+      if (!(global as any).__vecExtensionLoadWarningShown) {
+        console.warn('⚠️ sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용):', (error as Error).message);
+        (global as any).__vecExtensionLoadWarningShown = true;
+      }
     }
   }
 
@@ -67,8 +76,8 @@ export class MemoryEmbeddingService {
     }
 
     try {
-      // sqlite-vec 확장 로드
-      this.loadVecExtension(db);
+      // sqlite-vec 확장 로드 (비동기)
+      await this.loadVecExtension(db);
       
       // 임베딩 생성
       const embeddingResult = await this.embeddingService.generateEmbedding(content);

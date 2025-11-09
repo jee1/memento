@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memento Anchor Map Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <h1>🎯 Memento Anchor Map</h1>
+      <div class="header-controls">
+        <label for="agent-id-input">Agent ID:</label>
+        <input type="text" id="agent-id-input" value="default" placeholder="default">
+        <label for="search-query-input">Search:</label>
+        <input type="text" id="search-query-input" placeholder="Search memories...">
+        <select id="search-slot-select">
+          <option value="">All Slots</option>
+          <option value="A">Slot A</option>
+          <option value="B">Slot B</option>
+          <option value="C">Slot C</option>
+        </select>
+        <button id="search-btn">Search</button>
+        <button id="load-map-btn">Load Map</button>
+        <button id="refresh-btn">Refresh</button>
+        <button id="clear-search-btn">Clear</button>
+        <label for="auto-refresh-toggle" style="margin-left: 1rem;">
+          <input type="checkbox" id="auto-refresh-toggle" style="margin-right: 0.25rem;">
+          Auto Refresh
+        </label>
+        <select id="refresh-interval-select" style="margin-left: 0.5rem;">
+          <option value="5000">5초</option>
+          <option value="10000" selected>10초</option>
+          <option value="30000">30초</option>
+          <option value="60000">1분</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <div class="sidebar">
+        <section class="anchor-info">
+          <h2>Anchors</h2>
+          <div id="anchor-list">
+            <p class="no-data">No anchors set</p>
+          </div>
+        </section>
+
+        <section class="memory-details">
+          <h2>Memory Details</h2>
+          <div id="memory-details">
+            <p class="no-data">Click on a node to view details</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="map-container">
+        <div id="anchor-map"></div>
+        <div class="map-legend">
+          <h3>Legend</h3>
+          <div class="legend-item">
+            <span class="legend-color anchor-a"></span>
+            <span>Slot A (1-hop)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color anchor-b"></span>
+            <span>Slot B (2-hop)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color anchor-c"></span>
+            <span>Slot C (3-hop)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color memory"></span>
+            <span>Memory</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- D3.js 라이브러리 (CDN) -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  
+  <!-- Anchor Map 시각화 스크립트 -->
+  <script src="/static/js/anchor-map.js"></script>
+</body>
+</html>
+

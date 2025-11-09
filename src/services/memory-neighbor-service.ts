@@ -347,11 +347,13 @@ export class MemoryNeighborService {
       }
 
       // 기존 모든 기억과의 유사도 계산
-      // 충분히 큰 limit을 설정하여 모든 기억을 검색
+      // sqlite-vec의 최대 제한(4096)을 고려하여 limit 설정
+      // 실제로는 모든 기억을 검색하려는 의도이지만, 벡터 검색 엔진의 제한을 준수
+      const maxLimit = 4096; // sqlite-vec의 최대 k 값 제한
       const searchResults = await this.vectorSearchEngine.search(
         queryVector,
         {
-          limit: 10000, // 충분히 큰 값 (실제로는 모든 기억 검색)
+          limit: maxLimit, // sqlite-vec 최대 제한
           threshold: 0.0, // 임계값은 나중에 필터링에서 적용
           includeContent: false, // 성능 최적화: 내용 불필요
           includeMetadata: false

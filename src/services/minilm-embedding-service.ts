@@ -8,13 +8,33 @@
  * - 개방-폐쇄: 확장에는 열려있고 수정에는 닫혀있음
  */
 
-import { pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@xenova/transformers';
 import type { 
   EmbeddingServiceInterface, 
   EmbeddingResult, 
   SimilarityResult, 
   EmbeddingData 
 } from '../types/embedding.types.js';
+
+// Node.js 환경에서 Worker 스레드 사용 비활성화
+// 이는 ERR_WORKER_PATH 에러를 방지합니다
+if (typeof process !== 'undefined' && process.env) {
+  // 환경 변수가 설정되지 않은 경우에만 기본값 설정
+  if (!process.env.ENABLE_WORKER) {
+    env.useBrowserCache = false;
+    env.useCustomCache = false;
+    // Worker 스레드 완전 비활성화를 위한 추가 설정
+    // MCP 서버와 HTTP 서버 간 일관성을 위해 명시적 설정
+    if (typeof env.allowLocalModels === 'undefined') {
+      env.allowLocalModels = false;
+    }
+    // WASM 백엔드 사용 (Worker 스레드 없이 동작)
+    if (typeof env.backends === 'undefined') {
+      // env.backends는 공식 지원 여부가 불확실하므로 주석 처리
+      // env.backends = { onnx: 'cpu' };
+    }
+  }
+}
 
 export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   // 상수 정의
@@ -166,18 +186,44 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
 
   /**
    * 실제 모델 로딩
+   * Node.js 환경에서 Worker 스레드 문제를 방지하기 위해 옵션 설정
    */
   private async loadModel(): Promise<any> {
     try {
+      // Node.js 환경에서 Worker 스레드 사용을 비활성화
+      // 이는 ERR_WORKER_PATH 에러를 방지합니다
       const model = await pipeline(
         'feature-extraction',
-        'Xenova/all-MiniLM-L6-v2'
+        'Xenova/all-MiniLM-L6-v2',
+        {
+          // Worker 스레드 비활성화 (Node.js 환경에서 blob URL 문제 방지)
+          device: 'cpu',
+          // quantized 모델 사용 (메모리 사용량 감소)
+          quantized: true
+        }
       );
       console.log('✅ MiniLM 모델 로딩 완료');
       return model;
     } catch (error) {
-      console.error('❌ MiniLM 모델 로딩 실패:', error);
-      throw new Error(`모델 로딩 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // ERR_WORKER_PATH 에러는 Node.js 환경에서 onnxruntime-web의 Worker가 
+      // blob URL을 지원하지 않아 발생하는 환경 문제입니다.
+      // 이 경우 경고만 출력하고 fallback(TF-IDF)이 사용되도록 합니다.
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isWorkerPathError = errorMessage.includes('ERR_WORKER_PATH') || 
+                                errorMessage.includes('blob:nodedata');
+      
+      // 에러 로깅을 한 번만 출력하도록 조건부 처리
+      if (!(global as any).__minilmModelLoadWarningShown) {
+        if (isWorkerPathError) {
+          console.warn('⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용):', errorMessage);
+          console.warn('💡 해결 방법: 환경 변수 ENABLE_WORKER=false 설정 또는 onnxruntime-node 설치 확인');
+        } else {
+          console.error('❌ MiniLM 모델 로딩 실패:', error);
+        }
+        (global as any).__minilmModelLoadWarningShown = true;
+      }
+      
+      throw new Error(`모델 로딩 실패: ${errorMessage}`);
     }
   }
 

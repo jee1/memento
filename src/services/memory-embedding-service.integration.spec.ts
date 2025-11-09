@@ -166,7 +166,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
   });
 
   const scenarios: Array<{ provider: EmbeddingProvider; dimensions: number; type: MemoryType }> = [
-    { provider: 'tfidf', dimensions: 384, type: 'semantic' },
+    { provider: 'tfidf', dimensions: 512, type: 'semantic' }, // TF-IDF는 512차원
     { provider: 'minilm', dimensions: 384, type: 'episodic' },
     { provider: 'openai', dimensions: 1536, type: 'semantic' },
     { provider: 'gemini', dimensions: 768, type: 'semantic' }

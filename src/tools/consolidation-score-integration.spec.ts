@@ -49,6 +49,25 @@ function initializeTestDatabase(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
     CREATE INDEX IF NOT EXISTS idx_memory_item_consol_active ON memory_item(consolidation_score) WHERE consolidation_score > 0.2;
+
+    CREATE TABLE IF NOT EXISTS memory_embedding (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memory_id TEXT NOT NULL,
+      embedding TEXT NOT NULL,
+      dim INTEGER NOT NULL,
+      model TEXT,
+      embedding_provider TEXT DEFAULT 'tfidf',
+      dimensions INTEGER,
+      created_by TEXT DEFAULT 'system',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      projection_type TEXT NOT NULL DEFAULT 'native',
+      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      UNIQUE(memory_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider ON memory_embedding(embedding_provider);
+    CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions);
   `);
 }
 
@@ -139,7 +158,7 @@ describe('Consolidation Score System 통합 테스트', () => {
     // Write Coalescing Manager 정리
     if (writeCoalescingManager) {
       await writeCoalescingManager.flush();
-      writeCoalescingManager.destroy();
+      await writeCoalescingManager.destroy();
     }
 
     if (db) {

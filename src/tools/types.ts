@@ -43,6 +43,8 @@ export interface ToolContext {
     consolidationScoreService?: any;
     /** 쓰기 결합 관리자 (기능 플래그에 따라 초기화) */
     writeCoalescingManager?: any;
+    /** 앵커 관리자 서비스 */
+    anchorManager?: any;
   };
 }
 

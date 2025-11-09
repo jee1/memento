@@ -14,8 +14,8 @@ describe('WriteCoalescingManager', () => {
     manager = new WriteCoalescingManager(100, flushCallback); // 100ms 간격
   });
 
-  afterEach(() => {
-    manager.destroy();
+  afterEach(async () => {
+    await manager.destroy();
   });
 
   describe('addWrite', () => {
@@ -141,7 +141,7 @@ describe('WriteCoalescingManager', () => {
       expect(errorManager.getBufferSize()).toBe(0);
       expect(errorManager.isEmpty()).toBe(true);
 
-      errorManager.destroy();
+      await errorManager.destroy();
     });
   });
 
@@ -174,7 +174,7 @@ describe('WriteCoalescingManager', () => {
       const callCountBeforeStop = flushCallback.mock.calls.length;
       
       // destroy를 호출하여 타이머 정리 (stop은 없고 destroy가 있음)
-      manager.destroy();
+      await manager.destroy();
       
       // destroy 후 추가 flush 간격 대기
       await new Promise(resolve => setTimeout(resolve, 150));
@@ -185,7 +185,7 @@ describe('WriteCoalescingManager', () => {
   });
 
   describe('destroy', () => {
-    it('destroy 시 타이머를 정리하고 버퍼를 비워야 함', () => {
+    it('destroy 시 타이머를 정리하고 버퍼를 비워야 함', async () => {
       const write: CoalescedWrite = {
         memoryId: 'mem1',
         fields: { recall_count: 1 }
@@ -194,14 +194,14 @@ describe('WriteCoalescingManager', () => {
       manager.addWrite(write);
       expect(manager.getBufferSize()).toBe(1);
 
-      manager.destroy();
+      await manager.destroy();
 
       expect(manager.getBufferSize()).toBe(0);
       expect(manager.isEmpty()).toBe(true);
     });
 
-    it('destroy 후 start를 다시 호출할 수 있어야 함', () => {
-      manager.destroy();
+    it('destroy 후 start를 다시 호출할 수 있어야 함', async () => {
+      await manager.destroy();
       
       const write: CoalescedWrite = {
         memoryId: 'mem1',
@@ -214,7 +214,7 @@ describe('WriteCoalescingManager', () => {
 
       expect(newManager.getBufferSize()).toBe(1);
 
-      newManager.destroy();
+      await newManager.destroy();
     });
   });
 

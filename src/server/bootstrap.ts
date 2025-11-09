@@ -17,6 +17,8 @@ import { PerformanceAlertService } from '../services/performance-alert-service.j
 import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
 import { DatabaseUtils } from '../utils/database.js';
+import { AnchorManager } from '../services/anchor-manager.js';
+import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 
 /**
  * 서버 서비스 집합 인터페이스
@@ -49,6 +51,8 @@ export interface ServerServices {
   // 선택적 서비스
   consolidationScoreService?: ConsolidationScoreService;
   writeCoalescingManager?: WriteCoalescingManager;
+  // 앵커 관리자 서비스
+  anchorManager: AnchorManager;
 }
 
 /**
@@ -80,6 +84,16 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const databaseOptimizer = new DatabaseOptimizer(db);
     const errorLoggingService = new ErrorLoggingService();
     const performanceAlertService = new PerformanceAlertService('./logs');
+    
+    // 2.5. 앵커 관리자 서비스 초기화
+    const anchorManager = new AnchorManager();
+    anchorManager.setDatabase(db);
+    anchorManager.setEmbeddingService(embeddingService);
+    anchorManager.setHybridSearchEngine(hybridSearchEngine);
+    anchorManager.setVectorSearchEngine(getVectorSearchEngine());
+    
+    // 서버 시작 시 DB에서 앵커 상태 복원
+    await anchorManager.restoreCacheFromDB(db);
     
     // 3. PerformanceMonitor 싱글톤 처리 및 DB 초기화
     const performanceMonitor = getPerformanceMonitor();
@@ -159,7 +173,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       errorLoggingService,
       performanceAlertService,
       consolidationScoreService,
-      writeCoalescingManager
+      writeCoalescingManager,
+      anchorManager
     };
   } catch (error) {
     // 서비스 초기화 실패 시 예외를 그대로 전파 (서버 시작 실패)

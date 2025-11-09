@@ -38,7 +38,7 @@ describe('VectorSearchEngine', () => {
       if (sql.includes('SELECT embedding_provider as provider')) {
         return {
           all: vi.fn().mockReturnValue([
-            { provider: 'tfidf', dimensions: 384 },
+            { provider: 'tfidf', dimensions: 512 },
             { provider: 'minilm', dimensions: 384 },
             { provider: 'openai', dimensions: 1536 },
             { provider: 'gemini', dimensions: 768 }
@@ -161,7 +161,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it('정상적인 벡터 검색', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const options: VectorSearchOptions = {
         limit: 10,
         threshold: 0.5,
@@ -185,7 +185,7 @@ describe('VectorSearchEngine', () => {
       // Update the existing mock to return results
       mockDb.prepare.mockImplementation(createMockImplementation(mockResults));
 
-      const results = await vectorEngine.search(queryVector, options);
+      const results = await vectorEngine.search(queryVector, options, 'tfidf');
 
       expect(results).toHaveLength(1);
       expect(results[0].memory_id).toBe('mem1');
@@ -196,8 +196,8 @@ describe('VectorSearchEngine', () => {
     it('VEC 사용 불가능한 경우 빈 결과', async () => {
       vectorEngine.initialize(null as any);
       
-      const queryVector = new Array(384).fill(0.1);
-      const results = await vectorEngine.search(queryVector);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
+      const results = await vectorEngine.search(queryVector, {}, 'tfidf');
 
       expect(results).toHaveLength(0);
     });
@@ -216,7 +216,7 @@ describe('VectorSearchEngine', () => {
         }
         if (sql.includes('SELECT embedding_provider as provider')) {
           return {
-            all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 384 }])
+            all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 512 }]) // TF-IDF는 512차원
           };
         }
         if (sql.includes('FROM memory_item_vec_tfidf') && sql.includes('JOIN memory_embedding')) {
@@ -247,8 +247,8 @@ describe('VectorSearchEngine', () => {
       };
 
       vectorEngine.initialize(unavailableDb as unknown as Database.Database);
-      const queryVector = new Array(384).fill(0.1);
-      const results = await vectorEngine.search(queryVector);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
+      const results = await vectorEngine.search(queryVector, {}, 'tfidf');
 
       expect(results).toHaveLength(0);
       expect(unavailableDb.prepare).toHaveBeenCalledWith(
@@ -257,21 +257,21 @@ describe('VectorSearchEngine', () => {
     });
 
     it('임계값 필터링', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const options: VectorSearchOptions = {
         limit: 10,
         threshold: 0.8, // 높은 임계값
         includeContent: true
       };
 
-      const results = await vectorEngine.search(queryVector, options);
+      const results = await vectorEngine.search(queryVector, options, 'tfidf');
 
       // distance 0.3이 similarity 0.7로 변환되어 임계값 0.8보다 낮으므로 필터링됨
       expect(results).toHaveLength(0);
     });
 
     it('다중 타입 필터를 IN 절과 파라미터로 전달한다', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const options: VectorSearchOptions = {
         limit: 5,
         threshold: 0.5,
@@ -302,7 +302,7 @@ describe('VectorSearchEngine', () => {
         }
         if (sql.includes('SELECT embedding_provider as provider')) {
           return {
-            all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 384 }])
+            all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 512 }]) // TF-IDF는 512차원
           };
         }
         
@@ -325,7 +325,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it('메타데이터 포함 옵션', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const options: VectorSearchOptions = {
         limit: 10,
         threshold: 0.5,
@@ -351,7 +351,7 @@ describe('VectorSearchEngine', () => {
       // Update the existing mock to return results
       mockDb.prepare.mockImplementation(createMockImplementation(mockResults));
 
-      const results = await vectorEngine.search(queryVector, options);
+      const results = await vectorEngine.search(queryVector, options, 'tfidf');
 
       expect(results).toHaveLength(1);
       expect(results[0].last_accessed).toBeDefined();
@@ -360,7 +360,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it('메타데이터 제외 옵션', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const options: VectorSearchOptions = {
         limit: 10,
         threshold: 0.5,
@@ -386,7 +386,7 @@ describe('VectorSearchEngine', () => {
       // Update the existing mock to return results
       mockDb.prepare.mockImplementation(createMockImplementation(mockResults));
 
-      const results = await vectorEngine.search(queryVector, options);
+      const results = await vectorEngine.search(queryVector, options, 'tfidf');
 
       expect(results).toHaveLength(1);
       expect(results[0].content).toBe('');
@@ -396,7 +396,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it.each([
-      { provider: 'tfidf', dimensions: 384 },
+      { provider: 'tfidf', dimensions: 512 }, // TF-IDF는 512차원
       { provider: 'minilm', dimensions: 384 }
     ])('provider $provider 에서 결과를 반환한다', async ({ provider, dimensions }) => {
       const providerRows = createMockVectorRows(provider, 3);
@@ -488,7 +488,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it('정상적인 하이브리드 검색', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const textQuery = 'test query';
       const options: VectorSearchOptions = {
         limit: 10,
@@ -497,7 +497,7 @@ describe('VectorSearchEngine', () => {
         includeMetadata: true
       };
 
-      const results = await vectorEngine.hybridSearch(queryVector, textQuery, options);
+      const results = await vectorEngine.hybridSearch(queryVector, textQuery, options, 'tfidf');
 
       expect(results).toHaveLength(1);
       expect(results[0].memory_id).toBe('mem1');
@@ -523,7 +523,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it('타입 필터 적용', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const textQuery = 'test query';
       const options: VectorSearchOptions = {
         limit: 10,
@@ -532,7 +532,7 @@ describe('VectorSearchEngine', () => {
         includeContent: true
       };
 
-      const results = await vectorEngine.hybridSearch(queryVector, textQuery, options);
+      const results = await vectorEngine.hybridSearch(queryVector, textQuery, options, 'tfidf');
 
       expect(results).toHaveLength(1);
       expect(mockDb.prepare).toHaveBeenCalledWith(
@@ -551,7 +551,7 @@ describe('VectorSearchEngine', () => {
       expect(status.available).toBe(true);
       expect(status.tableExists).toBe(true);
       expect(status.recordCount).toBeGreaterThan(0);
-      expect(status.dimensions).toBe(384);
+      expect(status.dimensions).toBe(512); // TF-IDF는 512차원
       expect(status.vecExtensionLoaded).toBe(true);
     });
 
@@ -561,7 +561,7 @@ describe('VectorSearchEngine', () => {
       expect(status.available).toBe(false);
       expect(status.tableExists).toBe(false);
       expect(status.recordCount).toBe(0);
-      expect(status.dimensions).toBe(384);
+      expect(status.dimensions).toBe(512); // TF-IDF는 512차원
       expect(status.vecExtensionLoaded).toBe(false);
     });
 
@@ -709,7 +709,7 @@ describe('VectorSearchEngine', () => {
   describe('getDimensions', () => {
     it('기본 차원 반환', () => {
       const dimensions = vectorEngine.getDimensions();
-      expect(dimensions).toBe(384);
+      expect(dimensions).toBe(512); // TF-IDF는 512차원
     });
   });
 
@@ -805,7 +805,7 @@ describe('VectorSearchEngine', () => {
         if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
-        if (sql.includes('SELECT')) {
+        if (sql.includes('SELECT') && sql.includes('FROM memory_item_vec_tfidf')) {
           return { all: vi.fn().mockReturnValue([
             {
               memory_id: 'mem1',
@@ -824,10 +824,11 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       
       // 잘못된 JSON 태그는 빈 배열로 처리되어야 함
-      const results = await vectorEngine.search(queryVector, { includeMetadata: true });
+      const results = await vectorEngine.search(queryVector, { includeMetadata: true }, 'tfidf');
+      expect(results).toHaveLength(1);
       expect(results[0].tags).toEqual([]);
     });
 
@@ -878,7 +879,7 @@ describe('VectorSearchEngine', () => {
         if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
-        if (sql.includes('SELECT')) {
+        if (sql.includes('SELECT') && sql.includes('FROM memory_item_vec_tfidf')) {
           return { all: vi.fn().mockReturnValue([
             {
               memory_id: 'mem1',
@@ -897,8 +898,8 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
-      const results = await vectorEngine.search(queryVector, { threshold: 0.01 });
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
+      const results = await vectorEngine.search(queryVector, { threshold: 0.01 }, 'tfidf');
 
       expect(results).toHaveLength(1);
     });
@@ -934,10 +935,10 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       
       const startTime = Date.now();
-      const results = await vectorEngine.search(queryVector, { limit: 100 });
+      const results = await vectorEngine.search(queryVector, { limit: 100 }, 'tfidf');
       const endTime = Date.now();
       const duration = endTime - startTime;
 
