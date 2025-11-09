@@ -581,6 +581,21 @@ describe('MCP Server Integration', () => {
 - **Tool**: tsx + direct service testing
 - **Location**: `src/test-performance-alerts.ts`
 
+#### 6. Consolidation Score Quality Tests
+
+- **Purpose**: Verify consolidation score integration with search ranking
+- **Scope**: Search ranking algorithm, hybrid search engine, quality metrics
+- **Tool**: Vitest (unit/integration) + tsx (E2E/benchmark)
+- **Location**: 
+  - Unit tests: `src/algorithms/search-ranking.spec.ts`, `src/algorithms/search-result-combiner-consolidation.spec.ts`
+  - Integration tests: `src/algorithms/hybrid-search-engine-consolidation.spec.ts`
+  - E2E tests: `src/test/test-consolidation-search-quality.ts`
+  - Benchmark: `src/test/consolidation-search-quality-benchmark.ts`
+- **Commands**:
+  - `npm run test:consolidation-quality` - E2E quality validation
+  - `npm run benchmark:consolidation-quality` - Quality benchmark with baseline comparison
+- **Documentation**: [Consolidation Score Testing Guide](../testing/consolidation-quality-testing.md)
+
 ### Test Writing Guide
 
 #### 1. Test Structure (AAA Pattern)

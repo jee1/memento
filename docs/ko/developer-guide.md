@@ -582,6 +582,21 @@ describe('MCP Server Integration', () => {
 - **도구**: tsx + 직접 서비스 테스트
 - **위치**: `src/test-performance-alerts.ts`
 
+### 6. Consolidation Score 품질 테스트
+
+- **목적**: Consolidation Score가 검색 랭킹에 올바르게 반영되는지 검증
+- **범위**: 검색 랭킹 알고리즘, 하이브리드 검색 엔진, 품질 지표
+- **도구**: Vitest (단위/통합) + tsx (E2E/벤치마크)
+- **위치**:
+  - 단위 테스트: `src/algorithms/search-ranking.spec.ts`, `src/algorithms/search-result-combiner-consolidation.spec.ts`
+  - 통합 테스트: `src/algorithms/hybrid-search-engine-consolidation.spec.ts`
+  - E2E 테스트: `src/test/test-consolidation-search-quality.ts`
+  - 벤치마크: `src/test/consolidation-search-quality-benchmark.ts`
+- **명령어**:
+  - `npm run test:consolidation-quality` - E2E 품질 검증
+  - `npm run benchmark:consolidation-quality` - Baseline 비교 벤치마크
+- **문서**: [Consolidation Score 테스트 가이드](../testing/consolidation-quality-testing.md)
+
 ### 테스트 작성 가이드
 
 #### 1. 테스트 구조 (AAA 패턴)

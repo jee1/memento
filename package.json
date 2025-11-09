@@ -41,6 +41,8 @@
     "test:batch-scheduler": "tsx src/test/test-batch-scheduler.ts",
     "test:vector-search": "tsx src/test/test-vector-search-engine.ts",
     "test:memory-injection": "tsx src/test/test-memory-injection-prompt.ts",
+    "test:consolidation-quality": "tsx src/test/test-consolidation-search-quality.ts",
+    "benchmark:consolidation-quality": "tsx src/test/consolidation-search-quality-benchmark.ts",
     "test:embedding-benchmark": "vitest src/test/embedding-performance-benchmark.spec.ts",
     "test:embedding-integration": "vitest src/test/embedding-integration-test.spec.ts",
     "benchmark:embedding": "vitest src/test/embedding-performance-benchmark.spec.ts --reporter=verbose",
