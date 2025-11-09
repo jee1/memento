@@ -158,18 +158,27 @@ describe('Consolidation Score System 통합 테스트', () => {
   });
 
   afterEach(async () => {
+    // 모든 비동기 작업이 완료될 때까지 대기
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     // Write Coalescing Manager 정리
     if (writeCoalescingManager) {
       try {
         // Flush 대기 (타이머가 실행 중일 수 있음)
-        await new Promise(resolve => setTimeout(resolve, 200));
         await writeCoalescingManager.flush();
+        await new Promise(resolve => setTimeout(resolve, 100));
         await writeCoalescingManager.destroy();
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
         // destroy 중 에러는 무시 (이미 destroy된 경우)
         console.warn('WriteCoalescingManager destroy 중 에러:', error);
       }
       writeCoalescingManager = null as any;
+    }
+
+    // flushCallback이 완료될 때까지 대기
+    if (flushedWrites.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     // 데이터베이스 닫기
@@ -196,6 +205,9 @@ describe('Consolidation Score System 통합 테스트', () => {
     context = null as any;
     flushCallback = null as any;
     flushedWrites = [];
+
+    // 추가 대기 (리소스 정리 완료 보장)
+    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   describe('RememberTool - 신규 메모리 초기화', () => {
