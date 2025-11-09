@@ -1,4 +1,25 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// Mock @xenova/transformers to prevent onnxruntime-node loading
+// MUST be at the top before any imports
+import { vi } from 'vitest';
+vi.mock('@xenova/transformers', () => {
+  return {
+    pipeline: vi.fn().mockResolvedValue({
+      __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    }),
+    env: {
+      useBrowserCache: false,
+      useCustomCache: false
+    }
+  };
+});
+
+// onnxruntime-node 모킹 (네이티브 바인딩 로딩 실패 방지)
+vi.mock('onnxruntime-node', () => ({
+  InferenceSession: vi.fn(),
+  Tensor: vi.fn()
+}));
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
 import { ClearAnchorTool } from './clear-anchor-tool.js';
