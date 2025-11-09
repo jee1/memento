@@ -1,0 +1,171 @@
+/**
+ * 공용 부트스트랩 함수
+ * HTTP 서버와 MCP 서버가 공통으로 사용하는 서비스 초기화 로직
+ */
+
+import Database from 'better-sqlite3';
+import { mementoConfig } from '../config/index.js';
+import { SearchEngine } from '../algorithms/search-engine.js';
+import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
+import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import { getPerformanceMonitor } from '../services/performance-monitor.js';
+import { DatabaseOptimizer } from '../services/database-optimizer.js';
+import { ErrorLoggingService } from '../services/error-logging-service.js';
+import { PerformanceAlertService } from '../services/performance-alert-service.js';
+import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
+import { DatabaseUtils } from '../utils/database.js';
+
+/**
+ * 서버 서비스 집합 인터페이스
+ * 
+ * 필수 서비스:
+ * - searchEngine: 기본 텍스트 검색 엔진
+ * - hybridSearchEngine: 하이브리드 검색 엔진 (텍스트 + 벡터)
+ * - embeddingService: 메모리 임베딩 서비스
+ * - forgettingPolicyService: 망각 정책 서비스
+ * - performanceMonitor: 성능 모니터링 서비스 (싱글톤)
+ * - databaseOptimizer: 데이터베이스 최적화 서비스
+ * - errorLoggingService: 에러 로깅 서비스
+ * - performanceAlertService: 성능 알림 서비스
+ * 
+ * 선택적 서비스 (기능 플래그에 따라 초기화):
+ * - consolidationScoreService: 통합 점수 서비스
+ * - writeCoalescingManager: 쓰기 결합 관리자
+ */
+export interface ServerServices {
+  // 필수 서비스
+  searchEngine: SearchEngine;
+  hybridSearchEngine: HybridSearchEngine;
+  embeddingService: MemoryEmbeddingService;
+  forgettingPolicyService: ForgettingPolicyService;
+  performanceMonitor: ReturnType<typeof getPerformanceMonitor>; // 싱글톤 인스턴스
+  databaseOptimizer: DatabaseOptimizer;
+  errorLoggingService: ErrorLoggingService;
+  performanceAlertService: PerformanceAlertService;
+  
+  // 선택적 서비스
+  consolidationScoreService?: ConsolidationScoreService;
+  writeCoalescingManager?: WriteCoalescingManager;
+}
+
+/**
+ * 모든 서비스를 초기화하는 공용 부트스트랩 함수
+ * 
+ * 서비스 초기화 순서:
+ * 1. 기본 서비스 초기화 (검색 엔진, 임베딩 서비스)
+ * 2. 고급 서비스 초기화 (성능 모니터, 에러 로깅, 알림)
+ * 3. PerformanceMonitor 싱글톤 처리 및 DB 초기화
+ * 4. 선택적 서비스 초기화 (Consolidation Score, Write Coalescing)
+ * 
+ * 에러 처리:
+ * - 서비스 초기화 실패 시 예외를 그대로 전파 (서버 시작 실패)
+ * - 부분 실패 방지 (all-or-nothing)
+ * 
+ * @param db 데이터베이스 인스턴스
+ * @returns 초기화된 서비스 집합
+ * @throws 서비스 초기화 실패 시 예외 발생
+ */
+export async function initializeServices(db: Database.Database): Promise<ServerServices> {
+  try {
+    // 1. 기본 서비스 초기화 (검색 엔진, 임베딩 서비스)
+    const searchEngine = new SearchEngine();
+    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
+    const embeddingService = new MemoryEmbeddingService();
+    
+    // 2. 고급 서비스 초기화 (성능 모니터, 에러 로깅, 알림)
+    const forgettingPolicyService = new ForgettingPolicyService();
+    const databaseOptimizer = new DatabaseOptimizer(db);
+    const errorLoggingService = new ErrorLoggingService();
+    const performanceAlertService = new PerformanceAlertService('./logs');
+    
+    // 3. PerformanceMonitor 싱글톤 처리 및 DB 초기화
+    const performanceMonitor = getPerformanceMonitor();
+    performanceMonitor.initialize(db);
+    
+    // 4. 선택적 서비스 초기화 (Consolidation Score, Write Coalescing)
+    let consolidationScoreService: ConsolidationScoreService | undefined;
+    let writeCoalescingManager: WriteCoalescingManager | undefined;
+    
+    if (mementoConfig.consolidationScoreEnabled) {
+      consolidationScoreService = new ConsolidationScoreService();
+      
+      // Write Coalescing Manager 초기화 (초당 1회 flush)
+      writeCoalescingManager = new WriteCoalescingManager(
+        1000, // 1초마다 flush
+        async (writes: CoalescedWrite[]) => {
+          // 배치 업데이트 실행
+          if (!db || writes.length === 0) {
+            return;
+          }
+
+          // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
+          const currentDb = db;
+          if (!currentDb) {
+            return;
+          }
+
+          try {
+            // 트랜잭션으로 배치 업데이트
+            await DatabaseUtils.runTransaction(currentDb, async () => {
+              for (const write of writes) {
+                const updates: string[] = [];
+                const params: any[] = [];
+
+                if (write.fields.recall_count !== undefined) {
+                  updates.push('recall_count = ?');
+                  params.push(write.fields.recall_count);
+                }
+                if (write.fields.last_accessed_at !== undefined) {
+                  updates.push('last_accessed_at = ?');
+                  params.push(write.fields.last_accessed_at);
+                }
+                if (write.fields.g_value !== undefined) {
+                  updates.push('g_value = ?');
+                  params.push(write.fields.g_value);
+                }
+                if (write.fields.consolidation_score !== undefined) {
+                  updates.push('consolidation_score = ?');
+                  params.push(write.fields.consolidation_score);
+                }
+
+                if (updates.length > 0) {
+                  params.push(write.memoryId);
+                  DatabaseUtils.run(
+                    currentDb,
+                    `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
+                    params
+                  );
+                }
+              }
+            });
+          } catch (error) {
+            // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
+            console.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      );
+    }
+    
+    return {
+      searchEngine,
+      hybridSearchEngine,
+      embeddingService,
+      forgettingPolicyService,
+      performanceMonitor,
+      databaseOptimizer,
+      errorLoggingService,
+      performanceAlertService,
+      consolidationScoreService,
+      writeCoalescingManager
+    };
+  } catch (error) {
+    // 서비스 초기화 실패 시 예외를 그대로 전파 (서버 시작 실패)
+    // 에러 메시지에 컨텍스트 추가
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`서비스 초기화 실패: ${errorMessage}`);
+  }
+}
+
