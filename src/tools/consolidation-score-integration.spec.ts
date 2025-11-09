@@ -157,15 +157,42 @@ describe('Consolidation Score System 통합 테스트', () => {
   afterEach(async () => {
     // Write Coalescing Manager 정리
     if (writeCoalescingManager) {
-      await writeCoalescingManager.flush();
-      await writeCoalescingManager.destroy();
+      try {
+        // Flush 대기 (타이머가 실행 중일 수 있음)
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await writeCoalescingManager.flush();
+        await writeCoalescingManager.destroy();
+      } catch (error) {
+        // destroy 중 에러는 무시 (이미 destroy된 경우)
+        console.warn('WriteCoalescingManager destroy 중 에러:', error);
+      }
+      writeCoalescingManager = null as any;
     }
 
+    // 데이터베이스 닫기
     if (db) {
-      db.close();
+      try {
+        db.close();
+      } catch (error) {
+        console.warn('Database close 중 에러:', error);
+      }
+      db = null as any;
     }
+
+    // Mock 및 Spy 정리
     vi.clearAllMocks();
     vi.restoreAllMocks();
+
+    // 인스턴스 정리
+    recallTool = null as any;
+    rememberTool = null as any;
+    memoryInjectionPrompt = null as any;
+    hybridSearchEngine = null as any;
+    embeddingService = null as any;
+    consolidationScoreService = null as any;
+    context = null as any;
+    flushCallback = null as any;
+    flushedWrites = [];
   });
 
   describe('RememberTool - 신규 메모리 초기화', () => {
