@@ -159,16 +159,25 @@ describe('Consolidation Score System 통합 테스트', () => {
 
   afterEach(async () => {
     // 모든 비동기 작업이 완료될 때까지 대기
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 서비스 인스턴스 정리 (데이터베이스 닫기 전에)
+    try {
+      recallTool = null as any;
+      rememberTool = null as any;
+      memoryInjectionPrompt = null as any;
+    } catch (error) {
+      console.warn('Tool 인스턴스 정리 중 에러:', error);
+    }
 
     // Write Coalescing Manager 정리
     if (writeCoalescingManager) {
       try {
         // Flush 대기 (타이머가 실행 중일 수 있음)
         await writeCoalescingManager.flush();
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
         await writeCoalescingManager.destroy();
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       } catch (error) {
         // destroy 중 에러는 무시 (이미 destroy된 경우)
         console.warn('WriteCoalescingManager destroy 중 에러:', error);
@@ -178,8 +187,20 @@ describe('Consolidation Score System 통합 테스트', () => {
 
     // flushCallback이 완료될 때까지 대기
     if (flushedWrites.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
+
+    // 서비스 인스턴스 정리 (HybridSearchEngine, MemoryEmbeddingService)
+    try {
+      hybridSearchEngine = null as any;
+      embeddingService = null as any;
+      consolidationScoreService = null as any;
+    } catch (error) {
+      console.warn('서비스 인스턴스 정리 중 에러:', error);
+    }
+
+    // 추가 대기 (서비스 리소스 정리 완료 보장)
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // 데이터베이스 닫기
     if (db) {
@@ -195,19 +216,13 @@ describe('Consolidation Score System 통합 테스트', () => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
 
-    // 인스턴스 정리
-    recallTool = null as any;
-    rememberTool = null as any;
-    memoryInjectionPrompt = null as any;
-    hybridSearchEngine = null as any;
-    embeddingService = null as any;
-    consolidationScoreService = null as any;
+    // 나머지 인스턴스 정리
     context = null as any;
     flushCallback = null as any;
     flushedWrites = [];
 
-    // 추가 대기 (리소스 정리 완료 보장)
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // 최종 대기 (리소스 정리 완료 보장)
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   describe('RememberTool - 신규 메모리 초기화', () => {
