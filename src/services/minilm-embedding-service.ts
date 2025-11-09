@@ -196,8 +196,6 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         'feature-extraction',
         'Xenova/all-MiniLM-L6-v2',
         {
-          // Worker 스레드 비활성화 (Node.js 환경에서 blob URL 문제 방지)
-          device: 'cpu',
           // quantized 모델 사용 (메모리 사용량 감소)
           quantized: true
         }

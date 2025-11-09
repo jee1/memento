@@ -526,7 +526,27 @@ export class AnchorManager {
         // Local 결과와 Fallback 결과 병합
         // Local 결과를 우선하고, 중복 제거 (memory_id 기준)
         const localMemoryIds = new Set(localResults.map(r => r.id));
-        const fallbackItems = fallbackResult.items.filter(item => !localMemoryIds.has(item.id));
+        const fallbackItems: Array<{
+          id: string;
+          content: string;
+          type: string;
+          similarity: number;
+          hop_distance: number;
+          importance: number;
+          created_at: string;
+          tags: string[] | undefined;
+        }> = fallbackResult.items
+          .filter(item => !localMemoryIds.has(item.id))
+          .map(item => ({
+            id: item.id,
+            content: item.content,
+            type: item.type,
+            similarity: item.similarity ?? 0,
+            hop_distance: item.hop_distance ?? 999, // fallback 결과는 hop_distance가 없으므로 큰 값으로 설정
+            importance: item.importance ?? 0.5,
+            created_at: item.created_at ?? new Date().toISOString(),
+            tags: item.tags ?? undefined
+          }));
 
         // Local 결과 + Fallback 결과 (중복 제거된 것만)
         finalResults = [...localResults, ...fallbackItems].slice(0, limit);
@@ -1582,7 +1602,7 @@ export class AnchorManager {
       // 더 적합한 앵커 후보 찾기
       const candidates = await this.analyzeAnchorUsage(agentId, slot, queryEmbedding);
 
-      if (candidates.length === 0 || candidates[0].score < threshold) {
+      if (candidates.length === 0 || !candidates[0] || candidates[0].score < threshold) {
         return {
           moved: false,
           old_anchor: currentAnchor.memory_id,
@@ -1593,6 +1613,15 @@ export class AnchorManager {
       }
 
       const bestCandidate = candidates[0];
+      if (!bestCandidate) {
+        return {
+          moved: false,
+          old_anchor: currentAnchor.memory_id,
+          new_anchor: null,
+          score: 0,
+          reason: '후보 없음'
+        };
+      }
 
       // 이동 전략에 따라 처리
       if (strategy === 'gradual') {

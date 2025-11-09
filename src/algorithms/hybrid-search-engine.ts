@@ -26,7 +26,7 @@ export interface IEmbeddingService {
 export interface IVectorSearchEngine {
   initialize(db: Database.Database): void;
   getIndexStatus(): { available: boolean };
-  search(vector: number[], options: { limit?: number; threshold?: number; types?: MemoryType[]; includeContent?: boolean }): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
+  search(vector: number[], options: { limit?: number; threshold?: number; types?: MemoryType[]; includeContent?: boolean }, provider?: string): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
 }
 
 export interface ISearchResultCombiner {
