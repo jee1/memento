@@ -34,5 +34,12 @@ export default defineConfig({
         '**/coverage/**'
       ]
     },
+    server: {
+      deps: {
+        inline: [
+          /@xenova\/transformers/,
+        ]
+      }
+    }
   }
 });
