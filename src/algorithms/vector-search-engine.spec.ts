@@ -219,10 +219,14 @@ describe('VectorSearchEngine', () => {
             all: vi.fn().mockReturnValue([{ provider: 'tfidf', dimensions: 512 }]) // TF-IDF는 512차원
           };
         }
+        if (sql.includes('SELECT dimensions') && sql.includes('FROM memory_embedding') && sql.includes('WHERE embedding_provider')) {
+          // getActualStoredDimensions 쿼리: 저장된 임베딩 정보가 없음을 시뮬레이션
+          return { get: vi.fn().mockReturnValue(undefined) };
+        }
         if (sql.includes('FROM memory_item_vec_tfidf') && sql.includes('JOIN memory_embedding')) {
           return { all: vectorAllSpy };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);

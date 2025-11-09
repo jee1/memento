@@ -249,7 +249,7 @@ export class VectorSearchEngine {
     let adjustedQueryVector = queryVector;
     if (queryVector.length !== expectedDimensions) {
       // 저장된 임베딩의 실제 차원 확인
-      const actualDimensions = this.getActualStoredDimensions(normalizedProvider);
+      const actualDimensions = await this.getActualStoredDimensions(normalizedProvider);
       
       if (actualDimensions && queryVector.length === actualDimensions) {
         // 쿼리 벡터가 저장된 임베딩의 실제 차원과 일치하면 사용
@@ -262,11 +262,10 @@ export class VectorSearchEngine {
         console.error(`💡 해결 방법: 저장된 임베딩과 동일한 provider로 쿼리 임베딩을 생성해야 합니다.`);
         return [];
       } else {
-        // 저장된 임베딩 정보가 없으면 쿼리 벡터의 실제 차원을 사용
-        // (provider의 기본 차원과 다를 수 있음)
+        // 저장된 임베딩 정보가 없고 쿼리 벡터 차원이 예상 차원과 다르면 빈 결과 반환
         console.warn(`⚠️ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
-        console.warn(`ℹ️ 쿼리 벡터의 실제 차원(${queryVector.length})을 사용합니다.`);
-        // 쿼리 벡터를 그대로 사용 (차원이 다르면 검색 실패할 수 있음)
+        console.warn(`⚠️ 저장된 임베딩 정보를 확인할 수 없어 차원 불일치를 처리할 수 없습니다. 빈 결과를 반환합니다.`);
+        return [];
       }
     }
 
