@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
 import { RestoreAnchorsTool } from './restore-anchors-tool.js';
 import type { ToolContext } from './types.js';
 import { AnchorManager } from '../services/anchor-manager.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import type { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -40,18 +40,44 @@ describe('RestoreAnchorsTool', () => {
   let anchorManager: AnchorManager;
   let embeddingService: MemoryEmbeddingService;
   let hybridSearchEngine: HybridSearchEngine;
+  let vectorSearchEngine: VectorSearchEngine;
+
+  function createMockEmbeddingService(): MemoryEmbeddingService {
+    return {
+      createAndStoreEmbedding: vi.fn(),
+      searchBySimilarity: vi.fn(),
+      migrateProvider: vi.fn(),
+      isAvailable: vi.fn().mockReturnValue(false)
+    } as unknown as MemoryEmbeddingService;
+  }
+
+  function createMockHybridSearchEngine(): HybridSearchEngine {
+    return {
+      search: vi.fn().mockResolvedValue({ items: [], total_count: 0 }),
+      isEmbeddingAvailable: vi.fn().mockReturnValue(false)
+    } as unknown as HybridSearchEngine;
+  }
+
+  function createMockVectorSearchEngine(): VectorSearchEngine {
+    return {
+      initialize: vi.fn(),
+      search: vi.fn().mockResolvedValue([]),
+      isAvailable: vi.fn().mockReturnValue(true)
+    } as unknown as VectorSearchEngine;
+  }
 
   beforeEach(() => {
     db = new Database(':memory:');
     initializeTestDatabase(db);
 
-    embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = new HybridSearchEngine();
+    embeddingService = createMockEmbeddingService();
+    hybridSearchEngine = createMockHybridSearchEngine();
+    vectorSearchEngine = createMockVectorSearchEngine();
     anchorManager = new AnchorManager();
     anchorManager.setDatabase(db);
     anchorManager.setEmbeddingService(embeddingService);
     anchorManager.setHybridSearchEngine(hybridSearchEngine);
-    anchorManager.setVectorSearchEngine(getVectorSearchEngine());
+    anchorManager.setVectorSearchEngine(vectorSearchEngine);
 
     tool = new RestoreAnchorsTool();
 
@@ -219,4 +245,3 @@ describe('RestoreAnchorsTool', () => {
     });
   });
 });
-
