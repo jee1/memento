@@ -10,19 +10,17 @@ import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSche
 import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
-import { SearchEngine } from '../algorithms/search-engine.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
-import { PerformanceMonitor } from '../services/performance-monitor.js';
-import { SearchCacheService } from '../services/cache-service.js';
-import { DatabaseOptimizer } from '../services/database-optimizer.js';
+import { initializeServices, type ServerServices } from './bootstrap.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
-import { PerformanceAlertService, AlertType, AlertLevel } from '../services/performance-alert-service.js';
-// import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
-import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
-import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
+import type { SearchEngine } from '../algorithms/search-engine.js';
+import type { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import type { PerformanceMonitor } from '../services/performance-monitor.js';
+import type { DatabaseOptimizer } from '../services/database-optimizer.js';
+import type { PerformanceAlertService } from '../services/performance-alert-service.js';
+import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import type { WriteCoalescingManager } from '../utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
@@ -33,17 +31,19 @@ import packageJson from '../../package.json' with { type: 'json' };
 // MCP 서버 인스턴스
 let server: Server;
 let db: Database.Database | null = null;
+// 부트스트랩 함수에서 초기화된 서비스들 (전역 변수로 저장)
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 let forgettingPolicyService: ForgettingPolicyService;
 let performanceMonitor: PerformanceMonitor;
-let searchCache: SearchCacheService;
 let databaseOptimizer: DatabaseOptimizer;
 let errorLoggingService: ErrorLoggingService;
 let performanceAlertService: PerformanceAlertService;
 let consolidationScoreService: ConsolidationScoreService | null = null;
 let writeCoalescingManager: WriteCoalescingManager | null = null;
+// 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
+let serverServices: ServerServices | null = null;
 // let performanceMonitoringIntegration: PerformanceMonitoringIntegration;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
@@ -134,97 +134,25 @@ async function initializeServer() {
     await monitorDatabaseStatus();
     process.stderr.write('✅ 데이터베이스 상태 모니터링 완료\n');
     
-    // 검색 엔진 초기화
-    searchEngine = new SearchEngine();
-    hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
-    embeddingService = new MemoryEmbeddingService();
-    forgettingPolicyService = new ForgettingPolicyService();
-    performanceMonitor = new PerformanceMonitor();
-    searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
-    databaseOptimizer = new DatabaseOptimizer(db);
-    errorLoggingService = new ErrorLoggingService();
-    performanceAlertService = new PerformanceAlertService('./logs');
+    // 공용 부트스트랩 함수를 사용하여 모든 서비스 초기화
+    const services = await initializeServices(db);
     
-    // Consolidation Score Service 초기화 (기능 플래그 확인)
-    if (mementoConfig.consolidationScoreEnabled) {
-      consolidationScoreService = new ConsolidationScoreService();
-      
-      // Write Coalescing Manager 초기화 (초당 1회 flush)
-      writeCoalescingManager = new WriteCoalescingManager(
-        1000, // 1초마다 flush
-        async (writes: CoalescedWrite[]) => {
-          // 배치 업데이트 실행
-          if (!db || writes.length === 0) {
-            return;
-          }
-
-          // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
-          const currentDb = db;
-          if (!currentDb) {
-            return;
-          }
-
-          try {
-            // 트랜잭션으로 배치 업데이트
-            await DatabaseUtils.runTransaction(currentDb, async () => {
-              for (const write of writes) {
-                const updates: string[] = [];
-                const params: any[] = [];
-
-                if (write.fields.recall_count !== undefined) {
-                  updates.push('recall_count = ?');
-                  params.push(write.fields.recall_count);
-                }
-                if (write.fields.last_accessed_at !== undefined) {
-                  updates.push('last_accessed_at = ?');
-                  params.push(write.fields.last_accessed_at);
-                }
-                if (write.fields.g_value !== undefined) {
-                  updates.push('g_value = ?');
-                  params.push(write.fields.g_value);
-                }
-                if (write.fields.consolidation_score !== undefined) {
-                  updates.push('consolidation_score = ?');
-                  params.push(write.fields.consolidation_score);
-                }
-
-                if (updates.length > 0) {
-                  params.push(write.memoryId);
-                  DatabaseUtils.run(
-                    currentDb,
-                    `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
-                    params
-                  );
-                }
-              }
-            });
-          } catch (error) {
-            // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
-            process.stderr.write(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}\n`);
-          }
-        }
-      );
-      
-      process.stderr.write('✅ Consolidation Score Service 초기화 완료\n');
-      process.stderr.write('✅ Write Coalescing Manager 초기화 완료\n');
-    } else {
-      process.stderr.write('ℹ️ Consolidation Score System 비활성화됨\n');
-    }
+    // 전역 변수에 서비스 할당 (하위 호환성을 위해 유지)
+    searchEngine = services.searchEngine;
+    hybridSearchEngine = services.hybridSearchEngine;
+    embeddingService = services.embeddingService;
+    forgettingPolicyService = services.forgettingPolicyService;
+    performanceMonitor = services.performanceMonitor;
+    databaseOptimizer = services.databaseOptimizer;
+    errorLoggingService = services.errorLoggingService;
+    performanceAlertService = services.performanceAlertService;
+    consolidationScoreService = services.consolidationScoreService || null;
+    writeCoalescingManager = services.writeCoalescingManager || null;
     
-    // performanceMonitoringIntegration = new PerformanceMonitoringIntegration(
-    //   db,
-    //   performanceAlertService,
-    //   {
-    //     enableRealTimeMonitoring: true,
-    //     monitoringInterval: 30000, // 30초마다 체크
-    //     alertThresholds: {
-    //       responseTime: { warning: 100, critical: 500 },
-    //       memoryUsage: { warning: 100, critical: 200 },
-    //       errorRate: { warning: 5, critical: 10 },
-    //       throughput: { warning: 10, critical: 5 }
-    //     }
-    //   }
-    // );
+    // 부트스트랩에서 반환된 전체 서비스 객체 저장 (ToolContext 생성 시 사용)
+    serverServices = services;
+    
+    process.stderr.write('✅ 서비스 초기화 완료\n');
     
     // 임베딩 프로바이더 정보 표시
     process.stderr.write(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}\n`);
@@ -390,20 +318,24 @@ async function initializeServer() {
       await concurrencyLimiter.acquire();
       
       try {
-        // 도구 컨텍스트 생성
+        // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+        if (!serverServices) {
+          throw new Error('서비스가 초기화되지 않았습니다');
+        }
+        
         const context: ToolContext = {
           db,
           services: {
-            searchEngine,
-            hybridSearchEngine,
-            embeddingService,
-            forgettingPolicyService,
-            performanceMonitor,
-            databaseOptimizer,
-            errorLoggingService,
-            performanceAlertService,
-            consolidationScoreService: consolidationScoreService || undefined,
-            writeCoalescingManager: writeCoalescingManager || undefined
+            searchEngine: serverServices.searchEngine,
+            hybridSearchEngine: serverServices.hybridSearchEngine,
+            embeddingService: serverServices.embeddingService,
+            forgettingPolicyService: serverServices.forgettingPolicyService,
+            performanceMonitor: serverServices.performanceMonitor,
+            databaseOptimizer: serverServices.databaseOptimizer,
+            errorLoggingService: serverServices.errorLoggingService,
+            performanceAlertService: serverServices.performanceAlertService,
+            consolidationScoreService: serverServices.consolidationScoreService,
+            writeCoalescingManager: serverServices.writeCoalescingManager
             // performanceMonitoringIntegration
           }
         };

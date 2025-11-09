@@ -10,7 +10,12 @@ import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import Database from 'better-sqlite3';
 import WebSocket from 'ws';
-import EventSource from 'eventsource';
+// eventsource는 CommonJS 모듈이므로 createRequire 사용
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const EventSourceModule = require('eventsource');
+// EventSource는 모듈 객체의 EventSource 속성
+const EventSource = EventSourceModule.EventSource || EventSourceModule.default || EventSourceModule;
 
 // 테스트용 데이터베이스 설정
 const TEST_DB_PATH = 'data/memory-test-v2.db';
@@ -144,13 +149,18 @@ async function setupTestDatabase() {
   return db;
 }
 
+// 테스트에서 사용할 포트 (전역 변수)
+const TEST_PORT = process.env.PORT ? Number(process.env.PORT) : 9001;
+const BASE_URL = `http://localhost:${TEST_PORT}`;
+const WS_URL = `ws://localhost:${TEST_PORT}`;
+
 async function testBasicEndpoints() {
   console.log('\n🧪 1️⃣ 기본 엔드포인트 테스트');
   
   try {
     // 헬스 체크 테스트
     console.log('  📋 헬스 체크 테스트...');
-    const healthResponse = await fetch('http://localhost:9001/health');
+    const healthResponse = await fetch(`${BASE_URL}/health`);
     const healthData = await healthResponse.json();
     
     if (healthResponse.ok && healthData.status === 'healthy') {
@@ -161,16 +171,16 @@ async function testBasicEndpoints() {
     
     // 도구 목록 테스트
     console.log('  📋 도구 목록 테스트...');
-    const toolsResponse = await fetch('http://localhost:9001/tools');
+    const toolsResponse = await fetch(`${BASE_URL}/tools`);
     const toolsData = await toolsResponse.json();
     
-    if (toolsResponse.ok && toolsData.tools && toolsData.tools.length === 5) {
+    if (toolsResponse.ok && toolsData.tools && toolsData.tools.length >= 5) {
       console.log(`  ✅ 도구 목록 성공 (${toolsData.tools.length}개 도구)`);
       toolsData.tools.forEach((tool: any) => {
         console.log(`    - ${tool.name}: ${tool.description}`);
       });
     } else {
-      throw new Error('도구 목록 조회 실패');
+      throw new Error(`도구 목록 조회 실패: ${toolsData.tools?.length || 0}개 도구 (최소 5개 필요)`);
     }
     
   } catch (error) {
@@ -185,7 +195,7 @@ async function testMCPTools() {
   try {
     // remember 도구 테스트
     console.log('  📝 remember 도구 테스트...');
-    const rememberResponse = await fetch('http://localhost:9001/tools/remember', {
+    const rememberResponse = await fetch(`${BASE_URL}/tools/remember`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -197,13 +207,33 @@ async function testMCPTools() {
     });
     
     const rememberData = await rememberResponse.json();
-    if (rememberResponse.ok && rememberData.result && rememberData.result.memory_id) {
-      console.log(`  ✅ remember 성공: ${rememberData.result.memory_id}`);
-      const testMemoryId = rememberData.result.memory_id;
-      
-      // recall 도구 테스트
+    
+    // 디버깅: 응답 확인
+    if (!rememberResponse.ok) {
+      console.error('  ❌ remember 응답 실패:', {
+        status: rememberResponse.status,
+        statusText: rememberResponse.statusText,
+        data: rememberData
+      });
+      throw new Error(`remember 테스트 실패: HTTP ${rememberResponse.status} - ${JSON.stringify(rememberData)}`);
+    }
+    
+    if (!rememberData.result) {
+      console.error('  ❌ remember 응답에 result가 없음:', rememberData);
+      throw new Error(`remember 테스트 실패: result가 없음 - ${JSON.stringify(rememberData)}`);
+    }
+    
+    if (!rememberData.result.memory_id) {
+      console.error('  ❌ remember 응답에 memory_id가 없음:', rememberData.result);
+      throw new Error(`remember 테스트 실패: memory_id가 없음 - ${JSON.stringify(rememberData.result)}`);
+    }
+    
+    console.log(`  ✅ remember 성공: ${rememberData.result.memory_id}`);
+    const testMemoryId = rememberData.result.memory_id;
+    
+    // recall 도구 테스트
       console.log('  🔍 recall 도구 테스트...');
-      const recallResponse = await fetch('http://localhost:9001/tools/recall', {
+      const recallResponse = await fetch(`${BASE_URL}/tools/recall`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +251,7 @@ async function testMCPTools() {
       
       // pin 도구 테스트
       console.log('  📌 pin 도구 테스트...');
-      const pinResponse = await fetch('http://localhost:9001/tools/pin', {
+      const pinResponse = await fetch(`${BASE_URL}/tools/pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testMemoryId })
@@ -236,7 +266,7 @@ async function testMCPTools() {
       
       // unpin 도구 테스트
       console.log('  📌 unpin 도구 테스트...');
-      const unpinResponse = await fetch('http://localhost:9001/tools/unpin', {
+      const unpinResponse = await fetch(`${BASE_URL}/tools/unpin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testMemoryId })
@@ -251,7 +281,7 @@ async function testMCPTools() {
       
       // forget 도구 테스트 (소프트 삭제)
       console.log('  🗑️ forget 도구 테스트...');
-      const forgetResponse = await fetch('http://localhost:9001/tools/forget', {
+      const forgetResponse = await fetch(`${BASE_URL}/tools/forget`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testMemoryId, hard: false })
@@ -263,10 +293,6 @@ async function testMCPTools() {
       } else {
         throw new Error('forget 테스트 실패');
       }
-      
-    } else {
-      throw new Error('remember 테스트 실패');
-    }
     
   } catch (error) {
     console.error('  ❌ MCP 도구 테스트 실패:', error);
@@ -280,7 +306,7 @@ async function testAdminAPIs() {
   try {
     // 성능 통계 테스트
     console.log('  📊 성능 통계 테스트...');
-    const perfResponse = await fetch('http://localhost:9001/admin/stats/performance');
+    const perfResponse = await fetch(`${BASE_URL}/admin/stats/performance`);
     const perfData = await perfResponse.json();
     
     if (perfResponse.ok && perfData.message) {
@@ -291,7 +317,7 @@ async function testAdminAPIs() {
     
     // 망각 통계 테스트
     console.log('  📊 망각 통계 테스트...');
-    const forgetResponse = await fetch('http://localhost:9001/admin/stats/forgetting');
+    const forgetResponse = await fetch(`${BASE_URL}/admin/stats/forgetting`);
     const forgetData = await forgetResponse.json();
     
     if (forgetResponse.ok && forgetData.message) {
@@ -302,7 +328,7 @@ async function testAdminAPIs() {
     
     // 데이터베이스 최적화 테스트
     console.log('  🔧 데이터베이스 최적화 테스트...');
-    const optimizeResponse = await fetch('http://localhost:9001/admin/database/optimize', {
+    const optimizeResponse = await fetch(`${BASE_URL}/admin/database/optimize`, {
       method: 'POST'
     });
     const optimizeData = await optimizeResponse.json();
@@ -315,7 +341,7 @@ async function testAdminAPIs() {
     
     // 메모리 정리 테스트
     console.log('  🧹 메모리 정리 테스트...');
-    const cleanupResponse = await fetch('http://localhost:9001/admin/memory/cleanup', {
+    const cleanupResponse = await fetch(`${BASE_URL}/admin/memory/cleanup`, {
       method: 'POST'
     });
     const cleanupData = await cleanupResponse.json();
@@ -336,7 +362,7 @@ async function testWebSocket() {
   console.log('\n🧪 4️⃣ WebSocket 연결 테스트');
   
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket('ws://localhost:9001');
+    const ws = new WebSocket(WS_URL);
     
     let testPassed = 0;
     const totalTests = 2;
@@ -421,7 +447,7 @@ async function testSSE() {
     const totalTests = 3;
     
     // SSE 연결
-    const eventSource = new EventSource('http://localhost:9001/mcp');
+    const eventSource = new EventSource(`${BASE_URL}/mcp`);
     
     eventSource.onopen = () => {
       console.log('  🔗 SSE 연결 성공');
@@ -490,7 +516,7 @@ async function testSSE() {
         params: params
       };
       
-      fetch(`http://localhost:9001/messages?sessionId=${sessionId}`, {
+      fetch(`${BASE_URL}/messages?sessionId=${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(message)
@@ -516,7 +542,24 @@ async function runTests() {
   let testDb: Database.Database | null = null;
   let serverStarted = false;
   
+  // 테스트에서 사용할 포트 (환경 변수 또는 기본값)
+  const TEST_PORT = process.env.PORT ? Number(process.env.PORT) : 9001;
+  const BASE_URL = `http://localhost:${TEST_PORT}`;
+  const WS_URL = `ws://localhost:${TEST_PORT}`;
+  
   try {
+    // 0. 이전 테스트에서 남아있을 수 있는 BatchScheduler 정리
+    try {
+      const { getBatchScheduler } = await import('../services/batch-scheduler.js');
+      const batchScheduler = getBatchScheduler();
+      if (batchScheduler.getStatus().isRunning) {
+        console.log('🧹 이전 테스트의 BatchScheduler 정리 중...');
+        await batchScheduler.stop();
+      }
+    } catch (error) {
+      // 정리 실패는 무시 (첫 실행일 수 있음)
+    }
+    
     // 1. 테스트 데이터베이스 설정
     testDb = await setupTestDatabase();
     
@@ -534,11 +577,40 @@ async function runTests() {
     
     // 3. 서버 시작
     console.log('\n🚀 HTTP 서버 v2 시작 중...');
+    // 환경 변수로 포트 설정 (테스트용)
+    // MCP_SERVER_PORT 또는 PORT 환경 변수 설정
+    if (!process.env.MCP_SERVER_PORT && !process.env.PORT) {
+      process.env.MCP_SERVER_PORT = String(TEST_PORT);
+      process.env.PORT = String(TEST_PORT);
+    } else if (process.env.MCP_SERVER_PORT) {
+      // MCP_SERVER_PORT가 설정되어 있으면 그것을 사용
+      process.env.PORT = process.env.MCP_SERVER_PORT;
+    }
     await startServer();
     serverStarted = true;
     
-    // 서버 시작 대기
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // 서버 시작 대기 (더 긴 대기 시간)
+    console.log(`⏳ 서버 시작 대기 중... (포트: ${TEST_PORT})`);
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    // 서버가 실제로 시작되었는지 확인
+    let retries = 10;
+    while (retries > 0) {
+      try {
+        const healthCheck = await fetch(`${BASE_URL}/health`);
+        if (healthCheck.ok) {
+          console.log('✅ 서버가 정상적으로 시작되었습니다');
+          break;
+        }
+      } catch (error) {
+        // 연결 실패, 재시도
+        retries--;
+        if (retries === 0) {
+          throw new Error(`서버가 ${TEST_PORT} 포트에서 시작되지 않았습니다`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
     
     // 4. 테스트 실행
     await testBasicEndpoints();

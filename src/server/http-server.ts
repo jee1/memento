@@ -10,6 +10,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { initializeDatabase, closeDatabase } from '../database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
+import { initializeServices, type ServerServices } from './bootstrap.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
@@ -19,7 +20,7 @@ import { MemoryNeighborService, MemoryNotFoundError } from '../services/memory-n
 import { getBatchScheduler } from '../services/batch-scheduler.js';
 import { getPerformanceMonitor } from '../services/performance-monitor.js';
 import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
-import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
+import { WriteCoalescingManager } from '../utils/write-coalescing.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
@@ -32,8 +33,15 @@ let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
 let embeddingService: MemoryEmbeddingService;
+let forgettingPolicyService: ServerServices['forgettingPolicyService'];
+let performanceMonitor: ServerServices['performanceMonitor'];
+let databaseOptimizer: ServerServices['databaseOptimizer'];
+let errorLoggingService: ServerServices['errorLoggingService'];
+let performanceAlertService: ServerServices['performanceAlertService'];
 let consolidationScoreService: ConsolidationScoreService | null = null;
 let writeCoalescingManager: WriteCoalescingManager | null = null;
+// 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
+let serverServices: ServerServices | null = null;
 
 type TestDependencies = {
   database: Database.Database;
@@ -104,22 +112,51 @@ app.post('/tools/:name', async (req, res) => {
   try {
     const toolRegistry = getToolRegistry();
     
-    // 도구 컨텍스트 생성
+    // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+    if (!serverServices) {
+      return res.status(500).json({ 
+        error: 'Services not initialized',
+        message: '서비스가 초기화되지 않았습니다'
+      });
+    }
+    
     const context: ToolContext = {
       db,
       services: {
-        searchEngine,
-        hybridSearchEngine,
-        embeddingService,
-        consolidationScoreService: consolidationScoreService || undefined,
-        writeCoalescingManager: writeCoalescingManager || undefined
+        searchEngine: serverServices.searchEngine,
+        hybridSearchEngine: serverServices.hybridSearchEngine,
+        embeddingService: serverServices.embeddingService,
+        forgettingPolicyService: serverServices.forgettingPolicyService,
+        performanceMonitor: serverServices.performanceMonitor,
+        databaseOptimizer: serverServices.databaseOptimizer,
+        errorLoggingService: serverServices.errorLoggingService,
+        performanceAlertService: serverServices.performanceAlertService,
+        consolidationScoreService: serverServices.consolidationScoreService,
+        writeCoalescingManager: serverServices.writeCoalescingManager
       }
     };
     
     // 도구 실행
-    const result = await toolRegistry.execute(name, params, context);
+    const toolResult = await toolRegistry.execute(name, params, context);
+    
+    // MCP 형식의 ToolResult에서 실제 데이터 추출
+    // content 배열의 첫 번째 항목의 text를 JSON 파싱
+    let actualResult: any = toolResult;
+    if (toolResult.content && Array.isArray(toolResult.content) && toolResult.content.length > 0) {
+      const firstContent = toolResult.content[0];
+      if (firstContent && firstContent.text) {
+        try {
+          const textContent = firstContent.text;
+          actualResult = JSON.parse(textContent);
+        } catch (parseError) {
+          // JSON 파싱 실패 시 원본 content 사용
+          actualResult = toolResult;
+        }
+      }
+    }
+    
     return res.json({ 
-      result,
+      result: actualResult,
       tool: name,
       timestamp: new Date().toISOString()
     });
@@ -393,26 +430,43 @@ app.post('/messages', express.json(), async (req, res) => {
       
       const toolRegistry = getToolRegistry();
       
-      // 도구 컨텍스트 생성
-      const context: ToolContext = {
-        db,
-        services: {
-          searchEngine,
-          hybridSearchEngine,
-          embeddingService,
-          consolidationScoreService: consolidationScoreService || undefined,
-          writeCoalescingManager: writeCoalescingManager || undefined
-        }
-      };
-      
-      // 도구 실행
-      const toolResult = await toolRegistry.execute(name, args, context);
-      
-      result = {
-        jsonrpc: '2.0',
-        id: message.id,
-        result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
-      };
+      // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+      if (!serverServices) {
+        result = {
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32603,
+            message: 'Internal error',
+            data: '서비스가 초기화되지 않았습니다'
+          }
+        };
+      } else {
+        const context: ToolContext = {
+          db,
+          services: {
+            searchEngine: serverServices.searchEngine,
+            hybridSearchEngine: serverServices.hybridSearchEngine,
+            embeddingService: serverServices.embeddingService,
+            forgettingPolicyService: serverServices.forgettingPolicyService,
+            performanceMonitor: serverServices.performanceMonitor,
+            databaseOptimizer: serverServices.databaseOptimizer,
+            errorLoggingService: serverServices.errorLoggingService,
+            performanceAlertService: serverServices.performanceAlertService,
+            consolidationScoreService: serverServices.consolidationScoreService,
+            writeCoalescingManager: serverServices.writeCoalescingManager
+          }
+        };
+        
+        // 도구 실행
+        const toolResult = await toolRegistry.execute(name, args, context);
+        
+        result = {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
+        };
+      }
     } else if (message.method === 'prompts/list') {
       console.log('📋 MCP prompts/list 요청 처리 중...');
       
@@ -490,24 +544,44 @@ app.post('/messages', express.json(), async (req, res) => {
       
       if (name === 'memory_injection') {
         try {
-          // MemoryInjectionPrompt 도구 사용
-          const toolRegistry = getToolRegistry();
-          const context: ToolContext = {
-            db,
-            services: {
-              searchEngine,
-              hybridSearchEngine,
-              embeddingService
-            }
-          };
-          
-          const promptResult = await toolRegistry.execute('memory_injection', args, context);
-          
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: promptResult
-          };
+          // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+          if (!serverServices) {
+            result = {
+              jsonrpc: '2.0',
+              id: message.id,
+              error: {
+                code: -32603,
+                message: 'Internal error',
+                data: '서비스가 초기화되지 않았습니다'
+              }
+            };
+          } else {
+            // MemoryInjectionPrompt 도구 사용
+            const toolRegistry = getToolRegistry();
+            const context: ToolContext = {
+              db,
+              services: {
+                searchEngine: serverServices.searchEngine,
+                hybridSearchEngine: serverServices.hybridSearchEngine,
+                embeddingService: serverServices.embeddingService,
+                forgettingPolicyService: serverServices.forgettingPolicyService,
+                performanceMonitor: serverServices.performanceMonitor,
+                databaseOptimizer: serverServices.databaseOptimizer,
+                errorLoggingService: serverServices.errorLoggingService,
+                performanceAlertService: serverServices.performanceAlertService,
+                consolidationScoreService: serverServices.consolidationScoreService,
+                writeCoalescingManager: serverServices.writeCoalescingManager
+              }
+            };
+            
+            const promptResult = await toolRegistry.execute('memory_injection', args, context);
+            
+            result = {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: promptResult
+            };
+          }
         } catch (error) {
           result = {
             jsonrpc: '2.0',
@@ -914,81 +988,36 @@ async function initializeServer() {
     // 데이터베이스 초기화
     db = await initializeDatabase();
     
-    // 검색 엔진 초기화
-    searchEngine = new SearchEngine();
-    hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
+    // 공용 부트스트랩 함수를 사용하여 모든 서비스 초기화
+    const services = await initializeServices(db);
+    
+    // 전역 변수에 서비스 할당
+    searchEngine = services.searchEngine;
+    hybridSearchEngine = services.hybridSearchEngine;
+    embeddingService = services.embeddingService;
+    forgettingPolicyService = services.forgettingPolicyService;
+    performanceMonitor = services.performanceMonitor;
+    databaseOptimizer = services.databaseOptimizer;
+    errorLoggingService = services.errorLoggingService;
+    performanceAlertService = services.performanceAlertService;
+    consolidationScoreService = services.consolidationScoreService || null;
+    writeCoalescingManager = services.writeCoalescingManager || null;
+    
+    // 부트스트랩에서 반환된 전체 서비스 객체 저장 (ToolContext 생성 시 사용)
+    serverServices = services;
+    
+    // Vector Search Engine 초기화 (HTTP 서버 전용)
     vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);
-    embeddingService = new MemoryEmbeddingService();
     
-    // Consolidation Score Service 초기화 (기능 플래그 확인)
-    if (mementoConfig.consolidationScoreEnabled) {
-      consolidationScoreService = new ConsolidationScoreService();
-      
-      // Write Coalescing Manager 초기화 (초당 1회 flush)
-      writeCoalescingManager = new WriteCoalescingManager(
-        1000, // 1초마다 flush
-        async (writes: CoalescedWrite[]) => {
-          // 배치 업데이트 실행
-          if (!db || writes.length === 0) {
-            return;
-          }
-
-          // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
-          const currentDb = db;
-          if (!currentDb) {
-            return;
-          }
-
-          try {
-            // 트랜잭션으로 배치 업데이트
-            await DatabaseUtils.runTransaction(currentDb, async () => {
-              for (const write of writes) {
-                const updates: string[] = [];
-                const params: any[] = [];
-
-                if (write.fields.recall_count !== undefined) {
-                  updates.push('recall_count = ?');
-                  params.push(write.fields.recall_count);
-                }
-                if (write.fields.last_accessed_at !== undefined) {
-                  updates.push('last_accessed_at = ?');
-                  params.push(write.fields.last_accessed_at);
-                }
-                if (write.fields.g_value !== undefined) {
-                  updates.push('g_value = ?');
-                  params.push(write.fields.g_value);
-                }
-                if (write.fields.consolidation_score !== undefined) {
-                  updates.push('consolidation_score = ?');
-                  params.push(write.fields.consolidation_score);
-                }
-
-                if (updates.length > 0) {
-                  params.push(write.memoryId);
-                  DatabaseUtils.run(
-                    currentDb,
-                    `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
-                    params
-                  );
-                }
-              }
-            });
-          } catch (error) {
-            // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
-            console.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
-          }
-        }
-      );
-      
-      console.log('✅ Consolidation Score Service 초기화 완료');
-      console.log('✅ Write Coalescing Manager 초기화 완료');
-    } else {
-      console.log('ℹ️ Consolidation Score System 비활성화됨');
-    }
+    console.log('✅ 서비스 초기화 완료');
     
-    // 배치 스케줄러 시작
+    // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
     const batchScheduler = getBatchScheduler();
+    if (batchScheduler.getStatus().isRunning) {
+      console.log('⚠️  이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...');
+      await batchScheduler.stop();
+    }
     await batchScheduler.start(db);
     console.log('⏰ 배치 스케줄러 시작됨');
     
@@ -1031,7 +1060,7 @@ async function cleanup() {
     
     // 배치 스케줄러 중지
     const batchScheduler = getBatchScheduler();
-    batchScheduler.stop();
+    await batchScheduler.stop();
     console.log('⏰ 배치 스케줄러 중지됨');
     
     if (db) {
@@ -1095,15 +1124,33 @@ wss.on('connection', (ws) => {
         
         const toolRegistry = getToolRegistry();
         
-        // 도구 컨텍스트 생성
+        // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+        if (!serverServices) {
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32603,
+              message: 'Internal error',
+              data: '서비스가 초기화되지 않았습니다'
+            }
+          }));
+          return;
+        }
+        
         const context: ToolContext = {
           db,
           services: {
-            searchEngine,
-            hybridSearchEngine,
-            embeddingService,
-            consolidationScoreService: consolidationScoreService || undefined,
-            writeCoalescingManager: writeCoalescingManager || undefined
+            searchEngine: serverServices.searchEngine,
+            hybridSearchEngine: serverServices.hybridSearchEngine,
+            embeddingService: serverServices.embeddingService,
+            forgettingPolicyService: serverServices.forgettingPolicyService,
+            performanceMonitor: serverServices.performanceMonitor,
+            databaseOptimizer: serverServices.databaseOptimizer,
+            errorLoggingService: serverServices.errorLoggingService,
+            performanceAlertService: serverServices.performanceAlertService,
+            consolidationScoreService: serverServices.consolidationScoreService,
+            writeCoalescingManager: serverServices.writeCoalescingManager
           }
         };
         
@@ -1140,16 +1187,28 @@ wss.on('connection', (ws) => {
 });
 
 // 서버 시작
-const PORT = process.env.PORT || 9001;
-
 async function startServer() {
   await initializeServer();
   
   // 정리 핸들러 등록
   registerCleanupHandlers();
   
-  // Express app을 사용하여 모든 인터페이스에 바인딩
-  app.listen(Number(PORT), '0.0.0.0', () => {
+  // 포트 설정 (mementoConfig에서 가져오거나 기본값 9001)
+  const PORT = mementoConfig.port || 9001;
+  
+  // 이미 리스닝 중이면 먼저 종료
+  if (server.listening) {
+    console.log('⚠️  서버가 이미 리스닝 중입니다. 종료 후 재시작합니다...');
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        resolve();
+      });
+    });
+  }
+  
+  // HTTP 서버를 사용하여 Express app과 WebSocket 서버 모두 바인딩
+  // app.listen() 대신 server.listen()을 사용하여 WebSocket 서버와 동일한 인스턴스 사용
+  server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`🌐 HTTP 서버: http://0.0.0.0:${PORT}`);
     console.log(`🔌 WebSocket 서버: ws://0.0.0.0:${PORT}`);
     console.log(`📋 API 문서: http://0.0.0.0:${PORT}/tools`);

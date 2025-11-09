@@ -11,19 +11,37 @@ export interface ToolDefinition {
   handler: ToolHandler;
 }
 
+/**
+ * MCP 도구 실행 컨텍스트
+ * 
+ * 모든 서비스는 optional로 정의되어 있어 하위 호환성을 보장합니다.
+ * 부트스트랩 함수를 통해 초기화된 서비스들이 포함됩니다.
+ */
 export interface ToolContext {
+  /** 데이터베이스 인스턴스 */
   db: any;
   services: {
+    /** 기본 텍스트 검색 엔진 */
     searchEngine?: any;
+    /** 하이브리드 검색 엔진 (텍스트 + 벡터) */
     hybridSearchEngine?: any;
+    /** 메모리 임베딩 서비스 */
     embeddingService?: any;
+    /** 망각 정책 서비스 */
     forgettingPolicyService?: any;
+    /** 성능 모니터링 서비스 (싱글톤) */
     performanceMonitor?: any;
+    /** 데이터베이스 최적화 서비스 */
     databaseOptimizer?: any;
+    /** 에러 로깅 서비스 */
     errorLoggingService?: any;
+    /** 성능 알림 서비스 */
     performanceAlertService?: any;
+    /** 성능 모니터링 통합 서비스 (주석 처리됨, 향후 사용 예정) */
     performanceMonitoringIntegration?: any;
+    /** 통합 점수 서비스 (기능 플래그에 따라 초기화) */
     consolidationScoreService?: any;
+    /** 쓰기 결합 관리자 (기능 플래그에 따라 초기화) */
     writeCoalescingManager?: any;
   };
 }
