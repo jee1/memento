@@ -40,8 +40,19 @@ describe('AnchorManager', () => {
   });
 
   afterEach(() => {
+    // 인스턴스 정리
+    if (anchorManager) {
+      anchorManager = null as any;
+    }
+    
+    // 데이터베이스 닫기
     if (db) {
-      db.close();
+      try {
+        db.close();
+      } catch (error) {
+        console.warn('Database close 중 에러:', error);
+      }
+      db = null as any;
     }
   });
 
