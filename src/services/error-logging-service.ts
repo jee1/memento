@@ -20,6 +20,7 @@ export enum ErrorCategory {
   SEARCH = 'search',
   EMBEDDING = 'embedding',
   CACHE = 'cache',
+  TOOL_EXECUTION = 'tool_execution',
   UNKNOWN = 'unknown'
 }
 
@@ -171,6 +172,7 @@ export class ErrorLoggingService {
       [ErrorCategory.SEARCH]: 0,
       [ErrorCategory.EMBEDDING]: 0,
       [ErrorCategory.CACHE]: 0,
+      [ErrorCategory.TOOL_EXECUTION]: 0,
       [ErrorCategory.UNKNOWN]: 0
     };
 

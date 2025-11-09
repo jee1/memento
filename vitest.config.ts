@@ -8,6 +8,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     hookTimeout: 30000, // 30초로 증가
     testTimeout: 30000, // 30초로 증가
+    setupFiles: ['./src/test/vitest.setup.ts'], // 전역 설정 파일
     // CI 환경에서 DB 관련 테스트 스킵
     ...(process.env.CI && {
       exclude: [
@@ -38,6 +39,7 @@ export default defineConfig({
       deps: {
         inline: [
           /@xenova\/transformers/,
+          /onnxruntime-node/,
         ]
       }
     }
