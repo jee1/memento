@@ -33,6 +33,7 @@ export class WriteCoalescingManager {
   private flushInterval: number; // 밀리초
   private flushTimer: NodeJS.Timeout | null = null;
   private isFlushing: boolean = false;
+  private isDestroyed: boolean = false; // destroy 호출 여부 추적
   private flushCallback: (writes: CoalescedWrite[]) => Promise<void>;
 
   /**
@@ -54,6 +55,12 @@ export class WriteCoalescingManager {
    * @param write 쓰기 작업
    */
   addWrite(write: CoalescedWrite): void {
+    // destroy된 후에는 쓰기 추가 불가
+    if (this.isDestroyed) {
+      console.warn('WriteCoalescingManager가 destroy된 후에는 쓰기를 추가할 수 없습니다.');
+      return;
+    }
+    
     const existing = this.buffer.get(write.memoryId);
     
     if (existing) {
@@ -68,7 +75,7 @@ export class WriteCoalescingManager {
     }
 
     // 첫 번째 항목이 추가되면 타이머 시작
-    if (this.buffer.size === 1 && !this.flushTimer) {
+    if (this.buffer.size === 1 && !this.flushTimer && !this.isDestroyed) {
       this.startFlushTimer();
     }
   }
@@ -88,13 +95,31 @@ export class WriteCoalescingManager {
    * Flush 타이머 시작
    */
   private startFlushTimer(): void {
-    if (this.flushTimer) {
-      return; // 이미 실행 중
+    if (this.flushTimer || this.isDestroyed) {
+      return; // 이미 실행 중이거나 destroy됨
     }
 
-    this.flushTimer = setTimeout(() => {
+    this.flushTimer = setTimeout(async () => {
       this.flushTimer = null;
-      this.flush();
+      
+      // destroy가 호출되었거나 버퍼가 비어있으면 종료
+      if (this.isDestroyed || this.buffer.size === 0) {
+        return;
+      }
+      
+      // flush 실행 (destroy 중이 아닐 때만)
+      if (!this.isFlushing) {
+        try {
+          await this.flush();
+          // flush 후 버퍼에 항목이 있고 destroy되지 않았으면 타이머 재시작
+          if (this.buffer.size > 0 && !this.flushTimer && !this.isDestroyed) {
+            this.startFlushTimer();
+          }
+        } catch (error) {
+          // flush 실패는 무시 (이미 로깅됨)
+          console.error('Write coalescing timer flush 실패:', error);
+        }
+      }
     }, this.flushInterval);
   }
 
@@ -155,12 +180,45 @@ export class WriteCoalescingManager {
 
   /**
    * 모든 타이머 정리 및 버퍼 초기화
+   * 진행 중인 flush 작업이 있으면 완료될 때까지 대기합니다.
    */
-  destroy(): void {
+  async destroy(): Promise<void> {
+    // 중복 호출 방지
+    if (this.isDestroyed) {
+      return;
+    }
+    
+    this.isDestroyed = true;
+    
+    // 타이머 정리
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
     }
+    
+    // 진행 중인 flush 작업이 있으면 완료될 때까지 대기
+    // 최대 1초 대기 (무한 대기 방지)
+    const maxWaitTime = 1000;
+    const startTime = Date.now();
+    while (this.isFlushing && (Date.now() - startTime) < maxWaitTime) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    // 남은 버퍼 flush (동기적으로)
+    if (this.buffer.size > 0 && !this.isFlushing) {
+      try {
+        // 동기 flush (타이머 없이)
+        const writes = Array.from(this.buffer.values());
+        this.buffer.clear();
+        if (writes.length > 0) {
+          await this.flushCallback(writes);
+        }
+      } catch (error) {
+        console.error('Write coalescing destroy 시 flush 실패:', error);
+      }
+    }
+    
+    // 버퍼 초기화
     this.buffer.clear();
     this.isFlushing = false;
   }

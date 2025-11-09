@@ -3,7 +3,7 @@
  * 기존 인터페이스와의 호환성 검증
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { 
   VectorSearchEngineRefactored,
   getVectorSearchEngine,
@@ -21,7 +21,11 @@ vi.mock('@xenova/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
-    })
+    }),
+    env: {
+      useBrowserCache: false,
+      useCustomCache: false
+    }
   };
 });
 
@@ -63,6 +67,17 @@ describe('VectorSearchEngineRefactored', () => {
     vi.spyOn(VectorSearchContainer, 'getInstance').mockReturnValue(mockContainer);
 
     engine = new VectorSearchEngineRefactored();
+  });
+
+  afterEach(() => {
+    // Mock 정리
+    vi.clearAllMocks();
+    // Spy 복원
+    vi.restoreAllMocks();
+    // 인스턴스 정리
+    engine = null as any;
+    mockDb = null;
+    mockContainer = null;
   });
 
   describe('initialize', () => {

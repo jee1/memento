@@ -12,7 +12,11 @@ vi.mock('@xenova/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
-    })
+    }),
+    env: {
+      useBrowserCache: false,
+      useCustomCache: false
+    }
   };
 });
 

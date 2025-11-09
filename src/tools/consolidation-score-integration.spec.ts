@@ -49,6 +49,28 @@ function initializeTestDatabase(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
     CREATE INDEX IF NOT EXISTS idx_memory_item_consol_active ON memory_item(consolidation_score) WHERE consolidation_score > 0.2;
+
+    CREATE TABLE IF NOT EXISTS memory_embedding (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memory_id TEXT NOT NULL,
+      embedding TEXT NOT NULL,
+      dim INTEGER NOT NULL,
+      model TEXT,
+      embedding_provider TEXT DEFAULT 'tfidf',
+      dimensions INTEGER,
+      precision INTEGER DEFAULT 32,
+      normalized BOOLEAN DEFAULT FALSE,
+      version INTEGER DEFAULT 1,
+      created_by TEXT DEFAULT 'system',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      projection_type TEXT NOT NULL DEFAULT 'native',
+      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      UNIQUE(memory_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider ON memory_embedding(embedding_provider);
+    CREATE INDEX IF NOT EXISTS idx_memory_embedding_dimensions ON memory_embedding(dimensions);
   `);
 }
 
@@ -136,17 +158,71 @@ describe('Consolidation Score System 통합 테스트', () => {
   });
 
   afterEach(async () => {
-    // Write Coalescing Manager 정리
-    if (writeCoalescingManager) {
-      await writeCoalescingManager.flush();
-      writeCoalescingManager.destroy();
+    // 모든 비동기 작업이 완료될 때까지 대기
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 서비스 인스턴스 정리 (데이터베이스 닫기 전에)
+    try {
+      recallTool = null as any;
+      rememberTool = null as any;
+      memoryInjectionPrompt = null as any;
+    } catch (error) {
+      console.warn('Tool 인스턴스 정리 중 에러:', error);
     }
 
-    if (db) {
-      db.close();
+    // Write Coalescing Manager 정리
+    if (writeCoalescingManager) {
+      try {
+        // Flush 대기 (타이머가 실행 중일 수 있음)
+        await writeCoalescingManager.flush();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await writeCoalescingManager.destroy();
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (error) {
+        // destroy 중 에러는 무시 (이미 destroy된 경우)
+        console.warn('WriteCoalescingManager destroy 중 에러:', error);
+      }
+      writeCoalescingManager = null as any;
     }
+
+    // flushCallback이 완료될 때까지 대기
+    if (flushedWrites.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    // 서비스 인스턴스 정리 (HybridSearchEngine, MemoryEmbeddingService)
+    try {
+      hybridSearchEngine = null as any;
+      embeddingService = null as any;
+      consolidationScoreService = null as any;
+    } catch (error) {
+      console.warn('서비스 인스턴스 정리 중 에러:', error);
+    }
+
+    // 추가 대기 (서비스 리소스 정리 완료 보장)
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // 데이터베이스 닫기
+    if (db) {
+      try {
+        db.close();
+      } catch (error) {
+        console.warn('Database close 중 에러:', error);
+      }
+      db = null as any;
+    }
+
+    // Mock 및 Spy 정리
     vi.clearAllMocks();
     vi.restoreAllMocks();
+
+    // 나머지 인스턴스 정리
+    context = null as any;
+    flushCallback = null as any;
+    flushedWrites = [];
+
+    // 최종 대기 (리소스 정리 완료 보장)
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   describe('RememberTool - 신규 메모리 초기화', () => {

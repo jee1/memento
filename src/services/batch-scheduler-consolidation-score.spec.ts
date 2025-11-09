@@ -78,8 +78,23 @@ describe('BatchScheduler와 ConsolidationScoreWorker 통합', () => {
   });
 
   afterEach(async () => {
-    await scheduler.stop();
-    db.close();
+    // Mock 및 Spy 정리
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    
+    // 스케줄러 정지
+    if (scheduler) {
+      await scheduler.stop();
+    }
+    
+    // 데이터베이스 닫기
+    if (db) {
+      db.close();
+    }
+    
+    // 인스턴스 정리
+    scheduler = null as any;
+    db = null as any;
   });
 
   it('스케줄러 시작 시 Consolidation Score 작업이 등록되어야 함', async () => {

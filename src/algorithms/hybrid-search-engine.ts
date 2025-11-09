@@ -26,7 +26,7 @@ export interface IEmbeddingService {
 export interface IVectorSearchEngine {
   initialize(db: Database.Database): void;
   getIndexStatus(): { available: boolean };
-  search(vector: number[], options: { limit?: number; threshold?: number; types?: MemoryType[]; includeContent?: boolean }): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
+  search(vector: number[], options: { limit?: number; threshold?: number; types?: MemoryType[]; includeContent?: boolean }, provider?: string): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
 }
 
 export interface ISearchResultCombiner {
@@ -383,13 +383,15 @@ export class HybridSearchEngine {
 
   private async executeVecSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
     try {
-      const queryVector = await this.generateQueryVector(query.query, searchId);
+      // 저장된 임베딩의 provider와 차원을 확인하여 동일한 provider로 쿼리 임베딩 생성
+      const detectedProvider = await this.detectStoredEmbeddingProvider(db);
+      const queryVector = await this.generateQueryVector(query.query, searchId, detectedProvider);
       const vecResults = await this.vectorSearchEngine.search(queryVector, {
         limit: (query.limit || 10) * 2,
         threshold: 0.5,
         types: query.filters?.type,
         includeContent: true
-      });
+      }, detectedProvider);
       
       const vectorResults = vecResults.map(result => ({
         id: result.memory_id,
@@ -439,10 +441,60 @@ export class HybridSearchEngine {
     return vectorResults;
   }
 
-  private async generateQueryVector(query: string, searchId: string): Promise<number[]> {
+  /**
+   * 저장된 임베딩의 provider 감지
+   * 가장 많이 사용된 provider를 반환 (기본값: 'minilm')
+   */
+  private async detectStoredEmbeddingProvider(db: Database.Database): Promise<string> {
+    try {
+      const providerStats = db.prepare(`
+        SELECT 
+          embedding_provider as provider,
+          COUNT(*) as count,
+          AVG(dimensions) as avg_dimensions
+        FROM memory_embedding
+        WHERE embedding_provider IS NOT NULL
+          AND embedding_provider != ''
+          AND dimensions IS NOT NULL
+        GROUP BY embedding_provider
+        ORDER BY count DESC
+        LIMIT 1
+      `).get() as { provider: string; count: number; avg_dimensions: number } | undefined;
+
+      if (providerStats && providerStats.provider) {
+        const provider = providerStats.provider.toLowerCase();
+        this.logger.logSearchStep('', '저장된 임베딩 provider 감지', {
+          provider,
+          count: providerStats.count,
+          dimensions: Math.round(providerStats.avg_dimensions || 0)
+        });
+        return provider;
+      }
+    } catch (error) {
+      console.warn('⚠️ 저장된 임베딩 provider 감지 실패:', error);
+    }
+
+    // 기본값: minilm (가장 많이 사용되는 provider)
+    return 'minilm';
+  }
+
+  private async generateQueryVector(query: string, searchId: string, preferredProvider?: string): Promise<number[]> {
     try {
       const embeddingStart = process.hrtime.bigint();
-      const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
+      
+      // preferredProvider가 있으면 해당 provider로 임베딩 생성 시도
+      let embeddingResult;
+      if (preferredProvider) {
+        try {
+          embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider as any);
+        } catch (error) {
+          // preferred provider 실패 시 fallback
+          console.warn(`⚠️ Preferred provider '${preferredProvider}' 실패, fallback 시도:`, error);
+          embeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
+        }
+      } else {
+        embeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
+      }
       
       if (!embeddingResult) {
         throw new SearchError(
@@ -457,7 +509,8 @@ export class HybridSearchEngine {
       
       this.logger.logSearchStep(searchId, '임베딩 생성 완료', {
         embeddingTime: `${embeddingTime.toFixed(2)}ms`,
-        vectorLength: embeddingResult.embedding.length
+        vectorLength: embeddingResult.embedding.length,
+        provider: embeddingResult.provider || 'unknown'
       });
       
       return embeddingResult.embedding;

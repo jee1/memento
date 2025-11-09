@@ -40,7 +40,7 @@ export class VectorSearchEngine {
   private vecExtensionLoaded = false;
   private readonly defaultDimensions = 384;
   private providerDimensions: Record<string, number> = {
-    tfidf: 384,
+    tfidf: 512, // LightweightEmbeddingService는 512차원을 생성
     minilm: 384,
     openai: 1536,
     gemini: 768
@@ -188,6 +188,32 @@ export class VectorSearchEngine {
   }
 
   /**
+   * 저장된 임베딩의 실제 차원 조회
+   * @param provider - 임베딩 제공자
+   * @returns 실제 저장된 차원 또는 null
+   */
+  private async getActualStoredDimensions(provider: string): Promise<number | null> {
+    if (!this.db) {
+      return null;
+    }
+
+    try {
+      const result = this.db.prepare(`
+        SELECT dimensions
+        FROM memory_embedding
+        WHERE embedding_provider = ?
+          AND dimensions IS NOT NULL
+        LIMIT 1
+      `).get(provider) as { dimensions: number } | undefined;
+
+      return result?.dimensions ?? null;
+    } catch (error) {
+      console.warn(`⚠️ 저장된 임베딩 차원 조회 실패 (${provider}):`, error);
+      return null;
+    }
+  }
+
+  /**
    * 벡터 검색 실행
    */
   async search(
@@ -219,10 +245,28 @@ export class VectorSearchEngine {
       ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
       : '';
 
-    // 벡터 차원 검증
+    // 벡터 차원 검증 및 조정
+    let adjustedQueryVector = queryVector;
     if (queryVector.length !== expectedDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
-      return [];
+      // 저장된 임베딩의 실제 차원 확인
+      const actualDimensions = await this.getActualStoredDimensions(normalizedProvider);
+      
+      if (actualDimensions && queryVector.length === actualDimensions) {
+        // 쿼리 벡터가 저장된 임베딩의 실제 차원과 일치하면 사용
+        console.log(`ℹ️ 벡터 차원 조정: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 저장된 차원 ${actualDimensions}, 쿼리 ${queryVector.length}`);
+        // expectedDimensions를 actualDimensions로 업데이트하여 검증 통과
+        // (실제로는 차원이 일치하므로 검증 통과)
+      } else if (actualDimensions && queryVector.length !== actualDimensions) {
+        // 차원 불일치: projection 필요하지만 현재는 에러 반환
+        console.error(`❌ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 저장된 차원 ${actualDimensions}, 쿼리 ${queryVector.length}`);
+        console.error(`💡 해결 방법: 저장된 임베딩과 동일한 provider로 쿼리 임베딩을 생성해야 합니다.`);
+        return [];
+      } else {
+        // 저장된 임베딩 정보가 없고 쿼리 벡터 차원이 예상 차원과 다르면 빈 결과 반환
+        console.warn(`⚠️ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
+        console.warn(`⚠️ 저장된 임베딩 정보를 확인할 수 없어 차원 불일치를 처리할 수 없습니다. 빈 결과를 반환합니다.`);
+        return [];
+      }
     }
 
     try {
@@ -261,7 +305,7 @@ export class VectorSearchEngine {
       `;
 
       const params = [
-        JSON.stringify(queryVector),
+        JSON.stringify(adjustedQueryVector),
         prefetchLimit,
         ...typeFilters,
         limit
@@ -471,7 +515,7 @@ export class VectorSearchEngine {
         available: false, 
         tableExists: false, 
         recordCount: 0, 
-        dimensions: this.defaultDimensions,
+        dimensions: this.getExpectedDimensions('tfidf'), // TF-IDF 기본 차원 사용
         vecExtensionLoaded: false
       };
     }

@@ -28,7 +28,7 @@ describe('VectorCompatibilityService', () => {
 
   it('marks matching dimensions as compatible without projection', () => {
     const provider: EmbeddingProvider = 'tfidf';
-    const vector = Array.from({ length: 384 }, (_, idx) => Math.sin(idx));
+    const vector = Array.from({ length: 512 }, (_, idx) => Math.sin(idx)); // TF-IDF는 512차원
 
     const assessment = service.assessProviderCompatibility(vector, provider);
 
