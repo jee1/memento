@@ -47,17 +47,17 @@
   - [x] 1.8 마이그레이션 단위 테스트 작성 (`004-anchor-table.spec.ts`)
   - [x] 1.9 마이그레이션 실행 및 검증 (기존 데이터 호환성 확인) - 테스트 21개 모두 통과
 
-- [ ] 2.0 AnchorManager 서비스 구현
-  - [ ] 2.1 `src/services/anchor-manager.ts` 파일 생성 및 기본 클래스 구조 작성
-  - [ ] 2.2 타입 정의 추가 (AnchorInfo, AnchorSlot, SearchOptions, SearchResult 인터페이스)
-  - [ ] 2.3 메모리 캐시 구현 (`Map<string, {A: string | null, B: string | null, C: string | null}>`)
-  - [ ] 2.4 슬롯별 설정 상수 정의 (hop_limit, vector_threshold: A=1/0.8, B=2/0.6, C=3/0.4)
-  - [ ] 2.5 `setAnchor` 메서드 구현 (DB 저장 + 캐시 동기화, 중복 memory_id 검증)
-  - [ ] 2.6 `getAnchor` 메서드 구현 (캐시 우선, 없으면 DB 조회 후 캐시 업데이트)
-  - [ ] 2.7 `clearAnchor` 메서드 구현 (DB 삭제 + 캐시 동기화)
-  - [ ] 2.8 `restoreCacheFromDB` 메서드 구현 (서버 재시작 시 캐시 복원)
-  - [ ] 2.9 에러 처리 및 로깅 추가
-  - [ ] 2.10 단위 테스트 작성 (`anchor-manager.spec.ts`): 캐시 동기화, 중복 검증, Edge Cases
+- [x] 2.0 AnchorManager 서비스 구현
+  - [x] 2.1 `src/services/anchor-manager.ts` 파일 생성 및 기본 클래스 구조 작성
+  - [x] 2.2 타입 정의 추가 (AnchorInfo, AnchorSlot, SearchOptions, SearchResult 인터페이스) - 2.1에서 구현됨
+  - [x] 2.3 메모리 캐시 구현 (`Map<string, {A: string | null, B: string | null, C: string | null}>`) - 2.1에서 구현됨
+  - [x] 2.4 슬롯별 설정 상수 정의 (hop_limit, vector_threshold: A=1/0.8, B=2/0.6, C=3/0.4) - 2.1에서 구현됨
+  - [x] 2.5 `setAnchor` 메서드 구현 (DB 저장 + 캐시 동기화, 중복 memory_id 검증) - 2.1에서 구현됨
+  - [x] 2.6 `getAnchor` 메서드 구현 (캐시 우선, 없으면 DB 조회 후 캐시 업데이트) - 2.1에서 구현됨
+  - [x] 2.7 `clearAnchor` 메서드 구현 (DB 삭제 + 캐시 동기화) - 2.1에서 구현됨
+  - [x] 2.8 `restoreCacheFromDB` 메서드 구현 (서버 재시작 시 캐시 복원) - 2.1에서 구현됨
+  - [x] 2.9 에러 처리 및 로깅 추가 - 2.1에서 구현됨 (AnchorError, MemoryNotFoundError, 에러 메시지 포함)
+  - [x] 2.10 단위 테스트 작성 (`anchor-manager.spec.ts`): 캐시 동기화, 중복 검증, Edge Cases
 
 - [ ] 3.0 국소 검색 알고리즘 구현
   - [ ] 3.1 `searchLocal` 메서드 기본 구조 구현 (AnchorManager 내부)
