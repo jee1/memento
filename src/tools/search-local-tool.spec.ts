@@ -5,7 +5,7 @@ import { SearchLocalTool } from './search-local-tool.js';
 import type { ToolContext } from './types.js';
 import { AnchorManager, AnchorError } from '../services/anchor-manager.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { createHybridSearchEngine, type HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
@@ -79,7 +79,7 @@ describe('SearchLocalTool', () => {
     initializeTestDatabase(db);
 
     embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = new HybridSearchEngine();
+    hybridSearchEngine = createHybridSearchEngine();
     anchorManager = new AnchorManager();
     anchorManager.setDatabase(db);
     anchorManager.setEmbeddingService(embeddingService);
@@ -98,10 +98,36 @@ describe('SearchLocalTool', () => {
   });
 
   afterEach(() => {
-    if (db) {
-      db.close();
+    // 인스턴스 정리
+    if (anchorManager) {
+      anchorManager = null as any;
     }
+    if (hybridSearchEngine) {
+      hybridSearchEngine = null as any;
+    }
+    if (embeddingService) {
+      embeddingService = null as any;
+    }
+    if (tool) {
+      tool = null as any;
+    }
+    if (context) {
+      context = null as any;
+    }
+
+    // 데이터베이스 닫기
+    if (db) {
+      try {
+        db.close();
+      } catch (error) {
+        console.warn('Database close 중 에러:', error);
+      }
+      db = null as any;
+    }
+
+    // Mock 정리
     vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('초기화', () => {
