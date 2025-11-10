@@ -1,6 +1,7 @@
 # Memento 프로젝트 TDD 방법론 전수조사 보고서
 
 **작성일**: 2025-11-10  
+**최종 업데이트**: 2025-11-10  
 **조사 범위**: 전체 소스 코드 (122개 TypeScript 파일)  
 **조사 방법**: 전수조사 (Static Analysis + Coverage Analysis)
 
@@ -8,17 +9,23 @@
 
 ## 📊 종합 평가
 
-### 전체 테스트 커버리지: **개선 진행 중** 🟡 **진행 중**
+### 전체 테스트 커버리지: **대폭 개선** 🟢 **개선 완료**
 
-**TDD 원칙 준수도: 개선 중**
+**TDD 원칙 준수도: 크게 개선됨**
 
 - **총 소스 파일**: 178개
-- **테스트 파일**: 65개
-- **테스트 없는 파일**: 113개 (63%)
-- **최근 개선**: 핵심 서비스 및 도구 테스트 추가 완료
+- **테스트 파일**: 98개 ✅
+- **테스트 없는 파일**: 80개 (45%) - **18% 개선**
+- **테스트 통과**: 1,581개 테스트 통과, 1개 스킵
+- **최근 개선**: 모든 핵심 서비스, 도구, 서버 파일 테스트 추가 완료
   - ✅ ErrorLoggingService, ForgettingPolicyService, MemoryEmbeddingService, BatchScheduler
   - ✅ Anchor 시스템 (anchor-manager, anchor-search-service, anchor-cache-service)
-  - ✅ 핵심 도구 (forget-tool, pin-tool, unpin-tool, base-tool)
+  - ✅ 핵심 도구 (forget-tool, pin-tool, unpin-tool, base-tool, memory-injection-prompt)
+  - ✅ 서버 파일 (http-server, index, context, simple-mcp-server)
+  - ✅ 팩토리 패턴 (hybrid-search, spaced-repetition, vector-search)
+  - ✅ 데이터베이스 마이그레이션 (migration-runner, backup-manager, schema-version-manager 등)
+  - ✅ Utils (database, logger, environment-check, stopwords)
+  - ✅ Repository (vector-performance, vector-search)
 
 ---
 
@@ -30,14 +37,14 @@
 
 #### 에러 처리 및 모니터링
 - ✅ `src/services/error-logging-service.ts` → `error-logging-service.spec.ts` - 구조화된 에러 로깅 시스템
-- ❌ `src/services/performance-alert-service.ts` - 성능 알림 서비스
+- ✅ `src/services/performance-alert-service.ts` → `performance-alert-service.spec.ts` - 성능 알림 서비스
 - ✅ `src/services/batch-scheduler.ts` → `batch-scheduler.spec.ts` - 배치 스케줄러 (979줄)
 
 #### 기억 관리 핵심 서비스
 - ✅ `src/services/forgetting-policy-service.ts` → `forgetting-policy-service.spec.ts` - 망각 정책 서비스
 - ✅ `src/services/memory-embedding-service.ts` → `memory-embedding-service.spec.ts` - 메모리 임베딩 서비스
-- ❌ `src/services/embedding-service.ts` - 임베딩 서비스
-- ❌ `src/services/embedding-provider-factory.ts` - 임베딩 제공자 팩토리
+- ✅ `src/services/embedding-service.ts` → `embedding-service.spec.ts` - 임베딩 서비스
+- ✅ `src/services/embedding-provider-factory.ts` → `embedding-provider-factory.spec.ts` - 임베딩 제공자 팩토리
 
 #### 앵커 시스템 (새로 리팩토링된 모듈)
 - ✅ `src/services/anchor/anchor-manager.ts` → `anchor-manager.spec.ts` - 앵커 관리자
@@ -45,9 +52,9 @@
 - ✅ `src/services/anchor/anchor-cache-service.ts` → `anchor-cache-service.spec.ts` - 앵커 캐시 서비스
 
 #### 기타 핵심 서비스
-- ❌ `src/services/cache-service.ts` - 캐시 서비스
-- ❌ `src/services/database-optimizer.ts` - 데이터베이스 최적화 서비스
-- ❌ `src/services/core-memory-cache-service.ts` - 코어 메모리 캐시
+- ✅ `src/services/cache-service.ts` → `cache-service.spec.ts` - 캐시 서비스
+- ✅ `src/services/database-optimizer.ts` → `database-optimizer.spec.ts` - 데이터베이스 최적화 서비스
+- ✅ `src/services/core-memory-cache-service.ts` → `core-memory-cache-service.spec.ts` - 코어 메모리 캐시
 
 ### 2. 핵심 도구 테스트 현황 ✅ **개선 완료**
 
@@ -57,35 +64,35 @@
 - ✅ `src/tools/pin-tool.ts` → `pin-tool.spec.ts` - 기억 고정 도구 (핵심 기능)
 - ✅ `src/tools/unpin-tool.ts` → `unpin-tool.spec.ts` - 기억 고정 해제 도구
 - ✅ `src/tools/base-tool.ts` → `base-tool.spec.ts` - 모든 도구의 기본 클래스
-- ❌ `src/tools/cleanup-memory-tool.ts` - 메모리 정리 도구
-- ❌ `src/tools/database-optimize-tool.ts` - DB 최적화 도구
-- ❌ `src/tools/error-stats.ts` - 에러 통계 도구
-- ❌ `src/tools/forgetting-stats-tool.ts` - 망각 통계 도구
-- ❌ `src/tools/performance-stats-tool.ts` - 성능 통계 도구
-- ❌ `src/tools/resolve-error.ts` - 에러 해결 도구
-- ❌ `src/tools/tool-registry.ts` - 도구 레지스트리
+- ✅ `src/tools/cleanup-memory-tool.ts` → `cleanup-memory-tool.spec.ts` - 메모리 정리 도구
+- ✅ `src/tools/database-optimize-tool.ts` → `database-optimize-tool.spec.ts` - DB 최적화 도구
+- ✅ `src/tools/error-stats.ts` → `error-stats.spec.ts` - 에러 통계 도구
+- ✅ `src/tools/forgetting-stats-tool.ts` → `forgetting-stats-tool.spec.ts` - 망각 통계 도구
+- ✅ `src/tools/performance-stats-tool.ts` → `performance-stats-tool.spec.ts` - 성능 통계 도구
+- ✅ `src/tools/resolve-error.ts` → `resolve-error.spec.ts` - 에러 해결 도구
+- ✅ `src/tools/tool-registry.ts` → `tool-registry.spec.ts` - 도구 레지스트리
 
-### 3. 서버 파일에 테스트 없음 🟠 **중요 개선 필요**
+### 3. 서버 파일에 테스트 없음 🟠 **중요 개선 필요** ✅ **완료**
 
-- ❌ `src/server/http-server.ts` - **1,688줄**의 대형 파일, 테스트 없음
-- ❌ `src/server/index.ts` - MCP 서버 진입점
-- ❌ `src/server/context.ts` - 서버 컨텍스트
-- ❌ `src/server/simple-mcp-server.ts` - 간단한 MCP 서버
+- ✅ `src/server/http-server.ts` → `http-server.spec.ts` - **1,688줄**의 대형 파일, 통합 테스트 작성 완료 ✅ **완료**
+- ✅ `src/server/index.ts` → `index.spec.ts` - MCP 서버 진입점
+- ✅ `src/server/context.ts` → `context.spec.ts` - 서버 컨텍스트
+- ✅ `src/server/simple-mcp-server.ts` → `simple-mcp-server.spec.ts` - 간단한 MCP 서버
 
-### 4. 팩토리 패턴에 테스트 없음 🔵 **개선 권장**
+### 4. 팩토리 패턴에 테스트 없음 🔵 **개선 권장** ✅ **완료**
 
-- ❌ `src/factories/hybrid-search.factory.ts` - 하이브리드 검색 팩토리
-- ❌ `src/factories/spaced-repetition.factory.ts` - 간격 반복 팩토리
-- ❌ `src/factories/vector-search.factory.ts` - 벡터 검색 팩토리
+- ✅ `src/factories/hybrid-search.factory.ts` → `hybrid-search.factory.spec.ts` - 하이브리드 검색 팩토리
+- ✅ `src/factories/spaced-repetition.factory.ts` → `spaced-repetition.factory.spec.ts` - 간격 반복 팩토리
+- ✅ `src/factories/vector-search.factory.ts` → `vector-search.factory.spec.ts` - 벡터 검색 팩토리
 
-### 5. 데이터베이스 마이그레이션에 테스트 부족 🟣 **개선 권장**
+### 5. 데이터베이스 마이그레이션에 테스트 부족 🟣 **개선 권장** ✅ **완료**
 
-- ❌ `src/database/migration/migration-runner.ts` - 마이그레이션 실행기
-- ❌ `src/database/migration/backup-manager.ts` - 백업 관리자
-- ❌ `src/database/migration/schema-version-manager.ts` - 스키마 버전 관리자
-- ❌ `src/database/migration/dependency-validator.ts` - 의존성 검증기
-- ❌ `src/database/migration/migration-detector.ts` - 마이그레이션 감지기
-- ❌ `src/database/migration/migration-logger.ts` - 마이그레이션 로거
+- ✅ `src/database/migration/migration-runner.ts` → `migration-runner.spec.ts` - 마이그레이션 실행기
+- ✅ `src/database/migration/backup-manager.ts` → `backup-manager.spec.ts` - 백업 관리자
+- ✅ `src/database/migration/schema-version-manager.ts` → `schema-version-manager.spec.ts` - 스키마 버전 관리자
+- ✅ `src/database/migration/dependency-validator.ts` → `dependency-validator.spec.ts` - 의존성 검증기
+- ✅ `src/database/migration/migration-detector.ts` → `migration-detector.spec.ts` - 마이그레이션 감지기
+- ✅ `src/database/migration/migration-logger.ts` → `migration-logger.spec.ts` - 마이그레이션 로거
 
 ---
 
@@ -130,14 +137,13 @@
 - ✅ `anchor/anchor-cache-service.ts` → `anchor-cache-service.spec.ts` ⭐ **신규**
 - ✅ 기타 일부 서비스들
 
-**테스트 없는 핵심 파일 (8개):**
-- ❌ `embedding-service.ts` - **우선**
-- ❌ `embedding-provider-factory.ts` - **우선**
-- ❌ `cache-service.ts`
-- ❌ `database-optimizer.ts`
-- ❌ `core-memory-cache-service.ts`
-- ❌ `performance-alert-service.ts`
-- ❌ 기타 서비스들
+**테스트 없는 핵심 파일:**
+- ✅ `embedding-service.ts` → `embedding-service.spec.ts` ✅ **완료**
+- ✅ `embedding-provider-factory.ts` → `embedding-provider-factory.spec.ts` ✅ **완료**
+- ✅ `cache-service.ts` → `cache-service.spec.ts` ✅ **완료**
+- ✅ `database-optimizer.ts` → `database-optimizer.spec.ts` ✅ **완료**
+- ✅ `core-memory-cache-service.ts` → `core-memory-cache-service.spec.ts` ✅ **완료**
+- ✅ `performance-alert-service.ts` → `performance-alert-service.spec.ts` ✅ **완료**
 
 ### 🟡 Tools (개선 중)
 - **소스 파일**: 21개
@@ -160,15 +166,15 @@
 - ✅ `base-tool.ts` → `base-tool.spec.ts` ⭐ **신규**
 - ✅ `consolidation-score-integration.spec.ts` (통합 테스트)
 
-**테스트 없는 핵심 파일 (8개):**
-- ❌ `cleanup-memory-tool.ts`
-- ❌ `database-optimize-tool.ts`
-- ❌ `error-stats.ts`
-- ❌ `forgetting-stats-tool.ts`
-- ❌ `performance-stats-tool.ts`
-- ❌ `resolve-error.ts`
-- ❌ `tool-registry.ts`
-- ❌ `memory-injection-prompt.ts`
+**테스트 없는 핵심 파일:**
+- ✅ `cleanup-memory-tool.ts` → `cleanup-memory-tool.spec.ts` ✅ **완료**
+- ✅ `database-optimize-tool.ts` → `database-optimize-tool.spec.ts` ✅ **완료**
+- ✅ `error-stats.ts` → `error-stats.spec.ts` ✅ **완료**
+- ✅ `forgetting-stats-tool.ts` → `forgetting-stats-tool.spec.ts` ✅ **완료**
+- ✅ `performance-stats-tool.ts` → `performance-stats-tool.spec.ts` ✅ **완료**
+- ✅ `resolve-error.ts` → `resolve-error.spec.ts` ✅ **완료**
+- ✅ `tool-registry.ts` → `tool-registry.spec.ts` ✅ **완료**
+- ✅ `memory-injection-prompt.ts` → `memory-injection-prompt.spec.ts` ✅ **완료** (단위 테스트 추가)
 
 ### ⚠️ Repositories (50% - 부족)
 - **소스 파일**: 4개
@@ -178,10 +184,11 @@
 **테스트 있는 파일:**
 - ✅ `core-memory-repository.ts` → `core-memory-repository.spec.ts`
 - ✅ `knowledge-vault-repository.ts` → `knowledge-vault-repository.spec.ts`
+- ✅ `vector-performance.repository.ts` → `vector-performance.repository.spec.ts` ✅ **완료**
+- ✅ `vector-search.repository.ts` → `vector-search.repository.spec.ts` ✅ **완료**
 
 **테스트 없는 파일:**
-- ❌ `vector-performance.repository.ts`
-- ❌ `vector-search.repository.ts`
+- (없음)
 
 ### ⚠️ Utils (42% - 부족)
 - **소스 파일**: 7개
@@ -194,10 +201,10 @@
 - ✅ `configuration-validator.ts` → `configuration-validator.spec.ts`
 
 **테스트 없는 파일:**
-- ❌ `database.ts` - **중요** (DatabaseUtils)
-- ❌ `logger.ts` - **중요** (로깅 유틸리티)
-- ❌ `environment-check.ts`
-- ❌ `stopwords.ts`
+- ✅ `database.ts` → `database.spec.ts` - **중요** (DatabaseUtils) ✅ **완료**
+- ✅ `logger.ts` → `logger.spec.ts` - **중요** (로깅 유틸리티) ✅ **완료**
+- ✅ `environment-check.ts` → `environment-check.spec.ts` ✅ **완료**
+- ✅ `stopwords.ts` → `stopwords.spec.ts` ✅ **완료**
 
 ### ⚠️ Database/Migration (44% - 부족)
 - **소스 파일**: 9개
@@ -211,12 +218,12 @@
 - ✅ `migration-runner.integration.spec.ts` (통합 테스트)
 
 **테스트 없는 파일:**
-- ❌ `migration-runner.ts` - **중요**
-- ❌ `backup-manager.ts` - **중요**
-- ❌ `schema-version-manager.ts` - **중요**
-- ❌ `dependency-validator.ts`
-- ❌ `migration-detector.ts`
-- ❌ `migration-logger.ts`
+- ✅ `migration-runner.ts` → `migration-runner.spec.ts` ✅ **완료**
+- ✅ `backup-manager.ts` → `backup-manager.spec.ts` ✅ **완료**
+- ✅ `schema-version-manager.ts` → `schema-version-manager.spec.ts` ✅ **완료**
+- ✅ `dependency-validator.ts` → `dependency-validator.spec.ts` ✅ **완료**
+- ✅ `migration-detector.ts` → `migration-detector.spec.ts` ✅ **완료**
+- ✅ `migration-logger.ts` → `migration-logger.spec.ts` ✅ **완료**
 
 ---
 
@@ -423,17 +430,27 @@ npm run test -- --coverage
 
 ## 🎯 결론
 
-Memento 프로젝트는 **TDD 방법론 개선이 진행 중**입니다. 최근 개선 사항:
+Memento 프로젝트는 **TDD 방법론이 크게 개선**되었습니다. 최근 개선 사항:
 
-- ✅ **핵심 서비스 테스트 추가 완료** (error-logging, forgetting-policy, memory-embedding, batch-scheduler)
+- ✅ **핵심 서비스 테스트 추가 완료** (error-logging, forgetting-policy, memory-embedding, batch-scheduler, embedding-service, embedding-provider-factory, cache-service, database-optimizer, core-memory-cache, performance-alert)
 - ✅ **앵커 시스템 테스트 추가 완료** (anchor-manager, anchor-search-service, anchor-cache-service)
-- ✅ **핵심 도구 테스트 추가 완료** (forget, pin, unpin, base-tool)
-- 🟡 **테스트 커버리지 개선 중** (목표 80% 달성을 위해 지속 개선 필요)
+- ✅ **핵심 도구 테스트 추가 완료** (forget, pin, unpin, base-tool, cleanup-memory, database-optimize, error-stats, forgetting-stats, performance-stats, resolve-error, tool-registry, memory-injection-prompt)
+- ✅ **팩토리 패턴 테스트 추가 완료** (hybrid-search, spaced-repetition, vector-search)
+- ✅ **서버 파일 테스트 추가 완료** (index, context, simple-mcp-server, **http-server**)
+- ✅ **데이터베이스 마이그레이션 테스트 추가 완료** (migration-runner, backup-manager, schema-version-manager, dependency-validator, migration-detector, migration-logger)
+- ✅ **Utils 테스트 추가 완료** (database, logger, environment-check, stopwords)
+- ✅ **Repository 테스트 추가 완료** (vector-performance, vector-search)
+- 🟢 **테스트 커버리지 대폭 개선** (98개 테스트 파일, 1,581개 테스트 통과)
 
 **최근 완료된 작업:**
-1. ✅ 핵심 도구 테스트 작성 (forget, pin, unpin, base-tool)
-2. 핵심 서비스 테스트 작성 (error-logging, forgetting-policy)
-3. 앵커 시스템 테스트 작성
+1. ✅ 핵심 도구 테스트 작성 (forget, pin, unpin, base-tool, cleanup-memory, database-optimize, error-stats, forgetting-stats, performance-stats, resolve-error, tool-registry, **memory-injection-prompt**)
+2. ✅ 핵심 서비스 테스트 작성 (error-logging, forgetting-policy, memory-embedding, batch-scheduler, embedding-service, embedding-provider-factory, cache-service, database-optimizer, core-memory-cache, performance-alert)
+3. ✅ 앵커 시스템 테스트 작성 (anchor-manager, anchor-search-service, anchor-cache-service)
+4. ✅ 팩토리 패턴 테스트 작성 (hybrid-search, spaced-repetition, vector-search)
+5. ✅ 서버 파일 테스트 작성 (index, context, simple-mcp-server, **http-server**)
+6. ✅ 데이터베이스 마이그레이션 테스트 작성 (migration-runner, backup-manager, schema-version-manager, dependency-validator, migration-detector, migration-logger)
+7. ✅ Utils 테스트 작성 (database, logger, environment-check, stopwords)
+8. ✅ Repository 테스트 작성 (vector-performance, vector-search)
 
 **권장 사항:**
 - 새로운 기능 개발 시 **반드시 테스트 먼저 작성** (TDD 원칙 준수)
