@@ -277,6 +277,7 @@ const results = await client.callTool({
 - [성능 벤치마크](docs/ko/embedding-performance-benchmark.md) - 성능 비교 결과
 - [API 레퍼런스](docs/ko/embedding-api-reference.md) - API 상세 문서
 - [설정 가이드](docs/ko/embedding-configuration.md) - 환경 설정 방법
+- [Consolidation Score 테스트 가이드](docs/testing/consolidation-quality-testing.md) - Consolidation Score 검색 품질 테스트 가이드
 
 ## 📋 API 문서
 
@@ -323,6 +324,10 @@ const results = await client.callTool({
 | `DB_PATH` | ./data/memory.db | 데이터베이스 경로 |
 | `LOG_LEVEL` | info | 로그 레벨 |
 | `OPENAI_API_KEY` | - | OpenAI API 키 (선택사항) |
+| `CONSOLIDATION_SCORE_ENABLED` | false | Consolidation Score System 활성화 여부 |
+| `CONSOLIDATION_TEST_SEED_PATH` | ./data/consolidation-seed.json | 테스트 Seed 데이터 파일 경로 |
+| `CONSOLIDATION_BASELINE_PATH` | ./data/consolidation-baseline.json | Baseline 스냅샷 저장 경로 |
+| `CONSOLIDATION_TEST_ITEM_COUNT` | 100 | 벤치마크 테스트 데이터 크기 |
 
 ### 망각 정책 설정
 
@@ -355,6 +360,8 @@ npm run test:performance               # 성능 벤치마크
 npm run test:monitoring                # 성능 모니터링 테스트
 npm run test:error-logging             # 에러 로깅 테스트
 npm run test:performance-alerts        # 성능 알림 테스트
+npm run test:consolidation-quality     # Consolidation Score 품질 검증 테스트
+npm run benchmark:consolidation-quality # Consolidation Score 벤치마크 테스트
 
 # 테스트 감시 모드
 npm run test -- --watch

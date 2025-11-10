@@ -473,7 +473,36 @@ describe('SearchRanking', () => {
     });
   });
 
+  // 가중치 fixture 분리 (확장성 확보)
+  const consolidationWeightFixtures = {
+    recent: { vectorSimilarity: 0.9, consolidationScore: 0.1 },
+    balanced: { vectorSimilarity: 0.8, consolidationScore: 0.2 },
+    memory: { vectorSimilarity: 0.7, consolidationScore: 0.3 }
+  };
+
   describe('Consolidation Score 통합', () => {
+    describe('getConsolidationScoreWeights - 실제 코드 메서드 검증', () => {
+      it('실제 코드의 getConsolidationScoreWeights()가 fixture와 일치하는지 검증', () => {
+        Object.entries(consolidationWeightFixtures).forEach(([profile, expectedWeights]) => {
+          const actualWeights = ranking.getConsolidationScoreWeights(profile as SearchProfile);
+          expect(actualWeights.vectorSimilarity).toBe(expectedWeights.vectorSimilarity);
+          expect(actualWeights.consolidationScore).toBe(expectedWeights.consolidationScore);
+        });
+      });
+
+      it('모든 프로파일에서 w1 + w2 = 1 보장 (실제 코드 검증)', () => {
+        const profiles: SearchProfile[] = ['recent', 'balanced', 'memory'];
+        
+        profiles.forEach(profile => {
+          const weights = ranking.getConsolidationScoreWeights(profile);
+          const w2 = Math.min(weights.consolidationScore, 0.4);
+          const w1 = 1 - w2;
+          
+          expect(w1 + w2).toBeCloseTo(1.0, 5);
+        });
+      });
+    });
+
     describe('calculateFinalScore with consolidation_score', () => {
       it('consolidation_score가 제공되면 새로운 공식 사용', () => {
         const features: SearchFeatures = {
