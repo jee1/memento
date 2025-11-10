@@ -254,7 +254,7 @@ export class ForgetTool extends BaseTool {
     // 관련 테이블에서도 삭제
     await DatabaseUtils.run(
       context.db!, 
-      'DELETE FROM memory_tag WHERE memory_id = ?', 
+      'DELETE FROM memory_item_tag WHERE memory_id = ?', 
       [id]
     );
     
