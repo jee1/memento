@@ -439,7 +439,7 @@ ${memoryList}
    * @returns 계산된 비용 (USD)
    */
   private calculateAndLogCost(
-    provider: 'openai' | 'gemini',
+    provider: 'openai' | 'gemini' | 'ollama',
     promptTokens: number,
     completionTokens: number
   ): number {
@@ -572,10 +572,30 @@ ${memoryList}
     // Rate limit 확인
     await this.rateLimiter.consume();
 
-    try {
-      const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-      const model = mementoConfig.ollamaModel || 'llama3';
+    const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
+    const model = mementoConfig.ollamaModel || 'llama3';
 
+    // Ollama API 요청 준비 (에러 로깅을 위해 함수 스코프 밖에 선언)
+    const requestBody = {
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      options: {
+        temperature: 0.3,
+        num_predict: LIMITS.MAX_RESPONSE_TOKENS
+      },
+      format: 'json' as const // JSON 형식 강제
+    };
+
+    try {
       // 모델 존재 여부 확인
       const modelExists = await this.checkOllamaModel(baseUrl, model);
       if (!modelExists) {
@@ -584,26 +604,6 @@ ${memoryList}
           `다음 명령어로 모델을 설치하세요: ollama pull ${model}`
         );
       }
-
-      // Ollama API 요청 준비
-      const requestBody = {
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        options: {
-          temperature: 0.3,
-          num_predict: LIMITS.MAX_RESPONSE_TOKENS
-        },
-        format: 'json' // JSON 형식 강제
-      };
       
       // Ollama API 호출
       const apiUrl = `${baseUrl}/api/chat`;
@@ -627,7 +627,7 @@ ${memoryList}
           model,
           requestBody: {
             ...requestBody,
-            messages: requestBody.messages.map(msg => ({
+            messages: requestBody.messages.map((msg: { role: string; content: string }) => ({
               role: msg.role,
               contentLength: msg.content.length,
               contentPreview: msg.content.substring(0, 500),
@@ -690,14 +690,17 @@ ${memoryList}
         
         if (isNDJSON) {
           // NDJSON 형식 처리: 각 줄을 개별 JSON 객체로 파싱
-          const lines = responseText.trim().split('\n').filter(line => line.trim());
+          const lines = responseText.trim().split('\n').filter((line): line is string => line.trim().length > 0);
           
           let lastData: any = null;
           const contentParts: string[] = [];
           
           for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line) continue;
+            
             try {
-              const lineData = JSON.parse(lines[i]);
+              const lineData = JSON.parse(line);
               lastData = lineData; // 마지막 줄의 메타데이터 사용
               
               // message.content가 있으면 합치기
@@ -713,7 +716,7 @@ ${memoryList}
               // 에러 발생 시에만 로깅
               logger.warn('Ollama NDJSON 라인 파싱 실패', {
                 lineIndex: i,
-                linePreview: lines[i]?.substring(0, 200),
+                linePreview: line.substring(0, 200),
                 error: lineParseError instanceof Error ? lineParseError.message : String(lineParseError),
                 responseTextLength: responseText.length,
                 responseTextPreview: responseText.substring(0, 500),
@@ -861,7 +864,7 @@ ${memoryList}
           baseUrl: mementoConfig.ollamaBaseUrl,
           requestBody: {
             ...requestBody,
-            messages: requestBody.messages.map(msg => ({
+            messages: requestBody.messages.map((msg: { role: string; content: string }) => ({
               role: msg.role,
               contentLength: msg.content.length,
               contentPreview: msg.content.substring(0, 500),

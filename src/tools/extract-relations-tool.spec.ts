@@ -63,8 +63,16 @@ describe('ExtractRelationsTool', () => {
   let tool: ExtractRelationsTool;
   let context: ToolContext;
   let relationGraph: RelationGraph;
+  let originalLlmProvider: string | undefined;
 
   beforeEach(() => {
+    // Given: 테스트 환경에서 LLM 사용 비활성화 (타임아웃 방지)
+    originalLlmProvider = process.env.LLM_PROVIDER;
+    delete process.env.LLM_PROVIDER;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.OLLAMA_BASE_URL;
+    
     // Given: in-memory 데이터베이스 생성 및 초기화
     db = new Database(':memory:');
     createBaseSchema(db);
@@ -89,6 +97,13 @@ describe('ExtractRelationsTool', () => {
   });
 
   afterEach(() => {
+    // 환경 변수 복원
+    if (originalLlmProvider !== undefined) {
+      process.env.LLM_PROVIDER = originalLlmProvider;
+    } else {
+      delete process.env.LLM_PROVIDER;
+    }
+    
     // 데이터베이스 정리
     if (db) {
       db.close();

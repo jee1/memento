@@ -7,7 +7,7 @@
  * Then: 각 도구의 결과 및 도구 간 상호작용 검증
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { ExtractRelationsTool } from '../../src/tools/extract-relations-tool.js';
 import { GetRelationsTool } from '../../src/tools/get-relations-tool.js';
@@ -17,6 +17,7 @@ import { VisualizeRelationsTool } from '../../src/tools/visualize-relations-tool
 import { DatabaseUtils } from '../../src/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../src/database/migration/migrations/005-relation-engine-schema.js';
 import { RelationGraph } from '../../src/services/relation-graph.js';
+import { LLMBasedRelationExtractor } from '../../src/services/llm-based-relation-extractor.js';
 import type { ToolContext } from '../../src/tools/types.js';
 
 /**
@@ -75,8 +76,19 @@ describe('MCP 관계 도구 E2E 통합 테스트', () => {
   let addTool: AddRelationTool;
   let removeTool: RemoveRelationTool;
   let visualizeTool: VisualizeRelationsTool;
+  let originalLlmProvider: string | undefined;
 
   beforeEach(() => {
+    // Given: 테스트 환경에서 LLM 사용 비활성화 (타임아웃 방지)
+    originalLlmProvider = process.env.LLM_PROVIDER;
+    delete process.env.LLM_PROVIDER;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.OLLAMA_BASE_URL;
+    
+    // LLMBasedRelationExtractor의 isAvailable 메서드 모킹
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailable').mockReturnValue(false);
+    
     // Given: in-memory 데이터베이스 생성 및 초기화
     db = new Database(':memory:');
     createBaseSchema(db);
@@ -105,6 +117,16 @@ describe('MCP 관계 도구 E2E 통합 테스트', () => {
   });
 
   afterEach(() => {
+    // 모킹 복원
+    vi.restoreAllMocks();
+    
+    // 환경 변수 복원
+    if (originalLlmProvider !== undefined) {
+      process.env.LLM_PROVIDER = originalLlmProvider;
+    } else {
+      delete process.env.LLM_PROVIDER;
+    }
+    
     // 데이터베이스 정리
     if (db) {
       db.close();
