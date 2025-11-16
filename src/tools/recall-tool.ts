@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { CommonSchemas } from './types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider } from '../types/index.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
@@ -18,6 +18,17 @@ import { mementoConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
 import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../utils/write-coalescing.js';
+
+/**
+ * Provider 필터 정규화 유틸리티
+ * 빈 배열인 경우 undefined로 변환하여 모든 provider 검색을 의미
+ * 
+ * @param providerFilter - 원본 provider 필터 (빈 배열 가능)
+ * @returns 정규화된 provider 필터 (undefined 또는 비어있지 않은 배열)
+ */
+function normalizeProviderFilter(providerFilter: EmbeddingProvider[] | undefined): EmbeddingProvider[] | undefined {
+  return providerFilter && providerFilter.length > 0 ? providerFilter : undefined;
+}
 
 const RecallSchema = z.object({
   // query를 optional로 변경 (조건부 필수는 refine에서 처리)
@@ -39,7 +50,8 @@ const RecallSchema = z.object({
   vector_weight: z.number().min(0).max(1).optional(),
   text_weight: z.number().min(0).max(1).optional(),
   enable_hybrid: z.boolean().optional(),
-  include_metadata: z.boolean().optional()
+  include_metadata: z.boolean().optional(),
+  provider_filter: z.array(z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const)).optional()
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -150,6 +162,11 @@ export class RecallTool extends BaseTool {
             type: 'boolean',
             default: true,
             description: '메타데이터 포함 여부 (선택사항)'
+          },
+          provider_filter: {
+            type: 'array',
+            items: { type: 'string', enum: ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] },
+            description: '검색할 임베딩 provider 필터 (선택사항, 미지정 시 모든 provider 검색)'
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -179,7 +196,8 @@ export class RecallTool extends BaseTool {
         vector_weight, 
         text_weight, 
         enable_hybrid, 
-        include_metadata 
+        include_metadata,
+        provider_filter
       } = RecallSchema.parse(params);
       
       // type 파라미터 롤아웃 모드 검증
@@ -226,7 +244,8 @@ export class RecallTool extends BaseTool {
         limit, 
         vector_weight, 
         text_weight, 
-        enable_hybrid 
+        enable_hybrid,
+        provider_filter
       });
       
       // 데이터베이스 연결 확인
@@ -406,12 +425,17 @@ export class RecallTool extends BaseTool {
               textWeight: normalizedTextWeight 
             });
             
+            // provider_filter는 zod 스키마에서 이미 EmbeddingProvider[] 타입으로 파싱됨
+            // 빈 배열인 경우 undefined로 처리하여 모든 provider 검색
+            const providerFilter = normalizeProviderFilter(provider_filter);
+            
             searchResult = await context.services.hybridSearchEngine.search(context.db, {
               query,
               filters,
               limit,
               vectorWeight: normalizedVectorWeight,
-              textWeight: normalizedTextWeight
+              textWeight: normalizedTextWeight,
+              provider_filter: providerFilter
             });
           } else {
             // 텍스트 검색만 사용

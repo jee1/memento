@@ -97,6 +97,16 @@ export interface SearchRankingWeights {
 export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
 export type LLMProvider = 'openai' | 'gemini' | 'ollama' | 'auto';
 
+/**
+ * 저장된 임베딩의 Provider 통계 정보
+ * 데이터베이스에서 조회한 provider별 통계를 나타냄
+ */
+export interface StoredEmbeddingProviderStats {
+  provider: EmbeddingProvider;
+  count: number;
+  avg_dimensions: number;
+}
+
 export interface MementoConfig {
   dbPath: string;
   serverName: string;

@@ -176,8 +176,8 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
     it('다양한 consolidation 점수 값에 따른 랭킹 변화 검증', async () => {
       vi.mocked(mementoConfig).consolidationScoreEnabled = true;
 
-      // 샘플 데이터 주입
-      const { items } = seedTestDatabase(db, 3, false);
+      // 샘플 데이터 주입 (임베딩 포함하여 provider 감지 가능하도록)
+      const { items } = seedTestDatabase(db, 3, true);
 
       // 다양한 consolidation_score 설정
       const consolidationScores = [0.3, 0.7, 0.9];
@@ -319,7 +319,8 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
     it('벡터 유사도와 consolidation 점수가 함께 반영되어 최종 점수 계산', async () => {
       vi.mocked(mementoConfig).consolidationScoreEnabled = true;
 
-      const { items } = seedTestDatabase(db, 2, false);
+      // 샘플 데이터 주입 (임베딩 포함하여 provider 감지 가능하도록)
+      const { items } = seedTestDatabase(db, 2, true);
 
       // 첫 번째 아이템: 높은 벡터 유사도, 낮은 consolidation_score
       // 두 번째 아이템: 낮은 벡터 유사도, 높은 consolidation_score

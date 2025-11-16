@@ -484,5 +484,105 @@ describe('RecallTool', () => {
       await expect(tool.handle(params, context)).rejects.toThrow();
     });
   });
+
+  describe('Provider 필터링 기능', () => {
+    beforeEach(() => {
+      // Mock hybridSearchEngine 메서드들
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 10
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+    });
+
+    it('단일 provider 필터 - 지정된 provider만 검색', async () => {
+      // Given: provider_filter로 minilm만 지정
+      const params = {
+        query: 'test query',
+        type: 'episodic',
+        provider_filter: ['minilm']
+      };
+
+      // When: recall 도구 실행
+      const result = await tool.handle(params, context);
+
+      // Then: provider_filter가 HybridSearchQuery에 전달되어야 함
+      expect(result).toBeDefined();
+      if (result && typeof result === 'object' && 'content' in result) {
+        // ToolResult가 content를 포함하는 경우
+        expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+          db,
+          expect.objectContaining({
+            query: 'test query',
+            provider_filter: ['minilm']
+          })
+        );
+      } else {
+        // ToolResult가 success 필드를 포함하는 경우
+        expect((result as any).success).toBe(true);
+        expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+          db,
+          expect.objectContaining({
+            query: 'test query',
+            provider_filter: ['minilm']
+          })
+        );
+      }
+    });
+
+    it('다중 provider 필터 - 여러 provider 지정', async () => {
+      // Given: provider_filter로 minilm과 openai 지정
+      const params = {
+        query: 'test query',
+        type: 'episodic',
+        provider_filter: ['minilm', 'openai']
+      };
+
+      // When: recall 도구 실행
+      const result = await tool.handle(params, context);
+
+      // Then: provider_filter가 HybridSearchQuery에 전달되어야 함
+      expect(result).toBeDefined();
+      expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+        db,
+        expect.objectContaining({
+          query: 'test query',
+          provider_filter: ['minilm', 'openai']
+        })
+      );
+    });
+
+    it('필터 없음 케이스 - provider_filter 미지정 시 모든 provider 검색', async () => {
+      // Given: provider_filter 없이 검색
+      const params = {
+        query: 'test query',
+        type: 'episodic'
+      };
+
+      // When: recall 도구 실행
+      const result = await tool.handle(params, context);
+
+      // Then: provider_filter가 undefined이거나 전달되지 않아야 함
+      expect(result).toBeDefined();
+      expect(hybridSearchEngine.search).toHaveBeenCalled();
+      const searchCall = (hybridSearchEngine.search as any).mock.calls[0];
+      const searchQuery = searchCall[1];
+      // provider_filter가 없거나 undefined여야 함 (모든 provider 검색)
+      expect(searchQuery.provider_filter).toBeUndefined();
+    });
+
+    it('provider_filter 스키마 검증 - 유효하지 않은 provider 거부', async () => {
+      // Given: 유효하지 않은 provider 포함
+      const params = {
+        query: 'test query',
+        type: 'episodic',
+        provider_filter: ['invalid_provider', 'minilm']
+      };
+
+      // When/Then: 스키마 검증 실패
+      await expect(tool.handle(params, context)).rejects.toThrow();
+    });
+  });
 });
 
