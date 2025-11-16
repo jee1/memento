@@ -33,7 +33,7 @@ OPENAI_MODEL=text-embedding-3-small
 
 - `text-embedding-3-small` : 차원 1536, 비용 대비 성능 우수
 - `text-embedding-3-large` : 차원 3072, 최고 품질
-- **폴백 전략** : OpenAI 호출 실패 시 자동으로 경량(TF-IDF) 임베딩으로 전환됩니다.
+- **폴백 전략** : OpenAI 호출 실패 시 자동으로 무료 제공자(TF-IDF 또는 MiniLM) 임베딩으로 전환됩니다.
 EMBEDDING_DIMENSIONS=1536
 ```
 

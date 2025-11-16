@@ -62,3 +62,15 @@ jobs:
         
       - name: Build package
         run: npm run build
+        
+      - name: Generate relation extraction quality report
+        run: npm run generate-relation-report -- --ci --method rule --output relation-quality-report.md
+        continue-on-error: false
+        
+      - name: Upload relation quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relation-quality-report
+          path: relation-quality-report.md
+          retention-days: 30

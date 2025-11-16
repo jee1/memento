@@ -14,7 +14,8 @@ const SearchLocalSchema = z.object({
   hop_limit: z.number().min(1).max(5).optional(),
   limit: z.number().min(1).max(100).default(10),
   min_results: z.number().min(0).max(100).default(3),
-  agent_id: z.string().optional().default('default')
+  agent_id: z.string().optional().default('default'),
+  use_relations: z.boolean().optional().default(true)
 });
 
 export class SearchLocalTool extends BaseTool {
@@ -58,6 +59,11 @@ export class SearchLocalTool extends BaseTool {
             type: 'string',
             description: '에이전트 ID (기본값: "default")',
             default: 'default'
+          },
+          use_relations: {
+            type: 'boolean',
+            description: '관계 그래프 사용 여부 (기본값: true)',
+            default: true
           }
         },
         required: ['slot']
@@ -68,7 +74,7 @@ export class SearchLocalTool extends BaseTool {
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
-      const { slot, query, hop_limit, limit, min_results, agent_id } = SearchLocalSchema.parse(params);
+      const { slot, query, hop_limit, limit, min_results, agent_id, use_relations } = SearchLocalSchema.parse(params);
       
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
@@ -84,7 +90,8 @@ export class SearchLocalTool extends BaseTool {
         hop_limit,
         {
           limit,
-          min_results
+          min_results,
+          use_relations
         }
       );
       

@@ -11,6 +11,8 @@ import type { MemorySearchFilters, MemoryType } from '../types/index.js';
 import Database from 'better-sqlite3';
 import { SearchRanking } from './search-ranking.js';
 import { mementoConfig } from '../config/index.js';
+import { RelationGraph } from '../services/relation-graph.js';
+import { getRankingWeights } from '../config/ranking-weights-loader.js';
 
 // 인터페이스 정의
 export interface ITextSearchEngine {
@@ -42,6 +44,7 @@ export interface ISearchLogger {
   logSearchStep(searchId: string, step: string, data: any): void;
   logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void;
   logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void;
+  logExperiment?(searchId: string, experimentId: string, variant: Record<string, any>): void; // 실험 로그 (선택적)
 }
 
 // 에러 타입 정의
@@ -204,7 +207,8 @@ export class SearchLogger implements ISearchLogger {
     //   limit: query.limit,
     //   vectorWeight: query.vectorWeight,
     //   textWeight: query.textWeight,
-    //   filters: query.filters
+    //   filters: query.filters,
+    //   experiment_id: query.experiment_id
     // });
   }
 
@@ -217,7 +221,8 @@ export class SearchLogger implements ISearchLogger {
     //   resultCount: result.items.length,
     //   totalCount: result.total_count,
     //   queryTime: `${queryTime.toFixed(2)}ms`,
-    //   searchType: 'hybrid'
+    //   searchType: 'hybrid',
+    //   experiment_id: (result as any).experiment_id
     // });
   }
 
@@ -226,7 +231,20 @@ export class SearchLogger implements ISearchLogger {
     //   error: error instanceof Error ? error.message : String(error),
     //   stack: error instanceof Error ? error.stack : undefined,
     //   query: query.query,
-    //   limit: query.limit
+    //   limit: query.limit,
+    //   experiment_id: query.experiment_id
+    // });
+  }
+
+  /**
+   * 실험 로그 기록
+   * A/B 테스트를 위한 실험 ID와 변이 파라미터를 로깅합니다.
+   */
+  logExperiment(searchId: string, experimentId: string, variant: Record<string, any>): void {
+    // console.log(`🧪 [${searchId}] 실험 로그`, {
+    //   experiment_id: experimentId,
+    //   variant,
+    //   timestamp: new Date().toISOString()
     // });
   }
 }
@@ -237,6 +255,8 @@ export interface HybridSearchQuery {
   limit?: number | undefined;
   vectorWeight?: number | undefined; // 벡터 검색 가중치 (0.0 ~ 1.0)
   textWeight?: number | undefined;   // 텍스트 검색 가중치 (0.0 ~ 1.0)
+  includeRelations?: boolean; // 관계 정보 포함 여부 (기본값: false)
+  experiment_id?: string; // 실험 ID (A/B 테스트용)
 }
 
 export interface HybridSearchResult {
@@ -253,6 +273,12 @@ export interface HybridSearchResult {
   finalScore: number;
   recall_reason: string;
   consolidation_score?: number; // Consolidation Score (선택적)
+  relation_weight?: number; // 관계 가중치 (관계 그래프 기반)
+  relations?: Array<{ // 관계 정보 (선택적)
+    target_id: string;
+    relation_type: string;
+    confidence: number;
+  }>;
 }
 
 export class HybridSearchEngine {
@@ -260,6 +286,7 @@ export class HybridSearchEngine {
   private readonly defaultTextWeight = 0.4;   // 텍스트 검색 40%
   private searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }> = new Map();
   private ranking: SearchRanking;
+  private relationGraph: RelationGraph | null = null;
 
   constructor(
     private textSearchEngine: ITextSearchEngine,
@@ -268,9 +295,27 @@ export class HybridSearchEngine {
     private resultCombiner: ISearchResultCombiner,
     private weightCalculator: IAdaptiveWeightCalculator,
     private logger: ISearchLogger,
-    private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService()
+    private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService(),
+    relationGraph?: RelationGraph
   ) {
-    this.ranking = new SearchRanking();
+    // TOML 설정에서 가중치 로드
+    const config = getRankingWeights();
+    this.ranking = new SearchRanking({
+      relevance: config.ranking_weights.alpha,
+      recency: config.ranking_weights.beta,
+      importance: config.ranking_weights.gamma,
+      usage: config.ranking_weights.delta,
+      relation_weight: config.ranking_weights.zeta,
+      duplication_penalty: config.ranking_weights.epsilon
+    });
+    this.relationGraph = relationGraph || null;
+  }
+
+  /**
+   * RelationGraph 설정 (선택적)
+   */
+  setRelationGraph(relationGraph: RelationGraph): void {
+    this.relationGraph = relationGraph;
   }
 
   /**
@@ -290,23 +335,70 @@ export class HybridSearchEngine {
       const weights = this.calculateAdaptiveWeights(query);
       this.logger.logSearchStep(searchId, '적응형 가중치 계산 완료', weights);
 
+      // 실험 로그 (experiment_id가 있는 경우)
+      if (query.experiment_id) {
+        const config = getRankingWeights();
+        const variant = {
+          ranking_weights: {
+            alpha: config.ranking_weights.alpha,
+            beta: config.ranking_weights.beta,
+            gamma: config.ranking_weights.gamma,
+            delta: config.ranking_weights.delta,
+            zeta: config.ranking_weights.zeta,
+            epsilon: config.ranking_weights.epsilon
+          },
+          adaptive_weights: {
+            vectorWeight: weights.vectorWeight,
+            textWeight: weights.textWeight
+          },
+          relation_weights: {
+            max_relations: config.relation_weights.max_relations
+          }
+        };
+        
+        if (this.logger.logExperiment) {
+          this.logger.logExperiment(searchId, query.experiment_id, variant);
+        } else {
+          // logExperiment가 없으면 logSearchStep으로 대체
+          this.logger.logSearchStep(searchId, '실험 파라미터', {
+            experiment_id: query.experiment_id,
+            variant
+          });
+        }
+      }
+
       // 2. 텍스트 검색 실행
       const textResults = await this.executeTextSearch(db, query, searchId);
 
       // 3. 벡터 검색 실행
       const vectorResults = await this.executeVectorSearch(db, query, searchId);
 
-      // 4. 결과 결합 및 정렬 (데이터베이스 전달하여 consolidation_score 조회)
-      const finalResults = this.combineAndSortResults(textResults, vectorResults, weights, query.limit || 10, db);
+      // 4. 결과 결합 및 정렬 (데이터베이스 전달하여 consolidation_score 및 관계 가중치 조회)
+      const finalResults = await this.combineAndSortResults(
+        textResults, 
+        vectorResults, 
+        weights, 
+        query.limit || 10, 
+        db,
+        query.includeRelations || false
+      );
 
       // 5. 통계 업데이트 및 결과 반환
       this.updateSearchStats(query.query, textResults.length, vectorResults.length);
       
       const queryTime = this.calculateQueryTime(startTime);
-      this.logger.logSearchComplete(searchId, {
+      
+      // 검색 완료 로그에 실험 ID 포함
+      const logData: any = {
         items: finalResults,
         total_count: finalResults.length
-      }, queryTime);
+      };
+      
+      if (query.experiment_id) {
+        logData.experiment_id = query.experiment_id;
+      }
+      
+      this.logger.logSearchComplete(searchId, logData, queryTime);
 
       return {
         items: finalResults,
@@ -528,13 +620,14 @@ export class HybridSearchEngine {
     }
   }
 
-  private combineAndSortResults(
+  private async combineAndSortResults(
     textResults: any[], 
     vectorResults: VectorSearchResult[], 
     weights: any, 
     limit: number,
-    db?: Database.Database
-  ): HybridSearchResult[] {
+    db?: Database.Database,
+    includeRelations: boolean = false
+  ): Promise<HybridSearchResult[]> {
     try {
       const combinedResults = this.resultCombiner.combine(
         textResults,
@@ -543,25 +636,66 @@ export class HybridSearchEngine {
         weights.vectorWeight
       );
       
-      // Consolidation Score가 활성화되어 있으면 finalScore 재계산
-      if (mementoConfig.consolidationScoreEnabled && db) {
-        // 데이터베이스에서 consolidation_score 조회 및 finalScore 재계산
+      // 관계 가중치 및 Consolidation Score 계산
+      if (db) {
         const memoryIds = combinedResults.map(r => r.id);
         if (memoryIds.length > 0) {
-          const consolidationScores = this.fetchConsolidationScores(db, memoryIds);
+          // 관계 가중치 및 관계 정보 계산
+          const relationData = await this.fetchRelationWeights(db, memoryIds);
+          const relationWeights = relationData.weights;
+          const relationInfo = relationData.relations;
           
+          // Consolidation Score 조회 (활성화된 경우)
+          let consolidationScores: Map<string, number> = new Map();
+          if (mementoConfig.consolidationScoreEnabled) {
+            consolidationScores = this.fetchConsolidationScores(db, memoryIds);
+          }
+          
+          // 각 결과에 대해 finalScore 재계산
           combinedResults.forEach(result => {
+            const relationWeight = relationWeights.get(result.id);
+            
+            // relationGraph가 있고 관계가 있는 경우에만 relation_weight 설정
+            if (relationWeight !== undefined && relationWeight > 0) {
+              result.relation_weight = relationWeight;
+            }
+            
+            // 관계 정보 포함 (선택적, includeRelations 옵션이 true인 경우만)
+            if (includeRelations) {
+              const relations = relationInfo.get(result.id);
+              if (relations && relations.length > 0) {
+                result.relations = relations.map(r => ({
+                  target_id: r.target_id,
+                  relation_type: r.relation_type,
+                  confidence: r.confidence
+                }));
+              }
+            }
+            
             const consolidationScore = consolidationScores.get(result.id);
+            
             if (consolidationScore !== undefined) {
+              // Consolidation Score가 있으면 기존 로직 사용
               result.consolidation_score = consolidationScore;
-              
-              // 벡터 유사도는 vectorScore로 간주
               const vectorSimilarity = result.vectorScore;
               result.finalScore = this.ranking.calculateFinalScoreWithConsolidation(
                 vectorSimilarity,
                 consolidationScore,
-                'balanced' // 기본 프로파일, 향후 쿼리 파라미터로 받을 수 있음
+                'balanced'
               );
+            } else {
+              // 관계 가중치를 포함한 finalScore 재계산
+              // SearchFeatures 구성
+              const features = {
+                relevance: result.vectorScore || result.textScore || 0,
+                recency: this.calculateRecency(result.created_at),
+                importance: result.importance || 0.5,
+                usage: this.calculateUsage(result.last_accessed),
+                relation_weight: relationWeight || 0, // relationWeight가 undefined면 0 사용
+                duplication_penalty: 0 // 중복 패널티는 이미 결과 결합 시 처리됨
+              };
+              
+              result.finalScore = this.ranking.calculateFinalScore(features);
             }
           });
         }
@@ -606,6 +740,88 @@ export class HybridSearchEngine {
     }
     
     return scores;
+  }
+
+  /**
+   * 관계 가중치 계산 및 조회
+   * 관계 정보도 함께 반환 (선택적)
+   */
+  private async fetchRelationWeights(
+    db: Database.Database, 
+    memoryIds: string[]
+  ): Promise<{
+    weights: Map<string, number>;
+    relations: Map<string, Array<{ target_id: string; relation_type: string; confidence: number }>>;
+  }> {
+    const weights = new Map<string, number>();
+    const relations = new Map<string, Array<{ target_id: string; relation_type: string; confidence: number }>>();
+    
+    if (memoryIds.length === 0 || !this.relationGraph) {
+      return { weights, relations };
+    }
+    
+    try {
+      const config = getRankingWeights();
+      const maxRelations = config.relation_weights.max_relations;
+      
+      // 각 메모리에 대해 관계 조회 및 가중치 계산
+      for (const memoryId of memoryIds) {
+        const memoryRelations = await this.relationGraph.getRelations(memoryId, {
+          direction: 'both',
+          minConfidence: 0.5 // 최소 신뢰도 필터
+        });
+        
+        if (memoryRelations.length > 0) {
+          // 관계 가중치 계산
+          const relationData = memoryRelations.map(r => ({
+            confidence: r.confidence,
+            relation_type: r.relation_type
+          }));
+          
+          const relationWeight = this.ranking.calculateRelationWeight(relationData, maxRelations);
+          weights.set(memoryId, relationWeight);
+          
+          // 관계 정보 저장 (간단한 형태로 변환)
+          const simplifiedRelations = memoryRelations.map(r => ({
+            target_id: r.source_id === memoryId ? r.target_id : r.source_id,
+            relation_type: r.relation_type,
+            confidence: r.confidence
+          }));
+          
+          relations.set(memoryId, simplifiedRelations);
+        }
+      }
+    } catch (error) {
+      // 에러 발생 시 빈 Map 반환 (관계 가중치 없이 진행)
+      console.warn('⚠️ 관계 가중치 계산 실패:', error);
+    }
+    
+    return { weights, relations };
+  }
+
+  /**
+   * 최근성 점수 계산 (간단한 구현)
+   */
+  private calculateRecency(createdAt: string | Date | undefined): number {
+    if (!createdAt) return 0.5;
+    
+    const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+    const ageDays = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+    
+    // 30일 반감기
+    return Math.exp(-Math.log(2) * ageDays / 30);
+  }
+
+  /**
+   * 사용성 점수 계산 (간단한 구현)
+   */
+  private calculateUsage(lastAccessed: string | Date | undefined): number {
+    if (!lastAccessed) return 0.1;
+    
+    const accessed = typeof lastAccessed === 'string' ? new Date(lastAccessed) : lastAccessed;
+    const daysSinceAccess = (Date.now() - accessed.getTime()) / (1000 * 60 * 60 * 24);
+    
+    return Math.exp(-daysSinceAccess / 30);
   }
 
   private calculateQueryTime(startTime: bigint): number {

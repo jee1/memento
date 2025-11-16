@@ -19,6 +19,8 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../utils/type-param-validator.js';
 import { mementoConfig } from '../config/index.js';
 import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { RelationExtractor } from '../services/relation-extractor.js';
+import type { MemoryItem } from '../types/index.js';
 
 const RememberSchema = z.object({
   content: CommonSchemas.Content,
@@ -308,14 +310,16 @@ export class RememberTool extends BaseTool {
           ]);
         });
         
-        // 메모리 저장 완료 후 임베딩 생성 및 인접 기억 갱신 (비동기, 실패해도 메모리 저장은 성공)
+        // 메모리 저장 완료 후 임베딩 생성, 인접 기억 갱신, 관계 추출 (비동기, 실패해도 메모리 저장은 성공)
         // 데이터베이스 참조를 미리 저장하여 비동기 콜백에서 안전하게 사용
         const dbRef = context.db;
         const embeddingServiceRef = context.services.embeddingService;
+        const savedMemoryId = id; // 클로저에서 사용할 수 있도록 저장
+        const savedMemoryType = type; // 클로저에서 사용할 수 있도록 저장
         
-        if (embeddingServiceRef?.isAvailable() && dbRef) {
+        if (dbRef) {
           // 비동기 작업을 별도로 실행 (fire-and-forget 패턴)
-          // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신은 백그라운드에서 처리
+          // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신/관계 추출은 백그라운드에서 처리
           (async () => {
             try {
               // 트랜잭션이 완전히 커밋되도록 짧은 지연
@@ -333,21 +337,31 @@ export class RememberTool extends BaseTool {
                   }
                 });
               } catch (dbError) {
-                this.logWarning('데이터베이스 연결이 유효하지 않아 임베딩 생성을 건너뜁니다', { 
-                  memory_id: id,
+                this.logWarning('데이터베이스 연결이 유효하지 않아 백그라운드 작업을 건너뜁니다', { 
+                  memory_id: savedMemoryId,
                   error: dbError instanceof Error ? dbError.message : String(dbError)
                 });
                 return;
               }
               
-              // 임베딩 생성
-              const embeddingResult = await embeddingServiceRef.createAndStoreEmbedding(dbRef, id, content, type);
+              // 임베딩 생성 (embeddingService가 사용 가능한 경우에만)
+              let embeddingResult = null;
+              if (embeddingServiceRef?.isAvailable()) {
+                try {
+                  embeddingResult = await embeddingServiceRef.createAndStoreEmbedding(dbRef, savedMemoryId, content, savedMemoryType);
+                } catch (error) {
+                  // 임베딩 생성 실패해도 메모리 저장은 성공했으므로 경고만 출력
+                  this.logWarning(`임베딩 생성 실패 (${savedMemoryId})`, {
+                    error: error instanceof Error ? error.message : String(error)
+                  });
+                }
+              }
               
-              if (embeddingResult) {
-                // PRD 3.1-3.3: 인접 기억 갱신
+              // PRD 3.1-3.3: 인접 기억 갱신 (임베딩이 생성된 경우에만)
+              if (embeddingResult && embeddingServiceRef) {
                 try {
                   // 데이터베이스 연결 재확인
-                  // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
+                  let dbValid = false;
                   try {
                     await new Promise<void>((resolve, reject) => {
                       try {
@@ -357,47 +371,128 @@ export class RememberTool extends BaseTool {
                         reject(error);
                       }
                     });
+                    dbValid = true;
                   } catch (dbError) {
                     this.logWarning('데이터베이스 연결이 유효하지 않아 인접 기억 갱신을 건너뜁니다', { 
-                      memory_id: id,
+                      memory_id: savedMemoryId,
                       error: dbError instanceof Error ? dbError.message : String(dbError)
                     });
-                    return;
                   }
-                  
-                  const vectorSearchEngine = getVectorSearchEngine();
-                  const neighborService = new MemoryNeighborService(
-                    vectorSearchEngine,
-                    embeddingServiceRef
-                  );
-                  
-                  neighborService.setDatabase(dbRef);
-                  
-                  // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
-                  const neighborIds = await neighborService.updateNeighborsForNewMemory(id, 0.8);
-                  
-                  if (neighborIds.length > 0) {
-                    this.logInfo('인접 기억 갱신 완료', {
-                      memory_id: id,
-                      neighbor_count: neighborIds.length
-                    });
+
+                  if (dbValid) {
+                    const vectorSearchEngine = getVectorSearchEngine();
+                    const neighborService = new MemoryNeighborService(
+                      vectorSearchEngine,
+                      embeddingServiceRef
+                    );
+                    
+                    neighborService.setDatabase(dbRef);
+                    
+                    // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
+                    const neighborIds = await neighborService.updateNeighborsForNewMemory(savedMemoryId, 0.8);
+                    
+                    if (neighborIds.length > 0) {
+                      this.logInfo('인접 기억 갱신 완료', {
+                        memory_id: savedMemoryId,
+                        neighbor_count: neighborIds.length
+                      });
+                    }
                   }
                 } catch (error) {
                   // 인접 기억 갱신 실패해도 메모리 저장은 성공했으므로 경고만 출력
-                  this.logWarning(`인접 기억 갱신 실패 (${id})`, {
+                  this.logWarning(`인접 기억 갱신 실패 (${savedMemoryId})`, {
                     error: error instanceof Error ? error.message : String(error)
                   });
                 }
               }
+
+              // PRD 2.12: 관계 추출 트리거 (비동기 배치 처리)
+              // 임베딩 생성 여부와 관계없이 관계 추출 수행 (규칙 기반 추출은 임베딩 불필요)
+              try {
+                // 데이터베이스 연결 재확인
+                let dbValid = false;
+                try {
+                  await new Promise<void>((resolve, reject) => {
+                    try {
+                      DatabaseUtils.get(dbRef, 'SELECT 1');
+                      resolve();
+                    } catch (error) {
+                      reject(error);
+                    }
+                  });
+                  dbValid = true;
+                } catch (dbError) {
+                  this.logWarning('데이터베이스 연결이 유효하지 않아 관계 추출을 건너뜁니다', { 
+                    memory_id: savedMemoryId,
+                    error: dbError instanceof Error ? dbError.message : String(dbError)
+                  });
+                }
+
+                if (dbValid) {
+                  // 기존 기억들 조회 (최근 100개로 제한하여 성능 최적화)
+                  const existingMemories = await this.getExistingMemoriesForRelationExtraction(dbRef, savedMemoryId, 100);
+                  
+                  if (existingMemories.length > 0) {
+                    // 새로 저장된 기억 정보 조회
+                    const newMemory = await this.getMemoryById(dbRef, savedMemoryId);
+                    
+                    if (newMemory) {
+                      // RelationExtractor를 사용하여 관계 추출
+                      const relationExtractor = new RelationExtractor();
+                      
+                      // 비동기 배치 처리로 관계 추출
+                      // immediate: true로 설정하여 캐싱 활성화
+                      const candidates = await relationExtractor.extractRelations(
+                        newMemory,
+                        existingMemories,
+                        {
+                          method: 'hybrid',
+                          minConfidence: 0.5,
+                          candidateLimit: 30, // MiniLM 필터링을 위한 제한
+                          immediate: true // 캐싱 활성화
+                        }
+                      );
+
+                      if (candidates.length > 0) {
+                        this.logInfo('관계 추출 완료', {
+                          memory_id: savedMemoryId,
+                          relation_count: candidates.length,
+                          relations: candidates.map(c => ({
+                            target_id: c.target_id,
+                            relation_type: c.relation_type,
+                            confidence: c.confidence,
+                            method: c.method
+                          }))
+                        });
+
+                        // TODO: PRD 3.0에서 RelationGraph가 구현되면 여기서 관계를 저장
+                        // const relationGraph = new RelationGraph(dbRef);
+                        // for (const candidate of candidates) {
+                        //   await relationGraph.addRelation(candidate);
+                        // }
+                      } else {
+                        this.logInfo('관계 추출 완료 (관계 없음)', {
+                          memory_id: savedMemoryId
+                        });
+                      }
+                    }
+                  }
+                }
+              } catch (error) {
+                // 관계 추출 실패해도 메모리 저장은 성공했으므로 경고만 출력
+                this.logWarning(`관계 추출 실패 (${savedMemoryId})`, {
+                  error: error instanceof Error ? error.message : String(error)
+                });
+              }
             } catch (error) {
-              // 임베딩 생성 실패해도 메모리 저장은 성공했으므로 경고만 출력
-              this.logWarning(`임베딩 생성 실패 (${id})`, {
+              // 백그라운드 작업 실패해도 메모리 저장은 성공했으므로 경고만 출력
+              this.logWarning(`백그라운드 작업 실패 (${savedMemoryId})`, {
                 error: error instanceof Error ? error.message : String(error)
               });
             }
           })().catch((error) => {
             // 예상치 못한 에러 처리
-            this.logWarning(`백그라운드 작업 실패 (${id})`, {
+            this.logWarning(`백그라운드 작업 실패 (${savedMemoryId})`, {
               error: error instanceof Error ? error.message : String(error)
             });
           });
@@ -420,6 +515,94 @@ export class RememberTool extends BaseTool {
         }
         throw error;
       }
+    }
+  }
+
+  /**
+   * 관계 추출을 위한 기존 기억들 조회
+   * 
+   * @param db 데이터베이스 연결
+   * @param excludeId 제외할 기억 ID (새로 저장된 기억)
+   * @param limit 조회할 기억 수 제한
+   * @returns 기존 기억 목록
+   */
+  private async getExistingMemoriesForRelationExtraction(
+    db: any,
+    excludeId: string,
+    limit: number = 100
+  ): Promise<MemoryItem[]> {
+    try {
+      const rows = await DatabaseUtils.all(db, `
+        SELECT 
+          id, type, content, importance, privacy_scope, 
+          created_at, last_accessed, pinned, tags, source, embedding
+        FROM memory_item
+        WHERE id != ? -- 새로 저장된 기억 제외
+        ORDER BY created_at DESC
+        LIMIT ?
+      `, [excludeId, limit]);
+
+      return rows.map((row: any) => ({
+        id: row.id,
+        type: row.type,
+        content: row.content,
+        importance: row.importance,
+        privacy_scope: row.privacy_scope,
+        created_at: new Date(row.created_at),
+        last_accessed: row.last_accessed ? new Date(row.last_accessed) : undefined,
+        pinned: Boolean(row.pinned),
+        tags: row.tags ? JSON.parse(row.tags) : undefined,
+        source: row.source || undefined,
+        embedding: row.embedding ? JSON.parse(row.embedding) : undefined
+      }));
+    } catch (error) {
+      this.logWarning('기존 기억 조회 실패', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
+  }
+
+  /**
+   * ID로 기억 조회
+   * 
+   * @param db 데이터베이스 연결
+   * @param id 기억 ID
+   * @returns 기억 정보
+   */
+  private async getMemoryById(db: any, id: string): Promise<MemoryItem | null> {
+    try {
+      const row = await DatabaseUtils.get(db, `
+        SELECT 
+          id, type, content, importance, privacy_scope, 
+          created_at, last_accessed, pinned, tags, source, embedding
+        FROM memory_item
+        WHERE id = ?
+      `, [id]);
+
+      if (!row) {
+        return null;
+      }
+
+      return {
+        id: row.id,
+        type: row.type,
+        content: row.content,
+        importance: row.importance,
+        privacy_scope: row.privacy_scope,
+        created_at: new Date(row.created_at),
+        last_accessed: row.last_accessed ? new Date(row.last_accessed) : undefined,
+        pinned: Boolean(row.pinned),
+        tags: row.tags ? JSON.parse(row.tags) : undefined,
+        source: row.source || undefined,
+        embedding: row.embedding ? JSON.parse(row.embedding) : undefined
+      };
+    } catch (error) {
+      this.logWarning('기억 조회 실패', {
+        memory_id: id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
     }
   }
 }

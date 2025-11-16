@@ -1,0 +1,28 @@
+# 검색 랭킹 가중치 설정
+# 관계 추론 엔진의 검색 랭킹 공식에 사용되는 가중치 값들
+#
+# 랭킹 공식: S = α * relevance + β * recency + γ * importance + δ * usage + ζ * relation_weight - ε * duplication_penalty
+
+[ranking_weights]
+# relevance: 벡터 유사도 기반 관련성 점수
+alpha = 0.45
+
+# recency: 최근성 점수 (시간 경과에 따른 감쇠)
+beta = 0.20
+
+# importance: 중요도 점수 (importance_score 기반)
+gamma = 0.20
+
+# usage: 사용 빈도 점수 (access_count 기반)
+delta = 0.10
+
+# relation_weight: 관계 가중치 (관계 그래프 기반)
+zeta = 0.15
+
+# duplication_penalty: 중복 패널티 (중복 기억에 대한 감점)
+epsilon = 0.10
+
+[relation_weights]
+# 관계 가중치 계산 시 정규화를 위한 최대 관계 수
+# 이 값보다 많은 관계가 있어도 이 값으로 나누어 정규화
+max_relations = 5

@@ -45,6 +45,8 @@ export interface ToolContext {
     writeCoalescingManager?: any;
     /** 앵커 관리자 서비스 */
     anchorManager?: any;
+    /** 관계 그래프 서비스 */
+    relationGraph?: any;
   };
 }
 

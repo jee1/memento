@@ -259,11 +259,26 @@ npm run test -- --coverage
 - **Error Logging**: Structured error tracking and statistics
 - **Performance Alerts**: Threshold-based automatic alert system
 
-### Lightweight Embedding Performance
-- **TF-IDF Vectorization**: Fixed 512-dimensional vector generation
-- **Multilingual Support**: Korean/English stopword removal
-- **Local Processing**: Works without OpenAI API
-- **Cosine Similarity**: Fast vector search
+### Embedding Provider Performance
+
+#### Free Providers (Local Processing)
+- **TF-IDF**: 512 dimensions, extremely fast (0.82ms), low memory usage (4.48MB)
+- **MiniLM**: 384 dimensions, balanced performance, multilingual support
+
+#### Paid Providers (Cloud API)
+- **OpenAI**: 1536 dimensions, highest performance, high accuracy
+- **Gemini**: 768 dimensions, high performance, multilingual support
+
+**Auto Selection and Priority Order**:
+1. **Explicit Request**: If a specific provider is requested in API call, it takes priority
+2. **Configuration Default**: Uses `EMBEDDING_PROVIDER` value from `.env` file
+3. **Automatic Priority Selection**: Automatically selects available providers in the following order:
+   - 1st Priority: **OpenAI** (paid, highest performance)
+   - 2nd Priority: **Gemini** (paid, high performance)
+   - 3rd Priority: **MiniLM** (free, balanced performance)
+   - 4th Priority: **TF-IDF** (free, fast speed)
+
+**Fallback Mechanism**: Automatically falls back to the next priority provider if a higher priority provider fails.
 
 ## 🏗️ Architecture
 
@@ -274,7 +289,7 @@ npm run test -- --coverage
 - **Operation**: Local execution
 - **MCP Client**: Only exposes 5 core tools
 - **Management Functions**: Separated into HTTP API
-- **Additional Features**: Lightweight embedding, performance monitoring, cache system
+- **Additional Features**: Multiple embedding providers (TF-IDF, MiniLM, OpenAI, Gemini), performance monitoring, cache system
 
 ### M2: Team Collaboration (Planned)
 - **Storage**: SQLite server mode

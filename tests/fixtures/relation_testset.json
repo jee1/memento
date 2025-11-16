@@ -1,0 +1,2402 @@
+[
+  {
+    "source_id": "mem_causes_001",
+    "target_id": "mem_causes_002",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.95],
+    "source_content": "정산 시스템에서 세금 계산 로직에 버그가 발생했습니다.",
+    "target_content": "고객 정산 금액이 잘못 계산되어 환불 요청이 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_003",
+    "target_id": "mem_causes_004",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.90],
+    "source_content": "데이터베이스 연결 풀이 부족했습니다.",
+    "target_content": "API 응답 시간이 크게 증가하여 타임아웃 오류가 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_005",
+    "target_id": "mem_causes_006",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "배포 전 단위 테스트를 건너뛰었습니다.",
+    "target_content": "프로덕션 환경에서 치명적인 버그가 발견되었습니다."
+  },
+  {
+    "source_id": "mem_causes_007",
+    "target_id": "mem_causes_008",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "환경 변수 설정을 잘못 구성했습니다.",
+    "target_content": "인증 서비스가 실패하여 사용자 로그인이 불가능했습니다."
+  },
+  {
+    "source_id": "mem_causes_009",
+    "target_id": "mem_causes_010",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "캐시 무효화 전략을 구현하지 않았습니다.",
+    "target_content": "사용자에게 오래된 데이터가 표시되었습니다."
+  },
+  {
+    "source_id": "mem_causes_011",
+    "target_id": "mem_causes_012",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "API rate limit을 설정하지 않았습니다.",
+    "target_content": "서버가 과부하 상태에 빠져 다운되었습니다."
+  },
+  {
+    "source_id": "mem_causes_013",
+    "target_id": "mem_causes_014",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "입력 검증 로직을 추가하지 않았습니다.",
+    "target_content": "SQL injection 공격으로 데이터베이스가 손상되었습니다."
+  },
+  {
+    "source_id": "mem_causes_015",
+    "target_id": "mem_causes_016",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "에러 핸들링을 구현하지 않았습니다.",
+    "target_content": "예외 상황에서 애플리케이션이 크래시되었습니다."
+  },
+  {
+    "source_id": "mem_causes_017",
+    "target_id": "mem_causes_018",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "트랜잭션 롤백 메커니즘을 구현하지 않았습니다.",
+    "target_content": "부분 실패 시 데이터 일관성이 깨졌습니다."
+  },
+  {
+    "source_id": "mem_causes_019",
+    "target_id": "mem_causes_020",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "로깅 레벨을 DEBUG로 설정했습니다.",
+    "target_content": "로그 파일이 급격히 증가하여 디스크 공간이 부족했습니다."
+  },
+  {
+    "source_id": "mem_causes_021",
+    "target_id": "mem_causes_022",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "비동기 작업의 타임아웃을 설정하지 않았습니다.",
+    "target_content": "장시간 실행되는 작업이 리소스를 점유했습니다."
+  },
+  {
+    "source_id": "mem_causes_023",
+    "target_id": "mem_causes_024",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "CORS 설정을 올바르게 구성하지 않았습니다.",
+    "target_content": "프론트엔드에서 API 호출이 차단되었습니다."
+  },
+  {
+    "source_id": "mem_causes_025",
+    "target_id": "mem_causes_026",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터베이스 인덱스를 생성하지 않았습니다.",
+    "target_content": "쿼리 성능이 크게 저하되었습니다."
+  },
+  {
+    "source_id": "mem_causes_027",
+    "target_id": "mem_causes_028",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "세션 타임아웃을 설정하지 않았습니다.",
+    "target_content": "보안 취약점이 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_029",
+    "target_id": "mem_causes_030",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "의존성 버전을 고정하지 않았습니다.",
+    "target_content": "프로덕션 빌드가 실패했습니다."
+  },
+  {
+    "source_id": "mem_causes_031",
+    "target_id": "mem_causes_032",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "메모리 누수 문제를 해결하지 않았습니다.",
+    "target_content": "장시간 실행 후 서버가 메모리 부족으로 다운되었습니다."
+  },
+  {
+    "source_id": "mem_causes_033",
+    "target_id": "mem_causes_034",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "파일 업로드 크기 제한을 설정하지 않았습니다.",
+    "target_content": "대용량 파일 업로드로 디스크 공간이 부족했습니다."
+  },
+  {
+    "source_id": "mem_causes_035",
+    "target_id": "mem_causes_036",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "비밀번호 해싱 알고리즘을 사용하지 않았습니다.",
+    "target_content": "데이터 유출 시 사용자 비밀번호가 노출되었습니다."
+  },
+  {
+    "source_id": "mem_causes_037",
+    "target_id": "mem_causes_038",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "동시성 제어를 구현하지 않았습니다.",
+    "target_content": "Race condition으로 데이터가 손상되었습니다."
+  },
+  {
+    "source_id": "mem_causes_039",
+    "target_id": "mem_causes_040",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 버전 관리를 하지 않았습니다.",
+    "target_content": "클라이언트 호환성 문제가 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_041",
+    "target_id": "mem_causes_042",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "The payment gateway integration was not properly tested.",
+    "target_content": "Payment transactions failed in production environment."
+  },
+  {
+    "source_id": "mem_causes_043",
+    "target_id": "mem_causes_044",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "Database connection pooling was not configured.",
+    "target_content": "The application ran out of database connections."
+  },
+  {
+    "source_id": "mem_causes_045",
+    "target_id": "mem_causes_046",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "Error monitoring was not set up.",
+    "target_content": "Critical errors went unnoticed for days."
+  },
+  {
+    "source_id": "mem_causes_047",
+    "target_id": "mem_causes_048",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "Code review process was skipped.",
+    "target_content": "Security vulnerabilities were introduced to the codebase."
+  },
+  {
+    "source_id": "mem_causes_049",
+    "target_id": "mem_causes_050",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "Backup strategy was not implemented.",
+    "target_content": "Data loss occurred during system failure."
+  },
+  {
+    "source_id": "mem_causes_051",
+    "target_id": "mem_causes_052",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "Load balancer health checks were misconfigured.",
+    "target_content": "Traffic was routed to unhealthy servers."
+  },
+  {
+    "source_id": "mem_depends_001",
+    "target_id": "mem_depends_002",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.95],
+    "source_content": "사용자 인증 기능을 구현하려고 합니다.",
+    "target_content": "JWT 토큰 생성 라이브러리가 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_003",
+    "target_id": "mem_depends_004",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.90],
+    "source_content": "데이터베이스 마이그레이션을 실행해야 합니다.",
+    "target_content": "스키마 변경 사항이 먼저 적용되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_005",
+    "target_id": "mem_depends_006",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "API 엔드포인트를 배포하려고 합니다.",
+    "target_content": "인증 미들웨어가 먼저 구현되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_007",
+    "target_id": "mem_depends_008",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "프론트엔드 빌드를 시작합니다.",
+    "target_content": "백엔드 API 스펙이 확정되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_009",
+    "target_id": "mem_depends_010",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "통합 테스트를 실행하려고 합니다.",
+    "target_content": "테스트 데이터베이스가 준비되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_011",
+    "target_id": "mem_depends_012",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "배포 파이프라인을 구성하려고 합니다.",
+    "target_content": "CI/CD 도구가 설치되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_013",
+    "target_id": "mem_depends_014",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "로깅 시스템을 구현하려고 합니다.",
+    "target_content": "로깅 라이브러리가 먼저 설치되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_015",
+    "target_id": "mem_depends_016",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "캐시 기능을 추가하려고 합니다.",
+    "target_content": "캐시 서버가 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_017",
+    "target_id": "mem_depends_018",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "메시지 큐를 사용하려고 합니다.",
+    "target_content": "메시지 브로커가 먼저 설정되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_019",
+    "target_id": "mem_depends_020",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "모니터링 대시보드를 구축하려고 합니다.",
+    "target_content": "메트릭 수집 시스템이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_021",
+    "target_id": "mem_depends_022",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이미지 처리 기능을 구현하려고 합니다.",
+    "target_content": "이미지 처리 라이브러리가 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_023",
+    "target_id": "mem_depends_024",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이메일 발송 기능을 추가하려고 합니다.",
+    "target_content": "SMTP 서버 설정이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_025",
+    "target_id": "mem_depends_026",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "파일 업로드 기능을 구현하려고 합니다.",
+    "target_content": "파일 저장소가 먼저 구성되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_027",
+    "target_id": "mem_depends_028",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "웹소켓 통신을 구현하려고 합니다.",
+    "target_content": "웹소켓 서버가 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_029",
+    "target_id": "mem_depends_030",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "검색 기능을 추가하려고 합니다.",
+    "target_content": "검색 엔진이 먼저 설치되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_031",
+    "target_id": "mem_depends_032",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "알림 시스템을 구축하려고 합니다.",
+    "target_content": "푸시 알림 서비스가 먼저 연동되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_033",
+    "target_id": "mem_depends_034",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "결제 시스템을 통합하려고 합니다.",
+    "target_content": "결제 게이트웨이 계정이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_035",
+    "target_id": "mem_depends_036",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "다국어 지원을 추가하려고 합니다.",
+    "target_content": "번역 파일이 먼저 준비되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_037",
+    "target_id": "mem_depends_038",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "테마 시스템을 구현하려고 합니다.",
+    "target_content": "CSS 변수 시스템이 먼저 정의되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_039",
+    "target_id": "mem_depends_040",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "실시간 동기화 기능을 추가하려고 합니다.",
+    "target_content": "이벤트 소싱 패턴이 먼저 구현되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_041",
+    "target_id": "mem_depends_042",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "To implement user authentication, we need to set up OAuth providers first.",
+    "target_content": "OAuth client credentials must be configured before authentication can work."
+  },
+  {
+    "source_id": "mem_depends_043",
+    "target_id": "mem_depends_044",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We want to add database replication for high availability.",
+    "target_content": "Primary database must be configured before setting up replicas."
+  },
+  {
+    "source_id": "mem_depends_045",
+    "target_id": "mem_depends_046",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We plan to implement API rate limiting.",
+    "target_content": "Redis must be installed and configured first."
+  },
+  {
+    "source_id": "mem_depends_047",
+    "target_id": "mem_depends_048",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We need to add automated testing to the CI pipeline.",
+    "target_content": "Test framework must be set up before CI integration."
+  },
+  {
+    "source_id": "mem_depends_049",
+    "target_id": "mem_depends_050",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We want to implement distributed tracing.",
+    "target_content": "Tracing infrastructure must be deployed first."
+  },
+  {
+    "source_id": "mem_depends_051",
+    "target_id": "mem_depends_052",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We plan to add feature flags to the application.",
+    "target_content": "Feature flag service must be integrated first."
+  },
+  {
+    "source_id": "mem_follows_001",
+    "target_id": "mem_follows_002",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.95],
+    "source_content": "코드 리뷰를 완료했습니다.",
+    "target_content": "변경 사항을 메인 브랜치에 머지했습니다."
+  },
+  {
+    "source_id": "mem_follows_003",
+    "target_id": "mem_follows_004",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.90],
+    "source_content": "단위 테스트를 작성했습니다.",
+    "target_content": "통합 테스트를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_005",
+    "target_id": "mem_follows_006",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "스테이징 환경에 배포했습니다.",
+    "target_content": "프로덕션 환경에 배포했습니다."
+  },
+  {
+    "source_id": "mem_follows_007",
+    "target_id": "mem_follows_008",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터베이스 마이그레이션을 실행했습니다.",
+    "target_content": "애플리케이션을 재시작했습니다."
+  },
+  {
+    "source_id": "mem_follows_009",
+    "target_id": "mem_follows_010",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "버그를 발견했습니다.",
+    "target_content": "버그를 수정했습니다."
+  },
+  {
+    "source_id": "mem_follows_011",
+    "target_id": "mem_follows_012",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "요구사항을 분석했습니다.",
+    "target_content": "기술 설계 문서를 작성했습니다."
+  },
+  {
+    "source_id": "mem_follows_013",
+    "target_id": "mem_follows_014",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "API 스펙을 정의했습니다.",
+    "target_content": "API 구현을 시작했습니다."
+  },
+  {
+    "source_id": "mem_follows_015",
+    "target_id": "mem_follows_016",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "프로토타입을 만들었습니다.",
+    "target_content": "프로토타입을 검증했습니다."
+  },
+  {
+    "source_id": "mem_follows_017",
+    "target_id": "mem_follows_018",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "성능 테스트를 실행했습니다.",
+    "target_content": "성능 최적화를 수행했습니다."
+  },
+  {
+    "source_id": "mem_follows_019",
+    "target_id": "mem_follows_020",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "보안 취약점을 발견했습니다.",
+    "target_content": "보안 패치를 적용했습니다."
+  },
+  {
+    "source_id": "mem_follows_021",
+    "target_id": "mem_follows_022",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "의존성을 업데이트했습니다.",
+    "target_content": "호환성 테스트를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_023",
+    "target_id": "mem_follows_024",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "인프라 구성을 완료했습니다.",
+    "target_content": "인프라를 배포했습니다."
+  },
+  {
+    "source_id": "mem_follows_025",
+    "target_id": "mem_follows_026",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "모니터링 설정을 완료했습니다.",
+    "target_content": "모니터링 대시보드를 확인했습니다."
+  },
+  {
+    "source_id": "mem_follows_027",
+    "target_id": "mem_follows_028",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "백업 전략을 수립했습니다.",
+    "target_content": "백업을 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_029",
+    "target_id": "mem_follows_030",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "로드 테스트를 준비했습니다.",
+    "target_content": "로드 테스트를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_031",
+    "target_id": "mem_follows_032",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "문서화를 시작했습니다.",
+    "target_content": "문서를 검토했습니다."
+  },
+  {
+    "source_id": "mem_follows_033",
+    "target_id": "mem_follows_034",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "코드 리팩토링을 계획했습니다.",
+    "target_content": "코드 리팩토링을 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_035",
+    "target_id": "mem_follows_036",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "배포 계획을 수립했습니다.",
+    "target_content": "배포를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_037",
+    "target_id": "mem_follows_038",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "테스트 시나리오를 작성했습니다.",
+    "target_content": "테스트를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_039",
+    "target_id": "mem_follows_040",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "사용자 피드백을 수집했습니다.",
+    "target_content": "피드백을 반영하여 개선했습니다."
+  },
+  {
+    "source_id": "mem_follows_041",
+    "target_id": "mem_follows_042",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We completed the code review process.",
+    "target_content": "We merged the changes to the main branch."
+  },
+  {
+    "source_id": "mem_follows_043",
+    "target_id": "mem_follows_044",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We deployed to staging environment.",
+    "target_content": "We deployed to production environment."
+  },
+  {
+    "source_id": "mem_follows_045",
+    "target_id": "mem_follows_046",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We ran the database migration.",
+    "target_content": "We restarted the application server."
+  },
+  {
+    "source_id": "mem_follows_047",
+    "target_id": "mem_follows_048",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We identified a security vulnerability.",
+    "target_content": "We applied a security patch."
+  },
+  {
+    "source_id": "mem_follows_049",
+    "target_id": "mem_follows_050",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We completed performance testing.",
+    "target_content": "We optimized the application performance."
+  },
+  {
+    "source_id": "mem_follows_051",
+    "target_id": "mem_follows_052",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We prepared the deployment plan.",
+    "target_content": "We executed the deployment."
+  },
+  {
+    "source_id": "mem_contrasts_001",
+    "target_id": "mem_contrasts_002",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.95],
+    "source_content": "이전에는 동기 방식으로 API를 호출했습니다.",
+    "target_content": "현재는 비동기 방식으로 API를 호출합니다."
+  },
+  {
+    "source_id": "mem_contrasts_003",
+    "target_id": "mem_contrasts_004",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.90],
+    "source_content": "과거에는 단일 서버로 운영했습니다.",
+    "target_content": "지금은 마이크로서비스 아키텍처를 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_005",
+    "target_id": "mem_contrasts_006",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전 버전에서는 SQLite를 사용했습니다.",
+    "target_content": "새 버전에서는 PostgreSQL을 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_007",
+    "target_id": "mem_contrasts_008",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 REST API만 제공했습니다.",
+    "target_content": "현재는 GraphQL API도 제공합니다."
+  },
+  {
+    "source_id": "mem_contrasts_009",
+    "target_id": "mem_contrasts_010",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 수동 배포를 했습니다.",
+    "target_content": "지금은 자동화된 CI/CD 파이프라인을 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_011",
+    "target_id": "mem_contrasts_012",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "과거에는 모노리포 구조였습니다.",
+    "target_content": "현재는 멀티레포 구조로 전환했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_013",
+    "target_id": "mem_contrasts_014",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 서버 사이드 렌더링만 했습니다.",
+    "target_content": "지금은 클라이언트 사이드 렌더링도 지원합니다."
+  },
+  {
+    "source_id": "mem_contrasts_015",
+    "target_id": "mem_contrasts_016",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 관계형 데이터베이스만 사용했습니다.",
+    "target_content": "현재는 NoSQL 데이터베이스도 함께 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_017",
+    "target_id": "mem_contrasts_018",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전에는 단일 테넌트 아키텍처였습니다.",
+    "target_content": "지금은 멀티 테넌트 아키텍처로 변경했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_019",
+    "target_id": "mem_contrasts_020",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 폴링 방식으로 상태를 확인했습니다.",
+    "target_content": "현재는 웹소켓을 사용하여 실시간으로 상태를 전달합니다."
+  },
+  {
+    "source_id": "mem_contrasts_021",
+    "target_id": "mem_contrasts_022",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 정적 타입 검사를 하지 않았습니다.",
+    "target_content": "지금은 TypeScript를 사용하여 타입 안정성을 확보했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_023",
+    "target_id": "mem_contrasts_024",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "과거에는 인메모리 캐시만 사용했습니다.",
+    "target_content": "현재는 분산 캐시 시스템을 도입했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_025",
+    "target_id": "mem_contrasts_026",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 수동으로 로그를 분석했습니다.",
+    "target_content": "지금은 자동화된 로그 분석 도구를 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_027",
+    "target_id": "mem_contrasts_028",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 단일 지역에 배포했습니다.",
+    "target_content": "현재는 다중 지역 배포를 지원합니다."
+  },
+  {
+    "source_id": "mem_contrasts_029",
+    "target_id": "mem_contrasts_030",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전에는 블루-그린 배포를 사용했습니다.",
+    "target_content": "지금은 카나리 배포 방식을 채택했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_031",
+    "target_id": "mem_contrasts_032",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 수평 확장만 고려했습니다.",
+    "target_content": "현재는 수직 확장도 함께 고려합니다."
+  },
+  {
+    "source_id": "mem_contrasts_033",
+    "target_id": "mem_contrasts_034",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 단일 프로세스로 실행했습니다.",
+    "target_content": "지금은 멀티 프로세스 아키텍처를 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_035",
+    "target_id": "mem_contrasts_036",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "과거에는 동기식 트랜잭션만 지원했습니다.",
+    "target_content": "현재는 비동기 이벤트 기반 아키텍처를 도입했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_037",
+    "target_id": "mem_contrasts_038",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 단일 언어로 개발했습니다.",
+    "target_content": "지금은 멀티 언어 스택을 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_039",
+    "target_id": "mem_contrasts_040",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 수동 테스트만 수행했습니다.",
+    "target_content": "현재는 자동화된 테스트 스위트를 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_041",
+    "target_id": "mem_contrasts_042",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We previously used a monolithic architecture.",
+    "target_content": "We now use a microservices architecture."
+  },
+  {
+    "source_id": "mem_contrasts_043",
+    "target_id": "mem_contrasts_044",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We used to deploy manually.",
+    "target_content": "We now use automated CI/CD pipelines."
+  },
+  {
+    "source_id": "mem_contrasts_045",
+    "target_id": "mem_contrasts_046",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We previously stored data in a single database.",
+    "target_content": "We now use distributed database systems."
+  },
+  {
+    "source_id": "mem_contrasts_047",
+    "target_id": "mem_contrasts_048",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We used synchronous API calls before.",
+    "target_content": "We now use asynchronous API calls."
+  },
+  {
+    "source_id": "mem_contrasts_049",
+    "target_id": "mem_contrasts_050",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We previously used server-side rendering only.",
+    "target_content": "We now support client-side rendering as well."
+  },
+  {
+    "source_id": "mem_contrasts_051",
+    "target_id": "mem_contrasts_052",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We used to handle errors manually.",
+    "target_content": "We now have automated error handling and recovery."
+  },
+  {
+    "source_id": "mem_refs_001",
+    "target_id": "mem_refs_002",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.90],
+    "source_content": "API 엔드포인트 설계는 RESTful 원칙을 따릅니다.",
+    "target_content": "RESTful API 설계 가이드라인 문서를 참고하세요."
+  },
+  {
+    "source_id": "mem_refs_003",
+    "target_id": "mem_refs_004",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.95],
+    "source_content": "인증 구현은 OAuth 2.0 스펙을 기반으로 합니다.",
+    "target_content": "OAuth 2.0 공식 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_005",
+    "target_id": "mem_refs_006",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "데이터베이스 스키마는 정규화 원칙을 적용했습니다.",
+    "target_content": "데이터베이스 정규화 가이드를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_007",
+    "target_id": "mem_refs_008",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "보안 정책은 OWASP Top 10을 준수합니다.",
+    "target_content": "OWASP 보안 가이드라인을 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_009",
+    "target_id": "mem_refs_010",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "테스트 전략은 TDD 방법론을 따릅니다.",
+    "target_content": "TDD 베스트 프랙티스 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_011",
+    "target_id": "mem_refs_012",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "코드 스타일은 Airbnb JavaScript 가이드를 따릅니다.",
+    "target_content": "Airbnb JavaScript 스타일 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_013",
+    "target_id": "mem_refs_014",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "아키텍처 설계는 마이크로서비스 패턴을 참고했습니다.",
+    "target_content": "마이크로서비스 아키텍처 패턴 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_015",
+    "target_id": "mem_refs_016",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "성능 최적화는 웹 성능 베스트 프랙티스를 적용했습니다.",
+    "target_content": "웹 성능 최적화 가이드를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_017",
+    "target_id": "mem_refs_018",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "로깅 전략은 구조화된 로깅 원칙을 따릅니다.",
+    "target_content": "구조화된 로깅 가이드라인을 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_019",
+    "target_id": "mem_refs_020",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "에러 핸들링은 표준 에러 응답 형식을 사용합니다.",
+    "target_content": "REST API 에러 응답 표준 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_021",
+    "target_id": "mem_refs_022",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터 검증은 JSON Schema를 사용합니다.",
+    "target_content": "JSON Schema 검증 라이브러리 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_023",
+    "target_id": "mem_refs_024",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "캐싱 전략은 HTTP 캐싱 표준을 준수합니다.",
+    "target_content": "HTTP 캐싱 표준 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_025",
+    "target_id": "mem_refs_026",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "보안 헤더 설정은 보안 헤더 가이드를 따릅니다.",
+    "target_content": "보안 HTTP 헤더 가이드라인을 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_027",
+    "target_id": "mem_refs_028",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "API 버전 관리는 시맨틱 버저닝을 적용합니다.",
+    "target_content": "시맨틱 버저닝 스펙 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_029",
+    "target_id": "mem_refs_030",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "데이터베이스 마이그레이션은 Flyway 패턴을 사용합니다.",
+    "target_content": "데이터베이스 마이그레이션 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_031",
+    "target_id": "mem_refs_032",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "테스트 커버리지는 80% 이상을 목표로 합니다.",
+    "target_content": "테스트 커버리지 측정 도구 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_033",
+    "target_id": "mem_refs_034",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "코드 리뷰 프로세스는 GitHub Flow를 따릅니다.",
+    "target_content": "GitHub Flow 워크플로우 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_035",
+    "target_id": "mem_refs_036",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "의존성 관리는 시맨틱 버저닝을 사용합니다.",
+    "target_content": "의존성 버전 관리 가이드를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_037",
+    "target_id": "mem_refs_038",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "모니터링은 Prometheus 메트릭을 사용합니다.",
+    "target_content": "Prometheus 메트릭 수집 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_039",
+    "target_id": "mem_refs_040",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "로깅 포맷은 JSON Lines 형식을 사용합니다.",
+    "target_content": "JSON Lines 로깅 표준 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_041",
+    "target_id": "mem_refs_042",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 문서화는 OpenAPI 스펙을 사용합니다.",
+    "target_content": "OpenAPI 스펙 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_043",
+    "target_id": "mem_refs_044",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We follow RESTful API design principles.",
+    "target_content": "Please refer to the RESTful API design guidelines."
+  },
+  {
+    "source_id": "mem_refs_045",
+    "target_id": "mem_refs_046",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "Our authentication is based on OAuth 2.0 specification.",
+    "target_content": "We referenced the official OAuth 2.0 documentation."
+  },
+  {
+    "source_id": "mem_refs_047",
+    "target_id": "mem_refs_048",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We apply database normalization principles.",
+    "target_content": "We referenced the database normalization guide."
+  },
+  {
+    "source_id": "mem_refs_049",
+    "target_id": "mem_refs_050",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "Our security policy follows OWASP Top 10.",
+    "target_content": "We referenced the OWASP security guidelines."
+  },
+  {
+    "source_id": "mem_refs_051",
+    "target_id": "mem_refs_052",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We use TDD methodology for testing.",
+    "target_content": "We referenced the TDD best practices document."
+  },
+  {
+    "source_id": "mem_belongs_001",
+    "target_id": "mem_belongs_002",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.95],
+    "source_content": "사용자 인증 모듈",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_003",
+    "target_id": "mem_belongs_004",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.90],
+    "source_content": "결제 처리 서비스",
+    "target_content": "전자상거래 플랫폼"
+  },
+  {
+    "source_id": "mem_belongs_005",
+    "target_id": "mem_belongs_006",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "데이터베이스 연결 풀",
+    "target_content": "인프라스트럭처 레이어"
+  },
+  {
+    "source_id": "mem_belongs_007",
+    "target_id": "mem_belongs_008",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "API 라우터",
+    "target_content": "웹 애플리케이션 프레임워크"
+  },
+  {
+    "source_id": "mem_belongs_009",
+    "target_id": "mem_belongs_010",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "로깅 미들웨어",
+    "target_content": "애플리케이션 미들웨어 스택"
+  },
+  {
+    "source_id": "mem_belongs_011",
+    "target_id": "mem_belongs_012",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "캐시 레이어",
+    "target_content": "성능 최적화 시스템"
+  },
+  {
+    "source_id": "mem_belongs_013",
+    "target_id": "mem_belongs_014",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "에러 핸들러",
+    "target_content": "예외 처리 시스템"
+  },
+  {
+    "source_id": "mem_belongs_015",
+    "target_id": "mem_belongs_016",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "데이터 검증 유틸리티",
+    "target_content": "입력 검증 모듈"
+  },
+  {
+    "source_id": "mem_belongs_017",
+    "target_id": "mem_belongs_018",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "세션 관리자",
+    "target_content": "인증 및 권한 시스템"
+  },
+  {
+    "source_id": "mem_belongs_019",
+    "target_id": "mem_belongs_020",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "파일 업로드 핸들러",
+    "target_content": "파일 관리 시스템"
+  },
+  {
+    "source_id": "mem_belongs_021",
+    "target_id": "mem_belongs_022",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이메일 발송 서비스",
+    "target_content": "알림 시스템"
+  },
+  {
+    "source_id": "mem_belongs_023",
+    "target_id": "mem_belongs_024",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "데이터베이스 마이그레이션 스크립트",
+    "target_content": "데이터베이스 관리 도구"
+  },
+  {
+    "source_id": "mem_belongs_025",
+    "target_id": "mem_belongs_026",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "단위 테스트",
+    "target_content": "테스트 스위트"
+  },
+  {
+    "source_id": "mem_belongs_027",
+    "target_id": "mem_belongs_028",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "통합 테스트",
+    "target_content": "테스트 스위트"
+  },
+  {
+    "source_id": "mem_belongs_029",
+    "target_id": "mem_belongs_030",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "E2E 테스트",
+    "target_content": "테스트 스위트"
+  },
+  {
+    "source_id": "mem_belongs_031",
+    "target_id": "mem_belongs_032",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "성능 테스트",
+    "target_content": "테스트 스위트"
+  },
+  {
+    "source_id": "mem_belongs_033",
+    "target_id": "mem_belongs_034",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "보안 테스트",
+    "target_content": "테스트 스위트"
+  },
+  {
+    "source_id": "mem_belongs_035",
+    "target_id": "mem_belongs_036",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "API 엔드포인트",
+    "target_content": "REST API 서비스"
+  },
+  {
+    "source_id": "mem_belongs_037",
+    "target_id": "mem_belongs_038",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "GraphQL 쿼리",
+    "target_content": "GraphQL API 서비스"
+  },
+  {
+    "source_id": "mem_belongs_039",
+    "target_id": "mem_belongs_040",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "웹소켓 핸들러",
+    "target_content": "실시간 통신 시스템"
+  },
+  {
+    "source_id": "mem_belongs_041",
+    "target_id": "mem_belongs_042",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "메시지 큐 컨슈머",
+    "target_content": "비동기 메시징 시스템"
+  },
+  {
+    "source_id": "mem_belongs_043",
+    "target_id": "mem_belongs_044",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터베이스 리포지토리",
+    "target_content": "데이터 액세스 레이어"
+  },
+  {
+    "source_id": "mem_belongs_045",
+    "target_id": "mem_belongs_046",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "비즈니스 로직 서비스",
+    "target_content": "애플리케이션 서비스 레이어"
+  },
+  {
+    "source_id": "mem_belongs_047",
+    "target_id": "mem_belongs_048",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "Authentication module",
+    "target_content": "Security system"
+  },
+  {
+    "source_id": "mem_belongs_049",
+    "target_id": "mem_belongs_050",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "Payment processing service",
+    "target_content": "E-commerce platform"
+  },
+  {
+    "source_id": "mem_belongs_051",
+    "target_id": "mem_belongs_052",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "Database connection pool",
+    "target_content": "Infrastructure layer"
+  },
+  {
+    "source_id": "mem_belongs_053",
+    "target_id": "mem_belongs_054",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "API router",
+    "target_content": "Web application framework"
+  },
+  {
+    "source_id": "mem_belongs_055",
+    "target_id": "mem_belongs_056",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "Logging middleware",
+    "target_content": "Application middleware stack"
+  },
+  {
+    "source_id": "mem_causes_053",
+    "target_id": "mem_causes_054",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "SSL 인증서를 갱신하지 않았습니다.",
+    "target_content": "HTTPS 연결이 실패하여 사용자가 접속할 수 없었습니다."
+  },
+  {
+    "source_id": "mem_causes_055",
+    "target_id": "mem_causes_056",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "CDN 설정을 잘못 구성했습니다.",
+    "target_content": "정적 자원 로딩이 느려져 페이지 로딩 시간이 증가했습니다."
+  },
+  {
+    "source_id": "mem_causes_057",
+    "target_id": "mem_causes_058",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "데이터베이스 백업을 자동화하지 않았습니다.",
+    "target_content": "데이터 손실 시 복구할 수 없었습니다."
+  },
+  {
+    "source_id": "mem_causes_059",
+    "target_id": "mem_causes_060",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "API 키를 하드코딩했습니다.",
+    "target_content": "코드 저장소에 민감한 정보가 노출되었습니다."
+  },
+  {
+    "source_id": "mem_causes_061",
+    "target_id": "mem_causes_062",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "타임존 처리를 하지 않았습니다.",
+    "target_content": "다른 지역 사용자에게 잘못된 시간이 표시되었습니다."
+  },
+  {
+    "source_id": "mem_causes_063",
+    "target_id": "mem_causes_064",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "리소스 정리 로직을 구현하지 않았습니다.",
+    "target_content": "메모리 누수로 인해 서버가 재시작되었습니다."
+  },
+  {
+    "source_id": "mem_causes_065",
+    "target_id": "mem_causes_066",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "동시 접속자 수 제한을 설정하지 않았습니다.",
+    "target_content": "서버가 과부하 상태에 빠졌습니다."
+  },
+  {
+    "source_id": "mem_causes_067",
+    "target_id": "mem_causes_068",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "파일 권한을 올바르게 설정하지 않았습니다.",
+    "target_content": "보안 취약점이 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_069",
+    "target_id": "mem_causes_070",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "에러 메시지에 시스템 정보를 포함했습니다.",
+    "target_content": "공격자가 시스템 구조를 파악할 수 있었습니다."
+  },
+  {
+    "source_id": "mem_causes_071",
+    "target_id": "mem_causes_072",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "세션 타임아웃을 설정하지 않았습니다.",
+    "target_content": "사용자 세션이 무기한 유지되어 보안 위험이 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_073",
+    "target_id": "mem_causes_074",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "입력 길이 제한을 설정하지 않았습니다.",
+    "target_content": "DoS 공격에 취약해졌습니다."
+  },
+  {
+    "source_id": "mem_causes_075",
+    "target_id": "mem_causes_076",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "트랜잭션 격리 수준을 설정하지 않았습니다.",
+    "target_content": "데이터 일관성 문제가 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_077",
+    "target_id": "mem_causes_078",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "로드 밸런서 헬스 체크를 설정하지 않았습니다.",
+    "target_content": "장애 서버로 트래픽이 라우팅되었습니다."
+  },
+  {
+    "source_id": "mem_causes_079",
+    "target_id": "mem_causes_080",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 버전 관리를 하지 않았습니다.",
+    "target_content": "기존 클라이언트가 동작하지 않았습니다."
+  },
+  {
+    "source_id": "mem_causes_081",
+    "target_id": "mem_causes_082",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "의존성 취약점을 검사하지 않았습니다.",
+    "target_content": "알려진 보안 취약점이 포함된 버전을 사용했습니다."
+  },
+  {
+    "source_id": "mem_causes_083",
+    "target_id": "mem_causes_084",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "CORS 정책을 너무 느슨하게 설정했습니다.",
+    "target_content": "CSRF 공격에 취약해졌습니다."
+  },
+  {
+    "source_id": "mem_causes_085",
+    "target_id": "mem_causes_086",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "비밀번호 정책을 강제하지 않았습니다.",
+    "target_content": "약한 비밀번호로 인한 보안 위험이 발생했습니다."
+  },
+  {
+    "source_id": "mem_causes_087",
+    "target_id": "mem_causes_088",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "로그 로테이션을 설정하지 않았습니다.",
+    "target_content": "로그 파일이 디스크 공간을 모두 사용했습니다."
+  },
+  {
+    "source_id": "mem_causes_089",
+    "target_id": "mem_causes_090",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터베이스 쿼리 최적화를 하지 않았습니다.",
+    "target_content": "느린 쿼리로 인해 전체 시스템 성능이 저하되었습니다."
+  },
+  {
+    "source_id": "mem_causes_091",
+    "target_id": "mem_causes_092",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 응답 캐싱을 구현하지 않았습니다.",
+    "target_content": "동일한 요청이 반복적으로 처리되어 부하가 증가했습니다."
+  },
+  {
+    "source_id": "mem_causes_093",
+    "target_id": "mem_causes_094",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "서비스 간 통신 타임아웃을 설정하지 않았습니다.",
+    "target_content": "무한 대기 상태로 인해 전체 시스템이 멈췄습니다."
+  },
+  {
+    "source_id": "mem_causes_095",
+    "target_id": "mem_causes_096",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터 검증을 클라이언트에서만 수행했습니다.",
+    "target_content": "서버 측 검증 부재로 잘못된 데이터가 저장되었습니다."
+  },
+  {
+    "source_id": "mem_causes_097",
+    "target_id": "mem_causes_098",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "리소스 제한을 설정하지 않았습니다.",
+    "target_content": "단일 사용자가 모든 리소스를 독점했습니다."
+  },
+  {
+    "source_id": "mem_causes_099",
+    "target_id": "mem_causes_100",
+    "expected_relation_type": "CAUSES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "The database connection was not properly closed after use.",
+    "target_content": "Connection pool was exhausted, causing service failures."
+  },
+  {
+    "source_id": "mem_depends_053",
+    "target_id": "mem_depends_054",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "마이크로서비스 간 통신을 구현하려고 합니다.",
+    "target_content": "서비스 디스커버리 메커니즘이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_055",
+    "target_id": "mem_depends_056",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "분산 트레이싱을 구현하려고 합니다.",
+    "target_content": "트레이싱 인프라가 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_057",
+    "target_id": "mem_depends_058",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "서킷 브레이커를 도입하려고 합니다.",
+    "target_content": "서킷 브레이커 라이브러리가 먼저 설치되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_059",
+    "target_id": "mem_depends_060",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "A/B 테스트 기능을 추가하려고 합니다.",
+    "target_content": "A/B 테스트 플랫폼이 먼저 연동되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_061",
+    "target_id": "mem_depends_062",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "실시간 알림을 구현하려고 합니다.",
+    "target_content": "푸시 알림 서비스가 먼저 설정되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_063",
+    "target_id": "mem_depends_064",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "데이터 암호화를 적용하려고 합니다.",
+    "target_content": "암호화 키 관리 시스템이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_065",
+    "target_id": "mem_depends_066",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "자동 스케일링을 구현하려고 합니다.",
+    "target_content": "모니터링 시스템이 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_067",
+    "target_id": "mem_depends_068",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "무중단 배포를 구현하려고 합니다.",
+    "target_content": "로드 밸런서가 먼저 구성되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_069",
+    "target_id": "mem_depends_070",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "데이터 백업 자동화를 구현하려고 합니다.",
+    "target_content": "백업 스토리지가 먼저 설정되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_071",
+    "target_id": "mem_depends_072",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "성능 프로파일링을 수행하려고 합니다.",
+    "target_content": "프로파일링 도구가 먼저 설치되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_073",
+    "target_id": "mem_depends_074",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "코드 커버리지 측정을 시작하려고 합니다.",
+    "target_content": "커버리지 도구가 먼저 통합되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_075",
+    "target_id": "mem_depends_076",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "정적 코드 분석을 도입하려고 합니다.",
+    "target_content": "정적 분석 도구가 먼저 설정되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_077",
+    "target_id": "mem_depends_078",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "의존성 스캔을 자동화하려고 합니다.",
+    "target_content": "취약점 스캐너가 먼저 연동되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_079",
+    "target_id": "mem_depends_080",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 문서 자동 생성을 구현하려고 합니다.",
+    "target_content": "API 문서 생성 도구가 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_081",
+    "target_id": "mem_depends_082",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "컨테이너 오케스트레이션을 도입하려고 합니다.",
+    "target_content": "Kubernetes 클러스터가 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_083",
+    "target_id": "mem_depends_084",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "서비스 메시를 구현하려고 합니다.",
+    "target_content": "Istio 같은 서비스 메시 플랫폼이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_085",
+    "target_id": "mem_depends_086",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "그래프 데이터베이스를 도입하려고 합니다.",
+    "target_content": "Neo4j 같은 그래프 DB가 먼저 설치되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_087",
+    "target_id": "mem_depends_088",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이벤트 소싱을 구현하려고 합니다.",
+    "target_content": "이벤트 스토어가 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_089",
+    "target_id": "mem_depends_090",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "CQRS 패턴을 적용하려고 합니다.",
+    "target_content": "읽기/쓰기 모델 분리가 먼저 설계되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_091",
+    "target_id": "mem_depends_092",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "서버리스 아키텍처로 전환하려고 합니다.",
+    "target_content": "서버리스 플랫폼이 먼저 선택되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_093",
+    "target_id": "mem_depends_094",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "분산 캐시를 도입하려고 합니다.",
+    "target_content": "Redis 클러스터가 먼저 구성되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_095",
+    "target_id": "mem_depends_096",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "데이터 레이크를 구축하려고 합니다.",
+    "target_content": "대용량 스토리지 시스템이 먼저 필요합니다."
+  },
+  {
+    "source_id": "mem_depends_097",
+    "target_id": "mem_depends_098",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "머신러닝 모델을 배포하려고 합니다.",
+    "target_content": "ML 모델 서빙 인프라가 먼저 구축되어야 합니다."
+  },
+  {
+    "source_id": "mem_depends_099",
+    "target_id": "mem_depends_100",
+    "expected_relation_type": "DEPENDS_ON",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We want to implement distributed locking.",
+    "target_content": "A distributed coordination service like ZooKeeper must be set up first."
+  },
+  {
+    "source_id": "mem_follows_053",
+    "target_id": "mem_follows_054",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "요구사항 문서를 작성했습니다.",
+    "target_content": "기술 설계 문서를 작성했습니다."
+  },
+  {
+    "source_id": "mem_follows_055",
+    "target_id": "mem_follows_056",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "프로토타입을 검증했습니다.",
+    "target_content": "본격적인 개발을 시작했습니다."
+  },
+  {
+    "source_id": "mem_follows_057",
+    "target_id": "mem_follows_058",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "개발 환경을 구축했습니다.",
+    "target_content": "로컬 개발을 시작했습니다."
+  },
+  {
+    "source_id": "mem_follows_059",
+    "target_id": "mem_follows_060",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "기능 개발을 완료했습니다.",
+    "target_content": "코드 리뷰를 요청했습니다."
+  },
+  {
+    "source_id": "mem_follows_061",
+    "target_id": "mem_follows_062",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "코드 리뷰 피드백을 받았습니다.",
+    "target_content": "피드백을 반영하여 수정했습니다."
+  },
+  {
+    "source_id": "mem_follows_063",
+    "target_id": "mem_follows_064",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "변경 사항을 커밋했습니다.",
+    "target_content": "변경 사항을 푸시했습니다."
+  },
+  {
+    "source_id": "mem_follows_065",
+    "target_id": "mem_follows_066",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "PR을 생성했습니다.",
+    "target_content": "PR을 머지했습니다."
+  },
+  {
+    "source_id": "mem_follows_067",
+    "target_id": "mem_follows_068",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "스테이징 환경에 배포했습니다.",
+    "target_content": "스테이징 환경에서 테스트를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_069",
+    "target_id": "mem_follows_070",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "스테이징 테스트를 통과했습니다.",
+    "target_content": "프로덕션 배포를 승인했습니다."
+  },
+  {
+    "source_id": "mem_follows_071",
+    "target_id": "mem_follows_072",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "프로덕션 배포를 시작했습니다.",
+    "target_content": "프로덕션 배포를 완료했습니다."
+  },
+  {
+    "source_id": "mem_follows_073",
+    "target_id": "mem_follows_074",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "프로덕션 모니터링을 시작했습니다.",
+    "target_content": "모니터링 데이터를 분석했습니다."
+  },
+  {
+    "source_id": "mem_follows_075",
+    "target_id": "mem_follows_076",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "사용자 피드백을 수집했습니다.",
+    "target_content": "다음 개선 사항을 계획했습니다."
+  },
+  {
+    "source_id": "mem_follows_077",
+    "target_id": "mem_follows_078",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "성능 병목을 발견했습니다.",
+    "target_content": "성능 최적화 작업을 시작했습니다."
+  },
+  {
+    "source_id": "mem_follows_079",
+    "target_id": "mem_follows_080",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "보안 감사를 수행했습니다.",
+    "target_content": "보안 개선 사항을 적용했습니다."
+  },
+  {
+    "source_id": "mem_follows_081",
+    "target_id": "mem_follows_082",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "의존성을 업데이트했습니다.",
+    "target_content": "호환성 테스트를 실행했습니다."
+  },
+  {
+    "source_id": "mem_follows_083",
+    "target_id": "mem_follows_084",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "문서를 업데이트했습니다.",
+    "target_content": "문서를 배포했습니다."
+  },
+  {
+    "source_id": "mem_follows_085",
+    "target_id": "mem_follows_086",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "팀 회의를 진행했습니다.",
+    "target_content": "액션 아이템을 정리했습니다."
+  },
+  {
+    "source_id": "mem_follows_087",
+    "target_id": "mem_follows_088",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "스프린트 계획을 수립했습니다.",
+    "target_content": "스프린트를 시작했습니다."
+  },
+  {
+    "source_id": "mem_follows_089",
+    "target_id": "mem_follows_090",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "스프린트를 완료했습니다.",
+    "target_content": "스프린트 회고를 진행했습니다."
+  },
+  {
+    "source_id": "mem_follows_091",
+    "target_id": "mem_follows_092",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "버전 태그를 생성했습니다.",
+    "target_content": "릴리즈 노트를 작성했습니다."
+  },
+  {
+    "source_id": "mem_follows_093",
+    "target_id": "mem_follows_094",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "릴리즈를 준비했습니다.",
+    "target_content": "릴리즈를 배포했습니다."
+  },
+  {
+    "source_id": "mem_follows_095",
+    "target_id": "mem_follows_096",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "We completed the requirements analysis.",
+    "target_content": "We started the technical design phase."
+  },
+  {
+    "source_id": "mem_follows_097",
+    "target_id": "mem_follows_098",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We finished the development phase.",
+    "target_content": "We began the testing phase."
+  },
+  {
+    "source_id": "mem_follows_099",
+    "target_id": "mem_follows_100",
+    "expected_relation_type": "FOLLOWS",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We deployed to production.",
+    "target_content": "We started monitoring the production environment."
+  },
+  {
+    "source_id": "mem_contrasts_053",
+    "target_id": "mem_contrasts_054",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 수동 테스트만 했습니다.",
+    "target_content": "지금은 자동화된 테스트를 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_055",
+    "target_id": "mem_contrasts_056",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 단일 환경만 운영했습니다.",
+    "target_content": "현재는 개발/스테이징/프로덕션 환경을 분리했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_057",
+    "target_id": "mem_contrasts_058",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전에는 버전 관리를 하지 않았습니다.",
+    "target_content": "지금은 시맨틱 버저닝을 엄격히 따릅니다."
+  },
+  {
+    "source_id": "mem_contrasts_059",
+    "target_id": "mem_contrasts_060",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 문서화를 하지 않았습니다.",
+    "target_content": "현재는 자동 문서화 시스템을 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_061",
+    "target_id": "mem_contrasts_062",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 코드 리뷰를 하지 않았습니다.",
+    "target_content": "지금은 모든 PR에 대해 코드 리뷰를 필수로 합니다."
+  },
+  {
+    "source_id": "mem_contrasts_063",
+    "target_id": "mem_contrasts_064",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "과거에는 단일 브랜치 전략을 사용했습니다.",
+    "target_content": "현재는 Git Flow를 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_065",
+    "target_id": "mem_contrasts_066",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 릴리즈 계획을 하지 않았습니다.",
+    "target_content": "지금은 정기적인 릴리즈 사이클을 운영합니다."
+  },
+  {
+    "source_id": "mem_contrasts_067",
+    "target_id": "mem_contrasts_068",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 모니터링을 하지 않았습니다.",
+    "target_content": "현재는 실시간 모니터링 시스템을 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_069",
+    "target_id": "mem_contrasts_070",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전에는 알림 시스템이 없었습니다.",
+    "target_content": "지금은 자동화된 알림 시스템을 운영합니다."
+  },
+  {
+    "source_id": "mem_contrasts_071",
+    "target_id": "mem_contrasts_072",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 백업을 수동으로 했습니다.",
+    "target_content": "현재는 자동 백업 시스템을 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_073",
+    "target_id": "mem_contrasts_074",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 로그를 파일로만 저장했습니다.",
+    "target_content": "지금은 중앙화된 로그 관리 시스템을 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_075",
+    "target_id": "mem_contrasts_076",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "과거에는 단일 서버로 운영했습니다.",
+    "target_content": "현재는 클러스터 환경으로 전환했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_077",
+    "target_id": "mem_contrasts_078",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 수평 확장만 고려했습니다.",
+    "target_content": "지금은 오토스케일링을 구현했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_079",
+    "target_id": "mem_contrasts_080",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 단일 데이터베이스를 사용했습니다.",
+    "target_content": "현재는 읽기 전용 복제본을 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_081",
+    "target_id": "mem_contrasts_082",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전에는 캐시를 사용하지 않았습니다.",
+    "target_content": "지금은 다층 캐시 시스템을 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_083",
+    "target_id": "mem_contrasts_084",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 단일 리전에 배포했습니다.",
+    "target_content": "현재는 멀티 리전 배포를 지원합니다."
+  },
+  {
+    "source_id": "mem_contrasts_085",
+    "target_id": "mem_contrasts_086",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 수동 롤백을 했습니다.",
+    "target_content": "지금은 자동 롤백 메커니즘을 구현했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_087",
+    "target_id": "mem_contrasts_088",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "과거에는 단일 포인트 오브 페일처가 있었습니다.",
+    "target_content": "현재는 고가용성 아키텍처를 구축했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_089",
+    "target_id": "mem_contrasts_090",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "이전에는 비밀번호를 평문으로 저장했습니다.",
+    "target_content": "지금은 해시된 비밀번호를 저장합니다."
+  },
+  {
+    "source_id": "mem_contrasts_091",
+    "target_id": "mem_contrasts_092",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "과거에는 HTTP만 사용했습니다.",
+    "target_content": "현재는 HTTPS를 강제합니다."
+  },
+  {
+    "source_id": "mem_contrasts_093",
+    "target_id": "mem_contrasts_094",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "이전에는 인증을 하지 않았습니다.",
+    "target_content": "지금은 다단계 인증을 구현했습니다."
+  },
+  {
+    "source_id": "mem_contrasts_095",
+    "target_id": "mem_contrasts_096",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "과거에는 에러를 무시했습니다.",
+    "target_content": "현재는 모든 에러를 로깅하고 추적합니다."
+  },
+  {
+    "source_id": "mem_contrasts_097",
+    "target_id": "mem_contrasts_098",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이전에는 단일 스레드로 실행했습니다.",
+    "target_content": "지금은 멀티 스레드 아키텍처를 사용합니다."
+  },
+  {
+    "source_id": "mem_contrasts_099",
+    "target_id": "mem_contrasts_100",
+    "expected_relation_type": "CONTRASTS_WITH",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "We previously used a waterfall development model.",
+    "target_content": "We now use an agile development methodology."
+  },
+  {
+    "source_id": "mem_refs_053",
+    "target_id": "mem_refs_054",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 설계는 GraphQL 스펙을 참고했습니다.",
+    "target_content": "GraphQL 공식 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_055",
+    "target_id": "mem_refs_056",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "마이크로서비스 패턴은 도메인 주도 설계를 참고했습니다.",
+    "target_content": "DDD 패턴 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_057",
+    "target_id": "mem_refs_058",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "이벤트 소싱 구현은 이벤트 소싱 가이드를 따릅니다.",
+    "target_content": "이벤트 소싱 패턴 문서를 참고했습니다."
+  },
+  {
+    "source_id": "mem_refs_059",
+    "target_id": "mem_refs_060",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "CQRS 패턴은 CQRS 가이드라인을 참고했습니다.",
+    "target_content": "CQRS 패턴 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_061",
+    "target_id": "mem_refs_062",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "서킷 브레이커는 마이크로서비스 패턴을 참고했습니다.",
+    "target_content": "서킷 브레이커 패턴 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_063",
+    "target_id": "mem_refs_064",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "API 게이트웨이 설계는 API 게이트웨이 패턴을 참고했습니다.",
+    "target_content": "API 게이트웨이 패턴 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_065",
+    "target_id": "mem_refs_066",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "서비스 디스커버리는 서비스 메시 패턴을 참고했습니다.",
+    "target_content": "서비스 메시 아키텍처 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_067",
+    "target_id": "mem_refs_068",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "분산 트레이싱은 OpenTracing 표준을 참고했습니다.",
+    "target_content": "OpenTracing 스펙 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_069",
+    "target_id": "mem_refs_070",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "로깅 전략은 구조화된 로깅 원칙을 따릅니다.",
+    "target_content": "구조화된 로깅 가이드라인을 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_071",
+    "target_id": "mem_refs_072",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "모니터링은 Prometheus 메트릭 표준을 참고했습니다.",
+    "target_content": "Prometheus 메트릭 수집 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_073",
+    "target_id": "mem_refs_074",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "알림 시스템은 PagerDuty 모범 사례를 참고했습니다.",
+    "target_content": "인시던트 관리 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_075",
+    "target_id": "mem_refs_076",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "배포 전략은 블루-그린 배포 패턴을 참고했습니다.",
+    "target_content": "블루-그린 배포 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_077",
+    "target_id": "mem_refs_078",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "카나리 배포는 카나리 배포 패턴을 참고했습니다.",
+    "target_content": "카나리 배포 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_079",
+    "target_id": "mem_refs_080",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "롤링 배포는 무중단 배포 가이드를 참고했습니다.",
+    "target_content": "무중단 배포 패턴 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_081",
+    "target_id": "mem_refs_082",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "데이터베이스 샤딩은 샤딩 패턴 가이드를 참고했습니다.",
+    "target_content": "데이터베이스 샤딩 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_083",
+    "target_id": "mem_refs_084",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "읽기 복제는 읽기 복제 패턴을 참고했습니다.",
+    "target_content": "읽기 복제 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_085",
+    "target_id": "mem_refs_086",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "캐시 무효화는 캐시 무효화 전략을 참고했습니다.",
+    "target_content": "캐시 무효화 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_087",
+    "target_id": "mem_refs_088",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "CDN 설정은 CDN 최적화 가이드를 참고했습니다.",
+    "target_content": "CDN 최적화 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_089",
+    "target_id": "mem_refs_090",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "로드 밸런싱은 로드 밸런서 설정 가이드를 참고했습니다.",
+    "target_content": "로드 밸런서 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_091",
+    "target_id": "mem_refs_092",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "오토스케일링은 오토스케일링 정책 가이드를 참고했습니다.",
+    "target_content": "오토스케일링 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_093",
+    "target_id": "mem_refs_094",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "컨테이너 오케스트레이션은 Kubernetes 가이드를 참고했습니다.",
+    "target_content": "Kubernetes 공식 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_095",
+    "target_id": "mem_refs_096",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "서비스 메시는 Istio 가이드를 참고했습니다.",
+    "target_content": "Istio 공식 문서를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_097",
+    "target_id": "mem_refs_098",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "서버리스 아키텍처는 서버리스 패턴을 참고했습니다.",
+    "target_content": "서버리스 아키텍처 가이드를 참조했습니다."
+  },
+  {
+    "source_id": "mem_refs_099",
+    "target_id": "mem_refs_100",
+    "expected_relation_type": "REFERENCES",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "We follow the Twelve-Factor App methodology.",
+    "target_content": "We referenced the Twelve-Factor App guide."
+  },
+  {
+    "source_id": "mem_belongs_057",
+    "target_id": "mem_belongs_058",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "캐시 서버",
+    "target_content": "인프라스트럭처 레이어"
+  },
+  {
+    "source_id": "mem_belongs_059",
+    "target_id": "mem_belongs_060",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "메시지 브로커",
+    "target_content": "인프라스트럭처 레이어"
+  },
+  {
+    "source_id": "mem_belongs_061",
+    "target_id": "mem_belongs_062",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "로드 밸런서",
+    "target_content": "인프라스트럭처 레이어"
+  },
+  {
+    "source_id": "mem_belongs_063",
+    "target_id": "mem_belongs_064",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "모니터링 에이전트",
+    "target_content": "모니터링 시스템"
+  },
+  {
+    "source_id": "mem_belongs_065",
+    "target_id": "mem_belongs_066",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "로깅 수집기",
+    "target_content": "로깅 시스템"
+  },
+  {
+    "source_id": "mem_belongs_067",
+    "target_id": "mem_belongs_068",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "알림 서비스",
+    "target_content": "알림 시스템"
+  },
+  {
+    "source_id": "mem_belongs_069",
+    "target_id": "mem_belongs_070",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "인증 토큰",
+    "target_content": "인증 시스템"
+  },
+  {
+    "source_id": "mem_belongs_071",
+    "target_id": "mem_belongs_072",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "권한 체크 미들웨어",
+    "target_content": "권한 관리 시스템"
+  },
+  {
+    "source_id": "mem_belongs_073",
+    "target_id": "mem_belongs_074",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "데이터 암호화 모듈",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_075",
+    "target_id": "mem_belongs_076",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "입력 검증 유틸리티",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_077",
+    "target_id": "mem_belongs_078",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "XSS 방어 모듈",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_079",
+    "target_id": "mem_belongs_080",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "CSRF 방어 토큰",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_081",
+    "target_id": "mem_belongs_082",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "SQL Injection 방어 모듈",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_083",
+    "target_id": "mem_belongs_084",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "Rate limiting 미들웨어",
+    "target_content": "보안 시스템"
+  },
+  {
+    "source_id": "mem_belongs_085",
+    "target_id": "mem_belongs_086",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "서킷 브레이커",
+    "target_content": "복원력 시스템"
+  },
+  {
+    "source_id": "mem_belongs_087",
+    "target_id": "mem_belongs_088",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "재시도 메커니즘",
+    "target_content": "복원력 시스템"
+  },
+  {
+    "source_id": "mem_belongs_089",
+    "target_id": "mem_belongs_090",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "타임아웃 핸들러",
+    "target_content": "복원력 시스템"
+  },
+  {
+    "source_id": "mem_belongs_091",
+    "target_id": "mem_belongs_092",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "폴백 메커니즘",
+    "target_content": "복원력 시스템"
+  },
+  {
+    "source_id": "mem_belongs_093",
+    "target_id": "mem_belongs_094",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "Health check 엔드포인트",
+    "target_content": "모니터링 시스템"
+  },
+  {
+    "source_id": "mem_belongs_095",
+    "target_id": "mem_belongs_096",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.75, 0.90],
+    "source_content": "메트릭 수집기",
+    "target_content": "모니터링 시스템"
+  },
+  {
+    "source_id": "mem_belongs_097",
+    "target_id": "mem_belongs_098",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.70, 0.85],
+    "source_content": "대시보드",
+    "target_content": "모니터링 시스템"
+  },
+  {
+    "source_id": "mem_belongs_099",
+    "target_id": "mem_belongs_100",
+    "expected_relation_type": "BELONGS_TO",
+    "expected_confidence_range": [0.80, 0.95],
+    "source_content": "Database connection pool",
+    "target_content": "Infrastructure layer"
+  }
+]

@@ -16,9 +16,15 @@ import { GetAnchorTool } from './get-anchor-tool.js';
 import { SearchLocalTool } from './search-local-tool.js';
 import { ClearAnchorTool } from './clear-anchor-tool.js';
 import { RestoreAnchorsTool } from './restore-anchors-tool.js';
+// 관계 엔진 도구들
+import { ExtractRelationsTool } from './extract-relations-tool.js';
+import { GetRelationsTool } from './get-relations-tool.js';
+import { AddRelationTool } from './add-relation-tool.js';
+import { RemoveRelationTool } from './remove-relation-tool.js';
+import { VisualizeRelationsTool } from './visualize-relations-tool.js';
 
 /**
- * 핵심 도구 인스턴스 생성 (12개: 기존 7개 + 앵커 5개)
+ * 핵심 도구 인스턴스 생성 (17개: 기존 7개 + 앵커 5개 + 관계 엔진 5개)
  */
 const coreTools = [
   new RememberTool(),
@@ -34,6 +40,12 @@ const coreTools = [
   new SearchLocalTool(),
   new ClearAnchorTool(),
   new RestoreAnchorsTool(),
+  // 관계 엔진 도구들
+  new ExtractRelationsTool(),
+  new GetRelationsTool(),
+  new AddRelationTool(),
+  new RemoveRelationTool(),
+  new VisualizeRelationsTool(),
 ];
 
 /**
@@ -87,5 +99,11 @@ export {
   SearchLocalTool,
   ClearAnchorTool,
   RestoreAnchorsTool,
+  // 관계 엔진 도구들
+  ExtractRelationsTool,
+  GetRelationsTool,
+  AddRelationTool,
+  RemoveRelationTool,
+  VisualizeRelationsTool,
 };
 
