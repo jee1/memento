@@ -34,6 +34,7 @@ export interface SearchOptions {
   vector_weight?: number;
   text_weight?: number;
   autoMoveEnabled?: boolean;
+  use_relations?: boolean; // 관계 그래프 사용 여부 (기본값: true)
 }
 
 /**

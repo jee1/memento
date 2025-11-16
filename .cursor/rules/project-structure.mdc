@@ -155,6 +155,33 @@ export class SearchRanking {
 
 ## 🔗 의존성 관리
 
+### 패키지 매니저 통일 규칙
+
+**이 프로젝트는 npm을 패키지 매니저로 사용합니다.**
+
+- ✅ **사용**: `npm install`, `npm run`, `npm test` 등
+- ❌ **금지**: `pnpm`, `yarn` 사용 금지
+- 📦 **Lock 파일**: `package-lock.json`만 사용 (pnpm-lock.yaml, yarn.lock 금지)
+- 🔧 **설정**: `.npmrc` 파일로 npm 설정 관리
+- 📝 **명시**: `package.json`의 `packageManager` 필드로 npm 버전 명시
+
+**패키지 매니저 확인 방법:**
+```bash
+# package.json 확인
+cat package.json | grep packageManager
+
+# lock 파일 확인
+ls -la | grep -E "(package-lock|pnpm-lock|yarn.lock)"
+
+# npm 버전 확인
+npm --version
+```
+
+**package.json scripts 작성 규칙:**
+- 내부 스크립트 호출 시 `npm run` 사용 (예: `npm run copy:assets`)
+- 외부 명령어는 직접 실행 (예: `tsc`, `vitest`)
+- 서브패키지 작업 시 `cd packages/xxx && npm run` 사용
+
 ### 내부 의존성
 - **서버 → 공통**: `src/server` → `src/shared`
 - **클라이언트 → 공통**: `src/client` → `src/shared`
@@ -164,7 +191,7 @@ export class SearchRanking {
 - **MCP SDK**: `@modelcontextprotocol/sdk`
 - **데이터베이스**: `better-sqlite3` (M1), `pg` (M3+)
 - **벡터 검색**: `sqlite-vec` (M1), `pgvector` (M3+)
-- **테스트**: `jest`, `@types/jest`
+- **테스트**: `vitest`, `@vitest/coverage-v8`
 
 ## 📦 패키지 구조
 

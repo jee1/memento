@@ -10,6 +10,7 @@ export interface SearchFeatures {
   usage: number;
   duplication_penalty: number;
   consolidation_score?: number; // Consolidation Score (선택적)
+  relation_weight?: number; // 관계 가중치 (관계 그래프 기반)
 }
 
 export interface EmbeddingSimilarity {
@@ -39,11 +40,12 @@ export interface RelevanceInput {
 }
 
 export interface SearchRankingWeights {
-  relevance: number;    // α = 0.50
+  relevance: number;    // α = 0.45
   recency: number;      // β = 0.20
   importance: number;   // γ = 0.20
   usage: number;        // δ = 0.10
-  duplication_penalty: number; // ε = 0.15
+  relation_weight: number; // ζ = 0.15
+  duplication_penalty: number; // ε = 0.10
   consolidation_score?: number; // w2 = 0.2 (기본값, 최대 0.4)
 }
 
@@ -65,18 +67,19 @@ export class SearchRanking {
 
   constructor(weights?: Partial<SearchRankingWeights>) {
     this.weights = {
-      relevance: 0.50,
+      relevance: 0.45,
       recency: 0.20,
       importance: 0.20,
       usage: 0.10,
-      duplication_penalty: 0.15,
+      relation_weight: 0.15,
+      duplication_penalty: 0.10,
       ...weights
     };
   }
 
   /**
    * 최종 검색 점수 계산
-   * S = α * relevance + β * recency + γ * importance + δ * usage - ε * duplication_penalty
+   * S = α * relevance + β * recency + γ * importance + δ * usage + ζ * relation_weight - ε * duplication_penalty
    * 
    * Consolidation Score가 제공되면:
    * Final_Score = w1 * vector_similarity + w2 * consolidation_score
@@ -86,7 +89,8 @@ export class SearchRanking {
     const baseScore = this.weights.relevance * features.relevance +
                       this.weights.recency * features.recency +
                       this.weights.importance * features.importance +
-                      this.weights.usage * features.usage -
+                      this.weights.usage * features.usage +
+                      (this.weights.relation_weight * (features.relation_weight || 0)) -
                       this.weights.duplication_penalty * features.duplication_penalty;
 
     // Consolidation Score가 제공되면 통합
@@ -421,6 +425,50 @@ export class SearchRanking {
     const union = new Set([...words1, ...words2]);
     
     return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  /**
+   * 관계 가중치 계산
+   * 여러 관계의 confidence와 type_boost를 정규화하여 계산합니다.
+   * 
+   * @param relations 관계 목록 (confidence와 relation_type 포함)
+   * @param maxRelations 정규화를 위한 최대 관계 수 (기본값: 5)
+   * @returns 정규화된 관계 가중치 (0-1)
+   */
+  calculateRelationWeight(
+    relations: Array<{ confidence: number; relation_type: string }>,
+    maxRelations: number = 5
+  ): number {
+    if (relations.length === 0) {
+      return 0;
+    }
+
+    // 관계 유형별 부스트 가중치 (RELATION_TYPE_BOOST_MAP)
+    const typeBoostMap: Record<string, number> = {
+      'CAUSES': 1.2,
+      'DEPENDS_ON': 1.1,
+      'FOLLOWS': 1.0,
+      'CONTRASTS_WITH': 0.9,
+      'REFERENCES': 0.8,
+      'BELONGS_TO': 1.0
+    };
+
+    // 각 관계의 가중치 계산: confidence * type_boost
+    const weightedScores = relations.map(relation => {
+      const typeBoost = typeBoostMap[relation.relation_type] || 1.0;
+      return relation.confidence * typeBoost;
+    });
+
+    // 평균 계산
+    const averageScore = weightedScores.reduce((sum, score) => sum + score, 0) / weightedScores.length;
+
+    // 정규화: maxRelations로 나누어 0-1 범위로 정규화
+    // 실제 관계 수가 maxRelations보다 적으면 그대로 사용
+    const normalizationFactor = Math.min(relations.length, maxRelations);
+    const normalizedScore = averageScore / normalizationFactor;
+
+    // 0-1 범위로 클리핑
+    return Math.max(0, Math.min(1, normalizedScore));
   }
 
   /**

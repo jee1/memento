@@ -16,12 +16,15 @@ import { GetAnchorTool } from './get-anchor-tool.js';
 import { SearchLocalTool } from './search-local-tool.js';
 import { ClearAnchorTool } from './clear-anchor-tool.js';
 import { RestoreAnchorsTool } from './restore-anchors-tool.js';
+// 관계 엔진 도구들은 HTTP API로만 제공 (MCP에서 제거)
+// 관계 추출은 remember 도구에서 자동으로 수행됨
 
 /**
- * 핵심 도구 인스턴스 생성 (12개: 기존 7개 + 앵커 5개)
+ * 핵심 도구 인스턴스 생성 (12개: 핵심 7개 + 앵커 5개)
+ * 관계 엔진 도구 5개는 HTTP API로만 제공 (관리자용)
  */
 const coreTools = [
-  new RememberTool(),
+  new RememberTool(),        // 자동으로 관계 추출 포함
   new RecallTool(),
   new ForgetTool(),
   new PinTool(),
@@ -34,6 +37,9 @@ const coreTools = [
   new SearchLocalTool(),
   new ClearAnchorTool(),
   new RestoreAnchorsTool(),
+  // 관계 엔진 도구들은 제거됨 (HTTP API로만 제공)
+  // - extract_relations: remember에서 자동 실행
+  // - get_relations, add_relation, remove_relation, visualize_relations: HTTP API로 제공
 ];
 
 /**
@@ -87,5 +93,6 @@ export {
   SearchLocalTool,
   ClearAnchorTool,
   RestoreAnchorsTool,
+  // 관계 엔진 도구들은 HTTP API로만 제공되므로 export하지 않음
 };
 

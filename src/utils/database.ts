@@ -150,41 +150,57 @@ export class DatabaseUtils {
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // 트랜잭션 상태 설정
-        this.setTransactionState(db, true, transactionId);
-        
-        // 트랜잭션 시작
-        this.run(db, 'BEGIN IMMEDIATE TRANSACTION');
+        // 실제 SQLite 트랜잭션 상태 확인
+        // better-sqlite3는 트랜잭션 상태를 직접 확인할 수 없으므로,
+        // 트랜잭션을 시작하려고 시도하고, 에러가 발생하면 이미 트랜잭션이 진행 중인 것입니다
+        try {
+          // 트랜잭션 시작 시도
+          this.run(db, 'BEGIN IMMEDIATE TRANSACTION');
+          // 성공하면 트랜잭션 상태 설정
+          this.setTransactionState(db, true, transactionId);
+        } catch (beginError: any) {
+          // 트랜잭션이 이미 시작된 경우 에러 처리
+          if (beginError?.code === 'SQLITE_ERROR' && 
+              (beginError?.message?.includes('transaction') || 
+               beginError?.message?.includes('cannot start'))) {
+            // 이미 트랜잭션이 진행 중인 경우, 트랜잭션 상태를 설정하고 함수 실행
+            this.setTransactionState(db, true, transactionId);
+            const result = await transactionFn();
+            // 트랜잭션을 시작하지 않았으므로 커밋하지 않음
+            // 호출자가 트랜잭션을 관리해야 함
+            return result;
+          }
+          throw beginError;
+        }
         
         // 트랜잭션 함수 실행
         const result = await transactionFn();
         
-        // 커밋
-        this.run(db, 'COMMIT');
-        
-        // 트랜잭션 상태 해제
-        this.setTransactionState(db, false);
+        // 커밋 (트랜잭션을 시작한 경우에만)
+        // 트랜잭션 상태를 확인하여 실제로 트랜잭션을 시작했는지 확인
+        const currentState = this.getTransactionState(db);
+        if (currentState.transactionId === transactionId) {
+          // 이 트랜잭션을 시작한 경우에만 커밋
+          this.run(db, 'COMMIT');
+          // 트랜잭션 상태 해제
+          this.setTransactionState(db, false);
+        }
         
         return result;
       } catch (error) {
         lastError = error as Error;
         
-        // 트랜잭션 상태 해제
-        this.setTransactionState(db, false);
-        
         // 롤백 시도 (안전하게)
+        // 트랜잭션을 시작한 경우에만 롤백
         try {
-          // 트랜잭션 상태 확인 후 롤백
           const currentState = this.getTransactionState(db);
-          if (!currentState.inTransaction) {
-            // 트랜잭션이 이미 종료된 경우 롤백 불필요
-            log('ℹ️ 트랜잭션이 이미 종료됨, 롤백 생략');
-          } else {
+          if (currentState.transactionId === transactionId && currentState.inTransaction) {
+            // 이 트랜잭션을 시작한 경우에만 롤백
             this.run(db, 'ROLLBACK');
-            this.setTransactionState(db, false);
           }
         } catch (rollbackError) {
           log('❌ 트랜잭션 롤백 실패:', rollbackError);
+        } finally {
           // 롤백 실패해도 상태는 해제
           this.setTransactionState(db, false);
         }

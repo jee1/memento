@@ -42,6 +42,37 @@ export interface MemorySearchFilters {
   pinned?: boolean | undefined;
 }
 
+// 관계 추출 타입 재export
+export type {
+  RelationCandidate,
+  RelationType,
+  RelationCategory,
+  ExtractOptions,
+  ExtractResult,
+  IRelationExtractor
+} from './relation.js';
+
+// 관계 그래프 타입 재export
+export type {
+  MemoryRelation,
+  RelationMetadata,
+  RelationDirection,
+  GetRelationsOptions,
+  GetRelatedMemoriesOptions,
+  AddRelationOptions,
+  IRelationGraph,
+  RelationTypeRegistry
+} from './relation-graph.js';
+
+export {
+  MEMORY_TYPE_RELATION_MAP,
+  RELATION_TYPE_CATEGORY_MAP,
+  RELATION_TYPE_BOOST_MAP,
+  isApplicableRelationType,
+  getRelationCategory,
+  getRelationBoost
+} from './relation.js';
+
 export interface MemorySearchResult {
   id: string;
   content: string;
@@ -64,6 +95,7 @@ export interface SearchRankingWeights {
 }
 
 export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
+export type LLMProvider = 'openai' | 'gemini' | 'ollama' | 'auto';
 
 export interface MementoConfig {
   dbPath: string;
@@ -74,9 +106,14 @@ export interface MementoConfig {
   embeddingProvider: EmbeddingProvider;
   openaiApiKey: string | undefined;
   openaiModel: string;
+  openaiLlmModel: string;
   geminiApiKey: string | undefined;
   geminiModel: string;
   embeddingDimensions: number;
+  // LLM 설정
+  llmProvider: LLMProvider;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
   searchDefaultLimit: number;
   searchMaxLimit: number;
   forgetTTL: {

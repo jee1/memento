@@ -10,6 +10,7 @@ import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.j
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
 import { logger } from '../../utils/logger.js';
+import { RelationGraph } from '../relation-graph.js';
 
 /**
  * Anchor Search Service 구현
@@ -20,6 +21,7 @@ export class AnchorSearchService implements IAnchorSearchService {
   private hybridSearchEngine: HybridSearchEngine | null = null;
   private vectorSearchEngine: VectorSearchEngine | null = null;
   private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService();
+  private relationGraph: RelationGraph | null = null;
 
   /**
    * 생성자
@@ -27,6 +29,13 @@ export class AnchorSearchService implements IAnchorSearchService {
   constructor(cacheService: IAnchorCacheService) {
     this.cacheService = cacheService;
     logger.info('AnchorSearchService 초기화 완료');
+  }
+
+  /**
+   * RelationGraph 설정 (선택적)
+   */
+  setRelationGraph(relationGraph: RelationGraph): void {
+    this.relationGraph = relationGraph;
   }
 
   /**
@@ -89,20 +98,22 @@ export class AnchorSearchService implements IAnchorSearchService {
     // 검색 옵션 기본값
     const limit = options?.limit ?? 10;
     const minResults = options?.min_results ?? 3;
+    const useRelations = options?.use_relations ?? true; // 기본값: true
 
     // VectorSearchEngine이 없으면 에러
     if (!this.vectorSearchEngine) {
       throw new Error('VectorSearchEngine is not set. Call setVectorSearchEngine() first.');
     }
 
-    // N-hop 검색 구현
+    // N-hop 검색 구현 (use_relations 옵션에 따라 관계 그래프 사용 여부 결정)
     const allHopResults = await this.searchNHop(
       anchorEmbedding.embedding,
       anchorEmbedding.provider,
       anchorMemoryId,
       vectorThreshold,
       finalHopLimit,
-      limit * 2 // 더 많이 가져와서 필터링 후 최종 limit 적용
+      limit * 2, // 더 많이 가져와서 필터링 후 최종 limit 적용
+      useRelations // 관계 그래프 사용 여부 전달
     );
 
     // 쿼리가 있는 경우 쿼리 기반 필터링
@@ -290,7 +301,8 @@ export class AnchorSearchService implements IAnchorSearchService {
     anchorMemoryId: string,
     threshold: number,
     maxHops: number,
-    limit: number
+    limit: number,
+    useRelations: boolean = true
   ): Promise<Array<{
     memory_id: string;
     content: string;
@@ -323,6 +335,7 @@ export class AnchorSearchService implements IAnchorSearchService {
       importance: number;
       created_at: string;
       tags?: string[];
+      hasRelation?: boolean; // 관계가 있는 기억 표시
     }> = [];
 
     // 현재 hop 레벨의 메모리들 (임베딩 포함)
@@ -342,13 +355,17 @@ export class AnchorSearchService implements IAnchorSearchService {
         importance: number;
         created_at: string;
         tags?: string[];
+        hasRelation?: boolean;
       }> = [];
 
       // 현재 hop의 각 메모리에 대해 검색 수행
       for (const currentMemory of currentHopMemories) {
         try {
-          // memory_link를 활용한 직접 연결된 메모리 조회 (최적화)
-          const linkedMemories = await this.getLinkedMemories(currentMemory.memory_id);
+          // 관계 그래프 또는 memory_link를 활용한 직접 연결된 메모리 조회
+          // use_relations가 false이면 관계 그래프를 사용하지 않음
+          const linkedMemories = useRelations 
+            ? await this.getLinkedMemories(currentMemory.memory_id)
+            : [];
           
           // 벡터 검색 실행
           const vectorSearchResults = await this.vectorSearchEngine.search(
@@ -423,7 +440,8 @@ export class AnchorSearchService implements IAnchorSearchService {
               similarity: candidate.similarity,
               importance: candidate.importance,
               created_at: candidate.created_at,
-              tags: candidate.tags
+              tags: candidate.tags,
+              hasRelation: candidate.isLinked // 관계가 있는 기억 표시
             });
 
             // 다음 hop을 위한 임베딩 조회
@@ -459,7 +477,8 @@ export class AnchorSearchService implements IAnchorSearchService {
       for (const result of hopResults) {
         allResults.push({
           ...result,
-          hop_distance: hop
+          hop_distance: hop,
+          hasRelation: result.hasRelation ?? false
         });
       }
 
@@ -477,21 +496,62 @@ export class AnchorSearchService implements IAnchorSearchService {
       currentHopMemories = nextHopMemories;
     }
 
-    // 랭킹 점수 계산 및 적용
-    const rankedResults = allResults.map(result => {
-      const rankingScore = this.calculateRankingScore(
-        result.similarity,
-        result.hop_distance,
-        result.importance
-      );
-      return {
-        ...result,
-        similarity: rankingScore
-      };
-    });
+    // 랭킹 점수 계산 및 적용 (관계 그래프 가중치 포함)
+    const rankedResults = await Promise.all(
+      allResults.map(async (result) => {
+        // 관계 가중치 계산 (관계 그래프가 있고 use_relations가 true인 경우)
+        let relationWeight = 0;
+        let hasRelation = result.hasRelation ?? false;
+        
+        if (useRelations && this.relationGraph) {
+          try {
+            const relations = await this.relationGraph.getRelations(result.memory_id, {
+              direction: 'both',
+              minConfidence: 0.5
+            });
+            
+            if (relations.length > 0) {
+              hasRelation = true; // 관계가 있음을 표시
+              // 관계 가중치 계산 (간단한 평균)
+              const avgConfidence = relations.reduce((sum, r) => sum + r.confidence, 0) / relations.length;
+              const avgBoost = relations.reduce((sum, r) => sum + this.getRelationTypeBoost(r.relation_type), 0) / relations.length;
+              relationWeight = Math.min(1.0, avgConfidence * avgBoost);
+            }
+          } catch (error) {
+            // 관계 조회 실패는 무시
+            logger.debug('Relation weight calculation failed', {
+              memoryId: result.memory_id,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+        }
 
-    // 랭킹 점수 기준으로 정렬
+        const rankingScore = this.calculateRankingScore(
+          result.similarity,
+          result.hop_distance,
+          result.importance,
+          relationWeight,
+          hasRelation // 관계가 있는 기억에 우선순위 부여
+        );
+        return {
+          ...result,
+          similarity: rankingScore,
+          hasRelation
+        };
+      })
+    );
+
+    // 랭킹 점수 기준으로 정렬 (관계가 있는 기억 우선)
     rankedResults.sort((a, b) => {
+      // 관계가 있는 기억에 우선순위 부여
+      if (a.hasRelation && !b.hasRelation) {
+        return -1; // a가 우선
+      }
+      if (!a.hasRelation && b.hasRelation) {
+        return 1; // b가 우선
+      }
+      
+      // 둘 다 관계가 있거나 둘 다 없는 경우, similarity 기준 정렬
       if (Math.abs(a.similarity - b.similarity) < 0.001) {
         return a.hop_distance - b.hop_distance;
       }
@@ -571,7 +631,8 @@ export class AnchorSearchService implements IAnchorSearchService {
             const baseRankingScore = this.calculateRankingScore(
               result.similarity,
               result.hop_distance,
-              result.importance
+              result.importance,
+              0 // query filtering에서는 관계 가중치 미사용 (이미 searchNHop에서 적용됨)
             );
             
             const combinedSimilarity = baseRankingScore * 0.6 + querySim * 0.4;
@@ -690,6 +751,10 @@ export class AnchorSearchService implements IAnchorSearchService {
   /**
    * memory_link 테이블을 활용한 직접 연결된 메모리 조회
    */
+  /**
+   * 연결된 메모리 조회
+   * 관계 그래프가 있으면 우선 사용, 없으면 memory_link 사용
+   */
   private async getLinkedMemories(memoryId: string): Promise<Array<{
     memory_id: string;
     content: string;
@@ -704,6 +769,58 @@ export class AnchorSearchService implements IAnchorSearchService {
     }
 
     try {
+      // 관계 그래프가 있으면 우선 사용
+      if (this.relationGraph) {
+        const relations = await this.relationGraph.getRelations(memoryId, {
+          direction: 'outgoing',
+          minConfidence: 0.5
+        });
+
+        if (relations.length > 0) {
+          // 관계를 메모리 정보와 결합
+          const memoryIds = relations.map(r => r.target_id);
+          const placeholders = memoryIds.map(() => '?').join(',');
+          const memoryRecords = this.db.prepare(`
+            SELECT id, content, type, importance, created_at, tags
+            FROM memory_item
+            WHERE id IN (${placeholders})
+          `).all(...memoryIds) as Array<{
+            id: string;
+            content: string;
+            type: string;
+            importance: number;
+            created_at: string;
+            tags?: string;
+          }>;
+
+          // 관계 정보와 메모리 정보 결합
+          const memoryMap = new Map(memoryRecords.map(m => [m.id, m]));
+          
+          return relations.map(relation => {
+            const memory = memoryMap.get(relation.target_id);
+            if (!memory) {
+              return null;
+            }
+
+            // 관계 confidence를 similarity로 사용 (관계가 있으면 높은 유사도)
+            // 관계 유형별 부스트 적용
+            const typeBoost = this.getRelationTypeBoost(relation.relation_type);
+            const similarity = Math.min(1.0, relation.confidence * typeBoost);
+
+            return {
+              memory_id: memory.id,
+              content: memory.content,
+              type: memory.type,
+              similarity,
+              importance: memory.importance,
+              created_at: memory.created_at,
+              tags: memory.tags ? JSON.parse(memory.tags) : undefined
+            };
+          }).filter((item): item is NonNullable<typeof item> => item !== null);
+        }
+      }
+
+      // 관계 그래프가 없거나 관계가 없으면 memory_link 사용 (하위 호환성)
       const linkedRecords = this.db.prepare(`
         SELECT 
           ml.target_id as memory_id,
@@ -731,7 +848,7 @@ export class AnchorSearchService implements IAnchorSearchService {
         memory_id: record.memory_id,
         content: record.content,
         type: record.type,
-        similarity: 0.9,
+        similarity: 0.9, // memory_link는 기본 유사도 0.9
         importance: record.importance,
         created_at: record.created_at,
         tags: record.tags ? (typeof record.tags === 'string' ? JSON.parse(record.tags) : record.tags) : undefined
@@ -746,21 +863,51 @@ export class AnchorSearchService implements IAnchorSearchService {
   }
 
   /**
+   * 관계 유형별 부스트 가중치 반환
+   */
+  private getRelationTypeBoost(relationType: string): number {
+    const boostMap: Record<string, number> = {
+      'CAUSES': 1.2,
+      'DEPENDS_ON': 1.1,
+      'FOLLOWS': 1.0,
+      'CONTRASTS_WITH': 0.9,
+      'REFERENCES': 0.8,
+      'BELONGS_TO': 1.0
+    };
+    return boostMap[relationType] || 1.0;
+  }
+
+  /**
    * 검색 결과 랭킹 점수 계산
+   * 관계 그래프와 벡터 유사도를 결합한 하이브리드 hop 점수 계산
+   * 관계가 있는 기억에 우선순위 부여
    */
   private calculateRankingScore(
     similarity: number,
     hopDistance: number,
-    importance: number = 0.5
+    importance: number = 0.5,
+    relationWeight: number = 0,
+    hasRelation: boolean = false
   ): number {
     const hopDecayFactor = 1.0 / (1.0 + (hopDistance - 1) * 0.3);
     const anchorProximityBoost = hopDistance === 1 ? 1.2 : 1.0;
     const importanceWeight = 0.1;
     const importanceBoost = 1.0 + (importance - 0.5) * importanceWeight;
     
+    // 관계 가중치가 있으면 벡터 유사도와 결합
+    let combinedSimilarity = similarity;
+    if (relationWeight > 0) {
+      // 관계 가중치와 벡터 유사도를 가중 평균으로 결합
+      // 관계 가중치: 30%, 벡터 유사도: 70%
+      combinedSimilarity = similarity * 0.7 + relationWeight * 0.3;
+    }
+    
+    // 관계가 있는 기억에 우선순위 부스트 적용
+    const relationPriorityBoost = hasRelation ? 1.15 : 1.0; // 15% 부스트
+    
     const rankingScore = Math.min(
       1.0,
-      similarity * hopDecayFactor * anchorProximityBoost * importanceBoost
+      combinedSimilarity * hopDecayFactor * anchorProximityBoost * importanceBoost * relationPriorityBoost
     );
     
     return rankingScore;

@@ -27,6 +27,8 @@
     "db:migrate": "tsx src/database/migrate.ts",
     "db:check-migration": "tsx src/scripts/check-migration-status.ts",
     "db:check-migration:help": "echo 'Usage: npm run db:check-migration [database-path]'",
+    "generate-relation-report": "tsx scripts/generate-relation-report.ts",
+    "weekly-relation-validation": "tsx scripts/weekly-relation-validation.ts",
     "test:client": "tsx src/test/test-client.ts",
     "test:http-v2": "tsx src/test/test-http-server-v2.ts",
     "test:search": "tsx src/test/test-search.ts",
@@ -89,6 +91,7 @@
   "dependencies": {
     "@google/genai": "^1.21.0",
     "@google/generative-ai": "^0.24.1",
+    "@iarna/toml": "^2.2.5",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "@xenova/transformers": "^2.17.2",
     "axios": "^1.12.2",
@@ -121,8 +124,10 @@
     "vitest": "^1.0.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
+  "packageManager": "npm@>=10.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jee1/memento.git"

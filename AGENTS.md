@@ -26,3 +26,12 @@ Follow the existing conventional commit style (`feat:`, `fix:`, `chore:`) with c
 
 ## Environment & Database Notes
 Copy `env.example` to `.env` and override API keys or database paths as needed. Use `npm run db:init` for fresh setups and `npm run db:migrate` when altering the SQLite schema; include migration notes in PRs. Keep secrets out of source control and avoid committing generated files under `data/` or `dist/`.
+
+## Communication Preferences
+All written communication (including task summaries, status updates, and code review feedback) should be provided in Korean so collaborators receive responses in their preferred language.
+
+## Serena MCP Usage
+- Codex must route code-navigation and editing tasks through the Serena MCP tools whenever possible, using symbol-aware commands (`get_symbols_overview`, `find_symbol`, `find_referencing_symbols`, `replace_symbol_body`, etc.) before falling back to full `read_file` calls.
+- Avoid re-reading the same file multiple times; cache earlier Serena responses and only request additional detail when a shallower query (overview or signature-only) proves insufficient.
+- When editing, target specific symbols or insert points via Serena helpers (`insert_after_symbol`, `insert_before_symbol`, `replace_lines`) instead of fetching entire files—only small (<50 line) files may be read wholesale.
+- Use Serena’s search helpers (`search_for_pattern`, `find_referencing_code_snippets`) rather than broad repo-wide scans to reduce token usage, and only fetch tool outputs directly relevant to the current task.

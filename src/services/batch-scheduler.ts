@@ -12,6 +12,8 @@ import fs from 'fs';
 import path from 'path';
 import { ConsolidationScoreWorker } from '../workers/consolidation-score-worker.js';
 import { mementoConfig } from '../config/index.js';
+import { spawn } from 'child_process';
+import { join } from 'path';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -21,6 +23,9 @@ export interface BatchJobConfig {
   consolidationScoreIncrementalInterval: number;  // Consolidation Score 증분 재계산 간격 (기본: 1시간)
   consolidationScoreFullSweepInterval: number;   // Consolidation Score 전체 스윕 간격 (기본: 24시간)
   consolidationScoreFullSweepHour: number;        // 전체 스윕 실행 시간 (0-23, 기본: 3시)
+  relationValidationInterval: number;            // 관계 추출 품질 검증 간격 (기본: 7일)
+  relationValidationDayOfWeek: number;           // 주간 검증 실행 요일 (0=일요일, 기본: 0)
+  relationValidationHour: number;                // 주간 검증 실행 시간 (0-23, 기본: 2시)
   
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
@@ -81,6 +86,9 @@ export class BatchScheduler {
       consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
       consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000, // 24시간
       consolidationScoreFullSweepHour: 3,  // 새벽 3시
+      relationValidationInterval: 7 * 24 * 60 * 60 * 1000, // 7일
+      relationValidationDayOfWeek: 0,     // 일요일
+      relationValidationHour: 2,          // 새벽 2시
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -142,6 +150,9 @@ export class BatchScheduler {
       // 야간 전체 스윕 (하루 1회, 지정된 시간에 실행)
       this.scheduleConsolidationScoreFullSweep();
     }
+
+    // 주간 관계 추출 품질 검증 작업 스케줄링
+    this.scheduleWeeklyRelationValidation();
 
     // 작업 큐 처리 시작
     this.startJobProcessor();
@@ -601,6 +612,115 @@ export class BatchScheduler {
     
     // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
     checkAndRun();
+  }
+
+  /**
+   * 주간 관계 추출 품질 검증 작업 스케줄링
+   */
+  private scheduleWeeklyRelationValidation(): void {
+    const checkAndRun = async () => {
+      const now = new Date();
+      const currentDayOfWeek = now.getDay(); // 0=일요일, 6=토요일
+      const currentHour = now.getHours();
+      
+      // 지정된 요일과 시간에 실행
+      if (currentDayOfWeek === this.config.relationValidationDayOfWeek && 
+          currentHour === this.config.relationValidationHour) {
+        // 이미 오늘 실행했는지 확인 (lastExecution 체크)
+        const lastExecution = this.lastExecution.get('weekly_relation_validation');
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (!lastExecution || lastExecution < today) {
+          await this.runWeeklyRelationValidation();
+        }
+      }
+    };
+
+    // 매 시간마다 체크
+    const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
+    const intervalId = setInterval(checkAndRun, checkInterval);
+    this.intervals.set('weekly_relation_validation', intervalId);
+    
+    // 즉시 한 번 체크 (시작 시점이 실행 시간이면 바로 실행)
+    checkAndRun();
+  }
+
+  /**
+   * 주간 관계 추출 품질 검증 실행
+   */
+  private async runWeeklyRelationValidation(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'weekly_relation_validation',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      this.log('Starting weekly relation validation...');
+
+      // 주간 검증 스크립트 실행
+      const scriptPath = join(process.cwd(), 'scripts', 'weekly-relation-validation.ts');
+      const scriptArgs = ['--method', 'hybrid', '--allow-soft-fail'];
+
+      const childProcess = spawn('npx', ['tsx', scriptPath, ...scriptArgs], {
+        cwd: process.cwd(),
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env }
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      childProcess.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      childProcess.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        childProcess.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Script exited with code ${code}\n${stderr}`));
+          }
+        });
+
+        childProcess.on('error', (error) => {
+          reject(error);
+        });
+      });
+
+      result.success = true;
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.processed = 1;
+
+      this.log('Weekly relation validation completed successfully', {
+        duration: result.duration,
+        stdout: stdout.substring(0, 500) // 처음 500자만 로그
+      });
+
+    } catch (error) {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.errors.push(error instanceof Error ? error.message : String(error));
+
+      this.log('Weekly relation validation failed', {
+        error: error instanceof Error ? error.message : String(error),
+        duration: result.duration
+      }, 'error');
+    }
+
+    return result;
   }
 
   /**
