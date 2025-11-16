@@ -7,12 +7,38 @@ import { SearchEngine } from './search-engine.js';
 import { MemoryEmbeddingService, type VectorSearchResult } from '../services/memory-embedding-service.js';
 import { UnifiedEmbeddingService } from '../services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
-import type { MemorySearchFilters, MemoryType } from '../types/index.js';
+import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../types/index.js';
 import Database from 'better-sqlite3';
 import { SearchRanking } from './search-ranking.js';
 import { mementoConfig } from '../config/index.js';
 import { RelationGraph } from '../services/relation-graph.js';
 import { getRankingWeights } from '../config/ranking-weights-loader.js';
+
+// 검색 관련 상수
+/**
+ * 개별 provider 검색 타임아웃 (밀리초)
+ * 각 provider별 검색 작업이 이 시간 내에 완료되지 않으면 타임아웃 처리
+ */
+const PROVIDER_SEARCH_TIMEOUT_MS = 2000;
+
+/**
+ * 전체 검색 프로세스 타임아웃 (밀리초)
+ * 모든 provider 검색이 이 시간 내에 완료되지 않으면 현재까지 완료된 결과만 반환
+ * 개별 provider 타임아웃보다 충분히 길어야 함 (여러 provider가 병렬로 실행되므로)
+ */
+const OVERALL_SEARCH_TIMEOUT_MS = 5000;
+
+/**
+ * 벡터 검색 결과 limit 배수
+ * 중복 제거 전에 더 많은 결과를 가져와서 최종 결과의 품질을 보장
+ */
+const VECTOR_SEARCH_LIMIT_MULTIPLIER = 2;
+
+/**
+ * 벡터 검색 similarity threshold
+ * 이 값보다 낮은 similarity를 가진 결과는 제외
+ */
+const VECTOR_SEARCH_THRESHOLD = 0.5;
 
 // 인터페이스 정의
 export interface ITextSearchEngine {
@@ -257,6 +283,7 @@ export interface HybridSearchQuery {
   textWeight?: number | undefined;   // 텍스트 검색 가중치 (0.0 ~ 1.0)
   includeRelations?: boolean; // 관계 정보 포함 여부 (기본값: false)
   experiment_id?: string; // 실험 ID (A/B 테스트용)
+  provider_filter?: EmbeddingProvider[]; // 검색할 provider 필터 (선택적, 미지정 시 모든 provider 검색)
 }
 
 export interface HybridSearchResult {
@@ -473,32 +500,55 @@ export class HybridSearchEngine {
     }
   }
 
+  /**
+   * 벡터 검색 실행 (다중 provider 지원)
+   * 
+   * @param db - 데이터베이스 연결
+   * @param query - 하이브리드 검색 쿼리
+   * @param searchId - 검색 ID (로깅용)
+   * @param startTime - 시작 시간 (성능 측정용)
+   * @returns 벡터 검색 결과 배열
+   */
   private async executeVecSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
     try {
-      // 저장된 임베딩의 provider와 차원을 확인하여 동일한 provider로 쿼리 임베딩 생성
-      const detectedProvider = await this.detectStoredEmbeddingProvider(db);
-      const queryVector = await this.generateQueryVector(query.query, searchId, detectedProvider);
-      const vecResults = await this.vectorSearchEngine.search(queryVector, {
-        limit: (query.limit || 10) * 2,
-        threshold: 0.5,
+      // 저장된 임베딩의 모든 provider 감지
+      const detectedProviders = await this.detectAllStoredEmbeddingProviders(db);
+      
+      // provider 필터링
+      const providersToSearch = this.filterProvidersToSearch(detectedProviders, query.provider_filter, searchId);
+      if (providersToSearch.length === 0) {
+        return [];
+      }
+      
+      // 다중 provider 병렬 검색 실행
+      const searchOptions = {
+        limit: (query.limit || 10) * VECTOR_SEARCH_LIMIT_MULTIPLIER,
+        threshold: VECTOR_SEARCH_THRESHOLD,
         types: query.filters?.type,
         includeContent: true
-      }, detectedProvider);
+      };
       
-      const vectorResults = vecResults.map(result => ({
-        id: result.memory_id,
-        content: result.content,
-        type: result.type,
-        importance: result.importance,
-        created_at: result.created_at,
-        pinned: false,
-        score: result.similarity,
-        similarity: result.similarity
-      }));
+      // 각 provider별 검색 작업 생성
+      const searchPromises = providersToSearch.map(provider => 
+        this.createProviderSearchTask(provider, query.query, searchOptions, searchId)
+      );
+      
+      // 모든 provider 검색 실행 및 결과 수집
+      const { allResults, providerStats, overallTimeoutOccurred } = 
+        await this.executeProviderSearchesWithTimeout(searchPromises, providersToSearch, searchId);
+      
+      // 결과 정규화 및 중복 제거
+      const vectorResults = this.normalizeAndDeduplicateResults(allResults);
+      
+      const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
       
       this.logger.logSearchStep(searchId, 'VEC 벡터 검색 완료', {
         resultCount: vectorResults.length,
-        totalVectorTime: `${(Number(process.hrtime.bigint() - startTime) / 1_000_000).toFixed(2)}ms`
+        totalVectorTime: `${totalTime.toFixed(2)}ms`,
+        providerStats,
+        searchedProviders: providersToSearch.length,
+        successfulProviders: providerStats.filter(s => s.success).length,
+        overallTimeoutOccurred
       });
       
       return vectorResults;
@@ -511,6 +561,374 @@ export class HybridSearchEngine {
     }
   }
 
+  /**
+   * Provider 필터링
+   * 
+   * @param detectedProviders - 감지된 모든 provider 목록
+   * @param providerFilter - 필터링할 provider 목록 (선택적, 빈 배열이면 undefined로 처리되어 모든 provider 검색)
+   * @param searchId - 검색 ID (로깅용)
+   * @returns 필터링된 provider 목록
+   */
+  private filterProvidersToSearch(
+    detectedProviders: StoredEmbeddingProviderStats[],
+    providerFilter: EmbeddingProvider[] | undefined,
+    searchId: string
+  ): EmbeddingProvider[] {
+    let providersToSearch = detectedProviders.map(p => p.provider);
+    
+    // providerFilter가 있고 비어있지 않은 경우에만 필터링
+    // 빈 배열은 undefined로 처리되어 모든 provider를 검색함
+    if (providerFilter && providerFilter.length > 0) {
+      providersToSearch = providersToSearch.filter(p => 
+        providerFilter.includes(p as EmbeddingProvider)
+      );
+    }
+    
+    // 검색할 provider가 없으면 로깅
+    if (providersToSearch.length === 0) {
+      this.logger.logSearchStep(searchId, 'VEC 벡터 검색 - 검색할 provider 없음', {
+        detectedProviders: detectedProviders.map(p => p.provider),
+        providerFilter: providerFilter || []
+      });
+    }
+    
+    return providersToSearch;
+  }
+
+  /**
+   * 단일 provider 검색 작업 생성 (타임아웃 포함)
+   * 
+   * @param provider - 검색할 provider
+   * @param query - 검색 쿼리 문자열
+   * @param searchOptions - 검색 옵션
+   * @param searchId - 검색 ID (로깅용)
+   * @returns 검색 결과 Promise (타임아웃 포함)
+   */
+  private createProviderSearchTask(
+    provider: EmbeddingProvider,
+    query: string,
+    searchOptions: { limit: number; threshold: number; types?: MemoryType[]; includeContent: boolean },
+    searchId: string
+  ): Promise<{
+    provider: string;
+    results: Array<VectorSearchResult & { provider: string }>;
+    success: boolean;
+    timeMs: number;
+    error: string | null;
+  }> {
+    const providerStartTime = process.hrtime.bigint();
+    
+    // 타임아웃 Promise 생성
+    const timeoutPromise = new Promise<{
+      provider: string;
+      results: Array<VectorSearchResult & { provider: string }>;
+      success: boolean;
+      timeMs: number;
+      error: string | null;
+    }>((resolve) => {
+      setTimeout(() => {
+        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+        resolve({
+          provider,
+          results: [] as Array<VectorSearchResult & { provider: string }>,
+          success: false,
+          timeMs: providerTime,
+          error: `Provider 검색 타임아웃 (${PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`
+        });
+      }, PROVIDER_SEARCH_TIMEOUT_MS);
+    });
+    
+    // 실제 검색 작업 Promise
+    const searchTask = (async () => {
+      try {
+        // 각 provider에 맞는 쿼리 임베딩 생성
+        const queryVector = await this.generateQueryVector(query, searchId, provider);
+        
+        // 벡터 검색 실행
+        const vecResults = await this.vectorSearchEngine.search(queryVector, searchOptions, provider);
+        
+        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+        
+        return {
+          provider,
+          results: vecResults.map(result => ({
+            id: result.memory_id,
+            content: result.content,
+            type: result.type,
+            importance: result.importance,
+            created_at: result.created_at,
+            pinned: false,
+            score: result.similarity,
+            similarity: result.similarity,
+            provider // provider 정보 추가
+          })),
+          success: true,
+          timeMs: providerTime,
+          error: null as string | null
+        };
+      } catch (error) {
+        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${provider}`, {
+          provider,
+          error: errorMessage,
+          timeMs: providerTime
+        });
+        
+        return {
+          provider,
+          results: [] as Array<VectorSearchResult & { provider: string }>,
+          success: false,
+          timeMs: providerTime,
+          error: errorMessage
+        };
+      }
+    })();
+    
+    // Promise.race로 타임아웃과 검색 작업 중 먼저 완료되는 것 반환
+    return Promise.race([searchTask, timeoutPromise]);
+  }
+
+  /**
+   * 모든 provider 검색 실행 및 결과 수집 (전체 타임아웃 포함)
+   * 
+   * @param searchPromises - 각 provider별 검색 Promise 배열
+   * @param providersToSearch - 검색할 provider 목록
+   * @param searchId - 검색 ID (로깅용)
+   * @returns 검색 결과 및 통계
+   */
+  private async executeProviderSearchesWithTimeout(
+    searchPromises: Promise<{
+      provider: string;
+      results: Array<VectorSearchResult & { provider: string }>;
+      success: boolean;
+      timeMs: number;
+      error: string | null;
+    }>[],
+    providersToSearch: EmbeddingProvider[],
+    searchId: string
+  ): Promise<{
+    allResults: Array<VectorSearchResult & { provider: string }>;
+    providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }>;
+    overallTimeoutOccurred: boolean;
+  }> {
+    // 전체 검색 프로세스의 maximum timeout 설정
+    // 모든 provider가 타임아웃되어도 응답을 보장하기 위함
+    // 개별 provider 타임아웃보다 충분히 길어야 여러 provider가 병렬로 실행될 수 있음
+    let overallTimeoutOccurred = false;
+    let overallTimeoutHandle: NodeJS.Timeout | null = null;
+    
+    const overallTimeoutPromise = new Promise<void>((resolve) => {
+      overallTimeoutHandle = setTimeout(() => {
+        overallTimeoutOccurred = true;
+        this.logger.logSearchStep(searchId, 'VEC 벡터 검색 전체 타임아웃', {
+          timeoutMs: OVERALL_SEARCH_TIMEOUT_MS,
+          message: '전체 검색 프로세스 타임아웃 발생 - 현재까지 완료된 결과만 반환'
+        });
+        resolve();
+      }, OVERALL_SEARCH_TIMEOUT_MS);
+    });
+    
+    // 타임아웃 타이머 정리 함수
+    const cleanupTimeout = () => {
+      if (overallTimeoutHandle !== null) {
+        clearTimeout(overallTimeoutHandle);
+        overallTimeoutHandle = null;
+      }
+    };
+    
+    try {
+      // Promise.allSettled()를 사용하여 모든 provider 검색 실행 (일부 실패해도 계속 진행)
+      // 전체 타임아웃과 병렬 검색 중 먼저 완료되는 것 사용
+      const searchResults = await Promise.race([
+        Promise.allSettled(searchPromises).then(results => {
+          cleanupTimeout();
+          return results;
+        }),
+        overallTimeoutPromise.then(() => {
+          // 타임아웃 발생 시 현재까지 완료된 Promise만 수집
+          // Promise.allSettled는 이미 실행 중이므로 결과를 기다림
+          return Promise.allSettled(searchPromises);
+        })
+      ]);
+      
+      // 성공한 검색 결과 수집
+      const allResults: Array<VectorSearchResult & { provider: string }> = [];
+      const providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }> = [];
+      
+      searchResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          const providerResult = result.value;
+          providerStats.push({
+            provider: providerResult.provider,
+            resultCount: providerResult.results.length,
+            success: providerResult.success,
+            timeMs: providerResult.timeMs,
+            error: providerResult.error || undefined
+          });
+          
+          // 타임아웃 또는 실패 시 상세 로깅
+          if (!providerResult.success) {
+            const isTimeout = providerResult.error?.includes('타임아웃');
+            this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${providerResult.provider}`, {
+              provider: providerResult.provider,
+              error: providerResult.error,
+              timeMs: providerResult.timeMs,
+              isTimeout,
+              resultCount: providerResult.results.length
+            });
+          }
+          
+          if (providerResult.success) {
+            allResults.push(...providerResult.results);
+          }
+        } else {
+          // Promise 자체가 실패한 경우 (매우 드묾)
+          const provider = providersToSearch[index];
+          if (!provider) {
+            // provider가 없는 경우 (매우 드묾, 인덱스 불일치) - 스킵
+            return;
+          }
+          const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          providerStats.push({
+            provider,
+            resultCount: 0,
+            success: false,
+            timeMs: 0,
+            error: errorMessage
+          });
+          
+          this.logger.logSearchStep(searchId, `VEC 벡터 검색 Promise 실패 - ${provider}`, {
+            provider,
+            error: errorMessage,
+            isTimeout: false
+          });
+        }
+      });
+      
+      return { allResults, providerStats, overallTimeoutOccurred };
+    } finally {
+      // 예외 발생 시에도 타임아웃 타이머 정리 보장
+      cleanupTimeout();
+    }
+  }
+
+  /**
+   * 결과 정규화 및 중복 제거
+   * Provider별로 Min-Max 정규화를 수행하고, 중복된 memory_id는 최고 점수만 유지
+   * 
+   * @param allResults - 모든 provider의 검색 결과
+   * @returns 정규화 및 중복 제거된 결과 배열
+   */
+  private normalizeAndDeduplicateResults(
+    allResults: Array<VectorSearchResult & { provider: string }>
+  ): VectorSearchResult[] {
+    const resultsByProvider = this.groupResultsByProvider(allResults);
+    const normalizedResults = this.normalizeResultsByProvider(resultsByProvider);
+    const deduplicatedResults = this.deduplicateResults(normalizedResults);
+    return this.rankResults(deduplicatedResults);
+  }
+
+  /**
+   * Provider별로 결과 그룹화
+   */
+  private groupResultsByProvider(
+    allResults: Array<VectorSearchResult & { provider: string }>
+  ): Map<string, Array<VectorSearchResult & { provider: string }>> {
+    const resultsByProvider = new Map<string, Array<VectorSearchResult & { provider: string }>>();
+    allResults.forEach(result => {
+      const provider = result.provider;
+      if (!resultsByProvider.has(provider)) {
+        resultsByProvider.set(provider, []);
+      }
+      const providerResults = resultsByProvider.get(provider);
+      if (providerResults) {
+        providerResults.push(result);
+      }
+    });
+    return resultsByProvider;
+  }
+
+  /**
+   * Provider별로 Min-Max 정규화 수행
+   */
+  private normalizeResultsByProvider(
+    resultsByProvider: Map<string, Array<VectorSearchResult & { provider: string }>>
+  ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
+    const normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }> = [];
+    
+    resultsByProvider.forEach((results) => {
+      if (results.length === 0) {
+        return;
+      }
+      
+      const scores = results.map(r => r.similarity);
+      const minScore = Math.min(...scores);
+      const maxScore = Math.max(...scores);
+      
+      // 모든 점수가 동일한 경우 원본 점수 유지, 그 외에는 Min-Max 정규화
+      if (maxScore === minScore) {
+        results.forEach(result => {
+          normalizedResults.push({
+            ...result,
+            normalizedScore: result.similarity
+          });
+        });
+      } else {
+        results.forEach(result => {
+          const normalizedScore = (result.similarity - minScore) / (maxScore - minScore);
+          normalizedResults.push({
+            ...result,
+            normalizedScore
+          });
+        });
+      }
+    });
+    
+    return normalizedResults;
+  }
+
+  /**
+   * 중복 제거 (memory_id 기준, 정규화된 점수 중 최고 점수만 유지)
+   */
+  private deduplicateResults(
+    normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
+  ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
+    const resultMap = new Map<string, VectorSearchResult & { provider: string; normalizedScore: number }>();
+    normalizedResults.forEach(result => {
+      const existing = resultMap.get(result.id);
+      if (!existing || result.normalizedScore > existing.normalizedScore) {
+        resultMap.set(result.id, result);
+      }
+    });
+    return Array.from(resultMap.values());
+  }
+
+  /**
+   * 정규화된 점수로 재랭킹
+   */
+  private rankResults(
+    deduplicatedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
+  ): VectorSearchResult[] {
+    return deduplicatedResults
+      .map(({ provider, normalizedScore, ...result }) => ({
+        ...result,
+        similarity: normalizedScore
+      }))
+      .sort((a, b) => b.similarity - a.similarity);
+  }
+
+  /**
+   * Fallback 벡터 검색 실행
+   * 벡터 인덱스가 사용 불가능한 경우 임베딩 서비스를 직접 사용하여 검색
+   * 
+   * @param db - 데이터베이스 연결
+   * @param query - 하이브리드 검색 쿼리
+   * @param searchId - 검색 ID (로깅용)
+   * @param startTime - 시작 시간 (성능 측정용, 현재는 사용하지 않음)
+   * @returns 벡터 검색 결과 배열
+   */
   private async executeFallbackSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
     if (!this.embeddingService.isAvailable()) {
       this.logger.logSearchStep(searchId, '임베딩 서비스 사용 불가', {});
@@ -520,8 +938,8 @@ export class HybridSearchEngine {
     const fallbackStart = process.hrtime.bigint();
     const vectorResults = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type as MemoryType[],
-      limit: (query.limit || 10) * 2,
-      threshold: 0.5,
+      limit: (query.limit || 10) * VECTOR_SEARCH_LIMIT_MULTIPLIER,
+      threshold: VECTOR_SEARCH_THRESHOLD,
     });
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
     
@@ -534,66 +952,110 @@ export class HybridSearchEngine {
   }
 
   /**
-   * 저장된 임베딩의 provider 감지
-   * 가장 많이 사용된 provider를 반환 (기본값: 'minilm')
+   * Provider 목록 캐시 (메모리 캐시)
+   * Provider 목록은 자주 변경되지 않으므로 캐싱하여 성능 개선
    */
-  private async detectStoredEmbeddingProvider(db: Database.Database): Promise<string> {
+  private providerCache: {
+    stats: StoredEmbeddingProviderStats[];
+    timestamp: number;
+  } | null = null;
+
+  /**
+   * Provider 캐시 TTL (밀리초)
+   * 5분간 캐시 유지
+   */
+  private static readonly PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+  /**
+   * 저장된 임베딩의 모든 provider 감지
+   * 모든 provider 목록을 반환 (count 내림차순 정렬)
+   * 캐싱을 사용하여 성능 개선
+   */
+  private async detectAllStoredEmbeddingProviders(db: Database.Database): Promise<StoredEmbeddingProviderStats[]> {
+    // 캐시 확인
+    const now = Date.now();
+    if (this.providerCache && (now - this.providerCache.timestamp) < HybridSearchEngine.PROVIDER_CACHE_TTL_MS) {
+      return this.providerCache.stats;
+    }
+
     try {
-      const providerStats = db.prepare(`
+      const providerStatsList = db.prepare(`
         SELECT 
-          embedding_provider as provider,
+          LOWER(embedding_provider) as provider,
           COUNT(*) as count,
           AVG(dimensions) as avg_dimensions
         FROM memory_embedding
         WHERE embedding_provider IS NOT NULL
           AND embedding_provider != ''
           AND dimensions IS NOT NULL
-        GROUP BY embedding_provider
+        GROUP BY LOWER(embedding_provider)
         ORDER BY count DESC
-        LIMIT 1
-      `).get() as { provider: string; count: number; avg_dimensions: number } | undefined;
+      `).all() as Array<{ provider: string; count: number; avg_dimensions: number }>;
 
-      if (providerStats && providerStats.provider) {
-        const provider = providerStats.provider.toLowerCase();
+      if (providerStatsList && providerStatsList.length > 0) {
+        const normalizedStats: StoredEmbeddingProviderStats[] = providerStatsList
+          .filter(stat => {
+            // 유효한 EmbeddingProvider인지 확인
+            const validProviders: EmbeddingProvider[] = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'];
+            return validProviders.includes(stat.provider as EmbeddingProvider);
+          })
+          .map(stat => ({
+            provider: stat.provider as EmbeddingProvider,
+            count: stat.count,
+            avg_dimensions: Math.round(stat.avg_dimensions || 0)
+          }));
+        
+        // 캐시 업데이트
+        this.providerCache = {
+          stats: normalizedStats,
+          timestamp: now
+        };
+        
         this.logger.logSearchStep('', '저장된 임베딩 provider 감지', {
-          provider,
-          count: providerStats.count,
-          dimensions: Math.round(providerStats.avg_dimensions || 0)
+          providers: normalizedStats.map(s => s.provider),
+          total_providers: normalizedStats.length
         });
-        return provider;
+        
+        return normalizedStats;
       }
     } catch (error) {
       console.warn('⚠️ 저장된 임베딩 provider 감지 실패:', error);
     }
 
-    // 기본값: minilm (가장 많이 사용되는 provider)
-    return 'minilm';
+    // 기본값: 빈 배열 반환 (provider가 없는 경우)
+    const emptyStats: StoredEmbeddingProviderStats[] = [];
+    this.providerCache = {
+      stats: emptyStats,
+      timestamp: now
+    };
+    return emptyStats;
   }
 
-  private async generateQueryVector(query: string, searchId: string, preferredProvider?: string): Promise<number[]> {
+  /**
+   * 쿼리 임베딩 벡터 생성
+   * preferredProvider가 지정된 경우 해당 provider로만 임베딩 생성
+   * 각 provider는 서로 다른 차원의 임베딩을 사용할 수 있으므로 fallback을 사용하지 않음
+   * 
+   * @param query - 검색 쿼리 문자열
+   * @param searchId - 검색 ID (로깅용)
+   * @param preferredProvider - 선호하는 임베딩 provider (필수, 각 provider별로 다른 차원의 임베딩 필요)
+   * @returns 임베딩 벡터 배열
+   * @throws SearchError - 임베딩 생성 실패 시
+   */
+  private async generateQueryVector(query: string, searchId: string, preferredProvider: EmbeddingProvider): Promise<number[]> {
     try {
       const embeddingStart = process.hrtime.bigint();
       
-      // preferredProvider가 있으면 해당 provider로 임베딩 생성 시도
-      let embeddingResult;
-      if (preferredProvider) {
-        try {
-          embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider as any);
-        } catch (error) {
-          // preferred provider 실패 시 fallback
-          console.warn(`⚠️ Preferred provider '${preferredProvider}' 실패, fallback 시도:`, error);
-          embeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
-        }
-      } else {
-        embeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
-      }
+      // 각 provider는 서로 다른 차원의 임베딩을 사용할 수 있으므로
+      // preferredProvider로만 임베딩 생성 (fallback 사용 안 함)
+      const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider);
       
       if (!embeddingResult) {
         throw new SearchError(
           SearchErrorType.EMBEDDING_GENERATION_FAILED,
           '임베딩 생성에 실패했습니다',
           undefined,
-          { query, searchId }
+          { query, searchId, preferredProvider }
         );
       }
       
@@ -602,7 +1064,7 @@ export class HybridSearchEngine {
       this.logger.logSearchStep(searchId, '임베딩 생성 완료', {
         embeddingTime: `${embeddingTime.toFixed(2)}ms`,
         vectorLength: embeddingResult.embedding.length,
-        provider: embeddingResult.provider || 'unknown'
+        provider: embeddingResult.provider || preferredProvider
       });
       
       return embeddingResult.embedding;
@@ -613,9 +1075,9 @@ export class HybridSearchEngine {
       
       throw new SearchError(
         SearchErrorType.EMBEDDING_GENERATION_FAILED,
-        '임베딩 생성 중 오류가 발생했습니다',
+        `임베딩 생성 중 오류가 발생했습니다 (provider: ${preferredProvider})`,
         error instanceof Error ? error : new Error(String(error)),
-        { query, searchId }
+        { query, searchId, preferredProvider }
       );
     }
   }

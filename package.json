@@ -37,6 +37,8 @@
     "test:gemini-embedding": "tsx src/test/test-gemini-embedding.ts",
     "test:forgetting": "tsx src/test/test-forgetting.ts",
     "test:performance": "tsx src/test/performance-benchmark.ts",
+    "test:multi-provider-performance": "tsx src/test/multi-provider-search-performance-benchmark.ts",
+    "test:single-provider-regression": "tsx src/test/test-single-provider-regression.ts",
     "test:monitoring": "tsx src/test/test-performance-monitoring.ts",
     "test:error-logging": "tsx src/test/test-error-logging.ts",
     "test:performance-alerts": "tsx src/test/test-performance-alerts.ts",

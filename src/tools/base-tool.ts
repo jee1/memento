@@ -49,9 +49,20 @@ export abstract class BaseTool {
 
   /**
    * 에러 결과 생성
+   * ToolResult 인터페이스를 준수하면서 기존 ToolError 형식도 지원
    */
-  protected createErrorResult(error: string, message?: string, details?: string): ToolError {
+  protected createErrorResult(error: string, message?: string, details?: string): ToolResult & { error: string; message?: string; details?: string } {
     return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error,
+            ...(message && { message }),
+            ...(details && { details }),
+          }, null, 2),
+        },
+      ],
       error,
       ...(message && { message }),
       ...(details && { details }),
