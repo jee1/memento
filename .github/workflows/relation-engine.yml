@@ -91,96 +91,98 @@ jobs:
           CI: true
           NODE_ENV: test
         
-      - name: Generate relation extraction quality report (rule-based)
-        id: report-rule
-        run: |
-          npm run generate-relation-report -- \
-            --ci \
-            --method rule \
-            --output relation-quality-report-rule.md
-        continue-on-error: true
-        
-      - name: Generate relation extraction quality report (hybrid)
-        id: report-hybrid
-        run: |
-          npm run generate-relation-report -- \
-            --ci \
-            --allow-soft-fail \
-            --method hybrid \
-            --output relation-quality-report-hybrid.md
-        continue-on-error: true
-        env:
-          # LLM API 키가 없어도 규칙 기반으로 fallback되므로 continue-on-error: true
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'dummy' }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'dummy' }}
-        
-      - name: Upload rule-based quality report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: relation-quality-report-rule
-          path: relation-quality-report-rule.md
-          retention-days: 30
-          
-      - name: Upload hybrid quality report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: relation-quality-report-hybrid
-          path: relation-quality-report-hybrid.md
-          retention-days: 30
-          
-      - name: Comment PR with quality report (rule-based)
-        if: github.event_name == 'pull_request' && always() && steps.report-rule.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const report = fs.readFileSync('relation-quality-report-rule.md', 'utf-8');
-            const body = `## 📊 Relation Extraction Quality Report (Rule-based)\n\n<details>\n<summary>Click to expand quality report</summary>\n\n\`\`\`\n${report}\n\`\`\`\n\n</details>`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-            
-      - name: Comment PR with quality report (hybrid)
-        if: github.event_name == 'pull_request' && always() && steps.report-hybrid.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const report = fs.readFileSync('relation-quality-report-hybrid.md', 'utf-8');
-            const body = `## 📊 Relation Extraction Quality Report (Hybrid)\n\n<details>\n<summary>Click to expand quality report</summary>\n\n\`\`\`\n${report}\n\`\`\`\n\n</details>`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-            
-      - name: Validate quality thresholds
-        run: |
-          echo "📊 정확도 임계값 검증 중..."
-          echo "임계값: Precision ≥ 70%, Recall ≥ 65%, F1-Score ≥ 68%"
-          
-          # 규칙 기반 리포트가 성공적으로 생성되었는지 확인
-          if [ -f relation-quality-report-rule.md ]; then
-            echo "✅ 규칙 기반 리포트 생성 완료"
-          else
-            echo "⚠️ 규칙 기반 리포트 생성 실패"
-            exit 1
-          fi
-          
-          # 하이브리드 리포트는 선택적 (LLM API 키가 없을 수 있음)
-          if [ -f relation-quality-report-hybrid.md ]; then
-            echo "✅ 하이브리드 리포트 생성 완료"
-          else
-            echo "⚠️ 하이브리드 리포트 생성 실패 (LLM API 키 없음 또는 오류)"
-          fi
-          
-          echo "✅ 정확도 임계값 검증 완료"
-        continue-on-error: false
+      # 관계 추출 품질 리포트는 로컬에서만 생성
+      # CI 환경에서는 Ollama를 실행할 수 없으므로 스킵
+      # - name: Generate relation extraction quality report (rule-based)
+      #   id: report-rule
+      #   run: |
+      #     npm run generate-relation-report -- \
+      #       --ci \
+      #       --method rule \
+      #       --output relation-quality-report-rule.md
+      #   continue-on-error: true
+      #   
+      # - name: Generate relation extraction quality report (hybrid)
+      #   id: report-hybrid
+      #   run: |
+      #     npm run generate-relation-report -- \
+      #       --ci \
+      #       --allow-soft-fail \
+      #       --method hybrid \
+      #       --output relation-quality-report-hybrid.md
+      #   continue-on-error: true
+      #   env:
+      #     # LLM API 키가 없어도 규칙 기반으로 fallback되므로 continue-on-error: true
+      #     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'dummy' }}
+      #     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'dummy' }}
+      #   
+      # - name: Upload rule-based quality report
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: relation-quality-report-rule
+      #     path: relation-quality-report-rule.md
+      #     retention-days: 30
+      #     
+      # - name: Upload hybrid quality report
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: relation-quality-report-hybrid
+      #     path: relation-quality-report-hybrid.md
+      #     retention-days: 30
+      #     
+      # - name: Comment PR with quality report (rule-based)
+      #   if: github.event_name == 'pull_request' && always() && steps.report-rule.outcome == 'success'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       const fs = require('fs');
+      #       const report = fs.readFileSync('relation-quality-report-rule.md', 'utf-8');
+      #       const body = `## 📊 Relation Extraction Quality Report (Rule-based)\n\n<details>\n<summary>Click to expand quality report</summary>\n\n\`\`\`\n${report}\n\`\`\`\n\n</details>`;
+      #       
+      #       github.rest.issues.createComment({
+      #         issue_number: context.issue.number,
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         body: body
+      #       });
+      #       
+      # - name: Comment PR with quality report (hybrid)
+      #   if: github.event_name == 'pull_request' && always() && steps.report-hybrid.outcome == 'success'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       const fs = require('fs');
+      #       const report = fs.readFileSync('relation-quality-report-hybrid.md', 'utf-8');
+      #       const body = `## 📊 Relation Extraction Quality Report (Hybrid)\n\n<details>\n<summary>Click to expand quality report</summary>\n\n\`\`\`\n${report}\n\`\`\`\n\n</details>`;
+      #       
+      #       github.rest.issues.createComment({
+      #         issue_number: context.issue.number,
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         body: body
+      #       });
+      #       
+      # - name: Validate quality thresholds
+      #   run: |
+      #     echo "📊 정확도 임계값 검증 중..."
+      #     echo "임계값: Precision ≥ 70%, Recall ≥ 65%, F1-Score ≥ 68%"
+      #     
+      #     # 규칙 기반 리포트가 성공적으로 생성되었는지 확인
+      #     if [ -f relation-quality-report-rule.md ]; then
+      #       echo "✅ 규칙 기반 리포트 생성 완료"
+      #     else
+      #       echo "⚠️ 규칙 기반 리포트 생성 실패"
+      #       exit 1
+      #     fi
+      #     
+      #     # 하이브리드 리포트는 선택적 (LLM API 키가 없을 수 있음)
+      #     if [ -f relation-quality-report-hybrid.md ]; then
+      #       echo "✅ 하이브리드 리포트 생성 완료"
+      #     else
+      #       echo "⚠️ 하이브리드 리포트 생성 실패 (LLM API 키 없음 또는 오류)"
+      #     fi
+      #     
+      #     echo "✅ 정확도 임계값 검증 완료"
+      #   continue-on-error: false

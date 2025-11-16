@@ -283,8 +283,8 @@ function generateMarkdownReport(
         report += `- **최대 신뢰도**: ${analysis.maxConfidence.toFixed(3)}\n`;
         report += `- **신뢰도 표준편차**: ${analysis.confidenceStdDev.toFixed(3)}\n`;
         
-        if (analysis.mostConfusedWith && analysis.mostConfusedWith.length > 0) {
-          report += `- **가장 많이 혼동되는 유형**: ${analysis.mostConfusedWith.join(', ')}\n`;
+        if (analysis.mostConfusedWith !== null) {
+          report += `- **가장 많이 혼동되는 유형**: ${analysis.mostConfusedWith}\n`;
           report += `- **혼동률**: ${(analysis.confusionRate * 100).toFixed(2)}%\n`;
         }
         

@@ -63,14 +63,16 @@ jobs:
       - name: Build package
         run: npm run build
         
-      - name: Generate relation extraction quality report
-        run: npm run generate-relation-report -- --ci --method rule --output relation-quality-report.md
-        continue-on-error: false
-        
-      - name: Upload relation quality report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: relation-quality-report
-          path: relation-quality-report.md
-          retention-days: 30
+      # 관계 추출 품질 리포트는 로컬에서만 생성
+      # CI 환경에서는 Ollama를 실행할 수 없으므로 스킵
+      # - name: Generate relation extraction quality report
+      #   run: npm run generate-relation-report -- --ci --method rule --output relation-quality-report.md
+      #   continue-on-error: false
+      #   
+      # - name: Upload relation quality report
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: relation-quality-report
+      #     path: relation-quality-report.md
+      #     retention-days: 30

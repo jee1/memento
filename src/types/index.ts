@@ -95,6 +95,7 @@ export interface SearchRankingWeights {
 }
 
 export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
+export type LLMProvider = 'openai' | 'gemini' | 'ollama' | 'auto';
 
 export interface MementoConfig {
   dbPath: string;
@@ -105,9 +106,14 @@ export interface MementoConfig {
   embeddingProvider: EmbeddingProvider;
   openaiApiKey: string | undefined;
   openaiModel: string;
+  openaiLlmModel: string;
   geminiApiKey: string | undefined;
   geminiModel: string;
   embeddingDimensions: number;
+  // LLM 설정
+  llmProvider: LLMProvider;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
   searchDefaultLimit: number;
   searchMaxLimit: number;
   forgetTTL: {

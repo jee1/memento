@@ -3,7 +3,7 @@
  */
 
 import { config } from 'dotenv';
-import type { MementoConfig, EmbeddingProvider } from '../types/index.js';
+import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../types/index.js';
 import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
 import { parseTypeParamMode } from '../utils/type-param-validator.js';
@@ -21,6 +21,7 @@ import {
 config();
 
 const embeddingProvider = (resolveString('EMBEDDING_PROVIDER') as EmbeddingProvider) || 'minilm';
+const llmProvider = (resolveString('LLM_PROVIDER') as LLMProvider) || 'auto';
 
 const embeddingDimensions: number =
   (resolveOptionalNumber('EMBEDDING_DIMENSIONS') ??
@@ -40,9 +41,14 @@ export const mementoConfig: MementoConfig = {
   embeddingProvider,
   openaiApiKey: resolveOptionalString('OPENAI_API_KEY'),
   openaiModel: resolveString('OPENAI_MODEL'),
+  openaiLlmModel: resolveString('OPENAI_LLM_MODEL'),
   geminiApiKey: resolveOptionalString('GEMINI_API_KEY'),
   geminiModel: resolveString('GEMINI_MODEL'),
   embeddingDimensions,
+  // LLM 설정
+  llmProvider,
+  ollamaBaseUrl: resolveString('OLLAMA_BASE_URL'),
+  ollamaModel: resolveString('OLLAMA_MODEL'),
 
   // 검색 설정
   searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),
