@@ -9,6 +9,7 @@ import { DatabaseUtils } from '../utils/database.js';
 import { RelationEngineSchemaMigration } from '../database/migration/migrations/005-relation-engine-schema.js';
 import { RelationGraph } from '../services/relation-graph.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
+import { LLMBasedRelationExtractor } from '../services/llm-based-relation-extractor.js';
 import type { ToolContext } from './types.js';
 
 /**
@@ -73,6 +74,9 @@ describe('ExtractRelationsTool', () => {
     delete process.env.GEMINI_API_KEY;
     delete process.env.OLLAMA_BASE_URL;
     
+    // LLMBasedRelationExtractor의 isAvailable 메서드 모킹 (타임아웃 방지)
+    vi.spyOn(LLMBasedRelationExtractor.prototype, 'isAvailable').mockReturnValue(false);
+    
     // Given: in-memory 데이터베이스 생성 및 초기화
     db = new Database(':memory:');
     createBaseSchema(db);
@@ -97,6 +101,9 @@ describe('ExtractRelationsTool', () => {
   });
 
   afterEach(() => {
+    // 모킹 복원
+    vi.restoreAllMocks();
+    
     // 환경 변수 복원
     if (originalLlmProvider !== undefined) {
       process.env.LLM_PROVIDER = originalLlmProvider;

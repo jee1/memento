@@ -8,6 +8,14 @@ import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { getBatchScheduler } from '../../services/batch-scheduler.js';
 import { getPerformanceMonitor } from '../../services/performance-monitor.js';
+import { RelationGraph } from '../../services/relation-graph.js';
+import { RelationExtractor } from '../../services/relation-extractor.js';
+import { ExtractRelationsTool } from '../../tools/extract-relations-tool.js';
+import { GetRelationsTool } from '../../tools/get-relations-tool.js';
+import { AddRelationTool } from '../../tools/add-relation-tool.js';
+import { RemoveRelationTool } from '../../tools/remove-relation-tool.js';
+import { VisualizeRelationsTool } from '../../tools/visualize-relations-tool.js';
+import { DatabaseUtils } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 
 /**
@@ -347,6 +355,262 @@ export function createAdminRouter(db: Database.Database | null): Router {
       });
       res.status(500).json({
         error: '알림 해결 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // ============================================
+  // 관계 엔진 관리 API (관리자용)
+  // ============================================
+
+  // 관계 추출 (수동 실행)
+  router.post('/relations/extract', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+
+      const { memory_id, force } = req.body;
+
+      if (!memory_id) {
+        return res.status(400).json({
+          error: 'memory_id는 필수입니다'
+        });
+      }
+
+      // ToolContext 생성 (관계 엔진 도구 사용)
+      const relationGraph = new RelationGraph(db);
+      const context = {
+        db,
+        services: { relationGraph }
+      };
+
+      const extractTool = new ExtractRelationsTool();
+      const result = await extractTool.handle({ memory_id, force: force || false }, context);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '관계 추출 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Relation extraction failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '관계 추출 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // 관계 조회
+  router.get('/relations/:memory_id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+
+      const { memory_id } = req.params;
+      const { relation_type, category, direction } = req.query;
+
+      const relationGraph = new RelationGraph(db);
+      const context = {
+        db,
+        services: { relationGraph }
+      };
+
+      const getTool = new GetRelationsTool();
+      const result = await getTool.handle({
+        memory_id,
+        relation_type: relation_type as any,
+        category: category as any,
+        direction: direction as any || 'both'
+      }, context);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '관계 조회 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Relation retrieval failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '관계 조회 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // 관계 추가
+  router.post('/relations', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+
+      const { source_id, target_id, relation_type, confidence } = req.body;
+
+      if (!source_id || !target_id || !relation_type) {
+        return res.status(400).json({
+          error: 'source_id, target_id, relation_type는 필수입니다'
+        });
+      }
+
+      const relationGraph = new RelationGraph(db);
+      const context = {
+        db,
+        services: { relationGraph }
+      };
+
+      const addTool = new AddRelationTool();
+      const result = await addTool.handle({
+        source_id,
+        target_id,
+        relation_type,
+        confidence: confidence || 0.7
+      }, context);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '관계 추가 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Relation addition failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '관계 추가 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // 관계 삭제
+  router.delete('/relations/:relation_id', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+
+      const { relation_id } = req.params;
+
+      const relationGraph = new RelationGraph(db);
+      const context = {
+        db,
+        services: { relationGraph }
+      };
+
+      const removeTool = new RemoveRelationTool();
+      const result = await removeTool.handle({
+        relation_id: parseInt(relation_id, 10)
+      }, context);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '관계 삭제 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Relation removal failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '관계 삭제 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // 관계 시각화
+  router.get('/relations/:memory_id/visualize', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+
+      const { memory_id } = req.params;
+      const { format, max_depth, min_confidence, relation_types, show_memory_ids, show_confidence, show_relation_types } = req.query;
+
+      const relationGraph = new RelationGraph(db);
+      const context = {
+        db,
+        services: { relationGraph }
+      };
+
+      // relation_types를 enum 타입 배열로 변환
+      const validRelationTypes = ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'] as const;
+      const parsedRelationTypes = relation_types
+        ? (relation_types as string)
+            .split(',')
+            .map((type: string) => type.trim().toUpperCase())
+            .filter((type: string): type is typeof validRelationTypes[number] =>
+              validRelationTypes.includes(type as typeof validRelationTypes[number])
+            )
+        : undefined;
+
+      const visualizeTool = new VisualizeRelationsTool();
+      const result = await visualizeTool.handle({
+        memory_id,
+        format: (format as 'text' | 'subgraph' | 'simple' | 'json') || 'subgraph',
+        max_depth: max_depth ? parseInt(max_depth as string, 10) : 2,
+        min_confidence: min_confidence ? parseFloat(min_confidence as string) : undefined,
+        relation_types: parsedRelationTypes,
+        show_memory_ids: show_memory_ids !== undefined ? show_memory_ids === 'true' : true,
+        show_confidence: show_confidence !== undefined ? show_confidence === 'true' : true,
+        show_relation_types: show_relation_types !== undefined ? show_relation_types === 'true' : true
+      }, context);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '관계 시각화 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Relation visualization failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '관계 시각화 실패',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
