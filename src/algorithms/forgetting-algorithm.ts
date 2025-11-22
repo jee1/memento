@@ -43,7 +43,7 @@ export class ForgettingAlgorithm {
 
   /**
    * 단일 특징만으로는 망각 여부를 정확히 판단할 수 없으므로, 다차원 특징을 가중 평균하여 망각 가능성을 정량적으로 평가합니다.
-   * 최근성, 사용성, 중복도, 중요도, 고정 여부를 종합적으로 고려하여 공정한 망각 결정을 내리기 위해
+   * 최근성, 사용성, 중복도, 중요도, 고정 여부를 종합적으로 고려하여 공정한 망각 결정을 내립니다.
    */
   calculateForgetScore(features: ForgettingFeatures): number {
     const { recency, usage, duplication_ratio, importance, pinned } = features;
