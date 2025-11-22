@@ -1,5 +1,5 @@
 /**
- * 클린코드 원칙을 적용하여 유지보수성과 테스트 가능성을 향상시키기 위해
+ * 유지보수성과 테스트 가능성을 향상시키기 위해 클린코드 원칙을 적용합니다.
  * 기존 VectorSearchEngine의 대체품으로 점진적 마이그레이션을 지원합니다.
  */
 
@@ -25,7 +25,7 @@ export class VectorSearchEngineRefactored {
   }
 
   /**
-   * 데이터베이스 연결을 설정하고 벡터 검색 기능의 사용 가능 여부를 확인합니다.
+   * 벡터 검색 기능이 없으면 검색이 실패할 수 있으므로, 데이터베이스 연결을 설정하고 벡터 검색 기능의 사용 가능 여부를 확인합니다.
    */
   initialize(db: Database.Database): void {
     this.container.setDatabase(db);

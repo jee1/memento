@@ -35,8 +35,8 @@ const OVERALL_SEARCH_TIMEOUT_MS = 5000;
 const VECTOR_SEARCH_LIMIT_MULTIPLIER = 2;
 
 /**
- * 관련성이 낮은 벡터 검색 결과를 필터링하여 검색 품질을 향상시키기 위해
- * 이 값보다 낮은 similarity를 가진 결과는 제외하여 노이즈를 줄이기 위해
+ * 관련성이 낮은 벡터 검색 결과는 사용자에게 유용하지 않으므로 필터링하여 검색 품질을 향상시킵니다.
+ * 이 값보다 낮은 similarity를 가진 결과는 노이즈에 가까우므로 제외하여 검색 정확도를 높입니다.
  */
 const VECTOR_SEARCH_THRESHOLD = 0.5;
 

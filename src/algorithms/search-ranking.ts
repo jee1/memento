@@ -145,7 +145,7 @@ export class SearchRanking {
   }
 
   /**
-   * 다양한 관련성 지표를 가중 평균하여 종합적인 관련성 점수를 계산합니다.
+   * 단일 지표만으로는 검색 관련성을 정확히 평가할 수 없으므로, 다양한 관련성 지표를 가중 평균하여 종합적인 관련성 점수를 계산합니다.
    * 임베딩 유사도, BM25, 태그 매칭, 타이틀 히트를 결합하여 검색 정확도를 향상시킵니다.
    */
   calculateRelevance(input: RelevanceInput): number {
