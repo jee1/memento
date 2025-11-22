@@ -246,7 +246,7 @@ export class RelationGraph implements IRelationGraph {
 
   /**
    * 순환 참조 확인
-   * 트랜잭션 내에서 호출되는 경우 중첩 트랜잭션을 방지하기 위해
+   * 트랜잭션 내에서 호출되는 경우 중첩 트랜잭션을 방지합니다.
    * 트랜잭션 상태를 확인합니다.
    * 
    * @param sourceId 소스 기억 ID
@@ -857,7 +857,7 @@ export class RelationGraph implements IRelationGraph {
    * 순환 참조 감지 (DFS)
    * 
    * 트랜잭션 내에서 실행하여 경쟁 조건을 방지합니다.
-   * 순환 참조 감지 중에 다른 프로세스/스레드에서 관계가 추가되는 것을 방지하기 위해
+   * 순환 참조 감지 중에 다른 프로세스/스레드에서 관계가 추가되는 것을 방지합니다.
    * 트랜잭션 격리 수준을 사용합니다.
    * 
    * 성능 최적화:
@@ -982,7 +982,7 @@ export class RelationGraph implements IRelationGraph {
   ): Promise<boolean> {
     // 트랜잭션 내에서 순환 참조 감지를 수행하여 경쟁 조건 방지
     // BEGIN IMMEDIATE TRANSACTION을 사용하여 배타적 락을 획득
-    // 이미 트랜잭션이 시작된 경우 중첩 트랜잭션을 방지하기 위해
+    // 이미 트랜잭션이 시작된 경우 중첩 트랜잭션을 방지합니다.
     // 트랜잭션 상태를 확인하여 적절히 처리
     if (DatabaseUtils.isInTransaction(this.db)) {
       // 트랜잭션이 이미 시작된 경우 트랜잭션 없이 실행

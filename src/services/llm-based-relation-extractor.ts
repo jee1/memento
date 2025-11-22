@@ -819,7 +819,7 @@ ${memoryList}
       }
       
       // JSON 파싱을 시도하기 전에 한 번 더 정리
-      // "Unexpected non-whitespace character after JSON" 에러를 방지하기 위해
+      // "Unexpected non-whitespace character after JSON" 에러를 방지합니다.
       // 첫 번째 '{'부터 마지막 '}'까지만 추출하고, 그 사이의 모든 텍스트를 제거
       let finalJson = cleanedContent;
       const firstBraceFinal = finalJson.indexOf('{');

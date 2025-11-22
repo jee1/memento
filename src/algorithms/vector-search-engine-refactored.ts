@@ -1,7 +1,6 @@
 /**
- * 리팩토링된 벡터 검색 엔진
- * 클린코드 원칙을 적용한 새로운 구현
- * 기존 VectorSearchEngine의 대체품
+ * 유지보수성과 테스트 가능성을 향상시키기 위해 클린코드 원칙을 적용합니다.
+ * 기존 VectorSearchEngine의 대체품으로 점진적 마이그레이션을 지원합니다.
  */
 
 import Database from 'better-sqlite3';
@@ -15,8 +14,8 @@ import type {
 } from '../types/vector-search.types';
 
 /**
- * 리팩토링된 벡터 검색 엔진
- * 기존 VectorSearchEngine과 동일한 인터페이스 제공
+ * 리팩토링된 벡터 검색 엔진으로 기존 코드와의 호환성을 유지하면서 개선된 구조를 제공합니다.
+ * 기존 VectorSearchEngine과 동일한 인터페이스를 제공하여 기존 코드 수정 없이 사용 가능하도록 합니다.
  */
 export class VectorSearchEngineRefactored {
   private container: VectorSearchContainer;
@@ -26,14 +25,15 @@ export class VectorSearchEngineRefactored {
   }
 
   /**
-   * 데이터베이스 초기화
+   * 벡터 검색 기능이 없으면 검색이 실패할 수 있으므로, 데이터베이스 연결을 설정하고 벡터 검색 기능의 사용 가능 여부를 확인합니다.
    */
   initialize(db: Database.Database): void {
     this.container.setDatabase(db);
   }
 
   /**
-   * 벡터 검색 실행
+   * 쿼리 벡터와 유사한 메모리를 검색하여 의미적으로 관련된 결과를 제공합니다.
+   * 리팩토링된 서비스를 통해 개선된 검색 기능을 제공합니다.
    */
   async search(
     queryVector: number[], 

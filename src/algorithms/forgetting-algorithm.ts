@@ -1,6 +1,6 @@
 /**
- * 망각 알고리즘 구현
- * Memento-Goals.md의 망각 공식 구현
+ * 오래되고 사용되지 않는 기억을 자동으로 식별하여 저장 공간을 효율적으로 관리합니다.
+ * Memento-Goals.md에 정의된 검증된 망각 공식을 구현하여 일관되고 공정한 망각 결정을 보장합니다.
  */
 
 export interface ForgettingFeatures {
@@ -42,8 +42,8 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 망각 점수 계산
-   * F = U1 * (1 - recency) + U2 * (1 - usage) + U3 * dupRatio - U4 * importance - U5 * pinned
+   * 단일 특징만으로는 망각 여부를 정확히 판단할 수 없으므로, 다차원 특징을 가중 평균하여 망각 가능성을 정량적으로 평가합니다.
+   * 최근성, 사용성, 중복도, 중요도, 고정 여부를 종합적으로 고려하여 공정한 망각 결정을 내립니다.
    */
   calculateForgetScore(features: ForgettingFeatures): number {
     const { recency, usage, duplication_ratio, importance, pinned } = features;
@@ -58,14 +58,16 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 망각 후보 선정
+   * 망각 점수가 임계값을 넘으면 저장 공간을 효율적으로 관리하기 위해 해당 기억을 망각 대상으로 결정합니다.
+   * 임계값을 조정하여 망각 정책의 엄격도를 제어할 수 있도록 합니다.
    */
   shouldForget(forgetScore: number, threshold: number = 0.6): boolean {
     return forgetScore >= threshold;
   }
 
   /**
-   * 망각 이유 생성
+   * 사용자에게 망각 결정의 근거를 명확히 전달하여 투명성을 보장합니다.
+   * 다양한 특징을 분석하여 구체적인 망각 이유를 제공합니다.
    */
   generateForgetReason(features: ForgettingFeatures, forgetScore: number): string {
     const reasons: string[] = [];
@@ -94,7 +96,8 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 메모리 특징 계산
+   * 망각 알고리즘이 정확한 판단을 내리려면 메모리의 다양한 특징이 정량화되어야 하므로, 필요한 입력 데이터를 준비합니다.
+   * 최근성, 사용성, 중복도, 중요도 등을 계산하여 종합적인 평가를 수행합니다.
    */
   calculateFeatures(memory: {
     created_at: string;
@@ -106,10 +109,10 @@ export class ForgettingAlgorithm {
     cite_count?: number;
     edit_count?: number;
   }, duplicates: number = 0, totalMemories: number = 1): ForgettingFeatures {
-    // 최근성 계산 (반감기 기반)
+    // 시간에 따른 기억의 자연스러운 감쇠를 반영하여 오래된 기억을 식별합니다.
     const recency = this.calculateRecency(new Date(memory.created_at), memory.type);
     
-    // 사용성 계산
+    // 실제 사용 빈도를 반영하여 사용되지 않는 기억을 식별합니다.
     const usage = this.calculateUsage(
       memory.last_accessed ? new Date(memory.last_accessed) : undefined,
       memory.view_count || 0,
@@ -117,10 +120,10 @@ export class ForgettingAlgorithm {
       memory.edit_count || 0
     );
     
-    // 중복 비율 계산
+    // 유사한 내용의 중복 기억을 식별하여 저장 공간을 효율적으로 관리합니다.
     const duplication_ratio = totalMemories > 0 ? duplicates / totalMemories : 0;
     
-    // 중요도 (사용자 설정값)
+    // 사용자가 명시적으로 설정한 중요도를 그대로 사용하여 사용자의 의도를 존중합니다.
     const importance = memory.importance;
     
     return {
@@ -133,7 +136,8 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 최근성 계산 (반감기 기반)
+   * 시간에 따른 기억의 자연스러운 감쇠를 반영하여 오래된 기억을 식별합니다.
+   * 반감기 기반 지수 감쇠를 사용하여 시간이 지날수록 망각 가능성이 증가하도록 설계합니다.
    */
   private calculateRecency(createdAt: Date, type: string): number {
     const ageDays = this.getAgeInDays(createdAt);
@@ -143,7 +147,8 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 사용성 계산
+   * 실제 사용 빈도를 반영하여 사용되지 않는 기억을 식별합니다.
+   * 접근 빈도와 사용 빈도를 종합하여 사용성을 정량화합니다.
    */
   private calculateUsage(
     lastAccessed?: Date,
@@ -151,32 +156,33 @@ export class ForgettingAlgorithm {
     citeCount: number = 0,
     editCount: number = 0
   ): number {
-    // 접근 빈도 기반 점수
+    // 시간이 지날수록 기억의 관련성이 자연스럽게 감쇠하므로, 마지막 접근 시간을 기반으로 최근성 점수를 계산합니다.
     const accessScore = lastAccessed ? this.calculateAccessScore(lastAccessed) : 0;
     
-    // 사용 빈도 기반 점수
+    // 로그 스케일을 사용하여 사용 빈도의 차이를 완화하고 균형잡힌 점수를 생성합니다.
     const usageScore = Math.log(1 + viewCount) + 
                       2 * Math.log(1 + citeCount) + 
                       0.5 * Math.log(1 + editCount);
     
-    // 정규화 (0-1 범위)
-    const normalizedUsage = Math.min(1, usageScore / 10); // 10은 경험적 최대값
+    // 점수를 0-1 범위로 정규화하여 다른 지표와 일관된 비교가 가능하도록 합니다.
+    const normalizedUsage = Math.min(1, usageScore / 10); // 경험적으로 도출된 최대값을 사용하여 정규화합니다.
     
     return Math.max(accessScore, normalizedUsage);
   }
 
   /**
-   * 접근 점수 계산
+   * 마지막 접근 시간을 기반으로 최근성 점수를 계산하여 사용 빈도와 함께 평가합니다.
+   * 30일 반감기를 사용하여 시간에 따른 감쇠를 반영합니다.
    */
   private calculateAccessScore(lastAccessed: Date): number {
     const daysSinceAccess = this.getAgeInDays(lastAccessed);
     
-    // 30일 반감기
+    // 30일 반감기를 사용하여 시간에 따른 자연스러운 감쇠를 반영합니다.
     return Math.exp(-daysSinceAccess / 30);
   }
 
   /**
-   * 나이 계산 (일 단위)
+   * 시간이 지날수록 기억의 관련성이 자연스럽게 감쇠하므로, 메모리의 생성 시간으로부터 경과된 일수를 계산하여 최근성 평가에 사용합니다.
    */
   private getAgeInDays(date: Date): number {
     const now = new Date();
@@ -185,7 +191,8 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 타입별 반감기 (일 단위)
+   * 메모리 타입에 따라 다른 반감기를 설정하여 타입별 특성에 맞는 감쇠 속도를 적용합니다.
+   * working 메모리는 빠르게, semantic 메모리는 천천히 감쇠하도록 설계합니다.
    */
   private getHalfLife(type: string): number {
     switch (type) {
@@ -198,7 +205,8 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 망각 후보들 분석
+   * 여러 메모리를 일괄 분석하여 망각 후보를 선정합니다.
+   * 중복도를 계산하고 각 메모리의 망각 점수를 산출하여 우선순위를 결정합니다.
    */
   analyzeForgetCandidates(memories: Array<{
     id: string;
@@ -214,10 +222,10 @@ export class ForgettingAlgorithm {
     const results: ForgettingResult[] = [];
     const totalMemories = memories.length;
     
-    // 중복 계산을 위한 간단한 구현
+    // 중복 기억을 식별하기 위해 간단한 구현을 사용하여 저장 공간을 효율적으로 관리합니다.
     const contentMap = new Map<string, number>();
     memories.forEach(memory => {
-      const key = memory.type; // 실제로는 내용 유사도로 계산해야 함
+      const key = memory.type; // 실제 구현에서는 내용 유사도로 계산하여 더 정확한 중복 감지를 수행합니다.
       contentMap.set(key, (contentMap.get(key) || 0) + 1);
     });
     

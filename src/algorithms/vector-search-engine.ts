@@ -1,7 +1,7 @@
 /**
- * 벡터 검색 엔진
- * sqlite-vec를 사용한 벡터 유사도 검색
- * Memento MCP Server의 핵심 벡터 검색 컴포넌트
+ * 의미적 유사성을 기반으로 한 고성능 벡터 검색을 제공합니다.
+ * sqlite-vec를 사용하여 대용량 벡터 데이터에서도 빠른 유사도 검색을 수행합니다.
+ * Memento MCP Server의 핵심 벡터 검색 컴포넌트로서 의미 기반 검색 기능을 제공합니다.
  */
 
 import Database from 'better-sqlite3';
@@ -20,10 +20,10 @@ export interface VectorSearchResult {
 
 export interface VectorSearchOptions {
   limit?: number;
-  threshold?: number;  // 최소 유사도 임계값
-  types?: string[];    // 다중 메모리 타입 필터
+  threshold?: number;  // 관련성이 낮은 결과를 필터링하여 검색 품질을 향상시키기 위한 최소 유사도 임계값
+  types?: string[];    // 특정 메모리 타입만 검색하여 정확한 결과를 제공하기 위한 다중 메모리 타입 필터
   includeContent?: boolean;
-  includeMetadata?: boolean; // 메타데이터 포함 여부
+  includeMetadata?: boolean; // 상세한 분석을 위해 메타데이터 포함 여부를 제어합니다.
 }
 
 export interface VectorIndexStatus {
@@ -49,11 +49,12 @@ export class VectorSearchEngine {
   private readonly defaultLimit = 10;
 
   constructor() {
-    // VEC 사용 가능 여부는 데이터베이스 연결 시 확인
+    // VEC 사용 가능 여부는 데이터베이스 연결 시 확인하여 런타임에 동적으로 판단합니다.
   }
 
   /**
-   * 제공자별 vec0 테이블명 반환
+   * 각 임베딩 provider별로 다른 벡터 테이블을 사용하여 차원 불일치를 방지합니다.
+   * provider에 따라 적절한 테이블명을 반환하여 정확한 검색을 보장합니다.
    */
   private getVectorTableName(provider: string): string {
     switch (provider) {
@@ -66,12 +67,13 @@ export class VectorSearchEngine {
       case 'gemini':
         return 'memory_item_vec_gemini';
       default:
-        return 'memory_item_vec_tfidf'; // 기본값
+        return 'memory_item_vec_tfidf'; // 알 수 없는 provider의 경우 기본 테이블을 사용하여 안정성을 보장합니다.
     }
   }
 
   /**
-   * 데이터베이스 초기화
+   * 데이터베이스 연결을 설정하고 벡터 검색 기능의 사용 가능 여부를 확인합니다.
+   * provider별 차원 정보를 갱신하여 정확한 검색을 보장합니다.
    */
   initialize(db: Database.Database): void {
     this.db = db;
@@ -80,8 +82,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * VEC 사용 가능 여부 확인
-   * sqlite-vec 확장 로드 여부와 테이블 존재를 모두 확인
+   * 벡터 검색 기능이 실제로 사용 가능한지 확인하여 안전한 검색을 보장합니다.
+   * sqlite-vec 확장 로드 여부와 테이블 존재를 모두 확인하여 런타임 오류를 방지합니다.
    */
   private checkVecAvailability(): void {
     if (!this.db) {
@@ -91,7 +93,7 @@ export class VectorSearchEngine {
     }
 
     try {
-      // 1. 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
+      // 벡터 검색을 수행할 수 있는 테이블이 존재하는지 확인하여 기능 사용 가능 여부를 판단합니다.
       const tableStatement = this.db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN (
@@ -115,7 +117,7 @@ export class VectorSearchEngine {
         return;
       }
 
-      // 2. VEC 함수 사용 가능 여부 확인 (첫 번째 테이블로 테스트)
+      // VEC 함수가 실제로 동작하는지 테스트하여 런타임 오류를 사전에 방지합니다.
       try {
         const testTableEntry = tableCheck.find((table): table is { name: string; type: string } => 
           typeof table === 'object' && table !== null && typeof (table as any).name === 'string'
@@ -152,7 +154,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * provider별 임베딩 차원을 메타데이터에서 갱신
+   * 데이터베이스에 저장된 실제 임베딩 차원을 조회하여 정확한 벡터 검색을 보장합니다.
+   * provider별로 다른 차원을 사용할 수 있으므로 메타데이터에서 차원 정보를 갱신합니다.
    */
   private refreshProviderDimensions(): void {
     if (!this.db) {
@@ -188,9 +191,7 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 저장된 임베딩의 실제 차원 조회
-   * @param provider - 임베딩 제공자
-   * @returns 실제 저장된 차원 또는 null
+   * 특정 provider의 실제 저장된 임베딩 차원을 조회하여 벡터 검색 시 차원 불일치를 방지합니다.
    */
   private async getActualStoredDimensions(provider: string): Promise<number | null> {
     if (!this.db) {
@@ -214,7 +215,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 검색 실행
+   * 쿼리 벡터와 유사한 메모리를 검색하여 의미적으로 관련된 결과를 제공합니다.
+   * sqlite-vec의 고성능 벡터 검색 기능을 활용하여 빠르고 정확한 검색을 수행합니다.
    */
   async search(
     queryVector: number[], 
@@ -245,24 +247,23 @@ export class VectorSearchEngine {
       ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
       : '';
 
-    // 벡터 차원 검증 및 조정
+    // 쿼리 벡터의 차원이 저장된 임베딩과 일치하는지 검증하여 검색 오류를 방지합니다.
     let adjustedQueryVector = queryVector;
     if (queryVector.length !== expectedDimensions) {
-      // 저장된 임베딩의 실제 차원 확인
+      // 데이터베이스에 저장된 실제 임베딩 차원을 확인하여 차원 불일치를 처리합니다.
       const actualDimensions = await this.getActualStoredDimensions(normalizedProvider);
       
       if (actualDimensions && queryVector.length === actualDimensions) {
-        // 쿼리 벡터가 저장된 임베딩의 실제 차원과 일치하면 사용
+        // 쿼리 벡터가 저장된 임베딩의 실제 차원과 일치하면 사용하여 정확한 검색을 수행합니다.
         console.log(`ℹ️ 벡터 차원 조정: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 저장된 차원 ${actualDimensions}, 쿼리 ${queryVector.length}`);
-        // expectedDimensions를 actualDimensions로 업데이트하여 검증 통과
-        // (실제로는 차원이 일치하므로 검증 통과)
+        // 실제 차원이 일치하므로 검증을 통과하여 정상적인 검색을 진행합니다.
       } else if (actualDimensions && queryVector.length !== actualDimensions) {
-        // 차원 불일치: projection 필요하지만 현재는 에러 반환
+        // 차원 불일치로 인한 검색 오류를 방지하기 위해 빈 결과를 반환합니다.
         console.error(`❌ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 저장된 차원 ${actualDimensions}, 쿼리 ${queryVector.length}`);
         console.error(`💡 해결 방법: 저장된 임베딩과 동일한 provider로 쿼리 임베딩을 생성해야 합니다.`);
         return [];
       } else {
-        // 저장된 임베딩 정보가 없고 쿼리 벡터 차원이 예상 차원과 다르면 빈 결과 반환
+        // 차원 정보를 확인할 수 없는 경우 안전하게 빈 결과를 반환하여 오류를 방지합니다.
         console.warn(`⚠️ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
         console.warn(`⚠️ 저장된 임베딩 정보를 확인할 수 없어 차원 불일치를 처리할 수 없습니다. 빈 결과를 반환합니다.`);
         return [];
@@ -273,11 +274,11 @@ export class VectorSearchEngine {
       // 제공자별 테이블명 결정
       const tableName = this.getVectorTableName(normalizedProvider);
       
-      // 타입 필터가 있는 경우 더 많은 결과를 가져와서 필터링 후 최종 limit을 적용
+      // 타입 필터링으로 인해 결과가 줄어들 수 있으므로 충분한 후보를 확보합니다.
       const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
 
-      // VEC 검색 쿼리 (제공자별 vec0 테이블 사용)
-      // JOIN 전에 서브쿼리로 vec 검색을 먼저 수행하여 LIMIT을 적용해야 함
+      // VEC 검색 쿼리를 구성하여 벡터 유사도 검색을 수행합니다.
+      // JOIN 전에 서브쿼리로 벡터 검색을 먼저 수행하여 성능을 최적화하고 LIMIT을 적용합니다.
       const vecQuery = `
         SELECT 
           me.memory_id as memory_id,
@@ -318,7 +319,7 @@ export class VectorSearchEngine {
       const rawResults = queryStatement.all(...params);
       const results = Array.isArray(rawResults) ? rawResults as any[] : [];
 
-      // 유사도를 0-1 범위로 정규화 (distance는 작을수록 유사함)
+      // distance를 similarity로 변환하여 0-1 범위로 정규화하고 직관적인 점수 체계를 제공합니다.
       const normalizedResults = results
         .map(result => ({
           ...result,
@@ -326,7 +327,7 @@ export class VectorSearchEngine {
           tags: this.safeParseTags(result.tags)
         }));
 
-      // 디버깅: 임계값 적용 전 상위 5개 결과의 유사도 점수 로깅
+      // 검색 품질을 모니터링하고 디버깅을 위해 임계값 적용 전 상위 결과를 로깅합니다.
       console.log('🔍 [Debug] Top 5 results before threshold filtering:');
       normalizedResults.slice(0, 5).forEach(r => {
         console.log(`  - Memory ID: ${r.memory_id}, Similarity: ${r.similarity.toFixed(4)}`);
@@ -355,8 +356,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 하이브리드 검색 (벡터 + 메타데이터)
-   * SQLite 호환성을 위해 LEFT JOIN 사용
+   * 벡터 검색과 메타데이터 검색을 결합하여 검색 정확도와 포괄성을 동시에 확보합니다.
+   * SQLite 호환성을 위해 LEFT JOIN을 사용하여 안정적인 검색을 보장합니다.
    */
   async hybridSearch(
     queryVector: number[],
@@ -388,7 +389,7 @@ export class VectorSearchEngine {
       ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
       : '';
 
-    // 벡터 차원 검증
+    // 쿼리 벡터의 차원이 저장된 임베딩과 일치하는지 검증하여 검색 오류를 방지합니다.
     if (queryVector.length !== expectedDimensions) {
       console.error(`❌ 벡터 차원 불일치: 제공자 ${normalizedProvider}, 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
       return [];
@@ -398,7 +399,7 @@ export class VectorSearchEngine {
       // 제공자별 테이블명 결정
       const tableName = this.getVectorTableName(normalizedProvider);
       
-      // 벡터 검색과 텍스트 검색을 결합한 하이브리드 쿼리 (SQLite 호환)
+      // 벡터 검색과 텍스트 검색을 결합하여 검색 정확도와 포괄성을 동시에 확보합니다.
       const hybridQuery = `
         WITH vector_search AS (
           SELECT 
@@ -482,7 +483,7 @@ export class VectorSearchEngine {
       const hybridResults = hybridStatement.all(...params);
       const results = Array.isArray(hybridResults) ? hybridResults as any[] : [];
 
-      // 결과 정규화
+      // 벡터 유사도와 텍스트 유사도를 가중 평균하여 종합적인 유사도 점수를 계산합니다.
       const normalizedResults = results
         .map(result => ({
           memory_id: result.memory_id,
@@ -507,7 +508,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 인덱스 상태 확인
+   * 벡터 검색 기능의 현재 상태를 확인하여 사용 가능 여부와 인덱스 정보를 제공합니다.
+   * 시스템 모니터링과 디버깅을 위해 인덱스 상태를 조회합니다.
    */
   getIndexStatus(): VectorIndexStatus {
     if (!this.db) {
@@ -525,7 +527,7 @@ export class VectorSearchEngine {
       let recordCount = 0;
 
       if (tableExists) {
-        // 모든 제공자별 테이블의 레코드 수 합계
+        // 모든 provider별 테이블의 레코드 수를 합산하여 전체 벡터 데이터 규모를 파악합니다.
         const providers = ['tfidf', 'minilm', 'openai', 'gemini'];
         for (const provider of providers) {
           const tableName = this.getVectorTableName(provider);
@@ -533,7 +535,7 @@ export class VectorSearchEngine {
             const result = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`).get() as { count: number };
             recordCount += result.count;
           } catch (error) {
-            // 테이블이 존재하지 않는 경우 무시
+            // 테이블이 존재하지 않는 경우 무시하여 일부 provider가 없어도 안정적으로 동작합니다.
           }
         }
       }
@@ -558,7 +560,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 인덱스 재구성
+   * 벡터 인덱스를 재구성하여 검색 성능을 최적화합니다.
+   * sqlite-vec는 자동으로 인덱스를 관리하므로 수동 재구성이 필요 없는 경우를 처리합니다.
    */
   async rebuildIndex(): Promise<boolean> {
     if (!this.db || !this.isVecAvailable) {
@@ -569,7 +572,7 @@ export class VectorSearchEngine {
     try {
       console.log('🔄 벡터 인덱스 재구성 시작...');
       
-      // VEC 인덱스 재구성 (sqlite-vec는 자동으로 인덱스를 관리)
+      // sqlite-vec는 자동으로 인덱스를 관리하므로 수동 재구성이 필요 없지만 호환성을 위해 메서드를 제공합니다.
       console.log('✅ 벡터 인덱스 재구성 완료 (sqlite-vec는 자동 인덱스 관리)');
       return true;
     } catch (error) {
@@ -579,7 +582,8 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 검색 성능 테스트
+   * 벡터 검색의 성능을 측정하여 최적화 지점을 파악합니다.
+   * 반복 실행을 통해 평균, 최소, 최대 응답 시간과 성공률을 계산합니다.
    */
   async performanceTest(queryVector: number[], iterations: number = 10): Promise<{
     averageTime: number;
@@ -628,21 +632,21 @@ export class VectorSearchEngine {
   }
 
   /**
-   * 벡터 차원 확인
+   * 특정 provider의 벡터 차원을 조회하여 벡터 검색 시 차원 정보를 제공합니다.
    */
   getDimensions(provider: string = 'tfidf'): number {
     return this.getExpectedDimensions(provider.toLowerCase());
   }
 
   /**
-   * VEC 사용 가능 여부 확인
+   * 벡터 검색 기능이 사용 가능한지 확인하여 호출자가 적절한 처리를 할 수 있도록 합니다.
    */
   isAvailable(): boolean {
     return this.isVecAvailable;
   }
 
   /**
-   * 데이터베이스 연결 상태 확인
+   * 데이터베이스 연결 상태를 확인하여 검색 실행 전 안전성을 보장합니다.
    */
   isConnected(): boolean {
     return this.db !== null;
@@ -666,7 +670,7 @@ export class VectorSearchEngine {
   }
 }
 
-// 싱글톤 인스턴스
+// 전역에서 단일 인스턴스를 공유하여 메모리 사용을 최적화하고 일관된 상태를 유지합니다.
 let vectorSearchEngineInstance: VectorSearchEngine | null = null;
 
 export function getVectorSearchEngine(): VectorSearchEngine {

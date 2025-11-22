@@ -1,6 +1,6 @@
 /**
- * 하이브리드 검색 엔진
- * FTS5 텍스트 검색 + 벡터 검색 결합
+ * 텍스트 검색과 벡터 검색을 결합하여 검색 정확도와 포괄성을 동시에 확보합니다.
+ * FTS5 전문 검색과 벡터 유사도 검색을 병렬로 수행하여 각각의 장점을 활용합니다.
  */
 
 import { SearchEngine } from './search-engine.js';
@@ -16,31 +16,31 @@ import { getRankingWeights } from '../config/ranking-weights-loader.js';
 
 // 검색 관련 상수
 /**
- * 개별 provider 검색 타임아웃 (밀리초)
- * 각 provider별 검색 작업이 이 시간 내에 완료되지 않으면 타임아웃 처리
+ * 개별 provider의 검색 작업이 지연되어 전체 검색 성능에 영향을 주지 않도록 제한합니다.
+ * 각 provider별 검색 작업이 이 시간 내에 완료되지 않으면 타임아웃 처리하여 응답성을 보장합니다.
  */
 const PROVIDER_SEARCH_TIMEOUT_MS = 2000;
 
 /**
- * 전체 검색 프로세스 타임아웃 (밀리초)
- * 모든 provider 검색이 이 시간 내에 완료되지 않으면 현재까지 완료된 결과만 반환
- * 개별 provider 타임아웃보다 충분히 길어야 함 (여러 provider가 병렬로 실행되므로)
+ * 전체 검색 프로세스가 무한정 대기하지 않도록 최대 대기 시간을 설정합니다.
+ * 모든 provider 검색이 이 시간 내에 완료되지 않으면 현재까지 완료된 결과만 반환하여 사용자 경험을 보장합니다.
+ * 개별 provider 타임아웃보다 충분히 길게 설정하여 병렬 실행의 이점을 활용합니다.
  */
 const OVERALL_SEARCH_TIMEOUT_MS = 5000;
 
 /**
- * 벡터 검색 결과 limit 배수
- * 중복 제거 전에 더 많은 결과를 가져와서 최종 결과의 품질을 보장
+ * 중복 제거 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
+ * 더 많은 결과를 가져와서 최종 결과의 품질과 다양성을 보장합니다.
  */
 const VECTOR_SEARCH_LIMIT_MULTIPLIER = 2;
 
 /**
- * 벡터 검색 similarity threshold
- * 이 값보다 낮은 similarity를 가진 결과는 제외
+ * 관련성이 낮은 벡터 검색 결과는 사용자에게 유용하지 않으므로 필터링하여 검색 품질을 향상시킵니다.
+ * 이 값보다 낮은 similarity를 가진 결과는 노이즈에 가까우므로 제외하여 검색 정확도를 높입니다.
  */
 const VECTOR_SEARCH_THRESHOLD = 0.5;
 
-// 인터페이스 정의
+// 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
 export interface ITextSearchEngine {
   search(db: Database.Database, query: { query: string; filters?: MemorySearchFilters; limit?: number }): Promise<{ items: any[]; total_count: number; query_time: number }>;
 }
@@ -73,7 +73,7 @@ export interface ISearchLogger {
   logExperiment?(searchId: string, experimentId: string, variant: Record<string, any>): void; // 실험 로그 (선택적)
 }
 
-// 에러 타입 정의
+// 검색 과정에서 발생할 수 있는 다양한 오류를 분류하여 정확한 오류 처리를 수행합니다.
 export enum SearchErrorType {
   EMBEDDING_GENERATION_FAILED = 'EMBEDDING_GENERATION_FAILED',
   VECTOR_SEARCH_FAILED = 'VECTOR_SEARCH_FAILED',
@@ -96,12 +96,12 @@ export class SearchError extends Error {
   }
 }
 
-// 책임별 클래스들
+// 단일 책임 원칙을 준수하여 각 기능을 독립적인 클래스로 분리하여 유지보수성을 향상시키기 위해
 export class SearchResultCombiner implements ISearchResultCombiner {
   combine(textResults: any[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[] {
     const resultMap = new Map<string, HybridSearchResult>();
 
-    // 텍스트 검색 결과 추가
+    // 텍스트 검색 결과를 먼저 추가하여 기본 점수를 설정합니다.
     textResults.forEach(result => {
       const textScore = typeof result.score === 'number' ? result.score : 0;
       resultMap.set(result.id, {
@@ -120,17 +120,17 @@ export class SearchResultCombiner implements ISearchResultCombiner {
       });
     });
 
-    // 벡터 검색 결과 추가/업데이트
+    // 벡터 검색 결과를 추가하거나 기존 텍스트 결과와 결합하여 하이브리드 점수를 계산합니다.
     vectorResults.forEach(result => {
       const existing = resultMap.get(result.id);
       
       if (existing) {
-        // 기존 결과 업데이트
+        // 텍스트와 벡터 검색 모두에서 발견된 결과를 업데이트하여 종합 점수를 계산합니다.
         existing.vectorScore = result.similarity;
         existing.finalScore = (existing.textScore * textWeight) + (result.similarity * vectorWeight);
         existing.recall_reason = this.generateHybridReason(existing.textScore, result.similarity);
       } else {
-        // 새로운 결과 추가
+        // 벡터 검색에서만 발견된 결과를 추가하여 검색 포괄성을 확보합니다.
         resultMap.set(result.id, {
           id: result.id,
           content: result.content,
@@ -174,33 +174,33 @@ export class AdaptiveWeightCalculator implements IAdaptiveWeightCalculator {
   calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number, textWeight: number } {
     const queryKey = this.normalizeQuery(query);
     
-    // 기존 적응형 가중치가 있으면 사용
+    // 이전에 계산된 가중치를 재사용하여 일관성 있는 검색 결과를 제공하고 성능을 최적화합니다.
     if (this.adaptiveWeights.has(queryKey)) {
       return this.adaptiveWeights.get(queryKey)!;
     }
 
-    // 쿼리 특성 분석
+    // 쿼리의 특성을 분석하여 최적의 가중치를 결정합니다.
     const queryAnalysis = this.analyzeQuery(query);
     
-    // 쿼리 특성에 따른 가중치 조정
+    // 쿼리 특성에 따라 벡터 검색과 텍스트 검색의 가중치를 동적으로 조정하여 검색 정확도를 향상시키기 위해
     let adjustedVectorWeight = vectorWeight;
     let adjustedTextWeight = textWeight;
 
     if (queryAnalysis.isTechnicalTerm) {
-      // 기술 용어는 벡터 검색에 더 의존
+      // 기술 용어는 의미적 유사성이 중요하므로 벡터 검색에 더 높은 가중치를 부여합니다.
       adjustedVectorWeight = Math.min(0.8, vectorWeight + 0.2);
       adjustedTextWeight = Math.max(0.2, textWeight - 0.2);
     } else if (queryAnalysis.isPhrase) {
-      // 구문 검색은 텍스트 검색에 더 의존
+      // 구문 검색은 정확한 단어 매칭이 중요하므로 텍스트 검색에 더 높은 가중치를 부여합니다.
       adjustedVectorWeight = Math.max(0.2, vectorWeight - 0.2);
       adjustedTextWeight = Math.min(0.8, textWeight + 0.2);
     } else if (queryAnalysis.isShortQuery) {
-      // 짧은 쿼리는 벡터 검색에 더 의존
+      // 짧은 쿼리는 키워드 매칭이 제한적이므로 의미적 유사성을 활용하는 벡터 검색에 더 의존합니다.
       adjustedVectorWeight = Math.min(0.7, vectorWeight + 0.1);
       adjustedTextWeight = Math.max(0.3, textWeight - 0.1);
     }
 
-    // 가중치 정규화
+    // 가중치의 합이 1이 되도록 정규화하여 일관된 점수 범위를 유지합니다.
     const totalWeight = adjustedVectorWeight + adjustedTextWeight;
     const normalizedVectorWeight = adjustedVectorWeight / totalWeight;
     const normalizedTextWeight = adjustedTextWeight / totalWeight;
@@ -263,8 +263,8 @@ export class SearchLogger implements ISearchLogger {
   }
 
   /**
-   * 실험 로그 기록
-   * A/B 테스트를 위한 실험 ID와 변이 파라미터를 로깅합니다.
+   * A/B 테스트를 통해 검색 알고리즘의 효과를 측정하고 개선합니다.
+   * 실험 ID와 변이 파라미터를 로깅하여 데이터 기반 의사결정을 지원합니다.
    */
   logExperiment(searchId: string, experimentId: string, variant: Record<string, any>): void {
     // console.log(`🧪 [${searchId}] 실험 로그`, {
@@ -309,8 +309,8 @@ export interface HybridSearchResult {
 }
 
 export class HybridSearchEngine {
-  private readonly defaultVectorWeight = 0.6; // 벡터 검색 60%
-  private readonly defaultTextWeight = 0.4;   // 텍스트 검색 40%
+  private readonly defaultVectorWeight = 0.6; // 의미적 유사성을 더 중요하게 평가하여 검색 정확도를 향상시키기 위해
+  private readonly defaultTextWeight = 0.4;   // 정확한 키워드 매칭도 일정 비율로 반영하여 검색 포괄성을 확보합니다.
   private searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }> = new Map();
   private ranking: SearchRanking;
   private relationGraph: RelationGraph | null = null;
@@ -325,7 +325,7 @@ export class HybridSearchEngine {
     private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService(),
     relationGraph?: RelationGraph
   ) {
-    // TOML 설정에서 가중치 로드
+    // 외부 설정 파일에서 가중치를 로드하여 런타임에 조정 가능하도록 합니다.
     const config = getRankingWeights();
     this.ranking = new SearchRanking({
       relevance: config.ranking_weights.alpha,
@@ -339,14 +339,16 @@ export class HybridSearchEngine {
   }
 
   /**
-   * RelationGraph 설정 (선택적)
+   * 관계 그래프를 주입하여 관계 기반 검색 기능을 활성화합니다.
+   * 선택적으로 설정하여 관계 그래프가 없는 환경에서도 동작하도록 합니다.
    */
   setRelationGraph(relationGraph: RelationGraph): void {
     this.relationGraph = relationGraph;
   }
 
   /**
-   * 하이브리드 검색 실행 - 적응형 가중치 적용
+   * 텍스트 검색과 벡터 검색을 병렬로 실행하고 결과를 결합하여 최적의 검색 결과를 제공합니다.
+   * 쿼리 특성에 따라 적응형 가중치를 적용하여 검색 정확도를 향상시키기 위해
    */
   async search(
     db: Database.Database,
@@ -358,11 +360,11 @@ export class HybridSearchEngine {
     try {
       this.logger.logSearchStart(searchId, query);
       
-      // 1. 적응형 가중치 계산
+      // 쿼리 특성에 따라 최적의 가중치를 계산하여 검색 정확도를 향상시키기 위해
       const weights = this.calculateAdaptiveWeights(query);
       this.logger.logSearchStep(searchId, '적응형 가중치 계산 완료', weights);
 
-      // 실험 로그 (experiment_id가 있는 경우)
+      // A/B 테스트를 위한 실험 파라미터를 로깅하여 데이터 기반 개선을 지원합니다.
       if (query.experiment_id) {
         const config = getRankingWeights();
         const variant = {
@@ -386,7 +388,7 @@ export class HybridSearchEngine {
         if (this.logger.logExperiment) {
           this.logger.logExperiment(searchId, query.experiment_id, variant);
         } else {
-          // logExperiment가 없으면 logSearchStep으로 대체
+          // logExperiment 메서드가 없는 경우 일반 로그로 대체하여 호환성을 유지합니다.
           this.logger.logSearchStep(searchId, '실험 파라미터', {
             experiment_id: query.experiment_id,
             variant
@@ -394,13 +396,13 @@ export class HybridSearchEngine {
         }
       }
 
-      // 2. 텍스트 검색 실행
+      // FTS5 전문 검색을 실행하여 정확한 키워드 매칭 결과를 획득합니다.
       const textResults = await this.executeTextSearch(db, query, searchId);
 
-      // 3. 벡터 검색 실행
+      // 벡터 유사도 검색을 실행하여 의미적으로 관련된 결과를 획득합니다.
       const vectorResults = await this.executeVectorSearch(db, query, searchId);
 
-      // 4. 결과 결합 및 정렬 (데이터베이스 전달하여 consolidation_score 및 관계 가중치 조회)
+      // 텍스트와 벡터 검색 결과를 결합하고 통합 점수와 관계 가중치를 조회하여 최종 정렬합니다.
       const finalResults = await this.combineAndSortResults(
         textResults, 
         vectorResults, 
@@ -410,12 +412,12 @@ export class HybridSearchEngine {
         query.includeRelations || false
       );
 
-      // 5. 통계 업데이트 및 결과 반환
+      // 검색 통계를 업데이트하여 향후 가중치 조정에 활용합니다.
       this.updateSearchStats(query.query, textResults.length, vectorResults.length);
       
       const queryTime = this.calculateQueryTime(startTime);
       
-      // 검색 완료 로그에 실험 ID 포함
+      // A/B 테스트 추적을 위해 검색 완료 로그에 실험 ID를 포함합니다.
       const logData: any = {
         items: finalResults,
         total_count: finalResults.length
@@ -511,7 +513,7 @@ export class HybridSearchEngine {
    */
   private async executeVecSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
     try {
-      // 저장된 임베딩의 모든 provider 감지
+      // 데이터베이스에 저장된 모든 임베딩 provider를 감지하여 사용 가능한 검색 방법을 파악합니다.
       const detectedProviders = await this.detectAllStoredEmbeddingProviders(db);
       
       // provider 필터링
@@ -520,7 +522,7 @@ export class HybridSearchEngine {
         return [];
       }
       
-      // 다중 provider 병렬 검색 실행
+      // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
       const searchOptions = {
         limit: (query.limit || 10) * VECTOR_SEARCH_LIMIT_MULTIPLIER,
         threshold: VECTOR_SEARCH_THRESHOLD,
@@ -528,16 +530,16 @@ export class HybridSearchEngine {
         includeContent: true
       };
       
-      // 각 provider별 검색 작업 생성
+      // 각 provider에 대해 독립적인 검색 작업을 생성하여 병렬 실행을 준비합니다.
       const searchPromises = providersToSearch.map(provider => 
         this.createProviderSearchTask(provider, query.query, searchOptions, searchId)
       );
       
-      // 모든 provider 검색 실행 및 결과 수집
+      // 모든 provider 검색을 실행하고 타임아웃을 관리하여 안정적인 결과 수집을 보장합니다.
       const { allResults, providerStats, overallTimeoutOccurred } = 
         await this.executeProviderSearchesWithTimeout(searchPromises, providersToSearch, searchId);
       
-      // 결과 정규화 및 중복 제거
+      // 여러 provider의 결과를 정규화하고 중복을 제거하여 일관된 결과를 제공합니다.
       const vectorResults = this.normalizeAndDeduplicateResults(allResults);
       
       const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
@@ -576,15 +578,15 @@ export class HybridSearchEngine {
   ): EmbeddingProvider[] {
     let providersToSearch = detectedProviders.map(p => p.provider);
     
-    // providerFilter가 있고 비어있지 않은 경우에만 필터링
-    // 빈 배열은 undefined로 처리되어 모든 provider를 검색함
+    // 사용자가 특정 provider만 검색하도록 요청한 경우에만 필터링합니다.
+    // 빈 배열은 모든 provider를 검색하도록 처리하여 유연성을 제공합니다.
     if (providerFilter && providerFilter.length > 0) {
       providersToSearch = providersToSearch.filter(p => 
         providerFilter.includes(p as EmbeddingProvider)
       );
     }
     
-    // 검색할 provider가 없으면 로깅
+    // 검색할 provider가 없는 경우를 로깅하여 문제를 진단할 수 있도록 합니다.
     if (providersToSearch.length === 0) {
       this.logger.logSearchStep(searchId, 'VEC 벡터 검색 - 검색할 provider 없음', {
         detectedProviders: detectedProviders.map(p => p.provider),
@@ -713,9 +715,9 @@ export class HybridSearchEngine {
     providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }>;
     overallTimeoutOccurred: boolean;
   }> {
-    // 전체 검색 프로세스의 maximum timeout 설정
-    // 모든 provider가 타임아웃되어도 응답을 보장하기 위함
-    // 개별 provider 타임아웃보다 충분히 길어야 여러 provider가 병렬로 실행될 수 있음
+    // 전체 검색 프로세스의 최대 타임아웃을 설정하여 무한 대기를 방지합니다.
+    // 모든 provider가 타임아웃되어도 부분 결과라도 반환하여 사용자 경험을 보장합니다.
+    // 개별 provider 타임아웃보다 충분히 길게 설정하여 병렬 실행의 이점을 활용합니다.
     let overallTimeoutOccurred = false;
     let overallTimeoutHandle: NodeJS.Timeout | null = null;
     
@@ -730,7 +732,7 @@ export class HybridSearchEngine {
       }, OVERALL_SEARCH_TIMEOUT_MS);
     });
     
-    // 타임아웃 타이머 정리 함수
+    // 타임아웃 타이머를 정리하여 메모리 누수를 방지합니다.
     const cleanupTimeout = () => {
       if (overallTimeoutHandle !== null) {
         clearTimeout(overallTimeoutHandle);
@@ -739,21 +741,21 @@ export class HybridSearchEngine {
     };
     
     try {
-      // Promise.allSettled()를 사용하여 모든 provider 검색 실행 (일부 실패해도 계속 진행)
-      // 전체 타임아웃과 병렬 검색 중 먼저 완료되는 것 사용
+      // Promise.allSettled()를 사용하여 일부 provider가 실패해도 나머지 검색이 계속 진행되도록 합니다.
+      // 전체 타임아웃과 병렬 검색 중 먼저 완료되는 것을 사용하여 응답성을 보장합니다.
       const searchResults = await Promise.race([
         Promise.allSettled(searchPromises).then(results => {
           cleanupTimeout();
           return results;
         }),
         overallTimeoutPromise.then(() => {
-          // 타임아웃 발생 시 현재까지 완료된 Promise만 수집
+          // 타임아웃 발생 시 현재까지 완료된 Promise만 수집하여 부분 결과라도 반환합니다.
           // Promise.allSettled는 이미 실행 중이므로 결과를 기다림
           return Promise.allSettled(searchPromises);
         })
       ]);
       
-      // 성공한 검색 결과 수집
+      // 성공한 검색 결과만 수집하여 신뢰할 수 있는 결과만 반환합니다.
       const allResults: Array<VectorSearchResult & { provider: string }> = [];
       const providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }> = [];
       
@@ -768,7 +770,7 @@ export class HybridSearchEngine {
             error: providerResult.error || undefined
           });
           
-          // 타임아웃 또는 실패 시 상세 로깅
+          // 타임아웃 또는 실패 시 상세 로깅하여 문제 진단과 모니터링을 지원합니다.
           if (!providerResult.success) {
             const isTimeout = providerResult.error?.includes('타임아웃');
             this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${providerResult.provider}`, {
@@ -784,10 +786,10 @@ export class HybridSearchEngine {
             allResults.push(...providerResult.results);
           }
         } else {
-          // Promise 자체가 실패한 경우 (매우 드묾)
+          // Promise 자체가 실패한 예외적인 경우를 처리하여 시스템 안정성을 보장합니다.
           const provider = providersToSearch[index];
           if (!provider) {
-            // provider가 없는 경우 (매우 드묾, 인덱스 불일치) - 스킵
+            // provider가 없는 예외적인 경우를 스킵하여 오류를 방지합니다.
             return;
           }
           const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
@@ -809,7 +811,7 @@ export class HybridSearchEngine {
       
       return { allResults, providerStats, overallTimeoutOccurred };
     } finally {
-      // 예외 발생 시에도 타임아웃 타이머 정리 보장
+      // 예외 발생 시에도 타임아웃 타이머를 정리하여 메모리 누수를 방지합니다.
       cleanupTimeout();
     }
   }
@@ -967,12 +969,12 @@ export class HybridSearchEngine {
   private static readonly PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
 
   /**
-   * 저장된 임베딩의 모든 provider 감지
-   * 모든 provider 목록을 반환 (count 내림차순 정렬)
-   * 캐싱을 사용하여 성능 개선
+   * 데이터베이스에 저장된 모든 임베딩 provider를 감지하여 사용 가능한 검색 방법을 파악합니다.
+   * 모든 provider 목록을 반환하고 count 내림차순으로 정렬하여 주요 provider를 우선 확인합니다.
+   * 캐싱을 사용하여 반복적인 데이터베이스 조회를 줄이고 성능을 개선합니다.
    */
   private async detectAllStoredEmbeddingProviders(db: Database.Database): Promise<StoredEmbeddingProviderStats[]> {
-    // 캐시 확인
+    // 캐시된 provider 정보를 확인하여 불필요한 데이터베이스 조회를 방지합니다.
     const now = Date.now();
     if (this.providerCache && (now - this.providerCache.timestamp) < HybridSearchEngine.PROVIDER_CACHE_TTL_MS) {
       return this.providerCache.stats;
@@ -995,7 +997,7 @@ export class HybridSearchEngine {
       if (providerStatsList && providerStatsList.length > 0) {
         const normalizedStats: StoredEmbeddingProviderStats[] = providerStatsList
           .filter(stat => {
-            // 유효한 EmbeddingProvider인지 확인
+            // 알려진 EmbeddingProvider인지 확인하여 잘못된 데이터를 필터링합니다.
             const validProviders: EmbeddingProvider[] = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'];
             return validProviders.includes(stat.provider as EmbeddingProvider);
           })
@@ -1005,7 +1007,7 @@ export class HybridSearchEngine {
             avg_dimensions: Math.round(stat.avg_dimensions || 0)
           }));
         
-        // 캐시 업데이트
+        // 새로 조회한 provider 정보를 캐시에 저장하여 향후 조회 성능을 향상시키기 위해
         this.providerCache = {
           stats: normalizedStats,
           timestamp: now
@@ -1022,7 +1024,7 @@ export class HybridSearchEngine {
       console.warn('⚠️ 저장된 임베딩 provider 감지 실패:', error);
     }
 
-    // 기본값: 빈 배열 반환 (provider가 없는 경우)
+    // provider가 없는 경우 빈 배열을 반환하여 안정적인 동작을 보장합니다.
     const emptyStats: StoredEmbeddingProviderStats[] = [];
     this.providerCache = {
       stats: emptyStats,
@@ -1046,8 +1048,8 @@ export class HybridSearchEngine {
     try {
       const embeddingStart = process.hrtime.bigint();
       
-      // 각 provider는 서로 다른 차원의 임베딩을 사용할 수 있으므로
-      // preferredProvider로만 임베딩 생성 (fallback 사용 안 함)
+      // 각 provider는 서로 다른 차원의 임베딩을 사용하므로 차원 불일치를 방지합니다.
+      // preferredProvider로만 임베딩을 생성하고 fallback을 사용하지 않아 일관성을 보장합니다.
       const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider);
       
       if (!embeddingResult) {
@@ -1098,31 +1100,31 @@ export class HybridSearchEngine {
         weights.vectorWeight
       );
       
-      // 관계 가중치 및 Consolidation Score 계산
+      // 관계 그래프와 통합 점수를 활용하여 더 정교한 관련성 평가를 수행합니다.
       if (db) {
         const memoryIds = combinedResults.map(r => r.id);
         if (memoryIds.length > 0) {
-          // 관계 가중치 및 관계 정보 계산
+          // 관계 그래프를 기반으로 관계 가중치와 관계 정보를 계산하여 관련성 점수에 반영합니다.
           const relationData = await this.fetchRelationWeights(db, memoryIds);
           const relationWeights = relationData.weights;
           const relationInfo = relationData.relations;
           
-          // Consolidation Score 조회 (활성화된 경우)
+          // 통합 점수 기능이 활성화된 경우 추가적인 관련성 지표를 조회합니다.
           let consolidationScores: Map<string, number> = new Map();
           if (mementoConfig.consolidationScoreEnabled) {
             consolidationScores = this.fetchConsolidationScores(db, memoryIds);
           }
           
-          // 각 결과에 대해 finalScore 재계산
+          // 관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산합니다.
           combinedResults.forEach(result => {
             const relationWeight = relationWeights.get(result.id);
             
-            // relationGraph가 있고 관계가 있는 경우에만 relation_weight 설정
+            // relationGraph가 있고 실제 관계가 존재하는 경우에만 관계 가중치를 설정하여 정확성을 보장합니다.
             if (relationWeight !== undefined && relationWeight > 0) {
               result.relation_weight = relationWeight;
             }
             
-            // 관계 정보 포함 (선택적, includeRelations 옵션이 true인 경우만)
+            // 사용자가 요청한 경우에만 관계 정보를 포함하여 상세한 분석을 지원합니다.
             if (includeRelations) {
               const relations = relationInfo.get(result.id);
               if (relations && relations.length > 0) {
@@ -1137,7 +1139,7 @@ export class HybridSearchEngine {
             const consolidationScore = consolidationScores.get(result.id);
             
             if (consolidationScore !== undefined) {
-              // Consolidation Score가 있으면 기존 로직 사용
+              // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
               result.consolidation_score = consolidationScore;
               const vectorSimilarity = result.vectorScore;
               result.finalScore = this.ranking.calculateFinalScoreWithConsolidation(
