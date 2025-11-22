@@ -1,7 +1,6 @@
 /**
- * 리팩토링된 간격 반복 알고리즘
- * 클린코드 원칙을 적용한 새로운 구현
- * 기존 인터페이스와의 호환성 유지
+ * 클린코드 원칙을 적용하여 유지보수성과 테스트 가능성을 향상시키기 위해
+ * 기존 인터페이스와의 호환성을 유지하여 점진적 마이그레이션을 가능하게 합니다.
  */
 
 import type { 
@@ -15,8 +14,8 @@ import type {
 import { getSpacedRepetitionService, initializeSpacedRepetitionWithDefaults } from '../services/spaced-repetition/spaced-repetition-container.js';
 
 /**
- * 리팩토링된 간격 반복 알고리즘
- * 기존 SpacedRepetitionAlgorithm과 동일한 인터페이스 제공
+ * 리팩토링된 간격 반복 알고리즘으로 기존 코드와의 호환성을 유지하면서 개선된 구조를 제공합니다.
+ * 기존 SpacedRepetitionAlgorithm과 동일한 인터페이스를 제공하여 기존 코드 수정 없이 사용 가능하도록 합니다.
  */
 export class SpacedRepetitionAlgorithmRefactored {
   private readonly weights: SpacedRepetitionWeights;
@@ -31,13 +30,13 @@ export class SpacedRepetitionAlgorithmRefactored {
       ...weights
     };
 
-    // 컨테이너 초기화
+    // 서비스 컨테이너를 초기화하여 의존성 주입과 테스트 가능성을 확보합니다.
     initializeSpacedRepetitionWithDefaults(this.weights);
   }
 
   /**
-   * 다음 리뷰 간격 계산
-   * 기존 메서드와 동일한 시그니처 유지
+   * 기존 메서드와 동일한 시그니처를 유지하여 호환성을 보장합니다.
+   * 내부적으로는 리팩토링된 서비스를 사용하여 개선된 구현을 제공합니다.
    */
   calculateNextInterval(
     currentInterval: number,
@@ -48,8 +47,8 @@ export class SpacedRepetitionAlgorithmRefactored {
   }
 
   /**
-   * 리콜 확률 계산
-   * 기존 메서드와 동일한 시그니처 유지
+   * 기존 메서드와 동일한 시그니처를 유지하여 호환성을 보장합니다.
+   * 내부적으로는 리팩토링된 서비스를 사용하여 개선된 구현을 제공합니다.
    */
   calculateRecallProbability(
     timeSinceLastReview: number,
@@ -60,8 +59,8 @@ export class SpacedRepetitionAlgorithmRefactored {
   }
 
   /**
-   * 리뷰 필요 여부 판단
-   * 기존 메서드와 동일한 시그니처 유지
+   * 기존 메서드와 동일한 시그니처를 유지하여 호환성을 보장합니다.
+   * 내부적으로는 리팩토링된 서비스를 사용하여 개선된 구현을 제공합니다.
    */
   needsReview(
     timeSinceLastReview: number,
@@ -73,8 +72,8 @@ export class SpacedRepetitionAlgorithmRefactored {
   }
 
   /**
-   * 리뷰 스케줄 생성
-   * 기존 메서드와 동일한 시그니처 유지
+   * 기존 메서드와 동일한 시그니처를 유지하여 호환성을 보장합니다.
+   * 내부적으로는 리팩토링된 서비스를 사용하여 개선된 구현을 제공합니다.
    */
   createReviewSchedule(
     memoryId: string,

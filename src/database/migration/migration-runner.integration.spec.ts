@@ -320,7 +320,7 @@ describe('Migration System Integration', () => {
     });
 
     it('should auto-rollback on migration failure', async () => {
-      // 실패하는 마이그레이션을 시뮬레이션하기 위해
+      // 실패하는 마이그레이션을 시뮬레이션합니다.
       // validateBefore에서 에러를 발생시키는 마이그레이션 생성
       const failingMigration: typeof migration = {
         ...new MirixSchemaExpansionMigration(),

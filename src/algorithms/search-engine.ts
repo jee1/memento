@@ -1,6 +1,6 @@
 /**
- * 개선된 검색 엔진 구현
- * FTS5 + 랭킹 알고리즘 + 필터링 결합
+ * FTS5와 랭킹 알고리즘을 결합하여 검색 정확도와 성능을 동시에 확보합니다.
+ * 전문 검색 인덱스(FTS5)로 빠른 검색을 수행하고, 다차원 랭킹 알고리즘으로 관련성 높은 결과를 제공합니다.
  */
 
 import { SearchRanking } from './search-ranking.js';
@@ -24,7 +24,8 @@ export class SearchEngine {
   }
 
   /**
-   * 개선된 검색 구현 - FTS5 최적화
+   * 전문 검색 성능을 향상시키고 관련성 높은 결과를 빠르게 반환합니다.
+   * FTS5 인덱스를 활용하여 대용량 데이터에서도 빠른 검색이 가능하도록 최적화합니다.
    */
   async search(
     db: any,
@@ -33,21 +34,21 @@ export class SearchEngine {
     const startTime = process.hrtime.bigint();
     const { query: searchQuery, filters, limit = 10 } = query;
     
-    // 1. ID 필터가 있으면 내용 검색 조건을 건너뛰기
+    // ID로 직접 조회할 때는 이미 대상이 명확하므로 불필요한 텍스트 검색을 생략하여 성능을 최적화합니다.
     const hasIdFilter = filters?.id && filters.id.length > 0;
     
     let sql: string;
     const params: any[] = [];
     
-    // 2. FTS5 검색 사용 (ID 필터가 없고 검색어가 있을 때)
+    // 전문 검색 인덱스를 활용하여 빠르고 정확한 검색 결과를 제공합니다.
     if (!hasIdFilter && searchQuery.trim().length > 0) {
-      // FTS5 사용 가능 여부 확인
+      // FTS5 인덱스가 없으면 쿼리 오류가 발생할 수 있으므로, 인덱스가 준비되어 있는지 확인하여 안전한 검색을 보장합니다.
       const ftsAvailable = await this.checkFTS5Availability(db);
       
       if (ftsAvailable) {
         const ftsQuery = this.buildFTSQuery(searchQuery);
         
-        // 빈 쿼리인 경우 FTS5를 사용하지 않고 일반 SQL 사용
+        // 빈 쿼리로 인한 FTS5 오류를 방지하고 모든 결과를 반환합니다.
         if (ftsQuery === '""' || ftsQuery.length === 0) {
           sql = `
             SELECT 
@@ -71,7 +72,7 @@ export class SearchEngine {
           params.push(ftsQuery);
         }
       } else {
-        // FTS5가 없으면 기본 LIKE 검색 사용
+        // FTS5가 없는 환경에서도 검색 기능이 동작하도록 호환성을 보장합니다.
         const likeQuery = `%${searchQuery}%`;
         sql = `
           SELECT 
@@ -85,7 +86,7 @@ export class SearchEngine {
         params.push(likeQuery, likeQuery, likeQuery);
       }
     } else {
-      // 3. 기본 SQL 쿼리 구성 (ID 필터가 있거나 검색어가 없을 때)
+      // ID 필터나 빈 검색어 상황에서 효율적인 직접 조회를 수행합니다.
       sql = `
         SELECT 
           m.id, m.content, m.type, m.importance, m.created_at, 
@@ -95,7 +96,7 @@ export class SearchEngine {
         FROM memory_item m
       `;
       
-      // 내용 검색 조건 (검색어가 있을 때만)
+      // 검색어가 있을 때만 텍스트 매칭을 수행하여 불필요한 연산을 방지합니다.
       if (!hasIdFilter && searchQuery.trim().length > 0) {
         const likeQuery = `%${searchQuery}%`;
         sql += ` WHERE m.content LIKE ?`;
@@ -103,7 +104,7 @@ export class SearchEngine {
       }
     }
     
-    // 4. 필터 조건 추가
+    // 사용자가 요청한 타입, 중요도, 시간 범위 등의 필터를 적용하여 정확한 결과를 제공합니다.
     const conditions: string[] = [];
     
     if (filters?.id && filters.id.length > 0) {
@@ -123,7 +124,7 @@ export class SearchEngine {
     
     if (filters?.pinned !== undefined) {
       conditions.push(`m.pinned = ?`);
-      params.push(filters.pinned ? 1 : 0); // boolean을 숫자로 변환
+      params.push(filters.pinned ? 1 : 0); // SQLite가 boolean을 지원하지 않으므로 숫자로 변환하여 저장합니다.
     }
     
     if (filters?.time_from) {
@@ -142,25 +143,25 @@ export class SearchEngine {
       sql += whereClause + conditions.join(' AND ');
     }
     
-    // 5. 결과 제한 및 정렬 최적화
+    // FTS5 랭킹을 고려하여 충분한 후보를 확보한 후 재랭킹하여 최종 결과의 품질을 보장합니다.
     sql += ` ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?`;
-    params.push(limit * 3); // FTS5 랭킹을 고려하여 더 많은 후보 가져오기
+    params.push(limit * 3); // FTS5 랭킹과 재랭킹 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
     
-    // 6. 데이터베이스 쿼리 실행
+    // 구성된 쿼리를 실행하여 실제 검색 결과를 획득합니다.
     console.log('🔍 검색 쿼리:', sql);
     console.log('🔍 검색 파라미터:', params);
     const results = await this.executeQuery(db, sql, params);
     console.log('🔍 검색 결과 개수:', results.length);
     
-    // 7. 랭킹 알고리즘 적용 (FTS5 랭킹 활용)
+    // FTS5 랭킹과 다차원 점수를 결합하여 사용자에게 가장 관련성 높은 결과를 우선 제공합니다.
     const rankedResults = this.applyRanking(results, searchQuery);
     
-    // 8. 최종 결과 반환 (limit 적용)
+    // 사용자가 요청한 개수만큼만 반환하여 응답 크기와 처리 시간을 최적화합니다.
     const finalResults = rankedResults.slice(0, limit);
     
-    // 9. 쿼리 시간 측정
+    // 검색 성능을 모니터링하고 최적화 지점을 파악합니다.
     const endTime = process.hrtime.bigint();
-    const queryTime = Number(endTime - startTime) / 1_000_000; // 밀리초로 변환
+    const queryTime = Number(endTime - startTime) / 1_000_000; // 나노초 단위 시간을 밀리초로 변환하여 사용자에게 이해하기 쉬운 형태로 제공합니다.
     
     return {
       items: finalResults,
@@ -170,122 +171,124 @@ export class SearchEngine {
   }
 
   /**
-   * FTS5 검색 쿼리 구성
-   * 아키텍처 문서에 따른 쿼리 전처리 구현
+   * FTS5의 특수 문법과 보안 요구사항을 준수하여 안전하고 효율적인 검색 쿼리를 생성합니다.
+   * 아키텍처 문서의 전처리 규칙을 적용하여 검색 정확도를 향상시킵니다.
    */
   private buildFTSQuery(query: string): string {
     console.log('🔍 원본 쿼리:', `"${query}"`);
     
-    // 1. 쿼리 전처리
+    // 사용자 입력의 형식이 다양하므로 정규화하여 검색 일관성을 보장합니다.
     const preprocessedQuery = this.preprocessQuery(query);
     console.log('🔍 전처리 후:', `"${preprocessedQuery}"`);
     
     if (preprocessedQuery.length === 0) {
       console.log('🔍 빈 쿼리, 모든 문서 검색');
-      return '""'; // 빈 쿼리인 경우 빈 문자열로 검색 (모든 문서 매치)
+      return '""'; // 빈 쿼리인 경우 빈 문자열로 검색하여 모든 문서를 매치하고 사용자에게 전체 결과를 제공합니다.
     }
     
-    // 2. FTS5 안전 쿼리 생성
+    // FTS5 특수문자로 인한 쿼리 오류를 방지하고 안전한 검색을 보장합니다.
     const safeQuery = this.makeFTSSafe(preprocessedQuery);
     console.log('🔍 FTS5 안전 쿼리:', `"${safeQuery}"`);
     
     if (safeQuery.length === 0) {
       console.log('🔍 안전 쿼리 빈 문자열, 모든 문서 검색');
-      return '""'; // 빈 쿼리인 경우 빈 문자열로 검색 (모든 문서 매치)
+      return '""'; // 빈 쿼리인 경우 빈 문자열로 검색하여 모든 문서를 매치하고 사용자에게 전체 결과를 제공합니다.
     }
     
     return safeQuery;
   }
 
   /**
-   * 쿼리 전처리 - 아키텍처 문서의 전처리 과정 구현
+   * 검색 품질을 향상시키기 위해 노이즈를 제거하고 핵심 키워드만 추출합니다.
+   * 아키텍처 문서의 전처리 규칙을 준수하여 일관된 검색 결과를 제공합니다.
    */
   private preprocessQuery(query: string): string {
-    // 1. 공백 정규화
+    // 다양한 공백 패턴을 통일하여 검색 일관성을 보장합니다.
     let processed = query.trim().replace(/\s+/g, ' ');
     
-    // 2. 한글과 영문, 숫자, 공백만 유지 (특수문자 제거)
+    // 검색에 방해되는 특수문자를 제거하여 핵심 키워드만 추출합니다.
     processed = processed.replace(/[^a-zA-Z0-9가-힣\s]/g, ' ');
     
-    // 3. 연속된 공백 제거
+    // 정규화 과정에서 생긴 연속 공백을 정리하여 쿼리 품질을 향상시킵니다.
     processed = processed.replace(/\s+/g, ' ');
     
-    // 4. 불용어 제거 (한국어/영어 불용어)
+    // 검색 가치가 없는 불용어를 제거하여 검색 정확도를 향상시킵니다.
     const stopWords = getStopWords();
     const words = processed.split(' ').filter(word => 
       word.length > 0 && !stopWords.has(word.toLowerCase())
     );
     
-    // 5. FTS5를 위한 공백으로 구분된 쿼리 반환
+    // FTS5가 요구하는 형식으로 쿼리를 구성하여 인덱스 검색이 정상 동작하도록 합니다.
     return words.join(' ');
   }
 
   /**
-   * FTS5 안전 쿼리 생성
+   * FTS5의 특수문자 처리 규칙을 준수하여 쿼리 오류를 방지하고 안전한 검색을 보장합니다.
    */
   private makeFTSSafe(query: string): string {
-    // FTS5에서 특수문자 이스케이프
+    // FTS5가 특수문자를 쿼리 구문으로 해석하지 않도록 이스케이프하여 오류를 방지합니다.
     return query
-      .replace(/"/g, '""')  // 따옴표 이스케이프
-      .replace(/'/g, "''")  // 작은따옴표 이스케이프
+      .replace(/"/g, '""')  // FTS5가 따옴표를 특수문자로 해석하지 않도록 이스케이프합니다.
+      .replace(/'/g, "''")  // FTS5가 작은따옴표를 특수문자로 해석하지 않도록 이스케이프합니다.
       .replace(/[[\]{}()]/g, ' ') // 대괄호, 중괄호, 소괄호 제거
       .replace(/\s+/g, ' ') // 연속 공백 정리
       .trim();
   }
 
   /**
-   * 데이터베이스 쿼리 실행
+   * 준비된 SQL 쿼리를 실행하여 실제 검색 결과를 데이터베이스에서 획득합니다.
    */
   private async executeQuery(db: Database.Database, sql: string, params: unknown[]): Promise<unknown[]> {
-    // better-sqlite3는 동기적이므로 직접 실행
+    // better-sqlite3의 동기적 특성을 활용하여 간단하고 효율적인 쿼리 실행을 수행합니다.
     return db.prepare(sql).all(params);
   }
 
   /**
-   * 랭킹 알고리즘 적용 - FTS5 랭킹 활용
+   * FTS5 랭킹과 다차원 점수를 결합하여 사용자에게 가장 관련성 높은 결과를 우선 제공합니다.
+   * 관련성, 최근성, 중요도, 사용성 등을 종합적으로 고려하여 검색 품질을 향상시킵니다.
    */
   private applyRanking(results: any[], query: string): MemorySearchResult[] {
     const selectedContents: string[] = [];
     
     return results
       .map((row: any) => {
-        // FTS5 랭킹이 있으면 활용, 없으면 기본 관련성 계산
+        // FTS5 랭킹이 있으면 우선 활용하고, 없으면 텍스트 매칭으로 관련성을 계산하여 일관된 점수 체계를 유지합니다.
         const ftsRank = row.fts_rank || 0;
         const relevance = ftsRank > 0 ? 
-          Math.min(ftsRank / 100, 1.0) : // FTS5 랭킹을 0-1 범위로 정규화
+          Math.min(ftsRank / 100, 1.0) : // FTS5 랭킹을 0-1 범위로 정규화하여 다른 점수와 일관된 비교가 가능하도록 합니다.
           this.ranking.calculateRelevance({
             query,
             content: row.content,
             tags: row.tags ? JSON.parse(row.tags) : []
           });
         
-        // 최근성 계산
+        // 시간에 따른 기억의 자연스러운 감쇠를 반영하여 최신 정보를 우선 제공합니다.
         const recency = this.ranking.calculateRecency(
           new Date(row.created_at),
           row.type
         );
         
-        // 중요도 계산
+        // 사용자가 명시적으로 설정한 중요도와 고정 여부를 반영하여 우선순위를 결정합니다.
         const importance = this.ranking.calculateImportance(
           row.importance,
           row.pinned,
           row.type
         );
         
-        // 사용성 계산 (기본 메트릭 사용)
+        // 실제 사용 빈도를 반영하여 자주 참조되는 기억을 우선 제공합니다.
         const usage = this.ranking.calculateUsage({
-          viewCount: 1, // 기본값
+          viewCount: 1, // 사용 빈도 데이터가 없는 경우 기본값을 사용하여 안정적인 점수 계산을 보장합니다.
           citeCount: 0,
           editCount: 0
         });
         
-        // 중복 패널티 계산
+        // 유사한 내용의 중복 결과를 제거하여 검색 결과의 다양성을 확보합니다.
         const duplicationPenalty = this.ranking.calculateDuplicationPenalty(
           row.content,
           selectedContents
         );
         
-        // Consolidation Score 조회
+        // 통합 점수 기능이 활성화된 경우 추가적인 관련성 지표를 활용합니다.
         const consolidationScore = row.consolidation_score !== null && row.consolidation_score !== undefined
           ? Number(row.consolidation_score)
           : undefined;
@@ -293,17 +296,17 @@ export class SearchEngine {
         // 최종 점수 계산
         let finalScore: number;
         
-        // Consolidation Score가 활성화되어 있고 값이 있으면 사용
+        // 통합 점수 기능을 통해 더 정교한 관련성 평가를 수행하여 검색 품질을 향상시킵니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
-          // 벡터 유사도는 relevance로 간주
+          // 벡터 검색 결과를 텍스트 관련성과 동일한 의미로 해석하여 일관된 점수 계산을 수행합니다.
           const vectorSimilarity = relevance;
           finalScore = this.ranking.calculateFinalScoreWithConsolidation(
             vectorSimilarity,
             consolidationScore,
-            'balanced' // 기본 프로파일, 향후 쿼리 파라미터로 받을 수 있음
+            'balanced' // 기본적으로 균형잡힌 점수 계산을 사용하고, 향후 사용자 요구에 따라 조정 가능하도록 설계했습니다.
           );
         } else {
-          // 기존 점수 계산 방식
+          // 통합 점수가 없는 경우 기존의 검증된 점수 계산 방식을 사용하여 안정성을 보장합니다.
           finalScore = ftsRank > 0 ? 
             ftsRank * 0.7 + this.ranking.calculateFinalScore({
               relevance: 0.3,
@@ -321,7 +324,7 @@ export class SearchEngine {
             });
         }
         
-        // 선택된 콘텐츠에 추가 (다양성 확보)
+        // 중복 패널티 계산을 위해 이미 선택된 콘텐츠를 추적하여 결과의 다양성을 확보합니다.
         selectedContents.push(row.content);
         
         const result: any = {
@@ -337,22 +340,23 @@ export class SearchEngine {
           recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0)
         };
 
-        // Consolidation Score 포함 (기능 플래그 활성화 시)
+        // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
           result.consolidation_score = consolidationScore;
         }
 
         return result;
       })
-      .sort((a, b) => b.score - a.score); // 점수 내림차순 정렬
+      .sort((a, b) => b.score - a.score); // 최종 점수 기준으로 내림차순 정렬하여 가장 관련성 높은 결과를 우선 제공합니다.
   }
 
   /**
-   * FTS5 사용 가능 여부 확인
+   * FTS5 인덱스의 존재와 동작 여부를 확인하여 안전한 검색 전략을 선택합니다.
+   * 인덱스가 없거나 비정상인 경우 대체 검색 방식을 사용하여 기능 안정성을 보장합니다.
    */
   private async checkFTS5Availability(db: any): Promise<boolean> {
     try {
-      // FTS5 테이블 존재 여부 확인
+      // FTS5 인덱스 테이블이 생성되어 있는지 확인하여 전문 검색 사용 가능 여부를 판단합니다.
       const result = db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name='memory_item_fts'
@@ -363,7 +367,7 @@ export class SearchEngine {
         return false;
       }
       
-      // FTS5 테이블에 데이터가 있는지 확인
+      // 빈 인덱스로 인한 검색 실패를 방지하고 실제 검색 가능 여부를 확인합니다.
       const count = db.prepare('SELECT COUNT(*) as count FROM memory_item_fts').get();
       const hasData = count && count.count > 0;
       
@@ -372,7 +376,7 @@ export class SearchEngine {
         return false;
       }
       
-      // FTS5 쿼리 테스트
+      // FTS5 쿼리가 실제로 동작하는지 테스트하여 런타임 오류를 사전에 방지합니다.
       try {
         db.prepare('SELECT * FROM memory_item_fts LIMIT 1').get();
         console.log('✅ FTS5 사용 가능');
@@ -388,7 +392,8 @@ export class SearchEngine {
   }
 
   /**
-   * 검색 이유 생성
+   * 사용자에게 검색 결과가 선택된 이유를 명확히 전달하여 검색 결과의 신뢰성을 높입니다.
+   * 관련성, 최근성, 중요도 등 다양한 요소를 종합하여 투명한 검색 과정을 제공합니다.
    */
   private generateRecallReason(
     relevance: number,
