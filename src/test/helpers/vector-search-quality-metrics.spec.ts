@@ -11,6 +11,13 @@ import {
   generateVectorOnlySearchResults,
   generateConsolidationSearchResults,
   generateOrderPreservationReport,
+  measureVectorOnlyQuality,
+  measureConsolidationQuality,
+  calculateQualityDegradation,
+  validateQualityThresholds,
+  compareQualityWithGroundTruth,
+  generateQualityComparisonReport,
+  visualizeQualityComparison,
   type SearchResultPair,
   type HybridSearchResult
 } from './vector-search-quality-metrics.js';
@@ -468,6 +475,334 @@ describe('벡터 검색 품질 검증 헬퍼', () => {
       
       expect(report.metrics.spearmanRho).toBeDefined();
       expect(report.metrics.spearmanRho).toBeCloseTo(1.0, 3);
+    });
+  });
+
+  describe('품질 지표 비교', () => {
+    const groundTruth = {
+      queryId: 'test-query',
+      relevantIds: ['id1', 'id2', 'id3', 'id4', 'id5']
+    };
+
+    describe('measureVectorOnlyQuality', () => {
+      it('벡터-only 품질 지표를 측정해야 함', () => {
+        const results: SearchResult[] = [
+          { id: 'id1', score: 0.9, relevance: 0.9 },
+          { id: 'id2', score: 0.8, relevance: 0.8 },
+          { id: 'id3', score: 0.7, relevance: 0.7 },
+          { id: 'id4', score: 0.6, relevance: 0.6 },
+          { id: 'id5', score: 0.5, relevance: 0.5 }
+        ];
+
+        const metrics = measureVectorOnlyQuality(results, groundTruth, [5]);
+
+        expect(metrics.precision[5]).toBeGreaterThan(0);
+        expect(metrics.recall[5]).toBeGreaterThan(0);
+        expect(metrics.ndcg[5]).toBeGreaterThan(0);
+      });
+
+      it('관련 결과가 모두 포함된 경우 높은 지표를 반환해야 함', () => {
+        const results: SearchResult[] = groundTruth.relevantIds.map(id => ({
+          id,
+          score: 0.9,
+          relevance: 0.9
+        }));
+
+        const metrics = measureVectorOnlyQuality(results, groundTruth, [5]);
+
+        expect(metrics.precision[5]).toBe(1.0);
+        expect(metrics.recall[5]).toBe(1.0);
+        expect(metrics.ndcg[5]).toBeCloseTo(1.0, 2);
+      });
+    });
+
+    describe('measureConsolidationQuality', () => {
+      it('Consolidation 반영 후 품질 지표를 측정해야 함', () => {
+        const results: SearchResult[] = [
+          { id: 'id1', score: 0.9, relevance: 0.9 },
+          { id: 'id2', score: 0.8, relevance: 0.8 },
+          { id: 'id3', score: 0.7, relevance: 0.7 },
+          { id: 'id4', score: 0.6, relevance: 0.6 },
+          { id: 'id5', score: 0.5, relevance: 0.5 }
+        ];
+
+        const metrics = measureConsolidationQuality(results, groundTruth, [5]);
+
+        expect(metrics.precision[5]).toBeGreaterThan(0);
+        expect(metrics.recall[5]).toBeGreaterThan(0);
+        expect(metrics.ndcg[5]).toBeGreaterThan(0);
+      });
+    });
+
+    describe('calculateQualityDegradation', () => {
+      it('품질 저하율을 계산해야 함', () => {
+        const vectorOnlyMetrics = {
+          precision: { 5: 0.9 },
+          recall: { 5: 0.8 },
+          ndcg: { 5: 0.85 }
+        };
+        const consolidationMetrics = {
+          precision: { 5: 0.85 },
+          recall: { 5: 0.75 },
+          ndcg: { 5: 0.82 }
+        };
+
+        const degradation = calculateQualityDegradation(
+          vectorOnlyMetrics,
+          consolidationMetrics,
+          [5]
+        );
+
+        // 저하율 = (0.9 - 0.85) / 0.9 = 0.0556
+        expect(degradation.precision[5]).toBeCloseTo(0.0556, 3);
+        expect(degradation.ndcg[5]).toBeGreaterThan(0);
+      });
+
+      it('품질이 개선된 경우 음수 저하율을 반환해야 함', () => {
+        const vectorOnlyMetrics = {
+          precision: { 5: 0.8 },
+          recall: { 5: 0.7 },
+          ndcg: { 5: 0.75 }
+        };
+        const consolidationMetrics = {
+          precision: { 5: 0.85 },
+          recall: { 5: 0.75 },
+          ndcg: { 5: 0.80 }
+        };
+
+        const degradation = calculateQualityDegradation(
+          vectorOnlyMetrics,
+          consolidationMetrics,
+          [5]
+        );
+
+        // 개선율 = (0.8 - 0.85) / 0.8 = -0.0625 (음수 = 개선)
+        expect(degradation.precision[5]).toBeLessThan(0);
+      });
+    });
+
+    describe('validateQualityThresholds', () => {
+      it('모든 임계값을 통과하는 경우 passed가 true여야 함', () => {
+        const degradation = {
+          precision: { 5: 0.03 }, // 3% < 10%
+          recall: { 5: 0.05 }, // 5% < 10%
+          ndcg: { 5: 0.02 } // 2% < 5%
+        };
+
+        const validation = validateQualityThresholds(degradation);
+
+        expect(validation.passed).toBe(true);
+        expect(validation.failureReasons).toBeUndefined();
+        expect(validation.validation.ndcg5Valid).toBe(true);
+        expect(validation.validation.precision5Valid).toBe(true);
+        expect(validation.validation.recall5Valid).toBe(true);
+      });
+
+      it('NDCG@5 저하율이 임계값을 초과하면 실패해야 함', () => {
+        const degradation = {
+          precision: { 5: 0.03 },
+          recall: { 5: 0.05 },
+          ndcg: { 5: 0.06 } // 6% >= 5%
+        };
+
+        const validation = validateQualityThresholds(degradation, {
+          ndcg5Threshold: 0.05
+        });
+
+        expect(validation.passed).toBe(false);
+        expect(validation.failureReasons).toBeDefined();
+        expect(validation.failureReasons?.some(reason => reason.includes('NDCG@5'))).toBe(true);
+        expect(validation.validation.ndcg5Valid).toBe(false);
+      });
+
+      it('Precision@5 저하율이 임계값을 초과하면 실패해야 함', () => {
+        const degradation = {
+          precision: { 5: 0.12 }, // 12% >= 10%
+          recall: { 5: 0.05 },
+          ndcg: { 5: 0.02 }
+        };
+
+        const validation = validateQualityThresholds(degradation, {
+          precision5Threshold: 0.10
+        });
+
+        expect(validation.passed).toBe(false);
+        expect(validation.failureReasons).toBeDefined();
+        expect(validation.failureReasons?.some(reason => reason.includes('Precision@5'))).toBe(true);
+        expect(validation.validation.precision5Valid).toBe(false);
+      });
+
+      it('Recall@5 저하율이 임계값을 초과하면 실패해야 함', () => {
+        const degradation = {
+          precision: { 5: 0.03 },
+          recall: { 5: 0.15 }, // 15% >= 10%
+          ndcg: { 5: 0.02 }
+        };
+
+        const validation = validateQualityThresholds(degradation, {
+          recall5Threshold: 0.10
+        });
+
+        expect(validation.passed).toBe(false);
+        expect(validation.failureReasons).toBeDefined();
+        expect(validation.failureReasons?.some(reason => reason.includes('Recall@5'))).toBe(true);
+        expect(validation.validation.recall5Valid).toBe(false);
+      });
+
+      it('Acceptance Criteria를 모두 통과해야 함', () => {
+        const degradation = {
+          precision: { 5: 0.05 }, // 5% < 10%
+          recall: { 5: 0.08 }, // 8% < 10%
+          ndcg: { 5: 0.03 } // 3% < 5%
+        };
+
+        const validation = validateQualityThresholds(degradation);
+
+        expect(validation.passed).toBe(true);
+        expect(validation.validation.ndcg5Valid).toBe(true);
+        expect(validation.validation.precision5Valid).toBe(true);
+        expect(validation.validation.recall5Valid).toBe(true);
+      });
+    });
+
+    describe('compareQualityWithGroundTruth', () => {
+      it('벡터-only와 Consolidation 품질을 비교해야 함', () => {
+        const vectorOnlyResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 },
+          { id: 'id3', score: 0.7 },
+          { id: 'id4', score: 0.6 },
+          { id: 'id5', score: 0.5 }
+        ];
+        const consolidationResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 },
+          { id: 'id3', score: 0.7 },
+          { id: 'id4', score: 0.6 },
+          { id: 'id5', score: 0.5 }
+        ];
+
+        const comparison = compareQualityWithGroundTruth(
+          vectorOnlyResults,
+          consolidationResults,
+          groundTruth
+        );
+
+        expect(comparison.vectorOnly).toBeDefined();
+        expect(comparison.consolidation).toBeDefined();
+        expect(comparison.degradation).toBeDefined();
+        expect(comparison.thresholdValidation).toBeDefined();
+      });
+    });
+
+    describe('generateQualityComparisonReport', () => {
+      it('품질 비교 결과 리포트를 생성해야 함', () => {
+        const vectorOnlyResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 },
+          { id: 'id3', score: 0.7 }
+        ];
+        const consolidationResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 },
+          { id: 'id3', score: 0.7 }
+        ];
+
+        const comparison = compareQualityWithGroundTruth(
+          vectorOnlyResults,
+          consolidationResults,
+          groundTruth
+        );
+        const report = generateQualityComparisonReport(comparison, groundTruth);
+
+        expect(report.timestamp).toBeDefined();
+        expect(report.groundTruth.queryId).toBe(groundTruth.queryId);
+        expect(report.vectorOnly).toBeDefined();
+        expect(report.consolidation).toBeDefined();
+        expect(report.summary.passed).toBeDefined();
+        expect(report.summary.keyMetrics).toBeDefined();
+      });
+    });
+
+    describe('visualizeQualityComparison', () => {
+      it('Markdown 형식의 시각화 리포트를 생성해야 함', () => {
+        const vectorOnlyResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 },
+          { id: 'id3', score: 0.7 }
+        ];
+        const consolidationResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 },
+          { id: 'id3', score: 0.7 }
+        ];
+
+        const comparison = compareQualityWithGroundTruth(
+          vectorOnlyResults,
+          consolidationResults,
+          groundTruth
+        );
+        const report = generateQualityComparisonReport(comparison, groundTruth);
+        const visualization = visualizeQualityComparison(report);
+
+        expect(visualization).toContain('# 품질 비교 결과 리포트');
+        expect(visualization).toContain('## 주요 지표 요약');
+        expect(visualization).toContain('## 상세 품질 지표');
+        expect(visualization).toContain('## 검증 결과');
+        expect(visualization).toContain('| K |');
+        expect(visualization).toContain('Precision@K');
+        expect(visualization).toContain('Recall@K');
+        expect(visualization).toContain('NDCG@K');
+      });
+
+      it('저하율을 포함할 수 있어야 함', () => {
+        const vectorOnlyResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 }
+        ];
+        const consolidationResults: SearchResult[] = [
+          { id: 'id1', score: 0.85 },
+          { id: 'id2', score: 0.75 }
+        ];
+
+        const comparison = compareQualityWithGroundTruth(
+          vectorOnlyResults,
+          consolidationResults,
+          groundTruth
+        );
+        const report = generateQualityComparisonReport(comparison, groundTruth);
+        const visualization = visualizeQualityComparison(report, {
+          includeDegradation: true
+        });
+
+        expect(visualization).toContain('저하율');
+      });
+
+      it('저하율을 제외할 수 있어야 함', () => {
+        const vectorOnlyResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 }
+        ];
+        const consolidationResults: SearchResult[] = [
+          { id: 'id1', score: 0.9 },
+          { id: 'id2', score: 0.8 }
+        ];
+
+        const comparison = compareQualityWithGroundTruth(
+          vectorOnlyResults,
+          consolidationResults,
+          groundTruth
+        );
+        const report = generateQualityComparisonReport(comparison, groundTruth);
+        const visualization = visualizeQualityComparison(report, {
+          includeDegradation: false
+        });
+
+        // 저하율 컬럼이 없어야 함
+        const lines = visualization.split('\n');
+        const headerLine = lines.find(line => line.includes('| K |'));
+        expect(headerLine).not.toContain('저하율');
+      });
     });
   });
 });
