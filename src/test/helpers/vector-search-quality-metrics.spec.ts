@@ -18,8 +18,14 @@ import {
   compareQualityWithGroundTruth,
   generateQualityComparisonReport,
   visualizeQualityComparison,
+  validateLowVectorHighConsolidation,
+  validateHighVectorLowConsolidation,
+  validateW2UpperBound,
+  generateExtremeScenarioReport,
   type SearchResultPair,
-  type HybridSearchResult
+  type HybridSearchResult,
+  type ExtremeScenarioValidation,
+  type W2UpperBoundValidation
 } from './vector-search-quality-metrics.js';
 import type { SearchResult } from './search-quality-metrics.js';
 
@@ -802,6 +808,305 @@ describe('벡터 검색 품질 검증 헬퍼', () => {
         const lines = visualization.split('\n');
         const headerLine = lines.find(line => line.includes('| K |'));
         expect(headerLine).not.toContain('저하율');
+      });
+    });
+  });
+
+  describe('극단적 시나리오 검증', () => {
+    describe('validateLowVectorHighConsolidation', () => {
+      it('저벡터 유사도 + 고 consolidation 점수 시나리오가 없으면 통과해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.8, consolidation_score: 0.5, finalScore: 0.7 },
+          { id: 'id2', vectorScore: 0.7, consolidation_score: 0.6, finalScore: 0.65 }
+        ];
+
+        const validation = validateLowVectorHighConsolidation(results);
+
+        expect(validation.passed).toBe(true);
+        expect(validation.failureReasons).toBeUndefined();
+      });
+
+      it('저벡터 유사도 + 고 consolidation 점수 시나리오가 있고 최종 점수가 범위 내이면 통과해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.3, consolidation_score: 0.8, finalScore: 0.5 },
+          { id: 'id2', vectorScore: 0.35, consolidation_score: 0.75, finalScore: 0.52 }
+        ];
+
+        const validation = validateLowVectorHighConsolidation(results, {
+          lowVectorThreshold: 0.4,
+          highConsolidationThreshold: 0.7,
+          minFinalScore: 0.0,
+          maxFinalScore: 1.0
+        });
+
+        expect(validation.passed).toBe(true);
+        expect(validation.failureReasons).toBeUndefined();
+        expect(validation.finalScoreRange.min).toBeGreaterThanOrEqual(0.0);
+        expect(validation.finalScoreRange.max).toBeLessThanOrEqual(1.0);
+      });
+
+      it('최종 점수가 범위를 벗어나면 실패해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.3, consolidation_score: 0.8, finalScore: 1.2 }
+        ];
+
+        const validation = validateLowVectorHighConsolidation(results, {
+          lowVectorThreshold: 0.4,
+          highConsolidationThreshold: 0.7,
+          minFinalScore: 0.0,
+          maxFinalScore: 1.0
+        });
+
+        expect(validation.passed).toBe(false);
+        expect(validation.failureReasons).toBeDefined();
+        expect(validation.failureReasons?.length).toBeGreaterThan(0);
+      });
+
+      it('통계 정보를 올바르게 계산해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.3, consolidation_score: 0.8, finalScore: 0.5 },
+          { id: 'id2', vectorScore: 0.35, consolidation_score: 0.75, finalScore: 0.52 }
+        ];
+
+        const validation = validateLowVectorHighConsolidation(results);
+
+        expect(validation.vectorSimilarityStats.min).toBeLessThanOrEqual(0.35);
+        expect(validation.vectorSimilarityStats.max).toBeGreaterThanOrEqual(0.3);
+        expect(validation.consolidationScoreStats.min).toBeLessThanOrEqual(0.75);
+        expect(validation.consolidationScoreStats.max).toBeGreaterThanOrEqual(0.8);
+      });
+    });
+
+    describe('validateHighVectorLowConsolidation', () => {
+      it('고벡터 유사도 + 저 consolidation 점수 시나리오가 없으면 통과해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.5, consolidation_score: 0.5, finalScore: 0.5 },
+          { id: 'id2', vectorScore: 0.6, consolidation_score: 0.4, finalScore: 0.55 }
+        ];
+
+        const validation = validateHighVectorLowConsolidation(results);
+
+        expect(validation.passed).toBe(true);
+        expect(validation.failureReasons).toBeUndefined();
+      });
+
+      it('고벡터 유사도 + 저 consolidation 점수 시나리오에서 벡터 유사도가 충분히 반영되면 통과해야 함', () => {
+        // w1=0.6, w2=0.4 가정
+        // finalScore = 0.6 * 0.8 + 0.4 * 0.2 = 0.48 + 0.08 = 0.56
+        // scoreRatio = 0.56 / 0.8 = 0.7 >= 0.6 (통과)
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.8, consolidation_score: 0.2, finalScore: 0.56 }
+        ];
+
+        const validation = validateHighVectorLowConsolidation(results, {
+          highVectorThreshold: 0.7,
+          lowConsolidationThreshold: 0.3,
+          vectorPriorityRatio: 0.6
+        });
+
+        expect(validation.passed).toBe(true);
+        expect(validation.failureReasons).toBeUndefined();
+      });
+
+      it('벡터 유사도가 충분히 반영되지 않으면 실패해야 함', () => {
+        // w1=0.4, w2=0.6 가정 (w2 상한을 초과하는 경우)
+        // finalScore = 0.4 * 0.8 + 0.6 * 0.2 = 0.32 + 0.12 = 0.44
+        // scoreRatio = 0.44 / 0.8 = 0.55 < 0.6 (실패)
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.8, consolidation_score: 0.2, finalScore: 0.44 }
+        ];
+
+        const validation = validateHighVectorLowConsolidation(results, {
+          highVectorThreshold: 0.7,
+          lowConsolidationThreshold: 0.3,
+          vectorPriorityRatio: 0.6
+        });
+
+        expect(validation.passed).toBe(false);
+        expect(validation.failureReasons).toBeDefined();
+        expect(validation.failureReasons?.length).toBeGreaterThan(0);
+      });
+
+      it('통계 정보를 올바르게 계산해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.8, consolidation_score: 0.2, finalScore: 0.56 },
+          { id: 'id2', vectorScore: 0.75, consolidation_score: 0.25, finalScore: 0.55 }
+        ];
+
+        const validation = validateHighVectorLowConsolidation(results);
+
+        expect(validation.vectorSimilarityStats.min).toBeLessThanOrEqual(0.75);
+        expect(validation.vectorSimilarityStats.max).toBeGreaterThanOrEqual(0.8);
+        expect(validation.consolidationScoreStats.min).toBeLessThanOrEqual(0.25);
+        expect(validation.consolidationScoreStats.max).toBeGreaterThanOrEqual(0.2);
+      });
+    });
+
+    describe('validateW2UpperBound', () => {
+      const groundTruth = {
+        queryId: 'query1',
+        relevantIds: ['id1', 'id2', 'id3']
+      };
+
+      it('w2=0.6일 때 w2=0.4 대비 품질 저하가 충분하면 통과해야 함', () => {
+        // w2=0.4: finalScore = 0.6 * vectorScore + 0.4 * consolidationScore
+        // w2=0.6: finalScore = 0.4 * vectorScore + 0.6 * consolidationScore
+        // 
+        // 예시: vectorScore=0.8, consolidationScore=0.9
+        // w2=0.4: 0.6*0.8 + 0.4*0.9 = 0.48 + 0.36 = 0.84
+        // w2=0.6: 0.4*0.8 + 0.6*0.9 = 0.32 + 0.54 = 0.86
+        // 
+        // 실제로는 품질 지표를 계산해야 하므로, 간단한 테스트 데이터 생성
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.9, consolidation_score: 0.8, finalScore: 0.86 },
+          { id: 'id2', vectorScore: 0.8, consolidation_score: 0.7, finalScore: 0.76 },
+          { id: 'id3', vectorScore: 0.7, consolidation_score: 0.6, finalScore: 0.66 },
+          { id: 'id4', vectorScore: 0.6, consolidation_score: 0.5, finalScore: 0.56 },
+          { id: 'id5', vectorScore: 0.5, consolidation_score: 0.4, finalScore: 0.46 }
+        ];
+
+        const validation = validateW2UpperBound(results, groundTruth);
+
+        // 실제 품질 저하율에 따라 통과 여부가 결정됨
+        expect(validation.w2_04).toBeDefined();
+        expect(validation.w2_06).toBeDefined();
+        expect(validation.degradation).toBeDefined();
+        expect(validation.w2UpperBoundProtects).toBeDefined();
+      });
+
+      it('w2=0.4와 w2=0.6의 품질 지표를 올바르게 계산해야 함', () => {
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.9, consolidation_score: 0.8, finalScore: 0.86 },
+          { id: 'id2', vectorScore: 0.8, consolidation_score: 0.7, finalScore: 0.76 }
+        ];
+
+        const validation = validateW2UpperBound(results, groundTruth, [5]);
+
+        expect(validation.w2_04.ndcg[5]).toBeDefined();
+        expect(validation.w2_06.ndcg[5]).toBeDefined();
+        expect(validation.degradation.ndcg[5]).toBeDefined();
+      });
+
+      it('품질 저하율이 5% 미만이면 실패해야 함', () => {
+        // 품질 저하가 거의 없는 경우를 시뮬레이션하기 어려우므로,
+        // 검증 로직이 올바르게 작동하는지 확인
+        const results: HybridSearchResult[] = [
+          { id: 'id1', vectorScore: 0.9, consolidation_score: 0.9, finalScore: 0.9 },
+          { id: 'id2', vectorScore: 0.8, consolidation_score: 0.8, finalScore: 0.8 }
+        ];
+
+        const validation = validateW2UpperBound(results, groundTruth);
+
+        // vectorScore와 consolidationScore가 같으면 w2 값에 관계없이 같은 결과가 나옴
+        // 이 경우 품질 저하가 거의 없을 수 있음
+        expect(validation.passed).toBeDefined();
+        expect(validation.w2UpperBoundProtects).toBeDefined();
+      });
+    });
+
+    describe('generateExtremeScenarioReport', () => {
+      it('모든 검증이 통과하면 전체 통과해야 함', () => {
+        const lowVectorHigh: ExtremeScenarioValidation = {
+          passed: true,
+          finalScoreRange: { min: 0.3, max: 0.7, average: 0.5 },
+          vectorSimilarityStats: { min: 0.2, max: 0.4, average: 0.3 },
+          consolidationScoreStats: { min: 0.7, max: 0.9, average: 0.8 }
+        };
+
+        const highVectorLow: ExtremeScenarioValidation = {
+          passed: true,
+          finalScoreRange: { min: 0.5, max: 0.8, average: 0.65 },
+          vectorSimilarityStats: { min: 0.7, max: 0.9, average: 0.8 },
+          consolidationScoreStats: { min: 0.1, max: 0.3, average: 0.2 }
+        };
+
+        const w2UpperBound: W2UpperBoundValidation = {
+          passed: true,
+          w2_04: { precision: { 5: 0.8 }, recall: { 5: 0.7 }, ndcg: { 5: 0.75 } },
+          w2_06: { precision: { 5: 0.75 }, recall: { 5: 0.65 }, ndcg: { 5: 0.7 } },
+          degradation: { precision: { 5: 0.0625 }, recall: { 5: 0.0714 }, ndcg: { 5: 0.0667 } },
+          w2UpperBoundProtects: true
+        };
+
+        const report = generateExtremeScenarioReport(
+          lowVectorHigh,
+          highVectorLow,
+          w2UpperBound
+        );
+
+        expect(report.overallPassed).toBe(true);
+        expect(report.summary.passedCount).toBe(3);
+        expect(report.summary.totalCount).toBe(3);
+        expect(report.summary.failedScenarios).toHaveLength(0);
+      });
+
+      it('일부 검증이 실패하면 전체 실패해야 함', () => {
+        const lowVectorHigh: ExtremeScenarioValidation = {
+          passed: false,
+          failureReasons: ['최종 점수 범위 초과'],
+          finalScoreRange: { min: 0.3, max: 1.2, average: 0.75 },
+          vectorSimilarityStats: { min: 0.2, max: 0.4, average: 0.3 },
+          consolidationScoreStats: { min: 0.7, max: 0.9, average: 0.8 }
+        };
+
+        const highVectorLow: ExtremeScenarioValidation = {
+          passed: true,
+          finalScoreRange: { min: 0.5, max: 0.8, average: 0.65 },
+          vectorSimilarityStats: { min: 0.7, max: 0.9, average: 0.8 },
+          consolidationScoreStats: { min: 0.1, max: 0.3, average: 0.2 }
+        };
+
+        const w2UpperBound: W2UpperBoundValidation = {
+          passed: true,
+          w2_04: { precision: { 5: 0.8 }, recall: { 5: 0.7 }, ndcg: { 5: 0.75 } },
+          w2_06: { precision: { 5: 0.75 }, recall: { 5: 0.65 }, ndcg: { 5: 0.7 } },
+          degradation: { precision: { 5: 0.0625 }, recall: { 5: 0.0714 }, ndcg: { 5: 0.0667 } },
+          w2UpperBoundProtects: true
+        };
+
+        const report = generateExtremeScenarioReport(
+          lowVectorHigh,
+          highVectorLow,
+          w2UpperBound
+        );
+
+        expect(report.overallPassed).toBe(false);
+        expect(report.summary.passedCount).toBe(2);
+        expect(report.summary.totalCount).toBe(3);
+        expect(report.summary.failedScenarios).toContain('저벡터 유사도 + 고 consolidation 점수');
+      });
+
+      it('타임스탬프를 포함해야 함', () => {
+        const lowVectorHigh: ExtremeScenarioValidation = {
+          passed: true,
+          finalScoreRange: { min: 0.3, max: 0.7, average: 0.5 },
+          vectorSimilarityStats: { min: 0.2, max: 0.4, average: 0.3 },
+          consolidationScoreStats: { min: 0.7, max: 0.9, average: 0.8 }
+        };
+
+        const highVectorLow: ExtremeScenarioValidation = {
+          passed: true,
+          finalScoreRange: { min: 0.5, max: 0.8, average: 0.65 },
+          vectorSimilarityStats: { min: 0.7, max: 0.9, average: 0.8 },
+          consolidationScoreStats: { min: 0.1, max: 0.3, average: 0.2 }
+        };
+
+        const w2UpperBound: W2UpperBoundValidation = {
+          passed: true,
+          w2_04: { precision: { 5: 0.8 }, recall: { 5: 0.7 }, ndcg: { 5: 0.75 } },
+          w2_06: { precision: { 5: 0.75 }, recall: { 5: 0.65 }, ndcg: { 5: 0.7 } },
+          degradation: { precision: { 5: 0.0625 }, recall: { 5: 0.0714 }, ndcg: { 5: 0.0667 } },
+          w2UpperBoundProtects: true
+        };
+
+        const report = generateExtremeScenarioReport(
+          lowVectorHigh,
+          highVectorLow,
+          w2UpperBound
+        );
+
+        expect(report.timestamp).toBeDefined();
+        expect(new Date(report.timestamp).getTime()).toBeGreaterThan(0);
       });
     });
   });

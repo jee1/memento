@@ -31,7 +31,7 @@
   - [x] 1.6 Consolidation 점수 반영 후 검색 결과 생성 헬퍼 함수 구현 (`generateConsolidationSearchResults`)
   - [x] 1.7 순서 보존 검증 결과 리포트 생성 함수 구현 (`generateOrderPreservationReport`)
   - [x] 1.8 순서 보존 검증 단위 테스트 작성 (Kendall's Tau ≥0.7, Top10 유지율 ≥80%, Top5 유지율 ≥90% 임계값 검증 포함)
-- [ ] 2.0 품질 지표 비교 기능 구현
+- [x] 2.0 품질 지표 비교 기능 구현
   - [x] 2.1 벡터 유사도만 사용한 검색 결과에서 품질 지표 측정 함수 구현 (`measureVectorOnlyQuality`)
   - [x] 2.2 Consolidation 점수 반영 후 품질 지표 측정 함수 구현 (`measureConsolidationQuality`)
   - [x] 2.3 품질 저하율 계산 함수 구현 (`calculateQualityDegradation`)
@@ -40,12 +40,12 @@
   - [x] 2.6 품질 비교 결과 리포트 생성 함수 구현 (`generateQualityComparisonReport`)
   - [x] 2.7 품질 비교 결과 시각화 함수 구현 (선택적, FR-2.5) - Markdown 표 또는 간단한 그래프 출력
   - [x] 2.8 품질 지표 비교 단위 테스트 작성
-- [ ] 3.0 극단적 시나리오 검증 기능 구현
-  - [ ] 3.1 저벡터 유사도 + 고 consolidation 점수 시나리오 검증 함수 구현 (`validateLowVectorHighConsolidation`)
-  - [ ] 3.2 고벡터 유사도 + 저 consolidation 점수 시나리오 검증 함수 구현 (`validateHighVectorLowConsolidation`)
-  - [ ] 3.3 w2 상한(0.4) 검증 함수 구현 (`validateW2UpperBound`) - w2=0.4 vs w2=0.6 비교
-  - [ ] 3.4 극단적 시나리오 검증 결과 리포트 생성 함수 구현 (`generateExtremeScenarioReport`)
-  - [ ] 3.5 극단적 시나리오 검증 단위 테스트 작성
+- [x] 3.0 극단적 시나리오 검증 기능 구현
+  - [x] 3.1 저벡터 유사도 + 고 consolidation 점수 시나리오 검증 함수 구현 (`validateLowVectorHighConsolidation`)
+  - [x] 3.2 고벡터 유사도 + 저 consolidation 점수 시나리오 검증 함수 구현 (`validateHighVectorLowConsolidation`)
+  - [x] 3.3 w2 상한(0.4) 검증 함수 구현 (`validateW2UpperBound`) - w2=0.4 vs w2=0.6 비교
+  - [x] 3.4 극단적 시나리오 검증 결과 리포트 생성 함수 구현 (`generateExtremeScenarioReport`)
+  - [x] 3.5 극단적 시나리오 검증 단위 테스트 작성
 - [ ] 4.0 Baseline 스냅샷 관리 기능 구현
   - [ ] 4.1 Baseline 스냅샷 인터페이스 정의 (`BaselineSnapshot`) - PRD의 구조 참고
   - [ ] 4.2 Baseline 스냅샷 저장 함수 구현 (`saveBaselineSnapshot`) - JSON 형식으로 `data/vector-search-quality-baseline.json`에 저장
