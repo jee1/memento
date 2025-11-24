@@ -21,6 +21,8 @@
     "start:http-v2": "node dist/server/http-server-v2.js",
     "test": "vitest",
     "test:ci": "vitest --run --reporter=basic",
+    "test:vector-search-quality": "vitest --run src/test/test-vector-search-quality-with-consolidation.spec.ts",
+    "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit",
     "db:init": "tsx src/database/init.ts",

@@ -14,6 +14,7 @@
 8. [실행 시간 가이드](#실행-시간-가이드)
 9. [Seed 데이터 규모 및 생성 방법](#seed-데이터-규모-및-생성-방법)
 10. [Fallback 처리](#fallback-처리)
+11. [벡터 검색 품질 검증](#벡터-검색-품질-검증)
 
 ## 개요
 
@@ -391,9 +392,428 @@ NDCG@K = DCG@K / IDCG@K
 2. **병렬 실행**: `--maxConcurrency` 옵션 사용 (주의: 리소스 사용 증가)
 3. **임베딩 생성 비활성화**: `seedTestDatabase(db, count, false)` - 임베딩 없이 테스트
 
+## 벡터 검색 품질 검증
+
+벡터 검색 품질 검증 시스템은 Consolidation Score가 벡터 검색 품질을 저하시키지 않는지 검증합니다. 이 시스템은 순서 보존, 품질 지표 비교, 극단적 시나리오 검증을 통해 검색 품질을 종합적으로 평가합니다.
+
+### 개요
+
+벡터 검색 품질 검증은 다음을 검증합니다:
+
+- **순서 보존**: Consolidation Score 반영 전/후 검색 결과의 순서가 유지되는지
+- **품질 지표**: Precision, Recall, NDCG 지표가 저하되지 않는지
+- **극단적 시나리오**: 저벡터 유사도 + 고 consolidation, 고벡터 유사도 + 저 consolidation 등 극단적 조합에서도 정상 동작하는지
+- **Baseline 비교**: 이전 Baseline 대비 품질이 저하되지 않는지
+
+### 테스트 실행
+
+#### 통합 테스트
+
+```bash
+# 벡터 검색 품질 검증 통합 테스트
+npm test src/test/test-vector-search-quality-with-consolidation.spec.ts
+```
+
+이 테스트는 다음을 검증합니다:
+
+1. **테스트 데이터 준비 (시드 기반 재현성)**
+   - 시드 기반 데이터 생성으로 동일 입력 시 동일 결과 보장
+   - 다양한 시나리오 샘플 데이터 구성 (벡터 유사도 높음/낮음, Consolidation 높음/낮음, 극단적 조합)
+
+2. **Ground Truth 생성 및 로드**
+   - 시드 기반 자동 Ground Truth 생성
+   - JSON 파일로 저장/로드 지원
+   - 다양한 선택 전략 지원 (`random`, `first`, `pattern`)
+
+3. **순서 보존 검증**
+   - Kendall's Tau ≥ 0.7
+   - Top10 유지율 ≥ 80%
+   - Top5 유지율 ≥ 90%
+
+4. **품질 지표 비교**
+   - NDCG@5 저하율 < 5%
+   - Precision@5 저하율 < 10%
+   - Recall@5 저하율 < 10%
+
+5. **극단적 시나리오 검증**
+   - 저벡터 유사도 + 고 consolidation 점수 검증
+   - 고벡터 유사도 + 저 consolidation 점수 검증
+   - w2 상한 검증 (w2=0.4 vs w2=0.6)
+
+6. **Baseline 스냅샷 저장 및 비교**
+   - Baseline 스냅샷 저장/로드
+   - 현재 결과와 Baseline 비교
+   - 품질 저하 감지 및 경고
+
+7. **리포트 생성 및 파일 저장**
+   - JSON 및 Markdown 형식 리포트 저장
+   - 통합 리포트 생성
+
+8. **품질 저하 감지 시 경고 메시지 출력**
+   - 콘솔 출력 (심각도별 다른 스트림 사용)
+   - 파일 저장 지원
+
+### 순서 보존 검증
+
+순서 보존 검증은 Consolidation Score 반영 전/후 검색 결과의 순서가 얼마나 유지되는지 측정합니다.
+
+#### 지표
+
+- **Kendall's Tau**: 두 순서 간의 순위 상관관계 (-1 ~ 1)
+  - 1: 완전히 일치
+  - 0: 무관
+  - -1: 완전히 반대
+  - **Acceptance Criteria**: ≥ 0.7
+
+- **Top-K Retention**: 상위 K개 결과 중 유지된 비율
+  - **Top10 유지율**: ≥ 80%
+  - **Top5 유지율**: ≥ 90%
+
+#### 사용 예시
+
+```typescript
+import {
+  generateVectorOnlySearchResults,
+  generateConsolidationSearchResults,
+  generateOrderPreservationReport
+} from './helpers/vector-search-quality-metrics.js';
+
+// 검색 결과 생성
+const vectorOnlyResults = generateVectorOnlySearchResults(searchResults.items, 20);
+const consolidationResults = generateConsolidationSearchResults(searchResults.items, 20);
+
+// 순서 보존 리포트 생성
+const report = generateOrderPreservationReport({
+  vectorOnly: vectorOnlyResults,
+  withConsolidation: consolidationResults
+});
+
+// 검증 통과 여부 확인
+if (report.passed) {
+  console.log('✅ 순서 보존 검증 통과');
+} else {
+  console.error('❌ 순서 보존 검증 실패:', report.failureReasons);
+}
+```
+
+### 품질 지표 비교
+
+품질 지표 비교는 Ground Truth를 기반으로 Precision, Recall, NDCG 지표를 측정하고 Consolidation Score 반영 전/후를 비교합니다.
+
+#### 지표
+
+- **Precision@K**: 상위 K개 결과 중 관련 결과 비율
+- **Recall@K**: 관련 결과 중 상위 K개에 포함된 비율
+- **NDCG@K**: 정규화된 할인 누적 이득
+
+#### Acceptance Criteria
+
+- **NDCG@5 저하율**: < 5%
+- **Precision@5 저하율**: < 10%
+- **Recall@5 저하율**: < 10%
+
+#### 사용 예시
+
+```typescript
+import {
+  compareQualityWithGroundTruth,
+  generateQualityComparisonReport
+} from './helpers/vector-search-quality-metrics.js';
+
+// Ground Truth 생성
+const groundTruths = generateGroundTruth(memoryIds, {
+  seed: 12345,
+  queries: ['test-query'],
+  relevantCountPerQuery: 5
+});
+
+const groundTruth = groundTruths[0];
+
+// 품질 비교
+const comparison = compareQualityWithGroundTruth(
+  vectorOnlyResults,
+  consolidationResults,
+  groundTruth,
+  [5, 10]
+);
+
+// 리포트 생성
+const report = generateQualityComparisonReport(comparison, groundTruth);
+
+// 검증 통과 여부 확인
+if (report.summary.passed) {
+  console.log('✅ 품질 지표 비교 통과');
+} else {
+  console.error('❌ 품질 지표 비교 실패:', report.thresholdValidation.failureReasons);
+}
+```
+
+### 극단적 시나리오 검증
+
+극단적 시나리오 검증은 벡터 유사도와 Consolidation Score의 극단적 조합에서도 검색 품질이 유지되는지 검증합니다.
+
+#### 검증 시나리오
+
+1. **저벡터 유사도 + 고 consolidation 점수**
+   - 벡터 유사도는 낮지만 consolidation 점수가 높은 경우
+   - 최종 점수가 적절한 범위 내에 있는지 검증
+
+2. **고벡터 유사도 + 저 consolidation 점수**
+   - 벡터 유사도는 높지만 consolidation 점수가 낮은 경우
+   - 최종 점수가 적절한 범위 내에 있는지 검증
+
+3. **w2 상한 검증**
+   - w2=0.4 vs w2=0.6 비교
+   - w2 상한이 품질에 미치는 영향 검증
+
+#### 사용 예시
+
+```typescript
+import {
+  validateLowVectorHighConsolidation,
+  validateHighVectorLowConsolidation,
+  validateW2UpperBound,
+  generateExtremeScenarioReport
+} from './helpers/vector-search-quality-metrics.js';
+
+// 극단적 시나리오 검증
+const lowVectorHigh = validateLowVectorHighConsolidation(hybridResults);
+const highVectorLow = validateHighVectorLowConsolidation(hybridResults);
+const w2Validation = validateW2UpperBound(hybridResults, groundTruth, [5]);
+
+// 리포트 생성
+const report = generateExtremeScenarioReport(
+  lowVectorHigh,
+  highVectorLow,
+  w2Validation
+);
+
+// 검증 통과 여부 확인
+if (report.overallPassed) {
+  console.log('✅ 극단적 시나리오 검증 통과');
+} else {
+  console.error('❌ 극단적 시나리오 검증 실패:', report.summary.failedScenarios);
+}
+```
+
+### Baseline 스냅샷 관리
+
+Baseline 스냅샷은 이전 검증 결과를 저장하여 현재 결과와 비교할 수 있게 합니다.
+
+#### 저장
+
+```typescript
+import { saveBaselineSnapshot } from './helpers/vector-search-quality-metrics.js';
+
+const snapshot: BaselineSnapshot = {
+  version: '1.0.0',
+  timestamp: new Date().toISOString(),
+  testConfiguration: {
+    dataSize: 100,
+    weights: {
+      vectorSimilarity: 0.6,
+      consolidationScore: 0.4
+    }
+  },
+  metrics: {
+    orderPreservation: {
+      kendallTau: 0.85,
+      top10Retention: 0.9,
+      top5Retention: 0.95
+    },
+    quality: {
+      precision: { 5: 0.8, 10: 0.75 },
+      recall: { 5: 0.7, 10: 0.65 },
+      ndcg: { 5: 0.85, 10: 0.8 }
+    },
+    extremeScenarios: {
+      lowVectorHighConsolidation: 1,
+      highVectorLowConsolidation: 1
+    }
+  }
+};
+
+saveBaselineSnapshot(snapshot);
+```
+
+#### 비교 및 품질 저하 감지
+
+```typescript
+import {
+  compareWithBaseline,
+  detectQualityDegradation,
+  printQualityAlert
+} from './helpers/vector-search-quality-metrics.js';
+
+// Baseline 로드
+const baseline = loadBaselineSnapshot();
+
+// 현재 결과와 비교
+const comparison = compareWithBaseline(baseline, currentMetrics);
+
+// 품질 저하 감지
+const detection = detectQualityDegradation(comparison);
+
+// 경고 메시지 출력
+if (detection.detected) {
+  printQualityAlert(detection, { output: 'console' });
+}
+```
+
+### 리포트 생성 및 저장
+
+검증 결과를 JSON 및 Markdown 형식으로 저장할 수 있습니다.
+
+#### 리포트 타입
+
+1. **순서 보존 리포트**: `saveOrderPreservationReport`
+2. **품질 비교 리포트**: `saveQualityComparisonReport`
+3. **극단적 시나리오 리포트**: `saveExtremeScenarioReport`
+4. **통합 리포트**: `saveIntegratedReport`
+
+#### 사용 예시
+
+```typescript
+import {
+  saveOrderPreservationReport,
+  saveQualityComparisonReport,
+  saveExtremeScenarioReport,
+  saveIntegratedReport
+} from './helpers/vector-search-quality-metrics.js';
+
+// 개별 리포트 저장
+saveOrderPreservationReport(orderReport, { format: 'both' });
+saveQualityComparisonReport(qualityReport, { format: 'markdown' });
+saveExtremeScenarioReport(extremeReport, { format: 'json' });
+
+// 통합 리포트 저장
+saveIntegratedReport({
+  orderReport,
+  qualityReport,
+  extremeReport,
+  baselineComparison,
+  qualityDegradation
+}, { format: 'both' });
+```
+
+### 품질 저하 경고 메시지
+
+품질 저하가 감지되면 자동으로 경고 메시지를 출력합니다.
+
+#### 출력 형식
+
+- **심각도별 레이블**: 🚨 CRITICAL, ⚠️ WARNING, ℹ️ INFO
+- **Baseline 정보**: 버전, 생성 시간
+- **감지된 품질 저하**: 메시지 목록
+- **권장 조치 사항**: 개선 방안
+- **상세 정보**: 순서 보존 지표, 품질 지표 변화
+
+#### 출력 대상
+
+- **콘솔**: `console.error` (critical), `console.warn` (warning), `console.log` (info)
+- **파일**: 텍스트 파일로 저장
+
+#### 사용 예시
+
+```typescript
+import {
+  detectAndAlertQualityDegradation,
+  printQualityAlert
+} from './helpers/vector-search-quality-metrics.js';
+
+// 통합 함수 사용 (감지 + 출력)
+const detection = detectAndAlertQualityDegradation(
+  comparison,
+  {}, // 감지 옵션
+  { output: 'console' } // 출력 옵션
+);
+
+// 또는 개별 함수 사용
+const detection = detectQualityDegradation(comparison);
+printQualityAlert(detection, {
+  output: 'both',
+  filePath: './data/quality-alert.txt'
+});
+```
+
+### 테스트 데이터 준비
+
+시드 기반 데이터 생성으로 재현 가능한 테스트를 수행할 수 있습니다.
+
+```typescript
+import {
+  generateScenarioBasedTestData,
+  generateSeededEmbeddings
+} from './helpers/consolidation-test-data.js';
+
+// 시드 기반 테스트 데이터 생성
+const items = generateScenarioBasedTestData(100, 12345);
+const embeddings = generateSeededEmbeddings(
+  items.map(i => i.id),
+  1536,
+  12345
+);
+```
+
+### Ground Truth 생성
+
+Ground Truth는 검색 쿼리에 대한 관련 문서 목록을 자동으로 생성합니다.
+
+```typescript
+import {
+  generateGroundTruth,
+  saveGroundTruth,
+  loadGroundTruth,
+  generateOrLoadGroundTruth
+} from './helpers/vector-search-quality-metrics.js';
+
+// Ground Truth 생성
+const groundTruths = generateGroundTruth(memoryIds, {
+  seed: 12345,
+  queries: ['query1', 'query2'],
+  relevantCountPerQuery: 5,
+  strategy: 'random' // 'random' | 'first' | 'pattern'
+});
+
+// 저장 및 로드
+saveGroundTruth(groundTruths);
+const loaded = loadGroundTruth();
+
+// 또는 파일이 있으면 로드, 없으면 생성
+const gt = generateOrLoadGroundTruth(memoryIds, {
+  seed: 12345,
+  queries: ['query1']
+});
+```
+
+### Acceptance Criteria 요약
+
+| 검증 항목 | 지표 | 임계값 |
+|----------|------|--------|
+| 순서 보존 | Kendall's Tau | ≥ 0.7 |
+| 순서 보존 | Top10 유지율 | ≥ 80% |
+| 순서 보존 | Top5 유지율 | ≥ 90% |
+| 품질 지표 | NDCG@5 저하율 | < 5% |
+| 품질 지표 | Precision@5 저하율 | < 10% |
+| 품질 지표 | Recall@5 저하율 | < 10% |
+
+### 문제 해결
+
+#### 테스트가 실패하는 경우
+
+1. **검색 결과가 없는 경우**: 벡터 검색 테이블(`memory_item_vec_tfidf`)이 생성되지 않았을 수 있습니다. `sqlite-vec` 확장이 설치되어 있는지 확인하세요.
+2. **Ground Truth가 생성되지 않는 경우**: 메모리 ID 목록이 비어있거나 쿼리 수가 0인지 확인하세요.
+3. **Baseline 비교 실패**: Baseline 스냅샷 파일이 올바른 형식인지 확인하세요.
+
+#### 리포트 저장 실패
+
+1. **디렉토리 권한**: `data/` 디렉토리에 쓰기 권한이 있는지 확인하세요.
+2. **파일 경로**: 절대 경로를 사용하는 경우 경로가 올바른지 확인하세요.
+
 ## 참고 자료
 
 - [Search Ranking 공식 문서](../en/Search-Ranking-Memory-Decay-Formulas.md)
 - [Consolidation Score 시스템 PRD](../../tasks/0004-prd-consolidation-score-system.md)
+- [벡터 검색 품질 검증 PRD](../../tasks/tasks-0009-prd-vector-search-quality-verification-with-consolidation.md)
 - [Memento Goals](../en/Memento-Goals.md)
 
