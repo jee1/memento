@@ -167,6 +167,42 @@ export function insertMemoryEmbedding(
 }
 
 /**
+ * 시드 기반 랜덤 생성기 (재현 가능한 랜덤 값 생성)
+ * Linear Congruential Generator (LCG) 사용
+ */
+class SeededRandom {
+  private seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  /**
+   * 0과 1 사이의 랜덤 값 생성
+   */
+  random(): number {
+    // LCG: (a * seed + c) mod m
+    // a = 1664525, c = 1013904223, m = 2^32
+    this.seed = (this.seed * 1664525 + 1013904223) % 0x100000000;
+    return this.seed / 0x100000000;
+  }
+
+  /**
+   * min과 max 사이의 정수 랜덤 값 생성
+   */
+  randomInt(min: number, max: number): number {
+    return Math.floor(this.random() * (max - min + 1)) + min;
+  }
+
+  /**
+   * min과 max 사이의 실수 랜덤 값 생성
+   */
+  randomFloat(min: number, max: number): number {
+    return this.random() * (max - min) + min;
+  }
+}
+
+/**
  * 샘플 메모리 아이템 생성 (다양한 consolidation_score 값)
  */
 export function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] {
@@ -225,6 +261,182 @@ export function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] 
 }
 
 /**
+ * 다양한 시나리오를 포함한 테스트 데이터 생성
+ * 벡터 유사도 높음/낮음, Consolidation 높음/낮음, 극단적 조합 케이스 포함
+ * 
+ * @param count 생성할 메모리 아이템 수
+ * @param seed 시드 값 (재현성을 위해 사용, 기본값: 12345)
+ * @returns 테스트 메모리 아이템 배열
+ */
+export function generateScenarioBasedTestData(
+  count: number = 50,
+  seed: number = 12345
+): TestMemoryItem[] {
+  const items: TestMemoryItem[] = [];
+  const rng = new SeededRandom(seed);
+  const types: MemoryType[] = ['episodic', 'semantic', 'procedural', 'working'];
+  
+  const baseContents = [
+    'React Hook에 대해 설명했다. useState는 상태를 관리하고, useEffect는 사이드 이펙트를 처리한다.',
+    'TypeScript의 타입 시스템에 대해 설명했다. 인터페이스와 타입 별칭의 차이점을 다뤘다.',
+    '데이터베이스 최적화에 대해 질문받았다. 인덱싱과 쿼리 최적화 방법을 설명했다.',
+    'MCP 프로토콜에 대해 학습했다. Model Context Protocol은 AI 에이전트와 도구 간 통신을 위한 표준이다.',
+    'Node.js의 이벤트 루프에 대해 공부했다. 비동기 처리 메커니즘을 이해했다.',
+    'Docker 컨테이너화에 대해 실습했다. 이미지 빌드와 컨테이너 실행 방법을 익혔다.',
+    'GraphQL API 설계에 대해 토론했다. RESTful API와의 차이점을 분석했다.',
+    '머신러닝 모델 학습에 대해 실험했다. 하이퍼파라미터 튜닝 방법을 탐색했다.',
+    '웹 보안에 대해 강의를 들었다. XSS와 CSRF 공격 방어 방법을 학습했다.',
+    '마이크로서비스 아키텍처에 대해 설계했다. 서비스 간 통신 패턴을 고려했다.'
+  ];
+
+  const now = new Date();
+  
+  // 시나리오별 비율 설정
+  const scenarioRatios = {
+    highVectorHighConsolidation: 0.2,  // 20%: 고벡터 유사도 + 고 consolidation
+    highVectorLowConsolidation: 0.2,   // 20%: 고벡터 유사도 + 저 consolidation
+    lowVectorHighConsolidation: 0.2,   // 20%: 저벡터 유사도 + 고 consolidation
+    lowVectorLowConsolidation: 0.2,    // 20%: 저벡터 유사도 + 저 consolidation
+    extreme: 0.2                        // 20%: 극단적 조합
+  };
+
+  let scenarioIndex = 0;
+  const scenarioCounts = {
+    highVectorHighConsolidation: Math.floor(count * scenarioRatios.highVectorHighConsolidation),
+    highVectorLowConsolidation: Math.floor(count * scenarioRatios.highVectorLowConsolidation),
+    lowVectorHighConsolidation: Math.floor(count * scenarioRatios.lowVectorHighConsolidation),
+    lowVectorLowConsolidation: Math.floor(count * scenarioRatios.lowVectorLowConsolidation),
+    extreme: count - Math.floor(count * (scenarioRatios.highVectorHighConsolidation + scenarioRatios.highVectorLowConsolidation + scenarioRatios.lowVectorHighConsolidation + scenarioRatios.lowVectorLowConsolidation))
+  };
+
+  // 시나리오별 데이터 생성
+  const scenarios = [
+    {
+      name: 'highVectorHighConsolidation',
+      vectorSimilarityRange: [0.7, 0.95],
+      consolidationRange: [0.7, 0.95],
+      count: scenarioCounts.highVectorHighConsolidation
+    },
+    {
+      name: 'highVectorLowConsolidation',
+      vectorSimilarityRange: [0.7, 0.95],
+      consolidationRange: [0.1, 0.3],
+      count: scenarioCounts.highVectorLowConsolidation
+    },
+    {
+      name: 'lowVectorHighConsolidation',
+      vectorSimilarityRange: [0.1, 0.4],
+      consolidationRange: [0.7, 0.95],
+      count: scenarioCounts.lowVectorHighConsolidation
+    },
+    {
+      name: 'lowVectorLowConsolidation',
+      vectorSimilarityRange: [0.1, 0.4],
+      consolidationRange: [0.1, 0.3],
+      count: scenarioCounts.lowVectorLowConsolidation
+    },
+    {
+      name: 'extreme',
+      vectorSimilarityRange: [0.05, 0.15],  // 매우 낮은 벡터 유사도
+      consolidationRange: [0.85, 0.99],     // 매우 높은 consolidation
+      count: scenarioCounts.extreme
+    }
+  ];
+
+  scenarios.forEach(scenario => {
+    for (let i = 0; i < scenario.count; i++) {
+      const type = types[scenarioIndex % types.length];
+      const content = baseContents[scenarioIndex % baseContents.length];
+      const daysAgo = rng.randomInt(0, 30);
+      const createdAt = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+      
+      // 시나리오에 맞는 consolidation_score 생성
+      const consolidationScore = rng.randomFloat(
+        scenario.consolidationRange[0],
+        scenario.consolidationRange[1]
+      );
+      
+      // recall_count와 last_accessed_at을 consolidation_score에 맞게 설정
+      const recallCount = consolidationScore > 0.7 
+        ? rng.randomInt(5, 20)  // 고 consolidation: 높은 recall_count
+        : rng.randomInt(0, 4);   // 저 consolidation: 낮은 recall_count
+      
+      const hoursSinceAccess = consolidationScore > 0.7
+        ? rng.randomInt(0, 24)   // 고 consolidation: 최근 접근
+        : rng.randomInt(48, 168); // 저 consolidation: 오래된 접근
+      
+      const lastAccessedAt = new Date(now.getTime() - hoursSinceAccess * 60 * 60 * 1000);
+      
+      items.push({
+        id: `mem_scenario_${scenario.name}_${i}`,
+        type,
+        content: `${content} [${scenario.name}] (Item ${scenarioIndex})`,
+        importance: rng.randomFloat(0.3, 0.9),
+        tags: [`scenario_${scenario.name}`, `tag${scenarioIndex % 5}`],
+        created_at: createdAt.toISOString(),
+        last_accessed: lastAccessedAt.toISOString(),
+        last_accessed_at: lastAccessedAt.toISOString(),
+        pinned: scenarioIndex % 10 === 0,
+        recall_count: recallCount,
+        consolidation_score: consolidationScore,
+        g_value: recallCount > 0 ? 1.0 + (recallCount * 0.5) : 1.0
+      });
+      
+      scenarioIndex++;
+    }
+  });
+
+  return items;
+}
+
+/**
+ * 시드 기반 임베딩 생성 (재현 가능한 벡터 유사도 시뮬레이션)
+ * 
+ * @param memoryIds 메모리 ID 배열
+ * @param dimension 임베딩 차원
+ * @param seed 시드 값 (재현성을 위해 사용)
+ * @param vectorSimilarityRange 벡터 유사도 범위 (시나리오별로 다름)
+ * @returns 테스트 임베딩 배열
+ */
+export function generateSeededEmbeddings(
+  memoryIds: string[],
+  dimension: number = 1536,
+  seed: number = 12345,
+  vectorSimilarityRange?: [number, number]
+): TestMemoryEmbedding[] {
+  const rng = new SeededRandom(seed);
+  
+  return memoryIds.map((memoryId, index) => {
+    // 시드 기반으로 재현 가능한 임베딩 생성
+    const baseSeed = seed + index * 1000;
+    const itemRng = new SeededRandom(baseSeed);
+    
+    // 벡터 유사도 범위가 지정된 경우, 해당 범위에 맞는 벡터 생성
+    let embedding: number[];
+    if (vectorSimilarityRange) {
+      // 벡터 유사도를 시뮬레이션하기 위해 특정 패턴의 벡터 생성
+      const targetSimilarity = itemRng.randomFloat(vectorSimilarityRange[0], vectorSimilarityRange[1]);
+      embedding = Array(dimension).fill(0).map((_, i) => {
+        // 타겟 유사도에 맞는 벡터 생성 (간단한 시뮬레이션)
+        return Math.sin((index * 10 + i) / dimension) * targetSimilarity * 0.5 + targetSimilarity * 0.3;
+      });
+    } else {
+      // 기본 임베딩 생성
+      embedding = Array(dimension).fill(0).map((_, i) => {
+        return itemRng.randomFloat(-0.1, 0.1);
+      });
+    }
+    
+    return {
+      memory_id: memoryId,
+      embedding,
+      embedding_provider: 'tfidf',
+      dim: dimension
+    };
+  });
+}
+
+/**
  * 샘플 임베딩 생성 (간단한 벡터)
  */
 export function generateSampleEmbeddings(
@@ -253,11 +465,14 @@ export function generateSampleEmbeddings(
 export function seedTestDatabase(
   db: Database.Database,
   itemCount: number = 10,
-  includeEmbeddings: boolean = true
+  includeEmbeddings: boolean = true,
+  seed?: number
 ): { memoryIds: string[]; items: TestMemoryItem[] } {
   initializeTestDatabase(db);
 
-  const items = generateSampleMemoryItems(itemCount);
+  const items = seed !== undefined
+    ? generateScenarioBasedTestData(itemCount, seed)
+    : generateSampleMemoryItems(itemCount);
   const memoryIds: string[] = [];
 
   // 메모리 아이템 삽입
@@ -268,7 +483,9 @@ export function seedTestDatabase(
 
   // 임베딩 삽입 (선택적)
   if (includeEmbeddings) {
-    const embeddings = generateSampleEmbeddings(memoryIds);
+    const embeddings = seed !== undefined
+      ? generateSeededEmbeddings(memoryIds, 1536, seed)
+      : generateSampleEmbeddings(memoryIds);
     embeddings.forEach(embedding => {
       insertMemoryEmbedding(db, embedding);
     });

@@ -24,6 +24,18 @@ export default defineConfig({
         'src/services/**/*migration*.spec.ts'
       ]
     }),
+    // CI 환경에서 JUnit 및 JSON 리포트 생성
+    ...(process.env.CI && {
+      reporters: [
+        'basic',
+        'junit',
+        'json'
+      ],
+      outputFile: {
+        junit: './test-results/junit.xml',
+        json: './test-results/results.json'
+      }
+    }),
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
