@@ -4,6 +4,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { unlinkSync, existsSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import {
   calculateKendallTau,
   calculateSpearmanRho,
@@ -22,11 +26,22 @@ import {
   validateHighVectorLowConsolidation,
   validateW2UpperBound,
   generateExtremeScenarioReport,
+  saveBaselineSnapshot,
+  loadBaselineSnapshot,
+  compareWithBaseline,
+  detectQualityDegradation,
   type SearchResultPair,
   type HybridSearchResult,
   type ExtremeScenarioValidation,
-  type W2UpperBoundValidation
+  type W2UpperBoundValidation,
+  type BaselineSnapshot,
+  type OrderPreservationReport,
+  type QualityMetrics,
+  type ExtremeScenarioReport
 } from './vector-search-quality-metrics.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import type { SearchResult } from './search-quality-metrics.js';
 
 describe('벡터 검색 품질 검증 헬퍼', () => {
@@ -1107,6 +1122,394 @@ describe('벡터 검색 품질 검증 헬퍼', () => {
 
         expect(report.timestamp).toBeDefined();
         expect(new Date(report.timestamp).getTime()).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('Baseline 스냅샷 관리', () => {
+    const testFilePath = join(__dirname, '../../../data/test-vector-search-quality-baseline.json');
+
+    // 테스트 후 정리
+    afterEach(() => {
+      if (existsSync(testFilePath)) {
+        unlinkSync(testFilePath);
+      }
+    });
+
+    describe('saveBaselineSnapshot', () => {
+      it('Baseline 스냅샷을 JSON 파일로 저장해야 함', () => {
+        const snapshot: BaselineSnapshot = {
+          version: '1.0.0',
+          timestamp: new Date().toISOString(),
+          testConfiguration: {
+            dataSize: 100,
+            weights: {
+              vectorSimilarity: 0.6,
+              consolidationScore: 0.4
+            }
+          },
+          metrics: {
+            orderPreservation: {
+              kendallTau: 0.85,
+              top10Retention: 0.9,
+              top5Retention: 0.95
+            },
+            quality: {
+              precision: { 1: 0.8, 5: 0.75, 10: 0.7 },
+              recall: { 1: 0.7, 5: 0.65, 10: 0.6 },
+              ndcg: { 1: 0.85, 5: 0.8, 10: 0.75 }
+            },
+            extremeScenarios: {
+              lowVectorHighConsolidation: 1,
+              highVectorLowConsolidation: 1
+            }
+          }
+        };
+
+        saveBaselineSnapshot(snapshot, testFilePath);
+
+        expect(existsSync(testFilePath)).toBe(true);
+      });
+
+      it('디렉토리가 없으면 자동으로 생성해야 함', () => {
+        const snapshot: BaselineSnapshot = {
+          version: '1.0.0',
+          timestamp: new Date().toISOString(),
+          testConfiguration: {
+            dataSize: 100,
+            weights: {
+              vectorSimilarity: 0.6,
+              consolidationScore: 0.4
+            }
+          },
+          metrics: {
+            orderPreservation: {
+              kendallTau: 0.85,
+              top10Retention: 0.9,
+              top5Retention: 0.95
+            },
+            quality: {
+              precision: { 1: 0.8, 5: 0.75, 10: 0.7 },
+              recall: { 1: 0.7, 5: 0.65, 10: 0.6 },
+              ndcg: { 1: 0.85, 5: 0.8, 10: 0.75 }
+            },
+            extremeScenarios: {
+              lowVectorHighConsolidation: 1,
+              highVectorLowConsolidation: 1
+            }
+          }
+        };
+
+        const customPath = join(__dirname, '../../../data/test-dir/baseline.json');
+        saveBaselineSnapshot(snapshot, customPath);
+
+        expect(existsSync(customPath)).toBe(true);
+        
+        // 정리
+        if (existsSync(customPath)) {
+          unlinkSync(customPath);
+        }
+      });
+    });
+
+    describe('loadBaselineSnapshot', () => {
+      it('저장된 Baseline 스냅샷을 로드해야 함', () => {
+        const snapshot: BaselineSnapshot = {
+          version: '1.0.0',
+          timestamp: new Date().toISOString(),
+          testConfiguration: {
+            dataSize: 100,
+            weights: {
+              vectorSimilarity: 0.6,
+              consolidationScore: 0.4
+            }
+          },
+          metrics: {
+            orderPreservation: {
+              kendallTau: 0.85,
+              top10Retention: 0.9,
+              top5Retention: 0.95
+            },
+            quality: {
+              precision: { 1: 0.8, 5: 0.75, 10: 0.7 },
+              recall: { 1: 0.7, 5: 0.65, 10: 0.6 },
+              ndcg: { 1: 0.85, 5: 0.8, 10: 0.75 }
+            },
+            extremeScenarios: {
+              lowVectorHighConsolidation: 1,
+              highVectorLowConsolidation: 1
+            }
+          }
+        };
+
+        saveBaselineSnapshot(snapshot, testFilePath);
+        const loaded = loadBaselineSnapshot(testFilePath);
+
+        expect(loaded).not.toBeNull();
+        expect(loaded?.version).toBe(snapshot.version);
+        expect(loaded?.metrics.orderPreservation.kendallTau).toBe(snapshot.metrics.orderPreservation.kendallTau);
+      });
+
+      it('파일이 없으면 null을 반환해야 함', () => {
+        const loaded = loadBaselineSnapshot(testFilePath);
+
+        expect(loaded).toBeNull();
+      });
+
+      it('잘못된 형식의 파일은 null을 반환해야 함', () => {
+        // 잘못된 JSON 파일 생성
+        const { writeFileSync } = require('fs');
+        writeFileSync(testFilePath, '{ invalid json }', 'utf-8');
+
+        const loaded = loadBaselineSnapshot(testFilePath);
+
+        expect(loaded).toBeNull();
+      });
+    });
+
+    describe('compareWithBaseline', () => {
+      const baseline: BaselineSnapshot = {
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        testConfiguration: {
+          dataSize: 100,
+          weights: {
+            vectorSimilarity: 0.6,
+            consolidationScore: 0.4
+          }
+        },
+        metrics: {
+          orderPreservation: {
+            kendallTau: 0.85,
+            top10Retention: 0.9,
+            top5Retention: 0.95
+          },
+          quality: {
+            precision: { 1: 0.8, 5: 0.75, 10: 0.7 },
+            recall: { 1: 0.7, 5: 0.65, 10: 0.6 },
+            ndcg: { 1: 0.85, 5: 0.8, 10: 0.75 }
+          },
+          extremeScenarios: {
+            lowVectorHighConsolidation: 1,
+            highVectorLowConsolidation: 1
+          }
+        }
+      };
+
+      it('Baseline과 현재 결과를 비교해야 함', () => {
+        const currentOrderPreservation: OrderPreservationReport = {
+          passed: true,
+          metrics: {
+            kendallTau: 0.8,
+            topKRetention: { 5: 0.9, 10: 0.85 }
+          },
+          validation: {
+            kendallTauValid: true,
+            top10RetentionValid: true,
+            top5RetentionValid: true
+          }
+        };
+
+        const currentQuality: QualityMetrics = {
+          precision: { 1: 0.75, 5: 0.7, 10: 0.65 },
+          recall: { 1: 0.65, 5: 0.6, 10: 0.55 },
+          ndcg: { 1: 0.8, 5: 0.75, 10: 0.7 }
+        };
+
+        const currentExtremeScenarios: ExtremeScenarioReport = {
+          timestamp: new Date().toISOString(),
+          lowVectorHighConsolidation: {
+            passed: true,
+            finalScoreRange: { min: 0.3, max: 0.7, average: 0.5 },
+            vectorSimilarityStats: { min: 0.2, max: 0.4, average: 0.3 },
+            consolidationScoreStats: { min: 0.7, max: 0.9, average: 0.8 }
+          },
+          highVectorLowConsolidation: {
+            passed: true,
+            finalScoreRange: { min: 0.5, max: 0.8, average: 0.65 },
+            vectorSimilarityStats: { min: 0.7, max: 0.9, average: 0.8 },
+            consolidationScoreStats: { min: 0.1, max: 0.3, average: 0.2 }
+          },
+          w2UpperBound: {
+            passed: true,
+            w2_04: { precision: { 5: 0.8 }, recall: { 5: 0.7 }, ndcg: { 5: 0.75 } },
+            w2_06: { precision: { 5: 0.75 }, recall: { 5: 0.65 }, ndcg: { 5: 0.7 } },
+            degradation: { precision: { 5: 0.0625 }, recall: { 5: 0.0714 }, ndcg: { 5: 0.0667 } },
+            w2UpperBoundProtects: true
+          },
+          overallPassed: true,
+          summary: {
+            passedCount: 3,
+            totalCount: 3,
+            failedScenarios: []
+          }
+        };
+
+        const comparison = compareWithBaseline(
+          baseline,
+          currentOrderPreservation,
+          currentQuality,
+          currentExtremeScenarios
+        );
+
+        expect(comparison.baseline.version).toBe(baseline.version);
+        expect(comparison.orderPreservation.kendallTauChange).toBeDefined();
+        expect(comparison.quality.ndcgChange[5]).toBeDefined();
+      });
+
+      it('품질 저하가 감지되면 hasDegradation이 true여야 함', () => {
+        const currentOrderPreservation: OrderPreservationReport = {
+          passed: false,
+          metrics: {
+            kendallTau: 0.5, // Baseline 0.85 대비 크게 저하
+            topKRetention: { 5: 0.5, 10: 0.4 } // Baseline 대비 저하
+          },
+          validation: {
+            kendallTauValid: false,
+            top10RetentionValid: false,
+            top5RetentionValid: false
+          }
+        };
+
+        const currentQuality: QualityMetrics = {
+          precision: { 1: 0.5, 5: 0.4, 10: 0.35 },
+          recall: { 1: 0.4, 5: 0.3, 10: 0.25 },
+          ndcg: { 1: 0.5, 5: 0.4, 10: 0.35 }
+        };
+
+        const currentExtremeScenarios: ExtremeScenarioReport = {
+          timestamp: new Date().toISOString(),
+          lowVectorHighConsolidation: {
+            passed: false,
+            failureReasons: ['최종 점수 범위 초과'],
+            finalScoreRange: { min: 0.3, max: 1.2, average: 0.75 },
+            vectorSimilarityStats: { min: 0.2, max: 0.4, average: 0.3 },
+            consolidationScoreStats: { min: 0.7, max: 0.9, average: 0.8 }
+          },
+          highVectorLowConsolidation: {
+            passed: true,
+            finalScoreRange: { min: 0.5, max: 0.8, average: 0.65 },
+            vectorSimilarityStats: { min: 0.7, max: 0.9, average: 0.8 },
+            consolidationScoreStats: { min: 0.1, max: 0.3, average: 0.2 }
+          },
+          w2UpperBound: {
+            passed: true,
+            w2_04: { precision: { 5: 0.8 }, recall: { 5: 0.7 }, ndcg: { 5: 0.75 } },
+            w2_06: { precision: { 5: 0.75 }, recall: { 5: 0.65 }, ndcg: { 5: 0.7 } },
+            degradation: { precision: { 5: 0.0625 }, recall: { 5: 0.0714 }, ndcg: { 5: 0.0667 } },
+            w2UpperBoundProtects: true
+          },
+          overallPassed: false,
+          summary: {
+            passedCount: 2,
+            totalCount: 3,
+            failedScenarios: ['저벡터 유사도 + 고 consolidation 점수']
+          }
+        };
+
+        const comparison = compareWithBaseline(
+          baseline,
+          currentOrderPreservation,
+          currentQuality,
+          currentExtremeScenarios
+        );
+
+        expect(comparison.hasDegradation).toBe(true);
+        expect(comparison.degradationDetails.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('detectQualityDegradation', () => {
+      it('품질 저하가 없으면 detected가 false여야 함', () => {
+        const comparison = {
+          baseline: {
+            version: '1.0.0',
+            timestamp: new Date().toISOString()
+          },
+          orderPreservation: {
+            kendallTauChange: 0.01,
+            top10RetentionChange: 0.01,
+            top5RetentionChange: 0.01
+          },
+          quality: {
+            precisionChange: { 5: 0.01 },
+            recallChange: { 5: 0.01 },
+            ndcgChange: { 5: 0.01 }
+          },
+          extremeScenarios: {
+            lowVectorHighConsolidationChange: 0,
+            highVectorLowConsolidationChange: 0
+          },
+          hasDegradation: false,
+          degradationDetails: []
+        };
+
+        const detection = detectQualityDegradation(comparison);
+
+        expect(detection.detected).toBe(false);
+        expect(detection.severity).toBe('none');
+      });
+
+      it('품질 저하가 감지되면 detected가 true여야 함', () => {
+        const comparison = {
+          baseline: {
+            version: '1.0.0',
+            timestamp: new Date().toISOString()
+          },
+          orderPreservation: {
+            kendallTauChange: -0.15,
+            top10RetentionChange: -0.15,
+            top5RetentionChange: -0.15
+          },
+          quality: {
+            precisionChange: { 5: -0.15 },
+            recallChange: { 5: -0.15 },
+            ndcgChange: { 5: -0.10 }
+          },
+          extremeScenarios: {
+            lowVectorHighConsolidationChange: 0,
+            highVectorLowConsolidationChange: 0
+          },
+          hasDegradation: true,
+          degradationDetails: ['Kendall\'s Tau 저하: -0.150']
+        };
+
+        const detection = detectQualityDegradation(comparison);
+
+        expect(detection.detected).toBe(true);
+        expect(detection.severity).toBe('warning');
+        expect(detection.messages.length).toBeGreaterThan(0);
+      });
+
+      it('심각한 품질 저하가 감지되면 severity가 critical이어야 함', () => {
+        const comparison = {
+          baseline: {
+            version: '1.0.0',
+            timestamp: new Date().toISOString()
+          },
+          orderPreservation: {
+            kendallTauChange: -0.25,
+            top10RetentionChange: -0.25,
+            top5RetentionChange: -0.25
+          },
+          quality: {
+            precisionChange: { 5: -0.25 },
+            recallChange: { 5: -0.25 },
+            ndcgChange: { 5: -0.25 }
+          },
+          extremeScenarios: {
+            lowVectorHighConsolidationChange: 0,
+            highVectorLowConsolidationChange: 0
+          },
+          hasDegradation: true,
+          degradationDetails: ['Kendall\'s Tau 저하: -0.250']
+        };
+
+        const detection = detectQualityDegradation(comparison);
+
+        expect(detection.detected).toBe(true);
+        expect(detection.severity).toBe('critical');
+        expect(detection.recommendations.length).toBeGreaterThan(0);
       });
     });
   });

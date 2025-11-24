@@ -4,6 +4,9 @@
  * Consolidation 점수 반영 전/후 비교를 위한 지표 계산
  */
 
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import type { SearchResult } from './search-quality-metrics.js';
 import type { HybridSearchResult } from '../../algorithms/hybrid-search-engine.js';
 import {
@@ -11,6 +14,9 @@ import {
   calculateRecallAtK,
   calculateNDCGAtK
 } from './search-quality-metrics.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * 벡터-only 검색 결과와 Consolidation 반영 후 검색 결과 쌍
@@ -1730,5 +1736,612 @@ export function generateExtremeScenarioReport(
       totalCount: 3,
       failedScenarios
     }
+  };
+}
+
+/**
+ * Baseline 스냅샷 인터페이스
+ * 벡터 검색 품질의 baseline을 저장하고 비교하기 위한 구조
+ */
+export interface BaselineSnapshot {
+  /**
+   * 스냅샷 버전
+   */
+  version: string;
+  
+  /**
+   * 스냅샷 생성 시간 (ISO 8601 형식)
+   */
+  timestamp: string;
+  
+  /**
+   * 테스트 설정 정보
+   */
+  testConfiguration: {
+    /**
+     * 테스트 데이터 크기
+     */
+    dataSize: number;
+    
+    /**
+     * 가중치 설정
+     */
+    weights: {
+      /**
+       * 벡터 유사도 가중치 (w1)
+       */
+      vectorSimilarity: number;
+      
+      /**
+       * Consolidation 점수 가중치 (w2)
+       */
+      consolidationScore: number;
+    };
+  };
+  
+  /**
+   * 품질 지표
+   */
+  metrics: {
+    /**
+     * 순서 보존 지표
+     */
+    orderPreservation: {
+      /**
+       * Kendall's Tau 순서 일치도
+       */
+      kendallTau: number;
+      
+      /**
+       * 상위 10개 결과 유지율
+       */
+      top10Retention: number;
+      
+      /**
+       * 상위 5개 결과 유지율
+       */
+      top5Retention: number;
+    };
+    
+    /**
+     * 품질 지표 (Precision, Recall, NDCG)
+     */
+    quality: {
+      /**
+       * Precision@K (K 값별 Precision)
+       */
+      precision: Record<number, number>;
+      
+      /**
+       * Recall@K (K 값별 Recall)
+       */
+      recall: Record<number, number>;
+      
+      /**
+       * NDCG@K (K 값별 NDCG)
+       */
+      ndcg: Record<number, number>;
+    };
+    
+    /**
+     * 극단적 시나리오 검증 결과
+     */
+    extremeScenarios: {
+      /**
+       * 저벡터 유사도 + 고 consolidation 점수 검증 통과 여부 (1: 통과, 0: 실패)
+       */
+      lowVectorHighConsolidation: number;
+      
+      /**
+       * 고벡터 유사도 + 저 consolidation 점수 검증 통과 여부 (1: 통과, 0: 실패)
+       */
+      highVectorLowConsolidation: number;
+    };
+  };
+}
+
+/**
+ * Baseline 스냅샷 저장
+ * Baseline 스냅샷을 JSON 형식으로 파일에 저장합니다.
+ * 
+ * @param snapshot 저장할 Baseline 스냅샷
+ * @param filePath 저장할 파일 경로 (기본값: `data/vector-search-quality-baseline.json`)
+ * @throws 파일 저장 실패 시 에러 발생
+ * 
+ * @example
+ * ```typescript
+ * const snapshot: BaselineSnapshot = {
+ *   version: '1.0.0',
+ *   timestamp: new Date().toISOString(),
+ *   testConfiguration: { dataSize: 100, weights: { vectorSimilarity: 0.6, consolidationScore: 0.4 } },
+ *   metrics: {
+ *     orderPreservation: { kendallTau: 0.85, top10Retention: 0.9, top5Retention: 0.95 },
+ *     quality: { precision: {}, recall: {}, ndcg: {} },
+ *     extremeScenarios: { lowVectorHighConsolidation: 1, highVectorLowConsolidation: 1 }
+ *   }
+ * };
+ * saveBaselineSnapshot(snapshot);
+ * ```
+ */
+export function saveBaselineSnapshot(
+  snapshot: BaselineSnapshot,
+  filePath?: string
+): void {
+  // 기본 파일 경로 설정
+  const defaultPath = join(__dirname, '../../../data/vector-search-quality-baseline.json');
+  const targetPath = filePath || defaultPath;
+  
+  // 디렉토리 생성 (없는 경우)
+  const dir = dirname(targetPath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  
+  try {
+    // JSON 형식으로 직렬화하여 저장
+    const jsonContent = JSON.stringify(snapshot, null, 2);
+    writeFileSync(targetPath, jsonContent, 'utf-8');
+  } catch (error) {
+    throw new Error(
+      `Baseline 스냅샷 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Baseline 스냅샷 로드
+ * 저장된 Baseline 스냅샷을 파일에서 로드합니다.
+ * 
+ * @param filePath 로드할 파일 경로 (기본값: `data/vector-search-quality-baseline.json`)
+ * @returns 로드된 Baseline 스냅샷 또는 null (파일이 없거나 로드 실패 시)
+ * 
+ * @example
+ * ```typescript
+ * const snapshot = loadBaselineSnapshot();
+ * if (snapshot) {
+ *   console.log(`Baseline 버전: ${snapshot.version}`);
+ *   console.log(`Baseline 생성 시간: ${snapshot.timestamp}`);
+ * } else {
+ *   console.log('Baseline 스냅샷이 없습니다.');
+ * }
+ * ```
+ */
+export function loadBaselineSnapshot(
+  filePath?: string
+): BaselineSnapshot | null {
+  // 기본 파일 경로 설정
+  const defaultPath = join(__dirname, '../../../data/vector-search-quality-baseline.json');
+  const targetPath = filePath || defaultPath;
+  
+  // 파일 존재 여부 확인
+  if (!existsSync(targetPath)) {
+    return null;
+  }
+  
+  try {
+    // 파일 읽기
+    const content = readFileSync(targetPath, 'utf-8');
+    
+    // JSON 파싱
+    const snapshot = JSON.parse(content) as BaselineSnapshot;
+    
+    // 기본 검증 (필수 필드 존재 여부)
+    if (!snapshot.version || !snapshot.timestamp || !snapshot.metrics) {
+      throw new Error('Baseline 스냅샷 형식이 올바르지 않습니다.');
+    }
+    
+    return snapshot;
+  } catch (error) {
+    // 로드 실패 시 null 반환 (에러 로깅은 호출자가 처리)
+    return null;
+  }
+}
+
+/**
+ * Baseline 비교 결과
+ */
+export interface BaselineComparisonResult {
+  /**
+   * Baseline 스냅샷 정보
+   */
+  baseline: {
+    version: string;
+    timestamp: string;
+  };
+  
+  /**
+   * 순서 보존 지표 비교 결과
+   */
+  orderPreservation: {
+    /**
+     * Kendall's Tau 변화 (현재 - baseline)
+     */
+    kendallTauChange: number;
+    
+    /**
+     * Top10 유지율 변화 (현재 - baseline)
+     */
+    top10RetentionChange: number;
+    
+    /**
+     * Top5 유지율 변화 (현재 - baseline)
+     */
+    top5RetentionChange: number;
+  };
+  
+  /**
+   * 품질 지표 비교 결과
+   */
+  quality: {
+    /**
+     * Precision@K 변화율 (K 값별)
+     */
+    precisionChange: Record<number, number>;
+    
+    /**
+     * Recall@K 변화율 (K 값별)
+     */
+    recallChange: Record<number, number>;
+    
+    /**
+     * NDCG@K 변화율 (K 값별)
+     */
+    ndcgChange: Record<number, number>;
+  };
+  
+  /**
+   * 극단적 시나리오 검증 비교 결과
+   */
+  extremeScenarios: {
+    /**
+     * 저벡터 유사도 + 고 consolidation 점수 검증 변화 (현재 - baseline)
+     */
+    lowVectorHighConsolidationChange: number;
+    
+    /**
+     * 고벡터 유사도 + 저 consolidation 점수 검증 변화 (현재 - baseline)
+     */
+    highVectorLowConsolidationChange: number;
+  };
+  
+  /**
+   * 전체 품질 저하 여부
+   */
+  hasDegradation: boolean;
+  
+  /**
+   * 품질 저하 세부 사항
+   */
+  degradationDetails: string[];
+}
+
+/**
+ * Baseline과 현재 결과 비교
+ * Baseline 스냅샷과 현재 검증 결과를 비교하여 품질 저하를 감지합니다.
+ * 
+ * @param baseline Baseline 스냅샷
+ * @param currentOrderPreservation 현재 순서 보존 검증 결과
+ * @param currentQuality 현재 품질 지표 (QualityMetrics)
+ * @param currentExtremeScenarios 현재 극단적 시나리오 검증 결과
+ * @param kValues 비교할 K 값 배열 (기본값: [1, 5, 10])
+ * @returns Baseline 비교 결과
+ * 
+ * @example
+ * ```typescript
+ * const baseline = loadBaselineSnapshot();
+ * if (baseline) {
+ *   const comparison = compareWithBaseline(
+ *     baseline,
+ *     orderPreservationReport,
+ *     qualityMetrics,
+ *     extremeScenarioReport
+ *   );
+ *   if (comparison.hasDegradation) {
+ *     console.warn('품질 저하 감지:', comparison.degradationDetails);
+ *   }
+ * }
+ * ```
+ */
+export function compareWithBaseline(
+  baseline: BaselineSnapshot,
+  currentOrderPreservation: OrderPreservationReport,
+  currentQuality: QualityMetrics,
+  currentExtremeScenarios: ExtremeScenarioReport,
+  kValues: number[] = [1, 5, 10]
+): BaselineComparisonResult {
+  const degradationDetails: string[] = [];
+  
+  // 순서 보존 지표 비교
+  const kendallTauChange = currentOrderPreservation.metrics.kendallTau - baseline.metrics.orderPreservation.kendallTau;
+  const top10RetentionChange = currentOrderPreservation.metrics.topKRetention[10] - baseline.metrics.orderPreservation.top10Retention;
+  const top5RetentionChange = currentOrderPreservation.metrics.topKRetention[5] - baseline.metrics.orderPreservation.top5Retention;
+  
+  // 순서 보존 지표 저하 감지
+  if (kendallTauChange < -0.1) {
+    degradationDetails.push(`Kendall's Tau 저하: ${kendallTauChange.toFixed(3)}`);
+  }
+  if (top10RetentionChange < -0.1) {
+    degradationDetails.push(`Top10 유지율 저하: ${top10RetentionChange.toFixed(3)}`);
+  }
+  if (top5RetentionChange < -0.1) {
+    degradationDetails.push(`Top5 유지율 저하: ${top5RetentionChange.toFixed(3)}`);
+  }
+  
+  // 품질 지표 비교
+  const precisionChange: Record<number, number> = {};
+  const recallChange: Record<number, number> = {};
+  const ndcgChange: Record<number, number> = {};
+  
+  kValues.forEach(k => {
+    const baselinePrecision = baseline.metrics.quality.precision[k] || 0;
+    const currentPrecision = currentQuality.precision[k] || 0;
+    const precisionDiff = baselinePrecision > 0
+      ? (currentPrecision - baselinePrecision) / baselinePrecision
+      : 0;
+    precisionChange[k] = precisionDiff;
+    
+    const baselineRecall = baseline.metrics.quality.recall[k] || 0;
+    const currentRecall = currentQuality.recall[k] || 0;
+    const recallDiff = baselineRecall > 0
+      ? (currentRecall - baselineRecall) / baselineRecall
+      : 0;
+    recallChange[k] = recallDiff;
+    
+    const baselineNDCG = baseline.metrics.quality.ndcg[k] || 0;
+    const currentNDCG = currentQuality.ndcg[k] || 0;
+    const ndcgDiff = baselineNDCG > 0
+      ? (currentNDCG - baselineNDCG) / baselineNDCG
+      : 0;
+    ndcgChange[k] = ndcgDiff;
+    
+    // 품질 지표 저하 감지 (5% 이상 저하)
+    if (ndcgDiff < -0.05) {
+      degradationDetails.push(`NDCG@${k} 저하: ${(ndcgDiff * 100).toFixed(2)}%`);
+    }
+    if (precisionDiff < -0.10) {
+      degradationDetails.push(`Precision@${k} 저하: ${(precisionDiff * 100).toFixed(2)}%`);
+    }
+    if (recallDiff < -0.10) {
+      degradationDetails.push(`Recall@${k} 저하: ${(recallDiff * 100).toFixed(2)}%`);
+    }
+  });
+  
+  // 극단적 시나리오 검증 비교
+  const lowVectorHighConsolidationChange = 
+    (currentExtremeScenarios.lowVectorHighConsolidation.passed ? 1 : 0) - 
+    baseline.metrics.extremeScenarios.lowVectorHighConsolidation;
+  const highVectorLowConsolidationChange = 
+    (currentExtremeScenarios.highVectorLowConsolidation.passed ? 1 : 0) - 
+    baseline.metrics.extremeScenarios.highVectorLowConsolidation;
+  
+  // 극단적 시나리오 검증 저하 감지
+  if (lowVectorHighConsolidationChange < 0) {
+    degradationDetails.push('저벡터 유사도 + 고 consolidation 점수 검증 실패');
+  }
+  if (highVectorLowConsolidationChange < 0) {
+    degradationDetails.push('고벡터 유사도 + 저 consolidation 점수 검증 실패');
+  }
+  
+  // 전체 품질 저하 여부 판단
+  const hasDegradation = degradationDetails.length > 0;
+  
+  return {
+    baseline: {
+      version: baseline.version,
+      timestamp: baseline.timestamp
+    },
+    orderPreservation: {
+      kendallTauChange,
+      top10RetentionChange,
+      top5RetentionChange
+    },
+    quality: {
+      precisionChange,
+      recallChange,
+      ndcgChange
+    },
+    extremeScenarios: {
+      lowVectorHighConsolidationChange,
+      highVectorLowConsolidationChange
+    },
+    hasDegradation,
+    degradationDetails: hasDegradation ? degradationDetails : []
+  };
+}
+
+/**
+ * 품질 저하 감지 결과
+ */
+export interface QualityDegradationDetection {
+  /**
+   * 품질 저하 감지 여부
+   */
+  detected: boolean;
+  
+  /**
+   * 심각도 레벨
+   */
+  severity: 'none' | 'warning' | 'critical';
+  
+  /**
+   * 품질 저하 메시지 목록
+   */
+  messages: string[];
+  
+  /**
+   * Baseline 비교 결과
+   */
+  comparison: BaselineComparisonResult;
+  
+  /**
+   * 권장 조치 사항
+   */
+  recommendations: string[];
+}
+
+/**
+ * 품질 저하 감지 및 알림
+ * Baseline 비교 결과를 분석하여 품질 저하를 감지하고 알림을 생성합니다.
+ * 
+ * @param comparison Baseline 비교 결과
+ * @param options 감지 옵션
+ * @param options.ndcg5Threshold NDCG@5 저하 임계값 (기본값: 0.05 = 5%)
+ * @param options.precision5Threshold Precision@5 저하 임계값 (기본값: 0.10 = 10%)
+ * @param options.recall5Threshold Recall@5 저하 임계값 (기본값: 0.10 = 10%)
+ * @param options.kendallTauThreshold Kendall's Tau 저하 임계값 (기본값: 0.1)
+ * @param options.criticalThreshold 심각한 저하 임계값 (기본값: 0.20 = 20%)
+ * @returns 품질 저하 감지 결과
+ * 
+ * @example
+ * ```typescript
+ * const comparison = compareWithBaseline(baseline, ...);
+ * const detection = detectQualityDegradation(comparison);
+ * if (detection.detected) {
+ *   console.warn(`[${detection.severity.toUpperCase()}] 품질 저하 감지:`);
+ *   detection.messages.forEach(msg => console.warn(`  - ${msg}`));
+ * }
+ * ```
+ */
+export function detectQualityDegradation(
+  comparison: BaselineComparisonResult,
+  options: {
+    ndcg5Threshold?: number;
+    precision5Threshold?: number;
+    recall5Threshold?: number;
+    kendallTauThreshold?: number;
+    criticalThreshold?: number;
+  } = {}
+): QualityDegradationDetection {
+  const {
+    ndcg5Threshold = 0.05, // 5%
+    precision5Threshold = 0.10, // 10%
+    recall5Threshold = 0.10, // 10%
+    kendallTauThreshold = 0.1,
+    criticalThreshold = 0.20 // 20%
+  } = options;
+
+  const messages: string[] = [];
+  const recommendations: string[] = [];
+  let severity: 'none' | 'warning' | 'critical' = 'none';
+  let hasWarning = false;
+  let hasCritical = false;
+
+  // 순서 보존 지표 저하 감지
+  if (comparison.orderPreservation.kendallTauChange < -kendallTauThreshold) {
+    const change = comparison.orderPreservation.kendallTauChange;
+    const isCritical = change < -criticalThreshold;
+    messages.push(
+      `Kendall's Tau 저하: ${change.toFixed(3)} (Baseline: ${(comparison.baseline.version)} 기준)`
+    );
+    if (isCritical) {
+      hasCritical = true;
+      recommendations.push('순서 보존 지표가 크게 저하되었습니다. 가중치 설정을 재검토하세요.');
+    } else {
+      hasWarning = true;
+      recommendations.push('순서 보존 지표가 저하되었습니다. 모니터링을 강화하세요.');
+    }
+  }
+
+  if (comparison.orderPreservation.top10RetentionChange < -0.1) {
+    const change = comparison.orderPreservation.top10RetentionChange;
+    const isCritical = change < -criticalThreshold;
+    messages.push(
+      `Top10 유지율 저하: ${(change * 100).toFixed(2)}% (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    if (isCritical) {
+      hasCritical = true;
+    } else {
+      hasWarning = true;
+    }
+  }
+
+  if (comparison.orderPreservation.top5RetentionChange < -0.1) {
+    const change = comparison.orderPreservation.top5RetentionChange;
+    const isCritical = change < -criticalThreshold;
+    messages.push(
+      `Top5 유지율 저하: ${(change * 100).toFixed(2)}% (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    if (isCritical) {
+      hasCritical = true;
+    } else {
+      hasWarning = true;
+    }
+  }
+
+  // 품질 지표 저하 감지
+  const ndcg5Change = comparison.quality.ndcgChange[5] || 0;
+  if (ndcg5Change < -ndcg5Threshold) {
+    const isCritical = ndcg5Change < -criticalThreshold;
+    messages.push(
+      `NDCG@5 저하: ${(ndcg5Change * 100).toFixed(2)}% (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    if (isCritical) {
+      hasCritical = true;
+      recommendations.push('NDCG@5가 크게 저하되었습니다. 검색 알고리즘을 재검토하세요.');
+    } else {
+      hasWarning = true;
+      recommendations.push('NDCG@5가 저하되었습니다. 가중치 조정을 고려하세요.');
+    }
+  }
+
+  const precision5Change = comparison.quality.precisionChange[5] || 0;
+  if (precision5Change < -precision5Threshold) {
+    const isCritical = precision5Change < -criticalThreshold;
+    messages.push(
+      `Precision@5 저하: ${(precision5Change * 100).toFixed(2)}% (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    if (isCritical) {
+      hasCritical = true;
+    } else {
+      hasWarning = true;
+    }
+  }
+
+  const recall5Change = comparison.quality.recallChange[5] || 0;
+  if (recall5Change < -recall5Threshold) {
+    const isCritical = recall5Change < -criticalThreshold;
+    messages.push(
+      `Recall@5 저하: ${(recall5Change * 100).toFixed(2)}% (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    if (isCritical) {
+      hasCritical = true;
+    } else {
+      hasWarning = true;
+    }
+  }
+
+  // 극단적 시나리오 검증 저하 감지
+  if (comparison.extremeScenarios.lowVectorHighConsolidationChange < 0) {
+    messages.push(
+      `저벡터 유사도 + 고 consolidation 점수 검증 실패 (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    hasWarning = true;
+    recommendations.push('극단적 시나리오 검증이 실패했습니다. w2 상한 설정을 확인하세요.');
+  }
+
+  if (comparison.extremeScenarios.highVectorLowConsolidationChange < 0) {
+    messages.push(
+      `고벡터 유사도 + 저 consolidation 점수 검증 실패 (Baseline: ${comparison.baseline.version} 기준)`
+    );
+    hasWarning = true;
+    recommendations.push('극단적 시나리오 검증이 실패했습니다. 벡터 유사도 가중치를 확인하세요.');
+  }
+
+  // 심각도 결정
+  if (hasCritical) {
+    severity = 'critical';
+  } else if (hasWarning || comparison.hasDegradation) {
+    severity = 'warning';
+  }
+
+  // 감지 여부 결정
+  const detected = comparison.hasDegradation || messages.length > 0;
+
+  return {
+    detected,
+    severity,
+    messages,
+    comparison,
+    recommendations: recommendations.length > 0 ? recommendations : []
   };
 }

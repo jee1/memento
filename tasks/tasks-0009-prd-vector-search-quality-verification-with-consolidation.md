@@ -46,13 +46,13 @@
   - [x] 3.3 w2 상한(0.4) 검증 함수 구현 (`validateW2UpperBound`) - w2=0.4 vs w2=0.6 비교
   - [x] 3.4 극단적 시나리오 검증 결과 리포트 생성 함수 구현 (`generateExtremeScenarioReport`)
   - [x] 3.5 극단적 시나리오 검증 단위 테스트 작성
-- [ ] 4.0 Baseline 스냅샷 관리 기능 구현
-  - [ ] 4.1 Baseline 스냅샷 인터페이스 정의 (`BaselineSnapshot`) - PRD의 구조 참고
-  - [ ] 4.2 Baseline 스냅샷 저장 함수 구현 (`saveBaselineSnapshot`) - JSON 형식으로 `data/vector-search-quality-baseline.json`에 저장
-  - [ ] 4.3 Baseline 스냅샷 로드 함수 구현 (`loadBaselineSnapshot`)
-  - [ ] 4.4 Baseline과 현재 결과 비교 함수 구현 (`compareWithBaseline`)
-  - [ ] 4.5 품질 저하 감지 및 알림 함수 구현 (`detectQualityDegradation`)
-  - [ ] 4.6 Baseline 스냅샷 관리 단위 테스트 작성
+- [x] 4.0 Baseline 스냅샷 관리 기능 구현
+  - [x] 4.1 Baseline 스냅샷 인터페이스 정의 (`BaselineSnapshot`) - PRD의 구조 참고
+  - [x] 4.2 Baseline 스냅샷 저장 함수 구현 (`saveBaselineSnapshot`) - JSON 형식으로 `data/vector-search-quality-baseline.json`에 저장
+  - [x] 4.3 Baseline 스냅샷 로드 함수 구현 (`loadBaselineSnapshot`)
+  - [x] 4.4 Baseline과 현재 결과 비교 함수 구현 (`compareWithBaseline`)
+  - [x] 4.5 품질 저하 감지 및 알림 함수 구현 (`detectQualityDegradation`)
+  - [x] 4.6 Baseline 스냅샷 관리 단위 테스트 작성
 - [ ] 5.0 통합 테스트 및 문서화
   - [ ] 5.1 `src/test/test-vector-search-quality-with-consolidation.ts` 메인 테스트 파일 생성
   - [ ] 5.2 테스트 데이터 준비 함수 구현 (기존 `consolidation-test-data.ts` 활용) - 시드 기반 데이터 생성 및 동일 입력 동일 결과 검증 포함 (FR-5.3), 다양한 시나리오 샘플 데이터 구성: 벡터 유사도 높음/낮음, Consolidation 높음/낮음, 극단적 조합 케이스 포함 (FR-5.2)
