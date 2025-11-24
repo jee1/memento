@@ -7,7 +7,7 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import type { SearchResult } from './search-quality-metrics.js';
+import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
 import type { HybridSearchResult } from '../../algorithms/hybrid-search-engine.js';
 import {
   calculatePrecisionAtK,
@@ -57,6 +57,18 @@ export interface OrderPreservationMetrics {
   topKRetention: Record<number, number>;
   
   /**
+   * Top10 유지율 (0 ~ 1)
+   * 벡터-only 상위 10개가 Consolidation 반영 후에도 상위에 유지되는 비율
+   */
+  top10Retention: number;
+  
+  /**
+   * Top5 유지율 (0 ~ 1)
+   * 벡터-only 상위 5개가 Consolidation 반영 후에도 상위에 유지되는 비율
+   */
+  top5Retention: number;
+  
+  /**
    * 전체 결과 수
    */
   totalResults: number;
@@ -66,6 +78,11 @@ export interface OrderPreservationMetrics {
  * 순서 보존 검증 결과 리포트
  */
 export interface OrderPreservationReport {
+  /**
+   * 리포트 생성 시간 (ISO 8601 형식)
+   */
+  timestamp?: string;
+  
   /**
    * 순서 보존 지표
    */
@@ -95,10 +112,19 @@ export interface OrderPreservationReport {
      */
     top10RetentionValid: boolean;
     
+    /**
+     * Top5 유지율 >= 90% 검증
+     */
+    top5RetentionValid: boolean;
+  };
+  
   /**
-   * Top5 유지율 >= 90% 검증
+   * 검증 임계값 (선택적)
    */
-  top5RetentionValid: boolean;
+  thresholds?: {
+    kendallTauThreshold?: number;
+    top10RetentionThreshold?: number;
+    top5RetentionThreshold?: number;
   };
 }
 
@@ -547,11 +573,14 @@ export function generateOrderPreservationReport(
     kendallTau,
     spearmanRho,
     topKRetention,
+    top10Retention,
+    top5Retention,
     totalResults: Math.max(pair.vectorOnly.length, pair.withConsolidation.length)
   };
 
   // 리포트 생성
   const report: OrderPreservationReport = {
+    timestamp: new Date().toISOString(),
     metrics,
     passed,
     failureReasons: passed ? undefined : failureReasons,
@@ -559,6 +588,11 @@ export function generateOrderPreservationReport(
       kendallTauValid,
       top10RetentionValid,
       top5RetentionValid
+    },
+    thresholds: {
+      kendallTauThreshold,
+      top10RetentionThreshold,
+      top5RetentionThreshold
     }
   };
 
@@ -1598,17 +1632,21 @@ export function validateW2UpperBound(
   );
 
   // w2 상한이 품질을 보호하는지 검증
-  // w2=0.6일 때 w2=0.4 대비 품질 저하가 발생하는지 확인
+  // w2=0.6일 때 w2=0.4 대비 실제 품질 저하가 발생하는지 확인
   // NDCG@5 저하율이 5% 이상이면 w2 상한이 필요함
-  const ndcg5Degradation = Math.abs(degradation_w2_06_vs_04.ndcg[5] || 0);
+  // 주의: degradation 값이 양수면 저하, 음수면 개선이므로 실제 저하만 확인
+  const ndcg5Degradation = degradation_w2_06_vs_04.ndcg[5] || 0;
   const w2UpperBoundProtects = ndcg5Degradation >= 0.05;
 
   const passed = w2UpperBoundProtects;
 
   const failureReasons: string[] = [];
   if (!w2UpperBoundProtects) {
+    const degradationPercent = ndcg5Degradation >= 0 
+      ? `${(ndcg5Degradation * 100).toFixed(2)}%`
+      : `개선 ${(Math.abs(ndcg5Degradation) * 100).toFixed(2)}%`;
     failureReasons.push(
-      `w2=0.6일 때 w2=0.4 대비 NDCG@5 저하율 (${(ndcg5Degradation * 100).toFixed(2)}%) < 5% - w2 상한의 필요성이 낮음`
+      `w2=0.6일 때 w2=0.4 대비 NDCG@5 변화 (${degradationPercent}) < 5% 저하 - w2 상한의 필요성이 낮음`
     );
   }
 
@@ -2344,4 +2382,1050 @@ export function detectQualityDegradation(
     comparison,
     recommendations: recommendations.length > 0 ? recommendations : []
   };
+}
+
+/**
+ * 경고 메시지 출력 옵션
+ */
+export interface QualityAlertOptions {
+  /**
+   * 출력 대상 ('console' | 'file' | 'both')
+   */
+  output?: 'console' | 'file' | 'both';
+  
+  /**
+   * 파일 경로 (output이 'file' 또는 'both'일 때 사용)
+   */
+  filePath?: string;
+  
+  /**
+   * 색상 사용 여부 (콘솔 출력 시, 기본값: true)
+   */
+  useColors?: boolean;
+  
+  /**
+   * 상세 정보 포함 여부 (기본값: true)
+   */
+  includeDetails?: boolean;
+  
+  /**
+   * Baseline 정보 포함 여부 (기본값: true)
+   */
+  includeBaselineInfo?: boolean;
+}
+
+/**
+ * 품질 저하 경고 메시지 출력
+ * 품질 저하 감지 결과를 사용자 친화적인 형식으로 출력합니다.
+ * 
+ * @param detection 품질 저하 감지 결과
+ * @param options 출력 옵션
+ * 
+ * @example
+ * ```typescript
+ * const detection = detectQualityDegradation(comparison);
+ * printQualityAlert(detection, { output: 'console', useColors: true });
+ * ```
+ */
+export function printQualityAlert(
+  detection: QualityDegradationDetection,
+  options: QualityAlertOptions = {}
+): void {
+  const {
+    output = 'console',
+    filePath,
+    useColors = true,
+    includeDetails = true,
+    includeBaselineInfo = true
+  } = options;
+
+  // 감지되지 않았으면 출력하지 않음
+  if (!detection.detected) {
+    return;
+  }
+
+  const lines: string[] = [];
+  
+  // 헤더
+  const severityLabel = detection.severity === 'critical' 
+    ? '🚨 CRITICAL' 
+    : detection.severity === 'warning'
+      ? '⚠️  WARNING'
+      : 'ℹ️  INFO';
+  
+  lines.push('='.repeat(80));
+  lines.push(`${severityLabel} 품질 저하 감지`);
+  lines.push('='.repeat(80));
+  lines.push('');
+  
+  // Baseline 정보
+  if (includeBaselineInfo) {
+    lines.push(`Baseline 버전: ${detection.comparison.baseline.version}`);
+    lines.push(`Baseline 생성 시간: ${detection.comparison.baseline.timestamp}`);
+    lines.push('');
+  }
+  
+  // 품질 저하 메시지
+  if (detection.messages.length > 0) {
+    lines.push('감지된 품질 저하:');
+    lines.push('');
+    detection.messages.forEach((msg, index) => {
+      lines.push(`  ${index + 1}. ${msg}`);
+    });
+    lines.push('');
+  }
+  
+  // 권장 조치 사항
+  if (detection.recommendations.length > 0) {
+    lines.push('권장 조치 사항:');
+    lines.push('');
+    detection.recommendations.forEach((rec, index) => {
+      lines.push(`  ${index + 1}. ${rec}`);
+    });
+    lines.push('');
+  }
+  
+  // 상세 정보
+  if (includeDetails) {
+    lines.push('상세 정보:');
+    lines.push('');
+    
+    // 순서 보존 지표
+    const orderPres = detection.comparison.orderPreservation;
+    lines.push('순서 보존 지표:');
+    lines.push(`  - Kendall's Tau 변화: ${orderPres.kendallTauChange >= 0 ? '+' : ''}${orderPres.kendallTauChange.toFixed(3)}`);
+    lines.push(`  - Top10 유지율 변화: ${orderPres.top10RetentionChange >= 0 ? '+' : ''}${(orderPres.top10RetentionChange * 100).toFixed(2)}%`);
+    lines.push(`  - Top5 유지율 변화: ${orderPres.top5RetentionChange >= 0 ? '+' : ''}${(orderPres.top5RetentionChange * 100).toFixed(2)}%`);
+    lines.push('');
+    
+    // 품질 지표
+    const quality = detection.comparison.quality;
+    lines.push('품질 지표 변화:');
+    const kValues = Object.keys(quality.ndcgChange || {}).map(Number).sort((a, b) => a - b);
+    if (kValues.length > 0) {
+      lines.push('  NDCG@K:');
+      kValues.forEach(k => {
+        const change = quality.ndcgChange[k] || 0;
+        lines.push(`    - NDCG@${k}: ${change >= 0 ? '+' : ''}${(change * 100).toFixed(2)}%`);
+      });
+      lines.push('  Precision@K:');
+      kValues.forEach(k => {
+        const change = quality.precisionChange[k] || 0;
+        lines.push(`    - Precision@${k}: ${change >= 0 ? '+' : ''}${(change * 100).toFixed(2)}%`);
+      });
+      lines.push('  Recall@K:');
+      kValues.forEach(k => {
+        const change = quality.recallChange[k] || 0;
+        lines.push(`    - Recall@${k}: ${change >= 0 ? '+' : ''}${(change * 100).toFixed(2)}%`);
+      });
+    }
+    lines.push('');
+  }
+  
+  lines.push('='.repeat(80));
+  lines.push('');
+  
+  const alertText = lines.join('\n');
+  
+  // 콘솔 출력
+  if (output === 'console' || output === 'both') {
+    if (detection.severity === 'critical') {
+      // Critical은 stderr로 출력
+      console.error(alertText);
+    } else if (detection.severity === 'warning') {
+      // Warning은 console.warn으로 출력
+      console.warn(alertText);
+    } else {
+      // Info는 console.log로 출력
+      console.log(alertText);
+    }
+  }
+  
+  // 파일 출력
+  if ((output === 'file' || output === 'both') && filePath) {
+    const dir = dirname(filePath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    
+    try {
+      writeFileSync(filePath, alertText, 'utf-8');
+    } catch (error) {
+      throw new Error(
+        `경고 메시지 파일 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+}
+
+/**
+ * 품질 저하 감지 및 경고 출력 (통합 함수)
+ * Baseline 비교 결과를 분석하여 품질 저하를 감지하고 경고 메시지를 출력합니다.
+ * 
+ * @param comparison Baseline 비교 결과
+ * @param detectionOptions 감지 옵션
+ * @param alertOptions 경고 출력 옵션
+ * @returns 품질 저하 감지 결과
+ * 
+ * @example
+ * ```typescript
+ * const comparison = compareWithBaseline(baseline, currentMetrics);
+ * detectAndAlertQualityDegradation(comparison, {}, { output: 'console' });
+ * ```
+ */
+export function detectAndAlertQualityDegradation(
+  comparison: BaselineComparisonResult,
+  detectionOptions: Parameters<typeof detectQualityDegradation>[1] = {},
+  alertOptions: QualityAlertOptions = {}
+): QualityDegradationDetection {
+  // 품질 저하 감지
+  const detection = detectQualityDegradation(comparison, detectionOptions);
+  
+  // 경고 메시지 출력
+  printQualityAlert(detection, alertOptions);
+  
+  return detection;
+}
+
+/**
+ * 시드 기반 랜덤 생성기 (Ground Truth 생성용)
+ * 재현 가능한 랜덤 값 생성
+ */
+class GroundTruthSeededRandom {
+  private seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  /**
+   * 0과 1 사이의 랜덤 값 생성
+   */
+  random(): number {
+    // LCG: (a * seed + c) mod m
+    // a = 1664525, c = 1013904223, m = 2^32
+    this.seed = (this.seed * 1664525 + 1013904223) % 0x100000000;
+    return this.seed / 0x100000000;
+  }
+
+  /**
+   * min과 max 사이의 정수 랜덤 값 생성
+   */
+  randomInt(min: number, max: number): number {
+    return Math.floor(this.random() * (max - min + 1)) + min;
+  }
+}
+
+/**
+ * Ground Truth 생성 옵션
+ */
+export interface GroundTruthGenerationOptions {
+  /**
+   * 시드 값 (재현성을 위해 사용, 기본값: 12345)
+   */
+  seed?: number;
+  
+  /**
+   * 쿼리 목록 (기본값: ['React', 'TypeScript', 'database', 'MCP', 'optimization'])
+   */
+  queries?: string[];
+  
+  /**
+   * 각 쿼리당 관련 결과 수 (기본값: 5)
+   */
+  relevantCountPerQuery?: number;
+  
+  /**
+   * 관련 결과 선택 전략 (기본값: 'random')
+   * - 'random': 랜덤 선택
+   * - 'first': 처음 N개 선택
+   * - 'pattern': 패턴 기반 선택 (i % 3 === 0 등)
+   */
+  selectionStrategy?: 'random' | 'first' | 'pattern';
+}
+
+/**
+ * Ground Truth 자동 생성
+ * 시드 기반으로 재현 가능한 Ground Truth 생성
+ * 
+ * @param memoryIds 메모리 ID 배열
+ * @param options 생성 옵션
+ * @returns Ground Truth 배열
+ * 
+ * @example
+ * ```typescript
+ * // 기본 옵션으로 생성
+ * const groundTruths = generateGroundTruth(memoryIds);
+ * 
+ * // 시드와 쿼리 지정
+ * const groundTruths = generateGroundTruth(memoryIds, {
+ *   seed: 12345,
+ *   queries: ['React', 'TypeScript'],
+ *   relevantCountPerQuery: 3
+ * });
+ * ```
+ */
+export function generateGroundTruth(
+  memoryIds: string[],
+  options: GroundTruthGenerationOptions = {}
+): GroundTruth[] {
+  const {
+    seed = 12345,
+    queries = ['React', 'TypeScript', 'database', 'MCP', 'optimization'],
+    relevantCountPerQuery = 5,
+    selectionStrategy = 'random'
+  } = options;
+
+  const rng = new GroundTruthSeededRandom(seed);
+  const groundTruths: GroundTruth[] = [];
+
+  queries.forEach((query, queryIndex) => {
+    let relevantIds: string[];
+
+    switch (selectionStrategy) {
+      case 'first':
+        // 처음 N개 선택
+        relevantIds = memoryIds.slice(0, relevantCountPerQuery);
+        break;
+      
+      case 'pattern':
+        // 패턴 기반 선택 (쿼리별로 다른 패턴)
+        relevantIds = memoryIds.filter((_, i) => 
+          i % (queries.length + 1) === queryIndex
+        ).slice(0, relevantCountPerQuery);
+        break;
+      
+      case 'random':
+      default:
+        // 랜덤 선택 (시드 기반)
+        const shuffled = [...memoryIds];
+        // Fisher-Yates 셔플 (시드 기반)
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = rng.randomInt(0, i);
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        relevantIds = shuffled.slice(0, relevantCountPerQuery);
+        break;
+    }
+
+    groundTruths.push({
+      queryId: query,
+      relevantIds
+    });
+  });
+
+  return groundTruths;
+}
+
+/**
+ * Ground Truth 저장
+ * JSON 파일로 Ground Truth를 저장합니다.
+ * 
+ * @param groundTruths 저장할 Ground Truth 배열
+ * @param filePath 저장할 파일 경로 (기본값: `data/vector-search-quality-ground-truth.json`)
+ * 
+ * @example
+ * ```typescript
+ * const groundTruths = generateGroundTruth(memoryIds);
+ * saveGroundTruth(groundTruths);
+ * ```
+ */
+export function saveGroundTruth(
+  groundTruths: GroundTruth[],
+  filePath?: string
+): void {
+  const defaultPath = join(__dirname, '../../../data/vector-search-quality-ground-truth.json');
+  const targetPath = filePath || defaultPath;
+  const dir = dirname(targetPath);
+  
+  // 디렉토리가 없으면 생성
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  
+  try {
+    const jsonContent = JSON.stringify(groundTruths, null, 2);
+    writeFileSync(targetPath, jsonContent, 'utf-8');
+  } catch (error) {
+    throw new Error(
+      `Ground Truth 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Ground Truth 로드
+ * JSON 파일에서 Ground Truth를 로드합니다.
+ * 
+ * @param filePath 로드할 파일 경로 (기본값: `data/vector-search-quality-ground-truth.json`)
+ * @returns 로드된 Ground Truth 배열 또는 null (파일이 없거나 로드 실패 시)
+ * 
+ * @example
+ * ```typescript
+ * const groundTruths = loadGroundTruth();
+ * if (groundTruths) {
+ *   console.log(`로드된 Ground Truth 수: ${groundTruths.length}`);
+ * } else {
+ *   console.log('Ground Truth 파일이 없습니다. 새로 생성합니다.');
+ *   const newGroundTruths = generateGroundTruth(memoryIds);
+ *   saveGroundTruth(newGroundTruths);
+ * }
+ * ```
+ */
+export function loadGroundTruth(
+  filePath?: string
+): GroundTruth[] | null {
+  const defaultPath = join(__dirname, '../../../data/vector-search-quality-ground-truth.json');
+  const targetPath = filePath || defaultPath;
+  
+  // 파일 존재 여부 확인
+  if (!existsSync(targetPath)) {
+    return null;
+  }
+  
+  try {
+    // 파일 읽기
+    const content = readFileSync(targetPath, 'utf-8');
+    
+    // JSON 파싱
+    const groundTruths = JSON.parse(content) as GroundTruth[];
+    
+    // 기본 검증 (배열이고 각 항목이 올바른 형식인지 확인)
+    if (!Array.isArray(groundTruths)) {
+      throw new Error('Ground Truth는 배열이어야 합니다.');
+    }
+    
+    for (const gt of groundTruths) {
+      if (!gt.queryId || !Array.isArray(gt.relevantIds)) {
+        throw new Error('Ground Truth 형식이 올바르지 않습니다.');
+      }
+    }
+    
+    return groundTruths;
+  } catch (error) {
+    // 로드 실패 시 null 반환 (에러 로깅은 호출자가 처리)
+    return null;
+  }
+}
+
+/**
+ * Ground Truth 생성 또는 로드
+ * 파일이 있으면 로드하고, 없으면 자동 생성하여 저장합니다.
+ * 
+ * @param memoryIds 메모리 ID 배열
+ * @param options 생성 옵션 (파일이 없을 때만 사용)
+ * @param filePath Ground Truth 파일 경로 (기본값: `data/vector-search-quality-ground-truth.json`)
+ * @returns Ground Truth 배열
+ * 
+ * @example
+ * ```typescript
+ * // 파일이 있으면 로드, 없으면 생성
+ * const groundTruths = generateOrLoadGroundTruth(memoryIds, {
+ *   seed: 12345,
+ *   queries: ['React', 'TypeScript']
+ * });
+ * ```
+ */
+export function generateOrLoadGroundTruth(
+  memoryIds: string[],
+  options: GroundTruthGenerationOptions = {},
+  filePath?: string
+): GroundTruth[] {
+  // 먼저 파일에서 로드 시도
+  const loaded = loadGroundTruth(filePath);
+  
+  if (loaded) {
+    return loaded;
+  }
+  
+  // 파일이 없으면 생성
+  const generated = generateGroundTruth(memoryIds, options);
+  
+  // 생성한 Ground Truth 저장
+  saveGroundTruth(generated, filePath);
+  
+  return generated;
+}
+
+/**
+ * 리포트 저장 옵션
+ */
+export interface ReportSaveOptions {
+  /**
+   * 저장할 파일 경로 (기본값: 리포트 타입에 따라 자동 생성)
+   */
+  filePath?: string;
+  
+  /**
+   * 저장 형식 ('json' | 'markdown' | 'both')
+   */
+  format?: 'json' | 'markdown' | 'both';
+  
+  /**
+   * 파일명에 타임스탬프 포함 여부 (기본값: true)
+   */
+  includeTimestamp?: boolean;
+}
+
+/**
+ * 순서 보존 리포트 저장
+ * 순서 보존 리포트를 JSON 또는 Markdown 형식으로 파일에 저장합니다.
+ * 
+ * @param report 저장할 순서 보존 리포트
+ * @param options 저장 옵션
+ * 
+ * @example
+ * ```typescript
+ * const report = generateOrderPreservationReport(pair);
+ * saveOrderPreservationReport(report, { format: 'markdown' });
+ * ```
+ */
+export function saveOrderPreservationReport(
+  report: OrderPreservationReport,
+  options: ReportSaveOptions = {}
+): void {
+  const {
+    format = 'both',
+    includeTimestamp = true
+  } = options;
+  
+  const timestamp = includeTimestamp 
+    ? `_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`
+    : '';
+  
+  const defaultJsonPath = join(__dirname, `../../../data/order-preservation-report${timestamp}.json`);
+  const defaultMarkdownPath = join(__dirname, `../../../data/order-preservation-report${timestamp}.md`);
+  
+  const jsonPath = options.filePath && format === 'json' 
+    ? options.filePath 
+    : format === 'both' 
+      ? defaultJsonPath.replace('.md', '.json')
+      : format === 'json'
+        ? defaultJsonPath
+        : undefined;
+  
+  const markdownPath = options.filePath && format === 'markdown'
+    ? options.filePath
+    : format === 'both'
+      ? defaultMarkdownPath
+      : format === 'markdown'
+        ? defaultMarkdownPath
+        : undefined;
+  
+  // 디렉토리 생성
+  if (jsonPath) {
+    const dir = dirname(jsonPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  if (markdownPath) {
+    const dir = dirname(markdownPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  try {
+    // JSON 형식 저장
+    if (jsonPath) {
+      const jsonContent = JSON.stringify(report, null, 2);
+      writeFileSync(jsonPath, jsonContent, 'utf-8');
+    }
+    
+    // Markdown 형식 저장
+    if (markdownPath) {
+      const markdownLines: string[] = [];
+      markdownLines.push('# 순서 보존 검증 리포트');
+      markdownLines.push('');
+      markdownLines.push(`**생성 시간**: ${report.timestamp}`);
+      markdownLines.push(`**검증 통과**: ${report.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+      markdownLines.push('');
+      
+      markdownLines.push('## 순서 보존 지표');
+      markdownLines.push('');
+      markdownLines.push('| 지표 | 값 |');
+      markdownLines.push('|------|-----|');
+      markdownLines.push(`| Kendall's Tau | ${report.metrics.kendallTau.toFixed(3)} |`);
+      markdownLines.push(`| Top10 유지율 | ${(report.metrics.top10Retention * 100).toFixed(2)}% |`);
+      markdownLines.push(`| Top5 유지율 | ${(report.metrics.top5Retention * 100).toFixed(2)}% |`);
+      
+      if (report.metrics.spearmanRho !== undefined) {
+        markdownLines.push(`| Spearman's Rho | ${report.metrics.spearmanRho.toFixed(3)} |`);
+      }
+      
+      markdownLines.push('');
+      
+      // 검증 결과
+      markdownLines.push('## 검증 결과');
+      markdownLines.push('');
+      markdownLines.push('| 항목 | 임계값 | 실제 값 | 상태 |');
+      markdownLines.push('|------|--------|---------|------|');
+      
+      const kendallTauStatus = report.metrics.kendallTau >= (report.thresholds?.kendallTauThreshold || 0.7)
+        ? '[PASS] 통과'
+        : '[FAIL] 실패';
+      const top10Status = report.metrics.top10Retention >= (report.thresholds?.top10RetentionThreshold || 0.8)
+        ? '[PASS] 통과'
+        : '[FAIL] 실패';
+      const top5Status = report.metrics.top5Retention >= (report.thresholds?.top5RetentionThreshold || 0.9)
+        ? '[PASS] 통과'
+        : '[FAIL] 실패';
+      
+      markdownLines.push(`| Kendall's Tau | ≥ ${(report.thresholds?.kendallTauThreshold || 0.7).toFixed(1)} | ${report.metrics.kendallTau.toFixed(3)} | ${kendallTauStatus} |`);
+      markdownLines.push(`| Top10 유지율 | ≥ ${((report.thresholds?.top10RetentionThreshold || 0.8) * 100).toFixed(0)}% | ${(report.metrics.top10Retention * 100).toFixed(2)}% | ${top10Status} |`);
+      markdownLines.push(`| Top5 유지율 | ≥ ${((report.thresholds?.top5RetentionThreshold || 0.9) * 100).toFixed(0)}% | ${(report.metrics.top5Retention * 100).toFixed(2)}% | ${top5Status} |`);
+      markdownLines.push('');
+      
+      // 실패 사유
+      if (report.failureReasons && report.failureReasons.length > 0) {
+        markdownLines.push('### 실패 사유');
+        markdownLines.push('');
+        report.failureReasons.forEach(reason => {
+          markdownLines.push(`- [FAIL] ${reason}`);
+        });
+        markdownLines.push('');
+      }
+      
+      const markdownContent = markdownLines.join('\n');
+      writeFileSync(markdownPath, markdownContent, 'utf-8');
+    }
+  } catch (error) {
+    throw new Error(
+      `순서 보존 리포트 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * 품질 비교 리포트 저장
+ * 품질 비교 리포트를 JSON 또는 Markdown 형식으로 파일에 저장합니다.
+ * 
+ * @param report 저장할 품질 비교 리포트
+ * @param options 저장 옵션
+ * 
+ * @example
+ * ```typescript
+ * const report = generateQualityComparisonReport(comparison, groundTruth);
+ * saveQualityComparisonReport(report, { format: 'markdown' });
+ * ```
+ */
+export function saveQualityComparisonReport(
+  report: QualityComparisonReport,
+  options: ReportSaveOptions = {}
+): void {
+  const {
+    format = 'both',
+    includeTimestamp = true
+  } = options;
+  
+  const timestamp = includeTimestamp 
+    ? `_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`
+    : '';
+  
+  const defaultJsonPath = join(__dirname, `../../../data/quality-comparison-report${timestamp}.json`);
+  const defaultMarkdownPath = join(__dirname, `../../../data/quality-comparison-report${timestamp}.md`);
+  
+  const jsonPath = options.filePath && format === 'json' 
+    ? options.filePath 
+    : format === 'both' 
+      ? defaultJsonPath.replace('.md', '.json')
+      : format === 'json'
+        ? defaultJsonPath
+        : undefined;
+  
+  const markdownPath = options.filePath && format === 'markdown'
+    ? options.filePath
+    : format === 'both'
+      ? defaultMarkdownPath
+      : format === 'markdown'
+        ? defaultMarkdownPath
+        : undefined;
+  
+  // 디렉토리 생성
+  if (jsonPath) {
+    const dir = dirname(jsonPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  if (markdownPath) {
+    const dir = dirname(markdownPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  try {
+    // JSON 형식 저장
+    if (jsonPath) {
+      const jsonContent = JSON.stringify(report, null, 2);
+      writeFileSync(jsonPath, jsonContent, 'utf-8');
+    }
+    
+    // Markdown 형식 저장 (기존 visualizeQualityComparison 함수 활용)
+    if (markdownPath) {
+      const markdownContent = visualizeQualityComparison(report);
+      writeFileSync(markdownPath, markdownContent, 'utf-8');
+    }
+  } catch (error) {
+    throw new Error(
+      `품질 비교 리포트 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * 극단적 시나리오 리포트 저장
+ * 극단적 시나리오 리포트를 JSON 또는 Markdown 형식으로 파일에 저장합니다.
+ * 
+ * @param report 저장할 극단적 시나리오 리포트
+ * @param options 저장 옵션
+ * 
+ * @example
+ * ```typescript
+ * const report = generateExtremeScenarioReport(lowVectorHigh, highVectorLow, w2Validation);
+ * saveExtremeScenarioReport(report, { format: 'markdown' });
+ * ```
+ */
+export function saveExtremeScenarioReport(
+  report: ExtremeScenarioReport,
+  options: ReportSaveOptions = {}
+): void {
+  const {
+    format = 'both',
+    includeTimestamp = true
+  } = options;
+  
+  const timestamp = includeTimestamp 
+    ? `_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`
+    : '';
+  
+  const defaultJsonPath = join(__dirname, `../../../data/extreme-scenario-report${timestamp}.json`);
+  const defaultMarkdownPath = join(__dirname, `../../../data/extreme-scenario-report${timestamp}.md`);
+  
+  const jsonPath = options.filePath && format === 'json' 
+    ? options.filePath 
+    : format === 'both' 
+      ? defaultJsonPath.replace('.md', '.json')
+      : format === 'json'
+        ? defaultJsonPath
+        : undefined;
+  
+  const markdownPath = options.filePath && format === 'markdown'
+    ? options.filePath
+    : format === 'both'
+      ? defaultMarkdownPath
+      : format === 'markdown'
+        ? defaultMarkdownPath
+        : undefined;
+  
+  // 디렉토리 생성
+  if (jsonPath) {
+    const dir = dirname(jsonPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  if (markdownPath) {
+    const dir = dirname(markdownPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  try {
+    // JSON 형식 저장
+    if (jsonPath) {
+      const jsonContent = JSON.stringify(report, null, 2);
+      writeFileSync(jsonPath, jsonContent, 'utf-8');
+    }
+    
+    // Markdown 형식 저장
+    if (markdownPath) {
+      const markdownLines: string[] = [];
+      markdownLines.push('# 극단적 시나리오 검증 리포트');
+      markdownLines.push('');
+      markdownLines.push(`**생성 시간**: ${report.timestamp}`);
+      markdownLines.push(`**전체 검증 통과**: ${report.overallPassed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+      markdownLines.push('');
+      
+      markdownLines.push('## 검증 결과 요약');
+      markdownLines.push('');
+      markdownLines.push(`- **통과한 시나리오**: ${report.summary.passedCount} / ${report.summary.totalCount}`);
+      markdownLines.push(`- **실패한 시나리오**: ${report.summary.failedScenarios.length}`);
+      markdownLines.push('');
+      
+      if (report.summary.failedScenarios.length > 0) {
+        markdownLines.push('### 실패한 시나리오');
+        markdownLines.push('');
+        report.summary.failedScenarios.forEach(scenario => {
+          markdownLines.push(`- [FAIL] ${scenario}`);
+        });
+        markdownLines.push('');
+      }
+      
+      // 저벡터 유사도 + 고 consolidation 점수 검증
+      markdownLines.push('## 저벡터 유사도 + 고 consolidation 점수 검증');
+      markdownLines.push('');
+      markdownLines.push(`**검증 통과**: ${report.lowVectorHighConsolidation.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+      markdownLines.push('');
+      markdownLines.push('| 지표 | 값 |');
+      markdownLines.push('|------|-----|');
+      markdownLines.push(`| 최종 점수 범위 | ${report.lowVectorHighConsolidation.finalScoreRange.min.toFixed(3)} ~ ${report.lowVectorHighConsolidation.finalScoreRange.max.toFixed(3)} |`);
+      markdownLines.push(`| 최종 점수 평균 | ${report.lowVectorHighConsolidation.finalScoreRange.average.toFixed(3)} |`);
+      markdownLines.push(`| 벡터 유사도 평균 | ${report.lowVectorHighConsolidation.vectorSimilarityStats.average.toFixed(3)} |`);
+      markdownLines.push(`| Consolidation 점수 평균 | ${report.lowVectorHighConsolidation.consolidationScoreStats.average.toFixed(3)} |`);
+      markdownLines.push('');
+      
+      if (report.lowVectorHighConsolidation.failureReasons && report.lowVectorHighConsolidation.failureReasons.length > 0) {
+        markdownLines.push('### 실패 사유');
+        markdownLines.push('');
+        report.lowVectorHighConsolidation.failureReasons.forEach(reason => {
+          markdownLines.push(`- [FAIL] ${reason}`);
+        });
+        markdownLines.push('');
+      }
+      
+      // 고벡터 유사도 + 저 consolidation 점수 검증
+      markdownLines.push('## 고벡터 유사도 + 저 consolidation 점수 검증');
+      markdownLines.push('');
+      markdownLines.push(`**검증 통과**: ${report.highVectorLowConsolidation.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+      markdownLines.push('');
+      markdownLines.push('| 지표 | 값 |');
+      markdownLines.push('|------|-----|');
+      markdownLines.push(`| 최종 점수 범위 | ${report.highVectorLowConsolidation.finalScoreRange.min.toFixed(3)} ~ ${report.highVectorLowConsolidation.finalScoreRange.max.toFixed(3)} |`);
+      markdownLines.push(`| 최종 점수 평균 | ${report.highVectorLowConsolidation.finalScoreRange.average.toFixed(3)} |`);
+      markdownLines.push(`| 벡터 유사도 평균 | ${report.highVectorLowConsolidation.vectorSimilarityStats.average.toFixed(3)} |`);
+      markdownLines.push(`| Consolidation 점수 평균 | ${report.highVectorLowConsolidation.consolidationScoreStats.average.toFixed(3)} |`);
+      markdownLines.push('');
+      
+      if (report.highVectorLowConsolidation.failureReasons && report.highVectorLowConsolidation.failureReasons.length > 0) {
+        markdownLines.push('### 실패 사유');
+        markdownLines.push('');
+        report.highVectorLowConsolidation.failureReasons.forEach(reason => {
+          markdownLines.push(`- [FAIL] ${reason}`);
+        });
+        markdownLines.push('');
+      }
+      
+      // w2 상한 검증
+      markdownLines.push('## w2 상한 검증');
+      markdownLines.push('');
+      markdownLines.push(`**검증 통과**: ${report.w2UpperBound.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+      markdownLines.push('');
+      
+      if (report.w2UpperBound.w2_0_4Quality && report.w2UpperBound.w2_0_6Quality) {
+        markdownLines.push('| 지표 | w2=0.4 | w2=0.6 | 품질 저하 |');
+        markdownLines.push('|------|--------|--------|----------|');
+        
+        const kValues = Object.keys(report.w2UpperBound.w2_0_4Quality.ndcg || {}).map(Number);
+        kValues.forEach(k => {
+          const ndcg4 = report.w2UpperBound.w2_0_4Quality!.ndcg[k] || 0;
+          const ndcg6 = report.w2UpperBound.w2_0_6Quality!.ndcg[k] || 0;
+          const degradation = report.w2UpperBound.qualityDegradation?.ndcg?.[k] || 0;
+          markdownLines.push(`| NDCG@${k} | ${ndcg4.toFixed(3)} | ${ndcg6.toFixed(3)} | ${(degradation * 100).toFixed(2)}% |`);
+        });
+        markdownLines.push('');
+      }
+      
+      if (report.w2UpperBound.failureReasons && report.w2UpperBound.failureReasons.length > 0) {
+        markdownLines.push('### 실패 사유');
+        markdownLines.push('');
+        report.w2UpperBound.failureReasons.forEach(reason => {
+          markdownLines.push(`- [FAIL] ${reason}`);
+        });
+        markdownLines.push('');
+      }
+      
+      const markdownContent = markdownLines.join('\n');
+      writeFileSync(markdownPath, markdownContent, 'utf-8');
+    }
+  } catch (error) {
+    throw new Error(
+      `극단적 시나리오 리포트 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * 통합 리포트 저장
+ * 모든 리포트(순서 보존, 품질 비교, 극단적 시나리오)를 하나의 파일로 저장합니다.
+ * 
+ * @param reports 저장할 리포트들
+ * @param options 저장 옵션
+ * 
+ * @example
+ * ```typescript
+ * const orderReport = generateOrderPreservationReport(pair);
+ * const qualityReport = generateQualityComparisonReport(comparison, groundTruth);
+ * const extremeReport = generateExtremeScenarioReport(lowVectorHigh, highVectorLow, w2Validation);
+ * saveIntegratedReport({ orderReport, qualityReport, extremeReport }, { format: 'markdown' });
+ * ```
+ */
+export interface IntegratedReports {
+  orderReport?: OrderPreservationReport;
+  qualityReport?: QualityComparisonReport;
+  extremeReport?: ExtremeScenarioReport;
+  baselineComparison?: BaselineComparisonResult;
+  qualityDegradation?: QualityDegradationDetection;
+}
+
+export function saveIntegratedReport(
+  reports: IntegratedReports,
+  options: ReportSaveOptions = {}
+): void {
+  const {
+    format = 'both',
+    includeTimestamp = true
+  } = options;
+  
+  const timestamp = includeTimestamp 
+    ? `_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`
+    : '';
+  
+  const defaultJsonPath = join(__dirname, `../../../data/vector-search-quality-report${timestamp}.json`);
+  const defaultMarkdownPath = join(__dirname, `../../../data/vector-search-quality-report${timestamp}.md`);
+  
+  const jsonPath = options.filePath && format === 'json' 
+    ? options.filePath 
+    : format === 'both' 
+      ? defaultJsonPath.replace('.md', '.json')
+      : format === 'json'
+        ? defaultJsonPath
+        : undefined;
+  
+  const markdownPath = options.filePath && format === 'markdown'
+    ? options.filePath
+    : format === 'both'
+      ? defaultMarkdownPath
+      : format === 'markdown'
+        ? defaultMarkdownPath
+        : undefined;
+  
+  // 디렉토리 생성
+  if (jsonPath) {
+    const dir = dirname(jsonPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  if (markdownPath) {
+    const dir = dirname(markdownPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+  
+  try {
+    // JSON 형식 저장
+    if (jsonPath) {
+      const jsonContent = JSON.stringify(reports, null, 2);
+      writeFileSync(jsonPath, jsonContent, 'utf-8');
+    }
+    
+    // Markdown 형식 저장
+    if (markdownPath) {
+      const markdownLines: string[] = [];
+      markdownLines.push('# 벡터 검색 품질 검증 통합 리포트');
+      markdownLines.push('');
+      markdownLines.push(`**생성 시간**: ${new Date().toISOString()}`);
+      markdownLines.push('');
+      
+      // 순서 보존 리포트
+      if (reports.orderReport) {
+        markdownLines.push('## 1. 순서 보존 검증');
+        markdownLines.push('');
+        markdownLines.push(`**검증 통과**: ${reports.orderReport.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+        markdownLines.push('');
+        markdownLines.push('| 지표 | 값 |');
+        markdownLines.push('|------|-----|');
+        markdownLines.push(`| Kendall's Tau | ${reports.orderReport.metrics.kendallTau.toFixed(3)} |`);
+        markdownLines.push(`| Top10 유지율 | ${(reports.orderReport.metrics.top10Retention * 100).toFixed(2)}% |`);
+        markdownLines.push(`| Top5 유지율 | ${(reports.orderReport.metrics.top5Retention * 100).toFixed(2)}% |`);
+        markdownLines.push('');
+      }
+      
+      // 품질 비교 리포트
+      if (reports.qualityReport) {
+        markdownLines.push('## 2. 품질 지표 비교');
+        markdownLines.push('');
+        const qualityMarkdown = visualizeQualityComparison(reports.qualityReport);
+        // 헤더 제거하고 내용만 추가
+        const qualityContent = qualityMarkdown.split('\n').slice(1).join('\n');
+        markdownLines.push(qualityContent);
+        markdownLines.push('');
+      }
+      
+      // 극단적 시나리오 리포트
+      if (reports.extremeReport) {
+        markdownLines.push('## 3. 극단적 시나리오 검증');
+        markdownLines.push('');
+        markdownLines.push(`**전체 검증 통과**: ${reports.extremeReport.overallPassed ? '[PASS] 통과' : '[FAIL] 실패'}`);
+        markdownLines.push('');
+        markdownLines.push(`- **통과한 시나리오**: ${reports.extremeReport.summary.passedCount} / ${reports.extremeReport.summary.totalCount}`);
+        if (reports.extremeReport.summary.failedScenarios.length > 0) {
+          markdownLines.push(`- **실패한 시나리오**: ${reports.extremeReport.summary.failedScenarios.join(', ')}`);
+        }
+        markdownLines.push('');
+      }
+      
+      // Baseline 비교 결과
+      if (reports.baselineComparison) {
+        markdownLines.push('## 4. Baseline 비교');
+        markdownLines.push('');
+        markdownLines.push(`**Baseline 버전**: ${reports.baselineComparison.baseline.version}`);
+        markdownLines.push(`**Baseline 생성 시간**: ${reports.baselineComparison.baseline.timestamp}`);
+        markdownLines.push(`**품질 저하 감지**: ${reports.baselineComparison.hasDegradation ? '[WARNING] 감지됨' : '[PASS] 없음'}`);
+        markdownLines.push('');
+        
+        if (reports.baselineComparison.degradationDetails.length > 0) {
+          markdownLines.push('### 저하 상세');
+          markdownLines.push('');
+          reports.baselineComparison.degradationDetails.forEach(detail => {
+            markdownLines.push(`- [WARNING] ${detail}`);
+          });
+          markdownLines.push('');
+        }
+      }
+      
+      // 품질 저하 감지 결과
+      if (reports.qualityDegradation) {
+        markdownLines.push('## 5. 품질 저하 감지');
+        markdownLines.push('');
+        markdownLines.push(`**감지 여부**: ${reports.qualityDegradation.detected ? '[WARNING] 감지됨' : '[PASS] 없음'}`);
+        markdownLines.push(`**심각도**: ${reports.qualityDegradation.severity}`);
+        markdownLines.push('');
+        
+        if (reports.qualityDegradation.messages.length > 0) {
+          markdownLines.push('### 경고 메시지');
+          markdownLines.push('');
+          reports.qualityDegradation.messages.forEach(message => {
+            markdownLines.push(`- ${message}`);
+          });
+          markdownLines.push('');
+        }
+        
+        if (reports.qualityDegradation.recommendations.length > 0) {
+          markdownLines.push('### 권장사항');
+          markdownLines.push('');
+          reports.qualityDegradation.recommendations.forEach(recommendation => {
+            markdownLines.push(`- ${recommendation}`);
+          });
+          markdownLines.push('');
+        }
+      }
+      
+      const markdownContent = markdownLines.join('\n');
+      writeFileSync(markdownPath, markdownContent, 'utf-8');
+    }
+  } catch (error) {
+    throw new Error(
+      `통합 리포트 저장 실패: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
