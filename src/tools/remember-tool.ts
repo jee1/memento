@@ -403,10 +403,12 @@ export class RememberTool extends BaseTool {
         throw new Error(`Invalid memory type: ${type}`);
       }
 
+      // reflection_notes 처리
       // type='procedural'이고 reflection_notes가 제공된 경우 기존 reflection_notes 조회 및 병합
-      // non-procedural 타입에서는 reflection_notes를 무시
+      // non-procedural 타입에서는 reflection_notes를 무시 (PRD: "Procedural Memory에서만 사용 가능")
       let finalReflectionNotes: string | null = null;
       if (type === 'procedural' && reflection_notes !== undefined && reflection_notes !== null) {
+        // procedural 타입: 기존 reflection_notes 조회 및 병합
         finalReflectionNotes = reflection_notes;
         const existingReflectionNotes = await this.getExistingReflectionNotes(context.db!, task_goal);
         
@@ -456,6 +458,7 @@ export class RememberTool extends BaseTool {
           }
         }
       }
+      // non-procedural 타입에서는 reflection_notes를 무시 (null로 설정)
 
       // UUID 생성 (임시로 간단한 ID 사용)
       const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

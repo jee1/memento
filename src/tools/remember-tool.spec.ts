@@ -945,7 +945,7 @@ describe('RememberTool', () => {
         expect(resultData.memory_id).toBeDefined();
       });
 
-      it('should not merge reflection_notes for non-procedural types', async () => {
+      it('should ignore reflection_notes for non-procedural types', async () => {
         // 첫 번째 기록 저장 (procedural)
         const firstParams = {
           type: 'procedural',
@@ -958,7 +958,7 @@ describe('RememberTool', () => {
 
         await tool.handle(firstParams, context);
 
-        // 두 번째 기록 저장 (episodic, 같은 task_goal이지만 procedural이 아니므로 병합 안 됨)
+        // 두 번째 기록 저장 (episodic, procedural이 아니므로 reflection_notes 무시)
         const secondParams = {
           type: 'episodic',
           content: 'Second content',
@@ -970,20 +970,11 @@ describe('RememberTool', () => {
         const secondResult = await tool.handle(secondParams, context);
         const secondData = JSON.parse(secondResult.content[0].text);
 
-        // episodic 타입이므로 reflection_notes가 병합되지 않고 단일 객체로 저장되어야 함
+        // episodic 타입이므로 reflection_notes가 무시되어야 함 (null)
         const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
         
-        // reflection_notes가 null이 아닌지 확인
-        expect(secondRecord.reflection_notes).toBeDefined();
-        expect(secondRecord.reflection_notes).not.toBeNull();
-        
-        if (secondRecord.reflection_notes) {
-          const parsed = JSON.parse(secondRecord.reflection_notes);
-          
-          // 단일 객체로 저장되어야 함 (병합되지 않음)
-          expect(Array.isArray(parsed)).toBe(false);
-          expect(parsed.failure_description).toBe('Test error');
-        }
+        // reflection_notes가 null이어야 함 (non-procedural 타입에서는 무시)
+        expect(secondRecord.reflection_notes).toBeNull();
       });
     });
 

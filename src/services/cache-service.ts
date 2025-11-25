@@ -76,7 +76,7 @@ export class CacheService<T = any> {
       timestamp: now,
       ttl: ttl || this.defaultTTL,
       accessCount: existingEntry ? existingEntry.accessCount + 1 : 0,
-      lastAccessed: existingEntry ? existingEntry.lastAccessed : now // 기존 항목의 lastAccessed 유지
+      lastAccessed: now // set() 호출 시 lastAccessed를 현재 시간으로 업데이트 (LRU 정확성 보장)
     };
 
     this.cache.set(key, entry);

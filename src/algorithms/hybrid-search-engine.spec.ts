@@ -352,9 +352,14 @@ describe('HybridSearchEngine', () => {
           pinned BOOLEAN DEFAULT FALSE,
           tags TEXT,
           source TEXT,
+          origin_source TEXT DEFAULT '{}',
           view_count INTEGER DEFAULT 0,
           cite_count INTEGER DEFAULT 0,
-          edit_count INTEGER DEFAULT 0
+          edit_count INTEGER DEFAULT 0,
+          task_goal TEXT,
+          steps TEXT,
+          reflection_notes TEXT,
+          consolidation_score REAL
         );
       `);
 

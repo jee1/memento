@@ -29,6 +29,7 @@ function initializeTestDatabase(db: Database.Database): void {
       pinned BOOLEAN DEFAULT FALSE,
       tags TEXT,
       source TEXT,
+      origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
       reflection_notes TEXT,
