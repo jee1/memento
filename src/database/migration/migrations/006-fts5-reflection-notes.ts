@@ -312,14 +312,41 @@ export class FTS5ReflectionNotesMigration implements Migration {
   /**
    * Register normalize_reflection_notes user-defined function
    * This function must be registered before triggers that use it
+   * 
+   * Note: SQLite does not support dropping user-defined functions directly.
+   * If the function already exists and is in use by active statements,
+   * registering it again will fail with "unable to delete/modify user-function due to active statements".
+   * 
+   * To avoid this, we check if the function is already registered and skip re-registration.
    */
+  private functionRegistered = false;
+
   private registerNormalizeFunction(db: Database.Database): void {
-    db.function('normalize_reflection_notes', {
-      deterministic: true,
-      varargs: false
-    }, (reflectionNotes: string | null) => {
-      return normalizeReflectionNotes(reflectionNotes);
-    });
+    // 함수가 이미 등록되어 있으면 재등록하지 않음 (active statements 에러 방지)
+    if (this.functionRegistered) {
+      return;
+    }
+
+    try {
+      db.function('normalize_reflection_notes', {
+        deterministic: true,
+        varargs: false
+      }, (reflectionNotes: string | null) => {
+        return normalizeReflectionNotes(reflectionNotes);
+      });
+      this.functionRegistered = true;
+    } catch (error) {
+      // 함수 등록 실패 시 에러를 다시 던짐 (마이그레이션 실패 처리)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('active statements')) {
+        // prepared statement가 활성화되어 있는 경우
+        // 함수가 이미 등록되어 있다고 가정하고 계속 진행
+        process.stderr.write(`⚠️ 함수 등록 스킵 (이미 등록됨 또는 active statements): ${errorMessage}\n`);
+        this.functionRegistered = true; // 재시도 방지
+        return;
+      }
+      throw error;
+    }
   }
 
   /**
