@@ -3,6 +3,8 @@
  */
 
 import Database from 'better-sqlite3';
+import { normalizeReflectionNotes } from './reflection-notes-normalize.js';
+import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from './fts5-migration-status.js';
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 const log = (...args: any[]) => {};
@@ -330,7 +332,12 @@ export class DatabaseUtils {
           source TEXT,
           view_count INTEGER DEFAULT 0,
           cite_count INTEGER DEFAULT 0,
-          edit_count INTEGER DEFAULT 0
+          edit_count INTEGER DEFAULT 0,
+          -- MIRIX Schema Expansion (v2.0) 추가 필드
+          origin_source TEXT DEFAULT '{}',
+          task_goal TEXT,
+          steps TEXT,
+          reflection_notes TEXT
         )
       `);
 
@@ -434,43 +441,61 @@ export class DatabaseUtils {
 
       // FTS5 가상 테이블 생성
       try {
+        // reflection_notes 정규화를 위한 사용자 정의 함수 등록
+        db.function('normalize_reflection_notes', {
+          deterministic: true,
+          varargs: false
+        }, (reflectionNotes: string | null) => {
+          return normalizeReflectionNotes(reflectionNotes);
+        });
+
         this.run(db, `
           CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_fts USING fts5(
             content,
             tags,
             source,
+            reflection_notes,
             content='memory_item',
             content_rowid='rowid'
           )
         `);
 
-        // FTS5 트리거 생성
+        // FTS5 트리거 생성 (reflection_notes 정규화 포함)
         this.run(db, `
           CREATE TRIGGER IF NOT EXISTS memory_item_fts_insert AFTER INSERT ON memory_item BEGIN
-            INSERT INTO memory_item_fts(rowid, content, tags, source)
-            VALUES (new.rowid, new.content, new.tags, new.source);
+            INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+            VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
           END
         `);
 
         this.run(db, `
           CREATE TRIGGER IF NOT EXISTS memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
-            INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
-            VALUES('delete', old.rowid, old.content, old.tags, old.source);
+            INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+            VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
           END
         `);
 
         this.run(db, `
           CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
-            INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
-            VALUES('delete', old.rowid, old.content, old.tags, old.source);
-            INSERT INTO memory_item_fts(rowid, content, tags, source)
-            VALUES (new.rowid, new.content, new.tags, new.source);
+            INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+            VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
+            INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+            VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
           END
         `);
       } catch (error) {
         log('⚠️ FTS5 가상 테이블 생성 실패:', error);
       }
       
+      // FTS5 마이그레이션 상태 테이블 초기화 및 상태 로드
+      try {
+        initializeMigrationStatusTable(db);
+        loadMigrationStatusToConfig(db);
+      } catch (error) {
+        // 마이그레이션 상태 초기화 실패는 경고만 출력 (초기화는 계속 진행)
+        log('⚠️ FTS5 마이그레이션 상태 초기화 실패:', error);
+      }
+
       log('✅ 데이터베이스 초기화 완료');
     } catch (error) {
       log('❌ 데이터베이스 초기화 실패:', error);

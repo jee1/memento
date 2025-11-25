@@ -12,6 +12,8 @@ import { MigrationRunner } from './migration/migration-runner.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
+import { normalizeReflectionNotes } from '../utils/reflection-notes-normalize.js';
+import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../utils/fts5-migration-status.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -300,6 +302,15 @@ export async function initializeDatabase(): Promise<Database.Database> {
     db.pragma('locking_mode = NORMAL');
     db.pragma('read_uncommitted = 0');
     
+    // reflection_notes 정규화를 위한 사용자 정의 함수 등록
+    // 트리거에서 사용할 수 있도록 데이터베이스 연결 시점에 등록
+    db.function('normalize_reflection_notes', {
+      deterministic: true,
+      varargs: false
+    }, (reflectionNotes: string | null) => {
+      return normalizeReflectionNotes(reflectionNotes);
+    });
+    
     try {
       const { getLoadablePath } = await import('sqlite-vec');
       const extensionPath = getLoadablePath();
@@ -481,6 +492,16 @@ export async function initializeDatabase(): Promise<Database.Database> {
       log('   Core Memory 없이 계속 진행합니다.');
     }
     
+    // FTS5 마이그레이션 상태 테이블 초기화 및 상태 로드
+    try {
+      initializeMigrationStatusTable(db);
+      loadMigrationStatusToConfig(db);
+      log('✅ FTS5 마이그레이션 상태 로드 완료');
+    } catch (error) {
+      // 마이그레이션 상태 초기화 실패는 경고만 출력 (초기화는 계속 진행)
+      log('⚠️ FTS5 마이그레이션 상태 초기화 실패:', error);
+    }
+
     log('✅ 데이터베이스 초기화 완료');
     log(`📁 데이터베이스 경로: ${mementoConfig.dbPath}`);
     

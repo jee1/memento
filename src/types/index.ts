@@ -40,6 +40,7 @@ export interface MemorySearchFilters {
   time_from?: string | undefined;
   time_to?: string | undefined;
   pinned?: boolean | undefined;
+  has_reflection_notes?: boolean | undefined; // reflection_notes IS NOT NULL 필터링
 }
 
 // 관계 추출 타입 재export
@@ -138,6 +139,8 @@ export interface MementoConfig {
   typeParamMode: 'warn' | 'deprecate' | 'error';
   // Consolidation Score System 설정
   consolidationScoreEnabled: boolean;
+  // FTS5 Migration Status (런타임 캐시용)
+  fts5MigrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
 }
 
 export interface RememberParams {

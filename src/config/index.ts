@@ -73,7 +73,11 @@ export const mementoConfig: MementoConfig = {
   typeParamMode: parseTypeParamMode(getRawEnvValue('MEMENTO_TYPE_PARAM_MODE')),
 
   // Consolidation Score System 설정 (기본값: false - 비활성화)
-  consolidationScoreEnabled: resolveBoolean('CONSOLIDATION_SCORE_ENABLED', { defaultValue: false })
+  consolidationScoreEnabled: resolveBoolean('CONSOLIDATION_SCORE_ENABLED', { defaultValue: false }),
+
+  // FTS5 Migration Status (런타임 캐시용, 초기값: 'pending')
+  // 실제 값은 데이터베이스에서 로드되며, initializeDatabase에서 업데이트됨
+  fts5MigrationStatus: 'pending' as 'pending' | 'in_progress' | 'completed' | 'failed'
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

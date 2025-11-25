@@ -17,6 +17,49 @@ export async function setupTestDatabase(): Promise<Database.Database> {
   // 1. 기본 스키마 초기화
   await DatabaseUtils.initializeDatabase(db);
   
+  // 1.5. FTS5 트리거 업데이트 (reflection_notes 포함)
+  // 기존 트리거를 삭제하고 새로 생성하여 reflection_notes를 포함하도록 함
+  try {
+    db.exec('DROP TRIGGER IF EXISTS memory_item_fts_insert');
+    db.exec('DROP TRIGGER IF EXISTS memory_item_fts_update');
+    db.exec('DROP TRIGGER IF EXISTS memory_item_fts_delete');
+    
+    // reflection_notes 정규화 함수 등록
+    const { normalizeReflectionNotes } = await import('../../utils/reflection-notes-normalize.js');
+    db.function('normalize_reflection_notes', {
+      deterministic: true,
+      varargs: false
+    }, (reflectionNotes: string | null) => {
+      return normalizeReflectionNotes(reflectionNotes);
+    });
+    
+    // 새 트리거 생성 (reflection_notes 포함)
+    db.exec(`
+      CREATE TRIGGER memory_item_fts_insert AFTER INSERT ON memory_item BEGIN
+        INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+        VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
+      END
+    `);
+    
+    db.exec(`
+      CREATE TRIGGER memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
+        INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+        VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
+      END
+    `);
+    
+    db.exec(`
+      CREATE TRIGGER memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
+      END
+    `);
+  } catch (error) {
+    // FTS5 트리거 업데이트 실패는 무시 (테스트는 계속 진행)
+  }
+  
   // 2. VEC 확장 로딩 (벡터 검색 기능 활성화)
   // sqlite-vec 패키지의 getLoadablePath()를 사용하여 확장 경로 가져오기
   // 테스트 환경에서는 VEC 확장이 없을 수 있으므로 try-catch로 처리
@@ -88,6 +131,7 @@ export function createTestMemory(
     pinned?: boolean;
     tags?: string[];
     source?: string;
+    reflection_notes?: string | null;
   }
 ): string {
   const memoryId = options.id || `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -96,10 +140,11 @@ export function createTestMemory(
   const privacy_scope = options.privacy_scope || 'private';
   const pinned = options.pinned ?? false;
   const tags = options.tags ? JSON.stringify(options.tags) : null;
+  const reflection_notes = options.reflection_notes !== undefined ? options.reflection_notes : null;
   
   DatabaseUtils.run(db, `
-    INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned, tags, source)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned, tags, source, reflection_notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     memoryId,
     type,
@@ -108,7 +153,8 @@ export function createTestMemory(
     privacy_scope,
     pinned ? 1 : 0,
     tags,
-    options.source || null
+    options.source || null,
+    reflection_notes
   ]);
   
   return memoryId;

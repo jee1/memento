@@ -322,7 +322,9 @@ describe('RememberTool', () => {
         task_goal: 'Deploy React application to production',
         steps: JSON.stringify(['build', 'test', 'deploy']),
         reflection_notes: JSON.stringify({
-          failure_type: 'deployment_error',
+          failure_type: 'tool_error',
+          failure_description: 'Deployment failed due to missing environment variables',
+          timestamp: new Date().toISOString(),
           lessons_learned: 'Always check environment variables'
         }),
         importance: 0.8

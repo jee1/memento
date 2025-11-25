@@ -79,18 +79,18 @@ describe('AnchorManager', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem3', 'procedural', 'Test content 3', 0.5, 'private']);
     });
 
@@ -187,13 +187,13 @@ describe('AnchorManager', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
     });
 
@@ -254,13 +254,13 @@ describe('AnchorManager', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
     });
 
@@ -282,8 +282,8 @@ describe('AnchorManager', () => {
       await anchorManager.setAnchor('agent1', 'mem2', 'B');
       // mem1은 이미 A에 설정되어 있으므로 C에는 다른 메모리 사용
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem3', 'procedural', 'Test content 3', 0.5, 'private']);
       await anchorManager.setAnchor('agent1', 'mem3', 'C');
 
@@ -320,13 +320,13 @@ describe('AnchorManager', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
     });
 
@@ -395,8 +395,8 @@ describe('AnchorManager', () => {
     it('should handle memory deletion (ON DELETE SET NULL)', async () => {
       // 메모리 및 앵커 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content', 0.5, 'private']);
 
       await anchorManager.setAnchor('agent1', 'mem1', 'A');
@@ -414,8 +414,8 @@ describe('AnchorManager', () => {
 
     it('should handle multiple agents with same memory in different slots', async () => {
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content', 0.5, 'private']);
 
       await anchorManager.setAnchor('agent1', 'mem1', 'A');
@@ -433,13 +433,13 @@ describe('AnchorManager', () => {
 
     it('should handle concurrent anchor updates', async () => {
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
 
       // 동시에 여러 앵커 설정

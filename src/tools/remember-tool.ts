@@ -21,6 +21,18 @@ import { mementoConfig } from '../config/index.js';
 import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
 import type { MemoryItem } from '../types/index.js';
+import { validateReflectionNotes, formatValidationErrors } from '../utils/reflection-notes-schema.js';
+import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../utils/reflection-notes-merge.js';
+
+/**
+ * 기존 reflection_notes 조회 결과 타입
+ */
+interface ExistingReflectionNotesResult {
+  exists: boolean;
+  type: 'null' | 'object' | 'array';
+  value: null | any | any[];
+  rawValue: string | null;
+}
 
 const RememberSchema = z.object({
   content: CommonSchemas.Content,
@@ -133,6 +145,133 @@ export class RememberTool extends BaseTool {
     );
   }
 
+  /**
+   * reflection_notes 파라미터의 JSON 형식 및 스키마 검증
+   * 단일 객체 또는 배열 형식 모두 허용
+   * 
+   * @param reflectionNotes - 검증할 reflection_notes 문자열
+   * @throws Error - JSON 형식이 유효하지 않거나 스키마 검증 실패 시
+   */
+  private validateReflectionNotesJson(reflectionNotes: string): void {
+    const validationResult = validateReflectionNotes(reflectionNotes);
+    
+    if (!validationResult.isValid) {
+      const errorMessage = formatValidationErrors(validationResult);
+      throw new Error(`reflection_notes 스키마 검증 실패:\n${errorMessage}`);
+    }
+  }
+
+  /**
+   * 같은 task_goal을 가진 기존 procedural memory 레코드의 reflection_notes 조회
+   * 
+   * @param db - 데이터베이스 인스턴스
+   * @param taskGoal - 작업 목표
+   * @returns 기존 reflection_notes 조회 결과
+   */
+  private async getExistingReflectionNotes(
+    db: any,
+    taskGoal: string | null | undefined
+  ): Promise<ExistingReflectionNotesResult> {
+    // task_goal이 제공되지 않은 경우 조회 불가
+    if (!taskGoal) {
+      return {
+        exists: false,
+        type: 'null',
+        value: null,
+        rawValue: null
+      };
+    }
+
+    try {
+      // 같은 task_goal을 가진 가장 최근 procedural memory 레코드 조회
+      const existingRecord = DatabaseUtils.get(
+        db,
+        `SELECT reflection_notes FROM memory_item 
+         WHERE type = 'procedural' AND task_goal = ? 
+         ORDER BY created_at DESC LIMIT 1`,
+        [taskGoal]
+      );
+
+      if (!existingRecord || !existingRecord.reflection_notes) {
+        return {
+          exists: false,
+          type: 'null',
+          value: null,
+          rawValue: null
+        };
+      }
+
+      // reflection_notes 파싱 및 타입 확인
+      return this.parseReflectionNotes(existingRecord.reflection_notes);
+    } catch (error) {
+      // 조회 실패 시 빈 결과 반환
+      this.logWarning(`기존 reflection_notes 조회 실패: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        exists: false,
+        type: 'null',
+        value: null,
+        rawValue: null
+      };
+    }
+  }
+
+  /**
+   * reflection_notes 문자열을 파싱하고 타입 확인
+   * NULL, 단일 객체, 배열 케이스 처리
+   * 
+   * @param reflectionNotes - 파싱할 reflection_notes 문자열
+   * @returns 파싱 결과
+   */
+  private parseReflectionNotes(reflectionNotes: string | null): ExistingReflectionNotesResult {
+    if (!reflectionNotes || reflectionNotes.trim() === '') {
+      return {
+        exists: true,
+        type: 'null',
+        value: null,
+        rawValue: null
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(reflectionNotes);
+
+      if (Array.isArray(parsed)) {
+        return {
+          exists: true,
+          type: 'array',
+          value: parsed,
+          rawValue: reflectionNotes
+        };
+      }
+
+      if (typeof parsed === 'object' && parsed !== null) {
+        return {
+          exists: true,
+          type: 'object',
+          value: parsed,
+          rawValue: reflectionNotes
+        };
+      }
+
+      // 객체나 배열이 아닌 경우
+      return {
+        exists: true,
+        type: 'null',
+        value: null,
+        rawValue: reflectionNotes
+      };
+    } catch (error) {
+      // 파싱 실패 시 원본 문자열 반환
+      this.logWarning(`reflection_notes 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        exists: true,
+        type: 'null',
+        value: null,
+        rawValue: reflectionNotes
+      };
+    }
+  }
+
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
     const { 
       content, 
@@ -170,6 +309,11 @@ export class RememberTool extends BaseTool {
     
     // type 파라미터 결정 (제공된 값 또는 기본값)
     const type = (rawType || typeValidation.defaultType || 'episodic') as MemoryTypeRequest;
+    
+    // reflection_notes JSON 검증 (type='procedural'이고 reflection_notes가 제공된 경우에만)
+    if (type === 'procedural' && reflection_notes !== undefined && reflection_notes !== null) {
+      this.validateReflectionNotesJson(reflection_notes);
+    }
     
     // 데이터베이스 연결 확인
     this.validateDatabase(context);
@@ -257,6 +401,58 @@ export class RememberTool extends BaseTool {
         throw new Error(`Invalid memory type: ${type}`);
       }
 
+      // type='procedural'이고 reflection_notes가 제공된 경우 기존 reflection_notes 조회 및 병합
+      let finalReflectionNotes: string | null = reflection_notes || null;
+      if (type === 'procedural' && reflection_notes !== undefined && reflection_notes !== null) {
+        const existingReflectionNotes = await this.getExistingReflectionNotes(context.db!, task_goal);
+        
+        // 기존 reflection_notes가 있는 경우 병합
+        if (existingReflectionNotes.exists) {
+          try {
+            // 병합 유틸리티 함수 사용
+            const existing: ExistingReflectionNotes = 
+              existingReflectionNotes.type === 'null' ? { type: 'null', value: null } :
+              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value } :
+              { type: 'array', value: existingReflectionNotes.value };
+
+            const mergeResult = mergeReflectionNotes(existing, reflection_notes);
+            
+            // 병합 결과를 JSON 문자열로 변환
+            finalReflectionNotes = serializeReflectionNotes(mergeResult.merged);
+            
+            // 경고 메시지 처리
+            if (mergeResult.warnings.length > 0) {
+              mergeResult.warnings.forEach(warning => {
+                this.logWarning(`reflection_notes 병합 경고: ${warning}`);
+              });
+            }
+            
+            if (mergeResult.removedCount > 0) {
+              this.logWarning(
+                `reflection_notes 크기 제한으로 인해 ${mergeResult.removedCount}개 항목이 제거되었습니다`
+              );
+            }
+          } catch (error) {
+            // 병합 실패 시 에러 처리
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            // 단일 객체 크기 초과 같은 경우는 에러를 던짐 (검증 단계에서 이미 처리되어야 하지만 안전장치)
+            if (errorMessage.includes('최대') && errorMessage.includes('바이트')) {
+              throw new Error(
+                `reflection_notes 크기 제한 초과: ${errorMessage}. ` +
+                `단일 객체는 최대 10KB, 전체 필드는 최대 1MB를 초과할 수 없습니다.`
+              );
+            }
+            
+            // 기타 병합 실패 시 원본 reflection_notes 사용 (경고 로그)
+            this.logWarning(
+              `reflection_notes 병합 실패, 원본 값 사용: ${errorMessage}. ` +
+              `기존 reflection_notes는 유지되고 새 reflection_notes만 저장됩니다.`
+            );
+          }
+        }
+      }
+
       // UUID 생성 (임시로 간단한 ID 사용)
       const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
@@ -301,7 +497,7 @@ export class RememberTool extends BaseTool {
             origin_source,
             task_goal || null,
             steps || null,
-            reflection_notes || null,
+            finalReflectionNotes,
             createdAt,
             recallCount,
             lastAccessedAt,
