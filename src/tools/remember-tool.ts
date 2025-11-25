@@ -402,8 +402,10 @@ export class RememberTool extends BaseTool {
       }
 
       // type='procedural'이고 reflection_notes가 제공된 경우 기존 reflection_notes 조회 및 병합
-      let finalReflectionNotes: string | null = reflection_notes || null;
+      // non-procedural 타입에서는 reflection_notes를 무시
+      let finalReflectionNotes: string | null = null;
       if (type === 'procedural' && reflection_notes !== undefined && reflection_notes !== null) {
+        finalReflectionNotes = reflection_notes;
         const existingReflectionNotes = await this.getExistingReflectionNotes(context.db!, task_goal);
         
         // 기존 reflection_notes가 있는 경우 병합

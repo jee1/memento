@@ -91,6 +91,6 @@ export const CommonSchemas = {
   // Procedural Memory용 필드
   TaskGoal: z.string().optional(),
   Steps: z.string().optional(), // JSON 배열 문자열
-  ReflectionNotes: z.string().optional(), // JSON 객체 문자열
+  ReflectionNotes: z.string().nullable().optional(), // JSON 객체 문자열 (null 허용)
 };
 

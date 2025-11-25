@@ -60,7 +60,7 @@
   - [x] 2.3 Procedural Memory 조회 시 reflection_notes 자동 포함 로직 구현
   - [x] 2.4 reflection_notes IS NOT NULL 필터링 지원 (필요 시 SQL 쿼리에 조건 추가)
 
-- [ ] 3.0 FTS5 인덱스에 reflection_notes 컬럼 추가 및 마이그레이션 (Phase 1)
+- [x] 3.0 FTS5 인덱스에 reflection_notes 컬럼 추가 및 마이그레이션 (Phase 1)
   - [x] 3.1 Zero-Downtime 마이그레이션 전략 설계 문서 작성 (docs/architecture/zero-downtime-fts5-migration.md)
     - [x] 3.1.1 마이그레이션 단계별 상세 절차 정의 (1. 새 테이블 생성, 2. 기존 데이터 재인덱싱, 3. 트리거 일시 중지, 4. 원자적 교체, 5. 새 트리거 활성화)
     - [x] 3.1.2 트랜잭션 경계 명확화 (각 단계별 트랜잭션 범위, 롤백 가능 지점 정의)
@@ -112,15 +112,15 @@
     - [x] 3.11.6 마이그레이션 상태 로드/캐시 테스트 (initializeDatabase에서 상태 로드 검증, DB-config 동기화 검증)
 
 - [ ] 4.0 Phase 1 테스트 작성 및 검증 (Phase 1)
-  - [ ] 4.1 reflection_notes 스키마 검증 유틸리티 단위 테스트 작성 (필수/옵션 필드, 타입 제약, 최대 길이, enum 값, 에러 메시지 포맷)
-  - [ ] 4.2 reflection_notes 병합 공통 유틸리티 단위 테스트 작성 (NULL 처리, 단일 객체 → 배열 변환, 배열 추가, 크기 제한, FIFO 제거)
-  - [ ] 4.3 remember Tool의 reflection_notes 처리 단위 테스트 작성 (JSON 검증, 스키마 검증, 병합 로직, 배열 크기 제한, 공통 유틸리티 함수 사용)
-  - [ ] 4.4 recall Tool의 reflection_notes 조회 단위 테스트 작성 (필드 포함, JSON 파싱, Procedural Memory 필터링)
-  - [ ] 4.5 FTS5 reflection_notes 검색 통합 테스트 작성 (단일 객체, 배열, 키 토큰 검색, 검색 쿼리 예시, Fallback 전략)
-    - [ ] 4.5.1 SearchEngine의 reflection_notes 검색 fallback 테스트 (마이그레이션 상태별 분기 검증)
-    - [ ] 4.5.2 HybridSearchEngine의 reflection_notes 검색 fallback 테스트
-  - [ ] 4.6 E2E 테스트 시나리오 작성 (remember로 reflection_notes 저장 → recall로 조회 → FTS5 검색)
-  - [ ] 4.7 에러 케이스 테스트 작성 (잘못된 JSON 형식, 스키마 검증 실패, NULL 처리, 빈 배열, 크기 제한 초과 등)
+  - [x] 4.1 reflection_notes 스키마 검증 유틸리티 단위 테스트 작성 (필수/옵션 필드, 타입 제약, 최대 길이, enum 값, 에러 메시지 포맷)
+  - [x] 4.2 reflection_notes 병합 공통 유틸리티 단위 테스트 작성 (NULL 처리, 단일 객체 → 배열 변환, 배열 추가, 크기 제한, FIFO 제거)
+  - [x] 4.3 remember Tool의 reflection_notes 처리 단위 테스트 작성 (JSON 검증, 스키마 검증, 병합 로직, 배열 크기 제한, 공통 유틸리티 함수 사용)
+  - [x] 4.4 recall Tool의 reflection_notes 조회 단위 테스트 작성 (필드 포함, JSON 파싱, Procedural Memory 필터링)
+  - [x] 4.5 FTS5 reflection_notes 검색 통합 테스트 작성 (단일 객체, 배열, 키 토큰 검색, 검색 쿼리 예시, Fallback 전략)
+    - [x] 4.5.1 SearchEngine의 reflection_notes 검색 fallback 테스트 (마이그레이션 상태별 분기 검증)
+    - [x] 4.5.2 HybridSearchEngine의 reflection_notes 검색 fallback 테스트
+  - [x] 4.6 E2E 테스트 시나리오 작성 (remember로 reflection_notes 저장 → recall로 조회 → FTS5 검색)
+  - [x] 4.7 에러 케이스 테스트 작성 (잘못된 JSON 형식, 스키마 검증 실패, NULL 처리, 빈 배열, 크기 제한 초과 등)
 
 - [ ] 5.0 실패 감지 시스템 구현 (Phase 2)
   - [ ] 5.1 FailureDetector 서비스 클래스 생성 (src/services/failure-detector.ts)

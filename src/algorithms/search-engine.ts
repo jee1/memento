@@ -56,6 +56,7 @@ export class SearchEngine {
               m.id, m.content, m.type, m.importance, m.created_at, 
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
+              m.task_goal, m.steps, m.reflection_notes,
               0 as fts_rank
             FROM memory_item m
           `;
@@ -65,6 +66,7 @@ export class SearchEngine {
               m.id, m.content, m.type, m.importance, m.created_at, 
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
+              m.task_goal, m.steps, m.reflection_notes,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
             JOIN memory_item m ON memory_item_fts.rowid = m.rowid
@@ -86,6 +88,7 @@ export class SearchEngine {
             m.id, m.content, m.type, m.importance, m.created_at, 
             m.last_accessed, m.pinned, m.tags, m.source,
             m.consolidation_score,
+            m.task_goal, m.steps, m.reflection_notes,
             0 as fts_rank
           FROM memory_item m
           WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?${reflectionNotesLike}
