@@ -222,7 +222,7 @@ function ensureLegacySchema(db: Database.Database): VecTableConfig[] {
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update');
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete');
   } catch (error) {
-    console.warn('⚠️ 레거시 스키마 호환성 조정 실패:', error);
+    log('⚠️ 레거시 스키마 호환성 조정 실패:', error);
   }
 
   return vecTablesToRepopulate;
@@ -250,7 +250,7 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
         WHERE ${config.filter}
       `);
     } catch (error) {
-      console.warn(`⚠️ ${config.name} 재구축 중 오류 발생:`, error);
+      log(`⚠️ ${config.name} 재구축 중 오류 발생:`, error);
     }
   }
 }
@@ -315,9 +315,9 @@ export async function initializeDatabase(): Promise<Database.Database> {
       const { getLoadablePath } = await import('sqlite-vec');
       const extensionPath = getLoadablePath();
       db.loadExtension(extensionPath);
-      console.log('✅ sqlite-vec 확장 로드 성공');
+      log('✅ sqlite-vec 확장 로드 성공');
     } catch (error) {
-      console.warn('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
+      log('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
     }
     
     // 마이그레이션 자동 실행 (스키마 실행 전에 확인)

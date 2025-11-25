@@ -148,11 +148,13 @@ export class FTS5ReflectionNotesMigration implements Migration {
     const totalRecords = totalCount.count;
     
     if (totalRecords === 0) {
-      console.log('[Migration 006] No records to re-index');
+      // stderr로 로그 출력 (MCP 프로토콜 준수)
+      process.stderr.write('[Migration 006] No records to re-index\n');
       return;
     }
 
-    console.log(`[Migration 006] Starting re-indexing: ${totalRecords} records`);
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write(`[Migration 006] Starting re-indexing: ${totalRecords} records\n`);
     
     let processedCount = 0;
     let offset = 0;
@@ -172,10 +174,9 @@ export class FTS5ReflectionNotesMigration implements Migration {
     `);
 
     // Process in batches
+    // Note: MigrationRunner가 이미 트랜잭션을 관리하므로 중첩 트랜잭션을 사용하지 않음
+    // 모든 배치 처리는 MigrationRunner의 단일 트랜잭션 내에서 실행됨
     while (offset < totalRecords) {
-      // Start batch transaction
-      db.exec('BEGIN TRANSACTION');
-      
       try {
         // Fetch batch
         const batch = selectStmt.all(BATCH_SIZE, offset) as Array<{
@@ -187,7 +188,6 @@ export class FTS5ReflectionNotesMigration implements Migration {
         }>;
 
         if (batch.length === 0) {
-          db.exec('COMMIT');
           break;
         }
 
@@ -204,9 +204,6 @@ export class FTS5ReflectionNotesMigration implements Migration {
             normalizedReflectionNotes || null  // Empty string becomes null
           );
         }
-
-        // Commit batch
-        db.exec('COMMIT');
         
         processedCount += batch.length;
         offset += BATCH_SIZE;
@@ -214,7 +211,9 @@ export class FTS5ReflectionNotesMigration implements Migration {
         // Log progress every 10%
         const currentPercent = Math.floor((processedCount / totalRecords) * 100);
         if (currentPercent >= lastLoggedPercent + 10 || processedCount === totalRecords) {
-          console.log(`[Migration 006] Re-indexing progress: ${processedCount}/${totalRecords} (${currentPercent}%)`);
+          // stderr로 로그 출력 (MCP 프로토콜 준수)
+          process.stderr.write(`[Migration 006] Re-indexing progress: ${processedCount}/${totalRecords} (${currentPercent}%)\n`);
+          lastLoggedPercent = currentPercent;
         }
 
         // Delay between batches to minimize impact on other operations
@@ -222,15 +221,15 @@ export class FTS5ReflectionNotesMigration implements Migration {
           await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
         }
       } catch (error) {
-        // Rollback batch on error
-        db.exec('ROLLBACK');
+        // MigrationRunner가 트랜잭션을 관리하므로 여기서는 에러만 전파
         throw new Error(
           `Re-indexing failed at batch starting at offset ${offset}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
 
-    console.log(`[Migration 006] Re-indexing completed: ${processedCount} records`);
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write(`[Migration 006] Re-indexing completed: ${processedCount} records\n`);
   }
 
   /**
@@ -249,7 +248,8 @@ export class FTS5ReflectionNotesMigration implements Migration {
    * Note: reflection_notes normalization is applied using normalize_reflection_notes function.
    */
   private createDualTriggers(db: Database.Database): void {
-    console.log('[Migration 006] Creating temporary dual triggers...');
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write('[Migration 006] Creating temporary dual triggers...\n');
 
     // Register normalize_reflection_notes function before creating triggers
     this.registerNormalizeFunction(db);
@@ -284,7 +284,8 @@ export class FTS5ReflectionNotesMigration implements Migration {
       END
     `);
 
-    console.log('[Migration 006] Temporary dual triggers created');
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write('[Migration 006] Temporary dual triggers created\n');
   }
 
   /**
@@ -334,7 +335,8 @@ export class FTS5ReflectionNotesMigration implements Migration {
    * All operations are performed in a single transaction for atomicity.
    */
   private performAtomicTableReplacement(db: Database.Database): void {
-    console.log('[Migration 006] Performing atomic table replacement...');
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write('[Migration 006] Performing atomic table replacement...\n');
 
     // Register normalize_reflection_notes function before creating triggers
     this.registerNormalizeFunction(db);
@@ -381,7 +383,8 @@ export class FTS5ReflectionNotesMigration implements Migration {
       END
     `);
 
-    console.log('[Migration 006] Atomic table replacement completed');
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write('[Migration 006] Atomic table replacement completed\n');
   }
 
   /**
@@ -442,7 +445,8 @@ export class FTS5ReflectionNotesMigration implements Migration {
       setMigrationStatus(db, 'pending');
     } catch (error) {
       // 상태 업데이트 실패는 무시 (롤백은 계속 진행)
-      console.warn('마이그레이션 상태 롤백 실패:', error);
+      // stderr로 로그 출력 (MCP 프로토콜 준수)
+      process.stderr.write(`⚠️ 마이그레이션 상태 롤백 실패: ${error instanceof Error ? error.message : String(error)}\n`);
     }
 
     // Remove schema version record
