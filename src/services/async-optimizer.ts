@@ -40,6 +40,7 @@ export class AsyncTaskQueue {
   private failed: Map<string, TaskResult> = new Map();
   private workers: Set<Worker> = new Set();
   private maxWorkers: number;
+  private maxQueueSize: number | null = null; // null이면 제한 없음
   private running: boolean = false;
   private stats: QueueStats = {
     pending: 0,
@@ -51,8 +52,9 @@ export class AsyncTaskQueue {
     throughput: 0
   };
 
-  constructor(maxWorkers: number = 8) {
+  constructor(maxWorkers: number = 8, maxQueueSize: number | null = null) {
     this.maxWorkers = maxWorkers;
+    this.maxQueueSize = maxQueueSize;
   }
 
   /**
@@ -62,6 +64,19 @@ export class AsyncTaskQueue {
     // ID 중복 검사
     if (task.id && (this.queue.some(t => t.id === task.id) || this.processing.has(task.id) || this.completed.has(task.id) || this.failed.has(task.id))) {
       return false;
+    }
+
+    // 큐 크기 제한 확인 (FIFO로 가장 오래된 항목 제거)
+    if (this.maxQueueSize !== null && this.queue.length >= this.maxQueueSize) {
+      // 가장 오래된 항목 제거 (FIFO)
+      const removedTask = this.queue.shift();
+      if (removedTask) {
+        console.warn(`큐 크기 제한 초과, 가장 오래된 작업 제거: ${removedTask.id}`, {
+          queue_size: this.queue.length,
+          max_size: this.maxQueueSize,
+          removed_task_id: removedTask.id
+        });
+      }
     }
 
     const id = task.id || `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -407,6 +422,8 @@ class Worker {
         return await this.processBatchInsert();
       case 'memory_operation':
         return await this.processMemoryOperation();
+      case 'failure_event':
+        return await this.processFailureEvent();
       default:
         throw new Error(`Unknown task type: ${this.task.type}`);
     }
@@ -470,6 +487,20 @@ class Worker {
     // 배치 삽입 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
     return { inserted: (this.task.data as any[]).length };
+  }
+
+  /**
+   * 실패 이벤트 처리 (FailureDetector용)
+   */
+  private async processFailureEvent(): Promise<any> {
+    const { event, handler } = this.task.data as { event: any; handler: (event: any) => Promise<void> };
+    
+    if (!handler || typeof handler !== 'function') {
+      throw new Error('Failure event handler is not a function');
+    }
+    
+    await handler(event);
+    return { processed: true, event_id: event.id };
   }
 
   /**

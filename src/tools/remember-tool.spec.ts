@@ -972,11 +972,18 @@ describe('RememberTool', () => {
 
         // episodic 타입이므로 reflection_notes가 병합되지 않고 단일 객체로 저장되어야 함
         const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
-        const parsed = JSON.parse(secondRecord.reflection_notes);
         
-        // 단일 객체로 저장되어야 함 (병합되지 않음)
-        expect(Array.isArray(parsed)).toBe(false);
-        expect(parsed.failure_description).toBe('Test error');
+        // reflection_notes가 null이 아닌지 확인
+        expect(secondRecord.reflection_notes).toBeDefined();
+        expect(secondRecord.reflection_notes).not.toBeNull();
+        
+        if (secondRecord.reflection_notes) {
+          const parsed = JSON.parse(secondRecord.reflection_notes);
+          
+          // 단일 객체로 저장되어야 함 (병합되지 않음)
+          expect(Array.isArray(parsed)).toBe(false);
+          expect(parsed.failure_description).toBe('Test error');
+        }
       });
     });
 

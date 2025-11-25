@@ -47,6 +47,10 @@ export interface ToolContext {
     anchorManager?: any;
     /** 관계 그래프 서비스 */
     relationGraph?: any;
+    /** 실패 감지 서비스 (Phase 2) */
+    failureDetector?: any;
+    /** Reflexion Worker 서비스 (Phase 2) */
+    reflexionWorker?: any;
   };
 }
 

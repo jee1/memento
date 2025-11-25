@@ -11,6 +11,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { ConsolidationScoreWorker } from '../workers/consolidation-score-worker.js';
+import { ReflexionWorker } from './reflexion-worker.js';
 import { mementoConfig } from '../config/index.js';
 import { spawn } from 'child_process';
 import { join } from 'path';
@@ -68,6 +69,7 @@ export class BatchScheduler {
   private forgettingService: ForgettingPolicyService;
   private performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
   private consolidationScoreWorker: ConsolidationScoreWorker | null = null;
+  private reflexionWorker: ReflexionWorker | null = null;
   private db: Database.Database | null = null;
   private intervals: Map<string, NodeJS.Timeout> = new Map();
   private isRunning = false;
@@ -114,8 +116,10 @@ export class BatchScheduler {
 
   /**
    * 스케줄러 시작
+   * @param db 데이터베이스 인스턴스
+   * @param reflexionWorker Reflexion Worker 인스턴스 (선택적)
    */
-  async start(db: Database.Database): Promise<void> {
+  async start(db: Database.Database, reflexionWorker?: ReflexionWorker): Promise<void> {
     if (this.isRunning) {
       throw new Error('BatchScheduler is already running');
     }
@@ -127,6 +131,15 @@ export class BatchScheduler {
 
     // 성능 모니터 초기화
     this.performanceMonitor.initialize(db);
+
+    // Reflexion Worker 통합 (Phase 2)
+    if (reflexionWorker) {
+      this.reflexionWorker = reflexionWorker;
+      // Reflexion Worker는 이미 bootstrap.ts에서 시작되므로 여기서는 상태 확인만
+      this.log('Reflexion Worker 통합됨', {
+        worker_running: reflexionWorker.getStatus().isRunning
+      });
+    }
 
     // 메모리 정리 작업 스케줄링
     this.scheduleJob('cleanup', this.config.cleanupInterval, async () => { await this.runMemoryCleanup(); }, 1);

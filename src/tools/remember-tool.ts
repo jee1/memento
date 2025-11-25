@@ -273,21 +273,23 @@ export class RememberTool extends BaseTool {
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
-    const { 
-      content, 
-      type: rawType, 
-      key, 
-      value, 
-      always_load, 
-      immutable, 
-      task_goal, 
-      steps, 
-      reflection_notes,
-      tags, 
-      importance, 
-      source, 
-      privacy_scope 
-    } = RememberSchema.parse(params);
+    const startTime = Date.now();
+    try {
+      const { 
+        content, 
+        type: rawType, 
+        key, 
+        value, 
+        always_load, 
+        immutable, 
+        task_goal, 
+        steps, 
+        reflection_notes,
+        tags, 
+        importance, 
+        source, 
+        privacy_scope 
+      } = RememberSchema.parse(params);
     
     // type 파라미터 롤아웃 모드 검증
     const typeParamMode = mementoConfig.typeParamMode;
@@ -711,8 +713,29 @@ export class RememberTool extends BaseTool {
             // WAL 체크포인트 실패
           }
         }
+        
+        // 실패 감지 훅 호출
+        const executionTime = Date.now() - startTime;
+        await this.handleFailure(
+          error instanceof Error ? error : new Error(String(error)),
+          params,
+          context,
+          executionTime
+        );
+        
         throw error;
       }
+    }
+    } catch (error) {
+      // 최상위 에러 처리 (내부 catch에서 처리되지 않은 에러)
+      const executionTime = Date.now() - startTime;
+      await this.handleFailure(
+        error instanceof Error ? error : new Error(String(error)),
+        params,
+        context,
+        executionTime
+      );
+      throw error;
     }
   }
 

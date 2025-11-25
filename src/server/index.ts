@@ -336,7 +336,9 @@ async function initializeServer() {
             performanceAlertService: serverServices.performanceAlertService,
             consolidationScoreService: serverServices.consolidationScoreService,
             writeCoalescingManager: serverServices.writeCoalescingManager,
-            anchorManager: serverServices.anchorManager
+            anchorManager: serverServices.anchorManager,
+            failureDetector: serverServices.failureDetector,
+            reflexionWorker: serverServices.reflexionWorker
             // performanceMonitoringIntegration
           }
         };

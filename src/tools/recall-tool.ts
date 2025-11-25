@@ -180,6 +180,7 @@ export class RecallTool extends BaseTool {
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
+    const startTime = Date.now();
     this.logInfo('Recall 도구 호출됨', { params });
     
     try {
@@ -503,6 +504,15 @@ export class RecallTool extends BaseTool {
       
     } catch (error) {
       this.logError(error as Error, 'Recall 도구 실행 실패', { params });
+      
+      // 실패 감지 훅 호출
+      const executionTime = Date.now() - startTime;
+      await this.handleFailure(
+        error instanceof Error ? error : new Error(String(error)),
+        params,
+        context,
+        executionTime
+      );
       
       // 사용자 친화적인 에러 메시지 반환
       if (error instanceof Error) {

@@ -4,6 +4,8 @@
  */
 
 import type { ToolDefinition, ToolHandler, ToolContext, ToolResult, ToolError } from './types.js';
+import type { FailureDetector } from '../services/failure-detector.js';
+import type { ReflexionWorker } from '../services/reflexion-worker.js';
 
 export abstract class BaseTool {
   protected name: string;
@@ -195,6 +197,65 @@ export abstract class BaseTool {
   protected validateService(service: any, serviceName: string): void {
     if (!service) {
       throw new Error(`${serviceName}이 초기화되지 않았습니다`);
+    }
+  }
+
+  /**
+   * 실패 감지 훅 (Phase 2)
+   * Tool 실행 중 에러 발생 시 FailureDetector를 통해 실패 이벤트를 감지하고 큐에 추가
+   */
+  protected async handleFailure(
+    error: Error,
+    params: any,
+    context: ToolContext,
+    executionTimeMs?: number
+  ): Promise<void> {
+    try {
+      const failureDetector: FailureDetector | undefined = context.services?.failureDetector;
+      
+      if (!failureDetector) {
+        // FailureDetector가 없으면 로그만 기록
+        this.logError(error, '실패 감지 (FailureDetector 미초기화)', { params });
+        return;
+      }
+
+      // Tool 에러 감지
+      const detectionResult = failureDetector.detectToolError(
+        this.name,
+        error,
+        params,
+        executionTimeMs
+      );
+
+      if (detectionResult.detected && detectionResult.event) {
+        // Reflexion Worker가 있으면 직접 큐에 추가
+        const reflexionWorker: ReflexionWorker | undefined = context.services?.reflexionWorker;
+        
+        if (reflexionWorker) {
+          // Reflexion Worker의 queueFailureEvent 사용 (큐 크기 제한 포함)
+          await reflexionWorker.queueFailureEvent(detectionResult.event);
+        } else {
+          // Reflexion Worker가 없으면 FailureDetector의 기본 큐 사용
+          await failureDetector.queueFailureEvent(
+            detectionResult.event,
+            async (event) => {
+              // 기본 핸들러: 로그만 기록
+              this.logInfo('실패 이벤트 큐에 추가됨 (Reflexion Worker 미초기화)', {
+                event_id: event.id,
+                tool: event.tool_name,
+                error_type: event.error_type
+              });
+            }
+          );
+        }
+      }
+    } catch (hookError) {
+      // 실패 감지 훅 자체에서 에러가 발생해도 원본 에러는 그대로 전파
+      this.logError(
+        hookError instanceof Error ? hookError : new Error(String(hookError)),
+        '실패 감지 훅 실행 중 오류',
+        { original_error: error.message }
+      );
     }
   }
 }
