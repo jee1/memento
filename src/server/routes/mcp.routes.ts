@@ -11,6 +11,9 @@ import type { ToolContext } from '../../tools/types.js';
 import { getToolRegistry } from '../../tools/index.js';
 import { createToolContext } from '../context.js';
 import { logger } from '../../utils/logger.js';
+import { DatabaseUtils } from '../../utils/database.js';
+import { MemoryNeighborService } from '../../services/memory-neighbor-service.js';
+import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 
 /**
  * SSE Transport 타입
@@ -351,6 +354,202 @@ export function createMcpRouter(
               message: 'Prompt not found'
             }
           };
+        }
+      } else if (message.method === 'resources/list') {
+        logger.info('MCP resources/list request processing');
+        
+        if (!db) {
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32603,
+              message: 'Internal error',
+              data: 'Database not initialized'
+            }
+          };
+        } else {
+          try {
+            // 모든 메모리 ID 조회
+            const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
+            
+            result = {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                resources: memories.map((memory: any) => ({
+                  uri: `memory://${memory.id}`,
+                  name: `Memory ${memory.id}`,
+                  description: `Memory item with ID: ${memory.id}`,
+                  mimeType: 'application/json'
+                }))
+              }
+            };
+          } catch (error) {
+            logger.error('resources/list processing error', {
+              error: error instanceof Error ? error.message : String(error)
+            });
+            result = {
+              jsonrpc: '2.0',
+              id: message.id,
+              error: {
+                code: -32603,
+                message: 'Internal error',
+                data: error instanceof Error ? error.message : 'Unknown error'
+              }
+            };
+          }
+        }
+      } else if (message.method === 'resources/read') {
+        logger.info('MCP resources/read request processing', { uri: message.params?.uri });
+        
+        const { uri } = message.params;
+        
+        if (!uri) {
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params',
+              data: 'URI parameter is required'
+            }
+          };
+        } else if (!db) {
+          result = {
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32603,
+              message: 'Internal error',
+              data: 'Database not initialized'
+            }
+          };
+        } else {
+          try {
+            // URI 파싱: memory://{id}?include_neighbors=true
+            const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
+            if (!uriMatch) {
+              result = {
+                jsonrpc: '2.0',
+                id: message.id,
+                error: {
+                  code: -32602,
+                  message: 'Invalid params',
+                  data: `Invalid resource URI: ${uri}`
+                }
+              };
+            } else {
+              const memoryId = uriMatch[1];
+              if (!memoryId) {
+                result = {
+                  jsonrpc: '2.0',
+                  id: message.id,
+                  error: {
+                    code: -32602,
+                    message: 'Invalid params',
+                    data: `Invalid memory ID in URI: ${uri}`
+                  }
+                };
+              } else {
+                const queryString = uriMatch[2] || '';
+                const includeNeighbors = queryString.includes('include_neighbors=true');
+                
+                // 메모리 조회
+                const memory = await DatabaseUtils.get(
+                  db,
+                  'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
+                  [memoryId]
+                );
+                
+                if (!memory) {
+                  result = {
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    error: {
+                      code: -32602,
+                      message: 'Invalid params',
+                      data: `Memory not found: ${memoryId}`
+                    }
+                  };
+                } else {
+                  // 메모리 데이터 구성
+                  const memoryData: any = {
+                    id: memory.id,
+                    type: memory.type,
+                    content: memory.content,
+                    importance: memory.importance,
+                    privacy_scope: memory.privacy_scope,
+                    tags: memory.tags ? JSON.parse(memory.tags) : [],
+                    source: memory.source,
+                    created_at: memory.created_at,
+                    last_accessed: memory.last_accessed,
+                    pinned: memory.pinned === 1
+                  };
+                  
+                  // 이웃 기억 포함 여부 확인
+                  if (includeNeighbors) {
+                    try {
+                      if (!serverServices) {
+                        logger.warn('Server services not available for neighbor search');
+                        memoryData.neighbors = [];
+                        memoryData.neighbors_count = 0;
+                      } else {
+                        const vectorSearchEngine = getVectorSearchEngine();
+                        const neighborService = new MemoryNeighborService(
+                          vectorSearchEngine,
+                          serverServices.embeddingService
+                        );
+                        neighborService.setDatabase(db);
+                        
+                        const neighborsResult = await neighborService.getNeighbors(memoryId, {
+                          limit: 5,
+                          similarity_threshold: 0.8
+                        });
+                        
+                        memoryData.neighbors = neighborsResult.neighbors;
+                        memoryData.neighbors_count = neighborsResult.total_count;
+                        memoryData.neighbors_query_time = neighborsResult.query_time;
+                      }
+                    } catch (error) {
+                      logger.warn('Neighbor search failed', {
+                        error: error instanceof Error ? error.message : String(error)
+                      });
+                      memoryData.neighbors = [];
+                      memoryData.neighbors_count = 0;
+                    }
+                  }
+                  
+                  result = {
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    result: {
+                      contents: [
+                        {
+                          uri,
+                          mimeType: 'application/json',
+                          text: JSON.stringify(memoryData, null, 2)
+                        }
+                      ]
+                    }
+                  };
+                }
+              }
+            }
+          } catch (error) {
+            logger.error('resources/read processing error', {
+              error: error instanceof Error ? error.message : String(error)
+            });
+            result = {
+              jsonrpc: '2.0',
+              id: message.id,
+              error: {
+                code: -32603,
+                message: 'Internal error',
+                data: error instanceof Error ? error.message : 'Unknown error'
+              }
+            };
+          }
         }
       } else {
         result = {
