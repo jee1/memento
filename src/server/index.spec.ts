@@ -10,6 +10,7 @@ import { initializeServices, type ServerServices } from './bootstrap.js';
 import { getToolRegistry } from '../tools/index.js';
 import { createToolContext } from './context.js';
 import { createServerContext } from './context.js';
+import { getBatchScheduler } from '../services/batch-scheduler.js';
 
 describe('MCP 서버 진입점', () => {
   let db: Database.Database;
@@ -20,7 +21,12 @@ describe('MCP 서버 진입점', () => {
     services = await initializeServices(db);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // 배치 스케줄러가 실행 중이면 중지
+    const batchScheduler = getBatchScheduler();
+    if (batchScheduler.getStatus().isRunning) {
+      await batchScheduler.stop();
+    }
     cleanupTestDatabase(db);
   });
 
@@ -135,6 +141,65 @@ describe('MCP 서버 진입점', () => {
         // 핸들러가 ToolContext를 받을 수 있는지 확인
         expect(rememberTool.handler.length).toBeGreaterThanOrEqual(1);
       }
+    });
+  });
+
+  describe('배치 스케줄러', () => {
+    /**
+     * Given: 서비스 초기화 후 배치 스케줄러 시작
+     * When: 배치 스케줄러 상태 확인
+     * Then: 배치 스케줄러가 실행 중이어야 함
+     * Then: 활성 작업 목록에 'cleanup', 'monitoring', 'healthcheck'가 포함되어야 함
+     */
+    it('서비스 초기화 후 배치 스케줄러를 시작할 수 있어야 함', async () => {
+      // Given: 서비스 초기화 후 배치 스케줄러 시작
+      const batchScheduler = getBatchScheduler();
+      
+      // 이미 실행 중이면 중지
+      if (batchScheduler.getStatus().isRunning) {
+        await batchScheduler.stop();
+      }
+      
+      // When: 배치 스케줄러 시작
+      await batchScheduler.start(db, services.reflexionWorker);
+      
+      // Then: 배치 스케줄러가 실행 중이어야 함
+      const status = batchScheduler.getStatus();
+      expect(status.isRunning).toBe(true);
+      
+      // Then: 활성 작업 목록에 'cleanup', 'monitoring', 'healthcheck'가 포함되어야 함
+      expect(status.activeJobs).toContain('cleanup');
+      expect(status.activeJobs).toContain('monitoring');
+      expect(status.activeJobs).toContain('healthcheck');
+      
+      // 정리
+      await batchScheduler.stop();
+    });
+
+    /**
+     * Given: 실행 중인 배치 스케줄러
+     * When: cleanup 함수 호출 (배치 스케줄러 중지)
+     * Then: 배치 스케줄러가 중지되어야 함
+     */
+    it('배치 스케줄러를 중지할 수 있어야 함', async () => {
+      // Given: 실행 중인 배치 스케줄러
+      const batchScheduler = getBatchScheduler();
+      
+      // 이미 실행 중이면 중지
+      if (batchScheduler.getStatus().isRunning) {
+        await batchScheduler.stop();
+      }
+      
+      await batchScheduler.start(db, services.reflexionWorker);
+      expect(batchScheduler.getStatus().isRunning).toBe(true);
+      
+      // When: cleanup 함수 호출 (배치 스케줄러 중지)
+      await batchScheduler.stop();
+      
+      // Then: 배치 스케줄러가 중지되어야 함
+      const status = batchScheduler.getStatus();
+      expect(status.isRunning).toBe(false);
+      expect(status.activeJobs).toEqual([]);
     });
   });
 });
