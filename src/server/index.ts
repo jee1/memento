@@ -25,6 +25,7 @@ import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { getBatchScheduler } from '../services/batch-scheduler.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
@@ -153,6 +154,16 @@ async function initializeServer() {
     serverServices = services;
     
     process.stderr.write('✅ 서비스 초기화 완료\n');
+    
+    // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
+    const batchScheduler = getBatchScheduler();
+    if (batchScheduler.getStatus().isRunning) {
+      process.stderr.write('⚠️  이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...\n');
+      await batchScheduler.stop();
+    }
+    // Reflexion Worker 통합 (Phase 2)
+    await batchScheduler.start(db, services.reflexionWorker);
+    process.stderr.write('⏰ 배치 스케줄러 시작됨\n');
     
     // 임베딩 프로바이더 정보 표시
     process.stderr.write(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}\n`);
@@ -450,6 +461,15 @@ async function cleanup() {
     } catch (error) {
       process.stderr.write(`⚠️ Write coalescing flush 실패 (종료 시): ${error instanceof Error ? error.message : String(error)}\n`);
     }
+  }
+  
+  // 배치 스케줄러 중지
+  try {
+    const batchScheduler = getBatchScheduler();
+    await batchScheduler.stop();
+    process.stderr.write('⏰ 배치 스케줄러 중지됨\n');
+  } catch (error) {
+    process.stderr.write(`⚠️ 배치 스케줄러 중지 실패: ${error instanceof Error ? error.message : String(error)}\n`);
   }
   
   if (db) {
