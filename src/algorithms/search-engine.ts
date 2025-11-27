@@ -8,6 +8,7 @@ import type { MemorySearchFilters, MemorySearchResult } from '../types/index.js'
 import Database from 'better-sqlite3';
 import { getStopWords } from '../utils/stopwords.js';
 import { mementoConfig } from '../config/index.js';
+import { shouldUseFallback } from '../utils/fts5-migration-status.js';
 
 export interface SearchQuery {
   query: string;
@@ -55,6 +56,8 @@ export class SearchEngine {
               m.id, m.content, m.type, m.importance, m.created_at, 
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
+              m.task_goal, m.steps, m.reflection_notes,
+              m.privacy_scope, m.origin_source,
               0 as fts_rank
             FROM memory_item m
           `;
@@ -64,6 +67,8 @@ export class SearchEngine {
               m.id, m.content, m.type, m.importance, m.created_at, 
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
+              m.task_goal, m.steps, m.reflection_notes,
+              m.privacy_scope, m.origin_source,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
             JOIN memory_item m ON memory_item_fts.rowid = m.rowid
@@ -74,16 +79,24 @@ export class SearchEngine {
       } else {
         // FTS5가 없는 환경에서도 검색 기능이 동작하도록 호환성을 보장합니다.
         const likeQuery = `%${searchQuery}%`;
+        
+        // reflection_notes 검색 조건 추가 (Fallback)
+        const reflectionNotesCondition = this.buildReflectionNotesSearchCondition(db, searchQuery);
+        const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
+        const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
+        
         sql = `
           SELECT 
             m.id, m.content, m.type, m.importance, m.created_at, 
             m.last_accessed, m.pinned, m.tags, m.source,
             m.consolidation_score,
+            m.task_goal, m.steps, m.reflection_notes,
+            m.privacy_scope, m.origin_source,
             0 as fts_rank
           FROM memory_item m
-          WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?
+          WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?${reflectionNotesLike}
         `;
-        params.push(likeQuery, likeQuery, likeQuery);
+        params.push(likeQuery, likeQuery, likeQuery, ...reflectionNotesParams);
       }
     } else {
       // ID 필터나 빈 검색어 상황에서 효율적인 직접 조회를 수행합니다.
@@ -92,6 +105,8 @@ export class SearchEngine {
           m.id, m.content, m.type, m.importance, m.created_at, 
           m.last_accessed, m.pinned, m.tags, m.source,
           m.consolidation_score,
+          m.task_goal, m.steps, m.reflection_notes,
+          m.privacy_scope, m.origin_source,
           0 as fts_rank
         FROM memory_item m
       `;
@@ -99,8 +114,14 @@ export class SearchEngine {
       // 검색어가 있을 때만 텍스트 매칭을 수행하여 불필요한 연산을 방지합니다.
       if (!hasIdFilter && searchQuery.trim().length > 0) {
         const likeQuery = `%${searchQuery}%`;
-        sql += ` WHERE m.content LIKE ?`;
-        params.push(likeQuery);
+        
+        // reflection_notes 검색 조건 추가 (Fallback)
+        const reflectionNotesCondition = this.buildReflectionNotesSearchCondition(db, searchQuery);
+        const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
+        const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
+        
+        sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
+        params.push(likeQuery, ...reflectionNotesParams);
       }
     }
     
@@ -135,6 +156,14 @@ export class SearchEngine {
     if (filters?.time_to) {
       conditions.push(`m.created_at <= ?`);
       params.push(filters.time_to);
+    }
+    
+    if (filters?.has_reflection_notes !== undefined) {
+      if (filters.has_reflection_notes) {
+        conditions.push(`m.reflection_notes IS NOT NULL`);
+      } else {
+        conditions.push(`m.reflection_notes IS NULL`);
+      }
     }
     
     // WHERE 절 추가
@@ -388,6 +417,79 @@ export class SearchEngine {
     } catch (error) {
       console.log('⚠️  FTS5 사용 불가능, 기본 검색으로 전환:', error);
       return false;
+    }
+  }
+
+  /**
+   * reflection_notes 컬럼이 FTS5에서 사용 가능한지 확인
+   * 마이그레이션 상태를 확인하여 Fallback이 필요한지 판단합니다.
+   * 
+   * @param db - 데이터베이스 인스턴스
+   * @returns reflection_notes 컬럼 사용 가능 여부
+   */
+  private checkReflectionNotesAvailability(db: any): boolean {
+    // 환경 변수로 강제 Fallback 활성화 확인
+    if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
+      console.log('⚠️  환경 변수로 인해 reflection_notes Fallback 활성화');
+      return false;
+    }
+
+    // 마이그레이션 상태 확인
+    if (shouldUseFallback(db)) {
+      console.log('⚠️  마이그레이션 상태로 인해 reflection_notes Fallback 사용');
+      return false;
+    }
+
+    // FTS5 테이블에 reflection_notes 컬럼이 있는지 확인
+    try {
+      const tableInfo = db.prepare(`
+        SELECT sql FROM sqlite_master 
+        WHERE type='table' AND name='memory_item_fts'
+      `).get() as { sql: string } | undefined;
+
+      if (!tableInfo) {
+        return false;
+      }
+
+      // reflection_notes 컬럼이 포함되어 있는지 확인
+      const hasReflectionNotes = tableInfo.sql.includes('reflection_notes');
+      
+      if (!hasReflectionNotes) {
+        console.log('⚠️  FTS5 테이블에 reflection_notes 컬럼이 없음, Fallback 사용');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.log('⚠️  reflection_notes 컬럼 확인 실패, Fallback 사용:', error);
+      return false;
+    }
+  }
+
+  /**
+   * reflection_notes 검색 쿼리 빌더
+   * 마이그레이션 상태에 따라 FTS5 MATCH 쿼리 또는 LIKE 쿼리를 선택합니다.
+   * 
+   * @param db - 데이터베이스 인스턴스
+   * @param searchQuery - 검색 쿼리
+   * @returns reflection_notes 검색 조건 (SQL WHERE 절 조건)
+   */
+  private buildReflectionNotesSearchCondition(db: any, searchQuery: string): string | null {
+    // reflection_notes 검색이 필요한지 확인 (쿼리에 reflection_notes 관련 키워드가 있는지)
+    // 간단한 구현: 모든 쿼리에 reflection_notes 검색 포함
+    // 향후 개선: 쿼리 분석하여 reflection_notes 검색 필요 여부 판단
+
+    const canUseFTS5 = this.checkReflectionNotesAvailability(db);
+
+    if (canUseFTS5) {
+      // FTS5 MATCH 쿼리 사용
+      // Note: FTS5 MATCH는 이미 메인 쿼리에서 처리되므로, 별도 조건 불필요
+      // reflection_notes는 FTS5 테이블의 컬럼이므로 자동으로 검색됨
+      return null; // FTS5 MATCH 쿼리에서는 별도 조건 불필요
+    } else {
+      // LIKE 쿼리 사용 (Fallback)
+      const likeQuery = `%${searchQuery}%`;
+      return `m.reflection_notes LIKE ?`;
     }
   }
 

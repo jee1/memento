@@ -29,9 +29,10 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
   constructor() {
     this.factory = EmbeddingProviderFactory.getInstance();
-    console.log('✅ 통합 임베딩 서비스 초기화 완료');
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write('✅ 통합 임베딩 서비스 초기화 완료\n');
     this.syncFallbackProviders();
-    console.log(`📋 사용 가능한 제공자: ${this.factory.getAvailableProviders().map(p => p.name).join(', ')}`);
+    process.stderr.write(`📋 사용 가능한 제공자: ${this.factory.getAvailableProviders().map(p => p.name).join(', ')}\n`);
   }
 
   /**

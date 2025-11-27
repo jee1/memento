@@ -322,7 +322,9 @@ describe('RememberTool', () => {
         task_goal: 'Deploy React application to production',
         steps: JSON.stringify(['build', 'test', 'deploy']),
         reflection_notes: JSON.stringify({
-          failure_type: 'deployment_error',
+          failure_type: 'tool_error',
+          failure_description: 'Deployment failed due to missing environment variables',
+          timestamp: new Date().toISOString(),
           lessons_learned: 'Always check environment variables'
         }),
         importance: 0.8
@@ -634,6 +636,381 @@ describe('RememberTool', () => {
 
         expect(originSource.context.type_param_mode).toBe('warn');
         expect(originSource.context.type_was_defaulted).toBe(false);
+      });
+    });
+  });
+
+  describe('reflection_notes 처리', () => {
+    const createValidReflectionNote = (overrides: Partial<any> = {}) => ({
+      failure_type: 'tool_error',
+      failure_description: 'Test error',
+      timestamp: new Date().toISOString(),
+      ...overrides
+    });
+
+    describe('JSON 검증', () => {
+      it('should validate reflection_notes JSON format', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: JSON.stringify(createValidReflectionNote())
+        };
+
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        expect(resultData.memory_id).toBeDefined();
+        const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
+        expect(record.reflection_notes).toBeDefined();
+      });
+
+      it('should reject invalid JSON format', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: '{ invalid json }'
+        };
+
+        await expect(tool.handle(params, context)).rejects.toThrow(/JSON 파싱 실패/);
+      });
+
+      it('should accept array format', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: JSON.stringify([
+            createValidReflectionNote({ timestamp: '2025-01-01T00:00:00Z' }),
+            createValidReflectionNote({ timestamp: '2025-01-02T00:00:00Z' })
+          ])
+        };
+
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        expect(resultData.memory_id).toBeDefined();
+        const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
+        const parsed = JSON.parse(record.reflection_notes);
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed).toHaveLength(2);
+      });
+    });
+
+    describe('스키마 검증', () => {
+      it('should reject reflection_notes with missing required fields', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: JSON.stringify({
+            failure_description: 'Missing failure_type'
+            // failure_type과 timestamp 누락
+          })
+        };
+
+        await expect(tool.handle(params, context)).rejects.toThrow(/스키마 검증 실패/);
+      });
+
+      it('should reject reflection_notes with invalid failure_type', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: JSON.stringify({
+            failure_type: 'invalid_type',
+            failure_description: 'Test',
+            timestamp: new Date().toISOString()
+          })
+        };
+
+        await expect(tool.handle(params, context)).rejects.toThrow(/스키마 검증 실패/);
+      });
+
+      it('should reject reflection_notes with invalid timestamp format', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: JSON.stringify({
+            failure_type: 'tool_error',
+            failure_description: 'Test',
+            timestamp: 'invalid-date'
+          })
+        };
+
+        await expect(tool.handle(params, context)).rejects.toThrow(/스키마 검증 실패/);
+      });
+
+      it('should accept valid reflection_notes with all fields', async () => {
+        const params = {
+          type: 'procedural',
+          content: 'Test procedure',
+          task_goal: 'Test task',
+          reflection_notes: JSON.stringify({
+            failure_type: 'user_feedback',
+            failure_description: 'User reported issue',
+            timestamp: new Date().toISOString(),
+            original_task: 'Complete task X',
+            lessons_learned: 'Need better error handling',
+            suggested_improvements: 'Add retry logic',
+            phase: 'manual'
+          })
+        };
+
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        expect(resultData.memory_id).toBeDefined();
+        const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
+        const parsed = JSON.parse(record.reflection_notes);
+        expect(parsed.failure_type).toBe('user_feedback');
+        expect(parsed.original_task).toBe('Complete task X');
+      });
+    });
+
+    describe('병합 로직', () => {
+      it('should merge reflection_notes when existing record has same task_goal', async () => {
+        // 첫 번째 기록 저장
+        const firstParams = {
+          type: 'procedural',
+          content: 'First procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-01T00:00:00Z',
+            failure_description: 'First error'
+          }))
+        };
+
+        const firstResult = await tool.handle(firstParams, context);
+        const firstData = JSON.parse(firstResult.content[0].text);
+
+        // 두 번째 기록 저장 (같은 task_goal)
+        const secondParams = {
+          type: 'procedural',
+          content: 'Second procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-02T00:00:00Z',
+            failure_description: 'Second error'
+          }))
+        };
+
+        const secondResult = await tool.handle(secondParams, context);
+        const secondData = JSON.parse(secondResult.content[0].text);
+
+        // 두 번째 기록의 reflection_notes가 병합되었는지 확인
+        const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
+        const parsed = JSON.parse(secondRecord.reflection_notes);
+        
+        // 배열로 병합되었는지 확인
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed).toHaveLength(2);
+        expect(parsed[0].failure_description).toBe('First error');
+        expect(parsed[1].failure_description).toBe('Second error');
+      });
+
+      it('should not merge when task_goal is different', async () => {
+        // 첫 번째 기록 저장
+        const firstParams = {
+          type: 'procedural',
+          content: 'First procedure',
+          task_goal: 'Task A',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-01T00:00:00Z'
+          }))
+        };
+
+        await tool.handle(firstParams, context);
+
+        // 두 번째 기록 저장 (다른 task_goal)
+        const secondParams = {
+          type: 'procedural',
+          content: 'Second procedure',
+          task_goal: 'Task B',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-02T00:00:00Z'
+          }))
+        };
+
+        const secondResult = await tool.handle(secondParams, context);
+        const secondData = JSON.parse(secondResult.content[0].text);
+
+        // 두 번째 기록의 reflection_notes가 병합되지 않았는지 확인
+        const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
+        const parsed = JSON.parse(secondRecord.reflection_notes);
+        
+        // 단일 객체로 저장되었는지 확인 (병합되지 않음)
+        expect(Array.isArray(parsed)).toBe(false);
+        expect(parsed.failure_description).toBe('Test error');
+      });
+
+      it('should merge single object with existing array', async () => {
+        // 첫 번째 기록 저장 (배열 형식)
+        const firstParams = {
+          type: 'procedural',
+          content: 'First procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify([
+            createValidReflectionNote({ timestamp: '2025-01-01T00:00:00Z' }),
+            createValidReflectionNote({ timestamp: '2025-01-02T00:00:00Z' })
+          ])
+        };
+
+        await tool.handle(firstParams, context);
+
+        // 두 번째 기록 저장 (단일 객체)
+        const secondParams = {
+          type: 'procedural',
+          content: 'Second procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-03T00:00:00Z'
+          }))
+        };
+
+        const secondResult = await tool.handle(secondParams, context);
+        const secondData = JSON.parse(secondResult.content[0].text);
+
+        // 병합 결과 확인
+        const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
+        const parsed = JSON.parse(secondRecord.reflection_notes);
+        
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed).toHaveLength(3);
+      });
+    });
+
+    describe('배열 크기 제한', () => {
+      it('should limit array size to 100 items (FIFO)', async () => {
+        // 100개의 reflection_notes가 있는 기존 기록 생성
+        // 유효한 날짜 범위 내에서 생성 (1월은 31일까지만)
+        const existingNotes = Array.from({ length: 100 }, (_, i) => {
+          const day = (i % 31) + 1; // 1-31 사이의 날짜
+          const month = Math.floor(i / 31) + 1; // 월 증가
+          return createValidReflectionNote({ 
+            timestamp: `2025-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00Z`,
+            failure_description: `Error ${i}`
+          });
+        });
+
+        const firstParams = {
+          type: 'procedural',
+          content: 'First procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(existingNotes)
+        };
+
+        await tool.handle(firstParams, context);
+
+        // 새로운 reflection_notes 추가
+        const secondParams = {
+          type: 'procedural',
+          content: 'Second procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-02-01T00:00:00Z',
+            failure_description: 'New error'
+          }))
+        };
+
+        const secondResult = await tool.handle(secondParams, context);
+        const secondData = JSON.parse(secondResult.content[0].text);
+
+        // 배열 크기가 100개로 제한되었는지 확인
+        const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
+        const parsed = JSON.parse(secondRecord.reflection_notes);
+        
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed.length).toBeLessThanOrEqual(100);
+        // 새로운 항목이 포함되어야 함
+        expect(parsed.some((n: any) => n.failure_description === 'New error')).toBe(true);
+      });
+    });
+
+    describe('type이 procedural이 아닌 경우', () => {
+      it('should not validate reflection_notes for non-procedural types', async () => {
+        // 잘못된 reflection_notes를 제공하지만, episodic 타입이므로 검증하지 않음
+        const params = {
+          type: 'episodic',
+          content: 'Test content',
+          reflection_notes: '{ invalid json }'
+        };
+
+        // 에러가 발생하지 않아야 함 (검증하지 않으므로)
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        expect(resultData.memory_id).toBeDefined();
+      });
+
+      it('should ignore reflection_notes for non-procedural types', async () => {
+        // 첫 번째 기록 저장 (procedural)
+        const firstParams = {
+          type: 'procedural',
+          content: 'First procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-01T00:00:00Z'
+          }))
+        };
+
+        await tool.handle(firstParams, context);
+
+        // 두 번째 기록 저장 (episodic, procedural이 아니므로 reflection_notes 무시)
+        const secondParams = {
+          type: 'episodic',
+          content: 'Second content',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-02T00:00:00Z'
+          }))
+        };
+
+        const secondResult = await tool.handle(secondParams, context);
+        const secondData = JSON.parse(secondResult.content[0].text);
+
+        // episodic 타입이므로 reflection_notes가 무시되어야 함 (null)
+        const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
+        
+        // reflection_notes가 null이어야 함 (non-procedural 타입에서는 무시)
+        expect(secondRecord.reflection_notes).toBeNull();
+      });
+    });
+
+    describe('공통 유틸리티 함수 사용', () => {
+      it('should use mergeReflectionNotes utility for merging', async () => {
+        // 첫 번째 기록 저장
+        const firstParams = {
+          type: 'procedural',
+          content: 'First procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-01T00:00:00Z'
+          }))
+        };
+
+        await tool.handle(firstParams, context);
+
+        // 두 번째 기록 저장
+        const secondParams = {
+          type: 'procedural',
+          content: 'Second procedure',
+          task_goal: 'Same task',
+          reflection_notes: JSON.stringify(createValidReflectionNote({ 
+            timestamp: '2025-01-02T00:00:00Z'
+          }))
+        };
+
+        const secondResult = await tool.handle(secondParams, context);
+        const secondData = JSON.parse(secondResult.content[0].text);
+
+        // 병합이 올바르게 수행되었는지 확인 (공통 유틸리티 함수 사용)
+        const secondRecord = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [secondData.memory_id]);
+        const parsed = JSON.parse(secondRecord.reflection_notes);
+        
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed).toHaveLength(2);
       });
     });
   });

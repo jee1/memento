@@ -76,8 +76,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should accept valid parameters', async () => {
       const memoryId = 'mem_test_1';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -106,8 +106,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should accept default values for optional parameters', async () => {
       const memoryId = 'mem_test_2';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -125,8 +125,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should validate limit range', async () => {
       const memoryId = 'mem_test_3';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -142,8 +142,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should validate similarity_threshold range', async () => {
       const memoryId = 'mem_test_4';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -161,8 +161,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should return neighbors when memory exists', async () => {
       const memoryId = 'mem_test_success';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -188,8 +188,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should return empty neighbors when no similar memories exist', async () => {
       const memoryId = 'mem_test_empty';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -223,8 +223,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should handle database connection error', async () => {
       const memoryId = 'mem_test_db_error';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       // 데이터베이스 연결 해제
@@ -251,8 +251,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should handle VectorSearchEngine initialization error gracefully', async () => {
       const memoryId = 'mem_test_engine_error';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -282,8 +282,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should return MCP Tool standard response format', async () => {
       const memoryId = 'mem_test_format';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -311,8 +311,8 @@ describe('GetMemoryNeighborsTool', () => {
     it('should include neighbor details in response', async () => {
       const memoryId = 'mem_test_neighbor_details';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
+        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {

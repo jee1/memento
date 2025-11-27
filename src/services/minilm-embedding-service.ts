@@ -51,7 +51,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private readonly cache = new Map<string, EmbeddingResult>();
 
   constructor() {
-    console.log('✅ MiniLM 임베딩 서비스 초기화 완료');
+    // stderr로 로그 출력 (MCP 프로토콜 준수)
+    process.stderr.write('✅ MiniLM 임베딩 서비스 초기화 완료\n');
   }
 
   /**

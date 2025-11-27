@@ -98,26 +98,28 @@ CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_fts USING fts5(
   content,
   tags,
   source,
+  reflection_notes,
   content='memory_item',
   content_rowid='rowid'
 );
 
--- FTS5 트리거 (자동 동기화)
+-- FTS5 트리거 (자동 동기화, reflection_notes 정규화 포함)
+-- Note: normalize_reflection_notes 함수는 데이터베이스 초기화 시 등록되어야 함
 CREATE TRIGGER IF NOT EXISTS memory_item_fts_insert AFTER INSERT ON memory_item BEGIN
-  INSERT INTO memory_item_fts(rowid, content, tags, source)
-  VALUES (new.rowid, new.content, new.tags, new.source);
+  INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+  VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
-  INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
-  VALUES('delete', old.rowid, old.content, old.tags, old.source);
+  INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+  VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
-  INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source)
-  VALUES('delete', old.rowid, old.content, old.tags, old.source);
-  INSERT INTO memory_item_fts(rowid, content, tags, source)
-  VALUES (new.rowid, new.content, new.tags, new.source);
+  INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+  VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
+  INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+  VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
 END;
 
 -- 임베딩 저장 테이블 (다중 제공자/차원 지원)

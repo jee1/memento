@@ -46,6 +46,7 @@ const RecallSchema = z.object({
   pinned: z.boolean().optional(),
   importance_min: z.number().min(0).max(1).optional(),
   importance_max: z.number().min(0).max(1).optional(),
+  has_reflection_notes: z.boolean().optional(), // reflection_notes IS NOT NULL 필터링
   limit: CommonSchemas.Limit,
   vector_weight: z.number().min(0).max(1).optional(),
   text_weight: z.number().min(0).max(1).optional(),
@@ -130,7 +131,11 @@ export class RecallTool extends BaseTool {
             type: 'number',
             minimum: 0,
             maximum: 1,
-            description: '최대 중요도 (선택사항)'
+            description: '최대 중요도 (0-1, 선택사항)'
+          },
+          has_reflection_notes: {
+            type: 'boolean',
+            description: 'reflection_notes가 있는 메모리만 조회 (true: IS NOT NULL, false: IS NULL, 선택사항)'
           },
           limit: { 
             type: 'number', 
@@ -175,6 +180,7 @@ export class RecallTool extends BaseTool {
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
+    const startTime = Date.now();
     this.logInfo('Recall 도구 호출됨', { params });
     
     try {
@@ -400,7 +406,8 @@ export class RecallTool extends BaseTool {
           time_to,
           pinned,
           importance_min,
-          importance_max
+          importance_max,
+          has_reflection_notes: params.has_reflection_notes
         };
         
         // 검색 옵션 설정
@@ -498,6 +505,15 @@ export class RecallTool extends BaseTool {
     } catch (error) {
       this.logError(error as Error, 'Recall 도구 실행 실패', { params });
       
+      // 실패 감지 훅 호출
+      const executionTime = Date.now() - startTime;
+      await this.handleFailure(
+        error instanceof Error ? error : new Error(String(error)),
+        params,
+        context,
+        executionTime
+      );
+      
       // 사용자 친화적인 에러 메시지 반환
       if (error instanceof Error) {
         if (error.message.includes('validation')) {
@@ -544,6 +560,27 @@ export class RecallTool extends BaseTool {
           } catch (error) {
             // JSON 파싱 실패 시 원본 문자열 반환
             processed.origin_source = item.origin_source;
+          }
+        }
+        
+        // Procedural Memory 전용 필드 추가
+        if (item.type === 'procedural') {
+          processed.task_goal = item.task_goal || null;
+          processed.steps = item.steps || null;
+          
+          // reflection_notes 필드 추가 (JSON 파싱)
+          if (item.reflection_notes) {
+            try {
+              // reflection_notes JSON 파싱 (문자열 → 객체/배열 변환)
+              processed.reflection_notes = typeof item.reflection_notes === 'string'
+                ? JSON.parse(item.reflection_notes)
+                : item.reflection_notes;
+            } catch (error) {
+              // JSON 파싱 실패 시 원본 문자열 반환
+              processed.reflection_notes = item.reflection_notes;
+            }
+          } else {
+            processed.reflection_notes = null;
           }
         }
         
@@ -598,6 +635,9 @@ export class RecallTool extends BaseTool {
     }
     if (filters.importance_max !== undefined) {
       applied.importance_max = filters.importance_max;
+    }
+    if (filters.has_reflection_notes !== undefined) {
+      applied.has_reflection_notes = filters.has_reflection_notes;
     }
     
     return applied;

@@ -58,7 +58,9 @@ export function createToolContext(serverContext: ServerContext): ToolContext {
       performanceAlertService: serverContext.services.performanceAlertService,
       consolidationScoreService: serverContext.services.consolidationScoreService,
       writeCoalescingManager: serverContext.services.writeCoalescingManager,
-      anchorManager: serverContext.services.anchorManager
+      anchorManager: serverContext.services.anchorManager,
+      failureDetector: serverContext.services.failureDetector,
+      reflexionWorker: serverContext.services.reflexionWorker
     }
   };
 }

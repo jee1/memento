@@ -188,7 +188,8 @@ async function initializeServer() {
       console.log('⚠️  이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...');
       await batchScheduler.stop();
     }
-    await batchScheduler.start(db);
+    // Reflexion Worker 통합 (Phase 2)
+    await batchScheduler.start(db, services.reflexionWorker);
     console.log('⏰ 배치 스케줄러 시작됨');
     
     // 임베딩 프로바이더 정보 표시

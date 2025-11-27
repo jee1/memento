@@ -47,6 +47,10 @@ export interface ToolContext {
     anchorManager?: any;
     /** 관계 그래프 서비스 */
     relationGraph?: any;
+    /** 실패 감지 서비스 (Phase 2) */
+    failureDetector?: any;
+    /** Reflexion Worker 서비스 (Phase 2) */
+    reflexionWorker?: any;
   };
 }
 
@@ -91,6 +95,6 @@ export const CommonSchemas = {
   // Procedural Memory용 필드
   TaskGoal: z.string().optional(),
   Steps: z.string().optional(), // JSON 배열 문자열
-  ReflectionNotes: z.string().optional(), // JSON 객체 문자열
+  ReflectionNotes: z.string().nullable().optional(), // JSON 객체 문자열 (null 허용)
 };
 

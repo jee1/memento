@@ -190,6 +190,15 @@ describe('Migration System Integration', () => {
         validate: true
       });
 
+      // 실패한 마이그레이션이 있으면 로그 출력
+      const failedMigrations = results.filter(r => !r.success);
+      if (failedMigrations.length > 0) {
+        console.error('❌ 실패한 마이그레이션:');
+        failedMigrations.forEach(r => {
+          console.error(`  - ${r.name} (${r.version}): ${r.error || 'Unknown error'}`);
+        });
+      }
+
       // 모든 마이그레이션이 성공해야 함
       expect(results.every(r => r.success)).toBe(true);
 
@@ -447,6 +456,15 @@ describe('Migration System Integration', () => {
       const runner = new MigrationRunner(db);
       const migrations = detectionResult.pendingMigrations.map(d => d.migration);
       const results = await runner.runMigrations(migrations);
+
+      // 실패한 마이그레이션이 있으면 로그 출력
+      const failedMigrations = results.filter(r => !r.success);
+      if (failedMigrations.length > 0) {
+        console.error('❌ 실패한 마이그레이션:');
+        failedMigrations.forEach(r => {
+          console.error(`  - ${r.name} (${r.version}): ${r.error || 'Unknown error'}`);
+        });
+      }
 
       // 모든 마이그레이션이 성공해야 함
       expect(results.every(r => r.success)).toBe(true);
