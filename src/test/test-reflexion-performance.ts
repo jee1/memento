@@ -8,7 +8,7 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from './helpers/test-database.js';
 import { FailureDetector, ErrorType, type FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../services/reflexion-worker.js';
-import { AsyncTaskQueue } from '../services/async-optimizer.js';
+import { AsyncTaskQueue } from '../infrastructure/async-optimizer.js';
 
 describe('Reflexion 성능 테스트', () => {
   let db: Database.Database;

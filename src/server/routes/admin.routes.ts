@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
-import { getBatchScheduler } from '../../services/batch-scheduler.js';
+import { getBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
 import { getPerformanceMonitor } from '../../services/performance-monitor.js';
 import { RelationGraph } from '../../domains/relation/services/relation-graph.js';
 import { RelationExtractor } from '../../services/relation-extractor.js';

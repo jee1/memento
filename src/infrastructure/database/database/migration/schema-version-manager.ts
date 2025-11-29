@@ -6,7 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import type { SchemaVersion } from '../../../../tools/types.js';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../../shared/utils/database.js';
 
 /**
  * 스키마 버전 관리자

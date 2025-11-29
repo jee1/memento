@@ -8,7 +8,7 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import { createServer } from 'http';
-import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
 import { mementoConfig, validateConfig } from '../shared/config/index.js';
 import { initializeServices, type ServerServices } from './bootstrap.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';

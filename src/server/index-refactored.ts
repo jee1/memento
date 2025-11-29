@@ -6,7 +6,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
 import { mementoConfig, validateConfig } from '../shared/config/index.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
