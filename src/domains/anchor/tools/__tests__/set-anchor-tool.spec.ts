@@ -32,7 +32,7 @@ import type { ToolContext } from '../types.js';
 import { AnchorManager } from '../../anchor-manager.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 
 /**
  * 테스트용 데이터베이스 초기화

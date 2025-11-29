@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { RelationExtractor } from '../../src/services/relation-extractor.js';
+import { RelationExtractor } from '../../../../domains/relation/services/relation-extractor.js';
 import { RelationQualityValidator } from '../../src/services/relation-quality-validator.js';
 import type { ExpectedRelation, ExtractedRelation } from '../../src/services/relation-quality-validator.js';
 import { DatabaseUtils } from '../../src/utils/database.js';

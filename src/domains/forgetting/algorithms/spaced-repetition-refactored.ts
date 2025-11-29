@@ -11,7 +11,7 @@ import type {
   MemoryData,
   SpacedRepetitionConfig
 } from '../../../../shared/types/spaced-repetition.types.js';
-import { getSpacedRepetitionService, initializeSpacedRepetitionWithDefaults } from '../domains/forgetting/services/spaced-repetition/spaced-repetition-container.js';
+import { getSpacedRepetitionService, initializeSpacedRepetitionWithDefaults } from '../services/spaced-repetition/spaced-repetition-container.js';
 
 /**
  * 리팩토링된 간격 반복 알고리즘으로 기존 코드와의 호환성을 유지하면서 개선된 구조를 제공합니다.

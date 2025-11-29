@@ -27,7 +27,7 @@ import type { ToolContext } from '../types.js';
 import { AnchorManager } from '../../anchor-manager.js';
 import type { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 
 /**
  * 테스트용 데이터베이스 초기화

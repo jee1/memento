@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { embeddingMigrationService } from '../embedding-migration-service.js';
-import { migrationMonitorService } from '../../../infrastructure/database/migration-monitor-service.js';
+import { migrationMonitorService } from '../../../../infrastructure/database/migration-monitor-service.js';
 import type { MigrationProgress, MigrationProgressEvent } from '../../../shared/types/migration.types.js';
 
 function createSchema(db: Database.Database): void {

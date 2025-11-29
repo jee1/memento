@@ -6,7 +6,7 @@ import type { ToolContext } from '../types.js';
 import { AnchorManager, AnchorError } from '../../anchor-manager.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { createHybridSearchEngine, type HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
 vi.mock('@xenova/transformers', () => {

@@ -3,9 +3,9 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RememberTool } from '../remember-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../../memory-embedding-service.js';
-import { HybridSearchEngine } from '../../../algorithms/hybrid-search-engine.js';
+import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import * as configModule from '../../../../shared/config/index.js';
 
 /**

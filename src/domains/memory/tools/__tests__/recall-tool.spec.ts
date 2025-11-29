@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RecallTool } from '../recall-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
-import { HybridSearchEngine } from '../../../algorithms/hybrid-search-engine.js';
+import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../../memory-embedding-service.js';
 
 /**

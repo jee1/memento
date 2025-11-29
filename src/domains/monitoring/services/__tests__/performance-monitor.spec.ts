@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PerformanceMonitor } from './performance-monitor';
-import type { PerformanceMetrics } from './performance-monitor';
+import { PerformanceMonitor } from '../performance-monitor.js';
+import type { PerformanceMetrics } from '../performance-monitor.js';
 
 const toBytes = (mb: number): number => mb * 1024 * 1024;
 
