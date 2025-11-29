@@ -3,7 +3,7 @@
  * 데이터베이스와 임베딩 서비스를 연동
  */
 
-import { UnifiedEmbeddingService } from '../../../services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { vectorCompatibilityService } from '../../../services/vector-compatibility-service.js';
 import type { EmbeddingProvider, EmbeddingResult } from '../../../types/embedding.types.js';
 import { DatabaseUtils } from '../../../utils/database.js';

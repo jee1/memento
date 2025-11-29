@@ -14,8 +14,8 @@ import type {
   SimilarityResult, 
   EmbeddingData,
   EmbeddingProvider 
-} from '../types/embedding.types.js';
-import { EmbeddingProviderFactory } from './embedding-provider-factory.js';
+} from '../../../types/embedding.types.js';
+import { EmbeddingProviderFactory } from '../providers/embedding-provider-factory.js';
 
 /**
  * 통합 임베딩 서비스

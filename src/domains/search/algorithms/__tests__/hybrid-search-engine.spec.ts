@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
 import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType } from './hybrid-search-engine.js';
 import type { ITextSearchEngine, IEmbeddingService, IVectorSearchEngine, ISearchResultCombiner, IAdaptiveWeightCalculator, ISearchLogger } from './hybrid-search-engine.js';
 import Database from 'better-sqlite3';
-import { RelationGraph } from '../services/relation-graph.js';
+import { RelationGraph } from '../../../services/relation-graph.js';
 import { DatabaseUtils } from '../../../utils/database.js';
 import { RelationEngineSchemaMigration } from '../database/migration/migrations/005-relation-engine-schema.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../test/helpers/consolidation-test-data.js';

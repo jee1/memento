@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { UnpinTool } from './unpin-tool.js';
-import type { ToolContext } from '../../tools/types.js';
+import type { ToolContext } from '../../../tools/types.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../utils/database.js';
 

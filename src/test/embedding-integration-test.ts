@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { UnifiedEmbeddingService } from '../services/unified-embedding-service.js';
-import { EmbeddingProviderFactory } from '../services/embedding-provider-factory.js';
+import { EmbeddingProviderFactory } from '../domains/embedding/providers/embedding-provider-factory.js';
 import type { EmbeddingData } from '../types/embedding.types.js';
 
 // 실제 사용 시나리오 데이터

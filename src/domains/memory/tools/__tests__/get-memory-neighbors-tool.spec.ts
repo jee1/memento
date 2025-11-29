@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../utils/database.js';
 import { GetMemoryNeighborsTool, GetMemoryNeighborsSchema } from './get-memory-neighbors-tool.js';
-import type { ToolContext } from '../../tools/types.js';
-import { getVectorSearchEngine } from '../../../algorithms/vector-search-engine.js';
-import * as vectorSearchEngineModule from '../../../algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import type { ToolContext } from '../../../tools/types.js';
+import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import * as vectorSearchEngineModule from '../../search/algorithms/vector-search-engine.js';
+import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
 vi.mock('@xenova/transformers', () => {

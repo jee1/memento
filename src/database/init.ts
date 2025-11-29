@@ -463,7 +463,7 @@ export async function initializeDatabase(): Promise<Database.Database> {
     try {
       log('🔄 Core Memory 자동 로드 중...');
       const coreMemoryRepository = new CoreMemoryRepository(db);
-      const { getCoreMemoryCache, setCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
+      const { getCoreMemoryCache, setCoreMemoryCache } = await import('../domains/memory/services/core-memory-cache-service.js');
       
       // 전역 캐시 인스턴스 생성 및 설정
       const coreMemoryCache = getCoreMemoryCache();

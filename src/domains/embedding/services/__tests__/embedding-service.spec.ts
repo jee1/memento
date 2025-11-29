@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EmbeddingService, type EmbeddingResult, type SimilarityResult } from './embedding-service.js';
 import { GeminiEmbeddingService } from './gemini-embedding-service.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../../../config/index.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => ({

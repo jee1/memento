@@ -4,19 +4,19 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from '../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../tools/types.js';
-import { CommonSchemas } from '../../tools/types.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import { CommonSchemas } from '../../../tools/types.js';
 import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider } from '../../../types/index.js';
-import { CoreMemoryRepository } from '../../repositories/core-memory-repository.js';
-import { CoreMemoryService } from '../../services/core-memory-service.js';
-import { CoreMemoryCacheService } from '../../services/core-memory-cache-service.js';
-import { KnowledgeVaultRepository } from '../../repositories/knowledge-vault-repository.js';
-import { KnowledgeVaultService } from '../../services/knowledge-vault-service.js';
+import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
+import { CoreMemoryService } from '../services/core-memory-service.js';
+import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
+import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../utils/type-param-validator.js';
 import { mementoConfig } from '../../../config/index.js';
 import { DatabaseUtils } from '../../../utils/database.js';
-import type { ConsolidationScoreService } from '../../services/consolidation-score-service.js';
+import type { ConsolidationScoreService } from '../../../services/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../../../utils/write-coalescing.js';
 
 /**
