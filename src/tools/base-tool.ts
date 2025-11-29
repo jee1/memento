@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolHandler, ToolContext, ToolResult, ToolError } from './types.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
-import type { ReflexionWorker } from '../services/reflexion-worker.js';
+import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 
 export abstract class BaseTool {
   protected name: string;
