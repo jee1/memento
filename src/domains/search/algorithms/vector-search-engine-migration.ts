@@ -109,7 +109,7 @@ import { VectorSearchEngine } from './vector-search-engine';
 
 // 새로운
 import { VectorSearchEngineRefactored } from './vector-search-engine-refactored';
-import type { VectorSearchQuery, VectorSearchResult } from '../../../../shared/types/vector-search.types';
+import type { VectorSearchQuery, VectorSearchResult } from '../../../shared/types/vector-search.types';
     `
   },
   

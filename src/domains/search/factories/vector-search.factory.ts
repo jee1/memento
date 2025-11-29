@@ -5,8 +5,8 @@
 
 import Database from 'better-sqlite3';
 import { VectorSearchFacade } from '../services/vector-search/vector-search-facade';
-import { VectorSearchRepositoryImpl } from '../../repositories/vector-search-repository.js';
-import { VectorPerformanceRepositoryImpl } from '../../repositories/vector-performance-repository.js';
+import { VectorSearchRepositoryImpl } from '../repositories/vector-search-repository.js';
+import { VectorPerformanceRepositoryImpl } from '../repositories/vector-performance-repository.js';
 import type { VectorSearchFacade as IVectorSearchFacade } from '../services/vector-search/vector-search-facade';
 
 export class VectorSearchFactory {

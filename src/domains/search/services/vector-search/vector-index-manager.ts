@@ -3,8 +3,8 @@
  * 단일 책임 원칙(SRP) 적용 - 인덱스 관리만 담당
  */
 
-import type { VectorIndexStatus } from '../../../../../shared/types/vector-search.types';
-import type { VectorIndexRepository } from '../../../../../shared/interfaces/database.interface';
+import type { VectorIndexStatus } from '../../../shared/types/vector-search.types.js';
+import type { VectorIndexRepository } from '../../../shared/interfaces/database.interface.js';
 
 export class VectorIndexManager {
   constructor(private repository: VectorIndexRepository) {}

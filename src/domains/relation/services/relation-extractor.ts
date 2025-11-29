@@ -18,7 +18,7 @@ import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../sha
 import type { MemoryType, MemoryItem } from '../../../shared/types/index.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
-import { CacheService } from '../../../memory/services/memory-cache-service.js';
+import { CacheService } from '../../../memory/services/core-memory-cache-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { CONFIDENCE, LIMITS, CACHE } from '../../../shared/constants/relation-constants.js';

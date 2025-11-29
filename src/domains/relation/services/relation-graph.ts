@@ -23,7 +23,7 @@ import type {
 } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { CacheService } from '../../../memory/services/memory-cache-service.js';
+import { CacheService } from '../../../memory/services/core-memory-cache-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
   isExistingRelationRow,
