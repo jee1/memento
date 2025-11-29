@@ -7,7 +7,7 @@
 import type Database from 'better-sqlite3';
 import fs from 'fs';
 import { join, dirname } from 'path';
-import { mementoConfig } from '../../../../../shared/config/index.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
 
 /**
  * 백업 생성 결과
