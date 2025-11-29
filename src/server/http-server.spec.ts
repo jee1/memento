@@ -8,7 +8,7 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { createHybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { __test } from './http-server.js';
 import type express from 'express';
 

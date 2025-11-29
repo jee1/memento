@@ -6,11 +6,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
-import { GetMemoryNeighborsTool } from '../tools/get-memory-neighbors-tool.js';
+import { GetMemoryNeighborsTool } from '../domains/memory/tools/get-memory-neighbors-tool.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { initializeDatabase } from '../database/init.js';
 import { startServer, cleanup, __test } from '../server/http-server.js';
 import fetch from 'node-fetch';

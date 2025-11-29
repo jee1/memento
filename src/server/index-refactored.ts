@@ -11,7 +11,7 @@ import { mementoConfig, validateConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
 import { PerformanceMonitor } from '../services/performance-monitor.js';
 import { SearchCacheService } from '../services/cache-service.js';

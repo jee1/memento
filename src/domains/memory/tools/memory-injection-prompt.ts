@@ -3,15 +3,15 @@
  * MCP 프롬프트 인터페이스를 통한 관련 기억 주입
  */
 
-import { BaseTool } from './base-tool.js';
-import type { ToolContext } from './types.js';
+import { BaseTool } from '../../tools/base-tool.js';
+import type { ToolContext } from '../../tools/types.js';
 import { z } from 'zod';
-import { CommonSchemas } from './types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../types/index.js';
-import { mementoConfig } from '../config/index.js';
-import { DatabaseUtils } from '../utils/database.js';
-import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
-import type { WriteCoalescingManager } from '../utils/write-coalescing.js';
+import { CommonSchemas } from '../../tools/types.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../../../types/index.js';
+import { mementoConfig } from '../../../config/index.js';
+import { DatabaseUtils } from '../../../utils/database.js';
+import type { ConsolidationScoreService } from '../../services/consolidation-score-service.js';
+import type { WriteCoalescingManager } from '../../../utils/write-coalescing.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 쿼리'),

@@ -5,10 +5,10 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CleanupMemoryTool } from './cleanup-memory-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
+import type { ToolContext, ToolResult } from '../../tools/types.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../test/helpers/test-database.js';
-import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import { ForgettingPolicyService } from '../../services/forgetting-policy-service.js';
 
 describe('CleanupMemoryTool', () => {
   let tool: CleanupMemoryTool;

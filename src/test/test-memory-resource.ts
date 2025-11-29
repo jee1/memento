@@ -7,11 +7,11 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
 import { initializeDatabase } from '../database/init.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
+import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 
 describe('Memory Resource E2E Tests', () => {

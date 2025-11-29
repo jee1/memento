@@ -8,7 +8,7 @@ import { mementoConfig } from '../config/index.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from '../services/performance-monitor.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';

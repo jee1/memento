@@ -7,9 +7,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { createHybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { ErrorLoggingService } from '../services/error-logging-service.js';
-import type { ToolContext } from './types.js';
+import { createHybridSearchEngine } from '../../../algorithms/hybrid-search-engine.js';
+import { ErrorLoggingService } from '../../services/error-logging-service.js';
+import type { ToolContext } from '../../tools/types.js';
 
 describe('MemoryInjectionPrompt', () => {
   let db: Database.Database;

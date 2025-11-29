@@ -4,13 +4,13 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from './base-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
-import { CommonSchemas } from './types.js';
-import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { MemoryNotFoundError } from '../services/memory-neighbor-service.js';
+import { BaseTool } from '../../tools/base-tool.js';
+import type { ToolContext, ToolResult } from '../../tools/types.js';
+import { CommonSchemas } from '../../tools/types.js';
+import { MemoryNeighborService } from '../../services/memory-neighbor-service.js';
+import { getVectorSearchEngine } from '../../../algorithms/vector-search-engine.js';
+import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { MemoryNotFoundError } from '../../services/memory-neighbor-service.js';
 
 const GetMemoryNeighborsSchema = z.object({
   memory_id: CommonSchemas.MemoryId,

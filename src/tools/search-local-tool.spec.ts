@@ -4,7 +4,7 @@ import { DatabaseUtils } from '../utils/database.js';
 import { SearchLocalTool } from './search-local-tool.js';
 import type { ToolContext } from './types.js';
 import { AnchorManager, AnchorError } from '../services/anchor-manager.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { createHybridSearchEngine, type HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 

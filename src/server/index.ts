@@ -14,7 +14,7 @@ import { initializeServices, type ServerServices } from './bootstrap.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
 import type { SearchEngine } from '../algorithms/search-engine.js';
 import type { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
 import type { PerformanceMonitor } from '../services/performance-monitor.js';
 import type { DatabaseOptimizer } from '../services/database-optimizer.js';
@@ -23,7 +23,7 @@ import type { ConsolidationScoreService } from '../services/consolidation-score-
 import type { WriteCoalescingManager } from '../utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
-import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
+import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { getBatchScheduler } from '../services/batch-scheduler.js';
 import Database from 'better-sqlite3';

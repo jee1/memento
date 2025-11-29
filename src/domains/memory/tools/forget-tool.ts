@@ -4,10 +4,10 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from './base-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
-import { CommonSchemas } from './types.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { BaseTool } from '../../tools/base-tool.js';
+import type { ToolContext, ToolResult } from '../../tools/types.js';
+import { CommonSchemas } from '../../tools/types.js';
+import { DatabaseUtils } from '../../../utils/database.js';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),

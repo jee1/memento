@@ -9,9 +9,9 @@ import { fileURLToPath } from 'url';
 import { mementoConfig } from '../config/index.js';
 import { MigrationDetector } from './migration/migration-detector.js';
 import { MigrationRunner } from './migration/migration-runner.js';
-import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
-import { CoreMemoryService } from '../services/core-memory-service.js';
-import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
+import { CoreMemoryRepository } from '../domains/memory/repositories/core-memory-repository.js';
+import { CoreMemoryService } from '../domains/memory/services/core-memory-service.js';
+import { CoreMemoryCacheService } from '../domains/memory/services/core-memory-cache-service.js';
 import { normalizeReflectionNotes } from '../utils/reflection-notes-normalize.js';
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../utils/fts5-migration-status.js';
 

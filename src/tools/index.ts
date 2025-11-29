@@ -4,13 +4,13 @@
  */
 
 import { ToolRegistry } from './tool-registry.js';
-import { RememberTool } from './remember-tool.js';
-import { RecallTool } from './recall-tool.js';
-import { ForgetTool } from './forget-tool.js';
-import { PinTool } from './pin-tool.js';
-import { UnpinTool } from './unpin-tool.js';
-import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
-import { GetMemoryNeighborsTool } from './get-memory-neighbors-tool.js';
+import { RememberTool } from '../domains/memory/tools/remember-tool.js';
+import { RecallTool } from '../domains/memory/tools/recall-tool.js';
+import { ForgetTool } from '../domains/memory/tools/forget-tool.js';
+import { PinTool } from '../domains/memory/tools/pin-tool.js';
+import { UnpinTool } from '../domains/memory/tools/unpin-tool.js';
+import { MemoryInjectionPrompt } from '../domains/memory/tools/memory-injection-prompt.js';
+import { GetMemoryNeighborsTool } from '../domains/memory/tools/get-memory-neighbors-tool.js';
 import { SetAnchorTool } from './set-anchor-tool.js';
 import { GetAnchorTool } from './get-anchor-tool.js';
 import { SearchLocalTool } from './search-local-tool.js';

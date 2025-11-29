@@ -1,47 +1,40 @@
 /**
- * Pin Tool - 기억 고정 도구
- * 중요한 기억을 고정하여 삭제로부터 보호
+ * Unpin Tool - 기억 고정 해제 도구
+ * 고정된 기억의 고정을 해제하여 일반 관리 대상으로 변경
  */
 
 import { z } from 'zod';
-import { BaseTool } from './base-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
-import { CommonSchemas } from './types.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { BaseTool } from '../../tools/base-tool.js';
+import type { ToolContext, ToolResult } from '../../tools/types.js';
+import { CommonSchemas } from '../../tools/types.js';
+import { DatabaseUtils } from '../../../utils/database.js';
 
-const PinSchema = z.object({
+const UnpinSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
-  reason: z.string().optional().describe('고정 사유'),
-  priority: z.number().min(1).max(5).optional().describe('우선순위 (1-5)'),
-  batch: z.array(z.string()).optional().describe('배치 고정할 ID 목록')
+  reason: z.string().optional().describe('고정 해제 사유'),
+  batch: z.array(z.string()).optional().describe('배치 고정 해제할 ID 목록'),
+  confirm: z.boolean().optional().describe('고정 해제 확인')
 }).refine((data) => data.id || data.batch, {
   message: "id 또는 batch 중 하나는 필수입니다"
 });
 
-export class PinTool extends BaseTool {
+export class UnpinTool extends BaseTool {
   constructor() {
     super(
-      'pin',
-      '기억을 고정합니다',
+      'unpin',
+      '기억 고정을 해제합니다',
       {
         type: 'object',
         properties: {
           id: { 
             type: 'string', 
-            description: '고정할 기억의 ID (배치 고정시 무시됨)',
+            description: '고정 해제할 기억의 ID (배치 고정 해제시 무시됨)',
             pattern: '^mem_[a-zA-Z0-9_]+$'
           },
           reason: {
             type: 'string',
-            description: '고정 사유',
+            description: '고정 해제 사유',
             maxLength: 500
-          },
-          priority: {
-            type: 'number',
-            minimum: 1,
-            maximum: 5,
-            description: '우선순위 (1-5)',
-            default: 3
           },
           batch: {
             type: 'array',
@@ -49,8 +42,13 @@ export class PinTool extends BaseTool {
               type: 'string',
               pattern: '^mem_[a-zA-Z0-9_]+$'
             },
-            description: '배치 고정할 ID 목록',
+            description: '배치 고정 해제할 ID 목록',
             maxItems: 100
+          },
+          confirm: {
+            type: 'boolean',
+            description: '고정 해제 확인',
+            default: false
           }
         },
         required: ['id']
@@ -59,30 +57,30 @@ export class PinTool extends BaseTool {
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
-    const { id, reason, priority = 3, batch } = PinSchema.parse(params);
+    const { id, reason, batch, confirm = false } = UnpinSchema.parse(params);
     
     // 데이터베이스 연결 확인
     this.validateDatabase(context);
     
-    // 배치 고정 처리
+    // 배치 고정 해제 처리
     if (batch && batch.length > 0) {
-      return await this.handleBatchPin(batch, reason, priority, context);
+      return await this.handleBatchUnpin(batch, reason, confirm, context);
     }
     
-    // 단일 고정 처리
+    // 단일 고정 해제 처리
     if (!id) {
       throw new Error('기억 ID가 필요합니다');
     }
-    return await this.handleSinglePin(id, reason, priority, context);
+    return await this.handleSingleUnpin(id, reason, confirm, context);
   }
 
   /**
-   * 단일 기억 고정
+   * 단일 기억 고정 해제
    */
-  private async handleSinglePin(
+  private async handleSingleUnpin(
     id: string, 
     reason: string | undefined, 
-    priority: number, 
+    confirm: boolean, 
     context: ToolContext
   ): Promise<ToolResult> {
     try {
@@ -92,23 +90,28 @@ export class PinTool extends BaseTool {
         throw new Error(`Memory with ID ${id} not found`);
       }
       
-      // 이미 고정된 기억 확인
-      if (memory.pinned) {
+      // 이미 고정 해제된 기억 확인
+      if (!memory.pinned) {
         return this.createSuccessResult({
           memory_id: id,
-          message: `기억이 이미 고정되어 있습니다: ${id}`,
-          already_pinned: true
+          message: `기억이 이미 고정 해제되어 있습니다: ${id}`,
+          already_unpinned: true
         });
       }
       
-      // 고정 로그 기록
-      await this.logPinAction(id, reason, priority, context);
+      // 중요도가 높은 기억은 확인 필요
+      if (memory.importance > 0.8 && !confirm) {
+        throw new Error('높은 중요도의 기억은 confirm=true로 확인해야 합니다');
+      }
       
-      // 트랜잭션으로 고정 실행
+      // 고정 해제 로그 기록
+      await this.logUnpinAction(id, reason, context);
+      
+      // 트랜잭션으로 고정 해제 실행
       await DatabaseUtils.runTransaction(context.db!, async () => {
         const result = await DatabaseUtils.run(
           context.db!, 
-          'UPDATE memory_item SET pinned = TRUE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?', 
+          'UPDATE memory_item SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?', 
           [id]
         );
         
@@ -121,10 +124,10 @@ export class PinTool extends BaseTool {
       
       return this.createSuccessResult({
         memory_id: id,
-        message: `기억이 고정되었습니다: ${id}`,
+        message: `기억 고정이 해제되었습니다: ${id}`,
         reason: reason || 'No reason provided',
-        priority,
-        pinned_at: new Date().toISOString()
+        unpinned_at: new Date().toISOString(),
+        importance: memory.importance
       });
       
     } catch (error) {
@@ -137,18 +140,19 @@ export class PinTool extends BaseTool {
   }
 
   /**
-   * 배치 고정 처리
+   * 배치 고정 해제 처리
    */
-  private async handleBatchPin(
+  private async handleBatchUnpin(
     ids: string[], 
     reason: string | undefined, 
-    priority: number, 
+    confirm: boolean, 
     context: ToolContext
   ): Promise<ToolResult> {
     const results = {
       successful: [] as string[],
       failed: [] as Array<{id: string, error: string}>,
-      already_pinned: [] as string[],
+      already_unpinned: [] as string[],
+      requires_confirmation: [] as string[],
       total: ids.length
     };
     
@@ -160,12 +164,18 @@ export class PinTool extends BaseTool {
           continue;
         }
         
-        if (memory.pinned) {
-          results.already_pinned.push(id);
+        if (!memory.pinned) {
+          results.already_unpinned.push(id);
           continue;
         }
         
-        await this.handleSinglePin(id, reason, priority, context);
+        // 중요도가 높은 기억은 확인 필요
+        if (memory.importance > 0.8 && !confirm) {
+          results.requires_confirmation.push(id);
+          continue;
+        }
+        
+        await this.handleSingleUnpin(id, reason, confirm, context);
         results.successful.push(id);
       } catch (error) {
         results.failed.push({
@@ -177,9 +187,9 @@ export class PinTool extends BaseTool {
     
     return this.createSuccessResult({
       batch_result: results,
-      message: `배치 고정 완료: ${results.successful.length}/${results.total} 성공`,
-      reason: reason || 'Batch pinning',
-      priority
+      message: `배치 고정 해제 완료: ${results.successful.length}/${results.total} 성공`,
+      reason: reason || 'Batch unpinning',
+      requires_confirmation: results.requires_confirmation.length > 0
     });
   }
 
@@ -195,12 +205,11 @@ export class PinTool extends BaseTool {
   }
 
   /**
-   * 고정 로그 기록
+   * 고정 해제 로그 기록
    */
-  private async logPinAction(
+  private async logUnpinAction(
     id: string, 
     reason: string | undefined, 
-    priority: number, 
     context: ToolContext
   ): Promise<void> {
     try {
@@ -208,10 +217,10 @@ export class PinTool extends BaseTool {
         context.db!,
         `INSERT INTO feedback_event (memory_id, event, score, created_at) 
          VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
-        [id, 'helpful', priority]
+        [id, 'edited', 0]
       );
     } catch (error) {
-      console.warn('고정 로그 기록 실패:', error);
+      console.warn('고정 해제 로그 기록 실패:', error);
     }
   }
 
@@ -228,9 +237,9 @@ export class PinTool extends BaseTool {
   }
 
   /**
-   * 고정된 기억 목록 조회
+   * 고정 해제 가능한 기억 목록 조회
    */
-  async getPinnedMemories(context: ToolContext, limit: number = 50): Promise<any[]> {
+  async getUnpinnableMemories(context: ToolContext, limit: number = 50): Promise<any[]> {
     this.validateDatabase(context);
     
     return await DatabaseUtils.all(
@@ -238,16 +247,16 @@ export class PinTool extends BaseTool {
       `SELECT id, content, type, importance, created_at, last_accessed 
        FROM memory_item 
        WHERE pinned = TRUE 
-       ORDER BY importance DESC, created_at DESC 
+       ORDER BY importance ASC, created_at ASC 
        LIMIT ?`,
       [limit]
     );
   }
 
   /**
-   * 고정 통계 조회
+   * 고정 해제 통계 조회
    */
-  async getPinStats(context: ToolContext): Promise<any> {
+  async getUnpinStats(context: ToolContext): Promise<any> {
     this.validateDatabase(context);
     
     const stats = await DatabaseUtils.get(
@@ -260,18 +269,38 @@ export class PinTool extends BaseTool {
        FROM memory_item`
     );
     
-    const recentPins = await DatabaseUtils.all(
+    const recentUnpins = await DatabaseUtils.all(
       context.db!,
-      `SELECT memory_id, event, score, created_at 
+      `SELECT memory_id, event, created_at 
        FROM feedback_event 
-       WHERE event = 'pinned' 
+       WHERE event = 'unpinned' 
        ORDER BY created_at DESC 
        LIMIT 10`
     );
     
     return {
       ...stats,
-      recent_pins: recentPins
+      recent_unpins: recentUnpins
     };
+  }
+
+  /**
+   * 고정 해제 권장 기억 조회
+   */
+  async getRecommendedUnpins(context: ToolContext, limit: number = 20): Promise<any[]> {
+    this.validateDatabase(context);
+    
+    return await DatabaseUtils.all(
+      context.db!,
+      `SELECT id, content, type, importance, created_at, last_accessed,
+              (julianday('now') - julianday(created_at)) as days_old
+       FROM memory_item 
+       WHERE pinned = TRUE 
+         AND importance < 0.5
+         AND (julianday('now') - julianday(created_at)) > 30
+       ORDER BY importance ASC, days_old DESC 
+       LIMIT ?`,
+      [limit]
+    );
   }
 }

@@ -5,7 +5,7 @@
 
 import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import type { Database } from 'better-sqlite3';
 

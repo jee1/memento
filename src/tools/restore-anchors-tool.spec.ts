@@ -25,7 +25,7 @@ import { DatabaseUtils } from '../utils/database.js';
 import { RestoreAnchorsTool } from './restore-anchors-tool.js';
 import type { ToolContext } from './types.js';
 import { AnchorManager } from '../services/anchor-manager.js';
-import type { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 

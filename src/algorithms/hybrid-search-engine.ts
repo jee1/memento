@@ -4,7 +4,7 @@
  */
 
 import { SearchEngine } from './search-engine.js';
-import { MemoryEmbeddingService, type VectorSearchResult } from '../services/memory-embedding-service.js';
+import { MemoryEmbeddingService, type VectorSearchResult } from '../domains/memory/services/memory-embedding-service.js';
 import { UnifiedEmbeddingService } from '../services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../types/index.js';

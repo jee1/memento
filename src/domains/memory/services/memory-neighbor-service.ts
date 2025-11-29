@@ -3,10 +3,10 @@
  * 벡터 유사도를 기반으로 특정 기억의 이웃 기억을 조회하는 서비스
  */
 
-import type { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../../algorithms/vector-search-engine.js';
 import type { MemoryEmbeddingService } from './memory-embedding-service.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../../../utils/database.js';
 
 /**
  * 이웃 기억 조회 결과
