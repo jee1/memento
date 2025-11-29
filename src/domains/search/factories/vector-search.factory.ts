@@ -4,10 +4,10 @@
  */
 
 import Database from 'better-sqlite3';
-import { VectorSearchFacade } from '../services/vector-search/vector-search-facade';
+import { VectorSearchFacade } from '../domains/search/services/vector-search/vector-search-facade';
 import { VectorSearchRepositoryImpl } from '../repositories/vector-search.repository';
 import { VectorPerformanceRepositoryImpl } from '../repositories/vector-performance.repository';
-import type { VectorSearchFacade as IVectorSearchFacade } from '../services/vector-search/vector-search-facade';
+import type { VectorSearchFacade as IVectorSearchFacade } from '../domains/search/services/vector-search/vector-search-facade';
 
 export class VectorSearchFactory {
   /**

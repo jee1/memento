@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getVectorSearchEngine, VectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { getVectorSearchEngine, VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
 

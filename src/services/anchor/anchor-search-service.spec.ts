@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { AnchorSearchService } from './anchor-search-service.js';
 import { AnchorCacheService } from './anchor-cache-service.js';
-import type { HybridSearchEngine } from '../../algorithms/hybrid-search-engine.js';
+import type { HybridSearchEngine } from '../../domains/search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../test/helpers/test-database.js';
 import { RelationGraph } from '../relation-graph.js';

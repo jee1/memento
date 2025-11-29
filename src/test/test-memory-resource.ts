@@ -12,7 +12,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 
 describe('Memory Resource E2E Tests', () => {
   let db: Database.Database;

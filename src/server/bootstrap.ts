@@ -5,9 +5,9 @@
 
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../config/index.js';
-import { SearchEngine } from '../algorithms/search-engine.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { HybridSearchFactory } from '../factories/hybrid-search.factory.js';
+import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from '../services/performance-monitor.js';
@@ -20,7 +20,7 @@ import { DatabaseUtils } from '../utils/database.js';
 import { AnchorManager } from '../services/anchor-manager.js';
 import { FailureDetector } from '../services/failure-detector.js';
 import { ReflexionWorker } from '../services/reflexion-worker.js';
-import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 
 /**
  * 서버 서비스 집합 인터페이스

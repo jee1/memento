@@ -3,10 +3,10 @@
  * 의존성 주입 및 객체 생성 관리
  */
 
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { SearchEngine } from '../algorithms/search-engine.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
+import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import type { Database } from 'better-sqlite3';
 
 // Mock implementations for missing services

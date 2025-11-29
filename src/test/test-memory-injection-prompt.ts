@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MemoryInjectionPrompt } from '../domains/memory/tools/memory-injection-prompt.js';
-import { getHybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { getHybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
 

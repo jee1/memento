@@ -8,9 +8,9 @@
 
 import type Database from 'better-sqlite3';
 import type { MemoryEmbeddingService } from './memory-embedding-service.js';
-import type { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
-import type { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { AnchorManager as NewAnchorManager } from './anchor/anchor-manager.js';
 import { AnchorCacheService } from './anchor/anchor-cache-service.js';
 import { AnchorSearchService } from './anchor/anchor-search-service.js';

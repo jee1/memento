@@ -31,8 +31,8 @@ import { SetAnchorTool } from './set-anchor-tool.js';
 import type { ToolContext } from './types.js';
 import { AnchorManager } from '../services/anchor-manager.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 
 /**
  * 테스트용 데이터베이스 초기화

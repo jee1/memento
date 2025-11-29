@@ -9,7 +9,7 @@ import { RememberTool } from '../domains/memory/tools/remember-tool.js';
 import { RecallTool } from '../domains/memory/tools/recall-tool.js';
 import type { ToolContext } from '../tools/types.js';
 import { DatabaseUtils } from '../utils/database.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 
 /**

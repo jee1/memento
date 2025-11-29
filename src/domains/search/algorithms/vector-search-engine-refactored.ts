@@ -4,14 +4,14 @@
  */
 
 import Database from 'better-sqlite3';
-import { VectorSearchContainer } from '../services/vector-search/vector-search-container';
+import { VectorSearchContainer } from '../domains/search/services/vector-search/vector-search-container';
 import { VectorSearchFactory } from '../factories/vector-search.factory';
 import type { 
   VectorSearchQuery, 
   VectorSearchResult, 
   VectorIndexStatus,
   PerformanceTestResult 
-} from '../types/vector-search.types';
+} from '../../../types/vector-search.types';
 
 /**
  * 리팩토링된 벡터 검색 엔진으로 기존 코드와의 호환성을 유지하면서 개선된 구조를 제공합니다.
@@ -140,4 +140,4 @@ export type {
   VectorSearchOptions,
   VectorIndexStatus,
   PerformanceTestResult
-} from '../types/vector-search.types';
+} from '../../../types/vector-search.types';

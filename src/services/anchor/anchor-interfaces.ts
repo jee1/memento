@@ -6,7 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import type { MemoryEmbeddingService } from '../memory-embedding-service.js';
-import type { HybridSearchEngine } from '../../algorithms/hybrid-search-engine.js';
+import type { HybridSearchEngine } from '../../domains/search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 
 /**

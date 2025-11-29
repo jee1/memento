@@ -4,11 +4,11 @@
  */
 
 import { SearchRanking } from './search-ranking.js';
-import type { MemorySearchFilters, MemorySearchResult } from '../types/index.js';
+import type { MemorySearchFilters, MemorySearchResult } from '../../../types/index.js';
 import Database from 'better-sqlite3';
-import { getStopWords } from '../utils/stopwords.js';
-import { mementoConfig } from '../config/index.js';
-import { shouldUseFallback } from '../utils/fts5-migration-status.js';
+import { getStopWords } from '../../../utils/stopwords.js';
+import { mementoConfig } from '../../../config/index.js';
+import { shouldUseFallback } from '../../../utils/fts5-migration-status.js';
 
 export interface SearchQuery {
   query: string;

@@ -10,7 +10,7 @@
 
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 import { executeTool } from '../tools/index.js';
