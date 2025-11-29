@@ -16,7 +16,7 @@ import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { CoreMemoryCacheService } from '../../memory/services/core-memory-cache-service.js';
+import { CacheService } from '../../../infrastructure/cache/cache-service.js';
 import type {
   RelationCandidate,
   RelationType,
@@ -148,14 +148,14 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private geminiClient: GoogleGenerativeAI | null = null;
   private readonly preferredProvider: 'openai' | 'gemini' | 'ollama' | null;
   private readonly embeddingService: UnifiedEmbeddingService;
-  private readonly cache: CoreMemoryCacheService<RelationCandidate[]>; // 7일 TTL
+  private readonly cache: CacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
   private readonly costMetrics: LLMCostMetrics;
 
   constructor() {
     this.preferredProvider = this.initializeClients();
     this.embeddingService = new UnifiedEmbeddingService();
-    this.cache = new CoreMemoryCacheService<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
+    this.cache = new CacheService<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
     this.rateLimiter = new TokenBucketRateLimiter(RATE_LIMITER.CAPACITY, RATE_LIMITER.REFILL_RATE);
     this.costMetrics = {
       totalCalls: 0,
