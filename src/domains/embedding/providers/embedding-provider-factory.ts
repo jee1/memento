@@ -15,7 +15,7 @@ import { MiniLMEmbeddingService } from '../services/minilm-embedding-service.js'
 import { LightweightEmbeddingService } from '../services/lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
 import { OpenAIEmbeddingService } from '../services/openai-embedding-service.js';
-import { ModelAvailabilityService } from '../domains/embedding/providers/model-availability-service.js';
+import { ModelAvailabilityService } from './model-availability-service.js';
 
 /**
  * 임베딩 제공자 팩토리

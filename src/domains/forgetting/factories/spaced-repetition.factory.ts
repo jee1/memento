@@ -19,12 +19,12 @@ import type {
 } from '../../../../shared/interfaces/spaced-repetition.interface.js';
 
 // 서비스 구현들 import
-import { DefaultIntervalStrategy, ConservativeIntervalStrategy, AdaptiveIntervalStrategy } from '../domains/forgetting/services/spaced-repetition/interval-calculation.service.js';
-import { DefaultRecallProbabilityCalculator, EnhancedRecallProbabilityCalculator, AdaptiveRecallProbabilityCalculator } from '../domains/forgetting/services/spaced-repetition/recall-probability.service.js';
-import { DefaultReviewScheduler, PriorityBasedReviewScheduler, AdaptiveReviewScheduler } from '../domains/forgetting/services/spaced-repetition/review-scheduling.service.js';
-import { DefaultPerformanceAnalyzer, DetailedPerformanceAnalyzer, AdaptivePerformanceAnalyzer } from '../domains/forgetting/services/spaced-repetition/performance-analysis.service.js';
-import { DefaultPriorityCalculator, WeightedPriorityCalculator, AdaptivePriorityCalculator, TimeBasedPriorityCalculator } from '../domains/forgetting/services/spaced-repetition/priority-calculation.service.js';
-import { DefaultOptimalIntervalRecommender, AdaptiveOptimalIntervalRecommender, MLBasedOptimalIntervalRecommender, EnsembleOptimalIntervalRecommender } from '../domains/forgetting/services/spaced-repetition/optimal-interval.service.js';
+import { DefaultIntervalStrategy, ConservativeIntervalStrategy, AdaptiveIntervalStrategy } from '../services/spaced-repetition/interval-calculation.service.js';
+import { DefaultRecallProbabilityCalculator, EnhancedRecallProbabilityCalculator, AdaptiveRecallProbabilityCalculator } from '../services/spaced-repetition/recall-probability.service.js';
+import { DefaultReviewScheduler, PriorityBasedReviewScheduler, AdaptiveReviewScheduler } from '../services/spaced-repetition/review-scheduling.service.js';
+import { DefaultPerformanceAnalyzer, DetailedPerformanceAnalyzer, AdaptivePerformanceAnalyzer } from '../services/spaced-repetition/performance-analysis.service.js';
+import { DefaultPriorityCalculator, WeightedPriorityCalculator, AdaptivePriorityCalculator, TimeBasedPriorityCalculator } from '../services/spaced-repetition/priority-calculation.service.js';
+import { DefaultOptimalIntervalRecommender, AdaptiveOptimalIntervalRecommender, MLBasedOptimalIntervalRecommender, EnsembleOptimalIntervalRecommender } from '../services/spaced-repetition/optimal-interval.service.js';
 
 /**
  * 간격 반복 팩토리
