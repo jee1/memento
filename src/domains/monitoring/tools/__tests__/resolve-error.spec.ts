@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { executeResolveError, resolveErrorTool } from './resolve-error.js';
 import type { ToolContext } from './types.js';
 import Database from 'better-sqlite3';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../domains/monitoring/services/error-logging-service.js';
 
 describe('resolve-error 도구', () => {
   let db: Database.Database;

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { executeErrorStats, errorStatsTool } from './error-stats.js';
 import type { ToolContext } from './types.js';
 import Database from 'better-sqlite3';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../domains/monitoring/services/error-logging-service.js';
 
 describe('error-stats 도구', () => {
   let db: Database.Database;

@@ -13,7 +13,7 @@ import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
-import { PerformanceMonitor } from '../services/performance-monitor.js';
+import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { SearchCacheService } from '../services/cache-service.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
 import { getToolRegistry } from '../tools/index.js';

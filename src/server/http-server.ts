@@ -18,7 +18,7 @@ import { getVectorSearchEngine } from '../domains/search/algorithms/vector-searc
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { MemoryNeighborService, MemoryNotFoundError } from '../domains/memory/services/memory-neighbor-service.js';
 import { getBatchScheduler } from '../services/batch-scheduler.js';
-import { getPerformanceMonitor } from '../services/performance-monitor.js';
+import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
 import { WriteCoalescingManager } from '../utils/write-coalescing.js';
 import { DatabaseUtils } from '../utils/database.js';

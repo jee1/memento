@@ -4,7 +4,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
-import { PerformanceMonitor } from '../services/performance-monitor.js';
+import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { CacheService, SearchCacheService } from '../services/cache-service.js';
 import { AsyncTaskQueue } from '../services/async-optimizer.js';
 

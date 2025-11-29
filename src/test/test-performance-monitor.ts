@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getPerformanceMonitor, PerformanceMonitor } from '../services/performance-monitor.js';
+import { getPerformanceMonitor, PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
 

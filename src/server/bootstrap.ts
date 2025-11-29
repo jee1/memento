@@ -10,15 +10,15 @@ import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-e
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
-import { getPerformanceMonitor } from '../services/performance-monitor.js';
+import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
-import { ErrorLoggingService } from '../services/error-logging-service.js';
-import { PerformanceAlertService } from '../services/performance-alert-service.js';
+import { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
+import { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
 import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { AnchorManager } from '../services/anchor-manager.js';
-import { FailureDetector } from '../services/failure-detector.js';
+import { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../services/reflexion-worker.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 

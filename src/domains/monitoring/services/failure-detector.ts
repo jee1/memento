@@ -3,9 +3,9 @@
  * MCP Tool 호출 실패, 사용자 피드백, 성능 지표 미달 등을 감지하여 Reflexion Worker에 전달
  */
 
-import { logger } from '../utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 import { AsyncTaskQueue } from './async-optimizer.js';
-import type { ToolContext } from '../tools/types.js';
+import type { ToolContext } from '../../../tools/types.js';
 
 /**
  * 실패 이벤트 데이터 구조
