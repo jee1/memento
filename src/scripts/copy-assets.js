@@ -11,9 +11,9 @@ const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..', '..');
 const distDatabaseDir = join(projectRoot, 'dist', 'database');
 const distMigrationDir = join(distDatabaseDir, 'migration', 'migrations');
-const sourceSchemaFile = join(projectRoot, 'src', 'database', 'schema.sql');
+const sourceSchemaFile = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'schema.sql');
 const targetSchemaFile = join(distDatabaseDir, 'schema.sql');
-const sourceMigrationDir = join(projectRoot, 'src', 'database', 'migration', 'migrations');
+const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
 
 try {
   // dist/database 디렉토리가 없으면 생성
