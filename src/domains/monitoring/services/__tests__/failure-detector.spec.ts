@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FailureDetector, ErrorType, type FailureEvent, type PerformanceThresholds } from './failure-detector.js';
+import { FailureDetector, ErrorType, type FailureEvent, type PerformanceThresholds } from '../failure-detector.js';
 import { AsyncTaskQueue } from '../../../infrastructure/async-optimizer.js';
 
 describe('FailureDetector', () => {

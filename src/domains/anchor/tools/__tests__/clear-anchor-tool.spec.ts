@@ -22,9 +22,9 @@ vi.mock('onnxruntime-node', () => ({
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { ClearAnchorTool } from './clear-anchor-tool.js';
-import type { ToolContext } from './types.js';
-import { AnchorManager } from '../services/anchor-manager.js';
+import { ClearAnchorTool } from '../clear-anchor-tool.js';
+import type { ToolContext } from '../types.js';
+import { AnchorManager } from '../../anchor-manager.js';
 import type { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';

@@ -5,7 +5,7 @@ import {
   type ExistingReflectionNotes,
   type NewReflectionNotes,
   type MergeResult
-} from './reflection-notes-merge.js';
+} from '../reflection-notes-merge.js';
 
 describe('Reflection Notes Merge Utility', () => {
   const createValidReflectionNote = (overrides: Partial<any> = {}) => ({

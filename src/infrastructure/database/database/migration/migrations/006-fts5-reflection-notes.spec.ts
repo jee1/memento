@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { FTS5ReflectionNotesMigration } from './006-fts5-reflection-notes.js';
+import { FTS5ReflectionNotesMigration } from '../006-fts5-reflection-notes.js';
 import {
   initializeMigrationStatusTable,
   getMigrationStatus,

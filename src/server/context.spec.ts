@@ -4,12 +4,12 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createServerContext, createToolContext } from './context.js';
-import type { ServerContext, ToolContext } from './context.js';
-import type { ServerServices } from './bootstrap.js';
+import { createServerContext, createToolContext } from '../context.js';
+import type { ServerContext, ToolContext } from '../context.js';
+import type { ServerServices } from '../bootstrap.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { initializeServices } from './bootstrap.js';
+import { initializeServices } from '../bootstrap.js';
 
 describe('context 모듈', () => {
   let db: Database.Database;

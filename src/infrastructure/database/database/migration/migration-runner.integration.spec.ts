@@ -9,11 +9,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { join } from 'path';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
-import { MigrationDetector } from './migration-detector.js';
-import { MigrationRunner } from './migration-runner.js';
-import { BackupManager } from './backup-manager.js';
-import { SchemaVersionManager } from './schema-version-manager.js';
-import { MirixSchemaExpansionMigration } from './migrations/002-mirix-schema-expansion.js';
+import { MigrationDetector } from '../migration-detector.js';
+import { MigrationRunner } from '../migration-runner.js';
+import { BackupManager } from '../backup-manager.js';
+import { SchemaVersionManager } from '../schema-version-manager.js';
+import { MirixSchemaExpansionMigration } from '../migrations/002-mirix-schema-expansion.js';
 
 /**
  * 기본 스키마 생성 (memory_item 테이블만)
@@ -171,7 +171,7 @@ describe('Migration System Integration', () => {
   describe('Migration Detection and Execution', () => {
     it('should detect and execute pending migrations', async () => {
       // 마이그레이션 디렉토리 경로를 명시적으로 지정
-      const migrationsDir = join(process.cwd(), 'src', 'database', 'migration', 'migrations');
+      const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
       const detector = new MigrationDetector(migrationsDir);
       const detectionResult = await detector.detectPendingMigrations(db);
 
@@ -227,7 +227,7 @@ describe('Migration System Integration', () => {
 
     it('should not execute already applied migrations', async () => {
       // 마이그레이션 디렉토리 경로를 명시적으로 지정
-      const migrationsDir = join(process.cwd(), 'src', 'database', 'migration', 'migrations');
+      const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
       
       // 첫 번째 마이그레이션 실행
       const detector1 = new MigrationDetector(migrationsDir);
@@ -402,7 +402,7 @@ describe('Migration System Integration', () => {
       }
 
       // 마이그레이션 실행
-      const migrationsDir = join(process.cwd(), 'src', 'database', 'migration', 'migrations');
+      const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
       const detector = new MigrationDetector(migrationsDir);
       const detectionResult = await detector.detectPendingMigrations(db);
       

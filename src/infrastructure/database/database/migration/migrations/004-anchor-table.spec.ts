@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { AnchorTableMigration } from './004-anchor-table.js';
+import { AnchorTableMigration } from '../004-anchor-table.js';
 
 /**
  * 기본 스키마 생성 (memory_item 테이블만)

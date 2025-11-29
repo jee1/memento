@@ -9,7 +9,7 @@ import {
   getCoreMemoryCache,
   setCoreMemoryCache,
   resetCoreMemoryCache
-} from './core-memory-cache-service.js';
+} from '../core-memory-cache-service.js';
 import type { CoreMemoryRecord } from '../repositories/core-memory-repository.js';
 
 describe('CoreMemoryCacheService', () => {

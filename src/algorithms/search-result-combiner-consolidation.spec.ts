@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { HybridSearchEngine, SearchResultCombiner } from './hybrid-search-engine.js';
-import { SearchRanking } from './search-ranking.js';
+import { HybridSearchEngine, SearchResultCombiner } from '../hybrid-search-engine.js';
+import { SearchRanking } from '../search-ranking.js';
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../shared/config/index.js';
 

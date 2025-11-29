@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { PerformanceStatsTool } from './performance-stats-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
+import { PerformanceStatsTool } from '../performance-stats-tool.js';
+import type { ToolContext, ToolResult } from '../types.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
 

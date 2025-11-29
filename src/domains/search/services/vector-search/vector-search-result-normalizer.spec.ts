@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VectorSearchResultNormalizer } from './vector-search-result-normalizer.js';
+import { VectorSearchResultNormalizer } from '../vector-search-result-normalizer.js';
 import type { ProviderHybridResult } from '../../../../shared/types/vector-search.types.js';
 
 const normalizer = new VectorSearchResultNormalizer();

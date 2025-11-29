@@ -9,16 +9,16 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { ExtractRelationsTool } from '../../src/tools/extract-relations-tool.js';
-import { GetRelationsTool } from '../../src/tools/get-relations-tool.js';
-import { AddRelationTool } from '../../src/tools/add-relation-tool.js';
-import { RemoveRelationTool } from '../../src/tools/remove-relation-tool.js';
-import { VisualizeRelationsTool } from '../../src/tools/visualize-relations-tool.js';
+import { ExtractRelationsTool } from '../../src/domains/extract-relations-tool.js';
+import { GetRelationsTool } from '../../src/domains/get-relations-tool.js';
+import { AddRelationTool } from '../../src/domains/add-relation-tool.js';
+import { RemoveRelationTool } from '../../src/domains/remove-relation-tool.js';
+import { VisualizeRelationsTool } from '../../src/domains/visualize-relations-tool.js';
 import { DatabaseUtils } from '../../src/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../src/database/migration/migrations/005-relation-engine-schema.js';
 import { RelationGraph } from '../../src/services/relation-graph.js';
 import { LLMBasedRelationExtractor } from '../../src/services/llm-based-relation-extractor.js';
-import type { ToolContext } from '../../src/tools/types.js';
+import type { ToolContext } from '../../src/domains/types.js';
 
 /**
  * 테스트용 기본 스키마 생성

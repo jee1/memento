@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VectorCompatibilityService } from './vector-compatibility-service.js';
+import { VectorCompatibilityService } from '../vector-compatibility-service.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 
 describe('VectorCompatibilityService', () => {

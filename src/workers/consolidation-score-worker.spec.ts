@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { ConsolidationScoreWorker } from './consolidation-score-worker.js';
+import { ConsolidationScoreWorker } from '../consolidation-score-worker.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 
 /**

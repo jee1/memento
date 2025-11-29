@@ -10,7 +10,7 @@ import {
   shouldUseFallback,
   prepareMigrationRetry,
   forceSetMigrationStatus
-} from './fts5-migration-status.js';
+} from '../fts5-migration-status.js';
 import { mementoConfig } from '../config/index.js';
 
 describe('FTS5 Migration Status', () => {

@@ -4,13 +4,13 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { ExtractRelationsTool } from './extract-relations-tool.js';
+import { ExtractRelationsTool } from '../extract-relations-tool.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
-import { RelationGraph } from '../services/relation-graph.js';
-import { RelationExtractor } from '../services/relation-extractor.js';
-import { LLMBasedRelationExtractor } from '../services/llm-based-relation-extractor.js';
-import type { ToolContext } from './types.js';
+import { RelationEngineSchemaMigration } from '../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationGraph } from '../../relation-graph.js';
+import { RelationExtractor } from '../../relation-extractor.js';
+import { LLMBasedRelationExtractor } from '../../llm-based-relation-extractor.js';
+import type { ToolContext } from '../types.js';
 
 /**
  * 테스트용 기본 스키마 생성

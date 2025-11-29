@@ -4,11 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { MigrationDetector } from './migration-detector.js';
-import type { MigrationDetectionResult } from './migration-detector.js';
+import { MigrationDetector } from '../migration-detector.js';
+import type { MigrationDetectionResult } from '../migration-detector.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
-import { SchemaVersionManager } from './schema-version-manager.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { SchemaVersionManager } from '../schema-version-manager.js';
 import { join } from 'path';
 
 describe('MigrationDetector', () => {
@@ -18,7 +18,7 @@ describe('MigrationDetector', () => {
   beforeEach(async () => {
     db = await setupTestDatabase();
     // 실제 마이그레이션 디렉토리 경로 사용
-    const migrationsDir = join(process.cwd(), 'src', 'database', 'migration', 'migrations');
+    const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
     detector = new MigrationDetector(migrationsDir);
   });
 

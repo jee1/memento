@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { SearchEngine, type SearchQuery } from './search-engine.js';
+import { SearchEngine, type SearchQuery } from '../search-engine.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { 
   initializeMigrationStatusTable, 

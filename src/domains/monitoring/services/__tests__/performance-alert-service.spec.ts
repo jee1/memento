@@ -11,7 +11,7 @@ import {
   type PerformanceAlert,
   type AlertStats,
   type AlertThreshold
-} from './performance-alert-service.js';
+} from '../performance-alert-service.js';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 

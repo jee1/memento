@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SpacedRepetitionFactory } from './spaced-repetition.factory.js';
+import { SpacedRepetitionFactory } from '../spaced-repetition.factory.js';
 import type { SpacedRepetitionService, SpacedRepetitionConfig } from '../../../shared/interfaces/spaced-repetition.interface.js';
 
 describe('SpacedRepetitionFactory', () => {

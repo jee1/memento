@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { WriteCoalescingManager, type CoalescedWrite } from './write-coalescing.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../write-coalescing.js';
 
 describe('WriteCoalescingManager', () => {
   let manager: WriteCoalescingManager;

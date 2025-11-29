@@ -6,10 +6,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
-import { RecallTool } from './recall-tool.js';
-import { RememberTool } from './remember-tool.js';
-import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
-import type { ToolContext } from './types.js';
+import { RecallTool } from '../domains/memory/tools/recall-tool.js';
+import { RememberTool } from '../remember-tool.js';
+import { MemoryInjectionPrompt } from '../domains/memory/tools/memory-injection-prompt.js';
+import type { ToolContext } from '../types.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';

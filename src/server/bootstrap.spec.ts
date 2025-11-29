@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initializeServices, type ServerServices } from './bootstrap.js';
+import { initializeServices, type ServerServices } from '../bootstrap.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { mementoConfig } from '../shared/config/index.js';

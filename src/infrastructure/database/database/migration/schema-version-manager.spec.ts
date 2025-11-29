@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SchemaVersionManager } from './schema-version-manager.js';
+import { SchemaVersionManager } from '../schema-version-manager.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
-import type { SchemaVersion } from './types.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
+import type { SchemaVersion } from '../types.js';
 
 describe('SchemaVersionManager', () => {
   let db: Database.Database;

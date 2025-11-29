@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AlertNotificationService } from './alert-notification-service.js';
+import { AlertNotificationService } from '../alert-notification-service.js';
 
 describe('AlertNotificationService', () => {
   it('stores alerts and notifies subscribers', () => {

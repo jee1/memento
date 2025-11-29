@@ -9,7 +9,7 @@ import {
   createSpacedRepetitionAlgorithm,
   getSpacedRepetitionAlgorithm,
   resetSpacedRepetitionAlgorithm
-} from './spaced-repetition-refactored.js';
+} from '../spaced-repetition-refactored.js';
 import type { SpacedRepetitionFeatures, SpacedRepetitionWeights } from '../../../../shared/types/spaced-repetition.types.js';
 
 // 컨테이너 Mock

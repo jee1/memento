@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { CoreMemoryService } from './core-memory-service.js';
+import { CoreMemoryService } from '../core-memory-service.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
-import { CoreMemoryCacheService } from './core-memory-cache-service.js';
-import type { CoreMemoryCache } from './core-memory-service.js';
+import { CoreMemoryCacheService } from '../core-memory-cache-service.js';
+import type { CoreMemoryCache } from '../core-memory-service.js';
 
 /**
  * core_memory 테이블 생성

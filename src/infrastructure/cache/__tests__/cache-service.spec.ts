@@ -9,7 +9,7 @@ import {
   SearchCacheService,
   EmbeddingCacheService,
   type CacheStats
-} from './cache-service.js';
+} from '../cache-service.js';
 
 describe('CacheService', () => {
   let cache: CacheService<string>;

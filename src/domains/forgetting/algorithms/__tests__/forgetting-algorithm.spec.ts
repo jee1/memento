@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ForgettingAlgorithm, type ForgettingFeatures, type ForgettingResult } from './forgetting-algorithm.js';
+import { ForgettingAlgorithm, type ForgettingFeatures, type ForgettingResult } from '../forgetting-algorithm.js';
 
 describe('ForgettingAlgorithm', () => {
   let algorithm: ForgettingAlgorithm;

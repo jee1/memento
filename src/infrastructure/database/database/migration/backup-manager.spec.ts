@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { BackupManager } from './backup-manager.js';
+import { BackupManager } from '../backup-manager.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { existsSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 

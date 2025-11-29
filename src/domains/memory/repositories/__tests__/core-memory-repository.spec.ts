@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { CoreMemoryRepository } from './core-memory-repository.js';
+import { CoreMemoryRepository } from '../core-memory-repository.js';
 
 /**
  * core_memory 테이블 생성

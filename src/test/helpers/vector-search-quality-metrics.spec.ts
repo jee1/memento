@@ -38,11 +38,11 @@ import {
   type OrderPreservationReport,
   type QualityMetrics,
   type ExtremeScenarioReport
-} from './vector-search-quality-metrics.js';
+} from '../vector-search-quality-metrics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import type { SearchResult } from './search-quality-metrics.js';
+import type { SearchResult } from '../search-quality-metrics.js';
 
 describe('벡터 검색 품질 검증 헬퍼', () => {
   describe('calculateKendallTau', () => {

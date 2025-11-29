@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RelationQualityValidator } from './relation-quality-validator.js';
-import type { ExpectedRelation, ExtractedRelation } from './relation-quality-validator.js';
+import { RelationQualityValidator } from '../relation-quality-validator.js';
+import type { ExpectedRelation, ExtractedRelation } from '../relation-quality-validator.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 
 describe('RelationQualityValidator', () => {

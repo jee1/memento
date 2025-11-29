@@ -5,8 +5,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
-import { MigrateEmbeddingsTool } from './migrate-embeddings-tool.js';
-import type { ToolContext } from './types.js';
+import { MigrateEmbeddingsTool } from '../migrate-embeddings-tool.js';
+import type { ToolContext } from '../types.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../test/helpers/consolidation-test-data.js';
 import type { EmbeddingProvider, EmbeddingResult } from '../shared/types/embedding.types.js';
 

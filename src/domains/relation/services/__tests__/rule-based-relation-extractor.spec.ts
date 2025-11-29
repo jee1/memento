@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
+import { RuleBasedRelationExtractor } from '../rule-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
 
 /**

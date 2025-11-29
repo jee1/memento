@@ -11,7 +11,7 @@ import {
   type ErrorLog,
   type ErrorStats,
   type ErrorAlert
-} from './error-logging-service.js';
+} from '../error-logging-service.js';
 
 describe('ErrorLoggingService', () => {
   let service: ErrorLoggingService;

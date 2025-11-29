@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DependencyValidator } from './dependency-validator.js';
-import type { DependencyValidationReport } from './dependency-validator.js';
+import { DependencyValidator } from '../dependency-validator.js';
+import type { DependencyValidationReport } from '../dependency-validator.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 describe('DependencyValidator', () => {
   let db: Database.Database;
