@@ -19,12 +19,12 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { Migration } from '../types.js';
 import { DependencyValidator } from '../dependency-validator.js';
-import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
+import { normalizeReflectionNotes } from '../../../../shared/utils/reflection-notes-normalize.js';
 import {
   initializeMigrationStatusTable,
   setMigrationStatus,
   getMigrationStatus
-} from '../../../shared/utils/fts5-migration-status.js';
+} from '../../../../shared/utils/fts5-migration-status.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

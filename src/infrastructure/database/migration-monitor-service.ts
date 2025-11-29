@@ -4,7 +4,7 @@ import type {
   MigrationProgressEvent,
   MigrationProgressReporter,
   MigrationRunStatus
-} from '../shared/types/migration.types.js';
+} from '../../shared/types/migration.types.js';
 
 /**
  * 마이그레이션 진행 상황을 브로드캐스트하는 서비스
