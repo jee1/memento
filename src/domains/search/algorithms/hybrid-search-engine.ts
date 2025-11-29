@@ -7,7 +7,7 @@ import { SearchEngine } from './search-engine.js';
 import { MemoryEmbeddingService, type VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
-import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../../../../shared/types/types/index.js';
+import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../../../../shared/types/index.js';
 import Database from 'better-sqlite3';
 import { SearchRanking } from './search-ranking.js';
 import { mementoConfig } from '../../../../shared/config/index.js';

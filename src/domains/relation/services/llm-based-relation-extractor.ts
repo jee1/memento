@@ -24,7 +24,7 @@ import type {
   ExtractOptions
 } from '../../../../shared/types/relation.js';
 import { ALL_RELATION_TYPES } from '../../../../shared/types/relation.js';
-import type { MemoryItem } from '../../../../shared/types/types/index.js';
+import type { MemoryItem } from '../../../../shared/types/index.js';
 import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../../shared/types/relation.js';
 import type { EmbeddingData, SimilarityResult } from '../../../../shared/types/embedding.types.js';
 import { logger } from '../../../../shared/utils/logger.js';

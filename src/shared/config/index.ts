@@ -3,7 +3,7 @@
  */
 
 import { config } from 'dotenv';
-import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../shared/types/types/index.js';
+import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../shared/types/index.js';
 import { validateConfiguration } from '../shared/utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../shared/utils/environment-check.js';
 import { parseTypeParamMode } from '../shared/utils/type-param-validator.js';

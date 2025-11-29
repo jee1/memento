@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider } from '../../../../shared/types/types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider } from '../../../../shared/types/index.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';

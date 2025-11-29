@@ -15,7 +15,7 @@ import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 import { executeTool } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
-import type { EmbeddingProvider } from '../shared/types/types/index.js';
+import type { EmbeddingProvider } from '../shared/types/index.js';
 
 interface RegressionTestResult {
   test_name: string;

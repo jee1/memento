@@ -1,5 +1,5 @@
 import type { EmbeddingProvider } from '../shared/types/embedding.types.js';
-import type { MementoConfig } from '../shared/types/types/index.js';
+import type { MementoConfig } from '../shared/types/index.js';
 import { getRawEnvValue, providerDimensionDefaults } from '../shared/config/environment.js';
 
 export type ValidationLevel = 'error' | 'warning';

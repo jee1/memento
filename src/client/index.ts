@@ -12,7 +12,7 @@ import type {
   PinParams, 
   UnpinParams,
   MemorySearchResult 
-} from '../shared/types/types/index.js';
+} from '../shared/types/index.js';
 
 export class MementoClient {
   private client: Client;

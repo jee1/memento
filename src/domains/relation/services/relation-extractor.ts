@@ -15,7 +15,7 @@ import type {
   ExtractOptions
 } from '../../../../shared/types/relation.js';
 import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../../shared/types/relation.js';
-import type { MemoryType, MemoryItem } from '../../../../shared/types/types/index.js';
+import type { MemoryType, MemoryItem } from '../../../../shared/types/index.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import { CacheService } from './cache-service.js';
