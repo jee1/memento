@@ -5,7 +5,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { Migration, MigrationResult, MigrationOptions } from '../../../../tools/types.js';
+import type { Migration, MigrationResult, MigrationOptions } from './types.js';
 import { BackupManager } from './backup-manager.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import { DependencyValidator } from './dependency-validator.js';

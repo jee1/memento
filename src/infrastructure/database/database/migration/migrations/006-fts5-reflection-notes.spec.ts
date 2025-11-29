@@ -18,9 +18,9 @@ import {
   getMigrationStatus,
   setMigrationStatus,
   loadMigrationStatusToConfig
-} from '../../../../shared/utils/fts5-migration-status.js';
-import { mementoConfig } from '../../../../shared/config/index.js';
-import { normalizeReflectionNotes } from '../../../../shared/utils/reflection-notes-normalize.js';
+} from '../../../../../shared/utils/fts5-migration-status.js';
+import { mementoConfig } from '../../../../../shared/config/index.js';
+import { normalizeReflectionNotes } from '../../../../../shared/utils/reflection-notes-normalize.js';
 
 /**
  * 기본 스키마 생성 (memory_item 테이블 및 기존 FTS5 테이블)
