@@ -5,8 +5,8 @@
 
 import type { 
   SpacedRepetitionFeatures 
-} from '../../types/spaced-repetition.types.js';
-import type { OptimalIntervalRecommender } from '../../interfaces/spaced-repetition.interface.js';
+} from '../../shared/types/spaced-repetition.types.js';
+import type { OptimalIntervalRecommender } from '../../shared/interfaces/spaced-repetition.interface.js';
 
 /**
  * 기본 최적 간격 추천기

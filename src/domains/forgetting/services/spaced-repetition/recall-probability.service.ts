@@ -3,7 +3,7 @@
  * 단일 책임 원칙 (SRP) 적용
  */
 
-import type { RecallProbabilityCalculator } from '../../interfaces/spaced-repetition.interface.js';
+import type { RecallProbabilityCalculator } from '../../shared/interfaces/spaced-repetition.interface.js';
 
 /**
  * 기본 리콜 확률 계산기

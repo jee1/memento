@@ -14,7 +14,7 @@ import type {
   EmbeddingResult, 
   SimilarityResult, 
   EmbeddingData 
-} from '../../../types/embedding.types.js';
+} from '../../../shared/types/embedding.types.js';
 
 // Node.js 환경에서 Worker 스레드 사용 비활성화
 // 이는 ERR_WORKER_PATH 에러를 방지합니다

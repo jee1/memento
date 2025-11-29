@@ -7,7 +7,7 @@
 import type Database from 'better-sqlite3';
 import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo } from './anchor-interfaces.js';
 import { AnchorError, MemoryNotFoundError } from './anchor-interfaces.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * Anchor Manager 구현

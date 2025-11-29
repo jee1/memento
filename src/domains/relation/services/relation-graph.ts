@@ -20,20 +20,20 @@ import type {
   GetRelatedMemoriesOptions,
   AddRelationOptions,
   IRelationGraph
-} from '../../../types/relation-graph.js';
-import type { RelationType } from '../../../types/relation.js';
-import { DatabaseUtils } from '../../../utils/database.js';
+} from '../../../shared/types/relation-graph.js';
+import type { RelationType } from '../../../shared/types/relation.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { CacheService } from './cache-service.js';
-import { logger } from '../../../utils/logger.js';
+import { logger } from '../../../shared/utils/logger.js';
 import {
   isExistingRelationRow,
   isMetadataRow,
   isRelationRow,
   type RelationRow,
   type ExistingRelationRow
-} from '../../../utils/type-guards.js';
-import { CacheKeyGenerator } from '../../../utils/cache-key-generator.js';
-import { CONFIDENCE, LIMITS, CACHE } from '../constants/relation-constants.js';
+} from '../../../shared/utils/type-guards.js';
+import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
+import { CONFIDENCE, LIMITS, CACHE } from '../shared/constants/relation-constants.js';
 
 /**
  * 관계 그래프 서비스

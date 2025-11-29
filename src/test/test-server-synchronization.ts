@@ -5,8 +5,8 @@
 
 import { initializeServices, type ServerServices } from '../server/bootstrap.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
-import { mementoConfig } from '../config/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 /**
  * 서비스 집합을 비교하는 헬퍼 함수

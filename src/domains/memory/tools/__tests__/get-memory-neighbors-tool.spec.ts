@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { GetMemoryNeighborsTool, GetMemoryNeighborsSchema } from './get-memory-neighbors-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';

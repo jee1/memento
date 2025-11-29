@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getPerformanceMonitor, PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('PerformanceMonitor', () => {
   let db: Database.Database;

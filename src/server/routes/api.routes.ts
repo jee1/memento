@@ -10,7 +10,7 @@ import type { ServerServices } from '../bootstrap.js';
 import { buildAnchorMapData } from '../handlers/anchor-map.handler.js';
 import { MemoryNeighborService, MemoryNotFoundError } from '../../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * API 라우터 생성

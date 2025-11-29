@@ -6,8 +6,8 @@
 import type { 
   SpacedRepetitionConfig,
   SpacedRepetitionWeights 
-} from '../../types/spaced-repetition.types.js';
-import type { SpacedRepetitionService } from '../../interfaces/spaced-repetition.interface.js';
+} from '../../shared/types/spaced-repetition.types.js';
+import type { SpacedRepetitionService } from '../../shared/interfaces/spaced-repetition.interface.js';
 import { SpacedRepetitionFactory } from '../../factories/spaced-repetition.factory.js';
 
 /**

@@ -7,9 +7,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
-import { mementoConfig, validateConfig } from '../config/index.js';
-import type { MemoryType, PrivacyScope } from '../types/index.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { mementoConfig, validateConfig } from '../shared/config/index.js';
+import type { MemoryType, PrivacyScope } from '../shared/types/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';

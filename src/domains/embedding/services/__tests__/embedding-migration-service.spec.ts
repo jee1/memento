@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { embeddingMigrationService } from './embedding-migration-service.js';
 import { migrationMonitorService } from '../../../services/migration-monitor-service.js';
-import type { MigrationProgress, MigrationProgressEvent } from '../../../types/migration.types.js';
+import type { MigrationProgress, MigrationProgressEvent } from '../../../shared/types/migration.types.js';
 
 function createSchema(db: Database.Database): void {
   db.exec('PRAGMA foreign_keys = OFF;');

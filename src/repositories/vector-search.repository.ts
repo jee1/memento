@@ -8,9 +8,9 @@ import type {
   VectorSearchQuery, 
   VectorSearchResult, 
   VectorIndexStatus
-} from '../types/vector-search.types';
-import type { VectorSearchRepository } from '../interfaces/database.interface';
-import { VECTOR_SEARCH_CONFIG } from '../config/vector-search.config';
+} from '../shared/types/vector-search.types';
+import type { VectorSearchRepository } from '../shared/interfaces/database.interface';
+import { VECTOR_SEARCH_CONFIG } from '../shared/config/vector-search.config';
 
 export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   private db: Database.Database | null = null;

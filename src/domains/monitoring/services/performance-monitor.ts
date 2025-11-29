@@ -5,7 +5,7 @@
 
 import Database from 'better-sqlite3';
 import os from 'os';
-import { logger } from '../../../utils/logger.js';
+import { logger } from '../../../shared/utils/logger.js';
 import { alertNotificationService } from './alert-notification-service.js';
 
 export interface PerformanceMetrics {

@@ -16,7 +16,7 @@ import { AnchorCacheService } from './anchor/anchor-cache-service.js';
 import { AnchorSearchService } from './anchor/anchor-search-service.js';
 import type { AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from './anchor/anchor-interfaces.js';
 import { AnchorError, MemoryNotFoundError } from './anchor/anchor-interfaces.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 
 // 기존 타입 및 인터페이스 export (하위 호환성)
 export type { AnchorSlot, AnchorInfo, SearchOptions, SearchResult };

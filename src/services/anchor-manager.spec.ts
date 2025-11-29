@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { AnchorManager, AnchorError, MemoryNotFoundError } from './anchor-manager.js';
 
 /**

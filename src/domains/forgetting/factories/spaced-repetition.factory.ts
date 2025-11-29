@@ -6,7 +6,7 @@
 import type { 
   SpacedRepetitionConfig,
   SpacedRepetitionWeights 
-} from '../../../types/spaced-repetition.types.js';
+} from '../../../shared/types/spaced-repetition.types.js';
 import type { 
   SpacedRepetitionService,
   IntervalCalculationStrategy,

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { HybridSearchEngine, SearchResultCombiner } from './hybrid-search-engine.js';
 import { SearchEngine } from './search-engine.js';
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 import {
   initializeTestDatabase,
   seedTestDatabase,

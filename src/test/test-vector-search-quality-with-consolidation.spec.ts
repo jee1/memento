@@ -46,7 +46,7 @@ import {
   seedTestDatabase,
   cleanupTestDatabase
 } from './helpers/consolidation-test-data.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('벡터 검색 품질 검증 통합 테스트', () => {
   let db: Database.Database;

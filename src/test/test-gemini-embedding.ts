@@ -5,7 +5,7 @@
 
 import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
 import { EmbeddingService } from '../services/embedding-service.js';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 async function testGeminiEmbeddingService() {
   console.log('🧪 Gemini 임베딩 서비스 테스트 시작\n');

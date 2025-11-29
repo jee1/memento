@@ -6,23 +6,23 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { isMemoryItemType, type MemoryTypeRequest } from '../../../types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest } from '../../../shared/types/index.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
 import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
-import { validateTypeParam } from '../../../utils/type-param-validator.js';
-import { mementoConfig } from '../../../config/index.js';
+import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import type { ConsolidationScoreService } from '../../../services/consolidation-score-service.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
-import type { MemoryItem } from '../../../types/index.js';
-import { validateReflectionNotes, formatValidationErrors } from '../../../utils/reflection-notes-schema.js';
-import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../utils/reflection-notes-merge.js';
+import type { MemoryItem } from '../../../shared/types/index.js';
+import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';
+import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
 
 /**
  * 기존 reflection_notes 조회 결과 타입

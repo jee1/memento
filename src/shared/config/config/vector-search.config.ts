@@ -3,7 +3,7 @@
  * 하드코딩된 값들을 설정 객체로 분리
  */
 
-import type { VectorSearchConfig } from '../types/vector-search.types';
+import type { VectorSearchConfig } from '../shared/types/vector-search.types';
 
 export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
   defaultDimensions: 384,

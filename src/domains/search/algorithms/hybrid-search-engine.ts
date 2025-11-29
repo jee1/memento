@@ -7,12 +7,12 @@ import { SearchEngine } from './search-engine.js';
 import { MemoryEmbeddingService, type VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
-import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../../../types/index.js';
+import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../../../shared/types/index.js';
 import Database from 'better-sqlite3';
 import { SearchRanking } from './search-ranking.js';
-import { mementoConfig } from '../../../config/index.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { RelationGraph } from '../../../services/relation-graph.js';
-import { getRankingWeights } from '../../../config/ranking-weights-loader.js';
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 
 // 검색 관련 상수
 /**

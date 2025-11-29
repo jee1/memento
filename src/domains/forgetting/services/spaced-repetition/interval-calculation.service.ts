@@ -7,8 +7,8 @@ import type {
   SpacedRepetitionFeatures, 
   SpacedRepetitionWeights,
   IntervalCalculationResult 
-} from '../../types/spaced-repetition.types.js';
-import type { IntervalCalculationStrategy } from '../../interfaces/spaced-repetition.interface.js';
+} from '../../shared/types/spaced-repetition.types.js';
+import type { IntervalCalculationStrategy } from '../../shared/interfaces/spaced-repetition.interface.js';
 
 /**
  * 기본 간격 계산 전략

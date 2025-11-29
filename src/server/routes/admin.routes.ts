@@ -15,8 +15,8 @@ import { GetRelationsTool } from '../../tools/get-relations-tool.js';
 import { AddRelationTool } from '../../tools/add-relation-tool.js';
 import { RemoveRelationTool } from '../../tools/remove-relation-tool.js';
 import { VisualizeRelationsTool } from '../../tools/visualize-relations-tool.js';
-import { DatabaseUtils } from '../../utils/database.js';
-import { logger } from '../../utils/logger.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * Admin 라우터 생성

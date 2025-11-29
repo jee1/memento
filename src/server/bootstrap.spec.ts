@@ -5,8 +5,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { initializeServices, type ServerServices } from './bootstrap.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
-import { mementoConfig } from '../config/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { mementoConfig } from '../shared/config/index.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 
 describe('initializeServices', () => {

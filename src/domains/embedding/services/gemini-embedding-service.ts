@@ -5,7 +5,7 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
-import { mementoConfig } from '../../../config/index.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 
 export interface GeminiEmbeddingResult {

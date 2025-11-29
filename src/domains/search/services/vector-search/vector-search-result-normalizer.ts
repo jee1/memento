@@ -1,9 +1,9 @@
 import type {
   ProviderHybridResult,
   UnifiedSearchHit
-} from '../../types/vector-search.types.js';
-import type { VectorSearchResult } from '../../types/vector-search.types.js';
-import type { EmbeddingProvider } from '../../types/embedding.types.js';
+} from '../../shared/types/vector-search.types.js';
+import type { VectorSearchResult } from '../../shared/types/vector-search.types.js';
+import type { EmbeddingProvider } from '../../shared/types/embedding.types.js';
 
 function selectScore(result: VectorSearchResult, hybridResult?: VectorSearchResult): {
   score: number;

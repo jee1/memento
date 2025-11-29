@@ -5,12 +5,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EmbeddingProviderFactory } from './embedding-provider-factory.js';
-import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../types/embedding.types.js';
+import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../shared/types/embedding.types.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from './gemini-embedding-service.js';
 import { OpenAIEmbeddingService } from './openai-embedding-service.js';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => ({

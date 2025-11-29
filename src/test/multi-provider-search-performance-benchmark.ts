@@ -9,11 +9,11 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
-import type { EmbeddingProvider } from '../types/index.js';
+import type { EmbeddingProvider } from '../shared/types/index.js';
 
 interface BenchmarkResult {
   scenario: string;

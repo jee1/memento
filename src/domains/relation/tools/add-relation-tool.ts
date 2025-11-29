@@ -6,9 +6,9 @@
 import { z } from 'zod';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
-import { DatabaseUtils } from '../../../utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationGraph } from '../domains/relation/services/relation-graph.js';
-import type { RelationType } from '../../../types/relation.js';
+import type { RelationType } from '../../../shared/types/relation.js';
 
 const AddRelationSchema = z.object({
   source_id: z.string().min(1, 'source_id는 필수입니다'),

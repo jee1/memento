@@ -7,13 +7,13 @@ import type {
   SpacedRepetitionFeatures, 
   ReviewSchedule, 
   MemoryData 
-} from '../../types/spaced-repetition.types.js';
+} from '../../shared/types/spaced-repetition.types.js';
 import type { 
   ReviewScheduler, 
   IntervalCalculationStrategy,
   RecallProbabilityCalculator,
   ReviewNecessityChecker 
-} from '../../interfaces/spaced-repetition.interface.js';
+} from '../../shared/interfaces/spaced-repetition.interface.js';
 
 /**
  * 기본 리뷰 스케줄러

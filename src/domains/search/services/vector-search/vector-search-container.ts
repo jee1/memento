@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import { VectorSearchFacade } from './vector-search-facade';
 import { VectorSearchRepositoryImpl } from '../../repositories/vector-search.repository';
 import { VectorPerformanceRepositoryImpl } from '../../repositories/vector-performance.repository';
-import type { VectorSearchConfig } from '../../types/vector-search.types';
+import type { VectorSearchConfig } from '../../shared/types/vector-search.types';
 
 export class VectorSearchContainer {
   private static instance: VectorSearchContainer | null = null;

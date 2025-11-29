@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getVectorSearchEngine, VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 // Mock sqlite-vec functions
 const mockVecSearch = vi.fn();

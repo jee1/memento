@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
@@ -15,8 +15,8 @@ import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer
 import { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
 import { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
 import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
-import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../shared/utils/write-coalescing.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { AnchorManager } from '../services/anchor-manager.js';
 import { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../services/reflexion-worker.js';

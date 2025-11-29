@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchRepositoryImpl } from './vector-search.repository.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import type { VectorSearchQuery } from '../types/vector-search.types';
+import type { VectorSearchQuery } from '../shared/types/vector-search.types';
 
 describe('VectorSearchRepositoryImpl', () => {
   let db: Database.Database;

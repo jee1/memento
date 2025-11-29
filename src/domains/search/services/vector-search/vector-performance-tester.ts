@@ -3,9 +3,9 @@
  * 단일 책임 원칙(SRP) 적용 - 성능 테스트만 담당
  */
 
-import type { PerformanceTestResult } from '../../types/vector-search.types';
-import type { VectorPerformanceRepository } from '../../interfaces/database.interface';
-import { VECTOR_SEARCH_DEFAULTS } from '../../config/vector-search.config';
+import type { PerformanceTestResult } from '../../shared/types/vector-search.types';
+import type { VectorPerformanceRepository } from '../../shared/interfaces/database.interface';
+import { VECTOR_SEARCH_DEFAULTS } from '../../shared/config/vector-search.config';
 
 export class VectorPerformanceTester {
   constructor(private repository: VectorPerformanceRepository) {}

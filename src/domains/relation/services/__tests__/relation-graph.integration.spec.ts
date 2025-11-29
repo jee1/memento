@@ -12,9 +12,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { RelationGraph } from './relation-graph.js';
-import { DatabaseUtils } from '../../../utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
-import type { RelationType } from '../../../types/relation.js';
+import type { RelationType } from '../../../shared/types/relation.js';
 
 /**
  * 테스트용 기본 스키마 생성

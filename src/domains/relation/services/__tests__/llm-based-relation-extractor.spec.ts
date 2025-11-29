@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
-import type { MemoryItem, RelationType } from '../../../types/index.js';
+import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from './unified-embedding-service.js';
 import { CacheService } from './cache-service.js';
 

@@ -7,8 +7,8 @@ import { z } from 'zod';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import { UnifiedEmbeddingService } from '../services/unified-embedding-service.js';
-import type { EmbeddingProvider } from '../types/index.js';
-import { DatabaseUtils } from '../utils/database.js';
+import type { EmbeddingProvider } from '../shared/types/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../services/vector-compatibility-service.js';
 
 const MigrationSchema = z.object({

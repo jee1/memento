@@ -6,7 +6,7 @@
 
 import fs from 'fs';
 import { join, dirname } from 'path';
-import { mementoConfig } from '../../config/index.js';
+import { mementoConfig } from '../../shared/config/index.js';
 import type { MigrationResult } from './types.js';
 
 /**

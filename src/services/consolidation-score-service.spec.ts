@@ -34,7 +34,7 @@ import type {
   ConsolidationScoreInput,
   GValueUpdateInput,
   MemoryType
-} from '../types/consolidation-score.types.js';
+} from '../shared/types/consolidation-score.types.js';
 
 describe('ConsolidationScoreService', () => {
   let service: ConsolidationScoreService;

@@ -4,8 +4,8 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../utils/database.js';
-import type { MemoryType } from '../../types/index.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
+import type { MemoryType } from '../../shared/types/index.js';
 
 export interface TestMemoryItem {
   id: string;

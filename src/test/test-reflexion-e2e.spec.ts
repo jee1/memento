@@ -8,11 +8,11 @@ import { initializeServices, type ServerServices } from '../server/bootstrap.js'
 import { executeTool } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { 
   initializeMigrationStatusTable, 
   setMigrationStatus 
-} from '../utils/fts5-migration-status.js';
+} from '../shared/utils/fts5-migration-status.js';
 
 /**
  * ToolContext 생성 헬퍼 함수

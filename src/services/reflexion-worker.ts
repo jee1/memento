@@ -3,11 +3,11 @@
  * 실패 이벤트를 처리하여 reflection_notes를 자동 생성하고 저장
  */
 
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 import { FailureDetector, type FailureEvent } from './failure-detector.js';
 import { AsyncTaskQueue } from './async-optimizer.js';
-import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../utils/reflection-notes-merge.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../shared/utils/reflection-notes-merge.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import Database from 'better-sqlite3';
 import { createHash } from 'crypto';
 

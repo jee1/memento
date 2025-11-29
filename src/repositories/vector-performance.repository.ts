@@ -4,9 +4,9 @@
  */
 
 import Database from 'better-sqlite3';
-import type { PerformanceTestResult } from '../types/vector-search.types';
-import type { VectorPerformanceRepository } from '../interfaces/database.interface';
-import { VECTOR_SEARCH_CONFIG } from '../config/vector-search.config';
+import type { PerformanceTestResult } from '../shared/types/vector-search.types';
+import type { VectorPerformanceRepository } from '../shared/interfaces/database.interface';
+import { VECTOR_SEARCH_CONFIG } from '../shared/config/vector-search.config';
 
 export class VectorPerformanceRepositoryImpl implements VectorPerformanceRepository {
   private db: Database.Database | null = null;

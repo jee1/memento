@@ -1,5 +1,5 @@
 import type { Database } from 'better-sqlite3';
-import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../../types/embedding.types.js';
+import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../../shared/types/embedding.types.js';
 import type {
   EmbeddingMigrationError,
   EmbeddingMigrationPlan,
@@ -13,7 +13,7 @@ import type {
   MigrationRunStatus,
   MigrationStep,
   MigrationStepStatus
-} from '../../../types/migration.types.js';
+} from '../../../shared/types/migration.types.js';
 import { migrationMonitorService } from '../../../services/migration-monitor-service.js';
 import { migrationHistoryService } from '../../../services/migration-history-service.js';
 import { vectorCompatibilityService } from '../../../services/vector-compatibility-service.js';

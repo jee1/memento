@@ -7,11 +7,11 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { z } from 'zod';
 import { CommonSchemas } from '../../../tools/types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../../../types/index.js';
-import { mementoConfig } from '../../../config/index.js';
-import { DatabaseUtils } from '../../../utils/database.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../../../shared/types/index.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { ConsolidationScoreService } from '../../../services/consolidation-score-service.js';
-import type { WriteCoalescingManager } from '../../../utils/write-coalescing.js';
+import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 쿼리'),

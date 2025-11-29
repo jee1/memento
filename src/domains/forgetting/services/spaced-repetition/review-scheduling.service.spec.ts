@@ -14,7 +14,7 @@ import type {
   SpacedRepetitionFeatures, 
   MemoryData,
   SpacedRepetitionWeights 
-} from '../../types/spaced-repetition.types.js';
+} from '../../shared/types/spaced-repetition.types.js';
 
 describe('ReviewSchedulingService', () => {
   let intervalStrategy: DefaultIntervalStrategy;

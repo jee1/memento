@@ -9,7 +9,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 import { SchemaVersionManager } from '../infrastructure/database/migration/schema-version-manager.js';
 import { MigrationDetector } from '../infrastructure/database/migration/migration-detector.js';
 import { join, dirname } from 'path';

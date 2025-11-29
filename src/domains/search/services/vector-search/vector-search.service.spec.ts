@@ -5,9 +5,9 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchService } from './vector-search.service';
-import type { VectorSearchRepository } from '../../interfaces/database.interface';
-import type { VectorSearchQuery, VectorSearchResult, ProviderHybridQuery } from '../../types/vector-search.types';
-import type { EmbeddingResult } from '../../types/embedding.types';
+import type { VectorSearchRepository } from '../../shared/interfaces/database.interface';
+import type { VectorSearchQuery, VectorSearchResult, ProviderHybridQuery } from '../../shared/types/vector-search.types';
+import type { EmbeddingResult } from '../../shared/types/embedding.types';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
 vi.mock('@xenova/transformers', () => {

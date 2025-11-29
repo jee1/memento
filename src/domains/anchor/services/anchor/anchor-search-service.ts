@@ -9,7 +9,7 @@ import type { HybridSearchEngine } from '../../domains/search/algorithms/hybrid-
 import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 import { RelationGraph } from '../relation-graph.js';
 
 /**

@@ -14,7 +14,7 @@ import type {
   SimilarityResult, 
   EmbeddingData,
   EmbeddingProvider 
-} from '../../../types/embedding.types.js';
+} from '../../../shared/types/embedding.types.js';
 import { EmbeddingProviderFactory } from '../providers/embedding-provider-factory.js';
 
 /**

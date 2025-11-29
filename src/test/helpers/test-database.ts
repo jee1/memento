@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../utils/database.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
 
 /**
  * 표준화된 테스트 데이터베이스 초기화

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { migrationHistoryService } from './migration-history-service.js';
-import type { EmbeddingMigrationPlan, MigrationResult } from '../../types/migration.types.js';
+import type { EmbeddingMigrationPlan, MigrationResult } from '../../shared/types/migration.types.js';
 
 function createMigrationHistoryTable(db: Database.Database): void {
   db.exec(`

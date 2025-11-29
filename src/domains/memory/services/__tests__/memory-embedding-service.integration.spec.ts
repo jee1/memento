@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
-import type { EmbeddingProvider } from '../../../types/embedding.types.js';
-import type { MemoryType } from '../../../types/index.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
+import type { MemoryType } from '../../../shared/types/index.js';
 import { MemoryEmbeddingService } from './memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../algorithms/vector-search-engine.js';
-import { DatabaseUtils } from '../../../utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 
 vi.mock('./unified-embedding-service.js', () => {
   let currentProvider: EmbeddingProvider = 'minilm';

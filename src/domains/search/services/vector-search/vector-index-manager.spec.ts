@@ -4,8 +4,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VectorIndexManager } from './vector-index-manager';
-import type { VectorIndexRepository } from '../../interfaces/database.interface';
-import type { VectorIndexStatus } from '../../types/vector-search.types';
+import type { VectorIndexRepository } from '../../shared/interfaces/database.interface';
+import type { VectorIndexStatus } from '../../shared/types/vector-search.types';
 
 // Mock 리포지토리 생성
 const createMockIndexRepository = (): any => ({

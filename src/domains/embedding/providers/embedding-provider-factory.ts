@@ -8,9 +8,9 @@
  * - 개방-폐쇄: 새로운 제공자 추가 용이
  */
 
-import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../types/embedding.types.js';
-import type { ProviderFallbackDecision, ProviderHealthStatus } from '../types/embedding-provider-monitoring.types.js';
-import { mementoConfig } from '../config/index.js';
+import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../shared/types/embedding.types.js';
+import type { ProviderFallbackDecision, ProviderHealthStatus } from '../shared/types/embedding-provider-monitoring.types.js';
+import { mementoConfig } from '../shared/config/index.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from './gemini-embedding-service.js';

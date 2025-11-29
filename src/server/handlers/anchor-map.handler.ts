@@ -7,7 +7,7 @@
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import type { WebSocket } from 'ws';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * Anchor Map 노드 타입

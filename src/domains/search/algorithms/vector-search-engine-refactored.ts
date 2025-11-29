@@ -11,7 +11,7 @@ import type {
   VectorSearchResult, 
   VectorIndexStatus,
   PerformanceTestResult 
-} from '../../../types/vector-search.types';
+} from '../../../shared/types/vector-search.types';
 
 /**
  * 리팩토링된 벡터 검색 엔진으로 기존 코드와의 호환성을 유지하면서 개선된 구조를 제공합니다.
@@ -140,4 +140,4 @@ export type {
   VectorSearchOptions,
   VectorIndexStatus,
   PerformanceTestResult
-} from '../../../types/vector-search.types';
+} from '../../../shared/types/vector-search.types';

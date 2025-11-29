@@ -4,9 +4,9 @@
  * OpenAI가 없을 때 사용하는 fallback 솔루션
  */
 
-import { getStopWords } from '../../../utils/stopwords.js';
+import { getStopWords } from '../../../shared/utils/stopwords.js';
 
-import type { EmbeddingProvider } from '../../../types/embedding.types.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 
 export interface LightweightEmbeddingResult {
   embedding: number[];

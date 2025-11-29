@@ -3,7 +3,7 @@ import { getBatchScheduler, BatchScheduler } from '../infrastructure/scheduler/b
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 // Mock dependencies
 import { vi } from 'vitest';
