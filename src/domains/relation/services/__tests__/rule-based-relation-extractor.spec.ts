@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
-import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
+import type { MemoryItem, RelationType } from '../../../shared/types/types/index.js';
 
 /**
  * 테스트용 메모리 생성 헬퍼

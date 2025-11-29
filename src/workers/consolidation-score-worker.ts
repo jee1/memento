@@ -10,7 +10,7 @@
 import Database from 'better-sqlite3';
 import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
-import type { MemoryType } from '../shared/types/index.js';
+import type { MemoryType } from '../shared/types/types/index.js';
 
 export interface ConsolidationScoreWorkerConfig {
   // 배치 처리 설정

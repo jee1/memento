@@ -9,7 +9,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationExtractor } from '../domains/relation/services/relation-extractor.js';
 import { RelationGraph } from '../domains/relation/services/relation-graph.js';
-import type { MemoryType, PrivacyScope } from '../../../../shared/types/index.js';
+import type { MemoryType, PrivacyScope } from '../../../../shared/types/types/index.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { isMemoryRow, convertMemoryRowToItem } from '../../../../shared/utils/type-guards.js';
 

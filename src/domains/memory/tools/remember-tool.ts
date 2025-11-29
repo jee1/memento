@@ -10,7 +10,7 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { isMemoryItemType, type MemoryTypeRequest } from '../../../../shared/types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest } from '../../../../shared/types/types/index.js';
 import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
@@ -20,7 +20,7 @@ import { validateTypeParam } from '../../../../shared/utils/type-param-validator
 import { mementoConfig } from '../../../../shared/config/index.js';
 import type { ConsolidationScoreService } from '../../../services/consolidation-score-service.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
-import type { MemoryItem } from '../../../../shared/types/index.js';
+import type { MemoryItem } from '../../../../shared/types/types/index.js';
 import { validateReflectionNotes, formatValidationErrors } from '../../../../shared/utils/reflection-notes-schema.js';
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../../shared/utils/reflection-notes-merge.js';
 

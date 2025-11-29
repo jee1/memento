@@ -4,7 +4,7 @@
  */
 
 import { SearchRanking } from './search-ranking.js';
-import type { MemorySearchFilters, MemorySearchResult } from '../../../../shared/types/index.js';
+import type { MemorySearchFilters, MemorySearchResult } from '../../../../shared/types/types/index.js';
 import Database from 'better-sqlite3';
 import { getStopWords } from '../../../../shared/utils/stopwords.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
