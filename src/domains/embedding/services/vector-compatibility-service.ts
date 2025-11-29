@@ -14,7 +14,7 @@ import type {
   VectorProjectionOptions,
   VectorProjectionResult,
   VectorReductionStrategy
-} from '../../../../shared/types/embedding.types.js';
+} from '../../../../../shared/types/embedding.types.js';
 
 interface ProjectionInternalResult {
   vector: number[];
