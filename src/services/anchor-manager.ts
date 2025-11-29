@@ -251,7 +251,7 @@ export class AnchorManager {
     if (query && options?.autoMoveEnabled !== false) {
       try {
         // 쿼리 임베딩 생성
-        const { UnifiedEmbeddingService } = await import('./unified-embedding-service.js');
+        const { UnifiedEmbeddingService } = await import('../domains/embedding/services/unified-embedding-service.js');
         const queryEmbeddingService = new UnifiedEmbeddingService();
         const queryEmbeddingResult = await queryEmbeddingService.generateEmbedding(query);
         
