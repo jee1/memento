@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { BatchScheduler } from './batch-scheduler.js';
 import { ConsolidationScoreWorker } from '../workers/consolidation-score-worker.js';
-import { DatabaseUtils } from '../../shared/utils/database.js';
-import * as configModule from '../../shared/config/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import * as configModule from '../shared/config/index.js';
 
 /**
  * 테스트용 데이터베이스 초기화

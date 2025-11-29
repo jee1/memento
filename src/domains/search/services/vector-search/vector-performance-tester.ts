@@ -3,8 +3,8 @@
  * 단일 책임 원칙(SRP) 적용 - 성능 테스트만 담당
  */
 
-import type { PerformanceTestResult } from '../../../shared/types/vector-search.types.js';
-import type { VectorPerformanceRepository } from '../../../shared/interfaces/database.interface.js';
+import type { PerformanceTestResult } from '../../../../shared/types/vector-search.types.js';
+import type { VectorPerformanceRepository } from '../../../../shared/interfaces/database.interface.js';
 import { VECTOR_SEARCH_DEFAULTS } from '../../../../shared/config/vector-search.config';
 
 export class VectorPerformanceTester {

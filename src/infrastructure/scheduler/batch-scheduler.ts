@@ -6,13 +6,13 @@
 
 import { ForgettingPolicyService, type MemoryCleanupResult } from './forgetting-policy-service.js';
 import { getPerformanceMonitor, type PerformanceAlert } from './performance-monitor.js';
-import { DatabaseUtils } from '../../shared/utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { ConsolidationScoreWorker } from '../workers/consolidation-score-worker.js';
 import { ReflexionWorker } from './reflexion-worker.js';
-import { mementoConfig } from '../../shared/config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 import { spawn } from 'child_process';
 import { join } from 'path';
 

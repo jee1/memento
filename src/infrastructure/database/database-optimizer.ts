@@ -3,7 +3,7 @@
  * 인덱스 최적화, 쿼리 분석, 성능 튜닝
  */
 
-import { DatabaseUtils } from '../../shared/utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import Database from 'better-sqlite3';
 
 export interface IndexRecommendation {

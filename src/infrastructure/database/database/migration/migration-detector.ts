@@ -9,7 +9,7 @@ import type Database from 'better-sqlite3';
 import { readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import type { Migration } from './types.js';
+import type { Migration } from '../../../tools/types.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);

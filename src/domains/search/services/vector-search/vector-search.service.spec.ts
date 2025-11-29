@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchService } from './vector-search.service';
-import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
-import type { VectorSearchQuery, VectorSearchResult, ProviderHybridQuery } from '../../../shared/types/vector-search.types.js';
+import type { VectorSearchRepository } from '../../../../shared/interfaces/database.interface.js';
+import type { VectorSearchQuery, VectorSearchResult, ProviderHybridQuery } from '../../../../shared/types/vector-search.types.js';
 import type { EmbeddingResult } from '../../../../shared/types/embedding.types';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading

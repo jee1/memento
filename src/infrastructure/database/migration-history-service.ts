@@ -7,7 +7,7 @@ import type {
   MigrationHistorySummary,
   MigrationResult,
   MigrationRollbackEntry
-} from '../../shared/types/migration.types.js';
+} from '../shared/types/migration.types.js';
 
 const DEFAULT_HISTORY_LIMIT = 50;
 

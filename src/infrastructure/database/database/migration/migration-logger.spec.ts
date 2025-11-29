@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MigrationLogger, LogLevel } from './migration-logger.js';
-import type { MigrationResult } from './types.js';
+import type { MigrationResult } from '../../../tools/types.js';
 import { existsSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 

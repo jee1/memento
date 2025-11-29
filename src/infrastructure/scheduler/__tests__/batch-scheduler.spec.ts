@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { BatchScheduler, type BatchJobConfig, type BatchJobResult } from './batch-scheduler.js';
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../test/helpers/test-database.js';
-import { DatabaseUtils } from '../../shared/utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('BatchScheduler', () => {
   let scheduler: BatchScheduler;

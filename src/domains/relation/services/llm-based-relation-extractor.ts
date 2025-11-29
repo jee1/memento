@@ -16,7 +16,7 @@ import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { CacheService } from '../../../memory/services/core-memory-cache-service.js';
+import { CacheService } from '../../memory/services/core-memory-cache-service.js';
 import type {
   RelationCandidate,
   RelationType,

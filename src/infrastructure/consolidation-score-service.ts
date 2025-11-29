@@ -14,7 +14,7 @@ import type {
   ConsolidationScoreResult,
   GValueUpdateInput,
   MemoryType
-} from '../../shared/types/consolidation-score.types.js';
+} from '../shared/types/consolidation-score.types.js';
 
 /**
  * 타입별 초기 회상 확률 상수 (r_base)
