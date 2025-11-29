@@ -19,7 +19,7 @@ import { WriteCoalescingManager, type CoalescedWrite } from '../shared/utils/wri
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { AnchorManager } from '../services/anchor-manager.js';
 import { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
-import { ReflexionWorker } from '../services/reflexion-worker.js';
+import { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 
 /**

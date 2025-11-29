@@ -3,10 +3,10 @@
  */
 
 import { config } from 'dotenv';
-import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../shared/types/index.js';
-import { validateConfiguration } from '../shared/utils/configuration-validator.js';
-import { isValidConfigurationEnvironment } from '../shared/utils/environment-check.js';
-import { parseTypeParamMode } from '../shared/utils/type-param-validator.js';
+import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../types/index.js';
+import { validateConfiguration } from '../utils/configuration-validator.js';
+import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
+import { parseTypeParamMode } from '../utils/type-param-validator.js';
 import {
   providerDimensionDefaults,
   resolveNumber,

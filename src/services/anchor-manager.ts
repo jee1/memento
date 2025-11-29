@@ -7,15 +7,15 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { MemoryEmbeddingService } from './memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
-import { AnchorManager as NewAnchorManager } from './anchor/anchor-manager.js';
-import { AnchorCacheService } from './anchor/anchor-cache-service.js';
-import { AnchorSearchService } from './anchor/anchor-search-service.js';
-import type { AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from './anchor/anchor-interfaces.js';
-import { AnchorError, MemoryNotFoundError } from './anchor/anchor-interfaces.js';
+import { AnchorManager as NewAnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
+import { AnchorCacheService } from '../domains/anchor/services/anchor/anchor-cache-service.js';
+import { AnchorSearchService } from '../domains/anchor/services/anchor/anchor-search-service.js';
+import type { AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from '../domains/anchor/services/anchor/anchor-interfaces.js';
+import { AnchorError, MemoryNotFoundError } from '../domains/anchor/services/anchor/anchor-interfaces.js';
 import { logger } from '../shared/utils/logger.js';
 
 // 기존 타입 및 인터페이스 export (하위 호환성)
