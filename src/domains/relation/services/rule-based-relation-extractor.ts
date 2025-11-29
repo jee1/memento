@@ -8,9 +8,9 @@ import type {
   RelationType,
   IRelationExtractor,
   ExtractOptions
-} from '../types/relation.js';
-import type { MemoryItem } from '../types/index.js';
-import { isApplicableRelationType } from '../types/relation.js';
+} from '../../../types/relation.js';
+import type { MemoryItem } from '../../../types/index.js';
+import { isApplicableRelationType } from '../../../types/relation.js';
 import { CONFIDENCE, LIMITS } from '../constants/relation-constants.js';
 
 /**

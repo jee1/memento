@@ -6,12 +6,12 @@
 import { z } from 'zod';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
-import { DatabaseUtils } from '../utils/database.js';
-import { RelationExtractor } from '../services/relation-extractor.js';
-import { RelationGraph } from '../services/relation-graph.js';
-import type { MemoryType, PrivacyScope } from '../types/index.js';
-import { logger } from '../utils/logger.js';
-import { isMemoryRow, convertMemoryRowToItem } from '../utils/type-guards.js';
+import { DatabaseUtils } from '../../../utils/database.js';
+import { RelationExtractor } from '../domains/relation/services/relation-extractor.js';
+import { RelationGraph } from '../domains/relation/services/relation-graph.js';
+import type { MemoryType, PrivacyScope } from '../../../types/index.js';
+import { logger } from '../../../utils/logger.js';
+import { isMemoryRow, convertMemoryRowToItem } from '../../../utils/type-guards.js';
 
 const ExtractRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),

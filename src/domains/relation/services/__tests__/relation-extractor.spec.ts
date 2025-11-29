@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RelationExtractor } from './relation-extractor.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
-import type { MemoryItem, RelationType } from '../types/index.js';
+import type { MemoryItem, RelationType } from '../../../types/index.js';
 import { UnifiedEmbeddingService } from './unified-embedding-service.js';
 import { CacheService } from './cache-service.js';
 

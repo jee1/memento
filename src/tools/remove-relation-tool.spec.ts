@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import { RemoveRelationTool } from './remove-relation-tool.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { RelationEngineSchemaMigration } from '../database/migration/migrations/005-relation-engine-schema.js';
-import { RelationGraph } from '../services/relation-graph.js';
+import { RelationGraph } from '../domains/relation/services/relation-graph.js';
 import type { ToolContext } from './types.js';
 
 /**

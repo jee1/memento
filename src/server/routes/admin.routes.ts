@@ -8,7 +8,7 @@ import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { getBatchScheduler } from '../../services/batch-scheduler.js';
 import { getPerformanceMonitor } from '../../services/performance-monitor.js';
-import { RelationGraph } from '../../services/relation-graph.js';
+import { RelationGraph } from '../../domains/relation/services/relation-graph.js';
 import { RelationExtractor } from '../../services/relation-extractor.js';
 import { ExtractRelationsTool } from '../../tools/extract-relations-tool.js';
 import { GetRelationsTool } from '../../tools/get-relations-tool.js';

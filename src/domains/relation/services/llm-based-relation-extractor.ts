@@ -14,7 +14,7 @@
 
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../../../config/index.js';
 import { UnifiedEmbeddingService } from './unified-embedding-service.js';
 import { CacheService } from './cache-service.js';
 import type {
@@ -22,13 +22,13 @@ import type {
   RelationType,
   IRelationExtractor,
   ExtractOptions
-} from '../types/relation.js';
-import { ALL_RELATION_TYPES } from '../types/relation.js';
-import type { MemoryItem } from '../types/index.js';
-import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../types/relation.js';
-import type { EmbeddingData, SimilarityResult } from '../types/embedding.types.js';
-import { logger } from '../utils/logger.js';
-import { CacheKeyGenerator } from '../utils/cache-key-generator.js';
+} from '../../../types/relation.js';
+import { ALL_RELATION_TYPES } from '../../../types/relation.js';
+import type { MemoryItem } from '../../../types/index.js';
+import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../types/relation.js';
+import type { EmbeddingData, SimilarityResult } from '../../../types/embedding.types.js';
+import { logger } from '../../../utils/logger.js';
+import { CacheKeyGenerator } from '../../../utils/cache-key-generator.js';
 import { CONFIDENCE, LIMITS, CACHE, LLM_COST, RATE_LIMITER, TIME } from '../constants/relation-constants.js';
 
 /**

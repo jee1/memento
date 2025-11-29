@@ -19,7 +19,7 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../utils/type-param-validator.js';
 import { mementoConfig } from '../../../config/index.js';
 import type { ConsolidationScoreService } from '../../../services/consolidation-score-service.js';
-import { RelationExtractor } from '../../../services/relation-extractor.js';
+import { RelationExtractor } from '../../relation/services/relation-extractor.js';
 import type { MemoryItem } from '../../../types/index.js';
 import { validateReflectionNotes, formatValidationErrors } from '../../../utils/reflection-notes-schema.js';
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../utils/reflection-notes-merge.js';
