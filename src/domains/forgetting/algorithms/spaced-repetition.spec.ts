@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SpacedRepetitionAlgorithm, type SpacedRepetitionFeatures, type ReviewSchedule } from '../spaced-repetition.js';
+import { SpacedRepetitionAlgorithm, type SpacedRepetitionFeatures, type ReviewSchedule } from './spaced-repetition.js';
 
 describe('SpacedRepetitionAlgorithm', () => {
   let algorithm: SpacedRepetitionAlgorithm;

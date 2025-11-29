@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { validateTypeParam, parseTypeParamMode, type TypeParamMode } from '../type-param-validator.js';
+import { validateTypeParam, parseTypeParamMode, type TypeParamMode } from './type-param-validator.js';
 
 describe('type-param-validator', () => {
   describe('validateTypeParam', () => {

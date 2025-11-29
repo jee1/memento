@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryType, MemoryTypeRequest, isMemoryItemType } from '../index.js';
+import { MemoryType, MemoryTypeRequest, isMemoryItemType } from './index.js';
 
 describe('MemoryTypeRequest and isMemoryItemType', () => {
   describe('isMemoryItemType', () => {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { logger, type LogLevel } from '../logger.js';
+import { logger, type LogLevel } from './logger.js';
 
 describe('logger', () => {
   let originalConsoleDebug: typeof console.debug;

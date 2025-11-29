@@ -8,7 +8,7 @@ import {
   isTestEnvironment,
   isValidationDisabled,
   isValidConfigurationEnvironment
-} from '../environment-check.js';
+} from './environment-check.js';
 
 describe('environment-check', () => {
   let originalNodeEnv: string | undefined;

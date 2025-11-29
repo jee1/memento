@@ -5,7 +5,7 @@ import {
   formatValidationErrors,
   ReflectionNoteSchema,
   type ReflectionNote
-} from '../reflection-notes-schema.js';
+} from './reflection-notes-schema.js';
 
 describe('Reflection Notes Schema Validation', () => {
   describe('validateReflectionNote - 단일 객체 검증', () => {

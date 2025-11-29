@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { MementoConfig } from '../types/index.js';
-import { validateConfiguration } from '../configuration-validator.js';
+import type { MementoConfig } from './types/index.js';
+import { validateConfiguration } from './configuration-validator.js';
 
 const baseConfig: MementoConfig = {
   dbPath: './data/memory.db',

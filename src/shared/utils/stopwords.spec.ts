@@ -9,7 +9,7 @@ import {
   getEnglishStopWords,
   getKoreanStopWords,
   isStopWord
-} from '../stopwords.js';
+} from './stopwords.js';
 
 describe('stopwords', () => {
   describe('getStopWords', () => {

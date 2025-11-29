@@ -11,7 +11,7 @@ import {
   getRankingWeights,
   resetRankingWeightsCache,
   type RankingWeightsConfig
-} from '../ranking-weights-loader.js';
+} from './ranking-weights-loader.js';
 
 describe('ranking-weights-loader', () => {
   let tempDir: string;
