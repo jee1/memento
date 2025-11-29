@@ -79,6 +79,7 @@ export class BatchScheduler {
   private errorCount: Map<string, number> = new Map();
   private runningJobs: Set<string> = new Set();
   private jobQueue: Array<{name: string, job: () => Promise<void>, priority: number}> = [];
+  private jobProcessorInterval: NodeJS.Timeout | null = null;
 
   constructor(config?: Partial<BatchJobConfig>) {
     this.config = {
@@ -193,6 +194,12 @@ export class BatchScheduler {
       this.log(`Stopped job: ${name}`);
     }
     this.intervals.clear();
+
+    // 작업 프로세서 인터벌 정리
+    if (this.jobProcessorInterval) {
+      clearInterval(this.jobProcessorInterval);
+      this.jobProcessorInterval = null;
+    }
 
     // 실행 중인 작업 완료 대기
     await this.waitForRunningJobs();
@@ -327,8 +334,8 @@ export class BatchScheduler {
       }
     };
 
-    // 큐 처리 인터벌
-    setInterval(processQueue, 100);
+    // 큐 처리 인터벌 (ID 저장)
+    this.jobProcessorInterval = setInterval(processQueue, 100);
   }
 
   /**
@@ -834,6 +841,9 @@ export class BatchScheduler {
   private log(message: string, data?: any, level: 'info' | 'warn' | 'error' = 'info'): void {
     if (!this.config.enableLogging) return;
 
+    // stdio 모드 감지
+    const isStdioMode = process.stdin.isTTY === false && process.stdout.isTTY === false;
+
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -852,17 +862,28 @@ export class BatchScheduler {
     const logData = data ? JSON.stringify(data, null, 2) : '';
     const contextInfo = `[Uptime: ${this.formatUptime(logEntry.uptime)}, Active: ${logEntry.activeJobs}, Queue: ${logEntry.queueSize}]`;
     
-    switch (level) {
-      case 'error':
-        console.error(logMessage, contextInfo, logData);
-        // 에러 로그를 파일에도 저장 (선택사항)
+    if (isStdioMode) {
+      // stdio 모드: stderr로 출력
+      const fullMessage = `${logMessage} ${contextInfo}${logData ? '\n' + logData : ''}\n`;
+      process.stderr.write(fullMessage);
+      
+      // 에러 로그는 파일에도 저장
+      if (level === 'error') {
         this.logToFile(logEntry);
-        break;
-      case 'warn':
-        console.warn(logMessage, contextInfo, logData);
-        break;
-      default:
-        console.log(logMessage, contextInfo, logData);
+      }
+    } else {
+      // 일반 모드: console 사용
+      switch (level) {
+        case 'error':
+          console.error(logMessage, contextInfo, logData);
+          this.logToFile(logEntry);
+          break;
+        case 'warn':
+          console.warn(logMessage, contextInfo, logData);
+          break;
+        default:
+          console.log(logMessage, contextInfo, logData);
+      }
     }
   }
 
