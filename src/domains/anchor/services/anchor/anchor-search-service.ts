@@ -5,12 +5,12 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { HybridSearchEngine } from '../../domains/search/algorithms/hybrid-search-engine.js';
-import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
-import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
+import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
+import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
-import { logger } from '../../shared/utils/logger.js';
-import { RelationGraph } from '../relation-graph.js';
+import { logger } from '../../../../shared/utils/logger.js';
+import { RelationGraph } from '../../../relation/services/relation-graph.js';
 
 /**
  * Anchor Search Service 구현

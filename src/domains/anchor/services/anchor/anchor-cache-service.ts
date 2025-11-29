@@ -5,9 +5,9 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { MemoryEmbeddingService } from '../memory-embedding-service.js';
+import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import type { IAnchorCacheService, AnchorSlot } from './anchor-interfaces.js';
-import { logger } from '../../shared/utils/logger.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 /**
  * Anchor Cache Service 구현
