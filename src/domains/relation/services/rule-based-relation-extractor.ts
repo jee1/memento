@@ -8,10 +8,10 @@ import type {
   RelationType,
   IRelationExtractor,
   ExtractOptions
-} from '../../../../shared/types/relation.js';
-import type { MemoryItem } from '../../../../shared/types/index.js';
-import { isApplicableRelationType } from '../../../../shared/types/relation.js';
-import { CONFIDENCE, LIMITS } from '../../../../shared/constants/relation-constants.js';
+} from '../../../shared/types/relation.js';
+import type { MemoryItem } from '../../../shared/types/index.js';
+import { isApplicableRelationType } from '../../../shared/types/relation.js';
+import { CONFIDENCE, LIMITS } from '../../../shared/constants/relation-constants.js';
 
 /**
  * 키워드 패턴 정의

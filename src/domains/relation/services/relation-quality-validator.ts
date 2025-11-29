@@ -3,9 +3,9 @@
  * Precision, Recall, F1-Score 계산 및 관계 유형별 정확도 분석
  */
 
-import type { RelationType } from '../../../../shared/types/relation.js';
-import type { RelationCandidate } from '../../../../shared/types/relation.js';
-import { ALL_RELATION_TYPES } from '../../../../shared/types/relation.js';
+import type { RelationType } from '../../../shared/types/relation.js';
+import type { RelationCandidate } from '../../../shared/types/relation.js';
+import { ALL_RELATION_TYPES } from '../../../shared/types/relation.js';
 
 /**
  * 예상 관계 (Ground Truth)

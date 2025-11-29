@@ -14,22 +14,22 @@
 
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { mementoConfig } from '../../../../shared/config/index.js';
-import { UnifiedEmbeddingService } from './unified-embedding-service.js';
-import { CacheService } from './cache-service.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { CacheService } from '../../memory/services/cache-service.js';
 import type {
   RelationCandidate,
   RelationType,
   IRelationExtractor,
   ExtractOptions
-} from '../../../../shared/types/relation.js';
-import { ALL_RELATION_TYPES } from '../../../../shared/types/relation.js';
-import type { MemoryItem } from '../../../../shared/types/index.js';
-import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../../shared/types/relation.js';
-import type { EmbeddingData, SimilarityResult } from '../../../../shared/types/embedding.types.js';
-import { logger } from '../../../../shared/utils/logger.js';
-import { CacheKeyGenerator } from '../../../../shared/utils/cache-key-generator.js';
-import { CONFIDENCE, LIMITS, CACHE, LLM_COST, RATE_LIMITER, TIME } from '../../../../shared/constants/relation-constants.js';
+} from '../../../shared/types/relation.js';
+import { ALL_RELATION_TYPES } from '../../../shared/types/relation.js';
+import type { MemoryItem } from '../../../shared/types/index.js';
+import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
+import type { EmbeddingData, SimilarityResult } from '../../../shared/types/embedding.types.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
+import { CONFIDENCE, LIMITS, CACHE, LLM_COST, RATE_LIMITER, TIME } from '../../../shared/constants/relation-constants.js';
 
 /**
  * LLM 응답 파싱 결과 (레거시 호환성을 위해 유지)

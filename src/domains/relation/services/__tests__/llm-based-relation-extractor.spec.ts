@@ -12,8 +12,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
-import { UnifiedEmbeddingService } from './unified-embedding-service.js';
-import { CacheService } from './cache-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { CacheService } from '../../memory/services/cache-service.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => {

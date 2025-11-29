@@ -13,15 +13,15 @@ import type {
   RelationType,
   IRelationExtractor,
   ExtractOptions
-} from '../../../../shared/types/relation.js';
-import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../../shared/types/relation.js';
-import type { MemoryType, MemoryItem } from '../../../../shared/types/index.js';
+} from '../../../shared/types/relation.js';
+import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
+import type { MemoryType, MemoryItem } from '../../../shared/types/index.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
-import { CacheService } from './cache-service.js';
-import { logger } from '../../../../shared/utils/logger.js';
-import { CacheKeyGenerator } from '../../../../shared/utils/cache-key-generator.js';
-import { CONFIDENCE, LIMITS, CACHE } from '../../../../shared/constants/relation-constants.js';
+import { CacheService } from '../../memory/services/cache-service.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
+import { CONFIDENCE, LIMITS, CACHE } from '../../../shared/constants/relation-constants.js';
 
 /**
  * 관계 추출 메인 서비스

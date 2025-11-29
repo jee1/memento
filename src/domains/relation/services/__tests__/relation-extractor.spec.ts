@@ -15,8 +15,8 @@ import { RelationExtractor } from './relation-extractor.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
-import { UnifiedEmbeddingService } from './unified-embedding-service.js';
-import { CacheService } from './cache-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { CacheService } from '../../memory/services/cache-service.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => {

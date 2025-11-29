@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
