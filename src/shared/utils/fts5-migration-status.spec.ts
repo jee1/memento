@@ -11,7 +11,7 @@ import {
   prepareMigrationRetry,
   forceSetMigrationStatus
 } from './fts5-migration-status.js';
-import { mementoConfig } from '../shared/config/index.js';
+import { mementoConfig } from '../config/index.js';
 
 describe('FTS5 Migration Status', () => {
   let db: Database.Database;

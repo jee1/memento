@@ -7,7 +7,7 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
-import { mementoConfig } from '../shared/config/index.js';
+import { mementoConfig } from '../config/index.js';
 
 export type FTS5MigrationStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 

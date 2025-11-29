@@ -3,7 +3,7 @@
  * 데이터베이스 조회 결과의 타입 안전성을 보장하기 위한 타입 가드 함수들
  */
 
-import type { MemoryType, PrivacyScope, MemoryItem } from '../shared/types/index.js';
+import type { MemoryType, PrivacyScope, MemoryItem } from '../types/index.js';
 
 /**
  * 데이터베이스에서 조회한 메모리 행 타입

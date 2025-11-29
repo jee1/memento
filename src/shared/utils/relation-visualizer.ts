@@ -3,8 +3,8 @@
  * 텍스트 기반으로 관계 그래프를 시각화합니다.
  */
 
-import type { MemoryRelation } from '../shared/types/relation-graph.js';
-import type { RelationType } from '../shared/types/relation.js';
+import type { MemoryRelation } from '../types/relation-graph.js';
+import type { RelationType } from '../types/relation.js';
 
 /**
  * 관계 그래프 시각화 옵션

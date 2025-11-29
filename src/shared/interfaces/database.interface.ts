@@ -45,4 +45,4 @@ import type {
   VectorIndexStatus, 
   HybridSearchResult,
   PerformanceTestResult 
-} from '../shared/types/vector-search.types';
+} from '../types/vector-search.types';

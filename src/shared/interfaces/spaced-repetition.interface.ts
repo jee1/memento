@@ -12,7 +12,7 @@ import type {
   RecallHistory,
   IntervalCalculationResult,
   ReviewPriority
-} from '../shared/types/spaced-repetition.types.js';
+} from '../types/spaced-repetition.types.js';
 
 /**
  * 간격 계산 전략 인터페이스
