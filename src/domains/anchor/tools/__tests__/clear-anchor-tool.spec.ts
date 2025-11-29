@@ -21,13 +21,13 @@ vi.mock('onnxruntime-node', () => ({
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
-import { GetAnchorTool } from './get-anchor-tool.js';
+import { DatabaseUtils } from '../../../utils/database.js';
+import { ClearAnchorTool } from './clear-anchor-tool.js';
 import type { ToolContext } from './types.js';
 import { AnchorManager } from '../services/anchor-manager.js';
-import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
+import type { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
+import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -54,9 +54,9 @@ function initializeTestDatabase(db: Database.Database): void {
   `);
 }
 
-describe('GetAnchorTool', () => {
+describe('ClearAnchorTool', () => {
   let db: Database.Database;
-  let tool: GetAnchorTool;
+  let tool: ClearAnchorTool;
   let context: ToolContext;
   let anchorManager: AnchorManager;
   let embeddingService: MemoryEmbeddingService;
@@ -100,7 +100,7 @@ describe('GetAnchorTool', () => {
     anchorManager.setHybridSearchEngine(hybridSearchEngine);
     anchorManager.setVectorSearchEngine(vectorSearchEngine);
 
-    tool = new GetAnchorTool();
+    tool = new ClearAnchorTool();
 
     context = {
       db,
@@ -119,8 +119,8 @@ describe('GetAnchorTool', () => {
   describe('초기화', () => {
     it('should create tool with correct name and description', () => {
       const definition = tool.getDefinition();
-      expect(definition.name).toBe('get_anchor');
-      expect(definition.description).toBe('현재 설정된 앵커를 조회합니다');
+      expect(definition.name).toBe('clear_anchor');
+      expect(definition.description).toBe('설정된 앵커를 제거합니다');
     });
 
     it('should have correct input schema', () => {
@@ -132,7 +132,7 @@ describe('GetAnchorTool', () => {
     });
   });
 
-  describe('앵커 조회', () => {
+  describe('앵커 제거', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
@@ -153,10 +153,11 @@ describe('GetAnchorTool', () => {
       // 앵커 설정
       await anchorManager.setAnchor('agent1', 'mem1', 'A');
       await anchorManager.setAnchor('agent1', 'mem2', 'B');
-      await anchorManager.setAnchor('agent2', 'mem3', 'A');
+      await anchorManager.setAnchor('agent1', 'mem3', 'C');
+      await anchorManager.setAnchor('agent2', 'mem1', 'A');
     });
 
-    it('should get specific slot anchor', async () => {
+    it('should clear specific slot anchor', async () => {
       const params = {
         slot: 'A',
         agent_id: 'agent1'
@@ -165,13 +166,20 @@ describe('GetAnchorTool', () => {
       const result = await tool.handle(params, context);
       const resultData = JSON.parse(result.content[0].text);
 
+      expect(resultData.success).toBe(true);
       expect(resultData.agent_id).toBe('agent1');
       expect(resultData.slot).toBe('A');
-      expect(resultData.anchor).not.toBeNull();
-      expect(resultData.anchor.memory_id).toBe('mem1');
+
+      // 데이터베이스에서 확인
+      const anchor = await anchorManager.getAnchor('agent1', 'A');
+      expect(anchor).toBeNull();
+
+      // 다른 슬롯은 유지되어야 함
+      const anchorB = await anchorManager.getAnchor('agent1', 'B');
+      expect(anchorB).not.toBeNull();
     });
 
-    it('should get all slots when slot is not provided', async () => {
+    it('should clear all slots when slot is not provided', async () => {
       const params = {
         agent_id: 'agent1'
       };
@@ -179,28 +187,13 @@ describe('GetAnchorTool', () => {
       const result = await tool.handle(params, context);
       const resultData = JSON.parse(result.content[0].text);
 
+      expect(resultData.success).toBe(true);
       expect(resultData.agent_id).toBe('agent1');
-      expect(resultData.anchors).toBeDefined();
-      expect(resultData.anchors.A).not.toBeNull();
-      expect(resultData.anchors.A.memory_id).toBe('mem1');
-      expect(resultData.anchors.B).not.toBeNull();
-      expect(resultData.anchors.B.memory_id).toBe('mem2');
-      expect(resultData.anchors.C).toBeNull();
-    });
+      expect(resultData.message).toContain('모든 앵커가 제거되었습니다');
 
-    it('should return null when anchor does not exist', async () => {
-      const params = {
-        slot: 'C',
-        agent_id: 'agent1'
-      };
-
-      const result = await tool.handle(params, context);
-      const resultData = JSON.parse(result.content[0].text);
-
-      expect(resultData.agent_id).toBe('agent1');
-      expect(resultData.slot).toBe('C');
-      expect(resultData.anchor).toBeNull();
-      expect(resultData.message).toContain('앵커가 설정되지 않았습니다');
+      // 모든 슬롯이 제거되었는지 확인
+      const anchors = await anchorManager.getAnchor('agent1');
+      expect(anchors).toBeNull();
     });
 
     it('should use default agent_id when not provided', async () => {
@@ -214,20 +207,34 @@ describe('GetAnchorTool', () => {
       const resultData = JSON.parse(result.content[0].text);
 
       expect(resultData.agent_id).toBe('default');
+
+      // 데이터베이스에서 확인
+      const anchor = await anchorManager.getAnchor('default', 'A');
+      expect(anchor).toBeNull();
     });
 
-    it('should return all null anchors for agent with no anchors', async () => {
+    it('should not affect other agents anchors', async () => {
       const params = {
-        agent_id: 'agent3'
+        agent_id: 'agent1'
+      };
+
+      await tool.handle(params, context);
+
+      // agent2의 앵커는 유지되어야 함
+      const anchor2 = await anchorManager.getAnchor('agent2', 'A');
+      expect(anchor2).not.toBeNull();
+    });
+
+    it('should handle clearing non-existent anchor gracefully', async () => {
+      const params = {
+        slot: 'C',
+        agent_id: 'agent2'
       };
 
       const result = await tool.handle(params, context);
       const resultData = JSON.parse(result.content[0].text);
 
-      expect(resultData.agent_id).toBe('agent3');
-      expect(resultData.anchors.A).toBeNull();
-      expect(resultData.anchors.B).toBeNull();
-      expect(resultData.anchors.C).toBeNull();
+      expect(resultData.success).toBe(true);
     });
   });
 
