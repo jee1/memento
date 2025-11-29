@@ -23,7 +23,7 @@ import type {
 } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { CoreMemoryCoreMemoryCacheService } from '../../memory/services/core-memory-cache-service.js';
+import { CacheService } from '../../../infrastructure/cache/cache-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
   isExistingRelationRow,
@@ -42,10 +42,10 @@ export class RelationGraph implements IRelationGraph {
   private db: Database.Database;
   
   // L1 캐시: 메모리 캐시 (TTL 10분)
-  private l1Cache: CoreMemoryCacheService<MemoryRelation[]>;
+  private l1Cache: CacheService<MemoryRelation[]>;
   
   // L2 캐시: 영구 캐시 (TTL 7일)
-  private l2Cache: CoreMemoryCacheService<MemoryRelation[]>;
+  private l2Cache: CacheService<MemoryRelation[]>;
   
   // 캐시 키 추적: memoryId -> Set<cacheKey>
   // 정확한 캐시 무효화를 위해 사용
@@ -54,9 +54,9 @@ export class RelationGraph implements IRelationGraph {
   constructor(db: Database.Database) {
     this.db = db;
     // L1 캐시: 1000개 항목, 10분 TTL
-    this.l1Cache = new CoreMemoryCacheService<MemoryRelation[]>(CACHE.L1_SIZE, CACHE.L1_TTL_MS);
+    this.l1Cache = new CacheService<MemoryRelation[]>(CACHE.L1_SIZE, CACHE.L1_TTL_MS);
     // L2 캐시: 5000개 항목, 7일 TTL
-    this.l2Cache = new CoreMemoryCacheService<MemoryRelation[]>(CACHE.L2_SIZE, CACHE.L2_TTL_MS);
+    this.l2Cache = new CacheService<MemoryRelation[]>(CACHE.L2_SIZE, CACHE.L2_TTL_MS);
   }
 
   /**
