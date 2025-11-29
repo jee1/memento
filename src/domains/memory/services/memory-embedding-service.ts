@@ -4,10 +4,10 @@
  */
 
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { vectorCompatibilityService } from '../../../services/vector-compatibility-service.js';
-import type { EmbeddingProvider, EmbeddingResult } from '../../../../shared/types/embedding.types.js';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import type { MemoryType } from '../../../../shared/types/index.js';
+import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
+import type { EmbeddingProvider, EmbeddingResult } from '../../../shared/types/embedding.types.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import type { MemoryType } from '../../../shared/types/index.js';
 
 export interface MemoryEmbedding {
   memory_id: string;

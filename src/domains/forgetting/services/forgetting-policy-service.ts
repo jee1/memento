@@ -5,7 +5,7 @@
 
 import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
 import { SpacedRepetitionAlgorithm, type ReviewSchedule } from '../algorithms/spaced-repetition.js';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 
 export interface ForgettingPolicyConfig {
   // 망각 정책 설정

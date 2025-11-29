@@ -6,7 +6,7 @@
 import type { 
   SpacedRepetitionConfig,
   SpacedRepetitionWeights 
-} from '../../../../shared/types/spaced-repetition.types.js';
+} from '../../../shared/types/spaced-repetition.types.js';
 import type { 
   SpacedRepetitionService,
   IntervalCalculationStrategy,
@@ -16,7 +16,7 @@ import type {
   PerformanceAnalyzer,
   PriorityCalculator,
   OptimalIntervalRecommender
-} from '../../../../shared/interfaces/spaced-repetition.interface.js';
+} from '../../../shared/interfaces/spaced-repetition.interface.js';
 
 // 서비스 구현들 import
 import { DefaultIntervalStrategy, ConservativeIntervalStrategy, AdaptiveIntervalStrategy } from '../services/spaced-repetition/interval-calculation.service.js';
