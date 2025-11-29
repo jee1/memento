@@ -9,7 +9,7 @@ import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from '../services/performance-monitor.js';
 import { DatabaseOptimizer } from '../services/database-optimizer.js';
 import { ErrorLoggingService } from '../services/error-logging-service.js';

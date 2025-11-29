@@ -15,7 +15,7 @@ import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/e
 import type { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import type { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import type { PerformanceMonitor } from '../services/performance-monitor.js';
 import type { DatabaseOptimizer } from '../services/database-optimizer.js';
 import type { PerformanceAlertService } from '../services/performance-alert-service.js';

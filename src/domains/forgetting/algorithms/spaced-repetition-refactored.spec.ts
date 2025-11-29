@@ -10,7 +10,7 @@ import {
   getSpacedRepetitionAlgorithm,
   resetSpacedRepetitionAlgorithm
 } from './spaced-repetition-refactored.js';
-import type { SpacedRepetitionFeatures, SpacedRepetitionWeights } from '../types/spaced-repetition.types.js';
+import type { SpacedRepetitionFeatures, SpacedRepetitionWeights } from '../../../types/spaced-repetition.types.js';
 
 // 컨테이너 Mock
 vi.mock('../services/spaced-repetition/spaced-repetition-container.js', () => ({

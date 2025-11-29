@@ -8,7 +8,7 @@ import { ForgettingStatsTool } from './forgetting-stats-tool.js';
 import type { ToolContext, ToolResult } from './types.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../test/helpers/test-database.js';
-import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
+import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 
 describe('ForgettingStatsTool', () => {
   let tool: ForgettingStatsTool;
