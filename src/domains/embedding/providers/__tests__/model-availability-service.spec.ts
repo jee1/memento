@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { ModelAvailabilityService } from './model-availability-service.js';
-import type { ProviderHealthStatus } from '../../../../shared/types/embedding-provider-monitoring.types.js';
+import type { ProviderHealthStatus } from '../../../shared/types/embedding-provider-monitoring.types.js';
 
 type MockService = {
   generateEmbedding: ReturnType<typeof vi.fn>;

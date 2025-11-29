@@ -9,7 +9,7 @@
  */
 
 import OpenAI from 'openai';
-import { mementoConfig } from '../../../../shared/config/index.js';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { GeminiEmbeddingService, type GeminiEmbeddingResult, type GeminiSimilarityResult } from './gemini-embedding-service.js';
 import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
 
