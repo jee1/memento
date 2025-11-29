@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { MemoryEmbeddingService } from '../memory-embedding-service.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { EmbeddingResult } from '../../../shared/types/embedding.types.js';
 
 // UnifiedEmbeddingService 모킹

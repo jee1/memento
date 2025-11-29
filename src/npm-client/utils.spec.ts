@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidMemoryType } from '../utils.js';
+import { isValidMemoryType } from './utils.js';
 import type { MemoryType } from '../types.js';
 
 describe('isValidMemoryType', () => {

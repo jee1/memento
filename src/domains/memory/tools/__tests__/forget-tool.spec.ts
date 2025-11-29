@@ -8,7 +8,7 @@ import Database from 'better-sqlite3';
 import { ForgetTool } from '../forget-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
 describe('ForgetTool', () => {
   let tool: ForgetTool;

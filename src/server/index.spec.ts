@@ -6,10 +6,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { initializeServices, type ServerServices } from '../bootstrap.js';
+import { initializeServices, type ServerServices } from './bootstrap.js';
 import { getToolRegistry } from '../../domains/index.js';
-import { createToolContext } from '../context.js';
-import { createServerContext } from '../context.js';
+import { createToolContext } from './context.js';
+import { createServerContext } from './context.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 
 describe('MCP 서버 진입점', () => {

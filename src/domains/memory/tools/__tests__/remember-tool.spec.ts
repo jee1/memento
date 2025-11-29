@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RememberTool } from '../remember-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../../memory-embedding-service.js';
 import { HybridSearchEngine } from '../../../algorithms/hybrid-search-engine.js';
-import * as configModule from '../../../shared/config/index.js';
+import * as configModule from '../../../../shared/config/index.js';
 
 /**
  * 테스트용 데이터베이스 초기화

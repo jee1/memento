@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ToolRegistry } from '../tool-registry.js';
+import { ToolRegistry } from './tool-registry.js';
 import type { ToolDefinition, ToolContext, ToolResult } from '../types.js';
 import Database from 'better-sqlite3';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RecallTool } from '../recall-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { HybridSearchEngine } from '../../../algorithms/hybrid-search-engine.js';

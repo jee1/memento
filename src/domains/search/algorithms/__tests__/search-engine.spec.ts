@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SearchEngine, type SearchQuery } from '../search-engine.js';
-import { MockDatabase } from '../test/mock-database.js';
+import { MockDatabase } from '../../../../test/mock-database.js';
 
 describe('SearchEngine', () => {
   let searchEngine: SearchEngine;
