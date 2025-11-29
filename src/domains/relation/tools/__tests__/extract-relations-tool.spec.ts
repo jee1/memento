@@ -7,9 +7,9 @@ import Database from 'better-sqlite3';
 import { ExtractRelationsTool } from './extract-relations-tool.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
-import { RelationGraph } from '../domains/relation/services/relation-graph.js';
-import { RelationExtractor } from '../domains/relation/services/relation-extractor.js';
-import { LLMBasedRelationExtractor } from '../domains/relation/services/llm-based-relation-extractor.js';
+import { RelationGraph } from '../services/relation-graph.js';
+import { RelationExtractor } from '../services/relation-extractor.js';
+import { LLMBasedRelationExtractor } from '../services/llm-based-relation-extractor.js';
 import type { ToolContext } from './types.js';
 
 /**

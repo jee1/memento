@@ -16,7 +16,7 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import type { ConsolidationScoreService } from '../../infrastructure/consolidation-score-service.js';
+import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 
 /**

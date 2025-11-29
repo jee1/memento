@@ -4,7 +4,7 @@
  */
 
 import { logger } from '../../../shared/utils/logger.js';
-import { AsyncTaskQueue } from '../../../infrastructure/async-optimizer.js';
+import { AsyncTaskQueue } from '../../infrastructure/async-optimizer.js';
 import type { ToolContext } from '../../../tools/types.js';
 
 /**

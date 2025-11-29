@@ -7,9 +7,9 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationGraph } from '../domains/relation/services/relation-graph.js';
-import type { RelationType } from '../../../../shared/types/relation.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { RelationGraph } from '../services/relation-graph.js';
+import type { RelationType } from '../../../shared/types/relation.js';
 
 const RemoveRelationSchema = z.object({
   relation_id: z.number().int().positive().optional().describe('관계 ID (relation_id 또는 source_id/target_id/relation_type 조합 중 하나는 필수)'),

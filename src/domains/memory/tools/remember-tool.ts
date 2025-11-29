@@ -18,7 +18,7 @@ import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-reposi
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import type { ConsolidationScoreService } from '../../infrastructure/consolidation-score-service.js';
+import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
 import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';

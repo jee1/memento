@@ -6,9 +6,9 @@
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationGraph } from '../domains/relation/services/relation-graph.js';
-import { RelationVisualizer, type VisualizationOptions } from '../../../../shared/utils/relation-visualizer.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { RelationGraph } from '../services/relation-graph.js';
+import { RelationVisualizer, type VisualizationOptions } from '../../../shared/utils/relation-visualizer.js';
 
 const VisualizeRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
