@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { CacheService } from '../../memory/services/core-memory-cache-service.js';
+import { CoreMemoryCacheService } from '../../memory/services/core-memory-cache-service.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => {
@@ -82,7 +82,7 @@ function createTestMemory(
 describe('LLMBasedRelationExtractor', () => {
   let extractor: LLMBasedRelationExtractor;
   let mockEmbeddingService: any;
-  let mockCacheService: any;
+  let mockCoreMemoryCacheService: any;
   let mockOpenAICreate: any;
   let mockGeminiGenerateContent: any;
   let mockGeminiGetGenerativeModel: any;
@@ -112,13 +112,13 @@ describe('LLMBasedRelationExtractor', () => {
       mockEmbeddingService.searchSimilar
     );
 
-    // CacheService 모킹
-    mockCacheService = {
+    // CoreMemoryCacheService 모킹
+    mockCoreMemoryCacheService = {
       get: vi.fn(),
       set: vi.fn()
     };
-    vi.spyOn(CacheService.prototype, 'get').mockImplementation(mockCacheService.get);
-    vi.spyOn(CacheService.prototype, 'set').mockImplementation(mockCacheService.set);
+    vi.spyOn(CoreMemoryCacheService.prototype, 'get').mockImplementation(mockCoreMemoryCacheService.get);
+    vi.spyOn(CoreMemoryCacheService.prototype, 'set').mockImplementation(mockCoreMemoryCacheService.set);
 
     // 모킹 초기화 (안전 체크)
     if (mockOpenAICreate && typeof mockOpenAICreate.mockClear === 'function') {
@@ -130,8 +130,8 @@ describe('LLMBasedRelationExtractor', () => {
     if (mockGeminiGetGenerativeModel && typeof mockGeminiGetGenerativeModel.mockClear === 'function') {
       mockGeminiGetGenerativeModel.mockClear();
     }
-    mockCacheService.get.mockReturnValue(null);
-    mockCacheService.set.mockClear();
+    mockCoreMemoryCacheService.get.mockReturnValue(null);
+    mockCoreMemoryCacheService.set.mockClear();
     mockEmbeddingService.generateEmbedding.mockClear();
     mockEmbeddingService.searchSimilar.mockClear();
   });
@@ -258,7 +258,7 @@ describe('LLMBasedRelationExtractor', () => {
         createTestMemory(`mem${i + 2}`, `기존 기능 ${i}`, 'episodic')
       );
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       // 10개 < 30개 limit이므로 filterCandidatesByEmbedding에서 바로 반환됨
       // searchSimilar는 호출되지 않음 (정상 동작)
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
@@ -296,7 +296,7 @@ describe('LLMBasedRelationExtractor', () => {
       // 하지만 실제로는 호출될 수 있으므로 테스트를 수정
       // 실제 동작: 10개 <= 30이므로 바로 반환, generateEmbedding 호출 안 됨
       // 따라서 이 테스트는 실제 동작을 검증하는 것이 아니라, limit보다 적을 때의 동작을 확인
-      expect(mockCacheService.get).toHaveBeenCalled();
+      expect(mockCoreMemoryCacheService.get).toHaveBeenCalled();
     });
 
     it('should fallback to simple slice when embedding fails', async () => {
@@ -306,7 +306,7 @@ describe('LLMBasedRelationExtractor', () => {
         createTestMemory(`mem${i + 2}`, `기존 기능 ${i}`, 'episodic')
       );
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue(null);
 
       // extractWithOpenAI를 직접 모킹
@@ -379,14 +379,14 @@ describe('LLMBasedRelationExtractor', () => {
         }
       ];
 
-      mockCacheService.get.mockReturnValue(cachedCandidates);
+      mockCoreMemoryCacheService.get.mockReturnValue(cachedCandidates);
 
       // When: 관계 추출
       const candidates = await extractor.extractRelations(newMemory, existingMemories);
 
       // Then: 캐시된 결과가 반환되어야 함
       expect(candidates).toEqual(cachedCandidates);
-      expect(mockCacheService.get).toHaveBeenCalled();
+      expect(mockCoreMemoryCacheService.get).toHaveBeenCalled();
       
       // Then: LLM 호출이 없어야 함
       if (openAICreateSpy) {
@@ -402,7 +402,7 @@ describe('LLMBasedRelationExtractor', () => {
         createTestMemory('mem2', '기존 기능', 'episodic')
       ];
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -448,8 +448,8 @@ describe('LLMBasedRelationExtractor', () => {
       await extractor.extractRelations(newMemory, existingMemories);
 
       // Then: 결과가 캐시에 저장되어야 함
-      expect(mockCacheService.set).toHaveBeenCalled();
-      const cacheSetCall = mockCacheService.set.mock.calls[0];
+      expect(mockCoreMemoryCacheService.set).toHaveBeenCalled();
+      const cacheSetCall = mockCoreMemoryCacheService.set.mock.calls[0];
       expect(cacheSetCall[0]).toContain('llm_relation:mem1:'); // 캐시 키 형식
       expect(Array.isArray(cacheSetCall[1])).toBe(true); // 캐시 값은 배열
     });
@@ -483,7 +483,7 @@ describe('LLMBasedRelationExtractor', () => {
         createTestMemory('mem2', '기존 기능', 'episodic')
       ];
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -549,7 +549,7 @@ describe('LLMBasedRelationExtractor', () => {
         ]
       };
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -614,7 +614,7 @@ describe('LLMBasedRelationExtractor', () => {
         ]
       };
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -680,7 +680,7 @@ describe('LLMBasedRelationExtractor', () => {
         ]
       };
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -753,7 +753,7 @@ describe('LLMBasedRelationExtractor', () => {
         createTestMemory(`mem${i + 2}`, `기존 기능 ${i}`, 'episodic')
       );
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -821,7 +821,7 @@ describe('LLMBasedRelationExtractor', () => {
         createTestMemory('mem2', longContent, 'episodic')
       ];
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -881,7 +881,7 @@ describe('LLMBasedRelationExtractor', () => {
       ];
 
       // 첫 번째 호출: 캐시 없음
-      mockCacheService.get.mockReturnValueOnce(null);
+      mockCoreMemoryCacheService.get.mockReturnValueOnce(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -939,7 +939,7 @@ describe('LLMBasedRelationExtractor', () => {
           evidence: 'Cached'
         }
       ];
-      mockCacheService.get.mockReturnValueOnce(cachedCandidates);
+      mockCoreMemoryCacheService.get.mockReturnValueOnce(cachedCandidates);
 
       // When: 두 번째 관계 추출
       const secondResult = await extractor.extractRelations(newMemory, existingMemories);
@@ -1028,7 +1028,7 @@ describe('LLMBasedRelationExtractor', () => {
         ]
       };
 
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
       mockEmbeddingService.generateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'

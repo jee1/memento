@@ -16,7 +16,7 @@ import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { CacheService } from '../../memory/services/core-memory-cache-service.js';
+import { CoreMemoryCacheService } from '../../memory/services/core-memory-cache-service.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => {
@@ -87,7 +87,7 @@ describe('RelationExtractor', () => {
   let mockRuleExtractor: any;
   let mockLLMExtractor: any;
   let mockEmbeddingService: any;
-  let mockCacheService: any;
+  let mockCoreMemoryCacheService: any;
   let extractWithOpenAISpy: any;
 
   beforeEach(async () => {
@@ -123,13 +123,13 @@ describe('RelationExtractor', () => {
       mockEmbeddingService.searchSimilar
     );
 
-    // CacheService 모킹
-    mockCacheService = {
+    // CoreMemoryCacheService 모킹
+    mockCoreMemoryCacheService = {
       get: vi.fn(),
       set: vi.fn()
     };
-    vi.spyOn(CacheService.prototype, 'get').mockImplementation(mockCacheService.get);
-    vi.spyOn(CacheService.prototype, 'set').mockImplementation(mockCacheService.set);
+    vi.spyOn(CoreMemoryCacheService.prototype, 'get').mockImplementation(mockCoreMemoryCacheService.get);
+    vi.spyOn(CoreMemoryCacheService.prototype, 'set').mockImplementation(mockCoreMemoryCacheService.set);
 
     extractor = new RelationExtractor();
 
@@ -407,7 +407,7 @@ describe('RelationExtractor', () => {
       ];
 
       mockRuleExtractor.extractRelations.mockResolvedValue(ruleCandidates);
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
 
       // When: immediate 옵션과 함께 관계 추출
       await extractor.extractRelations(newMemory, [existingMemory], {
@@ -415,7 +415,7 @@ describe('RelationExtractor', () => {
       });
 
       // Then: 결과가 캐시에 저장되어야 함
-      expect(mockCacheService.set).toHaveBeenCalled();
+      expect(mockCoreMemoryCacheService.set).toHaveBeenCalled();
     });
 
     it('should return cached result when available', async () => {
@@ -434,7 +434,7 @@ describe('RelationExtractor', () => {
         }
       ];
 
-      mockCacheService.get.mockReturnValue(cachedCandidates);
+      mockCoreMemoryCacheService.get.mockReturnValue(cachedCandidates);
 
       // When: immediate 옵션과 함께 관계 추출
       const candidates = await extractor.extractRelations(newMemory, [existingMemory], {
@@ -470,7 +470,7 @@ describe('RelationExtractor', () => {
       });
 
       // Then: 캐시에 저장되지 않아야 함
-      expect(mockCacheService.set).not.toHaveBeenCalled();
+      expect(mockCoreMemoryCacheService.set).not.toHaveBeenCalled();
     });
   });
 
@@ -507,7 +507,7 @@ describe('RelationExtractor', () => {
       ];
 
       mockRuleExtractor.extractRelations.mockResolvedValue([]);
-      mockCacheService.get.mockReturnValue(null);
+      mockCoreMemoryCacheService.get.mockReturnValue(null);
 
       // When: 배치 처리로 관계 추출
       await extractor.extractRelationsBatch(newMemories, existingMemories);

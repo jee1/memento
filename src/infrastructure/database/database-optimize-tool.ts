@@ -3,9 +3,9 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { CommonSchemas } from '../../../tools/types.js';
+import { BaseTool } from '../../tools/base-tool.js';
+import type { ToolContext, ToolResult } from '../../tools/types.js';
+import { CommonSchemas } from '../../tools/types.js';
 
 const DatabaseOptimizeSchema = z.object({
   analyze: CommonSchemas.Analyze,
