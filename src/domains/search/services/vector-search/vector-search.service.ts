@@ -10,11 +10,11 @@ import type {
   ProviderHybridQuery,
   ProviderHybridResult,
   UnifiedSearchResponse
-} from '../../shared/types/vector-search.types';
-import type { VectorSearchRepository } from '../../shared/interfaces/database.interface';
-import { VECTOR_SEARCH_CONFIG } from '../../shared/config/vector-search.config';
+} from '../../../../../shared/types/vector-search.types';
+import type { VectorSearchRepository } from '../../../../../shared/interfaces/database.interface';
+import { VECTOR_SEARCH_CONFIG } from '../../../../../shared/config/vector-search.config';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
-import type { EmbeddingProvider } from '../../shared/types/embedding.types.js';
+import type { EmbeddingProvider } from '../../../../../shared/types/embedding.types.js';
 import { vectorSearchResultNormalizer } from './vector-search-result-normalizer.js';
 
 export class VectorSearchService {

@@ -3,8 +3,8 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from './base-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext, ToolResult } from '../../../tools/types.js';
 
 const SearchLocalSchema = z.object({
   slot: z.enum(['A', 'B', 'C'], {

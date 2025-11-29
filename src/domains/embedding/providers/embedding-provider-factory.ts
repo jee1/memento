@@ -8,14 +8,14 @@
  * - 개방-폐쇄: 새로운 제공자 추가 용이
  */
 
-import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../shared/types/embedding.types.js';
-import type { ProviderFallbackDecision, ProviderHealthStatus } from '../shared/types/embedding-provider-monitoring.types.js';
-import { mementoConfig } from '../shared/config/index.js';
-import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
-import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
-import { GeminiEmbeddingService } from './gemini-embedding-service.js';
-import { OpenAIEmbeddingService } from './openai-embedding-service.js';
-import { ModelAvailabilityService } from './model-availability-service.js';
+import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../../../../shared/types/embedding.types.js';
+import type { ProviderFallbackDecision, ProviderHealthStatus } from '../../../../shared/types/embedding-provider-monitoring.types.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
+import { MiniLMEmbeddingService } from '../services/minilm-embedding-service.js';
+import { LightweightEmbeddingService } from '../services/lightweight-embedding-service.js';
+import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
+import { OpenAIEmbeddingService } from '../services/openai-embedding-service.js';
+import { ModelAvailabilityService } from '../domains/embedding/providers/model-availability-service.js';
 
 /**
  * 임베딩 제공자 팩토리

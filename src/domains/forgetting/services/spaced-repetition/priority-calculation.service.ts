@@ -6,8 +6,8 @@
 import type { 
   ReviewSchedule, 
   ReviewPriority 
-} from '../../shared/types/spaced-repetition.types.js';
-import type { PriorityCalculator } from '../../shared/interfaces/spaced-repetition.interface.js';
+} from '../../../../../shared/types/spaced-repetition.types.js';
+import type { PriorityCalculator } from '../../../../../shared/interfaces/spaced-repetition.interface.js';
 
 /**
  * 기본 우선순위 계산기

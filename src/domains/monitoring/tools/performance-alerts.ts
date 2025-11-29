@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import type { ToolContext } from './types.js';
+import type { ToolContext } from '../../../tools/types.js';
 
 export const performanceAlertsTool = {
   name: 'performance_alerts',

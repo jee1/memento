@@ -23,13 +23,13 @@ import type {
   VectorSearchRepository, 
   VectorIndexRepository, 
   VectorPerformanceRepository 
-} from '../../shared/interfaces/database.interface';
+} from '../../../../../shared/interfaces/database.interface';
 import type { 
   VectorSearchQuery, 
   VectorSearchResult, 
   VectorIndexStatus,
   PerformanceTestResult 
-} from '../../shared/types/vector-search.types';
+} from '../../../../../shared/types/vector-search.types';
 
 // Mock 리포지토리들 생성
 const createMockRepositories = () => ({

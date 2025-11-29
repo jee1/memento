@@ -11,7 +11,7 @@ import type {
   ProviderHybridQuery,
   ProviderHybridResult,
   UnifiedSearchResponse
-} from '../../shared/types/vector-search.types';
+} from '../../../../../shared/types/vector-search.types';
 import { VectorSearchService } from './vector-search.service';
 import { VectorIndexManager } from './vector-index-manager';
 import { VectorPerformanceTester } from './vector-performance-tester';
@@ -19,7 +19,7 @@ import type {
   VectorSearchRepository, 
   VectorIndexRepository, 
   VectorPerformanceRepository 
-} from '../../shared/interfaces/database.interface';
+} from '../../../../../shared/interfaces/database.interface';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 
 export class VectorSearchFacade {

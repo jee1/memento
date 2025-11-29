@@ -6,8 +6,8 @@
 import type { 
   ReviewSchedule, 
   ReviewPerformance 
-} from '../../shared/types/spaced-repetition.types.js';
-import type { PerformanceAnalyzer } from '../../shared/interfaces/spaced-repetition.interface.js';
+} from '../../../../../shared/types/spaced-repetition.types.js';
+import type { PerformanceAnalyzer } from '../../../../../shared/interfaces/spaced-repetition.interface.js';
 
 /**
  * 기본 성과 분석기

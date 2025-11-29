@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type { AlertEvent, AlertSeverity, AlertSource } from '../../../shared/types/alerts.types.js';
+import type { AlertEvent, AlertSeverity, AlertSource } from '../../../../shared/types/alerts.types.js';
 
 const ALERT_EMITTER_EVENT = 'alert';
 

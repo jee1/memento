@@ -4,8 +4,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VectorPerformanceTester } from './vector-performance-tester';
-import type { VectorPerformanceRepository } from '../../shared/interfaces/database.interface';
-import type { PerformanceTestResult } from '../../shared/types/vector-search.types';
+import type { VectorPerformanceRepository } from '../../../../../shared/interfaces/database.interface';
+import type { PerformanceTestResult } from '../../../../../shared/types/vector-search.types';
 
 // Mock 리포지토리 생성
 const createMockPerformanceRepository = (): any => ({

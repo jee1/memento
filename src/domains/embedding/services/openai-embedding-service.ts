@@ -5,13 +5,13 @@
  */
 
 import OpenAI from 'openai';
-import { mementoConfig } from '../../../shared/config/index.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
 import type {
   EmbeddingServiceInterface,
   EmbeddingResult,
   SimilarityResult,
   EmbeddingData
-} from '../../../shared/types/embedding.types.js';
+} from '../../../../shared/types/embedding.types.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 
 export class OpenAIEmbeddingService implements EmbeddingServiceInterface {

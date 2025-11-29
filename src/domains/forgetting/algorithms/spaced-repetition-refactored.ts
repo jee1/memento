@@ -10,7 +10,7 @@ import type {
   ReviewPerformance,
   MemoryData,
   SpacedRepetitionConfig
-} from '../../../shared/types/spaced-repetition.types.js';
+} from '../../../../shared/types/spaced-repetition.types.js';
 import { getSpacedRepetitionService, initializeSpacedRepetitionWithDefaults } from '../domains/forgetting/services/spaced-repetition/spaced-repetition-container.js';
 
 /**

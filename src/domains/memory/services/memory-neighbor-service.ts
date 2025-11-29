@@ -6,7 +6,7 @@
 import type { VectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import type { MemoryEmbeddingService } from './memory-embedding-service.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
 /**
  * 이웃 기억 조회 결과

@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import type { ToolContext } from './types.js';
+import type { ToolContext } from '../../../tools/types.js';
 
 export const resolveErrorTool = {
   name: 'resolve_error',
