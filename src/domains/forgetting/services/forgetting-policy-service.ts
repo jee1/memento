@@ -3,8 +3,8 @@
  * 망각 알고리즘과 간격 반복을 통합하여 메모리 관리
  */
 
-import { ForgettingAlgorithm, type ForgettingResult } from '../domains/forgetting/algorithms/forgetting-algorithm.js';
-import { SpacedRepetitionAlgorithm, type ReviewSchedule } from '../domains/forgetting/algorithms/spaced-repetition.js';
+import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
+import { SpacedRepetitionAlgorithm, type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
 export interface ForgettingPolicyConfig {

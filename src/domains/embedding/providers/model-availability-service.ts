@@ -1,10 +1,10 @@
-import type { EmbeddingProvider } from '../../../../../shared/types/embedding.types.js';
+import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
 import type {
   ProviderFallbackDecision,
   ProviderHealthCheckOptions,
   ProviderHealthStatus
-} from '../../../../../shared/types/embedding-provider-monitoring.types.js';
-import { alertNotificationService } from '../../../../monitoring/services/alert-notification-service.js';
+} from '../../../../shared/types/embedding-provider-monitoring.types.js';
+import { alertNotificationService } from '../../../monitoring/services/alert-notification-service.js';
 
 const DEFAULT_HEALTH_SAMPLE = 'System health check';
 
