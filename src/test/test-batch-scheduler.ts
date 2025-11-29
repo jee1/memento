@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getBatchScheduler, BatchScheduler } from '../services/batch-scheduler.js';
+import { getBatchScheduler, BatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import Database from 'better-sqlite3';

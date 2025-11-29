@@ -15,7 +15,7 @@ import Database from 'better-sqlite3';
 import { RelationGraph } from './relation-graph.js';
 import { DatabaseUtils } from '../../../utils/database.js';
 import type { RelationType } from '../../../types/relation.js';
-import { RelationEngineSchemaMigration } from '../database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
 
 /**
  * 테스트용 기본 스키마 생성

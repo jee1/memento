@@ -12,7 +12,7 @@ import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
 import type { ToolContext } from './types.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
 import * as configModule from '../config/index.js';
 

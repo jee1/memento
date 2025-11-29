@@ -4,7 +4,7 @@
  */
 
 import { startServer, cleanup, __test } from '../server/http-server.js';
-import { initializeDatabase, closeDatabase } from '../database/init.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';

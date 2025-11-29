@@ -11,7 +11,7 @@ import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { initializeDatabase } from '../database/init.js';
+import { initializeDatabase } from '../infrastructure/database/init.js';
 import { startServer, cleanup, __test } from '../server/http-server.js';
 import fetch from 'node-fetch';
 

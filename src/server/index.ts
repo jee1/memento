@@ -7,7 +7,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { initializeDatabase, closeDatabase } from '../database/init.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { initializeServices, type ServerServices } from './bootstrap.js';
@@ -17,15 +17,15 @@ import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-sea
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import type { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import type { DatabaseOptimizer } from '../services/database-optimizer.js';
+import type { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
-import type { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
-import { getBatchScheduler } from '../services/batch-scheduler.js';
+import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 

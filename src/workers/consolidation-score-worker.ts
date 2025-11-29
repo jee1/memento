@@ -8,7 +8,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { DatabaseUtils } from '../utils/database.js';
 import type { MemoryType } from '../types/index.js';
 

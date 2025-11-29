@@ -6,7 +6,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { initializeDatabase, closeDatabase } from '../database/init.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
 import { mementoConfig, validateConfig } from '../config/index.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
@@ -14,8 +14,8 @@ import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-e
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { SearchCacheService } from '../services/cache-service.js';
-import { DatabaseOptimizer } from '../services/database-optimizer.js';
+import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
+import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';

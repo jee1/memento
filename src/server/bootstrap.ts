@@ -11,10 +11,10 @@ import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.f
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { DatabaseOptimizer } from '../services/database-optimizer.js';
+import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
 import { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
-import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
+import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
 import { DatabaseUtils } from '../utils/database.js';
 import { AnchorManager } from '../services/anchor-manager.js';

@@ -9,9 +9,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { join } from 'path';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
-import { CoreMemoryRepository } from '../domains/memory/repositories/core-memory-repository.js';
-import { CoreMemoryService } from '../domains/memory/services/core-memory-service.js';
-import { CoreMemoryCacheService } from '../domains/memory/services/core-memory-cache-service.js';
+import { CoreMemoryRepository } from '../../domains/memory/repositories/core-memory-repository.js';
+import { CoreMemoryService } from '../../domains/memory/services/core-memory-service.js';
+import { CoreMemoryCacheService } from '../../domains/memory/services/core-memory-cache-service.js';
 
 /**
  * Core Memory 테이블 생성

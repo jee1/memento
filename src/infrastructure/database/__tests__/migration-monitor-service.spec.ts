@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { migrationMonitorService } from './migration-monitor-service.js';
-import type { MigrationProgress } from '../types/migration.types.js';
+import type { MigrationProgress } from '../../types/migration.types.js';
 
 describe('migrationMonitorService', () => {
   const runId = 'test-run';

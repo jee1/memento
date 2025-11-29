@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../utils/database.js';
-import { initializeDatabase } from '../database/init.js';
+import { initializeDatabase } from '../infrastructure/database/init.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';

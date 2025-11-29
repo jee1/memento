@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { RelationGraph } from './relation-graph.js';
 import { DatabaseUtils } from '../../../utils/database.js';
-import { RelationEngineSchemaMigration } from '../database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
 import type { RelationType } from '../../../types/relation.js';
 
 /**

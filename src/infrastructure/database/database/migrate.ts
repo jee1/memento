@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../../config/index.js';
 
 function migrateDatabase() {
   console.log('🔄 데이터베이스 마이그레이션 시작');

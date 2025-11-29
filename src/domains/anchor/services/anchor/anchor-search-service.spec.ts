@@ -11,7 +11,7 @@ import type { HybridSearchEngine } from '../../domains/search/algorithms/hybrid-
 import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../test/helpers/test-database.js';
 import { RelationGraph } from '../relation-graph.js';
-import { RelationEngineSchemaMigration } from '../../database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
 
 describe('AnchorSearchService', () => {
   let service: AnchorSearchService;
