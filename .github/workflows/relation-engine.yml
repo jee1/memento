@@ -69,15 +69,7 @@ jobs:
         run: npm run build
         
       - name: Run relation engine unit tests
-        run: npm run test -- src/domains/relation/**/*.spec.ts
-        continue-on-error: false
-        
-      - name: Run relation graph tests
-        run: npm run test -- src/domains/relation/**/relation-graph*.spec.ts
-        continue-on-error: false
-        
-      - name: Run relation extraction quality integration tests
-        run: npm run test -- src/domains/relation/**/relation-extraction-quality.integration.spec.ts
+        run: npm run test -- src/domains/relation
         continue-on-error: false
         env:
           CI: true
