@@ -275,11 +275,11 @@ export class GeminiEmbeddingService {
 
   /**
    * 서비스 사용 가능 여부 확인
-   * Gemini API가 사용 가능한 경우에만 true 반환
+   * Gemini API가 실제로 초기화되어 사용 가능한 경우에만 true 반환
    * (fallback인 miniLM은 별도로 확인하지 않음)
    */
   isAvailable(): boolean {
-    return this.genAI !== null || !!mementoConfig.geminiApiKey;
+    return this.genAI !== null;
   }
 
   /**
