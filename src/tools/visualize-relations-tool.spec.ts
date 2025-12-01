@@ -4,11 +4,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { VisualizeRelationsTool } from './visualize-relations-tool.js';
-import { DatabaseUtils } from '../utils/database.js';
-import { RelationEngineSchemaMigration } from '../database/migration/migrations/005-relation-engine-schema.js';
-import { RelationGraph } from '../services/relation-graph.js';
-import type { ToolContext } from './types.js';
+import { VisualizeRelationsTool } from '../domains/relation/tools/visualize-relations-tool.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { RelationEngineSchemaMigration } from '../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationGraph } from '../domains/relation/services/relation-graph.js';
+import type { ToolContext } from '../types.js';
 
 /**
  * 테스트용 기본 스키마 생성

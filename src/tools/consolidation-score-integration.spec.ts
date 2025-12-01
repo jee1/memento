@@ -5,16 +5,16 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
-import { RecallTool } from './recall-tool.js';
-import { RememberTool } from './remember-tool.js';
-import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
-import type { ToolContext } from './types.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { ConsolidationScoreService } from '../services/consolidation-score-service.js';
-import { WriteCoalescingManager, type CoalescedWrite } from '../utils/write-coalescing.js';
-import * as configModule from '../config/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { RecallTool } from '../domains/memory/tools/recall-tool.js';
+import { RememberTool } from '../domains/memory/tools/remember-tool.js';
+import { MemoryInjectionPrompt } from '../domains/memory/tools/memory-injection-prompt.js';
+import type { ToolContext } from '../types.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../shared/utils/write-coalescing.js';
+import * as configModule from '../shared/config/index.js';
 
 /**
  * 테스트용 데이터베이스 초기화 (Consolidation Score 필드 포함)

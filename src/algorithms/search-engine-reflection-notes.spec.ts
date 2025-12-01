@@ -4,13 +4,12 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { SearchEngine, type SearchQuery } from './search-engine.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { SearchEngine, type SearchQuery } from '../domains/search/algorithms/search-engine.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 import { 
   initializeMigrationStatusTable, 
-  setMigrationStatus, 
-  getMigrationStatus 
-} from '../utils/fts5-migration-status.js';
+  setMigrationStatus
+} from '../shared/utils/fts5-migration-status.js';
 
 /**
  * 테스트용 데이터베이스 초기화

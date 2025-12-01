@@ -5,11 +5,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { ReflexionWorker } from './reflexion-worker.js';
-import { FailureDetector, ErrorType, type FailureEvent } from './failure-detector.js';
-import { AsyncTaskQueue } from './async-optimizer.js';
+import { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
+import { FailureDetector, ErrorType, type FailureEvent } from '../domains/monitoring/services/failure-detector.js';
+import { AsyncTaskQueue } from '../infrastructure/async-optimizer.js';
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../test/helpers/test-database.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('ReflexionWorker', () => {
   let worker: ReflexionWorker;

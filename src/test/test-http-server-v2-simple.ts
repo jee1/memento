@@ -3,10 +3,10 @@
  */
 
 import { startServer, cleanup, __test } from '../server/http-server.js';
-import { initializeDatabase, closeDatabase } from '../database/init.js';
-import { SearchEngine } from '../algorithms/search-engine.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
+import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import Database from 'better-sqlite3';
 
 async function testBasicFunctionality() {

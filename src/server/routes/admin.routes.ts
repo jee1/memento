@@ -6,17 +6,17 @@
 
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
-import { getBatchScheduler } from '../../services/batch-scheduler.js';
-import { getPerformanceMonitor } from '../../services/performance-monitor.js';
-import { RelationGraph } from '../../services/relation-graph.js';
-import { RelationExtractor } from '../../services/relation-extractor.js';
-import { ExtractRelationsTool } from '../../tools/extract-relations-tool.js';
-import { GetRelationsTool } from '../../tools/get-relations-tool.js';
-import { AddRelationTool } from '../../tools/add-relation-tool.js';
-import { RemoveRelationTool } from '../../tools/remove-relation-tool.js';
-import { VisualizeRelationsTool } from '../../tools/visualize-relations-tool.js';
-import { DatabaseUtils } from '../../utils/database.js';
-import { logger } from '../../utils/logger.js';
+import { getBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
+import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
+import { RelationGraph } from '../../domains/relation/services/relation-graph.js';
+import { RelationExtractor } from '../../domains/relation/services/relation-extractor.js';
+import { ExtractRelationsTool } from '../../domains/relation/tools/extract-relations-tool.js';
+import { GetRelationsTool } from '../../domains/relation/tools/get-relations-tool.js';
+import { AddRelationTool } from '../../domains/relation/tools/add-relation-tool.js';
+import { RemoveRelationTool } from '../../domains/relation/tools/remove-relation-tool.js';
+import { VisualizeRelationsTool } from '../../domains/relation/tools/visualize-relations-tool.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * Admin 라우터 생성

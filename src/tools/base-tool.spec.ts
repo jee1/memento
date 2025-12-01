@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BaseTool } from './base-tool.js';
-import type { ToolContext, ToolResult } from './types.js';
+import type { ToolContext, ToolResult } from '../types.js';
 import Database from 'better-sqlite3';
 
 /**

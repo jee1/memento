@@ -4,26 +4,18 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'src/services/relation-*.ts'
-      - 'src/services/llm-based-relation-extractor.ts'
-      - 'src/services/rule-based-relation-extractor.ts'
-      - 'src/services/relation-graph.ts'
-      - 'src/services/relation-quality-validator.ts'
-      - 'src/types/relation.ts'
-      - 'src/database/migration/migrations/005-relation-engine-schema.*'
+      - 'src/domains/relation/**/*.ts'
+      - 'src/shared/types/relation*.ts'
+      - 'src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.*'
       - 'tests/fixtures/relation_testset.json'
       - 'scripts/generate-relation-report.ts'
       - '.github/workflows/relation-engine.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'src/services/relation-*.ts'
-      - 'src/services/llm-based-relation-extractor.ts'
-      - 'src/services/rule-based-relation-extractor.ts'
-      - 'src/services/relation-graph.ts'
-      - 'src/services/relation-quality-validator.ts'
-      - 'src/types/relation.ts'
-      - 'src/database/migration/migrations/005-relation-engine-schema.*'
+      - 'src/domains/relation/**/*.ts'
+      - 'src/shared/types/relation*.ts'
+      - 'src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.*'
       - 'tests/fixtures/relation_testset.json'
       - 'scripts/generate-relation-report.ts'
       - '.github/workflows/relation-engine.yml'
@@ -77,15 +69,7 @@ jobs:
         run: npm run build
         
       - name: Run relation engine unit tests
-        run: npm run test -- src/services/relation-*.spec.ts --run
-        continue-on-error: false
-        
-      - name: Run relation graph tests
-        run: npm run test -- src/services/relation-graph*.spec.ts --run
-        continue-on-error: false
-        
-      - name: Run relation extraction quality integration tests
-        run: npm run test -- src/services/relation-extraction-quality.integration.spec.ts --run
+        run: npm run test -- src/domains/relation
         continue-on-error: false
         env:
           CI: true

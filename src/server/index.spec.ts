@@ -10,7 +10,7 @@ import { initializeServices, type ServerServices } from './bootstrap.js';
 import { getToolRegistry } from '../tools/index.js';
 import { createToolContext } from './context.js';
 import { createServerContext } from './context.js';
-import { getBatchScheduler } from '../services/batch-scheduler.js';
+import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 
 describe('MCP 서버 진입점', () => {
   let db: Database.Database;

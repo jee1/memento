@@ -8,7 +8,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
-import type { HybridSearchResult } from '../../algorithms/hybrid-search-engine.js';
+import type { HybridSearchResult } from '../../domains/search/algorithms/hybrid-search-engine.js';
 import {
   calculatePrecisionAtK,
   calculateRecallAtK,

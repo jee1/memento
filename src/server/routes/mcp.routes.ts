@@ -10,10 +10,10 @@ import type { ServerServices } from '../bootstrap.js';
 import type { ToolContext } from '../../tools/types.js';
 import { getToolRegistry } from '../../tools/index.js';
 import { createToolContext } from '../context.js';
-import { logger } from '../../utils/logger.js';
-import { DatabaseUtils } from '../../utils/database.js';
-import { MemoryNeighborService } from '../../services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
+import { logger } from '../../shared/utils/logger.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
+import { MemoryNeighborService } from '../../domains/memory/services/memory-neighbor-service.js';
+import { getVectorSearchEngine } from '../../domains/search/algorithms/vector-search-engine.js';
 
 /**
  * SSE Transport 타입

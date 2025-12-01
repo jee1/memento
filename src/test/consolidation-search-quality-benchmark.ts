@@ -17,7 +17,7 @@ import {
   type GroundTruth
 } from './helpers/search-quality-metrics.js';
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

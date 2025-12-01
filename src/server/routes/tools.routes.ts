@@ -9,7 +9,7 @@ import { getToolRegistry } from '../../tools/index.js';
 import type { ServerServices } from '../bootstrap.js';
 import type Database from 'better-sqlite3';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * Tools 라우터 생성

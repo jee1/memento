@@ -7,7 +7,7 @@ import { initializeServices } from '../server/bootstrap.js';
 import { executeTool, getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 /**
  * ToolContext 생성 헬퍼 함수

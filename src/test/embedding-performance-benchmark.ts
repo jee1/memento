@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { MiniLMEmbeddingService } from '../services/minilm-embedding-service.js';
 import { LightweightEmbeddingService } from '../services/lightweight-embedding-service.js';
 import { UnifiedEmbeddingService } from '../services/unified-embedding-service.js';
-import type { EmbeddingData } from '../types/embedding.types.js';
+import type { EmbeddingData } from '../shared/types/embedding.types.js';
 
 // 테스트 데이터
 const testTexts = [

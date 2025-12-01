@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { HybridSearchEngine, SearchResultCombiner } from './hybrid-search-engine.js';
-import { SearchRanking } from './search-ranking.js';
+import { HybridSearchEngine, SearchResultCombiner } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { SearchRanking } from '../domains/search/algorithms/search-ranking.js';
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../config/index.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 // Mock mementoConfig
 vi.mock('../config/index.js', () => ({

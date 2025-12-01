@@ -6,8 +6,8 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../services/error-logging-service.js';
-import { logger } from '../../utils/logger.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../domains/monitoring/services/error-logging-service.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * 에러 응답 인터페이스

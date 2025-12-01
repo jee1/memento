@@ -6,17 +6,17 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { initializeDatabase, closeDatabase } from '../database/init.js';
-import { mementoConfig, validateConfig } from '../config/index.js';
-import type { MemoryType, PrivacyScope } from '../types/index.js';
-import { DatabaseUtils } from '../utils/database.js';
-import { SearchEngine } from '../algorithms/search-engine.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { ForgettingPolicyService } from '../services/forgetting-policy-service.js';
-import { PerformanceMonitor } from '../services/performance-monitor.js';
-import { SearchCacheService } from '../services/cache-service.js';
-import { DatabaseOptimizer } from '../services/database-optimizer.js';
+import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
+import { mementoConfig, validateConfig } from '../shared/config/index.js';
+import type { MemoryType, PrivacyScope } from '../shared/types/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
+import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
+import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
+import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import Database from 'better-sqlite3';
 
 // MCP 서버 인스턴스

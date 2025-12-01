@@ -4,18 +4,18 @@
  */
 
 import { ToolRegistry } from './tool-registry.js';
-import { RememberTool } from './remember-tool.js';
-import { RecallTool } from './recall-tool.js';
-import { ForgetTool } from './forget-tool.js';
-import { PinTool } from './pin-tool.js';
-import { UnpinTool } from './unpin-tool.js';
-import { MemoryInjectionPrompt } from './memory-injection-prompt.js';
-import { GetMemoryNeighborsTool } from './get-memory-neighbors-tool.js';
-import { SetAnchorTool } from './set-anchor-tool.js';
-import { GetAnchorTool } from './get-anchor-tool.js';
-import { SearchLocalTool } from './search-local-tool.js';
-import { ClearAnchorTool } from './clear-anchor-tool.js';
-import { RestoreAnchorsTool } from './restore-anchors-tool.js';
+import { RememberTool } from '../domains/memory/tools/remember-tool.js';
+import { RecallTool } from '../domains/memory/tools/recall-tool.js';
+import { ForgetTool } from '../domains/memory/tools/forget-tool.js';
+import { PinTool } from '../domains/memory/tools/pin-tool.js';
+import { UnpinTool } from '../domains/memory/tools/unpin-tool.js';
+import { MemoryInjectionPrompt } from '../domains/memory/tools/memory-injection-prompt.js';
+import { GetMemoryNeighborsTool } from '../domains/memory/tools/get-memory-neighbors-tool.js';
+import { SetAnchorTool } from '../domains/anchor/tools/set-anchor-tool.js';
+import { GetAnchorTool } from '../domains/anchor/tools/get-anchor-tool.js';
+import { SearchLocalTool } from '../domains/anchor/tools/search-local-tool.js';
+import { ClearAnchorTool } from '../domains/anchor/tools/clear-anchor-tool.js';
+import { RestoreAnchorsTool } from '../domains/anchor/tools/restore-anchors-tool.js';
 import { MigrateEmbeddingsTool } from './migrate-embeddings-tool.js';
 // 관계 엔진 도구들은 HTTP API로만 제공 (MCP에서 제거)
 // 관계 추출은 remember 도구에서 자동으로 수행됨

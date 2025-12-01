@@ -29,12 +29,12 @@ vi.mock('sharp', () => ({
 }));
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ConsolidationScoreService } from './consolidation-score-service.js';
+import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import type {
   ConsolidationScoreInput,
   GValueUpdateInput,
   MemoryType
-} from '../types/consolidation-score.types.js';
+} from '../shared/types/consolidation-score.types.js';
 
 describe('ConsolidationScoreService', () => {
   let service: ConsolidationScoreService;

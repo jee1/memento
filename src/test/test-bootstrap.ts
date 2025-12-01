@@ -5,8 +5,8 @@
 
 import { initializeServices } from '../server/bootstrap.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../utils/database.js';
-import { mementoConfig } from '../config/index.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 async function testBootstrapIntegration() {
   console.log('🧪 부트스트랩 함수 통합 테스트 시작\n');

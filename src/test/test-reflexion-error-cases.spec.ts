@@ -5,12 +5,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { RememberTool } from '../tools/remember-tool.js';
-import { RecallTool } from '../tools/recall-tool.js';
-import type { ToolContext } from '../tools/types.js';
-import { DatabaseUtils } from '../utils/database.js';
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { RememberTool } from '../domains/memory/tools/remember-tool.js';
+import { RecallTool } from '../domains/memory/tools/recall-tool.js';
+import type { ToolContext } from '../../domains/types.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
+import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 
 /**
  * 테스트용 데이터베이스 초기화

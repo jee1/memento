@@ -6,9 +6,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';
-import { FailureDetector, ErrorType, type FailureEvent } from '../services/failure-detector.js';
+import { FailureDetector, ErrorType, type FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../services/reflexion-worker.js';
-import { DatabaseUtils } from '../utils/database.js';
+import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('Reflexion E2E 테스트', () => {
   let db: Database.Database;
