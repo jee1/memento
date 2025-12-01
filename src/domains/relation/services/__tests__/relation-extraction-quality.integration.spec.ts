@@ -12,12 +12,12 @@ import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { RelationExtractor } from '../../../../domains/relation/services/relation-extractor.js';
-import { RelationQualityValidator } from '../../src/services/relation-quality-validator.js';
-import type { ExpectedRelation, ExtractedRelation } from '../../src/services/relation-quality-validator.js';
-import { DatabaseUtils } from '../../src/utils/database.js';
-import { RelationEngineSchemaMigration } from '../../src/database/migration/migrations/005-relation-engine-schema.js';
-import type { MemoryItem } from '../../src/types/index.js';
-import type { RelationCandidate } from '../../src/types/relation.js';
+import { RelationQualityValidator } from '../relation-quality-validator.js';
+import type { ExpectedRelation, ExtractedRelation } from '../relation-quality-validator.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import type { MemoryItem } from '../../../../shared/types/index.js';
+import type { RelationCandidate } from '../../../../shared/types/relation.js';
 
 /**
  * 테스트 데이터셋 로드

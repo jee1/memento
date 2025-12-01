@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { DatabaseOptimizer } from '../database-optimizer.js';
 import type { DatabaseStats, IndexRecommendation, QueryAnalysis } from '../database-optimizer.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../test/helpers/test-database.js';
 
 describe('DatabaseOptimizer', () => {
   let db: Database.Database;

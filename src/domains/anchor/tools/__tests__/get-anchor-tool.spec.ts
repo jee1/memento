@@ -24,10 +24,12 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { GetAnchorTool } from '../get-anchor-tool.js';
 import type { ToolContext } from '../types.js';
-import { AnchorManager } from '../../anchor-manager.js';
-import type { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { AnchorManager } from '../../services/anchor/anchor-manager.js';
+import { AnchorCacheService } from '../../services/anchor/anchor-cache-service.js';
+import { AnchorSearchService } from '../../services/anchor/anchor-search-service.js';
+import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import type { VectorSearchEngine } from '../../algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -59,6 +61,8 @@ describe('GetAnchorTool', () => {
   let tool: GetAnchorTool;
   let context: ToolContext;
   let anchorManager: AnchorManager;
+  let cacheService: AnchorCacheService;
+  let searchService: AnchorSearchService;
   let embeddingService: MemoryEmbeddingService;
   let hybridSearchEngine: HybridSearchEngine;
   let vectorSearchEngine: VectorSearchEngine;
@@ -94,11 +98,19 @@ describe('GetAnchorTool', () => {
     embeddingService = createMockEmbeddingService();
     hybridSearchEngine = createMockHybridSearchEngine();
     vectorSearchEngine = createMockVectorSearchEngine();
-    anchorManager = new AnchorManager();
+    
+    // 의존성 주입 패턴에 맞게 서비스 생성
+    cacheService = new AnchorCacheService();
+    cacheService.setDatabase(db);
+    cacheService.setEmbeddingService(embeddingService);
+    
+    searchService = new AnchorSearchService(cacheService);
+    searchService.setDatabase(db);
+    searchService.setHybridSearchEngine(hybridSearchEngine);
+    searchService.setVectorSearchEngine(vectorSearchEngine);
+    
+    anchorManager = new AnchorManager(cacheService, searchService);
     anchorManager.setDatabase(db);
-    anchorManager.setEmbeddingService(embeddingService);
-    anchorManager.setHybridSearchEngine(hybridSearchEngine);
-    anchorManager.setVectorSearchEngine(vectorSearchEngine);
 
     tool = new GetAnchorTool();
 

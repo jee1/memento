@@ -4,12 +4,33 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Mock @xenova/transformers to prevent onnxruntime-node loading
+// MUST be at the top before any imports
+vi.mock('@xenova/transformers', () => {
+  return {
+    pipeline: vi.fn().mockResolvedValue({
+      __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    }),
+    env: {
+      useBrowserCache: false,
+      useCustomCache: false
+    }
+  };
+});
+
+// onnxruntime-node 모킹 (네이티브 바인딩 로딩 실패 방지)
+vi.mock('onnxruntime-node', () => ({
+  InferenceSession: vi.fn(),
+  Tensor: vi.fn()
+}));
+
 import { EmbeddingProviderFactory } from '../embedding-provider-factory.js';
 import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../../../shared/types/embedding.types.js';
 import { MiniLMEmbeddingService } from '../../../embedding/services/minilm-embedding-service.js';
 import { LightweightEmbeddingService } from '../../services/lightweight-embedding-service.js';
-import { GeminiEmbeddingService } from '../../gemini-embedding-service.js';
-import { OpenAIEmbeddingService } from '../../openai-embedding-service.js';
+import { GeminiEmbeddingService } from '../../services/gemini-embedding-service.js';
+import { OpenAIEmbeddingService } from '../../services/openai-embedding-service.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 
 // mementoConfig 모킹
@@ -20,7 +41,8 @@ vi.mock('../config/index.js', () => ({
 }));
 
 // 제공자 서비스 모킹
-vi.mock('./minilm-embedding-service.js', () => {
+vi.mock('../../../embedding/services/minilm-embedding-service.js', () => {
+  const mockModel = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
   return {
     MiniLMEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => true),
@@ -31,12 +53,13 @@ vi.mock('./minilm-embedding-service.js', () => {
         dimensions: 384,
         usage: { prompt_tokens: 10, total_tokens: 10 }
       })),
-      getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 }))
+      getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 })),
+      getModel: vi.fn().mockResolvedValue(mockModel)
     }))
   };
 });
 
-vi.mock('./lightweight-embedding-service.js', () => {
+vi.mock('../services/lightweight-embedding-service.js', () => {
   return {
     LightweightEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => true),
@@ -52,7 +75,7 @@ vi.mock('./lightweight-embedding-service.js', () => {
   };
 });
 
-vi.mock('./gemini-embedding-service.js', () => {
+vi.mock('../services/gemini-embedding-service.js', () => {
   return {
     GeminiEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
@@ -62,7 +85,7 @@ vi.mock('./gemini-embedding-service.js', () => {
   };
 });
 
-vi.mock('./openai-embedding-service.js', () => {
+vi.mock('../services/openai-embedding-service.js', () => {
   return {
     OpenAIEmbeddingService: vi.fn().mockImplementation(() => ({
       isAvailable: vi.fn(() => false), // 사용 불가능으로 설정
@@ -80,7 +103,7 @@ vi.mock('./model-availability-service.js', () => {
       selectBestProvider: vi.fn(async (preferredProvider?: EmbeddingProvider) => ({
         selectedProvider: preferredProvider || 'minilm',
         reason: 'available',
-        fallbackUsed: false
+        attemptedProviders: []
       }))
     }))
   };
@@ -296,7 +319,7 @@ describe('EmbeddingProviderFactory', () => {
       expect(result).toHaveProperty('decision');
       expect(result.decision).toHaveProperty('selectedProvider');
       expect(result.decision).toHaveProperty('reason');
-      expect(result.decision).toHaveProperty('fallbackUsed');
+      expect(result.decision).toHaveProperty('attemptedProviders');
     });
 
     it('요청된 제공자가 선택되어야 함', async () => {

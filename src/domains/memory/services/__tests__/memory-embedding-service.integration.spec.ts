@@ -5,7 +5,7 @@ import { MemoryEmbeddingService } from '../memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../../domains/search/algorithms/vector-search-engine.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
-vi.mock('./unified-embedding-service.js', () => {
+vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   let currentProvider: EmbeddingProvider = 'minilm';
   let currentEmbedding: number[] = [0.05, 0.06, 0.07, 0.08];
 
@@ -94,7 +94,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
   let nextRowId: number;
 
   beforeAll(async () => {
-    const mod: any = await import('./unified-embedding-service.js');
+    const mod: any = await import('../../../embedding/services/unified-embedding-service.js');
     setMockEmbedding = mod.__setMockEmbedding;
   });
 
@@ -174,6 +174,7 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
 
   describe.each(scenarios)('provider $provider', ({ provider, dimensions, type }) => {
     it('stores embeddings and returns vector search results with metadata', async () => {
+      // Given: provider에 맞는 mock embedding 설정
       const mockEmbedding = Array.from({ length: dimensions }, (_, idx) => (idx + 1) / dimensions);
       setMockEmbedding(provider, mockEmbedding);
 
@@ -192,6 +193,8 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
 
       const dbStub = createDbStub(() => embeddingRows, () => memoryItems);
 
+      // When: provider 설정 후 서비스 생성 (모킹이 적용되도록)
+      // setMockEmbedding을 호출한 후 서비스를 생성해야 모킹이 적용됨
       const embeddingService = new MemoryEmbeddingService();
       const vectorEngine = new VectorSearchEngine();
 

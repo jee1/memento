@@ -152,9 +152,9 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private readonly rateLimiter: TokenBucketRateLimiter;
   private readonly costMetrics: LLMCostMetrics;
 
-  constructor() {
+  constructor(embeddingService?: UnifiedEmbeddingService) {
     this.preferredProvider = this.initializeClients();
-    this.embeddingService = new UnifiedEmbeddingService();
+    this.embeddingService = embeddingService || new UnifiedEmbeddingService();
     this.cache = new CacheService<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
     this.rateLimiter = new TokenBucketRateLimiter(RATE_LIMITER.CAPACITY, RATE_LIMITER.REFILL_RATE);
     this.costMetrics = {

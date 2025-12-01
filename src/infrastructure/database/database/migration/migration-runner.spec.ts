@@ -4,14 +4,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MigrationRunner } from '../migration-runner.js';
+import { MigrationRunner } from './migration-runner.js';
 import type { Migration, MigrationResult } from '../types.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { BackupManager } from '../backup-manager.js';
-import { SchemaVersionManager } from '../schema-version-manager.js';
-import { DependencyValidator } from '../dependency-validator.js';
-import { MigrationLogger } from '../migration-logger.js';
+import { BackupManager } from './backup-manager.js';
+import { SchemaVersionManager } from './schema-version-manager.js';
+import { DependencyValidator } from './dependency-validator.js';
+import { MigrationLogger } from './migration-logger.js';
 
 /**
  * 테스트용 마이그레이션 구현

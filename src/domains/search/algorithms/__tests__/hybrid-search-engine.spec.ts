@@ -10,7 +10,7 @@ import Database from 'better-sqlite3';
 import { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
-import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../../../../../test/helpers/consolidation-test-data.js';
+import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../../../../test/helpers/consolidation-test-data.js';
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading

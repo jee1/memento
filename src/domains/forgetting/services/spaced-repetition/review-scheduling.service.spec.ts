@@ -7,9 +7,9 @@ import {
   DefaultReviewScheduler, 
   PriorityBasedReviewScheduler, 
   AdaptiveReviewScheduler 
-} from '../review-scheduling.service.js';
-import { DefaultIntervalStrategy } from '../interval-calculation.service.js';
-import { DefaultRecallProbabilityCalculator } from '../recall-probability.service.js';
+} from './review-scheduling.service.js';
+import { DefaultIntervalStrategy } from './interval-calculation.service.js';
+import { DefaultRecallProbabilityCalculator } from './recall-probability.service.js';
 import type { 
   SpacedRepetitionFeatures, 
   MemoryData,

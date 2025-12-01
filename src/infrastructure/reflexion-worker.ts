@@ -12,14 +12,6 @@ import Database from 'better-sqlite3';
 import { createHash } from 'crypto';
 
 /**
- * 중복 감지용 이벤트 키 (슬라이딩 윈도우)
- */
-interface EventKey {
-  key: string;
-  timestamp: number;
-}
-
-/**
  * Worker 상태
  */
 interface WorkerStatus {
@@ -54,8 +46,8 @@ export class ReflexionWorker {
     failedCount: 0,
     restartCount: 0
   };
-  private cleanupInterval: NodeJS.Timeout | null = null;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
   private lastHealthCheck: number = Date.now();
 
   constructor(
@@ -158,7 +150,6 @@ export class ReflexionWorker {
   private performHealthCheck(): void {
     try {
       const now = Date.now();
-      const queueStats = this.eventQueue.getStats();
       
       // 큐 적체 확인
       this.checkQueueBacklog();
@@ -447,7 +438,7 @@ export class ReflexionWorker {
   private generateSuggestedImprovements(event: FailureEvent): string {
     const errorMessage = event.error_message.toLowerCase();
     
-    let suggestions: string[] = [];
+    const suggestions: string[] = [];
 
     if (errorMessage.includes('validation') || errorMessage.includes('검증')) {
       suggestions.push('입력 파라미터 검증 로직을 강화해야 합니다.');

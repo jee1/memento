@@ -222,6 +222,9 @@ export class AdaptiveWeightCalculator implements IAdaptiveWeightCalculator {
   }
 
   private normalizeQuery(query: string): string {
+    if (!query) {
+      return '';
+    }
     return query.toLowerCase().trim().replace(/\s+/g, ' ');
   }
 }
@@ -448,7 +451,8 @@ export class HybridSearchEngine {
     const vectorWeight = query.vectorWeight ?? this.defaultVectorWeight;
     const textWeight = query.textWeight ?? this.defaultTextWeight;
     
-    const adaptiveWeights = this.weightCalculator.calculateWeights(query.query, vectorWeight, textWeight);
+    const queryString = query.query || '';
+    const adaptiveWeights = this.weightCalculator.calculateWeights(queryString, vectorWeight, textWeight);
     
     return {
       vectorWeight: adaptiveWeights.vectorWeight,
@@ -1309,6 +1313,9 @@ export class HybridSearchEngine {
   }
 
   private normalizeQuery(query: string): string {
+    if (!query) {
+      return '';
+    }
     return query.toLowerCase().trim().replace(/\s+/g, ' ');
   }
 

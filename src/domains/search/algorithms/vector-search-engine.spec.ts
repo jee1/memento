@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { VectorSearchEngine, type VectorSearchResult, type VectorSearchOptions, type VectorIndexStatus } from '../vector-search-engine.js';
+import { VectorSearchEngine, type VectorSearchResult, type VectorSearchOptions, type VectorIndexStatus } from './vector-search-engine.js';
 import Database from 'better-sqlite3';
 
 // Mock Database - removed global mock to avoid conflicts with individual mocks

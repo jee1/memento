@@ -8,8 +8,8 @@ import { ExtractRelationsTool } from '../extract-relations-tool.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 import { RelationGraph } from '../../services/relation-graph.js';
-import { RelationExtractor } from '../../relation-extractor.js';
-import { LLMBasedRelationExtractor } from '../../llm-based-relation-extractor.js';
+import { RelationExtractor } from '../../services/relation-extractor.js';
+import { LLMBasedRelationExtractor } from '../../services/llm-based-relation-extractor.js';
 import type { ToolContext } from '../types.js';
 
 /**

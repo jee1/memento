@@ -3,10 +3,12 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { SearchLocalTool } from '../search-local-tool.js';
 import type { ToolContext } from '../types.js';
-import { AnchorManager, AnchorError } from '../../anchor-manager.js';
-import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { AnchorManager, AnchorError } from '../../services/anchor/anchor-manager.js';
+import { AnchorCacheService } from '../../services/anchor/anchor-cache-service.js';
+import { AnchorSearchService } from '../../services/anchor/anchor-search-service.js';
+import { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import { createHybridSearchEngine, type HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import { getVectorSearchEngine } from '../../algorithms/vector-search-engine.js';
+import { getVectorSearchEngine, type VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
 vi.mock('@xenova/transformers', () => {
@@ -18,6 +20,28 @@ vi.mock('@xenova/transformers', () => {
       useBrowserCache: false,
       useCustomCache: false
     }
+  };
+});
+
+// onnxruntime-node 모킹 (네이티브 바인딩 로딩 실패 방지)
+vi.mock('onnxruntime-node', () => ({
+  InferenceSession: vi.fn(),
+  Tensor: vi.fn()
+}));
+
+// UnifiedEmbeddingService 모킹
+vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
+  return {
+    UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
+      generateEmbedding: vi.fn(async () => ({
+        embedding: new Array(384).fill(0.1),
+        model: 'minilm',
+        provider: 'minilm',
+        usage: { prompt_tokens: 10, total_tokens: 10 }
+      })),
+      searchSimilar: vi.fn(async () => []),
+      isAvailable: vi.fn(() => true)
+    }))
   };
 });
 
@@ -71,8 +95,11 @@ describe('SearchLocalTool', () => {
   let tool: SearchLocalTool;
   let context: ToolContext;
   let anchorManager: AnchorManager;
+  let cacheService: AnchorCacheService;
+  let searchService: AnchorSearchService;
   let embeddingService: MemoryEmbeddingService;
   let hybridSearchEngine: HybridSearchEngine;
+  let vectorSearchEngine: VectorSearchEngine;
 
   beforeEach(() => {
     db = new Database(':memory:');
@@ -80,11 +107,20 @@ describe('SearchLocalTool', () => {
 
     embeddingService = new MemoryEmbeddingService();
     hybridSearchEngine = createHybridSearchEngine();
-    anchorManager = new AnchorManager();
+    vectorSearchEngine = getVectorSearchEngine();
+    
+    // 의존성 주입 패턴에 맞게 서비스 생성
+    cacheService = new AnchorCacheService();
+    cacheService.setDatabase(db);
+    cacheService.setEmbeddingService(embeddingService);
+    
+    searchService = new AnchorSearchService(cacheService);
+    searchService.setDatabase(db);
+    searchService.setHybridSearchEngine(hybridSearchEngine);
+    searchService.setVectorSearchEngine(vectorSearchEngine);
+    
+    anchorManager = new AnchorManager(cacheService, searchService);
     anchorManager.setDatabase(db);
-    anchorManager.setEmbeddingService(embeddingService);
-    anchorManager.setHybridSearchEngine(hybridSearchEngine);
-    anchorManager.setVectorSearchEngine(getVectorSearchEngine());
 
     tool = new SearchLocalTool();
 

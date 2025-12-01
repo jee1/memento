@@ -8,8 +8,7 @@ import { SearchEngine, type SearchQuery } from '../domains/search/algorithms/sea
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { 
   initializeMigrationStatusTable, 
-  setMigrationStatus, 
-  getMigrationStatus 
+  setMigrationStatus
 } from '../shared/utils/fts5-migration-status.js';
 
 /**

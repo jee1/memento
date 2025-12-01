@@ -40,12 +40,12 @@ import {
   type QualityMetrics,
   type ExtremeScenarioReport,
   type BaselineSnapshot
-} from '../helpers/vector-search-quality-metrics.js';
+} from './helpers/vector-search-quality-metrics.js';
 import {
   initializeTestDatabase,
   seedTestDatabase,
   cleanupTestDatabase
-} from '../helpers/consolidation-test-data.js';
+} from './helpers/consolidation-test-data.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('벡터 검색 품질 검증 통합 테스트', () => {

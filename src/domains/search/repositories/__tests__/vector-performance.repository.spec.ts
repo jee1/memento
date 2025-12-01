@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorPerformanceRepositoryImpl } from '../vector-performance.repository.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 describe('VectorPerformanceRepositoryImpl', () => {
   let db: Database.Database;

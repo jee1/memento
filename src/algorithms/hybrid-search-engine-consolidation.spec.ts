@@ -5,14 +5,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { HybridSearchEngine, SearchResultCombiner } from '../domains/search/algorithms/hybrid-search-engine.js';
-import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../shared/config/index.js';
 import {
   initializeTestDatabase,
   seedTestDatabase,
-  cleanupTestDatabase,
-  type TestMemoryItem
+  cleanupTestDatabase
 } from '../test/helpers/consolidation-test-data.js';
 
 // Mock mementoConfig
@@ -116,7 +114,7 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
       vi.mocked(mementoConfig).consolidationScoreEnabled = true;
 
       // 샘플 데이터 주입 (임베딩 포함하여 provider 감지 가능하도록)
-      const { memoryIds, items } = seedTestDatabase(db, 5, true);
+      const { items } = seedTestDatabase(db, 5, true);
 
       // 높은 consolidation_score를 가진 아이템 생성
       const highConsolidationItem = items[0];
@@ -191,7 +189,7 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
       });
 
       // 동일한 벡터 유사도를 가진 Mock 결과
-      const mockVectorResults = items.map((item, index) => ({
+      const mockVectorResults = items.map((item) => ({
         memory_id: item.id,
         similarity: 0.8, // 동일한 벡터 유사도
         content: item.content,
@@ -219,10 +217,6 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
 
       // consolidation_score가 높을수록 상위에 랭킹되어야 함
       if (mementoConfig.consolidationScoreEnabled) {
-        const sortedByConsolidation = [...results.items].sort(
-          (a, b) => (b.consolidation_score || 0) - (a.consolidation_score || 0)
-        );
-        
         // finalScore가 consolidation_score를 반영하여 정렬되어야 함
         expect(results.items[0].finalScore).toBeGreaterThanOrEqual(
           results.items[results.items.length - 1].finalScore

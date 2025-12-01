@@ -7,7 +7,7 @@ import {
   DefaultIntervalStrategy, 
   ConservativeIntervalStrategy, 
   AdaptiveIntervalStrategy 
-} from '../interval-calculation.service.js';
+} from './interval-calculation.service.js';
 import type { SpacedRepetitionFeatures, SpacedRepetitionWeights } from '../../../../shared/types/spaced-repetition.types.js';
 
 describe('IntervalCalculationService', () => {

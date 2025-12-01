@@ -39,7 +39,7 @@ vi.mock('../services/vector-search/vector-search-container', () => {
 });
 
 // Import after mocking to ensure mocked version is used
-import { VectorSearchContainer } from '../../services/vector-search/vector-search-container.js';
+import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
 
 describe('VectorSearchEngineRefactored', () => {
   let engine: VectorSearchEngineRefactored;

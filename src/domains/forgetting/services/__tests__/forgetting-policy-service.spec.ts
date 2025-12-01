@@ -165,7 +165,7 @@ describe('ForgettingPolicyService', () => {
   describe('shouldForget (ForgettingAlgorithm 직접 테스트)', () => {
     it('망각 점수가 임계값 이상이면 망각해야 함', async () => {
       // Given: ForgettingAlgorithm 직접 사용
-      const { ForgettingAlgorithm } = await import('../algorithms/forgetting-algorithm.js');
+      const { ForgettingAlgorithm } = await import('../../algorithms/forgetting-algorithm.js');
       const algorithm = new ForgettingAlgorithm();
       
       const forgetScore = 0.7; // 임계값(0.6) 이상
@@ -180,7 +180,7 @@ describe('ForgettingPolicyService', () => {
 
     it('망각 점수가 임계값 미만이면 망각하지 않아야 함', async () => {
       // Given: ForgettingAlgorithm 직접 사용
-      const { ForgettingAlgorithm } = await import('../algorithms/forgetting-algorithm.js');
+      const { ForgettingAlgorithm } = await import('../../algorithms/forgetting-algorithm.js');
       const algorithm = new ForgettingAlgorithm();
       
       const forgetScore = 0.5; // 임계값(0.6) 미만
@@ -214,7 +214,7 @@ describe('ForgettingPolicyService', () => {
   describe('calculateForgetScore (ForgettingAlgorithm 직접 테스트)', () => {
     it('망각 점수를 계산해야 함', async () => {
       // Given: ForgettingAlgorithm 직접 사용
-      const { ForgettingAlgorithm } = await import('../algorithms/forgetting-algorithm.js');
+      const { ForgettingAlgorithm } = await import('../../algorithms/forgetting-algorithm.js');
       const algorithm = new ForgettingAlgorithm();
       
       const features = {
@@ -235,7 +235,7 @@ describe('ForgettingPolicyService', () => {
 
     it('높은 중요도 메모리는 낮은 망각 점수를 받아야 함', async () => {
       // Given: ForgettingAlgorithm 직접 사용
-      const { ForgettingAlgorithm } = await import('../algorithms/forgetting-algorithm.js');
+      const { ForgettingAlgorithm } = await import('../../algorithms/forgetting-algorithm.js');
       const algorithm = new ForgettingAlgorithm();
       
       const lowImportanceFeatures = {

@@ -10,7 +10,7 @@ import { LightweightEmbeddingService } from '../lightweight-embedding-service.js
 import { mementoConfig } from '../../../../shared/config/index.js';
 
 // mementoConfig 모킹
-vi.mock('../config/index.js', () => ({
+vi.mock('../../../../shared/config/index.js', () => ({
   mementoConfig: {
     embeddingProvider: 'lightweight',
     openaiApiKey: null,
@@ -393,7 +393,8 @@ describe('EmbeddingService', () => {
 
     it('gemini 제공자가 사용 불가능하면 false를 반환해야 함', () => {
       // Given: gemini 제공자 설정
-      vi.mocked(mementoConfig).embeddingProvider = 'gemini';
+      const originalProvider = mementoConfig.embeddingProvider;
+      (mementoConfig as any).embeddingProvider = 'gemini';
       const service = new EmbeddingService();
 
       // When: 사용 가능 여부 확인
@@ -401,6 +402,9 @@ describe('EmbeddingService', () => {
 
       // Then: false 반환 (모킹된 gemini 서비스가 사용 불가능)
       expect(available).toBe(false);
+      
+      // Cleanup
+      (mementoConfig as any).embeddingProvider = originalProvider;
     });
 
     it('알 수 없는 제공자에 대해 lightweight 사용 가능 여부를 반환해야 함', () => {

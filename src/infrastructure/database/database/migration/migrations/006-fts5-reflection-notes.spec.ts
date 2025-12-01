@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { FTS5ReflectionNotesMigration } from '../006-fts5-reflection-notes.js';
+import { FTS5ReflectionNotesMigration } from './006-fts5-reflection-notes.js';
 import {
   initializeMigrationStatusTable,
   getMigrationStatus,
@@ -1113,7 +1113,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       setMigrationStatus(db, 'pending');
 
       // SearchEngine 인스턴스 생성
-      const { SearchEngine } = await import('../../../algorithms/search-engine.js');
+      const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
@@ -1130,7 +1130,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       setMigrationStatus(db, 'failed', 'Test error');
 
       // SearchEngine 인스턴스 생성
-      const { SearchEngine } = await import('../../../algorithms/search-engine.js');
+      const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
@@ -1169,7 +1169,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       `);
 
       // SearchEngine 인스턴스 생성
-      const { SearchEngine } = await import('../../../algorithms/search-engine.js');
+      const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
@@ -1209,7 +1209,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       `);
 
       // SearchEngine 인스턴스 생성
-      const { SearchEngine } = await import('../../../algorithms/search-engine.js');
+      const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출
@@ -1228,7 +1228,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'completed';
 
       // SearchEngine 인스턴스 생성
-      const { SearchEngine } = await import('../../../algorithms/search-engine.js');
+      const { SearchEngine } = await import('../../../../../domains/search/algorithms/search-engine.js');
       const searchEngine = new SearchEngine();
 
       // When: buildReflectionNotesSearchCondition 호출 (DB를 전달하므로 DB 상태 우선)
@@ -1250,7 +1250,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'pending';
 
       // When: DatabaseUtils.initializeDatabase 호출
-      const { DatabaseUtils } = await import('../../../utils/database.js');
+      const { DatabaseUtils } = await import('../../../../../shared/utils/database.js');
       await DatabaseUtils.initializeDatabase(db);
 
       // Then: DB 상태가 config에 캐시되어야 함
@@ -1266,7 +1266,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'pending';
 
       // When: DatabaseUtils.initializeDatabase 호출
-      const { DatabaseUtils } = await import('../../../utils/database.js');
+      const { DatabaseUtils } = await import('../../../../../shared/utils/database.js');
       await DatabaseUtils.initializeDatabase(db);
 
       // Then: 테이블이 생성되고 기본값 pending이 config에 캐시되어야 함
@@ -1360,7 +1360,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       (mementoConfig as any).fts5MigrationStatus = 'pending';
 
       // When: DatabaseUtils.initializeDatabase 호출
-      const { DatabaseUtils } = await import('../../../utils/database.js');
+      const { DatabaseUtils } = await import('../../../../../shared/utils/database.js');
       await DatabaseUtils.initializeDatabase(db);
 
       // Then: 기본값 pending이 설정되고 초기화는 계속 진행되어야 함

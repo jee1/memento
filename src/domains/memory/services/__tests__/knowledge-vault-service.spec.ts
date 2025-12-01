@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { KnowledgeVaultService, ImmutableDataError } from '../knowledge-vault-service.js';
-import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { KnowledgeVaultRepository } from '../../repositories/knowledge-vault-repository.js';
 
 /**
  * knowledge_vault 테이블 생성

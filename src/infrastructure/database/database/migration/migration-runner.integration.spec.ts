@@ -9,11 +9,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { join } from 'path';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
-import { MigrationDetector } from '../migration-detector.js';
-import { MigrationRunner } from '../migration-runner.js';
-import { BackupManager } from '../backup-manager.js';
-import { SchemaVersionManager } from '../schema-version-manager.js';
-import { MirixSchemaExpansionMigration } from '../migrations/002-mirix-schema-expansion.js';
+import { MigrationDetector } from './migration-detector.js';
+import { MigrationRunner } from './migration-runner.js';
+import { BackupManager } from './backup-manager.js';
+import { SchemaVersionManager } from './schema-version-manager.js';
+import { MirixSchemaExpansionMigration } from './migrations/002-mirix-schema-expansion.js';
 
 /**
  * 기본 스키마 생성 (memory_item 테이블만)

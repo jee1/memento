@@ -5,13 +5,13 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { AnchorSearchService } from '../anchor-search-service.js';
-import { AnchorCacheService } from '../anchor-cache-service.js';
+import { AnchorSearchService } from './anchor-search-service.js';
+import { AnchorCacheService } from './anchor-cache-service.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { RelationGraph } from '../../../relation/services/relation-graph.js';
-import { RelationEngineSchemaMigration } from '../../infrastructure/database/migration/migrations/005-relation-engine-schema.js';
+import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 
 describe('AnchorSearchService', () => {
   let service: AnchorSearchService;
@@ -243,7 +243,7 @@ describe('AnchorSearchService', () => {
       ] as any);
 
       // 쿼리 임베딩 서비스 모킹
-      const { UnifiedEmbeddingService } = await import('../unified-embedding-service.js');
+      const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockQueryEmbedding = Array(384).fill(0.15);
       vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
         embedding: mockQueryEmbedding,

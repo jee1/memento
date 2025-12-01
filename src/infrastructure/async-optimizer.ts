@@ -524,7 +524,7 @@ export class BatchProcessor {
   private batchSize: number;
   private flushInterval: number;
   private batches: Map<string, any[]> = new Map();
-  private timers: Map<string, NodeJS.Timeout> = new Map();
+  private timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(batchSize: number = 100, flushInterval: number = 5000) {
     this.batchSize = batchSize;

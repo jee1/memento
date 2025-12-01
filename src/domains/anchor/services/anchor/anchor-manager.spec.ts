@@ -5,12 +5,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { AnchorManager } from '../anchor-manager.js';
-import { AnchorCacheService } from '../anchor-cache-service.js';
-import { AnchorSearchService } from '../anchor-search-service.js';
+import { AnchorManager } from './anchor-manager.js';
+import { AnchorCacheService } from './anchor-cache-service.js';
+import { AnchorSearchService } from './anchor-search-service.js';
 import type { AnchorSlot } from '../anchor-interfaces.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { DatabaseUtils } from '../../../../../shared/utils/database.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
 describe('AnchorManager', () => {
   let manager: AnchorManager;

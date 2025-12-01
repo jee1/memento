@@ -83,26 +83,64 @@ export class SearchLocalTool extends BaseTool {
       this.validateService(context.services.anchorManager, '앵커 관리자');
       
       // 국소 검색 수행
-      const searchResult = await context.services.anchorManager!.searchLocal(
-        agent_id,
-        slot,
-        query || undefined,
-        hop_limit,
-        {
-          limit,
-          min_results,
-          use_relations
+      try {
+        const searchResult = await context.services.anchorManager!.searchLocal(
+          agent_id,
+          slot,
+          query || undefined,
+          hop_limit,
+          {
+            limit,
+            min_results,
+            use_relations
+          }
+        );
+        
+        return this.createSuccessResult({
+          items: searchResult.items,
+          total_count: searchResult.total_count,
+          local_results_count: searchResult.local_results_count,
+          fallback_used: searchResult.fallback_used,
+          query_time: searchResult.query_time,
+          anchor_info: searchResult.anchor_info
+        });
+      } catch (searchError: any) {
+        // 앵커가 없고 query가 있으면 fallback
+        if (query && searchError?.message?.includes('Anchor not found')) {
+          if (!context.services.hybridSearchEngine) {
+            throw new Error('HybridSearchEngine is not available for fallback');
+          }
+          
+          try {
+            const fallbackResult = await context.services.hybridSearchEngine.search(context.db!, {
+              query,
+              limit
+            });
+            
+            return this.createSuccessResult({
+              items: fallbackResult.items,
+              total_count: fallbackResult.total_count,
+              local_results_count: 0,
+              fallback_used: true,
+              query_time: fallbackResult.query_time || 0,
+              anchor_info: null
+            });
+          } catch (fallbackError: any) {
+            // Fallback도 실패하면 빈 결과 반환
+            return this.createSuccessResult({
+              items: [],
+              total_count: 0,
+              local_results_count: 0,
+              fallback_used: true,
+              query_time: 0,
+              anchor_info: null
+            });
+          }
         }
-      );
-      
-      return this.createSuccessResult({
-        items: searchResult.items,
-        total_count: searchResult.total_count,
-        local_results_count: searchResult.local_results_count,
-        fallback_used: searchResult.fallback_used,
-        query_time: searchResult.query_time,
-        anchor_info: searchResult.anchor_info
-      });
+        
+        // 다른 에러는 그대로 throw
+        throw searchError;
+      }
     } catch (error) {
       this.logError(error as Error, '국소 검색 실패', { params });
       

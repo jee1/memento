@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseOptimizeTool } from '../database-optimize-tool.js';
 import type { ToolContext, ToolResult } from '../../tools/types.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../../../test/helpers/test-database.js';
 
 describe('DatabaseOptimizeTool', () => {
   let tool: DatabaseOptimizeTool;

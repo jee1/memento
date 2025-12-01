@@ -235,5 +235,62 @@ export class AnchorManager implements IAnchorManager {
   getCacheService(): IAnchorCacheService {
     return this.cacheService;
   }
+
+  /**
+   * DB에서 캐시 복원
+   * @param db - 데이터베이스 인스턴스
+   */
+  async restoreCacheFromDB(db: Database.Database): Promise<void> {
+    return this.cacheService.restoreCacheFromDB(db);
+  }
+
+  /**
+   * 국소 검색 수행
+   * @param agentId - 에이전트 ID
+   * @param slot - 슬롯 (A, B, C)
+   * @param query - 검색 쿼리 (선택적)
+   * @param hopLimit - hop 제한 (선택적)
+   * @param options - 검색 옵션
+   */
+  async searchLocal(
+    agentId: string,
+    slot: AnchorSlot,
+    query?: string,
+    hopLimit?: number,
+    options?: any
+  ): Promise<any> {
+    if (!this.db) {
+      throw new Error('Database is not set. Call setDatabase() first.');
+    }
+
+    // 앵커 정보 가져오기
+    const anchorInfo = await this.getAnchor(agentId, slot);
+    if (!anchorInfo) {
+      throw new Error(`Anchor not found for agent_id: ${agentId}, slot: ${slot}`);
+    }
+
+    const anchorMemoryId = Array.isArray(anchorInfo) ? anchorInfo[0]?.memory_id : anchorInfo.memory_id;
+    if (!anchorMemoryId) {
+      throw new Error(`Anchor memory_id is null for agent_id: ${agentId}, slot: ${slot}`);
+    }
+
+    // 앵커 임베딩 가져오기
+    const anchorEmbedding = await this.cacheService.getAnchorEmbedding(anchorMemoryId);
+    if (!anchorEmbedding) {
+      throw new Error(`Embedding not found for anchor memory_id: ${anchorMemoryId}`);
+    }
+
+    const startTime = Date.now();
+    return this.searchService.searchLocal(
+      agentId,
+      slot,
+      query,
+      hopLimit,
+      options,
+      anchorMemoryId,
+      anchorEmbedding,
+      startTime
+    );
+  }
 }
 
