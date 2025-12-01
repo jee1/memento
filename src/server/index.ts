@@ -165,6 +165,14 @@ async function initializeServer() {
     await batchScheduler.start(db, services.reflexionWorker);
     process.stderr.write('⏰ 배치 스케줄러 시작됨\n');
     
+    // 배치 스케줄러 상태 확인
+    const status = batchScheduler.getStatus();
+    process.stderr.write(`📊 배치 스케줄러 상태: ${JSON.stringify({
+      isRunning: status.isRunning,
+      activeJobs: status.activeJobs,
+      uptime: status.uptime
+    }, null, 2)}\n`);
+    
     // 임베딩 프로바이더 정보 표시
     process.stderr.write(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}\n`);
     if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
