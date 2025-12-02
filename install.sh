@@ -50,6 +50,13 @@ select_install_mode() {
     esac
 }
 
+# npm 캐시 정리 함수
+clean_npm_cache() {
+    log "npm 캐시를 정리합니다..."
+    npm cache clean --force || true
+    log_success "npm 캐시 정리 완료"
+}
+
 # npx 방식 설치
 install_npx() {
     log "npx 방식으로 설치를 시작합니다..."
@@ -69,10 +76,41 @@ install_npx() {
     
     log_success "Node.js 버전 확인 완료: $(node -v)"
     
-    # npx로 서버 실행
+    # npm 버전 확인
+    if ! command -v npm &> /dev/null; then
+        log_error "npm이 설치되어 있지 않습니다."
+        exit 1
+    fi
+    
+    # npx로 서버 실행 (에러 발생 시 캐시 정리 후 재시도)
     log "Memento MCP Server를 시작합니다..."
-    npx memento-mcp-server@latest setup
-    npx memento-mcp-server@latest dev
+    
+    # setup 실행
+    if ! npx --yes memento-mcp-server@latest setup 2>&1; then
+        log_warning "설정 실행 중 오류가 발생했습니다. npm 캐시를 정리하고 재시도합니다..."
+        clean_npm_cache
+        if ! npx --yes memento-mcp-server@latest setup 2>&1; then
+            log_error "설정 실행에 실패했습니다."
+            log "수동으로 다음 명령어를 실행해보세요:"
+            log "  npm cache clean --force"
+            log "  npx --yes memento-mcp-server@latest setup"
+            exit 1
+        fi
+    fi
+    
+    # dev 서버 시작
+    log "개발 서버를 시작합니다..."
+    if ! npx --yes memento-mcp-server@latest dev 2>&1; then
+        log_warning "서버 시작 중 오류가 발생했습니다. npm 캐시를 정리하고 재시도합니다..."
+        clean_npm_cache
+        if ! npx --yes memento-mcp-server@latest dev 2>&1; then
+            log_error "서버 시작에 실패했습니다."
+            log "수동으로 다음 명령어를 실행해보세요:"
+            log "  npm cache clean --force"
+            log "  npx --yes memento-mcp-server@latest dev"
+            exit 1
+        fi
+    fi
     
     log_success "npx 방식 설치 완료!"
     log "서버가 http://localhost:8080 에서 실행 중입니다."
