@@ -39,7 +39,7 @@ select_install_mode() {
     echo "3) 소스코드 방식 (개발자용)"
     echo "4) 종료"
     
-    read -p "선택 (1-4): " choice
+    read -p "선택 (1-4): " choice < /dev/tty
     
     case $choice in
         1) install_npx ;;
