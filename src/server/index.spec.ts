@@ -3,7 +3,7 @@
  * MCP 서버 진입점 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
 import { initializeServices, type ServerServices } from './bootstrap.js';
@@ -115,7 +115,7 @@ describe('MCP 서버 진입점', () => {
     it('도구를 실행할 수 있는 환경이 준비되어야 함', async () => {
       // Given: 서버 컨텍스트 및 ToolContext 생성
       const serverContext = createServerContext(db, services);
-      const toolContext = createToolContext(serverContext);
+      createToolContext(serverContext);
       const registry = getToolRegistry();
 
       // When: 도구 조회
@@ -130,7 +130,7 @@ describe('MCP 서버 진입점', () => {
     it('도구 핸들러가 ToolContext를 받을 수 있어야 함', async () => {
       // Given: 서버 컨텍스트 및 ToolContext 생성
       const serverContext = createServerContext(db, services);
-      const toolContext = createToolContext(serverContext);
+      createToolContext(serverContext);
       const registry = getToolRegistry();
       const rememberTool = registry.get('remember');
 

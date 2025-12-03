@@ -6,13 +6,13 @@
 
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor, type PerformanceAlert } from '../../domains/monitoring/services/performance-monitor.js';
-import { DatabaseUtils } from '../../shared/utils/database.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { ConsolidationScoreWorker } from '../../workers/consolidation-score-worker.js';
 import { ReflexionWorker } from '../reflexion-worker.js';
 import { mementoConfig } from '../../shared/config/index.js';
+import { mcpLogger } from '../../server/mcp-logger.js';
 import { spawn } from 'child_process';
 import { join } from 'path';
 
@@ -71,7 +71,7 @@ export class BatchScheduler {
   private consolidationScoreWorker: ConsolidationScoreWorker | null = null;
   private reflexionWorker: ReflexionWorker | null = null;
   private db: Database.Database | null = null;
-  private intervals: Map<string, NodeJS.Timeout> = new Map();
+  private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
   private isRunning = false;
   private startTime: Date | null = null;
   private lastExecution: Map<string, Date> = new Map();
@@ -79,7 +79,7 @@ export class BatchScheduler {
   private errorCount: Map<string, number> = new Map();
   private runningJobs: Set<string> = new Set();
   private jobQueue: Array<{name: string, job: () => Promise<void>, priority: number}> = [];
-  private jobProcessorInterval: NodeJS.Timeout | null = null;
+  private jobProcessorInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(config?: Partial<BatchJobConfig>) {
     this.config = {
@@ -841,49 +841,30 @@ export class BatchScheduler {
   private log(message: string, data?: any, level: 'info' | 'warn' | 'error' = 'info'): void {
     if (!this.config.enableLogging) return;
 
-    // stdio 모드 감지
-    const isStdioMode = process.stdin.isTTY === false && process.stdout.isTTY === false;
-
-    const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      service: 'BatchScheduler',
-      level,
-      message,
-      data,
+    // 배치 작업 컨텍스트 정보 추가
+    const batchContext = {
+      ...data,
       uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
       activeJobs: this.runningJobs.size,
       queueSize: this.jobQueue.length
     };
 
-    const logMessage = `[${timestamp}] [BatchScheduler] [${level.toUpperCase()}] ${message}`;
-    
-    // 구조화된 로그 출력
-    const logData = data ? JSON.stringify(data, null, 2) : '';
-    const contextInfo = `[Uptime: ${this.formatUptime(logEntry.uptime)}, Active: ${logEntry.activeJobs}, Queue: ${logEntry.queueSize}]`;
-    
-    if (isStdioMode) {
-      // stdio 모드: stderr로 출력
-      const fullMessage = `${logMessage} ${contextInfo}${logData ? '\n' + logData : ''}\n`;
-      process.stderr.write(fullMessage);
-      
-      // 에러 로그는 파일에도 저장
-      if (level === 'error') {
-        this.logToFile(logEntry);
-      }
-    } else {
-      // 일반 모드: console 사용
-      switch (level) {
-        case 'error':
-          console.error(logMessage, contextInfo, logData);
-          this.logToFile(logEntry);
-          break;
-        case 'warn':
-          console.warn(logMessage, contextInfo, logData);
-          break;
-        default:
-          console.log(logMessage, contextInfo, logData);
-      }
+    // MCP 로거 사용
+    mcpLogger.logBatch(level, message, batchContext);
+
+    // 에러 로그는 파일에도 저장
+    if (level === 'error') {
+      const logEntry = {
+        timestamp: new Date(),
+        service: 'BatchScheduler',
+        level,
+        message,
+        data: batchContext,
+        uptime: batchContext.uptime,
+        activeJobs: batchContext.activeJobs,
+        queueSize: batchContext.queueSize
+      };
+      this.logToFile(logEntry);
     }
   }
 
@@ -904,8 +885,8 @@ export class BatchScheduler {
       
       fs.appendFileSync(logFile, logLine);
     } catch (error) {
-      // 파일 로깅 실패는 무시
-      console.warn('Failed to write to log file:', error);
+      // 파일 로깅 실패는 무시 (MCP 로거 사용)
+      mcpLogger.logBatch('warn', 'Failed to write to log file', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 

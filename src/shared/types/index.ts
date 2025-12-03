@@ -135,6 +135,7 @@ export interface MementoConfig {
   };
   logLevel: string;
   logFile: string | undefined;
+  mcpLogProtocol: boolean;
   nodeEnv: string;
   typeParamMode: 'warn' | 'deprecate' | 'error';
   // Consolidation Score System 설정
