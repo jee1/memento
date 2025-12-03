@@ -65,6 +65,7 @@ export const mementoConfig: MementoConfig = {
   // 로깅 설정
   logLevel: resolveString('LOG_LEVEL'),
   logFile: resolveOptionalString('LOG_FILE'),
+  mcpLogProtocol: resolveBoolean('MCP_LOG_PROTOCOL', { defaultValue: false }),
 
   // 개발 설정
   nodeEnv: resolveString('NODE_ENV'),

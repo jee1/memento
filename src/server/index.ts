@@ -26,6 +26,7 @@ import type { ToolContext } from '../tools/types.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
+import { mcpLogger } from './mcp-logger.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
@@ -33,6 +34,8 @@ import packageJson from '../../package.json' with { type: 'json' };
 let server: Server;
 let db: Database.Database | null = null;
 // 부트스트랩 함수에서 초기화된 서비스들 (전역 변수로 저장)
+// 하위 호환성을 위해 유지하지만 현재는 serverServices를 통해 접근
+/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
 let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
@@ -43,6 +46,7 @@ let errorLoggingService: ErrorLoggingService;
 let performanceAlertService: PerformanceAlertService;
 let consolidationScoreService: ConsolidationScoreService | null = null;
 let writeCoalescingManager: WriteCoalescingManager | null = null;
+/* eslint-enable @typescript-eslint/no-unused-vars, no-unused-vars */
 // 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
 let serverServices: ServerServices | null = null;
 // let performanceMonitoringIntegration: PerformanceMonitoringIntegration;
@@ -120,25 +124,26 @@ const log = isMCPMode ? console.error : console.log;
 // MCP 서버 초기화
 async function initializeServer() {
   try {
-    process.stderr.write(`📦 Memento MCP Server v${packageJson.version}\n`);
-    process.stderr.write('🚀 MCP 서버 초기화 시작...\n');
+    mcpLogger.logServer('info', `Memento MCP Server v${packageJson.version}`);
+    mcpLogger.logServer('info', 'MCP 서버 초기화 시작...');
     
     // 설정 검증
     validateConfig();
-    process.stderr.write('✅ 설정 검증 완료\n');
+    mcpLogger.logServer('info', '설정 검증 완료');
     
     // 데이터베이스 초기화
     db = await initializeDatabase();
-    process.stderr.write('✅ 데이터베이스 초기화 완료\n');
+    mcpLogger.logServer('info', '데이터베이스 초기화 완료');
     
     // 데이터베이스 상태 모니터링
     await monitorDatabaseStatus();
-    process.stderr.write('✅ 데이터베이스 상태 모니터링 완료\n');
+    mcpLogger.logServer('info', '데이터베이스 상태 모니터링 완료');
     
     // 공용 부트스트랩 함수를 사용하여 모든 서비스 초기화
     const services = await initializeServices(db);
     
     // 전역 변수에 서비스 할당 (하위 호환성을 위해 유지)
+    /* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
     searchEngine = services.searchEngine;
     hybridSearchEngine = services.hybridSearchEngine;
     embeddingService = services.embeddingService;
@@ -149,41 +154,48 @@ async function initializeServer() {
     performanceAlertService = services.performanceAlertService;
     consolidationScoreService = services.consolidationScoreService || null;
     writeCoalescingManager = services.writeCoalescingManager || null;
+    /* eslint-enable @typescript-eslint/no-unused-vars, no-unused-vars */
     
     // 부트스트랩에서 반환된 전체 서비스 객체 저장 (ToolContext 생성 시 사용)
     serverServices = services;
     
-    process.stderr.write('✅ 서비스 초기화 완료\n');
+    mcpLogger.logServer('info', '서비스 초기화 완료');
     
     // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
     const batchScheduler = getBatchScheduler();
     if (batchScheduler.getStatus().isRunning) {
-      process.stderr.write('⚠️  이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...\n');
+      mcpLogger.logServer('warn', '이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...');
       await batchScheduler.stop();
     }
     // Reflexion Worker 통합 (Phase 2)
     await batchScheduler.start(db, services.reflexionWorker);
-    process.stderr.write('⏰ 배치 스케줄러 시작됨\n');
+    mcpLogger.logServer('info', '배치 스케줄러 시작됨');
     
     // 배치 스케줄러 상태 확인
     const status = batchScheduler.getStatus();
-    process.stderr.write(`📊 배치 스케줄러 상태: ${JSON.stringify({
+    mcpLogger.logServer('info', `배치 스케줄러 상태: ${JSON.stringify({
       isRunning: status.isRunning,
       activeJobs: status.activeJobs,
       uptime: status.uptime
-    }, null, 2)}\n`);
+    }, null, 2)}`);
     
     // 임베딩 프로바이더 정보 표시
-    process.stderr.write(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}\n`);
+    const providerInfo: any = {
+      provider: mementoConfig.embeddingProvider.toUpperCase()
+    };
     if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
-      process.stderr.write(`   📝 모델: ${mementoConfig.openaiModel} (${mementoConfig.embeddingDimensions}차원)\n`);
+      providerInfo.model = mementoConfig.openaiModel;
+      providerInfo.dimensions = mementoConfig.embeddingDimensions;
     } else if (mementoConfig.embeddingProvider === 'gemini' && mementoConfig.geminiApiKey) {
-      process.stderr.write(`   📝 모델: ${mementoConfig.geminiModel} (${mementoConfig.embeddingDimensions}차원)\n`);
+      providerInfo.model = mementoConfig.geminiModel;
+      providerInfo.dimensions = mementoConfig.embeddingDimensions;
     } else if (mementoConfig.embeddingProvider === 'lightweight') {
-      process.stderr.write(`   📝 모델: lightweight-hybrid (512차원)\n`);
+      providerInfo.model = 'lightweight-hybrid';
+      providerInfo.dimensions = 512;
     }
+    mcpLogger.logServer('info', '임베딩 프로바이더 정보', providerInfo);
     
-    process.stderr.write('✅ 검색 엔진 초기화 완료\n');
+    mcpLogger.logServer('info', '검색 엔진 초기화 완료');
     
     // MCP 서버 생성
     server = new Server(
@@ -199,19 +211,20 @@ async function initializeServer() {
         }
       }
     );
-    process.stderr.write('✅ MCP 서버 생성 완료\n');
+    
+    // MCP 로거에 Server 인스턴스 설정
+    mcpLogger.setServer(server);
+    
+    mcpLogger.logServer('info', 'MCP 서버 생성 완료');
     
     // 도구 레지스트리 가져오기
     const toolRegistry = getToolRegistry();
     
     // Tools 등록
     server.setRequestHandler(ListToolsRequestSchema, async () => {
-      process.stderr.write('📋 도구 목록 요청 처리\n');
+      await mcpLogger.logMCPProtocol('debug', '도구 목록 요청 처리');
       const tools = toolRegistry.getAll();
-      process.stderr.write(`📋 등록된 도구 개수: ${tools.length}\n`);
-      tools.forEach(tool => {
-        process.stderr.write(`   - ${tool.name}: ${tool.description}\n`);
-      });
+      await mcpLogger.logMCPProtocol('debug', `등록된 도구 개수: ${tools.length}`, { count: tools.length });
       
       return {
         tools: tools.map(tool => ({
@@ -224,7 +237,7 @@ async function initializeServer() {
     
     // Resources 목록 핸들러
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
-      process.stderr.write('📋 리소스 목록 요청 처리\n');
+      await mcpLogger.logMCPProtocol('debug', '리소스 목록 요청 처리');
       
       if (!db) {
         throw new Error('Database not initialized');
@@ -232,6 +245,7 @@ async function initializeServer() {
       
       // 모든 메모리 ID 조회
       const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
+      await mcpLogger.logMCPProtocol('debug', `리소스 개수: ${memories.length}`, { count: memories.length });
       
       return {
         resources: memories.map((memory: any) => ({
@@ -246,7 +260,7 @@ async function initializeServer() {
     // Resource 읽기 핸들러
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const { uri } = request.params;
-      process.stderr.write(`📖 리소스 읽기 요청: ${uri}\n`);
+      await mcpLogger.logMCPProtocol('debug', `리소스 읽기 요청: ${uri}`, { uri });
       
       // URI 파싱: memory://{id}?include_neighbors=true
       const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
@@ -310,7 +324,7 @@ async function initializeServer() {
           memoryData.neighbors_count = neighborsResult.total_count;
           memoryData.neighbors_query_time = neighborsResult.query_time;
         } catch (error) {
-          process.stderr.write(`⚠️ 이웃 기억 조회 실패: ${error instanceof Error ? error.message : String(error)}\n`);
+          mcpLogger.logServer('warn', `이웃 기억 조회 실패: ${error instanceof Error ? error.message : String(error)}`, { error: error instanceof Error ? error.message : String(error) });
           memoryData.neighbors = [];
           memoryData.neighbors_count = 0;
         }
@@ -330,8 +344,7 @@ async function initializeServer() {
     // Tool 실행 핸들러 - 동시성 제한 적용
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      process.stderr.write(`🔧 도구 실행 요청: ${name}\n`);
-      process.stderr.write(`🔧 도구 인수: ${JSON.stringify(args)}\n`);
+      await mcpLogger.logMCPProtocol('debug', `도구 실행 요청: ${name}`, { toolName: name, args });
       
       // 동시성 제한 적용
       await concurrencyLimiter.acquire();
@@ -362,10 +375,9 @@ async function initializeServer() {
           }
         };
         
-        process.stderr.write(`🔧 도구 실행 시작: ${name}\n`);
         // 도구 실행
         const toolResult = await toolRegistry.execute(name, args, context);
-        process.stderr.write(`🔧 도구 실행 완료: ${name}\n`);
+        await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
         
         // MCP 형식으로 변환
         return {
@@ -401,16 +413,16 @@ async function initializeServer() {
       }
     });
     
-    process.stderr.write('✅ MCP 서버 초기화 완료\n');
+    mcpLogger.logServer('info', 'MCP 서버 초기화 완료');
     
     // 실시간 성능 모니터링 시작
     // performanceMonitoringIntegration.startRealTimeMonitoring();
     
-    process.stderr.write('🚀 Memento MCP Server가 시작되었습니다!\n');
+    mcpLogger.logServer('info', 'Memento MCP Server가 시작되었습니다!');
     // process.stderr.write('📊 실시간 성능 모니터링이 활성화되었습니다\n');
     
   } catch (error) {
-    process.stderr.write(`❌ 서버 초기화 실패: ${error}\n`);
+    mcpLogger.logServer('error', `서버 초기화 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   }
 }
@@ -419,34 +431,36 @@ async function initializeServer() {
 async function startServer() {
   try {
     await initializeServer();
-    process.stderr.write('✅ 서버 초기화 완료\n');
+    mcpLogger.logServer('info', '서버 초기화 완료');
     
     // Stdio 전송 계층 사용
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    process.stderr.write('✅ MCP 전송 계층 연결 완료\n');
+    mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
     
     // MCP 클라이언트 연결 대기 중
-    process.stderr.write('🔗 MCP 클라이언트 연결 대기 중...\n');
+    mcpLogger.logServer('info', 'MCP 클라이언트 연결 대기 중...');
     
     // 서버가 종료될 때까지 대기
     return new Promise<void>((resolve) => {
       process.on('SIGINT', () => {
-        process.stderr.write('👋 서버 종료 신호 수신\n');
+        mcpLogger.logServer('info', '서버 종료 신호 수신 (SIGINT)');
         cleanup().then(() => {
+          resolve();
           process.exit(0);
         });
       });
 
       process.on('SIGTERM', () => {
-        process.stderr.write('👋 서버 종료 신호 수신\n');
+        mcpLogger.logServer('info', '서버 종료 신호 수신 (SIGTERM)');
         cleanup().then(() => {
+          resolve();
           process.exit(0);
         });
       });
     });
   } catch (error) {
-    process.stderr.write(`❌ 서버 시작 실패: ${error}\n`);
+    mcpLogger.logServer('error', `서버 시작 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   }
 }
@@ -467,7 +481,7 @@ async function cleanup() {
       await writeCoalescingManager.flush();
       await writeCoalescingManager.destroy();
     } catch (error) {
-      process.stderr.write(`⚠️ Write coalescing flush 실패 (종료 시): ${error instanceof Error ? error.message : String(error)}\n`);
+      mcpLogger.logServer('warn', `Write coalescing flush 실패 (종료 시): ${error instanceof Error ? error.message : String(error)}`, { error: error instanceof Error ? error.message : String(error) });
     }
   }
   
@@ -475,9 +489,9 @@ async function cleanup() {
   try {
     const batchScheduler = getBatchScheduler();
     await batchScheduler.stop();
-    process.stderr.write('⏰ 배치 스케줄러 중지됨\n');
+    mcpLogger.logServer('info', '배치 스케줄러 중지됨');
   } catch (error) {
-    process.stderr.write(`⚠️ 배치 스케줄러 중지 실패: ${error instanceof Error ? error.message : String(error)}\n`);
+    mcpLogger.logServer('warn', `배치 스케줄러 중지 실패: ${error instanceof Error ? error.message : String(error)}`, { error: error instanceof Error ? error.message : String(error) });
   }
   
   if (db) {
@@ -488,15 +502,23 @@ async function cleanup() {
 }
 
 // 프로세스 종료 시 정리
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+// Note: SIGINT와 SIGTERM 핸들러는 startServer() 내부에서 등록되므로
+// 여기서는 uncaughtException만 처리합니다.
 process.on('uncaughtException', (error) => {
-  // 예상치 못한 오류
+  // 예상치 못한 오류 로깅
+  mcpLogger.logServer('error', 'Uncaught exception', { 
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined
+  });
   cleanup();
   process.exit(1);
 });
 
 // 서버 시작 (MCP 서버는 항상 시작되어야 함)
-startServer().catch(error => {
+startServer().catch((error) => {
+  mcpLogger.logServer('error', 'Failed to start server', { 
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined
+  });
   process.exit(1);
 });

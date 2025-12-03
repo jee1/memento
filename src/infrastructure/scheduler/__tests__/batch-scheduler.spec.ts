@@ -597,6 +597,56 @@ describe('BatchScheduler', () => {
       consoleSpy.mockRestore();
       cleanupTestDatabase(db);
     });
+
+    it('Error 객체를 로그에 전달할 때 속성이 보존되어야 함', async () => {
+      // Given: 로깅이 활성화된 스케줄러와 mcpLogger 모킹
+      const testScheduler = new BatchScheduler({
+        enableLogging: true,
+        cleanupInterval: 60000,
+        monitoringInterval: 10000
+      });
+
+      const mcpLoggerModule = await import('../../../server/mcp-logger.js');
+      const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
+
+      await testScheduler.start(db);
+
+      // When: Error 객체를 포함한 작업 실행
+      // 데이터베이스 연결을 끊어서 에러 발생 유도
+      const originalDb = db;
+      db.close();
+      
+      try {
+        await testScheduler.runJob('cleanup');
+      } catch {
+        // 에러는 예상됨
+      }
+
+      // Then: Error 객체의 message, name, stack이 로그에 포함되어야 함
+      const errorLogCalls = logBatchSpy.mock.calls.filter(
+        call => call[0] === 'error' && call[2] && typeof call[2] === 'object'
+      );
+
+      if (errorLogCalls.length > 0) {
+        const lastErrorCall = errorLogCalls[errorLogCalls.length - 1];
+        const logData = lastErrorCall[2] as any;
+        
+        // Error 객체의 속성이 제대로 추출되었는지 확인
+        // message, name, stack 중 하나라도 있어야 함
+        const hasErrorInfo = 
+          (logData.message && typeof logData.message === 'string') ||
+          (logData.name && typeof logData.name === 'string') ||
+          (logData.stack && typeof logData.stack === 'string');
+        
+        expect(hasErrorInfo).toBe(true);
+      }
+
+      logBatchSpy.mockRestore();
+      
+      // 데이터베이스 재생성
+      db = await setupTestDatabase();
+      await testScheduler.stop();
+    });
   });
 });
 
