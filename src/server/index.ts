@@ -502,8 +502,8 @@ async function cleanup() {
 }
 
 // 프로세스 종료 시 정리
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+// Note: SIGINT와 SIGTERM 핸들러는 startServer() 내부에서 등록되므로
+// 여기서는 uncaughtException만 처리합니다.
 process.on('uncaughtException', (error) => {
   // 예상치 못한 오류 로깅
   mcpLogger.logServer('error', 'Uncaught exception', { 
