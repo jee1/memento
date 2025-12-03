@@ -842,8 +842,23 @@ export class BatchScheduler {
     if (!this.config.enableLogging) return;
 
     // 배치 작업 컨텍스트 정보 추가
-    // data가 객체인 경우에만 spread, 그렇지 않으면 안전하게 처리
-    const safeData = typeof data === 'object' && data !== null && !Array.isArray(data) ? data : {};
+    // Error 객체는 non-enumerable 속성을 가지므로 명시적으로 처리 필요
+    let safeData: Record<string, any>;
+    if (data instanceof Error) {
+      // Error 객체의 속성을 명시적으로 추출 (non-enumerable 속성 포함)
+      safeData = {
+        message: data.message,
+        name: data.name,
+        stack: data.stack
+      };
+    } else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      // 일반 객체는 spread 가능
+      safeData = data;
+    } else {
+      // 원시 타입이나 배열은 빈 객체로 처리
+      safeData = {};
+    }
+    
     const batchContext = {
       ...safeData,
       uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
