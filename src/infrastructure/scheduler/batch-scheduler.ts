@@ -842,8 +842,10 @@ export class BatchScheduler {
     if (!this.config.enableLogging) return;
 
     // 배치 작업 컨텍스트 정보 추가
+    // data가 객체인 경우에만 spread, 그렇지 않으면 안전하게 처리
+    const safeData = typeof data === 'object' && data !== null && !Array.isArray(data) ? data : {};
     const batchContext = {
-      ...data,
+      ...safeData,
       uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
       activeJobs: this.runningJobs.size,
       queueSize: this.jobQueue.length

@@ -442,10 +442,11 @@ async function startServer() {
     mcpLogger.logServer('info', 'MCP 클라이언트 연결 대기 중...');
     
     // 서버가 종료될 때까지 대기
-    return new Promise<void>(() => {
+    return new Promise<void>((resolve) => {
       process.on('SIGINT', () => {
         mcpLogger.logServer('info', '서버 종료 신호 수신 (SIGINT)');
         cleanup().then(() => {
+          resolve();
           process.exit(0);
         });
       });
@@ -453,6 +454,7 @@ async function startServer() {
       process.on('SIGTERM', () => {
         mcpLogger.logServer('info', '서버 종료 신호 수신 (SIGTERM)');
         cleanup().then(() => {
+          resolve();
           process.exit(0);
         });
       });
@@ -502,13 +504,21 @@ async function cleanup() {
 // 프로세스 종료 시 정리
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
-process.on('uncaughtException', () => {
-  // 예상치 못한 오류
+process.on('uncaughtException', (error) => {
+  // 예상치 못한 오류 로깅
+  mcpLogger.logServer('error', 'Uncaught exception', { 
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined
+  });
   cleanup();
   process.exit(1);
 });
 
 // 서버 시작 (MCP 서버는 항상 시작되어야 함)
-startServer().catch(() => {
+startServer().catch((error) => {
+  mcpLogger.logServer('error', 'Failed to start server', { 
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined
+  });
   process.exit(1);
 });
