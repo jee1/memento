@@ -337,7 +337,11 @@ export class DatabaseUtils {
           origin_source TEXT DEFAULT '{}',
           task_goal TEXT,
           steps TEXT,
-          reflection_notes TEXT
+          reflection_notes TEXT,
+          -- Procedural Memory Enhancement (v7.0) 추가 필드
+          workflow_name TEXT,
+          skill_name TEXT,
+          trigger_conditions TEXT
         )
       `);
 
@@ -365,7 +369,7 @@ export class DatabaseUtils {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           source_id TEXT NOT NULL,
           target_id TEXT NOT NULL,
-          relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')) NOT NULL,
+          relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts', 'version_of')) NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
           FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
@@ -419,6 +423,9 @@ export class DatabaseUtils {
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_importance ON memory_item(importance)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_user_id ON memory_item(id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(id)');
+      // Procedural Memory Enhancement (v7.0) 인덱스
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name)');
 
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id)');

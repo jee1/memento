@@ -20,7 +20,11 @@ CREATE TABLE IF NOT EXISTS memory_item (
   origin_source TEXT DEFAULT '{}', -- JSON 형식: {"tool": "remember", "caller": "user", "timestamp": "...", "context": {...}}
   task_goal TEXT, -- Procedural Memory 전용, 작업 목표
   steps TEXT, -- Procedural Memory 전용, JSON 배열 형식
-  reflection_notes TEXT -- Procedural Memory 전용, JSON 형식
+  reflection_notes TEXT, -- Procedural Memory 전용, JSON 형식
+  -- Procedural Memory Enhancement (v7.0) 추가 필드
+  workflow_name TEXT, -- 프로세스 이름 (예: "데이터 마이그레이션", "API 배포")
+  skill_name TEXT, -- 기술/능력 이름 (예: "스키마 백업", "데이터 검증")
+  trigger_conditions TEXT -- 트리거 조건 (JSON 객체 문자열)
 );
 
 -- 태그 테이블
@@ -45,7 +49,7 @@ CREATE TABLE IF NOT EXISTS memory_link (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   source_id TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')) NOT NULL,
+  relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts', 'version_of')) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
   FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
@@ -80,6 +84,9 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_privacy_scope ON memory_item(privacy_
 CREATE INDEX IF NOT EXISTS idx_memory_item_importance ON memory_item(importance);
 CREATE INDEX IF NOT EXISTS idx_memory_item_user_id ON memory_item(id); -- user_id 대신 id 사용
 CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(id); -- project_id 대신 id 사용
+-- Procedural Memory Enhancement (v7.0) 인덱스
+CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name);
+CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name);
 
 CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id);

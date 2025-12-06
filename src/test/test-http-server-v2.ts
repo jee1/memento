@@ -79,10 +79,11 @@ async function setupTestDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       source_id TEXT NOT NULL,
       target_id TEXT NOT NULL,
-      relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')),
+      relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts', 'version_of')) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
-      FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE
+      FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      UNIQUE(source_id, target_id, relation_type)
     );
 
     CREATE TABLE IF NOT EXISTS feedback_event (
