@@ -675,10 +675,12 @@ describe('SearchRanking', () => {
 
         const score = customRanking.calculateFinalScore(features);
         
-        // Final_Score = w1 * vector_similarity + w2 * consolidation_score
-        // w1 = 0.8, w2 = 0.2 (상한 0.4 미만이므로 그대로 사용)
-        // vector_similarity = relevance = 0.8
-        const expected = 0.8 * 0.8 + 0.2 * 0.9; // 0.64 + 0.18 = 0.82
+        // 다차원 랭킹: relevance를 consolidation_score로 보완한 후 모든 신호 포함
+        // w1 = 0.8, w2 = 0.2
+        // relevanceScore = 0.8 * 0.8 + 0.2 * 0.9 = 0.64 + 0.18 = 0.82
+        // 다차원 랭킹: relevance(0.45) * 0.82 + recency(0.2) * 0.6 + importance(0.2) * 0.7 + usage(0.1) * 0.5 - duplication(0.1) * 0.2
+        // = 0.369 + 0.12 + 0.14 + 0.05 - 0.02 = 0.659
+        const expected = 0.45 * 0.82 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
         expect(score).toBeCloseTo(expected, 3);
       });
 
@@ -715,7 +717,10 @@ describe('SearchRanking', () => {
         const score = customRanking.calculateFinalScore(features);
         
         // w2는 0.4로 제한, w1 = 0.6
-        const expected = 0.6 * 0.8 + 0.4 * 0.9; // 0.48 + 0.36 = 0.84
+        // relevanceScore = 0.6 * 0.8 + 0.4 * 0.9 = 0.48 + 0.36 = 0.84
+        // 다차원 랭킹: relevance(0.45) * 0.84 + recency(0.2) * 0.6 + importance(0.2) * 0.7 + usage(0.1) * 0.5 - duplication(0.1) * 0.2
+        // = 0.378 + 0.12 + 0.14 + 0.05 - 0.02 = 0.668
+        const expected = 0.45 * 0.84 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
         expect(score).toBeCloseTo(expected, 3);
       });
     });
@@ -856,6 +861,189 @@ describe('SearchRanking', () => {
           
           expect(w1 + w2).toBeCloseTo(1.0, 5);
         });
+      });
+    });
+  });
+
+  describe('Procedural Memory 특화 가중치', () => {
+    describe('calculateProceduralMemoryBoost', () => {
+      it('workflow_name 매칭 시 +0.1 부스트', () => {
+        // Given: workflow_name_match가 true인 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          workflow_name_match: true
+        };
+
+        // When: procedural memory boost 계산
+        const boost = ranking.calculateProceduralMemoryBoost(features);
+
+        // Then: +0.1 부스트
+        expect(boost).toBe(0.1);
+      });
+
+      it('skill_name 매칭 시 +0.1 부스트', () => {
+        // Given: skill_name_match가 true인 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          skill_name_match: true
+        };
+
+        // When: procedural memory boost 계산
+        const boost = ranking.calculateProceduralMemoryBoost(features);
+
+        // Then: +0.1 부스트
+        expect(boost).toBe(0.1);
+      });
+
+      it('trigger_conditions 매칭 시 +0.15 부스트', () => {
+        // Given: trigger_conditions_match가 true인 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          trigger_conditions_match: true
+        };
+
+        // When: procedural memory boost 계산
+        const boost = ranking.calculateProceduralMemoryBoost(features);
+
+        // Then: +0.15 부스트
+        expect(boost).toBe(0.15);
+      });
+
+      it('모든 필드 매칭 시 최대 부스트 (+0.35)', () => {
+        // Given: 모든 procedural memory 필드가 매칭된 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          workflow_name_match: true,
+          skill_name_match: true,
+          trigger_conditions_match: true
+        };
+
+        // When: procedural memory boost 계산
+        const boost = ranking.calculateProceduralMemoryBoost(features);
+
+        // Then: 최대 부스트 (0.1 + 0.1 + 0.15 = 0.35)
+        expect(boost).toBe(0.35);
+      });
+
+      it('매칭이 없으면 부스트 없음', () => {
+        // Given: procedural memory 필드가 없는 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2
+        };
+
+        // When: procedural memory boost 계산
+        const boost = ranking.calculateProceduralMemoryBoost(features);
+
+        // Then: 부스트 없음
+        expect(boost).toBe(0);
+      });
+    });
+
+    describe('calculateFinalScore with Procedural Memory boost', () => {
+      it('workflow_name 매칭 시 최종 점수에 부스트 추가', () => {
+        // Given: workflow_name_match가 true인 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          workflow_name_match: true
+        };
+
+        // When: 최종 점수 계산
+        const score = ranking.calculateFinalScore(features);
+
+        // Then: 기본 점수 + 0.1 부스트
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        expect(score).toBeCloseTo(baseScore + 0.1, 3);
+      });
+
+      it('skill_name 매칭 시 최종 점수에 부스트 추가', () => {
+        // Given: skill_name_match가 true인 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          skill_name_match: true
+        };
+
+        // When: 최종 점수 계산
+        const score = ranking.calculateFinalScore(features);
+
+        // Then: 기본 점수 + 0.1 부스트
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        expect(score).toBeCloseTo(baseScore + 0.1, 3);
+      });
+
+      it('trigger_conditions 매칭 시 최종 점수에 부스트 추가', () => {
+        // Given: trigger_conditions_match가 true인 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          trigger_conditions_match: true
+        };
+
+        // When: 최종 점수 계산
+        const score = ranking.calculateFinalScore(features);
+
+        // Then: 기본 점수 + 0.15 부스트
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        expect(score).toBeCloseTo(baseScore + 0.15, 3);
+      });
+
+      it('consolidation_score와 procedural memory boost 함께 적용', () => {
+        // Given: consolidation_score와 procedural memory 필드가 모두 있는 features
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          consolidation_score: 0.9,
+          workflow_name_match: true,
+          skill_name_match: true
+        };
+
+        // When: 최종 점수 계산 (consolidation_score 가중치가 설정된 ranking 사용)
+        const customRanking = new SearchRanking({
+          consolidation_score: 0.2 // w2 = 0.2
+        });
+        const score = customRanking.calculateFinalScore(features);
+
+        // Then: 다차원 랭킹 (모든 신호 포함) + procedural memory boost
+        // w1 = 0.8, w2 = 0.2
+        // relevanceScore = 0.8 * 0.8 + 0.2 * 0.9 = 0.64 + 0.18 = 0.82
+        // 다차원 랭킹: relevance(0.45) * 0.82 + recency(0.2) * 0.6 + importance(0.2) * 0.7 + usage(0.1) * 0.5 - duplication(0.1) * 0.2
+        // = 0.369 + 0.12 + 0.14 + 0.05 - 0.02 = 0.659
+        // procedural boost: workflow_name(0.1) + skill_name(0.1) = 0.2
+        // 최종: 0.659 + 0.2 = 0.859
+        expect(score).toBeCloseTo(0.859, 3);
       });
     });
   });

@@ -95,7 +95,7 @@ async function testToolConsistency() {
   
   let testDb1: Database.Database | null = null;
   let testDb2: Database.Database | null = null;
-  let createdMemoryIds: string[] = [];
+  const createdMemoryIds: string[] = [];
   
   try {
     // 1. 두 개의 테스트 데이터베이스 설정

@@ -37,6 +37,20 @@ function createBaseSchema(db: Database.Database): void {
     );
   `);
 
+  // memory_link 테이블 생성 (007 마이그레이션 의존성)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_link (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts')) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      UNIQUE(source_id, target_id, relation_type)
+    );
+  `);
+
   // memory_embedding 테이블 생성 (의존성 검증용)
   db.exec(`
     CREATE TABLE IF NOT EXISTS memory_embedding (

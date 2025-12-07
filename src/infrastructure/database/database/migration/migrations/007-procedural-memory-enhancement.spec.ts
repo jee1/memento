@@ -101,6 +101,22 @@ function createBaseSchema(db: Database.Database): void {
         VALUES (new.rowid, new.content, new.tags, new.source, new.reflection_notes);
       END;
     `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source, old.reflection_notes);
+        INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+        VALUES (new.rowid, new.content, new.tags, new.source, new.reflection_notes);
+      END;
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source, old.reflection_notes);
+      END;
+    `);
   } catch (error) {
     // FTS5가 사용 불가능할 수 있으므로 무시
   }

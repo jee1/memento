@@ -178,6 +178,7 @@ async function testRegression() {
     
     // 8. ToolContext에 모든 서비스가 포함되어 있는지 확인
     console.log('8️⃣ ToolContext 서비스 포함 확인');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     const contextServices = Object.keys(context.services);
     const expectedServices = [
       'searchEngine',

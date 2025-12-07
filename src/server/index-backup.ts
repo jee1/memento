@@ -8,26 +8,28 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
 import { mementoConfig, validateConfig } from '../shared/config/index.js';
-import type { MemoryType, PrivacyScope } from '../shared/types/index.js';
+// MemoryType, PrivacyScope는 사용되지 않음
 import { DatabaseUtils } from '../shared/utils/database.js';
-import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
+// SearchEngine과 SearchCacheService는 사용되지 않음
+// import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
+// import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
 import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import Database from 'better-sqlite3';
 
 // MCP 서버 인스턴스
 let server: Server;
 let db: Database.Database | null = null;
-let searchEngine: SearchEngine;
+// searchEngine과 searchCache는 사용되지 않음
+// let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 let forgettingPolicyService: ForgettingPolicyService;
 let performanceMonitor: PerformanceMonitor;
-let searchCache: SearchCacheService;
+// let searchCache: SearchCacheService;
 let databaseOptimizer: DatabaseOptimizer;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
@@ -102,7 +104,7 @@ async function handleRemember(params: z.infer<typeof RememberSchema>) {
   
   try {
     // 개선된 트랜잭션 재시도 로직 사용
-    const result = await DatabaseUtils.runTransaction(db!, async () => {
+    await DatabaseUtils.runTransaction(db!, async () => {
       await DatabaseUtils.run(db!, `
         INSERT INTO memory_item (id, type, content, importance, privacy_scope, tags, source, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -195,7 +197,7 @@ async function handleForget(params: z.infer<typeof ForgetSchema>) {
   
   try {
     // 개선된 트랜잭션 재시도 로직 사용
-    const result = await DatabaseUtils.runTransaction(db!, async () => {
+    await DatabaseUtils.runTransaction(db!, async () => {
       if (hard) {
         // 하드 삭제
         const deleteResult = await DatabaseUtils.run(db!, 'DELETE FROM memory_item WHERE id = ?', [id]);
@@ -405,6 +407,7 @@ async function handleCleanupMemory(params: z.infer<typeof CleanupMemorySchema>) 
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 async function handleForgettingStats(params: z.infer<typeof ForgettingStatsSchema>) {
   if (!db) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
@@ -440,6 +443,7 @@ async function handleForgettingStats(params: z.infer<typeof ForgettingStatsSchem
 }
 
 // 성능 모니터링 핸들러들
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 async function handlePerformanceStats(params: z.infer<typeof PerformanceStatsSchema>) {
   if (!db) {
     throw new Error('데이터베이스가 초기화되지 않았습니다');
@@ -573,12 +577,13 @@ async function initializeServer() {
     process.stderr.write('✅ 데이터베이스 상태 모니터링 완료\n');
     
     // 검색 엔진 초기화
-    searchEngine = new SearchEngine();
+    // searchEngine과 searchCache는 사용되지 않음
+    // searchEngine = new SearchEngine();
     hybridSearchEngine = new HybridSearchEngine();
     embeddingService = new MemoryEmbeddingService();
     forgettingPolicyService = new ForgettingPolicyService();
     performanceMonitor = new PerformanceMonitor(db);
-    searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
+    // searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
     databaseOptimizer = new DatabaseOptimizer(db);
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
@@ -820,6 +825,7 @@ async function startServer() {
     process.stderr.write('🔗 MCP 클라이언트 연결 대기 중...\n');
     
     // 서버가 종료될 때까지 대기
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     return new Promise<void>((resolve) => {
       process.on('SIGINT', () => {
         process.stderr.write('👋 서버 종료 신호 수신\n');
@@ -861,6 +867,7 @@ async function cleanup() {
 // 프로세스 종료 시 정리
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 process.on('uncaughtException', (error) => {
   // 예상치 못한 오류
   cleanup();
@@ -869,6 +876,7 @@ process.on('uncaughtException', (error) => {
 
 // 서버 시작
 if (process.argv[1] && process.argv[1].endsWith('index.js')) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   startServer().catch(error => {
     process.exit(1);
   });

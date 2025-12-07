@@ -278,6 +278,17 @@ export class SearchLogger implements ISearchLogger {
   }
 }
 
+/**
+ * 구조화된 컨텍스트 정보
+ * PRD 요구사항: trigger_conditions와 매칭하기 위한 현재 컨텍스트
+ */
+export interface TriggerContext {
+  tool_name?: string;
+  error_type?: string;
+  params?: Record<string, any>;
+  [key: string]: any; // 기타 컨텍스트 필드
+}
+
 export interface HybridSearchQuery {
   query: string;
   filters?: MemorySearchFilters | undefined;
@@ -287,6 +298,8 @@ export interface HybridSearchQuery {
   includeRelations?: boolean; // 관계 정보 포함 여부 (기본값: false)
   experiment_id?: string; // 실험 ID (A/B 테스트용)
   provider_filter?: EmbeddingProvider[]; // 검색할 provider 필터 (선택적, 미지정 시 모든 provider 검색)
+  match_trigger_conditions?: boolean; // trigger_conditions 매칭 여부 (기본값: false)
+  context?: TriggerContext; // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용)
 }
 
 export interface HybridSearchResult {
@@ -412,7 +425,8 @@ export class HybridSearchEngine {
         weights, 
         query.limit || 10, 
         db,
-        query.includeRelations || false
+        query.includeRelations || false,
+        query
       );
 
       // 검색 통계를 업데이트하여 향후 가중치 조정에 활용합니다.
@@ -1094,7 +1108,8 @@ export class HybridSearchEngine {
     weights: any, 
     limit: number,
     db?: Database.Database,
-    includeRelations: boolean = false
+    includeRelations: boolean = false,
+    query?: HybridSearchQuery
   ): Promise<HybridSearchResult[]> {
     try {
       const combinedResults = this.resultCombiner.combine(
@@ -1119,6 +1134,9 @@ export class HybridSearchEngine {
             consolidationScores = this.fetchConsolidationScores(db, memoryIds);
           }
           
+          // Procedural Memory 특화 가중치를 위한 매칭 정보 조회
+          const proceduralMemoryMatches = this.fetchProceduralMemoryMatches(db, memoryIds, query);
+          
           // 관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산합니다.
           combinedResults.forEach(result => {
             const relationWeight = relationWeights.get(result.id);
@@ -1140,27 +1158,45 @@ export class HybridSearchEngine {
               }
             }
             
+            // Procedural Memory 매칭 정보 가져오기
+            const proceduralMatch = proceduralMemoryMatches.get(result.id);
+            
             const consolidationScore = consolidationScores.get(result.id);
             
             if (consolidationScore !== undefined) {
               // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
               result.consolidation_score = consolidationScore;
               const vectorSimilarity = result.vectorScore;
-              result.finalScore = this.ranking.calculateFinalScoreWithConsolidation(
-                vectorSimilarity,
-                consolidationScore,
-                'balanced'
-              );
+              
+              // Procedural Memory 특화 가중치를 포함한 SearchFeatures 구성
+              const features = {
+                relevance: vectorSimilarity,
+                recency: this.calculateRecency(result.created_at),
+                importance: result.importance || 0.5,
+                usage: this.calculateUsage(result.last_accessed),
+                relation_weight: relationWeight || 0,
+                duplication_penalty: 0,
+                consolidation_score: consolidationScore,
+                workflow_name_match: proceduralMatch?.workflow_name_match || false,
+                skill_name_match: proceduralMatch?.skill_name_match || false,
+                trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
+              };
+              
+              // calculateFinalScoreWithConsolidation 대신 calculateFinalScore 사용 (procedural memory boost 포함)
+              result.finalScore = this.ranking.calculateFinalScore(features);
             } else {
               // 관계 가중치를 포함한 finalScore 재계산
-              // SearchFeatures 구성
+              // SearchFeatures 구성 (Procedural Memory 특화 가중치 포함)
               const features = {
                 relevance: result.vectorScore || result.textScore || 0,
                 recency: this.calculateRecency(result.created_at),
                 importance: result.importance || 0.5,
                 usage: this.calculateUsage(result.last_accessed),
                 relation_weight: relationWeight || 0, // relationWeight가 undefined면 0 사용
-                duplication_penalty: 0 // 중복 패널티는 이미 결과 결합 시 처리됨
+                duplication_penalty: 0, // 중복 패널티는 이미 결과 결합 시 처리됨
+                workflow_name_match: proceduralMatch?.workflow_name_match || false,
+                skill_name_match: proceduralMatch?.skill_name_match || false,
+                trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
               };
               
               result.finalScore = this.ranking.calculateFinalScore(features);
@@ -1208,6 +1244,161 @@ export class HybridSearchEngine {
     }
     
     return scores;
+  }
+
+  /**
+   * Procedural Memory 매칭 정보 조회
+   * workflow_name, skill_name, trigger_conditions 매칭 여부를 확인합니다.
+   * 
+   * workflow_name과 skill_name은 쿼리/필터와의 실제 매칭을 수행합니다.
+   * trigger_conditions는 현재 컨텍스트(쿼리)와의 매칭을 수행합니다.
+   */
+  private fetchProceduralMemoryMatches(
+    db: Database.Database,
+    memoryIds: string[],
+    query?: HybridSearchQuery
+  ): Map<string, { workflow_name_match: boolean; skill_name_match: boolean; trigger_conditions_match: boolean }> {
+    const matches = new Map<string, { workflow_name_match: boolean; skill_name_match: boolean; trigger_conditions_match: boolean }>();
+    
+    if (memoryIds.length === 0) {
+      return matches;
+    }
+    
+    try {
+      const placeholders = memoryIds.map(() => '?').join(',');
+      const sql = `
+        SELECT id, workflow_name, skill_name, trigger_conditions
+        FROM memory_item
+        WHERE id IN (${placeholders})
+          AND (workflow_name IS NOT NULL OR skill_name IS NOT NULL OR trigger_conditions IS NOT NULL)
+      `;
+      const results = db.prepare(sql).all(...memoryIds) as Array<{
+        id: string;
+        workflow_name: string | null;
+        skill_name: string | null;
+        trigger_conditions: string | null;
+      }>;
+      
+      // 쿼리와 필터 정보 추출
+      const queryText = query?.query?.toLowerCase() || '';
+      const filterWorkflowName = query?.filters?.workflow_name?.toLowerCase();
+      const filterSkillName = query?.filters?.skill_name?.toLowerCase();
+      const matchTriggerConditions = query?.match_trigger_conditions ?? false;
+      
+      results.forEach(row => {
+        // workflow_name 매칭: 필터 또는 쿼리와 매칭
+        // PRD: "매칭 시 가중치" - 실제 매칭이 있어야만 부스트 적용
+        let workflowMatch = false;
+        if (row.workflow_name) {
+          const workflowLower = row.workflow_name.toLowerCase();
+          if (filterWorkflowName) {
+            // 필터가 있으면 정확히 일치해야 함
+            workflowMatch = workflowLower === filterWorkflowName;
+          } else if (queryText) {
+            // 쿼리가 있으면 부분 매칭
+            workflowMatch = workflowLower.includes(queryText) || queryText.includes(workflowLower);
+          }
+          // 쿼리와 필터가 모두 없으면 매칭하지 않음 (PRD: "매칭 시 가중치")
+        }
+        
+        // skill_name 매칭: 필터 또는 쿼리와 매칭
+        // PRD: "매칭 시 가중치" - 실제 매칭이 있어야만 부스트 적용
+        let skillMatch = false;
+        if (row.skill_name) {
+          const skillLower = row.skill_name.toLowerCase();
+          if (filterSkillName) {
+            // 필터가 있으면 정확히 일치해야 함
+            skillMatch = skillLower === filterSkillName;
+          } else if (queryText) {
+            // 쿼리가 있으면 부분 매칭
+            skillMatch = skillLower.includes(queryText) || queryText.includes(skillLower);
+          }
+          // 쿼리와 필터가 모두 없으면 매칭하지 않음 (PRD: "매칭 시 가중치")
+        }
+        
+        // trigger_conditions 매칭: match_trigger_conditions 플래그에 따라 처리
+        // PRD: match_trigger_conditions=false일 때는 부스트 적용하지 않음
+        // PRD: 구조화된 컨텍스트(예: tool_name, error_type, params)와 JSON 매칭 요구
+        let triggerMatch = false;
+        if (matchTriggerConditions && row.trigger_conditions) {
+          try {
+            const parsed = typeof row.trigger_conditions === 'string'
+              ? JSON.parse(row.trigger_conditions)
+              : row.trigger_conditions;
+            
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              const triggerContext = query?.context;
+              
+              // 구조화된 컨텍스트가 제공된 경우: 키-값 기반 정확 매칭
+              // 모든 키-값 쌍이 매칭되어야 함 (첫 번째 키만 맞으면 통과하는 문제 수정)
+              if (triggerContext && Object.keys(triggerContext).length > 0) {
+                // trigger_conditions의 모든 키-값 쌍이 컨텍스트와 매칭되는지 확인
+                let allKeysMatch = true;
+                for (const [key, value] of Object.entries(parsed)) {
+                  const contextValue = triggerContext[key];
+                  
+                  // trigger_conditions에 있는 키가 컨텍스트에 없으면 매칭 실패
+                  if (contextValue === undefined) {
+                    allKeysMatch = false;
+                    break;
+                  }
+                  
+                  // 값이 객체인 경우 재귀적으로 비교
+                  if (typeof value === 'object' && typeof contextValue === 'object' && value !== null && contextValue !== null) {
+                    // 중첩 객체 매칭: context의 값이 trigger_conditions의 값과 부분적으로 일치하는지 확인
+                    const valueStr = JSON.stringify(value).toLowerCase();
+                    const contextStr = JSON.stringify(contextValue).toLowerCase();
+                    if (!(valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
+                      // 하나라도 매칭되지 않으면 실패
+                      allKeysMatch = false;
+                      break;
+                    }
+                  } else {
+                    // 단순 값 매칭: 문자열로 변환하여 비교
+                    const valueStr = String(value).toLowerCase();
+                    const contextStr = String(contextValue).toLowerCase();
+                    if (!(valueStr === contextStr || valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
+                      // 하나라도 매칭되지 않으면 실패
+                      allKeysMatch = false;
+                      break;
+                    }
+                  }
+                }
+                // 모든 키/값 쌍이 매칭되었을 때만 triggerMatch = true
+                triggerMatch = allKeysMatch;
+              } else if (queryText) {
+                // 구조화된 컨텍스트가 없는 경우: 쿼리 텍스트 기반 매칭 (fallback)
+                // 쿼리 텍스트가 trigger_conditions의 키와 값 모두와 매칭되는지 확인
+                // 키 매칭: tool_name, error_type, params 등 구조화된 필드명과 매칭
+                const triggerKeys = Object.keys(parsed).map(k => k.toLowerCase());
+                const triggerValues = Object.values(parsed).map(v => String(v).toLowerCase());
+                
+                // 키 또는 값 중 하나라도 쿼리와 매칭되면 통과
+                const keyMatch = triggerKeys.some(k => k.includes(queryText) || queryText.includes(k));
+                const valueMatch = triggerValues.some(v => v.includes(queryText) || queryText.includes(v));
+                triggerMatch = keyMatch || valueMatch;
+              }
+              // 쿼리와 컨텍스트가 모두 없으면 매칭하지 않음 (PRD: "매칭 시 가중치")
+            }
+          } catch (error) {
+            // JSON 파싱 실패 시 매칭 실패로 처리
+            triggerMatch = false;
+          }
+        }
+        // match_trigger_conditions가 false이면 항상 false
+        
+        matches.set(row.id, {
+          workflow_name_match: workflowMatch,
+          skill_name_match: skillMatch,
+          trigger_conditions_match: triggerMatch
+        });
+      });
+    } catch (error) {
+      // 에러 발생 시 빈 Map 반환 (procedural memory boost 없음)
+      console.warn('⚠️ Procedural Memory 매칭 정보 조회 실패:', error);
+    }
+    
+    return matches;
   }
 
   /**

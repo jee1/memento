@@ -47,6 +47,13 @@ const RecallSchema = z.object({
   importance_min: z.number().min(0).max(1).optional(),
   importance_max: z.number().min(0).max(1).optional(),
   has_reflection_notes: z.boolean().optional(), // reflection_notes IS NOT NULL 필터링
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name: z.string().optional(),
+  skill_name: z.string().optional(),
+  match_trigger_conditions: z.boolean().optional().default(false),
+  context: z.record(z.any()).optional(), // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용, 예: {tool_name, error_type, params})
+  trigger_context: z.record(z.any()).optional(), // context의 별칭 (하위 호환성)
+  return_format: z.enum(['full', 'steps_only']).optional().default('full'),
   limit: CommonSchemas.Limit,
   vector_weight: z.number().min(0).max(1).optional(),
   text_weight: z.number().min(0).max(1).optional(),
@@ -137,6 +144,26 @@ export class RecallTool extends BaseTool {
             type: 'boolean',
             description: 'reflection_notes가 있는 메모리만 조회 (true: IS NOT NULL, false: IS NULL, 선택사항)'
           },
+          // Procedural Memory Enhancement (v7.0) 필드
+          workflow_name: {
+            type: 'string',
+            description: '프로세스 이름으로 필터링 (선택사항)'
+          },
+          skill_name: {
+            type: 'string',
+            description: '기술/능력 이름으로 필터링 (선택사항)'
+          },
+          match_trigger_conditions: {
+            type: 'boolean',
+            default: false,
+            description: 'trigger_conditions 매칭 여부 (기본값: false)'
+          },
+          return_format: {
+            type: 'string',
+            enum: ['full', 'steps_only'],
+            default: 'full',
+            description: '반환 형식 선택: full (모든 필드), steps_only (steps만 반환)'
+          },
           limit: { 
             type: 'number', 
             minimum: 1, 
@@ -197,7 +224,13 @@ export class RecallTool extends BaseTool {
         time_to, 
         pinned, 
         importance_min, 
-        importance_max, 
+        importance_max,
+        workflow_name,
+        skill_name,
+        match_trigger_conditions,
+        context: triggerContext,
+        trigger_context,
+        return_format,
         limit, 
         vector_weight, 
         text_weight, 
@@ -205,6 +238,9 @@ export class RecallTool extends BaseTool {
         include_metadata,
         provider_filter
       } = RecallSchema.parse(params);
+      
+      // trigger_context가 제공되면 context로 사용 (하위 호환성)
+      const actualTriggerContext = triggerContext || trigger_context;
       
       // type 파라미터 롤아웃 모드 검증
       // PRD 요구사항: Phase 1/2에서는 type 파라미터가 없으면 항상 경고/Deprecated 메시지를 띄워야 함
@@ -257,7 +293,7 @@ export class RecallTool extends BaseTool {
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
       
-      const startTime = Date.now();
+      const searchStartTime = Date.now();
       const agentId = agent_id || 'default';
       
       // type 파라미터에 따른 분기 처리
@@ -285,7 +321,7 @@ export class RecallTool extends BaseTool {
           records = await coreMemoryService.findByAgentId(agentId);
         }
         
-        const executionTime = Date.now() - startTime;
+        const executionTime = Date.now() - searchStartTime;
         const processedResults = records.map(record => ({
           memory_id: record.core_id,
           type: 'core',
@@ -325,7 +361,7 @@ export class RecallTool extends BaseTool {
           records = await knowledgeVaultService.findActiveByAgentId(agentId);
         }
         
-        const executionTime = Date.now() - startTime;
+        const executionTime = Date.now() - searchStartTime;
         const processedResults = records.map(record => ({
           memory_id: record.vault_id,
           type: 'vault',
@@ -368,8 +404,23 @@ export class RecallTool extends BaseTool {
         }
         
         // memory_types 배열 전처리 ('core'/'vault' 제거)
-        // 원래 type 파라미터가 제공되었는지 확인하여 fallback 동작 보장
-        let filteredMemoryTypes: MemoryTypeRequest[] | undefined = originalTypeProvided ? (validatedType ? [validatedType] : undefined) : memory_types;
+        // validatedType이 존재하면 항상 [validatedType]로 시작 (기본값 포함)
+        // originalTypeProvided가 false이고 memory_types가 제공되면 둘 다 고려하되, validatedType 우선
+        let filteredMemoryTypes: MemoryTypeRequest[] | undefined;
+        if (validatedType) {
+          // validatedType이 있으면 항상 사용 (기본값이든 명시적 값이든)
+          filteredMemoryTypes = [validatedType];
+          // originalTypeProvided가 false이고 memory_types도 제공되면 경고
+          if (!originalTypeProvided && memory_types && memory_types.length > 0) {
+            this.logWarning('type 파라미터가 미지정되어 기본값이 적용되었지만, memory_types도 제공되었습니다. 기본 타입을 우선 적용하고 memory_types는 무시합니다.', {
+              default_type: validatedType,
+              memory_types
+            });
+          }
+        } else {
+          // validatedType이 없으면 memory_types 사용
+          filteredMemoryTypes = memory_types;
+        }
         if (filteredMemoryTypes && filteredMemoryTypes.length > 0) {
           const invalidTypes = filteredMemoryTypes.filter(t => t === 'core' || t === 'vault');
           if (invalidTypes.length > 0) {
@@ -407,7 +458,10 @@ export class RecallTool extends BaseTool {
           pinned,
           importance_min,
           importance_max,
-          has_reflection_notes: params.has_reflection_notes
+          has_reflection_notes: params.has_reflection_notes,
+          // Procedural Memory Enhancement (v7.0) 필터
+          workflow_name,
+          skill_name
         };
         
         // 검색 옵션 설정
@@ -442,7 +496,9 @@ export class RecallTool extends BaseTool {
               limit,
               vectorWeight: normalizedVectorWeight,
               textWeight: normalizedTextWeight,
-              provider_filter: providerFilter
+              provider_filter: providerFilter,
+              match_trigger_conditions: match_trigger_conditions,
+              context: actualTriggerContext // 구조화된 컨텍스트 정보 전달
             });
           } else {
             // 텍스트 검색만 사용
@@ -463,10 +519,15 @@ export class RecallTool extends BaseTool {
           throw new Error(`검색 실행 실패: ${(searchError as Error).message}`);
         }
         
-        const executionTime = Date.now() - startTime;
+        const executionTime = Date.now() - searchStartTime;
         
         // 검색 결과 가져오기
-        const searchItems = searchResult?.items || [];
+        let searchItems = searchResult?.items || [];
+        
+        // trigger_conditions 매칭 필터링 (match_trigger_conditions=true일 때)
+        if (match_trigger_conditions && searchItems.length > 0) {
+          searchItems = this.filterByTriggerConditions(searchItems, query, actualTriggerContext);
+        }
         
         // Consolidation Score System 업데이트 (기능 플래그 확인)
         if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && searchItems.length > 0) {
@@ -479,7 +540,7 @@ export class RecallTool extends BaseTool {
         }
         
         // 결과 후처리 - searchResult가 undefined인 경우 처리
-        const processedResults = this.processSearchResults(searchItems, includeMetadata);
+        const processedResults = this.processSearchResults(searchItems, includeMetadata, return_format);
         
         this.logInfo('검색 완료', { 
           resultCount: processedResults.length, 
@@ -530,9 +591,98 @@ export class RecallTool extends BaseTool {
   }
 
   /**
+   * trigger_conditions로 필터링
+   * match_trigger_conditions=true일 때, 현재 컨텍스트와 trigger_conditions가 매칭되는 항목만 반환
+   * 
+   * PRD 요구사항: 구조화된 컨텍스트(예: tool_name, error_type, params)와 JSON 매칭
+   * 구조화된 컨텍스트가 제공되면 이를 우선 사용하고, 없으면 쿼리 텍스트를 사용
+   * 
+   * @param items 검색 결과 항목 배열
+   * @param query 검색 쿼리 (컨텍스트로 사용, fallback)
+   * @param context 구조화된 컨텍스트 정보 (우선 사용)
+   * @returns 필터링된 항목 배열
+   */
+  private filterByTriggerConditions(items: any[], query?: string, triggerContext?: Record<string, any>): any[] {
+    const queryText = query?.toLowerCase() || '';
+    
+    return items.filter(item => {
+      // trigger_conditions가 없는 항목은 제외
+      if (!item.trigger_conditions) {
+        return false;
+      }
+      
+      try {
+        // JSON 파싱 시도
+        const parsed = typeof item.trigger_conditions === 'string'
+          ? JSON.parse(item.trigger_conditions)
+          : item.trigger_conditions;
+        
+        // 객체인지 확인 (배열이나 null이 아닌 경우)
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          return false;
+        }
+        
+        // 구조화된 컨텍스트가 제공된 경우: 키-값 기반 정확 매칭
+        // 모든 키/값 쌍이 매칭되어야 함 (첫 번째 키만 맞으면 통과하는 문제 수정)
+        if (triggerContext && Object.keys(triggerContext).length > 0) {
+          // trigger_conditions의 모든 키-값 쌍이 컨텍스트와 매칭되는지 확인
+          for (const [key, value] of Object.entries(parsed)) {
+            const contextValue = triggerContext[key];
+            
+            // trigger_conditions에 있는 키가 컨텍스트에 없으면 매칭 실패
+            if (contextValue === undefined) {
+              return false;
+            }
+            
+            // 값이 객체인 경우 재귀적으로 비교
+            if (typeof value === 'object' && typeof contextValue === 'object' && value !== null && contextValue !== null) {
+              // 중첩 객체 매칭: context의 값이 trigger_conditions의 값과 부분적으로 일치하는지 확인
+              const valueStr = JSON.stringify(value).toLowerCase();
+              const contextStr = JSON.stringify(contextValue).toLowerCase();
+              if (!(valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
+                // 하나라도 매칭되지 않으면 실패
+                return false;
+              }
+            } else {
+              // 단순 값 매칭: 문자열로 변환하여 비교
+              const valueStr = String(value).toLowerCase();
+              const contextStr = String(contextValue).toLowerCase();
+              if (!(valueStr === contextStr || valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
+                // 하나라도 매칭되지 않으면 실패
+                return false;
+              }
+            }
+          }
+          // 모든 키/값 쌍이 매칭됨
+          return true;
+        }
+        
+        // 구조화된 컨텍스트가 없는 경우: 쿼리 텍스트 기반 매칭 (fallback)
+        if (queryText) {
+          // 키 매칭: tool_name, error_type, params 등 구조화된 필드명과 매칭
+          const triggerKeys = Object.keys(parsed).map(k => k.toLowerCase());
+          const triggerValues = Object.values(parsed).map(v => String(v).toLowerCase());
+          
+          // 키 또는 값 중 하나라도 쿼리와 매칭되면 통과
+          const keyMatch = triggerKeys.some(k => k.includes(queryText) || queryText.includes(k));
+          const valueMatch = triggerValues.some(v => v.includes(queryText) || queryText.includes(v));
+          return keyMatch || valueMatch;
+        }
+        
+        // 쿼리와 컨텍스트가 모두 없으면 매칭 기준이 없으므로 필터링
+        // PRD: "현재 컨텍스트와 매칭" 요구사항 - 매칭 기준이 없으면 통과하지 않음
+        return false;
+      } catch (error) {
+        // JSON 파싱 실패 시 제외
+        return false;
+      }
+    });
+  }
+
+  /**
    * 검색 결과 후처리
    */
-  private processSearchResults(items: any[], includeMetadata: boolean): any[] {
+  private processSearchResults(items: any[], includeMetadata: boolean, returnFormat: 'full' | 'steps_only' = 'full'): any[] {
     return items.map(item => {
       const processed: any = {
         memory_id: item.id || item.memory_id, // 통일된 필드명 사용
@@ -568,6 +718,11 @@ export class RecallTool extends BaseTool {
           processed.task_goal = item.task_goal || null;
           processed.steps = item.steps || null;
           
+          // Procedural Memory Enhancement (v7.0) 필드 추가
+          processed.workflow_name = item.workflow_name || null;
+          processed.skill_name = item.skill_name || null;
+          processed.trigger_conditions = item.trigger_conditions || null;
+          
           // reflection_notes 필드 추가 (JSON 파싱)
           if (item.reflection_notes) {
             try {
@@ -581,6 +736,16 @@ export class RecallTool extends BaseTool {
             }
           } else {
             processed.reflection_notes = null;
+          }
+          
+          // return_format='steps_only'일 때 steps만 반환
+          if (returnFormat === 'steps_only') {
+            // steps만 포함하고 나머지 필드는 제거
+            return {
+              memory_id: processed.memory_id,
+              id: processed.id,
+              steps: processed.steps
+            };
           }
         }
         

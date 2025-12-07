@@ -3,7 +3,7 @@
  * 모든 MCP 도구의 기본 구조를 제공하는 BaseTool 클래스 테스트
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from '../types.js';
 import Database from 'better-sqlite3';
@@ -25,7 +25,8 @@ class TestTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+  async handle(_params: any, _context: ToolContext): Promise<ToolResult> {
     return this.createSuccessResult({ test: 'result' });
   }
 }

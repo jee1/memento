@@ -4,7 +4,7 @@
  */
 
 import { startServer, cleanup, __test } from '../server/http-server.js';
-import { initializeDatabase, closeDatabase } from '../infrastructure/database/init.js';
+import { closeDatabase } from '../infrastructure/database/init.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
@@ -52,7 +52,16 @@ async function setupTestDatabase() {
       user_id TEXT,
       project_id TEXT,
       origin_trace TEXT,
-      tags TEXT
+      tags TEXT,
+      -- MIRIX Schema Expansion (v2.0) 추가 필드
+      origin_source TEXT DEFAULT '{}',
+      task_goal TEXT,
+      steps TEXT,
+      reflection_notes TEXT,
+      -- Procedural Memory Enhancement (v7.0) 추가 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT
     );
 
     CREATE TABLE IF NOT EXISTS memory_embedding (
@@ -546,6 +555,7 @@ async function runTests() {
   // 테스트에서 사용할 포트 (환경 변수 또는 기본값)
   const TEST_PORT = process.env.PORT ? Number(process.env.PORT) : 9001;
   const BASE_URL = `http://localhost:${TEST_PORT}`;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   const WS_URL = `ws://localhost:${TEST_PORT}`;
   
   try {

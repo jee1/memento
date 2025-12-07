@@ -381,7 +381,8 @@ export class RelationQualityValidator {
       FOLLOWS: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
       CONTRASTS_WITH: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
       REFERENCES: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      BELONGS_TO: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 }
+      BELONGS_TO: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
+      VERSION_OF: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 }
     };
 
     for (const type of relationTypes) {
@@ -473,12 +474,13 @@ export class RelationQualityValidator {
 
     // 혼동 행렬 초기화
     const matrix: Record<RelationType, Record<RelationType, number>> = {
-      CAUSES: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0 },
-      DEPENDS_ON: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0 },
-      FOLLOWS: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0 },
-      CONTRASTS_WITH: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0 },
-      REFERENCES: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0 },
-      BELONGS_TO: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0 }
+      CAUSES: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
+      DEPENDS_ON: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
+      FOLLOWS: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
+      CONTRASTS_WITH: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
+      REFERENCES: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
+      BELONGS_TO: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
+      VERSION_OF: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 }
     };
 
     // 매칭 결과를 기반으로 혼동 행렬 채우기
@@ -501,7 +503,8 @@ export class RelationQualityValidator {
       FOLLOWS: 0,
       CONTRASTS_WITH: 0,
       REFERENCES: 0,
-      BELONGS_TO: 0
+      BELONGS_TO: 0,
+      VERSION_OF: 0
     };
     for (const type of relationTypes) {
       const totalForType = matches.filter(
@@ -579,7 +582,8 @@ export class RelationQualityValidator {
       FOLLOWS: 0,
       CONTRASTS_WITH: 0,
       REFERENCES: 0,
-      BELONGS_TO: 0
+      BELONGS_TO: 0,
+      VERSION_OF: 0
     };
 
     // 예상 관계 유형이 relationType인데 다른 유형으로 추출된 경우
@@ -647,7 +651,8 @@ export class RelationQualityValidator {
       FOLLOWS: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'FOLLOWS'),
       CONTRASTS_WITH: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'CONTRASTS_WITH'),
       REFERENCES: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'REFERENCES'),
-      BELONGS_TO: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'BELONGS_TO')
+      BELONGS_TO: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'BELONGS_TO'),
+      VERSION_OF: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'VERSION_OF')
     };
 
     return analysis;

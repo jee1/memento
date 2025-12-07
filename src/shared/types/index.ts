@@ -30,6 +30,15 @@ export interface MemoryItem {
   tags?: string[];
   source?: string;
   embedding?: number[];
+  // MIRIX Schema Expansion (v2.0) 필드
+  origin_source?: string; // JSON 형식
+  task_goal?: string; // Procedural Memory 전용, 작업 목표
+  steps?: string; // Procedural Memory 전용, JSON 배열 형식
+  reflection_notes?: string; // Procedural Memory 전용, JSON 형식
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name?: string; // 프로세스 이름 (예: "데이터 마이그레이션", "API 배포")
+  skill_name?: string; // 기술/능력 이름 (예: "스키마 백업", "데이터 검증")
+  trigger_conditions?: string; // 트리거 조건 (JSON 객체 문자열)
 }
 
 export interface MemorySearchFilters {
@@ -41,6 +50,9 @@ export interface MemorySearchFilters {
   time_to?: string | undefined;
   pinned?: boolean | undefined;
   has_reflection_notes?: boolean | undefined; // reflection_notes IS NOT NULL 필터링
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name?: string | undefined; // workflow_name으로 필터링
+  skill_name?: string | undefined; // skill_name으로 필터링
 }
 
 // 관계 추출 타입 재export
@@ -85,6 +97,16 @@ export interface MemorySearchResult {
   tags?: string[];
   score: number;
   recall_reason: string;
+  // MIRIX Schema Expansion (v2.0) 필드
+  task_goal?: string; // Procedural Memory 전용, 작업 목표
+  steps?: string; // Procedural Memory 전용, JSON 배열 형식
+  reflection_notes?: string; // Procedural Memory 전용, JSON 형식
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name?: string; // 프로세스 이름
+  skill_name?: string; // 기술/능력 이름
+  trigger_conditions?: string; // 트리거 조건 (JSON 객체 문자열)
+  // return_format에 따른 조건부 반환은 구현 레벨에서 처리
+  // return_format='steps_only'일 때는 steps만 반환하도록 구현
 }
 
 export interface SearchRankingWeights {
@@ -144,6 +166,14 @@ export interface MementoConfig {
   fts5MigrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
 }
 
+/**
+ * 업데이트 모드 타입
+ * - replace: 기존 steps를 새로운 steps로 완전 교체
+ * - incremental: 기존 steps에 새로운 단계 추가 또는 수정
+ * - versioned: 새 버전의 Procedural Memory 생성 (버전 관리)
+ */
+export type UpdateMode = 'replace' | 'incremental' | 'versioned';
+
 export interface RememberParams {
   content?: string; // optional - core/vault일 때는 key/value 사용
   type?: MemoryTypeRequest; // 확장된 타입 지원
@@ -154,11 +184,23 @@ export interface RememberParams {
   task_goal?: string; // Procedural Memory용
   steps?: string; // Procedural Memory용 (JSON 배열 문자열)
   reflection_notes?: string; // Procedural Memory용 (JSON 객체 문자열)
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name?: string; // 프로세스 이름 (예: "데이터 마이그레이션", "API 배포")
+  skill_name?: string; // 기술/능력 이름 (예: "스키마 백업", "데이터 검증")
+  trigger_conditions?: string; // 트리거 조건 (JSON 객체 문자열)
+  update_mode?: UpdateMode; // 업데이트 모드 (replace, incremental, versioned)
   tags?: string[];
   importance?: number;
   source?: string;
   privacy_scope?: PrivacyScope;
 }
+
+/**
+ * 반환 형식 타입
+ * - full: 모든 필드 반환
+ * - steps_only: steps 필드만 반환 (간결한 응답)
+ */
+export type ReturnFormat = 'full' | 'steps_only';
 
 export interface RecallParams {
   query?: string; // optional - core/vault일 때는 key 사용
@@ -167,6 +209,11 @@ export interface RecallParams {
   agent_id?: string; // Core Memory / Knowledge Vault용
   filters?: MemorySearchFilters;
   limit?: number;
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name?: string; // workflow_name으로 필터링
+  skill_name?: string; // skill_name으로 필터링
+  match_trigger_conditions?: boolean; // trigger_conditions 매칭 여부 (기본값: false)
+  return_format?: ReturnFormat; // 반환 형식 선택 (기본값: 'full')
 }
 
 export interface ForgetParams {

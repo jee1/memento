@@ -3,10 +3,11 @@
  * HTTP 서버와 MCP 서버가 동일한 서비스를 초기화하는지 검증
  */
 
-import { initializeServices, type ServerServices } from '../server/bootstrap.js';
+import { initializeServices } from '../server/bootstrap.js';
+import type { ServerServices } from '../server/bootstrap.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
-import { mementoConfig } from '../shared/config/index.js';
+// mementoConfig는 사용되지 않음
 
 /**
  * 서비스 집합을 비교하는 헬퍼 함수

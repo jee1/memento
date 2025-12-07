@@ -292,6 +292,7 @@ describe('ConsolidationScoreService', () => {
     });
 
     it('should guarantee minimum score for pinned memories', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const input = createInput({ pinned: true });
       // 매우 오래된 메모리로 설정하여 점수가 낮아지도록 함
       const veryOld = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
@@ -382,6 +383,7 @@ describe('ConsolidationScoreService', () => {
     });
 
     it('should handle very large time elapsed', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const now = new Date();
       const veryOld = new Date(0); // 1970-01-01
       const input: ConsolidationScoreInput = {

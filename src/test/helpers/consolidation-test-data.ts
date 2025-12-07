@@ -56,7 +56,11 @@ export function initializeTestDatabase(db: Database.Database): void {
       recall_count INTEGER NOT NULL DEFAULT 0,
       last_accessed_at TIMESTAMP,
       consolidation_score REAL,
-      g_value REAL
+      g_value REAL,
+      -- Procedural Memory Enhancement (v7.0) 추가 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);

@@ -9,7 +9,7 @@ import { DatabaseUtils } from '../shared/utils/database.js';
 import { initializeDatabase } from '../infrastructure/database/init.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+// StdioServerTransport는 사용되지 않음
 import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';

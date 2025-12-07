@@ -3,7 +3,8 @@
  * forgetting-algorithm.ts의 calculateRecency 메서드 결과를 그래프로 표시
  */
 
-import { ForgettingAlgorithm } from '../algorithms/forgetting-algorithm';
+// ForgettingAlgorithm은 사용되지 않지만 타입 참조를 위해 주석 처리
+// import { ForgettingAlgorithm } from '../algorithms/forgetting-algorithm';
 
 interface RecencyData {
   ageDays: number;

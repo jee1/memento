@@ -10,7 +10,6 @@ import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { createHybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { __test } from './http-server.js';
-import type express from 'express';
 
 describe('HTTP Server', () => {
   let db: Database.Database;

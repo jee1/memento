@@ -161,10 +161,11 @@ export function getDefaultSettingsForType(type: MemoryType): {
         privacyScope: 'private'
         // ttlDays: undefined // 무기한
       };
-    default:
+    default: {
       // 타입 가드로 인해 이 케이스는 발생하지 않지만, TypeScript를 위해 필요
       const _exhaustive: never = type;
       throw new Error(`Unknown memory type: ${_exhaustive}`);
+    }
   }
 }
 

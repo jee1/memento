@@ -5,19 +5,14 @@
 
 import { createMementoClient } from '../client/index.js';
 import {
-  initializeTestDatabase,
   seedTestDatabase,
   cleanupTestDatabase
 } from './helpers/consolidation-test-data.js';
 import {
   generateQualityReport,
-  calculateMeanPrecisionAtK,
-  calculateMeanRecallAtK,
-  calculateMeanNDCGAtK,
   type GroundTruth
 } from './helpers/search-quality-metrics.js';
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../shared/config/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

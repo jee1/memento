@@ -18,6 +18,7 @@ async function testLightweightEmbeddingFunctionality() {
     // 2. 임베딩 서비스 상태 확인
     console.log('\n2️⃣ 임베딩 서비스 상태 확인');
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const testResult = await client.recall({ query: "test", limit: 1 });
       console.log('   ✅ 임베딩 서비스 사용 가능');
     } catch (error) {

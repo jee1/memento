@@ -5,8 +5,16 @@
 
 import { createMementoClient } from '../client/index.js';
 import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { CacheService, SearchCacheService } from '../infrastructure/cache/cache-service.js';
+import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
 import { AsyncTaskQueue } from '../infrastructure/async-optimizer.js';
+
+interface MemoryUsage {
+  rss: number;
+  heapTotal: number;
+  heapUsed: number;
+  external: number;
+  arrayBuffers: number;
+}
 
 interface BenchmarkResult {
   testName: string;
@@ -17,9 +25,9 @@ interface BenchmarkResult {
   maxTime: number;
   throughput: number;
   memoryUsage: {
-    before: NodeJS.MemoryUsage;
-    after: NodeJS.MemoryUsage;
-    delta: NodeJS.MemoryUsage;
+    before: MemoryUsage;
+    after: MemoryUsage;
+    delta: MemoryUsage;
   };
   successRate: number;
   errors: string[];
@@ -242,6 +250,7 @@ export class PerformanceBenchmark {
     this.taskQueue = new AsyncTaskQueue(16);
     this.taskQueue.start();
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     const startTime = process.hrtime.bigint();
     
     try {
@@ -457,8 +466,8 @@ export class PerformanceBenchmark {
     testName: string,
     iterations: number,
     times: number[],
-    beforeMemory: NodeJS.MemoryUsage,
-    afterMemory: NodeJS.MemoryUsage,
+    beforeMemory: MemoryUsage,
+    afterMemory: MemoryUsage,
     errors: string[],
     totalTime?: number
   ): BenchmarkResult {
@@ -471,7 +480,7 @@ export class PerformanceBenchmark {
     const maxTime = times.length > 0 ? Math.max(...times) : 0;
     const throughput = actualIterations / (totalTimeMs / 1000);
 
-    const delta: NodeJS.MemoryUsage = {
+    const delta: MemoryUsage = {
       rss: afterMemory.rss - beforeMemory.rss,
       heapTotal: afterMemory.heapTotal - beforeMemory.heapTotal,
       heapUsed: afterMemory.heapUsed - beforeMemory.heapUsed,

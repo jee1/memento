@@ -28,7 +28,8 @@ export type RelationType =
   | 'FOLLOWS' // 시간적 순서
   | 'CONTRASTS_WITH' // 대조 관계
   | 'REFERENCES' // 참조 관계
-  | 'BELONGS_TO'; // 포함 관계
+  | 'BELONGS_TO' // 포함 관계
+  | 'VERSION_OF'; // 버전 관리 관계 (Procedural Memory Enhancement v7.0)
 
 /**
  * 관계 카테고리
@@ -108,7 +109,7 @@ export const MEMORY_TYPE_RELATION_MAP: Record<MemoryType, RelationType[]> = {
   working: ['REFERENCES'], // 임시적이므로 참조만
   episodic: ['CAUSES', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'],
   semantic: ['DEPENDS_ON', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'],
-  procedural: ['DEPENDS_ON', 'FOLLOWS', 'REFERENCES']
+  procedural: ['DEPENDS_ON', 'FOLLOWS', 'REFERENCES', 'VERSION_OF'] // VERSION_OF 추가 (Procedural Memory Enhancement v7.0)
 };
 
 /**
@@ -120,7 +121,8 @@ export const RELATION_TYPE_CATEGORY_MAP: Record<RelationType, RelationCategory> 
   FOLLOWS: 'Temporal',
   CONTRASTS_WITH: 'Semantic',
   REFERENCES: 'Semantic',
-  BELONGS_TO: 'Structural'
+  BELONGS_TO: 'Structural',
+  VERSION_OF: 'Structural' // 버전 관리 관계는 구조적 관계 (Procedural Memory Enhancement v7.0)
 };
 
 /**
@@ -133,7 +135,8 @@ export const RELATION_TYPE_BOOST_MAP: Record<RelationType, number> = {
   FOLLOWS: 1.0,
   CONTRASTS_WITH: 0.9,
   REFERENCES: 0.8,
-  BELONGS_TO: 1.0
+  BELONGS_TO: 1.0,
+  VERSION_OF: 1.0 // 버전 관리 관계 부스트 (Procedural Memory Enhancement v7.0)
 };
 
 /**
@@ -170,5 +173,6 @@ export const ALL_RELATION_TYPES: readonly RelationType[] = [
   'FOLLOWS',
   'CONTRASTS_WITH',
   'REFERENCES',
-  'BELONGS_TO'
+  'BELONGS_TO',
+  'VERSION_OF' // 버전 관리 관계 (Procedural Memory Enhancement v7.0)
 ] as const;

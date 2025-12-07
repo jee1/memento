@@ -16,12 +16,9 @@ import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-e
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { MemoryNeighborService, MemoryNotFoundError } from '../domains/memory/services/memory-neighbor-service.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
-import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
+// ConsolidationScoreService는 serverServices를 통해 접근
 import { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
-import { DatabaseUtils } from '../shared/utils/database.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
@@ -31,7 +28,6 @@ import { createToolsRouter } from './routes/tools.routes.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
 import { createMcpRouter } from './routes/mcp.routes.js';
-import { broadcastAnchorMapUpdate } from './handlers/anchor-map.handler.js';
 // Phase 0: 공통 미들웨어 import
 import { createServiceInjector, createToolContextMiddleware, errorHandler } from './middleware/index.js';
 
@@ -41,19 +37,20 @@ let searchEngine: SearchEngine;
 let hybridSearchEngine: HybridSearchEngine;
 let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
 let embeddingService: MemoryEmbeddingService;
-let forgettingPolicyService: ServerServices['forgettingPolicyService'];
-let performanceMonitor: ServerServices['performanceMonitor'];
-let databaseOptimizer: ServerServices['databaseOptimizer'];
-let errorLoggingService: ServerServices['errorLoggingService'];
-let performanceAlertService: ServerServices['performanceAlertService'];
-let consolidationScoreService: ConsolidationScoreService | null = null;
+// 서비스들은 serverServices를 통해 접근하므로 개별 변수는 제거
+// let forgettingPolicyService: ServerServices['forgettingPolicyService'];
+// let performanceMonitor: ServerServices['performanceMonitor'];
+// let databaseOptimizer: ServerServices['databaseOptimizer'];
+// let errorLoggingService: ServerServices['errorLoggingService'];
+// let performanceAlertService: ServerServices['performanceAlertService'];
+// let consolidationScoreService: ConsolidationScoreService | null = null;
 let writeCoalescingManager: WriteCoalescingManager | null = null;
 // 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
 let serverServices: ServerServices | null = null;
 
 // Phase 1.2: 라우터에서 사용할 전역 변수들
 // SSE Transport 저장소 (MCP 라우터용)
-const transports: Record<string, { res: any; sessionId: string; keepAliveInterval: NodeJS.Timeout }> = {};
+const transports: Record<string, { res: any; sessionId: string; keepAliveInterval: ReturnType<typeof setTimeout> }> = {};
 
 type TestDependencies = {
   database: Database.Database;
@@ -145,12 +142,13 @@ async function initializeServer() {
     searchEngine = services.searchEngine;
     hybridSearchEngine = services.hybridSearchEngine;
     embeddingService = services.embeddingService;
-    forgettingPolicyService = services.forgettingPolicyService;
-    performanceMonitor = services.performanceMonitor;
-    databaseOptimizer = services.databaseOptimizer;
-    errorLoggingService = services.errorLoggingService;
-    performanceAlertService = services.performanceAlertService;
-    consolidationScoreService = services.consolidationScoreService || null;
+    // 서비스들은 serverServices를 통해 접근
+    // forgettingPolicyService = services.forgettingPolicyService;
+    // performanceMonitor = services.performanceMonitor;
+    // databaseOptimizer = services.databaseOptimizer;
+    // errorLoggingService = services.errorLoggingService;
+    // performanceAlertService = services.performanceAlertService;
+    // consolidationScoreService = services.consolidationScoreService || null;
     writeCoalescingManager = services.writeCoalescingManager || null;
     
     // 부트스트랩에서 반환된 전체 서비스 객체 저장 (ToolContext 생성 시 사용)

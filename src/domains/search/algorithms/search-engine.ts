@@ -9,6 +9,7 @@ import Database from 'better-sqlite3';
 import { getStopWords } from '../../../shared/utils/stopwords.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
+import { mcpLogger } from '../../../server/mcp-logger.js';
 
 export interface SearchQuery {
   query: string;
@@ -57,6 +58,7 @@ export class SearchEngine {
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
+              m.workflow_name, m.skill_name, m.trigger_conditions,
               m.privacy_scope, m.origin_source,
               0 as fts_rank
             FROM memory_item m
@@ -68,6 +70,7 @@ export class SearchEngine {
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
+              m.workflow_name, m.skill_name, m.trigger_conditions,
               m.privacy_scope, m.origin_source,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
@@ -91,6 +94,7 @@ export class SearchEngine {
             m.last_accessed, m.pinned, m.tags, m.source,
             m.consolidation_score,
             m.task_goal, m.steps, m.reflection_notes,
+            m.workflow_name, m.skill_name, m.trigger_conditions,
             m.privacy_scope, m.origin_source,
             0 as fts_rank
           FROM memory_item m
@@ -106,6 +110,7 @@ export class SearchEngine {
           m.last_accessed, m.pinned, m.tags, m.source,
           m.consolidation_score,
           m.task_goal, m.steps, m.reflection_notes,
+          m.workflow_name, m.skill_name, m.trigger_conditions,
           m.privacy_scope, m.origin_source,
           0 as fts_rank
         FROM memory_item m
@@ -166,6 +171,17 @@ export class SearchEngine {
       }
     }
     
+    // Procedural Memory Enhancement (v7.0) 필터
+    if (filters?.workflow_name) {
+      conditions.push(`m.workflow_name = ?`);
+      params.push(filters.workflow_name);
+    }
+    
+    if (filters?.skill_name) {
+      conditions.push(`m.skill_name = ?`);
+      params.push(filters.skill_name);
+    }
+    
     // WHERE 절 추가
     if (conditions.length > 0) {
       const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';
@@ -177,10 +193,15 @@ export class SearchEngine {
     params.push(limit * 3); // FTS5 랭킹과 재랭킹 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
     
     // 구성된 쿼리를 실행하여 실제 검색 결과를 획득합니다.
-    console.log('🔍 검색 쿼리:', sql);
-    console.log('🔍 검색 파라미터:', params);
+    // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
+    mcpLogger.logServer('debug', '검색 쿼리 실행', {
+      query: sql,
+      params: params
+    });
     const results = await this.executeQuery(db, sql, params);
-    console.log('🔍 검색 결과 개수:', results.length);
+    mcpLogger.logServer('debug', '검색 결과', {
+      resultCount: results.length
+    });
     
     // FTS5 랭킹과 다차원 점수를 결합하여 사용자에게 가장 관련성 높은 결과를 우선 제공합니다.
     const rankedResults = this.applyRanking(results, searchQuery);
@@ -204,23 +225,24 @@ export class SearchEngine {
    * 아키텍처 문서의 전처리 규칙을 적용하여 검색 정확도를 향상시킵니다.
    */
   private buildFTSQuery(query: string): string {
-    console.log('🔍 원본 쿼리:', `"${query}"`);
+    // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
+    mcpLogger.logServer('debug', '원본 쿼리', { query });
     
     // 사용자 입력의 형식이 다양하므로 정규화하여 검색 일관성을 보장합니다.
     const preprocessedQuery = this.preprocessQuery(query);
-    console.log('🔍 전처리 후:', `"${preprocessedQuery}"`);
+    mcpLogger.logServer('debug', '전처리 후 쿼리', { preprocessedQuery });
     
     if (preprocessedQuery.length === 0) {
-      console.log('🔍 빈 쿼리, 모든 문서 검색');
+      mcpLogger.logServer('debug', '빈 쿼리, 모든 문서 검색');
       return '""'; // 빈 쿼리인 경우 빈 문자열로 검색하여 모든 문서를 매치하고 사용자에게 전체 결과를 제공합니다.
     }
     
     // FTS5 특수문자로 인한 쿼리 오류를 방지하고 안전한 검색을 보장합니다.
     const safeQuery = this.makeFTSSafe(preprocessedQuery);
-    console.log('🔍 FTS5 안전 쿼리:', `"${safeQuery}"`);
+    mcpLogger.logServer('debug', 'FTS5 안전 쿼리', { safeQuery });
     
     if (safeQuery.length === 0) {
-      console.log('🔍 안전 쿼리 빈 문자열, 모든 문서 검색');
+      mcpLogger.logServer('debug', '안전 쿼리 빈 문자열, 모든 문서 검색');
       return '""'; // 빈 쿼리인 경우 빈 문자열로 검색하여 모든 문서를 매치하고 사용자에게 전체 결과를 제공합니다.
     }
     
@@ -392,7 +414,7 @@ export class SearchEngine {
       `).get();
       
       if (!result) {
-        console.log('⚠️  FTS5 테이블이 존재하지 않음, 기본 검색으로 전환');
+        mcpLogger.logServer('warn', 'FTS5 테이블이 존재하지 않음, 기본 검색으로 전환');
         return false;
       }
       
@@ -401,21 +423,21 @@ export class SearchEngine {
       const hasData = count && count.count > 0;
       
       if (!hasData) {
-        console.log('⚠️  FTS5 테이블에 데이터가 없음, 기본 검색으로 전환');
+        mcpLogger.logServer('warn', 'FTS5 테이블에 데이터가 없음, 기본 검색으로 전환');
         return false;
       }
       
       // FTS5 쿼리가 실제로 동작하는지 테스트하여 런타임 오류를 사전에 방지합니다.
       try {
         db.prepare('SELECT * FROM memory_item_fts LIMIT 1').get();
-        console.log('✅ FTS5 사용 가능');
+        mcpLogger.logServer('info', 'FTS5 사용 가능');
         return true;
       } catch (ftsError) {
-        console.log('⚠️  FTS5 쿼리 실패, 기본 검색으로 전환:', ftsError);
+        mcpLogger.logServer('warn', 'FTS5 쿼리 실패, 기본 검색으로 전환', { error: ftsError instanceof Error ? ftsError.message : String(ftsError) });
         return false;
       }
     } catch (error) {
-      console.log('⚠️  FTS5 사용 불가능, 기본 검색으로 전환:', error);
+      mcpLogger.logServer('warn', 'FTS5 사용 불가능, 기본 검색으로 전환', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -430,13 +452,13 @@ export class SearchEngine {
   private checkReflectionNotesAvailability(db: any): boolean {
     // 환경 변수로 강제 Fallback 활성화 확인
     if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
-      console.log('⚠️  환경 변수로 인해 reflection_notes Fallback 활성화');
+      mcpLogger.logServer('warn', '환경 변수로 인해 reflection_notes Fallback 활성화');
       return false;
     }
 
     // 마이그레이션 상태 확인
     if (shouldUseFallback(db)) {
-      console.log('⚠️  마이그레이션 상태로 인해 reflection_notes Fallback 사용');
+      mcpLogger.logServer('warn', '마이그레이션 상태로 인해 reflection_notes Fallback 사용');
       return false;
     }
 
@@ -455,13 +477,13 @@ export class SearchEngine {
       const hasReflectionNotes = tableInfo.sql.includes('reflection_notes');
       
       if (!hasReflectionNotes) {
-        console.log('⚠️  FTS5 테이블에 reflection_notes 컬럼이 없음, Fallback 사용');
+        mcpLogger.logServer('warn', 'FTS5 테이블에 reflection_notes 컬럼이 없음, Fallback 사용');
         return false;
       }
 
       return true;
     } catch (error) {
-      console.log('⚠️  reflection_notes 컬럼 확인 실패, Fallback 사용:', error);
+      mcpLogger.logServer('warn', 'reflection_notes 컬럼 확인 실패, Fallback 사용', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }

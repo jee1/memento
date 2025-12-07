@@ -5,10 +5,8 @@
 
 import { createMementoClient } from '../client/index.js';
 import {
-  initializeTestDatabase,
   seedTestDatabase,
-  cleanupTestDatabase,
-  type TestMemoryItem
+  cleanupTestDatabase
 } from './helpers/consolidation-test-data.js';
 import {
   calculatePrecisionAtK,

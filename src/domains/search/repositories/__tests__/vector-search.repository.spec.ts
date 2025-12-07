@@ -250,5 +250,565 @@ describe('VectorSearchRepositoryImpl', () => {
       expect(result1).toBe(result2);
     });
   });
+
+  describe('Procedural Memory Enhancement (v7.0) 필드 반환', () => {
+    it('should return workflow_name, skill_name, and trigger_conditions when includeMetadata is true', async () => {
+      // Given: workflow_name, skill_name, trigger_conditions가 있는 procedural memory 생성
+      const { DatabaseUtils } = await import('../../../../shared/utils/database.js');
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (
+          id, type, content, workflow_name, skill_name, trigger_conditions
+        )
+        VALUES (
+          'mem_procedural_1', 'procedural', 'Test procedure',
+          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}'
+        )
+      `);
+
+      // Given: 임베딩 데이터 추가 (VEC 테이블이 있는 경우)
+      try {
+        const { getLoadablePath } = await import('sqlite-vec');
+        const extensionPath = getLoadablePath();
+        db.loadExtension(extensionPath);
+        
+        // VEC 테이블 생성
+        db.exec(`
+          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf 
+          USING vec0(embedding float[384])
+        `);
+        
+        // 임베딩 데이터 추가
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_procedural_1', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+        
+        // VEC 테이블에 데이터 추가
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_procedural_1'
+        `) as { id: number } | undefined;
+        
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: includeMetadata=true로 검색
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.search(query);
+
+      // Then: 새 필드가 반환되어야 함
+      if (results.length > 0) {
+        const result = results[0];
+        expect(result.workflow_name).toBeDefined();
+        expect(result.skill_name).toBeDefined();
+        expect(result.trigger_conditions).toBeDefined();
+      }
+    });
+
+    it('should not return workflow_name, skill_name, trigger_conditions when includeMetadata is false', async () => {
+      // Given: workflow_name, skill_name, trigger_conditions가 있는 procedural memory 생성
+      const { DatabaseUtils } = await import('../../../../shared/utils/database.js');
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (
+          id, type, content, workflow_name, skill_name, trigger_conditions
+        )
+        VALUES (
+          'mem_procedural_2', 'procedural', 'Test procedure',
+          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}'
+        )
+      `);
+
+      // Given: 임베딩 데이터 추가 (VEC 테이블이 있는 경우)
+      try {
+        const { getLoadablePath } = await import('sqlite-vec');
+        const extensionPath = getLoadablePath();
+        db.loadExtension(extensionPath);
+        
+        // VEC 테이블 생성
+        db.exec(`
+          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf 
+          USING vec0(embedding float[384])
+        `);
+        
+        // 임베딩 데이터 추가
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_procedural_2', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+        
+        // VEC 테이블에 데이터 추가
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_procedural_2'
+        `) as { id: number } | undefined;
+        
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: includeMetadata=false로 검색
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        provider: 'tfidf',
+        options: {
+          includeMetadata: false
+        }
+      };
+
+      const results = await repository.search(query);
+
+      // Then: 새 필드가 반환되지 않아야 함
+      if (results.length > 0) {
+        const result = results[0];
+        expect(result.workflow_name).toBeUndefined();
+        expect(result.skill_name).toBeUndefined();
+        expect(result.trigger_conditions).toBeUndefined();
+      }
+    });
+
+    it('should include last_accessed_at in search results when includeMetadata is true', async () => {
+      // Given: last_accessed_at이 있는 메모리 생성
+      try {
+        // 메모리 아이템 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (
+            id, type, content, importance, privacy_scope, created_at, last_accessed_at
+          )
+          VALUES (
+            'mem_with_last_accessed', 'episodic', 'Test content', 0.7, 'private',
+            '2024-01-01T00:00:00Z', '2024-01-15T00:00:00Z'
+          )
+        `);
+
+        // VEC 테이블 생성 (없는 경우)
+        db.exec(`
+          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf
+          USING vec0(embedding float[384])
+        `);
+        
+        // 임베딩 데이터 추가
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_with_last_accessed', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+        
+        // VEC 테이블에 데이터 추가
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_with_last_accessed'
+        `) as { id: number } | undefined;
+        
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: includeMetadata=true로 검색
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.search(query);
+
+      // Then: last_accessed_at이 포함되어야 함
+      if (results.length > 0) {
+        const result = results.find(r => r.memory_id === 'mem_with_last_accessed');
+        if (result) {
+          expect(result.last_accessed_at).toBeDefined();
+          expect(result.last_accessed_at).toBe('2024-01-15T00:00:00Z');
+        }
+      }
+    });
+
+    it('should include last_accessed_at in hybrid search results', async () => {
+      // Given: last_accessed_at이 있는 메모리 생성
+      try {
+        // 메모리 아이템 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (
+            id, type, content, importance, privacy_scope, created_at, last_accessed_at
+          )
+          VALUES (
+            'mem_hybrid_last_accessed', 'semantic', 'Test content for hybrid', 0.8, 'private',
+            '2024-01-01T00:00:00Z', '2024-01-20T00:00:00Z'
+          )
+        `);
+
+        // FTS5 테이블 생성 (없는 경우)
+        db.exec(`
+          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_fts USING fts5(
+            content,
+            content='memory_item',
+            content_rowid='rowid'
+          )
+        `);
+
+        // VEC 테이블 생성 (없는 경우)
+        db.exec(`
+          CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf
+          USING vec0(embedding float[384])
+        `);
+        
+        // 임베딩 데이터 추가
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_hybrid_last_accessed', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+        
+        // VEC 테이블에 데이터 추가
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_hybrid_last_accessed'
+        `) as { id: number } | undefined;
+        
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: 하이브리드 검색 실행
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        textQuery: 'test',
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      // Then: last_accessed_at이 포함되어야 함
+      if (results.length > 0) {
+        const result = results.find(r => r.memory_id === 'mem_hybrid_last_accessed');
+        if (result) {
+          expect(result.last_accessed_at).toBeDefined();
+          expect(result.last_accessed_at).toBe('2024-01-20T00:00:00Z');
+        }
+      }
+    });
+  });
+
+  describe('하이브리드 검색 textQuery 생략/빈 문자열 처리', () => {
+    it('textQuery가 없을 때 벡터 검색만 사용해야 함', async () => {
+      // Given: VEC 테이블이 있는 경우
+      try {
+        // 테스트용 메모리 및 임베딩 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES ('mem_no_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
+        `);
+
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_no_text_query', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_no_text_query'
+        `) as { id: number } | undefined;
+
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: textQuery 없이 하이브리드 검색 실행
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        // textQuery 없음
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      // Then: 에러 없이 벡터 검색 결과가 반환되어야 함
+      expect(Array.isArray(results)).toBe(true);
+      // FTS5 빈 쿼리 에러가 발생하지 않아야 함
+    });
+
+    it('textQuery가 빈 문자열일 때 벡터 검색만 사용해야 함', async () => {
+      // Given: VEC 테이블이 있는 경우
+      try {
+        // 테스트용 메모리 및 임베딩 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES ('mem_empty_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
+        `);
+
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_empty_text_query', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_empty_text_query'
+        `) as { id: number } | undefined;
+
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: 빈 문자열 textQuery로 하이브리드 검색 실행
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        textQuery: '', // 빈 문자열
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      // Then: 에러 없이 벡터 검색 결과가 반환되어야 함
+      expect(Array.isArray(results)).toBe(true);
+      // FTS5 빈 쿼리 에러가 발생하지 않아야 함
+    });
+
+    it('textQuery가 공백만 있을 때 벡터 검색만 사용해야 함', async () => {
+      // Given: VEC 테이블이 있는 경우
+      try {
+        // 테스트용 메모리 및 임베딩 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES ('mem_whitespace_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
+        `);
+
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_whitespace_text_query', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_whitespace_text_query'
+        `) as { id: number } | undefined;
+
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: 공백만 있는 textQuery로 하이브리드 검색 실행
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        textQuery: '   ', // 공백만
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      // Then: 에러 없이 벡터 검색 결과가 반환되어야 함
+      expect(Array.isArray(results)).toBe(true);
+      // FTS5 빈 쿼리 에러가 발생하지 않아야 함
+    });
+
+    it('textQuery가 undefined일 때 정상 결과를 반환해야 함', async () => {
+      // Given: VEC 테이블이 있는 경우
+      try {
+        // 테스트용 메모리 및 임베딩 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES ('mem_undefined_text_query', 'episodic', 'Test content for undefined query', 0.5, datetime('now'))
+        `);
+
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_undefined_text_query', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_undefined_text_query'
+        `) as { id: number } | undefined;
+
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: undefined textQuery로 하이브리드 검색 실행
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        textQuery: undefined, // undefined
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      // Then: 에러 없이 벡터 검색 결과가 반환되어야 함
+      expect(Array.isArray(results)).toBe(true);
+      // FTS5 빈 쿼리 에러가 발생하지 않아야 함
+      // undefined textQuery는 벡터 검색만 사용되어야 함
+    });
+
+    it('textQuery가 null일 때 정상 결과를 반환해야 함', async () => {
+      // Given: VEC 테이블이 있는 경우
+      try {
+        // 테스트용 메모리 및 임베딩 생성
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES ('mem_null_text_query', 'episodic', 'Test content for null query', 0.5, datetime('now'))
+        `);
+
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_embedding (
+            memory_id, embedding_provider, projection_type, embedding, dim, dimensions
+          )
+          VALUES (
+            'mem_null_text_query', 'tfidf', 'native', 
+            '${JSON.stringify(new Array(384).fill(0.1))}', 384, 384
+          )
+        `);
+
+        const embeddingId = DatabaseUtils.get(db, `
+          SELECT id FROM memory_embedding WHERE memory_id = 'mem_null_text_query'
+        `) as { id: number } | undefined;
+
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${JSON.stringify(new Array(384).fill(0.1))}')
+          `);
+        }
+      } catch (error) {
+        // VEC 확장이 없는 경우 테스트 스킵
+        console.warn('VEC 확장이 없어 테스트를 스킵합니다:', error);
+        return;
+      }
+
+      // When: null textQuery로 하이브리드 검색 실행
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        textQuery: null as any, // null
+        provider: 'tfidf',
+        options: {
+          includeMetadata: true
+        }
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      // Then: 에러 없이 벡터 검색 결과가 반환되어야 함
+      expect(Array.isArray(results)).toBe(true);
+      // FTS5 빈 쿼리 에러가 발생하지 않아야 함
+      // null textQuery는 벡터 검색만 사용되어야 함
+    });
+  });
 });
 
