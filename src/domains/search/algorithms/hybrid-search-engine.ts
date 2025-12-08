@@ -1264,6 +1264,11 @@ export class HybridSearchEngine {
       return matches;
     }
     
+    // Mock 데이터베이스인 경우 빈 Map 반환 (테스트 환경에서 안전하게 처리)
+    if (!db || typeof db.prepare !== 'function') {
+      return matches;
+    }
+    
     try {
       const placeholders = memoryIds.map(() => '?').join(',');
       const sql = `
