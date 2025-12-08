@@ -11,6 +11,7 @@
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 import type { EmbeddingProvider } from '../shared/types/index.js';
@@ -118,9 +119,11 @@ class MultiProviderSearchBenchmark {
     const results: ProviderSearchResult[] = [];
 
     for (let i = 0; i < iterations; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const startTime = process.hrtime.bigint();
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const searchResult = await this.hybridSearchEngine.search(this.db, {
           query,
           limit: 10,
@@ -162,9 +165,11 @@ class MultiProviderSearchBenchmark {
     const errors: string[] = [];
 
     for (let i = 0; i < iterations; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const startTime = process.hrtime.bigint();
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
         const searchResult = await this.hybridSearchEngine.search(this.db, {
           query,
           limit: 10,

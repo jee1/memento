@@ -11,6 +11,7 @@ import type {
 } from '../../../shared/types/vector-search.types.js';
 import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import { mcpLogger } from '../../../server/mcp-logger.js';
 
 export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   private db: Database.Database | null = null;
@@ -49,7 +50,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         : [];
 
       if (tableCheck.length === 0) {
-        console.log('⚠️ VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
+        mcpLogger.logServer('warn', 'VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
         this.isVecAvailable = false;
         return false;
       }
@@ -67,7 +68,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         `);
 
         if (typeof testStatement.get !== 'function') {
-          console.warn('⚠️ VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.');
+          mcpLogger.logServer('warn', 'VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.');
           this.isVecAvailable = false;
           return false;
         }
@@ -75,15 +76,15 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         testStatement.get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
         
         this.isVecAvailable = true;
-        console.log('✅ VEC (Vector Search) 사용 가능');
+        mcpLogger.logServer('info', 'VEC (Vector Search) 사용 가능');
         return true;
       } catch (vecError) {
-        console.warn('⚠️ VEC 함수를 사용할 수 없습니다:', vecError);
+        mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', { error: vecError instanceof Error ? vecError.message : String(vecError) });
         this.isVecAvailable = false;
         return false;
       }
     } catch (error) {
-      console.error('❌ VEC 가용성 확인 실패:', error);
+      mcpLogger.logServer('error', 'VEC 가용성 확인 실패', { error: error instanceof Error ? error.message : String(error) });
       this.isVecAvailable = false;
       return false;
     }
@@ -94,7 +95,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   async search(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
-      console.warn('⚠️ VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
+      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
       return [];
     }
 
@@ -111,7 +112,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
     // 벡터 차원 검증
     if (queryVector.length !== expectedDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
+      mcpLogger.logServer('error', '벡터 차원 불일치', { expected: expectedDimensions, actual: queryVector.length });
       return [];
     }
 
@@ -126,9 +127,15 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           mi.type,
           mi.importance,
           mi.created_at,
-          mi.last_accessed,
+          COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
           mi.pinned,
-          mi.tags
+          mi.tags,
+          mi.task_goal,
+          mi.steps,
+          mi.reflection_notes,
+          mi.workflow_name,
+          mi.skill_name,
+          mi.trigger_conditions
         FROM ${tableName} vec
         JOIN memory_embedding me ON vec.rowid = me.id
         JOIN memory_item mi ON mi.id = me.memory_id
@@ -141,7 +148,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const params = [JSON.stringify(queryVector), ...(type ? [type] : []), limit];
       const statement = this.db.prepare(vecQuery);
       if (typeof statement.all !== 'function') {
-        console.warn('⚠️ 벡터 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
+        mcpLogger.logServer('warn', '벡터 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
         return [];
       }
       const rawResults = statement.all(...params);
@@ -162,16 +169,24 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed: includeMetadata ? result.last_accessed : undefined,
+          last_accessed_at: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
           pinned: includeMetadata ? Boolean(result.pinned) : false,
-          tags: includeMetadata ? result.tags : undefined
+          tags: includeMetadata ? result.tags : undefined,
+          // Procedural Memory 필드
+          task_goal: includeMetadata ? result.task_goal : undefined,
+          steps: includeMetadata ? result.steps : undefined,
+          reflection_notes: includeMetadata ? result.reflection_notes : undefined,
+          // Procedural Memory Enhancement (v7.0) 필드
+          workflow_name: includeMetadata ? result.workflow_name : undefined,
+          skill_name: includeMetadata ? result.skill_name : undefined,
+          trigger_conditions: includeMetadata ? result.trigger_conditions : undefined
         }));
 
-      console.log(`🔍 벡터 검색 완료: ${normalizedResults.length}개 결과 (임계값: ${threshold})`);
+      mcpLogger.logServer('debug', '벡터 검색 완료', { resultCount: normalizedResults.length, threshold });
       return normalizedResults;
 
     } catch (error) {
-      console.error('❌ 벡터 검색 실패:', error);
+      mcpLogger.logServer('error', '벡터 검색 실패', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -181,7 +196,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   async hybridSearch(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
-      console.warn('⚠️ VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
+      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
       return [];
     }
 
@@ -198,91 +213,159 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
     // 벡터 차원 검증
     if (queryVector.length !== expectedDimensions) {
-      console.error(`❌ 벡터 차원 불일치: 예상 ${expectedDimensions}, 실제 ${queryVector.length}`);
+      mcpLogger.logServer('error', '벡터 차원 불일치', { expected: expectedDimensions, actual: queryVector.length });
       return [];
     }
 
     try {
       const tableName = this.getTableName(provider ?? 'tfidf');
       
-      const hybridQuery = `
-        WITH vector_search AS (
+      // textQuery가 없거나 빈 문자열이면 텍스트 검색을 건너뛰고 벡터 검색만 사용
+      // FTS5는 빈 쿼리를 에러로 처리하므로 이를 방지
+      const hasTextQuery = textQuery && textQuery.trim().length > 0;
+      
+      let hybridQuery: string;
+      let params: any[];
+
+      if (hasTextQuery) {
+        // 텍스트 검색과 벡터 검색 모두 사용
+        hybridQuery = `
+          WITH vector_search AS (
+            SELECT 
+              me.memory_id as memory_id,
+              vec.distance as vector_distance,
+              mi.content,
+              mi.type,
+              mi.importance,
+              mi.created_at,
+              COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
+              mi.pinned,
+              mi.tags,
+              mi.task_goal,
+              mi.steps,
+              mi.reflection_notes,
+              mi.workflow_name,
+              mi.skill_name,
+              mi.trigger_conditions
+            FROM ${tableName} vec
+            JOIN memory_embedding me ON vec.rowid = me.id
+            JOIN memory_item mi ON mi.id = me.memory_id
+            WHERE vec.embedding MATCH ?
+            ${type ? 'AND mi.type = ?' : ''}
+          ),
+          text_search AS (
+            SELECT 
+              mi.id as memory_id,
+              mi.content,
+              mi.type,
+              mi.importance,
+              mi.created_at,
+              COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
+              mi.pinned,
+              mi.tags,
+              mi.task_goal,
+              mi.steps,
+              mi.reflection_notes,
+              mi.workflow_name,
+              mi.skill_name,
+              mi.trigger_conditions,
+              fts.rank as text_rank
+            FROM memory_item_fts fts
+            JOIN memory_item mi ON fts.rowid = mi.rowid
+            WHERE memory_item_fts MATCH ?
+            ${type ? 'AND mi.type = ?' : ''}
+          )
+          SELECT 
+            COALESCE(vs.memory_id, ts.memory_id) as memory_id,
+            COALESCE(1 - vs.vector_distance, 0) as vector_similarity,
+            COALESCE(ts.text_rank, 0) as text_similarity,
+            COALESCE(vs.content, ts.content) as content,
+            COALESCE(vs.type, ts.type) as type,
+            COALESCE(vs.importance, ts.importance) as importance,
+            COALESCE(vs.created_at, ts.created_at) as created_at,
+            COALESCE(vs.last_accessed_at, ts.last_accessed_at, vs.last_accessed, ts.last_accessed) as last_accessed_at,
+            COALESCE(vs.pinned, ts.pinned) as pinned,
+            COALESCE(vs.tags, ts.tags) as tags,
+            COALESCE(vs.task_goal, ts.task_goal) as task_goal,
+            COALESCE(vs.steps, ts.steps) as steps,
+            COALESCE(vs.reflection_notes, ts.reflection_notes) as reflection_notes,
+            COALESCE(vs.workflow_name, ts.workflow_name) as workflow_name,
+            COALESCE(vs.skill_name, ts.skill_name) as skill_name,
+            COALESCE(vs.trigger_conditions, ts.trigger_conditions) as trigger_conditions
+          FROM vector_search vs
+          LEFT JOIN text_search ts ON vs.memory_id = ts.memory_id
+          WHERE vs.memory_id IS NOT NULL
+          UNION
+          SELECT 
+            ts.memory_id,
+            0 as vector_similarity,
+            ts.text_rank as text_similarity,
+            ts.content,
+            ts.type,
+            ts.importance,
+            ts.created_at,
+            COALESCE(ts.last_accessed_at, ts.last_accessed) as last_accessed_at,
+            ts.pinned,
+            ts.tags,
+            ts.task_goal,
+            ts.steps,
+            ts.reflection_notes,
+            ts.workflow_name,
+            ts.skill_name,
+            ts.trigger_conditions
+          FROM text_search ts
+          LEFT JOIN vector_search vs ON ts.memory_id = vs.memory_id
+          WHERE vs.memory_id IS NULL
+          ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC
+          LIMIT ?
+        `;
+
+        params = [
+          JSON.stringify(queryVector),
+          ...(type ? [type] : []),
+          textQuery.trim(),
+          ...(type ? [type] : []),
+          limit
+        ];
+      } else {
+        // 텍스트 검색 없이 벡터 검색만 사용
+        hybridQuery = `
           SELECT 
             me.memory_id as memory_id,
-            vec.distance as vector_distance,
+            COALESCE(1 - vec.distance, 0) as vector_similarity,
+            0 as text_similarity,
             mi.content,
             mi.type,
             mi.importance,
             mi.created_at,
-            mi.last_accessed,
+            COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
             mi.pinned,
-            mi.tags
+            mi.tags,
+            mi.task_goal,
+            mi.steps,
+            mi.reflection_notes,
+            mi.workflow_name,
+            mi.skill_name,
+            mi.trigger_conditions
           FROM ${tableName} vec
           JOIN memory_embedding me ON vec.rowid = me.id
           JOIN memory_item mi ON mi.id = me.memory_id
           WHERE vec.embedding MATCH ?
           ${type ? 'AND mi.type = ?' : ''}
-        ),
-        text_search AS (
-          SELECT 
-            mi.id as memory_id,
-            mi.content,
-            mi.type,
-            mi.importance,
-            mi.created_at,
-            mi.last_accessed,
-            mi.pinned,
-            mi.tags,
-            fts.rank as text_rank
-          FROM memory_item_fts fts
-          JOIN memory_item mi ON fts.rowid = mi.rowid
-          WHERE memory_item_fts MATCH ?
-          ${type ? 'AND mi.type = ?' : ''}
-        )
-        SELECT 
-          COALESCE(vs.memory_id, ts.memory_id) as memory_id,
-          COALESCE(1 - vs.vector_distance, 0) as vector_similarity,
-          COALESCE(ts.text_rank, 0) as text_similarity,
-          COALESCE(vs.content, ts.content) as content,
-          COALESCE(vs.type, ts.type) as type,
-          COALESCE(vs.importance, ts.importance) as importance,
-          COALESCE(vs.created_at, ts.created_at) as created_at,
-          COALESCE(vs.last_accessed, ts.last_accessed) as last_accessed,
-          COALESCE(vs.pinned, ts.pinned) as pinned,
-          COALESCE(vs.tags, ts.tags) as tags
-        FROM vector_search vs
-        LEFT JOIN text_search ts ON vs.memory_id = ts.memory_id
-        WHERE vs.memory_id IS NOT NULL
-        UNION
-        SELECT 
-          ts.memory_id,
-          0 as vector_similarity,
-          ts.text_rank as text_similarity,
-          ts.content,
-          ts.type,
-          ts.importance,
-          ts.created_at,
-          ts.last_accessed,
-          ts.pinned,
-          ts.tags
-        FROM text_search ts
-        LEFT JOIN vector_search vs ON ts.memory_id = vs.memory_id
-        WHERE vs.memory_id IS NULL
-        ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC
-        LIMIT ?
-      `;
+          ORDER BY vec.distance ASC
+          LIMIT ?
+        `;
 
-      const params = [
-        JSON.stringify(queryVector),
-        ...(type ? [type] : []),
-        textQuery || '',
-        ...(type ? [type] : []),
-        limit
-      ];
+        params = [
+          JSON.stringify(queryVector),
+          ...(type ? [type] : []),
+          limit
+        ];
+      }
 
       const statement = this.db.prepare(hybridQuery);
       if (typeof statement.all !== 'function') {
-        console.warn('⚠️ 하이브리드 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
+        mcpLogger.logServer('warn', '하이브리드 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
         return [];
       }
       const rawResults = statement.all(...params);
@@ -292,22 +375,32 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const normalizedResults = results
         .map(result => ({
           memory_id: result.memory_id,
-          similarity: result.vector_similarity * 0.6 + result.text_similarity * 0.4, // similarity로 통일
+          similarity: hasTextQuery 
+            ? result.vector_similarity * 0.6 + result.text_similarity * 0.4 // 하이브리드 가중치
+            : result.vector_similarity, // 텍스트 검색 없을 때는 벡터 유사도만 사용
           content: includeContent ? result.content : '',
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed: includeMetadata ? result.last_accessed : undefined,
+          last_accessed_at: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
           pinned: includeMetadata ? Boolean(result.pinned) : false,
-          tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
+          tags: includeMetadata ? this.safeParseTags(result.tags) : undefined,
+          // Procedural Memory 필드
+          task_goal: includeMetadata ? result.task_goal : undefined,
+          steps: includeMetadata ? result.steps : undefined,
+          reflection_notes: includeMetadata ? result.reflection_notes : undefined,
+          // Procedural Memory Enhancement (v7.0) 필드
+          workflow_name: includeMetadata ? result.workflow_name : undefined,
+          skill_name: includeMetadata ? result.skill_name : undefined,
+          trigger_conditions: includeMetadata ? result.trigger_conditions : undefined
         }))
         .filter(result => result.similarity >= threshold);
 
-      console.log(`🔍 하이브리드 검색 완료: ${normalizedResults.length}개 결과`);
+      mcpLogger.logServer('debug', '하이브리드 검색 완료', { resultCount: normalizedResults.length });
       return normalizedResults;
 
     } catch (error) {
-      console.error('❌ 하이브리드 검색 실패:', error);
+      mcpLogger.logServer('error', '하이브리드 검색 실패', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -358,7 +451,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         vecExtensionLoaded: this.isVecAvailable
       };
     } catch (error) {
-      console.error('❌ 인덱스 상태 확인 실패:', error);
+      mcpLogger.logServer('error', '인덱스 상태 확인 실패', { error: error instanceof Error ? error.message : String(error) });
       return { 
         available: false, 
         tableExists: false, 
@@ -374,17 +467,17 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   async rebuildIndex(): Promise<boolean> {
     if (!this.db || !this.isVecAvailable) {
-      console.warn('⚠️ VEC를 사용할 수 없습니다.');
+      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다.');
       return false;
     }
 
     try {
-      console.log('🔄 벡터 인덱스 재구성 시작...');
+      mcpLogger.logServer('info', '벡터 인덱스 재구성 시작');
       // VEC 인덱스 재구성 (sqlite-vec는 자동으로 인덱스를 관리)
-      console.log('✅ 벡터 인덱스 재구성 완료 (sqlite-vec는 자동 인덱스 관리)');
+      mcpLogger.logServer('info', '벡터 인덱스 재구성 완료 (sqlite-vec는 자동 인덱스 관리)');
       return true;
     } catch (error) {
-      console.error('❌ 벡터 인덱스 재구성 실패:', error);
+      mcpLogger.logServer('error', '벡터 인덱스 재구성 실패', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -420,7 +513,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', error);
+      mcpLogger.logServer('warn', '태그 JSON 파싱 실패, 빈 배열로 대체합니다', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }

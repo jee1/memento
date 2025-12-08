@@ -4,7 +4,6 @@
  */
 
 import { createMementoClient } from '../client/index.js';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../domains/monitoring/services/error-logging-service.js';
 
 async function testErrorLogging() {
   console.log('🔍 에러 로깅 시스템 테스트 시작');

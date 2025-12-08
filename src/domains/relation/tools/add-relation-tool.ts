@@ -13,7 +13,7 @@ import type { RelationType } from '../../../shared/types/relation.js';
 const AddRelationSchema = z.object({
   source_id: z.string().min(1, 'source_id는 필수입니다'),
   target_id: z.string().min(1, 'target_id는 필수입니다'),
-  relation_type: z.enum(['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO']),
+  relation_type: z.enum(['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO', 'VERSION_OF']),
   confidence: z.number().min(0).max(1).optional().default(0.7).describe('신뢰도 (0.0~1.0, 기본값: 0.7)')
 });
 
@@ -35,7 +35,7 @@ export class AddRelationTool extends BaseTool {
           },
           relation_type: {
             type: 'string',
-            enum: ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'],
+            enum: ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO', 'VERSION_OF'],
             description: '관계 유형'
           },
           confidence: {

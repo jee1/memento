@@ -3,7 +3,7 @@
  * MCP 서버 없이 직접 성능 알림 서비스를 테스트
  */
 
-import { PerformanceAlertService, AlertType, AlertLevel } from '../domains/monitoring/services/performance-alert-service.js';
+import { PerformanceAlertService, AlertType } from '../domains/monitoring/services/performance-alert-service.js';
 import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
@@ -19,6 +19,7 @@ async function testAlertsDirect() {
     const alertService = new PerformanceAlertService('./logs');
     
     // 통합 모니터링 서비스 생성
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     const monitoringIntegration = new PerformanceMonitoringIntegration(
       db,
       alertService,

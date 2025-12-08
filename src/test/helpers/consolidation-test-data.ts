@@ -20,6 +20,13 @@ export interface TestMemoryItem {
   last_accessed_at?: string;
   consolidation_score?: number;
   g_value?: number;
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name?: string;
+  skill_name?: string;
+  trigger_conditions?: string;
+  task_goal?: string;
+  steps?: string;
+  reflection_notes?: string;
 }
 
 export interface TestMemoryEmbedding {
@@ -56,7 +63,11 @@ export function initializeTestDatabase(db: Database.Database): void {
       recall_count INTEGER NOT NULL DEFAULT 0,
       last_accessed_at TIMESTAMP,
       consolidation_score REAL,
-      g_value REAL
+      g_value REAL,
+      -- Procedural Memory Enhancement (v7.0) 추가 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);
@@ -113,8 +124,9 @@ export function insertMemoryItem(
   const sql = `
     INSERT INTO memory_item (
       id, type, content, importance, tags, created_at, last_accessed,
-      pinned, recall_count, last_accessed_at, consolidation_score, g_value
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      pinned, recall_count, last_accessed_at, consolidation_score, g_value,
+      workflow_name, skill_name, trigger_conditions, task_goal, steps, reflection_notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   DatabaseUtils.run(db, sql, [
@@ -129,7 +141,13 @@ export function insertMemoryItem(
     item.recall_count ?? 0,
     lastAccessedAt,
     item.consolidation_score ?? null,
-    item.g_value ?? null
+    item.g_value ?? null,
+    item.workflow_name ?? null,
+    item.skill_name ?? null,
+    item.trigger_conditions ?? null,
+    item.task_goal ?? null,
+    item.steps ?? null,
+    item.reflection_notes ?? null
   ]);
 
   // FTS5 동기화 (트리거가 없으므로 수동 삽입)

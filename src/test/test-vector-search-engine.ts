@@ -6,6 +6,8 @@ import { DatabaseUtils } from '../shared/utils/database.js';
 // Mock sqlite-vec functions
 const mockVecSearch = vi.fn();
 const mockVecDistance = vi.fn();
+const mockVssSearchRbf = vi.fn();
+const mockVssSearch = vi.fn();
 
 // Mock sqlite-vec extension
 vi.mock('better-sqlite3', async () => {
@@ -132,7 +134,7 @@ describe('VectorSearchEngine', () => {
       const newEngine = getVectorSearchEngine();
       newEngine.initialize(mockDb as any);
       
-      const results = await newEngine.search(testQueryVector, { threshold: 0.8 });
+      await newEngine.search(testQueryVector, { threshold: 0.8 });
       
       expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining('WHERE similarity >= ?'),
@@ -154,7 +156,7 @@ describe('VectorSearchEngine', () => {
       const newEngine = getVectorSearchEngine();
       newEngine.initialize(mockDb as any);
       
-      const results = await newEngine.search(testQueryVector, { limit: 5 });
+      await newEngine.search(testQueryVector, { limit: 5 });
       
       expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining('LIMIT ?'),
@@ -176,7 +178,7 @@ describe('VectorSearchEngine', () => {
       const newEngine = getVectorSearchEngine();
       newEngine.initialize(mockDb as any);
       
-      const results = await newEngine.search(testQueryVector, { 
+      await newEngine.search(testQueryVector, { 
         type: ['episodic', 'semantic'] 
       });
       
@@ -258,6 +260,7 @@ describe('VectorSearchEngine', () => {
 
   describe('기본값 처리', () => {
     it('should use default options when none provided', async () => {
+      const testQueryVector = Array(1536).fill(0.1);
       const mockQuery = vi.fn().mockReturnValue({
         all: vi.fn().mockReturnValue([])
       });
@@ -282,6 +285,7 @@ describe('VectorSearchEngine', () => {
 
   describe('JSON 직렬화', () => {
     it('should serialize query vector to JSON', async () => {
+      const testQueryVector = Array(1536).fill(0.1);
       const mockQuery = vi.fn().mockReturnValue({
         all: vi.fn().mockReturnValue([])
       });

@@ -2,7 +2,7 @@
  * Remove Relation Tool 단위 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { RemoveRelationTool } from '../domains/relation/tools/remove-relation-tool.js';
 import { DatabaseUtils } from '../shared/utils/database.js';

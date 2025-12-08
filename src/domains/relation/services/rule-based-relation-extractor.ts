@@ -133,6 +133,24 @@ const RELATION_KEYWORD_PATTERNS: Record<RelationType, KeywordPattern[]> = {
       keywords: ['component of', 'element of', 'constituent of'],
       weight: 0.7
     }
+  ],
+  VERSION_OF: [
+    {
+      keywords: ['버전', '개정', '수정', '업데이트', '개선', '변경'],
+      weight: 0.8
+    },
+    {
+      keywords: ['version of', 'revision of', 'update of', 'improvement of', 'variant of', 'modified version'],
+      weight: 0.8
+    },
+    {
+      keywords: ['개선된', '수정된', '업데이트된', '변경된'],
+      weight: 0.7
+    },
+    {
+      keywords: ['updated', 'revised', 'improved', 'modified', 'enhanced'],
+      weight: 0.7
+    }
   ]
 };
 

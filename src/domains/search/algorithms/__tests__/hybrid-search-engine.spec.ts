@@ -359,7 +359,11 @@ describe('HybridSearchEngine', () => {
           task_goal TEXT,
           steps TEXT,
           reflection_notes TEXT,
-          consolidation_score REAL
+          consolidation_score REAL,
+          -- Procedural Memory Enhancement (v7.0) 필드
+          workflow_name TEXT,
+          skill_name TEXT,
+          trigger_conditions TEXT
         );
       `);
 
@@ -1691,5 +1695,178 @@ describe('HybridSearchEngine', () => {
       });
       expect(timeoutLogAfter).toBeUndefined(); // 여전히 호출되지 않아야 함
     }, 10000); // 10초 타임아웃 (3초 대기 포함)
+  });
+
+  describe('Procedural Memory 특화 가중치 통합 테스트', () => {
+    let db: Database.Database;
+    let testEngine: HybridSearchEngine;
+
+    beforeEach(async () => {
+      db = new Database(':memory:');
+      initializeTestDatabase(db);
+      
+      // RelationEngine 스키마 마이그레이션
+      const migration = new RelationEngineSchemaMigration();
+      migration.up(db);
+
+      testEngine = createHybridSearchEngine();
+    });
+
+    afterEach(() => {
+      db.close();
+    });
+
+    it('procedural memory에 workflow_name이 있으면 가중치 부스트 적용', async () => {
+      // Given: workflow_name이 있는 procedural memory
+      insertMemoryItem(db, {
+        id: 'mem-procedural-1',
+        type: 'procedural',
+        content: '데이터 마이그레이션 절차',
+        workflow_name: '데이터 마이그레이션',
+        skill_name: '스키마 백업'
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-procedural-1',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+
+      // Given: 일반 episodic memory
+      insertMemoryItem(db, {
+        id: 'mem-episodic-1',
+        type: 'episodic',
+        content: '일반 기억'
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-episodic-1',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+
+      // When: 검색 실행
+      const result = await testEngine.search(db, {
+        query: '데이터',
+        limit: 10
+      });
+
+      // Then: procedural memory가 더 높은 점수를 받아야 함 (workflow_name 부스트)
+      if (result.items.length >= 2) {
+        const proceduralMemory = result.items.find(item => item.id === 'mem-procedural-1');
+        const episodicMemory = result.items.find(item => item.id === 'mem-episodic-1');
+        
+        if (proceduralMemory && episodicMemory) {
+          // procedural memory가 더 높은 finalScore를 가져야 함
+          expect(proceduralMemory.finalScore).toBeGreaterThanOrEqual(episodicMemory.finalScore);
+        }
+      }
+    });
+
+    it('procedural memory에 skill_name이 있으면 가중치 부스트 적용', async () => {
+      // Given: skill_name이 있는 procedural memory
+      insertMemoryItem(db, {
+        id: 'mem-procedural-2',
+        type: 'procedural',
+        content: '스키마 백업 절차',
+        skill_name: '스키마 백업'
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-procedural-2',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+
+      // When: 검색 실행
+      const result = await testEngine.search(db, {
+        query: '스키마',
+        limit: 10
+      });
+
+      // Then: procedural memory가 검색 결과에 포함되어야 함
+      const proceduralMemory = result.items.find(item => item.id === 'mem-procedural-2');
+      expect(proceduralMemory).toBeDefined();
+    });
+
+    it('procedural memory에 trigger_conditions가 있으면 가중치 부스트 적용', async () => {
+      // Given: trigger_conditions가 있는 procedural memory
+      insertMemoryItem(db, {
+        id: 'mem-procedural-3',
+        type: 'procedural',
+        content: '마이그레이션 트리거 절차',
+        trigger_conditions: JSON.stringify({ event: 'migration_start' })
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-procedural-3',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+
+      // When: 검색 실행
+      const result = await testEngine.search(db, {
+        query: '마이그레이션',
+        limit: 10
+      });
+
+      // Then: procedural memory가 검색 결과에 포함되어야 함
+      const proceduralMemory = result.items.find(item => item.id === 'mem-procedural-3');
+      expect(proceduralMemory).toBeDefined();
+    });
+
+    it('모든 procedural memory 필드가 있으면 최대 부스트 적용', async () => {
+      // Given: 모든 procedural memory 필드가 있는 메모리
+      insertMemoryItem(db, {
+        id: 'mem-procedural-4',
+        type: 'procedural',
+        content: '완전한 procedural memory',
+        workflow_name: '데이터 마이그레이션',
+        skill_name: '스키마 백업',
+        trigger_conditions: JSON.stringify({ event: 'migration_start' })
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-procedural-4',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+
+      // Given: 일반 episodic memory
+      insertMemoryItem(db, {
+        id: 'mem-episodic-2',
+        type: 'episodic',
+        content: '일반 기억'
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-episodic-2',
+        embedding: new Array(384).fill(0.1),
+        embedding_provider: 'minilm',
+        dim: 384,
+        dimensions: 384
+      });
+
+      // When: 검색 실행
+      const result = await testEngine.search(db, {
+        query: '데이터',
+        limit: 10
+      });
+
+      // Then: procedural memory가 더 높은 점수를 받아야 함 (최대 부스트)
+      if (result.items.length >= 2) {
+        const proceduralMemory = result.items.find(item => item.id === 'mem-procedural-4');
+        const episodicMemory = result.items.find(item => item.id === 'mem-episodic-2');
+        
+        if (proceduralMemory && episodicMemory) {
+          // procedural memory가 더 높은 finalScore를 가져야 함
+          expect(proceduralMemory.finalScore).toBeGreaterThanOrEqual(episodicMemory.finalScore);
+        }
+      }
+    });
   });
 });

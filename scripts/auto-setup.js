@@ -101,7 +101,7 @@ async function initializeDatabase() {
     logStep('데이터베이스 초기화', 'SQLite 데이터베이스 설정 중...');
     
     // TypeScript 파일을 직접 실행
-    execSync('npx tsx src/database/init.ts', { 
+    execSync('npx tsx src/infrastructure/database/database/init.ts', { 
       cwd: projectRoot, 
       stdio: 'inherit' 
     });

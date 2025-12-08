@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../shared/utils/database.js';
 import { MigrateEmbeddingsTool } from './migrate-embeddings-tool.js';
 import type { ToolContext } from '../types.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../test/helpers/consolidation-test-data.js';
@@ -36,7 +35,7 @@ describe('MigrateEmbeddingsTool', () => {
       }
 
       return {
-        embedding: new Array(dimensions).fill(0).map((_, i) => Math.random() * 0.1),
+        embedding: new Array(dimensions).fill(0).map(() => Math.random() * 0.1),
         model: provider || 'minilm',
         provider: provider || 'minilm',
         usage: {
@@ -232,7 +231,7 @@ describe('MigrateEmbeddingsTool', () => {
           dimensions = 512;
         }
         return {
-          embedding: new Array(dimensions).fill(0).map((_, i) => Math.random() * 0.1),
+          embedding: new Array(dimensions).fill(0).map(() => Math.random() * 0.1),
           model: provider || 'minilm',
           provider: provider || 'minilm',
           usage: {

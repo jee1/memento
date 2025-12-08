@@ -3,9 +3,9 @@
  * 도구 등록 및 관리 시스템 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ToolRegistry } from './tool-registry.js';
-import type { ToolDefinition, ToolContext, ToolResult } from '../types.js';
+import type { ToolDefinition, ToolContext } from '../types.js';
 import Database from 'better-sqlite3';
 
 describe('ToolRegistry', () => {

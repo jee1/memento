@@ -2,7 +2,7 @@
  * Visualize Relations Tool 단위 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { VisualizeRelationsTool } from '../domains/relation/tools/visualize-relations-tool.js';
 import { DatabaseUtils } from '../shared/utils/database.js';

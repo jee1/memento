@@ -2,7 +2,7 @@
  * Consolidation Score Worker 단위 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { ConsolidationScoreWorker } from './consolidation-score-worker.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
@@ -67,6 +67,7 @@ describe('ConsolidationScoreWorker', () => {
   describe('runIncrementalRecalculation', () => {
     it('최근 갱신된 레코드만 재계산해야 함', async () => {
       const now = new Date();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 

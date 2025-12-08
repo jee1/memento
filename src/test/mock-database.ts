@@ -14,16 +14,19 @@ export class MockPreparedStatement {
     this.mockError = mockError;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   all(...params: any[]): any[] {
     if (this.mockError) throw this.mockError;
     return this.mockData;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   get(...params: any[]): any {
     if (this.mockError) throw this.mockError;
     return this.mockData[0] || null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   run(...params: any[]): { changes: number; lastInsertRowid: number } {
     if (this.mockError) throw this.mockError;
     return { changes: 1, lastInsertRowid: 1 };
@@ -169,6 +172,7 @@ export class MockDatabase {
     return match?.[1] || '';
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   exec(sql: string): void {
     if (this.mockError) throw this.mockError;
     // Mock exec - 아무것도 하지 않음
@@ -204,6 +208,7 @@ export function createMockDatabase(): MockDatabase {
 
 // VEC 함수들 Mock
 export const mockVecFunctions = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   vss_search: vi.fn().mockImplementation((embedding: string) => {
     // Mock VEC 검색 결과
     return [
@@ -212,6 +217,7 @@ export const mockVecFunctions = {
     ];
   }),
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   distance: vi.fn().mockImplementation((embedding1: string, embedding2: string) => {
     // Mock 거리 계산
     return 0.3;

@@ -14,7 +14,7 @@ import type { RelationDirection, GetRelationsOptions, MemoryRelation } from '../
 
 const GetRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
-  relation_type: z.enum(['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO']).optional(),
+  relation_type: z.enum(['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO', 'VERSION_OF']).optional(),
   category: z.enum(['Causal', 'Temporal', 'Structural', 'Semantic']).optional(),
   direction: z.enum(['incoming', 'outgoing', 'both']).optional().default('both')
 });
@@ -33,7 +33,7 @@ export class GetRelationsTool extends BaseTool {
           },
           relation_type: {
             type: 'string',
-            enum: ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'],
+            enum: ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO', 'VERSION_OF'],
             description: '관계 유형 필터 (선택)'
           },
           category: {

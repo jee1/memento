@@ -641,6 +641,10 @@ describe('VectorSearchEngine', () => {
         if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
+        if (sql.includes('SELECT dimensions') && sql.includes('FROM memory_embedding') && sql.includes('WHERE embedding_provider')) {
+          // getActualStoredDimensions 쿼리
+          return { get: vi.fn().mockReturnValue({ dimensions: 384 }) };
+        }
         if (sql.includes('SELECT')) {
           return { all: vi.fn().mockReturnValue([
             {
@@ -656,7 +660,7 @@ describe('VectorSearchEngine', () => {
             }
           ]) };
         }
-        return { all: vi.fn().mockReturnValue([]) };
+        return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined) };
       });
 
       vectorEngine.initialize(mockDb);

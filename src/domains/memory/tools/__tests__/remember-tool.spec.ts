@@ -32,6 +32,10 @@ function initializeTestDatabase(db: Database.Database): void {
       task_goal TEXT,
       steps TEXT,
       reflection_notes TEXT,
+      -- Procedural Memory Enhancement (v7.0) 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT,
       -- Consolidation Score 필드
       recall_count INTEGER NOT NULL DEFAULT 0,
       last_accessed_at TIMESTAMP,
@@ -1011,6 +1015,500 @@ describe('RememberTool', () => {
         
         expect(Array.isArray(parsed)).toBe(true);
         expect(parsed).toHaveLength(2);
+      });
+    });
+
+    describe('Procedural Memory Enhancement (v7.0)', () => {
+      beforeEach(() => {
+        // Consolidation Score System 활성화 (g_value, recall_count 테스트를 위해 필요)
+        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
+          ...configModule.mementoConfig,
+          consolidationScoreEnabled: true
+        } as any);
+      });
+
+      describe('새 필드 저장', () => {
+        it('should save workflow_name, skill_name, and trigger_conditions', async () => {
+          // Given: workflow_name, skill_name, trigger_conditions가 포함된 파라미터
+          const params = {
+            type: 'procedural',
+            content: 'Test procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            trigger_conditions: JSON.stringify({ event: 'migration_start', condition: 'backup_required' })
+          };
+
+          // When: remember Tool 실행
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: 새 필드가 저장되어야 함
+          const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
+          expect(record.workflow_name).toBe('데이터 마이그레이션');
+          expect(record.skill_name).toBe('스키마 백업');
+          expect(record.trigger_conditions).toBe(JSON.stringify({ event: 'migration_start', condition: 'backup_required' }));
+        });
+
+        it('should validate trigger_conditions as JSON object', async () => {
+          // Given: 유효하지 않은 trigger_conditions (배열)
+          const params = {
+            type: 'procedural',
+            content: 'Test procedure',
+            trigger_conditions: JSON.stringify([1, 2, 3]) // 배열은 허용되지 않음
+          };
+
+          // When/Then: 에러가 발생해야 함
+          await expect(tool.handle(params, context)).rejects.toThrow('trigger_conditions must be a valid JSON object');
+        });
+
+        it('should reject empty workflow_name', async () => {
+          // Given: 빈 문자열 workflow_name
+          const params = {
+            type: 'procedural',
+            content: 'Test procedure',
+            workflow_name: '   ' // 빈 문자열
+          };
+
+          // When/Then: 에러가 발생해야 함
+          await expect(tool.handle(params, context)).rejects.toThrow('workflow_name cannot be an empty string');
+        });
+
+        it('should reject empty skill_name', async () => {
+          // Given: 빈 문자열 skill_name
+          const params = {
+            type: 'procedural',
+            content: 'Test procedure',
+            skill_name: '' // 빈 문자열
+          };
+
+          // When/Then: 에러가 발생해야 함
+          await expect(tool.handle(params, context)).rejects.toThrow('skill_name cannot be an empty string');
+        });
+      });
+
+      describe('업데이트 모드: replace', () => {
+        it('should replace existing procedural memory when update_mode is replace', async () => {
+          // Given: 기존 procedural memory 생성
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // When: replace 모드로 업데이트
+          const secondParams = {
+            type: 'procedural',
+            content: 'Updated procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step3', 'step4']),
+            update_mode: 'replace'
+          };
+
+          const secondResult = await tool.handle(secondParams, context);
+          const secondData = JSON.parse(secondResult.content[0].text);
+
+          // Then: 같은 ID로 업데이트되어야 함
+          expect(secondData.memory_id).toBe(originalId);
+          const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [originalId]);
+          expect(record.content).toBe('Updated procedure');
+          expect(record.steps).toBe(JSON.stringify(['step3', 'step4']));
+        });
+
+        it('should preserve recall_count and g_value when update_mode is replace', async () => {
+          // Given: 기존 procedural memory 생성 및 recall_count/g_value 설정
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // 기존 recall_count와 g_value 설정
+          DatabaseUtils.run(db, `
+            UPDATE memory_item 
+            SET recall_count = 5, g_value = 0.8, last_accessed_at = ?
+            WHERE id = ?
+          `, [new Date().toISOString(), originalId]);
+
+          const originalRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value, last_accessed_at FROM memory_item WHERE id = ?', [originalId]);
+          expect(originalRecord.recall_count).toBe(5);
+          expect(originalRecord.g_value).toBe(0.8);
+
+          // When: replace 모드로 업데이트
+          const secondParams = {
+            type: 'procedural',
+            content: 'Updated procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step3', 'step4']),
+            update_mode: 'replace'
+          };
+
+          await tool.handle(secondParams, context);
+
+          // Then: recall_count는 1 증가하고, g_value는 보존되어야 함
+          const updatedRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value, last_accessed_at FROM memory_item WHERE id = ?', [originalId]);
+          expect(updatedRecord.recall_count).toBe(6); // 5 + 1
+          expect(updatedRecord.g_value).toBe(0.8); // 보존됨
+          expect(updatedRecord.last_accessed_at).toBeDefined(); // 업데이트됨
+        });
+      });
+
+      describe('업데이트 모드: incremental', () => {
+        it('should merge steps when update_mode is incremental', async () => {
+          // Given: 기존 procedural memory 생성
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // When: incremental 모드로 업데이트
+          const secondParams = {
+            type: 'procedural',
+            content: 'Updated procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step3', 'step4']),
+            update_mode: 'incremental'
+          };
+
+          const secondResult = await tool.handle(secondParams, context);
+          const secondData = JSON.parse(secondResult.content[0].text);
+
+          // Then: 같은 ID로 업데이트되고 steps가 병합되어야 함
+          expect(secondData.memory_id).toBe(originalId);
+          const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [originalId]);
+          const mergedSteps = JSON.parse(record.steps);
+          expect(mergedSteps).toEqual(['step1', 'step2', 'step3', 'step4']);
+        });
+
+        it('should preserve recall_count and g_value when update_mode is incremental', async () => {
+          // Given: 기존 procedural memory 생성 및 recall_count/g_value 설정
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // 기존 recall_count와 g_value 설정
+          DatabaseUtils.run(db, `
+            UPDATE memory_item 
+            SET recall_count = 3, g_value = 0.6, last_accessed_at = ?
+            WHERE id = ?
+          `, [new Date().toISOString(), originalId]);
+
+          const originalRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value, last_accessed_at FROM memory_item WHERE id = ?', [originalId]);
+          expect(originalRecord.recall_count).toBe(3);
+          expect(originalRecord.g_value).toBe(0.6);
+
+          // When: incremental 모드로 업데이트
+          const secondParams = {
+            type: 'procedural',
+            content: 'Updated procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step3', 'step4']),
+            update_mode: 'incremental'
+          };
+
+          await tool.handle(secondParams, context);
+
+          // Then: recall_count는 1 증가하고, g_value는 보존되어야 함
+          const updatedRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value, last_accessed_at FROM memory_item WHERE id = ?', [originalId]);
+          expect(updatedRecord.recall_count).toBe(4); // 3 + 1
+          expect(updatedRecord.g_value).toBe(0.6); // 보존됨
+          expect(updatedRecord.last_accessed_at).toBeDefined(); // 업데이트됨
+        });
+
+        it('should accumulate recall_count correctly on multiple incremental updates', async () => {
+          // Given: 기존 procedural memory 생성
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // 초기 recall_count 확인
+          let record = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [originalId]);
+          expect(record.recall_count).toBe(1); // 첫 저장 시 1
+
+          // When: 첫 번째 incremental 업데이트
+          await tool.handle({
+            type: 'procedural',
+            content: 'Updated procedure 1',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step2']),
+            update_mode: 'incremental'
+          }, context);
+
+          // Then: recall_count가 2가 되어야 함
+          record = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [originalId]);
+          expect(record.recall_count).toBe(2); // 1 + 1
+
+          // When: 두 번째 incremental 업데이트
+          await tool.handle({
+            type: 'procedural',
+            content: 'Updated procedure 2',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step3']),
+            update_mode: 'incremental'
+          }, context);
+
+          // Then: recall_count가 3이 되어야 함
+          record = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [originalId]);
+          expect(record.recall_count).toBe(3); // 2 + 1
+          expect(record.g_value).toBeDefined(); // g_value는 보존되어야 함
+        });
+      });
+
+      describe('업데이트 모드 없음', () => {
+        it('should create new memory when update_mode is not specified even if existing memory exists', async () => {
+          // Given: 기존 procedural memory 생성
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // 기존 recall_count와 g_value 설정
+          DatabaseUtils.run(db, `
+            UPDATE memory_item 
+            SET recall_count = 10, g_value = 0.9, last_accessed_at = ?
+            WHERE id = ?
+          `, [new Date().toISOString(), originalId]);
+
+          // When: update_mode 없이 동일한 workflow_name과 skill_name으로 저장
+          const secondParams = {
+            type: 'procedural',
+            content: 'New procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step3', 'step4'])
+            // update_mode 없음
+          };
+
+          const secondResult = await tool.handle(secondParams, context);
+          const secondData = JSON.parse(secondResult.content[0].text);
+          const newId = secondData.memory_id;
+
+          // Then: 새 메모리가 생성되어야 함 (기존 메모리와 다른 ID)
+          expect(newId).not.toBe(originalId);
+
+          // 기존 메모리는 그대로 유지되어야 함
+          const originalRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [originalId]);
+          expect(originalRecord.recall_count).toBe(10); // 기존 값 유지
+          expect(originalRecord.g_value).toBe(0.9); // 기존 값 유지
+
+          // 새 메모리는 기본값을 가져야 함
+          const newRecord = DatabaseUtils.get(db, 'SELECT recall_count, g_value FROM memory_item WHERE id = ?', [newId]);
+          expect(newRecord.recall_count).toBe(1); // 새 메모리는 1
+          expect(newRecord.g_value).toBe(1.0); // 새 메모리는 1.0
+        });
+
+        it('should preserve existing memory when update_mode is not specified (policy: no overwrite without explicit mode)', async () => {
+          // Given: 기존 procedural memory 생성 및 여러 번 접근
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // 기존 메모리에 여러 번 접근하여 recall_count 증가
+          DatabaseUtils.run(db, `
+            UPDATE memory_item 
+            SET recall_count = 5, g_value = 0.7, last_accessed_at = ?
+            WHERE id = ?
+          `, [new Date().toISOString(), originalId]);
+
+          // When: update_mode 없이 동일한 workflow_name/skill_name으로 저장
+          // (의도: 명시적으로 update_mode를 지정하지 않으면 덮어쓰지 않음)
+          const secondParams = {
+            type: 'procedural',
+            content: 'Different procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step5', 'step6'])
+            // update_mode 없음 - 명시적으로 지정하지 않으면 새로 저장
+          };
+
+          const secondResult = await tool.handle(secondParams, context);
+          const secondData = JSON.parse(secondResult.content[0].text);
+          const newId = secondData.memory_id;
+
+          // Then: 기존 메모리는 변경되지 않아야 함 (덮어쓰기 방지)
+          const originalRecord = DatabaseUtils.get(db, `
+            SELECT id, content, recall_count, g_value, workflow_name, skill_name 
+            FROM memory_item 
+            WHERE id = ?
+          `, [originalId]);
+          
+          expect(originalRecord.id).toBe(originalId);
+          expect(originalRecord.content).toBe('Original procedure'); // 기존 내용 유지
+          expect(originalRecord.recall_count).toBe(5); // 기존 recall_count 유지
+          expect(originalRecord.g_value).toBe(0.7); // 기존 g_value 유지
+          expect(originalRecord.workflow_name).toBe('데이터 마이그레이션');
+          expect(originalRecord.skill_name).toBe('스키마 백업');
+
+          // 새 메모리는 별도로 생성되어야 함
+          const newRecord = DatabaseUtils.get(db, `
+            SELECT id, content, recall_count, g_value 
+            FROM memory_item 
+            WHERE id = ?
+          `, [newId]);
+          
+          expect(newRecord.id).toBe(newId);
+          expect(newRecord.content).toBe('Different procedure'); // 새 내용
+          expect(newRecord.recall_count).toBe(1); // 새 메모리는 기본값
+          expect(newRecord.g_value).toBe(1.0); // 새 메모리는 기본값
+
+          // 두 메모리가 모두 존재해야 함
+          const allMemories = DatabaseUtils.all(db, `
+            SELECT id, content, workflow_name, skill_name 
+            FROM memory_item 
+            WHERE workflow_name = ? AND skill_name = ?
+            ORDER BY created_at
+          `, ['데이터 마이그레이션', '스키마 백업']);
+          
+          expect(allMemories.length).toBe(2); // 기존 메모리 + 새 메모리
+        });
+
+        it('should require explicit update_mode to overwrite existing procedural memory', async () => {
+          // Given: 기존 procedural memory 생성
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: 'API 배포',
+            skill_name: '배포 스크립트',
+            steps: JSON.stringify(['deploy1', 'deploy2'])
+          };
+
+          await tool.handle(firstParams, context);
+
+          // When: update_mode 없이 동일한 workflow_name/skill_name으로 저장 시도
+          const secondParams = {
+            type: 'procedural',
+            content: 'Updated procedure',
+            workflow_name: 'API 배포',
+            skill_name: '배포 스크립트',
+            steps: JSON.stringify(['deploy3', 'deploy4'])
+            // update_mode 없음
+          };
+
+          const secondResult = await tool.handle(secondParams, context);
+          const secondData = JSON.parse(secondResult.content[0].text);
+
+          // Then: 새 메모리가 생성되어야 함 (덮어쓰지 않음)
+          // 기존 메모리를 찾아서 확인
+          const existingMemories = DatabaseUtils.all(db, `
+            SELECT id, content, workflow_name, skill_name 
+            FROM memory_item 
+            WHERE workflow_name = ? AND skill_name = ?
+            ORDER BY created_at
+          `, ['API 배포', '배포 스크립트']);
+
+          expect(existingMemories.length).toBe(2); // 기존 + 새 메모리
+          expect(existingMemories[0].content).toBe('Original procedure'); // 첫 번째는 기존
+          expect(existingMemories[1].content).toBe('Updated procedure'); // 두 번째는 새 메모리
+          expect(existingMemories[1].id).toBe(secondData.memory_id);
+        });
+      });
+
+      describe('업데이트 모드: versioned', () => {
+        it('should create new version and link with version_of relation', async () => {
+          // Given: memory_link 테이블 생성
+          db.exec(`
+            CREATE TABLE IF NOT EXISTS memory_link (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              source_id TEXT NOT NULL,
+              target_id TEXT NOT NULL,
+              relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts', 'version_of')) NOT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+              FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+              UNIQUE(source_id, target_id, relation_type)
+            );
+          `);
+
+          // Given: 기존 procedural memory 생성
+          const firstParams = {
+            type: 'procedural',
+            content: 'Original procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2'])
+          };
+
+          const firstResult = await tool.handle(firstParams, context);
+          const firstData = JSON.parse(firstResult.content[0].text);
+          const originalId = firstData.memory_id;
+
+          // When: versioned 모드로 새 버전 생성
+          const secondParams = {
+            type: 'procedural',
+            content: 'New version procedure',
+            workflow_name: '데이터 마이그레이션',
+            skill_name: '스키마 백업',
+            steps: JSON.stringify(['step1', 'step2', 'step3']),
+            update_mode: 'versioned'
+          };
+
+          const secondResult = await tool.handle(secondParams, context);
+          const secondData = JSON.parse(secondResult.content[0].text);
+          const newId = secondData.memory_id;
+
+          // Then: 새 레코드가 생성되고 version_of 관계가 추가되어야 함
+          expect(newId).not.toBe(originalId);
+          const link = DatabaseUtils.get(db, `
+            SELECT * FROM memory_link 
+            WHERE source_id = ? AND target_id = ? AND relation_type = 'version_of'
+          `, [newId, originalId]);
+          expect(link).toBeDefined();
+        });
       });
     });
   });

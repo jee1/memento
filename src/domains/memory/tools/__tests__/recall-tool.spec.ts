@@ -29,7 +29,11 @@ function initializeTestDatabase(db: Database.Database): void {
       origin_source TEXT,
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+      -- Procedural Memory Enhancement (v7.0) 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT
     );
 
     CREATE TABLE IF NOT EXISTS core_memory (
@@ -361,6 +365,167 @@ describe('RecallTool', () => {
 
       expect(resultData.items).toHaveLength(1);
       expect(resultData.items[0].type).toBe('episodic');
+    });
+
+    it('type 미지정 시 기본 episodic 필터가 적용되어야 함', async () => {
+      // Given: 여러 타입의 메모리 생성
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem3', 'working', 'Working memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+
+      const params = {
+        query: 'memory'
+      };
+      // type 파라미터 미지정
+
+      // Mock 검색 결과 (episodic만 반환)
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: 'mem1',
+            content: 'Episodic memory content',
+            type: 'episodic',
+            importance: 0.5,
+            created_at: new Date(),
+            finalScore: 0.8
+          }
+        ],
+        total_count: 1,
+        query_time: 10
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      // When: recall Tool 실행 (type 미지정)
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // Then: 기본 타입(episodic)으로 필터링되어야 함
+      expect(resultData.items).toHaveLength(1);
+      expect(resultData.items[0].type).toBe('episodic');
+      
+      // search 호출 시 type 필터가 episodic로 전달되었는지 확인
+      expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+        db,
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            type: ['episodic']
+          })
+        })
+      );
+    });
+
+    it('memory_types 미지정 시에도 type 기본값이 적용되어야 함', async () => {
+      // Given: 여러 타입의 메모리 생성
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+
+      const params = {
+        query: 'memory'
+        // type과 memory_types 모두 미지정
+      };
+
+      // Mock 검색 결과 (episodic만 반환)
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: 'mem1',
+            content: 'Episodic memory content',
+            type: 'episodic',
+            importance: 0.5,
+            created_at: new Date(),
+            finalScore: 0.8
+          }
+        ],
+        total_count: 1,
+        query_time: 10
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      // When: recall Tool 실행 (type과 memory_types 모두 미지정)
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // Then: 기본 타입(episodic)으로 필터링되어야 함
+      expect(resultData.items).toHaveLength(1);
+      expect(resultData.items[0].type).toBe('episodic');
+      
+      // search 호출 시 type 필터가 episodic로 전달되었는지 확인
+      expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+        db,
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            type: ['episodic']
+          })
+        })
+      );
+    });
+
+    it('type 미지정 + memory_types 제공 시 기본 타입이 우선 적용되어야 함', async () => {
+      // Given: 여러 타입의 메모리 생성
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
+        VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
+      `);
+
+      const params = {
+        query: 'memory',
+        memory_types: ['semantic', 'working']
+        // type 미지정, memory_types는 제공
+      };
+
+      // Mock 검색 결과 (episodic만 반환 - 기본 타입 우선)
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: 'mem1',
+            content: 'Episodic memory content',
+            type: 'episodic',
+            importance: 0.5,
+            created_at: new Date(),
+            finalScore: 0.8
+          }
+        ],
+        total_count: 1,
+        query_time: 10
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      // When: recall Tool 실행 (type 미지정, memory_types 제공)
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // Then: 기본 타입(episodic)이 우선 적용되어야 함
+      expect(resultData.items).toHaveLength(1);
+      expect(resultData.items[0].type).toBe('episodic');
+      
+      // search 호출 시 type 필터가 episodic로 전달되었는지 확인 (memory_types 무시)
+      expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+        db,
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            type: ['episodic']
+          })
+        })
+      );
     });
 
     it('should filter memory_types array and remove core/vault', async () => {
@@ -1115,6 +1280,360 @@ describe('RecallTool', () => {
         const searchCall = (hybridSearchEngine.search as any).mock.calls[0];
         const searchQuery = searchCall[1];
         expect(searchQuery.filters?.has_reflection_notes).toBe(false);
+      });
+    });
+
+    describe('Procedural Memory Enhancement (v7.0)', () => {
+      beforeEach(() => {
+        // Mock hybridSearchEngine 메서드들
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [],
+          total_count: 0,
+          query_time: 10
+        });
+        vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+      });
+
+      describe('workflow_name/skill_name 필터링', () => {
+        it('should filter by workflow_name', async () => {
+          // Given: workflow_name이 있는 procedural memory 생성
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name)
+            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업')
+          `);
+
+          const params = {
+            query: 'test',
+            type: 'procedural',
+            workflow_name: '데이터 마이그레이션'
+          };
+
+          // Mock 검색 결과
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem1',
+                content: 'Test procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              }
+            ],
+            total_count: 1,
+            query_time: 10
+          });
+
+          // When: recall Tool 실행
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: workflow_name 필터가 전달되어야 함
+          expect(hybridSearchEngine.search).toHaveBeenCalled();
+          const searchCall = vi.mocked(hybridSearchEngine.search).mock.calls[0];
+          const searchQuery = searchCall[1];
+          expect(searchQuery.filters?.workflow_name).toBe('데이터 마이그레이션');
+        });
+
+        it('should filter by skill_name', async () => {
+          // Given: skill_name이 있는 procedural memory 생성
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name)
+            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업')
+          `);
+
+          const params = {
+            query: 'test',
+            type: 'procedural',
+            skill_name: '스키마 백업'
+          };
+
+          // Mock 검색 결과
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem1',
+                content: 'Test procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              }
+            ],
+            total_count: 1,
+            query_time: 10
+          });
+
+          // When: recall Tool 실행
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: skill_name 필터가 전달되어야 함
+          expect(hybridSearchEngine.search).toHaveBeenCalled();
+          const searchCall = vi.mocked(hybridSearchEngine.search).mock.calls[0];
+          const searchQuery = searchCall[1];
+          expect(searchQuery.filters?.skill_name).toBe('스키마 백업');
+        });
+      });
+
+      describe('trigger_conditions 매칭', () => {
+        it('should filter by trigger_conditions when match_trigger_conditions is true', async () => {
+          // Given: trigger_conditions가 있는 procedural memory 생성
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
+            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
+          `);
+
+          const params = {
+            query: 'migration_start', // trigger_conditions의 값과 매칭되도록 수정
+            type: 'procedural',
+            match_trigger_conditions: true
+          };
+
+          // Mock 검색 결과 (trigger_conditions가 있는 항목과 없는 항목)
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem1',
+                content: 'Test procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                trigger_conditions: '{"event": "migration_start"}',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              },
+              {
+                id: 'mem2',
+                content: 'Another procedure',
+                type: 'procedural',
+                workflow_name: 'API 배포',
+                skill_name: '배포 검증',
+                trigger_conditions: null,
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.7
+              }
+            ],
+            total_count: 2,
+            query_time: 10
+          });
+
+          // When: recall Tool 실행
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: trigger_conditions가 있는 항목만 반환되어야 함
+          expect(resultData.items).toHaveLength(1);
+          expect(resultData.items[0].memory_id).toBe('mem1');
+          expect(resultData.items[0].trigger_conditions).toBeDefined();
+        });
+
+        it('should require all keys in trigger_conditions to match (not just first key)', async () => {
+          // Given: 여러 키를 가진 trigger_conditions가 있는 procedural memory
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
+            VALUES 
+              ('mem_all_match', 'procedural', 'All match procedure', '데이터 마이그레이션', '스키마 백업', '{"tool_name": "remember", "error_type": "tool_error"}'),
+              ('mem_partial_match', 'procedural', 'Partial match procedure', 'API 배포', '배포 검증', '{"tool_name": "remember", "error_type": "validation_error"}')
+          `);
+
+          // Mock 검색 결과
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem_all_match',
+                content: 'All match procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                trigger_conditions: '{"tool_name": "remember", "error_type": "tool_error"}',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              },
+              {
+                id: 'mem_partial_match',
+                content: 'Partial match procedure',
+                type: 'procedural',
+                workflow_name: 'API 배포',
+                skill_name: '배포 검증',
+                trigger_conditions: '{"tool_name": "remember", "error_type": "validation_error"}',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.7
+              }
+            ],
+            total_count: 2,
+            query_time: 10
+          });
+
+          // When: 모든 키가 매칭되는 컨텍스트로 검색
+          const params = {
+            query: 'remember tool error',
+            type: 'procedural',
+            match_trigger_conditions: true,
+            trigger_context: {
+              tool_name: 'remember',
+              error_type: 'tool_error'
+            }
+          };
+
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: 모든 키가 매칭되는 항목만 반환되어야 함 (첫 번째 키만 맞는 항목은 제외)
+          expect(resultData.items).toHaveLength(1);
+          expect(resultData.items[0].memory_id).toBe('mem_all_match');
+          expect(resultData.items[0].memory_id).not.toBe('mem_partial_match');
+        });
+
+        it('should reject when trigger_conditions key is missing in context', async () => {
+          // Given: 여러 키를 가진 trigger_conditions가 있는 procedural memory
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
+            VALUES ('mem_missing_key', 'procedural', 'Missing key procedure', '데이터 마이그레이션', '스키마 백업', '{"tool_name": "remember", "error_type": "tool_error"}')
+          `);
+
+          // Mock 검색 결과
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem_missing_key',
+                content: 'Missing key procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                trigger_conditions: '{"tool_name": "remember", "error_type": "tool_error"}',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              }
+            ],
+            total_count: 1,
+            query_time: 10
+          });
+
+          // When: 일부 키만 있는 컨텍스트로 검색 (error_type 누락)
+          const params = {
+            query: 'remember',
+            type: 'procedural',
+            match_trigger_conditions: true,
+            trigger_context: {
+              tool_name: 'remember'
+              // error_type 누락
+            }
+          };
+
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: 매칭되지 않아야 함 (모든 키가 필요하므로)
+          expect(resultData.items).toHaveLength(0);
+        });
+      });
+
+      describe('return_format 처리', () => {
+        it('should return only steps when return_format is steps_only', async () => {
+          // Given: procedural memory 생성
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps)
+            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '["step1", "step2", "step3"]')
+          `);
+
+          const params = {
+            query: 'test',
+            type: 'procedural',
+            return_format: 'steps_only'
+          };
+
+          // Mock 검색 결과
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem1',
+                content: 'Test procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                steps: '["step1", "step2", "step3"]',
+                task_goal: 'Test task',
+                reflection_notes: null,
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              }
+            ],
+            total_count: 1,
+            query_time: 10
+          });
+
+          // When: recall Tool 실행
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: steps_only일 때 steps만 반환되어야 함
+          expect(resultData.items).toHaveLength(1);
+          expect(resultData.items[0]).toEqual({
+            memory_id: 'mem1',
+            id: 'mem1',
+            steps: '["step1", "step2", "step3"]'
+          });
+          expect(resultData.items[0].content).toBeUndefined();
+          expect(resultData.items[0].task_goal).toBeUndefined();
+        });
+
+        it('should return all fields when return_format is full', async () => {
+          // Given: procedural memory 생성
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, task_goal)
+            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '["step1", "step2"]', 'Test task')
+          `);
+
+          const params = {
+            query: 'test',
+            type: 'procedural',
+            return_format: 'full'
+          };
+
+          // Mock 검색 결과
+          vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+            items: [
+              {
+                id: 'mem1',
+                content: 'Test procedure',
+                type: 'procedural',
+                workflow_name: '데이터 마이그레이션',
+                skill_name: '스키마 백업',
+                steps: '["step1", "step2"]',
+                task_goal: 'Test task',
+                importance: 0.5,
+                created_at: new Date(),
+                finalScore: 0.8
+              }
+            ],
+            total_count: 1,
+            query_time: 10
+          });
+
+          // When: recall Tool 실행
+          const result = await tool.handle(params, context);
+          const resultData = JSON.parse(result.content[0].text);
+
+          // Then: 모든 필드가 반환되어야 함
+          expect(resultData.items).toHaveLength(1);
+          expect(resultData.items[0].memory_id).toBe('mem1');
+          expect(resultData.items[0].content).toBe('Test procedure');
+          expect(resultData.items[0].steps).toBe('["step1", "step2"]');
+          expect(resultData.items[0].task_goal).toBe('Test task');
+          expect(resultData.items[0].workflow_name).toBe('데이터 마이그레이션');
+          expect(resultData.items[0].skill_name).toBe('스키마 백업');
+        });
       });
     });
   });

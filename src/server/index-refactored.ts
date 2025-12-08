@@ -14,7 +14,8 @@ import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-e
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
+// SearchCacheService는 사용되지 않음
+// import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
 import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
@@ -28,7 +29,7 @@ let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 let forgettingPolicyService: ForgettingPolicyService;
 let performanceMonitor: PerformanceMonitor;
-let searchCache: SearchCacheService;
+// searchCache는 사용되지 않음
 let databaseOptimizer: DatabaseOptimizer;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
@@ -91,7 +92,8 @@ async function initializeServer() {
     embeddingService = new MemoryEmbeddingService();
     forgettingPolicyService = new ForgettingPolicyService();
     performanceMonitor = new PerformanceMonitor(db);
-    searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
+    // searchCache는 사용되지 않음
+    // searchCache = new SearchCacheService(1000, 300000); // 5분 TTL
     databaseOptimizer = new DatabaseOptimizer(db);
     process.stderr.write('✅ 검색 엔진 초기화 완료\n');
     
@@ -182,6 +184,7 @@ async function startServer() {
     process.stderr.write('🔗 MCP 클라이언트 연결 대기 중...\n');
     
     // 서버가 종료될 때까지 대기
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     return new Promise<void>((resolve) => {
       process.on('SIGINT', () => {
         process.stderr.write('👋 서버 종료 신호 수신\n');
@@ -223,6 +226,7 @@ async function cleanup() {
 // 프로세스 종료 시 정리
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 process.on('uncaughtException', (error) => {
   // 예상치 못한 오류
   cleanup();
@@ -231,6 +235,7 @@ process.on('uncaughtException', (error) => {
 
 // 서버 시작
 if (process.argv[1] && process.argv[1].endsWith('index.js')) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   startServer().catch(error => {
     process.exit(1);
   });

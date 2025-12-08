@@ -169,7 +169,7 @@ describe('MemoryInjectionPrompt', () => {
 
       mockHybridSearchEngine.search.mockResolvedValue(mockSearchResults);
 
-      const result = await memoryInjectionPrompt.handle(
+      await memoryInjectionPrompt.handle(
         {
           query: 'test query',
           token_budget: 1000,

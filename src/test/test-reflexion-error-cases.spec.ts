@@ -39,7 +39,11 @@ function initializeTestDatabase(db: Database.Database): void {
       recall_count INTEGER DEFAULT 0,
       last_accessed_at TIMESTAMP,
       g_value REAL,
-      consolidation_score REAL
+      consolidation_score REAL,
+      -- Procedural Memory Enhancement (v7.0) 추가 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT
     );
   `);
 }
@@ -407,8 +411,9 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
 
       await expect(rememberTool.handle(params, context)).rejects.toThrow();
     });
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     it('should reject boolean value', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const params = {
         type: 'procedural',
         content: 'Test procedure',
@@ -439,7 +444,9 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
       expect(record.reflection_notes).toBeNull();
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     it('should ignore reflection_notes for semantic type', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const params = {
         type: 'semantic',
         content: 'Test semantic memory',
@@ -577,8 +584,7 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
       };
 
       // 병합 시 가장 오래된 항목이 제거되어야 함
-      const result = await rememberTool.handle(params, context);
-      const resultData = JSON.parse(result.content[0].text);
+      await rememberTool.handle(params, context);
 
       // 새로운 메모리가 생성되므로, 기존 메모리를 직접 확인
       const record = DatabaseUtils.get(db, 'SELECT reflection_notes FROM memory_item WHERE id = ?', [memoryId]);

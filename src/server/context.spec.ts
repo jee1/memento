@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServerContext, createToolContext } from './context.js';
-import type { ServerContext, ToolContext } from './context.js';
 import type { ServerServices } from './bootstrap.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';

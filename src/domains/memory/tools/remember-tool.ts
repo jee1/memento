@@ -23,6 +23,8 @@ import { RelationExtractor } from '../../relation/services/relation-extractor.js
 import type { MemoryItem } from '../../../shared/types/index.js';
 import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
+import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
+import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
 
 /**
  * 기존 reflection_notes 조회 결과 타입
@@ -46,6 +48,11 @@ const RememberSchema = z.object({
   task_goal: CommonSchemas.TaskGoal,
   steps: CommonSchemas.Steps,
   reflection_notes: CommonSchemas.ReflectionNotes,
+  // Procedural Memory Enhancement (v7.0) 필드
+  workflow_name: CommonSchemas.WorkflowName,
+  skill_name: CommonSchemas.SkillName,
+  trigger_conditions: CommonSchemas.TriggerConditions,
+  update_mode: CommonSchemas.UpdateMode,
   // 기존 필드 유지
   tags: CommonSchemas.Tags,
   importance: CommonSchemas.Importance.default(0.5),
@@ -118,6 +125,24 @@ export class RememberTool extends BaseTool {
           reflection_notes: { 
             type: 'string', 
             description: 'Reflexion 기록 (JSON 객체 문자열, Procedural Memory용)'
+          },
+          // Procedural Memory Enhancement (v7.0) 필드
+          workflow_name: { 
+            type: 'string', 
+            description: '프로세스 이름 (예: "데이터 마이그레이션", "API 배포")'
+          },
+          skill_name: { 
+            type: 'string', 
+            description: '기술/능력 이름 (예: "스키마 백업", "데이터 검증")'
+          },
+          trigger_conditions: { 
+            type: 'string', 
+            description: '트리거 조건 (JSON 객체 문자열)'
+          },
+          update_mode: { 
+            type: 'string', 
+            enum: ['replace', 'incremental', 'versioned'],
+            description: '업데이트 모드: replace (교체), incremental (증분), versioned (버전 관리)'
           },
           // 기존 필드 유지
           tags: { 
@@ -285,6 +310,10 @@ export class RememberTool extends BaseTool {
         task_goal, 
         steps, 
         reflection_notes,
+        workflow_name,
+        skill_name,
+        trigger_conditions,
+        update_mode,
         tags, 
         importance, 
         source, 
@@ -315,6 +344,20 @@ export class RememberTool extends BaseTool {
     // reflection_notes JSON 검증 (type='procedural'이고 reflection_notes가 제공된 경우에만)
     if (type === 'procedural' && reflection_notes !== undefined && reflection_notes !== null) {
       this.validateReflectionNotesJson(reflection_notes);
+    }
+    
+    // Procedural Memory Enhancement (v7.0) 필드 검증
+    // type='procedural'일 때만 검증 (다른 타입에서는 무시)
+    if (type === 'procedural') {
+      try {
+        validateProceduralMemoryFields({
+          workflow_name,
+          skill_name,
+          trigger_conditions
+        });
+      } catch (error) {
+        throw new Error(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
     
     // 데이터베이스 연결 확인
@@ -460,57 +503,192 @@ export class RememberTool extends BaseTool {
       }
       // non-procedural 타입에서는 reflection_notes를 무시 (null로 설정)
 
+      // 업데이트 모드 처리: 기존 procedural memory 조회
+      // 
+      // 정책:
+      // 1. update_mode가 지정된 경우:
+      //    - 'replace' 또는 'incremental': 기존 레코드를 찾아 업데이트
+      //    - 'versioned': 기존 레코드를 찾아 버전 관계를 추가하되 새 레코드 생성
+      // 2. update_mode가 없는 경우:
+      //    - 기존 메모리를 찾지 않고 항상 새로 저장 (기존 메모리와 무관)
+      //    - 이는 명시적으로 update_mode를 지정하지 않으면 덮어쓰지 않는다는 의도
+      //    - 동일 workflow_name/skill_name이 있어도 별도의 메모리로 저장됨
+      //
+      // 참고: 자동 연동(reflexion-worker) 시에는 기본적으로 incremental 모드를 사용
+      let existingMemoryId: string | null = null;
+      let existingMemory: any | null = null;
+      
+      if (type === 'procedural' && update_mode) {
+        // 모든 업데이트 모드에서 기존 레코드 찾기 (versioned 모드도 포함)
+        existingMemory = await this.findExistingProceduralMemory(
+          context.db!,
+          workflow_name,
+          skill_name
+        );
+        
+        // replace 또는 incremental 모드일 때만 기존 ID 사용
+        // versioned 모드는 항상 새 ID를 생성해야 함
+        if (existingMemory && update_mode !== 'versioned') {
+          existingMemoryId = existingMemory.id;
+        }
+      }
+      // update_mode가 없으면 existingMemory는 null로 유지 (항상 새로 저장)
+
       // UUID 생성 (임시로 간단한 ID 사용)
-      const id = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // replace 또는 incremental 모드이고 기존 레코드가 있는 경우 기존 ID 사용
+      // versioned 모드는 항상 새 ID 생성
+      const id = existingMemoryId || `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       try {
         // 메모리 저장 (트랜잭션 사용)
         await DatabaseUtils.runTransaction(context.db!, async () => {
+          // 업데이트 모드 처리
+          // replace 또는 incremental 모드이고 기존 레코드가 있는 경우 UPDATE
+          // update_mode가 없으면 항상 새로 저장 (기존 메모리가 있어도 덮어쓰지 않음)
+          // 그 외에는 INSERT
+          const isUpdate = existingMemory && update_mode && (update_mode === 'replace' || update_mode === 'incremental');
+
           // Consolidation Score System 초기화 값 설정
           const createdAt = new Date().toISOString();
-          const recallCount = mementoConfig.consolidationScoreEnabled ? 1 : 0; // 기능 활성화 시 1, 비활성화 시 0
-          const gValue = mementoConfig.consolidationScoreEnabled ? 1.0 : null; // 기능 활성화 시 1.0, 비활성화 시 NULL
-          const lastAccessedAt = mementoConfig.consolidationScoreEnabled ? createdAt : null; // 기능 활성화 시 created_at과 동일, 비활성화 시 NULL
+          // 기존 메모리가 있고 업데이트 모드인 경우 기존 값 보존, 없으면 기본값 사용
+          // update_mode가 없으면 항상 새로 저장하므로 기본값 사용
+          // PRD에 따라 새 메모리는 항상 recall_count=1로 초기화 (생성을 첫 번째 '접근'으로 간주)
+          const recallCount = isUpdate && existingMemory?.recall_count !== undefined
+            ? existingMemory.recall_count + 1  // 기존 값에 1 증가
+            : 1; // 새 메모리는 항상 1 (PRD 정책: 생성 시 recall_count=1)
+          const gValue = isUpdate && existingMemory?.g_value !== undefined
+            ? existingMemory.g_value  // 기존 값 보존
+            : (mementoConfig.consolidationScoreEnabled ? 1.0 : null); // 새 메모리는 1.0 또는 null
+          const lastAccessedAt = isUpdate && existingMemory?.last_accessed_at
+            ? new Date(existingMemory.last_accessed_at).toISOString()  // 기존 값 보존
+            : (mementoConfig.consolidationScoreEnabled ? createdAt : null); // 새 메모리는 created_at 또는 null
+          
+          // incremental 모드일 때 steps 병합
+          let finalSteps = steps || null;
+          if (isUpdate && update_mode === 'incremental' && existingMemory.steps && steps) {
+            try {
+              const existingSteps = JSON.parse(existingMemory.steps);
+              const newSteps = JSON.parse(steps);
+              
+              // 배열 병합 (중복 제거는 하지 않음, 사용자가 명시적으로 추가한 것으로 간주)
+              const mergedSteps = Array.isArray(existingSteps) && Array.isArray(newSteps)
+                ? [...existingSteps, ...newSteps]
+                : newSteps; // 병합 실패 시 새 steps 사용
+              
+              finalSteps = JSON.stringify(mergedSteps);
+            } catch (error) {
+              // 병합 실패 시 새 steps 사용
+              this.logWarning('steps 병합 실패, 새 steps 사용', {
+                error: error instanceof Error ? error.message : String(error)
+              });
+            }
+          }
 
           // consolidation_score 계산 (기능 활성화 시)
           let consolidationScore: number | null = null;
           if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService) {
             const scoreResult = context.services.consolidationScoreService.calculateScore({
-              recallCount: 1,
-              lastAccessedAt: new Date(createdAt),
-              createdAt: new Date(createdAt),
-              gValue: 1.0,
+              recallCount: recallCount,  // 위에서 계산한 recallCount 사용
+              lastAccessedAt: lastAccessedAt ? new Date(lastAccessedAt) : new Date(createdAt),
+              createdAt: isUpdate && existingMemory?.created_at ? new Date(existingMemory.created_at) : new Date(createdAt),
+              gValue: gValue ?? 1.0,  // 위에서 계산한 gValue 사용 (없으면 1.0)
               type: type,
-              pinned: false
+              pinned: isUpdate && existingMemory?.pinned ? Boolean(existingMemory.pinned) : false
             });
             consolidationScore = scoreResult.score;
           }
 
-          await DatabaseUtils.run(context.db!, `
-            INSERT INTO memory_item (
-              id, type, content, importance, privacy_scope, tags, source, origin_source, 
-              task_goal, steps, reflection_notes, created_at,
-              recall_count, last_accessed_at, g_value, consolidation_score
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            id, 
-            type, 
-            content, 
-            importance, 
-            privacy_scope, 
-            tags ? JSON.stringify(tags) : null, 
-            source || null,
-            origin_source,
-            task_goal || null,
-            steps || null,
-            finalReflectionNotes,
-            createdAt,
-            recallCount,
-            lastAccessedAt,
-            gValue,
-            consolidationScore
-          ]);
+          if (isUpdate) {
+            // UPDATE 쿼리
+            await DatabaseUtils.run(context.db!, `
+              UPDATE memory_item SET
+                content = ?,
+                importance = ?,
+                privacy_scope = ?,
+                tags = ?,
+                source = ?,
+                origin_source = ?,
+                task_goal = ?,
+                steps = ?,
+                reflection_notes = ?,
+                workflow_name = ?,
+                skill_name = ?,
+                trigger_conditions = ?,
+                recall_count = ?,
+                last_accessed_at = ?,
+                g_value = ?,
+                consolidation_score = ?
+              WHERE id = ?
+            `, [
+              content,
+              importance,
+              privacy_scope,
+              tags ? JSON.stringify(tags) : null,
+              source || null,
+              origin_source,
+              task_goal || null,
+              finalSteps,
+              finalReflectionNotes,
+              workflow_name || null,
+              skill_name || null,
+              trigger_conditions || null,
+              recallCount,
+              lastAccessedAt,
+              gValue,
+              consolidationScore,
+              id
+            ]);
+          } else {
+            // INSERT 쿼리
+            await DatabaseUtils.run(context.db!, `
+              INSERT INTO memory_item (
+                id, type, content, importance, privacy_scope, tags, source, origin_source, 
+                task_goal, steps, reflection_notes, 
+                workflow_name, skill_name, trigger_conditions,
+                created_at,
+                recall_count, last_accessed_at, g_value, consolidation_score
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+              id, 
+              type, 
+              content, 
+              importance, 
+              privacy_scope, 
+              tags ? JSON.stringify(tags) : null, 
+              source || null,
+              origin_source,
+              task_goal || null,
+              finalSteps,
+              finalReflectionNotes,
+              workflow_name || null,
+              skill_name || null,
+              trigger_conditions || null,
+              createdAt,
+              recallCount,
+              lastAccessedAt,
+              gValue,
+              consolidationScore
+            ]);
+
+            // versioned 모드일 때 memory_link에 'version_of' 관계 추가
+            if (update_mode === 'versioned' && existingMemory) {
+              try {
+                const dbRelationType = toDbRelationType('VERSION_OF');
+                await DatabaseUtils.run(context.db!, `
+                  INSERT INTO memory_link (source_id, target_id, relation_type)
+                  VALUES (?, ?, ?)
+                `, [id, existingMemory.id, dbRelationType]);
+              } catch (error) {
+                // 관계 추가 실패는 경고만 출력 (메모리 저장은 성공)
+                this.logWarning('버전 관계 추가 실패', {
+                  source_id: id,
+                  target_id: existingMemory.id,
+                  error: error instanceof Error ? error.message : String(error)
+                });
+              }
+            }
+          }
         });
         
         // 메모리 저장 완료 후 임베딩 생성, 인접 기억 갱신, 관계 추출 (비동기, 실패해도 메모리 저장은 성공)
@@ -739,6 +917,77 @@ export class RememberTool extends BaseTool {
         executionTime
       );
       throw error;
+    }
+  }
+
+  /**
+   * 기존 procedural memory 조회
+   * workflow_name과 skill_name으로 기존 레코드를 찾습니다.
+   * 
+   * @param db 데이터베이스 연결
+   * @param workflow_name 프로세스 이름
+   * @param skill_name 기술/능력 이름
+   * @returns 기존 procedural memory 레코드 또는 null
+   */
+  private async findExistingProceduralMemory(
+    db: any,
+    workflow_name: string | null | undefined,
+    skill_name: string | null | undefined
+  ): Promise<any | null> {
+    // workflow_name과 skill_name이 모두 제공되어야 함
+    if (!workflow_name || !skill_name) {
+      return null;
+    }
+
+    try {
+      const row = await DatabaseUtils.get(db, `
+        SELECT 
+          id, type, content, importance, privacy_scope, 
+          created_at, last_accessed, pinned, tags, source,
+          task_goal, steps, reflection_notes,
+          workflow_name, skill_name, trigger_conditions,
+          recall_count, last_accessed_at, g_value, consolidation_score
+        FROM memory_item
+        WHERE type = 'procedural'
+          AND workflow_name = ?
+          AND skill_name = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [workflow_name, skill_name]);
+
+      if (!row) {
+        return null;
+      }
+
+      return {
+        id: row.id,
+        type: row.type,
+        content: row.content,
+        importance: row.importance,
+        privacy_scope: row.privacy_scope,
+        created_at: new Date(row.created_at),
+        last_accessed: row.last_accessed ? new Date(row.last_accessed) : undefined,
+        pinned: Boolean(row.pinned),
+        tags: row.tags ? JSON.parse(row.tags) : undefined,
+        source: row.source || undefined,
+        task_goal: row.task_goal || undefined,
+        steps: row.steps || undefined,
+        reflection_notes: row.reflection_notes || undefined,
+        workflow_name: row.workflow_name || undefined,
+        skill_name: row.skill_name || undefined,
+        trigger_conditions: row.trigger_conditions || undefined,
+        recall_count: row.recall_count ?? undefined,
+        last_accessed_at: row.last_accessed_at ? new Date(row.last_accessed_at) : undefined,
+        g_value: row.g_value ?? undefined,
+        consolidation_score: row.consolidation_score ?? undefined
+      };
+    } catch (error) {
+      this.logWarning('기존 procedural memory 조회 실패', {
+        workflow_name,
+        skill_name,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
     }
   }
 

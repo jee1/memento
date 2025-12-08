@@ -10,6 +10,12 @@ import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflection
 import { DatabaseUtils } from '../shared/utils/database.js';
 import Database from 'better-sqlite3';
 import { createHash } from 'crypto';
+import {
+  extractProceduralMemory,
+  determineMergeStrategy,
+  type ExtractedProceduralMemory
+} from '../shared/utils/procedural-memory-extractor.js';
+import { toDbRelationType } from '../shared/utils/relation-type-converter.js';
 
 /**
  * Worker 상태
@@ -329,6 +335,9 @@ export class ReflexionWorker {
             removed_count: mergeResult.removedCount
           });
         }
+
+        // Procedural Memory 자동 변환 (reflection_notes 생성 후)
+        await this.convertToProceduralMemory(reflectionNote, event);
       } else {
         // task_goal이 없는 경우 새 메모리 생성 (task_goal 없이)
         const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -349,6 +358,9 @@ export class ReflexionWorker {
         logger.info('새 reflection_notes 생성됨 (task_goal 없음)', {
           memory_id: memoryId
         });
+
+        // Procedural Memory 자동 변환 (task_goal 없이도 시도)
+        await this.convertToProceduralMemory(reflectionNote, event);
       }
 
       this.status.processedCount++;
@@ -541,6 +553,260 @@ export class ReflexionWorker {
     }
 
     return undefined;
+  }
+
+  /**
+   * reflection_notes를 procedural memory로 자동 변환
+   * 
+   * 변환 전략:
+   * 1. reflection_notes에서 workflow_name, skill_name, steps, trigger_conditions 추출
+   * 2. 기존 procedural memory와 유사도 계산
+   * 3. 유사도 기반 병합 전략 결정 (replace, incremental, versioned)
+   * 4. 결정된 전략에 따라 메모리 업데이트 또는 생성
+   */
+  private async convertToProceduralMemory(
+    reflectionNote: any,
+    event: FailureEvent
+  ): Promise<void> {
+    try {
+      // 1. reflection_notes에서 procedural memory 필드 추출
+      const extracted = extractProceduralMemory(reflectionNote, event);
+
+      // 추출된 필드가 없으면 변환하지 않음
+      if (!extracted.workflow_name && !extracted.skill_name) {
+        logger.debug('Procedural Memory 변환 스킵: workflow_name과 skill_name이 모두 없음', {
+          event_id: event.id
+        });
+        return;
+      }
+
+      // 2. 유사도 기반 병합 전략 결정
+      const mergeStrategy = await determineMergeStrategy(this.db, extracted);
+
+      // 3. 결정된 전략에 따라 메모리 업데이트 또는 생성
+      if (mergeStrategy.shouldMerge && mergeStrategy.existingMemoryId) {
+        // 기존 메모리 업데이트
+        await this.updateProceduralMemory(
+          mergeStrategy.existingMemoryId,
+          extracted,
+          mergeStrategy.updateMode,
+          reflectionNote,
+          event
+        );
+      } else {
+        // 새 메모리 생성
+        await this.createProceduralMemory(extracted, reflectionNote, event);
+      }
+    } catch (error) {
+      logger.error('Procedural Memory 변환 실패', {
+        error: error instanceof Error ? error.message : String(error),
+        event_id: event.id
+      });
+      // 변환 실패는 전체 프로세스를 중단하지 않음 (기존 reflection_notes는 이미 저장됨)
+    }
+  }
+
+  /**
+   * 기존 procedural memory 업데이트
+   */
+  private async updateProceduralMemory(
+    memoryId: string,
+    extracted: ExtractedProceduralMemory,
+    updateMode: 'replace' | 'incremental' | 'versioned',
+    reflectionNote: any,
+    event: FailureEvent
+  ): Promise<void> {
+    try {
+      if (updateMode === 'replace') {
+        // replace 모드: 기존 메모리를 완전히 교체
+        // 단, extracted에서 undefined/null인 필드는 기존 값을 보존 (데이터 손실 방지)
+        // COALESCE를 사용하여 새 값이 있으면 사용하고, 없으면 기존 값 유지
+        DatabaseUtils.run(
+          this.db,
+          `UPDATE memory_item 
+           SET workflow_name = COALESCE(?, workflow_name),
+               skill_name = COALESCE(?, skill_name),
+               trigger_conditions = COALESCE(?, trigger_conditions),
+               steps = COALESCE(?, steps),
+               task_goal = COALESCE(?, task_goal)
+           WHERE id = ?`,
+          [
+            extracted.workflow_name || null,
+            extracted.skill_name || null,
+            extracted.trigger_conditions || null,
+            extracted.steps || null,
+            extracted.task_goal || null,
+            memoryId
+          ]
+        );
+        logger.info('Procedural Memory 업데이트됨 (replace 모드)', {
+          memory_id: memoryId,
+          workflow_name: extracted.workflow_name,
+          skill_name: extracted.skill_name,
+          note: 'undefined/null 필드는 기존 값 보존'
+        });
+      } else if (updateMode === 'incremental') {
+        // incremental 모드: steps를 병합
+        const existingRecord = DatabaseUtils.get(
+          this.db,
+          `SELECT steps FROM memory_item WHERE id = ?`,
+          [memoryId]
+        ) as { steps: string | null } | undefined;
+
+        // extracted.steps가 있을 때만 병합/업데이트, 없으면 기존 값 보존
+        let mergedSteps: string | null = null;
+        let shouldUpdateSteps = false;
+        
+        if (extracted.steps) {
+          // extracted.steps가 있으면 병합 또는 새 값 사용
+          shouldUpdateSteps = true;
+          if (existingRecord?.steps) {
+            try {
+              const existingSteps = JSON.parse(existingRecord.steps) as string[];
+              const newSteps = JSON.parse(extracted.steps) as string[];
+              // 중복 제거 후 병합
+              const merged = [...existingSteps];
+              for (const step of newSteps) {
+                if (!merged.some(s => s.toLowerCase() === step.toLowerCase())) {
+                  merged.push(step);
+                }
+              }
+              mergedSteps = JSON.stringify(merged);
+            } catch (error) {
+              // JSON 파싱 실패 시 새 steps 사용
+              logger.warn('steps 병합 실패, 새 steps 사용', {
+                error: error instanceof Error ? error.message : String(error)
+              });
+              mergedSteps = extracted.steps;
+            }
+          } else {
+            // 기존 steps가 없으면 새 steps 사용
+            mergedSteps = extracted.steps;
+          }
+        }
+        // extracted.steps가 없으면 shouldUpdateSteps = false로 유지하여 steps 업데이트 안 함
+
+        // steps는 extracted.steps가 있을 때만 업데이트 (데이터 손실 방지)
+        DatabaseUtils.run(
+          this.db,
+          `UPDATE memory_item 
+           SET workflow_name = COALESCE(?, workflow_name), 
+               skill_name = COALESCE(?, skill_name), 
+               trigger_conditions = COALESCE(?, trigger_conditions), 
+               ${shouldUpdateSteps ? 'steps = ?,' : ''}
+               task_goal = COALESCE(?, task_goal)
+           WHERE id = ?`,
+          shouldUpdateSteps
+            ? [
+                extracted.workflow_name || null,
+                extracted.skill_name || null,
+                extracted.trigger_conditions || null,
+                mergedSteps,
+                extracted.task_goal || null,
+                memoryId
+              ]
+            : [
+                extracted.workflow_name || null,
+                extracted.skill_name || null,
+                extracted.trigger_conditions || null,
+                extracted.task_goal || null,
+                memoryId
+              ]
+        );
+        logger.info('Procedural Memory 업데이트됨 (incremental 모드)', {
+          memory_id: memoryId,
+          workflow_name: extracted.workflow_name,
+          skill_name: extracted.skill_name
+        });
+      } else {
+        // versioned 모드: 새 메모리 생성하고 version_of 관계 생성
+        const newMemoryId = await this.createProceduralMemory(extracted, reflectionNote, event);
+        
+        if (newMemoryId) {
+          // version_of 관계 생성
+          const versionOfType = toDbRelationType('VERSION_OF');
+          if (versionOfType) {
+            DatabaseUtils.run(
+              this.db,
+              `INSERT INTO memory_link (source_id, target_id, relation_type, created_at)
+               VALUES (?, ?, ?, ?)`,
+              [
+                newMemoryId,
+                memoryId,
+                versionOfType,
+                new Date().toISOString()
+              ]
+            );
+            logger.info('Procedural Memory 버전 생성됨 (versioned 모드)', {
+              new_memory_id: newMemoryId,
+              existing_memory_id: memoryId,
+              workflow_name: extracted.workflow_name,
+              skill_name: extracted.skill_name
+            });
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Procedural Memory 업데이트 실패', {
+        error: error instanceof Error ? error.message : String(error),
+        memory_id: memoryId,
+        update_mode: updateMode
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 새 procedural memory 생성
+   */
+  private async createProceduralMemory(
+    extracted: ExtractedProceduralMemory,
+    reflectionNote: any,
+    event: FailureEvent
+  ): Promise<string | null> {
+    try {
+      const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const content = extracted.task_goal || `Reflexion: ${event.tool_name} 실패 기록`;
+      const reflectionNotesStr = JSON.stringify(reflectionNote);
+
+      DatabaseUtils.run(
+        this.db,
+        `INSERT INTO memory_item (
+          id, type, content, workflow_name, skill_name, trigger_conditions, 
+          steps, task_goal, reflection_notes, importance, privacy_scope, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          memoryId,
+          'procedural',
+          content,
+          extracted.workflow_name || null,
+          extracted.skill_name || null,
+          extracted.trigger_conditions || null,
+          extracted.steps || null,
+          extracted.task_goal || null,
+          reflectionNotesStr,
+          0.7,
+          'private',
+          new Date().toISOString()
+        ]
+      );
+
+      logger.info('새 Procedural Memory 생성됨', {
+        memory_id: memoryId,
+        workflow_name: extracted.workflow_name,
+        skill_name: extracted.skill_name
+      });
+
+      return memoryId;
+    } catch (error) {
+      logger.error('Procedural Memory 생성 실패', {
+        error: error instanceof Error ? error.message : String(error),
+        workflow_name: extracted.workflow_name,
+        skill_name: extracted.skill_name
+      });
+      return null;
+    }
   }
 
   /**

@@ -7,14 +7,15 @@
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor, type PerformanceAlert } from '../../domains/monitoring/services/performance-monitor.js';
 import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
 import { ConsolidationScoreWorker } from '../../workers/consolidation-score-worker.js';
 import { ReflexionWorker } from '../reflexion-worker.js';
 import { mementoConfig } from '../../shared/config/index.js';
 import { mcpLogger } from '../../server/mcp-logger.js';
-import { spawn } from 'child_process';
-import { join } from 'path';
+import { JobQueue } from './job-queue.js';
+import { RetryManager } from './retry-manager.js';
+import { HealthChecker } from './health-checker.js';
+import { FileLogger } from './file-logger.js';
+import { RelationValidatorExecutor } from './relation-validator-executor.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -39,6 +40,15 @@ export interface BatchJobConfig {
   jobTimeout: number;            // 작업 타임아웃 (밀리초)
   retryAttempts: number;         // 재시도 횟수
   retryDelay: number;            // 재시도 지연 (밀리초)
+  /**
+   * 주간 관계 검증 타임아웃 (밀리초)
+   * - 기본값: jobTimeout 사용
+   * - 최소값: 1초 (1000ms)
+   * - 권장값: 주간 검증은 오래 걸릴 수 있으므로 최소 5분(300000ms) 이상 권장
+   * - 운영 환경: 10분(600000ms) 이상 권장
+   * - 테스트/데브 환경: 짧게 설정 가능 (최소 1초)
+   */
+  weeklyRelationValidationTimeout?: number;
 }
 
 export interface BatchJobResult {
@@ -76,12 +86,25 @@ export class BatchScheduler {
   private startTime: Date | null = null;
   private lastExecution: Map<string, Date> = new Map();
   private totalExecutions: Map<string, number> = new Map();
-  private errorCount: Map<string, number> = new Map();
-  private runningJobs: Set<string> = new Set();
-  private jobQueue: Array<{name: string, job: () => Promise<void>, priority: number}> = [];
   private jobProcessorInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(config?: Partial<BatchJobConfig>) {
+  // 분리된 모듈들 (DI)
+  private jobQueue: JobQueue;
+  private retryManager: RetryManager;
+  private healthChecker: HealthChecker;
+  private fileLogger: FileLogger;
+  private relationValidatorExecutor: RelationValidatorExecutor;
+
+  constructor(
+    config?: Partial<BatchJobConfig>,
+    dependencies?: {
+      jobQueue?: JobQueue;
+      retryManager?: RetryManager;
+      healthChecker?: HealthChecker;
+      fileLogger?: FileLogger;
+      relationValidatorExecutor?: RelationValidatorExecutor;
+    }
+  ) {
     this.config = {
       cleanupInterval: 60 * 60 * 1000,    // 1시간
       monitoringInterval: 5 * 60 * 1000,   // 5분
@@ -100,6 +123,7 @@ export class BatchScheduler {
       jobTimeout: 5 * 60 * 1000,          // 5분
       retryAttempts: 3,
       retryDelay: 1000,                   // 1초
+      weeklyRelationValidationTimeout: undefined, // 기본값: jobTimeout 사용
       ...config
     };
 
@@ -113,6 +137,21 @@ export class BatchScheduler {
     if (mementoConfig.consolidationScoreEnabled) {
       this.consolidationScoreWorker = new ConsolidationScoreWorker();
     }
+
+    // 분리된 모듈들 초기화 (DI 또는 기본 생성)
+    this.jobQueue = dependencies?.jobQueue ?? new JobQueue();
+    this.retryManager = dependencies?.retryManager ?? new RetryManager({
+      maxAttempts: this.config.retryAttempts,
+      baseDelay: this.config.retryDelay,
+      maxErrorCount: this.config.retryAttempts * 3
+    });
+    this.healthChecker = dependencies?.healthChecker ?? new HealthChecker();
+    this.fileLogger = dependencies?.fileLogger ?? new FileLogger({
+      enabled: this.config.enableLogging
+    });
+    this.relationValidatorExecutor = dependencies?.relationValidatorExecutor ?? new RelationValidatorExecutor({
+      timeout: this.config.weeklyRelationValidationTimeout ?? this.config.jobTimeout
+    });
   }
 
   /**
@@ -129,6 +168,17 @@ export class BatchScheduler {
     this.db = db;
     this.isRunning = true;
     this.startTime = new Date();
+
+    // 재시작 시 큐 초기화 (이전 세션의 작업이 남아있을 수 있음)
+    if (this.jobQueue.size > 0) {
+      this.log(`Clearing ${this.jobQueue.size} leftover jobs from previous session`, {
+        leftoverJobs: this.jobQueue.size
+      });
+      this.jobQueue.clear();
+    }
+
+    // 헬스체크 시작 시간 설정
+    this.healthChecker.setStartTime(this.startTime);
 
     // 성능 모니터 초기화
     this.performanceMonitor.initialize(db);
@@ -179,6 +229,7 @@ export class BatchScheduler {
 
   /**
    * 스케줄러 중지
+   * 재시작 시 의도하지 않은 배치 실행과 상태 오염을 방지하기 위해 큐를 비움
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
@@ -204,8 +255,18 @@ export class BatchScheduler {
     // 실행 중인 작업 완료 대기
     await this.waitForRunningJobs();
 
+    // 큐에 남아있는 작업 제거 (재시작 시 의도하지 않은 실행 방지)
+    const queuedJobsCount = this.jobQueue.size;
+    if (queuedJobsCount > 0) {
+      this.log(`Clearing ${queuedJobsCount} queued jobs to prevent unintended execution on restart`, {
+        queuedJobs: queuedJobsCount
+      });
+      this.jobQueue.clear(); // 큐 비우기
+    }
+
     this.log('BatchScheduler stopped', {
-      uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0
+      uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
+      clearedQueuedJobs: queuedJobsCount
     });
   }
 
@@ -228,109 +289,170 @@ export class BatchScheduler {
     if (this.config.jobTimeout < 1000) {
       throw new Error('jobTimeout must be at least 1 second');
     }
+    // weeklyRelationValidationTimeout 검증 (설정된 경우에만)
+    if (this.config.weeklyRelationValidationTimeout !== undefined) {
+      if (typeof this.config.weeklyRelationValidationTimeout !== 'number' || 
+          isNaN(this.config.weeklyRelationValidationTimeout) ||
+          this.config.weeklyRelationValidationTimeout <= 0) {
+        throw new Error('weeklyRelationValidationTimeout must be a positive number (at least 1 second)');
+      }
+      if (this.config.weeklyRelationValidationTimeout < 1000) {
+        throw new Error('weeklyRelationValidationTimeout must be at least 1 second');
+      }
+    }
+  }
+
+  /**
+   * 작업 실행 래퍼 (타임아웃, 상태 관리, 재시도 포함)
+   * 재시도 큐에서도 동일한 래퍼를 사용하여 타임아웃/상태 관리가 적용되도록 함
+   * 
+   * @param name 작업 이름
+   * @param job 실행할 작업 함수
+   * @param priority 우선순위 (재시도 시 사용)
+   * @param initialRetryCount 초기 재시도 횟수 (기본값: 0)
+   * @returns 실행 결과
+   */
+  private async executeJobWithRetry(
+    name: string,
+    job: () => Promise<void>,
+    priority: number,
+    initialRetryCount: number = 0
+  ): Promise<void> {
+    // 이미 실행 중인 작업은 큐에 남겨두어 다음 턴에 실행되도록 함
+    // (스킵하면 주기적 실행이 누락될 수 있음)
+    // 단, 중복 방지를 위해 동일 이름의 잡이 이미 큐에 있으면 추가하지 않음
+    if (this.jobQueue.isRunning(name)) {
+      const added = this.addJobToQueue(name, job, priority, initialRetryCount);
+      if (!added) {
+        // 이미 큐에 있으면 스킵
+        return;
+      }
+      this.log(`Job ${name} is already running, will retry after completion`, { level: 'debug' });
+      return;
+    }
+
+    this.jobQueue.markRunning(name);
+    const startTime = Date.now();
+    let retryCount = initialRetryCount;
+
+    try {
+      await this.executeWithTimeout(job, this.config.jobTimeout);
+      this.lastExecution.set(name, new Date());
+      this.totalExecutions.set(name, (this.totalExecutions.get(name) || 0) + 1);
+      
+      // 성공시 에러 카운트 리셋 (RetryManager 사용)
+      this.retryManager.resetErrorCount(name);
+      
+      this.log(`Job ${name} completed successfully`, {
+        duration: Date.now() - startTime,
+        totalExecutions: this.totalExecutions.get(name),
+        retryCount
+      });
+    } catch (error) {
+      retryCount++;
+      const totalErrorCount = this.retryManager.incrementErrorCount(name);
+      
+      const errorInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        errorCount: totalErrorCount,
+        retryCount,
+        duration: Date.now() - startTime
+      };
+      
+      this.log(`Job ${name} failed`, errorInfo, 'error');
+
+      // RetryManager를 사용하여 재시도 여부 결정
+      const retryResult = this.retryManager.shouldRetry(name, retryCount, totalErrorCount);
+      
+      if (retryResult.exceededMaxErrors) {
+        this.log(`Job ${name} exceeded maximum error count (${totalErrorCount}), stopping retries`, {
+          totalErrorCount,
+          finalError: errorInfo
+        }, 'error');
+        
+        // 심각한 에러의 경우 스케줄러 상태 확인
+        this.log(`Job ${name} has too many consecutive failures, checking scheduler health`, { level: 'warn' });
+        await this.checkSchedulerHealth();
+        return;
+      }
+
+      // 재시도 로직
+      if (retryResult.shouldRetry) {
+        this.log(`Retrying job ${name} in ${retryResult.nextRetryDelay}ms`, { 
+          attempt: retryResult.retryCount,
+          totalAttempts: this.config.retryAttempts,
+          nextRetryDelay: retryResult.nextRetryDelay,
+          totalErrorCount
+        });
+        
+        setTimeout(() => {
+          if (this.isRunning) { // 스케줄러가 여전히 실행 중인지 확인
+            // 재시도 시 retryCount를 큐 항목에 저장하여 다음 실행 시 전달 (중복 방지 포함)
+            this.addJobToQueue(name, job, priority, retryResult.retryCount);
+          }
+        }, retryResult.nextRetryDelay);
+      } else {
+        this.log(`Job ${name} failed permanently after ${retryCount} attempts`, {
+          totalErrorCount,
+          finalError: errorInfo
+        }, 'error');
+        
+        // 심각한 에러의 경우 스케줄러 상태 확인
+        if (totalErrorCount > this.config.retryAttempts * 2) {
+          this.log(`Job ${name} has too many consecutive failures, checking scheduler health`, { level: 'warn' });
+          await this.checkSchedulerHealth();
+        }
+      }
+    } finally {
+      this.jobQueue.markCompleted(name);
+    }
+  }
+
+  /**
+   * 큐에 작업 추가 (중복 방지 포함)
+   * 동일 이름의 잡이 이미 큐에 있거나 실행 중이면 추가하지 않음
+   */
+  private addJobToQueue(name: string, job: () => Promise<void>, priority: number, retryCount: number = 0): boolean {
+    return this.jobQueue.add(name, job, priority, retryCount);
   }
 
   /**
    * 작업 스케줄링
+   * 시작 시 maxConcurrentJobs를 보장하기 위해 무조건 큐를 통해 실행
+   * 여러 작업이 동시에 시작될 때 race condition을 방지하기 위함
    */
   private scheduleJob(name: string, interval: number, job: () => Promise<void>, priority: number): void {
     const wrappedJob = async () => {
-      if (this.runningJobs.has(name)) {
-        this.log(`Job ${name} is already running, skipping`, { level: 'warn' });
-        return;
-      }
-
-      this.runningJobs.add(name);
-      const startTime = Date.now();
-      let retryCount = 0;
-
-      const executeWithRetry = async (): Promise<void> => {
-        try {
-          await this.executeWithTimeout(job, this.config.jobTimeout);
-          this.lastExecution.set(name, new Date());
-          this.totalExecutions.set(name, (this.totalExecutions.get(name) || 0) + 1);
-          
-          // 성공시 에러 카운트 리셋
-          this.errorCount.set(name, 0);
-          
-          this.log(`Job ${name} completed successfully`, {
-            duration: Date.now() - startTime,
-            totalExecutions: this.totalExecutions.get(name),
-            retryCount
-          });
-        } catch (error) {
-          retryCount++;
-          const totalErrorCount = (this.errorCount.get(name) || 0) + 1;
-          this.errorCount.set(name, totalErrorCount);
-          
-          const errorInfo = {
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            errorCount: totalErrorCount,
-            retryCount,
-            duration: Date.now() - startTime
-          };
-          
-          this.log(`Job ${name} failed`, errorInfo, 'error');
-
-          // 재시도 로직
-          if (retryCount <= this.config.retryAttempts) {
-            const retryDelay = this.config.retryDelay * Math.pow(2, retryCount - 1); // 지수 백오프
-            this.log(`Retrying job ${name} in ${retryDelay}ms`, { 
-              attempt: retryCount,
-              totalAttempts: this.config.retryAttempts,
-              nextRetryDelay: retryDelay
-            });
-            
-            setTimeout(() => {
-              if (this.isRunning) { // 스케줄러가 여전히 실행 중인지 확인
-                this.jobQueue.push({ name, job, priority });
-              }
-            }, retryDelay);
-          } else {
-            this.log(`Job ${name} failed permanently after ${retryCount} attempts`, {
-              totalErrorCount,
-              finalError: errorInfo
-            }, 'error');
-            
-            // 심각한 에러의 경우 스케줄러 상태 확인
-            if (totalErrorCount > this.config.retryAttempts * 2) {
-              this.log(`Job ${name} has too many consecutive failures, checking scheduler health`, { level: 'warn' });
-              await this.checkSchedulerHealth();
-            }
-          }
-        }
-      };
-
-      // 실행
-      executeWithRetry().finally(() => {
-        this.runningJobs.delete(name);
-      });
+      // 주기적 실행도 큐를 통해 실행하여 maxConcurrentJobs 보장 (중복 방지 포함)
+      this.addJobToQueue(name, job, priority, 0);
     };
 
-    // 즉시 한 번 실행
-    wrappedJob();
+    // 즉시 실행도 큐를 통해 실행 (maxConcurrentJobs 보장, 중복 방지 포함)
+    // 여러 작업이 동시에 시작될 때 race condition 방지
+    this.addJobToQueue(name, job, priority, 0);
 
-    // 주기적 실행
+    // 주기적 실행도 큐를 통해 실행
     const intervalId = setInterval(wrappedJob, interval);
     this.intervals.set(name, intervalId);
   }
 
   /**
    * 작업 큐 처리기 시작
+   * 재시도 큐에서도 동일한 래퍼(타임아웃+상태 관리)를 사용하도록 수정
    */
   private startJobProcessor(): void {
     const processQueue = async () => {
-      if (this.jobQueue.length === 0 || this.runningJobs.size >= this.config.maxConcurrentJobs) {
+      if (this.jobQueue.isEmpty || this.jobQueue.runningCount >= this.config.maxConcurrentJobs) {
         return;
       }
 
-      // 우선순위 순으로 정렬
-      this.jobQueue.sort((a, b) => a.priority - b.priority);
-      
-      const nextJob = this.jobQueue.shift();
+      const nextJob = this.jobQueue.getNext();
       if (nextJob) {
-        await nextJob.job();
+        // 재시도 큐에서도 동일한 래퍼를 사용하여 타임아웃/상태 관리가 적용되도록 함
+        // 재시도 시 저장된 retryCount를 사용하여 무한 재시도 방지
+        const retryCount = nextJob.retryCount ?? 0;
+        await this.executeJobWithRetry(nextJob.name, nextJob.job, nextJob.priority, retryCount);
       }
     };
 
@@ -357,12 +479,13 @@ export class BatchScheduler {
     const maxWaitTime = 30000; // 30초
     const startTime = Date.now();
 
-    while (this.runningJobs.size > 0 && (Date.now() - startTime) < maxWaitTime) {
+    while (this.jobQueue.runningCount > 0 && (Date.now() - startTime) < maxWaitTime) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    if (this.runningJobs.size > 0) {
-      this.log(`Warning: ${this.runningJobs.size} jobs still running after timeout`, { level: 'warn' });
+    if (this.jobQueue.runningCount > 0) {
+      this.log(`Warning: ${this.jobQueue.runningCount} jobs still running after timeout`, { level: 'warn' });
     }
   }
 
@@ -505,32 +628,23 @@ export class BatchScheduler {
     };
 
     try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
+      // HealthChecker를 사용하여 헬스체크 실행
+      const healthResult = await this.healthChecker.check(
+        this.db,
+        this.jobQueue.runningCount,
+        this.jobQueue.size,
+        this.config.maxConcurrentJobs
+      );
 
-      // 데이터베이스 연결 확인
-      await this.db.prepare('SELECT 1').get();
-      
-      // 메모리 사용량 확인
-      const memUsage = process.memoryUsage();
-      const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-      
-      if (memUsagePercent > 90) {
-        result.warnings.push(`High memory usage: ${memUsagePercent.toFixed(1)}%`);
-      }
-
-      // 실행 중인 작업 수 확인
-      if (this.runningJobs.size > this.config.maxConcurrentJobs * 0.8) {
-        result.warnings.push(`High job concurrency: ${this.runningJobs.size}/${this.config.maxConcurrentJobs}`);
-      }
-
-      result.success = true;
+      result.success = healthResult.isHealthy;
       result.processed = 1;
+      result.warnings = healthResult.warnings;
+      result.errors = healthResult.errors;
       result.details = {
-        memoryUsage: memUsagePercent,
-        runningJobs: this.runningJobs.size,
-        uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0
+        memoryUsage: healthResult.memoryUsage,
+        runningJobs: healthResult.runningJobs,
+        queueSize: healthResult.queueSize,
+        uptime: healthResult.uptime
       };
 
     } catch (error) {
@@ -605,9 +719,10 @@ export class BatchScheduler {
   /**
    * Consolidation Score 전체 스윕 작업 스케줄링
    * 지정된 시간에 하루 1회 실행
+   * 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함
    */
   private scheduleConsolidationScoreFullSweep(): void {
-    const checkAndRun = async () => {
+    const checkAndRun = () => {
       const now = new Date();
       const currentHour = now.getHours();
       
@@ -618,7 +733,13 @@ export class BatchScheduler {
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
         if (!lastExecution || lastExecution < today) {
-          await this.runConsolidationScoreFullSweep();
+          // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
+          this.addJobToQueue(
+            'consolidation_score_full_sweep',
+            async () => { await this.runConsolidationScoreFullSweep(); },
+            4, // consolidation_score_incremental과 동일한 우선순위
+            0
+          );
         }
       }
     };
@@ -636,9 +757,10 @@ export class BatchScheduler {
 
   /**
    * 주간 관계 추출 품질 검증 작업 스케줄링
+   * 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함
    */
   private scheduleWeeklyRelationValidation(): void {
-    const checkAndRun = async () => {
+    const checkAndRun = () => {
       const now = new Date();
       const currentDayOfWeek = now.getDay(); // 0=일요일, 6=토요일
       const currentHour = now.getHours();
@@ -651,7 +773,13 @@ export class BatchScheduler {
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
         if (!lastExecution || lastExecution < today) {
-          await this.runWeeklyRelationValidation();
+          // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
+          this.addJobToQueue(
+            'weekly_relation_validation',
+            async () => { await this.runWeeklyRelationValidation(); },
+            5, // 다른 작업보다 낮은 우선순위
+            0
+          );
         }
       }
     };
@@ -667,6 +795,7 @@ export class BatchScheduler {
 
   /**
    * 주간 관계 추출 품질 검증 실행
+   * 타임아웃 및 강제 종료 로직 포함
    */
   private async runWeeklyRelationValidation(): Promise<BatchJobResult> {
     const startTime = new Date();
@@ -684,50 +813,31 @@ export class BatchScheduler {
     try {
       this.log('Starting weekly relation validation...');
 
-      // 주간 검증 스크립트 실행
-      const scriptPath = join(process.cwd(), 'scripts', 'weekly-relation-validation.ts');
-      const scriptArgs = ['--method', 'hybrid', '--allow-soft-fail'];
+      // RelationValidatorExecutor를 사용하여 스크립트 실행
+      const timeout = this.config.weeklyRelationValidationTimeout ?? this.config.jobTimeout;
+      const executorResult = await this.relationValidatorExecutor.execute([], timeout);
 
-      const childProcess = spawn('npx', ['tsx', scriptPath, ...scriptArgs], {
-        cwd: process.cwd(),
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env }
-      });
-
-      let stdout = '';
-      let stderr = '';
-
-      childProcess.stdout?.on('data', (data) => {
-        stdout += data.toString();
-      });
-
-      childProcess.stderr?.on('data', (data) => {
-        stderr += data.toString();
-      });
-
-      await new Promise<void>((resolve, reject) => {
-        childProcess.on('close', (code) => {
-          if (code === 0) {
-            resolve();
-          } else {
-            reject(new Error(`Script exited with code ${code}\n${stderr}`));
-          }
-        });
-
-        childProcess.on('error', (error) => {
-          reject(error);
-        });
-      });
-
-      result.success = true;
+      result.success = executorResult.success;
       result.endTime = new Date();
-      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.duration = executorResult.duration;
       result.processed = 1;
 
-      this.log('Weekly relation validation completed successfully', {
-        duration: result.duration,
-        stdout: stdout.substring(0, 500) // 처음 500자만 로그
-      });
+      if (executorResult.error) {
+        result.errors.push(executorResult.error);
+      }
+
+      if (executorResult.success) {
+        this.log('Weekly relation validation completed successfully', {
+          duration: result.duration,
+          stdout: executorResult.stdout.substring(0, 500) // 처음 500자만 로그
+        });
+      } else {
+        this.log('Weekly relation validation failed', {
+          error: executorResult.error,
+          duration: result.duration,
+          stderr: executorResult.stderr.substring(0, 500)
+        }, 'error');
+      }
 
     } catch (error) {
       result.endTime = new Date();
@@ -829,6 +939,7 @@ export class BatchScheduler {
         totalMemories: totalMemories.count,
         estimatedSize: dbSize.page_count * pageSize.page_size
       };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
     } catch (error) {
       this.log('Failed to collect database stats:', error, 'warn');
       return {};
@@ -837,6 +948,7 @@ export class BatchScheduler {
 
   /**
    * 로깅
+   * data 객체에 level 속성이 있으면 이를 우선적으로 사용하여 호출부의 편의성을 높임
    */
   private log(message: string, data?: any, level: 'info' | 'warn' | 'error' = 'info'): void {
     if (!this.config.enableLogging) return;
@@ -844,6 +956,8 @@ export class BatchScheduler {
     // 배치 작업 컨텍스트 정보 추가
     // Error 객체는 non-enumerable 속성을 가지므로 명시적으로 처리 필요
     let safeData: Record<string, any>;
+    let actualLevel: 'info' | 'warn' | 'error' = level;
+    
     if (data instanceof Error) {
       // Error 객체의 속성을 명시적으로 추출 (non-enumerable 속성 포함)
       safeData = {
@@ -853,7 +967,18 @@ export class BatchScheduler {
       };
     } else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
       // 일반 객체는 spread 가능
-      safeData = data;
+      safeData = { ...data };
+      
+      // data.level이 있으면 이를 우선적으로 사용 (호출부 편의성)
+      if ('level' in safeData && typeof safeData.level === 'string') {
+        const dataLevel = safeData.level.toLowerCase();
+        // 'debug'는 'info'로 변환 (mcpLogger가 debug를 지원하지 않을 수 있음)
+        if (dataLevel === 'debug' || dataLevel === 'info' || dataLevel === 'warn' || dataLevel === 'error') {
+          actualLevel = dataLevel === 'debug' ? 'info' : dataLevel as 'info' | 'warn' | 'error';
+        }
+        // level 속성은 제거 (중복 방지)
+        delete safeData.level;
+      }
     } else {
       // 원시 타입이나 배열은 빈 객체로 처리
       safeData = {};
@@ -862,49 +987,44 @@ export class BatchScheduler {
     const batchContext = {
       ...safeData,
       uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
-      activeJobs: this.runningJobs.size,
-      queueSize: this.jobQueue.length
+      activeJobs: this.jobQueue.runningCount,
+      queueSize: this.jobQueue.size
     };
 
     // MCP 로거 사용
-    mcpLogger.logBatch(level, message, batchContext);
+    mcpLogger.logBatch(actualLevel, message, batchContext);
 
-    // 에러 로그는 파일에도 저장
-    if (level === 'error') {
-      const logEntry = {
-        timestamp: new Date(),
-        service: 'BatchScheduler',
-        level,
-        message,
-        data: batchContext,
-        uptime: batchContext.uptime,
-        activeJobs: batchContext.activeJobs,
-        queueSize: batchContext.queueSize
-      };
-      this.logToFile(logEntry);
-    }
-  }
-
-  /**
-   * 파일 로깅 (에러 로그)
-   */
-  private logToFile(logEntry: any): void {
-    try {
-      const logDir = path.join(process.cwd(), 'logs');
-      
-      // 로그 디렉토리 생성
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
+      // 에러/경고 로그는 파일에도 저장 (FileLogger 사용, 비동기이므로 await 없이 fire-and-forget)
+      // warn과 error를 구분하여 원본 레벨을 보존
+      if (actualLevel === 'warn') {
+        // 비동기 로깅이지만 await하지 않음 (로깅 실패가 작업 실패로 이어지지 않도록)
+        this.fileLogger.logWarn(
+          message,
+          batchContext,
+          {
+            uptime: batchContext.uptime,
+            activeJobs: batchContext.activeJobs,
+            queueSize: batchContext.queueSize
+          }
+        ).catch((error) => {
+          // 파일 로깅 실패는 콘솔에만 기록 (무한 루프 방지)
+          console.error('File logging failed:', error);
+        });
+      } else if (actualLevel === 'error') {
+        // 비동기 로깅이지만 await하지 않음 (로깅 실패가 작업 실패로 이어지지 않도록)
+        this.fileLogger.logError(
+          message,
+          batchContext,
+          {
+            uptime: batchContext.uptime,
+            activeJobs: batchContext.activeJobs,
+            queueSize: batchContext.queueSize
+          }
+        ).catch((error) => {
+          // 파일 로깅 실패는 콘솔에만 기록 (무한 루프 방지)
+          console.error('File logging failed:', error);
+        });
       }
-      
-      const logFile = path.join(logDir, 'batch-scheduler.log');
-      const logLine = JSON.stringify(logEntry) + '\n';
-      
-      fs.appendFileSync(logFile, logLine);
-    } catch (error) {
-      // 파일 로깅 실패는 무시 (MCP 로거 사용)
-      mcpLogger.logBatch('warn', 'Failed to write to log file', { error: error instanceof Error ? error.message : String(error) });
-    }
   }
 
   /**
@@ -942,30 +1062,52 @@ export class BatchScheduler {
 
   /**
    * 수동으로 작업 실행
+   * 직접 실행하되 lastExecution과 totalExecutions을 기록함
    */
   async runJob(jobType: 'cleanup' | 'monitoring' | 'healthcheck'): Promise<BatchJobResult> {
+    let result: BatchJobResult;
+    
     switch (jobType) {
       case 'cleanup':
-        return await this.runMemoryCleanup();
+        result = await this.runMemoryCleanup();
+        break;
       case 'monitoring':
-        return await this.runMonitoring();
+        result = await this.runMonitoring();
+        break;
       case 'healthcheck':
-        return await this.runHealthCheck();
+        result = await this.runHealthCheck();
+        break;
       default:
         throw new Error(`Unknown job type: ${jobType}`);
     }
+
+    // lastExecution과 totalExecutions 업데이트 (큐를 통한 실행과 일관성 유지)
+    this.lastExecution.set(jobType, new Date());
+    this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
+    
+    return result;
   }
 
   /**
    * 스케줄러 상태 확인
    */
   getStatus(): SchedulerStatus {
+    // RetryManager에서 errorCount를 가져와서 Map으로 변환
+    const errorCountMap = new Map<string, number>();
+    // 모든 작업 이름에 대해 errorCount 조회 (intervals의 키 사용)
+    for (const jobName of this.intervals.keys()) {
+      const errorCount = this.retryManager.getErrorCount(jobName);
+      if (errorCount > 0) {
+        errorCountMap.set(jobName, errorCount);
+      }
+    }
+
     return {
       isRunning: this.isRunning,
       activeJobs: Array.from(this.intervals.keys()),
       lastExecution: new Map(this.lastExecution),
       totalExecutions: new Map(this.totalExecutions),
-      errorCount: new Map(this.errorCount),
+      errorCount: errorCountMap,
       uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
       config: { ...this.config }
     };
@@ -1021,40 +1163,35 @@ export class BatchScheduler {
     try {
       this.log('Performing scheduler health check...');
       
-      // 데이터베이스 연결 확인
-      if (this.db) {
-        await this.db.prepare('SELECT 1').get();
+      // HealthChecker를 사용하여 헬스체크 실행
+      const healthResult = await this.healthChecker.check(
+        this.db,
+        this.jobQueue.runningCount,
+        this.jobQueue.size,
+        this.config.maxConcurrentJobs
+      );
+
+      // 경고가 있으면 로깅
+      if (healthResult.warnings.length > 0) {
+        healthResult.warnings.forEach(warning => {
+          this.log(warning, { level: 'warn' });
+        });
       }
-      
-      // 메모리 사용량 확인
-      const memUsage = process.memoryUsage();
-      const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-      
-      if (memUsagePercent > 90) {
-        this.log(`High memory usage detected: ${memUsagePercent.toFixed(1)}%`, { level: 'warn' });
-        
-        // 메모리 정리 시도
-        if (global.gc) {
-          global.gc();
+
+      // 메모리 사용량이 높으면 가비지 컬렉션 시도
+      if (healthResult.memoryUsage > 90) {
+        if (this.healthChecker.triggerGarbageCollection()) {
           this.log('Garbage collection triggered');
         }
       }
       
-      // 실행 중인 작업 수 확인
-      if (this.runningJobs.size > this.config.maxConcurrentJobs) {
-        this.log(`Too many running jobs: ${this.runningJobs.size}/${this.config.maxConcurrentJobs}`, { level: 'warn' });
-      }
-      
-      // 큐 크기 확인
-      if (this.jobQueue.length > 100) {
-        this.log(`Large job queue: ${this.jobQueue.length} items`, { level: 'warn' });
-      }
-      
       this.log('Scheduler health check completed', {
-        memoryUsage: memUsagePercent,
-        runningJobs: this.runningJobs.size,
-        queueSize: this.jobQueue.length,
-        uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0
+        memoryUsage: healthResult.memoryUsage,
+        runningJobs: healthResult.runningJobs,
+        queueSize: healthResult.queueSize,
+        uptime: healthResult.uptime,
+        warnings: healthResult.warnings.length,
+        errors: healthResult.errors.length
       });
       
     } catch (error) {
@@ -1087,24 +1224,27 @@ export class BatchScheduler {
     const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
     
     const totalExecutions = Array.from(this.totalExecutions.values()).reduce((sum, count) => sum + count, 0);
-    const totalErrors = Array.from(this.errorCount.values()).reduce((sum, count) => sum + count, 0);
+    // RetryManager에서 총 에러 카운트 계산
+    const totalErrors = Array.from(this.intervals.keys()).reduce((sum, name) => {
+      return sum + this.retryManager.getErrorCount(name);
+    }, 0);
     const errorRate = totalExecutions > 0 ? totalErrors / totalExecutions : 0;
     
     const jobs = Array.from(this.intervals.keys()).map(name => ({
       name,
       lastExecution: this.lastExecution.get(name) || null,
       totalExecutions: this.totalExecutions.get(name) || 0,
-      errorCount: this.errorCount.get(name) || 0,
-      errorRate: (this.totalExecutions.get(name) || 0) > 0 ? (this.errorCount.get(name) || 0) / (this.totalExecutions.get(name) || 1) : 0,
-      isRunning: this.runningJobs.has(name)
+      errorCount: this.retryManager.getErrorCount(name),
+      errorRate: (this.totalExecutions.get(name) || 0) > 0 ? this.retryManager.getErrorCount(name) / (this.totalExecutions.get(name) || 1) : 0,
+      isRunning: this.jobQueue.isRunning(name)
     }));
     
     return {
       status: this.getStatus(),
       health: {
         memoryUsage: memUsagePercent,
-        runningJobs: this.runningJobs.size,
-        queueSize: this.jobQueue.length,
+        runningJobs: this.jobQueue.runningCount,
+        queueSize: this.jobQueue.size,
         errorRate,
         uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0
       },

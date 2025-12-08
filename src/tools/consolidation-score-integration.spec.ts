@@ -43,7 +43,11 @@ function initializeTestDatabase(db: Database.Database): void {
       recall_count INTEGER NOT NULL DEFAULT 0,
       last_accessed_at TIMESTAMP,
       consolidation_score REAL,
-      g_value REAL
+      g_value REAL,
+      -- Procedural Memory Enhancement (v7.0) 추가 필드
+      workflow_name TEXT,
+      skill_name TEXT,
+      trigger_conditions TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
@@ -290,7 +294,7 @@ describe('Consolidation Score System 통합 테스트', () => {
         consolidation_score: number | null;
       };
 
-      expect(record.recall_count).toBe(0); // 기본값
+      expect(record.recall_count).toBe(1); // 기본값 (PRD 정책: 생성 시 recall_count=1)
       expect(record.last_accessed_at).toBeNull();
       expect(record.g_value).toBeNull();
       expect(record.consolidation_score).toBeNull();
@@ -707,7 +711,7 @@ describe('Consolidation Score System 통합 테스트', () => {
         consolidation_score: number | null;
       };
 
-      expect(initialRecord.recall_count).toBe(0);
+      expect(initialRecord.recall_count).toBe(1); // 기본값 (PRD 정책: 생성 시 recall_count=1)
       expect(initialRecord.last_accessed_at).toBeNull();
       expect(initialRecord.g_value).toBeNull();
       expect(initialRecord.consolidation_score).toBeNull();
@@ -757,7 +761,7 @@ describe('Consolidation Score System 통합 테스트', () => {
         consolidation_score: number | null;
       };
 
-      expect(record.recall_count).toBe(0); // 변경되지 않음
+      expect(record.recall_count).toBe(1); // 변경되지 않음 (초기값 1 유지)
       expect(record.last_accessed_at).toBeNull();
       expect(record.g_value).toBeNull();
       expect(record.consolidation_score).toBeNull();

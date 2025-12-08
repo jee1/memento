@@ -134,8 +134,6 @@ export class ConsolidationScoreWorker {
       const processingTimes: number[] = [];
 
       for (const batch of batches) {
-        const batchStartTime = Date.now();
-        
         // 청크 단위로 처리
         const chunks = this.chunkArray(batch, this.config.chunkSize);
         
@@ -254,8 +252,6 @@ export class ConsolidationScoreWorker {
       const scoreDistribution = { high: 0, medium: 0, low: 0 };
 
       for (const batch of batches) {
-        const batchStartTime = Date.now();
-        
         // 청크 단위로 처리
         const chunks = this.chunkArray(batch, this.config.chunkSize);
         

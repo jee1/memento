@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
-import { GetMemoryNeighborsTool } from '../domains/memory/tools/get-memory-neighbors-tool.js';
+// GetMemoryNeighborsTool은 사용되지 않음
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';

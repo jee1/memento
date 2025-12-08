@@ -348,8 +348,8 @@ describe('RuleBasedRelationExtractor', () => {
       // Then: 여러 관계 유형이 추출될 수 있어야 함
       const relationTypes = candidates.map(c => c.relation_type);
       expect(relationTypes.length).toBeGreaterThan(0);
-      // episodic은 CAUSES, FOLLOWS, CONTRASTS_WITH, REFERENCES, BELONGS_TO 가능
-      const allowedTypes = ['CAUSES', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'];
+      // episodic은 CAUSES, FOLLOWS, CONTRASTS_WITH, REFERENCES, BELONGS_TO, VERSION_OF 가능
+      const allowedTypes = ['CAUSES', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO', 'VERSION_OF'];
       for (const type of relationTypes) {
         expect(allowedTypes).toContain(type);
       }
