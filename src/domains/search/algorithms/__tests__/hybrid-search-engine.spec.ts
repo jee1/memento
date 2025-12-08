@@ -359,7 +359,11 @@ describe('HybridSearchEngine', () => {
           task_goal TEXT,
           steps TEXT,
           reflection_notes TEXT,
-          consolidation_score REAL
+          consolidation_score REAL,
+          -- Procedural Memory Enhancement (v7.0) 필드
+          workflow_name TEXT,
+          skill_name TEXT,
+          trigger_conditions TEXT
         );
       `);
 

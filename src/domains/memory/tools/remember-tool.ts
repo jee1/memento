@@ -552,9 +552,10 @@ export class RememberTool extends BaseTool {
           const createdAt = new Date().toISOString();
           // 기존 메모리가 있고 업데이트 모드인 경우 기존 값 보존, 없으면 기본값 사용
           // update_mode가 없으면 항상 새로 저장하므로 기본값 사용
+          // PRD에 따라 새 메모리는 항상 recall_count=1로 초기화 (생성을 첫 번째 '접근'으로 간주)
           const recallCount = isUpdate && existingMemory?.recall_count !== undefined
             ? existingMemory.recall_count + 1  // 기존 값에 1 증가
-            : (mementoConfig.consolidationScoreEnabled ? 1 : 0); // 새 메모리는 1 또는 0
+            : 1; // 새 메모리는 항상 1 (PRD 정책: 생성 시 recall_count=1)
           const gValue = isUpdate && existingMemory?.g_value !== undefined
             ? existingMemory.g_value  // 기존 값 보존
             : (mementoConfig.consolidationScoreEnabled ? 1.0 : null); // 새 메모리는 1.0 또는 null
