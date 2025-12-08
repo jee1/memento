@@ -1019,6 +1019,14 @@ describe('RememberTool', () => {
     });
 
     describe('Procedural Memory Enhancement (v7.0)', () => {
+      beforeEach(() => {
+        // Consolidation Score System 활성화 (g_value, recall_count 테스트를 위해 필요)
+        vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
+          ...configModule.mementoConfig,
+          consolidationScoreEnabled: true
+        } as any);
+      });
+
       describe('새 필드 저장', () => {
         it('should save workflow_name, skill_name, and trigger_conditions', async () => {
           // Given: workflow_name, skill_name, trigger_conditions가 포함된 파라미터
