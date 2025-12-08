@@ -294,7 +294,7 @@ describe('Consolidation Score System 통합 테스트', () => {
         consolidation_score: number | null;
       };
 
-      expect(record.recall_count).toBe(0); // 기본값
+      expect(record.recall_count).toBe(1); // 기본값 (PRD 정책: 생성 시 recall_count=1)
       expect(record.last_accessed_at).toBeNull();
       expect(record.g_value).toBeNull();
       expect(record.consolidation_score).toBeNull();
@@ -711,7 +711,7 @@ describe('Consolidation Score System 통합 테스트', () => {
         consolidation_score: number | null;
       };
 
-      expect(initialRecord.recall_count).toBe(0);
+      expect(initialRecord.recall_count).toBe(1); // 기본값 (PRD 정책: 생성 시 recall_count=1)
       expect(initialRecord.last_accessed_at).toBeNull();
       expect(initialRecord.g_value).toBeNull();
       expect(initialRecord.consolidation_score).toBeNull();
@@ -761,7 +761,7 @@ describe('Consolidation Score System 통합 테스트', () => {
         consolidation_score: number | null;
       };
 
-      expect(record.recall_count).toBe(0); // 변경되지 않음
+      expect(record.recall_count).toBe(1); // 변경되지 않음 (초기값 1 유지)
       expect(record.last_accessed_at).toBeNull();
       expect(record.g_value).toBeNull();
       expect(record.consolidation_score).toBeNull();
