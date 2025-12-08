@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 // 프로젝트 루트 디렉토리 경로
 const projectRoot = join(__dirname, '..', '..');
 const distDatabaseDir = join(projectRoot, 'dist', 'database');
-const distMigrationDir = join(distDatabaseDir, 'migration', 'migrations');
+const distMigrationDir = join(projectRoot, 'dist', 'infrastructure', 'database', 'database', 'migration', 'migrations');
 const sourceSchemaFile = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'schema.sql');
 const targetSchemaFile = join(distDatabaseDir, 'schema.sql');
 const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
@@ -34,10 +34,10 @@ try {
 
   // 마이그레이션 SQL 파일 복사
   if (existsSync(sourceMigrationDir)) {
-    // dist/database/migration/migrations 디렉토리 생성
+    // dist/infrastructure/database/database/migration/migrations 디렉토리 생성
     if (!existsSync(distMigrationDir)) {
       mkdirSync(distMigrationDir, { recursive: true });
-      console.log('✅ Created dist/database/migration/migrations directory');
+      console.log('✅ Created dist/infrastructure/database/database/migration/migrations directory');
     }
 
     // SQL 파일만 복사 (.sql 확장자만)
@@ -53,7 +53,7 @@ try {
     }
 
     if (copiedCount > 0) {
-      console.log(`✅ Copied ${copiedCount} migration SQL file(s) to dist/database/migration/migrations/`);
+      console.log(`✅ Copied ${copiedCount} migration SQL file(s) to dist/infrastructure/database/database/migration/migrations/`);
     }
   }
 
