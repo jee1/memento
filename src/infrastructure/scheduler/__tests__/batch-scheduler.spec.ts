@@ -9,6 +9,7 @@ import { BatchScheduler, type BatchJobConfig, type BatchJobResult } from '../bat
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationValidatorExecutor } from '../relation-validator-executor.js';
+import * as configModule from '../../../shared/config/index.js';
 
 describe('BatchScheduler', () => {
   let scheduler: BatchScheduler;
@@ -949,6 +950,12 @@ describe('BatchScheduler', () => {
 
     it('전체 스윕이 큐를 통해 실행되어야 함', async () => {
       // Given: Consolidation Score가 활성화된 스케줄러 및 log 스파이
+      // Consolidation Score 기능 활성화 모킹
+      vi.spyOn(configModule, 'mementoConfig', 'get').mockReturnValue({
+        ...configModule.mementoConfig,
+        consolidationScoreEnabled: true
+      } as any);
+
       const mcpLoggerModule = await import('../../../server/mcp-logger.js');
       const logBatchSpy = vi.spyOn(mcpLoggerModule.mcpLogger, 'logBatch');
       
