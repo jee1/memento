@@ -18,6 +18,170 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
+import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
+import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import type { NeighborMemory } from '../services/memory-neighbor-service.js';
+
+/**
+ * 앵커 설정 메타데이터 타입
+ */
+export interface AnchorSetMetadata {
+  memory_id: string;
+  slot: 'A';
+  agent_id: string;
+}
+
+/**
+ * 이웃 기억 항목 타입
+ */
+export interface NeighborMemoryItem {
+  id: string;
+  content: string;
+  similarity: number;
+  [key: string]: any; // 추가 필드 허용
+}
+
+/**
+ * Recall 응답 항목 타입 (neighbors 필드 포함)
+ * 
+ * @property neighbors - 이웃 기억 배열 (optional)
+ *   - include_neighbors=true이고 상위 neighbors_limit개 결과에만 포함됨
+ *   - neighbors_limit보다 많은 결과는 neighbors 필드가 없음 (undefined)
+ *   - 이웃 기억 조회 실패 시 빈 배열 []로 설정됨
+ */
+export interface RecallResultItem {
+  memory_id: string;
+  id?: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string;
+  final_score: number;
+  neighbors?: NeighborMemoryItem[]; // optional: neighbors_limit보다 많은 결과는 필드 없음
+  [key: string]: any; // 추가 필드 허용
+}
+
+/**
+ * Recall 응답 메타데이터 타입
+ * 
+ * @property anchor_set - 앵커 설정 정보 (auto_set_anchor=true일 때만 설정)
+ *   - 성공 시: {memory_id, slot: "A", agent_id} 객체
+ *   - 실패/건너뜀/비활성화 시: null
+ * @property anchor_set_error - 앵커 설정 실패 여부 (optional)
+ *   - anchor_set=null이고 anchor_set_error=true: 앵커 설정 실패
+ * @property anchor_set_skipped - 앵커 설정 건너뜀 여부 (optional)
+ *   - anchor_set=null이고 anchor_set_skipped=true: 앵커 설정 건너뜀 (pinned 앵커 보호 등)
+ * @property anchor_set_skipped_reason - 앵커 설정 건너뜀 사유 (optional)
+ *   - "pinned_anchor_protected": 슬롯 A에 pinned 앵커가 있어서 보호됨
+ */
+export interface RecallResponseMetadata {
+  anchor_set: AnchorSetMetadata | null;
+  anchor_set_error?: boolean;
+  anchor_set_skipped?: boolean;
+  anchor_set_skipped_reason?: string;
+  [key: string]: any; // 추가 필드 허용
+}
+
+/**
+ * Recall 응답 타입
+ * 
+ * @example 앵커 설정 성공 + 이웃 기억 포함
+ * ```json
+ * {
+ *   "items": [
+ *     {
+ *       "memory_id": "mem_12345",
+ *       "content": "검색 결과 내용",
+ *       "type": "episodic",
+ *       "importance": 0.8,
+ *       "created_at": "2024-01-01T00:00:00Z",
+ *       "final_score": 0.95,
+ *       "neighbors": [
+ *         {
+ *           "id": "mem_67890",
+ *           "content": "관련 기억 내용",
+ *           "similarity": 0.85
+ *         }
+ *       ]
+ *     },
+ *     {
+ *       "memory_id": "mem_11111",
+ *       "content": "두 번째 결과",
+ *       "neighbors": []
+ *     },
+ *     {
+ *       "memory_id": "mem_22222",
+ *       "content": "세 번째 결과 (neighbors_limit 초과로 neighbors 필드 없음)"
+ *     }
+ *   ],
+ *   "total_count": 3,
+ *   "query_time": 150,
+ *   "search_type": "hybrid",
+ *   "metadata": {
+ *     "anchor_set": {
+ *       "memory_id": "mem_12345",
+ *       "slot": "A",
+ *       "agent_id": "default"
+ *     }
+ *   }
+ * }
+ * ```
+ * 
+ * @example 앵커 설정 실패
+ * ```json
+ * {
+ *   "items": [...],
+ *   "metadata": {
+ *     "anchor_set": null,
+ *     "anchor_set_error": true
+ *   }
+ * }
+ * ```
+ * 
+ * @example 앵커 설정 건너뜀 (pinned 앵커 보호)
+ * ```json
+ * {
+ *   "items": [...],
+ *   "metadata": {
+ *     "anchor_set": null,
+ *     "anchor_set_skipped": true,
+ *     "anchor_set_skipped_reason": "pinned_anchor_protected"
+ *   }
+ * }
+ * ```
+ * 
+ * @example 앵커 설정 비활성화
+ * ```json
+ * {
+ *   "items": [...],
+ *   "metadata": {
+ *     "anchor_set": null
+ *   }
+ * }
+ * ```
+ * 
+ * @example 이웃 기억 미포함 (include_neighbors=false)
+ * ```json
+ * {
+ *   "items": [
+ *     {
+ *       "memory_id": "mem_12345",
+ *       "content": "검색 결과",
+ *       "neighbors": undefined  // neighbors 필드 없음
+ *     }
+ *   ]
+ * }
+ * ```
+ */
+export interface RecallResponse {
+  items: RecallResultItem[];
+  total_count: number;
+  query_time: number;
+  search_type: string;
+  metadata?: RecallResponseMetadata;
+  [key: string]: any; // 추가 필드 허용
+}
 
 /**
  * Provider 필터 정규화 유틸리티
@@ -59,7 +223,13 @@ const RecallSchema = z.object({
   text_weight: z.number().min(0).max(1).optional(),
   enable_hybrid: z.boolean().optional(),
   include_metadata: z.boolean().optional(),
-  provider_filter: z.array(z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const)).optional()
+  provider_filter: z.array(z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const)).optional(),
+  // 자동 앵커 설정 및 이웃 기억 포함 파라미터
+  auto_set_anchor: z.boolean().optional().default(false),
+  include_neighbors: z.boolean().optional().default(false),
+  neighbors_limit: z.number().min(1).max(10).optional().default(3),
+  neighbors_per_item: z.number().min(1).max(50).optional().default(5),
+  neighbors_similarity_threshold: z.number().min(0).max(1).optional().default(0.8)
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -199,6 +369,37 @@ export class RecallTool extends BaseTool {
             type: 'array',
             items: { type: 'string', enum: ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] },
             description: '검색할 임베딩 provider 필터 (선택사항, 미지정 시 모든 provider 검색)'
+          },
+          auto_set_anchor: {
+            type: 'boolean',
+            default: false,
+            description: '가장 관련성 높은 기억(첫 번째 결과)을 슬롯 A에 자동으로 앵커로 설정 (기본값: false)'
+          },
+          include_neighbors: {
+            type: 'boolean',
+            default: false,
+            description: '검색 결과의 상위 항목에 대해 이웃 기억을 자동으로 포함 (기본값: false)'
+          },
+          neighbors_limit: {
+            type: 'number',
+            minimum: 1,
+            maximum: 10,
+            default: 3,
+            description: '이웃 기억을 포함할 상위 결과의 개수 (각 결과당 이웃 개수는 neighbors_per_item으로 제어, 기본값: 3)'
+          },
+          neighbors_per_item: {
+            type: 'number',
+            minimum: 1,
+            maximum: 50,
+            default: 5,
+            description: '각 검색 결과 항목당 조회할 이웃 기억의 최대 개수 (기본값: 5)'
+          },
+          neighbors_similarity_threshold: {
+            type: 'number',
+            minimum: 0,
+            maximum: 1,
+            default: 0.8,
+            description: '이웃 기억 조회 시 유사도 임계값 (이 값 이상인 기억만 반환, 기본값: 0.8)'
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -236,7 +437,12 @@ export class RecallTool extends BaseTool {
         text_weight, 
         enable_hybrid, 
         include_metadata,
-        provider_filter
+        provider_filter,
+        auto_set_anchor,
+        include_neighbors,
+        neighbors_limit,
+        neighbors_per_item,
+        neighbors_similarity_threshold
       } = RecallSchema.parse(params);
       
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
@@ -542,11 +748,59 @@ export class RecallTool extends BaseTool {
         // 결과 후처리 - searchResult가 undefined인 경우 처리
         const processedResults = this.processSearchResults(searchItems, includeMetadata, return_format);
         
+        // 자동 앵커 설정 처리 (auto_set_anchor=true이고 검색 결과가 있을 때)
+        let anchorSetResult: {
+          success: boolean;
+          anchor_set: AnchorSetMetadata | null;
+          error?: boolean;
+          skipped?: boolean;
+          skipped_reason?: string;
+        } | null = null;
+        
+        if (auto_set_anchor && searchItems.length > 0) {
+          anchorSetResult = await this.handleAutoSetAnchor(searchItems, agentId, context);
+        }
+        
+        // 자동 이웃 기억 포함 처리 (include_neighbors=true이고 검색 결과가 있을 때)
+        let neighborsResults: NeighborMemory[][] = [];
+        
+        if (include_neighbors && searchItems.length > 0) {
+          neighborsResults = await this.handleIncludeNeighbors(
+            searchItems,
+            neighbors_limit,
+            neighbors_per_item,
+            neighbors_similarity_threshold,
+            context
+          );
+          
+          // 검색 결과 항목에 neighbors 필드 추가
+          // neighbors_limit보다 많은 결과는 neighbors 필드 없음 (handleIncludeNeighbors가 상위 neighbors_limit개만 처리)
+          for (let i = 0; i < Math.min(neighborsResults.length, processedResults.length); i++) {
+            processedResults[i].neighbors = neighborsResults[i];
+          }
+        }
+        
         this.logInfo('검색 완료', { 
           resultCount: processedResults.length, 
           executionTime,
           searchType: enableHybrid ? 'hybrid' : 'text'
         });
+        
+        // 메타데이터 구성 (앵커 설정 결과 포함)
+        const metadata: RecallResponseMetadata = {
+          anchor_set: anchorSetResult?.anchor_set || null
+        };
+        
+        // 앵커 설정 실패 시
+        if (anchorSetResult && anchorSetResult.error) {
+          metadata.anchor_set_error = true;
+        }
+        
+        // 앵커 설정 건너뜀 시
+        if (anchorSetResult && anchorSetResult.skipped) {
+          metadata.anchor_set_skipped = true;
+          metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
+        }
         
         return this.createSuccessResult({
           items: processedResults,
@@ -559,7 +813,8 @@ export class RecallTool extends BaseTool {
             vector_weight: normalizedVectorWeight,
             text_weight: normalizedTextWeight,
             enable_hybrid: enableHybrid
-          }
+          },
+          metadata
         });
       }
       
@@ -806,6 +1061,313 @@ export class RecallTool extends BaseTool {
     }
     
     return applied;
+  }
+
+  /**
+   * 자동 앵커 설정 처리
+   * 가장 관련성 높은 기억(첫 번째 결과)을 슬롯 A에 앵커로 설정
+   * 
+   * @param searchItems - 검색 결과 항목 배열
+   * @param agentId - 에이전트 ID
+   * @param context - 도구 컨텍스트
+   * @returns 앵커 설정 결과 (성공/실패/건너뜀 상태 포함)
+   */
+  private async handleAutoSetAnchor(
+    searchItems: any[],
+    agentId: string,
+    context: ToolContext
+  ): Promise<{
+    success: boolean;
+    anchor_set: AnchorSetMetadata | null;
+    error?: boolean;
+    skipped?: boolean;
+    skipped_reason?: string;
+  }> {
+    // 검색 결과가 없으면 앵커 설정 불가
+    if (!searchItems || searchItems.length === 0) {
+      return {
+        success: false,
+        anchor_set: null
+      };
+    }
+
+    // 첫 번째 결과의 memory_id 가져오기
+    const topMemory = searchItems[0];
+    const memoryId = topMemory.id || topMemory.memory_id;
+    
+    if (!memoryId) {
+      this.logWarning('검색 결과에 memory_id가 없어 앵커 설정을 건너뜁니다', { topMemory });
+      return {
+        success: false,
+        anchor_set: null,
+        error: true
+      };
+    }
+
+    // AnchorManager 서비스 확인
+    if (!context.services.anchorManager) {
+      this.logWarning('AnchorManager 서비스가 없어 앵커 설정을 건너뜁니다');
+      return {
+        success: false,
+        anchor_set: null,
+        error: true
+      };
+    }
+
+    try {
+      // 슬롯 A의 앵커 조회 및 pinned 상태 확인 (memory_item 테이블과 조인)
+      const slotAAnchor = await context.services.anchorManager.getAnchor(agentId, 'A');
+      
+      if (slotAAnchor && typeof slotAAnchor === 'object' && 'memory_id' in slotAAnchor) {
+        // pinned 상태 확인 (memory_item 테이블과 조인)
+        const anchorMemory = context.db!.prepare(`
+          SELECT pinned FROM memory_item WHERE id = ?
+        `).get(slotAAnchor.memory_id) as { pinned: number | boolean } | undefined;
+
+        const isPinned = anchorMemory && (anchorMemory.pinned === 1 || anchorMemory.pinned === true);
+
+        // 슬롯 A에 pinned 앵커가 있으면 건너뛰기 (보호 정책)
+        if (isPinned) {
+          this.logInfo('슬롯 A에 pinned 앵커가 있어 앵커 설정을 건너뜁니다', {
+            agent_id: agentId,
+            existing_memory_id: slotAAnchor.memory_id
+          });
+          return {
+            success: false,
+            anchor_set: null,
+            skipped: true,
+            skipped_reason: 'pinned_anchor_protected'
+          };
+        }
+
+        // 슬롯 A에 일반 앵커가 있으면 슬롯 B로 이동
+        const slotBAnchor = await context.services.anchorManager.getAnchor(agentId, 'B');
+        
+        if (slotBAnchor && typeof slotBAnchor === 'object' && 'memory_id' in slotBAnchor) {
+          // 슬롯 B의 pinned 상태 확인
+          const slotBMemory = context.db!.prepare(`
+            SELECT pinned FROM memory_item WHERE id = ?
+          `).get(slotBAnchor.memory_id) as { pinned: number | boolean } | undefined;
+
+          const slotBIsPinned = slotBMemory && (slotBMemory.pinned === 1 || slotBMemory.pinned === true);
+
+          if (slotBIsPinned) {
+            this.logWarning('슬롯 B의 pinned 앵커가 덮어써집니다', {
+              agent_id: agentId,
+              old_memory_id: slotBAnchor.memory_id,
+              new_memory_id: slotAAnchor.memory_id
+            });
+          }
+
+          // 슬롯 B에 앵커가 있으면 슬롯 C로 이동
+          const slotCAnchor = await context.services.anchorManager.getAnchor(agentId, 'C');
+          
+          if (slotCAnchor && typeof slotCAnchor === 'object' && 'memory_id' in slotCAnchor) {
+            // 슬롯 C의 pinned 상태 확인
+            const slotCMemory = context.db!.prepare(`
+              SELECT pinned FROM memory_item WHERE id = ?
+            `).get(slotCAnchor.memory_id) as { pinned: number | boolean } | undefined;
+
+            const slotCIsPinned = slotCMemory && (slotCMemory.pinned === 1 || slotCMemory.pinned === true);
+
+            if (slotCIsPinned) {
+              this.logWarning('슬롯 C의 pinned 앵커가 제거됩니다', {
+                agent_id: agentId,
+                old_memory_id: slotCAnchor.memory_id
+              });
+            }
+
+            // 슬롯 C에 앵커가 있으면 제거 (pinned 여부와 관계없이 회전 규칙에 따라 제거)
+            await context.services.anchorManager.clearAnchor(agentId, 'C');
+          }
+
+          // 슬롯 B의 기존 앵커를 슬롯 C로 이동 (슬롯 B를 비우기 위해)
+          // PRD: 슬롯 B/C의 pinned 앵커도 덮어쓰고 A→B→C→제거 순으로 회전
+          // 먼저 슬롯 B를 제거한 후 슬롯 C에 설정
+          const slotBMemoryId = slotBAnchor.memory_id;
+          await context.services.anchorManager.clearAnchor(agentId, 'B');
+          await context.services.anchorManager.setAnchor(agentId, slotBMemoryId, 'C');
+        }
+
+        // 슬롯 A의 앵커를 슬롯 B로 이동
+        // 먼저 슬롯 A를 제거한 후 슬롯 B에 설정
+        const slotAMemoryId = slotAAnchor.memory_id;
+        await context.services.anchorManager.clearAnchor(agentId, 'A');
+        await context.services.anchorManager.setAnchor(agentId, slotAMemoryId, 'B');
+      }
+
+      // 새로운 기억을 슬롯 A에 설정
+      await context.services.anchorManager.setAnchor(agentId, memoryId, 'A');
+
+      this.logInfo('앵커가 자동으로 설정되었습니다', {
+        agent_id: agentId,
+        memory_id: memoryId,
+        slot: 'A'
+      });
+
+      return {
+        success: true,
+        anchor_set: {
+          memory_id: memoryId,
+          slot: 'A',
+          agent_id: agentId
+        }
+      };
+    } catch (error) {
+      // 앵커 설정 실패 시 경고만 로그하고 검색 결과는 정상 반환
+      this.logError(error as Error, '앵커 자동 설정 실패', {
+        agent_id: agentId,
+        memory_id: memoryId
+      });
+      
+      return {
+        success: false,
+        anchor_set: null,
+        error: true
+      };
+    }
+  }
+
+  /**
+   * 자동 이웃 기억 포함 처리
+   * 검색 결과의 상위 항목에 대해 이웃 기억을 자동으로 포함
+   * 
+   * @param searchItems - 검색 결과 항목 배열
+   * @param neighborsLimit - 이웃 기억을 포함할 상위 결과의 개수
+   * @param neighborsPerItem - 각 검색 결과 항목당 조회할 이웃 기억의 최대 개수
+   * @param neighborsSimilarityThreshold - 이웃 기억 조회 시 유사도 임계값
+   * @param context - 도구 컨텍스트
+   * @returns 각 검색 결과 항목에 대한 이웃 기억 배열 (순서 보존)
+   */
+  private async handleIncludeNeighbors(
+    searchItems: any[],
+    neighborsLimit: number,
+    neighborsPerItem: number,
+    neighborsSimilarityThreshold: number,
+    context: ToolContext
+  ): Promise<NeighborMemory[][]> {
+    // 검색 결과가 없으면 빈 배열 반환
+    if (!searchItems || searchItems.length === 0) {
+      return [];
+    }
+
+    // 상위 neighbors_limit개 결과 추출 (검색 결과 개수보다 작으면 검색 결과 개수로 제한)
+    const topResults = searchItems.slice(0, Math.min(neighborsLimit, searchItems.length));
+
+    // MemoryNeighborService 인스턴스 생성
+    let neighborService: MemoryNeighborService;
+    try {
+      const vectorSearchEngine = getVectorSearchEngine();
+      const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
+      neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService);
+      neighborService.setDatabase(context.db!);
+    } catch (error) {
+      this.logError(error as Error, 'MemoryNeighborService 초기화 실패', {});
+      // 서비스 초기화 실패 시 빈 배열 반환 (각 요소가 독립적인 배열 인스턴스)
+      return Array.from({ length: topResults.length }, () => []);
+    }
+
+    // 각 상위 결과에 대해 이웃 기억 조회를 병렬 처리
+    const neighborPromises = topResults.map(async (item, index) => {
+      const memoryId = item.id || item.memory_id;
+      
+      if (!memoryId) {
+        this.logWarning('검색 결과에 memory_id가 없어 이웃 기억 조회를 건너뜁니다', { item });
+        return { index, neighbors: [] };
+      }
+
+      try {
+        // 개별 이웃 기억 조회에 타임아웃 적용 (각 조회당 최대 2초)
+        const timeoutPromise = new Promise<{ index: number; neighbors: NeighborMemory[] }>((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout')), 2000);
+        });
+
+        const neighborPromise = neighborService.getNeighbors(memoryId, {
+          limit: neighborsPerItem,
+          similarity_threshold: neighborsSimilarityThreshold
+        }).then(result => ({
+          index,
+          neighbors: result.neighbors
+        }));
+
+        const result = await Promise.race([neighborPromise, timeoutPromise]);
+        return result;
+      } catch (error) {
+        // 타임아웃 또는 에러 발생 시 빈 배열 반환
+        if (error instanceof Error && error.message === 'Timeout') {
+          this.logWarning('이웃 기억 조회 타임아웃', { memoryId, index });
+        } else {
+          this.logError(error as Error, '이웃 기억 조회 실패', { memoryId, index });
+        }
+        return { index, neighbors: [] };
+      }
+    });
+
+    // 전체 요청 타임아웃 적용 (2.5초, 부분 성공 결과 반환)
+    // 각 promise의 완료 상태를 추적하여 타임아웃 시 즉시 완료된 것만 반환
+    const completedResults = new Map<number, { index: number; neighbors: NeighborMemory[] }>();
+    
+    // 각 promise에 대해 완료 시 결과를 저장
+    neighborPromises.forEach((promise, idx) => {
+      promise
+        .then(result => {
+          completedResults.set(idx, result);
+        })
+        .catch(() => {
+          // 에러는 무시하고 빈 배열로 처리
+          completedResults.set(idx, { index: idx, neighbors: [] });
+        });
+    });
+    
+    let timeoutId: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<Array<{ index: number; neighbors: NeighborMemory[] }>>((resolve) => {
+      timeoutId = setTimeout(() => {
+        // 타임아웃 시 현재까지 완료된 결과만 즉시 반환 (Promise.allSettled를 기다리지 않음)
+        const partialResults: Array<{ index: number; neighbors: NeighborMemory[] }> = [];
+        
+        // 완료된 결과 수집
+        for (let i = 0; i < topResults.length; i++) {
+          if (completedResults.has(i)) {
+            partialResults.push(completedResults.get(i)!);
+          } else {
+            // 완료되지 않은 항목은 빈 배열로 채움
+            partialResults.push({ index: i, neighbors: [] });
+          }
+        }
+        
+        // 인덱스 순서로 정렬하여 반환
+        resolve(partialResults.sort((a, b) => a.index - b.index));
+      }, 2500); // 전체 타임아웃: 2.5초
+    });
+
+    try {
+      const allNeighbors = await Promise.race([
+        Promise.all(neighborPromises),
+        timeoutPromise
+      ]);
+
+      // 타임아웃 취소
+      if (timeoutId) clearTimeout(timeoutId);
+
+      // 결과를 원래 순서로 정렬 (인덱스 기준)
+      const sortedNeighbors = allNeighbors
+        .sort((a, b) => a.index - b.index)
+        .map(r => r.neighbors);
+
+      return sortedNeighbors;
+    } catch (error) {
+      // 타임아웃 취소
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // 타임아웃 시에도 부분 완료 결과는 반환됨 (timeoutPromise에서 처리)
+      // 완료된 결과만 반환
+      const settledResults = await Promise.allSettled(neighborPromises);
+      return settledResults.map((r, idx) => 
+        r.status === 'fulfilled' 
+          ? r.value.neighbors 
+          : [] // 실패한 항목은 빈 배열
+      );
+    }
   }
 
   /**

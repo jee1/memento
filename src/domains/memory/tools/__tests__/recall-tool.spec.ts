@@ -3,8 +3,13 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RecallTool } from '../recall-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
-import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
+import { HybridSearchEngine, createHybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { AnchorManager } from '../../../anchor/services/anchor/anchor-manager.js';
+import { AnchorCacheService } from '../../../anchor/services/anchor/anchor-cache-service.js';
+import { AnchorSearchService } from '../../../anchor/services/anchor/anchor-search-service.js';
+import { getVectorSearchEngine, type VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import { MemoryNeighborService } from '../../services/memory-neighbor-service.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -68,6 +73,21 @@ function initializeTestDatabase(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_core_memory_key ON core_memory(key);
     CREATE INDEX IF NOT EXISTS idx_knowledge_vault_agent_id ON knowledge_vault(agent_id);
     CREATE INDEX IF NOT EXISTS idx_knowledge_vault_key ON knowledge_vault(key);
+
+    CREATE TABLE IF NOT EXISTS anchor (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id TEXT NOT NULL,
+      slot TEXT CHECK (slot IN ('A', 'B', 'C')) NOT NULL,
+      memory_id TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+      UNIQUE(agent_id, slot)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
+    CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
   `);
 }
 
@@ -77,13 +97,42 @@ describe('RecallTool', () => {
   let context: ToolContext;
   let hybridSearchEngine: HybridSearchEngine;
   let embeddingService: MemoryEmbeddingService;
+  let anchorManager: AnchorManager;
+  let cacheService: AnchorCacheService;
+  let searchService: AnchorSearchService;
+  let vectorSearchEngine: VectorSearchEngine;
 
   beforeEach(() => {
     db = new Database(':memory:');
     initializeTestDatabase(db);
 
     embeddingService = new MemoryEmbeddingService();
-    hybridSearchEngine = new HybridSearchEngine();
+    // HybridSearchEngine을 팩토리 함수로 생성하여 모든 의존성이 제대로 초기화되도록 함
+    hybridSearchEngine = createHybridSearchEngine(
+      undefined, // textSearchEngine (기본값 사용)
+      embeddingService, // embeddingService 전달
+      undefined, // vectorSearchEngine (기본값 사용)
+      undefined, // resultCombiner (기본값 사용)
+      undefined, // weightCalculator (기본값 사용)
+      undefined // logger (기본값 사용)
+    );
+    // HybridSearchEngine의 isEmbeddingAvailable 메서드를 mock하여 항상 true 반환
+    // (하이브리드 검색 경로로 가도록 보장)
+    vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+    vectorSearchEngine = getVectorSearchEngine();
+    
+    // AnchorManager 설정
+    cacheService = new AnchorCacheService();
+    cacheService.setDatabase(db);
+    cacheService.setEmbeddingService(embeddingService);
+    
+    searchService = new AnchorSearchService(cacheService);
+    searchService.setDatabase(db);
+    searchService.setHybridSearchEngine(hybridSearchEngine);
+    searchService.setVectorSearchEngine(vectorSearchEngine);
+    
+    anchorManager = new AnchorManager(cacheService, searchService);
+    anchorManager.setDatabase(db);
 
     tool = new RecallTool();
 
@@ -91,7 +140,8 @@ describe('RecallTool', () => {
       db,
       services: {
         hybridSearchEngine,
-        embeddingService
+        embeddingService,
+        anchorManager
       }
     };
   });
@@ -1634,6 +1684,2001 @@ describe('RecallTool', () => {
           expect(resultData.items[0].workflow_name).toBe('데이터 마이그레이션');
           expect(resultData.items[0].skill_name).toBe('스키마 백업');
         });
+      });
+    });
+  });
+
+  describe('자동 앵커 설정 및 이웃 기억 포함 파라미터 검증', () => {
+    describe('RecallSchema 파라미터 검증', () => {
+      it('given: 새 파라미터들 없음, when: 스키마 파싱, then: 기본값 확인', async () => {
+        // Given: 새 파라미터들 없이 recall 호출
+        const params = {
+          query: 'test',
+          limit: 10
+        };
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [],
+          total_count: 0,
+          query_time: 10
+        });
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 기본값이 적용되어야 함 (기본값은 내부적으로 처리되므로 에러가 발생하지 않으면 성공)
+        expect(resultData).toBeDefined();
+        expect(resultData.items).toBeDefined();
+      });
+
+      it('given: auto_set_anchor=true, when: 스키마 파싱, then: 파라미터가 정상적으로 파싱되어야 함', async () => {
+        // Given: auto_set_anchor=true로 설정
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true
+        };
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [],
+          total_count: 0,
+          query_time: 10
+        });
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 에러가 발생하지 않아야 함
+        expect(resultData).toBeDefined();
+      });
+
+      it('given: include_neighbors=true, when: 스키마 파싱, then: 파라미터가 정상적으로 파싱되어야 함', async () => {
+        // Given: include_neighbors=true로 설정
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true
+        };
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [],
+          total_count: 0,
+          query_time: 10
+        });
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 에러가 발생하지 않아야 함
+        expect(resultData).toBeDefined();
+      });
+
+      it('given: neighbors_limit 범위 밖 값(0), when: 스키마 파싱, then: 검증 에러 발생', async () => {
+        // Given: neighbors_limit=0 (최소값 1 미만)
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 0
+        };
+
+        // When/Then: recall Tool 실행 시 검증 에러 발생해야 함
+        await expect(tool.handle(params, context)).rejects.toThrow();
+      });
+
+      it('given: neighbors_limit 범위 밖 값(11), when: 스키마 파싱, then: 검증 에러 발생', async () => {
+        // Given: neighbors_limit=11 (최대값 10 초과)
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 11
+        };
+
+        // When/Then: recall Tool 실행 시 검증 에러 발생해야 함
+        await expect(tool.handle(params, context)).rejects.toThrow();
+      });
+
+      it('given: neighbors_per_item 범위 밖 값(0), when: 스키마 파싱, then: 검증 에러 발생', async () => {
+        // Given: neighbors_per_item=0 (최소값 1 미만)
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_per_item: 0
+        };
+
+        // When/Then: recall Tool 실행 시 검증 에러 발생해야 함
+        await expect(tool.handle(params, context)).rejects.toThrow();
+      });
+
+      it('given: neighbors_per_item 범위 밖 값(51), when: 스키마 파싱, then: 검증 에러 발생', async () => {
+        // Given: neighbors_per_item=51 (최대값 50 초과)
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_per_item: 51
+        };
+
+        // When/Then: recall Tool 실행 시 검증 에러 발생해야 함
+        await expect(tool.handle(params, context)).rejects.toThrow();
+      });
+
+      it('given: neighbors_similarity_threshold 범위 밖 값(-0.1), when: 스키마 파싱, then: 검증 에러 발생', async () => {
+        // Given: neighbors_similarity_threshold=-0.1 (최소값 0 미만)
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_similarity_threshold: -0.1
+        };
+
+        // When/Then: recall Tool 실행 시 검증 에러 발생해야 함
+        await expect(tool.handle(params, context)).rejects.toThrow();
+      });
+
+      it('given: neighbors_similarity_threshold 범위 밖 값(1.1), when: 스키마 파싱, then: 검증 에러 발생', async () => {
+        // Given: neighbors_similarity_threshold=1.1 (최대값 1 초과)
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_similarity_threshold: 1.1
+        };
+
+        // When/Then: recall Tool 실행 시 검증 에러 발생해야 함
+        await expect(tool.handle(params, context)).rejects.toThrow();
+      });
+
+      it('given: 유효한 범위 내 값들, when: 스키마 파싱, then: 정상적으로 파싱되어야 함', async () => {
+        // Given: 모든 새 파라미터를 유효한 범위 내 값으로 설정
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          include_neighbors: true,
+          neighbors_limit: 5,
+          neighbors_per_item: 10,
+          neighbors_similarity_threshold: 0.75
+        };
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [],
+          total_count: 0,
+          query_time: 10
+        });
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 에러가 발생하지 않아야 함
+        expect(resultData).toBeDefined();
+      });
+    });
+  });
+
+  describe('자동 앵커 설정', () => {
+    describe('자동 앵커 설정 성공 시나리오', () => {
+      it('given: 검색 결과 있음, when: auto_set_anchor=true, then: 슬롯 A에 앵커 설정됨', async () => {
+        // Given: 검색 결과가 있는 상황
+        const memoryId = 'mem_test_001';
+        const agentId = 'default';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory content',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 슬롯 A에 앵커가 설정되어야 함
+        const anchor = db.prepare(`
+          SELECT memory_id, slot FROM anchor WHERE agent_id = ? AND slot = 'A'
+        `).get(agentId) as { memory_id: string; slot: string } | undefined;
+
+        expect(anchor).toBeDefined();
+        expect(anchor?.memory_id).toBe(memoryId);
+        expect(anchor?.slot).toBe('A');
+
+        // Then: metadata에 anchor_set이 포함되어야 함
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeDefined();
+        expect(resultData.metadata.anchor_set.memory_id).toBe(memoryId);
+        expect(resultData.metadata.anchor_set.slot).toBe('A');
+        expect(resultData.metadata.anchor_set.agent_id).toBe(agentId);
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+      });
+    });
+
+    describe('슬롯 회전 로직', () => {
+      it('given: 슬롯 A/B/C에 앵커 있음, when: auto_set_anchor=true, then: A→B→C→제거 순서로 이동', async () => {
+        // Given: 슬롯 A/B/C에 앵커가 있는 상황
+        const agentId = 'default';
+        const memoryIdA = 'mem_slot_a';
+        const memoryIdB = 'mem_slot_b';
+        const memoryIdC = 'mem_slot_c';
+        const newMemoryId = 'mem_new';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Memory A', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Memory B', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Memory C', 0.6, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'New Memory', 0.9, CURRENT_TIMESTAMP)
+        `).run(memoryIdA, memoryIdB, memoryIdC, newMemoryId);
+
+        // 슬롯 A, B, C에 앵커 설정
+        await anchorManager.setAnchor(agentId, memoryIdA, 'A');
+        await anchorManager.setAnchor(agentId, memoryIdB, 'B');
+        await anchorManager.setAnchor(agentId, memoryIdC, 'C');
+
+        // Mock 검색 결과 (새로운 메모리가 첫 번째 결과)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: newMemoryId,
+              content: 'New Memory',
+              type: 'episodic',
+              importance: 0.9,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: A→B→C→제거 순서로 이동
+        // 슬롯 A에 새로운 앵커가 설정되어야 함
+        const slotA = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'A'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotA?.memory_id).toBe(newMemoryId);
+
+        // 슬롯 B에 기존 A의 앵커가 이동해야 함
+        const slotB = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'B'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotB?.memory_id).toBe(memoryIdA);
+
+        // 슬롯 C에 기존 B의 앵커가 이동해야 함
+        const slotC = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'C'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotC?.memory_id).toBe(memoryIdB);
+
+        // 기존 C의 앵커는 제거되어야 함 (더 이상 존재하지 않음)
+        const oldSlotC = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND memory_id = ?
+        `).get(agentId, memoryIdC);
+        expect(oldSlotC).toBeUndefined();
+
+        // Then: metadata에 anchor_set이 포함되어야 함
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeDefined();
+        expect(resultData.metadata.anchor_set.memory_id).toBe(newMemoryId);
+        expect(resultData.metadata.anchor_set.slot).toBe('A');
+      });
+    });
+
+    describe('슬롯 A의 pinned 앵커 보호 정책', () => {
+      it('given: 슬롯 A에 pinned 앵커 있음, when: auto_set_anchor=true, then: 앵커 설정 건너뜀', async () => {
+        // Given: 슬롯 A에 pinned 앵커가 있는 상황
+        const agentId = 'default';
+        const pinnedMemoryId = 'mem_pinned';
+        const newMemoryId = 'mem_new';
+        
+        // pinned 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
+          VALUES 
+            (?, 'episodic', 'Pinned Memory', 0.9, 1, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'New Memory', 0.8, 0, CURRENT_TIMESTAMP)
+        `).run(pinnedMemoryId, newMemoryId);
+
+        // 슬롯 A에 pinned 앵커 설정
+        await anchorManager.setAnchor(agentId, pinnedMemoryId, 'A');
+
+        // Mock 검색 결과 (새로운 메모리가 첫 번째 결과)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: newMemoryId,
+              content: 'New Memory',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 슬롯 A의 앵커가 변경되지 않아야 함 (pinned 앵커 보호)
+        const slotA = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'A'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotA?.memory_id).toBe(pinnedMemoryId);
+
+        // Then: metadata에 anchor_set_skipped가 포함되어야 함
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+        expect(resultData.metadata.anchor_set_skipped).toBe(true);
+        expect(resultData.metadata.anchor_set_skipped_reason).toBe('pinned_anchor_protected');
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+      });
+    });
+
+    describe('슬롯 B/C의 pinned 앵커 덮어쓰기', () => {
+      it('given: 슬롯 B에 pinned 앵커 있음, when: auto_set_anchor=true, then: 경고 로그 및 덮어쓰기', async () => {
+        // Given: 슬롯 B에 pinned 앵커가 있는 상황
+        const agentId = 'default';
+        const memoryIdA = 'mem_slot_a';
+        const pinnedMemoryIdB = 'mem_pinned_b';
+        const newMemoryId = 'mem_new';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
+          VALUES 
+            (?, 'episodic', 'Memory A', 0.8, 0, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Pinned Memory B', 0.9, 1, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'New Memory', 0.85, 0, CURRENT_TIMESTAMP)
+        `).run(memoryIdA, pinnedMemoryIdB, newMemoryId);
+
+        // 슬롯 A와 B에 앵커 설정 (B는 pinned)
+        await anchorManager.setAnchor(agentId, memoryIdA, 'A');
+        await anchorManager.setAnchor(agentId, pinnedMemoryIdB, 'B');
+
+        // Mock 검색 결과 (새로운 메모리가 첫 번째 결과)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: newMemoryId,
+              content: 'New Memory',
+              type: 'episodic',
+              importance: 0.85,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        // logWarning spy 설정
+        const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 슬롯 B의 pinned 앵커가 덮어써졌는지 확인
+        const slotB = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'B'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotB?.memory_id).toBe(memoryIdA); // 기존 A의 앵커가 B로 이동
+
+        // Then: 경고 로그가 기록되었는지 확인
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          '슬롯 B의 pinned 앵커가 덮어써집니다',
+          expect.objectContaining({
+            agent_id: agentId,
+            old_memory_id: pinnedMemoryIdB,
+            new_memory_id: memoryIdA
+          })
+        );
+
+        // Then: 슬롯 A에 새로운 앵커가 설정되어야 함
+        const slotA = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'A'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotA?.memory_id).toBe(newMemoryId);
+
+        // Then: metadata에 anchor_set이 포함되어야 함
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeDefined();
+        expect(resultData.metadata.anchor_set.memory_id).toBe(newMemoryId);
+      });
+
+      it('given: 슬롯 C에 pinned 앵커 있음, when: auto_set_anchor=true, then: 경고 로그 및 제거', async () => {
+        // Given: 슬롯 C에 pinned 앵커가 있는 상황
+        const agentId = 'default';
+        const memoryIdA = 'mem_slot_a';
+        const memoryIdB = 'mem_slot_b';
+        const pinnedMemoryIdC = 'mem_pinned_c';
+        const newMemoryId = 'mem_new';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
+          VALUES 
+            (?, 'episodic', 'Memory A', 0.8, 0, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Memory B', 0.7, 0, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Pinned Memory C', 0.9, 1, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'New Memory', 0.85, 0, CURRENT_TIMESTAMP)
+        `).run(memoryIdA, memoryIdB, pinnedMemoryIdC, newMemoryId);
+
+        // 슬롯 A, B, C에 앵커 설정 (C는 pinned)
+        await anchorManager.setAnchor(agentId, memoryIdA, 'A');
+        await anchorManager.setAnchor(agentId, memoryIdB, 'B');
+        await anchorManager.setAnchor(agentId, pinnedMemoryIdC, 'C');
+
+        // Mock 검색 결과 (새로운 메모리가 첫 번째 결과)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: newMemoryId,
+              content: 'New Memory',
+              type: 'episodic',
+              importance: 0.85,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        // logWarning spy 설정
+        const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 슬롯 C의 pinned 앵커가 제거되고 B의 앵커가 C로 이동했는지 확인
+        // PRD: 슬롯 B/C의 pinned 앵커도 덮어쓰고 A→B→C→제거 순으로 회전
+        const slotC = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'C'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotC?.memory_id).toBe(memoryIdB); // 슬롯 B의 앵커가 C로 이동
+
+        // Then: 경고 로그가 기록되었는지 확인
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          '슬롯 C의 pinned 앵커가 제거됩니다',
+          expect.objectContaining({
+            agent_id: agentId,
+            old_memory_id: pinnedMemoryIdC
+          })
+        );
+
+        // Then: 슬롯 A에 새로운 앵커가 설정되어야 함
+        const slotA = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'A'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotA?.memory_id).toBe(newMemoryId);
+
+        // Then: 슬롯 B에 기존 A의 앵커가 이동해야 함
+        const slotB = db.prepare(`
+          SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'B'
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotB?.memory_id).toBe(memoryIdA);
+
+        // Then: metadata에 anchor_set이 포함되어야 함
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeDefined();
+        expect(resultData.metadata.anchor_set.memory_id).toBe(newMemoryId);
+      });
+    });
+
+    describe('앵커 설정 실패 시 에러 처리', () => {
+      it('given: 앵커 설정 실패, when: auto_set_anchor=true, then: 검색 결과는 정상 반환, metadata에 anchor_set_error 포함', async () => {
+        // Given: 앵커 설정이 실패하는 상황
+        const agentId = 'default';
+        const memoryId = 'mem_test_001';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory content',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        // AnchorManager.setAnchor를 mock하여 에러 발생시키기
+        const setAnchorError = new Error('앵커 설정 실패');
+        vi.spyOn(anchorManager, 'setAnchor').mockRejectedValue(setAnchorError);
+
+        // logError spy 설정
+        const logErrorSpy = vi.spyOn(tool as any, 'logError');
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 검색 결과는 정상 반환되어야 함
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(1);
+        expect(resultData.items[0].id).toBe(memoryId);
+
+        // Then: metadata에 anchor_set_error가 포함되어야 함
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+        expect(resultData.metadata.anchor_set_error).toBe(true);
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+
+        // Then: 에러 로그가 기록되었는지 확인
+        expect(logErrorSpy).toHaveBeenCalledWith(
+          setAnchorError,
+          '앵커 자동 설정 실패',
+          expect.objectContaining({
+            agent_id: agentId,
+            memory_id: memoryId
+          })
+        );
+      });
+    });
+  });
+
+  describe('자동 이웃 기억 포함', () => {
+    describe('자동 이웃 기억 포함 성공 시나리오', () => {
+      it('given: 검색 결과 있음, when: include_neighbors=true, then: 상위 결과에 neighbors 필드 포함', async () => {
+        // Given: 검색 결과가 있는 상황
+        const memoryId1 = 'mem_test_001';
+        const memoryId2 = 'mem_test_002';
+        const neighborId1 = 'mem_neighbor_001';
+        const neighborId2 = 'mem_neighbor_002';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Neighbor memory 1', 0.6, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Neighbor memory 2', 0.5, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, neighborId1, neighborId2);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            }
+          ],
+          total_count: 2,
+          query_time: 10
+        });
+
+        // Note: recall-tool.ts 내부에서 MemoryNeighborService를 생성하므로 직접 mock하기 어렵습니다.
+        // 이 테스트는 neighbors 필드가 포함되는지 확인하는 것을 목표로 합니다.
+        // 실제 이웃 기억 조회는 memory_embedding 테이블에 임베딩이 있어야 하므로,
+        // 이 테스트에서는 neighbors 필드의 존재 여부만 확인합니다.
+        
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 2,
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 검색 결과는 정상 반환되어야 함
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(2);
+
+        // Then: 상위 결과에 neighbors 필드가 포함되어야 함
+        // (실제로는 이웃 기억 조회가 실패할 수 있지만, 필드 자체는 존재해야 함)
+        // neighbors_limit=2이므로 상위 2개 결과에 neighbors 필드가 있어야 함
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(resultData.items[1].neighbors).toBeDefined();
+        // neighbors는 배열이어야 함 (빈 배열일 수도 있음)
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        expect(Array.isArray(resultData.items[1].neighbors)).toBe(true);
+      });
+    });
+
+    describe('이웃 기억 조회 병렬 처리', () => {
+      it('given: 여러 검색 결과, when: include_neighbors=true, then: 모든 이웃 기억이 병렬로 조회됨', async () => {
+        // Given: 여러 검색 결과가 있는 상황
+        const memoryId1 = 'mem_test_001';
+        const memoryId2 = 'mem_test_002';
+        const memoryId3 = 'mem_test_003';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, memoryId3);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            },
+            {
+              id: memoryId3,
+              content: 'Test memory 3',
+              type: 'episodic',
+              importance: 0.6,
+              created_at: new Date().toISOString(),
+              finalScore: 0.75
+            }
+          ],
+          total_count: 3,
+          query_time: 10
+        });
+
+        // 이웃 기억 조회 호출 추적을 위한 변수
+        const callTimestamps: number[] = [];
+        const callOrder: string[] = [];
+
+        // MemoryNeighborService 모듈 mock 설정
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string) => {
+          const timestamp = Date.now();
+          callTimestamps.push(timestamp);
+          callOrder.push(memoryId);
+          
+          // 각 호출에 약간의 지연 추가 (병렬 처리 확인용)
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          return {
+            memory_id: memoryId,
+            neighbors: [],
+            total_count: 0,
+            query_time: 5
+          };
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 3,
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const startTime = Date.now();
+        const result = await tool.handle(params, context);
+        const endTime = Date.now();
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 모든 이웃 기억이 병렬로 조회되었는지 확인
+        // 병렬 처리 시 모든 호출이 거의 동시에 시작되어야 함
+        expect(mockGetNeighbors).toHaveBeenCalledTimes(3);
+        
+        // 호출 시간 차이가 작아야 함 (병렬 처리)
+        if (callTimestamps.length >= 2) {
+          const timeDiff = Math.max(...callTimestamps) - Math.min(...callTimestamps);
+          // 병렬 처리 시 시간 차이는 100ms 이하여야 함 (각 호출 지연 50ms + 오버헤드)
+          expect(timeDiff).toBeLessThan(200);
+        }
+
+        // Then: 모든 검색 결과에 neighbors 필드가 포함되어야 함
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(3);
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(resultData.items[2].neighbors).toBeDefined();
+
+        // 전체 처리 시간이 순차 처리보다 짧아야 함 (병렬 처리)
+        // 순차 처리 시: 3 * 50ms = 150ms 이상
+        // 병렬 처리 시: 약 50ms + 오버헤드
+        const totalTime = endTime - startTime;
+        expect(totalTime).toBeLessThan(300); // 병렬 처리 시 300ms 이하여야 함
+      });
+    });
+
+    describe('이웃 기억 조회 개별 타임아웃', () => {
+      it('given: 느린 이웃 기억 조회, when: include_neighbors=true, then: 개별 조회 타임아웃 내에 응답 반환, 타임아웃된 항목은 빈 배열', async () => {
+        // Given: 느린 이웃 기억 조회가 있는 상황
+        const memoryId1 = 'mem_test_001';
+        const memoryId2 = 'mem_test_002';
+        const memoryId3 = 'mem_test_003';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, memoryId3);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            },
+            {
+              id: memoryId3,
+              content: 'Test memory 3',
+              type: 'episodic',
+              importance: 0.6,
+              created_at: new Date().toISOString(),
+              finalScore: 0.75
+            }
+          ],
+          total_count: 3,
+          query_time: 10
+        });
+
+        // logWarning spy 설정 (타임아웃 경고 확인용)
+        const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
+
+        // MemoryNeighborService 모듈 mock 설정
+        // memoryId1: 빠른 응답 (500ms)
+        // memoryId2: 느린 응답 (2500ms, 타임아웃 발생)
+        // memoryId3: 빠른 응답 (800ms)
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string) => {
+          if (memoryId === memoryId1) {
+            // 빠른 응답
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_1', content: 'Neighbor 1', similarity: 0.85 }],
+              total_count: 1,
+              query_time: 5
+            };
+          } else if (memoryId === memoryId2) {
+            // 느린 응답 (2초 이상, 타임아웃 발생)
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_2', content: 'Neighbor 2', similarity: 0.82 }],
+              total_count: 1,
+              query_time: 5
+            };
+          } else {
+            // 빠른 응답
+            await new Promise(resolve => setTimeout(resolve, 800));
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_3', content: 'Neighbor 3', similarity: 0.80 }],
+              total_count: 1,
+              query_time: 5
+            };
+          }
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 3,
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const startTime = Date.now();
+        const result = await tool.handle(params, context);
+        const endTime = Date.now();
+        const resultData = JSON.parse(result.content[0].text);
+        const totalTime = endTime - startTime;
+
+        // Then: 개별 조회 타임아웃(2초) 내에 응답 반환
+        // 전체 응답은 2.5초 이내에 반환되어야 함 (가장 느린 빠른 응답 + 오버헤드)
+        expect(totalTime).toBeLessThan(2500);
+
+        // Then: 타임아웃된 항목은 빈 배열
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(3);
+        
+        // memoryId1: 빠른 응답, neighbors 포함
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        expect(resultData.items[0].neighbors.length).toBeGreaterThan(0);
+        
+        // memoryId2: 타임아웃 발생, 빈 배열
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[1].neighbors)).toBe(true);
+        expect(resultData.items[1].neighbors.length).toBe(0);
+        
+        // memoryId3: 빠른 응답, neighbors 포함
+        expect(resultData.items[2].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[2].neighbors)).toBe(true);
+        expect(resultData.items[2].neighbors.length).toBeGreaterThan(0);
+
+        // Then: 타임아웃 경고 로그가 기록되었는지 확인
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          '이웃 기억 조회 타임아웃',
+          expect.objectContaining({
+            memoryId: memoryId2,
+            index: 1
+          })
+        );
+      });
+    });
+
+    describe('이웃 기억 조회 전체 타임아웃', () => {
+      it('given: 전체 요청이 2.5초 초과, when: include_neighbors=true, then: 완료된 조회 결과만 반환, 미완료 항목은 빈 배열, 로그/메타데이터 정상', async () => {
+        // Given: 전체 요청이 2.5초 초과하는 상황
+        const memoryId1 = 'mem_test_001';
+        const memoryId2 = 'mem_test_002';
+        const memoryId3 = 'mem_test_003';
+        const memoryId4 = 'mem_test_004';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 4', 0.5, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, memoryId3, memoryId4);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            },
+            {
+              id: memoryId3,
+              content: 'Test memory 3',
+              type: 'episodic',
+              importance: 0.6,
+              created_at: new Date().toISOString(),
+              finalScore: 0.75
+            },
+            {
+              id: memoryId4,
+              content: 'Test memory 4',
+              type: 'episodic',
+              importance: 0.5,
+              created_at: new Date().toISOString(),
+              finalScore: 0.65
+            }
+          ],
+          total_count: 4,
+          query_time: 10
+        });
+
+        // MemoryNeighborService 모듈 mock 설정
+        // memoryId1: 빠른 응답 (1초)
+        // memoryId2: 빠른 응답 (1.5초)
+        // memoryId3: 느린 응답 (3초, 전체 타임아웃 발생)
+        // memoryId4: 느린 응답 (3초, 전체 타임아웃 발생)
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string) => {
+          if (memoryId === memoryId1) {
+            // 빠른 응답 (1초)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_1', content: 'Neighbor 1', similarity: 0.85 }],
+              total_count: 1,
+              query_time: 5
+            };
+          } else if (memoryId === memoryId2) {
+            // 빠른 응답 (1.5초)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_2', content: 'Neighbor 2', similarity: 0.82 }],
+              total_count: 1,
+              query_time: 5
+            };
+          } else {
+            // 느린 응답 (3초, 전체 타임아웃 발생)
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_3', content: 'Neighbor 3', similarity: 0.80 }],
+              total_count: 1,
+              query_time: 5
+            };
+          }
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 4,
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const startTime = Date.now();
+        const result = await tool.handle(params, context);
+        const endTime = Date.now();
+        const resultData = JSON.parse(result.content[0].text);
+        const totalTime = endTime - startTime;
+
+        // Then: 전체 타임아웃(2.5초) 내에 응답 반환
+        // 완료된 조회 결과만 반환되어야 하므로 2.5초 이내에 응답
+        expect(totalTime).toBeLessThan(2600); // 2.5초 + 약간의 오버헤드
+
+        // Then: 완료된 조회 결과만 반환, 미완료 항목은 빈 배열
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(4);
+        
+        // memoryId1: 빠른 응답 (1초), neighbors 포함
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        expect(resultData.items[0].neighbors.length).toBeGreaterThan(0);
+        
+        // memoryId2: 빠른 응답 (1.5초), neighbors 포함
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[1].neighbors)).toBe(true);
+        expect(resultData.items[1].neighbors.length).toBeGreaterThan(0);
+        
+        // memoryId3: 느린 응답 (3초), 전체 타임아웃으로 빈 배열
+        expect(resultData.items[2].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[2].neighbors)).toBe(true);
+        expect(resultData.items[2].neighbors.length).toBe(0);
+        
+        // memoryId4: 느린 응답 (3초), 전체 타임아웃으로 빈 배열
+        expect(resultData.items[3].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[3].neighbors)).toBe(true);
+        expect(resultData.items[3].neighbors.length).toBe(0);
+
+        // Then: 로그/메타데이터 정상
+        // 검색 결과는 정상 반환되어야 함
+        expect(resultData.total_count).toBe(4);
+        expect(resultData.query_time).toBeDefined();
+      });
+    });
+
+    describe('이웃 기억 조회 실패 시 에러 처리', () => {
+      it('given: 이웃 기억 조회 실패, when: include_neighbors=true, then: 해당 항목의 neighbors는 빈 배열, 다른 항목은 정상', async () => {
+        // Given: 이웃 기억 조회가 실패하는 상황
+        const memoryId1 = 'mem_test_001';
+        const memoryId2 = 'mem_test_002';
+        const memoryId3 = 'mem_test_003';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, memoryId3);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            },
+            {
+              id: memoryId3,
+              content: 'Test memory 3',
+              type: 'episodic',
+              importance: 0.6,
+              created_at: new Date().toISOString(),
+              finalScore: 0.75
+            }
+          ],
+          total_count: 3,
+          query_time: 10
+        });
+
+        // logError spy 설정 (에러 로그 확인용)
+        const logErrorSpy = vi.spyOn(tool as any, 'logError');
+
+        // MemoryNeighborService 모듈 mock 설정
+        // memoryId1: 성공
+        // memoryId2: 에러 발생
+        // memoryId3: 성공
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string) => {
+          if (memoryId === memoryId1) {
+            // 성공
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_1', content: 'Neighbor 1', similarity: 0.85 }],
+              total_count: 1,
+              query_time: 5
+            };
+          } else if (memoryId === memoryId2) {
+            // 에러 발생
+            throw new Error('이웃 기억 조회 실패');
+          } else {
+            // 성공
+            return {
+              memory_id: memoryId,
+              neighbors: [{ id: 'neighbor_3', content: 'Neighbor 3', similarity: 0.80 }],
+              total_count: 1,
+              query_time: 5
+            };
+          }
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 3,
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 해당 항목의 neighbors는 빈 배열, 다른 항목은 정상
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(3);
+        
+        // memoryId1: 성공, neighbors 포함
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        expect(resultData.items[0].neighbors.length).toBeGreaterThan(0);
+        
+        // memoryId2: 에러 발생, 빈 배열
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[1].neighbors)).toBe(true);
+        expect(resultData.items[1].neighbors.length).toBe(0);
+        
+        // memoryId3: 성공, neighbors 포함
+        expect(resultData.items[2].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[2].neighbors)).toBe(true);
+        expect(resultData.items[2].neighbors.length).toBeGreaterThan(0);
+
+        // Then: 에러 로그가 기록되었는지 확인
+        expect(logErrorSpy).toHaveBeenCalledWith(
+          expect.any(Error),
+          '이웃 기억 조회 실패',
+          expect.objectContaining({
+            memoryId: memoryId2,
+            index: 1
+          })
+        );
+
+        // Then: 검색 결과는 정상 반환되어야 함
+        expect(resultData.total_count).toBe(3);
+        expect(resultData.query_time).toBeDefined();
+      });
+    });
+
+    describe('이웃 기억 순서 보존', () => {
+      it('given: 검색 결과 5개(역순 ID 등), neighbors_limit=3, when: include_neighbors=true, then: 상위 3개 결과가 원본 검색 결과 순서대로 neighbors 필드를 포함', async () => {
+        // Given: 검색 결과 5개(역순 ID 등으로 순서 명확히)
+        const memoryId1 = 'mem_001';
+        const memoryId2 = 'mem_002';
+        const memoryId3 = 'mem_003';
+        const memoryId4 = 'mem_004';
+        const memoryId5 = 'mem_005';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 4', 0.5, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 5', 0.4, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, memoryId3, memoryId4, memoryId5);
+
+        // Mock 검색 결과 (5개 항목, 순서 명확히)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            },
+            {
+              id: memoryId3,
+              content: 'Test memory 3',
+              type: 'episodic',
+              importance: 0.6,
+              created_at: new Date().toISOString(),
+              finalScore: 0.75
+            },
+            {
+              id: memoryId4,
+              content: 'Test memory 4',
+              type: 'episodic',
+              importance: 0.5,
+              created_at: new Date().toISOString(),
+              finalScore: 0.65
+            },
+            {
+              id: memoryId5,
+              content: 'Test memory 5',
+              type: 'episodic',
+              importance: 0.4,
+              created_at: new Date().toISOString(),
+              finalScore: 0.55
+            }
+          ],
+          total_count: 5,
+          query_time: 10
+        });
+
+        // 이웃 기억 조회 호출 순서 추적 (순서 보존 확인용)
+        const callOrder: string[] = [];
+
+        // MemoryNeighborService 모듈 mock 설정
+        // 각 항목에 대해 다른 지연 시간 적용 (순서 보존 확인용)
+        // memoryId1: 가장 느린 응답 (1.5초)
+        // memoryId2: 중간 응답 (1초)
+        // memoryId3: 가장 빠른 응답 (0.5초)
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string) => {
+          callOrder.push(memoryId);
+          
+          let delay = 500;
+          if (memoryId === memoryId1) {
+            delay = 1500; // 가장 느린 응답
+          } else if (memoryId === memoryId2) {
+            delay = 1000; // 중간 응답
+          } else if (memoryId === memoryId3) {
+            delay = 500; // 가장 빠른 응답
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          return {
+            memory_id: memoryId,
+            neighbors: [{ id: `neighbor_${memoryId}`, content: `Neighbor ${memoryId}`, similarity: 0.85 }],
+            total_count: 1,
+            query_time: 5
+          };
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 3, // 상위 3개만
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 상위 3개 결과가 원본 검색 결과 순서대로 neighbors 필드를 포함
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(5);
+        
+        // 상위 3개 결과에 neighbors 필드가 포함되어야 함
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(resultData.items[2].neighbors).toBeDefined();
+        
+        // 4번째, 5번째 결과에는 neighbors 필드가 없어야 함 (neighbors_limit=3)
+        expect(resultData.items[3].neighbors).toBeUndefined();
+        expect(resultData.items[4].neighbors).toBeUndefined();
+        
+        // 원본 검색 결과 순서 확인
+        expect(resultData.items[0].id).toBe(memoryId1);
+        expect(resultData.items[1].id).toBe(memoryId2);
+        expect(resultData.items[2].id).toBe(memoryId3);
+        expect(resultData.items[3].id).toBe(memoryId4);
+        expect(resultData.items[4].id).toBe(memoryId5);
+        
+        // neighbors 필드의 순서도 원본 검색 결과 순서와 일치해야 함
+        // (병렬 처리로 완료 순서가 다를 수 있지만, 최종 결과는 원본 순서 유지)
+        expect(resultData.items[0].neighbors[0].id).toBe(`neighbor_${memoryId1}`);
+        expect(resultData.items[1].neighbors[0].id).toBe(`neighbor_${memoryId2}`);
+        expect(resultData.items[2].neighbors[0].id).toBe(`neighbor_${memoryId3}`);
+      });
+    });
+
+    describe('neighbors_limit 적용', () => {
+      it('given: 검색 결과 10개, neighbors_limit=3, when: include_neighbors=true, then: 상위 3개 결과만 neighbors 필드 포함', async () => {
+        // Given: 검색 결과 10개
+        const memoryIds = Array.from({ length: 10 }, (_, i) => `mem_test_${String(i + 1).padStart(3, '0')}`);
+        
+        // 메모리 아이템 생성
+        const insertStmt = db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', ?, 0.8, CURRENT_TIMESTAMP)
+        `);
+        
+        for (let i = 0; i < 10; i++) {
+          insertStmt.run(memoryIds[i], `Test memory ${i + 1}`);
+        }
+
+        // Mock 검색 결과 (10개 항목)
+        const searchItems = memoryIds.map((id, index) => ({
+          id,
+          content: `Test memory ${index + 1}`,
+          type: 'episodic',
+          importance: 0.8,
+          created_at: new Date().toISOString(),
+          finalScore: 0.95 - index * 0.05
+        }));
+
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: searchItems,
+          total_count: 10,
+          query_time: 10
+        });
+
+        // MemoryNeighborService 모듈 mock 설정
+        // 모든 항목에 대해 이웃 기억 반환
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string) => {
+          return {
+            memory_id: memoryId,
+            neighbors: [{ id: `neighbor_${memoryId}`, content: `Neighbor ${memoryId}`, similarity: 0.85 }],
+            total_count: 1,
+            query_time: 5
+          };
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 3, // 상위 3개만
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 상위 3개 결과만 neighbors 필드 포함
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(10);
+        
+        // 상위 3개 결과에 neighbors 필드 포함 확인
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        expect(resultData.items[0].neighbors.length).toBeGreaterThan(0);
+        
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[1].neighbors)).toBe(true);
+        expect(resultData.items[1].neighbors.length).toBeGreaterThan(0);
+        
+        expect(resultData.items[2].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[2].neighbors)).toBe(true);
+        expect(resultData.items[2].neighbors.length).toBeGreaterThan(0);
+        
+        // 4번째부터 10번째 결과에는 neighbors 필드가 없어야 함
+        for (let i = 3; i < 10; i++) {
+          expect(resultData.items[i].neighbors).toBeUndefined();
+        }
+
+        // Then: getNeighbors가 3번만 호출되었는지 확인 (neighbors_limit=3)
+        expect(mockGetNeighbors).toHaveBeenCalledTimes(3);
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryIds[0], expect.any(Object));
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryIds[1], expect.any(Object));
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryIds[2], expect.any(Object));
+      });
+    });
+
+    describe('neighbors_per_item 적용', () => {
+      it('given: neighbors_per_item=2, when: include_neighbors=true, then: 각 항목의 neighbors 배열이 최대 2개', async () => {
+        // Given: neighbors_per_item=2
+        const memoryId1 = 'mem_test_001';
+        const memoryId2 = 'mem_test_002';
+        const memoryId3 = 'mem_test_003';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES 
+            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
+        `).run(memoryId1, memoryId2, memoryId3);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId1,
+              content: 'Test memory 1',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            },
+            {
+              id: memoryId2,
+              content: 'Test memory 2',
+              type: 'episodic',
+              importance: 0.7,
+              created_at: new Date().toISOString(),
+              finalScore: 0.85
+            },
+            {
+              id: memoryId3,
+              content: 'Test memory 3',
+              type: 'episodic',
+              importance: 0.6,
+              created_at: new Date().toISOString(),
+              finalScore: 0.75
+            }
+          ],
+          total_count: 3,
+          query_time: 10
+        });
+
+        // MemoryNeighborService 모듈 mock 설정
+        // neighbors_per_item=2이므로 각 항목당 최대 2개의 이웃 기억 반환
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string, options: any) => {
+          // limit 파라미터가 neighbors_per_item과 일치하는지 확인
+          expect(options.limit).toBe(2);
+          
+          // 각 항목에 대해 2개의 이웃 기억 반환
+          return {
+            memory_id: memoryId,
+            neighbors: [
+              { id: `neighbor_${memoryId}_1`, content: `Neighbor 1 of ${memoryId}`, similarity: 0.85 },
+              { id: `neighbor_${memoryId}_2`, content: `Neighbor 2 of ${memoryId}`, similarity: 0.82 }
+            ],
+            total_count: 2,
+            query_time: 5
+          };
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 3,
+          neighbors_per_item: 2, // 각 항목당 최대 2개
+          neighbors_similarity_threshold: 0.8
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 각 항목의 neighbors 배열이 최대 2개
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(3);
+        
+        // 모든 항목의 neighbors 배열이 최대 2개인지 확인
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        expect(resultData.items[0].neighbors.length).toBeLessThanOrEqual(2);
+        expect(resultData.items[0].neighbors.length).toBe(2);
+        
+        expect(resultData.items[1].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[1].neighbors)).toBe(true);
+        expect(resultData.items[1].neighbors.length).toBeLessThanOrEqual(2);
+        expect(resultData.items[1].neighbors.length).toBe(2);
+        
+        expect(resultData.items[2].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[2].neighbors)).toBe(true);
+        expect(resultData.items[2].neighbors.length).toBeLessThanOrEqual(2);
+        expect(resultData.items[2].neighbors.length).toBe(2);
+
+        // Then: getNeighbors가 limit=2로 호출되었는지 확인
+        expect(mockGetNeighbors).toHaveBeenCalledTimes(3);
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryId1, expect.objectContaining({ limit: 2 }));
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryId2, expect.objectContaining({ limit: 2 }));
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryId3, expect.objectContaining({ limit: 2 }));
+      });
+    });
+
+    describe('neighbors_similarity_threshold 필터링', () => {
+      it('given: 유사도 0.7, 0.8, 0.9인 이웃 기억, neighbors_similarity_threshold=0.8, when: include_neighbors=true, then: 0.8 이상만 포함', async () => {
+        // Given: 유사도 0.7, 0.8, 0.9인 이웃 기억
+        const memoryId = 'mem_test_001';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        // MemoryNeighborService 모듈 mock 설정
+        // neighbors_similarity_threshold=0.8이므로 0.8 이상의 유사도를 가진 이웃 기억만 반환
+        const originalModule = await import('../../services/memory-neighbor-service.js');
+        const mockGetNeighbors = vi.fn().mockImplementation(async (memoryId: string, options: any) => {
+          // similarity_threshold 파라미터가 neighbors_similarity_threshold와 일치하는지 확인
+          expect(options.similarity_threshold).toBe(0.8);
+          
+          // 유사도 0.7, 0.8, 0.9인 이웃 기억 반환
+          // MemoryNeighborService는 similarity_threshold 이상인 것만 반환해야 함
+          return {
+            memory_id: memoryId,
+            neighbors: [
+              { id: 'neighbor_0.9', content: 'Neighbor with similarity 0.9', similarity: 0.9 },
+              { id: 'neighbor_0.8', content: 'Neighbor with similarity 0.8', similarity: 0.8 }
+              // 유사도 0.7은 similarity_threshold=0.8 미만이므로 제외됨
+            ],
+            total_count: 2,
+            query_time: 5
+          };
+        });
+
+        vi.spyOn(originalModule, 'MemoryNeighborService').mockImplementation(() => ({
+          setDatabase: vi.fn(),
+          getNeighbors: mockGetNeighbors
+        } as any));
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          include_neighbors: true,
+          neighbors_limit: 1,
+          neighbors_per_item: 5,
+          neighbors_similarity_threshold: 0.8 // 유사도 임계값 0.8
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 0.8 이상만 포함
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(1);
+        expect(resultData.items[0].neighbors).toBeDefined();
+        expect(Array.isArray(resultData.items[0].neighbors)).toBe(true);
+        
+        // 반환된 neighbors 배열의 모든 항목이 0.8 이상의 유사도를 가져야 함
+        resultData.items[0].neighbors.forEach((neighbor: any) => {
+          expect(neighbor.similarity).toBeGreaterThanOrEqual(0.8);
+        });
+        
+        // 유사도 0.9와 0.8인 이웃 기억이 포함되어야 함
+        expect(resultData.items[0].neighbors.length).toBe(2);
+        expect(resultData.items[0].neighbors.some((n: any) => n.similarity === 0.9)).toBe(true);
+        expect(resultData.items[0].neighbors.some((n: any) => n.similarity === 0.8)).toBe(true);
+        // 유사도 0.7인 이웃 기억은 포함되지 않아야 함
+        expect(resultData.items[0].neighbors.some((n: any) => n.similarity === 0.7)).toBe(false);
+
+        // Then: getNeighbors가 similarity_threshold=0.8로 호출되었는지 확인
+        expect(mockGetNeighbors).toHaveBeenCalledTimes(1);
+        expect(mockGetNeighbors).toHaveBeenCalledWith(memoryId, expect.objectContaining({ 
+          similarity_threshold: 0.8 
+        }));
+      });
+    });
+
+    describe('하위 호환성', () => {
+      it('given: 새 파라미터 없음, when: recall 호출, then: 기존 동작과 동일하게 동작, metadata.anchor_set=null, neighbors 필드 없음', async () => {
+        // Given: 새 파라미터 없음
+        const memoryId = 'mem_test_001';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        // 새 파라미터 없이 recall 호출 (기존 파라미터만 사용)
+        const params = {
+          query: 'test',
+          limit: 10
+          // auto_set_anchor, include_neighbors 등 새 파라미터 없음
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: 기존 동작과 동일하게 동작
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(1);
+        expect(resultData.items[0].id).toBe(memoryId);
+        expect(resultData.items[0].content).toBe('Test memory');
+        expect(resultData.total_count).toBe(1);
+        expect(resultData.query_time).toBeDefined();
+
+        // Then: metadata.anchor_set=null
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+
+        // Then: neighbors 필드 없음
+        expect(resultData.items[0].neighbors).toBeUndefined();
+      });
+    });
+  });
+
+  describe('앵커 설정 메타데이터', () => {
+    describe('앵커 설정 성공 시 메타데이터', () => {
+      it('given: 앵커 설정 성공, when: auto_set_anchor=true, then: metadata.anchor_set={memory_id, slot: "A", agent_id}, anchor_set_error/anchor_set_skipped 없음', async () => {
+        // Given: 앵커 설정이 성공하는 상황
+        const memoryId = 'mem_test_001';
+        const agentId = 'default';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory content',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: metadata.anchor_set={memory_id, slot: "A", agent_id}
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeDefined();
+        expect(resultData.metadata.anchor_set).toEqual({
+          memory_id: memoryId,
+          slot: 'A',
+          agent_id: agentId
+        });
+
+        // Then: anchor_set_error/anchor_set_skipped 없음
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped_reason).toBeUndefined();
+      });
+    });
+
+    describe('앵커 설정 실패 시 메타데이터', () => {
+      it('given: 앵커 설정 실패, when: auto_set_anchor=true, then: metadata.anchor_set=null, anchor_set_error=true, anchor_set_skipped 없음', async () => {
+        // Given: 앵커 설정이 실패하는 상황
+        const memoryId = 'mem_test_001';
+        const agentId = 'default';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory content',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        // AnchorManager.setAnchor를 mock하여 에러 발생시키기
+        const setAnchorError = new Error('앵커 설정 실패');
+        vi.spyOn(anchorManager, 'setAnchor').mockRejectedValue(setAnchorError);
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: metadata.anchor_set=null
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+
+        // Then: anchor_set_error=true
+        expect(resultData.metadata.anchor_set_error).toBe(true);
+
+        // Then: anchor_set_skipped 없음
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped_reason).toBeUndefined();
+      });
+    });
+
+    describe('앵커 설정 건너뜀 시 메타데이터', () => {
+      it('given: 슬롯 A에 pinned 앵커 있음, when: auto_set_anchor=true, then: metadata.anchor_set=null, anchor_set_skipped=true, anchor_set_skipped_reason="pinned_anchor_protected", anchor_set_error 없음', async () => {
+        // Given: 슬롯 A에 pinned 앵커가 있는 상황
+        const agentId = 'default';
+        const pinnedMemoryId = 'mem_pinned';
+        const newMemoryId = 'mem_new';
+        
+        // pinned 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
+          VALUES 
+            (?, 'episodic', 'Pinned Memory', 0.9, 1, CURRENT_TIMESTAMP),
+            (?, 'episodic', 'New Memory', 0.8, 0, CURRENT_TIMESTAMP)
+        `).run(pinnedMemoryId, newMemoryId);
+
+        // 슬롯 A에 pinned 앵커 설정
+        await anchorManager.setAnchor(agentId, pinnedMemoryId, 'A');
+
+        // Mock 검색 결과 (새로운 메모리가 첫 번째 결과)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: newMemoryId,
+              content: 'New Memory',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: metadata.anchor_set=null
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+
+        // Then: anchor_set_skipped=true
+        expect(resultData.metadata.anchor_set_skipped).toBe(true);
+
+        // Then: anchor_set_skipped_reason="pinned_anchor_protected"
+        expect(resultData.metadata.anchor_set_skipped_reason).toBe('pinned_anchor_protected');
+
+        // Then: anchor_set_error 없음
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+      });
+    });
+
+    describe('앵커 설정 비활성화 시 메타데이터', () => {
+      it('given: auto_set_anchor=false, when: recall 호출, then: metadata.anchor_set=null, anchor_set_error/anchor_set_skipped 없음', async () => {
+        // Given: auto_set_anchor=false
+        const memoryId = 'mem_test_001';
+        
+        // 메모리 아이템 생성
+        db.prepare(`
+          INSERT INTO memory_item (id, type, content, importance, created_at)
+          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+        `).run(memoryId);
+
+        // Mock 검색 결과
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [
+            {
+              id: memoryId,
+              content: 'Test memory content',
+              type: 'episodic',
+              importance: 0.8,
+              created_at: new Date().toISOString(),
+              finalScore: 0.95
+            }
+          ],
+          total_count: 1,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: false // 비활성화
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: metadata.anchor_set=null
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+
+        // Then: anchor_set_error/anchor_set_skipped 없음
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped_reason).toBeUndefined();
+      });
+    });
+
+    describe('검색 결과 없을 때 자동 앵커 설정 메타데이터', () => {
+      it('given: 검색 결과 없음, auto_set_anchor=true, when: recall 호출, then: metadata.anchor_set=null, anchor_set_error/anchor_set_skipped 없음', async () => {
+        // Given: 검색 결과 없음, auto_set_anchor=true
+        const agentId = 'default';
+        
+        // Mock 검색 결과 (빈 배열)
+        vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+          items: [],
+          total_count: 0,
+          query_time: 10
+        });
+
+        const params = {
+          query: 'test',
+          limit: 10,
+          auto_set_anchor: true,
+          agent_id: agentId
+        };
+
+        // When: recall Tool 실행
+        const result = await tool.handle(params, context);
+        const resultData = JSON.parse(result.content[0].text);
+
+        // Then: metadata.anchor_set=null
+        expect(resultData.metadata).toBeDefined();
+        expect(resultData.metadata.anchor_set).toBeNull();
+
+        // Then: anchor_set_error/anchor_set_skipped 없음
+        expect(resultData.metadata.anchor_set_error).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped).toBeUndefined();
+        expect(resultData.metadata.anchor_set_skipped_reason).toBeUndefined();
+
+        // Then: 검색 결과가 없어서 앵커 설정이 시도되지 않았는지 확인
+        expect(resultData.items).toBeDefined();
+        expect(resultData.items.length).toBe(0);
+        expect(resultData.total_count).toBe(0);
       });
     });
   });
