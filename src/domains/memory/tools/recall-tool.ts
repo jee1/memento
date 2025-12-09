@@ -1271,8 +1271,8 @@ export class RecallTool extends BaseTool {
       neighborService.setDatabase(context.db!);
     } catch (error) {
       this.logError(error as Error, 'MemoryNeighborService 초기화 실패', {});
-      // 서비스 초기화 실패 시 빈 배열 반환
-      return new Array(topResults.length).fill([]);
+      // 서비스 초기화 실패 시 빈 배열 반환 (각 요소가 독립적인 배열 인스턴스)
+      return Array.from({ length: topResults.length }, () => []);
     }
 
     // 각 상위 결과에 대해 이웃 기억 조회를 병렬 처리
@@ -1312,17 +1312,39 @@ export class RecallTool extends BaseTool {
     });
 
     // 전체 요청 타임아웃 적용 (2.5초, 부분 성공 결과 반환)
+    // 각 promise의 완료 상태를 추적하여 타임아웃 시 즉시 완료된 것만 반환
+    const completedResults = new Map<number, { index: number; neighbors: NeighborMemory[] }>();
+    
+    // 각 promise에 대해 완료 시 결과를 저장
+    neighborPromises.forEach((promise, idx) => {
+      promise
+        .then(result => {
+          completedResults.set(idx, result);
+        })
+        .catch(() => {
+          // 에러는 무시하고 빈 배열로 처리
+          completedResults.set(idx, { index: idx, neighbors: [] });
+        });
+    });
+    
     let timeoutId: NodeJS.Timeout | null = null;
     const timeoutPromise = new Promise<Array<{ index: number; neighbors: NeighborMemory[] }>>((resolve) => {
       timeoutId = setTimeout(() => {
-        // 타임아웃 시 현재까지 완료된 결과만 반환
-        Promise.allSettled(neighborPromises).then(results => {
-          resolve(results.map((r, idx) => 
-            r.status === 'fulfilled' 
-              ? r.value 
-              : { index: idx, neighbors: [] } // 원래 인덱스 유지
-          ));
-        });
+        // 타임아웃 시 현재까지 완료된 결과만 즉시 반환 (Promise.allSettled를 기다리지 않음)
+        const partialResults: Array<{ index: number; neighbors: NeighborMemory[] }> = [];
+        
+        // 완료된 결과 수집
+        for (let i = 0; i < topResults.length; i++) {
+          if (completedResults.has(i)) {
+            partialResults.push(completedResults.get(i)!);
+          } else {
+            // 완료되지 않은 항목은 빈 배열로 채움
+            partialResults.push({ index: i, neighbors: [] });
+          }
+        }
+        
+        // 인덱스 순서로 정렬하여 반환
+        resolve(partialResults.sort((a, b) => a.index - b.index));
       }, 2500); // 전체 타임아웃: 2.5초
     });
 
