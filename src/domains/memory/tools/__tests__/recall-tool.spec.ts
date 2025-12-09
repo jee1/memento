@@ -2202,11 +2202,12 @@ describe('RecallTool', () => {
         const result = await tool.handle(params, context);
         const resultData = JSON.parse(result.content[0].text);
 
-        // Then: 슬롯 C의 pinned 앵커가 제거되었는지 확인
+        // Then: 슬롯 C의 pinned 앵커가 제거되고 B의 앵커가 C로 이동했는지 확인
+        // PRD: 슬롯 B/C의 pinned 앵커도 덮어쓰고 A→B→C→제거 순으로 회전
         const slotC = db.prepare(`
           SELECT memory_id FROM anchor WHERE agent_id = ? AND slot = 'C'
-        `).get(agentId);
-        expect(slotC).toBeUndefined(); // 슬롯 C의 앵커가 제거됨
+        `).get(agentId) as { memory_id: string } | undefined;
+        expect(slotC?.memory_id).toBe(memoryIdB); // 슬롯 B의 앵커가 C로 이동
 
         // Then: 경고 로그가 기록되었는지 확인
         expect(logWarningSpy).toHaveBeenCalledWith(

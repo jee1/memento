@@ -1161,7 +1161,6 @@ export class RecallTool extends BaseTool {
 
           // 슬롯 B에 앵커가 있으면 슬롯 C로 이동
           const slotCAnchor = await context.services.anchorManager.getAnchor(agentId, 'C');
-          let slotCWasPinned = false;
           
           if (slotCAnchor && typeof slotCAnchor === 'object' && 'memory_id' in slotCAnchor) {
             // 슬롯 C의 pinned 상태 확인
@@ -1176,25 +1175,18 @@ export class RecallTool extends BaseTool {
                 agent_id: agentId,
                 old_memory_id: slotCAnchor.memory_id
               });
-              slotCWasPinned = true;
             }
 
-            // 슬롯 C에 앵커가 있으면 제거
+            // 슬롯 C에 앵커가 있으면 제거 (pinned 여부와 관계없이 회전 규칙에 따라 제거)
             await context.services.anchorManager.clearAnchor(agentId, 'C');
           }
 
-          // 슬롯 C에 pinned 앵커가 있었던 경우, 슬롯 B의 앵커를 슬롯 C로 이동하지 않음
-          // (슬롯 C는 비워둠)
-          if (!slotCWasPinned) {
-            // 슬롯 B의 기존 앵커를 슬롯 C로 이동 (슬롯 B를 비우기 위해)
-            // 먼저 슬롯 B를 제거한 후 슬롯 C에 설정
-            const slotBMemoryId = slotBAnchor.memory_id;
-            await context.services.anchorManager.clearAnchor(agentId, 'B');
-            await context.services.anchorManager.setAnchor(agentId, slotBMemoryId, 'C');
-          } else {
-            // 슬롯 C에 pinned 앵커가 있었던 경우, 슬롯 B의 앵커는 제거됨
-            await context.services.anchorManager.clearAnchor(agentId, 'B');
-          }
+          // 슬롯 B의 기존 앵커를 슬롯 C로 이동 (슬롯 B를 비우기 위해)
+          // PRD: 슬롯 B/C의 pinned 앵커도 덮어쓰고 A→B→C→제거 순으로 회전
+          // 먼저 슬롯 B를 제거한 후 슬롯 C에 설정
+          const slotBMemoryId = slotBAnchor.memory_id;
+          await context.services.anchorManager.clearAnchor(agentId, 'B');
+          await context.services.anchorManager.setAnchor(agentId, slotBMemoryId, 'C');
         }
 
         // 슬롯 A의 앵커를 슬롯 B로 이동
