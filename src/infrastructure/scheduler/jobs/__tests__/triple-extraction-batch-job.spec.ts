@@ -380,7 +380,7 @@ describe('TripleExtractionBatchJob', () => {
     });
 
     it('타임아웃 발생 시 처리 중단', async () => {
-      // Given: 매우 짧은 타임아웃 설정
+      // Given: 매우 짧은 타임아웃 설정 (타임아웃이 확실히 발생하도록)
       const batchJobWithTimeout = new TripleExtractionBatchJob(
         {
           batchSize: 10,
@@ -394,12 +394,16 @@ describe('TripleExtractionBatchJob', () => {
         }
       );
 
-      // Given: 미처리 Episodic Memory 생성
-      const memoryId = generateId();
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [memoryId, 'episodic', 'Test content', 0.5, null, null]);
+      // Given: 여러 개의 미처리 Episodic Memory 생성 (타임아웃 전에 처리되지 않도록)
+      const memoryIds: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        const memoryId = generateId();
+        memoryIds.push(memoryId);
+        DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [memoryId, 'episodic', `Test content ${i}`, 0.5, null, null]);
+      }
 
       // When: 배치 작업 실행
       const result = await batchJobWithTimeout.execute(db);
@@ -410,7 +414,7 @@ describe('TripleExtractionBatchJob', () => {
       expect(result.warnings).toBeDefined();
       // 타임아웃이 발생했는지 확인 (warnings 또는 timeoutOccurred 플래그)
       const hasTimeoutWarning = result.warnings && result.warnings.length > 0 && result.warnings.some((w: string) => w.includes('timeout'));
-      const hasTimeoutFlag = (result as any).timeoutOccurred === true;
+      const hasTimeoutFlag = result.timeoutOccurred === true;
       expect(hasTimeoutWarning || hasTimeoutFlag).toBe(true);
     });
 
