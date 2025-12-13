@@ -233,9 +233,13 @@ export class SemanticMemoryUpdateService {
         // 관계 방향 검증은 createEpisodicEdge 내부에서 수행되지만,
         // 방향 검증 실패는 상위로 전파되어야 함
         try {
+          const semanticMemoryId = duplicate?.id || result.semanticMemoryIds[result.semanticMemoryIds.length - 1];
+          if (!semanticMemoryId) {
+            throw new Error('Semantic memory ID is required for creating episodic edge');
+          }
           await this.createEpisodicEdge(
             options.episodicMemoryId,
-            duplicate?.id || result.semanticMemoryIds[result.semanticMemoryIds.length - 1],
+            semanticMemoryId,
             triple,
             extractionResult.extractionInfo,
             confidence
@@ -617,9 +621,11 @@ export class SemanticMemoryUpdateService {
     let normB = 0;
 
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      const aVal = a[i] ?? 0;
+      const bVal = b[i] ?? 0;
+      dotProduct += aVal * bVal;
+      normA += aVal * aVal;
+      normB += bVal * bVal;
     }
 
     const denominator = Math.sqrt(normA) * Math.sqrt(normB);

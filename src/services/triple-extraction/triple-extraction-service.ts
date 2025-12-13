@@ -21,7 +21,6 @@ import { EntityLinker } from './entity-linker.js';
 import { tripleExtractionLogger } from '../../infrastructure/logging/triple-extraction-logger.js';
 import { TripleCacheService } from '../../shared/utils/triple-cache.js';
 import { TripleExtractionStatisticsService } from './triple-extraction-statistics.js';
-import { TripleCacheService } from '../../shared/utils/triple-cache.js';
 import type {
   Triple,
   TripleExtractionResult,

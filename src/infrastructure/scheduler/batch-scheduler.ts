@@ -101,6 +101,7 @@ export class BatchScheduler {
   private healthChecker: HealthChecker;
   private fileLogger: FileLogger;
   private relationValidatorExecutor: RelationValidatorExecutor;
+  private tripleExtractionBatchJob: TripleExtractionBatchJob | null = null;
 
   constructor(
     config?: Partial<BatchJobConfig>,

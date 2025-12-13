@@ -95,7 +95,7 @@ const DEFAULT_PREDICATE_DICTIONARY: PredicateDictionary = {
  */
 export class PredicateCanonicalizer {
   private dictionary: PredicateDictionary;
-  private reverseIndex: Map<string, string>; // 동의어 -> 표준 predicate 매핑
+  private reverseIndex: Map<string, string> = new Map(); // 동의어 -> 표준 predicate 매핑
 
   constructor(customDictionary?: PredicateDictionary) {
     this.dictionary = customDictionary || DEFAULT_PREDICATE_DICTIONARY;

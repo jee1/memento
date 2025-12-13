@@ -64,6 +64,12 @@ export interface TripleExtractionBatchJobConfig {
    * 기본값: 100 (0.1초)
    */
   chunkDelayMs?: number;
+  
+  /**
+   * 병렬성 제어 (동시 실행 배치 수)
+   * 기본값: 1 (싱글톤 배치 작업)
+   */
+  parallelism?: number;
 }
 
 /**
@@ -203,6 +209,10 @@ export class TripleExtractionBatchJob {
         }
         
         const chunk = chunks[chunkIndex];
+        if (!chunk) {
+          // 청크가 없으면 건너뛰기
+          continue;
+        }
         
         try {
           // 청크 단위로 처리 (작은 트랜잭션으로 Lock 충돌 방지)
@@ -228,7 +238,7 @@ export class TripleExtractionBatchJob {
           logger.debug('Chunk processed', {
             chunkIndex: chunkIndex + 1,
             totalChunks: chunks.length,
-            chunkSize: chunk.length,
+            chunkSize: chunk?.length ?? 0,
             processed: chunkResult.processed,
             success: chunkResult.success,
             failed: chunkResult.failed,
@@ -253,8 +263,8 @@ export class TripleExtractionBatchJob {
           });
           
           // 청크 내 모든 메모리를 실패로 처리
-          result.details.failed += chunk.length;
-          result.details.processed += chunk.length;
+          result.details.failed += chunk?.length ?? 0;
+          result.details.processed += chunk?.length ?? 0;
         }
       }
 
@@ -679,8 +689,8 @@ export class TripleExtractionBatchJob {
 
       // 현재 retry_count에 해당하는 백오프 간격 확인
       // retry_count가 0이면 첫 번째 재시도 (1일), 1이면 두 번째 재시도 (2일), 2이면 세 번째 재시도 (4일)
-      const backoffDays = this.config.retryBackoffDays[retryCount] || 
-                         this.config.retryBackoffDays[this.config.retryBackoffDays.length - 1];
+      const backoffDays = this.config.retryBackoffDays[retryCount] ?? 
+                         this.config.retryBackoffDays[this.config.retryBackoffDays.length - 1] ?? 1;
 
       // 백오프 간격이 지났으면 재시도 가능
       return daysSinceLastAttempt >= backoffDays;
