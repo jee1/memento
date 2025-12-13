@@ -1,76 +1,92 @@
-# fix: triple-extraction-batch-job 타임아웃 플래그 추가
+# fix: npm 배포 워크플로우에 토큰 검증 단계 추가
 
 ## 📋 개요
 
-`TripleExtractionBatchJob`의 타임아웃 발생 시 `timeoutOccurred` 플래그가 올바르게 설정되지 않아 테스트가 실패하는 문제를 수정했습니다.
+npm 배포 시 발생하는 "Access token expired or revoked" 에러를 사전에 감지하고 명확한 안내를 제공하기 위해 워크플로우에 토큰 검증 단계를 추가했습니다.
 
 ## 🐛 문제
 
-- `TripleExtractionBatchResult` 인터페이스에 `timeoutOccurred` 필드가 없음
-- 타임아웃 발생 시 `result` 객체에 `timeoutOccurred` 플래그가 설정되지 않음
-- 테스트에서 `(result as any).timeoutOccurred`로 접근했지만 항상 `undefined`였음
-- "타임아웃 발생 시 처리 중단" 테스트가 실패
+- npm publish 시 "Access token expired or revoked" 에러 발생
+- 토큰 문제를 사전에 감지하지 못하여 배포가 실패한 후에야 문제를 알 수 있음
+- 에러 메시지가 불명확하여 해결 방법을 파악하기 어려움
 
 ## ✅ 해결
 
-### 1. 인터페이스 수정
-- `TripleExtractionBatchResult` 인터페이스에 `timeoutOccurred?: boolean` 필드 추가
+### 1. npm 토큰 검증 단계 추가
+- `npm whoami` 명령으로 토큰 유효성 사전 검증
+- 토큰이 유효하지 않은 경우 배포 전에 실패하여 시간 절약
 
-### 2. 타임아웃 처리 로직 수정
-- 청크 루프 시작 전 타임아웃 체크 시 `result.timeoutOccurred = true` 설정
-- `processChunk` 내부 타임아웃 체크 시 `overallResult.timeoutOccurred = true` 설정
+### 2. 명확한 에러 메시지 제공
+- NPM_TOKEN이 설정되지 않은 경우 명확한 에러 메시지
+- 토큰이 유효하지 않은 경우 해결 방법 안내 링크 제공
 
-### 3. 테스트 개선
-- 여러 메모리 생성하여 타임아웃 발생 확률 증가
-- `(result as any).timeoutOccurred` 대신 타입 안전하게 `result.timeoutOccurred` 접근
+### 3. 조기 실패 메커니즘
+- 토큰 문제를 publish 전에 감지하여 불필요한 빌드 시간 절약
 
 ## 📊 변경 통계
 
-- **파일 변경**: 2개 파일
-- **추가된 코드**: +7줄
-- **수정된 코드**: -8줄, +20줄
+- **파일 변경**: 1개 파일
+- **추가된 코드**: +18줄
 
 ## 🔄 주요 변경사항
 
-### `triple-extraction-batch-job.ts`
-```typescript
-export interface TripleExtractionBatchResult extends BatchJobResult {
-  // ... 기존 필드들
-  timeoutOccurred?: boolean; // 추가
-}
+### `.github/workflows/release.yml`
+
+#### 추가된 단계: Verify npm token
+```yaml
+- name: Verify npm token
+  run: |
+    echo "Verifying npm token..."
+    if ! npm whoami --registry=https://registry.npmjs.org/ 2>/dev/null; then
+      echo "❌ Error: npm token is invalid or expired"
+      echo "Please update NPM_TOKEN in GitHub Secrets"
+      echo "Get a new token from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens"
+      exit 1
+    fi
+    echo "✅ npm token is valid"
 ```
 
-- 타임아웃 체크 시 `result.timeoutOccurred = true` 설정
-- `processChunk` 내부 타임아웃 체크에서도 플래그 설정
-
-### `triple-extraction-batch-job.spec.ts`
-- 여러 메모리 생성으로 타임아웃 발생 확률 증가
-- 타입 안전한 접근 방식으로 변경
+#### 개선된 단계: Configure npm registry
+- NPM_TOKEN이 설정되지 않은 경우 조기 실패
 
 ## 🧪 테스트 결과
 
-- 타입 체크 통과 ✅
-- 타임아웃 발생 시 `timeoutOccurred` 플래그가 올바르게 설정됨
-- 테스트에서 타임아웃을 올바르게 감지 가능
+- 워크플로우 문법 검증 통과 ✅
+- 토큰 검증 로직 정상 작동 ✅
 
 ## 🔒 하위 호환성
 
-- ✅ `timeoutOccurred` 필드는 선택적(optional)이므로 기존 코드에 영향 없음
-- ✅ 기존 동작 유지
+- ✅ 기존 워크플로우 동작 유지
+- ✅ 토큰이 유효한 경우 기존과 동일하게 동작
+- ✅ 추가 검증 단계만 추가되어 성능 영향 최소화
 
-## 📝 관련 이슈
+## 📝 사용자 조치 필요
 
-- CI/CD 파이프라인에서 "타임아웃 발생 시 처리 중단" 테스트 실패
+npm 배포가 실패하는 경우:
+
+1. **npm에서 새 토큰 생성**:
+   - https://www.npmjs.com/settings/YOUR_USERNAME/tokens 접속
+   - "Generate New Token" 클릭
+   - "Automation" 타입 선택 (읽기/쓰기 권한)
+   - 토큰 복사
+
+2. **GitHub Secrets 업데이트**:
+   - Repository → Settings → Secrets and variables → Actions
+   - `NPM_TOKEN` 시크릿 수정
+   - 새 토큰 값으로 업데이트
+
+3. **워크플로우 재실행**:
+   - 개선된 워크플로우가 토큰을 검증하고 명확한 에러 메시지를 제공합니다
 
 ## ✅ 체크리스트
 
 - [x] 코드 리뷰 준비 완료
-- [x] 타입 체크 통과
+- [x] 워크플로우 문법 검증 통과
 - [x] 하위 호환성 보장
-- [x] 테스트 개선
+- [x] 명확한 에러 메시지 제공
 
 ## 🔍 리뷰 포인트
 
-1. **타임아웃 플래그 설정**: 타임아웃 발생 시 모든 경로에서 플래그가 올바르게 설정되는지 확인
-2. **타입 안전성**: `(result as any)` 대신 타입 안전한 접근 방식 사용
-3. **테스트 커버리지**: 타임아웃 시나리오가 충분히 테스트되는지 확인
+1. **토큰 검증 로직**: `npm whoami`를 사용한 토큰 검증이 적절한지 확인
+2. **에러 메시지**: 사용자가 쉽게 이해하고 조치할 수 있는 메시지인지 확인
+3. **성능 영향**: 추가 검증 단계로 인한 워크플로우 실행 시간 증가가 허용 범위 내인지 확인
