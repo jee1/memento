@@ -92,12 +92,30 @@ jobs:
       
       - name: Configure npm registry
         run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "❌ Error: NPM_TOKEN secret is not set"
+            exit 1
+          fi
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
           echo "registry=https://registry.npmjs.org/" >> .npmrc
           echo "always-auth=true" >> .npmrc
           cat .npmrc
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Verify npm token
+        run: |
+          echo "Verifying npm token..."
+          if ! npm whoami --registry=https://registry.npmjs.org/ 2>/dev/null; then
+            echo "❌ Error: npm token is invalid or expired"
+            echo "Please update NPM_TOKEN in GitHub Secrets"
+            echo "Get a new token from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens"
+            exit 1
+          fi
+          echo "✅ npm token is valid"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         
       - name: Publish to npm
         run: |
