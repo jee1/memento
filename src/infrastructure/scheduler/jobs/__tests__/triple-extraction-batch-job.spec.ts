@@ -394,7 +394,6 @@ describe('TripleExtractionBatchJob', () => {
         }
       );
 
-<<<<<<< HEAD
       // Given: 여러 개의 미처리 Episodic Memory 생성 (타임아웃 전에 처리되지 않도록)
       const memoryIds: string[] = [];
       for (let i = 0; i < 10; i++) {
