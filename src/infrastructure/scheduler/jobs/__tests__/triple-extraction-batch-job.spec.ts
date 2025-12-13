@@ -923,7 +923,7 @@ describe('TripleExtractionBatchJob', () => {
       
       // 모든 배치 크기에서 성공적으로 처리되었는지 확인
       expect(results.every(r => r.processed > 0)).toBe(true);
-    });
+    }, 180000); // 타임아웃 180초 (3가지 배치 크기로 각각 20개 메모리를 순차 처리하므로 충분한 시간 필요)
   });
 });
 
