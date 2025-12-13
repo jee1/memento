@@ -17,6 +17,7 @@ import { SearchLocalTool } from '../domains/anchor/tools/search-local-tool.js';
 import { ClearAnchorTool } from '../domains/anchor/tools/clear-anchor-tool.js';
 import { RestoreAnchorsTool } from '../domains/anchor/tools/restore-anchors-tool.js';
 import { MigrateEmbeddingsTool } from './migrate-embeddings-tool.js';
+import { ConvertEpisodicToSemanticTool } from '../domains/memory/tools/convert-episodic-to-semantic-tool.js';
 // 관계 엔진 도구들은 HTTP API로만 제공 (MCP에서 제거)
 // 관계 추출은 remember 도구에서 자동으로 수행됨
 
@@ -39,6 +40,7 @@ const coreTools = [
   new ClearAnchorTool(),
   new RestoreAnchorsTool(),
   new MigrateEmbeddingsTool(),
+  new ConvertEpisodicToSemanticTool(), // AriGraph Pipeline 수동 변환 도구
   // 관계 엔진 도구들은 제거됨 (HTTP API로만 제공)
   // - extract_relations: remember에서 자동 실행
   // - get_relations, add_relation, remove_relation, visualize_relations: HTTP API로 제공
@@ -96,6 +98,7 @@ export {
   ClearAnchorTool,
   RestoreAnchorsTool,
   MigrateEmbeddingsTool,
+  ConvertEpisodicToSemanticTool,
   // 관계 엔진 도구들은 HTTP API로만 제공되므로 export하지 않음
 };
 

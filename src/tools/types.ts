@@ -101,5 +101,7 @@ export const CommonSchemas = {
   SkillName: z.string().optional(),
   TriggerConditions: z.string().optional(), // JSON 객체 문자열
   UpdateMode: z.enum(['replace', 'incremental', 'versioned']).optional(),
+  // AriGraph Pipeline 필드
+  EnableTripleExtraction: z.boolean().default(true).optional(), // Triple 추출 활성화 여부 (기본값: true)
 };
 

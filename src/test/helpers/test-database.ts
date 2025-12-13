@@ -110,6 +110,101 @@ export async function setupTestDatabase(): Promise<Database.Database> {
     CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
   `);
   
+  // 5. AriGraph Pipeline 스키마 확장 (008-arigraph-schema-expansion.sql)
+  // memory_item 테이블에 subject, predicate, object 컬럼 추가
+  try {
+    // 컬럼이 이미 존재하는지 확인
+    const columns = DatabaseUtils.all(db, `
+      SELECT name FROM pragma_table_info('memory_item')
+    `) as Array<{ name: string }>;
+    
+    const columnNames = columns.map(c => c.name);
+    
+    if (!columnNames.includes('subject')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN subject TEXT');
+    }
+    if (!columnNames.includes('predicate')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN predicate TEXT');
+    }
+    if (!columnNames.includes('object')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN object TEXT');
+    }
+    if (!columnNames.includes('triple_extracted')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted BOOLEAN DEFAULT NULL');
+    }
+    if (!columnNames.includes('triple_extracted_status')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted_status TEXT DEFAULT NULL');
+    }
+    if (!columnNames.includes('triple_extraction_metadata')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN triple_extraction_metadata TEXT DEFAULT NULL');
+    }
+    // Consolidation Score 필드 추가 (recall_count 등)
+    if (!columnNames.includes('recall_count')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!columnNames.includes('last_accessed_at')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+    }
+    if (!columnNames.includes('consolidation_score')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+    }
+    if (!columnNames.includes('g_value')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
+    }
+    
+    // 인덱스 생성
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted ON memory_item(triple_extracted);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_triple_status ON memory_item(triple_extracted_status);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
+    `);
+  } catch (error) {
+    // 컬럼 추가 실패는 무시 (이미 존재할 수 있음)
+  }
+  
+  // memory_relation 테이블 생성 (AriGraph Pipeline용)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_relation (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      relation_type TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 0.7 CHECK (confidence >= 0.0 AND confidence <= 1.0),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      metadata TEXT,
+      FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      UNIQUE(source_id, target_id, relation_type)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_memory_relation_source ON memory_relation(source_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_relation_target ON memory_relation(target_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_relation_type ON memory_relation(relation_type);
+  `);
+  
+  // relation_type_registry 테이블 생성 (AriGraph Pipeline용)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS relation_type_registry (
+      type_name TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      description TEXT,
+      applicable_types TEXT,
+      default_confidence REAL DEFAULT 0.7,
+      search_boost REAL DEFAULT 1.0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  
+  // extracted_from, supported_by 관계 타입 등록
+  db.exec(`
+    INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+    VALUES 
+      ('extracted_from', 'Structural', '추출 관계: Semantic Memory가 Episodic Memory에서 추출됨', '["episodic", "semantic"]', 0.7, 1.1),
+      ('supported_by', 'Structural', '근거 관계: Semantic Memory가 Episodic Memory에 의해 근거를 가짐', '["episodic", "semantic"]', 0.7, 1.1);
+  `);
+  
   return db;
 }
 
