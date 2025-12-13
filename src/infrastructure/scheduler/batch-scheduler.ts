@@ -16,6 +16,8 @@ import { RetryManager } from './retry-manager.js';
 import { HealthChecker } from './health-checker.js';
 import { FileLogger } from './file-logger.js';
 import { RelationValidatorExecutor } from './relation-validator-executor.js';
+import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
+import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -28,6 +30,11 @@ export interface BatchJobConfig {
   relationValidationInterval: number;            // 관계 추출 품질 검증 간격 (기본: 7일)
   relationValidationDayOfWeek: number;           // 주간 검증 실행 요일 (0=일요일, 기본: 0)
   relationValidationHour: number;                // 주간 검증 실행 시간 (0-23, 기본: 2시)
+  logRotationInterval: number;                   // 로그 로테이션 간격 (기본: 24시간)
+  tripleExtractionInterval: number;              // Triple 추출 배치 작업 간격 (기본: 1시간)
+  tripleExtractionHour?: number;                 // Triple 추출 배치 작업 실행 시간 (0-23, 선택적, 지정 시 해당 시간에만 실행)
+  tripleExtractionBatchSize: number;             // Triple 추출 배치 크기 (기본: 10)
+  tripleExtractionTimeout: number;               // Triple 추출 배치 작업 타임아웃 (밀리초, 기본: 30초)
   
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
@@ -94,6 +101,7 @@ export class BatchScheduler {
   private healthChecker: HealthChecker;
   private fileLogger: FileLogger;
   private relationValidatorExecutor: RelationValidatorExecutor;
+  private tripleExtractionBatchJob: TripleExtractionBatchJob | null = null;
 
   constructor(
     config?: Partial<BatchJobConfig>,
@@ -115,6 +123,11 @@ export class BatchScheduler {
       relationValidationInterval: 7 * 24 * 60 * 60 * 1000, // 7일
       relationValidationDayOfWeek: 0,     // 일요일
       relationValidationHour: 2,          // 새벽 2시
+      logRotationInterval: 24 * 60 * 60 * 1000, // 24시간 (매일)
+      tripleExtractionInterval: 60 * 60 * 1000, // 1시간
+      tripleExtractionHour: undefined,   // 시간 지정 안 함 (간격 기반 실행)
+      tripleExtractionBatchSize: 10,     // 배치 크기 10개
+      tripleExtractionTimeout: 30 * 1000, // 30초
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -218,6 +231,17 @@ export class BatchScheduler {
     // 주간 관계 추출 품질 검증 작업 스케줄링
     this.scheduleWeeklyRelationValidation();
 
+    // 로그 로테이션 작업 스케줄링
+    this.scheduleJob(
+      'log_rotation',
+      this.config.logRotationInterval,
+      async () => { await this.runLogRotation(); },
+      5
+    );
+
+    // Triple 추출 배치 작업 스케줄링 (PRD 6.1)
+    this.scheduleTripleExtractionBatch();
+
     // 작업 큐 처리 시작
     this.startJobProcessor();
 
@@ -288,6 +312,19 @@ export class BatchScheduler {
     }
     if (this.config.jobTimeout < 1000) {
       throw new Error('jobTimeout must be at least 1 second');
+    }
+    if (this.config.tripleExtractionInterval < 60000) {
+      throw new Error('tripleExtractionInterval must be at least 1 minute');
+    }
+    if (this.config.tripleExtractionHour !== undefined && 
+        (this.config.tripleExtractionHour < 0 || this.config.tripleExtractionHour > 23)) {
+      throw new Error('tripleExtractionHour must be between 0 and 23');
+    }
+    if (this.config.tripleExtractionBatchSize < 1) {
+      throw new Error('tripleExtractionBatchSize must be at least 1');
+    }
+    if (this.config.tripleExtractionTimeout < 1000) {
+      throw new Error('tripleExtractionTimeout must be at least 1 second');
     }
     // weeklyRelationValidationTimeout 검증 (설정된 경우에만)
     if (this.config.weeklyRelationValidationTimeout !== undefined) {
@@ -412,9 +449,28 @@ export class BatchScheduler {
   /**
    * 큐에 작업 추가 (중복 방지 포함)
    * 동일 이름의 잡이 이미 큐에 있거나 실행 중이면 추가하지 않음
+   * 
+   * PRD 6.2: 기존 배치 작업과 충돌 방지
+   * - 중복 방지: 동일 이름의 작업이 이미 큐에 있거나 실행 중이면 추가하지 않음
+   * - Triple 추출 배치 작업도 이 메커니즘을 통해 중복 실행 방지
+   * - 우선순위 기반 큐 관리로 중요한 작업 우선 처리
    */
   private addJobToQueue(name: string, job: () => Promise<void>, priority: number, retryCount: number = 0): boolean {
     return this.jobQueue.add(name, job, priority, retryCount);
+  }
+
+  /**
+   * 외부에서 작업을 큐에 추가하는 public 메서드
+   * AriGraph Pipeline 등 외부 컴포넌트에서 사용
+   * 
+   * @param name 작업 이름 (고유 식별자)
+   * @param job 실행할 작업 함수
+   * @param priority 우선순위 (낮을수록 높은 우선순위, 기본값: 10)
+   * @param retryCount 재시도 횟수 (기본값: 0)
+   * @returns 추가 성공 여부
+   */
+  public addJob(name: string, job: () => Promise<void>, priority: number = 10, retryCount: number = 0): boolean {
+    return this.addJobToQueue(name, job, priority, retryCount);
   }
 
   /**
@@ -440,9 +496,16 @@ export class BatchScheduler {
   /**
    * 작업 큐 처리기 시작
    * 재시도 큐에서도 동일한 래퍼(타임아웃+상태 관리)를 사용하도록 수정
+   * 
+   * PRD 6.2: 기존 배치 작업과 충돌 방지
+   * - maxConcurrentJobs 설정을 통해 동시 실행 작업 수 제한
+   * - Triple 추출 배치 작업도 이 제한에 포함되어 다른 배치 작업과 충돌 방지
+   * - 우선순위 기반 실행으로 중요한 작업 우선 처리
    */
   private startJobProcessor(): void {
     const processQueue = async () => {
+      // PRD 6.2: maxConcurrentJobs 제한으로 충돌 방지
+      // Triple 추출 배치 작업도 이 제한에 포함되어 다른 배치 작업과 동시 실행 방지
       if (this.jobQueue.isEmpty || this.jobQueue.runningCount >= this.config.maxConcurrentJobs) {
         return;
       }
@@ -1196,6 +1259,206 @@ export class BatchScheduler {
       
     } catch (error) {
       this.log('Scheduler health check failed', { error: error instanceof Error ? error.message : String(error) }, 'error');
+    }
+  }
+
+  /**
+   * Triple 추출 배치 작업 실행
+   * 
+   * PRD 6.1: 주기적 배치 실행
+   * - 대상: triple_extracted=false 또는 null인 Episodic Memory
+   * - 재시도 정책 적용 (최대 시도 횟수 확인)
+   * - abandoned 상태는 제외
+   */
+  private async runTripleExtractionBatch(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'triple_extraction_batch',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      if (!this.db) {
+        throw new Error('Database not initialized');
+      }
+
+      // TripleExtractionBatchJob 초기화 (아직 초기화되지 않은 경우)
+      if (!this.tripleExtractionBatchJob) {
+        this.tripleExtractionBatchJob = new TripleExtractionBatchJob({
+          batchSize: this.config.tripleExtractionBatchSize,
+          timeout: this.config.tripleExtractionTimeout,
+          chunkSize: 5, // SQLite WAL 환경 고려
+          chunkDelayMs: 100 // 청크 사이 지연
+        });
+      }
+
+      // 배치 작업 실행
+      const batchResult = await this.tripleExtractionBatchJob.execute(this.db);
+
+      // 결과 반영
+      result.success = batchResult.success;
+      result.processed = batchResult.processed;
+      result.errors = batchResult.errors;
+      result.warnings = batchResult.warnings;
+      result.details = batchResult.details;
+
+      // 실행 기록 업데이트
+      this.lastExecution.set('triple_extraction_batch', new Date());
+      this.totalExecutions.set(
+        'triple_extraction_batch',
+        (this.totalExecutions.get('triple_extraction_batch') || 0) + 1
+      );
+
+      this.log('Triple extraction batch job completed', {
+        processed: batchResult.details.processed,
+        success: batchResult.details.success,
+        failed: batchResult.details.failed,
+        semanticMemoriesCreated: batchResult.details.semanticMemoriesCreated,
+        semanticMemoriesUpdated: batchResult.details.semanticMemoriesUpdated
+      });
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : String(error));
+      this.log('Triple extraction batch job failed:', error, 'error');
+    } finally {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - result.startTime.getTime();
+    }
+
+    return result;
+  }
+
+  /**
+   * Triple 추출 배치 작업 스케줄링
+   * 
+   * PRD 6.1: 주기적 배치 실행
+   * - 주기: 매일 새벽 2시 (설정 가능, tripleExtractionInterval, tripleExtractionHour 설정)
+   * - tripleExtractionHour가 지정된 경우 해당 시간에만 실행
+   * - tripleExtractionHour가 지정되지 않은 경우 interval마다 실행
+   * 
+   * PRD 6.2: 기존 배치 작업과 충돌 방지
+   * - BatchScheduler의 maxConcurrentJobs 설정 고려
+   * - Triple 추출 배치 작업은 다른 배치 작업과 동시 실행되지 않도록 스케줄링
+   * - Triple Extraction Job은 독립적인 작업 큐로 관리
+   * - 우선순위 6 설정 (로그 로테이션 다음, 다른 중요 작업보다 낮은 우선순위)
+   * - JobQueue를 통해 실행하여 maxConcurrentJobs 제한 및 중복 방지 적용
+   */
+  private scheduleTripleExtractionBatch(): void {
+    if (this.config.tripleExtractionHour !== undefined) {
+      // 특정 시간에만 실행 (예: 매일 새벽 2시)
+      // PRD 6.1: 주기: 매일 새벽 2시 (설정 가능)
+      // scheduleConsolidationScoreFullSweep()와 동일한 패턴 사용
+      const checkAndRun = () => {
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // 지정된 시간에 실행
+        if (currentHour === this.config.tripleExtractionHour) {
+          // 이미 오늘 실행했는지 확인 (lastExecution 체크)
+          const lastExecution = this.lastExecution.get('triple_extraction_batch');
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          if (!lastExecution || lastExecution < today) {
+            // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
+            this.addJobToQueue(
+              'triple_extraction_batch',
+              async () => { await this.runTripleExtractionBatch(); },
+              6, // 우선순위 6 (로그 로테이션 다음)
+              0
+            );
+          }
+        }
+      };
+
+      // 매 시간마다 체크 (config 기반 간격 사용)
+      const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
+      const intervalId = setInterval(checkAndRun, checkInterval);
+      
+      // intervals Map에 저장하여 stop()에서 정리 가능하도록 함
+      this.intervals.set('triple_extraction_batch', intervalId);
+      
+      // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
+      checkAndRun();
+    } else {
+      // interval마다 실행 (기본: 1시간마다)
+      // PRD 6.1: 주기: 매일 새벽 2시 (설정 가능, tripleExtractionInterval)
+      // PRD 6.2: 기존 배치 작업과 충돌 방지
+      // scheduleJob()은 내부적으로 addJobToQueue()를 사용하여 maxConcurrentJobs 제한 및 중복 방지 적용
+      // 우선순위 6 설정: 로그 로테이션(5) 다음, 다른 중요 작업보다 낮은 우선순위
+      this.scheduleJob(
+        'triple_extraction_batch',
+        this.config.tripleExtractionInterval,
+        async () => { await this.runTripleExtractionBatch(); },
+        6 // 우선순위 6 (로그 로테이션 다음, 다른 중요 작업보다 낮은 우선순위)
+      );
+    }
+  }
+
+  /**
+   * 로그 로테이션 실행
+   * 30일 이상 된 Triple 추출 로그 파일을 삭제합니다.
+   */
+  private async runLogRotation(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    let deletedCount = 0;
+
+    try {
+      this.log('Starting log rotation...', { jobType: 'log_rotation' });
+      
+      // Triple 추출 로그 파일 정리 (30일 이상 된 파일 삭제)
+      deletedCount = await tripleExtractionLogger.deleteOldLogs(30);
+      
+      this.log('Log rotation completed', {
+        jobType: 'log_rotation',
+        deletedFiles: deletedCount
+      });
+
+      if (deletedCount > 0) {
+        this.log(`Deleted ${deletedCount} old log file(s)`, {
+          jobType: 'log_rotation',
+          retentionDays: 30
+        });
+      }
+
+      const endTime = new Date();
+      return {
+        jobType: 'log_rotation',
+        startTime,
+        endTime,
+        duration: endTime.getTime() - startTime.getTime(),
+        success: true,
+        processed: deletedCount,
+        errors,
+        warnings
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      errors.push(errorMessage);
+      
+      this.log('Log rotation failed', {
+        jobType: 'log_rotation',
+        error: errorMessage
+      }, 'error');
+
+      const endTime = new Date();
+      return {
+        jobType: 'log_rotation',
+        startTime,
+        endTime,
+        duration: endTime.getTime() - startTime.getTime(),
+        success: false,
+        processed: deletedCount,
+        errors,
+        warnings
+      };
     }
   }
 

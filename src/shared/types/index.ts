@@ -77,6 +77,20 @@ export type {
   RelationTypeRegistry
 } from './relation-graph.js';
 
+// Triple 추출 타입 재export
+export type {
+  Triple,
+  TripleExtractionFailureReason,
+  ExtractionSteps,
+  ExtractionInfo,
+  TripleExtractionResult,
+  TripleExtractionOptions,
+  PredicateCanonicalizationResult,
+  EntityLinkingResult,
+  TripleValidationResult,
+  TripleExtractionStats
+} from './triple-extraction.js';
+
 export {
   MEMORY_TYPE_RELATION_MAP,
   RELATION_TYPE_CATEGORY_MAP,

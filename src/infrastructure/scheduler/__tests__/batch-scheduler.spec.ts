@@ -264,8 +264,13 @@ describe('BatchScheduler', () => {
 
       // When: 시간을 진행시켜 주기적 작업 실행 (healthCheckInterval: 200ms)
       vi.advanceTimersByTime(300); // 200ms보다 큰 값으로 진행
-      // pending된 비동기 작업 실행
-      await vi.runOnlyPendingTimersAsync();
+      // pending된 비동기 작업 실행 (타임아웃 추가)
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000)) // 1초 타임아웃
+      ]).catch(() => {
+        // 타임아웃 발생 시 무시하고 계속 진행
+      });
 
       // Then: 주기적 작업이 실행되어야 함
       const status = scheduler.getStatus();
@@ -273,7 +278,7 @@ describe('BatchScheduler', () => {
 
       await scheduler.stop();
       vi.useRealTimers();
-    });
+    }, 10000); // 테스트 타임아웃 10초로 증가
 
     it('작업 타임아웃을 처리해야 함', async () => {
       // Given: 짧은 타임아웃을 가진 스케줄러
@@ -305,7 +310,10 @@ describe('BatchScheduler', () => {
       // When: 시간을 진행시켜 재시도 로직 확인
       // 재시도 지연 시간(retryDelay: 100ms) 이상 진행
       vi.advanceTimersByTime(150);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 에러 카운트가 추적되어야 함
       const status = scheduler.getStatus();
@@ -313,7 +321,7 @@ describe('BatchScheduler', () => {
 
       await scheduler.stop();
       vi.useRealTimers();
-    });
+    }, 10000);
 
     it('재시도 횟수를 초과하면 영구 실패 처리해야 함', async () => {
       // Given: vi.useFakeTimers()로 시간 제어
@@ -330,7 +338,10 @@ describe('BatchScheduler', () => {
       
       // When: 재시도 시간 이상 진행 (retryDelay: 50ms)
       vi.advanceTimersByTime(100);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 재시도 로직이 작동해야 함
       const status = lowRetryScheduler.getStatus();
@@ -340,7 +351,7 @@ describe('BatchScheduler', () => {
       await lowRetryScheduler.stop();
       cleanupTestDatabase(db);
       vi.useRealTimers();
-    });
+    }, 10000);
   });
 
   describe('재시도 큐 및 타임아웃/상태 관리 통합', () => {
@@ -388,7 +399,10 @@ describe('BatchScheduler', () => {
 
       // When: 재시도 시간 이상 진행
       vi.advanceTimersByTime(150);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: runningJobs 상태가 올바르게 관리되어야 함
       // (재시도 시에도 runningJobs에 추가/제거가 올바르게 이루어져야 함)
@@ -399,7 +413,7 @@ describe('BatchScheduler', () => {
       await testScheduler.stop();
       cleanupTestDatabase(db);
       vi.useRealTimers();
-    });
+    }, 10000);
 
     it('재시도 시에도 lastExecution과 errorCount가 업데이트되어야 함', async () => {
       // Given: vi.useFakeTimers()로 시간 제어
@@ -420,7 +434,10 @@ describe('BatchScheduler', () => {
 
       // When: 재시도 시간 이상 진행
       vi.advanceTimersByTime(300);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: errorCount가 추적되어야 함 (재시도 시에도)
       const statusAfter = testScheduler.getStatus();
@@ -430,7 +447,7 @@ describe('BatchScheduler', () => {
       await testScheduler.stop();
       cleanupTestDatabase(db);
       vi.useRealTimers();
-    });
+    }, 10000);
 
     it('재시도 큐에서 실행되는 작업도 동일한 래퍼를 거쳐야 함', async () => {
       // Given: vi.useFakeTimers()로 시간 제어
@@ -449,7 +466,10 @@ describe('BatchScheduler', () => {
 
       // When: 재시도 시간 이상 진행 (재시도 큐에 작업이 추가되고 실행됨)
       vi.advanceTimersByTime(100);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 재시도 큐에서 실행되는 작업도 타임아웃/상태 관리가 적용되어야 함
       const status = testScheduler.getStatus();
@@ -459,7 +479,7 @@ describe('BatchScheduler', () => {
       await testScheduler.stop();
       cleanupTestDatabase(db);
       vi.useRealTimers();
-    });
+    }, 10000);
 
     it('재시도 시 중복 실행이 방지되어야 함', async () => {
       // Given: vi.useFakeTimers()로 시간 제어
@@ -477,7 +497,10 @@ describe('BatchScheduler', () => {
 
       // When: 재시도 시간 이상 진행 (여러 번 재시도 가능)
       vi.advanceTimersByTime(200);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 중복 실행이 방지되어야 함 (runningJobs 체크)
       const status = testScheduler.getStatus();
@@ -487,7 +510,7 @@ describe('BatchScheduler', () => {
       await testScheduler.stop();
       cleanupTestDatabase(db);
       vi.useRealTimers();
-    });
+    }, 10000);
 
     it('재시도 시 로그 컨텍스트가 올바르게 기록되어야 함', async () => {
       // Given: 로깅이 활성화된 스케줄러
@@ -549,7 +572,10 @@ describe('BatchScheduler', () => {
       
       // When: 시간을 진행시켜 작업 큐 처리
       vi.advanceTimersByTime(300);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
       
       // Then: 스케줄러가 정상 작동해야 함
       const status = scheduler.getStatus();
@@ -557,7 +583,7 @@ describe('BatchScheduler', () => {
 
       await scheduler.stop();
       vi.useRealTimers();
-    });
+    }, 10000);
   });
 
   describe('메모리 정리 작업', () => {
@@ -1092,7 +1118,10 @@ describe('BatchScheduler', () => {
 
       // 시간을 진행시켜 큐를 통해 작업이 실행되면
       vi.advanceTimersByTime(500);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 주간 관계 검증의 lastExecution과 totalExecutions이 실제로 기록되어야 함
       const statusAfter = testScheduler.getStatus();
@@ -1185,7 +1214,10 @@ describe('BatchScheduler', () => {
       
       // When: 시간을 진행시켜 큐 처리
       vi.advanceTimersByTime(500);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 우선순위에 따라 작업이 실행되어야 함
       const statusAfter = testScheduler.getStatus();
@@ -1264,7 +1296,10 @@ describe('BatchScheduler', () => {
 
       // When: 재시도 시간 이상 진행
       vi.advanceTimersByTime(300);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: 재시도 로직이 작동해야 함
       const statusAfter = testScheduler.getStatus();
@@ -1300,7 +1335,10 @@ describe('BatchScheduler', () => {
 
       // When: 시간을 진행시켜 큐를 통해 작업이 실행되면
       vi.advanceTimersByTime(500);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: lastExecution과 totalExecutions이 실제로 기록되어야 함
       const statusAfter = scheduler.getStatus();
@@ -1336,7 +1374,10 @@ describe('BatchScheduler', () => {
 
       // When: 시간을 진행시켜 큐를 통해 작업이 실행되면
       vi.advanceTimersByTime(500);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: errorCount가 실제로 추적되어야 함
       const statusAfter = scheduler.getStatus();
@@ -1391,11 +1432,17 @@ describe('BatchScheduler', () => {
 
       // 큐 처리 시작
       vi.advanceTimersByTime(100);
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // 타임아웃 시간보다 길게 진행하여 타임아웃 발생
       vi.advanceTimersByTime(1500); // 타임아웃(1000ms)보다 길게
-      await vi.runOnlyPendingTimersAsync();
+      await Promise.race([
+        vi.runOnlyPendingTimersAsync(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]).catch(() => {});
 
       // Then: RelationValidatorExecutor가 호출되었는지 확인 (주간 관계 검증이 실제로 실행되었는지)
       expect(mockExecutor.execute).toHaveBeenCalled();

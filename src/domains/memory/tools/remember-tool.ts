@@ -25,6 +25,10 @@ import { validateReflectionNotes, formatValidationErrors } from '../../../shared
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
+// AriGraph Pipeline
+import { TripleExtractionService } from '../../../services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../../../services/semantic-memory/semantic-memory-update-service.js';
+import { getBatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler.js';
 
 /**
  * 기존 reflection_notes 조회 결과 타입
@@ -53,6 +57,8 @@ const RememberSchema = z.object({
   skill_name: CommonSchemas.SkillName,
   trigger_conditions: CommonSchemas.TriggerConditions,
   update_mode: CommonSchemas.UpdateMode,
+  // AriGraph Pipeline 필드
+  enable_triple_extraction: CommonSchemas.EnableTripleExtraction,
   // 기존 필드 유지
   tags: CommonSchemas.Tags,
   importance: CommonSchemas.Importance.default(0.5),
@@ -143,6 +149,12 @@ export class RememberTool extends BaseTool {
             type: 'string', 
             enum: ['replace', 'incremental', 'versioned'],
             description: '업데이트 모드: replace (교체), incremental (증분), versioned (버전 관리)'
+          },
+          // AriGraph Pipeline 필드
+          enable_triple_extraction: { 
+            type: 'boolean', 
+            description: 'Triple 추출 활성화 여부 (기본값: true). type="episodic"일 때만 적용됩니다.',
+            default: true
           },
           // 기존 필드 유지
           tags: { 
@@ -314,6 +326,7 @@ export class RememberTool extends BaseTool {
         skill_name,
         trigger_conditions,
         update_mode,
+        enable_triple_extraction,
         tags, 
         importance, 
         source, 
@@ -864,6 +877,193 @@ export class RememberTool extends BaseTool {
                 this.logWarning(`관계 추출 실패 (${savedMemoryId})`, {
                   error: error instanceof Error ? error.message : String(error)
                 });
+              }
+
+              // PRD 4.1, 5.3: AriGraph Pipeline - Triple 추출 및 Semantic Memory 생성
+              // type='episodic'이고 enable_triple_extraction=true일 때만 실행
+              // JobQueue를 통해 비동기로 실행 (Episodic Memory 저장은 블로킹하지 않음)
+              if (savedMemoryType === 'episodic' && enable_triple_extraction !== false) {
+                try {
+                  // BatchScheduler의 JobQueue에 Triple 추출 작업 등록
+                  const batchScheduler = getBatchScheduler();
+                  const jobName = `triple_extraction_${savedMemoryId}`;
+                  
+                  // Triple 추출 작업 함수 정의
+                  const tripleExtractionJob = async () => {
+                    try {
+                      // 데이터베이스 연결 재확인
+                      let dbValid = false;
+                      try {
+                        await new Promise<void>((resolve, reject) => {
+                          try {
+                            DatabaseUtils.get(dbRef, 'SELECT 1');
+                            resolve();
+                          } catch (error) {
+                            reject(error);
+                          }
+                        });
+                        dbValid = true;
+                      } catch (dbError) {
+                        this.logWarning('데이터베이스 연결이 유효하지 않아 Triple 추출을 건너뜁니다', { 
+                          memory_id: savedMemoryId,
+                          error: dbError instanceof Error ? dbError.message : String(dbError)
+                        });
+                        return;
+                      }
+
+                      if (dbValid) {
+                        // Triple 추출 서비스 초기화
+                        const tripleExtractionService = new TripleExtractionService();
+                        
+                        // Triple 추출 (비동기, 실패해도 메모리 저장은 성공)
+                        const extractionResult = await tripleExtractionService.extractTriples(
+                          content,
+                          {},
+                          savedMemoryId
+                        );
+
+                        // Triple이 추출된 경우 Semantic Memory 생성/업데이트
+                        if (extractionResult.triples.length > 0) {
+                          const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
+                            dbRef,
+                            embeddingServiceRef,
+                            context.services.relationGraph
+                          );
+
+                          const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
+                            extractionResult,
+                            {
+                              episodicMemoryId: savedMemoryId,
+                              episodicImportance: importance || 0.5
+                            }
+                          );
+
+                          // PRD 5.5, 5.5a, 5.6: Triple 추출 성공 시 상태 업데이트
+                          // 성공 시: triple_extracted=true, triple_extracted_status='success'
+                          // 이전 실패 기록 초기화 후 성공 정보로 갱신
+                          const confidenceValues: number[] = [];
+                          // memory_relation에서 confidence 값 수집 (각 triple별로 저장됨)
+                          try {
+                            const relations = DatabaseUtils.all(dbRef, `
+                              SELECT confidence FROM memory_relation
+                              WHERE source_id = ? AND relation_type = 'extracted_from'
+                            `, [savedMemoryId]);
+                            for (const rel of relations) {
+                              if (rel.confidence !== null && rel.confidence !== undefined) {
+                                confidenceValues.push(rel.confidence);
+                              }
+                            }
+                          } catch (err) {
+                            // confidence 수집 실패해도 계속 진행
+                            this.logWarning('Confidence 수집 실패', {
+                              memory_id: savedMemoryId,
+                              error: err instanceof Error ? err.message : String(err)
+                            });
+                          }
+
+                          const confidenceAvg = confidenceValues.length > 0
+                            ? confidenceValues.reduce((sum, c) => sum + c, 0) / confidenceValues.length
+                            : null;
+
+                          const metadata = {
+                            triple_count: extractionResult.triples.length,
+                            ...(confidenceAvg !== null && { confidence_avg: confidenceAvg }),
+                            extracted_at: new Date().toISOString()
+                          };
+
+                          await DatabaseUtils.run(dbRef, `
+                            UPDATE memory_item SET
+                              triple_extracted = ?,
+                              triple_extracted_status = ?,
+                              triple_extraction_metadata = ?
+                            WHERE id = ?
+                          `, [
+                            1,  // triple_extracted=true (SQLite에서는 INTEGER로 저장)
+                            'success',  // triple_extracted_status='success'
+                            JSON.stringify(metadata),  // 성공 정보로 갱신 (이전 실패 기록 초기화)
+                            savedMemoryId
+                          ]);
+
+                          this.logInfo('Triple 추출 및 Semantic Memory 생성 완료', {
+                            memory_id: savedMemoryId,
+                            triple_count: extractionResult.triples.length,
+                            confidence_avg: confidenceAvg
+                          });
+                        } else {
+                          // PRD 5.5, 5.5a, 5.6: Triple 추출 실패 시 상태 업데이트
+                          // 실패 시: triple_extracted=false, triple_extracted_status='failed'
+                          // 실패 정보 저장 (failureReason, retry_count, last_attempt)
+                          const failureReason = extractionResult.extractionInfo.failureReason || 'no_triple';
+                          
+                          // 기존 metadata에서 retry_count 가져오기 (있는 경우)
+                          let retryCount = 0;
+                          try {
+                            const existing = DatabaseUtils.get(dbRef, `
+                              SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
+                            `, [savedMemoryId]);
+                            if (existing?.triple_extraction_metadata) {
+                              const existingMeta = JSON.parse(existing.triple_extraction_metadata);
+                              retryCount = (existingMeta.retry_count || 0) + 1;
+                            } else {
+                              retryCount = 1;
+                            }
+                          } catch (err) {
+                            retryCount = 1;
+                          }
+
+                          const metadata = {
+                            failureReason,
+                            retry_count: retryCount,
+                            last_attempt: new Date().toISOString()
+                          };
+
+                          await DatabaseUtils.run(dbRef, `
+                            UPDATE memory_item SET
+                              triple_extracted = ?,
+                              triple_extracted_status = ?,
+                              triple_extraction_metadata = ?
+                            WHERE id = ?
+                          `, [
+                            0,  // triple_extracted=false (SQLite에서는 INTEGER로 저장)
+                            'failed',  // triple_extracted_status='failed'
+                            JSON.stringify(metadata),  // 실패 정보 저장
+                            savedMemoryId
+                          ]);
+
+                          this.logInfo('Triple 추출 완료 (Triple 없음)', {
+                            memory_id: savedMemoryId,
+                            failure_reason: failureReason,
+                            retry_count: retryCount
+                          });
+                        }
+                      }
+                    } catch (error) {
+                      // Triple 추출 실패해도 메모리 저장은 성공했으므로 경고만 출력
+                      this.logWarning(`Triple 추출 실패 (${savedMemoryId})`, {
+                        error: error instanceof Error ? error.message : String(error)
+                      });
+                    }
+                  };
+
+                  // JobQueue에 작업 등록 (우선순위: 5, 중간 우선순위)
+                  const added = batchScheduler.addJob(jobName, tripleExtractionJob, 5, 0);
+                  if (added) {
+                    this.logInfo('Triple 추출 작업이 JobQueue에 등록되었습니다', {
+                      memory_id: savedMemoryId,
+                      job_name: jobName
+                    });
+                  } else {
+                    this.logWarning('Triple 추출 작업이 JobQueue에 등록되지 않았습니다 (중복 또는 큐 가득참)', {
+                      memory_id: savedMemoryId,
+                      job_name: jobName
+                    });
+                  }
+                } catch (error) {
+                  // JobQueue 등록 실패해도 메모리 저장은 성공했으므로 경고만 출력
+                  this.logWarning(`Triple 추출 작업 등록 실패 (${savedMemoryId})`, {
+                    error: error instanceof Error ? error.message : String(error)
+                  });
+                }
               }
             } catch (error) {
               // 백그라운드 작업 실패해도 메모리 저장은 성공했으므로 경고만 출력

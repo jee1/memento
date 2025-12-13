@@ -1,0 +1,141 @@
+# Tasks: AriGraph Pipeline Implementation
+
+이 문서는 [0013-prd-arigraph-pipeline.md](./0013-prd-arigraph-pipeline.md) PRD를 기반으로 생성된 구현 태스크 리스트입니다.
+
+## Relevant Files
+
+- `src/services/triple-extraction/triple-extraction-service.ts` - Triple 추출 서비스 메인 구현
+- `src/services/triple-extraction/triple-extraction-service.spec.ts` - Triple 추출 서비스 단위 테스트
+- `src/services/semantic-memory/semantic-memory-update-service.ts` - Semantic Memory 갱신 서비스 구현
+- `src/services/semantic-memory/semantic-memory-update-service.spec.ts` - Semantic Memory 갱신 서비스 단위 테스트
+- `src/services/triple-extraction/predicate-canonicalizer.ts` - Predicate 정규화 로직
+- `src/services/triple-extraction/entity-linker.ts` - Entity Linking 로직
+- `prompts/triple-extraction.txt` - Triple 추출용 LLM 프롬프트 템플릿
+- `src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.sql` - AriGraph 파이프라인 스키마 마이그레이션
+- `src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.spec.ts` - 마이그레이션 테스트
+- `src/domains/memory/tools/remember-tool.ts` - remember tool에 Triple 추출 파이프라인 통합
+- `src/domains/memory/tools/convert-episodic-to-semantic-tool.ts` - 수동 변환 MCP Tool 구현
+- `src/domains/memory/tools/convert-episodic-to-semantic-tool.spec.ts` - 수동 변환 Tool 테스트
+- `src/infrastructure/scheduler/batch-scheduler.ts` - BatchScheduler에 Triple 추출 배치 작업 추가
+- `src/infrastructure/scheduler/jobs/triple-extraction-batch-job.ts` - Triple 추출 배치 작업 구현
+- `src/infrastructure/scheduler/jobs/triple-extraction-batch-job.spec.ts` - 배치 작업 테스트
+- `src/shared/utils/triple-cache.ts` - Triple 추출 결과 캐싱 유틸리티 (LRU, TTL)
+- `src/shared/utils/triple-cache.spec.ts` - 캐싱 유틸리티 테스트
+- `src/shared/utils/pii-masker.ts` - PII/민감 정보 마스킹 유틸리티 (로그 보안)
+- `src/shared/utils/pii-masker.spec.ts` - PII 마스킹 테스트
+- `src/infrastructure/logging/triple-extraction-logger.ts` - Triple 추출 전용 로거 (logs/triple-extraction/ 디렉토리)
+- `src/shared/types/triple-extraction.ts` - Triple 추출 관련 타입 정의
+
+### Notes
+
+- 단위 테스트는 각 서비스 파일과 동일한 디렉토리에 `.spec.ts` 확장자로 배치
+- 통합 테스트는 `src/test/` 디렉토리에 `test-arigraph-pipeline.ts` 형태로 작성
+- 마이그레이션 테스트는 `migrations/` 디렉토리 내 `.spec.ts` 파일로 작성
+- `npm test` 명령으로 모든 테스트 실행 가능
+- `npm run db:migrate` 명령으로 마이그레이션 실행
+
+## Tasks
+
+- [ ] 1.0 데이터베이스 스키마 확장 및 마이그레이션
+  - [x] 1.1 마이그레이션 파일 생성 (`008-arigraph-schema-expansion.sql`)
+  - [x] 1.2 `memory_item` 테이블에 `subject`, `predicate`, `object` 컬럼 추가 (NULL 허용, 기본값 NULL)
+  - [x] 1.3 `memory_item` 테이블에 `triple_extracted` BOOLEAN 컬럼 추가 (기본값 NULL)
+  - [x] 1.4 `memory_item` 테이블에 `triple_extracted_status` TEXT 컬럼 추가 (기본값 NULL, 값: 'success' | 'failed' | 'abandoned')
+  - [x] 1.5 `memory_item` 테이블에 `triple_extraction_metadata` TEXT 컬럼 추가 (JSON 형식, 기본값 NULL)
+  - [x] 1.6 Partial Index 생성: `idx_memory_item_triple` (type='semantic' AND subject/predicate/object IS NOT NULL)
+  - [x] 1.7 인덱스 생성: `idx_memory_item_triple_extracted` (triple_extracted 필드)
+  - [x] 1.8 인덱스 생성: `idx_memory_item_triple_status` (triple_extracted_status 필드)
+  - [x] 1.9 마이그레이션 TypeScript 클래스 구현 (`008-arigraph-schema-expansion.ts`)
+  - [x] 1.10 마이그레이션 validateBefore 메서드 구현 (기존 스키마 검증)
+  - [x] 1.11 마이그레이션 validateAfter 메서드 구현 (새 컬럼 존재 확인)
+  - [x] 1.12 마이그레이션 down 메서드 구현 (롤백 로직)
+  - [x] 1.13 마이그레이션 단위 테스트 작성 (given: 기존 스키마, when: 마이그레이션 실행, then: 새 컬럼 및 인덱스 생성 확인)
+  - [x] 1.14 마이그레이션에서 `relation_type_registry` 테이블에 `extracted_from`, `supported_by` 관계 타입 초기 데이터 삽입 (런타임 등록은 4.3에서 처리)
+- [ ] 2.0 Triple 추출 서비스 구현
+  - [x] 2.1 Triple 추출 타입 정의 (`src/shared/types/triple-extraction.ts`)
+  - [x] 2.2 TripleExtractionService 클래스 기본 구조 구현
+  - [x] 2.3 LLM 프롬프트 템플릿 작성 (`prompts/triple-extraction.txt`, AriGraph 논문 참고)
+  - [x] 2.4 프롬프트 템플릿 로더 유틸리티 구현 (prompts/ 디렉토리에서 템플릿 읽기)
+  - [x] 2.5 LLM 호출 메서드 구현 (기존 LLMBasedRelationExtractor 패턴 참고, OpenAI/Gemini/Ollama 지원)
+  - [x] 2.6 LLM 응답 JSON 파싱 로직 구현 (triples 배열 추출)
+  - [x] 2.7 Triple 유효성 검증 로직 구현 (subject, predicate, object 모두 존재 확인)
+  - [x] 2.8 PredicateCanonicalizer 클래스 구현 (동의어 사전 기반 정규화)
+  - [x] 2.9 Predicate 사전 데이터 구조 정의 (표준 predicate와 동의어 매핑)
+  - [x] 2.10 EntityLinker 클래스 기본 구현 (lowercasing, 공백 제거, 한글/영문 통일, 숫자/날짜 등 구조화된 엔티티는 변환하지 않음 예외 규칙 적용)
+  - [x] 2.11 Triple 추출 실패 사유 분류 로직 구현 (no_triple, ambiguous_structure, llm_parse_fail, llm_api_error)
+  - [x] 2.12 extractionInfo 생성 로직 구현 (failureReason, steps, rawLLMOutput)
+  - [x] 2.13 PII 마스킹 유틸리티 구현 (`src/shared/utils/pii-masker.ts`, 이메일, 전화번호, API 키 등)
+  - [x] 2.14 Triple 추출 전용 로거 구현 (`src/infrastructure/logging/triple-extraction-logger.ts`, logs/triple-extraction/ 디렉토리)
+  - [x] 2.15 rawLLMOutput 저장 정책 구현 (DB에 저장하지 않음, 로그 파일에만 저장, PII 마스킹 선행 적용, 성공 케이스 10% 샘플링, 실패 케이스 100% 저장, 30일 로테이션)
+  - [x] 2.16 로그 로테이션 로직 구현 (30일 후 자동 삭제)
+  - [x] 2.17 에러 처리 및 폴백 메커니즘 구현 (LLM 호출 실패 시 로그만 기록, Episodic Memory는 정상 저장)
+  - [x] 2.18 TripleExtractionService 단위 테스트 작성 (given: observation 텍스트, when: extractTriples 호출, then: triples 배열 및 extractionInfo 반환 확인)
+  - [x] 2.19 Predicate 정규화 단위 테스트 작성 (given: 다양한 동의어, when: canonicalize 호출, then: 표준 predicate 반환)
+  - [x] 2.20 Entity Linking 단위 테스트 작성 (given: 다양한 엔티티 표현, when: link 호출, then: 정규화된 엔티티 반환)
+  - [x] 2.21 Entity Linking 예외 규칙 테스트 작성 (given: 숫자/날짜 등 구조화된 엔티티("2025-01-15", "123"), when: link 호출, then: 변환하지 않고 원본 유지)
+- [ ] 3.0 Semantic Memory 갱신 서비스 구현
+  - [x] 3.1 SemanticMemoryUpdateService 클래스 기본 구조 구현
+  - [x] 3.2 Triple 기반 Semantic Memory 생성 로직 구현 (subject, predicate, object를 컬럼으로 저장)
+  - [x] 3.3 Triple을 자연어로 변환하는 로직 구현 (content 필드에 저장, 검색용)
+  - [x] 3.4 Triple 요소별 중복 판단 로직 구현 (Predicate는 canonicalization 후 정확 일치 우선, Subject/Object는 정규화 후 일치 여부를 기본으로 임베딩 유사도 보조 사용)
+  - [x] 3.5 Subject/Object 유사도 계산 로직 구현 (임베딩 기반, 임계값 0.9)
+  - [x] 3.6 중복 Semantic Memory 검색 로직 구현 (triple 요소별 비교)
+  - [x] 3.7 중복 판단 시 병합 전략 구현 (기존 항목 업데이트, Episode Weight 누적)
+  - [x] 3.8 구조적 검증 기반 Confidence 계산 로직 구현 (Triple 완전성, Predicate 정규화 성공, Entity Linking 성공)
+  - [x] 3.9 계산된 Confidence를 memory_relation.confidence 필드에 저장하는 로직 구현 (각 relation 생성 시 confidence 값 저장)
+  - [x] 3.10 Confidence 임계값 필터링 구현 (기본값 0.7, 설정 가능)
+  - [x] 3.11 Semantic Memory 중요도 계산 로직 구현 (Episodic Memory 중요도 반영, 여러 Episodic에서 추출 시 증가)
+  - [x] 3.12 SemanticMemoryUpdateService 단위 테스트 작성 (given: Triple 배열, when: updateSemanticMemory 호출, then: Semantic Memory 생성/업데이트 확인)
+  - [x] 3.13 중복 판단 로직 단위 테스트 작성 (given: 유사한 Triple, when: 중복 검사, then: 중복으로 판단 및 병합)
+  - [x] 3.14 Confidence 계산 및 저장 단위 테스트 작성 (given: 다양한 extractionInfo, when: calculateConfidence 호출 및 relation 생성, then: 구조적 검증 기반 confidence 계산 및 memory_relation.confidence에 저장 확인)
+- [ ] 4.0 Episodic-Edge 생성 및 관계 관리
+  - [x] 4.1 관계 생성 로직 구현 (`extracted_from`: Episodic → Semantic)
+  - [x] 4.2 관계 생성 로직 구현 (`supported_by`: Semantic → Episodic, 역방향)
+  - [x] 4.3 런타임 relation_type_registry 등록 로직 구현 (extracted_from, supported_by 관계 타입이 없을 경우 자동 등록, 마이그레이션에서 초기 데이터 삽입은 1.14에서 처리)
+  - [x] 4.4 관계 메타데이터 저장 로직 구현 (extraction method: 'llm', confidence는 memory_relation.confidence에 저장, 각 triple별 metadata에 failureReason, steps 저장)
+  - [x] 4.4a 각 triple별 독립적인 metadata 저장 로직 구현 (각 memory_relation 레코드의 metadata 필드에 해당 triple만의 failureReason, steps 정보 저장, 전체 요청 요약은 저장하지 않음)
+  - [x] 4.5 관계 방향 검증 로직 구현 (source가 Episodic, target이 Semantic인지 확인)
+  - [x] 4.6 관계 중복 방지 로직 구현 (UNIQUE 제약 조건 활용)
+  - [x] 4.7 각 Triple마다 별도 memory_relation 레코드 생성 로직 구현 (metadata에 해당 triple만의 정보 저장)
+  - [x] 4.8 Episodic-Edge 생성 단위 테스트 작성 (given: Episodic Memory와 Semantic Memory, when: createRelation 호출, then: memory_relation 레코드 생성 확인, 각 triple별 독립적인 metadata 저장 확인, confidence 필드 저장 확인)
+  - [x] 4.9 관계 방향 검증 단위 테스트 작성 (given: 잘못된 방향, when: createRelation 호출, then: 에러 발생)
+  - [x] 4.10 관계 중복 방지 단위 테스트 작성 (given: 동일한 관계, when: 중복 생성 시도, then: 중복 생성 방지)
+- [ ] 5.0 자동 처리 통합 및 수동 변환 기능
+  - [x] 5.1 remember Tool 스키마에 `enable_triple_extraction` 파라미터 추가 (기본값: true)
+  - [x] 5.2 remember Tool에서 type='episodic'일 때 Triple 추출 파이프라인 호출 로직 구현
+  - [x] 5.3 JobQueue에 Triple 추출 작업 등록 로직 구현 (BatchScheduler의 JobQueue 활용)
+  - [x] 5.4 Triple 추출 작업을 비동기로 실행하는 래퍼 함수 구현 (Episodic Memory 저장은 블로킹하지 않음)
+  - [x] 5.5 Episodic Memory 저장 후 triple_extracted_status 업데이트 로직 구현 (성공/실패 상태 저장, 성공 시 이전 실패 기록 초기화)
+  - [x] 5.5a 필드 조합 규칙에 따른 triple_extracted boolean 동기화 로직 구현 (성공 시 triple_extracted=true, 실패 시 triple_extracted=false, 포기 시 triple_extracted=false, 미처리 시 NULL 유지)
+  - [x] 5.6 triple_extraction_metadata 업데이트 로직 구현 (성공 시 이전 실패 기록 제거 후 triple_count, confidence_avg, extracted_at 저장, 실패 시 failureReason, retry_count 저장)
+  - [x] 5.7 convert_episodic_to_semantic Tool 기본 구조 구현 (MCP Tool)
+  - [x] 5.8 convert_episodic_to_semantic Tool 스키마 정의 (memory_id 또는 필터 조건)
+  - [x] 5.9 수동 변환 로직 구현 (선택된 Episodic Memory에 대해 Triple 추출 및 Semantic Memory 생성)
+  - [x] 5.10 배치 처리 지원 구현 (여러 Episodic Memory를 한 번에 변환)
+  - [x] 5.11 변환 상태 추적 로직 구현 (이미 변환된 항목 건너뛰기, 실패한 항목 재시도 옵션)
+  - [x] 5.12 remember Tool 통합 테스트 작성 (given: episodic memory 저장, when: enable_triple_extraction=true, then: Triple 추출 및 Semantic Memory 생성 확인)
+  - [x] 5.13 convert_episodic_to_semantic Tool 단위 테스트 작성 (given: 기존 Episodic Memory, when: convert 호출, then: Semantic Memory 생성 확인)
+  - [x] 5.14 비동기 처리 테스트 작성 (given: remember 호출, when: Triple 추출 완료 대기 없이, then: Episodic Memory는 즉시 저장, Triple 추출은 비동기로 진행)
+- [ ] 6.0 배치 작업 및 성능 최적화
+  - [x] 6.1 TripleExtractionBatchJob 클래스 구현 (BatchScheduler의 Job 인터페이스 구현)
+  - [x] 6.2 배치 작업 설정 파라미터 추가 (tripleExtractionInterval, tripleExtractionHour, tripleExtractionBatchSize, tripleExtractionTimeout)
+  - [x] 6.3 배치 작업 대상 조회 로직 구현 (triple_extracted=false 또는 null인 Episodic Memory, triple_extracted_status='failed'인 경우 재시도)
+  - [x] 6.4 재시도 정책 구현 (최대 3회, 지수 백오프: 1일, 2일, 4일)
+  - [x] 6.5 재시도 종료 조건 구현 (성공 시 triple_extracted=true 및 triple_extracted_status='success' 업데이트, 최대 시도 횟수 초과 시 triple_extracted=false 및 triple_extracted_status='abandoned' 업데이트)
+  - [x] 6.5a 배치 작업에서 상태 전이 시 triple_extracted boolean 동기화 로직 구현 (성공/실패/abandoned 전이에 맞춰 boolean과 status 동기화, 필드 조합 규칙 준수)
+  - [x] 6.6 SQLite WAL 환경 고려한 배치 처리 구현 (작은 단위로 나누어 처리, Lock 충돌 방지)
+  - [x] 6.7 배치 처리 최적화 구현 (배치 크기 10개, 타임아웃 30초, 병렬성 제어: parallelism=1)
+  - [x] 6.8 배치 작업 로깅 구현 (처리된 수, 생성된 Semantic Memory 수, 실패 항목 수, 실행 시간)
+  - [x] 6.9 BatchScheduler에 Triple 추출 배치 작업 등록 로직 구현
+  - [x] 6.10 기존 배치 작업과의 충돌 방지 로직 구현 (maxConcurrentJobs 고려, 독립적인 작업 큐)
+  - [x] 6.11 Triple 추출 결과 캐싱 구현 (`src/shared/utils/triple-cache.ts`, LRU 캐시, TTL 6시간)
+  - [x] 6.12 캐시 키 생성 로직 구현 (content_hash 기반)
+  - [x] 6.13 캐시 TTL 기반 자동 무효화 구현
+  - [x] 6.14 TripleExtractionService에 캐싱 통합 (캐시 히트 시 LLM 호출 생략)
+  - [x] 6.15 모니터링 및 통계 수집 구현 (Triple 추출 성공률, Semantic Memory 생성 통계, 실패 사유별 통계)
+  - [x] 6.16 배치 작업 단위 테스트 작성 (given: 미처리 Episodic Memory, when: 배치 작업 실행, then: Triple 추출 및 Semantic Memory 생성 확인)
+  - [x] 6.17 재시도 정책 테스트 작성 (given: 실패한 항목, when: 배치 작업 재실행, then: 재시도 횟수 확인)
+  - [x] 6.18 캐싱 테스트 작성 (given: 동일한 content, when: 두 번 추출, then: 두 번째는 캐시에서 반환)
+  - [x] 6.19 성능 테스트 작성 (given: 대량의 Episodic Memory, when: 배치 작업 실행, then: 처리 시간 및 메모리 사용량 측정)
+  - [x] 6.20 Relation Engine v1.0 통합 테스트 작성 (given: AriGraph 파이프라인으로 생성된 관계, when: Relation Engine 검색, then: 관계 그래프 탐색 확인)
+
