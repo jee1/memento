@@ -30,15 +30,15 @@ CREATE TABLE IF NOT EXISTS relation_type_registry (
 );
 
 -- 3. Create indexes for memory_relation table
-CREATE INDEX idx_memory_relation_source ON memory_relation(source_id);
-CREATE INDEX idx_memory_relation_target ON memory_relation(target_id);
-CREATE INDEX idx_memory_relation_type ON memory_relation(relation_type);
-CREATE INDEX idx_memory_relation_confidence ON memory_relation(confidence);
-CREATE INDEX idx_memory_relation_source_type ON memory_relation(source_id, relation_type);
-CREATE INDEX idx_memory_relation_target_type ON memory_relation(target_id, relation_type);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_source ON memory_relation(source_id);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_target ON memory_relation(target_id);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_type ON memory_relation(relation_type);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_confidence ON memory_relation(confidence);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_source_type ON memory_relation(source_id, relation_type);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_target_type ON memory_relation(target_id, relation_type);
 
 -- 4. Create index for relation_type_registry table
-CREATE INDEX idx_relation_type_registry_category ON relation_type_registry(category);
+CREATE INDEX IF NOT EXISTS idx_relation_type_registry_category ON relation_type_registry(category);
 
 -- 5. Insert initial relation types into registry
 -- Causal (인과 관계군)
