@@ -85,6 +85,11 @@ export interface TripleExtractionBatchResult extends BatchJobResult {
     semanticMemoriesUpdated: number; // 업데이트된 Semantic Memory 수
     retryCounts: Map<string, number>; // 각 메모리별 재시도 횟수
   };
+  /**
+   * 타임아웃 발생 여부
+   * 타임아웃이 발생하여 작업이 중단된 경우 true
+   */
+  timeoutOccurred?: boolean;
 }
 
 /**
@@ -199,6 +204,7 @@ export class TripleExtractionBatchJob {
         if (currentTime >= timeoutDeadline) {
           const elapsed = currentTime - startTime.getTime();
           result.warnings.push(`Batch job timeout after ${elapsed}ms (limit: ${this.config.timeout}ms)`);
+          result.timeoutOccurred = true; // 타임아웃 플래그 설정
           logger.warn('Triple extraction batch job timeout', {
             elapsed,
             timeout: this.config.timeout,
@@ -444,6 +450,7 @@ export class TripleExtractionBatchJob {
     for (const memory of chunk) {
       // 타임아웃 체크 (PRD 6.2: 배치당 최대 30초)
       if (Date.now() >= timeoutDeadline) {
+        overallResult.timeoutOccurred = true; // 타임아웃 플래그 설정
         logger.warn('Chunk processing timeout, stopping chunk processing', {
           chunkSize: chunk.length,
           processedInChunk: chunkResult.processed
