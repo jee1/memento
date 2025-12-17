@@ -31,6 +31,31 @@ export class DatabaseUtils {
   }
 
   /**
+   * 데이터베이스 연결이 열려있는지 확인
+   * better-sqlite3는 isOpen() 메서드가 없으므로 간단한 쿼리로 확인
+   * @param db 데이터베이스 인스턴스
+   * @returns 연결이 열려있으면 true, 닫혀있으면 false
+   */
+  static isOpen(db: Database.Database | null | undefined): boolean {
+    if (!db) {
+      return false;
+    }
+    
+    try {
+      // 간단한 쿼리로 연결 상태 확인
+      db.prepare('SELECT 1').get();
+      return true;
+    } catch (error: any) {
+      // "The database connection is not open" 에러인 경우 연결이 닫혀있음
+      if (error?.message?.includes('not open') || error?.name === 'TypeError') {
+        return false;
+      }
+      // 다른 에러는 연결이 열려있지만 쿼리 실행에 실패한 경우
+      return true;
+    }
+  }
+
+  /**
    * SQLite3 쿼리를 실행 (재시도 로직 포함)
    */
   static run(db: Database.Database, sql: string, params: any[] = [], maxRetries: number = 3): Database.RunResult {

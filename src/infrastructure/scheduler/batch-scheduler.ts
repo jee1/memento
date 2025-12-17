@@ -19,6 +19,7 @@ import { RelationValidatorExecutor } from './relation-validator-executor.js';
 import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -580,6 +581,12 @@ export class BatchScheduler {
     try {
       if (!this.db) {
         throw new Error('Database not initialized');
+      }
+
+      // 데이터베이스 연결 상태 확인
+      // better-sqlite3는 close() 후에도 객체가 남아있지만 연결은 닫혀있으므로 확인 필요
+      if (!DatabaseUtils.isOpen(this.db)) {
+        throw new Error('Database connection is not open. The database may have been closed.');
       }
 
       this.log('Starting memory cleanup job');
