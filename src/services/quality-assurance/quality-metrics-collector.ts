@@ -23,6 +23,7 @@ import {
 import {
   calculateKendallTau,
   generateOrderPreservationReport,
+  loadGroundTruth,
   type SearchResultPair,
   type OrderPreservationReport
 } from '../../test/helpers/vector-search-quality-metrics.js';
@@ -31,6 +32,8 @@ import {
   type ExpectedRelation,
   type ExtractedRelation
 } from '../../domains/relation/services/relation-quality-validator.js';
+import { HybridSearchFactory } from '../../domains/search/factories/hybrid-search.factory.js';
+import type { HybridSearchQuery } from '../../domains/search/algorithms/hybrid-search-engine.js';
 
 /**
  * 품질 지표 수집 결과
@@ -228,12 +231,14 @@ export class QualityMetricsCollector {
       /**
        * Ground Truth 데이터 (선택적)
        * 제공되면 실제 측정을 수행합니다.
+       * 제공되지 않으면 파일에서 자동 로드 시도
        */
       groundTruths?: GroundTruth[];
       
       /**
        * 검색 결과 (선택적)
        * 쿼리 ID를 키로 하는 Map
+       * 제공되지 않으면 Ground Truth를 기반으로 실제 검색 수행
        */
       queryResults?: Map<string, SearchResult[]>;
       
@@ -246,9 +251,82 @@ export class QualityMetricsCollector {
   ): Promise<CollectedMetrics> {
     const metrics: Record<string, number> = {};
 
+    // Ground Truth 자동 로드 (옵션에 없으면 파일에서 로드 시도)
+    let groundTruths = options?.groundTruths;
+    if (!groundTruths || groundTruths.length === 0) {
+      try {
+        const loaded = loadGroundTruth();
+        if (loaded && loaded.length > 0) {
+          groundTruths = loaded;
+          logger.info('Ground Truth 자동 로드 완료', {
+            context,
+            count: groundTruths.length
+          });
+        }
+      } catch (error) {
+        logger.warn('Ground Truth 파일 로드 실패', {
+          context,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    // 검색 결과 자동 생성 (옵션에 없고 Ground Truth가 있으면 실제 검색 수행)
+    let queryResults = options?.queryResults;
+    if (!queryResults && groundTruths && groundTruths.length > 0) {
+      try {
+        queryResults = new Map<string, SearchResult[]>();
+        const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+
+        for (const groundTruth of groundTruths) {
+          try {
+            const searchQuery: HybridSearchQuery = {
+              query: groundTruth.queryId,
+              limit: 20 // Ground Truth 비교를 위해 충분한 결과 수 확보
+            };
+
+            const searchResult = await searchEngine.search(this.db, searchQuery);
+            
+            // HybridSearchResult를 SearchResult로 변환
+            const results: SearchResult[] = searchResult.items.map(item => ({
+              id: item.id,
+              score: item.finalScore
+            }));
+
+            queryResults.set(groundTruth.queryId, results);
+            
+            logger.debug('검색 수행 완료', {
+              context,
+              query: groundTruth.queryId,
+              resultCount: results.length
+            });
+          } catch (error) {
+            logger.warn('검색 수행 실패', {
+              context,
+              query: groundTruth.queryId,
+              error: error instanceof Error ? error.message : String(error)
+            });
+            // 검색 실패 시 빈 결과 추가
+            queryResults.set(groundTruth.queryId, []);
+          }
+        }
+
+        logger.info('검색 결과 자동 생성 완료', {
+          context,
+          queryCount: queryResults.size
+        });
+      } catch (error) {
+        logger.warn('검색 엔진 초기화 또는 검색 수행 실패', {
+          context,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        queryResults = new Map<string, SearchResult[]>();
+      }
+    }
+
     // Ground Truth와 검색 결과가 제공된 경우 실제 측정 수행
-    if (options?.groundTruths && options?.queryResults && options.groundTruths.length > 0) {
-      const { groundTruths, queryResults } = options;
+    if (groundTruths && queryResults && groundTruths.length > 0) {
+      // groundTruths와 queryResults는 위에서 로드/생성됨
 
       // Precision@K, Recall@K, NDCG@K 계산
       const kValues = [5, 10];
@@ -287,7 +365,7 @@ export class QualityMetricsCollector {
       metrics.mrr = this.calculateMRR(queryResults, groundTruths);
 
       // Kendall's Tau 및 순서 보존 지표 계산
-      if (options.searchResultPairs && options.searchResultPairs.length > 0) {
+      if (options?.searchResultPairs && options.searchResultPairs.length > 0) {
         let sumKendallTau = 0;
         let sumTop5Retention = 0;
         let sumTop10Retention = 0;
@@ -353,16 +431,18 @@ export class QualityMetricsCollector {
       });
     }
 
-    return {
-      namespace: 'search',
-      context,
-      measured_at: new Date().toISOString(),
-      metrics,
-      metadata: {
-        has_ground_truth: options?.groundTruths !== undefined && (options.groundTruths.length > 0),
-        ground_truth_count: options?.groundTruths?.length || 0
-      }
-    };
+      return {
+        namespace: 'search',
+        context,
+        measured_at: new Date().toISOString(),
+        metrics,
+        metadata: {
+          has_ground_truth: groundTruths !== undefined && (groundTruths.length > 0),
+          ground_truth_count: groundTruths?.length || 0,
+          auto_loaded: !options?.groundTruths && groundTruths !== undefined,
+          auto_searched: !options?.queryResults && queryResults !== undefined
+        }
+      };
   }
 
   /**
