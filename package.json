@@ -34,6 +34,7 @@
     "weekly-relation-validation": "tsx scripts/weekly-relation-validation.ts",
     "quality:thresholds": "tsx scripts/quality-thresholds.ts",
     "quality:report": "tsx scripts/quality-report.ts",
+    "quality:ground-truth:generate": "tsx scripts/generate-ground-truth.ts",
     "test:quality-assurance": "tsx src/test/test-quality-assurance.ts",
     "test:client": "tsx src/test/test-client.ts",
     "test:http-v2": "tsx src/test/test-http-server-v2.ts",
