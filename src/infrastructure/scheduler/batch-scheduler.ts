@@ -18,6 +18,7 @@ import { FileLogger } from './file-logger.js';
 import { RelationValidatorExecutor } from './relation-validator-executor.js';
 import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
+import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -35,6 +36,8 @@ export interface BatchJobConfig {
   tripleExtractionHour?: number;                 // Triple 추출 배치 작업 실행 시간 (0-23, 선택적, 지정 시 해당 시간에만 실행)
   tripleExtractionBatchSize: number;             // Triple 추출 배치 크기 (기본: 10)
   tripleExtractionTimeout: number;               // Triple 추출 배치 작업 타임아웃 (밀리초, 기본: 30초)
+  qualityMeasurementInterval: number;           // 품질 측정 배치 작업 간격 (기본: 24시간)
+  qualityMeasurementHour?: number;               // 품질 측정 배치 작업 실행 시간 (0-23, 선택적, 지정 시 해당 시간에만 실행)
   
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
@@ -102,6 +105,7 @@ export class BatchScheduler {
   private fileLogger: FileLogger;
   private relationValidatorExecutor: RelationValidatorExecutor;
   private tripleExtractionBatchJob: TripleExtractionBatchJob | null = null;
+  private qualityMeasurementBatchJob: QualityMeasurementBatchJob | null = null;
 
   constructor(
     config?: Partial<BatchJobConfig>,
@@ -128,6 +132,8 @@ export class BatchScheduler {
       tripleExtractionHour: undefined,   // 시간 지정 안 함 (간격 기반 실행)
       tripleExtractionBatchSize: 10,     // 배치 크기 10개
       tripleExtractionTimeout: 30 * 1000, // 30초
+      qualityMeasurementInterval: 24 * 60 * 60 * 1000, // 24시간 (일일)
+      qualityMeasurementHour: undefined, // 시간 지정 안 함 (간격 기반 실행)
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -241,6 +247,9 @@ export class BatchScheduler {
 
     // Triple 추출 배치 작업 스케줄링 (PRD 6.1)
     this.scheduleTripleExtractionBatch();
+
+    // 품질 측정 배치 작업 스케줄링 (PRD FR-5.6)
+    this.scheduleQualityMeasurement();
 
     // 작업 큐 처리 시작
     this.startJobProcessor();
@@ -1397,6 +1406,148 @@ export class BatchScheduler {
         async () => { await this.runTripleExtractionBatch(); },
         6 // 우선순위 6 (로그 로테이션 다음, 다른 중요 작업보다 낮은 우선순위)
       );
+    }
+  }
+
+  /**
+   * 품질 측정 배치 작업 스케줄링
+   * 
+   * PRD FR-5.6: 일일 품질 측정 배치 작업
+   * - 기본: 24시간마다 실행
+   * - 특정 시간 지정 시: 해당 시간에만 실행
+   */
+  private scheduleQualityMeasurement(): void {
+    if (this.config.qualityMeasurementHour !== undefined) {
+      // 특정 시간에만 실행 (예: 매일 새벽 3시)
+      const checkAndRun = () => {
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // 지정된 시간에 실행
+        if (currentHour === this.config.qualityMeasurementHour) {
+          // 이미 오늘 실행했는지 확인 (lastExecution 체크)
+          const lastExecution = this.lastExecution.get('quality_measurement_batch');
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          if (!lastExecution || lastExecution < today) {
+            // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
+            this.addJobToQueue(
+              'quality_measurement_batch',
+              async () => { await this.runQualityMeasurementBatch(); },
+              7, // 우선순위 7 (다른 배치 작업보다 낮은 우선순위)
+              0
+            );
+          }
+        }
+      };
+
+      // 매 시간마다 체크
+      const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
+      const intervalId = setInterval(checkAndRun, checkInterval);
+      
+      // intervals Map에 저장하여 stop()에서 정리 가능하도록 함
+      this.intervals.set('quality_measurement_batch', intervalId);
+      
+      // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
+      checkAndRun();
+    } else {
+      // interval마다 실행 (기본: 24시간마다)
+      // scheduleJob()은 내부적으로 addJobToQueue()를 사용하여 maxConcurrentJobs 제한 및 중복 방지 적용
+      // 우선순위 7 설정: 다른 배치 작업보다 낮은 우선순위
+      this.scheduleJob(
+        'quality_measurement_batch',
+        this.config.qualityMeasurementInterval,
+        async () => { await this.runQualityMeasurementBatch(); },
+        7 // 우선순위 7 (다른 배치 작업보다 낮은 우선순위)
+      );
+    }
+  }
+
+  /**
+   * 품질 측정 배치 작업 실행
+   * 
+   * PRD FR-5.6: 일일 품질 측정 배치 작업
+   */
+  private async runQualityMeasurementBatch(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'quality_measurement_batch',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      if (!this.db) {
+        throw new Error('Database not initialized');
+      }
+
+      // QualityMeasurementBatchJob 초기화 (아직 초기화되지 않은 경우)
+      if (!this.qualityMeasurementBatchJob) {
+        this.qualityMeasurementBatchJob = new QualityMeasurementBatchJob({
+          measurementType: 'batch',
+          context: 'default',
+          record: true,
+          generateReport: true,
+          reportFormat: 'markdown',
+          timeout: this.config.jobTimeout
+        });
+      }
+
+      // 배치 작업 실행
+      const batchResult = await this.qualityMeasurementBatchJob.execute(this.db);
+
+      // 결과 변환
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.success = batchResult.success;
+      result.processed = batchResult.processed;
+      result.errors = batchResult.errors;
+      result.warnings = batchResult.warnings;
+      result.details = batchResult.details;
+
+      // 실행 기록 업데이트
+      this.lastExecution.set('quality_measurement_batch', new Date());
+      this.totalExecutions.set(
+        'quality_measurement_batch',
+        (this.totalExecutions.get('quality_measurement_batch') || 0) + 1
+      );
+
+      // 로깅
+      if (batchResult.success) {
+        this.log('Quality measurement batch job completed', {
+          duration: result.duration,
+          processed: result.processed,
+          overallStatus: batchResult.details.overallStatus,
+          totalMetrics: batchResult.details.totalMetrics,
+          passedMetrics: batchResult.details.passedMetrics,
+          failedMetrics: batchResult.details.failedMetrics,
+          warningMetrics: batchResult.details.warningMetrics
+        });
+      } else {
+        this.log('Quality measurement batch job failed', {
+          duration: result.duration,
+          errors: result.errors
+        }, 'error');
+      }
+
+      return result;
+    } catch (error) {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.success = false;
+      result.errors.push(error instanceof Error ? error.message : String(error));
+
+      this.log('Quality measurement batch job error', {
+        duration: result.duration,
+        error: error instanceof Error ? error.message : String(error)
+      }, 'error');
+
+      return result;
     }
   }
 

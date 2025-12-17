@@ -229,7 +229,8 @@ export function calculateRankingAccuracy(
   const minLength = Math.min(results.length, expectedOrder.length);
 
   for (let i = 0; i < minLength; i++) {
-    if (results[i].id === expectedOrder[i]) {
+    const result = results[i];
+    if (result && result.id === expectedOrder[i]) {
       correctPositions++;
     }
   }

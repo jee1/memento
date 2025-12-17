@@ -197,11 +197,19 @@ export function calculateKendallTau(
     for (let j = i + 1; j < n; j++) {
       const idI = commonIds[i];
       const idJ = commonIds[j];
+      
+      if (idI === undefined || idJ === undefined) {
+        continue;
+      }
 
-      const pos1I = position1.get(idI)!;
-      const pos1J = position1.get(idJ)!;
-      const pos2I = position2.get(idI)!;
-      const pos2J = position2.get(idJ)!;
+      const pos1I = position1.get(idI);
+      const pos1J = position1.get(idJ);
+      const pos2I = position2.get(idI);
+      const pos2J = position2.get(idJ);
+      
+      if (pos1I === undefined || pos1J === undefined || pos2I === undefined || pos2J === undefined) {
+        continue;
+      }
 
       // order1에서의 관계
       const sign1 = pos1I < pos1J ? 1 : pos1I > pos1J ? -1 : 0;
@@ -2090,9 +2098,13 @@ export function compareWithBaseline(
   const degradationDetails: string[] = [];
   
   // 순서 보존 지표 비교
-  const kendallTauChange = currentOrderPreservation.metrics.kendallTau - baseline.metrics.orderPreservation.kendallTau;
-  const top10RetentionChange = currentOrderPreservation.metrics.topKRetention[10] - baseline.metrics.orderPreservation.top10Retention;
-  const top5RetentionChange = currentOrderPreservation.metrics.topKRetention[5] - baseline.metrics.orderPreservation.top5Retention;
+  const baselineOrderPreservation = baseline.metrics.orderPreservation;
+  if (!baselineOrderPreservation) {
+    throw new Error('Baseline orderPreservation metrics are missing');
+  }
+  const kendallTauChange = currentOrderPreservation.metrics.kendallTau - baselineOrderPreservation.kendallTau;
+  const top10RetentionChange = (currentOrderPreservation.metrics.topKRetention[10] || 0) - baselineOrderPreservation.top10Retention;
+  const top5RetentionChange = (currentOrderPreservation.metrics.topKRetention[5] || 0) - baselineOrderPreservation.top5Retention;
   
   // 순서 보존 지표 저하 감지
   if (kendallTauChange < -0.1) {
@@ -2702,7 +2714,11 @@ export function generateGroundTruth(
         // Fisher-Yates 셔플 (시드 기반)
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = rng.randomInt(0, i);
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          const temp = shuffled[i];
+          if (temp !== undefined && shuffled[j] !== undefined) {
+            shuffled[i] = shuffled[j];
+            shuffled[j] = temp;
+          }
         }
         relevantIds = shuffled.slice(0, relevantCountPerQuery);
         break;
@@ -3218,15 +3234,15 @@ export function saveExtremeScenarioReport(
       markdownLines.push(`**검증 통과**: ${report.w2UpperBound.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
       markdownLines.push('');
       
-      if (report.w2UpperBound.w2_0_4Quality && report.w2UpperBound.w2_0_6Quality) {
+      if (report.w2UpperBound.w2_04 && report.w2UpperBound.w2_06) {
         markdownLines.push('| 지표 | w2=0.4 | w2=0.6 | 품질 저하 |');
         markdownLines.push('|------|--------|--------|----------|');
         
-        const kValues = Object.keys(report.w2UpperBound.w2_0_4Quality.ndcg || {}).map(Number);
+        const kValues = Object.keys(report.w2UpperBound.w2_04.ndcg || {}).map(Number);
         kValues.forEach(k => {
-          const ndcg4 = report.w2UpperBound.w2_0_4Quality!.ndcg[k] || 0;
-          const ndcg6 = report.w2UpperBound.w2_0_6Quality!.ndcg[k] || 0;
-          const degradation = report.w2UpperBound.qualityDegradation?.ndcg?.[k] || 0;
+          const ndcg4 = report.w2UpperBound.w2_04.ndcg[k] || 0;
+          const ndcg6 = report.w2UpperBound.w2_06.ndcg[k] || 0;
+          const degradation = report.w2UpperBound.degradation?.ndcg?.[k] || 0;
           markdownLines.push(`| NDCG@${k} | ${ndcg4.toFixed(3)} | ${ndcg6.toFixed(3)} | ${(degradation * 100).toFixed(2)}% |`);
         });
         markdownLines.push('');

@@ -54,3 +54,12 @@ vi.mock('sharp', () => ({
   }))
 }));
 
+// CI/CD 통합을 위한 품질 측정 테스트 훅 (PRD FR-5.9)
+// CI 환경에서만 로드하여 테스트 성능에 영향 없도록 함
+if (process.env.CI) {
+  // 동적 import를 사용하여 CI 환경에서만 로드
+  import('./quality-measurement-hook.js').catch(error => {
+    console.error('CI 품질 측정 훅 로드 실패:', error);
+  });
+}
+
