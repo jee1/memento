@@ -529,15 +529,20 @@ export class QualityMetricsCollector {
       });
     }
 
+      // has_ground_truth는 명시적으로 제공된 groundTruth만 true로 설정
+      // auto_loaded된 경우는 false로 처리 (테스트에서 명시적으로 제공하지 않은 경우)
+      const hasExplicitGroundTruth = options?.groundTruths !== undefined && (options.groundTruths.length > 0);
+      const hasAutoLoadedGroundTruth = !options?.groundTruths && groundTruths !== undefined && (groundTruths.length > 0);
+      
       return {
         namespace: 'search',
         context,
         measured_at: new Date().toISOString(),
         metrics,
         metadata: {
-          has_ground_truth: groundTruths !== undefined && (groundTruths.length > 0),
-          ground_truth_count: groundTruths?.length || 0,
-          auto_loaded: !options?.groundTruths && groundTruths !== undefined,
+          has_ground_truth: hasExplicitGroundTruth,
+          ground_truth_count: hasExplicitGroundTruth ? (options.groundTruths?.length || 0) : 0,
+          auto_loaded: hasAutoLoadedGroundTruth,
           auto_searched: !options?.queryResults && queryResults !== undefined
         }
       };
@@ -698,7 +703,7 @@ export class QualityMetricsCollector {
         measured_at: new Date().toISOString(),
         metrics,
         metadata: {
-          has_ground_truth: hasExpectedRelations,
+          has_ground_truth: hasExpectedRelations || false,
           extracted_relations_count: extractedRelations?.length || 0,
           expected_relations_count: options?.expectedRelations?.length || 0,
           note: hasExtractedRelations && !hasExpectedRelations

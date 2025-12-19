@@ -739,7 +739,7 @@ describe('벡터 검색 품질 검증 헬퍼', () => {
         expect(report.timestamp).toBeDefined();
         expect(report.groundTruth.queryId).toBe(groundTruth.queryId);
         expect(report.vectorOnly).toBeDefined();
-        expect(report.consolidation).toBeDefined();
+        expect(report.withConsolidation).toBeDefined();
         expect(report.summary.passed).toBeDefined();
         expect(report.summary.keyMetrics).toBeDefined();
       });

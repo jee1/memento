@@ -1084,7 +1084,7 @@ export interface QualityComparisonReport {
   /**
    * Consolidation 반영 후 품질 지표
    */
-  consolidation: QualityMetrics;
+  withConsolidation: QualityMetrics;
   
   /**
    * 품질 저하율
@@ -1146,7 +1146,7 @@ export function generateQualityComparisonReport(
       relevantIdsCount: groundTruth.relevantIds.length
     },
     vectorOnly: comparison.vectorOnly,
-    consolidation: comparison.consolidation,
+    withConsolidation: comparison.consolidation,
     degradation: comparison.degradation,
     thresholdValidation: comparison.thresholdValidation,
     summary: {
@@ -1223,7 +1223,7 @@ export function visualizeQualityComparison(
   lines.push('|---|-----------|---------------|' + (includeDegradation ? '--------|' : ''));
   kValues.forEach(k => {
     const vectorPrecision = report.vectorOnly.precision[k] || 0;
-    const consolidationPrecision = report.consolidation.precision[k] || 0;
+    const consolidationPrecision = report.withConsolidation.precision[k] || 0;
     const degradation = report.degradation.precision[k] || 0;
     const degradationPercent = (Math.abs(degradation) * 100).toFixed(2);
     const degradationSign = degradation >= 0 ? '' : '+';
@@ -1243,7 +1243,7 @@ export function visualizeQualityComparison(
   lines.push('|---|-----------|---------------|' + (includeDegradation ? '--------|' : ''));
   kValues.forEach(k => {
     const vectorRecall = report.vectorOnly.recall[k] || 0;
-    const consolidationRecall = report.consolidation.recall[k] || 0;
+    const consolidationRecall = report.withConsolidation.recall[k] || 0;
     const degradation = report.degradation.recall[k] || 0;
     const degradationPercent = (Math.abs(degradation) * 100).toFixed(2);
     const degradationSign = degradation >= 0 ? '' : '+';
@@ -1263,7 +1263,7 @@ export function visualizeQualityComparison(
   lines.push('|---|-----------|---------------|' + (includeDegradation ? '--------|' : ''));
   kValues.forEach(k => {
     const vectorNDCG = report.vectorOnly.ndcg[k] || 0;
-    const consolidationNDCG = report.consolidation.ndcg[k] || 0;
+    const consolidationNDCG = report.withConsolidation.ndcg[k] || 0;
     const degradation = report.degradation.ndcg[k] || 0;
     const degradationPercent = (Math.abs(degradation) * 100).toFixed(2);
     const degradationSign = degradation >= 0 ? '' : '+';
