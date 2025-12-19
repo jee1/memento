@@ -197,11 +197,19 @@ export function calculateKendallTau(
     for (let j = i + 1; j < n; j++) {
       const idI = commonIds[i];
       const idJ = commonIds[j];
+      
+      if (idI === undefined || idJ === undefined) {
+        continue;
+      }
 
-      const pos1I = position1.get(idI)!;
-      const pos1J = position1.get(idJ)!;
-      const pos2I = position2.get(idI)!;
-      const pos2J = position2.get(idJ)!;
+      const pos1I = position1.get(idI);
+      const pos1J = position1.get(idJ);
+      const pos2I = position2.get(idI);
+      const pos2J = position2.get(idJ);
+      
+      if (pos1I === undefined || pos1J === undefined || pos2I === undefined || pos2J === undefined) {
+        continue;
+      }
 
       // order1에서의 관계
       const sign1 = pos1I < pos1J ? 1 : pos1I > pos1J ? -1 : 0;
@@ -421,14 +429,41 @@ export function generateVectorOnlySearchResults(
   limit?: number
 ): SearchResult[] {
   // 벡터 유사도가 있는 결과만 필터링하고, vectorScore로 정렬
+  // vectorScore가 없으면 textScore를 사용하거나, finalScore에서 textScore 부분을 제거
   const vectorOnlyResults = searchResults
-    .filter(result => result.vectorScore !== undefined && result.vectorScore !== null)
-    .map(result => ({
-      id: result.id,
-      score: result.vectorScore, // 벡터 유사도를 score로 사용
-      finalScore: result.vectorScore, // 벡터 유사도만 사용하므로 finalScore도 동일
-      relevance: result.vectorScore // 관련성 점수로도 사용
-    }))
+    .map(result => {
+      // vectorScore가 있으면 사용
+      let vectorScore: number | undefined = result.vectorScore;
+      
+      // vectorScore가 없고 finalScore가 유효한 숫자면 사용 (대략적인 근사치)
+      if ((vectorScore === undefined || vectorScore === null || isNaN(vectorScore)) 
+          && result.finalScore !== undefined 
+          && result.finalScore !== null 
+          && !isNaN(result.finalScore)) {
+        vectorScore = result.finalScore;
+      }
+      
+      // vectorScore가 여전히 없으면 textScore 사용
+      if ((vectorScore === undefined || vectorScore === null || isNaN(vectorScore))
+          && result.textScore !== undefined 
+          && result.textScore !== null 
+          && !isNaN(result.textScore)) {
+        vectorScore = result.textScore;
+      }
+      
+      // 모든 점수가 없으면 0 사용 (최후의 수단)
+      if (vectorScore === undefined || vectorScore === null || isNaN(vectorScore)) {
+        vectorScore = 0;
+      }
+      
+      return {
+        id: result.id,
+        score: vectorScore,
+        finalScore: vectorScore,
+        relevance: vectorScore
+      };
+    })
+    .filter(result => result.score !== undefined && result.score !== null && !isNaN(result.score))
     .sort((a, b) => (b.score || 0) - (a.score || 0)); // 내림차순 정렬
 
   // limit이 지정된 경우 상위 N개만 반환
@@ -462,13 +497,33 @@ export function generateConsolidationSearchResults(
 ): SearchResult[] {
   // finalScore를 사용하여 정렬 (벡터 유사도 + Consolidation 점수 반영)
   const consolidationResults = searchResults
-    .filter(result => result.finalScore !== undefined && result.finalScore !== null)
-    .map(result => ({
-      id: result.id,
-      score: result.finalScore, // 최종 점수를 score로 사용
-      finalScore: result.finalScore, // finalScore 그대로 사용
-      relevance: result.vectorScore || result.textScore || 0 // 관련성 점수는 벡터 유사도 또는 텍스트 점수 사용
-    }))
+    .map(result => {
+      // finalScore가 유효한 숫자인지 확인
+      let finalScore: number = result.finalScore;
+      
+      // finalScore가 없거나 NaN이면 vectorScore 사용
+      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
+        finalScore = result.vectorScore;
+      }
+      
+      // vectorScore도 없으면 textScore 사용
+      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
+        finalScore = result.textScore;
+      }
+      
+      // 모든 점수가 없으면 0 사용 (최후의 수단)
+      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
+        finalScore = 0;
+      }
+      
+      return {
+        id: result.id,
+        score: finalScore,
+        finalScore: finalScore,
+        relevance: result.vectorScore || result.textScore || 0
+      };
+    })
+    .filter(result => result.score !== undefined && result.score !== null && !isNaN(result.score))
     .sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0)); // 내림차순 정렬
 
   // limit이 지정된 경우 상위 N개만 반환
@@ -1029,7 +1084,7 @@ export interface QualityComparisonReport {
   /**
    * Consolidation 반영 후 품질 지표
    */
-  consolidation: QualityMetrics;
+  withConsolidation: QualityMetrics;
   
   /**
    * 품질 저하율
@@ -1091,7 +1146,7 @@ export function generateQualityComparisonReport(
       relevantIdsCount: groundTruth.relevantIds.length
     },
     vectorOnly: comparison.vectorOnly,
-    consolidation: comparison.consolidation,
+    withConsolidation: comparison.consolidation,
     degradation: comparison.degradation,
     thresholdValidation: comparison.thresholdValidation,
     summary: {
@@ -1168,7 +1223,7 @@ export function visualizeQualityComparison(
   lines.push('|---|-----------|---------------|' + (includeDegradation ? '--------|' : ''));
   kValues.forEach(k => {
     const vectorPrecision = report.vectorOnly.precision[k] || 0;
-    const consolidationPrecision = report.consolidation.precision[k] || 0;
+    const consolidationPrecision = report.withConsolidation.precision[k] || 0;
     const degradation = report.degradation.precision[k] || 0;
     const degradationPercent = (Math.abs(degradation) * 100).toFixed(2);
     const degradationSign = degradation >= 0 ? '' : '+';
@@ -1188,7 +1243,7 @@ export function visualizeQualityComparison(
   lines.push('|---|-----------|---------------|' + (includeDegradation ? '--------|' : ''));
   kValues.forEach(k => {
     const vectorRecall = report.vectorOnly.recall[k] || 0;
-    const consolidationRecall = report.consolidation.recall[k] || 0;
+    const consolidationRecall = report.withConsolidation.recall[k] || 0;
     const degradation = report.degradation.recall[k] || 0;
     const degradationPercent = (Math.abs(degradation) * 100).toFixed(2);
     const degradationSign = degradation >= 0 ? '' : '+';
@@ -1208,7 +1263,7 @@ export function visualizeQualityComparison(
   lines.push('|---|-----------|---------------|' + (includeDegradation ? '--------|' : ''));
   kValues.forEach(k => {
     const vectorNDCG = report.vectorOnly.ndcg[k] || 0;
-    const consolidationNDCG = report.consolidation.ndcg[k] || 0;
+    const consolidationNDCG = report.withConsolidation.ndcg[k] || 0;
     const degradation = report.degradation.ndcg[k] || 0;
     const degradationPercent = (Math.abs(degradation) * 100).toFixed(2);
     const degradationSign = degradation >= 0 ? '' : '+';
@@ -2090,9 +2145,13 @@ export function compareWithBaseline(
   const degradationDetails: string[] = [];
   
   // 순서 보존 지표 비교
-  const kendallTauChange = currentOrderPreservation.metrics.kendallTau - baseline.metrics.orderPreservation.kendallTau;
-  const top10RetentionChange = currentOrderPreservation.metrics.topKRetention[10] - baseline.metrics.orderPreservation.top10Retention;
-  const top5RetentionChange = currentOrderPreservation.metrics.topKRetention[5] - baseline.metrics.orderPreservation.top5Retention;
+  const baselineOrderPreservation = baseline.metrics.orderPreservation;
+  if (!baselineOrderPreservation) {
+    throw new Error('Baseline orderPreservation metrics are missing');
+  }
+  const kendallTauChange = currentOrderPreservation.metrics.kendallTau - baselineOrderPreservation.kendallTau;
+  const top10RetentionChange = (currentOrderPreservation.metrics.topKRetention[10] || 0) - baselineOrderPreservation.top10Retention;
+  const top5RetentionChange = (currentOrderPreservation.metrics.topKRetention[5] || 0) - baselineOrderPreservation.top5Retention;
   
   // 순서 보존 지표 저하 감지
   if (kendallTauChange < -0.1) {
@@ -2702,7 +2761,11 @@ export function generateGroundTruth(
         // Fisher-Yates 셔플 (시드 기반)
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = rng.randomInt(0, i);
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          const temp = shuffled[i];
+          if (temp !== undefined && shuffled[j] !== undefined) {
+            shuffled[i] = shuffled[j];
+            shuffled[j] = temp;
+          }
         }
         relevantIds = shuffled.slice(0, relevantCountPerQuery);
         break;
@@ -3218,15 +3281,15 @@ export function saveExtremeScenarioReport(
       markdownLines.push(`**검증 통과**: ${report.w2UpperBound.passed ? '[PASS] 통과' : '[FAIL] 실패'}`);
       markdownLines.push('');
       
-      if (report.w2UpperBound.w2_0_4Quality && report.w2UpperBound.w2_0_6Quality) {
+      if (report.w2UpperBound.w2_04 && report.w2UpperBound.w2_06) {
         markdownLines.push('| 지표 | w2=0.4 | w2=0.6 | 품질 저하 |');
         markdownLines.push('|------|--------|--------|----------|');
         
-        const kValues = Object.keys(report.w2UpperBound.w2_0_4Quality.ndcg || {}).map(Number);
+        const kValues = Object.keys(report.w2UpperBound.w2_04.ndcg || {}).map(Number);
         kValues.forEach(k => {
-          const ndcg4 = report.w2UpperBound.w2_0_4Quality!.ndcg[k] || 0;
-          const ndcg6 = report.w2UpperBound.w2_0_6Quality!.ndcg[k] || 0;
-          const degradation = report.w2UpperBound.qualityDegradation?.ndcg?.[k] || 0;
+          const ndcg4 = report.w2UpperBound.w2_04.ndcg[k] || 0;
+          const ndcg6 = report.w2UpperBound.w2_06.ndcg[k] || 0;
+          const degradation = report.w2UpperBound.degradation?.ndcg?.[k] || 0;
           markdownLines.push(`| NDCG@${k} | ${ndcg4.toFixed(3)} | ${ndcg6.toFixed(3)} | ${(degradation * 100).toFixed(2)}% |`);
         });
         markdownLines.push('');

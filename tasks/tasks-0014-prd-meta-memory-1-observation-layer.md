@@ -1,0 +1,193 @@
+# tasks-0014-prd-meta-memory-1-observation-layer.md
+
+## Relevant Files
+
+- `src/infrastructure/database/database/migration/migrations/007-meta-memory-observation-fields.sql` - Meta-Memory 관찰 필드 추가 마이그레이션 스크립트
+- `src/infrastructure/database/database/migration/migrations/007-meta-memory-observation-fields.ts` - Meta-Memory 관찰 필드 추가 마이그레이션 TypeScript 구현
+- `src/infrastructure/database/database/migration/migrations/007-meta-memory-observation-fields.spec.ts` - 마이그레이션 단위 테스트
+- `src/domains/monitoring/services/memory-observation-service.ts` - 기억 단위 관찰 지표 수집 서비스
+- `src/domains/monitoring/services/memory-observation-service.spec.ts` - MemoryObservationService 단위 테스트
+- `src/domains/monitoring/services/tool-observation-service.ts` - 도구 단위 관찰 지표 수집 서비스
+- `src/domains/monitoring/services/tool-observation-service.spec.ts` - ToolObservationService 단위 테스트
+- `src/domains/memory/tools/remember-tool.ts` - Remember Tool에 관찰 데이터 수집 로직 통합
+- `src/domains/memory/tools/recall-tool.ts` - Recall Tool에 관찰 데이터 수집 로직 통합
+- `src/domains/memory/tools/__tests__/remember-tool.spec.ts` - Remember Tool 관찰 통합 테스트
+- `src/domains/memory/tools/__tests__/recall-tool.spec.ts` - Recall Tool 관찰 통합 테스트
+- `src/domains/monitoring/services/memory-stats-service.ts` - 기억 단위 통계 조회 서비스
+- `src/domains/monitoring/services/memory-stats-service.spec.ts` - MemoryStatsService 단위 테스트
+- `src/domains/monitoring/services/tool-stats-service.ts` - 도구 단위 통계 조회 서비스
+- `src/domains/monitoring/services/tool-stats-service.spec.ts` - ToolStatsService 단위 테스트
+- `src/domains/monitoring/tools/get-memory-stats-tool.ts` - 기억 통계 조회 MCP Tool
+- `src/domains/monitoring/tools/get-tool-stats-tool.ts` - 도구 통계 조회 MCP Tool
+- `src/domains/monitoring/tools/__tests__/get-memory-stats-tool.spec.ts` - GetMemoryStatsTool 단위 테스트
+- `src/domains/monitoring/tools/__tests__/get-tool-stats-tool.spec.ts` - GetToolStatsTool 단위 테스트
+- `src/infrastructure/consolidation-score-service.ts` - Consolidation Score 시스템 통합 (기존 파일 수정)
+- `src/domains/monitoring/services/error-logging-service.ts` - Error Logging 시스템 통합 (기존 파일 수정)
+- `src/infrastructure/reflexion-worker.ts` - Reflexion Worker 통합 (기존 파일 수정)
+
+### Notes
+
+- 단위 테스트는 각 서비스/도구 파일과 같은 디렉토리에 `.spec.ts` 확장자로 배치합니다.
+- 마이그레이션 파일은 `src/infrastructure/database/database/migration/migrations/` 디렉토리에 배치합니다.
+- 관찰 서비스는 `src/domains/monitoring/services/` 디렉토리에 배치합니다.
+- MCP Tool은 `src/domains/monitoring/tools/` 디렉토리에 배치합니다.
+- `npm test` 명령으로 모든 테스트를 실행할 수 있습니다.
+
+## Tasks
+
+- [ ] 1.0 데이터베이스 스키마 확장 및 마이그레이션
+  - [ ] 1.1 `007-meta-memory-observation-fields.sql` 마이그레이션 SQL 스크립트 작성
+    - `memory_item` 테이블에 `last_recalled_at` 필드 추가 (TIMESTAMP, NULL 허용)
+    - `memory_item` 테이블에 `avg_confidence` 필드 추가 (REAL, NULL 허용) - 회상 결과의 평균 신뢰도
+    - `memory_item` 테이블에 `success_count` 필드 추가 (INTEGER, DEFAULT 0) - 성공 횟수 집계
+    - `memory_item` 테이블에 `failure_count` 필드 추가 (INTEGER, DEFAULT 0) - 실패 횟수 집계
+    - `memory_item` 테이블에 `failure_reasons` 필드 추가 (TEXT, JSON 형식) - 실패 원인 분류 집계
+    - 인덱스 생성: `idx_memory_item_last_recalled_at` (last_recalled_at DESC)
+    - 인덱스 생성: `idx_memory_item_avg_confidence` (avg_confidence DESC)
+  - [ ] 1.2 `007-meta-memory-observation-fields.ts` 마이그레이션 TypeScript 구현
+    - `MetaMemoryObservationFieldsMigration` 클래스 생성
+    - `Migration` 인터페이스 구현 (version: '7.0', name, description)
+    - `validateBefore`: memory_item 테이블 존재 확인, 기존 필드 중복 확인
+    - `up`: SQL 스크립트 실행, 기존 데이터 초기화 (NULL 값 처리)
+    - `down`: 롤백 로직 구현 (필드 제거, 인덱스 삭제)
+    - `validateAfter`: 필드 추가 확인, 인덱스 생성 확인
+  - [ ] 1.3 `007-meta-memory-observation-fields.spec.ts` 마이그레이션 단위 테스트 작성
+    - Given: 테스트 데이터베이스 초기화
+    - When: 마이그레이션 실행
+    - Then: 필드 추가 확인, 인덱스 생성 확인, 롤백 테스트
+  - [ ] 1.4 (선택적) Level 2 이벤트 로그 테이블 생성 (초기 구현에서는 선택적)
+    - `memory_observation` 테이블 생성 (memory_id, observation_type, observation_data JSON, observed_at)
+    - `tool_observation` 테이블 생성 (tool_name, observation_type, observation_data JSON, observed_at)
+    - 인덱스 생성: `idx_memory_observation_memory_id`, `idx_memory_observation_observed_at`
+    - 인덱스 생성: `idx_tool_observation_tool_name`, `idx_tool_observation_observed_at`
+
+- [ ] 2.0 관찰 데이터 수집 서비스 구현
+  - [ ] 2.1 `MemoryObservationService` 클래스 생성 (`src/domains/monitoring/services/memory-observation-service.ts`)
+    - 기억 회상 통계 수집 메서드: `recordRecall(memoryId, confidence?, success?)`
+      - `recall_count` 증가
+      - `last_recalled_at` 업데이트
+      - `avg_confidence` 계산 및 업데이트 (회상 결과의 평균 신뢰도)
+      - 성공/실패 집계 (`success_count`, `failure_count`)
+    - 기억 저장 통계 수집 메서드: `recordRemember(memoryId, success?, failureReason?)`
+      - 성공/실패 집계
+      - 실패 원인 분류 및 `failure_reasons` JSON 업데이트
+    - 기억 접근 통계 수집 메서드: `recordAccess(memoryId)`
+      - `last_accessed_at` 업데이트
+    - 배치 집계 메서드: `aggregateStats(memoryIds?)` - 타입별, 태그별 통계 계산
+  - [ ] 2.2 `MemoryObservationService.spec.ts` 단위 테스트 작성
+    - Given: 테스트 데이터베이스 및 서비스 초기화
+    - When: 각 메서드 호출
+    - Then: 데이터베이스 필드 업데이트 확인, 집계 결과 검증
+  - [ ] 2.3 `ToolObservationService` 클래스 생성 (`src/domains/monitoring/services/tool-observation-service.ts`)
+    - 도구 호출 통계 수집 메서드: `recordToolCall(toolName, success?, executionTimeMs?, error?)`
+      - 도구별 호출 횟수 집계 (메모리 기반 또는 데이터베이스 집계)
+      - 도구별 성공/실패 통계 집계
+      - 도구별 평균 실행 시간 집계
+    - 도구 에러 통계 수집 메서드: `recordToolError(toolName, errorType, errorMessage)`
+      - 에러 타입별 발생 빈도 집계
+      - 도구별 에러 발생 패턴 집계
+    - 통계 조회 메서드: `getToolStats(toolName?, timeRange?)` - 도구별 통계 조회
+  - [ ] 2.4 `ToolObservationService.spec.ts` 단위 테스트 작성
+    - Given: 테스트 서비스 초기화
+    - When: 도구 호출/에러 기록
+    - Then: 통계 집계 결과 확인
+
+- [ ] 3.0 MCP Tool에 관찰 데이터 수집 통합
+  - [ ] 3.1 `RememberTool`에 관찰 데이터 수집 로직 통합
+    - `handle` 메서드에서 성공 시 `MemoryObservationService.recordRemember()` 호출
+    - 실패 시 실패 원인 분류 및 `MemoryObservationService.recordRemember()` 호출 (success=false)
+    - `ToolObservationService.recordToolCall()` 호출 (성공/실패, 실행 시간 포함)
+  - [ ] 3.2 `RememberTool` 관찰 통합 테스트 작성 (`__tests__/remember-tool.spec.ts` 확장)
+    - Given: 관찰 서비스 모킹 및 RememberTool 초기화
+    - When: remember Tool 호출 (성공/실패 시나리오)
+    - Then: 관찰 서비스 호출 확인, 데이터베이스 필드 업데이트 확인
+  - [ ] 3.3 `RecallTool`에 관찰 데이터 수집 로직 통합
+    - `handle` 메서드에서 회상 성공 시 각 기억에 대해 `MemoryObservationService.recordRecall()` 호출
+      - 회상된 각 기억의 `recall_count` 증가
+      - `last_recalled_at` 업데이트
+      - 관련성 점수를 `confidence`로 사용하여 `avg_confidence` 업데이트
+    - 회상 결과 품질 기록 (관련성 점수 기반)
+    - `ToolObservationService.recordToolCall()` 호출
+  - [ ] 3.4 `RecallTool` 관찰 통합 테스트 작성 (`__tests__/recall-tool.spec.ts` 확장)
+    - Given: 관찰 서비스 모킹 및 RecallTool 초기화
+    - When: recall Tool 호출 (다양한 시나리오)
+    - Then: 관찰 서비스 호출 확인, recall_count 증가 확인, avg_confidence 업데이트 확인
+  - [ ] 3.5 다른 Tool들에 관찰 데이터 수집 통합 (forget, pin, unpin 등)
+    - `ForgetTool`: `ToolObservationService.recordToolCall()` 호출
+    - `PinTool`: `ToolObservationService.recordToolCall()` 호출
+    - `UnpinTool`: `ToolObservationService.recordToolCall()` 호출
+    - 각 Tool의 성공/실패 및 실행 시간 기록
+
+- [ ] 4.0 관찰 데이터 조회 및 통계 기능 구현
+  - [ ] 4.1 `MemoryStatsService` 클래스 생성 (`src/domains/monitoring/services/memory-stats-service.ts`)
+    - 기억별 관찰 지표 조회 메서드: `getMemoryStats(memoryId)`
+      - 회상 횟수 (`recall_count`)
+      - 마지막 회상 시간 (`last_recalled_at`)
+      - 마지막 접근 시간 (`last_accessed_at`)
+      - 평균 신뢰도 (`avg_confidence`)
+      - 성공/실패 통계 (`success_count`, `failure_count`, `failure_reasons`)
+    - 집계 통계 조회 메서드: `getAggregateStats(filters?)`
+      - 타입별 회상 빈도 통계
+      - 태그별 회상 빈도 통계
+      - 시간대별 회상 패턴 통계 (통계적 요약)
+  - [ ] 4.2 `MemoryStatsService.spec.ts` 단위 테스트 작성
+    - Given: 테스트 데이터 및 서비스 초기화
+    - When: 통계 조회 메서드 호출
+    - Then: 정확한 통계 결과 확인
+  - [ ] 4.3 `ToolStatsService` 클래스 생성 (`src/domains/monitoring/services/tool-stats-service.ts`)
+    - 도구별 사용 통계 조회 메서드: `getToolStats(toolName?, timeRange?)`
+      - 도구별 호출 횟수 (집계)
+      - 도구별 성공률 (집계)
+      - 도구별 평균 실행 시간 (집계)
+    - 도구별 에러 통계 조회 메서드: `getToolErrorStats(toolName?, timeRange?)`
+      - 에러 타입별 발생 빈도 (집계)
+      - 에러 해결 통계적 요약
+  - [ ] 4.4 `ToolStatsService.spec.ts` 단위 테스트 작성
+    - Given: 테스트 데이터 및 서비스 초기화
+    - When: 통계 조회 메서드 호출
+    - Then: 정확한 통계 결과 확인
+  - [ ] 4.5 `GetMemoryStatsTool` MCP Tool 구현 (`src/domains/monitoring/tools/get-memory-stats-tool.ts`)
+    - BaseTool 상속, `get_memory_stats` 이름
+    - 입력 파라미터: `memory_id?` (선택적, 없으면 집계 통계), `filters?` (타입, 태그 등)
+    - `MemoryStatsService`를 사용하여 통계 조회
+    - 결과를 JSON 형식으로 반환
+  - [ ] 4.6 `GetMemoryStatsTool.spec.ts` 단위 테스트 작성
+    - Given: 테스트 데이터 및 Tool 초기화
+    - When: Tool 호출
+    - Then: 통계 결과 반환 확인
+  - [ ] 4.7 `GetToolStatsTool` MCP Tool 구현 (`src/domains/monitoring/tools/get-tool-stats-tool.ts`)
+    - BaseTool 상속, `get_tool_stats` 이름
+    - 입력 파라미터: `tool_name?` (선택적, 없으면 전체 통계), `time_range?` (선택적)
+    - `ToolStatsService`를 사용하여 통계 조회
+    - 결과를 JSON 형식으로 반환
+  - [ ] 4.8 `GetToolStatsTool.spec.ts` 단위 테스트 작성
+    - Given: 테스트 데이터 및 Tool 초기화
+    - When: Tool 호출
+    - Then: 통계 결과 반환 확인
+  - [ ] 4.9 통계 리포트 생성 기능 구현 (선택적)
+    - `generateStatsReport(format: 'markdown' | 'json')` 메서드 구현
+    - 기억별, 도구별 주요 통계 요약
+    - Markdown 형식 리포트 생성
+
+- [ ] 5.0 기존 시스템과의 통합
+  - [ ] 5.1 Consolidation Score 시스템 통합
+    - `ConsolidationScoreService`에서 관찰 데이터 활용 확인
+      - `recall_count`, `last_accessed_at` 필드는 이미 활용 중 (확인만)
+    - Consolidation Score 계산 시 관찰 데이터 수집 로직 추가 (필요 시)
+    - `ConsolidationScoreWorker`에서 관찰 데이터와의 일관성 확인
+  - [ ] 5.2 Error Logging 시스템 통합
+    - `ErrorLoggingService`에 관찰 데이터 수집 로직 추가
+      - 에러 발생 시 `ToolObservationService.recordToolError()` 호출
+      - 에러 타입별 통계 수집
+    - 에러 해결 시 관찰 데이터 업데이트 (필요 시)
+  - [ ] 5.3 Reflexion Worker 통합
+    - `ReflexionWorker`에서 실패 이벤트를 관찰 데이터로 기록
+      - 실패 이벤트 발생 시 `MemoryObservationService.recordRemember()` 또는 `recordRecall()` 호출 (success=false)
+      - 실패 원인 분류 및 기록
+    - 성공/실패 패턴 분석을 위한 관찰 데이터 활용 (기록만, 분석은 Meta-Memory(2)에서)
+  - [ ] 5.4 서비스 초기화 및 의존성 주입
+    - `src/server/bootstrap.ts`에서 `MemoryObservationService`, `ToolObservationService` 초기화
+    - `ServerServices` 인터페이스에 관찰 서비스 추가
+    - `ToolContext`에 관찰 서비스 주입
+    - `src/tools/index.ts`에서 새로운 Tool 등록 (`get_memory_stats`, `get_tool_stats`)
+

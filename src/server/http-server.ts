@@ -28,6 +28,7 @@ import { createToolsRouter } from './routes/tools.routes.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
 import { createMcpRouter } from './routes/mcp.routes.js';
+import { createQualityRouter } from './routes/quality.routes.js';
 // Phase 0: 공통 미들웨어 import
 import { createServiceInjector, createToolContextMiddleware, errorHandler } from './middleware/index.js';
 
@@ -167,12 +168,14 @@ async function initializeServer() {
     adminRouter = createAdminRouter(db);
     apiRouter = createApiRouter(db, serverServices);
     mcpRouter = createMcpRouter(db, serverServices, transports);
+    const qualityRouter = createQualityRouter(db);
     
     // 라우터 등록
     // ToolContext 미들웨어는 /tools 라우터에만 적용 (도구 실행 시 필요)
     app.use('/tools', createToolContextMiddleware, toolsRouter);
     app.use('/admin', adminRouter);
     app.use('/api', apiRouter);
+    app.use('/api/v1/quality', qualityRouter);
     app.use('/', mcpRouter); // /mcp, /messages는 루트에 등록
     
     // Phase 0: 공통 에러 핸들러 미들웨어 (모든 라우터 이후에 적용)
