@@ -429,14 +429,41 @@ export function generateVectorOnlySearchResults(
   limit?: number
 ): SearchResult[] {
   // 벡터 유사도가 있는 결과만 필터링하고, vectorScore로 정렬
+  // vectorScore가 없으면 textScore를 사용하거나, finalScore에서 textScore 부분을 제거
   const vectorOnlyResults = searchResults
-    .filter(result => result.vectorScore !== undefined && result.vectorScore !== null)
-    .map(result => ({
-      id: result.id,
-      score: result.vectorScore, // 벡터 유사도를 score로 사용
-      finalScore: result.vectorScore, // 벡터 유사도만 사용하므로 finalScore도 동일
-      relevance: result.vectorScore // 관련성 점수로도 사용
-    }))
+    .map(result => {
+      // vectorScore가 있으면 사용
+      let vectorScore: number | undefined = result.vectorScore;
+      
+      // vectorScore가 없고 finalScore가 유효한 숫자면 사용 (대략적인 근사치)
+      if ((vectorScore === undefined || vectorScore === null || isNaN(vectorScore)) 
+          && result.finalScore !== undefined 
+          && result.finalScore !== null 
+          && !isNaN(result.finalScore)) {
+        vectorScore = result.finalScore;
+      }
+      
+      // vectorScore가 여전히 없으면 textScore 사용
+      if ((vectorScore === undefined || vectorScore === null || isNaN(vectorScore))
+          && result.textScore !== undefined 
+          && result.textScore !== null 
+          && !isNaN(result.textScore)) {
+        vectorScore = result.textScore;
+      }
+      
+      // 모든 점수가 없으면 0 사용 (최후의 수단)
+      if (vectorScore === undefined || vectorScore === null || isNaN(vectorScore)) {
+        vectorScore = 0;
+      }
+      
+      return {
+        id: result.id,
+        score: vectorScore,
+        finalScore: vectorScore,
+        relevance: vectorScore
+      };
+    })
+    .filter(result => result.score !== undefined && result.score !== null && !isNaN(result.score))
     .sort((a, b) => (b.score || 0) - (a.score || 0)); // 내림차순 정렬
 
   // limit이 지정된 경우 상위 N개만 반환
@@ -470,13 +497,33 @@ export function generateConsolidationSearchResults(
 ): SearchResult[] {
   // finalScore를 사용하여 정렬 (벡터 유사도 + Consolidation 점수 반영)
   const consolidationResults = searchResults
-    .filter(result => result.finalScore !== undefined && result.finalScore !== null)
-    .map(result => ({
-      id: result.id,
-      score: result.finalScore, // 최종 점수를 score로 사용
-      finalScore: result.finalScore, // finalScore 그대로 사용
-      relevance: result.vectorScore || result.textScore || 0 // 관련성 점수는 벡터 유사도 또는 텍스트 점수 사용
-    }))
+    .map(result => {
+      // finalScore가 유효한 숫자인지 확인
+      let finalScore: number = result.finalScore;
+      
+      // finalScore가 없거나 NaN이면 vectorScore 사용
+      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
+        finalScore = result.vectorScore;
+      }
+      
+      // vectorScore도 없으면 textScore 사용
+      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
+        finalScore = result.textScore;
+      }
+      
+      // 모든 점수가 없으면 0 사용 (최후의 수단)
+      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
+        finalScore = 0;
+      }
+      
+      return {
+        id: result.id,
+        score: finalScore,
+        finalScore: finalScore,
+        relevance: result.vectorScore || result.textScore || 0
+      };
+    })
+    .filter(result => result.score !== undefined && result.score !== null && !isNaN(result.score))
     .sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0)); // 내림차순 정렬
 
   // limit이 지정된 경우 상위 N개만 반환

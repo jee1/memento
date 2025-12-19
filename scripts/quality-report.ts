@@ -35,6 +35,7 @@ interface CliOptions {
   from?: string;
   to?: string;
   output?: string;
+  skipMeasure?: boolean; // 측정 건너뛰기 옵션
 }
 
 /**
@@ -67,6 +68,8 @@ function parseArgs(): CliOptions {
     } else if (arg === '--output' && args[i + 1]) {
       options.output = args[i + 1];
       i++;
+    } else if (arg === '--skip-measure') {
+      options.skipMeasure = true;
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -93,6 +96,7 @@ function printHelp(): void {
   --from <iso8601>         시작 시간 (ISO 8601 형식, 예: 2024-01-01T00:00:00Z)
   --to <iso8601>           종료 시간 (ISO 8601 형식, 예: 2024-12-31T23:59:59Z)
   --output <file>          출력 파일 경로 (지정하지 않으면 콘솔에 출력)
+  --skip-measure           품질 측정 건너뛰기 (기존 데이터로 리포트만 생성)
   --help, -h                도움말 출력
 
 예제:
@@ -123,6 +127,35 @@ async function main(): Promise<void> {
       from: options.from,
       to: options.to
     };
+
+    // 품질 측정 수행 (--skip-measure 옵션이 없는 경우)
+    if (!options.skipMeasure) {
+      console.log('🔍 품질 측정 수행 중...');
+      const context = options.context || 'default';
+      const namespaces = options.namespace ? [options.namespace] : undefined;
+      
+      try {
+        const measurementResult = await qualityService.measureQuality({
+          measurement_type: 'manual',
+          context,
+          namespaces,
+          record: true
+        });
+
+        console.log(`✅ 품질 측정 완료`);
+        console.log(`   전체 상태: ${measurementResult.overall_status === 'pass' ? '✅ PASS' : measurementResult.overall_status === 'warning' ? '⚠️ WARNING' : '❌ FAIL'}`);
+        console.log(`   측정된 네임스페이스: ${measurementResult.namespaces.join(', ') || 'all'}`);
+        console.log(`   측정 시간: ${measurementResult.measured_at}`);
+        console.log('');
+      } catch (error) {
+        console.warn('⚠️  품질 측정 중 오류 발생:', error instanceof Error ? error.message : String(error));
+        console.warn('   기존 데이터로 리포트를 생성합니다.');
+        console.log('');
+      }
+    } else {
+      console.log('⏭️  품질 측정 건너뛰기 (기존 데이터 사용)');
+      console.log('');
+    }
 
     // 리포트 생성
     console.log('📊 품질 리포트 생성 중...');

@@ -24,6 +24,8 @@ import {
   calculateKendallTau,
   generateOrderPreservationReport,
   loadGroundTruth,
+  generateVectorOnlySearchResults,
+  generateConsolidationSearchResults,
   type SearchResultPair,
   type OrderPreservationReport
 } from '../../test/helpers/vector-search-quality-metrics.js';
@@ -364,14 +366,102 @@ export class QualityMetricsCollector {
       // MRR 계산
       metrics.mrr = this.calculateMRR(queryResults, groundTruths);
 
+      // searchResultPairs 자동 생성 (제공되지 않은 경우)
+      let searchResultPairs = options?.searchResultPairs;
+      if (!searchResultPairs || searchResultPairs.length === 0) {
+        try {
+          const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+          searchResultPairs = [];
+
+          for (const groundTruth of groundTruths) {
+            try {
+              const searchQuery: HybridSearchQuery = {
+                query: groundTruth.queryId,
+                limit: 20 // 충분한 결과 수 확보
+              };
+
+              const searchResult = await searchEngine.search(this.db, searchQuery);
+              
+              // 벡터-only 결과 생성
+              const vectorOnlyResults = generateVectorOnlySearchResults(
+                searchResult.items,
+                20
+              );
+
+              // Consolidation 반영 후 결과 생성
+              const consolidationResults = generateConsolidationSearchResults(
+                searchResult.items,
+                20
+              );
+
+              // 결과가 충분한 경우에만 추가
+              if (vectorOnlyResults.length >= 2 && consolidationResults.length >= 2) {
+                searchResultPairs.push({
+                  vectorOnly: vectorOnlyResults,
+                  withConsolidation: consolidationResults
+                });
+              } else {
+                logger.warn('검색 결과 쌍 생성 실패: 결과 부족', {
+                  context,
+                  query: groundTruth.queryId,
+                  searchResultCount: searchResult.items.length,
+                  vectorOnlyCount: vectorOnlyResults.length,
+                  consolidationCount: consolidationResults.length,
+                  reason: vectorOnlyResults.length < 2 
+                    ? 'vectorOnlyResults 부족' 
+                    : consolidationResults.length < 2 
+                    ? 'consolidationResults 부족' 
+                    : '알 수 없음'
+                });
+              }
+
+              logger.debug('검색 결과 쌍 생성 완료', {
+                context,
+                query: groundTruth.queryId,
+                searchResultCount: searchResult.items.length,
+                vectorOnlyCount: vectorOnlyResults.length,
+                consolidationCount: consolidationResults.length,
+                added: vectorOnlyResults.length >= 2 && consolidationResults.length >= 2
+              });
+            } catch (error) {
+              logger.warn('검색 결과 쌍 생성 실패', {
+                context,
+                query: groundTruth.queryId,
+                error: error instanceof Error ? error.message : String(error)
+              });
+            }
+          }
+
+          if (searchResultPairs.length === 0) {
+            logger.warn('검색 결과 쌍이 생성되지 않았습니다', {
+              context,
+              groundTruthCount: groundTruths.length,
+              reason: '검색 결과가 부족하거나 vectorScore/finalScore가 없을 수 있습니다'
+            });
+          } else {
+            logger.info('검색 결과 쌍 자동 생성 완료', {
+              context,
+              pairCount: searchResultPairs.length,
+              groundTruthCount: groundTruths.length
+            });
+          }
+        } catch (error) {
+          logger.warn('검색 결과 쌍 자동 생성 실패', {
+            context,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          searchResultPairs = [];
+        }
+      }
+
       // Kendall's Tau 및 순서 보존 지표 계산
-      if (options?.searchResultPairs && options.searchResultPairs.length > 0) {
+      if (searchResultPairs && searchResultPairs.length > 0) {
         let sumKendallTau = 0;
         let sumTop5Retention = 0;
         let sumTop10Retention = 0;
         let validPairs = 0;
 
-        for (const pair of options.searchResultPairs) {
+        for (const pair of searchResultPairs) {
           const vectorIds = pair.vectorOnly.map(r => r.id);
           const consolidationIds = pair.withConsolidation.map(r => r.id);
           
@@ -405,12 +495,20 @@ export class QualityMetricsCollector {
         metrics.kendalls_tau = 0;
         metrics.top_5_retention = 0;
         metrics.top_10_retention = 0;
+        
+        logger.warn('Kendall\'s Tau 계산 불가: searchResultPairs가 비어있습니다', {
+          context,
+          groundTruthCount: groundTruths.length,
+          reason: '검색 결과가 부족하거나 vectorScore/finalScore가 없을 수 있습니다'
+        });
       }
 
       logger.info('검색 품질 지표 수집 완료', {
         context,
         metrics_count: Object.keys(metrics).length,
-        ground_truth_count: groundTruths.length
+        ground_truth_count: groundTruths.length,
+        kendalls_tau: metrics.kendalls_tau,
+        searchResultPairsCount: searchResultPairs?.length || 0
       });
     } else {
       // Ground Truth가 없으면 기본값 반환
@@ -469,16 +567,53 @@ export class QualityMetricsCollector {
       
       /**
        * 추출된 관계 목록 (선택적)
-       * 제공되면 실제 측정을 수행합니다.
+       * 제공되지 않으면 데이터베이스에서 자동 조회 시도
        */
       extractedRelations?: ExtractedRelation[];
     }
   ): Promise<CollectedMetrics> {
     const metrics: Record<string, number> = {};
 
+    // extractedRelations 자동 조회 (제공되지 않은 경우)
+    let extractedRelations = options?.extractedRelations;
+    if (!extractedRelations || extractedRelations.length === 0) {
+      try {
+        const relationsResult = this.db.prepare(`
+          SELECT source_id, target_id, relation_type, confidence
+          FROM memory_relation
+          LIMIT 1000
+        `).all() as Array<{
+          source_id: string;
+          target_id: string;
+          relation_type: string;
+          confidence: number | null;
+        }>;
+
+        extractedRelations = relationsResult.map(r => ({
+          source_id: r.source_id,
+          target_id: r.target_id,
+          relation_type: r.relation_type as any,
+          confidence: r.confidence || 0
+        }));
+
+        if (extractedRelations.length > 0) {
+          logger.info('추출된 관계 자동 조회 완료', {
+            context,
+            count: extractedRelations.length
+          });
+        }
+      } catch (error) {
+        logger.warn('추출된 관계 조회 실패', {
+          context,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        extractedRelations = [];
+      }
+    }
+
     // 예상 관계와 추출된 관계가 제공된 경우 실제 측정 수행
-    if (options?.expectedRelations && options?.extractedRelations) {
-      const { expectedRelations, extractedRelations } = options;
+    if (options?.expectedRelations && extractedRelations && extractedRelations.length > 0) {
+      const expectedRelations = options.expectedRelations;
       const validator = new RelationQualityValidator();
 
       // 전체 품질 메트릭 계산
@@ -543,9 +678,18 @@ export class QualityMetricsCollector {
       metrics.false_negatives = 0;
       metrics.confidence_compliance_rate = 0;
 
+      const hasExtractedRelations = extractedRelations && extractedRelations.length > 0;
+      const hasExpectedRelations = options?.expectedRelations && options.expectedRelations.length > 0;
+
       logger.info('관계 추출 품질 지표 수집 완료 (기본값)', {
         context,
-        note: '예상 관계나 추출된 관계가 없어 기본값을 반환했습니다. 실제 측정을 위해서는 예상 관계와 추출된 관계가 필요합니다.'
+        extracted_relations_count: extractedRelations?.length || 0,
+        expected_relations_count: options?.expectedRelations?.length || 0,
+        note: hasExtractedRelations && !hasExpectedRelations
+          ? '추출된 관계는 있지만 Ground Truth가 없어 precision/recall을 계산할 수 없습니다.'
+          : !hasExtractedRelations && hasExpectedRelations
+          ? 'Ground Truth는 있지만 추출된 관계가 없어 측정할 수 없습니다.'
+          : '예상 관계나 추출된 관계가 없어 기본값을 반환했습니다. 실제 측정을 위해서는 예상 관계와 추출된 관계가 필요합니다.'
       });
 
       return {
@@ -554,8 +698,14 @@ export class QualityMetricsCollector {
         measured_at: new Date().toISOString(),
         metrics,
         metadata: {
-          has_ground_truth: false,
-          note: '예상 관계나 추출된 관계가 없어 기본값을 반환했습니다. 실제 측정을 위해서는 예상 관계와 추출된 관계가 필요합니다.'
+          has_ground_truth: hasExpectedRelations,
+          extracted_relations_count: extractedRelations?.length || 0,
+          expected_relations_count: options?.expectedRelations?.length || 0,
+          note: hasExtractedRelations && !hasExpectedRelations
+            ? '추출된 관계는 있지만 Ground Truth가 없어 precision/recall을 계산할 수 없습니다.'
+            : !hasExtractedRelations && hasExpectedRelations
+            ? 'Ground Truth는 있지만 추출된 관계가 없어 측정할 수 없습니다.'
+            : '예상 관계나 추출된 관계가 없어 기본값을 반환했습니다. 실제 측정을 위해서는 예상 관계와 추출된 관계가 필요합니다.'
         }
       };
     }
@@ -592,10 +742,85 @@ export class QualityMetricsCollector {
   ): Promise<CollectedMetrics> {
     const metrics: Record<string, number> = {};
 
-    // 검색 결과 쌍이 제공된 경우 순서 보존 지표 계산
-    if (options?.searchResultPairs && options.searchResultPairs.length > 0) {
-      const { searchResultPairs } = options;
+    // searchResultPairs 자동 생성 (제공되지 않은 경우)
+    let searchResultPairs = options?.searchResultPairs;
+    if (!searchResultPairs || searchResultPairs.length === 0) {
+      try {
+        const groundTruths = loadGroundTruth();
+        if (groundTruths && groundTruths.length > 0) {
+          const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+          searchResultPairs = [];
 
+          for (const groundTruth of groundTruths) {
+            try {
+              const searchQuery: HybridSearchQuery = {
+                query: groundTruth.queryId,
+                limit: 20
+              };
+
+              const searchResult = await searchEngine.search(this.db, searchQuery);
+              
+              // 벡터-only 결과 생성
+              const vectorOnlyResults = generateVectorOnlySearchResults(
+                searchResult.items,
+                20
+              );
+
+              // Consolidation 반영 후 결과 생성
+              const consolidationResults = generateConsolidationSearchResults(
+                searchResult.items,
+                20
+              );
+
+              // 결과가 충분한 경우에만 추가
+              if (vectorOnlyResults.length >= 2 && consolidationResults.length >= 2) {
+                searchResultPairs.push({
+                  vectorOnly: vectorOnlyResults,
+                  withConsolidation: consolidationResults
+                });
+              } else {
+                logger.warn('검색 결과 쌍 생성 실패: 결과 부족', {
+                  context,
+                  query: groundTruth.queryId,
+                  searchResultCount: searchResult.items.length,
+                  vectorOnlyCount: vectorOnlyResults.length,
+                  consolidationCount: consolidationResults.length
+                });
+              }
+            } catch (error) {
+              logger.warn('검색 결과 쌍 생성 실패', {
+                context,
+                query: groundTruth.queryId,
+                error: error instanceof Error ? error.message : String(error)
+              });
+            }
+          }
+
+          if (searchResultPairs.length === 0) {
+            logger.warn('검색 결과 쌍이 생성되지 않았습니다', {
+              context,
+              groundTruthCount: groundTruths.length,
+              reason: '검색 결과가 부족하거나 vectorScore/finalScore가 없을 수 있습니다'
+            });
+          } else {
+            logger.info('검색 결과 쌍 자동 생성 완료', {
+              context,
+              pairCount: searchResultPairs.length,
+              groundTruthCount: groundTruths.length
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn('검색 결과 쌍 자동 생성 실패', {
+          context,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        searchResultPairs = [];
+      }
+    }
+
+    // 검색 결과 쌍이 제공된 경우 순서 보존 지표 계산
+    if (searchResultPairs && searchResultPairs.length > 0) {
       let sumKendallTau = 0;
       let sumTop5Retention = 0;
       let sumTop10Retention = 0;
