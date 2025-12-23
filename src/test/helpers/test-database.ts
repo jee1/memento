@@ -227,6 +227,12 @@ export function createTestMemory(
     tags?: string[];
     source?: string;
     reflection_notes?: string | null;
+    workflow_name?: string | null;
+    skill_name?: string | null;
+    steps?: string | null;
+    trigger_conditions?: string | null;
+    task_goal?: string | null;
+    edit_count?: number;
   }
 ): string {
   const memoryId = options.id || `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
