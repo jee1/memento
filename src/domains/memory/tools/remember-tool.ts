@@ -11,7 +11,7 @@ import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import { isMemoryItemType, type MemoryTypeRequest } from '../../../shared/types/index.js';
-import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
+import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
 import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
@@ -398,7 +398,8 @@ export class RememberTool extends BaseTool {
         throw new Error("type='core'일 때는 key와 value가 필수입니다");
       }
 
-      const coreMemoryRepository = new CoreMemoryRepository(context.db!);
+      const { createCoreMemoryRepository } = await import('../../../infrastructure/database/factories/core-memory-repository.factory.js');
+      const coreMemoryRepository = createCoreMemoryRepository(context.db!);
       const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
       const coreMemoryCache = getCoreMemoryCache();
       const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);

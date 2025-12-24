@@ -9,7 +9,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { join } from 'path';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
-import { CoreMemoryRepository } from '../../../domains/memory/repositories/core-memory-repository.js';
+import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
+import type { CoreMemoryRepository } from '../../../../domains/memory/repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../../../domains/memory/services/core-memory-cache-service.js';
 
@@ -56,7 +57,7 @@ describe('Core Memory Auto-Load Integration', () => {
     createCoreMemoryTable(db);
 
     // 서비스 초기화
-    repository = new CoreMemoryRepository(db);
+    repository = createCoreMemoryRepository(db);
     cache = new CoreMemoryCacheService();
     service = new CoreMemoryService(repository, cache);
   });

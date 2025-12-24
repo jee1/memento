@@ -8,7 +8,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider } from '../../../shared/types/index.js';
-import { CoreMemoryRepository } from '../repositories/core-memory-repository.js';
+import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
 import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
@@ -512,7 +512,8 @@ export class RecallTool extends BaseTool {
           this.logWarning('type="core"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
         }
         
-        const coreMemoryRepository = new CoreMemoryRepository(context.db!);
+        const { createCoreMemoryRepository } = await import('../../../infrastructure/database/factories/core-memory-repository.factory.js');
+        const coreMemoryRepository = createCoreMemoryRepository(context.db!);
         const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
         const coreMemoryCache = getCoreMemoryCache();
         const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
