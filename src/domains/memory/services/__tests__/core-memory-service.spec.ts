@@ -1,60 +1,114 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import Database from 'better-sqlite3';
 import { CoreMemoryService } from '../core-memory-service.js';
-import { CoreMemoryRepository } from '../../repositories/core-memory-repository.js';
 import { CoreMemoryCacheService } from '../core-memory-cache-service.js';
 import type { CoreMemoryCache } from '../core-memory-service.js';
+import type { CoreMemoryRepository, CoreMemoryRecord } from '../../repositories/core-memory-repository.interface.js';
 
 /**
- * core_memory 테이블 생성
+ * Mock CoreMemoryRepository 구현
  */
-function createCoreMemoryTable(db: Database.Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS core_memory (
-      core_id TEXT PRIMARY KEY,
-      agent_id TEXT NOT NULL DEFAULT 'default',
-      key TEXT NOT NULL,
-      value TEXT NOT NULL,
-      always_load BOOLEAN NOT NULL DEFAULT 0,
-      origin_source TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(agent_id, key)
-    );
+class MockCoreMemoryRepository implements CoreMemoryRepository {
+  private records: Map<string, CoreMemoryRecord> = new Map();
 
-    CREATE INDEX IF NOT EXISTS idx_core_memory_agent_id ON core_memory(agent_id);
-    CREATE INDEX IF NOT EXISTS idx_core_memory_key ON core_memory(key);
-    CREATE INDEX IF NOT EXISTS idx_core_memory_created_at ON core_memory(created_at);
-    CREATE INDEX IF NOT EXISTS idx_core_memory_always_load ON core_memory(always_load);
+  async create(input: any): Promise<CoreMemoryRecord> {
+    const record: CoreMemoryRecord = {
+      core_id: input.core_id || `core_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      agent_id: input.agent_id || 'default',
+      key: input.key,
+      value: input.value,
+      always_load: input.always_load || false,
+      origin_source: input.origin_source || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    this.records.set(record.core_id, record);
+    return record;
+  }
 
-    CREATE TRIGGER IF NOT EXISTS core_memory_update_timestamp 
-    AFTER UPDATE ON core_memory
-    BEGIN
-      UPDATE core_memory 
-      SET updated_at = CURRENT_TIMESTAMP 
-      WHERE core_id = NEW.core_id;
-    END;
-  `);
+  async findById(core_id: string): Promise<CoreMemoryRecord | null> {
+    return this.records.get(core_id) || null;
+  }
+
+  async findByKey(agent_id: string, key: string): Promise<CoreMemoryRecord | null> {
+    for (const record of this.records.values()) {
+      if (record.agent_id === agent_id && record.key === key) {
+        return record;
+      }
+    }
+    return null;
+  }
+
+  async findByAgentId(agent_id: string): Promise<CoreMemoryRecord[]> {
+    return Array.from(this.records.values()).filter(r => r.agent_id === agent_id);
+  }
+
+  async findAlwaysLoad(agent_id?: string): Promise<CoreMemoryRecord[]> {
+    let records = Array.from(this.records.values()).filter(r => r.always_load);
+    if (agent_id) {
+      records = records.filter(r => r.agent_id === agent_id);
+    }
+    return records;
+  }
+
+  async update(core_id: string, input: any): Promise<CoreMemoryRecord | null> {
+    const record = this.records.get(core_id);
+    if (!record) return null;
+    const updated = { ...record, ...input, updated_at: new Date().toISOString() };
+    this.records.set(core_id, updated);
+    return updated;
+  }
+
+  async updateByKey(agent_id: string, key: string, input: any): Promise<CoreMemoryRecord | null> {
+    const record = await this.findByKey(agent_id, key);
+    if (!record) return null;
+    return this.update(record.core_id, input);
+  }
+
+  async delete(core_id: string): Promise<boolean> {
+    return this.records.delete(core_id);
+  }
+
+  async deleteByKey(agent_id: string, key: string): Promise<boolean> {
+    const record = await this.findByKey(agent_id, key);
+    if (!record) return false;
+    return this.delete(record.core_id);
+  }
+
+  async deleteByAgentId(agent_id: string): Promise<number> {
+    let count = 0;
+    for (const [id, record] of this.records.entries()) {
+      if (record.agent_id === agent_id) {
+        this.records.delete(id);
+        count++;
+      }
+    }
+    return count;
+  }
+
+  async findAll(): Promise<CoreMemoryRecord[]> {
+    return Array.from(this.records.values());
+  }
+
+  async count(agent_id?: string): Promise<number> {
+    if (agent_id) {
+      return Array.from(this.records.values()).filter(r => r.agent_id === agent_id).length;
+    }
+    return this.records.size;
+  }
 }
 
 describe('CoreMemoryService', () => {
-  let db: Database.Database;
   let repository: CoreMemoryRepository;
   let cache: CoreMemoryCacheService;
   let service: CoreMemoryService;
 
   beforeEach(() => {
-    db = new Database(':memory:');
-    createCoreMemoryTable(db);
-    repository = new CoreMemoryRepository(db);
+    repository = new MockCoreMemoryRepository();
     cache = new CoreMemoryCacheService();
     service = new CoreMemoryService(repository, cache);
   });
 
   afterEach(() => {
-    if (db) {
-      db.close();
-    }
     vi.clearAllMocks();
   });
 

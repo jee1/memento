@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { MigrationDetector } from './migration/migration-detector.js';
 import { MigrationRunner } from './migration/migration-runner.js';
-import { CoreMemoryRepository } from '../../../domains/memory/repositories/core-memory-repository.js';
+import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../../../domains/memory/services/core-memory-cache-service.js';
 import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
@@ -462,7 +462,7 @@ export async function initializeDatabase(): Promise<Database.Database> {
     // Core Memory 자동 로드 (always_load=true인 항목만)
     try {
       log('🔄 Core Memory 자동 로드 중...');
-      const coreMemoryRepository = new CoreMemoryRepository(db);
+      const coreMemoryRepository = createCoreMemoryRepository(db);
       const { getCoreMemoryCache, setCoreMemoryCache } = await import('../../../domains/memory/services/core-memory-cache-service.js');
       
       // 전역 캐시 인스턴스 생성 및 설정
