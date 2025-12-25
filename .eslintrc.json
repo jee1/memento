@@ -22,8 +22,29 @@
     "@typescript-eslint/no-non-null-assertion": "warn",
     "prefer-const": "error",
     "no-var": "error",
-    "no-console": "warn"
+    "no-console": "error",
+    "max-lines-per-function": ["warn", {
+      "max": 50,
+      "skipBlankLines": true,
+      "skipComments": true,
+      "IIFEs": true
+    }]
   },
+  "overrides": [
+    {
+      "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**"],
+      "rules": {
+        "no-console": "off",
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": ["src/server/index.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/",
     "node_modules/",

@@ -6,6 +6,7 @@
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
+import { logger } from '../shared/utils/logger.js';
 
 export abstract class BaseTool {
   protected name: string;
@@ -78,7 +79,7 @@ export abstract class BaseTool {
     try {
       return JSON.parse(jsonString);
     } catch (error) {
-      console.warn(`JSON 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);
+      logger.warn(`JSON 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);
       return fallback;
     }
   }
@@ -151,7 +152,7 @@ export abstract class BaseTool {
       ...additionalData
     };
     
-    console.error(`[${this.name}] ${context}:`, errorInfo);
+    logger.error(`[${this.name}] ${context}:`, errorInfo);
   }
 
   /**
@@ -165,7 +166,7 @@ export abstract class BaseTool {
       ...additionalData
     };
     
-    console.warn(`[${this.name}] ${message}:`, warningInfo);
+    logger.warn(`[${this.name}] ${message}:`, warningInfo);
   }
 
   /**
@@ -179,7 +180,7 @@ export abstract class BaseTool {
       ...additionalData
     };
     
-    console.log(`[${this.name}] ${message}:`, infoData);
+    logger.info(`[${this.name}] ${message}:`, infoData);
   }
 
   /**

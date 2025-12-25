@@ -21,6 +21,7 @@
  */
 
 import { MementoClient } from './memento-client.js';
+import { logger } from '../shared/utils/logger.js';
 import type {
   MemoryItem,
   CreateMemoryParams,
@@ -303,7 +304,7 @@ export class MemoryManager {
         const memory = await this.create(param);
         results.push(memory);
       } catch (error) {
-        console.error(`Failed to create memory: ${param.content}`, error);
+        logger.error(`Failed to create memory: ${param.content}`, { error });
         // 에러가 발생해도 계속 진행
       }
     }
@@ -322,7 +323,7 @@ export class MemoryManager {
         const success = await this.delete(id, hard);
         if (success) successCount++;
       } catch (error) {
-        console.error(`Failed to delete memory: ${id}`, error);
+        logger.error(`Failed to delete memory: ${id}`, { error });
       }
     }
     
@@ -340,7 +341,7 @@ export class MemoryManager {
         const success = pin ? await this.pin(id) : await this.unpin(id);
         if (success) successCount++;
       } catch (error) {
-        console.error(`Failed to ${pin ? 'pin' : 'unpin'} memory: ${id}`, error);
+        logger.error(`Failed to ${pin ? 'pin' : 'unpin'} memory: ${id}`, { error });
       }
     }
     

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Consolidation Score 검색 품질 벤치마크
  * 다양한 가중치 조합에서 품질 비교 및 튜닝 가이드라인 제공

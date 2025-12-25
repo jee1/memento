@@ -10,6 +10,7 @@ import { UnifiedEmbeddingService } from '../domains/embedding/services/unified-e
 import type { EmbeddingProvider } from '../shared/types/index.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../domains/embedding/services/vector-compatibility-service.js';
+import { logger } from '../shared/utils/logger.js';
 
 const MigrationSchema = z.object({
   source_provider: z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini']).optional(),
@@ -84,7 +85,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
       const extensionPath = getLoadablePath();
       db.loadExtension(extensionPath);
     } catch (error) {
-      console.warn('⚠️ sqlite-vec 확장 로드 실패:', error);
+      logger.warn('⚠️ sqlite-vec 확장 로드 실패:', { error });
     }
   }
 

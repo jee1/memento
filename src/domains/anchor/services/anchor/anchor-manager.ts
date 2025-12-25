@@ -5,7 +5,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo } from './anchor-interfaces.js';
+import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from './anchor-interfaces.js';
 import { AnchorError, MemoryNotFoundError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
@@ -257,8 +257,8 @@ export class AnchorManager implements IAnchorManager {
     slot: AnchorSlot,
     query?: string,
     hopLimit?: number,
-    options?: any
-  ): Promise<any> {
+    options?: SearchOptions
+  ): Promise<SearchResult> {
     if (!this.db) {
       throw new Error('Database is not set. Call setDatabase() first.');
     }

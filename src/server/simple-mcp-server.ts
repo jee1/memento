@@ -6,6 +6,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
+import { logger } from '../shared/utils/logger.js';
 
 const app = express();
 const server = createServer(app);
@@ -42,7 +43,7 @@ const tools = [
 
 // SSE 엔드포인트
 app.get('/mcp', (req, res) => {
-  console.log('🔗 MCP SSE 클라이언트 연결 요청');
+  logger.info('🔗 MCP SSE 클라이언트 연결 요청');
   
   // SSE 헤더 설정
   res.writeHead(200, {
@@ -64,11 +65,11 @@ app.get('/mcp', (req, res) => {
   // 준비 완료 알림
   res.write(`data: {"type": "ready"}\n\n`);
   
-  console.log(`✅ MCP SSE 스트림 설정 완료 (session: ${sessionId})`);
+  logger.info(`✅ MCP SSE 스트림 설정 완료 (session: ${sessionId})`);
   
   // 연결 종료 처리
   req.on('close', () => {
-    console.log(`🔌 MCP SSE 클라이언트 연결 해제됨 (session: ${sessionId})`);
+    logger.info(`🔌 MCP SSE 클라이언트 연결 해제됨 (session: ${sessionId})`);
   });
 });
 
@@ -77,13 +78,13 @@ app.post('/messages', (req, res) => {
   const sessionId = req.query.sessionId as string;
   const message = req.body;
   
-  console.log(`📨 MCP 메시지 수신: ${message.method} (session: ${sessionId})`);
+  logger.info(`📨 MCP 메시지 수신: ${message.method} (session: ${sessionId})`);
   
   let result;
   
   try {
     if (message.method === 'initialize') {
-      console.log('🚀 MCP initialize 요청 처리 중...');
+      logger.info('🚀 MCP initialize 요청 처리 중...');
       result = {
         jsonrpc: '2.0',
         id: message.id,
@@ -98,10 +99,10 @@ app.post('/messages', (req, res) => {
           }
         }
       };
-      console.log('✅ MCP initialize 응답 생성 완료');
+      logger.info('✅ MCP initialize 응답 생성 완료');
       
     } else if (message.method === 'notifications/initialized') {
-      console.log('🔔 MCP initialized 알림 수신');
+      logger.info('🔔 MCP initialized 알림 수신');
       result = {
         jsonrpc: '2.0',
         id: message.id,
@@ -109,13 +110,13 @@ app.post('/messages', (req, res) => {
       };
       
     } else if (message.method === 'tools/list') {
-      console.log('📋 MCP tools/list 요청 처리 중...');
+      logger.info('📋 MCP tools/list 요청 처리 중...');
       result = {
         jsonrpc: '2.0',
         id: message.id,
         result: { tools }
       };
-      console.log('✅ MCP tools/list 응답 생성 완료, tools 개수:', tools.length);
+      logger.info('✅ MCP tools/list 응답 생성 완료, tools 개수:', { count: tools.length });
       
     } else {
       result = {
@@ -130,13 +131,13 @@ app.post('/messages', (req, res) => {
     
     // SSE 응답 전송 (간단한 방식)
     const sseData = `data: ${JSON.stringify(result)}\n\n`;
-    console.log('📤 SSE 응답 전송 중, 크기:', sseData.length, 'bytes');
+    logger.info('📤 SSE 응답 전송 중, 크기:', { size: sseData.length, unit: 'bytes' });
     
     // HTTP 응답 전송
     res.json({ status: 'ok', sseData: sseData.substring(0, 100) + '...' });
     
   } catch (error) {
-    console.error('❌ MCP 메시지 처리 실패:', error);
+    logger.error('❌ MCP 메시지 처리 실패:', { error });
     const errorResult = {
       jsonrpc: '2.0',
       id: message?.id || null,
@@ -165,9 +166,9 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 9001;
 
 server.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🌐 간단한 MCP 서버 시작: http://0.0.0.0:${PORT}`);
-  console.log(`📋 도구 개수: ${tools.length}개`);
-  console.log(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
+  logger.info(`🌐 간단한 MCP 서버 시작: http://0.0.0.0:${PORT}`);
+  logger.info(`📋 도구 개수: ${tools.length}개`);
+  logger.info(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
 });
 
 export { app, server };

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * HTTP 서버 v2 디버그 테스트
  */

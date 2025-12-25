@@ -22,6 +22,7 @@
 
 import axios from 'axios';
 import { EventEmitter } from 'events';
+import { logger } from '../shared/utils/logger.js';
 import type {
   MementoClientOptions,
   MemoryItem,
@@ -90,7 +91,7 @@ export class MementoClient extends EventEmitter {
         }
         
         if (this.options.logLevel === 'debug') {
-          console.debug('[MementoClient] Request:', {
+          logger.debug('[MementoClient] Request:', {
             method: config.method?.toUpperCase(),
             url: config.url,
             data: config.data
@@ -109,7 +110,7 @@ export class MementoClient extends EventEmitter {
     client.interceptors.response.use(
       (response: any) => {
         if (this.options.logLevel === 'debug') {
-          console.debug('[MementoClient] Response:', {
+          logger.debug('[MementoClient] Response:', {
             status: response.status,
             data: response.data
           });
@@ -163,7 +164,7 @@ export class MementoClient extends EventEmitter {
       this.emit('connected');
       
       if (this.options.logLevel !== 'silent') {
-        console.log('✅ Memento 서버에 연결되었습니다:', {
+        logger.info('✅ Memento 서버에 연결되었습니다:', {
           version: health.version,
           status: health.status
         });
@@ -183,7 +184,7 @@ export class MementoClient extends EventEmitter {
     this.emit('disconnected');
     
     if (this.options.logLevel !== 'silent') {
-      console.log('🔌 Memento 서버 연결이 해제되었습니다');
+      logger.info('🔌 Memento 서버 연결이 해제되었습니다');
     }
   }
 

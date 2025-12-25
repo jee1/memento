@@ -4,6 +4,7 @@
  */
 
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
+import { logger } from '../shared/utils/logger.js';
 
 export interface ToolRegistryConfig {
   enableLogging: boolean;
@@ -405,13 +406,13 @@ export class ToolRegistry {
     
     switch (level) {
       case 'error':
-        console.error(logMessage, data ? JSON.stringify(data, null, 2) : '');
+        logger.error(logMessage, data ? { data: JSON.parse(JSON.stringify(data)) } : {});
         break;
       case 'warn':
-        console.warn(logMessage, data ? JSON.stringify(data, null, 2) : '');
+        logger.warn(logMessage, data ? { data: JSON.parse(JSON.stringify(data)) } : {});
         break;
       default:
-        console.log(logMessage, data ? JSON.stringify(data, null, 2) : '');
+        logger.info(logMessage, data ? { data: JSON.parse(JSON.stringify(data)) } : {});
     }
   }
 }

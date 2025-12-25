@@ -8,6 +8,7 @@ import type Database from 'better-sqlite3';
 import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import type { EmbeddingResult, EmbeddingResultOrNull } from './embedding-types.js';
 
 /**
  * 앵커 슬롯 타입
@@ -71,7 +72,7 @@ export interface IAnchorCacheService {
   /**
    * 앵커 메모리의 임베딩 조회
    */
-  getAnchorEmbedding(memoryId: string): Promise<{ embedding: number[]; provider: string } | null>;
+  getAnchorEmbedding(memoryId: string): Promise<EmbeddingResultOrNull>;
 
   /**
    * 서버 재시작 시 DB에서 캐시 복원
