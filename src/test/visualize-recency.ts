@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * 최근성(Recency) 계산 결과 시각화
  * forgetting-algorithm.ts의 calculateRecency 메서드 결과를 그래프로 표시

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Reflexion 기능 에러 케이스 테스트
  * 잘못된 JSON 형식, 스키마 검증 실패, NULL 처리, 빈 배열, 크기 제한 초과 등

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * 성능 벤치마크 테스트
  * Memento MCP 서버의 성능 측정 및 분석

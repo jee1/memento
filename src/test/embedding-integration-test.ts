@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * 임베딩 서비스 통합 테스트
  * 실제 시나리오에서의 동작 검증

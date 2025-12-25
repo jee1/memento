@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Memento MCP Server 메인 진입점
  */

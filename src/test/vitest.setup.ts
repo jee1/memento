@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Vitest 전역 설정 파일
  * 네이티브 모듈 모킹 및 공통 테스트 설정

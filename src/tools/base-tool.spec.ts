@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BaseTool } from './base-tool.js';
 import type { ToolContext, ToolResult } from '../types.js';
 import Database from 'better-sqlite3';
+import * as loggerModule from '../shared/utils/logger.js';
 
 /**
  * 테스트용 구체적인 BaseTool 구현
@@ -267,88 +268,97 @@ describe('BaseTool', () => {
 
   describe('logError', () => {
     it('에러를 올바르게 로깅해야 함', () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const loggerErrorSpy = vi.spyOn(loggerModule.logger, 'error').mockImplementation(() => {});
       const error = new Error('Test error');
       
       tool.logError(error, 'test context');
       
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      const callArgs = consoleErrorSpy.mock.calls[0];
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      const callArgs = loggerErrorSpy.mock.calls[0];
       expect(callArgs[0]).toContain('[test-tool]');
       expect(callArgs[0]).toContain('test context');
+      expect(callArgs[1]).toBeDefined();
+      expect(callArgs[1]).toHaveProperty('tool', 'test-tool');
+      expect(callArgs[1]).toHaveProperty('context', 'test context');
       
-      consoleErrorSpy.mockRestore();
+      loggerErrorSpy.mockRestore();
     });
 
     it('추가 데이터를 포함하여 로깅해야 함', () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const loggerErrorSpy = vi.spyOn(loggerModule.logger, 'error').mockImplementation(() => {});
       const error = new Error('Test error');
       const additionalData = { userId: '123', action: 'test' };
       
       tool.logError(error, 'test context', additionalData);
       
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      const callArgs = consoleErrorSpy.mock.calls[0];
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      const callArgs = loggerErrorSpy.mock.calls[0];
       expect(callArgs[1]).toHaveProperty('userId', '123');
       expect(callArgs[1]).toHaveProperty('action', 'test');
       
-      consoleErrorSpy.mockRestore();
+      loggerErrorSpy.mockRestore();
     });
   });
 
   describe('logWarning', () => {
     it('경고를 올바르게 로깅해야 함', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn').mockImplementation(() => {});
       
       tool.logWarning('Test warning');
       
-      expect(consoleWarnSpy).toHaveBeenCalled();
-      const callArgs = consoleWarnSpy.mock.calls[0];
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      const callArgs = loggerWarnSpy.mock.calls[0];
       expect(callArgs[0]).toContain('[test-tool]');
       expect(callArgs[0]).toContain('Test warning');
+      expect(callArgs[1]).toBeDefined();
+      expect(callArgs[1]).toHaveProperty('tool', 'test-tool');
+      expect(callArgs[1]).toHaveProperty('message', 'Test warning');
       
-      consoleWarnSpy.mockRestore();
+      loggerWarnSpy.mockRestore();
     });
 
     it('추가 데이터를 포함하여 로깅해야 함', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const loggerWarnSpy = vi.spyOn(loggerModule.logger, 'warn').mockImplementation(() => {});
       const additionalData = { reason: 'test' };
       
       tool.logWarning('Test warning', additionalData);
       
-      expect(consoleWarnSpy).toHaveBeenCalled();
-      const callArgs = consoleWarnSpy.mock.calls[0];
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      const callArgs = loggerWarnSpy.mock.calls[0];
       expect(callArgs[1]).toHaveProperty('reason', 'test');
       
-      consoleWarnSpy.mockRestore();
+      loggerWarnSpy.mockRestore();
     });
   });
 
   describe('logInfo', () => {
     it('정보를 올바르게 로깅해야 함', () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const loggerInfoSpy = vi.spyOn(loggerModule.logger, 'info').mockImplementation(() => {});
       
       tool.logInfo('Test info');
       
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const callArgs = consoleLogSpy.mock.calls[0];
+      expect(loggerInfoSpy).toHaveBeenCalled();
+      const callArgs = loggerInfoSpy.mock.calls[0];
       expect(callArgs[0]).toContain('[test-tool]');
       expect(callArgs[0]).toContain('Test info');
+      expect(callArgs[1]).toBeDefined();
+      expect(callArgs[1]).toHaveProperty('tool', 'test-tool');
+      expect(callArgs[1]).toHaveProperty('message', 'Test info');
       
-      consoleLogSpy.mockRestore();
+      loggerInfoSpy.mockRestore();
     });
 
     it('추가 데이터를 포함하여 로깅해야 함', () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const loggerInfoSpy = vi.spyOn(loggerModule.logger, 'info').mockImplementation(() => {});
       const additionalData = { status: 'ok' };
       
       tool.logInfo('Test info', additionalData);
       
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const callArgs = consoleLogSpy.mock.calls[0];
+      expect(loggerInfoSpy).toHaveBeenCalled();
+      const callArgs = loggerInfoSpy.mock.calls[0];
       expect(callArgs[1]).toHaveProperty('status', 'ok');
       
-      consoleLogSpy.mockRestore();
+      loggerInfoSpy.mockRestore();
     });
   });
 

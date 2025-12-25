@@ -3,6 +3,8 @@
  * 워커 풀, 큐 시스템, 배치 처리 최적화
  */
 
+import { logger } from '../shared/utils/logger.js';
+
 export interface Task<T = unknown> {
   id: string;
   type: string;
@@ -71,7 +73,7 @@ export class AsyncTaskQueue {
       // 가장 오래된 항목 제거 (FIFO)
       const removedTask = this.queue.shift();
       if (removedTask) {
-        console.warn(`큐 크기 제한 초과, 가장 오래된 작업 제거: ${removedTask.id}`, {
+        logger.warn(`큐 크기 제한 초과, 가장 오래된 작업 제거: ${removedTask.id}`, {
           queue_size: this.queue.length,
           max_size: this.maxQueueSize,
           removed_task_id: removedTask.id
@@ -138,7 +140,7 @@ export class AsyncTaskQueue {
 
     // 비동기로 실행하여 블로킹 방지
     worker.execute().catch(error => {
-      console.error(`작업 처리 실패 (${task.id}):`, error);
+      logger.error(`작업 처리 실패 (${task.id}):`, { error });
     }).finally(() => {
       this.workers.delete(worker);
       this.processing.delete(task.id);
@@ -570,7 +572,7 @@ export class BatchProcessor {
       await this.processBatch(batchKey, batch);
       this.batches.set(batchKey, []);
     } catch (error) {
-      console.error(`배치 처리 실패 (${batchKey}):`, error);
+      logger.error(`배치 처리 실패 (${batchKey}):`, { error });
     }
   }
 
@@ -589,7 +591,7 @@ export class BatchProcessor {
         await this.processSearchCacheBatch(items);
         break;
       default:
-        console.warn(`Unknown batch key: ${batchKey}`);
+        logger.warn(`Unknown batch key: ${batchKey}`);
     }
   }
 
@@ -598,7 +600,7 @@ export class BatchProcessor {
    */
   private async processMemoryBatch(items: any[]): Promise<void> {
     // 실제로는 데이터베이스에 배치 삽입
-    console.log(`메모리 배치 처리: ${items.length}개 항목`);
+    logger.info(`메모리 배치 처리: ${items.length}개 항목`);
   }
 
   /**
@@ -606,7 +608,7 @@ export class BatchProcessor {
    */
   private async processEmbeddingBatch(items: any[]): Promise<void> {
     // 실제로는 임베딩 생성
-    console.log(`임베딩 배치 처리: ${items.length}개 항목`);
+    logger.info(`임베딩 배치 처리: ${items.length}개 항목`);
   }
 
   /**
@@ -614,7 +616,7 @@ export class BatchProcessor {
    */
   private async processSearchCacheBatch(items: any[]): Promise<void> {
     // 실제로는 캐시 업데이트
-    console.log(`검색 캐시 배치 처리: ${items.length}개 항목`);
+    logger.info(`검색 캐시 배치 처리: ${items.length}개 항목`);
   }
 
   /**

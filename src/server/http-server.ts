@@ -31,6 +31,7 @@ import { createMcpRouter } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 // Phase 0: 공통 미들웨어 import
 import { createServiceInjector, createToolContextMiddleware, errorHandler } from './middleware/index.js';
+import { logger } from '../shared/utils/logger.js';
 
 // 전역 변수
 let db: Database.Database | null = null;
@@ -116,7 +117,7 @@ let mcpRouter: express.Router | null = null;
 app.get('/dashboard', (req, res) => {
   res.sendFile('dashboard.html', { root: 'static' }, (err) => {
     if (err) {
-      console.error('❌ 대시보드 파일 로드 실패:', err);
+      logger.error('대시보드 파일 로드 실패', { error: err });
       res.status(404).send('Dashboard not found');
     }
   });
@@ -127,8 +128,8 @@ app.get('/dashboard', (req, res) => {
 // 서버 초기화
 async function initializeServer() {
   try {
-    console.log(`📦 Memento HTTP/WebSocket MCP Server v${packageJson.version}`);
-    console.log('🚀 HTTP/WebSocket MCP 서버 v2 시작 중...');
+    logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
+    logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
     
     // 설정 검증
     validateConfig();
@@ -181,34 +182,42 @@ async function initializeServer() {
     // Phase 0: 공통 에러 핸들러 미들웨어 (모든 라우터 이후에 적용)
     app.use(errorHandler);
     
-    console.log('✅ 서비스 초기화 완료');
+    logger.info('서비스 초기화 완료');
     
     // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
     const batchScheduler = getBatchScheduler();
     if (batchScheduler.getStatus().isRunning) {
-      console.log('⚠️  이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...');
+      logger.warn('이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다');
       await batchScheduler.stop();
     }
     // Reflexion Worker 통합 (Phase 2)
     await batchScheduler.start(db, services.reflexionWorker);
-    console.log('⏰ 배치 스케줄러 시작됨');
+    logger.info('배치 스케줄러 시작됨');
     
     // 임베딩 프로바이더 정보 표시
-    console.log(`🔧 임베딩 프로바이더: ${mementoConfig.embeddingProvider.toUpperCase()}`);
+    const providerInfo: Record<string, unknown> = {
+      provider: mementoConfig.embeddingProvider.toUpperCase()
+    };
     if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
-      console.log(`   📝 모델: ${mementoConfig.openaiModel} (${mementoConfig.embeddingDimensions}차원)`);
+      providerInfo.model = mementoConfig.openaiModel;
+      providerInfo.dimensions = mementoConfig.embeddingDimensions;
     } else if (mementoConfig.embeddingProvider === 'gemini' && mementoConfig.geminiApiKey) {
-      console.log(`   📝 모델: ${mementoConfig.geminiModel} (${mementoConfig.embeddingDimensions}차원)`);
+      providerInfo.model = mementoConfig.geminiModel;
+      providerInfo.dimensions = mementoConfig.embeddingDimensions;
     } else if (mementoConfig.embeddingProvider === 'lightweight') {
-      console.log(`   📝 모델: lightweight-hybrid (512차원)`);
+      providerInfo.model = 'lightweight-hybrid';
+      providerInfo.dimensions = 512;
     }
+    logger.info('임베딩 프로바이더 설정', providerInfo);
     
-    console.log('✅ 서버 초기화 완료');
-    console.log(`📊 서버: ${mementoConfig.serverName} v${mementoConfig.serverVersion}`);
-    console.log(`🗄️  데이터베이스: ${mementoConfig.dbPath}`);
+    logger.info('서버 초기화 완료', {
+      server: mementoConfig.serverName,
+      version: mementoConfig.serverVersion,
+      database: mementoConfig.dbPath
+    });
     
   } catch (error) {
-    console.error('❌ 서버 초기화 실패:', error);
+    logger.error('서버 초기화 실패', { error });
     process.exit(1);
   }
 }
@@ -227,21 +236,21 @@ async function cleanup() {
     if (writeCoalescingManager) {
       await writeCoalescingManager.flush();
       await writeCoalescingManager.destroy();
-      console.log('✅ Write Coalescing Manager 정리 완료');
+      logger.info('Write Coalescing Manager 정리 완료');
     }
     
     // 배치 스케줄러 중지
     const batchScheduler = getBatchScheduler();
     await batchScheduler.stop();
-    console.log('⏰ 배치 스케줄러 중지됨');
+    logger.info('배치 스케줄러 중지됨');
     
     if (db) {
       closeDatabase(db);
       db = null;
     }
-    console.log('👋 HTTP/WebSocket MCP 서버 v2 종료');
+    logger.info('HTTP/WebSocket MCP 서버 v2 종료');
   } catch (error) {
-    console.error('❌ 정리 중 오류:', error);
+    logger.error('정리 중 오류', { error });
   }
 }
 
@@ -265,7 +274,7 @@ function registerCleanupHandlers() {
   });
   
   process.on('uncaughtException', async (error) => {
-    console.error('❌ 예상치 못한 오류:', error);
+    logger.error('예상치 못한 오류', { error });
     await cleanup();
     process.exit(1);
   });
@@ -277,7 +286,7 @@ const wss = new WebSocketServer({ server });
 // Phase 1.2: anchorMapSubscribers는 위에서 이미 선언됨
 
 wss.on('connection', (ws) => {
-  console.log('🔗 WebSocket 클라이언트 연결됨');
+  logger.info('WebSocket 클라이언트 연결됨');
   
   ws.on('message', async (data) => {
     let message: any;
@@ -299,7 +308,7 @@ wss.on('connection', (ws) => {
           result: { subscribed: true, agent_id: agentId }
         }));
         
-        console.log(`📡 Anchor Map 업데이트 구독: agent_id=${agentId}`);
+        logger.info('Anchor Map 업데이트 구독', { agent_id: agentId });
         return;
       }
       
@@ -363,7 +372,7 @@ wss.on('connection', (ws) => {
         }));
       }
     } catch (error) {
-      console.error('❌ WebSocket 메시지 처리 실패:', error);
+      logger.error('WebSocket 메시지 처리 실패', { error });
       ws.send(JSON.stringify({
         jsonrpc: '2.0',
         id: message?.id || null,
@@ -377,7 +386,7 @@ wss.on('connection', (ws) => {
   });
   
   ws.on('close', () => {
-    console.log('🔌 WebSocket 클라이언트 연결 해제됨');
+    logger.info('WebSocket 클라이언트 연결 해제됨');
     
     // 구독 목록에서 제거
     for (const [agentId, subscribers] of anchorMapSubscribers.entries()) {
@@ -389,7 +398,7 @@ wss.on('connection', (ws) => {
   });
   
   ws.on('error', (error) => {
-    console.error('❌ WebSocket 에러:', error);
+    logger.error('WebSocket 에러', { error });
   });
 });
 
@@ -405,7 +414,7 @@ async function startServer() {
   
   // 이미 리스닝 중이면 먼저 종료
   if (server.listening) {
-    console.log('⚠️  서버가 이미 리스닝 중입니다. 종료 후 재시작합니다...');
+    logger.warn('서버가 이미 리스닝 중입니다. 종료 후 재시작합니다');
     await new Promise<void>((resolve) => {
       server.close(() => {
         resolve();
@@ -416,17 +425,19 @@ async function startServer() {
   // HTTP 서버를 사용하여 Express app과 WebSocket 서버 모두 바인딩
   // app.listen() 대신 server.listen()을 사용하여 WebSocket 서버와 동일한 인스턴스 사용
   server.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`🌐 HTTP 서버: http://0.0.0.0:${PORT}`);
-    console.log(`🔌 WebSocket 서버: ws://0.0.0.0:${PORT}`);
-    console.log(`📋 API 문서: http://0.0.0.0:${PORT}/tools`);
-    console.log(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
+    logger.info('서버 시작 완료', {
+      http: `http://0.0.0.0:${PORT}`,
+      websocket: `ws://0.0.0.0:${PORT}`,
+      api_docs: `http://0.0.0.0:${PORT}/tools`,
+      health: `http://0.0.0.0:${PORT}/health`
+    });
   });
   
   // 추가: 모든 인터페이스에 바인딩 확인
   server.on('listening', () => {
     const address = server.address();
     if (address && typeof address === 'object') {
-      console.log(`🔗 서버가 ${address.address}:${address.port}에 바인딩됨`);
+      logger.info('서버 바인딩 완료', { address: address.address, port: address.port });
     }
   });
 }
@@ -434,7 +445,7 @@ async function startServer() {
 // 서버 시작
 if (process.argv[1] && (process.argv[1].includes('http-server'))) {
   startServer().catch(error => {
-    console.error('❌ 서버 시작 실패:', error);
+    logger.error('서버 시작 실패', { error });
     process.exit(1);
   });
 }

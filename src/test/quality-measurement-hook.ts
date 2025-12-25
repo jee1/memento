@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * CI/CD 통합을 위한 품질 측정 테스트 훅
  * 

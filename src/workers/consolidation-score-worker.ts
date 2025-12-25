@@ -10,6 +10,7 @@
 import Database from 'better-sqlite3';
 import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
+import { logger } from '../shared/utils/logger.js';
 import type { MemoryType } from '../shared/types/index.js';
 
 export interface ConsolidationScoreWorkerConfig {
@@ -566,17 +567,17 @@ export class ConsolidationScoreWorker {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] [ConsolidationScoreWorker] [${level.toUpperCase()}] ${message}`;
     
-    const logData = data ? JSON.stringify(data, null, 2) : '';
+    const logData = data ? { data: JSON.parse(JSON.stringify(data)) } : {};
     
     switch (level) {
       case 'error':
-        console.error(logMessage, logData);
+        logger.error(logMessage, logData);
         break;
       case 'warn':
-        console.warn(logMessage, logData);
+        logger.warn(logMessage, logData);
         break;
       default:
-        console.log(logMessage, logData);
+        logger.info(logMessage, logData);
     }
   }
 }

@@ -5,6 +5,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { logger } from '../shared/utils/logger.js';
 import type { 
   RememberParams, 
   RecallParams, 
@@ -48,9 +49,9 @@ export class MementoClient {
       await this.client.connect(transport);
       
       this.connected = true;
-      console.log('✅ Memento MCP 서버에 연결되었습니다');
+      logger.info('✅ Memento MCP 서버에 연결되었습니다');
     } catch (error) {
-      console.error('❌ MCP 서버 연결 실패:', error);
+      logger.error('❌ MCP 서버 연결 실패:', { error });
       throw error;
     }
   }
@@ -62,7 +63,7 @@ export class MementoClient {
     if (this.connected) {
       await this.client.close();
       this.connected = false;
-      console.log('🔌 MCP 서버 연결이 해제되었습니다');
+      logger.info('🔌 MCP 서버 연결이 해제되었습니다');
     }
   }
 

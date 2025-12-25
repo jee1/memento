@@ -21,6 +21,7 @@ import { AnchorManager } from '../services/anchor-manager.js';
 import { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
+import { logger } from '../shared/utils/logger.js';
 
 /**
  * 서버 서비스 집합 인터페이스
@@ -171,7 +172,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
             });
           } catch (error) {
             // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
-            console.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
+            logger.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
       );

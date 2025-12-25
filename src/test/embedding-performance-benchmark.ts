@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * 임베딩 서비스 성능 벤치마크
  * TF-IDF, MiniLM, OpenAI, Gemini 성능 비교

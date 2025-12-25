@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * 다중 Provider 검색 성능 벤치마크
  * 다중 임베딩 provider 환경에서 검색 응답 시간 측정
