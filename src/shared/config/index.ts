@@ -78,7 +78,21 @@ export const mementoConfig: MementoConfig = {
 
   // FTS5 Migration Status (런타임 캐시용, 초기값: 'pending')
   // 실제 값은 데이터베이스에서 로드되며, initializeDatabase에서 업데이트됨
-  fts5MigrationStatus: 'pending' as 'pending' | 'in_progress' | 'completed' | 'failed'
+  fts5MigrationStatus: 'pending' as 'pending' | 'in_progress' | 'completed' | 'failed',
+
+  // WAL 체크포인트 스케줄러 설정
+  walCheckpointIntervalMs: resolveNumber('WAL_CHECKPOINT_INTERVAL_MS', { defaultValue: 300000 }),
+  walSizeWarningThreshold: resolveNumber('WAL_SIZE_WARNING_THRESHOLD', { defaultValue: 16777216 }),
+  walSizeDangerThreshold: resolveNumber('WAL_SIZE_DANGER_THRESHOLD', { defaultValue: 25165824 }),
+  walCheckpointUseDedicatedConnection: resolveBoolean('WAL_CHECKPOINT_USE_DEDICATED_CONNECTION', { defaultValue: true }),
+  walCheckpointMaxRetries: resolveNumber('WAL_CHECKPOINT_MAX_RETRIES', { defaultValue: 3 }),
+  walCheckpointRetryBackoffMs: resolveNumber('WAL_CHECKPOINT_RETRY_BACKOFF_MS', { defaultValue: 1000 }),
+
+  // 데이터베이스 락 모니터 설정
+  lockMonitorIntervalMs: resolveNumber('LOCK_MONITOR_INTERVAL_MS', { defaultValue: 60000 }),
+  lockMonitorWarningThresholdMs: resolveNumber('LOCK_MONITOR_WARNING_THRESHOLD_MS', { defaultValue: 5000 }),
+  lockMonitorDangerThresholdMs: resolveNumber('LOCK_MONITOR_DANGER_THRESHOLD_MS', { defaultValue: 30000 }),
+  lockMonitorCriticalThresholdMs: resolveNumber('LOCK_MONITOR_CRITICAL_THRESHOLD_MS', { defaultValue: 60000 })
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

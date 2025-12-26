@@ -91,10 +91,13 @@ describe('createCoreMemoryRepository', () => {
           value TEXT NOT NULL,
           always_load INTEGER NOT NULL DEFAULT 0,
           origin_source TEXT,
+          version INTEGER NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL DEFAULT (datetime('now')),
           updated_at TEXT NOT NULL DEFAULT (datetime('now')),
           UNIQUE(agent_id, key)
-        )
+        );
+        CREATE INDEX IF NOT EXISTS idx_core_memory_version ON core_memory(version);
+        UPDATE core_memory SET version = 1 WHERE version = 0;
       `);
       
       // When: Factory를 통해 Repository를 생성하면

@@ -1013,6 +1013,24 @@ export class PerformanceMonitor {
   }
 
   /**
+   * 메트릭 기록 (WAL 체크포인트 스케줄러 및 락 모니터용)
+   */
+  recordMetric(name: string, value: number): void {
+    // 메트릭을 내부 히스토리에 기록하거나 별도 저장소에 저장
+    // 현재는 로깅만 수행 (향후 확장 가능)
+    logger.debug(`Performance metric recorded: ${name} = ${value}`);
+  }
+
+  /**
+   * 카운터 증가 (WAL 체크포인트 스케줄러 및 락 모니터용)
+   */
+  incrementCounter(name: string): void {
+    // 카운터를 내부 저장소에 기록하거나 별도 저장소에 저장
+    // 현재는 로깅만 수행 (향후 확장 가능)
+    logger.debug(`Performance counter incremented: ${name}`);
+  }
+
+  /**
    * 로깅
    */
   private log(message: string, data?: any): void {

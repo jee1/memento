@@ -22,6 +22,8 @@ import { FailureDetector } from '../domains/monitoring/services/failure-detector
 import { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { logger } from '../shared/utils/logger.js';
+import { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
+import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
 
 /**
  * 서버 서비스 집합 인터페이스
@@ -60,6 +62,10 @@ export interface ServerServices {
   failureDetector: FailureDetector;
   // Reflexion Worker 서비스 (Phase 2)
   reflexionWorker?: ReflexionWorker;
+  // WAL 체크포인트 스케줄러
+  walCheckpointScheduler: WalCheckpointScheduler;
+  // 데이터베이스 락 모니터
+  databaseLockMonitor: DatabaseLockMonitor;
 }
 
 /**
@@ -113,6 +119,41 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     // 3. PerformanceMonitor 싱글톤 처리 및 DB 초기화
     const performanceMonitor = getPerformanceMonitor();
     performanceMonitor.initialize(db);
+    
+    // 3.5. WAL 체크포인트 스케줄러 초기화
+    const walCheckpointScheduler = new WalCheckpointScheduler(
+      db,
+      {
+        intervalMs: mementoConfig.walCheckpointIntervalMs,
+        walSizeWarningThreshold: mementoConfig.walSizeWarningThreshold,
+        walSizeDangerThreshold: mementoConfig.walSizeDangerThreshold,
+        useDedicatedConnection: mementoConfig.walCheckpointUseDedicatedConnection,
+        maxRetries: mementoConfig.walCheckpointMaxRetries,
+        retryBackoffMs: mementoConfig.walCheckpointRetryBackoffMs
+      },
+      logger,
+      performanceMonitor
+    );
+    
+    // 3.6. 데이터베이스 락 모니터 초기화
+    const databaseLockMonitor = new DatabaseLockMonitor(
+      db,
+      {
+        intervalMs: mementoConfig.lockMonitorIntervalMs,
+        warningThresholdMs: mementoConfig.lockMonitorWarningThresholdMs,
+        dangerThresholdMs: mementoConfig.lockMonitorDangerThresholdMs,
+        criticalThresholdMs: mementoConfig.lockMonitorCriticalThresholdMs
+      },
+      logger,
+      performanceMonitor,
+      walCheckpointScheduler
+    );
+    
+    // 스케줄러 및 모니터 시작
+    walCheckpointScheduler.start();
+    databaseLockMonitor.start();
+    
+    logger.info('WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 시작됨');
     
     // 4. 선택적 서비스 초기화 (Consolidation Score, Write Coalescing)
     let consolidationScoreService: ConsolidationScoreService | undefined;
@@ -191,7 +232,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       writeCoalescingManager,
       anchorManager,
       failureDetector,
-      reflexionWorker
+      reflexionWorker,
+      walCheckpointScheduler,
+      databaseLockMonitor
     };
   } catch (error) {
     // 서비스 초기화 실패 시 예외를 그대로 전파 (서버 시작 실패)

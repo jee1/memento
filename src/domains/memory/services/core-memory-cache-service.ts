@@ -10,25 +10,72 @@
 
 import type { CoreMemoryRecord } from '../repositories/core-memory-repository.js';
 import type { CoreMemoryCache } from './core-memory-service.js';
+import { logger } from '../../../shared/utils/logger.js';
+
+/**
+ * 캐시 엔트리 인터페이스
+ * 버전 정보와 캐시 시간을 포함합니다.
+ */
+export interface CacheEntry {
+  record: CoreMemoryRecord;
+  cachedAt: number; // 캐시된 시간 (timestamp)
+  version: number; // 레코드의 버전 번호
+}
+
+/**
+ * 캐시 무효화 리스너 인터페이스
+ */
+export interface CacheInvalidationListener {
+  /**
+   * 특정 키의 캐시가 무효화될 때 호출됨
+   */
+  onInvalidate(key: string, reason?: string): void;
+
+  /**
+   * 전체 캐시가 무효화될 때 호출됨
+   */
+  onInvalidateAll(reason?: string): void;
+}
 
 /**
  * Core Memory Cache Service Implementation
  * always_load=true인 Core Memory 항목들을 메모리에 캐싱
+ * 버전 기반 캐시 무효화 지원
  */
 export class CoreMemoryCacheService implements CoreMemoryCache {
-  private cache: Map<string, CoreMemoryRecord> = new Map();
+  private cache: Map<string, CacheEntry> = new Map();
+  private listeners: Set<CacheInvalidationListener> = new Set();
 
   /**
    * 항목을 캐시에 저장
+   * version=0인 경우 경고 로그 출력 (마이그레이션 미완료 가능성)
    */
   set(key: string, value: CoreMemoryRecord): void {
-    this.cache.set(key, value);
+    // version=0인 경우 경고 로그 출력
+    if (value.version === 0) {
+      logger.warn(`CoreMemoryCacheService: version=0인 항목이 캐시에 저장됨 (key: ${key}). 마이그레이션이 완료되지 않았을 수 있습니다.`);
+    }
+
+    const entry: CacheEntry = {
+      record: value,
+      cachedAt: Date.now(),
+      version: value.version
+    };
+    this.cache.set(key, entry);
   }
 
   /**
    * 캐시에서 항목 조회
    */
   get(key: string): CoreMemoryRecord | undefined {
+    const entry = this.cache.get(key);
+    return entry ? entry.record : undefined;
+  }
+
+  /**
+   * 캐시에서 항목과 버전 정보 조회
+   */
+  getWithVersion(key: string): CacheEntry | undefined {
     return this.cache.get(key);
   }
 
@@ -36,14 +83,87 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
    * 캐시에서 항목 삭제
    */
   delete(key: string): boolean {
-    return this.cache.delete(key);
+    const deleted = this.cache.delete(key);
+    if (deleted) {
+      // 리스너에게 알림
+      this.notifyInvalidate(key, 'delete');
+    }
+    return deleted;
+  }
+
+  /**
+   * 버전 기반 캐시 무효화
+   * DB의 버전이 캐시의 버전보다 높으면 무효화
+   * version=0인 경우 항상 무효화 (마이그레이션 미완료로 간주)
+   */
+  invalidateByVersion(key: string, dbVersion: number): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) {
+      return false; // 캐시에 없음
+    }
+
+    // version=0인 경우 항상 무효화
+    if (entry.version === 0) {
+      this.cache.delete(key);
+      this.notifyInvalidate(key, 'version_zero');
+      return true;
+    }
+
+    // DB 버전이 캐시 버전보다 높으면 무효화
+    if (dbVersion > entry.version) {
+      this.cache.delete(key);
+      this.notifyInvalidate(key, `version_mismatch: cache=${entry.version}, db=${dbVersion}`);
+      return true;
+    }
+
+    return false; // 무효화되지 않음
+  }
+
+  /**
+   * 캐시 무효화 리스너 구독
+   */
+  subscribeInvalidation(listener: CacheInvalidationListener): void {
+    this.listeners.add(listener);
+  }
+
+  /**
+   * 캐시 무효화 리스너 구독 해제
+   */
+  unsubscribeInvalidation(listener: CacheInvalidationListener): void {
+    this.listeners.delete(listener);
+  }
+
+  /**
+   * 특정 키 무효화 알림
+   */
+  private notifyInvalidate(key: string, reason?: string): void {
+    for (const listener of this.listeners) {
+      try {
+        listener.onInvalidate(key, reason);
+      } catch (error) {
+        logger.error(`CacheInvalidationListener.onInvalidate 오류: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
+  /**
+   * 전체 캐시 무효화 알림
+   */
+  private notifyInvalidateAll(reason?: string): void {
+    for (const listener of this.listeners) {
+      try {
+        listener.onInvalidateAll(reason);
+      } catch (error) {
+        logger.error(`CacheInvalidationListener.onInvalidateAll 오류: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   }
 
   /**
    * 캐시 전체 조회 (always_load=true인 항목들)
    */
   getAll(): CoreMemoryRecord[] {
-    return Array.from(this.cache.values());
+    return Array.from(this.cache.values()).map(entry => entry.record);
   }
 
   /**
@@ -51,6 +171,8 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
    */
   clear(): void {
     this.cache.clear();
+    // 리스너에게 알림
+    this.notifyInvalidateAll('clear');
   }
 
   /**
@@ -78,9 +200,9 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
    * agent_id로 필터링된 항목 조회
    */
   getByAgentId(agent_id: string): CoreMemoryRecord[] {
-    return Array.from(this.cache.values()).filter(
-      record => record.agent_id === agent_id
-    );
+    return Array.from(this.cache.values())
+      .filter(entry => entry.record.agent_id === agent_id)
+      .map(entry => entry.record);
   }
 
   /**
@@ -88,9 +210,10 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
    */
   deleteByAgentId(agent_id: string): number {
     let deletedCount = 0;
-    for (const [key, record] of this.cache.entries()) {
-      if (record.agent_id === agent_id) {
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.record.agent_id === agent_id) {
         this.cache.delete(key);
+        this.notifyInvalidate(key, `deleteByAgentId: ${agent_id}`);
         deletedCount++;
       }
     }
@@ -106,8 +229,8 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
     keys: string[];
   } {
     const agentIds = new Set<string>();
-    for (const record of this.cache.values()) {
-      agentIds.add(record.agent_id);
+    for (const entry of this.cache.values()) {
+      agentIds.add(entry.record.agent_id);
     }
 
     return {
@@ -115,6 +238,17 @@ export class CoreMemoryCacheService implements CoreMemoryCache {
       agentIds: Array.from(agentIds),
       keys: Array.from(this.cache.keys())
     };
+  }
+
+  /**
+   * 캐시 무효화 (별칭, 리스너 알림 포함)
+   */
+  invalidate(key: string, reason?: string): boolean {
+    const deleted = this.cache.delete(key);
+    if (deleted) {
+      this.notifyInvalidate(key, reason);
+    }
+    return deleted;
   }
 }
 

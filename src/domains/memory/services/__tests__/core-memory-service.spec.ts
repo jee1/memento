@@ -18,6 +18,7 @@ class MockCoreMemoryRepository implements CoreMemoryRepository {
       value: input.value,
       always_load: input.always_load || false,
       origin_source: input.origin_source || null,
+      version: 1, // create 시 version = 1
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -53,7 +54,13 @@ class MockCoreMemoryRepository implements CoreMemoryRepository {
   async update(core_id: string, input: any): Promise<CoreMemoryRecord | null> {
     const record = this.records.get(core_id);
     if (!record) return null;
-    const updated = { ...record, ...input, updated_at: new Date().toISOString() };
+    // version 증가
+    const updated = { 
+      ...record, 
+      ...input, 
+      version: (record.version || 1) + 1,
+      updated_at: new Date().toISOString() 
+    };
     this.records.set(core_id, updated);
     return updated;
   }
@@ -186,7 +193,7 @@ describe('CoreMemoryService', () => {
   });
 
   describe('findByKey', () => {
-    it('should return from cache when available', async () => {
+    it('should return from cache when available and version matches', async () => {
       const created = await service.create({
         agent_id: 'agent1',
         key: 'persona',
@@ -201,6 +208,56 @@ describe('CoreMemoryService', () => {
 
       expect(found).toBeDefined();
       expect(found?.core_id).toBe(created.core_id);
+    });
+
+    it('should invalidate cache and reload when DB version is higher than cache version', async () => {
+      // Given: 레코드 생성 및 캐시에 저장 (version = 1)
+      const created = await service.create({
+        agent_id: 'agent1',
+        key: 'persona',
+        value: 'Initial value',
+        always_load: true
+      });
+      cache.set('agent1:persona', created);
+      expect(created.version).toBe(1);
+
+      // When: DB에서 업데이트 (version = 2)
+      await repository.update(created.core_id, { value: 'Updated value' });
+
+      // When: findByKey 호출 (버전 비교 발생)
+      const found = await service.findByKey('agent1', 'persona');
+
+      // Then: DB의 최신 값이 반환되어야 함
+      expect(found).toBeDefined();
+      expect(found?.value).toBe('Updated value');
+      expect(found?.version).toBe(2);
+
+      // Then: 캐시가 무효화되고 재로드되어야 함
+      const cached = cache.get('agent1:persona');
+      expect(cached).toBeDefined();
+      expect(cached?.value).toBe('Updated value');
+      expect(cached?.version).toBe(2);
+    });
+
+    it('should remove from cache when DB record is deleted', async () => {
+      // Given: 레코드 생성 및 캐시에 저장
+      const created = await service.create({
+        agent_id: 'agent1',
+        key: 'persona',
+        value: 'Value',
+        always_load: true
+      });
+      cache.set('agent1:persona', created);
+
+      // When: DB에서 삭제
+      await repository.delete(created.core_id);
+
+      // When: findByKey 호출
+      const found = await service.findByKey('agent1', 'persona');
+
+      // Then: null 반환 및 캐시에서 제거
+      expect(found).toBeNull();
+      expect(cache.get('agent1:persona')).toBeUndefined();
     });
 
     it('should fetch from DB and add to cache when always_load=true', async () => {
@@ -297,13 +354,14 @@ describe('CoreMemoryService', () => {
   });
 
   describe('update', () => {
-    it('should update core memory', async () => {
+    it('should update core memory and invalidate cache', async () => {
       const created = await service.create({
         agent_id: 'agent1',
         key: 'persona',
         value: 'Old value',
-        always_load: false
+        always_load: true
       });
+      cache.set('agent1:persona', created);
 
       const updated = await service.update(created.core_id, {
         value: 'New value',
@@ -313,6 +371,14 @@ describe('CoreMemoryService', () => {
       expect(updated).toBeDefined();
       expect(updated?.value).toBe('New value');
       expect(updated?.always_load).toBe(true);
+      // version이 증가해야 함
+      expect(updated?.version).toBe(2);
+
+      // 캐시가 무효화되고 재로드되어야 함
+      const cached = cache.get('agent1:persona');
+      expect(cached).toBeDefined();
+      expect(cached?.value).toBe('New value');
+      expect(cached?.version).toBe(2);
     });
 
     it('should add to cache when always_load changes to true', async () => {
@@ -357,12 +423,14 @@ describe('CoreMemoryService', () => {
   });
 
   describe('updateByKey', () => {
-    it('should update core memory by key', async () => {
-      await service.create({
+    it('should update core memory by key and invalidate cache', async () => {
+      const created = await service.create({
         agent_id: 'agent1',
         key: 'persona',
-        value: 'Old value'
+        value: 'Old value',
+        always_load: true
       });
+      cache.set('agent1:persona', created);
 
       const updated = await service.updateByKey('agent1', 'persona', {
         value: 'New value'
@@ -370,6 +438,14 @@ describe('CoreMemoryService', () => {
 
       expect(updated).toBeDefined();
       expect(updated?.value).toBe('New value');
+      // version이 증가해야 함
+      expect(updated?.version).toBe(2);
+
+      // 캐시가 무효화되고 재로드되어야 함
+      const cached = cache.get('agent1:persona');
+      expect(cached).toBeDefined();
+      expect(cached?.value).toBe('New value');
+      expect(cached?.version).toBe(2);
     });
   });
 

@@ -65,10 +65,13 @@ function initializeTestDatabase(db: Database.Database): void {
       value TEXT NOT NULL,
       always_load BOOLEAN NOT NULL DEFAULT 0,
       origin_source TEXT,
+      version INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(agent_id, key)
     );
+    CREATE INDEX IF NOT EXISTS idx_core_memory_version ON core_memory(version);
+    UPDATE core_memory SET version = 1 WHERE version = 0;
 
     CREATE TABLE IF NOT EXISTS knowledge_vault (
       vault_id TEXT PRIMARY KEY,

@@ -26,6 +26,7 @@ function createCoreMemoryTable(db: Database.Database): void {
       value TEXT NOT NULL,
       always_load BOOLEAN NOT NULL DEFAULT 0,
       origin_source TEXT,
+      version INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(agent_id, key)
@@ -34,6 +35,8 @@ function createCoreMemoryTable(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_core_memory_agent_id ON core_memory(agent_id);
     CREATE INDEX IF NOT EXISTS idx_core_memory_key ON core_memory(key);
     CREATE INDEX IF NOT EXISTS idx_core_memory_always_load ON core_memory(always_load);
+    CREATE INDEX IF NOT EXISTS idx_core_memory_version ON core_memory(version);
+    UPDATE core_memory SET version = 1 WHERE version = 0;
   `);
 }
 

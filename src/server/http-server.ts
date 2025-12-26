@@ -232,6 +232,23 @@ async function cleanup() {
   isCleaningUp = true;
   
   try {
+    // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
+    if (serverServices) {
+      try {
+        await serverServices.walCheckpointScheduler.stop();
+        logger.info('WAL 체크포인트 스케줄러 중지됨');
+      } catch (error) {
+        logger.error('WAL 체크포인트 스케줄러 중지 실패', { error });
+      }
+      
+      try {
+        serverServices.databaseLockMonitor.stop();
+        logger.info('데이터베이스 락 모니터 중지됨');
+      } catch (error) {
+        logger.error('데이터베이스 락 모니터 중지 실패', { error });
+      }
+    }
+    
     // Write Coalescing Manager 정리
     if (writeCoalescingManager) {
       await writeCoalescingManager.flush();
