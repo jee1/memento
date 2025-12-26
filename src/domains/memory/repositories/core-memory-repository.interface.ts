@@ -13,6 +13,7 @@ export interface CoreMemoryRecord {
   value: string;
   always_load: boolean;
   origin_source?: string | null;
+  version: number; // 버전 번호 (단조 증가, 캐시 무효화용)
   created_at: string;
   updated_at: string;
 }

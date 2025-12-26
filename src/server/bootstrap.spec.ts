@@ -24,6 +24,21 @@ describe('initializeServices', () => {
     // 모든 비동기 작업이 완료될 때까지 대기
     await new Promise(resolve => setTimeout(resolve, 200));
 
+    // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
+    if (services) {
+      try {
+        await services.walCheckpointScheduler.stop();
+      } catch (error) {
+        console.warn('WalCheckpointScheduler stop 중 에러:', error);
+      }
+      
+      try {
+        services.databaseLockMonitor.stop();
+      } catch (error) {
+        console.warn('DatabaseLockMonitor stop 중 에러:', error);
+      }
+    }
+
     // Write Coalescing Manager 정리
     if (services?.writeCoalescingManager) {
       try {
@@ -360,6 +375,63 @@ describe('initializeServices', () => {
       services = await initializeServices(db);
       expect(services.performanceMonitor).toBeDefined();
       expect(services.performanceMonitor).toHaveProperty('collectMetrics');
+    });
+  });
+
+  describe('WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 통합', () => {
+    it('walCheckpointScheduler가 WalCheckpointScheduler 인스턴스여야 함', async () => {
+      services = await initializeServices(db);
+
+      expect(services.walCheckpointScheduler).toBeDefined();
+      expect(services.walCheckpointScheduler).toHaveProperty('start');
+      expect(services.walCheckpointScheduler).toHaveProperty('stop');
+      expect(services.walCheckpointScheduler).toHaveProperty('checkpointNow');
+    });
+
+    it('databaseLockMonitor가 DatabaseLockMonitor 인스턴스여야 함', async () => {
+      services = await initializeServices(db);
+
+      expect(services.databaseLockMonitor).toBeDefined();
+      expect(services.databaseLockMonitor).toHaveProperty('start');
+      expect(services.databaseLockMonitor).toHaveProperty('stop');
+    });
+
+    it('서비스 초기화 시 스케줄러와 모니터가 자동으로 시작되어야 함', async () => {
+      services = await initializeServices(db);
+
+      // 스케줄러와 모니터가 시작되었는지 확인
+      // (내부 상태를 직접 확인할 수 없으므로, stop()을 호출해도 에러가 발생하지 않아야 함)
+      expect(services.walCheckpointScheduler).toBeDefined();
+      expect(services.databaseLockMonitor).toBeDefined();
+      
+      // stop()을 호출해도 에러가 발생하지 않아야 함 (idempotent)
+      await expect(services.walCheckpointScheduler.stop()).resolves.not.toThrow();
+      expect(() => services.databaseLockMonitor.stop()).not.toThrow();
+    });
+
+    it('서비스 정리 시 스케줄러와 모니터가 안전하게 중지되어야 함', async () => {
+      services = await initializeServices(db);
+
+      // 스케줄러와 모니터 중지
+      await expect(services.walCheckpointScheduler.stop()).resolves.not.toThrow();
+      expect(() => services.databaseLockMonitor.stop()).not.toThrow();
+      
+      // 여러 번 호출해도 안전해야 함 (idempotent)
+      await expect(services.walCheckpointScheduler.stop()).resolves.not.toThrow();
+      expect(() => services.databaseLockMonitor.stop()).not.toThrow();
+    });
+
+    it('스케줄러와 모니터가 환경 변수 기반 설정으로 초기화되어야 함', async () => {
+      services = await initializeServices(db);
+
+      // 스케줄러와 모니터가 정의되어 있어야 함
+      expect(services.walCheckpointScheduler).toBeDefined();
+      expect(services.databaseLockMonitor).toBeDefined();
+      
+      // 환경 변수에서 설정을 읽어왔는지 확인
+      // (실제 설정값은 환경 변수에 따라 다를 수 있으므로, 인스턴스가 생성되었는지만 확인)
+      expect(services.walCheckpointScheduler).toBeDefined();
+      expect(services.databaseLockMonitor).toBeDefined();
     });
   });
 });

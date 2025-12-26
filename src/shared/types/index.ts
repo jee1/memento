@@ -178,6 +178,18 @@ export interface MementoConfig {
   consolidationScoreEnabled: boolean;
   // FTS5 Migration Status (런타임 캐시용)
   fts5MigrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
+  // WAL 체크포인트 스케줄러 설정
+  walCheckpointIntervalMs: number;
+  walSizeWarningThreshold: number;
+  walSizeDangerThreshold: number;
+  walCheckpointUseDedicatedConnection: boolean;
+  walCheckpointMaxRetries: number;
+  walCheckpointRetryBackoffMs: number;
+  // 데이터베이스 락 모니터 설정
+  lockMonitorIntervalMs: number;
+  lockMonitorWarningThresholdMs: number;
+  lockMonitorDangerThresholdMs: number;
+  lockMonitorCriticalThresholdMs: number;
 }
 
 /**

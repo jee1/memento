@@ -93,33 +93,28 @@ export class Semaphore {
 const concurrencyLimiter = new Semaphore(20);
 
 // 데이터베이스 상태 모니터링
-async function monitorDatabaseStatus() {
+/**
+ * 초기 데이터베이스 상태 확인 (한 번만 실행)
+ * 주기적 모니터링은 DatabaseLockMonitor가 담당하므로, 초기 상태만 확인
+ */
+async function checkInitialDatabaseStatus() {
   if (!db) return;
   
   try {
     const status = await DatabaseUtils.getDatabaseStatus(db);
-    log('📊 데이터베이스 상태:', {
+    mcpLogger.logServer('info', '초기 데이터베이스 상태 확인', {
       journalMode: status.journalMode,
       walAutoCheckpoint: status.walAutoCheckpoint,
       busyTimeout: status.busyTimeout,
-      isLocked: status.isLocked ? '🔒 잠김' : '🔓 정상'
+      isLocked: status.isLocked ? '잠김' : '정상'
     });
     
-    // 락이 감지되면 WAL 체크포인트 실행
-    if (status.isLocked) {
-      log('⚠️ 데이터베이스 락 감지, WAL 체크포인트 실행...');
-      await DatabaseUtils.checkpointWAL(db);
-    }
+    // 주기적 모니터링은 DatabaseLockMonitor가 담당하므로 여기서는 초기 상태만 확인
+    // 락이 감지되면 DatabaseLockMonitor가 자동으로 처리함
   } catch (error) {
-    // 데이터베이스 상태 모니터링 실패
+    mcpLogger.logServer('warn', '초기 데이터베이스 상태 확인 실패', { error: error instanceof Error ? error.message : String(error) });
   }
 }
-
-// MCP 모드 감지 (stdio를 통해 실행되는지 확인)
-const isMCPMode = process.stdin.isTTY === false && process.stdout.isTTY === false;
-
-// MCP 모드에서는 로그를 stderr로 출력
-const log = isMCPMode ? console.error : console.log;
 
 // MCP 서버 초기화
 async function initializeServer() {
@@ -135,9 +130,9 @@ async function initializeServer() {
     db = await initializeDatabase();
     mcpLogger.logServer('info', '데이터베이스 초기화 완료');
     
-    // 데이터베이스 상태 모니터링
-    await monitorDatabaseStatus();
-    mcpLogger.logServer('info', '데이터베이스 상태 모니터링 완료');
+    // 초기 데이터베이스 상태 확인 (주기적 모니터링은 DatabaseLockMonitor가 담당)
+    await checkInitialDatabaseStatus();
+    mcpLogger.logServer('info', '초기 데이터베이스 상태 확인 완료');
     
     // 공용 부트스트랩 함수를 사용하여 모든 서비스 초기화
     const services = await initializeServices(db);
@@ -475,6 +470,25 @@ async function cleanup() {
   
   isCleaningUp = true;
   
+  mcpLogger.logServer('info', '서버 정리 시작...');
+  
+  // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
+  if (serverServices) {
+    try {
+      await serverServices.walCheckpointScheduler.stop();
+      mcpLogger.logServer('info', 'WAL 체크포인트 스케줄러 중지됨');
+    } catch (error) {
+      mcpLogger.logServer('error', `WAL 체크포인트 스케줄러 중지 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
+    }
+    
+    try {
+      serverServices.databaseLockMonitor.stop();
+      mcpLogger.logServer('info', '데이터베이스 락 모니터 중지됨');
+    } catch (error) {
+      mcpLogger.logServer('error', `데이터베이스 락 모니터 중지 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  
   // Write Coalescing Manager의 남은 버퍼 flush
   if (writeCoalescingManager) {
     try {
@@ -498,6 +512,8 @@ async function cleanup() {
     closeDatabase(db);
     db = null; // 참조 제거
   }
+  
+  mcpLogger.logServer('info', '서버 정리 완료');
   // Memento MCP Server 종료
 }
 

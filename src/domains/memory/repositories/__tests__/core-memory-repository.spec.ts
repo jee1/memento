@@ -15,6 +15,7 @@ function createCoreMemoryTable(db: Database.Database): void {
       value TEXT NOT NULL,
       always_load BOOLEAN NOT NULL DEFAULT 0,
       origin_source TEXT,
+      version INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(agent_id, key)
@@ -24,6 +25,7 @@ function createCoreMemoryTable(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_core_memory_key ON core_memory(key);
     CREATE INDEX IF NOT EXISTS idx_core_memory_created_at ON core_memory(created_at);
     CREATE INDEX IF NOT EXISTS idx_core_memory_always_load ON core_memory(always_load);
+    CREATE INDEX IF NOT EXISTS idx_core_memory_version ON core_memory(version);
 
     CREATE TRIGGER IF NOT EXISTS core_memory_update_timestamp 
     AFTER UPDATE ON core_memory
@@ -70,6 +72,7 @@ describe('CoreMemoryRepository', () => {
       expect(result.value).toBe('I am helpful');
       expect(result.always_load).toBe(true);
       expect(result.origin_source).toBe('{"tool": "remember"}');
+      expect(result.version).toBe(1); // create 시 version = 1
       expect(result.created_at).toBeDefined();
       expect(result.updated_at).toBeDefined();
     });
@@ -266,6 +269,8 @@ describe('CoreMemoryRepository', () => {
       expect(updated).toBeDefined();
       expect(updated?.value).toBe('New value');
       expect(updated?.always_load).toBe(true);
+      // version이 증가해야 함 (1 -> 2)
+      expect(updated?.version).toBe(2);
       // updated_at은 트리거에 의해 자동 업데이트되지만, 매우 빠른 업데이트의 경우 같은 값일 수 있음
       // 최소한 updated_at이 존재하는지 확인
       expect(updated?.updated_at).toBeDefined();

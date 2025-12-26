@@ -111,6 +111,7 @@ export interface Logger {
  */
 export interface PerformanceMonitor {
   recordMetric(name: string, value: number): void;
+  incrementCounter(name: string): void;
 }
 
 import Database from 'better-sqlite3';

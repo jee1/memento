@@ -429,6 +429,28 @@ export async function initializeDatabase(): Promise<Database.Database> {
           
           // 마이그레이션 실행 후 VEC 테이블 초기화
           populateVecTables(db, []);
+          
+          // 마이그레이션 완료 검증: core_memory 테이블의 version=0인 행이 없어야 함
+          try {
+            const zeroVersionCount = db.prepare(`
+              SELECT COUNT(*) as count FROM core_memory WHERE version = 0
+            `).get() as { count: number } | undefined;
+            
+            if (zeroVersionCount && zeroVersionCount.count > 0) {
+              const errorMessage = `마이그레이션 검증 실패: core_memory 테이블에 version=0인 행이 ${zeroVersionCount.count}개 있습니다. 마이그레이션 010이 완료되지 않았을 수 있습니다.`;
+              log(`❌ ${errorMessage}`);
+              throw new Error(errorMessage);
+            }
+            
+            log('✅ core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
+          } catch (validationError) {
+            // core_memory 테이블이 없는 경우는 무시 (마이그레이션 002가 아직 실행되지 않았을 수 있음)
+            if (validationError instanceof Error && validationError.message.includes('no such table')) {
+              log('⚠️  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
+            } else {
+              throw validationError;
+            }
+          }
         }
       } catch (migrationError) {
         log('⚠️  마이그레이션 감지/실행 중 오류 발생:', migrationError);

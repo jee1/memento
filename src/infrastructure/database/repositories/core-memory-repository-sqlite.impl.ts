@@ -45,8 +45,8 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
     } = input;
 
     const stmt = await this.db.prepare(`
-      INSERT INTO core_memory (core_id, agent_id, key, value, always_load, origin_source)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO core_memory (core_id, agent_id, key, value, always_load, origin_source, version)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
     `);
     await stmt.run(core_id, agent_id, key, value, always_load ? 1 : 0, origin_source);
 
@@ -69,6 +69,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
         value,
         always_load,
         origin_source,
+        version,
         created_at,
         updated_at
       FROM core_memory
@@ -95,6 +96,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
         value,
         always_load,
         origin_source,
+        version,
         created_at,
         updated_at
       FROM core_memory
@@ -121,6 +123,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
         value,
         always_load,
         origin_source,
+        version,
         created_at,
         updated_at
       FROM core_memory
@@ -145,6 +148,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
           value,
           always_load,
           origin_source,
+          version,
           created_at,
           updated_at
         FROM core_memory
@@ -159,6 +163,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
           value,
           always_load,
           origin_source,
+          version,
           created_at,
           updated_at
         FROM core_memory
@@ -200,6 +205,8 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
       return this.findById(core_id);
     }
 
+    // version = version + 1 추가 (항상 증가)
+    updates.push('version = version + 1');
     values.push(core_id);
 
     const stmt = await this.db.prepare(`
@@ -242,6 +249,8 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
       return this.findByKey(agent_id, key);
     }
 
+    // version = version + 1 추가 (항상 증가)
+    updates.push('version = version + 1');
     values.push(agent_id, key);
 
     const stmt = await this.db.prepare(`
@@ -305,6 +314,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
         value,
         always_load,
         origin_source,
+        version,
         created_at,
         updated_at
       FROM core_memory

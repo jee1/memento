@@ -57,58 +57,58 @@
   - [x] 1.11 idempotent 동작 보장 (start/stop 중복 호출 처리)
   - [x] 1.12 단위 테스트 작성 (주기적 체크포인트, 재시도, WAL 크기 모니터링, idempotent 동작)
 
-- [ ] 2.0 데이터베이스 락 모니터 구현
-  - [ ] 2.1 LockStatus 및 DatabaseLockMonitorConfig 인터페이스 정의
-  - [ ] 2.2 DatabaseLockMonitor 클래스 기본 구조 구현 (constructor, start, stop 메서드)
-  - [ ] 2.3 IMMEDIATE 트랜잭션 기반 락 감지 로직 구현 (BEGIN IMMEDIATE TRANSACTION 시도, SQLITE_BUSY 에러 처리)
-  - [ ] 2.4 단순 상태 확인 쿼리 기반 락 감지 로직 구현 (SELECT COUNT(*) FROM sqlite_master, 보조 방법)
-  - [ ] 2.5 락 지속 시간 추적 로직 구현 (lockStartTime 기록, duration 계산)
-  - [ ] 2.6 임계값 기반 경고 및 조치 로직 구현 (warning: 5초, danger: 30초, critical: 60초)
-  - [ ] 2.7 락 감지 시 체크포인트 스케줄러 연동 (checkpointScheduler.checkpointNow 호출)
-  - [ ] 2.8 PerformanceMonitor 메트릭 수집 통합 (database_lock_duration, database_lock_count)
-  - [ ] 2.9 busy_timeout 초과 통계 추적 (busyCount 증가, 시간당 발생 횟수 모니터링)
-  - [ ] 2.10 idempotent 동작 보장 (start/stop 중복 호출 처리)
-  - [ ] 2.11 단위 테스트 작성 (락 감지, 임계값 기반 경고, 메트릭 수집, idempotent 동작)
+- [x] 2.0 데이터베이스 락 모니터 구현
+  - [x] 2.1 LockStatus 및 DatabaseLockMonitorConfig 인터페이스 정의
+  - [x] 2.2 DatabaseLockMonitor 클래스 기본 구조 구현 (constructor, start, stop 메서드)
+  - [x] 2.3 IMMEDIATE 트랜잭션 기반 락 감지 로직 구현 (BEGIN IMMEDIATE TRANSACTION 시도, SQLITE_BUSY 에러 처리)
+  - [x] 2.4 단순 상태 확인 쿼리 기반 락 감지 로직 구현 (SELECT COUNT(*) FROM sqlite_master, 보조 방법)
+  - [x] 2.5 락 지속 시간 추적 로직 구현 (lockStartTime 기록, duration 계산)
+  - [x] 2.6 임계값 기반 경고 및 조치 로직 구현 (warning: 5초, danger: 30초, critical: 60초)
+  - [x] 2.7 락 감지 시 체크포인트 스케줄러 연동 (checkpointScheduler.checkpointNow 호출)
+  - [x] 2.8 PerformanceMonitor 메트릭 수집 통합 (database_lock_duration, database_lock_count)
+  - [x] 2.9 busy_timeout 초과 통계 추적 (busyCount 증가, 시간당 발생 횟수 모니터링)
+  - [x] 2.10 idempotent 동작 보장 (start/stop 중복 호출 처리)
+  - [x] 2.11 단위 테스트 작성 (락 감지, 임계값 기반 경고, 메트릭 수집, idempotent 동작)
 
-- [ ] 3.0 서버 초기화 통합
-  - [ ] 3.1 bootstrap.ts에서 WalCheckpointScheduler 인스턴스 생성 (환경 변수 기반 설정 로드)
-  - [ ] 3.2 bootstrap.ts에서 DatabaseLockMonitor 인스턴스 생성 (환경 변수 기반 설정 로드)
-  - [ ] 3.3 ServerServices 인터페이스에 스케줄러 및 모니터 필드 추가
-  - [ ] 3.4 initializeServices 함수에서 스케줄러 및 모니터 초기화 및 start() 호출
-  - [ ] 3.5 서버 종료 훅에서 스케줄러 및 모니터 stop() 호출 (process.on('SIGINT'), process.on('SIGTERM'))
-  - [ ] 3.6 환경 변수 설정 추가 (WAL_CHECKPOINT_INTERVAL_MS, LOCK_MONITOR_INTERVAL_MS 등)
-  - [ ] 3.7 기존 monitorDatabaseStatus 함수 제거 또는 스케줄러로 대체
-  - [ ] 3.8 통합 테스트 작성 (서버 시작 시 스케줄러 시작, 서버 종료 시 정리)
+- [x] 3.0 서버 초기화 통합
+  - [x] 3.1 bootstrap.ts에서 WalCheckpointScheduler 인스턴스 생성 (환경 변수 기반 설정 로드)
+  - [x] 3.2 bootstrap.ts에서 DatabaseLockMonitor 인스턴스 생성 (환경 변수 기반 설정 로드)
+  - [x] 3.3 ServerServices 인터페이스에 스케줄러 및 모니터 필드 추가
+  - [x] 3.4 initializeServices 함수에서 스케줄러 및 모니터 초기화 및 start() 호출
+  - [x] 3.5 서버 종료 훅에서 스케줄러 및 모니터 stop() 호출 (process.on('SIGINT'), process.on('SIGTERM'))
+  - [x] 3.6 환경 변수 설정 추가 (WAL_CHECKPOINT_INTERVAL_MS, LOCK_MONITOR_INTERVAL_MS 등)
+  - [x] 3.7 기존 monitorDatabaseStatus 함수 제거 또는 스케줄러로 대체
+  - [x] 3.8 통합 테스트 작성 (서버 시작 시 스케줄러 시작, 서버 종료 시 정리)
 
-- [ ] 4.0 CoreMemory 캐시 버전 관리 및 무효화 개선
-  - [ ] 4.1 마이그레이션 파일 생성 (src/database/migrations/010-add-core-memory-version.sql, src/database/migrations/010-add-core-memory-version.ts)
-  - [ ] 4.2 마이그레이션 SQL 작성 (ALTER TABLE core_memory ADD COLUMN version INTEGER NOT NULL DEFAULT 0)
-  - [ ] 4.3 마이그레이션 SQL 작성 (CREATE INDEX idx_core_memory_version ON core_memory(version))
-  - [ ] 4.4 마이그레이션 SQL 작성 (기존 행에 version = 1 설정)
-  - [ ] 4.5 마이그레이션 완료 검증 SQL 작성 (SELECT COUNT(*) FROM core_memory WHERE version = 0)
-  - [ ] 4.6 마이그레이션 TypeScript 구현체 작성 (Migration 인터페이스 구현, up/down 메서드, validateBefore/validateAfter 메서드)
-  - [ ] 4.7 CoreMemoryRecord 인터페이스에 version 필드 추가 (number 타입)
-  - [ ] 4.8 CoreMemoryRepository 구현체에서 create 메서드에 version = 1 설정 로직 추가
-  - [ ] 4.9 CoreMemoryRepository 구현체에서 update 메서드에 version = version + 1 설정 로직 추가
-  - [ ] 4.10 CoreMemoryCacheService에 CacheEntry 인터페이스 추가 (record, cachedAt, version 필드)
-  - [ ] 4.11 CoreMemoryCacheService의 set 메서드에서 version 저장 로직 추가 (version=0 경고 로그)
-  - [ ] 4.12 CoreMemoryCacheService에 getWithVersion 메서드 추가
-  - [ ] 4.13 CoreMemoryCacheService에 invalidateByVersion 메서드 추가 (버전 비교, version=0 처리)
-  - [ ] 4.14 CacheInvalidationListener 인터페이스 정의 (onInvalidate, onInvalidateAll)
-  - [ ] 4.15 CoreMemoryCacheService에 이벤트 리스너 메커니즘 추가 (subscribeInvalidation, unsubscribeInvalidation)
-  - [ ] 4.16 CoreMemoryCacheService의 invalidate/clear 메서드에서 리스너 알림 로직 추가
-  - [ ] 4.17 CoreMemoryService의 findByKey 메서드에서 버전 비교 및 자동 갱신 로직 추가 (DB 조회 시 버전 비교, 불일치 시 캐시 무효화 및 재로드)
-  - [ ] 4.18 CoreMemoryService의 update/delete 메서드에서 캐시 무효화 로직 추가
-  - [ ] 4.19 서버 초기화 시 마이그레이션 완료 검증 로직 추가 (version=0인 행이 없어야 함)
-  - [ ] 4.20 단위 테스트 작성 (version 관리, 버전 비교, 캐시 무효화, 이벤트 리스너)
+- [x] 4.0 CoreMemory 캐시 버전 관리 및 무효화 개선
+  - [x] 4.1 마이그레이션 파일 생성 (src/database/migrations/010-add-core-memory-version.sql, src/database/migrations/010-add-core-memory-version.ts)
+  - [x] 4.2 마이그레이션 SQL 작성 (ALTER TABLE core_memory ADD COLUMN version INTEGER NOT NULL DEFAULT 0)
+  - [x] 4.3 마이그레이션 SQL 작성 (CREATE INDEX idx_core_memory_version ON core_memory(version))
+  - [x] 4.4 마이그레이션 SQL 작성 (기존 행에 version = 1 설정)
+  - [x] 4.5 마이그레이션 완료 검증 SQL 작성 (SELECT COUNT(*) FROM core_memory WHERE version = 0)
+  - [x] 4.6 마이그레이션 TypeScript 구현체 작성 (Migration 인터페이스 구현, up/down 메서드, validateBefore/validateAfter 메서드)
+  - [x] 4.7 CoreMemoryRecord 인터페이스에 version 필드 추가 (number 타입)
+  - [x] 4.8 CoreMemoryRepository 구현체에서 create 메서드에 version = 1 설정 로직 추가
+  - [x] 4.9 CoreMemoryRepository 구현체에서 update 메서드에 version = version + 1 설정 로직 추가
+  - [x] 4.10 CoreMemoryCacheService에 CacheEntry 인터페이스 추가 (record, cachedAt, version 필드)
+  - [x] 4.11 CoreMemoryCacheService의 set 메서드에서 version 저장 로직 추가 (version=0 경고 로그)
+  - [x] 4.12 CoreMemoryCacheService에 getWithVersion 메서드 추가
+  - [x] 4.13 CoreMemoryCacheService에 invalidateByVersion 메서드 추가 (버전 비교, version=0 처리)
+  - [x] 4.14 CacheInvalidationListener 인터페이스 정의 (onInvalidate, onInvalidateAll)
+  - [x] 4.15 CoreMemoryCacheService에 이벤트 리스너 메커니즘 추가 (subscribeInvalidation, unsubscribeInvalidation)
+  - [x] 4.16 CoreMemoryCacheService의 invalidate/clear 메서드에서 리스너 알림 로직 추가
+  - [x] 4.17 CoreMemoryService의 findByKey 메서드에서 버전 비교 및 자동 갱신 로직 추가 (DB 조회 시 버전 비교, 불일치 시 캐시 무효화 및 재로드)
+  - [x] 4.18 CoreMemoryService의 update/delete 메서드에서 캐시 무효화 로직 추가
+  - [x] 4.19 서버 초기화 시 마이그레이션 완료 검증 로직 추가 (version=0인 행이 없어야 함)
+  - [x] 4.20 단위 테스트 작성 (version 관리, 버전 비교, 캐시 무효화, 이벤트 리스너)
 
-- [ ] 5.0 문서화 및 테스트
-  - [ ] 5.1 캐시 동기화 전략 문서 작성 (docs/ko/cache-synchronization-strategy.md)
-  - [ ] 5.2 문서에 현재 단일 서버 환경에서의 캐시 동작 설명 추가
-  - [ ] 5.3 문서에 분산 환경으로 전환 시 고려사항 추가 (Pub/Sub, DB 변경 피드)
-  - [ ] 5.4 문서에 캐시 무효화 전략 설명 추가
-  - [ ] 5.5 문서에 향후 개선 방향 추가 (Redis 등 외부 캐시 도입)
-  - [ ] 5.6 통합 테스트 작성 (스케줄러와 모니터 통합, 캐시 버전 관리 통합)
-  - [ ] 5.7 실제 락 시나리오 테스트 작성 (멀티프로세스 동시 쓰기, 장기 트랜잭션)
-  - [ ] 5.8 성능 테스트 작성 (WAL 체크포인트 오버헤드, 락 모니터링 오버헤드, 캐시 동기화 성능)
+- [x] 5.0 문서화 및 테스트
+  - [x] 5.1 캐시 동기화 전략 문서 작성 (docs/ko/cache-synchronization-strategy.md)
+  - [x] 5.2 문서에 현재 단일 서버 환경에서의 캐시 동작 설명 추가
+  - [x] 5.3 문서에 분산 환경으로 전환 시 고려사항 추가 (Pub/Sub, DB 변경 피드)
+  - [x] 5.4 문서에 캐시 무효화 전략 설명 추가
+  - [x] 5.5 문서에 향후 개선 방향 추가 (Redis 등 외부 캐시 도입)
+  - [x] 5.6 통합 테스트 작성 (스케줄러와 모니터 통합, 캐시 버전 관리 통합)
+  - [x] 5.7 실제 락 시나리오 테스트 작성 (멀티프로세스 동시 쓰기, 장기 트랜잭션)
+  - [x] 5.8 성능 테스트 작성 (WAL 체크포인트 오버헤드, 락 모니터링 오버헤드, 캐시 동기화 성능)
 

@@ -130,14 +130,39 @@ export class CoreMemoryService {
   }
 
   /**
-   * agent_id와 key로 Core Memory 조회 (캐시 우선)
+   * agent_id와 key로 Core Memory 조회 (캐시 우선, 버전 비교)
    */
   async findByKey(agent_id: string, key: string): Promise<CoreMemoryRecord | null> {
+    const cacheKey = this.getCacheKey(agent_id, key);
+    
     // 캐시에서 먼저 조회
     if (this.cache) {
-      const cached = this.cache.get(this.getCacheKey(agent_id, key));
-      if (cached) {
-        return cached;
+      const cachedEntry = (this.cache as any).getWithVersion?.(cacheKey);
+      if (cachedEntry) {
+        // DB에서 최신 버전 조회하여 비교
+        const dbRecord = await this.repository.findByKey(agent_id, key);
+        
+        if (!dbRecord) {
+          // DB에 없으면 캐시에서 제거
+          this.cache.delete(cacheKey);
+          return null;
+        }
+        
+        // 버전 비교: DB 버전이 캐시 버전보다 높으면 캐시 무효화 및 재로드
+        if (dbRecord.version > cachedEntry.version) {
+          // 캐시 무효화
+          (this.cache as any).invalidateByVersion?.(cacheKey, dbRecord.version);
+          
+          // always_load=true인 경우 캐시에 재로드
+          if (dbRecord.always_load) {
+            this.cache.set(cacheKey, dbRecord);
+          }
+          
+          return dbRecord;
+        }
+        
+        // 버전이 일치하면 캐시된 값 반환
+        return cachedEntry.record;
       }
     }
 
@@ -146,7 +171,7 @@ export class CoreMemoryService {
     
     // always_load=true이고 캐시에 없으면 캐시에 추가
     if (record && record.always_load && this.cache) {
-      this.cache.set(this.getCacheKey(agent_id, key), record);
+      this.cache.set(cacheKey, record);
     }
 
     return record;
@@ -204,17 +229,18 @@ export class CoreMemoryService {
       return null;
     }
 
-    // 캐시 업데이트
+    // 캐시 무효화 및 업데이트
     if (this.cache) {
       const cacheKey = this.getCacheKey(updated.agent_id, updated.key);
       
+      // 캐시 무효화 (버전이 증가했으므로)
+      (this.cache as any).invalidate?.(cacheKey, 'update');
+      
       if (updated.always_load) {
-        // always_load=true인 경우 캐시에 추가/업데이트
+        // always_load=true인 경우 캐시에 재로드 (새로운 버전)
         this.cache.set(cacheKey, updated);
-      } else {
-        // always_load=false로 변경된 경우 캐시에서 제거
-        this.cache.delete(cacheKey);
       }
+      // always_load=false로 변경된 경우는 이미 invalidate로 제거됨
     }
 
     return updated;
@@ -239,17 +265,18 @@ export class CoreMemoryService {
       return null;
     }
 
-    // 캐시 업데이트
+    // 캐시 무효화 및 업데이트
     if (this.cache) {
       const cacheKey = this.getCacheKey(agent_id, key);
       
+      // 캐시 무효화 (버전이 증가했으므로)
+      (this.cache as any).invalidate?.(cacheKey, 'updateByKey');
+      
       if (updated.always_load) {
-        // always_load=true인 경우 캐시에 추가/업데이트
+        // always_load=true인 경우 캐시에 재로드 (새로운 버전)
         this.cache.set(cacheKey, updated);
-      } else {
-        // always_load=false로 변경된 경우 캐시에서 제거
-        this.cache.delete(cacheKey);
       }
+      // always_load=false로 변경된 경우는 이미 invalidate로 제거됨
     }
 
     return updated;
@@ -266,9 +293,10 @@ export class CoreMemoryService {
 
     const deleted = await this.repository.delete(core_id);
 
-    // 캐시에서도 제거
+    // 캐시에서도 제거 (무효화)
     if (deleted && this.cache) {
-      this.cache.delete(this.getCacheKey(existing.agent_id, existing.key));
+      const cacheKey = this.getCacheKey(existing.agent_id, existing.key);
+      (this.cache as any).invalidate?.(cacheKey, 'delete');
     }
 
     return deleted;
@@ -285,9 +313,10 @@ export class CoreMemoryService {
 
     const deleted = await this.repository.deleteByKey(agent_id, key);
 
-    // 캐시에서도 제거
+    // 캐시에서도 제거 (무효화)
     if (deleted && this.cache) {
-      this.cache.delete(this.getCacheKey(agent_id, key));
+      const cacheKey = this.getCacheKey(agent_id, key);
+      (this.cache as any).invalidate?.(cacheKey, 'deleteByKey');
     }
 
     return deleted;
@@ -299,13 +328,14 @@ export class CoreMemoryService {
   async deleteByAgentId(agent_id: string): Promise<number> {
     const deleted = await this.repository.deleteByAgentId(agent_id);
 
-    // 캐시에서도 제거
+    // 캐시에서도 제거 (무효화)
     if (deleted > 0 && this.cache) {
       // 캐시에서 해당 agent_id의 항목들 제거
       const cached = this.cache.getAll();
       for (const record of cached) {
         if (record.agent_id === agent_id) {
-          this.cache.delete(this.getCacheKey(agent_id, record.key));
+          const cacheKey = this.getCacheKey(agent_id, record.key);
+          (this.cache as any).invalidate?.(cacheKey, 'deleteByAgentId');
         }
       }
     }

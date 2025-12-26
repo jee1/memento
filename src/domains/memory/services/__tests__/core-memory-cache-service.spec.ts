@@ -8,9 +8,12 @@ import {
   CoreMemoryCacheService,
   getCoreMemoryCache,
   setCoreMemoryCache,
-  resetCoreMemoryCache
+  resetCoreMemoryCache,
+  type CacheEntry,
+  type CacheInvalidationListener
 } from '../core-memory-cache-service.js';
 import type { CoreMemoryRecord } from '../repositories/core-memory-repository.js';
+import { vi } from 'vitest';
 
 describe('CoreMemoryCacheService', () => {
   let cache: CoreMemoryCacheService;
@@ -35,8 +38,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'test_value',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       // When: 항목 저장 및 조회
@@ -64,8 +68,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
 
@@ -92,8 +97,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'test_value',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record);
 
@@ -124,8 +130,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record2: CoreMemoryRecord = {
         core_id: 'core2',
@@ -134,8 +141,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
       cache.set('core2', record2);
@@ -160,8 +168,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'test_value',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record);
 
@@ -191,8 +200,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record2: CoreMemoryRecord = {
         core_id: 'core2',
@@ -201,8 +211,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
       cache.set('core2', record2);
@@ -235,8 +246,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record2: CoreMemoryRecord = {
         core_id: 'core2',
@@ -245,8 +257,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
       cache.set('core2', record2);
@@ -269,8 +282,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
       cache.set('core2', {
         core_id: 'core2',
@@ -279,8 +293,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
 
       // When: 키 목록 조회
@@ -303,8 +318,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record2: CoreMemoryRecord = {
         core_id: 'core2',
@@ -313,8 +329,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record3: CoreMemoryRecord = {
         core_id: 'core3',
@@ -323,8 +340,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value3',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
       cache.set('core2', record2);
@@ -359,8 +377,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record2: CoreMemoryRecord = {
         core_id: 'core2',
@@ -369,8 +388,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record3: CoreMemoryRecord = {
         core_id: 'core3',
@@ -379,8 +399,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value3',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
       cache.set('core2', record2);
@@ -415,8 +436,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value1',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       const record2: CoreMemoryRecord = {
         core_id: 'core2',
@@ -425,8 +447,9 @@ describe('CoreMemoryCacheService', () => {
         value: 'value2',
         always_load: true,
         origin_source: 'test',
-        created_at: new Date(),
-        updated_at: new Date()
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       cache.set('core1', record1);
       cache.set('core2', record2);
