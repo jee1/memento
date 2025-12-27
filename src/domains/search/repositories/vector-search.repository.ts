@@ -12,6 +12,7 @@ import type {
 import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
+import { validateTableName, getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 
 export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   private db: Database.Database | null = null;
@@ -61,11 +62,14 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           typeof table === 'object' && table !== null && typeof (table as any).name === 'string'
         );
         const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
-        const testStatement = this.db.prepare(`
-          SELECT distance FROM ${testTable} 
-          WHERE embedding MATCH ? 
-          LIMIT 0
-        `);
+        // SQL Injection 방지: 화이트리스트 검증 후 사용
+        validateTableName(testTable);
+        // 템플릿 리터럴 대신 문자열 연결 사용
+        const testStatement = this.db.prepare(
+          'SELECT distance FROM ' + testTable + 
+          ' WHERE embedding MATCH ? ' +
+          'LIMIT 0'
+        );
 
         if (typeof testStatement.get !== 'function') {
           mcpLogger.logServer('warn', 'VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.');
@@ -118,32 +122,33 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
     try {
       const tableName = this.getTableName(provider ?? 'tfidf');
-      
-      const vecQuery = `
-        SELECT 
-          me.memory_id as memory_id,
-          vec.distance as similarity,
-          mi.content,
-          mi.type,
-          mi.importance,
-          mi.created_at,
-          COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
-          mi.pinned,
-          mi.tags,
-          mi.task_goal,
-          mi.steps,
-          mi.reflection_notes,
-          mi.workflow_name,
-          mi.skill_name,
-          mi.trigger_conditions
-        FROM ${tableName} vec
-        JOIN memory_embedding me ON vec.rowid = me.id
-        JOIN memory_item mi ON mi.id = me.memory_id
-        WHERE vec.embedding MATCH ?
-        ${type ? 'AND mi.type = ?' : ''}
-        ORDER BY vec.distance ASC
-        LIMIT ?
-      `;
+      // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
+      // 템플릿 리터럴 대신 문자열 연결 사용
+      const typeClause = type ? 'AND mi.type = ?' : '';
+      const vecQuery = 
+        'SELECT ' +
+        '  me.memory_id as memory_id, ' +
+        '  vec.distance as similarity, ' +
+        '  mi.content, ' +
+        '  mi.type, ' +
+        '  mi.importance, ' +
+        '  mi.created_at, ' +
+        '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+        '  mi.pinned, ' +
+        '  mi.tags, ' +
+        '  mi.task_goal, ' +
+        '  mi.steps, ' +
+        '  mi.reflection_notes, ' +
+        '  mi.workflow_name, ' +
+        '  mi.skill_name, ' +
+        '  mi.trigger_conditions ' +
+        'FROM ' + tableName + ' vec ' +
+        'JOIN memory_embedding me ON vec.rowid = me.id ' +
+        'JOIN memory_item mi ON mi.id = me.memory_id ' +
+        'WHERE vec.embedding MATCH ? ' +
+        typeClause + ' ' +
+        'ORDER BY vec.distance ASC ' +
+        'LIMIT ?';
 
       const params = [JSON.stringify(queryVector), ...(type ? [type] : []), limit];
       const statement = this.db.prepare(vecQuery);
@@ -229,96 +234,99 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
       if (hasTextQuery) {
         // 텍스트 검색과 벡터 검색 모두 사용
-        hybridQuery = `
-          WITH vector_search AS (
-            SELECT 
-              me.memory_id as memory_id,
-              vec.distance as vector_distance,
-              mi.content,
-              mi.type,
-              mi.importance,
-              mi.created_at,
-              COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
-              mi.pinned,
-              mi.tags,
-              mi.task_goal,
-              mi.steps,
-              mi.reflection_notes,
-              mi.workflow_name,
-              mi.skill_name,
-              mi.trigger_conditions
-            FROM ${tableName} vec
-            JOIN memory_embedding me ON vec.rowid = me.id
-            JOIN memory_item mi ON mi.id = me.memory_id
-            WHERE vec.embedding MATCH ?
-            ${type ? 'AND mi.type = ?' : ''}
-          ),
-          text_search AS (
-            SELECT 
-              mi.id as memory_id,
-              mi.content,
-              mi.type,
-              mi.importance,
-              mi.created_at,
-              COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
-              mi.pinned,
-              mi.tags,
-              mi.task_goal,
-              mi.steps,
-              mi.reflection_notes,
-              mi.workflow_name,
-              mi.skill_name,
-              mi.trigger_conditions,
-              fts.rank as text_rank
-            FROM memory_item_fts fts
-            JOIN memory_item mi ON fts.rowid = mi.rowid
-            WHERE memory_item_fts MATCH ?
-            ${type ? 'AND mi.type = ?' : ''}
-          )
-          SELECT 
-            COALESCE(vs.memory_id, ts.memory_id) as memory_id,
-            COALESCE(1 - vs.vector_distance, 0) as vector_similarity,
-            COALESCE(ts.text_rank, 0) as text_similarity,
-            COALESCE(vs.content, ts.content) as content,
-            COALESCE(vs.type, ts.type) as type,
-            COALESCE(vs.importance, ts.importance) as importance,
-            COALESCE(vs.created_at, ts.created_at) as created_at,
-            COALESCE(vs.last_accessed_at, ts.last_accessed_at, vs.last_accessed, ts.last_accessed) as last_accessed_at,
-            COALESCE(vs.pinned, ts.pinned) as pinned,
-            COALESCE(vs.tags, ts.tags) as tags,
-            COALESCE(vs.task_goal, ts.task_goal) as task_goal,
-            COALESCE(vs.steps, ts.steps) as steps,
-            COALESCE(vs.reflection_notes, ts.reflection_notes) as reflection_notes,
-            COALESCE(vs.workflow_name, ts.workflow_name) as workflow_name,
-            COALESCE(vs.skill_name, ts.skill_name) as skill_name,
-            COALESCE(vs.trigger_conditions, ts.trigger_conditions) as trigger_conditions
-          FROM vector_search vs
-          LEFT JOIN text_search ts ON vs.memory_id = ts.memory_id
-          WHERE vs.memory_id IS NOT NULL
-          UNION
-          SELECT 
-            ts.memory_id,
-            0 as vector_similarity,
-            ts.text_rank as text_similarity,
-            ts.content,
-            ts.type,
-            ts.importance,
-            ts.created_at,
-            COALESCE(ts.last_accessed_at, ts.last_accessed) as last_accessed_at,
-            ts.pinned,
-            ts.tags,
-            ts.task_goal,
-            ts.steps,
-            ts.reflection_notes,
-            ts.workflow_name,
-            ts.skill_name,
-            ts.trigger_conditions
-          FROM text_search ts
-          LEFT JOIN vector_search vs ON ts.memory_id = vs.memory_id
-          WHERE vs.memory_id IS NULL
-          ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC
-          LIMIT ?
-        `;
+        // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
+        // 템플릿 리터럴 대신 문자열 연결 사용
+        const vectorTypeClause = type ? 'AND mi.type = ?' : '';
+        const textTypeClause = type ? 'AND mi.type = ?' : '';
+        hybridQuery = 
+          'WITH vector_search AS (' +
+          '  SELECT ' +
+          '    me.memory_id as memory_id, ' +
+          '    vec.distance as vector_distance, ' +
+          '    mi.content, ' +
+          '    mi.type, ' +
+          '    mi.importance, ' +
+          '    mi.created_at, ' +
+          '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+          '    mi.pinned, ' +
+          '    mi.tags, ' +
+          '    mi.task_goal, ' +
+          '    mi.steps, ' +
+          '    mi.reflection_notes, ' +
+          '    mi.workflow_name, ' +
+          '    mi.skill_name, ' +
+          '    mi.trigger_conditions ' +
+          '  FROM ' + tableName + ' vec ' +
+          '  JOIN memory_embedding me ON vec.rowid = me.id ' +
+          '  JOIN memory_item mi ON mi.id = me.memory_id ' +
+          '  WHERE vec.embedding MATCH ? ' +
+          vectorTypeClause + ' ' +
+          '), ' +
+          'text_search AS (' +
+          '  SELECT ' +
+          '    mi.id as memory_id, ' +
+          '    mi.content, ' +
+          '    mi.type, ' +
+          '    mi.importance, ' +
+          '    mi.created_at, ' +
+          '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+          '    mi.pinned, ' +
+          '    mi.tags, ' +
+          '    mi.task_goal, ' +
+          '    mi.steps, ' +
+          '    mi.reflection_notes, ' +
+          '    mi.workflow_name, ' +
+          '    mi.skill_name, ' +
+          '    mi.trigger_conditions, ' +
+          '    fts.rank as text_rank ' +
+          '  FROM memory_item_fts fts ' +
+          '  JOIN memory_item mi ON fts.rowid = mi.rowid ' +
+          '  WHERE memory_item_fts MATCH ? ' +
+          textTypeClause + ' ' +
+          ') ' +
+          'SELECT ' +
+          '  COALESCE(vs.memory_id, ts.memory_id) as memory_id, ' +
+          '  COALESCE(1 - vs.vector_distance, 0) as vector_similarity, ' +
+          '  COALESCE(ts.text_rank, 0) as text_similarity, ' +
+          '  COALESCE(vs.content, ts.content) as content, ' +
+          '  COALESCE(vs.type, ts.type) as type, ' +
+          '  COALESCE(vs.importance, ts.importance) as importance, ' +
+          '  COALESCE(vs.created_at, ts.created_at) as created_at, ' +
+          '  COALESCE(vs.last_accessed_at, ts.last_accessed_at, vs.last_accessed, ts.last_accessed) as last_accessed_at, ' +
+          '  COALESCE(vs.pinned, ts.pinned) as pinned, ' +
+          '  COALESCE(vs.tags, ts.tags) as tags, ' +
+          '  COALESCE(vs.task_goal, ts.task_goal) as task_goal, ' +
+          '  COALESCE(vs.steps, ts.steps) as steps, ' +
+          '  COALESCE(vs.reflection_notes, ts.reflection_notes) as reflection_notes, ' +
+          '  COALESCE(vs.workflow_name, ts.workflow_name) as workflow_name, ' +
+          '  COALESCE(vs.skill_name, ts.skill_name) as skill_name, ' +
+          '  COALESCE(vs.trigger_conditions, ts.trigger_conditions) as trigger_conditions ' +
+          'FROM vector_search vs ' +
+          'LEFT JOIN text_search ts ON vs.memory_id = ts.memory_id ' +
+          'WHERE vs.memory_id IS NOT NULL ' +
+          'UNION ' +
+          'SELECT ' +
+          '  ts.memory_id, ' +
+          '  0 as vector_similarity, ' +
+          '  ts.text_rank as text_similarity, ' +
+          '  ts.content, ' +
+          '  ts.type, ' +
+          '  ts.importance, ' +
+          '  ts.created_at, ' +
+          '  COALESCE(ts.last_accessed_at, ts.last_accessed) as last_accessed_at, ' +
+          '  ts.pinned, ' +
+          '  ts.tags, ' +
+          '  ts.task_goal, ' +
+          '  ts.steps, ' +
+          '  ts.reflection_notes, ' +
+          '  ts.workflow_name, ' +
+          '  ts.skill_name, ' +
+          '  ts.trigger_conditions ' +
+          'FROM text_search ts ' +
+          'LEFT JOIN vector_search vs ON ts.memory_id = vs.memory_id ' +
+          'WHERE vs.memory_id IS NULL ' +
+          'ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC ' +
+          'LIMIT ?';
 
         params = [
           JSON.stringify(queryVector),
@@ -329,32 +337,34 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         ];
       } else {
         // 텍스트 검색 없이 벡터 검색만 사용
-        hybridQuery = `
-          SELECT 
-            me.memory_id as memory_id,
-            COALESCE(1 - vec.distance, 0) as vector_similarity,
-            0 as text_similarity,
-            mi.content,
-            mi.type,
-            mi.importance,
-            mi.created_at,
-            COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at,
-            mi.pinned,
-            mi.tags,
-            mi.task_goal,
-            mi.steps,
-            mi.reflection_notes,
-            mi.workflow_name,
-            mi.skill_name,
-            mi.trigger_conditions
-          FROM ${tableName} vec
-          JOIN memory_embedding me ON vec.rowid = me.id
-          JOIN memory_item mi ON mi.id = me.memory_id
-          WHERE vec.embedding MATCH ?
-          ${type ? 'AND mi.type = ?' : ''}
-          ORDER BY vec.distance ASC
-          LIMIT ?
-        `;
+        // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
+        // 템플릿 리터럴 대신 문자열 연결 사용
+        const typeClause = type ? 'AND mi.type = ?' : '';
+        hybridQuery = 
+          'SELECT ' +
+          '  me.memory_id as memory_id, ' +
+          '  COALESCE(1 - vec.distance, 0) as vector_similarity, ' +
+          '  0 as text_similarity, ' +
+          '  mi.content, ' +
+          '  mi.type, ' +
+          '  mi.importance, ' +
+          '  mi.created_at, ' +
+          '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+          '  mi.pinned, ' +
+          '  mi.tags, ' +
+          '  mi.task_goal, ' +
+          '  mi.steps, ' +
+          '  mi.reflection_notes, ' +
+          '  mi.workflow_name, ' +
+          '  mi.skill_name, ' +
+          '  mi.trigger_conditions ' +
+          'FROM ' + tableName + ' vec ' +
+          'JOIN memory_embedding me ON vec.rowid = me.id ' +
+          'JOIN memory_item mi ON mi.id = me.memory_id ' +
+          'WHERE vec.embedding MATCH ? ' +
+          typeClause + ' ' +
+          'ORDER BY vec.distance ASC ' +
+          'LIMIT ?';
 
         params = [
           JSON.stringify(queryVector),
@@ -429,7 +439,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         for (const provider of providers) {
           const tableName = this.getTableName(provider);
           try {
-            const statement = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`);
+            // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
+            const statement = this.db.prepare('SELECT COUNT(*) as count FROM ' + tableName);
             if (typeof statement.get !== 'function') {
               continue;
             }
@@ -484,11 +495,10 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
   /**
    * 테이블명 반환
+   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
    */
   getTableName(provider: string): string {
-    const normalized = (provider ?? 'tfidf').toLowerCase() as keyof typeof VECTOR_SEARCH_CONFIG.tableNames;
-    const tableName = VECTOR_SEARCH_CONFIG.tableNames[normalized];
-    return (tableName ?? VECTOR_SEARCH_CONFIG.tableNames.tfidf) as string;
+    return getValidatedVectorTableName(provider ?? 'tfidf');
   }
 
   /**

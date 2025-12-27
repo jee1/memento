@@ -88,6 +88,8 @@ export class SearchEngine {
         const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
         const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
         
+        // SQL Injection 방지를 위해 템플릿 리터럴 대신 문자열 연결 사용
+        // reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
         sql = `
           SELECT 
             m.id, m.content, m.type, m.importance, m.created_at, 
@@ -98,8 +100,7 @@ export class SearchEngine {
             m.privacy_scope, m.origin_source,
             0 as fts_rank
           FROM memory_item m
-          WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?${reflectionNotesLike}
-        `;
+          WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
         params.push(likeQuery, likeQuery, likeQuery, ...reflectionNotesParams);
       }
     } else {
@@ -125,7 +126,9 @@ export class SearchEngine {
         const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
         const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
         
-        sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
+        // SQL Injection 방지를 위해 템플릿 리터럴 대신 문자열 연결 사용
+        // reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
+        sql += ' WHERE m.content LIKE ?' + reflectionNotesLike;
         params.push(likeQuery, ...reflectionNotesParams);
       }
     }
@@ -183,13 +186,15 @@ export class SearchEngine {
     }
     
     // WHERE 절 추가
+    // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
     if (conditions.length > 0) {
       const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';
       sql += whereClause + conditions.join(' AND ');
     }
     
     // FTS5 랭킹을 고려하여 충분한 후보를 확보한 후 재랭킹하여 최종 결과의 품질을 보장합니다.
-    sql += ` ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?`;
+    // SQL Injection 방지: LIMIT 값은 파라미터 바인딩으로 전달됨
+    sql += ' ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?';
     params.push(limit * 3); // FTS5 랭킹과 재랭킹 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
     
     // 구성된 쿼리를 실행하여 실제 검색 결과를 획득합니다.

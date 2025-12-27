@@ -5,6 +5,8 @@
  */
 
 import Database from 'better-sqlite3';
+import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import { validateTableName, getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 
 export interface VectorSearchResult {
   memory_id: string;
@@ -55,20 +57,10 @@ export class VectorSearchEngine {
   /**
    * 각 임베딩 provider별로 다른 벡터 테이블을 사용하여 차원 불일치를 방지합니다.
    * provider에 따라 적절한 테이블명을 반환하여 정확한 검색을 보장합니다.
+   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
    */
   private getVectorTableName(provider: string): string {
-    switch (provider) {
-      case 'tfidf':
-        return 'memory_item_vec_tfidf';
-      case 'minilm':
-        return 'memory_item_vec_minilm';
-      case 'openai':
-        return 'memory_item_vec_openai';
-      case 'gemini':
-        return 'memory_item_vec_gemini';
-      default:
-        return 'memory_item_vec_tfidf'; // 알 수 없는 provider의 경우 기본 테이블을 사용하여 안정성을 보장합니다.
-    }
+    return getValidatedVectorTableName(provider);
   }
 
   /**

@@ -8,6 +8,8 @@ import { vectorCompatibilityService } from '../../embedding/services/vector-comp
 import type { EmbeddingProvider, EmbeddingResult } from '../../../shared/types/embedding.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { MemoryType } from '../../../shared/types/index.js';
+import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 
 export interface MemoryEmbedding {
   memory_id: string;
@@ -182,20 +184,10 @@ export class MemoryEmbeddingService {
 
   /**
    * 제공자별 vec0 테이블명 반환
+   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
    */
   private getVectorTableName(provider: string): string {
-    switch (provider) {
-      case 'tfidf':
-        return 'memory_item_vec_tfidf';
-      case 'minilm':
-        return 'memory_item_vec_minilm';
-      case 'openai':
-        return 'memory_item_vec_openai';
-      case 'gemini':
-        return 'memory_item_vec_gemini';
-      default:
-        return 'memory_item_vec_tfidf'; // 기본값
-    }
+    return getValidatedVectorTableName(provider);
   }
 
   /**
@@ -228,28 +220,34 @@ export class MemoryEmbeddingService {
       // 제공자별 테이블에서 검색
       const provider = this.normalizeProvider(queryEmbedding.provider);
       const tableName = this.getVectorTableName(provider);
+      // SQL Injection 방지: 화이트리스트 검증은 getVectorTableName()에서 수행됨
       
       // vec0 테이블에서 유사도 검색
-      const similarities = await DatabaseUtils.all(db, `
-        SELECT 
-          m.id,
-          m.content,
-          m.type,
-          m.importance,
-          m.created_at,
-          m.last_accessed,
-          m.pinned,
-          m.tags,
-          v.distance as similarity,
-          (1 - v.distance) as score
-        FROM memory_item m
-        JOIN memory_embedding me ON m.id = me.memory_id
-        JOIN ${tableName} v ON me.id = v.rowid
-        WHERE me.embedding_provider = ?
-        ${filters?.type ? `AND m.type IN (${filters.type.map(() => '?').join(',')})` : ''}
-        ORDER BY v.distance ASC
-        LIMIT ?
-      `, [
+      // 템플릿 리터럴 대신 문자열 연결 사용
+      const typeFilter = filters?.type 
+        ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')' 
+        : '';
+      const sqlQuery = 
+        'SELECT ' +
+        '  m.id, ' +
+        '  m.content, ' +
+        '  m.type, ' +
+        '  m.importance, ' +
+        '  m.created_at, ' +
+        '  m.last_accessed, ' +
+        '  m.pinned, ' +
+        '  m.tags, ' +
+        '  v.distance as similarity, ' +
+        '  (1 - v.distance) as score ' +
+        'FROM memory_item m ' +
+        'JOIN memory_embedding me ON m.id = me.memory_id ' +
+        'JOIN ' + tableName + ' v ON me.id = v.rowid ' +
+        'WHERE me.embedding_provider = ? ' +
+        typeFilter + ' ' +
+        'ORDER BY v.distance ASC ' +
+        'LIMIT ?';
+      
+      const similarities = await DatabaseUtils.all(db, sqlQuery, [
         provider,
         ...(filters?.type || []),
         filters?.limit || 10

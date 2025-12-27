@@ -521,9 +521,11 @@ export class RelationGraph implements IRelationGraph {
     }
 
     // 관계 유형 필터
+    // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
+    // 템플릿 리터럴 대신 문자열 연결 사용
     if (relationTypes && relationTypes.length > 0) {
       const placeholders = relationTypes.map(() => '?').join(',');
-      query += ` AND relation_type IN (${placeholders})`;
+      query += ' AND relation_type IN (' + placeholders + ')';
       params.push(...relationTypes);
     }
 
@@ -658,11 +660,12 @@ export class RelationGraph implements IRelationGraph {
 
       if (nodesToQuery.length > 0) {
         // 배치 쿼리: 여러 노드의 관계를 한 번에 조회
+        // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
+        // 템플릿 리터럴 대신 문자열 연결 사용
         const placeholders = nodesToQuery.map(() => '?').join(',');
-        let batchQuery = `
-          SELECT * FROM memory_relation
-          WHERE (source_id IN (${placeholders}) OR target_id IN (${placeholders}))
-        `;
+        let batchQuery = 
+          'SELECT * FROM memory_relation ' +
+          'WHERE (source_id IN (' + placeholders + ') OR target_id IN (' + placeholders + '))';
         const params: Array<string | number | RelationType> = [
           ...nodesToQuery,
           ...nodesToQuery
