@@ -7,6 +7,7 @@ import type { VectorSearchEngine } from '../../search/algorithms/vector-search-e
 import type { MemoryEmbeddingService } from './memory-embedding-service.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 /**
  * 이웃 기억 조회 결과
@@ -273,9 +274,16 @@ export class MemoryNeighborService {
       }
       
       // 기타 에러는 로깅 후 재던지기
-      console.error(`❌ 이웃 기억 조회 실패 (${memoryId}):`, error);
+      // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+      // 오류 메시지와 stack trace에 PII 마스킹 적용
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const maskedMessage = PIIMasker.mask(errorMessage).masked;
+      const maskedStack = error instanceof Error && error.stack 
+        ? PIIMasker.mask(error.stack).masked 
+        : 'N/A';
+      console.error(`❌ 이웃 기억 조회 실패 (${memoryId}):`, maskedMessage);
       console.error(`   쿼리 시간: ${queryTime}ms`);
-      console.error(`   에러 스택:`, error instanceof Error ? error.stack : 'N/A');
+      console.error(`   에러 스택:`, maskedStack);
       
       // 사용자 친화적인 에러 메시지로 변환
       if (error instanceof Error) {

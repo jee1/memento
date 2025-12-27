@@ -2,6 +2,8 @@
  * SQLite 데이터베이스 초기화 스크립트
  */
 
+/* eslint-disable security/detect-non-literal-fs-filename */
+// 데이터베이스 경로는 환경 변수 또는 기본값에서 가져오며, 경로 검증이 적용됨
 import Database from 'better-sqlite3';
 import fs, { readFileSync } from 'fs';
 import { join, dirname } from 'path';

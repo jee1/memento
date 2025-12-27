@@ -13,6 +13,9 @@ import { DatabaseUtils } from '../shared/utils/database.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 
+/* eslint-disable security/detect-non-literal-fs-filename */
+// 테스트 환경에서 파일 시스템 함수 사용은 안전함
+
 /**
  * 테스트용 데이터베이스 초기화
  */

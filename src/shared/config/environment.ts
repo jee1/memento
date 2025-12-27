@@ -36,7 +36,9 @@ const ENV_DEFAULTS: Record<string, string> = {
   LOCK_MONITOR_INTERVAL_MS: '60000', // 1분 (60000ms)
   LOCK_MONITOR_WARNING_THRESHOLD_MS: '5000', // 5초
   LOCK_MONITOR_DANGER_THRESHOLD_MS: '30000', // 30초
-  LOCK_MONITOR_CRITICAL_THRESHOLD_MS: '60000' // 60초
+  LOCK_MONITOR_CRITICAL_THRESHOLD_MS: '60000', // 60초
+  // PII 마스킹 설정 (PRD 0019: 보안 강화)
+  ENABLE_PII_MASKING: 'true' // 기본값: true (보안 우선)
 };
 
 interface ResolveEnvOptions {

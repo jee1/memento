@@ -9,19 +9,39 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { validateFilePath, sanitizeFileName } from '../src/shared/utils/path-validator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 데이터베이스 경로 설정
+// PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'memory.db');
+if (!validateFilePath(dbPath, 'data')) {
+  throw new Error(
+    `Path Traversal 방지: 허용되지 않은 데이터베이스 경로입니다. ` +
+    `경로: ${dbPath}`
+  );
+}
+
 const backupDir = path.join(__dirname, '..', 'backup');
-const backupFile = path.join(backupDir, `embeddings-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+if (!validateFilePath(backupDir, 'backup')) {
+  throw new Error(
+    `Path Traversal 방지: 허용되지 않은 백업 디렉토리 경로입니다. ` +
+    `경로: ${backupDir}`
+  );
+}
+
+// 백업 파일명 정제
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const sanitizedFileName = sanitizeFileName(`embeddings-backup-${timestamp}.json`);
+const backupFile = path.join(backupDir, sanitizedFileName);
 
 async function backupEmbeddings() {
   console.log('🔄 임베딩 백업 시작...');
   
-  // 백업 디렉토리 생성
+  // 백업 디렉토리 생성 (PRD 0019: Path Traversal 방지)
+  // 경로 검증은 이미 위에서 수행됨
   if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, { recursive: true });
   }

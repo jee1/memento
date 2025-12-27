@@ -1,7 +1,12 @@
 /**
  * 에러 로깅 서비스
  * 구조화된 에러 로깅, 분류, 모니터링, 알림 시스템
+ * 
+ * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+ * 모든 오류 메시지, stack trace, context, metadata에 PII 마스킹 적용
  */
+
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -97,8 +102,21 @@ export class ErrorLoggingService {
     const errorId = this.generateErrorId();
     const timestamp = new Date();
     
-    const errorMessage = typeof error === 'string' ? error : error.message;
-    const stack = typeof error === 'string' ? undefined : error.stack;
+    // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+    // error.message와 error.stack에 PII 마스킹 적용
+    const rawErrorMessage = typeof error === 'string' ? error : error.message;
+    const errorMessage = PIIMasker.mask(rawErrorMessage).masked;
+    const rawStack = typeof error === 'string' ? undefined : error.stack;
+    const stack = rawStack ? PIIMasker.mask(rawStack).masked : undefined;
+    
+    // context와 metadata 객체의 PII 마스킹
+    // 공통 유틸리티 함수 사용
+    const maskedContext = PIIMasker.maskObject(context);
+    const maskedMetadata = PIIMasker.maskObject({
+      ...metadata,
+      memoryUsage: process.memoryUsage(),
+      cpuUsage: process.cpuUsage()
+    });
     
     const errorLog: ErrorLog = {
       id: errorId,
@@ -108,14 +126,10 @@ export class ErrorLoggingService {
       message: errorMessage,
       stack,
       context: {
-        ...context,
-        component: context.component || 'unknown'
+        ...maskedContext,
+        component: maskedContext.component || 'unknown'
       },
-      metadata: {
-        ...metadata,
-        memoryUsage: process.memoryUsage(),
-        cpuUsage: process.cpuUsage()
-      },
+      metadata: maskedMetadata,
       resolved: false
     };
 
@@ -352,6 +366,8 @@ export class ErrorLoggingService {
 
   /**
    * 콘솔 로깅
+   * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+   * 콘솔 출력 시에도 PII 마스킹 적용 (이미 errorLog에 마스킹된 값이 저장되어 있음)
    */
   private logToConsole(error: ErrorLog): void {
     const severityColors = {
@@ -364,6 +380,11 @@ export class ErrorLoggingService {
     const resetColor = '\x1b[0m';
     const color = severityColors[error.severity] || '';
     
+    // errorLog의 message, stack, context는 이미 마스킹되어 있음
+    // 추가로 JSON 직렬화된 전체 문자열에도 마스킹 적용 (이중 방어)
+    const contextJson = JSON.stringify(error.context, null, 2);
+    const maskedContextJson = PIIMasker.mask(contextJson).masked;
+    
     console.error(
       `${color}[${error.severity.toUpperCase()}] ${error.category.toUpperCase()}${resetColor}\n` +
       `  ID: ${error.id}\n` +
@@ -371,9 +392,10 @@ export class ErrorLoggingService {
       `  Message: ${error.message}\n` +
       `  Component: ${error.context.component}\n` +
       (error.stack ? `  Stack: ${error.stack}\n` : '') +
-      `  Context: ${JSON.stringify(error.context, null, 2)}\n`
+      `  Context: ${maskedContextJson}\n`
     );
   }
+
 
   /**
    * 서비스 정리

@@ -12,7 +12,8 @@
     "sourceType": "module"
   },
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "security"
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": "error",
@@ -28,20 +29,40 @@
       "skipBlankLines": true,
       "skipComments": true,
       "IIFEs": true
-    }]
+    }],
+    "security/detect-object-injection": "warn",
+    "security/detect-non-literal-fs-filename": "error",
+    "security/detect-non-literal-regexp": "warn",
+    "security/detect-unsafe-regex": "warn",
+    "security/detect-buffer-noassert": "error",
+    "security/detect-child-process": "warn",
+    "security/detect-disable-mustache-escape": "error",
+    "security/detect-eval-with-expression": "error",
+    "security/detect-no-csrf-before-method-override": "error",
+    "security/detect-non-literal-require": "warn",
+    "security/detect-possible-timing-attacks": "warn",
+    "security/detect-pseudoRandomBytes": "error"
   },
   "overrides": [
     {
-      "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**"],
+      "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**", "src/test/**"],
       "rules": {
         "no-console": "off",
-        "max-lines-per-function": "off"
+        "max-lines-per-function": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-unsafe-regex": "warn"
       }
     },
     {
       "files": ["src/server/index.ts"],
       "rules": {
         "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/infrastructure/database/**", "src/shared/utils/**"],
+      "rules": {
+        "security/detect-non-literal-fs-filename": "warn"
       }
     }
   ],

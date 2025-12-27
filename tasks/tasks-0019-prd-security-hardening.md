@@ -165,7 +165,7 @@
       - `scripts/check-sql-injection.ts` 실행 시 경고 0개 확인
 
 - [ ] 2.0 PII 마스킹 강화 구현
-  - [ ] 2.1 `src/shared/utils/logger.spec.ts` PII 마스킹 자동 적용 테스트 작성 (RED 단계)
+  - [x] 2.1 `src/shared/utils/logger.spec.ts` PII 마스킹 자동 적용 테스트 작성 (RED 단계)
     - **Given**: PII가 포함된 로그 메시지가 주어졌을 때
     - **When**: `logger.info()`, `logger.error()` 등을 호출하면
     - **Then**: 로그 출력에 PII가 마스킹되어야 함
@@ -175,7 +175,7 @@
       - 환경 변수 `ENABLE_PII_MASKING` 기반 제어 테스트
       - 테스트는 실패해야 함 (RED 단계)
       - **테스트 위치**: `src/shared/utils/logger.spec.ts` (단위 테스트, Vitest 실행)
-  - [ ] 2.2 `src/shared/utils/logger.ts` PII 마스킹 자동 적용 구현 (GREEN 단계)
+  - [x] 2.2 `src/shared/utils/logger.ts` PII 마스킹 자동 적용 구현 (GREEN 단계)
     - **Given**: 기존 로거와 PIIMasker 클래스가 주어졌을 때
     - **When**: 모든 로그 메서드에서 자동으로 PII 마스킹을 적용하면
     - **Then**: PII 마스킹 테스트가 통과하고 기존 API 호환성이 유지되어야 함
@@ -197,7 +197,7 @@
         4. 배포 후 모니터링 (로그 샘플링으로 마스킹 정상 동작 확인)
       - **호환성 검증**: 기존 로그 샘플을 사용하여 마스킹 전후 비교 테스트
       - `meta` 객체의 값도 마스킹 적용
-  - [ ] 2.3 `src/infrastructure/scheduler/file-logger.ts` PII 마스킹 적용 (GREEN 단계)
+  - [x] 2.3 `src/infrastructure/scheduler/file-logger.ts` PII 마스킹 적용 (GREEN 단계)
     - **Given**: 파일 로거가 주어졌을 때
     - **When**: 로그 엔트리를 저장할 때 PII 마스킹을 적용하면
     - **Then**: 파일에 저장되는 로그에 PII가 마스킹되어야 함
@@ -205,7 +205,7 @@
       - `log()`, `logWarn()`, `logError()` 메서드에서 PII 마스킹 적용
       - `sanitizeData()` 메서드에서도 PII 마스킹 적용
       - 기존 테스트 통과 확인
-  - [ ] 2.4 `src/domains/monitoring/services/error-logging-service.ts` 오류 메시지 PII 마스킹 적용 (GREEN 단계)
+  - [x] 2.4 `src/domains/monitoring/services/error-logging-service.ts` 오류 메시지 PII 마스킹 적용 (GREEN 단계)
     - **Given**: 오류 로깅 서비스가 주어졌을 때
     - **When**: 오류를 로깅할 때 `error.message`와 `error.stack`에 PII 마스킹을 적용하면
     - **Then**: 오류 로그에 PII가 마스킹되어야 함
@@ -215,7 +215,7 @@
       - `context` 및 `metadata` 객체의 값도 마스킹
       - API Key가 포함된 헤더 정보 마스킹
       - 기존 테스트 통과 확인
-  - [ ] 2.5 모든 `catch` 블록에서 오류 로깅 시 PII 마스킹 적용 (GREEN 단계)
+  - [x] 2.5 모든 `catch` 블록에서 오류 로깅 시 PII 마스킹 적용 (GREEN 단계)
     - **Given**: 코드베이스의 모든 `catch` 블록이 주어졌을 때
     - **When**: `error` 객체를 로깅할 때 PII 마스킹을 적용하면
     - **Then**: 모든 오류 로그에 PII가 마스킹되어야 함
@@ -224,7 +224,7 @@
       - `console.error`, `logger.error` 호출 시 PII 마스킹 적용
       - `error.message`, `error.stack` 마스킹
       - 기존 테스트 통과 확인
-  - [ ] 2.6 `scripts/check-pii-masking.ts` 검사 스크립트 생성
+  - [x] 2.6 `scripts/check-pii-masking.ts` 검사 스크립트 생성
     - **Given**: 모든 로거에 PII 마스킹이 적용되었을 때
     - **When**: `scripts/check-pii-masking.ts` 스크립트를 실행하면
     - **Then**: 모든 로거에서 PII 마스킹 적용 여부를 확인하고 리포트를 생성해야 함
@@ -233,7 +233,7 @@
       - PII 마스킹 적용 여부 확인
       - 미적용 로거 목록 출력
       - CI/CD에서 사용 가능하도록 경고 수 반환
-  - [ ] 2.7 PII 마스킹 테스트 통과 확인 및 리팩토링 (REFACTOR 단계)
+  - [x] 2.7 PII 마스킹 테스트 통과 확인 및 리팩토링 (REFACTOR 단계)
     - **Given**: 모든 PII 마스킹 적용이 완료되었을 때
     - **When**: PII 마스킹 테스트를 실행하면
     - **Then**: 모든 테스트가 통과하고 코드 품질이 개선되어야 함
@@ -242,9 +242,20 @@
       - 실제 로그 파일에서 PII가 마스킹되었는지 검증
       - 중복 코드 제거 및 공통 유틸리티 함수 추출
       - 성능 영향 측정 (필요 시 비동기 마스킹 고려)
+  - [x] 2.8 PII 마스킹 환경 변수 제어 구현
+    - **Given**: 환경 변수 `ENABLE_PII_MASKING`이 설정되었을 때
+    - **When**: PII 마스킹을 수행하면
+    - **Then**: 환경 변수 값에 따라 마스킹이 활성화/비활성화되어야 함
+    - **구현 요구사항**:
+      - `ENABLE_PII_MASKING` 환경 변수로 마스킹 제어 (기본값: `true`)
+      - `PIIMasker.mask()`, `PIIMasker.maskObject()`, `PIIMasker.maskError()` 모두 환경 변수 적용
+      - 환경 변수 값: `true`, `1`, `yes` → 마스킹 활성화, 그 외 → 마스킹 비활성화
+      - 대소문자 무시, 공백 제거 처리
+      - `env.example`에 환경 변수 추가
+      - 환경 변수 제어 테스트 작성
 
-- [ ] 3.0 Path Traversal 방지 구현
-  - [ ] 3.1 `src/shared/utils/path-validator.spec.ts` 경로 검증 유틸리티 테스트 작성 (RED 단계)
+- [x] 3.0 Path Traversal 방지 구현 ✅
+  - [x] 3.1 `src/shared/utils/path-validator.spec.ts` 경로 검증 유틸리티 테스트 작성 (RED 단계)
     - **Given**: 다양한 파일 경로 입력이 주어졌을 때
     - **When**: `validateFilePath()` 및 `sanitizeFileName()` 메서드를 호출하면
     - **Then**: Path Traversal 공격 패턴을 차단하고 안전한 경로만 허용해야 함
@@ -256,7 +267,7 @@
       - 각 테스트는 given/when/then 구조로 작성
       - 테스트는 실패해야 함 (RED 단계)
       - **테스트 위치**: `src/shared/utils/path-validator.spec.ts` (단위 테스트, Vitest 실행)
-  - [ ] 3.2 `src/shared/utils/path-validator.ts` 경로 검증 유틸리티 구현 (GREEN 단계)
+  - [x] 3.2 `src/shared/utils/path-validator.ts` 경로 검증 유틸리티 구현 (GREEN 단계)
     - **Given**: Path Traversal 테스트가 주어졌을 때
     - **When**: `validateFilePath()` 및 `sanitizeFileName()` 메서드를 구현하면
     - **Then**: 모든 Path Traversal 테스트가 통과해야 함
@@ -287,7 +298,7 @@
         - 경로 구분자(`/`, `\`) 제거
         - 상대 경로 패턴 제거
         - 최대 파일명 길이 제한 (255자)
-  - [ ] 3.3 `src/test/test-security-path-traversal.ts` Path Traversal E2E 테스트 작성 (GREEN 단계)
+  - [x] 3.3 `src/test/test-security-path-traversal.ts` Path Traversal E2E 테스트 작성 (GREEN 단계)
     - **Given**: Path Traversal 공격 시나리오가 주어졌을 때
     - **When**: 악의적인 경로 패턴을 입력하면
     - **Then**: 시스템이 안전하게 처리하고 파일 시스템 접근이 차단되어야 함
@@ -301,7 +312,7 @@
       - **테스트 위치**: `src/test/test-security-path-traversal.ts` (E2E 테스트, tsx로 실행)
       - **데이터 격리**: `setupTestDatabase()` 사용하여 in-memory DB 생성, 테스트 종료 시 `cleanupTestDatabase(db)` 호출
       - **파일 시스템 격리**: 임시 디렉토리(`os.tmpdir()`) 사용, 테스트 종료 시 정리
-  - [ ] 3.4 `src/infrastructure/scheduler/file-logger.ts` 경로 검증 적용 (GREEN 단계)
+  - [x] 3.4 `src/infrastructure/scheduler/file-logger.ts` 경로 검증 적용 (GREEN 단계)
     - **Given**: 파일 로거가 주어졌을 때
     - **When**: 로그 파일 경로를 설정할 때 `validateFilePath()`를 사용하면
     - **Then**: Path Traversal 공격이 차단되고 안전한 경로만 사용되어야 함
@@ -309,7 +320,7 @@
       - `logFilePath` 설정 시 `validateFilePath()` 호출
       - 검증 실패 시 에러 발생
       - 기존 테스트 통과 확인
-  - [ ] 3.5 `scripts/backup-daily.bat` 경로 검증 적용 (GREEN 단계)
+  - [x] 3.5 `scripts/backup-daily.bat` 경로 검증 적용 (GREEN 단계)
     - **Given**: 백업 스크립트가 주어졌을 때
     - **When**: 백업 파일 경로를 설정할 때 경로 검증을 적용하면
     - **Then**: Path Traversal 공격이 차단되고 안전한 경로만 사용되어야 함
@@ -318,7 +329,7 @@
       - 백업 파일명에 `sanitizeFileName()` 적용
       - 백업 디렉토리 경로 검증 (`validateFilePath()` 사용)
       - 기존 기능 정상 동작 확인
-  - [ ] 3.6 `scripts/backup-embeddings.js` 경로 검증 적용 (GREEN 단계)
+  - [x] 3.6 `scripts/backup-embeddings.js` 경로 검증 적용 (GREEN 단계)
     - **Given**: 임베딩 백업 스크립트가 주어졌을 때
     - **When**: 백업 파일 경로를 설정할 때 경로 검증을 적용하면
     - **Then**: Path Traversal 공격이 차단되고 안전한 경로만 사용되어야 함
@@ -328,7 +339,7 @@
       - 백업 디렉토리 경로 검증 (`validateFilePath()` 사용)
       - `path-validator.ts` 모듈 import 및 사용
       - 기존 기능 정상 동작 확인
-  - [ ] 3.7 기타 파일 경로 처리 유틸리티 경로 검증 적용 (GREEN 단계)
+  - [x] 3.7 기타 파일 경로 처리 유틸리티 경로 검증 적용 (GREEN 단계)
     - **Given**: `grep -r "path\.join\|fs\.(read|write)" src/`로 검색한 모든 파일 경로 처리 코드가 주어졌을 때
     - **When**: 각 파일에서 경로 검증을 적용하면
     - **Then**: 모든 Path Traversal 테스트가 통과하고 기존 기능이 정상 동작해야 함
@@ -336,7 +347,7 @@
       - 파일 경로를 다루는 모든 유틸리티에서 검증 로직 적용
       - 외부 입력값을 받는 경로 처리 코드에 우선 적용
       - 기존 테스트 통과 확인
-  - [ ] 3.8 `scripts/check-path-traversal.ts` 검사 스크립트 생성
+  - [x] 3.8 `scripts/check-path-traversal.ts` 검사 스크립트 생성
     - **Given**: 모든 파일 경로 처리 유틸리티에 경로 검증이 적용되었을 때
     - **When**: `scripts/check-path-traversal.ts` 스크립트를 실행하면
     - **Then**: 모든 파일 경로 처리 코드에서 검증 로직 적용 여부를 확인하고 리포트를 생성해야 함
@@ -345,7 +356,7 @@
       - 경로 검증 적용 여부 확인
       - 미적용 코드 목록 출력
       - CI/CD에서 사용 가능하도록 경고 수 반환
-  - [ ] 3.9 Path Traversal 테스트 통과 확인 및 리팩토링 (REFACTOR 단계)
+  - [x] 3.9 Path Traversal 테스트 통과 확인 및 리팩토링 (REFACTOR 단계)
     - **Given**: 모든 경로 검증 적용이 완료되었을 때
     - **When**: Path Traversal 테스트를 실행하면
     - **Then**: 모든 테스트가 통과하고 코드 품질이 개선되어야 함
@@ -355,8 +366,8 @@
       - 중복 코드 제거 및 공통 유틸리티 함수 추출
       - 코드 가독성 개선
 
-- [ ] 4.0 정적 분석 도구 통합
-  - [ ] 4.1 `eslint-plugin-security` 플러그인 설치 및 설정
+- [x] 4.0 정적 분석 도구 통합 ✅
+  - [x] 4.1 `eslint-plugin-security` 플러그인 설치 및 설정
     - **Given**: 프로젝트에 ESLint가 설정되어 있을 때
     - **When**: `eslint-plugin-security` 플러그인을 설치하고 설정하면
     - **Then**: 보안 관련 ESLint 규칙이 활성화되어야 함
@@ -365,7 +376,7 @@
       - `.eslintrc.js` 또는 `eslint.config.js`에 플러그인 추가
       - 보안 관련 규칙 활성화 (`no-eval`, `no-implied-eval` 등)
       - SQL Injection 패턴 감지 규칙 추가
-  - [ ] 4.2 ESLint 보안 규칙 통과 확인
+  - [x] 4.2 ESLint 보안 규칙 통과 확인
     - **Given**: `eslint-plugin-security` 플러그인이 설정되었을 때
     - **When**: `npm run lint`를 실행하면
     - **Then**: 보안 관련 경고/에러가 0개여야 함
@@ -373,7 +384,7 @@
       - 기존 코드에서 보안 관련 경고 수정
       - 모든 보안 규칙 통과 확인
       - CI/CD 파이프라인에서 자동 검사 가능하도록 설정
-  - [ ] 4.3 CI/CD 파이프라인에 보안 검사 통합
+  - [x] 4.3 CI/CD 파이프라인에 보안 검사 통합
     - **Given**: CI/CD 파이프라인이 설정되어 있을 때
     - **When**: PR 생성 시 자동으로 보안 검사를 실행하면
     - **Then**: 보안 검사 실패 시 PR 병합이 차단되어야 함

@@ -6,6 +6,7 @@
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { sanitizeFileName } from './path-validator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,25 +30,32 @@ export class PromptTemplateLoader {
   /**
    * 템플릿 파일 로드
    * 
+   * PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+   * templateName 파라미터를 정제하여 Path Traversal 공격을 방지합니다.
+   * 
    * @param templateName 템플릿 파일명 (예: 'triple-extraction')
    * @returns 템플릿 내용
    * @throws 파일이 없거나 읽을 수 없는 경우 에러 발생
    */
   static loadTemplate(templateName: string): string {
-    // 캐시 확인
-    if (templateCache.has(templateName)) {
-      return templateCache.get(templateName)!;
+    // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+    // templateName 정제 (사용자 입력일 수 있음)
+    const sanitizedTemplateName = sanitizeFileName(templateName);
+    
+    // 캐시 확인 (정제된 이름 사용)
+    if (templateCache.has(sanitizedTemplateName)) {
+      return templateCache.get(sanitizedTemplateName)!;
     }
 
-    // 파일 경로 구성
-    const templatePath = join(PROMPTS_DIR, `${templateName}.txt`);
+    // 파일 경로 구성 (정제된 이름 사용)
+    const templatePath = join(PROMPTS_DIR, `${sanitizedTemplateName}.txt`);
 
     try {
       // 파일 읽기
       const content = readFileSync(templatePath, 'utf-8');
       
-      // 캐시에 저장
-      templateCache.set(templateName, content);
+      // 캐시에 저장 (정제된 이름 사용)
+      templateCache.set(sanitizedTemplateName, content);
       
       return content;
     } catch (error) {
@@ -98,9 +106,14 @@ export class PromptTemplateLoader {
 
   /**
    * 템플릿 파일 경로 확인 (테스트용)
+   * 
+   * PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+   * templateName 파라미터를 정제하여 Path Traversal 공격을 방지합니다.
    */
   static getTemplatePath(templateName: string): string {
-    return join(PROMPTS_DIR, `${templateName}.txt`);
+    // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+    const sanitizedTemplateName = sanitizeFileName(templateName);
+    return join(PROMPTS_DIR, `${sanitizedTemplateName}.txt`);
   }
 }
 
