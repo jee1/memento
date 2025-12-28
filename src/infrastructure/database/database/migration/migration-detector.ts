@@ -11,6 +11,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { Migration } from './types.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -145,7 +146,8 @@ export class MigrationDetector {
           versionNumber
         });
       } catch (error) {
-        console.error(`❌ 마이그레이션 파일 ${file} 로드 실패:`, error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error(`❌ 마이그레이션 파일 ${file} 로드 실패:`, maskedError.message);
       }
     }
 

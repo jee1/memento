@@ -8,6 +8,7 @@ import { executeTool, getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 /**
  * ToolContext 생성 헬퍼 함수
@@ -286,10 +287,10 @@ async function testToolConsistency() {
     console.log('🎉 모든 도구 일관성 검증 테스트 통과!\n');
     
   } catch (error) {
-    console.error('\n❌ 테스트 실패:', error);
-    if (error instanceof Error) {
-      console.error('에러 메시지:', error.message);
-      console.error('스택 트레이스:', error.stack);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error', stack: undefined };
+    console.error('\n❌ 테스트 실패:', maskedError.message);
+    if (maskedError.stack) {
+      console.error('스택 트레이스:', maskedError.stack);
     }
     process.exit(1);
   } finally {
@@ -309,7 +310,8 @@ async function testToolConsistency() {
 // Node.js 환경에서 직접 실행할 때만 테스트 실행
 if (import.meta.url === `file://${process.argv[1]}`) {
   testToolConsistency().catch((error) => {
-    console.error('테스트 실행 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('테스트 실행 실패:', maskedError.message);
     process.exit(1);
   });
 }

@@ -5,6 +5,7 @@
 
 import type { VectorIndexStatus } from '../../../../shared/types/vector-search.types.js';
 import type { VectorIndexRepository } from '../../../../shared/interfaces/database.interface.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 
 export class VectorIndexManager {
   constructor(private repository: VectorIndexRepository) {}
@@ -16,7 +17,8 @@ export class VectorIndexManager {
     try {
       return this.repository.getIndexStatus();
     } catch (error) {
-      console.error('인덱스 상태 확인 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('인덱스 상태 확인 실패:', maskedError.message);
       return {
         available: false,
         tableExists: false,
@@ -37,7 +39,8 @@ export class VectorIndexManager {
       console.log('✅ 벡터 인덱스 재구성 완료');
       return result;
     } catch (error) {
-      console.error('❌ 벡터 인덱스 재구성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벡터 인덱스 재구성 실패:', maskedError.message);
       return false;
     }
   }
@@ -49,7 +52,8 @@ export class VectorIndexManager {
     try {
       return this.repository.checkAvailability();
     } catch (error) {
-      console.error('VEC 가용성 확인 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('VEC 가용성 확인 실패:', maskedError.message);
       return false;
     }
   }

@@ -4,6 +4,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testPerformanceAlerts() {
   console.log('🚨 성능 알림 시스템 테스트 시작');
@@ -106,7 +107,8 @@ async function testPerformanceAlerts() {
     console.log('에러 통계:', JSON.stringify(errorStats, null, 2));
 
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   } finally {
     if (client) {
       await client.disconnect();

@@ -13,6 +13,7 @@ import { SearchRanking } from './search-ranking.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 // 검색 관련 상수
 /**
@@ -1039,7 +1040,8 @@ export class HybridSearchEngine {
         return normalizedStats;
       }
     } catch (error) {
-      console.warn('⚠️ 저장된 임베딩 provider 감지 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 저장된 임베딩 provider 감지 실패:', maskedError.message);
     }
 
     // provider가 없는 경우 빈 배열을 반환하여 안정적인 동작을 보장합니다.
@@ -1229,6 +1231,7 @@ export class HybridSearchEngine {
     }
     
     try {
+      // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
       const placeholders = memoryIds.map(() => '?').join(',');
       const sql = `SELECT id, consolidation_score FROM memory_item WHERE id IN (${placeholders})`;
       const results = db.prepare(sql).all(...memoryIds) as Array<{ id: string; consolidation_score: number | null }>;
@@ -1240,7 +1243,8 @@ export class HybridSearchEngine {
       });
     } catch (error) {
       // 에러 발생 시 빈 Map 반환 (기존 finalScore 유지)
-      console.warn('⚠️ Consolidation Score 조회 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ Consolidation Score 조회 실패:', maskedError.message);
     }
     
     return scores;
@@ -1270,13 +1274,13 @@ export class HybridSearchEngine {
     }
     
     try {
+      // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
       const placeholders = memoryIds.map(() => '?').join(',');
-      const sql = `
-        SELECT id, workflow_name, skill_name, trigger_conditions
-        FROM memory_item
-        WHERE id IN (${placeholders})
-          AND (workflow_name IS NOT NULL OR skill_name IS NOT NULL OR trigger_conditions IS NOT NULL)
-      `;
+      const sql = 
+        `SELECT id, workflow_name, skill_name, trigger_conditions ` +
+        `FROM memory_item ` +
+        `WHERE id IN (${placeholders}) ` +
+        `AND (workflow_name IS NOT NULL OR skill_name IS NOT NULL OR trigger_conditions IS NOT NULL)`;
       const results = db.prepare(sql).all(...memoryIds) as Array<{
         id: string;
         workflow_name: string | null;
@@ -1400,7 +1404,8 @@ export class HybridSearchEngine {
       });
     } catch (error) {
       // 에러 발생 시 빈 Map 반환 (procedural memory boost 없음)
-      console.warn('⚠️ Procedural Memory 매칭 정보 조회 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ Procedural Memory 매칭 정보 조회 실패:', maskedError.message);
     }
     
     return matches;
@@ -1457,7 +1462,8 @@ export class HybridSearchEngine {
       }
     } catch (error) {
       // 에러 발생 시 빈 Map 반환 (관계 가중치 없이 진행)
-      console.warn('⚠️ 관계 가중치 계산 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 관계 가중치 계산 실패:', maskedError.message);
     }
     
     return { weights, relations };

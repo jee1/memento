@@ -42,17 +42,48 @@ export interface PIIMaskingOptions {
 }
 
 /**
+ * PII 마스킹 활성화 여부 확인
+ * 환경 변수 `ENABLE_PII_MASKING`으로 제어 (기본값: true)
+ * 
+ * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+ * - 프로덕션: 기본값 true (보안 우선, 변경 불가)
+ * - 스테이징: 기본값 true (보안 우선, ENABLE_PII_MASKING=false로 선택적 비활성화 가능)
+ * - 로컬/개발: 기본값 true (보안 우선, ENABLE_PII_MASKING=false로 선택적 비활성화 가능)
+ */
+function isPIIMaskingEnabled(): boolean {
+  const envValue = process.env.ENABLE_PII_MASKING;
+  if (envValue === undefined) {
+    // 환경 변수 미지정 시 기본값: true (보안 우선)
+    return true;
+  }
+  // 환경 변수가 지정된 경우: 'true', '1', 'yes' 등은 true, 그 외는 false
+  const normalized = envValue.toLowerCase().trim();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+/**
  * PII 마스킹기
  */
 export class PIIMasker {
   /**
    * 텍스트에서 모든 PII를 마스킹합니다.
    * 
+   * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+   * 환경 변수 `ENABLE_PII_MASKING`으로 마스킹 활성화/비활성화 제어
+   * 
    * @param text 원본 텍스트
    * @param options 마스킹 옵션
    * @returns 마스킹 결과
    */
   static mask(text: string, options: PIIMaskingOptions = {}): PIIMaskingResult {
+    // 환경 변수로 마스킹 비활성화된 경우 원본 반환
+    if (!isPIIMaskingEnabled()) {
+      return {
+        masked: text || '',
+        maskedCount: 0,
+        maskedTypes: []
+      };
+    }
     if (!text || typeof text !== 'string') {
       return {
         masked: text || '',
@@ -246,6 +277,75 @@ export class PIIMasker {
 
     const result = this.mask(text, { usePlaceholder: false });
     return result.maskedTypes;
+  }
+
+  /**
+   * 객체의 PII 마스킹
+   * JSON 직렬화 후 마스킹하여 중첩 객체의 PII도 마스킹
+   * 
+   * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+   * 공통 유틸리티 함수로 추출하여 중복 코드 제거
+   * 환경 변수 `ENABLE_PII_MASKING`으로 마스킹 활성화/비활성화 제어
+   * 
+   * @param obj 마스킹할 객체
+   * @returns 마스킹된 객체
+   */
+  static maskObject(obj: any): any {
+    // 환경 변수로 마스킹 비활성화된 경우 원본 반환
+    if (!isPIIMaskingEnabled()) {
+      return obj;
+    }
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+
+    try {
+      // JSON 직렬화 후 마스킹
+      const serialized = JSON.stringify(obj);
+      const masked = this.mask(serialized).masked;
+      // 역직렬화하여 객체로 복원
+      return JSON.parse(masked);
+    } catch {
+      // 직렬화/역직렬화 실패 시 개별 필드에 마스킹 적용 시도
+      const masked: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'string') {
+          masked[key] = this.mask(value).masked;
+        } else if (typeof value === 'object' && value !== null) {
+          masked[key] = this.maskObject(value);
+        } else {
+          masked[key] = value;
+        }
+      }
+      return masked;
+    }
+  }
+
+  /**
+   * Error 객체의 PII 마스킹
+   * error.message와 error.stack에 PII 마스킹 적용
+   * 
+   * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+   * 공통 유틸리티 함수로 추출하여 중복 코드 제거
+   * 환경 변수 `ENABLE_PII_MASKING`으로 마스킹 활성화/비활성화 제어
+   * 
+   * @param error 마스킹할 Error 객체
+   * @returns 마스킹된 Error 정보 객체
+   */
+  static maskError(error: Error): { message: string; name: string; stack?: string } {
+    // 환경 변수로 마스킹 비활성화된 경우 원본 반환
+    if (!isPIIMaskingEnabled()) {
+      return {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      };
+    }
+    return {
+      message: this.mask(error.message).masked,
+      name: error.name,
+      stack: error.stack ? this.mask(error.stack).masked : undefined
+    };
   }
 }
 

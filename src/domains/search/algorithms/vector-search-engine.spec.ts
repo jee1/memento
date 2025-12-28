@@ -759,6 +759,24 @@ describe('VectorSearchEngine', () => {
       expect(geminiTable).toBe('memory_item_vec_gemini');
       expect(defaultTable).toBe('memory_item_vec_tfidf');
     });
+
+    it('화이트리스트 검증: 허용된 테이블명만 반환', () => {
+      // Given: 허용된 provider들
+      // When: getVectorTableName 호출
+      // Then: 화이트리스트에 있는 테이블명만 반환되어야 함
+      const allowedProviders = ['tfidf', 'minilm', 'openai', 'gemini'];
+      const allowedTableNames = [
+        'memory_item_vec_tfidf',
+        'memory_item_vec_minilm',
+        'memory_item_vec_openai',
+        'memory_item_vec_gemini'
+      ];
+
+      for (const provider of allowedProviders) {
+        const tableName = (vectorEngine as any).getVectorTableName(provider);
+        expect(allowedTableNames).toContain(tableName);
+      }
+    });
   });
 
   describe('엣지 케이스', () => {

@@ -1,60 +1,187 @@
-# Rule: Generating a Task List from a PRD
+# 규칙: PRD에서 작업 목록 생성하기
 
-## Goal
+## 목표
 
-To guide an AI assistant in creating a detailed, step-by-step task list in Markdown format based on an existing Product Requirements Document (PRD). The task list should guide a developer through implementation.
+기존 제품 요구사항 문서(PRD)를 기반으로 마크다운 형식의 상세한 단계별 작업 목록을 생성하도록 AI 어시스턴트를 안내합니다. 작업 목록은 개발자가 구현을 진행할 수 있도록 안내해야 합니다.
 
-## Output
+## 출력
 
-- **Format:** Markdown (`.md`)
-- **Location:** `/tasks/`
-- **Filename:** `tasks-[prd-file-name].md` (e.g., `tasks-0001-prd-user-profile-editing.md`)
+- **형식:** Markdown (`.md`)
+- **위치:** `/tasks/`
+- **파일명:** `tasks-[prd-file-name].md` (예: `tasks-0001-prd-user-profile-editing.md`)
 
-## Process
+## 프로세스
 
-1.  **Receive PRD Reference:** The user points the AI to a specific PRD file
-2.  **Analyze PRD:** The AI reads and analyzes the functional requirements, user stories, and other sections of the specified PRD.
-3.  **Assess Current State:** Review the existing codebase to understand existing infrastructre, architectural patterns and conventions. Also, identify any existing components or features that already exist and could be relevant to the PRD requirements. Then, identify existing related files, components, and utilities that can be leveraged or need modification.
-4.  **Phase 1: Generate Parent Tasks:** Based on the PRD analysis and current state assessment, create the file and generate the main, high-level tasks required to implement the feature. Use your judgement on how many high-level tasks to use. It's likely to be about five tasks. Present these tasks to the user in the specified format (without sub-tasks yet). Inform the user: "I have generated the high-level tasks based on the PRD. Ready to generate the sub-tasks? Respond with 'Go' to proceed."
-5.  **Wait for Confirmation:** Pause and wait for the user to respond with "Go".
-6.  **Phase 2: Generate Sub-Tasks:** Once the user confirms, break down each parent task into smaller, actionable sub-tasks necessary to complete the parent task. Ensure sub-tasks logically follow from the parent task, cover the implementation details implied by the PRD, and consider existing codebase patterns where relevant without being constrained by them.
-7.  **Identify Relevant Files:** Based on the tasks and PRD, identify potential files that will need to be created or modified. List these under the `Relevant Files` section, including corresponding test files if applicable.
-8.  **Generate Final Output:** Combine the parent tasks, sub-tasks, relevant files, and notes into the final Markdown structure.
-9.  **Save Task List:** Save the generated document in the `/tasks/` directory with the filename `tasks-[prd-file-name].md`, where `[prd-file-name]` matches the base name of the input PRD file (e.g., if the input was `0001-prd-user-profile-editing.md`, the output is `tasks-0001-prd-user-profile-editing.md`).
+1.  **PRD 참조 수신:** 사용자가 AI에게 특정 PRD 파일을 지정합니다.
+2.  **PRD 분석:** AI는 지정된 PRD의 기능 요구사항, 사용자 스토리 및 기타 섹션을 읽고 분석합니다.
+3.  **현재 상태 평가:** 기존 코드베이스를 검토하여 기존 인프라, 아키텍처 패턴 및 규칙을 이해합니다. 또한 PRD 요구사항과 관련될 수 있는 기존 컴포넌트나 기능을 식별합니다. 그런 다음 활용하거나 수정이 필요한 기존 관련 파일, 컴포넌트 및 유틸리티를 식별합니다.
+4.  **SERENA를 통한 유사 기능 확인:** 만들려고 하는 기능과 동일하거나 유사한 기능이 이미 존재하는지 SERENA를 사용하여 확인합니다.
+    - **find_symbol:** PRD에서 요구하는 기능과 유사한 심볼(클래스, 함수, 메서드 등)을 검색합니다. 기능명, 동작, 목적 등을 키워드로 사용합니다.
+    - **search_for_pattern:** 코드베이스에서 유사한 패턴이나 구현을 검색합니다. PRD의 핵심 기능 요구사항을 패턴으로 변환하여 검색합니다.
+    - **find_referencing_symbols:** 관련된 기존 기능을 찾은 경우, 해당 기능을 참조하는 다른 코드를 확인하여 사용 패턴을 파악합니다.
+    - **get_symbols_overview:** 관련 파일의 심볼 개요를 확인하여 유사한 기능이나 구조를 식별합니다.
+    - 발견된 유사 기능이 있는 경우:
+      - 해당 기능을 재사용할 수 있는지 평가합니다.
+      - 수정이나 확장이 필요한지 판단합니다.
+      - 완전히 새로운 구현이 필요한지 결정합니다.
+      - 이러한 정보를 상위 작업 생성 시 반영합니다.
+5.  **MEMENTO 기억 조회:** 상위 작업 생성을 시작하기 전에 MEMENTO를 사용하여 관련 기억을 조회합니다.
+    - PRD의 주요 키워드, 기능, 기술 스택 등을 기반으로 하이브리드 검색을 수행합니다.
+    - 관련 태그로 필터링하여 과거 유사 작업이나 관련 지식을 찾습니다.
+    - 검색된 기억 중 가장 관련성 높은 기억을 앵커로 설정합니다.
+    - 검색된 기억을 바탕으로 작업 계획을 수립할 때 참고합니다.
+6.  **1단계: 상위 작업 생성:** PRD 분석, 현재 상태 평가, SERENA를 통한 유사 기능 확인 결과 및 조회된 MEMENTO 기억을 기반으로 파일을 생성하고 기능을 구현하는 데 필요한 주요 상위 수준 작업을 생성합니다. 사용할 상위 작업 수는 판단에 따라 결정합니다. 일반적으로 약 5개 정도의 작업이 될 가능성이 높습니다. 지정된 형식으로 이러한 작업을 사용자에게 제시합니다(아직 하위 작업 없이). 사용자에게 알립니다: "PRD를 기반으로 상위 수준 작업을 생성했습니다. 하위 작업을 생성할 준비가 되셨나요? 진행하려면 'Go'로 응답하세요."
+7.  **MEMENTO 기억 저장:** 상위 작업 생성이 완료된 후, 작업 내용을 MEMENTO에 저장합니다.
+    - **타입:** `episodic` (사건/경험)
+    - **태그:** PRD 관련 태그, 작업 유형 태그 설정
+    - **중요도:** 작업 중요도에 맞게 설정 (0.3-1.0)
+    - **내용:** 생성된 상위 작업 목록, 주요 결정 사항, PRD 요구사항 요약 등을 포함
+    - 향후 유사 작업 시 참고할 수 있도록 구체적이고 검색 가능한 키워드를 포함합니다.
+8.  **확인 대기:** 일시 중지하고 사용자가 "Go"로 응답할 때까지 대기합니다.
+9.  **2단계: 하위 작업 생성:** 사용자가 확인하면 각 상위 작업을 완료하는 데 필요한 더 작고 실행 가능한 하위 작업으로 세분화합니다. 하위 작업이 상위 작업에서 논리적으로 이어지고, PRD에서 암시된 구현 세부 사항을 다루며, 관련된 경우 기존 코드베이스 패턴을 고려하되 그것에 얽매이지 않도록 합니다. **각 하위 작업은 TDD 방법론(RED-GREEN-REFACTOR)을 따라야 합니다.**
+10. **관련 파일 식별:** 작업 및 PRD를 기반으로 생성되거나 수정이 필요한 잠재적 파일을 식별합니다. 해당하는 경우 해당 테스트 파일을 포함하여 `Relevant Files` 섹션 아래에 나열합니다. SERENA를 통해 확인한 기존 유사 기능이 있는 경우, 해당 파일도 관련 파일 목록에 포함합니다.
+11. **최종 출력 생성:** 상위 작업, 하위 작업, 관련 파일 및 참고 사항을 최종 Markdown 구조로 결합합니다.
+12. **작업 목록 저장:** 생성된 문서를 `/tasks/` 디렉토리에 `tasks-[prd-file-name].md` 파일명으로 저장합니다. 여기서 `[prd-file-name]`은 입력 PRD 파일의 기본 이름과 일치합니다 (예: 입력이 `0001-prd-user-profile-editing.md`인 경우 출력은 `tasks-0001-prd-user-profile-editing.md`입니다).
+13. **최종 MEMENTO 기억 저장:** 작업 목록 생성이 완료된 후, 최종 결과를 MEMENTO에 저장합니다.
+    - **타입:** `episodic` (태그: ["completed"]), `semantic` (태그: ["best-practice", "knowledge"]), `procedural` (반복 작업인 경우, 태그: ["procedure"])
+    - **내용:** 
+      - Episodic: 작업 완료 기록, 생성된 작업 목록 요약
+      - Semantic: 재사용 가능한 지식, 패턴, 베스트 프랙티스 추출
+      - Procedural: 작업 목록 생성 절차 (반복 작업인 경우)
 
-## Output Format
+## 출력 형식
 
-The generated task list _must_ follow this structure:
+생성된 작업 목록은 _반드시_ 다음 구조를 따라야 합니다:
 
 ```markdown
 ## Relevant Files
 
-- `path/to/potential/file1.ts` - Brief description of why this file is relevant (e.g., Contains the main component for this feature).
-- `path/to/file1.test.ts` - Unit tests for `file1.ts`.
-- `path/to/another/file.tsx` - Brief description (e.g., API route handler for data submission).
-- `path/to/another/file.test.tsx` - Unit tests for `another/file.tsx`.
-- `lib/utils/helpers.ts` - Brief description (e.g., Utility functions needed for calculations).
-- `lib/utils/helpers.test.ts` - Unit tests for `helpers.ts`.
+- `path/to/potential/file1.ts` - 이 파일이 관련된 이유에 대한 간단한 설명 (예: 이 기능의 주요 컴포넌트를 포함함).
+- `path/to/file1.test.ts` - `file1.ts`에 대한 단위 테스트.
+- `path/to/another/file.tsx` - 간단한 설명 (예: 데이터 제출을 위한 API 라우트 핸들러).
+- `path/to/another/file.test.tsx` - `another/file.tsx`에 대한 단위 테스트.
+- `lib/utils/helpers.ts` - 간단한 설명 (예: 계산에 필요한 유틸리티 함수).
+- `lib/utils/helpers.test.ts` - `helpers.ts`에 대한 단위 테스트.
 
 ### Notes
 
-- Unit tests should typically be placed alongside the code files they are testing (e.g., `MyComponent.tsx` and `MyComponent.test.tsx` in the same directory).
-- Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+- 단위 테스트는 일반적으로 테스트하는 코드 파일과 함께 배치해야 합니다 (예: 같은 디렉토리의 `MyComponent.tsx` 및 `MyComponent.test.tsx`).
+- `npx jest [optional/path/to/test/file]`를 사용하여 테스트를 실행합니다. 경로 없이 실행하면 Jest 구성에서 찾은 모든 테스트를 실행합니다.
 
 ## Tasks
 
-- [ ] 1.0 Parent Task Title
-  - [ ] 1.1 [Sub-task description 1.1]
-  - [ ] 1.2 [Sub-task description 1.2]
-- [ ] 2.0 Parent Task Title
-  - [ ] 2.1 [Sub-task description 2.1]
-- [ ] 3.0 Parent Task Title (may not require sub-tasks if purely structural or configuration)
+- [ ] 1.0 상위 작업 제목
+  - [ ] 1.1 [하위 작업 설명 1.1]
+  - [ ] 1.2 [하위 작업 설명 1.2]
+- [ ] 2.0 상위 작업 제목
+  - [ ] 2.1 [하위 작업 설명 2.1]
+- [ ] 3.0 상위 작업 제목 (순수 구조적이거나 구성인 경우 하위 작업이 필요하지 않을 수 있음)
 ```
 
-## Interaction Model
+## 개발 방법론
 
-The process explicitly requires a pause after generating parent tasks to get user confirmation ("Go") before proceeding to generate the detailed sub-tasks. This ensures the high-level plan aligns with user expectations before diving into details.
+### TDD (Test-Driven Development)
 
-## Target Audience
+모든 구현 작업은 **TDD 방법론**을 따라야 합니다. TDD는 다음 세 단계의 반복 사이클로 구성됩니다:
 
-Assume the primary reader of the task list is a **junior developer** who will implement the feature with awareness of the existing codebase context.
+1.  **RED (실패하는 테스트 작성):** 구현할 기능에 대한 테스트를 먼저 작성합니다. 이 단계에서는 테스트가 실패해야 합니다. 테스트는 기능의 요구사항을 명확히 정의하고, 예상되는 동작을 검증합니다.
+
+2.  **GREEN (테스트를 통과하는 최소한의 코드 작성):** 실패하는 테스트를 통과시키기 위해 최소한의 코드만 작성합니다. 이 단계에서는 코드의 완벽함보다는 테스트를 통과시키는 것에 집중합니다.
+
+3.  **REFACTOR (코드 리팩토링):** 테스트가 통과하는 상태를 유지하면서 코드를 개선합니다. 중복 제거, 가독성 향상, 성능 최적화 등을 수행하되, 기존 테스트가 계속 통과하는지 확인합니다.
+
+#### TDD 적용 가이드
+
+- 각 하위 작업은 가능한 한 작은 단위로 나누어 TDD 사이클을 적용합니다.
+- 테스트 코드는 `given/when/then` 구조를 따라야 하며, 메서드명 또는 JSDoc에도 `given/when/then`을 표시해야 합니다.
+- 테스트는 구현 코드와 함께 같은 디렉토리에 배치합니다 (예: `MyComponent.tsx`와 `MyComponent.test.tsx`).
+- 리팩토링 단계에서는 테스트 커버리지를 유지하면서 코드 품질을 개선합니다.
+
+### MEMENTO 기억 관리
+
+작업 목록 생성 과정에서 **MEMENTO**를 활용하여 지식을 축적하고 재사용합니다.
+
+#### 작업 시작 전: 기억 조회
+
+- **하이브리드 검색:** PRD의 주요 키워드, 기능명, 기술 스택 등을 기반으로 관련 기억을 검색합니다.
+- **태그 필터링:** 관련 태그로 필터링하여 과거 유사 작업이나 관련 지식을 찾습니다.
+- **앵커 설정:** 검색된 기억 중 가장 관련성 높은 기억을 앵커로 설정하여 작업 중 참고합니다.
+- **이웃 기억 확인:** 중요한 기억 발견 시 이웃 기억도 확인하여 관련 컨텍스트를 파악합니다.
+
+#### 작업 완료 후: 기억 저장
+
+- **Episodic Memory:** 작업 완료 기록을 저장합니다.
+  - 태그: 작업 관련 태그, `["completed"]` 태그 포함
+  - 중요도: 작업 중요도에 맞게 설정 (0.3-1.0)
+  - 내용: 무엇을, 어떻게, 왜 수행했는지 포함
+
+- **Semantic Memory:** 재사용 가능한 지식을 추출하여 저장합니다.
+  - 태그: `["best-practice", "knowledge"]`
+  - 내용: 패턴, 베스트 프랙티스, 아키텍처 결정사항 등
+
+- **Procedural Memory:** 반복 작업인 경우 절차적 지식을 저장합니다.
+  - 태그: `["procedure"]`
+  - 내용: 작업 목록 생성 절차, 단계별 가이드
+
+#### 기억 저장 가이드
+
+- 중복 저장 방지: 저장 전 검색하여 중복 여부 확인
+- 구체적이고 실행 가능한 내용 작성
+- 검색 가능한 키워드 포함
+- 관련 태그 적절히 설정
+
+### SERENA 코드베이스 분석
+
+작업 목록 생성 과정에서 **SERENA**를 활용하여 코드베이스를 분석하고 유사한 기능을 확인합니다.
+
+#### SERENA를 통한 유사 기능 확인
+
+- **find_symbol:** PRD에서 요구하는 기능과 유사한 심볼(클래스, 함수, 메서드 등)을 검색합니다.
+  - 기능명, 동작, 목적 등을 키워드로 사용하여 검색합니다.
+  - 관련 파일이나 디렉토리를 지정하여 검색 범위를 좁힐 수 있습니다.
+  - 심볼의 개요를 확인하여 유사성을 판단합니다.
+
+- **search_for_pattern:** 코드베이스에서 유사한 패턴이나 구현을 검색합니다.
+  - PRD의 핵심 기능 요구사항을 정규식 패턴으로 변환하여 검색합니다.
+  - 코드 파일뿐만 아니라 설정 파일, 문서 등도 검색할 수 있습니다.
+  - 컨텍스트 라인을 포함하여 검색 결과를 더 잘 이해할 수 있습니다.
+
+- **find_referencing_symbols:** 관련된 기존 기능을 찾은 경우, 해당 기능을 참조하는 다른 코드를 확인합니다.
+  - 사용 패턴을 파악하여 재사용 가능성을 평가합니다.
+  - 의존성 관계를 이해하여 수정 영향도를 판단합니다.
+
+- **get_symbols_overview:** 관련 파일의 심볼 개요를 확인합니다.
+  - 파일의 구조와 주요 심볼을 빠르게 파악합니다.
+  - 유사한 기능이나 구조를 식별합니다.
+
+#### 유사 기능 발견 시 처리 방법
+
+- **재사용 가능한 경우:**
+  - 기존 기능을 그대로 활용할 수 있는지 평가합니다.
+  - 필요한 경우 확장이나 설정 변경만으로 요구사항을 충족할 수 있는지 확인합니다.
+  - 상위 작업에 "기존 기능 활용" 또는 "기존 기능 확장"을 포함합니다.
+
+- **수정이 필요한 경우:**
+  - 기존 기능을 수정하거나 확장하여 요구사항을 충족할 수 있는지 판단합니다.
+  - 수정 범위와 영향도를 평가합니다.
+  - 상위 작업에 "기존 기능 수정" 또는 "기존 기능 리팩토링"을 포함합니다.
+
+- **새로운 구현이 필요한 경우:**
+  - 기존 기능과의 차이점을 명확히 합니다.
+  - 기존 기능과의 통합 방법을 고려합니다.
+  - 상위 작업에 "새로운 기능 구현"을 포함합니다.
+
+#### SERENA 활용 팁
+
+- PRD의 핵심 키워드를 추출하여 검색어로 활용합니다.
+- 여러 검색 방법을 조합하여 더 정확한 결과를 얻습니다.
+- 검색 결과를 바탕으로 관련 파일 목록을 업데이트합니다.
+- 발견된 유사 기능의 테스트 코드도 확인하여 구현 패턴을 이해합니다.
+
+## 상호작용 모델
+
+프로세스는 상위 작업 생성 후 상세한 하위 작업을 생성하기 전에 사용자 확인("Go")을 받기 위해 명시적으로 일시 중지를 요구합니다. 이를 통해 세부 사항에 들어가기 전에 상위 수준 계획이 사용자 기대와 일치하는지 확인합니다.
+
+## 대상 독자
+
+작업 목록의 주요 독자는 기존 코드베이스 컨텍스트를 인지하면서 기능을 구현할 **주니어 개발자**라고 가정합니다.

@@ -15,6 +15,7 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
+import { validateFilePath } from '../../shared/utils/path-validator.js';
 import type { TripleExtractionResult } from '../../shared/types/triple-extraction.js';
 
 /**
@@ -62,8 +63,18 @@ export class TripleExtractionLogger {
   private logDir: string;
 
   constructor(config: TripleExtractionLoggerConfig = {}) {
+    // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+    // 로그 디렉토리 경로 검증
+    const logDir = config.logDir ?? path.join(process.cwd(), 'logs', 'triple-extraction');
+    if (!validateFilePath(logDir, 'logs')) {
+      throw new Error(
+        `Path Traversal 방지: 허용되지 않은 로그 디렉토리 경로입니다. ` +
+        `경로: ${logDir}`
+      );
+    }
+
     this.config = {
-      logDir: config.logDir ?? path.join(process.cwd(), 'logs', 'triple-extraction'),
+      logDir,
       enabled: config.enabled ?? true,
       enablePIIMasking: config.enablePIIMasking !== false
     };
@@ -103,9 +114,10 @@ export class TripleExtractionLogger {
       await fsPromises.appendFile(logFilePath, logLine);
     } catch (error) {
       // 파일 로깅 실패는 무시 (콘솔 로거 사용)
-      console.error('TripleExtractionLogger: 로그 파일 쓰기 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('TripleExtractionLogger: 로그 파일 쓰기 실패', PIIMasker.maskObject({
+        error: maskedError.message
+      }));
     }
   }
 
@@ -187,16 +199,33 @@ export class TripleExtractionLogger {
   /**
    * 날짜별 로그 파일 경로 반환
    * 형식: YYYY-MM-DD.log
+   * 
+   * PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+   * 파일 경로 검증 적용
    */
   private getLogFilePath(): string {
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
     const fileName = `${dateStr}.log`;
-    return path.join(this.logDir, fileName);
+    const logFilePath = path.join(this.logDir, fileName);
+    
+    // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+    // 최종 로그 파일 경로 검증
+    if (!validateFilePath(logFilePath, 'logs')) {
+      throw new Error(
+        `Path Traversal 방지: 허용되지 않은 로그 파일 경로입니다. ` +
+        `경로: ${logFilePath}`
+      );
+    }
+    
+    return logFilePath;
   }
 
   /**
    * 로그 파일 목록 조회
+   * 
+   * PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+   * 파일 경로 검증 적용
    * 
    * @returns 로그 파일 경로 배열
    */
@@ -206,13 +235,23 @@ export class TripleExtractionLogger {
       const files = await fsPromises.readdir(this.logDir);
       return files
         .filter(file => file.endsWith('.log'))
-        .map(file => path.join(this.logDir, file))
+        .map(file => {
+          const filePath = path.join(this.logDir, file);
+          // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+          // 파일 경로 검증
+          if (!validateFilePath(filePath, 'logs')) {
+            return null; // 검증 실패 시 null 반환하여 필터링
+          }
+          return filePath;
+        })
+        .filter((filePath): filePath is string => filePath !== null) // null 제거
         .sort()
         .reverse(); // 최신 파일 먼저
     } catch (error) {
-      console.error('TripleExtractionLogger: 로그 파일 목록 조회 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('TripleExtractionLogger: 로그 파일 목록 조회 실패', PIIMasker.maskObject({
+        error: maskedError.message
+      }));
       return [];
     }
   }
@@ -236,6 +275,13 @@ export class TripleExtractionLogger {
         }
 
         const filePath = path.join(this.logDir, file);
+        
+        // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+        // 파일 경로 검증
+        if (!validateFilePath(filePath, 'logs')) {
+          continue; // 검증 실패 시 건너뛰기
+        }
+        
         const stats = await fsPromises.stat(filePath);
         const fileAge = now - stats.mtimeMs;
 
@@ -247,9 +293,10 @@ export class TripleExtractionLogger {
 
       return deletedCount;
     } catch (error) {
-      console.error('TripleExtractionLogger: 오래된 로그 파일 삭제 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('TripleExtractionLogger: 오래된 로그 파일 삭제 실패', PIIMasker.maskObject({
+        error: maskedError.message
+      }));
       return 0;
     }
   }

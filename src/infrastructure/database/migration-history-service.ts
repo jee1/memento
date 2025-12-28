@@ -8,6 +8,7 @@ import type {
   MigrationResult,
   MigrationRollbackEntry
 } from '../../shared/types/migration.types.js';
+import { PIIMasker } from '../../shared/utils/pii-masker.js';
 
 const DEFAULT_HISTORY_LIMIT = 50;
 
@@ -90,7 +91,8 @@ class MigrationHistoryService {
       this.logHistory(record);
       return record.id;
     } catch (error) {
-      console.warn('⚠️ 마이그레이션 이력 기록 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 마이그레이션 이력 기록 실패:', maskedError.message);
       return undefined;
     }
   }

@@ -17,6 +17,7 @@ import {
 } from './helpers/search-quality-metrics.js';
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../shared/config/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 interface QualityComparison {
   withConsolidation: {
@@ -89,7 +90,8 @@ async function measureSearchQuality(
       const searchResults = convertToSearchResults(results);
       queryResults.set(query, searchResults);
     } catch (error) {
-      console.error(`검색 실패: ${query}`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`검색 실패: ${query}`, maskedError.message);
       queryResults.set(query, []);
     }
   }
@@ -252,7 +254,8 @@ async function testConsolidationSearchQuality() {
 
     console.log('✅ Consolidation Score 검색 품질 검증 완료!');
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
     throw error;
   } finally {
     cleanupTestDatabase(db);
@@ -268,7 +271,8 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ E2E 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ E2E 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

@@ -82,6 +82,7 @@ export class DatabaseOptimizer {
       const tableName = table.name;
       
       // 행 수
+      // SQL Injection 방지: tableName은 sqlite_master에서 가져온 것이므로 안전함
       const rowCount = await DatabaseUtils.all(this.db, `SELECT COUNT(*) as count FROM ${tableName}`);
       
       // 테이블 크기 (간단한 추정)
@@ -91,11 +92,14 @@ export class DatabaseOptimizer {
       `);
       
       // 인덱스 수
-      const indexCount = await DatabaseUtils.all(this.db, `
-        SELECT COUNT(*) as count 
-        FROM sqlite_master 
-        WHERE type = 'index' AND tbl_name = '${tableName}' AND name NOT LIKE 'sqlite_%'
-      `);
+      // SQL Injection 방지: tableName은 sqlite_master에서 가져온 것이므로 안전함
+      // 템플릿 리터럴 대신 문자열 연결 사용
+      const indexCount = await DatabaseUtils.all(this.db, 
+        'SELECT COUNT(*) as count ' +
+        'FROM sqlite_master ' +
+        'WHERE type = \'index\' AND tbl_name = ? AND name NOT LIKE \'sqlite_%\'',
+        [tableName]
+      );
 
       stats[tableName] = {
         rowCount: rowCount[0]?.count || 0,
@@ -329,7 +333,7 @@ export class DatabaseOptimizer {
   async createIndex(name: string, table: string, columns: string[], unique: boolean = false): Promise<void> {
     const uniqueKeyword = unique ? 'UNIQUE' : '';
     const columnsStr = columns.join(', ');
-    const sql = `CREATE ${uniqueKeyword ? uniqueKeyword + ' ' : ''}INDEX IF NOT EXISTS ${name} ON ${table} (${columnsStr})`;
+    const sql = `CREATE ${uniqueKeyword ? `${uniqueKeyword} ` : ''}INDEX IF NOT EXISTS ${name} ON ${table} (${columnsStr})`;
     
     await DatabaseUtils.run(this.db, sql);
   }

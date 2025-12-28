@@ -5,6 +5,7 @@
  */
 
 import { getStopWords } from '../../../shared/utils/stopwords.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 
@@ -73,8 +74,9 @@ export class LightweightEmbeddingService {
         },
       };
     } catch (error) {
-      console.error('❌ 경량 임베딩 생성 실패:', error);
-      throw new Error(`경량 임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 경량 임베딩 생성 실패:', maskedError.message);
+      throw new Error(`경량 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
 

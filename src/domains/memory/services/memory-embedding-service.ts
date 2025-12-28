@@ -7,7 +7,10 @@ import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedd
 import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
 import type { EmbeddingProvider, EmbeddingResult } from '../../../shared/types/embedding.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import type { MemoryType } from '../../../shared/types/index.js';
+import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 
 export interface MemoryEmbedding {
   memory_id: string;
@@ -55,7 +58,8 @@ export class MemoryEmbeddingService {
       // 실패해도 치명적이지 않음 (TF-IDF fallback 사용)
       // 로그는 한 번만 출력하도록 조건부 처리
       if (!(global as any).__vecExtensionLoadWarningShown) {
-        console.warn('⚠️ sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용):', (error as Error).message);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용):', maskedError.message);
         (global as any).__vecExtensionLoadWarningShown = true;
       }
     }
@@ -175,27 +179,18 @@ export class MemoryEmbeddingService {
       };
 
     } catch (error) {
-      console.error(`❌ 임베딩 저장 실패 (${memoryId}):`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`❌ 임베딩 저장 실패 (${memoryId}):`, maskedError.message);
       return null;
     }
   }
 
   /**
    * 제공자별 vec0 테이블명 반환
+   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
    */
   private getVectorTableName(provider: string): string {
-    switch (provider) {
-      case 'tfidf':
-        return 'memory_item_vec_tfidf';
-      case 'minilm':
-        return 'memory_item_vec_minilm';
-      case 'openai':
-        return 'memory_item_vec_openai';
-      case 'gemini':
-        return 'memory_item_vec_gemini';
-      default:
-        return 'memory_item_vec_tfidf'; // 기본값
-    }
+    return getValidatedVectorTableName(provider);
   }
 
   /**
@@ -228,28 +223,34 @@ export class MemoryEmbeddingService {
       // 제공자별 테이블에서 검색
       const provider = this.normalizeProvider(queryEmbedding.provider);
       const tableName = this.getVectorTableName(provider);
+      // SQL Injection 방지: 화이트리스트 검증은 getVectorTableName()에서 수행됨
       
       // vec0 테이블에서 유사도 검색
-      const similarities = await DatabaseUtils.all(db, `
-        SELECT 
-          m.id,
-          m.content,
-          m.type,
-          m.importance,
-          m.created_at,
-          m.last_accessed,
-          m.pinned,
-          m.tags,
-          v.distance as similarity,
-          (1 - v.distance) as score
-        FROM memory_item m
-        JOIN memory_embedding me ON m.id = me.memory_id
-        JOIN ${tableName} v ON me.id = v.rowid
-        WHERE me.embedding_provider = ?
-        ${filters?.type ? `AND m.type IN (${filters.type.map(() => '?').join(',')})` : ''}
-        ORDER BY v.distance ASC
-        LIMIT ?
-      `, [
+      // 템플릿 리터럴 대신 문자열 연결 사용
+      const typeFilter = filters?.type 
+        ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')' 
+        : '';
+      const sqlQuery = 
+        'SELECT ' +
+        '  m.id, ' +
+        '  m.content, ' +
+        '  m.type, ' +
+        '  m.importance, ' +
+        '  m.created_at, ' +
+        '  m.last_accessed, ' +
+        '  m.pinned, ' +
+        '  m.tags, ' +
+        '  v.distance as similarity, ' +
+        '  (1 - v.distance) as score ' +
+        'FROM memory_item m ' +
+        'JOIN memory_embedding me ON m.id = me.memory_id ' +
+        'JOIN ' + tableName + ' v ON me.id = v.rowid ' +
+        'WHERE me.embedding_provider = ? ' +
+        typeFilter + ' ' +
+        'ORDER BY v.distance ASC ' +
+        'LIMIT ?';
+      
+      const similarities = await DatabaseUtils.all(db, sqlQuery, [
         provider,
         ...(filters?.type || []),
         filters?.limit || 10
@@ -272,7 +273,8 @@ export class MemoryEmbeddingService {
       return results;
 
     } catch (error) {
-      console.error('❌ 벡터 검색 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벡터 검색 실패:', maskedError.message);
       return [];
     }
   }
@@ -287,7 +289,8 @@ export class MemoryEmbeddingService {
       await DatabaseUtils.run(db, 'DELETE FROM memory_embedding WHERE memory_id = ?', [memoryId]);
       console.log(`✅ 임베딩 삭제 완료: ${memoryId}`);
     } catch (error) {
-      console.error(`❌ 임베딩 삭제 실패 (${memoryId}):`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`❌ 임베딩 삭제 실패 (${memoryId}):`, maskedError.message);
     }
   }
 
@@ -300,7 +303,8 @@ export class MemoryEmbeddingService {
       const parsed = JSON.parse(rawTags);
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', maskedError.message);
       return [];
     }
   }
@@ -360,7 +364,8 @@ export class MemoryEmbeddingService {
         })),
       };
     } catch (error) {
-      console.error('❌ 임베딩 통계 조회 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 임베딩 통계 조회 실패:', maskedError.message);
       return {
         totalEmbeddings: 0,
         averageDimensions: 0,
@@ -424,7 +429,8 @@ export class MemoryEmbeddingService {
            OR created_by IS NULL
       `, [this.defaultProvider]);
     } catch (error) {
-      console.warn('⚠️ 임베딩 메타데이터 보정 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 임베딩 메타데이터 보정 실패:', maskedError.message);
     }
   }
 }

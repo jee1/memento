@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 import { initializeDatabase } from '../../infrastructure/database/database/init.js';
 import { QualityAssuranceService } from '../../services/quality-assurance/quality-assurance-service.js';
 import { logger } from '../../shared/utils/logger.js';
+import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { existsSync, mkdirSync } from 'fs';
 import { writeFileSync } from 'fs';
 import path from 'path';
@@ -143,8 +144,9 @@ async function runQualityMeasurement(): Promise<void> {
 
     // 에러 발생 시에도 빌드는 성공 (품질 측정 자체의 실패는 빌드 실패로 이어지지 않음)
     // 단, 로그는 기록
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
     console.error('\n⚠️ 품질 측정 실행 실패 (빌드는 계속 진행)');
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(maskedError.message);
   }
 }
 

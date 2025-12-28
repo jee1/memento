@@ -16,6 +16,7 @@ import {
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 interface BenchmarkResult {
   timestamp: string;
@@ -85,7 +86,8 @@ async function measureQualityWithWeights(
       const results = await client.recall({ query, limit: Math.max(...kValues) * 2 });
       queryResults.set(query, results);
     } catch (error) {
-      console.error(`검색 실패: ${query}`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`검색 실패: ${query}`, maskedError.message);
       queryResults.set(query, []);
     }
   }
@@ -345,7 +347,8 @@ async function runConsolidationQualityBenchmark() {
 
     console.log('\n✅ 벤치마크 완료!');
   } catch (error) {
-    console.error('❌ 벤치마크 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 벤치마크 실패:', maskedError.message);
     throw error;
   } finally {
     cleanupTestDatabase(db);
@@ -361,7 +364,8 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 벤치마크 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벤치마크 실패:', maskedError.message);
       process.exit(1);
     });
 }

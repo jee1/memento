@@ -10,6 +10,7 @@ import { initializeDatabase } from '../infrastructure/database/database/init.js'
 import { QualityAssuranceService } from '../services/quality-assurance/quality-assurance-service.js';
 import { QualityThresholdManager } from '../services/quality-assurance/quality-threshold-manager.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 /**
  * 품질 측정 관련 테이블 생성
@@ -192,12 +193,10 @@ async function testQualityAssuranceE2E(): Promise<void> {
 
     console.log('🎉 모든 E2E 테스트가 성공적으로 완료되었습니다!');
   } catch (error) {
-    console.error('❌ E2E 테스트 실패:', error);
-    if (error instanceof Error) {
-      console.error('   - 메시지:', error.message);
-      if (error.stack) {
-        console.error('   - 스택:', error.stack);
-      }
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error', stack: undefined };
+    console.error('❌ E2E 테스트 실패:', maskedError.message);
+    if (maskedError.stack) {
+      console.error('   - 스택:', maskedError.stack);
     }
     process.exit(1);
   } finally {
@@ -216,7 +215,8 @@ if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ E2E 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ E2E 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

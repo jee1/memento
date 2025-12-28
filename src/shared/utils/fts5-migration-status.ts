@@ -8,6 +8,7 @@
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
 import { mementoConfig } from '../config/index.js';
+import { PIIMasker } from './pii-masker.js';
 
 export type FTS5MigrationStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
@@ -95,7 +96,9 @@ export function getMigrationStatus(db: Database.Database): FTS5MigrationStatus {
       return 'pending';
     } catch (initError) {
       // 초기화도 실패하면 기본값 반환
-      console.warn('마이그레이션 상태 조회 및 초기화 실패:', error, initError);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      const maskedInitError = initError instanceof Error ? PIIMasker.maskError(initError) : { message: String(initError), name: 'Error' };
+      console.warn('마이그레이션 상태 조회 및 초기화 실패:', maskedError.message, maskedInitError.message);
       return 'pending';
     }
   }
@@ -219,7 +222,8 @@ export function loadMigrationStatusToConfig(db: Database.Database): void {
     (mementoConfig as any).fts5MigrationStatus = status;
   } catch (error) {
     // 로드 실패 시 기본값 설정
-    console.warn('마이그레이션 상태 로드 실패, 기본값 사용:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.warn('마이그레이션 상태 로드 실패, 기본값 사용:', maskedError.message);
     (mementoConfig as any).fts5MigrationStatus = 'pending';
   }
 }

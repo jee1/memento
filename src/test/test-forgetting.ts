@@ -4,6 +4,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testForgettingFunctionality() {
   console.log('🧠 망각 정책 기능 테스트 시작');
@@ -76,7 +77,8 @@ async function testForgettingFunctionality() {
       console.log(`   평균 망각 점수: ${stats.stats?.averageForgetScore?.toFixed(3) || 'N/A'}`);
       console.log(`   메모리 분포:`, stats.stats?.memoryDistribution || {});
     } catch (error) {
-      console.error(`   ❌ 망각 통계 조회 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 망각 통계 조회 실패: ${maskedError.message}`);
     }
     
     // 4. 드라이런 모드로 메모리 정리 테스트
@@ -91,7 +93,8 @@ async function testForgettingFunctionality() {
       console.log(`   평균 망각 점수: ${dryRunResult.stats?.averageForgetScore?.toFixed(3) || 'N/A'}`);
       console.log(`   메모리 분포:`, dryRunResult.stats?.memoryDistribution || {});
     } catch (error) {
-      console.error(`   ❌ 드라이런 테스트 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 드라이런 테스트 실패: ${maskedError.message}`);
     }
     
     // 5. 실제 메모리 정리 실행 (선택적)
@@ -112,7 +115,8 @@ async function testForgettingFunctionality() {
         console.log(`   하드 삭제된 메모리: ${cleanupResult.result.hardDeleted.join(', ')}`);
       }
     } catch (error) {
-      console.error(`   ❌ 메모리 정리 실행 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 메모리 정리 실행 실패: ${maskedError.message}`);
     }
     
     // 6. 정리 후 상태 확인
@@ -124,7 +128,8 @@ async function testForgettingFunctionality() {
       console.log(`   망각 후보: ${finalStats.stats?.forgetCandidates || 0}개`);
       console.log(`   평균 망각 점수: ${finalStats.stats?.averageForgetScore?.toFixed(3) || 'N/A'}`);
     } catch (error) {
-      console.error(`   ❌ 정리 후 통계 조회 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 정리 후 통계 조회 실패: ${maskedError.message}`);
     }
     
     // 7. 남은 메모리 검색 테스트
@@ -136,13 +141,15 @@ async function testForgettingFunctionality() {
         console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}...`);
       });
     } catch (error) {
-      console.error(`   ❌ 검색 테스트 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 검색 테스트 실패: ${maskedError.message}`);
     }
     
     console.log('\n🎉 망각 정책 기능 테스트 완료!');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   } finally {
     await client.disconnect();
   }
@@ -156,7 +163,8 @@ if (process.argv[1] && process.argv[1].endsWith('test-forgetting.ts')) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 망각 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 망각 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

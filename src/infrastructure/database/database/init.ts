@@ -2,6 +2,8 @@
  * SQLite 데이터베이스 초기화 스크립트
  */
 
+/* eslint-disable security/detect-non-literal-fs-filename */
+// 데이터베이스 경로는 환경 변수 또는 기본값에서 가져오며, 경로 검증이 적용됨
 import Database from 'better-sqlite3';
 import fs, { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -14,6 +16,7 @@ import { CoreMemoryService } from '../../../domains/memory/services/core-memory-
 import { CoreMemoryCacheService } from '../../../domains/memory/services/core-memory-cache-service.js';
 import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../../../shared/utils/fts5-migration-status.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -243,12 +246,33 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
 
   for (const config of configs) {
     try {
-      db.exec(`
-        INSERT OR IGNORE INTO ${config.name}(rowid, embedding)
-        SELECT id, json_extract(embedding, '$')
-        FROM memory_embedding
-        WHERE ${config.filter}
-      `);
+      // SQL Injection 방지: config.name은 하드코딩된 값이지만 화이트리스트 검증 추가
+      // config.filter는 하드코딩된 WHERE 절 조건이므로 안전함
+      const allowedTableNames = [
+        'memory_item_vec',
+        'memory_item_vec_tfidf',
+        'memory_item_vec_minilm',
+        'memory_item_vec_openai',
+        'memory_item_vec_gemini'
+      ];
+      if (!allowedTableNames.includes(config.name)) {
+        log(`⚠️ 허용되지 않은 테이블명: ${config.name}`);
+        continue;
+      }
+      
+      // 테이블명 패턴 검증
+      const tableNamePattern = /^[a-z0-9_]+$/;
+      if (!tableNamePattern.test(config.name)) {
+        log(`⚠️ 잘못된 테이블명 패턴: ${config.name}`);
+        continue;
+      }
+      
+      const query = 
+        `INSERT OR IGNORE INTO ${config.name}(rowid, embedding) ` +
+        `SELECT id, json_extract(embedding, '$') ` +
+        `FROM memory_embedding ` +
+        `WHERE ${config.filter}`;
+      db.exec(query);
     } catch (error) {
       log(`⚠️ ${config.name} 재구축 중 오류 발생:`, error);
     }
@@ -558,7 +582,8 @@ if (process.argv[1] && process.argv[1].endsWith('init.ts')) {
       closeDatabase(db);
       process.exit(0);
     } catch (error) {
-      console.error('❌ 데이터베이스 초기화 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 데이터베이스 초기화 실패:', maskedError.message);
       process.exit(1);
     }
   })();

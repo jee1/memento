@@ -5,6 +5,7 @@
 
 import { VectorSearchEngineRefactored } from './vector-search-engine-refactored';
 import type { VectorSearchEngine } from './vector-search-engine';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 /**
  * 기존 VectorSearchEngine에서 새로운 VectorSearchEngineRefactored로 안전하게 전환합니다.
@@ -147,14 +148,16 @@ const results = await engine.search(queryVector, options, provider);
 try {
   const results = await engine.search(queryVector);
 } catch (error) {
-  console.error('검색 실패:', error);
+  const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+  console.error('검색 실패:', maskedError.message);
 }
 
 // 새로운 (동일한 에러 처리)
 try {
   const results = await engine.search(queryVector);
 } catch (error) {
-  console.error('검색 실패:', error);
+  const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+  console.error('검색 실패:', maskedError.message);
 }
     `
   }
@@ -197,7 +200,8 @@ export class MigrationValidator {
       console.log('✅ 호환성 검증 완료');
       return true;
     } catch (error) {
-      console.error('❌ 호환성 검증 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 호환성 검증 실패:', maskedError.message);
       return false;
     }
   }
@@ -229,7 +233,8 @@ export class MigrationValidator {
         improvement
       };
     } catch (error) {
-      console.error('❌ 성능 비교 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 성능 비교 실패:', maskedError.message);
       throw error;
     }
   }

@@ -6,6 +6,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 
 export interface GeminiEmbeddingResult {
@@ -120,7 +121,8 @@ export class GeminiEmbeddingService {
         
         return embeddingResult;
       } catch (error) {
-        console.warn('⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback:', maskedError.message);
         // Gemini 실패 시 MiniLM 서비스로 fallback
       }
     }
@@ -145,8 +147,9 @@ export class GeminiEmbeddingService {
       
       return result;
     } catch (error) {
-      console.error('❌ MiniLM 임베딩 생성 실패:', error);
-      throw new Error(`임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ MiniLM 임베딩 생성 실패:', maskedError.message);
+      throw new Error(`임베딩 생성 실패: ${maskedError.message}`);
     }
   }
 

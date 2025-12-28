@@ -8,6 +8,7 @@ import { closeDatabase } from '../infrastructure/database/init.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 import Database from 'better-sqlite3';
 import WebSocket from 'ws';
 // eventsource는 CommonJS 모듈이므로 createRequire 사용
@@ -194,7 +195,8 @@ async function testBasicEndpoints() {
     }
     
   } catch (error) {
-    console.error('  ❌ 기본 엔드포인트 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('  ❌ 기본 엔드포인트 테스트 실패:', maskedError.message);
     throw error;
   }
 }
@@ -305,7 +307,8 @@ async function testMCPTools() {
       }
     
   } catch (error) {
-    console.error('  ❌ MCP 도구 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('  ❌ MCP 도구 테스트 실패:', maskedError.message);
     throw error;
   }
 }
@@ -363,7 +366,8 @@ async function testAdminAPIs() {
     }
     
   } catch (error) {
-    console.error('  ❌ 관리자 API 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('  ❌ 관리자 API 테스트 실패:', maskedError.message);
     throw error;
   }
 }
@@ -422,13 +426,15 @@ async function testWebSocket() {
           }
         }
       } catch (error) {
-        console.error('  ❌ WebSocket 메시지 파싱 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error('  ❌ WebSocket 메시지 파싱 실패:', maskedError.message);
         reject(error);
       }
     });
     
     ws.on('error', (error: Error) => {
-      console.error('  ❌ WebSocket 연결 실패:', error);
+      const maskedError = PIIMasker.maskError(error);
+      console.error('  ❌ WebSocket 연결 실패:', maskedError.message);
       reject(error);
     });
     
@@ -477,7 +483,8 @@ async function testSSE() {
           clientInfo: { name: 'test-client', version: '1.0.0' }
         });
       } catch (error) {
-        console.error('  ❌ SSE 엔드포인트 처리 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error('  ❌ SSE 엔드포인트 처리 실패:', maskedError.message);
         reject(error);
       }
     });
@@ -502,13 +509,15 @@ async function testSSE() {
           }
         }
       } catch (error) {
-        console.error('  ❌ SSE 메시지 파싱 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error('  ❌ SSE 메시지 파싱 실패:', maskedError.message);
         reject(error);
       }
     };
     
     eventSource.onerror = (error: any) => {
-      console.error('  ❌ SSE 연결 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('  ❌ SSE 연결 실패:', maskedError.message);
       reject(error);
     };
     
@@ -531,7 +540,8 @@ async function testSSE() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(message)
       }).catch(error => {
-        console.error('  ❌ MCP 메시지 전송 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error('  ❌ MCP 메시지 전송 실패:', maskedError.message);
         reject(error);
       });
     }
@@ -633,7 +643,8 @@ async function runTests() {
     console.log('\n🎉 모든 테스트 통과!');
     
   } catch (error) {
-    console.error('\n❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('\n❌ 테스트 실패:', maskedError.message);
     process.exit(1);
   } finally {
     // 5. 정리
@@ -653,7 +664,8 @@ async function runTests() {
           fs.unlinkSync(TEST_DB_PATH);
         }
       } catch (error) {
-        console.warn('테스트 DB 파일 삭제 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('테스트 DB 파일 삭제 실패:', maskedError.message);
       }
     }
     

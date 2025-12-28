@@ -7,6 +7,7 @@
  */
 
 import { logger } from './logger.js';
+import { PIIMasker } from './pii-masker.js';
 import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
@@ -71,10 +72,10 @@ export function extractWorkflowName(
       
       // 타입 안전성 체크: 문자열이 아니면 건너뜀
       if (typeof task !== 'string') {
-        logger.warn('original_task가 문자열이 아님', {
+        logger.warn('original_task가 문자열이 아님', PIIMasker.maskObject({
           type: typeof task,
           value: task
-        });
+        }));
         return undefined;
       }
       
@@ -107,10 +108,10 @@ export function extractWorkflowName(
       
       // 타입 안전성 체크: 문자열이 아니면 건너뜀
       if (typeof toolName !== 'string') {
-        logger.warn('event.tool_name이 문자열이 아님', {
+        logger.warn('event.tool_name이 문자열이 아님', PIIMasker.maskObject({
           type: typeof toolName,
           value: toolName
-        });
+        }));
         return undefined;
       }
       
@@ -144,10 +145,10 @@ export function extractWorkflowName(
       
       // 타입 안전성 체크: 문자열이 아니면 건너뜀
       if (typeof desc !== 'string') {
-        logger.warn('failure_description이 문자열이 아님', {
+        logger.warn('failure_description이 문자열이 아님', PIIMasker.maskObject({
           type: typeof desc,
           value: desc
-        });
+        }));
         return undefined;
       }
       
@@ -161,9 +162,10 @@ export function extractWorkflowName(
 
     return undefined;
   } catch (error) {
-    logger.warn('workflow_name 추출 실패', {
-      error: error instanceof Error ? error.message : String(error)
-    });
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    logger.warn('workflow_name 추출 실패', PIIMasker.maskObject({
+      error: maskedError.message
+    }));
     return undefined;
   }
 }
@@ -185,10 +187,10 @@ export function extractSkillName(
     if (event?.tool_name) {
       // 타입 안전성 체크
       if (typeof event.tool_name !== 'string') {
-        logger.warn('event.tool_name이 문자열이 아님', {
+        logger.warn('event.tool_name이 문자열이 아님', PIIMasker.maskObject({
           type: typeof event.tool_name,
           value: event.tool_name
-        });
+        }));
         return undefined;
       }
       return event.tool_name;
@@ -200,10 +202,10 @@ export function extractSkillName(
       
       // 타입 안전성 체크: 문자열이 아니면 건너뜀
       if (typeof failureType !== 'string') {
-        logger.warn('failure_type이 문자열이 아님', {
+        logger.warn('failure_type이 문자열이 아님', PIIMasker.maskObject({
           type: typeof failureType,
           value: failureType
-        });
+        }));
         return undefined;
       }
       
@@ -222,10 +224,10 @@ export function extractSkillName(
       
       // 타입 안전성 체크: 문자열이 아니면 건너뜀
       if (typeof improvements !== 'string') {
-        logger.warn('suggested_improvements가 문자열이 아님', {
+        logger.warn('suggested_improvements가 문자열이 아님', PIIMasker.maskObject({
           type: typeof improvements,
           value: improvements
-        });
+        }));
         return undefined;
       }
       
@@ -239,9 +241,10 @@ export function extractSkillName(
 
     return undefined;
   } catch (error) {
-    logger.warn('skill_name 추출 실패', {
-      error: error instanceof Error ? error.message : String(error)
-    });
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    logger.warn('skill_name 추출 실패', PIIMasker.maskObject({
+      error: maskedError.message
+    }));
     return undefined;
   }
 }
@@ -270,10 +273,10 @@ export function extractSteps(
         const sentences = improvements.split(/[.!?]\s+/).filter((s: string) => s.trim().length > 0);
         steps.push(...sentences.map((s: string) => s.trim()));
       } else {
-        logger.warn('suggested_improvements가 문자열이 아님', {
+        logger.warn('suggested_improvements가 문자열이 아님', PIIMasker.maskObject({
           type: typeof improvements,
           value: improvements
-        });
+        }));
       }
     }
 
@@ -286,10 +289,10 @@ export function extractSteps(
         const sentences = lessons.split(/[.!?]\s+/).filter((s: string) => s.trim().length > 0);
         steps.push(...sentences.map((s: string) => s.trim()));
       } else {
-        logger.warn('lessons_learned가 문자열이 아님', {
+        logger.warn('lessons_learned가 문자열이 아님', PIIMasker.maskObject({
           type: typeof lessons,
           value: lessons
-        });
+        }));
       }
     }
 
@@ -304,10 +307,10 @@ export function extractSteps(
           steps.push(desc);
         }
       } else {
-        logger.warn('failure_description이 문자열이 아님', {
+        logger.warn('failure_description이 문자열이 아님', PIIMasker.maskObject({
           type: typeof desc,
           value: desc
-        });
+        }));
       }
     }
 
@@ -322,9 +325,10 @@ export function extractSteps(
     // JSON 배열 문자열로 변환
     return JSON.stringify(steps);
   } catch (error) {
-    logger.warn('steps 추출 실패', {
-      error: error instanceof Error ? error.message : String(error)
-    });
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    logger.warn('steps 추출 실패', PIIMasker.maskObject({
+      error: maskedError.message
+    }));
     return undefined;
   }
 }
@@ -430,9 +434,10 @@ export function generateTriggerConditions(
     // JSON 객체 문자열로 변환
     return JSON.stringify(conditions);
   } catch (error) {
-    logger.warn('trigger_conditions 생성 실패', {
-      error: error instanceof Error ? error.message : String(error)
-    });
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    logger.warn('trigger_conditions 생성 실패', PIIMasker.maskObject({
+      error: maskedError.message
+    }));
     return undefined;
   }
 }
@@ -720,9 +725,10 @@ export async function determineMergeStrategy(
       updateMode: 'versioned'
     };
   } catch (error) {
-    logger.error('병합 전략 결정 실패', {
-      error: error instanceof Error ? error.message : String(error)
-    });
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    logger.error('병합 전략 결정 실패', PIIMasker.maskObject({
+      error: maskedError.message
+    }));
     return {
       shouldMerge: false,
       similarity: 0,

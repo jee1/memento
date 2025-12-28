@@ -7,6 +7,7 @@ import { closeDatabase } from '../infrastructure/database/init.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 import Database from 'better-sqlite3';
 
 async function testBasicFunctionality() {
@@ -123,7 +124,8 @@ async function testBasicFunctionality() {
     console.log('\n🎉 모든 기본 테스트 통과!');
     
   } catch (error) {
-    console.error('\n❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('\n❌ 테스트 실패:', maskedError.message);
     throw error;
   } finally {
     // 정리

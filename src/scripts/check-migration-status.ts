@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+/* eslint-disable security/detect-non-literal-fs-filename */
+// 데이터베이스 경로는 환경 변수 또는 기본값에서 가져오며, 경로 검증이 적용됨
 /**
  * 데이터베이스 마이그레이션 상태 확인 스크립트
  * 
@@ -16,6 +18,7 @@ import { MigrationDetector } from '../infrastructure/database/database/migration
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -213,9 +216,14 @@ async function checkMigrationStatus(): Promise<void> {
     }
 
   } catch (error) {
-    logError(`마이그레이션 상태 확인 중 오류 발생: ${error}`);
-    if (error instanceof Error) {
-      console.error(error.stack);
+    // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+    // 오류 메시지와 stack trace에 PII 마스킹 적용
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const maskedMessage = PIIMasker.mask(errorMessage).masked;
+    logError(`마이그레이션 상태 확인 중 오류 발생: ${maskedMessage}`);
+    if (error instanceof Error && error.stack) {
+      const maskedStack = PIIMasker.mask(error.stack).masked;
+      console.error(maskedStack);
     }
     process.exit(1);
   } finally {
@@ -225,9 +233,14 @@ async function checkMigrationStatus(): Promise<void> {
 
 // 스크립트 실행
 checkMigrationStatus().catch(error => {
-  logError(`스크립트 실행 실패: ${error}`);
-  if (error instanceof Error) {
-    console.error(error.stack);
+  // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+  // 오류 메시지와 stack trace에 PII 마스킹 적용
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const maskedMessage = PIIMasker.mask(errorMessage).masked;
+  logError(`스크립트 실행 실패: ${maskedMessage}`);
+  if (error instanceof Error && error.stack) {
+    const maskedStack = PIIMasker.mask(error.stack).masked;
+    console.error(maskedStack);
   }
   process.exit(1);
 });

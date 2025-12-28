@@ -5,6 +5,9 @@
  */
 
 import Database from 'better-sqlite3';
+import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import { validateTableName, getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 export interface VectorSearchResult {
   memory_id: string;
@@ -55,20 +58,10 @@ export class VectorSearchEngine {
   /**
    * 각 임베딩 provider별로 다른 벡터 테이블을 사용하여 차원 불일치를 방지합니다.
    * provider에 따라 적절한 테이블명을 반환하여 정확한 검색을 보장합니다.
+   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
    */
   private getVectorTableName(provider: string): string {
-    switch (provider) {
-      case 'tfidf':
-        return 'memory_item_vec_tfidf';
-      case 'minilm':
-        return 'memory_item_vec_minilm';
-      case 'openai':
-        return 'memory_item_vec_openai';
-      case 'gemini':
-        return 'memory_item_vec_gemini';
-      default:
-        return 'memory_item_vec_tfidf'; // 알 수 없는 provider의 경우 기본 테이블을 사용하여 안정성을 보장합니다.
-    }
+    return getValidatedVectorTableName(provider);
   }
 
   /**
@@ -142,12 +135,14 @@ export class VectorSearchEngine {
         this.isVecAvailable = true;
         console.log('✅ VEC (Vector Search) 사용 가능');
       } catch (vecError) {
-        console.warn('⚠️ VEC 함수를 사용할 수 없습니다:', vecError);
+        const maskedVecError = vecError instanceof Error ? PIIMasker.maskError(vecError) : { message: String(vecError), name: 'Error' };
+        console.warn('⚠️ VEC 함수를 사용할 수 없습니다:', maskedVecError.message);
         this.vecExtensionLoaded = false;
         this.isVecAvailable = false;
       }
     } catch (error) {
-      console.error('❌ VEC 가용성 확인 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ VEC 가용성 확인 실패:', maskedError.message);
       this.isVecAvailable = false;
       this.vecExtensionLoaded = false;
     }
@@ -186,7 +181,8 @@ export class VectorSearchEngine {
         }
       }
     } catch (error) {
-      console.warn('⚠️ 임베딩 차원 정보를 불러오지 못했습니다:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 임베딩 차원 정보를 불러오지 못했습니다:', maskedError.message);
     }
   }
 
@@ -209,7 +205,8 @@ export class VectorSearchEngine {
 
       return result?.dimensions ?? null;
     } catch (error) {
-      console.warn(`⚠️ 저장된 임베딩 차원 조회 실패 (${provider}):`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn(`⚠️ 저장된 임베딩 차원 조회 실패 (${provider}):`, maskedError.message);
       return null;
     }
   }
@@ -350,7 +347,8 @@ export class VectorSearchEngine {
       return finalResults;
 
     } catch (error) {
-      console.error('❌ 벡터 검색 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벡터 검색 실패:', maskedError.message);
       return [];
     }
   }
@@ -502,7 +500,8 @@ export class VectorSearchEngine {
       return normalizedResults;
 
     } catch (error) {
-      console.error('❌ 하이브리드 검색 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 하이브리드 검색 실패:', maskedError.message);
       return [];
     }
   }
@@ -548,7 +547,8 @@ export class VectorSearchEngine {
         vecExtensionLoaded: this.vecExtensionLoaded
       };
     } catch (error) {
-      console.error('❌ 인덱스 상태 확인 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 인덱스 상태 확인 실패:', maskedError.message);
       return { 
         available: false, 
         tableExists: false, 
@@ -576,7 +576,8 @@ export class VectorSearchEngine {
       console.log('✅ 벡터 인덱스 재구성 완료 (sqlite-vec는 자동 인덱스 관리)');
       return true;
     } catch (error) {
-      console.error('❌ 벡터 인덱스 재구성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벡터 인덱스 재구성 실패:', maskedError.message);
       return false;
     }
   }
@@ -610,7 +611,8 @@ export class VectorSearchEngine {
         if (i === 0) resultCount = results.length;
         successCount++;
       } catch (error) {
-        console.warn(`⚠️ 성능 테스트 ${i + 1}회차 실패:`, error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn(`⚠️ 성능 테스트 ${i + 1}회차 실패:`, maskedError.message);
         times.push(0);
       }
     }
@@ -660,7 +662,8 @@ export class VectorSearchEngine {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다.', maskedError.message);
       return [];
     }
   }

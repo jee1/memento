@@ -7,6 +7,7 @@
 import type Database from 'better-sqlite3';
 import type { SchemaVersion } from './types.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 
 /**
  * 스키마 버전 관리자
@@ -32,7 +33,8 @@ export class SchemaVersionManager {
         )
       `);
     } catch (error) {
-      console.error('❌ 스키마 버전 테이블 생성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 스키마 버전 테이블 생성 실패:', maskedError.message);
       throw error;
     }
   }
@@ -106,7 +108,8 @@ export class SchemaVersionManager {
         version.description || null
       ]);
     } catch (error) {
-      console.error(`❌ 스키마 버전 기록 실패 (${version.version}):`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`❌ 스키마 버전 기록 실패 (${version.version}):`, maskedError.message);
       throw error;
     }
   }
@@ -121,7 +124,8 @@ export class SchemaVersionManager {
         WHERE version = ?
       `, [version]);
     } catch (error) {
-      console.error(`❌ 스키마 버전 삭제 실패 (${version}):`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`❌ 스키마 버전 삭제 실패 (${version}):`, maskedError.message);
       throw error;
     }
   }

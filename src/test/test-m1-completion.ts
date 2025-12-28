@@ -4,6 +4,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testM1Completion() {
   console.log('🧪 M1 완성도 통합 테스트 시작\n');
@@ -126,7 +127,8 @@ async function testM1Completion() {
     console.log('\n🏆 M1이 100% 완성되었습니다!');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
     throw error;
   } finally {
     await client.disconnect();

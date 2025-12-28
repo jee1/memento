@@ -10,6 +10,7 @@ import { CommonSchemas } from '../../../tools/types.js';
 import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../../../shared/types/index.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 
@@ -157,7 +158,8 @@ export class MemoryInjectionPrompt extends BaseTool {
       });
 
     } catch (error) {
-      console.error('❌ Memory Injection 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ Memory Injection 실패:', maskedError.message);
       throw error;
     }
   }

@@ -5,6 +5,7 @@
  */
 
 import { vi } from 'vitest';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 // @xenova/transformers 모킹 (onnxruntime-node 로딩 방지)
 // 모든 테스트에서 일관되게 모킹되도록 전역 설정
@@ -60,7 +61,8 @@ vi.mock('sharp', () => ({
 if (process.env.CI) {
   // 동적 import를 사용하여 CI 환경에서만 로드
   import('./quality-measurement-hook.js').catch(error => {
-    console.error('CI 품질 측정 훅 로드 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('CI 품질 측정 훅 로드 실패:', maskedError.message);
   });
 }
 

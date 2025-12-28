@@ -7,6 +7,8 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
+import { PIIMasker } from '../../shared/utils/pii-masker.js';
+import { validateFilePath, sanitizeFileName } from '../../shared/utils/path-validator.js';
 
 export interface FileLoggerConfig {
   logDir?: string; // 로그 디렉토리 (기본: process.cwd()/logs)
@@ -38,13 +40,36 @@ export class FileLogger {
   private logFilePath: string;
 
   constructor(config: FileLoggerConfig = {}) {
+    // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
+    // 로그 디렉토리 경로 검증
+    const logDir = config.logDir ?? path.join(process.cwd(), 'logs');
+    if (!validateFilePath(logDir, 'logs')) {
+      throw new Error(
+        `Path Traversal 방지: 허용되지 않은 로그 디렉토리 경로입니다. ` +
+        `경로: ${logDir}`
+      );
+    }
+
+    // 로그 파일명 정제
+    const logFileName = config.logFileName ?? 'batch-scheduler.log';
+    const sanitizedFileName = sanitizeFileName(logFileName);
+
     this.config = {
-      logDir: config.logDir ?? path.join(process.cwd(), 'logs'),
-      logFileName: config.logFileName ?? 'batch-scheduler.log',
+      logDir,
+      logFileName: sanitizedFileName,
       enabled: config.enabled ?? true
     };
 
-    this.logFilePath = path.join(this.config.logDir, this.config.logFileName);
+    // 최종 로그 파일 경로 검증
+    const logFilePath = path.join(this.config.logDir, this.config.logFileName);
+    if (!validateFilePath(logFilePath, 'logs')) {
+      throw new Error(
+        `Path Traversal 방지: 허용되지 않은 로그 파일 경로입니다. ` +
+        `경로: ${logFilePath}`
+      );
+    }
+
+    this.logFilePath = logFilePath;
   }
 
   /**
@@ -67,21 +92,26 @@ export class FileLogger {
         await fsPromises.mkdir(this.config.logDir, { recursive: true });
       }
 
-      // 데이터 정제
+      // 데이터 정제 및 PII 마스킹
+      // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
       const sanitizedEntry = {
         ...entry,
+        message: PIIMasker.mask(entry.message).masked, // 메시지의 PII 마스킹
         data: this.sanitizeData(entry.data)
       };
 
-      // 로그 엔트리 포맷팅
-      const logLine = JSON.stringify(sanitizedEntry) + '\n';
+      // 로그 엔트리 포맷팅 (JSON 직렬화 후 전체 문자열에 PII 마스킹 적용)
+      const logLineJson = JSON.stringify(sanitizedEntry);
+      const maskedLogLine = PIIMasker.mask(logLineJson).masked;
+      const logLine = maskedLogLine + '\n';
 
       // 파일에 추가 (비동기)
       await fsPromises.appendFile(this.logFilePath, logLine);
     } catch (error) {
       // 파일 로깅 실패는 무시 (콘솔 로거 사용)
       // 실제 운영 환경에서는 콘솔 로거에 위임해야 함
-      console.error('Failed to write to log file:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('Failed to write to log file:', maskedError.message);
     }
   }
 
@@ -101,11 +131,15 @@ export class FileLogger {
       queueSize?: number;
     }
   ): Promise<void> {
+    // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+    // 메시지의 PII 마스킹 (log() 메서드에서도 마스킹되지만, 이중 방어)
+    const maskedMessage = PIIMasker.mask(message).masked;
+    
     const entry: LogEntry = {
       timestamp: new Date(),
       service: 'BatchScheduler',
       level: 'warn',
-      message,
+      message: maskedMessage,
       data: this.sanitizeData(data),
       ...context
     };
@@ -129,11 +163,15 @@ export class FileLogger {
       queueSize?: number;
     }
   ): Promise<void> {
+    // PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+    // 메시지의 PII 마스킹 (log() 메서드에서도 마스킹되지만, 이중 방어)
+    const maskedMessage = PIIMasker.mask(message).masked;
+    
     const entry: LogEntry = {
       timestamp: new Date(),
       service: 'BatchScheduler',
       level: 'error',
-      message,
+      message: maskedMessage,
       data: this.sanitizeData(data),
       ...context
     };
@@ -143,21 +181,22 @@ export class FileLogger {
 
   /**
    * 데이터 정제 (Error 객체 처리)
+   * PRD 0019: 보안 강화 (Phase 1) - PII 마스킹 강화
+   * Error 객체의 message와 stack에 PII 마스킹 적용
+   * 공통 유틸리티 함수 사용
    * 
    * @param data 원본 데이터
-   * @returns 정제된 데이터
+   * @returns 정제된 데이터 (PII 마스킹 적용)
    */
   private sanitizeData(data?: any): Record<string, any> {
     if (data instanceof Error) {
-      return {
-        message: data.message,
-        name: data.name,
-        stack: data.stack
-      };
+      // 공통 유틸리티 함수 사용
+      return PIIMasker.maskError(data);
     }
 
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-      return data;
+      // 공통 유틸리티 함수 사용
+      return PIIMasker.maskObject(data);
     }
 
     return {};

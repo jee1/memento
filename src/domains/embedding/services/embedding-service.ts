@@ -10,6 +10,7 @@
 
 import OpenAI from 'openai';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { GeminiEmbeddingService, type GeminiEmbeddingResult, type GeminiSimilarityResult } from './gemini-embedding-service.js';
 import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
 
@@ -60,7 +61,8 @@ export class EmbeddingService {
       });
       console.log('✅ OpenAI 임베딩 서비스 초기화 완료');
     } catch (error) {
-      console.error('❌ OpenAI 초기화 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ OpenAI 초기화 실패:', maskedError.message);
       this.openai = null;
     }
   }
@@ -100,7 +102,8 @@ export class EmbeddingService {
           result = await this.generateLightweightEmbedding(text);
       }
     } catch (error) {
-      console.warn(`⚠️ ${provider} 임베딩 실패, 경량 서비스로 fallback:`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn(`⚠️ ${provider} 임베딩 실패, 경량 서비스로 fallback:`, maskedError.message);
       result = await this.generateLightweightEmbedding(text);
     }
 

@@ -180,12 +180,12 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status != 'abandoned')");
         
         // 쿼리 실행
-        const query = `
-          SELECT id, content, importance FROM memory_item
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY created_at ASC
-          LIMIT ?
-        `;
+        // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
+        const query = 
+          `SELECT id, content, importance FROM memory_item ` +
+          `WHERE ${conditions.join(' AND ')} ` +
+          `ORDER BY created_at ASC ` +
+          `LIMIT ?`;
         params.push(limit);
         
         episodicMemories = DatabaseUtils.all(db, query, params) as Array<{ id: string; content: string; importance: number }>;

@@ -1,0 +1,70 @@
+name: Security Check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Type Check
+        run: npm run type-check
+      
+      - name: ESLint Security Check
+        run: npm run lint -- --max-warnings 500
+        continue-on-error: false
+      
+      - name: SQL Injection Check
+        run: npx tsx scripts/check-sql-injection.ts --ci
+        continue-on-error: false
+      
+      - name: PII Masking Check
+        run: npx tsx scripts/check-pii-masking.ts --ci
+        continue-on-error: false
+      
+      - name: Path Traversal Check
+        run: npx tsx scripts/check-path-traversal.ts --ci
+        continue-on-error: false
+      
+      - name: Security Unit Tests
+        run: |
+          npm test -- src/shared/utils/__tests__/logger.spec.ts \
+            src/shared/utils/__tests__/path-validator.spec.ts \
+            src/shared/utils/__tests__/pii-masker-env-control.spec.ts
+        continue-on-error: false
+      
+      - name: Security E2E Tests
+        run: |
+          npx tsx src/test/test-security-sql-injection.ts
+          npx tsx src/test/test-security-path-traversal.ts
+        continue-on-error: false
+

@@ -15,6 +15,7 @@ import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation
 import { executeTool } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import type { EmbeddingProvider } from '../shared/types/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 interface RegressionTestResult {
   test_name: string;
@@ -241,7 +242,8 @@ async function testSingleProviderRegression() {
     }
 
   } catch (error) {
-    console.error('❌ 회귀 테스트 실행 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 회귀 테스트 실행 실패:', maskedError.message);
     process.exit(1);
   } finally {
     if (testDb) {
