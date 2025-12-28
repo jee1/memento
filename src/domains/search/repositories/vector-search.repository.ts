@@ -64,11 +64,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
         // SQL Injection 방지: 화이트리스트 검증 후 사용
         validateTableName(testTable);
-        // 템플릿 리터럴 대신 문자열 연결 사용
         const testStatement = this.db.prepare(
-          'SELECT distance FROM ' + testTable + 
-          ' WHERE embedding MATCH ? ' +
-          'LIMIT 0'
+          `SELECT distance FROM ${testTable} WHERE embedding MATCH ? LIMIT 0`
         );
 
         if (typeof testStatement.get !== 'function') {
@@ -142,7 +139,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         '  mi.workflow_name, ' +
         '  mi.skill_name, ' +
         '  mi.trigger_conditions ' +
-        'FROM ' + tableName + ' vec ' +
+        `FROM ${tableName} vec ` +
         'JOIN memory_embedding me ON vec.rowid = me.id ' +
         'JOIN memory_item mi ON mi.id = me.memory_id ' +
         'WHERE vec.embedding MATCH ? ' +
@@ -256,7 +253,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '    mi.workflow_name, ' +
           '    mi.skill_name, ' +
           '    mi.trigger_conditions ' +
-          '  FROM ' + tableName + ' vec ' +
+          `  FROM ${tableName} vec ` +
           '  JOIN memory_embedding me ON vec.rowid = me.id ' +
           '  JOIN memory_item mi ON mi.id = me.memory_id ' +
           '  WHERE vec.embedding MATCH ? ' +
@@ -358,7 +355,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  mi.workflow_name, ' +
           '  mi.skill_name, ' +
           '  mi.trigger_conditions ' +
-          'FROM ' + tableName + ' vec ' +
+          `FROM ${tableName} vec ` +
           'JOIN memory_embedding me ON vec.rowid = me.id ' +
           'JOIN memory_item mi ON mi.id = me.memory_id ' +
           'WHERE vec.embedding MATCH ? ' +
@@ -440,7 +437,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           const tableName = this.getTableName(provider);
           try {
             // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
-            const statement = this.db.prepare('SELECT COUNT(*) as count FROM ' + tableName);
+            const statement = this.db.prepare(`SELECT COUNT(*) as count FROM ${tableName}`);
             if (typeof statement.get !== 'function') {
               continue;
             }

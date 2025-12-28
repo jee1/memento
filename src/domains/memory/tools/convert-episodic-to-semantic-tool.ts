@@ -181,12 +181,11 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         
         // 쿼리 실행
         // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
-        // 템플릿 리터럴 대신 문자열 연결 사용
         const query = 
-          'SELECT id, content, importance FROM memory_item ' +
-          'WHERE ' + conditions.join(' AND ') + ' ' +
-          'ORDER BY created_at ASC ' +
-          'LIMIT ?';
+          `SELECT id, content, importance FROM memory_item ` +
+          `WHERE ${conditions.join(' AND ')} ` +
+          `ORDER BY created_at ASC ` +
+          `LIMIT ?`;
         params.push(limit);
         
         episodicMemories = DatabaseUtils.all(db, query, params) as Array<{ id: string; content: string; importance: number }>;

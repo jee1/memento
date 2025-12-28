@@ -315,7 +315,7 @@ export class QualityRecorder {
     }
 
     if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
+      sql += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     sql += ' ORDER BY measured_at DESC LIMIT ?';
@@ -377,7 +377,7 @@ export class QualityRecorder {
     }
 
     if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
+      sql += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     sql += ' ORDER BY metric_namespace, metric_key, context';

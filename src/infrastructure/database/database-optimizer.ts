@@ -83,8 +83,7 @@ export class DatabaseOptimizer {
       
       // 행 수
       // SQL Injection 방지: tableName은 sqlite_master에서 가져온 것이므로 안전함
-      // 템플릿 리터럴 대신 문자열 연결 사용
-      const rowCount = await DatabaseUtils.all(this.db, 'SELECT COUNT(*) as count FROM ' + tableName);
+      const rowCount = await DatabaseUtils.all(this.db, `SELECT COUNT(*) as count FROM ${tableName}`);
       
       // 테이블 크기 (간단한 추정)
       const size = await DatabaseUtils.all(this.db, `
@@ -334,7 +333,7 @@ export class DatabaseOptimizer {
   async createIndex(name: string, table: string, columns: string[], unique: boolean = false): Promise<void> {
     const uniqueKeyword = unique ? 'UNIQUE' : '';
     const columnsStr = columns.join(', ');
-    const sql = `CREATE ${uniqueKeyword ? uniqueKeyword + ' ' : ''}INDEX IF NOT EXISTS ${name} ON ${table} (${columnsStr})`;
+    const sql = `CREATE ${uniqueKeyword ? `${uniqueKeyword} ` : ''}INDEX IF NOT EXISTS ${name} ON ${table} (${columnsStr})`;
     
     await DatabaseUtils.run(this.db, sql);
   }

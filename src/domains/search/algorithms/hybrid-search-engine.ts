@@ -1230,9 +1230,8 @@ export class HybridSearchEngine {
     
     try {
       // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
-      // 템플릿 리터럴 대신 문자열 연결 사용
       const placeholders = memoryIds.map(() => '?').join(',');
-      const sql = 'SELECT id, consolidation_score FROM memory_item WHERE id IN (' + placeholders + ')';
+      const sql = `SELECT id, consolidation_score FROM memory_item WHERE id IN (${placeholders})`;
       const results = db.prepare(sql).all(...memoryIds) as Array<{ id: string; consolidation_score: number | null }>;
       
       results.forEach(row => {
@@ -1273,13 +1272,12 @@ export class HybridSearchEngine {
     
     try {
       // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
-      // 템플릿 리터럴 대신 문자열 연결 사용
       const placeholders = memoryIds.map(() => '?').join(',');
       const sql = 
-        'SELECT id, workflow_name, skill_name, trigger_conditions ' +
-        'FROM memory_item ' +
-        'WHERE id IN (' + placeholders + ') ' +
-        'AND (workflow_name IS NOT NULL OR skill_name IS NOT NULL OR trigger_conditions IS NOT NULL)';
+        `SELECT id, workflow_name, skill_name, trigger_conditions ` +
+        `FROM memory_item ` +
+        `WHERE id IN (${placeholders}) ` +
+        `AND (workflow_name IS NOT NULL OR skill_name IS NOT NULL OR trigger_conditions IS NOT NULL)`;
       const results = db.prepare(sql).all(...memoryIds) as Array<{
         id: string;
         workflow_name: string | null;

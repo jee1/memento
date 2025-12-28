@@ -429,13 +429,12 @@ export class NHopSearchService implements INHopSearchService {
         if (relations.length > 0) {
           // 관계를 메모리 정보와 결합
           // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
-          // 템플릿 리터럴 대신 문자열 연결 사용
           const memoryIds = relations.map(r => r.target_id);
           const placeholders = memoryIds.map(() => '?').join(',');
           const memoryRecords = this.db.prepare(
-            'SELECT id, content, type, importance, created_at, tags ' +
-            'FROM memory_item ' +
-            'WHERE id IN (' + placeholders + ')'
+            `SELECT id, content, type, importance, created_at, tags ` +
+            `FROM memory_item ` +
+            `WHERE id IN (${placeholders})`
           ).all(...memoryIds) as Array<{
             id: string;
             content: string;

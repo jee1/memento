@@ -126,9 +126,8 @@ export class SearchEngine {
         const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
         const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
         
-        // SQL Injection 방지를 위해 템플릿 리터럴 대신 문자열 연결 사용
-        // reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
-        sql += ' WHERE m.content LIKE ?' + reflectionNotesLike;
+        // SQL Injection 방지: reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
+        sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
         params.push(likeQuery, ...reflectionNotesParams);
       }
     }
@@ -189,7 +188,7 @@ export class SearchEngine {
     // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
     if (conditions.length > 0) {
       const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';
-      sql += whereClause + conditions.join(' AND ');
+      sql += `${whereClause}${conditions.join(' AND ')}`;
     }
     
     // FTS5 랭킹을 고려하여 충분한 후보를 확보한 후 재랭킹하여 최종 결과의 품질을 보장합니다.

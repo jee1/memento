@@ -247,7 +247,6 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
     try {
       // SQL Injection 방지: config.name은 하드코딩된 값이지만 화이트리스트 검증 추가
       // config.filter는 하드코딩된 WHERE 절 조건이므로 안전함
-      // 템플릿 리터럴 대신 문자열 연결 사용
       const allowedTableNames = [
         'memory_item_vec',
         'memory_item_vec_tfidf',
@@ -268,10 +267,10 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
       }
       
       const query = 
-        'INSERT OR IGNORE INTO ' + config.name + '(rowid, embedding) ' +
-        'SELECT id, json_extract(embedding, \'$\') ' +
-        'FROM memory_embedding ' +
-        'WHERE ' + config.filter;
+        `INSERT OR IGNORE INTO ${config.name}(rowid, embedding) ` +
+        `SELECT id, json_extract(embedding, '$') ` +
+        `FROM memory_embedding ` +
+        `WHERE ${config.filter}`;
       db.exec(query);
     } catch (error) {
       log(`⚠️ ${config.name} 재구축 중 오류 발생:`, error);
