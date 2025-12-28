@@ -3,6 +3,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testMementoClient() {
   console.log('🧪 Memento MCP Client 테스트 시작');
@@ -91,7 +92,8 @@ if (process.argv[1] && process.argv[1].endsWith('test-client.ts')) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

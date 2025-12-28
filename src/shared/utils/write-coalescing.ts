@@ -7,6 +7,8 @@
  * - recall_count 업데이트를 버퍼링하여 배치 처리
  */
 
+import { PIIMasker } from './pii-masker.js';
+
 export interface CoalescedWrite {
   /**
    * 메모리 ID
@@ -117,7 +119,8 @@ export class WriteCoalescingManager {
           }
         } catch (error) {
           // flush 실패는 무시 (이미 로깅됨)
-          console.error('Write coalescing timer flush 실패:', error);
+          const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+          console.error('Write coalescing timer flush 실패:', maskedError.message);
         }
       }
     }, this.flushInterval);
@@ -157,7 +160,8 @@ export class WriteCoalescingManager {
     } catch (error) {
       // 에러 발생 시 버퍼에 다시 추가하지 않음 (데이터 손실 방지)
       // 대신 에러를 로깅하고 계속 진행
-      console.error('Write coalescing flush 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('Write coalescing flush 실패:', maskedError.message);
       throw error;
     } finally {
       this.isFlushing = false;
@@ -214,7 +218,8 @@ export class WriteCoalescingManager {
           await this.flushCallback(writes);
         }
       } catch (error) {
-        console.error('Write coalescing destroy 시 flush 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error('Write coalescing destroy 시 flush 실패:', maskedError.message);
       }
     }
     

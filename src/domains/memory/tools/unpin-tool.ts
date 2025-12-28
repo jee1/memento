@@ -8,6 +8,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 const UnpinSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -220,7 +221,8 @@ export class UnpinTool extends BaseTool {
         [id, 'edited', 0]
       );
     } catch (error) {
-      console.warn('고정 해제 로그 기록 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('고정 해제 로그 기록 실패:', maskedError.message);
     }
   }
 
@@ -232,7 +234,8 @@ export class UnpinTool extends BaseTool {
       await DatabaseUtils.checkpointWAL(context.db);
       console.log('WAL 체크포인트 완료');
     } catch (error) {
-      console.warn('WAL 체크포인트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('WAL 체크포인트 실패:', maskedError.message);
     }
   }
 

@@ -4,6 +4,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testLightweightEmbeddingFunctionality() {
   console.log('🧠 경량 하이브리드 임베딩 기능 테스트 시작');
@@ -22,7 +23,8 @@ async function testLightweightEmbeddingFunctionality() {
       const testResult = await client.recall({ query: "test", limit: 1 });
       console.log('   ✅ 임베딩 서비스 사용 가능');
     } catch (error) {
-      console.log('   ⚠️ 임베딩 서비스 상태 확인 중 오류:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log('   ⚠️ 임베딩 서비스 상태 확인 중 오류:', maskedError.message);
     }
     
     // 3. 다양한 기억 저장 (경량 임베딩 생성 테스트)
@@ -189,7 +191,8 @@ async function testLightweightEmbeddingFunctionality() {
     console.log('   ✅ 성능 측정 및 통계 수집 완료');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   } finally {
     await client.disconnect();
   }
@@ -203,7 +206,8 @@ if (process.argv[1] && process.argv[1].endsWith('test-lightweight-embedding.ts')
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 경량 임베딩 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 경량 임베딩 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

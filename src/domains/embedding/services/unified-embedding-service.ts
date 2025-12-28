@@ -8,6 +8,7 @@
  * - 전략 패턴: 제공자 선택 로직 분리
  */
 
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import type { 
   EmbeddingServiceInterface, 
   EmbeddingResult, 
@@ -63,14 +64,15 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       return await this.tryFallbackProviders(text);
 
     } catch (error) {
-      console.error('❌ 임베딩 생성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 임베딩 생성 실패:', maskedError.message);
       this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
       try {
         return await this.tryFallbackProviders(text);
       } catch (fallbackError) {
-        throw new Error(`모든 임베딩 제공자 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`모든 임베딩 제공자 실패: ${maskedError.message}`);
       }
     }
   }
@@ -107,7 +109,8 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       return await this.tryFallbackSearch(query, embeddings, limit, threshold);
 
     } catch (error) {
-      console.error('❌ 유사도 검색 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 유사도 검색 실패:', maskedError.message);
       this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도

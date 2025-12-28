@@ -5,6 +5,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testErrorLogging() {
   console.log('🔍 에러 로깅 시스템 테스트 시작');
@@ -98,7 +99,8 @@ async function testErrorLogging() {
     console.log('성능 통계:', JSON.stringify(performanceStats, null, 2));
 
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   } finally {
     if (client) {
       await client.disconnect();

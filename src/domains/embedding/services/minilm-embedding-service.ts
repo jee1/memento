@@ -9,6 +9,7 @@
  */
 
 import { pipeline, env } from '@xenova/transformers';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import type { 
   EmbeddingServiceInterface, 
   EmbeddingResult, 
@@ -92,8 +93,9 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       return embeddingResult;
 
     } catch (error) {
-      console.error('❌ MiniLM 임베딩 생성 실패:', error);
-      throw new Error(`MiniLM 임베딩 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ MiniLM 임베딩 생성 실패:', maskedError.message);
+      throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
 
@@ -217,7 +219,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
           console.warn('⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용):', errorMessage);
           console.warn('💡 해결 방법: 환경 변수 ENABLE_WORKER=false 설정 또는 onnxruntime-node 설치 확인');
         } else {
-          console.error('❌ MiniLM 모델 로딩 실패:', error);
+          const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+          console.error('❌ MiniLM 모델 로딩 실패:', maskedError.message);
         }
         (global as any).__minilmModelLoadWarningShown = true;
       }

@@ -18,6 +18,7 @@ import { mkdirSync, writeFileSync, unlinkSync, rmdirSync, existsSync } from 'fs'
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { validateFilePath, sanitizeFileName } from '../shared/utils/path-validator.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 /**
  * 메인 테스트 함수
@@ -166,7 +167,8 @@ async function testPathTraversalE2E(): Promise<void> {
         testFailed++;
       }
     } catch (error) {
-      console.log(`❌ 예외 발생: ${error instanceof Error ? error.message : String(error)}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`❌ 예외 발생: ${maskedError.message}`);
       testFailed++;
     }
     console.log('');
@@ -224,7 +226,8 @@ async function testPathTraversalE2E(): Promise<void> {
         testFailed++;
       }
     } catch (error) {
-      console.log(`❌ 예외 발생: ${error instanceof Error ? error.message : String(error)}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`❌ 예외 발생: ${maskedError.message}`);
       testFailed++;
     }
     console.log('');
@@ -253,7 +256,8 @@ async function testPathTraversalE2E(): Promise<void> {
         testFailed++;
       }
     } catch (error) {
-      console.log(`❌ 예외 발생: ${error instanceof Error ? error.message : String(error)}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`❌ 예외 발생: ${maskedError.message}`);
       testFailed++;
     }
     console.log('');
@@ -274,7 +278,8 @@ async function testPathTraversalE2E(): Promise<void> {
       process.exit(1);
     }
   } catch (error) {
-    console.error('❌ 테스트 실행 중 오류 발생:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실행 중 오류 발생:', maskedError.message);
     process.exit(1);
   } finally {
     // 파일 시스템 정리
@@ -301,7 +306,8 @@ async function testPathTraversalE2E(): Promise<void> {
 // 스크립트 직접 실행 시 테스트 실행
 if (import.meta.url === `file://${process.argv[1]}`) {
   testPathTraversalE2E().catch(error => {
-    console.error('❌ 테스트 실행 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실행 실패:', maskedError.message);
     process.exit(1);
   });
 }

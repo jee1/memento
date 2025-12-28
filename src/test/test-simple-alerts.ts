@@ -5,6 +5,7 @@
 
 import { PerformanceAlertService, AlertType } from '../domains/monitoring/services/performance-alert-service.js';
 import fs from 'fs';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 // console.log 복원
 const originalLog = console.log;
@@ -128,7 +129,8 @@ function testSimpleAlerts() {
     console.log('\n🎉 간단한 성능 알림 테스트 완료');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   }
 }
 

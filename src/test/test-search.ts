@@ -3,6 +3,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testSearchFunctionality() {
   console.log('🔍 검색 기능 상세 테스트 시작');
@@ -71,7 +72,8 @@ async function testSearchFunctionality() {
           console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}... (점수: ${result.score || 'N/A'})`);
         });
       } catch (error) {
-        console.error(`   ❌ 검색 실패: ${error}`);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error(`   ❌ 검색 실패: ${maskedError.message}`);
       }
     }
     
@@ -90,7 +92,8 @@ async function testSearchFunctionality() {
         console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}...`);
       });
     } catch (error) {
-      console.error(`   ❌ 필터 검색 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 필터 검색 실패: ${maskedError.message}`);
     }
     
     console.log('\n🔍 semantic 타입만 검색:');
@@ -105,7 +108,8 @@ async function testSearchFunctionality() {
         console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}...`);
       });
     } catch (error) {
-      console.error(`   ❌ 필터 검색 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 필터 검색 실패: ${maskedError.message}`);
     }
     
     // 5. 태그 검색 테스트
@@ -124,14 +128,16 @@ async function testSearchFunctionality() {
           console.log(`   ${index + 1}. [${result.type}] ${result.content.substring(0, 50)}... (태그: ${result.tags?.join(', ') || '없음'})`);
         });
       } catch (error) {
-        console.error(`   ❌ 태그 검색 실패: ${error}`);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error(`   ❌ 태그 검색 실패: ${maskedError.message}`);
       }
     }
     
     console.log('\n🎉 검색 기능 테스트 완료!');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   } finally {
     await client.disconnect();
   }
@@ -145,7 +151,8 @@ if (process.argv[1] && process.argv[1].endsWith('test-search.ts')) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 검색 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 검색 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

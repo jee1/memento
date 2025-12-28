@@ -15,6 +15,7 @@ import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-e
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 import type { EmbeddingProvider } from '../shared/types/index.js';
 
 interface BenchmarkResult {
@@ -262,7 +263,8 @@ class MultiProviderSearchBenchmark {
       this.generateReport();
 
     } catch (error) {
-      console.error('❌ 벤치마크 실행 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벤치마크 실행 실패:', maskedError.message);
       throw error;
     } finally {
       this.db.close();
@@ -308,7 +310,8 @@ class MultiProviderSearchBenchmark {
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.includes('multi-provider-search-performance-benchmark')) {
   const benchmark = new MultiProviderSearchBenchmark();
   benchmark.runBenchmark().catch(error => {
-    console.error('벤치마크 실행 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('벤치마크 실행 실패:', maskedError.message);
     process.exit(1);
   });
 }

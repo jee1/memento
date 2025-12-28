@@ -6,6 +6,7 @@
 import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
 import { SpacedRepetitionAlgorithm, type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 export interface ForgettingPolicyConfig {
   // 망각 정책 설정
@@ -154,7 +155,8 @@ export class ForgettingPolicyService {
       return result;
 
     } catch (error) {
-      console.error('❌ 메모리 정리 실행 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 메모리 정리 실행 실패:', maskedError.message);
       throw error;
     }
   }

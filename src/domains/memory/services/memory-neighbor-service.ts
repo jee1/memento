@@ -209,8 +209,9 @@ export class MemoryNeighborService {
           (this.vectorSearchEngine as any).initialize(this.db);
         }
       } catch (error) {
-        console.error(`❌ VectorSearchEngine 초기화 실패:`, error);
-        throw new Error(`Failed to initialize VectorSearchEngine: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error(`❌ VectorSearchEngine 초기화 실패:`, maskedError.message);
+        throw new Error(`Failed to initialize VectorSearchEngine: ${maskedError.message}`);
       }
       
       // 벡터 검색 실행

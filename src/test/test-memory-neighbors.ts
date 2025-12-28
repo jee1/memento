@@ -13,6 +13,7 @@ import { getVectorSearchEngine } from '../domains/search/algorithms/vector-searc
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { initializeDatabase } from '../infrastructure/database/init.js';
 import { startServer, cleanup, __test } from '../server/http-server.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 import fetch from 'node-fetch';
 
 describe('Memory Neighbors E2E Tests', () => {
@@ -53,7 +54,8 @@ describe('Memory Neighbors E2E Tests', () => {
           await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [id]);
         }
       } catch (error) {
-        console.warn('⚠️ 테스트 데이터 정리 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ 테스트 데이터 정리 실패:', maskedError.message);
       }
       db.close();
     }
@@ -149,7 +151,8 @@ describe('Memory Neighbors E2E Tests', () => {
         
         // 서버 시작 (비동기로 시작, 완료 대기하지 않음)
         startServer().catch(error => {
-          console.warn('⚠️ HTTP 서버 시작 실패:', error);
+          const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ HTTP 서버 시작 실패:', maskedError.message);
         });
         
         // 서버 시작 대기
@@ -190,7 +193,8 @@ describe('Memory Neighbors E2E Tests', () => {
 
         console.log(`✅ HTTP API 테스트 성공: ${data.total_count}개 이웃 발견`);
       } catch (error) {
-        console.warn('⚠️ HTTP API 테스트 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ HTTP API 테스트 실패:', maskedError.message);
         // 네트워크 에러는 테스트 실패로 처리하지 않음
       }
     });
@@ -210,7 +214,8 @@ describe('Memory Neighbors E2E Tests', () => {
         const data = await response.json();
         expect(data).toHaveProperty('error', 'Memory not found');
       } catch (error) {
-        console.warn('⚠️ HTTP API 테스트 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ HTTP API 테스트 실패:', maskedError.message);
       }
     });
 
@@ -228,7 +233,8 @@ describe('Memory Neighbors E2E Tests', () => {
         const response1 = await fetch(url1);
         expect(response1.status).toBe(400);
       } catch (error) {
-        console.warn('⚠️ HTTP API 테스트 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ HTTP API 테스트 실패:', maskedError.message);
       }
 
       // 잘못된 similarity_threshold 파라미터
@@ -237,7 +243,8 @@ describe('Memory Neighbors E2E Tests', () => {
         const response2 = await fetch(url2);
         expect(response2.status).toBe(400);
       } catch (error) {
-        console.warn('⚠️ HTTP API 테스트 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ HTTP API 테스트 실패:', maskedError.message);
       }
     });
   });
@@ -314,7 +321,8 @@ async function createTestMemories(
       try {
         await embeddingService.createAndStoreEmbedding(db, memoryId, content, 'episodic');
       } catch (error) {
-        console.warn(`⚠️ 임베딩 생성 실패 (${memoryId}):`, error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn(`⚠️ 임베딩 생성 실패 (${memoryId}):`, maskedError.message);
       }
     }
 

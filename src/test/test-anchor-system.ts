@@ -8,6 +8,7 @@ import { executeTool } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 /**
  * ToolContext 생성 헬퍼 함수
@@ -187,7 +188,8 @@ async function testAnchorSystemWorkflow() {
     console.log('🎉 전체 워크플로우 테스트 완료!\n');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
     throw error;
   } finally {
     if (testDb) {
@@ -323,7 +325,8 @@ async function testMultiClientScenario() {
     console.log('🎉 멀티 클라이언트 시나리오 테스트 완료!\n');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
     throw error;
   } finally {
     if (testDb) {
@@ -436,7 +439,8 @@ async function testFallbackMechanism() {
     console.log('🎉 Fallback 메커니즘 테스트 완료!\n');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
     throw error;
   } finally {
     if (testDb) {
@@ -493,7 +497,8 @@ async function runAllTests() {
     await testFallbackMechanism();
     console.log('🎉 모든 통합 테스트가 성공적으로 완료되었습니다!');
   } catch (error) {
-    console.error('❌ 통합 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 통합 테스트 실패:', maskedError.message);
     process.exit(1);
   }
 }
@@ -505,7 +510,8 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 테스트 실행 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 테스트 실행 실패:', maskedError.message);
       process.exit(1);
     });
 }

@@ -7,6 +7,7 @@ import { PerformanceAlertService, AlertType } from '../domains/monitoring/servic
 import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testAlertsDirect() {
   console.log('🚨 성능 알림 시스템 직접 테스트 시작');
@@ -125,7 +126,8 @@ async function testAlertsDirect() {
     console.log('\n🎉 성능 알림 시스템 직접 테스트 완료');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   }
 }
 

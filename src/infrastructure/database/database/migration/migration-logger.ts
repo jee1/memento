@@ -7,6 +7,7 @@
 import fs from 'fs';
 import { join, dirname } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 import type { MigrationResult } from './types.js';
 
 /**
@@ -53,7 +54,8 @@ export class MigrationLogger {
         fs.mkdirSync(this.logDir, { recursive: true });
       }
     } catch (error) {
-      console.error('❌ 로그 디렉토리 생성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 로그 디렉토리 생성 실패:', maskedError.message);
       throw error;
     }
   }
@@ -167,7 +169,8 @@ export class MigrationLogger {
     try {
       fs.appendFileSync(this.logFile, content, 'utf-8');
     } catch (error) {
-      console.error('❌ 로그 파일 쓰기 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 로그 파일 쓰기 실패:', maskedError.message);
     }
   }
 

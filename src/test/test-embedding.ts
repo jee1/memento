@@ -5,6 +5,7 @@
  */
 
 import { createMementoClient } from '../client/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testEmbeddingFunctionality() {
   console.log('🧠 임베딩 기능 테스트 시작');
@@ -88,7 +89,8 @@ async function testEmbeddingFunctionality() {
           }
         });
       } catch (error) {
-        console.error(`   ❌ 검색 실패: ${error}`);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error(`   ❌ 검색 실패: ${maskedError.message}`);
       }
     }
     
@@ -114,7 +116,8 @@ async function testEmbeddingFunctionality() {
           console.log(`       점수: ${typeof score === 'number' ? score.toFixed(3) : score}`);
         });
       } catch (error) {
-        console.error(`   ❌ 검색 실패: ${error}`);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.error(`   ❌ 검색 실패: ${maskedError.message}`);
       }
     }
     
@@ -128,13 +131,15 @@ async function testEmbeddingFunctionality() {
         console.log(`   📊 벡터 검색 사용 가능: ${(statsResult[0] as any).vector_search_available || false}`);
       }
     } catch (error) {
-      console.error(`   ❌ 통계 확인 실패: ${error}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error(`   ❌ 통계 확인 실패: ${maskedError.message}`);
     }
     
     console.log('\n🎉 임베딩 기능 테스트 완료!');
     
   } catch (error) {
-    console.error('❌ 테스트 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 테스트 실패:', maskedError.message);
   } finally {
     await client.disconnect();
   }
@@ -148,7 +153,8 @@ if (process.argv[1] && process.argv[1].endsWith('test-embedding.ts')) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 임베딩 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 임베딩 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

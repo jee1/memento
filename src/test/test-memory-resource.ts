@@ -13,6 +13,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 describe('Memory Resource E2E Tests', () => {
   let db: Database.Database;
@@ -56,7 +57,8 @@ describe('Memory Resource E2E Tests', () => {
           await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [id]);
         }
       } catch (error) {
-        console.warn('⚠️ 테스트 데이터 정리 실패:', error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn('⚠️ 테스트 데이터 정리 실패:', maskedError.message);
       }
       db.close();
     }

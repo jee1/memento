@@ -5,6 +5,7 @@
 
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 function migrateDatabase() {
   console.log('🔄 데이터베이스 마이그레이션 시작');
@@ -259,7 +260,8 @@ function migrateDatabase() {
     console.log('🎉 데이터베이스 마이그레이션 완료!');
     
   } catch (error) {
-    console.error('❌ 마이그레이션 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 마이그레이션 실패:', maskedError.message);
     throw error;
   } finally {
     db.close();
@@ -273,7 +275,8 @@ if (process.argv[1] && process.argv[1].endsWith('migrate.ts')) {
     console.log('✅ 마이그레이션 완료');
     process.exit(0);
   } catch (error) {
-    console.error('❌ 마이그레이션 실패:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ 마이그레이션 실패:', maskedError.message);
     process.exit(1);
   }
 }

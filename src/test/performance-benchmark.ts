@@ -8,6 +8,7 @@ import { createMementoClient } from '../client/index.js';
 import { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 import { SearchCacheService } from '../infrastructure/cache/cache-service.js';
 import { AsyncTaskQueue } from '../infrastructure/async-optimizer.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 interface MemoryUsage {
   rss: number;
@@ -72,7 +73,8 @@ export class PerformanceBenchmark {
       this.generateReport();
 
     } catch (error) {
-      console.error('❌ 벤치마크 실행 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벤치마크 실행 실패:', maskedError.message);
     } finally {
       await this.client.disconnect();
     }
@@ -569,7 +571,8 @@ if (process.argv[1] && process.argv[1].endsWith('performance-benchmark.ts')) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ 벤치마크 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 벤치마크 실패:', maskedError.message);
       process.exit(1);
     });
 }

@@ -16,6 +16,7 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 /**
  * 메인 테스트 함수
@@ -114,7 +115,8 @@ async function testSqlInjectionE2E(): Promise<void> {
         testFailed++;
       }
     } catch (error) {
-      console.log(`⚠️  테스트 중 오류 발생: ${error instanceof Error ? error.message : String(error)}`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`⚠️  테스트 중 오류 발생: ${maskedError.message}`);
       // 오류가 발생해도 데이터베이스 무결성 확인
       const tableCountAfter1 = DatabaseUtils.all(db, `
         SELECT COUNT(*) as count 
@@ -163,7 +165,8 @@ async function testSqlInjectionE2E(): Promise<void> {
       }
     } catch (error) {
       console.log(`✅ 테스트 통과: 오류로 인해 공격이 차단되었습니다.`);
-      console.log(`   - 오류 메시지: ${error instanceof Error ? error.message : String(error)}\n`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`   - 오류 메시지: ${maskedError.message}\n`);
       testPassed++;
     }
 
@@ -198,7 +201,8 @@ async function testSqlInjectionE2E(): Promise<void> {
       }
     } catch (error) {
       console.log('✅ 테스트 통과: 오류로 인해 공격이 차단되었습니다.');
-      console.log(`   - 오류 메시지: ${error instanceof Error ? error.message : String(error)}\n`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`   - 오류 메시지: ${maskedError.message}\n`);
       testPassed++;
     }
 
@@ -233,7 +237,8 @@ async function testSqlInjectionE2E(): Promise<void> {
       }
     } catch (error) {
       console.log('✅ 테스트 통과: 오류로 인해 공격이 차단되었습니다.');
-      console.log(`   - 오류 메시지: ${error instanceof Error ? error.message : String(error)}\n`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`   - 오류 메시지: ${maskedError.message}\n`);
       testPassed++;
     }
 
@@ -268,7 +273,8 @@ async function testSqlInjectionE2E(): Promise<void> {
       }
     } catch (error) {
       console.log('✅ 테스트 통과: 오류로 인해 공격이 차단되었습니다.');
-      console.log(`   - 오류 메시지: ${error instanceof Error ? error.message : String(error)}\n`);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`   - 오류 메시지: ${maskedError.message}\n`);
       testPassed++;
     }
 
@@ -320,9 +326,10 @@ async function testSqlInjectionE2E(): Promise<void> {
     }
 
   } catch (error) {
-    console.error('❌ 치명적 오류 발생:', error instanceof Error ? error.message : String(error));
-    if (error instanceof Error && error.stack) {
-      console.error(error.stack);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error', stack: undefined };
+    console.error('❌ 치명적 오류 발생:', maskedError.message);
+    if (maskedError.stack) {
+      console.error(maskedError.stack);
     }
     throw error;
   } finally {
@@ -343,7 +350,8 @@ if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(
       process.exit(0);
     })
     .catch((error) => {
-      console.error('❌ SQL Injection E2E 테스트 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ SQL Injection E2E 테스트 실패:', maskedError.message);
       process.exit(1);
     });
 }

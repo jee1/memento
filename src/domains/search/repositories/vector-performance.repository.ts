@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import type { PerformanceTestResult } from '../../../shared/types/vector-search.types.js';
 import type { VectorPerformanceRepository } from '../../../shared/interfaces/database.interface.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 export class VectorPerformanceRepositoryImpl implements VectorPerformanceRepository {
   private db: Database.Database | null = null;
@@ -101,7 +102,8 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
         if (i === 0) resultCount = results.length;
         successCount++;
       } catch (error) {
-        console.warn(`⚠️ 성능 테스트 ${i + 1}회차 실패:`, error);
+        const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+        console.warn(`⚠️ 성능 테스트 ${i + 1}회차 실패:`, maskedError.message);
         times.push(0);
       }
     }

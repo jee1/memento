@@ -110,7 +110,8 @@ export class FileLogger {
     } catch (error) {
       // 파일 로깅 실패는 무시 (콘솔 로거 사용)
       // 실제 운영 환경에서는 콘솔 로거에 위임해야 함
-      console.error('Failed to write to log file:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('Failed to write to log file:', maskedError.message);
     }
   }
 

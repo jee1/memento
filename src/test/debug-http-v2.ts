@@ -3,6 +3,8 @@
  * HTTP 서버 v2 디버그 테스트
  */
 
+import { PIIMasker } from '../shared/utils/pii-masker.js';
+
 console.log('🚀 HTTP 서버 v2 디버그 테스트 시작');
 
 async function testFetch() {
@@ -21,7 +23,8 @@ async function testFetch() {
       console.log('❌ HTTP 요청 실패');
     }
   } catch (error) {
-    console.error('❌ HTTP 요청 에러:', error);
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+    console.error('❌ HTTP 요청 에러:', maskedError.message);
   }
 }
 

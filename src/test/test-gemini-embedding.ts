@@ -7,6 +7,7 @@
 import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
 import { EmbeddingService } from '../services/embedding-service.js';
 import { mementoConfig } from '../shared/config/index.js';
+import { PIIMasker } from '../shared/utils/pii-masker.js';
 
 async function testGeminiEmbeddingService() {
   console.log('🧪 Gemini 임베딩 서비스 테스트 시작\n');
@@ -37,7 +38,8 @@ async function testGeminiEmbeddingService() {
         console.log('   ❌ 임베딩 생성 실패');
       }
     } catch (error) {
-      console.log(`   ❌ Gemini 임베딩 테스트 실패:`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`   ❌ Gemini 임베딩 테스트 실패:`, maskedError.message);
     }
   } else {
     console.log('   ⚠️ Gemini 서비스가 사용 불가능합니다 (API 키 확인 필요)');
@@ -112,7 +114,8 @@ async function testGeminiEmbeddingService() {
       }
 
     } catch (error) {
-      console.log(`   ❌ 통합 임베딩 서비스 테스트 실패:`, error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.log(`   ❌ 통합 임베딩 서비스 테스트 실패:`, maskedError.message);
     }
   } else {
     console.log('   ⚠️ 통합 임베딩 서비스가 사용 불가능합니다');

@@ -5,6 +5,7 @@
 
 import { writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 export enum AlertLevel {
   INFO = 'info',
@@ -83,7 +84,8 @@ export class PerformanceAlertService {
         mkdirSync(this.logDir, { recursive: true });
       }
     } catch (error) {
-      console.warn('⚠️ 로그 디렉토리 생성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 로그 디렉토리 생성 실패:', maskedError.message);
     }
   }
 
@@ -305,7 +307,8 @@ export class PerformanceAlertService {
       const logFile = join(this.logDir, `performance-alerts-${new Date().toISOString().split('T')[0]}.jsonl`);
       appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
     } catch (error) {
-      console.warn('⚠️ 파일 로깅 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ 파일 로깅 실패:', maskedError.message);
     }
   }
 

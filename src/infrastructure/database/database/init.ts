@@ -16,6 +16,7 @@ import { CoreMemoryService } from '../../../domains/memory/services/core-memory-
 import { CoreMemoryCacheService } from '../../../domains/memory/services/core-memory-cache-service.js';
 import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../../../shared/utils/fts5-migration-status.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -581,7 +582,8 @@ if (process.argv[1] && process.argv[1].endsWith('init.ts')) {
       closeDatabase(db);
       process.exit(0);
     } catch (error) {
-      console.error('❌ 데이터베이스 초기화 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 데이터베이스 초기화 실패:', maskedError.message);
       process.exit(1);
     }
   })();

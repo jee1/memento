@@ -8,6 +8,7 @@ import type Database from 'better-sqlite3';
 import fs from 'fs';
 import { join, dirname } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 
 /**
  * 백업 생성 결과
@@ -51,7 +52,8 @@ export class BackupManager {
         fs.mkdirSync(this.backupsDir, { recursive: true });
       }
     } catch (error) {
-      console.error('❌ 백업 디렉토리 생성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 백업 디렉토리 생성 실패:', maskedError.message);
       throw error;
     }
   }
@@ -108,7 +110,8 @@ export class BackupManager {
         size
       };
     } catch (error) {
-      console.error('❌ 백업 생성 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 백업 생성 실패:', maskedError.message);
       throw error;
     }
   }
@@ -133,7 +136,8 @@ export class BackupManager {
       fs.copyFileSync(backupPath, targetDbPath);
       console.log(`✅ 백업 복원 완료: ${targetDbPath}`);
     } catch (error) {
-      console.error('❌ 백업 복원 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 백업 복원 실패:', maskedError.message);
       throw error;
     }
   }
@@ -170,7 +174,8 @@ export class BackupManager {
 
       return deletedCount;
     } catch (error) {
-      console.error('❌ 백업 정리 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 백업 정리 실패:', maskedError.message);
       return 0;
     }
   }
@@ -200,7 +205,8 @@ export class BackupManager {
 
       return backupFiles.length > 0 ? (backupFiles[0]?.path || null) : null;
     } catch (error) {
-      console.error('❌ 백업 파일 검색 실패:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('❌ 백업 파일 검색 실패:', maskedError.message);
       return null;
     }
   }

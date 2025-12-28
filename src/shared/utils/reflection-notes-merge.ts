@@ -6,6 +6,7 @@
  */
 
 import { logger } from './logger.js';
+import { PIIMasker } from './pii-masker.js';
 import { validateReflectionNotes } from './reflection-notes-schema.js';
 
 /**
@@ -89,12 +90,12 @@ function limitArraySize(array: any[]): { limited: any[]; removedCount: number } 
   const removedCount = array.length - MAX_ARRAY_SIZE;
   const limited = array.slice(-MAX_ARRAY_SIZE); // 가장 최근 항목 유지 (FIFO)
 
-  logger.warn('reflection_notes 배열 크기 제한 초과', {
+  logger.warn('reflection_notes 배열 크기 제한 초과', PIIMasker.maskObject({
     originalSize: array.length,
     maxSize: MAX_ARRAY_SIZE,
     removedCount,
     message: `배열 크기가 ${MAX_ARRAY_SIZE}개를 초과하여 가장 오래된 ${removedCount}개 항목이 제거되었습니다`
-  });
+  }));
 
   return { limited, removedCount };
 }
@@ -144,7 +145,7 @@ function validateAndCleanupTotalSize(array: any[]): { cleaned: any[]; removedCou
   }
 
   if (removedCount > 0) {
-    logger.warn('reflection_notes 전체 필드 크기 제한 초과', {
+    logger.warn('reflection_notes 전체 필드 크기 제한 초과', PIIMasker.maskObject({
       originalSize: totalSize,
       maxSize: MAX_TOTAL_FIELD_SIZE,
       removedCount,

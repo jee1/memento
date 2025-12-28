@@ -6,6 +6,7 @@
 
 import OpenAI from 'openai';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import type {
   EmbeddingServiceInterface,
   EmbeddingResult,
@@ -48,9 +49,10 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       this.client = new OpenAI({ apiKey: mementoConfig.openaiApiKey });
       console.log('✅ OpenAI 임베딩 서비스 초기화 완료');
     } catch (error) {
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       console.error(
         '❌ OpenAI 초기화 실패. OPENAI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM/TFiDF 모델로 폴백하세요:',
-        error
+        maskedError.message
       );
       this.client = null;
     }
@@ -89,7 +91,8 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       }
       return result;
     } catch (error) {
-      console.warn('⚠️ OpenAI 임베딩 생성 실패, 경량 서비스로 fallback:', error);
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.warn('⚠️ OpenAI 임베딩 생성 실패, 경량 서비스로 fallback:', maskedError.message);
       return this.generateFallbackEmbedding(text, cacheKey);
     }
   }

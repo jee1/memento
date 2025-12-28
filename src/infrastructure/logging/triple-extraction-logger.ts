@@ -114,9 +114,10 @@ export class TripleExtractionLogger {
       await fsPromises.appendFile(logFilePath, logLine);
     } catch (error) {
       // 파일 로깅 실패는 무시 (콘솔 로거 사용)
-      console.error('TripleExtractionLogger: 로그 파일 쓰기 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('TripleExtractionLogger: 로그 파일 쓰기 실패', PIIMasker.maskObject({
+        error: maskedError.message
+      }));
     }
   }
 
@@ -247,9 +248,10 @@ export class TripleExtractionLogger {
         .sort()
         .reverse(); // 최신 파일 먼저
     } catch (error) {
-      console.error('TripleExtractionLogger: 로그 파일 목록 조회 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('TripleExtractionLogger: 로그 파일 목록 조회 실패', PIIMasker.maskObject({
+        error: maskedError.message
+      }));
       return [];
     }
   }
@@ -291,9 +293,10 @@ export class TripleExtractionLogger {
 
       return deletedCount;
     } catch (error) {
-      console.error('TripleExtractionLogger: 오래된 로그 파일 삭제 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
+      console.error('TripleExtractionLogger: 오래된 로그 파일 삭제 실패', PIIMasker.maskObject({
+        error: maskedError.message
+      }));
       return 0;
     }
   }
