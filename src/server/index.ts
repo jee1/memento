@@ -530,11 +530,40 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// 서버 시작 (MCP 서버는 항상 시작되어야 함)
-startServer().catch((error) => {
-  mcpLogger.logServer('error', 'Failed to start server', { 
-    error: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined
+// 서버 시작 함수 export (팩토리 패턴을 위해)
+export { startServer, cleanup };
+
+// 팩토리 패턴을 사용하여 서버 시작
+import { createServerFactory } from './server-factory.js';
+
+// 서버 시작 (팩토리 패턴 사용)
+async function main() {
+  try {
+    const factory = createServerFactory();
+    const server = factory.createServerFromEnv();
+    await server.start();
+  } catch (error) {
+    mcpLogger.logServer('error', 'Failed to start server', { 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    process.exit(1);
+  }
+}
+
+// index.ts가 직접 실행되는 경우에만 팩토리 패턴으로 서버 시작
+// 팩토리 패턴을 사용하지 않는 경우를 위해 기존 startServer도 유지
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     import.meta.url.endsWith(process.argv[1] || '') ||
+                     process.argv[1]?.endsWith('index.ts') || 
+                     process.argv[1]?.endsWith('index.js');
+
+if (isMainModule) {
+  main().catch((error) => {
+    mcpLogger.logServer('error', 'Failed to start server', { 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    process.exit(1);
   });
-  process.exit(1);
-});
+}

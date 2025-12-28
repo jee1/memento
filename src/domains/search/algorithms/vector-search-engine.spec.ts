@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchEngine, type VectorSearchResult, type VectorSearchOptions, type VectorIndexStatus } from './vector-search-engine.js';
+import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
 import Database from 'better-sqlite3';
 
 // Mock Database - removed global mock to avoid conflicts with individual mocks
@@ -62,6 +63,8 @@ describe('VectorSearchEngine', () => {
   };
 
   beforeEach(() => {
+    // 싱글톤 컨테이너 초기화
+    VectorSearchContainer.getInstance().reset();
     vectorEngine = new VectorSearchEngine();
     mockDb = {
       prepare: vi.fn(() => ({
@@ -73,6 +76,8 @@ describe('VectorSearchEngine', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    // 테스트 후 컨테이너 초기화
+    VectorSearchContainer.getInstance().reset();
   });
 
   describe('initialize', () => {
@@ -231,9 +236,8 @@ describe('VectorSearchEngine', () => {
 
       vectorEngine.initialize(mockDb);
       const queryVector = new Array(1000).fill(0.1); // 잘못된 차원
-      const results = await vectorEngine.search(queryVector, {}, 'tfidf');
-
-      expect(results).toHaveLength(0);
+      // 리팩토링된 엔진은 차원 검증에서 예외를 발생시킴
+      await expect(vectorEngine.search(queryVector, {}, 'tfidf')).rejects.toThrow('벡터 차원 불일치');
       expect(vectorAllSpy).not.toHaveBeenCalled();
     });
 
@@ -283,14 +287,24 @@ describe('VectorSearchEngine', () => {
         includeContent: true,
         includeMetadata: true
       };
-      const mockResults = createMockVectorRows('tfidf', 2);
+      // 쿼리에서 반환되는 형식에 맞게 mock 결과 생성 (distance 필드 포함)
+      const mockResults = createMockVectorRows('tfidf', 2).map((row, idx) => ({
+        memory_id: row.memory_id,
+        similarity: 0.3 + idx * 0.01, // distance 값 (1 - similarity로 변환됨)
+        content: row.content,
+        type: row.type,
+        importance: row.importance,
+        created_at: row.created_at,
+        last_accessed_at: row.last_accessed, // 쿼리에서 사용하는 필드명
+        pinned: row.pinned,
+        tags: row.tags
+      }));
       const allMock = vi.fn((...params: any[]) => {
-        // 변경된 파라미터 순서 검증: query, prefetchLimit, type1, type2, limit
+        // 변경된 파라미터 순서 검증: query, type1, type2, limit
         expect(params[0]).toBe(JSON.stringify(queryVector));
-        expect(params[1]).toBe(options.limit! * 5); // prefetchLimit
-        expect(params[2]).toBe('episodic');
-        expect(params[3]).toBe('semantic');
-        expect(params[4]).toBe(options.limit); // final limit
+        expect(params[1]).toBe('episodic');
+        expect(params[2]).toBe('semantic');
+        expect(params[3]).toBe(options.limit);
         return mockResults;
       });
 
@@ -310,11 +324,15 @@ describe('VectorSearchEngine', () => {
           };
         }
         
-        // 정규식을 사용하여 공백/줄바꿈에 관계없이 쿼리 구조를 확인
-        const isVectorSearchQuery = /FROM\s+\(\s*SELECT\s+rowid,\s+distance/.test(sql);
+        // 벡터 검색 쿼리 패턴 확인 (vec.embedding MATCH 또는 FROM memory_item_vec_)
+        const isVectorSearchQuery = /vec\.embedding\s+MATCH|FROM\s+memory_item_vec_|FROM\s+\(\s*SELECT\s+rowid,\s+distance/.test(sql);
         if (isVectorSearchQuery) {
-          expect(sql).toContain('mi.type IN (?,?)');
-          return { all: allMock };
+          if (sql.includes('mi.type IN')) {
+            expect(sql).toContain('mi.type IN (?,?)');
+          }
+          // allMock이 함수이므로 직접 호출 가능하도록 설정
+          const mockStatement = { all: allMock };
+          return mockStatement;
         }
         
         return { all: vi.fn().mockReturnValue([]) };
@@ -337,7 +355,7 @@ describe('VectorSearchEngine', () => {
         includeMetadata: true
       };
 
-      // Mock database results
+      // Mock database results - includeMetadata가 true일 때 last_accessed_at 필드 필요
       const mockResults = [
         {
           memory_id: 'mem1',
@@ -346,7 +364,8 @@ describe('VectorSearchEngine', () => {
           type: 'semantic',
           importance: 0.8,
           created_at: '2023-01-01T00:00:00Z',
-          last_accessed: '2023-01-02T00:00:00Z',
+          last_accessed_at: '2023-01-02T00:00:00Z', // 쿼리에서 사용하는 필드명
+          last_accessed: '2023-01-02T00:00:00Z', // fallback용
           pinned: false,
           tags: JSON.stringify(['test', 'example'])
         }
@@ -354,11 +373,12 @@ describe('VectorSearchEngine', () => {
 
       // Update the existing mock to return results
       mockDb.prepare.mockImplementation(createMockImplementation(mockResults));
+      vectorEngine.initialize(mockDb);
 
       const results = await vectorEngine.search(queryVector, options, 'tfidf');
 
       expect(results).toHaveLength(1);
-      expect(results[0].last_accessed).toBeDefined();
+      expect(results[0].last_accessed).toBeDefined(); // VectorSearchResult 인터페이스에 last_accessed 필드가 있음
       expect(results[0].pinned).toBeDefined();
       expect(results[0].tags).toBeDefined();
     });
@@ -511,9 +531,9 @@ describe('VectorSearchEngine', () => {
     it('VEC 사용 불가능한 경우 빈 결과', async () => {
       vectorEngine.initialize(null as any);
       
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const textQuery = 'test query';
-      const results = await vectorEngine.hybridSearch(queryVector, textQuery);
+      const results = await vectorEngine.hybridSearch(queryVector, textQuery, {}, 'tfidf');
 
       expect(results).toHaveLength(0);
     });
@@ -521,9 +541,8 @@ describe('VectorSearchEngine', () => {
     it('벡터 차원 불일치 처리', async () => {
       const queryVector = new Array(1000).fill(0.1); // 잘못된 차원
       const textQuery = 'test query';
-      const results = await vectorEngine.hybridSearch(queryVector, textQuery);
-
-      expect(results).toHaveLength(0);
+      // 리팩토링된 엔진은 차원 검증에서 예외를 발생시킴
+      await expect(vectorEngine.hybridSearch(queryVector, textQuery, {}, 'tfidf')).rejects.toThrow('벡터 차원 불일치');
     });
 
     it('타입 필터 적용', async () => {
@@ -667,7 +686,7 @@ describe('VectorSearchEngine', () => {
     });
 
     it('정상적인 성능 테스트', async () => {
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const performance = await vectorEngine.performanceTest(queryVector, 5);
 
       expect(performance.averageTime).toBeGreaterThanOrEqual(0);
@@ -679,7 +698,7 @@ describe('VectorSearchEngine', () => {
 
     it('VEC 사용 불가능한 경우', async () => {
       vectorEngine.initialize(null as any);
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const performance = await vectorEngine.performanceTest(queryVector, 5);
 
       expect(performance.averageTime).toBe(0);
@@ -707,7 +726,7 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       const performance = await vectorEngine.performanceTest(queryVector, 3);
 
       expect(performance.successRate).toBeLessThanOrEqual(1);
@@ -748,10 +767,10 @@ describe('VectorSearchEngine', () => {
   describe('getVectorTableName', () => {
     it('다양한 제공자별 테이블명', () => {
       const tfidfTable = (vectorEngine as any).getVectorTableName('tfidf');
-      const minilmTable = (vectorEngine as any).getVectorTableName('minilm');
-      const openaiTable = (vectorEngine as any).getVectorTableName('openai');
-      const geminiTable = (vectorEngine as any).getVectorTableName('gemini');
-      const defaultTable = (vectorEngine as any).getVectorTableName('unknown');
+      const minilmTable = vectorEngine.getVectorTableName('minilm');
+      const openaiTable = vectorEngine.getVectorTableName('openai');
+      const geminiTable = vectorEngine.getVectorTableName('gemini');
+      const defaultTable = vectorEngine.getVectorTableName('unknown');
 
       expect(tfidfTable).toBe('memory_item_vec_tfidf');
       expect(minilmTable).toBe('memory_item_vec_minilm');
@@ -773,7 +792,7 @@ describe('VectorSearchEngine', () => {
       ];
 
       for (const provider of allowedProviders) {
-        const tableName = (vectorEngine as any).getVectorTableName(provider);
+        const tableName = vectorEngine.getVectorTableName(provider);
         expect(allowedTableNames).toContain(tableName);
       }
     });
@@ -781,29 +800,36 @@ describe('VectorSearchEngine', () => {
 
   describe('엣지 케이스', () => {
     it('매우 큰 벡터 처리', async () => {
+      // DB 초기화 필요 (검증을 위해)
+      mockDb.prepare.mockImplementation(createMockImplementation());
+      vectorEngine.initialize(mockDb);
+      
       const largeVector = new Array(10000).fill(0.1);
-      const results = await vectorEngine.search(largeVector);
-
-      expect(results).toHaveLength(0);
+      // 리팩토링된 엔진은 차원 검증에서 예외를 발생시킴
+      await expect(vectorEngine.search(largeVector, {}, 'tfidf')).rejects.toThrow('벡터 차원 불일치');
     });
 
     it('빈 벡터 처리', async () => {
+      // DB 초기화 필요 (검증을 위해)
+      mockDb.prepare.mockImplementation(createMockImplementation());
+      vectorEngine.initialize(mockDb);
+      
       const emptyVector: number[] = [];
-      const results = await vectorEngine.search(emptyVector);
-
-      expect(results).toHaveLength(0);
+      // 빈 벡터는 차원 검증에서 실패하므로 예외가 발생
+      // 리팩토링된 엔진은 더 엄격한 검증을 수행
+      await expect(vectorEngine.search(emptyVector, {}, 'tfidf')).rejects.toThrow('벡터 차원 불일치');
     });
 
     it('NaN 값이 포함된 벡터', async () => {
-      const nanVector = new Array(384).fill(NaN);
-      const results = await vectorEngine.search(nanVector);
+      const nanVector = new Array(512).fill(NaN); // TF-IDF는 512차원
+      const results = await vectorEngine.search(nanVector, {}, 'tfidf');
 
       expect(results).toHaveLength(0);
     });
 
     it('무한대 값이 포함된 벡터', async () => {
-      const infVector = new Array(384).fill(Infinity);
-      const results = await vectorEngine.search(infVector);
+      const infVector = new Array(512).fill(Infinity); // TF-IDF는 512차원
+      const results = await vectorEngine.search(infVector, {}, 'tfidf');
 
       expect(results).toHaveLength(0);
     });
@@ -814,8 +840,8 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
-      const results = await vectorEngine.search(queryVector);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
+      const results = await vectorEngine.search(queryVector, {}, 'tfidf');
 
       expect(results).toHaveLength(0);
     });
@@ -888,8 +914,8 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
-      const results = await vectorEngine.search(queryVector, { threshold: 0.99 });
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
+      const results = await vectorEngine.search(queryVector, { threshold: 0.99 }, 'tfidf');
 
       expect(results).toHaveLength(0);
     });
@@ -1002,13 +1028,13 @@ describe('VectorSearchEngine', () => {
       });
 
       vectorEngine.initialize(mockDb);
-      const queryVector = new Array(384).fill(0.1);
+      const queryVector = new Array(512).fill(0.1); // TF-IDF는 512차원
       
       const startTime = Date.now();
       
       // 100번 반복 검색
       for (let i = 0; i < 100; i++) {
-        await vectorEngine.search(queryVector, { limit: 10 });
+        await vectorEngine.search(queryVector, { limit: 10 }, 'tfidf');
       }
       
       const endTime = Date.now();

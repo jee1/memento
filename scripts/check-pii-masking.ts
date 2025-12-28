@@ -176,9 +176,6 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     // 로거 파일인지 확인 (logger, file-logger, error-logging-service 등)
     const isLoggerFile = /logger|log|error-logging/i.test(relativePath);
     
-    // PIIMasker import 확인
-    const hasPIIMaskerImport = /import.*PIIMasker|from.*pii-masker/.test(content);
-    
     // logger.error, logger.warn, logger.info, logger.debug 호출 확인
     // logger.ts를 import하는 경우는 이미 마스킹이 적용되어 있으므로 제외
     if (!usesLoggerUtils) {

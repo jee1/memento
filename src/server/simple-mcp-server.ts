@@ -162,13 +162,24 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 서버 시작
-const PORT = process.env.PORT || 9001;
+// 서버 시작 함수는 export만 유지 (팩토리 패턴 사용)
+// 직접 실행 코드는 제거됨 - 팩토리를 통해 서버를 시작해야 함
 
-server.listen(Number(PORT), '0.0.0.0', () => {
-  logger.info(`🌐 간단한 MCP 서버 시작: http://0.0.0.0:${PORT}`);
-  logger.info(`📋 도구 개수: ${tools.length}개`);
-  logger.info(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
-});
+/**
+ * SSE 서버를 시작하는 함수
+ * @returns Promise<void> 서버 시작 완료 시 resolve
+ */
+export async function startSimpleMcpServer(): Promise<void> {
+  const PORT = process.env.PORT || 9001;
+  
+  return new Promise<void>((resolve) => {
+    server.listen(Number(PORT), '0.0.0.0', () => {
+      logger.info(`🌐 간단한 MCP 서버 시작: http://0.0.0.0:${PORT}`);
+      logger.info(`📋 도구 개수: ${tools.length}개`);
+      logger.info(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
+      resolve();
+    });
+  });
+}
 
 export { app, server };

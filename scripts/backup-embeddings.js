@@ -3,9 +3,17 @@
 /**
  * 임베딩 백업 스크립트
  * 기존 벡터값을 백업한 후 삭제하고 재생성하는 스크립트
+ * 
+ * 리팩토링: 공통 모듈(initializeDatabase)을 사용하여 일관된 DB 초기화 보장
+ * 
+ * 사용법: 
+ *   - 개발 환경: npx tsx scripts/backup-embeddings.js
+ *   - 프로덕션: npm run build && node dist/scripts/backup-embeddings.js
  */
 
-import Database from 'better-sqlite3';
+// TypeScript 소스를 직접 import (tsx로 실행 시)
+// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,17 +22,9 @@ import { validateFilePath, sanitizeFileName } from '../src/shared/utils/path-val
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 데이터베이스 경로 설정
+// 백업 디렉토리 설정
 // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'memory.db');
-if (!validateFilePath(dbPath, 'data')) {
-  throw new Error(
-    `Path Traversal 방지: 허용되지 않은 데이터베이스 경로입니다. ` +
-    `경로: ${dbPath}`
-  );
-}
-
-const backupDir = path.join(__dirname, '..', 'backup');
+const backupDir = path.join(process.cwd(), 'backup');
 if (!validateFilePath(backupDir, 'backup')) {
   throw new Error(
     `Path Traversal 방지: 허용되지 않은 백업 디렉토리 경로입니다. ` +
@@ -46,83 +46,74 @@ async function backupEmbeddings() {
     fs.mkdirSync(backupDir, { recursive: true });
   }
 
-  // 데이터베이스 연결
-  const db = new Database(dbPath);
+  let db = null;
   
   try {
-    // 기존 임베딩 데이터 조회
+    // 공통 모듈을 사용하여 데이터베이스 초기화
+    // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
+    db = await initializeDatabase();
+    
+    // 모든 임베딩 데이터 조회
     const embeddings = db.prepare(`
       SELECT 
-        me.memory_id,
-        me.embedding,
-        me.dim,
-        me.model,
-        me.created_at,
-        mi.content,
-        mi.type
-      FROM memory_embedding me
-      JOIN memory_item mi ON me.memory_id = mi.id
-      ORDER BY me.created_at
+        memory_id,
+        embedding,
+        dim,
+        model,
+        created_at
+      FROM memory_embedding
     `).all();
 
-    console.log(`📊 발견된 임베딩 개수: ${embeddings.length}`);
+    console.log(`📊 백업할 임베딩 개수: ${embeddings.length}`);
 
     if (embeddings.length === 0) {
       console.log('⚠️ 백업할 임베딩이 없습니다.');
       return;
     }
 
-    // 차원별 통계
-    const dimensionStats = {};
-    embeddings.forEach(emb => {
-      const dim = emb.dim;
-      dimensionStats[dim] = (dimensionStats[dim] || 0) + 1;
-    });
-
-    console.log('📈 차원별 통계:');
-    Object.entries(dimensionStats).forEach(([dim, count]) => {
-      console.log(`  - ${dim}차원: ${count}개`);
-    });
-
-    // 백업 데이터 생성
+    // 백업 데이터 준비
     const backupData = {
       timestamp: new Date().toISOString(),
-      totalEmbeddings: embeddings.length,
-      dimensionStats,
-      embeddings: embeddings.map(emb => ({
-        memory_id: emb.memory_id,
-        content: emb.content,
-        type: emb.type,
-        embedding: JSON.parse(emb.embedding),
-        dim: emb.dim,
-        model: emb.model,
-        created_at: emb.created_at
+      count: embeddings.length,
+      embeddings: embeddings.map(e => ({
+        memory_id: e.memory_id,
+        embedding: e.embedding,
+        dim: e.dim,
+        model: e.model,
+        created_at: e.created_at
       }))
     };
 
-    // 백업 파일 저장
-    fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2));
+    // JSON 파일로 저장
+    fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2), 'utf8');
     console.log(`✅ 백업 완료: ${backupFile}`);
+    console.log(`📦 백업 크기: ${(fs.statSync(backupFile).size / 1024).toFixed(2)} KB`);
 
-    // 임베딩 테이블 삭제
-    console.log('🗑️ 기존 임베딩 삭제 중...');
-    const deleteResult = db.prepare('DELETE FROM memory_embedding').run();
-    console.log(`✅ 삭제 완료: ${deleteResult.changes}개 행 삭제`);
-
-    console.log('🎉 백업 및 삭제 완료!');
-    console.log('다음 단계: npm run regenerate-embeddings');
+    // 사용자 확인
+    console.log('\n⚠️ 백업이 완료되었습니다.');
+    console.log('다음 단계로 임베딩을 삭제하고 재생성할 수 있습니다.');
+    console.log('백업 파일:', backupFile);
 
   } catch (error) {
-    console.error('❌ 백업 실패:', error);
+    console.error('❌ 백업 실패:', error.message);
+    if (error.stack) {
+      console.error('   스택 트레이스:', error.stack);
+    }
     process.exit(1);
   } finally {
-    db.close();
+    // 데이터베이스 연결 종료
+    if (db) {
+      closeDatabase(db);
+    }
   }
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}`) {
-  backupEmbeddings().catch(console.error);
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+  backupEmbeddings().catch((error) => {
+    console.error('❌ 스크립트 실행 중 오류 발생:', error);
+    process.exit(1);
+  });
 }
 
 export { backupEmbeddings };

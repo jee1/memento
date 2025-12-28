@@ -106,6 +106,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       limit = VECTOR_SEARCH_CONFIG.defaultLimit,
       threshold = VECTOR_SEARCH_CONFIG.defaultThreshold,
       type,
+      types,
       includeContent = true,
       includeMetadata = false
     } = normalizedOptions;
@@ -117,11 +118,18 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       return [];
     }
 
+    // types 배열 처리: types가 있으면 사용, 없으면 type 사용
+    const typeFilters = Array.isArray(types) && types.length > 0 
+      ? types.filter(Boolean) 
+      : (type ? [type] : []);
+
     try {
       const tableName = this.getTableName(provider ?? 'tfidf');
       // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
       // 템플릿 리터럴 대신 문자열 연결 사용
-      const typeClause = type ? 'AND mi.type = ?' : '';
+      const typeClause = typeFilters.length > 0
+        ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
+        : '';
       const vecQuery = 
         'SELECT ' +
         '  me.memory_id as memory_id, ' +
@@ -147,7 +155,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         'ORDER BY vec.distance ASC ' +
         'LIMIT ?';
 
-      const params = [JSON.stringify(queryVector), ...(type ? [type] : []), limit];
+      const params = [JSON.stringify(queryVector), ...typeFilters, limit];
       const statement = this.db.prepare(vecQuery);
       if (typeof statement.all !== 'function') {
         mcpLogger.logServer('warn', '벡터 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
@@ -171,7 +179,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed_at: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
+          last_accessed: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
           pinned: includeMetadata ? Boolean(result.pinned) : false,
           tags: includeMetadata ? result.tags : undefined,
           // Procedural Memory 필드
@@ -208,6 +216,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       limit = VECTOR_SEARCH_CONFIG.defaultLimit,
       threshold = VECTOR_SEARCH_CONFIG.defaultThreshold,
       type,
+      types,
       includeContent = true,
       includeMetadata = false
     } = normalizedOptions;
@@ -218,6 +227,11 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       mcpLogger.logServer('error', '벡터 차원 불일치', { expected: expectedDimensions, actual: queryVector.length });
       return [];
     }
+
+    // types 배열 처리: types가 있으면 사용, 없으면 type 사용
+    const typeFilters = Array.isArray(types) && types.length > 0 
+      ? types.filter(Boolean) 
+      : (type ? [type] : []);
 
     try {
       const tableName = this.getTableName(provider ?? 'tfidf');
@@ -233,8 +247,12 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         // 텍스트 검색과 벡터 검색 모두 사용
         // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
         // 템플릿 리터럴 대신 문자열 연결 사용
-        const vectorTypeClause = type ? 'AND mi.type = ?' : '';
-        const textTypeClause = type ? 'AND mi.type = ?' : '';
+        const vectorTypeClause = typeFilters.length > 0
+          ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
+          : '';
+        const textTypeClause = typeFilters.length > 0
+          ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
+          : '';
         hybridQuery = 
           'WITH vector_search AS (' +
           '  SELECT ' +
@@ -327,16 +345,18 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
         params = [
           JSON.stringify(queryVector),
-          ...(type ? [type] : []),
+          ...typeFilters,
           textQuery.trim(),
-          ...(type ? [type] : []),
+          ...typeFilters,
           limit
         ];
       } else {
         // 텍스트 검색 없이 벡터 검색만 사용
         // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
         // 템플릿 리터럴 대신 문자열 연결 사용
-        const typeClause = type ? 'AND mi.type = ?' : '';
+        const typeClause = typeFilters.length > 0
+          ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
+          : '';
         hybridQuery = 
           'SELECT ' +
           '  me.memory_id as memory_id, ' +
@@ -365,7 +385,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
         params = [
           JSON.stringify(queryVector),
-          ...(type ? [type] : []),
+          ...typeFilters,
           limit
         ];
       }
@@ -389,7 +409,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           type: result.type,
           importance: result.importance,
           created_at: result.created_at,
-          last_accessed_at: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
+          last_accessed: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
           pinned: includeMetadata ? Boolean(result.pinned) : false,
           tags: includeMetadata ? this.safeParseTags(result.tags) : undefined,
           // Procedural Memory 필드

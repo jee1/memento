@@ -9,7 +9,7 @@
  *   tsx scripts/check-file-sizes.ts --ci
  *   tsx scripts/check-file-sizes.ts --threshold 500
  *   tsx scripts/check-file-sizes.ts --directory src/
- *   tsx scripts/check-file-sizes.ts --exclude "**/*.spec.ts"
+ *   tsx scripts/check-file-sizes.ts --exclude '*.spec.ts'
  * 
  * 목표:
  *   - 핵심 핸들러/서비스 파일이 500줄 이하
@@ -17,7 +17,7 @@
  *   - 경고/에러 출력
  */
 
-import { readFileSync, statSync } from 'fs';
+import { readFileSync } from 'fs';
 import { readdir } from 'fs/promises';
 import { join, relative } from 'path';
 
@@ -111,7 +111,7 @@ function printHelp(): void {
   tsx scripts/check-file-sizes.ts
   tsx scripts/check-file-sizes.ts --ci
   tsx scripts/check-file-sizes.ts --threshold 500
-  tsx scripts/check-file-sizes.ts --directory src/ --exclude "**/*.spec.ts"
+  tsx scripts/check-file-sizes.ts --directory src/ --exclude '*.spec.ts'
 `);
 }
 
@@ -164,7 +164,7 @@ function validateFileSize(filePath: string, threshold: number): FileSizeResult {
  * 패턴 매칭 (간단한 glob 패턴 지원)
  * 
  * @param path - 파일 경로
- * @param pattern - 패턴 (예: "**/node_modules/**", "**/*.spec.ts")
+ * @param pattern - 패턴 (예: node_modules, *.spec.ts)
  * @returns 매칭 여부
  */
 function matchesPattern(path: string, pattern: string): boolean {
