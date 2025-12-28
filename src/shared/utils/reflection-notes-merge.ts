@@ -151,7 +151,7 @@ function validateAndCleanupTotalSize(array: any[]): { cleaned: any[]; removedCou
       removedCount,
       remainingSize: getObjectSize(cleaned),
       message: `전체 필드 크기가 ${MAX_TOTAL_FIELD_SIZE}바이트(1MB)를 초과하여 가장 오래된 ${removedCount}개 항목이 자동으로 제거되었습니다`
-    });
+    }));
   }
 
   return { cleaned, removedCount };
