@@ -55,31 +55,27 @@ let serverServices: ServerServices | null = null;
 // 모든 console 메서드를 빈 함수로 교체
 // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
 // 모든 로그는 stderr로 출력되어야 함 (mcpLogger 사용)
+// 단, 초기화 전 에러는 stderr에 직접 출력하여 디버깅 가능하도록 함
 console.log = () => {};
-console.error = () => {};
+// console.error는 초기화 전 에러를 위해 유지하되, stderr로 리다이렉트
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  // 초기화 전에는 stderr에 직접 출력
+  process.stderr.write(`[CONSOLE ERROR] ${args.map(a => String(a)).join(' ')}\n`);
+};
 console.warn = () => {};
 console.info = () => {};
 console.debug = () => {};
 
-// MCP 프로토콜 준수를 위한 stdout 보호
-// MCP SDK의 StdioServerTransport가 stdout을 사용하므로, 
-// 서버 초기화 전 stdout 출력을 방지하기 위해 플래그 사용
-let isServerInitialized = false;
+// MCP 프로토콜 준수: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
+// 모든 로그는 stderr로 출력되어야 함 (mcpLogger 사용)
+// 주의: process.stdout.write를 래핑하지 않음
+// MCP SDK의 StdioServerTransport가 stdout을 직접 사용하므로 래핑하면 간섭 발생
+// 대신 모듈 로드 시점부터 stdout에 출력이 발생하지 않도록 보장
 
-// stdout에 직접 출력하는 것을 방지하기 위해 stdout.write도 래핑
-// 단, MCP SDK가 stdout을 사용할 수 있도록 원래 함수는 보존
-const originalStdoutWrite = process.stdout.write.bind(process.stdout);
-process.stdout.write = function(chunk: any, encoding?: any, cb?: any): boolean {
-  // 서버가 초기화되기 전에는 stdout에 아무것도 출력하지 않음
-  // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
-  if (!isServerInitialized) {
-    // 서버가 초기화되기 전에는 stderr로 리다이렉트
-    // 이는 MCP 프로토콜 위반을 방지하기 위함
-    return process.stderr.write(chunk, encoding, cb);
-  }
-  // 서버가 초기화된 후에는 MCP SDK가 stdout을 관리하므로 원래 동작 사용
-  return originalStdoutWrite(chunk, encoding, cb);
-};
+// MCP 서버가 connect()되기 전까지는 로그 출력을 억제
+// MCP 프로토콜 스펙: 서버가 초기화되면서 stdout에 출력이 발생하면 JSON 파싱 오류 발생
+let isTransportConnected = false;
 
 // 동시성 제한을 위한 세마포어
 export class Semaphore {
@@ -234,9 +230,8 @@ async function initializeServer() {
     
     mcpLogger.logServer('info', 'MCP 서버 생성 완료');
     
-    // 서버 초기화 완료 플래그 설정
-    // 이제부터 MCP SDK가 stdout을 사용할 수 있음
-    isServerInitialized = true;
+    // 주의: isTransportConnected 플래그는 server.connect() 호출 직전에 설정됨
+    // initializeServer()에서는 설정하지 않음
     
     // 도구 레지스트리 가져오기
     const toolRegistry = getToolRegistry();
@@ -443,7 +438,23 @@ async function initializeServer() {
     // process.stderr.write('📊 실시간 성능 모니터링이 활성화되었습니다\n');
     
   } catch (error) {
-    mcpLogger.logServer('error', `서버 초기화 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
+    // 에러 발생 시 상세 정보를 stderr에 출력
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    mcpLogger.logServer('error', `서버 초기화 실패: ${errorMessage}`, { 
+      error: errorMessage,
+      stack: errorStack,
+      type: error instanceof Error ? error.constructor.name : typeof error
+    });
+    
+    // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
+    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed\n`);
+    process.stderr.write(`Error: ${errorMessage}\n`);
+    if (errorStack) {
+      process.stderr.write(`Stack:\n${errorStack}\n`);
+    }
+    process.stderr.write(`\n`);
+    
     process.exit(1);
   }
 }
@@ -455,8 +466,20 @@ async function startServer() {
     mcpLogger.logServer('info', '서버 초기화 완료');
     
     // Stdio 전송 계층 사용
+    // MCP SDK의 StdioServerTransport가 stdout을 사용하여 JSON-RPC 메시지 전송
+    // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
+    
+    // transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
+    // globalThis를 통해 mcpLogger에서 접근 가능하도록 설정
+    (globalThis as any).__mcp_transport_connected = false;
+    
     const transport = new StdioServerTransport();
     await server.connect(transport);
+    
+    // transport 연결 완료 후 로그 출력 허용
+    (globalThis as any).__mcp_transport_connected = true;
+    isTransportConnected = true;
+    
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
     
     // MCP 클라이언트 연결 대기 중
@@ -481,7 +504,23 @@ async function startServer() {
       });
     });
   } catch (error) {
-    mcpLogger.logServer('error', `서버 시작 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
+    // 에러 발생 시 상세 정보를 stderr에 출력
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    mcpLogger.logServer('error', `서버 시작 실패: ${errorMessage}`, { 
+      error: errorMessage,
+      stack: errorStack,
+      type: error instanceof Error ? error.constructor.name : typeof error
+    });
+    
+    // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
+    process.stderr.write(`\n[ERROR] MCP Server Start Failed\n`);
+    process.stderr.write(`Error: ${errorMessage}\n`);
+    if (errorStack) {
+      process.stderr.write(`Stack:\n${errorStack}\n`);
+    }
+    process.stderr.write(`\n`);
+    
     process.exit(1);
   }
 }
@@ -548,10 +587,27 @@ async function cleanup() {
 // 여기서는 uncaughtException만 처리합니다.
 process.on('uncaughtException', (error) => {
   // 예상치 못한 오류 로깅
-  mcpLogger.logServer('error', 'Uncaught exception', { 
-    error: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined
-  });
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack = error instanceof Error ? error.stack : undefined;
+  
+  // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
+  process.stderr.write(`\n[FATAL ERROR] Uncaught Exception\n`);
+  process.stderr.write(`Error: ${errorMessage}\n`);
+  if (errorStack) {
+    process.stderr.write(`Stack:\n${errorStack}\n`);
+  }
+  process.stderr.write(`\n`);
+  
+  // mcpLogger가 준비되었다면 사용
+  try {
+    mcpLogger.logServer('error', 'Uncaught exception', { 
+      error: errorMessage,
+      stack: errorStack
+    });
+  } catch {
+    // mcpLogger 초기화 실패 시 무시
+  }
+  
   cleanup();
   process.exit(1);
 });
@@ -569,10 +625,28 @@ async function main() {
     const server = factory.createServerFromEnv();
     await server.start();
   } catch (error) {
-    mcpLogger.logServer('error', 'Failed to start server', { 
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    // 초기화 전 에러는 mcpLogger가 아직 준비되지 않았을 수 있으므로
+    // stderr에 직접 출력
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    process.stderr.write(`\n[FATAL ERROR] Failed to start MCP server\n`);
+    process.stderr.write(`Error: ${errorMessage}\n`);
+    if (errorStack) {
+      process.stderr.write(`Stack:\n${errorStack}\n`);
+    }
+    process.stderr.write(`\n`);
+    
+    // mcpLogger가 준비되었다면 사용
+    try {
+      mcpLogger.logServer('error', 'Failed to start server', { 
+        error: errorMessage,
+        stack: errorStack
+      });
+    } catch {
+      // mcpLogger 초기화 실패 시 무시
+    }
+    
     process.exit(1);
   }
 }
@@ -586,10 +660,28 @@ const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
 
 if (isMainModule) {
   main().catch((error) => {
-    mcpLogger.logServer('error', 'Failed to start server', { 
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    // 초기화 전 에러는 mcpLogger가 아직 준비되지 않았을 수 있으므로
+    // stderr에 직접 출력
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    process.stderr.write(`\n[FATAL ERROR] Failed to start MCP server (unhandled)\n`);
+    process.stderr.write(`Error: ${errorMessage}\n`);
+    if (errorStack) {
+      process.stderr.write(`Stack:\n${errorStack}\n`);
+    }
+    process.stderr.write(`\n`);
+    
+    // mcpLogger가 준비되었다면 사용
+    try {
+      mcpLogger.logServer('error', 'Failed to start server', { 
+        error: errorMessage,
+        stack: errorStack
+      });
+    } catch {
+      // mcpLogger 초기화 실패 시 무시
+    }
+    
     process.exit(1);
   });
 }

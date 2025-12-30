@@ -122,6 +122,8 @@ export class MCPLogger {
   /**
    * 서버 동작 로그 (stderr 출력)
    * 서버 초기화, 상태 등 서버 동작 관련 로그
+   * 
+   * 주의: MCP 프로토콜 준수를 위해 transport 연결 전에는 로그를 억제할 수 있음
    */
   logServer(level: LogLevel, message: string, data?: any): void {
     // 로그 레벨 필터링
@@ -132,6 +134,18 @@ export class MCPLogger {
     const timestamp = getTimestamp();
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
     const logMessage = `[${timestamp}] [SERVER] [${level.toUpperCase()}] ${message}${dataStr}\n`;
+    
+    // MCP 프로토콜 준수: transport 연결 전에는 로그를 억제
+    // 서버 초기화 중 로그가 stdout으로 유출되어 JSON 파싱 오류 발생 방지
+    // isTransportConnected는 index.ts에서 관리
+    const shouldSuppress = typeof (globalThis as any).__mcp_transport_connected === 'boolean' 
+      ? !(globalThis as any).__mcp_transport_connected 
+      : false;
+    
+    if (shouldSuppress && level !== 'error') {
+      // ERROR 레벨만 출력 (치명적 오류는 확인 필요)
+      return;
+    }
     
     process.stderr.write(logMessage);
   }

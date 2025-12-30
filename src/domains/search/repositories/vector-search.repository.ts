@@ -112,9 +112,40 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     } = normalizedOptions;
     const expectedDimensions = this.getExpectedDimensions(provider);
 
+    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인
+    // provider가 지정되어 있어도 실제 저장된 임베딩의 차원과 일치해야 함
+    let actualStoredDimensions: number | null = null;
+    try {
+      if (this.db) {
+        const dimensionResult = this.db.prepare(`
+          SELECT dimensions
+          FROM memory_embedding
+          WHERE embedding_provider = ?
+            AND dimensions IS NOT NULL
+          LIMIT 1
+        `).get(provider ?? 'tfidf') as { dimensions: number } | undefined;
+        actualStoredDimensions = dimensionResult?.dimensions ?? null;
+      }
+    } catch (error) {
+      // 차원 조회 실패 시 무시하고 예상 차원 사용
+      mcpLogger.logServer('warn', '저장된 임베딩 차원 조회 실패', { 
+        provider, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+
+    // 실제 저장된 차원이 있으면 그것을 사용, 없으면 예상 차원 사용
+    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+
     // 벡터 차원 검증
-    if (queryVector.length !== expectedDimensions) {
-      mcpLogger.logServer('error', '벡터 차원 불일치', { expected: expectedDimensions, actual: queryVector.length });
+    if (queryVector.length !== targetDimensions) {
+      mcpLogger.logServer('error', '벡터 차원 불일치', { 
+        expected: targetDimensions, 
+        actual: queryVector.length,
+        provider,
+        actualStoredDimensions,
+        expectedDimensions
+      });
       return [];
     }
 
@@ -130,10 +161,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const typeClause = typeFilters.length > 0
         ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
         : '';
+      // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
+      // 서브쿼리로 먼저 벡터 검색을 수행하고 LIMIT을 적용한 후 JOIN
+      const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
       const vecQuery = 
         'SELECT ' +
         '  me.memory_id as memory_id, ' +
-        '  vec.distance as similarity, ' +
+        '  t.distance as similarity, ' +
         '  mi.content, ' +
         '  mi.type, ' +
         '  mi.importance, ' +
@@ -147,15 +181,25 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         '  mi.workflow_name, ' +
         '  mi.skill_name, ' +
         '  mi.trigger_conditions ' +
-        `FROM ${tableName} vec ` +
-        'JOIN memory_embedding me ON vec.rowid = me.id ' +
+        'FROM (' +
+        '  SELECT rowid, distance ' +
+        `  FROM ${tableName} ` +
+        '  WHERE embedding MATCH ? ' +
+        '  ORDER BY distance ASC ' +
+        '  LIMIT ?' +
+        ') t ' +
+        'JOIN memory_embedding me ON t.rowid = me.id ' +
         'JOIN memory_item mi ON mi.id = me.memory_id ' +
-        'WHERE vec.embedding MATCH ? ' +
-        typeClause + ' ' +
-        'ORDER BY vec.distance ASC ' +
+        (typeFilters.length > 0 ? `WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
+        'ORDER BY t.distance ASC ' +
         'LIMIT ?';
 
-      const params = [JSON.stringify(queryVector), ...typeFilters, limit];
+      const params = [
+        JSON.stringify(queryVector),
+        prefetchLimit,
+        ...typeFilters,
+        limit
+      ];
       const statement = this.db.prepare(vecQuery);
       if (typeof statement.all !== 'function') {
         mcpLogger.logServer('warn', '벡터 검색 쿼리를 실행할 수 없습니다: all() 메서드가 없습니다.');
@@ -222,9 +266,40 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     } = normalizedOptions;
     const expectedDimensions = this.getExpectedDimensions(provider);
 
+    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인
+    // provider가 지정되어 있어도 실제 저장된 임베딩의 차원과 일치해야 함
+    let actualStoredDimensions: number | null = null;
+    try {
+      if (this.db) {
+        const dimensionResult = this.db.prepare(`
+          SELECT dimensions
+          FROM memory_embedding
+          WHERE embedding_provider = ?
+            AND dimensions IS NOT NULL
+          LIMIT 1
+        `).get(provider ?? 'tfidf') as { dimensions: number } | undefined;
+        actualStoredDimensions = dimensionResult?.dimensions ?? null;
+      }
+    } catch (error) {
+      // 차원 조회 실패 시 무시하고 예상 차원 사용
+      mcpLogger.logServer('warn', '저장된 임베딩 차원 조회 실패', { 
+        provider, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+
+    // 실제 저장된 차원이 있으면 그것을 사용, 없으면 예상 차원 사용
+    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+
     // 벡터 차원 검증
-    if (queryVector.length !== expectedDimensions) {
-      mcpLogger.logServer('error', '벡터 차원 불일치', { expected: expectedDimensions, actual: queryVector.length });
+    if (queryVector.length !== targetDimensions) {
+      mcpLogger.logServer('error', '벡터 차원 불일치', { 
+        expected: targetDimensions, 
+        actual: queryVector.length,
+        provider,
+        actualStoredDimensions,
+        expectedDimensions
+      });
       return [];
     }
 
@@ -257,7 +332,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           'WITH vector_search AS (' +
           '  SELECT ' +
           '    me.memory_id as memory_id, ' +
-          '    vec.distance as vector_distance, ' +
+          '    t.distance as vector_distance, ' +
           '    mi.content, ' +
           '    mi.type, ' +
           '    mi.importance, ' +
@@ -271,11 +346,16 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '    mi.workflow_name, ' +
           '    mi.skill_name, ' +
           '    mi.trigger_conditions ' +
-          `  FROM ${tableName} vec ` +
-          '  JOIN memory_embedding me ON vec.rowid = me.id ' +
+          '  FROM (' +
+          '    SELECT rowid, distance ' +
+          `    FROM ${tableName} ` +
+          '    WHERE embedding MATCH ? ' +
+          '    ORDER BY distance ASC ' +
+          '    LIMIT ?' +
+          '  ) t ' +
+          '  JOIN memory_embedding me ON t.rowid = me.id ' +
           '  JOIN memory_item mi ON mi.id = me.memory_id ' +
-          '  WHERE vec.embedding MATCH ? ' +
-          vectorTypeClause + ' ' +
+          (typeFilters.length > 0 ? `  WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
           '), ' +
           'text_search AS (' +
           '  SELECT ' +
@@ -343,8 +423,12 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           'ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC ' +
           'LIMIT ?';
 
+        // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
+        // 서브쿼리에서 LIMIT을 적용하기 위해 prefetchLimit 사용
+        const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
         params = [
           JSON.stringify(queryVector),
+          prefetchLimit,
           ...typeFilters,
           textQuery.trim(),
           ...typeFilters,
@@ -357,10 +441,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         const typeClause = typeFilters.length > 0
           ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
           : '';
+        // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
+        // 서브쿼리로 먼저 벡터 검색을 수행하고 LIMIT을 적용한 후 JOIN
+        const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
         hybridQuery = 
           'SELECT ' +
           '  me.memory_id as memory_id, ' +
-          '  COALESCE(1 - vec.distance, 0) as vector_similarity, ' +
+          '  COALESCE(1 - t.distance, 0) as vector_similarity, ' +
           '  0 as text_similarity, ' +
           '  mi.content, ' +
           '  mi.type, ' +
@@ -375,16 +462,22 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  mi.workflow_name, ' +
           '  mi.skill_name, ' +
           '  mi.trigger_conditions ' +
-          `FROM ${tableName} vec ` +
-          'JOIN memory_embedding me ON vec.rowid = me.id ' +
+          'FROM (' +
+          '  SELECT rowid, distance ' +
+          `  FROM ${tableName} ` +
+          '  WHERE embedding MATCH ? ' +
+          '  ORDER BY distance ASC ' +
+          '  LIMIT ?' +
+          ') t ' +
+          'JOIN memory_embedding me ON t.rowid = me.id ' +
           'JOIN memory_item mi ON mi.id = me.memory_id ' +
-          'WHERE vec.embedding MATCH ? ' +
-          typeClause + ' ' +
-          'ORDER BY vec.distance ASC ' +
+          (typeFilters.length > 0 ? `WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
+          'ORDER BY t.distance ASC ' +
           'LIMIT ?';
 
         params = [
           JSON.stringify(queryVector),
+          prefetchLimit,
           ...typeFilters,
           limit
         ];
