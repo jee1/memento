@@ -460,16 +460,17 @@ async function initializeServer() {
 // 서버 시작
 async function startServer() {
   try {
+    // MCP 프로토콜 준수: transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
+    // initializeServer() 호출 전에 플래그를 설정하여 초기화 중 로그 출력 방지
+    // globalThis를 통해 mcpLogger에서 접근 가능하도록 설정
+    (globalThis as any).__mcp_transport_connected = false;
+    
     await initializeServer();
     mcpLogger.logServer('info', '서버 초기화 완료');
     
     // Stdio 전송 계층 사용
     // MCP SDK의 StdioServerTransport가 stdout을 사용하여 JSON-RPC 메시지 전송
     // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
-    
-    // transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
-    // globalThis를 통해 mcpLogger에서 접근 가능하도록 설정
-    (globalThis as any).__mcp_transport_connected = false;
     
     const transport = new StdioServerTransport();
     await server.connect(transport);
