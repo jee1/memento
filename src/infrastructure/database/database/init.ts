@@ -21,24 +21,19 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// MCP 서버에서는 로그를 stderr로 출력 (마이그레이션 정보는 중요하므로 출력)
-// process.stderr가 사용 가능한 경우에만 출력
-const log = process.stderr && process.stderr.writable
-  ? (...args: any[]) => {
-      try {
-        process.stderr.write(args.map(String).join(' ') + '\n');
-      } catch {
-        // stderr 쓰기 실패 시 무시
-      }
-    }
-  : (...args: any[]) => {
-      // stderr가 없는 경우 console.error 사용 (개발 환경)
-      try {
-        console.error(...args);
-      } catch {
-        // 로그 출력 실패 시 무시
-      }
-    };
+// MCP 프로토콜 준수를 위해 초기화 로그는 출력하지 않음
+// 로그가 stdout/stderr로 출력되면 JSON-RPC 통신을 방해할 수 있음
+const log = (...args: any[]) => {
+  // MCP 프로토콜 준수를 위해 로그 출력 비활성화
+  // 필요시 환경 변수로 제어 가능하도록 주석 처리
+  // if (process.env.MCP_DEBUG === 'true') {
+  //   try {
+  //     process.stderr.write(args.map(String).join(' ') + '\n');
+  //   } catch {
+  //     // stderr 쓰기 실패 시 무시
+  //   }
+  // }
+};
 
 interface VecTableConfig {
   name: string;
