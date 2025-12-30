@@ -75,7 +75,7 @@ export class LightweightEmbeddingService {
       };
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 경량 임베딩 생성 실패:', maskedError.message);
+      process.stderr.write(`❌ 경량 임베딩 생성 실패: ${maskedError.message}\n`);
       throw new Error(`경량 임베딩 생성 실패: ${maskedError.message}`);
     }
   }

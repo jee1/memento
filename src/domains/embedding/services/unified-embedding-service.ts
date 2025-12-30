@@ -56,7 +56,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       if (result) {
         // provider 정보 추가
         result.provider = selection.provider;
-        console.log(`✅ 임베딩 생성 완료 (${selection.provider})`);
+        // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
         return result;
       }
 
@@ -65,7 +65,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 임베딩 생성 실패:', maskedError.message);
+      process.stderr.write(`❌ 임베딩 생성 실패: ${maskedError.message}\n`);
       this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
@@ -101,7 +101,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       const results = await provider.service.searchSimilar(query, embeddings, limit, threshold);
       
       if (results.length > 0) {
-        console.log(`✅ 유사도 검색 완료 (${this.getCurrentProviderName()})`);
+        // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
         return results;
       }
 
@@ -110,14 +110,14 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 유사도 검색 실패:', maskedError.message);
+      process.stderr.write(`❌ 유사도 검색 실패: ${maskedError.message}\n`);
       this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
       try {
         return await this.tryFallbackSearch(query, embeddings, limit, threshold);
       } catch (fallbackError) {
-        console.warn('⚠️ 모든 제공자 실패, 빈 결과 반환');
+        process.stderr.write('⚠️ 모든 제공자 실패, 빈 결과 반환\n');
         return [];
       }
     }
@@ -212,7 +212,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     if (!service) {
       throw new Error('모든 폴백 제공자 실패');
     }
-    console.log(`🔄 폴백 시도: ${decision.selectedProvider}`);
+    // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
     const result = await service.generateEmbedding(text);
     if (result) {
       this.currentProvider = service;
@@ -236,7 +236,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     if (!service) {
       return [];
     }
-    console.log(`🔄 폴백 검색 시도: ${decision.selectedProvider}`);
+    // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
     const results = await service.searchSimilar(query, embeddings, limit, threshold);
     if (results.length > 0) {
       this.currentProvider = service;

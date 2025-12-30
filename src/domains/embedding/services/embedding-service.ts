@@ -51,7 +51,7 @@ export class EmbeddingService {
    */
   private initializeOpenAI(): void {
     if (!mementoConfig.openaiApiKey) {
-      console.warn('⚠️ OpenAI API 키가 설정되지 않았습니다. 임베딩 기능이 비활성화됩니다.');
+      process.stderr.write('⚠️ OpenAI API 키가 설정되지 않았습니다. 임베딩 기능이 비활성화됩니다.\n');
       return;
     }
 
@@ -59,10 +59,10 @@ export class EmbeddingService {
       this.openai = new OpenAI({
         apiKey: mementoConfig.openaiApiKey,
       });
-      console.log('✅ OpenAI 임베딩 서비스 초기화 완료');
+      process.stderr.write('✅ OpenAI 임베딩 서비스 초기화 완료\n');
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ OpenAI 초기화 실패:', maskedError.message);
+      process.stderr.write(`❌ OpenAI 초기화 실패: ${maskedError.message}\n`);
       this.openai = null;
     }
   }
@@ -98,12 +98,12 @@ export class EmbeddingService {
           result = await this.generateLightweightEmbedding(text);
           break;
         default:
-          console.warn(`⚠️ 알 수 없는 임베딩 제공자: ${provider}, 경량 서비스로 fallback`);
+          process.stderr.write(`⚠️ 알 수 없는 임베딩 제공자: ${provider}, 경량 서비스로 fallback\n`);
           result = await this.generateLightweightEmbedding(text);
       }
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn(`⚠️ ${provider} 임베딩 실패, 경량 서비스로 fallback:`, maskedError.message);
+      process.stderr.write(`⚠️ ${provider} 임베딩 실패, 경량 서비스로 fallback: ${maskedError.message}\n`);
       result = await this.generateLightweightEmbedding(text);
     }
 

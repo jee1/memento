@@ -45,20 +45,20 @@ export class GeminiEmbeddingService {
    */
   private initializeGemini(): void {
     if (!mementoConfig.geminiApiKey) {
-      console.warn(
+      process.stderr.write(
         '⚠️ GEMINI_API_KEY가 설정되지 않아 Gemini 임베딩이 비활성화됩니다. ' +
-          'Gemini를 사용하려면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm과 같은 로컬 모델로 유지하세요.'
+          'Gemini를 사용하려면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm과 같은 로컬 모델로 유지하세요.\n'
       );
       return;
     }
 
     try {
       this.genAI = new GoogleGenAI({ apiKey: mementoConfig.geminiApiKey });
-      console.log('✅ Gemini 임베딩 서비스 초기화 완료');
+      process.stderr.write('✅ Gemini 임베딩 서비스 초기화 완료\n');
     } catch (error) {
-      console.error(
-        '❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM 모델을 사용하세요:',
-        error
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      process.stderr.write(
+        `❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM 모델을 사용하세요: ${errorMsg}\n`
       );
       this.genAI = null;
     }
@@ -122,13 +122,13 @@ export class GeminiEmbeddingService {
         return embeddingResult;
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        console.warn('⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback:', maskedError.message);
+        process.stderr.write(`⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback: ${maskedError.message}\n`);
         // Gemini 실패 시 MiniLM 서비스로 fallback
       }
     }
 
     // 3. Gemini가 없거나 실패한 경우 MiniLM 서비스 사용
-    console.log('🔄 MiniLM 임베딩 서비스 사용');
+    process.stderr.write('🔄 MiniLM 임베딩 서비스 사용\n');
     try {
       const miniLMResult = await this.miniLMService.generateEmbedding(text);
       if (!miniLMResult) {
@@ -148,7 +148,7 @@ export class GeminiEmbeddingService {
       return result;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ MiniLM 임베딩 생성 실패:', maskedError.message);
+      process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
       throw new Error(`임베딩 생성 실패: ${maskedError.message}`);
     }
   }

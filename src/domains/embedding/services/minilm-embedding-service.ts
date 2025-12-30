@@ -94,7 +94,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ MiniLM 임베딩 생성 실패:', maskedError.message);
+      process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
       throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
@@ -203,7 +203,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
           quantized: true
         }
       );
-      console.log('✅ MiniLM 모델 로딩 완료');
+      process.stderr.write('✅ MiniLM 모델 로딩 완료\n');
       return model;
     } catch (error) {
       // ERR_WORKER_PATH 에러는 Node.js 환경에서 onnxruntime-web의 Worker가 
@@ -216,11 +216,11 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       // 에러 로깅을 한 번만 출력하도록 조건부 처리
       if (!(global as any).__minilmModelLoadWarningShown) {
         if (isWorkerPathError) {
-          console.warn('⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용):', errorMessage);
-          console.warn('💡 해결 방법: 환경 변수 ENABLE_WORKER=false 설정 또는 onnxruntime-node 설치 확인');
+          process.stderr.write(`⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용): ${errorMessage}\n`);
+          process.stderr.write('💡 해결 방법: 환경 변수 ENABLE_WORKER=false 설정 또는 onnxruntime-node 설치 확인\n');
         } else {
           const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-          console.error('❌ MiniLM 모델 로딩 실패:', maskedError.message);
+          process.stderr.write(`❌ MiniLM 모델 로딩 실패: ${maskedError.message}\n`);
         }
         (global as any).__minilmModelLoadWarningShown = true;
       }

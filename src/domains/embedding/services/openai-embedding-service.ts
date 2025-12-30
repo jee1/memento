@@ -37,9 +37,9 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
    */
   private initializeClient(): void {
     if (!mementoConfig.openaiApiKey) {
-      console.warn(
+      process.stderr.write(
         '⚠️ OPENAI_API_KEY가 설정되지 않아 OpenAI 임베딩이 비활성화됩니다. ' +
-          '고품질 임베딩이 필요하면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm으로 변경하세요.'
+          '고품질 임베딩이 필요하면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm으로 변경하세요.\n'
       );
       this.client = null;
       return;
@@ -47,12 +47,11 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
 
     try {
       this.client = new OpenAI({ apiKey: mementoConfig.openaiApiKey });
-      console.log('✅ OpenAI 임베딩 서비스 초기화 완료');
+      process.stderr.write('✅ OpenAI 임베딩 서비스 초기화 완료\n');
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error(
-        '❌ OpenAI 초기화 실패. OPENAI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM/TFiDF 모델로 폴백하세요:',
-        maskedError.message
+      process.stderr.write(
+        `❌ OpenAI 초기화 실패. OPENAI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM/TFiDF 모델로 폴백하세요: ${maskedError.message}\n`
       );
       this.client = null;
     }
@@ -92,7 +91,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       return result;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ OpenAI 임베딩 생성 실패, 경량 서비스로 fallback:', maskedError.message);
+      process.stderr.write(`⚠️ OpenAI 임베딩 생성 실패, 경량 서비스로 fallback: ${maskedError.message}\n`);
       return this.generateFallbackEmbedding(text, cacheKey);
     }
   }
@@ -165,7 +164,8 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       }
       return null;
     } catch (fallbackError) {
-      console.error('❌ 경량 임베딩 fallback도 실패했습니다:', fallbackError);
+      const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      process.stderr.write(`❌ 경량 임베딩 fallback도 실패했습니다: ${errorMsg}\n`);
       return null;
     }
   }
