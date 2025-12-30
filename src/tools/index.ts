@@ -48,8 +48,16 @@ const coreTools = [
 
 /**
  * MCP 클라이언트용 도구 레지스트리 생성 및 등록
+ * MCP 프로토콜 준수: 모듈 로드 시점의 로그를 비활성화하여 stdout 오염 방지
+ * 로깅은 서버 초기화 후 필요 시 활성화 가능
  */
-export const toolRegistry = new ToolRegistry();
+export const toolRegistry = new ToolRegistry({
+  enableLogging: false, // 모듈 로드 시점 로그 비활성화 (MCP 프로토콜 준수)
+  enableMetrics: true,
+  maxExecutionTime: 30000,
+  enableCaching: false,
+  cacheSize: 100
+});
 
 // 핵심 도구들만 등록
 toolRegistry.registerAll(coreTools.map(tool => tool.getDefinition()));
