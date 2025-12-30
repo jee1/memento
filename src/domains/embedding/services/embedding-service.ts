@@ -59,7 +59,7 @@ export class EmbeddingService {
       this.openai = new OpenAI({
         apiKey: mementoConfig.openaiApiKey,
       });
-      process.stderr.write('✅ OpenAI 임베딩 서비스 초기화 완료\n');
+      // 초기화 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       process.stderr.write(`❌ OpenAI 초기화 실패: ${maskedError.message}\n`);

@@ -54,7 +54,7 @@ export class GeminiEmbeddingService {
 
     try {
       this.genAI = new GoogleGenAI({ apiKey: mementoConfig.geminiApiKey });
-      process.stderr.write('✅ Gemini 임베딩 서비스 초기화 완료\n');
+      // 초기화 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       process.stderr.write(
