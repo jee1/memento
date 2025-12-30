@@ -58,7 +58,6 @@ let serverServices: ServerServices | null = null;
 // 단, 초기화 전 에러는 stderr에 직접 출력하여 디버깅 가능하도록 함
 console.log = () => {};
 // console.error는 초기화 전 에러를 위해 유지하되, stderr로 리다이렉트
-const originalConsoleError = console.error;
 console.error = (...args: any[]) => {
   // 초기화 전에는 stderr에 직접 출력
   process.stderr.write(`[CONSOLE ERROR] ${args.map(a => String(a)).join(' ')}\n`);
@@ -75,7 +74,6 @@ console.debug = () => {};
 
 // MCP 서버가 connect()되기 전까지는 로그 출력을 억제
 // MCP 프로토콜 스펙: 서버가 초기화되면서 stdout에 출력이 발생하면 JSON 파싱 오류 발생
-let isTransportConnected = false;
 
 // 동시성 제한을 위한 세마포어
 export class Semaphore {
@@ -478,7 +476,6 @@ async function startServer() {
     
     // transport 연결 완료 후 로그 출력 허용
     (globalThis as any).__mcp_transport_connected = true;
-    isTransportConnected = true;
     
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
     

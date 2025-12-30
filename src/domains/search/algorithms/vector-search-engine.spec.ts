@@ -299,12 +299,16 @@ describe('VectorSearchEngine', () => {
         pinned: row.pinned,
         tags: row.tags
       }));
+      // prefetchLimit 계산: typeFilters.length > 0 ? limit * 5 : limit
+      const prefetchLimit = options.types && options.types.length > 0 ? options.limit! * 5 : options.limit!;
+      
       const allMock = vi.fn((...params: any[]) => {
-        // 변경된 파라미터 순서 검증: query, type1, type2, limit
+        // 실제 구현의 파라미터 순서: query, prefetchLimit, type1, type2, limit
         expect(params[0]).toBe(JSON.stringify(queryVector));
-        expect(params[1]).toBe('episodic');
-        expect(params[2]).toBe('semantic');
-        expect(params[3]).toBe(options.limit);
+        expect(params[1]).toBe(prefetchLimit);
+        expect(params[2]).toBe('episodic');
+        expect(params[3]).toBe('semantic');
+        expect(params[4]).toBe(options.limit);
         return mockResults;
       });
 
