@@ -53,11 +53,33 @@ let serverServices: ServerServices | null = null;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
+// MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
+// 모든 로그는 stderr로 출력되어야 함 (mcpLogger 사용)
 console.log = () => {};
 console.error = () => {};
 console.warn = () => {};
 console.info = () => {};
 console.debug = () => {};
+
+// MCP 프로토콜 준수를 위한 stdout 보호
+// MCP SDK의 StdioServerTransport가 stdout을 사용하므로, 
+// 서버 초기화 전 stdout 출력을 방지하기 위해 플래그 사용
+let isServerInitialized = false;
+
+// stdout에 직접 출력하는 것을 방지하기 위해 stdout.write도 래핑
+// 단, MCP SDK가 stdout을 사용할 수 있도록 원래 함수는 보존
+const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+process.stdout.write = function(chunk: any, encoding?: any, cb?: any): boolean {
+  // 서버가 초기화되기 전에는 stdout에 아무것도 출력하지 않음
+  // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
+  if (!isServerInitialized) {
+    // 서버가 초기화되기 전에는 stderr로 리다이렉트
+    // 이는 MCP 프로토콜 위반을 방지하기 위함
+    return process.stderr.write(chunk, encoding, cb);
+  }
+  // 서버가 초기화된 후에는 MCP SDK가 stdout을 관리하므로 원래 동작 사용
+  return originalStdoutWrite(chunk, encoding, cb);
+};
 
 // 동시성 제한을 위한 세마포어
 export class Semaphore {
@@ -211,6 +233,10 @@ async function initializeServer() {
     mcpLogger.setServer(server);
     
     mcpLogger.logServer('info', 'MCP 서버 생성 완료');
+    
+    // 서버 초기화 완료 플래그 설정
+    // 이제부터 MCP SDK가 stdout을 사용할 수 있음
+    isServerInitialized = true;
     
     // 도구 레지스트리 가져오기
     const toolRegistry = getToolRegistry();
