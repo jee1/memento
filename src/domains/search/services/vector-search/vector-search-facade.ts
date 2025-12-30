@@ -12,9 +12,9 @@ import type {
   ProviderHybridResult,
   UnifiedSearchResponse
 } from '../../../../shared/types/vector-search.types.js';
-import { VectorSearchService } from './vector-search.service';
-import { VectorIndexManager } from './vector-index-manager';
-import { VectorPerformanceTester } from './vector-performance-tester';
+import { VectorSearchService } from './vector-search.service.js';
+import { VectorIndexManager } from './vector-index-manager.js';
+import { VectorPerformanceTester } from './vector-performance-tester.js';
 import type { 
   VectorSearchRepository, 
   VectorIndexRepository, 

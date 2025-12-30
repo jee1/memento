@@ -12,7 +12,7 @@ import type {
   UnifiedSearchResponse
 } from '../../../../shared/types/vector-search.types.js';
 import type { VectorSearchRepository } from '../../../../shared/interfaces/database.interface.js';
-import { VECTOR_SEARCH_CONFIG } from '../../../../shared/config/vector-search.config';
+import { VECTOR_SEARCH_CONFIG } from '../../../../shared/config/vector-search.config.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
 import { vectorSearchResultNormalizer } from './vector-search-result-normalizer.js';
