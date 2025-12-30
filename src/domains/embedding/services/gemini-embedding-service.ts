@@ -45,10 +45,7 @@ export class GeminiEmbeddingService {
    */
   private initializeGemini(): void {
     if (!mementoConfig.geminiApiKey) {
-      process.stderr.write(
-        '⚠️ GEMINI_API_KEY가 설정되지 않아 Gemini 임베딩이 비활성화됩니다. ' +
-          'Gemini를 사용하려면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm과 같은 로컬 모델로 유지하세요.\n'
-      );
+      // 경고 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
       return;
     }
 

@@ -51,7 +51,7 @@ export class EmbeddingService {
    */
   private initializeOpenAI(): void {
     if (!mementoConfig.openaiApiKey) {
-      process.stderr.write('⚠️ OpenAI API 키가 설정되지 않았습니다. 임베딩 기능이 비활성화됩니다.\n');
+      // 경고 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
       return;
     }
 

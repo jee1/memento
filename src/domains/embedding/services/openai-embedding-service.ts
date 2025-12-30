@@ -37,10 +37,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
    */
   private initializeClient(): void {
     if (!mementoConfig.openaiApiKey) {
-      process.stderr.write(
-        '⚠️ OPENAI_API_KEY가 설정되지 않아 OpenAI 임베딩이 비활성화됩니다. ' +
-          '고품질 임베딩이 필요하면 키를 설정하거나 EMBEDDING_PROVIDER를 minilm으로 변경하세요.\n'
-      );
+      // 경고 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
       this.client = null;
       return;
     }
