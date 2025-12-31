@@ -5,6 +5,7 @@
 
 import { VectorSearchEngine } from './vector-search-engine.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 /**
  * 기존 VectorSearchEngine에서 새로운 구조로의 전환을 지원합니다.
@@ -27,7 +28,7 @@ export class VectorSearchEngineMigration {
     if (oldEngine.isConnected()) {
       // 기존 엔진의 데이터베이스 인스턴스를 가져와서 새 엔진에 설정하여 연결 상태를 유지합니다.
       // 실제 구현에서는 기존 엔진에서 데이터베이스 인스턴스를 추출하는 방법이 필요함
-      console.log('⚠️ 기존 데이터베이스 연결을 새 엔진으로 전달해야 합니다');
+      logger.warn('기존 데이터베이스 연결을 새 엔진으로 전달해야 합니다');
     }
     
     return newEngine;
@@ -116,7 +117,7 @@ try {
   const results = await engine.search(queryVector);
 } catch (error) {
   const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-  console.error('검색 실패:', maskedError.message);
+  logger.error('검색 실패', { error: maskedError.message });
 }
 
 // 새로운 (동일한 에러 처리)
@@ -124,7 +125,7 @@ try {
   const results = await engine.search(queryVector);
 } catch (error) {
   const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-  console.error('검색 실패:', maskedError.message);
+  logger.error('검색 실패', { error: maskedError.message });
 }
     `
   }
@@ -146,14 +147,14 @@ export class MigrationValidator {
       const methods = ['search', 'hybridSearch', 'getIndexStatus', 'rebuildIndex', 'performanceTest'];
       for (const method of methods) {
         if (typeof (newEngine as any)[method] !== 'function') {
-          console.error(`❌ 메서드 ${method}가 존재하지 않습니다`);
+          logger.error('메서드가 존재하지 않습니다', { method });
           return false;
         }
       }
       
       // 2. 데이터베이스 연결 상태 확인
       if (oldEngine.isConnected() !== newEngine.isConnected()) {
-        console.warn('⚠️ 데이터베이스 연결 상태가 다릅니다');
+        logger.warn('데이터베이스 연결 상태가 다릅니다');
       }
       
       // 3. 인덱스 상태 비교
@@ -161,14 +162,14 @@ export class MigrationValidator {
       const newStatus = newEngine.getIndexStatus();
       
       if (oldStatus.available !== newStatus.available) {
-        console.warn('⚠️ VEC 가용성 상태가 다릅니다');
+        logger.warn('VEC 가용성 상태가 다릅니다');
       }
       
-      console.log('✅ 호환성 검증 완료');
+      logger.info('호환성 검증 완료');
       return true;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 호환성 검증 실패:', maskedError.message);
+      logger.error('호환성 검증 실패', { error: maskedError.message });
       return false;
     }
   }
@@ -201,7 +202,7 @@ export class MigrationValidator {
       };
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 성능 비교 실패:', maskedError.message);
+      logger.error('성능 비교 실패', { error: maskedError.message });
       throw error;
     }
   }

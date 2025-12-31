@@ -11,6 +11,7 @@ import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../..
 import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 
@@ -74,7 +75,10 @@ export class MemoryInjectionPrompt extends BaseTool {
     } = MemoryInjectionSchema.parse(params);
 
     try {
-      console.log(`🧠 Memory Injection 시작: "${query}" (토큰 예산: ${token_budget})`);
+      logger.info('Memory Injection 시작', {
+        query,
+        token_budget
+      });
 
       if (!context.db) {
         throw new Error('데이터베이스가 연결되지 않았습니다');
@@ -121,7 +125,9 @@ export class MemoryInjectionPrompt extends BaseTool {
       });
 
       const memories = searchResult.items;
-      console.log(`🔍 검색된 기억: ${memories.length}개`);
+      logger.debug('검색된 기억', {
+        count: memories.length
+      });
 
       // Consolidation Score System 업데이트 (기능 플래그 확인)
       if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && memories.length > 0) {
@@ -148,7 +154,10 @@ export class MemoryInjectionPrompt extends BaseTool {
       // 3. 프롬프트 형식으로 포맷팅
       const formattedPrompt = this.formatMemoryPrompt(summary, query);
 
-      console.log(`✅ Memory Injection 완료: ${summary.length}개 기억, ${this.estimateTokens(formattedPrompt)} 토큰`);
+      logger.info('Memory Injection 완료', {
+        memoryCount: summary.length,
+        tokenCount: this.estimateTokens(formattedPrompt)
+      });
 
       return this.createSuccessResult({
         message: formattedPrompt,
@@ -159,7 +168,9 @@ export class MemoryInjectionPrompt extends BaseTool {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ Memory Injection 실패:', maskedError.message);
+      logger.error('Memory Injection 실패', {
+        error: maskedError.message
+      });
       throw error;
     }
   }

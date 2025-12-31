@@ -3,9 +3,8 @@
  * TOML 파일에서 검색 랭킹 가중치를 로드하고 검증합니다.
  */
 
-import { parse } from '@iarna/toml';
-import { readFileSync } from 'fs';
 import { join } from 'path';
+import { loadTOMLConfig, mergeWithDefaults, validateConfig, getCachedConfig, clearConfigCache } from './config-loader-utils.js';
 
 export interface RankingWeights {
   alpha: number; // relevance 가중치
@@ -50,27 +49,45 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
   const path = configPath ?? defaultPath;
 
   try {
-    const fileContent = readFileSync(path, 'utf-8');
-    const parsed = parse(fileContent) as Partial<RankingWeightsConfig>;
+    // 공통 로더 유틸리티 사용
+    const parsed = loadTOMLConfig<Partial<RankingWeightsConfig>>(path, DEFAULT_CONFIG);
 
     // 기본값과 병합
-    const config: RankingWeightsConfig = {
-      ranking_weights: {
-        ...DEFAULT_CONFIG.ranking_weights,
-        ...(parsed.ranking_weights || {})
-      },
-      relation_weights: {
-        ...DEFAULT_CONFIG.relation_weights,
-        ...(parsed.relation_weights || {})
-      }
+    const config = mergeWithDefaults(parsed as unknown as Record<string, unknown>, DEFAULT_CONFIG as unknown as Record<string, unknown>) as unknown as RankingWeightsConfig;
+
+    // 값 검증 (공통 검증 로직 사용)
+    const validationSchema = {
+      'ranking_weights.alpha': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.beta': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.gamma': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.delta': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.zeta': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
+      'relation_weights.max_relations': { type: 'number' as const, min: 1 }
     };
 
-    // 값 검증
+    // 중첩 객체를 평탄화하여 검증
+    const flatConfig: Record<string, unknown> = {
+      'ranking_weights.alpha': config.ranking_weights.alpha,
+      'ranking_weights.beta': config.ranking_weights.beta,
+      'ranking_weights.gamma': config.ranking_weights.gamma,
+      'ranking_weights.delta': config.ranking_weights.delta,
+      'ranking_weights.zeta': config.ranking_weights.zeta,
+      'ranking_weights.epsilon': config.ranking_weights.epsilon,
+      'relation_weights.max_relations': config.relation_weights.max_relations
+    };
+
+    const validationResult = validateConfig(flatConfig, validationSchema);
+    if (!validationResult.valid) {
+      throw new Error(`검색 랭킹 가중치 설정 검증 실패: ${validationResult.errors.join(', ')}`);
+    }
+
+    // 기존 검증 로직도 유지 (가중치 합계 경고 등)
     validateRankingWeights(config);
 
     return config;
   } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+    if (error instanceof Error && error.message.includes('설정 파일을 찾을 수 없습니다')) {
       // 파일이 없으면 기본값 반환
       console.warn(`[ranking-weights] 설정 파일을 찾을 수 없습니다: ${path}. 기본값을 사용합니다.`);
       return DEFAULT_CONFIG;
@@ -120,25 +137,17 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
 }
 
 /**
- * 싱글톤 인스턴스로 설정을 캐싱합니다.
- */
-let cachedConfig: RankingWeightsConfig | null = null;
-
-/**
  * 검색 랭킹 가중치 설정을 가져옵니다 (캐싱됨).
  * @param configPath TOML 설정 파일 경로
  * @returns 검색 랭킹 가중치 설정 객체
  */
 export function getRankingWeights(configPath?: string): RankingWeightsConfig {
-  if (!cachedConfig) {
-    cachedConfig = loadRankingWeights(configPath);
-  }
-  return cachedConfig;
+  return getCachedConfig('ranking-weights', () => loadRankingWeights(configPath));
 }
 
 /**
  * 캐시된 설정을 초기화합니다 (테스트용).
  */
 export function resetRankingWeightsCache(): void {
-  cachedConfig = null;
+  clearConfigCache('ranking-weights');
 }

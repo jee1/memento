@@ -11,6 +11,10 @@
 import OpenAI from 'openai';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
+import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
+import { logger } from '../../../shared/utils/logger.js';
 import { GeminiEmbeddingService, type GeminiEmbeddingResult, type GeminiSimilarityResult } from './gemini-embedding-service.js';
 import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
 
@@ -39,11 +43,20 @@ export class EmbeddingService {
   private embeddingCache: Map<string, EmbeddingResult> = new Map(); // 임베딩 캐시
   private batchQueue: string[] = []; // 배치 처리 큐
   private batchTimeout: NodeJS.Timeout | null = null;
+  private readonly retryManager: RetryManager;
 
   constructor() {
     this.geminiService = new GeminiEmbeddingService();
     this.lightweightService = new LightweightEmbeddingService();
     this.initializeOpenAI();
+    
+    // RetryManager 초기화 (embedding_api 설정 사용)
+    const retryOptions = getRetryOptions();
+    const retryConfig: RetryConfig = {
+      ...retryOptions.embedding_api,
+      maxErrorCount: retryOptions.default.maxErrorCount
+    };
+    this.retryManager = new RetryManager(retryConfig);
   }
 
   /**
@@ -126,11 +139,40 @@ export class EmbeddingService {
 
     const truncatedText = this.truncateText(text);
     
-    const response = await this.openai.embeddings.create({
-      model: this.model,
-      input: truncatedText,
-      encoding_format: 'float',
-    });
+    // RetryManager를 사용하여 외부 API 호출 재시도
+    const retryOptions = getRetryOptions();
+    const response = await this.retryManager.retry(
+      async () => {
+        return await this.openai!.embeddings.create({
+          model: this.model,
+          input: truncatedText,
+          encoding_format: 'float',
+        });
+      },
+      {
+        maxAttempts: retryOptions.embedding_api.maxAttempts,
+        baseDelay: retryOptions.embedding_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          // 네트워크 에러나 일시적 오류만 재시도
+          const message = error.message.toLowerCase();
+          return message.includes('network') || 
+                 message.includes('timeout') || 
+                 message.includes('rate limit') ||
+                 message.includes('server error') ||
+                 message.includes('503') ||
+                 message.includes('502') ||
+                 message.includes('500');
+        },
+        onRetry: (error: Error, attempt: number, delay: number) => {
+          logger.warn('OpenAI 임베딩 API 호출 재시도 (레거시 서비스)', {
+            attempt,
+            delay,
+            error: error.message,
+            model: this.model
+          });
+        }
+      }
+    );
 
     const embedding = response.data[0]?.embedding;
     if (!embedding) {

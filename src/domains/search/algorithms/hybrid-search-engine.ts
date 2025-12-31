@@ -14,32 +14,8 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-
-// 검색 관련 상수
-/**
- * 개별 provider의 검색 작업이 지연되어 전체 검색 성능에 영향을 주지 않도록 제한합니다.
- * 각 provider별 검색 작업이 이 시간 내에 완료되지 않으면 타임아웃 처리하여 응답성을 보장합니다.
- */
-const PROVIDER_SEARCH_TIMEOUT_MS = 2000;
-
-/**
- * 전체 검색 프로세스가 무한정 대기하지 않도록 최대 대기 시간을 설정합니다.
- * 모든 provider 검색이 이 시간 내에 완료되지 않으면 현재까지 완료된 결과만 반환하여 사용자 경험을 보장합니다.
- * 개별 provider 타임아웃보다 충분히 길게 설정하여 병렬 실행의 이점을 활용합니다.
- */
-const OVERALL_SEARCH_TIMEOUT_MS = 5000;
-
-/**
- * 중복 제거 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
- * 더 많은 결과를 가져와서 최종 결과의 품질과 다양성을 보장합니다.
- */
-const VECTOR_SEARCH_LIMIT_MULTIPLIER = 2;
-
-/**
- * 관련성이 낮은 벡터 검색 결과는 사용자에게 유용하지 않으므로 필터링하여 검색 품질을 향상시킵니다.
- * 이 값보다 낮은 similarity를 가진 결과는 노이즈에 가까우므로 제외하여 검색 정확도를 높입니다.
- */
-const VECTOR_SEARCH_THRESHOLD = 0.5;
+import { logger } from '../../../shared/utils/logger.js';
+import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 
 // 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
 export interface ITextSearchEngine {
@@ -104,7 +80,7 @@ export class SearchResultCombiner implements ISearchResultCombiner {
 
     // 텍스트 검색 결과를 먼저 추가하여 기본 점수를 설정합니다.
     textResults.forEach(result => {
-      const textScore = typeof result.score === 'number' ? result.score : 0;
+      const textScore = typeof result.score === 'number' ? result.score : HYBRID_SEARCH.DEFAULT_TEXT_WEIGHT * 0; // 0
       resultMap.set(result.id, {
         id: result.id,
         content: result.content,
@@ -158,10 +134,11 @@ export class SearchResultCombiner implements ISearchResultCombiner {
     if (textScore > 0.7) {
       reasons.push('텍스트 매칭 우수');
     }
-    if (vectorScore > 0.8) {
+    if (vectorScore > HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_vector_score_threshold) {
       reasons.push('의미적 유사도 높음');
     }
-    if (textScore > 0.5 && vectorScore > 0.5) {
+    if (textScore > HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.medium_score_threshold && 
+        vectorScore > HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.medium_score_threshold) {
       reasons.push('텍스트+벡터 결합');
     }
     
@@ -189,16 +166,22 @@ export class AdaptiveWeightCalculator implements IAdaptiveWeightCalculator {
 
     if (queryAnalysis.isTechnicalTerm) {
       // 기술 용어는 의미적 유사성이 중요하므로 벡터 검색에 더 높은 가중치를 부여합니다.
-      adjustedVectorWeight = Math.min(0.8, vectorWeight + 0.2);
-      adjustedTextWeight = Math.max(0.2, textWeight - 0.2);
+      adjustedVectorWeight = Math.min(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.max_weight, 
+        vectorWeight + HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_vector_boost);
+      adjustedTextWeight = Math.max(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.min_weight, 
+        textWeight - HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_text_boost);
     } else if (queryAnalysis.isPhrase) {
       // 구문 검색은 정확한 단어 매칭이 중요하므로 텍스트 검색에 더 높은 가중치를 부여합니다.
-      adjustedVectorWeight = Math.max(0.2, vectorWeight - 0.2);
-      adjustedTextWeight = Math.min(0.8, textWeight + 0.2);
+      adjustedVectorWeight = Math.max(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.min_weight, 
+        vectorWeight - HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_vector_boost);
+      adjustedTextWeight = Math.min(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.max_weight, 
+        textWeight + HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_text_boost);
     } else if (queryAnalysis.isShortQuery) {
       // 짧은 쿼리는 키워드 매칭이 제한적이므로 의미적 유사성을 활용하는 벡터 검색에 더 의존합니다.
-      adjustedVectorWeight = Math.min(0.7, vectorWeight + 0.1);
-      adjustedTextWeight = Math.max(0.3, textWeight - 0.1);
+      adjustedVectorWeight = Math.min(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.max_weight - 0.1, 
+        vectorWeight + HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.medium_boost);
+      adjustedTextWeight = Math.max(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.min_weight + 0.1, 
+        textWeight - HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.medium_boost);
     }
 
     // 가중치의 합이 1이 되도록 정규화하여 일관된 점수 범위를 유지합니다.
@@ -243,7 +226,11 @@ export class SearchLogger implements ISearchLogger {
   }
 
   logSearchStep(searchId: string, step: string, data: any): void {
-    console.log(`🔍 [${searchId}] ${step}`, data);
+    logger.debug(`하이브리드 검색 단계: ${step}`, {
+      searchId,
+      step,
+      data
+    });
   }
 
   logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
@@ -543,8 +530,8 @@ export class HybridSearchEngine {
       
       // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
       const searchOptions = {
-        limit: (query.limit || 10) * VECTOR_SEARCH_LIMIT_MULTIPLIER,
-        threshold: VECTOR_SEARCH_THRESHOLD,
+        limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
+        threshold: HYBRID_SEARCH.VECTOR_SEARCH_THRESHOLD,
         types: query.filters?.type,
         includeContent: true
       };
@@ -654,9 +641,9 @@ export class HybridSearchEngine {
           results: [] as Array<VectorSearchResult & { provider: string }>,
           success: false,
           timeMs: providerTime,
-          error: `Provider 검색 타임아웃 (${PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`
+          error: `Provider 검색 타임아웃 (${HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`
         });
-      }, PROVIDER_SEARCH_TIMEOUT_MS);
+      }, HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS);
     });
     
     // 실제 검색 작업 Promise
@@ -744,11 +731,11 @@ export class HybridSearchEngine {
       overallTimeoutHandle = setTimeout(() => {
         overallTimeoutOccurred = true;
         this.logger.logSearchStep(searchId, 'VEC 벡터 검색 전체 타임아웃', {
-          timeoutMs: OVERALL_SEARCH_TIMEOUT_MS,
+          timeoutMs: HYBRID_SEARCH.OVERALL_SEARCH_TIMEOUT_MS,
           message: '전체 검색 프로세스 타임아웃 발생 - 현재까지 완료된 결과만 반환'
         });
         resolve();
-      }, OVERALL_SEARCH_TIMEOUT_MS);
+      }, HYBRID_SEARCH.OVERALL_SEARCH_TIMEOUT_MS);
     });
     
     // 타임아웃 타이머를 정리하여 메모리 누수를 방지합니다.
@@ -959,8 +946,8 @@ export class HybridSearchEngine {
     const fallbackStart = process.hrtime.bigint();
     const vectorResults = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type as MemoryType[],
-      limit: (query.limit || 10) * VECTOR_SEARCH_LIMIT_MULTIPLIER,
-      threshold: VECTOR_SEARCH_THRESHOLD,
+      limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
+      threshold: HYBRID_SEARCH.VECTOR_SEARCH_THRESHOLD,
     });
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
     
@@ -1041,7 +1028,9 @@ export class HybridSearchEngine {
       }
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ 저장된 임베딩 provider 감지 실패:', maskedError.message);
+      logger.warn('저장된 임베딩 provider 감지 실패', {
+        error: maskedError.message
+      });
     }
 
     // provider가 없는 경우 빈 배열을 반환하여 안정적인 동작을 보장합니다.
@@ -1244,7 +1233,9 @@ export class HybridSearchEngine {
     } catch (error) {
       // 에러 발생 시 빈 Map 반환 (기존 finalScore 유지)
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ Consolidation Score 조회 실패:', maskedError.message);
+      logger.warn('Consolidation Score 조회 실패', {
+        error: maskedError.message
+      });
     }
     
     return scores;
@@ -1405,7 +1396,9 @@ export class HybridSearchEngine {
     } catch (error) {
       // 에러 발생 시 빈 Map 반환 (procedural memory boost 없음)
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ Procedural Memory 매칭 정보 조회 실패:', maskedError.message);
+      logger.warn('Procedural Memory 매칭 정보 조회 실패', {
+        error: maskedError.message
+      });
     }
     
     return matches;
@@ -1463,7 +1456,9 @@ export class HybridSearchEngine {
     } catch (error) {
       // 에러 발생 시 빈 Map 반환 (관계 가중치 없이 진행)
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ 관계 가중치 계산 실패:', maskedError.message);
+      logger.warn('관계 가중치 계산 실패', {
+        error: maskedError.message
+      });
     }
     
     return { weights, relations };

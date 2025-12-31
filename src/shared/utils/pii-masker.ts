@@ -290,7 +290,7 @@ export class PIIMasker {
    * @param obj 마스킹할 객체
    * @returns 마스킹된 객체
    */
-  static maskObject(obj: any): any {
+  static maskObject(obj: any, visited: WeakSet<any> = new WeakSet()): any {
     // 환경 변수로 마스킹 비활성화된 경우 원본 반환
     if (!isPIIMaskingEnabled()) {
       return obj;
@@ -298,6 +298,12 @@ export class PIIMasker {
     if (!obj || typeof obj !== 'object') {
       return obj;
     }
+
+    // 순환 참조 감지
+    if (visited.has(obj)) {
+      return '[Circular Reference]';
+    }
+    visited.add(obj);
 
     try {
       // JSON 직렬화 후 마스킹
@@ -307,12 +313,17 @@ export class PIIMasker {
       return JSON.parse(masked);
     } catch {
       // 직렬화/역직렬화 실패 시 개별 필드에 마스킹 적용 시도
-      const masked: any = {};
+      const masked: any = Array.isArray(obj) ? [] : {};
       for (const [key, value] of Object.entries(obj)) {
         if (typeof value === 'string') {
           masked[key] = this.mask(value).masked;
         } else if (typeof value === 'object' && value !== null) {
-          masked[key] = this.maskObject(value);
+          // 순환 참조 체크
+          if (visited.has(value)) {
+            masked[key] = '[Circular Reference]';
+          } else {
+            masked[key] = this.maskObject(value, visited);
+          }
         } else {
           masked[key] = value;
         }

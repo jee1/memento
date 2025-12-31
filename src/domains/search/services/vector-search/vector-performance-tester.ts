@@ -7,6 +7,7 @@ import type { PerformanceTestResult } from '../../../../shared/types/vector-sear
 import type { VectorPerformanceRepository } from '../../../../shared/interfaces/database.interface.js';
 import { VECTOR_SEARCH_DEFAULTS } from '../../../../shared/config/vector-search.config.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 export class VectorPerformanceTester {
   constructor(private repository: VectorPerformanceRepository) {}
@@ -24,7 +25,9 @@ export class VectorPerformanceTester {
       return await this.repository.runPerformanceTest(queryVector, iterations);
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('성능 테스트 실패:', maskedError.message);
+      logger.error('성능 테스트 실패', {
+        error: maskedError.message
+      });
       return {
         averageTime: 0,
         minTime: 0,

@@ -11,9 +11,11 @@ const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..', '..');
 const distDatabaseDir = join(projectRoot, 'dist', 'database');
 const distMigrationDir = join(projectRoot, 'dist', 'infrastructure', 'database', 'database', 'migration', 'migrations');
+const distPromptsDir = join(projectRoot, 'dist', 'prompts');
 const sourceSchemaFile = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'schema.sql');
 const targetSchemaFile = join(distDatabaseDir, 'schema.sql');
 const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
+const sourcePromptsDir = join(projectRoot, 'prompts');
 
 try {
   // dist/database 디렉토리가 없으면 생성
@@ -55,6 +57,39 @@ try {
     if (copiedCount > 0) {
       console.log(`✅ Copied ${copiedCount} migration SQL file(s) to dist/infrastructure/database/database/migration/migrations/`);
     }
+  }
+
+  // prompts 디렉토리 복사
+  if (existsSync(sourcePromptsDir)) {
+    // dist/prompts 디렉토리가 없으면 생성
+    if (!existsSync(distPromptsDir)) {
+      mkdirSync(distPromptsDir, { recursive: true });
+      console.log('✅ Created dist/prompts directory');
+    }
+
+    // prompts 디렉토리의 모든 파일 복사
+    const copyRecursive = (src, dest) => {
+      const entries = readdirSync(src, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const srcPath = join(src, entry.name);
+        const destPath = join(dest, entry.name);
+        
+        if (entry.isDirectory()) {
+          if (!existsSync(destPath)) {
+            mkdirSync(destPath, { recursive: true });
+          }
+          copyRecursive(srcPath, destPath);
+        } else {
+          copyFileSync(srcPath, destPath);
+        }
+      }
+    };
+
+    copyRecursive(sourcePromptsDir, distPromptsDir);
+    console.log('✅ Copied prompts directory to dist/prompts/');
+  } else {
+    console.warn('⚠️  Source prompts directory not found:', sourcePromptsDir);
   }
 
 } catch (error) {

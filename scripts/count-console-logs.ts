@@ -30,6 +30,7 @@ interface CliOptions {
   exclude?: string[];
   target?: number;
   allowSoftFail?: boolean;
+  format?: 'json' | 'csv' | 'text';
 }
 
 /**
@@ -44,6 +45,17 @@ interface ConsoleLogLocation {
 }
 
 /**
+ * 파일별 결과
+ */
+interface FileResult {
+  file: string;
+  count: number;
+  priority: number;
+  isCore: boolean;
+  methods: Record<string, number>;
+}
+
+/**
  * 측정 결과
  */
 interface CountResult {
@@ -52,6 +64,7 @@ interface CountResult {
   locations: ConsoleLogLocation[];
   byFile: Map<string, number>;
   byMethod: Map<string, number>;
+  files: FileResult[];
 }
 
 /**
@@ -83,6 +96,12 @@ function parseArgs(): CliOptions {
       i++;
     } else if (arg === '--allow-soft-fail') {
       options.allowSoftFail = true;
+    } else if (arg === '--format' && args[i + 1]) {
+      const format = args[i + 1].toLowerCase();
+      if (format === 'json' || format === 'csv' || format === 'text') {
+        options.format = format as 'json' | 'csv' | 'text';
+      }
+      i++;
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -104,10 +123,11 @@ console.log 개수 측정 스크립트
 
 옵션:
   --ci                    CI 모드 (실패 시 exit code 1 반환)
-  --core-only             핵심 모듈만 검사 (src/server/, src/services/)
+  --core-only             핵심 모듈만 검사 (src/server/, src/services/, src/domains/)
   --directory <path>      검사할 디렉토리 (기본값: src/)
   --exclude <pattern>     제외할 파일 패턴 (여러 번 사용 가능)
   --target <number>       목표 개수 (기본값: 핵심 모듈 0개, 전체 200개)
+  --format <format>       출력 형식: json, csv, text (기본값: text)
   --allow-soft-fail       CI 모드에서 경고만 출력하고 통과
   --help, -h              도움말 출력
 
@@ -121,9 +141,12 @@ console.log 개수 측정 스크립트
 
 /**
  * 핵심 모듈인지 확인
+ * src/server/, src/services/, src/domains/ 디렉토리 포함
  */
 function isCoreModule(filePath: string): boolean {
-  return filePath.includes('src/server/') || filePath.includes('src/services/');
+  return filePath.includes('src/server/') || 
+         filePath.includes('src/services/') || 
+         filePath.includes('src/domains/');
 }
 
 /**
@@ -261,6 +284,7 @@ function countConsoleLogs(files: string[], coreOnly: boolean): CountResult {
   const locations: ConsoleLogLocation[] = [];
   const byFile = new Map<string, number>();
   const byMethod = new Map<string, number>();
+  const fileMethods = new Map<string, Map<string, number>>();
   
   for (const file of files) {
     // 테스트 파일과 CLI 스크립트는 제외
@@ -279,29 +303,92 @@ function countConsoleLogs(files: string[], coreOnly: boolean): CountResult {
     if (fileLocations.length > 0) {
       byFile.set(file, fileLocations.length);
       
+      const methods = new Map<string, number>();
       for (const loc of fileLocations) {
         const count = byMethod.get(loc.method) || 0;
         byMethod.set(loc.method, count + 1);
+        
+        const fileMethodCount = methods.get(loc.method) || 0;
+        methods.set(loc.method, fileMethodCount + 1);
       }
+      fileMethods.set(file, methods);
     }
   }
   
   // 핵심 모듈 개수 계산
   const coreLocations = locations.filter(loc => isCoreModule(loc.file));
   
+  // 파일별 결과 생성 (우선순위 산출)
+  const fileResults: FileResult[] = Array.from(byFile.entries())
+    .map(([file, count]) => {
+      const methods = fileMethods.get(file) || new Map<string, number>();
+      const methodsObj: Record<string, number> = {};
+      methods.forEach((value, key) => {
+        methodsObj[key] = value;
+      });
+      
+      return {
+        file,
+        count,
+        priority: count, // 우선순위는 개수와 동일 (많을수록 높은 우선순위)
+        isCore: isCoreModule(file),
+        methods: methodsObj
+      };
+    })
+    .sort((a, b) => b.priority - a.priority); // 우선순위 내림차순 정렬
+  
   return {
     total: locations.length,
     coreTotal: coreLocations.length,
     locations,
     byFile,
-    byMethod
+    byMethod,
+    files: fileResults
   };
 }
 
 /**
- * 결과 출력
+ * JSON 형식으로 결과 출력
  */
-function printResults(
+function printResultsJSON(result: CountResult, projectRoot: string): void {
+  const output = {
+    total: result.total,
+    coreTotal: result.coreTotal,
+    files: result.files.map(f => ({
+      file: relative(projectRoot, f.file),
+      count: f.count,
+      priority: f.priority,
+      isCore: f.isCore,
+      methods: f.methods
+    })),
+    byMethod: Object.fromEntries(result.byMethod),
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log(JSON.stringify(output, null, 2));
+}
+
+/**
+ * CSV 형식으로 결과 출력
+ */
+function printResultsCSV(result: CountResult, projectRoot: string): void {
+  // CSV 헤더
+  console.log('file,count,priority,isCore,methods');
+  
+  // 파일별 데이터
+  for (const file of result.files) {
+    const relativePath = relative(projectRoot, file.file);
+    const methodsStr = Object.entries(file.methods)
+      .map(([method, count]) => `${method}:${count}`)
+      .join(';');
+    console.log(`${relativePath},${file.count},${file.priority},${file.isCore},"${methodsStr}"`);
+  }
+}
+
+/**
+ * 텍스트 형식으로 결과 출력
+ */
+function printResultsText(
   result: CountResult,
   target: number,
   coreTarget: number,
@@ -379,6 +466,26 @@ function printResults(
 }
 
 /**
+ * 결과 출력 (형식에 따라 분기)
+ */
+function printResults(
+  result: CountResult,
+  target: number,
+  coreTarget: number,
+  projectRoot: string,
+  coreOnly: boolean,
+  format: 'json' | 'csv' | 'text' = 'text'
+): void {
+  if (format === 'json') {
+    printResultsJSON(result, projectRoot);
+  } else if (format === 'csv') {
+    printResultsCSV(result, projectRoot);
+  } else {
+    printResultsText(result, target, coreTarget, projectRoot, coreOnly);
+  }
+}
+
+/**
  * 메인 함수
  */
 async function main(): Promise<void> {
@@ -407,7 +514,8 @@ async function main(): Promise<void> {
     const result = countConsoleLogs(files, options.coreOnly || false);
 
     // 결과 출력
-    printResults(result, target, coreTarget, projectRoot, options.coreOnly || false);
+    const format = options.format || 'text';
+    printResults(result, target, coreTarget, projectRoot, options.coreOnly || false, format);
 
     // CI 모드: exit code 처리
     if (options.ci) {

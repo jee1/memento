@@ -7,6 +7,7 @@
  */
 
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -385,15 +386,16 @@ export class ErrorLoggingService {
     const contextJson = JSON.stringify(error.context, null, 2);
     const maskedContextJson = PIIMasker.mask(contextJson).masked;
     
-    console.error(
-      `${color}[${error.severity.toUpperCase()}] ${error.category.toUpperCase()}${resetColor}\n` +
-      `  ID: ${error.id}\n` +
-      `  Time: ${error.timestamp.toISOString()}\n` +
-      `  Message: ${error.message}\n` +
-      `  Component: ${error.context.component}\n` +
-      (error.stack ? `  Stack: ${error.stack}\n` : '') +
-      `  Context: ${maskedContextJson}\n`
-    );
+    logger.error('에러 로깅', {
+      severity: error.severity,
+      category: error.category,
+      id: error.id,
+      timestamp: error.timestamp.toISOString(),
+      message: error.message,
+      component: error.context.component,
+      stack: error.stack,
+      context: maskedContextJson
+    });
   }
 
 

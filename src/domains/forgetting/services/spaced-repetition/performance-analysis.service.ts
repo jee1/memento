@@ -8,6 +8,7 @@ import type {
   ReviewPerformance 
 } from '../../../../shared/types/spaced-repetition.types.js';
 import type { PerformanceAnalyzer } from '../../../../shared/interfaces/spaced-repetition.interface.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 /**
  * 기본 성과 분석기
@@ -82,7 +83,7 @@ export class DetailedPerformanceAnalyzer implements PerformanceAnalyzer {
     const weeklyPerformance = this.calculateWeeklyPerformance(schedules, actualRecall);
     const trendDirection = this.calculateTrendDirection(weeklyPerformance);
     
-    console.log(`성과 트렌드: ${trendDirection}`);
+    logger.info('성과 트렌드', { trendDirection });
   }
 
   private analyzeIntervalEffectiveness(
@@ -92,7 +93,7 @@ export class DetailedPerformanceAnalyzer implements PerformanceAnalyzer {
     // 간격별 효과성 분석 로직
     const intervalEffectiveness = this.calculateIntervalEffectiveness(schedules, actualRecall);
     
-    console.log('간격별 효과성:', intervalEffectiveness);
+    logger.info('간격별 효과성', { intervalEffectiveness });
   }
 
   private calculateWeeklyPerformance(

@@ -165,13 +165,15 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     const lines = content.split('\n');
     const relativePath = relative(process.cwd(), filePath);
     
-    // logger.ts는 이미 PII 마스킹이 적용되어 있으므로 제외
-    if (relativePath.includes('shared/utils/logger.ts')) {
+    // logger.ts와 logging-helpers.ts는 이미 PII 마스킹이 적용되어 있으므로 제외
+    // logger.ts는 PII 마스킹을 자동으로 적용하고, logging-helpers.ts는 logger를 사용함
+    if (relativePath.includes('shared/utils/logger.ts') || relativePath.includes('shared/utils/logging-helpers.ts')) {
       return locations;
     }
     
     // logger.ts를 import하는지 확인 (이미 마스킹이 적용되어 있음)
-    const usesLoggerUtils = /import.*logger.*from.*['"]\.\.?\/.*shared\/utils\/logger|from.*['"]\.\.?\/.*shared\/utils\/logger/.test(content);
+    // 다양한 import 패턴 지원: import { logger } from '...', import logger from '...', import * as logger from '...'
+    const usesLoggerUtils = /import\s+.*\blogger\b.*from\s+['"].*shared\/utils\/logger|from\s+['"].*shared\/utils\/logger/.test(content);
     
     // 로거 파일인지 확인 (logger, file-logger, error-logging-service 등)
     const isLoggerFile = /logger|log|error-logging/i.test(relativePath);

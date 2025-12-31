@@ -2,13 +2,26 @@
  * MCP 전용 로거
  * MCP 프로토콜 로그와 서버 동작 로그를 분리하여 처리
  * 
- * - MCP 프로토콜 로그: server.sendLoggingMessage() 사용 (Cursor로 구조화된 알림 전송)
+ * MCP 스펙 준수:
+ * - MCP Spec 2024-11-05 준수
+ * - 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
+ * 
+ * 구현 사항:
+ * - MCP 프로토콜 로그: server.sendLoggingMessage() 사용 (notifications/message 형식 준수)
  * - 서버/배치 로그: process.stderr.write() 사용 (서버 콘솔 출력)
  * - stdout 사용 금지 (MCP 가이드라인 준수)
+ * - 일관된 logger 이름 사용 ('mcp-protocol', 'server', 'batch')
+ * - 로그 레벨 필터링 지원 (debug, info, warn, error)
+ * - Rate limiting 지원 (로그 전송 빈도 제한)
+ * - 컨텍스트 포함 (agentId, slot, memoryId, traceId 등) - logging-helpers.ts에서 제공
+ * 
+ * 주의사항:
+ * - PII 마스킹은 호출자에서 처리해야 함 (자격 증명, 내부 시스템 세부사항 포함 금지)
  */
 
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { mementoConfig } from '../shared/config/index.js';
+import { loggingRateLimiter } from '../shared/utils/logging-rate-limiter.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -79,6 +92,10 @@ export class MCPLogger {
   /**
    * MCP 프로토콜 로그 (Cursor로 전송)
    * 도구/리소스 요청 등 MCP 프로토콜 통신 관련 로그
+   * 
+   * MCP 스펙 준수:
+   * - Rate limiting: 로그 전송 빈도 제한 (초당 최대 로그 수)
+   * - ERROR 레벨은 rate limiting 우회 (치명적 오류는 항상 전송)
    */
   async logMCPProtocol(level: LogLevel, message: string, data?: any): Promise<void> {
     // DEBUG 레벨은 기본적으로 숨김
@@ -88,6 +105,12 @@ export class MCPLogger {
 
     // 로그 레벨 필터링
     if (!shouldLog(level)) {
+      return;
+    }
+
+    // Rate limiting (ERROR 레벨은 우회)
+    if (level !== 'error' && !loggingRateLimiter.consume()) {
+      // Rate limit에 걸린 로그는 드롭 (ERROR는 항상 전송)
       return;
     }
 

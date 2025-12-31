@@ -110,7 +110,7 @@ epsilon = 0.10
       writeFileSync(tempConfigPath, invalidConfig, 'utf-8');
 
       // When/Then: 에러가 발생해야 함
-      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/가중치 alpha는 0 이상 1 이하/);
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/alpha.*최대값.*1/);
     });
 
     it('should throw error when weight value is negative', () => {
@@ -125,8 +125,8 @@ epsilon = 0.10
 `;
       writeFileSync(tempConfigPath, invalidConfig, 'utf-8');
 
-      // When/Then: 에러가 발생해야 함
-      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/가중치 alpha는 0 이상 1 이하/);
+      // When/Then: 에러가 발생해야 함 (음수이므로 최소값 에러)
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/alpha.*최소값.*0/);
     });
 
     it('should throw error when max_relations is not positive', () => {
@@ -145,7 +145,7 @@ max_relations = 0
       writeFileSync(tempConfigPath, invalidConfig, 'utf-8');
 
       // When/Then: 에러가 발생해야 함
-      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/max_relations는 양수여야 합니다/);
+      expect(() => loadRankingWeights(tempConfigPath)).toThrow(/max_relations.*최소값.*1/);
     });
 
     it('should throw error when config file is invalid TOML', () => {

@@ -149,6 +149,7 @@
   "files": [
     "dist",
     "scripts",
+    "prompts",
     "src/database/schema.sql",
     "README.md",
     "README.en.md",

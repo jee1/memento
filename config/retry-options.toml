@@ -1,0 +1,25 @@
+# 재시도 옵션 설정
+# 외부 API 호출 및 배치 작업의 재시도 전략 설정
+
+[default]
+# 기본 재시도 설정
+max_attempts = 3
+base_delay_ms = 100
+max_error_count = 10
+
+[external_api]
+# 외부 API 호출용 재시도 설정
+max_attempts = 3
+base_delay_ms = 100
+
+[embedding_api]
+# 임베딩 API 호출용 재시도 설정
+max_attempts = 3
+base_delay_ms = 200
+
+[batch_job]
+# 배치 작업용 재시도 설정
+max_attempts = 5
+base_delay_ms = 1000
+max_error_count = 20
+

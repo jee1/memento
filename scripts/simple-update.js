@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * 간단한 데이터 업데이트 스크립트
+ * 간단한 데이터 업데이트 스크립트 (레거시)
  * 임베딩 메타데이터 업데이트
  * 
- * 리팩토링: 공통 모듈(initializeDatabase)을 사용하여 일관된 DB 초기화 보장
+ * ⚠️  레거시 스크립트: 이 스크립트는 simple-update-wrapper.ts로 대체되었습니다.
+ * simple-update-wrapper.ts는 정식 마이그레이션 시스템(MigrationRunner)을 사용합니다.
  * 
  * 사용법: 
- *   - 개발 환경: npx tsx scripts/simple-update.js
- *   - 프로덕션: npm run build && node dist/scripts/simple-update.js
+ *   - 권장: npx tsx scripts/simple-update-wrapper.ts
+ *   - 레거시: npx tsx scripts/simple-update.js (하위 호환성 유지)
+ * 
+ * @deprecated simple-update-wrapper.ts를 사용하세요
  */
 
 // TypeScript 소스를 직접 import (tsx로 실행 시)

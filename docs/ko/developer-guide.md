@@ -421,6 +421,287 @@ npm run format
 npm run lint
 ```
 
+### ESLint 설정 및 규칙
+
+#### no-console 규칙
+
+Memento 프로젝트는 `no-console` 규칙을 **error** 레벨로 설정하여 `console.log`, `console.error` 등의 직접 사용을 금지합니다.
+
+**규칙 목적**:
+- **MCP 프로토콜 준수**: MCP 서버는 stdio 전송 시 stdout에 오직 JSON-RPC 메시지만 출력해야 합니다
+- **로깅 시스템 통일**: 모든 로그는 중앙화된 로깅 시스템(`src/shared/utils/logger.ts`)을 통해 출력되어야 합니다
+- **PII 마스킹**: 중앙화된 로깅 시스템은 자동으로 PII(개인 식별 정보)를 마스킹합니다
+- **MCP 스펙 준수**: MCP Logger를 통해 `notifications/message` 형식으로 로그를 전송합니다
+
+**예외 처리**:
+
+다음 파일/디렉토리는 `no-console` 규칙 예외가 적용됩니다:
+
+1. **`src/server/index.ts`**:
+   - **이유**: MCP 프로토콜 준수를 위해 console 메서드를 오버라이드합니다
+   - **설명**: 초기화 전 에러는 stderr에 직접 출력하고, 초기화 후에는 MCP Logger를 사용합니다
+   - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
+
+2. **테스트 파일** (`**/*.spec.ts`, `**/test-*.ts`, `src/test/**`):
+   - **이유**: 테스트 코드에서 디버깅 및 출력이 필요합니다
+   - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
+
+3. **스크립트 파일** (`scripts/**`):
+   - **이유**: 스크립트 실행 시 직접 출력이 필요합니다
+   - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
+
+**규칙 위반 시 대응 방법**:
+
+1. **일반 코드에서 console 사용이 필요한 경우**:
+   ```typescript
+   // ❌ 잘못된 방법
+   console.log('User logged in:', userId);
+   console.error('Database error:', error);
+   
+   // ✅ 올바른 방법
+   import { logger } from '../shared/utils/logger.js';
+   
+   logger.info('User logged in', { userId });
+   logger.error('Database error', { error: error.message });
+   ```
+
+2. **MCP 서버 코드에서 로깅이 필요한 경우**:
+   ```typescript
+   // ✅ MCP Logger 사용
+   import { mcpLogger } from './mcp-logger.js';
+   
+   mcpLogger.info('Server initialized', { component: 'server' });
+   mcpLogger.error('Initialization failed', { error: error.message });
+   ```
+
+3. **예외가 필요한 경우**:
+   - 예외는 최소한으로 유지해야 합니다
+
+### 도메인별 로깅 패턴 통일
+
+**목적**: 모든 도메인에서 일관된 로깅 패턴을 사용하여 로그 분석 및 디버깅을 용이하게 합니다.
+
+#### 기본 원칙
+
+1. **구조화된 로깅**: 모든 로그는 메시지와 메타데이터 객체를 포함해야 합니다
+2. **적절한 로그 레벨 사용**: 상황에 맞는 로그 레벨 선택
+3. **PII 자동 마스킹**: logger는 자동으로 PII를 마스킹하므로 안전하게 사용 가능
+4. **컨텍스트 포함**: 디버깅에 필요한 컨텍스트 정보를 메타데이터에 포함
+
+#### 로그 레벨 가이드라인
+
+- **`logger.debug()`**: 개발 및 디버깅 목적, 상세한 실행 흐름 추적
+  ```typescript
+  logger.debug('검색 단계', { searchId, step, data });
+  ```
+
+- **`logger.info()`**: 일반적인 정보성 메시지, 중요한 작업 시작/완료
+  ```typescript
+  logger.info('Memory Injection 시작', { query, token_budget });
+  logger.info('벡터 인덱스 재구성 완료');
+  ```
+
+- **`logger.warn()`**: 잠재적인 문제나 경고 상황, 복구 가능한 오류
+  ```typescript
+  logger.warn('데이터베이스가 설정되지 않아 인접 기억 갱신을 건너뜁니다');
+  logger.warn('임베딩 삭제 실패', { id, error: error.message });
+  ```
+
+- **`logger.error()`**: 오류나 예외 상황, 복구 불가능한 오류
+  ```typescript
+  logger.error('메모리 조회 실패', {
+    memoryId,
+    error: error instanceof Error ? error.message : String(error)
+  });
+  logger.error('벡터 검색 실패', {
+    memoryId,
+    error: error.message
+  });
+  ```
+
+#### 도메인별 로깅 패턴
+
+##### 1. Memory 도메인 (`src/domains/memory/`)
+
+**서비스 파일**:
+```typescript
+// ✅ 올바른 패턴
+logger.error('메모리 조회 실패', {
+  memoryId,
+  error: error instanceof Error ? error.message : String(error)
+});
+
+logger.warn('높은 중요도의 기억 삭제', {
+  memoryId: memory.id,
+  importance: memory.importance
+});
+```
+
+**Tool 파일**:
+```typescript
+// ✅ 올바른 패턴
+logger.info('WAL 체크포인트 완료');
+logger.warn('고정 로그 기록 실패', {
+  error: maskedError.message
+});
+```
+
+##### 2. Search 도메인 (`src/domains/search/`)
+
+**알고리즘 파일**:
+```typescript
+// ✅ 올바른 패턴
+logger.debug('하이브리드 검색 단계', {
+  searchId,
+  step,
+  data
+});
+
+logger.warn('저장된 임베딩 provider 감지 실패', {
+  error: maskedError.message
+});
+```
+
+**팩토리 파일**:
+```typescript
+// ✅ 올바른 패턴
+logger.info('검색 시작', { query });
+logger.info('검색 완료', {
+  searchId,
+  resultCount: result.total_count,
+  duration: queryTime
+});
+```
+
+##### 3. Monitoring 도메인 (`src/domains/monitoring/`)
+
+**성능 모니터링**:
+```typescript
+// ✅ 올바른 패턴
+logger.info('성능 알림', {
+  level: alert.level,
+  metric: alert.metric,
+  id: alert.id,
+  value: alert.value,
+  threshold: alert.threshold
+});
+
+logger.error('에러 로깅', {
+  severity: error.severity,
+  category: error.category,
+  id: error.id,
+  message: error.message
+});
+```
+
+#### 메타데이터 구조화 가이드라인
+
+1. **에러 로깅 시 필수 필드**:
+   ```typescript
+   logger.error('작업 실패', {
+     error: error instanceof Error ? error.message : String(error),
+     // 추가 컨텍스트
+     operation: 'operation_name',
+     resourceId: 'resource_id'
+   });
+   ```
+
+2. **성능 로깅 시 필수 필드**:
+   ```typescript
+   logger.info('작업 완료', {
+     duration: queryTime,
+     resultCount: results.length,
+     // 추가 메트릭
+   });
+   ```
+
+3. **경고 로깅 시 필수 필드**:
+   ```typescript
+   logger.warn('경고 상황', {
+     reason: 'reason_description',
+     // 복구 가능한 경우 복구 정보 포함
+     fallback: 'fallback_action'
+   });
+   ```
+
+#### 금지 사항
+
+1. **❌ 이모지나 특수 문자 사용 금지**:
+   ```typescript
+   // ❌ 잘못된 방법
+   logger.error('❌ 메모리 조회 실패:', error);
+   logger.warn('⚠️ 데이터베이스가 설정되지 않았습니다');
+   
+   // ✅ 올바른 방법
+   logger.error('메모리 조회 실패', { error: error.message });
+   logger.warn('데이터베이스가 설정되지 않았습니다');
+   ```
+
+2. **❌ 문자열 연결 대신 메타데이터 사용**:
+   ```typescript
+   // ❌ 잘못된 방법
+   logger.info(`Memory Injection 시작: "${query}" (토큰 예산: ${token_budget})`);
+   
+   // ✅ 올바른 방법
+   logger.info('Memory Injection 시작', { query, token_budget });
+   ```
+
+3. **❌ console.log 직접 사용 금지**:
+   ```typescript
+   // ❌ 잘못된 방법
+   console.log('작업 시작');
+   console.error('작업 실패:', error);
+   
+   // ✅ 올바른 방법
+   logger.info('작업 시작');
+   logger.error('작업 실패', { error: error.message });
+   ```
+
+#### 검증 방법
+
+1. **ESLint 검증**: `npm run lint`로 `no-console` 규칙 위반 확인
+2. **스크립트 검증**: `npx tsx scripts/count-console-logs.ts --core-only`로 핵심 모듈 console.* 사용 확인
+3. **CI 검증**: CI 파이프라인에서 자동으로 console.* 사용 검증
+
+#### 참고 자료
+
+- **Logger 인터페이스**: `src/shared/utils/logger.ts`
+- **MCP Logger**: `src/server/mcp-logger.ts`
+- **PII 마스킹**: `src/shared/utils/pii-masker.ts`
+- **MCP 스펙**: https://spec.modelcontextprotocol.io/specification/server/#logging
+   - 새로운 예외 추가 시 PR에서 명확한 이유를 설명해야 합니다
+   - 예외 추가는 `.eslintrc.json`의 `overrides` 섹션에 추가합니다
+
+**ESLint 설정 파일 구조**:
+
+```json
+{
+  "rules": {
+    "no-console": "error"  // 기본 규칙: error 레벨
+  },
+  "overrides": [
+    {
+      "files": ["src/server/index.ts"],
+      "rules": {
+        "no-console": "off"  // 예외: MCP 프로토콜 준수
+      }
+    },
+    {
+      "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**", "src/test/**"],
+      "rules": {
+        "no-console": "off"  // 예외: 테스트 및 스크립트
+      }
+    }
+  ]
+}
+```
+
+**CI/CD 검증**:
+
+- CI 파이프라인(`.github/workflows/ci.yml`)에서 `npm run lint` 실행
+- `no-console` 규칙 위반 시 빌드 실패
+- 규칙 위반 개수 추적을 위한 스냅샷 체크 (향후 추가 예정)
+
 #### 커밋
 
 ```bash

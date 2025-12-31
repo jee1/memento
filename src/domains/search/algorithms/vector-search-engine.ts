@@ -10,6 +10,7 @@
 import Database from 'better-sqlite3';
 import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { VECTOR_SEARCH } from '../../../shared/config/constants.js';
 import type { 
   VectorSearchQuery,
   PerformanceTestResult 
@@ -122,7 +123,7 @@ export class VectorSearchEngine {
         available: false,
         tableExists: false,
         recordCount: 0,
-        dimensions: 512, // TF-IDF 기본 차원
+        dimensions: VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf, // TF-IDF 기본 차원
         vecExtensionLoaded: false
       };
     }
@@ -133,14 +134,14 @@ export class VectorSearchEngine {
       // dimensions를 512로 설정 (기존 동작 유지)
       return {
         ...status,
-        dimensions: 512
+        dimensions: VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf
       };
     } catch {
       return {
         available: false,
         tableExists: false,
         recordCount: 0,
-        dimensions: 512, // TF-IDF 기본 차원
+        dimensions: VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf, // TF-IDF 기본 차원
         vecExtensionLoaded: false
       };
     }
@@ -165,7 +166,7 @@ export class VectorSearchEngine {
   /**
    * 벡터 검색의 성능을 측정하여 최적화 지점을 파악합니다.
    */
-  async performanceTest(queryVector: number[], iterations: number = 10): Promise<{
+  async performanceTest(queryVector: number[], iterations: number = VECTOR_SEARCH.PERFORMANCE_TEST_ITERATIONS): Promise<{
     averageTime: number;
     minTime: number;
     maxTime: number;
@@ -202,12 +203,12 @@ export class VectorSearchEngine {
   getDimensions(provider: string = 'tfidf'): number {
     // 기존 동작 유지: provider별 차원 반환
     const providerDimensions: Record<string, number> = {
-      tfidf: 512,
-      minilm: 384,
-      openai: 1536,
-      gemini: 768
+      tfidf: VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf,
+      minilm: VECTOR_SEARCH.PROVIDER_DIMENSIONS.minilm,
+      openai: VECTOR_SEARCH.PROVIDER_DIMENSIONS.openai,
+      gemini: VECTOR_SEARCH.PROVIDER_DIMENSIONS.gemini
     };
-    return providerDimensions[provider.toLowerCase()] ?? 384;
+    return providerDimensions[provider.toLowerCase()] ?? VECTOR_SEARCH.PROVIDER_DIMENSIONS.minilm;
   }
 
   /**

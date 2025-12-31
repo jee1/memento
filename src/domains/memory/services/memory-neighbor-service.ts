@@ -8,6 +8,7 @@ import type { MemoryEmbeddingService } from './memory-embedding-service.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 /**
  * 이웃 기억 조회 결과
@@ -128,7 +129,10 @@ export class MemoryNeighborService {
           [memoryId]
         );
       } catch (error) {
-        console.error(`❌ 메모리 조회 실패 (${memoryId}):`, error);
+        logger.error('메모리 조회 실패', {
+          memoryId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         throw new Error(`Failed to query memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
@@ -155,7 +159,10 @@ export class MemoryNeighborService {
           [memoryId]
         );
       } catch (error) {
-        console.error(`❌ 임베딩 조회 실패 (${memoryId}):`, error);
+        logger.error('임베딩 조회 실패', {
+          memoryId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         throw new Error(`Failed to query embedding: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
@@ -210,7 +217,10 @@ export class MemoryNeighborService {
         }
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        console.error(`❌ VectorSearchEngine 초기화 실패:`, maskedError.message);
+        logger.error('VectorSearchEngine 초기화 실패', {
+          error: maskedError.message,
+          memoryId
+        });
         throw new Error(`Failed to initialize VectorSearchEngine: ${maskedError.message}`);
       }
       
@@ -230,7 +240,10 @@ export class MemoryNeighborService {
           embeddingProvider
         );
       } catch (error) {
-        console.error(`❌ 벡터 검색 실패 (${memoryId}):`, error);
+        logger.error('벡터 검색 실패', {
+          memoryId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         throw new Error(`Failed to search similar memories: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
@@ -282,9 +295,12 @@ export class MemoryNeighborService {
       const maskedStack = error instanceof Error && error.stack 
         ? PIIMasker.mask(error.stack).masked 
         : 'N/A';
-      console.error(`❌ 이웃 기억 조회 실패 (${memoryId}):`, maskedMessage);
-      console.error(`   쿼리 시간: ${queryTime}ms`);
-      console.error(`   에러 스택:`, maskedStack);
+      logger.error('이웃 기억 조회 실패', {
+        memoryId,
+        error: maskedMessage,
+        queryTime,
+        stack: maskedStack
+      });
       
       // 사용자 친화적인 에러 메시지로 변환
       if (error instanceof Error) {
@@ -308,7 +324,7 @@ export class MemoryNeighborService {
     similarityThreshold: number = 0.8
   ): Promise<string[]> {
     if (!this.db) {
-      console.warn('⚠️ 데이터베이스가 설정되지 않아 인접 기억 갱신을 건너뜁니다.');
+      logger.warn('데이터베이스가 설정되지 않아 인접 기억 갱신을 건너뜁니다');
       return [];
     }
 
@@ -356,13 +372,14 @@ export class MemoryNeighborService {
       }
 
       // 기존 모든 기억과의 유사도 계산
-      // sqlite-vec의 최대 제한(4096)을 고려하여 limit 설정
-      // 실제로는 모든 기억을 검색하려는 의도이지만, 벡터 검색 엔진의 제한을 준수
-      const maxLimit = 4096; // sqlite-vec의 최대 k 값 제한
+      // VectorSearchService의 검증 로직이 limit을 1-100 사이로 제한하므로 100으로 설정
+      // 실제로는 모든 기억을 검색하려는 의도이지만, 서비스 레이어의 검증 제한을 준수
+      // 향후 100개 이상의 인접 기억이 필요한 경우 배치 검색 구현 고려
+      const maxLimit = 100; // VectorSearchService 검증 제한 (1-100)
       const searchResults = await this.vectorSearchEngine.search(
         queryVector,
         {
-          limit: maxLimit, // sqlite-vec 최대 제한
+          limit: maxLimit, // 서비스 레이어 검증 제한 준수
           threshold: 0.0, // 임계값은 나중에 필터링에서 적용
           includeContent: false, // 성능 최적화: 내용 불필요
           includeMetadata: false
@@ -389,7 +406,10 @@ export class MemoryNeighborService {
       return neighborIds;
     } catch (error) {
       // 에러 발생 시 로깅 후 빈 배열 반환 (메모리 저장은 성공했으므로)
-      console.error(`❌ 인접 기억 갱신 실패 (${newMemoryId}):`, error);
+      logger.error('인접 기억 갱신 실패', {
+        newMemoryId,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return [];
     }
   }

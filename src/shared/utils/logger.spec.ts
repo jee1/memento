@@ -7,31 +7,41 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { logger, type LogLevel } from './logger.js';
 
 describe('logger', () => {
-  let originalConsoleDebug: typeof console.debug;
-  let originalConsoleInfo: typeof console.info;
-  let originalConsoleWarn: typeof console.warn;
-  let originalConsoleError: typeof console.error;
+  let originalStderrWrite: typeof process.stderr.write;
+  let stderrWriteCalls: string[];
+  let originalStdinIsTTY: boolean | undefined;
+  let originalStdoutIsTTY: boolean | undefined;
 
   beforeEach(() => {
-    // 원본 console 메서드 저장
-    originalConsoleDebug = console.debug;
-    originalConsoleInfo = console.info;
-    originalConsoleWarn = console.warn;
-    originalConsoleError = console.error;
-
-    // console 메서드 모킹
-    console.debug = vi.fn();
-    console.info = vi.fn();
-    console.warn = vi.fn();
-    console.error = vi.fn();
+    // 원본 stderr.write 저장
+    originalStderrWrite = process.stderr.write;
+    
+    // stderr.write 모킹 (일반 모드에서 사용)
+    stderrWriteCalls = [];
+    process.stderr.write = vi.fn((chunk: any) => {
+      stderrWriteCalls.push(chunk.toString());
+      return true;
+    });
+    
+    // 일반 모드로 설정 (MCP 모드가 아닌 환경)
+    originalStdinIsTTY = process.stdin.isTTY;
+    originalStdoutIsTTY = process.stdout.isTTY;
+    (process.stdin as any).isTTY = true;
+    (process.stdout as any).isTTY = true;
   });
 
   afterEach(() => {
-    // 원본 console 메서드 복원
-    console.debug = originalConsoleDebug;
-    console.info = originalConsoleInfo;
-    console.warn = originalConsoleWarn;
-    console.error = originalConsoleError;
+    // 원본 stderr.write 복원
+    process.stderr.write = originalStderrWrite;
+    
+    // 원본 isTTY 값 복원
+    if (originalStdinIsTTY !== undefined) {
+      (process.stdin as any).isTTY = originalStdinIsTTY;
+    }
+    if (originalStdoutIsTTY !== undefined) {
+      (process.stdout as any).isTTY = originalStdoutIsTTY;
+    }
+    
     vi.clearAllMocks();
   });
 
@@ -43,14 +53,11 @@ describe('logger', () => {
       // When: debug 로그 출력
       logger.debug(message);
 
-      // Then: console.debug가 호출되어야 함
-      expect(console.debug).toHaveBeenCalledTimes(1);
-      expect(console.debug).toHaveBeenCalledWith(
-        expect.stringContaining('DEBUG')
-      );
-      expect(console.debug).toHaveBeenCalledWith(
-        expect.stringContaining(message)
-      );
+      // Then: stderr.write가 호출되어야 함 (일반 모드)
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
+      expect(callArg).toContain('DEBUG');
+      expect(callArg).toContain(message);
     });
 
     it('메타데이터와 함께 debug 메시지를 출력해야 함', () => {
@@ -61,9 +68,9 @@ describe('logger', () => {
       // When: debug 로그 출력
       logger.debug(message, meta);
 
-      // Then: console.debug가 메타데이터와 함께 호출되어야 함
-      expect(console.debug).toHaveBeenCalledTimes(1);
-      const callArg = (console.debug as any).mock.calls[0][0];
+      // Then: stderr.write가 메타데이터와 함께 호출되어야 함
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('DEBUG');
       expect(callArg).toContain(message);
       expect(callArg).toContain('key');
@@ -79,14 +86,11 @@ describe('logger', () => {
       // When: info 로그 출력
       logger.info(message);
 
-      // Then: console.info가 호출되어야 함
-      expect(console.info).toHaveBeenCalledTimes(1);
-      expect(console.info).toHaveBeenCalledWith(
-        expect.stringContaining('INFO')
-      );
-      expect(console.info).toHaveBeenCalledWith(
-        expect.stringContaining(message)
-      );
+      // Then: stderr.write가 호출되어야 함 (일반 모드)
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
+      expect(callArg).toContain('INFO');
+      expect(callArg).toContain(message);
     });
 
     it('메타데이터와 함께 info 메시지를 출력해야 함', () => {
@@ -97,9 +101,9 @@ describe('logger', () => {
       // When: info 로그 출력
       logger.info(message, meta);
 
-      // Then: console.info가 메타데이터와 함께 호출되어야 함
-      expect(console.info).toHaveBeenCalledTimes(1);
-      const callArg = (console.info as any).mock.calls[0][0];
+      // Then: stderr.write가 메타데이터와 함께 호출되어야 함
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('INFO');
       expect(callArg).toContain(message);
       expect(callArg).toContain('userId');
@@ -115,14 +119,11 @@ describe('logger', () => {
       // When: warn 로그 출력
       logger.warn(message);
 
-      // Then: console.warn이 호출되어야 함
-      expect(console.warn).toHaveBeenCalledTimes(1);
-      expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining('WARN')
-      );
-      expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining(message)
-      );
+      // Then: stderr.write가 호출되어야 함 (일반 모드)
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
+      expect(callArg).toContain('WARN');
+      expect(callArg).toContain(message);
     });
 
     it('메타데이터와 함께 warn 메시지를 출력해야 함', () => {
@@ -133,9 +134,9 @@ describe('logger', () => {
       // When: warn 로그 출력
       logger.warn(message, meta);
 
-      // Then: console.warn이 메타데이터와 함께 호출되어야 함
-      expect(console.warn).toHaveBeenCalledTimes(1);
-      const callArg = (console.warn as any).mock.calls[0][0];
+      // Then: stderr.write가 메타데이터와 함께 호출되어야 함
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('WARN');
       expect(callArg).toContain(message);
       expect(callArg).toContain('error');
@@ -151,14 +152,11 @@ describe('logger', () => {
       // When: error 로그 출력
       logger.error(message);
 
-      // Then: console.error가 호출되어야 함
-      expect(console.error).toHaveBeenCalledTimes(1);
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('ERROR')
-      );
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining(message)
-      );
+      // Then: stderr.write가 호출되어야 함 (일반 모드)
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
+      expect(callArg).toContain('ERROR');
+      expect(callArg).toContain(message);
     });
 
     it('메타데이터와 함께 error 메시지를 출력해야 함', () => {
@@ -169,9 +167,9 @@ describe('logger', () => {
       // When: error 로그 출력
       logger.error(message, meta);
 
-      // Then: console.error가 메타데이터와 함께 호출되어야 함
-      expect(console.error).toHaveBeenCalledTimes(1);
-      const callArg = (console.error as any).mock.calls[0][0];
+      // Then: stderr.write가 메타데이터와 함께 호출되어야 함
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('ERROR');
       expect(callArg).toContain(message);
       expect(callArg).toContain('error');
@@ -188,7 +186,7 @@ describe('logger', () => {
       logger.info(message);
 
       // Then: ISO 형식의 타임스탬프가 포함되어야 함
-      const callArg = (console.info as any).mock.calls[0][0];
+      const callArg = stderrWriteCalls[0];
       // ISO 형식: YYYY-MM-DDTHH:mm:ss.sssZ
       expect(callArg).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
@@ -198,16 +196,21 @@ describe('logger', () => {
       const message = 'Test message';
 
       // When: 각 레벨로 로그 출력
+      stderrWriteCalls = [];
       logger.debug(message);
+      const debugCall = stderrWriteCalls[0];
+      
+      stderrWriteCalls = [];
       logger.info(message);
+      const infoCall = stderrWriteCalls[0];
+      
+      stderrWriteCalls = [];
       logger.warn(message);
+      const warnCall = stderrWriteCalls[0];
+      
+      stderrWriteCalls = [];
       logger.error(message);
-
-      // Then: 각 로그 레벨이 대문자로 포함되어야 함
-      const debugCall = (console.debug as any).mock.calls[0][0];
-      const infoCall = (console.info as any).mock.calls[0][0];
-      const warnCall = (console.warn as any).mock.calls[0][0];
-      const errorCall = (console.error as any).mock.calls[0][0];
+      const errorCall = stderrWriteCalls[0];
 
       expect(debugCall).toContain('DEBUG');
       expect(infoCall).toContain('INFO');
@@ -224,7 +227,7 @@ describe('logger', () => {
       logger.info(message, meta);
 
       // Then: 파이프로 구분되어야 함
-      const callArg = (console.info as any).mock.calls[0][0];
+      const callArg = stderrWriteCalls[0];
       const parts = callArg.split(' | ');
       expect(parts.length).toBeGreaterThanOrEqual(3); // timestamp | LEVEL | message | meta
     });
@@ -238,7 +241,7 @@ describe('logger', () => {
       logger.info(message, meta);
 
       // Then: 메타데이터 부분이 없어야 함
-      const callArg = (console.info as any).mock.calls[0][0];
+      const callArg = stderrWriteCalls[0];
       const parts = callArg.split(' | ');
       expect(parts.length).toBe(3); // timestamp | LEVEL | message (메타데이터 없음)
     });
@@ -255,8 +258,8 @@ describe('logger', () => {
       logger.info(message, circular);
 
       // Then: 에러 없이 처리되어야 함
-      expect(console.info).toHaveBeenCalledTimes(1);
-      const callArg = (console.info as any).mock.calls[0][0];
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain(message);
       // 순환 참조는 [unserializable: ...] 형식으로 처리되어야 함
       expect(callArg).toMatch(/unserializable|key|value/);
@@ -271,7 +274,7 @@ describe('logger', () => {
       logger.info(message, meta);
 
       // Then: 문자열이 그대로 포함되어야 함
-      const callArg = (console.info as any).mock.calls[0][0];
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('simple string');
     });
 
@@ -291,7 +294,7 @@ describe('logger', () => {
       logger.info(message, meta);
 
       // Then: JSON으로 직렬화되어야 함
-      const callArg = (console.info as any).mock.calls[0][0];
+      const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('nested');
       expect(callArg).toContain('array');
       expect(callArg).toContain('42');
@@ -308,7 +311,7 @@ describe('logger', () => {
         logger.info(message);
 
         // Then: 이메일 주소가 [EMAIL]로 마스킹되어야 함
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('user@example.com');
         expect(callArg).toContain('[EMAIL]');
       });
@@ -321,7 +324,7 @@ describe('logger', () => {
         logger.error(message);
 
         // Then: 이메일 주소가 [EMAIL]로 마스킹되어야 함
-        const callArg = (console.error as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('admin@company.com');
         expect(callArg).toContain('[EMAIL]');
       });
@@ -335,7 +338,7 @@ describe('logger', () => {
         logger.info(message, meta);
 
         // Then: 이메일 주소가 [EMAIL]로 마스킹되어야 함
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('user@example.com');
         expect(callArg).toContain('[EMAIL]');
         expect(callArg).toContain('John Doe'); // 비PII는 그대로 유지
@@ -351,7 +354,7 @@ describe('logger', () => {
         logger.info(message);
 
         // Then: 전화번호가 [PHONE]로 마스킹되어야 함
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('010-1234-5678');
         expect(callArg).toContain('[PHONE]');
       });
@@ -364,7 +367,7 @@ describe('logger', () => {
         logger.info(message);
 
         // Then: 전화번호가 [PHONE]로 마스킹되어야 함
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('+1-234-567-8900');
         expect(callArg).toContain('[PHONE]');
       });
@@ -381,7 +384,7 @@ describe('logger', () => {
         logger.warn(message);
 
         // Then: API 키가 마스킹되어야 함 (전화번호 패턴이 먼저 적용될 수 있으므로 관대하게 확인)
-        const callArg = (console.warn as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         // 원본 API 키가 그대로 노출되지 않아야 함
         expect(callArg).not.toContain('sk1234567890abcdefghijklmnopqrstuvwxyz');
         // 마스킹이 적용되었는지 확인 (어떤 형태든 마스킹되면 통과)
@@ -397,7 +400,7 @@ describe('logger', () => {
         logger.error(message);
 
         // Then: API 키가 [API_KEY] 또는 [CREDENTIAL]로 마스킹되어야 함
-        const callArg = (console.error as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567890');
         expect(callArg).toMatch(/\[(API_KEY|CREDENTIAL)\]/);
       });
@@ -412,7 +415,7 @@ describe('logger', () => {
         logger.error(message, meta);
 
         // Then: API 키가 마스킹되어야 함 (전화번호 패턴이 먼저 적용될 수 있으므로 관대하게 확인)
-        const callArg = (console.error as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         // JSON 직렬화 후 마스킹되므로, 전체 문자열에서 확인
         expect(callArg).not.toContain('sk1234567890abcdefghijklmnopqrstuvwxyz');
         // 마스킹이 적용되었는지 확인 (어떤 형태든 마스킹되면 통과)
@@ -430,7 +433,7 @@ describe('logger', () => {
         logger.warn(message);
 
         // Then: 비밀번호가 [PASSWORD]로 마스킹되어야 함
-        const callArg = (console.warn as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('MySecretPassword123');
         expect(callArg).toContain('[PASSWORD]');
       });
@@ -446,7 +449,7 @@ describe('logger', () => {
         logger.error(message);
 
         // Then: JWT 토큰이 [JWT_TOKEN] 또는 [TOKEN]으로 마스킹되어야 함
-        const callArg = (console.error as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
         expect(callArg).toMatch(/\[(JWT_TOKEN|TOKEN)\]/);
       });
@@ -459,7 +462,7 @@ describe('logger', () => {
         logger.info(message);
 
         // Then: 토큰이 [TOKEN]으로 마스킹되어야 함
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9abcdefghijklmnop');
         expect(callArg).toContain('[TOKEN]');
       });
@@ -485,7 +488,7 @@ describe('logger', () => {
         logger.info(message, meta);
 
         // Then: 모든 PII가 마스킹되어야 함 (JSON 직렬화 후 마스킹되므로 전체 문자열에서 확인)
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('user@example.com');
         expect(callArg).not.toContain('010-1234-5678');
         // API 키는 JSON 직렬화 후 마스킹되므로, 전체 문자열에서 확인
@@ -507,7 +510,7 @@ describe('logger', () => {
         logger.debug(message);
 
         // Then: PII가 마스킹되어야 함
-        const callArg = (console.debug as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('user@example.com');
         expect(callArg).toContain('[EMAIL]');
       });
@@ -520,7 +523,7 @@ describe('logger', () => {
         logger.warn(message);
 
         // Then: PII가 마스킹되어야 함
-        const callArg = (console.warn as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('user@example.com');
         expect(callArg).toContain('[EMAIL]');
       });
@@ -535,7 +538,7 @@ describe('logger', () => {
         logger.info(message);
 
         // Then: 모든 PII가 마스킹되어야 함
-        const callArg = (console.info as any).mock.calls[0][0];
+        const callArg = stderrWriteCalls[0];
         expect(callArg).not.toContain('user@example.com');
         expect(callArg).not.toContain('010-1234-5678');
         expect(callArg).not.toContain('sk1234567890abcdefghijklmnopqrstuvwxyz');
@@ -544,6 +547,96 @@ describe('logger', () => {
         // API 키는 전화번호 패턴이 먼저 적용될 수 있으므로 관대하게 확인
         expect(callArg).toMatch(/\[(API_KEY|CREDENTIAL|PHONE)\]/);
       });
+    });
+  });
+
+  describe('MCP 모드 통합', () => {
+    let originalStdinIsTTY: boolean | undefined;
+    let originalStdoutIsTTY: boolean | undefined;
+    let originalStderrWrite: typeof process.stderr.write;
+    let stderrWriteCalls: string[];
+
+    beforeEach(() => {
+      // 원본 값 저장
+      originalStdinIsTTY = process.stdin.isTTY;
+      originalStdoutIsTTY = process.stdout.isTTY;
+      originalStderrWrite = process.stderr.write;
+      
+      // stderr.write 모킹
+      stderrWriteCalls = [];
+      process.stderr.write = vi.fn((chunk: any) => {
+        stderrWriteCalls.push(chunk.toString());
+        return true;
+      });
+    });
+
+    afterEach(() => {
+      // 원본 값 복원
+      if (originalStdinIsTTY !== undefined) {
+        (process.stdin as any).isTTY = originalStdinIsTTY;
+      }
+      if (originalStdoutIsTTY !== undefined) {
+        (process.stdout as any).isTTY = originalStdoutIsTTY;
+      }
+      process.stderr.write = originalStderrWrite;
+      
+      // 모듈 재로드 (logger가 MCP 모드를 감지하도록)
+      vi.resetModules();
+    });
+
+    /**
+     * Given: MCP 모드 환경 (stdin.isTTY === false && stdout.isTTY === false)
+     * When: logger.info() 호출
+     * Then: mcpLogger.logServer()가 호출되어야 함
+     */
+    it('MCP 모드일 때 mcpLogger를 사용해야 함', async () => {
+      // Given: MCP 모드 환경 설정
+      (process.stdin as any).isTTY = false;
+      (process.stdout as any).isTTY = false;
+      
+      // 모듈 재로드하여 MCP 모드 감지
+      vi.resetModules();
+      const { logger } = await import('./logger.js');
+      const { mcpLogger } = await import('../../server/mcp-logger.js');
+      
+      // mcpLogger.logServer 모킹
+      const logServerSpy = vi.spyOn(mcpLogger, 'logServer').mockImplementation(() => {});
+      
+      // When: logger.info() 호출 (async이므로 await 필요)
+      await logger.info('Test message');
+      
+      // Then: mcpLogger.logServer()가 호출되어야 함
+      expect(logServerSpy).toHaveBeenCalledTimes(1);
+      expect(logServerSpy).toHaveBeenCalledWith('info', expect.stringContaining('Test message'), undefined);
+      
+      logServerSpy.mockRestore();
+    });
+
+    /**
+     * Given: 일반 모드 환경 (stdin.isTTY !== false || stdout.isTTY !== false)
+     * When: logger.info() 호출
+     * Then: stderr.write()가 호출되어야 함
+     */
+    it('일반 모드일 때 stderr를 사용해야 함', async () => {
+      // Given: 일반 모드 환경 설정
+      (process.stdin as any).isTTY = true;
+      (process.stdout as any).isTTY = true;
+      
+      // stderr.write 호출 기록 초기화
+      stderrWriteCalls = [];
+      
+      // 모듈 재로드하여 일반 모드 감지
+      vi.resetModules();
+      const { logger } = await import('./logger.js');
+      
+      // When: logger.info() 호출
+      await logger.info('Test message');
+      
+      // Then: stderr.write()가 호출되어야 함
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+      const callArg = stderrWriteCalls[0];
+      expect(callArg).toContain('Test message');
+      expect(callArg).toContain('INFO');
     });
   });
 });
