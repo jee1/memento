@@ -6,6 +6,7 @@
 import { writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 export enum AlertLevel {
   INFO = 'info',
@@ -85,7 +86,9 @@ export class PerformanceAlertService {
       }
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ 로그 디렉토리 생성 실패:', maskedError.message);
+      logger.warn('로그 디렉토리 생성 실패', {
+        error: maskedError.message
+      });
     }
   }
 
@@ -277,14 +280,16 @@ export class PerformanceAlertService {
     const resetColor = '\x1b[0m';
     const color = colors[alert.level] || '';
 
-    console.log(
-      `${color}[${alert.level.toUpperCase()}] ${alert.metric}${resetColor}\n` +
-      `  ID: ${alert.id}\n` +
-      `  Time: ${alert.timestamp.toISOString()}\n` +
-      `  Value: ${alert.value} (Threshold: ${alert.threshold})\n` +
-      `  Message: ${alert.message}\n` +
-      `  Context: ${JSON.stringify(alert.context, null, 2)}\n`
-    );
+    logger.info('성능 알림', {
+      level: alert.level,
+      metric: alert.metric,
+      id: alert.id,
+      timestamp: alert.timestamp.toISOString(),
+      value: alert.value,
+      threshold: alert.threshold,
+      message: alert.message,
+      context: alert.context
+    });
   }
 
   /**
@@ -308,7 +313,9 @@ export class PerformanceAlertService {
       appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ 파일 로깅 실패:', maskedError.message);
+      logger.warn('파일 로깅 실패', {
+        error: maskedError.message
+      });
     }
   }
 

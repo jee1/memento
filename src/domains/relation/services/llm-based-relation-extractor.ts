@@ -15,6 +15,9 @@
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
+import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { CacheService } from '../../../infrastructure/cache/cache-service.js';
 import type {
@@ -151,6 +154,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private readonly cache: CacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
   private readonly costMetrics: LLMCostMetrics;
+  private readonly retryManager: RetryManager;
 
   constructor(embeddingService?: UnifiedEmbeddingService) {
     this.preferredProvider = this.initializeClients();
@@ -163,6 +167,14 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       totalCost: 0,
       lastReset: Date.now()
     };
+    
+    // RetryManager 초기화 (external_api 설정 사용)
+    const retryOptions = getRetryOptions();
+    const retryConfig: RetryConfig = {
+      ...retryOptions.external_api,
+      maxErrorCount: retryOptions.default.maxErrorCount
+    };
+    this.retryManager = new RetryManager(retryConfig);
   }
 
   /**
@@ -216,11 +228,26 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
         const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
         const model = mementoConfig.ollamaModel || 'llama3';
         
-        // Ollama 서버 연결 테스트
-        const response = await fetch(`${baseUrl}/api/tags`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(3000) // 3초 타임아웃
-        });
+        // Ollama 서버 연결 테스트 (RetryManager 사용)
+        const retryOptions = getRetryOptions();
+        const response = await this.retryManager.retry(
+          async () => {
+            return await fetch(`${baseUrl}/api/tags`, {
+              method: 'GET',
+              signal: AbortSignal.timeout(3000) // 3초 타임아웃
+            });
+          },
+          {
+            maxAttempts: retryOptions.external_api.maxAttempts,
+            baseDelay: retryOptions.external_api.baseDelay,
+            shouldRetry: (error: Error) => {
+              const message = error.message.toLowerCase();
+              return message.includes('network') || 
+                     message.includes('timeout') || 
+                     message.includes('fetch failed');
+            }
+          }
+        );
         
         if (!response.ok) {
           logger.warn('Ollama 서버 연결 실패', { 
@@ -495,22 +522,49 @@ ${memoryList}
 
     try {
       const model = mementoConfig.openaiLlmModel || 'gpt-4o-mini';
-      const response = await this.openaiClient.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.'
+      const retryOptions = getRetryOptions();
+      const response = await this.retryManager.retry(
+        async () => {
+          return await this.openaiClient!.chat.completions.create({
+            model,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            temperature: 0.3, // 일관성을 위해 낮은 temperature
+            max_tokens: LIMITS.MAX_RESPONSE_TOKENS,
+            response_format: { type: 'json_object' } // JSON 모드 강제
+          });
+        },
+        {
+          maxAttempts: retryOptions.external_api.maxAttempts,
+          baseDelay: retryOptions.external_api.baseDelay,
+          shouldRetry: (error: Error) => {
+            const message = error.message.toLowerCase();
+            return message.includes('network') || 
+                   message.includes('timeout') || 
+                   message.includes('rate limit') ||
+                   message.includes('server error') ||
+                   message.includes('503') ||
+                   message.includes('502') ||
+                   message.includes('500');
           },
-          {
-            role: 'user',
-            content: prompt
+          onRetry: (error: Error, attempt: number, delay: number) => {
+            logger.warn('OpenAI API 호출 재시도 (관계 추출)', {
+              attempt,
+              delay,
+              error: error.message,
+              model
+            });
           }
-        ],
-        temperature: 0.3, // 일관성을 위해 낮은 temperature
-        max_tokens: LIMITS.MAX_RESPONSE_TOKENS,
-        response_format: { type: 'json_object' } // JSON 모드 강제
-      });
+        }
+      );
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
@@ -541,10 +595,25 @@ ${memoryList}
    */
   private async checkOllamaModel(baseUrl: string, model: string): Promise<boolean> {
     try {
-      const response = await fetch(`${baseUrl}/api/tags`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(3000)
-      });
+      const retryOptions = getRetryOptions();
+      const response = await this.retryManager.retry(
+        async () => {
+          return await fetch(`${baseUrl}/api/tags`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(3000)
+          });
+        },
+        {
+          maxAttempts: retryOptions.external_api.maxAttempts,
+          baseDelay: retryOptions.external_api.baseDelay,
+          shouldRetry: (error: Error) => {
+            const message = error.message.toLowerCase();
+            return message.includes('network') || 
+                   message.includes('timeout') || 
+                   message.includes('fetch failed');
+          }
+        }
+      );
 
       if (!response.ok) {
         return false;
@@ -924,21 +993,41 @@ ${memoryList}
 
     try {
       const modelName = mementoConfig.geminiModel || 'gemini-1.5-flash';
-      const model = this.geminiClient.getGenerativeModel({ model: modelName });
-
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
+      const retryOptions = getRetryOptions();
+      const result = await this.retryManager.retry(
+        async () => {
+          const model = this.geminiClient!.getGenerativeModel({ model: modelName });
+          return await model.generateContent({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: prompt }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: LIMITS.MAX_RESPONSE_TOKENS,
+              responseMimeType: 'application/json'
+            }
+          });
+        },
+        {
+          maxAttempts: retryOptions.external_api.maxAttempts,
+          baseDelay: retryOptions.external_api.baseDelay,
+          shouldRetry: (error: Error) => {
+            const message = error.message.toLowerCase();
+            return message.includes('network error') ||
+                   message.includes('rate limit') ||
+                   message.includes('server error') ||
+                   message.includes('503') ||
+                   message.includes('502') ||
+                   message.includes('500');
+          },
+          onRetry: (error: Error, attempt: number, delay: number) => {
+            logger.warn('Gemini LLM 호출 재시도', { attempt, delay, error: error.message, model: modelName });
           }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: LIMITS.MAX_RESPONSE_TOKENS,
-          responseMimeType: 'application/json'
         }
-      });
+      );
 
       const response = result.response;
       const text = response.text();

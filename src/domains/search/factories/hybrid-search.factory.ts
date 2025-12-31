@@ -7,6 +7,7 @@ import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
+import { logger } from '../../../shared/utils/logger.js';
 import type { Database } from 'better-sqlite3';
 
 // Mock implementations for missing services
@@ -24,19 +25,26 @@ class MockAdaptiveWeightCalculator {
 
 class MockSearchLogger {
   logSearchStart(query: string): void {
-    console.log(`Search started: ${query}`);
+    logger.info('검색 시작', { query });
   }
   
   logSearchStep(step: string, details?: any): void {
-    console.log(`Search step: ${step}`, details);
+    logger.debug('검색 단계', { step, details });
   }
   
   logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
-    console.log(`Search completed: ${searchId}, Results: ${result.total_count}, Duration: ${queryTime}ms`);
+    logger.info('검색 완료', {
+      searchId,
+      resultCount: result.total_count,
+      duration: queryTime
+    });
   }
   
   logSearchError(query: string, error: Error): void {
-    console.error(`Search error: ${query}`, error);
+    logger.error('검색 에러', {
+      query,
+      error: error.message
+    });
   }
 }
 

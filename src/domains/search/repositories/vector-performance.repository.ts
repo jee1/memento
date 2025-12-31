@@ -8,6 +8,7 @@ import type { PerformanceTestResult } from '../../../shared/types/vector-search.
 import type { VectorPerformanceRepository } from '../../../shared/interfaces/database.interface.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 export class VectorPerformanceRepositoryImpl implements VectorPerformanceRepository {
   private db: Database.Database | null = null;
@@ -103,7 +104,10 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
         successCount++;
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        console.warn(`⚠️ 성능 테스트 ${i + 1}회차 실패:`, maskedError.message);
+        logger.warn('성능 테스트 회차 실패', {
+          iteration: i + 1,
+          error: maskedError.message
+        });
         times.push(0);
       }
     }
@@ -113,7 +117,11 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
     const maxTime = Math.max(...times);
     const successRate = successCount / iterations;
 
-    console.log(`🔍 벡터 검색 성능 테스트: 평균 ${averageTime.toFixed(2)}ms (${iterations}회, 성공률: ${(successRate * 100).toFixed(1)}%)`);
+    logger.info('벡터 검색 성능 테스트', {
+      averageTime: averageTime.toFixed(2),
+      iterations,
+      successRate: (successRate * 100).toFixed(1)
+    });
 
     return {
       averageTime,
@@ -145,7 +153,7 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
 
       const statement = this.db.prepare(query);
       if (typeof statement.all !== 'function') {
-        console.warn('⚠️ 성능 테스트 검색을 실행할 수 없습니다: all() 메서드가 없습니다.');
+        logger.warn('성능 테스트 검색을 실행할 수 없습니다: all() 메서드가 없습니다');
         return [];
       }
       const rawResults = statement.all(JSON.stringify(queryVector));

@@ -1034,8 +1034,7 @@ export class PerformanceMonitor {
    * 로깅
    */
   private log(message: string, data?: any): void {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] [PerformanceMonitor] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    logger.debug(`PerformanceMonitor: ${message}`, data);
   }
 }
 

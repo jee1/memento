@@ -9,6 +9,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -314,7 +315,10 @@ export class ForgetTool extends BaseTool {
     
     // 중요도가 높은 기억은 확인 필요
     if (memory.importance > 0.8) {
-      console.warn(`⚠️ 높은 중요도의 기억 삭제: ${memory.id} (중요도: ${memory.importance})`);
+      logger.warn('높은 중요도의 기억 삭제', {
+        memoryId: memory.id,
+        importance: memory.importance
+      });
     }
   }
 
@@ -336,7 +340,9 @@ export class ForgetTool extends BaseTool {
       );
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('삭제 로그 기록 실패:', maskedError.message);
+      logger.warn('삭제 로그 기록 실패', {
+        error: maskedError.message
+      });
     }
   }
 
@@ -347,7 +353,10 @@ export class ForgetTool extends BaseTool {
     try {
       await context.services.embeddingService.deleteEmbedding(context.db, id);
     } catch (error) {
-      console.warn(`⚠️ 임베딩 삭제 실패 (${id}):`, error);
+      logger.warn('임베딩 삭제 실패', {
+        id,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -390,7 +399,10 @@ export class ForgetTool extends BaseTool {
         [id]
       );
     } catch (error) {
-      console.warn(`관련 데이터 정리 실패 (${id}):`, error);
+      logger.warn('관련 데이터 정리 실패', {
+        id,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -400,10 +412,12 @@ export class ForgetTool extends BaseTool {
   private async handleDatabaseLock(context: ToolContext): Promise<void> {
     try {
       await DatabaseUtils.checkpointWAL(context.db);
-      console.log('WAL 체크포인트 완료');
+      logger.info('WAL 체크포인트 완료');
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('WAL 체크포인트 실패:', maskedError.message);
+      logger.warn('WAL 체크포인트 실패', {
+        error: maskedError.message
+      });
     }
   }
 

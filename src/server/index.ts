@@ -6,7 +6,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
 import { mementoConfig, validateConfig } from '../shared/config/index.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
@@ -56,12 +56,37 @@ let serverServices: ServerServices | null = null;
 // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
 // 모든 로그는 stderr로 출력되어야 함 (mcpLogger 사용)
 // 단, 초기화 전 에러는 stderr에 직접 출력하여 디버깅 가능하도록 함
+
+// 초기화 상태 추적 플래그
+// 초기화 전: false (fallback logger 사용)
+// 초기화 후: true (MCP Logger 사용)
+(globalThis as any).__mcp_server_initialized = false;
+
+/**
+ * console.error 오버라이드 함수
+ * 초기화 상태에 따라 로깅 전략을 변경:
+ * - 초기화 전: fallback logger (stderr 직접 출력)
+ * - 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
+ */
+function setupConsoleErrorOverride(): void {
+  console.error = (...args: any[]) => {
+    const isInitialized = (globalThis as any).__mcp_server_initialized === true;
+    
+    if (isInitialized) {
+      // 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
+      const message = args.map(a => String(a)).join(' ');
+      mcpLogger.logServer('error', message);
+    } else {
+      // 초기화 전: fallback logger (stderr 직접 출력)
+      // MCP 스펙 적용 범위 밖 - 서버 초기화 단계
+      process.stderr.write(`[CONSOLE ERROR] ${args.map(a => String(a)).join(' ')}\n`);
+    }
+  };
+}
+
+// console 메서드 오버라이드
 console.log = () => {};
-// console.error는 초기화 전 에러를 위해 유지하되, stderr로 리다이렉트
-console.error = (...args: any[]) => {
-  // 초기화 전에는 stderr에 직접 출력
-  process.stderr.write(`[CONSOLE ERROR] ${args.map(a => String(a)).join(' ')}\n`);
-};
+setupConsoleErrorOverride();
 console.warn = () => {};
 console.info = () => {};
 console.debug = () => {};
@@ -209,6 +234,8 @@ async function initializeServer() {
     mcpLogger.logServer('info', '검색 엔진 초기화 완료');
     
     // MCP 서버 생성
+    // MCP 스펙 준수: logging capability 선언 (MCP Spec 2024-11-05)
+    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
     server = new Server(
       {
         name: mementoConfig.serverName,
@@ -218,7 +245,8 @@ async function initializeServer() {
         capabilities: {
           tools: {},
           resources: {},
-          prompts: {}
+          prompts: {},
+          logging: {} // MCP 스펙: logging capability 선언 필수
         }
       }
     );
@@ -427,6 +455,33 @@ async function initializeServer() {
       }
     });
     
+    // logging/setLevel 핸들러 - MCP 스펙 준수
+    // MCP 스펙: logging/setLevel 요청 처리 필수
+    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
+    // 
+    // 구현 사항:
+    // - 유효한 로그 레벨 검증 (debug, info, warn, error)
+    // - 환경 변수에 로그 레벨 설정 (MCPLogger가 환경 변수를 읽음)
+    // - 에러 처리: 잘못된 레벨 시 명확한 에러 메시지 반환
+    server.setRequestHandler(SetLevelRequestSchema, async (request) => {
+      const { level } = request.params;
+      await mcpLogger.logMCPProtocol('debug', `로그 레벨 변경 요청: ${level}`, { level });
+      
+      // 로그 레벨 검증 (MCP 스펙: 유효한 레벨만 허용)
+      const validLevels = ['debug', 'info', 'warn', 'error'];
+      if (!validLevels.includes(level)) {
+        throw new Error(`Invalid log level: ${level}. Valid levels are: ${validLevels.join(', ')}`);
+      }
+      
+      // 환경 변수에 로그 레벨 설정 (MCPLogger의 getCurrentLogLevel()이 환경 변수를 읽음)
+      // MCP 스펙: 로그 레벨 변경은 즉시 적용되어야 함
+      process.env.LOG_LEVEL = level;
+      
+      await mcpLogger.logMCPProtocol('info', `로그 레벨이 ${level}로 변경되었습니다`, { level });
+      
+      return {};
+    });
+    
     mcpLogger.logServer('info', 'MCP 서버 초기화 완료');
     
     // 실시간 성능 모니터링 시작
@@ -477,6 +532,12 @@ async function startServer() {
     
     // transport 연결 완료 후 로그 출력 허용
     (globalThis as any).__mcp_transport_connected = true;
+    
+    // 서버 초기화 완료 플래그 설정
+    // console.error 오버라이드가 MCP Logger를 사용하도록 전환
+    // MCP 스펙 준수 범위: 서버 초기화 완료 후부터 적용
+    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
+    (globalThis as any).__mcp_server_initialized = true;
     
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
     

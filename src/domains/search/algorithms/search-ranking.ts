@@ -1,6 +1,8 @@
 /**
  * 검색 결과의 관련성을 정량적으로 평가하여 사용자에게 가장 유용한 결과를 우선 제공합니다.
  * Memento-Goals.md에 정의된 검증된 랭킹 공식을 구현하여 일관되고 신뢰할 수 있는 검색 품질을 보장합니다.
+ * 
+ * 가중치는 ranking-weights.toml 설정 파일에서 로드하며, 파일이 없으면 constants.ts의 기본값을 사용합니다.
  */
 
 export interface SearchFeatures {
@@ -43,6 +45,9 @@ export interface RelevanceInput {
   bm25Result?: BM25Result | undefined;
 }
 
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
+import { SEARCH_RANKING } from '../../../shared/config/constants.js';
+
 export interface SearchRankingWeights {
   relevance: number;    // α = 0.45
   recency: number;      // β = 0.20
@@ -70,13 +75,18 @@ export class SearchRanking {
   private readonly weights: SearchRankingWeights;
 
   constructor(weights?: Partial<SearchRankingWeights>) {
+    // 설정 파일에서 가중치 로드 (없으면 constants.ts의 기본값 사용)
+    const configWeights = getRankingWeights();
+    const defaultWeights = SEARCH_RANKING.DEFAULT_WEIGHTS;
+    
     this.weights = {
-      relevance: 0.45,
-      recency: 0.20,
-      importance: 0.20,
-      usage: 0.10,
-      relation_weight: 0.15,
-      duplication_penalty: 0.10,
+      relevance: configWeights.ranking_weights.alpha ?? defaultWeights.relevance,
+      recency: configWeights.ranking_weights.beta ?? defaultWeights.recency,
+      importance: configWeights.ranking_weights.gamma ?? defaultWeights.importance,
+      usage: configWeights.ranking_weights.delta ?? defaultWeights.usage,
+      relation_weight: configWeights.ranking_weights.zeta ?? defaultWeights.relation_weight,
+      duplication_penalty: configWeights.ranking_weights.epsilon ?? defaultWeights.duplication_penalty,
+      consolidation_score: defaultWeights.consolidation_score,
       ...weights
     };
   }
@@ -92,18 +102,18 @@ export class SearchRanking {
     let boost = 0;
     
     if (features.workflow_name_match) {
-      boost += 0.1;
+      boost += SEARCH_RANKING.PROCEDURAL_MEMORY_BOOST.workflow_name_match;
     }
     
     if (features.skill_name_match) {
-      boost += 0.1;
+      boost += SEARCH_RANKING.PROCEDURAL_MEMORY_BOOST.skill_name_match;
     }
     
     if (features.trigger_conditions_match) {
-      boost += 0.15;
+      boost += SEARCH_RANKING.PROCEDURAL_MEMORY_BOOST.trigger_conditions_match;
     }
     
-    return boost;
+    return Math.min(boost, SEARCH_RANKING.PROCEDURAL_MEMORY_BOOST.max_boost);
   }
 
   /**
@@ -122,7 +132,7 @@ export class SearchRanking {
     // Consolidation Score가 있으면 relevance를 보완하는 신호로 활용
     if (features.consolidation_score !== undefined && this.weights.consolidation_score !== undefined) {
       // 통합 점수의 영향력을 제한하여 벡터 유사도의 중요성을 보장합니다.
-      const consolidationWeight = Math.min(this.weights.consolidation_score, 0.4);
+      const consolidationWeight = Math.min(this.weights.consolidation_score, SEARCH_RANKING.CONSOLIDATION_SCORE_MAX);
       const relevanceWeight = 1 - consolidationWeight;
       
       // 벡터 유사도와 통합 점수를 결합하여 보완된 관련성 점수를 계산합니다.
@@ -156,13 +166,13 @@ export class SearchRanking {
   getConsolidationScoreWeights(profile: SearchProfile = 'balanced'): ConsolidationScoreWeights {
     switch (profile) {
       case 'recent':
-        return { vectorSimilarity: 0.9, consolidationScore: 0.1 };
+        return SEARCH_RANKING.CONSOLIDATION_WEIGHTS.recent;
       case 'balanced':
-        return { vectorSimilarity: 0.8, consolidationScore: 0.2 };
+        return SEARCH_RANKING.CONSOLIDATION_WEIGHTS.balanced;
       case 'memory':
-        return { vectorSimilarity: 0.7, consolidationScore: 0.3 }; // 상한 0.4가 적용되어 벡터 유사도의 최소 비율을 보장합니다.
+        return SEARCH_RANKING.CONSOLIDATION_WEIGHTS.memory; // 상한 0.4가 적용되어 벡터 유사도의 최소 비율을 보장합니다.
       default:
-        return { vectorSimilarity: 0.8, consolidationScore: 0.2 };
+        return SEARCH_RANKING.CONSOLIDATION_WEIGHTS.balanced;
     }
   }
 
@@ -178,7 +188,7 @@ export class SearchRanking {
     const weights = this.getConsolidationScoreWeights(profile);
     
     // 통합 점수의 영향력을 제한하여 벡터 유사도의 중요성을 보장합니다.
-    const w2 = Math.min(weights.consolidationScore, 0.4);
+    const w2 = Math.min(weights.consolidationScore, SEARCH_RANKING.CONSOLIDATION_SCORE_MAX);
     const w1 = 1 - w2; // 가중치의 합이 1이 되도록 보장하여 점수 범위의 일관성을 유지합니다.
     
     return w1 * vectorSimilarity + w2 * consolidationScore;

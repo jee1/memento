@@ -30,6 +30,8 @@ import type {
   ExtractionSteps
 } from '../../shared/types/triple-extraction.js';
 import { logger } from '../../shared/utils/logger.js';
+import { RetryManager } from '../../infrastructure/scheduler/retry-manager.js';
+import { getRetryOptions } from '../../shared/config/retry-options-loader.js';
 
 /**
  * 토큰 버킷 Rate Limiter
@@ -108,6 +110,7 @@ export class TripleExtractionService {
   private readonly canonicalizer: PredicateCanonicalizer;
   private readonly entityLinker: EntityLinker;
   private readonly statistics: TripleExtractionStatisticsService; // PRD 8.1: Triple 추출 통계 수집
+  private readonly retryManager: RetryManager;
 
   // 기본 설정
   private readonly DEFAULT_TEMPERATURE = 0.3;
@@ -140,6 +143,13 @@ export class TripleExtractionService {
     this.entityLinker = new EntityLinker();
     // PRD 8.1: Triple 추출 통계 수집
     this.statistics = new TripleExtractionStatisticsService();
+    // RetryManager 초기화 (외부 API 호출 재시도용)
+    const retryOptions = getRetryOptions();
+    this.retryManager = new RetryManager({
+      maxAttempts: retryOptions.external_api.maxAttempts,
+      baseDelay: retryOptions.external_api.baseDelay,
+      maxErrorCount: retryOptions.default.maxErrorCount
+    });
   }
 
   /**
@@ -424,45 +434,66 @@ export class TripleExtractionService {
       throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
     }
 
-    try {
-      const model = mementoConfig.openaiLlmModel || 'gpt-4o-mini';
-      const temperature = options.temperature ?? this.DEFAULT_TEMPERATURE;
-      const maxTokens = options.maxTokens ?? this.DEFAULT_MAX_TOKENS;
+    const model = mementoConfig.openaiLlmModel || 'gpt-4o-mini';
+    const temperature = options.temperature ?? this.DEFAULT_TEMPERATURE;
+    const maxTokens = options.maxTokens ?? this.DEFAULT_MAX_TOKENS;
 
-      const response = await this.openaiClient.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a knowledge graph extractor. Extract triples (subject, predicate, object) from observations and return JSON format only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature,
-        max_tokens: maxTokens,
-        response_format: { type: 'json_object' } // JSON 모드 강제
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('OpenAI 응답이 비어있습니다.');
+    const retryOptions = getRetryOptions();
+    const response = await this.retryManager.retry(
+      async () => {
+        return await this.openaiClient!.chat.completions.create({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a knowledge graph extractor. Extract triples (subject, predicate, object) from observations and return JSON format only.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature,
+          max_tokens: maxTokens,
+          response_format: { type: 'json_object' } // JSON 모드 강제
+        });
+      },
+      {
+        maxAttempts: retryOptions.external_api.maxAttempts,
+        baseDelay: retryOptions.external_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          // 네트워크 에러나 일시적 오류만 재시도
+          const message = error.message.toLowerCase();
+          return message.includes('network') || 
+                 message.includes('timeout') || 
+                 message.includes('rate limit') ||
+                 message.includes('server error') ||
+                 message.includes('503') ||
+                 message.includes('502') ||
+                 message.includes('500');
+        },
+        onRetry: (error: Error, attempt: number, delay: number) => {
+          logger.warn('TripleExtractionService: OpenAI API 호출 재시도', {
+            attempt,
+            delay,
+            error: error.message,
+            model
+          });
+        }
       }
+    );
 
-      // 비용 모니터링
-      const promptTokens = response.usage?.prompt_tokens || 0;
-      const completionTokens = response.usage?.completion_tokens || 0;
-      this.updateCostMetrics('openai', promptTokens, completionTokens);
-
-      return content;
-    } catch (error) {
-      logger.error('TripleExtractionService: OpenAI 호출 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('OpenAI 응답이 비어있습니다.');
     }
+
+    // 비용 모니터링
+    const promptTokens = response.usage?.prompt_tokens || 0;
+    const completionTokens = response.usage?.completion_tokens || 0;
+    this.updateCostMetrics('openai', promptTokens, completionTokens);
+
+    return content;
   }
 
   /**
@@ -476,44 +507,65 @@ export class TripleExtractionService {
       throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');
     }
 
-    try {
-      const modelName = mementoConfig.geminiModel || 'gemini-1.5-flash';
-      const model = this.geminiClient.getGenerativeModel({ model: modelName });
-      const temperature = options.temperature ?? this.DEFAULT_TEMPERATURE;
-      const maxTokens = options.maxTokens ?? this.DEFAULT_MAX_TOKENS;
+    const modelName = mementoConfig.geminiModel || 'gemini-1.5-flash';
+    const model = this.geminiClient.getGenerativeModel({ model: modelName });
+    const temperature = options.temperature ?? this.DEFAULT_TEMPERATURE;
+    const maxTokens = options.maxTokens ?? this.DEFAULT_MAX_TOKENS;
 
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
+    const retryOptions = getRetryOptions();
+    const result = await this.retryManager.retry(
+      async () => {
+        return await model.generateContent({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }]
+            }
+          ],
+          generationConfig: {
+            temperature,
+            maxOutputTokens: maxTokens,
+            responseMimeType: 'application/json'
           }
-        ],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: maxTokens,
-          responseMimeType: 'application/json'
+        });
+      },
+      {
+        maxAttempts: retryOptions.external_api.maxAttempts,
+        baseDelay: retryOptions.external_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          // 네트워크 에러나 일시적 오류만 재시도
+          const message = error.message.toLowerCase();
+          return message.includes('network') || 
+                 message.includes('timeout') || 
+                 message.includes('rate limit') ||
+                 message.includes('server error') ||
+                 message.includes('503') ||
+                 message.includes('502') ||
+                 message.includes('500');
+        },
+        onRetry: (error: Error, attempt: number, delay: number) => {
+          logger.warn('TripleExtractionService: Gemini API 호출 재시도', {
+            attempt,
+            delay,
+            error: error.message,
+            model: modelName
+          });
         }
-      });
-
-      const response = result.response;
-      const text = response.text();
-      if (!text) {
-        throw new Error('Gemini 응답이 비어있습니다.');
       }
+    );
 
-      // 비용 모니터링 (Gemini는 usage 정보를 직접 제공하지 않으므로 대략적 추정)
-      const estimatedPromptTokens = Math.ceil(prompt.length / 4);
-      const estimatedCompletionTokens = Math.ceil(text.length / 4);
-      this.updateCostMetrics('gemini', estimatedPromptTokens, estimatedCompletionTokens);
-
-      return text;
-    } catch (error) {
-      logger.error('TripleExtractionService: Gemini 호출 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
+    const response = result.response;
+    const text = response.text();
+    if (!text) {
+      throw new Error('Gemini 응답이 비어있습니다.');
     }
+
+    // 비용 모니터링 (Gemini는 usage 정보를 직접 제공하지 않으므로 대략적 추정)
+    const estimatedPromptTokens = Math.ceil(prompt.length / 4);
+    const estimatedCompletionTokens = Math.ceil(text.length / 4);
+    this.updateCostMetrics('gemini', estimatedPromptTokens, estimatedCompletionTokens);
+
+    return text;
   }
 
   /**
@@ -547,30 +599,62 @@ export class TripleExtractionService {
       format: 'json' as const
     };
 
-    try {
-      // Ollama 모델 존재 여부 확인
-      const modelExists = await this.checkOllamaModel(baseUrl, model);
-      if (!modelExists) {
-        throw new Error(
-          `Ollama 모델 '${model}'이 설치되지 않았습니다. ` +
-          `다음 명령어로 모델을 설치하세요: ollama pull ${model}`
-        );
-      }
+    // Ollama 모델 존재 여부 확인
+    const modelExists = await this.checkOllamaModel(baseUrl, model);
+    if (!modelExists) {
+      throw new Error(
+        `Ollama 모델 '${model}'이 설치되지 않았습니다. ` +
+        `다음 명령어로 모델을 설치하세요: ollama pull ${model}`
+      );
+    }
 
-      const apiUrl = `${baseUrl}/api/chat`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+    const retryOptions = getRetryOptions();
+    const apiUrl = `${baseUrl}/api/chat`;
+    const response = await this.retryManager.retry(
+      async () => {
+        const fetchResponse = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(60000) // 60초 타임아웃
+        });
+
+        if (!fetchResponse.ok) {
+          const errorText = await fetchResponse.text().catch(() => '');
+          throw new Error(`Ollama API 호출 실패: ${fetchResponse.status} ${fetchResponse.statusText}${errorText ? ` - ${errorText}` : ''}`);
+        }
+
+        return fetchResponse;
+      },
+      {
+        maxAttempts: retryOptions.external_api.maxAttempts,
+        baseDelay: retryOptions.external_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          // 네트워크 에러나 일시적 오류만 재시도
+          const message = error.message.toLowerCase();
+          return message.includes('network') || 
+                 message.includes('timeout') || 
+                 message.includes('rate limit') ||
+                 message.includes('server error') ||
+                 message.includes('503') ||
+                 message.includes('502') ||
+                 message.includes('500') ||
+                 message.includes('econnrefused') ||
+                 message.includes('enotfound');
         },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(60000) // 60초 타임아웃
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(`Ollama API 호출 실패: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
+        onRetry: (error: Error, attempt: number, delay: number) => {
+          logger.warn('TripleExtractionService: Ollama API 호출 재시도', {
+            attempt,
+            delay,
+            error: error.message,
+            baseUrl,
+            model
+          });
+        }
       }
+    );
 
       // NDJSON 형식 처리
       const contentType = response.headers.get('content-type') || '';
@@ -606,20 +690,12 @@ export class TripleExtractionService {
         throw new Error('Ollama 응답이 비어있습니다.');
       }
 
-      // 비용 모니터링 (Ollama는 로컬이므로 비용 0, 토큰 수만 추적)
-      const estimatedPromptTokens = Math.ceil(prompt.length / 4);
-      const estimatedCompletionTokens = Math.ceil(content.length / 4);
-      this.updateCostMetrics('ollama', estimatedPromptTokens, estimatedCompletionTokens);
+    // 비용 모니터링 (Ollama는 로컬이므로 비용 0, 토큰 수만 추적)
+    const estimatedPromptTokens = Math.ceil(prompt.length / 4);
+    const estimatedCompletionTokens = Math.ceil(content.length / 4);
+    this.updateCostMetrics('ollama', estimatedPromptTokens, estimatedCompletionTokens);
 
-      return content;
-    } catch (error) {
-      logger.error('TripleExtractionService: Ollama 호출 실패', {
-        error: error instanceof Error ? error.message : String(error),
-        baseUrl,
-        model
-      });
-      throw error;
-    }
+    return content;
   }
 
   /**

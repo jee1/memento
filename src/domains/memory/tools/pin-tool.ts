@@ -9,6 +9,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 const PinSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -213,7 +214,9 @@ export class PinTool extends BaseTool {
       );
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('고정 로그 기록 실패:', maskedError.message);
+      logger.warn('고정 로그 기록 실패', {
+        error: maskedError.message
+      });
     }
   }
 
@@ -223,10 +226,12 @@ export class PinTool extends BaseTool {
   private async handleDatabaseLock(context: ToolContext): Promise<void> {
     try {
       await DatabaseUtils.checkpointWAL(context.db);
-      console.log('WAL 체크포인트 완료');
+      logger.info('WAL 체크포인트 완료');
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('WAL 체크포인트 실패:', maskedError.message);
+      logger.warn('WAL 체크포인트 실패', {
+        error: maskedError.message
+      });
     }
   }
 

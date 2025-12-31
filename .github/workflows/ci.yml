@@ -49,6 +49,14 @@ jobs:
       - name: Run linting
         run: npm run lint -- --max-warnings 0 || echo "Linting completed with warnings"
         
+      - name: Check console.log usage
+        run: npx tsx scripts/count-console-logs.ts --core-only --ci
+        continue-on-error: false
+
+      - name: Check retry usage
+        run: npx tsx scripts/check-retry-usage.ts --ci
+        continue-on-error: false
+        
       - name: Run type checking
         run: npm run type-check
         
