@@ -7,6 +7,7 @@ import { parse } from '@iarna/toml';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { RetryConfig } from '../../infrastructure/scheduler/retry-manager.js';
+import { logger } from '../utils/logger.js';
 
 export interface RetryOptionsConfig {
   default: RetryConfig;
@@ -96,7 +97,10 @@ export function loadRetryOptions(configPath?: string): RetryOptionsConfig {
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       // 파일이 없으면 기본값 반환
-      console.warn(`[retry-options] 설정 파일을 찾을 수 없습니다: ${path}. 기본값을 사용합니다.`);
+      logger.warn('재시도 옵션 설정 파일을 찾을 수 없습니다. 기본값을 사용합니다.', {
+        path,
+        defaultConfig: DEFAULT_CONFIG
+      });
       return DEFAULT_CONFIG;
     }
     throw new Error(`재시도 옵션 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);

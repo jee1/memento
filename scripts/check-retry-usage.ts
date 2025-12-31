@@ -36,9 +36,18 @@ const EXTERNAL_API_PATTERNS = [
 ];
 
 // RetryManager 사용 패턴
+// 배치 작업용 메서드도 포함 (shouldRetry, incrementErrorCount 등)
 const RETRY_MANAGER_PATTERNS = [
   /retryManager\.retry\s*\(/g,
   /this\.retryManager\.retry\s*\(/g,
+  /retryManager\.shouldRetry\s*\(/g,
+  /this\.retryManager\.shouldRetry\s*\(/g,
+  /retryManager\.incrementErrorCount\s*\(/g,
+  /this\.retryManager\.incrementErrorCount\s*\(/g,
+  /retryManager\.getErrorCount\s*\(/g,
+  /this\.retryManager\.getErrorCount\s*\(/g,
+  /retryManager\.resetErrorCount\s*\(/g,
+  /this\.retryManager\.resetErrorCount\s*\(/g,
 ];
 
 async function getAllTsFiles(dir: string, baseDir: string = dir): Promise<string[]> {
@@ -53,8 +62,8 @@ async function getAllTsFiles(dir: string, baseDir: string = dir): Promise<string
       
       // 제외할 디렉토리/파일 건너뛰기
       if (entry.name === 'node_modules' || entry.name === 'dist' || 
-          entry.name === '__tests__' || entry.name.endsWith('.spec.ts') ||
-          entry.name.endsWith('.test.ts')) {
+          entry.name === '__tests__' || entry.name === 'test' ||
+          entry.name.endsWith('.spec.ts') || entry.name.endsWith('.test.ts')) {
         continue;
       }
       
@@ -85,9 +94,13 @@ function checkRetryUsage(filePath: string): RetryUsageResult {
 
   const content = readFileSync(filePath, 'utf-8');
   
-  // RetryManager import 확인
-  const hasRetryManager = /import.*RetryManager|from.*retry-manager/.test(content) ||
-                          /private.*retryManager|readonly.*retryManager/.test(content);
+  // RetryManager import 확인 (타입 import는 제외)
+  // 타입만 import하는 경우는 제외: import type { RetryConfig } from '...retry-manager'
+  const hasTypeOnlyImport = /import\s+type\s+.*from.*retry-manager/.test(content);
+  const hasRetryManager = !hasTypeOnlyImport && (
+    /import.*RetryManager.*from.*retry-manager/.test(content) ||
+    /private.*retryManager|readonly.*retryManager/.test(content)
+  );
   
   // 외부 API 호출 확인
   const hasExternalAPICall = EXTERNAL_API_PATTERNS.some(pattern => pattern.test(content));
