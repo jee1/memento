@@ -173,7 +173,8 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     
     // logger.ts를 import하는지 확인 (이미 마스킹이 적용되어 있음)
     // 다양한 import 패턴 지원: import { logger } from '...', import logger from '...', import * as logger from '...'
-    const usesLoggerUtils = /import\s+.*\blogger\b.*from\s+['"].*shared\/utils\/logger|from\s+['"].*shared\/utils\/logger/.test(content);
+    // 상대 경로와 절대 경로 모두 지원: '../utils/logger', '../../shared/utils/logger', 'shared/utils/logger'
+    const usesLoggerUtils = /import\s+.*\blogger\b.*from\s+['"].*utils\/logger|from\s+['"].*utils\/logger/.test(content);
     
     // 로거 파일인지 확인 (logger, file-logger, error-logging-service 등)
     const isLoggerFile = /logger|log|error-logging/i.test(relativePath);
