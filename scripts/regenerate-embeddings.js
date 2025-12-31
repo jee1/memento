@@ -3,27 +3,31 @@
 /**
  * 임베딩 재생성 스크립트
  * 모든 기억에 대해 새로운 벡터값을 생성하는 스크립트
+ * 
+ * 리팩토링: 공통 모듈(initializeDatabase)을 사용하여 일관된 DB 초기화 보장
+ * 
+ * 사용법: 
+ *   - 개발 환경: npx tsx scripts/regenerate-embeddings.js
+ *   - 프로덕션: npm run build && node dist/scripts/regenerate-embeddings.js
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// TypeScript 소스를 직접 import (tsx로 실행 시)
+// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
 import { EmbeddingService } from '../dist/services/embedding-service.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 데이터베이스 경로 설정
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'memory.db');
 
 async function regenerateEmbeddings() {
   console.log('🔄 임베딩 재생성 시작...');
   
-  // 데이터베이스 연결
-  const db = new Database(dbPath);
-  const embeddingService = new EmbeddingService();
+  let db = null;
   
   try {
+    // 공통 모듈을 사용하여 데이터베이스 초기화
+    // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
+    db = await initializeDatabase();
+    
+    const embeddingService = new EmbeddingService();
+    
     // 임베딩 서비스 사용 가능 여부 확인
     if (!embeddingService.isAvailable()) {
       console.error('❌ 임베딩 서비스가 사용 불가능합니다.');
@@ -90,6 +94,9 @@ async function regenerateEmbeddings() {
 
       } catch (error) {
         console.error(`${progress} ❌ 오류: ${memory.id}`, error.message);
+        if (error.stack) {
+          console.error('   스택 트레이스:', error.stack);
+        }
         errorCount++;
       }
     }
@@ -130,15 +137,24 @@ async function regenerateEmbeddings() {
 
   } catch (error) {
     console.error('❌ 재생성 실패:', error);
+    if (error.stack) {
+      console.error('   스택 트레이스:', error.stack);
+    }
     process.exit(1);
   } finally {
-    db.close();
+    // 데이터베이스 연결 종료
+    if (db) {
+      closeDatabase(db);
+    }
   }
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}`) {
-  regenerateEmbeddings().catch(console.error);
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+  regenerateEmbeddings().catch((error) => {
+    console.error('❌ 스크립트 실행 중 오류 발생:', error);
+    process.exit(1);
+  });
 }
 
 export { regenerateEmbeddings };

@@ -5,7 +5,7 @@
 
 import type { PerformanceTestResult } from '../../../../shared/types/vector-search.types.js';
 import type { VectorPerformanceRepository } from '../../../../shared/interfaces/database.interface.js';
-import { VECTOR_SEARCH_DEFAULTS } from '../../../../shared/config/vector-search.config';
+import { VECTOR_SEARCH_DEFAULTS } from '../../../../shared/config/vector-search.config.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 
 export class VectorPerformanceTester {

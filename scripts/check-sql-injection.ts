@@ -183,18 +183,6 @@ function findSqlInjectionPatterns(filePath: string): SqlInjectionLocation[] {
     const content = readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
     
-    // 패턴 1: 문자열 연결을 통한 SQL 쿼리 생성
-    // sql +=, query +=, sql = sql + 등
-    const stringConcatenationPattern = /\b(sql|query|stmt|statement)\s*([+]=|=.*\+)/gi;
-    
-    // 패턴 2: 템플릿 리터럴로 동적 테이블명/컬럼명 사용
-    // FROM ${, JOIN ${, WHERE ${ 등 (일부는 허용 가능하지만 검사 대상)
-    const templateLiteralPattern = /\b(FROM|JOIN|WHERE|SELECT|INSERT|UPDATE|DELETE|INTO|SET)\s+\$\{/gi;
-    
-    // 패턴 3: 파라미터 바인딩 미사용 (문자열 연결)
-    // '...' + variable, "..." + variable (SQL 쿼리 컨텍스트에서)
-    const parameterBindingPattern = /(['"]).*?\1\s*\+\s*\w+/g;
-    
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       const line = lines[lineIndex];
       const trimmedLine = line.trim();

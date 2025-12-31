@@ -236,14 +236,30 @@ const RecallSchema = z.object({
     // query는 선택적 (없어도 됨)
     return true;
   } else {
-    // 나머지 타입은 query 필수
-    if (!data.query) {
-      return false;
+    // memory_types만 제공되고 type이 없는 경우, query는 선택적
+    // (memory_types로 필터링만 할 수 있음)
+    if (!data.type && data.memory_types && data.memory_types.length > 0) {
+      // memory_types가 제공되었고, core/vault가 아닌 경우 query는 선택적
+      // 단, core/vault만 있는 경우는 query가 필요 없음 (하지만 이미 위에서 처리됨)
+      const hasNonCoreVaultTypes = data.memory_types.some(t => t !== 'core' && t !== 'vault');
+      if (!hasNonCoreVaultTypes) {
+        // core/vault만 있으면 query 불필요
+        return true;
+      }
+      // core/vault가 아닌 타입이 있으면 query 필수
+      if (!data.query) {
+        return false;
+      }
+    } else {
+      // type이 있거나 memory_types가 없는 경우, query 필수
+      if (!data.query) {
+        return false;
+      }
     }
   }
   return true;
 }, {
-  message: "type='core' 또는 'vault'가 아닌 경우 query 파라미터는 필수입니다"
+  message: "type='core' 또는 'vault'가 아닌 경우 query 파라미터는 필수입니다 (memory_types만 제공된 경우에도 core/vault가 아닌 타입이 있으면 query 필수)"
 });
 
 export class RecallTool extends BaseTool {
@@ -256,7 +272,7 @@ export class RecallTool extends BaseTool {
         properties: {
           query: { 
             type: 'string', 
-            description: '검색 쿼리 (type이 core 또는 vault가 아닌 경우 필수)' 
+            description: '검색 쿼리 (type이 core 또는 vault가 아닌 경우 필수). memory_types만 제공된 경우에도 query는 필수입니다.' 
           },
           type: { 
             type: 'string', 

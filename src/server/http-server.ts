@@ -459,13 +459,8 @@ async function startServer() {
   });
 }
 
-// 서버 시작
-if (process.argv[1] && (process.argv[1].includes('http-server'))) {
-  startServer().catch(error => {
-    logger.error('서버 시작 실패', { error });
-    process.exit(1);
-  });
-}
+// 서버 시작 함수는 export만 유지 (팩토리 패턴 사용)
+// 직접 실행 코드는 제거됨 - 팩토리를 통해 서버를 시작해야 함
 
 export const __test: {
   setTestDependencies: (deps: TestDependencies) => void;

@@ -3,25 +3,28 @@
 /**
  * 임베딩 디버깅 스크립트
  * 현재 데이터베이스의 임베딩 상태를 상세히 분석
+ * 
+ * 리팩토링: 공통 모듈(initializeDatabase)을 사용하여 일관된 DB 초기화 보장
+ * 
+ * 사용법: 
+ *   - 개발 환경: npx tsx scripts/debug-embeddings.js
+ *   - 프로덕션: npm run build && node dist/scripts/debug-embeddings.js
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 데이터베이스 경로 설정
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'memory.db');
+// TypeScript 소스를 직접 import (tsx로 실행 시)
+// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
 
 async function debugEmbeddings() {
   console.log('🔍 임베딩 상태 디버깅 시작...');
   
-  // 데이터베이스 연결
-  const db = new Database(dbPath);
+  let db = null;
   
   try {
+    // 공통 모듈을 사용하여 데이터베이스 초기화
+    // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
+    db = await initializeDatabase();
+    
     // 1. 전체 임베딩 통계
     console.log('\n📊 전체 임베딩 통계:');
     const totalStats = db.prepare(`
@@ -49,21 +52,18 @@ async function debugEmbeddings() {
         GROUP_CONCAT(memory_id) as memory_ids
       FROM memory_embedding
       GROUP BY dim
-      ORDER BY dim
+      ORDER BY count DESC
     `).all();
 
     dimensionStats.forEach(stat => {
       console.log(`- ${stat.dim}차원: ${stat.count}개`);
-      if (stat.count <= 5) {
-        console.log(`  메모리 ID: ${stat.memory_ids}`);
-      }
     });
 
     // 3. 모델별 분포
     console.log('\n🤖 모델별 분포:');
     const modelStats = db.prepare(`
       SELECT 
-        model,
+        COALESCE(model, 'NULL') as model,
         COUNT(*) as count,
         AVG(dim) as avg_dim
       FROM memory_embedding
@@ -72,113 +72,94 @@ async function debugEmbeddings() {
     `).all();
 
     modelStats.forEach(stat => {
-      console.log(`- ${stat.model || 'NULL'}: ${stat.count}개 (평균 ${stat.avg_dim?.toFixed(1)}차원)`);
+      console.log(`- ${stat.model}: ${stat.count}개 (평균 ${stat.avg_dim?.toFixed(1) || 'N/A'}차원)`);
     });
 
-    // 4. 최근 생성된 임베딩들
-    console.log('\n🕒 최근 생성된 임베딩 (최대 10개):');
-    const recentEmbeddings = db.prepare(`
+    // 4. 임베딩 제공자별 분포 (컬럼이 있는 경우)
+    const hasProvider = db.prepare("PRAGMA table_info(memory_embedding)").all()
+      .some(col => col.name === 'embedding_provider');
+    
+    if (hasProvider) {
+      console.log('\n🔧 임베딩 제공자별 분포:');
+      const providerStats = db.prepare(`
+        SELECT 
+          COALESCE(embedding_provider, 'NULL') as provider,
+          COUNT(*) as count,
+          AVG(dimensions) as avg_dim
+        FROM memory_embedding
+        GROUP BY embedding_provider
+        ORDER BY count DESC
+      `).all();
+
+      providerStats.forEach(stat => {
+        console.log(`- ${stat.provider}: ${stat.count}개 (평균 ${stat.avg_dim?.toFixed(1) || 'N/A'}차원)`);
+      });
+    }
+
+    // 5. 문제가 있는 임베딩 확인
+    console.log('\n⚠️ 문제가 있는 임베딩:');
+    const problematic = db.prepare(`
       SELECT 
         memory_id,
         dim,
         model,
-        created_at,
-        LENGTH(embedding) as embedding_length
+        CASE 
+          WHEN embedding IS NULL OR embedding = '' THEN '빈 임베딩'
+          WHEN dim IS NULL OR dim = 0 THEN '차원 없음'
+          ELSE '정상'
+        END as issue
       FROM memory_embedding
-      ORDER BY created_at DESC
+      WHERE embedding IS NULL OR embedding = '' OR dim IS NULL OR dim = 0
       LIMIT 10
     `).all();
 
-    recentEmbeddings.forEach(emb => {
-      console.log(`- ${emb.memory_id}: ${emb.dim}차원, ${emb.model}, ${emb.created_at}`);
-    });
-
-    // 5. 문제가 있는 임베딩 찾기
-    console.log('\n⚠️ 문제가 있을 수 있는 임베딩들:');
-    
-    // 차원이 0인 경우
-    const zeroDim = db.prepare(`
-      SELECT memory_id, dim, model FROM memory_embedding WHERE dim = 0
-    `).all();
-    
-    if (zeroDim.length > 0) {
-      console.log(`- 차원이 0인 임베딩: ${zeroDim.length}개`);
-      zeroDim.forEach(emb => {
-        console.log(`  ${emb.memory_id} (${emb.model})`);
+    if (problematic.length === 0) {
+      console.log('- 문제가 있는 임베딩이 없습니다.');
+    } else {
+      problematic.forEach(item => {
+        console.log(`- ${item.memory_id}: ${item.issue} (차원: ${item.dim || 'N/A'}, 모델: ${item.model || 'N/A'})`);
       });
     }
 
-    // 차원이 매우 큰 경우 (1536보다 큰 경우)
-    const largeDim = db.prepare(`
-      SELECT memory_id, dim, model FROM memory_embedding WHERE dim > 1536
-    `).all();
-    
-    if (largeDim.length > 0) {
-      console.log(`- 차원이 1536보다 큰 임베딩: ${largeDim.length}개`);
-      largeDim.forEach(emb => {
-        console.log(`  ${emb.memory_id}: ${emb.dim}차원 (${emb.model})`);
-      });
-    }
-
-    // 6. 임베딩 데이터 샘플 확인
-    console.log('\n🔬 임베딩 데이터 샘플 (첫 3개):');
-    const samples = db.prepare(`
+    // 6. 최근 생성된 임베딩
+    console.log('\n🕐 최근 생성된 임베딩 (최대 5개):');
+    const recent = db.prepare(`
       SELECT 
         memory_id,
         dim,
         model,
-        SUBSTR(embedding, 1, 100) as embedding_preview
+        created_at
       FROM memory_embedding
-      LIMIT 3
+      ORDER BY created_at DESC
+      LIMIT 5
     `).all();
 
-    samples.forEach((sample, index) => {
-      console.log(`\n샘플 ${index + 1}:`);
-      console.log(`- 메모리 ID: ${sample.memory_id}`);
-      console.log(`- 차원: ${sample.dim}`);
-      console.log(`- 모델: ${sample.model}`);
-      console.log(`- 임베딩 미리보기: ${sample.embedding_preview}...`);
-      
-      // 실제 벡터 길이 확인
-      try {
-        const fullEmbedding = db.prepare(`
-          SELECT embedding FROM memory_embedding WHERE memory_id = ?
-        `).get(sample.memory_id);
-        
-        const vector = JSON.parse(fullEmbedding.embedding);
-        console.log(`- 실제 벡터 길이: ${vector.length}`);
-        console.log(`- 첫 5개 값: [${vector.slice(0, 5).join(', ')}...]`);
-      } catch (error) {
-        console.log(`- 벡터 파싱 오류: ${error.message}`);
-      }
+    recent.forEach(item => {
+      console.log(`- ${item.memory_id}: ${item.dim}차원, ${item.model || 'N/A'} (${item.created_at})`);
     });
 
-    // 7. 메모리 아이템과의 연결 상태 확인
-    console.log('\n🔗 메모리 아이템 연결 상태:');
-    const connectionStats = db.prepare(`
-      SELECT 
-        (SELECT COUNT(*) FROM memory_item) as total_memories,
-        (SELECT COUNT(*) FROM memory_embedding) as total_embeddings,
-        (SELECT COUNT(*) FROM memory_item mi 
-         LEFT JOIN memory_embedding me ON mi.id = me.memory_id 
-         WHERE me.memory_id IS NULL) as memories_without_embedding
-    `).get();
-
-    console.log(`- 총 메모리 개수: ${connectionStats.total_memories}`);
-    console.log(`- 총 임베딩 개수: ${connectionStats.total_embeddings}`);
-    console.log(`- 임베딩이 없는 메모리: ${connectionStats.memories_without_embedding}`);
+    console.log('\n✅ 디버깅 완료!');
 
   } catch (error) {
-    console.error('❌ 디버깅 실패:', error);
+    console.error('❌ 디버깅 중 오류 발생:', error.message);
+    if (error.stack) {
+      console.error('   스택 트레이스:', error.stack);
+    }
     process.exit(1);
   } finally {
-    db.close();
+    // 데이터베이스 연결 종료
+    if (db) {
+      closeDatabase(db);
+    }
   }
 }
 
 // 스크립트 실행
-if (import.meta.url === `file://${process.argv[1]}`) {
-  debugEmbeddings().catch(console.error);
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+  debugEmbeddings().catch((error) => {
+    console.error('❌ 스크립트 실행 중 오류 발생:', error);
+    process.exit(1);
+  });
 }
 
 export { debugEmbeddings };

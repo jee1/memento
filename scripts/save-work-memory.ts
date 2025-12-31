@@ -3,7 +3,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../src/utils/database.js';
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
 import { initializeServices } from '../src/server/bootstrap.js';
 import { executeTool } from '../src/tools/index.js';
 import type { ToolContext } from '../src/tools/types.js';
@@ -35,11 +35,10 @@ async function saveWorkMemory() {
   let db: Database.Database | null = null;
 
   try {
-    // 데이터베이스 초기화 (실제 DB 사용)
-    const dbPath = process.env.MEMENTO_DB_PATH || './data/memory.db';
-    db = new Database(dbPath);
-    DatabaseUtils.initializeDatabase(db);
-    console.log(`✅ 데이터베이스 초기화 완료 (${dbPath})\n`);
+    // 공통 모듈을 사용하여 데이터베이스 초기화
+    // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
+    db = await initializeDatabase();
+    console.log(`✅ 데이터베이스 초기화 완료\n`);
 
     // 서비스 초기화
     console.log('2️⃣ 서비스 초기화');
@@ -164,7 +163,7 @@ async function saveWorkMemory() {
     process.exit(1);
   } finally {
     if (db) {
-      db.close();
+      closeDatabase(db);
     }
   }
 }

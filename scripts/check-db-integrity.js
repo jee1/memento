@@ -1,46 +1,56 @@
 #!/usr/bin/env node
 /**
  * Memento 데이터베이스 무결성 검사 스크립트
- * 사용법: node scripts/check-db-integrity.js
+ * 
+ * 리팩토링: 공통 모듈(initializeDatabase)을 사용하여 일관된 DB 초기화 보장
+ * 
+ * 사용법: 
+ *   - 개발 환경: npx tsx scripts/check-db-integrity.js
+ *   - 프로덕션: npm run build && node dist/scripts/check-db-integrity.js
  */
 
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+// TypeScript 소스를 직접 import (tsx로 실행 시)
+// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
+import { existsSync, mkdirSync, appendFileSync } from 'fs';
+import { join } from 'path';
 
-const DB_PATH = './data/memory.db';
 const LOG_PATH = './logs/db-integrity.log';
 
 // 로그 디렉토리 생성
-if (!fs.existsSync('./logs')) {
-  fs.mkdirSync('./logs');
+if (!existsSync('./logs')) {
+  mkdirSync('./logs', { recursive: true });
 }
 
+/**
+ * 로그 메시지 출력 및 파일 기록
+ */
 function log(message) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] ${message}\n`;
   console.log(message);
-  fs.appendFileSync(LOG_PATH, logMessage);
+  appendFileSync(LOG_PATH, logMessage);
 }
 
-function checkDatabaseIntegrity() {
+/**
+ * 데이터베이스 무결성 검사
+ * 
+ * @returns {Promise<boolean>} 검사 통과 여부
+ */
+async function checkDatabaseIntegrity() {
   log('데이터베이스 무결성 검사 시작...');
   
+  let db = null;
+  
   try {
-    // 데이터베이스 파일 존재 확인
-    if (!fs.existsSync(DB_PATH)) {
-      log('❌ 데이터베이스 파일이 존재하지 않습니다.');
-      return false;
-    }
-    
-    // 데이터베이스 연결 테스트
-    const db = new Database(DB_PATH);
+    // 공통 모듈을 사용하여 데이터베이스 초기화
+    // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
+    db = await initializeDatabase();
     
     // PRAGMA integrity_check 실행
     const integrityResult = db.prepare('PRAGMA integrity_check').get();
     if (integrityResult.integrity_check !== 'ok') {
       log(`❌ 데이터베이스 무결성 검사 실패: ${integrityResult.integrity_check}`);
-      db.close();
       return false;
     }
     
@@ -52,7 +62,7 @@ function checkDatabaseIntegrity() {
     
     if (tables.length < 3) {
       log('❌ 필수 테이블이 누락되었습니다.');
-      db.close();
+      log(`   발견된 테이블: ${tables.map(t => t.name).join(', ')}`);
       return false;
     }
     
@@ -65,17 +75,27 @@ function checkDatabaseIntegrity() {
     log(`   - 임베딩: ${embeddingCount.count}개`);
     log(`   - 테이블: ${tables.length}개`);
     
-    db.close();
     return true;
     
   } catch (error) {
     log(`❌ 데이터베이스 검사 중 오류 발생: ${error.message}`);
+    if (error.stack) {
+      log(`   스택 트레이스: ${error.stack}`);
+    }
     return false;
+  } finally {
+    // 데이터베이스 연결 종료
+    if (db) {
+      closeDatabase(db);
+    }
   }
 }
 
-function main() {
-  const isHealthy = checkDatabaseIntegrity();
+/**
+ * 메인 함수
+ */
+async function main() {
+  const isHealthy = await checkDatabaseIntegrity();
   
   if (!isHealthy) {
     log('🚨 데이터베이스에 문제가 있습니다. 백업에서 복구를 고려하세요.');
@@ -86,8 +106,12 @@ function main() {
   }
 }
 
-if (require.main === module) {
-  main();
+// 스크립트가 직접 실행될 때만 main 함수 호출
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
+  main().catch((error) => {
+    console.error('❌ 스크립트 실행 중 오류 발생:', error);
+    process.exit(1);
+  });
 }
 
-module.exports = { checkDatabaseIntegrity };
+export { checkDatabaseIntegrity };

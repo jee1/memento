@@ -3,12 +3,21 @@
 /**
  * 임베딩 데이터 마이그레이션 스크립트
  * 기존 임베딩 데이터를 새로운 통합 시스템으로 마이그레이션
+ * 
+ * 리팩토링: 공통 모듈(initializeDatabase)을 사용하여 일관된 DB 초기화 보장
+ * 
+ * 사용법: 
+ *   - 개발 환경: npx tsx scripts/migrate-embedding-data.js migrate
+ *   - 프로덕션: npm run build && node dist/scripts/migrate-embedding-data.js migrate
  */
 
+// TypeScript 소스를 직접 import (tsx로 실행 시)
+// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
+import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, copyFileSync } from 'fs';
 import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,17 +25,21 @@ const __dirname = dirname(__filename);
 
 class EmbeddingMigration {
   constructor() {
-    this.dbPath = join(__dirname, '..', 'data', 'memory.db');
-    this.backupPath = join(__dirname, '..', 'data', `memory-backup-${Date.now()}.db`);
+    // DB 경로는 initializeDatabase가 환경 변수에서 가져옴
+    // 백업 경로는 data 디렉토리에 생성
+    this.backupPath = join(process.cwd(), 'data', `memory-backup-${Date.now()}.db`);
     this.db = null;
   }
 
   /**
    * 데이터베이스 연결
+   * 공통 모듈을 사용하여 일관된 초기화 보장
    */
-  connect() {
+  async connect() {
     try {
-      this.db = new Database(this.dbPath);
+      // 공통 모듈을 사용하여 데이터베이스 초기화
+      // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
+      this.db = await initializeDatabase();
       console.log('✅ 데이터베이스 연결 성공');
     } catch (error) {
       console.error('❌ 데이터베이스 연결 실패:', error);
@@ -39,9 +52,19 @@ class EmbeddingMigration {
    */
   createBackup() {
     try {
-      const db = new Database(this.dbPath);
-      db.backup(this.backupPath);
-      db.close();
+      if (!this.db) {
+        throw new Error('데이터베이스가 연결되지 않았습니다. connect()를 먼저 호출하세요.');
+      }
+      
+      // 백업 디렉토리 생성
+      const backupDir = dirname(this.backupPath);
+      if (!existsSync(backupDir)) {
+        const { mkdirSync } = require('fs');
+        mkdirSync(backupDir, { recursive: true });
+      }
+      
+      // 백업 생성
+      this.db.backup(this.backupPath);
       console.log(`✅ 백업 생성 완료: ${this.backupPath}`);
     } catch (error) {
       console.error('❌ 백업 생성 실패:', error);
@@ -76,11 +99,14 @@ class EmbeddingMigration {
       
     } catch (error) {
       console.error('❌ 마이그레이션 실패:', error);
-      console.log(`🔄 백업에서 복원하려면: cp ${this.backupPath} ${this.dbPath}`);
+      if (error.stack) {
+        console.error('   스택 트레이스:', error.stack);
+      }
+      console.log(`🔄 백업에서 복원하려면: cp ${this.backupPath} ${join(process.cwd(), 'data', 'memory.db')}`);
       throw error;
     } finally {
       if (this.db) {
-        this.db.close();
+        closeDatabase(this.db);
       }
     }
   }
@@ -122,11 +148,36 @@ class EmbeddingMigration {
    */
   async runDirectMigration() {
     try {
+      if (!this.db) {
+        throw new Error('데이터베이스가 연결되지 않았습니다.');
+      }
+      
       // 1. 새로운 컬럼 추가
       console.log('📝 컬럼 추가 중...');
-      this.db.exec('ALTER TABLE memory_embedding ADD COLUMN embedding_provider TEXT');
-      this.db.exec('ALTER TABLE memory_embedding ADD COLUMN dimensions INTEGER');
-      this.db.exec('ALTER TABLE memory_embedding ADD COLUMN created_by TEXT DEFAULT "migration"');
+      try {
+        this.db.exec('ALTER TABLE memory_embedding ADD COLUMN embedding_provider TEXT');
+      } catch (error) {
+        // 컬럼이 이미 존재할 수 있음
+        if (!error.message.includes('duplicate column')) {
+          throw error;
+        }
+      }
+      
+      try {
+        this.db.exec('ALTER TABLE memory_embedding ADD COLUMN dimensions INTEGER');
+      } catch (error) {
+        if (!error.message.includes('duplicate column')) {
+          throw error;
+        }
+      }
+      
+      try {
+        this.db.exec('ALTER TABLE memory_embedding ADD COLUMN created_by TEXT DEFAULT "migration"');
+      } catch (error) {
+        if (!error.message.includes('duplicate column')) {
+          throw error;
+        }
+      }
       
       // 2. 기존 데이터 업데이트
       console.log('📝 기존 데이터 업데이트 중...');
@@ -160,6 +211,10 @@ class EmbeddingMigration {
    * 기존 데이터 분석
    */
   analyzeExistingData() {
+    if (!this.db) {
+      throw new Error('데이터베이스가 연결되지 않았습니다.');
+    }
+    
     const analysis = {};
     
     // 차원별 분포
@@ -206,6 +261,10 @@ class EmbeddingMigration {
    * 메타데이터 업데이트
    */
   updateMetadata() {
+    if (!this.db) {
+      throw new Error('데이터베이스가 연결되지 않았습니다.');
+    }
+    
     const updateStmt = this.db.prepare(`
       UPDATE memory_embedding 
       SET 
@@ -240,6 +299,10 @@ class EmbeddingMigration {
    * 마이그레이션 검증
    */
   validateMigration() {
+    if (!this.db) {
+      throw new Error('데이터베이스가 연결되지 않았습니다.');
+    }
+    
     console.log('🔍 마이그레이션 검증 중...');
     
     const validation = this.db.prepare(`
@@ -265,41 +328,64 @@ class EmbeddingMigration {
    */
   rollback() {
     try {
-      const fs = require('fs');
-      fs.copyFileSync(this.backupPath, this.dbPath);
+      const dbPath = join(process.cwd(), 'data', 'memory.db');
+      copyFileSync(this.backupPath, dbPath);
       console.log('🔄 백업에서 복원 완료');
     } catch (error) {
       console.error('❌ 롤백 실패:', error);
+      throw error;
     }
   }
 }
 
 // CLI 실행
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1])) {
   const migration = new EmbeddingMigration();
   
   const command = process.argv[2];
   
   switch (command) {
     case 'migrate':
-      migration.connect();
-      migration.migrate();
+      migration.connect().then(() => {
+        migration.migrate().catch((error) => {
+          console.error('❌ 마이그레이션 실행 중 오류:', error);
+          process.exit(1);
+        });
+      }).catch((error) => {
+        console.error('❌ 데이터베이스 연결 중 오류:', error);
+        process.exit(1);
+      });
       break;
     case 'rollback':
       migration.rollback();
       break;
     case 'analyze':
-      migration.connect();
-      const analysis = migration.analyzeExistingData();
-      console.log('📊 데이터 분석 결과:', JSON.stringify(analysis, null, 2));
+      migration.connect().then(() => {
+        try {
+          const analysis = migration.analyzeExistingData();
+          console.log('📊 데이터 분석 결과:', JSON.stringify(analysis, null, 2));
+          if (migration.db) {
+            closeDatabase(migration.db);
+          }
+        } catch (error) {
+          console.error('❌ 분석 중 오류:', error);
+          if (migration.db) {
+            closeDatabase(migration.db);
+          }
+          process.exit(1);
+        }
+      }).catch((error) => {
+        console.error('❌ 데이터베이스 연결 중 오류:', error);
+        process.exit(1);
+      });
       break;
     default:
       console.log(`
 사용법:
-  node migrate-embedding-data.js migrate     # 마이그레이션 실행
-  node migrate-embedding-data.js rollback   # 백업에서 복원
-  node migrate-embedding-data.js analyze    # 데이터 분석만
-  node migrate-embedding-data.js migrate --regenerate  # 임베딩 재생성 모드
+  npx tsx scripts/migrate-embedding-data.js migrate     # 마이그레이션 실행
+  npx tsx scripts/migrate-embedding-data.js rollback   # 백업에서 복원
+  npx tsx scripts/migrate-embedding-data.js analyze    # 데이터 분석만
+  npx tsx scripts/migrate-embedding-data.js migrate --regenerate  # 임베딩 재생성 모드
       `);
   }
 }

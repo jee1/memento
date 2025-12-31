@@ -134,7 +134,7 @@ export class EmbeddingProviderFactory {
         ? availableProviders.find(p => p.name === normalizedPreferred && p.available)
         : undefined;
       if (preferred) {
-        console.log(`🎯 요청된 제공자 사용: ${preferred.name}`);
+        // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
         return this.getProvider(preferred.name);
       }
     }
@@ -145,18 +145,18 @@ export class EmbeddingProviderFactory {
       ? availableProviders.find(p => p.name === defaultProvider && p.available)
       : undefined;
     if (defaultAvailable) {
-      console.log(`⚙️ 설정된 기본 제공자 사용: ${defaultAvailable.name}`);
+      // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
       return this.getProvider(defaultAvailable.name);
     }
 
     // 3. 사용 가능한 첫 번째 제공자 반환
     const firstAvailable = availableProviders.find(p => p.available);
     if (firstAvailable) {
-      console.log(`🔄 사용 가능한 첫 번째 제공자 사용: ${firstAvailable.name}`);
+      // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
       return this.getProvider(firstAvailable.name);
     }
 
-    console.log('❌ 사용 가능한 제공자가 없습니다');
+    process.stderr.write('❌ 사용 가능한 제공자가 없습니다\n');
     return null;
   }
 
@@ -237,7 +237,7 @@ export class EmbeddingProviderFactory {
     if (!normalized) {
       return;
     }
-    console.warn(`⚠️ ${normalized} 제공자 재초기화 시도`);
+    process.stderr.write(`⚠️ ${normalized} 제공자 재초기화 시도\n`);
     this.providers.set(normalized, this.createService(normalized));
   }
 
