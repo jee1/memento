@@ -129,3 +129,9 @@ memory.db*
 
 # MCP
 .serena/
+
+# Backup files
+*-backup.ts
+*-backup.js
+*.bak
+*.backup
