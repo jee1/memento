@@ -651,10 +651,31 @@ async function main() {
 
 // index.ts가 직접 실행되는 경우에만 팩토리 패턴으로 서버 시작
 // 팩토리 패턴을 사용하지 않는 경우를 위해 기존 startServer도 유지
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
-                     import.meta.url.endsWith(process.argv[1] || '') ||
-                     process.argv[1]?.endsWith('index.ts') || 
-                     process.argv[1]?.endsWith('index.js');
+// NPM 패키지로 실행할 때도 작동하도록 강화된 체크
+import { fileURLToPath } from 'url';
+import { basename } from 'path';
+
+const currentFile = fileURLToPath(import.meta.url);
+const currentFileName = basename(currentFile);
+const scriptPath = process.argv[1] || '';
+
+// 여러 방법으로 메인 모듈인지 확인
+// NPM 패키지로 실행할 때는 경로가 다를 수 있으므로 파일 이름으로도 확인
+// 가장 안전한 방법: process.argv[1]이 존재하고 index.js로 끝나는 경우
+const isMainModule = 
+  // 직접 실행된 경우 (로컬 개발)
+  import.meta.url === `file://${scriptPath}` ||
+  import.meta.url.endsWith(scriptPath) ||
+  // 파일 이름으로 확인 (NPM 패키지 실행 시) - 가장 안전한 방법
+  (scriptPath && (scriptPath.endsWith('index.js') || scriptPath.endsWith('index.ts'))) ||
+  // import.meta.url이 실행 중인 스크립트와 일치하는지 확인
+  (scriptPath && currentFile === scriptPath) ||
+  // NPM 패키지로 실행할 때 bin 필드로 실행되는 경우 (경로에 index.js 포함)
+  (scriptPath.includes('index.js') && currentFileName === 'index.js') ||
+  // 환경 변수로 강제 실행 (디버깅용)
+  process.env.FORCE_START_SERVER === 'true' ||
+  // 마지막 안전장치: process.argv[1]이 존재하고 현재 파일 이름이 index.js인 경우
+  (scriptPath && currentFileName === 'index.js' && !scriptPath.includes('node_modules'));
 
 if (isMainModule) {
   main().catch((error) => {
