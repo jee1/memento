@@ -662,7 +662,10 @@ const scriptPath = process.argv[1] || '';
 // 여러 방법으로 메인 모듈인지 확인
 // NPM 패키지로 실행할 때는 경로가 다를 수 있으므로 파일 이름으로도 확인
 // 가장 안전한 방법: process.argv[1]이 존재하고 index.js로 끝나거나 포함하는 경우
+// 또는 현재 파일이 index.js인 경우 항상 실행 (bin 필드로 실행되는 경우)
 const isMainModule = 
+  // 현재 파일이 index.js인 경우 (가장 안전한 방법)
+  currentFileName === 'index.js' ||
   // process.argv[1]이 존재하고 index.js로 끝나는 경우 (직접 실행)
   (scriptPath && (scriptPath.endsWith('index.js') || scriptPath.endsWith('index.ts'))) ||
   // 직접 실행된 경우 (로컬 개발) - import.meta.url과 비교
@@ -671,7 +674,7 @@ const isMainModule =
   // 절대 경로로 변환하여 비교 (NPM 캐시 경로 대응)
   (scriptPath && resolve(scriptPath) === resolve(currentFile)) ||
   // NPM 패키지로 실행할 때 bin 필드로 실행되는 경우 (경로에 index.js 포함)
-  (scriptPath && scriptPath.includes('index.js') && currentFileName === 'index.js') ||
+  (scriptPath && scriptPath.includes('index.js')) ||
   // 환경 변수로 강제 실행 (디버깅용)
   process.env.FORCE_START_SERVER === 'true';
 
