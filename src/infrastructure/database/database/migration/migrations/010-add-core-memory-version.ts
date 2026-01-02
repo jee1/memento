@@ -6,14 +6,11 @@
  */
 
 import type Database from 'better-sqlite3';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { Migration } from '../types.js';
 import { DependencyValidator } from '../dependency-validator.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /**
  * Add Core Memory Version Column Migration
@@ -35,9 +32,29 @@ export class AddCoreMemoryVersionMigration implements Migration {
 
   /**
    * Load SQL file content
+   * 
+   * 빌드 환경과 개발 환경 모두에서 작동하도록 import.meta.url을 사용합니다.
+   * npx로 실행할 때도 올바른 경로를 찾을 수 있도록 현재 파일의 위치를 기준으로 합니다.
    */
   private loadSQLFile(filename: string): string {
-    const filePath = join(__dirname, filename);
+    // import.meta.url을 사용하여 현재 파일의 디렉토리 경로 얻기
+    // 빌드된 환경(.js)과 개발 환경(.ts) 모두에서 작동
+    const currentFileUrl = import.meta.url;
+    const currentFilePath = fileURLToPath(currentFileUrl);
+    const currentDir = dirname(currentFilePath);
+    const filePath = join(currentDir, filename);
+    
+    // 파일이 존재하지 않으면 상세한 에러 메시지 제공
+    if (!existsSync(filePath)) {
+      throw new Error(
+        `Migration SQL file not found: ${filename}\n` +
+        `Searched in: ${filePath}\n` +
+        `Current file: ${currentFilePath}\n` +
+        `Current dir: ${currentDir}\n` +
+        `Please ensure the SQL file is copied to dist/ during build.`
+      );
+    }
+    
     return readFileSync(filePath, 'utf-8');
   }
 
