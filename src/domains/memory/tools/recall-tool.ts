@@ -180,6 +180,36 @@ export interface RecallResponse {
   query_time: number;
   search_type: string;
   metadata?: RecallResponseMetadata;
+  /**
+   * 메타 메모리 통계 정보
+   * 
+   * recall 결과에 포함된 메모리 항목의 통계 정보를 포함합니다.
+   * include_metadata=true일 때만 포함됩니다.
+   * 
+   * @example
+   * ```json
+   * {
+   *   "meta_stats": {
+   *     "mem_12345": {
+   *       "recall_count": 10,
+   *       "success_count": 8,
+   *       "failure_count": 2,
+   *       "avg_confidence": 0.85,
+   *       "last_recalled_at": "2024-01-01T00:00:00.000Z"
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  meta_stats?: {
+    [memory_id: string]: {
+      recall_count: number;
+      success_count: number;
+      failure_count: number;
+      avg_confidence: number;
+      last_recalled_at?: string; // ISO 8601 형식 (예: "2024-01-01T00:00:00.000Z")
+    };
+  };
   [key: string]: any; // 추가 필드 허용
 }
 

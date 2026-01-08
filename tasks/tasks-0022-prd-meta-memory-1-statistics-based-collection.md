@@ -22,7 +22,7 @@
 
 ## Tasks
 
-- [ ] 1.0 데이터베이스 스키마 및 마이그레이션 구현
+- [x] 1.0 데이터베이스 스키마 및 마이그레이션 구현
   - [x] 1.1 [RED] meta_memory_stats 테이블 스키마 마이그레이션 SQL 파일 작성 테스트 (given: 마이그레이션 파일이 존재할 때, when: 마이그레이션을 실행하면, then: meta_memory_stats 테이블이 생성되어야 함)
   - [x] 1.2 [GREEN] 011-meta-memory-stats-schema.sql 마이그레이션 파일 생성 (테이블, 인덱스, 트리거 포함)
   - [x] 1.3 [RED] 마이그레이션 검증 테스트 작성 (given: 마이그레이션 실행 후, when: 테이블 구조를 확인하면, then: 모든 필드와 인덱스가 올바르게 생성되어야 함)
@@ -31,14 +31,14 @@
   - [x] 1.6 [RED] CASCADE 삭제 동작 테스트 작성 (given: memory_item이 삭제될 때, when: 해당 memory_id의 meta_memory_stats 레코드를 확인하면, then: 자동으로 삭제되어야 함)
   - [x] 1.7 [GREEN] CASCADE 삭제 동작 구현 및 검증
 
-- [ ] 2.0 타입 정의 및 인터페이스 구현
-  - [ ] 2.1 [RED] MetaMemoryStats 인터페이스 타입 테스트 작성 (given: 타입 정의가 있을 때, when: 타입을 사용하면, then: 모든 필드가 올바른 타입이어야 함)
-  - [ ] 2.2 [GREEN] MetaMemoryStats 인터페이스 정의 (memory_id, recall_count, success_count, failure_count, avg_confidence, last_recalled_at, created_at, updated_at)
-  - [ ] 2.3 [RED] RecallResponse 인터페이스 확장 테스트 작성 (given: RecallResponse에 meta_stats 필드가 추가될 때, when: include_metadata=true로 recall 호출하면, then: meta_stats 필드가 포함되어야 함)
-  - [ ] 2.4 [GREEN] RecallResponse 인터페이스에 meta_stats 필드 추가 (선택적 필드, include_metadata=true일 때만 포함)
-  - [ ] 2.5 [RED] GetMetaMemoryStatsParams 타입 테스트 작성 (given: 파라미터 타입이 정의될 때, when: 타입을 사용하면, then: 모든 선택적 필드가 올바르게 정의되어야 함)
-  - [ ] 2.6 [GREEN] GetMetaMemoryStatsParams 및 MetaMemoryStatsResult 타입 정의
-  - [ ] 2.7 [REFACTOR] 타입 정의 검증 및 문서화
+- [x] 2.0 타입 정의 및 인터페이스 구현
+  - [x] 2.1 [RED] MetaMemoryStats 인터페이스 타입 테스트 작성 (given: 타입 정의가 있을 때, when: 타입을 사용하면, then: 모든 필드가 올바른 타입이어야 함)
+  - [x] 2.2 [GREEN] MetaMemoryStats 인터페이스 정의 (memory_id, recall_count, success_count, failure_count, avg_confidence, last_recalled_at, created_at, updated_at)
+  - [x] 2.3 [RED] RecallResponse 인터페이스 확장 테스트 작성 (given: RecallResponse에 meta_stats 필드가 추가될 때, when: include_metadata=true로 recall 호출하면, then: meta_stats 필드가 포함되어야 함)
+  - [x] 2.4 [GREEN] RecallResponse 인터페이스에 meta_stats 필드 추가 (선택적 필드, include_metadata=true일 때만 포함)
+  - [x] 2.5 [RED] GetMetaMemoryStatsParams 타입 테스트 작성 (given: 파라미터 타입이 정의될 때, when: 타입을 사용하면, then: 모든 선택적 필드가 올바르게 정의되어야 함)
+  - [x] 2.6 [GREEN] GetMetaMemoryStatsParams 및 MetaMemoryStatsResult 타입 정의
+  - [x] 2.7 [REFACTOR] 타입 정의 검증 및 문서화
 
 - [ ] 3.0 MetaMemoryService 구현
   - [ ] 3.1 [RED] recordRecall 메서드 단위 테스트 작성 (given: 검색 결과 항목이 있을 때, when: recordRecall을 호출하면, then: 통계가 올바르게 업데이트되어야 함)
