@@ -40,20 +40,20 @@
   - [x] 2.6 [GREEN] GetMetaMemoryStatsParams 및 MetaMemoryStatsResult 타입 정의
   - [x] 2.7 [REFACTOR] 타입 정의 검증 및 문서화
 
-- [ ] 3.0 MetaMemoryService 구현
-  - [ ] 3.1 [RED] recordRecall 메서드 단위 테스트 작성 (given: 검색 결과 항목이 있을 때, when: recordRecall을 호출하면, then: 통계가 올바르게 업데이트되어야 함)
-  - [ ] 3.2 [GREEN] recordRecall 메서드 구현 (성공/실패 판정, confidence 계산, WriteCoalescingManager를 통한 업데이트)
-  - [ ] 3.3 [RED] calculateConfidence 메서드 단위 테스트 작성 (given: final_score, consolidation_score, vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: 가중 평균이 올바르게 계산되어야 함)
-  - [ ] 3.4 [GREEN] calculateConfidence 메서드 구현 (0.6 * final_score + 0.3 * consolidation_score + 0.1 * vector_score)
-  - [ ] 3.5 [RED] updateAvgConfidence 메서드 단위 테스트 작성 (given: 기존 평균과 새로운 confidence가 있을 때, when: updateAvgConfidence를 호출하면, then: 누적 평균이 올바르게 계산되어야 함)
-  - [ ] 3.6 [GREEN] updateAvgConfidence 메서드 구현 (누적 평균 계산 로직)
-  - [ ] 3.7 [RED] isItemSuccess 메서드 단위 테스트 작성 (given: final_score가 0.5 이상/미만일 때, when: isItemSuccess를 호출하면, then: 올바른 성공/실패 판정이 되어야 함)
-  - [ ] 3.8 [GREEN] isItemSuccess 메서드 구현 (final_score >= 0.5 기준)
-  - [ ] 3.9 [RED] getStats 메서드 단위 테스트 작성 (given: 다양한 필터 조건이 있을 때, when: getStats를 호출하면, then: 필터링된 결과가 반환되어야 함)
-  - [ ] 3.10 [GREEN] getStats 메서드 구현 (memory_id, memory_ids, min_recall_count, min_confidence, limit 필터링)
-  - [ ] 3.11 [RED] Debounce 처리 통합 테스트 작성 (given: 짧은 시간 내 연속된 recall 호출이 있을 때, when: 통계를 확인하면, then: 마지막 업데이트만 반영되어야 함)
-  - [ ] 3.12 [GREEN] WriteCoalescingManager를 사용한 Debounce 처리 구현 (100ms 간격)
-  - [ ] 3.13 [REFACTOR] MetaMemoryService 코드 리팩토링 및 에러 처리 강화
+- [x] 3.0 MetaMemoryService 구현
+  - [x] 3.1 [RED] recordRecall 메서드 단위 테스트 작성 (given: 검색 결과 항목이 있을 때, when: recordRecall을 호출하면, then: 통계가 올바르게 업데이트되어야 함)
+  - [x] 3.2 [GREEN] recordRecall 메서드 구현 (성공/실패 판정, confidence 계산, WriteCoalescingManager를 통한 업데이트)
+  - [x] 3.3 [RED] calculateConfidence 메서드 단위 테스트 작성 (given: final_score, consolidation_score, vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: 가중 평균이 올바르게 계산되어야 함)
+  - [x] 3.4 [GREEN] calculateConfidence 메서드 구현 (0.6 * final_score + 0.3 * consolidation_score + 0.1 * vector_score)
+  - [x] 3.5 [RED] updateAvgConfidence 메서드 단위 테스트 작성 (given: 기존 평균과 새로운 confidence가 있을 때, when: updateAvgConfidence를 호출하면, then: 누적 평균이 올바르게 계산되어야 함)
+  - [x] 3.6 [GREEN] updateAvgConfidence 메서드 구현 (누적 평균 계산 로직)
+  - [x] 3.7 [RED] isItemSuccess 메서드 단위 테스트 작성 (given: final_score가 0.5 이상/미만일 때, when: isItemSuccess를 호출하면, then: 올바른 성공/실패 판정이 되어야 함)
+  - [x] 3.8 [GREEN] isItemSuccess 메서드 구현 (final_score >= 0.5 기준)
+  - [x] 3.9 [RED] getStats 메서드 단위 테스트 작성 (given: 다양한 필터 조건이 있을 때, when: getStats를 호출하면, then: 필터링된 결과가 반환되어야 함)
+  - [x] 3.10 [GREEN] getStats 메서드 구현 (memory_id, memory_ids, min_recall_count, min_confidence, limit 필터링)
+  - [x] 3.11 [RED] Debounce 처리 통합 테스트 작성 (given: 짧은 시간 내 연속된 recall 호출이 있을 때, when: 통계를 확인하면, then: 마지막 업데이트만 반영되어야 함)
+  - [x] 3.12 [GREEN] WriteCoalescingManager를 사용한 Debounce 처리 구현 (100ms 간격)
+  - [x] 3.13 [REFACTOR] MetaMemoryService 코드 리팩토링 및 에러 처리 강화
 
 - [ ] 4.0 Recall Tool 통합
   - [ ] 4.1 [RED] Recall Tool에 메타 통계 수집 통합 테스트 작성 (given: recall 호출 시 검색 결과가 있을 때, when: 통계를 확인하면, then: 각 메모리 항목의 통계가 업데이트되어야 함)
