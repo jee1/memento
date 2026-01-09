@@ -87,16 +87,33 @@ export class MetaMemoryService {
         // Confidence 점수 계산
         const confidence = this.calculateConfidence(item);
 
-        // 현재 통계 조회 (없으면 기본값 사용)
-        const currentStats = await this.getStatsById(memoryId);
+        // 현재 통계 조회 (버퍼에 있는 값도 고려)
+        // 같은 recall 호출 내에서 같은 memory_id가 여러 번 나타날 수 있으므로
+        // 버퍼에 이미 있는 값을 기반으로 계산
+        let baseStats = await this.getStatsById(memoryId);
+        
+        // 버퍼에 같은 memoryId가 이미 있으면 그 값을 기반으로 계산
+        const bufferedWrite = this.statsBuffer.get(memoryId);
+        if (bufferedWrite) {
+          baseStats = {
+            memory_id: memoryId,
+            recall_count: bufferedWrite.recallCount,
+            success_count: bufferedWrite.successCount,
+            failure_count: bufferedWrite.failureCount,
+            avg_confidence: bufferedWrite.avgConfidence,
+            last_recalled_at: bufferedWrite.lastRecalledAt ? new Date(bufferedWrite.lastRecalledAt) : undefined,
+            created_at: new Date(),
+            updated_at: new Date()
+          };
+        }
 
         // 통계 업데이트 계산
-        const newRecallCount = currentStats.recall_count + 1;
-        const newSuccessCount = currentStats.success_count + (isSuccess ? 1 : 0);
-        const newFailureCount = currentStats.failure_count + (isSuccess ? 0 : 1);
+        const newRecallCount = baseStats.recall_count + 1;
+        const newSuccessCount = baseStats.success_count + (isSuccess ? 1 : 0);
+        const newFailureCount = baseStats.failure_count + (isSuccess ? 0 : 1);
         const newAvgConfidence = this.updateAvgConfidence(
-          currentStats.avg_confidence,
-          currentStats.recall_count,
+          baseStats.avg_confidence,
+          baseStats.recall_count,
           confidence
         );
         const lastRecalledAt = new Date().toISOString();

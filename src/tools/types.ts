@@ -51,6 +51,8 @@ export interface ToolContext {
     failureDetector?: any;
     /** Reflexion Worker 서비스 (Phase 2) */
     reflexionWorker?: any;
+    /** 메타 메모리 통계 서비스 */
+    metaMemoryService?: any;
   };
 }
 

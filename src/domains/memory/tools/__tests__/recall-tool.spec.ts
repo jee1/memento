@@ -3685,5 +3685,459 @@ describe('RecallTool', () => {
       });
     });
   });
+
+  describe('메타 통계 수집 통합', () => {
+    it('given: recall 호출 시 검색 결과가 있을 때, when: 통계를 확인하면, then: 각 메모리 항목의 통계가 업데이트되어야 함', async () => {
+      // Given: 메모리 항목 생성 및 검색 결과 준비
+      const memoryId1 = 'mem_test_meta_1';
+      const memoryId2 = 'mem_test_meta_2';
+
+      // memory_item 테이블에 테스트 데이터 삽입
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, created_at)
+        VALUES 
+          ('${memoryId1}', 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          ('${memoryId2}', 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP)
+      `);
+
+      // meta_memory_stats 테이블 생성 (마이그레이션 실행)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS meta_memory_stats (
+          memory_id TEXT PRIMARY KEY,
+          recall_count INTEGER DEFAULT 0 NOT NULL,
+          success_count INTEGER DEFAULT 0 NOT NULL,
+          failure_count INTEGER DEFAULT 0 NOT NULL,
+          avg_confidence REAL DEFAULT 0.0 NOT NULL,
+          last_recalled_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        )
+      `);
+
+      // MetaMemoryService 초기화
+      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const metaMemoryService = new MetaMemoryService(db);
+
+      // context에 MetaMemoryService 추가
+      context.services.metaMemoryService = metaMemoryService;
+
+      // Mock 검색 결과 (final_score 포함)
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: memoryId1,
+            memory_id: memoryId1,
+            content: 'Test memory 1',
+            type: 'episodic',
+            importance: 0.8,
+            created_at: new Date().toISOString(),
+            final_score: 0.95, // 성공 (>= 0.5)
+            consolidation_score: 0.9,
+            vectorScore: 0.85
+          },
+          {
+            id: memoryId2,
+            memory_id: memoryId2,
+            content: 'Test memory 2',
+            type: 'episodic',
+            importance: 0.7,
+            created_at: new Date().toISOString(),
+            final_score: 0.3, // 실패 (< 0.5)
+            consolidation_score: 0.2,
+            vectorScore: 0.25
+          }
+        ],
+        total_count: 2,
+        query_time: 10
+      });
+
+      // When: recall 호출
+      const params = {
+        query: 'test',
+        limit: 10
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // 검색 결과 확인
+      expect(resultData.items).toBeDefined();
+      expect(resultData.items.length).toBe(2);
+
+      // 통계 업데이트를 위해 debounce 시간 대기 (100ms)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // MetaMemoryService destroy로 남은 버퍼 flush
+      await metaMemoryService.destroy();
+
+      // Then: 각 메모리 항목의 통계가 업데이트되어야 함
+      const stats1 = await metaMemoryService.getStatsById(memoryId1);
+      const stats2 = await metaMemoryService.getStatsById(memoryId2);
+
+      // memoryId1: 성공 (final_score >= 0.5)
+      expect(stats1.recall_count).toBe(1);
+      expect(stats1.success_count).toBe(1);
+      expect(stats1.failure_count).toBe(0);
+      expect(stats1.avg_confidence).toBeGreaterThan(0);
+      expect(stats1.last_recalled_at).toBeDefined();
+
+      // memoryId2: 실패 (final_score < 0.5)
+      expect(stats2.recall_count).toBe(1);
+      expect(stats2.success_count).toBe(0);
+      expect(stats2.failure_count).toBe(1);
+      expect(stats2.avg_confidence).toBeGreaterThan(0);
+      expect(stats2.last_recalled_at).toBeDefined();
+    });
+
+    it('given: 검색 결과가 0개일 때, when: recall을 호출하면, then: 통계 업데이트가 발생하지 않아야 함', async () => {
+      // Given: 메모리 항목 생성 (하지만 검색 결과는 0개)
+      const memoryId = 'mem_test_meta_empty';
+
+      // memory_item 테이블에 테스트 데이터 삽입
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, created_at)
+        VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+      `);
+
+      // meta_memory_stats 테이블 생성 (마이그레이션 실행)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS meta_memory_stats (
+          memory_id TEXT PRIMARY KEY,
+          recall_count INTEGER DEFAULT 0 NOT NULL,
+          success_count INTEGER DEFAULT 0 NOT NULL,
+          failure_count INTEGER DEFAULT 0 NOT NULL,
+          avg_confidence REAL DEFAULT 0.0 NOT NULL,
+          last_recalled_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        )
+      `);
+
+      // MetaMemoryService 초기화
+      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const metaMemoryService = new MetaMemoryService(db);
+
+      // context에 MetaMemoryService 추가
+      context.services.metaMemoryService = metaMemoryService;
+
+      // Mock 검색 결과 (0개)
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 10
+      });
+
+      // When: recall 호출
+      const params = {
+        query: 'nonexistent',
+        limit: 10
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // 검색 결과 확인
+      expect(resultData.items).toBeDefined();
+      expect(resultData.items.length).toBe(0);
+
+      // 통계 업데이트를 위해 debounce 시간 대기 (100ms)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // MetaMemoryService destroy로 남은 버퍼 flush
+      await metaMemoryService.destroy();
+
+      // Then: 통계 업데이트가 발생하지 않아야 함
+      const stats = await metaMemoryService.getStatsById(memoryId);
+
+      // 통계가 기본값(0)으로 유지되어야 함
+      expect(stats.recall_count).toBe(0);
+      expect(stats.success_count).toBe(0);
+      expect(stats.failure_count).toBe(0);
+      expect(stats.avg_confidence).toBe(0.0);
+      expect(stats.last_recalled_at).toBeUndefined();
+    });
+
+    it('given: include_metadata=true로 recall 호출할 때, when: 응답을 확인하면, then: meta_stats 필드가 포함되어야 함', async () => {
+      // Given: 메모리 항목 생성 및 검색 결과 준비
+      const memoryId1 = 'mem_test_meta_stats_1';
+      const memoryId2 = 'mem_test_meta_stats_2';
+
+      // memory_item 테이블에 테스트 데이터 삽입
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, created_at)
+        VALUES 
+          ('${memoryId1}', 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          ('${memoryId2}', 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP)
+      `);
+
+      // meta_memory_stats 테이블 생성 (마이그레이션 실행)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS meta_memory_stats (
+          memory_id TEXT PRIMARY KEY,
+          recall_count INTEGER DEFAULT 0 NOT NULL,
+          success_count INTEGER DEFAULT 0 NOT NULL,
+          failure_count INTEGER DEFAULT 0 NOT NULL,
+          avg_confidence REAL DEFAULT 0.0 NOT NULL,
+          last_recalled_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        )
+      `);
+
+      // MetaMemoryService 초기화
+      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const metaMemoryService = new MetaMemoryService(db);
+
+      // context에 MetaMemoryService 추가
+      context.services.metaMemoryService = metaMemoryService;
+
+      // Mock 검색 결과
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: memoryId1,
+            memory_id: memoryId1,
+            content: 'Test memory 1',
+            type: 'episodic',
+            importance: 0.8,
+            created_at: new Date().toISOString(),
+            final_score: 0.95,
+            consolidation_score: 0.9,
+            vectorScore: 0.85
+          },
+          {
+            id: memoryId2,
+            memory_id: memoryId2,
+            content: 'Test memory 2',
+            type: 'episodic',
+            importance: 0.7,
+            created_at: new Date().toISOString(),
+            final_score: 0.3,
+            consolidation_score: 0.2,
+            vectorScore: 0.25
+          }
+        ],
+        total_count: 2,
+        query_time: 10
+      });
+
+      // When: include_metadata=true로 recall 호출
+      const params = {
+        query: 'test',
+        limit: 10,
+        include_metadata: true
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // 검색 결과 확인
+      expect(resultData.items).toBeDefined();
+      expect(resultData.items.length).toBe(2);
+
+      // 통계 업데이트를 위해 debounce 시간 대기 (100ms)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // MetaMemoryService destroy로 남은 버퍼 flush
+      await metaMemoryService.destroy();
+
+      // Then: meta_stats 필드가 포함되어야 함
+      expect(resultData.meta_stats).toBeDefined();
+      expect(typeof resultData.meta_stats).toBe('object');
+
+      // meta_stats는 memory_id를 키로 하는 객체
+      expect(resultData.meta_stats[memoryId1]).toBeDefined();
+      expect(resultData.meta_stats[memoryId2]).toBeDefined();
+
+      const stats1 = resultData.meta_stats[memoryId1];
+      const stats2 = resultData.meta_stats[memoryId2];
+
+      expect(stats1).toBeDefined();
+      expect(stats1.recall_count).toBe(1);
+      expect(stats1.success_count).toBe(1);
+      expect(stats1.failure_count).toBe(0);
+      expect(stats1.avg_confidence).toBeGreaterThan(0);
+      expect(stats1.last_recalled_at).toBeDefined();
+
+      expect(stats2).toBeDefined();
+      expect(stats2.recall_count).toBe(1);
+      expect(stats2.success_count).toBe(0);
+      expect(stats2.failure_count).toBe(1);
+      expect(stats2.avg_confidence).toBeGreaterThan(0);
+      expect(stats2.last_recalled_at).toBeDefined();
+    });
+
+    it('given: 같은 memory_id가 여러 번 검색 결과에 포함될 때, when: 통계를 확인하면, then: 각각 별도로 통계가 업데이트되어야 함', async () => {
+      // Given: 메모리 항목 생성 및 검색 결과에 같은 memory_id가 2번 포함
+      const memoryId = 'mem_test_meta_duplicate';
+
+      // memory_item 테이블에 테스트 데이터 삽입
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, created_at)
+        VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+      `);
+
+      // meta_memory_stats 테이블 생성 (마이그레이션 실행)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS meta_memory_stats (
+          memory_id TEXT PRIMARY KEY,
+          recall_count INTEGER DEFAULT 0 NOT NULL,
+          success_count INTEGER DEFAULT 0 NOT NULL,
+          failure_count INTEGER DEFAULT 0 NOT NULL,
+          avg_confidence REAL DEFAULT 0.0 NOT NULL,
+          last_recalled_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        )
+      `);
+
+      // MetaMemoryService 초기화
+      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const metaMemoryService = new MetaMemoryService(db);
+
+      // context에 MetaMemoryService 추가
+      context.services.metaMemoryService = metaMemoryService;
+
+      // Mock 검색 결과 (같은 memory_id가 2번 포함)
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: memoryId,
+            memory_id: memoryId,
+            content: 'Test memory',
+            type: 'episodic',
+            importance: 0.8,
+            created_at: new Date().toISOString(),
+            final_score: 0.95, // 첫 번째: 성공
+            consolidation_score: 0.9,
+            vectorScore: 0.85
+          },
+          {
+            id: memoryId, // 같은 memory_id
+            memory_id: memoryId,
+            content: 'Test memory (duplicate)',
+            type: 'episodic',
+            importance: 0.8,
+            created_at: new Date().toISOString(),
+            final_score: 0.3, // 두 번째: 실패
+            consolidation_score: 0.2,
+            vectorScore: 0.25
+          }
+        ],
+        total_count: 2,
+        query_time: 10
+      });
+
+      // When: recall 호출
+      const params = {
+        query: 'test',
+        limit: 10
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // 검색 결과 확인
+      expect(resultData.items).toBeDefined();
+      expect(resultData.items.length).toBe(2);
+
+      // 통계 업데이트를 위해 debounce 시간 대기 (100ms)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // MetaMemoryService destroy로 남은 버퍼 flush
+      await metaMemoryService.destroy();
+
+      // Then: 각각 별도로 통계가 업데이트되어야 함
+      const stats = await metaMemoryService.getStatsById(memoryId);
+
+      // 같은 memory_id가 2번 나타났으므로 recall_count는 2여야 함
+      expect(stats.recall_count).toBe(2);
+      // 첫 번째는 성공 (final_score >= 0.5), 두 번째는 실패 (final_score < 0.5)
+      expect(stats.success_count).toBe(1);
+      expect(stats.failure_count).toBe(1);
+      expect(stats.avg_confidence).toBeGreaterThan(0);
+      expect(stats.last_recalled_at).toBeDefined();
+    });
+
+    it('given: 통계 수집이 실패할 때, when: recall 응답을 확인하면, then: recall은 정상적으로 성공해야 함', async () => {
+      // Given: 메모리 항목 생성 및 MetaMemoryService mock (에러 발생하도록)
+      const memoryId = 'mem_test_meta_error';
+
+      // memory_item 테이블에 테스트 데이터 삽입
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, created_at)
+        VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+      `);
+
+      // meta_memory_stats 테이블 생성 (마이그레이션 실행)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS meta_memory_stats (
+          memory_id TEXT PRIMARY KEY,
+          recall_count INTEGER DEFAULT 0 NOT NULL,
+          success_count INTEGER DEFAULT 0 NOT NULL,
+          failure_count INTEGER DEFAULT 0 NOT NULL,
+          avg_confidence REAL DEFAULT 0.0 NOT NULL,
+          last_recalled_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+        )
+      `);
+
+      // MetaMemoryService 초기화
+      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const metaMemoryService = new MetaMemoryService(db);
+
+      // context에 MetaMemoryService 추가
+      context.services.metaMemoryService = metaMemoryService;
+
+      // MetaMemoryService.recordRecall을 mock하여 에러 발생하도록 설정
+      const originalRecordRecall = metaMemoryService.recordRecall.bind(metaMemoryService);
+      vi.spyOn(metaMemoryService, 'recordRecall').mockRejectedValue(new Error('통계 수집 실패'));
+
+      // Mock 검색 결과
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: memoryId,
+            memory_id: memoryId,
+            content: 'Test memory',
+            type: 'episodic',
+            importance: 0.8,
+            created_at: new Date().toISOString(),
+            final_score: 0.95,
+            consolidation_score: 0.9,
+            vectorScore: 0.85
+          }
+        ],
+        total_count: 1,
+        query_time: 10
+      });
+
+      // When: recall 호출
+      const params = {
+        query: 'test',
+        limit: 10
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+
+      // Then: recall은 정상적으로 성공해야 함
+      expect(resultData.items).toBeDefined();
+      expect(resultData.items.length).toBe(1);
+      expect(resultData.items[0].memory_id).toBe(memoryId);
+      expect(resultData.items[0].content).toBe('Test memory');
+      expect(resultData.total_count).toBe(1);
+
+      // 통계 수집이 실패했어도 recall은 성공해야 함
+      // (에러가 발생했는지 확인하기 위해 spy 확인)
+      expect(metaMemoryService.recordRecall).toHaveBeenCalled();
+    });
+  });
 });
 

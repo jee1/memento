@@ -22,6 +22,7 @@ import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
+import type { MetaMemoryService } from '../../../services/meta-memory-service.js';
 
 /**
  * 앵커 설정 메타데이터 타입
@@ -792,6 +793,19 @@ export class RecallTool extends BaseTool {
           );
         }
         
+        // Meta Memory Statistics 수집 (검색 결과가 있을 때만)
+        if (context.services.metaMemoryService && searchItems.length > 0) {
+          try {
+            await this.collectMetaMemoryStats(
+              searchItems,
+              context.services.metaMemoryService
+            );
+          } catch (error) {
+            // 통계 수집 실패는 로깅만 수행하고 recall 성공 여부에 영향 없음
+            this.logError(error as Error, '메타 통계 수집 실패', {});
+          }
+        }
+        
         // 결과 후처리 - searchResult가 undefined인 경우 처리
         const processedResults = this.processSearchResults(searchItems, includeMetadata, return_format);
         
@@ -848,6 +862,11 @@ export class RecallTool extends BaseTool {
           metadata.anchor_set_skipped = true;
           metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
         }
+
+        // Meta Memory Statistics 조회 (include_metadata=true일 때만)
+        const metaStats = includeMetadata && context.services.metaMemoryService && processedResults.length > 0
+          ? await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService)
+          : undefined;
         
         return this.createSuccessResult({
           items: processedResults,
@@ -861,7 +880,8 @@ export class RecallTool extends BaseTool {
             text_weight: normalizedTextWeight,
             enable_hybrid: enableHybrid
           },
-          metadata
+          metadata,
+          meta_stats: metaStats
         });
       }
       
@@ -1468,6 +1488,104 @@ export class RecallTool extends BaseTool {
       if (filters.importance_min > filters.importance_max) {
         throw new Error('최소 중요도는 최대 중요도보다 작거나 같아야 합니다');
       }
+    }
+  }
+
+  /**
+   * Meta Memory Statistics 수집
+   * 
+   * 검색 결과를 기반으로 각 메모리 항목의 통계를 수집합니다.
+   * 
+   * @param searchItems 검색 결과 항목 배열
+   * @param metaMemoryService MetaMemoryService 인스턴스
+   */
+  private async collectMetaMemoryStats(
+    searchItems: any[],
+    metaMemoryService: MetaMemoryService
+  ): Promise<void> {
+    if (!searchItems || searchItems.length === 0) {
+      return;
+    }
+
+    try {
+      // MetaMemoryService.recordRecall 호출
+      // searchItems를 RecallResultItem[] 형식으로 변환
+      const recallItems = searchItems.map(item => ({
+        memory_id: item.id || item.memory_id,
+        id: item.id || item.memory_id,
+        final_score: item.final_score || item.finalScore || 0,
+        finalScore: item.finalScore || item.final_score || 0,
+        consolidation_score: item.consolidation_score || 0,
+        vectorScore: item.vectorScore || 0,
+        ...item
+      }));
+
+      await metaMemoryService.recordRecall(recallItems);
+    } catch (error) {
+      // 에러는 상위로 전파하지 않음 (통계 수집 실패가 recall 성공 여부에 영향 없도록)
+      this.logError(error as Error, 'Meta Memory Statistics 수집 실패', {
+        items_count: searchItems.length
+      });
+    }
+  }
+
+  /**
+   * Meta Memory Statistics 조회
+   * 
+   * 검색 결과에 포함된 메모리 항목의 통계를 조회합니다.
+   * include_metadata=true일 때만 호출됩니다.
+   * 
+   * @param processedResults 처리된 검색 결과 항목 배열
+   * @param metaMemoryService MetaMemoryService 인스턴스
+   * @returns meta_stats 객체 (memory_id를 키로 하는 객체) 또는 undefined
+   */
+  private async getMetaStatsForResults(
+    processedResults: RecallResultItem[],
+    metaMemoryService: MetaMemoryService
+  ): Promise<{ [memory_id: string]: any } | undefined> {
+    try {
+      // 통계 업데이트를 위해 debounce 시간 대기 (100ms)
+      // 실제로는 flush가 완료될 때까지 대기하는 것이 더 정확하지만,
+      // 성능을 위해 최소 대기 시간만 적용
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // 검색 결과에 포함된 메모리 ID 목록 추출 (중복 제거)
+      const memoryIds = Array.from(
+        new Set(
+          processedResults
+            .map(item => item.memory_id || item.id)
+            .filter((id): id is string => !!id)
+        )
+      );
+
+      if (memoryIds.length === 0) {
+        return undefined;
+      }
+
+      // MetaMemoryService.getStats 호출하여 통계 조회
+      const statsResult = await metaMemoryService.getStats({
+        memory_ids: memoryIds
+      });
+
+      // meta_stats 객체 생성 (memory_id를 키로 하는 객체)
+      const metaStats: { [memory_id: string]: any } = {};
+      for (const stat of statsResult.items) {
+        metaStats[stat.memory_id] = {
+          recall_count: stat.recall_count,
+          success_count: stat.success_count,
+          failure_count: stat.failure_count,
+          avg_confidence: stat.avg_confidence,
+          last_recalled_at: stat.last_recalled_at?.toISOString()
+        };
+      }
+
+      return metaStats;
+    } catch (error) {
+      // 통계 조회 실패는 로깅만 수행하고 recall 성공 여부에 영향 없음
+      this.logError(error as Error, '메타 통계 조회 실패', {
+        items_count: processedResults.length
+      });
+      return undefined;
     }
   }
 

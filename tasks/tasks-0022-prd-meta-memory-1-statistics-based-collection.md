@@ -55,18 +55,18 @@
   - [x] 3.12 [GREEN] WriteCoalescingManager를 사용한 Debounce 처리 구현 (100ms 간격)
   - [x] 3.13 [REFACTOR] MetaMemoryService 코드 리팩토링 및 에러 처리 강화
 
-- [ ] 4.0 Recall Tool 통합
-  - [ ] 4.1 [RED] Recall Tool에 메타 통계 수집 통합 테스트 작성 (given: recall 호출 시 검색 결과가 있을 때, when: 통계를 확인하면, then: 각 메모리 항목의 통계가 업데이트되어야 함)
-  - [ ] 4.2 [GREEN] RecallTool.handle() 메서드에 통계 수집 로직 추가 (검색 결과 후처리 단계, consolidation score 업데이트 이후)
-  - [ ] 4.3 [RED] 검색 결과 0개 케이스 테스트 작성 (given: 검색 결과가 0개일 때, when: recall을 호출하면, then: 통계 업데이트가 발생하지 않아야 함)
-  - [ ] 4.4 [GREEN] 검색 결과 0개 케이스 처리 로직 구현
-  - [ ] 4.5 [RED] meta_stats 필드 포함 테스트 작성 (given: include_metadata=true로 recall 호출할 때, when: 응답을 확인하면, then: meta_stats 필드가 포함되어야 함)
-  - [ ] 4.6 [GREEN] include_metadata 파라미터 기반 meta_stats 필드 포함 로직 구현
-  - [ ] 4.7 [RED] 중복 항목 처리 테스트 작성 (given: 같은 memory_id가 여러 번 검색 결과에 포함될 때, when: 통계를 확인하면, then: 각각 별도로 통계가 업데이트되어야 함)
-  - [ ] 4.8 [GREEN] 중복 항목 처리 로직 구현 (각 항목별로 별도 통계 업데이트)
-  - [ ] 4.9 [RED] 통계 수집 실패 시 recall 성공 여부 영향 테스트 작성 (given: 통계 수집이 실패할 때, when: recall 응답을 확인하면, then: recall은 정상적으로 성공해야 함)
-  - [ ] 4.10 [GREEN] 에러 처리 로직 구현 (통계 수집 실패 시 로깅만 수행, recall 성공 여부에 영향 없음)
-  - [ ] 4.11 [REFACTOR] Recall Tool 통합 코드 리팩토링 및 성능 최적화
+- [x] 4.0 Recall Tool 통합
+  - [x] 4.1 [RED] Recall Tool에 메타 통계 수집 통합 테스트 작성 (given: recall 호출 시 검색 결과가 있을 때, when: 통계를 확인하면, then: 각 메모리 항목의 통계가 업데이트되어야 함)
+  - [x] 4.2 [GREEN] RecallTool.handle() 메서드에 통계 수집 로직 추가 (검색 결과 후처리 단계, consolidation score 업데이트 이후)
+  - [x] 4.3 [RED] 검색 결과 0개 케이스 테스트 작성 (given: 검색 결과가 0개일 때, when: recall을 호출하면, then: 통계 업데이트가 발생하지 않아야 함)
+  - [x] 4.4 [GREEN] 검색 결과 0개 케이스 처리 로직 구현 (collectMetaMemoryStats에서 searchItems.length === 0 체크)
+  - [x] 4.5 [RED] meta_stats 필드 포함 테스트 작성 (given: include_metadata=true로 recall 호출할 때, when: 응답을 확인하면, then: meta_stats 필드가 포함되어야 함)
+  - [x] 4.6 [GREEN] include_metadata 파라미터 기반 meta_stats 필드 포함 로직 구현
+  - [x] 4.7 [RED] 중복 항목 처리 테스트 작성 (given: 같은 memory_id가 여러 번 검색 결과에 포함될 때, when: 통계를 확인하면, then: 각각 별도로 통계가 업데이트되어야 함)
+  - [x] 4.8 [GREEN] 중복 항목 처리 로직 구현 (각 항목별로 별도 통계 업데이트 - 버퍼에 있는 값을 기반으로 계산)
+  - [x] 4.9 [RED] 통계 수집 실패 시 recall 성공 여부 영향 테스트 작성 (given: 통계 수집이 실패할 때, when: recall 응답을 확인하면, then: recall은 정상적으로 성공해야 함)
+  - [x] 4.10 [GREEN] 에러 처리 로직 구현 (통계 수집 실패 시 로깅만 수행, recall 성공 여부에 영향 없음 - 이미 구현되어 있음)
+  - [x] 4.11 [REFACTOR] Recall Tool 통합 코드 리팩토링 및 성능 최적화
 
 - [ ] 5.0 MCP 도구 구현
   - [ ] 5.1 [RED] get_meta_memory_stats 도구 스키마 검증 테스트 작성 (given: 도구가 등록될 때, when: 스키마를 확인하면, then: 모든 파라미터가 올바르게 정의되어야 함)
