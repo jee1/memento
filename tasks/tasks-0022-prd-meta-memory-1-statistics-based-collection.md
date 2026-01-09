@@ -68,16 +68,16 @@
   - [x] 4.10 [GREEN] 에러 처리 로직 구현 (통계 수집 실패 시 로깅만 수행, recall 성공 여부에 영향 없음 - 이미 구현되어 있음)
   - [x] 4.11 [REFACTOR] Recall Tool 통합 코드 리팩토링 및 성능 최적화
 
-- [ ] 5.0 MCP 도구 구현
-  - [ ] 5.1 [RED] get_meta_memory_stats 도구 스키마 검증 테스트 작성 (given: 도구가 등록될 때, when: 스키마를 확인하면, then: 모든 파라미터가 올바르게 정의되어야 함)
-  - [ ] 5.2 [GREEN] get-meta-memory-stats-tool.ts 파일 생성 및 기본 구조 구현 (BaseTool 상속, 스키마 정의)
-  - [ ] 5.3 [RED] get_meta_memory_stats 도구 핸들러 단위 테스트 작성 (given: 다양한 파라미터로 호출할 때, when: 도구를 실행하면, then: 필터링된 결과가 반환되어야 함)
-  - [ ] 5.4 [GREEN] get_meta_memory_stats 도구 handle() 메서드 구현 (MetaMemoryService.getStats() 호출)
-  - [ ] 5.5 [RED] 파라미터 검증 테스트 작성 (given: 잘못된 파라미터로 호출할 때, when: 도구를 실행하면, then: 적절한 에러가 발생해야 함)
-  - [ ] 5.6 [GREEN] 파라미터 검증 로직 구현 (Zod 스키마 사용)
-  - [ ] 5.7 [RED] 도구 등록 테스트 작성 (given: 도구가 생성될 때, when: 도구 레지스트리를 확인하면, then: get_meta_memory_stats 도구가 등록되어야 함)
-  - [ ] 5.8 [GREEN] tools/index.ts에 get_meta_memory_stats 도구 등록
-  - [ ] 5.9 [REFACTOR] MCP 도구 코드 리팩토링 및 문서화
+- [x] 5.0 MCP 도구 구현
+  - [x] 5.1 [RED] get_meta_memory_stats 도구 스키마 검증 테스트 작성 (given: 도구가 등록될 때, when: 스키마를 확인하면, then: 모든 파라미터가 올바르게 정의되어야 함)
+  - [x] 5.2 [GREEN] get-meta-memory-stats-tool.ts 파일 생성 및 기본 구조 구현 (BaseTool 상속, 스키마 정의)
+  - [x] 5.3 [RED] get_meta_memory_stats 도구 핸들러 단위 테스트 작성 (given: 다양한 파라미터로 호출할 때, when: 도구를 실행하면, then: 필터링된 결과가 반환되어야 함)
+  - [x] 5.4 [GREEN] get_meta_memory_stats 도구 handle() 메서드 구현 (MetaMemoryService.getStats() 호출 - 이미 구현되어 있음)
+  - [x] 5.5 [RED] 파라미터 검증 테스트 작성 (given: 잘못된 파라미터로 호출할 때, when: 도구를 실행하면, then: 적절한 에러가 발생해야 함)
+  - [x] 5.6 [GREEN] 파라미터 검증 로직 구현 (Zod 스키마 사용 - 이미 구현되어 있음)
+  - [x] 5.7 [RED] 도구 등록 테스트 작성 (given: 도구가 생성될 때, when: 도구 레지스트리를 확인하면, then: get_meta_memory_stats 도구가 등록되어야 함)
+  - [x] 5.8 [GREEN] tools/index.ts에 get_meta_memory_stats 도구 등록
+  - [x] 5.9 [REFACTOR] MCP 도구 코드 리팩토링 및 문서화
 
 - [ ] 6.0 서비스 초기화 및 통합
   - [ ] 6.1 [RED] ServerServices 인터페이스 확장 테스트 작성 (given: ServerServices 타입이 있을 때, when: metaMemoryService 필드를 확인하면, then: 필드가 포함되어야 함)
