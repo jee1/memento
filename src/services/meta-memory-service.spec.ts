@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { MetaMemoryService } from './meta-memory-service.js';
 import { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
-import { DatabaseUtils } from '../shared/utils/database.js';
 import { MetaMemoryStatsSchemaMigration } from '../infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.js';
 import type { RecallResultItem } from '../domains/memory/tools/recall-tool.js';
 

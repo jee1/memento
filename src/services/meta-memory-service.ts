@@ -69,6 +69,12 @@ export class MetaMemoryService {
       return;
     }
 
+    // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리하기 위해
+    // 현재 호출의 항목들을 먼저 수집하여 처리
+    // 이렇게 하면 같은 호출 내에서는 버퍼의 값을 확인할 수 있고,
+    // 다른 호출 사이에서는 debounce가 작동하여 마지막 호출만 반영됨
+    const currentCallBuffer: Map<string, MetaMemoryStatsWrite> = new Map();
+
     // 각 항목별로 통계 업데이트
     for (const item of items) {
       try {
@@ -87,21 +93,23 @@ export class MetaMemoryService {
         // Confidence 점수 계산
         const confidence = this.calculateConfidence(item);
 
-        // 현재 통계 조회 (버퍼에 있는 값도 고려)
-        // 같은 recall 호출 내에서 같은 memory_id가 여러 번 나타날 수 있으므로
-        // 버퍼에 이미 있는 값을 기반으로 계산
+        // 현재 통계 조회
+        // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리하기 위해
+        // 먼저 현재 호출의 버퍼를 확인하고, 없으면 DB에서 가져옴
+        // 다른 호출 사이에서는 debounce가 작동하여 마지막 호출만 반영됨
         let baseStats = await this.getStatsById(memoryId);
         
-        // 버퍼에 같은 memoryId가 이미 있으면 그 값을 기반으로 계산
-        const bufferedWrite = this.statsBuffer.get(memoryId);
-        if (bufferedWrite) {
+        // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리
+        // 현재 호출의 버퍼에 같은 memoryId가 이미 있으면 그 값을 기반으로 계산
+        const currentCallBufferedWrite = currentCallBuffer.get(memoryId);
+        if (currentCallBufferedWrite) {
           baseStats = {
             memory_id: memoryId,
-            recall_count: bufferedWrite.recallCount,
-            success_count: bufferedWrite.successCount,
-            failure_count: bufferedWrite.failureCount,
-            avg_confidence: bufferedWrite.avgConfidence,
-            last_recalled_at: bufferedWrite.lastRecalledAt ? new Date(bufferedWrite.lastRecalledAt) : undefined,
+            recall_count: currentCallBufferedWrite.recallCount,
+            success_count: currentCallBufferedWrite.successCount,
+            failure_count: currentCallBufferedWrite.failureCount,
+            avg_confidence: currentCallBufferedWrite.avgConfidence,
+            last_recalled_at: currentCallBufferedWrite.lastRecalledAt ? new Date(currentCallBufferedWrite.lastRecalledAt) : undefined,
             created_at: new Date(),
             updated_at: new Date()
           };
@@ -118,15 +126,19 @@ export class MetaMemoryService {
         );
         const lastRecalledAt = new Date().toISOString();
 
-        // meta_memory_stats 업데이트를 위한 버퍼에 추가 (debounce 처리)
-        this.addToStatsBuffer({
+        // 현재 호출의 버퍼에 저장 (같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우 처리)
+        const write: MetaMemoryStatsWrite = {
           memoryId,
           recallCount: newRecallCount,
           successCount: newSuccessCount,
           failureCount: newFailureCount,
           avgConfidence: newAvgConfidence,
           lastRecalledAt
-        });
+        };
+        currentCallBuffer.set(memoryId, write);
+
+        // meta_memory_stats 업데이트를 위한 버퍼에 추가 (debounce 처리)
+        this.addToStatsBuffer(write);
       } catch (error) {
         // 개별 항목 처리 실패는 로깅하고 계속 진행
         logger.error('MetaMemoryService: recall 통계 기록 실패', {
@@ -141,7 +153,7 @@ export class MetaMemoryService {
    * 통계 버퍼에 추가 (WriteCoalescingManager와 연동)
    */
   private statsBuffer: Map<string, MetaMemoryStatsWrite> = new Map();
-  private statsFlushTimer: NodeJS.Timeout | null = null;
+  private statsFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
   private addToStatsBuffer(write: MetaMemoryStatsWrite): void {
     // 같은 memoryId에 대한 연속 업데이트는 마지막 것만 유지 (debounce)
