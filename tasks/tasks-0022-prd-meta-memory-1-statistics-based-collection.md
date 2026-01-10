@@ -79,13 +79,13 @@
   - [x] 5.8 [GREEN] tools/index.ts에 get_meta_memory_stats 도구 등록
   - [x] 5.9 [REFACTOR] MCP 도구 코드 리팩토링 및 문서화
 
-- [ ] 6.0 서비스 초기화 및 통합
-  - [ ] 6.1 [RED] ServerServices 인터페이스 확장 테스트 작성 (given: ServerServices 타입이 있을 때, when: metaMemoryService 필드를 확인하면, then: 필드가 포함되어야 함)
-  - [ ] 6.2 [GREEN] ServerServices 인터페이스에 metaMemoryService 필드 추가 (선택적 필드)
-  - [ ] 6.3 [RED] MetaMemoryService 초기화 테스트 작성 (given: bootstrap.ts에서 서비스를 초기화할 때, when: 서비스를 확인하면, then: MetaMemoryService 인스턴스가 생성되어야 함)
-  - [ ] 6.4 [GREEN] bootstrap.ts에 MetaMemoryService 초기화 로직 추가 (WriteCoalescingManager와 함께 초기화)
-  - [ ] 6.5 [RED] ToolContext에 metaMemoryService 주입 테스트 작성 (given: ToolContext가 생성될 때, when: services를 확인하면, then: metaMemoryService가 포함되어야 함)
-  - [ ] 6.6 [GREEN] ToolContext 생성 로직에 metaMemoryService 주입 (context.ts 또는 bootstrap.ts에서)
-  - [ ] 6.7 [RED] 통합 E2E 테스트 작성 (given: 전체 시스템이 초기화될 때, when: recall을 호출하고 get_meta_memory_stats로 조회하면, then: 통계가 올바르게 수집되고 조회되어야 함)
-  - [ ] 6.8 [GREEN] 통합 E2E 테스트 구현 및 검증
-  - [ ] 6.9 [REFACTOR] 서비스 초기화 코드 리팩토링 및 에러 처리 강화
+- [x] 6.0 서비스 초기화 및 통합
+  - [x] 6.1 [RED] ServerServices 인터페이스 확장 테스트 작성 (given: ServerServices 타입이 있을 때, when: metaMemoryService 필드를 확인하면, then: 필드가 포함되어야 함)
+  - [x] 6.2 [GREEN] ServerServices 인터페이스에 metaMemoryService 필드 추가 (선택적 필드)
+  - [x] 6.3 [RED] MetaMemoryService 초기화 테스트 작성 (given: bootstrap.ts에서 서비스를 초기화할 때, when: 서비스를 확인하면, then: MetaMemoryService 인스턴스가 생성되어야 함)
+  - [x] 6.4 [GREEN] bootstrap.ts에 MetaMemoryService 초기화 로직 추가 (WriteCoalescingManager와 함께 초기화)
+  - [x] 6.5 [RED] ToolContext에 metaMemoryService 주입 테스트 작성 (given: ToolContext가 생성될 때, when: services를 확인하면, then: metaMemoryService가 포함되어야 함)
+  - [x] 6.6 [GREEN] ToolContext 생성 로직에 metaMemoryService 주입 (context.ts 또는 bootstrap.ts에서)
+  - [x] 6.7 [RED] 통합 E2E 테스트 작성 (given: 전체 시스템이 초기화될 때, when: recall을 호출하고 get_meta_memory_stats로 조회하면, then: 통계가 올바르게 수집되고 조회되어야 함)
+  - [x] 6.8 [GREEN] 통합 E2E 테스트 구현 및 검증
+  - [x] 6.9 [REFACTOR] 서비스 초기화 코드 리팩토링 및 에러 처리 강화

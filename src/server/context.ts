@@ -60,7 +60,8 @@ export function createToolContext(serverContext: ServerContext): ToolContext {
       writeCoalescingManager: serverContext.services.writeCoalescingManager,
       anchorManager: serverContext.services.anchorManager,
       failureDetector: serverContext.services.failureDetector,
-      reflexionWorker: serverContext.services.reflexionWorker
+      reflexionWorker: serverContext.services.reflexionWorker,
+      metaMemoryService: serverContext.services.metaMemoryService
     }
   };
 }

@@ -24,6 +24,7 @@ import { getVectorSearchEngine } from '../domains/search/algorithms/vector-searc
 import { logger } from '../shared/utils/logger.js';
 import { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
+import { MetaMemoryService } from '../services/meta-memory-service.js';
 
 /**
  * 서버 서비스 집합 인터페이스
@@ -41,6 +42,7 @@ import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-mo
  * 선택적 서비스 (기능 플래그에 따라 초기화):
  * - consolidationScoreService: 통합 점수 서비스
  * - writeCoalescingManager: 쓰기 결합 관리자
+ * - metaMemoryService: 메타 메모리 통계 서비스
  */
 export interface ServerServices {
   // 필수 서비스
@@ -56,6 +58,7 @@ export interface ServerServices {
   // 선택적 서비스
   consolidationScoreService?: ConsolidationScoreService;
   writeCoalescingManager?: WriteCoalescingManager;
+  metaMemoryService?: MetaMemoryService;
   // 앵커 관리자 서비스
   anchorManager: AnchorManager;
   // 실패 감지 서비스 (Phase 2)
@@ -219,6 +222,23 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       );
     }
     
+    // 4.5. MetaMemoryService 초기화 (WriteCoalescingManager와 함께)
+    // MetaMemoryService는 writeCoalescingManager를 선택적으로 받을 수 있지만,
+    // consolidationScoreEnabled가 활성화되어 있으면 공유된 writeCoalescingManager를 사용
+    // MetaMemoryService는 항상 초기화되며, recall 통계 수집을 위해 필수적입니다.
+    let metaMemoryService: MetaMemoryService;
+    try {
+      metaMemoryService = new MetaMemoryService(
+        db,
+        writeCoalescingManager // 공유된 WriteCoalescingManager 전달 (없으면 자체 생성)
+      );
+      logger.info('MetaMemoryService 초기화 완료');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
+      throw new Error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
+    }
+    
     return {
       searchEngine,
       hybridSearchEngine,
@@ -230,6 +250,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       performanceAlertService,
       consolidationScoreService,
       writeCoalescingManager,
+      metaMemoryService,
       anchorManager,
       failureDetector,
       reflexionWorker,
