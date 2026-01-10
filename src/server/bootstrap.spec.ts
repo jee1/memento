@@ -196,27 +196,29 @@ describe('initializeServices', () => {
   });
 
   describe('선택적 서비스 초기화', () => {
-    it('consolidationScoreEnabled가 false일 때 선택적 서비스가 undefined여야 함', async () => {
-      // mementoConfig.consolidationScoreEnabled가 false인 경우
+    it('consolidationScoreEnabled가 false일 때 consolidationScoreService만 undefined여야 함', async () => {
+      // given: consolidationScoreEnabled가 false인 경우
       const originalValue = mementoConfig.consolidationScoreEnabled;
       
-      // 테스트를 위해 임시로 false로 설정 (실제로는 환경 변수로 제어)
-      // 주의: 실제 config를 변경하면 안 되므로, 현재 설정값에 따라 테스트
-      
+      // when: 서비스를 초기화하면
       services = await initializeServices(db);
 
-      // consolidationScoreEnabled가 false인 경우 선택적 서비스가 undefined일 수 있음
-      // 하지만 실제 설정값에 따라 다를 수 있으므로, 존재 여부만 확인
+      // then: consolidationScoreService는 undefined이지만, writeCoalescingManager는 항상 정의되어야 함
+      // (writeCoalescingManager는 MetaMemoryService를 위해 항상 생성됨)
       if (!originalValue) {
         expect(services.consolidationScoreService).toBeUndefined();
-        expect(services.writeCoalescingManager).toBeUndefined();
+        // writeCoalescingManager는 MetaMemoryService를 위해 항상 생성되므로 정의되어야 함
+        expect(services.writeCoalescingManager).toBeDefined();
       }
     });
 
-    it('consolidationScoreEnabled가 true일 때 선택적 서비스가 초기화되어야 함', async () => {
-      // 실제 설정값에 따라 테스트
+    it('consolidationScoreEnabled가 true일 때 consolidationScoreService가 초기화되어야 함', async () => {
+      // given: consolidationScoreEnabled가 true인 경우
+      // when: 서비스를 초기화하면
       services = await initializeServices(db);
 
+      // then: consolidationScoreService가 정의되어야 함
+      // (writeCoalescingManager는 항상 정의되어야 함)
       if (mementoConfig.consolidationScoreEnabled) {
         expect(services.consolidationScoreService).toBeDefined();
         expect(services.writeCoalescingManager).toBeDefined();
@@ -224,8 +226,11 @@ describe('initializeServices', () => {
     });
 
     it('consolidationScoreService가 ConsolidationScoreService 인스턴스여야 함', async () => {
+      // given: 서비스 초기화 시
+      // when: consolidationScoreService가 존재하면
       services = await initializeServices(db);
 
+      // then: ConsolidationScoreService의 필수 메서드들이 있어야 함
       if (services.consolidationScoreService) {
         expect(services.consolidationScoreService).toBeDefined();
         expect(services.consolidationScoreService).toHaveProperty('calculateScore');
@@ -235,55 +240,64 @@ describe('initializeServices', () => {
     });
 
     it('writeCoalescingManager가 WriteCoalescingManager 인스턴스여야 함', async () => {
+      // given: 서비스 초기화 시
+      // when: writeCoalescingManager를 확인하면
       services = await initializeServices(db);
 
-      if (services.writeCoalescingManager) {
-        expect(services.writeCoalescingManager).toBeDefined();
-        expect(services.writeCoalescingManager).toHaveProperty('addWrite');
-        expect(services.writeCoalescingManager).toHaveProperty('flush');
-        expect(services.writeCoalescingManager).toHaveProperty('destroy');
-      }
+      // then: writeCoalescingManager는 항상 정의되어야 함 (MetaMemoryService를 위해)
+      expect(services.writeCoalescingManager).toBeDefined();
+      expect(services.writeCoalescingManager).toHaveProperty('addWrite');
+      expect(services.writeCoalescingManager).toHaveProperty('flush');
+      expect(services.writeCoalescingManager).toHaveProperty('destroy');
     });
 
     it('consolidationScoreEnabled가 true일 때 두 서비스가 함께 초기화되어야 함', async () => {
+      // given: consolidationScoreEnabled 설정값에 따라
+      // when: 서비스를 초기화하면
       services = await initializeServices(db);
 
       if (mementoConfig.consolidationScoreEnabled) {
-        // 둘 다 정의되어 있어야 함
+        // then: true일 때는 둘 다 정의되어 있어야 함
         expect(services.consolidationScoreService).toBeDefined();
         expect(services.writeCoalescingManager).toBeDefined();
         
-        // 둘 다 undefined가 아니어야 함
         expect(services.consolidationScoreService).not.toBeUndefined();
         expect(services.writeCoalescingManager).not.toBeUndefined();
       } else {
-        // false일 때는 둘 다 undefined여야 함
+        // then: false일 때는 consolidationScoreService만 undefined이고,
+        // writeCoalescingManager는 MetaMemoryService를 위해 항상 정의되어야 함
         expect(services.consolidationScoreService).toBeUndefined();
-        expect(services.writeCoalescingManager).toBeUndefined();
+        expect(services.writeCoalescingManager).toBeDefined();
       }
     });
 
-    it('consolidationScoreService와 writeCoalescingManager는 함께 존재하거나 함께 없어야 함', async () => {
+    it('writeCoalescingManager는 항상 존재해야 하고, consolidationScoreService는 consolidationScoreEnabled에 따라 결정됨', async () => {
+      // given: 서비스 초기화 시
+      // when: 서비스 존재 여부를 확인하면
       services = await initializeServices(db);
 
-      const hasConsolidationScore = services.consolidationScoreService !== undefined;
-      const hasWriteCoalescing = services.writeCoalescingManager !== undefined;
-
-      // 둘 다 있거나 둘 다 없어야 함 (일관성)
-      expect(hasConsolidationScore).toBe(hasWriteCoalescing);
+      // then: writeCoalescingManager는 항상 정의되어야 함 (MetaMemoryService를 위해)
+      expect(services.writeCoalescingManager).toBeDefined();
+      
+      // then: consolidationScoreService는 consolidationScoreEnabled 설정에 따라 결정됨
+      if (mementoConfig.consolidationScoreEnabled) {
+        expect(services.consolidationScoreService).toBeDefined();
+      } else {
+        expect(services.consolidationScoreService).toBeUndefined();
+      }
     });
 
     it('writeCoalescingManager가 올바른 flushInterval과 callback으로 초기화되어야 함', async () => {
+      // given: 서비스 초기화 시
+      // when: writeCoalescingManager를 확인하면
       services = await initializeServices(db);
 
-      if (services.writeCoalescingManager) {
-        // WriteCoalescingManager는 flushInterval 1000ms로 초기화되어야 함
-        // (bootstrap.ts에서 1000ms로 설정)
-        expect(services.writeCoalescingManager).toBeDefined();
-        
-        // flush 메서드가 정상적으로 동작하는지 확인
-        await expect(services.writeCoalescingManager.flush()).resolves.not.toThrow();
-      }
+      // then: writeCoalescingManager는 항상 정의되어야 함 (flushInterval 1000ms로 초기화)
+      // (bootstrap.ts에서 1000ms로 설정)
+      expect(services.writeCoalescingManager).toBeDefined();
+      
+      // then: flush 메서드가 정상적으로 동작해야 함
+      await expect(services.writeCoalescingManager.flush()).resolves.not.toThrow();
     });
   });
 
