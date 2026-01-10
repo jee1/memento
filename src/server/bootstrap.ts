@@ -162,12 +162,11 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     
     // 4. 선택적 서비스 초기화 (Consolidation Score, Write Coalescing)
     let consolidationScoreService: ConsolidationScoreService | undefined;
-    let writeCoalescingManager: WriteCoalescingManager | undefined;
     
     // Write Coalescing Manager는 MetaMemoryService를 위해 항상 생성
     // consolidationScoreEnabled가 true일 때는 consolidation score 관련 flush 로직 포함
     // false일 때는 meta memory stats만 업데이트하는 간단한 flush 로직 사용
-    writeCoalescingManager = new WriteCoalescingManager(
+    const writeCoalescingManager = new WriteCoalescingManager(
       1000, // 1초마다 flush
       async (writes: CoalescedWrite[]) => {
         // 배치 업데이트 실행
