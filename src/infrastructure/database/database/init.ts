@@ -383,6 +383,12 @@ export async function initializeDatabase(): Promise<Database.Database> {
             for (const failed of failedMigrations) {
               log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
             }
+            
+            // CI 환경에서는 마이그레이션 실패 시 에러를 던져서 테스트가 실패하도록 함
+            if (process.env.CI === 'true') {
+              const errorMessage = `CI 환경에서 마이그레이션 실패: ${failCount}개의 마이그레이션이 실패했습니다. 실패한 마이그레이션: ${failedMigrations.map(f => `${f.name} (v${f.version})`).join(', ')}`;
+              throw new Error(errorMessage);
+            }
           }
         } else {
           log('✅ 실행해야 할 마이그레이션이 없습니다.');
@@ -443,6 +449,12 @@ export async function initializeDatabase(): Promise<Database.Database> {
             const failedMigrations = results.filter(r => !r.success);
             for (const failed of failedMigrations) {
               log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+            }
+            
+            // CI 환경에서는 마이그레이션 실패 시 에러를 던져서 테스트가 실패하도록 함
+            if (process.env.CI === 'true') {
+              const errorMessage = `CI 환경에서 마이그레이션 실패: ${failCount}개의 마이그레이션이 실패했습니다. 실패한 마이그레이션: ${failedMigrations.map(f => `${f.name} (v${f.version})`).join(', ')}`;
+              throw new Error(errorMessage);
             }
           }
           
