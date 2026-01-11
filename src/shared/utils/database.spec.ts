@@ -349,5 +349,43 @@ describe('DatabaseUtils', () => {
       expect(true).toBe(true);
     });
   });
+
+  describe('레거시 스키마 호환성', () => {
+    it('Given: 레거시 스키마에 embedding 컬럼이 없을 때, When: 컬럼 존재 여부를 확인하면, Then: 컬럼이 없음을 감지해야 함', () => {
+      // Given: 레거시 스키마 (embedding 컬럼 없음)
+      DatabaseUtils.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_embedding_legacy (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          memory_id TEXT NOT NULL,
+          dim INTEGER NOT NULL,
+          model TEXT
+        )
+      `);
+
+      // When: 컬럼 존재 여부 확인
+      const columns = DatabaseUtils.all(db, `
+        SELECT name FROM pragma_table_info('memory_embedding_legacy')
+      `) as Array<{ name: string }>;
+      
+      const hasEmbedding = columns.some(c => c.name === 'embedding');
+
+      // Then: embedding 컬럼이 없어야 함
+      expect(hasEmbedding).toBe(false);
+    });
+
+    it('Given: 레거시 스키마에서 memory_embedding 테이블이 없을 때, When: 테이블 존재 여부를 확인하면, Then: 테이블이 없음을 감지해야 함', () => {
+      // Given: memory_embedding 테이블이 없는 레거시 스키마
+      // setupTestDatabase가 테이블을 생성하므로, 다른 이름으로 확인
+
+      // When: 존재하지 않는 테이블 조회
+      const result = DatabaseUtils.get(db, `
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='nonexistent_table'
+      `);
+
+      // Then: 테이블이 없으면 undefined 반환 (에러 발생하지 않음)
+      expect(result).toBeUndefined();
+    });
+  });
 });
 

@@ -93,7 +93,21 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // ERR_WORKER_PATH 에러 특별 처리
+      // 왜 필요한가? Worker 스레드 에러는 환경 문제이므로 명확한 메시지 제공
+      const isWorkerPathError = errorMessage.includes('ERR_WORKER_PATH') || 
+                                errorMessage.includes('blob:nodedata');
+      
+      if (isWorkerPathError) {
+        process.stderr.write(`⚠️ MiniLM 모델 로딩 실패 (Worker 스레드 제한): ${maskedError.message}\n`);
+        process.stderr.write('💡 TF-IDF fallback으로 전환됩니다. 차원: 512\n');
+      } else {
+        process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
+      }
+      
+      // 에러를 다시 던져서 UnifiedEmbeddingService에서 fallback 처리
       throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
@@ -189,6 +203,11 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   /**
    * 실제 모델 로딩
    * Node.js 환경에서 Worker 스레드 문제를 방지하기 위해 옵션 설정
+   * 
+   * 왜 Worker 스레드를 비활성화하는가?
+   * - Node.js 환경에서 onnxruntime-web의 Worker가 blob URL을 지원하지 않음
+   * - ERR_WORKER_PATH 에러 발생 시 TF-IDF fallback으로 전환
+   * - fallback 시 차원 정보(512)가 명시적으로 전달되어야 함
    */
   private async loadModel(): Promise<any> {
     try {
@@ -213,10 +232,12 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
                                 errorMessage.includes('blob:nodedata');
       
       // 에러 로깅을 한 번만 출력하도록 조건부 처리
+      // 왜 필요한가? 로그 스팸 방지 및 MCP 프로토콜 준수
       if (!(global as any).__minilmModelLoadWarningShown) {
         if (isWorkerPathError) {
           process.stderr.write(`⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용): ${errorMessage}\n`);
           process.stderr.write('💡 해결 방법: 환경 변수 ENABLE_WORKER=false 설정 또는 onnxruntime-node 설치 확인\n');
+          process.stderr.write('💡 Fallback 시 차원 정보: TF-IDF는 512차원을 사용합니다\n');
         } else {
           const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
           process.stderr.write(`❌ MiniLM 모델 로딩 실패: ${maskedError.message}\n`);

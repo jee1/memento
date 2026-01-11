@@ -97,7 +97,25 @@ export class SemanticMemoryUpdateService {
   ) {
     this.canonicalizer = new PredicateCanonicalizer();
     this.entityLinker = new EntityLinker();
-    this.embeddingService = embeddingService || new UnifiedEmbeddingService();
+    
+    // UnifiedEmbeddingService 주입 또는 기본값 생성
+    // 왜 필요한가? 의존성 주입을 통해 테스트 가능성 향상 및 인터페이스 기반 설계 준수 (DIP 원칙)
+    // 타입 안정성: 주입된 서비스가 EmbeddingServiceInterface를 구현하는지 검증
+    if (embeddingService) {
+      // 주입된 서비스가 UnifiedEmbeddingService 인터페이스를 구현하는지 확인
+      // "generateEmbedding is not a function" 에러 방지를 위해 필수
+      if (typeof embeddingService.generateEmbedding !== 'function') {
+        throw new Error('Invalid embeddingService: generateEmbedding method is missing');
+      }
+      if (typeof embeddingService.isAvailable !== 'function') {
+        throw new Error('Invalid embeddingService: isAvailable method is missing');
+      }
+      this.embeddingService = embeddingService;
+    } else {
+      // 기본값으로 UnifiedEmbeddingService 인스턴스 생성
+      this.embeddingService = new UnifiedEmbeddingService();
+    }
+    
     this.relationGraph = relationGraph || new RelationGraph(db);
     
     // PRD 8.2: Semantic Memory 생성 통계 수집
@@ -583,8 +601,39 @@ export class SemanticMemoryUpdateService {
     }
 
     // 보조 기준: 임베딩 유사도 계산
+    // 왜 null 체크가 필요한가? 생성자에서 기본값을 제공하지만, 런타임에 변경될 수 있음
+    // 방어적 코딩: "generateEmbedding is not a function" 에러 방지
+    if (!this.embeddingService) {
+      logger.warn('SemanticMemoryUpdateService: embeddingService is not available', {
+        entity1,
+        entity2
+      });
+      return false;
+    }
+
+    // isAvailable() 호출 전 타입 가드
+    // 왜 필요한가? 런타임에 메서드가 없을 수 있음 (잘못된 의존성 주입 시)
+    if (typeof this.embeddingService.isAvailable !== 'function') {
+      logger.warn('SemanticMemoryUpdateService: embeddingService.isAvailable is not a function', {
+        entity1,
+        entity2
+      });
+      return false;
+    }
+
     if (!this.embeddingService.isAvailable()) {
-      // 임베딩 서비스가 없으면 정규화 일치만 확인
+      // 임베딩 서비스가 사용 불가능하면 정규화 일치만 확인
+      return false;
+    }
+
+    // generateEmbedding 메서드 존재 여부 확인 (타입 가드)
+    // 왜 필요한가? "generateEmbedding is not a function" 에러 방지
+    if (typeof this.embeddingService.generateEmbedding !== 'function') {
+      logger.error('SemanticMemoryUpdateService: embeddingService.generateEmbedding is not a function', {
+        entity1,
+        entity2,
+        embeddingServiceType: typeof this.embeddingService
+      });
       return false;
     }
 

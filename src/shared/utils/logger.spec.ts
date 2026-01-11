@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { logger, type LogLevel } from './logger.js';
+import { mcpLogger } from '../../server/mcp-logger.js';
 
 describe('logger', () => {
   let originalStderrWrite: typeof process.stderr.write;
@@ -637,6 +638,64 @@ describe('logger', () => {
       const callArg = stderrWriteCalls[0];
       expect(callArg).toContain('Test message');
       expect(callArg).toContain('INFO');
+    });
+  });
+
+  describe('중복 로그 출력 방지', () => {
+    it('Given: MCP 모드일 때, When: logger.info를 호출하면, Then: 로그가 한 번만 출력되어야 함', () => {
+      // Given: MCP 모드 설정
+      (process.stdin as any).isTTY = false;
+      (process.stdout as any).isTTY = false;
+      
+      // mcpLogger.logServer 모킹
+      const logServerSpy = vi.spyOn(mcpLogger, 'logServer');
+      const stderrWriteSpy = vi.spyOn(process.stderr, 'write');
+
+      // When: logger.info 호출
+      logger.info('Test message');
+
+      // Then: logServer가 한 번만 호출되어야 함
+      expect(logServerSpy).toHaveBeenCalledTimes(1);
+      
+      // stderr.write는 logServer 내부에서 호출되므로, 직접 호출은 없어야 함
+      // (logToStderr는 호출되지 않아야 함)
+      const directStderrCalls = stderrWriteCalls.filter(call => 
+        !call.includes('[SERVER]') && !call.includes('[MCP]')
+      );
+      expect(directStderrCalls.length).toBe(0);
+
+      logServerSpy.mockRestore();
+      stderrWriteSpy.mockRestore();
+    });
+
+    it('Given: 일반 모드일 때, When: logger.info를 호출하면, Then: 로그가 한 번만 출력되어야 함', () => {
+      // Given: 일반 모드 설정
+      (process.stdin as any).isTTY = true;
+      (process.stdout as any).isTTY = true;
+
+      // When: logger.info 호출
+      logger.info('Test message');
+
+      // Then: stderr.write가 한 번만 호출되어야 함
+      expect(process.stderr.write).toHaveBeenCalledTimes(1);
+    });
+
+    it('Given: isMCPMode()가 여러 번 호출되어도, When: 같은 로그를 출력하면, Then: 중복 출력이 발생하지 않아야 함', () => {
+      // Given: MCP 모드 설정
+      (process.stdin as any).isTTY = false;
+      (process.stdout as any).isTTY = false;
+
+      const logServerSpy = vi.spyOn(mcpLogger, 'logServer');
+
+      // When: 같은 로그를 여러 번 출력
+      logger.info('Test message');
+      logger.info('Test message');
+      logger.info('Test message');
+
+      // Then: logServer가 각각 한 번씩만 호출되어야 함 (총 3번)
+      expect(logServerSpy).toHaveBeenCalledTimes(3);
+
+      logServerSpy.mockRestore();
     });
   });
 });

@@ -67,8 +67,17 @@ let serverServices: ServerServices | null = null;
  * 초기화 상태에 따라 로깅 전략을 변경:
  * - 초기화 전: fallback logger (stderr 직접 출력)
  * - 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
+ * 
+ * 중복 등록 방지:
+ * - 이미 오버라이드되었는지 확인하여 중복 등록 방지
+ * - 왜 필요한가? 모듈이 여러 번 로드되면 중복 등록 가능
  */
 function setupConsoleErrorOverride(): void {
+  // 중복 등록 방지: 이미 오버라이드되었는지 확인
+  if ((globalThis as any).__console_error_overridden) {
+    return;
+  }
+  
   console.error = (...args: any[]) => {
     const isInitialized = (globalThis as any).__mcp_server_initialized === true;
     
@@ -82,14 +91,20 @@ function setupConsoleErrorOverride(): void {
       process.stderr.write(`[CONSOLE ERROR] ${args.map(a => String(a)).join(' ')}\n`);
     }
   };
+  
+  // 오버라이드 완료 플래그 설정
+  (globalThis as any).__console_error_overridden = true;
 }
 
-// console 메서드 오버라이드
-console.log = () => {};
-setupConsoleErrorOverride();
-console.warn = () => {};
-console.info = () => {};
-console.debug = () => {};
+// console 메서드 오버라이드 (중복 등록 방지)
+if (!(globalThis as any).__console_overridden) {
+  console.log = () => {};
+  setupConsoleErrorOverride();
+  console.warn = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+  (globalThis as any).__console_overridden = true;
+}
 
 // MCP 프로토콜 준수: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
 // 모든 로그는 stderr로 출력되어야 함 (mcpLogger 사용)

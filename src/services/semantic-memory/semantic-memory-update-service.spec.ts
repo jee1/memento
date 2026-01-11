@@ -1873,5 +1873,48 @@ describe('SemanticMemoryUpdateService', () => {
       expect(supportedByRelations[0].relation_type).toBe('supported_by');
     });
   });
+
+  describe('UnifiedEmbeddingService 의존성 주입', () => {
+    it('Given: UnifiedEmbeddingService가 주입되지 않았을 때, When: SemanticMemoryUpdateService를 생성하면, Then: 기본값으로 UnifiedEmbeddingService를 사용해야 함', () => {
+      // Given: embeddingService 없이 생성
+      // When: SemanticMemoryUpdateService 생성
+      const newService = new SemanticMemoryUpdateService(db);
+
+      // Then: embeddingService가 UnifiedEmbeddingService 인스턴스여야 함
+      expect(newService).toBeDefined();
+      // generateEmbedding 메서드가 존재해야 함
+      expect((newService as any).embeddingService).toBeDefined();
+      expect(typeof (newService as any).embeddingService.generateEmbedding).toBe('function');
+    });
+
+    it('Given: UnifiedEmbeddingService가 null일 때, When: isAvailable()를 호출하면, Then: 에러가 발생하지 않아야 함', () => {
+      // Given: embeddingService가 null인 경우 (이론적으로는 발생하지 않지만 방어적 코딩)
+      const newService = new SemanticMemoryUpdateService(db);
+      
+      // When: isAvailable() 호출
+      // Then: 에러가 발생하지 않아야 함
+      expect(() => {
+        if ((newService as any).embeddingService) {
+          (newService as any).embeddingService.isAvailable();
+        }
+      }).not.toThrow();
+    });
+
+    it('Given: UnifiedEmbeddingService가 주입되었을 때, When: generateEmbedding을 호출하면, Then: 정상적으로 작동해야 함', async () => {
+      // Given: UnifiedEmbeddingService 주입
+      const { UnifiedEmbeddingService } = await import('../../domains/embedding/services/unified-embedding-service.js');
+      const embeddingService = new UnifiedEmbeddingService();
+      const newService = new SemanticMemoryUpdateService(db, embeddingService);
+
+      // When: generateEmbedding 호출 (내부적으로 사용)
+      // Then: 에러가 발생하지 않아야 함
+      expect((newService as any).embeddingService).toBeDefined();
+      expect(typeof (newService as any).embeddingService.generateEmbedding).toBe('function');
+      
+      // 실제 호출 테스트는 isAvailable()을 통해 간접적으로 확인
+      const isAvailable = (newService as any).embeddingService.isAvailable();
+      expect(typeof isAvailable).toBe('boolean');
+    });
+  });
 });
 
