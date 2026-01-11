@@ -141,12 +141,27 @@ describe('ConsolidationScoreFieldsMigration', () => {
       );
     });
 
-    it('should throw error when new columns already exist', async () => {
-      // recall_count 컬럼을 수동으로 추가
+    it('should allow partial application when only some columns exist', async () => {
+      // Given: 일부 컬럼만 존재하는 경우 (부분 적용)
       db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
 
+      // When/Then: 에러가 발생하지 않아야 함 (부분 적용 허용)
+      await expect(migration.validateBefore(db)).resolves.not.toThrow();
+    });
+
+    it('should throw error when migration is completely applied', async () => {
+      // Given: 모든 컬럼과 인덱스가 존재하는 경우 (완전 적용)
+      db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+      db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+      db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+      db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
+      db.exec('CREATE INDEX idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC)');
+      db.exec('CREATE INDEX idx_memory_item_consol_desc ON memory_item(consolidation_score DESC)');
+      db.exec('CREATE INDEX idx_memory_item_consol_active ON memory_item(consolidation_score) WHERE consolidation_score > 0.2');
+
+      // When/Then: 에러가 발생해야 함 (완전 적용된 마이그레이션 재실행 방지)
       await expect(migration.validateBefore(db)).rejects.toThrow(
-        'Column recall_count already exists'
+        'Migration 003 appears to be completely applied'
       );
     });
   });

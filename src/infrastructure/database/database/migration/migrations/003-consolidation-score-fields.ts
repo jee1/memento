@@ -95,6 +95,12 @@ export class ConsolidationScoreFieldsMigration implements Migration {
   /**
    * Validate before migration
    */
+  /**
+   * Validate before migration
+   */
+  /**
+   * Validate before migration
+   */
   async validateBefore(db: Database.Database): Promise<void> {
     // Check if memory_item table exists (required for migration)
     if (!this.tableExists(db, 'memory_item')) {
@@ -112,13 +118,25 @@ export class ConsolidationScoreFieldsMigration implements Migration {
       }
     }
 
-    // Check if any of the new columns already exist (should not exist)
-    const newColumns = ['recall_count', 'last_accessed_at', 'consolidation_score', 'g_value'];
-    for (const column of newColumns) {
-      if (this.columnExists(db, 'memory_item', column)) {
-        throw new Error(`Column ${column} already exists in memory_item table. Migration may have been partially applied.`);
-      }
+    // Check if migration is completely applied (all columns and indexes exist)
+    // If completely applied, throw error to prevent re-running
+    const requiredColumns = ['recall_count', 'last_accessed_at', 'consolidation_score', 'g_value'];
+    const allColumnsExist = requiredColumns.every(col => this.columnExists(db, 'memory_item', col));
+    
+    const requiredIndexes = [
+      'idx_memory_item_last_accessed',
+      'idx_memory_item_consol_desc',
+      'idx_memory_item_consol_active'
+    ];
+    const allIndexesExist = requiredIndexes.every(idx => this.indexExists(db, idx));
+    
+    // If all columns and indexes exist, migration is completely applied
+    if (allColumnsExist && allIndexesExist) {
+      throw new Error('Migration 003 appears to be completely applied. All required columns and indexes already exist.');
     }
+    
+    // Note: Partial application is allowed - if only some columns exist,
+    // the up() method will skip adding existing columns and add missing ones.
   }
 
   /**
@@ -189,12 +207,36 @@ export class ConsolidationScoreFieldsMigration implements Migration {
   /**
    * Execute migration (Up)
    */
+  /**
+   * Execute migration (Up)
+   */
   async up(db: Database.Database): Promise<void> {
-    // 1. Load and execute SQL script
-    const sqlScript = this.loadSQLFile('003-consolidation-score-fields.sql');
-    this.executeSQL(db, sqlScript);
+    // 1. Add columns conditionally (only if they don't exist)
+    // SQLite does not support IF NOT EXISTS for ALTER TABLE ADD COLUMN,
+    // so we check existence before adding each column
+    
+    if (!this.columnExists(db, 'memory_item', 'recall_count')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+    }
+    
+    if (!this.columnExists(db, 'memory_item', 'last_accessed_at')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+    }
+    
+    if (!this.columnExists(db, 'memory_item', 'consolidation_score')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+    }
+    
+    if (!this.columnExists(db, 'memory_item', 'g_value')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
+    }
 
-    // 2. Initialize existing data
+    // 2. Create indexes (IF NOT EXISTS is supported for indexes)
+    db.exec('CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_memory_item_consol_active ON memory_item(consolidation_score) WHERE consolidation_score > 0.2');
+
+    // 3. Initialize existing data
     // 기존 메모리는 recall_count=1, last_accessed_at=created_at, g_value=1로 초기화
     // consolidation_score는 Hou식 정규화 회상확률로 계산 (n=1, t=now-created_at, g_0=1)
     

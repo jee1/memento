@@ -95,6 +95,12 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
   /**
    * Validate before migration
    */
+  /**
+   * Validate before migration
+   */
+  /**
+   * Validate before migration
+   */
   async validateBefore(db: Database.Database): Promise<void> {
     // Check if memory_item table exists (required for ALTER TABLE)
     if (!this.tableExists(db, 'memory_item')) {
@@ -117,46 +123,103 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
       }
     }
 
-    // Check if new fields already exist (should not exist)
-    if (this.columnExists(db, 'memory_item', 'workflow_name')) {
-      throw new Error('workflow_name column already exists in memory_item table. Migration may have been partially applied.');
-    }
-
-    if (this.columnExists(db, 'memory_item', 'skill_name')) {
-      throw new Error('skill_name column already exists in memory_item table. Migration may have been partially applied.');
-    }
-
-    if (this.columnExists(db, 'memory_item', 'trigger_conditions')) {
-      throw new Error('trigger_conditions column already exists in memory_item table. Migration may have been partially applied.');
-    }
-
-    // Check if new indexes already exist (should not exist)
-    if (this.indexExists(db, 'idx_memory_item_workflow_name')) {
-      throw new Error('idx_memory_item_workflow_name index already exists. Migration may have been partially applied.');
-    }
-
-    if (this.indexExists(db, 'idx_memory_item_skill_name')) {
-      throw new Error('idx_memory_item_skill_name index already exists. Migration may have been partially applied.');
-    }
-
-    // Check if memory_link table has 'version_of' in relation_type enum (should not exist)
+    // Check if migration is completely applied (all columns, indexes, and enum extension exist)
+    // If completely applied, throw error to prevent re-running
+    const requiredColumns = ['workflow_name', 'skill_name', 'trigger_conditions'];
+    const allColumnsExist = requiredColumns.every(col => this.columnExists(db, 'memory_item', col));
+    
+    const requiredIndexes = [
+      'idx_memory_item_workflow_name',
+      'idx_memory_item_skill_name'
+    ];
+    const allIndexesExist = requiredIndexes.every(idx => this.indexExists(db, idx));
+    
+    // Check if memory_link table has 'version_of' in relation_type enum
     const tableInfo = db.prepare(`
       SELECT sql FROM sqlite_master 
       WHERE type='table' AND name='memory_link'
     `).get() as { sql: string } | undefined;
     
-    if (tableInfo && tableInfo.sql.includes("'version_of'")) {
-      throw new Error("memory_link table already has 'version_of' in relation_type enum. Migration may have been partially applied.");
+    const hasVersionOf = tableInfo && tableInfo.sql.includes("'version_of'");
+    
+    // If all columns, indexes, and enum extension exist, migration is completely applied
+    if (allColumnsExist && allIndexesExist && hasVersionOf) {
+      throw new Error('Migration 007 appears to be completely applied. All required columns, indexes, and enum extensions already exist.');
     }
+    
+    // Note: Partial application is allowed - if only some columns/indexes exist,
+    // the up() method will skip adding existing ones and add missing ones.
   }
 
   /**
    * Execute migration (Up)
    */
+  /**
+   * Execute migration (Up)
+   */
   async up(db: Database.Database): Promise<void> {
-    // Load and execute SQL script
-    const sqlScript = this.loadSQLFile('007-procedural-memory-enhancement.sql');
-    this.executeSQL(db, sqlScript);
+    // 1. Add new fields to memory_item table conditionally
+    // SQLite does not support IF NOT EXISTS for ALTER TABLE ADD COLUMN,
+    // so we check existence before adding each column
+    
+    if (!this.columnExists(db, 'memory_item', 'workflow_name')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN workflow_name TEXT');
+    }
+    
+    if (!this.columnExists(db, 'memory_item', 'skill_name')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN skill_name TEXT');
+    }
+    
+    if (!this.columnExists(db, 'memory_item', 'trigger_conditions')) {
+      db.exec('ALTER TABLE memory_item ADD COLUMN trigger_conditions TEXT');
+    }
+
+    // 2. Create indexes (IF NOT EXISTS is supported for indexes)
+    db.exec('CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name)');
+
+    // 3. Extend memory_link relation_type enum to include 'version_of'
+    // Note: SQLite does not support direct modification of CHECK constraints.
+    // We need to recreate the table with the extended enum values.
+    
+    // Check if 'version_of' is already in the enum
+    const tableInfo = db.prepare(`
+      SELECT sql FROM sqlite_master 
+      WHERE type='table' AND name='memory_link'
+    `).get() as { sql: string } | undefined;
+    
+    if (tableInfo && !tableInfo.sql.includes("'version_of'")) {
+      // Step 3.1: Create new memory_link table with extended relation_type enum
+      db.exec(`
+        CREATE TABLE memory_link_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          source_id TEXT NOT NULL,
+          target_id TEXT NOT NULL,
+          relation_type TEXT CHECK (relation_type IN ('cause_of', 'derived_from', 'duplicates', 'contradicts', 'version_of')) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+          UNIQUE(source_id, target_id, relation_type)
+        )
+      `);
+
+      // Step 3.2: Copy existing data from old table to new table
+      db.exec(`
+        INSERT INTO memory_link_new (id, source_id, target_id, relation_type, created_at)
+        SELECT id, source_id, target_id, relation_type, created_at
+        FROM memory_link
+      `);
+
+      // Step 3.3: Drop old table
+      db.exec('DROP TABLE memory_link');
+
+      // Step 3.4: Rename new table to original name
+      db.exec('ALTER TABLE memory_link_new RENAME TO memory_link');
+
+      // Step 3.5: Recreate indexes (they are automatically dropped when table is dropped)
+      db.exec('CREATE INDEX IF NOT EXISTS idx_memory_link_source ON memory_link(source_id)');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_memory_link_target ON memory_link(target_id)');
+    }
 
     // Note: Schema version is recorded by MigrationRunner, not here
     // MigrationRunner.recordVersion() will be called after successful migration

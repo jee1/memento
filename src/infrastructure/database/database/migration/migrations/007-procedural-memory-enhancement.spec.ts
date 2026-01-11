@@ -197,49 +197,23 @@ describe('ProceduralMemoryEnhancementMigration', () => {
       );
     });
 
-    it('should throw error when workflow_name column already exists', async () => {
-      // Given: workflow_name 컬럼이 이미 존재하는 경우
+    it('should allow partial application when only some columns exist', async () => {
+      // Given: 일부 컬럼만 존재하는 경우 (부분 적용)
       db.exec('ALTER TABLE memory_item ADD COLUMN workflow_name TEXT');
 
-      // When/Then: 에러가 발생해야 함
-      await expect(migration.validateBefore(db)).rejects.toThrow(
-        'workflow_name column already exists'
-      );
+      // When/Then: 에러가 발생하지 않아야 함 (부분 적용 허용)
+      await expect(migration.validateBefore(db)).resolves.not.toThrow();
     });
 
-    it('should throw error when skill_name column already exists', async () => {
-      // Given: skill_name 컬럼이 이미 존재하는 경우
+    it('should throw error when migration is completely applied', async () => {
+      // Given: 모든 컬럼, 인덱스, enum 확장이 존재하는 경우 (완전 적용)
+      db.exec('ALTER TABLE memory_item ADD COLUMN workflow_name TEXT');
       db.exec('ALTER TABLE memory_item ADD COLUMN skill_name TEXT');
-
-      // When/Then: 에러가 발생해야 함
-      await expect(migration.validateBefore(db)).rejects.toThrow(
-        'skill_name column already exists'
-      );
-    });
-
-    it('should throw error when trigger_conditions column already exists', async () => {
-      // Given: trigger_conditions 컬럼이 이미 존재하는 경우
       db.exec('ALTER TABLE memory_item ADD COLUMN trigger_conditions TEXT');
-
-      // When/Then: 에러가 발생해야 함
-      await expect(migration.validateBefore(db)).rejects.toThrow(
-        'trigger_conditions column already exists'
-      );
-    });
-
-    it('should throw error when idx_memory_item_workflow_name index already exists', async () => {
-      // Given: 인덱스가 이미 존재하는 경우
-      db.exec('CREATE INDEX idx_memory_item_workflow_name ON memory_item(id)');
-
-      // When/Then: 에러가 발생해야 함
-      await expect(migration.validateBefore(db)).rejects.toThrow(
-        'idx_memory_item_workflow_name index already exists'
-      );
-    });
-
-    it('should throw error when memory_link already has version_of in enum', async () => {
-      // Given: memory_link 테이블이 이미 'version_of'를 포함하는 경우
-      // 테이블 재생성
+      db.exec('CREATE INDEX idx_memory_item_workflow_name ON memory_item(workflow_name)');
+      db.exec('CREATE INDEX idx_memory_item_skill_name ON memory_item(skill_name)');
+      
+      // memory_link 테이블 재생성하여 'version_of' 포함
       db.exec('DROP TABLE memory_link');
       db.exec(`
         CREATE TABLE memory_link (
@@ -253,10 +227,12 @@ describe('ProceduralMemoryEnhancementMigration', () => {
           UNIQUE(source_id, target_id, relation_type)
         );
       `);
+      db.exec('CREATE INDEX idx_memory_link_source ON memory_link(source_id)');
+      db.exec('CREATE INDEX idx_memory_link_target ON memory_link(target_id)');
 
-      // When/Then: 에러가 발생해야 함
+      // When/Then: 에러가 발생해야 함 (완전 적용된 마이그레이션 재실행 방지)
       await expect(migration.validateBefore(db)).rejects.toThrow(
-        "memory_link table already has 'version_of' in relation_type enum"
+        'Migration 007 appears to be completely applied'
       );
     });
   });
