@@ -112,8 +112,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     } = normalizedOptions;
     const expectedDimensions = this.getExpectedDimensions(provider);
 
-    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인
-    // provider가 지정되어 있어도 실제 저장된 임베딩의 차원과 일치해야 함
+    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인 (데이터 불일치 감지용)
+    // 왜 필요한가? 기존 데이터가 잘못된 차원으로 저장되어 있을 수 있으므로
+    // 이를 감지하여 경고를 로깅하고, 테이블 선택과 일치하도록 expectedDimensions를 사용
     let actualStoredDimensions: number | null = null;
     try {
       if (this.db) {
@@ -134,8 +135,21 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       });
     }
 
-    // 실제 저장된 차원이 있으면 그것을 사용, 없으면 예상 차원 사용
-    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+    // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
+    // 왜 expectedDimensions를 사용하는가? getTableName(provider)는 provider별 테이블을 선택하므로
+    // 차원 계산도 provider 설정과 일치해야 테이블 차원과 일치함
+    // actualStoredDimensions를 사용하면 테이블 선택(512차원)과 차원 계산(384차원)이 불일치하여 오류 발생
+    if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
+      mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
+        provider,
+        expectedDimensions,
+        actualStoredDimensions,
+        message: 'provider 설정과 다른 차원의 데이터가 저장되어 있습니다. expectedDimensions를 사용합니다.'
+      });
+    }
+
+    // 테이블 선택과 일치하도록 expectedDimensions 사용
+    const targetDimensions = expectedDimensions;
 
     // 벡터 차원 검증
     if (queryVector.length !== targetDimensions) {
@@ -143,8 +157,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         expected: targetDimensions, 
         actual: queryVector.length,
         provider,
-        actualStoredDimensions,
-        expectedDimensions
+        expectedDimensions,
+        actualStoredDimensions
       });
       return [];
     }
@@ -266,8 +280,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     } = normalizedOptions;
     const expectedDimensions = this.getExpectedDimensions(provider);
 
-    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인
-    // provider가 지정되어 있어도 실제 저장된 임베딩의 차원과 일치해야 함
+    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인 (데이터 불일치 감지용)
+    // 왜 필요한가? 기존 데이터가 잘못된 차원으로 저장되어 있을 수 있으므로
+    // 이를 감지하여 경고를 로깅하고, 테이블 선택과 일치하도록 expectedDimensions를 사용
     let actualStoredDimensions: number | null = null;
     try {
       if (this.db) {
@@ -288,8 +303,21 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       });
     }
 
-    // 실제 저장된 차원이 있으면 그것을 사용, 없으면 예상 차원 사용
-    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+    // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
+    // 왜 expectedDimensions를 사용하는가? getTableName(provider)는 provider별 테이블을 선택하므로
+    // 차원 계산도 provider 설정과 일치해야 테이블 차원과 일치함
+    // actualStoredDimensions를 사용하면 테이블 선택(512차원)과 차원 계산(384차원)이 불일치하여 오류 발생
+    if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
+      mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
+        provider,
+        expectedDimensions,
+        actualStoredDimensions,
+        message: 'provider 설정과 다른 차원의 데이터가 저장되어 있습니다. expectedDimensions를 사용합니다.'
+      });
+    }
+
+    // 테이블 선택과 일치하도록 expectedDimensions 사용
+    const targetDimensions = expectedDimensions;
 
     // 벡터 차원 검증
     if (queryVector.length !== targetDimensions) {
@@ -297,8 +325,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         expected: targetDimensions, 
         actual: queryVector.length,
         provider,
-        actualStoredDimensions,
-        expectedDimensions
+        expectedDimensions,
+        actualStoredDimensions
       });
       return [];
     }
@@ -619,10 +647,11 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   }
 
   private getExpectedDimensions(provider?: string): number {
-    if (!provider) {
-      return VECTOR_SEARCH_CONFIG.defaultDimensions;
-    }
-    return VECTOR_SEARCH_CONFIG.providerDimensions[provider] ?? VECTOR_SEARCH_CONFIG.defaultDimensions;
+    // provider가 없을 때도 getTableName과 동일하게 'tfidf'의 차원을 사용
+    // 왜 필요한가? getTableName(provider ?? 'tfidf')는 'tfidf' 테이블(512차원)을 선택하므로
+    // 차원 계산도 동일하게 'tfidf'의 차원(512)을 사용해야 차원 불일치 오류를 방지할 수 있음
+    const effectiveProvider = provider ?? 'tfidf';
+    return VECTOR_SEARCH_CONFIG.providerDimensions[effectiveProvider] ?? VECTOR_SEARCH_CONFIG.defaultDimensions;
   }
 
   private safeParseTags(raw: string | null | undefined): string[] {

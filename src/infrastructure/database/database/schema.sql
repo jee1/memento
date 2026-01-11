@@ -194,7 +194,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_
   
   INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_minilm(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
@@ -222,7 +222,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_
   
   INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_minilm(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
