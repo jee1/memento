@@ -77,7 +77,9 @@ export class ConsolidationScoreFieldsMigration implements Migration {
    * Check if column exists in table
    */
   private columnExists(db: Database.Database, tableName: string, columnName: string): boolean {
-    const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+    // SQLite identifier를 안전하게 처리하기 위해 따옴표 사용
+    // tableName은 마이그레이션 내부에서만 사용되므로 안전하지만, 명시적으로 따옴표 처리
+    const columns = db.prepare(`PRAGMA table_info("${tableName}")`).all() as Array<{ name: string }>;
     return columns.some(col => col.name === columnName);
   }
 
@@ -92,12 +94,6 @@ export class ConsolidationScoreFieldsMigration implements Migration {
     return !!result;
   }
 
-  /**
-   * Validate before migration
-   */
-  /**
-   * Validate before migration
-   */
   /**
    * Validate before migration
    */
@@ -207,28 +203,51 @@ export class ConsolidationScoreFieldsMigration implements Migration {
   /**
    * Execute migration (Up)
    */
-  /**
-   * Execute migration (Up)
-   */
   async up(db: Database.Database): Promise<void> {
     // 1. Add columns conditionally (only if they don't exist)
     // SQLite does not support IF NOT EXISTS for ALTER TABLE ADD COLUMN,
     // so we check existence before adding each column
+    // 추가 안전장치: try-catch로 duplicate column 오류 처리
     
     if (!this.columnExists(db, 'memory_item', 'recall_count')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+      } catch (err: any) {
+        // 컬럼이 이미 존재하는 경우 무시 (다른 프로세스에서 추가했을 수 있음)
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
     
     if (!this.columnExists(db, 'memory_item', 'last_accessed_at')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
     
     if (!this.columnExists(db, 'memory_item', 'consolidation_score')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
     
     if (!this.columnExists(db, 'memory_item', 'g_value')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
 
     // 2. Create indexes (IF NOT EXISTS is supported for indexes)

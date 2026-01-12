@@ -77,7 +77,9 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
    * Check if column exists in table
    */
   private columnExists(db: Database.Database, tableName: string, columnName: string): boolean {
-    const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+    // SQLite identifier를 안전하게 처리하기 위해 따옴표 사용
+    // tableName은 마이그레이션 내부에서만 사용되므로 안전하지만, 명시적으로 따옴표 처리
+    const columns = db.prepare(`PRAGMA table_info("${tableName}")`).all() as Array<{ name: string }>;
     return columns.some(col => col.name === columnName);
   }
 
@@ -92,12 +94,6 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
     return !!result;
   }
 
-  /**
-   * Validate before migration
-   */
-  /**
-   * Validate before migration
-   */
   /**
    * Validate before migration
    */
@@ -154,24 +150,41 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
   /**
    * Execute migration (Up)
    */
-  /**
-   * Execute migration (Up)
-   */
   async up(db: Database.Database): Promise<void> {
     // 1. Add new fields to memory_item table conditionally
     // SQLite does not support IF NOT EXISTS for ALTER TABLE ADD COLUMN,
     // so we check existence before adding each column
+    // 추가 안전장치: try-catch로 duplicate column 오류 처리
     
     if (!this.columnExists(db, 'memory_item', 'workflow_name')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN workflow_name TEXT');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN workflow_name TEXT');
+      } catch (err: any) {
+        // 컬럼이 이미 존재하는 경우 무시 (다른 프로세스에서 추가했을 수 있음)
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
     
     if (!this.columnExists(db, 'memory_item', 'skill_name')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN skill_name TEXT');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN skill_name TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
     
     if (!this.columnExists(db, 'memory_item', 'trigger_conditions')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN trigger_conditions TEXT');
+      try {
+        db.exec('ALTER TABLE memory_item ADD COLUMN trigger_conditions TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) {
+          throw err;
+        }
+      }
     }
 
     // 2. Create indexes (IF NOT EXISTS is supported for indexes)
