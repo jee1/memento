@@ -175,6 +175,11 @@ export class QualityEvaluator {
    * 
    * PRD FR-4.2: 품질 측정 시 임계값을 검증해야 함
    * 
+   * 벡터 차원 불일치 해결 후 재평가:
+   * - 벡터 차원 불일치 문제를 해결한 후 품질 지표가 개선되었을 수 있음
+   * - precision_at_5=0인 경우는 벡터 차원 불일치로 인한 완전 실패일 가능성이 높음
+   * - 벡터 차원 불일치 해결 후에는 재측정하여 개선 여부 확인 필요
+   * 
    * @param metrics - 수집된 품질 지표
    * @param context - 컨텍스트 (기본값: 'default')
    * @returns 품질 평가 결과

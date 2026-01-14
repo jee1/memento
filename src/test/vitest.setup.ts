@@ -60,6 +60,7 @@ vi.mock('sharp', () => ({
 // CI 환경에서만 로드하여 테스트 성능에 영향 없도록 함
 if (process.env.CI) {
   // 동적 import를 사용하여 CI 환경에서만 로드
+  // vitest는 TypeScript를 직접 실행하지만, ES modules에서는 .js 확장자 사용
   import('./quality-measurement-hook.js').catch(error => {
     const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
     console.error('CI 품질 측정 훅 로드 실패:', maskedError.message);

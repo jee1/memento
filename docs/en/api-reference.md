@@ -154,11 +154,35 @@ Optimizes database performance.
 }
 ```
 
-## MCP Tools (Core 6 Only)
+## MCP Tools (Core 15)
 
-> **Important**: MCP client only exposes 6 core memory management functions.  
+> **Important**: MCP client exposes 15 core memory management functions.  
 > Management functions are separated into HTTP API endpoints.  
 > See [Administrator API](#administrator-api) section for details.
+
+### Core Memory Management Tools (7)
+
+1. **remember** - Store memories
+2. **recall** - Search memories
+3. **forget** - Delete memories
+4. **pin** - Pin memories
+5. **unpin** - Unpin memories
+6. **get_memory_neighbors** - Get similar memories
+7. **memory_injection** - Inject related memories into context (Prompt)
+
+### Anchor System Tools (5)
+
+8. **set_anchor** - Set a memory as anchor
+9. **get_anchor** - Get current anchors
+10. **search_local** - Search around anchors
+11. **clear_anchor** - Clear anchors
+12. **restore_anchors** - Restore anchors from database
+
+### Management Tools (3)
+
+13. **migrate_embeddings** - Migrate embeddings between providers
+14. **convert_episodic_to_semantic** - Convert episodic to semantic memory
+15. **get_meta_memory_stats** - Get memory statistics
 
 ### remember
 
@@ -411,6 +435,359 @@ const result = await client.callTool('forget', {
 const result = await client.callTool('forget', {
   memory_id: 'memory-123',
   hard: true
+});
+```
+
+### set_anchor
+
+Tool for setting a memory as an anchor for context management.
+
+#### Parameters
+
+```typescript
+interface SetAnchorParams {
+  memory_id: string;                // Memory ID to set as anchor (required)
+  slot: 'A' | 'B' | 'C';          // Anchor slot (required)
+  agent_id?: string;               // Agent ID (default: 'default')
+}
+```
+
+#### Response
+
+```typescript
+interface SetAnchorResult {
+  success: boolean;                 // Success status
+  memory_id: string;               // Memory ID
+  slot: string;                    // Anchor slot
+  agent_id: string;                // Agent ID
+}
+```
+
+#### Usage Example
+
+```typescript
+// Set anchor in slot A (immediate context)
+const result = await client.callTool('set_anchor', {
+  memory_id: 'mem_123',
+  slot: 'A'
+});
+
+// Set anchor in slot B (auxiliary context)
+const result = await client.callTool('set_anchor', {
+  memory_id: 'mem_456',
+  slot: 'B',
+  agent_id: 'my-agent'
+});
+```
+
+### get_anchor
+
+Tool for retrieving current anchors.
+
+#### Parameters
+
+```typescript
+interface GetAnchorParams {
+  slot?: 'A' | 'B' | 'C';         // Slot to query (optional, returns all if not specified)
+  agent_id?: string;               // Agent ID (default: 'default')
+}
+```
+
+#### Response
+
+```typescript
+interface GetAnchorResult {
+  agent_id: string;                // Agent ID
+  slot?: string;                   // Slot (if specific slot queried)
+  anchor?: {                       // Anchor info (if specific slot queried)
+    memory_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+  anchors?: {                      // All anchors (if no slot specified)
+    A: AnchorInfo | null;
+    B: AnchorInfo | null;
+    C: AnchorInfo | null;
+  };
+}
+
+interface AnchorInfo {
+  memory_id: string;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+#### Usage Example
+
+```typescript
+// Get specific anchor
+const result = await client.callTool('get_anchor', {
+  slot: 'A'
+});
+
+// Get all anchors
+const result = await client.callTool('get_anchor', {});
+```
+
+### search_local
+
+Tool for searching memories around anchors.
+
+#### Parameters
+
+```typescript
+interface SearchLocalParams {
+  slot: 'A' | 'B' | 'C';          // Anchor slot to search around (required)
+  query?: string;                  // Search query (optional, returns all nearby if not provided)
+  hop_limit?: number;              // Maximum hop distance (1-5, default: slot-specific)
+  limit?: number;                  // Maximum results (1-100, default: 10)
+  min_results?: number;            // Minimum results (0-100, default: 3)
+  agent_id?: string;               // Agent ID (default: 'default')
+  use_relations?: boolean;         // Use relation graph (default: true)
+}
+```
+
+#### Response
+
+```typescript
+interface SearchLocalResult {
+  slot: string;                    // Anchor slot
+  query?: string;                  // Search query
+  items: MemoryItem[];            // Found memories
+  total_count: number;             // Total result count
+  query_time: number;              // Query execution time (ms)
+}
+```
+
+#### Usage Example
+
+```typescript
+// Search around anchor A
+const result = await client.callTool('search_local', {
+  slot: 'A',
+  query: 'React hooks',
+  limit: 10
+});
+
+// Get all memories around anchor B
+const result = await client.callTool('search_local', {
+  slot: 'B',
+  hop_limit: 2
+});
+```
+
+### clear_anchor
+
+Tool for clearing anchors.
+
+#### Parameters
+
+```typescript
+interface ClearAnchorParams {
+  slot?: 'A' | 'B' | 'C';         // Slot to clear (optional, clears all if not specified)
+  agent_id?: string;               // Agent ID (default: 'default')
+}
+```
+
+#### Response
+
+```typescript
+interface ClearAnchorResult {
+  success: boolean;                 // Success status
+  agent_id: string;                // Agent ID
+  slot?: string;                   // Cleared slot
+  message: string;                 // Result message
+}
+```
+
+#### Usage Example
+
+```typescript
+// Clear specific anchor
+const result = await client.callTool('clear_anchor', {
+  slot: 'A'
+});
+
+// Clear all anchors
+const result = await client.callTool('clear_anchor', {});
+```
+
+### restore_anchors
+
+Tool for restoring anchors from database.
+
+#### Parameters
+
+```typescript
+interface RestoreAnchorsParams {
+  agent_id?: string;               // Agent ID (default: 'default')
+}
+```
+
+#### Response
+
+```typescript
+interface RestoreAnchorsResult {
+  success: boolean;                 // Success status
+  agent_id: string;                // Agent ID
+  restored_count: number;          // Number of restored anchors
+  anchors: {
+    A: AnchorInfo | null;
+    B: AnchorInfo | null;
+    C: AnchorInfo | null;
+  };
+}
+```
+
+#### Usage Example
+
+```typescript
+// Restore anchors from database
+const result = await client.callTool('restore_anchors', {
+  agent_id: 'my-agent'
+});
+```
+
+### migrate_embeddings
+
+Tool for migrating embeddings between providers.
+
+#### Parameters
+
+```typescript
+interface MigrateEmbeddingsParams {
+  target_provider: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';  // Target provider (required)
+  source_provider?: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini'; // Source provider (optional, migrates all if not specified)
+  batch_size?: number;            // Batch size (1-1000, default: 100)
+  dry_run?: boolean;               // Dry run mode (default: false)
+}
+```
+
+#### Response
+
+```typescript
+interface MigrateEmbeddingsResult {
+  success: boolean;                 // Success status
+  target_provider: string;         // Target provider
+  migrated_count: number;          // Number of migrated embeddings
+  failed_count: number;            // Number of failed migrations
+  dry_run: boolean;                // Dry run mode
+}
+```
+
+#### Usage Example
+
+```typescript
+// Migrate all embeddings to OpenAI
+const result = await client.callTool('migrate_embeddings', {
+  target_provider: 'openai',
+  batch_size: 100
+});
+
+// Dry run migration
+const result = await client.callTool('migrate_embeddings', {
+  target_provider: 'gemini',
+  dry_run: true
+});
+```
+
+### convert_episodic_to_semantic
+
+Tool for converting episodic memories to semantic memories.
+
+#### Parameters
+
+```typescript
+interface ConvertEpisodicToSemanticParams {
+  memory_id?: string;              // Memory ID to convert (optional, batch conversion if not specified)
+  skip_converted?: boolean;        // Skip already converted items (default: true)
+  retry_failed?: boolean;          // Retry failed conversions (default: false)
+  limit?: number;                  // Batch size (1-100, default: 10)
+}
+```
+
+#### Response
+
+```typescript
+interface ConvertEpisodicToSemanticResult {
+  success: boolean;                 // Success status
+  converted_count: number;         // Number of converted memories
+  failed_count: number;            // Number of failed conversions
+  skipped_count: number;          // Number of skipped memories
+}
+```
+
+#### Usage Example
+
+```typescript
+// Convert specific memory
+const result = await client.callTool('convert_episodic_to_semantic', {
+  memory_id: 'mem_123'
+});
+
+// Batch conversion
+const result = await client.callTool('convert_episodic_to_semantic', {
+  limit: 20,
+  retry_failed: true
+});
+```
+
+### get_meta_memory_stats
+
+Tool for retrieving meta memory statistics (recall success rate, confidence scores, etc.).
+
+#### Parameters
+
+```typescript
+interface GetMetaMemoryStatsParams {
+  memory_id?: string;              // Single memory ID (cannot use with memory_ids)
+  memory_ids?: string[];           // Memory ID array (cannot use with memory_id)
+  min_recall_count?: number;       // Minimum recall count (>= 0)
+  min_confidence?: number;         // Minimum average confidence (0-1)
+  limit?: number;                  // Result limit (1-1000, default: 100)
+}
+```
+
+#### Response
+
+```typescript
+interface GetMetaMemoryStatsResult {
+  items: MetaMemoryStatsItem[];    // Statistics items
+  total_count: number;             // Total result count
+  message: string;                 // Result message
+}
+
+interface MetaMemoryStatsItem {
+  memory_id: string;               // Memory ID
+  recall_count: number;            // Total recall count
+  success_count: number;           // Successful recall count
+  failure_count: number;           // Failed recall count
+  avg_confidence: number;          // Average confidence score
+  last_recalled_at?: string;       // Last recall time (ISO 8601)
+  created_at: string;              // Creation time (ISO 8601)
+  updated_at: string;              // Update time (ISO 8601)
+}
+```
+
+#### Usage Example
+
+```typescript
+// Get statistics for specific memory
+const result = await client.callTool('get_meta_memory_stats', {
+  memory_id: 'mem_123'
+});
+
+// Get statistics for multiple memories
+const result = await client.callTool('get_meta_memory_stats', {
+  memory_ids: ['mem_1', 'mem_2', 'mem_3']
+});
+
+// Filter by minimum recall count and confidence
+const result = await client.callTool('get_meta_memory_stats', {
+  min_recall_count: 10,
+  min_confidence: 0.5,
+  limit: 50
 });
 ```
 

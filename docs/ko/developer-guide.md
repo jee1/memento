@@ -59,7 +59,7 @@ cd memento
 npm install
 
 # 실제 사용된 의존성들:
-# - @modelcontextprotocol/sdk: ^0.5.0
+# - @modelcontextprotocol/sdk: ^1.18.2
 # - better-sqlite3: ^12.4.1
 # - express: ^5.1.0
 # - cors: ^2.8.5
@@ -67,6 +67,8 @@ npm install
 # - zod: ^3.22.4
 # - uuid: ^9.0.1
 # - openai: ^4.20.1
+# - @google/genai: ^1.21.0
+# - sqlite-vec: ^0.1.6
 # - dotenv: ^16.3.1
 # - vitest: ^1.0.0 (테스트)
 # - tsx: ^4.6.0 (개발)
@@ -153,20 +155,30 @@ npm run test -- --watch
 
 ## 프로젝트 구조
 
-### 새로운 서비스 레이어 (`src/services/`)
+### 도메인 기반 아키텍처
 
-Memento는 새로운 서비스 레이어를 도입하여 외부 API 연동과 복잡한 비즈니스 로직을 분리했습니다.
+Memento는 비즈니스 도메인별로 코드를 구성하는 도메인 기반 아키텍처를 사용합니다.
 
 ```
-src/services/
-├── embedding-service.ts              # OpenAI 임베딩 서비스 (196줄)
-├── memory-embedding-service.ts       # 메모리 임베딩 서비스 (237줄)
-├── lightweight-embedding-service.ts  # 경량 하이브리드 임베딩 서비스 (321줄)
-├── forgetting-policy-service.ts      # 망각 정책 서비스 (335줄)
-├── async-optimizer.ts                # 비동기 처리 최적화 (447줄)
-├── cache-service.ts                  # 캐시 서비스 (352줄)
-├── database-optimizer.ts             # 데이터베이스 최적화 (442줄)
-└── performance-monitor.ts            # 성능 모니터링 (367줄)
+src/domains/
+├── memory/                           # 메모리 도메인
+│   ├── services/                     # 메모리 서비스
+│   ├── tools/                        # 메모리 MCP 도구
+│   └── ...
+├── search/                           # 검색 도메인
+│   ├── algorithms/                  # 검색 알고리즘
+│   └── ...
+├── anchor/                           # 앵커 시스템 도메인
+│   ├── services/                     # 앵커 서비스
+│   ├── tools/                        # 앵커 MCP 도구
+│   └── ...
+├── monitoring/                       # 모니터링 도메인
+│   ├── services/                     # 모니터링 서비스
+│   ├── tools/                        # 모니터링 MCP 도구
+│   └── ...
+└── forgetting/                       # 망각 도메인
+    ├── services/                     # 망각 서비스
+    └── ...
 ```
 
 **서비스 레이어의 역할**:

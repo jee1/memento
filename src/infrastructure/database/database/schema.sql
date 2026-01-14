@@ -178,7 +178,9 @@ CREATE TABLE IF NOT EXISTS embedding_model_registry (
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384]);
 
 -- 제공자별 VEC 테이블들
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf USING vec0(embedding float[384]);
+-- 왜 각 제공자별로 다른 차원인가? 각 임베딩 제공자가 다른 차원을 생성함
+-- TF-IDF: 512차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf)
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf USING vec0(embedding float[512]);
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_minilm USING vec0(embedding float[384]);
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_openai USING vec0(embedding float[1536]);
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_gemini USING vec0(embedding float[768]);
@@ -192,7 +194,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_
   
   INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_minilm(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
@@ -220,7 +222,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_
   
   INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')
-  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+  WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
   
   INSERT INTO memory_item_vec_minilm(rowid, embedding) 
   SELECT NEW.id, json_extract(NEW.embedding, '$')

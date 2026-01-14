@@ -17,8 +17,12 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 ### 🧠 Core Memory Management (MCP Client)
 - **Memory Storage**: Store 4 types of memories (working, episodic, semantic, procedural)
 - **Memory Search**: Hybrid search (text + vector)
+- **Memory Neighbors**: Vector similarity-based automatic recommendation of similar memories
 - **Memory Pinning**: Pin/unpin important memories
 - **Memory Deletion**: Soft/hard deletion
+- **Anchor System**: Set important memories as anchors for context management
+- **Meta Memory Statistics**: Query statistics such as memory search success rate and confidence scores
+- **Memory Conversion**: Automatic conversion from Episodic Memory to Semantic Memory
 
 ### 🔍 Advanced Search
 - **FTS5 Text Search**: SQLite's Full-Text Search
@@ -149,11 +153,12 @@ const results = await client.callTool({
 
 ## 📋 API Documentation
 
-### MCP Tools (Core 5 Only)
+### MCP Tools (Core 15)
 
-> **Important**: MCP client only exposes 5 core memory management functions.  
+> **Important**: MCP client exposes 15 core memory management functions.  
 > Management functions are separated into HTTP API endpoints.
 
+#### Basic Memory Management (7)
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `remember` | Store memory | content, type, tags, importance, source, privacy_scope |
@@ -161,6 +166,24 @@ const results = await client.callTool({
 | `pin` | Pin memory | memory_id |
 | `unpin` | Unpin memory | memory_id |
 | `forget` | Delete memory | memory_id, hard |
+| `get_memory_neighbors` | Find neighbor memories | memory_id, limit |
+| `memory_injection` | Generate context injection prompt | query, token_budget |
+
+#### Anchor System (5)
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `set_anchor` | Set anchor | memory_id, slot |
+| `get_anchor` | Get anchor | slot |
+| `search_local` | Search around anchor | slot, query, limit |
+| `clear_anchor` | Clear anchor | slot |
+| `restore_anchors` | Restore anchors | agent_id |
+
+#### Advanced Features (3)
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `migrate_embeddings` | Migrate embeddings | target_provider, batch_size |
+| `convert_episodic_to_semantic` | Convert Episodic → Semantic | memory_id, limit |
+| `get_meta_memory_stats` | Get meta memory statistics | memory_id, memory_ids |
 
 ### HTTP Management API
 
@@ -192,6 +215,8 @@ const results = await client.callTool({
 | `DB_PATH` | ./data/memory.db | Database path |
 | `LOG_LEVEL` | info | Log level |
 | `OPENAI_API_KEY` | - | OpenAI API key (optional) |
+| `GEMINI_API_KEY` | - | Gemini API key (optional) |
+| `EMBEDDING_PROVIDER` | auto | Embedding provider (tfidf, minilm, openai, gemini, auto) |
 
 ### Forgetting Policy Configuration
 
@@ -219,11 +244,17 @@ npm run test:client                    # Client tests
 npm run test:search                    # Search functionality tests
 npm run test:embedding                 # Embedding functionality tests
 npm run test:lightweight-embedding     # Lightweight embedding tests
+npm run test:gemini-embedding         # Gemini embedding tests
 npm run test:forgetting                # Forgetting policy tests
 npm run test:performance               # Performance benchmarks
 npm run test:monitoring                # Performance monitoring tests
 npm run test:error-logging             # Error logging tests
 npm run test:performance-alerts        # Performance alert tests
+npm run test:vector-search             # Vector search tests
+npm run test:memory-injection         # Memory injection tests
+npm run test:batch-scheduler           # Batch scheduler tests
+npm run test:embedding-benchmark       # Embedding performance benchmark
+npm run test:embedding-integration     # Embedding integration tests
 
 # Test watch mode
 npm run test -- --watch
@@ -284,12 +315,19 @@ npm run test -- --coverage
 
 ### M1: Personal Use (Current Implementation)
 - **Storage**: better-sqlite3 embedded
-- **Index**: FTS5 + sqlite-vss
+- **Index**: FTS5 + sqlite-vec
 - **Authentication**: None (local only)
 - **Operation**: Local execution
-- **MCP Client**: Only exposes 5 core tools
+- **MCP Client**: Exposes 15 core tools
 - **Management Functions**: Separated into HTTP API
-- **Additional Features**: Multiple embedding providers (TF-IDF, MiniLM, OpenAI, Gemini), performance monitoring, cache system
+- **Additional Features**: 
+  - Multiple embedding providers (TF-IDF, MiniLM, OpenAI, Gemini)
+  - Performance monitoring and alert system
+  - Cache system
+  - Anchor system (context management)
+  - Relation graph (semantic relation extraction)
+  - Meta memory statistics
+  - Consolidation score system
 
 ### M2: Team Collaboration (Planned)
 - **Storage**: SQLite server mode

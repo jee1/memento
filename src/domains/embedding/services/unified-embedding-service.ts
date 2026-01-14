@@ -17,6 +17,7 @@ import type {
   EmbeddingProvider 
 } from '../../../shared/types/embedding.types.js';
 import { EmbeddingProviderFactory } from '../providers/embedding-provider-factory.js';
+import { VECTOR_SEARCH } from '../../../shared/config/constants.js';
 
 /**
  * 통합 임베딩 서비스
@@ -132,16 +133,34 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
   /**
    * 현재 사용 중인 모델 정보 반환
+   * 
+   * 왜 이 메서드가 중요한가?
+   * - fallback 발생 시 차원 정보가 정확히 반환되어야 함
+   * - "expected 384 vs actual 512" 에러 방지를 위해 현재 제공자의 정확한 차원 반환 필요
    */
   getModelInfo(): { model: string; dimensions: number; maxTokens: number } {
     if (this.currentProvider) {
       return this.currentProvider.getModelInfo();
     }
 
-    // 기본값 반환 (MiniLM 기준)
+    // currentProvider가 없으면 currentProviderName 기반으로 차원 추정
+    // 왜 필요한가? fallback 후에도 정확한 차원 정보 제공
+    if (this.currentProviderName) {
+      const providerDimensions = VECTOR_SEARCH.PROVIDER_DIMENSIONS[this.currentProviderName as keyof typeof VECTOR_SEARCH.PROVIDER_DIMENSIONS];
+      if (providerDimensions) {
+        return {
+          model: `unified-embedding-${this.currentProviderName}`,
+          dimensions: providerDimensions,
+          maxTokens: 256
+        };
+      }
+    }
+
+    // 기본값 반환 (TF-IDF 기준 - 가장 안정적인 fallback)
+    // 왜 TF-IDF인가? 가장 안정적이고 항상 사용 가능한 제공자
     return {
       model: 'unified-embedding',
-      dimensions: 384,
+      dimensions: VECTOR_SEARCH.DEFAULT_DIMENSIONS, // 512
       maxTokens: 256
     };
   }
@@ -204,6 +223,10 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
   /**
    * 폴백 제공자 시도
    * 클린코드: 단일 책임 원칙 - 폴백 처리만 담당
+   * 
+   * 왜 차원 정보 동기화가 필요한가?
+   * - MiniLM(384) → TF-IDF(512) fallback 시 차원 정보가 달라짐
+   * - getModelInfo()가 정확한 차원을 반환하도록 currentProvider 업데이트 필수
    */
   private async tryFallbackProviders(text: string): Promise<EmbeddingResult | null> {
     const { service, decision } = await this.factory.selectProviderWithHealthCheck();
@@ -213,9 +236,19 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
     const result = await service.generateEmbedding(text);
     if (result) {
+      // fallback 발생 시 currentProvider와 currentProviderName 업데이트
+      // 왜 필요한가? getModelInfo()가 정확한 차원을 반환하도록 보장
       this.currentProvider = service;
       this.currentProviderName = decision.selectedProvider;
       result.provider = decision.selectedProvider;
+      
+      // 차원 정보 검증: 결과의 차원이 제공자 차원과 일치하는지 확인
+      const expectedDimensions = VECTOR_SEARCH.PROVIDER_DIMENSIONS[decision.selectedProvider as keyof typeof VECTOR_SEARCH.PROVIDER_DIMENSIONS];
+      if (expectedDimensions && result.embedding.length !== expectedDimensions) {
+        // 차원 불일치 경고 (하지만 결과는 반환)
+        process.stderr.write(`⚠️ 차원 불일치: 예상 ${expectedDimensions}, 실제 ${result.embedding.length} (provider: ${decision.selectedProvider})\n`);
+      }
+      
       return result;
     }
     throw new Error('모든 폴백 제공자 실패');

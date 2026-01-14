@@ -217,8 +217,19 @@ npm run start:http       # HTTP/WebSocket 서버 프로덕션 실행
 npm run test             # 모든 테스트 실행
 npm run test:client      # 클라이언트 테스트
 npm run test:search      # 검색 기능 테스트
+npm run test:embedding   # 임베딩 기능 테스트
+npm run test:lightweight-embedding # 경량 임베딩 테스트
+npm run test:gemini-embedding # Gemini 임베딩 테스트
 npm run test:forgetting  # 망각 정책 테스트
 npm run test:performance # 성능 벤치마크
+npm run test:monitoring  # 성능 모니터링 테스트
+npm run test:error-logging # 에러 로깅 테스트
+npm run test:performance-alerts # 성능 알림 테스트
+npm run test:vector-search # 벡터 검색 테스트
+npm run test:memory-injection # 메모리 주입 테스트
+npm run test:batch-scheduler # 배치 스케줄러 테스트
+npm run test:consolidation-quality # Consolidation Score 품질 검증
+npm run benchmark:consolidation-quality # Consolidation Score 벤치마크
 ```
 
 ### Docker 명령어

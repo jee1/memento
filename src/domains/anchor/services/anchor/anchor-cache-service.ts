@@ -71,6 +71,21 @@ export class AnchorCacheService implements IAnchorCacheService {
         return null;
       }
 
+      // 레거시 스키마 호환성: embedding 컬럼 존재 여부 확인
+      // "no such column: embedding" 에러 방지를 위해 필수
+      // 왜 필요한가? 레거시 데이터베이스는 embedding 컬럼이 없을 수 있음
+      const columns = this.db.prepare(`
+        SELECT name FROM pragma_table_info('memory_embedding')
+      `).all() as Array<{ name: string }>;
+      const hasEmbeddingColumn = columns.some(c => c.name === 'embedding');
+
+      // embedding 컬럼이 없으면 null 반환 (레거시 스키마)
+      // ensureLegacySchema가 컬럼을 추가하지만, 초기화 전 접근 시 대비
+      if (!hasEmbeddingColumn) {
+        logger.warn('Embedding column not found in memory_embedding table (legacy schema)', { memoryId });
+        return null;
+      }
+
       const embeddingRecord = this.db.prepare(`
         SELECT 
           embedding,

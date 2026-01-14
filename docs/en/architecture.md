@@ -40,6 +40,9 @@ graph TB
         F --> K[Error Logging Service]
         F --> L[Performance Alert Service]
         F --> M[Performance Monitoring Integration]
+        F --> N[Anchor System]
+        F --> O[Meta Memory Stats]
+        F --> P[Relation Graph Engine]
     end
     
     subgraph "Storage Layer"
@@ -76,8 +79,8 @@ graph TB
 
 #### 3. Memory Management Layer
 - **Role**: Memory creation, search, management, deletion, and system monitoring
-- **Components**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration
-- **Features**: Management mimicking human memory systems and real-time system monitoring
+- **Components**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Relation Graph Engine
+- **Features**: Management mimicking human memory systems, real-time system monitoring, anchor-based context management, and memory quality tracking
 
 #### 4. Storage Layer
 - **Role**: Permanent data storage and retrieval
@@ -397,6 +400,126 @@ interface SpacedRepetition {
   }
 }
 ```
+
+### 9. Anchor System
+
+#### Structure
+
+```typescript
+interface AnchorSystem {
+  // Set anchor
+  setAnchor(memoryId: string, slot: 'A' | 'B' | 'C', agentId?: string): Promise<boolean>;
+  
+  // Get anchor
+  getAnchor(slot?: 'A' | 'B' | 'C', agentId?: string): Promise<Anchor | AnchorMap | null>;
+  
+  // Search around anchor
+  searchLocal(slot: 'A' | 'B' | 'C', query?: string, options?: SearchLocalOptions): Promise<SearchResult>;
+  
+  // Clear anchor
+  clearAnchor(slot?: 'A' | 'B' | 'C', agentId?: string): Promise<boolean>;
+  
+  // Restore anchors from database
+  restoreAnchors(agentId?: string): Promise<AnchorMap>;
+}
+
+interface Anchor {
+  memory_id: string;
+  slot: 'A' | 'B' | 'C';
+  agent_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface AnchorMap {
+  A: Anchor | null;
+  B: Anchor | null;
+  C: Anchor | null;
+}
+```
+
+#### Key Features
+
+- **Context Management**: Set important memories as anchors for context management
+- **Local Search**: Search memories around anchors using relation graph
+- **Multi-Agent Support**: Support multiple agents with separate anchor maps
+- **Persistent Storage**: Anchors are stored in database and can be restored
+
+### 10. Meta Memory Stats System
+
+#### Structure
+
+```typescript
+interface MetaMemoryStatsService {
+  // Get statistics
+  getStats(params: GetMetaMemoryStatsParams): Promise<MetaMemoryStatsResult>;
+  
+  // Record recall attempt
+  recordRecall(memoryId: string, success: boolean, confidence?: number): Promise<void>;
+}
+
+interface MetaMemoryStatsItem {
+  memory_id: string;
+  recall_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_confidence: number;
+  last_recalled_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+#### Key Features
+
+- **Recall Tracking**: Track recall success/failure rates
+- **Confidence Scoring**: Calculate average confidence scores
+- **Quality Metrics**: Provide quality metrics for memory search
+- **Performance Analysis**: Analyze search performance over time
+
+### 11. Relation Graph Engine
+
+#### Structure
+
+```typescript
+interface RelationGraphEngine {
+  // Extract relations
+  extractRelations(memory: MemoryItem): Promise<Relation[]>;
+  
+  // Get relations
+  getRelations(memoryId: string): Promise<Relation[]>;
+  
+  // Add relation
+  addRelation(sourceId: string, targetId: string, type: RelationType): Promise<boolean>;
+  
+  // Remove relation
+  removeRelation(relationId: string): Promise<boolean>;
+}
+
+interface Relation {
+  id: string;
+  source_id: string;
+  target_id: string;
+  relation_type: RelationType;
+  strength: number;
+  created_at: Date;
+}
+
+enum RelationType {
+  SIMILAR_TO = 'SIMILAR_TO',
+  RELATED_TO = 'RELATED_TO',
+  VERSION_OF = 'VERSION_OF',
+  DERIVED_FROM = 'DERIVED_FROM',
+  CAUSE_OF = 'CAUSE_OF'
+}
+```
+
+#### Key Features
+
+- **Automatic Extraction**: Automatically extract relations from memories
+- **Triple Extraction**: Extract subject-predicate-object triples
+- **Relation Classification**: Classify relations by type
+- **Graph Navigation**: Navigate memory graph using relations
 
 ## Data Model
 

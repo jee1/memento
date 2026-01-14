@@ -24,6 +24,7 @@ import { getVectorSearchEngine } from '../domains/search/algorithms/vector-searc
 import { logger } from '../shared/utils/logger.js';
 import { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
+import { MetaMemoryService } from '../services/meta-memory-service.js';
 
 /**
  * 서버 서비스 집합 인터페이스
@@ -41,6 +42,7 @@ import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-mo
  * 선택적 서비스 (기능 플래그에 따라 초기화):
  * - consolidationScoreService: 통합 점수 서비스
  * - writeCoalescingManager: 쓰기 결합 관리자
+ * - metaMemoryService: 메타 메모리 통계 서비스
  */
 export interface ServerServices {
   // 필수 서비스
@@ -55,7 +57,10 @@ export interface ServerServices {
   
   // 선택적 서비스
   consolidationScoreService?: ConsolidationScoreService;
-  writeCoalescingManager?: WriteCoalescingManager;
+  // writeCoalescingManager는 MetaMemoryService를 위해 항상 생성됨
+  writeCoalescingManager: WriteCoalescingManager;
+  // metaMemoryService는 recall 통계 수집을 위해 항상 초기화됨
+  metaMemoryService: MetaMemoryService;
   // 앵커 관리자 서비스
   anchorManager: AnchorManager;
   // 실패 감지 서비스 (Phase 2)
@@ -157,41 +162,42 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     
     // 4. 선택적 서비스 초기화 (Consolidation Score, Write Coalescing)
     let consolidationScoreService: ConsolidationScoreService | undefined;
-    let writeCoalescingManager: WriteCoalescingManager | undefined;
     
-    if (mementoConfig.consolidationScoreEnabled) {
-      consolidationScoreService = new ConsolidationScoreService();
-      
-      // Write Coalescing Manager 초기화 (초당 1회 flush)
-      writeCoalescingManager = new WriteCoalescingManager(
-        1000, // 1초마다 flush
-        async (writes: CoalescedWrite[]) => {
-          // 배치 업데이트 실행
-          if (!db || writes.length === 0) {
-            return;
-          }
+    // Write Coalescing Manager는 MetaMemoryService를 위해 항상 생성
+    // consolidationScoreEnabled가 true일 때는 consolidation score 관련 flush 로직 포함
+    // false일 때는 meta memory stats만 업데이트하는 간단한 flush 로직 사용
+    const writeCoalescingManager = new WriteCoalescingManager(
+      1000, // 1초마다 flush
+      async (writes: CoalescedWrite[]) => {
+        // 배치 업데이트 실행
+        if (!db || writes.length === 0) {
+          return;
+        }
 
-          // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
-          const currentDb = db;
-          if (!currentDb) {
-            return;
-          }
+        // db가 null이 아님을 확인했지만 TypeScript가 인식하지 못하므로 명시적 체크
+        const currentDb = db;
+        if (!currentDb) {
+          return;
+        }
 
-          try {
-            // 트랜잭션으로 배치 업데이트
-            await DatabaseUtils.runTransaction(currentDb, async () => {
-              for (const write of writes) {
-                const updates: string[] = [];
-                const params: any[] = [];
+        try {
+          // 트랜잭션으로 배치 업데이트
+          await DatabaseUtils.runTransaction(currentDb, async () => {
+            for (const write of writes) {
+              const updates: string[] = [];
+              const params: any[] = [];
 
-                if (write.fields.recall_count !== undefined) {
-                  updates.push('recall_count = ?');
-                  params.push(write.fields.recall_count);
-                }
-                if (write.fields.last_accessed_at !== undefined) {
-                  updates.push('last_accessed_at = ?');
-                  params.push(write.fields.last_accessed_at);
-                }
+              if (write.fields.recall_count !== undefined) {
+                updates.push('recall_count = ?');
+                params.push(write.fields.recall_count);
+              }
+              if (write.fields.last_accessed_at !== undefined) {
+                updates.push('last_accessed_at = ?');
+                params.push(write.fields.last_accessed_at);
+              }
+              
+              // consolidationScoreEnabled가 true일 때만 consolidation score 관련 필드 업데이트
+              if (mementoConfig.consolidationScoreEnabled) {
                 if (write.fields.g_value !== undefined) {
                   updates.push('g_value = ?');
                   params.push(write.fields.g_value);
@@ -200,23 +206,44 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
                   updates.push('consolidation_score = ?');
                   params.push(write.fields.consolidation_score);
                 }
-
-                if (updates.length > 0) {
-                  params.push(write.memoryId);
-                  DatabaseUtils.run(
-                    currentDb,
-                    `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
-                    params
-                  );
-                }
               }
-            });
-          } catch (error) {
-            // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
-            logger.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
-          }
+
+              if (updates.length > 0) {
+                params.push(write.memoryId);
+                DatabaseUtils.run(
+                  currentDb,
+                  `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
+                  params
+                );
+              }
+            }
+          });
+        } catch (error) {
+          // 에러 로깅 (하지만 검색 결과는 정상 반환되어야 함)
+          logger.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
         }
+      }
+    );
+    
+    if (mementoConfig.consolidationScoreEnabled) {
+      consolidationScoreService = new ConsolidationScoreService();
+    }
+    
+    // 4.5. MetaMemoryService 초기화 (WriteCoalescingManager와 함께)
+    // MetaMemoryService는 writeCoalescingManager를 선택적으로 받을 수 있지만,
+    // consolidationScoreEnabled가 활성화되어 있으면 공유된 writeCoalescingManager를 사용
+    // MetaMemoryService는 항상 초기화되며, recall 통계 수집을 위해 필수적입니다.
+    let metaMemoryService: MetaMemoryService;
+    try {
+      metaMemoryService = new MetaMemoryService(
+        db,
+        writeCoalescingManager // 공유된 WriteCoalescingManager 전달 (없으면 자체 생성)
       );
+      logger.info('MetaMemoryService 초기화 완료');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
+      throw new Error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
     }
     
     return {
@@ -230,6 +257,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       performanceAlertService,
       consolidationScoreService,
       writeCoalescingManager,
+      metaMemoryService,
       anchorManager,
       failureDetector,
       reflexionWorker,

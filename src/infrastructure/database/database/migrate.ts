@@ -51,8 +51,10 @@ function migrateDatabase() {
       ? db.prepare(`PRAGMA table_info(memory_embedding)`).all() as Array<{ name: string; }>
       : [];
 
+    // 레거시 스키마 호환성: embedding 컬럼 존재 여부 확인
+    const hasEmbedding = columnInfo.some(column => column.name === 'embedding');
     const hasProjectionType = columnInfo.some(column => column.name === 'projection_type');
-    const needsRebuild = !hasEmbeddingTable || !hasProjectionType;
+    const needsRebuild = !hasEmbeddingTable || !hasEmbedding || !hasProjectionType;
 
     if (needsRebuild) {
       console.log('🧱 memory_embedding 테이블 재구성 중...');
@@ -82,10 +84,16 @@ function migrateDatabase() {
       `);
 
       if (hasEmbeddingTable) {
+        // 레거시 스키마 호환성: 각 컬럼 존재 여부 확인
+        const hasEmbeddingColumn = columnInfo.some(column => column.name === 'embedding');
         const hasProvider = columnInfo.some(column => column.name === 'embedding_provider');
         const hasDimensions = columnInfo.some(column => column.name === 'dimensions');
         const hasCreatedBy = columnInfo.some(column => column.name === 'created_by');
 
+        // embedding 컬럼이 없으면 기본값 '[]' 사용 (레거시 스키마)
+        const embeddingSelect = hasEmbeddingColumn
+          ? "COALESCE(NULLIF(embedding, ''), '[]')"
+          : "'[]'";
         const providerSelect = hasProvider
           ? "COALESCE(NULLIF(embedding_provider, ''), 'tfidf')"
           : "'tfidf'";
@@ -117,7 +125,7 @@ function migrateDatabase() {
             memory_id,
             ${providerSelect},
             'native',
-            embedding,
+            ${embeddingSelect},
             dim,
             ${dimensionsSelect},
             model,
@@ -188,7 +196,7 @@ function migrateDatabase() {
 
         INSERT INTO memory_item_vec_tfidf(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
 
         INSERT INTO memory_item_vec_minilm(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
@@ -218,7 +226,7 @@ function migrateDatabase() {
 
         INSERT INTO memory_item_vec_tfidf(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
+        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
 
         INSERT INTO memory_item_vec_minilm(rowid, embedding)
         SELECT NEW.id, json_extract(NEW.embedding, '$')

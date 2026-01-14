@@ -49,9 +49,14 @@ const DEFAULT_THRESHOLDS: Array<{
   description: string;
 }> = [
   // 검색 품질 지표
-  { namespace: 'search', key: 'precision_at_5', value: 0.7, type: 'min', description: 'Precision@5 최소값 (0.7 이상)' },
+  // 벡터 차원 불일치 해결 후 재평가 필요:
+  // - 벡터 차원 불일치 문제를 해결한 후 품질 지표가 개선되었을 수 있음
+  // - 현재 임계값은 보수적으로 설정되어 있으며, 벡터 차원 불일치 해결 후 재평가 필요
+  // - precision_at_5: 0.7 (벡터 차원 불일치 해결 후 개선 가능)
+  // - recall_at_5: 0.6 (벡터 차원 불일치 해결 후 개선 가능)
+  { namespace: 'search', key: 'precision_at_5', value: 0.7, type: 'min', description: 'Precision@5 최소값 (0.7 이상, 벡터 차원 불일치 해결 후 재평가 필요)' },
   { namespace: 'search', key: 'precision_at_10', value: 0.65, type: 'min', description: 'Precision@10 최소값 (0.65 이상)' },
-  { namespace: 'search', key: 'recall_at_5', value: 0.6, type: 'min', description: 'Recall@5 최소값 (0.6 이상)' },
+  { namespace: 'search', key: 'recall_at_5', value: 0.6, type: 'min', description: 'Recall@5 최소값 (0.6 이상, 벡터 차원 불일치 해결 후 재평가 필요)' },
   { namespace: 'search', key: 'recall_at_10', value: 0.7, type: 'min', description: 'Recall@10 최소값 (0.7 이상)' },
   { namespace: 'search', key: 'ndcg_at_5', value: 0.65, type: 'min', description: 'NDCG@5 최소값 (0.65 이상)' },
   { namespace: 'search', key: 'ndcg_at_10', value: 0.7, type: 'min', description: 'NDCG@10 최소값 (0.7 이상)' },

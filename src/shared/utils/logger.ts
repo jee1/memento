@@ -149,7 +149,24 @@ export interface Logger {
  * MCP 모드 감지
  * MCP 서버는 stdio를 통해 실행되므로 stdin.isTTY와 stdout.isTTY가 모두 false입니다.
  */
+/**
+ * MCP 모드 감지
+ * MCP 서버는 stdio를 사용하므로 stdin/stdout이 TTY가 아님
+ * 
+ * 왜 이 함수가 중요한가?
+ * - MCP 모드와 일반 모드를 정확히 구분하여 중복 로그 출력 방지
+ * - 잘못된 감지는 중복 로그의 원인이 될 수 있음
+ */
 function isMCPMode(): boolean {
+  // 환경 변수로 명시적으로 제어 가능
+  if (process.env.MCP_MODE === 'true') {
+    return true;
+  }
+  if (process.env.MCP_MODE === 'false') {
+    return false;
+  }
+  
+  // 자동 감지: stdio가 TTY가 아니면 MCP 모드
   return process.stdin.isTTY === false && process.stdout.isTTY === false;
 }
 
@@ -197,6 +214,12 @@ function logToStderr(level: LogLevel, message: string, meta?: Record<string, unk
 }
 
 /**
+ * 중복 로그 출력 방지 플래그
+ * 왜 필요한가? 동일한 로그가 여러 번 출력되는 것을 방지
+ */
+let isLoggingInProgress = false;
+
+/**
  * MCP 모드에서 mcpLogger를 사용하여 로그 출력
  * mcpLogger.logServer는 동기 함수이므로 동기적으로 호출 가능
  * 
@@ -208,16 +231,31 @@ function logToStderr(level: LogLevel, message: string, meta?: Record<string, unk
  * 구현 완료:
  * - Rate limiting: 로그 전송 빈도 제한 (logging-rate-limiter.ts)
  * - 컨텍스트 포함: agentId, slot, memoryId, traceId 등 (logging-helpers.ts)
+ * 
+ * 중복 로그 방지:
+ * - isLoggingInProgress 플래그로 동시 호출 방지
  */
 function logWithMCPLogger(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
-  // PII 마스킹 적용 (MCP 스펙 필수: 자격 증명, 내부 시스템 세부사항 포함 금지)
-  const maskedMessage = PIIMasker.mask(message).masked;
-  // 중첩 객체도 깊이 마스킹하기 위해 PIIMasker.maskObject 사용
-  const maskedMeta = meta ? PIIMasker.maskObject(meta) : undefined;
+  // 중복 로그 방지: 이미 로깅 중이면 무시
+  // 왜 필요한가? 동일한 로그가 여러 번 출력되는 것을 방지
+  if (isLoggingInProgress) {
+    return;
+  }
   
-  // mcpLogger.logServer는 동기 함수이므로 동기적으로 호출
-  // MCP 스펙: notifications/message 형식 준수 (mcpLogger 내부에서 처리)
-  mcpLogger.logServer(level, maskedMessage, maskedMeta);
+  try {
+    isLoggingInProgress = true;
+    
+    // PII 마스킹 적용 (MCP 스펙 필수: 자격 증명, 내부 시스템 세부사항 포함 금지)
+    const maskedMessage = PIIMasker.mask(message).masked;
+    // 중첩 객체도 깊이 마스킹하기 위해 PIIMasker.maskObject 사용
+    const maskedMeta = meta ? PIIMasker.maskObject(meta) : undefined;
+    
+    // mcpLogger.logServer는 동기 함수이므로 동기적으로 호출
+    // MCP 스펙: notifications/message 형식 준수 (mcpLogger 내부에서 처리)
+    mcpLogger.logServer(level, maskedMessage, maskedMeta);
+  } finally {
+    isLoggingInProgress = false;
+  }
 }
 
 /**
@@ -225,6 +263,10 @@ function logWithMCPLogger(level: LogLevel, message: string, meta?: Record<string
  * 
  * MCP 모드와 일반 모드를 자동으로 감지하여 적절한 로깅 방식을 사용합니다.
  * 모든 로그 메시지와 메타데이터에 PII 마스킹이 자동으로 적용됩니다.
+ * 
+ * 중복 로그 방지:
+ * - MCP 모드와 일반 모드가 동시에 작동하지 않도록 보장
+ * - isMCPMode()가 정확히 감지되도록 개선
  * 
  * 사용법:
  * ```typescript
@@ -245,28 +287,33 @@ function logWithMCPLogger(level: LogLevel, message: string, meta?: Record<string
  */
 export const logger: Logger = {
   debug(message: string, meta?: Record<string, unknown>): void {
-    if (isMCPMode()) {
+    // 중복 로그 방지: MCP 모드와 일반 모드가 동시에 작동하지 않도록 보장
+    const mcpMode = isMCPMode();
+    if (mcpMode) {
       logWithMCPLogger('debug', message, meta);
     } else {
       logToStderr('debug', message, meta);
     }
   },
   info(message: string, meta?: Record<string, unknown>): void {
-    if (isMCPMode()) {
+    const mcpMode = isMCPMode();
+    if (mcpMode) {
       logWithMCPLogger('info', message, meta);
     } else {
       logToStderr('info', message, meta);
     }
   },
   warn(message: string, meta?: Record<string, unknown>): void {
-    if (isMCPMode()) {
+    const mcpMode = isMCPMode();
+    if (mcpMode) {
       logWithMCPLogger('warn', message, meta);
     } else {
       logToStderr('warn', message, meta);
     }
   },
   error(message: string, meta?: Record<string, unknown>): void {
-    if (isMCPMode()) {
+    const mcpMode = isMCPMode();
+    if (mcpMode) {
       logWithMCPLogger('error', message, meta);
     } else {
       logToStderr('error', message, meta);

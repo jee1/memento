@@ -162,10 +162,11 @@ export class VectorSearchService {
   }
 
   private getExpectedDimensions(provider?: string): number {
-    if (!provider) {
-      return this.config.defaultDimensions;
-    }
-    return this.config.providerDimensions[provider] ?? this.config.defaultDimensions;
+    // provider가 없을 때도 repository의 getTableName과 동일하게 'tfidf'의 차원을 사용
+    // 왜 필요한가? repository에서 getTableName(provider ?? 'tfidf')는 'tfidf' 테이블(512차원)을 선택하므로
+    // 차원 계산도 동일하게 'tfidf'의 차원(512)을 사용해야 차원 불일치 오류를 방지할 수 있음
+    const effectiveProvider = provider ?? 'tfidf';
+    return this.config.providerDimensions[effectiveProvider] ?? this.config.defaultDimensions;
   }
 
   /**

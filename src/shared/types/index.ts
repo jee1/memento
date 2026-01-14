@@ -265,3 +265,100 @@ export interface MemoryInjectionParams {
   query: string;
   token_budget?: number;
 }
+
+/**
+ * Meta Memory Statistics 인터페이스
+ * 
+ * 메모리 항목의 recall 통계를 저장하는 타입입니다.
+ * meta_memory_stats 테이블과 일대일 대응됩니다.
+ * 
+ * @property memory_id - 기억 ID (memory_item.id 참조)
+ * @property recall_count - 총 회상 횟수
+ * @property success_count - 성공한 회상 횟수 (final_score >= 0.5)
+ * @property failure_count - 실패한 회상 횟수 (final_score < 0.5)
+ * @property avg_confidence - 평균 신뢰도 점수 (0.0 ~ 1.0)
+ * @property last_recalled_at - 마지막 회상 시점 (NULL 허용)
+ * @property created_at - 생성 시점
+ * @property updated_at - 마지막 업데이트 시점
+ */
+export interface MetaMemoryStats {
+  memory_id: string;
+  recall_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_confidence: number;
+  last_recalled_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/**
+ * Get Meta Memory Statistics 파라미터 인터페이스
+ * 
+ * get_meta_memory_stats 도구의 파라미터 타입입니다.
+ * 모든 필드는 선택적이며, 다양한 필터링 옵션을 제공합니다.
+ * 
+ * @property memory_id - 특정 기억 ID (선택적)
+ * @property memory_ids - 여러 기억 ID 배열 (선택적)
+ * @property min_recall_count - 최소 recall_count 필터 (선택적)
+ * @property min_confidence - 최소 avg_confidence 필터 (선택적)
+ * @property limit - 결과 제한 (기본값: 100, 선택적)
+ * 
+ * @example
+ * ```typescript
+ * // 특정 메모리 조회
+ * const params1: GetMetaMemoryStatsParams = {
+ *   memory_id: 'mem_12345'
+ * };
+ * 
+ * // 여러 메모리 조회
+ * const params2: GetMetaMemoryStatsParams = {
+ *   memory_ids: ['mem_1', 'mem_2', 'mem_3']
+ * };
+ * 
+ * // 필터링 조회
+ * const params3: GetMetaMemoryStatsParams = {
+ *   min_recall_count: 10,
+ *   min_confidence: 0.5,
+ *   limit: 50
+ * };
+ * ```
+ */
+export interface GetMetaMemoryStatsParams {
+  memory_id?: string;
+  memory_ids?: string[];
+  min_recall_count?: number;
+  min_confidence?: number;
+  limit?: number;
+}
+
+/**
+ * Meta Memory Statistics 결과 인터페이스
+ * 
+ * get_meta_memory_stats 도구의 응답 타입입니다.
+ * 
+ * @property items - MetaMemoryStats 배열
+ * @property total_count - 전체 결과 개수
+ * 
+ * @example
+ * ```typescript
+ * const result: MetaMemoryStatsResult = {
+ *   items: [
+ *     {
+ *       memory_id: 'mem_12345',
+ *       recall_count: 10,
+ *       success_count: 8,
+ *       failure_count: 2,
+ *       avg_confidence: 0.85,
+ *       created_at: new Date('2024-01-01T00:00:00.000Z'),
+ *       updated_at: new Date('2024-01-01T00:00:00.000Z')
+ *     }
+ *   ],
+ *   total_count: 1
+ * };
+ * ```
+ */
+export interface MetaMemoryStatsResult {
+  items: MetaMemoryStats[];
+  total_count: number;
+}
