@@ -154,11 +154,35 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools (핵심 6개만)
+## MCP Tools (핵심 15개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 6개만 노출합니다.  
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 15개를 노출합니다.  
 > 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.  
 > 자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
+
+### 핵심 메모리 관리 도구 (7개)
+
+1. **remember** - 기억 저장
+2. **recall** - 기억 검색
+3. **forget** - 기억 삭제
+4. **pin** - 기억 고정
+5. **unpin** - 기억 고정 해제
+6. **get_memory_neighbors** - 유사한 기억 조회
+7. **memory_injection** - 관련 기억을 컨텍스트에 주입 (Prompt)
+
+### 앵커 시스템 도구 (5개)
+
+8. **set_anchor** - 기억을 앵커로 설정
+9. **get_anchor** - 현재 앵커 조회
+10. **search_local** - 앵커 주변 검색
+11. **clear_anchor** - 앵커 제거
+12. **restore_anchors** - 데이터베이스에서 앵커 복원
+
+### 관리 도구 (3개)
+
+13. **migrate_embeddings** - 임베딩 제공자 간 마이그레이션
+14. **convert_episodic_to_semantic** - 일화기억을 의미기억으로 변환
+15. **get_meta_memory_stats** - 메모리 통계 조회
 
 ### remember
 
@@ -411,6 +435,359 @@ const result = await client.callTool('forget', {
 const result = await client.callTool('forget', {
   memory_id: 'memory-123',
   hard: true
+});
+```
+
+### set_anchor
+
+기억을 앵커로 설정하여 컨텍스트 관리를 하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface SetAnchorParams {
+  memory_id: string;                // 앵커로 설정할 기억 ID (필수)
+  slot: 'A' | 'B' | 'C';          // 앵커 슬롯 (필수)
+  agent_id?: string;               // 에이전트 ID (기본값: 'default')
+}
+```
+
+#### 응답
+
+```typescript
+interface SetAnchorResult {
+  success: boolean;                 // 성공 여부
+  memory_id: string;               // 기억 ID
+  slot: string;                    // 앵커 슬롯
+  agent_id: string;                // 에이전트 ID
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 슬롯 A에 앵커 설정 (즉시 컨텍스트)
+const result = await client.callTool('set_anchor', {
+  memory_id: 'mem_123',
+  slot: 'A'
+});
+
+// 슬롯 B에 앵커 설정 (보조 컨텍스트)
+const result = await client.callTool('set_anchor', {
+  memory_id: 'mem_456',
+  slot: 'B',
+  agent_id: 'my-agent'
+});
+```
+
+### get_anchor
+
+현재 설정된 앵커를 조회하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface GetAnchorParams {
+  slot?: 'A' | 'B' | 'C';         // 조회할 슬롯 (선택, 지정하지 않으면 모든 슬롯 반환)
+  agent_id?: string;               // 에이전트 ID (기본값: 'default')
+}
+```
+
+#### 응답
+
+```typescript
+interface GetAnchorResult {
+  agent_id: string;                // 에이전트 ID
+  slot?: string;                   // 슬롯 (특정 슬롯 조회 시)
+  anchor?: {                       // 앵커 정보 (특정 슬롯 조회 시)
+    memory_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+  anchors?: {                      // 모든 앵커 (슬롯 미지정 시)
+    A: AnchorInfo | null;
+    B: AnchorInfo | null;
+    C: AnchorInfo | null;
+  };
+}
+
+interface AnchorInfo {
+  memory_id: string;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 특정 앵커 조회
+const result = await client.callTool('get_anchor', {
+  slot: 'A'
+});
+
+// 모든 앵커 조회
+const result = await client.callTool('get_anchor', {});
+```
+
+### search_local
+
+앵커 주변의 기억을 검색하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface SearchLocalParams {
+  slot: 'A' | 'B' | 'C';          // 검색할 앵커 슬롯 (필수)
+  query?: string;                  // 검색 쿼리 (선택, 제공하지 않으면 앵커 주변 모든 기억 반환)
+  hop_limit?: number;              // 최대 hop 거리 (1-5, 기본값: 슬롯별 설정)
+  limit?: number;                  // 최대 결과 수 (1-100, 기본값: 10)
+  min_results?: number;            // 최소 결과 수 (0-100, 기본값: 3)
+  agent_id?: string;               // 에이전트 ID (기본값: 'default')
+  use_relations?: boolean;         // 관계 그래프 사용 여부 (기본값: true)
+}
+```
+
+#### 응답
+
+```typescript
+interface SearchLocalResult {
+  slot: string;                    // 앵커 슬롯
+  query?: string;                  // 검색 쿼리
+  items: MemoryItem[];            // 검색된 기억 목록
+  total_count: number;             // 전체 결과 수
+  query_time: number;              // 쿼리 실행 시간 (ms)
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 앵커 A 주변 검색
+const result = await client.callTool('search_local', {
+  slot: 'A',
+  query: 'React hooks',
+  limit: 10
+});
+
+// 앵커 B 주변 모든 기억 조회
+const result = await client.callTool('search_local', {
+  slot: 'B',
+  hop_limit: 2
+});
+```
+
+### clear_anchor
+
+앵커를 제거하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface ClearAnchorParams {
+  slot?: 'A' | 'B' | 'C';         // 제거할 슬롯 (선택, 지정하지 않으면 모든 슬롯 제거)
+  agent_id?: string;               // 에이전트 ID (기본값: 'default')
+}
+```
+
+#### 응답
+
+```typescript
+interface ClearAnchorResult {
+  success: boolean;                 // 성공 여부
+  agent_id: string;                // 에이전트 ID
+  slot?: string;                   // 제거된 슬롯
+  message: string;                 // 결과 메시지
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 특정 앵커 제거
+const result = await client.callTool('clear_anchor', {
+  slot: 'A'
+});
+
+// 모든 앵커 제거
+const result = await client.callTool('clear_anchor', {});
+```
+
+### restore_anchors
+
+데이터베이스에서 앵커를 복원하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface RestoreAnchorsParams {
+  agent_id?: string;               // 에이전트 ID (기본값: 'default')
+}
+```
+
+#### 응답
+
+```typescript
+interface RestoreAnchorsResult {
+  success: boolean;                 // 성공 여부
+  agent_id: string;                // 에이전트 ID
+  restored_count: number;          // 복원된 앵커 개수
+  anchors: {
+    A: AnchorInfo | null;
+    B: AnchorInfo | null;
+    C: AnchorInfo | null;
+  };
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 데이터베이스에서 앵커 복원
+const result = await client.callTool('restore_anchors', {
+  agent_id: 'my-agent'
+});
+```
+
+### migrate_embeddings
+
+임베딩 제공자 간 마이그레이션을 수행하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface MigrateEmbeddingsParams {
+  target_provider: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';  // 대상 제공자 (필수)
+  source_provider?: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini'; // 소스 제공자 (선택, 지정하지 않으면 모든 제공자 마이그레이션)
+  batch_size?: number;            // 배치 크기 (1-1000, 기본값: 100)
+  dry_run?: boolean;               // 시뮬레이션 모드 (기본값: false)
+}
+```
+
+#### 응답
+
+```typescript
+interface MigrateEmbeddingsResult {
+  success: boolean;                 // 성공 여부
+  target_provider: string;         // 대상 제공자
+  migrated_count: number;          // 마이그레이션된 임베딩 개수
+  failed_count: number;            // 실패한 마이그레이션 개수
+  dry_run: boolean;                // 시뮬레이션 모드
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 모든 임베딩을 OpenAI로 마이그레이션
+const result = await client.callTool('migrate_embeddings', {
+  target_provider: 'openai',
+  batch_size: 100
+});
+
+// 시뮬레이션 모드로 마이그레이션
+const result = await client.callTool('migrate_embeddings', {
+  target_provider: 'gemini',
+  dry_run: true
+});
+```
+
+### convert_episodic_to_semantic
+
+일화기억을 의미기억으로 변환하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface ConvertEpisodicToSemanticParams {
+  memory_id?: string;              // 변환할 기억 ID (선택, 지정하지 않으면 배치 변환)
+  skip_converted?: boolean;        // 이미 변환된 항목 건너뛰기 (기본값: true)
+  retry_failed?: boolean;          // 실패한 항목 재시도 (기본값: false)
+  limit?: number;                  // 배치 크기 (1-100, 기본값: 10)
+}
+```
+
+#### 응답
+
+```typescript
+interface ConvertEpisodicToSemanticResult {
+  success: boolean;                 // 성공 여부
+  converted_count: number;         // 변환된 기억 개수
+  failed_count: number;            // 실패한 변환 개수
+  skipped_count: number;          // 건너뛴 기억 개수
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 특정 기억 변환
+const result = await client.callTool('convert_episodic_to_semantic', {
+  memory_id: 'mem_123'
+});
+
+// 배치 변환
+const result = await client.callTool('convert_episodic_to_semantic', {
+  limit: 20,
+  retry_failed: true
+});
+```
+
+### get_meta_memory_stats
+
+메타 메모리 통계(recall 성공률, 신뢰도 점수 등)를 조회하는 도구입니다.
+
+#### 파라미터
+
+```typescript
+interface GetMetaMemoryStatsParams {
+  memory_id?: string;              // 단일 기억 ID (memory_ids와 동시 사용 불가)
+  memory_ids?: string[];           // 기억 ID 배열 (memory_id와 동시 사용 불가)
+  min_recall_count?: number;       // 최소 recall_count (>= 0)
+  min_confidence?: number;         // 최소 평균 신뢰도 (0-1)
+  limit?: number;                  // 결과 제한 수 (1-1000, 기본값: 100)
+}
+```
+
+#### 응답
+
+```typescript
+interface GetMetaMemoryStatsResult {
+  items: MetaMemoryStatsItem[];    // 통계 항목 목록
+  total_count: number;             // 전체 결과 수
+  message: string;                 // 결과 메시지
+}
+
+interface MetaMemoryStatsItem {
+  memory_id: string;               // 기억 ID
+  recall_count: number;            // 전체 recall 횟수
+  success_count: number;           // 성공한 recall 횟수
+  failure_count: number;           // 실패한 recall 횟수
+  avg_confidence: number;          // 평균 신뢰도 점수
+  last_recalled_at?: string;       // 마지막 recall 시간 (ISO 8601)
+  created_at: string;              // 생성 시간 (ISO 8601)
+  updated_at: string;              // 업데이트 시간 (ISO 8601)
+}
+```
+
+#### 사용 예시
+
+```typescript
+// 특정 기억 통계 조회
+const result = await client.callTool('get_meta_memory_stats', {
+  memory_id: 'mem_123'
+});
+
+// 여러 기억 통계 조회
+const result = await client.callTool('get_meta_memory_stats', {
+  memory_ids: ['mem_1', 'mem_2', 'mem_3']
+});
+
+// 최소 recall 횟수 및 신뢰도로 필터링
+const result = await client.callTool('get_meta_memory_stats', {
+  min_recall_count: 10,
+  min_confidence: 0.5,
+  limit: 50
 });
 ```
 

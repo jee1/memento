@@ -61,7 +61,7 @@ cd memento
 npm install
 
 # Actually used dependencies:
-# - @modelcontextprotocol/sdk: ^0.5.0
+# - @modelcontextprotocol/sdk: ^1.18.2
 # - better-sqlite3: ^12.4.1
 # - express: ^5.1.0
 # - cors: ^2.8.5
@@ -69,6 +69,8 @@ npm install
 # - zod: ^3.22.4
 # - uuid: ^9.0.1
 # - openai: ^4.20.1
+# - @google/genai: ^1.21.0
+# - sqlite-vec: ^0.1.6
 # - dotenv: ^16.3.1
 # - vitest: ^1.0.0 (test)
 # - tsx: ^4.6.0 (development)
@@ -155,20 +157,30 @@ npm run test -- --watch
 
 ## Project Structure
 
-### New Service Layer (`src/services/`)
+### Domain-Based Architecture
 
-Memento has introduced a new service layer to separate external API integration and complex business logic.
+Memento uses a domain-based architecture to organize code by business domain.
 
 ```
-src/services/
-├── embedding-service.ts              # OpenAI embedding service (196 lines)
-├── memory-embedding-service.ts       # Memory embedding service (237 lines)
-├── lightweight-embedding-service.ts  # Lightweight hybrid embedding service (321 lines)
-├── forgetting-policy-service.ts      # Forgetting policy service (335 lines)
-├── async-optimizer.ts                # Async processing optimization (447 lines)
-├── cache-service.ts                  # Cache service (352 lines)
-├── database-optimizer.ts             # Database optimization (442 lines)
-└── performance-monitor.ts            # Performance monitoring (367 lines)
+src/domains/
+├── memory/                           # Memory domain
+│   ├── services/                     # Memory services
+│   ├── tools/                        # Memory MCP tools
+│   └── ...
+├── search/                           # Search domain
+│   ├── algorithms/                  # Search algorithms
+│   └── ...
+├── anchor/                           # Anchor system domain
+│   ├── services/                     # Anchor services
+│   ├── tools/                        # Anchor MCP tools
+│   └── ...
+├── monitoring/                       # Monitoring domain
+│   ├── services/                     # Monitoring services
+│   ├── tools/                        # Monitoring MCP tools
+│   └── ...
+└── forgetting/                       # Forgetting domain
+    ├── services/                     # Forgetting services
+    └── ...
 ```
 
 **Service Layer Role**:

@@ -8,27 +8,38 @@
 ## [Unreleased]
 
 ### 추가됨
-- **벡터 기반 기억 이웃 탐색 및 추천**: 특정 기억과 유사한 이웃 기억을 자동으로 찾아 추천하는 기능
-  - `get_memory_neighbors` MCP Tool 추가: 벡터 유사도 기반 이웃 기억 조회
-  - `GET /memories/:id/neighbors` HTTP API 엔드포인트 추가
-  - `MemoryNeighborService` 서비스 구현: 벡터 검색 엔진을 활용한 유사 기억 탐색
-  - 실시간 인접 기억 갱신: 새 기억 저장 시 자동으로 인접 기억 목록 업데이트
-  - MCP Resource 확장: `memory://{id}?include_neighbors=true`로 이웃 기억 포함 조회 지원
-- **npm 패키지 개선**: `prepublishOnly` 스크립트 추가로 빌드 보장
-- **bin 파일 검증**: `verify-bin` 스크립트로 npm publish 전 bin 파일 검증
-- **네이티브 모듈 재빌드**: `rebuild-native` 스크립트 추가 (Node.js 버전 문제 해결)
-- **npx 자동 재빌드**: postinstall 스크립트에서 npx 감지 시 자동으로 네이티브 모듈 재빌드 시도
-- **GitHub Release 중복 방지**: Release 존재 여부 확인 후 생성/스킵 결정
-- **Cursor MCP 설정 가이드**: Cursor에서 MCP 서버 사용 가이드 문서 추가
-- **플랫폼별 실행 가이드**: Windows/Linux/macOS별 실행 방법 문서화
-- **Node.js 버전 호환성 가이드**: SQLite 네이티브 모듈 문제 해결 가이드 추가
-- **npx 사용자 가이드**: npx를 사용하는 일반 사용자를 위한 문제 해결 가이드 추가
-- **GitHub Release 워크플로우 가이드**: Release 생성 오류 해결 가이드 추가
+- **앵커 시스템**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
+  - `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `restore_anchors` MCP Tools 추가
+  - 앵커 주변 국소 검색 기능
+  - 관계 그래프 기반 이웃 기억 탐색
+- **메타 메모리 통계 시스템**: 기억 검색 성공률, 신뢰도 점수 등 통계 수집 및 조회
+  - `get_meta_memory_stats` MCP Tool 추가
+  - 검색 성공/실패 추적
+  - 평균 신뢰도 점수 계산
+- **관계 그래프 엔진**: 기억 간 의미적 관계 자동 추출 및 관리
+  - Triple 추출 시스템
+  - 관계 타입 분류 (SIMILAR_TO, RELATED_TO, VERSION_OF 등)
+  - 관계 시각화 및 탐색
+- **통합 점수 시스템 (Consolidation Score)**: 검색 품질 향상을 위한 통합 점수 계산
+- **Reflexion 시스템**: 작업 성공/실패에 따른 절차적 기억 자동 업데이트
+- **AriGraph Pipeline**: Episodic Memory를 Semantic Memory로 자동 변환
+  - `convert_episodic_to_semantic` MCP Tool 추가
+- **임베딩 마이그레이션**: 임베딩 제공자 간 마이그레이션 지원
+  - `migrate_embeddings` MCP Tool 추가
+- **배치 스케줄러**: 주기적 배치 작업 실행 (망각 정책, 통합 점수 계산 등)
+- **품질 보증 시스템**: 검색 품질 측정 및 개선
+- **벡터 검색 엔진**: sqlite-vec 기반 고성능 벡터 검색
+- **다중 임베딩 제공자**: TF-IDF, MiniLM, OpenAI, Gemini 지원
+- **성능 모니터링 및 알림**: 실시간 성능 모니터링 및 임계값 기반 알림
+- **에러 로깅 시스템**: 구조화된 에러 로깅 및 통계 수집
+- **문서화**: Cursor MCP 설정 가이드, 플랫폼별 실행 가이드, Node.js 버전 호환성 가이드 등
 
 ### 수정됨
+- **프로젝트 구조**: domains/, infrastructure/ 디렉토리 구조로 리팩토링
+- **sqlite-vss → sqlite-vec**: 더 안정적인 벡터 검색 라이브러리로 마이그레이션
+- **MCP Tools**: 5개 → 15개로 확장
 - **http-server.ts**: shebang 추가로 bin 파일로 직접 실행 가능
-- **package.json**: bin 필드 순서 최적화 (패키지 이름과 동일한 bin을 첫 번째로)
-- **package.json**: `@memento/client` file: 의존성 제거 (npx 실행 시 오류 해결)
+- **package.json**: bin 필드 최적화 및 의존성 정리
 - **INSTALL.md**: 플랫폼별 실행 방법 및 npm exec 문제 해결 가이드 추가
 - **README.md**: Cursor MCP 설정 링크 추가
 

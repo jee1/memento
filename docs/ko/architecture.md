@@ -40,6 +40,9 @@ graph TB
         F --> K[Error Logging Service]
         F --> L[Performance Alert Service]
         F --> M[Performance Monitoring Integration]
+        F --> N[Anchor System]
+        F --> O[Meta Memory Stats]
+        F --> P[Relation Graph Engine]
     end
     
     subgraph "Storage Layer"
@@ -76,8 +79,8 @@ graph TB
 
 #### 3. Memory Management Layer
 - **역할**: 기억의 생성, 검색, 관리, 삭제 및 시스템 모니터링
-- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration
-- **특징**: 인간의 기억 체계를 모사한 관리 및 실시간 시스템 모니터링
+- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Relation Graph Engine
+- **특징**: 인간의 기억 체계를 모사한 관리, 실시간 시스템 모니터링, 앵커 기반 컨텍스트 관리, 기억 품질 추적
 
 #### 4. Storage Layer
 - **역할**: 데이터 영구 저장 및 검색
@@ -397,6 +400,126 @@ interface SpacedRepetition {
   }
 }
 ```
+
+### 9. 앵커 시스템
+
+#### 구조
+
+```typescript
+interface AnchorSystem {
+  // 앵커 설정
+  setAnchor(memoryId: string, slot: 'A' | 'B' | 'C', agentId?: string): Promise<boolean>;
+  
+  // 앵커 조회
+  getAnchor(slot?: 'A' | 'B' | 'C', agentId?: string): Promise<Anchor | AnchorMap | null>;
+  
+  // 앵커 주변 검색
+  searchLocal(slot: 'A' | 'B' | 'C', query?: string, options?: SearchLocalOptions): Promise<SearchResult>;
+  
+  // 앵커 제거
+  clearAnchor(slot?: 'A' | 'B' | 'C', agentId?: string): Promise<boolean>;
+  
+  // 데이터베이스에서 앵커 복원
+  restoreAnchors(agentId?: string): Promise<AnchorMap>;
+}
+
+interface Anchor {
+  memory_id: string;
+  slot: 'A' | 'B' | 'C';
+  agent_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface AnchorMap {
+  A: Anchor | null;
+  B: Anchor | null;
+  C: Anchor | null;
+}
+```
+
+#### 주요 기능
+
+- **컨텍스트 관리**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
+- **국소 검색**: 관계 그래프를 사용하여 앵커 주변 기억 검색
+- **다중 에이전트 지원**: 별도의 앵커 맵으로 여러 에이전트 지원
+- **영구 저장**: 앵커는 데이터베이스에 저장되며 복원 가능
+
+### 10. 메타 메모리 통계 시스템
+
+#### 구조
+
+```typescript
+interface MetaMemoryStatsService {
+  // 통계 조회
+  getStats(params: GetMetaMemoryStatsParams): Promise<MetaMemoryStatsResult>;
+  
+  // recall 시도 기록
+  recordRecall(memoryId: string, success: boolean, confidence?: number): Promise<void>;
+}
+
+interface MetaMemoryStatsItem {
+  memory_id: string;
+  recall_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_confidence: number;
+  last_recalled_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+#### 주요 기능
+
+- **Recall 추적**: recall 성공/실패율 추적
+- **신뢰도 점수**: 평균 신뢰도 점수 계산
+- **품질 지표**: 메모리 검색 품질 지표 제공
+- **성능 분석**: 시간에 따른 검색 성능 분석
+
+### 11. 관계 그래프 엔진
+
+#### 구조
+
+```typescript
+interface RelationGraphEngine {
+  // 관계 추출
+  extractRelations(memory: MemoryItem): Promise<Relation[]>;
+  
+  // 관계 조회
+  getRelations(memoryId: string): Promise<Relation[]>;
+  
+  // 관계 추가
+  addRelation(sourceId: string, targetId: string, type: RelationType): Promise<boolean>;
+  
+  // 관계 제거
+  removeRelation(relationId: string): Promise<boolean>;
+}
+
+interface Relation {
+  id: string;
+  source_id: string;
+  target_id: string;
+  relation_type: RelationType;
+  strength: number;
+  created_at: Date;
+}
+
+enum RelationType {
+  SIMILAR_TO = 'SIMILAR_TO',
+  RELATED_TO = 'RELATED_TO',
+  VERSION_OF = 'VERSION_OF',
+  DERIVED_FROM = 'DERIVED_FROM',
+  CAUSE_OF = 'CAUSE_OF'
+}
+```
+
+#### 주요 기능
+
+- **자동 추출**: 기억에서 관계를 자동으로 추출
+- **Triple 추출**: 주어-술어-목적어 triple 추출
+- **관계 분류**: 관계를 타입별로 분류
+- **그래프 탐색**: 관계를 사용하여 메모리 그래프 탐색
 
 ## 데이터 모델
 

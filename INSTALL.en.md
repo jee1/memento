@@ -204,8 +204,19 @@ npm run start:http       # HTTP/WebSocket server production run
 npm run test             # Run all tests
 npm run test:client      # Client tests
 npm run test:search      # Search functionality tests
+npm run test:embedding   # Embedding functionality tests
+npm run test:lightweight-embedding # Lightweight embedding tests
+npm run test:gemini-embedding # Gemini embedding tests
 npm run test:forgetting  # Forgetting policy tests
 npm run test:performance # Performance benchmarks
+npm run test:monitoring  # Performance monitoring tests
+npm run test:error-logging # Error logging tests
+npm run test:performance-alerts # Performance alert tests
+npm run test:vector-search # Vector search tests
+npm run test:memory-injection # Memory injection tests
+npm run test:batch-scheduler # Batch scheduler tests
+npm run test:consolidation-quality # Consolidation Score quality validation
+npm run benchmark:consolidation-quality # Consolidation Score benchmark
 ```
 
 ### Docker Commands

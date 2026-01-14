@@ -26,6 +26,9 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **이웃 기억 탐색**: 벡터 유사도 기반 유사한 기억 자동 추천
 - **기억 고정**: 중요한 기억 고정/해제
 - **기억 삭제**: 소프트/하드 삭제
+- **앵커 시스템**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
+- **메타 메모리 통계**: 기억 검색 성공률, 신뢰도 점수 등 통계 조회
+- **기억 변환**: Episodic Memory를 Semantic Memory로 자동 변환
 
 ### 🔍 고급 검색
 - **FTS5 텍스트 검색**: SQLite의 Full-Text Search
@@ -287,11 +290,12 @@ const results = await client.callTool({
 
 ## 📋 API 문서
 
-### MCP Tools (핵심 5개만)
+### MCP Tools (핵심 15개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 5개만 노출합니다.  
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 15개를 노출합니다.  
 > 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.
 
+#### 기본 메모리 관리 (7개)
 | Tool | 설명 | 파라미터 |
 |------|------|----------|
 | `remember` | 기억 저장 | content, type, tags, importance, source, privacy_scope |
@@ -299,6 +303,24 @@ const results = await client.callTool({
 | `pin` | 기억 고정 | memory_id |
 | `unpin` | 기억 고정 해제 | memory_id |
 | `forget` | 기억 삭제 | memory_id, hard |
+| `get_memory_neighbors` | 이웃 기억 탐색 | memory_id, limit |
+| `memory_injection` | 컨텍스트 주입 프롬프트 생성 | query, token_budget |
+
+#### 앵커 시스템 (5개)
+| Tool | 설명 | 파라미터 |
+|------|------|----------|
+| `set_anchor` | 앵커 설정 | memory_id, slot |
+| `get_anchor` | 앵커 조회 | slot |
+| `search_local` | 앵커 주변 검색 | slot, query, limit |
+| `clear_anchor` | 앵커 제거 | slot |
+| `restore_anchors` | 앵커 복원 | agent_id |
+
+#### 고급 기능 (3개)
+| Tool | 설명 | 파라미터 |
+|------|------|----------|
+| `migrate_embeddings` | 임베딩 마이그레이션 | target_provider, batch_size |
+| `convert_episodic_to_semantic` | Episodic → Semantic 변환 | memory_id, limit |
+| `get_meta_memory_stats` | 메타 메모리 통계 조회 | memory_id, memory_ids |
 
 ### HTTP 관리 API
 
@@ -330,6 +352,8 @@ const results = await client.callTool({
 | `DB_PATH` | ./data/memory.db | 데이터베이스 경로 |
 | `LOG_LEVEL` | info | 로그 레벨 |
 | `OPENAI_API_KEY` | - | OpenAI API 키 (선택사항) |
+| `GEMINI_API_KEY` | - | Gemini API 키 (선택사항) |
+| `EMBEDDING_PROVIDER` | auto | 임베딩 제공자 (tfidf, minilm, openai, gemini, auto) |
 | `CONSOLIDATION_SCORE_ENABLED` | false | Consolidation Score System 활성화 여부 |
 | `CONSOLIDATION_TEST_SEED_PATH` | ./data/consolidation-seed.json | 테스트 Seed 데이터 파일 경로 |
 | `CONSOLIDATION_BASELINE_PATH` | ./data/consolidation-baseline.json | Baseline 스냅샷 저장 경로 |
@@ -361,13 +385,19 @@ npm run test:client                    # 클라이언트 테스트
 npm run test:search                    # 검색 기능 테스트
 npm run test:embedding                 # 임베딩 기능 테스트
 npm run test:lightweight-embedding     # 경량 임베딩 테스트
+npm run test:gemini-embedding         # Gemini 임베딩 테스트
 npm run test:forgetting                # 망각 정책 테스트
 npm run test:performance               # 성능 벤치마크
 npm run test:monitoring                # 성능 모니터링 테스트
 npm run test:error-logging             # 에러 로깅 테스트
 npm run test:performance-alerts        # 성능 알림 테스트
 npm run test:consolidation-quality     # Consolidation Score 품질 검증 테스트
+npm run test:vector-search             # 벡터 검색 테스트
+npm run test:memory-injection          # 메모리 주입 테스트
+npm run test:batch-scheduler           # 배치 스케줄러 테스트
 npm run benchmark:consolidation-quality # Consolidation Score 벤치마크 테스트
+npm run test:embedding-benchmark      # 임베딩 성능 벤치마크
+npm run test:embedding-integration     # 임베딩 통합 테스트
 
 # 테스트 감시 모드
 npm run test -- --watch
@@ -428,12 +458,19 @@ npm run test -- --coverage
 
 ### M1: 개인용 (현재 구현)
 - **스토리지**: better-sqlite3 임베디드
-- **인덱스**: FTS5 + sqlite-vss
+- **인덱스**: FTS5 + sqlite-vec
 - **인증**: 없음 (로컬 전용)
 - **운영**: 로컬 실행
-- **MCP 클라이언트**: 핵심 5개 도구만 노출
+- **MCP 클라이언트**: 핵심 15개 도구 노출
 - **관리 기능**: HTTP API로 분리
-- **추가 기능**: 다중 임베딩 제공자(TF-IDF, MiniLM, OpenAI, Gemini), 성능 모니터링, 캐시 시스템
+- **추가 기능**: 
+  - 다중 임베딩 제공자(TF-IDF, MiniLM, OpenAI, Gemini)
+  - 성능 모니터링 및 알림 시스템
+  - 캐시 시스템
+  - 앵커 시스템 (컨텍스트 관리)
+  - 관계 그래프 (의미적 관계 추출)
+  - 메타 메모리 통계
+  - 통합 점수 시스템 (Consolidation Score)
 
 ### M2: 팀 협업 (계획)
 - **스토리지**: SQLite 서버 모드
