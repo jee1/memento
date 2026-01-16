@@ -81,8 +81,14 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
           if [ -n "$VERSION" ]; then
-            npm version $VERSION --no-git-tag-version
-            echo "Updated package.json to version: $VERSION"
+            # 현재 package.json의 버전 확인
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            if [ "$CURRENT_VERSION" = "$VERSION" ]; then
+              echo "✅ package.json version is already $VERSION, skipping update"
+            else
+              npm version $VERSION --no-git-tag-version
+              echo "Updated package.json from $CURRENT_VERSION to $VERSION"
+            fi
           else
             echo "⚠️ Version not found, skipping package.json update"
           fi
