@@ -1,0 +1,435 @@
+# 작업 목록: 종합 코드 개선 (클린코드 철학 기반)
+
+이 문서는 [PRD: 종합 코드 개선](./0023-prd-comprehensive-code-improvement.md)을 기반으로 생성된 상세 작업 목록입니다.
+
+## Relevant Files
+
+### 대형 파일 분리 관련
+- `src/domains/search/algorithms/hybrid-search-engine.ts` - HybridSearchEngine 클래스 (1,543줄, 분리 필요)
+- `src/services/triple-extraction/triple-extraction-service.ts` - TripleExtractionService 클래스 (1,163줄, 분리 필요)
+- `src/services/semantic-memory/semantic-memory-update-service.ts` - SemanticMemoryUpdateService 클래스 (945줄, 메서드 분리 필요)
+
+### 긴 함수 분리 관련
+- `src/domains/search/algorithms/hybrid-search-engine.ts` - fetchProceduralMemoryMatches() (155줄), combineAndSortResults() (115줄)
+- `src/services/semantic-memory/semantic-memory-update-service.ts` - updateSemanticMemory() (118줄)
+
+### 타입 안정성 강화 관련
+- `src/server/bootstrap.ts` - SQL 파라미터 any[] 타입 정의 필요
+- `src/services/quality-assurance/quality-threshold-manager.ts` - SQL 파라미터 any[] 타입 정의 필요
+- `src/domains/search/repositories/vector-search.repository.ts` - SQL 파라미터 any[] 타입 정의 필요
+- `src/tools/*` - 도구 경계 타입 any 제거
+- `src/domains/search/*` - 검색 도메인 타입 any 제거
+- `src/server/*` - 서버 진입점 타입 any 제거
+- `src/npm-client/*` - 클라이언트 타입 any 제거
+
+### 전역 변수 제거 관련
+- `src/server/index.ts` - globalThis 사용 (11곳)
+- `src/server/mcp-logger.ts` - globalThis 사용
+- `src/server/server-state.ts` - 새로 생성할 ServerState 클래스
+
+### MCP 도구 노출 정책 관련
+- `src/tools/index.ts` - 도구 등록 (현재 16개, 규칙은 5개)
+- `.cursor/rules/mcp-tools-architecture.mdc` - 규칙 문서 (5개만 노출 규정)
+
+### 로깅 정책 통일 관련
+- `src/infrastructure/database/database/migrate.ts` - console.* 사용
+- `src/infrastructure/database/database/migration/migration-runner.ts` - console.* 사용
+- `src/infrastructure/scheduler/batch-scheduler.ts` - console.* 사용
+- `src/infrastructure/logging/triple-extraction-logger.ts` - console.* 사용
+- `src/shared/utils/logger.ts` - 표준 로거 (교체 대상)
+
+### 중복 코드 제거 관련
+- `src/tools/types.ts` - ToolContext 인터페이스 정의
+- ToolContext를 생성하는 모든 파일들 (팩토리 함수로 통일 필요)
+
+### 에러 처리 일관성 관련
+- `src/domains/monitoring/services/error-logging-service.ts` - ErrorLoggingService 클래스
+- 에러를 단순 throw만 하는 모든 파일들
+
+### 측정 및 검증 스크립트
+- `scripts/check-file-sizes.ts` - 파일 크기 검증 스크립트 (새로 생성)
+- `scripts/count-any-types.ts` - any 타입 개수 측정 스크립트 (새로 생성)
+- `scripts/count-console-logs.ts` - console.log 개수 측정 스크립트 (새로 생성)
+
+### 테스트 파일
+- 각 분리된 클래스/함수에 대한 단위 테스트 파일들
+- 통합 테스트 파일들
+
+### Notes
+
+- 모든 작업은 TDD 방법론(RED-GREEN-REFACTOR)을 따라야 합니다.
+- 각 하위 작업은 given/when/then 구조를 따라야 하며, 메서드명 또는 JSDoc에도 given/when/then을 표시해야 합니다.
+- 단위 테스트는 일반적으로 테스트하는 코드 파일과 함께 배치해야 합니다 (예: 같은 디렉토리의 `MyComponent.tsx` 및 `MyComponent.test.tsx`).
+- `npm test`를 사용하여 테스트를 실행합니다.
+- 모든 기존 테스트는 통과해야 하며, 기존 기능과 API 호환성은 100% 유지해야 합니다.
+- 각 Phase는 독립적으로 진행 가능하며, PR로 분리하여 리뷰 비용을 최소화합니다.
+
+## Tasks
+
+- [x] 0.0 [준비 작업] 측정 및 검증 스크립트 생성 (Phase 시작 전 완료 필요)
+  - [x] 0.1 [구현] scripts/check-file-sizes.ts 스크립트 생성
+    - Given: 파일 크기 검증이 필요함
+    - When: 파일 크기(줄 수)를 측정하고 500줄 초과 파일을 보고하는 스크립트 작성
+    - Then: 스크립트가 정상 동작하고 CI/CD에 통합 가능함
+  - [x] 0.2 [구현] scripts/count-any-types.ts 스크립트 생성
+    - Given: any 타입 개수 측정이 필요함
+    - When: src/ 디렉토리에서 any 타입 개수를 측정하는 스크립트 작성
+    - Then: 스크립트가 정상 동작하고 베이스라인(489개) 측정 가능함
+  - [x] 0.3 [구현] scripts/count-console-logs.ts 스크립트 생성
+    - Given: console.log 개수 측정이 필요함
+    - When: 비테스트 코드에서 console.* 사용 개수를 측정하는 스크립트 작성 (테스트/CLI 제외)
+    - Then: 스크립트가 정상 동작하고 베이스라인(117개) 측정 가능함
+
+- [ ] 1.0 Phase 1: 대형 파일 분리 (우선순위: 최고, 예상 기간: 3-4주)
+  - [ ] 1.1 [TDD RED] HybridSearchEngine 분리를 위한 인터페이스 정의 및 테스트 작성
+    - Given: HybridSearchEngine이 1,543줄로 단일 책임 원칙 위반
+    - When: ISearchResultCombiner, IProceduralMemoryMatcher 인터페이스를 정의하고 테스트 작성
+    - Then: 인터페이스가 명확한 계약을 정의하고, 테스트가 실패 상태로 작성됨
+  - [ ] 1.2 [TDD GREEN] ProceduralMemoryMatcher 클래스 구현
+    - Given: IProceduralMemoryMatcher 인터페이스와 실패하는 테스트가 존재
+    - When: fetchProceduralMemoryMatches() 로직을 ProceduralMemoryMatcher 클래스로 분리하여 구현
+    - Then: 테스트가 통과하고, 클래스가 500줄 이하로 제한됨
+  - [ ] 1.3 [TDD REFACTOR] ProceduralMemoryMatcher 리팩토링 및 의존성 주입 적용
+    - Given: ProceduralMemoryMatcher 클래스가 구현됨
+    - When: 의존성 주입 패턴을 적용하고 코드 품질 개선
+    - Then: 테스트가 계속 통과하고, 코드가 클린코드 원칙을 준수함
+  - [ ] 1.4 [TDD GREEN] SearchResultCombiner 클래스 분리 (기존 클래스 확장)
+    - Given: SearchResultCombiner 클래스가 이미 존재하지만 HybridSearchEngine 내부에 통합되어 있음
+    - When: combineAndSortResults() 로직을 독립적인 SearchResultCombiner 클래스로 완전 분리
+    - Then: 테스트가 통과하고, ISearchResultCombiner 인터페이스를 구현하며 500줄 이하로 제한됨
+  - [ ] 1.5 [TDD REFACTOR] HybridSearchEngine 리팩토링 및 통합
+    - Given: ProceduralMemoryMatcher와 SearchResultCombiner가 분리됨
+    - When: HybridSearchEngine을 리팩토링하여 분리된 클래스들을 의존성 주입으로 사용
+    - Then: 기존 API 호환성이 100% 유지되고, 파일이 500줄 이하로 감소하며 모든 테스트 통과
+  - [ ] 1.6 [TDD RED] TripleExtractionService 분리를 위한 인터페이스 정의 및 테스트 작성
+    - Given: TripleExtractionService가 1,163줄로 단일 책임 원칙 위반
+    - When: ITripleExtractor, ITripleParser, ITripleNormalizer 인터페이스를 정의하고 테스트 작성
+    - Then: 인터페이스가 명확한 계약을 정의하고, 테스트가 실패 상태로 작성됨
+  - [ ] 1.7 [TDD GREEN] TripleExtractor 클래스 구현
+    - Given: ITripleExtractor 인터페이스와 실패하는 테스트가 존재
+    - When: 추출 로직을 TripleExtractor 클래스로 분리하여 구현
+    - Then: 테스트가 통과하고, 클래스가 500줄 이하로 제한됨
+  - [ ] 1.8 [TDD GREEN] TripleParser 클래스 구현
+    - Given: ITripleParser 인터페이스와 실패하는 테스트가 존재
+    - When: 파싱 로직을 TripleParser 클래스로 분리하여 구현
+    - Then: 테스트가 통과하고, 클래스가 500줄 이하로 제한됨
+  - [ ] 1.9 [TDD GREEN] TripleNormalizer 클래스 구현
+    - Given: ITripleNormalizer 인터페이스와 실패하는 테스트가 존재
+    - When: 정규화 로직을 TripleNormalizer 클래스로 분리하여 구현
+    - Then: 테스트가 통과하고, 클래스가 500줄 이하로 제한됨
+  - [ ] 1.10 [TDD REFACTOR] TripleExtractionService 리팩토링 및 통합
+    - Given: TripleExtractor, TripleParser, TripleNormalizer가 분리됨
+    - When: TripleExtractionService를 리팩토링하여 분리된 클래스들을 의존성 주입으로 사용
+    - Then: 기존 API 호환성이 100% 유지되고, 파일이 500줄 이하로 감소하며 모든 테스트 통과
+  - [ ] 1.11 [TDD RED] SemanticMemoryUpdateService의 updateSemanticMemory() 메서드 분리를 위한 테스트 작성
+    - Given: updateSemanticMemory() 메서드가 118줄로 함수 크기 제한 위반
+    - When: 분리될 함수들(validateInput, prepareUpdateData, applyUpdates, notifyListeners)에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 1.12 [TDD GREEN] updateSemanticMemory() 메서드를 작은 함수로 분리
+    - Given: 실패하는 테스트가 존재
+    - When: updateSemanticMemory() 메서드를 validateInput, prepareUpdateData, applyUpdates, notifyListeners로 분리
+    - Then: 각 함수가 50줄 이하로 제한되고 모든 테스트 통과
+  - [ ] 1.13 [검증] Phase 1 완료 검증
+    - Given: Phase 1의 모든 작업이 완료됨
+    - When: scripts/check-file-sizes.ts를 실행하여 파일 크기 검증
+    - Then: 모든 파일이 500줄 이하이고, 모든 함수가 50줄 이하이며, 모든 기존 테스트 통과
+
+- [ ] 2.0 Phase 2: 긴 함수 분리 (우선순위: 높음, 예상 기간: 2-3주)
+  - [ ] 2.1 [TDD RED] fetchProceduralMemoryMatches() 분리를 위한 테스트 작성
+    - Given: fetchProceduralMemoryMatches() 메서드가 155줄로 함수 크기 제한 위반
+    - When: 분리될 함수들(embedQuery, findCandidates, filterByRelevance, sortByScore)에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 2.2 [TDD GREEN] embedQuery() 메서드 추출
+    - Given: 실패하는 embedQuery() 테스트가 존재
+    - When: 쿼리 임베딩 생성 로직을 embedQuery() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.3 [TDD GREEN] findCandidates() 메서드 추출
+    - Given: 실패하는 findCandidates() 테스트가 존재
+    - When: 후보 찾기 로직을 findCandidates() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.4 [TDD GREEN] filterByRelevance() 메서드 추출
+    - Given: 실패하는 filterByRelevance() 테스트가 존재
+    - When: 관련성 필터링 로직을 filterByRelevance() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.5 [TDD GREEN] sortByScore() 메서드 추출
+    - Given: 실패하는 sortByScore() 테스트가 존재
+    - When: 점수 정렬 로직을 sortByScore() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.6 [TDD REFACTOR] fetchProceduralMemoryMatches() 리팩토링
+    - Given: 모든 분리된 메서드가 구현됨
+    - When: fetchProceduralMemoryMatches()를 분리된 메서드들을 조합하여 리팩토링
+    - Then: 기존 기능이 100% 유지되고 모든 테스트 통과
+  - [ ] 2.7 [TDD RED] combineAndSortResults() 분리를 위한 테스트 작성
+    - Given: combineAndSortResults() 메서드가 115줄로 함수 크기 제한 위반
+    - When: 분리될 함수들(normalizeScores, mergeResults, deduplicateResults, sortByFinalScore)에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 2.8 [TDD GREEN] normalizeScores() 메서드 추출
+    - Given: 실패하는 normalizeScores() 테스트가 존재
+    - When: 점수 정규화 로직을 normalizeScores() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.9 [TDD GREEN] mergeResults() 메서드 추출
+    - Given: 실패하는 mergeResults() 테스트가 존재
+    - When: 결과 병합 로직을 mergeResults() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.10 [TDD GREEN] deduplicateResults() 메서드 추출
+    - Given: 실패하는 deduplicateResults() 테스트가 존재
+    - When: 중복 제거 로직을 deduplicateResults() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.11 [TDD GREEN] sortByFinalScore() 메서드 추출
+    - Given: 실패하는 sortByFinalScore() 테스트가 존재
+    - When: 최종 점수 정렬 로직을 sortByFinalScore() 메서드로 추출
+    - Then: 메서드가 50줄 이하로 제한되고 테스트 통과
+  - [ ] 2.12 [TDD REFACTOR] combineAndSortResults() 리팩토링
+    - Given: 모든 분리된 메서드가 구현됨
+    - When: combineAndSortResults()를 분리된 메서드들을 조합하여 리팩토링
+    - Then: 기존 기능이 100% 유지되고 모든 테스트 통과
+  - [ ] 2.13 [TDD RED] updateSemanticMemory() 분리를 위한 테스트 작성 (Phase 1에서 이미 분리된 경우 스킵)
+    - Given: updateSemanticMemory() 메서드가 118줄로 함수 크기 제한 위반 (Phase 1에서 미처리 시)
+    - When: 분리될 함수들(validateInput, prepareUpdateData, applyUpdates, notifyListeners)에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 2.14 [통합 테스트] 분리된 함수들의 통합 테스트 작성
+    - Given: 모든 함수가 분리됨
+    - When: 전체 파이프라인을 검증하는 통합 테스트 작성
+    - Then: 통합 테스트가 통과하고 전체 기능이 정상 동작함
+  - [ ] 2.15 [검증] Phase 2 완료 검증
+    - Given: Phase 2의 모든 작업이 완료됨
+    - When: ESLint max-lines-per-function 규칙으로 함수 크기 검증
+    - Then: 90% 이상의 함수가 50줄 이하이고 모든 기존 테스트 통과
+
+- [ ] 3.0 Phase 3: 타입 안정성 강화 (우선순위: 높음, 예상 기간: 4-5주)
+  - [ ] 3.1 [TDD RED] SqlParam 타입 정의 및 테스트 작성
+    - Given: SQL 파라미터가 any[] 타입으로 사용되어 타입 안정성 부족
+    - When: SqlParam 타입을 정의하고 타입 가드 함수에 대한 테스트 작성
+    - Then: 타입이 명확히 정의되고 테스트가 실패 상태로 작성됨
+  - [ ] 3.2 [TDD GREEN] SqlParam 타입 구현 및 적용 (bootstrap.ts)
+    - Given: SqlParam 타입 정의와 실패하는 테스트가 존재
+    - When: src/server/bootstrap.ts의 any[] 타입을 SqlParam[]로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과
+  - [ ] 3.3 [TDD GREEN] SqlParam 타입 적용 (quality-threshold-manager.ts)
+    - Given: SqlParam 타입이 정의됨
+    - When: src/services/quality-assurance/quality-threshold-manager.ts의 any[] 타입을 SqlParam[]로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과
+  - [ ] 3.4 [TDD GREEN] SqlParam 타입 적용 (vector-search.repository.ts)
+    - Given: SqlParam 타입이 정의됨
+    - When: src/domains/search/repositories/vector-search.repository.ts의 any[] 타입을 SqlParam[]로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과
+  - [ ] 3.5 [TDD RED] src/tools/* 도구 경계 타입 any 제거를 위한 테스트 작성
+    - Given: src/tools/*에 any 타입이 다수 사용됨
+    - When: 각 도구의 타입을 구체적으로 정의하고 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 3.6 [TDD GREEN] src/tools/* 도구 경계 타입 any 제거
+    - Given: 실패하는 테스트가 존재
+    - When: src/tools/*의 any 타입을 구체적인 타입으로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과하며 any 타입 개수 감소
+  - [ ] 3.7 [TDD RED] src/domains/search/* 검색 도메인 타입 any 제거를 위한 테스트 작성
+    - Given: src/domains/search/*에 any 타입이 다수 사용됨
+    - When: 검색 도메인의 타입을 구체적으로 정의하고 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 3.8 [TDD GREEN] src/domains/search/* 검색 도메인 타입 any 제거
+    - Given: 실패하는 테스트가 존재
+    - When: src/domains/search/*의 any 타입을 구체적인 타입으로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과하며 any 타입 개수 감소
+  - [ ] 3.9 [TDD RED] src/server/* 서버 진입점 타입 any 제거를 위한 테스트 작성
+    - Given: src/server/*에 any 타입이 다수 사용됨
+    - When: 서버 진입점의 타입을 구체적으로 정의하고 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 3.10 [TDD GREEN] src/server/* 서버 진입점 타입 any 제거
+    - Given: 실패하는 테스트가 존재
+    - When: src/server/*의 any 타입을 구체적인 타입으로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과하며 any 타입 개수 감소
+  - [ ] 3.11 [TDD RED] src/npm-client/* 클라이언트 타입 any 제거를 위한 테스트 작성
+    - Given: src/npm-client/*에 any 타입이 다수 사용됨
+    - When: 클라이언트 타입을 구체적으로 정의하고 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 3.12 [TDD GREEN] src/npm-client/* 클라이언트 타입 any 제거
+    - Given: 실패하는 테스트가 존재
+    - When: src/npm-client/*의 any 타입을 구체적인 타입으로 교체
+    - Then: 테스트가 통과하고 타입 체크 통과하며 any 타입 개수 감소
+  - [ ] 3.13 [TDD REFACTOR] 타입 단언 최소화 및 타입 가드 활용
+    - Given: 모든 any 타입이 제거됨
+    - When: as any 사용을 최소화하고 타입 가드 함수를 활용하여 리팩토링
+    - Then: 타입 안정성이 향상되고 모든 테스트 통과
+  - [ ] 3.14 [검증] Phase 3 완료 검증
+    - Given: Phase 3의 모든 작업이 완료됨
+    - When: scripts/count-any-types.ts를 실행하여 any 타입 개수 측정
+    - Then: any 타입이 50개 이하로 감소하고, npm run type-check 통과하며, ESLint @typescript-eslint/no-explicit-any 경고 없음
+
+- [ ] 4.0 Phase 4: 전역 변수 제거 (우선순위: 중간, 예상 기간: 1주)
+  - [ ] 4.1 [TDD RED] ServerState 클래스 정의 및 테스트 작성
+    - Given: globalThis를 통한 전역 상태 관리로 테스트 어려움
+    - When: ServerState 클래스를 정의하고 상태 관리 메서드에 대한 테스트 작성
+    - Then: 클래스가 명확히 정의되고 테스트가 실패 상태로 작성됨
+  - [ ] 4.2 [TDD GREEN] ServerState 클래스 구현
+    - Given: ServerState 클래스 정의와 실패하는 테스트가 존재
+    - When: ServerState 클래스를 구현하여 전역 상태를 캡슐화
+    - Then: 테스트가 통과하고 상태 관리가 클래스 기반으로 동작함
+  - [ ] 4.3 [TDD GREEN] src/server/index.ts의 globalThis 사용을 ServerState로 교체
+    - Given: ServerState 클래스가 구현됨
+    - When: src/server/index.ts의 모든 globalThis 사용을 ServerState로 교체
+    - Then: 테스트가 통과하고 기능이 정상 동작함
+  - [ ] 4.4 [TDD GREEN] src/server/mcp-logger.ts의 globalThis 사용을 ServerState로 교체
+    - Given: ServerState 클래스가 구현됨
+    - When: src/server/mcp-logger.ts의 globalThis 사용을 ServerState로 교체
+    - Then: 테스트가 통과하고 기능이 정상 동작함
+  - [ ] 4.5 [TDD REFACTOR] ServerState 리팩토링 및 테스트 가능성 향상
+    - Given: 모든 globalThis 사용이 ServerState로 교체됨
+    - When: ServerState를 리팩토링하여 테스트 가능성을 향상시킴
+    - Then: 테스트가 더 쉽게 작성 가능하고 모든 기존 테스트 통과
+  - [ ] 4.6 [검증] Phase 4 완료 검증
+    - Given: Phase 4의 모든 작업이 완료됨
+    - When: grep으로 globalThis 사용 개수 확인
+    - Then: globalThis 사용이 0개(또는 최소화)이고 모든 기존 테스트 통과
+
+- [ ] 5.0 Phase 5: MCP 도구 노출 정책 정합성 (우선순위: 중간, 예상 기간: 1-2주)
+  - [ ] 5.1 [분석] 현재 등록된 도구 목록 확인 및 규칙 문서와 비교
+    - Given: 규칙 문서는 5개만 노출하라고 하지만 실제로는 16개 등록됨
+    - When: src/tools/index.ts에서 등록된 도구 목록을 확인하고 .cursor/rules/mcp-tools-architecture.mdc와 비교
+    - Then: 불일치 지점이 명확히 파악됨
+  - [ ] 5.2 [의사결정] 정책 정합성 방향 결정
+    - Given: 규칙 문서와 실제 구현 간 불일치가 확인됨
+    - When: 옵션 1(규칙 문서 업데이트) 또는 옵션 2(실제 구현 수정) 중 선택
+    - Then: 명확한 결정이 내려지고 문서화됨
+  - [ ] 5.3 [구현] 관리/운영성 도구 분리
+    - Given: 정책 정합성 방향이 결정됨
+    - When: MCP 클라이언트에 노출되지 않아야 할 도구들을 별도 네임스페이스로 분리
+    - Then: 관리/운영성 도구와 클라이언트 도구가 명확히 구분됨
+  - [ ] 5.4 [구현] 정책 정합성 확보 (규칙 문서 업데이트 또는 실제 구현 수정)
+    - Given: 관리/운영성 도구가 분리됨
+    - When: 결정된 방향에 따라 규칙 문서를 업데이트하거나 실제 구현을 수정
+    - Then: 규칙 문서와 실제 구현이 일치함
+  - [ ] 5.5 [문서화] 정책 문서 업데이트 및 도구 분류 문서화
+    - Given: 정책 정합성이 확보됨
+    - When: 정책 문서를 업데이트하고 도구 분류를 문서화
+    - Then: 문서가 최신 상태로 유지되고 명확한 가이드라인 제공
+  - [ ] 5.6 [검증] Phase 5 완료 검증
+    - Given: Phase 5의 모든 작업이 완료됨
+    - When: 등록된 도구 개수와 규칙 문서를 비교
+    - Then: 규칙 문서와 실제 구현이 일치하고 관리/운영성 도구와 클라이언트 도구가 구분됨
+
+- [ ] 6.0 Phase 6: 로깅 정책 통일 (우선순위: 중간, 예상 기간: 2-3주)
+  - [ ] 6.1 [준비] 표준 로거 모듈 확인 및 로깅 필드 스키마 문서화
+    - Given: 비테스트 코드에서 console.* 117개 사용
+    - When: src/shared/utils/logger.ts의 logger 객체를 확인하고 로깅 필드 스키마를 문서화
+    - Then: 표준 로거 인터페이스가 명확히 파악되고 문서화됨
+  - [ ] 6.2 [TDD RED] migrate.ts의 console.* 제거를 위한 테스트 작성
+    - Given: src/infrastructure/database/database/migrate.ts에 console.* 사용
+    - When: 표준 로거를 사용하는 코드에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 6.3 [TDD GREEN] migrate.ts의 console.*를 표준 로거로 교체
+    - Given: 실패하는 테스트가 존재
+    - When: migrate.ts의 모든 console.* 사용을 표준 로거로 교체
+    - Then: 테스트가 통과하고 로깅이 표준 로거를 통해 이루어짐
+  - [ ] 6.4 [TDD RED] migration-runner.ts의 console.* 제거를 위한 테스트 작성
+    - Given: src/infrastructure/database/database/migration/migration-runner.ts에 console.* 사용
+    - When: 표준 로거를 사용하는 코드에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 6.5 [TDD GREEN] migration-runner.ts의 console.*를 표준 로거로 교체
+    - Given: 실패하는 테스트가 존재
+    - When: migration-runner.ts의 모든 console.* 사용을 표준 로거로 교체
+    - Then: 테스트가 통과하고 로깅이 표준 로거를 통해 이루어짐
+  - [ ] 6.6 [TDD RED] batch-scheduler.ts의 console.* 제거를 위한 테스트 작성
+    - Given: src/infrastructure/scheduler/batch-scheduler.ts에 console.* 사용
+    - When: 표준 로거를 사용하는 코드에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 6.7 [TDD GREEN] batch-scheduler.ts의 console.*를 표준 로거로 교체
+    - Given: 실패하는 테스트가 존재
+    - When: batch-scheduler.ts의 모든 console.* 사용을 표준 로거로 교체
+    - Then: 테스트가 통과하고 로깅이 표준 로거를 통해 이루어짐
+  - [ ] 6.8 [TDD RED] triple-extraction-logger.ts의 console.* 제거를 위한 테스트 작성
+    - Given: src/infrastructure/logging/triple-extraction-logger.ts에 console.* 사용
+    - When: 표준 로거를 사용하는 코드에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 6.9 [TDD GREEN] triple-extraction-logger.ts의 console.*를 표준 로거로 교체
+    - Given: 실패하는 테스트가 존재
+    - When: triple-extraction-logger.ts의 모든 console.* 사용을 표준 로거로 교체
+    - Then: 테스트가 통과하고 로깅이 표준 로거를 통해 이루어짐
+  - [ ] 6.10 [확장] src/infrastructure/ 하위 기타 파일들의 console.* 순차 교체
+    - Given: 우선순위 파일들의 교체가 완료됨
+    - When: src/infrastructure/ 하위 기타 파일들의 console.*를 한 모듈씩 순차적으로 교체
+    - Then: 모든 파일의 console.*가 표준 로거로 교체됨
+  - [ ] 6.11 [설정] ESLint no-console 규칙 설정 (테스트/CLI 예외)
+    - Given: 모든 console.*가 표준 로거로 교체됨
+    - When: ESLint no-console 규칙을 활성화하고 테스트/CLI 예외 설정
+    - Then: ESLint 규칙이 올바르게 설정되고 경고 없음
+  - [ ] 6.12 [검증] Phase 6 완료 검증
+    - Given: Phase 6의 모든 작업이 완료됨
+    - When: scripts/count-console-logs.ts를 실행하여 console.log 개수 측정
+    - Then: 비테스트 코드에서 console.* 0개이고, 모든 로깅이 표준 로거를 통해 이루어지며, ESLint no-console 규칙 통과
+
+- [ ] 7.0 Phase 7: 중복 코드 제거 (우선순위: 낮음, 예상 기간: 1-2주)
+  - [ ] 7.1 [분석] ToolContext 생성 로직 중복 위치 파악
+    - Given: 여러 곳에서 ToolContext 생성 로직이 반복됨
+    - When: ToolContext를 생성하는 모든 파일을 찾아 패턴 분석
+    - Then: 중복 위치가 명확히 파악됨
+  - [ ] 7.2 [TDD RED] createToolContext 팩토리 함수 정의 및 테스트 작성
+    - Given: ToolContext 생성 로직이 여러 곳에서 중복됨
+    - When: createToolContext 팩토리 함수를 정의하고 테스트 작성
+    - Then: 함수가 명확히 정의되고 테스트가 실패 상태로 작성됨
+  - [ ] 7.3 [TDD GREEN] createToolContext 팩토리 함수 구현
+    - Given: createToolContext 함수 정의와 실패하는 테스트가 존재
+    - When: createToolContext 팩토리 함수를 구현
+    - Then: 테스트가 통과하고 ToolContext가 올바르게 생성됨
+  - [ ] 7.4 [TDD REFACTOR] 모든 ToolContext 생성 로직을 팩토리 함수로 교체
+    - Given: createToolContext 팩토리 함수가 구현됨
+    - When: 모든 ToolContext 생성 로직을 팩토리 함수 호출로 교체
+    - Then: 중복 코드가 제거되고 모든 기존 테스트 통과
+  - [ ] 7.5 [분석] 에러 처리 패턴 중복 위치 파악
+    - Given: 유사한 try-catch 블록이 여러 곳에 반복됨
+    - When: 에러 처리 패턴을 사용하는 모든 파일을 찾아 패턴 분석
+    - Then: 중복 위치가 명확히 파악됨
+  - [ ] 7.6 [TDD RED] withErrorHandling 공통 에러 핸들러 함수 정의 및 테스트 작성
+    - Given: 에러 처리 패턴이 여러 곳에서 중복됨
+    - When: withErrorHandling 공통 에러 핸들러 함수를 정의하고 테스트 작성
+    - Then: 함수가 명확히 정의되고 테스트가 실패 상태로 작성됨
+  - [ ] 7.7 [TDD GREEN] withErrorHandling 공통 에러 핸들러 함수 구현
+    - Given: withErrorHandling 함수 정의와 실패하는 테스트가 존재
+    - When: withErrorHandling 공통 에러 핸들러 함수를 구현
+    - Then: 테스트가 통과하고 에러가 올바르게 처리됨
+  - [ ] 7.8 [TDD REFACTOR] 모든 에러 처리 패턴을 공통 핸들러로 교체
+    - Given: withErrorHandling 공통 에러 핸들러 함수가 구현됨
+    - When: 모든 유사한 try-catch 블록을 withErrorHandling 호출로 교체
+    - Then: 중복 코드가 제거되고 모든 기존 테스트 통과
+  - [ ] 7.9 [검증] Phase 7 완료 검증
+    - Given: Phase 7의 모든 작업이 완료됨
+    - When: ToolContext 생성 위치와 에러 처리 패턴 사용 위치 확인
+    - Then: 중복 코드가 제거되고 모든 기존 테스트 통과
+
+- [ ] 8.0 Phase 8: 에러 처리 일관성 (우선순위: 낮음, 예상 기간: 1-2주)
+  - [ ] 8.1 [분석] 단순 throw만 하는 에러 발생 지점 파악
+    - Given: 일부 코드에서 단순 throw만 하고 구조화된 에러 로깅 미적용
+    - When: 단순 throw만 하는 모든 에러 발생 지점을 찾아 분석
+    - Then: 에러 발생 지점이 명확히 파악됨
+  - [ ] 8.2 [TDD RED] ErrorLoggingService를 통한 에러 로깅 테스트 작성
+    - Given: 단순 throw만 하는 에러 발생 지점이 파악됨
+    - When: ErrorLoggingService를 통한 구조화된 에러 로깅에 대한 테스트 작성
+    - Then: 테스트가 실패 상태로 작성됨
+  - [ ] 8.3 [TDD GREEN] 모든 에러 발생 지점에 ErrorLoggingService 적용
+    - Given: 실패하는 테스트가 존재
+    - When: 모든 에러 발생 지점에서 ErrorLoggingService를 통해 구조화된 에러 로깅 적용
+    - Then: 테스트가 통과하고 모든 에러가 구조화된 로깅을 통해 기록됨
+  - [ ] 8.4 [TDD REFACTOR] 커스텀 에러 클래스 활용 및 리팩토링
+    - Given: 모든 에러가 ErrorLoggingService를 통해 로깅됨
+    - When: 기존 커스텀 에러 클래스(AnchorError, MemoryNotFoundError 등)를 활용하고 필요 시 새로운 커스텀 에러 클래스 추가
+    - Then: 에러 처리가 일관되고 모든 기존 테스트 통과
+  - [ ] 8.5 [검증] Phase 8 완료 검증
+    - Given: Phase 8의 모든 작업이 완료됨
+    - When: 에러 발생 지점에서 ErrorLoggingService 사용률 확인
+    - Then: 모든 에러가 ErrorLoggingService를 통해 로깅되고 커스텀 에러 클래스가 활용되며 모든 기존 테스트 통과
+
+- [ ] 9.0 [최종 검증] 전체 Phase 완료 검증
+  - [ ] 9.1 [검증] 모든 Phase 완료 확인
+    - Given: 모든 Phase의 작업이 완료됨
+    - When: 각 Phase의 완료 조건을 확인
+    - Then: 모든 Phase가 완료 조건을 만족함
+  - [ ] 9.2 [검증] 성능 저하 없음 확인
+    - Given: 모든 리팩토링이 완료됨
+    - When: npm run test:performance 벤치마크를 실행하여 리팩토링 전후 성능 비교
+    - Then: 성능 저하가 ±5% 이내임
+  - [ ] 9.3 [검증] 전체 파이프라인 CI 게이트 통과
+    - Given: 모든 작업이 완료됨
+    - When: 전체 CI 파이프라인 실행 (lint, type-check, test, 측정 스크립트)
+    - Then: 모든 게이트가 통과함
+  - [ ] 9.4 [검증] 기존 기능 100% 유지 확인
+    - Given: 모든 리팩토링이 완료됨
+    - When: 모든 기존 테스트 실행 및 API 호환성 확인
+    - Then: 모든 기존 테스트 통과 및 API 호환성 100% 유지
