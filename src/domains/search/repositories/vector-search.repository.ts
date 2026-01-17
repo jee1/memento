@@ -13,6 +13,7 @@ import type { VectorSearchRepository } from '../../../shared/interfaces/database
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
 import { validateTableName, getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import type { SqlParam } from '../../../shared/types/index.js';
 
 export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   private db: Database.Database | null = null;
@@ -344,7 +345,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const hasTextQuery = textQuery && textQuery.trim().length > 0;
       
       let hybridQuery: string;
-      let params: any[];
+      let params: SqlParam[];
 
       if (hasTextQuery) {
         // 텍스트 검색과 벡터 검색 모두 사용

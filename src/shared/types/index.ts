@@ -18,6 +18,13 @@ export function isMemoryItemType(type: MemoryTypeRequest): type is MemoryType {
 
 export type PrivacyScope = 'private' | 'team' | 'public';
 
+/**
+ * SQL 파라미터 타입
+ * SQLite에서 지원하는 파라미터 타입을 정의합니다.
+ * better-sqlite3의 prepare() 메서드에서 사용할 수 있는 타입들입니다.
+ */
+export type SqlParam = string | number | boolean | null | Date;
+
 export interface MemoryItem {
   id: string;
   type: MemoryType;

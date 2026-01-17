@@ -12,6 +12,7 @@
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { logger } from '../../shared/utils/logger.js';
+import type { SqlParam } from '../../shared/types/index.js';
 
 /**
  * 품질 임계값 정보
@@ -138,7 +139,7 @@ export class QualityThresholdManager {
       FROM quality_thresholds
     `;
 
-    const params: any[] = [];
+    const params: SqlParam[] = [];
     const conditions: string[] = [];
 
     if (namespace) {

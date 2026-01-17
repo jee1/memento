@@ -25,6 +25,7 @@ import { logger } from '../shared/utils/logger.js';
 import { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
 import { MetaMemoryService } from '../services/meta-memory-service.js';
+import type { SqlParam } from '../shared/types/index.js';
 
 /**
  * 서버 서비스 집합 인터페이스
@@ -185,7 +186,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
           await DatabaseUtils.runTransaction(currentDb, async () => {
             for (const write of writes) {
               const updates: string[] = [];
-              const params: any[] = [];
+              const params: SqlParam[] = [];
 
               if (write.fields.recall_count !== undefined) {
                 updates.push('recall_count = ?');

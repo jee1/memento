@@ -3,7 +3,7 @@
  * 데이터베이스 조회 결과의 타입 안전성을 보장하기 위한 타입 가드 함수들
  */
 
-import type { MemoryType, PrivacyScope, MemoryItem } from '../types/index.js';
+import type { MemoryType, PrivacyScope, MemoryItem, SqlParam } from '../types/index.js';
 
 /**
  * 데이터베이스에서 조회한 메모리 행 타입
@@ -204,4 +204,21 @@ export function isMetadataRow(value: unknown): value is MetadataRow {
   }
   const row = value as Record<string, unknown>;
   return row.metadata === null || typeof row.metadata === 'string';
+}
+
+/**
+ * 타입 가드: SqlParam인지 확인
+ * SQLite에서 지원하는 파라미터 타입인지 검증합니다.
+ * 
+ * @param value 확인할 값
+ * @returns SqlParam 여부
+ */
+export function isSqlParam(value: unknown): value is SqlParam {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null ||
+    value instanceof Date
+  );
 }
