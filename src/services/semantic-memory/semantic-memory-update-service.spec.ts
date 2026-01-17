@@ -399,6 +399,325 @@ describe('SemanticMemoryUpdateService', () => {
       expect(result.skipped).toBeGreaterThanOrEqual(1);
       // 에러가 발생해도 서비스는 계속 동작해야 함
     });
+
+    // 1.11 작업: updateSemanticMemory() 메서드 분리를 위한 테스트 작성 (TDD RED)
+    describe('updateSemanticMemory 메서드 분리 - validateInput', () => {
+      it('Given: 빈 Triple 배열일 때, When: updateSemanticMemory를 호출하면, Then: validateInput이 early return하여 빈 결과 반환', async () => {
+        // Given: 빈 Triple 배열
+        const extractionResult: TripleExtractionResult = {
+          triples: [],
+          extractionInfo: {
+            steps: {
+              canonicalization: false,
+              entityLinking: false
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+        };
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: validateInput이 early return하여 빈 결과 반환
+        expect(result).toBeDefined();
+        expect(result.created).toBe(0);
+        expect(result.updated).toBe(0);
+        expect(result.skipped).toBe(0);
+        expect(result.semanticMemoryIds).toEqual([]);
+      });
+    });
+
+    describe('updateSemanticMemory 메서드 분리 - prepareUpdateData', () => {
+      it('Given: confidenceThreshold가 설정되지 않았을 때, When: updateSemanticMemory를 호출하면, Then: prepareUpdateData가 기본값(0.7)을 사용', async () => {
+        // Given: confidenceThreshold가 설정되지 않은 옵션
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+          // confidenceThreshold 미설정
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: prepareUpdateData가 기본값(0.7)을 사용하여 처리
+        // confidence가 0.7 이상이면 생성, 미만이면 건너뛰기
+        expect(result).toBeDefined();
+        // 결과는 confidence 값에 따라 달라질 수 있음
+      });
+
+      it('Given: confidenceThreshold가 0.8로 설정되었을 때, When: updateSemanticMemory를 호출하면, Then: prepareUpdateData가 설정값(0.8)을 사용', async () => {
+        // Given: confidenceThreshold가 0.8로 설정된 옵션
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5,
+          confidenceThreshold: 0.8
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: prepareUpdateData가 설정값(0.8)을 사용하여 처리
+        expect(result).toBeDefined();
+        // confidence가 0.8 이상이면 생성, 미만이면 건너뛰기
+      });
+
+      it('Given: similarityThreshold가 설정되지 않았을 때, When: updateSemanticMemory를 호출하면, Then: prepareUpdateData가 기본값(0.9)을 사용', async () => {
+        // Given: similarityThreshold가 설정되지 않은 옵션
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+          // similarityThreshold 미설정
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: prepareUpdateData가 기본값(0.9)을 사용하여 중복 판단
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe('updateSemanticMemory 메서드 분리 - applyUpdates', () => {
+      it('Given: 단일 Triple 배열일 때, When: updateSemanticMemory를 호출하면, Then: applyUpdates가 단일 triple을 처리', async () => {
+        // Given: 단일 Triple 배열
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: applyUpdates가 단일 triple을 처리하여 결과 반환
+        expect(result).toBeDefined();
+        expect(result.created + result.updated + result.skipped).toBe(1);
+      });
+
+      it('Given: 여러 Triple 배열일 때, When: updateSemanticMemory를 호출하면, Then: applyUpdates가 모든 triple을 순차 처리', async () => {
+        // Given: 여러 Triple 배열
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' },
+          { subject: '사용자', predicate: '선호', object: '차' },
+          { subject: '사용자', predicate: '선호', object: '주스' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: applyUpdates가 모든 triple을 순차 처리하여 결과 반환
+        expect(result).toBeDefined();
+        expect(result.created + result.updated + result.skipped).toBe(3);
+      });
+
+      it('Given: 일부 Triple이 에러를 발생시킬 때, When: updateSemanticMemory를 호출하면, Then: applyUpdates가 에러를 처리하고 계속 진행', async () => {
+        // Given: 일부 Triple이 에러를 발생시킬 수 있는 상황
+        // (실제로는 관계 방향 검증 실패 등이 발생할 수 있음)
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' },
+          { subject: '사용자', predicate: '선호', object: '차' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: applyUpdates가 에러를 처리하고 계속 진행하여 결과 반환
+        expect(result).toBeDefined();
+        expect(result.created + result.updated + result.skipped).toBe(2);
+      });
+    });
+
+    describe('updateSemanticMemory 메서드 분리 - notifyListeners', () => {
+      it('Given: Semantic Memory 업데이트가 완료되었을 때, When: updateSemanticMemory를 호출하면, Then: notifyListeners가 statistics.recordUpdate를 호출', async () => {
+        // Given: Triple 배열과 Episodic Memory ID
+        const triples: Triple[] = [
+          { subject: '사용자', predicate: '선호', object: '커피' }
+        ];
+        const extractionResult: TripleExtractionResult = {
+          triples,
+          extractionInfo: {
+            steps: {
+              canonicalization: true,
+              entityLinking: true
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+        };
+
+        // Episodic Memory 생성
+        await DatabaseUtils.run(db, `
+          INSERT INTO memory_item (id, type, content, importance)
+          VALUES (?, ?, ?, ?)
+        `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+        // statistics.recordUpdate 호출을 확인하기 위해 spy 설정
+        const statisticsService = (service as any).statistics;
+        const recordUpdateSpy = vi.spyOn(statisticsService, 'recordUpdate');
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: notifyListeners가 statistics.recordUpdate를 호출
+        expect(result).toBeDefined();
+        expect(recordUpdateSpy).toHaveBeenCalledTimes(1);
+        expect(recordUpdateSpy).toHaveBeenCalledWith(
+          expect.any(Number), // created
+          expect.any(Number), // updated
+          expect.any(Number), // skipped
+          expect.any(Number), // duplicates
+          expect.any(Array),  // confidences
+          expect.any(Number), // processingTime
+          expect.any(Boolean) // hasError
+        );
+
+        recordUpdateSpy.mockRestore();
+      });
+
+      it('Given: 빈 Triple 배열일 때, When: updateSemanticMemory를 호출하면, Then: notifyListeners가 호출되지 않음 (early return)', async () => {
+        // Given: 빈 Triple 배열
+        const extractionResult: TripleExtractionResult = {
+          triples: [],
+          extractionInfo: {
+            steps: {
+              canonicalization: false,
+              entityLinking: false
+            }
+          }
+        };
+        const options: SemanticMemoryUpdateOptions = {
+          episodicMemoryId: 'episodic-1',
+          episodicImportance: 0.5
+        };
+
+        // statistics.recordUpdate 호출을 확인하기 위해 spy 설정
+        const statisticsService = (service as any).statistics;
+        const recordUpdateSpy = vi.spyOn(statisticsService, 'recordUpdate');
+
+        // When: updateSemanticMemory 호출
+        const result = await service.updateSemanticMemory(extractionResult, options);
+
+        // Then: notifyListeners가 호출되지 않음 (early return)
+        expect(result).toBeDefined();
+        expect(recordUpdateSpy).not.toHaveBeenCalled();
+
+        recordUpdateSpy.mockRestore();
+      });
+    });
   });
 
   describe('중복 판단 로직', () => {

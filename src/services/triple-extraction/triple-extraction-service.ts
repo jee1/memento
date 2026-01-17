@@ -18,6 +18,8 @@ import { CacheService } from '../../infrastructure/cache/cache-service.js';
 import { PromptTemplateLoader } from '../../shared/utils/prompt-template-loader.js';
 import { PredicateCanonicalizer } from './predicate-canonicalizer.js';
 import { EntityLinker } from './entity-linker.js';
+import { TripleParser } from './triple-parser.js';
+import { TripleNormalizer } from './triple-normalizer.js';
 import { tripleExtractionLogger } from '../../infrastructure/logging/triple-extraction-logger.js';
 import { TripleCacheService } from '../../shared/utils/triple-cache.js';
 import { TripleExtractionStatisticsService } from './triple-extraction-statistics.js';
@@ -109,6 +111,8 @@ export class TripleExtractionService {
   private readonly costMetrics: LLMCostMetrics;
   private readonly canonicalizer: PredicateCanonicalizer;
   private readonly entityLinker: EntityLinker;
+  private readonly parser: TripleParser;
+  private readonly normalizer: TripleNormalizer;
   private readonly statistics: TripleExtractionStatisticsService; // PRD 8.1: Triple 추출 통계 수집
   private readonly retryManager: RetryManager;
 
@@ -141,6 +145,8 @@ export class TripleExtractionService {
     };
     this.canonicalizer = new PredicateCanonicalizer();
     this.entityLinker = new EntityLinker();
+    this.parser = new TripleParser();
+    this.normalizer = new TripleNormalizer(this.canonicalizer, this.entityLinker);
     // PRD 8.1: Triple 추출 통계 수집
     this.statistics = new TripleExtractionStatisticsService();
     // RetryManager 초기화 (외부 API 호출 재시도용)
@@ -355,7 +361,7 @@ export class TripleExtractionService {
       }
 
       // JSON 파싱 및 Triple 추출
-      const parseResult = this.parseLLMResponse(rawLLMOutput);
+      const parseResult = this.parser.parse(rawLLMOutput);
       if (parseResult.success) {
         triples = parseResult.triples;
         
@@ -403,8 +409,11 @@ export class TripleExtractionService {
       throw error; // 상위로 전파하여 llm_api_error로 처리
     }
 
-    // Triple 정규화 및 steps 추적
-    const steps = this.trackExtractionSteps(triples);
+    // Triple 정규화
+    const normalizedTriples = this.normalizer.normalize(triples);
+    
+    // 정규화된 Triple에 대한 steps 추적
+    const steps = this.trackExtractionSteps(normalizedTriples);
 
     // 성공 결과 생성
     // rawLLMOutput은 로그 파일에만 저장하므로 extractionInfo에는 포함하지 않음
@@ -416,7 +425,7 @@ export class TripleExtractionService {
 
     return {
       result: {
-        triples,
+        triples: normalizedTriples,
         extractionInfo
       },
       rawLLMOutput
@@ -720,126 +729,6 @@ export class TripleExtractionService {
     }
   }
 
-  /**
-   * LLM 응답을 파싱하여 Triple 배열 추출
-   * 
-   * @param responseText LLM 원본 응답 텍스트
-   * @returns 파싱 결과 (success, triples, error)
-   */
-  private parseLLMResponse(responseText: string): { success: boolean; triples: Triple[]; error?: string; errorType?: 'parse' | 'structure' | 'no_triple' } {
-    try {
-      // JSON 추출 (마크다운 코드 블록 제거)
-      let jsonText = this.extractJSON(responseText);
-      if (!jsonText) {
-        jsonText = responseText.trim();
-      }
-
-      // JSON 파싱
-      const parsed = JSON.parse(jsonText);
-
-      // triples 배열 추출
-      if (!parsed.triples || !Array.isArray(parsed.triples)) {
-        return {
-          success: false,
-          triples: [],
-          error: 'triples 배열이 없거나 유효하지 않습니다.',
-          errorType: 'parse'
-        };
-      }
-
-      // Triple 유효성 검증
-      const validTriples: Triple[] = [];
-      
-      for (const triple of parsed.triples) {
-        if (this.isValidTriple(triple)) {
-          validTriples.push({
-            subject: String(triple.subject).trim(),
-            predicate: String(triple.predicate).trim(),
-            object: String(triple.object).trim()
-          });
-        }
-      }
-
-      // 모든 triple이 유효하지 않은 경우
-      if (validTriples.length === 0 && parsed.triples.length > 0) {
-        return {
-          success: false,
-          triples: [],
-          error: '모든 triple이 유효하지 않습니다.',
-          errorType: 'no_triple'
-        };
-      }
-
-      // 일부 triple만 유효한 경우 (유효한 것만 반환, ambiguous_structure는 별도 감지)
-      // 대부분이 유효하지 않으면 ambiguous_structure로 분류
-      const invalidRatio = (parsed.triples.length - validTriples.length) / parsed.triples.length;
-      if (invalidRatio > 0.5 && parsed.triples.length > 1) {
-        // 유효한 triple은 반환하되, 구조가 모호함을 표시
-        return {
-          success: true,
-          triples: validTriples,
-          error: `일부 triple이 유효하지 않습니다. (유효: ${validTriples.length}/${parsed.triples.length})`,
-          errorType: 'structure'
-        };
-      }
-
-      return {
-        success: true,
-        triples: validTriples
-      };
-    } catch (error) {
-      return {
-        success: false,
-        triples: [],
-        error: error instanceof Error ? error.message : 'JSON 파싱 실패',
-        errorType: 'parse'
-      };
-    }
-  }
-
-  /**
-   * JSON 텍스트에서 JSON 객체 추출
-   */
-  private extractJSON(text: string): string | null {
-    if (!text || typeof text !== 'string') {
-      return null;
-    }
-
-    let jsonText = text.trim();
-
-    // 마크다운 코드 블록 제거
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```.*$/s, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```.*$/s, '');
-    }
-
-    // 첫 번째 '{'부터 마지막 '}'까지 추출
-    const firstBrace = jsonText.indexOf('{');
-    const lastBrace = jsonText.lastIndexOf('}');
-
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-      return null;
-    }
-
-    return jsonText.substring(firstBrace, lastBrace + 1).trim();
-  }
-
-  /**
-   * Triple 유효성 검증
-   */
-  private isValidTriple(triple: any): boolean {
-    return (
-      triple &&
-      typeof triple === 'object' &&
-      typeof triple.subject === 'string' &&
-      typeof triple.predicate === 'string' &&
-      typeof triple.object === 'string' &&
-      triple.subject.trim().length > 0 &&
-      triple.predicate.trim().length > 0 &&
-      triple.object.trim().length > 0
-    );
-  }
 
   /**
    * 비용 메트릭 업데이트

@@ -192,87 +192,134 @@ export class SemanticMemoryUpdateService {
     options: SemanticMemoryUpdateOptions
   ): Promise<SemanticMemoryUpdateResult> {
     const processingStartTime = Date.now(); // PRD 8.2: 처리 시간 측정 시작
-    const result: SemanticMemoryUpdateResult = {
-      created: 0,
-      updated: 0,
-      skipped: 0,
-      semanticMemoryIds: []
-    };
-
-    // Triple이 없으면 건너뛰기
-    if (extractionResult.triples.length === 0) {
-      return result;
+    
+    // Given: 입력 검증
+    const validationResult = this.validateInput(extractionResult);
+    if (validationResult) {
+      return validationResult;
     }
 
-    const confidenceThreshold = options.confidenceThreshold ?? this.DEFAULT_CONFIDENCE_THRESHOLD;
-    const similarityThreshold = options.similarityThreshold ?? this.DEFAULT_SIMILARITY_THRESHOLD;
-    const confidences: number[] = []; // PRD 8.2: Confidence 통계 수집
-    let hasError = false; // PRD 8.2: 에러 발생 여부 추적
+    // Given: 업데이트 데이터 준비
+    const preparedData = this.prepareUpdateData(options);
+    
+    // When: 각 Triple 처리
+    const { result, confidences, hasError } = await this.applyUpdates(
+      extractionResult,
+      options,
+      preparedData
+    );
+
+    // Then: 통계 수집 및 리스너 알림
+    this.notifyListeners(
+      result,
+      extractionResult.triples.length,
+      confidences,
+      processingStartTime,
+      hasError
+    );
+
+    return result;
+  }
+
+  /**
+   * 입력 검증
+   * 
+   * Given: extractionResult가 주어졌을 때
+   * When: triples 배열이 비어있는지 검증
+   * Then: 비어있으면 빈 결과 반환, 아니면 null 반환
+   * 
+   * @param extractionResult Triple 추출 결과
+   * @returns 빈 결과 또는 null
+   */
+  private validateInput(
+    extractionResult: TripleExtractionResult
+  ): SemanticMemoryUpdateResult | null {
+    if (extractionResult.triples.length === 0) {
+      return {
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        semanticMemoryIds: []
+      };
+    }
+    return null;
+  }
+
+  /**
+   * 업데이트 데이터 준비
+   * 
+   * Given: options가 주어졌을 때
+   * When: 임계값 설정 및 초기 데이터 준비
+   * Then: 준비된 데이터 반환
+   * 
+   * @param options 업데이트 옵션
+   * @returns 준비된 데이터
+   */
+  private prepareUpdateData(options: SemanticMemoryUpdateOptions): {
+    confidenceThreshold: number;
+    similarityThreshold: number;
+    result: SemanticMemoryUpdateResult;
+    confidences: number[];
+    hasError: boolean;
+  } {
+    return {
+      confidenceThreshold: options.confidenceThreshold ?? this.DEFAULT_CONFIDENCE_THRESHOLD,
+      similarityThreshold: options.similarityThreshold ?? this.DEFAULT_SIMILARITY_THRESHOLD,
+      result: {
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        semanticMemoryIds: []
+      },
+      confidences: [],
+      hasError: false
+    };
+  }
+
+  /**
+   * 각 Triple 처리
+   * 
+   * Given: extractionResult, options, preparedData가 주어졌을 때
+   * When: 각 triple을 순차적으로 처리
+   * Then: 처리 결과 반환
+   * 
+   * @param extractionResult Triple 추출 결과
+   * @param options 업데이트 옵션
+   * @param preparedData 준비된 데이터
+   * @returns 처리 결과
+   */
+  private async applyUpdates(
+    extractionResult: TripleExtractionResult,
+    options: SemanticMemoryUpdateOptions,
+    preparedData: {
+      confidenceThreshold: number;
+      similarityThreshold: number;
+      result: SemanticMemoryUpdateResult;
+      confidences: number[];
+      hasError: boolean;
+    }
+  ): Promise<{
+    result: SemanticMemoryUpdateResult;
+    confidences: number[];
+    hasError: boolean;
+  }> {
+    const { confidenceThreshold, similarityThreshold, result, confidences } = preparedData;
+    let hasError = false;
 
     // 각 Triple에 대해 Semantic Memory 생성/업데이트
     for (const triple of extractionResult.triples) {
       try {
-        // Confidence 계산 (구조적 검증 기반, PRD 2.4 참고)
-        const confidence = this.calculateConfidence(triple, extractionResult.extractionInfo);
+        const processed = await this.processSingleTriple(
+          triple,
+          extractionResult.extractionInfo,
+          options,
+          confidenceThreshold,
+          similarityThreshold,
+          result
+        );
         
         // PRD 8.2: Confidence 통계 수집
-        confidences.push(confidence);
-        
-        // PRD 2.4: 신뢰도가 일정 수준 이상인 경우만 Semantic Memory 생성
-        // Confidence 임계값 필터링 (기본값: 0.7, 설정 가능)
-        if (confidence < confidenceThreshold) {
-          result.skipped++;
-          logger.debug('SemanticMemoryUpdateService: Confidence가 임계값 미만', {
-            triple,
-            confidence,
-            threshold: confidenceThreshold,
-            reason: 'confidence_below_threshold'
-          });
-          continue;
-        }
-
-        // 중복 Semantic Memory 검색 (PRD 2.2 참고)
-        const duplicate = await this.findDuplicateSemanticMemory(triple, similarityThreshold);
-
-        if (duplicate) {
-          // PRD 2.3: 유사도가 임계값 이상인 경우 새로운 항목을 생성하지 않고 기존 항목 업데이트 (병합)
-          // 완전히 동일한 Semantic Memory는 생성하지 않음
-          await this.updateExistingSemanticMemory(duplicate.id, triple, options, confidence);
-          result.updated++;
-          result.semanticMemoryIds.push(duplicate.id);
-        } else {
-          // 새로운 Semantic Memory 생성 (중복이 없는 경우)
-          const semanticMemoryId = await this.createSemanticMemory(triple, options, confidence);
-          result.created++;
-          result.semanticMemoryIds.push(semanticMemoryId);
-        }
-
-        // Episodic-Edge 관계 생성 (각 triple마다 별도 relation)
-        // 관계 방향 검증은 createEpisodicEdge 내부에서 수행되지만,
-        // 방향 검증 실패는 상위로 전파되어야 함
-        try {
-          const semanticMemoryId = duplicate?.id || result.semanticMemoryIds[result.semanticMemoryIds.length - 1];
-          if (!semanticMemoryId) {
-            throw new Error('Semantic memory ID is required for creating episodic edge');
-          }
-          await this.createEpisodicEdge(
-            options.episodicMemoryId,
-            semanticMemoryId,
-            triple,
-            extractionResult.extractionInfo,
-            confidence
-          );
-        } catch (edgeError) {
-          // 관계 방향 검증 실패는 상위로 전파
-          if (edgeError instanceof Error && edgeError.message.includes('관계 방향 오류')) {
-            throw edgeError;
-          }
-          // 기타 관계 생성 실패는 무시 (Semantic Memory 생성에는 영향 없음)
-          logger.warn('SemanticMemoryUpdateService: 관계 생성 실패 (무시)', {
-            error: edgeError instanceof Error ? edgeError.message : String(edgeError),
-            triple
-          });
-        }
+        confidences.push(processed.confidence);
       } catch (error) {
         // PRD 8.2: 에러 통계 수집
         hasError = true;
@@ -290,9 +337,117 @@ export class SemanticMemoryUpdateService {
       }
     }
 
+    return { result, confidences, hasError };
+  }
+
+  /**
+   * 단일 Triple 처리
+   * 
+   * Given: triple, extractionInfo, options, 임계값들이 주어졌을 때
+   * When: 단일 triple을 처리하여 Semantic Memory 생성/업데이트
+   * Then: 처리 결과 반환
+   * 
+   * @param triple 처리할 Triple
+   * @param extractionInfo 추출 정보
+   * @param options 업데이트 옵션
+   * @param confidenceThreshold Confidence 임계값
+   * @param similarityThreshold 유사도 임계값
+   * @param result 결과 객체 (수정됨)
+   * @returns 처리된 confidence
+   */
+  private async processSingleTriple(
+    triple: Triple,
+    extractionInfo: ExtractionInfo,
+    options: SemanticMemoryUpdateOptions,
+    confidenceThreshold: number,
+    similarityThreshold: number,
+    result: SemanticMemoryUpdateResult
+  ): Promise<{ confidence: number }> {
+    // Confidence 계산 (구조적 검증 기반, PRD 2.4 참고)
+    const confidence = this.calculateConfidence(triple, extractionInfo);
+    
+    // PRD 2.4: 신뢰도가 일정 수준 이상인 경우만 Semantic Memory 생성
+    // Confidence 임계값 필터링 (기본값: 0.7, 설정 가능)
+    if (confidence < confidenceThreshold) {
+      result.skipped++;
+      logger.debug('SemanticMemoryUpdateService: Confidence가 임계값 미만', {
+        triple,
+        confidence,
+        threshold: confidenceThreshold,
+        reason: 'confidence_below_threshold'
+      });
+      return { confidence };
+    }
+
+    // 중복 Semantic Memory 검색 (PRD 2.2 참고)
+    const duplicate = await this.findDuplicateSemanticMemory(triple, similarityThreshold);
+
+    if (duplicate) {
+      // PRD 2.3: 유사도가 임계값 이상인 경우 새로운 항목을 생성하지 않고 기존 항목 업데이트 (병합)
+      // 완전히 동일한 Semantic Memory는 생성하지 않음
+      await this.updateExistingSemanticMemory(duplicate.id, triple, options, confidence);
+      result.updated++;
+      result.semanticMemoryIds.push(duplicate.id);
+    } else {
+      // 새로운 Semantic Memory 생성 (중복이 없는 경우)
+      const semanticMemoryId = await this.createSemanticMemory(triple, options, confidence);
+      result.created++;
+      result.semanticMemoryIds.push(semanticMemoryId);
+    }
+
+    // Episodic-Edge 관계 생성 (각 triple마다 별도 relation)
+    // 관계 방향 검증은 createEpisodicEdge 내부에서 수행되지만,
+    // 방향 검증 실패는 상위로 전파되어야 함
+    try {
+      const semanticMemoryId = duplicate?.id || result.semanticMemoryIds[result.semanticMemoryIds.length - 1];
+      if (!semanticMemoryId) {
+        throw new Error('Semantic memory ID is required for creating episodic edge');
+      }
+      await this.createEpisodicEdge(
+        options.episodicMemoryId,
+        semanticMemoryId,
+        triple,
+        extractionInfo,
+        confidence
+      );
+    } catch (edgeError) {
+      // 관계 방향 검증 실패는 상위로 전파
+      if (edgeError instanceof Error && edgeError.message.includes('관계 방향 오류')) {
+        throw edgeError;
+      }
+      // 기타 관계 생성 실패는 무시 (Semantic Memory 생성에는 영향 없음)
+      logger.warn('SemanticMemoryUpdateService: 관계 생성 실패 (무시)', {
+        error: edgeError instanceof Error ? edgeError.message : String(edgeError),
+        triple
+      });
+    }
+
+    return { confidence };
+  }
+
+  /**
+   * 통계 수집 및 리스너 알림
+   * 
+   * Given: 처리 결과가 주어졌을 때
+   * When: 통계를 수집하고 리스너에게 알림
+   * Then: statistics.recordUpdate가 호출됨
+   * 
+   * @param result 처리 결과
+   * @param totalTriples 전체 Triple 개수
+   * @param confidences Confidence 배열
+   * @param processingStartTime 처리 시작 시간
+   * @param hasError 에러 발생 여부
+   */
+  private notifyListeners(
+    result: SemanticMemoryUpdateResult,
+    totalTriples: number,
+    confidences: number[],
+    processingStartTime: number,
+    hasError: boolean
+  ): void {
     // PRD 8.2: Semantic Memory 생성 통계 수집
     const processingTime = Date.now() - processingStartTime;
-    const duplicates = extractionResult.triples.length - (result.created + result.updated + result.skipped);
+    const duplicates = totalTriples - (result.created + result.updated + result.skipped);
     this.statistics.recordUpdate(
       result.created,
       result.updated,
@@ -302,8 +457,6 @@ export class SemanticMemoryUpdateService {
       processingTime,
       hasError
     );
-
-    return result;
   }
 
   /**
