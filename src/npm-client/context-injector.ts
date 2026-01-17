@@ -163,8 +163,11 @@ export class ContextInjector {
 
     // 중요도와 점수 기준으로 정렬
     const sortedMemories = memories.sort((a, b) => {
-      const scoreA = (a as any).score || 0;
-      const scoreB = (b as any).score || 0;
+      // MemoryItem에 score 필드가 없을 수 있으므로 타입 확장 사용
+      const itemA = a as MemoryItem & { score?: number };
+      const itemB = b as MemoryItem & { score?: number };
+      const scoreA = itemA.score || 0;
+      const scoreB = itemB.score || 0;
       return (scoreB + a.importance) - (scoreA + b.importance);
     });
 

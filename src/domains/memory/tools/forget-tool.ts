@@ -196,7 +196,8 @@ export class ForgetTool extends BaseTool {
       
     } catch (error) {
       // 데이터베이스 락 문제 처리
-      if ((error as any).code === 'SQLITE_BUSY') {
+        const errorWithCode = error as { code?: string };
+        if (errorWithCode.code === 'SQLITE_BUSY') {
         await this.handleDatabaseLock(context);
       }
       throw error;

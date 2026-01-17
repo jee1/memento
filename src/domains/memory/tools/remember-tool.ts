@@ -1095,7 +1095,8 @@ export class RememberTool extends BaseTool {
         });
       } catch (error) {
         // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도
-        if ((error as any).code === 'SQLITE_BUSY') {
+        const errorWithCode = error as { code?: string };
+        if (errorWithCode.code === 'SQLITE_BUSY') {
           try {
             await DatabaseUtils.checkpointWAL(context.db);
           } catch (checkpointError) {

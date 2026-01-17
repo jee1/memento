@@ -115,10 +115,14 @@ export class MemoryInjectionPrompt extends BaseTool {
       // 1. 관련 기억 검색
       // importance_min은 MemorySearchFilters에 없으므로 제거
       // importance 필터링은 검색 후 별도로 처리하거나 다른 방법 사용
+      // filteredMemoryTypes는 이미 validMemoryTypes로 변환되어 MemoryType[] 타입
+      const finalMemoryTypes: MemoryType[] | undefined = filteredMemoryTypes && filteredMemoryTypes.length > 0 
+        ? (filteredMemoryTypes.length === 4 ? undefined : filteredMemoryTypes as MemoryType[])
+        : undefined;
       const searchResult = await context.services.hybridSearchEngine.search(context.db, {
         query,
         filters: {
-          type: filteredMemoryTypes.length === 4 ? undefined : filteredMemoryTypes as any
+          type: finalMemoryTypes
         },
         limit: max_memories * 2, // 더 많은 후보를 가져와서 요약
         vectorWeight: 0.7, // 의미적 유사성에 더 중점

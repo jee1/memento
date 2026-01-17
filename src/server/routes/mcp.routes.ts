@@ -88,7 +88,8 @@ export function createMcpRouter(
       });
 
       req.on('error', (error) => {
-        if ((error as any).code === 'ECONNRESET') {
+        const errorWithCode = error as { code?: string };
+        if (errorWithCode.code === 'ECONNRESET') {
           logger.info('MCP SSE client connection closed (normal)', { sessionId });
         } else {
           logger.error('MCP SSE connection error', {
