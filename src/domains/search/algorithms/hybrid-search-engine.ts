@@ -791,7 +791,7 @@ export class HybridSearchEngine {
   ): VectorSearchResult[] {
     const resultsByProvider = this.groupResultsByProvider(allResults);
     const normalizedResults = this.normalizeResultsByProvider(resultsByProvider);
-    const deduplicatedResults = this.deduplicateResults(normalizedResults);
+    const deduplicatedResults = this.deduplicateNormalizedResults(normalizedResults);
     return this.rankResults(deduplicatedResults);
   }
 
@@ -856,8 +856,9 @@ export class HybridSearchEngine {
 
   /**
    * 중복 제거 (memory_id 기준, 정규화된 점수 중 최고 점수만 유지)
+   * Provider별 정규화된 결과를 처리하는 전용 메서드입니다.
    */
-  private deduplicateResults(
+  private deduplicateNormalizedResults(
     normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
   ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
     const resultMap = new Map<string, VectorSearchResult & { provider: string; normalizedScore: number }>();
@@ -1050,6 +1051,154 @@ export class HybridSearchEngine {
     }
   }
 
+  /**
+   * Given: 검색 결과들과 관계 가중치, 통합 점수, Procedural Memory 매칭 정보
+   * When: normalizeScores()가 호출됨
+   * Then: 각 결과의 finalScore가 정규화됨
+   * 
+   * 점수 정규화 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
+   */
+  /**
+   * Given: 텍스트 검색 결과와 벡터 검색 결과, 가중치
+   * When: mergeResults()가 호출됨
+   * Then: 결과가 올바르게 병합됨
+   * 
+   * 결과 병합 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
+   */
+  /**
+   * Given: 중복된 ID를 가진 검색 결과 배열
+   * When: deduplicateResults()가 호출됨
+   * Then: 중복이 제거되고 더 높은 finalScore를 가진 결과가 유지됨
+   * 
+   * 중복 제거 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
+   * 방어적 프로그래밍 차원에서 추가적인 중복 제거를 수행합니다.
+   */
+  private deduplicateResults(results: HybridSearchResult[]): HybridSearchResult[] {
+    const resultMap = new Map<string, HybridSearchResult>();
+    
+    results.forEach(result => {
+      const existing = resultMap.get(result.id);
+      
+      if (!existing) {
+        // 새로운 결과이면 추가
+        resultMap.set(result.id, result);
+      } else {
+        // 중복된 ID가 있으면 더 높은 finalScore를 가진 결과를 유지
+        if (result.finalScore > existing.finalScore) {
+          resultMap.set(result.id, result);
+        }
+      }
+    });
+    
+    return Array.from(resultMap.values());
+  }
+
+  /**
+   * Given: 검색 결과 배열
+   * When: sortByFinalScore()가 호출됨
+   * Then: 결과가 finalScore 내림차순으로 정렬됨
+   * 
+   * 정렬 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
+   */
+  private sortByFinalScore(results: HybridSearchResult[]): HybridSearchResult[] {
+    return [...results].sort((a, b) => b.finalScore - a.finalScore);
+  }
+
+  private mergeResults(
+    textResults: any[],
+    vectorResults: VectorSearchResult[],
+    weights: { textWeight: number; vectorWeight: number }
+  ): HybridSearchResult[] {
+    return this.resultCombiner.combine(
+      textResults,
+      vectorResults,
+      weights.textWeight,
+      weights.vectorWeight
+    );
+  }
+
+  private normalizeScores(
+    results: HybridSearchResult[],
+    relationWeights: Map<string, number>,
+    relationInfo: Map<string, any[]>,
+    consolidationScores: Map<string, number>,
+    proceduralMemoryMatches: Map<string, any>,
+    includeRelations: boolean
+  ): void {
+    results.forEach(result => {
+      const relationWeight = relationWeights.get(result.id);
+      
+      // relationGraph가 있고 실제 관계가 존재하는 경우에만 관계 가중치를 설정하여 정확성을 보장합니다.
+      if (relationWeight !== undefined && relationWeight > 0) {
+        result.relation_weight = relationWeight;
+      }
+      
+      // 사용자가 요청한 경우에만 관계 정보를 포함하여 상세한 분석을 지원합니다.
+      if (includeRelations) {
+        const relations = relationInfo.get(result.id);
+        if (relations && relations.length > 0) {
+          result.relations = relations.map(r => ({
+            target_id: r.target_id,
+            relation_type: r.relation_type,
+            confidence: r.confidence
+          }));
+        }
+      }
+      
+      // Procedural Memory 매칭 정보 가져오기
+      const proceduralMatch = proceduralMemoryMatches.get(result.id);
+      
+      const consolidationScore = consolidationScores.get(result.id);
+      
+      if (consolidationScore !== undefined) {
+        // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
+        result.consolidation_score = consolidationScore;
+        const vectorSimilarity = result.vectorScore;
+        
+        // Procedural Memory 특화 가중치를 포함한 SearchFeatures 구성
+        const features = {
+          relevance: vectorSimilarity,
+          recency: this.calculateRecency(result.created_at),
+          importance: result.importance || 0.5,
+          usage: this.calculateUsage(result.last_accessed),
+          relation_weight: relationWeight || 0,
+          duplication_penalty: 0,
+          consolidation_score: consolidationScore,
+          workflow_name_match: proceduralMatch?.workflow_name_match || false,
+          skill_name_match: proceduralMatch?.skill_name_match || false,
+          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
+        };
+        
+        // calculateFinalScoreWithConsolidation 대신 calculateFinalScore 사용 (procedural memory boost 포함)
+        result.finalScore = this.ranking.calculateFinalScore(features);
+      } else {
+        // 관계 가중치를 포함한 finalScore 재계산
+        // SearchFeatures 구성 (Procedural Memory 특화 가중치 포함)
+        const features = {
+          relevance: result.vectorScore || result.textScore || 0,
+          recency: this.calculateRecency(result.created_at),
+          importance: result.importance || 0.5,
+          usage: this.calculateUsage(result.last_accessed),
+          relation_weight: relationWeight || 0, // relationWeight가 undefined면 0 사용
+          duplication_penalty: 0, // 중복 패널티는 이미 결과 결합 시 처리됨
+          workflow_name_match: proceduralMatch?.workflow_name_match || false,
+          skill_name_match: proceduralMatch?.skill_name_match || false,
+          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
+        };
+        
+        result.finalScore = this.ranking.calculateFinalScore(features);
+      }
+    });
+  }
+
+  /**
+   * Given: 텍스트 검색 결과, 벡터 검색 결과, 가중치, 제한 개수, 데이터베이스, 옵션
+   * When: combineAndSortResults()가 호출됨
+   * Then: 병합, 정규화, 중복 제거, 정렬된 검색 결과를 반환함
+   * 
+   * 검색 결과를 병합하고 정렬하는 메인 메서드입니다.
+   * 분리된 메서드들(mergeResults, normalizeScores, deduplicateResults, sortByFinalScore)을 조합하여 사용합니다.
+   */
   private async combineAndSortResults(
     textResults: any[], 
     vectorResults: VectorSearchResult[], 
@@ -1060,14 +1209,14 @@ export class HybridSearchEngine {
     query?: HybridSearchQuery
   ): Promise<HybridSearchResult[]> {
     try {
-      const combinedResults = this.resultCombiner.combine(
+      // Step 1: 결과 병합
+      const combinedResults = this.mergeResults(
         textResults,
         vectorResults,
-        weights.textWeight,
-        weights.vectorWeight
+        weights
       );
       
-      // 관계 그래프와 통합 점수를 활용하여 더 정교한 관련성 평가를 수행합니다.
+      // Step 2: 관계 그래프와 통합 점수를 활용하여 더 정교한 관련성 평가를 수행합니다.
       if (db) {
         const memoryIds = combinedResults.map(r => r.id);
         if (memoryIds.length > 0) {
@@ -1085,77 +1234,26 @@ export class HybridSearchEngine {
           // Procedural Memory 특화 가중치를 위한 매칭 정보 조회
           const proceduralMemoryMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(db, memoryIds, query);
           
-          // 관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산합니다.
-          combinedResults.forEach(result => {
-            const relationWeight = relationWeights.get(result.id);
-            
-            // relationGraph가 있고 실제 관계가 존재하는 경우에만 관계 가중치를 설정하여 정확성을 보장합니다.
-            if (relationWeight !== undefined && relationWeight > 0) {
-              result.relation_weight = relationWeight;
-            }
-            
-            // 사용자가 요청한 경우에만 관계 정보를 포함하여 상세한 분석을 지원합니다.
-            if (includeRelations) {
-              const relations = relationInfo.get(result.id);
-              if (relations && relations.length > 0) {
-                result.relations = relations.map(r => ({
-                  target_id: r.target_id,
-                  relation_type: r.relation_type,
-                  confidence: r.confidence
-                }));
-              }
-            }
-            
-            // Procedural Memory 매칭 정보 가져오기
-            const proceduralMatch = proceduralMemoryMatches.get(result.id);
-            
-            const consolidationScore = consolidationScores.get(result.id);
-            
-            if (consolidationScore !== undefined) {
-              // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
-              result.consolidation_score = consolidationScore;
-              const vectorSimilarity = result.vectorScore;
-              
-              // Procedural Memory 특화 가중치를 포함한 SearchFeatures 구성
-              const features = {
-                relevance: vectorSimilarity,
-                recency: this.calculateRecency(result.created_at),
-                importance: result.importance || 0.5,
-                usage: this.calculateUsage(result.last_accessed),
-                relation_weight: relationWeight || 0,
-                duplication_penalty: 0,
-                consolidation_score: consolidationScore,
-                workflow_name_match: proceduralMatch?.workflow_name_match || false,
-                skill_name_match: proceduralMatch?.skill_name_match || false,
-                trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
-              };
-              
-              // calculateFinalScoreWithConsolidation 대신 calculateFinalScore 사용 (procedural memory boost 포함)
-              result.finalScore = this.ranking.calculateFinalScore(features);
-            } else {
-              // 관계 가중치를 포함한 finalScore 재계산
-              // SearchFeatures 구성 (Procedural Memory 특화 가중치 포함)
-              const features = {
-                relevance: result.vectorScore || result.textScore || 0,
-                recency: this.calculateRecency(result.created_at),
-                importance: result.importance || 0.5,
-                usage: this.calculateUsage(result.last_accessed),
-                relation_weight: relationWeight || 0, // relationWeight가 undefined면 0 사용
-                duplication_penalty: 0, // 중복 패널티는 이미 결과 결합 시 처리됨
-                workflow_name_match: proceduralMatch?.workflow_name_match || false,
-                skill_name_match: proceduralMatch?.skill_name_match || false,
-                trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
-              };
-              
-              result.finalScore = this.ranking.calculateFinalScore(features);
-            }
-          });
+          // Step 3: 점수 정규화 (관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산)
+          this.normalizeScores(
+            combinedResults,
+            relationWeights,
+            relationInfo,
+            consolidationScores,
+            proceduralMemoryMatches,
+            includeRelations
+          );
         }
       }
       
-      return combinedResults
-        .sort((a, b) => b.finalScore - a.finalScore)
-        .slice(0, limit);
+      // Step 4: 중복 제거 (방어적 프로그래밍)
+      const deduplicatedResults = this.deduplicateResults(combinedResults);
+      
+      // Step 5: finalScore 기준 내림차순 정렬
+      const sortedResults = this.sortByFinalScore(deduplicatedResults);
+      
+      // Step 6: 제한 개수만큼 반환
+      return sortedResults.slice(0, limit);
     } catch (error) {
       throw new SearchError(
         SearchErrorType.RESULT_COMBINATION_FAILED,
