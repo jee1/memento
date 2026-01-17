@@ -41,18 +41,6 @@ describe('PerformanceStatsTool', () => {
           memoryUsage: 512 * 1024 * 1024 // 512MB
         }
       }),
-      generateReport: vi.fn().mockResolvedValue({
-        summary: {
-          overallScore: 0.85,
-          recommendations: ['Optimize slow queries', 'Increase cache size']
-        },
-        details: {
-          database: { status: 'good' },
-          search: { status: 'good' },
-          memory: { status: 'normal' },
-          system: { status: 'good' }
-        }
-      })
     };
     
     context = {
@@ -82,7 +70,6 @@ describe('PerformanceStatsTool', () => {
       expect(resultData.metrics).toHaveProperty('search');
       expect(resultData.metrics).toHaveProperty('memory');
       expect(resultData.metrics).toHaveProperty('system');
-      expect(resultData).toHaveProperty('report');
       expect(resultData).toHaveProperty('message', '성능 통계 조회 완료');
     });
 
@@ -128,25 +115,12 @@ describe('PerformanceStatsTool', () => {
       expect(resultData.metrics.system).toHaveProperty('memoryUsage');
     });
 
-    it('성능 리포트를 포함해야 함', async () => {
-      // When: 성능 통계 조회
-      const result = await tool.handle({}, context);
-
-      // Then: 리포트가 포함되어야 함
-      const resultData = JSON.parse(result.content[0].text);
-      expect(resultData.report).toHaveProperty('summary');
-      expect(resultData.report).toHaveProperty('details');
-      expect(resultData.report.summary).toHaveProperty('overallScore');
-      expect(resultData.report.summary).toHaveProperty('recommendations');
-    });
-
-    it('collectMetrics와 generateReport를 호출해야 함', async () => {
+    it('collectMetrics를 호출해야 함', async () => {
       // When: 성능 통계 조회
       await tool.handle({}, context);
 
-      // Then: 두 메서드가 호출되어야 함
+      // Then: collectMetrics 메서드가 호출되어야 함
       expect(mockPerformanceMonitor.collectMetrics).toHaveBeenCalledTimes(1);
-      expect(mockPerformanceMonitor.generateReport).toHaveBeenCalledTimes(1);
     });
   });
 

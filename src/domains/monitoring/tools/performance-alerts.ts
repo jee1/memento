@@ -112,6 +112,9 @@ export async function executePerformanceAlerts(args: any, context: ToolContext) 
 }
 
 async function handleStats(context: ToolContext, hours: number) {
+  if (!context.services.performanceAlertService) {
+    throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+  }
   const stats = context.services.performanceAlertService.getAlertStats(hours);
   
   return {
@@ -141,6 +144,9 @@ async function handleStats(context: ToolContext, hours: number) {
 }
 
 async function handleList(context: ToolContext, hours: number, limit: number) {
+  if (!context.services.performanceAlertService) {
+    throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+  }
   const activeAlerts = context.services.performanceAlertService.getActiveAlerts();
   const recentAlerts = context.services.performanceAlertService.searchAlerts({
     startDate: new Date(Date.now() - hours * 60 * 60 * 1000),
@@ -176,6 +182,9 @@ async function handleList(context: ToolContext, hours: number, limit: number) {
 }
 
 async function handleSearch(context: ToolContext, filters: any) {
+  if (!context.services.performanceAlertService) {
+    throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+  }
   const alerts = context.services.performanceAlertService.searchAlerts(filters);
 
   return {
@@ -203,6 +212,10 @@ async function handleResolve(context: ToolContext, alertId: string | undefined, 
       success: false,
       error: 'Alert ID is required for resolve action'
     };
+  }
+
+  if (!context.services.performanceAlertService) {
+    throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
   }
 
   const success = context.services.performanceAlertService.resolveAlert(alertId, resolvedBy, resolution);

@@ -362,6 +362,19 @@ wss.on('connection', (ws) => {
           return;
         }
         
+        if (!db) {
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32603,
+              message: 'Internal error',
+              data: '데이터베이스가 초기화되지 않았습니다'
+            }
+          }));
+          return;
+        }
+        
         const context: ToolContext = {
           db,
           services: {

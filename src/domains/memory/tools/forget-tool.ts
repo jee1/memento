@@ -350,6 +350,9 @@ export class ForgetTool extends BaseTool {
    * 임베딩 삭제
    */
   private async deleteEmbedding(id: string, context: ToolContext): Promise<void> {
+    // 임베딩 서비스 확인
+    this.validateService(context.services.embeddingService, '임베딩 서비스');
+    
     try {
       await context.services.embeddingService.deleteEmbedding(context.db, id);
     } catch (error) {

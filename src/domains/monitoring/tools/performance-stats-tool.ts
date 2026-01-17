@@ -29,7 +29,7 @@ export class PerformanceStatsTool extends BaseTool {
     
     try {
       const metrics = await context.services.performanceMonitor.collectMetrics();
-      const report = await context.services.performanceMonitor.generateReport();
+      // generateReport 메서드가 없으므로 metrics만 사용
       
       return this.createSuccessResult({
         metrics: {
@@ -38,7 +38,6 @@ export class PerformanceStatsTool extends BaseTool {
           memory: metrics.memory,
           system: metrics.system
         },
-        report: report,
         message: '성능 통계 조회 완료'
       });
     } catch (error) {

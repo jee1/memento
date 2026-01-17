@@ -10,6 +10,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { isMemoryItemType, type MemoryTypeRequest } from '../../../shared/types/index.js';
 import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
@@ -925,9 +926,15 @@ export class RememberTool extends BaseTool {
 
                         // Triple이 추출된 경우 Semantic Memory 생성/업데이트
                         if (extractionResult.triples.length > 0) {
+                          // MemoryEmbeddingService는 내부적으로 UnifiedEmbeddingService를 사용하므로,
+                          // 타입 단언을 사용하여 UnifiedEmbeddingService로 변환
+                          // 실제로는 MemoryEmbeddingService가 UnifiedEmbeddingService를 래핑하고 있음
+                          const unifiedEmbeddingService: UnifiedEmbeddingService = embeddingServiceRef
+                            ? (embeddingServiceRef as unknown as UnifiedEmbeddingService)
+                            : new UnifiedEmbeddingService();
                           const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
                             dbRef,
-                            embeddingServiceRef,
+                            unifiedEmbeddingService,
                             context.services.relationGraph
                           );
 

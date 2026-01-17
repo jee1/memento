@@ -3,11 +3,29 @@
  */
 
 import { z } from 'zod';
+import type Database from 'better-sqlite3';
+import type { SearchEngine } from '../domains/search/algorithms/search-engine.js';
+import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
+import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
+import type { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
+import type { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
+import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
+import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
+import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
+import type { AnchorManager } from '../services/anchor-manager.js';
+import type { RelationGraph } from '../domains/relation/services/relation-graph.js';
+import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
+import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
+import type { MetaMemoryService } from '../services/meta-memory-service.js';
+import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 
 export interface ToolDefinition {
   name: string;
   description: string;
-  inputSchema: any;
+  // 하위 호환성을 위해 JSON Schema 형식도 허용
+  // 향후 모든 도구를 Zod 스키마로 마이그레이션 예정
+  inputSchema: z.ZodTypeAny | Record<string, unknown>;
   handler: ToolHandler;
 }
 
@@ -19,51 +37,51 @@ export interface ToolDefinition {
  */
 export interface ToolContext {
   /** 데이터베이스 인스턴스 */
-  db: any;
+  db: Database.Database;
   services: {
     /** 기본 텍스트 검색 엔진 */
-    searchEngine?: any;
+    searchEngine?: SearchEngine;
     /** 하이브리드 검색 엔진 (텍스트 + 벡터) */
-    hybridSearchEngine?: any;
+    hybridSearchEngine?: HybridSearchEngine;
     /** 메모리 임베딩 서비스 */
-    embeddingService?: any;
+    embeddingService?: MemoryEmbeddingService;
     /** 망각 정책 서비스 */
-    forgettingPolicyService?: any;
+    forgettingPolicyService?: ForgettingPolicyService;
     /** 성능 모니터링 서비스 (싱글톤) */
-    performanceMonitor?: any;
+    performanceMonitor?: ReturnType<typeof getPerformanceMonitor>;
     /** 데이터베이스 최적화 서비스 */
-    databaseOptimizer?: any;
+    databaseOptimizer?: DatabaseOptimizer;
     /** 에러 로깅 서비스 */
-    errorLoggingService?: any;
+    errorLoggingService?: ErrorLoggingService;
     /** 성능 알림 서비스 */
-    performanceAlertService?: any;
+    performanceAlertService?: PerformanceAlertService;
     /** 성능 모니터링 통합 서비스 (주석 처리됨, 향후 사용 예정) */
-    performanceMonitoringIntegration?: any;
+    performanceMonitoringIntegration?: unknown; // 향후 타입 정의 예정
     /** 통합 점수 서비스 (기능 플래그에 따라 초기화) */
-    consolidationScoreService?: any;
+    consolidationScoreService?: ConsolidationScoreService;
     /** 쓰기 결합 관리자 (기능 플래그에 따라 초기화) */
-    writeCoalescingManager?: any;
+    writeCoalescingManager?: WriteCoalescingManager;
     /** 앵커 관리자 서비스 */
-    anchorManager?: any;
+    anchorManager?: AnchorManager;
     /** 관계 그래프 서비스 */
-    relationGraph?: any;
+    relationGraph?: RelationGraph;
     /** 실패 감지 서비스 (Phase 2) */
-    failureDetector?: any;
+    failureDetector?: FailureDetector;
     /** Reflexion Worker 서비스 (Phase 2) */
-    reflexionWorker?: any;
+    reflexionWorker?: ReflexionWorker;
     /** 메타 메모리 통계 서비스 */
-    metaMemoryService?: any;
+    metaMemoryService?: MetaMemoryService;
   };
 }
 
-export type ToolHandler = (params: any, context: ToolContext) => Promise<any>;
+export type ToolHandler = (params: unknown, context: ToolContext) => Promise<ToolResult>;
 
 export interface ToolResult {
   content: Array<{
     type: 'text';
     text: string;
   }>;
-  [key: string]: any; // 추가 필드들을 허용
+  [key: string]: unknown; // 추가 필드들을 허용 (Record<string, unknown>과 동일)
 }
 
 export interface ToolError {

@@ -4,6 +4,7 @@
  */
 
 import { ToolRegistry } from './tool-registry.js';
+import type { ToolContext } from './types.js';
 import { RememberTool } from '../domains/memory/tools/remember-tool.js';
 import { RecallTool } from '../domains/memory/tools/recall-tool.js';
 import { ForgetTool } from '../domains/memory/tools/forget-tool.js';
@@ -88,7 +89,7 @@ export function getAllTools() {
 /**
  * 도구 실행
  */
-export async function executeTool(name: string, params: any, context: any) {
+export async function executeTool(name: string, params: unknown, context: ToolContext) {
   return await toolRegistry.execute(name, params, context);
 }
 
