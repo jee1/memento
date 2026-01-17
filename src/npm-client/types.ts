@@ -45,7 +45,7 @@ export interface MemoryItem {
   privacy_scope: PrivacyScope;
   project_id?: string;
   user_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CreateMemoryParams {
@@ -67,7 +67,7 @@ export interface CreateMemoryParams {
   source?: string;
   privacy_scope?: PrivacyScope;
   project_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateMemoryParams {
@@ -89,7 +89,7 @@ export interface UpdateMemoryParams {
   source?: string;
   privacy_scope?: PrivacyScope;
   project_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -237,7 +237,7 @@ export class MementoError extends Error {
     message: string,
     public code: string,
     public statusCode?: number,
-    public details?: any
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'MementoError';
@@ -245,28 +245,28 @@ export class MementoError extends Error {
 }
 
 export class ConnectionError extends MementoError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'CONNECTION_ERROR', undefined, details);
     this.name = 'ConnectionError';
   }
 }
 
 export class AuthenticationError extends MementoError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'AUTHENTICATION_ERROR', 401, details);
     this.name = 'AuthenticationError';
   }
 }
 
 export class ValidationError extends MementoError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'VALIDATION_ERROR', 400, details);
     this.name = 'ValidationError';
   }
 }
 
 export class NotFoundError extends MementoError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'NOT_FOUND', 404, details);
     this.name = 'NotFoundError';
   }

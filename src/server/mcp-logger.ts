@@ -97,7 +97,7 @@ export class MCPLogger {
    * - Rate limiting: 로그 전송 빈도 제한 (초당 최대 로그 수)
    * - ERROR 레벨은 rate limiting 우회 (치명적 오류는 항상 전송)
    */
-  async logMCPProtocol(level: LogLevel, message: string, data?: any): Promise<void> {
+  async logMCPProtocol(level: LogLevel, message: string, data?: Record<string, unknown>): Promise<void> {
     // DEBUG 레벨은 기본적으로 숨김
     if (level === 'debug' && !shouldSendMCPProtocolLog()) {
       return;
@@ -148,7 +148,7 @@ export class MCPLogger {
    * 
    * 주의: MCP 프로토콜 준수를 위해 transport 연결 전에는 로그를 억제할 수 있음
    */
-  logServer(level: LogLevel, message: string, data?: any): void {
+  logServer(level: LogLevel, message: string, data?: Record<string, unknown>): void {
     // 로그 레벨 필터링
     if (!shouldLog(level)) {
       return;
@@ -177,7 +177,7 @@ export class MCPLogger {
    * 배치 작업 로그 (stderr 출력)
    * 스케줄러 작업 등 배치 처리 관련 로그
    */
-  logBatch(level: LogLevel, message: string, data?: any): void {
+  logBatch(level: LogLevel, message: string, data?: Record<string, unknown>): void {
     // 로그 레벨 필터링
     if (!shouldLog(level)) {
       return;

@@ -22,6 +22,7 @@ import { MementoClient } from './memento-client.js';
 import type {
   ContextInjectionResult,
   SearchResult,
+  SearchFilters,
   MemoryItem
 } from './types.js';
 
@@ -112,7 +113,7 @@ export class ContextInjector {
       pinnedOnly: boolean;
     }
   ): Promise<SearchResult> {
-    const filters: any = {};
+    const filters: SearchFilters = {};
 
     // 메모리 타입 필터
     if (options.memoryTypes && options.memoryTypes.length > 0) {
@@ -262,7 +263,8 @@ export class ContextInjector {
       const tags = memory.tags && memory.tags.length > 0 
         ? ` [${memory.tags.join(', ')}]` 
         : '';
-      const score = (memory as any).score ? ` (관련도: ${((memory as any).score * 100).toFixed(1)}%)` : '';
+      const memoryWithScore = memory as MemoryItem & { score?: number };
+      const score = memoryWithScore.score ? ` (관련도: ${(memoryWithScore.score * 100).toFixed(1)}%)` : '';
 
       return `${index + 1}. ${typeEmoji} ${memory.content}${tags}${score}\n   ${importanceBar} ${memory.created_at}`;
     }).join('\n\n');
@@ -350,7 +352,7 @@ export class ContextInjector {
     projectId?: string,
     tokenBudget: number = 1200
   ): Promise<ContextInjectionResult> {
-    const filters: any = {};
+    const filters: SearchFilters = {};
     if (projectId) {
       filters.project_id = projectId;
     }

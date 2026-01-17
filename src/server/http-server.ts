@@ -5,7 +5,9 @@
  */
 
 import express from 'express';
+import type { Response } from 'express';
 import { WebSocketServer } from 'ws';
+import type { WebSocket } from 'ws';
 import cors from 'cors';
 import { createServer } from 'http';
 import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
@@ -27,7 +29,7 @@ import packageJson from '../../package.json' with { type: 'json' };
 import { createToolsRouter } from './routes/tools.routes.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
-import { createMcpRouter } from './routes/mcp.routes.js';
+import { createMcpRouter, type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 // Phase 0: 공통 미들웨어 import
 import { createServiceInjector, createToolContextMiddleware, errorHandler } from './middleware/index.js';
@@ -52,7 +54,7 @@ let serverServices: ServerServices | null = null;
 
 // Phase 1.2: 라우터에서 사용할 전역 변수들
 // SSE Transport 저장소 (MCP 라우터용)
-const transports: Record<string, { res: any; sessionId: string; keepAliveInterval: ReturnType<typeof setTimeout> }> = {};
+const transports: Record<string, SSETransport> = {};
 
 type TestDependencies = {
   database: Database.Database;
@@ -102,7 +104,7 @@ app.get('/health', (req, res) => {
 
 // Phase 1.2: 라우터 등록
 // WebSocket 클라이언트 관리 (Anchor Map 업데이트용) - 라우터에서도 사용
-const anchorMapSubscribers = new Map<string, Set<any>>(); // agent_id -> WebSocket Set
+const anchorMapSubscribers = new Map<string, Set<WebSocket>>(); // agent_id -> WebSocket Set
 
 // 라우터 등록 (서비스 초기화 후 업데이트됨)
 let toolsRouter: express.Router | null = null;
@@ -302,20 +304,28 @@ const wss = new WebSocketServer({ server });
 
 // Phase 1.2: anchorMapSubscribers는 위에서 이미 선언됨
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws: WebSocket) => {
   logger.info('WebSocket 클라이언트 연결됨');
   
   ws.on('message', async (data) => {
-    let message: any;
+    // WebSocket 메시지 타입 정의
+    interface WebSocketMessage {
+      method?: string;
+      params?: Record<string, unknown>;
+      id?: string | number;
+      [key: string]: unknown; // 기타 필드 허용
+    }
+    
+    let message: WebSocketMessage;
     try {
-      message = JSON.parse(data.toString());
+      message = JSON.parse(data.toString()) as WebSocketMessage;
       
       // Anchor Map 업데이트 구독 처리
       if (message.method === 'subscribe' && message.params?.type === 'anchor_map_updates') {
-        const agentId = message.params.agent_id || 'default';
+        const agentId = typeof message.params.agent_id === 'string' ? message.params.agent_id : 'default';
         
         if (!anchorMapSubscribers.has(agentId)) {
-          anchorMapSubscribers.set(agentId, new Set());
+          anchorMapSubscribers.set(agentId, new Set<WebSocket>());
         }
         anchorMapSubscribers.get(agentId)!.add(ws);
         
@@ -344,7 +354,23 @@ wss.on('connection', (ws) => {
           result: { tools }
         }));
       } else if (message.method === 'tools/call') {
-        const { name, arguments: args } = message.params;
+        // params가 Record<string, unknown>이므로 타입 단언 필요
+        const params = message.params as { name?: string; arguments?: unknown } | undefined;
+        const name = params?.name;
+        const args = params?.arguments;
+        
+        if (!name) {
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params',
+              data: 'name parameter is required'
+            }
+          }));
+          return;
+        }
         
         const toolRegistry = getToolRegistry();
         
@@ -403,9 +429,17 @@ wss.on('connection', (ws) => {
       }
     } catch (error) {
       logger.error('WebSocket 메시지 처리 실패', { error });
+      // message가 할당되지 않았을 수 있으므로 안전하게 처리
+      let messageId: string | number | null = null;
+      try {
+        const parsedMessage = JSON.parse(data.toString()) as { id?: string | number };
+        messageId = parsedMessage.id || null;
+      } catch {
+        // 파싱 실패 시 null 사용
+      }
       ws.send(JSON.stringify({
         jsonrpc: '2.0',
-        id: message?.id || null,
+        id: messageId,
         error: {
           code: -32603,
           message: 'Internal error',

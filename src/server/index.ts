@@ -23,6 +23,7 @@ import type { ConsolidationScoreService } from '../infrastructure/consolidation-
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
+import type { MemoryItem } from '../shared/types/index.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
@@ -231,7 +232,7 @@ async function initializeServer() {
     }, null, 2)}`);
     
     // 임베딩 프로바이더 정보 표시
-    const providerInfo: any = {
+    const providerInfo: Record<string, unknown> = {
       provider: mementoConfig.embeddingProvider.toUpperCase()
     };
     if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
@@ -305,7 +306,7 @@ async function initializeServer() {
       await mcpLogger.logMCPProtocol('debug', `리소스 개수: ${memories.length}`, { count: memories.length });
       
       return {
-        resources: memories.map((memory: any) => ({
+        resources: memories.map((memory: MemoryItem) => ({
           uri: `memory://${memory.id}`,
           name: `Memory ${memory.id}`,
           description: `Memory item with ID: ${memory.id}`,
@@ -349,7 +350,7 @@ async function initializeServer() {
       }
       
       // 메모리 데이터 구성
-      const memoryData: any = {
+      const memoryData: Record<string, unknown> = {
         id: memory.id,
         type: memory.type,
         content: memory.content,

@@ -4,7 +4,7 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import type { ToolContext } from '../../tools/types.js';
@@ -18,8 +18,8 @@ import { getVectorSearchEngine } from '../../domains/search/algorithms/vector-se
 /**
  * SSE Transport 타입
  */
-interface SSETransport {
-  res: any;
+export interface SSETransport {
+  res: Response;
   sessionId: string;
   keepAliveInterval: NodeJS.Timeout;
 }

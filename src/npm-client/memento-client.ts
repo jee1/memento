@@ -50,8 +50,10 @@ import {
   NotFoundError
 } from './types.js';
 
+import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+
 export class MementoClient extends EventEmitter {
-  private httpClient: any;
+  private httpClient: AxiosInstance;
   private isConnected: boolean = false;
   private options: Required<MementoClientOptions>;
 
@@ -73,7 +75,7 @@ export class MementoClient extends EventEmitter {
   /**
    * HTTP 클라이언트 생성
    */
-  private createHttpClient(): any {
+  private createHttpClient(): AxiosInstance {
     const client = axios.create({
       baseURL: this.options.serverUrl,
       timeout: this.options.timeout,
@@ -85,8 +87,8 @@ export class MementoClient extends EventEmitter {
 
     // 요청 인터셉터
     client.interceptors.request.use(
-      (config: any) => {
-        if (this.options.apiKey) {
+      (config: InternalAxiosRequestConfig) => {
+        if (this.options.apiKey && config.headers) {
           config.headers.Authorization = `Bearer ${this.options.apiKey}`;
         }
         
@@ -100,15 +102,15 @@ export class MementoClient extends EventEmitter {
         
         return config;
       },
-      (error: any) => {
-        this.emit('error', new ConnectionError('Request failed', error));
+      (error: AxiosError) => {
+        this.emit('error', new ConnectionError('Request failed', error as unknown as Record<string, unknown>));
         return Promise.reject(error);
       }
     );
 
     // 응답 인터셉터
     client.interceptors.response.use(
-      (response: any) => {
+      (response: AxiosResponse) => {
         if (this.options.logLevel === 'debug') {
           logger.debug('[MementoClient] Response:', {
             status: response.status,
@@ -117,7 +119,7 @@ export class MementoClient extends EventEmitter {
         }
         return response;
       },
-      (error: any) => {
+      (error: AxiosError) => {
         const mementoError = this.handleHttpError(error);
         this.emit('error', mementoError);
         return Promise.reject(mementoError);
@@ -130,27 +132,32 @@ export class MementoClient extends EventEmitter {
   /**
    * HTTP 에러를 MementoError로 변환
    */
-  private handleHttpError(error: any): MementoError {
+  private handleHttpError(error: AxiosError): MementoError {
     if (error.response) {
       const { status, data } = error.response;
-      const message = data?.error?.message || data?.message || error.message;
+      const errorData = data as Record<string, unknown> | undefined;
+      const message = (errorData?.error && typeof errorData.error === 'object' && 'message' in errorData.error && typeof errorData.error.message === 'string')
+        ? errorData.error.message
+        : (errorData?.message && typeof errorData.message === 'string')
+        ? errorData.message
+        : error.message;
       
       switch (status) {
         case 400:
-          return new ValidationError(message, data);
+          return new ValidationError(message, errorData);
         case 401:
-          return new AuthenticationError(message, data);
+          return new AuthenticationError(message, errorData);
         case 404:
-          return new NotFoundError(message, data);
+          return new NotFoundError(message, errorData);
         case 500:
-          return new MementoError(message, 'INTERNAL_ERROR', status, data);
+          return new MementoError(message, 'INTERNAL_ERROR', status, errorData);
         default:
-          return new MementoError(message, 'HTTP_ERROR', status, data);
+          return new MementoError(message, 'HTTP_ERROR', status, errorData);
       }
     } else if (error.request) {
-      return new ConnectionError('Network error - no response received', error);
+      return new ConnectionError('Network error - no response received', error as unknown as Record<string, unknown>);
     } else {
-      return new ConnectionError('Request setup error', error);
+      return new ConnectionError('Request setup error', error as unknown as Record<string, unknown>);
     }
   }
 
@@ -172,7 +179,7 @@ export class MementoClient extends EventEmitter {
     } catch (error) {
       this.isConnected = false;
       this.emit('error', error);
-      throw new ConnectionError('Failed to connect to Memento server', error);
+      throw new ConnectionError('Failed to connect to Memento server', error as unknown as Record<string, unknown>);
     }
   }
 
@@ -287,13 +294,14 @@ export class MementoClient extends EventEmitter {
     const searchResult = await this.recall('memory', { id: [id] }, 1);
     
     // 서버 응답 구조 처리: { items: { items: [...] } }
-    let items: any[];
+    let items: MemoryItem[];
     if (searchResult.items && Array.isArray(searchResult.items)) {
       // 정상적인 구조: { items: [...] }
       items = searchResult.items;
-    } else if (searchResult.items && typeof searchResult.items === 'object' && 'items' in searchResult.items && Array.isArray((searchResult.items as any).items)) {
+    } else if (searchResult.items && typeof searchResult.items === 'object' && 'items' in searchResult.items) {
       // 중첩된 구조: { items: { items: [...] } }
-      items = (searchResult.items as any).items;
+      const nestedItems = searchResult.items as { items: MemoryItem[] };
+      items = Array.isArray(nestedItems.items) ? nestedItems.items : [];
     } else {
       throw new Error(`Memory with ID ${id} not found`);
     }
@@ -336,29 +344,37 @@ export class MementoClient extends EventEmitter {
     };
     
     // 타입별 필드 병합
+    // MemoryItem에 없는 필드에 접근하기 위해 타입 단언 사용
+    const existingMemoryExtended = existingMemory as MemoryItem & {
+      key?: string;
+      value?: string;
+      always_load?: boolean;
+      immutable?: boolean;
+      task_goal?: string;
+      steps?: string;
+      reflection_notes?: string;
+    };
+    
     if (memoryType === 'core') {
       // Core Memory: key, value, always_load 사용
-      const existingAny = existingMemory as any;
-      createParams.key = params.key !== undefined ? params.key : existingAny.key;
-      createParams.value = params.value !== undefined ? params.value : existingAny.value;
-      createParams.always_load = params.always_load !== undefined ? params.always_load : existingAny.always_load;
+      createParams.key = params.key !== undefined ? params.key : existingMemoryExtended.key;
+      createParams.value = params.value !== undefined ? params.value : existingMemoryExtended.value;
+      createParams.always_load = params.always_load !== undefined ? params.always_load : existingMemoryExtended.always_load;
       // content는 사용하지 않음
     } else if (memoryType === 'vault') {
       // Knowledge Vault: key, value, immutable 사용
-      const existingAny = existingMemory as any;
-      createParams.key = params.key !== undefined ? params.key : existingAny.key;
-      createParams.value = params.value !== undefined ? params.value : existingAny.value;
-      createParams.immutable = params.immutable !== undefined ? params.immutable : existingAny.immutable;
+      createParams.key = params.key !== undefined ? params.key : existingMemoryExtended.key;
+      createParams.value = params.value !== undefined ? params.value : existingMemoryExtended.value;
+      createParams.immutable = params.immutable !== undefined ? params.immutable : existingMemoryExtended.immutable;
       // content는 사용하지 않음
     } else {
       // 기타 타입 (working, episodic, semantic, procedural): content 사용
       createParams.content = params.content !== undefined ? params.content : existingMemory.content;
       // Procedural Memory 특화 필드
       if (memoryType === 'procedural') {
-        const existingAny = existingMemory as any;
-        createParams.task_goal = params.task_goal !== undefined ? params.task_goal : existingAny.task_goal;
-        createParams.steps = params.steps !== undefined ? params.steps : existingAny.steps;
-        createParams.reflection_notes = params.reflection_notes !== undefined ? params.reflection_notes : existingAny.reflection_notes;
+        createParams.task_goal = params.task_goal !== undefined ? params.task_goal : existingMemoryExtended.task_goal;
+        createParams.steps = params.steps !== undefined ? params.steps : existingMemoryExtended.steps;
+        createParams.reflection_notes = params.reflection_notes !== undefined ? params.reflection_notes : existingMemoryExtended.reflection_notes;
       }
     }
     
