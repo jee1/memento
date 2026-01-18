@@ -361,9 +361,20 @@ export class PerformanceBenchmark {
                 });
               }, 3);
             } else {
-              // 통계 조회 - 재시도 로직 추가
+              // 이웃 기억 조회 - 재시도 로직 추가 (forgetting_stats는 HTTP API로만 제공되므로 get_memory_neighbors로 교체)
               await this.retryOperation(async () => {
-                return await this.client.callTool('forgetting_stats', {});
+                // 먼저 recall로 메모리를 찾고, 그 중 하나의 이웃을 조회
+                const searchResults = await this.client.recall({
+                  query: `사용자 ${userIndex}`,
+                  limit: 1
+                });
+                if (searchResults && searchResults.items && searchResults.items.length > 0) {
+                  return await this.client.callTool('get_memory_neighbors', {
+                    memory_id: searchResults.items[0].id,
+                    limit: 5
+                  });
+                }
+                return { items: [] };
               }, 3);
             }
             
