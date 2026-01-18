@@ -17,14 +17,16 @@ import { PerformanceAlertService } from '../domains/monitoring/services/performa
 import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../shared/utils/write-coalescing.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
-import { AnchorManager } from '../services/anchor-manager.js';
+import { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
+import { AnchorCacheService } from '../domains/anchor/services/anchor/anchor-cache-service.js';
+import { AnchorSearchService } from '../domains/anchor/services/anchor/anchor-search-service.js';
 import { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { logger } from '../shared/utils/logger.js';
 import { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
-import { MetaMemoryService } from '../services/meta-memory-service.js';
+import { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
 import type { SqlParam } from '../shared/types/index.js';
 
 /**
@@ -105,14 +107,21 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const performanceAlertService = new PerformanceAlertService('./logs');
     
     // 2.5. 앵커 관리자 서비스 초기화
-    const anchorManager = new AnchorManager();
+    const anchorCacheService = new AnchorCacheService();
+    anchorCacheService.setDatabase(db);
+    anchorCacheService.setEmbeddingService(embeddingService);
+    
+    const anchorSearchService = new AnchorSearchService(anchorCacheService);
+    anchorSearchService.setDatabase(db);
+    anchorSearchService.setHybridSearchEngine(hybridSearchEngine);
+    anchorSearchService.setVectorSearchEngine(getVectorSearchEngine());
+    
+    const anchorManager = new AnchorManager(anchorCacheService, anchorSearchService);
     anchorManager.setDatabase(db);
-    anchorManager.setEmbeddingService(embeddingService);
-    anchorManager.setHybridSearchEngine(hybridSearchEngine);
-    anchorManager.setVectorSearchEngine(getVectorSearchEngine());
+    anchorManager.setErrorLoggingService(errorLoggingService);
     
     // 서버 시작 시 DB에서 앵커 상태 복원
-    await anchorManager.restoreCacheFromDB(db);
+    await anchorCacheService.restoreCacheFromDB(db);
     
     // 2.6. 실패 감지 서비스 초기화 (Phase 2)
     const failureDetector = new FailureDetector();

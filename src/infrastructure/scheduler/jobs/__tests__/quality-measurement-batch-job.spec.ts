@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { QualityMeasurementBatchJob } from '../quality-measurement-batch-job.js';
-import { QualityAssuranceService } from '../../../../services/quality-assurance/quality-assurance-service.js';
+import { QualityAssuranceService } from '../../../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 

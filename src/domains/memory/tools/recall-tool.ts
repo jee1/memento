@@ -22,7 +22,7 @@ import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
-import type { MetaMemoryService } from '../../../services/meta-memory-service.js';
+import type { MetaMemoryService } from '../services/meta-memory-service.js';
 
 /**
  * 앵커 설정 메타데이터 타입

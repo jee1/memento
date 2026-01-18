@@ -27,8 +27,8 @@ import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflection
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
 // AriGraph Pipeline
-import { TripleExtractionService } from '../../../services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../services/semantic-memory/semantic-memory-update-service.js';
+import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { getBatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler.js';
 
 /**

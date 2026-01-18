@@ -13,7 +13,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { QualityAssuranceService } from '../../../services/quality-assurance/quality-assurance-service.js';
+import { QualityAssuranceService } from '../../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { BatchJobResult } from '../batch-scheduler.js';
 

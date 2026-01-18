@@ -7,8 +7,8 @@
 
 import Database from 'better-sqlite3';
 import { initializeDatabase } from '../infrastructure/database/database/init.js';
-import { QualityAssuranceService } from '../services/quality-assurance/quality-assurance-service.js';
-import { QualityThresholdManager } from '../services/quality-assurance/quality-threshold-manager.js';
+import { QualityAssuranceService } from '../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
+import { QualityThresholdManager } from '../domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
 

@@ -13,11 +13,11 @@ import type { ErrorLoggingService } from '../domains/monitoring/services/error-l
 import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
 import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
-import type { AnchorManager } from '../services/anchor-manager.js';
+import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import type { RelationGraph } from '../domains/relation/services/relation-graph.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
-import type { MetaMemoryService } from '../services/meta-memory-service.js';
+import type { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 
 export interface ToolDefinition {

@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { TripleExtractionService } from '../../../services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../services/semantic-memory/semantic-memory-update-service.js';
+import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../domains/embedding/services/unified-embedding-service.js';
 
