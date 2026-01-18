@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
+import type { ServerServices } from '../bootstrap.js';
 import { getBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
 import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
 import { RelationGraph } from '../../domains/relation/services/relation-graph.js';
@@ -15,13 +16,21 @@ import { GetRelationsTool } from '../../domains/relation/tools/get-relations-too
 import { AddRelationTool } from '../../domains/relation/tools/add-relation-tool.js';
 import { RemoveRelationTool } from '../../domains/relation/tools/remove-relation-tool.js';
 import { VisualizeRelationsTool } from '../../domains/relation/tools/visualize-relations-tool.js';
+import { RestoreAnchorsTool } from '../../domains/anchor/tools/restore-anchors-tool.js';
+import { MigrateEmbeddingsTool } from '../../tools/migrate-embeddings-tool.js';
+import { ConvertEpisodicToSemanticTool } from '../../domains/memory/tools/convert-episodic-to-semantic-tool.js';
+import { GetMetaMemoryStatsTool } from '../../domains/monitoring/tools/get-meta-memory-stats-tool.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { logger } from '../../shared/utils/logger.js';
+import { createToolContext } from '../context.js';
 
 /**
  * Admin 라우터 생성
  */
-export function createAdminRouter(db: Database.Database | null): Router {
+export function createAdminRouter(
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): Router {
   const router = Router();
 
   // 메모리 정리
@@ -611,6 +620,181 @@ export function createAdminRouter(db: Database.Database | null): Router {
       });
       return res.status(500).json({
         error: '관계 시각화 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // ============================================
+  // 관리/운영성 도구 HTTP API 엔드포인트 (Phase 5.3)
+  // MCP에서 제거된 도구들을 HTTP API로만 제공
+  // ============================================
+
+  // 앵커 복원
+  router.post('/anchors/restore', async (req, res) => {
+    try {
+      if (!db || !serverServices) {
+        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+      }
+
+      const { agent_id } = req.body;
+
+      const toolContext = createToolContext({ db, services: serverServices });
+      const restoreTool = new RestoreAnchorsTool();
+      const result = await restoreTool.handle({ agent_id }, toolContext);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '앵커 복원 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Anchor restoration failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '앵커 복원 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // 임베딩 마이그레이션
+  router.post('/embeddings/migrate', async (req, res) => {
+    try {
+      if (!db || !serverServices) {
+        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+      }
+
+      const { source_provider, target_provider, batch_size, dry_run } = req.body;
+
+      if (!target_provider) {
+        return res.status(400).json({
+          error: 'target_provider는 필수입니다'
+        });
+      }
+
+      const toolContext = createToolContext({ db, services: serverServices });
+      const migrateTool = new MigrateEmbeddingsTool();
+      const result = await migrateTool.handle({
+        source_provider,
+        target_provider,
+        batch_size: batch_size || 100,
+        dry_run: dry_run || false
+      }, toolContext);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '임베딩 마이그레이션 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Embedding migration failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '임베딩 마이그레이션 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Episodic → Semantic 변환
+  router.post('/memory/convert-episodic-to-semantic', async (req, res) => {
+    try {
+      if (!db || !serverServices) {
+        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+      }
+
+      const { memory_id, skip_converted, retry_failed, limit } = req.body;
+
+      const toolContext = createToolContext({ db, services: serverServices });
+      const convertTool = new ConvertEpisodicToSemanticTool();
+      const result = await convertTool.handle({
+        memory_id,
+        skip_converted: skip_converted !== undefined ? skip_converted : true,
+        retry_failed: retry_failed || false,
+        limit: limit || 10
+      }, toolContext);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: 'Episodic → Semantic 변환 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Episodic to Semantic conversion failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: 'Episodic → Semantic 변환 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // 메타 메모리 통계 조회
+  router.get('/memory/meta-stats', async (req, res) => {
+    try {
+      if (!db || !serverServices) {
+        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+      }
+
+      const { memory_id, memory_ids, min_recall_count, min_confidence, limit } = req.query;
+
+      const toolContext = createToolContext({ db, services: serverServices });
+      const statsTool = new GetMetaMemoryStatsTool();
+      
+      const params: Record<string, unknown> = {};
+      if (memory_id) params.memory_id = memory_id;
+      if (memory_ids) {
+        params.memory_ids = Array.isArray(memory_ids) ? memory_ids : (memory_ids as string).split(',');
+      }
+      if (min_recall_count) params.min_recall_count = parseInt(min_recall_count as string, 10);
+      if (min_confidence) params.min_confidence = parseFloat(min_confidence as string);
+      if (limit) params.limit = parseInt(limit as string, 10);
+
+      const result = await statsTool.handle(params, toolContext);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: '메타 메모리 통계 조회 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Meta memory stats retrieval failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '메타 메모리 통계 조회 실패',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

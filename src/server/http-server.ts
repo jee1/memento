@@ -167,7 +167,7 @@ async function initializeServer() {
     
     // Phase 1.2: 라우터 초기화 및 등록
     toolsRouter = createToolsRouter(db, serverServices, anchorMapSubscribers);
-    adminRouter = createAdminRouter(db);
+    adminRouter = createAdminRouter(db, serverServices);
     apiRouter = createApiRouter(db, serverServices);
     mcpRouter = createMcpRouter(db, serverServices, transports);
     const qualityRouter = createQualityRouter(db);

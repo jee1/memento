@@ -13,9 +13,12 @@ description: MCP 도구 아키텍처 분리 가이드라인
 - **보안성**: 관리 기능이 클라이언트에 노출되지 않음
 - **단순성**: AI Agent는 핵심 기능에만 집중
 
-## 🛠️ MCP 클라이언트 도구 (5개만)
+## 🛠️ MCP 클라이언트 도구 (11개)
 
-### 핵심 메모리 관리
+> **핵심 원칙**: AI Agent가 직접 사용하는 핵심 기능만 노출
+
+### 1. 핵심 메모리 관리 (5개)
+
 ```typescript
 // 1. remember - 기억 저장
 {
@@ -71,35 +74,138 @@ description: MCP 도구 아키텍처 분리 가이드라인
 }
 ```
 
+### 2. 고급 메모리 기능 (2개)
+
+```typescript
+// 6. memory_injection - 관련 기억을 프롬프트에 주입
+{
+  name: "memory_injection",
+  description: "관련 기억을 요약하여 프롬프트에 주입",
+  inputSchema: {
+    query: { type: "string", required: true },
+    token_budget: { type: "number", default: 1000 },
+    max_memories: { type: "number", default: 5 },
+    memory_types: { type: "array", items: { type: "string" } },
+    importance_threshold: { type: "number", default: 0.5 }
+  }
+}
+
+// 7. get_memory_neighbors - 메모리 이웃 조회
+{
+  name: "get_memory_neighbors",
+  description: "특정 메모리와 유사한 이웃 기억을 조회합니다",
+  inputSchema: {
+    memory_id: { type: "string", required: true },
+    limit: { type: "number", default: 5 },
+    similarity_threshold: { type: "number", default: 0.8 }
+  }
+}
+```
+
+### 3. 앵커 시스템 (4개)
+
+```typescript
+// 8. set_anchor - 앵커 설정
+{
+  name: "set_anchor",
+  description: "특정 메모리를 앵커로 설정합니다",
+  inputSchema: {
+    memory_id: { type: "string", required: true },
+    slot: { type: "string", enum: ["A", "B", "C"], required: true },
+    agent_id: { type: "string", default: "default" }
+  }
+}
+
+// 9. get_anchor - 앵커 조회
+{
+  name: "get_anchor",
+  description: "현재 설정된 앵커를 조회합니다",
+  inputSchema: {
+    slot: { type: "string", enum: ["A", "B", "C"] },
+    agent_id: { type: "string", default: "default" }
+  }
+}
+
+// 10. search_local - 앵커 주변 검색
+{
+  name: "search_local",
+  description: "앵커 주변에서 국소 검색을 수행합니다",
+  inputSchema: {
+    slot: { type: "string", enum: ["A", "B", "C"], required: true },
+    query: { type: "string" },
+    limit: { type: "number", default: 10 },
+    agent_id: { type: "string", default: "default" }
+  }
+}
+
+// 11. clear_anchor - 앵커 제거
+{
+  name: "clear_anchor",
+  description: "설정된 앵커를 제거합니다",
+  inputSchema: {
+    slot: { type: "string", enum: ["A", "B", "C"] },
+    agent_id: { type: "string", default: "default" }
+  }
+}
+```
+
 ## 🌐 HTTP 관리 API 엔드포인트
+
+> **중요**: 다음 기능들은 MCP 클라이언트에 노출되지 않으며, HTTP API로만 제공됩니다.
 
 ### 메모리 관리
 ```typescript
 // 메모리 정리
 POST /admin/memory/cleanup
-Response: { message: "메모리 정리 완료" }
+Response: { message: "메모리 정리 완료", deleted_count: number }
 
 // 망각 통계
 GET /admin/stats/forgetting
-Response: { message: "망각 통계 조회 완료" }
+Response: { message: "망각 통계 조회 완료", stats: Array }
+
+// Episodic → Semantic 변환 (일괄 변환 작업)
+POST /admin/memory/convert-episodic-to-semantic
+Body: { memory_id?: string, skip_converted?: boolean, retry_failed?: boolean, limit?: number }
+Response: { message: "변환 완료", converted_count: number }
+
+// 메타 메모리 통계 조회
+GET /admin/memory/meta-stats
+Query: { memory_id?: string, memory_ids?: string[], min_recall_count?: number, min_confidence?: number, limit?: number }
+Response: { message: "통계 조회 완료", items: Array, total_count: number }
+```
+
+### 앵커 관리
+```typescript
+// 앵커 복원 (시스템 초기화/복구 시 사용)
+POST /admin/anchors/restore
+Body: { agent_id?: string }
+Response: { message: "앵커 복원 완료", restored_anchors: object, agent_count: number, total_anchors: number }
+```
+
+### 임베딩 관리
+```typescript
+// 임베딩 마이그레이션 (관리자 작업)
+POST /admin/embeddings/migrate
+Body: { source_provider?: string, target_provider: string, batch_size?: number, dry_run?: boolean }
+Response: { message: "마이그레이션 완료", total_count: number, success_count: number, failed_count: number }
 ```
 
 ### 성능 모니터링
 ```typescript
 // 성능 통계
 GET /admin/stats/performance
-Response: { message: "성능 통계 조회 완료" }
+Response: { message: "성능 통계 조회 완료", stats: object }
 
 // 성능 알림
 GET /admin/alerts/performance
-Response: { message: "성능 알림 조회 완료" }
+Response: { message: "성능 알림 조회 완료", alerts: Array }
 ```
 
 ### 에러 관리
 ```typescript
 // 에러 통계
 GET /admin/stats/errors
-Response: { message: "에러 통계 조회 완료" }
+Response: { message: "에러 통계 조회 완료", stats: object }
 
 // 에러 해결
 POST /admin/errors/resolve
@@ -120,14 +226,28 @@ Response: { message: "데이터베이스 최적화 완료" }
 ```typescript
 // src/tools/index.ts
 const coreTools = [
+  // 핵심 메모리 관리 (5개)
   new RememberTool(),
   new RecallTool(),
   new ForgetTool(),
   new PinTool(),
   new UnpinTool(),
+  // 고급 메모리 기능 (2개)
+  new MemoryInjectionPrompt(),
+  new GetMemoryNeighborsTool(),
+  // 앵커 시스템 도구들 (4개)
+  new SetAnchorTool(),
+  new GetAnchorTool(),
+  new SearchLocalTool(),
+  new ClearAnchorTool(),
+  // 관리/운영성 도구들은 HTTP API로만 제공
+  // - RestoreAnchorsTool: POST /admin/anchors/restore
+  // - MigrateEmbeddingsTool: POST /admin/embeddings/migrate
+  // - ConvertEpisodicToSemanticTool: POST /admin/memory/convert-episodic-to-semantic
+  // - GetMetaMemoryStatsTool: GET /admin/memory/meta-stats
 ];
 
-// 핵심 도구들만 등록
+// 핵심 도구들만 등록 (11개)
 toolRegistry.registerAll(coreTools.map(tool => tool.getDefinition()));
 ```
 
@@ -158,19 +278,29 @@ app.get('/admin/stats/performance', async (req, res) => {
 - ❌ 에러 로깅 및 디버깅
 - ❌ 데이터베이스 최적화
 - ❌ 배치 작업 및 유지보수
+- ❌ 앵커 복원 (시스템 초기화/복구)
+- ❌ 임베딩 마이그레이션 (관리자 작업)
+- ❌ 일괄 변환 작업 (Episodic → Semantic)
+- ❌ 메타 메모리 통계 조회 (관리자 통계)
 
 ## 🚀 마이그레이션 가이드
 
-### 기존 코드에서 제거할 도구들
+### MCP에서 제거된 도구들 (HTTP API로만 제공)
 ```typescript
-// 제거된 관리 도구들
-- cleanup_memory
-- forgetting_stats
-- performance_stats
-- database_optimize
-- error_stats
-- resolve_error
-- performance_alerts
+// 관리/운영성 도구 (4개)
+- restore_anchors → POST /admin/anchors/restore
+- migrate_embeddings → POST /admin/embeddings/migrate
+- convert_episodic_to_semantic → POST /admin/memory/convert-episodic-to-semantic
+- get_meta_memory_stats → GET /admin/memory/meta-stats
+
+// 기타 관리 도구들
+- cleanup_memory → POST /admin/memory/cleanup
+- forgetting_stats → GET /admin/stats/forgetting
+- performance_stats → GET /admin/stats/performance
+- database_optimize → POST /admin/database/optimize
+- error_stats → GET /admin/stats/errors
+- resolve_error → POST /admin/errors/resolve
+- performance_alerts → GET /admin/alerts/performance
 ```
 
 ### 새로운 HTTP API 사용법

@@ -353,31 +353,66 @@
       - 린트 에러 없음 (0 errors) ✅
       - Phase 4 목표 달성: 전역 변수 제거 완료
 
-- [ ] 5.0 Phase 5: MCP 도구 노출 정책 정합성 (우선순위: 중간, 예상 기간: 1-2주)
-  - [ ] 5.1 [분석] 현재 등록된 도구 목록 확인 및 규칙 문서와 비교
+- [x] 5.0 Phase 5: MCP 도구 노출 정책 정합성 (우선순위: 중간, 예상 기간: 1-2주)
+  - [x] 5.1 [분석] 현재 등록된 도구 목록 확인 및 규칙 문서와 비교
     - Given: 규칙 문서는 5개만 노출하라고 하지만 실제로는 16개 등록됨
     - When: src/tools/index.ts에서 등록된 도구 목록을 확인하고 .cursor/rules/mcp-tools-architecture.mdc와 비교
     - Then: 불일치 지점이 명확히 파악됨
-  - [ ] 5.2 [의사결정] 정책 정합성 방향 결정
+      - 규칙 문서: 5개 도구만 노출 (remember, recall, pin, unpin, forget)
+      - 실제 구현: 14개 도구 등록
+      - 불일치: 9개 도구가 규칙에 없음
+        - AI Agent 사용 가능: MemoryInjectionPrompt, GetMemoryNeighborsTool, SetAnchorTool, GetAnchorTool, SearchLocalTool, ClearAnchorTool (6개)
+        - 관리/운영성: RestoreAnchorsTool, MigrateEmbeddingsTool, ConvertEpisodicToSemanticTool, GetMetaMemoryStatsTool (4개)
+      - 분석 결과 문서: docs/phase5-tool-analysis.md 생성
+  - [x] 5.2 [의사결정] 정책 정합성 방향 결정
     - Given: 규칙 문서와 실제 구현 간 불일치가 확인됨
-    - When: 옵션 1(규칙 문서 업데이트) 또는 옵션 2(실제 구현 수정) 중 선택
+    - When: 옵션 1(규칙 문서 업데이트) 또는 옵션 2(실제 구현 수정) 또는 옵션 3(중간 지점) 중 선택
     - Then: 명확한 결정이 내려지고 문서화됨
-  - [ ] 5.3 [구현] 관리/운영성 도구 분리
+      - 결정: 옵션 3 (중간 지점) 채택
+      - MCP 클라이언트 도구: 11개 (핵심 5개 + 고급 2개 + 앵커 4개)
+      - HTTP 관리 API: 4개 (RestoreAnchorsTool, MigrateEmbeddingsTool, ConvertEpisodicToSemanticTool, GetMetaMemoryStatsTool)
+      - 결정 근거: 규칙 문서의 핵심 원칙("AI Agent가 직접 사용하는 기능만 노출") 준수, 관리 기능 분리로 보안성 확보
+      - 의사결정 문서: docs/phase5-decision.md 생성
+  - [x] 5.3 [구현] 관리/운영성 도구 분리
     - Given: 정책 정합성 방향이 결정됨
-    - When: MCP 클라이언트에 노출되지 않아야 할 도구들을 별도 네임스페이스로 분리
+    - When: MCP 클라이언트에 노출되지 않아야 할 도구들을 HTTP API로만 제공하도록 분리
     - Then: 관리/운영성 도구와 클라이언트 도구가 명확히 구분됨
-  - [ ] 5.4 [구현] 정책 정합성 확보 (규칙 문서 업데이트 또는 실제 구현 수정)
+      - HTTP API 엔드포인트 추가:
+        - POST /admin/anchors/restore (RestoreAnchorsTool)
+        - POST /admin/embeddings/migrate (MigrateEmbeddingsTool)
+        - POST /admin/memory/convert-episodic-to-semantic (ConvertEpisodicToSemanticTool)
+        - GET /admin/memory/meta-stats (GetMetaMemoryStatsTool)
+      - MCP 도구에서 제거: 4개 도구 (RestoreAnchorsTool, MigrateEmbeddingsTool, ConvertEpisodicToSemanticTool, GetMetaMemoryStatsTool)
+      - MCP 클라이언트 도구: 14개 → 11개로 감소
+      - 타입 체크 통과 ✅
+  - [x] 5.4 [구현] 정책 정합성 확보 (규칙 문서 업데이트 또는 실제 구현 수정)
     - Given: 관리/운영성 도구가 분리됨
     - When: 결정된 방향에 따라 규칙 문서를 업데이트하거나 실제 구현을 수정
     - Then: 규칙 문서와 실제 구현이 일치함
-  - [ ] 5.5 [문서화] 정책 문서 업데이트 및 도구 분류 문서화
+      - 규칙 문서 업데이트 완료 (.cursor/rules/mcp-tools-architecture.mdc)
+      - "5개만" → "11개 (AI Agent가 직접 사용하는 핵심 기능만 노출)"로 변경
+      - 구체적인 도구 목록 명시 (핵심 5개 + 고급 2개 + 앵커 4개)
+      - HTTP 관리 API 엔드포인트 명시 (4개 추가)
+      - 규칙 문서와 실제 구현 일치 확인 ✅
+  - [x] 5.5 [문서화] 정책 문서 업데이트 및 도구 분류 문서화
     - Given: 정책 정합성이 확보됨
     - When: 정책 문서를 업데이트하고 도구 분류를 문서화
     - Then: 문서가 최신 상태로 유지되고 명확한 가이드라인 제공
-  - [ ] 5.6 [검증] Phase 5 완료 검증
+      - README.md 업데이트: MCP Tools 15개 → 11개로 변경, HTTP 관리 API 섹션에 4개 엔드포인트 추가
+      - docs/ko/api-reference.md 업데이트: MCP Tools 섹션 수정, 관리자 API 섹션에 4개 엔드포인트 추가, 제거된 MCP Tools 섹션 업데이트
+      - 모든 문서가 최신 상태로 유지됨 ✅
+  - [x] 5.6 [검증] Phase 5 완료 검증
     - Given: Phase 5의 모든 작업이 완료됨
     - When: 등록된 도구 개수와 규칙 문서를 비교
     - Then: 규칙 문서와 실제 구현이 일치하고 관리/운영성 도구와 클라이언트 도구가 구분됨
+      - MCP 클라이언트 도구: 11개 등록 (핵심 5개 + 고급 2개 + 앵커 4개) ✅
+      - 규칙 문서와 실제 구현 일치 확인 ✅
+      - 관리/운영성 도구 4개가 HTTP API로만 제공됨 확인 ✅
+      - HTTP API 엔드포인트 4개 확인: POST /admin/anchors/restore, POST /admin/embeddings/migrate, POST /admin/memory/convert-episodic-to-semantic, GET /admin/memory/meta-stats ✅
+      - 모든 문서가 최신 상태로 유지됨 ✅
+      - 검증 문서: docs/phase5-verification.md 생성
+      - 최종 검증: 린트 ✅, 타입 체크 ✅, 테스트 ✅ (3578 passed, 4 skipped, 0 failed)
+      - 테스트 수정: get-meta-memory-stats-tool-registration.spec.ts 스킵 처리, test-meta-memory-e2e.spec.ts HTTP API 사용으로 수정
 
 - [ ] 6.0 Phase 6: 로깅 정책 통일 (우선순위: 중간, 예상 기간: 2-3주)
   - [ ] 6.1 [준비] 표준 로거 모듈 확인 및 로깅 필드 스키마 문서화

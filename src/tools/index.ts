@@ -16,34 +16,39 @@ import { SetAnchorTool } from '../domains/anchor/tools/set-anchor-tool.js';
 import { GetAnchorTool } from '../domains/anchor/tools/get-anchor-tool.js';
 import { SearchLocalTool } from '../domains/anchor/tools/search-local-tool.js';
 import { ClearAnchorTool } from '../domains/anchor/tools/clear-anchor-tool.js';
-import { RestoreAnchorsTool } from '../domains/anchor/tools/restore-anchors-tool.js';
-import { MigrateEmbeddingsTool } from './migrate-embeddings-tool.js';
-import { ConvertEpisodicToSemanticTool } from '../domains/memory/tools/convert-episodic-to-semantic-tool.js';
-import { GetMetaMemoryStatsTool } from '../domains/monitoring/tools/get-meta-memory-stats-tool.js';
 // 관계 엔진 도구들은 HTTP API로만 제공 (MCP에서 제거)
 // 관계 추출은 remember 도구에서 자동으로 수행됨
+// 관리/운영성 도구들은 HTTP API로만 제공 (Phase 5.3)
+// - RestoreAnchorsTool: POST /admin/anchors/restore
+// - MigrateEmbeddingsTool: POST /admin/embeddings/migrate
+// - ConvertEpisodicToSemanticTool: POST /admin/memory/convert-episodic-to-semantic
+// - GetMetaMemoryStatsTool: GET /admin/memory/meta-stats
 
 /**
- * 핵심 도구 인스턴스 생성 (12개: 핵심 7개 + 앵커 5개)
+ * 핵심 도구 인스턴스 생성 (11개: 핵심 5개 + 고급 2개 + 앵커 4개)
+ * 관리/운영성 도구 4개는 HTTP API로만 제공 (관리자용)
  * 관계 엔진 도구 5개는 HTTP API로만 제공 (관리자용)
  */
 const coreTools = [
+  // 핵심 메모리 관리 (5개)
   new RememberTool(),        // 자동으로 관계 추출 포함
   new RecallTool(),
   new ForgetTool(),
   new PinTool(),
   new UnpinTool(),
+  // 고급 메모리 기능 (2개)
   new MemoryInjectionPrompt(),
   new GetMemoryNeighborsTool(),
-  // 앵커 시스템 도구들
+  // 앵커 시스템 도구들 (4개)
   new SetAnchorTool(),
   new GetAnchorTool(),
   new SearchLocalTool(),
   new ClearAnchorTool(),
-  new RestoreAnchorsTool(),
-  new MigrateEmbeddingsTool(),
-  new ConvertEpisodicToSemanticTool(), // AriGraph Pipeline 수동 변환 도구
-  new GetMetaMemoryStatsTool(), // 메타 메모리 통계 조회 도구
+  // 관리/운영성 도구들은 HTTP API로만 제공
+  // - RestoreAnchorsTool: POST /admin/anchors/restore
+  // - MigrateEmbeddingsTool: POST /admin/embeddings/migrate
+  // - ConvertEpisodicToSemanticTool: POST /admin/memory/convert-episodic-to-semantic
+  // - GetMetaMemoryStatsTool: GET /admin/memory/meta-stats
   // 관계 엔진 도구들은 제거됨 (HTTP API로만 제공)
   // - extract_relations: remember에서 자동 실행
   // - get_relations, add_relation, remove_relation, visualize_relations: HTTP API로 제공
@@ -107,10 +112,11 @@ export {
   GetAnchorTool,
   SearchLocalTool,
   ClearAnchorTool,
-  RestoreAnchorsTool,
-  MigrateEmbeddingsTool,
-  ConvertEpisodicToSemanticTool,
-  GetMetaMemoryStatsTool,
+  // 관리/운영성 도구들은 HTTP API로만 제공되므로 export하지 않음
+  // - RestoreAnchorsTool
+  // - MigrateEmbeddingsTool
+  // - ConvertEpisodicToSemanticTool
+  // - GetMetaMemoryStatsTool
   // 관계 엔진 도구들은 HTTP API로만 제공되므로 export하지 않음
 };
 

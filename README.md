@@ -324,14 +324,41 @@ const results = await client.callTool({
 
 ### HTTP 관리 API
 
+> **중요**: 다음 기능들은 MCP 클라이언트에 노출되지 않으며, HTTP API로만 제공됩니다.
+
+#### 메모리 관리
 | 엔드포인트 | 설명 | 메서드 |
 |-----------|------|--------|
 | `/admin/memory/cleanup` | 메모리 정리 | POST |
+| `/admin/memory/convert-episodic-to-semantic` | Episodic → Semantic 변환 | POST |
+| `/admin/memory/meta-stats` | 메타 메모리 통계 조회 | GET |
 | `/admin/stats/forgetting` | 망각 통계 조회 | GET |
+
+#### 앵커 관리
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
+| `/admin/anchors/restore` | 앵커 복원 | POST |
+
+#### 임베딩 관리
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
+| `/admin/embeddings/migrate` | 임베딩 마이그레이션 | POST |
+
+#### 성능 모니터링
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
 | `/admin/stats/performance` | 성능 통계 조회 | GET |
+| `/admin/alerts/performance` | 성능 알림 조회 | GET |
+
+#### 에러 관리
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
 | `/admin/stats/errors` | 에러 통계 조회 | GET |
 | `/admin/errors/resolve` | 에러 해결 | POST |
-| `/admin/alerts/performance` | 성능 알림 조회 | GET |
+
+#### 데이터베이스 관리
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
 | `/admin/database/optimize` | 데이터베이스 최적화 | POST |
 
 ### Resources
