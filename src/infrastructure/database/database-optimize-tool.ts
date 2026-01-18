@@ -50,6 +50,9 @@ export class DatabaseOptimizeTool extends BaseTool {
         operations: []
       };
       
+      // 데이터베이스 최적화 서비스 확인
+      this.validateService(context.services.databaseOptimizer, '데이터베이스 최적화 서비스');
+      
       if (analyze) {
         await context.services.databaseOptimizer.analyzeDatabase();
         results.operations.push('데이터베이스 분석 완료');

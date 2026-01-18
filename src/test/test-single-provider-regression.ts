@@ -13,9 +13,9 @@ import { DatabaseUtils } from '../shared/utils/database.js';
 import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 import { executeTool } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import type { EmbeddingProvider } from '../shared/types/index.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
+import { createToolContext } from '../server/context.js';
 
 interface RegressionTestResult {
   test_name: string;
@@ -24,27 +24,6 @@ interface RegressionTestResult {
   performance_metrics?: {
     search_time_ms: number;
     result_count: number;
-  };
-}
-
-/**
- * ToolContext 생성 헬퍼 함수
- */
-function createToolContext(db: Database.Database, services: Awaited<ReturnType<typeof initializeServices>>): ToolContext {
-  return {
-    db,
-    services: {
-      hybridSearchEngine: services.hybridSearchEngine,
-      embeddingService: services.embeddingService,
-      searchEngine: services.searchEngine,
-      forgettingPolicyService: services.forgettingPolicyService,
-      performanceMonitor: services.performanceMonitor,
-      databaseOptimizer: services.databaseOptimizer,
-      errorLoggingService: services.errorLoggingService,
-      performanceAlertService: services.performanceAlertService,
-      consolidationScoreService: services.consolidationScoreService,
-      writeCoalescingManager: services.writeCoalescingManager
-    }
   };
 }
 

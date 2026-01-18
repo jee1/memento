@@ -11,6 +11,7 @@ import { SchemaVersionManager } from './schema-version-manager.js';
 import { DependencyValidator } from './dependency-validator.js';
 import { MigrationLogger, LogLevel } from './migration-logger.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { logger } from '../../../../shared/utils/logger.js';
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 
@@ -56,27 +57,27 @@ export class MigrationRunner {
     try {
       const maskedMigrationName = PIIMasker.mask(migration.name).masked;
       this.logger.info(`마이그레이션 시작: ${maskedMigrationName} (v${migration.version})`);
-      console.log(`🚀 마이그레이션 시작: ${maskedMigrationName} (v${migration.version})`);
+      logger.info(`🚀 마이그레이션 시작: ${maskedMigrationName} (v${migration.version})`);
 
       // 1. 마이그레이션 전 검증
       if (validate) {
         this.logger.info('마이그레이션 전 검증 시작');
-        console.log('🔍 마이그레이션 전 검증 중...');
+        logger.info('🔍 마이그레이션 전 검증 중...');
         await migration.validateBefore(this.db);
         this.logger.info('마이그레이션 전 검증 완료');
-        console.log('✅ 마이그레이션 전 검증 완료');
+        logger.info('✅ 마이그레이션 전 검증 완료');
       }
 
       // 2. 백업 생성
       if (createBackup) {
         this.logger.info('백업 생성 시작');
-        console.log('💾 백업 생성 중...');
+        logger.info('💾 백업 생성 중...');
         const backup = await this.backupManager.createBackup(this.db, migration.version);
         backupPath = backup.backupPath;
         const maskedBackupPath = PIIMasker.mask(backupPath).masked;
         const maskedBackupData = PIIMasker.maskObject({ size: backup.size });
         this.logger.info(`백업 생성 완료: ${maskedBackupPath}`, maskedBackupData);
-        console.log(`✅ 백업 생성 완료: ${maskedBackupPath}`);
+        logger.info(`✅ 백업 생성 완료: ${maskedBackupPath}`);
       }
 
       // 3. 트랜잭션 시작
@@ -85,20 +86,20 @@ export class MigrationRunner {
       try {
         // 4. 마이그레이션 실행
         this.logger.info('마이그레이션 실행 시작');
-        console.log('📝 마이그레이션 실행 중...');
+        logger.info('📝 마이그레이션 실행 중...');
         await migration.up(this.db);
         this.logger.info('마이그레이션 실행 완료');
-        console.log('✅ 마이그레이션 실행 완료');
+        logger.info('✅ 마이그레이션 실행 완료');
 
         // 5. 마이그레이션 후 검증
         if (validate) {
           const maskedValidationStartMsg = PIIMasker.mask('마이그레이션 후 검증 시작').masked;
           this.logger.info(maskedValidationStartMsg);
-          console.log('🔍 마이그레이션 후 검증 중...');
+          logger.info('🔍 마이그레이션 후 검증 중...');
           await migration.validateAfter(this.db);
           const maskedValidationCompleteMsg = PIIMasker.mask('마이그레이션 후 검증 완료').masked;
           this.logger.info(maskedValidationCompleteMsg);
-          console.log('✅ 마이그레이션 후 검증 완료');
+          logger.info('✅ 마이그레이션 후 검증 완료');
         }
 
         // 6. 스키마 버전 기록
@@ -119,22 +120,22 @@ export class MigrationRunner {
         // 7. 트랜잭션 커밋
         this.db.exec('COMMIT');
         this.logger.info('트랜잭션 커밋 완료');
-        console.log('✅ 트랜잭션 커밋 완료');
+        logger.info('✅ 트랜잭션 커밋 완료');
 
         result.success = true;
         result.endTime = new Date();
         this.logger.logMigrationResult(result);
-        console.log(`🎉 마이그레이션 성공: ${migration.name} (v${migration.version})`);
+        logger.info(`🎉 마이그레이션 성공: ${migration.name} (v${migration.version})`);
 
         return result;
       } catch (migrationError) {
         // 마이그레이션 실패 시 롤백
         const maskedMigrationError = migrationError instanceof Error ? PIIMasker.maskError(migrationError) : { message: String(migrationError), name: 'Error' };
         this.logger.error('마이그레이션 실행 실패', maskedMigrationError);
-        console.error('❌ 마이그레이션 실행 실패:', maskedMigrationError.message);
+        logger.error('❌ 마이그레이션 실행 실패', { error: maskedMigrationError.message, errorName: maskedMigrationError.name });
         this.db.exec('ROLLBACK');
         this.logger.info('트랜잭션 롤백 완료');
-        console.log('↩️  트랜잭션 롤백 완료');
+        logger.info('↩️  트랜잭션 롤백 완료');
 
         result.error = migrationError instanceof Error 
           ? migrationError.message 
@@ -144,17 +145,17 @@ export class MigrationRunner {
         if (autoRollback && backupPath) {
           try {
             this.logger.info('자동 롤백 시도 시작');
-            console.log('🔄 자동 롤백 시도 중...');
+            logger.info('🔄 자동 롤백 시도 중...');
             await this.rollbackMigration(migration, backupPath);
             result.rollbackSuccess = true;
             this.logger.info('자동 롤백 성공');
-            console.log('✅ 자동 롤백 성공');
+            logger.info('✅ 자동 롤백 성공');
           } catch (rollbackError) {
             result.rollbackSuccess = false;
             const maskedRollbackError = rollbackError instanceof Error ? PIIMasker.maskError(rollbackError) : { message: String(rollbackError), name: 'Error' };
             this.logger.error('자동 롤백 실패', maskedRollbackError);
-            console.error('❌ 자동 롤백 실패:', maskedRollbackError.message);
-            console.error('⚠️  수동 복구가 필요합니다. 백업 파일:', backupPath);
+            logger.error('❌ 자동 롤백 실패', { error: maskedRollbackError.message, errorName: maskedRollbackError.name });
+            logger.error('⚠️  수동 복구가 필요합니다. 백업 파일', { backupPath });
           }
         }
 
@@ -174,7 +175,7 @@ export class MigrationRunner {
    */
   async rollbackMigration(migration: Migration, backupPath: string): Promise<void> {
     try {
-      console.log(`↩️  마이그레이션 롤백 시작: ${migration.name} (v${migration.version})`);
+      logger.info(`↩️  마이그레이션 롤백 시작: ${migration.name} (v${migration.version})`);
 
       // 1. 롤백 실행
       await migration.down(this.db);
@@ -186,10 +187,10 @@ export class MigrationRunner {
       // 주의: down()이 완전히 롤백하지 못한 경우에만 백업 복원
       // 일반적으로는 down()만으로 충분하므로 백업 복원은 선택적
 
-      console.log(`✅ 마이그레이션 롤백 완료: ${migration.name} (v${migration.version})`);
+      logger.info(`✅ 마이그레이션 롤백 완료: ${migration.name} (v${migration.version})`);
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 마이그레이션 롤백 실패:', maskedError.message);
+      logger.error('❌ 마이그레이션 롤백 실패', { error: maskedError.message, errorName: maskedError.name });
       throw error;
     }
   }
@@ -209,7 +210,7 @@ export class MigrationRunner {
 
       // 실패한 마이그레이션이 있고 autoRollback이 true인 경우 중단
       if (!result.success && options.autoRollback) {
-        console.error(`❌ 마이그레이션 실패로 인해 중단: ${migration.name} (v${migration.version})`);
+        logger.error(`❌ 마이그레이션 실패로 인해 중단: ${migration.name} (v${migration.version})`);
         break;
       }
     }

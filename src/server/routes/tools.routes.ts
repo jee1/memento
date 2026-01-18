@@ -10,14 +10,16 @@ import type { ServerServices } from '../bootstrap.js';
 import type Database from 'better-sqlite3';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
 import { logger } from '../../shared/utils/logger.js';
+import type { WebSocket } from 'ws';
 
 /**
  * Tools 라우터 생성
  */
+
 export function createToolsRouter(
   db: Database.Database,
   serverServices: ServerServices | null,
-  anchorMapSubscribers: Map<string, Set<any>>
+  anchorMapSubscribers: Map<string, Set<WebSocket>>
 ): Router {
   const router = Router();
 

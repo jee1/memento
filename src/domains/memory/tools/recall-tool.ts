@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider } from '../../../shared/types/index.js';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider, type MemorySearchFilters } from '../../../shared/types/index.js';
 import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
@@ -22,7 +22,7 @@ import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
-import type { MetaMemoryService } from '../../../services/meta-memory-service.js';
+import type { MetaMemoryService } from '../services/meta-memory-service.js';
 
 /**
  * 앵커 설정 메타데이터 타입
@@ -703,15 +703,18 @@ export class RecallTool extends BaseTool {
         }
         
         // 필터 객체 재구성
-        const filters = {
-          type: filteredMemoryTypes,
+        // filteredMemoryTypes는 이미 validMemoryTypes로 변환되어 MemoryType[] 타입이거나 undefined
+        // 타입 단언을 사용하여 TypeScript가 올바른 타입으로 인식하도록 함
+        const finalMemoryTypes: MemoryType[] | undefined = filteredMemoryTypes && filteredMemoryTypes.length > 0 
+          ? (filteredMemoryTypes as MemoryType[])
+          : undefined;
+        const filters: MemorySearchFilters = {
+          type: finalMemoryTypes,
           tags,
           privacy_scope,
           time_from,
           time_to,
           pinned,
-          importance_min,
-          importance_max,
           has_reflection_notes: params.has_reflection_notes,
           // Procedural Memory Enhancement (v7.0) 필터
           workflow_name,
@@ -732,8 +735,11 @@ export class RecallTool extends BaseTool {
         let searchResult;
         
         try {
-          if (enableHybrid && context.services.hybridSearchEngine.isEmbeddingAvailable()) {
+          if (enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable()) {
             // 하이브리드 검색 (텍스트 + 벡터)
+            // hybridSearchEngine이 undefined일 수 있으므로 optional chaining 사용
+            this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
+            
             this.logInfo('하이브리드 검색 실행', { 
               query, 
               vectorWeight: normalizedVectorWeight, 
@@ -1252,15 +1258,19 @@ export class RecallTool extends BaseTool {
           // PRD: 슬롯 B/C의 pinned 앵커도 덮어쓰고 A→B→C→제거 순으로 회전
           // 먼저 슬롯 B를 제거한 후 슬롯 C에 설정
           const slotBMemoryId = slotBAnchor.memory_id;
-          await context.services.anchorManager.clearAnchor(agentId, 'B');
-          await context.services.anchorManager.setAnchor(agentId, slotBMemoryId, 'C');
+          if (slotBMemoryId) {
+            await context.services.anchorManager.clearAnchor(agentId, 'B');
+            await context.services.anchorManager.setAnchor(agentId, slotBMemoryId, 'C');
+          }
         }
 
         // 슬롯 A의 앵커를 슬롯 B로 이동
         // 먼저 슬롯 A를 제거한 후 슬롯 B에 설정
         const slotAMemoryId = slotAAnchor.memory_id;
-        await context.services.anchorManager.clearAnchor(agentId, 'A');
-        await context.services.anchorManager.setAnchor(agentId, slotAMemoryId, 'B');
+        if (slotAMemoryId) {
+          await context.services.anchorManager.clearAnchor(agentId, 'A');
+          await context.services.anchorManager.setAnchor(agentId, slotAMemoryId, 'B');
+        }
       }
 
       // 새로운 기억을 슬롯 A에 설정

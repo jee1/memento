@@ -27,7 +27,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { GetMetaMemoryStatsParams, MetaMemoryStatsResult } from '../../../shared/types/index.js';
-import type { MetaMemoryService } from '../../../services/meta-memory-service.js';
+import type { MetaMemoryService } from '../../memory/services/meta-memory-service.js';
 
 /**
  * Get Meta Memory Stats 파라미터 스키마

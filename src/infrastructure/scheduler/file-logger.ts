@@ -9,6 +9,7 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { validateFilePath, sanitizeFileName } from '../../shared/utils/path-validator.js';
+import { logger } from '../../shared/utils/logger.js';
 
 export interface FileLoggerConfig {
   logDir?: string; // 로그 디렉토리 (기본: process.cwd()/logs)
@@ -109,9 +110,12 @@ export class FileLogger {
       await fsPromises.appendFile(this.logFilePath, logLine);
     } catch (error) {
       // 파일 로깅 실패는 무시 (콘솔 로거 사용)
-      // 실제 운영 환경에서는 콘솔 로거에 위임해야 함
+      // 표준 로거로 에러 기록
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('Failed to write to log file:', maskedError.message);
+      logger.error('Failed to write to log file', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
     }
   }
 

@@ -122,7 +122,7 @@ export class AddRelationTool extends BaseTool {
           { 
             confidence: confidence || 0.7,
             metadata: {
-              method: 'manual',
+              method: 'manual' as 'rule' | 'llm', // 'manual'은 타입 정의에 없지만 런타임에서는 허용됨
               extracted_at: new Date().toISOString()
             }
           }

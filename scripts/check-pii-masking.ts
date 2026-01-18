@@ -173,15 +173,22 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     
     // logger.ts를 import하는지 확인 (이미 마스킹이 적용되어 있음)
     // 다양한 import 패턴 지원: import { logger } from '...', import logger from '...', import * as logger from '...'
-    // 상대 경로와 절대 경로 모두 지원: '../utils/logger', '../../shared/utils/logger', 'shared/utils/logger'
-    const usesLoggerUtils = /import\s+.*\blogger\b.*from\s+['"].*utils\/logger|from\s+['"].*utils\/logger/.test(content);
+    // 상대 경로와 절대 경로 모두 지원: '../utils/logger', '../../shared/utils/logger', 'shared/utils/logger', './logger'
+    // 같은 디렉토리의 logger.js를 import하는 경우도 감지 (shared/utils/ 디렉토리 내에서)
+    const usesLoggerUtils = /import\s+.*\blogger\b.*from\s+['"].*utils\/logger|from\s+['"].*utils\/logger|import\s+.*\blogger\b.*from\s+['"]\.\/logger|from\s+['"]\.\/logger/.test(content);
+    
+    // shared/utils/ 디렉토리 내에서 logger를 import하는 경우도 확인
+    // 같은 디렉토리나 상위 디렉토리의 logger.ts를 import하는 경우
+    const isInSharedUtils = relativePath.includes('shared/utils/');
+    const importsLoggerFromSameDir = isInSharedUtils && /import\s+.*\blogger\b.*from\s+['"]\.\/logger|from\s+['"]\.\/logger/.test(content);
+    const usesLogger = usesLoggerUtils || importsLoggerFromSameDir;
     
     // 로거 파일인지 확인 (logger, file-logger, error-logging-service 등)
     const isLoggerFile = /logger|log|error-logging/i.test(relativePath);
     
     // logger.error, logger.warn, logger.info, logger.debug 호출 확인
     // logger.ts를 import하는 경우는 이미 마스킹이 적용되어 있으므로 제외
-    if (!usesLoggerUtils) {
+    if (!usesLogger) {
       const loggerMethodPattern = /logger\.(error|warn|info|debug|log)\s*\(/g;
       let match;
       
@@ -238,7 +245,7 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     
     // logger.error에서 error 객체를 직접 전달하는 경우 확인
     // logger.ts를 import하는 경우는 이미 마스킹이 적용되어 있으므로 제외
-    if (!usesLoggerUtils) {
+    if (!usesLogger) {
       const loggerErrorPattern = /logger\.(error|warn|info|debug)\s*\([^,)]*,\s*\{[^}]*error[^}]*\}/g;
       let loggerErrorMatch;
       

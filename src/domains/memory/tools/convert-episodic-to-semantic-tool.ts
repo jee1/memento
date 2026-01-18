@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { TripleExtractionService } from '../../../services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../services/semantic-memory/semantic-memory-update-service.js';
+import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../domains/embedding/services/unified-embedding-service.js';
 
@@ -243,7 +243,12 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
 
           // Triple이 추출된 경우 Semantic Memory 생성/업데이트
           if (extractionResult.triples.length > 0) {
-            const embeddingService = context.services.embeddingService || new UnifiedEmbeddingService();
+            // MemoryEmbeddingService는 내부적으로 UnifiedEmbeddingService를 사용하므로,
+            // 타입 단언을 사용하여 UnifiedEmbeddingService로 변환
+            // 실제로는 MemoryEmbeddingService가 UnifiedEmbeddingService를 래핑하고 있음
+            const embeddingService: UnifiedEmbeddingService = context.services.embeddingService 
+              ? (context.services.embeddingService as unknown as UnifiedEmbeddingService)
+              : new UnifiedEmbeddingService();
             const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
               db,
               embeddingService,

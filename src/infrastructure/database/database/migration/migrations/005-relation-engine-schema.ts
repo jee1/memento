@@ -11,6 +11,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { Migration } from '../types.js';
 import { DependencyValidator } from '../dependency-validator.js';
+import { logger } from '../../../../../shared/utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -200,7 +201,7 @@ export class RelationEngineSchemaMigration implements Migration {
         }
       }
 
-      console.log(`[Migration 005] Migrated ${migratedCount} relations from memory_link to memory_relation`);
+      logger.info(`[Migration 005] Migrated ${migratedCount} relations from memory_link to memory_relation`);
     }
 
     // Note: Schema version is recorded by MigrationRunner, not here

@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { ServerServices } from '../bootstrap.js';
-import type { MetaMemoryService } from '../../services/meta-memory-service.js';
+import type { MetaMemoryService } from '../../domains/memory/services/meta-memory-service.js';
 
 describe('ServerServices 인터페이스 확장', () => {
   it('given: ServerServices 타입이 있을 때, when: metaMemoryService 필드를 확인하면, then: 필드가 포함되어야 함', () => {

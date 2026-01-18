@@ -3716,7 +3716,7 @@ describe('RecallTool', () => {
       `);
 
       // MetaMemoryService 초기화
-      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const { MetaMemoryService } = await import('../../services/meta-memory-service.js');
       const metaMemoryService = new MetaMemoryService(db);
 
       // context에 MetaMemoryService 추가
@@ -3816,7 +3816,7 @@ describe('RecallTool', () => {
       `);
 
       // MetaMemoryService 초기화
-      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const { MetaMemoryService } = await import('../../services/meta-memory-service.js');
       const metaMemoryService = new MetaMemoryService(db);
 
       // context에 MetaMemoryService 추가
@@ -3888,7 +3888,7 @@ describe('RecallTool', () => {
       `);
 
       // MetaMemoryService 초기화
-      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const { MetaMemoryService } = await import('../../services/meta-memory-service.js');
       const metaMemoryService = new MetaMemoryService(db);
 
       // context에 MetaMemoryService 추가
@@ -3996,7 +3996,7 @@ describe('RecallTool', () => {
       `);
 
       // MetaMemoryService 초기화
-      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const { MetaMemoryService } = await import('../../services/meta-memory-service.js');
       const metaMemoryService = new MetaMemoryService(db);
 
       // context에 MetaMemoryService 추가
@@ -4089,7 +4089,7 @@ describe('RecallTool', () => {
       `);
 
       // MetaMemoryService 초기화
-      const { MetaMemoryService } = await import('../../../../services/meta-memory-service.js');
+      const { MetaMemoryService } = await import('../../services/meta-memory-service.js');
       const metaMemoryService = new MetaMemoryService(db);
 
       // context에 MetaMemoryService 추가

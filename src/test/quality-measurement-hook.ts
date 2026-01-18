@@ -11,7 +11,7 @@
 import { afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { initializeDatabase } from '../infrastructure/database/database/init.js';
-import { QualityAssuranceService } from '../services/quality-assurance/quality-assurance-service.js';
+import { QualityAssuranceService } from '../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { logger } from '../shared/utils/logger.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
 import { existsSync, mkdirSync } from 'fs';

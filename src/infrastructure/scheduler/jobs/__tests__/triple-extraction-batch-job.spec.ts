@@ -12,8 +12,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { TripleExtractionBatchJob } from '../triple-extraction-batch-job.js';
-import { TripleExtractionService } from '../../../../services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../../services/semantic-memory/semantic-memory-update-service.js';
+import { TripleExtractionService } from '../../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 
 // generateId 헬퍼 함수 (테스트용)

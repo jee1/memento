@@ -55,8 +55,9 @@ export class MemoryManager {
   async get(id: string): Promise<MemoryItem | null> {
     try {
       return await this.client.getMemory(id);
-    } catch (error: any) {
-      if (error.code === 'NOT_FOUND' || error.message?.includes('not found')) {
+    } catch (error: unknown) {
+      const errorObj = error as { code?: string; message?: string };
+      if (errorObj.code === 'NOT_FOUND' || errorObj.message?.includes('not found')) {
         return null;
       }
       throw error;
@@ -384,7 +385,7 @@ export class MemoryManager {
 
     for (const memory of allMemories.items) {
       stats.byType[memory.type]++;
-      const privacyScope = (memory as any).privacy_scope || 'private';
+      const privacyScope = (memory as MemoryItem & { privacy_scope?: PrivacyScope }).privacy_scope || 'private';
       stats.byPrivacyScope[privacyScope as PrivacyScope]++;
       if (memory.pinned) stats.pinned++;
     }

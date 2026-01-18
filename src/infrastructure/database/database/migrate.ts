@@ -6,15 +6,16 @@
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 function migrateDatabase() {
-  console.log('🔄 데이터베이스 마이그레이션 시작');
+  logger.info('🔄 데이터베이스 마이그레이션 시작');
   
   const db = new Database(mementoConfig.dbPath);
   
   try {
     // 사용성 통계 컬럼 추가
-    console.log('📊 사용성 통계 컬럼 추가 중...');
+    logger.info('📊 사용성 통계 컬럼 추가 중...');
     
     try {
       db.exec('ALTER TABLE memory_item ADD COLUMN view_count INTEGER DEFAULT 0');
@@ -40,9 +41,9 @@ function migrateDatabase() {
       }
     }
     
-    console.log('✅ 사용성 통계 컬럼 추가 완료');
+    logger.info('✅ 사용성 통계 컬럼 추가 완료');
     
-    console.log('🧠 임베딩 테이블 구조 확인 중...');
+    logger.info('🧠 임베딩 테이블 구조 확인 중...');
     const hasEmbeddingTable = !!db.prepare(`
       SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'
     `).get();
@@ -57,7 +58,7 @@ function migrateDatabase() {
     const needsRebuild = !hasEmbeddingTable || !hasEmbedding || !hasProjectionType;
 
     if (needsRebuild) {
-      console.log('🧱 memory_embedding 테이블 재구성 중...');
+      logger.info('🧱 memory_embedding 테이블 재구성 중...');
 
       db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
       db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
@@ -141,12 +142,12 @@ function migrateDatabase() {
       }
 
       db.exec('ALTER TABLE memory_embedding__new RENAME TO memory_embedding;');
-      console.log('✅ memory_embedding 테이블 재구성 완료');
+      logger.info('✅ memory_embedding 테이블 재구성 완료');
     } else {
-      console.log('✅ memory_embedding 테이블은 최신 구조입니다');
+      logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
     }
 
-    console.log('🧾 임베딩 인덱스 및 트리거 정비 중...');
+    logger.info('🧾 임베딩 인덱스 및 트리거 정비 중...');
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
     `);
@@ -251,10 +252,10 @@ function migrateDatabase() {
         DELETE FROM memory_item_vec_gemini WHERE rowid = OLD.id;
       END
     `);
-    console.log('✅ 임베딩 인덱스 및 트리거 정비 완료');
+    logger.info('✅ 임베딩 인덱스 및 트리거 정비 완료');
     
     // 기존 데이터에 기본값 설정
-    console.log('🔧 기존 데이터 업데이트 중...');
+    logger.info('🔧 기존 데이터 업데이트 중...');
     
     db.exec(`
       UPDATE memory_item 
@@ -262,14 +263,14 @@ function migrateDatabase() {
       WHERE view_count IS NULL OR cite_count IS NULL OR edit_count IS NULL
     `);
     
-    console.log('✅ 기존 데이터 업데이트 완료');
+    logger.info('✅ 기존 데이터 업데이트 완료');
     
     // 마이그레이션 완료
-    console.log('🎉 데이터베이스 마이그레이션 완료!');
+    logger.info('🎉 데이터베이스 마이그레이션 완료!');
     
   } catch (error) {
     const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-    console.error('❌ 마이그레이션 실패:', maskedError.message);
+    logger.error('❌ 마이그레이션 실패', { error: maskedError.message, errorName: maskedError.name });
     throw error;
   } finally {
     db.close();
@@ -280,11 +281,11 @@ function migrateDatabase() {
 if (process.argv[1] && process.argv[1].endsWith('migrate.ts')) {
   try {
     migrateDatabase();
-    console.log('✅ 마이그레이션 완료');
+    logger.info('✅ 마이그레이션 완료');
     process.exit(0);
   } catch (error) {
     const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-    console.error('❌ 마이그레이션 실패:', maskedError.message);
+    logger.error('❌ 마이그레이션 실패', { error: maskedError.message, errorName: maskedError.name });
     process.exit(1);
   }
 }

@@ -154,35 +154,31 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools (핵심 15개)
+## MCP Tools (핵심 11개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 15개를 노출합니다.  
-> 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.  
+> **핵심 원칙**: AI Agent가 직접 사용하는 핵심 기능만 노출  
+> **중요**: 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.  
 > 자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
 
-### 핵심 메모리 관리 도구 (7개)
+### 1. 핵심 메모리 관리 도구 (5개)
 
 1. **remember** - 기억 저장
 2. **recall** - 기억 검색
 3. **forget** - 기억 삭제
 4. **pin** - 기억 고정
 5. **unpin** - 기억 고정 해제
+
+### 2. 고급 메모리 기능 (2개)
+
 6. **get_memory_neighbors** - 유사한 기억 조회
 7. **memory_injection** - 관련 기억을 컨텍스트에 주입 (Prompt)
 
-### 앵커 시스템 도구 (5개)
+### 3. 앵커 시스템 도구 (4개)
 
 8. **set_anchor** - 기억을 앵커로 설정
 9. **get_anchor** - 현재 앵커 조회
 10. **search_local** - 앵커 주변 검색
 11. **clear_anchor** - 앵커 제거
-12. **restore_anchors** - 데이터베이스에서 앵커 복원
-
-### 관리 도구 (3개)
-
-13. **migrate_embeddings** - 임베딩 제공자 간 마이그레이션
-14. **convert_episodic_to_semantic** - 일화기억을 의미기억으로 변환
-15. **get_meta_memory_stats** - 메모리 통계 조회
 
 ### remember
 
@@ -613,189 +609,137 @@ const result = await client.callTool('clear_anchor', {
 const result = await client.callTool('clear_anchor', {});
 ```
 
-### restore_anchors
-
-데이터베이스에서 앵커를 복원하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface RestoreAnchorsParams {
-  agent_id?: string;               // 에이전트 ID (기본값: 'default')
-}
-```
-
-#### 응답
-
-```typescript
-interface RestoreAnchorsResult {
-  success: boolean;                 // 성공 여부
-  agent_id: string;                // 에이전트 ID
-  restored_count: number;          // 복원된 앵커 개수
-  anchors: {
-    A: AnchorInfo | null;
-    B: AnchorInfo | null;
-    C: AnchorInfo | null;
-  };
-}
-```
-
-#### 사용 예시
-
-```typescript
-// 데이터베이스에서 앵커 복원
-const result = await client.callTool('restore_anchors', {
-  agent_id: 'my-agent'
-});
-```
-
-### migrate_embeddings
-
-임베딩 제공자 간 마이그레이션을 수행하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface MigrateEmbeddingsParams {
-  target_provider: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';  // 대상 제공자 (필수)
-  source_provider?: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini'; // 소스 제공자 (선택, 지정하지 않으면 모든 제공자 마이그레이션)
-  batch_size?: number;            // 배치 크기 (1-1000, 기본값: 100)
-  dry_run?: boolean;               // 시뮬레이션 모드 (기본값: false)
-}
-```
-
-#### 응답
-
-```typescript
-interface MigrateEmbeddingsResult {
-  success: boolean;                 // 성공 여부
-  target_provider: string;         // 대상 제공자
-  migrated_count: number;          // 마이그레이션된 임베딩 개수
-  failed_count: number;            // 실패한 마이그레이션 개수
-  dry_run: boolean;                // 시뮬레이션 모드
-}
-```
-
-#### 사용 예시
-
-```typescript
-// 모든 임베딩을 OpenAI로 마이그레이션
-const result = await client.callTool('migrate_embeddings', {
-  target_provider: 'openai',
-  batch_size: 100
-});
-
-// 시뮬레이션 모드로 마이그레이션
-const result = await client.callTool('migrate_embeddings', {
-  target_provider: 'gemini',
-  dry_run: true
-});
-```
-
-### convert_episodic_to_semantic
-
-일화기억을 의미기억으로 변환하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface ConvertEpisodicToSemanticParams {
-  memory_id?: string;              // 변환할 기억 ID (선택, 지정하지 않으면 배치 변환)
-  skip_converted?: boolean;        // 이미 변환된 항목 건너뛰기 (기본값: true)
-  retry_failed?: boolean;          // 실패한 항목 재시도 (기본값: false)
-  limit?: number;                  // 배치 크기 (1-100, 기본값: 10)
-}
-```
-
-#### 응답
-
-```typescript
-interface ConvertEpisodicToSemanticResult {
-  success: boolean;                 // 성공 여부
-  converted_count: number;         // 변환된 기억 개수
-  failed_count: number;            // 실패한 변환 개수
-  skipped_count: number;          // 건너뛴 기억 개수
-}
-```
-
-#### 사용 예시
-
-```typescript
-// 특정 기억 변환
-const result = await client.callTool('convert_episodic_to_semantic', {
-  memory_id: 'mem_123'
-});
-
-// 배치 변환
-const result = await client.callTool('convert_episodic_to_semantic', {
-  limit: 20,
-  retry_failed: true
-});
-```
-
-### get_meta_memory_stats
-
-메타 메모리 통계(recall 성공률, 신뢰도 점수 등)를 조회하는 도구입니다.
-
-#### 파라미터
-
-```typescript
-interface GetMetaMemoryStatsParams {
-  memory_id?: string;              // 단일 기억 ID (memory_ids와 동시 사용 불가)
-  memory_ids?: string[];           // 기억 ID 배열 (memory_id와 동시 사용 불가)
-  min_recall_count?: number;       // 최소 recall_count (>= 0)
-  min_confidence?: number;         // 최소 평균 신뢰도 (0-1)
-  limit?: number;                  // 결과 제한 수 (1-1000, 기본값: 100)
-}
-```
-
-#### 응답
-
-```typescript
-interface GetMetaMemoryStatsResult {
-  items: MetaMemoryStatsItem[];    // 통계 항목 목록
-  total_count: number;             // 전체 결과 수
-  message: string;                 // 결과 메시지
-}
-
-interface MetaMemoryStatsItem {
-  memory_id: string;               // 기억 ID
-  recall_count: number;            // 전체 recall 횟수
-  success_count: number;           // 성공한 recall 횟수
-  failure_count: number;           // 실패한 recall 횟수
-  avg_confidence: number;          // 평균 신뢰도 점수
-  last_recalled_at?: string;       // 마지막 recall 시간 (ISO 8601)
-  created_at: string;              // 생성 시간 (ISO 8601)
-  updated_at: string;              // 업데이트 시간 (ISO 8601)
-}
-```
-
-#### 사용 예시
-
-```typescript
-// 특정 기억 통계 조회
-const result = await client.callTool('get_meta_memory_stats', {
-  memory_id: 'mem_123'
-});
-
-// 여러 기억 통계 조회
-const result = await client.callTool('get_meta_memory_stats', {
-  memory_ids: ['mem_1', 'mem_2', 'mem_3']
-});
-
-// 최소 recall 횟수 및 신뢰도로 필터링
-const result = await client.callTool('get_meta_memory_stats', {
-  min_recall_count: 10,
-  min_confidence: 0.5,
-  limit: 50
-});
-```
 
 ## 관리자 API
 
-> **참고**: 다음 기능들은 MCP 클라이언트에서 제거되고 HTTP API 엔드포인트로 분리되었습니다.
+> **중요**: 다음 기능들은 MCP 클라이언트에 노출되지 않으며, HTTP API로만 제공됩니다.
+
+### 앵커 관리
+
+#### 앵커 복원
+```http
+POST /admin/anchors/restore
+Content-Type: application/json
+
+{
+  "agent_id": "default"  // 선택사항
+}
+```
+
+데이터베이스에서 앵커 상태를 메모리 캐시로 복원합니다.
+
+**응답:**
+```json
+{
+  "message": "앵커 복원 완료",
+  "success": true,
+  "restored_anchors": {
+    "default": {
+      "A": { "memory_id": "mem_123", "slot": "A" },
+      "B": null,
+      "C": null
+    }
+  },
+  "agent_count": 1,
+  "total_anchors": 1,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+### 임베딩 관리
+
+#### 임베딩 마이그레이션
+```http
+POST /admin/embeddings/migrate
+Content-Type: application/json
+
+{
+  "target_provider": "openai",
+  "source_provider": "minilm",  // 선택사항
+  "batch_size": 100,             // 선택사항 (기본값: 100)
+  "dry_run": false               // 선택사항 (기본값: false)
+}
+```
+
+기존 기억을 새로운 임베딩 provider로 재임베딩합니다.
+
+**응답:**
+```json
+{
+  "message": "임베딩 마이그레이션 완료",
+  "success": true,
+  "total_count": 1000,
+  "success_count": 995,
+  "failed_count": 5,
+  "failed_memory_ids": ["mem_1", "mem_2"],
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
 
 ### 메모리 관리 API
+
+#### Episodic → Semantic 변환
+```http
+POST /admin/memory/convert-episodic-to-semantic
+Content-Type: application/json
+
+{
+  "memory_id": "mem_123",        // 선택사항 (단일 변환)
+  "skip_converted": true,         // 선택사항 (기본값: true)
+  "retry_failed": false,          // 선택사항 (기본값: false)
+  "limit": 10                     // 선택사항 (기본값: 10)
+}
+```
+
+일화기억을 의미기억으로 변환합니다. Triple 추출 및 Semantic Memory 생성을 수행합니다.
+
+**응답:**
+```json
+{
+  "message": "Episodic → Semantic 변환 완료",
+  "success": true,
+  "converted_count": 8,
+  "failed_count": 2,
+  "skipped_count": 0,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+#### 메타 메모리 통계 조회
+```http
+GET /admin/memory/meta-stats?memory_id=mem_123&min_recall_count=10&min_confidence=0.5&limit=50
+```
+
+메타 메모리 통계(recall 성공률, 신뢰도 점수 등)를 조회합니다.
+
+**쿼리 파라미터:**
+- `memory_id` (optional): 단일 기억 ID
+- `memory_ids` (optional): 기억 ID 배열 (쉼표로 구분)
+- `min_recall_count` (optional): 최소 recall_count (>= 0)
+- `min_confidence` (optional): 최소 평균 신뢰도 (0-1)
+- `limit` (optional): 결과 제한 수 (1-1000, 기본값: 100)
+
+**응답:**
+```json
+{
+  "message": "메타 메모리 통계 조회 완료",
+  "success": true,
+  "items": [
+    {
+      "memory_id": "mem_123",
+      "recall_count": 25,
+      "success_count": 23,
+      "failure_count": 2,
+      "avg_confidence": 0.85,
+      "last_recalled_at": "2024-01-01T00:00:00Z",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "total_count": 1,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
 
 #### 이웃 기억 조회
 ```http
@@ -940,6 +884,19 @@ POST /admin/database/optimize
 ## 제거된 MCP Tools
 
 다음 도구들은 MCP 클라이언트에서 제거되었습니다:
+
+### HTTP API로 이동된 도구 (Phase 5.3)
+
+다음 4개 도구는 관리/운영성 기능으로 분류되어 HTTP API로만 제공됩니다:
+
+- `restore_anchors` - 앵커 복원 → `POST /admin/anchors/restore`
+- `migrate_embeddings` - 임베딩 마이그레이션 → `POST /admin/embeddings/migrate`
+- `convert_episodic_to_semantic` - Episodic → Semantic 변환 → `POST /admin/memory/convert-episodic-to-semantic`
+- `get_meta_memory_stats` - 메타 메모리 통계 조회 → `GET /admin/memory/meta-stats`
+
+자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
+
+### 기타 제거된 도구
 
 - `hybrid_search` - 하이브리드 검색 (기본 `recall`로 대체)
 - `summarize_thread` - 세션 요약 (향후 구현 예정)

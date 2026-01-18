@@ -22,11 +22,14 @@ import type { PerformanceAlertService } from '../domains/monitoring/services/per
 import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
+import type { MemoryItem } from '../shared/types/index.js';
+import { createToolContext } from './context.js';
+import { withErrorHandling } from '../shared/utils/error-handling.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { mcpLogger } from './mcp-logger.js';
+import { ServerState } from './server-state.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
@@ -60,7 +63,9 @@ let serverServices: ServerServices | null = null;
 // 초기화 상태 추적 플래그
 // 초기화 전: false (fallback logger 사용)
 // 초기화 후: true (MCP Logger 사용)
-(globalThis as any).__mcp_server_initialized = false;
+// ServerState를 사용하여 전역 상태 관리
+const serverState = ServerState.getInstance();
+serverState.setMcpServerInitialized(false);
 
 /**
  * console.error 오버라이드 함수
@@ -74,12 +79,12 @@ let serverServices: ServerServices | null = null;
  */
 function setupConsoleErrorOverride(): void {
   // 중복 등록 방지: 이미 오버라이드되었는지 확인
-  if ((globalThis as any).__console_error_overridden) {
+  if (serverState.isConsoleErrorOverridden()) {
     return;
   }
   
   console.error = (...args: any[]) => {
-    const isInitialized = (globalThis as any).__mcp_server_initialized === true;
+    const isInitialized = serverState.isMcpServerInitialized();
     
     if (isInitialized) {
       // 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
@@ -93,17 +98,17 @@ function setupConsoleErrorOverride(): void {
   };
   
   // 오버라이드 완료 플래그 설정
-  (globalThis as any).__console_error_overridden = true;
+  serverState.setConsoleErrorOverridden(true);
 }
 
 // console 메서드 오버라이드 (중복 등록 방지)
-if (!(globalThis as any).__console_overridden) {
+if (!serverState.isConsoleOverridden()) {
   console.log = () => {};
   setupConsoleErrorOverride();
   console.warn = () => {};
   console.info = () => {};
   console.debug = () => {};
-  (globalThis as any).__console_overridden = true;
+  serverState.setConsoleOverridden(true);
 }
 
 // MCP 프로토콜 준수: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
@@ -231,7 +236,7 @@ async function initializeServer() {
     }, null, 2)}`);
     
     // 임베딩 프로바이더 정보 표시
-    const providerInfo: any = {
+    const providerInfo: Record<string, unknown> = {
       provider: mementoConfig.embeddingProvider.toUpperCase()
     };
     if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
@@ -305,7 +310,7 @@ async function initializeServer() {
       await mcpLogger.logMCPProtocol('debug', `리소스 개수: ${memories.length}`, { count: memories.length });
       
       return {
-        resources: memories.map((memory: any) => ({
+        resources: memories.map((memory: MemoryItem) => ({
           uri: `memory://${memory.id}`,
           name: `Memory ${memory.id}`,
           description: `Memory item with ID: ${memory.id}`,
@@ -349,7 +354,7 @@ async function initializeServer() {
       }
       
       // 메모리 데이터 구성
-      const memoryData: any = {
+      const memoryData: Record<string, unknown> = {
         id: memory.id,
         type: memory.type,
         content: memory.content,
@@ -407,63 +412,47 @@ async function initializeServer() {
       await concurrencyLimiter.acquire();
       
       try {
-        // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
-        if (!serverServices) {
-          throw new Error('서비스가 초기화되지 않았습니다');
-        }
-        
-        const context: ToolContext = {
-          db,
-          services: {
-            searchEngine: serverServices.searchEngine,
-            hybridSearchEngine: serverServices.hybridSearchEngine,
-            embeddingService: serverServices.embeddingService,
-            forgettingPolicyService: serverServices.forgettingPolicyService,
-            performanceMonitor: serverServices.performanceMonitor,
-            databaseOptimizer: serverServices.databaseOptimizer,
-            errorLoggingService: serverServices.errorLoggingService,
-            performanceAlertService: serverServices.performanceAlertService,
-            consolidationScoreService: serverServices.consolidationScoreService,
-            writeCoalescingManager: serverServices.writeCoalescingManager,
-            anchorManager: serverServices.anchorManager,
-            failureDetector: serverServices.failureDetector,
-            reflexionWorker: serverServices.reflexionWorker
-            // performanceMonitoringIntegration
+        // Phase 7.8: 공통 에러 핸들러 사용
+        return await withErrorHandling(
+          async () => {
+            // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+            if (!serverServices) {
+              throw new Error('서비스가 초기화되지 않았습니다');
+            }
+            
+            if (!db) {
+              throw new Error('데이터베이스가 초기화되지 않았습니다');
+            }
+            
+            // Phase 7.4: 표준 팩토리 함수 사용
+            const context = createToolContext(db, serverServices);
+            
+            // 도구 실행
+            const toolResult = await toolRegistry.execute(name, args, context);
+            await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
+            
+            // MCP 형식으로 변환
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(toolResult)
+                }
+              ]
+            };
+          },
+          {
+            operation: 'tool_execution',
+            toolName: name,
+            requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          },
+          {
+            errorLoggingService,
+            severity: ErrorSeverity.HIGH,
+            category: ErrorCategory.TOOL_EXECUTION,
+            transformError: (error) => new Error(`Tool execution failed: ${error.message}`)
           }
-        };
-        
-        // 도구 실행
-        const toolResult = await toolRegistry.execute(name, args, context);
-        await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
-        
-        // MCP 형식으로 변환
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(toolResult)
-            }
-          ]
-        };
-      } catch (error) {
-        // 에러 로깅
-        if (errorLoggingService) {
-          errorLoggingService.logError(
-            error instanceof Error ? error : new Error(String(error)),
-            ErrorSeverity.HIGH,
-            ErrorCategory.UNKNOWN,
-            {
-              operation: 'tool_execution',
-              toolName: name,
-              requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            }
-          );
-        }
-        
-        if (error instanceof Error) {
-          throw new Error(`Tool execution failed: ${error.message}`);
-        }
-        throw error;
+        );
       } finally {
         // 동시성 제한 해제
         concurrencyLimiter.release();
@@ -532,8 +521,8 @@ async function startServer() {
   try {
     // MCP 프로토콜 준수: transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
     // initializeServer() 호출 전에 플래그를 설정하여 초기화 중 로그 출력 방지
-    // globalThis를 통해 mcpLogger에서 접근 가능하도록 설정
-    (globalThis as any).__mcp_transport_connected = false;
+    // ServerState를 통해 mcpLogger에서 접근 가능하도록 설정
+    serverState.setMcpTransportConnected(false);
     
     await initializeServer();
     mcpLogger.logServer('info', '서버 초기화 완료');
@@ -546,13 +535,13 @@ async function startServer() {
     await server.connect(transport);
     
     // transport 연결 완료 후 로그 출력 허용
-    (globalThis as any).__mcp_transport_connected = true;
+    serverState.setMcpTransportConnected(true);
     
     // 서버 초기화 완료 플래그 설정
     // console.error 오버라이드가 MCP Logger를 사용하도록 전환
     // MCP 스펙 준수 범위: 서버 초기화 완료 후부터 적용
     // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
-    (globalThis as any).__mcp_server_initialized = true;
+    serverState.setMcpServerInitialized(true);
     
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
     

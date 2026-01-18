@@ -21,6 +21,7 @@ import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js'
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
+import { logger } from '../../shared/utils/logger.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
@@ -1087,9 +1088,9 @@ export class BatchScheduler {
             queueSize: batchContext.queueSize
           }
         ).catch((error) => {
-          // 파일 로깅 실패는 콘솔에만 기록 (무한 루프 방지)
+          // 파일 로깅 실패는 표준 로거로 기록 (무한 루프 방지)
           const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-          console.error('File logging failed:', maskedError.message);
+          logger.error('File logging failed', { error: maskedError.message, errorName: maskedError.name });
         });
       } else if (actualLevel === 'error') {
         // 비동기 로깅이지만 await하지 않음 (로깅 실패가 작업 실패로 이어지지 않도록)
@@ -1102,9 +1103,9 @@ export class BatchScheduler {
             queueSize: batchContext.queueSize
           }
         ).catch((error) => {
-          // 파일 로깅 실패는 콘솔에만 기록 (무한 루프 방지)
+          // 파일 로깅 실패는 표준 로거로 기록 (무한 루프 방지)
           const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-          console.error('File logging failed:', maskedError.message);
+          logger.error('File logging failed', { error: maskedError.message, errorName: maskedError.name });
         });
       }
   }

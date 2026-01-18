@@ -12,6 +12,8 @@ import type { VectorSearchEngine } from '../../../search/algorithms/vector-searc
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
+import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-interfaces.js';
 
 describe('AnchorSearchService', () => {
   let service: AnchorSearchService;
@@ -418,7 +420,7 @@ describe('AnchorSearchService', () => {
           mockEmbedding,
           Date.now()
         )
-      ).rejects.toThrow('VectorSearchEngine is not set');
+      ).rejects.toThrow('VectorSearchEngine is not initialized');
     });
 
     it('슬롯별 hop_limit과 vector_threshold를 적용해야 함', async () => {
@@ -1329,6 +1331,111 @@ describe('AnchorSearchService', () => {
         // 1-hop이 2-hop보다 앞에 있어야 함 (같은 similarity일 때)
         expect(firstHop1Index).toBeLessThan(firstHop2Index);
       }
+    });
+  });
+
+  describe('ErrorLoggingService 통합 (Phase 8.2)', () => {
+    let errorLoggingService: ErrorLoggingService;
+    let mockLogError: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      errorLoggingService = new ErrorLoggingService();
+      mockLogError = vi.fn();
+      // ErrorLoggingService의 logError 메서드를 모킹
+      errorLoggingService.logError = mockLogError;
+    });
+
+    /**
+     * Given: ErrorLoggingService가 주입된 AnchorSearchService
+     * When: null 데이터베이스를 설정하면
+     * Then: ErrorLoggingService.logError가 호출되어야 함
+     */
+    it('given: ErrorLoggingService가 주입된 AnchorSearchService가 주어질 때, when: null 데이터베이스를 설정하면, then: ErrorLoggingService.logError가 호출되어야 함', () => {
+      // Given: ErrorLoggingService가 주입된 AnchorSearchService
+      const newService = new AnchorSearchService(cacheService);
+      newService.setErrorLoggingService(errorLoggingService);
+
+      // When: null 데이터베이스 설정 시도
+      try {
+        newService.setDatabase(null as any);
+      } catch (error) {
+        // 에러는 예상됨
+      }
+
+      // Then: ErrorLoggingService.logError가 호출되어야 함
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.any(Error),
+        ErrorSeverity.MEDIUM,
+        ErrorCategory.VALIDATION,
+        expect.objectContaining({
+          component: 'AnchorSearchService',
+          operation: 'setDatabase'
+        })
+      );
+      // Phase 8.4: 커스텀 에러 클래스 검증
+      expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(DatabaseValidationError);
+    });
+
+    /**
+     * Given: ErrorLoggingService가 주입된 AnchorSearchService
+     * When: null HybridSearchEngine을 설정하면
+     * Then: ErrorLoggingService.logError가 호출되어야 함
+     */
+    it('given: ErrorLoggingService가 주입된 AnchorSearchService가 주어질 때, when: null HybridSearchEngine을 설정하면, then: ErrorLoggingService.logError가 호출되어야 함', () => {
+      // Given: ErrorLoggingService가 주입된 AnchorSearchService
+      const newService = new AnchorSearchService(cacheService);
+      newService.setErrorLoggingService(errorLoggingService);
+
+      // When: null HybridSearchEngine 설정 시도
+      try {
+        newService.setHybridSearchEngine(null as any);
+      } catch (error) {
+        // 에러는 예상됨
+      }
+
+      // Then: ErrorLoggingService.logError가 호출되어야 함
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.any(Error),
+        ErrorSeverity.MEDIUM,
+        ErrorCategory.VALIDATION,
+        expect.objectContaining({
+          component: 'AnchorSearchService',
+          operation: 'setHybridSearchEngine'
+        })
+      );
+      // Phase 8.4: 커스텀 에러 클래스 검증
+      expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(DatabaseValidationError);
+    });
+
+    /**
+     * Given: ErrorLoggingService가 주입된 AnchorSearchService
+     * When: null VectorSearchEngine을 설정하면
+     * Then: ErrorLoggingService.logError가 호출되어야 함
+     */
+    it('given: ErrorLoggingService가 주입된 AnchorSearchService가 주어질 때, when: null VectorSearchEngine을 설정하면, then: ErrorLoggingService.logError가 호출되어야 함', () => {
+      // Given: ErrorLoggingService가 주입된 AnchorSearchService
+      const newService = new AnchorSearchService(cacheService);
+      newService.setErrorLoggingService(errorLoggingService);
+
+      // When: null VectorSearchEngine 설정 시도
+      try {
+        newService.setVectorSearchEngine(null as any);
+      } catch (error) {
+        // 에러는 예상됨
+      }
+
+      // Then: ErrorLoggingService.logError가 호출되어야 함
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.any(Error),
+        ErrorSeverity.MEDIUM,
+        ErrorCategory.VALIDATION,
+        expect.objectContaining({
+          component: 'AnchorSearchService',
+          operation: 'setVectorSearchEngine'
+        })
+      );
+      // Phase 8.4: 커스텀 에러 클래스 검증
+      expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(DatabaseValidationError);
     });
   });
 });

@@ -376,51 +376,58 @@ export function memoriesToMarkdown(memories: MemoryItem[]): string {
 /**
  * 메모리 생성 파라미터 검증
  */
-export function validateCreateMemoryParams(params: any): {
+export function validateCreateMemoryParams(params: unknown): {
   isValid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
+  
+  // params가 객체인지 확인
+  if (typeof params !== 'object' || params === null) {
+    return { isValid: false, errors: ['params는 객체여야 합니다'] };
+  }
+  
+  const p = params as Record<string, unknown>;
 
   // type에 따른 조건부 검증
-  if (params.type === 'core' || params.type === 'vault') {
+  if (p.type === 'core' || p.type === 'vault') {
     // Core Memory / Knowledge Vault는 key와 value가 필수
-    if (!params.key || typeof params.key !== 'string') {
+    if (!p.key || typeof p.key !== 'string') {
       errors.push('type이 "core" 또는 "vault"일 때 key는 필수이며 문자열이어야 합니다');
     }
-    if (!params.value || typeof params.value !== 'string') {
+    if (!p.value || typeof p.value !== 'string') {
       errors.push('type이 "core" 또는 "vault"일 때 value는 필수이며 문자열이어야 합니다');
     }
   } else {
     // 나머지 타입은 content가 필수
-    if (!params.content || typeof params.content !== 'string') {
+    if (!p.content || typeof p.content !== 'string') {
       errors.push('content는 필수이며 문자열이어야 합니다 (type이 "core" 또는 "vault"가 아닌 경우)');
     }
   }
 
-  if (params.type && !isValidMemoryType(params.type)) {
+  if (p.type && typeof p.type === 'string' && !isValidMemoryType(p.type)) {
     errors.push('type은 working, episodic, semantic, procedural, core, vault 중 하나여야 합니다');
   }
 
-  if (params.importance !== undefined && !isValidImportance(params.importance)) {
+  if (p.importance !== undefined && (typeof p.importance !== 'number' || !isValidImportance(p.importance))) {
     errors.push('importance는 0과 1 사이의 숫자여야 합니다');
   }
 
-  if (params.privacy_scope && !isValidPrivacyScope(params.privacy_scope)) {
+  if (p.privacy_scope && typeof p.privacy_scope === 'string' && !isValidPrivacyScope(p.privacy_scope)) {
     errors.push('privacy_scope는 private, team, public 중 하나여야 합니다');
   }
 
-  if (params.tags && !Array.isArray(params.tags)) {
+  if (p.tags && !Array.isArray(p.tags)) {
     errors.push('tags는 배열이어야 합니다');
   }
 
   // always_load는 boolean이어야 함
-  if (params.always_load !== undefined && typeof params.always_load !== 'boolean') {
+  if (p.always_load !== undefined && typeof p.always_load !== 'boolean') {
     errors.push('always_load는 boolean이어야 합니다');
   }
 
   // immutable은 boolean이어야 함
-  if (params.immutable !== undefined && typeof params.immutable !== 'boolean') {
+  if (p.immutable !== undefined && typeof p.immutable !== 'boolean') {
     errors.push('immutable은 boolean이어야 합니다');
   }
 
@@ -433,26 +440,34 @@ export function validateCreateMemoryParams(params: any): {
 /**
  * 검색 파라미터 검증
  */
-export function validateSearchParams(params: any): {
+export function validateSearchParams(params: unknown): {
   isValid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
+  
+  // params가 객체인지 확인
+  if (typeof params !== 'object' || params === null) {
+    return { isValid: false, errors: ['params는 객체여야 합니다'] };
+  }
+  
+  const p = params as Record<string, unknown>;
 
-  if (!params.query || typeof params.query !== 'string') {
+  if (!p.query || typeof p.query !== 'string') {
     errors.push('query는 필수이며 문자열이어야 합니다');
   }
 
-  if (params.limit !== undefined && (typeof params.limit !== 'number' || params.limit < 0)) {
+  if (p.limit !== undefined && (typeof p.limit !== 'number' || p.limit < 0)) {
     errors.push('limit은 0 이상의 숫자여야 합니다');
   }
 
-  if (params.filters) {
-    if (params.filters.type && !Array.isArray(params.filters.type)) {
+  if (p.filters && typeof p.filters === 'object') {
+    const filters = p.filters as Record<string, unknown>;
+    if (filters.type && !Array.isArray(filters.type)) {
       errors.push('filters.type은 배열이어야 합니다');
     }
     
-    if (params.filters.tags && !Array.isArray(params.filters.tags)) {
+    if (filters.tags && !Array.isArray(filters.tags)) {
       errors.push('filters.tags는 배열이어야 합니다');
     }
   }

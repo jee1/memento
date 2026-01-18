@@ -1,12 +1,16 @@
 /**
  * Meta-Memory 통합 E2E 테스트
  * recall 호출 → 통계 수집 → get_meta_memory_stats로 조회 전체 워크플로우 검증
+ * 
+ * Phase 5.3: get_meta_memory_stats는 MCP에서 제거되고 HTTP API로만 제공됩니다.
+ * 이 테스트는 GetMetaMemoryStatsTool을 직접 사용하여 통계 조회를 검증합니다.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { initializeServices, type ServerServices } from '../server/bootstrap.js';
 import { executeTool } from '../tools/index.js';
 import { createToolContext } from '../server/context.js';
+import { GetMetaMemoryStatsTool } from '../domains/monitoring/tools/get-meta-memory-stats-tool.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 
@@ -155,8 +159,9 @@ describe('Meta-Memory 통합 E2E 테스트', () => {
       // debounce flush를 위해 대기
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      // 3. get_meta_memory_stats로 통계 조회
-      const statsResult = await executeTool('get_meta_memory_stats', {
+      // 3. get_meta_memory_stats로 통계 조회 (Phase 5.3: HTTP API로만 제공되므로 도구를 직접 사용)
+      const statsTool = new GetMetaMemoryStatsTool();
+      const statsResult = await statsTool.handle({
         memory_id: memoryId,
         limit: 10
       }, toolContext);
@@ -179,9 +184,11 @@ describe('Meta-Memory 통합 E2E 테스트', () => {
       }
     } else {
       // recall 결과가 없어도 통계 조회는 가능해야 함 (빈 결과)
+      // Phase 5.3: HTTP API로만 제공되므로 도구를 직접 사용
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      const statsResult = await executeTool('get_meta_memory_stats', {
+      const statsTool = new GetMetaMemoryStatsTool();
+      const statsResult = await statsTool.handle({
         memory_id: memoryId,
         limit: 10
       }, toolContext);

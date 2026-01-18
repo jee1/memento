@@ -24,6 +24,7 @@
     "prefer-const": "error",
     "no-var": "error",
     "no-console": "error",
+    "no-redeclare": "off", // TypeScript 오버로드 선언을 위해 비활성화
     "max-lines-per-function": ["warn", {
       "max": 50,
       "skipBlankLines": true,
@@ -54,7 +55,7 @@
       }
     },
     {
-      "files": ["src/server/index.ts"],
+      "files": ["src/server/index.ts", "src/infrastructure/database/database/init.ts", "src/infrastructure/database/database/migrate.ts"],
       "rules": {
         "no-console": "off"
       }

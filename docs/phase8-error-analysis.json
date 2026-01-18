@@ -1,0 +1,3749 @@
+단순 throw만 하는 에러 발생 지점 분석 시작...
+
+=== 분석 결과 ===
+
+전체 throw 개수: 606
+ErrorLoggingService 사용: 21
+withErrorHandling 사용: 2
+단순 throw만 하는 경우: 583
+
+=== 단순 throw만 하는 에러 발생 지점 ===
+
+
+src/client/index.ts (10개):
+  Line 55: throw error;
+  Line 90: throw new Error(`기억 저장 응답에서 memory_id를 찾을 수 없습니다: ${rawText}`);
+  Line 96: throw new Error('기억 저장에 실패했습니다');
+  Line 119: throw new Error('기억 검색에 실패했습니다');
+  Line 142: throw new Error('기억 삭제에 실패했습니다');
+  Line 165: throw new Error('기억 고정에 실패했습니다');
+  Line 188: throw new Error('기억 고정 해제에 실패했습니다');
+  Line 196: throw new Error('MCP 서버에 연결되지 않았습니다. connect()를 먼저 호출하세요.');
+  Line 212: throw new Error('서버에 연결되지 않았습니다');
+  Line 236: throw new Error(`도구 호출 실패 (${name}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/domains/anchor/services/anchor/anchor-cache-service.ts (4개):
+  Line 37: throw new Error('Database instance is required');
+  Line 47: throw new Error('MemoryEmbeddingService is required');
+  Line 59: throw new Error('Database is not set.');
+  Line 148: throw new Error('Database instance is required');
+
+src/domains/anchor/services/anchor/anchor-manager.ts (10개):
+  Line 48: throw new Error('Database instance is required');
+  Line 63: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 72: throw new MemoryNotFoundError(memoryId);
+  Line 82: throw new AnchorError(
+  Line 120: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 192: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 263: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 269: throw new Error(`Anchor not found for agent_id: ${agentId}, slot: ${slot}`);
+  Line 274: throw new Error(`Anchor memory_id is null for agent_id: ${agentId}, slot: ${slot}`);
+  Line 280: throw new Error(`Embedding not found for anchor memory_id: ${anchorMemoryId}`);
+
+src/domains/anchor/services/anchor/anchor-search-service.ts (10개):
+  Line 69: throw new Error('Database instance is required');
+  Line 96: throw new Error('HybridSearchEngine is required');
+  Line 108: throw new Error('VectorSearchEngine is required');
+  Line 135: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 139: throw new Error('LocalSearchService is not initialized. Call setDatabase() first.');
+  Line 154: throw new Error('VectorSearchEngine is not set. Call setVectorSearchEngine() first.');
+  Line 250: throw new Error('벡터 차원이 일치하지 않습니다');
+  Line 380: throw new Error('Database is not set.');
+  Line 467: throw new Error('Database is not set.');
+  Line 559: throw error;
+
+src/domains/anchor/services/anchor/fallback-search-service.ts (4개):
+  Line 37: throw new Error('Database instance is required');
+  Line 47: throw new Error('HybridSearchEngine is required');
+  Line 61: throw new Error('HybridSearchEngine is not set. Call setHybridSearchEngine() first.');
+  Line 65: throw new Error('Database is not set.');
+
+src/domains/anchor/services/anchor/fallback-strategy.ts (1개):
+  Line 20: throw new Error('FallbackSearchService is required');
+
+src/domains/anchor/services/anchor/local-search-service.ts (3개):
+  Line 49: throw new Error('Database instance is required');
+  Line 62: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 79: throw new Error(`Embedding not found for anchor memory_id: ${anchorInfo.memory_id}`);
+
+src/domains/anchor/services/anchor/n-hop-search-service.ts (5개):
+  Line 88: throw new Error('Database instance is required');
+  Line 98: throw new Error('VectorSearchEngine is required');
+  Line 126: throw new Error('VectorSearchEngine or Database is not set.');
+  Line 164: throw new Error(`Failed to perform 1-hop search: ${error instanceof Error ? error.message : 'Unknown
+  Line 181: throw new Error('VectorSearchEngine or Database is not set.');
+
+src/domains/anchor/services/anchor/n-hop-search-strategy.ts (1개):
+  Line 19: throw new Error('NHopSearchService is required');
+
+src/domains/anchor/services/anchor/query-filter-service.ts (1개):
+  Line 153: throw new Error('벡터 차원이 일치하지 않습니다');
+
+src/domains/anchor/services/anchor/query-filter-strategy.ts (1개):
+  Line 19: throw new Error('QueryFilterService is required');
+
+src/domains/anchor/tools/search-local-tool.ts (1개):
+  Line 111: throw new Error('HybridSearchEngine is not available for fallback');
+
+src/domains/anchor/tools/set-anchor-tool.ts (1개):
+  Line 62: throw new Error(`메모리를 찾을 수 없습니다: ${memory_id}`);
+
+src/domains/embedding/providers/model-availability-service.ts (1개):
+  Line 44: throw new Error('Provider unavailable or not registered');
+
+src/domains/embedding/services/embedding-migration-service.ts (3개):
+  Line 449: throw new Error('임베딩 데이터가 배열 형식이 아닙니다');
+  Line 453: throw new Error(
+  Line 502: throw new Error(`Rollback 데이터가 누락되었습니다: ${entry.memoryId}`);
+
+src/domains/embedding/services/embedding-service.ts (4개):
+  Line 88: throw new Error('텍스트가 비어있습니다');
+  Line 137: throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다');
+  Line 179: throw new Error('임베딩 생성에 실패했습니다');
+  Line 262: throw new Error('벡터 차원이 일치하지 않습니다');
+
+src/domains/embedding/services/gemini-embedding-service.ts (5개):
+  Line 83: throw new Error('텍스트가 비어있습니다');
+  Line 101: throw new Error('Gemini 클라이언트가 초기화되지 않았습니다');
+  Line 146: throw new Error('임베딩 생성에 실패했습니다');
+  Line 192: throw new Error(`임베딩 생성 실패: ${maskedError.message}`);
+  Line 234: throw new Error('벡터 차원이 일치하지 않습니다');
+
+src/domains/embedding/services/lightweight-embedding-service.ts (3개):
+  Line 47: throw new Error('텍스트가 비어있습니다');
+  Line 78: throw new Error(`경량 임베딩 생성 실패: ${maskedError.message}`);
+  Line 276: throw new Error('벡터 차원이 일치하지 않습니다');
+
+src/domains/embedding/services/minilm-embedding-service.ts (4개):
+  Line 111: throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
+  Line 181: throw new Error('텍스트가 비어있습니다');
+  Line 248: throw new Error(`모델 로딩 실패: ${errorMessage}`);
+  Line 298: throw new Error('벡터 차원이 일치하지 않습니다');
+
+src/domains/embedding/services/openai-embedding-service.ts (4개):
+  Line 138: throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
+  Line 179: throw new Error('OpenAI 임베딩 응답이 비어 있습니다.');
+  Line 215: throw new Error('텍스트가 비어 있습니다');
+  Line 234: throw new Error('벡터 차원이 일치하지 않습니다');
+
+src/domains/embedding/services/unified-embedding-service.ts (6개):
+  Line 48: throw new Error('사용 가능한 임베딩 제공자가 없습니다');
+  Line 74: throw new Error(`모든 임베딩 제공자 실패: ${maskedError.message}`);
+  Line 95: throw new Error('사용 가능한 임베딩 제공자가 없습니다');
+  Line 204: throw new Error('텍스트가 비어있습니다');
+  Line 234: throw new Error('모든 폴백 제공자 실패');
+  Line 254: throw new Error('모든 폴백 제공자 실패');
+
+src/domains/embedding/services/vector-compatibility-service.ts (6개):
+  Line 137: throw new Error(`벡터 호환성 검증 실패: ${messages}`);
+  Line 204: throw new Error('차원은 0보다 큰 정수여야 합니다');
+  Line 462: throw new Error('벡터는 배열이어야 합니다');
+  Line 469: throw new Error('벡터는 배열이어야 합니다');
+  Line 472: throw new Error('targetDimensions는 정수여야 합니다');
+  Line 475: throw new Error('targetDimensions는 0보다 커야 합니다');
+
+src/domains/forgetting/services/forgetting-policy-service.ts (1개):
+  Line 163: throw error;
+
+src/domains/forgetting/services/spaced-repetition/spaced-repetition-container.ts (4개):
+  Line 66: throw new Error('SpacedRepetitionContainer가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+  Line 76: throw new Error('SpacedRepetitionContainer가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+  Line 101: throw new Error('컨테이너가 초기화되지 않았습니다.');
+  Line 117: throw new Error('컨테이너가 초기화되지 않았습니다.');
+
+src/domains/forgetting/tools/forgetting-stats-tool.ts (1개):
+  Line 44: throw new Error(`망각 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/domains/memory/repositories/knowledge-vault-repository.ts (4개):
+  Line 88: throw new Error(`Failed to create knowledge vault with id: ${vault_id}`);
+  Line 311: throw new Error(`Cannot update immutable knowledge vault: ${vault_id}`);
+  Line 363: throw new Error(`Cannot delete immutable knowledge vault: ${vault_id}`);
+  Line 386: throw new Error(`Cannot delete immutable knowledge vault: agent_id=${agent_id}, key=${key}`);
+
+src/domains/memory/services/core-memory-service.ts (1개):
+  Line 103: throw new Error(`Core memory with key '${key}' already exists for agent '${agent_id}'`);
+
+src/domains/memory/services/knowledge-vault-service.ts (6개):
+  Line 163: throw new Error(`Knowledge vault with id '${vault_id}' not found`);
+  Line 192: throw new Error(`Failed to update knowledge vault with id: ${vault_id}`);
+  Line 209: throw new Error(`Active knowledge vault with key '${key}' not found for agent '${agent_id}'`);
+  Line 227: throw new ImmutableDataError(
+  Line 246: throw new ImmutableDataError(
+  Line 266: throw new ImmutableDataError(
+
+src/domains/memory/services/memory-neighbor-service.ts (12개):
+  Line 73: throw new Error('VectorSearchEngine is required');
+  Line 76: throw new Error('MemoryEmbeddingService is required');
+  Line 90: throw new Error('Database instance is required');
+  Line 120: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 136: throw new Error(`Failed to query memory: ${error instanceof Error ? error.message : 'Unknown error'}
+  Line 140: throw new MemoryNotFoundError(memoryId);
+  Line 166: throw new Error(`Failed to query embedding: ${error instanceof Error ? error.message : 'Unknown erro
+  Line 224: throw new Error(`Failed to initialize VectorSearchEngine: ${maskedError.message}`);
+  Line 247: throw new Error(`Failed to search similar memories: ${error instanceof Error ? error.message : 'Unkn
+  Line 287: throw error;
+  Line 307: throw new Error(`Failed to get memory neighbors: ${error.message}`);
+  Line 310: throw new Error(`Failed to get memory neighbors: Unknown error`);
+
+src/domains/memory/tools/cleanup-memory-tool.ts (1개):
+  Line 74: throw new Error(`메모리 정리 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/domains/memory/tools/forget-tool.ts (7개):
+  Line 112: throw new Error('하드 삭제는 confirm=true로 확인해야 합니다');
+  Line 142: throw error;
+  Line 159: throw new Error(`Memory with ID ${id} not found`);
+  Line 203: throw error;
+  Line 254: throw new Error(`Memory with ID ${id} not found`);
+  Line 291: throw new Error(`Memory with ID ${id} not found`);
+  Line 314: throw new Error('핀된 기억은 먼저 핀을 해제해야 합니다');
+
+src/domains/memory/tools/get-memory-neighbors-tool.ts (4개):
+  Line 130: throw new Error(`입력 검증 실패: ${error.message}`);
+  Line 132: throw new Error(`데이터베이스 오류: ${error.message}`);
+  Line 134: throw new Error(`검색 오류: ${error.message}`);
+  Line 140: throw new Error(`이웃 기억 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/domains/memory/tools/memory-injection-prompt.ts (5개):
+  Line 84: throw new Error('데이터베이스가 연결되지 않았습니다');
+  Line 88: throw new Error('하이브리드 검색 엔진이 사용할 수 없습니다');
+  Line 103: throw new Error("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다.");
+  Line 110: throw new Error("memory_types 배열에 유효한 타입이 없습니다.");
+  Line 179: throw error;
+
+src/domains/memory/tools/pin-tool.ts (4개):
+  Line 76: throw new Error('기억 ID가 필요합니다');
+  Line 94: throw new Error(`Memory with ID ${id} not found`);
+  Line 118: throw new Error(`Memory with ID ${id} not found`);
+  Line 137: throw error;
+
+src/domains/memory/tools/recall-tool.ts (15개):
+  Line 511: throw new Error(typeValidation.message || "type 파라미터는 필수입니다.");
+  Line 641: throw new Error("query 파라미터는 필수입니다 (type='core' 또는 'vault'가 아닌 경우)");
+  Line 688: throw new Error("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type 
+  Line 695: throw new Error("memory_types 배열에 유효한 타입이 없습니다.");
+  Line 766: throw new Error('텍스트 검색 엔진을 사용할 수 없습니다');
+  Line 909: throw new Error(`입력 검증 실패: ${error.message}`);
+  Line 911: throw new Error(`데이터베이스 오류: ${error.message}`);
+  Line 913: throw new Error(`검색 오류: ${error.message}`);
+  Line 917: throw error;
+  Line 1455: throw new Error('검색 쿼리는 비어있을 수 없습니다');
+  Line 1459: throw new Error('검색 쿼리가 너무 깁니다 (최대 1000자)');
+  Line 1471: throw new Error('검색 쿼리에 허용되지 않는 문자가 포함되어 있습니다');
+  Line 1488: throw new Error('유효하지 않은 시간 형식입니다');
+  Line 1492: throw new Error('시작 시간은 종료 시간보다 이전이어야 합니다');
+  Line 1499: throw new Error('최소 중요도는 최대 중요도보다 작거나 같아야 합니다');
+
+src/domains/memory/tools/remember-tool.ts (10개):
+  Line 198: throw new Error(`reflection_notes 스키마 검증 실패:\n${errorMessage}`);
+  Line 343: throw new Error(typeValidation.message || "type 파라미터는 필수입니다.");
+  Line 373: throw new Error(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error
+  Line 399: throw new Error("type='core'일 때는 key와 value가 필수입니다");
+  Line 429: throw new Error("type='vault'일 때는 key와 value가 필수입니다");
+  Line 456: throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
+  Line 461: throw new Error(`Invalid memory type: ${type}`);
+  Line 505: throw new Error(
+  Line 1116: throw error;
+  Line 1128: throw error;
+
+src/domains/memory/tools/unpin-tool.ts (5개):
+  Line 74: throw new Error('기억 ID가 필요합니다');
+  Line 92: throw new Error(`Memory with ID ${id} not found`);
+  Line 106: throw new Error('높은 중요도의 기억은 confirm=true로 확인해야 합니다');
+  Line 121: throw new Error(`Memory with ID ${id} not found`);
+  Line 140: throw error;
+
+src/domains/monitoring/services/performance-monitor.ts (1개):
+  Line 953: throw error;
+
+src/domains/monitoring/tools/get-meta-memory-stats-tool.ts (2개):
+  Line 158: throw new Error(`파라미터 검증 실패: ${errorMessages}`);
+  Line 162: throw new Error(`메타 메모리 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/domains/monitoring/tools/performance-alerts.ts (4개):
+  Line 116: throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+  Line 148: throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+  Line 186: throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+  Line 218: throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
+
+src/domains/monitoring/tools/performance-stats-tool.ts (1개):
+  Line 44: throw new Error(`성능 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/domains/relation/services/llm-based-relation-extractor.ts (19개):
+  Line 517: throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
+  Line 571: throw new Error('OpenAI 응답이 비어있습니다.');
+  Line 582: throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
+  Line 589: throw error;
+  Line 671: throw new Error(
+  Line 710: throw fetchError;
+  Line 745: throw new Error(errorMessage);
+  Line 828: throw new Error(`Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(p
+  Line 844: throw textError;
+  Line 865: throw new Error('Ollama 응답이 비어있습니다.');
+  Line 955: throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
+  Line 977: throw error;
+  Line 988: throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');
+  Line 1035: throw new Error('Gemini 응답이 비어있습니다.');
+  Line 1046: throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
+  Line 1053: throw error;
+  Line 1455: throw new Error('LLM 서비스가 사용 불가능합니다. API 키를 설정해주세요.');
+  Line 1517: throw new Error('사용 가능한 LLM 서비스가 없습니다.');
+  Line 1543: throw new Error(`LLM 기반 관계 추출 실패: ${errorMessage}. ${errorDetails.suggestion}`);
+
+src/domains/relation/services/relation-extractor.ts (1개):
+  Line 99: throw new Error('LLM 서비스가 사용 불가능합니다. 규칙 기반 추출을 사용하거나 API 키를 설정해주세요.');
+
+src/domains/relation/services/relation-graph.ts (5개):
+  Line 227: throw new Error(
+  Line 232: throw error;
+  Line 243: throw new Error('자기 자신에 대한 관계는 생성할 수 없습니다.');
+  Line 266: throw new Error(`순환 참조가 감지되었습니다: ${sourceId} -> ${targetId} (${relationType})`);
+  Line 350: throw new Error(`이미 존재하는 관계입니다: ${sourceId} -> ${targetId} (${relationType})`);
+
+src/domains/relation/tools/add-relation-tool.ts (1개):
+  Line 169: throw error;
+
+src/domains/search/algorithms/hybrid-search-engine.ts (6개):
+  Line 401: throw error;
+  Line 443: throw new SearchError(
+  Line 1023: throw new SearchError(
+  Line 1042: throw error;
+  Line 1045: throw new SearchError(
+  Line 1258: throw new SearchError(
+
+src/domains/search/algorithms/vector-search-engine-migration.ts (1개):
+  Line 206: throw error;
+
+src/domains/search/repositories/vector-performance.repository.ts (1개):
+  Line 162: throw new Error(`검색 실행 실패: ${error}`);
+
+src/domains/search/services/vector-search/vector-search-container.ts (2개):
+  Line 43: throw new Error('데이터베이스가 설정되지 않았습니다');
+  Line 55: throw new Error('데이터베이스가 설정되지 않았습니다');
+
+src/domains/search/services/vector-search/vector-search.service.ts (5개):
+  Line 35: throw new Error(`벡터 검색 실패: ${error}`);
+  Line 48: throw new Error(`하이브리드 검색 실패: ${error}`);
+  Line 149: throw new Error(`벡터 차원 불일치: 예상 ${expectedDimensions}, 실제 ${query.queryVector?.length || 0}`);
+  Line 153: throw new Error('검색 제한은 1-100 사이여야 합니다');
+  Line 159: throw new Error('ProviderHybridQuery.query가 필요합니다');
+
+src/infrastructure/async-optimizer.ts (3개):
+  Line 430: throw new Error(`Unknown task type: ${this.task.type}`);
+  Line 455: throw new Error(`Unknown memory operation: ${operation}`);
+  Line 501: throw new Error('Failure event handler is not a function');
+
+src/infrastructure/consolidation-score-service.ts (4개):
+  Line 51: throw new Error('Time elapsed must be non-negative');
+  Line 101: throw new Error('Time elapsed must be non-negative');
+  Line 104: throw new Error('g_n must be positive');
+  Line 152: throw new Error('Recall count must be non-negative');
+
+src/infrastructure/database/database/init.ts (5개):
+  Line 439: throw new Error(errorMessage);
+  Line 506: throw new Error(errorMessage);
+  Line 522: throw new Error(errorMessage);
+  Line 531: throw validationError;
+  Line 613: throw error;
+
+src/infrastructure/database/database/migrate.ts (4개):
+  Line 24: throw err;
+  Line 32: throw err;
+  Line 40: throw err;
+  Line 274: throw error;
+
+src/infrastructure/database/database/migration/backup-manager.ts (6개):
+  Line 61: throw error;
+  Line 99: throw new Error('백업 API를 사용할 수 없습니다');
+  Line 102: throw new Error(`백업 생성 실패: ${backupError}`);
+  Line 125: throw error;
+  Line 135: throw new Error(`백업 파일을 찾을 수 없습니다: ${backupPath}`);
+  Line 158: throw error;
+
+src/infrastructure/database/database/migration/migration-logger.ts (1개):
+  Line 63: throw error;
+
+src/infrastructure/database/database/migration/migration-runner.ts (1개):
+  Line 194: throw error;
+
+src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts (7개):
+  Line 91: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 101: throw new Error('Migration 002 has already been applied. Current schema version: 2.0');
+  Line 158: throw new Error('core_memory table was not created');
+  Line 163: throw new Error('knowledge_vault table was not created');
+  Line 168: throw new Error('memento_schema_version table was not created');
+  Line 175: throw new Error(`Column ${column} was not added to memory_item table`);
+  Line 190: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts (11개):
+  Line 103: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 113: throw new Error('Migration 003 has already been applied. Current schema version: 3.0');
+  Line 131: throw new Error('Migration 003 appears to be completely applied. All required columns and indexes al
+  Line 218: throw err;
+  Line 228: throw err;
+  Line 238: throw err;
+  Line 248: throw err;
+  Line 342: throw new Error('memory_item table was removed during migration');
+  Line 349: throw new Error(`Column ${column} was not added to memory_item table`);
+  Line 361: throw new Error(`Index ${index} was not created`);
+  Line 373: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/004-anchor-table.ts (9개):
+  Line 79: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 89: throw new Error('Migration 004 has already been applied. Current schema version: 4.0');
+  Line 95: throw new Error('anchor table already exists. Migration may have been partially applied.');
+  Line 161: throw new Error('anchor table was not created');
+  Line 172: throw new Error(`Index ${index} was not created`);
+  Line 183: throw new Error(`Column ${column} was not created in anchor table`);
+  Line 203: throw new Error('UNIQUE constraint on (agent_id, slot) was not created');
+  Line 215: throw new Error('Foreign key constraint with ON DELETE SET NULL was not created');
+  Line 226: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts (14개):
+  Line 117: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 127: throw new Error('Migration 005 has already been applied. Current schema version: 5.0');
+  Line 133: throw new Error('memory_relation table already exists. Migration may have been partially applied.');
+  Line 138: throw new Error('relation_type_registry table already exists. Migration may have been partially appl
+  Line 200: throw error;
+  Line 244: throw new Error('memory_relation table was not created');
+  Line 249: throw new Error('relation_type_registry table was not created');
+  Line 273: throw new Error(`Column ${column} was not created in memory_relation table`);
+  Line 294: throw new Error(`Column ${column} was not created in relation_type_registry table`);
+  Line 310: throw new Error(`Index ${index} was not created`);
+  Line 324: throw new Error(`Relation type ${expectedType} was not inserted into registry`);
+  Line 335: throw new Error('UNIQUE constraint on (source_id, target_id, relation_type) was not created');
+  Line 345: throw new Error('Foreign key constraint with ON DELETE CASCADE was not created');
+  Line 356: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts (15개):
+  Line 102: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 112: throw new Error('Migration 006 has already been applied. Current schema version: 6.0');
+  Line 118: throw new Error('memory_item_fts_new table already exists. Migration may have been partially applied
+  Line 126: throw new Error('FTS5 is not available. Cannot proceed with migration.');
+  Line 225: throw new Error(
+  Line 348: throw error;
+  Line 492: throw new Error('memory_item_fts table was not created or renamed');
+  Line 497: throw new Error('memory_item_fts_new table still exists (should be renamed to memory_item_fts)');
+  Line 507: throw new Error('memory_item_fts table information not found');
+  Line 512: throw new Error('reflection_notes column was not included in memory_item_fts table');
+  Line 517: throw new Error("content table reference 'memory_item' was not found in memory_item_fts table");
+  Line 522: throw new Error("content_rowid='rowid' was not found in memory_item_fts table");
+  Line 533: throw new Error(`New trigger ${triggerName} was not created`);
+  Line 545: throw new Error(`Temporary dual trigger ${triggerName} still exists (should be removed)`);
+  Line 557: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts (18개):
+  Line 103: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 108: throw new Error('memory_link table does not exist. Cannot proceed with migration.');
+  Line 118: throw new Error('Migration 007 has already been applied. Current schema version: 7.0');
+  Line 143: throw new Error('Migration 007 appears to be completely applied. All required columns, indexes, and 
+  Line 165: throw err;
+  Line 175: throw err;
+  Line 185: throw err;
+  Line 309: throw new Error('workflow_name column was not added to memory_item table');
+  Line 313: throw new Error('skill_name column was not added to memory_item table');
+  Line 317: throw new Error('trigger_conditions column was not added to memory_item table');
+  Line 322: throw new Error('idx_memory_item_workflow_name index was not created');
+  Line 326: throw new Error('idx_memory_item_skill_name index was not created');
+  Line 336: throw new Error('memory_link table does not exist after migration');
+  Line 340: throw new Error("memory_link table does not have 'version_of' in relation_type enum");
+  Line 359: throw new Error(`Column ${column} is missing in memory_link table`);
+  Line 365: throw new Error('idx_memory_link_source index was not recreated');
+  Line 369: throw new Error('idx_memory_link_target index was not recreated');
+  Line 380: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts (26개):
+  Line 102: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 107: throw new Error('relation_type_registry table does not exist. Cannot proceed with migration.');
+  Line 117: throw new Error('Migration 008 has already been applied. Current schema version: 8.0');
+  Line 123: throw new Error('subject column already exists in memory_item table. Migration may have been partial
+  Line 127: throw new Error('predicate column already exists in memory_item table. Migration may have been parti
+  Line 131: throw new Error('object column already exists in memory_item table. Migration may have been partiall
+  Line 135: throw new Error('triple_extracted column already exists in memory_item table. Migration may have bee
+  Line 139: throw new Error('triple_extracted_status column already exists in memory_item table. Migration may h
+  Line 143: throw new Error('triple_extraction_metadata column already exists in memory_item table. Migration ma
+  Line 148: throw new Error('idx_memory_item_triple index already exists. Migration may have been partially appl
+  Line 152: throw new Error('idx_memory_item_triple_extracted index already exists. Migration may have been part
+  Line 156: throw new Error('idx_memory_item_triple_status index already exists. Migration may have been partial
+  Line 222: throw new Error('subject column was not added to memory_item table');
+  Line 226: throw new Error('predicate column was not added to memory_item table');
+  Line 230: throw new Error('object column was not added to memory_item table');
+  Line 234: throw new Error('triple_extracted column was not added to memory_item table');
+  Line 238: throw new Error('triple_extracted_status column was not added to memory_item table');
+  Line 242: throw new Error('triple_extraction_metadata column was not added to memory_item table');
+  Line 247: throw new Error('idx_memory_item_triple index was not created');
+  Line 251: throw new Error('idx_memory_item_triple_extracted index was not created');
+  Line 255: throw new Error('idx_memory_item_triple_status index was not created');
+  Line 264: throw new Error('extracted_from relation type was not inserted into relation_type_registry');
+  Line 272: throw new Error('supported_by relation type was not inserted into relation_type_registry');
+  Line 281: throw new Error('extracted_from relation type has incorrect category or metadata');
+  Line 289: throw new Error('supported_by relation type has incorrect category or metadata');
+  Line 300: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts (19개):
+  Line 107: throw new Error('Migration 009 has already been applied. Current schema version: 9.0');
+  Line 113: throw new Error('quality_measurement_history table already exists. Migration may have been partially
+  Line 118: throw new Error('quality_metrics table already exists. Migration may have been partially applied.');
+  Line 123: throw new Error('quality_thresholds table already exists. Migration may have been partially applied.
+  Line 175: throw new Error('quality_measurement_history table was not created');
+  Line 180: throw new Error('quality_metrics table was not created');
+  Line 185: throw new Error('quality_thresholds table was not created');
+  Line 206: throw new Error(`Column ${column} was not created in quality_measurement_history table`);
+  Line 229: throw new Error(`Column ${column} was not created in quality_metrics table`);
+  Line 251: throw new Error(`Column ${column} was not created in quality_thresholds table`);
+  Line 269: throw new Error(`Index ${index} was not created`);
+  Line 280: throw new Error('PRIMARY KEY constraint was not created on quality_measurement_history table');
+  Line 289: throw new Error('PRIMARY KEY constraint was not created on quality_metrics table');
+  Line 298: throw new Error('PRIMARY KEY constraint was not created on quality_thresholds table');
+  Line 303: throw new Error('CHECK constraint on measurement_type was not created in quality_measurement_history
+  Line 307: throw new Error('CHECK constraint on status was not created in quality_measurement_history table');
+  Line 311: throw new Error('CHECK constraint on status was not created in quality_metrics table');
+  Line 315: throw new Error('CHECK constraint on threshold_type was not created in quality_thresholds table');
+  Line 326: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts (9개):
+  Line 49: throw new Error(
+  Line 123: throw new Error('core_memory table does not exist. Please run migration 002 first.');
+  Line 128: throw new Error('version column already exists in core_memory table. Migration may have been already
+  Line 185: throw new Error('version column was not created in core_memory table');
+  Line 190: throw new Error('idx_core_memory_version index was not created');
+  Line 199: throw new Error(`Migration validation failed: ${zeroVersionCount.count} rows still have version = 0.
+  Line 212: throw new Error('version column not found in core_memory table');
+  Line 216: throw new Error(`version column type is ${versionColumn.type}, expected INTEGER`);
+  Line 220: throw new Error('version column should be NOT NULL');
+
+src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts (16개):
+  Line 42: throw new Error(
+  Line 76: throw new Error(
+  Line 151: throw new Error('memory_item table does not exist. Cannot proceed with migration.');
+  Line 161: throw new Error('Migration 011 has already been applied. Current schema version: 11.0');
+  Line 167: throw new Error('meta_memory_stats table already exists. Migration may have been partially applied.'
+  Line 211: throw new Error(
+  Line 225: throw new Error('meta_memory_stats table was not created');
+  Line 241: throw new Error(`Column ${column} was not created in meta_memory_stats table`);
+  Line 251: throw new Error('memory_id is not set as PRIMARY KEY');
+  Line 270: throw new Error(`Index ${index} was not created`);
+  Line 276: throw new Error('Trigger trigger_meta_memory_stats_updated_at was not created');
+  Line 291: throw new Error('Foreign key constraint was not created');
+  Line 296: throw new Error('Foreign key constraint on memory_id was not created');
+  Line 300: throw new Error('Foreign key constraint on memory_id does not reference memory_item(id)');
+  Line 304: throw new Error('Foreign key constraint on memory_id does not have ON DELETE CASCADE');
+  Line 331: throw new Error(`Dependency validation failed: ${errors}`);
+
+src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts (10개):
+  Line 69: throw new Error('memory_embedding table does not exist. Cannot proceed with migration.');
+  Line 89: throw new Error('Migration 012 has already been applied. Current schema version: 12.0');
+  Line 289: throw new Error(
+  Line 314: throw new Error('Triggers exist but no vec tables found. This should not happen.');
+  Line 323: throw new Error('memory_embedding_vec_insert trigger was not created');
+  Line 327: throw new Error('memory_embedding_vec_update trigger was not created');
+  Line 341: throw new Error('memory_embedding_vec_insert trigger SQL not found');
+  Line 347: throw new Error('memory_embedding_vec_insert trigger does not contain correct TF-IDF dimension condi
+  Line 358: throw new Error('memory_embedding_vec_update trigger SQL not found');
+  Line 364: throw new Error('memory_embedding_vec_update trigger does not contain correct TF-IDF dimension condi
+
+src/infrastructure/database/database/migration/schema-version-manager.ts (3개):
+  Line 42: throw error;
+  Line 121: throw error;
+  Line 141: throw error;
+
+src/infrastructure/database/database-optimize-tool.ts (1개):
+  Line 79: throw new Error(`데이터베이스 최적화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+src/infrastructure/database/factories/core-memory-repository.factory.ts (2개):
+  Line 47: throw new Error(ERROR_MESSAGES.POSTGRES_NOT_AVAILABLE);
+  Line 52: throw new Error(ERROR_MESSAGES.UNSUPPORTED_TYPE(dbType));
+
+src/infrastructure/database/repositories/core-memory-repository-sqlite.impl.ts (1개):
+  Line 55: throw new Error(`Failed to create core memory with id: ${core_id}`);
+
+src/infrastructure/database/wal-checkpoint-scheduler.ts (1개):
+  Line 206: throw new Error('체크포인트가 이미 진행 중입니다');
+
+src/infrastructure/logging/triple-extraction-logger.ts (2개):
+  Line 71: throw new Error(
+  Line 217: throw new Error(
+
+src/infrastructure/reflexion-worker.ts (3개):
+  Line 373: throw error;
+  Line 755: throw error;
+  Line 942: throw lastError || new Error('Reflexion 기록 실패');
+
+src/infrastructure/scheduler/batch-scheduler.ts (22개):
+  Line 186: throw new Error('BatchScheduler is already running');
+  Line 314: throw new Error('cleanupInterval must be at least 1 minute');
+  Line 317: throw new Error('monitoringInterval must be at least 10 seconds');
+  Line 320: throw new Error('maxBatchSize must be at least 1');
+  Line 323: throw new Error('maxConcurrentJobs must be at least 1');
+  Line 326: throw new Error('jobTimeout must be at least 1 second');
+  Line 329: throw new Error('tripleExtractionInterval must be at least 1 minute');
+  Line 333: throw new Error('tripleExtractionHour must be between 0 and 23');
+  Line 336: throw new Error('tripleExtractionBatchSize must be at least 1');
+  Line 339: throw new Error('tripleExtractionTimeout must be at least 1 second');
+  Line 346: throw new Error('weeklyRelationValidationTimeout must be a positive number (at least 1 second)');
+  Line 349: throw new Error('weeklyRelationValidationTimeout must be at least 1 second');
+  Line 585: throw new Error('Database not initialized');
+  Line 591: throw new Error('Database connection is not open. The database may have been closed.');
+  Line 646: throw new Error('Database not initialized');
+  Line 760: throw new Error('Database not initialized');
+  Line 764: throw new Error('ConsolidationScoreWorker not initialized');
+  Line 955: throw new Error('Database not initialized');
+  Line 959: throw new Error('ConsolidationScoreWorker not initialized');
+  Line 1164: throw new Error(`Unknown job type: ${jobType}`);
+  Line 1308: throw new Error('Database not initialized');
+  Line 1497: throw new Error('Database not initialized');
+
+src/infrastructure/scheduler/file-logger.ts (2개):
+  Line 48: throw new Error(
+  Line 67: throw new Error(
+
+src/infrastructure/scheduler/jobs/quality-measurement-batch-job.ts (2개):
+  Line 174: throw new Error('Quality measurement batch job timeout before execution');
+  Line 194: throw new Error('Quality measurement batch job timeout during execution');
+
+src/infrastructure/scheduler/retry-manager.ts (4개):
+  Line 233: throw lastError;
+  Line 238: throw lastError;
+  Line 256: throw lastError;
+  Line 258: throw new Error('Unexpected error in retry method');
+
+src/npm-client/memento-client.ts (5개):
+  Line 182: throw new ConnectionError('Failed to connect to Memento server', error as unknown as Record<string, 
+  Line 306: throw new Error(`Memory with ID ${id} not found`);
+  Line 310: throw new Error(`Memory with ID ${id} not found`);
+  Line 314: throw new Error(`Memory with ID ${id} not found`);
+  Line 528: throw new ConnectionError('Client is not connected. Call connect() first.');
+
+src/npm-client/memory-manager.ts (5개):
+  Line 63: throw error;
+  Line 188: throw new Error(`Memory with id ${memoryId} not found`);
+  Line 240: throw new Error('Importance must be between 0 and 1');
+  Line 252: throw new Error(`Memory with id ${id} not found`);
+  Line 267: throw new Error(`Memory with id ${id} not found`);
+
+src/npm-client/utils.ts (1개):
+  Line 167: throw new Error(`Unknown memory type: ${_exhaustive}`);
+
+src/server/bootstrap.ts (2개):
+  Line 247: throw new Error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
+  Line 272: throw new Error(`서비스 초기화 실패: ${errorMessage}`);
+
+src/server/handlers/anchor-map.handler.ts (1개):
+  Line 64: throw new Error('AnchorManager not available');
+
+src/server/index.ts (6개):
+  Line 306: throw new Error('Database not initialized');
+  Line 331: throw new Error(`Invalid resource URI: ${uri}`);
+  Line 336: throw new Error(`Invalid memory ID in URI: ${uri}`);
+  Line 343: throw new Error('Database not initialized');
+  Line 354: throw new Error(`Memory not found: ${memoryId}`);
+  Line 478: throw new Error(`Invalid log level: ${level}. Valid levels are: ${validLevels.join(', ')}`);
+
+src/server/server-factory.ts (2개):
+  Line 83: throw new Error(`지원되지 않는 서버 타입: ${type}`);
+  Line 98: throw new Error(`지원되지 않는 TRANSPORT_TYPE: ${transportType}. 'stdio' 또는 'sse'를 사용하세요.`);
+
+src/server/servers/sse-server.ts (1개):
+  Line 25: throw new Error('SSE 서버가 이미 실행 중입니다');
+
+src/server/servers/stdio-server.ts (1개):
+  Line 26: throw new Error('Stdio 서버가 이미 실행 중입니다');
+
+src/services/anchor-manager.ts (11개):
+  Line 53: throw new Error('Database instance is required');
+  Line 71: throw new Error('MemoryEmbeddingService is required');
+  Line 82: throw new Error('HybridSearchEngine is required');
+  Line 93: throw new Error('VectorSearchEngine is required');
+  Line 135: throw new Error('Database is not set. Call setDatabase() first.');
+  Line 139: throw new Error('MemoryEmbeddingService is not set. Call setEmbeddingService() first.');
+  Line 150: throw new AnchorError(
+  Line 193: throw new MemoryNotFoundError(
+  Line 209: throw new Error(
+  Line 218: throw new Error(
+  Line 333: throw new Error('Database is not set.');
+
+src/services/meta-memory-service.ts (7개):
+  Line 41: throw new Error('Database instance is required');
+  Line 267: throw new Error('memoryId는 필수이며 문자열이어야 합니다');
+  Line 338: throw new Error('limit은 1 이상 1000 이하여야 합니다');
+  Line 348: throw new Error('memory_id는 문자열이어야 합니다');
+  Line 357: throw new Error('memory_ids는 문자열 배열이어야 합니다');
+  Line 367: throw new Error('min_recall_count는 0 이상의 숫자여야 합니다');
+  Line 376: throw new Error('min_confidence는 0 이상 1 이하의 숫자여야 합니다');
+
+src/services/quality-assurance/quality-assurance-service.ts (2개):
+  Line 102: throw new Error('Database instance is required');
+  Line 209: throw error;
+
+src/services/quality-assurance/quality-evaluator.ts (1개):
+  Line 129: throw new Error('Database instance is required');
+
+src/services/quality-assurance/quality-metrics-collector.ts (2개):
+  Line 172: throw new Error('Database instance is required');
+  Line 1273: throw new Error(`Unknown namespace: ${namespace}`);
+
+src/services/quality-assurance/quality-recorder.ts (4개):
+  Line 58: throw new Error('Database instance is required');
+  Line 235: throw new Error('collectedMetricsList and evaluationResults must have the same length');
+  Line 245: throw new Error(`collectedMetricsList[${i}] is undefined`);
+  Line 249: throw new Error(`evaluationResults[${i}] is undefined`);
+
+src/services/quality-assurance/quality-reporter.ts (2개):
+  Line 170: throw new Error('Database instance is required');
+  Line 715: throw new Error(`Unsupported report format: ${format}`);
+
+src/services/quality-assurance/quality-threshold-manager.ts (3개):
+  Line 88: throw new Error('Database instance is required');
+  Line 183: throw new Error(`임계값은 0과 1 사이의 값이어야 합니다: ${threshold_value}`);
+  Line 222: throw new Error('임계값 설정 후 조회 실패');
+
+src/services/semantic-memory/semantic-memory-update-service.ts (9개):
+  Line 108: throw new Error('Invalid embeddingService: generateEmbedding method is missing');
+  Line 111: throw new Error('Invalid embeddingService: isAvailable method is missing');
+  Line 329: throw error;
+  Line 404: throw new Error('Semantic memory ID is required for creating episodic edge');
+  Line 416: throw edgeError;
+  Line 593: throw new Error(`Semantic Memory를 찾을 수 없습니다: ${semanticMemoryId}`);
+  Line 970: throw new Error(`Memory를 찾을 수 없습니다: source=${sourceId}, target=${targetId}`);
+  Line 977: throw new Error(
+  Line 985: throw new Error(
+
+src/services/triple-extraction/triple-extraction-service.ts (8개):
+  Line 360: throw new Error(`지원하지 않는 LLM Provider: ${actualProvider}`);
+  Line 443: throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
+  Line 497: throw new Error('OpenAI 응답이 비어있습니다.');
+  Line 516: throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');
+  Line 569: throw new Error('Gemini 응답이 비어있습니다.');
+  Line 614: throw new Error(
+  Line 635: throw new Error(`Ollama API 호출 실패: ${fetchResponse.status} ${fetchResponse.statusText}${errorText ? 
+  Line 699: throw new Error('Ollama 응답이 비어있습니다.');
+
+src/services/triple-extraction/triple-extractor.ts (9개):
+  Line 90: throw new Error(`지원하지 않는 LLM Provider: ${provider}`);
+  Line 115: throw error;
+  Line 127: throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
+  Line 162: throw new Error('OpenAI 응답이 비어있습니다.');
+  Line 175: throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');
+  Line 209: throw new Error('Gemini 응답이 비어있습니다.');
+  Line 239: throw new Error(
+  Line 260: throw new Error(`Ollama API 호출 실패: ${fetchResponse.status} ${fetchResponse.statusText}${errorText ? 
+  Line 316: throw new Error('Ollama 응답이 비어있습니다.');
+
+src/shared/config/config-loader-utils.ts (2개):
+  Line 79: throw new Error(`설정 파일을 찾을 수 없습니다: ${configPath}`);
+  Line 81: throw new Error(`TOML 파일 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);
+
+src/shared/config/ranking-weights-loader.ts (4개):
+  Line 82: throw new Error(`검색 랭킹 가중치 설정 검증 실패: ${validationResult.errors.join(', ')}`);
+  Line 95: throw new Error(`검색 랭킹 가중치 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);
+  Line 119: throw new Error(`가중치 ${name}는 0 이상 1 이하의 숫자여야 합니다. 현재 값: ${value}`);
+  Line 125: throw new Error(
+
+src/shared/config/retry-options-loader.ts (8개):
+  Line 106: throw new Error(`재시도 옵션 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);
+  Line 121: throw new Error(`external_api.maxAttempts는 양수여야 합니다. 현재 값: ${config.external_api.maxAttempts}`);
+  Line 124: throw new Error(`external_api.baseDelay는 0 이상이어야 합니다. 현재 값: ${config.external_api.baseDelay}`);
+  Line 129: throw new Error(`embedding_api.maxAttempts는 양수여야 합니다. 현재 값: ${config.embedding_api.maxAttempts}`);
+  Line 132: throw new Error(`embedding_api.baseDelay는 0 이상이어야 합니다. 현재 값: ${config.embedding_api.baseDelay}`);
+  Line 144: throw new Error(`${name}.maxAttempts는 양수여야 합니다. 현재 값: ${config.maxAttempts}`);
+  Line 147: throw new Error(`${name}.baseDelay는 0 이상이어야 합니다. 현재 값: ${config.baseDelay}`);
+  Line 151: throw new Error(`${name}.maxErrorCount는 양수여야 합니다. 현재 값: ${config.maxErrorCount}`);
+
+src/shared/utils/configuration-validator.ts (1개):
+  Line 216: throw new Error(`환경 설정 검증 실패:\n${message}`);
+
+src/shared/utils/database.ts (12개):
+  Line 83: throw error;
+  Line 87: throw lastError;
+  Line 114: throw error;
+  Line 118: throw lastError;
+  Line 145: throw error;
+  Line 149: throw lastError;
+  Line 200: throw beginError;
+  Line 245: throw error;
+  Line 249: throw lastError;
+  Line 261: throw error;
+  Line 325: throw error;
+  Line 534: throw error;
+
+src/shared/utils/error-handling.ts (2개):
+  Line 104: throw finalError;
+  Line 109: throw finalError;
+
+src/shared/utils/fts5-migration-status.ts (4개):
+  Line 53: throw new Error(
+  Line 126: throw new Error(
+  Line 174: throw new Error(
+  Line 289: throw new Error(`마이그레이션 재시도는 'failed' 상태에서만 가능합니다. 현재 상태: ${currentStatus}`);
+
+src/shared/utils/prompt-template-loader.ts (2개):
+  Line 63: throw new Error(`프롬프트 템플릿 파일을 찾을 수 없습니다: ${templatePath}`);
+  Line 65: throw new Error(`프롬프트 템플릿 파일 읽기 실패: ${error instanceof Error ? error.message : String(error)}`);
+
+src/shared/utils/reflection-notes-merge.ts (2개):
+  Line 73: throw new Error(
+  Line 173: throw new Error(
+
+src/shared/utils/relation-type-converter.ts (1개):
+  Line 57: throw new Error(`Unmapped RelationType: ${relationType}. Cannot convert to DB value.`);
+
+src/shared/utils/sql-security-validator.ts (3개):
+  Line 25: throw new Error(
+  Line 35: throw new Error(
+  Line 50: throw new Error(
+
+src/shared/utils/type-param-validator.ts (6개):
+  Line 134: throw new TypeError(
+  Line 150: throw new Error('trigger_conditions must be a valid JSON object, not an array or primitive value');
+  Line 154: throw new Error(`trigger_conditions must be a valid JSON object string: ${error.message}`);
+  Line 156: throw error;
+  Line 179: throw new Error(`${fieldName} must be a string, but got ${typeof value}. Value: ${JSON.stringify(val
+  Line 184: throw new Error(`${fieldName} cannot be an empty string. Provide a valid value or omit the field.`);
+
+src/shared/utils/write-coalescing.ts (1개):
+  Line 165: throw error;
+
+src/tools/base-tool.ts (10개):
+  Line 96: throw new Error(`${fieldName}은 문자열이어야 합니다`);
+  Line 100: throw new Error(`${fieldName}은 비어있을 수 없습니다`);
+  Line 104: throw new Error(`${fieldName}은 ${maxLength}자를 초과할 수 없습니다`);
+  Line 117: throw new Error(`${fieldName}은 유효한 숫자여야 합니다`);
+  Line 121: throw new Error(`${fieldName}은 ${min} 이상이어야 합니다`);
+  Line 125: throw new Error(`${fieldName}은 ${max} 이하여야 합니다`);
+  Line 136: throw new Error(`${fieldName}은 배열이어야 합니다`);
+  Line 140: throw new Error(`${fieldName}은 ${maxLength}개를 초과할 수 없습니다`);
+  Line 195: throw new Error('데이터베이스가 초기화되지 않았습니다');
+  Line 204: throw new Error(`${serviceName}이 초기화되지 않았습니다`);
+
+src/tools/migrate-embeddings-tool.ts (3개):
+  Line 107: throw new Error('임베딩 생성 실패');
+  Line 112: throw new Error('임베딩 결과가 비어있음');
+  Line 128: throw new Error(`임베딩 벡터 검증 실패: ${blockingIssues.map(issue => issue.message).join(', ')}`);
+
+src/tools/tool-registry.ts (2개):
+  Line 100: throw new Error(`Unknown tool: ${name}`);
+  Line 147: throw error;
+
+=== JSON 출력 ===
+{
+  "total": 606,
+  "withErrorLogging": 21,
+  "withErrorHandling": 2,
+  "simpleThrows": 583,
+  "details": [
+    {
+      "file": "src/client/index.ts",
+      "line": 55,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 90,
+      "code": "throw new Error(`기억 저장 응답에서 memory_id를 찾을 수 없습니다: ${rawText}`);"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 96,
+      "code": "throw new Error('기억 저장에 실패했습니다');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 119,
+      "code": "throw new Error('기억 검색에 실패했습니다');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 142,
+      "code": "throw new Error('기억 삭제에 실패했습니다');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 165,
+      "code": "throw new Error('기억 고정에 실패했습니다');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 188,
+      "code": "throw new Error('기억 고정 해제에 실패했습니다');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 196,
+      "code": "throw new Error('MCP 서버에 연결되지 않았습니다. connect()를 먼저 호출하세요.');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 212,
+      "code": "throw new Error('서버에 연결되지 않았습니다');"
+    },
+    {
+      "file": "src/client/index.ts",
+      "line": 236,
+      "code": "throw new Error(`도구 호출 실패 (${name}): ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-cache-service.ts",
+      "line": 37,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-cache-service.ts",
+      "line": 47,
+      "code": "throw new Error('MemoryEmbeddingService is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-cache-service.ts",
+      "line": 59,
+      "code": "throw new Error('Database is not set.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-cache-service.ts",
+      "line": 148,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 48,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 63,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 72,
+      "code": "throw new MemoryNotFoundError(memoryId);"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 82,
+      "code": "throw new AnchorError("
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 120,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 192,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 263,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 269,
+      "code": "throw new Error(`Anchor not found for agent_id: ${agentId}, slot: ${slot}`);"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 274,
+      "code": "throw new Error(`Anchor memory_id is null for agent_id: ${agentId}, slot: ${slot}`);"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-manager.ts",
+      "line": 280,
+      "code": "throw new Error(`Embedding not found for anchor memory_id: ${anchorMemoryId}`);"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 69,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 96,
+      "code": "throw new Error('HybridSearchEngine is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 108,
+      "code": "throw new Error('VectorSearchEngine is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 135,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 139,
+      "code": "throw new Error('LocalSearchService is not initialized. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 154,
+      "code": "throw new Error('VectorSearchEngine is not set. Call setVectorSearchEngine() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 250,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 380,
+      "code": "throw new Error('Database is not set.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 467,
+      "code": "throw new Error('Database is not set.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/anchor-search-service.ts",
+      "line": 559,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/fallback-search-service.ts",
+      "line": 37,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/fallback-search-service.ts",
+      "line": 47,
+      "code": "throw new Error('HybridSearchEngine is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/fallback-search-service.ts",
+      "line": 61,
+      "code": "throw new Error('HybridSearchEngine is not set. Call setHybridSearchEngine() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/fallback-search-service.ts",
+      "line": 65,
+      "code": "throw new Error('Database is not set.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/fallback-strategy.ts",
+      "line": 20,
+      "code": "throw new Error('FallbackSearchService is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/local-search-service.ts",
+      "line": 49,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/local-search-service.ts",
+      "line": 62,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/local-search-service.ts",
+      "line": 79,
+      "code": "throw new Error(`Embedding not found for anchor memory_id: ${anchorInfo.memory_id}`);"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/n-hop-search-service.ts",
+      "line": 88,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/n-hop-search-service.ts",
+      "line": 98,
+      "code": "throw new Error('VectorSearchEngine is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/n-hop-search-service.ts",
+      "line": 126,
+      "code": "throw new Error('VectorSearchEngine or Database is not set.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/n-hop-search-service.ts",
+      "line": 164,
+      "code": "throw new Error(`Failed to perform 1-hop search: ${error instanceof Error ? error.message : 'Unknown"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/n-hop-search-service.ts",
+      "line": 181,
+      "code": "throw new Error('VectorSearchEngine or Database is not set.');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/n-hop-search-strategy.ts",
+      "line": 19,
+      "code": "throw new Error('NHopSearchService is required');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/query-filter-service.ts",
+      "line": 153,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/anchor/services/anchor/query-filter-strategy.ts",
+      "line": 19,
+      "code": "throw new Error('QueryFilterService is required');"
+    },
+    {
+      "file": "src/domains/anchor/tools/search-local-tool.ts",
+      "line": 111,
+      "code": "throw new Error('HybridSearchEngine is not available for fallback');"
+    },
+    {
+      "file": "src/domains/anchor/tools/set-anchor-tool.ts",
+      "line": 62,
+      "code": "throw new Error(`메모리를 찾을 수 없습니다: ${memory_id}`);"
+    },
+    {
+      "file": "src/domains/embedding/providers/model-availability-service.ts",
+      "line": 44,
+      "code": "throw new Error('Provider unavailable or not registered');"
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-migration-service.ts",
+      "line": 449,
+      "code": "throw new Error('임베딩 데이터가 배열 형식이 아닙니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-migration-service.ts",
+      "line": 453,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-migration-service.ts",
+      "line": 502,
+      "code": "throw new Error(`Rollback 데이터가 누락되었습니다: ${entry.memoryId}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-service.ts",
+      "line": 88,
+      "code": "throw new Error('텍스트가 비어있습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-service.ts",
+      "line": 137,
+      "code": "throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-service.ts",
+      "line": 179,
+      "code": "throw new Error('임베딩 생성에 실패했습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/embedding-service.ts",
+      "line": 262,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/gemini-embedding-service.ts",
+      "line": 83,
+      "code": "throw new Error('텍스트가 비어있습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/gemini-embedding-service.ts",
+      "line": 101,
+      "code": "throw new Error('Gemini 클라이언트가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/gemini-embedding-service.ts",
+      "line": 146,
+      "code": "throw new Error('임베딩 생성에 실패했습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/gemini-embedding-service.ts",
+      "line": 192,
+      "code": "throw new Error(`임베딩 생성 실패: ${maskedError.message}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/gemini-embedding-service.ts",
+      "line": 234,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/lightweight-embedding-service.ts",
+      "line": 47,
+      "code": "throw new Error('텍스트가 비어있습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/lightweight-embedding-service.ts",
+      "line": 78,
+      "code": "throw new Error(`경량 임베딩 생성 실패: ${maskedError.message}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/lightweight-embedding-service.ts",
+      "line": 276,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/minilm-embedding-service.ts",
+      "line": 111,
+      "code": "throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/minilm-embedding-service.ts",
+      "line": 181,
+      "code": "throw new Error('텍스트가 비어있습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/minilm-embedding-service.ts",
+      "line": 248,
+      "code": "throw new Error(`모델 로딩 실패: ${errorMessage}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/minilm-embedding-service.ts",
+      "line": 298,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/openai-embedding-service.ts",
+      "line": 138,
+      "code": "throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/domains/embedding/services/openai-embedding-service.ts",
+      "line": 179,
+      "code": "throw new Error('OpenAI 임베딩 응답이 비어 있습니다.');"
+    },
+    {
+      "file": "src/domains/embedding/services/openai-embedding-service.ts",
+      "line": 215,
+      "code": "throw new Error('텍스트가 비어 있습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/openai-embedding-service.ts",
+      "line": 234,
+      "code": "throw new Error('벡터 차원이 일치하지 않습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/unified-embedding-service.ts",
+      "line": 48,
+      "code": "throw new Error('사용 가능한 임베딩 제공자가 없습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/unified-embedding-service.ts",
+      "line": 74,
+      "code": "throw new Error(`모든 임베딩 제공자 실패: ${maskedError.message}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/unified-embedding-service.ts",
+      "line": 95,
+      "code": "throw new Error('사용 가능한 임베딩 제공자가 없습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/unified-embedding-service.ts",
+      "line": 204,
+      "code": "throw new Error('텍스트가 비어있습니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/unified-embedding-service.ts",
+      "line": 234,
+      "code": "throw new Error('모든 폴백 제공자 실패');"
+    },
+    {
+      "file": "src/domains/embedding/services/unified-embedding-service.ts",
+      "line": 254,
+      "code": "throw new Error('모든 폴백 제공자 실패');"
+    },
+    {
+      "file": "src/domains/embedding/services/vector-compatibility-service.ts",
+      "line": 137,
+      "code": "throw new Error(`벡터 호환성 검증 실패: ${messages}`);"
+    },
+    {
+      "file": "src/domains/embedding/services/vector-compatibility-service.ts",
+      "line": 204,
+      "code": "throw new Error('차원은 0보다 큰 정수여야 합니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/vector-compatibility-service.ts",
+      "line": 462,
+      "code": "throw new Error('벡터는 배열이어야 합니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/vector-compatibility-service.ts",
+      "line": 469,
+      "code": "throw new Error('벡터는 배열이어야 합니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/vector-compatibility-service.ts",
+      "line": 472,
+      "code": "throw new Error('targetDimensions는 정수여야 합니다');"
+    },
+    {
+      "file": "src/domains/embedding/services/vector-compatibility-service.ts",
+      "line": 475,
+      "code": "throw new Error('targetDimensions는 0보다 커야 합니다');"
+    },
+    {
+      "file": "src/domains/forgetting/services/forgetting-policy-service.ts",
+      "line": 163,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/forgetting/services/spaced-repetition/spaced-repetition-container.ts",
+      "line": 66,
+      "code": "throw new Error('SpacedRepetitionContainer가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');"
+    },
+    {
+      "file": "src/domains/forgetting/services/spaced-repetition/spaced-repetition-container.ts",
+      "line": 76,
+      "code": "throw new Error('SpacedRepetitionContainer가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');"
+    },
+    {
+      "file": "src/domains/forgetting/services/spaced-repetition/spaced-repetition-container.ts",
+      "line": 101,
+      "code": "throw new Error('컨테이너가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/domains/forgetting/services/spaced-repetition/spaced-repetition-container.ts",
+      "line": 117,
+      "code": "throw new Error('컨테이너가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/domains/forgetting/tools/forgetting-stats-tool.ts",
+      "line": 44,
+      "code": "throw new Error(`망각 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/domains/memory/repositories/knowledge-vault-repository.ts",
+      "line": 88,
+      "code": "throw new Error(`Failed to create knowledge vault with id: ${vault_id}`);"
+    },
+    {
+      "file": "src/domains/memory/repositories/knowledge-vault-repository.ts",
+      "line": 311,
+      "code": "throw new Error(`Cannot update immutable knowledge vault: ${vault_id}`);"
+    },
+    {
+      "file": "src/domains/memory/repositories/knowledge-vault-repository.ts",
+      "line": 363,
+      "code": "throw new Error(`Cannot delete immutable knowledge vault: ${vault_id}`);"
+    },
+    {
+      "file": "src/domains/memory/repositories/knowledge-vault-repository.ts",
+      "line": 386,
+      "code": "throw new Error(`Cannot delete immutable knowledge vault: agent_id=${agent_id}, key=${key}`);"
+    },
+    {
+      "file": "src/domains/memory/services/core-memory-service.ts",
+      "line": 103,
+      "code": "throw new Error(`Core memory with key '${key}' already exists for agent '${agent_id}'`);"
+    },
+    {
+      "file": "src/domains/memory/services/knowledge-vault-service.ts",
+      "line": 163,
+      "code": "throw new Error(`Knowledge vault with id '${vault_id}' not found`);"
+    },
+    {
+      "file": "src/domains/memory/services/knowledge-vault-service.ts",
+      "line": 192,
+      "code": "throw new Error(`Failed to update knowledge vault with id: ${vault_id}`);"
+    },
+    {
+      "file": "src/domains/memory/services/knowledge-vault-service.ts",
+      "line": 209,
+      "code": "throw new Error(`Active knowledge vault with key '${key}' not found for agent '${agent_id}'`);"
+    },
+    {
+      "file": "src/domains/memory/services/knowledge-vault-service.ts",
+      "line": 227,
+      "code": "throw new ImmutableDataError("
+    },
+    {
+      "file": "src/domains/memory/services/knowledge-vault-service.ts",
+      "line": 246,
+      "code": "throw new ImmutableDataError("
+    },
+    {
+      "file": "src/domains/memory/services/knowledge-vault-service.ts",
+      "line": 266,
+      "code": "throw new ImmutableDataError("
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 73,
+      "code": "throw new Error('VectorSearchEngine is required');"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 76,
+      "code": "throw new Error('MemoryEmbeddingService is required');"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 90,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 120,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 136,
+      "code": "throw new Error(`Failed to query memory: ${error instanceof Error ? error.message : 'Unknown error'}"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 140,
+      "code": "throw new MemoryNotFoundError(memoryId);"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 166,
+      "code": "throw new Error(`Failed to query embedding: ${error instanceof Error ? error.message : 'Unknown erro"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 224,
+      "code": "throw new Error(`Failed to initialize VectorSearchEngine: ${maskedError.message}`);"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 247,
+      "code": "throw new Error(`Failed to search similar memories: ${error instanceof Error ? error.message : 'Unkn"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 287,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 307,
+      "code": "throw new Error(`Failed to get memory neighbors: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/services/memory-neighbor-service.ts",
+      "line": 310,
+      "code": "throw new Error(`Failed to get memory neighbors: Unknown error`);"
+    },
+    {
+      "file": "src/domains/memory/tools/cleanup-memory-tool.ts",
+      "line": 74,
+      "code": "throw new Error(`메모리 정리 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 112,
+      "code": "throw new Error('하드 삭제는 confirm=true로 확인해야 합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 142,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 159,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 203,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 254,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 291,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/forget-tool.ts",
+      "line": 314,
+      "code": "throw new Error('핀된 기억은 먼저 핀을 해제해야 합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/get-memory-neighbors-tool.ts",
+      "line": 130,
+      "code": "throw new Error(`입력 검증 실패: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/get-memory-neighbors-tool.ts",
+      "line": 132,
+      "code": "throw new Error(`데이터베이스 오류: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/get-memory-neighbors-tool.ts",
+      "line": 134,
+      "code": "throw new Error(`검색 오류: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/get-memory-neighbors-tool.ts",
+      "line": 140,
+      "code": "throw new Error(`이웃 기억 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/memory-injection-prompt.ts",
+      "line": 84,
+      "code": "throw new Error('데이터베이스가 연결되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/memory-injection-prompt.ts",
+      "line": 88,
+      "code": "throw new Error('하이브리드 검색 엔진이 사용할 수 없습니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/memory-injection-prompt.ts",
+      "line": 103,
+      "code": "throw new Error(\"memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다.\");"
+    },
+    {
+      "file": "src/domains/memory/tools/memory-injection-prompt.ts",
+      "line": 110,
+      "code": "throw new Error(\"memory_types 배열에 유효한 타입이 없습니다.\");"
+    },
+    {
+      "file": "src/domains/memory/tools/memory-injection-prompt.ts",
+      "line": 179,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/pin-tool.ts",
+      "line": 76,
+      "code": "throw new Error('기억 ID가 필요합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/pin-tool.ts",
+      "line": 94,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/pin-tool.ts",
+      "line": 118,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/pin-tool.ts",
+      "line": 137,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 511,
+      "code": "throw new Error(typeValidation.message || \"type 파라미터는 필수입니다.\");"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 641,
+      "code": "throw new Error(\"query 파라미터는 필수입니다 (type='core' 또는 'vault'가 아닌 경우)\");"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 688,
+      "code": "throw new Error(\"memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다. 단일 type "
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 695,
+      "code": "throw new Error(\"memory_types 배열에 유효한 타입이 없습니다.\");"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 766,
+      "code": "throw new Error('텍스트 검색 엔진을 사용할 수 없습니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 909,
+      "code": "throw new Error(`입력 검증 실패: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 911,
+      "code": "throw new Error(`데이터베이스 오류: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 913,
+      "code": "throw new Error(`검색 오류: ${error.message}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 917,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 1455,
+      "code": "throw new Error('검색 쿼리는 비어있을 수 없습니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 1459,
+      "code": "throw new Error('검색 쿼리가 너무 깁니다 (최대 1000자)');"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 1471,
+      "code": "throw new Error('검색 쿼리에 허용되지 않는 문자가 포함되어 있습니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 1488,
+      "code": "throw new Error('유효하지 않은 시간 형식입니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 1492,
+      "code": "throw new Error('시작 시간은 종료 시간보다 이전이어야 합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/recall-tool.ts",
+      "line": 1499,
+      "code": "throw new Error('최소 중요도는 최대 중요도보다 작거나 같아야 합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 198,
+      "code": "throw new Error(`reflection_notes 스키마 검증 실패:\\n${errorMessage}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 343,
+      "code": "throw new Error(typeValidation.message || \"type 파라미터는 필수입니다.\");"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 373,
+      "code": "throw new Error(`Procedural Memory 필드 검증 실패: ${error instanceof Error ? error.message : String(error"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 399,
+      "code": "throw new Error(\"type='core'일 때는 key와 value가 필수입니다\");"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 429,
+      "code": "throw new Error(\"type='vault'일 때는 key와 value가 필수입니다\");"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 456,
+      "code": "throw new Error(\"type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다\");"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 461,
+      "code": "throw new Error(`Invalid memory type: ${type}`);"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 505,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 1116,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/remember-tool.ts",
+      "line": 1128,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/memory/tools/unpin-tool.ts",
+      "line": 74,
+      "code": "throw new Error('기억 ID가 필요합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/unpin-tool.ts",
+      "line": 92,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/unpin-tool.ts",
+      "line": 106,
+      "code": "throw new Error('높은 중요도의 기억은 confirm=true로 확인해야 합니다');"
+    },
+    {
+      "file": "src/domains/memory/tools/unpin-tool.ts",
+      "line": 121,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/domains/memory/tools/unpin-tool.ts",
+      "line": 140,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/monitoring/services/performance-monitor.ts",
+      "line": 953,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/monitoring/tools/get-meta-memory-stats-tool.ts",
+      "line": 158,
+      "code": "throw new Error(`파라미터 검증 실패: ${errorMessages}`);"
+    },
+    {
+      "file": "src/domains/monitoring/tools/get-meta-memory-stats-tool.ts",
+      "line": 162,
+      "code": "throw new Error(`메타 메모리 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/domains/monitoring/tools/performance-alerts.ts",
+      "line": 116,
+      "code": "throw new Error('성능 알림 서비스가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/monitoring/tools/performance-alerts.ts",
+      "line": 148,
+      "code": "throw new Error('성능 알림 서비스가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/monitoring/tools/performance-alerts.ts",
+      "line": 186,
+      "code": "throw new Error('성능 알림 서비스가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/monitoring/tools/performance-alerts.ts",
+      "line": 218,
+      "code": "throw new Error('성능 알림 서비스가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/monitoring/tools/performance-stats-tool.ts",
+      "line": 44,
+      "code": "throw new Error(`성능 통계 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 517,
+      "code": "throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 571,
+      "code": "throw new Error('OpenAI 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 582,
+      "code": "throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 589,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 671,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 710,
+      "code": "throw fetchError;"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 745,
+      "code": "throw new Error(errorMessage);"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 828,
+      "code": "throw new Error(`Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(p"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 844,
+      "code": "throw textError;"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 865,
+      "code": "throw new Error('Ollama 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 955,
+      "code": "throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 977,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 988,
+      "code": "throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 1035,
+      "code": "throw new Error('Gemini 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 1046,
+      "code": "throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 1053,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 1455,
+      "code": "throw new Error('LLM 서비스가 사용 불가능합니다. API 키를 설정해주세요.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 1517,
+      "code": "throw new Error('사용 가능한 LLM 서비스가 없습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/llm-based-relation-extractor.ts",
+      "line": 1543,
+      "code": "throw new Error(`LLM 기반 관계 추출 실패: ${errorMessage}. ${errorDetails.suggestion}`);"
+    },
+    {
+      "file": "src/domains/relation/services/relation-extractor.ts",
+      "line": 99,
+      "code": "throw new Error('LLM 서비스가 사용 불가능합니다. 규칙 기반 추출을 사용하거나 API 키를 설정해주세요.');"
+    },
+    {
+      "file": "src/domains/relation/services/relation-graph.ts",
+      "line": 227,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/domains/relation/services/relation-graph.ts",
+      "line": 232,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/relation/services/relation-graph.ts",
+      "line": 243,
+      "code": "throw new Error('자기 자신에 대한 관계는 생성할 수 없습니다.');"
+    },
+    {
+      "file": "src/domains/relation/services/relation-graph.ts",
+      "line": 266,
+      "code": "throw new Error(`순환 참조가 감지되었습니다: ${sourceId} -> ${targetId} (${relationType})`);"
+    },
+    {
+      "file": "src/domains/relation/services/relation-graph.ts",
+      "line": 350,
+      "code": "throw new Error(`이미 존재하는 관계입니다: ${sourceId} -> ${targetId} (${relationType})`);"
+    },
+    {
+      "file": "src/domains/relation/tools/add-relation-tool.ts",
+      "line": 169,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/search/algorithms/hybrid-search-engine.ts",
+      "line": 401,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/search/algorithms/hybrid-search-engine.ts",
+      "line": 443,
+      "code": "throw new SearchError("
+    },
+    {
+      "file": "src/domains/search/algorithms/hybrid-search-engine.ts",
+      "line": 1023,
+      "code": "throw new SearchError("
+    },
+    {
+      "file": "src/domains/search/algorithms/hybrid-search-engine.ts",
+      "line": 1042,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/search/algorithms/hybrid-search-engine.ts",
+      "line": 1045,
+      "code": "throw new SearchError("
+    },
+    {
+      "file": "src/domains/search/algorithms/hybrid-search-engine.ts",
+      "line": 1258,
+      "code": "throw new SearchError("
+    },
+    {
+      "file": "src/domains/search/algorithms/vector-search-engine-migration.ts",
+      "line": 206,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/domains/search/repositories/vector-performance.repository.ts",
+      "line": 162,
+      "code": "throw new Error(`검색 실행 실패: ${error}`);"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search-container.ts",
+      "line": 43,
+      "code": "throw new Error('데이터베이스가 설정되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search-container.ts",
+      "line": 55,
+      "code": "throw new Error('데이터베이스가 설정되지 않았습니다');"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search.service.ts",
+      "line": 35,
+      "code": "throw new Error(`벡터 검색 실패: ${error}`);"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search.service.ts",
+      "line": 48,
+      "code": "throw new Error(`하이브리드 검색 실패: ${error}`);"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search.service.ts",
+      "line": 149,
+      "code": "throw new Error(`벡터 차원 불일치: 예상 ${expectedDimensions}, 실제 ${query.queryVector?.length || 0}`);"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search.service.ts",
+      "line": 153,
+      "code": "throw new Error('검색 제한은 1-100 사이여야 합니다');"
+    },
+    {
+      "file": "src/domains/search/services/vector-search/vector-search.service.ts",
+      "line": 159,
+      "code": "throw new Error('ProviderHybridQuery.query가 필요합니다');"
+    },
+    {
+      "file": "src/infrastructure/async-optimizer.ts",
+      "line": 430,
+      "code": "throw new Error(`Unknown task type: ${this.task.type}`);"
+    },
+    {
+      "file": "src/infrastructure/async-optimizer.ts",
+      "line": 455,
+      "code": "throw new Error(`Unknown memory operation: ${operation}`);"
+    },
+    {
+      "file": "src/infrastructure/async-optimizer.ts",
+      "line": 501,
+      "code": "throw new Error('Failure event handler is not a function');"
+    },
+    {
+      "file": "src/infrastructure/consolidation-score-service.ts",
+      "line": 51,
+      "code": "throw new Error('Time elapsed must be non-negative');"
+    },
+    {
+      "file": "src/infrastructure/consolidation-score-service.ts",
+      "line": 101,
+      "code": "throw new Error('Time elapsed must be non-negative');"
+    },
+    {
+      "file": "src/infrastructure/consolidation-score-service.ts",
+      "line": 104,
+      "code": "throw new Error('g_n must be positive');"
+    },
+    {
+      "file": "src/infrastructure/consolidation-score-service.ts",
+      "line": 152,
+      "code": "throw new Error('Recall count must be non-negative');"
+    },
+    {
+      "file": "src/infrastructure/database/database/init.ts",
+      "line": 439,
+      "code": "throw new Error(errorMessage);"
+    },
+    {
+      "file": "src/infrastructure/database/database/init.ts",
+      "line": 506,
+      "code": "throw new Error(errorMessage);"
+    },
+    {
+      "file": "src/infrastructure/database/database/init.ts",
+      "line": 522,
+      "code": "throw new Error(errorMessage);"
+    },
+    {
+      "file": "src/infrastructure/database/database/init.ts",
+      "line": 531,
+      "code": "throw validationError;"
+    },
+    {
+      "file": "src/infrastructure/database/database/init.ts",
+      "line": 613,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migrate.ts",
+      "line": 24,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migrate.ts",
+      "line": 32,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migrate.ts",
+      "line": 40,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migrate.ts",
+      "line": 274,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/backup-manager.ts",
+      "line": 61,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/backup-manager.ts",
+      "line": 99,
+      "code": "throw new Error('백업 API를 사용할 수 없습니다');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/backup-manager.ts",
+      "line": 102,
+      "code": "throw new Error(`백업 생성 실패: ${backupError}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/backup-manager.ts",
+      "line": 125,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/backup-manager.ts",
+      "line": 135,
+      "code": "throw new Error(`백업 파일을 찾을 수 없습니다: ${backupPath}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/backup-manager.ts",
+      "line": 158,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migration-logger.ts",
+      "line": 63,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migration-runner.ts",
+      "line": 194,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 91,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 101,
+      "code": "throw new Error('Migration 002 has already been applied. Current schema version: 2.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 158,
+      "code": "throw new Error('core_memory table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 163,
+      "code": "throw new Error('knowledge_vault table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 168,
+      "code": "throw new Error('memento_schema_version table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 175,
+      "code": "throw new Error(`Column ${column} was not added to memory_item table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/002-mirix-schema-expansion.ts",
+      "line": 190,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 103,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 113,
+      "code": "throw new Error('Migration 003 has already been applied. Current schema version: 3.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 131,
+      "code": "throw new Error('Migration 003 appears to be completely applied. All required columns and indexes al"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 218,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 228,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 238,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 248,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 342,
+      "code": "throw new Error('memory_item table was removed during migration');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 349,
+      "code": "throw new Error(`Column ${column} was not added to memory_item table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 361,
+      "code": "throw new Error(`Index ${index} was not created`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/003-consolidation-score-fields.ts",
+      "line": 373,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 79,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 89,
+      "code": "throw new Error('Migration 004 has already been applied. Current schema version: 4.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 95,
+      "code": "throw new Error('anchor table already exists. Migration may have been partially applied.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 161,
+      "code": "throw new Error('anchor table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 172,
+      "code": "throw new Error(`Index ${index} was not created`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 183,
+      "code": "throw new Error(`Column ${column} was not created in anchor table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 203,
+      "code": "throw new Error('UNIQUE constraint on (agent_id, slot) was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 215,
+      "code": "throw new Error('Foreign key constraint with ON DELETE SET NULL was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/004-anchor-table.ts",
+      "line": 226,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 117,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 127,
+      "code": "throw new Error('Migration 005 has already been applied. Current schema version: 5.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 133,
+      "code": "throw new Error('memory_relation table already exists. Migration may have been partially applied.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 138,
+      "code": "throw new Error('relation_type_registry table already exists. Migration may have been partially appl"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 200,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 244,
+      "code": "throw new Error('memory_relation table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 249,
+      "code": "throw new Error('relation_type_registry table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 273,
+      "code": "throw new Error(`Column ${column} was not created in memory_relation table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 294,
+      "code": "throw new Error(`Column ${column} was not created in relation_type_registry table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 310,
+      "code": "throw new Error(`Index ${index} was not created`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 324,
+      "code": "throw new Error(`Relation type ${expectedType} was not inserted into registry`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 335,
+      "code": "throw new Error('UNIQUE constraint on (source_id, target_id, relation_type) was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 345,
+      "code": "throw new Error('Foreign key constraint with ON DELETE CASCADE was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
+      "line": 356,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 102,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 112,
+      "code": "throw new Error('Migration 006 has already been applied. Current schema version: 6.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 118,
+      "code": "throw new Error('memory_item_fts_new table already exists. Migration may have been partially applied"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 126,
+      "code": "throw new Error('FTS5 is not available. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 225,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 348,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 492,
+      "code": "throw new Error('memory_item_fts table was not created or renamed');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 497,
+      "code": "throw new Error('memory_item_fts_new table still exists (should be renamed to memory_item_fts)');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 507,
+      "code": "throw new Error('memory_item_fts table information not found');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 512,
+      "code": "throw new Error('reflection_notes column was not included in memory_item_fts table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 517,
+      "code": "throw new Error(\"content table reference 'memory_item' was not found in memory_item_fts table\");"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 522,
+      "code": "throw new Error(\"content_rowid='rowid' was not found in memory_item_fts table\");"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 533,
+      "code": "throw new Error(`New trigger ${triggerName} was not created`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 545,
+      "code": "throw new Error(`Temporary dual trigger ${triggerName} still exists (should be removed)`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/006-fts5-reflection-notes.ts",
+      "line": 557,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 103,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 108,
+      "code": "throw new Error('memory_link table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 118,
+      "code": "throw new Error('Migration 007 has already been applied. Current schema version: 7.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 143,
+      "code": "throw new Error('Migration 007 appears to be completely applied. All required columns, indexes, and "
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 165,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 175,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 185,
+      "code": "throw err;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 309,
+      "code": "throw new Error('workflow_name column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 313,
+      "code": "throw new Error('skill_name column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 317,
+      "code": "throw new Error('trigger_conditions column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 322,
+      "code": "throw new Error('idx_memory_item_workflow_name index was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 326,
+      "code": "throw new Error('idx_memory_item_skill_name index was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 336,
+      "code": "throw new Error('memory_link table does not exist after migration');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 340,
+      "code": "throw new Error(\"memory_link table does not have 'version_of' in relation_type enum\");"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 359,
+      "code": "throw new Error(`Column ${column} is missing in memory_link table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 365,
+      "code": "throw new Error('idx_memory_link_source index was not recreated');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 369,
+      "code": "throw new Error('idx_memory_link_target index was not recreated');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/007-procedural-memory-enhancement.ts",
+      "line": 380,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 102,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 107,
+      "code": "throw new Error('relation_type_registry table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 117,
+      "code": "throw new Error('Migration 008 has already been applied. Current schema version: 8.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 123,
+      "code": "throw new Error('subject column already exists in memory_item table. Migration may have been partial"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 127,
+      "code": "throw new Error('predicate column already exists in memory_item table. Migration may have been parti"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 131,
+      "code": "throw new Error('object column already exists in memory_item table. Migration may have been partiall"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 135,
+      "code": "throw new Error('triple_extracted column already exists in memory_item table. Migration may have bee"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 139,
+      "code": "throw new Error('triple_extracted_status column already exists in memory_item table. Migration may h"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 143,
+      "code": "throw new Error('triple_extraction_metadata column already exists in memory_item table. Migration ma"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 148,
+      "code": "throw new Error('idx_memory_item_triple index already exists. Migration may have been partially appl"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 152,
+      "code": "throw new Error('idx_memory_item_triple_extracted index already exists. Migration may have been part"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 156,
+      "code": "throw new Error('idx_memory_item_triple_status index already exists. Migration may have been partial"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 222,
+      "code": "throw new Error('subject column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 226,
+      "code": "throw new Error('predicate column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 230,
+      "code": "throw new Error('object column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 234,
+      "code": "throw new Error('triple_extracted column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 238,
+      "code": "throw new Error('triple_extracted_status column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 242,
+      "code": "throw new Error('triple_extraction_metadata column was not added to memory_item table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 247,
+      "code": "throw new Error('idx_memory_item_triple index was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 251,
+      "code": "throw new Error('idx_memory_item_triple_extracted index was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 255,
+      "code": "throw new Error('idx_memory_item_triple_status index was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 264,
+      "code": "throw new Error('extracted_from relation type was not inserted into relation_type_registry');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 272,
+      "code": "throw new Error('supported_by relation type was not inserted into relation_type_registry');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 281,
+      "code": "throw new Error('extracted_from relation type has incorrect category or metadata');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 289,
+      "code": "throw new Error('supported_by relation type has incorrect category or metadata');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/008-arigraph-schema-expansion.ts",
+      "line": 300,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 107,
+      "code": "throw new Error('Migration 009 has already been applied. Current schema version: 9.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 113,
+      "code": "throw new Error('quality_measurement_history table already exists. Migration may have been partially"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 118,
+      "code": "throw new Error('quality_metrics table already exists. Migration may have been partially applied.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 123,
+      "code": "throw new Error('quality_thresholds table already exists. Migration may have been partially applied."
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 175,
+      "code": "throw new Error('quality_measurement_history table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 180,
+      "code": "throw new Error('quality_metrics table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 185,
+      "code": "throw new Error('quality_thresholds table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 206,
+      "code": "throw new Error(`Column ${column} was not created in quality_measurement_history table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 229,
+      "code": "throw new Error(`Column ${column} was not created in quality_metrics table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 251,
+      "code": "throw new Error(`Column ${column} was not created in quality_thresholds table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 269,
+      "code": "throw new Error(`Index ${index} was not created`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 280,
+      "code": "throw new Error('PRIMARY KEY constraint was not created on quality_measurement_history table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 289,
+      "code": "throw new Error('PRIMARY KEY constraint was not created on quality_metrics table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 298,
+      "code": "throw new Error('PRIMARY KEY constraint was not created on quality_thresholds table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 303,
+      "code": "throw new Error('CHECK constraint on measurement_type was not created in quality_measurement_history"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 307,
+      "code": "throw new Error('CHECK constraint on status was not created in quality_measurement_history table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 311,
+      "code": "throw new Error('CHECK constraint on status was not created in quality_metrics table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 315,
+      "code": "throw new Error('CHECK constraint on threshold_type was not created in quality_thresholds table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/009-quality-assurance-schema.ts",
+      "line": 326,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 49,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 123,
+      "code": "throw new Error('core_memory table does not exist. Please run migration 002 first.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 128,
+      "code": "throw new Error('version column already exists in core_memory table. Migration may have been already"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 185,
+      "code": "throw new Error('version column was not created in core_memory table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 190,
+      "code": "throw new Error('idx_core_memory_version index was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 199,
+      "code": "throw new Error(`Migration validation failed: ${zeroVersionCount.count} rows still have version = 0."
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 212,
+      "code": "throw new Error('version column not found in core_memory table');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 216,
+      "code": "throw new Error(`version column type is ${versionColumn.type}, expected INTEGER`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts",
+      "line": 220,
+      "code": "throw new Error('version column should be NOT NULL');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 42,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 76,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 151,
+      "code": "throw new Error('memory_item table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 161,
+      "code": "throw new Error('Migration 011 has already been applied. Current schema version: 11.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 167,
+      "code": "throw new Error('meta_memory_stats table already exists. Migration may have been partially applied.'"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 211,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 225,
+      "code": "throw new Error('meta_memory_stats table was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 241,
+      "code": "throw new Error(`Column ${column} was not created in meta_memory_stats table`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 251,
+      "code": "throw new Error('memory_id is not set as PRIMARY KEY');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 270,
+      "code": "throw new Error(`Index ${index} was not created`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 276,
+      "code": "throw new Error('Trigger trigger_meta_memory_stats_updated_at was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 291,
+      "code": "throw new Error('Foreign key constraint was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 296,
+      "code": "throw new Error('Foreign key constraint on memory_id was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 300,
+      "code": "throw new Error('Foreign key constraint on memory_id does not reference memory_item(id)');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 304,
+      "code": "throw new Error('Foreign key constraint on memory_id does not have ON DELETE CASCADE');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.ts",
+      "line": 331,
+      "code": "throw new Error(`Dependency validation failed: ${errors}`);"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 69,
+      "code": "throw new Error('memory_embedding table does not exist. Cannot proceed with migration.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 89,
+      "code": "throw new Error('Migration 012 has already been applied. Current schema version: 12.0');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 289,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 314,
+      "code": "throw new Error('Triggers exist but no vec tables found. This should not happen.');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 323,
+      "code": "throw new Error('memory_embedding_vec_insert trigger was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 327,
+      "code": "throw new Error('memory_embedding_vec_update trigger was not created');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 341,
+      "code": "throw new Error('memory_embedding_vec_insert trigger SQL not found');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 347,
+      "code": "throw new Error('memory_embedding_vec_insert trigger does not contain correct TF-IDF dimension condi"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 358,
+      "code": "throw new Error('memory_embedding_vec_update trigger SQL not found');"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/migrations/012-fix-tfidf-dimension-trigger.ts",
+      "line": 364,
+      "code": "throw new Error('memory_embedding_vec_update trigger does not contain correct TF-IDF dimension condi"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/schema-version-manager.ts",
+      "line": 42,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/schema-version-manager.ts",
+      "line": 121,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database/migration/schema-version-manager.ts",
+      "line": 141,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/database/database-optimize-tool.ts",
+      "line": 79,
+      "code": "throw new Error(`데이터베이스 최적화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);"
+    },
+    {
+      "file": "src/infrastructure/database/factories/core-memory-repository.factory.ts",
+      "line": 47,
+      "code": "throw new Error(ERROR_MESSAGES.POSTGRES_NOT_AVAILABLE);"
+    },
+    {
+      "file": "src/infrastructure/database/factories/core-memory-repository.factory.ts",
+      "line": 52,
+      "code": "throw new Error(ERROR_MESSAGES.UNSUPPORTED_TYPE(dbType));"
+    },
+    {
+      "file": "src/infrastructure/database/repositories/core-memory-repository-sqlite.impl.ts",
+      "line": 55,
+      "code": "throw new Error(`Failed to create core memory with id: ${core_id}`);"
+    },
+    {
+      "file": "src/infrastructure/database/wal-checkpoint-scheduler.ts",
+      "line": 206,
+      "code": "throw new Error('체크포인트가 이미 진행 중입니다');"
+    },
+    {
+      "file": "src/infrastructure/logging/triple-extraction-logger.ts",
+      "line": 71,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/logging/triple-extraction-logger.ts",
+      "line": 217,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/reflexion-worker.ts",
+      "line": 373,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/reflexion-worker.ts",
+      "line": 755,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/infrastructure/reflexion-worker.ts",
+      "line": 942,
+      "code": "throw lastError || new Error('Reflexion 기록 실패');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 186,
+      "code": "throw new Error('BatchScheduler is already running');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 314,
+      "code": "throw new Error('cleanupInterval must be at least 1 minute');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 317,
+      "code": "throw new Error('monitoringInterval must be at least 10 seconds');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 320,
+      "code": "throw new Error('maxBatchSize must be at least 1');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 323,
+      "code": "throw new Error('maxConcurrentJobs must be at least 1');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 326,
+      "code": "throw new Error('jobTimeout must be at least 1 second');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 329,
+      "code": "throw new Error('tripleExtractionInterval must be at least 1 minute');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 333,
+      "code": "throw new Error('tripleExtractionHour must be between 0 and 23');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 336,
+      "code": "throw new Error('tripleExtractionBatchSize must be at least 1');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 339,
+      "code": "throw new Error('tripleExtractionTimeout must be at least 1 second');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 346,
+      "code": "throw new Error('weeklyRelationValidationTimeout must be a positive number (at least 1 second)');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 349,
+      "code": "throw new Error('weeklyRelationValidationTimeout must be at least 1 second');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 585,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 591,
+      "code": "throw new Error('Database connection is not open. The database may have been closed.');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 646,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 760,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 764,
+      "code": "throw new Error('ConsolidationScoreWorker not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 955,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 959,
+      "code": "throw new Error('ConsolidationScoreWorker not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 1164,
+      "code": "throw new Error(`Unknown job type: ${jobType}`);"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 1308,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/batch-scheduler.ts",
+      "line": 1497,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/file-logger.ts",
+      "line": 48,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/scheduler/file-logger.ts",
+      "line": 67,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/infrastructure/scheduler/jobs/quality-measurement-batch-job.ts",
+      "line": 174,
+      "code": "throw new Error('Quality measurement batch job timeout before execution');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/jobs/quality-measurement-batch-job.ts",
+      "line": 194,
+      "code": "throw new Error('Quality measurement batch job timeout during execution');"
+    },
+    {
+      "file": "src/infrastructure/scheduler/retry-manager.ts",
+      "line": 233,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/infrastructure/scheduler/retry-manager.ts",
+      "line": 238,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/infrastructure/scheduler/retry-manager.ts",
+      "line": 256,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/infrastructure/scheduler/retry-manager.ts",
+      "line": 258,
+      "code": "throw new Error('Unexpected error in retry method');"
+    },
+    {
+      "file": "src/npm-client/memento-client.ts",
+      "line": 182,
+      "code": "throw new ConnectionError('Failed to connect to Memento server', error as unknown as Record<string, "
+    },
+    {
+      "file": "src/npm-client/memento-client.ts",
+      "line": 306,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/npm-client/memento-client.ts",
+      "line": 310,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/npm-client/memento-client.ts",
+      "line": 314,
+      "code": "throw new Error(`Memory with ID ${id} not found`);"
+    },
+    {
+      "file": "src/npm-client/memento-client.ts",
+      "line": 528,
+      "code": "throw new ConnectionError('Client is not connected. Call connect() first.');"
+    },
+    {
+      "file": "src/npm-client/memory-manager.ts",
+      "line": 63,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/npm-client/memory-manager.ts",
+      "line": 188,
+      "code": "throw new Error(`Memory with id ${memoryId} not found`);"
+    },
+    {
+      "file": "src/npm-client/memory-manager.ts",
+      "line": 240,
+      "code": "throw new Error('Importance must be between 0 and 1');"
+    },
+    {
+      "file": "src/npm-client/memory-manager.ts",
+      "line": 252,
+      "code": "throw new Error(`Memory with id ${id} not found`);"
+    },
+    {
+      "file": "src/npm-client/memory-manager.ts",
+      "line": 267,
+      "code": "throw new Error(`Memory with id ${id} not found`);"
+    },
+    {
+      "file": "src/npm-client/utils.ts",
+      "line": 167,
+      "code": "throw new Error(`Unknown memory type: ${_exhaustive}`);"
+    },
+    {
+      "file": "src/server/bootstrap.ts",
+      "line": 247,
+      "code": "throw new Error(`MetaMemoryService 초기화 실패: ${errorMessage}`);"
+    },
+    {
+      "file": "src/server/bootstrap.ts",
+      "line": 272,
+      "code": "throw new Error(`서비스 초기화 실패: ${errorMessage}`);"
+    },
+    {
+      "file": "src/server/handlers/anchor-map.handler.ts",
+      "line": 64,
+      "code": "throw new Error('AnchorManager not available');"
+    },
+    {
+      "file": "src/server/index.ts",
+      "line": 306,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/server/index.ts",
+      "line": 331,
+      "code": "throw new Error(`Invalid resource URI: ${uri}`);"
+    },
+    {
+      "file": "src/server/index.ts",
+      "line": 336,
+      "code": "throw new Error(`Invalid memory ID in URI: ${uri}`);"
+    },
+    {
+      "file": "src/server/index.ts",
+      "line": 343,
+      "code": "throw new Error('Database not initialized');"
+    },
+    {
+      "file": "src/server/index.ts",
+      "line": 354,
+      "code": "throw new Error(`Memory not found: ${memoryId}`);"
+    },
+    {
+      "file": "src/server/index.ts",
+      "line": 478,
+      "code": "throw new Error(`Invalid log level: ${level}. Valid levels are: ${validLevels.join(', ')}`);"
+    },
+    {
+      "file": "src/server/server-factory.ts",
+      "line": 83,
+      "code": "throw new Error(`지원되지 않는 서버 타입: ${type}`);"
+    },
+    {
+      "file": "src/server/server-factory.ts",
+      "line": 98,
+      "code": "throw new Error(`지원되지 않는 TRANSPORT_TYPE: ${transportType}. 'stdio' 또는 'sse'를 사용하세요.`);"
+    },
+    {
+      "file": "src/server/servers/sse-server.ts",
+      "line": 25,
+      "code": "throw new Error('SSE 서버가 이미 실행 중입니다');"
+    },
+    {
+      "file": "src/server/servers/stdio-server.ts",
+      "line": 26,
+      "code": "throw new Error('Stdio 서버가 이미 실행 중입니다');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 53,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 71,
+      "code": "throw new Error('MemoryEmbeddingService is required');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 82,
+      "code": "throw new Error('HybridSearchEngine is required');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 93,
+      "code": "throw new Error('VectorSearchEngine is required');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 135,
+      "code": "throw new Error('Database is not set. Call setDatabase() first.');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 139,
+      "code": "throw new Error('MemoryEmbeddingService is not set. Call setEmbeddingService() first.');"
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 150,
+      "code": "throw new AnchorError("
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 193,
+      "code": "throw new MemoryNotFoundError("
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 209,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 218,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/services/anchor-manager.ts",
+      "line": 333,
+      "code": "throw new Error('Database is not set.');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 41,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 267,
+      "code": "throw new Error('memoryId는 필수이며 문자열이어야 합니다');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 338,
+      "code": "throw new Error('limit은 1 이상 1000 이하여야 합니다');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 348,
+      "code": "throw new Error('memory_id는 문자열이어야 합니다');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 357,
+      "code": "throw new Error('memory_ids는 문자열 배열이어야 합니다');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 367,
+      "code": "throw new Error('min_recall_count는 0 이상의 숫자여야 합니다');"
+    },
+    {
+      "file": "src/services/meta-memory-service.ts",
+      "line": 376,
+      "code": "throw new Error('min_confidence는 0 이상 1 이하의 숫자여야 합니다');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-assurance-service.ts",
+      "line": 102,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-assurance-service.ts",
+      "line": 209,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-evaluator.ts",
+      "line": 129,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-metrics-collector.ts",
+      "line": 172,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-metrics-collector.ts",
+      "line": 1273,
+      "code": "throw new Error(`Unknown namespace: ${namespace}`);"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-recorder.ts",
+      "line": 58,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-recorder.ts",
+      "line": 235,
+      "code": "throw new Error('collectedMetricsList and evaluationResults must have the same length');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-recorder.ts",
+      "line": 245,
+      "code": "throw new Error(`collectedMetricsList[${i}] is undefined`);"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-recorder.ts",
+      "line": 249,
+      "code": "throw new Error(`evaluationResults[${i}] is undefined`);"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-reporter.ts",
+      "line": 170,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-reporter.ts",
+      "line": 715,
+      "code": "throw new Error(`Unsupported report format: ${format}`);"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-threshold-manager.ts",
+      "line": 88,
+      "code": "throw new Error('Database instance is required');"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-threshold-manager.ts",
+      "line": 183,
+      "code": "throw new Error(`임계값은 0과 1 사이의 값이어야 합니다: ${threshold_value}`);"
+    },
+    {
+      "file": "src/services/quality-assurance/quality-threshold-manager.ts",
+      "line": 222,
+      "code": "throw new Error('임계값 설정 후 조회 실패');"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 108,
+      "code": "throw new Error('Invalid embeddingService: generateEmbedding method is missing');"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 111,
+      "code": "throw new Error('Invalid embeddingService: isAvailable method is missing');"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 329,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 404,
+      "code": "throw new Error('Semantic memory ID is required for creating episodic edge');"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 416,
+      "code": "throw edgeError;"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 593,
+      "code": "throw new Error(`Semantic Memory를 찾을 수 없습니다: ${semanticMemoryId}`);"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 970,
+      "code": "throw new Error(`Memory를 찾을 수 없습니다: source=${sourceId}, target=${targetId}`);"
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 977,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/services/semantic-memory/semantic-memory-update-service.ts",
+      "line": 985,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 360,
+      "code": "throw new Error(`지원하지 않는 LLM Provider: ${actualProvider}`);"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 443,
+      "code": "throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 497,
+      "code": "throw new Error('OpenAI 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 516,
+      "code": "throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 569,
+      "code": "throw new Error('Gemini 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 614,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 635,
+      "code": "throw new Error(`Ollama API 호출 실패: ${fetchResponse.status} ${fetchResponse.statusText}${errorText ? "
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extraction-service.ts",
+      "line": 699,
+      "code": "throw new Error('Ollama 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 90,
+      "code": "throw new Error(`지원하지 않는 LLM Provider: ${provider}`);"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 115,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 127,
+      "code": "throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 162,
+      "code": "throw new Error('OpenAI 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 175,
+      "code": "throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 209,
+      "code": "throw new Error('Gemini 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 239,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 260,
+      "code": "throw new Error(`Ollama API 호출 실패: ${fetchResponse.status} ${fetchResponse.statusText}${errorText ? "
+    },
+    {
+      "file": "src/services/triple-extraction/triple-extractor.ts",
+      "line": 316,
+      "code": "throw new Error('Ollama 응답이 비어있습니다.');"
+    },
+    {
+      "file": "src/shared/config/config-loader-utils.ts",
+      "line": 79,
+      "code": "throw new Error(`설정 파일을 찾을 수 없습니다: ${configPath}`);"
+    },
+    {
+      "file": "src/shared/config/config-loader-utils.ts",
+      "line": 81,
+      "code": "throw new Error(`TOML 파일 파싱 실패: ${error instanceof Error ? error.message : String(error)}`);"
+    },
+    {
+      "file": "src/shared/config/ranking-weights-loader.ts",
+      "line": 82,
+      "code": "throw new Error(`검색 랭킹 가중치 설정 검증 실패: ${validationResult.errors.join(', ')}`);"
+    },
+    {
+      "file": "src/shared/config/ranking-weights-loader.ts",
+      "line": 95,
+      "code": "throw new Error(`검색 랭킹 가중치 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);"
+    },
+    {
+      "file": "src/shared/config/ranking-weights-loader.ts",
+      "line": 119,
+      "code": "throw new Error(`가중치 ${name}는 0 이상 1 이하의 숫자여야 합니다. 현재 값: ${value}`);"
+    },
+    {
+      "file": "src/shared/config/ranking-weights-loader.ts",
+      "line": 125,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 106,
+      "code": "throw new Error(`재시도 옵션 설정 로드 실패: ${error instanceof Error ? error.message : String(error)}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 121,
+      "code": "throw new Error(`external_api.maxAttempts는 양수여야 합니다. 현재 값: ${config.external_api.maxAttempts}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 124,
+      "code": "throw new Error(`external_api.baseDelay는 0 이상이어야 합니다. 현재 값: ${config.external_api.baseDelay}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 129,
+      "code": "throw new Error(`embedding_api.maxAttempts는 양수여야 합니다. 현재 값: ${config.embedding_api.maxAttempts}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 132,
+      "code": "throw new Error(`embedding_api.baseDelay는 0 이상이어야 합니다. 현재 값: ${config.embedding_api.baseDelay}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 144,
+      "code": "throw new Error(`${name}.maxAttempts는 양수여야 합니다. 현재 값: ${config.maxAttempts}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 147,
+      "code": "throw new Error(`${name}.baseDelay는 0 이상이어야 합니다. 현재 값: ${config.baseDelay}`);"
+    },
+    {
+      "file": "src/shared/config/retry-options-loader.ts",
+      "line": 151,
+      "code": "throw new Error(`${name}.maxErrorCount는 양수여야 합니다. 현재 값: ${config.maxErrorCount}`);"
+    },
+    {
+      "file": "src/shared/utils/configuration-validator.ts",
+      "line": 216,
+      "code": "throw new Error(`환경 설정 검증 실패:\\n${message}`);"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 83,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 87,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 114,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 118,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 145,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 149,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 200,
+      "code": "throw beginError;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 245,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 249,
+      "code": "throw lastError;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 261,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 325,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/database.ts",
+      "line": 534,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/error-handling.ts",
+      "line": 104,
+      "code": "throw finalError;"
+    },
+    {
+      "file": "src/shared/utils/error-handling.ts",
+      "line": 109,
+      "code": "throw finalError;"
+    },
+    {
+      "file": "src/shared/utils/fts5-migration-status.ts",
+      "line": 53,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/fts5-migration-status.ts",
+      "line": 126,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/fts5-migration-status.ts",
+      "line": 174,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/fts5-migration-status.ts",
+      "line": 289,
+      "code": "throw new Error(`마이그레이션 재시도는 'failed' 상태에서만 가능합니다. 현재 상태: ${currentStatus}`);"
+    },
+    {
+      "file": "src/shared/utils/prompt-template-loader.ts",
+      "line": 63,
+      "code": "throw new Error(`프롬프트 템플릿 파일을 찾을 수 없습니다: ${templatePath}`);"
+    },
+    {
+      "file": "src/shared/utils/prompt-template-loader.ts",
+      "line": 65,
+      "code": "throw new Error(`프롬프트 템플릿 파일 읽기 실패: ${error instanceof Error ? error.message : String(error)}`);"
+    },
+    {
+      "file": "src/shared/utils/reflection-notes-merge.ts",
+      "line": 73,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/reflection-notes-merge.ts",
+      "line": 173,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/relation-type-converter.ts",
+      "line": 57,
+      "code": "throw new Error(`Unmapped RelationType: ${relationType}. Cannot convert to DB value.`);"
+    },
+    {
+      "file": "src/shared/utils/sql-security-validator.ts",
+      "line": 25,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/sql-security-validator.ts",
+      "line": 35,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/sql-security-validator.ts",
+      "line": 50,
+      "code": "throw new Error("
+    },
+    {
+      "file": "src/shared/utils/type-param-validator.ts",
+      "line": 134,
+      "code": "throw new TypeError("
+    },
+    {
+      "file": "src/shared/utils/type-param-validator.ts",
+      "line": 150,
+      "code": "throw new Error('trigger_conditions must be a valid JSON object, not an array or primitive value');"
+    },
+    {
+      "file": "src/shared/utils/type-param-validator.ts",
+      "line": 154,
+      "code": "throw new Error(`trigger_conditions must be a valid JSON object string: ${error.message}`);"
+    },
+    {
+      "file": "src/shared/utils/type-param-validator.ts",
+      "line": 156,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/shared/utils/type-param-validator.ts",
+      "line": 179,
+      "code": "throw new Error(`${fieldName} must be a string, but got ${typeof value}. Value: ${JSON.stringify(val"
+    },
+    {
+      "file": "src/shared/utils/type-param-validator.ts",
+      "line": 184,
+      "code": "throw new Error(`${fieldName} cannot be an empty string. Provide a valid value or omit the field.`);"
+    },
+    {
+      "file": "src/shared/utils/write-coalescing.ts",
+      "line": 165,
+      "code": "throw error;"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 96,
+      "code": "throw new Error(`${fieldName}은 문자열이어야 합니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 100,
+      "code": "throw new Error(`${fieldName}은 비어있을 수 없습니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 104,
+      "code": "throw new Error(`${fieldName}은 ${maxLength}자를 초과할 수 없습니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 117,
+      "code": "throw new Error(`${fieldName}은 유효한 숫자여야 합니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 121,
+      "code": "throw new Error(`${fieldName}은 ${min} 이상이어야 합니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 125,
+      "code": "throw new Error(`${fieldName}은 ${max} 이하여야 합니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 136,
+      "code": "throw new Error(`${fieldName}은 배열이어야 합니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 140,
+      "code": "throw new Error(`${fieldName}은 ${maxLength}개를 초과할 수 없습니다`);"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 195,
+      "code": "throw new Error('데이터베이스가 초기화되지 않았습니다');"
+    },
+    {
+      "file": "src/tools/base-tool.ts",
+      "line": 204,
+      "code": "throw new Error(`${serviceName}이 초기화되지 않았습니다`);"
+    },
+    {
+      "file": "src/tools/migrate-embeddings-tool.ts",
+      "line": 107,
+      "code": "throw new Error('임베딩 생성 실패');"
+    },
+    {
+      "file": "src/tools/migrate-embeddings-tool.ts",
+      "line": 112,
+      "code": "throw new Error('임베딩 결과가 비어있음');"
+    },
+    {
+      "file": "src/tools/migrate-embeddings-tool.ts",
+      "line": 128,
+      "code": "throw new Error(`임베딩 벡터 검증 실패: ${blockingIssues.map(issue => issue.message).join(', ')}`);"
+    },
+    {
+      "file": "src/tools/tool-registry.ts",
+      "line": 100,
+      "code": "throw new Error(`Unknown tool: ${name}`);"
+    },
+    {
+      "file": "src/tools/tool-registry.ts",
+      "line": 147,
+      "code": "throw error;"
+    }
+  ]
+}

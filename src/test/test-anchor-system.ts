@@ -3,34 +3,12 @@
  * 전체 워크플로우, 멀티 클라이언트, Fallback 메커니즘 검증
  */
 
-import { initializeServices, type ServerServices } from '../server/bootstrap.js';
+import { initializeServices } from '../server/bootstrap.js';
 import { executeTool } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
-
-/**
- * ToolContext 생성 헬퍼 함수
- */
-function createToolContext(db: Database.Database, services: ServerServices): ToolContext {
-  return {
-    db,
-    services: {
-      searchEngine: services.searchEngine,
-      hybridSearchEngine: services.hybridSearchEngine,
-      embeddingService: services.embeddingService,
-      forgettingPolicyService: services.forgettingPolicyService,
-      performanceMonitor: services.performanceMonitor,
-      databaseOptimizer: services.databaseOptimizer,
-      errorLoggingService: services.errorLoggingService,
-      performanceAlertService: services.performanceAlertService,
-      consolidationScoreService: services.consolidationScoreService,
-      writeCoalescingManager: services.writeCoalescingManager,
-      anchorManager: services.anchorManager
-    }
-  };
-}
+import { createToolContext } from '../server/context.js';
 
 /**
  * 앵커 테이블 생성

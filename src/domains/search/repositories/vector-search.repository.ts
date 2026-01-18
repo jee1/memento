@@ -13,6 +13,33 @@ import type { VectorSearchRepository } from '../../../shared/interfaces/database
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
 import { validateTableName, getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import type { SqlParam } from '../../../shared/types/index.js';
+
+/**
+ * 데이터베이스에서 반환된 원시 결과 타입
+ * SQL 쿼리 결과는 VectorSearchResult와 유사하지만 완전히 일치하지 않을 수 있음
+ */
+interface RawVectorSearchResult {
+  memory_id: string;
+  similarity: number;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string;
+  last_accessed_at?: string | null;
+  pinned: number | boolean;
+  tags?: string | null;
+  // 하이브리드 검색 결과에 포함될 수 있는 추가 필드
+  vector_similarity?: number;
+  text_similarity?: number;
+  task_goal?: string | null;
+  steps?: string | null;
+  reflection_notes?: string | null;
+  workflow_name?: string | null;
+  skill_name?: string | null;
+  trigger_conditions?: string | null;
+  [key: string]: unknown; // 기타 추가 필드 허용
+}
 
 export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   private db: Database.Database | null = null;
@@ -58,9 +85,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
       // VEC 함수 사용 가능 여부 확인
       try {
-        const testTableEntry = tableCheck.find((table): table is { name: string; type: string } => 
-          typeof table === 'object' && table !== null && typeof (table as any).name === 'string'
-        );
+        const testTableEntry = tableCheck.find((table): table is { name: string; type: string } => {
+          if (typeof table !== 'object' || table === null) {
+            return false;
+          }
+          const tableObj = table as Record<string, unknown>;
+          return typeof tableObj.name === 'string' && typeof tableObj.type === 'string';
+        });
         const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
         // SQL Injection 방지: 화이트리스트 검증 후 사용
         validateTableName(testTable);
@@ -220,35 +251,27 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         return [];
       }
       const rawResults = statement.all(...params);
-      const results = Array.isArray(rawResults) ? rawResults as any[] : [];
+      const results: RawVectorSearchResult[] = Array.isArray(rawResults) ? rawResults as RawVectorSearchResult[] : [];
 
       // 유사도를 0-1 범위로 정규화
-      const normalizedResults = results
-        .map(result => ({
-          ...result,
-          similarity: Math.max(0, 1 - result.similarity),
-          tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
-        }))
-        .filter(result => result.similarity >= threshold)
-        .map(result => ({
-          memory_id: result.memory_id,
-          similarity: result.similarity,
-          content: includeContent ? result.content : '',
-          type: result.type,
-          importance: result.importance,
-          created_at: result.created_at,
-          last_accessed: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
-          pinned: includeMetadata ? Boolean(result.pinned) : false,
-          tags: includeMetadata ? result.tags : undefined,
-          // Procedural Memory 필드
-          task_goal: includeMetadata ? result.task_goal : undefined,
-          steps: includeMetadata ? result.steps : undefined,
-          reflection_notes: includeMetadata ? result.reflection_notes : undefined,
-          // Procedural Memory Enhancement (v7.0) 필드
-          workflow_name: includeMetadata ? result.workflow_name : undefined,
-          skill_name: includeMetadata ? result.skill_name : undefined,
-          trigger_conditions: includeMetadata ? result.trigger_conditions : undefined
-        }));
+      const normalizedResults: VectorSearchResult[] = results
+        .map(result => {
+          const similarity = Math.max(0, 1 - result.similarity);
+          return {
+            memory_id: result.memory_id,
+            similarity,
+            content: includeContent ? result.content : '',
+            type: result.type,
+            importance: result.importance,
+            created_at: result.created_at,
+            last_accessed: includeMetadata 
+              ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
+              : undefined,
+            pinned: includeMetadata ? Boolean(result.pinned) : false,
+            tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
+          };
+        })
+        .filter(result => result.similarity >= threshold);
 
       mcpLogger.logServer('debug', '벡터 검색 완료', { resultCount: normalizedResults.length, threshold });
       return normalizedResults;
@@ -344,7 +367,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const hasTextQuery = textQuery && textQuery.trim().length > 0;
       
       let hybridQuery: string;
-      let params: any[];
+      let params: SqlParam[];
 
       if (hasTextQuery) {
         // 텍스트 검색과 벡터 검색 모두 사용
@@ -517,31 +540,33 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         return [];
       }
       const rawResults = statement.all(...params);
-      const results = Array.isArray(rawResults) ? rawResults as any[] : [];
+      const results: RawVectorSearchResult[] = Array.isArray(rawResults) ? rawResults as RawVectorSearchResult[] : [];
 
       // 결과 정규화
-      const normalizedResults = results
-        .map(result => ({
-          memory_id: result.memory_id,
-          similarity: hasTextQuery 
-            ? result.vector_similarity * 0.6 + result.text_similarity * 0.4 // 하이브리드 가중치
-            : result.vector_similarity, // 텍스트 검색 없을 때는 벡터 유사도만 사용
-          content: includeContent ? result.content : '',
-          type: result.type,
-          importance: result.importance,
-          created_at: result.created_at,
-          last_accessed: includeMetadata ? (result.last_accessed_at || result.last_accessed) : undefined,
-          pinned: includeMetadata ? Boolean(result.pinned) : false,
-          tags: includeMetadata ? this.safeParseTags(result.tags) : undefined,
-          // Procedural Memory 필드
-          task_goal: includeMetadata ? result.task_goal : undefined,
-          steps: includeMetadata ? result.steps : undefined,
-          reflection_notes: includeMetadata ? result.reflection_notes : undefined,
-          // Procedural Memory Enhancement (v7.0) 필드
-          workflow_name: includeMetadata ? result.workflow_name : undefined,
-          skill_name: includeMetadata ? result.skill_name : undefined,
-          trigger_conditions: includeMetadata ? result.trigger_conditions : undefined
-        }))
+      const normalizedResults: VectorSearchResult[] = results
+        .map(result => {
+          // 타입 안전성을 위해 필드 타입 검증
+          const vectorSimilarity = typeof result.vector_similarity === 'number' ? result.vector_similarity : (result.similarity as number);
+          const textSimilarity = typeof result.text_similarity === 'number' ? result.text_similarity : 0;
+          
+          const similarity = hasTextQuery 
+            ? vectorSimilarity * 0.6 + textSimilarity * 0.4 // 하이브리드 가중치
+            : vectorSimilarity; // 텍스트 검색 없을 때는 벡터 유사도만 사용
+          
+          return {
+            memory_id: result.memory_id,
+            similarity,
+            content: includeContent ? result.content : '',
+            type: result.type,
+            importance: result.importance,
+            created_at: result.created_at,
+            last_accessed: includeMetadata 
+              ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
+              : undefined,
+            pinned: includeMetadata ? Boolean(result.pinned) : false,
+            tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
+          };
+        })
         .filter(result => result.similarity >= threshold);
 
       mcpLogger.logServer('debug', '하이브리드 검색 완료', { resultCount: normalizedResults.length });

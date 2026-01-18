@@ -40,11 +40,42 @@ export function createServerContext(
  * ToolContext 생성 함수
  * ServerServices를 기반으로 ToolContext 생성
  * Phase 5.1과 통합: ToolContext 생성 팩토리
+ * Phase 7.3: 오버로드 추가로 (db, services) 형태 지원
+ * 
+ * @overload
+ * @param serverContext 서버 컨텍스트
+ * @returns ToolContext
+ * 
+ * @overload
+ * @param db 데이터베이스 인스턴스
+ * @param services 초기화된 서비스 집합
+ * @returns ToolContext
+ */
+export function createToolContext(serverContext: ServerContext): ToolContext;
+export function createToolContext(db: Database.Database, services: ServerServices): ToolContext;
+export function createToolContext(
+  serverContextOrDb: ServerContext | Database.Database,
+  services?: ServerServices
+): ToolContext {
+  // When: (db, services) 형태로 호출된 경우
+  if (services !== undefined) {
+    const db = serverContextOrDb as Database.Database;
+    const serverContext = createServerContext(db, services);
+    return createToolContextFromServerContext(serverContext);
+  }
+  
+  // When: (serverContext) 형태로 호출된 경우
+  const serverContext = serverContextOrDb as ServerContext;
+  return createToolContextFromServerContext(serverContext);
+}
+
+/**
+ * ServerContext로부터 ToolContext 생성 (내부 헬퍼 함수)
  * 
  * @param serverContext 서버 컨텍스트
  * @returns ToolContext
  */
-export function createToolContext(serverContext: ServerContext): ToolContext {
+function createToolContextFromServerContext(serverContext: ServerContext): ToolContext {
   return {
     db: serverContext.db,
     services: {

@@ -3,33 +3,12 @@
  * HTTP 서버와 MCP 서버에서 동일한 도구를 실행했을 때 동일한 결과를 반환하는지 확인
  */
 
-import { initializeServices, type ServerServices } from '../server/bootstrap.js';
+import { initializeServices } from '../server/bootstrap.js';
 import { executeTool, getToolRegistry } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
-
-/**
- * ToolContext 생성 헬퍼 함수
- */
-function createToolContext(db: Database.Database, services: ServerServices): ToolContext {
-  return {
-    db,
-    services: {
-      searchEngine: services.searchEngine,
-      hybridSearchEngine: services.hybridSearchEngine,
-      embeddingService: services.embeddingService,
-      forgettingPolicyService: services.forgettingPolicyService,
-      performanceMonitor: services.performanceMonitor,
-      databaseOptimizer: services.databaseOptimizer,
-      errorLoggingService: services.errorLoggingService,
-      performanceAlertService: services.performanceAlertService,
-      consolidationScoreService: services.consolidationScoreService,
-      writeCoalescingManager: services.writeCoalescingManager
-    }
-  };
-}
+import { createToolContext } from '../server/context.js';
 
 /**
  * 도구 실행 결과를 비교하는 함수
@@ -317,5 +296,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 // Vitest를 위한 export (선택적)
-export { testToolConsistency, compareToolResults, createToolContext };
+export { testToolConsistency, compareToolResults };
 

@@ -8,6 +8,7 @@ import fs from 'fs';
 import { join, dirname } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { logger } from '../../../../shared/utils/logger.js';
 import type { MigrationResult } from './types.js';
 
 /**
@@ -55,7 +56,10 @@ export class MigrationLogger {
       }
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 로그 디렉토리 생성 실패:', maskedError.message);
+      logger.error('❌ 로그 디렉토리 생성 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       throw error;
     }
   }
@@ -90,14 +94,15 @@ export class MigrationLogger {
 
     this.entries.push(entry);
 
-    // 콘솔에도 출력
+    // 표준 로거로 출력
     const logMessage = `[${entry.timestamp.toISOString()}] [${level}] ${message}`;
+    const metadata = data ? { data } : undefined;
     if (level === LogLevel.ERROR) {
-      console.error(logMessage, data || '');
+      logger.error(logMessage, metadata);
     } else if (level === LogLevel.WARN) {
-      console.warn(logMessage, data || '');
+      logger.warn(logMessage, metadata);
     } else {
-      console.log(logMessage, data || '');
+      logger.info(logMessage, metadata);
     }
 
     // 파일에 기록
@@ -170,7 +175,10 @@ export class MigrationLogger {
       fs.appendFileSync(this.logFile, content, 'utf-8');
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 로그 파일 쓰기 실패:', maskedError.message);
+      logger.error('❌ 로그 파일 쓰기 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
     }
   }
 

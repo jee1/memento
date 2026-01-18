@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import Database from 'better-sqlite3';
 import { createQualityRouter } from './quality.routes.js';
-import { QualityAssuranceService } from '../../services/quality-assurance/quality-assurance-service.js';
-import { QualityThresholdManager } from '../../services/quality-assurance/quality-threshold-manager.js';
+import { QualityAssuranceService } from '../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
+import { QualityThresholdManager } from '../../domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 
 // Mock logger

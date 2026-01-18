@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryType, MemoryTypeRequest, isMemoryItemType } from './index.js';
+import { MemoryType, MemoryTypeRequest, isMemoryItemType, SqlParam } from './index.js';
 import type { MetaMemoryStats, GetMetaMemoryStatsParams, MetaMemoryStatsResult } from './index.js';
 import type { RecallResponse } from '../../domains/memory/tools/recall-tool.js';
+import { isSqlParam } from '../utils/type-guards.js';
 
 describe('MemoryTypeRequest and isMemoryItemType', () => {
   describe('isMemoryItemType', () => {
@@ -428,6 +429,69 @@ describe('GetMetaMemoryStatsParams and MetaMemoryStatsResult types', () => {
       expect(multiItemResult.total_count).toBe(2);
       expect(multiItemResult.items[0].memory_id).toBe('mem_1');
       expect(multiItemResult.items[1].memory_id).toBe('mem_2');
+    });
+  });
+});
+
+describe('SqlParam type and isSqlParam type guard', () => {
+  describe('isSqlParam type guard', () => {
+    it('given: SqlParam 타입이 정의될 때, when: string 값을 검증하면, then: true를 반환해야 함', () => {
+      expect(isSqlParam('test')).toBe(true);
+      expect(isSqlParam('')).toBe(true);
+      expect(isSqlParam('123')).toBe(true);
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: number 값을 검증하면, then: true를 반환해야 함', () => {
+      expect(isSqlParam(0)).toBe(true);
+      expect(isSqlParam(123)).toBe(true);
+      expect(isSqlParam(-456)).toBe(true);
+      expect(isSqlParam(3.14)).toBe(true);
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: boolean 값을 검증하면, then: true를 반환해야 함', () => {
+      expect(isSqlParam(true)).toBe(true);
+      expect(isSqlParam(false)).toBe(true);
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: null 값을 검증하면, then: true를 반환해야 함', () => {
+      expect(isSqlParam(null)).toBe(true);
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: Date 값을 검증하면, then: true를 반환해야 함', () => {
+      expect(isSqlParam(new Date())).toBe(true);
+      expect(isSqlParam(new Date('2024-01-01'))).toBe(true);
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: 지원하지 않는 타입을 검증하면, then: false를 반환해야 함', () => {
+      expect(isSqlParam(undefined)).toBe(false);
+      expect(isSqlParam({})).toBe(false);
+      expect(isSqlParam([])).toBe(false);
+      expect(isSqlParam(() => {})).toBe(false);
+      expect(isSqlParam(Symbol('test'))).toBe(false);
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: 타입 가드로 사용하면, then: 타입이 좁혀져야 함', () => {
+      const value: unknown = 'test';
+      
+      if (isSqlParam(value)) {
+        // TypeScript should narrow value to SqlParam here
+        const sqlParam: SqlParam = value; // Should not cause type error
+        expect(sqlParam).toBe('test');
+      }
+    });
+
+    it('given: SqlParam 타입이 정의될 때, when: SqlParam[] 배열을 생성하면, then: 모든 요소가 SqlParam 타입이어야 함', () => {
+      const params: SqlParam[] = [
+        'test',
+        123,
+        true,
+        null,
+        new Date()
+      ];
+
+      params.forEach(param => {
+        expect(isSqlParam(param)).toBe(true);
+      });
     });
   });
 });

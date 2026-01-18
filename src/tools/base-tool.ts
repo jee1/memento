@@ -8,12 +8,16 @@ import type { FailureDetector } from '../domains/monitoring/services/failure-det
 import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 import { logger } from '../shared/utils/logger.js';
 
+import type { z } from 'zod';
+
 export abstract class BaseTool {
   protected name: string;
   protected description: string;
-  protected inputSchema: any;
+  // 하위 호환성을 위해 JSON Schema 형식도 허용
+  // 향후 모든 도구를 Zod 스키마로 마이그레이션 예정
+  protected inputSchema: z.ZodTypeAny | Record<string, unknown>;
 
-  constructor(name: string, description: string, inputSchema: any) {
+  constructor(name: string, description: string, inputSchema: z.ZodTypeAny | Record<string, unknown>) {
     this.name = name;
     this.description = description;
     this.inputSchema = inputSchema;
@@ -34,12 +38,12 @@ export abstract class BaseTool {
   /**
    * 도구 실행 (추상 메서드)
    */
-  abstract handle(params: any, context: ToolContext): Promise<ToolResult>;
+  abstract handle(params: unknown, context: ToolContext): Promise<ToolResult>;
 
   /**
    * 성공 결과 생성
    */
-  protected createSuccessResult(data: any): ToolResult {
+  protected createSuccessResult(data: unknown): ToolResult {
     return {
       content: [
         {
@@ -75,7 +79,7 @@ export abstract class BaseTool {
   /**
    * 안전한 JSON 파싱
    */
-  protected safeJsonParse(jsonString: string, fallback: any = null): any {
+  protected safeJsonParse(jsonString: string, fallback: unknown = null): unknown {
     try {
       return JSON.parse(jsonString);
     } catch (error) {
@@ -127,7 +131,7 @@ export abstract class BaseTool {
   /**
    * 안전한 배열 검증
    */
-  protected validateArray(value: any, fieldName: string, maxLength: number = 100): any[] {
+  protected validateArray(value: unknown, fieldName: string, maxLength: number = 100): unknown[] {
     if (!Array.isArray(value)) {
       throw new Error(`${fieldName}은 배열이어야 합니다`);
     }
@@ -142,14 +146,14 @@ export abstract class BaseTool {
   /**
    * 에러 로깅
    */
-  protected logError(error: Error, context: string, additionalData?: any): void {
-    const errorInfo = {
+  protected logError(error: Error, context: string, additionalData?: Record<string, unknown>): void {
+    const errorInfo: Record<string, unknown> = {
       tool: this.name,
       context,
       error: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString(),
-      ...additionalData
+      ...(additionalData || {})
     };
     
     logger.error(`[${this.name}] ${context}:`, errorInfo);
@@ -158,12 +162,12 @@ export abstract class BaseTool {
   /**
    * 경고 로깅
    */
-  protected logWarning(message: string, additionalData?: any): void {
-    const warningInfo = {
+  protected logWarning(message: string, additionalData?: Record<string, unknown>): void {
+    const warningInfo: Record<string, unknown> = {
       tool: this.name,
       message,
       timestamp: new Date().toISOString(),
-      ...additionalData
+      ...(additionalData || {})
     };
     
     logger.warn(`[${this.name}] ${message}:`, warningInfo);
@@ -172,12 +176,12 @@ export abstract class BaseTool {
   /**
    * 정보 로깅
    */
-  protected logInfo(message: string, additionalData?: any): void {
-    const infoData = {
+  protected logInfo(message: string, additionalData?: Record<string, unknown>): void {
+    const infoData: Record<string, unknown> = {
       tool: this.name,
       message,
       timestamp: new Date().toISOString(),
-      ...additionalData
+      ...(additionalData || {})
     };
     
     logger.info(`[${this.name}] ${message}:`, infoData);
@@ -193,9 +197,9 @@ export abstract class BaseTool {
   }
 
   /**
-   * 서비스 확인
+   * 서비스 확인 (타입 가드)
    */
-  protected validateService(service: any, serviceName: string): void {
+  protected validateService<T>(service: T | undefined, serviceName: string): asserts service is T {
     if (!service) {
       throw new Error(`${serviceName}이 초기화되지 않았습니다`);
     }
@@ -207,7 +211,7 @@ export abstract class BaseTool {
    */
   protected async handleFailure(
     error: Error,
-    params: any,
+    params: unknown,
     context: ToolContext,
     executionTimeMs?: number
   ): Promise<void> {

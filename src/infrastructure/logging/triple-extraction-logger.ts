@@ -16,6 +16,7 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { validateFilePath } from '../../shared/utils/path-validator.js';
+import { logger } from '../../shared/utils/logger.js';
 import type { TripleExtractionResult } from '../../shared/types/triple-extraction.js';
 
 /**
@@ -113,11 +114,12 @@ export class TripleExtractionLogger {
       // 파일에 추가 (비동기)
       await fsPromises.appendFile(logFilePath, logLine);
     } catch (error) {
-      // 파일 로깅 실패는 무시 (콘솔 로거 사용)
+      // 파일 로깅 실패는 표준 로거로 기록
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('TripleExtractionLogger: 로그 파일 쓰기 실패', PIIMasker.maskObject({
-        error: maskedError.message
-      }));
+      logger.error('TripleExtractionLogger: 로그 파일 쓰기 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
     }
   }
 
@@ -249,9 +251,10 @@ export class TripleExtractionLogger {
         .reverse(); // 최신 파일 먼저
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('TripleExtractionLogger: 로그 파일 목록 조회 실패', PIIMasker.maskObject({
-        error: maskedError.message
-      }));
+      logger.error('TripleExtractionLogger: 로그 파일 목록 조회 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       return [];
     }
   }
@@ -294,9 +297,10 @@ export class TripleExtractionLogger {
       return deletedCount;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('TripleExtractionLogger: 오래된 로그 파일 삭제 실패', PIIMasker.maskObject({
-        error: maskedError.message
-      }));
+      logger.error('TripleExtractionLogger: 오래된 로그 파일 삭제 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       return 0;
     }
   }

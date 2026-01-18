@@ -20,8 +20,8 @@
 
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { TripleExtractionService } from '../../../services/triple-extraction/triple-extraction-service.js';
-import { SemanticMemoryUpdateService } from '../../../services/semantic-memory/semantic-memory-update-service.js';
+import { TripleExtractionService } from '../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { BatchJobResult } from '../batch-scheduler.js';
 

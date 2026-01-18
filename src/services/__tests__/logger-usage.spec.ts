@@ -8,8 +8,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { logger } from '../../shared/utils/logger.js';
-import { AnchorManager } from '../anchor-manager.js';
-import { QualityAssuranceService } from '../quality-assurance/quality-assurance-service.js';
+import { AnchorManager } from '../../domains/anchor/services/anchor/anchor-manager.js';
+import { QualityAssuranceService } from '../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
 
@@ -114,8 +114,8 @@ describe('src/services/ 디렉토리의 Logger 사용 검증', () => {
      */
     it('모든 서비스가 logger를 import해야 함', async () => {
       // Given: 서비스 모듈들
-      const anchorManagerModule = await import('../anchor-manager.js');
-      const qualityServiceModule = await import('../quality-assurance/quality-assurance-service.js');
+      const anchorManagerModule = await import('../../domains/anchor/services/anchor/anchor-manager.js');
+      const qualityServiceModule = await import('../../domains/monitoring/services/quality-assurance/quality-assurance-service.js');
 
       // When: 모듈 import 확인
       // Then: logger가 사용 가능해야 함
