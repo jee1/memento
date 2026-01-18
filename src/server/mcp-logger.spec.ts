@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MCPLogger } from './mcp-logger.js';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { ServerState } from './server-state.js';
 
 describe('MCPLogger', () => {
   let logger: MCPLogger;
@@ -28,6 +29,10 @@ describe('MCPLogger', () => {
 
     // 환경 변수 백업
     originalEnv = { ...process.env };
+    
+    // ServerState 초기화 (transport 연결 상태를 true로 설정하여 로그 출력 허용)
+    ServerState.getInstance().reset();
+    ServerState.getInstance().setMcpTransportConnected(true);
   });
 
   afterEach(() => {
@@ -35,6 +40,8 @@ describe('MCPLogger', () => {
     process.stderr.write = originalStderrWrite;
     process.env = originalEnv;
     vi.clearAllMocks();
+    // ServerState 초기화
+    ServerState.getInstance().reset();
   });
 
   describe('setServer', () => {

@@ -28,6 +28,7 @@ import { MemoryNeighborService } from '../domains/memory/services/memory-neighbo
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { mcpLogger } from './mcp-logger.js';
+import { ServerState } from './server-state.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
@@ -61,7 +62,9 @@ let serverServices: ServerServices | null = null;
 // 초기화 상태 추적 플래그
 // 초기화 전: false (fallback logger 사용)
 // 초기화 후: true (MCP Logger 사용)
-(globalThis as any).__mcp_server_initialized = false;
+// ServerState를 사용하여 전역 상태 관리
+const serverState = ServerState.getInstance();
+serverState.setMcpServerInitialized(false);
 
 /**
  * console.error 오버라이드 함수
@@ -75,12 +78,12 @@ let serverServices: ServerServices | null = null;
  */
 function setupConsoleErrorOverride(): void {
   // 중복 등록 방지: 이미 오버라이드되었는지 확인
-  if ((globalThis as any).__console_error_overridden) {
+  if (serverState.isConsoleErrorOverridden()) {
     return;
   }
   
   console.error = (...args: any[]) => {
-    const isInitialized = (globalThis as any).__mcp_server_initialized === true;
+    const isInitialized = serverState.isMcpServerInitialized();
     
     if (isInitialized) {
       // 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
@@ -94,17 +97,17 @@ function setupConsoleErrorOverride(): void {
   };
   
   // 오버라이드 완료 플래그 설정
-  (globalThis as any).__console_error_overridden = true;
+  serverState.setConsoleErrorOverridden(true);
 }
 
 // console 메서드 오버라이드 (중복 등록 방지)
-if (!(globalThis as any).__console_overridden) {
+if (!serverState.isConsoleOverridden()) {
   console.log = () => {};
   setupConsoleErrorOverride();
   console.warn = () => {};
   console.info = () => {};
   console.debug = () => {};
-  (globalThis as any).__console_overridden = true;
+  serverState.setConsoleOverridden(true);
 }
 
 // MCP 프로토콜 준수: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
@@ -537,8 +540,8 @@ async function startServer() {
   try {
     // MCP 프로토콜 준수: transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
     // initializeServer() 호출 전에 플래그를 설정하여 초기화 중 로그 출력 방지
-    // globalThis를 통해 mcpLogger에서 접근 가능하도록 설정
-    (globalThis as any).__mcp_transport_connected = false;
+    // ServerState를 통해 mcpLogger에서 접근 가능하도록 설정
+    serverState.setMcpTransportConnected(false);
     
     await initializeServer();
     mcpLogger.logServer('info', '서버 초기화 완료');
@@ -551,13 +554,13 @@ async function startServer() {
     await server.connect(transport);
     
     // transport 연결 완료 후 로그 출력 허용
-    (globalThis as any).__mcp_transport_connected = true;
+    serverState.setMcpTransportConnected(true);
     
     // 서버 초기화 완료 플래그 설정
     // console.error 오버라이드가 MCP Logger를 사용하도록 전환
     // MCP 스펙 준수 범위: 서버 초기화 완료 후부터 적용
     // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
-    (globalThis as any).__mcp_server_initialized = true;
+    serverState.setMcpServerInitialized(true);
     
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
     

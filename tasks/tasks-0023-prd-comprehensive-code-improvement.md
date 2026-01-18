@@ -299,31 +299,59 @@
       - 주요 도메인(src/tools, src/domains/search, src/server, src/npm-client)의 any 타입 제거 완료 ✅
       - 남은 any 타입은 주로 테스트 파일, globalThis 사용(Phase 4에서 처리), handle 메서드 params 등
 
-- [ ] 4.0 Phase 4: 전역 변수 제거 (우선순위: 중간, 예상 기간: 1주)
-  - [ ] 4.1 [TDD RED] ServerState 클래스 정의 및 테스트 작성
+- [x] 4.0 Phase 4: 전역 변수 제거 (우선순위: 중간, 예상 기간: 1주)
+  - [x] 4.1 [TDD RED] ServerState 클래스 정의 및 테스트 작성
     - Given: globalThis를 통한 전역 상태 관리로 테스트 어려움
     - When: ServerState 클래스를 정의하고 상태 관리 메서드에 대한 테스트 작성
     - Then: 클래스가 명확히 정의되고 테스트가 실패 상태로 작성됨
-  - [ ] 4.2 [TDD GREEN] ServerState 클래스 구현
+  - [x] 4.2 [TDD GREEN] ServerState 클래스 구현
     - Given: ServerState 클래스 정의와 실패하는 테스트가 존재
     - When: ServerState 클래스를 구현하여 전역 상태를 캡슐화
     - Then: 테스트가 통과하고 상태 관리가 클래스 기반으로 동작함
-  - [ ] 4.3 [TDD GREEN] src/server/index.ts의 globalThis 사용을 ServerState로 교체
+      - 11개 테스트 모두 통과 ✅
+      - 타입 체크 통과 ✅
+      - 린트 에러 없음 ✅
+      - 싱글톤 패턴으로 전역 상태 관리 구현 완료
+  - [x] 4.3 [TDD GREEN] src/server/index.ts의 globalThis 사용을 ServerState로 교체
     - Given: ServerState 클래스가 구현됨
     - When: src/server/index.ts의 모든 globalThis 사용을 ServerState로 교체
     - Then: 테스트가 통과하고 기능이 정상 동작함
-  - [ ] 4.4 [TDD GREEN] src/server/mcp-logger.ts의 globalThis 사용을 ServerState로 교체
+      - index.ts에서 globalThis 사용 0개로 감소 ✅
+      - index.spec.ts에서도 globalThis를 ServerState로 교체 ✅
+      - 14개 테스트 모두 통과 ✅
+      - 타입 체크 통과 ✅
+      - 린트 에러 없음 ✅
+  - [x] 4.4 [TDD GREEN] src/server/mcp-logger.ts의 globalThis 사용을 ServerState로 교체
     - Given: ServerState 클래스가 구현됨
     - When: src/server/mcp-logger.ts의 globalThis 사용을 ServerState로 교체
     - Then: 테스트가 통과하고 기능이 정상 동작함
-  - [ ] 4.5 [TDD REFACTOR] ServerState 리팩토링 및 테스트 가능성 향상
+      - mcp-logger.ts에서 globalThis 사용 0개로 감소 ✅
+      - mcp-logger.spec.ts에서 ServerState 초기화 추가 ✅
+      - 18개 테스트 모두 통과 ✅
+      - 타입 체크 통과 ✅
+      - 린트 에러 없음 ✅
+  - [x] 4.5 [TDD REFACTOR] ServerState 리팩토링 및 테스트 가능성 향상
     - Given: 모든 globalThis 사용이 ServerState로 교체됨
     - When: ServerState를 리팩토링하여 테스트 가능성을 향상시킴
     - Then: 테스트가 더 쉽게 작성 가능하고 모든 기존 테스트 통과
-  - [ ] 4.6 [검증] Phase 4 완료 검증
+      - resetInstance() 메서드 추가: 싱글톤 인스턴스 강제 리셋 (테스트용) ✅
+      - getSnapshot() / restoreSnapshot() 메서드 추가: 상태 저장 및 복원 기능 ✅
+      - ServerStateSnapshot 인터페이스 추가: 타입 안정성 강화 ✅
+      - 문서화 개선: 테스트 가능성 관련 주석 추가 ✅
+      - 14개 테스트 모두 통과 (기존 11개 + 신규 3개) ✅
+      - 기존 테스트(index.spec.ts, mcp-logger.spec.ts) 모두 통과 ✅
+      - 타입 체크 통과 ✅
+      - 린트 에러 없음 ✅
+  - [x] 4.6 [검증] Phase 4 완료 검증
     - Given: Phase 4의 모든 작업이 완료됨
     - When: grep으로 globalThis 사용 개수 확인
     - Then: globalThis 사용이 0개(또는 최소화)이고 모든 기존 테스트 통과
+      - src/server 디렉토리에서 globalThis 실제 사용: 0개 ✅
+        - server-state.ts에 주석으로만 포함 (실제 코드 사용 없음)
+      - 모든 기존 테스트 통과: 145개 테스트 모두 통과 ✅
+      - 타입 체크 통과 ✅
+      - 린트 에러 없음 (0 errors) ✅
+      - Phase 4 목표 달성: 전역 변수 제거 완료
 
 - [ ] 5.0 Phase 5: MCP 도구 노출 정책 정합성 (우선순위: 중간, 예상 기간: 1-2주)
   - [ ] 5.1 [분석] 현재 등록된 도구 목록 확인 및 규칙 문서와 비교

@@ -12,6 +12,7 @@ import { createToolContext } from './context.js';
 import { createServerContext } from './context.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { mcpLogger } from './mcp-logger.js';
+import { ServerState } from './server-state.js';
 
 describe('MCP 서버 진입점', () => {
   let db: Database.Database;
@@ -418,8 +419,8 @@ describe('MCP 서버 진입점', () => {
       console.error = originalConsoleError;
       process.stderr.write = originalStderrWrite;
       vi.clearAllMocks();
-      // globalThis 초기화 상태 리셋
-      (globalThis as any).__mcp_server_initialized = false;
+      // ServerState 초기화 상태 리셋
+      ServerState.getInstance().reset();
     });
 
     /**
@@ -429,7 +430,7 @@ describe('MCP 서버 진입점', () => {
      */
     it('초기화 전에는 console.error가 stderr에 직접 출력해야 함', () => {
       // Given: 초기화 전 상태
-      (globalThis as any).__mcp_server_initialized = false;
+      ServerState.getInstance().setMcpServerInitialized(false);
       
       // console.error 오버라이드 (초기화 전 로직)
       console.error = (...args: any[]) => {
@@ -460,7 +461,7 @@ describe('MCP 서버 진입점', () => {
      */
     it('초기화 후에는 console.error가 MCP Logger를 사용해야 함', () => {
       // Given: 초기화 후 상태
-      (globalThis as any).__mcp_server_initialized = true;
+      ServerState.getInstance().setMcpServerInitialized(true);
       
       // console.error 오버라이드 (초기화 후 로직)
       console.error = (...args: any[]) => {
