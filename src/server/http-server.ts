@@ -5,7 +5,6 @@
  */
 
 import express from 'express';
-import type { Response } from 'express';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';

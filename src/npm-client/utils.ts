@@ -373,8 +373,6 @@ export function memoriesToMarkdown(memories: MemoryItem[]): string {
 // 검증 유틸리티
 // ============================================================================
 
-import type { CreateMemoryParams } from './types.js';
-
 /**
  * 메모리 생성 파라미터 검증
  */
@@ -438,8 +436,6 @@ export function validateCreateMemoryParams(params: unknown): {
     errors
   };
 }
-
-import type { HybridSearchParams } from './types.js';
 
 /**
  * 검색 파라미터 검증

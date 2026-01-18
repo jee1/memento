@@ -103,7 +103,8 @@ describe('ToolHandler 타입 안정성', () => {
       
       const handler: ToolHandler = async (params: unknown, context: ToolContext) => {
         // params는 unknown 타입으로 처리 (런타임 검증 필요)
-        // 반환값은 ToolResult 타입
+        // 반환값은 ToolResult 타입. context는 시그니처 검증용으로만 필요
+        void context;
         return {
           content: [{ type: 'text', text: JSON.stringify(params) }]
         };
@@ -119,7 +120,8 @@ describe('ToolHandler 타입 안정성', () => {
     it('given: ToolHandler가 정의될 때, when: params와 반환값이 any 타입이면, then: 타입 안정성이 부족함을 확인해야 함', () => {
       // Given: any 타입을 사용하는 ToolHandler (현재 상태)
       const handler: ToolHandler = async (params: any, context: ToolContext): Promise<any> => {
-        // params: any, 반환값: Promise<any> (개선 필요)
+        // params: any, 반환값: Promise<any> (개선 필요). context는 시그니처 검증용으로만 필요
+        void context;
         return {
           content: [{ type: 'text', text: JSON.stringify(params) }]
         };
