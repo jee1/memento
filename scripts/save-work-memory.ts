@@ -7,27 +7,7 @@ import { initializeDatabase, closeDatabase } from '../src/infrastructure/databas
 import { initializeServices } from '../src/server/bootstrap.js';
 import { executeTool } from '../src/tools/index.js';
 import type { ToolContext } from '../src/tools/types.js';
-
-/**
- * ToolContext 생성 헬퍼 함수
- */
-function createToolContext(db: Database.Database, services: Awaited<ReturnType<typeof initializeServices>>): ToolContext {
-  return {
-    db,
-    services: {
-      hybridSearchEngine: services.hybridSearchEngine,
-      embeddingService: services.embeddingService,
-      searchEngine: services.searchEngine,
-      forgettingPolicyService: services.forgettingPolicyService,
-      performanceMonitor: services.performanceMonitor,
-      databaseOptimizer: services.databaseOptimizer,
-      errorLoggingService: services.errorLoggingService,
-      performanceAlertService: services.performanceAlertService,
-      consolidationScoreService: services.consolidationScoreService,
-      writeCoalescingManager: services.writeCoalescingManager
-    }
-  };
-}
+import { createToolContext } from '../src/server/context.js';
 
 async function saveWorkMemory() {
   console.log('💾 작업 내용을 기억으로 저장 중...\n');

@@ -14,28 +14,7 @@ import {
   initializeMigrationStatusTable, 
   setMigrationStatus 
 } from '../shared/utils/fts5-migration-status.js';
-
-/**
- * ToolContext 생성 헬퍼 함수
- */
-function createToolContext(db: Database.Database, services: ServerServices): ToolContext {
-  return {
-    db,
-    services: {
-      searchEngine: services.searchEngine,
-      hybridSearchEngine: services.hybridSearchEngine,
-      embeddingService: services.embeddingService,
-      forgettingPolicyService: services.forgettingPolicyService,
-      performanceMonitor: services.performanceMonitor,
-      databaseOptimizer: services.databaseOptimizer,
-      errorLoggingService: services.errorLoggingService,
-      performanceAlertService: services.performanceAlertService,
-      consolidationScoreService: services.consolidationScoreService,
-      writeCoalescingManager: services.writeCoalescingManager,
-      anchorManager: services.anchorManager
-    }
-  };
-}
+import { createToolContext } from '../server/context.js';
 
 async function testReflexionE2E() {
   console.log('🧪 Reflexion 기능 E2E 테스트 시작\n');

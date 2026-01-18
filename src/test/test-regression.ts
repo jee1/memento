@@ -10,27 +10,7 @@ import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
-
-/**
- * ToolContext 생성 헬퍼 함수
- */
-function createToolContext(db: Database.Database, services: ReturnType<typeof initializeServices> extends Promise<infer T> ? T : never): ToolContext {
-  return {
-    db,
-    services: {
-      searchEngine: services.searchEngine,
-      hybridSearchEngine: services.hybridSearchEngine,
-      embeddingService: services.embeddingService,
-      forgettingPolicyService: services.forgettingPolicyService,
-      performanceMonitor: services.performanceMonitor,
-      databaseOptimizer: services.databaseOptimizer,
-      errorLoggingService: services.errorLoggingService,
-      performanceAlertService: services.performanceAlertService,
-      consolidationScoreService: services.consolidationScoreService,
-      writeCoalescingManager: services.writeCoalescingManager
-    }
-  };
-}
+import { createToolContext } from '../server/context.js';
 
 async function testRegression() {
   console.log('🧪 회귀 테스트 시작\n');

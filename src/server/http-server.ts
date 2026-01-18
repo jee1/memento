@@ -23,6 +23,7 @@ import { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
+import { createToolContext } from './context.js';
 import packageJson from '../../package.json' with { type: 'json' };
 // Phase 1.2: 라우터 import
 import { createToolsRouter } from './routes/tools.routes.js';
@@ -400,22 +401,8 @@ wss.on('connection', (ws: WebSocket) => {
           return;
         }
         
-        const context: ToolContext = {
-          db,
-          services: {
-            searchEngine: serverServices.searchEngine,
-            hybridSearchEngine: serverServices.hybridSearchEngine,
-            embeddingService: serverServices.embeddingService,
-            forgettingPolicyService: serverServices.forgettingPolicyService,
-            performanceMonitor: serverServices.performanceMonitor,
-            databaseOptimizer: serverServices.databaseOptimizer,
-            errorLoggingService: serverServices.errorLoggingService,
-            performanceAlertService: serverServices.performanceAlertService,
-            consolidationScoreService: serverServices.consolidationScoreService,
-            writeCoalescingManager: serverServices.writeCoalescingManager,
-            anchorManager: serverServices.anchorManager
-          }
-        };
+        // Phase 7.4: 표준 팩토리 함수 사용
+        const context = createToolContext(db, serverServices);
         
         // 도구 실행
         const result = await toolRegistry.execute(name, args, context);

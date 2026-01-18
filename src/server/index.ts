@@ -24,6 +24,8 @@ import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js
 import { getToolRegistry } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import type { MemoryItem } from '../shared/types/index.js';
+import { createToolContext } from './context.js';
+import { withErrorHandling } from '../shared/utils/error-handling.js';
 import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
@@ -411,67 +413,47 @@ async function initializeServer() {
       await concurrencyLimiter.acquire();
       
       try {
-        // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
-        if (!serverServices) {
-          throw new Error('서비스가 초기화되지 않았습니다');
-        }
-        
-        if (!db) {
-          throw new Error('데이터베이스가 초기화되지 않았습니다');
-        }
-        
-        const context: ToolContext = {
-          db,
-          services: {
-            searchEngine: serverServices.searchEngine,
-            hybridSearchEngine: serverServices.hybridSearchEngine,
-            embeddingService: serverServices.embeddingService,
-            forgettingPolicyService: serverServices.forgettingPolicyService,
-            performanceMonitor: serverServices.performanceMonitor,
-            databaseOptimizer: serverServices.databaseOptimizer,
-            errorLoggingService: serverServices.errorLoggingService,
-            performanceAlertService: serverServices.performanceAlertService,
-            consolidationScoreService: serverServices.consolidationScoreService,
-            writeCoalescingManager: serverServices.writeCoalescingManager,
-            anchorManager: serverServices.anchorManager,
-            failureDetector: serverServices.failureDetector,
-            reflexionWorker: serverServices.reflexionWorker
-            // performanceMonitoringIntegration
+        // Phase 7.8: 공통 에러 핸들러 사용
+        return await withErrorHandling(
+          async () => {
+            // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
+            if (!serverServices) {
+              throw new Error('서비스가 초기화되지 않았습니다');
+            }
+            
+            if (!db) {
+              throw new Error('데이터베이스가 초기화되지 않았습니다');
+            }
+            
+            // Phase 7.4: 표준 팩토리 함수 사용
+            const context = createToolContext(db, serverServices);
+            
+            // 도구 실행
+            const toolResult = await toolRegistry.execute(name, args, context);
+            await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
+            
+            // MCP 형식으로 변환
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(toolResult)
+                }
+              ]
+            };
+          },
+          {
+            operation: 'tool_execution',
+            toolName: name,
+            requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          },
+          {
+            errorLoggingService,
+            severity: ErrorSeverity.HIGH,
+            category: ErrorCategory.TOOL_EXECUTION,
+            transformError: (error) => new Error(`Tool execution failed: ${error.message}`)
           }
-        };
-        
-        // 도구 실행
-        const toolResult = await toolRegistry.execute(name, args, context);
-        await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
-        
-        // MCP 형식으로 변환
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(toolResult)
-            }
-          ]
-        };
-      } catch (error) {
-        // 에러 로깅
-        if (errorLoggingService) {
-          errorLoggingService.logError(
-            error instanceof Error ? error : new Error(String(error)),
-            ErrorSeverity.HIGH,
-            ErrorCategory.UNKNOWN,
-            {
-              operation: 'tool_execution',
-              toolName: name,
-              requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            }
-          );
-        }
-        
-        if (error instanceof Error) {
-          throw new Error(`Tool execution failed: ${error.message}`);
-        }
-        throw error;
+        );
       } finally {
         // 동시성 제한 해제
         concurrencyLimiter.release();

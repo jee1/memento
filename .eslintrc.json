@@ -24,6 +24,7 @@
     "prefer-const": "error",
     "no-var": "error",
     "no-console": "error",
+    "no-redeclare": "off", // TypeScript 오버로드 선언을 위해 비활성화
     "max-lines-per-function": ["warn", {
       "max": 50,
       "skipBlankLines": true,
