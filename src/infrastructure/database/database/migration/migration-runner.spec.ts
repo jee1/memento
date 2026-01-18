@@ -12,6 +12,7 @@ import { BackupManager } from './backup-manager.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import { DependencyValidator } from './dependency-validator.js';
 import { MigrationLogger } from './migration-logger.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 /**
  * 테스트용 마이그레이션 구현
@@ -263,6 +264,197 @@ describe('MigrationRunner', () => {
       await expect(
         runner.rollbackMigration(failingRollbackMigration, '')
       ).rejects.toThrow('Rollback failed');
+    });
+  });
+
+  describe('로깅 정책 통일 (console.* 제거)', () => {
+    let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
+    let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+    let mockMigrationLogger: MigrationLogger;
+
+    beforeEach(() => {
+      // Given: MigrationLogger 모킹 (console.log 사용 방지)
+      mockMigrationLogger = {
+        initializeLogFile: vi.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        logMigrationResult: vi.fn()
+      } as unknown as MigrationLogger;
+      
+      // MigrationRunner에 모킹된 logger 주입
+      runner = new MigrationRunner(db, mockMigrationLogger);
+
+      // Given: Logger 스파이 설정
+      loggerInfoSpy = vi.spyOn(logger, 'info');
+      loggerErrorSpy = vi.spyOn(logger, 'error');
+      
+      // console.* 스파이 설정 (사용되지 않아야 함)
+      consoleLogSpy = vi.spyOn(console, 'log');
+      consoleErrorSpy = vi.spyOn(console, 'error');
+    });
+
+    afterEach(() => {
+      // When: 테스트 후 정리
+      vi.restoreAllMocks();
+    });
+
+    /**
+     * Given: MigrationRunner가 표준 로거를 사용하도록 변경됨
+     * When: 마이그레이션을 실행하면
+     * Then: logger.info가 호출되어야 하고 console.log는 호출되지 않아야 함
+     */
+    it('마이그레이션 시작 시 logger.info를 사용해야 함', async () => {
+      // Given: MigrationRunner가 표준 로거를 사용하도록 변경됨 (아직 구현되지 않음)
+      // When: 마이그레이션 실행
+      try {
+        await runner.runMigration(testMigration, { createBackup: false });
+      } catch (error) {
+        // 마이그레이션 실패는 무시 (로깅 테스트 목적)
+      }
+
+      // Then: logger.info가 호출되어야 함
+      expect(loggerInfoSpy).toHaveBeenCalled();
+      
+      // logger.info가 '마이그레이션 시작' 메시지로 호출되었는지 확인
+      const infoCalls = loggerInfoSpy.mock.calls;
+      const messages = infoCalls.map(call => call[0]);
+      expect(messages.some(msg => typeof msg === 'string' && msg.includes('마이그레이션 시작'))).toBe(true);
+      
+      // console.log는 호출되지 않아야 함
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Given: MigrationRunner가 표준 로거를 사용하도록 변경됨
+     * When: 마이그레이션 중 정보성 메시지를 출력할 때
+     * Then: logger.info가 적절한 메시지로 호출되어야 함
+     */
+    it('마이그레이션 진행 상황을 logger.info로 로깅해야 함', async () => {
+      // Given: MigrationRunner가 표준 로거를 사용하도록 변경됨 (아직 구현되지 않음)
+      // When: 마이그레이션 실행
+      try {
+        await runner.runMigration(testMigration, { createBackup: false });
+      } catch (error) {
+        // 마이그레이션 실패는 무시 (로깅 테스트 목적)
+      }
+
+      // Then: logger.info가 여러 번 호출되어야 함 (진행 상황 로깅)
+      expect(loggerInfoSpy).toHaveBeenCalled();
+      
+      // 주요 진행 상황 메시지 확인
+      const infoCalls = loggerInfoSpy.mock.calls;
+      const messages = infoCalls.map(call => call[0]);
+      
+      // 마이그레이션 시작 메시지 확인
+      expect(messages.some(msg => typeof msg === 'string' && msg.includes('마이그레이션 시작'))).toBe(true);
+      
+      // console.log는 호출되지 않아야 함
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Given: MigrationRunner가 표준 로거를 사용하도록 변경됨
+     * When: 마이그레이션 실패 시
+     * Then: logger.error가 호출되어야 하고 console.error는 호출되지 않아야 함
+     */
+    it('마이그레이션 실패 시 logger.error를 사용해야 함', async () => {
+      // Given: 실패하는 마이그레이션 (validateBefore는 통과, up()에서만 실패)
+      const failingMigration: Migration = {
+        ...testMigration,
+        async validateBefore() {
+          // 검증은 통과
+        },
+        async up() {
+          throw new Error('Migration failed');
+        }
+      };
+
+      // When: 마이그레이션 실행 (실패 예상, autoRollback=false로 설정하여 롤백 시도 안 함)
+      const result = await runner.runMigration(failingMigration, { createBackup: false, autoRollback: false });
+
+      // Then: 마이그레이션이 실패해야 함
+      expect(result.success).toBe(false);
+      
+      // logger.error가 호출되어야 함
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      
+      const errorCalls = loggerErrorSpy.mock.calls;
+      const messages = errorCalls.map(call => call[0]);
+      expect(messages.some(msg => typeof msg === 'string' && msg.includes('마이그레이션'))).toBe(true);
+      
+      // console.error는 호출되지 않아야 함 (MigrationLogger 모킹으로 인해 호출되지 않음)
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Given: MigrationRunner가 표준 로거를 사용하도록 변경됨
+     * When: 마이그레이션 성공 시
+     * Then: logger.info가 성공 메시지로 호출되어야 함
+     */
+    it('마이그레이션 성공 시 logger.info로 성공 메시지를 로깅해야 함', async () => {
+      // Given: MigrationRunner가 표준 로거를 사용하도록 변경됨 (아직 구현되지 않음)
+      // When: 마이그레이션 실행
+      try {
+        await runner.runMigration(testMigration, { createBackup: false });
+      } catch (error) {
+        // 마이그레이션 실패는 무시 (로깅 테스트 목적)
+      }
+
+      // Then: logger.info가 호출되어야 함 (마이그레이션이 성공하거나 진행 중일 수 있음)
+      expect(loggerInfoSpy).toHaveBeenCalled();
+      
+      const infoCalls = loggerInfoSpy.mock.calls;
+      const messages = infoCalls.map(call => call[0]);
+      
+      // 마이그레이션 관련 메시지 확인
+      const hasMigrationMessage = messages.some(msg => 
+        typeof msg === 'string' && 
+        (msg.includes('마이그레이션') || msg.includes('Migration'))
+      );
+      
+      expect(hasMigrationMessage).toBe(true);
+      
+      // console.log는 호출되지 않아야 함
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Given: MigrationRunner가 표준 로거를 사용하도록 변경됨
+     * When: 롤백 실행 시
+     * Then: logger.info가 롤백 메시지로 호출되어야 함
+     */
+    it('롤백 실행 시 logger.info를 사용해야 함', async () => {
+      // Given: 마이그레이션 실행
+      await runner.runMigration(testMigration, { createBackup: false });
+
+      // When: 롤백 실행
+      try {
+        await runner.rollbackMigration(testMigration, '');
+      } catch (error) {
+        // 롤백 실패는 무시 (로깅 테스트 목적)
+      }
+
+      // Then: logger.info가 호출되어야 함
+      expect(loggerInfoSpy).toHaveBeenCalled();
+      
+      const infoCalls = loggerInfoSpy.mock.calls;
+      const messages = infoCalls.map(call => call[0]);
+      
+      // 롤백 관련 메시지 확인
+      const hasRollbackMessage = messages.some(msg => 
+        typeof msg === 'string' && 
+        (msg.includes('롤백') || msg.includes('rollback'))
+      );
+      
+      // 롤백 메시지가 있거나 마이그레이션 관련 메시지가 있어야 함
+      expect(hasRollbackMessage || messages.length > 0).toBe(true);
+      
+      // console.log는 호출되지 않아야 함
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
   });
 });

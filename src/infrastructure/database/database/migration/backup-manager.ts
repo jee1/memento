@@ -9,6 +9,7 @@ import fs from 'fs';
 import { join, dirname } from 'path';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 /**
  * 백업 생성 결과
@@ -53,7 +54,10 @@ export class BackupManager {
       }
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 백업 디렉토리 생성 실패:', maskedError.message);
+      logger.error('❌ 백업 디렉토리 생성 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       throw error;
     }
   }
@@ -102,7 +106,10 @@ export class BackupManager {
       const stats = fs.statSync(backupPath);
       const size = stats.size;
 
-      console.log(`✅ 백업 생성 완료: ${backupPath} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+      logger.info('✅ 백업 생성 완료', {
+        backupPath,
+        sizeMB: (size / 1024 / 1024).toFixed(2)
+      });
 
       return {
         backupPath,
@@ -111,7 +118,10 @@ export class BackupManager {
       };
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 백업 생성 실패:', maskedError.message);
+      logger.error('❌ 백업 생성 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       throw error;
     }
   }
@@ -129,15 +139,22 @@ export class BackupManager {
       if (fs.existsSync(targetDbPath)) {
         const oldBackupPath = `${targetDbPath}.old-${Date.now()}`;
         fs.copyFileSync(targetDbPath, oldBackupPath);
-        console.log(`📦 기존 데이터베이스 백업: ${oldBackupPath}`);
+        logger.info('📦 기존 데이터베이스 백업', {
+          oldBackupPath
+        });
       }
 
       // 백업 파일 복사
       fs.copyFileSync(backupPath, targetDbPath);
-      console.log(`✅ 백업 복원 완료: ${targetDbPath}`);
+      logger.info('✅ 백업 복원 완료', {
+        targetDbPath
+      });
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 백업 복원 실패:', maskedError.message);
+      logger.error('❌ 백업 복원 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       throw error;
     }
   }
@@ -164,18 +181,25 @@ export class BackupManager {
         if (age > retentionMs) {
           fs.unlinkSync(filePath);
           deletedCount++;
-          console.log(`🗑️  오래된 백업 삭제: ${file}`);
+          logger.info('🗑️  오래된 백업 삭제', {
+            file
+          });
         }
       }
 
       if (deletedCount > 0) {
-        console.log(`✅ 백업 정리 완료: ${deletedCount}개 파일 삭제`);
+        logger.info('✅ 백업 정리 완료', {
+          deletedCount
+        });
       }
 
       return deletedCount;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 백업 정리 실패:', maskedError.message);
+      logger.error('❌ 백업 정리 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       return 0;
     }
   }
@@ -206,7 +230,10 @@ export class BackupManager {
       return backupFiles.length > 0 ? (backupFiles[0]?.path || null) : null;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 백업 파일 검색 실패:', maskedError.message);
+      logger.error('❌ 백업 파일 검색 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       return null;
     }
   }

@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import type { Migration } from './types.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { logger } from '../../../../shared/utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -120,8 +121,10 @@ export class MigrationDetector {
         }
 
         if (!MigrationClass || typeof MigrationClass !== 'function') {
-          console.warn(`⚠️  마이그레이션 파일 ${file}에서 유효한 마이그레이션 클래스를 찾을 수 없습니다.`);
-          console.warn(`   사용 가능한 exports: ${Object.keys(module).join(', ')}`);
+          logger.warn('⚠️  마이그레이션 파일에서 유효한 마이그레이션 클래스를 찾을 수 없습니다', {
+            file,
+            availableExports: Object.keys(module).join(', ')
+          });
           continue;
         }
 
@@ -129,14 +132,20 @@ export class MigrationDetector {
         const migration = new MigrationClass() as Migration;
 
         if (!migration || !migration.version || !migration.up) {
-          console.warn(`⚠️  마이그레이션 파일 ${file}에서 유효한 마이그레이션 인스턴스를 생성할 수 없습니다.`);
-          console.warn(`   version: ${migration?.version}, up: ${typeof migration?.up}`);
+          logger.warn('⚠️  마이그레이션 파일에서 유효한 마이그레이션 인스턴스를 생성할 수 없습니다', {
+            file,
+            version: migration?.version,
+            upType: typeof migration?.up
+          });
           continue;
         }
 
         const versionNumber = this.parseVersionNumber(migration.version);
         if (versionNumber === null) {
-          console.warn(`⚠️  마이그레이션 ${file}의 버전 형식이 올바르지 않습니다: ${migration.version}`);
+          logger.warn('⚠️  마이그레이션의 버전 형식이 올바르지 않습니다', {
+            file,
+            version: migration.version
+          });
           continue;
         }
 
@@ -147,7 +156,11 @@ export class MigrationDetector {
         });
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        console.error(`❌ 마이그레이션 파일 ${file} 로드 실패:`, maskedError.message);
+        logger.error('❌ 마이그레이션 파일 로드 실패', {
+          file,
+          error: maskedError.message,
+          errorName: maskedError.name
+        });
       }
     }
 

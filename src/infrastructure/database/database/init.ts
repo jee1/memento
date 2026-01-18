@@ -17,6 +17,7 @@ import { CoreMemoryCacheService } from '../../../domains/memory/services/core-me
 import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../../../shared/utils/fts5-migration-status.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -629,16 +630,19 @@ export function closeDatabase(db: Database.Database): void {
 
 // CLI에서 직접 실행할 때
 if (process.argv[1] && process.argv[1].endsWith('init.ts')) {
-  console.log('🚀 데이터베이스 초기화 스크립트 시작');
+  logger.info('🚀 데이터베이스 초기화 스크립트 시작');
   (async () => {
     try {
       const db = await initializeDatabase();
-      console.log('🎉 데이터베이스 초기화 성공!');
+      logger.info('🎉 데이터베이스 초기화 성공!');
       closeDatabase(db);
       process.exit(0);
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.error('❌ 데이터베이스 초기화 실패:', maskedError.message);
+      logger.error('❌ 데이터베이스 초기화 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       process.exit(1);
     }
   })();

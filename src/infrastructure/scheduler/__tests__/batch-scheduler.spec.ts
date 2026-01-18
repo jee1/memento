@@ -10,6 +10,8 @@ import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../../
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import * as configModule from '../../../shared/config/index.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { FileLogger } from '../file-logger.js';
 
 describe('BatchScheduler', () => {
   let scheduler: BatchScheduler;
@@ -1903,6 +1905,109 @@ describe('BatchScheduler', () => {
 
       await testScheduler.stop();
       cleanupTestDatabase(db);
+    });
+  });
+
+  describe('로깅 정책 통일 (console.* 제거)', () => {
+    let loggerErrorSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+    let mockFileLogger: FileLogger;
+
+    beforeEach(() => {
+      // Given: FileLogger 모킹 (파일 로깅 실패 시뮬레이션)
+      mockFileLogger = {
+        logWarn: vi.fn().mockRejectedValue(new Error('File logging failed')),
+        logError: vi.fn().mockRejectedValue(new Error('File logging failed'))
+      } as unknown as FileLogger;
+
+      // Logger 스파이 설정
+      loggerErrorSpy = vi.spyOn(logger, 'error');
+      
+      // console.* 스파이 설정 (사용되지 않아야 함)
+      consoleErrorSpy = vi.spyOn(console, 'error');
+    });
+
+    afterEach(() => {
+      // When: 테스트 후 정리
+      vi.restoreAllMocks();
+    });
+
+    /**
+     * Given: BatchScheduler가 표준 로거를 사용하도록 변경됨
+     * When: 파일 로깅 실패 시
+     * Then: logger.error가 호출되어야 하고 console.error는 호출되지 않아야 함
+     */
+    it('파일 로깅 실패 시 logger.error를 사용해야 함', async () => {
+      // Given: FileLogger가 실패하도록 모킹된 스케줄러
+      const testScheduler = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        enableLogging: true,
+        maxBatchSize: 100
+      }, {
+        fileLogger: mockFileLogger
+      });
+
+      await testScheduler.start(db);
+
+      // When: warn 레벨 로그 호출 (파일 로깅 실패 시뮬레이션)
+      const schedulerAny = testScheduler as any;
+      schedulerAny.log('Test warn message', { level: 'warn' });
+
+      // 파일 로깅 실패 처리를 위해 충분한 대기 (비동기 catch 처리)
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Then: logger.error가 호출되어야 함 (아직 구현되지 않았으므로 실패 예상)
+      // TDD RED 단계: console.error가 호출되고 있음
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      
+      const errorCalls = loggerErrorSpy.mock.calls;
+      const messages = errorCalls.map(call => call[0]);
+      expect(messages.some(msg => typeof msg === 'string' && msg.includes('File logging failed'))).toBe(true);
+      
+      // console.error는 호출되지 않아야 함 (아직 구현되지 않았으므로 호출됨 - TDD RED)
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      await testScheduler.stop();
+    });
+
+    /**
+     * Given: BatchScheduler가 표준 로거를 사용하도록 변경됨
+     * When: 파일 로깅 실패 시 (error 레벨)
+     * Then: logger.error가 호출되어야 하고 console.error는 호출되지 않아야 함
+     */
+    it('파일 로깅 실패 시 (error 레벨) logger.error를 사용해야 함', async () => {
+      // Given: FileLogger가 실패하도록 모킹된 스케줄러
+      const testScheduler = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        enableLogging: true,
+        maxBatchSize: 100
+      }, {
+        fileLogger: mockFileLogger
+      });
+
+      await testScheduler.start(db);
+
+      // When: error 레벨 로그 호출 (파일 로깅 실패 시뮬레이션)
+      const schedulerAny = testScheduler as any;
+      schedulerAny.log('Test error message', { level: 'error' });
+
+      // 파일 로깅 실패 처리를 위해 충분한 대기 (비동기 catch 처리)
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Then: logger.error가 호출되어야 함 (아직 구현되지 않았으므로 실패 예상)
+      // TDD RED 단계: console.error가 호출되고 있음
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      
+      const errorCalls = loggerErrorSpy.mock.calls;
+      const messages = errorCalls.map(call => call[0]);
+      expect(messages.some(msg => typeof msg === 'string' && msg.includes('File logging failed'))).toBe(true);
+      
+      // console.error는 호출되지 않아야 함 (아직 구현되지 않았으므로 호출됨 - TDD RED)
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      await testScheduler.stop();
     });
   });
 });

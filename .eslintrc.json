@@ -54,7 +54,7 @@
       }
     },
     {
-      "files": ["src/server/index.ts"],
+      "files": ["src/server/index.ts", "src/infrastructure/database/database/init.ts", "src/infrastructure/database/database/migrate.ts"],
       "rules": {
         "no-console": "off"
       }

@@ -9,6 +9,7 @@ import type {
   MigrationRollbackEntry
 } from '../../shared/types/migration.types.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
+import { logger } from '../../shared/utils/logger.js';
 
 const DEFAULT_HISTORY_LIMIT = 50;
 
@@ -92,7 +93,10 @@ class MigrationHistoryService {
       return record.id;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      console.warn('⚠️ 마이그레이션 이력 기록 실패:', maskedError.message);
+      logger.warn('⚠️ 마이그레이션 이력 기록 실패', {
+        error: maskedError.message,
+        errorName: maskedError.name
+      });
       return undefined;
     }
   }
@@ -284,7 +288,7 @@ class MigrationHistoryService {
     const status = record.result.success ? 'SUCCESS' : 'FAILURE';
     const rolledBack = record.result.rolledBack ? ' (rolled back)' : '';
     const summary = `[Migration ${status}] ${record.plan.sourceProvider} -> ${record.plan.targetProvider}${rolledBack} | processed=${record.result.processed}, succeeded=${record.result.succeeded}, failed=${record.result.failed}`;
-    console.info(summary);
+    logger.info(summary);
   }
 
   private mapRow(row: any): MigrationHistoryRecord {

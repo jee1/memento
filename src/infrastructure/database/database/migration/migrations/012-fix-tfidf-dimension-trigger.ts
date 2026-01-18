@@ -14,6 +14,7 @@
 
 import type Database from 'better-sqlite3';
 import type { Migration } from '../types.js';
+import { logger } from '../../../../../shared/utils/logger.js';
 
 /**
  * Fix TF-IDF Dimension Trigger Migration
@@ -75,7 +76,7 @@ export class FixTfidfDimensionTriggerMigration implements Migration {
     if (!this.tableExists(db, 'memory_item_vec_tfidf')) {
       // Log warning but don't throw error - allow migration to proceed
       // The up() method will handle missing tables gracefully
-      console.warn('⚠️  memory_item_vec_tfidf table does not exist. TF-IDF trigger operations will be skipped.');
+      logger.warn('⚠️  memory_item_vec_tfidf table does not exist. TF-IDF trigger operations will be skipped.');
     }
 
     // Check if migration has already been applied
@@ -113,7 +114,7 @@ export class FixTfidfDimensionTriggerMigration implements Migration {
 
     // Only create triggers if at least one table exists
     if (!hasAnyTable) {
-      console.warn('⚠️  No vec tables exist. Skipping trigger creation.');
+      logger.warn('⚠️  No vec tables exist. Skipping trigger creation.');
       return;
     }
 
