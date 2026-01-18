@@ -21,7 +21,6 @@ import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.j
 // ConsolidationScoreService는 serverServices를 통해 접근
 import { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { createToolContext } from './context.js';
 import packageJson from '../../package.json' with { type: 'json' };

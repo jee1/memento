@@ -6,8 +6,9 @@
 
 import type Database from 'better-sqlite3';
 import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from './anchor-interfaces.js';
-import { AnchorError, MemoryNotFoundError } from './anchor-interfaces.js';
+import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError, EmbeddingNotFoundError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
 
 /**
  * Anchor Manager 구현
@@ -17,6 +18,7 @@ export class AnchorManager implements IAnchorManager {
   private db: Database.Database | null = null;
   private cacheService: IAnchorCacheService;
   private searchService: IAnchorSearchService;
+  private errorLoggingService: ErrorLoggingService | null = null;
 
   /**
    * 슬롯별 설정
@@ -41,11 +43,33 @@ export class AnchorManager implements IAnchorManager {
   }
 
   /**
+   * ErrorLoggingService 설정 (Phase 8.3)
+   * 에러 로깅 서비스를 주입하여 구조화된 에러 로깅 활성화
+   */
+  setErrorLoggingService(errorLoggingService: ErrorLoggingService): void {
+    this.errorLoggingService = errorLoggingService;
+  }
+
+  /**
    * 데이터베이스 설정
    */
   setDatabase(db: Database.Database): void {
     if (!db) {
-      throw new Error('Database instance is required');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database instance is required');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorManager',
+            operation: 'setDatabase'
+          }
+        );
+      }
+      throw error;
     }
     this.db = db;
   }
@@ -60,7 +84,24 @@ export class AnchorManager implements IAnchorManager {
    */
   async setAnchor(agentId: string, memoryId: string, slot: AnchorSlot): Promise<void> {
     if (!this.db) {
-      throw new Error('Database is not set. Call setDatabase() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database is not set. Call setDatabase() first.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorManager',
+            operation: 'setAnchor',
+            agentId,
+            memoryId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 메모리 존재 확인
@@ -69,7 +110,23 @@ export class AnchorManager implements IAnchorManager {
     `).get(memoryId) as { id: string } | undefined;
 
     if (!memory) {
-      throw new MemoryNotFoundError(memoryId);
+      const error = new MemoryNotFoundError(memoryId);
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.MEMORY,
+          {
+            component: 'AnchorManager',
+            operation: 'setAnchor',
+            agentId,
+            memoryId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 동일한 agent_id가 동일한 memory_id를 다른 슬롯에 이미 설정했는지 확인
@@ -79,10 +136,27 @@ export class AnchorManager implements IAnchorManager {
     `).get(agentId, memoryId, slot) as { slot: string } | undefined;
 
     if (existingAnchor) {
-      throw new AnchorError(
+      // Phase 8.4: 커스텀 에러 클래스 사용 및 ErrorLoggingService를 통한 에러 로깅
+      const error = new AnchorError(
         `Memory '${memoryId}' is already set as anchor in slot '${existingAnchor.slot}'. ` +
         `An agent cannot set the same memory in multiple slots.`
       );
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorManager',
+            operation: 'setAnchor',
+            agentId,
+            memoryId,
+            slot,
+            existingSlot: existingAnchor.slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 기존 앵커가 있으면 업데이트, 없으면 삽입
@@ -117,7 +191,23 @@ export class AnchorManager implements IAnchorManager {
    */
   async getAnchor(agentId: string, slot?: AnchorSlot): Promise<AnchorInfo | AnchorInfo[] | null> {
     if (!this.db) {
-      throw new Error('Database is not set. Call setDatabase() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database is not set. Call setDatabase() first.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorManager',
+            operation: 'getAnchor',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 캐시에서 먼저 확인
@@ -189,7 +279,23 @@ export class AnchorManager implements IAnchorManager {
    */
   async clearAnchor(agentId: string, slot?: AnchorSlot): Promise<void> {
     if (!this.db) {
-      throw new Error('Database is not set. Call setDatabase() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database is not set. Call setDatabase() first.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorManager',
+            operation: 'clearAnchor',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     if (slot) {
@@ -260,24 +366,89 @@ export class AnchorManager implements IAnchorManager {
     options?: SearchOptions
   ): Promise<SearchResult> {
     if (!this.db) {
-      throw new Error('Database is not set. Call setDatabase() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database is not set. Call setDatabase() first.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorManager',
+            operation: 'searchLocal',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 앵커 정보 가져오기
     const anchorInfo = await this.getAnchor(agentId, slot);
     if (!anchorInfo) {
-      throw new Error(`Anchor not found for agent_id: ${agentId}, slot: ${slot}`);
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new AnchorNotFoundError(agentId, slot);
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.MEMORY,
+          {
+            component: 'AnchorManager',
+            operation: 'searchLocal',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     const anchorMemoryId = Array.isArray(anchorInfo) ? anchorInfo[0]?.memory_id : anchorInfo.memory_id;
     if (!anchorMemoryId) {
-      throw new Error(`Anchor memory_id is null for agent_id: ${agentId}, slot: ${slot}`);
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError(`Anchor memory_id is null for agent_id: ${agentId}, slot: ${slot}`);
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.MEMORY,
+          {
+            component: 'AnchorManager',
+            operation: 'searchLocal',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 앵커 임베딩 가져오기
     const anchorEmbedding = await this.cacheService.getAnchorEmbedding(anchorMemoryId);
     if (!anchorEmbedding) {
-      throw new Error(`Embedding not found for anchor memory_id: ${anchorMemoryId}`);
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new EmbeddingNotFoundError(anchorMemoryId);
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.EMBEDDING,
+          {
+            component: 'AnchorManager',
+            operation: 'searchLocal',
+            agentId,
+            slot,
+            anchorMemoryId
+          }
+        );
+      }
+      throw error;
     }
 
     const startTime = Date.now();

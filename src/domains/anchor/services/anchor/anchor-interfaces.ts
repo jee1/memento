@@ -5,10 +5,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
-import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
-import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
-import type { EmbeddingResult, EmbeddingResultOrNull } from './embedding-types.js';
+import type { EmbeddingResultOrNull } from './embedding-types.js';
 
 /**
  * 앵커 슬롯 타입
@@ -170,3 +167,53 @@ export class MemoryNotFoundError extends Error {
   }
 }
 
+
+/**
+ * 데이터베이스 검증 에러 (Phase 8.4)
+ */
+export class DatabaseValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DatabaseValidationError';
+  }
+}
+
+/**
+ * 앵커를 찾을 수 없을 때 발생하는 에러 (Phase 8.4)
+ */
+export class AnchorNotFoundError extends Error {
+  constructor(agentId: string, slot: AnchorSlot) {
+    super(`Anchor not found for agent_id: ${agentId}, slot: ${slot}`);
+    this.name = 'AnchorNotFoundError';
+  }
+}
+
+/**
+ * 임베딩을 찾을 수 없을 때 발생하는 에러 (Phase 8.4)
+ */
+export class EmbeddingNotFoundError extends Error {
+  constructor(memoryId: string) {
+    super(`Embedding not found for anchor memory_id: ${memoryId}`);
+    this.name = 'EmbeddingNotFoundError';
+  }
+}
+
+/**
+ * 서비스 초기화 에러 (Phase 8.4)
+ */
+export class ServiceNotInitializedError extends Error {
+  constructor(serviceName: string, operation: string) {
+    super(`${serviceName} is not initialized. Call ${operation} first.`);
+    this.name = 'ServiceNotInitializedError';
+  }
+}
+
+/**
+ * 벡터 차원 불일치 에러 (Phase 8.4)
+ */
+export class VectorDimensionMismatchError extends Error {
+  constructor(vectorA_length: number, vectorB_length: number) {
+    super(`벡터 차원이 일치하지 않습니다 (${vectorA_length} vs ${vectorB_length})`);
+    this.name = 'VectorDimensionMismatchError';
+  }
+}

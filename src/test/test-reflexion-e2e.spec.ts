@@ -5,9 +5,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { initializeServices, type ServerServices } from '../server/bootstrap.js';
+import { initializeServices } from '../server/bootstrap.js';
 import { executeTool } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { 

@@ -3,9 +3,8 @@
  * 전체 워크플로우, 멀티 클라이언트, Fallback 메커니즘 검증
  */
 
-import { initializeServices, type ServerServices } from '../server/bootstrap.js';
+import { initializeServices } from '../server/bootstrap.js';
 import { executeTool } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';

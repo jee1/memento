@@ -6,7 +6,6 @@
 
 import { initializeServices } from '../server/bootstrap.js';
 import { executeTool, getToolRegistry } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';

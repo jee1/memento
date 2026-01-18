@@ -3,9 +3,8 @@
  * HTTP 서버와 MCP 서버에서 동일한 도구를 실행했을 때 동일한 결과를 반환하는지 확인
  */
 
-import { initializeServices, type ServerServices } from '../server/bootstrap.js';
+import { initializeServices } from '../server/bootstrap.js';
 import { executeTool, getToolRegistry } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';

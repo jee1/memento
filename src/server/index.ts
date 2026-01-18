@@ -22,7 +22,6 @@ import type { PerformanceAlertService } from '../domains/monitoring/services/per
 import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import type { MemoryItem } from '../shared/types/index.js';
 import { createToolContext } from './context.js';
 import { withErrorHandling } from '../shared/utils/error-handling.js';

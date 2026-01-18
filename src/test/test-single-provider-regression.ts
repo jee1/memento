@@ -13,7 +13,6 @@ import { DatabaseUtils } from '../shared/utils/database.js';
 import { initializeServices } from '../server/bootstrap.js';
 import { insertMemoryItem, insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 import { executeTool } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import type { EmbeddingProvider } from '../shared/types/index.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
 import { createToolContext } from '../server/context.js';

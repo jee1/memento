@@ -8,9 +8,11 @@ import Database from 'better-sqlite3';
 import { AnchorManager } from './anchor-manager.js';
 import { AnchorCacheService } from './anchor-cache-service.js';
 import { AnchorSearchService } from './anchor-search-service.js';
-import type { AnchorSlot } from '../anchor-interfaces.js';
+import type { AnchorSlot } from './anchor-interfaces.js';
+import { DatabaseValidationError, MemoryNotFoundError } from './anchor-interfaces.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
 
 describe('AnchorManager', () => {
   let manager: AnchorManager;
@@ -198,6 +200,118 @@ describe('AnchorManager', () => {
 
       // When & Then: null 데이터베이스 설정 시 에러
       expect(() => newManager.setDatabase(null as any)).toThrow('Database instance is required');
+    });
+  });
+
+  describe('ErrorLoggingService 통합 (Phase 8.2)', () => {
+    let errorLoggingService: ErrorLoggingService;
+    let mockLogError: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      errorLoggingService = new ErrorLoggingService();
+      mockLogError = vi.fn();
+      // ErrorLoggingService의 logError 메서드를 모킹
+      errorLoggingService.logError = mockLogError;
+    });
+
+    /**
+     * Given: ErrorLoggingService가 주입된 AnchorManager
+     * When: null 데이터베이스를 설정하면
+     * Then: ErrorLoggingService.logError가 호출되어야 함
+     */
+    it('given: ErrorLoggingService가 주입된 AnchorManager가 주어질 때, when: null 데이터베이스를 설정하면, then: ErrorLoggingService.logError가 호출되어야 함', () => {
+      // Given: ErrorLoggingService가 주입된 AnchorManager
+      const newManager = new AnchorManager(cacheService, searchService);
+      newManager.setErrorLoggingService(errorLoggingService);
+
+      // When: null 데이터베이스 설정 시도
+      try {
+        newManager.setDatabase(null as any);
+      } catch (error) {
+        // 에러는 예상됨
+      }
+
+      // Then: ErrorLoggingService.logError가 호출되어야 함
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.any(Error),
+        ErrorSeverity.MEDIUM,
+        ErrorCategory.VALIDATION,
+        expect.objectContaining({
+          component: 'AnchorManager',
+          operation: 'setDatabase'
+        })
+      );
+      // Phase 8.4: 커스텀 에러 클래스 검증
+      expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(DatabaseValidationError);
+    });
+
+    /**
+     * Given: ErrorLoggingService가 주입된 AnchorManager
+     * When: 데이터베이스가 설정되지 않은 상태에서 setAnchor를 호출하면
+     * Then: ErrorLoggingService.logError가 호출되어야 함
+     */
+    it('given: ErrorLoggingService가 주입된 AnchorManager가 주어질 때, when: 데이터베이스가 설정되지 않은 상태에서 setAnchor를 호출하면, then: ErrorLoggingService.logError가 호출되어야 함', async () => {
+      // Given: ErrorLoggingService가 주입된 AnchorManager
+      const newManager = new AnchorManager(cacheService, searchService);
+      newManager.setErrorLoggingService(errorLoggingService);
+
+      // When: 데이터베이스가 설정되지 않은 상태에서 setAnchor 호출
+      try {
+        await newManager.setAnchor('agent1', 'mem1', 'A');
+      } catch (error) {
+        // 에러는 예상됨
+      }
+
+      // Then: ErrorLoggingService.logError가 호출되어야 함
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.any(Error),
+        ErrorSeverity.MEDIUM,
+        ErrorCategory.VALIDATION,
+        expect.objectContaining({
+          component: 'AnchorManager',
+          operation: 'setAnchor',
+          agentId: 'agent1',
+          memoryId: 'mem1',
+          slot: 'A'
+        })
+      );
+      // Phase 8.4: 커스텀 에러 클래스 검증
+      expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(DatabaseValidationError);
+    });
+
+    /**
+     * Given: ErrorLoggingService가 주입된 AnchorManager 및 데이터베이스 설정
+     * When: 존재하지 않는 메모리로 setAnchor를 호출하면
+     * Then: ErrorLoggingService.logError가 호출되어야 함
+     */
+    it('given: ErrorLoggingService가 주입된 AnchorManager 및 데이터베이스 설정이 주어질 때, when: 존재하지 않는 메모리로 setAnchor를 호출하면, then: ErrorLoggingService.logError가 호출되어야 함', async () => {
+      // Given: ErrorLoggingService가 주입된 AnchorManager 및 데이터베이스 설정
+      const newManager = new AnchorManager(cacheService, searchService);
+      newManager.setErrorLoggingService(errorLoggingService);
+      newManager.setDatabase(db);
+
+      // When: 존재하지 않는 메모리로 setAnchor 호출
+      try {
+        await newManager.setAnchor('agent1', 'mem_nonexistent', 'A');
+      } catch (error) {
+        // 에러는 예상됨
+      }
+
+      // Then: ErrorLoggingService.logError가 호출되어야 함
+      expect(mockLogError).toHaveBeenCalledWith(
+        expect.any(Error),
+        ErrorSeverity.MEDIUM,
+        ErrorCategory.MEMORY,
+        expect.objectContaining({
+          component: 'AnchorManager',
+          operation: 'setAnchor',
+          agentId: 'agent1',
+          memoryId: 'mem_nonexistent',
+          slot: 'A'
+        })
+      );
+      // Phase 8.4: 커스텀 에러 클래스 검증
+      expect(mockLogError.mock.calls[0][0]).toBeInstanceOf(MemoryNotFoundError);
     });
   });
 

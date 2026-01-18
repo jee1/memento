@@ -9,15 +9,17 @@ import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-searc
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
+import { DatabaseValidationError, ServiceNotInitializedError, VectorDimensionMismatchError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { RelationGraph } from '../../../relation/services/relation-graph.js';
-import { NHopSearchService, type NHopSearchResult } from './n-hop-search-service.js';
+import { NHopSearchService } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';
 import { LocalSearchService } from './local-search-service.js';
 import { NHopSearchStrategy } from './n-hop-search-strategy.js';
 import { QueryFilterStrategy } from './query-filter-strategy.js';
 import { FallbackStrategy } from './fallback-strategy.js';
+import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
 
 /**
  * Anchor Search Service 구현
@@ -29,6 +31,7 @@ export class AnchorSearchService implements IAnchorSearchService {
   private vectorSearchEngine: VectorSearchEngine | null = null;
   private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService();
   private relationGraph: RelationGraph | null = null;
+  private errorLoggingService: ErrorLoggingService | null = null;
   
   // Phase 2.3-2.5: 분리된 서비스들
   private nHopSearchService: NHopSearchService;
@@ -53,6 +56,14 @@ export class AnchorSearchService implements IAnchorSearchService {
   }
 
   /**
+   * ErrorLoggingService 설정 (Phase 8.3)
+   * 에러 로깅 서비스를 주입하여 구조화된 에러 로깅 활성화
+   */
+  setErrorLoggingService(errorLoggingService: ErrorLoggingService): void {
+    this.errorLoggingService = errorLoggingService;
+  }
+
+  /**
    * RelationGraph 설정 (선택적)
    */
   setRelationGraph(relationGraph: RelationGraph): void {
@@ -66,7 +77,21 @@ export class AnchorSearchService implements IAnchorSearchService {
    */
   setDatabase(db: Database.Database): void {
     if (!db) {
-      throw new Error('Database instance is required');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database instance is required');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'setDatabase'
+          }
+        );
+      }
+      throw error;
     }
     this.db = db;
     // Phase 2.3-2.5: 분리된 서비스들에도 데이터베이스 설정
@@ -93,7 +118,21 @@ export class AnchorSearchService implements IAnchorSearchService {
    */
   setHybridSearchEngine(hybridSearchEngine: HybridSearchEngine): void {
     if (!hybridSearchEngine) {
-      throw new Error('HybridSearchEngine is required');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('HybridSearchEngine is required');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'setHybridSearchEngine'
+          }
+        );
+      }
+      throw error;
     }
     this.hybridSearchEngine = hybridSearchEngine;
     // Phase 2.5: Fallback 검색 서비스에도 하이브리드 검색 엔진 설정
@@ -105,7 +144,21 @@ export class AnchorSearchService implements IAnchorSearchService {
    */
   setVectorSearchEngine(vectorSearchEngine: VectorSearchEngine): void {
     if (!vectorSearchEngine) {
-      throw new Error('VectorSearchEngine is required');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('VectorSearchEngine is required');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'setVectorSearchEngine'
+          }
+        );
+      }
+      throw error;
     }
     this.vectorSearchEngine = vectorSearchEngine;
     // 데이터베이스가 이미 설정되어 있으면 초기화
@@ -132,11 +185,43 @@ export class AnchorSearchService implements IAnchorSearchService {
     startTime: number
   ): Promise<SearchResult> {
     if (!this.db) {
-      throw new Error('Database is not set. Call setDatabase() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database is not set. Call setDatabase() first.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'searchLocal',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     if (!this.localSearchService) {
-      throw new Error('LocalSearchService is not initialized. Call setDatabase() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new ServiceNotInitializedError('LocalSearchService', 'setDatabase()');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'searchLocal',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // 슬롯별 설정 가져오기
@@ -151,7 +236,23 @@ export class AnchorSearchService implements IAnchorSearchService {
 
     // VectorSearchEngine이 없으면 에러
     if (!this.vectorSearchEngine) {
-      throw new Error('VectorSearchEngine is not set. Call setVectorSearchEngine() first.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new ServiceNotInitializedError('VectorSearchEngine', 'setVectorSearchEngine()');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'searchLocal',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     // Phase 3.6: LocalSearchService를 사용하여 파이프라인 실행
@@ -173,21 +274,6 @@ export class AnchorSearchService implements IAnchorSearchService {
       anchorEmbedding.provider
     );
 
-    // 자동 앵커 이동을 위한 쿼리 임베딩 생성 (선택적, 비동기)
-    let queryEmbeddingForReanchor: number[] | undefined;
-    if (query && query.trim().length > 0) {
-      try {
-        const queryEmbeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
-        if (queryEmbeddingResult && queryEmbeddingResult.embedding) {
-          queryEmbeddingForReanchor = queryEmbeddingResult.embedding;
-        }
-      } catch (error) {
-        // 쿼리 임베딩 생성 실패는 무시 (자동 이동은 선택적)
-        logger.debug('Query embedding generation failed (for auto anchor move)', {
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }
 
     // 3. 결과 포맷팅
     const formattedResults = filteredResults.map(result => ({
@@ -247,7 +333,23 @@ export class AnchorSearchService implements IAnchorSearchService {
    */
   private cosineSimilarity(a: number[], b: number[]): number {
     if (a.length !== b.length) {
-      throw new Error('벡터 차원이 일치하지 않습니다');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new VectorDimensionMismatchError(a.length, b.length);
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'cosineSimilarity',
+            vectorA_length: a.length,
+            vectorB_length: b.length
+          }
+        );
+      }
+      throw error;
     }
 
     let dotProduct = 0;
@@ -377,7 +479,23 @@ export class AnchorSearchService implements IAnchorSearchService {
     queryEmbedding?: number[]
   ): Promise<Array<{ memory_id: string; score: number; reason: string }>> {
     if (!this.db) {
-      throw new Error('Database is not set.');
+      // Phase 8.4: 커스텀 에러 클래스 사용
+      const error = new DatabaseValidationError('Database is not set.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'getAnchorWithEmbedding',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     try {
@@ -464,7 +582,22 @@ export class AnchorSearchService implements IAnchorSearchService {
     reason: string;
   }> {
     if (!this.db) {
-      throw new Error('Database is not set.');
+      const error = new Error('Database is not set.');
+      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
+      if (this.errorLoggingService) {
+        this.errorLoggingService.logError(
+          error,
+          ErrorSeverity.MEDIUM,
+          ErrorCategory.VALIDATION,
+          {
+            component: 'AnchorSearchService',
+            operation: 'getAnchorWithEmbedding',
+            agentId,
+            slot
+          }
+        );
+      }
+      throw error;
     }
 
     try {
