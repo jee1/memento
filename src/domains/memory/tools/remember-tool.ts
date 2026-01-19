@@ -98,7 +98,14 @@ export class RememberTool extends BaseTool {
           type: { 
             type: 'string', 
             enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'],
-            description: '기억 타입',
+            description: `기억 타입. 각 타입의 의미와 사용 시점:
+- 'working': 현재 처리 중인 정보 (48시간 TTL, 세션 종료 시 episodic으로 전환). 예: "현재 버그 수정 작업 진행 중"
+- 'episodic': 사건과 경험 기록 (90일 TTL, 핀 고정 시 무기한). 예: "오늘 회의에서 결정한 사항", "작업 완료 기록"
+- 'semantic': 지식과 사실 (무기한 보존). 예: "React Hooks 사용법", "에러 해결 방법", "코드 패턴"
+- 'procedural': 방법과 절차 (무기한 보존). 예: "PRD 기반 작업 목록 생성 절차", "배포 절차"
+- 'core': 에이전트 정체성, 규칙, 지침 (무기한 보존, key-value 형식, always_load 옵션 지원). 예: "나는 도움이 되는 어시스턴트다", "코딩 스타일 규칙"
+- 'vault': 불변 지식, 사실 (무기한 보존, key-value 형식, immutable 옵션 지원). 예: "빛의 속도는 299,792,458 m/s", "수학 공식"
+기본값: 'episodic'`,
             default: 'episodic'
           },
           // Core Memory / Knowledge Vault용 필드
