@@ -10,8 +10,8 @@
   [🇰🇷 한국어](README.md) | [🇺🇸 English](README.en.md)
 </div>
 
-> **🚀 혁신적인 AI Agent 기억 보조 시스템**  
-> Memento는 AI Agent가 사람처럼 기억을 저장, 검색, 관리할 수 있도록 도와주는 MCP(Model Context Protocol) 서버입니다.  
+> **🚀 Memento is a memory operating system for LLM agents.**  
+> Memento는 LLM이 '대화를 기억하는 척'이 아니라, 기억을 생성·분류·강화·망각하는 주체로 행동하게 만드는 MCP 기반 메모리 운영 시스템입니다.  
 > 작업기억, 일화기억, 의미기억, 절차기억을 모사하여 **진정한 장기 기억**을 구현합니다.
 
 ## 🎯 프로젝트 개요
