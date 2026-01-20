@@ -153,6 +153,7 @@
     "dist",
     "scripts",
     "prompts",
+    "config",
     "src/database/schema.sql",
     "README.md",
     "README.en.md",
