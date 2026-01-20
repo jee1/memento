@@ -4,7 +4,8 @@
  */
 
 import { join } from 'path';
-import { loadTOMLConfig, mergeWithDefaults, validateConfig, getCachedConfig, clearConfigCache } from './config-loader-utils.js';
+import { existsSync } from 'fs';
+import { loadTOMLConfig, mergeWithDefaults, validateConfig, getCachedConfig, clearConfigCache, findProjectRoot } from './config-loader-utils.js';
 
 export interface RankingWeights {
   alpha: number; // relevance 가중치
@@ -45,7 +46,20 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
  * @throws 설정 파일을 읽을 수 없거나 파싱에 실패한 경우
  */
 export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
-  const defaultPath = join(process.cwd(), 'config', 'ranking-weights.toml');
+  // 프로젝트 루트를 찾아서 config 파일 경로 구성
+  const projectRoot = findProjectRoot();
+  
+  // 여러 경로를 시도: config/ (소스), dist/config/ (빌드된 파일)
+  let defaultPath = join(projectRoot, 'config', 'ranking-weights.toml');
+  const distConfigPath = join(projectRoot, 'dist', 'config', 'ranking-weights.toml');
+  
+  // config/에 없으면 dist/config/ 시도
+  if (configPath === undefined) {
+    if (!existsSync(defaultPath) && existsSync(distConfigPath)) {
+      defaultPath = distConfigPath;
+    }
+  }
+  
   const path = configPath ?? defaultPath;
 
   try {

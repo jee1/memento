@@ -29,8 +29,56 @@
  */
 
 import { parse } from '@iarna/toml';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+/**
+ * 프로젝트 루트 디렉토리를 찾습니다.
+ * 
+ * 여러 경로를 시도하여 package.json이나 config 디렉토리가 있는 위치를 찾습니다.
+ * 
+ * @returns 프로젝트 루트 디렉토리 경로
+ */
+/**
+ * 프로젝트 루트 디렉토리를 찾습니다.
+ * 
+ * 여러 경로를 시도하여 package.json이나 config 디렉토리가 있는 위치를 찾습니다.
+ * 
+ * @returns 프로젝트 루트 디렉토리 경로
+ */
+export function findProjectRoot(): string {
+  // 현재 파일의 위치를 기준으로 시작
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  
+  // 가능한 프로젝트 루트 경로들 (현재 파일 위치에서 상위로 올라가며 확인)
+  // 중복 제거를 위해 Set 사용
+  const possibleRoots = new Set<string>([
+    // dist/shared/config/에서 실행 시: ../../../
+    join(__dirname, '../../..'),
+    // dist/server/에서 실행 시: ../../
+    join(__dirname, '../..'),
+    // process.cwd()도 시도
+    process.cwd()
+  ]);
+  
+  // 각 경로에서 package.json이나 config 디렉토리가 있는지 확인
+  for (const root of possibleRoots) {
+    const normalizedRoot = resolve(root);
+    const packageJsonPath = join(normalizedRoot, 'package.json');
+    const configDirPath = join(normalizedRoot, 'config');
+    const distConfigDirPath = join(normalizedRoot, 'dist', 'config');
+    
+    // package.json이 있거나, config 디렉토리가 있거나, dist/config 디렉토리가 있으면 프로젝트 루트로 인식
+    if (existsSync(packageJsonPath) || existsSync(configDirPath) || existsSync(distConfigDirPath)) {
+      return normalizedRoot;
+    }
+  }
+  
+  // 찾지 못하면 process.cwd() 반환 (fallback)
+  return resolve(process.cwd());
+}
 
 /**
  * 설정 값 검증 스키마
