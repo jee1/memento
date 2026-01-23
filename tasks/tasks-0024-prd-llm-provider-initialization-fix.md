@@ -110,19 +110,19 @@
   - [x] 2.11 [REFACTOR] 코드 리팩토링(중복 제거, 가독성 향상, 성능 최적화) 수행하되 모든 기존 테스트와 새로운 테스트가 계속 통과하는지 확인
 
 - [ ] 3.0 LLMBasedRelationExtractor 리팩토링
-  - [ ] 3.1 [RED] initializeClients()가 async로 변경되어 LLMClientInitializer.initialize()를 호출하는 것을 검증하는 테스트 작성
-  - [ ] 3.2 [GREEN] initializeClients() 메서드를 async로 변경하여 LLMClientInitializer.initialize()를 호출하도록 변경하여 테스트 통과
-  - [ ] 3.3 [RED] constructor에서 async initializeClients()를 사용할 수 있도록 초기화 로직을 조정하거나 초기화 지연 방식을 적용하는 것을 검증하는 테스트 작성
-  - [ ] 3.4 [GREEN] 초기화 로직을 조정하거나 초기화 지연 방식을 적용하여 테스트 통과
-  - [ ] 3.5 [RED] LLMClientInitializer 결과를 사용하여 openaiClient, geminiClient, preferredProvider를 설정하고 warnings를 logger.warn()으로 출력하는 것을 검증하는 테스트 작성 (로깅 표준 준수)
-  - [ ] 3.6 [GREEN] LLMClientInitializer의 결과를 사용하여 클라이언트를 설정하여 테스트 통과
-  - [ ] 3.7 [RED] determineProvider() 메서드가 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환하는 것을 검증하는 테스트 작성
-  - [ ] 3.8 [GREEN] determineProvider() 메서드 구현하여 테스트 통과
-  - [ ] 3.9 [RED] preferredProvider가 null이거나 클라이언트가 초기화되지 않았을 때 다른 사용 가능한 provider로 자동 전환하고, 모든 provider가 사용 불가능하면 null을 반환하는 것을 검증하는 테스트 작성
-  - [ ] 3.10 [GREEN] fallback 로직 구현하여 테스트 통과
-  - [ ] 3.11 [RED] extractWithLLM()에서 actualProvider가 null일 때 적절한 에러 처리와 함께 명확한 에러 메시지를 반환하는 것을 검증하는 테스트 작성
-  - [ ] 3.12 [GREEN] 에러 처리 로직 구현하여 테스트 통과
-  - [ ] 3.13 [REFACTOR] 코드 리팩토링(중복 제거, 가독성 향상, 성능 최적화) 수행하되 모든 기존 테스트와 새로운 테스트가 계속 통과하는지 확인
+  - [x] 3.1 [RED] initializeClients()가 async로 변경되어 LLMClientInitializer.initialize()를 호출하는 것을 검증하는 테스트 작성
+  - [x] 3.2 [GREEN] initializeClients() 메서드를 async로 변경하여 LLMClientInitializer.initialize()를 호출하도록 변경하여 테스트 통과
+  - [x] 3.3 [RED] constructor에서 async initializeClients()를 사용할 수 있도록 초기화 로직을 조정하거나 초기화 지연 방식을 적용하는 것을 검증하는 테스트 작성
+  - [x] 3.4 [GREEN] 초기화 로직을 조정하거나 초기화 지연 방식을 적용하여 테스트 통과
+  - [x] 3.5 [RED] LLMClientInitializer 결과를 사용하여 openaiClient, geminiClient, preferredProvider를 설정하고 warnings를 logger.warn()으로 출력하는 것을 검증하는 테스트 작성 (로깅 표준 준수)
+  - [x] 3.6 [GREEN] LLMClientInitializer의 결과를 사용하여 클라이언트를 설정하여 테스트 통과
+  - [x] 3.7 [RED] determineProvider() 메서드가 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환하는 것을 검증하는 테스트 작성
+  - [x] 3.8 [GREEN] determineProvider() 메서드 구현하여 테스트 통과
+  - [x] 3.9 [RED] preferredProvider가 null이거나 클라이언트가 초기화되지 않았을 때 다른 사용 가능한 provider로 자동 전환하고, 모든 provider가 사용 불가능하면 null을 반환하는 것을 검증하는 테스트 작성
+  - [x] 3.10 [GREEN] fallback 로직 구현하여 테스트 통과
+  - [x] 3.11 [RED] extractWithLLM()에서 actualProvider가 null일 때 적절한 에러 처리와 함께 명확한 에러 메시지를 반환하는 것을 검증하는 테스트 작성
+  - [x] 3.12 [GREEN] 에러 처리 로직 구현하여 테스트 통과
+  - [x] 3.13 [REFACTOR] 코드 리팩토링(중복 제거, 가독성 향상, 성능 최적화) 수행하되 모든 기존 테스트와 새로운 테스트가 계속 통과하는지 확인
 
 - [ ] 4.0 TripleExtractor 리팩토링
   - [ ] 4.1 [RED] initializeClients()가 LLMClientInitializer.initialize()를 호출하는 것을 검증하는 테스트 작성
