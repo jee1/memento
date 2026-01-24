@@ -482,7 +482,28 @@ export class BatchScheduler {
    * @returns 추가 성공 여부
    */
   public addJob(name: string, job: () => Promise<void>, priority: number = 10, retryCount: number = 0): boolean {
-    return this.addJobToQueue(name, job, priority, retryCount);
+    const added = this.addJobToQueue(name, job, priority, retryCount);
+    
+    // 작업이 추가되었고 스케줄러가 실행 중이면, 즉시 처리 시도
+    // (processQueue가 100ms마다 실행되지만, 즉시 실행도 시도)
+    if (added && this.isRunning && this.jobProcessorInterval) {
+      // 비동기로 즉시 처리 시도 (블로킹하지 않음)
+      setImmediate(() => {
+        if (this.jobQueue.isEmpty || this.jobQueue.runningCount >= this.config.maxConcurrentJobs) {
+          return;
+        }
+        
+        const nextJob = this.jobQueue.getNext();
+        if (nextJob && nextJob.name === name) {
+          // 등록한 작업이 다음 작업이면 즉시 실행
+          this.executeJobWithRetry(nextJob.name, nextJob.job, nextJob.priority, nextJob.retryCount ?? 0).catch(err => {
+            this.log(`Failed to execute job ${name} immediately`, { error: err }, 'error');
+          });
+        }
+      });
+    }
+    
+    return added;
   }
 
   /**

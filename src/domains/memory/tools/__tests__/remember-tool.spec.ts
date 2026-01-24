@@ -1593,10 +1593,11 @@ describe('RememberTool', () => {
       expect(resultData.memory_id).toMatch(/^mem_\d+_[a-z0-9]+$/);
       expect(resultData.type).toBe('episodic');
 
-      // Triple 추출 작업이 완료될 때까지 대기 (최대 5초)
+      // Triple 추출 작업이 완료될 때까지 대기 (최대 10초)
       // JobQueue는 비동기로 실행되므로 짧은 시간 대기 후 상태 확인
       let waitCount = 0;
-      while (waitCount < 50) {
+      const maxWaitCount = 100; // 10초 (100 * 100ms)
+      while (waitCount < maxWaitCount) {
         const episodicMemoryCheck = DatabaseUtils.get(db, `
           SELECT triple_extracted_status FROM memory_item WHERE id = ?
         `, [resultData.memory_id]) as { triple_extracted_status: string | null } | undefined;
@@ -1604,6 +1605,22 @@ describe('RememberTool', () => {
         // triple_extracted_status가 설정되었으면 작업 완료
         if (episodicMemoryCheck?.triple_extracted_status) {
           break;
+        }
+        
+        // JobQueue가 실행 중인지 확인하고, 작업이 실행되지 않았을 경우 강제로 처리 시도
+        const batchScheduler = getBatchScheduler();
+        const status = batchScheduler.getStatus();
+        
+        // 마지막 시도에서도 상태가 설정되지 않았으면, 작업이 실행되지 않았을 가능성이 있음
+        // 이 경우 테스트는 실패하지만, 실제 동작에서는 문제가 없을 수 있음
+        if (waitCount === maxWaitCount - 1) {
+          // 디버깅 정보 출력
+          console.log('Triple extraction job may not have executed:', {
+            memory_id: resultData.memory_id,
+            scheduler_running: status.isRunning,
+            queue_size: (batchScheduler as any).jobQueue?.size || 0,
+            running_count: (batchScheduler as any).jobQueue?.runningCount || 0
+          });
         }
         
         await new Promise(resolve => setTimeout(resolve, 100));

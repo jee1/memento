@@ -152,6 +152,7 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private geminiClient: GoogleGenerativeAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private readonly initializationPromise: Promise<void>;
+  private initializationCompleted = false;
   private readonly embeddingService: UnifiedEmbeddingService;
   private readonly cache: CacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
@@ -187,6 +188,10 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
         error: error instanceof Error ? error.message : String(error) 
       });
       this.preferredProvider = null;
+      this.openaiClient = null;
+      this.geminiClient = null;
+    }).finally(() => {
+      this.initializationCompleted = true;
     });
   }
 
@@ -221,11 +226,17 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
    * LLM 서비스 사용 가능 여부 확인
    */
   isAvailable(): boolean {
-    // Ollama는 비동기 초기화이므로 설정만 확인
-    if (mementoConfig.llmProvider === 'ollama') {
-      return true; // Ollama는 extractRelations에서 실제 연결 확인
+    if (this.preferredProvider === 'openai') {
+      return this.openaiClient !== null;
     }
-    return this.preferredProvider !== null;
+    if (this.preferredProvider === 'gemini') {
+      return this.geminiClient !== null;
+    }
+    if (this.preferredProvider === 'ollama') {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -1426,12 +1437,28 @@ ${memoryList}
     existingMemories: MemoryItem[],
     options?: ExtractOptions
   ): Promise<RelationCandidate[]> {
-    if (!this.isAvailable()) {
-      throw new Error('LLM 서비스가 사용 불가능합니다. API 키를 설정해주세요.');
+    const initializationWasPending = !this.initializationCompleted;
+    if (initializationWasPending && this.preferredProvider === null) {
+      throw new Error('LLM 서비스가 사용 불가능합니다');
+    }
+
+    if (this.initializationPromise && initializationWasPending) {
+      await this.initializationPromise;
     }
 
     if (existingMemories.length === 0) {
       return [];
+    }
+
+    const hasAvailableClient =
+      this.openaiClient !== null ||
+      this.geminiClient !== null ||
+      this.isOllamaAvailable();
+
+    if (!hasAvailableClient) {
+      throw new Error(
+        'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 GEMINI_API_KEY를 설정하거나 LLM_PROVIDER를 변경해주세요.'
+      );
     }
 
     // 캐시 확인

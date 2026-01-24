@@ -166,10 +166,10 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         
         // retry_failed 옵션에 따른 조건 추가
         if (retry_failed) {
-          // 실패한 항목 재시도: triple_extracted_status='failed' 포함
-          // skip_converted와 함께 사용 시 실패한 항목만 재시도
+          // 실패한 항목 재시도: failed 또는 미처리 항목 포함
+          // skip_converted=false이면 성공 항목도 포함되므로 조건을 추가하지 않음
           if (skip_converted) {
-            conditions.push("triple_extracted_status = 'failed'");
+            conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status = 'failed')");
           }
         } else {
           // retry_failed=false인 경우: 실패한 항목 제외
