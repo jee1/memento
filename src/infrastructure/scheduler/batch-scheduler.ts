@@ -493,13 +493,25 @@ export class BatchScheduler {
           return;
         }
         
-        const nextJob = this.jobQueue.getNext();
-        if (nextJob && nextJob.name === name) {
-          // 등록한 작업이 다음 작업이면 즉시 실행
-          this.executeJobWithRetry(nextJob.name, nextJob.job, nextJob.priority, nextJob.retryCount ?? 0).catch(err => {
-            this.log(`Failed to execute job ${name} immediately`, { error: err }, 'error');
-          });
+        const nextJob = this.jobQueue.peekNext();
+        if (!nextJob || nextJob.name !== name) {
+          return;
         }
+
+        const immediateJob = this.jobQueue.getNext();
+        if (!immediateJob) {
+          return;
+        }
+
+        // 등록한 작업이 다음 작업이면 즉시 실행
+        this.executeJobWithRetry(
+          immediateJob.name,
+          immediateJob.job,
+          immediateJob.priority,
+          immediateJob.retryCount ?? 0
+        ).catch(err => {
+          this.log(`Failed to execute job ${name} immediately`, { error: err }, 'error');
+        });
       });
     }
     

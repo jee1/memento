@@ -203,7 +203,7 @@ export class LLMClientInitializer {
     }
 
     try {
-      const client = new GoogleGenerativeAI({ apiKey: mementoConfig.geminiApiKey });
+      const client = new GoogleGenerativeAI(mementoConfig.geminiApiKey);
       result.initializedProviders.push('gemini');
       return client;
     } catch (error) {

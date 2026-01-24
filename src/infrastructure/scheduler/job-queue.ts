@@ -87,6 +87,22 @@ export class JobQueue {
   }
 
   /**
+   * 다음 작업 미리보기 (큐에서 제거하지 않음)
+   * 
+   * @returns 다음 작업 또는 undefined
+   */
+  peekNext(): QueuedJob | undefined {
+    if (this.queue.length === 0) {
+      return undefined;
+    }
+
+    // 우선순위 순으로 정렬
+    this.queue.sort((a, b) => a.priority - b.priority);
+
+    return this.queue[0];
+  }
+
+  /**
    * 실행 중인 작업으로 표시
    * 
    * @param name 작업 이름

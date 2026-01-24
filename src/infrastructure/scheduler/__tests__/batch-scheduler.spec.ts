@@ -1757,7 +1757,48 @@ describe('BatchScheduler', () => {
       cleanupTestDatabase(db);
     });
 
-    it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완료 후 한 번만 실행되어야 함', async () => {
+    
+    /**
+     * Given: 큐에 더 높은 우선순위 작업이 있음
+     * When: addJob 즉시 실행 분기가 동작함
+     * Then: 기존 작업이 큐에서 제거되지 않아야 함
+     */
+    it('즉시 실행 분기에서 다른 작업이 제거되지 않아야 함', async () => {
+      // Given: 큐에 더 높은 우선순위 작업이 있음
+      const testScheduler = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        healthCheckInterval: 200,
+        maxBatchSize: 100,
+        enableLogging: false,
+        maxConcurrentJobs: 1,
+        jobTimeout: 5000,
+        retryAttempts: 1,
+        retryDelay: 50
+      });
+
+      const schedulerAny = testScheduler as any;
+      schedulerAny.isRunning = true;
+      schedulerAny.jobProcessorInterval = true;
+
+      const highPriorityJob = async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      };
+      const immediateJob = async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      };
+
+      schedulerAny.jobQueue.add('high_priority_job', highPriorityJob, 1, 0);
+
+      // When: addJob 즉시 실행 분기가 동작함
+      testScheduler.addJob('immediate_job', immediateJob, 10, 0);
+      await new Promise(resolve => setImmediate(resolve));
+
+      // Then: 기존 작업이 큐에서 제거되지 않아야 함
+      expect(schedulerAny.jobQueue.isQueued('high_priority_job')).toBe(true);
+    });
+
+it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완료 후 한 번만 실행되어야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,

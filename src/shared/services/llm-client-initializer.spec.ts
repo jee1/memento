@@ -309,7 +309,7 @@ describe('LLMClientInitializer', () => {
 
       // Then: GoogleGenerativeAI 클라이언트가 생성되어야 함
       // 현재 구현에서는 Gemini 초기화 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
-      expect(MockGoogleGenerativeAI).toHaveBeenCalledWith({ apiKey: 'test-gemini-api-key' });
+      expect(MockGoogleGenerativeAI).toHaveBeenCalledWith('test-gemini-api-key');
       expect(result.geminiClient).not.toBeNull();
       expect(result.initializedProviders).toContain('gemini');
     });

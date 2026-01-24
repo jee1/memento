@@ -31,6 +31,7 @@ import { toDbRelationType } from '../../../shared/utils/relation-type-converter.
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { getBatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler.js';
+import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 
 /**
  * 기존 reflection_notes 조회 결과 타입
@@ -748,32 +749,6 @@ export class RememberTool extends BaseTool {
                 return;
               }
 
-              if (isTestEnvironment() && savedMemoryType === 'episodic' && enable_triple_extraction !== false) {
-                try {
-                  await DatabaseUtils.run(dbRef, `
-                    UPDATE memory_item SET
-                      triple_extracted = ?,
-                      triple_extracted_status = ?,
-                      triple_extraction_metadata = ?
-                    WHERE id = ? AND triple_extracted_status IS NULL
-                  `, [
-                    0,
-                    'failed',
-                    JSON.stringify({
-                      failureReason: 'test_env_pending',
-                      retry_count: 1,
-                      last_attempt: new Date().toISOString()
-                    }),
-                    savedMemoryId
-                  ]);
-                } catch (updateError) {
-                  this.logWarning('테스트 환경 초기 상태 업데이트 실패', {
-                    memory_id: savedMemoryId,
-                    error: updateError instanceof Error ? updateError.message : String(updateError)
-                  });
-                }
-              }
-              
               // 임베딩 생성 (embeddingService가 사용 가능한 경우에만)
               let embeddingResult = null;
               if (embeddingServiceRef?.isAvailable()) {
@@ -975,6 +950,26 @@ export class RememberTool extends BaseTool {
                       }
 
                       if (dbValid) {
+                        const statusResult = DatabaseUtils.run(dbRef, `
+                          UPDATE memory_item SET
+                            triple_extracted_status = ?,
+                            triple_extraction_metadata = ?
+                          WHERE id = ? AND triple_extracted_status IS NULL
+                        `, [
+                          'in_progress',
+                          JSON.stringify({
+                            started_at: new Date().toISOString()
+                          }),
+                          savedMemoryId
+                        ]);
+
+                        if (statusResult.changes === 0) {
+                          this.logInfo('Triple 추출 작업이 이미 진행 중이거나 완료되었습니다', {
+                            memory_id: savedMemoryId
+                          });
+                          return;
+                        }
+
                         // Triple 추출 서비스 초기화
                         const tripleExtractionService = new TripleExtractionService();
                         
@@ -998,9 +993,9 @@ export class RememberTool extends BaseTool {
                                 canonicalization: false,
                                 entityLinking: false
                               },
-                              failureReason: 'llm_api_error'
+                              failureReason: 'llm_api_error' as const
                             }
-                          };
+                          } satisfies TripleExtractionResult;
                         }
 
                         // Triple이 추출된 경우 Semantic Memory 생성/업데이트
@@ -1210,6 +1205,41 @@ export class RememberTool extends BaseTool {
                     return;
                   }
 
+                  // JobQueue에 작업 등록 전에 상태를 'in_progress'로 설정하여 중복 실행 방지
+                  // (작업이 실행되기 전에 폴백 타이머가 실행될 수 있으므로)
+                  try {
+                    if (DatabaseUtils.isOpen(dbRef)) {
+                      const preStatusResult = DatabaseUtils.run(dbRef, `
+                        UPDATE memory_item SET
+                          triple_extracted_status = ?,
+                          triple_extraction_metadata = ?
+                        WHERE id = ? AND triple_extracted_status IS NULL
+                      `, [
+                        'in_progress',
+                        JSON.stringify({
+                          started_at: new Date().toISOString(),
+                          queued: true
+                        }),
+                        savedMemoryId
+                      ]);
+                      
+                      if (preStatusResult.changes === 0) {
+                        // 이미 진행 중이거나 완료된 상태
+                        this.logInfo('Triple 추출 작업이 이미 진행 중이거나 완료되었습니다 (작업 등록 스킵)', {
+                          memory_id: savedMemoryId,
+                          job_name: jobName
+                        });
+                        return;
+                      }
+                    }
+                  } catch (preStatusError) {
+                    // 상태 설정 실패는 로그만 출력하고 계속 진행
+                    this.logWarning('Triple 추출 작업 상태 사전 설정 실패', {
+                      memory_id: savedMemoryId,
+                      error: preStatusError instanceof Error ? preStatusError.message : String(preStatusError)
+                    });
+                  }
+
                   // JobQueue에 작업 등록 (우선순위: 5, 중간 우선순위)
                   const added = batchScheduler.addJob(jobName, tripleExtractionJob, 5, 0);
                   if (added) {
@@ -1223,6 +1253,43 @@ export class RememberTool extends BaseTool {
                     // 2초 후에 한 번만 확인하여 작업이 실행되지 않았으면 직접 실행
                     setTimeout(async () => {
                       try {
+                        // 먼저 DB 상태를 확인하여 작업이 이미 실행 중인지 확인
+                        // (가장 신뢰할 수 있는 방법)
+                        if (DatabaseUtils.isOpen(dbRef)) {
+                          const statusCheck = DatabaseUtils.get(dbRef, `
+                            SELECT triple_extracted_status FROM memory_item WHERE id = ?
+                          `, [savedMemoryId]) as { triple_extracted_status: string | null } | undefined;
+                          
+                          const currentStatus = statusCheck?.triple_extracted_status;
+                          // in_progress/success/failed 상태이면 이미 실행 중이거나 완료된 상태
+                          if (currentStatus === 'in_progress' || currentStatus === 'success' || currentStatus === 'failed') {
+                            this.logInfo('Triple 추출 작업이 이미 진행 중이거나 완료되었습니다 (폴백 스킵)', {
+                              memory_id: savedMemoryId,
+                              job_name: jobName,
+                              current_status: currentStatus
+                            });
+                            return;
+                          }
+                        }
+
+                        // DB 상태 확인 후 JobQueue 상태도 확인
+                        const schedulerStatus = batchScheduler.getStatus();
+                        const jobQueue = (batchScheduler as any).jobQueue;
+                        const alreadyQueued = jobQueue?.isQueued?.(jobName);
+                        const alreadyRunning = jobQueue?.isRunning?.(jobName);
+
+                        // 작업이 큐에 등록되어 있거나 실행 중이면 폴백 스킵 (스케줄러 실행 상태와 무관)
+                        if (alreadyQueued || alreadyRunning) {
+                          this.logInfo('Triple 추출 작업이 큐에 존재하거나 실행 중입니다 (폴백 스킵)', {
+                            memory_id: savedMemoryId,
+                            job_name: jobName,
+                            scheduler_running: schedulerStatus.isRunning,
+                            already_queued: Boolean(alreadyQueued),
+                            already_running: Boolean(alreadyRunning)
+                          });
+                          return;
+                        }
+
                         if (!DatabaseUtils.isOpen(dbRef)) {
                           this.logWarning('데이터베이스 연결이 닫혀있어 Triple 추출 상태 확인을 건너뜁니다', {
                             memory_id: savedMemoryId,
@@ -1231,16 +1298,19 @@ export class RememberTool extends BaseTool {
                           return;
                         }
 
-                        // 상태가 설정되었는지 확인
+                        // 상태가 NULL이거나 예상치 못한 상태인 경우에만 폴백 실행
                         const statusCheck = DatabaseUtils.get(dbRef, `
                           SELECT triple_extracted_status FROM memory_item WHERE id = ?
                         `, [savedMemoryId]) as { triple_extracted_status: string | null } | undefined;
                         
-                        if (!statusCheck?.triple_extracted_status) {
+                        const currentStatus = statusCheck?.triple_extracted_status;
+                        // 상태가 없거나, in_progress/success/failed가 아닌 경우에만 폴백 실행
+                        if (!currentStatus || (currentStatus !== 'in_progress' && currentStatus !== 'success' && currentStatus !== 'failed')) {
                           // 작업이 실행되지 않았을 가능성이 있으므로, 직접 실행 시도
                           this.logWarning('Triple 추출 작업이 실행되지 않은 것으로 보입니다. 직접 실행을 시도합니다', {
                             memory_id: savedMemoryId,
-                            job_name: jobName
+                            job_name: jobName,
+                            current_status: currentStatus
                           });
                           
                           try {

@@ -19,7 +19,8 @@ export type TripleExtractionFailureReason =
   | 'no_triple'           // 트리플이 추출되지 않음
   | 'ambiguous_structure' // 구조가 모호함
   | 'llm_parse_fail'      // LLM 응답 파싱 실패
-  | 'llm_api_error';      // LLM API 호출 실패
+  | 'llm_api_error'       // LLM API 호출 실패
+  | 'llm_unavailable';    // LLM 서비스 사용 불가능 (초기화 실패 등)
 
 /**
  * Triple 추출 단계별 성공 여부
