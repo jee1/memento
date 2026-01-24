@@ -380,13 +380,6 @@ export class TripleExtractor implements ITripleExtractor {
    * @param requestedProvider 요청된 provider
    * @returns 사용 가능한 provider 또는 null
    */
-  /**
-   * Provider 결정
-   * 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환
-   * 
-   * @param requestedProvider 요청된 provider
-   * @returns 사용 가능한 provider 또는 null
-   */
   private determineProvider(
     requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
   ): 'openai' | 'gemini' | 'ollama' | null {
