@@ -14,6 +14,8 @@ import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-l
 import { logger } from '../../../../shared/utils/logger.js';
 import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
+import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
+import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 import type { ITripleExtractor } from './interfaces.js';
 import type { Triple, TripleExtractionOptions } from '../../../../shared/types/triple-extraction.js';
 
@@ -24,8 +26,10 @@ import type { Triple, TripleExtractionOptions } from '../../../../shared/types/t
 export class TripleExtractor implements ITripleExtractor {
   private openaiClient: OpenAI | null = null;
   private geminiClient: GoogleGenerativeAI | null = null;
-  private readonly preferredProvider: 'openai' | 'gemini' | 'ollama' | null;
+  private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
+  private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
   private readonly retryManager: RetryManager;
+  private initializationPromise: Promise<void> | null = null;
 
   // 기본 설정
   private readonly DEFAULT_TEMPERATURE = 0.3;
@@ -33,7 +37,7 @@ export class TripleExtractor implements ITripleExtractor {
   private readonly SYSTEM_MESSAGE = 'You are a knowledge graph extractor. Extract triples (subject, predicate, object) from observations and return JSON format only.';
 
   constructor() {
-    this.preferredProvider = this.initializeClients();
+    this.initializationPromise = this.initializeClients();
     const retryOptions = getRetryOptions();
     this.retryManager = new RetryManager({
       maxAttempts: retryOptions.external_api.maxAttempts,
@@ -59,36 +63,29 @@ export class TripleExtractor implements ITripleExtractor {
     rawResponse: string;
     provider: 'openai' | 'gemini' | 'ollama';
   }> {
+    // 초기화 완료 대기
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+
     // 프롬프트 템플릿 로드 및 렌더링
     const prompt = PromptTemplateLoader.loadAndRender('triple-extraction', {
       observation: text
     });
 
     // Provider 선택
-    const provider = options?.provider === 'auto' || !options?.provider
-      ? (this.preferredProvider || 'openai')
+    const requestedProvider = options?.provider === 'auto' || !options?.provider
+      ? 'auto'
       : options.provider;
+    const provider = this.determineProvider(requestedProvider);
 
-    let rawLLMOutput: string;
-    let actualProvider: 'openai' | 'gemini' | 'ollama';
+    if (!provider) {
+      throw new Error('사용 가능한 LLM Provider가 없습니다.');
+    }
 
     try {
-      switch (provider) {
-        case 'openai':
-          rawLLMOutput = await this.extractWithOpenAI(prompt, options);
-          actualProvider = 'openai';
-          break;
-        case 'gemini':
-          rawLLMOutput = await this.extractWithGemini(prompt, options);
-          actualProvider = 'gemini';
-          break;
-        case 'ollama':
-          rawLLMOutput = await this.extractWithOllama(prompt, options);
-          actualProvider = 'ollama';
-          break;
-        default:
-          throw new Error(`지원하지 않는 LLM Provider: ${provider}`);
-      }
+      // Provider에 따라 추출 수행
+      const rawLLMOutput = await this.extractWithProvider(provider, prompt, options);
 
       // JSON 파싱 및 Triple 추출
       const parseResult = this.parseLLMResponse(rawLLMOutput);
@@ -97,14 +94,14 @@ export class TripleExtractor implements ITripleExtractor {
         return {
           triples: [],
           rawResponse: rawLLMOutput,
-          provider: actualProvider
+          provider
         };
       }
 
       return {
         triples: parseResult.triples,
         rawResponse: rawLLMOutput,
-        provider: actualProvider
+        provider
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -113,6 +110,31 @@ export class TripleExtractor implements ITripleExtractor {
         provider
       });
       throw error;
+    }
+  }
+
+  /**
+   * Provider에 따라 LLM을 사용하여 Triple 추출
+   * 
+   * @param provider 사용할 provider
+   * @param prompt 프롬프트
+   * @param options 추출 옵션
+   * @returns LLM 응답 텍스트
+   */
+  private async extractWithProvider(
+    provider: 'openai' | 'gemini' | 'ollama',
+    prompt: string,
+    options?: TripleExtractionOptions
+  ): Promise<string> {
+    switch (provider) {
+      case 'openai':
+        return await this.extractWithOpenAI(prompt, options);
+      case 'gemini':
+        return await this.extractWithGemini(prompt, options);
+      case 'ollama':
+        return await this.extractWithOllama(prompt, options);
+      default:
+        throw new Error(`지원하지 않는 LLM Provider: ${provider}`);
     }
   }
 
@@ -321,41 +343,107 @@ export class TripleExtractor implements ITripleExtractor {
 
   /**
    * LLM 클라이언트 초기화
+   * LLMClientInitializer를 사용하여 클라이언트 초기화
    */
-  private initializeClients(): 'openai' | 'gemini' | 'ollama' | null {
-    const preferredProvider = mementoConfig.llmProvider || 'auto';
-    const initOpenAI = (): 'openai' | null => {
-      if (!mementoConfig.openaiApiKey) return null;
-      try {
-        this.openaiClient = new OpenAI({ apiKey: mementoConfig.openaiApiKey });
-        logger.info('TripleExtractor: OpenAI 클라이언트 초기화 완료');
-        return 'openai';
-      } catch (error) {
-        logger.warn('TripleExtractor: OpenAI 초기화 실패', {
-          error: error instanceof Error ? error.message : String(error)
-        });
-        return null;
-      }
-    };
-    const initGemini = (): 'gemini' | null => {
-      if (!mementoConfig.geminiApiKey) return null;
-      try {
-        this.geminiClient = new GoogleGenerativeAI(mementoConfig.geminiApiKey);
-        logger.info('TripleExtractor: Gemini 클라이언트 초기화 완료');
-        return 'gemini';
-      } catch (error) {
-        logger.warn('TripleExtractor: Gemini 초기화 실패', {
-          error: error instanceof Error ? error.message : String(error)
-        });
-        return null;
-      }
-    };
-    if (preferredProvider === 'openai') {
-      return initOpenAI() || initGemini();
-    } else if (preferredProvider === 'gemini') {
-      return initGemini() || initOpenAI();
+  private async initializeClients(): Promise<void> {
+    const initializer = new LLMClientInitializer();
+    const result: LLMClientInitializationResult = await initializer.initialize();
+    
+    // LLMClientInitializer 결과를 사용하여 클라이언트 설정
+    this.openaiClient = result.openaiClient;
+    this.geminiClient = result.geminiClient;
+    this.preferredProvider = result.preferredProvider;
+    this.initializedProviders = result.initializedProviders;
+    
+    // 경고 메시지 로깅
+    if (result.warnings.length > 0) {
+      result.warnings.forEach((warning) => {
+        logger.warn('LLM 초기화 경고', { warning });
+      });
+    }
+    
+    // 초기화 완료 로깅
+    if (result.preferredProvider) {
+      logger.info('TripleExtractor: LLM 클라이언트 초기화 완료', {
+        preferredProvider: result.preferredProvider,
+        initializedProviders: result.initializedProviders
+      });
     } else {
-      return initOpenAI() || initGemini();
+      logger.error('TripleExtractor: LLM 클라이언트 초기화 실패 - 모든 provider가 사용 불가능합니다');
+    }
+  }
+
+  /**
+   * Provider 결정
+   * 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환
+   * 
+   * @param requestedProvider 요청된 provider
+   * @returns 사용 가능한 provider 또는 null
+   */
+  /**
+   * Provider 결정
+   * 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환
+   * 
+   * @param requestedProvider 요청된 provider
+   * @returns 사용 가능한 provider 또는 null
+   */
+  private determineProvider(
+    requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
+  ): 'openai' | 'gemini' | 'ollama' | null {
+    // 'auto' 모드: 사용 가능한 첫 번째 provider 반환
+    if (requestedProvider === 'auto') {
+      if (this.openaiClient) return 'openai';
+      if (this.geminiClient) return 'gemini';
+      // Ollama는 연결 테스트가 필요하므로 여기서는 null 반환
+      // (실제 사용 시 extractWithOllama에서 처리)
+      return null;
+    }
+    
+    // 요청된 provider가 사용 가능한지 확인
+    if (this.isProviderAvailable(requestedProvider)) {
+      return requestedProvider;
+    }
+    
+    // Fallback 로직: 요청된 provider가 사용 불가능한 경우 대체 provider 시도
+    return this.getFallbackProvider(requestedProvider);
+  }
+
+  /**
+   * Provider 사용 가능 여부 확인
+   */
+  private isProviderAvailable(provider: 'openai' | 'gemini' | 'ollama'): boolean {
+    switch (provider) {
+      case 'openai':
+        return this.openaiClient !== null;
+      case 'gemini':
+        return this.geminiClient !== null;
+      case 'ollama':
+        return this.initializedProviders.includes('ollama');
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Fallback provider 반환
+   */
+  private getFallbackProvider(
+    requestedProvider: 'openai' | 'gemini' | 'ollama'
+  ): 'openai' | 'gemini' | 'ollama' | null {
+    switch (requestedProvider) {
+      case 'openai':
+        // OpenAI가 사용 불가능하면 Gemini로 fallback
+        return this.geminiClient ? 'gemini' : null;
+      case 'gemini':
+        // Gemini가 사용 불가능하면 OpenAI로 fallback
+        return this.openaiClient ? 'openai' : null;
+      case 'ollama':
+        // Ollama가 사용 불가능하면 OpenAI -> Gemini 순서로 fallback
+        if (this.openaiClient) return 'openai';
+        if (this.geminiClient) return 'gemini';
+        return null;
+      default:
+        return null;
     }
   }
 
