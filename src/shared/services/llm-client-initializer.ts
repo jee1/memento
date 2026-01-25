@@ -15,6 +15,9 @@ import { mementoConfig } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { getRawEnvValue } from '../config/environment.js';
 import type { LLMProvider } from '../types/index.js';
+import { RetryManager } from '../../infrastructure/scheduler/retry-manager.js';
+import type { RetryConfig } from '../../infrastructure/scheduler/retry-manager.js';
+import { getRetryOptions } from '../config/retry-options-loader.js';
 
 /**
  * LLM 클라이언트 초기화 결과
@@ -39,6 +42,21 @@ export interface LLMClientInitializationResult {
  * 실패 시 자동으로 fallback을 수행합니다.
  */
 export class LLMClientInitializer {
+  private readonly retryManager: RetryManager;
+
+  /**
+   * 생성자
+   * RetryManager를 초기화합니다.
+   */
+  constructor() {
+    const retryOptions = getRetryOptions();
+    const retryConfig: RetryConfig = {
+      ...retryOptions.external_api,
+      maxErrorCount: retryOptions.default.maxErrorCount
+    };
+    this.retryManager = new RetryManager(retryConfig);
+  }
+
   /**
    * LLM 클라이언트 초기화
    * 
@@ -232,6 +250,56 @@ export class LLMClientInitializer {
   }
 
   /**
+   * Ollama 응답 처리
+   * 
+   * @param response HTTP 응답 객체
+   * @param result 초기화 결과 객체
+   * @param selectedProvider 선택된 provider
+   * @param baseUrl Ollama base URL
+   */
+  private async handleOllamaResponse(
+    response: Response,
+    result: LLMClientInitializationResult,
+    selectedProvider: LLMProvider,
+    baseUrl: string
+  ): Promise<void> {
+    if (response.ok) {
+      // JSON 파싱 시도
+      try {
+        await response.json();
+        result.initializedProviders.push('ollama');
+      } catch (jsonError) {
+        const errorMessage = this.getErrorMessage(jsonError);
+        const warningMessage = `Ollama 응답 JSON 파싱 실패: ${errorMessage}`;
+        this.addWarning(
+          result,
+          warningMessage,
+          'Ollama 응답 JSON 파싱 중 오류가 발생했습니다.',
+          {
+            requestedProvider: selectedProvider,
+            baseUrl,
+            reason: errorMessage
+          }
+        );
+      }
+    } else {
+      // HTTP 비-200 응답 (4xx 에러는 재시도하지 않음)
+      const warningMessage = `Ollama 서버 연결 실패: HTTP ${response.status} ${response.statusText}`;
+      this.addWarning(
+        result,
+        warningMessage,
+        'Ollama 서버 연결 실패',
+        {
+          requestedProvider: selectedProvider,
+          baseUrl,
+          status: response.status,
+          statusText: response.statusText
+        }
+      );
+    }
+  }
+
+  /**
    * Ollama 연결 테스트
    * 
    * @param result 초기화 결과 객체
@@ -242,49 +310,43 @@ export class LLMClientInitializer {
     selectedProvider: LLMProvider
   ): Promise<void> {
     const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
+    const retryOptions = getRetryOptions();
 
     try {
-      const response = await fetch(`${baseUrl}/api/tags`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000) // 5초 타임아웃
-      });
+      const response = await this.retryManager.retry(
+        async () => {
+          const fetchResponse = await fetch(`${baseUrl}/api/tags`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(5000) // 5초 타임아웃
+          });
 
-      if (response.ok) {
-        // JSON 파싱 시도
-        try {
-          await response.json();
-          result.initializedProviders.push('ollama');
-        } catch (jsonError) {
-          const errorMessage = this.getErrorMessage(jsonError);
-          const warningMessage = `Ollama 응답 JSON 파싱 실패: ${errorMessage}`;
-          this.addWarning(
-            result,
-            warningMessage,
-            'Ollama 응답 JSON 파싱 중 오류가 발생했습니다.',
-            {
-              requestedProvider: selectedProvider,
-              baseUrl,
-              reason: errorMessage
-            }
-          );
-        }
-      } else {
-        // HTTP 비-200 응답
-        const warningMessage = `Ollama 서버 연결 실패: HTTP ${response.status} ${response.statusText}`;
-        this.addWarning(
-          result,
-          warningMessage,
-          'Ollama 서버 연결 실패',
-          {
-            requestedProvider: selectedProvider,
-            baseUrl,
-            status: response.status,
-            statusText: response.statusText
+          // HTTP 5xx 에러는 재시도, 4xx 에러는 재시도하지 않음
+          if (!fetchResponse.ok && fetchResponse.status >= 500) {
+            const errorText = await fetchResponse.text().catch(() => '');
+            throw new Error(`Ollama 서버 에러: HTTP ${fetchResponse.status} ${fetchResponse.statusText}${errorText ? ` - ${errorText}` : ''}`);
           }
-        );
-      }
+
+          return fetchResponse;
+        },
+        {
+          maxAttempts: retryOptions.external_api.maxAttempts,
+          baseDelay: retryOptions.external_api.baseDelay,
+          shouldRetry: (error: Error) => this.shouldRetryOllamaConnection(error),
+          onRetry: (error: Error, attempt: number, delay: number) => {
+            logger.warn('LLMClientInitializer: Ollama 연결 테스트 재시도', {
+              attempt,
+              delay,
+              error: error.message,
+              baseUrl,
+              requestedProvider: selectedProvider
+            });
+          }
+        }
+      );
+
+      await this.handleOllamaResponse(response, result, selectedProvider, baseUrl);
     } catch (error) {
-      // 타임아웃 또는 네트워크 에러
+      // 타임아웃 또는 네트워크 에러 (재시도 실패)
       const errorMessage = this.getErrorMessage(error);
       const warningMessage = this.getOllamaErrorMessage(errorMessage);
       
@@ -299,6 +361,28 @@ export class LLMClientInitializer {
         }
       );
     }
+  }
+
+  /**
+   * Ollama 연결 재시도 여부 결정
+   * 
+   * @param error 에러 객체
+   * @returns 재시도 여부
+   */
+  private shouldRetryOllamaConnection(error: Error): boolean {
+    const errorMessage = error.message.toLowerCase();
+    // 네트워크 에러 재시도
+    const isNetworkError = errorMessage.includes('fetch failed') ||
+                         errorMessage.includes('econnrefused') ||
+                         errorMessage.includes('enotfound');
+    // 타임아웃 에러 재시도
+    const isTimeout = errorMessage.includes('aborted') ||
+                     errorMessage.includes('timeout');
+    // HTTP 5xx 에러 재시도
+    const isServerError = errorMessage.includes('http 5') ||
+                        errorMessage.includes('server error');
+    
+    return isNetworkError || isTimeout || isServerError;
   }
 
   /**
