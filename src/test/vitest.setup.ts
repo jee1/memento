@@ -7,6 +7,8 @@
 import { vi } from 'vitest';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
 
+const isPrimaryVitestWorker = !process.env.VITEST_WORKER_ID || process.env.VITEST_WORKER_ID === '1';
+
 // @xenova/transformers 모킹 (onnxruntime-node 로딩 방지)
 // 모든 테스트에서 일관되게 모킹되도록 전역 설정
 vi.mock('@xenova/transformers', () => {
@@ -58,7 +60,7 @@ vi.mock('sharp', () => ({
 
 // CI/CD 통합을 위한 품질 측정 테스트 훅 (PRD FR-5.9)
 // CI 환경에서만 로드하여 테스트 성능에 영향 없도록 함
-if (process.env.CI) {
+if (process.env.CI && isPrimaryVitestWorker) {
   // 동적 import를 사용하여 CI 환경에서만 로드
   // vitest는 TypeScript를 직접 실행하지만, ES modules에서는 .js 확장자 사용
   import('./quality-measurement-hook.js').catch(error => {

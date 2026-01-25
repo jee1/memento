@@ -21,13 +21,15 @@ import path from 'path';
 let qualityService: QualityAssuranceService | null = null;
 let db: Database.Database | null = null;
 
+const isPrimaryVitestWorker = !process.env.VITEST_WORKER_ID || process.env.VITEST_WORKER_ID === '1';
+
 /**
  * 품질 측정 초기화
  */
 async function initializeQualityMeasurement(): Promise<void> {
   try {
     // CI 환경에서만 실행
-    if (!process.env.CI) {
+    if (!process.env.CI || !isPrimaryVitestWorker) {
       return;
     }
 
@@ -72,7 +74,7 @@ async function initializeQualityMeasurement(): Promise<void> {
 async function runQualityMeasurement(): Promise<void> {
   try {
     // CI 환경에서만 실행
-    if (!process.env.CI || !qualityService || !db) {
+    if (!process.env.CI || !isPrimaryVitestWorker || !qualityService || !db) {
       return;
     }
 
@@ -174,7 +176,7 @@ async function runQualityMeasurement(): Promise<void> {
 }
 
 // 초기화 및 후크 등록
-if (process.env.CI) {
+if (process.env.CI && isPrimaryVitestWorker) {
   // 초기화는 비동기이므로 즉시 실행
   initializeQualityMeasurement().catch(error => {
     logger.error('CI 품질 측정 초기화 실패', {
@@ -183,7 +185,8 @@ if (process.env.CI) {
     });
     // 초기화 실패 시 콘솔에도 출력
     console.error('\n⚠️ CI 품질 측정 초기화 실패 (빌드는 계속 진행)');
-    console.error(error instanceof Error ? error.message : String(error));
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: PIIMasker.mask(String(error)).masked, name: 'Error' };
+    console.error(maskedError.message);
   });
 
   // 테스트 완료 후 품질 측정 실행
