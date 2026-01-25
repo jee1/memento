@@ -183,6 +183,12 @@ export class LLMClientInitializer {
    * @param result 초기화 결과 객체
    * @param selectedProvider 선택된 provider
    * @returns Gemini 클라이언트 인스턴스 또는 null
+   * 
+   * @note
+   * - `@google/generative-ai` 라이브러리를 사용합니다 (LLM completion용)
+   * - 생성자에 API 키를 직접 전달하는 방식을 사용합니다: `new GoogleGenerativeAI(apiKey)`
+   * - 참고: `gemini-embedding-service.ts`는 `@google/genai`를 사용하며 객체 전달 방식을 사용합니다
+   * - 향후 `@google/genai`로 마이그레이션 검토 필요 (deprecated 예정: 2025-08-31)
    */
   private initializeGemini(
     result: LLMClientInitializationResult,
@@ -202,8 +208,11 @@ export class LLMClientInitializer {
       return null;
     }
 
+    // 이 시점에서 geminiApiKey는 string 타입이 보장됨
+    const apiKey: string = mementoConfig.geminiApiKey;
+
     try {
-      const client = new GoogleGenerativeAI(mementoConfig.geminiApiKey);
+      const client = new GoogleGenerativeAI(apiKey);
       result.initializedProviders.push('gemini');
       return client;
     } catch (error) {
