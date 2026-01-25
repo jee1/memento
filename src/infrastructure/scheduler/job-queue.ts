@@ -35,6 +35,10 @@ export class JobQueue {
   /**
    * 큐에 작업 추가 (중복 방지 포함)
    * 
+   * Race condition 방지를 위해 double-check pattern 적용
+   * - 실행 중인 작업이면 큐에 추가하기 전에 다시 한 번 확인
+   * - 큐에 추가 후 즉시 중복 체크하여 중복이면 제거
+   * 
    * @param name 작업 이름
    * @param job 실행할 작업 함수
    * @param priority 우선순위 (낮을수록 높은 우선순위)
@@ -47,19 +51,31 @@ export class JobQueue {
       return false;
     }
 
-    // 실행 중인 작업이면 큐에 추가하지 않음
+    // 실행 중인 작업이면 큐에 추가 (완료 후 실행되도록)
     if (this.runningJobs.has(name)) {
-      // 큐에 동일 이름의 잡이 이미 있는지 확인
+      // 첫 번째 체크: 큐에 이미 있는지 확인
       const alreadyQueued = this.queue.some(j => j.name === name);
       if (alreadyQueued) {
         return false;
       }
-      // 큐에 없으면 추가 (완료 후 실행되도록)
+      
+      // 큐에 추가
       this.queue.push({ name, job, priority, retryCount });
+      
+      // 두 번째 체크: 추가 후 다시 확인하여 중복이면 제거 (race condition 방지)
+      // 큐에서 동일 이름의 작업이 여러 개인지 확인 (방금 추가한 것 제외)
+      const duplicateCount = this.queue.filter(j => j.name === name).length;
+      if (duplicateCount > 1) {
+        // 중복 항목 제거 (나중에 추가된 것 제거, 즉 마지막 항목 제거)
+        const lastIndex = this.queue.length - 1;
+        this.queue.splice(lastIndex, 1);
+        return false;
+      }
+      
       return true;
     }
 
-    // 큐에 동일 이름의 잡이 이미 있는지 확인
+    // 실행 중이 아닌 경우: 큐에 동일 이름의 잡이 이미 있는지 확인
     const alreadyQueued = this.queue.some(j => j.name === name);
     if (alreadyQueued) {
       return false;
@@ -84,6 +100,22 @@ export class JobQueue {
     this.queue.sort((a, b) => a.priority - b.priority);
     
     return this.queue.shift();
+  }
+
+  /**
+   * 다음 작업 미리보기 (큐에서 제거하지 않음)
+   * 
+   * @returns 다음 작업 또는 undefined
+   */
+  peekNext(): QueuedJob | undefined {
+    if (this.queue.length === 0) {
+      return undefined;
+    }
+
+    // 우선순위 순으로 정렬
+    this.queue.sort((a, b) => a.priority - b.priority);
+
+    return this.queue[0];
   }
 
   /**

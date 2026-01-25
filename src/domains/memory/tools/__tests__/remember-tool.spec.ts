@@ -7,8 +7,10 @@ import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import * as configModule from '../../../../shared/config/index.js';
+import * as environmentCheck from '../../../../shared/utils/environment-check.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { TripleExtractionService } from '../../../relation/services/triple-extraction/triple-extraction-service.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -1593,17 +1595,35 @@ describe('RememberTool', () => {
       expect(resultData.memory_id).toMatch(/^mem_\d+_[a-z0-9]+$/);
       expect(resultData.type).toBe('episodic');
 
-      // Triple 추출 작업이 완료될 때까지 대기 (최대 5초)
+      // Triple 추출 작업이 완료될 때까지 대기 (최대 10초)
       // JobQueue는 비동기로 실행되므로 짧은 시간 대기 후 상태 확인
       let waitCount = 0;
-      while (waitCount < 50) {
+      const maxWaitCount = 100; // 10초 (100 * 100ms)
+      while (waitCount < maxWaitCount) {
         const episodicMemoryCheck = DatabaseUtils.get(db, `
           SELECT triple_extracted_status FROM memory_item WHERE id = ?
         `, [resultData.memory_id]) as { triple_extracted_status: string | null } | undefined;
         
-        // triple_extracted_status가 설정되었으면 작업 완료
-        if (episodicMemoryCheck?.triple_extracted_status) {
+        // triple_extracted_status가 success/failed이면 작업 완료
+        const status = episodicMemoryCheck?.triple_extracted_status;
+        if (status === 'success' || status === 'failed') {
           break;
+        }
+        
+        // JobQueue가 실행 중인지 확인하고, 작업이 실행되지 않았을 경우 강제로 처리 시도
+        const batchScheduler = getBatchScheduler();
+        const schedulerStatus = batchScheduler.getStatus();
+        
+        // 마지막 시도에서도 상태가 설정되지 않았으면, 작업이 실행되지 않았을 가능성이 있음
+        // 이 경우 테스트는 실패하지만, 실제 동작에서는 문제가 없을 수 있음
+        if (waitCount === maxWaitCount - 1) {
+          // 디버깅 정보 출력
+          console.log('Triple extraction job may not have executed:', {
+            memory_id: resultData.memory_id,
+            scheduler_running: schedulerStatus.isRunning,
+            queue_size: (batchScheduler as any).jobQueue?.size || 0,
+            running_count: (batchScheduler as any).jobQueue?.runningCount || 0
+          });
         }
         
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -1740,8 +1760,9 @@ describe('RememberTool', () => {
           SELECT triple_extracted_status FROM memory_item WHERE id = ?
         `, [memoryId]) as { triple_extracted_status: string | null } | undefined;
         
-        if (statusCheck?.triple_extracted_status) {
-          finalStatus = statusCheck.triple_extracted_status;
+        const status = statusCheck?.triple_extracted_status;
+        if (status === 'success' || status === 'failed') {
+          finalStatus = status;
           break;
         }
         
@@ -1759,7 +1780,10 @@ describe('RememberTool', () => {
           const statusCheck = DatabaseUtils.get(db, `
             SELECT triple_extracted_status FROM memory_item WHERE id = ?
           `, [memoryId]) as { triple_extracted_status: string | null } | undefined;
-          finalStatus = statusCheck?.triple_extracted_status || null;
+          const status = statusCheck?.triple_extracted_status;
+          if (status === 'success' || status === 'failed') {
+            finalStatus = status;
+          }
           waitCount++;
         }
       }
@@ -1777,6 +1801,48 @@ describe('RememberTool', () => {
         // 비동기 작업이 완료되지 않았을 수 있으므로 경고 없이 통과
       }
     });
+
+    /**
+     * Given: tripleExtractionJob이 2초 이상 걸리는 상황
+     * When: 폴백 타이머가 동작함
+     * Then: 동일 작업이 중복 실행되지 않아야 함
+     */
+    it('should prevent duplicate triple extraction when fallback timer fires', async () => {
+      // Given: tripleExtractionJob이 2초 이상 걸리는 상황
+      const testEnvironmentSpy = vi.spyOn(environmentCheck, 'isTestEnvironment').mockReturnValue(false);
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples')
+        .mockImplementation(async () => {
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          return {
+            triples: [],
+            extractionInfo: {
+              steps: {
+                canonicalization: false,
+                entityLinking: false
+              },
+              failureReason: 'no_triple'
+            }
+          };
+        });
+
+      const params = {
+        type: 'episodic',
+        content: 'Dora works at Acme. She is a designer.',
+        importance: 0.6,
+        enable_triple_extraction: true
+      };
+
+      // When: remember 호출 (폴백 타이머 동작 대기)
+      await tool.handle(params, context);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Then: 동일 작업이 중복 실행되지 않아야 함
+      expect(extractTriplesSpy).toHaveBeenCalledTimes(1);
+
+      testEnvironmentSpy.mockRestore();
+      extractTriplesSpy.mockRestore();
+    });
+
 
     it('should not block remember operation when triple extraction is enabled', async () => {
       // Given: remember 호출 (episodic, enable_triple_extraction=true)

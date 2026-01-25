@@ -21,25 +21,50 @@ import path from 'path';
 let qualityService: QualityAssuranceService | null = null;
 let db: Database.Database | null = null;
 
+const isPrimaryVitestWorker = !process.env.VITEST_WORKER_ID || process.env.VITEST_WORKER_ID === '1';
+
 /**
  * 품질 측정 초기화
  */
 async function initializeQualityMeasurement(): Promise<void> {
   try {
     // CI 환경에서만 실행
-    if (!process.env.CI) {
+    if (!process.env.CI || !isPrimaryVitestWorker) {
       return;
     }
 
     // 데이터베이스 초기화
     db = await initializeDatabase();
+    
+    // 마이그레이션이 제대로 실행되었는지 확인: quality_thresholds 테이블 존재 여부 확인
+    const tableExists = db.prepare(`
+      SELECT name FROM sqlite_master 
+      WHERE type='table' AND name='quality_thresholds'
+    `).get() as { name: string } | undefined;
+
+    if (!tableExists) {
+      const errorMessage = 'quality_thresholds 테이블이 생성되지 않았습니다. 마이그레이션이 제대로 실행되었는지 확인하세요.';
+      logger.error('CI 품질 측정 초기화 실패: 필수 테이블 누락', {
+        error: errorMessage,
+        table: 'quality_thresholds'
+      });
+      console.error(`\n❌ ${errorMessage}`);
+      console.error('마이그레이션 상태를 확인하려면: npm run db:check-migration');
+      throw new Error(errorMessage);
+    }
+
     qualityService = new QualityAssuranceService(db);
 
-    logger.info('CI 품질 측정 초기화 완료');
+    logger.info('CI 품질 측정 초기화 완료', {
+      tables_verified: ['quality_thresholds']
+    });
   } catch (error) {
     logger.error('CI 품질 측정 초기화 실패', {
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     });
+    // 초기화 실패 시 에러를 다시 던져서 호출자가 처리할 수 있도록 함
+    throw error;
   }
 }
 
@@ -49,7 +74,7 @@ async function initializeQualityMeasurement(): Promise<void> {
 async function runQualityMeasurement(): Promise<void> {
   try {
     // CI 환경에서만 실행
-    if (!process.env.CI || !qualityService || !db) {
+    if (!process.env.CI || !isPrimaryVitestWorker || !qualityService || !db) {
       return;
     }
 
@@ -151,12 +176,17 @@ async function runQualityMeasurement(): Promise<void> {
 }
 
 // 초기화 및 후크 등록
-if (process.env.CI) {
+if (process.env.CI && isPrimaryVitestWorker) {
   // 초기화는 비동기이므로 즉시 실행
   initializeQualityMeasurement().catch(error => {
     logger.error('CI 품질 측정 초기화 실패', {
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     });
+    // 초기화 실패 시 콘솔에도 출력
+    console.error('\n⚠️ CI 품질 측정 초기화 실패 (빌드는 계속 진행)');
+    const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: PIIMasker.mask(String(error)).masked, name: 'Error' };
+    console.error(maskedError.message);
   });
 
   // 테스트 완료 후 품질 측정 실행

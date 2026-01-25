@@ -34,6 +34,8 @@ import type {
 import { logger } from '../../../../shared/utils/logger.js';
 import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
+import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
+import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 
 /**
  * 토큰 버킷 Rate Limiter
@@ -105,7 +107,8 @@ interface LLMCostMetrics {
 export class TripleExtractionService {
   private openaiClient: OpenAI | null = null;
   private geminiClient: GoogleGenerativeAI | null = null;
-  private readonly preferredProvider: 'openai' | 'gemini' | 'ollama' | null;
+  private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
+  private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
   private readonly cache: TripleCacheService; // PRD 6.11: Triple 추출 결과 캐싱 구현
   private readonly rateLimiter: TokenBucketRateLimiter;
   private readonly costMetrics: LLMCostMetrics;
@@ -115,6 +118,7 @@ export class TripleExtractionService {
   private readonly normalizer: TripleNormalizer;
   private readonly statistics: TripleExtractionStatisticsService; // PRD 8.1: Triple 추출 통계 수집
   private readonly retryManager: RetryManager;
+  private initializationPromise: Promise<void> | null = null;
 
   // 기본 설정
   private readonly DEFAULT_TEMPERATURE = 0.3;
@@ -128,7 +132,6 @@ export class TripleExtractionService {
   private readonly SUCCESS_SAMPLING_RATE = 0.1; // 성공 케이스 10% 샘플링
 
   constructor() {
-    this.preferredProvider = this.initializeClients();
     // PRD 6.11: Triple 추출 결과 캐싱 구현
     // PRD 6.12: 캐시 키 생성 로직 구현 (content_hash 기반)
     // PRD 6.13: 캐시 TTL 기반 자동 무효화 구현
@@ -156,62 +159,122 @@ export class TripleExtractionService {
       baseDelay: retryOptions.external_api.baseDelay,
       maxErrorCount: retryOptions.default.maxErrorCount
     });
+    
+    // 비동기 초기화 시작 (constructor에서 Promise 저장)
+    this.initializationPromise = this.initializeClients();
   }
 
   /**
    * LLM 클라이언트 초기화
-   * 환경 변수 LLM_PROVIDER에 따라 프로바이더 선택
+   * LLMClientInitializer를 사용하여 클라이언트 초기화
    */
-  private initializeClients(): 'openai' | 'gemini' | 'ollama' | null {
-    const preferredProvider = mementoConfig.llmProvider || 'auto';
-    
-    const initOpenAI = (): 'openai' | null => {
-      if (!mementoConfig.openaiApiKey) {
-        return null;
-      }
-      try {
-        this.openaiClient = new OpenAI({ apiKey: mementoConfig.openaiApiKey });
-        logger.info('TripleExtractionService: OpenAI 클라이언트 초기화 완료');
-        return 'openai';
-      } catch (error) {
-        logger.warn('TripleExtractionService: OpenAI 초기화 실패', { 
-          error: error instanceof Error ? error.message : String(error) 
+  private async initializeClients(): Promise<void> {
+    try {
+      const initializer = new LLMClientInitializer();
+      const result: LLMClientInitializationResult = await initializer.initialize();
+      
+      // LLMClientInitializer 결과를 사용하여 클라이언트 설정
+      this.openaiClient = result.openaiClient;
+      this.geminiClient = result.geminiClient;
+      this.preferredProvider = result.preferredProvider;
+      this.initializedProviders = result.initializedProviders;
+      
+      // 경고 메시지 로깅
+      if (result.warnings.length > 0) {
+        result.warnings.forEach((warning) => {
+          logger.warn('LLM 초기화 경고', { warning });
         });
-        return null;
       }
-    };
-
-    const initGemini = (): 'gemini' | null => {
-      if (!mementoConfig.geminiApiKey) {
-        return null;
-      }
-      try {
-        this.geminiClient = new GoogleGenerativeAI(mementoConfig.geminiApiKey);
-        logger.info('TripleExtractionService: Gemini 클라이언트 초기화 완료');
-        return 'gemini';
-      } catch (error) {
-        logger.warn('TripleExtractionService: Gemini 초기화 실패', { 
-          error: error instanceof Error ? error.message : String(error) 
+      
+      // 초기화 완료 로깅
+      if (result.preferredProvider) {
+        logger.info('TripleExtractionService: LLM 클라이언트 초기화 완료', {
+          preferredProvider: result.preferredProvider,
+          initializedProviders: result.initializedProviders
         });
-        return null;
+      } else {
+        logger.error('TripleExtractionService: LLM 클라이언트 초기화 실패 - 모든 provider가 사용 불가능합니다');
       }
-    };
-
-    // 프로바이더 선택 로직
-    if (preferredProvider === 'openai') {
-      const result = initOpenAI();
-      if (result) return result;
-      return initGemini();
-    } else if (preferredProvider === 'gemini') {
-      const result = initGemini();
-      if (result) return result;
-      return initOpenAI();
-    } else {
-      // 'auto' 또는 'ollama': OpenAI -> Gemini 순서
-      const result = initOpenAI();
-      if (result) return result;
-      return initGemini();
+    } catch (error) {
+      logger.error('TripleExtractionService: LLM 클라이언트 초기화 실패', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      this.openaiClient = null;
+      this.geminiClient = null;
+      this.preferredProvider = null;
+      this.initializedProviders = [];
     }
+  }
+  
+  /**
+   * 초기화 완료 대기
+   * 비동기 초기화가 완료될 때까지 대기
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initializationPromise) {
+      try {
+        await this.initializationPromise;
+      } catch (error) {
+        logger.error('TripleExtractionService: 초기화 대기 실패', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      } finally {
+        this.initializationPromise = null; // 한 번만 대기
+      }
+    }
+  }
+  
+  /**
+   * Provider 결정
+   * 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환
+   * 
+   * @param requestedProvider 요청된 provider
+   * @returns 사용 가능한 provider 또는 null
+   */
+  private determineProvider(
+    requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
+  ): 'openai' | 'gemini' | 'ollama' | null {
+    // 'auto' 모드일 때 사용 가능한 첫 번째 provider 반환
+    if (requestedProvider === 'auto') {
+      if (this.openaiClient) return 'openai';
+      if (this.geminiClient) return 'gemini';
+      // Ollama는 연결 테스트가 필요하므로 여기서는 null 반환
+      // (실제 사용 시 extractWithOllama에서 처리)
+      return null;
+    }
+    
+    // 요청된 provider가 사용 가능한지 확인
+    if (requestedProvider === 'openai' && this.openaiClient) {
+      return 'openai';
+    }
+    if (requestedProvider === 'gemini' && this.geminiClient) {
+      return 'gemini';
+    }
+    if (requestedProvider === 'ollama') {
+      // Ollama는 initializedProviders에 포함되어 있어야 사용 가능
+      // (LLMClientInitializer에서 이미 연결 테스트를 수행했으므로)
+      if (this.initializedProviders.includes('ollama')) {
+        return 'ollama';
+      }
+      // ollama가 초기화되지 않았으면 fallback
+      // (아래 fallback 로직으로 이동)
+    }
+    
+    // 요청된 provider가 사용 불가능한 경우 fallback
+    if (requestedProvider === 'openai') {
+      // OpenAI가 사용 불가능하면 Gemini로 fallback
+      if (this.geminiClient) return 'gemini';
+    } else if (requestedProvider === 'gemini') {
+      // Gemini가 사용 불가능하면 OpenAI로 fallback
+      if (this.openaiClient) return 'openai';
+    } else if (requestedProvider === 'ollama') {
+      // Ollama가 사용 불가능하면 OpenAI -> Gemini 순서로 fallback
+      if (this.openaiClient) return 'openai';
+      if (this.geminiClient) return 'gemini';
+    }
+    
+    // 모든 provider가 사용 불가능한 경우 null 반환
+    return null;
   }
 
   /**
@@ -234,43 +297,73 @@ export class TripleExtractionService {
     options: TripleExtractionOptions = {},
     memoryId?: string
   ): Promise<TripleExtractionResult> {
-    if (!observation || observation.trim().length === 0) {
+    // 초기화 완료 대기
+    await this.ensureInitialized();
+
+    const normalizedObservation = observation?.trim() ?? '';
+
+    if (!normalizedObservation) {
       const result = this.createFailureResult('no_triple', 'Observation이 비어있습니다.');
+      const normalizedResult = this.normalizeExtractionResult(result);
       // 실패 케이스는 항상 로깅
-      this.logExtractionResult(result, memoryId, observation, 'Observation이 비어있습니다.').catch(err => {
+      this.logExtractionResult(
+        normalizedResult,
+        memoryId,
+        normalizedObservation,
+        'Observation이 비어있습니다.'
+      ).catch(err => {
         logger.error('TripleExtractionService: 로깅 실패', { error: err });
       });
-      return result;
+      return normalizedResult;
     }
 
     // PRD 6.14: TripleExtractionService에 캐싱 통합
     // 캐시 히트 시 LLM 호출 생략
     const extractionStartTime = Date.now();
-    const cached = this.cache.get(observation);
+    const cached = this.cache.get(normalizedObservation);
     if (cached) {
+      const normalizedCached = this.normalizeExtractionResult(cached);
       logger.debug('TripleExtractionService: 캐시 히트', {
-        contentLength: observation.length,
-        tripleCount: cached.triples.length
+        contentLength: normalizedObservation.length,
+        tripleCount: normalizedCached.triples.length
       });
       
       // PRD 8.1: Triple 추출 통계 수집 - 캐시 히트 기록
       const extractionTime = Date.now() - extractionStartTime;
-      this.statistics.recordExtraction(cached, extractionTime, true, 0, 0, 0);
+      this.statistics.recordExtraction(normalizedCached, extractionTime, true, 0, 0, 0);
       
-      return cached;
+      return normalizedCached;
     }
 
-    // Rate limit 확인
-    await this.rateLimiter.consume();
+    if (
+      mementoConfig.nodeEnv === 'test' &&
+      process.env.MEMENTO_ALLOW_LLM_IN_TESTS !== 'true'
+    ) {
+      const errorMessage =
+        'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 GEMINI_API_KEY를 설정하거나 LLM_PROVIDER를 변경해주세요.';
+      const result = this.createFailureResult('llm_unavailable', errorMessage);
+      const normalizedResult = this.normalizeExtractionResult(result);
+      this.logExtractionResult(normalizedResult, memoryId, normalizedObservation, errorMessage).catch(err => {
+        logger.error('TripleExtractionService: 로깅 실패', { error: err });
+      });
+      return normalizedResult;
+    }
+
 
     try {
       const provider = options.provider || this.preferredProvider || 'auto';
-      const { result, rawLLMOutput } = await this.extractWithLLM(observation, provider, options);
+      const { result, rawLLMOutput } = await this.extractWithLLM(
+        normalizedObservation,
+        provider,
+        options
+      );
+      
+      const normalizedResult = this.normalizeExtractionResult(result);
       
       // PRD 6.14: TripleExtractionService에 캐싱 통합
       // 성공한 Triple 추출 결과만 캐시에 저장
       // TripleCacheService.set() 내부에서 triples.length > 0 체크
-      this.cache.set(observation, result);
+      this.cache.set(normalizedObservation, normalizedResult);
       
       // PRD 8.1: Triple 추출 통계 수집
       const extractionTime = Date.now() - extractionStartTime;
@@ -279,14 +372,14 @@ export class TripleExtractionService {
       const llmCalls = 1; // 이번 호출
       const tokens = costMetrics.totalTokens; // 누적 토큰 (추정)
       const cost = costMetrics.totalCost; // 누적 비용 (추정)
-      this.statistics.recordExtraction(result, extractionTime, false, llmCalls, tokens, cost);
+      this.statistics.recordExtraction(normalizedResult, extractionTime, false, llmCalls, tokens, cost);
       
       // rawLLMOutput 저장 정책 적용 (비동기, 블로킹하지 않음)
-      this.logExtractionResult(result, memoryId, observation, rawLLMOutput).catch(err => {
+      this.logExtractionResult(normalizedResult, memoryId, normalizedObservation, rawLLMOutput).catch(err => {
         logger.error('TripleExtractionService: 로깅 실패', { error: err });
       });
       
-      return result;
+      return normalizedResult;
     } catch (error) {
       // 에러 타입 분류
       const errorType = this.classifyErrorType(error);
@@ -296,7 +389,7 @@ export class TripleExtractionService {
       logger.error('TripleExtractionService: Triple 추출 실패', {
         error: errorMessage,
         errorType,
-        observation: observation.substring(0, 100), // 로그용 일부만
+        observation: normalizedObservation.substring(0, 100), // 로그용 일부만
         retryable: errorType === 'network' || errorType === 'rate_limit' || errorType === 'timeout',
         // API 키 오류는 재시도 불가 (즉시 실패)
         immediateFailure: errorType === 'api_key'
@@ -306,16 +399,17 @@ export class TripleExtractionService {
       // 에러 타입에 따라 더 구체적인 실패 사유 제공
       const failureReason: TripleExtractionFailureReason = 'llm_api_error';
       const result = this.createFailureResult(failureReason, errorMessage);
+      const normalizedResult = this.normalizeExtractionResult(result);
       
       // 실패 케이스는 항상 로깅
       // 에러가 발생해도 Episodic Memory는 정상 저장되도록 보장 (remember tool에서 처리)
-      this.logExtractionResult(result, memoryId, observation, errorMessage).catch(err => {
+      this.logExtractionResult(normalizedResult, memoryId, normalizedObservation, errorMessage).catch(err => {
         logger.error('TripleExtractionService: 로깅 실패', { error: err });
       });
       
       // 항상 TripleExtractionResult 반환 보장
       // 에러가 발생해도 메인 플로우는 계속 진행
-      return result;
+      return normalizedResult;
     }
   }
 
@@ -332,15 +426,34 @@ export class TripleExtractionService {
     provider: 'openai' | 'gemini' | 'ollama' | 'auto',
     options: TripleExtractionOptions
   ): Promise<{ result: TripleExtractionResult; rawLLMOutput: string }> {
+    // Provider 결정 (fallback 로직 포함)
+    const actualProvider = this.determineProvider(provider);
+    
+    // actualProvider가 null인 경우 llm_unavailable 에러 반환
+    if (actualProvider === null) {
+      const errorMessage = 
+        'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 GEMINI_API_KEY를 설정하거나 LLM_PROVIDER를 변경해주세요.';
+      
+      logger.error('TripleExtractionService: LLM 서비스 사용 불가능', {
+        requestedProvider: provider,
+        preferredProvider: this.preferredProvider,
+        openaiAvailable: this.openaiClient !== null,
+        geminiAvailable: this.geminiClient !== null
+      });
+      
+      return {
+        result: this.createFailureResult('llm_unavailable', errorMessage),
+        rawLLMOutput: errorMessage
+      };
+    }
+
+    // Rate limit 확인 (실제 LLM 호출 전)
+    await this.rateLimiter.consume();
+    
     // 프롬프트 템플릿 로드 및 렌더링
     const prompt = PromptTemplateLoader.loadAndRender('triple-extraction', {
       observation
     });
-
-    // Provider 선택 및 호출
-    const actualProvider = provider === 'auto' 
-      ? (this.preferredProvider || 'openai')
-      : provider;
 
     let rawLLMOutput: string;
     let triples: Triple[] = [];
@@ -470,17 +583,7 @@ export class TripleExtractionService {
       {
         maxAttempts: retryOptions.external_api.maxAttempts,
         baseDelay: retryOptions.external_api.baseDelay,
-        shouldRetry: (error: Error) => {
-          // 네트워크 에러나 일시적 오류만 재시도
-          const message = error.message.toLowerCase();
-          return message.includes('network') || 
-                 message.includes('timeout') || 
-                 message.includes('rate limit') ||
-                 message.includes('server error') ||
-                 message.includes('503') ||
-                 message.includes('502') ||
-                 message.includes('500');
-        },
+        shouldRetry: (error: Error) => this.shouldRetryError(error),
         onRetry: (error: Error, attempt: number, delay: number) => {
           logger.warn('TripleExtractionService: OpenAI API 호출 재시도', {
             attempt,
@@ -541,17 +644,7 @@ export class TripleExtractionService {
       {
         maxAttempts: retryOptions.external_api.maxAttempts,
         baseDelay: retryOptions.external_api.baseDelay,
-        shouldRetry: (error: Error) => {
-          // 네트워크 에러나 일시적 오류만 재시도
-          const message = error.message.toLowerCase();
-          return message.includes('network') || 
-                 message.includes('timeout') || 
-                 message.includes('rate limit') ||
-                 message.includes('server error') ||
-                 message.includes('503') ||
-                 message.includes('502') ||
-                 message.includes('500');
-        },
+        shouldRetry: (error: Error) => this.shouldRetryError(error),
         onRetry: (error: Error, attempt: number, delay: number) => {
           logger.warn('TripleExtractionService: Gemini API 호출 재시도', {
             attempt,
@@ -640,19 +733,7 @@ export class TripleExtractionService {
       {
         maxAttempts: retryOptions.external_api.maxAttempts,
         baseDelay: retryOptions.external_api.baseDelay,
-        shouldRetry: (error: Error) => {
-          // 네트워크 에러나 일시적 오류만 재시도
-          const message = error.message.toLowerCase();
-          return message.includes('network') || 
-                 message.includes('timeout') || 
-                 message.includes('rate limit') ||
-                 message.includes('server error') ||
-                 message.includes('503') ||
-                 message.includes('502') ||
-                 message.includes('500') ||
-                 message.includes('econnrefused') ||
-                 message.includes('enotfound');
-        },
+        shouldRetry: (error: Error) => this.shouldRetryError(error),
         onRetry: (error: Error, attempt: number, delay: number) => {
           logger.warn('TripleExtractionService: Ollama API 호출 재시도', {
             attempt,
@@ -875,6 +956,27 @@ export class TripleExtractionService {
   }
 
   /**
+   * 에러가 재시도 가능한지 판단합니다.
+   * 
+   * 네트워크 에러나 일시적 오류만 재시도 대상으로 간주합니다.
+   * 
+   * @param error 에러 객체
+   * @returns 재시도 가능 여부
+   */
+  private shouldRetryError(error: Error): boolean {
+    const message = error.message.toLowerCase();
+    return message.includes('network') || 
+           message.includes('timeout') || 
+           message.includes('rate limit') ||
+           message.includes('server error') ||
+           message.includes('503') ||
+           message.includes('502') ||
+           message.includes('500') ||
+           message.includes('econnrefused') ||
+           message.includes('enotfound');
+  }
+
+  /**
    * 에러 타입 분류
    * 에러의 특성에 따라 분류하여 적절한 처리 전략을 수립합니다.
    * 
@@ -942,9 +1044,6 @@ export class TripleExtractionService {
    * @returns 추적된 steps 정보
    */
   private trackExtractionSteps(triples: Triple[]): ExtractionSteps {
-    let canonicalizationSuccess = false;
-    let entityLinkingSuccess = false;
-
     // Triple이 없으면 모두 false 반환
     if (triples.length === 0) {
       return {
@@ -953,30 +1052,21 @@ export class TripleExtractionService {
       };
     }
 
-    // 각 triple에 대해 정규화 수행
+    let canonicalizationSuccess = false;
+    let entityLinkingSuccess = false;
+
+    // 각 triple에 대해 정규화 수행 (조기 종료 최적화)
     for (const triple of triples) {
       // Predicate 정규화 (Canonicalization)
       if (!canonicalizationSuccess) {
-        const canonicalResult = this.canonicalizer.canonicalize(triple.predicate);
-        if (canonicalResult.success) {
-          canonicalizationSuccess = true;
-        }
+        canonicalizationSuccess = this.canonicalizer.canonicalize(triple.predicate).success;
       }
 
-      // Subject Entity Linking
+      // Entity Linking (subject 또는 object 중 하나라도 성공하면 충분)
       if (!entityLinkingSuccess) {
-        const subjectResult = this.entityLinker.link(triple.subject);
-        if (subjectResult.success) {
-          entityLinkingSuccess = true;
-        }
-      }
-
-      // Object Entity Linking
-      if (!entityLinkingSuccess) {
-        const objectResult = this.entityLinker.link(triple.object);
-        if (objectResult.success) {
-          entityLinkingSuccess = true;
-        }
+        entityLinkingSuccess = 
+          this.entityLinker.link(triple.subject).success ||
+          this.entityLinker.link(triple.object).success;
       }
 
       // 둘 다 성공했으면 조기 종료
@@ -988,6 +1078,45 @@ export class TripleExtractionService {
     return {
       canonicalization: canonicalizationSuccess,
       entityLinking: entityLinkingSuccess
+    };
+  }
+
+  private normalizeExtractionResult(result: TripleExtractionResult): TripleExtractionResult {
+    const rawTriples = Array.isArray(result.triples) ? result.triples : [];
+    const normalizedTriples = rawTriples
+      .filter((triple) => {
+        if (!triple) {
+          return false;
+        }
+        const subject = typeof triple.subject === 'string' ? triple.subject.trim() : '';
+        const predicate = typeof triple.predicate === 'string' ? triple.predicate.trim() : '';
+        const object = typeof triple.object === 'string' ? triple.object.trim() : '';
+        return subject.length > 0 && predicate.length > 0 && object.length > 0;
+      })
+      .map((triple) => ({
+        ...triple,
+        subject: triple.subject.trim(),
+        predicate: triple.predicate.trim(),
+        object: triple.object.trim()
+      }));
+
+    const steps = result.extractionInfo?.steps ?? this.trackExtractionSteps(normalizedTriples);
+    const extractionInfo: ExtractionInfo = {
+      ...(result.extractionInfo ?? {}),
+      steps
+    };
+
+    if (normalizedTriples.length > 0) {
+      // 성공 결과는 failureReason을 남기지 않음 (성공/실패 구분 일관성 유지)
+      extractionInfo.failureReason = undefined;
+    } else if (!extractionInfo.failureReason) {
+      extractionInfo.failureReason = 'no_triple';
+    }
+
+    return {
+      ...result,
+      triples: normalizedTriples,
+      extractionInfo
     };
   }
 

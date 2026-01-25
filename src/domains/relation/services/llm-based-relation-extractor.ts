@@ -20,6 +20,7 @@ import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manage
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { CacheService } from '../../../infrastructure/cache/cache-service.js';
+import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
 import type {
   RelationCandidate,
   RelationType,
@@ -149,7 +150,9 @@ interface LLMCostMetrics {
 export class LLMBasedRelationExtractor implements IRelationExtractor {
   private openaiClient: OpenAI | null = null;
   private geminiClient: GoogleGenerativeAI | null = null;
-  private readonly preferredProvider: 'openai' | 'gemini' | 'ollama' | null;
+  private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
+  private readonly initializationPromise: Promise<void>;
+  private initializationCompleted = false;
   private readonly embeddingService: UnifiedEmbeddingService;
   private readonly cache: CacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
@@ -157,7 +160,8 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private readonly retryManager: RetryManager;
 
   constructor(embeddingService?: UnifiedEmbeddingService) {
-    this.preferredProvider = this.initializeClients();
+    // 초기화 지연: preferredProvider는 null로 시작하고, initializationPromise를 통해 비동기 초기화
+    this.preferredProvider = null;
     this.embeddingService = embeddingService || new UnifiedEmbeddingService();
     this.cache = new CacheService<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
     this.rateLimiter = new TokenBucketRateLimiter(RATE_LIMITER.CAPACITY, RATE_LIMITER.REFILL_RATE);
@@ -175,142 +179,124 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
       maxErrorCount: retryOptions.default.maxErrorCount
     };
     this.retryManager = new RetryManager(retryConfig);
+    
+    // 비동기 초기화: initializeClients()를 호출하고 결과를 설정
+    this.initializationPromise = this.initializeClients().then((provider) => {
+      this.preferredProvider = provider;
+    }).catch((error) => {
+      logger.error('LLM 클라이언트 초기화 실패', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      this.preferredProvider = null;
+      this.openaiClient = null;
+      this.geminiClient = null;
+    }).finally(() => {
+      this.initializationCompleted = true;
+    });
   }
 
   /**
    * LLM 클라이언트 초기화
+   * LLMClientInitializer를 사용하여 클라이언트 초기화
    * 환경 변수 LLM_PROVIDER에 따라 프로바이더 선택
    * - 'openai': OpenAI 우선 시도, 실패 시 Gemini/Ollama fallback
    * - 'gemini': Gemini 우선 시도, 실패 시 OpenAI/Ollama fallback
    * - 'ollama': Ollama 우선 시도, 실패 시 OpenAI/Gemini fallback
    * - 'auto': 사용 가능한 것 자동 선택 (OpenAI -> Gemini -> Ollama 순서)
    */
-  private initializeClients(): 'openai' | 'gemini' | 'ollama' | null {
-    const preferredProvider = mementoConfig.llmProvider || 'auto';
+  private async initializeClients(): Promise<'openai' | 'gemini' | 'ollama' | null> {
+    const initializer = new LLMClientInitializer();
+    const result = await initializer.initialize();
     
-    // OpenAI 클라이언트 초기화 함수
-    const initOpenAI = (): 'openai' | null => {
-      if (!mementoConfig.openaiApiKey) {
-        return null;
-      }
-      try {
-        this.openaiClient = new OpenAI({ apiKey: mementoConfig.openaiApiKey });
-        logger.info('OpenAI 클라이언트 초기화 완료');
-        return 'openai';
-      } catch (error) {
-        logger.warn('OpenAI 초기화 실패', { 
-          error: error instanceof Error ? error.message : String(error) 
-        });
-        return null;
-      }
-    };
-
-    // Gemini 클라이언트 초기화 함수
-    const initGemini = (): 'gemini' | null => {
-      if (!mementoConfig.geminiApiKey) {
-        return null;
-      }
-      try {
-        this.geminiClient = new GoogleGenerativeAI(mementoConfig.geminiApiKey);
-        logger.info('Gemini 클라이언트 초기화 완료');
-        return 'gemini';
-      } catch (error) {
-        logger.warn('Gemini 초기화 실패', { 
-          error: error instanceof Error ? error.message : String(error) 
-        });
-        return null;
-      }
-    };
-
-    // Ollama 클라이언트 초기화 함수 (연결 테스트)
-    const initOllama = async (): Promise<'ollama' | null> => {
-      try {
-        const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-        const model = mementoConfig.ollamaModel || 'llama3';
-        
-        // Ollama 서버 연결 테스트 (RetryManager 사용)
-        const retryOptions = getRetryOptions();
-        const response = await this.retryManager.retry(
-          async () => {
-            return await fetch(`${baseUrl}/api/tags`, {
-              method: 'GET',
-              signal: AbortSignal.timeout(3000) // 3초 타임아웃
-            });
-          },
-          {
-            maxAttempts: retryOptions.external_api.maxAttempts,
-            baseDelay: retryOptions.external_api.baseDelay,
-            shouldRetry: (error: Error) => {
-              const message = error.message.toLowerCase();
-              return message.includes('network') || 
-                     message.includes('timeout') || 
-                     message.includes('fetch failed');
-            }
-          }
-        );
-        
-        if (!response.ok) {
-          logger.warn('Ollama 서버 연결 실패', { 
-            status: response.status,
-            baseUrl 
-          });
-          return null;
-        }
-        
-        logger.info('Ollama 클라이언트 초기화 완료', { baseUrl, model });
-        return 'ollama';
-      } catch (error) {
-        logger.warn('Ollama 초기화 실패', { 
-          error: error instanceof Error ? error.message : String(error),
-          baseUrl: mementoConfig.ollamaBaseUrl
-        });
-        return null;
-      }
-    };
-
-    // 프로바이더 선택 로직
-    if (preferredProvider === 'openai') {
-      // OpenAI 우선 시도
-      const result = initOpenAI();
-      if (result) return result;
-      // 실패 시 Gemini fallback
-      const geminiResult = initGemini();
-      if (geminiResult) return geminiResult;
-      // 실패 시 Ollama fallback (비동기이므로 null 반환)
-      return null;
-    } else if (preferredProvider === 'gemini') {
-      // Gemini 우선 시도
-      const result = initGemini();
-      if (result) return result;
-      // 실패 시 OpenAI fallback
-      const openaiResult = initOpenAI();
-      if (openaiResult) return openaiResult;
-      // 실패 시 Ollama fallback (비동기이므로 null 반환)
-      return null;
-    } else if (preferredProvider === 'ollama') {
-      // Ollama는 비동기 초기화이므로 나중에 확인
-      // 여기서는 null을 반환하고, extractRelations에서 확인
-      return null;
-    } else {
-      // 'auto': 기존 로직 (OpenAI -> Gemini -> Ollama 순서)
-      const result = initOpenAI();
-      if (result) return result;
-      const geminiResult = initGemini();
-      if (geminiResult) return geminiResult;
-      // Ollama는 비동기이므로 null 반환
-      return null;
+    // LLMClientInitializer 결과를 사용하여 클라이언트 설정
+    this.openaiClient = result.openaiClient;
+    this.geminiClient = result.geminiClient;
+    
+    // 경고 메시지 로깅
+    if (result.warnings.length > 0) {
+      result.warnings.forEach((warning) => {
+        logger.warn('LLM 초기화 경고', { warning });
+      });
     }
+    
+    return result.preferredProvider;
   }
 
   /**
    * LLM 서비스 사용 가능 여부 확인
    */
   isAvailable(): boolean {
-    // Ollama는 비동기 초기화이므로 설정만 확인
-    if (mementoConfig.llmProvider === 'ollama') {
-      return true; // Ollama는 extractRelations에서 실제 연결 확인
+    if (this.preferredProvider === 'openai') {
+      return this.openaiClient !== null;
     }
-    return this.preferredProvider !== null;
+    if (this.preferredProvider === 'gemini') {
+      return this.geminiClient !== null;
+    }
+    if (this.preferredProvider === 'ollama') {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Ollama 사용 가능 여부 확인
+   * Ollama는 연결 테스트가 필요하므로 preferredProvider와 설정을 확인
+   * 
+   * @returns Ollama가 사용 가능하면 true, 아니면 false
+   */
+  private isOllamaAvailable(): boolean {
+    return this.preferredProvider === 'ollama' && mementoConfig.llmProvider === 'ollama';
+  }
+
+  /**
+   * Provider 결정
+   * 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환
+   * 
+   * @param requestedProvider 요청된 provider
+   * @returns 사용 가능한 provider 또는 null
+   */
+  private determineProvider(
+    requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
+  ): 'openai' | 'gemini' | 'ollama' | null {
+    // 'auto' 모드일 때 사용 가능한 첫 번째 provider 반환
+    if (requestedProvider === 'auto') {
+      if (this.openaiClient) return 'openai';
+      if (this.geminiClient) return 'gemini';
+      if (this.isOllamaAvailable()) return 'ollama';
+      return null;
+    }
+    
+    // 요청된 provider가 사용 가능한지 확인
+    if (requestedProvider === 'openai' && this.openaiClient) {
+      return 'openai';
+    }
+    if (requestedProvider === 'gemini' && this.geminiClient) {
+      return 'gemini';
+    }
+    if (requestedProvider === 'ollama' && this.isOllamaAvailable()) {
+      return 'ollama';
+    }
+    
+    // 요청된 provider가 사용 불가능한 경우 fallback
+    if (requestedProvider === 'openai') {
+      // OpenAI가 사용 불가능하면 Gemini로 fallback
+      if (this.geminiClient) return 'gemini';
+      // Gemini도 없으면 Ollama 확인
+      if (this.isOllamaAvailable()) return 'ollama';
+    } else if (requestedProvider === 'gemini') {
+      // Gemini가 사용 불가능하면 OpenAI로 fallback
+      if (this.openaiClient) return 'openai';
+      // OpenAI도 없으면 Ollama 확인
+      if (this.isOllamaAvailable()) return 'ollama';
+    } else if (requestedProvider === 'ollama') {
+      // Ollama가 사용 불가능하면 OpenAI -> Gemini 순서로 fallback
+      if (this.openaiClient) return 'openai';
+      if (this.geminiClient) return 'gemini';
+    }
+    
+    // 모든 provider가 사용 불가능한 경우 null 반환
+    return null;
   }
 
   /**
@@ -1451,12 +1437,28 @@ ${memoryList}
     existingMemories: MemoryItem[],
     options?: ExtractOptions
   ): Promise<RelationCandidate[]> {
-    if (!this.isAvailable()) {
-      throw new Error('LLM 서비스가 사용 불가능합니다. API 키를 설정해주세요.');
+    const initializationWasPending = !this.initializationCompleted;
+    if (initializationWasPending && this.preferredProvider === null) {
+      throw new Error('LLM 서비스가 사용 불가능합니다');
+    }
+
+    if (this.initializationPromise && initializationWasPending) {
+      await this.initializationPromise;
     }
 
     if (existingMemories.length === 0) {
       return [];
+    }
+
+    const hasAvailableClient =
+      this.openaiClient !== null ||
+      this.geminiClient !== null ||
+      this.isOllamaAvailable();
+
+    if (!hasAvailableClient) {
+      throw new Error(
+        'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 GEMINI_API_KEY를 설정하거나 LLM_PROVIDER를 변경해주세요.'
+      );
     }
 
     // 캐시 확인
@@ -1493,44 +1495,56 @@ ${memoryList}
     // 프롬프트 생성
     const prompt = this.buildPrompt(newMemory, compressedMemories, applicableTypes);
 
+    // Provider 결정 (fallback 로직 포함)
+    // preferredProvider가 null이거나 클라이언트가 초기화되지 않았을 때 
+    // 다른 사용 가능한 provider로 자동 전환
+    const requestedProvider = this.preferredProvider || mementoConfig.llmProvider || 'auto';
+    const actualProvider = this.determineProvider(
+      requestedProvider as 'openai' | 'gemini' | 'ollama' | 'auto'
+    );
+    
+    // actualProvider가 null인 경우 llm_unavailable 에러 반환
+    if (actualProvider === null) {
+      const errorMessage = 
+        'LLM 서비스를 사용할 수 없습니다. OPENAI_API_KEY 또는 GEMINI_API_KEY를 설정하거나 LLM_PROVIDER를 변경해주세요.';
+      
+      logger.error('LLMBasedRelationExtractor: LLM 서비스 사용 불가능', {
+        requestedProvider,
+        preferredProvider: this.preferredProvider,
+        llmProviderConfig: mementoConfig.llmProvider,
+        openaiAvailable: this.openaiClient !== null,
+        geminiAvailable: this.geminiClient !== null
+      });
+      
+      throw new Error(errorMessage);
+    }
+
     // LLM 호출
     let parsedResponse: ParseResult;
     try {
-      if (this.preferredProvider === 'openai') {
-        parsedResponse = await this.extractWithOpenAI(prompt);
-      } else if (this.preferredProvider === 'gemini') {
-        parsedResponse = await this.extractWithGemini(prompt);
-      } else if (this.preferredProvider === 'ollama' || (this.preferredProvider === null && mementoConfig.llmProvider === 'ollama')) {
-        parsedResponse = await this.extractWithOllama(prompt);
-      } else if (this.preferredProvider === null && mementoConfig.llmProvider === 'auto') {
-        // auto 모드에서 모든 프로바이더 시도
-        try {
+      switch (actualProvider) {
+        case 'openai':
           parsedResponse = await this.extractWithOpenAI(prompt);
-        } catch (openaiError) {
-          try {
-            parsedResponse = await this.extractWithGemini(prompt);
-          } catch (geminiError) {
-            parsedResponse = await this.extractWithOllama(prompt);
-          }
-        }
-      } else {
-        throw new Error('사용 가능한 LLM 서비스가 없습니다.');
+          break;
+        case 'gemini':
+          parsedResponse = await this.extractWithGemini(prompt);
+          break;
+        case 'ollama':
+          parsedResponse = await this.extractWithOllama(prompt);
+          break;
+        default:
+          throw new Error(`지원하지 않는 provider: ${actualProvider}`);
       }
     } catch (error) {
       // LLM 호출 실패 시 명확한 에러 메시지와 함께 예외를 던짐
       // 호출자가 실패를 인지하고 적절한 fallback 전략을 사용할 수 있도록 함
       const errorMessage = error instanceof Error ? error.message : String(error);
-      // provider 정보를 정확하게 추출
-      let actualProvider: string | null = this.preferredProvider;
-      if (actualProvider === null) {
-        // preferredProvider가 null인 경우, 환경 변수에서 확인
-        actualProvider = mementoConfig.llmProvider || 'auto';
-      }
       
       const errorDetails = {
         error: errorMessage,
         memoryId: newMemory.id,
         provider: actualProvider,
+        requestedProvider,
         preferredProvider: this.preferredProvider,
         llmProviderConfig: mementoConfig.llmProvider,
         suggestion: '규칙 기반 추출을 사용하거나 네트워크 연결을 확인하세요.'
