@@ -5,7 +5,12 @@
         "args": ["/home/jee1lee/git/memento/dist/server/index.js"],
         "env": {
           "NODE_ENV": "production",
-          "DB_PATH": "/home/jee1lee/git/memento/data/memory.db"
+          "DB_PATH": "/home/jee1lee/git/data/memento.db",
+          "CONSOLIDATION_SCORE_ENABLED": "true",
+          "OLLAMA_BASE_URL": "http://localhost:11434",
+          "OLLAMA_MODEL": "qwen3-coder:latest",
+          "PROCEDURAL_EXTRACTION_STRATEGY": "llm_first",
+          "PROCEDURAL_LLM_EXTRACTOR_TIMEOUT_MS": "10000"
         }
       }
     }
