@@ -24,7 +24,10 @@ CREATE TABLE IF NOT EXISTS memory_item (
   -- Procedural Memory Enhancement (v7.0) 추가 필드
   workflow_name TEXT, -- 프로세스 이름 (예: "데이터 마이그레이션", "API 배포")
   skill_name TEXT, -- 기술/능력 이름 (예: "스키마 백업", "데이터 검증")
-  trigger_conditions TEXT -- 트리거 조건 (JSON 객체 문자열)
+  trigger_conditions TEXT, -- 트리거 조건 (JSON 객체 문자열)
+  -- Procedural Version Management (Issue #57, migration 013)
+  version INTEGER NULL,
+  version_series_id TEXT NULL
 );
 
 -- 태그 테이블
