@@ -17,6 +17,7 @@ import { GetAnchorTool } from '../domains/anchor/tools/get-anchor-tool.js';
 import { SearchLocalTool } from '../domains/anchor/tools/search-local-tool.js';
 import { ClearAnchorTool } from '../domains/anchor/tools/clear-anchor-tool.js';
 import { ProceduralDiffTool } from '../domains/memory/tools/procedural-diff-tool.js';
+import { ProceduralRollbackTool } from '../domains/memory/tools/procedural-rollback-tool.js';
 // 관계 엔진 도구들은 HTTP API로만 제공 (MCP에서 제거)
 // 관계 추출은 remember 도구에서 자동으로 수행됨
 // 관리/운영성 도구들은 HTTP API로만 제공 (Phase 5.3)
@@ -46,6 +47,7 @@ const coreTools = [
   new SearchLocalTool(),
   new ClearAnchorTool(),
   new ProceduralDiffTool(),
+  new ProceduralRollbackTool(),
   // 관리/운영성 도구들은 HTTP API로만 제공
   // - RestoreAnchorsTool: POST /admin/anchors/restore
   // - MigrateEmbeddingsTool: POST /admin/embeddings/migrate
@@ -115,6 +117,7 @@ export {
   SearchLocalTool,
   ClearAnchorTool,
   ProceduralDiffTool,
+  ProceduralRollbackTool,
   // 관리/운영성 도구들은 HTTP API로만 제공되므로 export하지 않음
   // - RestoreAnchorsTool
   // - MigrateEmbeddingsTool
