@@ -10,6 +10,7 @@ import { logger } from './logger.js';
 import { PIIMasker } from './pii-masker.js';
 import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
 import type { ReflectionNotes, ExtractedProceduralMemory } from './procedural-memory-extractor.types.js';
+import type { IProceduralMemoryExtractor } from './procedural-memory-extractor.types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
 
@@ -716,3 +717,21 @@ export async function determineMergeStrategy(
   }
 }
 
+/**
+ * 규칙 기반 Procedural Memory 추출기.
+ * 기존 extractProceduralMemory를 래핑하여 IProceduralMemoryExtractor를 구현한다.
+ * 항상 fallback으로 사용되며, 예외 시에만 null을 반환한다.
+ */
+export class RuleBasedProceduralExtractor implements IProceduralMemoryExtractor {
+  async extract(
+    notes: ReflectionNotes | Record<string, unknown>,
+    event?: FailureEvent
+  ): Promise<ExtractedProceduralMemory | null> {
+    try {
+      const result = extractProceduralMemory(notes, event);
+      return result;
+    } catch {
+      return null;
+    }
+  }
+}

@@ -14,6 +14,7 @@ import {
   extractProceduralMemory,
   calculateSimilarity,
   determineMergeStrategy,
+  RuleBasedProceduralExtractor,
   type ExtractedProceduralMemory
 } from '../procedural-memory-extractor.js';
 import type { FailureEvent } from '../../../domains/monitoring/services/failure-detector.js';
@@ -1139,6 +1140,18 @@ describe('Procedural Memory Extractor', () => {
         expect(result.shouldMerge).toBe(true);
         expect(result.existingMemoryId).toBe(memoryId);
       }
+    });
+  });
+
+  describe('RuleBasedProceduralExtractor', () => {
+    it('Given: reflection_notes와 event가 주어졌을 때, When: extract()를 호출하면, Then: ExtractedProceduralMemory를 Promise로 반환한다', async () => {
+      const notes = { original_task: '테스트 작업', suggested_improvements: '단계1. 검증' };
+      const extractor = new RuleBasedProceduralExtractor();
+      const result = await extractor.extract(notes);
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('workflow_name');
+      expect(result).toHaveProperty('skill_name');
+      expect(result).toHaveProperty('steps');
     });
   });
 });
