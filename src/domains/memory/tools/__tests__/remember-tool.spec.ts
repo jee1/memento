@@ -51,7 +51,10 @@ function initializeTestDatabase(db: Database.Database): void {
       object TEXT,
       triple_extracted BOOLEAN DEFAULT NULL,
       triple_extracted_status TEXT DEFAULT NULL,
-      triple_extraction_metadata TEXT DEFAULT NULL
+      triple_extraction_metadata TEXT DEFAULT NULL,
+      -- Procedural Version Management (Issue #57)
+      version INTEGER NULL,
+      version_series_id TEXT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);

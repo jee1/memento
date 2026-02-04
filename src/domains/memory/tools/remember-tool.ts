@@ -27,6 +27,7 @@ import { validateReflectionNotes, formatValidationErrors } from '../../../shared
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
+import { getNextVersionNumber } from '../services/procedural-versioning.js';
 // AriGraph Pipeline
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
@@ -663,6 +664,14 @@ export class RememberTool extends BaseTool {
               id
             ]);
           } else {
+            // Procedural 버전 필드: versioned 모드면 기존 시리즈 이어받고, 아니면 1과 자기 id (Issue #57)
+            const proceduralVersion = type === 'procedural' && existingMemory && update_mode === 'versioned'
+              ? getNextVersionNumber(context.db!, existingMemory.version_series_id ?? existingMemory.id)
+              : (type === 'procedural' ? 1 : null);
+            const proceduralVersionSeriesId = type === 'procedural' && existingMemory && update_mode === 'versioned'
+              ? (existingMemory.version_series_id ?? existingMemory.id)
+              : (type === 'procedural' ? id : null);
+
             // INSERT 쿼리
             await DatabaseUtils.run(context.db!, `
               INSERT INTO memory_item (
@@ -670,9 +679,10 @@ export class RememberTool extends BaseTool {
                 task_goal, steps, reflection_notes, 
                 workflow_name, skill_name, trigger_conditions,
                 created_at,
-                recall_count, last_accessed_at, g_value, consolidation_score
+                recall_count, last_accessed_at, g_value, consolidation_score,
+                version, version_series_id
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
               id, 
               type, 
@@ -692,7 +702,9 @@ export class RememberTool extends BaseTool {
               recallCount,
               lastAccessedAt,
               gValue,
-              consolidationScore
+              consolidationScore,
+              proceduralVersion,
+              proceduralVersionSeriesId
             ]);
 
             // versioned 모드일 때 memory_link에 'version_of' 관계 추가
@@ -1444,7 +1456,8 @@ export class RememberTool extends BaseTool {
           created_at, last_accessed, pinned, tags, source,
           task_goal, steps, reflection_notes,
           workflow_name, skill_name, trigger_conditions,
-          recall_count, last_accessed_at, g_value, consolidation_score
+          recall_count, last_accessed_at, g_value, consolidation_score,
+          version, version_series_id
         FROM memory_item
         WHERE type = 'procedural'
           AND workflow_name = ?
@@ -1477,7 +1490,9 @@ export class RememberTool extends BaseTool {
         recall_count: row.recall_count ?? undefined,
         last_accessed_at: row.last_accessed_at ? new Date(row.last_accessed_at) : undefined,
         g_value: row.g_value ?? undefined,
-        consolidation_score: row.consolidation_score ?? undefined
+        consolidation_score: row.consolidation_score ?? undefined,
+        version: row.version ?? undefined,
+        version_series_id: row.version_series_id ?? undefined
       };
     } catch (error) {
       this.logWarning('기존 procedural memory 조회 실패', {

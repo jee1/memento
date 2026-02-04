@@ -18,6 +18,7 @@ import {
 import { toDbRelationType } from '../shared/utils/relation-type-converter.js';
 import { mementoConfig } from '../shared/config/index.js';
 import { LlmProceduralExtractor } from '../domains/memory/services/procedural-llm-extractor.js';
+import { getNextVersionNumber } from '../domains/memory/services/procedural-versioning.js';
 
 /**
  * Worker 상태
@@ -732,8 +733,8 @@ export class ReflexionWorker {
           skill_name: extracted.skill_name
         });
       } else {
-        // versioned 모드: 새 메모리 생성하고 version_of 관계 생성
-        const newMemoryId = await this.createProceduralMemory(extracted, reflectionNote, event);
+        // versioned 모드: 새 메모리 생성하고 version_of 관계 생성 (기존 시리즈 버전 이어받기)
+        const newMemoryId = await this.createProceduralMemory(extracted, reflectionNote, event, memoryId);
         
         if (newMemoryId) {
           // version_of 관계 생성
@@ -771,24 +772,42 @@ export class ReflexionWorker {
 
   /**
    * 새 procedural memory 생성
+   * @param existingMemoryIdForVersion versioned 모드일 때 기존 메모리 id (같은 시리즈의 version·version_series_id 이어받기)
    */
   private async createProceduralMemory(
     extracted: ExtractedProceduralMemory,
     reflectionNote: any,
-    event: FailureEvent
+    event: FailureEvent,
+    existingMemoryIdForVersion?: string
   ): Promise<string | null> {
     try {
       const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const content = extracted.task_goal || `Reflexion: ${event.tool_name} 실패 기록`;
       const reflectionNotesStr = JSON.stringify(reflectionNote);
 
+      let version: number;
+      let versionSeriesId: string;
+      if (existingMemoryIdForVersion) {
+        const existing = DatabaseUtils.get(
+          this.db,
+          `SELECT version_series_id FROM memory_item WHERE id = ? AND type = 'procedural'`,
+          [existingMemoryIdForVersion]
+        ) as { version_series_id: string | null } | undefined;
+        versionSeriesId = existing?.version_series_id ?? existingMemoryIdForVersion;
+        version = getNextVersionNumber(this.db, versionSeriesId);
+      } else {
+        version = 1;
+        versionSeriesId = memoryId;
+      }
+
       DatabaseUtils.run(
         this.db,
         `INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, trigger_conditions, 
-          steps, task_goal, reflection_notes, importance, privacy_scope, created_at
+          steps, task_goal, reflection_notes, importance, privacy_scope, created_at,
+          version, version_series_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',
@@ -801,7 +820,9 @@ export class ReflexionWorker {
           reflectionNotesStr,
           0.7,
           'private',
-          new Date().toISOString()
+          new Date().toISOString(),
+          version,
+          versionSeriesId
         ]
       );
 
