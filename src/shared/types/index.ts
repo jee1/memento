@@ -84,6 +84,16 @@ export type {
   RelationTypeRegistry
 } from './relation-graph.js';
 
+// Procedural Memory 버전/비교 타입 (Issue #57 Phase 2)
+export type {
+  FieldDiff,
+  StepsDiffItem,
+  StepChangeType,
+  ProceduralDiffResult,
+  VersionChainItem,
+  VersionFilterType
+} from './procedural-versioning.js';
+
 // Triple 추출 타입 재export
 export type {
   Triple,
