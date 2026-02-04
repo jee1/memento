@@ -16,7 +16,8 @@ export interface ReflectionNotes {
   suggested_improvements?: string;
   lessons_learned?: string;
   timestamp?: string | Date;
-  [key: string]: any; // 추가 필드 허용
+  /** 추가 필드는 알려진 타입으로 제한해 타입 안정성 확보 */
+  [key: string]: string | string[] | Date | undefined;
 }
 
 /**

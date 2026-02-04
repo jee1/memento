@@ -67,7 +67,10 @@ export function initializeTestDatabase(db: Database.Database): void {
       -- Procedural Memory Enhancement (v7.0) 추가 필드
       workflow_name TEXT,
       skill_name TEXT,
-      trigger_conditions TEXT
+      trigger_conditions TEXT,
+      -- Procedural Version Management (Issue #57, migration 013)
+      version INTEGER NULL,
+      version_series_id TEXT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);

@@ -42,7 +42,7 @@ const HIGH_SIMILARITY_THRESHOLD = 0.9; // 90% 이상이면 replace 모드
  * 3. failure_description에서 키워드 추출
  */
 export function extractWorkflowName(
-  reflectionNotes: ReflectionNotes | any,
+  reflectionNotes: ReflectionNotes | Record<string, unknown>,
   event?: FailureEvent
 ): string | undefined {
   try {
@@ -159,7 +159,7 @@ export function extractWorkflowName(
  * 3. suggested_improvements에서 스킬 추출
  */
 export function extractSkillName(
-  reflectionNotes: ReflectionNotes | any,
+  reflectionNotes: ReflectionNotes | Record<string, unknown>,
   event?: FailureEvent
 ): string | undefined {
   try {
@@ -238,7 +238,7 @@ export function extractSkillName(
  * 3. failure_description에서 단계 추출
  */
 export function extractSteps(
-  reflectionNotes: ReflectionNotes | any
+  reflectionNotes: ReflectionNotes | Record<string, unknown>
 ): string | undefined {
   try {
     const steps: string[] = [];
@@ -323,11 +323,11 @@ export function extractSteps(
  * 4. context 정보 기반 조건 생성
  */
 export function generateTriggerConditions(
-  reflectionNotes: ReflectionNotes | any,
+  reflectionNotes: ReflectionNotes | Record<string, unknown>,
   event?: FailureEvent
 ): string | undefined {
   try {
-    const conditions: Record<string, any> = {};
+    const conditions: Record<string, unknown> = {};
 
     // 1. error_type 기반 조건
     if (reflectionNotes?.failure_type) {
@@ -398,9 +398,14 @@ export function generateTriggerConditions(
       }
     }
 
-    // 5. timestamp 기반 조건 (선택적)
-    if (reflectionNotes?.timestamp) {
-      conditions.timestamp_pattern = new Date(reflectionNotes.timestamp).toISOString().split('T')[0]; // 날짜만
+    // 5. timestamp 기반 조건 (선택적) — string 또는 Date만 변환 (string[] 등은 제외)
+    const ts = reflectionNotes?.timestamp;
+    if (ts !== undefined && ts !== null) {
+      if (ts instanceof Date) {
+        conditions.timestamp_pattern = ts.toISOString().split('T')[0];
+      } else if (typeof ts === 'string') {
+        conditions.timestamp_pattern = new Date(ts).toISOString().split('T')[0];
+      }
     }
 
     // 조건이 비어있으면 기본 조건 생성
@@ -426,7 +431,7 @@ export function generateTriggerConditions(
  * reflection_notes에서 모든 procedural memory 필드 추출
  */
 export function extractProceduralMemory(
-  reflectionNotes: ReflectionNotes | any,
+  reflectionNotes: ReflectionNotes | Record<string, unknown>,
   event?: FailureEvent
 ): ExtractedProceduralMemory {
   const workflowName = extractWorkflowName(reflectionNotes, event);
@@ -548,7 +553,7 @@ export async function determineMergeStrategy(
     // 하나만 제공된 경우: 그 하나만 일치하면 됨
     // 모두 없으면 병합하지 않음
     const searchConditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (extracted.workflow_name) {
       searchConditions.push('workflow_name = ?');
@@ -594,7 +599,7 @@ export async function determineMergeStrategy(
     // workflow_name과 skill_name이 모두 존재하면 AND 조건을 유지한 후, 그래도 없으면 OR 조건으로 느슨한 검색
     if (existingMemories.length === 0) {
       const fallbackConditions: string[] = [];
-      const fallbackParams: any[] = [];
+      const fallbackParams: (string | number)[] = [];
 
       if (extracted.workflow_name) {
         // LOWER를 사용하여 대소문자 무시, LIKE를 사용하여 부분 일치 허용

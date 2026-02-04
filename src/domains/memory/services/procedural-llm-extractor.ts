@@ -114,6 +114,10 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     throw new Error('사용 가능한 LLM provider 없음');
   }
 
+  /**
+   * LLM 응답 문자열을 ExtractedProceduralMemory로 파싱.
+   * 동작: 코드블록 제거 → JSON 파싱 → 필드 타입 정규화, 실패 시 null.
+   */
   private parseResponse(raw: string): ExtractedProceduralMemory | null {
     try {
       let text = raw.trim();
@@ -128,7 +132,8 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
       const trigger_conditions = typeof parsed.trigger_conditions === 'string' ? parsed.trigger_conditions : (parsed.trigger_conditions && typeof parsed.trigger_conditions === 'object' ? JSON.stringify(parsed.trigger_conditions) : undefined);
       const task_goal = typeof parsed.task_goal === 'string' ? parsed.task_goal : undefined;
       return { workflow_name, skill_name, steps, trigger_conditions, task_goal };
-    } catch {
+    } catch (err) {
+      logger.debug('Procedural LLM 응답 파싱 실패', { rawPrefix: raw?.substring(0, 100), error: err });
       return null;
     }
   }

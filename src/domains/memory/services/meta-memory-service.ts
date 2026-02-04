@@ -208,7 +208,8 @@ export class MetaMemoryService {
    * @returns 성공 여부 (final_score >= 0.5)
    */
   isItemSuccess(item: RecallResultItem): boolean {
-    const finalScore = item.final_score || item.finalScore || 0;
+    const raw = item.final_score ?? (item as Record<string, unknown>).finalScore;
+    const finalScore = typeof raw === 'number' ? raw : Number(raw ?? 0);
     return finalScore >= 0.5;
   }
 
@@ -219,14 +220,14 @@ export class MetaMemoryService {
    * @returns confidence 점수 (0.0 ~ 1.0)
    */
   calculateConfidence(item: RecallResultItem): number {
-    // finalScore 또는 final_score 지원 (둘 다 확인)
-    const finalScore = item.finalScore || item.final_score || 0;
+    const rawFinal = item.final_score ?? (item as Record<string, unknown>).finalScore;
+    const finalScore = typeof rawFinal === 'number' ? rawFinal : Number(rawFinal ?? 0);
 
-    // consolidation_score는 선택적 필드
-    const consolidationScore = (item as any).consolidation_score || 0;
+    const rawConsolidation = (item as Record<string, unknown>).consolidation_score;
+    const consolidationScore = typeof rawConsolidation === 'number' ? rawConsolidation : Number(rawConsolidation ?? 0);
 
-    // vectorScore는 벡터 유사도 (relevance 역할)
-    const vectorScore = item.vectorScore || 0;
+    const rawVector = (item as Record<string, unknown>).vectorScore;
+    const vectorScore = typeof rawVector === 'number' ? rawVector : Number(rawVector ?? 0);
 
     return (
       0.6 * finalScore +

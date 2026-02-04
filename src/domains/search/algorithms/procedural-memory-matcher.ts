@@ -158,7 +158,7 @@ export class ProceduralMemoryMatcher implements IProceduralMemoryMatcher {
     triggerConditions: string | null,
     queryText: string,
     matchTriggerConditions: boolean,
-    triggerContext?: Record<string, any>
+    triggerContext?: Record<string, unknown>
   ): boolean {
     if (!matchTriggerConditions || !triggerConditions) {
       return false;

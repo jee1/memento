@@ -43,7 +43,8 @@ export interface NeighborMemoryItem {
   id: string;
   content: string;
   similarity: number;
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: string | number | undefined;
 }
 
 /**
@@ -63,7 +64,8 @@ export interface RecallResultItem {
   created_at: string;
   final_score: number;
   neighbors?: NeighborMemoryItem[]; // optional: neighbors_limit보다 많은 결과는 필드 없음
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: string | number | NeighborMemoryItem[] | undefined;
 }
 
 /**
@@ -84,7 +86,8 @@ export interface RecallResponseMetadata {
   anchor_set_error?: boolean;
   anchor_set_skipped?: boolean;
   anchor_set_skipped_reason?: string;
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: AnchorSetMetadata | null | boolean | string | undefined;
 }
 
 /**
@@ -214,7 +217,8 @@ export interface RecallResponse {
       last_recalled_at?: string; // ISO 8601 형식 (예: "2024-01-01T00:00:00.000Z")
     };
   };
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: RecallResultItem[] | number | string | RecallResponseMetadata | Record<string, unknown> | undefined;
 }
 
 /**

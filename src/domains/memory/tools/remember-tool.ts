@@ -40,7 +40,7 @@ import type { TripleExtractionResult } from '../../../shared/types/triple-extrac
 interface ExistingReflectionNotesResult {
   exists: boolean;
   type: 'null' | 'object' | 'array';
-  value: null | any | any[];
+  value: null | Record<string, unknown> | Record<string, unknown>[];
   rawValue: string | null;
 }
 
@@ -287,7 +287,7 @@ export class RememberTool extends BaseTool {
         return {
           exists: true,
           type: 'array',
-          value: parsed,
+          value: parsed as Record<string, unknown>[],
           rawValue: reflectionNotes
         };
       }
@@ -296,7 +296,7 @@ export class RememberTool extends BaseTool {
         return {
           exists: true,
           type: 'object',
-          value: parsed,
+          value: parsed as Record<string, unknown>,
           rawValue: reflectionNotes
         };
       }
@@ -484,10 +484,10 @@ export class RememberTool extends BaseTool {
         if (existingReflectionNotes.exists) {
           try {
             // 병합 유틸리티 함수 사용
-            const existing: ExistingReflectionNotes = 
+            const existing: ExistingReflectionNotes =
               existingReflectionNotes.type === 'null' ? { type: 'null', value: null } :
-              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value } :
-              { type: 'array', value: existingReflectionNotes.value };
+              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value as Record<string, unknown> } :
+              { type: 'array', value: (existingReflectionNotes.value ?? []) as Record<string, unknown>[] };
 
             const mergeResult = mergeReflectionNotes(existing, reflection_notes);
             

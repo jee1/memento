@@ -11,6 +11,7 @@ import type {
   StepsDiffItem,
   StepChangeType
 } from '../../../shared/types/index.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 function fieldDiff(left: string | null, right: string | null): FieldDiff {
   const l = left ?? null;
@@ -23,7 +24,8 @@ function parseStepsJson(raw: string | null): string[] {
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.map((s: unknown) => String(s)) : [];
-  } catch {
+  } catch (err) {
+    logger.debug('steps JSON 파싱 실패', { raw: raw?.substring(0, 100), error: err });
     return [];
   }
 }
