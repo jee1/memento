@@ -16,6 +16,8 @@ import {
   type ExtractedProceduralMemory
 } from '../shared/utils/procedural-memory-extractor.js';
 import { toDbRelationType } from '../shared/utils/relation-type-converter.js';
+import { mementoConfig } from '../shared/config/index.js';
+import { LlmProceduralExtractor } from '../domains/memory/services/procedural-llm-extractor.js';
 
 /**
  * Worker 상태
@@ -569,8 +571,19 @@ export class ReflexionWorker {
     event: FailureEvent
   ): Promise<void> {
     try {
-      // 1. reflection_notes에서 procedural memory 필드 추출
-      const extracted = extractProceduralMemory(reflectionNote, event);
+      // 1. reflection_notes에서 procedural memory 필드 추출 (전략: llm_first 시 LLM 시도 후 fallback)
+      let extracted: ExtractedProceduralMemory;
+      if (mementoConfig.proceduralExtractionStrategy === 'llm_first') {
+        const llmExtractor = new LlmProceduralExtractor();
+        const llmResult = await llmExtractor.extract(reflectionNote, event);
+        if (llmResult && (llmResult.workflow_name || llmResult.skill_name)) {
+          extracted = llmResult;
+        } else {
+          extracted = extractProceduralMemory(reflectionNote, event);
+        }
+      } else {
+        extracted = extractProceduralMemory(reflectionNote, event);
+      }
 
       // 추출된 필드가 없으면 변환하지 않음
       if (!extracted.workflow_name && !extracted.skill_name) {
