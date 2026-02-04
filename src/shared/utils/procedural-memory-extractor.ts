@@ -9,33 +9,12 @@
 import { logger } from './logger.js';
 import { PIIMasker } from './pii-masker.js';
 import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
+import type { ReflectionNotes, ExtractedProceduralMemory } from './procedural-memory-extractor.types.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from './database.js';
 
-/**
- * ReflectionNotes 인터페이스
- * reflection_notes 필드의 타입 안전성을 보장하기 위한 인터페이스
- */
-export interface ReflectionNotes {
-  original_task?: string;
-  failure_type?: string;
-  failure_description?: string;
-  suggested_improvements?: string;
-  lessons_learned?: string;
-  timestamp?: string | Date;
-  [key: string]: any; // 추가 필드 허용
-}
-
-/**
- * 추출된 Procedural Memory 데이터
- */
-export interface ExtractedProceduralMemory {
-  workflow_name?: string;
-  skill_name?: string;
-  steps?: string; // JSON 배열 문자열
-  trigger_conditions?: string; // JSON 객체 문자열
-  task_goal?: string;
-}
+// 하위 호환: 타입 re-export
+export type { ReflectionNotes, ExtractedProceduralMemory } from './procedural-memory-extractor.types.js';
 
 /**
  * 유사도 기반 병합 결과
