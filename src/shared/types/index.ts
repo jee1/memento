@@ -197,6 +197,9 @@ export interface MementoConfig {
   lockMonitorWarningThresholdMs: number;
   lockMonitorDangerThresholdMs: number;
   lockMonitorCriticalThresholdMs: number;
+  // Procedural Memory 추출 전략 (Issue #57 Phase 2)
+  proceduralExtractionStrategy: 'llm_first' | 'rule_only';
+  proceduralLlmExtractorTimeoutMs: number;
 }
 
 /**

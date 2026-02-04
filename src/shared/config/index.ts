@@ -92,7 +92,13 @@ export const mementoConfig: MementoConfig = {
   lockMonitorIntervalMs: resolveNumber('LOCK_MONITOR_INTERVAL_MS', { defaultValue: 60000 }),
   lockMonitorWarningThresholdMs: resolveNumber('LOCK_MONITOR_WARNING_THRESHOLD_MS', { defaultValue: 5000 }),
   lockMonitorDangerThresholdMs: resolveNumber('LOCK_MONITOR_DANGER_THRESHOLD_MS', { defaultValue: 30000 }),
-  lockMonitorCriticalThresholdMs: resolveNumber('LOCK_MONITOR_CRITICAL_THRESHOLD_MS', { defaultValue: 60000 })
+  lockMonitorCriticalThresholdMs: resolveNumber('LOCK_MONITOR_CRITICAL_THRESHOLD_MS', { defaultValue: 60000 }),
+
+  // Procedural Memory 추출 전략 (Issue #57 Phase 2)
+  proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
+    ? 'llm_first'
+    : 'rule_only') as 'llm_first' | 'rule_only',
+  proceduralLlmExtractorTimeoutMs: resolveNumber('PROCEDURAL_LLM_EXTRACTOR_TIMEOUT_MS', { defaultValue: 10000 })
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)
