@@ -8,6 +8,9 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider, type MemorySearchFilters } from '../../../shared/types/index.js';
+import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
+import { getVersionChain } from '../services/procedural-versioning.js';
+import { computeProceduralDiff } from '../services/procedural-memory-diff.js';
 import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
@@ -260,7 +263,13 @@ const RecallSchema = z.object({
   include_neighbors: z.boolean().optional().default(false),
   neighbors_limit: z.number().min(1).max(10).optional().default(3),
   neighbors_per_item: z.number().min(1).max(50).optional().default(5),
-  neighbors_similarity_threshold: z.number().min(0).max(1).optional().default(0.8)
+  neighbors_similarity_threshold: z.number().min(0).max(1).optional().default(0.8),
+  // Procedural Version Management (Issue #57 Phase 2)
+  version_filter: z.enum(['latest_only', 'all_versions', 'specific_version']).optional(),
+  version_series_id: z.string().optional(),
+  version_number: z.number().int().min(1).optional(),
+  include_version_chain: z.boolean().optional(),
+  include_diff_with: z.string().optional() // 'previous' 또는 비교할 메모리 id
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -447,6 +456,29 @@ export class RecallTool extends BaseTool {
             maximum: 1,
             default: 0.8,
             description: '이웃 기억 조회 시 유사도 임계값 (이 값 이상인 기억만 반환, 기본값: 0.8)'
+          },
+          // Procedural Version Management (Issue #57 Phase 2)
+          version_filter: {
+            type: 'string',
+            enum: ['latest_only', 'all_versions', 'specific_version'],
+            description: 'procedural 기억 버전 필터: latest_only(시리즈당 최신만), all_versions(전체), specific_version(version_series_id+version_number로 지정)'
+          },
+          version_series_id: {
+            type: 'string',
+            description: '버전 시리즈 ID (specific_version일 때 또는 특정 시리즈만 볼 때 사용)'
+          },
+          version_number: {
+            type: 'number',
+            minimum: 1,
+            description: '특정 버전 번호 (specific_version일 때 version_series_id와 함께 사용)'
+          },
+          include_version_chain: {
+            type: 'boolean',
+            description: 'true이면 procedural 결과에 version_chain(버전 이력 배열) 포함'
+          },
+          include_diff_with: {
+            type: 'string',
+            description: "'previous'면 직전 버전과의 diff, 메모리 id면 해당 id와의 diff를 diff_with_previous 또는 diff_with 필드로 반환"
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -489,7 +521,12 @@ export class RecallTool extends BaseTool {
         include_neighbors,
         neighbors_limit,
         neighbors_per_item,
-        neighbors_similarity_threshold
+        neighbors_similarity_threshold,
+        version_filter,
+        version_series_id,
+        version_number,
+        include_version_chain,
+        include_diff_with
       } = RecallSchema.parse(params);
       
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
@@ -718,7 +755,13 @@ export class RecallTool extends BaseTool {
           has_reflection_notes: params.has_reflection_notes,
           // Procedural Memory Enhancement (v7.0) 필터
           workflow_name,
-          skill_name
+          skill_name,
+          // Procedural Version Management (Issue #57 Phase 2)
+          version_filter: version_filter as VersionFilterType | undefined,
+          version_series_id,
+          version_number,
+          include_version_chain,
+          include_diff_with
         };
         
         // 검색 옵션 설정
@@ -783,6 +826,21 @@ export class RecallTool extends BaseTool {
         
         // 검색 결과 가져오기
         let searchItems = searchResult?.items || [];
+
+        // Procedural Version Management: version_filter 후처리 (시리즈당 최신만 / 특정 버전만)
+        if (version_filter && searchItems.length > 0) {
+          searchItems = this.applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
+        }
+
+        // Procedural Version Management: version_chain·diff 보강 (procedural 항목만, db 필요)
+        if ((include_version_chain || include_diff_with) && context.db && searchItems.length > 0) {
+          searchItems = await this.enrichProceduralVersionInfo(
+            context.db,
+            searchItems,
+            include_version_chain === true,
+            include_diff_with
+          );
+        }
         
         // trigger_conditions 매칭 필터링 (match_trigger_conditions=true일 때)
         if (match_trigger_conditions && searchItems.length > 0) {
@@ -1050,6 +1108,13 @@ export class RecallTool extends BaseTool {
           processed.workflow_name = item.workflow_name || null;
           processed.skill_name = item.skill_name || null;
           processed.trigger_conditions = item.trigger_conditions || null;
+
+          // Procedural Version Management (Issue #57 Phase 2)
+          if (item.version !== undefined) processed.version = item.version;
+          if (item.version_series_id !== undefined) processed.version_series_id = item.version_series_id;
+          if (item.version_chain !== undefined) processed.version_chain = item.version_chain;
+          if (item.diff_with_previous !== undefined) processed.diff_with_previous = item.diff_with_previous;
+          if (item.diff_with !== undefined) processed.diff_with = item.diff_with;
           
           // reflection_notes 필드 추가 (JSON 파싱)
           if (item.reflection_notes) {
@@ -1132,8 +1197,91 @@ export class RecallTool extends BaseTool {
     if (filters.has_reflection_notes !== undefined) {
       applied.has_reflection_notes = filters.has_reflection_notes;
     }
-    
+    // Procedural Version Management (Issue #57 Phase 2)
+    if (filters.version_filter) applied.version_filter = filters.version_filter;
+    if (filters.version_series_id) applied.version_series_id = filters.version_series_id;
+    if (filters.version_number !== undefined) applied.version_number = filters.version_number;
+    if (filters.include_version_chain !== undefined) applied.include_version_chain = filters.include_version_chain;
+    if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
+
     return applied;
+  }
+
+  /**
+   * version_filter에 따라 검색 결과를 필터링합니다.
+   * latest_only: version_series_id별 최신(version 최대) 1건만 유지.
+   * specific_version: version_series_id + version_number 일치 항목만 유지.
+   */
+  private applyVersionFilter(
+    items: any[],
+    versionFilter: VersionFilterType,
+    versionSeriesId?: string,
+    versionNumber?: number
+  ): any[] {
+    const procedural = items.filter((i: any) => i.type === 'procedural');
+    const nonProcedural = items.filter((i: any) => i.type !== 'procedural');
+    if (procedural.length === 0) return items;
+
+    if (versionFilter === 'latest_only') {
+      const bySeries = new Map<string, any>();
+      for (const item of procedural) {
+        const sid = item.version_series_id ?? item.id;
+        const cur = bySeries.get(sid);
+        const v = item.version ?? 0;
+        if (!cur || (cur.version ?? 0) < v) bySeries.set(sid, item);
+      }
+      return [...nonProcedural, ...Array.from(bySeries.values())];
+    }
+    if (versionFilter === 'specific_version') {
+      const filtered = procedural.filter((i: any) => {
+        if (versionSeriesId && i.version_series_id !== versionSeriesId) return false;
+        if (versionNumber !== undefined && (i.version ?? 0) !== versionNumber) return false;
+        return true;
+      });
+      return [...nonProcedural, ...filtered];
+    }
+    return items;
+  }
+
+  /**
+   * procedural 항목에 version_chain 및 diff_with_previous/diff_with를 채웁니다.
+   */
+  private async enrichProceduralVersionInfo(
+    db: any,
+    items: any[],
+    includeVersionChain: boolean,
+    includeDiffWith?: string
+  ): Promise<any[]> {
+    return Promise.all(items.map(async (item: any) => {
+      if (item.type !== 'procedural') return item;
+      const out = { ...item };
+      if (includeVersionChain && item.id) {
+        try {
+          out.version_chain = getVersionChain(db, item.id);
+        } catch {
+          out.version_chain = [];
+        }
+      }
+      if (includeDiffWith && item.id) {
+        try {
+          if (includeDiffWith === 'previous') {
+            const chain = getVersionChain(db, item.id);
+            const prev = chain.filter((c: any) => c.version < (item.version ?? 0)).sort((a: any, b: any) => b.version - a.version)[0];
+            if (prev) {
+              out.diff_with_previous = computeProceduralDiff(db, prev.id, item.id);
+            } else {
+              out.diff_with_previous = null;
+            }
+          } else {
+            out.diff_with = computeProceduralDiff(db, item.id, includeDiffWith);
+          }
+        } catch {
+          if (includeDiffWith === 'previous') out.diff_with_previous = null;
+          else out.diff_with = null;
+        }
+      }
+      return out;
+    }));
   }
 
   /**

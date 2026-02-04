@@ -59,6 +59,7 @@ export class SearchEngine {
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
+              m.version, m.version_series_id,
               m.privacy_scope, m.origin_source,
               0 as fts_rank
             FROM memory_item m
@@ -71,6 +72,7 @@ export class SearchEngine {
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
+              m.version, m.version_series_id,
               m.privacy_scope, m.origin_source,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
@@ -97,6 +99,7 @@ export class SearchEngine {
             m.consolidation_score,
             m.task_goal, m.steps, m.reflection_notes,
             m.workflow_name, m.skill_name, m.trigger_conditions,
+            m.version, m.version_series_id,
             m.privacy_scope, m.origin_source,
             0 as fts_rank
           FROM memory_item m
@@ -112,6 +115,7 @@ export class SearchEngine {
           m.consolidation_score,
           m.task_goal, m.steps, m.reflection_notes,
           m.workflow_name, m.skill_name, m.trigger_conditions,
+          m.version, m.version_series_id,
           m.privacy_scope, m.origin_source,
           0 as fts_rank
         FROM memory_item m
@@ -394,6 +398,14 @@ export class SearchEngine {
           score: finalScore,
           recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0)
         };
+        if (row.task_goal !== undefined) result.task_goal = row.task_goal;
+        if (row.steps !== undefined) result.steps = row.steps;
+        if (row.reflection_notes !== undefined) result.reflection_notes = row.reflection_notes;
+        if (row.workflow_name !== undefined) result.workflow_name = row.workflow_name;
+        if (row.skill_name !== undefined) result.skill_name = row.skill_name;
+        if (row.trigger_conditions !== undefined) result.trigger_conditions = row.trigger_conditions;
+        if (row.version !== undefined) result.version = row.version;
+        if (row.version_series_id !== undefined) result.version_series_id = row.version_series_id;
 
         // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
