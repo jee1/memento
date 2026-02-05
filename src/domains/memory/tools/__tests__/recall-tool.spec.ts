@@ -268,6 +268,25 @@ describe('RecallTool', () => {
     });
   });
 
+  describe('recall profiling (MEMENTO_RECALL_PROFILE)', () => {
+    it('Given: MEMENTO_RECALL_PROFILE=1, When: recall 성공 시, Then: logInfo에 recall_profile 및 total_ms 호출됨', async () => {
+      const envRestore = process.env.MEMENTO_RECALL_PROFILE;
+      process.env.MEMENTO_RECALL_PROFILE = '1';
+      const logSpy = vi.spyOn(tool, 'logInfo');
+      try {
+        const params = { type: 'core' };
+        await tool.handle(params, context);
+        const profileCall = logSpy.mock.calls.find(c => c[0] === 'recall_profile');
+        expect(profileCall).toBeDefined();
+        expect(profileCall![1]).toMatchObject({ total_ms: expect.any(Number) });
+      } finally {
+        if (envRestore !== undefined) process.env.MEMENTO_RECALL_PROFILE = envRestore;
+        else delete process.env.MEMENTO_RECALL_PROFILE;
+        logSpy.mockRestore();
+      }
+    });
+  });
+
   describe('Knowledge Vault 조회', () => {
     beforeEach(() => {
       const originSource = JSON.stringify({

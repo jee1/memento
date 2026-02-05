@@ -698,7 +698,11 @@ export class RecallTool extends BaseTool {
           created_at: record.created_at,
           updated_at: record.updated_at
         }));
-        
+
+        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
+        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+        }
         return this.createSuccessResult({
           items: processedResults,
           total_count: processedResults.length,
@@ -739,7 +743,11 @@ export class RecallTool extends BaseTool {
           created_at: record.created_at,
           updated_at: record.updated_at
         }));
-        
+
+        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
+        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+        }
         return this.createSuccessResult({
           items: processedResults,
           total_count: processedResults.length,
@@ -1008,7 +1016,11 @@ export class RecallTool extends BaseTool {
         const metaStats = includeMetadata && context.services.metaMemoryService && processedResults.length > 0
           ? await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService)
           : undefined;
-        
+
+        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
+        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+        }
         return this.createSuccessResult({
           items: processedResults,
           total_count: searchResult?.total_count || processedResults.length,
