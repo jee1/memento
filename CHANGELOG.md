@@ -8,6 +8,10 @@
 ## [Unreleased]
 
 ### 추가됨
+- **Issue #57 Phase 2 — Procedural Memory 확장**
+  - **독립 remember_procedure 툴**: 절차적 기억 전용 MCP 툴 `remember_procedure` 추가 (검증·로깅·스키마 분리).
+  - **성능 최적화 (B)**: procedural 버전 조회용 복합 인덱스(014), recall 선택 프로파일링(`MEMENTO_RECALL_PROFILE=1`), `docs/recall-performance-tuning.md` 가이드.
+  - **다중 에이전트 (D)**: `memory_item.owner_id` 및 마이그레이션(015), `ToolContext.agentId`, remember/remember_procedure·recall에서 `owner_id` 저장·필터 지원, `docs/multi-agent-usage.md` 가이드.
 - **앵커 시스템**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
   - `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `restore_anchors` MCP Tools 추가
   - 앵커 주변 국소 검색 기능
