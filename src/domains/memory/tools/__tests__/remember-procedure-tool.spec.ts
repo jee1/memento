@@ -49,7 +49,8 @@ function initializeTestDatabase(db: Database.Database): void {
       triple_extracted_status TEXT DEFAULT NULL,
       triple_extraction_metadata TEXT DEFAULT NULL,
       version INTEGER NULL,
-      version_series_id TEXT NULL
+      version_series_id TEXT NULL,
+      owner_id TEXT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
@@ -198,6 +199,23 @@ describe('RememberProcedureTool', () => {
       expect(row?.type).toBe('procedural');
       expect(row?.workflow_name).toBe('프론트 배포');
       expect(row?.skill_name).toBe('CI 배포');
+    });
+
+    it('Given: owner_id 파라미터 또는 context.agentId, When: handle 호출하면, Then: memory_item에 owner_id 저장됨', async () => {
+      const ctxWithAgent: ToolContext = { ...context, agentId: 'agent-proc' };
+      const params = {
+        content: '절차 내용',
+        workflow_name: 'wf',
+        skill_name: 'sk',
+        owner_id: 'owner-from-params',
+      };
+      const result = await tool.handle(params, ctxWithAgent);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.memory_id).toBeDefined();
+      const row = DatabaseUtils.get(db, 'SELECT owner_id FROM memory_item WHERE id = ?', [
+        data.memory_id,
+      ]) as { owner_id: string | null };
+      expect(row.owner_id).toBe('owner-from-params');
     });
   });
 

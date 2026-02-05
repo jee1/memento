@@ -69,6 +69,8 @@ const RememberSchema = z.object({
   importance: CommonSchemas.Importance.default(0.5),
   source: CommonSchemas.Source,
   privacy_scope: CommonSchemas.PrivacyScope.default('private'),
+  // Multi-agent ownership (Issue #57 Phase 2 D)
+  owner_id: z.string().optional(),
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -370,8 +372,11 @@ export class RememberTool extends BaseTool {
         tags, 
         importance, 
         source, 
-        privacy_scope 
+        privacy_scope,
+        owner_id: owner_id_param
       } = RememberSchema.parse(params);
+
+    const ownerId = owner_id_param ?? context.agentId ?? null;
     
     // type 파라미터 롤아웃 모드 검증
     const typeParamMode = mementoConfig.typeParamMode;
@@ -671,7 +676,8 @@ export class RememberTool extends BaseTool {
                 recall_count = ?,
                 last_accessed_at = ?,
                 g_value = ?,
-                consolidation_score = ?
+                consolidation_score = ?,
+                owner_id = ?
               WHERE id = ?
             `, [
               content,
@@ -690,6 +696,7 @@ export class RememberTool extends BaseTool {
               lastAccessedAt,
               gValue,
               consolidationScore,
+              ownerId,
               id
             ]);
           } else {
@@ -709,9 +716,9 @@ export class RememberTool extends BaseTool {
                 workflow_name, skill_name, trigger_conditions,
                 created_at,
                 recall_count, last_accessed_at, g_value, consolidation_score,
-                version, version_series_id
+                version, version_series_id, owner_id
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
               id, 
               type, 
@@ -733,7 +740,8 @@ export class RememberTool extends BaseTool {
               gValue,
               consolidationScore,
               proceduralVersion,
-              proceduralVersionSeriesId
+              proceduralVersionSeriesId,
+              ownerId
             ]);
 
             // versioned 모드일 때 memory_link에 'version_of' 관계 추가

@@ -46,6 +46,8 @@ export interface MemoryItem {
   workflow_name?: string; // 프로세스 이름 (예: "데이터 마이그레이션", "API 배포")
   skill_name?: string; // 기술/능력 이름 (예: "스키마 백업", "데이터 검증")
   trigger_conditions?: string; // 트리거 조건 (JSON 객체 문자열)
+  // Multi-agent ownership (Issue #57 Phase 2 D)
+  owner_id?: string | null;
 }
 
 export interface MemorySearchFilters {

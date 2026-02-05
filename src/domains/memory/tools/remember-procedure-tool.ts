@@ -24,6 +24,8 @@ interface RememberProcedureParams {
   importance?: number;
   source?: string | null;
   privacy_scope?: 'private' | 'team' | 'public';
+  /** 다중 에이전트 시 소유자 식별자 (미설정 시 context.agentId 사용) */
+  owner_id?: string | null;
 }
 
 export class RememberProcedureTool extends BaseTool {
@@ -59,6 +61,10 @@ export class RememberProcedureTool extends BaseTool {
             enum: ['private', 'team', 'public'],
             description: '프라이버시 범위',
             default: 'private',
+          },
+          owner_id: {
+            type: 'string',
+            description: '다중 에이전트 시 소유자 식별자 (미설정 시 context.agentId 사용)',
           },
         },
         required: ['content'],
@@ -128,12 +134,17 @@ export class RememberProcedureTool extends BaseTool {
     const privacy_scope: 'private' | 'team' | 'public' =
       raw.privacy_scope === 'team' || raw.privacy_scope === 'public' ? raw.privacy_scope : 'private';
 
+    const owner_id =
+      typeof raw.owner_id === 'string' && raw.owner_id.trim() !== ''
+        ? raw.owner_id.trim()
+        : context.agentId ?? undefined;
     const rememberParams = {
       ...raw,
       type: 'procedural' as const,
       content: typeof content === 'string' ? content : String(content),
       importance,
       privacy_scope,
+      owner_id,
     };
 
     try {
