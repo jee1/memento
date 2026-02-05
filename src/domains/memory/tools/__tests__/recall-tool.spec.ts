@@ -38,7 +38,8 @@ function initializeTestDatabase(db: Database.Database): void {
       -- Procedural Memory Enhancement (v7.0) 필드
       workflow_name TEXT,
       skill_name TEXT,
-      trigger_conditions TEXT
+      trigger_conditions TEXT,
+      owner_id TEXT NULL
     );
 
     CREATE TABLE IF NOT EXISTS core_memory (
@@ -265,6 +266,33 @@ describe('RecallTool', () => {
       expect(resultData.items[0].origin_source).toBeDefined();
       expect(resultData.items[0].origin_source.tool).toBe('remember');
       expect(resultData.items[0].origin_source.caller).toBe('user');
+    });
+  });
+
+  describe('owner_id 필터 (다중 에이전트, Issue #57 Phase 2 D)', () => {
+    it('Given: owner_id가 서로 다른 메모리 2건, When: recall에 owner_id 제공 시, Then: 해당 소유자 메모리만 반환', async () => {
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES ('mem-a', 'episodic', 'Agent A memory', 0.5, 'private', 'agent-a', CURRENT_TIMESTAMP)
+      `);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
+        VALUES ('mem-b', 'episodic', 'Agent B memory', 0.5, 'private', 'agent-b', CURRENT_TIMESTAMP)
+      `);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          { id: 'mem-a', content: 'Agent A memory', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), owner_id: 'agent-a', finalScore: 0.9 },
+          { id: 'mem-b', content: 'Agent B memory', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), owner_id: 'agent-b', finalScore: 0.8 },
+        ],
+        total_count: 2,
+        query_time: 10,
+      });
+      const params = { query: 'memory', type: 'episodic', owner_id: 'agent-a' };
+      const result = await tool.handle(params, context);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.items).toHaveLength(1);
+      expect(data.items[0].memory_id).toBe('mem-a');
+      expect(data.items[0].owner_id).toBe('agent-a');
     });
   });
 

@@ -68,6 +68,8 @@ export interface MemorySearchFilters {
   version_number?: number | undefined;
   include_version_chain?: boolean | undefined;
   include_diff_with?: 'previous' | string | undefined; // id
+  // Multi-agent (Issue #57 Phase 2 D)
+  owner_id?: string | string[] | undefined;
 }
 
 // 관계 추출 타입 재export
