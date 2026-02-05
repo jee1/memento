@@ -11,7 +11,7 @@
 | 단계 | 항목 | 설명 | 설계/구현 문서 |
 |------|------|------|----------------|
 | **1** | **A) 고급 버전 관리** | 버전 필드/테이블, diff 조회, rollback, recall 버전·비교 옵션 | [2026-02-05-procedural-version-management-design.md](./2026-02-05-procedural-version-management-design.md) |
-| **2** | **C) 독립 remember_procedure 툴** | 전용 엔드포인트, 검증/로깅/권한 분리 | (예정) |
+| **2** | **C) 독립 remember_procedure 툴** | 전용 엔드포인트, 검증/로깅/권한 분리 | [2026-02-05-remember-procedure-design.md](./2026-02-05-remember-procedure-design.md) (완료) |
 | **3** | **B) 성능 최적화** | 캐싱(steps-only 뷰 등), FTS/JSON 인덱스, recall 프로파일링 | (예정) |
 | **4** | **D) 다중 에이전트** | privacy_scope/ownership 확장안 조사·설계 → 필요 시 구현 | (예정) |
 
