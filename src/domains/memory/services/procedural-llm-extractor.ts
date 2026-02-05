@@ -8,6 +8,9 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import type { IProceduralMemoryExtractor, ExtractedProceduralMemory, ReflectionNotes } from '../../../shared/utils/procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../../monitoring/services/failure-detector.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
+import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
+import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import OpenAI from 'openai';
 
 const SYSTEM_PROMPT = `Reflexion 결과에서 절차적 기억(workflow, skill, steps, trigger_conditions)만 추출한다.
@@ -27,11 +30,18 @@ export interface LlmProceduralExtractorOptions {
  */
 export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
   private readonly completionFn?: (messages: Array<{ role: string; content: string }>) => Promise<string>;
+  private readonly retryManager: RetryManager;
   private initResult: Awaited<ReturnType<LLMClientInitializer['initialize']>> | null = null;
   private initPromise: Promise<Awaited<ReturnType<LLMClientInitializer['initialize']>>> | null = null;
 
   constructor(options?: LlmProceduralExtractorOptions) {
     this.completionFn = options?.completion;
+    const retryOptions = getRetryOptions();
+    const retryConfig: RetryConfig = {
+      maxAttempts: retryOptions.external_api.maxAttempts,
+      baseDelay: retryOptions.external_api.baseDelay
+    };
+    this.retryManager = new RetryManager(retryConfig);
   }
 
   async extract(
@@ -80,38 +90,78 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     const timeoutMs = mementoConfig.proceduralLlmExtractorTimeoutMs ?? 10000;
 
     if (result.preferredProvider === 'openai' && result.openaiClient) {
-      const res = await result.openaiClient.chat.completions.create({
-        model: mementoConfig.openaiLlmModel || 'gpt-4o-mini',
-        messages: messages as OpenAI.ChatCompletionMessageParam[],
-        temperature: 0.3,
-        max_tokens: 1024,
-        response_format: { type: 'json_object' }
-      }, { timeout: timeoutMs });
-      const content = res.choices[0]?.message?.content;
-      if (!content) throw new Error('OpenAI 응답 내용 없음');
-      return content;
+      return this.callOpenAI(result.openaiClient, messages, timeoutMs);
     }
-
     if (result.preferredProvider === 'gemini' && result.geminiClient) {
-      const model = result.geminiClient.getGenerativeModel({
-        model: mementoConfig.geminiModel || 'gemini-1.5-flash'
-      });
-      const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const gen = await model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
-        });
-        const text = gen.response.text();
-        return text || '{}';
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      return this.callGemini(result.geminiClient, messages, timeoutMs);
     }
 
     throw new Error('사용 가능한 LLM provider 없음');
+  }
+
+  private async callOpenAI(
+    client: NonNullable<Awaited<ReturnType<LLMClientInitializer['initialize']>>['openaiClient']>,
+    messages: Array<{ role: string; content: string }>,
+    timeoutMs: number
+  ): Promise<string> {
+    const retryOptions = getRetryOptions();
+    const res = await this.retryManager.retry(
+      async () => {
+        return await client.chat.completions.create({
+          model: mementoConfig.openaiLlmModel || 'gpt-4o-mini',
+          messages: messages as OpenAI.ChatCompletionMessageParam[],
+          temperature: 0.3,
+          max_tokens: 1024,
+          response_format: { type: 'json_object' }
+        }, { timeout: timeoutMs });
+      },
+      {
+        maxAttempts: retryOptions.external_api.maxAttempts,
+        baseDelay: retryOptions.external_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          const msg = error.message.toLowerCase();
+          return msg.includes('network') || msg.includes('timeout') || msg.includes('rate limit') || msg.includes('503');
+        }
+      }
+    );
+    const content = res.choices[0]?.message?.content;
+    if (!content) throw new Error('OpenAI 응답 내용 없음');
+    return content;
+  }
+
+  private async callGemini(
+    client: NonNullable<Awaited<ReturnType<LLMClientInitializer['initialize']>>['geminiClient']>,
+    messages: Array<{ role: string; content: string }>,
+    timeoutMs: number
+  ): Promise<string> {
+    const retryOptions = getRetryOptions();
+    return await this.retryManager.retry(
+      async () => {
+        const model = client.getGenerativeModel({
+          model: mementoConfig.geminiModel || 'gemini-1.5-flash'
+        });
+        const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const gen = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+          });
+          return gen.response.text() || '{}';
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      },
+      {
+        maxAttempts: retryOptions.external_api.maxAttempts,
+        baseDelay: retryOptions.external_api.baseDelay,
+        shouldRetry: (error: Error) => {
+          const msg = error.message.toLowerCase();
+          return msg.includes('network error') || msg.includes('rate limit') || msg.includes('503');
+        }
+      }
+    );
   }
 
   /**
