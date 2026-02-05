@@ -23,7 +23,8 @@ describe('ProceduralMemoryMatcher', () => {
         id TEXT PRIMARY KEY,
         workflow_name TEXT,
         skill_name TEXT,
-        trigger_conditions TEXT
+        trigger_conditions TEXT,
+        owner_id TEXT NULL
       );
     `);
   });
