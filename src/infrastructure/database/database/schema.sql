@@ -90,6 +90,9 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(id); -- pro
 -- Procedural Memory Enhancement (v7.0) 인덱스
 CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name);
 CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name);
+-- Procedural Version Management (Issue #57 Phase 2 B, migration 014)
+CREATE INDEX IF NOT EXISTS idx_memory_item_procedural_version_series ON memory_item(type, version_series_id) WHERE type = 'procedural';
+CREATE INDEX IF NOT EXISTS idx_memory_item_procedural_version ON memory_item(type, version_series_id, version) WHERE type = 'procedural';
 
 CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id);
