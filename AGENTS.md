@@ -1,37 +1,41 @@
-# Repository Guidelines
+# 저장소 가이드라인
 
-## Project Structure & Module Organization
-Source code lives under `src/`. `src/server/` exposes the MCP entry points (`index.ts` for CLI, `http-server.ts` for HTTP). Domain logic is grouped by concern: `src/services/` (embedding, forgetting, monitoring), `src/algorithms/` (search engines), `src/utils/` (database helpers), and `src/types/` for shared contracts. Persistence assets live in `src/database/` (schema + init scripts) and compile into `dist/database/` during builds. Local SQLite state is written to `data/`; treat it as disposable. Documentation sits in `docs/`, and build artifacts compile to `dist/` (never edit by hand).
+## 프로젝트 구조 및 모듈 구성
+소스 코드는 `src/` 아래에 위치한다. `src/server/`는 MCP 진입점을 노출한다(CLI용 `index.ts`, HTTP용 `http-server.ts`). 도메인 로직은 `src/domains/`에 관심사별로 묶여 있다: `memory/`, `embedding/`, `forgetting/`, `search/`(검색 엔진·알고리즘), `anchor/`, `relation/`, `monitoring/` 등. 공유 타입·유틸은 `src/shared/`, 영속성·캐시·스케줄러 등 인프라는 `src/infrastructure/`에 둔다. DB 스키마·초기화·마이그레이션은 `src/infrastructure/database/`에 두고, 빌드 시 `copy:assets`가 스키마를 `dist/database/`로, 마이그레이션 SQL을 `dist/infrastructure/...`로 복사한다. 로컬 SQLite 상태는 `data/`에 기록되며, 임시로 취급한다. 문서는 `docs/`에, 빌드 산출물은 `dist/`에 컴파일된다(수동 편집 금지).
 
-## Build, Test, and Development Commands
-Run `npm install` once before other tasks. `npm run dev` starts the MCP server in watch mode; use `npm run dev:http` for the HTTP facade. `npm run build` transpiles TypeScript and copies the SQL schema, while `npm run start` boots the compiled server. Quality gates: `npm run lint`, `npm run type-check`, and `npm test` (Vitest). Scenario scripts such as `npm run test:client`, `npm run test:search`, and `npm run test:forgetting` exercise higher-level workflows.
+## 빌드·테스트·개발 명령
+다른 작업 전에 한 번 `npm install`을 실행한다. `npm run dev`는 MCP 서버를 watch 모드로 띄우고, HTTP 퍼사드는 `npm run dev:http`(또는 `dev:http-v2`)를 사용한다. `npm run build`는 TypeScript를 트랜스파일하고 `copy:assets`로 스키마·마이그레이션·prompts·config를 복사하며, `npm run start`는 컴파일된 서버를 기동한다. 품질 게이트: `npm run lint`, `npm run type-check`, `npm test`(Vitest, 한 번 실행). watch 모드는 `npm run test:watch`. `npm run test:client`, `npm run test:search`, `npm run test:forgetting` 등 시나리오 스크립트는 상위 수준 워크플로를 검증한다.
 
-## Coding Style & Naming Conventions
-We target Node.js ≥ 20 and modern TypeScript with ES modules. Default to two-space indentation, trailing commas, and single quotes as seen in `src/server/index.ts`. File names follow kebab-case (`memory-embedding-service.ts`); classes use PascalCase, functions camelCase. Keep business logic typed with shared interfaces from `src/types/`. Format code before commits via `npm run lint -- --fix` when applicable.
+## 코딩 스타일 및 네이밍 규칙
+Node.js ≥ 20과 ES 모듈 기반 현대 TypeScript를 대상으로 한다. `src/server/index.ts`처럼 두 칸 들여쓰기, 후행 쉼표, 작은따옴표를 기본으로 한다. 파일명은 kebab-case(`memory-embedding-service.ts`), 클래스는 PascalCase, 함수는 camelCase. 비즈니스 로직은 `src/shared/`의 공유 인터페이스로 타입을 유지한다. 가능하면 커밋 전에 `npm run lint -- --fix`로 포맷한다.
 
-## Testing Guidelines
-Vitest backs the unit and integration tests with clear file naming conventions:
+## 테스트 가이드라인
+Vitest로 단위·통합 테스트를 수행하며, 파일 네이밍 규칙은 다음과 같다.
 
-- **Unit Tests** (`.spec.ts`): Place in the same directory as the module being tested
-  - Example: `src/algorithms/search-engine.spec.ts`
-  - Test individual functions/classes with mocks
-- **E2E Tests** (`test-*.ts`): Place in `src/test/` directory
-  - Example: `src/test/test-client.ts`
-  - Test complete workflows with real MCP server
+- **단위 테스트** (`.spec.ts`): 테스트 대상 모듈과 같은 디렉터리(또는 해당 `__tests__/`)에 둔다.
+  - 예: `src/server/http-server.spec.ts`, `src/domains/search/algorithms/` 내 `.spec.ts`
+  - 모킹으로 개별 함수/클래스를 테스트한다.
+- **E2E 테스트** (`test-*.ts`): `src/test/` 디렉터리에 둔다.
+  - 예: `src/test/test-client.ts`
+  - 실제 MCP 서버로 전체 워크플로를 테스트한다.
 
-Prefer deterministic data via the `DatabaseUtils` helpers. Run `npm test` for the suite, and add relevant scenario scripts (e.g., `npm run test:performance`) to PR comments when used. Clean or reset `data/` if tests modify the local SQLite database.
+`DatabaseUtils` 헬퍼로 결정론적 데이터를 사용하는 것을 권장한다. 전체 스위트는 `npm test`로 실행하고, 사용한 시나리오 스크립트(예: `npm run test:performance`)는 PR 코멘트에 적어 둔다. 테스트가 로컬 SQLite DB를 수정하면 `data/`를 정리하거나 초기화한다.
 
-## Commit & Pull Request Guidelines
-Follow the existing conventional commit style (`feat:`, `fix:`, `chore:`) with concise, action-oriented summaries; include Korean context when helpful to the team. Reference tracking issues in the body. PRs should describe intent, outline testing evidence, and call out schema or configuration changes. Attach logs or screenshots for HTTP/UI-facing updates, and request review from domain owners when touching search, forgetting, or database modules.
+## 커밋 및 PR 가이드라인
+기존 conventional commit 스타일(`feat:`, `fix:`, `chore:`)을 따르고, 간결하고 행동 지향적인 요약을 쓴다. 팀에 도움이 되면 본문에 한국어 맥락을 포함한다. 추적 이슈는 본문에서 참조한다. PR에는 의도, 테스트 근거, 스키마·설정 변경 사항을 적는다. HTTP/UI 관련 변경은 로그나 스크린샷을 첨부하고, 검색·망각·DB 모듈을 건드릴 때는 해당 도메인 담당자 리뷰를 요청한다.
 
-## Environment & Database Notes
-Copy `env.example` to `.env` and override API keys or database paths as needed. Use `npm run db:init` for fresh setups and `npm run db:migrate` when altering the SQLite schema; include migration notes in PRs. Keep secrets out of source control and avoid committing generated files under `data/` or `dist/`.
+## 환경 및 DB 참고
+`env.example`을 `.env`로 복사한 뒤 API 키나 DB 경로를 필요에 따라 덮어쓴다. 새 환경은 `npm run db:init`(실제 진입점: `src/infrastructure/database/database/init.ts`), SQLite 스키마 변경 시에는 `npm run db:migrate`를 사용하고, PR에 마이그레이션 노트를 포함한다. 비밀은 소스 관리에서 제외하고, `data/`·`dist/` 아래 생성 파일은 커밋하지 않는다.
 
-## Communication Preferences
-All written communication (including task summaries, status updates, and code review feedback) should be provided in Korean so collaborators receive responses in their preferred language.
+## 커뮤니케이션 선호
+작업 요약, 상태 업데이트, 코드 리뷰 피드백 등 모든 서면 소통은 협업자가 선호하는 언어로 제공한다. 기본적으로 한국어로 작성한다.
 
-## Serena MCP Usage
-- Codex must route code-navigation and editing tasks through the Serena MCP tools whenever possible, using symbol-aware commands (`get_symbols_overview`, `find_symbol`, `find_referencing_symbols`, `replace_symbol_body`, etc.) before falling back to full `read_file` calls.
-- Avoid re-reading the same file multiple times; cache earlier Serena responses and only request additional detail when a shallower query (overview or signature-only) proves insufficient.
-- When editing, target specific symbols or insert points via Serena helpers (`insert_after_symbol`, `insert_before_symbol`, `replace_lines`) instead of fetching entire files—only small (<50 line) files may be read wholesale.
-- Use Serena’s search helpers (`search_for_pattern`, `find_referencing_code_snippets`) rather than broad repo-wide scans to reduce token usage, and only fetch tool outputs directly relevant to the current task.
+## Memento MCP 사용
+- **작업 전**: 답변을 제공하거나 작업을 진행하기 전에 Memento MCP로 관련 기억이 있는지 조회한다. 작업 주제·키워드로 `recall`(하이브리드 검색) 또는 `memory_injection`(쿼리 기반 컨텍스트 주입)을 사용하고, 앵커가 설정되어 있으면 `search_local`로 앵커 주변 기억을 참고한다. 발견한 관련 기억을 앵커로 설정해 두면 이후 작업에 일관되게 참고할 수 있다.
+- **작업 후**: 작업이 끝나면 결과를 기억으로 남긴다. `remember` 도구로 완료 기록은 `type: episodic`(태그 예: `completed`), 재사용 가능한 지식은 `type: semantic`(태그 예: `best-practice`, `knowledge`), 반복되는 절차는 `type: procedural`(태그 예: `procedure`)로 저장한다. 중복 저장을 줄이기 위해 저장 전에 관련 기억 검색으로 이미 있는지 확인하고, 구체적이고 검색 가능한 키워드를 포함해 둔다.
+
+## Serena MCP 사용
+- Codex는 가능한 한 Serena MCP 도구를 통해 코드 탐색·편집 작업을 수행한다. 전체 `read_file` 호출에 의존하기 전에 심볼 인식 명령(`get_symbols_overview`, `find_symbol`, `find_referencing_symbols`, `replace_symbol_body` 등)을 우선 사용한다.
+- 같은 파일을 여러 번 다시 읽지 않는다. 이전 Serena 응답을 캐시하고, overview나 시그니처만으로는 부족할 때만 추가 상세를 요청한다.
+- 편집 시에는 파일 전체를 가져오지 말고 Serena 헬퍼(`insert_after_symbol`, `insert_before_symbol`, `replace_lines`)로 특정 심볼이나 삽입 지점을 지정한다. 50줄 미만의 작은 파일만 전체 읽기를 허용한다.
+- 토큰 사용을 줄이기 위해 Serena 검색 헬퍼(`search_for_pattern`, `find_referencing_code_snippets`)를 쓰고, 저장소 전체 스캔 대신 현재 작업에 직접 관련된 도구 결과만 가져온다.

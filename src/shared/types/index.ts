@@ -60,6 +60,12 @@ export interface MemorySearchFilters {
   // Procedural Memory Enhancement (v7.0) 필드
   workflow_name?: string | undefined; // workflow_name으로 필터링
   skill_name?: string | undefined; // skill_name으로 필터링
+  // Procedural Version Management (Issue #57 Phase 2)
+  version_filter?: import('./procedural-versioning.js').VersionFilterType;
+  version_series_id?: string | undefined;
+  version_number?: number | undefined;
+  include_version_chain?: boolean | undefined;
+  include_diff_with?: 'previous' | string | undefined; // id
 }
 
 // 관계 추출 타입 재export
@@ -83,6 +89,16 @@ export type {
   IRelationGraph,
   RelationTypeRegistry
 } from './relation-graph.js';
+
+// Procedural Memory 버전/비교 타입 (Issue #57 Phase 2)
+export type {
+  FieldDiff,
+  StepsDiffItem,
+  StepChangeType,
+  ProceduralDiffResult,
+  VersionChainItem,
+  VersionFilterType
+} from './procedural-versioning.js';
 
 // Triple 추출 타입 재export
 export type {
@@ -128,6 +144,12 @@ export interface MemorySearchResult {
   trigger_conditions?: string; // 트리거 조건 (JSON 객체 문자열)
   // return_format에 따른 조건부 반환은 구현 레벨에서 처리
   // return_format='steps_only'일 때는 steps만 반환하도록 구현
+  // Procedural Version Management (Issue #57 Phase 2)
+  version?: number;
+  version_series_id?: string | null;
+  version_chain?: import('./procedural-versioning.js').VersionChainItem[];
+  diff_with_previous?: import('./procedural-versioning.js').ProceduralDiffResult | null;
+  diff_with?: import('./procedural-versioning.js').ProceduralDiffResult | null;
 }
 
 export interface SearchRankingWeights {
@@ -197,6 +219,9 @@ export interface MementoConfig {
   lockMonitorWarningThresholdMs: number;
   lockMonitorDangerThresholdMs: number;
   lockMonitorCriticalThresholdMs: number;
+  // Procedural Memory 추출 전략 (Issue #57 Phase 2)
+  proceduralExtractionStrategy: 'llm_first' | 'rule_only';
+  proceduralLlmExtractorTimeoutMs: number;
 }
 
 /**
@@ -247,6 +272,12 @@ export interface RecallParams {
   skill_name?: string; // skill_name으로 필터링
   match_trigger_conditions?: boolean; // trigger_conditions 매칭 여부 (기본값: false)
   return_format?: ReturnFormat; // 반환 형식 선택 (기본값: 'full')
+  // Procedural Version Management (Issue #57 Phase 2)
+  version_filter?: import('./procedural-versioning.js').VersionFilterType;
+  version_series_id?: string;
+  version_number?: number;
+  include_version_chain?: boolean;
+  include_diff_with?: 'previous' | string;
 }
 
 export interface ForgetParams {

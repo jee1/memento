@@ -30,7 +30,7 @@ export class SearchEngine {
    * FTS5 인덱스를 활용하여 대용량 데이터에서도 빠른 검색이 가능하도록 최적화합니다.
    */
   async search(
-    db: any,
+    db: Database.Database,
     query: SearchQuery
   ): Promise<{ items: MemorySearchResult[], total_count: number, query_time: number }> {
     const startTime = process.hrtime.bigint();
@@ -40,7 +40,7 @@ export class SearchEngine {
     const hasIdFilter = filters?.id && filters.id.length > 0;
     
     let sql: string;
-    const params: any[] = [];
+    const params: unknown[] = [];
     
     // 전문 검색 인덱스를 활용하여 빠르고 정확한 검색 결과를 제공합니다.
     if (!hasIdFilter && searchQuery.trim().length > 0) {
@@ -59,6 +59,7 @@ export class SearchEngine {
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
+              m.version, m.version_series_id,
               m.privacy_scope, m.origin_source,
               0 as fts_rank
             FROM memory_item m
@@ -71,6 +72,7 @@ export class SearchEngine {
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
+              m.version, m.version_series_id,
               m.privacy_scope, m.origin_source,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
@@ -97,6 +99,7 @@ export class SearchEngine {
             m.consolidation_score,
             m.task_goal, m.steps, m.reflection_notes,
             m.workflow_name, m.skill_name, m.trigger_conditions,
+            m.version, m.version_series_id,
             m.privacy_scope, m.origin_source,
             0 as fts_rank
           FROM memory_item m
@@ -112,6 +115,7 @@ export class SearchEngine {
           m.consolidation_score,
           m.task_goal, m.steps, m.reflection_notes,
           m.workflow_name, m.skill_name, m.trigger_conditions,
+          m.version, m.version_series_id,
           m.privacy_scope, m.origin_source,
           0 as fts_rank
         FROM memory_item m
@@ -394,6 +398,14 @@ export class SearchEngine {
           score: finalScore,
           recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0)
         };
+        if (row.task_goal !== undefined) result.task_goal = row.task_goal;
+        if (row.steps !== undefined) result.steps = row.steps;
+        if (row.reflection_notes !== undefined) result.reflection_notes = row.reflection_notes;
+        if (row.workflow_name !== undefined) result.workflow_name = row.workflow_name;
+        if (row.skill_name !== undefined) result.skill_name = row.skill_name;
+        if (row.trigger_conditions !== undefined) result.trigger_conditions = row.trigger_conditions;
+        if (row.version !== undefined) result.version = row.version;
+        if (row.version_series_id !== undefined) result.version_series_id = row.version_series_id;
 
         // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
@@ -409,7 +421,7 @@ export class SearchEngine {
    * FTS5 인덱스의 존재와 동작 여부를 확인하여 안전한 검색 전략을 선택합니다.
    * 인덱스가 없거나 비정상인 경우 대체 검색 방식을 사용하여 기능 안정성을 보장합니다.
    */
-  private async checkFTS5Availability(db: any): Promise<boolean> {
+  private async checkFTS5Availability(db: Database.Database): Promise<boolean> {
     try {
       // FTS5 인덱스 테이블이 생성되어 있는지 확인하여 전문 검색 사용 가능 여부를 판단합니다.
       const result = db.prepare(`
@@ -423,8 +435,8 @@ export class SearchEngine {
       }
       
       // 빈 인덱스로 인한 검색 실패를 방지하고 실제 검색 가능 여부를 확인합니다.
-      const count = db.prepare('SELECT COUNT(*) as count FROM memory_item_fts').get();
-      const hasData = count && count.count > 0;
+      const row = db.prepare('SELECT COUNT(*) as count FROM memory_item_fts').get() as { count: number } | undefined;
+      const hasData = row != null && Number(row.count) > 0;
       
       if (!hasData) {
         mcpLogger.logServer('warn', 'FTS5 테이블에 데이터가 없음, 기본 검색으로 전환');
@@ -453,7 +465,7 @@ export class SearchEngine {
    * @param db - 데이터베이스 인스턴스
    * @returns reflection_notes 컬럼 사용 가능 여부
    */
-  private checkReflectionNotesAvailability(db: any): boolean {
+  private checkReflectionNotesAvailability(db: Database.Database): boolean {
     // 환경 변수로 강제 Fallback 활성화 확인
     if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
       mcpLogger.logServer('warn', '환경 변수로 인해 reflection_notes Fallback 활성화');
@@ -500,7 +512,7 @@ export class SearchEngine {
    * @param searchQuery - 검색 쿼리
    * @returns reflection_notes 검색 조건 (SQL WHERE 절 조건)
    */
-  private buildReflectionNotesSearchCondition(db: any, searchQuery: string): string | null {
+  private buildReflectionNotesSearchCondition(db: Database.Database, searchQuery: string): string | null {
     // reflection_notes 검색이 필요한지 확인 (쿼리에 reflection_notes 관련 키워드가 있는지)
     // 간단한 구현: 모든 쿼리에 reflection_notes 검색 포함
     // 향후 개선: 쿼리 분석하여 reflection_notes 검색 필요 여부 판단

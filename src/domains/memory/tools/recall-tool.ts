@@ -7,7 +7,11 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider, type MemorySearchFilters } from '../../../shared/types/index.js';
+import type Database from 'better-sqlite3';
+import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider, type MemorySearchFilters, type MetaMemoryStats } from '../../../shared/types/index.js';
+import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
+import { getVersionChain } from '../services/procedural-versioning.js';
+import { computeProceduralDiff } from '../services/procedural-memory-diff.js';
 import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
@@ -40,7 +44,8 @@ export interface NeighborMemoryItem {
   id: string;
   content: string;
   similarity: number;
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: string | number | undefined;
 }
 
 /**
@@ -60,7 +65,8 @@ export interface RecallResultItem {
   created_at: string;
   final_score: number;
   neighbors?: NeighborMemoryItem[]; // optional: neighbors_limit보다 많은 결과는 필드 없음
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: string | number | NeighborMemoryItem[] | undefined;
 }
 
 /**
@@ -81,7 +87,8 @@ export interface RecallResponseMetadata {
   anchor_set_error?: boolean;
   anchor_set_skipped?: boolean;
   anchor_set_skipped_reason?: string;
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: AnchorSetMetadata | null | boolean | string | undefined;
 }
 
 /**
@@ -211,7 +218,8 @@ export interface RecallResponse {
       last_recalled_at?: string; // ISO 8601 형식 (예: "2024-01-01T00:00:00.000Z")
     };
   };
-  [key: string]: any; // 추가 필드 허용
+  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
+  [key: string]: RecallResultItem[] | number | string | RecallResponseMetadata | Record<string, unknown> | undefined;
 }
 
 /**
@@ -246,8 +254,8 @@ const RecallSchema = z.object({
   workflow_name: z.string().optional(),
   skill_name: z.string().optional(),
   match_trigger_conditions: z.boolean().optional().default(false),
-  context: z.record(z.any()).optional(), // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용, 예: {tool_name, error_type, params})
-  trigger_context: z.record(z.any()).optional(), // context의 별칭 (하위 호환성)
+  context: z.record(z.string(), z.unknown()).optional(), // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용, 예: {tool_name, error_type, params})
+  trigger_context: z.record(z.string(), z.unknown()).optional(), // context의 별칭 (하위 호환성)
   return_format: z.enum(['full', 'steps_only']).optional().default('full'),
   limit: CommonSchemas.Limit,
   vector_weight: z.number().min(0).max(1).optional(),
@@ -260,7 +268,13 @@ const RecallSchema = z.object({
   include_neighbors: z.boolean().optional().default(false),
   neighbors_limit: z.number().min(1).max(10).optional().default(3),
   neighbors_per_item: z.number().min(1).max(50).optional().default(5),
-  neighbors_similarity_threshold: z.number().min(0).max(1).optional().default(0.8)
+  neighbors_similarity_threshold: z.number().min(0).max(1).optional().default(0.8),
+  // Procedural Version Management (Issue #57 Phase 2)
+  version_filter: z.enum(['latest_only', 'all_versions', 'specific_version']).optional(),
+  version_series_id: z.string().optional(),
+  version_number: z.number().int().min(1).optional(),
+  include_version_chain: z.boolean().optional(),
+  include_diff_with: z.string().optional() // 'previous' 또는 비교할 메모리 id
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -292,6 +306,76 @@ const RecallSchema = z.object({
 }, {
   message: "type='core' 또는 'vault'가 아닌 경우 query 파라미터는 필수입니다 (memory_types만 제공된 경우에도 core/vault가 아닌 타입이 있으면 query 필수)"
 });
+
+/** Recall 도구 파라미터 타입 (Zod 스키마 추론) */
+export type RecallParams = z.infer<typeof RecallSchema>;
+
+/**
+ * 검색 결과 항목 최소 형태 (filter/process/enrich 등 내부 처리용)
+ */
+interface RecallSearchItem {
+  id?: string;
+  memory_id?: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string | Date;
+  final_score?: number;
+  finalScore?: number;
+  score?: number;
+  trigger_conditions?: string;
+  version?: number;
+  version_series_id?: string | null;
+  last_accessed?: Date;
+  pinned?: boolean;
+  tags?: string[];
+  source?: string;
+  origin_source?: string;
+  privacy_scope?: string;
+  task_goal?: string | null;
+  steps?: string | null;
+  workflow_name?: string | null;
+  skill_name?: string | null;
+  reflection_notes?: string | null;
+  version_chain?: unknown;
+  diff_with_previous?: unknown;
+  diff_with?: unknown;
+  textScore?: number;
+  vectorScore?: number;
+  recall_reason?: string;
+  consolidation_score?: number;
+  [key: string]: unknown;
+}
+
+/** 적용된 필터 정보 (getAppliedFilters 반환형) */
+interface AppliedFilters extends Record<string, unknown> {
+  type?: MemoryType[];
+  tags?: string[];
+  privacy_scope?: string[];
+  time_from?: string;
+  time_to?: string;
+  pinned?: boolean;
+  importance_min?: number;
+  importance_max?: number;
+  has_reflection_notes?: boolean;
+  version_filter?: VersionFilterType;
+  version_series_id?: string;
+  version_number?: number;
+  include_version_chain?: boolean;
+  include_diff_with?: string;
+}
+
+/** Recall 내부 필터 (MemorySearchFilters + importance 범위) */
+type RecallFilters = MemorySearchFilters & { importance_min?: number; importance_max?: number };
+
+/** meta_stats에 넣을 항목 (last_recalled_at은 ISO 문자열) */
+interface MetaStatsItem {
+  recall_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_confidence: number;
+  last_recalled_at?: string;
+}
 
 export class RecallTool extends BaseTool {
   constructor() {
@@ -447,6 +531,29 @@ export class RecallTool extends BaseTool {
             maximum: 1,
             default: 0.8,
             description: '이웃 기억 조회 시 유사도 임계값 (이 값 이상인 기억만 반환, 기본값: 0.8)'
+          },
+          // Procedural Version Management (Issue #57 Phase 2)
+          version_filter: {
+            type: 'string',
+            enum: ['latest_only', 'all_versions', 'specific_version'],
+            description: 'procedural 기억 버전 필터: latest_only(시리즈당 최신만), all_versions(전체), specific_version(version_series_id+version_number로 지정)'
+          },
+          version_series_id: {
+            type: 'string',
+            description: '버전 시리즈 ID (specific_version일 때 또는 특정 시리즈만 볼 때 사용)'
+          },
+          version_number: {
+            type: 'number',
+            minimum: 1,
+            description: '특정 버전 번호 (specific_version일 때 version_series_id와 함께 사용)'
+          },
+          include_version_chain: {
+            type: 'boolean',
+            description: 'true이면 procedural 결과에 version_chain(버전 이력 배열) 포함'
+          },
+          include_diff_with: {
+            type: 'string',
+            description: "'previous'면 직전 버전과의 diff, 메모리 id면 해당 id와의 diff를 diff_with_previous 또는 diff_with 필드로 반환"
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -454,7 +561,7 @@ export class RecallTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: RecallParams, context: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
     this.logInfo('Recall 도구 호출됨', { params });
     
@@ -489,7 +596,12 @@ export class RecallTool extends BaseTool {
         include_neighbors,
         neighbors_limit,
         neighbors_per_item,
-        neighbors_similarity_threshold
+        neighbors_similarity_threshold,
+        version_filter,
+        version_series_id,
+        version_number,
+        include_version_chain,
+        include_diff_with
       } = RecallSchema.parse(params);
       
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
@@ -718,7 +830,13 @@ export class RecallTool extends BaseTool {
           has_reflection_notes: params.has_reflection_notes,
           // Procedural Memory Enhancement (v7.0) 필터
           workflow_name,
-          skill_name
+          skill_name,
+          // Procedural Version Management (Issue #57 Phase 2)
+          version_filter: version_filter as VersionFilterType | undefined,
+          version_series_id,
+          version_number,
+          include_version_chain,
+          include_diff_with
         };
         
         // 검색 옵션 설정
@@ -781,8 +899,23 @@ export class RecallTool extends BaseTool {
         
         const executionTime = Date.now() - searchStartTime;
         
-        // 검색 결과 가져오기
-        let searchItems = searchResult?.items || [];
+        // 검색 결과 가져오기 (파이프라인에서 공통 타입 사용, 검색 엔진 반환형 호환)
+        let searchItems: RecallSearchItem[] = (searchResult?.items ?? []) as RecallSearchItem[];
+
+        // Procedural Version Management: version_filter 후처리 (시리즈당 최신만 / 특정 버전만)
+        if (version_filter && searchItems.length > 0) {
+          searchItems = this.applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
+        }
+
+        // Procedural Version Management: version_chain·diff 보강 (procedural 항목만, db 필요)
+        if ((include_version_chain || include_diff_with) && context.db && searchItems.length > 0) {
+          searchItems = await this.enrichProceduralVersionInfo(
+            context.db,
+            searchItems,
+            include_version_chain === true,
+            include_diff_with
+          );
+        }
         
         // trigger_conditions 매칭 필터링 (match_trigger_conditions=true일 때)
         if (match_trigger_conditions && searchItems.length > 0) {
@@ -843,7 +976,9 @@ export class RecallTool extends BaseTool {
           // 검색 결과 항목에 neighbors 필드 추가
           // neighbors_limit보다 많은 결과는 neighbors 필드 없음 (handleIncludeNeighbors가 상위 neighbors_limit개만 처리)
           for (let i = 0; i < Math.min(neighborsResults.length, processedResults.length); i++) {
-            processedResults[i].neighbors = neighborsResults[i];
+            const row = processedResults[i];
+            const neighbors = neighborsResults[i];
+            if (row && neighbors) row.neighbors = neighbors as unknown as NeighborMemoryItem[];
           }
         }
         
@@ -930,7 +1065,7 @@ export class RecallTool extends BaseTool {
    * @param context 구조화된 컨텍스트 정보 (우선 사용)
    * @returns 필터링된 항목 배열
    */
-  private filterByTriggerConditions(items: any[], query?: string, triggerContext?: Record<string, any>): any[] {
+  private filterByTriggerConditions(items: RecallSearchItem[], query?: string, triggerContext?: Record<string, unknown>): RecallSearchItem[] {
     const queryText = query?.toLowerCase() || '';
     
     return items.filter(item => {
@@ -1010,16 +1145,18 @@ export class RecallTool extends BaseTool {
   /**
    * 검색 결과 후처리
    */
-  private processSearchResults(items: any[], includeMetadata: boolean, returnFormat: 'full' | 'steps_only' = 'full'): any[] {
+  private processSearchResults(items: RecallSearchItem[], includeMetadata: boolean, returnFormat: 'full' | 'steps_only' = 'full'): RecallResultItem[] {
     return items.map(item => {
-      const processed: any = {
-        memory_id: item.id || item.memory_id, // 통일된 필드명 사용
-        id: item.id, // 하위 호환성을 위해 유지
+      const createdAt = item.created_at instanceof Date ? item.created_at.toISOString() : String(item.created_at ?? '');
+      const memoryId = item.id ?? item.memory_id ?? '';
+      const processed: Record<string, unknown> = {
+        memory_id: memoryId,
+        id: item.id,
         content: item.content,
         type: item.type,
         importance: item.importance,
-        created_at: item.created_at,
-        final_score: item.finalScore || item.score || 0
+        created_at: createdAt,
+        final_score: item.finalScore ?? item.score ?? 0
       };
 
       if (includeMetadata) {
@@ -1050,6 +1187,13 @@ export class RecallTool extends BaseTool {
           processed.workflow_name = item.workflow_name || null;
           processed.skill_name = item.skill_name || null;
           processed.trigger_conditions = item.trigger_conditions || null;
+
+          // Procedural Version Management (Issue #57 Phase 2)
+          if (item.version !== undefined) processed.version = item.version;
+          if (item.version_series_id !== undefined) processed.version_series_id = item.version_series_id;
+          if (item.version_chain !== undefined) processed.version_chain = item.version_chain;
+          if (item.diff_with_previous !== undefined) processed.diff_with_previous = item.diff_with_previous;
+          if (item.diff_with !== undefined) processed.diff_with = item.diff_with;
           
           // reflection_notes 필드 추가 (JSON 파싱)
           if (item.reflection_notes) {
@@ -1068,12 +1212,11 @@ export class RecallTool extends BaseTool {
           
           // return_format='steps_only'일 때 steps만 반환
           if (returnFormat === 'steps_only') {
-            // steps만 포함하고 나머지 필드는 제거
             return {
               memory_id: processed.memory_id,
               id: processed.id,
               steps: processed.steps
-            };
+            } as unknown as RecallResultItem;
           }
         }
         
@@ -1093,17 +1236,17 @@ export class RecallTool extends BaseTool {
         }
       }
 
-      return processed;
-    });
+      return processed as unknown as RecallResultItem;
+    }) as RecallResultItem[];
   }
 
   /**
    * 적용된 필터 정보 반환
    */
-  private getAppliedFilters(filters?: any): any {
+  private getAppliedFilters(filters?: RecallFilters): AppliedFilters {
     if (!filters) return {};
     
-    const applied: any = {};
+    const applied: AppliedFilters = {};
     
     if (filters.type && filters.type.length > 0) {
       applied.type = filters.type;
@@ -1132,8 +1275,93 @@ export class RecallTool extends BaseTool {
     if (filters.has_reflection_notes !== undefined) {
       applied.has_reflection_notes = filters.has_reflection_notes;
     }
-    
+    // Procedural Version Management (Issue #57 Phase 2)
+    if (filters.version_filter) applied.version_filter = filters.version_filter;
+    if (filters.version_series_id) applied.version_series_id = filters.version_series_id;
+    if (filters.version_number !== undefined) applied.version_number = filters.version_number;
+    if (filters.include_version_chain !== undefined) applied.include_version_chain = filters.include_version_chain;
+    if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
+
     return applied;
+  }
+
+  /**
+   * version_filter에 따라 검색 결과를 필터링합니다.
+   * latest_only: version_series_id별 최신(version 최대) 1건만 유지.
+   * specific_version: version_series_id + version_number 일치 항목만 유지.
+   */
+  private applyVersionFilter(
+    items: RecallSearchItem[],
+    versionFilter: VersionFilterType,
+    versionSeriesId?: string,
+    versionNumber?: number
+  ): RecallSearchItem[] {
+    const procedural = items.filter((i: RecallSearchItem) => i.type === 'procedural');
+    const nonProcedural = items.filter((i: RecallSearchItem) => i.type !== 'procedural');
+    if (procedural.length === 0) return items;
+
+    if (versionFilter === 'latest_only') {
+      const bySeries = new Map<string, RecallSearchItem>();
+      for (const item of procedural) {
+        const sid = item.version_series_id ?? item.id ?? '';
+        if (!sid) continue;
+        const cur = bySeries.get(sid);
+        const v = item.version ?? 0;
+        if (!cur || (cur.version ?? 0) < v) bySeries.set(sid, item);
+      }
+      return [...nonProcedural, ...Array.from(bySeries.values())];
+    }
+    if (versionFilter === 'specific_version') {
+      const filtered = procedural.filter((i: RecallSearchItem) => {
+        if (versionSeriesId && i.version_series_id !== versionSeriesId) return false;
+        if (versionNumber !== undefined && (i.version ?? 0) !== versionNumber) return false;
+        return true;
+      });
+      return [...nonProcedural, ...filtered];
+    }
+    return items;
+  }
+
+  /**
+   * procedural 항목에 version_chain 및 diff_with_previous/diff_with를 채웁니다.
+   */
+  private async enrichProceduralVersionInfo(
+    db: Database.Database,
+    items: RecallSearchItem[],
+    includeVersionChain: boolean,
+    includeDiffWith?: string
+  ): Promise<RecallSearchItem[]> {
+    return Promise.all(items.map(async (item: RecallSearchItem) => {
+      if (item.type !== 'procedural') return item;
+      const out = { ...item };
+      const itemId = item.id;
+      if (includeVersionChain && itemId) {
+        try {
+          out.version_chain = getVersionChain(db, itemId);
+        } catch {
+          out.version_chain = [];
+        }
+      }
+      if (includeDiffWith && itemId) {
+        try {
+          if (includeDiffWith === 'previous') {
+            const chain = getVersionChain(db, itemId);
+            const prev = chain.filter((c: { version?: number; id: string }) => (c.version ?? 0) < (item.version ?? 0)).sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
+            if (prev) {
+              out.diff_with_previous = computeProceduralDiff(db, prev.id, itemId);
+            } else {
+              out.diff_with_previous = null;
+            }
+          } else {
+            out.diff_with = computeProceduralDiff(db, itemId, includeDiffWith);
+          }
+        } catch {
+          if (includeDiffWith === 'previous') out.diff_with_previous = null;
+          else out.diff_with = null;
+        }
+      }
+      return out;
+    }));
   }
 
   /**
@@ -1146,7 +1374,7 @@ export class RecallTool extends BaseTool {
    * @returns 앵커 설정 결과 (성공/실패/건너뜀 상태 포함)
    */
   private async handleAutoSetAnchor(
-    searchItems: any[],
+    searchItems: RecallSearchItem[],
     agentId: string,
     context: ToolContext
   ): Promise<{
@@ -1164,9 +1392,9 @@ export class RecallTool extends BaseTool {
       };
     }
 
-    // 첫 번째 결과의 memory_id 가져오기
-    const topMemory = searchItems[0];
-    const memoryId = topMemory.id || topMemory.memory_id;
+    // 첫 번째 결과의 memory_id 가져오기 (length > 0 확인됨)
+    const topMemory = searchItems[0]!;
+    const memoryId = topMemory.id ?? topMemory.memory_id;
     
     if (!memoryId) {
       this.logWarning('검색 결과에 memory_id가 없어 앵커 설정을 건너뜁니다', { topMemory });
@@ -1317,7 +1545,7 @@ export class RecallTool extends BaseTool {
    * @returns 각 검색 결과 항목에 대한 이웃 기억 배열 (순서 보존)
    */
   private async handleIncludeNeighbors(
-    searchItems: any[],
+    searchItems: RecallSearchItem[],
     neighborsLimit: number,
     neighborsPerItem: number,
     neighborsSimilarityThreshold: number,
@@ -1476,7 +1704,7 @@ export class RecallTool extends BaseTool {
   /**
    * 필터 검증
    */
-  private validateFilters(filters?: any): void {
+  private validateFilters(filters?: RecallFilters): void {
     if (!filters) return;
     
     // 시간 범위 검증
@@ -1510,7 +1738,7 @@ export class RecallTool extends BaseTool {
    * @param metaMemoryService MetaMemoryService 인스턴스
    */
   private async collectMetaMemoryStats(
-    searchItems: any[],
+    searchItems: RecallSearchItem[],
     metaMemoryService: MetaMemoryService
   ): Promise<void> {
     if (!searchItems || searchItems.length === 0) {
@@ -1519,16 +1747,21 @@ export class RecallTool extends BaseTool {
 
     try {
       // MetaMemoryService.recordRecall 호출
-      // searchItems를 RecallResultItem[] 형식으로 변환
-      const recallItems = searchItems.map(item => ({
-        memory_id: item.id || item.memory_id,
-        id: item.id || item.memory_id,
-        final_score: item.final_score || item.finalScore || 0,
-        finalScore: item.finalScore || item.final_score || 0,
-        consolidation_score: item.consolidation_score || 0,
-        vectorScore: item.vectorScore || 0,
-        ...item
-      }));
+      // searchItems를 RecallResultItem[] 형식으로 변환 (memory_id 필수, 확장 필드는 인덱스 시그니처로)
+      const recallItems = searchItems.map((item): RecallResultItem => {
+        const memoryId = item.id ?? item.memory_id ?? '';
+        const createdAt = item.created_at instanceof Date ? item.created_at.toISOString() : String(item.created_at ?? '');
+        const finalScore = item.final_score ?? item.finalScore ?? item.score ?? 0;
+        return {
+          memory_id: memoryId,
+          id: item.id ?? item.memory_id,
+          content: item.content,
+          type: item.type,
+          importance: item.importance,
+          created_at: createdAt,
+          final_score: finalScore
+        } as RecallResultItem;
+      });
 
       await metaMemoryService.recordRecall(recallItems);
     } catch (error) {
@@ -1552,7 +1785,7 @@ export class RecallTool extends BaseTool {
   private async getMetaStatsForResults(
     processedResults: RecallResultItem[],
     metaMemoryService: MetaMemoryService
-  ): Promise<{ [memory_id: string]: any } | undefined> {
+  ): Promise<Record<string, MetaStatsItem> | undefined> {
     try {
       // 통계 업데이트를 위해 debounce 시간 대기 (100ms)
       // 실제로는 flush가 완료될 때까지 대기하는 것이 더 정확하지만,
@@ -1578,7 +1811,7 @@ export class RecallTool extends BaseTool {
       });
 
       // meta_stats 객체 생성 (memory_id를 키로 하는 객체)
-      const metaStats: { [memory_id: string]: any } = {};
+      const metaStats: Record<string, MetaStatsItem> = {};
       for (const stat of statsResult.items) {
         metaStats[stat.memory_id] = {
           recall_count: stat.recall_count,
@@ -1610,10 +1843,10 @@ export class RecallTool extends BaseTool {
    * @param searchItems 검색 결과 아이템 배열
    */
   private async updateConsolidationScoreMetadata(
-    db: any,
+    db: Database.Database,
     consolidationScoreService: ConsolidationScoreService,
     writeCoalescingManager: WriteCoalescingManager | undefined,
-    searchItems: any[]
+    searchItems: RecallSearchItem[]
   ): Promise<void> {
     if (!searchItems || searchItems.length === 0) {
       return;

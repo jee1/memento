@@ -6,7 +6,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../../../shared/utils/write-coalescing.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { RecallResultItem } from '../tools/recall-tool.js';
@@ -22,6 +22,18 @@ interface MetaMemoryStatsWrite {
   failureCount: number;
   avgConfidence: number;
   lastRecalledAt: string; // ISO timestamp
+}
+
+/** meta_memory_stats 테이블 SELECT row 형태 */
+interface MetaMemoryStatsRow {
+  memory_id: string;
+  recall_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_confidence: number;
+  last_recalled_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -48,9 +60,9 @@ export class MetaMemoryService {
       // 자체 WriteCoalescingManager 생성 (100ms debounce)
       this.writeCoalescingManager = new WriteCoalescingManager(
         this.flushInterval,
-        async (writes: any[]) => {
-          // meta_memory_stats 업데이트를 위한 flushCallback
-          await this.flushToDatabase(writes);
+        async (writes: CoalescedWrite[]) => {
+          // meta_memory_stats 업데이트를 위한 flushCallback (본 서비스는 MetaMemoryStatsWrite만 추가)
+          await this.flushToDatabase(writes as unknown as MetaMemoryStatsWrite[]);
         }
       );
     }
@@ -208,7 +220,8 @@ export class MetaMemoryService {
    * @returns 성공 여부 (final_score >= 0.5)
    */
   isItemSuccess(item: RecallResultItem): boolean {
-    const finalScore = item.final_score || item.finalScore || 0;
+    const raw = item.final_score ?? (item as Record<string, unknown>).finalScore;
+    const finalScore = typeof raw === 'number' ? raw : Number(raw ?? 0);
     return finalScore >= 0.5;
   }
 
@@ -219,14 +232,14 @@ export class MetaMemoryService {
    * @returns confidence 점수 (0.0 ~ 1.0)
    */
   calculateConfidence(item: RecallResultItem): number {
-    // finalScore 또는 final_score 지원 (둘 다 확인)
-    const finalScore = item.finalScore || item.final_score || 0;
+    const rawFinal = item.final_score ?? (item as Record<string, unknown>).finalScore;
+    const finalScore = typeof rawFinal === 'number' ? rawFinal : Number(rawFinal ?? 0);
 
-    // consolidation_score는 선택적 필드
-    const consolidationScore = (item as any).consolidation_score || 0;
+    const rawConsolidation = (item as Record<string, unknown>).consolidation_score;
+    const consolidationScore = typeof rawConsolidation === 'number' ? rawConsolidation : Number(rawConsolidation ?? 0);
 
-    // vectorScore는 벡터 유사도 (relevance 역할)
-    const vectorScore = item.vectorScore || 0;
+    const rawVector = (item as Record<string, unknown>).vectorScore;
+    const vectorScore = typeof rawVector === 'number' ? rawVector : Number(rawVector ?? 0);
 
     return (
       0.6 * finalScore +
@@ -340,7 +353,7 @@ export class MetaMemoryService {
 
       // WHERE 조건 구성
       const conditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number)[] = [];
 
       // memory_id 필터
       if (memory_id) {
@@ -411,7 +424,7 @@ export class MetaMemoryService {
         LIMIT ?
       `);
 
-      const rows = dataStmt.all(...queryParams, limit) as any[];
+      const rows = dataStmt.all(...queryParams, limit) as MetaMemoryStatsRow[];
 
       const items: MetaMemoryStats[] = rows.map(row => this.mapRowToMetaMemoryStats(row));
 
@@ -438,7 +451,7 @@ export class MetaMemoryService {
    * @param row 데이터베이스 row
    * @returns MetaMemoryStats 객체
    */
-  private mapRowToMetaMemoryStats(row: any): MetaMemoryStats {
+  private mapRowToMetaMemoryStats(row: MetaMemoryStatsRow): MetaMemoryStats {
     return {
       memory_id: row.memory_id,
       recall_count: row.recall_count,

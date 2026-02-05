@@ -261,17 +261,17 @@ describe('CacheService', () => {
       // Given: 작은 maxSize로 캐시 생성
       const smallCache = new CacheService<string>(3, 300000);
 
-      // 여러 데이터 저장 (시간 차이를 두기 위해 순차적으로)
+      // 여러 데이터 저장 (lastAccessed 구분을 위해 15ms 간격으로 순차 저장)
       smallCache.set('key1', 'value1');
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => setTimeout(resolve, 15));
       smallCache.set('key2', 'value2');
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => setTimeout(resolve, 15));
       smallCache.set('key3', 'value3');
 
       // key1과 key2를 조회하여 최근 접근 업데이트
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => setTimeout(resolve, 15));
       smallCache.get('key1');
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => setTimeout(resolve, 15));
       smallCache.get('key2');
 
       // When: 최대 크기 초과 데이터 추가

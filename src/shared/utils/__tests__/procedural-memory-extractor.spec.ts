@@ -14,6 +14,7 @@ import {
   extractProceduralMemory,
   calculateSimilarity,
   determineMergeStrategy,
+  RuleBasedProceduralExtractor,
   type ExtractedProceduralMemory
 } from '../procedural-memory-extractor.js';
 import type { FailureEvent } from '../../../domains/monitoring/services/failure-detector.js';
@@ -610,8 +611,8 @@ describe('Procedural Memory Extractor', () => {
       });
 
       it('should handle non-string event.tool_name gracefully', () => {
-        // Given: tool_name이 문자열이 아닌 event
-        const event: any = {
+        // Given: tool_name이 문자열이 아닌 event (테스트용으로 잘못된 타입 주입)
+        const event = {
           id: 'test-event',
           tool_name: 12345, // 숫자
           error_type: 'tool_error',
@@ -620,7 +621,7 @@ describe('Procedural Memory Extractor', () => {
           timestamp: new Date().toISOString(),
           context: {},
           priority: 5
-        };
+        } as FailureEvent;
 
         // When: skill_name 추출
         const result = extractSkillName({}, event);
@@ -730,8 +731,8 @@ describe('Procedural Memory Extractor', () => {
       });
 
       it('should handle non-string event.error_message gracefully', () => {
-        // Given: error_message가 문자열이 아닌 event
-        const event: any = {
+        // Given: error_message가 문자열이 아닌 event (테스트용으로 잘못된 타입 주입)
+        const event = {
           id: 'test-event',
           tool_name: 'remember-tool',
           error_type: 'tool_error',
@@ -740,7 +741,7 @@ describe('Procedural Memory Extractor', () => {
           timestamp: new Date().toISOString(),
           context: {},
           priority: 5
-        };
+        } as FailureEvent;
 
         // When: trigger_conditions 생성
         const result = generateTriggerConditions({}, event);
@@ -1139,6 +1140,18 @@ describe('Procedural Memory Extractor', () => {
         expect(result.shouldMerge).toBe(true);
         expect(result.existingMemoryId).toBe(memoryId);
       }
+    });
+  });
+
+  describe('RuleBasedProceduralExtractor', () => {
+    it('Given: reflection_notes와 event가 주어졌을 때, When: extract()를 호출하면, Then: ExtractedProceduralMemory를 Promise로 반환한다', async () => {
+      const notes = { original_task: '테스트 작업', suggested_improvements: '단계1. 검증' };
+      const extractor = new RuleBasedProceduralExtractor();
+      const result = await extractor.extract(notes);
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('workflow_name');
+      expect(result).toHaveProperty('skill_name');
+      expect(result).toHaveProperty('steps');
     });
   });
 });

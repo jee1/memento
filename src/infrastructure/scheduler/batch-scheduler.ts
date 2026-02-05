@@ -1709,6 +1709,20 @@ export class BatchScheduler {
       jobs
     };
   }
+
+  /**
+   * 작업이 큐에 대기 중인지 여부. jobQueue private 멤버 대신 공개 API로 상태 조회용.
+   */
+  isJobQueued(name: string): boolean {
+    return this.jobQueue.isQueued(name);
+  }
+
+  /**
+   * 작업이 현재 실행 중인지 여부. jobQueue private 멤버 대신 공개 API로 상태 조회용.
+   */
+  isJobRunning(name: string): boolean {
+    return this.jobQueue.isRunning(name);
+  }
 }
 
 // 싱글톤 인스턴스

@@ -15,7 +15,11 @@ import {
   determineMergeStrategy,
   type ExtractedProceduralMemory
 } from '../shared/utils/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../shared/utils/procedural-memory-extractor.types.js';
 import { toDbRelationType } from '../shared/utils/relation-type-converter.js';
+import { mementoConfig } from '../shared/config/index.js';
+import { LlmProceduralExtractor } from '../domains/memory/services/procedural-llm-extractor.js';
+import { getNextVersionNumber } from '../domains/memory/services/procedural-versioning.js';
 
 /**
  * Worker 상태
@@ -261,9 +265,9 @@ export class ReflexionWorker {
           existing = { type: 'null', value: null };
         } else {
           const parsed = this.parseReflectionNotes(existingRecord.reflection_notes);
-          existing = parsed.type === 'null' ? { type: 'null', value: null } :
+          existing = (parsed.type === 'null' ? { type: 'null', value: null } :
                      parsed.type === 'object' ? { type: 'object', value: parsed.value } :
-                     { type: 'array', value: parsed.value };
+                     { type: 'array', value: parsed.value }) as ExistingReflectionNotes;
         }
 
         // 반복 실패 패턴 분석
@@ -419,7 +423,7 @@ export class ReflexionWorker {
   /**
    * Reflexion 데이터 생성
    */
-  private generateReflectionNote(event: FailureEvent): any {
+  private generateReflectionNote(event: FailureEvent): ReflectionNotes {
     return {
       failure_type: event.error_type,
       failure_description: event.error_message,
@@ -565,12 +569,23 @@ export class ReflexionWorker {
    * 4. 결정된 전략에 따라 메모리 업데이트 또는 생성
    */
   private async convertToProceduralMemory(
-    reflectionNote: any,
+    reflectionNote: ReflectionNotes | Record<string, unknown>,
     event: FailureEvent
   ): Promise<void> {
     try {
-      // 1. reflection_notes에서 procedural memory 필드 추출
-      const extracted = extractProceduralMemory(reflectionNote, event);
+      // 1. reflection_notes에서 procedural memory 필드 추출 (전략: llm_first 시 LLM 시도 후 fallback)
+      let extracted: ExtractedProceduralMemory;
+      if (mementoConfig.proceduralExtractionStrategy === 'llm_first') {
+        const llmExtractor = new LlmProceduralExtractor();
+        const llmResult = await llmExtractor.extract(reflectionNote, event);
+        if (llmResult && (llmResult.workflow_name || llmResult.skill_name)) {
+          extracted = llmResult;
+        } else {
+          extracted = extractProceduralMemory(reflectionNote, event);
+        }
+      } else {
+        extracted = extractProceduralMemory(reflectionNote, event);
+      }
 
       // 추출된 필드가 없으면 변환하지 않음
       if (!extracted.workflow_name && !extracted.skill_name) {
@@ -613,7 +628,7 @@ export class ReflexionWorker {
     memoryId: string,
     extracted: ExtractedProceduralMemory,
     updateMode: 'replace' | 'incremental' | 'versioned',
-    reflectionNote: any,
+    reflectionNote: ReflectionNotes | Record<string, unknown>,
     event: FailureEvent
   ): Promise<void> {
     try {
@@ -719,8 +734,8 @@ export class ReflexionWorker {
           skill_name: extracted.skill_name
         });
       } else {
-        // versioned 모드: 새 메모리 생성하고 version_of 관계 생성
-        const newMemoryId = await this.createProceduralMemory(extracted, reflectionNote, event);
+        // versioned 모드: 새 메모리 생성하고 version_of 관계 생성 (기존 시리즈 버전 이어받기)
+        const newMemoryId = await this.createProceduralMemory(extracted, reflectionNote, event, memoryId);
         
         if (newMemoryId) {
           // version_of 관계 생성
@@ -758,24 +773,42 @@ export class ReflexionWorker {
 
   /**
    * 새 procedural memory 생성
+   * @param existingMemoryIdForVersion versioned 모드일 때 기존 메모리 id (같은 시리즈의 version·version_series_id 이어받기)
    */
   private async createProceduralMemory(
     extracted: ExtractedProceduralMemory,
-    reflectionNote: any,
-    event: FailureEvent
+    reflectionNote: ReflectionNotes | Record<string, unknown>,
+    event: FailureEvent,
+    existingMemoryIdForVersion?: string
   ): Promise<string | null> {
     try {
       const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const content = extracted.task_goal || `Reflexion: ${event.tool_name} 실패 기록`;
       const reflectionNotesStr = JSON.stringify(reflectionNote);
 
+      let version: number;
+      let versionSeriesId: string;
+      if (existingMemoryIdForVersion) {
+        const existing = DatabaseUtils.get(
+          this.db,
+          `SELECT version_series_id FROM memory_item WHERE id = ? AND type = 'procedural'`,
+          [existingMemoryIdForVersion]
+        ) as { version_series_id: string | null } | undefined;
+        versionSeriesId = existing?.version_series_id ?? existingMemoryIdForVersion;
+        version = getNextVersionNumber(this.db, versionSeriesId);
+      } else {
+        version = 1;
+        versionSeriesId = memoryId;
+      }
+
       DatabaseUtils.run(
         this.db,
         `INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, trigger_conditions, 
-          steps, task_goal, reflection_notes, importance, privacy_scope, created_at
+          steps, task_goal, reflection_notes, importance, privacy_scope, created_at,
+          version, version_series_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',
@@ -788,7 +821,9 @@ export class ReflexionWorker {
           reflectionNotesStr,
           0.7,
           'private',
-          new Date().toISOString()
+          new Date().toISOString(),
+          version,
+          versionSeriesId
         ]
       );
 
@@ -812,7 +847,10 @@ export class ReflexionWorker {
   /**
    * reflection_notes 파싱
    */
-  private parseReflectionNotes(reflectionNotes: string): { type: 'null' | 'object' | 'array'; value: null | any | any[] } {
+  private parseReflectionNotes(reflectionNotes: string): {
+    type: 'null' | 'object' | 'array';
+    value: null | Record<string, unknown> | unknown[];
+  } {
     if (!reflectionNotes) {
       return { type: 'null', value: null };
     }
