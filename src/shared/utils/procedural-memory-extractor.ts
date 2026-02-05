@@ -33,6 +33,82 @@ export interface SimilarityMergeResult {
 const SIMILARITY_THRESHOLD = 0.7; // 70% 이상 유사하면 병합
 const HIGH_SIMILARITY_THRESHOLD = 0.9; // 90% 이상이면 replace 모드
 
+/** 병합 후보 기존 메모리 행 (검색 쿼리 결과) */
+interface ExistingMemoryRow {
+  id: string;
+  workflow_name: string | null;
+  skill_name: string | null;
+  task_goal: string | null;
+  steps: string | null;
+}
+
+/** 완전 일치 쿼리 조건·파라미터 구성 */
+function buildExactMatchQuery(extracted: ExtractedProceduralMemory): { conditions: string[]; params: (string | number)[] } {
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+  if (extracted.workflow_name) {
+    conditions.push('workflow_name = ?');
+    params.push(extracted.workflow_name);
+  }
+  if (extracted.skill_name) {
+    conditions.push('skill_name = ?');
+    params.push(extracted.skill_name);
+  }
+  return { conditions, params };
+}
+
+const EXISTING_MEMORY_SELECT = `
+  SELECT id, workflow_name, skill_name, task_goal, steps
+  FROM memory_item
+  WHERE type = 'procedural'
+`.trim();
+
+/** LIKE fallback 검색 (AND 조건) */
+function runFallbackSearchAnd(
+  db: Database.Database,
+  extracted: ExtractedProceduralMemory
+): ExistingMemoryRow[] {
+  const fallbackConditions: string[] = [];
+  const fallbackParams: (string | number)[] = [];
+  if (extracted.workflow_name) {
+    fallbackConditions.push('LOWER(workflow_name) LIKE LOWER(?)');
+    fallbackParams.push(`%${extracted.workflow_name}%`);
+  }
+  if (extracted.skill_name) {
+    fallbackConditions.push('LOWER(skill_name) LIKE LOWER(?)');
+    fallbackParams.push(`%${extracted.skill_name}%`);
+  }
+  if (fallbackConditions.length === 0) return [];
+  const query = `${EXISTING_MEMORY_SELECT}
+    AND ${fallbackConditions.join(' AND ')}
+    ORDER BY created_at DESC
+    LIMIT 20`;
+  return DatabaseUtils.all(db, query, fallbackParams) as ExistingMemoryRow[];
+}
+
+/** LIKE fallback 검색 (OR 조건) */
+function runFallbackSearchOr(
+  db: Database.Database,
+  extracted: ExtractedProceduralMemory
+): ExistingMemoryRow[] {
+  const fallbackConditions: string[] = [];
+  const fallbackParams: (string | number)[] = [];
+  if (extracted.workflow_name) {
+    fallbackConditions.push('LOWER(workflow_name) LIKE LOWER(?)');
+    fallbackParams.push(`%${extracted.workflow_name}%`);
+  }
+  if (extracted.skill_name) {
+    fallbackConditions.push('LOWER(skill_name) LIKE LOWER(?)');
+    fallbackParams.push(`%${extracted.skill_name}%`);
+  }
+  if (fallbackConditions.length === 0) return [];
+  const query = `${EXISTING_MEMORY_SELECT}
+    AND (${fallbackConditions.join(' OR ')})
+    ORDER BY created_at DESC
+    LIMIT 20`;
+  return DatabaseUtils.all(db, query, fallbackParams) as ExistingMemoryRow[];
+}
+
 /**
  * reflection_notes에서 workflow_name 추출
  * 
@@ -548,25 +624,8 @@ export async function determineMergeStrategy(
   extracted: ExtractedProceduralMemory
 ): Promise<SimilarityMergeResult> {
   try {
-    // 기존 procedural memory 검색
-    // workflow_name과 skill_name이 모두 제공된 경우: 둘 다 일치해야 병합 (AND 조건)
-    // 하나만 제공된 경우: 그 하나만 일치하면 됨
-    // 모두 없으면 병합하지 않음
-    const searchConditions: string[] = [];
-    const params: (string | number)[] = [];
-
-    if (extracted.workflow_name) {
-      searchConditions.push('workflow_name = ?');
-      params.push(extracted.workflow_name);
-    }
-
-    if (extracted.skill_name) {
-      searchConditions.push('skill_name = ?');
-      params.push(extracted.skill_name);
-    }
-
-    if (searchConditions.length === 0) {
-      // workflow_name과 skill_name이 모두 없으면 병합하지 않음
+    const { conditions, params } = buildExactMatchQuery(extracted);
+    if (conditions.length === 0) {
       return {
         shouldMerge: false,
         similarity: 0,
@@ -574,102 +633,17 @@ export async function determineMergeStrategy(
       };
     }
 
-    // 1단계: 완전 일치 검색 (엄격한 조건)
-    // workflow_name과 skill_name이 모두 제공된 경우 AND 조건 사용
-    // 하나만 제공된 경우 그 하나만 사용
     const conditionOperator = extracted.workflow_name && extracted.skill_name ? 'AND' : '';
-    let query = `
-      SELECT id, workflow_name, skill_name, task_goal, steps
-      FROM memory_item
-      WHERE type = 'procedural'
-        AND ${searchConditions.join(` ${conditionOperator} `)}
+    const exactQuery = `${EXISTING_MEMORY_SELECT}
+      AND ${conditions.join(` ${conditionOperator} `)}
       ORDER BY created_at DESC
-      LIMIT 10
-    `;
+      LIMIT 10`;
+    let existingMemories: ExistingMemoryRow[] = DatabaseUtils.all(db, exactQuery, params) as ExistingMemoryRow[];
 
-    let existingMemories = DatabaseUtils.all(db, query, params) as Array<{
-      id: string;
-      workflow_name: string | null;
-      skill_name: string | null;
-      task_goal: string | null;
-      steps: string | null;
-    }>;
-
-    // 2단계: 완전 일치가 없으면 유사도 기반 검색 (대소문자 무시, 부분 일치)
-    // workflow_name과 skill_name이 모두 존재하면 AND 조건을 유지한 후, 그래도 없으면 OR 조건으로 느슨한 검색
     if (existingMemories.length === 0) {
-      const fallbackConditions: string[] = [];
-      const fallbackParams: (string | number)[] = [];
-
-      if (extracted.workflow_name) {
-        // LOWER를 사용하여 대소문자 무시, LIKE를 사용하여 부분 일치 허용
-        fallbackConditions.push('LOWER(workflow_name) LIKE LOWER(?)');
-        fallbackParams.push(`%${extracted.workflow_name}%`);
-      }
-
-      if (extracted.skill_name) {
-        fallbackConditions.push('LOWER(skill_name) LIKE LOWER(?)');
-        fallbackParams.push(`%${extracted.skill_name}%`);
-      }
-
-      if (fallbackConditions.length > 0) {
-        // 2-1단계: workflow_name과 skill_name이 모두 있으면 AND 조건으로 LIKE 검색
-        if (extracted.workflow_name && extracted.skill_name) {
-          query = `
-            SELECT id, workflow_name, skill_name, task_goal, steps
-            FROM memory_item
-            WHERE type = 'procedural'
-              AND ${fallbackConditions.join(' AND ')}
-            ORDER BY created_at DESC
-            LIMIT 20
-          `;
-
-          existingMemories = DatabaseUtils.all(db, query, fallbackParams) as Array<{
-            id: string;
-            workflow_name: string | null;
-            skill_name: string | null;
-            task_goal: string | null;
-            steps: string | null;
-          }>;
-        }
-
-        // 2-2단계: AND 조건으로도 없으면 OR 조건으로 느슨한 검색
-        if (existingMemories.length === 0 && extracted.workflow_name && extracted.skill_name) {
-          query = `
-            SELECT id, workflow_name, skill_name, task_goal, steps
-            FROM memory_item
-            WHERE type = 'procedural'
-              AND (${fallbackConditions.join(' OR ')})
-            ORDER BY created_at DESC
-            LIMIT 20
-          `;
-
-          existingMemories = DatabaseUtils.all(db, query, fallbackParams) as Array<{
-            id: string;
-            workflow_name: string | null;
-            skill_name: string | null;
-            task_goal: string | null;
-            steps: string | null;
-          }>;
-        } else if (existingMemories.length === 0) {
-          // workflow_name 또는 skill_name 중 하나만 있는 경우
-          query = `
-            SELECT id, workflow_name, skill_name, task_goal, steps
-            FROM memory_item
-            WHERE type = 'procedural'
-              AND ${fallbackConditions.join(' OR ')}
-            ORDER BY created_at DESC
-            LIMIT 20
-          `;
-
-          existingMemories = DatabaseUtils.all(db, query, fallbackParams) as Array<{
-            id: string;
-            workflow_name: string | null;
-            skill_name: string | null;
-            task_goal: string | null;
-            steps: string | null;
-          }>;
-        }
+      existingMemories = runFallbackSearchAnd(db, extracted);
+      if (existingMemories.length === 0 && (extracted.workflow_name || extracted.skill_name)) {
+        existingMemories = runFallbackSearchOr(db, extracted);
       }
     }
 
@@ -735,7 +709,10 @@ export class RuleBasedProceduralExtractor implements IProceduralMemoryExtractor 
     try {
       const result = extractProceduralMemory(notes, event);
       return result;
-    } catch {
+    } catch (err) {
+      logger.debug('RuleBasedProceduralExtractor 추출 실패', {
+        error: err instanceof Error ? err.message : err
+      });
       return null;
     }
   }

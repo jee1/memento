@@ -2,6 +2,7 @@
  * Remember Tool - 기억 저장 도구
  */
 
+import type Database from 'better-sqlite3';
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
@@ -85,6 +86,34 @@ const RememberSchema = z.object({
 }, {
   message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content가 필수입니다"
 });
+
+/** Remember 도구 파라미터 타입 (Zod 스키마 추론) */
+export type RememberParams = z.infer<typeof RememberSchema>;
+
+/** memory_item SELECT row 공통 형태 (getMemoryById, getExistingMemoriesForRelationExtraction) */
+interface MemoryItemRow {
+  id: string;
+  type: string;
+  content: string;
+  importance: number;
+  privacy_scope: string;
+  created_at: string;
+  last_accessed?: string | null;
+  pinned: number | boolean;
+  tags?: string | null;
+  source?: string | null;
+  embedding?: string | null;
+}
+
+/** Procedural 기존 레코드 조회용 (MemoryItem + 메타/버전 필드) */
+type ProceduralMemoryItem = MemoryItem & {
+  recall_count?: number;
+  g_value?: number;
+  last_accessed_at?: Date;
+  version_series_id?: string;
+  version?: number;
+  consolidation_score?: number;
+};
 
 export class RememberTool extends BaseTool {
   constructor() {
@@ -217,7 +246,7 @@ export class RememberTool extends BaseTool {
    * @returns 기존 reflection_notes 조회 결과
    */
   private async getExistingReflectionNotes(
-    db: any,
+    db: Database.Database,
     taskGoal: string | null | undefined
   ): Promise<ExistingReflectionNotesResult> {
     // task_goal이 제공되지 않은 경우 조회 불가
@@ -320,7 +349,7 @@ export class RememberTool extends BaseTool {
     }
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: RememberParams, context: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
     try {
       const { 
@@ -541,7 +570,7 @@ export class RememberTool extends BaseTool {
       //
       // 참고: 자동 연동(reflexion-worker) 시에는 기본적으로 incremental 모드를 사용
       let existingMemoryId: string | null = null;
-      let existingMemory: any | null = null;
+      let existingMemory: ProceduralMemoryItem | null = null;
       
       if (type === 'procedural' && update_mode) {
         // 모든 업데이트 모드에서 기존 레코드 찾기 (versioned 모드도 포함)
@@ -578,19 +607,19 @@ export class RememberTool extends BaseTool {
           // 기존 메모리가 있고 업데이트 모드인 경우 기존 값 보존, 없으면 기본값 사용
           // update_mode가 없으면 항상 새로 저장하므로 기본값 사용
           // PRD에 따라 새 메모리는 항상 recall_count=1로 초기화 (생성을 첫 번째 '접근'으로 간주)
-          const recallCount = isUpdate && existingMemory?.recall_count !== undefined
+          const recallCount = isUpdate && existingMemory && existingMemory.recall_count !== undefined
             ? existingMemory.recall_count + 1  // 기존 값에 1 증가
             : 1; // 새 메모리는 항상 1 (PRD 정책: 생성 시 recall_count=1)
-          const gValue = isUpdate && existingMemory?.g_value !== undefined
+          const gValue = isUpdate && existingMemory && existingMemory.g_value !== undefined
             ? existingMemory.g_value  // 기존 값 보존
             : (mementoConfig.consolidationScoreEnabled ? 1.0 : null); // 새 메모리는 1.0 또는 null
-          const lastAccessedAt = isUpdate && existingMemory?.last_accessed_at
+          const lastAccessedAt = isUpdate && existingMemory && existingMemory.last_accessed_at
             ? new Date(existingMemory.last_accessed_at).toISOString()  // 기존 값 보존
             : (mementoConfig.consolidationScoreEnabled ? createdAt : null); // 새 메모리는 created_at 또는 null
           
           // incremental 모드일 때 steps 병합
           let finalSteps = steps || null;
-          if (isUpdate && update_mode === 'incremental' && existingMemory.steps && steps) {
+          if (isUpdate && update_mode === 'incremental' && existingMemory && existingMemory.steps && steps) {
             try {
               const existingSteps = JSON.parse(existingMemory.steps);
               const newSteps = JSON.parse(steps);
@@ -1286,9 +1315,8 @@ export class RememberTool extends BaseTool {
 
                         // DB 상태 확인 후 JobQueue 상태도 확인
                         const schedulerStatus = batchScheduler.getStatus();
-                        const jobQueue = (batchScheduler as any).jobQueue;
-                        const alreadyQueued = jobQueue?.isQueued?.(jobName);
-                        const alreadyRunning = jobQueue?.isRunning?.(jobName);
+                        const alreadyQueued = batchScheduler.isJobQueued(jobName);
+                        const alreadyRunning = batchScheduler.isJobRunning(jobName);
 
                         // 작업이 큐에 등록되어 있거나 실행 중이면 폴백 스킵 (스케줄러 실행 상태와 무관)
                         if (alreadyQueued || alreadyRunning) {
@@ -1344,9 +1372,8 @@ export class RememberTool extends BaseTool {
                     }, 2000); // 2초 후 확인
                   } else {
                     const status = batchScheduler.getStatus();
-                    const jobQueue = (batchScheduler as any).jobQueue;
-                    const alreadyQueued = jobQueue?.isQueued?.(jobName);
-                    const alreadyRunning = jobQueue?.isRunning?.(jobName);
+                    const alreadyQueued = batchScheduler.isJobQueued(jobName);
+                    const alreadyRunning = batchScheduler.isJobRunning(jobName);
 
                     this.logWarning('Triple 추출 작업이 JobQueue에 등록되지 않았습니다 (중복 또는 큐 가득참)', {
                       memory_id: savedMemoryId,
@@ -1440,10 +1467,10 @@ export class RememberTool extends BaseTool {
    * @returns 기존 procedural memory 레코드 또는 null
    */
   private async findExistingProceduralMemory(
-    db: any,
+    db: Database.Database,
     workflow_name: string | null | undefined,
     skill_name: string | null | undefined
-  ): Promise<any | null> {
+  ): Promise<ProceduralMemoryItem | null> {
     // workflow_name과 skill_name이 모두 제공되어야 함
     if (!workflow_name || !skill_name) {
       return null;
@@ -1469,31 +1496,31 @@ export class RememberTool extends BaseTool {
       if (!row) {
         return null;
       }
-
+      const r = row as MemoryItemRow & Record<string, unknown>;
       return {
-        id: row.id,
-        type: row.type,
-        content: row.content,
-        importance: row.importance,
-        privacy_scope: row.privacy_scope,
-        created_at: new Date(row.created_at),
-        last_accessed: row.last_accessed ? new Date(row.last_accessed) : undefined,
-        pinned: Boolean(row.pinned),
-        tags: row.tags ? JSON.parse(row.tags) : undefined,
-        source: row.source || undefined,
-        task_goal: row.task_goal || undefined,
-        steps: row.steps || undefined,
-        reflection_notes: row.reflection_notes || undefined,
-        workflow_name: row.workflow_name || undefined,
-        skill_name: row.skill_name || undefined,
-        trigger_conditions: row.trigger_conditions || undefined,
-        recall_count: row.recall_count ?? undefined,
-        last_accessed_at: row.last_accessed_at ? new Date(row.last_accessed_at) : undefined,
-        g_value: row.g_value ?? undefined,
-        consolidation_score: row.consolidation_score ?? undefined,
-        version: row.version ?? undefined,
-        version_series_id: row.version_series_id ?? undefined
-      };
+        id: r.id,
+        type: r.type as MemoryItem['type'],
+        content: r.content,
+        importance: r.importance,
+        privacy_scope: r.privacy_scope as MemoryItem['privacy_scope'],
+        created_at: new Date(r.created_at),
+        last_accessed: r.last_accessed ? new Date(r.last_accessed) : undefined,
+        pinned: Boolean(r.pinned),
+        tags: r.tags ? JSON.parse(r.tags) : undefined,
+        source: r.source || undefined,
+        task_goal: (r as Record<string, unknown>).task_goal as string | undefined,
+        steps: (r as Record<string, unknown>).steps as string | undefined,
+        reflection_notes: (r as Record<string, unknown>).reflection_notes as string | undefined,
+        workflow_name: (r as Record<string, unknown>).workflow_name as string | undefined,
+        skill_name: (r as Record<string, unknown>).skill_name as string | undefined,
+        trigger_conditions: (r as Record<string, unknown>).trigger_conditions as string | undefined,
+        recall_count: (r as Record<string, unknown>).recall_count as number | undefined,
+        g_value: (r as Record<string, unknown>).g_value as number | undefined,
+        last_accessed_at: (r as Record<string, unknown>).last_accessed_at != null ? new Date((r as Record<string, unknown>).last_accessed_at as string) : undefined,
+        version: (r as Record<string, unknown>).version as number | undefined,
+        version_series_id: (r as Record<string, unknown>).version_series_id as string | undefined,
+        consolidation_score: (r as Record<string, unknown>).consolidation_score as number | undefined
+      } as ProceduralMemoryItem;
     } catch (error) {
       this.logWarning('기존 procedural memory 조회 실패', {
         workflow_name,
@@ -1513,7 +1540,7 @@ export class RememberTool extends BaseTool {
    * @returns 기존 기억 목록
    */
   private async getExistingMemoriesForRelationExtraction(
-    db: any,
+    db: Database.Database,
     excludeId: string,
     limit: number = 100
   ): Promise<MemoryItem[]> {
@@ -1526,14 +1553,14 @@ export class RememberTool extends BaseTool {
         WHERE id != ? -- 새로 저장된 기억 제외
         ORDER BY created_at DESC
         LIMIT ?
-      `, [excludeId, limit]);
+      `, [excludeId, limit]) as MemoryItemRow[];
 
-      return rows.map((row: any) => ({
+      return rows.map((row: MemoryItemRow): MemoryItem => ({
         id: row.id,
-        type: row.type,
+        type: row.type as MemoryItem['type'],
         content: row.content,
         importance: row.importance,
-        privacy_scope: row.privacy_scope,
+        privacy_scope: row.privacy_scope as MemoryItem['privacy_scope'],
         created_at: new Date(row.created_at),
         last_accessed: row.last_accessed ? new Date(row.last_accessed) : undefined,
         pinned: Boolean(row.pinned),
@@ -1556,7 +1583,7 @@ export class RememberTool extends BaseTool {
    * @param id 기억 ID
    * @returns 기억 정보
    */
-  private async getMemoryById(db: any, id: string): Promise<MemoryItem | null> {
+  private async getMemoryById(db: Database.Database, id: string): Promise<MemoryItem | null> {
     try {
       const row = await DatabaseUtils.get(db, `
         SELECT 
@@ -1564,7 +1591,7 @@ export class RememberTool extends BaseTool {
           created_at, last_accessed, pinned, tags, source, embedding
         FROM memory_item
         WHERE id = ?
-      `, [id]);
+      `, [id]) as MemoryItemRow | undefined;
 
       if (!row) {
         return null;
@@ -1572,10 +1599,10 @@ export class RememberTool extends BaseTool {
 
       return {
         id: row.id,
-        type: row.type,
+        type: row.type as MemoryItem['type'],
         content: row.content,
         importance: row.importance,
-        privacy_scope: row.privacy_scope,
+        privacy_scope: row.privacy_scope as MemoryItem['privacy_scope'],
         created_at: new Date(row.created_at),
         last_accessed: row.last_accessed ? new Date(row.last_accessed) : undefined,
         pinned: Boolean(row.pinned),

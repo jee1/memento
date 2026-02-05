@@ -6,7 +6,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
+import { WriteCoalescingManager, type CoalescedWrite } from '../../../shared/utils/write-coalescing.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { RecallResultItem } from '../tools/recall-tool.js';
@@ -22,6 +22,18 @@ interface MetaMemoryStatsWrite {
   failureCount: number;
   avgConfidence: number;
   lastRecalledAt: string; // ISO timestamp
+}
+
+/** meta_memory_stats 테이블 SELECT row 형태 */
+interface MetaMemoryStatsRow {
+  memory_id: string;
+  recall_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_confidence: number;
+  last_recalled_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -48,9 +60,9 @@ export class MetaMemoryService {
       // 자체 WriteCoalescingManager 생성 (100ms debounce)
       this.writeCoalescingManager = new WriteCoalescingManager(
         this.flushInterval,
-        async (writes: any[]) => {
-          // meta_memory_stats 업데이트를 위한 flushCallback
-          await this.flushToDatabase(writes);
+        async (writes: CoalescedWrite[]) => {
+          // meta_memory_stats 업데이트를 위한 flushCallback (본 서비스는 MetaMemoryStatsWrite만 추가)
+          await this.flushToDatabase(writes as unknown as MetaMemoryStatsWrite[]);
         }
       );
     }
@@ -341,7 +353,7 @@ export class MetaMemoryService {
 
       // WHERE 조건 구성
       const conditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number)[] = [];
 
       // memory_id 필터
       if (memory_id) {
@@ -412,7 +424,7 @@ export class MetaMemoryService {
         LIMIT ?
       `);
 
-      const rows = dataStmt.all(...queryParams, limit) as any[];
+      const rows = dataStmt.all(...queryParams, limit) as MetaMemoryStatsRow[];
 
       const items: MetaMemoryStats[] = rows.map(row => this.mapRowToMetaMemoryStats(row));
 
@@ -439,7 +451,7 @@ export class MetaMemoryService {
    * @param row 데이터베이스 row
    * @returns MetaMemoryStats 객체
    */
-  private mapRowToMetaMemoryStats(row: any): MetaMemoryStats {
+  private mapRowToMetaMemoryStats(row: MetaMemoryStatsRow): MetaMemoryStats {
     return {
       memory_id: row.memory_id,
       recall_count: row.recall_count,

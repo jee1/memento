@@ -15,6 +15,7 @@ import {
   determineMergeStrategy,
   type ExtractedProceduralMemory
 } from '../shared/utils/procedural-memory-extractor.js';
+import type { ReflectionNotes } from '../shared/utils/procedural-memory-extractor.types.js';
 import { toDbRelationType } from '../shared/utils/relation-type-converter.js';
 import { mementoConfig } from '../shared/config/index.js';
 import { LlmProceduralExtractor } from '../domains/memory/services/procedural-llm-extractor.js';
@@ -264,9 +265,9 @@ export class ReflexionWorker {
           existing = { type: 'null', value: null };
         } else {
           const parsed = this.parseReflectionNotes(existingRecord.reflection_notes);
-          existing = parsed.type === 'null' ? { type: 'null', value: null } :
+          existing = (parsed.type === 'null' ? { type: 'null', value: null } :
                      parsed.type === 'object' ? { type: 'object', value: parsed.value } :
-                     { type: 'array', value: parsed.value };
+                     { type: 'array', value: parsed.value }) as ExistingReflectionNotes;
         }
 
         // 반복 실패 패턴 분석
@@ -422,7 +423,7 @@ export class ReflexionWorker {
   /**
    * Reflexion 데이터 생성
    */
-  private generateReflectionNote(event: FailureEvent): any {
+  private generateReflectionNote(event: FailureEvent): ReflectionNotes {
     return {
       failure_type: event.error_type,
       failure_description: event.error_message,
@@ -568,7 +569,7 @@ export class ReflexionWorker {
    * 4. 결정된 전략에 따라 메모리 업데이트 또는 생성
    */
   private async convertToProceduralMemory(
-    reflectionNote: any,
+    reflectionNote: ReflectionNotes | Record<string, unknown>,
     event: FailureEvent
   ): Promise<void> {
     try {
@@ -627,7 +628,7 @@ export class ReflexionWorker {
     memoryId: string,
     extracted: ExtractedProceduralMemory,
     updateMode: 'replace' | 'incremental' | 'versioned',
-    reflectionNote: any,
+    reflectionNote: ReflectionNotes | Record<string, unknown>,
     event: FailureEvent
   ): Promise<void> {
     try {
@@ -776,7 +777,7 @@ export class ReflexionWorker {
    */
   private async createProceduralMemory(
     extracted: ExtractedProceduralMemory,
-    reflectionNote: any,
+    reflectionNote: ReflectionNotes | Record<string, unknown>,
     event: FailureEvent,
     existingMemoryIdForVersion?: string
   ): Promise<string | null> {
@@ -846,7 +847,10 @@ export class ReflexionWorker {
   /**
    * reflection_notes 파싱
    */
-  private parseReflectionNotes(reflectionNotes: string): { type: 'null' | 'object' | 'array'; value: null | any | any[] } {
+  private parseReflectionNotes(reflectionNotes: string): {
+    type: 'null' | 'object' | 'array';
+    value: null | Record<string, unknown> | unknown[];
+  } {
     if (!reflectionNotes) {
       return { type: 'null', value: null };
     }
