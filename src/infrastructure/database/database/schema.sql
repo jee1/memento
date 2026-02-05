@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS memory_item (
   trigger_conditions TEXT, -- 트리거 조건 (JSON 객체 문자열)
   -- Procedural Version Management (Issue #57, migration 013)
   version INTEGER NULL,
-  version_series_id TEXT NULL
+  version_series_id TEXT NULL,
+  -- Multi-agent ownership (Issue #57 Phase 2 D, migration 015)
+  owner_id TEXT NULL
 );
 
 -- 태그 테이블
@@ -93,6 +95,8 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name)
 -- Procedural Version Management (Issue #57 Phase 2 B, migration 014)
 CREATE INDEX IF NOT EXISTS idx_memory_item_procedural_version_series ON memory_item(type, version_series_id) WHERE type = 'procedural';
 CREATE INDEX IF NOT EXISTS idx_memory_item_procedural_version ON memory_item(type, version_series_id, version) WHERE type = 'procedural';
+-- Multi-agent (Issue #57 Phase 2 D, migration 015)
+CREATE INDEX IF NOT EXISTS idx_memory_item_owner_id ON memory_item(owner_id);
 
 CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id);
