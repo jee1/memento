@@ -38,6 +38,8 @@ export interface ToolDefinition {
 export interface ToolContext {
   /** 데이터베이스 인스턴스 */
   db: Database.Database;
+  /** 다중 에이전트 시 현재 에이전트/소유자 식별자 (미설정 시 remember/recall 기본값 사용) */
+  agentId?: string;
   services: {
     /** 기본 텍스트 검색 엔진 */
     searchEngine?: SearchEngine;
