@@ -50,7 +50,9 @@ function initializeTestDatabase(db: Database.Database): void {
       trigger_conditions TEXT,
       -- Procedural Version Management (Issue #57, migration 013)
       version INTEGER NULL,
-      version_series_id TEXT NULL
+      version_series_id TEXT NULL,
+      -- Multi-agent ownership (Issue #57 Phase 2 D, migration 015)
+      owner_id TEXT NULL
     );
   `);
 }

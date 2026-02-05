@@ -274,6 +274,8 @@ const RecallSchema = z.object({
   version_series_id: z.string().optional(),
   version_number: z.number().int().min(1).optional(),
   include_version_chain: z.boolean().optional(),
+  /** 다중 에이전트: 소유자 ID 필터 (단일 또는 배열). 미설정 시 전체 조회 */
+  owner_id: z.union([z.string(), z.array(z.string())]).optional(),
   include_diff_with: z.string().optional() // 'previous' 또는 비교할 메모리 id
 }).refine((data) => {
   // 조건부 필수 검증
@@ -326,6 +328,7 @@ interface RecallSearchItem {
   trigger_conditions?: string;
   version?: number;
   version_series_id?: string | null;
+  owner_id?: string | null;
   last_accessed?: Date;
   pinned?: boolean;
   tags?: string[];
@@ -363,6 +366,7 @@ interface AppliedFilters extends Record<string, unknown> {
   version_number?: number;
   include_version_chain?: boolean;
   include_diff_with?: string;
+  owner_id?: string | string[];
 }
 
 /** Recall 내부 필터 (MemorySearchFilters + importance 범위) */
@@ -554,6 +558,10 @@ export class RecallTool extends BaseTool {
           include_diff_with: {
             type: 'string',
             description: "'previous'면 직전 버전과의 diff, 메모리 id면 해당 id와의 diff를 diff_with_previous 또는 diff_with 필드로 반환"
+          },
+          owner_id: {
+            type: 'string',
+            description: '다중 에이전트: 소유자 ID로 결과 필터 (단일 문자열 또는 문자열 배열). 미설정 시 전체 조회'
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -601,7 +609,8 @@ export class RecallTool extends BaseTool {
         version_series_id,
         version_number,
         include_version_chain,
-        include_diff_with
+        include_diff_with,
+        owner_id: owner_id_filter
       } = RecallSchema.parse(params);
       
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
@@ -698,7 +707,11 @@ export class RecallTool extends BaseTool {
           created_at: record.created_at,
           updated_at: record.updated_at
         }));
-        
+
+        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
+        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+        }
         return this.createSuccessResult({
           items: processedResults,
           total_count: processedResults.length,
@@ -739,7 +752,11 @@ export class RecallTool extends BaseTool {
           created_at: record.created_at,
           updated_at: record.updated_at
         }));
-        
+
+        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
+        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+        }
         return this.createSuccessResult({
           items: processedResults,
           total_count: processedResults.length,
@@ -836,7 +853,8 @@ export class RecallTool extends BaseTool {
           version_series_id,
           version_number,
           include_version_chain,
-          include_diff_with
+          include_diff_with,
+          owner_id: owner_id_filter
         };
         
         // 검색 옵션 설정
@@ -905,6 +923,14 @@ export class RecallTool extends BaseTool {
         // Procedural Version Management: version_filter 후처리 (시리즈당 최신만 / 특정 버전만)
         if (version_filter && searchItems.length > 0) {
           searchItems = this.applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
+        }
+
+        // Multi-agent (Issue #57 Phase 2 D): owner_id 필터
+        if (owner_id_filter && owner_id_filter.length > 0 && searchItems.length > 0) {
+          const ownerIds = Array.isArray(owner_id_filter) ? owner_id_filter : [owner_id_filter];
+          searchItems = searchItems.filter(
+            (i: RecallSearchItem) => i.owner_id != null && ownerIds.includes(i.owner_id)
+          );
         }
 
         // Procedural Version Management: version_chain·diff 보강 (procedural 항목만, db 필요)
@@ -1008,7 +1034,11 @@ export class RecallTool extends BaseTool {
         const metaStats = includeMetadata && context.services.metaMemoryService && processedResults.length > 0
           ? await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService)
           : undefined;
-        
+
+        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
+        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+        }
         return this.createSuccessResult({
           items: processedResults,
           total_count: searchResult?.total_count || processedResults.length,
@@ -1165,7 +1195,8 @@ export class RecallTool extends BaseTool {
         processed.tags = item.tags;
         processed.source = item.source;
         processed.privacy_scope = item.privacy_scope;
-        
+        if (item.owner_id !== undefined) processed.owner_id = item.owner_id;
+
         // origin_source 필드 추가 (JSON 파싱)
         if (item.origin_source) {
           try {
@@ -1280,6 +1311,7 @@ export class RecallTool extends BaseTool {
     if (filters.version_series_id) applied.version_series_id = filters.version_series_id;
     if (filters.version_number !== undefined) applied.version_number = filters.version_number;
     if (filters.include_version_chain !== undefined) applied.include_version_chain = filters.include_version_chain;
+    if (filters.owner_id !== undefined) applied.owner_id = filters.owner_id;
     if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
 
     return applied;

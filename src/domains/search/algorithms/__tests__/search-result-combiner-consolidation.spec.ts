@@ -169,7 +169,8 @@ describe('SearchResultCombiner Consolidation Score 통합', () => {
           last_accessed TEXT,
           pinned INTEGER,
           tags TEXT,
-          consolidation_score REAL
+          consolidation_score REAL,
+          owner_id TEXT NULL
         );
         INSERT INTO memory_item (id, content, type, importance, created_at, last_accessed, pinned, tags, consolidation_score)
         VALUES ('mem1', 'Test content', 'episodic', 0.8, '2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z', 0, '[]', 0.9);

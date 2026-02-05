@@ -60,7 +60,7 @@ export class SearchEngine {
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
               m.version, m.version_series_id,
-              m.privacy_scope, m.origin_source,
+              m.privacy_scope, m.origin_source, m.owner_id,
               0 as fts_rank
             FROM memory_item m
           `;
@@ -73,7 +73,7 @@ export class SearchEngine {
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
               m.version, m.version_series_id,
-              m.privacy_scope, m.origin_source,
+              m.privacy_scope, m.origin_source, m.owner_id,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
             JOIN memory_item m ON memory_item_fts.rowid = m.rowid
@@ -100,7 +100,7 @@ export class SearchEngine {
             m.task_goal, m.steps, m.reflection_notes,
             m.workflow_name, m.skill_name, m.trigger_conditions,
             m.version, m.version_series_id,
-            m.privacy_scope, m.origin_source,
+            m.privacy_scope, m.origin_source, m.owner_id,
             0 as fts_rank
           FROM memory_item m
           WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
@@ -116,7 +116,7 @@ export class SearchEngine {
           m.task_goal, m.steps, m.reflection_notes,
           m.workflow_name, m.skill_name, m.trigger_conditions,
           m.version, m.version_series_id,
-          m.privacy_scope, m.origin_source,
+          m.privacy_scope, m.origin_source, m.owner_id,
           0 as fts_rank
         FROM memory_item m
       `;
@@ -406,6 +406,7 @@ export class SearchEngine {
         if (row.trigger_conditions !== undefined) result.trigger_conditions = row.trigger_conditions;
         if (row.version !== undefined) result.version = row.version;
         if (row.version_series_id !== undefined) result.version_series_id = row.version_series_id;
+        if (row.owner_id !== undefined) result.owner_id = row.owner_id;
 
         // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
