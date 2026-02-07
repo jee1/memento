@@ -50,7 +50,9 @@ function initializeTestDatabase(db: Database.Database): void {
       triple_extraction_metadata TEXT DEFAULT NULL,
       version INTEGER NULL,
       version_series_id TEXT NULL,
-      owner_id TEXT NULL
+      owner_id TEXT NULL,
+      process_id TEXT NULL,
+      session_id TEXT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
@@ -216,6 +218,24 @@ describe('RememberProcedureTool', () => {
         data.memory_id,
       ]) as { owner_id: string | null };
       expect(row.owner_id).toBe('owner-from-params');
+    });
+
+    it('Given: process_id·session_id 파라미터 또는 context, When: handle 호출하면, Then: memory_item에 process_id·session_id 저장됨 (Issue #87)', async () => {
+      const params = {
+        content: 'Attribution 절차',
+        workflow_name: 'wf-attribution',
+        skill_name: 'sk-attribution',
+        process_id: 'process-deploy',
+        session_id: 'session-001',
+      };
+      const result = await tool.handle(params, context);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.memory_id).toBeDefined();
+      const row = DatabaseUtils.get(db, 'SELECT process_id, session_id FROM memory_item WHERE id = ?', [
+        data.memory_id,
+      ]) as { process_id: string | null; session_id: string | null };
+      expect(row.process_id).toBe('process-deploy');
+      expect(row.session_id).toBe('session-001');
     });
   });
 
