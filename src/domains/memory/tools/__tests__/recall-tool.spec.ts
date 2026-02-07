@@ -39,7 +39,9 @@ function initializeTestDatabase(db: Database.Database): void {
       workflow_name TEXT,
       skill_name TEXT,
       trigger_conditions TEXT,
-      owner_id TEXT NULL
+      owner_id TEXT NULL,
+      process_id TEXT NULL,
+      session_id TEXT NULL
     );
 
     CREATE TABLE IF NOT EXISTS core_memory (
@@ -293,6 +295,50 @@ describe('RecallTool', () => {
       expect(data.items).toHaveLength(1);
       expect(data.items[0].memory_id).toBe('mem-a');
       expect(data.items[0].owner_id).toBe('agent-a');
+    });
+  });
+
+  describe('process_id, session_id 필터 (Memori Attribution, Issue #87)', () => {
+    it('Given: process_id가 서로 다른 메모리 2건, When: recall에 process_id 제공 시, Then: 해당 process 메모리만 반환', async () => {
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, process_id, created_at)
+        VALUES ('mem-p1', 'episodic', 'Process 1 memory', 0.5, 'private', 'process-deploy', CURRENT_TIMESTAMP)
+      `);
+      DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, process_id, created_at)
+        VALUES ('mem-p2', 'episodic', 'Process 2 memory', 0.5, 'private', 'process-review', CURRENT_TIMESTAMP)
+      `);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          { id: 'mem-p1', content: 'Process 1 memory', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), process_id: 'process-deploy', finalScore: 0.9 },
+          { id: 'mem-p2', content: 'Process 2 memory', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), process_id: 'process-review', finalScore: 0.8 },
+        ],
+        total_count: 2,
+        query_time: 10,
+      });
+      const params = { query: 'memory', type: 'episodic', process_id: 'process-deploy' };
+      const result = await tool.handle(params, context);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.items).toHaveLength(1);
+      expect(data.items[0].memory_id).toBe('mem-p1');
+      expect(data.items[0].process_id).toBe('process-deploy');
+    });
+
+    it('Given: session_id가 서로 다른 메모리 2건, When: recall에 session_id 제공 시, Then: 해당 session 메모리만 반환', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          { id: 'mem-s1', content: 'Session 1 memory', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), session_id: 'session-abc', finalScore: 0.9 },
+          { id: 'mem-s2', content: 'Session 2 memory', type: 'episodic', importance: 0.5, created_at: new Date().toISOString(), session_id: 'session-xyz', finalScore: 0.8 },
+        ],
+        total_count: 2,
+        query_time: 10,
+      });
+      const params = { query: 'memory', type: 'episodic', session_id: 'session-abc' };
+      const result = await tool.handle(params, context);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.items).toHaveLength(1);
+      expect(data.items[0].memory_id).toBe('mem-s1');
+      expect(data.items[0].session_id).toBe('session-abc');
     });
   });
 
