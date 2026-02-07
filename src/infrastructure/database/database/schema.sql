@@ -29,7 +29,10 @@ CREATE TABLE IF NOT EXISTS memory_item (
   version INTEGER NULL,
   version_series_id TEXT NULL,
   -- Multi-agent ownership (Issue #57 Phase 2 D, migration 015)
-  owner_id TEXT NULL
+  owner_id TEXT NULL,
+  -- Memori Attribution (Issue #87, migration 016)
+  process_id TEXT NULL,
+  session_id TEXT NULL
 );
 
 -- 태그 테이블
@@ -97,6 +100,9 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_procedural_version_series ON memory_i
 CREATE INDEX IF NOT EXISTS idx_memory_item_procedural_version ON memory_item(type, version_series_id, version) WHERE type = 'procedural';
 -- Multi-agent (Issue #57 Phase 2 D, migration 015)
 CREATE INDEX IF NOT EXISTS idx_memory_item_owner_id ON memory_item(owner_id);
+-- Memori Attribution (Issue #87, migration 016)
+CREATE INDEX IF NOT EXISTS idx_memory_item_process_id ON memory_item(process_id);
+CREATE INDEX IF NOT EXISTS idx_memory_item_session_id ON memory_item(session_id);
 
 CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id);
