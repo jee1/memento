@@ -368,7 +368,10 @@ describe('HybridSearchEngine', () => {
           version INTEGER NULL,
           version_series_id TEXT NULL,
           -- Multi-agent ownership (Issue #57 Phase 2 D, migration 015)
-          owner_id TEXT NULL
+          owner_id TEXT NULL,
+          -- Memori Attribution (Issue #87, migration 016)
+          process_id TEXT NULL,
+          session_id TEXT NULL
         );
       `);
 
@@ -1973,7 +1976,10 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
           version INTEGER NULL,
           version_series_id TEXT NULL,
           -- Multi-agent ownership (Issue #57 Phase 2 D, migration 015)
-          owner_id TEXT NULL
+          owner_id TEXT NULL,
+          -- Memori Attribution (Issue #87, migration 016)
+          process_id TEXT NULL,
+          session_id TEXT NULL
         );
       `);
 

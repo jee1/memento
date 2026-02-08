@@ -276,6 +276,10 @@ const RecallSchema = z.object({
   include_version_chain: z.boolean().optional(),
   /** 다중 에이전트: 소유자 ID 필터 (단일 또는 배열). 미설정 시 전체 조회 */
   owner_id: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Memori Attribution: 프로세스 ID 필터 (Issue #87) */
+  process_id: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Memori Attribution: 세션 ID 필터 (Issue #87) */
+  session_id: z.union([z.string(), z.array(z.string())]).optional(),
   include_diff_with: z.string().optional() // 'previous' 또는 비교할 메모리 id
 }).refine((data) => {
   // 조건부 필수 검증
@@ -329,6 +333,8 @@ interface RecallSearchItem {
   version?: number;
   version_series_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
   last_accessed?: Date;
   pinned?: boolean;
   tags?: string[];
@@ -367,6 +373,8 @@ interface AppliedFilters extends Record<string, unknown> {
   include_version_chain?: boolean;
   include_diff_with?: string;
   owner_id?: string | string[];
+  process_id?: string | string[];
+  session_id?: string | string[];
 }
 
 /** Recall 내부 필터 (MemorySearchFilters + importance 범위) */
@@ -562,6 +570,14 @@ export class RecallTool extends BaseTool {
           owner_id: {
             type: 'string',
             description: '다중 에이전트: 소유자 ID로 결과 필터 (단일 문자열 또는 문자열 배열). 미설정 시 전체 조회'
+          },
+          process_id: {
+            type: 'string',
+            description: 'Memori Attribution: 프로세스 ID로 결과 필터 (Issue #87)'
+          },
+          session_id: {
+            type: 'string',
+            description: 'Memori Attribution: 세션 ID로 결과 필터 (Issue #87)'
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -610,7 +626,9 @@ export class RecallTool extends BaseTool {
         version_number,
         include_version_chain,
         include_diff_with,
-        owner_id: owner_id_filter
+        owner_id: owner_id_filter,
+        process_id: process_id_filter,
+        session_id: session_id_filter
       } = RecallSchema.parse(params);
       
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
@@ -854,7 +872,9 @@ export class RecallTool extends BaseTool {
           version_number,
           include_version_chain,
           include_diff_with,
-          owner_id: owner_id_filter
+          owner_id: owner_id_filter,
+          process_id: process_id_filter,
+          session_id: session_id_filter
         };
         
         // 검색 옵션 설정
@@ -930,6 +950,20 @@ export class RecallTool extends BaseTool {
           const ownerIds = Array.isArray(owner_id_filter) ? owner_id_filter : [owner_id_filter];
           searchItems = searchItems.filter(
             (i: RecallSearchItem) => i.owner_id != null && ownerIds.includes(i.owner_id)
+          );
+        }
+
+        // Memori Attribution (Issue #87): process_id, session_id 필터
+        if (process_id_filter && process_id_filter.length > 0 && searchItems.length > 0) {
+          const processIds = Array.isArray(process_id_filter) ? process_id_filter : [process_id_filter];
+          searchItems = searchItems.filter(
+            (i: RecallSearchItem) => i.process_id != null && processIds.includes(i.process_id)
+          );
+        }
+        if (session_id_filter && session_id_filter.length > 0 && searchItems.length > 0) {
+          const sessionIds = Array.isArray(session_id_filter) ? session_id_filter : [session_id_filter];
+          searchItems = searchItems.filter(
+            (i: RecallSearchItem) => i.session_id != null && sessionIds.includes(i.session_id)
           );
         }
 
@@ -1196,6 +1230,8 @@ export class RecallTool extends BaseTool {
         processed.source = item.source;
         processed.privacy_scope = item.privacy_scope;
         if (item.owner_id !== undefined) processed.owner_id = item.owner_id;
+        if (item.process_id !== undefined) processed.process_id = item.process_id;
+        if (item.session_id !== undefined) processed.session_id = item.session_id;
 
         // origin_source 필드 추가 (JSON 파싱)
         if (item.origin_source) {
@@ -1312,6 +1348,8 @@ export class RecallTool extends BaseTool {
     if (filters.version_number !== undefined) applied.version_number = filters.version_number;
     if (filters.include_version_chain !== undefined) applied.include_version_chain = filters.include_version_chain;
     if (filters.owner_id !== undefined) applied.owner_id = filters.owner_id;
+    if (filters.process_id !== undefined) applied.process_id = filters.process_id;
+    if (filters.session_id !== undefined) applied.session_id = filters.session_id;
     if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
 
     return applied;

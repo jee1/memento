@@ -26,6 +26,9 @@ interface RememberProcedureParams {
   privacy_scope?: 'private' | 'team' | 'public';
   /** 다중 에이전트 시 소유자 식별자 (미설정 시 context.agentId 사용) */
   owner_id?: string | null;
+  /** Memori Attribution (Issue #87) */
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 export class RememberProcedureTool extends BaseTool {
@@ -65,6 +68,14 @@ export class RememberProcedureTool extends BaseTool {
           owner_id: {
             type: 'string',
             description: '다중 에이전트 시 소유자 식별자 (미설정 시 context.agentId 사용)',
+          },
+          process_id: {
+            type: 'string',
+            description: 'Memori Attribution: 프로세스(에이전트/프로그램) 식별자 (Issue #87, 미설정 시 context.processId 사용)',
+          },
+          session_id: {
+            type: 'string',
+            description: 'Memori Attribution: 세션(작업 흐름) 식별자 (Issue #87, 미설정 시 context.sessionId 사용)',
           },
         },
         required: ['content'],
@@ -138,6 +149,14 @@ export class RememberProcedureTool extends BaseTool {
       typeof raw.owner_id === 'string' && raw.owner_id.trim() !== ''
         ? raw.owner_id.trim()
         : context.agentId ?? undefined;
+    const process_id =
+      typeof raw.process_id === 'string' && raw.process_id.trim() !== ''
+        ? raw.process_id.trim()
+        : context.processId ?? undefined;
+    const session_id =
+      typeof raw.session_id === 'string' && raw.session_id.trim() !== ''
+        ? raw.session_id.trim()
+        : context.sessionId ?? undefined;
     const rememberParams = {
       ...raw,
       type: 'procedural' as const,
@@ -145,6 +164,8 @@ export class RememberProcedureTool extends BaseTool {
       importance,
       privacy_scope,
       owner_id,
+      process_id,
+      session_id,
     };
 
     try {

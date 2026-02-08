@@ -50,7 +50,10 @@ function createBaseSchema(db: Database.Database): void {
       -- Procedural Memory Enhancement (v7.0) 추가 필드
       workflow_name TEXT,
       skill_name TEXT,
-      trigger_conditions TEXT
+      trigger_conditions TEXT,
+      owner_id TEXT NULL,
+      process_id TEXT NULL,
+      session_id TEXT NULL
     )
   `);
 

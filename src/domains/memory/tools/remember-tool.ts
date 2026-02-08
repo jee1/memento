@@ -71,6 +71,9 @@ const RememberSchema = z.object({
   privacy_scope: CommonSchemas.PrivacyScope.default('private'),
   // Multi-agent ownership (Issue #57 Phase 2 D)
   owner_id: z.string().optional(),
+  // Memori Attribution (Issue #87)
+  process_id: z.string().optional(),
+  session_id: z.string().optional(),
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -373,10 +376,14 @@ export class RememberTool extends BaseTool {
         importance, 
         source, 
         privacy_scope,
-        owner_id: owner_id_param
+        owner_id: owner_id_param,
+        process_id: process_id_param,
+        session_id: session_id_param
       } = RememberSchema.parse(params);
 
     const ownerId = owner_id_param ?? context.agentId ?? null;
+    const processId = process_id_param ?? context.processId ?? null;
+    const sessionId = session_id_param ?? context.sessionId ?? null;
     
     // type 파라미터 롤아웃 모드 검증
     const typeParamMode = mementoConfig.typeParamMode;
@@ -677,7 +684,9 @@ export class RememberTool extends BaseTool {
                 last_accessed_at = ?,
                 g_value = ?,
                 consolidation_score = ?,
-                owner_id = ?
+                owner_id = ?,
+                process_id = ?,
+                session_id = ?
               WHERE id = ?
             `, [
               content,
@@ -697,6 +706,8 @@ export class RememberTool extends BaseTool {
               gValue,
               consolidationScore,
               ownerId,
+              processId,
+              sessionId,
               id
             ]);
           } else {
@@ -716,9 +727,9 @@ export class RememberTool extends BaseTool {
                 workflow_name, skill_name, trigger_conditions,
                 created_at,
                 recall_count, last_accessed_at, g_value, consolidation_score,
-                version, version_series_id, owner_id
+                version, version_series_id, owner_id, process_id, session_id
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
               id, 
               type, 
@@ -741,7 +752,9 @@ export class RememberTool extends BaseTool {
               consolidationScore,
               proceduralVersion,
               proceduralVersionSeriesId,
-              ownerId
+              ownerId,
+              processId,
+              sessionId
             ]);
 
             // versioned 모드일 때 memory_link에 'version_of' 관계 추가

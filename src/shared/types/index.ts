@@ -48,6 +48,9 @@ export interface MemoryItem {
   trigger_conditions?: string; // 트리거 조건 (JSON 객체 문자열)
   // Multi-agent ownership (Issue #57 Phase 2 D)
   owner_id?: string | null;
+  // Memori Attribution (Issue #87)
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 export interface MemorySearchFilters {
@@ -70,6 +73,9 @@ export interface MemorySearchFilters {
   include_diff_with?: 'previous' | string | undefined; // id
   // Multi-agent (Issue #57 Phase 2 D)
   owner_id?: string | string[] | undefined;
+  // Memori Attribution (Issue #87)
+  process_id?: string | string[] | undefined;
+  session_id?: string | string[] | undefined;
 }
 
 // 관계 추출 타입 재export

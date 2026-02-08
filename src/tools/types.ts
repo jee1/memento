@@ -40,6 +40,10 @@ export interface ToolContext {
   db: Database.Database;
   /** 다중 에이전트 시 현재 에이전트/소유자 식별자 (미설정 시 remember/recall 기본값 사용) */
   agentId?: string;
+  /** Memori Attribution: 프로세스(에이전트/프로그램) 식별자 (Issue #87) */
+  processId?: string;
+  /** Memori Attribution: 세션(작업 흐름) 식별자 (Issue #87) */
+  sessionId?: string;
   services: {
     /** 기본 텍스트 검색 엔진 */
     searchEngine?: SearchEngine;

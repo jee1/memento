@@ -55,7 +55,9 @@ function initializeTestDatabase(db: Database.Database): void {
       -- Procedural Version Management (Issue #57)
       version INTEGER NULL,
       version_series_id TEXT NULL,
-      owner_id TEXT NULL
+      owner_id TEXT NULL,
+      process_id TEXT NULL,
+      session_id TEXT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
@@ -411,6 +413,40 @@ describe('RememberTool', () => {
         resultData.memory_id,
       ]) as { owner_id: string | null };
       expect(row.owner_id).toBe('agent-beta');
+    });
+  });
+
+  describe('process_id, session_id (Memori Attribution, Issue #87)', () => {
+    it('Given: process_id·session_id 파라미터 제공, When: remember 호출 시, Then: memory_item에 process_id·session_id 저장됨', async () => {
+      const params = {
+        type: 'episodic',
+        content: 'Attribution test content',
+        process_id: 'process-deploy',
+        session_id: 'session-abc-123',
+      };
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const row = DatabaseUtils.get(db, 'SELECT process_id, session_id FROM memory_item WHERE id = ?', [
+        resultData.memory_id,
+      ]) as { process_id: string | null; session_id: string | null };
+      expect(row.process_id).toBe('process-deploy');
+      expect(row.session_id).toBe('session-abc-123');
+    });
+
+    it('Given: context.processId·context.sessionId만 제공, When: remember 호출 시, Then: memory_item에 context 값 저장됨', async () => {
+      const ctxAttribution: ToolContext = {
+        ...context,
+        processId: 'process-code-review',
+        sessionId: 'session-xyz-456',
+      };
+      const params = { type: 'episodic', content: 'Context attribution test' };
+      const result = await tool.handle(params, ctxAttribution);
+      const resultData = JSON.parse(result.content[0].text);
+      const row = DatabaseUtils.get(db, 'SELECT process_id, session_id FROM memory_item WHERE id = ?', [
+        resultData.memory_id,
+      ]) as { process_id: string | null; session_id: string | null };
+      expect(row.process_id).toBe('process-code-review');
+      expect(row.session_id).toBe('session-xyz-456');
     });
   });
 

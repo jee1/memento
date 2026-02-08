@@ -371,7 +371,10 @@ export class DatabaseUtils {
           version INTEGER NULL,
           version_series_id TEXT NULL,
           -- Multi-agent ownership (Issue #57 Phase 2 D, migration 015)
-          owner_id TEXT NULL
+          owner_id TEXT NULL,
+          -- Memori Attribution (Issue #87, migration 016)
+          process_id TEXT NULL,
+          session_id TEXT NULL
         )
       `);
 
@@ -456,6 +459,9 @@ export class DatabaseUtils {
       // Procedural Memory Enhancement (v7.0) 인덱스
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name)');
+      // Memori Attribution (Issue #87, migration 016)
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_process_id ON memory_item(process_id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_session_id ON memory_item(session_id)');
 
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id)');
