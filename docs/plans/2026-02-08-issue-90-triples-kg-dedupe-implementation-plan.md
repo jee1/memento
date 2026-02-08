@@ -201,17 +201,17 @@ git commit -m "docs(issue-90): document Relation Graph and search integration"
 
 ---
 
-## Task 5: 기존 데이터 마이그레이션(선택)
+## Task 5: 기존 데이터 마이그레이션 (019 backfill)
+
+**상태:** 구현 완료. 기존 semantic memory_item을 kg_triple에 채워야 동일 (s,p,o) dedupe가 일관되게 동작함.
 
 **Files:**
-- Create: `src/infrastructure/database/database/migration/migrations/019-backfill-kg-triple-from-memory-item.ts` (선택)
-- Create: `019-backfill-kg-triple-from-memory-item.spec.ts` (선택)
+- Create: `src/infrastructure/database/database/migration/migrations/019-backfill-kg-triple-from-memory-item.ts`
+- Create: `019-backfill-kg-triple-from-memory-item.spec.ts`
 
-**Step 1: Decide policy**
-
-- 018 적용 시점에 이미 있는 memory_item 중 type='semantic'이고 subject, predicate, object가 모두 NOT NULL인 행을 스캔하여 kg_triple에 INSERT (UNIQUE 위반 시 무시 또는 기존 id에 representative_memory_id 매핑). 한 (s,p,o)에 여러 memory_item이 있으면 첫 번째 또는 가장 최근 하나를 representative로 선택.
-
-**Step 2–5:** TDD로 019 up/down 및 backfill 테스트 작성 후 구현, 커밋. 필요 시에만 진행.
+**정책:**
+- 018 적용 후 이미 있는 memory_item 중 type='semantic'이고 subject, predicate, object가 모두 NOT NULL인 행을 스캔하여 kg_triple에 INSERT (UNIQUE 유지). 동일 (s,p,o) 여러 개면 created_at ASC 기준 첫 번째를 representative로 사용. id = `triple_backfill_${memory_item.id}`.
+- down: memento_schema_version에서 19.0만 제거(비가역, backfill 행은 유지).
 
 ---
 
