@@ -1911,6 +1911,50 @@ describe('RememberTool', () => {
     });
 
     /**
+     * Given: 프로덕션 환경(isTestEnvironment=false), 스케줄러는 재설정 후 시작하지 않음 (작업이 큐에만 쌓임)
+     * When: remember(episodic, enable_triple_extraction=true) 호출 후 2.5초 경과
+     * Then: 폴백이 실행되지 않아 Triple 추출이 호출되지 않음 (순수 비동기, Issue #89)
+     */
+    it('should not run triple extraction via fallback when async augmentation only (Issue #89)', async () => {
+      const testEnvironmentSpy = vi.spyOn(environmentCheck, 'isTestEnvironment').mockReturnValue(false);
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: {
+          steps: { canonicalization: false, entityLinking: false },
+          failureReason: 'no_triple'
+        }
+      });
+
+      const batchScheduler = getBatchScheduler();
+      if (batchScheduler.getStatus().isRunning) {
+        await batchScheduler.stop();
+      }
+      resetBatchScheduler();
+      const unstartedScheduler = getBatchScheduler();
+      expect(unstartedScheduler.getStatus().isRunning).toBe(false);
+
+      const params = {
+        type: 'episodic',
+        content: 'Eve works at Beta. She is an engineer.',
+        importance: 0.6,
+        enable_triple_extraction: true
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      DatabaseUtils.run(db, `UPDATE memory_item SET triple_extracted_status = NULL WHERE id = ?`, [memoryId]);
+
+      await new Promise(resolve => setTimeout(resolve, 2500));
+
+      expect(extractTriplesSpy).toHaveBeenCalledTimes(0);
+
+      testEnvironmentSpy.mockRestore();
+      extractTriplesSpy.mockRestore();
+    });
+
+    /**
      * Given: tripleExtractionJob이 2초 이상 걸리는 상황
      * When: 폴백 타이머가 동작함
      * Then: 동일 작업이 중복 실행되지 않아야 함
