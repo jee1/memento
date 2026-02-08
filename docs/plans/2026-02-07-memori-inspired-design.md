@@ -38,6 +38,8 @@
 - Fact에 표준 메타: `num_times`, `last_mentioned_at`, `source_session_id`, `confidence`, `importance_score`.
 - 콘솔리데이션 점수도 Fact/Relation 단위로 부착 가능하도록.
 
+**Issue #88 반영 완료 (2026-02-08):** memory_item에 Fact 메타 컬럼 추가(마이그레이션 017), remember 시 저장, recall 시 num_times·last_mentioned_at 가중 적용.
+
 ---
 
 ## 3) 비동기 Augmentation(무지연) 파이프라인
