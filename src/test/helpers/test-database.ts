@@ -204,7 +204,28 @@ export async function setupTestDatabase(): Promise<Database.Database> {
       ('extracted_from', 'Structural', '추출 관계: Semantic Memory가 Episodic Memory에서 추출됨', '["episodic", "semantic"]', 0.7, 1.1),
       ('supported_by', 'Structural', '근거 관계: Semantic Memory가 Episodic Memory에 의해 근거를 가짐', '["episodic", "semantic"]', 0.7, 1.1);
   `);
-  
+
+  // Issue #90: kg_triple 테이블 (KG 전용 저장소 및 dedupe)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kg_triple (
+      id TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      predicate TEXT NOT NULL,
+      object TEXT NOT NULL,
+      owner_id TEXT NULL,
+      process_id TEXT NULL,
+      session_id TEXT NULL,
+      representative_memory_id TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (representative_memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+      UNIQUE(subject, predicate, object)
+    );
+    CREATE INDEX IF NOT EXISTS idx_kg_triple_spo ON kg_triple(subject, predicate, object);
+    CREATE INDEX IF NOT EXISTS idx_kg_triple_representative ON kg_triple(representative_memory_id);
+    CREATE INDEX IF NOT EXISTS idx_kg_triple_owner ON kg_triple(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_kg_triple_process ON kg_triple(process_id);
+  `);
+
   return db;
 }
 
