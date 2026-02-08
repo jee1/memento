@@ -1,5 +1,9 @@
 /**
  * Remember Tool - 기억 저장 도구
+ *
+ * 즉시 저장 (Issue #89): 메모리 항목은 DB에 append-only로 저장된 직후 응답을 반환한다.
+ * Triple 추출·콘솔리데이션 등 augmentation은 BatchScheduler 워커에서 비동기 수행되며,
+ * 호출자는 augmentation 완료를 기다리지 않는다.
  */
 
 import type Database from 'better-sqlite3';
@@ -980,6 +984,7 @@ export class RememberTool extends BaseTool {
                 });
               }
 
+              // 즉시 저장 완료. 이하 augmentation(Triple 추출)은 워커에서 비동기 수행 (Issue #89).
               // PRD 4.1, 5.3: AriGraph Pipeline - Triple 추출 및 Semantic Memory 생성
               // type='episodic'이고 enable_triple_extraction=true일 때만 실행
               // JobQueue를 통해 비동기로 실행 (Episodic Memory 저장은 블로킹하지 않음)
