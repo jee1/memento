@@ -32,7 +32,12 @@ CREATE TABLE IF NOT EXISTS memory_item (
   owner_id TEXT NULL,
   -- Memori Attribution (Issue #87, migration 016)
   process_id TEXT NULL,
-  session_id TEXT NULL
+  session_id TEXT NULL,
+  -- Fact metadata (Issue #88, migration 017): semantic/Fact 표준 메타
+  num_times INTEGER NOT NULL DEFAULT 1,
+  last_mentioned_at TIMESTAMP,
+  source_session_id TEXT,
+  confidence REAL
 );
 
 -- 태그 테이블
@@ -103,6 +108,9 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_owner_id ON memory_item(owner_id);
 -- Memori Attribution (Issue #87, migration 016)
 CREATE INDEX IF NOT EXISTS idx_memory_item_process_id ON memory_item(process_id);
 CREATE INDEX IF NOT EXISTS idx_memory_item_session_id ON memory_item(session_id);
+-- Fact metadata (Issue #88, migration 017)
+CREATE INDEX IF NOT EXISTS idx_memory_item_last_mentioned_at ON memory_item(last_mentioned_at);
+CREATE INDEX IF NOT EXISTS idx_memory_item_num_times ON memory_item(num_times);
 
 CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id);
