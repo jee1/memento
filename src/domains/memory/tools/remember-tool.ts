@@ -1,5 +1,9 @@
 /**
  * Remember Tool - 기억 저장 도구
+ *
+ * 즉시 저장 (Issue #89): 메모리 항목은 DB에 append-only로 저장된 직후 응답을 반환한다.
+ * Triple 추출·콘솔리데이션 등 augmentation은 BatchScheduler 워커에서 비동기 수행되며,
+ * 호출자는 augmentation 완료를 기다리지 않는다.
  */
 
 import type Database from 'better-sqlite3';
@@ -980,6 +984,7 @@ export class RememberTool extends BaseTool {
                 });
               }
 
+              // 즉시 저장 완료. 이하 augmentation(Triple 추출)은 워커에서 비동기 수행 (Issue #89).
               // PRD 4.1, 5.3: AriGraph Pipeline - Triple 추출 및 Semantic Memory 생성
               // type='episodic'이고 enable_triple_extraction=true일 때만 실행
               // JobQueue를 통해 비동기로 실행 (Episodic Memory 저장은 블로킹하지 않음)
@@ -1330,95 +1335,13 @@ export class RememberTool extends BaseTool {
                     });
                   }
 
-                  // JobQueue에 작업 등록 (우선순위: 5, 중간 우선순위)
+                  // JobQueue에 작업 등록 (우선순위: 5, 중간 우선순위). Issue #89: 폴백 제거 — 순수 비동기만 사용.
                   const added = batchScheduler.addJob(jobName, tripleExtractionJob, 5, 0);
                   if (added) {
                     this.logInfo('Triple 추출 작업이 JobQueue에 등록되었습니다', {
                       memory_id: savedMemoryId,
                       job_name: jobName
                     });
-                    
-                    // 작업이 실행되지 않았을 때를 감지하기 위한 폴백 로직
-                    // (테스트 환경에서 작업이 즉시 실행되지 않을 수 있으므로)
-                    // 2초 후에 한 번만 확인하여 작업이 실행되지 않았으면 직접 실행
-                    setTimeout(async () => {
-                      try {
-                        // 먼저 DB 상태를 확인하여 작업이 이미 실행 중인지 확인
-                        // (가장 신뢰할 수 있는 방법)
-                        if (DatabaseUtils.isOpen(dbRef)) {
-                          const statusCheck = DatabaseUtils.get(dbRef, `
-                            SELECT triple_extracted_status FROM memory_item WHERE id = ?
-                          `, [savedMemoryId]) as { triple_extracted_status: string | null } | undefined;
-                          
-                          const currentStatus = statusCheck?.triple_extracted_status;
-                          // in_progress/success/failed 상태이면 이미 실행 중이거나 완료된 상태
-                          if (currentStatus === 'in_progress' || currentStatus === 'success' || currentStatus === 'failed') {
-                            this.logInfo('Triple 추출 작업이 이미 진행 중이거나 완료되었습니다 (폴백 스킵)', {
-                              memory_id: savedMemoryId,
-                              job_name: jobName,
-                              current_status: currentStatus
-                            });
-                            return;
-                          }
-                        }
-
-                        // DB 상태 확인 후 JobQueue 상태도 확인
-                        const schedulerStatus = batchScheduler.getStatus();
-                        const alreadyQueued = batchScheduler.isJobQueued(jobName);
-                        const alreadyRunning = batchScheduler.isJobRunning(jobName);
-
-                        // 작업이 큐에 등록되어 있거나 실행 중이면 폴백 스킵 (스케줄러 실행 상태와 무관)
-                        if (alreadyQueued || alreadyRunning) {
-                          this.logInfo('Triple 추출 작업이 큐에 존재하거나 실행 중입니다 (폴백 스킵)', {
-                            memory_id: savedMemoryId,
-                            job_name: jobName,
-                            scheduler_running: schedulerStatus.isRunning,
-                            already_queued: Boolean(alreadyQueued),
-                            already_running: Boolean(alreadyRunning)
-                          });
-                          return;
-                        }
-
-                        if (!DatabaseUtils.isOpen(dbRef)) {
-                          this.logWarning('데이터베이스 연결이 닫혀있어 Triple 추출 상태 확인을 건너뜁니다', {
-                            memory_id: savedMemoryId,
-                            job_name: jobName
-                          });
-                          return;
-                        }
-
-                        // 상태가 NULL이거나 예상치 못한 상태인 경우에만 폴백 실행
-                        const statusCheck = DatabaseUtils.get(dbRef, `
-                          SELECT triple_extracted_status FROM memory_item WHERE id = ?
-                        `, [savedMemoryId]) as { triple_extracted_status: string | null } | undefined;
-                        
-                        const currentStatus = statusCheck?.triple_extracted_status;
-                        // 상태가 없거나, in_progress/success/failed가 아닌 경우에만 폴백 실행
-                        if (!currentStatus || (currentStatus !== 'in_progress' && currentStatus !== 'success' && currentStatus !== 'failed')) {
-                          // 작업이 실행되지 않았을 가능성이 있으므로, 직접 실행 시도
-                          this.logWarning('Triple 추출 작업이 실행되지 않은 것으로 보입니다. 직접 실행을 시도합니다', {
-                            memory_id: savedMemoryId,
-                            job_name: jobName,
-                            current_status: currentStatus
-                          });
-                          
-                          try {
-                            await tripleExtractionJob();
-                          } catch (fallbackError) {
-                            this.logWarning('Triple 추출 작업 직접 실행 실패', {
-                              memory_id: savedMemoryId,
-                              error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-                            });
-                          }
-                        }
-                      } catch (checkError) {
-                        // 상태 확인 실패는 무시 (데이터베이스 연결이 닫혔을 수 있음)
-                        this.logWarning('Triple 추출 작업 상태 확인 실패', {
-                          memory_id: savedMemoryId,
-                          error: checkError instanceof Error ? checkError.message : String(checkError)
-                        });
-                      }
-                    }, 2000); // 2초 후 확인
                   } else {
                     const status = batchScheduler.getStatus();
                     const alreadyQueued = batchScheduler.isJobQueued(jobName);
