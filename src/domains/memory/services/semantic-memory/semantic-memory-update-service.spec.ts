@@ -114,6 +114,41 @@ describe('SemanticMemoryUpdateService', () => {
       expect(firstMemory.content).toBeDefined();
     });
 
+    it('Issue #90: kg_triple dedupe - 동일 (s,p,o) 두 번 호출 시 memory_item semantic 1개, kg_triple 1개, 두 번째는 updated', async () => {
+      // Given: 동일 Triple로 두 번 updateSemanticMemory 호출
+      const triple: Triple = { subject: '사용자', predicate: '선호', object: '커피' };
+      const extractionResult: TripleExtractionResult = {
+        triples: [triple],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      };
+      const options: SemanticMemoryUpdateOptions = {
+        episodicMemoryId: 'ep-1',
+        episodicImportance: 0.5
+      };
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [options.episodicMemoryId, 'episodic', 'Episodic 1', 0.5]);
+
+      const first = await service.updateSemanticMemory(extractionResult, options);
+      expect(first.created).toBe(1);
+      const memId = first.semanticMemoryIds[0];
+
+      options.episodicMemoryId = 'ep-2';
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [options.episodicMemoryId, 'episodic', 'Episodic 2', 0.5]);
+
+      const second = await service.updateSemanticMemory(extractionResult, options);
+
+      // Then: 두 번째는 updated, semantic 행 1개, kg_triple 1개
+      expect(second.updated).toBeGreaterThanOrEqual(1);
+      expect(second.semanticMemoryIds[0]).toBe(memId);
+      const semanticCount = (DatabaseUtils.get(db, 'SELECT COUNT(*) as c FROM memory_item WHERE type = ?', ['semantic']) as { c: number }).c;
+      expect(semanticCount).toBe(1);
+      const kgCount = (DatabaseUtils.get(db, 'SELECT COUNT(*) as c FROM kg_triple', []) as { c: number }).c;
+      expect(kgCount).toBe(1);
+    });
+
     it('중복 Triple 처리 - 기존 Semantic Memory 업데이트', async () => {
       // Given: 첫 번째 Triple로 Semantic Memory 생성
       const firstTriple: Triple = { subject: '사용자', predicate: '선호', object: '커피' };

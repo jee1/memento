@@ -16,6 +16,7 @@ import { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
 import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
+import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
 import type { Triple, TripleExtractionResult, ExtractionInfo } from '../../../../shared/types/triple-extraction.js';
 import { logger } from '../../../../shared/utils/logger.js';
 /**
@@ -76,6 +77,7 @@ export class SemanticMemoryUpdateService {
   private readonly embeddingService: UnifiedEmbeddingService;
   private readonly relationGraph: RelationGraph;
   private readonly statistics: SemanticMemoryStatisticsService; // PRD 8.2: Semantic Memory 생성 통계 수집
+  private readonly kgTripleRepo: KgTripleRepository; // Issue #90: KG 전용 저장소 dedupe
 
   // 기본 설정
   /**
@@ -93,7 +95,8 @@ export class SemanticMemoryUpdateService {
   constructor(
     private db: Database.Database,
     embeddingService?: UnifiedEmbeddingService,
-    relationGraph?: RelationGraph
+    relationGraph?: RelationGraph,
+    kgTripleRepo?: KgTripleRepository
   ) {
     this.canonicalizer = new PredicateCanonicalizer();
     this.entityLinker = new EntityLinker();
@@ -117,7 +120,8 @@ export class SemanticMemoryUpdateService {
     }
     
     this.relationGraph = relationGraph || new RelationGraph(db);
-    
+    this.kgTripleRepo = kgTripleRepo ?? new KgTripleRepository(db);
+
     // PRD 8.2: Semantic Memory 생성 통계 수집
     this.statistics = new SemanticMemoryStatisticsService();
     
@@ -379,6 +383,29 @@ export class SemanticMemoryUpdateService {
       return { confidence };
     }
 
+    // Issue #90: kg_triple 전용 저장소 dedupe — 동일 (s,p,o)면 대표 memory_item 재사용
+    const norm = this.normalizeTripleForKg(triple);
+    const existingKg = this.kgTripleRepo.getBySubjectPredicateObject(norm.subject, norm.predicate, norm.object);
+    if (existingKg?.representative_memory_id) {
+      const targetRow = this.db.prepare('SELECT type FROM memory_item WHERE id = ?')
+        .get(existingKg.representative_memory_id) as { type: string } | undefined;
+      if (targetRow?.type === 'semantic') {
+        this.db.prepare(
+          'UPDATE memory_item SET num_times = num_times + 1, last_mentioned_at = ?, recall_count = recall_count + 1 WHERE id = ?'
+        ).run(new Date().toISOString(), existingKg.representative_memory_id);
+        result.updated++;
+        result.semanticMemoryIds.push(existingKg.representative_memory_id);
+        await this.createEpisodicEdge(
+          options.episodicMemoryId,
+          existingKg.representative_memory_id,
+          triple,
+          extractionInfo,
+          confidence
+        );
+        return { confidence };
+      }
+    }
+
     // 중복 Semantic Memory 검색 (PRD 2.2 참고)
     const duplicate = await this.findDuplicateSemanticMemory(triple, similarityThreshold);
 
@@ -545,6 +572,14 @@ export class SemanticMemoryUpdateService {
       createdAt
     ]);
 
+    // Issue #90: kg_triple에 등록하여 이후 동일 (s,p,o) dedupe 시 대표로 사용
+    this.kgTripleRepo.upsertTriple({
+      subject: normalizedSubject,
+      predicate: normalizedPredicate,
+      object: normalizedObject,
+      representative_memory_id: id
+    });
+
     logger.debug('SemanticMemoryUpdateService: Semantic Memory 생성', {
       id,
       originalTriple: triple,
@@ -558,6 +593,20 @@ export class SemanticMemoryUpdateService {
     });
 
     return id;
+  }
+
+  /**
+   * kg_triple 조회/등록용 정규화 (createSemanticMemory와 동일한 canonicalizer·entityLinker 사용)
+   */
+  private normalizeTripleForKg(triple: Triple): { subject: string; predicate: string; object: string } {
+    const predicateResult = this.canonicalizer.canonicalize(triple.predicate);
+    const subjectResult = this.entityLinker.link(triple.subject);
+    const objectResult = this.entityLinker.link(triple.object);
+    return {
+      subject: subjectResult.linked,
+      predicate: predicateResult.canonical,
+      object: objectResult.linked
+    };
   }
 
   /**
