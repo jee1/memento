@@ -51,6 +51,11 @@ export interface MemoryItem {
   // Memori Attribution (Issue #87)
   process_id?: string | null;
   session_id?: string | null;
+  // Fact metadata (Issue #88): semantic/Fact 표준 메타
+  num_times?: number;
+  last_mentioned_at?: Date | string | null;
+  source_session_id?: string | null;
+  confidence?: number | null;
 }
 
 export interface MemorySearchFilters {

@@ -74,6 +74,11 @@ const RememberSchema = z.object({
   // Memori Attribution (Issue #87)
   process_id: z.string().optional(),
   session_id: z.string().optional(),
+  // Fact metadata (Issue #88): semantic 표준 메타
+  num_times: z.number().int().min(1).optional(),
+  last_mentioned_at: z.string().datetime().optional(),
+  source_session_id: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -378,13 +383,21 @@ export class RememberTool extends BaseTool {
         privacy_scope,
         owner_id: owner_id_param,
         process_id: process_id_param,
-        session_id: session_id_param
+        session_id: session_id_param,
+        num_times: num_times_param,
+        last_mentioned_at: last_mentioned_at_param,
+        source_session_id: source_session_id_param,
+        confidence: confidence_param
       } = RememberSchema.parse(params);
 
     const ownerId = owner_id_param ?? context.agentId ?? null;
     const processId = process_id_param ?? context.processId ?? null;
     const sessionId = session_id_param ?? context.sessionId ?? null;
-    
+    // Fact metadata (Issue #88): semantic 저장 시 사용, 기본값으로 recall 가중 가능
+    const numTimes = num_times_param ?? 1;
+    const sourceSessionId = source_session_id_param ?? sessionId;
+    const confidenceVal = confidence_param ?? null;
+
     // type 파라미터 롤아웃 모드 검증
     const typeParamMode = mementoConfig.typeParamMode;
     const typeValidation = validateTypeParam(rawType, typeParamMode, 'remember');
@@ -628,7 +641,9 @@ export class RememberTool extends BaseTool {
           const lastAccessedAt = isUpdate && existingMemory && existingMemory.last_accessed_at
             ? new Date(existingMemory.last_accessed_at).toISOString()  // 기존 값 보존
             : (mementoConfig.consolidationScoreEnabled ? createdAt : null); // 새 메모리는 created_at 또는 null
-          
+          // Fact metadata (Issue #88): semantic 최근 언급 시각
+          const lastMentionedAt = last_mentioned_at_param ?? (isUpdate ? new Date().toISOString() : createdAt);
+
           // incremental 모드일 때 steps 병합
           let finalSteps = steps || null;
           if (isUpdate && update_mode === 'incremental' && existingMemory && existingMemory.steps && steps) {
@@ -686,7 +701,11 @@ export class RememberTool extends BaseTool {
                 consolidation_score = ?,
                 owner_id = ?,
                 process_id = ?,
-                session_id = ?
+                session_id = ?,
+                num_times = ?,
+                last_mentioned_at = ?,
+                source_session_id = ?,
+                confidence = ?
               WHERE id = ?
             `, [
               content,
@@ -708,6 +727,10 @@ export class RememberTool extends BaseTool {
               ownerId,
               processId,
               sessionId,
+              numTimes,
+              lastMentionedAt,
+              sourceSessionId,
+              confidenceVal,
               id
             ]);
           } else {
@@ -727,9 +750,10 @@ export class RememberTool extends BaseTool {
                 workflow_name, skill_name, trigger_conditions,
                 created_at,
                 recall_count, last_accessed_at, g_value, consolidation_score,
-                version, version_series_id, owner_id, process_id, session_id
+                version, version_series_id, owner_id, process_id, session_id,
+                num_times, last_mentioned_at, source_session_id, confidence
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
               id, 
               type, 
@@ -754,7 +778,11 @@ export class RememberTool extends BaseTool {
               proceduralVersionSeriesId,
               ownerId,
               processId,
-              sessionId
+              sessionId,
+              numTimes,
+              lastMentionedAt,
+              sourceSessionId,
+              confidenceVal
             ]);
 
             // versioned 모드일 때 memory_link에 'version_of' 관계 추가
