@@ -1,7 +1,19 @@
 /**
- * 배치 작업 스케줄러
- * TTL 기반 메모리 정리 및 기타 주기적 작업을 자동화
- * Memento MCP Server의 핵심 배치 처리 컴포넌트
+ * 배치 작업 스케줄러 (비동기 Augmentation 파이프라인 워커, Issue #89)
+ *
+ * remember/remember_procedure는 메모리를 즉시 저장한 뒤 응답을 반환하고,
+ * Triple 추출·콘솔리데이션 등 augmentation은 이 스케줄러에서 배치/큐 기반으로 수행한다.
+ *
+ * 담당 작업:
+ * (1) Per-item Triple 추출 (JobQueue — remember-tool에서 addJob으로 등록)
+ * (2) Triple 추출 배치 (TripleExtractionBatchJob — 미처리 episodic 일괄 처리)
+ * (3) 콘솔리데이션 점수 (ConsolidationScoreWorker — 증분/전체 스윕)
+ * (4) 관계 검증 (RelationValidatorExecutor — 주간 검증)
+ * (5) 품질 측정 (QualityMeasurementBatchJob — 일일 배치)
+ * (6) 메모리 정리 (ForgettingPolicyService — TTL 기반 cleanup)
+ *
+ * 실패 재시도: RetryManager (BatchJobConfig.retryAttempts, retryDelay).
+ * 모니터링: 로깅·getStatus()·admin 라우트에서 큐/실행 상태 확인 가능.
  */
 
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
@@ -87,6 +99,10 @@ export interface SchedulerStatus {
   config: BatchJobConfig;
 }
 
+/**
+ * 비동기 Augmentation 파이프라인 워커.
+ * @see docs/architecture/async-augmentation-pipeline.md
+ */
 export class BatchScheduler {
   private config: BatchJobConfig;
   private forgettingService: ForgettingPolicyService;
