@@ -61,6 +61,7 @@ export class SearchEngine {
               m.workflow_name, m.skill_name, m.trigger_conditions,
               m.version, m.version_series_id,
               m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
+              m.num_times, m.last_mentioned_at,
               0 as fts_rank
             FROM memory_item m
           `;
@@ -74,6 +75,7 @@ export class SearchEngine {
               m.workflow_name, m.skill_name, m.trigger_conditions,
               m.version, m.version_series_id,
               m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
+              m.num_times, m.last_mentioned_at,
               memory_item_fts.rank as fts_rank
             FROM memory_item_fts
             JOIN memory_item m ON memory_item_fts.rowid = m.rowid
@@ -101,6 +103,7 @@ export class SearchEngine {
             m.workflow_name, m.skill_name, m.trigger_conditions,
             m.version, m.version_series_id,
             m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
+            m.num_times, m.last_mentioned_at,
             0 as fts_rank
           FROM memory_item m
           WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
@@ -117,6 +120,7 @@ export class SearchEngine {
           m.workflow_name, m.skill_name, m.trigger_conditions,
           m.version, m.version_series_id,
           m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
+          m.num_times, m.last_mentioned_at,
           0 as fts_rank
         FROM memory_item m
       `;
@@ -382,7 +386,14 @@ export class SearchEngine {
               duplication_penalty: duplicationPenalty
             });
         }
-        
+
+        // Fact 메타 가중 (Issue #88): num_times·last_mentioned_at으로 자주·최근 언급된 기억 보정
+        const factBoost = this.calculateFactMetadataBoost(
+          row.num_times != null ? Number(row.num_times) : 1,
+          row.last_mentioned_at ? new Date(row.last_mentioned_at) : null
+        );
+        finalScore *= factBoost;
+
         // 중복 패널티 계산을 위해 이미 선택된 콘텐츠를 추적하여 결과의 다양성을 확보합니다.
         selectedContents.push(row.content);
         
@@ -409,6 +420,8 @@ export class SearchEngine {
         if (row.owner_id !== undefined) result.owner_id = row.owner_id;
         if (row.process_id !== undefined) result.process_id = row.process_id;
         if (row.session_id !== undefined) result.session_id = row.session_id;
+        if (row.num_times !== undefined) result.num_times = row.num_times;
+        if (row.last_mentioned_at !== undefined) result.last_mentioned_at = row.last_mentioned_at;
 
         // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
@@ -532,6 +545,19 @@ export class SearchEngine {
       const likeQuery = `%${searchQuery}%`;
       return `m.reflection_notes LIKE ?`;
     }
+  }
+
+  /**
+   * Fact 메타 가중치 (Issue #88): num_times·last_mentioned_at으로 자주·최근 언급된 기억에 보정 배율 적용.
+   * 반환값은 1 이상의 배율(예: 1.0 ~ 1.2)로, finalScore에 곱해 사용한다.
+   */
+  private calculateFactMetadataBoost(numTimes: number, lastMentionedAt: Date | null): number {
+    const logFactor = Math.log(1 + Math.max(0, numTimes));
+    const recencyFactor = lastMentionedAt
+      ? 1 / (1 + (Date.now() - lastMentionedAt.getTime()) / (30 * 24 * 60 * 60 * 1000))
+      : 1;
+    const boost = 1 + 0.1 * logFactor * recencyFactor;
+    return Math.min(boost, 1.2);
   }
 
   /**

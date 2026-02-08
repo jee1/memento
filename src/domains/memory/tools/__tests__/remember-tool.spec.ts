@@ -57,7 +57,12 @@ function initializeTestDatabase(db: Database.Database): void {
       version_series_id TEXT NULL,
       owner_id TEXT NULL,
       process_id TEXT NULL,
-      session_id TEXT NULL
+      session_id TEXT NULL,
+      -- Fact metadata (Issue #88)
+      num_times INTEGER NOT NULL DEFAULT 1,
+      last_mentioned_at TIMESTAMP,
+      source_session_id TEXT,
+      confidence REAL
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
@@ -386,6 +391,42 @@ describe('RememberTool', () => {
       expect(record.content).toBe('React is a JavaScript library for building user interfaces');
       expect(record.type).toBe('semantic');
       expect(record.origin_source).toBeDefined();
+    });
+
+    it('Given: semantic remember 호출 시, When: Fact 메타 미지정, Then: num_times=1·last_mentioned_at·source_session_id·confidence 기본 저장 (Issue #88)', async () => {
+      const params = {
+        type: 'semantic',
+        content: 'Fact metadata test content',
+      };
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const row = DatabaseUtils.get(db, 'SELECT num_times, last_mentioned_at, source_session_id, confidence FROM memory_item WHERE id = ?', [
+        resultData.memory_id,
+      ]) as { num_times: number; last_mentioned_at: string | null; source_session_id: string | null; confidence: number | null };
+      expect(row.num_times).toBe(1);
+      expect(row.last_mentioned_at).toBeDefined();
+      expect(row.source_session_id).toBeNull();
+      expect(row.confidence).toBeNull();
+    });
+
+    it('Given: semantic remember에 Fact 메타 지정, When: remember 호출 시, Then: num_times·last_mentioned_at·source_session_id·confidence 저장됨 (Issue #88)', async () => {
+      const params = {
+        type: 'semantic',
+        content: 'Fact meta explicit test',
+        num_times: 3,
+        last_mentioned_at: '2026-02-08T00:00:00.000Z',
+        source_session_id: 'sess-88',
+        confidence: 0.85,
+      };
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const row = DatabaseUtils.get(db, 'SELECT num_times, last_mentioned_at, source_session_id, confidence FROM memory_item WHERE id = ?', [
+        resultData.memory_id,
+      ]) as { num_times: number; last_mentioned_at: string | null; source_session_id: string | null; confidence: number | null };
+      expect(row.num_times).toBe(3);
+      expect(row.last_mentioned_at).toBe('2026-02-08T00:00:00.000Z');
+      expect(row.source_session_id).toBe('sess-88');
+      expect(row.confidence).toBe(0.85);
     });
   });
 
