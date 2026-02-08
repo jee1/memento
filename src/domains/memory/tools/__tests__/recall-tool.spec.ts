@@ -94,6 +94,16 @@ function initializeTestDatabase(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
     CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
+
+    -- Process Attribute (Issue #91): recall 스코어링용
+    CREATE TABLE IF NOT EXISTS process_attribute (
+      process_id TEXT PRIMARY KEY,
+      topics TEXT NULL,
+      workflow_names TEXT NULL,
+      skill_names TEXT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
   `);
 }
 
