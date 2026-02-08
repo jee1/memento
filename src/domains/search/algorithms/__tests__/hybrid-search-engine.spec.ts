@@ -371,7 +371,11 @@ describe('HybridSearchEngine', () => {
           owner_id TEXT NULL,
           -- Memori Attribution (Issue #87, migration 016)
           process_id TEXT NULL,
-          session_id TEXT NULL
+          session_id TEXT NULL,
+          num_times INTEGER NOT NULL DEFAULT 1,
+          last_mentioned_at TIMESTAMP,
+          source_session_id TEXT,
+          confidence REAL
         );
       `);
 
@@ -1979,7 +1983,11 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
           owner_id TEXT NULL,
           -- Memori Attribution (Issue #87, migration 016)
           process_id TEXT NULL,
-          session_id TEXT NULL
+          session_id TEXT NULL,
+          num_times INTEGER NOT NULL DEFAULT 1,
+          last_mentioned_at TIMESTAMP,
+          source_session_id TEXT,
+          confidence REAL
         );
       `);
 

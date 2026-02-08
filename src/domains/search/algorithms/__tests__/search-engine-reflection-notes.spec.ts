@@ -44,7 +44,12 @@ function initializeTestDatabase(db: Database.Database): void {
       owner_id TEXT NULL,
       -- Memori Attribution (Issue #87, migration 016)
       process_id TEXT NULL,
-      session_id TEXT NULL
+      session_id TEXT NULL,
+      -- Fact metadata (Issue #88, migration 017)
+      num_times INTEGER NOT NULL DEFAULT 1,
+      last_mentioned_at TIMESTAMP,
+      source_session_id TEXT,
+      confidence REAL
     );
   `);
 
