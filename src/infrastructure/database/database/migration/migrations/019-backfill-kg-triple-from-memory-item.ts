@@ -88,17 +88,7 @@ export class BackfillKgTripleFromMemoryItemMigration implements Migration {
       );
     }
 
-    if (this.tableExists(db, 'memento_schema_version')) {
-      try {
-        db.prepare(
-          `INSERT INTO memento_schema_version (version, migration_name, description) VALUES (?, ?, ?)`
-        ).run('19.0', this.name, this.description);
-      } catch {
-        db.prepare(
-          `INSERT INTO memento_schema_version (version, migration_name) VALUES (?, ?)`
-        ).run('19.0', this.name);
-      }
-    }
+    // 스키마 버전 기록은 MigrationRunner.recordVersion()이 수행함. 여기서 INSERT 시 중복으로 UNIQUE 오류 발생.
   }
 
   async down(db: Database.Database): Promise<void> {
@@ -109,14 +99,9 @@ export class BackfillKgTripleFromMemoryItemMigration implements Migration {
   }
 
   async validateAfter(db: Database.Database): Promise<void> {
-    // 최소한 kg_triple이 존재하고 019가 적용된 상태
-    if (this.tableExists(db, 'memento_schema_version')) {
-      const row = db.prepare(
-        `SELECT version FROM memento_schema_version WHERE version = ?`
-      ).get('19.0') as { version: string } | undefined;
-      if (!row) {
-        throw new Error('Migration 019 version was not recorded');
-      }
+    // backfill 후 kg_triple 존재 여부만 검증. 버전 기록은 MigrationRunner가 이후 recordVersion()으로 수행.
+    if (!this.tableExists(db, 'kg_triple')) {
+      throw new Error('kg_triple table missing after 019 backfill');
     }
   }
 }
