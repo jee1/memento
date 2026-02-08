@@ -88,6 +88,16 @@ CREATE TABLE IF NOT EXISTS wm_buffer (
   expires_at TIMESTAMP NOT NULL
 );
 
+-- Process Attribute (Issue #91): process별 주제/속성, recall 스코어링용
+CREATE TABLE IF NOT EXISTS process_attribute (
+  process_id TEXT PRIMARY KEY,
+  topics TEXT NULL,
+  workflow_names TEXT NULL,
+  skill_names TEXT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 -- 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);
 CREATE INDEX IF NOT EXISTS idx_memory_item_created_at ON memory_item(created_at);
