@@ -31,8 +31,12 @@
 
 ## 실패 재시도·모니터링
 
-- **재시도**: JobQueue + `RetryManager` (`BatchJobConfig.retryAttempts`, `retryDelay`). Triple 추출 배치 실패 시 `TripleExtractionBatchJob` 내부에서 상태(`triple_extracted_status`) 업데이트 및 재시도 정책 적용.
-- **모니터링**: BatchScheduler 로그, `getStatus()`, admin 라우트에서 큐/실행 상태 확인 가능.
+- **재시도**
+  - JobQueue에 등록된 작업(Per-item Triple 추출 등): `RetryManager`가 실패 시 재시도. 설정은 `BatchJobConfig.retryAttempts`, `retryDelay` 등.
+  - Triple 추출 배치: `TripleExtractionBatchJob` 내부에서 실패 시 `memory_item.triple_extracted_status`를 `failed`로 업데이트하고, 메타데이터에 `retry_count`·`last_attempt` 기록. 주기 배치 또는 다음 배치에서 미처리 항목 재처리 가능.
+- **모니터링**
+  - BatchScheduler 로그(파일·콘솔), `getStatus()`로 큐 크기·실행 중 작업·마지막 실행 시각 확인.
+  - HTTP 서버 사용 시 admin 라우트에서 스케줄러 상태·큐 조회 가능.
 
 ## 범위 참고
 
