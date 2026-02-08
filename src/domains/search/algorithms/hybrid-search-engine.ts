@@ -7,8 +7,10 @@ import { SearchEngine } from './search-engine.js';
 import { MemoryEmbeddingService, type VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
-import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider } from '../../../shared/types/index.js';
+import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider, ProcessAttribute } from '../../../shared/types/index.js';
 import Database from 'better-sqlite3';
+import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
+import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { SearchRanking } from './search-ranking.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
@@ -1123,7 +1125,9 @@ export class HybridSearchEngine {
     relationInfo: Map<string, any[]>,
     consolidationScores: Map<string, number>,
     proceduralMemoryMatches: Map<string, any>,
-    includeRelations: boolean
+    includeRelations: boolean,
+    processAttributes: ProcessAttribute | null = null,
+    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map()
   ): void {
     results.forEach(result => {
       const relationWeight = relationWeights.get(result.id);
@@ -1150,6 +1154,13 @@ export class HybridSearchEngine {
       
       const consolidationScore = consolidationScores.get(result.id);
       
+      // Process Attribute 적합도 (Issue #91): process_id 검색 시에만 반영
+      const memoryDetails = memoryDetailsMap.get(result.id);
+      const processAttributeFit =
+        processAttributes != null && memoryDetails != null
+          ? computeProcessAttributeFit(processAttributes, memoryDetails)
+          : undefined;
+      
       if (consolidationScore !== undefined) {
         // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
         result.consolidation_score = consolidationScore;
@@ -1166,7 +1177,8 @@ export class HybridSearchEngine {
           consolidation_score: consolidationScore,
           workflow_name_match: proceduralMatch?.workflow_name_match || false,
           skill_name_match: proceduralMatch?.skill_name_match || false,
-          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
+          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,
+          ...(processAttributeFit !== undefined && { process_attribute_fit: processAttributeFit })
         };
         
         // calculateFinalScoreWithConsolidation 대신 calculateFinalScore 사용 (procedural memory boost 포함)
@@ -1183,7 +1195,8 @@ export class HybridSearchEngine {
           duplication_penalty: 0, // 중복 패널티는 이미 결과 결합 시 처리됨
           workflow_name_match: proceduralMatch?.workflow_name_match || false,
           skill_name_match: proceduralMatch?.skill_name_match || false,
-          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false
+          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,
+          ...(processAttributeFit !== undefined && { process_attribute_fit: processAttributeFit })
         };
         
         result.finalScore = this.ranking.calculateFinalScore(features);
@@ -1234,6 +1247,37 @@ export class HybridSearchEngine {
           // Procedural Memory 특화 가중치를 위한 매칭 정보 조회
           const proceduralMemoryMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(db, memoryIds, query);
           
+          // Process Attribute 적합도 (Issue #91): process_id로 검색 시 process별 주제/속성 반영
+          let processAttributes: ProcessAttribute | null = null;
+          let memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map();
+          const processId = query?.filters?.process_id != null
+            ? (Array.isArray(query.filters.process_id) ? query.filters.process_id[0] : query.filters.process_id)
+            : undefined;
+          if (processId) {
+            const attrRepo = new ProcessAttributeRepository(db);
+            processAttributes = attrRepo.getByProcessId(processId);
+            const placeholders = memoryIds.map(() => '?').join(',');
+            const rows = db.prepare(
+              `SELECT id, tags, workflow_name, skill_name FROM memory_item WHERE id IN (${placeholders})`
+            ).all(...memoryIds) as Array<{ id: string; tags: string | null; workflow_name: string | null; skill_name: string | null }>;
+            for (const row of rows) {
+              let tags: string[] = [];
+              if (row.tags) {
+                try {
+                  const parsed = JSON.parse(row.tags);
+                  tags = Array.isArray(parsed) ? parsed : [];
+                } catch {
+                  tags = [];
+                }
+              }
+              memoryDetailsMap.set(row.id, {
+                tags,
+                workflow_name: row.workflow_name ?? null,
+                skill_name: row.skill_name ?? null
+              });
+            }
+          }
+          
           // Step 3: 점수 정규화 (관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산)
           this.normalizeScores(
             combinedResults,
@@ -1241,7 +1285,9 @@ export class HybridSearchEngine {
             relationInfo,
             consolidationScores,
             proceduralMemoryMatches,
-            includeRelations
+            includeRelations,
+            processAttributes,
+            memoryDetailsMap
           );
         }
       }
