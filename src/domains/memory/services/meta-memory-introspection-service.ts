@@ -47,9 +47,22 @@ export class MetaMemoryIntrospectionService {
     db: Database.Database,
     options: MetaMemoryIntrospectionScanOptions = {}
   ): Promise<MetaMemoryIntrospectionScanResult> {
-    const lowConfidenceThreshold = options.lowConfidenceThreshold ?? 0.5;
-    const highFailureCountThreshold = options.highFailureCountThreshold ?? 2;
-    const limit = Math.min(Math.max(options.limit ?? 1000, 1), 10000);
+    // 옵션 검증: 외부/설정 입력 시 비정상 값 방지 (보안·안정성)
+    const rawLow = options.lowConfidenceThreshold ?? 0.5;
+    const lowConfidenceThreshold =
+      typeof rawLow === 'number' && !Number.isNaN(rawLow) && rawLow >= 0 && rawLow <= 1
+        ? rawLow
+        : 0.5;
+    const rawHigh = options.highFailureCountThreshold ?? 2;
+    const highFailureCountThreshold =
+      typeof rawHigh === 'number' && !Number.isNaN(rawHigh) && rawHigh >= 0
+        ? Math.floor(rawHigh)
+        : 2;
+    const rawLimit = options.limit ?? 1000;
+    const limit =
+      typeof rawLimit === 'number' && !Number.isNaN(rawLimit) && rawLimit >= 1
+        ? Math.min(Math.floor(rawLimit), 10000)
+        : 1000;
 
     const lowConfidenceMemoryIds: string[] = [];
     const highFailureMemoryIds: string[] = [];
@@ -74,7 +87,10 @@ export class MetaMemoryIntrospectionService {
         ORDER BY failure_count DESC
         LIMIT ?
       `);
-      const highFailRows = highFailStmt.all(highFailureCountThreshold, limit) as { memory_id: string }[];
+      const highFailRows = highFailStmt.all(
+        highFailureCountThreshold,
+        limit
+      ) as { memory_id: string }[];
       highFailureMemoryIds.push(...highFailRows.map((r) => r.memory_id));
     } catch (err) {
       logger.error('MetaMemoryIntrospectionService: runScan 실패', {

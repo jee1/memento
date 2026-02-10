@@ -109,4 +109,17 @@ describe('MetaMemoryIntrospectionService', () => {
     expect(result.summary).toBeDefined();
     emptyDb.close();
   });
+
+  it('given: 비정상 옵션(NaN, 범위 밖)이 있을 때, when: runScan을 호출하면, then: 기본값으로 안전하게 동작해야 함', async () => {
+    const result = await MetaMemoryIntrospectionService.runScan(db, {
+      lowConfidenceThreshold: Number.NaN,
+      highFailureCountThreshold: -1,
+      limit: -5
+    });
+
+    // 기본값 적용: lowConfidence 0.5, highFailure 2, limit 1000 → mem_low_conf·mem_high_fail 여전히 포함
+    expect(result.lowConfidenceMemoryIds).toContain('mem_low_conf');
+    expect(result.highFailureMemoryIds).toContain('mem_high_fail');
+    expect(result.summary).toBeDefined();
+  });
 });
