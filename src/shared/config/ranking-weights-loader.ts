@@ -14,6 +14,7 @@ export interface RankingWeights {
   delta: number; // usage 가중치
   zeta: number; // relation_weight 가중치
   epsilon: number; // duplication_penalty 가중치
+  theta?: number; // process_attribute_fit 가중치 (Issue #91, 기본 0.1)
 }
 
 export interface RelationWeights {
@@ -32,7 +33,8 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     gamma: 0.20,
     delta: 0.10,
     zeta: 0.15,
-    epsilon: 0.10
+    epsilon: 0.10,
+    theta: 0.1
   },
   relation_weights: {
     max_relations: 5
@@ -77,6 +79,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.delta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.zeta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
       'relation_weights.max_relations': { type: 'number' as const, min: 1 }
     };
 
@@ -88,6 +91,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.delta': config.ranking_weights.delta,
       'ranking_weights.zeta': config.ranking_weights.zeta,
       'ranking_weights.epsilon': config.ranking_weights.epsilon,
+      'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
       'relation_weights.max_relations': config.relation_weights.max_relations
     };
 
@@ -119,13 +123,15 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
   const { ranking_weights, relation_weights } = config;
 
   // 가중치 값 검증 (0 이상 1 이하)
+  const theta = ranking_weights.theta ?? 0.1;
   const weights = [
     { name: 'alpha', value: ranking_weights.alpha },
     { name: 'beta', value: ranking_weights.beta },
     { name: 'gamma', value: ranking_weights.gamma },
     { name: 'delta', value: ranking_weights.delta },
     { name: 'zeta', value: ranking_weights.zeta },
-    { name: 'epsilon', value: ranking_weights.epsilon }
+    { name: 'epsilon', value: ranking_weights.epsilon },
+    { name: 'theta', value: theta }
   ];
 
   for (const { name, value } of weights) {

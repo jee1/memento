@@ -58,6 +58,19 @@ export interface MemoryItem {
   confidence?: number | null;
 }
 
+/**
+ * Process Attribute (Issue #91): process별 주제/속성 메타.
+ * recall 시 (query 유사도) × (process-attribute 적합도) 스코어링에 사용.
+ */
+export interface ProcessAttribute {
+  process_id: string;
+  topics?: string[];
+  workflow_names?: string[];
+  skill_names?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface MemorySearchFilters {
   id?: string[] | undefined;
   type?: MemoryType[] | undefined;

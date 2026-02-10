@@ -1046,5 +1046,35 @@ describe('SearchRanking', () => {
         expect(score).toBeCloseTo(0.859, 3);
       });
     });
+
+    describe('Process Attribute 적합도 (Issue #91)', () => {
+      it('Given: process_attribute_fit 0.8, When: calculateFinalScore, Then: 기본 점수 + 0.1 * 0.8 반영', () => {
+        const rankingWithFit = new SearchRanking({ process_attribute_fit: 0.1 });
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+          process_attribute_fit: 0.8
+        };
+        const score = rankingWithFit.calculateFinalScore(features);
+        const baseScore = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        expect(score).toBeCloseTo(baseScore + 0.1 * 0.8, 3);
+      });
+
+      it('Given: process_attribute_fit 미제공, When: calculateFinalScore, Then: process 보정 없음', () => {
+        const features: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2
+        };
+        const score = ranking.calculateFinalScore(features);
+        const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
+        expect(score).toBeCloseTo(expected, 3);
+      });
+    });
   });
 });
