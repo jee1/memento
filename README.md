@@ -290,10 +290,10 @@ const results = await client.callTool({
 
 ## 📋 API 문서
 
-### MCP Tools (핵심 15개)
+### MCP Tools (핵심 14개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 15개를 노출합니다.  
-> 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 14개를 노출합니다.  
+> 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.
 
 #### 기본 메모리 관리 (7개)
 | Tool | 설명 | 파라미터 |
@@ -306,21 +306,22 @@ const results = await client.callTool({
 | `get_memory_neighbors` | 이웃 기억 탐색 | memory_id, limit |
 | `memory_injection` | 컨텍스트 주입 프롬프트 생성 | query, token_budget |
 
-#### 앵커 시스템 (5개)
+#### 앵커 시스템 (4개)
 | Tool | 설명 | 파라미터 |
 |------|------|----------|
 | `set_anchor` | 앵커 설정 | memory_id, slot |
 | `get_anchor` | 앵커 조회 | slot |
 | `search_local` | 앵커 주변 검색 | slot, query, limit |
 | `clear_anchor` | 앵커 제거 | slot |
-| `restore_anchors` | 앵커 복원 | agent_id |
 
-#### 고급 기능 (3개)
+#### 절차 기억·고급 (3개)
 | Tool | 설명 | 파라미터 |
 |------|------|----------|
-| `migrate_embeddings` | 임베딩 마이그레이션 | target_provider, batch_size |
-| `convert_episodic_to_semantic` | Episodic → Semantic 변환 | memory_id, limit |
-| `get_meta_memory_stats` | 메타 메모리 통계 조회 | memory_id, memory_ids |
+| `remember_procedure` | 절차 기억 저장 | content, workflow_name, skill_name, steps 등 |
+| `procedural_diff` | 절차 기억 버전 간 차이 비교 | left_id, right_id |
+| `procedural_rollback` | 절차 기억 이전 버전으로 복원 | current_id, target_version_id |
+
+**HTTP 전용 (MCP에 없음)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — 아래 HTTP 관리 API 참조.
 
 ### HTTP 관리 API
 
@@ -580,8 +581,8 @@ npm run test
 
 - 이슈 리포트: [GitHub Issues](https://github.com/jee1/memento/issues)
 - 문서: [Wiki](https://github.com/jee1/memento/wiki)
-- 개발자 가이드: [docs/developer-guide.md](docs/developer-guide.md)
-- API 참조: [docs/api-reference.md](docs/api-reference.md)
+- 개발자 가이드: [docs/ko/developer-guide.md](docs/ko/developer-guide.md)
+- API 참조: [docs/ko/api-reference.md](docs/ko/api-reference.md)
 
 ## 🙏 감사의 말
 

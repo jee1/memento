@@ -12,9 +12,10 @@ description: Memento 프로젝트의 에러 로깅 시스템 개발 규칙입니
 ## 📁 파일 구조
 
 ```
-src/services/
-├── error-logging-service.ts    # 메인 서비스
-└── test-error-logging.ts       # 테스트 파일
+src/domains/monitoring/services/
+├── error-logging-service.ts
+src/test/
+└── test-error-logging.ts
 ```
 
 ## 🔧 핵심 기능

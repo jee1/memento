@@ -154,10 +154,10 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools (핵심 11개)
+## MCP Tools (핵심 14개)
 
 > **핵심 원칙**: AI Agent가 직접 사용하는 핵심 기능만 노출  
-> **중요**: 관리 기능들은 HTTP API 엔드포인트로 분리되었습니다.  
+> **중요**: 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.  
 > 자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
 
 ### 1. 핵심 메모리 관리 도구 (5개)
@@ -179,6 +179,12 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 9. **get_anchor** - 현재 앵커 조회
 10. **search_local** - 앵커 주변 검색
 11. **clear_anchor** - 앵커 제거
+
+### 4. 절차 기억·고급 도구 (3개)
+
+12. **remember_procedure** - 절차 기억 저장 (workflow_name, skill_name, steps 등)
+13. **procedural_diff** - 절차 기억 버전 간 차이 비교
+14. **procedural_rollback** - 절차 기억 이전 버전으로 복원
 
 ### remember
 

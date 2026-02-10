@@ -79,8 +79,8 @@ graph TB
 
 #### 3. Memory Management Layer
 - **Role**: Memory creation, search, management, deletion, and system monitoring
-- **Components**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Relation Graph Engine
-- **Features**: Management mimicking human memory systems, real-time system monitoring, anchor-based context management, and memory quality tracking
+- **Components**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Meta Memory Introspection, Relation Graph Engine
+- **Features**: Management mimicking human memory systems, real-time system monitoring, anchor-based context management, memory quality tracking, and self-reflection (introspection)
 
 #### 4. Storage Layer
 - **Role**: Permanent data storage and retrieval
@@ -476,6 +476,15 @@ interface MetaMemoryStatsItem {
 - **Confidence Scoring**: Calculate average confidence scores
 - **Quality Metrics**: Provide quality metrics for memory search
 - **Performance Analysis**: Analyze search performance over time
+
+#### Meta Memory Introspection (M2 Self-Reflection)
+
+A service that periodically scans memory quality using meta memory statistics (`meta_memory_stats`). `MetaMemoryIntrospectionService` identifies low-confidence and high-failure memories and produces summaries; it can run in the background via the `BatchScheduler` job `meta_memory_introspection`.
+
+- **Role**: Confidence evaluation, failure-pattern recognition, gap identification
+- **Input**: JOIN of `meta_memory_stats` and `memory_item` (e.g. avg_confidence, failure_count)
+- **Output**: lowConfidenceMemoryIds, highFailureMemoryIds, summary
+- **HTTP API**: Meta statistics are exposed only via `GET /admin/memory/meta-stats` (not as an MCP tool)
 
 ### 11. Relation Graph Engine
 

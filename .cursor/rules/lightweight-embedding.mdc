@@ -12,9 +12,10 @@ description: Memento 프로젝트의 경량 하이브리드 임베딩 서비스 
 ## 📁 파일 구조
 
 ```
-src/services/
-├── lightweight-embedding-service.ts    # 메인 서비스 (321줄)
-└── test-lightweight-embedding.ts       # 테스트 파일
+src/domains/embedding/
+├── services/lightweight-embedding-service.ts
+src/test/
+└── test-lightweight-embedding.ts
 ```
 
 ## 🔧 핵심 기능

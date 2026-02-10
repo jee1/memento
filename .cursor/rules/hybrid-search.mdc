@@ -1,5 +1,5 @@
 ---
-globs: "src/algorithms/hybrid-search-engine.ts,src/services/*.ts"
+globs: "src/domains/search/**/hybrid*.ts,src/domains/embedding/**/*.ts"
 description: 하이브리드 검색 엔진 및 임베딩 서비스 개발 규칙
 ---
 
@@ -8,7 +8,7 @@ description: 하이브리드 검색 엔진 및 임베딩 서비스 개발 규칙
 ## 📋 하이브리드 검색 엔진
 
 ### 현재 구현 상태
-- **파일**: `src/algorithms/hybrid-search-engine.ts` (200줄)
+- **파일**: `src/domains/search/algorithms/hybrid-search-engine.ts`
 - **기능**: FTS5 텍스트 검색 + 벡터 검색 결합
 - **가중치**: 벡터 검색 60%, 텍스트 검색 40% (기본값)
 

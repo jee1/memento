@@ -1,5 +1,5 @@
 ---
-globs: "src/algorithms/forgetting-algorithm.ts,src/services/forgetting-policy-service.ts"
+globs: "src/domains/forgetting/**/*.ts"
 description: 망각 알고리즘 및 망각 정책 서비스 개발 규칙
 ---
 
@@ -8,7 +8,7 @@ description: 망각 알고리즘 및 망각 정책 서비스 개발 규칙
 ## 📋 망각 알고리즘
 
 ### 현재 구현 상태
-- **파일**: `src/algorithms/forgetting-algorithm.ts` (244줄)
+- **파일**: `src/domains/forgetting/algorithms/forgetting-algorithm.ts`
 - **기능**: Memento-Goals.md의 망각 공식 구현
 - **특징**: 최근성, 사용성, 중복 비율, 중요도, 고정 여부를 종합한 망각 점수 계산
 

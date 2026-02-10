@@ -79,8 +79,8 @@ graph TB
 
 #### 3. Memory Management Layer
 - **역할**: 기억의 생성, 검색, 관리, 삭제 및 시스템 모니터링
-- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Relation Graph Engine
-- **특징**: 인간의 기억 체계를 모사한 관리, 실시간 시스템 모니터링, 앵커 기반 컨텍스트 관리, 기억 품질 추적
+- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Meta Memory Introspection, Relation Graph Engine
+- **특징**: 인간의 기억 체계를 모사한 관리, 실시간 시스템 모니터링, 앵커 기반 컨텍스트 관리, 기억 품질 추적 및 자기 성찰(인트로스펙션)
 
 #### 4. Storage Layer
 - **역할**: 데이터 영구 저장 및 검색
@@ -476,6 +476,15 @@ interface MetaMemoryStatsItem {
 - **신뢰도 점수**: 평균 신뢰도 점수 계산
 - **품질 지표**: 메모리 검색 품질 지표 제공
 - **성능 분석**: 시간에 따른 검색 성능 분석
+
+#### 메타 메모리 인트로스펙션 (M2 자기 성찰)
+
+메타 메모리 통계(`meta_memory_stats`)를 활용해 기억 품질을 주기적으로 스캔하는 서비스입니다. `MetaMemoryIntrospectionService`가 저신뢰도·고실패 기억을 식별하고 요약하며, 필요 시 `BatchScheduler`의 `meta_memory_introspection` job으로 백그라운드 실행됩니다.
+
+- **역할**: 신뢰도 평가, 실패 패턴 인식, 정보 부족(Gap) 식별
+- **입력**: `meta_memory_stats`와 `memory_item` JOIN (avg_confidence, failure_count 등)
+- **출력**: lowConfidenceMemoryIds, highFailureMemoryIds, summary
+- **HTTP API**: 메타 통계 조회는 `GET /admin/memory/meta-stats`로 제공 (MCP 도구 아님)
 
 ### 11. 관계 그래프 엔진
 

@@ -1,5 +1,5 @@
 ---
-globs: *.ts,*.js
+globs: "src/domains/search/**/*.ts,src/domains/forgetting/**/*.ts"
 description: 기억 알고리즘 및 검색 랭킹 수식 구현 규칙
 ---
 

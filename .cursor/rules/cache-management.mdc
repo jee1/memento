@@ -1,5 +1,5 @@
 ---
-globs: *.ts,*.js
+globs: "src/infrastructure/cache/**/*.ts,src/domains/**/cache*.ts"
 description: 캐시 서비스 개발 규칙
 ---
 
@@ -9,7 +9,7 @@ description: 캐시 서비스 개발 규칙
 
 ### 핵심 컴포넌트
 
-#### 1. Cache Service (`src/services/cache-service.ts` - 352줄)
+#### 1. Cache Service (`src/infrastructure/cache/cache-service.ts`)
 - **LRU 캐시 구현**: 최근 사용 항목 우선 유지
 - **TTL 관리**: 시간 기반 캐시 만료
 - **메모리 효율적 관리**: 캐시 크기 제한 및 정리

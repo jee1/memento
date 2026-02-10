@@ -170,19 +170,20 @@ Optimizes database performance.
 6. **get_memory_neighbors** - Get similar memories
 7. **memory_injection** - Inject related memories into context (Prompt)
 
-### Anchor System Tools (5)
+### Anchor System Tools (4)
 
 8. **set_anchor** - Set a memory as anchor
 9. **get_anchor** - Get current anchors
 10. **search_local** - Search around anchors
 11. **clear_anchor** - Clear anchors
-12. **restore_anchors** - Restore anchors from database
 
-### Management Tools (3)
+### Procedural & Advanced Tools (3)
 
-13. **migrate_embeddings** - Migrate embeddings between providers
-14. **convert_episodic_to_semantic** - Convert episodic to semantic memory
-15. **get_meta_memory_stats** - Get memory statistics
+12. **remember_procedure** - Store procedural memory (workflow/skill, steps)
+13. **procedural_diff** - Compare two procedural memory versions
+14. **procedural_rollback** - Roll back procedural memory to a previous version
+
+**HTTP only (not exposed on MCP):** `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see [Administrator API](#administrator-api).
 
 ### remember
 
@@ -613,183 +614,16 @@ const result = await client.callTool('clear_anchor', {
 const result = await client.callTool('clear_anchor', {});
 ```
 
-### restore_anchors
+### Tools available only via HTTP API (not on MCP)
 
-Tool for restoring anchors from database.
+The following four tools have been removed from the MCP client and are provided only via the HTTP Administrator API:
 
-#### Parameters
+- **restore_anchors** — Restore anchors from database → `POST /admin/anchors/restore`
+- **migrate_embeddings** — Migrate embeddings between providers → `POST /admin/embeddings/migrate`
+- **convert_episodic_to_semantic** — Convert episodic to semantic memory → `POST /admin/memory/convert-episodic-to-semantic`
+- **get_meta_memory_stats** — Get meta memory statistics (recall success rate, confidence) → `GET /admin/memory/meta-stats`
 
-```typescript
-interface RestoreAnchorsParams {
-  agent_id?: string;               // Agent ID (default: 'default')
-}
-```
-
-#### Response
-
-```typescript
-interface RestoreAnchorsResult {
-  success: boolean;                 // Success status
-  agent_id: string;                // Agent ID
-  restored_count: number;          // Number of restored anchors
-  anchors: {
-    A: AnchorInfo | null;
-    B: AnchorInfo | null;
-    C: AnchorInfo | null;
-  };
-}
-```
-
-#### Usage Example
-
-```typescript
-// Restore anchors from database
-const result = await client.callTool('restore_anchors', {
-  agent_id: 'my-agent'
-});
-```
-
-### migrate_embeddings
-
-Tool for migrating embeddings between providers.
-
-#### Parameters
-
-```typescript
-interface MigrateEmbeddingsParams {
-  target_provider: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';  // Target provider (required)
-  source_provider?: 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini'; // Source provider (optional, migrates all if not specified)
-  batch_size?: number;            // Batch size (1-1000, default: 100)
-  dry_run?: boolean;               // Dry run mode (default: false)
-}
-```
-
-#### Response
-
-```typescript
-interface MigrateEmbeddingsResult {
-  success: boolean;                 // Success status
-  target_provider: string;         // Target provider
-  migrated_count: number;          // Number of migrated embeddings
-  failed_count: number;            // Number of failed migrations
-  dry_run: boolean;                // Dry run mode
-}
-```
-
-#### Usage Example
-
-```typescript
-// Migrate all embeddings to OpenAI
-const result = await client.callTool('migrate_embeddings', {
-  target_provider: 'openai',
-  batch_size: 100
-});
-
-// Dry run migration
-const result = await client.callTool('migrate_embeddings', {
-  target_provider: 'gemini',
-  dry_run: true
-});
-```
-
-### convert_episodic_to_semantic
-
-Tool for converting episodic memories to semantic memories.
-
-#### Parameters
-
-```typescript
-interface ConvertEpisodicToSemanticParams {
-  memory_id?: string;              // Memory ID to convert (optional, batch conversion if not specified)
-  skip_converted?: boolean;        // Skip already converted items (default: true)
-  retry_failed?: boolean;          // Retry failed conversions (default: false)
-  limit?: number;                  // Batch size (1-100, default: 10)
-}
-```
-
-#### Response
-
-```typescript
-interface ConvertEpisodicToSemanticResult {
-  success: boolean;                 // Success status
-  converted_count: number;         // Number of converted memories
-  failed_count: number;            // Number of failed conversions
-  skipped_count: number;          // Number of skipped memories
-}
-```
-
-#### Usage Example
-
-```typescript
-// Convert specific memory
-const result = await client.callTool('convert_episodic_to_semantic', {
-  memory_id: 'mem_123'
-});
-
-// Batch conversion
-const result = await client.callTool('convert_episodic_to_semantic', {
-  limit: 20,
-  retry_failed: true
-});
-```
-
-### get_meta_memory_stats
-
-Tool for retrieving meta memory statistics (recall success rate, confidence scores, etc.).
-
-#### Parameters
-
-```typescript
-interface GetMetaMemoryStatsParams {
-  memory_id?: string;              // Single memory ID (cannot use with memory_ids)
-  memory_ids?: string[];           // Memory ID array (cannot use with memory_id)
-  min_recall_count?: number;       // Minimum recall count (>= 0)
-  min_confidence?: number;         // Minimum average confidence (0-1)
-  limit?: number;                  // Result limit (1-1000, default: 100)
-}
-```
-
-#### Response
-
-```typescript
-interface GetMetaMemoryStatsResult {
-  items: MetaMemoryStatsItem[];    // Statistics items
-  total_count: number;             // Total result count
-  message: string;                 // Result message
-}
-
-interface MetaMemoryStatsItem {
-  memory_id: string;               // Memory ID
-  recall_count: number;            // Total recall count
-  success_count: number;           // Successful recall count
-  failure_count: number;           // Failed recall count
-  avg_confidence: number;          // Average confidence score
-  last_recalled_at?: string;       // Last recall time (ISO 8601)
-  created_at: string;              // Creation time (ISO 8601)
-  updated_at: string;              // Update time (ISO 8601)
-}
-```
-
-#### Usage Example
-
-```typescript
-// Get statistics for specific memory
-const result = await client.callTool('get_meta_memory_stats', {
-  memory_id: 'mem_123'
-});
-
-// Get statistics for multiple memories
-const result = await client.callTool('get_meta_memory_stats', {
-  memory_ids: ['mem_1', 'mem_2', 'mem_3']
-});
-
-// Filter by minimum recall count and confidence
-const result = await client.callTool('get_meta_memory_stats', {
-  min_recall_count: 10,
-  min_confidence: 0.5,
-  limit: 50
-});
-```
+See [Administrator API](#administrator-api) for request/response details.
 
 ## Administrator API
 
