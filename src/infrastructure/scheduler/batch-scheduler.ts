@@ -31,6 +31,7 @@ import { RelationValidatorExecutor } from './relation-validator-executor.js';
 import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
+import { MetaMemoryIntrospectionService } from '../../domains/memory/services/meta-memory-introspection-service.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
@@ -53,6 +54,7 @@ export interface BatchJobConfig {
   tripleExtractionTimeout: number;               // Triple 추출 배치 작업 타임아웃 (밀리초, 기본: 30초)
   qualityMeasurementInterval: number;           // 품질 측정 배치 작업 간격 (기본: 24시간)
   qualityMeasurementHour?: number;               // 품질 측정 배치 작업 실행 시간 (0-23, 선택적, 지정 시 해당 시간에만 실행)
+  metaMemoryIntrospectionInterval: number;      // M2 자기성찰 스캔 간격 (기본: 6시간, Issue #21)
   
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
@@ -153,6 +155,7 @@ export class BatchScheduler {
       tripleExtractionTimeout: 30 * 1000, // 30초
       qualityMeasurementInterval: 24 * 60 * 60 * 1000, // 24시간 (일일)
       qualityMeasurementHour: undefined, // 시간 지정 안 함 (간격 기반 실행)
+      metaMemoryIntrospectionInterval: 6 * 60 * 60 * 1000, // 6시간 (Issue #21)
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -270,6 +273,14 @@ export class BatchScheduler {
     // 품질 측정 배치 작업 스케줄링 (PRD FR-5.6)
     this.scheduleQualityMeasurement();
 
+    // M2 자기성찰 스캔 스케줄링 (Issue #21)
+    this.scheduleJob(
+      'meta_memory_introspection',
+      this.config.metaMemoryIntrospectionInterval,
+      async () => { await this.runMetaMemoryIntrospection(); },
+      6
+    );
+
     // 작업 큐 처리 시작
     this.startJobProcessor();
 
@@ -353,6 +364,9 @@ export class BatchScheduler {
     }
     if (this.config.tripleExtractionTimeout < 1000) {
       throw new Error('tripleExtractionTimeout must be at least 1 second');
+    }
+    if (this.config.metaMemoryIntrospectionInterval < 60000) {
+      throw new Error('metaMemoryIntrospectionInterval must be at least 1 minute');
     }
     // weeklyRelationValidationTimeout 검증 (설정된 경우에만)
     if (this.config.weeklyRelationValidationTimeout !== undefined) {
@@ -1196,9 +1210,11 @@ export class BatchScheduler {
    * 수동으로 작업 실행
    * 직접 실행하되 lastExecution과 totalExecutions을 기록함
    */
-  async runJob(jobType: 'cleanup' | 'monitoring' | 'healthcheck'): Promise<BatchJobResult> {
+  async runJob(
+    jobType: 'cleanup' | 'monitoring' | 'healthcheck' | 'meta_memory_introspection'
+  ): Promise<BatchJobResult> {
     let result: BatchJobResult;
-    
+
     switch (jobType) {
       case 'cleanup':
         result = await this.runMemoryCleanup();
@@ -1208,6 +1224,9 @@ export class BatchScheduler {
         break;
       case 'healthcheck':
         result = await this.runHealthCheck();
+        break;
+      case 'meta_memory_introspection':
+        result = await this.runMetaMemoryIntrospection();
         break;
       default:
         throw new Error(`Unknown job type: ${jobType}`);
@@ -1520,6 +1539,66 @@ export class BatchScheduler {
         async () => { await this.runQualityMeasurementBatch(); },
         7 // 우선순위 7 (다른 배치 작업보다 낮은 우선순위)
       );
+    }
+  }
+
+  /**
+   * M2 자기성찰 스캔 실행 (Issue #21)
+   * meta_memory_stats를 스캔하여 저신뢰·고실패 메모리를 식별하고 요약합니다.
+   */
+  private async runMetaMemoryIntrospection(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'meta_memory_introspection',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      if (!this.db) {
+        throw new Error('Database not initialized');
+      }
+
+      const scanResult = await MetaMemoryIntrospectionService.runScan(this.db, {});
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.success = true;
+      result.processed =
+        scanResult.lowConfidenceMemoryIds.length + scanResult.highFailureMemoryIds.length;
+      result.details = {
+        lowConfidenceMemoryIds: scanResult.lowConfidenceMemoryIds,
+        highFailureMemoryIds: scanResult.highFailureMemoryIds,
+        summary: scanResult.summary
+      };
+
+      this.lastExecution.set('meta_memory_introspection', new Date());
+      this.totalExecutions.set(
+        'meta_memory_introspection',
+        (this.totalExecutions.get('meta_memory_introspection') || 0) + 1
+      );
+
+      this.log('Meta memory introspection scan completed', {
+        duration: result.duration,
+        lowConfidenceCount: scanResult.lowConfidenceMemoryIds.length,
+        highFailureCount: scanResult.highFailureMemoryIds.length,
+        summary: scanResult.summary
+      });
+      return result;
+    } catch (error) {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - startTime.getTime();
+      result.success = false;
+      result.errors.push(error instanceof Error ? error.message : String(error));
+      this.log('Meta memory introspection scan error', {
+        duration: result.duration,
+        error: error instanceof Error ? error.message : String(error)
+      }, 'error');
+      return result;
     }
   }
 
