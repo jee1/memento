@@ -109,9 +109,14 @@ export const HYBRID_SEARCH = {
   VECTOR_SEARCH_LIMIT_MULTIPLIER: 2,
 
   /**
-   * 벡터 검색 기본 임계값
+   * 벡터 검색 기본 임계값 (일반 경로)
    */
   VECTOR_SEARCH_THRESHOLD: 0.5,
+
+  /**
+   * 하이브리드(recall) 전용 벡터 임계값. 긴 쿼리에서도 후보가 나오도록 완화.
+   */
+  HYBRID_VECTOR_THRESHOLD: 0.38,
 
   /**
    * 기본 벡터 가중치
@@ -143,7 +148,17 @@ export const HYBRID_SEARCH = {
   QUERY_ANALYSIS: {
     phrase_min_words: 3,
     short_query_max_length: 10
-  }
+  },
+
+  /**
+   * FTS 정책: 토큰 수가 이 값을 초과하면 OR 조합으로 완화하여 긴 쿼리에서도 후보 확보
+   */
+  FTS_OR_ABOVE_TOKEN_COUNT: 5,
+
+  /**
+   * FTS OR 쿼리 시 사용할 최대 토큰 수 (과도한 OR 방지)
+   */
+  FTS_MAX_TOKENS_FOR_OR: 8
 } as const;
 
 /**

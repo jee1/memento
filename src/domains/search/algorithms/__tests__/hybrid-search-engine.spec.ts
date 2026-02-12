@@ -221,7 +221,7 @@ describe('HybridSearchEngine', () => {
         expect.objectContaining({
           types: typeFilters,
           limit: 10,
-          threshold: 0.5,
+          threshold: 0.38,
           includeContent: true
         }),
         expect.any(String) // provider 파라미터
@@ -254,7 +254,7 @@ describe('HybridSearchEngine', () => {
         expect.objectContaining({
           type: typeFilters,
           limit: 10,
-          threshold: 0.5
+          threshold: 0.38
         })
       );
     });

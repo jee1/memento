@@ -490,7 +490,7 @@ export class HybridSearchEngine {
       // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
       const searchOptions = {
         limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
-        threshold: HYBRID_SEARCH.VECTOR_SEARCH_THRESHOLD,
+        threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
         types: query.filters?.type,
         includeContent: true
       };
@@ -907,7 +907,7 @@ export class HybridSearchEngine {
     const vectorResults = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type as MemoryType[],
       limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
-      threshold: HYBRID_SEARCH.VECTOR_SEARCH_THRESHOLD,
+      threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
     });
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
     
