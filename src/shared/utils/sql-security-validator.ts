@@ -56,30 +56,35 @@ export function validateTableName(
 }
 
 /**
- * 벡터 검색 테이블명을 provider로부터 안전하게 가져오기
+ * 벡터 검색 테이블명을 provider(및 선택적 차원)로부터 안전하게 가져오기
  * 화이트리스트 검증을 포함합니다.
- * 
+ * 384차원 tfidf/lightweight는 트리거가 memory_item_vec에만 쓰므로, dimensions=384일 때 해당 테이블 반환.
+ *
  * @param provider 임베딩 provider 이름
+ * @param dimensions 선택적. 전달 시 tfidf+384 → memory_item_vec로 매핑
  * @returns 검증된 테이블명
- * @throws Error 허용되지 않은 provider인 경우
  */
-export function getVectorTableName(provider: string): string {
+export function getVectorTableName(provider: string, dimensions?: number): string {
   const normalizedProvider = provider.toLowerCase();
-  
+
+  // 384차원 tfidf/lightweight: DB에 tfidf로 저장되더라도 트리거는 memory_item_vec에만 INSERT
+  if (dimensions === 384 && (normalizedProvider === 'tfidf' || normalizedProvider === 'lightweight')) {
+    const table384 = VECTOR_SEARCH_CONFIG.tableNames['lightweight'] as string;
+    validateTableName(table384);
+    return table384;
+  }
+
   // 화이트리스트에서 테이블명 조회
   const tableName = VECTOR_SEARCH_CONFIG.tableNames[normalizedProvider as keyof typeof VECTOR_SEARCH_CONFIG.tableNames];
-  
+
   if (!tableName) {
     // 알 수 없는 provider의 경우 기본 테이블 사용 (하위 호환성 유지)
     const defaultTableName = VECTOR_SEARCH_CONFIG.tableNames.tfidf as string;
-    // 기본 테이블명도 화이트리스트 검증 수행
     validateTableName(defaultTableName);
     return defaultTableName;
   }
-  
-  // 화이트리스트 검증 수행
+
   validateTableName(tableName);
-  
   return tableName as string;
 }
 

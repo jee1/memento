@@ -71,6 +71,7 @@ export const VECTOR_SEARCH = {
    * Provider별 기본 차원 수
    */
   PROVIDER_DIMENSIONS: {
+    lightweight: 384,
     tfidf: 512,
     minilm: 384,
     openai: 1536,

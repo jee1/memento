@@ -10,6 +10,7 @@ import { CommonSchemas } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -65,21 +66,10 @@ export class ForgetTool extends BaseTool {
   }
 
   /**
-   * 제공자별 vec0 테이블명 반환
+   * 제공자별 vec0 테이블명 반환 (lightweight → memory_item_vec 포함)
    */
-  private getVectorTableName(provider: string): string {
-    switch (provider) {
-      case 'tfidf':
-        return 'memory_item_vec_tfidf';
-      case 'minilm':
-        return 'memory_item_vec_minilm';
-      case 'openai':
-        return 'memory_item_vec_openai';
-      case 'gemini':
-        return 'memory_item_vec_gemini';
-      default:
-        return 'memory_item_vec_tfidf'; // 기본값
-    }
+  private getVectorTableName(provider: string, dimensions?: number): string {
+    return getValidatedVectorTableName(provider, dimensions);
   }
 
   async handle(params: any, context: ToolContext): Promise<ToolResult> {
