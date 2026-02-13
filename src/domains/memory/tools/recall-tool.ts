@@ -87,8 +87,12 @@ export interface RecallResponseMetadata {
   anchor_set_error?: boolean;
   anchor_set_skipped?: boolean;
   anchor_set_skipped_reason?: string;
+  /** 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용) */
+  text_result_count?: number;
+  vector_result_count?: number;
+  fallback_used?: boolean;
   /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: AnchorSetMetadata | null | boolean | string | undefined;
+  [key: string]: AnchorSetMetadata | null | boolean | string | number | undefined;
 }
 
 /**
@@ -1062,6 +1066,14 @@ export class RecallTool extends BaseTool {
         if (anchorSetResult && anchorSetResult.skipped) {
           metadata.anchor_set_skipped = true;
           metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
+        }
+
+        // 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용)
+        const sr = searchResult as unknown as { text_count?: number; vector_count?: number; fallback_used?: boolean };
+        if (includeMetadata && searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
+          metadata.text_result_count = sr.text_count;
+          metadata.vector_result_count = sr.vector_count;
+          if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
         }
 
         // Meta Memory Statistics 조회 (include_metadata=true일 때만)
