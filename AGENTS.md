@@ -25,7 +25,7 @@ Vitest로 단위·통합 테스트를 수행하며, 파일 네이밍 규칙은 �
 기존 conventional commit 스타일(`feat:`, `fix:`, `chore:`)을 따르고, 간결하고 행동 지향적인 요약을 쓴다. 팀에 도움이 되면 본문에 한국어 맥락을 포함한다. 추적 이슈는 본문에서 참조한다. PR에는 의도, 테스트 근거, 스키마·설정 변경 사항을 적는다. HTTP/UI 관련 변경은 로그나 스크린샷을 첨부하고, 검색·망각·DB 모듈을 건드릴 때는 해당 도메인 담당자 리뷰를 요청한다.
 
 ## 환경 및 DB 참고
-`env.example`을 `.env`로 복사한 뒤 API 키나 DB 경로를 필요에 따라 덮어쓴다. 새 환경은 `npm run db:init`(실제 진입점: `src/infrastructure/database/database/init.ts`), SQLite 스키마 변경 시에는 `npm run db:migrate`를 사용하고, PR에 마이그레이션 노트를 포함한다. 비밀은 소스 관리에서 제외하고, `data/`·`dist/` 아래 생성 파일은 커밋하지 않는다.
+`env.example`을 `.env`로 복사한 뒤 API 키나 DB 경로를 필요에 따라 덮어쓴다. 새 환경은 `npm run db:init`(실제 진입점: `src/infrastructure/database/database/init.ts`), SQLite 스키마 변경 시에는 `npm run db:migrate`를 사용하고, PR에 마이그레이션 노트를 포함한다. **DB 설계 명세**는 `docs/architecture/database-design.md`를 참조한다. 비밀은 소스 관리에서 제외하고, `data/`·`dist/` 아래 생성 파일은 커밋하지 않는다.
 
 ## 커뮤니케이션 선호
 작업 요약, 상태 업데이트, 코드 리뷰 피드백 등 모든 서면 소통은 협업자가 선호하는 언어로 제공한다. 기본적으로 한국어로 작성한다.

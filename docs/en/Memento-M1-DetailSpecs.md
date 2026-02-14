@@ -37,6 +37,8 @@ The database uses SQLite embedded DB that can be used without separate installat
 
 ## 4. Database Design (SQLite)
 
+For the current full schema and design (tables, naming rules, migration history), see [Database Design](../architecture/database-design.md). The following describes the **M1 baseline** only.
+
 ### 4.1 Main Table
 
 ```sql
