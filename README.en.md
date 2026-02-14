@@ -39,7 +39,7 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Auto Cleanup**: Automated soft/hard deletion
 
 ### 📊 Performance Monitoring (HTTP Management API)
-- **Security**: HTTP API has no authentication; use only on **internal networks or with MCP clients**. See [docs/security.md](docs/security.md).
+- **Security**: HTTP API has no authentication; use only on **internal networks or with MCP clients**. See [docs/reference/en/security.md](docs/reference/en/security.md).
 - **Real-time Metrics**: Database, search, memory performance monitoring
 - **Real-time Alerts**: Automatic performance checks every 30 seconds with threshold-based alerts
 - **Error Logging**: Structured error logging and statistics collection
@@ -198,7 +198,7 @@ const results = await client.callTool({
 | `/admin/alerts/performance` | Performance alerts | GET |
 | `/admin/database/optimize` | Database optimization | POST |
 
-**Other HTTP admin**: Batch status/run (`/admin/batch/*`), performance metrics/alerts (`/admin/performance/*`), relation extract/get/visualize (`/admin/relations/*`). See [docs/ko/api-reference.md](docs/ko/api-reference.md) (or [docs/en/api-reference.md](docs/en/api-reference.md) if available).
+**Other HTTP admin**: Batch status/run (`/admin/batch/*`), performance metrics/alerts (`/admin/performance/*`), relation extract/get/visualize (`/admin/relations/*`). See [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md) (or [docs/api/en/api-reference.md](docs/api/en/api-reference.md) if available).
 
 ### Resources
 
@@ -221,7 +221,7 @@ const results = await client.callTool({
 | `GEMINI_API_KEY` | - | Gemini API key (optional) |
 | `EMBEDDING_PROVIDER` | minilm | Embedding provider (tfidf, lightweight, minilm, openai, gemini) |
 | `CORS_ALLOWED_ORIGINS` | (empty) | CORS allowed origins (comma-separated; empty = no cross-origin) |
-| `ENABLE_PII_MASKING` | true | PII masking (security; see [docs/security.md](docs/security.md)) |
+| `ENABLE_PII_MASKING` | true | PII masking (security; see [docs/reference/en/security.md](docs/reference/en/security.md)) |
 
 > **Note**: For TTL, LLM/Ollama, search limits, and more, see `env.example`.
 
@@ -378,8 +378,8 @@ This project is distributed under the MIT License. See the `LICENSE` file for de
 
 - Issue Reports: [GitHub Issues](https://github.com/jee1/memento/issues)
 - Documentation: [Wiki](https://github.com/jee1/memento/wiki)
-- Developer Guide: [docs/en/developer-guide.md](docs/en/developer-guide.md)
-- API Reference: [docs/en/api-reference.md](docs/en/api-reference.md)
+- Developer Guide: [docs/guides/en/developer-guide.md](docs/guides/en/developer-guide.md)
+- API Reference: [docs/api/en/api-reference.md](docs/api/en/api-reference.md)
 
 ## 🙏 Acknowledgments
 

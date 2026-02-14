@@ -270,7 +270,7 @@ Cursor에서 Memento MCP Server를 사용하려면:
 2. **Cursor 설정 추가**
    - Cursor 설정 → MCP Servers에 추가
    - 또는 `.cursor/mcp.json` 파일 생성
-   - 상세 가이드: [Cursor MCP 설정 가이드](docs/cursor-mcp-setup.ko.md)
+   - 상세 가이드: [Cursor MCP 설정 가이드](docs/guides/cursor-mcp-setup.ko.md)
 
 **빠른 설정 예시 (Windows):**
 ```json
@@ -442,8 +442,8 @@ journalctl -u memento-mcp-server -f
 
 - **이슈 리포트**: [GitHub Issues](https://github.com/jee1/memento/issues)
 - **문서**: [Wiki](https://github.com/jee1/memento/wiki)
-- **개발자 가이드**: [docs/ko/developer-guide.md](docs/ko/developer-guide.md)
-- **API 참조**: [docs/ko/api-reference.md](docs/ko/api-reference.md)
+- **개발자 가이드**: [docs/guides/ko/developer-guide.md](docs/guides/ko/developer-guide.md)
+- **API 참조**: [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)
 
 ## 🎉 설치 완료!
 
@@ -451,8 +451,8 @@ journalctl -u memento-mcp-server -f
 
 1. **서버 상태 확인**: `http://localhost:8080/health`
 2. **MCP 클라이언트 연결**: [클라이언트 가이드](packages/mcp-client/README.md)
-3. **API 테스트**: [API 문서](docs/ko/api-reference.md)
-4. **사용법 학습**: [사용자 매뉴얼](docs/ko/user-manual.md)
+3. **API 테스트**: [API 문서](docs/api/ko/api-reference.md)
+4. **사용법 학습**: [사용자 매뉴얼](docs/guides/ko/user-manual.md)
 
 ---
 

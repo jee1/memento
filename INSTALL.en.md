@@ -363,8 +363,8 @@ journalctl -u memento-mcp-server -f
 
 - **Issue Reports**: [GitHub Issues](https://github.com/jee1/memento/issues)
 - **Documentation**: [Wiki](https://github.com/jee1/memento/wiki)
-- **Developer Guide**: [docs/en/developer-guide.md](docs/en/developer-guide.md)
-- **API Reference**: [docs/en/api-reference.md](docs/en/api-reference.md)
+- **Developer Guide**: [docs/guides/en/developer-guide.md](docs/guides/en/developer-guide.md)
+- **API Reference**: [docs/api/en/api-reference.md](docs/api/en/api-reference.md)
 
 ## 🎉 Installation Complete!
 
@@ -372,8 +372,8 @@ After installation, proceed with the following steps:
 
 1. **Check Server Status**: `http://localhost:8080/health`
 2. **Connect MCP Client**: [Client Guide](packages/mcp-client/README.md)
-3. **Test API**: [API Documentation](docs/en/api-reference.md)
-4. **Learn Usage**: [User Manual](docs/en/user-manual.md)
+3. **Test API**: [API Documentation](docs/api/en/api-reference.md)
+4. **Learn Usage**: [User Manual](docs/guides/en/user-manual.md)
 
 ---
 
