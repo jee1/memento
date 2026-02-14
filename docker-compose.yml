@@ -21,6 +21,22 @@ services:
       retries: 3
       start_period: 40s
 
+  # Memento Agent (Actionable Memory Assistant)
+  memento-agent:
+    build:
+      context: ./services/agent
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      MEMENTO_BASE_URL: http://memento-mcp-server:${MCP_SERVER_PORT:-9001}
+      AGENT_PORT: ${AGENT_PORT:-3001}
+    ports:
+      - "${AGENT_PORT:-3001}:3001"
+    depends_on:
+      memento-mcp-server:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Redis for caching (optional)
   # redis:
   #   image: redis:7-alpine
