@@ -2,7 +2,7 @@
 
 **하는 일**: Memento MCP Server의 SQLite 스키마에 대한 단일 설계 명세. 테이블·컬럼 목적, 명명 규칙, 인덱스·제약, 마이그레이션 이력을 한 문서에서 참조한다.  
 **주의**: 실행용 DDL의 진실 공급원은 `src/infrastructure/database/database/schema.sql`과 마이그레이션 스크립트이며, 본 문서는 그에 대한 설명·정리용이다.  
-**연관**: [마이그레이션 시스템 가이드](../ko/migration-system-guide.md), [DB 설계 통합 제안서](../plans/database-design-consolidation-proposal.md).
+**연관**: [마이그레이션 시스템 가이드](../ko/migration-system-guide.md), [DB 설계 통합 제안서](../plans/database-design-consolidation-proposal.md), [전체 테이블 ERD](database-erd.md).
 
 ---
 
@@ -27,6 +27,90 @@
 - **앵커**: 슬롯 A/B/C 구조의 로컬 메모리 앵커는 `anchor` 테이블(마이그레이션 004).
 - **임베딩·벡터**: `memory_embedding`에 다중 제공자/차원 저장, FTS5(`memory_item_fts`), vec0(`memory_item_vec*`)로 검색.
 - **KG Triple**: 시맨틱 트리플 전용 저장·중복 제거는 `kg_triple`(마이그레이션 018·019).
+
+### 2.1 ERD (Entity Relationship Diagram)
+
+핵심 엔티티와 관계만 표시한다. 가상 테이블(FTS5, vec0)·레지스트리·버퍼 등은 생략했다.
+
+```mermaid
+erDiagram
+  memory_item {
+    string id
+    string type
+    string content
+    string owner_id
+    string process_id
+    string session_id
+  }
+  memory_tag {
+    int id
+    string name
+  }
+  memory_item_tag {
+    string memory_id
+    int tag_id
+  }
+  memory_link {
+    int id
+    string source_id
+    string target_id
+    string relation_type
+  }
+  feedback_event {
+    int id
+    string memory_id
+    string event
+  }
+  memory_embedding {
+    int id
+    string memory_id
+    string embedding_provider
+  }
+  anchor {
+    string slot
+    string agent_id
+    string memory_id
+  }
+  memory_relation {
+    int id
+    string source_id
+    string target_id
+    string relation_type
+  }
+  kg_triple {
+    string id
+    string subject
+    string predicate
+    string object
+    string representative_memory_id
+  }
+  core_memory {
+    string core_id
+    string agent_id
+    string key
+    string value
+  }
+  knowledge_vault {
+    string vault_id
+    string agent_id
+    string key
+    int version
+  }
+  process_attribute {
+    string process_id
+  }
+
+  memory_item ||--o{ memory_item_tag : "태그 소속"
+  memory_tag ||--o{ memory_item_tag : "태그 적용"
+  memory_item ||--o{ memory_link : "source"
+  memory_item ||--o{ memory_link : "target"
+  memory_item ||--o{ feedback_event : "피드백"
+  memory_item ||--o{ memory_embedding : "임베딩"
+  memory_item ||--o{ anchor : "슬롯 고정"
+  memory_item ||--o{ memory_relation : "source"
+  memory_item ||--o{ memory_relation : "target"
+  memory_item ||--o{ kg_triple : "대표 기억"
+```
 
 ---
 
