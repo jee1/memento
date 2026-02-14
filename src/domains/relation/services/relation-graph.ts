@@ -619,7 +619,8 @@ export class RelationGraph implements IRelationGraph {
 
     if (relationTypes && relationTypes.length > 0) {
       const typePlaceholders = relationTypes.map(() => '?').join(',');
-      query += ` AND relation_type IN (${typePlaceholders})`;
+      const typeInClause = ' AND relation_type IN (' + typePlaceholders + ')';
+      query += typeInClause;
       params.push(...relationTypes);
     }
     if (minConfidence !== undefined) {
