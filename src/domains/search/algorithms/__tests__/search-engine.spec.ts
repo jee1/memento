@@ -186,6 +186,21 @@ describe('SearchEngine', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });
+
+    it('긴 쿼리(토큰 6개 초과) 시 OR 조합으로 완화', () => {
+      const query = 'Memento recall 검색 데이터 조회 하이브리드 검색';
+      const result = (searchEngine as any).buildFTSQuery(query);
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+      expect(result).toContain(' OR ');
+    });
+
+    it('짧은 쿼리(토큰 5개 이하)는 공백으로만 연결(AND 유지)', () => {
+      const query = 'recall 벡터 검색 테스트';
+      const result = (searchEngine as any).buildFTSQuery(query);
+      expect(result).toBeDefined();
+      expect(result).not.toContain(' OR ');
+    });
   });
 
   describe('preprocessQuery', () => {

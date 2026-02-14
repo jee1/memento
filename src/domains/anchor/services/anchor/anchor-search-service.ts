@@ -42,16 +42,27 @@ export class AnchorSearchService implements IAnchorSearchService {
   private localSearchService: LocalSearchService | null = null;
 
   /**
-   * 생성자
+   * 생성자 (옵션으로 db·검색 엔진 주입 시 일괄 설정, 미전달 시 setDatabase/setHybridSearchEngine/setVectorSearchEngine 호출 필요)
    */
-  constructor(cacheService: IAnchorCacheService) {
+  constructor(
+    cacheService: IAnchorCacheService,
+    options?: {
+      db?: Database.Database;
+      hybridSearchEngine?: HybridSearchEngine;
+      vectorSearchEngine?: VectorSearchEngine;
+    }
+  ) {
     this.cacheService = cacheService;
-    
+
     // Phase 2.3-2.5: 분리된 서비스들 초기화
     this.nHopSearchService = new NHopSearchService(cacheService);
     this.queryFilterService = new QueryFilterService(cacheService);
     this.fallbackSearchService = new FallbackSearchService();
-    
+
+    if (options?.db) this.setDatabase(options.db);
+    if (options?.hybridSearchEngine) this.setHybridSearchEngine(options.hybridSearchEngine);
+    if (options?.vectorSearchEngine) this.setVectorSearchEngine(options.vectorSearchEngine);
+
     logger.info('AnchorSearchService 초기화 완료');
   }
 

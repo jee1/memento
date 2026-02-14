@@ -8,15 +8,17 @@ import type { SearchEngine } from '../domains/search/algorithms/search-engine.js
 import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
-import type { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import type { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
 import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
-import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import type { RelationGraph } from '../domains/relation/services/relation-graph.js';
+import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
-import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
+import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.interface.js';
+import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
+import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
+import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import type { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 
@@ -49,6 +51,8 @@ export interface ToolContext {
     searchEngine?: SearchEngine;
     /** 하이브리드 검색 엔진 (텍스트 + 벡터) */
     hybridSearchEngine?: HybridSearchEngine;
+    /** 벡터 검색 엔진 (context 미제공 시 getVectorSearchEngine() fallback) */
+    vectorSearchEngine?: VectorSearchEngine;
     /** 메모리 임베딩 서비스 */
     embeddingService?: MemoryEmbeddingService;
     /** 망각 정책 서비스 */
@@ -56,7 +60,7 @@ export interface ToolContext {
     /** 성능 모니터링 서비스 (싱글톤) */
     performanceMonitor?: ReturnType<typeof getPerformanceMonitor>;
     /** 데이터베이스 최적화 서비스 */
-    databaseOptimizer?: DatabaseOptimizer;
+    databaseOptimizer?: IDatabaseOptimizer;
     /** 에러 로깅 서비스 */
     errorLoggingService?: ErrorLoggingService;
     /** 성능 알림 서비스 */
@@ -64,7 +68,7 @@ export interface ToolContext {
     /** 성능 모니터링 통합 서비스 (주석 처리됨, 향후 사용 예정) */
     performanceMonitoringIntegration?: unknown; // 향후 타입 정의 예정
     /** 통합 점수 서비스 (기능 플래그에 따라 초기화) */
-    consolidationScoreService?: ConsolidationScoreService;
+    consolidationScoreService?: IConsolidationScoreService;
     /** 쓰기 결합 관리자 (기능 플래그에 따라 초기화) */
     writeCoalescingManager?: WriteCoalescingManager;
     /** 앵커 관리자 서비스 */
@@ -74,9 +78,11 @@ export interface ToolContext {
     /** 실패 감지 서비스 (Phase 2) */
     failureDetector?: FailureDetector;
     /** Reflexion Worker 서비스 (Phase 2) */
-    reflexionWorker?: ReflexionWorker;
+    reflexionWorker?: IReflexionWorker;
     /** 메타 메모리 통계 서비스 */
     metaMemoryService?: MetaMemoryService;
+    /** 배치 스케줄러 (Triple 추출 등 비동기 작업 등록, context 미제공 시 사용 불가) */
+    batchScheduler?: IBatchScheduler;
   };
 }
 

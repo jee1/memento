@@ -203,26 +203,33 @@ export class NHopSearchService implements INHopSearchService {
       const nextHopMemories: Array<{ memory_id: string; embedding: number[] }> = [];
       const hopResults: NHopSearchResult[] = [];
 
-      // 현재 hop의 각 메모리에 대해 검색 수행
-      for (const currentMemory of currentHopMemories) {
-        try {
-          // 관계 그래프 또는 memory_link를 활용한 직접 연결된 메모리 조회
-          // use_relations가 false이면 관계 그래프를 사용하지 않음
-          const linkedMemories = useRelations 
-            ? await this.getLinkedMemories(currentMemory.memory_id)
-            : [];
-          
-          // 벡터 검색 실행
-          const vectorSearchResults = await this.vectorSearchEngine.search(
-            currentMemory.embedding,
+      // 배치로 연결 메모리 조회 + 벡터 검색 병렬 실행 (N+1 완화)
+      const memoryIdsThisHop = currentHopMemories.map(m => m.memory_id);
+      const linkedByMemory = useRelations
+        ? await this.getLinkedMemoriesBatch(memoryIdsThisHop)
+        : new Map<string, Array<{ memory_id: string; content: string; type: string; similarity: number; importance: number; created_at: string; tags?: string[] }>>();
+
+      const vectorResults = await Promise.all(
+        currentHopMemories.map((m) =>
+          this.vectorSearchEngine!.search(
+            m.embedding,
             {
-              limit: Math.ceil(limit / maxHops) + 10, // 각 hop당 충분한 결과 가져오기
-              threshold: 0.0, // 임계값은 나중에 필터링에서 적용
+              limit: Math.ceil(limit / maxHops) + 10,
+              threshold: 0.0,
               includeContent: true,
               includeMetadata: true
             },
             provider
-          );
+          )
+        )
+      );
+
+      for (let idx = 0; idx < currentHopMemories.length; idx++) {
+        const currentMemory = currentHopMemories[idx];
+        if (!currentMemory) continue;
+        const linkedMemories = linkedByMemory.get(currentMemory.memory_id) ?? [];
+        const vectorSearchResults = vectorResults[idx] ?? [];
+        try {
 
           // memory_link 결과와 벡터 검색 결과를 병합
           const allCandidates = new Map<string, {
@@ -315,7 +322,6 @@ export class NHopSearchService implements INHopSearchService {
             memoryId: currentMemory.memory_id,
             error: error instanceof Error ? error.message : String(error)
           });
-          continue;
         }
       }
 
@@ -400,6 +406,72 @@ export class NHopSearchService implements INHopSearchService {
 
     // 최종 limit 적용
     return rankedResults.slice(0, limit);
+  }
+
+  /**
+   * 여러 메모리에 대한 연결 메모리 일괄 조회 (N+1 완화)
+   */
+  private async getLinkedMemoriesBatch(memoryIds: string[]): Promise<Map<string, Array<{
+    memory_id: string;
+    content: string;
+    type: string;
+    similarity: number;
+    importance: number;
+    created_at: string;
+    tags?: string[];
+  }>>> {
+    const result = new Map<string, Array<{
+      memory_id: string;
+      content: string;
+      type: string;
+      similarity: number;
+      importance: number;
+      created_at: string;
+      tags?: string[];
+    }>>();
+    memoryIds.forEach(id => result.set(id, []));
+    if (memoryIds.length === 0 || !this.db) return result;
+
+    if (this.relationGraph) {
+      const relationsByMemory = await this.relationGraph.getRelationsBatch(memoryIds, {
+        direction: 'outgoing',
+        minConfidence: 0.5
+      });
+      const allTargetIds = new Set<string>();
+      relationsByMemory.forEach((rels) => {
+        rels.forEach((r) => allTargetIds.add(r.target_id));
+      });
+      if (allTargetIds.size === 0) return result;
+      const placeholders = Array.from(allTargetIds).map(() => '?').join(',');
+      const memoryRecords = this.db.prepare(
+        `SELECT id, content, type, importance, created_at, tags FROM memory_item WHERE id IN (${placeholders})`
+      ).all(...Array.from(allTargetIds)) as Array<{ id: string; content: string; type: string; importance: number; created_at: string; tags?: string }>;
+      const memoryMap = new Map(memoryRecords.map(m => [m.id, m]));
+
+      relationsByMemory.forEach((rels, sourceId) => {
+        const items = rels.map((relation) => {
+          const memory = memoryMap.get(relation.target_id);
+          if (!memory) return null;
+          const typeBoost = this.getRelationTypeBoost(relation.relation_type);
+          const similarity = Math.min(1.0, relation.confidence * typeBoost);
+          return {
+            memory_id: memory.id,
+            content: memory.content,
+            type: memory.type,
+            similarity,
+            importance: memory.importance,
+            created_at: memory.created_at,
+            tags: memory.tags ? (typeof memory.tags === 'string' ? JSON.parse(memory.tags) : memory.tags) : undefined
+          };
+        }).filter((item): item is NonNullable<typeof item> => item !== null);
+        result.set(sourceId, items);
+      });
+      return result;
+    }
+
+    const batchResults = await Promise.all(memoryIds.map((id) => this.getLinkedMemories(id)));
+    memoryIds.forEach((id, i) => result.set(id, batchResults[i] ?? []));
+    return result;
   }
 
   /**

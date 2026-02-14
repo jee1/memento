@@ -17,9 +17,9 @@ import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-sea
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import type { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import type { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
-import type { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
+import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
+import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import { getToolRegistry } from '../tools/index.js';
 import type { MemoryItem } from '../shared/types/index.js';
@@ -44,10 +44,10 @@ let hybridSearchEngine: HybridSearchEngine;
 let embeddingService: MemoryEmbeddingService;
 let forgettingPolicyService: ForgettingPolicyService;
 let performanceMonitor: PerformanceMonitor;
-let databaseOptimizer: DatabaseOptimizer;
+let databaseOptimizer: IDatabaseOptimizer;
 let errorLoggingService: ErrorLoggingService;
 let performanceAlertService: PerformanceAlertService;
-let consolidationScoreService: ConsolidationScoreService | null = null;
+let consolidationScoreService: IConsolidationScoreService | null = null;
 let writeCoalescingManager: WriteCoalescingManager | null = null;
 /* eslint-enable @typescript-eslint/no-unused-vars, no-unused-vars */
 // 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
@@ -225,8 +225,9 @@ async function initializeServer() {
     }
     // Reflexion Worker 통합 (Phase 2)
     await batchScheduler.start(db, services.reflexionWorker);
+    serverServices!.batchScheduler = batchScheduler;
     mcpLogger.logServer('info', '배치 스케줄러 시작됨');
-    
+
     // 배치 스케줄러 상태 확인
     const status = batchScheduler.getStatus();
     mcpLogger.logServer('info', `배치 스케줄러 상태: ${JSON.stringify({
@@ -373,9 +374,9 @@ async function initializeServer() {
           const vectorSearchEngine = getVectorSearchEngine();
           const neighborService = new MemoryNeighborService(
             vectorSearchEngine,
-            embeddingService
+            embeddingService,
+            db
           );
-          neighborService.setDatabase(db);
           
           const neighborsResult = await neighborService.getNeighbors(memoryId, {
             limit: 5,

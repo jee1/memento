@@ -36,10 +36,9 @@ describe('MemoryNeighborService', () => {
     
     neighborService = new MemoryNeighborService(
       vectorSearchEngine,
-      embeddingService
+      embeddingService,
+      db
     );
-    
-    neighborService.setDatabase(db);
   });
 
   afterEach(() => {

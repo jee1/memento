@@ -3,8 +3,8 @@
  * MCP Tool 호출 실패, 사용자 피드백, 성능 지표 미달 등을 감지하여 Reflexion Worker에 전달
  */
 
+import type { IAsyncTaskQueue } from '../../../shared/interfaces/async-task-queue.interface.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { AsyncTaskQueue } from '../../../infrastructure/async-optimizer.js';
 import type { ToolContext } from '../../../tools/types.js';
 
 /**
@@ -67,18 +67,18 @@ const USER_FEEDBACK_KEYWORDS = [
  * FailureDetector 서비스 클래스
  */
 export class FailureDetector {
-  private eventQueue: AsyncTaskQueue;
+  private eventQueue: IAsyncTaskQueue;
   private performanceThresholds: PerformanceThresholds;
   private toolMetrics: Map<string, { success: number; failure: number; totalTime: number; count: number }> = new Map();
 
   constructor(
-    eventQueue?: AsyncTaskQueue,
+    eventQueue: IAsyncTaskQueue,
     performanceThresholds?: PerformanceThresholds
   ) {
-    this.eventQueue = eventQueue || new AsyncTaskQueue(5); // 최대 5개 동시 실행
-    this.performanceThresholds = performanceThresholds || {
-      responseTimeMs: 5000, // 기본 5초
-      errorRate: 0.1 // 기본 10%
+    this.eventQueue = eventQueue;
+    this.performanceThresholds = performanceThresholds ?? {
+      responseTimeMs: 5000,
+      errorRate: 0.1
     };
   }
 

@@ -35,7 +35,7 @@ import {
   type ExtractedRelation
 } from '../../../relation/services/relation-quality-validator.js';
 import { HybridSearchFactory } from '../../../search/factories/hybrid-search.factory.js';
-import type { HybridSearchQuery } from '../../../search/algorithms/hybrid-search-engine.js';
+import type { HybridSearchQuery, HybridSearchResult } from '../../../search/algorithms/hybrid-search-engine.js';
 
 /**
  * 품질 지표 수집 결과
@@ -273,50 +273,31 @@ export class QualityMetricsCollector {
       }
     }
 
-    // 검색 결과 자동 생성 (옵션에 없고 Ground Truth가 있으면 실제 검색 수행)
+    // 검색 결과 자동 생성 (옵션에 없고 Ground Truth가 있으면 실제 검색 수행, 병렬로 한 번만)
     let queryResults = options?.queryResults;
+    const fullResultsByQuery = new Map<string, { items: HybridSearchResult[] }>();
     if (!queryResults && groundTruths && groundTruths.length > 0) {
       try {
         queryResults = new Map<string, SearchResult[]>();
         const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
 
-        for (const groundTruth of groundTruths) {
+        const searchPromises = groundTruths.map(async (groundTruth) => {
           try {
-            const searchQuery: HybridSearchQuery = {
-              query: groundTruth.queryId,
-              limit: 20 // Ground Truth 비교를 위해 충분한 결과 수 확보
-            };
-
-            const searchResult = await searchEngine.search(this.db, searchQuery);
-            
-            // HybridSearchResult를 SearchResult로 변환
-            const results: SearchResult[] = searchResult.items.map(item => ({
-              id: item.id,
-              score: item.finalScore
-            }));
-
-            queryResults.set(groundTruth.queryId, results);
-            
-            logger.debug('검색 수행 완료', {
-              context,
-              query: groundTruth.queryId,
-              resultCount: results.length
-            });
+            const searchResult = await searchEngine.search(this.db, { query: groundTruth.queryId, limit: 20 });
+            return { queryId: groundTruth.queryId, searchResult };
           } catch (error) {
-            logger.warn('검색 수행 실패', {
-              context,
-              query: groundTruth.queryId,
-              error: error instanceof Error ? error.message : String(error)
-            });
-            // 검색 실패 시 빈 결과 추가
-            queryResults.set(groundTruth.queryId, []);
+            logger.warn('검색 수행 실패', { context, query: groundTruth.queryId, error: error instanceof Error ? error.message : String(error) });
+            return { queryId: groundTruth.queryId, searchResult: { items: [] } };
           }
+        });
+        const resolved = await Promise.all(searchPromises);
+
+        for (const { queryId, searchResult } of resolved) {
+          queryResults.set(queryId, searchResult.items.map((item) => ({ id: item.id, score: item.finalScore })));
+          fullResultsByQuery.set(queryId, searchResult);
         }
 
-        logger.info('검색 결과 자동 생성 완료', {
-          context,
-          queryCount: queryResults.size
-        });
+        logger.info('검색 결과 자동 생성 완료', { context, queryCount: queryResults.size });
       } catch (error) {
         logger.warn('검색 엔진 초기화 또는 검색 수행 실패', {
           context,
@@ -366,35 +347,23 @@ export class QualityMetricsCollector {
       // MRR 계산
       metrics.mrr = this.calculateMRR(queryResults, groundTruths);
 
-      // searchResultPairs 자동 생성 (제공되지 않은 경우)
+      // searchResultPairs 자동 생성 (제공되지 않은 경우, fullResultsByQuery 재사용)
       let searchResultPairs = options?.searchResultPairs;
       if (!searchResultPairs || searchResultPairs.length === 0) {
         try {
-          const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
           searchResultPairs = [];
 
           for (const groundTruth of groundTruths) {
+            let items: HybridSearchResult[] = fullResultsByQuery.get(groundTruth.queryId)?.items ?? [];
+            if (items.length === 0) {
+              const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+              const sr = await searchEngine.search(this.db, { query: groundTruth.queryId, limit: 20 });
+              items = sr.items;
+            }
             try {
-              const searchQuery: HybridSearchQuery = {
-                query: groundTruth.queryId,
-                limit: 20 // 충분한 결과 수 확보
-              };
+              const vectorOnlyResults = generateVectorOnlySearchResults(items, 20);
+              const consolidationResults = generateConsolidationSearchResults(items, 20);
 
-              const searchResult = await searchEngine.search(this.db, searchQuery);
-              
-              // 벡터-only 결과 생성
-              const vectorOnlyResults = generateVectorOnlySearchResults(
-                searchResult.items,
-                20
-              );
-
-              // Consolidation 반영 후 결과 생성
-              const consolidationResults = generateConsolidationSearchResults(
-                searchResult.items,
-                20
-              );
-
-              // 결과가 충분한 경우에만 추가
               if (vectorOnlyResults.length >= 2 && consolidationResults.length >= 2) {
                 searchResultPairs.push({
                   vectorOnly: vectorOnlyResults,
@@ -404,21 +373,21 @@ export class QualityMetricsCollector {
                 logger.warn('검색 결과 쌍 생성 실패: 결과 부족', {
                   context,
                   query: groundTruth.queryId,
-                  searchResultCount: searchResult.items.length,
+                  searchResultCount: items.length,
                   vectorOnlyCount: vectorOnlyResults.length,
                   consolidationCount: consolidationResults.length,
-                  reason: vectorOnlyResults.length < 2 
-                    ? 'vectorOnlyResults 부족' 
-                    : consolidationResults.length < 2 
-                    ? 'consolidationResults 부족' 
-                    : '알 수 없음'
+                  reason: vectorOnlyResults.length < 2
+                    ? 'vectorOnlyResults 부족'
+                    : consolidationResults.length < 2
+                      ? 'consolidationResults 부족'
+                      : '알 수 없음'
                 });
               }
 
               logger.debug('검색 결과 쌍 생성 완료', {
                 context,
                 query: groundTruth.queryId,
-                searchResultCount: searchResult.items.length,
+                searchResultCount: items.length,
                 vectorOnlyCount: vectorOnlyResults.length,
                 consolidationCount: consolidationResults.length,
                 added: vectorOnlyResults.length >= 2 && consolidationResults.length >= 2

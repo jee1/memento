@@ -46,6 +46,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **자동 정리**: 소프트/하드 삭제 자동화
 
 ### 📊 성능 모니터링 (HTTP 관리 API)
+- **보안**: HTTP API는 인증이 없으며 **내부망/MCP 전용** 사용을 권장합니다. 자세한 내용은 [docs/security.md](docs/security.md)를 참고하세요.
 - **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
 - **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림
 - **에러 로깅**: 구조화된 에러 로깅 및 통계 수집
@@ -362,6 +363,8 @@ const results = await client.callTool({
 |-----------|------|--------|
 | `/admin/database/optimize` | 데이터베이스 최적화 | POST |
 
+**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/ko/api-reference.md](docs/ko/api-reference.md)를 참고하세요.
+
 ### Resources
 
 | Resource | 설명 |
@@ -376,16 +379,20 @@ const results = await client.callTool({
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
 | `NODE_ENV` | development | 실행 환경 |
-| `PORT` | 9001 | 서버 포트 |
+| `PORT` / `MCP_SERVER_PORT` | 3000 (코드 기본) | HTTP/MCP 서버 포트 (env.example 권장: 8080) |
 | `DB_PATH` | ./data/memory.db | 데이터베이스 경로 |
 | `LOG_LEVEL` | info | 로그 레벨 |
 | `OPENAI_API_KEY` | - | OpenAI API 키 (선택사항) |
 | `GEMINI_API_KEY` | - | Gemini API 키 (선택사항) |
-| `EMBEDDING_PROVIDER` | auto | 임베딩 제공자 (tfidf, minilm, openai, gemini, auto) |
+| `EMBEDDING_PROVIDER` | minilm | 임베딩 제공자 (tfidf, lightweight, minilm, openai, gemini) |
 | `CONSOLIDATION_SCORE_ENABLED` | false | Consolidation Score System 활성화 여부 |
 | `CONSOLIDATION_TEST_SEED_PATH` | ./data/consolidation-seed.json | 테스트 Seed 데이터 파일 경로 |
 | `CONSOLIDATION_BASELINE_PATH` | ./data/consolidation-baseline.json | Baseline 스냅샷 저장 경로 |
 | `CONSOLIDATION_TEST_ITEM_COUNT` | 100 | 벤치마크 테스트 데이터 크기 |
+| `CORS_ALLOWED_ORIGINS` | (비어 있음) | CORS 허용 오리진 (쉼표 구분, 비어 있으면 크로스 오리진 미허용) |
+| `ENABLE_PII_MASKING` | true | PII 마스킹 활성화 (보안, [docs/security.md](docs/security.md) 참고) |
+
+> **참고**: 망각 TTL, LLM/Ollama, 검색 한도 등 추가 변수는 `env.example`을 참고하세요.
 
 ### 망각 정책 설정
 
@@ -489,7 +496,7 @@ npm run test -- --coverage
 - **인덱스**: FTS5 + sqlite-vec
 - **인증**: 없음 (로컬 전용)
 - **운영**: 로컬 실행
-- **MCP 클라이언트**: 핵심 15개 도구 노출
+- **MCP 클라이언트**: 핵심 14개 도구 노출
 - **관리 기능**: HTTP API로 분리
 - **추가 기능**: 
   - 다중 임베딩 제공자(TF-IDF, MiniLM, OpenAI, Gemini)

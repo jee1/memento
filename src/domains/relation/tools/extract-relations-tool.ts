@@ -8,7 +8,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationExtractor } from '../services/relation-extractor.js';
-import { RelationGraph } from '../services/relation-graph.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import type { MemoryType, PrivacyScope } from '../../../shared/types/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { isMemoryRow, convertMemoryRowToItem } from '../../../shared/utils/type-guards.js';
@@ -134,7 +134,7 @@ export class ExtractRelationsTool extends BaseTool {
       let savedCount = 0;
       if (candidates.length > 0) {
         // RelationGraph 인스턴스 생성 (context에 없으면 새로 생성)
-        const relationGraph = context.services.relationGraph || new RelationGraph(db);
+        const relationGraph = context.services.relationGraph || createRelationGraph(db);
         
         for (const candidate of candidates) {
           try {

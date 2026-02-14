@@ -81,6 +81,7 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
     services: {
       searchEngine: serverContext.services.searchEngine,
       hybridSearchEngine: serverContext.services.hybridSearchEngine,
+      vectorSearchEngine: serverContext.services.vectorSearchEngine,
       embeddingService: serverContext.services.embeddingService,
       forgettingPolicyService: serverContext.services.forgettingPolicyService,
       performanceMonitor: serverContext.services.performanceMonitor,
@@ -92,7 +93,8 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
       anchorManager: serverContext.services.anchorManager,
       failureDetector: serverContext.services.failureDetector,
       reflexionWorker: serverContext.services.reflexionWorker,
-      metaMemoryService: serverContext.services.metaMemoryService
+      metaMemoryService: serverContext.services.metaMemoryService,
+      batchScheduler: serverContext.services.batchScheduler
     }
   };
 }

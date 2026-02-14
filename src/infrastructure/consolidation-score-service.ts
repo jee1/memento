@@ -9,6 +9,7 @@
  * - g_0 = 1
  */
 
+import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
 import type {
   ConsolidationScoreInput,
   ConsolidationScoreResult,
@@ -39,7 +40,7 @@ const NORMALIZATION_CONSTANT = 1 - Math.exp(-1);
 /**
  * Consolidation Score Service
  */
-export class ConsolidationScoreService {
+export class ConsolidationScoreService implements IConsolidationScoreService {
   /**
    * S(t) 함수 구현: (1 - e^(-t)) / (1 + e^(-t))
    * 

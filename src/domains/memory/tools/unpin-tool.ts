@@ -158,25 +158,26 @@ export class UnpinTool extends BaseTool {
       total: ids.length
     };
     
+    const memoryById = await this.getMemoriesByIds(ids, context);
     for (const id of ids) {
       try {
-        const memory = await this.getMemoryById(id, context);
+        const memory = memoryById.get(id);
         if (!memory) {
           results.failed.push({ id, error: 'Memory not found' });
           continue;
         }
-        
+
         if (!memory.pinned) {
           results.already_unpinned.push(id);
           continue;
         }
-        
+
         // 중요도가 높은 기억은 확인 필요
         if (memory.importance > 0.8 && !confirm) {
           results.requires_confirmation.push(id);
           continue;
         }
-        
+
         await this.handleSingleUnpin(id, reason, confirm, context);
         results.successful.push(id);
       } catch (error) {
@@ -200,10 +201,24 @@ export class UnpinTool extends BaseTool {
    */
   private async getMemoryById(id: string, context: ToolContext): Promise<any> {
     return await DatabaseUtils.get(
-      context.db!, 
-      'SELECT * FROM memory_item WHERE id = ?', 
+      context.db!,
+      'SELECT * FROM memory_item WHERE id = ?',
       [id]
     );
+  }
+
+  /**
+   * 여러 기억 일괄 조회 (N+1 완화)
+   */
+  private async getMemoriesByIds(ids: string[], context: ToolContext): Promise<Map<string, any>> {
+    if (ids.length === 0) return new Map();
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = await DatabaseUtils.all(
+      context.db!,
+      `SELECT * FROM memory_item WHERE id IN (${placeholders})`,
+      ids
+    ) as any[];
+    return new Map(rows.map((r) => [r.id, r]));
   }
 
   /**

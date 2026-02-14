@@ -3,6 +3,7 @@
  * 워커 풀, 큐 시스템, 배치 처리 최적화
  */
 
+import type { IAsyncTaskQueue } from '../shared/interfaces/async-task-queue.interface.js';
 import { logger } from '../shared/utils/logger.js';
 
 export interface Task<T = unknown> {
@@ -35,7 +36,7 @@ export interface QueueStats {
   throughput: number; // tasks per second
 }
 
-export class AsyncTaskQueue {
+export class AsyncTaskQueue implements IAsyncTaskQueue {
   private queue: Task[] = [];
   private processing: Map<string, Task> = new Map();
   private completed: Map<string, TaskResult> = new Map();

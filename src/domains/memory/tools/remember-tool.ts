@@ -25,7 +25,6 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { isTestEnvironment } from '../../../shared/utils/environment-check.js';
-import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
 import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';
@@ -36,7 +35,6 @@ import { getNextVersionNumber } from '../services/procedural-versioning.js';
 // AriGraph Pipeline
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
-import { getBatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 
 /**
@@ -879,13 +877,12 @@ export class RememberTool extends BaseTool {
                   }
 
                   if (dbValid) {
-                    const vectorSearchEngine = getVectorSearchEngine();
+                    const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
                     const neighborService = new MemoryNeighborService(
                       vectorSearchEngine,
-                      embeddingServiceRef
+                      embeddingServiceRef,
+                      dbRef
                     );
-                    
-                    neighborService.setDatabase(dbRef);
                     
                     // 인접 기억 갱신 (기본 유사도 임계값: 0.8)
                     const neighborIds = await neighborService.updateNeighborsForNewMemory(savedMemoryId, 0.8);
@@ -990,8 +987,13 @@ export class RememberTool extends BaseTool {
               // JobQueue를 통해 비동기로 실행 (Episodic Memory 저장은 블로킹하지 않음)
               if (savedMemoryType === 'episodic' && enable_triple_extraction !== false) {
                 try {
-                  // BatchScheduler의 JobQueue에 Triple 추출 작업 등록
-                  const batchScheduler = getBatchScheduler();
+                  // BatchScheduler의 JobQueue에 Triple 추출 작업 등록 (context 주입, 없으면 스킵)
+                  const batchScheduler = context.services?.batchScheduler;
+                  if (!batchScheduler) {
+                    this.logWarning('배치 스케줄러를 사용할 수 없어 Triple 추출 작업을 등록하지 않습니다.', {
+                      memory_id: savedMemoryId
+                    });
+                  } else {
                   const jobName = `triple_extraction_${savedMemoryId}`;
                   
                   // Triple 추출 작업 함수 정의
@@ -1365,6 +1367,7 @@ export class RememberTool extends BaseTool {
                         });
                       }
                     }
+                  }
                   }
                 } catch (error) {
                   // JobQueue 등록 실패해도 메모리 저장은 성공했으므로 경고만 출력

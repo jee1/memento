@@ -78,13 +78,17 @@ function setTestDependencies({
 const app = express();
 const server = createServer(app);
 
-// 미들웨어 설정
+// 미들웨어 설정: CORS는 corsAllowedOrigins로 제한 (비어 있으면 크로스 오리진 미허용)
+const corsOrigins = mementoConfig.corsAllowedOrigins;
 app.use(cors({
-  origin: '*',
+  origin: corsOrigins.length > 0
+    ? corsOrigins
+    : (_orig: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => cb(null, false),
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
 }));
-app.use(express.json({ limit: '10mb' }));
+// DoS 완화: body 제한 1MB (리뷰 S4). 운영 시 rate limiting(예: express-rate-limit) 적용 권장.
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Static 파일 서빙 (대시보드 및 UI 리소스)
@@ -193,8 +197,9 @@ async function initializeServer() {
     }
     // Reflexion Worker 통합 (Phase 2)
     await batchScheduler.start(db, services.reflexionWorker);
+    services.batchScheduler = batchScheduler;
     logger.info('배치 스케줄러 시작됨');
-    
+
     // 임베딩 프로바이더 정보 표시
     const providerInfo: Record<string, unknown> = {
       provider: mementoConfig.embeddingProvider.toUpperCase()

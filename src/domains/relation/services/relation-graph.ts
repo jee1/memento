@@ -22,8 +22,8 @@ import type {
   IRelationGraph
 } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
+import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { CacheService } from '../../../infrastructure/cache/cache-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
   isExistingRelationRow,
@@ -33,7 +33,7 @@ import {
   type ExistingRelationRow
 } from '../../../shared/utils/type-guards.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
-import { CONFIDENCE, LIMITS, CACHE } from '../../../shared/constants/relation-constants.js';
+import { CONFIDENCE, LIMITS } from '../../../shared/constants/relation-constants.js';
 
 /**
  * 관계 그래프 서비스
@@ -42,21 +42,20 @@ export class RelationGraph implements IRelationGraph {
   private db: Database.Database;
   
   // L1 캐시: 메모리 캐시 (TTL 10분)
-  private l1Cache: CacheService<MemoryRelation[]>;
-  
+  private l1Cache: ICacheService<MemoryRelation[]>;
   // L2 캐시: 영구 캐시 (TTL 7일)
-  private l2Cache: CacheService<MemoryRelation[]>;
-  
+  private l2Cache: ICacheService<MemoryRelation[]>;
   // 캐시 키 추적: memoryId -> Set<cacheKey>
-  // 정확한 캐시 무효화를 위해 사용
   private cacheKeyIndex: Map<string, Set<string>> = new Map();
 
-  constructor(db: Database.Database) {
+  constructor(
+    db: Database.Database,
+    l1Cache: ICacheService<MemoryRelation[]>,
+    l2Cache: ICacheService<MemoryRelation[]>
+  ) {
     this.db = db;
-    // L1 캐시: 1000개 항목, 10분 TTL
-    this.l1Cache = new CacheService<MemoryRelation[]>(CACHE.L1_SIZE, CACHE.L1_TTL_MS);
-    // L2 캐시: 5000개 항목, 7일 TTL
-    this.l2Cache = new CacheService<MemoryRelation[]>(CACHE.L2_SIZE, CACHE.L2_TTL_MS);
+    this.l1Cache = l1Cache;
+    this.l2Cache = l2Cache;
   }
 
   /**
@@ -582,6 +581,77 @@ export class RelationGraph implements IRelationGraph {
     }
 
     return relations;
+  }
+
+  /**
+   * 여러 메모리에 대한 관계 일괄 조회 (N+1 완화)
+   * @param memoryIds 기억 ID 목록
+   * @param options 조회 옵션 (getRelations와 동일)
+   * @returns memoryId -> MemoryRelation[] 맵 (캐시 미사용)
+   */
+  async getRelationsBatch(
+    memoryIds: string[],
+    options?: GetRelationsOptions
+  ): Promise<Map<string, MemoryRelation[]>> {
+    const result = new Map<string, MemoryRelation[]>();
+    if (memoryIds.length === 0) return result;
+    memoryIds.forEach(id => result.set(id, []));
+
+    const direction = options?.direction ?? 'both';
+    const relationTypes = options?.relationTypes;
+    const minConfidence = options?.minConfidence;
+    const idSet = new Set(memoryIds);
+    const placeholders = memoryIds.map(() => '?').join(',');
+
+    let query = '';
+    const params: Array<string | number | RelationType> = [];
+
+    if (direction === 'outgoing') {
+      query = `SELECT * FROM memory_relation WHERE source_id IN (${placeholders})`;
+      params.push(...memoryIds);
+    } else if (direction === 'incoming') {
+      query = `SELECT * FROM memory_relation WHERE target_id IN (${placeholders})`;
+      params.push(...memoryIds);
+    } else {
+      query = `SELECT * FROM memory_relation WHERE source_id IN (${placeholders}) OR target_id IN (${placeholders})`;
+      params.push(...memoryIds, ...memoryIds);
+    }
+
+    if (relationTypes && relationTypes.length > 0) {
+      const typePlaceholders = relationTypes.map(() => '?').join(',');
+      const typeInClause = ' AND relation_type IN (' + typePlaceholders + ')';
+      query += typeInClause;
+      params.push(...relationTypes);
+    }
+    if (minConfidence !== undefined) {
+      query += ' AND confidence >= ?';
+      params.push(minConfidence);
+    }
+    query += ' ORDER BY confidence DESC, created_at DESC';
+
+    const rows = DatabaseUtils.all(this.db, query, params);
+    const validRows = rows.filter((row): row is RelationRow => isRelationRow(row));
+
+    for (const row of validRows) {
+      const relation: MemoryRelation = {
+        id: row.id,
+        source_id: row.source_id,
+        target_id: row.target_id,
+        relation_type: row.relation_type as RelationType,
+        confidence: row.confidence,
+        created_at: new Date(row.created_at),
+        updated_at: new Date(row.updated_at),
+        metadata: row.metadata ? JSON.parse(row.metadata) : undefined
+      };
+      if (direction !== 'incoming' && idSet.has(row.source_id)) {
+        result.get(row.source_id)!.push(relation);
+      }
+      if (direction !== 'outgoing' && idSet.has(row.target_id)) {
+        result.get(row.target_id)!.push(relation);
+      }
+    }
+
+    return result;
   }
 
   /**

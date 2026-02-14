@@ -8,27 +8,9 @@
 
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { ErrorSeverity, ErrorCategory } from '../../../shared/types/error-types.js';
 
-export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
-}
-
-export enum ErrorCategory {
-  DATABASE = 'database',
-  NETWORK = 'network',
-  VALIDATION = 'validation',
-  AUTHENTICATION = 'authentication',
-  PERFORMANCE = 'performance',
-  MEMORY = 'memory',
-  SEARCH = 'search',
-  EMBEDDING = 'embedding',
-  CACHE = 'cache',
-  TOOL_EXECUTION = 'tool_execution',
-  UNKNOWN = 'unknown'
-}
+export { ErrorSeverity, ErrorCategory };
 
 export interface ErrorLog {
   id: string;

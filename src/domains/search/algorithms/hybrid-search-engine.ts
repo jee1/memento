@@ -316,7 +316,14 @@ export class HybridSearchEngine {
   async search(
     db: Database.Database,
     query: HybridSearchQuery
-  ): Promise<{ items: HybridSearchResult[], total_count: number, query_time: number }> {
+  ): Promise<{
+    items: HybridSearchResult[];
+    total_count: number;
+    query_time: number;
+    text_count?: number;
+    vector_count?: number;
+    fallback_used?: boolean;
+  }> {
     const searchId = this.generateSearchId();
     const startTime = process.hrtime.bigint();
     
@@ -363,14 +370,15 @@ export class HybridSearchEngine {
       const textResults = await this.executeTextSearch(db, query, searchId);
 
       // 벡터 유사도 검색을 실행하여 의미적으로 관련된 결과를 획득합니다.
-      const vectorResults = await this.executeVectorSearch(db, query, searchId);
+      const vectorOut = await this.executeVectorSearch(db, query, searchId);
+      const vectorResults = vectorOut.results;
 
       // 텍스트와 벡터 검색 결과를 결합하고 통합 점수와 관계 가중치를 조회하여 최종 정렬합니다.
       const finalResults = await this.combineAndSortResults(
-        textResults, 
-        vectorResults, 
-        weights, 
-        query.limit || 10, 
+        textResults,
+        vectorResults,
+        weights,
+        query.limit || 10,
         db,
         query.includeRelations || false,
         query
@@ -378,25 +386,28 @@ export class HybridSearchEngine {
 
       // 검색 통계를 업데이트하여 향후 가중치 조정에 활용합니다.
       this.updateSearchStats(query.query, textResults.length, vectorResults.length);
-      
+
       const queryTime = this.calculateQueryTime(startTime);
-      
+
       // A/B 테스트 추적을 위해 검색 완료 로그에 실험 ID를 포함합니다.
       const logData: any = {
         items: finalResults,
         total_count: finalResults.length
       };
-      
+
       if (query.experiment_id) {
         logData.experiment_id = query.experiment_id;
       }
-      
+
       this.logger.logSearchComplete(searchId, logData, queryTime);
 
       return {
         items: finalResults,
         total_count: finalResults.length,
-        query_time: queryTime
+        query_time: queryTime,
+        text_count: textResults.length,
+        vector_count: vectorResults.length,
+        fallback_used: vectorOut.fallback_used
       };
     } catch (error) {
       this.logger.logSearchError(searchId, error, query);
@@ -451,20 +462,25 @@ export class HybridSearchEngine {
     }
   }
 
-  private async executeVectorSearch(db: Database.Database, query: HybridSearchQuery, searchId: string): Promise<VectorSearchResult[]> {
+  private async executeVectorSearch(
+    db: Database.Database,
+    query: HybridSearchQuery,
+    searchId: string
+  ): Promise<{ results: VectorSearchResult[]; fallback_used: boolean }> {
     const vectorSearchStart = process.hrtime.bigint();
-    this.logger.logSearchStep(searchId, '벡터 검색 시작', { 
+    this.logger.logSearchStep(searchId, '벡터 검색 시작', {
       query: query.query,
       embeddingAvailable: this.embeddingService.isAvailable()
     });
-    
+
     this.vectorSearchEngine.initialize(db);
-    
+
     if (this.vectorSearchEngine.getIndexStatus().available) {
-      return await this.executeVecSearch(db, query, searchId, vectorSearchStart);
-    } else {
-      return await this.executeFallbackSearch(db, query, searchId, vectorSearchStart);
+      const results = await this.executeVecSearch(db, query, searchId, vectorSearchStart);
+      return { results, fallback_used: false };
     }
+    const results = await this.executeFallbackSearch(db, query, searchId, vectorSearchStart);
+    return { results, fallback_used: true };
   }
 
   /**
@@ -490,7 +506,7 @@ export class HybridSearchEngine {
       // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
       const searchOptions = {
         limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
-        threshold: HYBRID_SEARCH.VECTOR_SEARCH_THRESHOLD,
+        threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
         types: query.filters?.type,
         includeContent: true
       };
@@ -608,11 +624,24 @@ export class HybridSearchEngine {
     // 실제 검색 작업 Promise
     const searchTask = (async () => {
       try {
-        // 각 provider에 맞는 쿼리 임베딩 생성
-        const queryVector = await this.generateQueryVector(query, searchId, provider);
-        
+        const { embedding, actualProvider } = await this.generateQueryVector(query, searchId, provider);
+        // 요청한 provider와 실제 임베딩 provider가 다르면 차원 불일치로 해당 테이블 검색 스킵 (return [] 방지)
+        if (actualProvider !== provider) {
+          this.logger.logSearchStep(searchId, `VEC 검색 스킵 (provider 불일치: 요청=${provider}, 실제=${actualProvider})`, {
+            provider,
+            actualProvider
+          });
+          const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+          return {
+            provider,
+            results: [] as Array<VectorSearchResult & { provider: string }>,
+            success: true,
+            timeMs: providerTime,
+            error: null as string | null
+          };
+        }
         // 벡터 검색 실행
-        const vecResults = await this.vectorSearchEngine.search(queryVector, searchOptions, provider);
+        const vecResults = await this.vectorSearchEngine.search(embedding, searchOptions, provider);
         
         const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
         
@@ -907,7 +936,7 @@ export class HybridSearchEngine {
     const vectorResults = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type as MemoryType[],
       limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
-      threshold: HYBRID_SEARCH.VECTOR_SEARCH_THRESHOLD,
+      threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
     });
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
     
@@ -1010,17 +1039,19 @@ export class HybridSearchEngine {
    * @param query - 검색 쿼리 문자열
    * @param searchId - 검색 ID (로깅용)
    * @param preferredProvider - 선호하는 임베딩 provider (필수, 각 provider별로 다른 차원의 임베딩 필요)
-   * @returns 임베딩 벡터 배열
+   * @returns 임베딩 벡터와 실제 사용된 provider (preferred unavailable 시 fallback provider로 생성될 수 있음)
    * @throws SearchError - 임베딩 생성 실패 시
    */
-  private async generateQueryVector(query: string, searchId: string, preferredProvider: EmbeddingProvider): Promise<number[]> {
+  private async generateQueryVector(
+    query: string,
+    searchId: string,
+    preferredProvider: EmbeddingProvider
+  ): Promise<{ embedding: number[]; actualProvider: EmbeddingProvider }> {
     try {
       const embeddingStart = process.hrtime.bigint();
-      
-      // 각 provider는 서로 다른 차원의 임베딩을 사용하므로 차원 불일치를 방지합니다.
-      // preferredProvider로만 임베딩을 생성하고 fallback을 사용하지 않아 일관성을 보장합니다.
+
       const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider);
-      
+
       if (!embeddingResult) {
         throw new SearchError(
           SearchErrorType.EMBEDDING_GENERATION_FAILED,
@@ -1029,21 +1060,22 @@ export class HybridSearchEngine {
           { query, searchId, preferredProvider }
         );
       }
-      
+
+      const actualProvider = (embeddingResult.provider || preferredProvider) as EmbeddingProvider;
       const embeddingTime = Number(process.hrtime.bigint() - embeddingStart) / 1_000_000;
-      
+
       this.logger.logSearchStep(searchId, '임베딩 생성 완료', {
         embeddingTime: `${embeddingTime.toFixed(2)}ms`,
         vectorLength: embeddingResult.embedding.length,
-        provider: embeddingResult.provider || preferredProvider
+        provider: actualProvider
       });
-      
-      return embeddingResult.embedding;
+
+      return { embedding: embeddingResult.embedding, actualProvider };
     } catch (error) {
       if (error instanceof SearchError) {
         throw error;
       }
-      
+
       throw new SearchError(
         SearchErrorType.EMBEDDING_GENERATION_FAILED,
         `임베딩 생성 중 오류가 발생했습니다 (provider: ${preferredProvider})`,
@@ -1365,31 +1397,26 @@ export class HybridSearchEngine {
     try {
       const config = getRankingWeights();
       const maxRelations = config.relation_weights.max_relations;
-      
-      // 각 메모리에 대해 관계 조회 및 가중치 계산
+
+      const relationsByMemory = await this.relationGraph.getRelationsBatch(memoryIds, {
+        direction: 'both',
+        minConfidence: 0.5
+      });
+
       for (const memoryId of memoryIds) {
-        const memoryRelations = await this.relationGraph.getRelations(memoryId, {
-          direction: 'both',
-          minConfidence: 0.5 // 최소 신뢰도 필터
-        });
-        
+        const memoryRelations = relationsByMemory.get(memoryId) ?? [];
         if (memoryRelations.length > 0) {
-          // 관계 가중치 계산
           const relationData = memoryRelations.map(r => ({
             confidence: r.confidence,
             relation_type: r.relation_type
           }));
-          
           const relationWeight = this.ranking.calculateRelationWeight(relationData, maxRelations);
           weights.set(memoryId, relationWeight);
-          
-          // 관계 정보 저장 (간단한 형태로 변환)
           const simplifiedRelations = memoryRelations.map(r => ({
             target_id: r.source_id === memoryId ? r.target_id : r.source_id,
             relation_type: r.relation_type,
             confidence: r.confidence
           }));
-          
           relations.set(memoryId, simplifiedRelations);
         }
       }

@@ -61,13 +61,15 @@ export class MemoryNeighborService {
   private db: Database.Database | null = null;
 
   /**
-   * 생성자
+   * 생성자 (db 주입 시 즉시 설정, 미전달 시 setDatabase() 호출 필요)
    * @param vectorSearchEngine - 벡터 검색 엔진 인스턴스
    * @param embeddingService - 메모리 임베딩 서비스 인스턴스
+   * @param db - 데이터베이스 인스턴스 (선택)
    */
   constructor(
     vectorSearchEngine: VectorSearchEngine,
-    embeddingService: MemoryEmbeddingService
+    embeddingService: MemoryEmbeddingService,
+    db?: Database.Database
   ) {
     if (!vectorSearchEngine) {
       throw new Error('VectorSearchEngine is required');
@@ -75,9 +77,10 @@ export class MemoryNeighborService {
     if (!embeddingService) {
       throw new Error('MemoryEmbeddingService is required');
     }
-    
+
     this.vectorSearchEngine = vectorSearchEngine;
     this.embeddingService = embeddingService;
+    if (db) this.setDatabase(db);
   }
 
   /**

@@ -16,7 +16,8 @@ import { RemoveRelationTool } from '../../src/domains/relation/tools/remove-rela
 import { VisualizeRelationsTool } from '../../src/domains/relation/tools/visualize-relations-tool.js';
 import { DatabaseUtils } from '../../src/shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
-import { RelationGraph } from '../../src/domains/relation/services/relation-graph.js';
+import type { RelationGraph } from '../../src/domains/relation/services/relation-graph.js';
+import { createRelationGraph } from '../../src/infrastructure/relation-graph-factory.js';
 import { LLMBasedRelationExtractor } from '../../src/domains/relation/services/llm-based-relation-extractor.js';
 import type { ToolContext } from '../../src/domains/types.js';
 
@@ -97,8 +98,8 @@ describe('MCP 관계 도구 E2E 통합 테스트', () => {
     const migration = new RelationEngineSchemaMigration();
     migration.up(db);
     
-    // RelationGraph 초기화
-    relationGraph = new RelationGraph(db);
+    // RelationGraph 초기화 (팩토리로 L1/L2 캐시 주입)
+    relationGraph = createRelationGraph(db);
     
     // ToolContext 생성
     context = {

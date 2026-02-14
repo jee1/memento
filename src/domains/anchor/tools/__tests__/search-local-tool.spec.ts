@@ -29,14 +29,14 @@ vi.mock('onnxruntime-node', () => ({
   Tensor: vi.fn()
 }));
 
-// UnifiedEmbeddingService 모킹
+// UnifiedEmbeddingService 모킹 (VectorSearchService 기본 tfidf 512차원과 맞춤)
 vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
   return {
     UnifiedEmbeddingService: vi.fn().mockImplementation(() => ({
       generateEmbedding: vi.fn(async () => ({
-        embedding: new Array(384).fill(0.1),
-        model: 'minilm',
-        provider: 'minilm',
+        embedding: new Array(512).fill(0.1),
+        model: 'tfidf',
+        provider: 'tfidf',
         usage: { prompt_tokens: 10, total_tokens: 10 }
       })),
       searchSimilar: vi.fn(async () => []),
@@ -198,14 +198,14 @@ describe('SearchLocalTool', () => {
       await anchorManager.setAnchor('agent1', 'mem1', 'A');
 
       // 임베딩 직접 삽입 (테스트용 더미 벡터)
-      const testEmbedding = Array(384).fill(0.1);
+      const testEmbedding = Array(512).fill(0.1);
       const embeddingJson = JSON.stringify(testEmbedding);
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, projection_type, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, ['mem1', embeddingJson, 'tfidf', 'native', 384, 384]);
+      `, ['mem1', embeddingJson, 'tfidf', 'native', 512, 512]);
     });
 
     it('should perform local search with query', async () => {
@@ -327,14 +327,14 @@ describe('SearchLocalTool', () => {
       await anchorManager.setAnchor('agent1', 'mem1', 'A');
 
       // 임베딩 직접 삽입 (테스트용 더미 벡터)
-      const testEmbedding = Array(384).fill(0.1);
+      const testEmbedding = Array(512).fill(0.1);
       const embeddingJson = JSON.stringify(testEmbedding);
       await DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (
           memory_id, embedding, embedding_provider, projection_type, dimensions, dim, created_at
         )
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, ['mem1', embeddingJson, 'tfidf', 'native', 384, 384]);
+      `, ['mem1', embeddingJson, 'tfidf', 'native', 512, 512]);
     });
 
     it('should fallback to global search when query provided and results insufficient', async () => {

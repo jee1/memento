@@ -203,6 +203,7 @@ export class VectorSearchEngine {
   getDimensions(provider: string = 'tfidf'): number {
     // 기존 동작 유지: provider별 차원 반환
     const providerDimensions: Record<string, number> = {
+      lightweight: VECTOR_SEARCH.PROVIDER_DIMENSIONS.lightweight,
       tfidf: VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf,
       minilm: VECTOR_SEARCH.PROVIDER_DIMENSIONS.minilm,
       openai: VECTOR_SEARCH.PROVIDER_DIMENSIONS.openai,

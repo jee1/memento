@@ -261,11 +261,12 @@ export class MetaMemoryService {
     currentCount: number,
     newConfidence: number
   ): number {
-    const totalConfidence = currentAvg * currentCount;
-    const newTotalConfidence = totalConfidence + newConfidence;
+    const safeAvg = Number.isFinite(Number(currentAvg)) ? Number(currentAvg) : 0;
+    const totalConfidence = safeAvg * currentCount;
+    const newTotalConfidence = totalConfidence + (Number.isFinite(Number(newConfidence)) ? Number(newConfidence) : 0);
     const newRecallCount = currentCount + 1;
-
-    return newTotalConfidence / newRecallCount;
+    const result = newRecallCount > 0 ? newTotalConfidence / newRecallCount : 0;
+    return Number.isFinite(result) ? result : 0;
   }
 
   /**
@@ -452,12 +453,16 @@ export class MetaMemoryService {
    * @returns MetaMemoryStats 객체
    */
   private mapRowToMetaMemoryStats(row: MetaMemoryStatsRow): MetaMemoryStats {
+    const avgConfidence =
+      typeof row.avg_confidence === 'number' && Number.isFinite(row.avg_confidence)
+        ? row.avg_confidence
+        : 0;
     return {
       memory_id: row.memory_id,
       recall_count: row.recall_count,
       success_count: row.success_count,
       failure_count: row.failure_count,
-      avg_confidence: row.avg_confidence,
+      avg_confidence: avgConfidence,
       last_recalled_at: row.last_recalled_at ? new Date(row.last_recalled_at) : undefined,
       created_at: new Date(row.created_at),
       updated_at: new Date(row.updated_at)
@@ -483,6 +488,12 @@ export class MetaMemoryService {
             logger.warn('MetaMemoryService: 유효하지 않은 write 데이터', { write });
             continue;
           }
+
+          // avg_confidence NOT NULL 제약을 위해 null/NaN 방어
+          const avgConfidence =
+            typeof write.avgConfidence === 'number' && Number.isFinite(write.avgConfidence)
+              ? write.avgConfidence
+              : 0;
 
           // UPSERT (INSERT OR UPDATE)
           const stmt = this.db.prepare(`
@@ -510,13 +521,13 @@ export class MetaMemoryService {
             write.recallCount,
             write.successCount,
             write.failureCount,
-            write.avgConfidence,
+            avgConfidence,
             write.lastRecalledAt,
             // ON CONFLICT UPDATE 값들
             write.recallCount,
             write.successCount,
             write.failureCount,
-            write.avgConfidence,
+            avgConfidence,
             write.lastRecalledAt
           );
         }

@@ -8,6 +8,7 @@ import type { MemorySearchFilters, MemorySearchResult } from '../../../shared/ty
 import Database from 'better-sqlite3';
 import { getStopWords } from '../../../shared/utils/stopwords.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
 
@@ -239,25 +240,33 @@ export class SearchEngine {
   private buildFTSQuery(query: string): string {
     // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
     mcpLogger.logServer('debug', '원본 쿼리', { query });
-    
+
     // 사용자 입력의 형식이 다양하므로 정규화하여 검색 일관성을 보장합니다.
     const preprocessedQuery = this.preprocessQuery(query);
     mcpLogger.logServer('debug', '전처리 후 쿼리', { preprocessedQuery });
-    
+
     if (preprocessedQuery.length === 0) {
       mcpLogger.logServer('debug', '빈 쿼리, 모든 문서 검색');
       return '""'; // 빈 쿼리인 경우 빈 문자열로 검색하여 모든 문서를 매치하고 사용자에게 전체 결과를 제공합니다.
     }
-    
+
+    // 긴 쿼리(토큰 수 초과) 시 OR 조합으로 완화하여 FTS·벡터 둘 다 0건이 되는 recall 빈 결과 방지
+    const words = preprocessedQuery.split(' ').filter(w => w.length > 0);
+    const orThreshold = HYBRID_SEARCH.FTS_OR_ABOVE_TOKEN_COUNT;
+    const maxTokens = HYBRID_SEARCH.FTS_MAX_TOKENS_FOR_OR;
+    const ftsQueryString = words.length > orThreshold
+      ? words.slice(0, maxTokens).join(' OR ')
+      : preprocessedQuery;
+
     // FTS5 특수문자로 인한 쿼리 오류를 방지하고 안전한 검색을 보장합니다.
-    const safeQuery = this.makeFTSSafe(preprocessedQuery);
+    const safeQuery = this.makeFTSSafe(ftsQueryString);
     mcpLogger.logServer('debug', 'FTS5 안전 쿼리', { safeQuery });
-    
+
     if (safeQuery.length === 0) {
       mcpLogger.logServer('debug', '안전 쿼리 빈 문자열, 모든 문서 검색');
       return '""'; // 빈 쿼리인 경우 빈 문자열로 검색하여 모든 문서를 매치하고 사용자에게 전체 결과를 제공합니다.
     }
-    
+
     return safeQuery;
   }
 
@@ -482,9 +491,12 @@ export class SearchEngine {
    * @returns reflection_notes 컬럼 사용 가능 여부
    */
   private checkReflectionNotesAvailability(db: Database.Database): boolean {
-    // 환경 변수로 강제 Fallback 활성화 확인
     if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
-      mcpLogger.logServer('warn', '환경 변수로 인해 reflection_notes Fallback 활성화');
+      mcpLogger.logServer('warn', '설정으로 인해 reflection_notes Fallback 활성화');
+      return false;
+    }
+    if (mementoConfig.fts5FallbackEnabled) {
+      mcpLogger.logServer('warn', '설정으로 인해 reflection_notes Fallback 활성화');
       return false;
     }
 

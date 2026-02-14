@@ -20,6 +20,18 @@ const slotColors = {
   'C': { fill: '#3b82f6', stroke: '#2563eb' }
 };
 
+/** XSS 방지: HTML 특수문자 이스케이프 */
+function escapeHtml(str) {
+  if (str == null) return '';
+  const s = String(str);
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // 초기화
 document.addEventListener('DOMContentLoaded', () => {
   initializeMap();
@@ -78,6 +90,15 @@ function setupEventListeners() {
   document.getElementById('refresh-btn').addEventListener('click', loadMapData);
   document.getElementById('search-btn').addEventListener('click', performSearch);
   document.getElementById('clear-search-btn').addEventListener('click', clearSearch);
+
+  document.getElementById('memory-details')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.js-change-anchor');
+    if (btn && btn.dataset.slot) changeAnchor(btn.dataset.slot);
+  });
+  document.getElementById('anchor-list')?.addEventListener('click', (e) => {
+    const el = e.target.closest('.js-select-anchor');
+    if (el && el.dataset.memoryId) selectAnchorNode(el.dataset.memoryId);
+  });
   
   // 자동 새로고침 토글
   document.getElementById('auto-refresh-toggle').addEventListener('change', (e) => {
@@ -365,18 +386,23 @@ function displayMemoryDetails(node) {
   const detailsContainer = document.getElementById('memory-details');
   
   if (node.type === 'anchor') {
+    const slot = escapeHtml(node.slot);
+    const id = escapeHtml(node.id);
+    const content = escapeHtml(node.content);
+    const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
+    const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
     detailsContainer.innerHTML = `
       <div class="memory-detail-item">
         <label>Type:</label>
-        <div class="value">Anchor (Slot ${node.slot})</div>
+        <div class="value">Anchor (Slot ${slot})</div>
       </div>
       <div class="memory-detail-item">
         <label>Memory ID:</label>
-        <div class="value">${node.id}</div>
+        <div class="value">${id}</div>
       </div>
       <div class="memory-detail-item">
         <label>Content:</label>
-        <div class="value">${node.content}</div>
+        <div class="value">${content}</div>
       </div>
       <div class="memory-detail-item">
         <label>Hop Distance:</label>
@@ -388,17 +414,23 @@ function displayMemoryDetails(node) {
       </div>
       <div class="memory-detail-item">
         <label>Importance:</label>
-        <div class="value">${node.importance || 'N/A'}</div>
+        <div class="value">${importance}</div>
       </div>
       <div class="memory-detail-item">
         <label>Created:</label>
-        <div class="value">${node.created_at ? new Date(node.created_at).toLocaleString() : 'N/A'}</div>
+        <div class="value">${created}</div>
       </div>
-      <button onclick="changeAnchor('${node.slot}')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <button type="button" class="js-change-anchor" data-slot="${slot}" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
         Change Anchor
       </button>
     `;
   } else {
+    const id = escapeHtml(node.id);
+    const content = escapeHtml(node.content);
+    const hopDistance = escapeHtml(node.hop_distance != null ? node.hop_distance : 'N/A');
+    const similarity = node.similarity != null ? escapeHtml((node.similarity * 100).toFixed(1) + '%') : 'N/A';
+    const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
+    const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
     detailsContainer.innerHTML = `
       <div class="memory-detail-item">
         <label>Type:</label>
@@ -406,27 +438,27 @@ function displayMemoryDetails(node) {
       </div>
       <div class="memory-detail-item">
         <label>Memory ID:</label>
-        <div class="value">${node.id}</div>
+        <div class="value">${id}</div>
       </div>
       <div class="memory-detail-item">
         <label>Content:</label>
-        <div class="value">${node.content}</div>
+        <div class="value">${content}</div>
       </div>
       <div class="memory-detail-item">
         <label>Hop Distance:</label>
-        <div class="value">${node.hop_distance || 'N/A'}</div>
+        <div class="value">${hopDistance}</div>
       </div>
       <div class="memory-detail-item">
         <label>Similarity:</label>
-        <div class="value">${node.similarity ? (node.similarity * 100).toFixed(1) + '%' : 'N/A'}</div>
+        <div class="value">${similarity}</div>
       </div>
       <div class="memory-detail-item">
         <label>Importance:</label>
-        <div class="value">${node.importance || 'N/A'}</div>
+        <div class="value">${importance}</div>
       </div>
       <div class="memory-detail-item">
         <label>Created:</label>
-        <div class="value">${node.created_at ? new Date(node.created_at).toLocaleString() : 'N/A'}</div>
+        <div class="value">${created}</div>
       </div>
     `;
   }
@@ -446,13 +478,16 @@ function updateAnchorList() {
   anchorListContainer.innerHTML = mapData.anchors
     .map(anchor => {
       if (!anchor.memory_id) return '';
-      
       const memory = mapData.nodes.find(n => n.id === anchor.memory_id);
+      const slot = escapeHtml(anchor.slot);
+      const slotClass = /^[ABC]$/i.test(anchor.slot) ? slot.toLowerCase() : 'a';
+      const memoryId = escapeHtml(anchor.memory_id);
+      const contentPreview = memory ? escapeHtml(memory.content.substring(0, 50)) + '...' : '';
       return `
-        <div class="anchor-item slot-${anchor.slot.toLowerCase()}" onclick="selectAnchorNode('${anchor.memory_id}')">
-          <div class="slot-label">Slot ${anchor.slot}</div>
-          <div class="memory-id">${anchor.memory_id}</div>
-          ${memory ? `<div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">${memory.content.substring(0, 50)}...</div>` : ''}
+        <div class="anchor-item slot-${slotClass} js-select-anchor" data-memory-id="${memoryId}">
+          <div class="slot-label">Slot ${slot}</div>
+          <div class="memory-id">${memoryId}</div>
+          ${memory ? `<div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">${contentPreview}</div>` : ''}
         </div>
       `;
     })

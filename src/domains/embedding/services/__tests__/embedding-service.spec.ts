@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EmbeddingService, type EmbeddingResult, type SimilarityResult } from '../embedding-service.js';
 import { GeminiEmbeddingService } from '../gemini-embedding-service.js';
 import { LightweightEmbeddingService } from '../lightweight-embedding-service.js';
+import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 
 // mementoConfig 모킹
@@ -67,9 +68,9 @@ describe('EmbeddingService', () => {
   let service: EmbeddingService;
 
   beforeEach(() => {
-    // 실제 서비스 사용 (lightweight는 항상 사용 가능)
     vi.mocked(mementoConfig).embeddingProvider = 'lightweight';
-    service = new EmbeddingService();
+    const retryManager = new RetryManager({ maxAttempts: 3, baseDelay: 100 });
+    service = new EmbeddingService(retryManager);
   });
 
   afterEach(() => {
@@ -124,7 +125,7 @@ describe('EmbeddingService', () => {
     it('lightweight 제공자를 사용해야 함', async () => {
       // Given: lightweight 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'lightweight';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
       const text = 'Test lightweight';
 
       // When: 임베딩 생성
@@ -138,7 +139,7 @@ describe('EmbeddingService', () => {
     it('gemini 제공자를 사용해야 함', async () => {
       // Given: gemini 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'gemini';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
       const text = 'Test gemini';
 
       // When: 임베딩 생성
@@ -169,7 +170,7 @@ describe('EmbeddingService', () => {
     it('알 수 없는 제공자에 대해 lightweight로 fallback해야 함', async () => {
       // Given: 알 수 없는 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'unknown' as any;
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
       const text = 'Test fallback';
 
       // When: 임베딩 생성
@@ -183,7 +184,7 @@ describe('EmbeddingService', () => {
     it('제공자 실패 시 lightweight로 fallback해야 함', async () => {
       // Given: 실패하는 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'gemini';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
       
       const text = 'Test fallback on error';
 
@@ -369,7 +370,7 @@ describe('EmbeddingService', () => {
     it('lightweight 제공자가 사용 가능하면 true를 반환해야 함', () => {
       // Given: lightweight 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'lightweight';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 사용 가능 여부 확인
       const available = service.isAvailable();
@@ -382,7 +383,7 @@ describe('EmbeddingService', () => {
       // Given: openai 제공자 설정, API 키 없음
       vi.mocked(mementoConfig).embeddingProvider = 'openai';
       vi.mocked(mementoConfig).openaiApiKey = null;
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 사용 가능 여부 확인
       const available = service.isAvailable();
@@ -395,7 +396,7 @@ describe('EmbeddingService', () => {
       // Given: gemini 제공자 설정
       const originalProvider = mementoConfig.embeddingProvider;
       (mementoConfig as any).embeddingProvider = 'gemini';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 사용 가능 여부 확인
       const available = service.isAvailable();
@@ -410,7 +411,7 @@ describe('EmbeddingService', () => {
     it('알 수 없는 제공자에 대해 lightweight 사용 가능 여부를 반환해야 함', () => {
       // Given: 알 수 없는 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'unknown' as any;
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 사용 가능 여부 확인
       const available = service.isAvailable();
@@ -424,7 +425,7 @@ describe('EmbeddingService', () => {
     it('lightweight 제공자의 모델 정보를 반환해야 함', () => {
       // Given: lightweight 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'lightweight';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 모델 정보 조회
       const modelInfo = service.getModelInfo();
@@ -440,7 +441,7 @@ describe('EmbeddingService', () => {
     it('openai 제공자의 모델 정보를 반환해야 함', () => {
       // Given: openai 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'openai';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 모델 정보 조회
       const modelInfo = service.getModelInfo();
@@ -457,7 +458,7 @@ describe('EmbeddingService', () => {
     it('gemini 제공자의 모델 정보를 반환해야 함', () => {
       // Given: gemini 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'gemini';
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 모델 정보 조회
       const modelInfo = service.getModelInfo();
@@ -471,7 +472,7 @@ describe('EmbeddingService', () => {
     it('알 수 없는 제공자에 대해 lightweight 모델 정보를 반환해야 함', () => {
       // Given: 알 수 없는 제공자 설정
       vi.mocked(mementoConfig).embeddingProvider = 'unknown' as any;
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
 
       // When: 모델 정보 조회
       const modelInfo = service.getModelInfo();
@@ -485,7 +486,7 @@ describe('EmbeddingService', () => {
   describe('캐시 관리', () => {
     it('캐시 크기가 최대값을 초과하면 정리해야 함', async () => {
       // Given: 많은 임베딩 생성 (캐시 크기 초과)
-      const service = new EmbeddingService();
+      const service = new EmbeddingService(new RetryManager({ maxAttempts: 3, baseDelay: 100 }));
       
       // 캐시 크기 제한을 낮춰서 테스트 (private이므로 간접적으로 테스트)
       // 실제로는 1000개 초과 시 정리되지만, 테스트를 위해 많은 임베딩 생성

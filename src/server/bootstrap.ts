@@ -11,16 +11,21 @@ import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.f
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
 import { ErrorLoggingService } from '../domains/monitoring/services/error-logging-service.js';
 import { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
-import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../shared/utils/write-coalescing.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 import { AnchorCacheService } from '../domains/anchor/services/anchor/anchor-cache-service.js';
 import { AnchorSearchService } from '../domains/anchor/services/anchor/anchor-search-service.js';
 import { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
+import { AsyncTaskQueue } from '../infrastructure/async-optimizer.js';
+import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.interface.js';
+import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
+import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
+import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
+import { DatabaseOptimizer } from '../infrastructure/database/database-optimizer.js';
+import { ConsolidationScoreService } from '../infrastructure/consolidation-score-service.js';
 import { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { logger } from '../shared/utils/logger.js';
@@ -54,12 +59,12 @@ export interface ServerServices {
   embeddingService: MemoryEmbeddingService;
   forgettingPolicyService: ForgettingPolicyService;
   performanceMonitor: ReturnType<typeof getPerformanceMonitor>; // 싱글톤 인스턴스
-  databaseOptimizer: DatabaseOptimizer;
+  databaseOptimizer: IDatabaseOptimizer;
   errorLoggingService: ErrorLoggingService;
   performanceAlertService: PerformanceAlertService;
-  
+
   // 선택적 서비스
-  consolidationScoreService?: ConsolidationScoreService;
+  consolidationScoreService?: IConsolidationScoreService;
   // writeCoalescingManager는 MetaMemoryService를 위해 항상 생성됨
   writeCoalescingManager: WriteCoalescingManager;
   // metaMemoryService는 recall 통계 수집을 위해 항상 초기화됨
@@ -69,11 +74,15 @@ export interface ServerServices {
   // 실패 감지 서비스 (Phase 2)
   failureDetector: FailureDetector;
   // Reflexion Worker 서비스 (Phase 2)
-  reflexionWorker?: ReflexionWorker;
+  reflexionWorker?: IReflexionWorker;
   // WAL 체크포인트 스케줄러
   walCheckpointScheduler: WalCheckpointScheduler;
   // 데이터베이스 락 모니터
   databaseLockMonitor: DatabaseLockMonitor;
+  // 벡터 검색 엔진 (ToolContext 주입용)
+  vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
+  // 배치 스케줄러 (시작 후 index/http-server에서 할당)
+  batchScheduler?: IBatchScheduler;
 }
 
 /**
@@ -106,25 +115,27 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const errorLoggingService = new ErrorLoggingService();
     const performanceAlertService = new PerformanceAlertService('./logs');
     
-    // 2.5. 앵커 관리자 서비스 초기화
-    const anchorCacheService = new AnchorCacheService();
-    anchorCacheService.setDatabase(db);
-    anchorCacheService.setEmbeddingService(embeddingService);
+    // 2.5. 앵커 관리자 서비스 초기화 (생성자 주입)
+    const anchorCacheService = new AnchorCacheService(db, embeddingService);
     
-    const anchorSearchService = new AnchorSearchService(anchorCacheService);
-    anchorSearchService.setDatabase(db);
-    anchorSearchService.setHybridSearchEngine(hybridSearchEngine);
-    anchorSearchService.setVectorSearchEngine(getVectorSearchEngine());
+    const vectorSearchEngine = getVectorSearchEngine();
+    const anchorSearchService = new AnchorSearchService(anchorCacheService, {
+      db,
+      hybridSearchEngine,
+      vectorSearchEngine
+    });
     
-    const anchorManager = new AnchorManager(anchorCacheService, anchorSearchService);
-    anchorManager.setDatabase(db);
-    anchorManager.setErrorLoggingService(errorLoggingService);
+    const anchorManager = new AnchorManager(anchorCacheService, anchorSearchService, {
+      db,
+      errorLoggingService
+    });
     
     // 서버 시작 시 DB에서 앵커 상태 복원
     await anchorCacheService.restoreCacheFromDB(db);
     
-    // 2.6. 실패 감지 서비스 초기화 (Phase 2)
-    const failureDetector = new FailureDetector();
+    // 2.6. 실패 감지 서비스 초기화 (Phase 2, IAsyncTaskQueue 주입)
+    const failureEventQueue = new AsyncTaskQueue(5);
+    const failureDetector = new FailureDetector(failureEventQueue);
     await failureDetector.startQueue(); // 큐 시작
     
     // 2.7. Reflexion Worker 초기화 (Phase 2)
@@ -259,6 +270,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     return {
       searchEngine,
       hybridSearchEngine,
+      vectorSearchEngine,
       embeddingService,
       forgettingPolicyService,
       performanceMonitor,

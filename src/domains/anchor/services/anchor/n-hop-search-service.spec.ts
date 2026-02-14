@@ -11,7 +11,8 @@ import { NHopSearchService } from './n-hop-search-service.js';
 import { AnchorCacheService } from './anchor-cache-service.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 
 describe('NHopSearchService', () => {
@@ -38,7 +39,7 @@ describe('NHopSearchService', () => {
     try {
       const migration = new RelationEngineSchemaMigration();
       migration.up(db);
-      relationGraph = new RelationGraph(db);
+      relationGraph = createRelationGraph(db);
     } catch (error) {
       relationGraph = null;
     }

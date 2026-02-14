@@ -5,7 +5,8 @@
  */
 
 import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
-import { EmbeddingService } from '../services/embedding-service.js';
+import { EmbeddingService } from '../domains/embedding/services/embedding-service.js';
+import { RetryManager } from '../infrastructure/scheduler/retry-manager.js';
 import { mementoConfig } from '../shared/config/index.js';
 import { PIIMasker } from '../shared/utils/pii-masker.js';
 
@@ -51,7 +52,9 @@ async function testGeminiEmbeddingService() {
   console.log('2️⃣ 통합 임베딩 서비스 테스트 (Gemini 제공자)');
   console.log(`   - 현재 임베딩 제공자: ${mementoConfig.embeddingProvider}`);
   
-  const embeddingService = new EmbeddingService();
+  const embeddingService = new EmbeddingService(
+    new RetryManager({ maxAttempts: 3, baseDelay: 100 })
+  );
   console.log(`   - 서비스 사용 가능: ${embeddingService.isAvailable()}`);
   console.log(`   - 모델 정보:`, embeddingService.getModelInfo());
 

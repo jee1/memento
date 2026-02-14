@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from './helpers/test-database.js';
 import { FailureDetector, ErrorType, type FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { ReflexionWorker } from '../services/reflexion-worker.js';
+import { AsyncTaskQueue } from '../infrastructure/async-optimizer.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 
 describe('Reflexion E2E 테스트', () => {
@@ -17,7 +18,8 @@ describe('Reflexion E2E 테스트', () => {
 
   beforeEach(async () => {
     db = await setupTestDatabase();
-    detector = new FailureDetector();
+    const eventQueue = new AsyncTaskQueue(5);
+    detector = new FailureDetector(eventQueue);
     worker = new ReflexionWorker(detector, db);
     await detector.startQueue();
     await worker.start();

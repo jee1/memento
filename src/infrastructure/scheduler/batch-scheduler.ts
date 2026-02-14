@@ -16,11 +16,12 @@
  * 모니터링: 로깅·getStatus()·admin 라우트에서 큐/실행 상태 확인 가능.
  */
 
+import type { IBatchScheduler } from '../../shared/interfaces/batch-scheduler.interface.js';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor, type PerformanceAlert } from '../../domains/monitoring/services/performance-monitor.js';
 import Database from 'better-sqlite3';
 import { ConsolidationScoreWorker } from '../../workers/consolidation-score-worker.js';
-import { ReflexionWorker } from '../reflexion-worker.js';
+import type { IReflexionWorker } from '../../shared/interfaces/reflexion-worker.interface.js';
 import { mementoConfig } from '../../shared/config/index.js';
 import { mcpLogger } from '../../server/mcp-logger.js';
 import { JobQueue } from './job-queue.js';
@@ -105,12 +106,12 @@ export interface SchedulerStatus {
  * 비동기 Augmentation 파이프라인 워커.
  * @see docs/architecture/async-augmentation-pipeline.md
  */
-export class BatchScheduler {
+export class BatchScheduler implements IBatchScheduler {
   private config: BatchJobConfig;
   private forgettingService: ForgettingPolicyService;
   private performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
   private consolidationScoreWorker: ConsolidationScoreWorker | null = null;
-  private reflexionWorker: ReflexionWorker | null = null;
+  private reflexionWorker: IReflexionWorker | null = null;
   private db: Database.Database | null = null;
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
   private isRunning = false;
@@ -200,7 +201,7 @@ export class BatchScheduler {
    * @param db 데이터베이스 인스턴스
    * @param reflexionWorker Reflexion Worker 인스턴스 (선택적)
    */
-  async start(db: Database.Database, reflexionWorker?: ReflexionWorker): Promise<void> {
+  async start(db: Database.Database, reflexionWorker?: IReflexionWorker): Promise<void> {
     if (this.isRunning) {
       throw new Error('BatchScheduler is already running');
     }

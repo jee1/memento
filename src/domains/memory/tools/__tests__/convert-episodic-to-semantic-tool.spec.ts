@@ -9,7 +9,7 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { ConvertEpisodicToSemanticTool } from '../convert-episodic-to-semantic-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { UnifiedEmbeddingService } from '../../../../domains/embedding/services/unified-embedding-service.js';
-import { RelationGraph } from '../../../../domains/relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 /**
  * Memory ID 생성 유틸리티 (테스트용)
  */
@@ -119,7 +119,7 @@ describe('ConvertEpisodicToSemanticTool', () => {
       db,
       services: {
         embeddingService: new UnifiedEmbeddingService(),
-        relationGraph: new RelationGraph(db)
+        relationGraph: createRelationGraph(db)
       }
     };
   });

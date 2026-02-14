@@ -62,14 +62,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
       // 데이터베이스 연결 확인
       this.validateDatabase(context);
 
-      // MemoryNeighborService 인스턴스 생성
-      let vectorSearchEngine;
-      try {
-        vectorSearchEngine = getVectorSearchEngine();
-      } catch (error) {
-        this.logError(error as Error, 'VectorSearchEngine 초기화 실패');
-        throw new Error(`벡터 검색 엔진 초기화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+      const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
       
       const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
       
@@ -77,19 +70,12 @@ export class GetMemoryNeighborsTool extends BaseTool {
       try {
         neighborService = new MemoryNeighborService(
           vectorSearchEngine,
-          embeddingService
+          embeddingService,
+          context.db!
         );
       } catch (error) {
         this.logError(error as Error, 'MemoryNeighborService 생성 실패');
         throw new Error(`이웃 기억 서비스 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-      
-      // 데이터베이스 설정
-      try {
-        neighborService.setDatabase(context.db!);
-      } catch (error) {
-        this.logError(error as Error, '데이터베이스 설정 실패');
-        throw new Error(`데이터베이스 설정 실패: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
       // 이웃 기억 조회

@@ -39,6 +39,7 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Auto Cleanup**: Automated soft/hard deletion
 
 ### 📊 Performance Monitoring (HTTP Management API)
+- **Security**: HTTP API has no authentication; use only on **internal networks or with MCP clients**. See [docs/security.md](docs/security.md).
 - **Real-time Metrics**: Database, search, memory performance monitoring
 - **Real-time Alerts**: Automatic performance checks every 30 seconds with threshold-based alerts
 - **Error Logging**: Structured error logging and statistics collection
@@ -153,9 +154,9 @@ const results = await client.callTool({
 
 ## 📋 API Documentation
 
-### MCP Tools (Core 15)
+### MCP Tools (Core 14)
 
-> **Important**: MCP client exposes 15 core memory management functions.  
+> **Important**: MCP client exposes 14 core memory management functions.  
 > Management functions are separated into HTTP API endpoints.
 
 #### Basic Memory Management (7)
@@ -197,6 +198,8 @@ const results = await client.callTool({
 | `/admin/alerts/performance` | Performance alerts | GET |
 | `/admin/database/optimize` | Database optimization | POST |
 
+**Other HTTP admin**: Batch status/run (`/admin/batch/*`), performance metrics/alerts (`/admin/performance/*`), relation extract/get/visualize (`/admin/relations/*`). See [docs/ko/api-reference.md](docs/ko/api-reference.md) (or [docs/en/api-reference.md](docs/en/api-reference.md) if available).
+
 ### Resources
 
 | Resource | Description |
@@ -211,12 +214,16 @@ const results = await client.callTool({
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NODE_ENV` | development | Runtime environment |
-| `PORT` | 8080 | Server port |
+| `PORT` / `MCP_SERVER_PORT` | 3000 (code default) | HTTP/MCP server port (env.example recommends 8080) |
 | `DB_PATH` | ./data/memory.db | Database path |
 | `LOG_LEVEL` | info | Log level |
 | `OPENAI_API_KEY` | - | OpenAI API key (optional) |
 | `GEMINI_API_KEY` | - | Gemini API key (optional) |
-| `EMBEDDING_PROVIDER` | auto | Embedding provider (tfidf, minilm, openai, gemini, auto) |
+| `EMBEDDING_PROVIDER` | minilm | Embedding provider (tfidf, lightweight, minilm, openai, gemini) |
+| `CORS_ALLOWED_ORIGINS` | (empty) | CORS allowed origins (comma-separated; empty = no cross-origin) |
+| `ENABLE_PII_MASKING` | true | PII masking (security; see [docs/security.md](docs/security.md)) |
+
+> **Note**: For TTL, LLM/Ollama, search limits, and more, see `env.example`.
 
 ### Forgetting Policy Configuration
 
@@ -318,7 +325,7 @@ npm run test -- --coverage
 - **Index**: FTS5 + sqlite-vec
 - **Authentication**: None (local only)
 - **Operation**: Local execution
-- **MCP Client**: Exposes 15 core tools
+- **MCP Client**: Exposes 14 core tools
 - **Management Functions**: Separated into HTTP API
 - **Additional Features**: 
   - Multiple embedding providers (TF-IDF, MiniLM, OpenAI, Gemini)

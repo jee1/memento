@@ -10,7 +10,8 @@ import { AnchorCacheService } from './anchor-cache-service.js';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
 import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-interfaces.js';
@@ -49,7 +50,7 @@ describe('AnchorSearchService', () => {
     try {
       const migration = new RelationEngineSchemaMigration();
       migration.up(db);
-      relationGraph = new RelationGraph(db);
+      relationGraph = createRelationGraph(db);
       service.setRelationGraph(relationGraph);
     } catch (error) {
       // 관계 그래프 스키마가 없으면 무시

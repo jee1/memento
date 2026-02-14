@@ -20,7 +20,7 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
+import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
@@ -87,8 +87,12 @@ export interface RecallResponseMetadata {
   anchor_set_error?: boolean;
   anchor_set_skipped?: boolean;
   anchor_set_skipped_reason?: string;
+  /** 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용) */
+  text_result_count?: number;
+  vector_result_count?: number;
+  fallback_used?: boolean;
   /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: AnchorSetMetadata | null | boolean | string | undefined;
+  [key: string]: AnchorSetMetadata | null | boolean | string | number | undefined;
 }
 
 /**
@@ -726,8 +730,7 @@ export class RecallTool extends BaseTool {
           updated_at: record.updated_at
         }));
 
-        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+        if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
         return this.createSuccessResult({
@@ -771,8 +774,7 @@ export class RecallTool extends BaseTool {
           updated_at: record.updated_at
         }));
 
-        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+        if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
         return this.createSuccessResult({
@@ -1064,13 +1066,21 @@ export class RecallTool extends BaseTool {
           metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
         }
 
+        // 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용)
+        const sr = searchResult as unknown as { text_count?: number; vector_count?: number; fallback_used?: boolean };
+        if (includeMetadata && searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
+          metadata.text_result_count = sr.text_count;
+          metadata.vector_result_count = sr.vector_count;
+          if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
+        }
+
         // Meta Memory Statistics 조회 (include_metadata=true일 때만)
         const metaStats = includeMetadata && context.services.metaMemoryService && processedResults.length > 0
           ? await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService)
           : undefined;
 
         // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+        if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
         return this.createSuccessResult({
@@ -1632,10 +1642,9 @@ export class RecallTool extends BaseTool {
     // MemoryNeighborService 인스턴스 생성
     let neighborService: MemoryNeighborService;
     try {
-      const vectorSearchEngine = getVectorSearchEngine();
+      const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
       const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
-      neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService);
-      neighborService.setDatabase(context.db!);
+      neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService, context.db!);
     } catch (error) {
       this.logError(error as Error, 'MemoryNeighborService 초기화 실패', {});
       // 서비스 초기화 실패 시 빈 배열 반환 (각 요소가 독립적인 배열 인스턴스)
@@ -1914,7 +1923,7 @@ export class RecallTool extends BaseTool {
    */
   private async updateConsolidationScoreMetadata(
     db: Database.Database,
-    consolidationScoreService: ConsolidationScoreService,
+    consolidationScoreService: IConsolidationScoreService,
     writeCoalescingManager: WriteCoalescingManager | undefined,
     searchItems: RecallSearchItem[]
   ): Promise<void> {

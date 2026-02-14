@@ -98,7 +98,16 @@ export const mementoConfig: MementoConfig = {
   proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
     ? 'llm_first'
     : 'rule_only') as 'llm_first' | 'rule_only',
-  proceduralLlmExtractorTimeoutMs: resolveNumber('PROCEDURAL_LLM_EXTRACTOR_TIMEOUT_MS', { defaultValue: 10000 })
+  proceduralLlmExtractorTimeoutMs: resolveNumber('PROCEDURAL_LLM_EXTRACTOR_TIMEOUT_MS', { defaultValue: 10000 }),
+
+  // CORS: 허용 오리진 목록 (환경 변수 CORS_ALLOWED_ORIGINS 쉼표 구분, 비어 있으면 크로스 오리진 미허용)
+  corsAllowedOrigins: (resolveOptionalString('CORS_ALLOWED_ORIGINS') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+
+  recallProfileEnabled: getRawEnvValue('MEMENTO_RECALL_PROFILE') === '1',
+  fts5FallbackEnabled: resolveBoolean('MEMENTO_FTS5_FALLBACK_ENABLED', { defaultValue: false })
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

@@ -10,6 +10,7 @@ import { AnchorCacheService } from '../../../anchor/services/anchor/anchor-cache
 import { AnchorSearchService } from '../../../anchor/services/anchor/anchor-search-service.js';
 import { getVectorSearchEngine, type VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import { MemoryNeighborService } from '../../services/memory-neighbor-service.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -352,10 +353,10 @@ describe('RecallTool', () => {
     });
   });
 
-  describe('recall profiling (MEMENTO_RECALL_PROFILE)', () => {
-    it('Given: MEMENTO_RECALL_PROFILE=1, When: recall 성공 시, Then: logInfo에 recall_profile 및 total_ms 호출됨', async () => {
-      const envRestore = process.env.MEMENTO_RECALL_PROFILE;
-      process.env.MEMENTO_RECALL_PROFILE = '1';
+  describe('recall profiling (recallProfileEnabled)', () => {
+    it('Given: recallProfileEnabled=true, When: recall 성공 시, Then: logInfo에 recall_profile 및 total_ms 호출됨', async () => {
+      const configRestore = mementoConfig.recallProfileEnabled;
+      mementoConfig.recallProfileEnabled = true;
       const logSpy = vi.spyOn(tool, 'logInfo');
       try {
         const params = { type: 'core' };
@@ -364,8 +365,7 @@ describe('RecallTool', () => {
         expect(profileCall).toBeDefined();
         expect(profileCall![1]).toMatchObject({ total_ms: expect.any(Number) });
       } finally {
-        if (envRestore !== undefined) process.env.MEMENTO_RECALL_PROFILE = envRestore;
-        else delete process.env.MEMENTO_RECALL_PROFILE;
+        mementoConfig.recallProfileEnabled = configRestore;
         logSpy.mockRestore();
       }
     });

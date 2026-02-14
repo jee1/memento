@@ -9,7 +9,7 @@ import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import { getBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
 import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
-import { RelationGraph } from '../../domains/relation/services/relation-graph.js';
+import { createRelationGraph } from '../../infrastructure/relation-graph-factory.js';
 import { RelationExtractor } from '../../domains/relation/services/relation-extractor.js';
 import { ExtractRelationsTool } from '../../domains/relation/tools/extract-relations-tool.js';
 import { GetRelationsTool } from '../../domains/relation/tools/get-relations-tool.js';
@@ -389,7 +389,7 @@ export function createAdminRouter(
       }
 
       // ToolContext 생성 (관계 엔진 도구 사용)
-      const relationGraph = new RelationGraph(db);
+      const relationGraph = createRelationGraph(db);
       const context = {
         db,
         services: { relationGraph }
@@ -431,7 +431,7 @@ export function createAdminRouter(
       const { memory_id } = req.params;
       const { relation_type, category, direction } = req.query;
 
-      const relationGraph = new RelationGraph(db);
+      const relationGraph = createRelationGraph(db);
       const context = {
         db,
         services: { relationGraph }
@@ -483,7 +483,7 @@ export function createAdminRouter(
         });
       }
 
-      const relationGraph = new RelationGraph(db);
+      const relationGraph = createRelationGraph(db);
       const context = {
         db,
         services: { relationGraph }
@@ -528,8 +528,15 @@ export function createAdminRouter(
       }
 
       const { relation_id } = req.params;
+      const relationIdNum = parseInt(relation_id, 10);
+      if (Number.isNaN(relationIdNum) || relationIdNum < 1) {
+        return res.status(400).json({
+          error: 'Invalid relation_id',
+          message: 'relation_id는 1 이상의 정수여야 합니다'
+        });
+      }
 
-      const relationGraph = new RelationGraph(db);
+      const relationGraph = createRelationGraph(db);
       const context = {
         db,
         services: { relationGraph }
@@ -537,7 +544,7 @@ export function createAdminRouter(
 
       const removeTool = new RemoveRelationTool();
       const result = await removeTool.handle({
-        relation_id: parseInt(relation_id, 10)
+        relation_id: relationIdNum
       }, context);
 
       const resultText = result.content[0]?.text || '{}';
@@ -573,7 +580,16 @@ export function createAdminRouter(
       const { memory_id } = req.params;
       const { format, max_depth, min_confidence, relation_types, show_memory_ids, show_confidence, show_relation_types } = req.query;
 
-      const relationGraph = new RelationGraph(db);
+      const parsedMaxDepth = max_depth ? parseInt(max_depth as string, 10) : 2;
+      const parsedMinConf = min_confidence ? parseFloat(min_confidence as string) : undefined;
+      if (max_depth !== undefined && (Number.isNaN(parsedMaxDepth) || parsedMaxDepth < 1 || parsedMaxDepth > 20)) {
+        return res.status(400).json({ error: 'Invalid max_depth', message: 'max_depth는 1–20 사이 정수여야 합니다' });
+      }
+      if (min_confidence !== undefined && (parsedMinConf === undefined || Number.isNaN(parsedMinConf) || parsedMinConf < 0 || parsedMinConf > 1)) {
+        return res.status(400).json({ error: 'Invalid min_confidence', message: 'min_confidence는 0–1 사이 숫자여야 합니다' });
+      }
+
+      const relationGraph = createRelationGraph(db);
       const context = {
         db,
         services: { relationGraph }
@@ -594,8 +610,8 @@ export function createAdminRouter(
       const result = await visualizeTool.handle({
         memory_id,
         format: (format as 'text' | 'subgraph' | 'simple' | 'json') || 'subgraph',
-        max_depth: max_depth ? parseInt(max_depth as string, 10) : 2,
-        min_confidence: min_confidence ? parseFloat(min_confidence as string) : undefined,
+        max_depth: parsedMaxDepth,
+        min_confidence: parsedMinConf,
         relation_types: parsedRelationTypes,
         show_memory_ids: show_memory_ids !== undefined ? show_memory_ids === 'true' : true,
         show_confidence: show_confidence !== undefined ? show_confidence === 'true' : true,
@@ -771,9 +787,27 @@ export function createAdminRouter(
       if (memory_ids) {
         params.memory_ids = Array.isArray(memory_ids) ? memory_ids : (memory_ids as string).split(',');
       }
-      if (min_recall_count) params.min_recall_count = parseInt(min_recall_count as string, 10);
-      if (min_confidence) params.min_confidence = parseFloat(min_confidence as string);
-      if (limit) params.limit = parseInt(limit as string, 10);
+      if (min_recall_count) {
+        const n = parseInt(min_recall_count as string, 10);
+        if (Number.isNaN(n) || n < 0) {
+          return res.status(400).json({ error: 'Invalid min_recall_count', message: 'min_recall_count는 0 이상의 정수여야 합니다' });
+        }
+        params.min_recall_count = n;
+      }
+      if (min_confidence) {
+        const c = parseFloat(min_confidence as string);
+        if (Number.isNaN(c) || c < 0 || c > 1) {
+          return res.status(400).json({ error: 'Invalid min_confidence', message: 'min_confidence는 0–1 사이 숫자여야 합니다' });
+        }
+        params.min_confidence = c;
+      }
+      if (limit) {
+        const l = parseInt(limit as string, 10);
+        if (Number.isNaN(l) || l < 1 || l > 1000) {
+          return res.status(400).json({ error: 'Invalid limit', message: 'limit는 1–1000 사이 정수여야 합니다' });
+        }
+        params.limit = l;
+      }
 
       const result = await statsTool.handle(params, toolContext);
 

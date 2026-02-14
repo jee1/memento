@@ -77,7 +77,8 @@ export async function setupTestDatabase(): Promise<Database.Database> {
   // 3. 벡터 테이블 초기화 (VEC 확장이 로드된 경우에만)
   if (vecExtensionLoaded) {
     const vecTables = [
-      { name: 'memory_item_vec_tfidf', dimension: 384 },
+      { name: 'memory_item_vec', dimension: 384 },
+      { name: 'memory_item_vec_tfidf', dimension: 512 },
       { name: 'memory_item_vec_minilm', dimension: 384 },
       { name: 'memory_item_vec_openai', dimension: 1536 },
       { name: 'memory_item_vec_gemini', dimension: 768 }

@@ -105,8 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_acc
 CREATE INDEX IF NOT EXISTS idx_memory_item_pinned ON memory_item(pinned);
 CREATE INDEX IF NOT EXISTS idx_memory_item_privacy_scope ON memory_item(privacy_scope);
 CREATE INDEX IF NOT EXISTS idx_memory_item_importance ON memory_item(importance);
-CREATE INDEX IF NOT EXISTS idx_memory_item_user_id ON memory_item(id); -- user_id 대신 id 사용
-CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(id); -- project_id 대신 id 사용
+-- idx_memory_item_user_id, idx_memory_item_project_id 제거: memory_item(id)는 PK로 이미 인덱스됨 (리뷰 P8)
 -- Procedural Memory Enhancement (v7.0) 인덱스
 CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name);
 CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name);

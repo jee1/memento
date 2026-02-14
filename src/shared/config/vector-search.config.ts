@@ -10,12 +10,15 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
   defaultThreshold: 0.7,
   defaultLimit: 10,
   tableNames: {
+    /** 384차원 공용 테이블 (lightweight 등). 트리거는 dimensions=384일 때 여기에 INSERT */
+    lightweight: 'memory_item_vec',
     tfidf: 'memory_item_vec_tfidf',
     minilm: 'memory_item_vec_minilm',
     openai: 'memory_item_vec_openai',
     gemini: 'memory_item_vec_gemini'
   },
   providerDimensions: {
+    lightweight: 384,
     tfidf: 512,
     minilm: 384,
     openai: 1536,
@@ -24,6 +27,7 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
 } as const;
 
 export const VECTOR_SEARCH_PROVIDERS = {
+  LIGHTWEIGHT: 'lightweight',
   TFIDF: 'tfidf',
   MINILM: 'minilm',
   OPENAI: 'openai',

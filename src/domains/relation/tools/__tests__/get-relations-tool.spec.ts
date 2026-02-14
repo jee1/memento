@@ -7,7 +7,8 @@ import Database from 'better-sqlite3';
 import { GetRelationsTool } from '../get-relations-tool.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
-import { RelationGraph } from '../../services/relation-graph.js';
+import type { RelationGraph } from '../../services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import type { ToolContext } from '../types.js';
 
 /**
@@ -73,7 +74,7 @@ describe('GetRelationsTool', () => {
     migration.up(db);
     
     // RelationGraph 초기화
-    relationGraph = new RelationGraph(db);
+    relationGraph = createRelationGraph(db);
     
     // ToolContext 생성
     context = {

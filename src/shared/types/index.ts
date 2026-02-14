@@ -250,6 +250,12 @@ export interface MementoConfig {
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
   proceduralExtractionStrategy: 'llm_first' | 'rule_only';
   proceduralLlmExtractorTimeoutMs: number;
+  // CORS: 허용할 오리진 목록 (비어 있으면 크로스 오리진 허용 안 함)
+  corsAllowedOrigins: string[];
+  // Recall 프로파일링 (MEMENTO_RECALL_PROFILE=1 시 활성화)
+  recallProfileEnabled: boolean;
+  // FTS5 fallback 강제 (MEMENTO_FTS5_FALLBACK_ENABLED=true 시 reflection_notes FTS 제외)
+  fts5FallbackEnabled: boolean;
 }
 
 /**

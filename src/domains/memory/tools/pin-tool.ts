@@ -153,20 +153,21 @@ export class PinTool extends BaseTool {
       already_pinned: [] as string[],
       total: ids.length
     };
-    
+
+    const memoryById = await this.getMemoriesByIds(ids, context);
     for (const id of ids) {
       try {
-        const memory = await this.getMemoryById(id, context);
+        const memory = memoryById.get(id);
         if (!memory) {
           results.failed.push({ id, error: 'Memory not found' });
           continue;
         }
-        
+
         if (memory.pinned) {
           results.already_pinned.push(id);
           continue;
         }
-        
+
         await this.handleSinglePin(id, reason, priority, context);
         results.successful.push(id);
       } catch (error) {
@@ -190,10 +191,24 @@ export class PinTool extends BaseTool {
    */
   private async getMemoryById(id: string, context: ToolContext): Promise<any> {
     return await DatabaseUtils.get(
-      context.db!, 
-      'SELECT * FROM memory_item WHERE id = ?', 
+      context.db!,
+      'SELECT * FROM memory_item WHERE id = ?',
       [id]
     );
+  }
+
+  /**
+   * 여러 기억 일괄 조회 (N+1 완화)
+   */
+  private async getMemoriesByIds(ids: string[], context: ToolContext): Promise<Map<string, any>> {
+    if (ids.length === 0) return new Map();
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = await DatabaseUtils.all(
+      context.db!,
+      `SELECT * FROM memory_item WHERE id IN (${placeholders})`,
+      ids
+    ) as any[];
+    return new Map(rows.map((r) => [r.id, r]));
   }
 
   /**

@@ -64,6 +64,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const tableStatement = this.db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN (
+          'memory_item_vec',
           'memory_item_vec_tfidf',
           'memory_item_vec_minilm', 
           'memory_item_vec_openai',
@@ -167,20 +168,17 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     }
 
     // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
-    // 왜 expectedDimensions를 사용하는가? getTableName(provider)는 provider별 테이블을 선택하므로
-    // 차원 계산도 provider 설정과 일치해야 테이블 차원과 일치함
-    // actualStoredDimensions를 사용하면 테이블 선택(512차원)과 차원 계산(384차원)이 불일치하여 오류 발생
     if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
       mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
         provider,
         expectedDimensions,
         actualStoredDimensions,
-        message: 'provider 설정과 다른 차원의 데이터가 저장되어 있습니다. expectedDimensions를 사용합니다.'
+        message: '저장된 차원을 사용해 테이블을 선택합니다 (384 시 memory_item_vec).'
       });
     }
 
-    // 테이블 선택과 일치하도록 expectedDimensions 사용
-    const targetDimensions = expectedDimensions;
+    // 테이블 선택: 저장된 차원이 있으면 사용 (tfidf+384 → memory_item_vec), 없으면 config 기준
+    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
 
     // 벡터 차원 검증
     if (queryVector.length !== targetDimensions) {
@@ -200,7 +198,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       : (type ? [type] : []);
 
     try {
-      const tableName = this.getTableName(provider ?? 'tfidf');
+      const tableName = this.getTableName(provider ?? 'tfidf', targetDimensions);
       // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
       // 템플릿 리터럴 대신 문자열 연결 사용
       const typeClause = typeFilters.length > 0
@@ -327,20 +325,17 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     }
 
     // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
-    // 왜 expectedDimensions를 사용하는가? getTableName(provider)는 provider별 테이블을 선택하므로
-    // 차원 계산도 provider 설정과 일치해야 테이블 차원과 일치함
-    // actualStoredDimensions를 사용하면 테이블 선택(512차원)과 차원 계산(384차원)이 불일치하여 오류 발생
     if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
       mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
         provider,
         expectedDimensions,
         actualStoredDimensions,
-        message: 'provider 설정과 다른 차원의 데이터가 저장되어 있습니다. expectedDimensions를 사용합니다.'
+        message: '저장된 차원을 사용해 테이블을 선택합니다 (384 시 memory_item_vec).'
       });
     }
 
-    // 테이블 선택과 일치하도록 expectedDimensions 사용
-    const targetDimensions = expectedDimensions;
+    // 테이블 선택: 저장된 차원이 있으면 사용 (tfidf+384 → memory_item_vec), 없으면 config 기준
+    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
 
     // 벡터 차원 검증
     if (queryVector.length !== targetDimensions) {
@@ -360,7 +355,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       : (type ? [type] : []);
 
     try {
-      const tableName = this.getTableName(provider ?? 'tfidf');
+      const tableName = this.getTableName(provider ?? 'tfidf', targetDimensions);
       
       // textQuery가 없거나 빈 문자열이면 텍스트 검색을 건너뛰고 벡터 검색만 사용
       // FTS5는 빈 쿼리를 에러로 처리하므로 이를 방지
@@ -658,10 +653,10 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
   /**
    * 테이블명 반환
-   * SQL Injection 방지를 위해 화이트리스트 기반 검증을 수행합니다.
+   * dimensions 전달 시 tfidf+384 → memory_item_vec 매핑 적용.
    */
-  getTableName(provider: string): string {
-    return getValidatedVectorTableName(provider ?? 'tfidf');
+  getTableName(provider: string, dimensions?: number): string {
+    return getValidatedVectorTableName(provider ?? 'tfidf', dimensions);
   }
 
   /**

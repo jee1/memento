@@ -12,7 +12,8 @@
 
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
 import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
@@ -119,7 +120,7 @@ export class SemanticMemoryUpdateService {
       this.embeddingService = new UnifiedEmbeddingService();
     }
     
-    this.relationGraph = relationGraph || new RelationGraph(db);
+    this.relationGraph = relationGraph || createRelationGraph(db);
     this.kgTripleRepo = kgTripleRepo ?? new KgTripleRepository(db);
 
     // PRD 8.2: Semantic Memory 생성 통계 수집

@@ -30,15 +30,17 @@ export class AnchorManager implements IAnchorManager {
   } as const;
 
   /**
-   * 생성자
-   * 의존성 주입을 통해 캐시 서비스와 검색 서비스를 받음
+   * 생성자 (옵션으로 db·errorLoggingService 주입 시 일괄 설정, 미전달 시 setDatabase/setErrorLoggingService 호출 필요)
    */
   constructor(
     cacheService: IAnchorCacheService,
-    searchService: IAnchorSearchService
+    searchService: IAnchorSearchService,
+    options?: { db?: Database.Database; errorLoggingService?: ErrorLoggingService }
   ) {
     this.cacheService = cacheService;
     this.searchService = searchService;
+    if (options?.db) this.setDatabase(options.db);
+    if (options?.errorLoggingService) this.setErrorLoggingService(options.errorLoggingService);
     logger.info('AnchorManager 초기화 완료');
   }
 
