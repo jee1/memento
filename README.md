@@ -46,7 +46,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **자동 정리**: 소프트/하드 삭제 자동화
 
 ### 📊 성능 모니터링 (HTTP 관리 API)
-- **보안**: HTTP API는 인증이 없으며 **내부망/MCP 전용** 사용을 권장합니다. 자세한 내용은 [docs/security.md](docs/security.md)를 참고하세요.
+- **보안**: HTTP API는 인증이 없으며 **내부망/MCP 전용** 사용을 권장합니다. 자세한 내용은 [docs/reference/ko/security.md](docs/reference/ko/security.md)를 참고하세요.
 - **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
 - **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림
 - **에러 로깅**: 구조화된 에러 로깅 및 통계 수집
@@ -160,7 +160,7 @@ Cursor 등의 MCP 호스트에서는 위와 같이 `mcp.json`에 HTTP MCP 서버
 
 ### 📚 **상세 설치 가이드**
 - [INSTALL.md](INSTALL.md) - 전체 설치 가이드
-- [Cursor MCP 설정 가이드](docs/cursor-mcp-setup.ko.md) - Cursor에서 MCP 서버 사용하기
+- [Cursor MCP 설정 가이드](docs/guides/cursor-mcp-setup.ko.md) - Cursor에서 MCP 서버 사용하기
 - [npx 사용자 문제 해결](docs/npx-troubleshooting.md) - npx 실행 시 문제 해결
 
 ## 💡 사용 예시
@@ -283,10 +283,10 @@ const results = await client.callTool({
 
 ## 📚 문서
 
-- [임베딩 서비스 가이드](docs/ko/embedding-service-guide.md) - 임베딩 서비스 사용법
-- [성능 벤치마크](docs/ko/embedding-performance-benchmark.md) - 성능 비교 결과
-- [API 레퍼런스](docs/ko/embedding-api-reference.md) - API 상세 문서
-- [설정 가이드](docs/ko/embedding-configuration.md) - 환경 설정 방법
+- [임베딩 서비스 가이드](docs/guides/ko/embedding-service-guide.md) - 임베딩 서비스 사용법
+- [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md) - 성능 비교 결과
+- [API 레퍼런스](docs/api/ko/embedding-api-reference.md) - API 상세 문서
+- [설정 가이드](docs/guides/ko/embedding-configuration.md) - 환경 설정 방법
 - [Consolidation Score 테스트 가이드](docs/testing/consolidation-quality-testing.md) - Consolidation Score 검색 품질 테스트 가이드
 
 ## 📋 API 문서
@@ -363,7 +363,7 @@ const results = await client.callTool({
 |-----------|------|--------|
 | `/admin/database/optimize` | 데이터베이스 최적화 | POST |
 
-**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/ko/api-reference.md](docs/ko/api-reference.md)를 참고하세요.
+**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)를 참고하세요.
 
 ### Resources
 
@@ -390,7 +390,7 @@ const results = await client.callTool({
 | `CONSOLIDATION_BASELINE_PATH` | ./data/consolidation-baseline.json | Baseline 스냅샷 저장 경로 |
 | `CONSOLIDATION_TEST_ITEM_COUNT` | 100 | 벤치마크 테스트 데이터 크기 |
 | `CORS_ALLOWED_ORIGINS` | (비어 있음) | CORS 허용 오리진 (쉼표 구분, 비어 있으면 크로스 오리진 미허용) |
-| `ENABLE_PII_MASKING` | true | PII 마스킹 활성화 (보안, [docs/security.md](docs/security.md) 참고) |
+| `ENABLE_PII_MASKING` | true | PII 마스킹 활성화 (보안, [docs/reference/ko/security.md](docs/reference/ko/security.md) 참고) |
 
 > **참고**: 망각 TTL, LLM/Ollama, 검색 한도 등 추가 변수는 `env.example`을 참고하세요.
 
@@ -588,8 +588,8 @@ npm run test
 
 - 이슈 리포트: [GitHub Issues](https://github.com/jee1/memento/issues)
 - 문서: [Wiki](https://github.com/jee1/memento/wiki)
-- 개발자 가이드: [docs/ko/developer-guide.md](docs/ko/developer-guide.md)
-- API 참조: [docs/ko/api-reference.md](docs/ko/api-reference.md)
+- 개발자 가이드: [docs/guides/ko/developer-guide.md](docs/guides/ko/developer-guide.md)
+- API 참조: [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)
 
 ## 🙏 감사의 말
 

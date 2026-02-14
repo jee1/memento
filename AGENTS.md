@@ -1,7 +1,7 @@
 # 저장소 가이드라인
 
 ## 프로젝트 구조 및 모듈 구성
-소스 코드는 `src/` 아래에 위치한다. `src/server/`는 MCP 진입점을 노출한다(CLI용 `index.ts`, HTTP용 `http-server.ts`). 도메인 로직은 `src/domains/`에 관심사별로 묶여 있다: `memory/`, `embedding/`, `forgetting/`, `search/`(검색 엔진·알고리즘), `anchor/`, `relation/`, `monitoring/` 등. 공유 타입·유틸은 `src/shared/`, 영속성·캐시·스케줄러 등 인프라는 `src/infrastructure/`에 둔다. DB 스키마·초기화·마이그레이션은 `src/infrastructure/database/`에 두고, 빌드 시 `copy:assets`가 스키마를 `dist/database/`로, 마이그레이션 SQL을 `dist/infrastructure/...`로 복사한다. 로컬 SQLite 상태는 `data/`에 기록되며, 임시로 취급한다. 문서는 `docs/`에, 빌드 산출물은 `dist/`에 컴파일된다(수동 편집 금지).
+소스 코드는 `src/` 아래에 위치한다. `src/server/`는 MCP 진입점을 노출한다(CLI용 `index.ts`, HTTP용 `http-server.ts`). 도메인 로직은 `src/domains/`에 관심사별로 묶여 있다: `memory/`, `embedding/`, `forgetting/`, `search/`(검색 엔진·알고리즘), `anchor/`, `relation/`, `monitoring/` 등. 공유 타입·유틸은 `src/shared/`, 영속성·캐시·스케줄러 등 인프라는 `src/infrastructure/`에 둔다. DB 스키마·초기화·마이그레이션은 `src/infrastructure/database/`에 두고, 빌드 시 `copy:assets`가 스키마를 `dist/database/`로, 마이그레이션 SQL을 `dist/infrastructure/...`로 복사한다. 로컬 SQLite 상태는 `data/`에 기록되며, 임시로 취급한다. 문서는 `docs/`에 있으며, **목차·분류**는 [docs/README.md](docs/README.md)를 참조한다. 빌드 산출물은 `dist/`에 컴파일된다(수동 편집 금지).
 
 ## 빌드·테스트·개발 명령
 다른 작업 전에 한 번 `npm install`을 실행한다. `npm run dev`는 MCP 서버를 watch 모드로 띄우고, HTTP 퍼사드는 `npm run dev:http`(또는 `dev:http-v2`)를 사용한다. `npm run build`는 TypeScript를 트랜스파일하고 `copy:assets`로 스키마·마이그레이션·prompts·config를 복사하며, `npm run start`는 컴파일된 서버를 기동한다. 품질 게이트: `npm run lint`, `npm run type-check`, `npm test`(Vitest, 한 번 실행). watch 모드는 `npm run test:watch`. `npm run test:client`, `npm run test:search`, `npm run test:forgetting` 등 시나리오 스크립트는 상위 수준 워크플로를 검증한다.
@@ -25,7 +25,7 @@ Vitest로 단위·통합 테스트를 수행하며, 파일 네이밍 규칙은 �
 기존 conventional commit 스타일(`feat:`, `fix:`, `chore:`)을 따르고, 간결하고 행동 지향적인 요약을 쓴다. 팀에 도움이 되면 본문에 한국어 맥락을 포함한다. 추적 이슈는 본문에서 참조한다. PR에는 의도, 테스트 근거, 스키마·설정 변경 사항을 적는다. HTTP/UI 관련 변경은 로그나 스크린샷을 첨부하고, 검색·망각·DB 모듈을 건드릴 때는 해당 도메인 담당자 리뷰를 요청한다.
 
 ## 환경 및 DB 참고
-`env.example`을 `.env`로 복사한 뒤 API 키나 DB 경로를 필요에 따라 덮어쓴다. 새 환경은 `npm run db:init`(실제 진입점: `src/infrastructure/database/database/init.ts`), SQLite 스키마 변경 시에는 `npm run db:migrate`를 사용하고, PR에 마이그레이션 노트를 포함한다. 비밀은 소스 관리에서 제외하고, `data/`·`dist/` 아래 생성 파일은 커밋하지 않는다.
+`env.example`을 `.env`로 복사한 뒤 API 키나 DB 경로를 필요에 따라 덮어쓴다. 새 환경은 `npm run db:init`(실제 진입점: `src/infrastructure/database/database/init.ts`), SQLite 스키마 변경 시에는 `npm run db:migrate`를 사용하고, PR에 마이그레이션 노트를 포함한다. **DB 설계 명세**는 `docs/architecture/ko/database-design.md`(또는 `docs/architecture/en/database-design.md`)를 참조한다. 비밀은 소스 관리에서 제외하고, `data/`·`dist/` 아래 생성 파일은 커밋하지 않는다.
 
 ## 커뮤니케이션 선호
 작업 요약, 상태 업데이트, 코드 리뷰 피드백 등 모든 서면 소통은 협업자가 선호하는 언어로 제공한다. 기본적으로 한국어로 작성한다.
