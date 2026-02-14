@@ -7,7 +7,8 @@ import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
 import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType } from '../hybrid-search-engine.js';
 import type { ITextSearchEngine, IEmbeddingService, IVectorSearchEngine, ISearchResultCombiner, IAdaptiveWeightCalculator, ISearchLogger, IProceduralMemoryMatcher } from '../hybrid-search-engine.js';
 import Database from 'better-sqlite3';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../../../../test/helpers/consolidation-test-data.js';
@@ -204,7 +205,10 @@ describe('HybridSearchEngine', () => {
       ]);
       (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
       (mockResultCombiner.combine as Mock).mockReturnValue([]);
-      const vectorSpy = vi.spyOn(hybridSearchEngine as any, 'generateQueryVector').mockResolvedValue(new Array(512).fill(0.1)); // TF-IDF는 512차원
+      const vectorSpy = vi.spyOn(hybridSearchEngine as any, 'generateQueryVector').mockResolvedValue({
+        embedding: new Array(512).fill(0.1),
+        actualProvider: 'tfidf'
+      });
 
       const query = {
         query: 'test query',
@@ -390,7 +394,7 @@ describe('HybridSearchEngine', () => {
       const migration = new RelationEngineSchemaMigration();
       migration.up(db);
       
-      relationGraph = new RelationGraph(db);
+      relationGraph = createRelationGraph(db);
       
       // HybridSearchEngine에 RelationGraph 설정
       hybridSearchEngine.setRelationGraph(relationGraph);
@@ -2002,7 +2006,7 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       const migration = new RelationEngineSchemaMigration();
       migration.up(db);
       
-      relationGraph = new RelationGraph(db);
+      relationGraph = createRelationGraph(db);
       
       // HybridSearchEngine에 RelationGraph 설정
       hybridSearchEngine.setRelationGraph(relationGraph);

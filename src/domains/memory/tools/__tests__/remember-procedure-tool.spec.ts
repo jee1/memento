@@ -12,7 +12,7 @@ import type { ToolContext } from '../../../../tools/types.js';
 import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 
 /** 테스트용 DB 스키마 (RememberTool procedural 경로와 동일) */
 function initializeTestDatabase(db: Database.Database): void {
@@ -153,7 +153,7 @@ describe('RememberProcedureTool', () => {
       services: {
         hybridSearchEngine,
         embeddingService,
-        relationGraph: new RelationGraph(db),
+        relationGraph: createRelationGraph(db),
       },
     };
   });

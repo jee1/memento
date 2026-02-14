@@ -18,8 +18,8 @@ describe('Reflexion 성능 테스트', () => {
 
   beforeEach(async () => {
     db = await setupTestDatabase();
-    detector = new FailureDetector();
     eventQueue = new AsyncTaskQueue(5, 100); // 최대 5개 동시 실행, 큐 크기 100
+    detector = new FailureDetector(eventQueue);
     worker = new ReflexionWorker(detector, db, eventQueue);
     await detector.startQueue();
     await worker.start();

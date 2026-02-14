@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { RelationGraph } from '../services/relation-graph.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import type { RelationType, RelationCategory } from '../../../shared/types/relation.js';
 import { RELATION_TYPE_CATEGORY_MAP, getRelationCategory } from '../../../shared/types/relation.js';
 import type { RelationDirection, GetRelationsOptions, MemoryRelation } from '../../../shared/types/relation-graph.js';
@@ -82,7 +82,7 @@ export class GetRelationsTool extends BaseTool {
       }
 
       // RelationGraph 인스턴스 생성 (context에 없으면 새로 생성)
-      const relationGraph = context.services.relationGraph || new RelationGraph(db);
+      const relationGraph = context.services.relationGraph || createRelationGraph(db);
 
       // When: 관계 조회 수행
       const options: GetRelationsOptions = {

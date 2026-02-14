@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { RelationGraph } from '../services/relation-graph.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 
 const RemoveRelationSchema = z.object({
@@ -70,7 +70,7 @@ export class RemoveRelationTool extends BaseTool {
 
     try {
       // RelationGraph 인스턴스 생성 (context에 없으면 새로 생성)
-      const relationGraph = context.services.relationGraph || new RelationGraph(db);
+      const relationGraph = context.services.relationGraph || createRelationGraph(db);
 
       let deleted = false;
       let relationInfo: { source_id: string; target_id: string; relation_type: RelationType } | null = null;

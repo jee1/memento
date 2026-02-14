@@ -499,9 +499,9 @@ export function createMcpRouter(
                         const vectorSearchEngine = getVectorSearchEngine();
                         const neighborService = new MemoryNeighborService(
                           vectorSearchEngine,
-                          serverServices.embeddingService
+                          serverServices.embeddingService,
+                          db
                         );
-                        neighborService.setDatabase(db);
                         
                         const neighborsResult = await neighborService.getNeighbors(memoryId, {
                           limit: 5,

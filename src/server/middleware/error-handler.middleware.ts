@@ -40,23 +40,37 @@ export function errorHandler(
   // 에러 로깅 (ErrorLoggingService가 주입된 경우)
   if (req.services?.errorLoggingService) {
     const errorLoggingService: ErrorLoggingService = req.services.errorLoggingService;
-    
-    // 에러 심각도 결정
-    let severity = ErrorSeverity.MEDIUM;
-    if (errorMessage.includes('database') || errorMessage.includes('Database')) {
-      severity = ErrorSeverity.HIGH;
-    } else if (errorMessage.includes('validation') || errorMessage.includes('Validation')) {
-      severity = ErrorSeverity.LOW;
-    }
 
-    // 에러 카테고리 결정
+    // 구조화된 에러(code/category) 우선, 없으면 메시지 기반 fallback
+    const errObj = error && typeof error === 'object' ? error as Record<string, unknown> : null;
+    const code = errObj?.code as string | undefined;
+    const categoryFromError = errObj?.category as string | undefined;
+
+    let severity = ErrorSeverity.MEDIUM;
     let category = ErrorCategory.UNKNOWN;
-    if (errorMessage.includes('database') || errorMessage.includes('Database')) {
-      category = ErrorCategory.DATABASE;
-    } else if (errorMessage.includes('validation') || errorMessage.includes('Validation')) {
-      category = ErrorCategory.VALIDATION;
-    } else if (req.path?.startsWith('/tools/')) {
-      category = ErrorCategory.TOOL_EXECUTION;
+
+    if (code || categoryFromError) {
+      const codeUpper = (code ?? '').toUpperCase();
+      if (codeUpper.includes('DATABASE') || categoryFromError === 'database') {
+        severity = ErrorSeverity.HIGH;
+        category = ErrorCategory.DATABASE;
+      } else if (codeUpper.includes('VALIDATION') || categoryFromError === 'validation') {
+        severity = ErrorSeverity.LOW;
+        category = ErrorCategory.VALIDATION;
+      } else if (categoryFromError === 'tool_execution' || req.path?.startsWith('/tools/')) {
+        category = ErrorCategory.TOOL_EXECUTION;
+      }
+    }
+    if (category === ErrorCategory.UNKNOWN) {
+      if (errorMessage.includes('database') || errorMessage.includes('Database')) {
+        severity = ErrorSeverity.HIGH;
+        category = ErrorCategory.DATABASE;
+      } else if (errorMessage.includes('validation') || errorMessage.includes('Validation')) {
+        severity = ErrorSeverity.LOW;
+        category = ErrorCategory.VALIDATION;
+      } else if (req.path?.startsWith('/tools/')) {
+        category = ErrorCategory.TOOL_EXECUTION;
+      }
     }
 
     // 에러 로깅

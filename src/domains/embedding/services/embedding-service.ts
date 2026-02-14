@@ -11,8 +11,7 @@
 import OpenAI from 'openai';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
-import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { GeminiEmbeddingService, type GeminiEmbeddingResult, type GeminiSimilarityResult } from './gemini-embedding-service.js';
@@ -43,20 +42,13 @@ export class EmbeddingService {
   private embeddingCache: Map<string, EmbeddingResult> = new Map(); // 임베딩 캐시
   private batchQueue: string[] = []; // 배치 처리 큐
   private batchTimeout: NodeJS.Timeout | null = null;
-  private readonly retryManager: RetryManager;
+  private readonly retryManager: IRetryManager;
 
-  constructor() {
+  constructor(retryManager: IRetryManager) {
     this.geminiService = new GeminiEmbeddingService();
     this.lightweightService = new LightweightEmbeddingService();
     this.initializeOpenAI();
-    
-    // RetryManager 초기화 (embedding_api 설정 사용)
-    const retryOptions = getRetryOptions();
-    const retryConfig: RetryConfig = {
-      ...retryOptions.embedding_api,
-      maxErrorCount: retryOptions.default.maxErrorCount
-    };
-    this.retryManager = new RetryManager(retryConfig);
+    this.retryManager = retryManager;
   }
 
   /**

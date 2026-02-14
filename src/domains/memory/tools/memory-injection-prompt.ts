@@ -12,7 +12,7 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
-import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
+import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 
 const MemoryInjectionSchema = z.object({
@@ -326,7 +326,7 @@ export class MemoryInjectionPrompt extends BaseTool {
    */
   private async updateConsolidationScoreMetadata(
     db: any,
-    consolidationScoreService: ConsolidationScoreService,
+    consolidationScoreService: IConsolidationScoreService,
     writeCoalescingManager: WriteCoalescingManager | undefined,
     searchItems: any[]
   ): Promise<void> {

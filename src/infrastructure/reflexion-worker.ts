@@ -3,6 +3,7 @@
  * 실패 이벤트를 처리하여 reflection_notes를 자동 생성하고 저장
  */
 
+import type { IReflexionWorker, IWorkerStatus } from '../shared/interfaces/reflexion-worker.interface.js';
 import { logger } from '../shared/utils/logger.js';
 import { FailureDetector, type FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { AsyncTaskQueue } from './async-optimizer.js';
@@ -22,21 +23,14 @@ import { LlmProceduralExtractor } from '../domains/memory/services/procedural-ll
 import { getNextVersionNumber } from '../domains/memory/services/procedural-versioning.js';
 
 /**
- * Worker 상태
+ * Worker 상태 (내부 구현용, IWorkerStatus와 호환)
  */
-interface WorkerStatus {
-  isRunning: boolean;
-  activeWorkers: number;
-  queueSize: number;
-  processedCount: number;
-  failedCount: number;
-  restartCount: number;
-}
+interface WorkerStatus extends IWorkerStatus {}
 
 /**
  * ReflexionWorker 서비스 클래스
  */
-export class ReflexionWorker {
+export class ReflexionWorker implements IReflexionWorker {
   private failureDetector: FailureDetector;
   private db: Database.Database;
   private eventQueue: AsyncTaskQueue;

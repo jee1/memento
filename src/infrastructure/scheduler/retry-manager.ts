@@ -47,6 +47,8 @@
  * - 최대 재시도 횟수: 기본값은 RetryConfig의 maxAttempts, 옵션으로 오버라이드 가능
  */
 
+import type { IRetryManager, IRetryOptions } from '../../shared/interfaces/retry-manager.interface.js';
+
 export interface RetryConfig {
   maxAttempts: number; // 최대 재시도 횟수
   baseDelay: number; // 기본 지연 시간 (밀리초)
@@ -98,7 +100,7 @@ export interface RetryOptions {
  * - 지수 백오프 계산
  * - 최대 에러 카운트 기반 중단 결정
  */
-export class RetryManager {
+export class RetryManager implements IRetryManager {
   private config: RetryConfig;
   private errorCounts: Map<string, number> = new Map();
 

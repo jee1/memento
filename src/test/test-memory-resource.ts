@@ -357,9 +357,9 @@ function setupResourceHandlers(
         const vectorSearchEngine = getVectorSearchEngine();
         const neighborService = new MemoryNeighborService(
           vectorSearchEngine,
-          embeddingService
+          embeddingService,
+          db
         );
-        neighborService.setDatabase(db);
         
         const neighborsResult = await neighborService.getNeighbors(memoryId, {
           limit: 5,

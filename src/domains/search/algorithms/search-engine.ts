@@ -491,9 +491,12 @@ export class SearchEngine {
    * @returns reflection_notes 컬럼 사용 가능 여부
    */
   private checkReflectionNotesAvailability(db: Database.Database): boolean {
-    // 환경 변수로 강제 Fallback 활성화 확인
     if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
-      mcpLogger.logServer('warn', '환경 변수로 인해 reflection_notes Fallback 활성화');
+      mcpLogger.logServer('warn', '설정으로 인해 reflection_notes Fallback 활성화');
+      return false;
+    }
+    if (mementoConfig.fts5FallbackEnabled) {
+      mcpLogger.logServer('warn', '설정으로 인해 reflection_notes Fallback 활성화');
       return false;
     }
 

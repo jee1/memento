@@ -3,6 +3,7 @@
  * 인덱스 최적화, 쿼리 분석, 성능 튜닝
  */
 
+import type { IDatabaseOptimizer } from '../../shared/interfaces/database-optimizer.interface.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import Database from 'better-sqlite3';
 
@@ -44,7 +45,7 @@ export interface DatabaseStats {
   };
 }
 
-export class DatabaseOptimizer {
+export class DatabaseOptimizer implements IDatabaseOptimizer {
   private db: Database.Database;
   private queryHistory: Map<string, { count: number; totalTime: number; lastUsed: Date }> = new Map();
 

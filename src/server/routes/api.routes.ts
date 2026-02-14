@@ -103,9 +103,9 @@ export function createApiRouter(
 
       const neighborService = new MemoryNeighborService(
         vectorSearchEngine,
-        embeddingService
+        embeddingService,
+        db
       );
-      neighborService.setDatabase(db);
 
       const result = await neighborService.getNeighbors(id, {
         limit,

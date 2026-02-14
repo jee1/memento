@@ -1397,31 +1397,26 @@ export class HybridSearchEngine {
     try {
       const config = getRankingWeights();
       const maxRelations = config.relation_weights.max_relations;
-      
-      // 각 메모리에 대해 관계 조회 및 가중치 계산
+
+      const relationsByMemory = await this.relationGraph.getRelationsBatch(memoryIds, {
+        direction: 'both',
+        minConfidence: 0.5
+      });
+
       for (const memoryId of memoryIds) {
-        const memoryRelations = await this.relationGraph.getRelations(memoryId, {
-          direction: 'both',
-          minConfidence: 0.5 // 최소 신뢰도 필터
-        });
-        
+        const memoryRelations = relationsByMemory.get(memoryId) ?? [];
         if (memoryRelations.length > 0) {
-          // 관계 가중치 계산
           const relationData = memoryRelations.map(r => ({
             confidence: r.confidence,
             relation_type: r.relation_type
           }));
-          
           const relationWeight = this.ranking.calculateRelationWeight(relationData, maxRelations);
           weights.set(memoryId, relationWeight);
-          
-          // 관계 정보 저장 (간단한 형태로 변환)
           const simplifiedRelations = memoryRelations.map(r => ({
             target_id: r.source_id === memoryId ? r.target_id : r.source_id,
             relation_type: r.relation_type,
             confidence: r.confidence
           }));
-          
           relations.set(memoryId, simplifiedRelations);
         }
       }

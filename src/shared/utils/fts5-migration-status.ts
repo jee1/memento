@@ -263,8 +263,10 @@ export function isMigrationFailed(db?: Database.Database): boolean {
  * @returns Fallback 필요 여부
  */
 export function shouldUseFallback(db?: Database.Database): boolean {
-  // 환경 변수로 강제 Fallback 활성화 확인
   if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
+    return true;
+  }
+  if (mementoConfig.fts5FallbackEnabled) {
     return true;
   }
 

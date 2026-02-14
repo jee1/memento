@@ -20,7 +20,7 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import type { ConsolidationScoreService } from '../../../infrastructure/consolidation-score-service.js';
+import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
@@ -730,8 +730,7 @@ export class RecallTool extends BaseTool {
           updated_at: record.updated_at
         }));
 
-        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+        if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
         return this.createSuccessResult({
@@ -775,8 +774,7 @@ export class RecallTool extends BaseTool {
           updated_at: record.updated_at
         }));
 
-        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+        if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
         return this.createSuccessResult({
@@ -1082,7 +1080,7 @@ export class RecallTool extends BaseTool {
           : undefined;
 
         // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (process.env.MEMENTO_RECALL_PROFILE === '1') {
+        if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
         return this.createSuccessResult({
@@ -1644,10 +1642,9 @@ export class RecallTool extends BaseTool {
     // MemoryNeighborService 인스턴스 생성
     let neighborService: MemoryNeighborService;
     try {
-      const vectorSearchEngine = getVectorSearchEngine();
+      const vectorSearchEngine = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
       const embeddingService = context.services.embeddingService || new MemoryEmbeddingService();
-      neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService);
-      neighborService.setDatabase(context.db!);
+      neighborService = new MemoryNeighborService(vectorSearchEngine, embeddingService, context.db!);
     } catch (error) {
       this.logError(error as Error, 'MemoryNeighborService 초기화 실패', {});
       // 서비스 초기화 실패 시 빈 배열 반환 (각 요소가 독립적인 배열 인스턴스)
@@ -1926,7 +1923,7 @@ export class RecallTool extends BaseTool {
    */
   private async updateConsolidationScoreMetadata(
     db: Database.Database,
-    consolidationScoreService: ConsolidationScoreService,
+    consolidationScoreService: IConsolidationScoreService,
     writeCoalescingManager: WriteCoalescingManager | undefined,
     searchItems: RecallSearchItem[]
   ): Promise<void> {

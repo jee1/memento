@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolContext, ToolResult } from './types.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
-import type { ReflexionWorker } from '../infrastructure/reflexion-worker.js';
+import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import { logger } from '../shared/utils/logger.js';
 
 import type { z } from 'zod';
@@ -234,7 +234,7 @@ export abstract class BaseTool {
 
       if (detectionResult.detected && detectionResult.event) {
         // Reflexion Worker가 있으면 직접 큐에 추가
-        const reflexionWorker: ReflexionWorker | undefined = context.services?.reflexionWorker;
+        const reflexionWorker: IReflexionWorker | undefined = context.services?.reflexionWorker;
         
         if (reflexionWorker) {
           // Reflexion Worker의 queueFailureEvent 사용 (큐 크기 제한 포함)

@@ -12,7 +12,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { RelationGraph } from '../relation-graph.js';
+import type { RelationGraph } from '../relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
@@ -76,7 +77,7 @@ describe('RelationGraph', () => {
     const migration = new RelationEngineSchemaMigration();
     migration.up(db);
     
-    relationGraph = new RelationGraph(db);
+    relationGraph = createRelationGraph(db);
   });
 
   afterEach(() => {
@@ -91,7 +92,7 @@ describe('RelationGraph', () => {
     it('should initialize successfully with database', () => {
       // Given: 데이터베이스가 설정된 상태
       // When: RelationGraph 인스턴스 생성
-      const graph = new RelationGraph(db);
+      const graph = createRelationGraph(db);
 
       // Then: 인스턴스가 생성되어야 함
       expect(graph).toBeDefined();

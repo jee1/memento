@@ -9,7 +9,7 @@ import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-eng
 import * as configModule from '../../../../shared/config/index.js';
 import * as environmentCheck from '../../../../shared/utils/environment-check.js';
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { TripleExtractionService } from '../../../relation/services/triple-extraction/triple-extraction-service.js';
 
 /**
@@ -171,7 +171,7 @@ describe('RememberTool', () => {
       services: {
         hybridSearchEngine,
         embeddingService,
-        relationGraph: new RelationGraph(db)
+        relationGraph: createRelationGraph(db)
       }
     };
   });

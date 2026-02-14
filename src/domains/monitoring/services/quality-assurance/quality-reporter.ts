@@ -193,15 +193,19 @@ export class QualityReporter {
     // 1. 최신 품질 지표 조회
     const latestMetrics = this.recorder.getLatestMetrics(namespace, context);
 
-    // 2. 경고 정보 수집 (status가 'fail'인 지표)
+    // 2. 임계값 일괄 조회 (N+1 완화)
+    const allThresholds = this.thresholdManager.getAllThresholds(namespace, context);
+    const thresholdMap = new Map(
+      allThresholds.map(t => [`${t.metric_namespace}.${t.metric_key}.${t.context}`, t])
+    );
+
+    // 3. 경고 정보 수집 (status가 'fail'인 지표)
     const warnings: QualityReport['warnings'] = [];
     for (const metric of latestMetrics) {
       if (metric.status === 'fail' && metric.threshold_value !== null) {
-        const threshold = this.thresholdManager.getThreshold(
-          metric.metric_namespace,
-          metric.metric_key,
-          metric.context
-        );
+        const threshold = thresholdMap.get(
+          `${metric.metric_namespace}.${metric.metric_key}.${metric.context}`
+        ) ?? null;
         if (threshold) {
           const difference = threshold.threshold_type === 'min'
             ? metric.metric_value - threshold.threshold_value
@@ -221,7 +225,7 @@ export class QualityReporter {
       }
     }
 
-    // 3. 네임스페이스별 상태 집계
+    // 4. 네임스페이스별 상태 집계
     const namespaceStatusMap = new Map<string, {
       namespace: string;
       status: 'pass' | 'warning' | 'fail';
@@ -256,7 +260,7 @@ export class QualityReporter {
 
     const namespaceStatus = Array.from(namespaceStatusMap.values());
 
-    // 4. 전체 상태 결정
+    // 5. 전체 상태 결정
     let overallStatus: 'pass' | 'warning' | 'fail' = 'pass';
     if (namespaceStatus.some(ns => ns.status === 'fail')) {
       overallStatus = 'fail';
@@ -301,17 +305,15 @@ export class QualityReporter {
       return h;
     });
 
-    // 8. 최신 지표에 threshold_type 추가
+    // 8. 최신 지표에 threshold_type 추가 (thresholdMap 재사용)
     const enrichedLatestMetrics = latestMetrics.map(metric => {
-      const threshold = this.thresholdManager.getThreshold(
-        metric.metric_namespace,
-        metric.metric_key,
-        metric.context
-      );
+      const threshold = thresholdMap.get(
+        `${metric.metric_namespace}.${metric.metric_key}.${metric.context}`
+      ) ?? null;
       return {
         ...metric,
         status: metric.status as 'pass' | 'warning' | 'fail',
-        threshold_type: threshold?.threshold_type || null
+        threshold_type: threshold?.threshold_type ?? null
       };
     });
 

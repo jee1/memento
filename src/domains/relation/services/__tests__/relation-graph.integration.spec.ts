@@ -11,7 +11,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { RelationGraph } from '../relation-graph.js';
+import type { RelationGraph } from '../relation-graph.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 import type { RelationType } from '../../../shared/types/relation.js';
@@ -92,7 +93,7 @@ describe('RelationGraph 통합 테스트', () => {
     const migration = new RelationEngineSchemaMigration();
     migration.up(db);
     
-    relationGraph = new RelationGraph(db);
+    relationGraph = createRelationGraph(db);
   });
 
   afterEach(() => {

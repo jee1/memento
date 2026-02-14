@@ -157,7 +157,8 @@ export function createQualityRouter(
       const context = req.query.context as string | undefined;
       const from = req.query.from as string | undefined;
       const to = req.query.to as string | undefined;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+      const rawLimit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+      const limit = Number.isNaN(rawLimit) || rawLimit < 1 || rawLimit > 500 ? 100 : rawLimit;
 
       const history = qualityService.getMeasurementHistory(namespace, context, from, to, limit);
 

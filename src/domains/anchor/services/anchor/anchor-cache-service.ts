@@ -23,9 +23,11 @@ export class AnchorCacheService implements IAnchorCacheService {
   private embeddingService: MemoryEmbeddingService | null = null;
 
   /**
-   * 생성자
+   * 생성자 (필수 의존성 주입 권장, 미전달 시 setDatabase/setEmbeddingService 호출 필요)
    */
-  constructor() {
+  constructor(db?: Database.Database, embeddingService?: MemoryEmbeddingService) {
+    if (db) this.db = db;
+    if (embeddingService) this.embeddingService = embeddingService;
     logger.info('AnchorCacheService 초기화 완료');
   }
 

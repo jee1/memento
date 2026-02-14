@@ -4,7 +4,7 @@
  */
 
 import type { ErrorLoggingService } from '../../domains/monitoring/services/error-logging-service.js';
-import { ErrorSeverity, ErrorCategory } from '../../domains/monitoring/services/error-logging-service.js';
+import { ErrorSeverity, ErrorCategory } from '../types/error-types.js';
 import { logger } from './logger.js';
 
 /**

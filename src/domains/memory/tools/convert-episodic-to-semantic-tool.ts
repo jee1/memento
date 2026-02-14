@@ -211,35 +211,33 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         semantic_memory_ids: [] as string[]
       };
 
-      // 각 Episodic Memory에 대해 Triple 추출 및 Semantic Memory 생성
-      for (const episodicMemory of episodicMemories) {
-        try {
-          // PRD 5.11: 변환 상태 추적 로직
-          // 이미 변환된 항목 건너뛰기 (skip_converted=true인 경우 쿼리에서 이미 필터링됨)
-          // 하지만 안전을 위해 한 번 더 확인
-          if (skip_converted) {
-            const existing = DatabaseUtils.get(db, `
-              SELECT triple_extracted, triple_extracted_status FROM memory_item WHERE id = ?
-            `, [episodicMemory.id]) as { triple_extracted: boolean | null; triple_extracted_status: string | null } | undefined;
-            
-            if (existing?.triple_extracted === true && existing?.triple_extracted_status === 'success') {
-              results.skipped++;
-              logger.info('이미 변환된 Episodic Memory 건너뛰기', {
-                episodic_memory_id: episodicMemory.id
-              });
-              continue;
-            }
-          }
-          
-          // Triple 추출 서비스 초기화
-          const tripleExtractionService = new TripleExtractionService();
-          
-          // Triple 추출
-          const extractionResult = await tripleExtractionService.extractTriples(
-            episodicMemory.content,
-            {},
-            episodicMemory.id
-          );
+      // 이미 변환된 ID 일괄 조회 (N+1 완화)
+      let alreadyConvertedIds = new Set<string>();
+      if (skip_converted && episodicMemories.length > 0) {
+        const ids = episodicMemories.map((m) => m.id);
+        const placeholders = ids.map(() => '?').join(',');
+        const rows = DatabaseUtils.all(db, `
+          SELECT id FROM memory_item
+          WHERE id IN (${placeholders}) AND triple_extracted = 1 AND triple_extracted_status = 'success'
+        `, ids) as Array<{ id: string }>;
+        alreadyConvertedIds = new Set(rows.map((r) => r.id));
+      }
+
+      const tripleExtractionService = new TripleExtractionService();
+      const toProcess = episodicMemories.filter((m) => !alreadyConvertedIds.has(m.id));
+      results.skipped += episodicMemories.length - toProcess.length;
+
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
+        const batch = toProcess.slice(i, i + BATCH_SIZE);
+        const extractionResults = await Promise.all(
+          batch.map((ep) => tripleExtractionService.extractTriples(ep.content, {}, ep.id))
+        );
+        for (let j = 0; j < batch.length; j++) {
+          const episodicMemory = batch[j];
+          const extractionResult = extractionResults[j];
+          if (!episodicMemory || !extractionResult) continue;
+          try {
 
           // Triple이 추출된 경우 Semantic Memory 생성/업데이트
           if (extractionResult.triples.length > 0) {
@@ -392,6 +390,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
             episodic_memory_id: episodicMemory.id,
             error: error instanceof Error ? error.message : String(error)
           });
+        }
         }
       }
 

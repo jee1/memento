@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { RelationGraph } from '../services/relation-graph.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import type { RelationType } from '../../../shared/types/relation.js';
 
 const AddRelationSchema = z.object({
@@ -111,7 +111,7 @@ export class AddRelationTool extends BaseTool {
       }
 
       // RelationGraph 인스턴스 생성 (context에 없으면 새로 생성)
-      const relationGraph = context.services.relationGraph || new RelationGraph(db);
+      const relationGraph = context.services.relationGraph || createRelationGraph(db);
 
       // When: 관계 추가 수행
       try {

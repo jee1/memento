@@ -113,15 +113,17 @@ export class ForgettingPolicyService {
       const reviewSchedules = await this.analyzeReviewCandidates(db, memories);
       result.summary.reviewCandidates = reviewSchedules.filter(s => s.needs_review).length;
 
+      const memoryById = new Map(memories.map(m => [m.id, m]));
+
       // 4. 소프트 삭제 실행
-      const softDeleteCandidates = forgetResults.filter(r => 
-        r.should_forget && 
+      const softDeleteCandidates = forgetResults.filter(r =>
+        r.should_forget &&
         r.forget_score >= this.config.softDeleteThreshold &&
         !r.features.pinned
       );
 
       for (const candidate of softDeleteCandidates) {
-        const memory = memories.find(m => m.id === candidate.memory_id);
+        const memory = memoryById.get(candidate.memory_id);
         if (memory && this.isSoftDeleteCandidate(memory, candidate.forget_score)) {
           await this.softDeleteMemory(db, candidate.memory_id);
           result.softDeleted.push(candidate.memory_id);
@@ -130,14 +132,14 @@ export class ForgettingPolicyService {
       }
 
       // 5. 하드 삭제 실행
-      const hardDeleteCandidates = forgetResults.filter(r => 
-        r.should_forget && 
+      const hardDeleteCandidates = forgetResults.filter(r =>
+        r.should_forget &&
         r.forget_score >= this.config.hardDeleteThreshold &&
         !r.features.pinned
       );
 
       for (const candidate of hardDeleteCandidates) {
-        const memory = memories.find(m => m.id === candidate.memory_id);
+        const memory = memoryById.get(candidate.memory_id);
         if (memory && this.isHardDeleteCandidate(memory, candidate.forget_score)) {
           await this.hardDeleteMemory(db, candidate.memory_id);
           result.hardDeleted.push(candidate.memory_id);
@@ -145,13 +147,13 @@ export class ForgettingPolicyService {
         }
       }
 
-      // 6. 리뷰 스케줄 업데이트
+      // 6. 리뷰 스케줄 업데이트 (병렬 실행으로 N+1 완화)
       const reviewCandidates = reviewSchedules.filter(s => s.needs_review);
-      for (const schedule of reviewCandidates) {
+      await Promise.all(reviewCandidates.map(async (schedule) => {
         await this.updateReviewSchedule(db, schedule);
         result.reviewed.push(schedule.memory_id);
         result.summary.actualReviews++;
-      }
+      }));
 
       return result;
 
