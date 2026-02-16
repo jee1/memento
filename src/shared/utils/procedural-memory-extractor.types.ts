@@ -3,7 +3,7 @@
  * 순환 참조 방지를 위해 추출기 구현체와 분리하여 정의
  */
 
-import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
+import type { FailureEvent } from '../types/failure-event.js';
 
 /**
  * ReflectionNotes 인터페이스
