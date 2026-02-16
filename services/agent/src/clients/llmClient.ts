@@ -4,6 +4,7 @@
  * 주의: Core LLM 설정과 독립. 연관: config, actionableLoop
  */
 
+import { GoogleGenAI } from '@google/genai';
 import { config } from '../config.js';
 
 export interface LLMProvider {
@@ -21,7 +22,7 @@ async function ollamaChat(message: string, context: { injectionText: string }): 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'llama2',
+      model: config.ollamaModel,
       prompt,
       stream: false
     })
@@ -37,7 +38,7 @@ async function ollamaSummarize(content: string): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'llama2',
+      model: config.ollamaModel,
       prompt: `다음 내용을 2~3문장으로 요약해주세요:\n\n${content}\n\n요약:`,
       stream: false
     })
@@ -91,45 +92,55 @@ async function openaiSummarize(content: string): Promise<string> {
   return (data.choices?.[0]?.message?.content ?? content.slice(0, 300)).trim();
 }
 
-/** Gemini (간단 호출) */
+/** Gemini (GoogleGenAI 사용) */
+let geminiClient: GoogleGenAI | null = null;
+
+function getGeminiClient(): GoogleGenAI {
+  if (!geminiClient) {
+    if (!config.geminiApiKey) {
+      throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
+    }
+    geminiClient = new GoogleGenAI({ apiKey: config.geminiApiKey });
+  }
+  return geminiClient;
+}
+
 async function geminiChat(message: string, context: { injectionText: string }): Promise<string> {
   const prompt = context.injectionText
     ? `맥락:\n${context.injectionText}\n\n질문: ${message}`
     : message;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.geminiApiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini failed: ${res.status}`);
-  const data = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  return text.trim();
+  
+  try {
+    const client = getGeminiClient();
+    const response = await client.models.generateContent({
+      model: 'gemini-pro',
+      contents: prompt
+    });
+    
+    const text = response.text ?? '';
+    return text.trim();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Gemini chat failed: ${errorMsg}`);
+  }
 }
 
 async function geminiSummarize(content: string): Promise<string> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.geminiApiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `요약해주세요 (2~3문장):\n\n${content}` }] }]
-      })
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini summarize failed: ${res.status}`);
-  const data = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  return (data.candidates?.[0]?.content?.parts?.[0]?.text ?? content.slice(0, 300)).trim();
+  const prompt = `요약해주세요 (2~3문장):\n\n${content}`;
+  
+  try {
+    const client = getGeminiClient();
+    const response = await client.models.generateContent({
+      model: 'gemini-pro',
+      contents: prompt
+    });
+    
+    const text = response.text ?? '';
+    return text.trim() || content.slice(0, 300);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Gemini summarize failed: ${errorMsg}`);
+  }
 }
 
 export function getLLMProvider(): LLMProvider {

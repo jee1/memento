@@ -9,6 +9,7 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
 import { createServer } from 'http';
+import { fileURLToPath } from 'url';
 import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
 import { mementoConfig, validateConfig } from '../shared/config/index.js';
 import { initializeServices, type ServerServices } from './bootstrap.js';
@@ -518,3 +519,13 @@ export const __test: {
 };
 
 export { startServer, cleanup };
+
+// 직접 실행 시(tsx watch src/server/http-server.ts, node dist/server/http-server.js) 서버 기동
+const __filename = fileURLToPath(import.meta.url);
+const isMain = process.argv[1] != null && (process.argv[1] === __filename || process.argv[1].includes('http-server'));
+if (isMain) {
+  startServer().catch((err) => {
+    logger.error('HTTP 서버 기동 실패', { error: err instanceof Error ? err.message : String(err) });
+    process.exit(1);
+  });
+}

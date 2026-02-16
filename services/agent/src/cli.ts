@@ -70,7 +70,12 @@ async function doctor(): Promise<void> {
       console.log('  Core health: FAIL', res.status);
     }
   } catch (e) {
-    console.log('  Core: 연결 실패', e instanceof Error ? e.message : e);
+    const msg = e instanceof Error ? e.message : String(e);
+    const cause = e instanceof Error && e.cause && typeof (e.cause as NodeJS.ErrnoException).code === 'string'
+      ? (e.cause as NodeJS.ErrnoException).code
+      : null;
+    console.log('  Core: 연결 실패', cause ? `${msg} (${cause})` : msg);
+    console.log('  안내: Core가 실행 중인지, MEMENTO_BASE_URL이 이 환경에서 접근 가능한지 확인하세요.');
   }
   process.exit(0);
 }
