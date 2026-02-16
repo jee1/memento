@@ -20,6 +20,17 @@ import { QualityThresholdManager } from './quality-threshold-manager.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
+/** HTML에 삽입되는 동적 값을 이스케이프하여 XSS를 방지 (PUT /api/v1/quality/thresholds의 namespace/key 등) */
+function escapeHtml(s: string | number | undefined | null): string {
+  const str = s == null ? '' : String(s);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * 리포트 형식
  */
@@ -528,8 +539,8 @@ export class QualityReporter {
 <body>
   <div class="container">
     <h1>Quality Assurance Report</h1>
-    <p><strong>생성 일시:</strong> ${reportData.generated_at}</p>
-    <p><strong>전체 상태:</strong> <span class="${statusClass[summary.overall_status]}">${statusText[summary.overall_status]}</span></p>
+    <p><strong>생성 일시:</strong> ${escapeHtml(reportData.generated_at)}</p>
+    <p><strong>전체 상태:</strong> <span class="${statusClass[summary.overall_status]}">${escapeHtml(statusText[summary.overall_status])}</span></p>
     
     <div class="summary-box">
       <h3>요약</h3>
@@ -540,23 +551,23 @@ export class QualityReporter {
         </tr>
         <tr>
           <td><strong>전체 상태</strong></td>
-          <td><span class="${statusClass[summary.overall_status]}">${statusText[summary.overall_status]}</span></td>
+          <td><span class="${statusClass[summary.overall_status]}">${escapeHtml(statusText[summary.overall_status])}</span></td>
         </tr>
         <tr>
           <td><strong>총 지표 수</strong></td>
-          <td>${summary.total_metrics}</td>
+          <td>${escapeHtml(summary.total_metrics)}</td>
         </tr>
         <tr>
           <td><strong>통과 지표</strong></td>
-          <td>${summary.passed_metrics}</td>
+          <td>${escapeHtml(summary.passed_metrics)}</td>
         </tr>
         <tr>
           <td><strong>실패 지표</strong></td>
-          <td>${summary.failed_metrics}</td>
+          <td>${escapeHtml(summary.failed_metrics)}</td>
         </tr>
         <tr>
           <td><strong>경고 지표</strong></td>
-          <td>${summary.warning_metrics}</td>
+          <td>${escapeHtml(summary.warning_metrics)}</td>
         </tr>
       </table>
     </div>`;
@@ -576,11 +587,11 @@ export class QualityReporter {
       for (const ns of summary.namespace_status) {
         html += `
       <tr>
-        <td><strong>${ns.namespace}</strong></td>
-        <td><span class="${statusClass[ns.status]}">${statusText[ns.status]}</span></td>
-        <td>${ns.metrics_count}</td>
-        <td>${ns.passed_count}</td>
-        <td>${ns.failed_count}</td>
+        <td><strong>${escapeHtml(ns.namespace)}</strong></td>
+        <td><span class="${statusClass[ns.status]}">${escapeHtml(statusText[ns.status])}</span></td>
+        <td>${escapeHtml(ns.metrics_count)}</td>
+        <td>${escapeHtml(ns.passed_count)}</td>
+        <td>${escapeHtml(ns.failed_count)}</td>
       </tr>`;
       }
       html += `
@@ -603,11 +614,11 @@ export class QualityReporter {
       for (const warning of warnings) {
         html += `
         <tr>
-          <td>${warning.metric_namespace}</td>
-          <td>${warning.metric_key}</td>
-          <td>${warning.measured_value.toFixed(3)}</td>
-          <td>${warning.threshold_value.toFixed(3)} (${warning.threshold_type})</td>
-          <td>${warning.difference > 0 ? '+' : ''}${warning.difference.toFixed(3)}</td>
+          <td>${escapeHtml(warning.metric_namespace)}</td>
+          <td>${escapeHtml(warning.metric_key)}</td>
+          <td>${escapeHtml(warning.measured_value.toFixed(3))}</td>
+          <td>${escapeHtml(warning.threshold_value.toFixed(3))} (${escapeHtml(warning.threshold_type)})</td>
+          <td>${warning.difference > 0 ? '+' : ''}${escapeHtml(warning.difference.toFixed(3))}</td>
         </tr>`;
       }
       html += `
@@ -634,12 +645,12 @@ export class QualityReporter {
           : 'N/A';
         html += `
       <tr>
-        <td>${metric.metric_namespace}</td>
-        <td>${metric.metric_key}</td>
-        <td>${metric.metric_value.toFixed(3)}</td>
-        <td><span class="${statusClass[metric.status as keyof typeof statusClass]}">${statusText[metric.status as keyof typeof statusText]}</span></td>
-        <td>${thresholdStr}</td>
-        <td>${metric.measured_at}</td>
+        <td>${escapeHtml(metric.metric_namespace)}</td>
+        <td>${escapeHtml(metric.metric_key)}</td>
+        <td>${escapeHtml(metric.metric_value.toFixed(3))}</td>
+        <td><span class="${statusClass[metric.status as keyof typeof statusClass]}">${escapeHtml(statusText[metric.status as keyof typeof statusText])}</span></td>
+        <td>${escapeHtml(thresholdStr)}</td>
+        <td>${escapeHtml(metric.measured_at)}</td>
       </tr>`;
       }
       html += `
@@ -662,12 +673,12 @@ export class QualityReporter {
       for (const h of history.slice(0, 20)) {
         html += `
       <tr>
-        <td>${h.id.substring(0, 20)}...</td>
-        <td>${h.measurement_type}</td>
-        <td>${h.namespace || 'N/A'}</td>
-        <td>${h.context || 'N/A'}</td>
-        <td><span class="${statusClass[h.status as keyof typeof statusClass] || 'status-warning'}">${h.status.toUpperCase()}</span></td>
-        <td>${h.measured_at}</td>
+        <td>${escapeHtml(h.id.substring(0, 20))}...</td>
+        <td>${escapeHtml(h.measurement_type)}</td>
+        <td>${escapeHtml(h.namespace || 'N/A')}</td>
+        <td>${escapeHtml(h.context || 'N/A')}</td>
+        <td><span class="${statusClass[h.status as keyof typeof statusClass] || 'status-warning'}">${escapeHtml(h.status.toUpperCase())}</span></td>
+        <td>${escapeHtml(h.measured_at)}</td>
       </tr>`;
       }
       html += `

@@ -1,18 +1,27 @@
 /**
  * 간단한 MCP 서버 구현
  * SSE 연결 문제 해결을 위한 최소 구현
+ * 주의: CORS는 메인 http-server와 동일하게 corsAllowedOrigins로 제한함.
  */
 
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import { logger } from '../shared/utils/logger.js';
+import { mementoConfig } from '../shared/config/index.js';
 
 const app = express();
 const server = createServer(app);
 
-// 미들웨어 설정
-app.use(cors());
+// 미들웨어 설정: CORS는 corsAllowedOrigins로 제한 (메인 http-server와 동일)
+const corsOrigins = mementoConfig.corsAllowedOrigins;
+app.use(cors({
+  origin: corsOrigins.length > 0
+    ? corsOrigins
+    : (_orig: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => cb(null, false),
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
+}));
 app.use(express.json());
 
 // 간단한 도구 목록
@@ -44,16 +53,24 @@ const tools = [
 // SSE 엔드포인트
 app.get('/mcp', (req, res) => {
   logger.info('🔗 MCP SSE 클라이언트 연결 요청');
-  
-  // SSE 헤더 설정
-  res.writeHead(200, {
+
+  const origin = req.headers.origin;
+  const allowOrigin =
+    corsOrigins.length > 0 && origin && corsOrigins.includes(origin)
+      ? origin
+      : corsOrigins.length === 1
+        ? corsOrigins[0]
+        : undefined;
+  const headers: Record<string, string> = {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-  });
+  };
+  if (allowOrigin) headers['Access-Control-Allow-Origin'] = allowOrigin;
+
+  res.writeHead(200, headers);
 
   // 세션 ID 생성
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
