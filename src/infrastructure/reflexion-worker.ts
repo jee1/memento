@@ -538,15 +538,12 @@ export class ReflexionWorker implements IReflexionWorker {
     }
 
     // context에서 추출 시도
-    if (event.context?.params?.task_goal) {
-      return event.context.params.task_goal;
-    }
+    const taskGoal = event.context?.params?.task_goal;
+    if (typeof taskGoal === 'string') return taskGoal;
 
-    if (event.context?.params?.content) {
-      const content = event.context.params.content;
-      if (content.length > 200) {
-        return content.substring(0, 200) + '...';
-      }
+    const content = event.context?.params?.content;
+    if (typeof content === 'string') {
+      if (content.length > 200) return content.substring(0, 200) + '...';
       return content;
     }
 

@@ -106,6 +106,9 @@ export const mementoConfig: MementoConfig = {
     .map((s) => s.trim())
     .filter(Boolean),
 
+  // Admin/API/Quality 인증 (ADMIN_API_KEY 설정 시 해당 라우트에 Bearer 또는 X-API-Key 필요)
+  adminApiKey: resolveOptionalString('ADMIN_API_KEY'),
+
   recallProfileEnabled: getRawEnvValue('MEMENTO_RECALL_PROFILE') === '1',
   fts5FallbackEnabled: resolveBoolean('MEMENTO_FTS5_FALLBACK_ENABLED', { defaultValue: false })
 };

@@ -3,7 +3,7 @@
  * Phase 7.6: 에러 처리 패턴 통일을 위한 공통 함수
  */
 
-import type { ErrorLoggingService } from '../../domains/monitoring/services/error-logging-service.js';
+import type { IErrorLoggingService } from '../interfaces/error-logging.interface.js';
 import { ErrorSeverity, ErrorCategory } from '../types/error-types.js';
 import { logger } from './logger.js';
 
@@ -26,7 +26,7 @@ export interface ErrorContext {
  */
 export interface ErrorHandlingOptions {
   /** 에러 로깅 서비스 (선택적) */
-  errorLoggingService?: ErrorLoggingService;
+  errorLoggingService?: IErrorLoggingService;
   /** 에러 심각도 (기본값: MEDIUM) */
   severity?: ErrorSeverity;
   /** 에러 카테고리 (기본값: UNKNOWN) */

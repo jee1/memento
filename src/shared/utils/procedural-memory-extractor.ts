@@ -8,7 +8,7 @@
 
 import { logger } from './logger.js';
 import { PIIMasker } from './pii-masker.js';
-import type { FailureEvent } from '../../domains/monitoring/services/failure-detector.js';
+import type { FailureEvent } from '../types/failure-event.js';
 import type { ReflectionNotes, ExtractedProceduralMemory } from './procedural-memory-extractor.types.js';
 import type { IProceduralMemoryExtractor } from './procedural-memory-extractor.types.js';
 import Database from 'better-sqlite3';

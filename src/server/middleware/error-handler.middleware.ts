@@ -1,12 +1,12 @@
 /**
  * 공통 에러 핸들러 미들웨어
- * Express 에러 처리 통일
- * Phase 0: 공통 모듈 설계
- * Phase 5.2와 통합: 공통 에러 핸들러
+ * 하는 일: 공유 에러 계약(code/category/severity) 우선 사용, 메시지 파싱 fallback 최소화.
+ * 연관: shared/types/error-types.ts (AppErrorContract), shared/interfaces/error-logging.interface.ts
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../domains/monitoring/services/error-logging-service.js';
+import type { IErrorLoggingService } from '../../shared/interfaces/error-logging.interface.js';
+import { ErrorSeverity, ErrorCategory, type AppErrorContract } from '../../shared/types/error-types.js';
 import { logger } from '../../shared/utils/logger.js';
 
 /**
@@ -19,61 +19,81 @@ interface ErrorResponse {
   timestamp: string;
 }
 
-/**
- * 공통 에러 핸들러 미들웨어
- * 
- * @param error 에러 객체
- * @param req Express 요청 객체
- * @param res Express 응답 객체
- * @param next 다음 미들웨어 함수
- */
+function isAppErrorContract(e: unknown): e is AppErrorContract & { message: string } {
+  return typeof e === 'object' && e !== null && 'message' in e && typeof (e as AppErrorContract).message === 'string';
+}
+
+/** 에러 객체에서 severity/category 추출 (공유 계약 우선) */
+function resolveSeverityAndCategory(
+  error: unknown,
+  req: Request
+): { severity: ErrorSeverity; category: ErrorCategory } {
+  let severity = ErrorSeverity.MEDIUM;
+  let category = ErrorCategory.UNKNOWN;
+
+  if (isAppErrorContract(error)) {
+    if (error.severity != null) severity = error.severity as ErrorSeverity;
+    if (error.category != null) {
+      const cat = error.category;
+      category = typeof cat === 'string' && Object.values(ErrorCategory).includes(cat as ErrorCategory)
+        ? (cat as ErrorCategory)
+        : ErrorCategory.UNKNOWN;
+    }
+  }
+  const errObj = error && typeof error === 'object' ? (error as Record<string, unknown>) : null;
+  const code = errObj?.code as string | undefined;
+  const cat = errObj?.category as string | undefined;
+  if (code || cat) {
+    const codeUpper = (code ?? '').toUpperCase();
+    if (codeUpper.includes('DATABASE') || cat === ErrorCategory.DATABASE) {
+      severity = ErrorSeverity.HIGH;
+      category = ErrorCategory.DATABASE;
+    } else if (codeUpper.includes('VALIDATION') || cat === ErrorCategory.VALIDATION) {
+      severity = ErrorSeverity.LOW;
+      category = ErrorCategory.VALIDATION;
+    } else if (cat === ErrorCategory.TOOL_EXECUTION || req.path?.startsWith('/tools/')) {
+      category = ErrorCategory.TOOL_EXECUTION;
+    }
+  }
+  if (category === ErrorCategory.UNKNOWN && req.path?.startsWith('/tools/')) {
+    category = ErrorCategory.TOOL_EXECUTION;
+  }
+  return { severity, category };
+}
+
+/** 공유 계약 또는 statusCode 필드로 HTTP 상태 코드 결정 */
+function resolveStatusCode(error: unknown, req: Request): number {
+  const err = error && typeof error === 'object' ? (error as Record<string, unknown>) : null;
+  if (err?.statusCode != null && typeof err.statusCode === 'number' && err.statusCode >= 400 && err.statusCode < 600) {
+    return err.statusCode;
+  }
+  if (isAppErrorContract(error)) {
+    if (error.statusCode != null && error.statusCode >= 400 && error.statusCode < 600) return error.statusCode;
+  }
+  const { category } = resolveSeverityAndCategory(error, req);
+  if (category === ErrorCategory.VALIDATION) return 400;
+  if (category === ErrorCategory.AUTHENTICATION) return 401;
+  if (category === ErrorCategory.UNKNOWN && err?.message) {
+    const msg = String((err as { message?: string }).message ?? '');
+    if (/not found|Not Found/i.test(msg)) return 404;
+    if (/unauthorized|Unauthorized/i.test(msg)) return 401;
+    if (/forbidden|Forbidden/i.test(msg)) return 403;
+  }
+  return 500;
+}
+
 export function errorHandler(
   error: Error | unknown,
   req: Request,
   res: Response,
   next: NextFunction
 ): void {
-  // 에러 정보 추출
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;
 
-  // 에러 로깅 (ErrorLoggingService가 주입된 경우)
   if (req.services?.errorLoggingService) {
-    const errorLoggingService: ErrorLoggingService = req.services.errorLoggingService;
-
-    // 구조화된 에러(code/category) 우선, 없으면 메시지 기반 fallback
-    const errObj = error && typeof error === 'object' ? error as Record<string, unknown> : null;
-    const code = errObj?.code as string | undefined;
-    const categoryFromError = errObj?.category as string | undefined;
-
-    let severity = ErrorSeverity.MEDIUM;
-    let category = ErrorCategory.UNKNOWN;
-
-    if (code || categoryFromError) {
-      const codeUpper = (code ?? '').toUpperCase();
-      if (codeUpper.includes('DATABASE') || categoryFromError === 'database') {
-        severity = ErrorSeverity.HIGH;
-        category = ErrorCategory.DATABASE;
-      } else if (codeUpper.includes('VALIDATION') || categoryFromError === 'validation') {
-        severity = ErrorSeverity.LOW;
-        category = ErrorCategory.VALIDATION;
-      } else if (categoryFromError === 'tool_execution' || req.path?.startsWith('/tools/')) {
-        category = ErrorCategory.TOOL_EXECUTION;
-      }
-    }
-    if (category === ErrorCategory.UNKNOWN) {
-      if (errorMessage.includes('database') || errorMessage.includes('Database')) {
-        severity = ErrorSeverity.HIGH;
-        category = ErrorCategory.DATABASE;
-      } else if (errorMessage.includes('validation') || errorMessage.includes('Validation')) {
-        severity = ErrorSeverity.LOW;
-        category = ErrorCategory.VALIDATION;
-      } else if (req.path?.startsWith('/tools/')) {
-        category = ErrorCategory.TOOL_EXECUTION;
-      }
-    }
-
-    // 에러 로깅
+    const errorLoggingService: IErrorLoggingService = req.services.errorLoggingService;
+    const { severity, category } = resolveSeverityAndCategory(error, req);
     errorLoggingService.logError(
       error instanceof Error ? error : new Error(errorMessage),
       severity,
@@ -85,7 +105,6 @@ export function errorHandler(
       }
     );
   } else {
-    // ErrorLoggingService가 없는 경우 logger 사용
     logger.error('Request error', {
       method: req.method,
       path: req.path,
@@ -94,30 +113,16 @@ export function errorHandler(
     });
   }
 
-  // 에러 응답 생성
   const errorResponse: ErrorResponse = {
     error: 'Internal Server Error',
     message: errorMessage,
     timestamp: new Date().toISOString()
   };
-
-  // 개발 환경에서는 스택 트레이스 포함
   if (process.env.NODE_ENV === 'development' && errorStack) {
     errorResponse.details = errorStack;
   }
 
-  // HTTP 상태 코드 결정
-  let statusCode = 500;
-  if (errorMessage.includes('not found') || errorMessage.includes('Not Found')) {
-    statusCode = 404;
-  } else if (errorMessage.includes('validation') || errorMessage.includes('Validation')) {
-    statusCode = 400;
-  } else if (errorMessage.includes('unauthorized') || errorMessage.includes('Unauthorized')) {
-    statusCode = 401;
-  } else if (errorMessage.includes('forbidden') || errorMessage.includes('Forbidden')) {
-    statusCode = 403;
-  }
-
+  const statusCode = resolveStatusCode(error, req);
   res.status(statusCode).json(errorResponse);
 }
 

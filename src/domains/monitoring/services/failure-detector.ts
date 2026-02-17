@@ -4,28 +4,12 @@
  */
 
 import type { IAsyncTaskQueue } from '../../../shared/interfaces/async-task-queue.interface.js';
+import type { FailureEvent } from '../../../shared/types/failure-event.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { ToolContext } from '../../../tools/types.js';
 
-/**
- * 실패 이벤트 데이터 구조
- */
-export interface FailureEvent {
-  id: string; // 이벤트 고유 ID
-  tool_name: string; // 실패한 Tool 이름
-  error_type: 'tool_error' | 'user_feedback' | 'metric_failure'; // 실패 유형
-  error_message: string; // 에러 메시지
-  error_message_hash: string; // 에러 메시지 해시 (첫 50자)
-  timestamp: string; // ISO 8601 형식
-  context: {
-    params?: any; // Tool 호출 파라미터
-    stack?: string; // 에러 스택 트레이스
-    execution_time_ms?: number; // 실행 시간 (밀리초)
-    [key: string]: any; // 추가 컨텍스트 정보
-  };
-  original_task?: string; // 원래 수행하려던 작업 목표 (가능한 경우)
-  priority: number; // 우선순위 (1-10, 높을수록 우선)
-}
+/** 실패 이벤트 타입 재export (shared 타입 사용, 하위 호환) */
+export type { FailureEvent };
 
 /**
  * 에러 타입 분류
