@@ -23,6 +23,7 @@
 
 ### 공통 (EN/KO)
 - Cursor MCP: [en](guides/en/cursor-mcp-setup.md) / [ko](guides/ko/cursor-mcp-setup.md)
+- MCP serverUseInstructions (서버 사용 지침): [ko](guides/ko/mcp-server-instructions.md)
 - 관계 라벨링: [en](guides/en/relation-labeling-guide.md) / [ko](guides/ko/relation-labeling-guide.md)
 - 앵커 연결 확인: [en](guides/en/how-to-check-anchor-connections.md) / [ko](guides/ko/how-to-check-anchor-connections.md)
 - 멀티 에이전트: [en](guides/en/multi-agent-usage.md) / [ko](guides/ko/multi-agent-usage.md)
