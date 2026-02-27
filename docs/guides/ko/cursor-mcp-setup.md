@@ -2,7 +2,22 @@
 
 Cursor에서 Memento MCP Server를 사용하기 위한 설정 방법입니다.
 
-## 🚨 문제 해결: "Cannot destructure property 'package' of 'node.target' as it is null"
+## 🚨 문제 해결
+
+### "Cannot find module '.../dist/server/index.js'"
+
+로컬 경로로 MCP를 설정했는데 위와 같은 오류가 나면 **빌드 산출물이 없거나 오래된 경우**입니다. `dist/`는 Git에 포함되지 않으며, `npm run build`를 해야 생성됩니다.
+
+**해결**: 프로젝트 루트에서 다음을 실행한 뒤 Cursor를 다시 시작하거나 MCP 서버를 재연결하세요.
+
+```bash
+npm install
+npm run build
+```
+
+빌드가 성공하면 `dist/server/index.js`가 생성됩니다. Cursor MCP가 참조하는 경로가 이 파일을 가리키는지 확인하세요.
+
+### "Cannot destructure property 'package' of 'node.target' as it is null"
 
 이 오류는 `npx -y memento-mcp-server@latest`를 사용할 때 npm의 내부 오류로 발생할 수 있습니다.
 

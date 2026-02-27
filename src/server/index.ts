@@ -33,6 +33,17 @@ import { ServerState } from './server-state.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
+/**
+ * Server instructions (MCP InitializeResult.instructions).
+ * Exposed to clients (e.g. Cursor) as serverUseInstructions so the LLM knows how to use Memento.
+ * @see https://modelcontextprotocol.io/specification — InitializeResult optional "instructions" field
+ */
+const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, memory_injection, search_local, anchors).
+
+- **Before a task**: Use \`recall\` (hybrid search) or \`memory_injection\` (query-based context) to check for relevant memories. If an anchor is set, use \`search_local\` for anchor-scoped memories.
+- **After a task**: Use \`remember\` to store outcomes: episodic (e.g. tag: completed), semantic (e.g. best-practice, knowledge), or procedural (e.g. procedure). Check for existing memories first to avoid duplicates; include concrete, searchable keywords.
+- Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
+
 // MCP 서버 인스턴스
 let server: Server;
 let db: Database.Database | null = null;
@@ -257,6 +268,7 @@ async function initializeServer() {
     // MCP 서버 생성
     // MCP 스펙 준수: logging capability 선언 (MCP Spec 2024-11-05)
     // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
+    // instructions: InitializeResult에 포함되어 클라이언트(Cursor 등)가 AI에게 Memento 사용법을 안내하는 serverUseInstructions로 활용됨
     server = new Server(
       {
         name: mementoConfig.serverName,
@@ -268,7 +280,8 @@ async function initializeServer() {
           resources: {},
           prompts: {},
           logging: {} // MCP 스펙: logging capability 선언 필수
-        }
+        },
+        instructions: MEMENTO_SERVER_INSTRUCTIONS
       }
     );
     
