@@ -1,6 +1,7 @@
 /**
  * src/services/ 디렉토리의 Logger 사용 검증 테스트
- * 
+ * 역할: 로거 사용 패턴 검증 (file-location-audit).
+ *
  * PRD 0021: 기능 미활용 개선 (Phase 3) - 로깅 시스템 통일 및 강제
  * 
  * Given/When/Then 패턴을 따르는 통합 테스트
