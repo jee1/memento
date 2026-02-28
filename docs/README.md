@@ -84,6 +84,7 @@
 ## 7. 운영·도구 (operations/en, operations/ko)
 
 - GitHub 릴리스: [ko](operations/ko/github-release-workflow.md) / [en](operations/en/github-release-workflow.md)
+- 스크립트 인덱스: [ko](operations/ko/scripts-index.md)
 - 마이그레이션 상태 점검: [ko](operations/ko/check-migration-status.md) / [en](operations/en/check-migration-status.md)
 - 트러블슈팅: [ko](operations/ko/troubleshooting-node-version.md) / [en](operations/en/troubleshooting-node-version.md), [ko](operations/ko/npx-troubleshooting.md) / [en](operations/en/npx-troubleshooting.md)
 - npm unpublish: [ko](operations/ko/npm-unpublish-guide.md) / [en](operations/en/npm-unpublish-guide.md)
