@@ -61,7 +61,9 @@
 
 - [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
 - [plans/ko/2026-02-05-issue57-phase2-roadmap.md](plans/ko/2026-02-05-issue57-phase2-roadmap.md) — Phase2 로드맵
+- [plans/ko/2026-02-28-file-location-audit-improvements.md](plans/ko/2026-02-28-file-location-audit-improvements.md) — 파일 위치 감사 기반 개선
 - 기타: [plans/ko/](plans/ko/) 디렉터리 참고
+- PRD·태스크 목록: 루트 [tasks/](../tasks/) ([tasks/README.md](../tasks/README.md) 참고)
 
 ---
 
@@ -90,6 +92,8 @@
 
 ## 8. 참조 (reference/en, reference/ko)
 
+- **코드베이스 분석**: [ko](reference/ko/codebase-analysis.md) — 전체 코드 구조·도메인·조건·데이터 흐름 정리
+- **파일 위치·필요성 감사**: [ko](reference/ko/file-location-audit.md) — 파일별 위치 적합성·필요여부·개선 방안
 - 로깅 스키마: [ko](reference/ko/logging-schema.md) / [en](reference/en/logging-schema.md)
 - 보안: [ko](reference/ko/security.md) / [en](reference/en/security.md)
 - 외부 API 호출: [ko](reference/ko/external-api-calls.md) / [en](reference/en/external-api-calls.md)
