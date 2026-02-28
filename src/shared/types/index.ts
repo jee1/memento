@@ -287,6 +287,11 @@ export interface RememberParams {
   importance?: number;
   source?: string;
   privacy_scope?: PrivacyScope;
+  // Continuity / Memori Attribution (developer continuity assistant)
+  process_id?: string;
+  session_id?: string;
+  source_session_id?: string;
+  origin_source?: string;
 }
 
 /**
