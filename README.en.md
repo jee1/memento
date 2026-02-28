@@ -47,6 +47,12 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Cache System**: LRU + TTL based caching
 - **Async Processing**: Worker pool based parallel processing
 
+### Developer Continuity Assistant (Phase 1)
+- **Session continuity**: start/save/end/resume tools for developer session checkpoints
+- **Resume snapshot**: Four sections — Resume, Recent Decisions, Open Threads, Next Actions
+- **CLI**: `memento-continuity` (or `npm run dev:continuity-cli`) for continuity commands
+- See [docs/guides/ko/developer-continuity-assistant-phase1.md](docs/guides/ko/developer-continuity-assistant-phase1.md) (Korean) for details.
+
 ## 🚀 Quick Start
 
 ### 🥇 **One-click Installation (Recommended)**
