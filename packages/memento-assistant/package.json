@@ -1,0 +1,19 @@
+{
+  "name": "memento-assistant",
+  "version": "1.0.0",
+  "description": "Developer continuity assistant - session lifecycle, resume snapshot, assistant CLI",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "memento-core": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}
