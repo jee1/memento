@@ -31,6 +31,7 @@
 | 검증 | check-db-integrity.js, check-embedding-dimensions.ts, check-sql-injection.ts, check-magic-numbers.ts, count-console-logs.ts 등 | CI 또는 수동 품질 검사 |
 | 마이그레이션/레거시 | run-migration.js, fix-migration.js, safe-migration.js, migrate-embedding-data.js | DB/임베딩 마이그레이션 |
 | 문서·리포트 생성 | generate-relation-report.ts, generate-file-audit-table.cjs, update-file-audit-doc.cjs | 문서·감사 테이블 생성 |
-| 백업/복원 | backup-daily.bat, restore-legacy.ps1, restore-legacy.sh | 운영용; 사용처 확인 후 유지 권장 |
+| 백업/복원 | backup-daily.bat, restore-legacy.ps1, restore-legacy.sh | 운영용. backup-daily.bat는 PRD 0019 등에서 참조. 미사용 시 제거 검토. |
+| direct-sql-migration.sql | 일회성 SQL 마이그레이션 | 일회성이면 docs/operations에 목적·실행 이력 기록 후 삭제 또는 `scripts/archive/` 이동 검토. |
 
 전체 목록은 `scripts/` 디렉터리를 참고하고, `package.json`의 `scripts` 필드에 등록된 항목을 우선 사용하세요.
