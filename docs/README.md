@@ -17,6 +17,8 @@
 | Cursor/MCP 설정 | [guides/ko/cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [guides/en/cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | 보안 | [reference/ko/security.md](reference/ko/security.md) | [reference/en/security.md](reference/en/security.md) |
 
+**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). 상세는 README·가이드 참고.
+
 ---
 
 ## 1. 가이드 (guides/en, guides/ko)
