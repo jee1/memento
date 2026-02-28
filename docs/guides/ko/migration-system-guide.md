@@ -16,11 +16,18 @@ Memento 프로젝트는 정식 마이그레이션 시스템을 사용하여 데�
 - **SchemaVersionManager**: 스키마 버전 관리 (`src/infrastructure/database/database/migration/schema-version-manager.ts`)
 - **MigrationLogger**: 마이그레이션 로깅 (`src/infrastructure/database/database/migration/migration-logger.ts`)
 
-### 마이그레이션 디렉토리
+### 마이그레이션 디렉토리 (이중 구조)
 
-마이그레이션 스크립트는 `src/infrastructure/database/database/migration/migrations/` 디렉토리에 위치합니다.
+같은 `database/` 아래에 마이그레이션 관련 디렉터리가 두 가지 있습니다.
 
-파일 명명 규칙: `{버전}-{이름}.ts`
+| 경로 | 역할 | 사용 여부 |
+|------|------|-----------|
+| `database/migration/migrations/` | **버전드 TS+SQL 마이그레이션**. Migration 인터페이스를 구현한 `.ts`/`.sql` 파일. MigrationRunner가 실행. | **현재 정식 시스템**. 새 마이그레이션은 여기에 추가. |
+| `database/migrations/` | **레거시 SQL**. `001_xxx.sql`, `002_xxx.sql` 등 예전 형식. | 레거시/초기화용. 새로 추가하지 않음. |
+
+**새 스키마 변경이 필요할 때:** `src/infrastructure/database/database/migration/migrations/` 에 `{버전}-{이름}.ts` (및 필요 시 `.sql`) 파일을 추가하고, [마이그레이션 작성 예제](#마이그레이션-작성-예제)를 따릅니다.
+
+파일 명명 규칙 (정식): `{버전}-{이름}.ts`
 
 예:
 - `002-mirix-schema-expansion.ts`

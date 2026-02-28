@@ -17,6 +17,8 @@
 | Cursor/MCP 설정 | [guides/ko/cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [guides/en/cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | 보안 | [reference/ko/security.md](reference/ko/security.md) | [reference/en/security.md](reference/en/security.md) |
 
+**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). 상세는 README·가이드 참고.
+
 ---
 
 ## 1. 가이드 (guides/en, guides/ko)
@@ -61,7 +63,9 @@
 
 - [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
 - [plans/ko/2026-02-05-issue57-phase2-roadmap.md](plans/ko/2026-02-05-issue57-phase2-roadmap.md) — Phase2 로드맵
+- [plans/ko/2026-02-28-file-location-audit-improvements.md](plans/ko/2026-02-28-file-location-audit-improvements.md) — 파일 위치 감사 기반 개선
 - 기타: [plans/ko/](plans/ko/) 디렉터리 참고
+- PRD·태스크 목록: 루트 [tasks/](../tasks/) ([tasks/README.md](../tasks/README.md) 참고)
 
 ---
 
@@ -82,6 +86,7 @@
 ## 7. 운영·도구 (operations/en, operations/ko)
 
 - GitHub 릴리스: [ko](operations/ko/github-release-workflow.md) / [en](operations/en/github-release-workflow.md)
+- 스크립트 인덱스: [ko](operations/ko/scripts-index.md)
 - 마이그레이션 상태 점검: [ko](operations/ko/check-migration-status.md) / [en](operations/en/check-migration-status.md)
 - 트러블슈팅: [ko](operations/ko/troubleshooting-node-version.md) / [en](operations/en/troubleshooting-node-version.md), [ko](operations/ko/npx-troubleshooting.md) / [en](operations/en/npx-troubleshooting.md)
 - npm unpublish: [ko](operations/ko/npm-unpublish-guide.md) / [en](operations/en/npm-unpublish-guide.md)
@@ -90,6 +95,8 @@
 
 ## 8. 참조 (reference/en, reference/ko)
 
+- **코드베이스 분석**: [ko](reference/ko/codebase-analysis.md) — 전체 코드 구조·도메인·조건·데이터 흐름 정리
+- **파일 위치·필요성 감사**: [ko](reference/ko/file-location-audit.md) — 파일별 위치 적합성·필요여부·개선 방안
 - 로깅 스키마: [ko](reference/ko/logging-schema.md) / [en](reference/en/logging-schema.md)
 - 보안: [ko](reference/ko/security.md) / [en](reference/en/security.md)
 - 외부 API 호출: [ko](reference/ko/external-api-calls.md) / [en](reference/en/external-api-calls.md)
