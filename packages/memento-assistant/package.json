@@ -4,8 +4,11 @@
   "description": "Developer continuity assistant - session lifecycle, resume snapshot, assistant CLI",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
+"types": "dist/index.d.ts",
+    "bin": {
+      "memento-continuity": "./dist/client/continuity-cli.js"
+    },
+    "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit"
   },
