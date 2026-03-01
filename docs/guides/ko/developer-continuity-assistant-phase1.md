@@ -62,12 +62,28 @@ resume API는 `project`(및 선택적으로 `process_id`, `session_id`, `branch`
 - **저장**: `save_context` / `start_session` / `end_session` 호출 시 assistant가 core의 remember 계약을 호출해 저장합니다. Phase 1에서는 별도 “승인 후 저장” 플로우는 없습니다.
 - **억제 조건**: core의 remember 검증(필수 필드, 타입 등)을 그대로 따릅니다. assistant는 `SessionCheckpointService.buildCheckpointPayload()`로 continuity 태그·origin_source를 붙여 전달합니다.
 
+## Assistant 런타임 기동
+
+assistant는 core의 remember/recall API에 연결된 상태로 기동해야 한다. core HTTP 서버를 먼저 띄운 뒤, assistant를 `MEMENTO_CORE_URL`로 연결한다.
+
+```bash
+# 1) core HTTP 서버 (기본 포트 3000)
+npm run dev:http
+
+# 2) assistant 런타임 (core URL 지정, 기본 포트 8090)
+MEMENTO_CORE_URL=http://localhost:3000 npm run dev:assistant
+```
+
+`dev:assistant`는 `run-assistant-server`를 통해 `createCoreToolHttpClient` + `createRuntimeCoreBridge`로 core에 연결한 뒤 `createAssistantApp(bridge)`를 띄운다.
+
 ## E2E 검증
 
 core HTTP 서버와 assistant 런타임이 기동된 상태에서:
 
 ```bash
-MEMENTO_ASSISTANT_URL=http://localhost:8090 tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
+MEMENTO_CORE_URL=http://localhost:3000 \
+MEMENTO_ASSISTANT_URL=http://localhost:8090 \
+tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
 ```
 
 위 스크립트는 start → save(decision) → save(next-step) → end → resume 순서로 호출한 뒤, snapshot의 `recentDecisions`와 `nextActions`가 비어 있지 않은지 검증합니다.

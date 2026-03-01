@@ -93,7 +93,9 @@
     "dev:client": "cd packages/mcp-client && npm run dev",
     "clean:client": "cd packages/mcp-client && npm run clean",
     "publish:client": "cd packages/mcp-client && npm publish",
-    "dev:continuity-cli": "tsx packages/memento-assistant/src/client/continuity-cli.ts"
+    "dev:continuity-cli": "tsx packages/memento-assistant/src/client/continuity-cli.ts",
+    "dev:assistant": "tsx packages/memento-assistant/src/server/run-assistant-server.ts",
+    "start:assistant": "node packages/memento-assistant/dist/server/run-assistant-server.js"
   },
   "keywords": [
     "mcp",

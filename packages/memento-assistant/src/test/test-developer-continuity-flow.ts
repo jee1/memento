@@ -1,10 +1,16 @@
 /**
  * E2E: Developer continuity flow.
  * Prerequisite: memento-core HTTP server and memento-assistant runtime must be running.
- * Assistant must be configured with remember + queryContinuityMemories wired to core.
+ * Assistant runtime is wired to core via run-assistant-server (MEMENTO_CORE_URL).
  *
  * Usage:
- *   MEMENTO_ASSISTANT_URL=http://localhost:8090 tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
+ *   # Terminal 1: core
+ *   npm run dev:http
+ *   # Terminal 2: assistant
+ *   MEMENTO_CORE_URL=http://localhost:3000 npm run dev:assistant
+ *   # Terminal 3: E2E
+ *   MEMENTO_CORE_URL=http://localhost:3000 MEMENTO_ASSISTANT_URL=http://localhost:8090 \
+ *   tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
  */
 import { AssistantClient } from '../client/assistant-client.js';
 
