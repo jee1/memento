@@ -8,7 +8,10 @@ export function buildOriginSource(input: ContinuityOriginSource): string {
   return JSON.stringify(input);
 }
 
-export function parseOriginSource(raw?: string | null): ContinuityOriginSource {
+export function parseOriginSource(
+  raw?: string | ContinuityOriginSource | null
+): ContinuityOriginSource {
   if (!raw) return {};
-  return JSON.parse(raw) as ContinuityOriginSource;
+  if (typeof raw === 'string') return JSON.parse(raw) as ContinuityOriginSource;
+  return raw;
 }

@@ -47,4 +47,44 @@ describe('createRuntimeCoreBridge', () => {
       { id: 'mem-1', content: 'Decision', tags: ['continuity', 'decision'] },
     ]);
   });
+
+  it('filters continuity items by origin_source.branch when branch is provided', async () => {
+    const coreClient = {
+      remember: vi.fn(),
+      recall: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'mem-1',
+            content: 'Decision A',
+            tags: ['continuity', 'decision'],
+            origin_source: { project: 'memento', branch: 'feature/a' },
+          },
+          {
+            id: 'mem-2',
+            content: 'Decision B',
+            tags: ['continuity', 'decision'],
+            origin_source: { project: 'memento', branch: 'feature/b' },
+          },
+        ],
+      }),
+    };
+
+    const bridge = createRuntimeCoreBridge(coreClient);
+
+    const items = await bridge.queryContinuityMemories!({
+      project: 'memento',
+      sessionId: 'sess-1',
+      branch: 'feature/a',
+    });
+
+    expect(coreClient.recall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: 'memento',
+        include_metadata: true,
+      })
+    );
+    expect(items).toEqual([
+      { id: 'mem-1', content: 'Decision A', tags: ['continuity', 'decision'] },
+    ]);
+  });
 });

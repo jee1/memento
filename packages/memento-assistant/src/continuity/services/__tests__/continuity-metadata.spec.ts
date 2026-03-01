@@ -26,4 +26,13 @@ describe('continuity-metadata', () => {
       session_id: 'sess-1',
     });
   });
+
+  it('parseOriginSource accepts parsed object input', () => {
+    expect(
+      parseOriginSource({ project: 'memento', branch: 'feature/a' } as never)
+    ).toMatchObject({
+      project: 'memento',
+      branch: 'feature/a',
+    });
+  });
 });
