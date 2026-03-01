@@ -54,6 +54,12 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **캐시 시스템**: LRU + TTL 기반 캐싱
 - **비동기 처리**: 워커 풀 기반 병렬 처리
 
+### 🔄 Developer Continuity Assistant (Phase 1)
+- **세션 연속성**: start/save/end/resume 도구로 개발 세션 체크포인트 저장·조회
+- **Resume 스냅샷**: Resume, Recent Decisions, Open Threads, Next Actions 4개 섹션
+- **CLI**: `memento-continuity` (또는 `npm run dev:continuity-cli`)로 continuity 명령 실행
+- 상세: [docs/guides/ko/developer-continuity-assistant-phase1.md](docs/guides/ko/developer-continuity-assistant-phase1.md)
+
 ## 🚀 빠른 시작
 
 ### 🥇 **원클릭 설치 (권장)**
