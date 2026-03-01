@@ -24,7 +24,12 @@ describe('createRuntimeCoreBridge', () => {
       remember: vi.fn(),
       recall: vi.fn().mockResolvedValue({
         items: [
-          { id: 'mem-1', content: 'Decision', tags: ['continuity', 'decision'] },
+          {
+            id: 'mem-1',
+            content: 'Decision',
+            tags: ['continuity', 'decision'],
+            origin_source: { project: 'memento', branch: 'feature/resume' },
+          },
         ],
       }),
     };
@@ -83,6 +88,56 @@ describe('createRuntimeCoreBridge', () => {
         include_metadata: true,
       })
     );
+    expect(items).toEqual([
+      { id: 'mem-1', content: 'Decision A', tags: ['continuity', 'decision'] },
+    ]);
+  });
+
+  it('excludes branchless continuity items when branch is specified', async () => {
+    const coreClient = {
+      remember: vi.fn(),
+      recall: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'mem-1',
+            content: 'Decision A',
+            tags: ['continuity', 'decision'],
+            origin_source: { project: 'memento', branch: 'feature/a' },
+          },
+          {
+            id: 'mem-2',
+            content: 'Session ended',
+            tags: ['continuity', 'next-step'],
+          },
+        ],
+      }),
+    };
+
+    const bridge = createRuntimeCoreBridge(coreClient);
+    const items = await bridge.queryContinuityMemories!({
+      project: 'memento',
+      sessionId: 'sess-1',
+      branch: 'feature/a',
+    });
+
+    expect(items).toEqual([
+      { id: 'mem-1', content: 'Decision A', tags: ['continuity', 'decision'] },
+    ]);
+  });
+
+  it('keeps branchless continuity items when branch is not specified', async () => {
+    const coreClient = {
+      remember: vi.fn(),
+      recall: vi.fn().mockResolvedValue({
+        items: [
+          { id: 'mem-1', content: 'Decision A', tags: ['continuity', 'decision'] },
+        ],
+      }),
+    };
+
+    const bridge = createRuntimeCoreBridge(coreClient);
+    const items = await bridge.queryContinuityMemories!({ project: 'memento' });
+
     expect(items).toEqual([
       { id: 'mem-1', content: 'Decision A', tags: ['continuity', 'decision'] },
     ]);

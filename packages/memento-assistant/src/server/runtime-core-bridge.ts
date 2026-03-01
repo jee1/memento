@@ -31,7 +31,6 @@ export function createRuntimeCoreBridge(
         .filter((item) => {
           if (!input.branch) return true;
           const origin = parseOriginSource(item.origin_source ?? null);
-          if (!origin.branch) return true;
           return origin.branch === input.branch;
         })
         .map((item) => ({
