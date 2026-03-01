@@ -31,7 +31,7 @@
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "eslint src/**/*.ts",
     "validate:workspace": "node scripts/validate-workspace.mjs",
-    "type-check": "npm run validate:workspace && tsc --noEmit && npm run type-check --workspace=packages/memento-core && npm run type-check --workspace=packages/memento-assistant",
+    "type-check": "npm run validate:workspace && npm run build --workspace=packages/memento-core && tsc --noEmit && npm run type-check --workspace=packages/memento-core && npm run type-check --workspace=packages/memento-assistant",
     "db:init": "tsx src/infrastructure/database/database/init.ts",
     "db:migrate": "tsx src/infrastructure/database/database/migrate.ts",
     "db:check-migration": "tsx src/scripts/check-migration-status.ts",

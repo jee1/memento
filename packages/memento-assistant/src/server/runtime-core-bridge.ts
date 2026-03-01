@@ -1,6 +1,7 @@
 import type {
   CoreRememberParams,
   CoreRecallParams,
+  CoreRecallItem,
   CoreRecallResult,
 } from 'memento-core';
 import type { AssistantServerOptions } from './assistant-http-server.js';
@@ -26,14 +27,15 @@ export function createRuntimeCoreBridge(
         include_metadata: true,
       });
 
-      return result.items
-        .filter((item) => item.tags?.includes('continuity'))
-        .filter((item) => {
+      const items: CoreRecallItem[] = result.items;
+      return items
+        .filter((item: CoreRecallItem) => item.tags?.includes('continuity'))
+        .filter((item: CoreRecallItem) => {
           if (!input.branch) return true;
           const origin = parseOriginSource(item.origin_source ?? null);
           return origin.branch === input.branch;
         })
-        .map((item) => ({
+        .map((item: CoreRecallItem) => ({
           id: item.id,
           content: item.content,
           tags: item.tags,

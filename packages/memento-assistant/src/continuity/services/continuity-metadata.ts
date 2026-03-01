@@ -12,6 +12,12 @@ export function parseOriginSource(
   raw?: string | ContinuityOriginSource | null
 ): ContinuityOriginSource {
   if (!raw) return {};
-  if (typeof raw === 'string') return JSON.parse(raw) as ContinuityOriginSource;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as ContinuityOriginSource;
+    } catch {
+      return {};
+    }
+  }
   return raw;
 }

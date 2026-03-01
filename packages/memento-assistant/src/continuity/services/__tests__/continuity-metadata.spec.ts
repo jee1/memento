@@ -35,4 +35,9 @@ describe('continuity-metadata', () => {
       branch: 'feature/a',
     });
   });
+
+  it('parseOriginSource returns empty object for invalid JSON string', () => {
+    expect(parseOriginSource('not valid json')).toEqual({});
+    expect(parseOriginSource('{')).toEqual({});
+  });
 });
