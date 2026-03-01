@@ -25,12 +25,23 @@ export interface CoreRecallParams {
   limit?: number;
   process_id?: string;
   session_id?: string;
+  include_metadata?: boolean;
+}
+
+export interface CoreRecallOriginSource {
+  project?: string;
+  branch?: string;
+  session_id?: string;
+  [key: string]: unknown;
 }
 
 export interface CoreRecallItem {
   id: string;
   content: string;
   tags?: string[];
+  process_id?: string;
+  session_id?: string;
+  origin_source?: string | CoreRecallOriginSource;
 }
 
 export interface CoreRememberResult {

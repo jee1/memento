@@ -65,4 +65,56 @@ describe('createCoreToolHttpClient', () => {
       { id: 'mem-1', content: 'Decision', tags: ['continuity', 'decision'] },
     ]);
   });
+
+  it('passes include_metadata to /tools/recall and preserves origin_source metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: {
+          items: {
+            items: [
+              {
+                id: 'mem-1',
+                content: 'Decision',
+                tags: ['continuity', 'decision'],
+                process_id: 'cursor',
+                session_id: 'sess-1',
+                origin_source: { project: 'memento', branch: 'feature/a' },
+              },
+            ],
+          },
+        },
+      }),
+    });
+
+    const client = createCoreToolHttpClient({
+      serverUrl: 'http://localhost:3000',
+      fetchImpl: fetchMock,
+    });
+
+    const result = await client.recall({
+      query: 'memento',
+      filters: { tags: ['continuity'] },
+      include_metadata: true,
+      session_id: 'sess-1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/tools/recall',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          query: 'memento',
+          filters: { tags: ['continuity'] },
+          include_metadata: true,
+          session_id: 'sess-1',
+        }),
+      })
+    );
+    expect(result.items[0]).toMatchObject({
+      id: 'mem-1',
+      session_id: 'sess-1',
+      origin_source: { project: 'memento', branch: 'feature/a' },
+    });
+  });
 });
