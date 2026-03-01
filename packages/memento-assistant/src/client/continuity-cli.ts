@@ -80,6 +80,7 @@ export async function runCli(argv: string[]): Promise<string> {
           project: options.project ?? 'default',
           session_id: options.session_id ?? '',
           process_id: processId,
+          branch: options.branch,
           summary: options.summary,
         });
         break;

@@ -25,6 +25,7 @@ export interface EndSessionParams {
   project: string;
   session_id: string;
   process_id?: string;
+  branch?: string;
   summary?: string;
 }
 

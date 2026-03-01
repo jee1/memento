@@ -60,6 +60,7 @@ async function main(): Promise<void> {
       project: PROJECT,
       session_id: SESSION_ID,
       process_id: PROCESS_ID,
+      branch: BRANCH,
       summary: 'Phase 1 E2E 검증 완료',
     });
     // 5. resume_session (branch를 넘겨 같은 브랜치 continuity만 조회)

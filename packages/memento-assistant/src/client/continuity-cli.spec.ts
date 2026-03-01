@@ -96,4 +96,36 @@ describe('continuity-cli', () => {
     const body = init && typeof init.body === 'string' ? JSON.parse(init.body) : {};
     expect(body).toMatchObject({ project: 'p', process_id: 'pid-456' });
   });
+
+  it('passes branch to end_session', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: { session_id: 'sess-1', memory_id: 'mem-1' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('process', {
+      ...process,
+      env: { ...process.env, MEMENTO_ASSISTANT_URL: 'http://localhost:8090' },
+    });
+
+    await runCli([
+      'node',
+      'continuity-cli',
+      'end',
+      '--project',
+      'memento',
+      '--session_id',
+      'sess-1',
+      '--branch',
+      'feature/resume',
+    ]);
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    const body = init && typeof init.body === 'string' ? JSON.parse(init.body) : {};
+    expect(body).toMatchObject({
+      project: 'memento',
+      session_id: 'sess-1',
+      branch: 'feature/resume',
+    });
+  });
 });
