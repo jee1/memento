@@ -41,7 +41,7 @@ export function createAssistantApp(options: AssistantServerOptions = {}): Expres
   const registry = createRegistry(options);
   const context: AssistantToolContext = { remember: options.remember };
 
-  app.post('/assistant/tools/:name', async (req, res) => {
+  app.post('/assistant/tools/:name', async (req: express.Request, res: express.Response) => {
     const name = req.params.name;
     const params = req.body ?? {};
     try {

@@ -5,6 +5,7 @@
     "moduleResolution": "node",
     "strict": true,
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "declaration": true,
