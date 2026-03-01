@@ -289,4 +289,5 @@ npx vitest --run packages/memento-assistant/src/server/assistant-http-server.spe
 
 - 2026-03-01: 초안 작성
 - 2026-03-01: 3.1~3.7 구현 완료. 검증: build, verify-bin, pack --dry-run, type-check, continuity-cli.spec, assistant-http-server.spec 통과. 체크리스트 항목 모두 완료 처리.
+- 2026-03-01: branch-aware resume 구현 완료. core facade에 recall metadata(include_metadata, origin_source) 노출, assistant runtime bridge에서 branch 기준 후처리 필터링, 가이드·E2E·체크리스트 정렬. 검증: `npm run type-check`, `npx vitest --run packages/memento-core/src/http-tool-client.spec.ts packages/memento-assistant/src/server/runtime-core-bridge.spec.ts packages/memento-assistant/src/continuity/services/__tests__/continuity-metadata.spec.ts packages/memento-assistant/src/continuity/tools/__tests__/resume-session-tool.spec.ts`, E2E `tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts`.
 - 다음 업데이트 시 각 항목 상태와 검증 결과를 함께 기록할 것

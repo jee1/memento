@@ -57,7 +57,7 @@ npm run dev:continuity-cli -- resume --project memento
 | **Open Threads** | `blocker` 태그로 저장된 막힌 점 |
 | **Next Actions** | `next-step` 태그로 저장된 다음 액션/종료 요약 |
 
-resume API는 `project`(및 선택적으로 `process_id`, `session_id`, `branch`)로 continuity 태그가 붙은 기억만 필터해 위 네 섹션으로 나눠 반환합니다.
+resume API는 `project`(및 선택적으로 `process_id`, `session_id`, `branch`)로 continuity 태그가 붙은 기억만 필터해 위 네 섹션으로 나눠 반환합니다. 같은 프로젝트 내 다른 브랜치의 continuity 기록이 섞이지 않도록 하려면 `branch`를 지정해 branch-aware resume를 사용하면 됩니다.
 
 ## 저장·승인 경계
 
@@ -93,7 +93,7 @@ MEMENTO_ASSISTANT_URL=http://localhost:8090 \
 tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
 ```
 
-위 스크립트는 start → save(decision) → save(next-step) → end → resume 순서로 호출한 뒤, snapshot의 `recentDecisions`와 `nextActions`가 비어 있지 않은지 검증합니다.
+위 스크립트는 start → save(decision) → save(next-step) → end → resume 순서로 호출하며, 저장과 조회 모두 동일한 `branch`를 사용합니다. resume 시 `branch`를 넘겨 해당 브랜치 continuity만 조회한 뒤, snapshot의 `recentDecisions`와 `nextActions`가 비어 있지 않은지 검증합니다.
 
 ## 참고
 

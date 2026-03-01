@@ -62,11 +62,12 @@ async function main(): Promise<void> {
       process_id: PROCESS_ID,
       summary: 'Phase 1 E2E 검증 완료',
     });
-    // 5. resume_session
+    // 5. resume_session (branch를 넘겨 같은 브랜치 continuity만 조회)
     const { snapshot } = await client.resumeSession({
       project: PROJECT,
       process_id: PROCESS_ID,
       session_id: SESSION_ID,
+      branch: BRANCH,
     });
     // 6. assert snapshot sections
     assert(snapshot.recentDecisions.length > 0, 'recent decisions should not be empty');
