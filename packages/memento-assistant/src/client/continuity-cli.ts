@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { AssistantClient } from './assistant-client.js';
 import type { ResumeSnapshot } from '../continuity/types.js';
 
@@ -41,6 +42,7 @@ export async function runCli(argv: string[]): Promise<string> {
 
   try {
     const { command, options } = parseArgs(argv);
+    const processId = options.process_id ?? options.process;
     const url = process.env.MEMENTO_ASSISTANT_URL ?? DEFAULT_URL;
     const client = new AssistantClient({ assistantServerUrl: url });
 
@@ -49,14 +51,14 @@ export async function runCli(argv: string[]): Promise<string> {
         await client.startSession({
           project: options.project ?? 'default',
           session_id: options.session_id ?? `sess-${Date.now()}`,
-          process_id: options.process_id,
+          process_id: processId,
           branch: options.branch,
         });
         break;
       case 'resume': {
         const result = await client.resumeSession({
           project: options.project ?? 'default',
-          process_id: options.process_id,
+          process_id: processId,
           session_id: options.session_id,
           branch: options.branch,
         });
@@ -69,7 +71,7 @@ export async function runCli(argv: string[]): Promise<string> {
           content: options.content ?? '',
           project: options.project ?? 'default',
           session_id: options.session_id ?? '',
-          process_id: options.process_id,
+          process_id: processId,
           branch: options.branch,
         });
         break;
@@ -77,7 +79,7 @@ export async function runCli(argv: string[]): Promise<string> {
         await client.endSession({
           project: options.project ?? 'default',
           session_id: options.session_id ?? '',
-          process_id: options.process_id,
+          process_id: processId,
           summary: options.summary,
         });
         break;

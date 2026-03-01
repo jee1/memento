@@ -40,6 +40,8 @@ memento-continuity end --project memento --session_id sess-1 --summary "resume �
 memento-continuity resume --project memento
 ```
 
+CLI 옵션: 프로세스 식별자는 `--process`(권장) 또는 `--process_id`(하위 호환)로 전달할 수 있으며, 동일하게 `process_id`로 전달됩니다.
+
 개발 시에는 루트에서 다음으로 실행할 수 있습니다.
 
 ```bash
@@ -74,7 +76,12 @@ npm run dev:http
 MEMENTO_CORE_URL=http://localhost:3000 npm run dev:assistant
 ```
 
-`dev:assistant`는 `run-assistant-server`를 통해 `createCoreToolHttpClient` + `createRuntimeCoreBridge`로 core에 연결한 뒤 `createAssistantApp(bridge)`를 띄운다.
+`dev:assistant`는 `run-assistant-server`를 통해 `createCoreToolHttpClient` + `createRuntimeCoreBridge`로 core에 연결한 뒤 `createAssistantApp(bridge)`를 띄운다. 표준 실행 경로(루트에서):
+
+- 개발 시: `npm run dev:assistant` (tsx)
+- 빌드 후: `npm run start:assistant` (기본 포트 8090, `ASSISTANT_PORT` 또는 `PORT`로 변경 가능)
+
+위 명령으로 `http://localhost:8090`에 assistant가 떠 있으며, `POST /assistant/tools/:name`으로 continuity 도구를 호출할 수 있습니다.
 
 ## E2E 검증
 
