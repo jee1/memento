@@ -19,6 +19,7 @@ const PROJECT = 'memento';
 const SESSION_ID = `e2e-${Date.now()}`;
 const PROCESS_ID = 'cursor';
 const BRANCH = 'feature/resume';
+const OTHER_BRANCH = 'feature/other';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -63,6 +64,22 @@ async function main(): Promise<void> {
       branch: BRANCH,
       summary: 'Phase 1 E2E 검증 완료',
     });
+    // 4b. 다른 브랜치에 데이터 저장 (cross-branch 격리 검증용)
+    await client.saveContext({
+      kind: 'decision',
+      content: 'other branch decision',
+      project: PROJECT,
+      session_id: SESSION_ID,
+      process_id: PROCESS_ID,
+      branch: OTHER_BRANCH,
+    });
+    await client.endSession({
+      project: PROJECT,
+      session_id: SESSION_ID,
+      process_id: PROCESS_ID,
+      branch: OTHER_BRANCH,
+      summary: 'Other branch summary',
+    });
     // 5. resume_session (branch를 넘겨 같은 브랜치 continuity만 조회)
     const { snapshot } = await client.resumeSession({
       project: PROJECT,
@@ -73,6 +90,15 @@ async function main(): Promise<void> {
     // 6. assert snapshot sections
     assert(snapshot.recentDecisions.length > 0, 'recent decisions should not be empty');
     assert(snapshot.nextActions.length > 0, 'next actions should not be empty');
+    // 7. cross-branch isolation: 다른 브랜치 데이터가 현재 스냅샷에 섞이지 않음
+    assert(
+      !snapshot.recentDecisions.some((c) => c.summary === 'other branch decision'),
+      'recent decisions must not contain other branch content'
+    );
+    assert(
+      !snapshot.nextActions.some((c) => c.summary === 'Other branch summary'),
+      'next actions must not contain other branch content'
+    );
     console.log('E2E developer continuity flow: PASS');
   } catch (err) {
     console.error('E2E failed:', err instanceof Error ? err.message : err);

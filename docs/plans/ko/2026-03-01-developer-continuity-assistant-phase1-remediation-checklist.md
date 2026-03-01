@@ -259,6 +259,33 @@ npx vitest --run packages/memento-assistant/src/server/assistant-http-server.spe
 
 ---
 
+### 3.8 strict branch-safe resume 계약
+
+- 상태: 완료
+- 목적: `resume_session --branch`가 branch metadata 없는 continuity 기록을 포함하지 않도록 계약을 닫고, 저장·조회 경로가 동일한 branch-safe 규칙을 따르게 한다.
+
+완료 조건:
+- `end_session`도 `origin_source.branch`를 저장한다.
+- `branch` 지정 resume는 branchless item을 포함하지 않는다 (strict filtering).
+- E2E는 다른 branch continuity가 현재 snapshot에 섞이지 않음을 검증한다.
+
+검증 명령:
+
+```bash
+npx vitest --run packages/memento-assistant/src/continuity/tools/__tests__/end-session-tool.spec.ts packages/memento-assistant/src/client/continuity-cli.spec.ts packages/memento-assistant/src/server/runtime-core-bridge.spec.ts
+MEMENTO_CORE_URL=http://localhost:3000 MEMENTO_ASSISTANT_URL=http://localhost:8090 tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
+```
+
+영향 파일:
+- `packages/memento-assistant/src/client/assistant-client.ts`
+- `packages/memento-assistant/src/client/continuity-cli.ts`
+- `packages/memento-assistant/src/continuity/tools/end-session-tool.ts`
+- `packages/memento-assistant/src/server/runtime-core-bridge.ts`
+- `packages/memento-assistant/src/test/test-developer-continuity-flow.ts`
+- `docs/guides/ko/developer-continuity-assistant-phase1.md`
+
+---
+
 ## 4. 마감 기준
 
 아래 항목이 모두 만족되면 이번 hardening 체크리스트를 닫을 수 있다.
@@ -270,6 +297,7 @@ npx vitest --run packages/memento-assistant/src/server/assistant-http-server.spe
 - assistant package runtime dependency가 자기 선언으로 닫혀 있다.
 - CLI가 `--process`와 `--process_id`를 모두 허용한다.
 - assistant runtime의 표준 실행 경로가 문서와 코드에 함께 존재한다.
+- strict branch-safe: `end_session`이 `origin_source.branch`를 저장하고, `branch` 지정 resume는 branchless item을 포함하지 않으며, E2E가 다른 branch continuity가 현재 snapshot에 섞이지 않음을 검증한다.
 
 ---
 
@@ -282,6 +310,7 @@ npx vitest --run packages/memento-assistant/src/server/assistant-http-server.spe
 5. `3.5 assistant runtime dependency 정리`
 6. `3.6 CLI 옵션 계약 정렬`
 7. `3.7 assistant runtime 실행 엔트리포인트 추가`
+8. `3.8 strict branch-safe resume 계약`
 
 ---
 

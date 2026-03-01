@@ -34,7 +34,7 @@ memento-continuity start --project memento --process cursor --branch feature/res
 memento-continuity save --kind decision --content "resume 엔진은 recall 기반으로 간다" --project memento --session_id sess-1
 
 # 세션 종료
-memento-continuity end --project memento --session_id sess-1 --summary "resume 초안 완료"
+memento-continuity end --project memento --session_id sess-1 --branch feature/resume --summary "resume 초안 완료"
 
 # resume 스냅샷 조회
 memento-continuity resume --project memento
@@ -57,7 +57,7 @@ npm run dev:continuity-cli -- resume --project memento
 | **Open Threads** | `blocker` 태그로 저장된 막힌 점 |
 | **Next Actions** | `next-step` 태그로 저장된 다음 액션/종료 요약 |
 
-resume API는 `project`(및 선택적으로 `process_id`, `session_id`, `branch`)로 continuity 태그가 붙은 기억만 필터해 위 네 섹션으로 나눠 반환합니다. 같은 프로젝트 내 다른 브랜치의 continuity 기록이 섞이지 않도록 하려면 `branch`를 지정해 branch-aware resume를 사용하면 됩니다.
+resume API는 `project`(및 선택적으로 `process_id`, `session_id`, `branch`)로 continuity 태그가 붙은 기억만 필터해 위 네 섹션으로 나눠 반환합니다. **branch-aware resume**: `branch`를 지정하면 `origin_source.branch`가 정확히 일치하는 기록만 포함하며, branch가 없는(legacy) continuity 항목은 포함하지 않습니다. `branch`를 지정하지 않으면 프로젝트 단위로 넓게 조회됩니다.
 
 ## 저장·승인 경계
 
@@ -93,7 +93,7 @@ MEMENTO_ASSISTANT_URL=http://localhost:8090 \
 tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
 ```
 
-위 스크립트는 start → save(decision) → save(next-step) → end → resume 순서로 호출하며, 저장과 조회 모두 동일한 `branch`를 사용합니다. resume 시 `branch`를 넘겨 해당 브랜치 continuity만 조회한 뒤, snapshot의 `recentDecisions`와 `nextActions`가 비어 있지 않은지 검증합니다.
+위 스크립트는 start → save(decision) → save(next-step) → end → (다른 브랜치 데이터 저장) → resume 순서로 호출합니다. 저장과 조회에 동일한 `branch`를 사용하며, 다른 브랜치에 저장한 continuity가 현재 브랜치 resume 스냅샷에 섞이지 않음을 검증합니다. snapshot의 `recentDecisions`와 `nextActions`가 비어 있지 않고, 다른 브랜치 내용이 포함되지 않았는지 assertion으로 확인합니다.
 
 ## 참고
 
