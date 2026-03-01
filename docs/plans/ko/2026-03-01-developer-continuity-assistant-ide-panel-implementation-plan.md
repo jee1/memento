@@ -10,6 +10,22 @@
 
 ---
 
+## 0. 실행 현황
+
+2026-03-01 기준 현재 구현 상태:
+
+- `packages/memento-assistant-cursor` workspace package 추가 완료
+- Task 1 완료: `panel-context`, `resume-snapshot-view-model`
+- Task 2 완료: `assistant-panel-client`
+- Task 3 완료: `resume-panel-provider`, `webview-template`
+- Task 4 완료: `activateHostAdapter`, command registration, `createHostPanelShell`
+- Task 5 완료: `refresh / start / save / end` quick capture와 webview message bridge
+- Task 6 완료: 문서/가이드 정렬
+
+현재 코드 기준으로 보면 이번 계획은 “panel 설계 초안”이 아니라, 이미 돌아가는 reference host shell 위에 남은 문서 정리와 host-specific 마무리를 관리하는 실행 문서다.
+
+---
+
 ## 1. 구현 원칙
 
 - `memento-assistant`가 continuity의 정본이다.
@@ -387,7 +403,7 @@ it('delegates save action to the runtime client and refreshes the panel', async 
     client: { save, resume } as never,
   });
 
-  await provider.handleMessage({
+  await provider.handleAction({
     type: 'save',
     payload: { kind: 'decision', content: 'Use adapter-first design' },
   });
@@ -422,6 +438,12 @@ Expected: FAIL
 - 기억 분류와 branch 정책은 runtime이 계속 담당한다.
 - quick capture는 채팅 인터랙션이 아니라 짧은 상태 저장 액션으로 제한한다.
 
+실제 구현 메모:
+
+- `ResumePanelProvider.handleAction()`이 runtime client 위임과 refresh를 담당
+- `createHostPanelShell()`이 `onDidReceiveMessage`와 `setHtml()`을 담당
+- `webview-template.ts`는 `data-action` 버튼과 `postMessage` bridge script를 제공
+
 ### Step 4: 검증
 
 Run:
@@ -449,6 +471,7 @@ Expected: PASS
 - `assistant runtime 중심 / host adapter 종속` 구조 명시
 - Cursor를 `reference host`로 격하
 - 추가 host 가능성 명시
+- 현재 구현된 as-built 범위와 아직 남은 host-specific 작업을 분리해 서술
 
 ### 완료 조건
 
@@ -466,6 +489,12 @@ Expected: PASS
 - panel provider unit test
 - reference host shell unit test
 - workspace type-check
+
+현재까지 통과한 검증:
+
+- `npx vitest --run packages/memento-assistant-cursor/src/**/*.spec.ts`
+- `npm run --workspace packages/memento-assistant-cursor type-check`
+- `npm run type-check`
 
 후속 검증:
 
@@ -491,3 +520,5 @@ Expected: PASS
 이 계획의 핵심은 “IDE 패널을 만든다”가 아니라, **continuity runtime 위에 host adapter를 얹는 구조를 먼저 만든다**는 데 있다.
 
 첫 번째 adapter가 Cursor가 될 수는 있지만, 구현 순서와 코드 구조는 반드시 runtime-first를 강제해야 한다.
+
+현재 구현은 이 결론을 코드로도 반영하고 있다. `memento-assistant-cursor`는 runtime을 소비하는 reference shell까지만 담당하고, continuity 비즈니스 로직은 계속 `packages/memento-assistant`에 남아 있다.

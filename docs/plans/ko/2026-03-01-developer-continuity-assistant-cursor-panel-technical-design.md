@@ -1,8 +1,8 @@
 # Developer Continuity Assistant Host Adapter Technical Design
 
-**일자**: 2026-03-01  
-**상태**: 디자인 초안  
-**목적**: `packages/memento-assistant`를 정본으로 유지하면서, IDE나 웹 UI 같은 host adapter가 어떻게 붙어야 하는지 기술 구조를 정의한다. Cursor는 첫 번째 reference host 후보로만 다룬다.
+**일자**: 2026-03-01
+**상태**: 부분 구현됨
+**목적**: `packages/memento-assistant`를 정본으로 유지하면서, IDE나 웹 UI 같은 host adapter가 어떻게 붙어야 하는지 기술 구조를 정의하고, 현재 구현된 reference shell이 어디까지 닫혔는지 명시한다. Cursor는 첫 번째 reference host 후보로만 다룬다.
 
 ---
 
@@ -26,6 +26,30 @@
 - host는 교체 가능해야 함
 - Cursor는 첫 reference host일 수 있지만, 아키텍처의 중심이 되어선 안 됨
 - host adapter는 thin shell이어야 함
+
+---
+
+## 1.5 현재 구현 상태
+
+현재 저장소에는 `packages/memento-assistant-cursor`가 이미 추가되어 있으며, 아래 경계가 구현되어 있다.
+
+- `src/shared/panel-context.ts`
+  - `project`, `branch`, `session_id`, `process_id`를 다루는 공통 context
+- `src/shared/resume-snapshot-view-model.ts`
+  - runtime snapshot을 네 섹션 view model로 변환
+- `src/services/assistant-panel-client.ts`
+  - `resume_session`, `start_session`, `save_context`, `end_session` HTTP wrapper
+- `src/panel/resume-panel-provider.ts`
+  - `refresh / start / save / end` 액션을 runtime client로 위임
+- `src/panel/webview-template.ts`
+  - static HTML renderer와 `postMessage` bridge script
+- `src/extension.ts`
+  - host binding 추상화
+  - `createHostPanelShell`
+  - `activateHostAdapter`
+  - 기본 command id 상수
+
+즉, 현재 구현은 “실제 Cursor extension 완성본”이 아니라, **host-agnostic binding 위에 얹은 reference shell**이다.
 
 ---
 
@@ -114,17 +138,13 @@
   - continuity runtime
   - continuity HTTP API
   - CLI
-- `packages/memento-assistant-host-shared`
-  - host adapter 공통 타입
-  - snapshot view model
-  - panel/client contract
 - `packages/memento-assistant-cursor`
   - Cursor reference adapter
   - panel shell
-  - workspace context resolver
+  - shared panel contract
   - runtime HTTP client
 
-`packages/memento-assistant-host-shared`는 필수는 아니지만, host가 2개 이상이 될 가능성이 있으면 초기에 분리하는 편이 좋다. host가 하나뿐이라면 처음에는 `memento-assistant-cursor` 내부 모듈로 시작해도 된다.
+현재 구현은 `packages/memento-assistant-host-shared`를 별도 package로 만들지 않고, shared 모듈을 `packages/memento-assistant-cursor/src/shared/*`에 두는 형태를 택했다. host가 2개 이상이 되면 그 시점에 별도 shared package로 승격하는 것이 맞다.
 
 ### 4.2 의존 방향
 
@@ -236,6 +256,13 @@ host가 이번 단계에서 하지 않는 것:
 - 컨텍스트 수집
 - panel과 runtime 클라이언트 orchestration
 
+현재 구현된 shell 책임:
+
+- `registerWebviewViewProvider`에 넘길 provider 생성
+- webview resolve 시 `provider.refresh()` 결과를 `setHtml()`로 반영
+- `onDidReceiveMessage`로 `refresh/start/save/end` 액션 위임
+- command palette 경로와 webview 버튼 경로를 같은 `provider.handleAction()`으로 수렴
+
 ### E. Panel Renderer
 
 역할:
@@ -269,6 +296,8 @@ Cursor 전용 고려 사항:
 1. host context 수집
 2. runtime HTTP 호출
 3. panel 렌더링
+
+현재 구현은 이 중 2, 3을 닫았고, 1은 추상 host binding 수준까지만 정의되어 있다. 다시 말해, `packages/memento-assistant-cursor`는 “Cursor 전용 production adapter”라기보다 “Cursor를 첫 target으로 상정한 reference host shell”이다.
 
 ---
 

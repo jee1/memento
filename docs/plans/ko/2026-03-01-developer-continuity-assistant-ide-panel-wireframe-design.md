@@ -1,8 +1,8 @@
 # Developer Continuity Assistant Host Adapter Wireframe Design
 
-**일자**: 2026-03-01  
-**상태**: 디자인 초안  
-**목적**: `resume_session` 계약을 어떤 IDE에서도 소비할 수 있는 host adapter 관점으로 정리하고, 그중 하나의 reference panel wireframe을 정의한다.
+**일자**: 2026-03-01
+**상태**: 구현 정렬됨
+**목적**: `resume_session` 계약을 어떤 IDE에서도 소비할 수 있는 host adapter 관점으로 정리하고, 그중 하나의 reference panel wireframe과 현재 MVP 구현 상태를 함께 정의한다.
 
 ---
 
@@ -71,7 +71,37 @@
 
 ---
 
-## 3. 접근 방식 비교
+## 3. 현재 구현 상태
+
+현재 저장소에는 아래 reference host package가 이미 추가되어 있다.
+
+- `packages/memento-assistant-cursor`
+  - `buildPanelContext`
+  - `createAssistantPanelClient`
+  - `ResumePanelProvider`
+  - `createHostPanelShell`
+  - `activateHostAdapter`
+
+현재 MVP에서 실제로 구현된 것은 다음과 같다.
+
+- host-agnostic panel context와 snapshot view model
+- `memento-assistant` HTTP runtime을 호출하는 panel client
+- static HTML 기반 read-only panel renderer
+- `refresh / start / save / end` 액션을 provider로 위임하는 quick capture 경로
+- webview `postMessage` bridge와 host shell message handler
+
+아직 구현되지 않은 것:
+
+- 실제 Cursor API/manifest에 직접 결합된 production shell
+- richer status badge (`fresh`, `stale`, `offline`)
+- `Retry`, `Open Logs` 같은 별도 오류 액션
+- host별 workspace/branch 자동 추론의 구체 구현
+
+즉, 이 문서는 완성형 Cursor 패널을 설명하는 것이 아니라, **이미 구현된 reference shell과 장기 wireframe 방향을 함께 설명하는 문서**로 읽는 것이 맞다.
+
+---
+
+## 4. 접근 방식 비교
 
 ### Option A. Runtime-First + Reference Panel Adapter
 
@@ -119,7 +149,7 @@
 
 ---
 
-## 4. 권장 UX 방향
+## 5. 권장 UX 방향
 
 권장 방향은 **Runtime-First + Reference Panel Adapter**다.
 
@@ -138,7 +168,7 @@
 
 ---
 
-## 5. Reference Panel Wireframe
+## 6. Reference Panel Wireframe
 
 이 와이어프레임은 Cursor 전용 UI가 아니라, **어떤 host panel에도 옮길 수 있는 공통 레이아웃 예시**다.
 
@@ -181,7 +211,7 @@
 | This panel is only a view over the assistant runtime.     |
 | Start a session or save context first.                    |
 |                                                           |
-| [Start Session] [Save Context] [Refresh]                  |
+| [Refresh] [Start] [Save] [End]                            |
 +-----------------------------------------------------------+
 ```
 
@@ -207,9 +237,11 @@
 | Could not load snapshot                                   |
 | assistant runtime is unreachable or returned an error     |
 |                                                           |
-| [Retry] [Open Logs]                                       |
+| [Refresh] [Start] [Save] [End]                            |
 +-----------------------------------------------------------+
 ```
+
+현재 구현 기준으로는 빈 상태와 오류 상태 모두 공통 action bar를 재사용한다. `Retry`, `Open Logs` 같은 전용 오류 액션은 아직 설계 범위에만 있고 구현에는 포함되지 않았다.
 
 ---
 
@@ -239,6 +271,15 @@ MVP에서는 아래 네 개면 충분하다.
 
 이 액션 바는 채팅 입력창을 대체하지 않는다. 즉, 사용자가 AI와 대화하려면 기존 채팅 surface를 사용하고, continuity panel은 상태 표시와 최소 제어만 담당한다.
 
+현재 구현 세부:
+
+- `Refresh`: 즉시 `resume_session` refresh
+- `Start`: 단순 prompt/modal 수준 입력으로 `session_id`를 받음
+- `Save`: 단순 prompt/modal 수준 입력으로 `kind`, `content`를 받음
+- `End`: 단순 prompt/modal 수준 입력으로 `summary`를 받음
+
+즉, 현재 MVP는 정교한 폼 UI가 아니라 **빠른 상태 저장을 위한 최소 액션 bar**에 가깝다.
+
 ### 6.3 Snapshot Sections
 
 각 섹션은 `resume_session` 응답을 그대로 렌더링한다.
@@ -267,7 +308,7 @@ MVP에서는 아래 네 개면 충분하다.
 
 ---
 
-## 7. 데이터 흐름
+## 8. 데이터 흐름
 
 ### 7.1 host 열기
 
@@ -290,10 +331,11 @@ MVP에서는 아래 네 개면 충분하다.
 2. 짧은 summary를 입력한다.
 3. adapter가 `end_session`을 호출한다.
 4. 저장 후 현재 패널을 refresh한다.
-줘
+
+현재 구현에서는 이 흐름이 webview의 `postMessage`와 host shell의 `onDidReceiveMessage`를 통해 연결된다.
 ---
 
-## 8. MVP 비목표
+## 9. MVP 비목표
 
 이번 reference adapter MVP는 아래 범위를 포함하지 않는다.
 
@@ -307,7 +349,7 @@ MVP에서는 아래 네 개면 충분하다.
 
 ---
 
-## 9. 권장 구현 순서
+## 10. 권장 구현 순서
 
 1. host-agnostic snapshot view model 정리
 2. read-only reference panel 렌더링
@@ -318,7 +360,7 @@ MVP에서는 아래 네 개면 충분하다.
 
 ---
 
-## 10. 결론
+## 11. 결론
 
 다음 단계의 목표는 “IDE 패널을 제품 중심으로 만든다”가 아니다. 목표는 **assistant runtime을 중심으로 유지한 채, 그것을 사람이 읽을 수 있게 보여주는 첫 번째 host adapter를 정의하는 것**이다.
 
