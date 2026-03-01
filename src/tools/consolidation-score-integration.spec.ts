@@ -329,6 +329,15 @@ describe('Consolidation Score System 통합 테스트', () => {
       const resultData = JSON.parse(result.content[0].text);
       memoryId = resultData.memory_id;
 
+      // g_value가 recall 시 1보다 커지려면 timeElapsed > 0 이어야 함 (g_n = g_{n-1} + S(t), S(0)=0).
+      // last_accessed_at을 과거로 설정해 경과 시간을 만든다.
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      DatabaseUtils.run(
+        db,
+        'UPDATE memory_item SET last_accessed_at = ? WHERE id = ?',
+        [twoHoursAgo, memoryId]
+      );
+
       // 초기 상태 확인
       const initialRecord = DatabaseUtils.get(
         db,
