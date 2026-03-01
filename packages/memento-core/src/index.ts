@@ -4,4 +4,12 @@
  * Assistant가 사용할 계약: remember/recall 파라미터·공통 memory 타입은
  * 루트 src/shared/types, src/npm-client/types 및 MCP/HTTP tool contract로 제공됨.
  */
-export {};
+
+export { createCoreToolHttpClient } from './http-tool-client.js';
+export type {
+  CoreRememberParams,
+  CoreRecallParams,
+  CoreRecallItem,
+  CoreRecallResult,
+  CoreRememberResult,
+} from './types.js';
