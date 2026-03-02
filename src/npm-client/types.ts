@@ -68,11 +68,6 @@ export interface CreateMemoryParams {
   privacy_scope?: PrivacyScope;
   project_id?: string;
   metadata?: Record<string, unknown>;
-  // Continuity / Memori Attribution (developer continuity assistant)
-  process_id?: string;
-  session_id?: string;
-  source_session_id?: string;
-  origin_source?: string;
 }
 
 export interface UpdateMemoryParams {

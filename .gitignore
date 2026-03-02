@@ -121,9 +121,6 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Git worktrees (isolated workspace)
-.worktrees/
-
 # Memento specific
 memory.db*
 *.db-journal
