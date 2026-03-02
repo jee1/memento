@@ -2,8 +2,6 @@
 
 개발 세션 연속성을 위한 Phase 1 MVP: 세션 시작/종료, 컨텍스트 저장, resume 스냅샷 조회까지 CLI·HTTP로 제공합니다.
 
-이 문서의 중심은 continuity runtime이다. IDE 패널이나 host adapter는 이 runtime을 소비하는 후속 surface이며, 제품의 정본이 아니다.
-
 ## 구현 범위 (Phase 1)
 
 - **packages/memento-core**: 범용 메모리 플랫폼 공개 엔트리(facade). 실제 구현은 루트 `src/`에 유지.
@@ -97,29 +95,7 @@ tsx packages/memento-assistant/src/test/test-developer-continuity-flow.ts
 
 위 스크립트는 start → save(decision) → save(next-step) → end → (다른 브랜치 데이터 저장) → resume 순서로 호출합니다. 저장과 조회에 동일한 `branch`를 사용하며, 다른 브랜치에 저장한 continuity가 현재 브랜치 resume 스냅샷에 섞이지 않음을 검증합니다. snapshot의 `recentDecisions`와 `nextActions`가 비어 있지 않고, 다른 브랜치 내용이 포함되지 않았는지 assertion으로 확인합니다.
 
-## Reference Host Adapter
-
-후속 단계로 `packages/memento-assistant-cursor`가 추가되어, continuity runtime을 소비하는 첫 번째 reference host shell을 제공합니다. 이 package는 chat surface가 아니라, 상태 확인과 최소 제어를 위한 continuity panel shell입니다.
-
-현재 제공 범위:
-
-- `buildPanelContext`
-- `createAssistantPanelClient`
-- `ResumePanelProvider`
-- `createHostPanelShell`
-- `activateHostAdapter`
-
-현재 quick capture 동작:
-
-- `Refresh`: `resume_session` 재호출
-- `Start`: `session_id` 입력 후 `start_session`
-- `Save`: `kind`, `content` 입력 후 `save_context`
-- `End`: `summary` 입력 후 `end_session`
-
-모든 액션은 실행 후 자동으로 `resume_session`을 다시 호출해 panel HTML을 갱신합니다. 현재 입력 UI는 prompt/modal 수준의 최소 구현이며, 실제 Cursor production shell이나 richer form UI는 후속 범위입니다.
-
 ## 참고
 
 - 설계·구현 계획: [docs/plans/ko/2026-02-28-memento-developer-continuity-assistant-design.md](../plans/ko/2026-02-28-memento-developer-continuity-assistant-design.md), [implementation-plan](../plans/ko/2026-02-28-memento-developer-continuity-assistant-implementation-plan.md).
-- host adapter reference guide: [docs/guides/ko/developer-continuity-host-adapter-reference.md](./developer-continuity-host-adapter-reference.md)
 - IDE 패널, Slack/Telegram 연동, 승인형 쓰기 등은 후속 계획에서 다룹니다.
