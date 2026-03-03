@@ -63,7 +63,8 @@
 
 - [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
 - [plans/ko/2026-02-05-issue57-phase2-roadmap.md](plans/ko/2026-02-05-issue57-phase2-roadmap.md) — Phase2 로드맵
-- [plans/ko/2026-02-28-file-location-audit-improvements.md](plans/ko/2026-02-28-file-location-audit-improvements.md) — 파일 위치 감사 기반 개선
+- [plans/ko/2026-03-03-repo-cleanup-design.md](plans/ko/2026-03-03-repo-cleanup-design.md) — 저장소 정리 설계 (불필요 파일·디렉토리, 단계별 정리)
+- [plans/ko/2026-03-02-memento-growth-strategy-design.md](plans/ko/2026-03-02-memento-growth-strategy-design.md) — 성장 전략 설계 (Phase 0 성능 적정성 판단 + 마일스톤 결합)
 - 기타: [plans/ko/](plans/ko/) 디렉터리 참고
 - PRD·태스크 목록: 루트 [tasks/](../tasks/) ([tasks/README.md](../tasks/README.md) 참고)
 
@@ -106,7 +107,13 @@
 
 ---
 
-## 9. 블로그
+## 9. 리서치 (research/ko, research/en)
+
+- Memento 기반 개인 비서(OpenClaw 유사) 기능·MVP 리서치: [ko](research/ko/memento-based-personal-assistant-mvp-research.md)
+
+---
+
+## 10. 블로그
 
 - [blog/](blog/)
 
