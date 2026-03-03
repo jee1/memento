@@ -135,3 +135,10 @@ memory.db*
 *-backup.js
 *.bak
 *.backup
+
+# Repo cleanup: test/build artifacts
+test-config/
+test-logs/
+.worktrees/
+demo/.next/
+demo/node_modules/
