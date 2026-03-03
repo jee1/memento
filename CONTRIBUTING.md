@@ -52,7 +52,7 @@ npm run test
 
 **PR 본문 참고:**
 - GitHub에서 PR을 만들면 **템플릿**으로 `.github/PULL_REQUEST_TEMPLATE.md`가 사용됩니다.
-- 본문 작성 시 참고할 **예시**로 루트의 `PR_DESCRIPTION.md`, `pr-description.md`가 있습니다(각각 다른 PR의 예시이며, 형식·상세도 참고용).
+- 본문 작성 시 참고할 **예시**로 루트의 `pr-description.md`, 문서의 [docs/operations/ko/pr-description-example-npm-workflow.md](docs/operations/ko/pr-description-example-npm-workflow.md)가 있습니다(각각 다른 PR의 예시이며, 형식·상세도 참고용).
 
 ## 🛠️ 개발 가이드라인
 

@@ -163,8 +163,8 @@ app.get('/api/anchors/map', async (req, res) => {
 npm run dev:http
 
 # 테스트 스크립트 실행
-chmod +x test-anchor-map-ui.sh
-./test-anchor-map-ui.sh
+chmod +x scripts/test-anchor-map-ui.sh
+./scripts/test-anchor-map-ui.sh
 ```
 
 ### 7.2 수동 테스트
@@ -215,5 +215,5 @@ Anchor Map UI의 **코드 구현은 완료**되었으며, 모든 핵심 기능�
 
 **참고 문서**:
 - `docs/anchor-map-manual-test-guide.md` - 상세한 수동 테스트 가이드
-- `test-anchor-map-ui.sh` - 자동 테스트 스크립트
+- `scripts/test-anchor-map-ui.sh` - 자동 테스트 스크립트
 
