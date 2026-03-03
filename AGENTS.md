@@ -18,6 +18,7 @@ Vitest로 단위·통합 테스트를 수행하며, 파일 네이밍 규칙은 �
 - **E2E 테스트** (`test-*.ts`): `src/test/` 디렉터리에 둔다.
   - 예: `src/test/test-client.ts`
   - 실제 MCP 서버로 전체 워크플로를 테스트한다.
+- **디렉터리 역할**: 루트 `tests/` — 통합 테스트·픽스처(fixtures, integration). `src/test/` — E2E·시나리오 테스트(test-*.ts 등).
 
 `DatabaseUtils` 헬퍼로 결정론적 데이터를 사용하는 것을 권장한다. 전체 스위트는 `npm test`로 실행하고, 사용한 시나리오 스크립트(예: `npm run test:performance`)는 PR 코멘트에 적어 둔다. 테스트가 로컬 SQLite DB를 수정하면 `data/`를 정리하거나 초기화한다.
 
