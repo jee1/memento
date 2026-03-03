@@ -18,6 +18,8 @@
 - **demo/**, **services/**: 사용 여부·빌드 산출물 확인 후 유지·이동·archive 결정. `.gitignore`에 빌드 산출물(`demo/.next`, `demo/node_modules` 등) 반영.
 
 - **config/, static/, prompts/** (루트): 유지. `copy-assets`가 config·prompts를 dist로 복사, HTTP 서버가 static을 서빙(dashboard 등).
+- **demo/**: 유지. Next.js 데모 앱(대시보드 등). 빌드 산출물은 `.gitignore`(demo/.next, demo/node_modules)에 반영됨.
+- **services/**: 유지. 서비스/에이전트 관련 코드(services/agent). 별도 리팩터링 시 검토.
 
 ### 1.2 산출물
 
