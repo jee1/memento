@@ -1,0 +1,45 @@
+/**
+ * Core 패키지용 MCP 로거 스텁
+ * MCP 서버 없이 라이브러리 모드에서 사용. stderr로만 출력.
+ */
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3
+};
+
+function getCurrentLogLevel(): LogLevel {
+  const envLevel = process.env.LOG_LEVEL?.toLowerCase();
+  const level = (envLevel || 'info') as LogLevel;
+  return LOG_LEVEL_PRIORITY[level] !== undefined ? level : 'info';
+}
+
+function shouldLog(level: LogLevel): boolean {
+  return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[getCurrentLogLevel()];
+}
+
+function getTimestamp(): string {
+  return new Date().toISOString();
+}
+
+class MCPLoggerStub {
+  logServer(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+    if (!shouldLog(level)) return;
+    const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
+    const logMessage = `[${getTimestamp()}] [SERVER] [${level.toUpperCase()}] ${message}${dataStr}\n`;
+    process.stderr.write(logMessage);
+  }
+
+  logBatch(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+    if (!shouldLog(level)) return;
+    const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
+    const logMessage = `[${getTimestamp()}] [BATCH] [${level.toUpperCase()}] ${message}${dataStr}\n`;
+    process.stderr.write(logMessage);
+  }
+}
+
+export const mcpLogger = new MCPLoggerStub();
