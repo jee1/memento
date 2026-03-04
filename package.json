@@ -63,7 +63,7 @@
     "migrate:embedding": "node scripts/migrate-embedding-data.js migrate",
     "migrate:embedding:analyze": "node scripts/migrate-embedding-data.js analyze",
     "migrate:embedding:rollback": "node scripts/migrate-embedding-data.js rollback",
-    "test:docker": "node test-docker.js",
+    "test:docker": "node scripts/test-docker.js",
     "setup": "node scripts/auto-setup.js",
     "postinstall": "node scripts/auto-setup.js",
     "rebuild-native": "npm rebuild better-sqlite3 sqlite-vec",

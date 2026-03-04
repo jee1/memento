@@ -13,5 +13,5 @@ PRD(제품/기능 요구사항)와 그에 따른 태스크 브레이크다운 �
 
 ## 기타 파일
 
-- `create-prd.md`, `generate-tasks.md`, `process-task-list.md` — PRD/태스크 생성·처리 메타 가이드
-- `db-connection-refactoring-verification.md` 등 — 특정 주제별 검증·정리 문서
+- **메타 가이드** (PRD/태스크 생성·처리): [meta/create-prd.md](meta/create-prd.md), [meta/generate-tasks.md](meta/generate-tasks.md), [meta/process-task-list.md](meta/process-task-list.md)
+- `db-connection-refactoring-verification.md` 등 — 특정 주제별 검증·정리 문서 (루트 `tasks/`)

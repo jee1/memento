@@ -32,6 +32,22 @@
 | 마이그레이션/레거시 | run-migration.js, fix-migration.js, safe-migration.js, migrate-embedding-data.js | DB/임베딩 마이그레이션 |
 | 문서·리포트 생성 | generate-relation-report.ts, generate-file-audit-table.cjs, update-file-audit-doc.cjs | 문서·감사 테이블 생성 |
 | 백업/복원 | backup-daily.bat, restore-legacy.ps1, restore-legacy.sh | 운영용. backup-daily.bat는 PRD 0019 등에서 참조. 미사용 시 제거 검토. |
-| direct-sql-migration.sql | 일회성 SQL 마이그레이션 | 일회성이면 docs/operations에 목적·실행 이력 기록 후 삭제 또는 `scripts/archive/` 이동 검토. |
+| direct-sql-migration.sql | 일회성 SQL 마이그레이션 | → `scripts/archive/`로 이동됨 (2026-03-03). |
+
+## scripts/archive/ (보관용)
+
+다음 스크립트는 일회성·검증 보조용으로 `scripts/archive/`로 이동되어 있습니다. 이전 경로가 필요하면 여기서 확인하세요.
+
+| 이전 경로 | 비고 |
+|-----------|------|
+| scripts/direct-sql-migration.sql | 일회성 SQL |
+| scripts/restore-legacy.ps1, scripts/restore-legacy.sh | 레거시 복원 |
+| scripts/analyze-benchmark-test-data.ts, scripts/analyze-simple-throws.ts | 분석용 |
+| scripts/check-convertible-episodic-memories.ts, scripts/check-embedding-dimensions.ts | 검증 보조 |
+| scripts/check-no-console-violations.ts, scripts/check-retry-usage.ts | 검증 보조 |
+| scripts/docker-migration.sh, scripts/start-container.sh | Docker 일회성 |
+| scripts/fix-vec-table-dimensions.ts, scripts/remove-benchmark-test-data.ts | 보조 |
+
+인벤토리: [docs/plans/ko/2026-03-03-scripts-inventory.md](../../plans/ko/2026-03-03-scripts-inventory.md)
 
 전체 목록은 `scripts/` 디렉터리를 참고하고, `package.json`의 `scripts` 필드에 등록된 항목을 우선 사용하세요.
