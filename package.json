@@ -2,8 +2,14 @@
   "name": "memento-mcp-server",
   "version": "1.17.0",
   "description": "AI Agent 기억 보조 MCP 서버 - 사람의 기억 구조를 모사한 스토리지+검색+요약+망각 메커니즘",
-  "main": "dist/server/index.js",
   "type": "module",
+  "workspaces": [
+    "packages/memento-core",
+    "packages/memento-server",
+    "packages/memento-client",
+    "apps/*"
+  ],
+  "main": "dist/server/index.js",
   "bin": {
     "memento-mcp-server": "./dist/server/index.js",
     "memento-dev": "./dist/server/http-server.js",
