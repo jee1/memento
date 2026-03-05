@@ -70,6 +70,9 @@ jobs:
         
       - name: Build package
         run: npm run build
+
+      - name: Build workspace packages (core → server → client)
+        run: npm run build:packages
         
       # 관계 추출 품질 리포트는 로컬에서만 생성
       # CI 환경에서는 Ollama를 실행할 수 없으므로 스킵

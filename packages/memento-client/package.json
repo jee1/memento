@@ -11,7 +11,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "echo 'Client build skipped until Task 4.1 (source move to packages/memento-client/src).'",
     "dev": "tsc --watch",
     "clean": "rimraf dist",
     "type-check": "tsc --noEmit"
