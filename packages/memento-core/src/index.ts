@@ -1,37 +1,41 @@
 /**
  * @memento/core - 라이브러리 진입점
- * createMementoCore로 초기화 후 recall, remember 등 API 사용.
+ * createMementoCore로 DB·서비스 초기화 후 서버/앱에서 ToolContext·getToolRegistry 사용.
  */
+
+import { initializeDatabase, closeDatabase as closeDb } from './infrastructure/database/database/init.js';
+import { initializeServices } from './bootstrap.js';
+import { createToolContext } from './context.js';
+import { getToolRegistry } from './tools/index.js';
 
 export interface MementoCoreOptions {
   dbPath: string;
   config?: Partial<Record<string, unknown>>;
 }
 
-export interface MementoCoreAPI {
-  recall(params: unknown): Promise<unknown>;
-  remember(params: unknown): Promise<unknown>;
-  forget(params: unknown): Promise<unknown>;
-  /** 나중에 anchor, search_local 등 확장 */
+export interface MementoCoreInstance {
+  db: import('better-sqlite3').Database;
+  services: import('./bootstrap.js').ServerServices;
 }
 
 /**
- * Core 인스턴스 생성 (스텁).
- * Phase 2.2에서 init·설정 주입·실제 recall/remember 연동 구현 예정.
+ * Core 인스턴스 생성 (DB 초기화 + 서비스 부트스트랩).
+ * 서버는 반환된 db, services로 createToolContext(db, services) 및 getToolRegistry() 사용.
  */
-export function createMementoCore(_options: MementoCoreOptions): MementoCoreAPI {
-  return {
-    async recall() {
-      return { items: [], total_count: 0, query_time: 0 };
-    },
-    async remember() {
-      return { memory_id: '', success: true };
-    },
-    async forget() {
-      return { success: true };
-    }
-  };
+export async function createMementoCore(options: MementoCoreOptions): Promise<MementoCoreInstance> {
+  const db = await initializeDatabase(options.dbPath);
+  const services = await initializeServices(db);
+  return { db, services };
 }
+
+/** DB 연결 종료 (서버 종료 시 호출) */
+export function closeDatabase(db: import('better-sqlite3').Database): void {
+  closeDb(db);
+}
+
+export { createToolContext, getToolRegistry, initializeServices };
+export type { ServerServices } from './bootstrap.js';
+export type { ServerContext } from './context.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)
 export type { ToolContext, ToolResult } from './tools/types.js';
