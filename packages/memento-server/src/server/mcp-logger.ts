@@ -20,8 +20,7 @@
  */
 
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { mementoConfig } from '../shared/config/index.js';
-import { loggingRateLimiter } from '../shared/utils/logging-rate-limiter.js';
+import { mementoConfig, loggingRateLimiter } from '@memento/core';
 import { ServerState } from './server-state.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -155,22 +154,18 @@ export class MCPLogger {
       return;
     }
 
+    // MCP 프로토콜 준수: transport 연결 전에는 로그를 억제
+    const serverState = ServerState.getInstance();
+    const shouldSuppress = !serverState.isMcpTransportConnected();
+    if (shouldSuppress && level !== 'error') {
+      return;
+    }
+
     const timestamp = getTimestamp();
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
     const logMessage = `[${timestamp}] [SERVER] [${level.toUpperCase()}] ${message}${dataStr}\n`;
-    
-    // MCP 프로토콜 준수: transport 연결 전에는 로그를 억제
-    // 서버 초기화 중 로그가 stdout으로 유출되어 JSON 파싱 오류 발생 방지
-    // isTransportConnected는 index.ts에서 ServerState를 통해 관리
-    const serverState = ServerState.getInstance();
-    const shouldSuppress = !serverState.isMcpTransportConnected();
-    
-    if (shouldSuppress && level !== 'error') {
-      // ERROR 레벨만 출력 (치명적 오류는 확인 필요)
-      return;
-    }
-    
-    process.stderr.write(logMessage);
+    const out = typeof logMessage === 'string' ? logMessage : '';
+    if (out) process.stderr.write(out);
   }
 
   /**
@@ -186,8 +181,8 @@ export class MCPLogger {
     const timestamp = getTimestamp();
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
     const logMessage = `[${timestamp}] [BATCH] [${level.toUpperCase()}] ${message}${dataStr}\n`;
-    
-    process.stderr.write(logMessage);
+    const out = typeof logMessage === 'string' ? logMessage : '';
+    if (out) process.stderr.write(out);
   }
 }
 

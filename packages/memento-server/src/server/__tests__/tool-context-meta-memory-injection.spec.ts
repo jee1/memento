@@ -7,8 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createToolContext, createServerContext } from '../context.js';
 import { initializeServices, type ServerServices } from '../bootstrap.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../shared/utils/database.js';
-import type { ToolContext } from '../../tools/types.js';
+import { DatabaseUtils, type ToolContext } from '@memento/core';
 
 describe('ToolContext에 metaMemoryService 주입', () => {
   let db: Database.Database;

@@ -7,8 +7,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
-import { logger } from '../shared/utils/logger.js';
-import { mementoConfig } from '../shared/config/index.js';
+import { logger, mementoConfig } from '@memento/core';
 
 const app = express();
 const server = createServer(app);

@@ -5,11 +5,10 @@
  */
 
 import { Router } from 'express';
-import { getToolRegistry } from '../../tools/index.js';
+import { getToolRegistry, logger } from '@memento/core';
 import type { ServerServices } from '../bootstrap.js';
 import type Database from 'better-sqlite3';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
-import { logger } from '../../shared/utils/logger.js';
 import type { WebSocket } from 'ws';
 
 /**

@@ -29,6 +29,7 @@ import { DatabaseOptimizer } from './infrastructure/database/database-optimizer.
 import { ConsolidationScoreService } from './infrastructure/consolidation-score-service.js';
 import { ReflexionWorker } from './infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
+import { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
@@ -161,6 +162,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     }
     const metaMemoryService = new MetaMemoryService(db, writeCoalescingManager);
     logger.info('MetaMemoryService 초기화 완료');
+    const batchScheduler = getBatchScheduler();
+    await batchScheduler.start(db, reflexionWorker);
     return {
       searchEngine,
       hybridSearchEngine,
@@ -178,7 +181,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       failureDetector,
       reflexionWorker,
       walCheckpointScheduler,
-      databaseLockMonitor
+      databaseLockMonitor,
+      batchScheduler
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

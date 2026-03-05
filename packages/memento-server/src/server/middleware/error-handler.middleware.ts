@@ -5,9 +5,8 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import type { IErrorLoggingService } from '../../shared/interfaces/error-logging.interface.js';
-import { ErrorSeverity, ErrorCategory, type AppErrorContract } from '../../shared/types/error-types.js';
-import { logger } from '../../shared/utils/logger.js';
+import type { IErrorLoggingService, AppErrorContract } from '@memento/core';
+import { ErrorSeverity, ErrorCategory, logger } from '@memento/core';
 
 /**
  * 에러 응답 인터페이스

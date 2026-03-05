@@ -9,9 +9,7 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
-import { QualityAssuranceService } from '../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
-import { QualityThresholdManager } from '../../domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
-import { logger } from '../../shared/utils/logger.js';
+import { QualityAssuranceService, QualityThresholdManager, logger } from '@memento/core';
 
 /**
  * Quality Assurance 라우터 생성

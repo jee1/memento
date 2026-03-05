@@ -6,11 +6,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { initializeServices, type ServerServices } from './bootstrap.js';
-import { getToolRegistry } from '../tools/index.js';
-import { createToolContext } from './context.js';
-import { createServerContext } from './context.js';
-import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
+import { initializeServices, getToolRegistry, getBatchScheduler, type ServerServices } from '@memento/core';
+import { createToolContext, createServerContext } from './context.js';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
 

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { initializeServices, type ServerServices } from '../bootstrap.js';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../shared/utils/database.js';
+import { DatabaseUtils } from '@memento/core';
 
 describe('MetaMemoryService 초기화', () => {
   let db: Database.Database;

@@ -210,7 +210,9 @@ function logToStderr(level: LogLevel, message: string, meta?: Record<string, unk
   // PII 마스킹 적용 (중첩 객체도 깊이 마스킹)
   const maskedMeta = meta ? PIIMasker.maskObject(meta) : undefined;
   const logMessage = buildLogMessage(level, message, maskedMeta);
-  process.stderr.write(`${logMessage}\n`);
+  // undefined가 넘어가면 Node가 문자열 "undefined"를 출력하므로 항상 문자열만 전달
+  const line = typeof logMessage === 'string' ? `${logMessage}\n` : '\n';
+  if (line) process.stderr.write(line);
 }
 
 /**

@@ -6,7 +6,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import type { ToolContext } from '../../tools/types.js';
+import type { ToolContext } from '@memento/core';
 import { createToolContext, type ServerContext } from '../context.js';
 
 /**

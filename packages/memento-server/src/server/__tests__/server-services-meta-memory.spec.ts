@@ -4,8 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { ServerServices } from '../bootstrap.js';
-import type { MetaMemoryService } from '../../domains/memory/services/meta-memory-service.js';
+import type { ServerServices } from '@memento/core';
 
 describe('ServerServices 인터페이스 확장', () => {
   it('given: ServerServices 타입이 있을 때, when: metaMemoryService 필드를 확인하면, then: 필드가 포함되어야 함', () => {
@@ -31,7 +30,7 @@ describe('ServerServices 인터페이스 확장', () => {
   it('given: ServerServices 객체가 있을 때, when: metaMemoryService를 확인하면, then: MetaMemoryService 타입이어야 함', () => {
     // Given: ServerServices 객체 (더미)
     const services = {
-      metaMemoryService: undefined as MetaMemoryService | undefined
+      metaMemoryService: undefined
     } as Partial<ServerServices>;
 
     // When: metaMemoryService 확인

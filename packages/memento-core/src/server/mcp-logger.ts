@@ -26,19 +26,25 @@ function getTimestamp(): string {
   return new Date().toISOString();
 }
 
+/** stderr.write에 undefined가 넘어가면 Node가 문자열 "undefined"를 출력하므로 항상 문자열만 전달 */
+function safeStderrWrite(chunk: string): void {
+  const s = typeof chunk === 'string' ? chunk : String(chunk ?? '');
+  if (s) process.stderr.write(s);
+}
+
 class MCPLoggerStub {
   logServer(level: LogLevel, message: string, data?: Record<string, unknown>): void {
     if (!shouldLog(level)) return;
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
     const logMessage = `[${getTimestamp()}] [SERVER] [${level.toUpperCase()}] ${message}${dataStr}\n`;
-    process.stderr.write(logMessage);
+    safeStderrWrite(logMessage);
   }
 
   logBatch(level: LogLevel, message: string, data?: Record<string, unknown>): void {
     if (!shouldLog(level)) return;
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
     const logMessage = `[${getTimestamp()}] [BATCH] [${level.toUpperCase()}] ${message}${dataStr}\n`;
-    process.stderr.write(logMessage);
+    safeStderrWrite(logMessage);
   }
 }
 

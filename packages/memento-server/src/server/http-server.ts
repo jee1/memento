@@ -9,10 +9,18 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
 import { createServer } from 'http';
-import { createMementoCore, closeDatabase, createToolContext, getToolRegistry, type ServerServices } from '@memento/core';
-import { mementoConfig, validateConfig } from '../shared/config/index.js';
-import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
-import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
+import {
+  createMementoCore,
+  closeDatabase,
+  createToolContext,
+  getToolRegistry,
+  type ServerServices,
+  mementoConfig,
+  validateConfig,
+  getVectorSearchEngine,
+  getBatchScheduler,
+  logger
+} from '@memento/core';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 // Phase 1.2: 라우터 import
@@ -23,7 +31,6 @@ import { createMcpRouter, type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 // Phase 0: 공통 미들웨어 import
 import { createServiceInjector, createToolContextMiddleware, createAdminAuthMiddleware, errorHandler } from './middleware/index.js';
-import { logger } from '../shared/utils/logger.js';
 
 // 전역 변수 (서비스는 serverServices로만 접근)
 let db: Database.Database | null = null;
@@ -143,17 +150,7 @@ async function initializeServer() {
     app.use(errorHandler);
     
     logger.info('서비스 초기화 완료');
-    
-    // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
-    const batchScheduler = getBatchScheduler();
-    if (batchScheduler.getStatus().isRunning) {
-      logger.warn('이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다');
-      await batchScheduler.stop();
-    }
-    // Reflexion Worker 통합 (Phase 2)
-    await batchScheduler.start(db, services.reflexionWorker);
-    services.batchScheduler = batchScheduler;
-    logger.info('배치 스케줄러 시작됨');
+    // 배치 스케줄러는 core bootstrap에서 이미 시작됨 (services.batchScheduler)
 
     // 임베딩 프로바이더 정보 표시
     const providerInfo: Record<string, unknown> = {

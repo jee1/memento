@@ -6,16 +6,32 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { createMementoCore, closeDatabase, createToolContext, getToolRegistry, type ServerServices } from '@memento/core';
-import { mementoConfig, validateConfig } from '../shared/config/index.js';
-import { DatabaseUtils } from '../shared/utils/database.js';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../domains/monitoring/services/error-logging-service.js';
-import type { MemoryItem } from '../shared/types/index.js';
-import { withErrorHandling } from '../shared/utils/error-handling.js';
-import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
-import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  SetLevelRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
+import {
+  createMementoCore,
+  closeDatabase,
+  createToolContext,
+  getToolRegistry,
+  type ServerServices,
+  mementoConfig,
+  validateConfig,
+  DatabaseUtils,
+  ErrorSeverity,
+  ErrorCategory,
+  type MemoryItem,
+  withErrorHandling,
+  MemoryNeighborService,
+  getVectorSearchEngine,
+  getBatchScheduler
+} from '@memento/core';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
 import Database from 'better-sqlite3';
@@ -31,6 +47,16 @@ const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for 
 - **Before a task**: Use \`recall\` (hybrid search) or \`memory_injection\` (query-based context) to check for relevant memories. If an anchor is set, use \`search_local\` for anchor-scoped memories.
 - **After a task**: Use \`remember\` to store outcomes: episodic (e.g. tag: completed), semantic (e.g. best-practice, knowledge), or procedural (e.g. procedure). Check for existing memories first to avoid duplicates; include concrete, searchable keywords.
 - Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
+
+// stderr.write 래핑: undefined/null 전달 및 "undefined" 문자열 출력 차단
+// (Cursor MCP 클라이언트가 stderr 라인마다 반환값을 표시할 때 undefined가 찍히는 현상 완화)
+const _stderrWrite = process.stderr.write.bind(process.stderr);
+process.stderr.write = function (chunk: any, ...args: any[]): boolean {
+  if (chunk === undefined || chunk === null) return true;
+  const s = typeof chunk === 'string' ? chunk : String(chunk);
+  if (s === 'undefined' || s.trim() === 'undefined') return true;
+  return _stderrWrite(s, ...args);
+} as typeof process.stderr.write;
 
 // MCP 서버 인스턴스
 let server: Server;
@@ -185,22 +211,13 @@ async function initializeServer() {
     mcpLogger.logServer('info', '초기 데이터베이스 상태 확인 완료');
 
     serverServices = services;
-    
+    // 배치 스케줄러는 core bootstrap에서 이미 시작됨 (services.batchScheduler)
+
     mcpLogger.logServer('info', '서비스 초기화 완료');
-    
-    // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
-    const batchScheduler = getBatchScheduler();
-    if (batchScheduler.getStatus().isRunning) {
-      mcpLogger.logServer('warn', '이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...');
-      await batchScheduler.stop();
-    }
-    // Reflexion Worker 통합 (Phase 2)
-    await batchScheduler.start(db, services.reflexionWorker);
-    serverServices!.batchScheduler = batchScheduler;
-    mcpLogger.logServer('info', '배치 스케줄러 시작됨');
 
     // 배치 스케줄러 상태 확인
-    const status = batchScheduler.getStatus();
+    const batchScheduler = services.batchScheduler;
+    const status = batchScheduler ? batchScheduler.getStatus() : { isRunning: false, activeJobs: 0, uptime: 0 };
     mcpLogger.logServer('info', `배치 스케줄러 상태: ${JSON.stringify({
       isRunning: status.isRunning,
       activeJobs: status.activeJobs,
@@ -291,6 +308,41 @@ async function initializeServer() {
           mimeType: 'application/json'
         }))
       };
+    });
+
+    // Prompts 목록 핸들러 (listOfferingsForUI 등 클라이언트 호출 시 Method not found 방지)
+    server.setRequestHandler(ListPromptsRequestSchema, async () => {
+      await mcpLogger.logMCPProtocol('debug', '프롬프트 목록 요청 처리');
+      return {
+        prompts: [
+          {
+            name: 'memory_injection',
+            description: '관련 기억을 요약하여 프롬프트에 주입',
+            arguments: [
+              { name: 'query', description: '검색할 쿼리', required: true },
+              { name: 'token_budget', description: '토큰 예산 (기본값: 1000)', required: false },
+              { name: 'max_memories', description: '최대 기억 개수 (기본값: 5)', required: false }
+            ]
+          }
+        ]
+      };
+    });
+
+    // Prompt 조회 핸들러
+    server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      const { name } = request.params;
+      await mcpLogger.logMCPProtocol('debug', `프롬프트 조회 요청: ${name}`, { name });
+      if (name === 'memory_injection') {
+        return {
+          description: '관련 기억을 요약하여 프롬프트에 주입',
+          arguments: [
+            { name: 'query', description: '검색할 쿼리', required: true },
+            { name: 'token_budget', description: '토큰 예산 (기본값: 1000)', required: false },
+            { name: 'max_memories', description: '최대 기억 개수 (기본값: 5)', required: false }
+          ]
+        };
+      }
+      throw new Error(`Prompt not found: ${name}`);
     });
     
     // Resource 읽기 핸들러
@@ -421,7 +473,7 @@ async function initializeServer() {
             requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
           },
           {
-            serverServices!.errorLoggingService,
+            errorLoggingService: serverServices!.errorLoggingService,
             severity: ErrorSeverity.HIGH,
             category: ErrorCategory.TOOL_EXECUTION,
             transformError: (error) => new Error(`Tool execution failed: ${error.message}`)

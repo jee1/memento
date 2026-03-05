@@ -6,7 +6,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { mementoConfig } from '../../shared/config/index.js';
+import { mementoConfig } from '@memento/core';
 
 export function createAdminAuthMiddleware(): (req: Request, res: Response, next: NextFunction) => void {
   const expectedKey = mementoConfig.adminApiKey;
