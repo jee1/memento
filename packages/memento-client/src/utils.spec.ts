@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isValidMemoryType } from './utils.js';
-import type { MemoryType } from '../types.js';
+import type { MemoryType } from './types.js';
 
 describe('isValidMemoryType', () => {
   it('should return true for all valid memory types', () => {

@@ -68,12 +68,12 @@ jobs:
           SKIP_DB_TESTS: true
           SKIP_INTEGRATION_TESTS: true
         
-      - name: Build package
+      - name: Build (core → server → client)
         run: npm run build
 
-      - name: Build workspace packages (core → server → client)
-        run: npm run build:packages
-        
+      - name: Test @memento/client
+        run: npm run test:ci -w @memento/client
+
       # 관계 추출 품질 리포트는 로컬에서만 생성
       # CI 환경에서는 Ollama를 실행할 수 없으므로 스킵
       # - name: Generate relation extraction quality report
