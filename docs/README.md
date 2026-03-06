@@ -61,6 +61,7 @@
 
 이슈별 설계·구현 계획. 주로 [plans/ko/](plans/ko/)에 있으며, [plans/en/README.md](plans/en/README.md)에서 안내.
 
+- **모노레포·memento-core 분리**: [plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md](plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md) — 구현 계획. 설계·브레인스토밍: [brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md). 실험 앱 연결 방식(라이브러리 in-process vs 서버 원격)은 계획서·브레인스토밍 참고.
 - [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
 - [plans/ko/2026-02-05-issue57-phase2-roadmap.md](plans/ko/2026-02-05-issue57-phase2-roadmap.md) — Phase2 로드맵
 - [plans/ko/2026-03-03-repo-cleanup-design.md](plans/ko/2026-03-03-repo-cleanup-design.md) — 저장소 정리 설계 (불필요 파일·디렉토리, 단계별 정리)

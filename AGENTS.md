@@ -1,11 +1,25 @@
 # 저장소 가이드라인
 
 ## 프로젝트 구조 및 모듈 구성
-루트는 npm workspaces로 `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`를 포함한다. **memento-core**는 도메인·인프라·공유만 포함하는 라이브러리(진입점: `createMementoCore`, `recall`, `remember` 등). **memento-server**는 core를 소비하는 MCP/HTTP 서버. **memento-client**는 서버 연결용 클라이언트 라이브러리. **apps/** 는 실험용 앱(예: `experimental-example`은 `@memento/core` in-process 사용).  
-소스 코드는 루트 `src/` 및 각 패키지 `src/` 아래에 위치한다. `src/server/`는 MCP 진입점을 노출한다(CLI용 `index.ts`, HTTP용 `http-server.ts`). 도메인 로직은 `src/domains/`에 관심사별로 묶여 있다: `memory/`, `embedding/`, `forgetting/`, `search/`(검색 엔진·알고리즘), `anchor/`, `relation/`, `monitoring/` 등. 공유 타입·유틸은 `src/shared/`, 영속성·캐시·스케줄러 등 인프라는 `src/infrastructure/`에 둔다. DB 스키마·초기화·마이그레이션은 `src/infrastructure/database/`에 두고, 빌드 시 `copy:assets`가 스키마를 `dist/database/`로, 마이그레이션 SQL을 `dist/infrastructure/...`로 복사한다. 로컬 SQLite 상태는 `data/`에 기록되며, 임시로 취급한다. 문서는 `docs/`에 있으며, **목차·분류**는 [docs/README.md](docs/README.md)를 참조한다. 빌드 산출물은 `dist/`에 컴파일된다(수동 편집 금지).
+루트는 npm workspaces로 `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`를 포함한다.
+
+- **packages/memento-core** (`@memento/core`): 도메인·인프라·공유만 포함하는 라이브러리. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB 초기화·마이그레이션은 `npm run db:init` / `npm run db:migrate` (core 워크스페이스에서 실행).
+- **packages/memento-server**: core를 소비하는 MCP/HTTP 서버. bin은 루트 `npm run dev`·`npm start`로 실행.
+- **packages/memento-client** (`@memento/client`): 서버 연결용 클라이언트 라이브러리.
+- **apps/** : 실험용 앱. 예: `experimental-example`은 `@memento/core`를 in-process로 사용(연결 방식은 각 앱 README 참고).
+
+소스 코드는 루트 `src/` 및 각 패키지 `src/` 아래에 위치한다. 서버 MCP 진입점은 `packages/memento-server`의 CLI(`index.ts`), HTTP(`http-server.ts`). 도메인 로직은 core의 `src/domains/`에 관심사별로 묶여 있다: `memory/`, `embedding/`, `forgetting/`, `search/`, `anchor/`, `relation/`, `monitoring/` 등. 공유 타입·유틸은 `src/shared/`, 영속성·캐시·스케줄러 등 인프라는 `src/infrastructure/`에 둔다. DB 스키마·초기화·마이그레이션은 core의 `src/infrastructure/database/`에 두고, 빌드 시 `copy:assets`가 스키마를 `dist/database/`로, 마이그레이션 SQL을 `dist/infrastructure/...`로 복사한다. 로컬 SQLite 상태는 `data/`에 기록되며, 임시로 취급한다. 문서는 `docs/`에 있으며, **목차·분류**는 [docs/README.md](docs/README.md)를 참조한다. 빌드 산출물은 각 패키지·앱의 `dist/`에 컴파일된다(수동 편집 금지).
 
 ## 빌드·테스트·개발 명령
-다른 작업 전에 한 번 `npm install`을 실행한다. `npm run dev`는 MCP 서버를 watch 모드로 띄우고, HTTP 퍼사드는 `npm run dev:http`(또는 `dev:http-v2`)를 사용한다. `npm run build`는 TypeScript를 트랜스파일하고 `copy:assets`로 스키마·마이그레이션·prompts·config를 복사한다. 워크스페이스 패키지 순서 빌드(core → server → client)는 `npm run build:packages`를 사용한다. `npm run start`는 컴파일된 서버를 기동한다. 품질 게이트: `npm run lint`, `npm run type-check`, `npm test`(Vitest, 한 번 실행). watch 모드는 `npm run test:watch`. `npm run test:client`, `npm run test:search`, `npm run test:forgetting` 등 시나리오 스크립트는 상위 수준 워크플로를 검증한다.
+다른 작업 전에 한 번 `npm install`을 실행한다.
+
+- **전체 워크스페이스**: `npm run build` → core → server → client 순서 빌드. `npm run build:packages`로 패키지만 빌드. `npm test`는 루트·패키지 테스트 실행.
+- **서버**: `npm run dev`(MCP watch), `npm run dev:http` 또는 `dev:http-v2`(HTTP), `npm run start`(컴파일된 서버 기동). 서버 코드는 `packages/memento-server`에 있음.
+- **core**: `npm run build -w @memento/core`, DB 초기화는 `npm run db:init -w @memento/core`, 마이그레이션은 `npm run db:migrate -w @memento/core`.
+- **client**: `npm run build -w @memento/client`, `npm run test -w @memento/client`.
+- **apps**: 예시 앱은 `npm run build -w experimental-example`, `npm run start -w experimental-example` (또는 해당 앱 디렉터리에서 `npm run build && npm start`).
+
+품질 게이트: `npm run lint`, `npm run type-check`, `npm test`(Vitest, 한 번 실행). watch 모드는 `npm run test:watch`. `npm run test:client`, `npm run test:search`, `npm run test:forgetting` 등 시나리오 스크립트는 상위 수준 워크플로를 검증한다.
 
 ## 코딩 스타일 및 네이밍 규칙
 Node.js ≥ 20과 ES 모듈 기반 현대 TypeScript를 대상으로 한다. `src/server/index.ts`처럼 두 칸 들여쓰기, 후행 쉼표, 작은따옴표를 기본으로 한다. 파일명은 kebab-case(`memory-embedding-service.ts`), 클래스는 PascalCase, 함수는 camelCase. 비즈니스 로직은 `src/shared/`의 공유 인터페이스로 타입을 유지한다. 가능하면 커밋 전에 `npm run lint -- --fix`로 포맷한다.
