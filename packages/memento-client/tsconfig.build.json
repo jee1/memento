@@ -2,9 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "../../src/npm-client",
+    "rootDir": "./src",
     "noEmit": false
   },
-  "include": ["../../src/npm-client/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "examples"]
 }
