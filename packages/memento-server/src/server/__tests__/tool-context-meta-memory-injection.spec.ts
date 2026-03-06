@@ -5,9 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createToolContext, createServerContext } from '../context.js';
-import { initializeServices, type ServerServices } from '../bootstrap.js';
+import { initializeServices, type ServerServices, DatabaseUtils, type ToolContext, getBatchScheduler } from '@memento/core';
 import Database from 'better-sqlite3';
-import { DatabaseUtils, type ToolContext } from '@memento/core';
 
 describe('ToolContext에 metaMemoryService 주입', () => {
   let db: Database.Database;
@@ -21,10 +20,15 @@ describe('ToolContext에 metaMemoryService 주입', () => {
   });
 
   afterEach(async () => {
-    // 모든 비동기 작업이 완료될 때까지 대기
     await new Promise(resolve => setTimeout(resolve, 200));
 
-    // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
+    try {
+      const scheduler = getBatchScheduler() as { getStatus(): { isRunning: boolean }; stop(): Promise<void> };
+      if (scheduler?.getStatus?.()?.isRunning && typeof scheduler.stop === 'function') await scheduler.stop();
+    } catch (e) {
+      console.warn('BatchScheduler stop:', e);
+    }
+
     if (services) {
       try {
         await services.walCheckpointScheduler.stop();

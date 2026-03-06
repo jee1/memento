@@ -5,25 +5,28 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
-import { createHybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
+import {
+  setupTestDatabase,
+  cleanupTestDatabase,
+  type TestDatabaseContext
+} from './test/helpers/test-database.js';
+import type { ServerServices } from '@memento/core';
 import { __test } from './http-server.js';
 
 describe('HTTP Server', () => {
+  let ctx: TestDatabaseContext | null = null;
   let db: Database.Database;
-  let searchEngine: SearchEngine;
-  let hybridSearchEngine: ReturnType<typeof createHybridSearchEngine>;
-  let embeddingService: MemoryEmbeddingService;
+  let searchEngine: ServerServices['searchEngine'];
+  let hybridSearchEngine: ServerServices['hybridSearchEngine'];
+  let embeddingService: ServerServices['embeddingService'];
 
   beforeEach(async () => {
-    db = await setupTestDatabase();
-    searchEngine = new SearchEngine();
-    hybridSearchEngine = createHybridSearchEngine();
-    embeddingService = new MemoryEmbeddingService();
+    ctx = await setupTestDatabase();
+    db = ctx.db;
+    searchEngine = ctx.services.searchEngine;
+    hybridSearchEngine = ctx.services.hybridSearchEngine;
+    embeddingService = ctx.services.embeddingService;
 
-    // 테스트 의존성 주입
     __test.setTestDependencies({
       database: db,
       searchEngine,
@@ -32,8 +35,9 @@ describe('HTTP Server', () => {
     });
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(ctx);
+    ctx = null;
     vi.clearAllMocks();
   });
 

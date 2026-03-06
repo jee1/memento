@@ -8,7 +8,8 @@ export default defineConfig({
       'src/**/*.{test,spec}.{js,ts}',
       'tests/**/*.{test,spec}.{js,ts}',
       'packages/memento-core/src/**/*.{test,spec}.{js,ts}',
-      'packages/memento-client/src/**/*.{test,spec}.{js,ts}'
+      'packages/memento-client/src/**/*.{test,spec}.{js,ts}',
+      'packages/memento-server/src/**/*.{test,spec}.{js,ts}'
     ],
     exclude: ['node_modules', 'dist'],
     hookTimeout: 30000, // 30초로 증가

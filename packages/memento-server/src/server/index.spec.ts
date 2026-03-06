@@ -4,47 +4,42 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
+import type Database from 'better-sqlite3';
+import { setupTestDatabase, cleanupTestDatabase, type TestDatabaseContext } from './test/helpers/test-database.js';
 import { initializeServices, getToolRegistry, getBatchScheduler, type ServerServices } from '@memento/core';
 import { createToolContext, createServerContext } from './context.js';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
 
 describe('MCP 서버 진입점', () => {
+  let ctx: TestDatabaseContext | null = null;
   let db: Database.Database;
   let services: ServerServices;
 
   beforeEach(async () => {
-    db = await setupTestDatabase();
-    services = await initializeServices(db);
+    ctx = await setupTestDatabase();
+    db = ctx.db;
+    services = ctx.services;
   });
 
   afterEach(async () => {
-    // 배치 스케줄러가 실행 중이면 중지
-    const batchScheduler = getBatchScheduler();
-    if (batchScheduler.getStatus().isRunning) {
-      await batchScheduler.stop();
-    }
-    cleanupTestDatabase(db);
+    await cleanupTestDatabase(ctx);
+    ctx = null;
   });
 
   describe('서비스 초기화', () => {
-    it('데이터베이스와 서비스를 초기화할 수 있어야 함', async () => {
-      // When: 서비스 초기화
-      const initializedServices = await initializeServices(db);
-
-      // Then: 모든 서비스가 초기화되어야 함
-      expect(initializedServices).toBeDefined();
-      expect(initializedServices.searchEngine).toBeDefined();
-      expect(initializedServices.hybridSearchEngine).toBeDefined();
-      expect(initializedServices.embeddingService).toBeDefined();
-      expect(initializedServices.forgettingPolicyService).toBeDefined();
-      expect(initializedServices.performanceMonitor).toBeDefined();
-      expect(initializedServices.databaseOptimizer).toBeDefined();
-      expect(initializedServices.errorLoggingService).toBeDefined();
-      expect(initializedServices.performanceAlertService).toBeDefined();
-      expect(initializedServices.anchorManager).toBeDefined();
+    it('데이터베이스와 서비스를 초기화할 수 있어야 함', () => {
+      // Then: createMementoCore(setupTestDatabase)로 이미 초기화된 서비스 검증
+      expect(services).toBeDefined();
+      expect(services.searchEngine).toBeDefined();
+      expect(services.hybridSearchEngine).toBeDefined();
+      expect(services.embeddingService).toBeDefined();
+      expect(services.forgettingPolicyService).toBeDefined();
+      expect(services.performanceMonitor).toBeDefined();
+      expect(services.databaseOptimizer).toBeDefined();
+      expect(services.errorLoggingService).toBeDefined();
+      expect(services.performanceAlertService).toBeDefined();
+      expect(services.anchorManager).toBeDefined();
     });
   });
 

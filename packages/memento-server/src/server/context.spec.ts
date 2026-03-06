@@ -5,22 +5,24 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServerContext, createToolContext } from './context.js';
-import type { ServerServices } from './bootstrap.js';
-import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
-import { initializeServices } from './bootstrap.js';
+import type { ServerServices } from '@memento/core';
+import type Database from 'better-sqlite3';
+import { setupTestDatabase, cleanupTestDatabase, type TestDatabaseContext } from './test/helpers/test-database.js';
 
 describe('context 모듈', () => {
+  let ctx: TestDatabaseContext | null = null;
   let db: Database.Database;
   let services: ServerServices;
 
   beforeEach(async () => {
-    db = await setupTestDatabase();
-    services = await initializeServices(db);
+    ctx = await setupTestDatabase();
+    db = ctx.db;
+    services = ctx.services;
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(ctx);
+    ctx = null;
   });
 
   describe('createServerContext', () => {

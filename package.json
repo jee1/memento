@@ -26,6 +26,7 @@
     "start:http": "npm run start:http -w memento-server",
     "start:http-v2": "npm run start:http-v2 -w memento-server",
     "test": "vitest --run",
+    "test:server": "vitest run packages/memento-server/src/server/ --no-file-parallelism",
     "test:watch": "vitest",
     "test:ci": "vitest --run --reporter=basic",
     "test:vector-search-quality": "vitest --run src/test/test-vector-search-quality-with-consolidation.spec.ts",

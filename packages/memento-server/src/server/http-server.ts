@@ -41,12 +41,28 @@ let serverServices: ServerServices | null = null;
 const transports: Record<string, SSETransport> = {};
 
 type TestDependencies = {
-  database: Database.Database;
+  database: Database.Database | null;
+  serverServices?: ServerServices | null;
+  searchEngine?: ServerServices['searchEngine'];
+  hybridSearchEngine?: ServerServices['hybridSearchEngine'];
+  embeddingService?: ServerServices['embeddingService'];
 };
 
 function setTestDependencies(_deps: TestDependencies): void {
-  // 테스트 시 serverServices는 별도 주입
-  db = _deps.database;
+  db = _deps.database ?? null;
+  if (_deps.serverServices !== undefined) {
+    serverServices = _deps.serverServices ?? null;
+  } else if (
+    _deps.searchEngine != null &&
+    _deps.hybridSearchEngine != null &&
+    _deps.embeddingService != null
+  ) {
+    serverServices = {
+      searchEngine: _deps.searchEngine,
+      hybridSearchEngine: _deps.hybridSearchEngine,
+      embeddingService: _deps.embeddingService
+    } as ServerServices;
+  }
 }
 
 // Express 앱 생성

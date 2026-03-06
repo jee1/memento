@@ -3,11 +3,15 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initializeServices, type ServerServices } from './bootstrap.js';
+import {
+  initializeServices,
+  type ServerServices,
+  DatabaseUtils,
+  mementoConfig,
+  getPerformanceMonitor,
+  getBatchScheduler
+} from '@memento/core';
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../shared/utils/database.js';
-import { mementoConfig } from '../shared/config/index.js';
-import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 
 describe('initializeServices', () => {
   let db: Database.Database;
@@ -21,17 +25,23 @@ describe('initializeServices', () => {
   });
 
   afterEach(async () => {
-    // 모든 비동기 작업이 완료될 때까지 대기
     await new Promise(resolve => setTimeout(resolve, 200));
 
-    // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
+    try {
+      const scheduler = getBatchScheduler() as { getStatus(): { isRunning: boolean }; stop(): Promise<void> };
+      if (scheduler?.getStatus?.()?.isRunning && typeof scheduler.stop === 'function') {
+        await scheduler.stop();
+      }
+    } catch (error) {
+      console.warn('BatchScheduler stop 중 에러:', error);
+    }
+
     if (services) {
       try {
         await services.walCheckpointScheduler.stop();
       } catch (error) {
         console.warn('WalCheckpointScheduler stop 중 에러:', error);
       }
-      
       try {
         services.databaseLockMonitor.stop();
       } catch (error) {
@@ -107,10 +117,12 @@ describe('initializeServices', () => {
   describe('PerformanceMonitor 싱글톤 처리', () => {
     it('PerformanceMonitor가 싱글톤 인스턴스여야 함', async () => {
       const services1 = await initializeServices(db);
-      services = services1; // afterEach에서 정리하기 위해 저장
+      services = services1;
+      const scheduler = getBatchScheduler() as { stop(): Promise<void> };
+      await scheduler.stop();
       const services2 = await initializeServices(db);
+      services = services2;
 
-      // 같은 인스턴스여야 함
       expect(services1.performanceMonitor).toBe(services2.performanceMonitor);
     });
 
@@ -155,9 +167,9 @@ describe('initializeServices', () => {
         DatabaseUtils.initializeDatabase(db2);
 
         services1 = await initializeServices(db1);
+        await (getBatchScheduler() as { stop(): Promise<void> }).stop();
         services2 = await initializeServices(db2);
 
-        // 같은 인스턴스여야 함
         expect(services1.performanceMonitor).toBe(services2.performanceMonitor);
       } finally {
         // Write Coalescing Manager 정리
