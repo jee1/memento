@@ -70,7 +70,15 @@
 
 ---
 
-## 5. 리뷰·검증 (reviews/ko, code_review/ko)
+## 5.5. 해결 사례 (solutions/)
+
+이슈 해결 과정·근본 원인·검증이 정리된 문서. 문제 유형별 하위 디렉터리.
+
+- [integration-issues/mcp-log-duplicate-two-processes.md](solutions/integration-issues/mcp-log-duplicate-two-processes.md) — MCP 로그 두 번 출력 (두 프로세스 / Cursor UI)
+
+---
+
+## 6. 리뷰·검증 (reviews/ko, code_review/ko)
 
 - 코드 리뷰: [code_review/ko/](code_review/ko/)
 - 검증·테스트 보고: [reviews/ko/](reviews/ko/)
@@ -78,13 +86,13 @@
 
 ---
 
-## 6. 테스트 (testing/ko, testing/en)
+## 7. 테스트 (testing/ko, testing/en)
 
 - Consolidation 품질 테스트: [ko](testing/ko/consolidation-quality-testing.md) / [testing/en/README.md](testing/en/README.md)
 
 ---
 
-## 7. 운영·도구 (operations/en, operations/ko)
+## 8. 운영·도구 (operations/en, operations/ko)
 
 - GitHub 릴리스: [ko](operations/ko/github-release-workflow.md) / [en](operations/en/github-release-workflow.md)
 - 스크립트 인덱스: [ko](operations/ko/scripts-index.md)
@@ -94,7 +102,7 @@
 
 ---
 
-## 8. 참조 (reference/en, reference/ko)
+## 9. 참조 (reference/en, reference/ko)
 
 - **코드베이스 분석**: [ko](reference/ko/codebase-analysis.md) — 전체 코드 구조·도메인·조건·데이터 흐름 정리
 - **파일 위치·필요성 감사**: [ko](reference/ko/file-location-audit.md) — 파일별 위치 적합성·필요여부·개선 방안
@@ -107,13 +115,13 @@
 
 ---
 
-## 9. 리서치 (research/ko, research/en)
+## 10. 리서치 (research/ko, research/en)
 
 - Memento 기반 개인 비서(OpenClaw 유사) 기능·MVP 리서치: [ko](research/ko/memento-based-personal-assistant-mvp-research.md)
 
 ---
 
-## 10. 블로그
+## 11. 블로그
 
 - [blog/](blog/)
 
