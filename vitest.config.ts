@@ -4,7 +4,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
+    include: [
+      'src/**/*.{test,spec}.{js,ts}',
+      'tests/**/*.{test,spec}.{js,ts}',
+      'packages/memento-core/src/**/*.{test,spec}.{js,ts}',
+      'packages/memento-client/src/**/*.{test,spec}.{js,ts}'
+    ],
     exclude: ['node_modules', 'dist'],
     hookTimeout: 30000, // 30초로 증가
     testTimeout: 30000, // 30초로 증가

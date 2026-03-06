@@ -6,6 +6,7 @@
 import { initializeDatabase, closeDatabase as closeDb } from './infrastructure/database/database/init.js';
 import { initializeServices } from './bootstrap.js';
 import { getToolRegistry } from './tools/index.js';
+import { validateAndNormalizeDbPath } from './shared/utils/db-path.js';
 
 export interface MementoCoreOptions {
   dbPath: string;
@@ -20,9 +21,11 @@ export interface MementoCoreInstance {
 /**
  * Core 인스턴스 생성 (DB 초기화 + 서비스 부트스트랩).
  * 서버는 반환된 db, services로 createToolContext(db, services) 및 getToolRegistry() 사용.
+ * dbPath는 검증·정규화 후 사용된다 (규칙: shared/utils/db-path.ts).
  */
 export async function createMementoCore(options: MementoCoreOptions): Promise<MementoCoreInstance> {
-  const db = await initializeDatabase(options.dbPath);
+  const dbPath = validateAndNormalizeDbPath(options.dbPath);
+  const db = await initializeDatabase(dbPath);
   const services = await initializeServices(db);
   return { db, services };
 }
