@@ -506,7 +506,8 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
             for (const failed of failedMigrations) {
               log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
             }
-            
+            // 새 DB에서 마이그레이션 실패 시 schema.sql로 폴백 (테이블이 없을 수 있음)
+            hasPendingMigrations = false;
             // CI 환경에서는 마이그레이션 실패 시 에러를 던져서 테스트가 실패하도록 함
             if (process.env.CI === 'true') {
               const errorMessage = `CI 환경에서 마이그레이션 실패: ${failCount}개의 마이그레이션이 실패했습니다. 실패한 마이그레이션: ${failedMigrations.map(f => `${f.name} (v${f.version})`).join(', ')}`;
@@ -514,8 +515,10 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
             }
           }
           
-          // 마이그레이션 실행 후 VEC 테이블 초기화
-          populateVecTables(db, []);
+          // 마이그레이션 전부 성공한 경우에만 VEC 테이블 초기화 (실패 시 아래 schema.sql 경로에서 처리)
+          if (hasPendingMigrations) {
+            populateVecTables(db, []);
+          }
           
           // 마이그레이션 완료 검증: core_memory 테이블의 version=0인 행이 없어야 함
           try {
@@ -547,7 +550,8 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       // 마이그레이션이 없거나 실패한 경우 schema.sql 실행 (최신 스키마 포함)
       if (!hasPendingMigrations) {
         log('📋 schema.sql 실행 (최신 스키마 적용)');
-        const schemaPath = join(__dirname, 'schema.sql');
+        // copy:assets가 dist/database/schema.sql에 복사함 (init은 dist/.../database/init.js에 있음)
+        const schemaPath = join(__dirname, '..', '..', '..', 'database', 'schema.sql');
         const schema = readFileSync(schemaPath, 'utf-8');
         
         // 스키마 실행

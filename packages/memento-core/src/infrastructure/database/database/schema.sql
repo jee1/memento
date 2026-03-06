@@ -37,7 +37,12 @@ CREATE TABLE IF NOT EXISTS memory_item (
   num_times INTEGER NOT NULL DEFAULT 1,
   last_mentioned_at TIMESTAMP,
   source_session_id TEXT,
-  confidence REAL
+  confidence REAL,
+  -- Consolidation score (migration 003)
+  recall_count INTEGER NOT NULL DEFAULT 0,
+  last_accessed_at TIMESTAMP,
+  consolidation_score REAL,
+  g_value REAL
 );
 
 -- 태그 테이블
