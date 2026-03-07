@@ -6,16 +6,18 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MigrationLogger, LogLevel } from './migration-logger.js';
 import type { MigrationResult } from '../types.js';
-import { existsSync, unlinkSync, readFileSync } from 'fs';
+import { existsSync, unlinkSync, readFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { randomUUID } from 'crypto';
 
 describe('MigrationLogger', () => {
   let logger: MigrationLogger;
   let testLogDir: string;
 
   beforeEach(() => {
-    // 테스트용 로그 디렉토리
-    testLogDir = join(process.cwd(), 'data', 'test-logs');
+    // 테스트별 고유 로그 디렉토리 (병렬 실행 시 파일 충돌 방지)
+    testLogDir = join(process.cwd(), 'data', 'test-logs', randomUUID());
+    mkdirSync(testLogDir, { recursive: true });
     logger = new MigrationLogger(testLogDir);
   });
 

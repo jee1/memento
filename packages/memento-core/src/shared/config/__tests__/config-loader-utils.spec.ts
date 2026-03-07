@@ -5,32 +5,37 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { 
-  loadTOMLConfig, 
-  validateConfig, 
+import {
+  loadTOMLConfig,
+  validateConfig,
   mergeWithDefaults,
   getCachedConfig,
   clearConfigCache
 } from '../config-loader-utils.js';
 import { join } from 'path';
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs';
+import { tmpdir } from 'os';
+import { writeFileSync, unlinkSync, existsSync, mkdirSync, rmSync } from 'fs';
+import { randomUUID } from 'crypto';
 
 describe('config-loader-utils', () => {
-  const testConfigDir = join(process.cwd(), 'test-config');
-  const testConfigPath = join(testConfigDir, 'test-config.toml');
+  // 테스트별 고유 디렉터리 (process.cwd()/워커 차이·병렬 실행 시 경로 충돌 방지)
+  let testConfigDir: string;
+  let testConfigPath: string;
 
   beforeEach(() => {
     clearConfigCache();
-    // 테스트 디렉토리 생성 (필요시)
-    if (!existsSync(testConfigDir)) {
-      mkdirSync(testConfigDir, { recursive: true });
-    }
+    testConfigDir = join(tmpdir(), `config-loader-test-${Date.now()}-${randomUUID()}`);
+    testConfigPath = join(testConfigDir, 'test-config.toml');
+    mkdirSync(testConfigDir, { recursive: true });
   });
 
   afterEach(() => {
-    // 테스트 파일 정리
-    if (existsSync(testConfigPath)) {
-      unlinkSync(testConfigPath);
+    if (testConfigDir && existsSync(testConfigDir)) {
+      try {
+        rmSync(testConfigDir, { recursive: true });
+      } catch {
+        // 무시
+      }
     }
     clearConfigCache();
   });

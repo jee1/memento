@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { join } from 'path';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
 import type { CoreMemoryRepository } from '../../../../domains/memory/repositories/core-memory-repository.interface.js';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
@@ -53,7 +54,7 @@ describe('Core Memory Auto-Load Integration', () => {
     if (!existsSync(testDir)) {
       mkdirSync(testDir, { recursive: true });
     }
-    testDbPath = join(testDir, `test-core-memory-${Date.now()}.db`);
+    testDbPath = join(testDir, `test-core-memory-${Date.now()}-${randomUUID()}.db`);
     db = new Database(testDbPath);
 
     // 테이블 생성

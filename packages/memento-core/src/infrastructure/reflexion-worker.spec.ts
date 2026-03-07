@@ -168,7 +168,7 @@ describe('ReflexionWorker', () => {
     } catch (error) {
       // 타임아웃은 무시 (이미 stop() 호출했으므로)
     }
-    cleanupTestDatabase(db);
+    await cleanupTestDatabase(db);
     vi.clearAllMocks();
     vi.restoreAllMocks();
   });
@@ -1363,7 +1363,8 @@ describe('ReflexionWorker', () => {
         if (directQuery?.trigger_conditions) {
           const parsed = JSON.parse(directQuery.trigger_conditions);
           expect(parsed.tool_name).toBe('remember-tool');
-          expect(parsed.error_type).toBe('TOOL_ERROR');
+          // ErrorType.TOOL_ERROR enum value is 'tool_error'
+          expect(parsed.error_type).toBe('tool_error');
         }
 
         // fetchProceduralMemoryMatches 로직 검증: trigger_conditions 매칭 확인

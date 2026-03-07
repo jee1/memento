@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
 import {
   loadRankingWeights,
   getRankingWeights,
@@ -19,7 +20,7 @@ describe('ranking-weights-loader', () => {
 
   beforeEach(() => {
     tempDir = tmpdir();
-    tempConfigPath = join(tempDir, 'ranking-weights.toml');
+    tempConfigPath = join(tempDir, `ranking-weights-${randomUUID()}.toml`);
     resetRankingWeightsCache();
   });
 

@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { unlinkSync, existsSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { initializeDatabase } from './init.js';
 import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
@@ -33,9 +34,9 @@ describe('캐시 버전 동기화 통합 테스트', () => {
   let logger: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    // Given: 임시 데이터베이스 파일 생성
-    dbPath = join(tmpdir(), `test-cache-version-${Date.now()}.db`);
-    
+    // Given: 임시 데이터베이스 파일 생성 (고유 경로로 병렬 실행·중복 경로 충돌 방지)
+    dbPath = join(tmpdir(), `test-cache-version-${Date.now()}-${randomUUID()}.db`);
+
     // 데이터베이스 생성 및 초기화
     db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
@@ -114,15 +115,17 @@ describe('캐시 버전 동기화 통합 테스트', () => {
       db.close();
     }
     
-    // 임시 파일 삭제
-    if (existsSync(dbPath)) {
-      try {
-        unlinkSync(dbPath);
-      } catch (error) {
-        // 무시
+    // 임시 파일 삭제 (WAL 모드 시 -wal, -shm 함께 삭제)
+    for (const p of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
+      if (existsSync(p)) {
+        try {
+          unlinkSync(p);
+        } catch {
+          // 무시
+        }
       }
     }
-    
+
     // 캐시 클리어
     if (cache) {
       cache.clear();
