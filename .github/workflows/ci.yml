@@ -48,7 +48,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
-      - name: Run tests (root: src/ + tests/)
+      - name: "Run tests (root: src/ + tests/)"
         run: npm run test:ci:root
       - name: Upload test results
         if: failure()
