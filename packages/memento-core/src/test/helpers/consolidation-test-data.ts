@@ -212,7 +212,7 @@ export function generateSampleMemoryItems(count: number = 10): TestMemoryItem[] 
       : 0.1;
     items.push({
       id: `mem_${i + 1}`,
-      type,
+      type: type ?? 'episodic',
       content: `${content} (Item ${i + 1})`,
       importance: 0.5 + (i % 5) * 0.1,
       tags: [`tag${i % 3}`, `category${Math.floor(i / 3)}`],
@@ -272,7 +272,7 @@ export function generateScenarioBasedTestData(count: number = 50, seed: number =
       const lastAccessedAt = new Date(now.getTime() - hoursSinceAccess * 60 * 60 * 1000);
       items.push({
         id: `mem_scenario_${scenario.name}_${i}`,
-        type,
+        type: type ?? 'episodic',
         content: `${content} [${scenario.name}] (Item ${scenarioIndex})`,
         importance: rng.randomFloat(0.3, 0.9),
         tags: [`scenario_${scenario.name}`, `tag${scenarioIndex % 5}`],

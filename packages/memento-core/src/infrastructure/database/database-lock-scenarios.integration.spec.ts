@@ -12,10 +12,10 @@ import Database from 'better-sqlite3';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { unlinkSync, existsSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { DatabaseLockMonitor } from './database-lock-monitor.js';
 import { WalCheckpointScheduler } from './wal-checkpoint-scheduler.js';
 import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
-import { vi } from 'vitest';
 
 /**
  * 기본 스키마 생성
@@ -30,7 +30,7 @@ function createBaseSchema(db: Database.Database): void {
   `);
 }
 
-describe('데이터베이스 락 시나리오 통합 테스트', () => {
+describe.sequential('데이터베이스 락 시나리오 통합 테스트', () => {
   let db: Database.Database;
   let dbPath: string;
   let lockMonitor: DatabaseLockMonitor;
@@ -39,12 +39,12 @@ describe('데이터베이스 락 시나리오 통합 테스트', () => {
   let logger: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    // Given: 임시 데이터베이스 파일 생성
-    dbPath = join(tmpdir(), `test-lock-scenarios-${Date.now()}.db`);
+    // Given: 워커·동시 실행 충돌 방지를 위한 고유 경로 사용
+    dbPath = join(tmpdir(), `test-lock-scenarios-${process.pid}-${Date.now()}-${randomUUID().slice(0, 8)}.db`);
     db = new Database(dbPath);
+    db.pragma('busy_timeout = 5000');
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
-    db.pragma('busy_timeout = 5000');
     
     createBaseSchema(db);
     
