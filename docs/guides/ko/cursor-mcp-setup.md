@@ -4,9 +4,9 @@ Cursor에서 Memento MCP Server를 사용하기 위한 설정 방법입니다.
 
 ## 🚨 문제 해결
 
-### "Cannot find module '.../dist/server/index.js'"
+### "Cannot find module '.../dist/server/index.js'" 또는 "packages/memento-server/dist/..."
 
-로컬 경로로 MCP를 설정했는데 위와 같은 오류가 나면 **빌드 산출물이 없거나 오래된 경우**입니다. `dist/`는 Git에 포함되지 않으며, `npm run build`를 해야 생성됩니다.
+로컬 경로로 MCP를 설정했는데 위와 같은 오류가 나면 **빌드 산출물이 없거나 오래된 경우**입니다. 서버 빌드 결과는 `packages/memento-server/dist/`에 생성되며, Git에 포함되지 않으므로 `npm run build`를 해야 합니다.
 
 **해결**: 프로젝트 루트에서 다음을 실행한 뒤 Cursor를 다시 시작하거나 MCP 서버를 재연결하세요.
 
@@ -15,7 +15,7 @@ npm install
 npm run build
 ```
 
-빌드가 성공하면 `dist/server/index.js`가 생성됩니다. Cursor MCP가 참조하는 경로가 이 파일을 가리키는지 확인하세요.
+빌드가 성공하면 `packages/memento-server/dist/server/index.js`가 생성됩니다. Cursor MCP가 참조하는 경로가 이 파일을 가리키는지 확인하세요.
 
 ### "Cannot destructure property 'package' of 'node.target' as it is null"
 
@@ -48,7 +48,7 @@ Cursor 설정 파일 또는 `.cursor/mcp.json`에 다음을 추가:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\packages\\memento-server\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
         "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
@@ -64,7 +64,7 @@ Cursor 설정 파일 또는 `.cursor/mcp.json`에 다음을 추가:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["/home/username/git/memento/dist/server/index.js"],
+      "args": ["/home/username/git/memento/packages/memento-server/dist/server/index.js"],
       "env": {
         "NODE_ENV": "production",
         "DB_PATH": "/home/username/git/memento/data/memory.db"
@@ -169,7 +169,7 @@ npx -y memento-mcp-server@latest
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\packages\\memento-server\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
         "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
@@ -188,7 +188,7 @@ npx -y memento-mcp-server@latest
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["./dist/server/index.js"],
+      "args": ["./packages/memento-server/dist/server/index.js"],
       "cwd": "C:\\Users\\username\\git\\memento",
       "env": {
         "NODE_ENV": "production",
@@ -210,14 +210,14 @@ npx -y memento-mcp-server@latest
 dir dist\server\index.js
 
 # Linux/macOS
-ls -la dist/server/index.js
+ls -la packages/memento-server/dist/server/index.js
 ```
 
 ### 2. 직접 실행 테스트
 
 ```bash
 # 프로젝트 디렉토리에서
-node dist/server/index.js
+node packages/memento-server/dist/server/index.js
 ```
 
 정상적으로 실행되면 MCP 서버가 시작됩니다.
@@ -267,7 +267,7 @@ npm run build
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\packages\\memento-server\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
         "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
@@ -304,7 +304,7 @@ npm run build
   "mcpServers": {
     "memento": {
       "command": "npx",
-      "args": ["-y", "tsx", "src/server/index.ts"],
+      "args": ["-y", "tsx", "packages/memento-server/src/server/index.ts"],
       "cwd": "C:\\Users\\username\\git\\memento",
       "env": {
         "NODE_ENV": "development",

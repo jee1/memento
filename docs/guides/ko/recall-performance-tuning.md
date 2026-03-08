@@ -17,4 +17,4 @@
 ## FTS5 전문 검색
 
 - recall의 텍스트/하이브리드 검색은 `memory_item_fts`(FTS5 가상 테이블)를 사용합니다.
-- FTS5 사용 불가 시 자동으로 기본 검색으로 전환됩니다. 자세한 설정은 `src/domains/search/algorithms/search-engine.ts` 및 DB 초기화 스키마를 참고하세요.
+- FTS5 사용 불가 시 자동으로 기본 검색으로 전환됩니다. 자세한 설정은 `packages/memento-core/src/domains/search/` 내 검색 엔진 및 DB 초기화 스키마를 참고하세요.

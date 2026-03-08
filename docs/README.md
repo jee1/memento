@@ -17,7 +17,9 @@
 | Cursor/MCP 설정 | [guides/ko/cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [guides/en/cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | 보안 | [reference/ko/security.md](reference/ko/security.md) | [reference/en/security.md](reference/en/security.md) |
 
-**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). 상세는 README·가이드 참고.
+**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). [AGENTS.md](../AGENTS.md) — 모노레포 구조·빌드·테스트·DB 명령 상세. 상세는 README·가이드 참고.
+
+**현재 구조:** 저장소는 npm workspaces 모노레포로, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`가 구현되어 있습니다. 서버 진입점은 `packages/memento-server`(MCP/HTTP), DB·도메인 로직은 `packages/memento-core`에 있습니다.
 
 ---
 

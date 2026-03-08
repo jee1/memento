@@ -4,11 +4,13 @@
 **일자**: 2026-03-04  
 **범위**: 진입점, 패키지, 서버 vs 라이브러리 표면, 도메인 구조, 배포·MCP·HTTP 관련 문서/관례, 외부 소비자 사용 경로. **모노레포 구조 제안은 포함하지 않음.**
 
+> **적용 상태 (2026-03)**: 이 문서는 모노레포 전환 **이전** 상태를 기록한 조사 보고서입니다. 현재 저장소는 **npm workspaces 모노레포**로 전환되어 있으며, 실제 구조·진입점은 [AGENTS.md](../../AGENTS.md) 및 [README.md](../../README.md)를 참조하세요. (packages/memento-core, packages/memento-server, packages/memento-client, apps/*)
+
 ---
 
-## 1. 현재 프로젝트 구조 (진입점, 패키지, 서버 vs 라이브러리)
+## 1. 현재 프로젝트 구조 (진입점, 패키지, 서버 vs 라이브러리) — 과거 단일 패키지 시점
 
-### 1.1 패키지 구성
+### 1.1 패키지 구성 (과거)
 
 - **단일 npm 패키지**: `memento-mcp-server` (버전 1.17.0).
 - **main**: `dist/server/index.js` — Node에서 `require`/`import` 시 노출되는 진입점은 **서버 진입점** 하나뿐이며, “라이브러리만 import”하는 공식 진입점은 없음.
@@ -16,7 +18,7 @@
   - `memento-mcp-server`, `memento-mcp` → `dist/server/index.js` (stdio MCP 서버)
   - `memento-dev` → `dist/server/http-server.js` (HTTP/WebSocket MCP 서버)
   - `memento-setup` → `scripts/auto-setup.js`
-- **별도 패키지**: `packages/mcp-client` — `@memento/client`로 npm 배포 가능한 MCP 클라이언트 라이브러리. 루트에서 `npm run build:client`, `dev:client`, `publish:client`로 빌드/배포. 루트 `package.json`의 `files`에는 포함되지 않으며, 저장소 내 “패키지”는 이 하나만 존재.
+- **별도 패키지**: `packages/mcp-client` — 현재는 `packages/memento-client`로 이전됨. `@memento/client`로 npm 배포 가능한 MCP 클라이언트 라이브러리.
 
 ### 1.2 서버 vs 라이브러리 표면
 

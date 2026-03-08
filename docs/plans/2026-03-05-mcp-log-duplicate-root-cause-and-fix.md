@@ -43,8 +43,8 @@
 - 사용자는 Cursor MCP 설정에서 **한 쪽만** Memento를 쓰도록 정리하면, 의도적으로 두 설정을 쓸 때만 lock 비활성화하면 됨.
 
 ## 구현 범위
-- `src/server/instance-lock.ts`: lock 획득/해제, PID 존재 여부 확인.
-- `src/server/index.ts`:  
+- `packages/memento-server/src/server/instance-lock.ts` (또는 루트 `src/server/instance-lock.ts`): lock 획득/해제, PID 존재 여부 확인.
+- `packages/memento-server/src/server/index.ts`:  
   - 가능한 한 초반에 진단용 한 줄 stderr 출력.  
   - DB 경로 확정 직후 lock 획득, 실패 시 메시지 출력 후 exit.  
   - cleanup 시 lock 해제.
@@ -53,7 +53,7 @@
 
 ## 검증 결과 (2026-03-05)
 
-- **터미널에서 직접 실행** (`node dist/server/index.js`) 시: 각 로그가 **한 번만** 출력됨.
+- **터미널에서 직접 실행** (루트에서 `npm run build` 후 `node packages/memento-server/dist/server/index.js` 또는 `npm start`) 시: 각 로그가 **한 번만** 출력됨.
 - **Cursor MCP 로그 창**에서는 동일 메시지가 **두 번** 표시됨.
 - **결론**: 중복 출력의 원인은 **Cursor MCP 클라이언트(또는 로그 UI)**가 stderr를 두 번 수신·표시하는 쪽으로 확인됨. 서버는 stderr에 한 번만 쓰고 있으므로, 서버 코드 변경만으로는 Cursor 창에서의 중복을 제거할 수 없음.
 - **대응**: Cursor 쪽 이슈/설정 확인 또는 업데이트 대기. 서버는 단일 인스턴스 lock 및 진단 로그만 유지.

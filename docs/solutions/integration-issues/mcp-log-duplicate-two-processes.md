@@ -24,25 +24,25 @@ Cursor가 동일한 Memento MCP 서버를 **두 개의 Node 프로세스**로 �
 
 ## 해결 방법
 
-### 1. 단일 인스턴스 lock (`src/server/instance-lock.ts`)
+### 1. 단일 인스턴스 lock (`packages/memento-server/src/server/instance-lock.ts` 또는 루트 `src/server/instance-lock.ts`)
 
 - Lock 파일 `memento-mcp.lock`를 DB 경로와 같은 디렉터리에 둠. 파일 내용은 실행 중인 프로세스 PID.
 - `tryAcquireLock(dbPath)`: lock이 없거나 기존 PID가 죽었으면 lock 생성/덮어쓰고 `{ acquired: true }` 반환; 다른 프로세스가 lock을 보유 중이면(`isProcessAlive(existingPid)`) `{ acquired: false, existingPid }` 반환.
 - `releaseLock()`: 종료 시 lock 파일 제거(cleanup에서 호출).
 
-### 2. 시작 시 동작 (`src/server/index.ts`)
+### 2. 시작 시 동작 (`packages/memento-server/src/server/index.ts`)
 
 - DB 경로 확정 후(`mementoConfig.dbPath`) `MEMENTO_SINGLETON≠'0'`이면 `tryAcquireLock` 호출. lock을 얻지 못하면 stderr에 "이미 다른 인스턴스가 실행 중(PID …)" 메시지를 남기고 `process.exit(0)`.
 - stderr에 진단용 한 줄 출력: `[Memento MCP] instance pid=... id=...` (id는 짧은 랜덤 문자열).
 - cleanup(SIGINT/SIGTERM 및 정상 종료) 시 `releaseLock()` 호출.
 
-### 3. 로거 (`src/server/mcp-logger.ts`)
+### 3. 로거 (`packages/memento-server/src/server/mcp-logger.ts`)
 
 - 모듈 스코프 dedup: 동일 level+message가 `LOG_DEDUP_MS`(2000ms) 안에 있으면 한 프로세스당 한 번만 출력.
 
 ## 검증
 
-- **터미널**: `npm run build` 후 `node dist/server/index.js` 실행. 각 로그가 한 번씩만 출력되고, 첫 줄은 `[Memento MCP] instance pid=... id=...`.
+- **터미널**: 루트에서 `npm run build` 후 `node packages/memento-server/dist/server/index.js` 실행(또는 `npm start`). 각 로그가 한 번씩만 출력되고, 첫 줄은 `[Memento MCP] instance pid=... id=...`.
 - **Cursor**: MCP 로그 창에서는 동일 메시지가 여전히 두 번 나올 수 있음. 이는 서버가 두 번 찍는 것이 아니라 Cursor(두 프로세스 또는 UI 집계) 쪽 원인임을 의미함.
 
 ## 참고

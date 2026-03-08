@@ -4,11 +4,13 @@
 **컨텍스트**: [docs/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).  
 **범위**: 구현 계획 없음. 현재 상태와 관찰된 패턴만 기술.
 
+> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../AGENTS.md) 및 [README.md](../../README.md) 참조.
+
 ---
 
-## 1. 모노레포/워크스페이스 패턴
+## 1. 모노레포/워크스페이스 패턴 — 전환 전 상태 (조사 시점)
 
-### 1.1 현재 상태
+### 1.1 당시 상태
 
 - **워크스페이스 미사용**: 루트 `package.json`에 `workspaces` 필드 없음. npm/pnpm/yarn workspaces 또는 Turborepo 설정 없음.
 - **단일 패키지**: 루트가 유일한 npm 패키지(`memento-mcp-server`, `package.json`). `main`: `dist/server/index.js`, `bin`으로 MCP/HTTP/설정 스크립트 노출.
@@ -18,10 +20,9 @@
   - `clean:client`, `publish:client` 동일 패턴
 - **CI**: `.github/workflows/ci.yml`은 루트만 빌드·테스트(`npm ci` → `npm run build`). 클라이언트 빌드/테스트 단계 없음.
 
-### 1.2 결론
+### 1.2 결론 (전환 후 반영됨)
 
-- 모노레포·멀티패키지 빌드/테스트/배포 패턴이 **아직 도입되지 않은 상태**.
-- 모노레포 전환 시 워크스페이스 정의, 루트 스크립트 통합, CI에 패키지별 단계 추가가 필요.
+- 모노레포 전환 완료: workspaces 정의, core→server→client 빌드 순서, CI에 패키지별 빌드·테스트 포함. 상세는 [plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md](../plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md) 참조.
 
 ---
 

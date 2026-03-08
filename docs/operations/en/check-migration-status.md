@@ -29,9 +29,10 @@ DB_PATH=/path/to/memory.db npm run db:check-migration
 ### Method 4: Run directly
 
 ```bash
-npm run build
-node dist/scripts/check-migration-status.js [database-path]
-# or
+# Recommended: use the root script
+npm run db:check-migration [database-path]
+
+# Or run with tsx (root src/scripts)
 npx tsx src/scripts/check-migration-status.ts [database-path]
 ```
 

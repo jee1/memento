@@ -1,6 +1,6 @@
 # 로깅 필드 스키마 문서
 
-이 문서는 Memento 프로젝트의 표준 로거 모듈(`src/shared/utils/logger.ts`)의 로깅 필드 스키마를 설명합니다.
+이 문서는 Memento 프로젝트의 표준 로거 모듈 로깅 필드 스키마를 설명합니다. 모노레포 기준으로 표준 로거는 `packages/memento-core/src/shared/utils/logger.ts`에, MCP 로거는 `packages/memento-server/src/server/mcp-logger.ts`에 있습니다.
 
 ## 개요
 
@@ -170,7 +170,7 @@ if (!result.valid) {
 
 ## 참고 자료
 
-- 표준 로거 모듈: `src/shared/utils/logger.ts`
-- PII 마스킹: `src/shared/utils/pii-masker.ts`
-- MCP 로거: `src/server/mcp-logger.ts`
+- 표준 로거 모듈: `packages/memento-core/src/shared/utils/logger.ts`
+- PII 마스킹: `packages/memento-core/src/shared/utils/pii-masker.ts`
+- MCP 로거: `packages/memento-server/src/server/mcp-logger.ts`
 - MCP 스펙: https://spec.modelcontextprotocol.io/specification/server/#logging

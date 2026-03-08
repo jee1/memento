@@ -24,8 +24,8 @@
 
 프로젝트에는 개발자 가이드라인이 포함되어 있습니다:
 
-- **프로젝트 구조**: `src/` 하위 모듈별 조직화
-- **빌드/테스트 명령어**: `npm run dev`, `npm run build`, `npm run test` 등
+- **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버·MCP 진입점은 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
+- **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등
 - **코딩 스타일**: Node.js ≥ 20, TypeScript ES 모듈, 2칸 들여쓰기
 - **테스트 가이드라인**: Vitest 기반, `src/test/` 또는 `*.spec.ts` 파일
 - **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
@@ -133,8 +133,8 @@ npm run test -- --watch
       "name": "Debug MCP Server",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/src/server/index.ts",
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "program": "${workspaceFolder}/packages/memento-server/src/server/index.ts",
+      "outFiles": ["${workspaceFolder}/packages/memento-server/dist/**/*.js"],
       "env": {
         "NODE_ENV": "development"
       },
@@ -155,18 +155,29 @@ npm run test -- --watch
 
 ## 프로젝트 구조
 
-### 도메인 기반 아키텍처
+### 모노레포 구성
 
-Memento는 비즈니스 도메인별로 코드를 구성하는 도메인 기반 아키텍처를 사용합니다.
+저장소는 **npm workspaces** 기반 모노레포입니다.
+
+| 패키지 | 역할 |
+|--------|------|
+| **packages/memento-core** | 도메인(memory, search, anchor, forgetting 등)·인프라·공유. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`. |
+| **packages/memento-server** | MCP/HTTP 서버. core를 소비하여 도구·라우트 노출. 진입점: `index.ts`, `http-server.ts`. |
+| **packages/memento-client** | 서버 연결용 클라이언트 라이브러리. |
+| **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core` in-process 사용). |
+
+### 도메인 기반 아키텍처 (core)
+
+도메인 로직은 **packages/memento-core**의 `src/domains/` 아래에 있습니다.
 
 ```
-src/domains/
+packages/memento-core/src/domains/
 ├── memory/                           # 메모리 도메인
 │   ├── services/                     # 메모리 서비스
 │   ├── tools/                        # 메모리 MCP 도구
 │   └── ...
 ├── search/                           # 검색 도메인
-│   ├── algorithms/                  # 검색 알고리즘
+│   ├── algorithms/                   # 검색 알고리즘
 │   └── ...
 ├── anchor/                           # 앵커 시스템 도메인
 │   ├── services/                     # 앵커 서비스
@@ -190,16 +201,9 @@ src/domains/
 - **성능 최적화**: 비동기 처리, 캐시 관리, 데이터베이스 최적화
 - **모니터링**: 실시간 성능 메트릭 수집 및 분석
 
-### 하이브리드 검색 엔진 (`src/algorithms/hybrid-search-engine.ts`)
+### 하이브리드 검색 엔진 (core)
 
-기존 검색 엔진에 하이브리드 검색 기능이 추가되었습니다.
-
-```
-src/algorithms/
-├── search-engine.ts        # 기본 검색 엔진 (233줄)
-├── hybrid-search-engine.ts # 하이브리드 검색 엔진 (200줄)
-└── search-ranking.ts       # 검색 랭킹 알고리즘
-```
+검색 엔진·하이브리드 검색은 **packages/memento-core**의 `src/domains/search/` 등에 위치합니다.
 
 **하이브리드 검색의 특징**:
 - **FTS5 + 벡터 검색**: 텍스트 검색과 벡터 검색 결합
@@ -211,88 +215,30 @@ src/algorithms/
 
 ```
 memento/
-├── src/                          # 소스 코드
-│   ├── server/                   # MCP 서버
-│   │   ├── index.ts             # 서버 진입점 (521줄)
-│   │   ├── tools/               # MCP Tools 구현
-│   │   │   ├── remember.ts      # remember 도구
-│   │   │   ├── recall.ts        # recall 도구
-│   │   │   ├── pin.ts           # pin/unpin 도구
-│   │   │   ├── forget.ts        # forget 도구
-│   │   │   ├── summarize-thread.ts
-│   │   │   ├── link.ts          # link 도구
-│   │   │   ├── export.ts        # export 도구
-│   │   │   ├── feedback.ts      # feedback 도구
-│   │   │   └── index.ts         # 도구 내보내기
-│   │   ├── resources/           # MCP Resources 구현
-│   │   │   ├── memory.ts        # memory/{id} 리소스
-│   │   │   ├── search.ts        # memory/search 리소스
-│   │   │   └── index.ts
-│   │   ├── prompts/             # MCP Prompts 구현
-│   │   │   ├── memory-injection.ts
-│   │   │   └── index.ts
-│   │   ├── database/            # 데이터베이스 관련
-│   │   │   ├── sqlite.ts        # SQLite 구현
-│   │   │   ├── postgres.ts      # PostgreSQL 구현
-│   │   │   ├── migrations/      # 마이그레이션
-│   │   │   └── index.ts
-│   │   └── middleware/          # 미들웨어
-│   │       ├── auth.ts          # 인증 미들웨어
-│   │       ├── logging.ts       # 로깅 미들웨어
-│   │       └── error.ts         # 에러 처리 미들웨어
-│   ├── client/                  # MCP 클라이언트
-│   │   ├── index.ts             # 클라이언트 진입점
-│   │   ├── memory-manager.ts    # 메모리 관리자
-│   │   ├── mcp-client.ts        # MCP 클라이언트 래퍼
-│   │   └── types.ts             # 클라이언트 타입
-│   ├── algorithms/              # 검색 및 망각 알고리즘
-│   │   ├── search-ranking.ts    # 검색 랭킹 알고리즘
-│   │   ├── forgetting.ts        # 망각 알고리즘
-│   │   ├── spaced-review.ts     # 간격 반복 알고리즘
-│   │   └── index.ts
-│   └── shared/                  # 공통 유틸리티
-│       ├── types.ts             # 공통 타입 정의
-│       ├── utils.ts             # 유틸리티 함수
-│       ├── constants.ts         # 상수 정의
-│       └── validation.ts        # 검증 함수
-├── src/                         # 소스 코드
-│   ├── algorithms/             # 알고리즘 모듈
-│   │   ├── search-engine.ts
-│   │   ├── search-engine.spec.ts    # 단위 테스트
-│   │   ├── forgetting-algorithm.ts
-│   │   └── forgetting-algorithm.spec.ts  # 단위 테스트
-│   ├── services/               # 서비스 모듈
-│   │   ├── embedding-service.ts
-│   │   └── forgetting-policy-service.spec.ts  # 단위 테스트
-│   ├── test/                   # E2E 테스트
-│   │   ├── test-client.ts      # 클라이언트 E2E 테스트
-│   │   ├── test-search.ts      # 검색 E2E 테스트
-│   │   └── test-embedding.ts   # 임베딩 E2E 테스트
-│   └── fixtures/               # 테스트 데이터 (필요시)
-│       └── test-data.json      # 샘플 테스트 데이터
+├── packages/
+│   ├── memento-core/           # @memento/core — 도메인·인프라·공유
+│   │   └── src/
+│   │       ├── domains/        # memory, search, anchor, forgetting, embedding, relation 등
+│   │       ├── infrastructure/ # DB, 캐시, 스케줄러
+│   │       ├── shared/         # 타입, 유틸, 설정
+│   │       ├── tools/          # 도구 레지스트리, migrate-embeddings 등
+│   │       └── bootstrap.ts, context.ts
+│   ├── memento-server/         # MCP/HTTP 서버 (core 소비)
+│   │   └── src/server/
+│   │       ├── index.ts        # MCP stdio 진입점
+│   │       ├── http-server.ts  # HTTP/WebSocket 진입점
+│   │       ├── routes/         # MCP, admin, API 라우트
+│   │       ├── middleware/     # tool-context, error-handler 등
+│   │       └── servers/        # stdio, SSE 구현
+│   └── memento-client/         # @memento/client — 서버 연결 클라이언트
+│       └── src/
+├── apps/                       # 실험용 앱 (예: experimental-example)
+├── src/                        # 루트 E2E/시나리오 테스트, 스크립트
+│   └── test/                   # test-client, test-search 등
 ├── docs/                       # 문서
-├── scripts/                    # 빌드 및 배포 스크립트
-│   ├── build.js               # 빌드 스크립트
-│   ├── deploy.js              # 배포 스크립트
-│   └── db-migrate.js          # 데이터베이스 마이그레이션
-├── docker/                     # Docker 관련 파일
-│   ├── Dockerfile             # M1 Dockerfile
-│   ├── Dockerfile.m3          # M3 Dockerfile
-│   ├── docker-compose.dev.yml # 개발 환경
-│   ├── docker-compose.team.yml # 팀 환경
-│   └── docker-compose.org.yml # 조직 환경
-├── .cursor/rules/              # Cursor 개발 규칙
-├── .github/                    # GitHub Actions
-│   └── workflows/
-│       ├── ci.yml             # CI 파이프라인
-│       ├── test.yml           # 테스트 파이프라인
-│       └── deploy.yml         # 배포 파이프라인
-├── package.json               # 프로젝트 설정
-├── tsconfig.json              # TypeScript 설정
-├── jest.config.js             # Jest 설정
-├── .eslintrc.js               # ESLint 설정
-├── .prettierrc                # Prettier 설정
-└── README.md                  # 프로젝트 문서
+├── scripts/                    # 루트 스크립트 (auto-setup, check-migration 등)
+├── package.json                # workspaces, bin 위임, 루트 스크립트
+└── AGENTS.md                   # 구조·빌드·테스트 상세 가이드
 ```
 
 ## 아키텍처 이해
@@ -327,22 +273,20 @@ graph TB
 
 ### 핵심 컴포넌트
 
-#### 1. MCP 서버 (`src/server/`)
+#### 1. MCP 서버 (`packages/memento-server/src/server/`)
 
-MCP 프로토콜을 구현하는 핵심 서버입니다.
+MCP 프로토콜을 구현하는 핵심 서버입니다. **packages/memento-server**에 위치하며, 도구·리소스·프롬프트는 core의 도구 레지스트리를 사용합니다.
 
 **주요 파일**:
-- `index.ts`: 서버 진입점, MCP 서버 초기화
-- `tools/`: MCP Tools 구현
-- `resources/`: MCP Resources 구현
-- `prompts/`: MCP Prompts 구현
+- `index.ts`: MCP stdio 진입점
+- `http-server.ts`: HTTP/WebSocket 진입점
+- `routes/`: MCP·admin·API 라우트
+- `middleware/`: tool-context, error-handler 등
 
 **예시 코드**:
 ```typescript
-// src/server/index.ts
-import { Server } from '@modelcontextprotocol/sdk/server';
-import { rememberTool } from './tools/remember';
-import { recallTool } from './tools/recall';
+// packages/memento-server/src/server/index.ts
+// core의 createMementoCore, getToolRegistry 등을 사용해 MCP 서버 구성
 
 const server = new Server({
   name: 'memento-memory-server',
@@ -380,7 +324,7 @@ export class SearchRanking {
 }
 ```
 
-#### 3. 데이터베이스 레이어 (`src/server/database/`)
+#### 3. 데이터베이스·인프라 (`packages/memento-core`)
 
 데이터 저장 및 검색을 담당합니다.
 
@@ -449,7 +393,7 @@ Memento 프로젝트는 `no-console` 규칙을 **error** 레벨로 설정하여 
 
 다음 파일/디렉토리는 `no-console` 규칙 예외가 적용됩니다:
 
-1. **`src/server/index.ts`**:
+1. **`packages/memento-server/src/server/index.ts`**:
    - **이유**: MCP 프로토콜 준수를 위해 console 메서드를 오버라이드합니다
    - **설명**: 초기화 전 에러는 stderr에 직접 출력하고, 초기화 후에는 MCP Logger를 사용합니다
    - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
@@ -678,7 +622,7 @@ logger.error('에러 로깅', {
 #### 참고 자료
 
 - **Logger 인터페이스**: `src/shared/utils/logger.ts`
-- **MCP Logger**: `src/server/mcp-logger.ts`
+- **MCP Logger**: `packages/memento-server/src/server/mcp-logger.ts`
 - **PII 마스킹**: `src/shared/utils/pii-masker.ts`
 - **MCP 스펙**: https://spec.modelcontextprotocol.io/specification/server/#logging
    - 새로운 예외 추가 시 PR에서 명확한 이유를 설명해야 합니다
@@ -693,7 +637,7 @@ logger.error('에러 로깅', {
   },
   "overrides": [
     {
-      "files": ["src/server/index.ts"],
+      "files": ["packages/memento-server/src/server/index.ts"],
       "rules": {
         "no-console": "off"  // 예외: MCP 프로토콜 준수
       }
@@ -790,7 +734,7 @@ describe('MCP Server Integration', () => {
     });
     await client.connect({
       command: 'node',
-      args: ['dist/server/index.js']
+      args: ['packages/memento-server/dist/server/index.js']
     });
   });
 

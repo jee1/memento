@@ -46,7 +46,7 @@ Node.js용 **@modelcontextprotocol/sdk**의 `Server` 클래스는 이미 `instru
 
 ### Memento에서 적용한 코드
 
-- **파일**: `src/server/index.ts`
+- **파일**: `packages/memento-server/src/server/index.ts`
 - **내용**:
   - 상수 `MEMENTO_SERVER_INSTRUCTIONS`에 “작업 전 recall/memory_injection, 작업 후 remember, 타입·태그 권장” 등 사용 지침을 문자열로 정의.
   - `new Server(serverInfo, { capabilities, instructions: MEMENTO_SERVER_INSTRUCTIONS })` 로 전달.

@@ -18,6 +18,19 @@
 
 Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 있도록 도와주는 MCP(Model Context Protocol) 서버입니다. 사람의 기억 구조(작업기억, 일화기억, 의미기억, 절차기억)를 모사하여 효율적인 기억 관리 시스템을 제공합니다.
 
+### 📦 프로젝트 구조 (모노레포)
+
+이 저장소는 **npm workspaces** 기반 모노레포입니다.
+
+| 경로 | 설명 |
+|------|------|
+| **packages/memento-core** (`@memento/core`) | 도메인·인프라·공유 라이브러리. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB 초기화·마이그레이션은 루트에서 `npm run db:init` / `npm run db:migrate`로 실행. |
+| **packages/memento-server** | core를 사용하는 MCP/HTTP 서버. 루트 `npm run dev`, `npm start`, `npm run dev:http` 등으로 실행. |
+| **packages/memento-client** (`@memento/client`) | 서버 연결용 클라이언트 라이브러리. |
+| **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core`를 in-process로 사용). |
+
+상세 구조·빌드·테스트 명령은 [AGENTS.md](AGENTS.md)를 참조하세요.
+
 ## ✨ 주요 기능
 
 ### 🧠 핵심 메모리 관리 (MCP 클라이언트)
@@ -111,8 +124,15 @@ docker-compose -f docker-compose.prod.yml up -d
 git clone https://github.com/jee1/memento.git
 cd memento
 
-# 의존성 설치 (npm 사용)
+# 의존성 설치 (루트에서 워크스페이스 전체 설치)
 npm install
+
+# 빌드 (core → server → client 순서)
+npm run build
+
+# DB 초기화·마이그레이션 (core 워크스페이스에 위임)
+npm run db:init
+npm run db:migrate
 
 # 원클릭 설치 및 실행
 npm run quick-start
@@ -128,12 +148,14 @@ npm run dev:http
 
 # 빌드 후 프로덕션 실행
 npm run build
-npm run start:http      # 또는 node dist/server/http-server.js
+npm run start:http      # 또는 node packages/memento-server/dist/server/http-server.js
 ```
 
-이 방식으로 `src/server/http-server.ts` 기반 MCP 서비스를 띄워 두면, 모든 에이전트는 HTTP/WebSocket 인터페이스를 통해 이 서버에만 접속하게 되고 실제 SQLite writer는 단일 프로세스로 제한됩니다. npx로도 동일하게 실행할 수 있으니, 다중 에이전트 환경에서는 이 구조를 반드시 적용해 주세요.
+이 방식으로 **packages/memento-server**의 HTTP MCP 서비스를 띄워 두면, 모든 에이전트는 HTTP/WebSocket 인터페이스를 통해 이 서버에만 접속하게 되고 실제 SQLite writer는 단일 프로세스로 제한됩니다. npx로도 동일하게 실행할 수 있으니, 다중 에이전트 환경에서는 이 구조를 반드시 적용해 주세요.
 
 #### MCP 클라이언트 설정 예시 (`mcp.json`)
+
+루트에서 `npm run build` 후 서버 실행 파일은 `packages/memento-server/dist/server/http-server.js`에 있습니다.
 
 ```json
 {
@@ -141,7 +163,7 @@ npm run start:http      # 또는 node dist/server/http-server.js
     "memento": {
       "command": "node",
       "args": [
-        "/path/to/memento/dist/server/http-server.js"
+        "/path/to/memento/packages/memento-server/dist/server/http-server.js"
       ],
       "env": {
         "DB_PATH": "/absolute/path/to/data/memory.db",
@@ -237,7 +259,7 @@ const client = new Client({
 // stdio 연결
 await client.connect({
   command: "node",
-  args: ["dist/server/index.js"]
+  args: ["packages/memento-server/dist/server/index.js"]
 });
 
 // WebSocket 연결
@@ -444,10 +466,10 @@ npm run test -- --coverage
 ## 📚 개발자 가이드라인
 
 ### 저장소 가이드라인 (`AGENTS.md`)
-- **프로젝트 구조**: `src/` 하위 모듈별 조직화
-- **빌드/테스트 명령어**: `npm run dev`, `npm run build`, `npm run test` 등
+- **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버 코드는 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
+- **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등. 상세는 [AGENTS.md](AGENTS.md) 참조.
 - **코딩 스타일**: Node.js ≥ 20, TypeScript ES 모듈, 2칸 들여쓰기
-- **테스트 가이드라인**: Vitest 기반, `src/test/` 또는 `*.spec.ts` 파일
+- **테스트 가이드라인**: Vitest 기반, 각 패키지 `src/` 내 `*.spec.ts` 또는 루트 `src/test/`
 - **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
 - **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리
 

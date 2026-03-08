@@ -61,7 +61,7 @@ curl http://localhost:8080/health
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["path/to/memento/dist/server/index.js"],
+      "args": ["path/to/memento/packages/memento-server/dist/server/index.js"],
       "env": {
         "NODE_ENV": "production"
       }
@@ -298,7 +298,7 @@ HTTP 서버는 WebSocket을 지원하는 실시간 통신 서버입니다. 웹 �
 npm run dev:http
 
 # 또는 직접 실행
-node dist/server/http-server.js
+node packages/memento-server/dist/server/http-server.js
 ```
 
 #### WebSocket 연결
