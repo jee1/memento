@@ -28,8 +28,8 @@ describe('QueryFilterStrategy', () => {
     strategy = new QueryFilterStrategy(queryFilterService);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('filter', () => {

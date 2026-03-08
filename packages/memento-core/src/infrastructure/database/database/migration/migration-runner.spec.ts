@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MigrationRunner } from './migration-runner.js';
 import type { Migration, MigrationResult } from '../types.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { BackupManager } from './backup-manager.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import { DependencyValidator } from './dependency-validator.js';
@@ -56,19 +55,31 @@ class TestMigration implements Migration {
   }
 }
 
+const SCHEMA_VERSION_TABLE = `
+  CREATE TABLE IF NOT EXISTS memento_schema_version (
+    version TEXT PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    migration_name TEXT NOT NULL,
+    checksum TEXT,
+    applied_by TEXT DEFAULT 'system',
+    description TEXT
+  )
+`;
+
 describe('MigrationRunner', () => {
   let db: Database.Database;
   let runner: MigrationRunner;
   let testMigration: Migration;
 
-  beforeEach(async () => {
-    db = await setupTestDatabase();
+  beforeEach(() => {
+    db = new Database(':memory:');
+    db.exec(SCHEMA_VERSION_TABLE);
     runner = new MigrationRunner(db);
     testMigration = new TestMigration();
   });
 
   afterEach(() => {
-    cleanupTestDatabase(db);
+    if (db) db.close();
   });
 
   describe('runMigration', () => {

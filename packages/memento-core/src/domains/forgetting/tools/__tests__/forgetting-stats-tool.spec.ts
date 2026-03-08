@@ -26,8 +26,8 @@ describe('ForgettingStatsTool', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('망각 통계 조회', () => {

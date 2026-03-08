@@ -144,8 +144,8 @@ describe('WalCheckpointScheduler class', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
     vi.clearAllMocks();
   });
 

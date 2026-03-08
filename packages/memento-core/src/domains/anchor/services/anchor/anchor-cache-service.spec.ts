@@ -24,8 +24,8 @@ describe('AnchorCacheService', () => {
     service.setEmbeddingService(embeddingService);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('updateCache', () => {
@@ -253,20 +253,32 @@ describe('AnchorCacheService', () => {
     });
 
     it('anchor 테이블이 없으면 빈 캐시로 시작해야 함', async () => {
-      // Given: anchor 테이블이 없는 DB (이미 setupTestDatabase에서 생성되지만 테스트용)
-      const emptyDb = await setupTestDatabase();
-      
-      // anchor 테이블 삭제 (테스트용)
-      emptyDb.exec('DROP TABLE IF EXISTS anchor');
+      // Given: anchor 테이블이 없는 DB (현재 db에서 anchor만 제거)
+      db.exec('DROP TABLE IF EXISTS anchor');
 
       // When: 캐시 복원
-      await service.restoreCacheFromDB(emptyDb);
+      await service.restoreCacheFromDB(db);
 
       // Then: 빈 캐시로 시작
       const cached = service.getCachedAnchor(agentId);
       expect(cached).toBeUndefined();
 
-      cleanupTestDatabase(emptyDb);
+      // anchor 테이블 복구 (afterEach에서 동일 db 사용)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS anchor (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          agent_id TEXT NOT NULL,
+          slot TEXT CHECK (slot IN ('A', 'B', 'C')) NOT NULL,
+          memory_id TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+          UNIQUE(agent_id, slot)
+        );
+        CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
+        CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
+      `);
     });
 
     it('여러 에이전트의 캐시를 복원해야 함', async () => {
@@ -337,59 +349,33 @@ describe('AnchorCacheService', () => {
 
   describe('임베딩 엣지 케이스', () => {
     it('JSON 파싱 실패 시 null을 반환해야 함', async () => {
-      // Given: 잘못된 형식의 임베딩이 저장된 메모리
+      // Given: 메모리 존재, SELECT memory_embedding 시 잘못된 JSON 문자열을 반환하도록 스텁
+      // (vector 컬럼은 잘못된 JSON/zero-length INSERT를 허용하지 않으므로 DB 삽입 대신 스텁 사용)
       const memoryId = createTestMemory(db, { content: 'Test', type: 'episodic' });
+      const originalPrepare = db.prepare.bind(db);
+      const prepareSpy = vi.spyOn(db, 'prepare').mockImplementation((sql: string) => {
+        const stmt = originalPrepare(sql);
+        if (sql.includes('memory_embedding') && sql.includes('WHERE memory_id')) {
+          return {
+            ...stmt,
+            get: () => ({
+              embedding: 'not valid json',
+              embedding_provider: 'tfidf',
+              dimensions: 384,
+              dim: 384
+            }),
+            all: stmt.all.bind(stmt)
+          } as ReturnType<typeof db.prepare>;
+        }
+        return stmt;
+      });
 
-      // 잘못된 형식의 임베딩 삽입
-      // memory_embedding 테이블 스키마 확인 후 삽입
-      const tableInfo = db.prepare(`PRAGMA table_info(memory_embedding)`).all() as Array<{ name: string }>;
-      const columnNames = tableInfo.map(col => col.name);
-      
-      // 필수 컬럼만 사용하여 삽입
-      const baseColumns = ['memory_id', 'embedding_provider', 'embedding', 'dim'];
-      const optionalColumns: Record<string, any> = {};
-      
-      if (columnNames.includes('projection_type')) {
-        optionalColumns['projection_type'] = 'native';
-      }
-      if (columnNames.includes('dimensions')) {
-        optionalColumns['dimensions'] = 384;
-      }
-      if (columnNames.includes('model')) {
-        optionalColumns['model'] = 'tfidf';
-      }
-      if (columnNames.includes('precision')) {
-        optionalColumns['precision'] = 32;
-      }
-      if (columnNames.includes('normalized')) {
-        optionalColumns['normalized'] = 1;
-      }
-      if (columnNames.includes('version')) {
-        optionalColumns['version'] = 1;
-      }
-      if (columnNames.includes('created_by')) {
-        optionalColumns['created_by'] = 'test';
-      }
-      
-      const allColumns = [...baseColumns, ...Object.keys(optionalColumns)];
-      const allValues = [
-        memoryId,
-        'tfidf',
-        'invalid json',
-        384,
-        ...Object.values(optionalColumns)
-      ];
-      
-      DatabaseUtils.run(db, `
-        INSERT INTO memory_embedding (${allColumns.join(', ')})
-        VALUES (${allColumns.map(() => '?').join(', ')})
-      `, allValues);
-
-      // When: 임베딩 조회
+      // When: 임베딩 조회 시 JSON.parse 실패
       const embedding = await service.getAnchorEmbedding(memoryId);
 
       // Then: null 반환
       expect(embedding).toBeNull();
+      prepareSpy.mockRestore();
     });
 
     it('빈 배열 임베딩에 대해 null을 반환해야 함', async () => {

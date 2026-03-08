@@ -58,8 +58,8 @@ describe('AnchorSearchService', () => {
     }
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('setHybridSearchEngine', () => {

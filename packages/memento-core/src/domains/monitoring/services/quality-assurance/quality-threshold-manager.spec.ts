@@ -37,8 +37,8 @@ describe('QualityThresholdManager', () => {
     manager = new QualityThresholdManager(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('초기화', () => {

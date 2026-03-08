@@ -34,8 +34,8 @@ describe('ForgetTool', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('단일 삭제', () => {
@@ -367,11 +367,12 @@ describe('ForgetTool', () => {
         type: 'episodic'
       });
 
-      // 임베딩 정보 추가
+      // 임베딩 정보 추가 (벡터 테이블이 384차원을 기대하므로 384차원 벡터 사용)
+      const embeddingVec = Array(384).fill(0).map((_, i) => (i < 3 ? [0.1, 0.2, 0.3][i] : 0));
       DatabaseUtils.run(db, `
         INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
         VALUES (?, ?, ?, ?, ?)
-      `, [memoryId, JSON.stringify([0.1, 0.2, 0.3]), 384, 'tfidf', 384]);
+      `, [memoryId, JSON.stringify(embeddingVec), 384, 'tfidf', 384]);
 
       await tool.handle(
         { id: memoryId, hard: false },

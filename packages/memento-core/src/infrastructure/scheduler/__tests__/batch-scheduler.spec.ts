@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { BatchScheduler, type BatchJobConfig, type BatchJobResult } from '../batch-scheduler.js';
-import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../../../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase, createTestDatabaseWithoutServices, createTestMemory } from '../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import * as configModule from '../../../shared/config/index.js';
@@ -38,7 +38,7 @@ describe('BatchScheduler', () => {
     if (scheduler) {
       await scheduler.stop();
     }
-    cleanupTestDatabase(db);
+    await cleanupTestDatabase(db);
   });
 
   describe('생성자 및 설정 검증', () => {
@@ -192,8 +192,8 @@ describe('BatchScheduler', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       await scheduler.stop();
       
-      // When: 새로운 DB로 재시작
-      const newDb = await setupTestDatabase();
+      // When: 새로운 DB로 재시작 (서비스 미기동 DB만 사용해 BatchScheduler 중복 기동 방지)
+      const newDb = await createTestDatabaseWithoutServices();
       await scheduler.start(newDb);
       
       // Then: 재시작 시 큐가 초기화되어야 함
@@ -202,7 +202,7 @@ describe('BatchScheduler', () => {
       expect(status.isRunning).toBe(true);
       
       await scheduler.stop();
-      cleanupTestDatabase(newDb);
+      newDb.close();
     });
   });
 
@@ -300,7 +300,7 @@ describe('BatchScheduler', () => {
       expect(status.config.jobTimeout).toBe(1000);
 
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     }, 10000); // 테스트 타임아웃 10초로 설정
 
     it('실패한 작업을 재시도해야 함', async () => {
@@ -351,7 +351,7 @@ describe('BatchScheduler', () => {
       expect(status.config.retryAttempts).toBe(1);
 
       await lowRetryScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
   });
@@ -382,7 +382,7 @@ describe('BatchScheduler', () => {
       expect(statusAfter.config.jobTimeout).toBe(1000);
 
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     }, 10000);
 
     it('재시도 시에도 runningJobs 상태가 관리되어야 함', async () => {
@@ -413,7 +413,7 @@ describe('BatchScheduler', () => {
       // runningJobs는 내부 상태이므로 직접 접근 불가, 하지만 상태가 정상이면 통과
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -447,7 +447,7 @@ describe('BatchScheduler', () => {
       expect(statusAfter.errorCount).toBeDefined();
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -479,7 +479,7 @@ describe('BatchScheduler', () => {
       expect(status.config.jobTimeout).toBe(5000);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -510,7 +510,7 @@ describe('BatchScheduler', () => {
       // runningJobs는 내부 상태이지만, 중복 실행 방지 로직이 작동해야 함
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -543,7 +543,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 
@@ -563,7 +563,7 @@ describe('BatchScheduler', () => {
       expect(status.config.maxConcurrentJobs).toBe(1);
 
       await limitedScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('작업 큐를 우선순위로 정렬해야 함', async () => {
@@ -839,7 +839,7 @@ describe('BatchScheduler', () => {
       // (다만 다른 시스템 로그는 있을 수 있음)
       
       consoleSpy.mockRestore();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('Error 객체를 로그에 전달할 때 속성이 보존되어야 함', async () => {
@@ -887,8 +887,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       
-      // 데이터베이스 재생성
-      db = await setupTestDatabase();
+      // 스케줄러만 중지 (동일 db 유지). setupTestDatabase() 호출 시 BatchScheduler 중복 기동으로 실패하므로 재생성 생략
       await testScheduler.stop();
     });
 
@@ -973,7 +972,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('전체 스윕이 큐를 통해 실행되어야 함', async () => {
@@ -1010,7 +1009,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await consolidationScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('주간 관계 검증이 설정된 타임아웃을 사용해야 함', async () => {
@@ -1033,7 +1032,7 @@ describe('BatchScheduler', () => {
       expect(status.config.jobTimeout).toBe(1000);
 
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('weeklyRelationValidationTimeout이 0이면 에러를 던져야 함', () => {
@@ -1145,7 +1144,7 @@ describe('BatchScheduler', () => {
       expect(afterTotalExecutions).toBeGreaterThan(initialTotalExecutions);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
 
@@ -1182,7 +1181,7 @@ describe('BatchScheduler', () => {
       expect(detailedStats.health.runningJobs).toBeLessThanOrEqual(1);
 
       await limitedScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 
@@ -1238,7 +1237,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
 
@@ -1273,7 +1272,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('큐를 통해 실행되는 작업이 실제로 재시도를 수행해야 함', async () => {
@@ -1321,7 +1320,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
 
@@ -1467,7 +1466,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
   });
@@ -1508,7 +1507,7 @@ describe('BatchScheduler', () => {
       expect(executionCount).toBeLessThanOrEqual(3); // 최대 3회 (초기 + 재시도 2회)
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('errorCount가 최대값을 초과하면 재시도를 중단해야 함', async () => {
@@ -1559,7 +1558,7 @@ describe('BatchScheduler', () => {
       expect(retryManagerErrorCount).toBeGreaterThan(0);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('재시도 시 retryCount가 큐 항목에 저장되어야 함', async () => {
@@ -1598,7 +1597,7 @@ describe('BatchScheduler', () => {
       expect(executionCount).toBeLessThanOrEqual(4);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 
@@ -1647,7 +1646,7 @@ describe('BatchScheduler', () => {
       }
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('장시간 잡 + 짧은 주기 스케줄 시 큐 중복이 제한되어야 함', async () => {
@@ -1706,7 +1705,7 @@ describe('BatchScheduler', () => {
       expect(executionCount).toBeLessThanOrEqual(11); // 최대 11회 (첫 실행 + 10회 추가 시도)
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('큐에 이미 있는 동일 이름 잡은 추가하지 않아야 함', async () => {
@@ -1754,7 +1753,7 @@ describe('BatchScheduler', () => {
       expect(isQueued || schedulerAny.jobQueue.isRunning(jobName)).toBe(true);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     
@@ -1851,7 +1850,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       expect(schedulerAny.jobQueue.size).toBe(0); // 모든 작업 완료 후 큐 비어있어야 함
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('재시도 시 retryCount가 전달되어야 함', async () => {
@@ -1896,7 +1895,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // 재시도가 정상적으로 작동했다는 것을 attemptCount로 확인)
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('실행 중인 잡에 재시도 카운트가 전달되어야 함', async () => {
@@ -1945,7 +1944,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       expect(receivedRetryCounts.length).toBeGreaterThanOrEqual(0);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 

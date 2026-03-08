@@ -18,8 +18,8 @@ describe('DatabaseOptimizer', () => {
     optimizer = new DatabaseOptimizer(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('analyzePerformance', () => {

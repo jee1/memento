@@ -70,8 +70,8 @@ describe('LocalSearchService', () => {
     service.setDatabase(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('getAnchorWithEmbedding', () => {

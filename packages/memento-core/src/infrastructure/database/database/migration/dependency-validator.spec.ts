@@ -16,8 +16,8 @@ describe('DependencyValidator', () => {
     db = await setupTestDatabase();
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('validateAll', () => {

@@ -42,8 +42,14 @@ CREATE TABLE IF NOT EXISTS memory_item (
   recall_count INTEGER NOT NULL DEFAULT 0,
   last_accessed_at TIMESTAMP,
   consolidation_score REAL,
-  g_value REAL
+  g_value REAL,
+  -- Arigraph/Semantic triple (migration 008): semantic memory structural storage
+  subject TEXT,
+  predicate TEXT,
+  object TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_memory_item_triple ON memory_item(subject, predicate, object)
+WHERE type='semantic' AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL;
 
 -- 태그 테이블
 CREATE TABLE IF NOT EXISTS memory_tag (
@@ -73,6 +79,80 @@ CREATE TABLE IF NOT EXISTS memory_link (
   FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
   UNIQUE(source_id, target_id, relation_type)
 );
+
+-- 앵커 테이블 (3-slot 구조, migration 004 호환)
+CREATE TABLE IF NOT EXISTS anchor (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agent_id TEXT NOT NULL,
+  slot TEXT CHECK (slot IN ('A', 'B', 'C')) NOT NULL,
+  memory_id TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+  UNIQUE(agent_id, slot)
+);
+CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
+CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
+
+-- 관계 엔진 (migration 005 호환)
+CREATE TABLE IF NOT EXISTS memory_relation (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  relation_type TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0.7 CHECK (confidence >= 0.0 AND confidence <= 1.0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  metadata TEXT,
+  FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  UNIQUE(source_id, target_id, relation_type)
+);
+CREATE TABLE IF NOT EXISTS relation_type_registry (
+  type_name TEXT PRIMARY KEY,
+  category TEXT NOT NULL,
+  description TEXT,
+  applicable_types TEXT,
+  default_confidence REAL DEFAULT 0.7,
+  search_boost REAL DEFAULT 1.0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_source ON memory_relation(source_id);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_target ON memory_relation(target_id);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_type ON memory_relation(relation_type);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_confidence ON memory_relation(confidence);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_source_type ON memory_relation(source_id, relation_type);
+CREATE INDEX IF NOT EXISTS idx_memory_relation_target_type ON memory_relation(target_id, relation_type);
+CREATE INDEX IF NOT EXISTS idx_relation_type_registry_category ON relation_type_registry(category);
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+VALUES ('CAUSES', 'Causal', '인과 관계', '["episodic", "semantic"]', 0.7, 1.2),
+       ('FOLLOWS', 'Temporal', '시간적 순서', '["episodic", "procedural"]', 0.7, 1.0),
+       ('DEPENDS_ON', 'Structural', '의존 관계', '["semantic", "procedural"]', 0.7, 1.1),
+       ('BELONGS_TO', 'Structural', '포함 관계', '["semantic", "episodic"]', 0.7, 1.0),
+       ('CONTRASTS_WITH', 'Semantic', '대조 관계', '["semantic", "episodic"]', 0.7, 0.9),
+       ('REFERENCES', 'Semantic', '참조 관계', '["working", "episodic", "semantic", "procedural"]', 0.7, 0.8),
+       ('extracted_from', 'Structural', 'Episodic→Semantic 추출 관계', '["episodic", "semantic"]', 0.7, 1.0),
+       ('supported_by', 'Structural', 'Semantic→Episodic 지지 관계', '["semantic", "episodic"]', 0.7, 1.0);
+
+-- kg_triple (migration 018 호환, Issue #90)
+CREATE TABLE IF NOT EXISTS kg_triple (
+  id TEXT PRIMARY KEY,
+  subject TEXT NOT NULL,
+  predicate TEXT NOT NULL,
+  object TEXT NOT NULL,
+  owner_id TEXT NULL,
+  process_id TEXT NULL,
+  session_id TEXT NULL,
+  representative_memory_id TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (representative_memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+  UNIQUE(subject, predicate, object)
+);
+CREATE INDEX IF NOT EXISTS idx_kg_triple_spo ON kg_triple(subject, predicate, object);
+CREATE INDEX IF NOT EXISTS idx_kg_triple_representative ON kg_triple(representative_memory_id);
+CREATE INDEX IF NOT EXISTS idx_kg_triple_owner ON kg_triple(owner_id);
+CREATE INDEX IF NOT EXISTS idx_kg_triple_process ON kg_triple(process_id);
 
 -- 피드백 이벤트 테이블
 CREATE TABLE IF NOT EXISTS feedback_event (

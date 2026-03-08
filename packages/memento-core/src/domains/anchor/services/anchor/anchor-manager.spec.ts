@@ -31,8 +31,8 @@ describe('AnchorManager', () => {
     manager.setDatabase(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('setAnchor', () => {

@@ -40,8 +40,8 @@ describe('NHopSearchStrategy', () => {
     strategy = new NHopSearchStrategy(nHopSearchService);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('search', () => {

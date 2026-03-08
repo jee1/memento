@@ -13,18 +13,8 @@ describe('FileLogger', () => {
   let fileLogger: FileLogger;
 
   beforeEach(() => {
-    // 테스트용 임시 디렉토리 생성 (허용된 디렉토리 내에 생성)
-    // PRD 0019: 보안 강화 (Phase 1) - Path Traversal 방지
-    // logs/ 디렉토리 내에 테스트 디렉토리 생성
-    logDir = path.join(process.cwd(), 'logs', 'test');
-    // 이전 테스트에서 남은 디렉토리 정리
-    if (fs.existsSync(logDir)) {
-      const files = fs.readdirSync(logDir);
-      for (const file of files) {
-        fs.unlinkSync(path.join(logDir, file));
-      }
-      fs.rmdirSync(logDir);
-    }
+    // 테스트용 고유 임시 디렉토리 (격리로 다른 테스트/병렬 실행과 충돌 방지)
+    logDir = path.join(process.cwd(), 'logs', `test-file-logger-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
     fileLogger = new FileLogger({
       logDir,
       logFileName: 'test.log',

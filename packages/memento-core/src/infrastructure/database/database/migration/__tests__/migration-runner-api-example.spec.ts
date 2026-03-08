@@ -83,8 +83,8 @@ describe('4.2.1 MigrationRunner API 사용 예제', () => {
     migration = new ExampleMigration();
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('기본 사용 예제', () => {

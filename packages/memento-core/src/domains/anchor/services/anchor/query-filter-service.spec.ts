@@ -24,8 +24,8 @@ describe('QueryFilterService', () => {
     service = new QueryFilterService(cacheService);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('filterByQuery', () => {

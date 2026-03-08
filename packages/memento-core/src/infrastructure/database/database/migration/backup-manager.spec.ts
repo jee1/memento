@@ -28,7 +28,7 @@ describe('BackupManager', () => {
     
     // 데이터베이스 정리
     try {
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     } catch (error) {
       // 정리 실패는 무시
     }

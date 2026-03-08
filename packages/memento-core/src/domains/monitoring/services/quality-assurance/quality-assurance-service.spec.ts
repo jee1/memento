@@ -93,8 +93,8 @@ describe('QualityAssuranceService', () => {
     recorder = new QualityRecorder(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('초기화', () => {

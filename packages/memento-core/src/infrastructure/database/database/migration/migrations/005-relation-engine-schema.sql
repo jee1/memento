@@ -40,25 +40,25 @@ CREATE INDEX IF NOT EXISTS idx_memory_relation_target_type ON memory_relation(ta
 -- 4. Create index for relation_type_registry table
 CREATE INDEX IF NOT EXISTS idx_relation_type_registry_category ON relation_type_registry(category);
 
--- 5. Insert initial relation types into registry
+-- 5. Insert initial relation types into registry (OR IGNORE so schema.sql pre-seed does not conflict)
 -- Causal (인과 관계군)
-INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('CAUSES', 'Causal', '인과 관계: 한 기억이 다른 기억의 원인이 되는 관계', '["episodic", "semantic"]', 0.7, 1.2);
 
 -- Temporal (시간 관계군)
-INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('FOLLOWS', 'Temporal', '시간적 순서: 한 기억이 다른 기억 이후에 발생하는 관계', '["episodic", "procedural"]', 0.7, 1.0);
 
 -- Structural (구조 관계군)
-INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('DEPENDS_ON', 'Structural', '의존 관계: 한 기억이 다른 기억에 의존하는 관계', '["semantic", "procedural"]', 0.7, 1.1);
 
-INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('BELONGS_TO', 'Structural', '포함 관계: 한 기억이 다른 기억에 속하는 관계', '["semantic", "episodic"]', 0.7, 1.0);
 
 -- Semantic (의미 관계군)
-INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('CONTRASTS_WITH', 'Semantic', '대조 관계: 한 기억이 다른 기억과 대조되는 관계', '["semantic", "episodic"]', 0.7, 0.9);
 
-INSERT INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('REFERENCES', 'Semantic', '참조 관계: 한 기억이 다른 기억을 참조하는 관계', '["working", "episodic", "semantic", "procedural"]', 0.7, 0.8);

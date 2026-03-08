@@ -51,8 +51,8 @@ describe('PerformanceStatsTool', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
     vi.clearAllMocks();
   });
 

@@ -36,8 +36,8 @@ describe('MemoryInjectionPrompt', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('constructor', () => {

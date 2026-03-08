@@ -9,9 +9,9 @@ import Database from 'better-sqlite3';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import {
   initializeTestDatabase,
-  seedTestDatabase,
-  cleanupTestDatabase
+  seedTestDatabase
 } from '../../../../test/helpers/consolidation-test-data.js';
+import { cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 // Mock mementoConfig
 vi.mock('../../../../shared/config/index.js', () => ({
@@ -101,8 +101,8 @@ describe('HybridSearchEngine Consolidation Score 통합', () => {
     );
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
     if (db) {
       db.close();
     }

@@ -24,8 +24,8 @@ describe('UnpinTool', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('단일 고정 해제', () => {

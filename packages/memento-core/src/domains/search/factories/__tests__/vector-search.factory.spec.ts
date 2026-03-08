@@ -15,8 +15,8 @@ describe('VectorSearchFactory', () => {
     db = await setupTestDatabase();
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('createFacade', () => {

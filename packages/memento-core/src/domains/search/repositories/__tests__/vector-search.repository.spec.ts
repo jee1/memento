@@ -18,8 +18,8 @@ describe('VectorSearchRepositoryImpl', () => {
     repository = new VectorSearchRepositoryImpl(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('constructor', () => {

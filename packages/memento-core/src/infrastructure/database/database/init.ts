@@ -550,8 +550,12 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       // 마이그레이션이 없거나 실패한 경우 schema.sql 실행 (최신 스키마 포함)
       if (!hasPendingMigrations) {
         log('📋 schema.sql 실행 (최신 스키마 적용)');
-        // copy:assets가 dist/database/schema.sql에 복사함 (init은 dist/.../database/init.js에 있음)
-        const schemaPath = join(__dirname, '..', '..', '..', 'database', 'schema.sql');
+        // dist: copy:assets가 dist/database/schema.sql에 복사함. 소스(Vitest): 동일 디렉터리의 schema.sql
+        let schemaPath = join(__dirname, '..', '..', '..', 'database', 'schema.sql');
+        if (!fs.existsSync(schemaPath)) {
+          const fallback = join(__dirname, 'schema.sql');
+          if (fs.existsSync(fallback)) schemaPath = fallback;
+        }
         const schema = readFileSync(schemaPath, 'utf-8');
         
         // 스키마 실행

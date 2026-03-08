@@ -7,23 +7,33 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MigrationDetector } from './migration-detector.js';
 import type { MigrationDetectionResult } from './migration-detector.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { SchemaVersionManager } from './schema-version-manager.js';
 import { join } from 'path';
+
+const SCHEMA_VERSION_TABLE = `
+  CREATE TABLE IF NOT EXISTS memento_schema_version (
+    version TEXT PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    migration_name TEXT NOT NULL,
+    checksum TEXT,
+    applied_by TEXT DEFAULT 'system',
+    description TEXT
+  )
+`;
 
 describe('MigrationDetector', () => {
   let db: Database.Database;
   let detector: MigrationDetector;
 
-  beforeEach(async () => {
-    db = await setupTestDatabase();
-    // 실제 마이그레이션 디렉토리 경로 사용
+  beforeEach(() => {
+    db = new Database(':memory:');
+    db.exec(SCHEMA_VERSION_TABLE);
     const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
     detector = new MigrationDetector(migrationsDir);
   });
 
   afterEach(() => {
-    cleanupTestDatabase(db);
+    if (db) db.close();
   });
 
   describe('detectAllMigrations', () => {

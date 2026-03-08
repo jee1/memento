@@ -52,8 +52,8 @@ describe('NHopSearchService', () => {
     }
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('searchOneHop', () => {

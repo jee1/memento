@@ -17,8 +17,8 @@ describe('VectorPerformanceRepositoryImpl', () => {
     repository = new VectorPerformanceRepositoryImpl(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('constructor', () => {

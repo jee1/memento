@@ -21,8 +21,8 @@ describe('SemanticMemoryUpdateService', () => {
     service = new SemanticMemoryUpdateService(db);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
     vi.clearAllMocks();
   });
 
@@ -40,7 +40,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // When: updateSemanticMemory 호출
@@ -71,7 +72,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성 (관계 생성용)
@@ -123,7 +125,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'ep-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
       await DatabaseUtils.run(db, `
         INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
@@ -163,7 +166,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -189,7 +193,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -357,7 +362,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -417,7 +423,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -770,7 +777,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -796,7 +804,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -844,7 +853,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -871,7 +881,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -903,7 +914,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -929,7 +941,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -975,7 +988,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1001,7 +1015,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -1047,7 +1062,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1077,7 +1093,8 @@ describe('SemanticMemoryUpdateService', () => {
       // 동일한 Triple로 두 번째 업데이트
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -1126,7 +1143,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1316,7 +1334,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1381,7 +1400,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1442,7 +1462,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1502,7 +1523,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1571,7 +1593,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1641,7 +1664,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1703,7 +1727,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1774,7 +1799,8 @@ describe('SemanticMemoryUpdateService', () => {
 
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'semantic-1', // 잘못된 타입 (Semantic을 Episodic으로 전달)
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // When: updateSemanticMemory 호출
@@ -1810,7 +1836,8 @@ describe('SemanticMemoryUpdateService', () => {
 
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Semantic Memory를 생성한 후 타입을 변경 (잘못된 타입으로)
@@ -1856,7 +1883,8 @@ describe('SemanticMemoryUpdateService', () => {
 
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Semantic Memory 생성 후 타입을 잘못된 타입으로 변경
@@ -1893,7 +1921,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1951,7 +1980,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const firstOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -1988,7 +2018,8 @@ describe('SemanticMemoryUpdateService', () => {
       // 동일한 Triple로 두 번째 업데이트 (중복 Semantic Memory로 판단되어 업데이트)
       const secondOptions: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-2',
-        episodicImportance: 0.6
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
       };
 
       // 두 번째 Episodic Memory 생성
@@ -2055,7 +2086,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -2122,7 +2154,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성
@@ -2181,7 +2214,8 @@ describe('SemanticMemoryUpdateService', () => {
       };
       const options: SemanticMemoryUpdateOptions = {
         episodicMemoryId: 'episodic-1',
-        episodicImportance: 0.5
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
       };
 
       // Episodic Memory 생성

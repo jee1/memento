@@ -33,8 +33,8 @@ describe('FallbackSearchService', () => {
     service.setHybridSearchEngine(mockHybridSearchEngine);
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('fallbackToGlobalSearch', () => {

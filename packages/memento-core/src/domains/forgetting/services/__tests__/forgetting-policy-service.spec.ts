@@ -18,8 +18,8 @@ describe('ForgettingPolicyService', () => {
     db = await setupTestDatabase();
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('executeMemoryCleanup', () => {

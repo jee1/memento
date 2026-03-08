@@ -26,8 +26,8 @@ describe('CleanupMemoryTool', () => {
     };
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('드라이런 모드', () => {
