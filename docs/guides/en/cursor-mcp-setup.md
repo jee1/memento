@@ -49,7 +49,7 @@ Add the following to your Cursor settings file or `.cursor/mcp.json`:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["/home/username/git/memento/dist/server/index.js"],
+      "args": ["/home/username/git/memento/packages/memento-server/dist/server/index.js"],
       "env": {
         "NODE_ENV": "production",
         "DB_PATH": "/home/username/git/memento/data/memory.db"
@@ -173,7 +173,7 @@ Create a `.cursor/mcp.json` file in the project root:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["./dist/server/index.js"],
+      "args": ["./packages/memento-server/dist/server/index.js"],
       "cwd": "C:\\Users\\username\\git\\memento",
       "env": {
         "NODE_ENV": "production",
@@ -195,14 +195,14 @@ Create a `.cursor/mcp.json` file in the project root:
 dir dist\server\index.js
 
 # Linux/macOS
-ls -la dist/server/index.js
+ls -la packages/memento-server/dist/server/index.js
 ```
 
 ### 2. Direct Execution Test
 
 ```bash
 # From the project directory
-node dist/server/index.js
+node packages/memento-server/dist/server/index.js
 ```
 
 If it runs successfully, the MCP server has started.
@@ -289,7 +289,7 @@ If you're developing, you can run the source file directly:
   "mcpServers": {
     "memento": {
       "command": "npx",
-      "args": ["-y", "tsx", "src/server/index.ts"],
+      "args": ["-y", "tsx", "packages/memento-server/src/server/index.ts"],
       "cwd": "C:\\Users\\username\\git\\memento",
       "env": {
         "NODE_ENV": "development",

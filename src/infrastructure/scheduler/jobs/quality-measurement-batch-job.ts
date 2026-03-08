@@ -259,18 +259,7 @@ export class QualityMeasurementBatchJob {
         result.warnings.push(`${failedMetrics}개의 실패 지표가 있습니다`);
       }
 
-      // PRD FR-5.6: 배치 작업 로깅 - 완료 로깅
-      logger.info('품질 측정 배치 작업 완료', {
-        measurement_type: this.config.measurementType,
-        context: this.config.context,
-        duration: result.duration,
-        totalMetrics,
-        passedMetrics,
-        failedMetrics,
-        warningMetrics,
-        overallStatus
-      });
-
+      // 완료 로그는 batch-scheduler의 this.log('Quality measurement batch job completed', ...)에서 한 번만 출력 (중복·undefined 줄 감소)
       return result;
     } catch (error) {
       result.endTime = new Date();

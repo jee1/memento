@@ -1,0 +1,479 @@
+/**
+ * @memento/client 유틸리티 함수들
+ * 클라이언트 라이브러리 사용을 편리하게 하는 헬퍼 함수들
+ */
+
+import type { MemoryType, PrivacyScope, MemoryItem } from './types.js';
+
+// ============================================================================
+// 타입 검증 함수들
+// ============================================================================
+
+/**
+ * 유효한 메모리 타입인지 확인
+ */
+export function isValidMemoryType(type: string): type is MemoryType {
+  return ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'].includes(type);
+}
+
+/**
+ * 유효한 프라이버시 스코프인지 확인
+ */
+export function isValidPrivacyScope(scope: string): scope is PrivacyScope {
+  return ['private', 'team', 'public'].includes(scope);
+}
+
+/**
+ * 유효한 중요도 값인지 확인 (0-1 범위)
+ */
+export function isValidImportance(importance: number): boolean {
+  return typeof importance === 'number' && importance >= 0 && importance <= 1;
+}
+
+// ============================================================================
+// 메모리 관련 유틸리티
+// ============================================================================
+
+/**
+ * 메모리 내용에서 태그 추출
+ */
+export function extractTagsFromContent(content: string): string[] {
+  // 해시태그 패턴 (#tag)
+  const hashtags = content.match(/#[\w가-힣]+/g) || [];
+  
+  // @멘션 패턴 (@user)
+  const mentions = content.match(/@[\w가-힣]+/g) || [];
+  
+  // 태그 패턴 (tag:value)
+  const tagPatterns = content.match(/[\w가-힣]+:/g) || [];
+  
+  return [
+    ...hashtags.map(tag => tag.substring(1)), // # 제거
+    ...mentions.map(mention => mention.substring(1)), // @ 제거
+    ...tagPatterns.map(tag => tag.substring(0, tag.length - 1)) // : 제거
+  ];
+}
+
+/**
+ * 메모리 내용 요약 (지정된 길이로)
+ */
+export function summarizeContent(content: string, maxLength: number = 200): string {
+  if (content.length <= maxLength) {
+    return content;
+  }
+
+  // 문장 단위로 자르기
+  const sentences = content.split(/[.!?]+/);
+  let summary = '';
+  
+  for (const sentence of sentences) {
+    if (summary.length + sentence.length <= maxLength) {
+      summary += sentence + '.';
+    } else {
+      break;
+    }
+  }
+
+  return summary || content.substring(0, maxLength) + '...';
+}
+
+/**
+ * 메모리 중요도 계산 (내용 길이, 태그 수, 타입 기반)
+ */
+export function calculateImportance(
+  content: string,
+  tags: string[] = [],
+  type: MemoryType = 'episodic'
+): number {
+  let importance = 0.5; // 기본값
+
+  // 내용 길이 기반 (긴 내용일수록 중요)
+  const contentLength = content.length;
+  if (contentLength > 500) importance += 0.2;
+  else if (contentLength > 200) importance += 0.1;
+  else if (contentLength < 50) importance -= 0.1;
+
+  // 태그 수 기반 (태그가 많을수록 중요)
+  const tagCount = tags.length;
+  if (tagCount > 5) importance += 0.2;
+  else if (tagCount > 2) importance += 0.1;
+  else if (tagCount === 0) importance -= 0.1;
+
+  // 타입 기반
+  switch (type) {
+    case 'semantic':
+      importance += 0.2; // 의미기억은 중요
+      break;
+    case 'procedural':
+      importance += 0.1; // 절차기억도 중요
+      break;
+    case 'working':
+      importance -= 0.1; // 작업기억은 덜 중요
+      break;
+  }
+
+  // 0-1 범위로 클램프
+  return Math.max(0, Math.min(1, importance));
+}
+
+/**
+ * 메모리 타입별 기본 설정
+ */
+export function getDefaultSettingsForType(type: MemoryType): {
+  importance: number;
+  privacyScope: PrivacyScope;
+  ttlDays?: number;
+} {
+  switch (type) {
+    case 'working':
+      return {
+        importance: 0.3,
+        privacyScope: 'private',
+        ttlDays: 2
+      };
+    case 'episodic':
+      return {
+        importance: 0.6,
+        privacyScope: 'private',
+        ttlDays: 90
+      };
+    case 'semantic':
+      return {
+        importance: 0.8,
+        privacyScope: 'team'
+        // ttlDays: undefined // 무기한 - exactOptionalPropertyTypes 때문에 제거
+      };
+    case 'procedural':
+      return {
+        importance: 0.7,
+        privacyScope: 'team',
+        ttlDays: 180
+      };
+    case 'core':
+      return {
+        importance: 1.0,
+        privacyScope: 'private'
+        // ttlDays: undefined // 무기한
+      };
+    case 'vault':
+      return {
+        importance: 1.0,
+        privacyScope: 'private'
+        // ttlDays: undefined // 무기한
+      };
+    default: {
+      // 타입 가드로 인해 이 케이스는 발생하지 않지만, TypeScript를 위해 필요
+      const _exhaustive: never = type;
+      throw new Error(`Unknown memory type: ${_exhaustive}`);
+    }
+  }
+}
+
+// ============================================================================
+// 검색 관련 유틸리티
+// ============================================================================
+
+/**
+ * 검색 쿼리 정규화
+ */
+export function normalizeQuery(query: string): string {
+  return query
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ') // 여러 공백을 하나로
+    .replace(/[^\w\s가-힣]/g, ''); // 특수문자 제거
+}
+
+/**
+ * 검색 결과 점수 정규화 (0-1 범위)
+ */
+export function normalizeScore(score: number, minScore: number = 0, maxScore: number = 1): number {
+  if (maxScore === minScore) return 0;
+  return Math.max(0, Math.min(1, (score - minScore) / (maxScore - minScore)));
+}
+
+/**
+ * 검색 결과 그룹화 (타입별, 태그별)
+ */
+export function groupSearchResults(
+  results: MemoryItem[],
+  groupBy: 'type' | 'tags' | 'privacy_scope'
+): Record<string, MemoryItem[]> {
+  const groups: Record<string, MemoryItem[]> = {};
+
+  for (const result of results) {
+    let key: string;
+
+    switch (groupBy) {
+      case 'type':
+        key = result.type;
+        break;
+      case 'tags':
+        key = result.tags?.join(',') || 'untagged';
+        break;
+      case 'privacy_scope':
+        key = result.privacy_scope;
+        break;
+      default:
+        key = 'unknown';
+    }
+
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key]!.push(result);
+  }
+
+  return groups;
+}
+
+// ============================================================================
+// 시간 관련 유틸리티
+// ============================================================================
+
+/**
+ * 상대적 시간 문자열 생성
+ */
+export function getRelativeTime(date: string | Date): string {
+  const now = new Date();
+  const target = new Date(date);
+  const diffMs = now.getTime() - target.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffDays > 0) {
+    return `${diffDays}일 전`;
+  } else if (diffHours > 0) {
+    return `${diffHours}시간 전`;
+  } else if (diffMinutes > 0) {
+    return `${diffMinutes}분 전`;
+  } else {
+    return '방금 전';
+  }
+}
+
+/**
+ * 날짜 범위 필터 생성
+ */
+export function createDateRangeFilter(days: number): {
+  time_from: string;
+  time_to: string;
+} {
+  const now = new Date();
+  const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+  return {
+    time_from: from.toISOString(),
+    time_to: now.toISOString()
+  };
+}
+
+// ============================================================================
+// 데이터 변환 유틸리티
+// ============================================================================
+
+/**
+ * 메모리를 JSON으로 직렬화
+ */
+export function serializeMemory(memory: MemoryItem): string {
+  return JSON.stringify(memory, null, 2);
+}
+
+/**
+ * JSON에서 메모리 역직렬화
+ */
+export function deserializeMemory(json: string): MemoryItem {
+  return JSON.parse(json);
+}
+
+/**
+ * 메모리 배열을 CSV로 변환
+ */
+export function memoriesToCSV(memories: MemoryItem[]): string {
+  if (memories.length === 0) return '';
+
+  const headers = [
+    'id',
+    'content',
+    'type',
+    'importance',
+    'created_at',
+    'last_accessed',
+    'pinned',
+    'tags',
+    'privacy_scope',
+    'source'
+  ];
+
+  const rows = memories.map(memory => [
+    memory.id,
+    `"${memory.content.replace(/"/g, '""')}"`, // CSV 이스케이프
+    memory.type,
+    memory.importance,
+    memory.created_at,
+    memory.last_accessed || '',
+    memory.pinned,
+    memory.tags?.join(';') || '',
+    memory.privacy_scope,
+    memory.source || ''
+  ]);
+
+  return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+}
+
+/**
+ * 메모리 배열을 Markdown으로 변환
+ */
+export function memoriesToMarkdown(memories: MemoryItem[]): string {
+  if (memories.length === 0) return '# 기억이 없습니다\n';
+
+  let markdown = `# 기억 목록 (${memories.length}개)\n\n`;
+
+  for (const memory of memories) {
+    const typeEmoji = {
+      working: '⚡',
+      episodic: '📅',
+      semantic: '🧠',
+      procedural: '🔧',
+      core: '⭐',
+      vault: '🔒'
+    }[memory.type] || '📝';
+
+    const importanceBar = '★'.repeat(Math.round(memory.importance * 5)) + 
+                         '☆'.repeat(5 - Math.round(memory.importance * 5));
+
+    markdown += `## ${typeEmoji} ${memory.id}\n\n`;
+    markdown += `**내용**: ${memory.content}\n\n`;
+    markdown += `**타입**: ${memory.type}\n`;
+    markdown += `**중요도**: ${importanceBar} (${memory.importance})\n`;
+    markdown += `**생성일**: ${memory.created_at}\n`;
+    
+    if (memory.last_accessed) {
+      markdown += `**마지막 접근**: ${memory.last_accessed}\n`;
+    }
+    
+    if (memory.tags && memory.tags.length > 0) {
+      markdown += `**태그**: ${memory.tags.map(tag => `#${tag}`).join(' ')}\n`;
+    }
+    
+    markdown += `**공개 범위**: ${memory.privacy_scope}\n`;
+    
+    if (memory.pinned) {
+      markdown += `**고정됨**: ✅\n`;
+    }
+    
+    markdown += '\n---\n\n';
+  }
+
+  return markdown;
+}
+
+// ============================================================================
+// 검증 유틸리티
+// ============================================================================
+
+/**
+ * 메모리 생성 파라미터 검증
+ */
+export function validateCreateMemoryParams(params: unknown): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  // params가 객체인지 확인
+  if (typeof params !== 'object' || params === null) {
+    return { isValid: false, errors: ['params는 객체여야 합니다'] };
+  }
+  
+  const p = params as Record<string, unknown>;
+
+  // type에 따른 조건부 검증
+  if (p.type === 'core' || p.type === 'vault') {
+    // Core Memory / Knowledge Vault는 key와 value가 필수
+    if (!p.key || typeof p.key !== 'string') {
+      errors.push('type이 "core" 또는 "vault"일 때 key는 필수이며 문자열이어야 합니다');
+    }
+    if (!p.value || typeof p.value !== 'string') {
+      errors.push('type이 "core" 또는 "vault"일 때 value는 필수이며 문자열이어야 합니다');
+    }
+  } else {
+    // 나머지 타입은 content가 필수
+    if (!p.content || typeof p.content !== 'string') {
+      errors.push('content는 필수이며 문자열이어야 합니다 (type이 "core" 또는 "vault"가 아닌 경우)');
+    }
+  }
+
+  if (p.type && typeof p.type === 'string' && !isValidMemoryType(p.type)) {
+    errors.push('type은 working, episodic, semantic, procedural, core, vault 중 하나여야 합니다');
+  }
+
+  if (p.importance !== undefined && (typeof p.importance !== 'number' || !isValidImportance(p.importance))) {
+    errors.push('importance는 0과 1 사이의 숫자여야 합니다');
+  }
+
+  if (p.privacy_scope && typeof p.privacy_scope === 'string' && !isValidPrivacyScope(p.privacy_scope)) {
+    errors.push('privacy_scope는 private, team, public 중 하나여야 합니다');
+  }
+
+  if (p.tags && !Array.isArray(p.tags)) {
+    errors.push('tags는 배열이어야 합니다');
+  }
+
+  // always_load는 boolean이어야 함
+  if (p.always_load !== undefined && typeof p.always_load !== 'boolean') {
+    errors.push('always_load는 boolean이어야 합니다');
+  }
+
+  // immutable은 boolean이어야 함
+  if (p.immutable !== undefined && typeof p.immutable !== 'boolean') {
+    errors.push('immutable은 boolean이어야 합니다');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * 검색 파라미터 검증
+ */
+export function validateSearchParams(params: unknown): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  // params가 객체인지 확인
+  if (typeof params !== 'object' || params === null) {
+    return { isValid: false, errors: ['params는 객체여야 합니다'] };
+  }
+  
+  const p = params as Record<string, unknown>;
+
+  if (!p.query || typeof p.query !== 'string') {
+    errors.push('query는 필수이며 문자열이어야 합니다');
+  }
+
+  if (p.limit !== undefined && (typeof p.limit !== 'number' || p.limit < 0)) {
+    errors.push('limit은 0 이상의 숫자여야 합니다');
+  }
+
+  if (p.filters && typeof p.filters === 'object') {
+    const filters = p.filters as Record<string, unknown>;
+    if (filters.type && !Array.isArray(filters.type)) {
+      errors.push('filters.type은 배열이어야 합니다');
+    }
+    
+    if (filters.tags && !Array.isArray(filters.tags)) {
+      errors.push('filters.tags는 배열이어야 합니다');
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}

@@ -292,46 +292,8 @@ export class TripleExtractionBatchJob {
       const successRate = result.details.processed > 0
         ? ((result.details.success / result.details.processed) * 100).toFixed(1)
         : '0.0';
-      
-      logger.info('Triple extraction batch job completed', {
-        // 처리된 Episodic Memory 수
-        processed: result.details.processed,
-        success: result.details.success,
-        failed: result.details.failed,
-        skipped: result.details.skipped,
-        
-        // 생성된 Semantic Memory 수
-        semanticMemoriesCreated: result.details.semanticMemoriesCreated,
-        semanticMemoriesUpdated: result.details.semanticMemoriesUpdated,
-        totalSemanticMemories: result.details.semanticMemoriesCreated + result.details.semanticMemoriesUpdated,
-        
-        // 실패한 항목 수 및 에러 로그
-        errorCount: result.errors.length,
-        warningCount: result.warnings.length,
-        errors: result.errors.length > 0 ? result.errors.slice(0, 5) : [], // 최대 5개만 로깅
-        warnings: result.warnings.length > 0 ? result.warnings.slice(0, 5) : [], // 최대 5개만 로깅
-        
-        // 배치 실행 시간 및 성능 메트릭
-        duration: `${durationSeconds}s`,
-        durationMs: duration,
-        avgProcessingTimeMs: avgProcessingTime,
-        successRate: `${successRate}%`,
-        
-        // 재시도 통계
-        retryCounts: result.details.retryCounts.size > 0 
-          ? Array.from(result.details.retryCounts.values()).reduce((sum, count) => sum + count, 0)
-          : 0,
-        uniqueRetriedMemories: result.details.retryCounts.size,
-        
-        // 청크 통계
-        totalChunks: chunks.length,
-        chunkSize: this.config.chunkSize,
-        
-        // 작업 상태
-        jobStatus: result.success ? 'success' : 'partial_failure',
-        timeoutOccurred: result.warnings.some(w => w.includes('timeout'))
-      });
-      
+      // 완료 로그는 batch-scheduler의 this.log('Triple extraction batch job completed', ...)에서 한 번만 출력 (중복·undefined 줄 감소)
+
       // 성능 메트릭 상세 로깅 (디버그 레벨)
       logger.debug('Triple extraction batch job performance metrics', {
         throughput: result.details.processed > 0 

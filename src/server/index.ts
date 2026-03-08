@@ -6,7 +6,15 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  SetLevelRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
 import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
 import { mementoConfig, validateConfig } from '../shared/config/index.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
@@ -30,6 +38,7 @@ import { getVectorSearchEngine } from '../domains/search/algorithms/vector-searc
 import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
+import { tryAcquireLock, releaseLock } from './instance-lock.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
@@ -43,6 +52,16 @@ const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for 
 - **Before a task**: Use \`recall\` (hybrid search) or \`memory_injection\` (query-based context) to check for relevant memories. If an anchor is set, use \`search_local\` for anchor-scoped memories.
 - **After a task**: Use \`remember\` to store outcomes: episodic (e.g. tag: completed), semantic (e.g. best-practice, knowledge), or procedural (e.g. procedure). Check for existing memories first to avoid duplicates; include concrete, searchable keywords.
 - Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
+
+// stderr.write 래핑: undefined/null 전달 및 "undefined" 문자열 출력 차단
+// (Cursor MCP 클라이언트가 stderr 라인마다 반환값을 표시할 때 undefined가 찍히는 현상 완화)
+const _stderrWrite = process.stderr.write.bind(process.stderr);
+process.stderr.write = function (chunk: any, ...args: any[]): boolean {
+  if (chunk === undefined || chunk === null) return true;
+  const s = typeof chunk === 'string' ? chunk : String(chunk);
+  if (s === 'undefined' || s.trim() === 'undefined') return true;
+  return _stderrWrite(s, ...args);
+} as typeof process.stderr.write;
 
 // MCP 서버 인스턴스
 let server: Server;
@@ -332,7 +351,41 @@ async function initializeServer() {
         }))
       };
     });
-    
+
+    // Prompts 목록/조회 핸들러 (listOfferingsForUI 등 클라이언트 호출 시 Method not found 방지)
+    server.setRequestHandler(ListPromptsRequestSchema, async () => {
+      await mcpLogger.logMCPProtocol('debug', '프롬프트 목록 요청 처리');
+      return {
+        prompts: [
+          {
+            name: 'memory_injection',
+            description: '관련 기억을 요약하여 프롬프트에 주입',
+            arguments: [
+              { name: 'query', description: '검색할 쿼리', required: true },
+              { name: 'token_budget', description: '토큰 예산 (기본값: 1000)', required: false },
+              { name: 'max_memories', description: '최대 기억 개수 (기본값: 5)', required: false }
+            ]
+          }
+        ]
+      };
+    });
+
+    server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      const { name } = request.params;
+      await mcpLogger.logMCPProtocol('debug', `프롬프트 조회 요청: ${name}`, { name });
+      if (name === 'memory_injection') {
+        return {
+          description: '관련 기억을 요약하여 프롬프트에 주입',
+          arguments: [
+            { name: 'query', description: '검색할 쿼리', required: true },
+            { name: 'token_budget', description: '토큰 예산 (기본값: 1000)', required: false },
+            { name: 'max_memories', description: '최대 기억 개수 (기본값: 5)', required: false }
+          ]
+        };
+      }
+      throw new Error(`Prompt not found: ${name}`);
+    });
+
     // Resource 읽기 핸들러
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const { uri } = request.params;
@@ -533,6 +586,21 @@ async function initializeServer() {
 // 서버 시작
 async function startServer() {
   try {
+    // 단일 인스턴스: 같은 DB를 쓰는 두 프로세스 방지 (로그 두 번 출력 근본 원인 해결)
+    if (process.env.MEMENTO_SINGLETON !== '0') {
+      const lockResult = tryAcquireLock(mementoConfig.dbPath);
+      if (!lockResult.acquired) {
+        const msg = lockResult.existingPid > 0
+          ? `[Memento MCP] Another instance is already running (PID ${lockResult.existingPid}). Exiting.\n`
+          : '[Memento MCP] Could not acquire instance lock. Exiting.\n';
+        _stderrWrite(msg + 'Set MEMENTO_SINGLETON=0 to allow multiple instances.\n');
+        process.exit(0);
+      }
+    }
+    // 진단: 프로세스당 한 줄 (두 프로세스 기동 시 서로 다른 pid/id로 확인 가능)
+    const instanceId = Math.random().toString(36).slice(2, 10);
+    _stderrWrite(`[Memento MCP] instance pid=${process.pid} id=${instanceId}\n`);
+
     // MCP 프로토콜 준수: transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
     // initializeServer() 호출 전에 플래그를 설정하여 초기화 중 로그 출력 방지
     // ServerState를 통해 mcpLogger에서 접근 가능하도록 설정
@@ -656,7 +724,7 @@ async function cleanup() {
   }
   
   mcpLogger.logServer('info', '서버 정리 완료');
-  // Memento MCP Server 종료
+  releaseLock();
 }
 
 // 프로세스 종료 시 정리

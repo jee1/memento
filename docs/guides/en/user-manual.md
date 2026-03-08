@@ -61,7 +61,7 @@ curl http://localhost:8080/health
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["path/to/memento/dist/server/index.js"],
+      "args": ["path/to/memento/packages/memento-server/dist/server/index.js"],
       "env": {
         "NODE_ENV": "production"
       }
@@ -294,7 +294,7 @@ HTTP server is a real-time communication server that supports WebSocket. It is d
 npm run dev:http
 
 # Or run directly
-node dist/server/http-server.js
+node packages/memento-server/dist/server/http-server.js
 ```
 
 #### WebSocket Connection

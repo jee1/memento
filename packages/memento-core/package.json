@@ -1,0 +1,26 @@
+{
+  "name": "@memento/core",
+  "version": "1.17.0",
+  "description": "Memento core - memory, search, anchor, forgetting, embedding (library API only)",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && npm run copy:assets",
+    "copy:assets": "node scripts/copy-assets.js",
+    "type-check": "tsc --noEmit",
+    "db:init": "node dist/infrastructure/database/database/init.js",
+    "db:migrate": "node dist/infrastructure/database/database/migrate.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

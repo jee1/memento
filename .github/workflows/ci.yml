@@ -1,3 +1,6 @@
+# CI: 근본적 해결 — 테스트를 패키지별 병렬 job으로 분리해 wall-clock 시간 단축
+# (단일 job에서 436+ 테스트 순차 실행 제거, 중복 실행 제거)
+
 name: CI
 
 on:
@@ -6,81 +9,128 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  CI: true
+  NODE_ENV: test
+  SKIP_DB_TESTS: true
+  SKIP_INTEGRATION_TESTS: true
+
 jobs:
-  test:
+  lint-typecheck:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          
-      - name: Install SQLite with VEC extension
+      - run: npm ci
+      - run: npm run lint -- --max-warnings 0 || echo "Linting completed with warnings"
+      - run: npx tsx scripts/count-console-logs.ts --core-only --ci
+        continue-on-error: false
+      - run: npx tsx scripts/archive/check-retry-usage.ts --ci
+        continue-on-error: false
+      - run: npm run type-check
+
+  test-root:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install SQLite (optional)
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
-          # sqlite-vec 확장 설치 시도
-          echo "📦 sqlite-vec 설치 시도 중..."
-          
-          # 방법 1: npm 패키지 설치 시도
-          if npm install -g sqlite-vec 2>/dev/null; then
-            echo "✅ sqlite-vec 확장 설치 완료 (npm)"
-          else
-            echo "⚠️ npm 설치 실패, 바이너리 다운로드 시도..."
-            
-            # 방법 2: 바이너리 다운로드 시도
-            if wget -q https://github.com/asg017/sqlite-vec/releases/latest/download/sqlite-vec-linux-x64.tar.gz && \
-               tar -xzf sqlite-vec-linux-x64.tar.gz && \
-               sudo cp sqlite-vec-linux-x64/sqlite-vec.so /usr/lib/x86_64-linux-gnu/; then
-              echo "✅ sqlite-vec 확장 설치 완료 (바이너리)"
-            else
-              echo "⚠️ sqlite-vec 설치 실패, 기본 SQLite로 계속 진행"
-            fi
-          fi
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Run linting
-        run: npm run lint -- --max-warnings 0 || echo "Linting completed with warnings"
-        
-      - name: Check console.log usage
-        run: npx tsx scripts/count-console-logs.ts --core-only --ci
-        continue-on-error: false
+      - run: npm ci
+      - name: Run tests (root: src/ + tests/)
+        run: npm run test:ci:root
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-root
+          path: test-results/
+          retention-days: 7
+        continue-on-error: true
 
-      - name: Check retry usage
-        run: npx tsx scripts/archive/check-retry-usage.ts --ci
-        continue-on-error: false
-        
-      - name: Run type checking
-        run: npm run type-check
-        
-      - name: Run tests
-        run: npm run test:ci
-        env:
-          CI: true
-          NODE_ENV: test
-          SKIP_DB_TESTS: true
-          SKIP_INTEGRATION_TESTS: true
-        
-      - name: Build package
+  test-core:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install SQLite (optional)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+      - run: npm ci
+      - name: Run tests (packages/memento-core)
+        run: npm run test:ci:core
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-core
+          path: test-results/
+          retention-days: 7
+        continue-on-error: true
+
+  test-server:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install SQLite (optional)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+      - run: npm ci
+      - name: Run tests (packages/memento-server)
+        run: npm run test:ci:server
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-server
+          path: test-results/
+          retention-days: 7
+        continue-on-error: true
+
+  test-client:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build (core → server → client)
         run: npm run build
-        
-      # 관계 추출 품질 리포트는 로컬에서만 생성
-      # CI 환경에서는 Ollama를 실행할 수 없으므로 스킵
-      # - name: Generate relation extraction quality report
-      #   run: npm run generate-relation-report -- --ci --method rule --output relation-quality-report.md
-      #   continue-on-error: false
-      #   
-      # - name: Upload relation quality report
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: relation-quality-report
-      #     path: relation-quality-report.md
-      #     retention-days: 30
+      - name: Run tests (@memento/client)
+        run: npm run test:ci -w @memento/client
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-client
+          path: test-results/
+          retention-days: 7
+        continue-on-error: true

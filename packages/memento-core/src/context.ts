@@ -1,0 +1,59 @@
+/**
+ * 서버 컨텍스트 모듈
+ * @memento/core: createToolContext 등 export
+ */
+
+import type Database from 'better-sqlite3';
+import type { ServerServices } from './bootstrap.js';
+import type { ToolContext } from './tools/types.js';
+
+export interface ServerContext {
+  db: Database.Database;
+  services: ServerServices;
+}
+
+export function createServerContext(
+  db: Database.Database,
+  services: ServerServices
+): ServerContext {
+  return { db, services };
+}
+
+export function createToolContext(serverContext: ServerContext): ToolContext;
+export function createToolContext(db: Database.Database, services: ServerServices): ToolContext;
+export function createToolContext(
+  serverContextOrDb: ServerContext | Database.Database,
+  services?: ServerServices
+): ToolContext {
+  if (services !== undefined) {
+    const db = serverContextOrDb as Database.Database;
+    const serverContext = createServerContext(db, services);
+    return createToolContextFromServerContext(serverContext);
+  }
+  const serverContext = serverContextOrDb as ServerContext;
+  return createToolContextFromServerContext(serverContext);
+}
+
+function createToolContextFromServerContext(serverContext: ServerContext): ToolContext {
+  return {
+    db: serverContext.db,
+    services: {
+      searchEngine: serverContext.services.searchEngine,
+      hybridSearchEngine: serverContext.services.hybridSearchEngine,
+      vectorSearchEngine: serverContext.services.vectorSearchEngine,
+      embeddingService: serverContext.services.embeddingService,
+      forgettingPolicyService: serverContext.services.forgettingPolicyService,
+      performanceMonitor: serverContext.services.performanceMonitor,
+      databaseOptimizer: serverContext.services.databaseOptimizer,
+      errorLoggingService: serverContext.services.errorLoggingService,
+      performanceAlertService: serverContext.services.performanceAlertService,
+      consolidationScoreService: serverContext.services.consolidationScoreService,
+      writeCoalescingManager: serverContext.services.writeCoalescingManager,
+      anchorManager: serverContext.services.anchorManager,
+      failureDetector: serverContext.services.failureDetector,
+      reflexionWorker: serverContext.services.reflexionWorker,
+      metaMemoryService: serverContext.services.metaMemoryService,
+      batchScheduler: serverContext.services.batchScheduler
+    }
+  };
+}

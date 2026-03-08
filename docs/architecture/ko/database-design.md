@@ -1,7 +1,7 @@
 # 데이터베이스 설계 (Database Design)
 
 **하는 일**: Memento MCP Server의 SQLite 스키마에 대한 단일 설계 명세. 테이블·컬럼 목적, 명명 규칙, 인덱스·제약, 마이그레이션 이력을 한 문서에서 참조한다.  
-**주의**: 실행용 DDL의 진실 공급원은 `src/infrastructure/database/database/schema.sql`과 마이그레이션 스크립트이며, 본 문서는 그에 대한 설명·정리용이다.  
+**주의**: 실행용 DDL의 진실 공급원은 `packages/memento-core/src/infrastructure/database/database/schema.sql`과 마이그레이션 스크립트이며, 본 문서는 그에 대한 설명·정리용이다.  
 **연관**: [마이그레이션 시스템 가이드](../../guides/ko/migration-system-guide.md), [DB 설계 통합 제안서](../../plans/ko/database-design-consolidation-proposal.md), [전체 테이블 ERD](database-erd.md).
 
 ---
@@ -13,8 +13,8 @@
 - **타임스탬프 표준 시간대**: DB에 저장하는 시각은 **UTC**를 표준으로 한다. ISO 8601 형식·`Z` 접미사 또는 SQLite `strftime('%Y-%m-%dT%H:%M:%fZ','now')` 사용을 권장한다. 로그·사용자 표시는 필요 시 KST 등으로 변환한다.
 - **관련 문서**:
   - [마이그레이션 시스템 가이드](../../guides/ko/migration-system-guide.md)
-  - 스키마 DDL: `src/infrastructure/database/database/schema.sql`
-  - 마이그레이션: `src/infrastructure/database/database/migration/migrations/`
+  - 스키마 DDL: `packages/memento-core/src/infrastructure/database/database/schema.sql`
+  - 마이그레이션: `packages/memento-core/src/infrastructure/database/database/migration/migrations/`
   - 저장소 가이드(DB 절): `AGENTS.md`
 
 ---
@@ -207,7 +207,7 @@ erDiagram
 | 19.0 | backfill-kg-triple-from-memory-item | 기존 semantic memory_item → kg_triple 백필 |
 | 20.0 | process-attribute-table | process_attribute 테이블 |
 
-상세는 `src/infrastructure/database/database/migration/migrations/` 내 해당 `.ts` 파일 참조.
+상세는 `packages/memento-core/src/infrastructure/database/database/migration/migrations/` 내 해당 `.ts` 파일 참조.
 
 ---
 

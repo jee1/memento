@@ -10,7 +10,7 @@ After changing the schema, update the **design document** ([database-design.md](
 
 ### Core components
 
-- **MigrationRunner**: Migration execution engine (`src/infrastructure/database/database/migration/migration-runner.ts`)
+- **MigrationRunner**: Migration execution engine (`packages/memento-core/src/infrastructure/database/database/migration/migration-runner.ts`)
 - **MigrationDetector**: Auto-detection of migrations
 - **BackupManager**: Backup and restore
 - **SchemaVersionManager**: Schema version tracking
@@ -18,7 +18,7 @@ After changing the schema, update the **design document** ([database-design.md](
 
 ### Migration directory
 
-Migrations live under `src/infrastructure/database/database/migration/migrations/`.
+Migrations live under `packages/memento-core/src/infrastructure/database/database/migration/migrations/`.
 
 Naming: `{version}-{name}.ts`
 

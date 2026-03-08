@@ -288,7 +288,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('SQLITE_BUSY 에러가 발생하면 락으로 감지해야 함', async () => {
@@ -320,7 +322,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락이 감지되면 lockStartTime을 기록해야 함', async () => {
@@ -355,7 +359,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락이 해제되면 lockStartTime을 초기화해야 함', async () => {
@@ -393,7 +399,9 @@ describe('DatabaseLockMonitor class', () => {
       
       // 정리
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
   });
 
@@ -426,7 +434,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('단순 상태 확인 쿼리(SELECT COUNT(*) FROM sqlite_master)로 락을 감지할 수 있어야 함', async () => {
@@ -459,7 +469,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('단순 상태 확인 쿼리가 SQLITE_BUSY를 반환하면 busy_timeout 방법으로 감지해야 함', async () => {
@@ -493,7 +505,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
   });
 
@@ -528,7 +542,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락이 지속되는 동안 lockDuration이 증가해야 함', async () => {
@@ -568,7 +584,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락이 해제되면 lockStartTime을 초기화해야 함', async () => {
@@ -608,7 +626,9 @@ describe('DatabaseLockMonitor class', () => {
       
       // 정리
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('stop() 호출 시 lockStartTime을 초기화해야 함', async () => {
@@ -644,7 +664,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
   });
 
@@ -677,7 +699,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락 지속 시간이 warningThresholdMs 이상이면 경고 로그를 출력해야 함', async () => {
@@ -716,7 +740,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락 지속 시간이 dangerThresholdMs 이상이면 경고 로그와 체크포인트를 시도해야 함', async () => {
@@ -762,7 +788,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락 지속 시간이 criticalThresholdMs 이상이면 경고 로그, 체크포인트 시도, 에러 로깅을 해야 함', async () => {
@@ -814,7 +842,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('checkpointScheduler가 없으면 체크포인트 시도를 건너뛰어야 함', async () => {
@@ -849,7 +879,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
   });
 
@@ -887,7 +919,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락이 감지되면 database_lock_duration 메트릭을 기록해야 함', async () => {
@@ -934,7 +968,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('락이 없으면 메트릭을 기록하지 않아야 함', async () => {
@@ -983,7 +1019,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
   });
 
@@ -1019,7 +1057,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('stop() 호출 시 busyCount를 초기화해야 함', async () => {
@@ -1054,7 +1094,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('1시간이 지나면 시간당 발생 횟수를 메트릭으로 기록해야 함', async () => {
@@ -1098,7 +1140,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
 
     it('시간당 발생 횟수가 100을 초과하면 경고 로그를 출력해야 함', async () => {
@@ -1145,7 +1189,9 @@ describe('DatabaseLockMonitor class', () => {
       lockDb.prepare('ROLLBACK').run();
       lockDb.close();
       testDb.close();
-      fs.unlinkSync(testDbPath);
+      if (fs.existsSync(testDbPath)) {
+        fs.unlinkSync(testDbPath);
+      }
     });
   });
 });

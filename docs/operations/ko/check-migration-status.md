@@ -31,11 +31,10 @@ DB_PATH=/home/jee1lee/git/data/memento.db npm run db:check-migration
 ### 방법 4: 직접 실행
 
 ```bash
-# 빌드 후 실행
-npm run build
-node dist/scripts/check-migration-status.js [database-path]
+# 권장: 루트에서 DB 마이그레이션 상태 점검 스크립트 실행
+npm run db:check-migration [database-path]
 
-# 또는 개발 모드로 실행
+# 또는 tsx로 직접 실행 (루트 src/scripts)
 tsx src/scripts/check-migration-status.ts [database-path]
 ```
 

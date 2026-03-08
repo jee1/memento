@@ -12,20 +12,20 @@ import { FileLogger } from '../../../infrastructure/scheduler/file-logger.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../domains/monitoring/services/error-logging-service.js';
 import { readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { randomUUID } from 'crypto';
 
 describe('PII 마스킹 통합 테스트', () => {
-  // 허용된 디렉토리 내에 테스트 로그 디렉토리 생성 (path-validator의 기본 허용 디렉토리: data/, logs/, backup/)
-  // FileLogger는 validateFilePath(logDir, 'logs')를 호출하므로 logs/ 디렉토리를 사용해야 함
-  const testLogDir = join(process.cwd(), 'logs', 'test-pii-logs');
+  // 허용된 디렉토리 내에 테스트 로그 디렉토리 (path-validator 기본 허용: data/, logs/, backup/)
+  const testLogBaseDir = join(process.cwd(), 'logs', 'test-pii-logs');
+  let testLogDir: string;
   let fileLogger: FileLogger;
   let errorLoggingService: ErrorLoggingService;
 
   beforeEach(() => {
-    // 테스트 로그 디렉토리 생성
-    if (!existsSync(testLogDir)) {
-      mkdirSync(testLogDir, { recursive: true });
-    }
-    
+    // 테스트별 고유 로그 디렉토리 (병렬 실행 시 afterEach 정리 충돌 방지)
+    testLogDir = join(testLogBaseDir, randomUUID());
+    mkdirSync(testLogDir, { recursive: true });
+
     fileLogger = new FileLogger({
       logDir: testLogDir,
       enabled: true
@@ -35,9 +35,9 @@ describe('PII 마스킹 통합 테스트', () => {
   });
 
   afterEach(() => {
-    // 테스트 로그 파일 정리
+    // 테스트 로그 파일 정리 (본 테스트의 고유 디렉토리만 정리)
     try {
-      if (existsSync(testLogDir)) {
+      if (testLogDir && existsSync(testLogDir)) {
         const files = readdirSync(testLogDir);
         for (const file of files) {
           unlinkSync(join(testLogDir, file));

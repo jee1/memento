@@ -10,11 +10,11 @@ Memento 프로젝트는 정식 마이그레이션 시스템을 사용하여 데�
 
 ### 핵심 컴포넌트
 
-- **MigrationRunner**: 마이그레이션 실행 엔진 (`src/infrastructure/database/database/migration/migration-runner.ts`)
-- **MigrationDetector**: 마이그레이션 자동 감지 (`src/infrastructure/database/database/migration/migration-detector.ts`)
-- **BackupManager**: 백업 생성 및 복원 관리 (`src/infrastructure/database/database/migration/backup-manager.ts`)
-- **SchemaVersionManager**: 스키마 버전 관리 (`src/infrastructure/database/database/migration/schema-version-manager.ts`)
-- **MigrationLogger**: 마이그레이션 로깅 (`src/infrastructure/database/database/migration/migration-logger.ts`)
+- **MigrationRunner**: 마이그레이션 실행 엔진 (`packages/memento-core/src/infrastructure/database/database/migration/migration-runner.ts`)
+- **MigrationDetector**: 마이그레이션 자동 감지 (`packages/memento-core/src/infrastructure/database/database/migration/migration-detector.ts`)
+- **BackupManager**: 백업 생성 및 복원 관리 (`packages/memento-core/src/infrastructure/database/database/migration/backup-manager.ts`)
+- **SchemaVersionManager**: 스키마 버전 관리 (`packages/memento-core/src/infrastructure/database/database/migration/schema-version-manager.ts`)
+- **MigrationLogger**: 마이그레이션 로깅 (`packages/memento-core/src/infrastructure/database/database/migration/migration-logger.ts`)
 
 ### 마이그레이션 디렉토리 (이중 구조)
 
@@ -25,7 +25,7 @@ Memento 프로젝트는 정식 마이그레이션 시스템을 사용하여 데�
 | `database/migration/migrations/` | **버전드 TS+SQL 마이그레이션**. Migration 인터페이스를 구현한 `.ts`/`.sql` 파일. MigrationRunner가 실행. | **현재 정식 시스템**. 새 마이그레이션은 여기에 추가. |
 | `database/migrations/` | **레거시 SQL**. `001_xxx.sql`, `002_xxx.sql` 등 예전 형식. | 레거시/초기화용. 새로 추가하지 않음. |
 
-**새 스키마 변경이 필요할 때:** `src/infrastructure/database/database/migration/migrations/` 에 `{버전}-{이름}.ts` (및 필요 시 `.sql`) 파일을 추가하고, [마이그레이션 작성 예제](#마이그레이션-작성-예제)를 따릅니다.
+**새 스키마 변경이 필요할 때:** `packages/memento-core/src/infrastructure/database/database/migration/migrations/` 에 `{버전}-{이름}.ts` (및 필요 시 `.sql`) 파일을 추가하고, [마이그레이션 작성 예제](#마이그레이션-작성-예제)를 따릅니다.
 
 파일 명명 규칙 (정식): `{버전}-{이름}.ts`
 
@@ -360,7 +360,7 @@ for (const detected of detection.pendingMigrations) {
 
 ## 참고 자료
 
-- [마이그레이션 시스템 README](../../../src/infrastructure/database/database/migration/README.md)
-- [MigrationRunner 소스 코드](../../../src/infrastructure/database/database/migration/migration-runner.ts)
-- [Migration 타입 정의](../../../src/infrastructure/database/database/migration/types.ts)
+- [마이그레이션 시스템 README](../../../packages/memento-core/src/infrastructure/database/database/migration/README.md)
+- [MigrationRunner 소스 코드](../../../packages/memento-core/src/infrastructure/database/database/migration/migration-runner.ts)
+- [Migration 타입 정의](../../../packages/memento-core/src/infrastructure/database/database/migration/types.ts)
 

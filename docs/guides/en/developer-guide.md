@@ -135,8 +135,8 @@ npm run test -- --watch
       "name": "Debug MCP Server",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/src/server/index.ts",
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "program": "${workspaceFolder}/packages/memento-server/src/server/index.ts",
+      "outFiles": ["${workspaceFolder}/packages/memento-server/dist/**/*.js"],
       "env": {
         "NODE_ENV": "development"
       },
@@ -327,7 +327,7 @@ graph TB
 
 ### Core Components
 
-#### 1. MCP Server (`src/server/`)
+#### 1. MCP Server (`packages/memento-server/src/server/`)
 
 The core server implementing the MCP protocol.
 
@@ -339,7 +339,7 @@ The core server implementing the MCP protocol.
 
 **Example Code**:
 ```typescript
-// src/server/index.ts
+// packages/memento-server/src/server/index.ts
 import { Server } from '@modelcontextprotocol/sdk/server';
 import { rememberTool } from './tools/remember';
 import { recallTool } from './tools/recall';
@@ -380,7 +380,7 @@ export class SearchRanking {
 }
 ```
 
-#### 3. Database Layer (`src/server/database/`)
+#### 3. Database·Infrastructure (`packages/memento-core`)
 
 Handles data storage and retrieval.
 
@@ -509,7 +509,7 @@ describe('MCP Server Integration', () => {
     });
     await client.connect({
       command: 'node',
-      args: ['dist/server/index.js']
+      args: ['packages/memento-server/dist/server/index.js']
     });
   });
 

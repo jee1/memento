@@ -77,6 +77,15 @@ function getTimestamp(): string {
   return new Date().toISOString();
 }
 
+/** 배치/서버 로그 연속 중복 방지: 동일 레벨+메시지가 이 시간(ms) 내에 다시 오면 한 번만 출력 (data 제외) */
+const LOG_DEDUP_MS = 2000;
+
+/** 모듈 단위 dedup 상태 (인스턴스가 둘 있어도 한 프로세스 내에서 한 번만 출력) */
+let lastBatchLogKey = '';
+let lastBatchLogTime = 0;
+let lastServerLogKey = '';
+let lastServerLogTime = 0;
+
 /**
  * MCP 로거 클래스
  */
@@ -169,7 +178,15 @@ export class MCPLogger {
       // ERROR 레벨만 출력 (치명적 오류는 확인 필요)
       return;
     }
-    
+
+    const serverKey = `${level}:${message}`;
+    const now = Date.now();
+    if (lastServerLogKey === serverKey && now - lastServerLogTime < LOG_DEDUP_MS) {
+      return;
+    }
+    lastServerLogKey = serverKey;
+    lastServerLogTime = now;
+
     process.stderr.write(logMessage);
   }
 
@@ -183,10 +200,18 @@ export class MCPLogger {
       return;
     }
 
-    const timestamp = getTimestamp();
     const dataStr = data ? ' ' + JSON.stringify(data, null, 2) : '';
+    const key = `${level}:${message}`;
+    const now = Date.now();
+    if (lastBatchLogKey === key && now - lastBatchLogTime < LOG_DEDUP_MS) {
+      return;
+    }
+    lastBatchLogKey = key;
+    lastBatchLogTime = now;
+
+    const timestamp = getTimestamp();
     const logMessage = `[${timestamp}] [BATCH] [${level.toUpperCase()}] ${message}${dataStr}\n`;
-    
+
     process.stderr.write(logMessage);
   }
 }

@@ -17,7 +17,9 @@
 | Cursor/MCP 설정 | [guides/ko/cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [guides/en/cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | 보안 | [reference/ko/security.md](reference/ko/security.md) | [reference/en/security.md](reference/en/security.md) |
 
-**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). 상세는 README·가이드 참고.
+**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). [AGENTS.md](../AGENTS.md) — 모노레포 구조·빌드·테스트·DB 명령 상세. 상세는 README·가이드 참고.
+
+**현재 구조:** 저장소는 npm workspaces 모노레포로, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`가 구현되어 있습니다. 서버 진입점은 `packages/memento-server`(MCP/HTTP), DB·도메인 로직은 `packages/memento-core`에 있습니다.
 
 ---
 
@@ -61,6 +63,7 @@
 
 이슈별 설계·구현 계획. 주로 [plans/ko/](plans/ko/)에 있으며, [plans/en/README.md](plans/en/README.md)에서 안내.
 
+- **모노레포·memento-core 분리**: [plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md](plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md) — 구현 계획. 설계·브레인스토밍: [brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md). 실험 앱 연결 방식(라이브러리 in-process vs 서버 원격)은 계획서·브레인스토밍 참고.
 - [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
 - [plans/ko/2026-02-05-issue57-phase2-roadmap.md](plans/ko/2026-02-05-issue57-phase2-roadmap.md) — Phase2 로드맵
 - [plans/ko/2026-03-03-repo-cleanup-design.md](plans/ko/2026-03-03-repo-cleanup-design.md) — 저장소 정리 설계 (불필요 파일·디렉토리, 단계별 정리)
@@ -70,7 +73,15 @@
 
 ---
 
-## 5. 리뷰·검증 (reviews/ko, code_review/ko)
+## 5.5. 해결 사례 (solutions/)
+
+이슈 해결 과정·근본 원인·검증이 정리된 문서. 문제 유형별 하위 디렉터리.
+
+- [integration-issues/mcp-log-duplicate-two-processes.md](solutions/integration-issues/mcp-log-duplicate-two-processes.md) — MCP 로그 두 번 출력 (두 프로세스 / Cursor UI)
+
+---
+
+## 6. 리뷰·검증 (reviews/ko, code_review/ko)
 
 - 코드 리뷰: [code_review/ko/](code_review/ko/)
 - 검증·테스트 보고: [reviews/ko/](reviews/ko/)
@@ -78,13 +89,13 @@
 
 ---
 
-## 6. 테스트 (testing/ko, testing/en)
+## 7. 테스트 (testing/ko, testing/en)
 
 - Consolidation 품질 테스트: [ko](testing/ko/consolidation-quality-testing.md) / [testing/en/README.md](testing/en/README.md)
 
 ---
 
-## 7. 운영·도구 (operations/en, operations/ko)
+## 8. 운영·도구 (operations/en, operations/ko)
 
 - GitHub 릴리스: [ko](operations/ko/github-release-workflow.md) / [en](operations/en/github-release-workflow.md)
 - 스크립트 인덱스: [ko](operations/ko/scripts-index.md)
@@ -94,7 +105,7 @@
 
 ---
 
-## 8. 참조 (reference/en, reference/ko)
+## 9. 참조 (reference/en, reference/ko)
 
 - **코드베이스 분석**: [ko](reference/ko/codebase-analysis.md) — 전체 코드 구조·도메인·조건·데이터 흐름 정리
 - **파일 위치·필요성 감사**: [ko](reference/ko/file-location-audit.md) — 파일별 위치 적합성·필요여부·개선 방안
@@ -107,13 +118,13 @@
 
 ---
 
-## 9. 리서치 (research/ko, research/en)
+## 10. 리서치 (research/ko, research/en)
 
 - Memento 기반 개인 비서(OpenClaw 유사) 기능·MVP 리서치: [ko](research/ko/memento-based-personal-assistant-mvp-research.md)
 
 ---
 
-## 10. 블로그
+## 11. 블로그
 
 - [blog/](blog/)
 

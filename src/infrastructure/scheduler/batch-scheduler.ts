@@ -419,15 +419,10 @@ export class BatchScheduler implements IBatchScheduler {
       await this.executeWithTimeout(job, this.config.jobTimeout);
       this.lastExecution.set(name, new Date());
       this.totalExecutions.set(name, (this.totalExecutions.get(name) || 0) + 1);
-      
+
       // 성공시 에러 카운트 리셋 (RetryManager 사용)
       this.retryManager.resetErrorCount(name);
-      
-      this.log(`Job ${name} completed successfully`, {
-        duration: Date.now() - startTime,
-        totalExecutions: this.totalExecutions.get(name),
-        retryCount
-      });
+      // 완료 로그는 각 job 내부에서 상세 메시지로 출력하므로 여기서 중복 로그하지 않음 (stderr 호출 수 감소)
     } catch (error) {
       retryCount++;
       const totalErrorCount = this.retryManager.incrementErrorCount(name);
