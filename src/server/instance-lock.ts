@@ -4,7 +4,10 @@
  * 근본 원인: Cursor가 user/project 등으로 동일 서버를 두 번 띄우면
  * 로그가 두 프로세스에서 각각 출력되어 동일 메시지가 두 번 찍힘.
  * Lock으로 두 번째 프로세스는 즉시 종료하여 로그 중복을 제거함.
+ *
+ * Lock 경로는 path.dirname(dbPath) + 고정 basename('memento-mcp.lock')으로 제한됨.
  */
+/* eslint-disable security/detect-non-literal-fs-filename */
 
 import fs from 'node:fs';
 import path from 'node:path';
