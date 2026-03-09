@@ -121,6 +121,36 @@ xcode-select --install
 brew install python3 sqlite3
 ```
 
+### 4. CI 빌드/npx 실행 시 initializing에서 "Connection closed" / "Client closed"
+
+**증상 (Cursor MCP 로그):**
+```
+Starting new stdio process with command: npx -y memento-mcp-server@next
+Server creation in progress, waiting for completion
+[V1] initializing -> error: Client closed
+Pending server creation failed: MCP error -32000: Connection closed
+```
+
+**근본 원인:**  
+서버가 MCP transport를 먼저 연결한 뒤, DB·서비스 초기화(`runHeavyInit`)를 백그라운드에서 수행합니다. 이 초기화가 실패하면(DB 경로·권한, 설정 검증, better-sqlite3 등) 기존에는 `process.exit(1)`로 프로세스가 종료되어, 이미 연결된 클라이언트 입장에서 연결이 끊긴 것처럼 보입니다. 이전 버전은 무거운 초기화를 먼저 했기 때문에 실패 시 connect 전에 종료되어 증상이 다르게 나타났습니다.
+
+**해결 방법:**
+
+1. **초기화 실패 원인 확인**  
+   터미널에서 직접 실행해 stderr 메시지를 확인하세요.
+   ```bash
+   npx -y memento-mcp-server@latest
+   ```
+   `[ERROR] MCP Server Initialization Failed` 다음에 나오는 `Error:` / `Stack:` 내용을 확인하면, DB_PATH·설정·네이티브 모듈 등 실패 원인을 알 수 있습니다.
+
+2. **서버 동작 변경 (v1.17.0 이후)**  
+   초기화 실패 시에도 프로세스는 종료하지 않고, MCP 연결은 유지됩니다. 도구 호출 시 초기화 실패 에러가 반환되므로, 위 1번으로 원인을 해결한 뒤 다시 시도하면 됩니다.
+
+3. **환경 점검**  
+   - `DB_PATH`(또는 기본값 `./data/memory.db`)에 대한 쓰기 권한  
+   - `validateConfig` 실패 시: 환경 변수·설정 검증 메시지 확인  
+   - better-sqlite3: Node 버전·플랫폼 일치 여부 ([일반적인 문제](#1-sqlite-모듈-오류-nodejs-버전-문제) 참고)
+
 ## 🔍 문제 진단
 
 ### 1. Node.js 버전 확인

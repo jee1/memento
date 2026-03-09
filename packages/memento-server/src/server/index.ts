@@ -249,11 +249,12 @@ async function runHeavyInit() {
     const err = error instanceof Error ? error : new Error(String(error));
     rejectInit(err);
     mcpLogger.logServer('error', `서버 초기화 실패: ${err.message}`, { error: err.message, stack: err.stack });
-    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed\n`);
+    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed (server stays up; tools will return this error)\n`);
     process.stderr.write(`Error: ${err.message}\n`);
     if (err.stack) process.stderr.write(`Stack:\n${err.stack}\n`);
     process.stderr.write(`\n`);
-    process.exit(1);
+    // Do NOT process.exit(1): client would see "Connection closed" during initializing.
+    // Keep server alive so the client gets Initialize response; tool calls will fail with this error.
   }
 }
 
