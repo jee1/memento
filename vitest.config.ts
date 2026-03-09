@@ -1,6 +1,16 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vitest/config';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      // 서버 테스트에서 @memento/core를 dist 없이 소스로 resolve (CI/로컬 npm test 시 진입점 오류 방지)
+      '@memento/core': path.resolve(__dirname, 'packages/memento-core/src/index.ts'),
+    },
+  },
   test: {
     globals: true,
     environment: 'node',
