@@ -30,6 +30,13 @@ let hasErrors = false;
 
 // bin 필드의 각 파일 검증
 for (const [name, path] of Object.entries(bin)) {
+  // npm 공개 패키지는 workspace 내부 경로를 bin으로 노출하면 npx 설치 시 의존성 해석이 깨질 수 있음
+  if (path.startsWith('./packages/') || path.startsWith('packages/')) {
+    console.error(`❌ workspace 내부 bin 경로는 사용할 수 없습니다: ${name} -> ${path}`);
+    hasErrors = true;
+    continue;
+  }
+
   const fullPath = join(projectRoot, path);
   
   console.log(`\n🔍 검증 중: ${name} -> ${path}`);
@@ -82,4 +89,3 @@ if (hasErrors) {
 } else {
   console.log('\n✅ 모든 bin 파일 검증 완료');
 }
-
