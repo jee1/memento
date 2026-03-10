@@ -10,16 +10,17 @@
     "apps/*"
   ],
   "bin": {
-    "memento-mcp-server": "./packages/memento-server/dist/server/index.js",
-    "memento-dev": "./packages/memento-server/dist/server/http-server.js",
-    "memento-mcp": "./packages/memento-server/dist/server/index.js",
+    "memento-mcp-server": "./dist/server/index.js",
+    "memento-dev": "./dist/server/http-server.js",
+    "memento-mcp": "./dist/server/index.js",
     "memento-setup": "./scripts/auto-setup.js"
   },
   "scripts": {
     "dev": "npm run dev -w memento-server",
     "dev:http": "npm run dev:http -w memento-server",
     "dev:http-v2": "npm run dev:http-v2 -w memento-server",
-    "build": "npm run build:packages",
+    "build": "npm run build:root && npm run build:packages",
+    "build:root": "tsc && npm run copy:assets",
     "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client",
     "copy:assets": "node src/scripts/copy-assets.js",
     "start": "npm run start -w memento-server",

@@ -22,6 +22,10 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
+
+      # @memento/core 진입점이 dist/index.js이므로, 테스트 전에 빌드 필요 (server 스펙이 core 의존)
+      - name: Build packages
+        run: npm run build
         
       - name: Run tests
         run: npm run test

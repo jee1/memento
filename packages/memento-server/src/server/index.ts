@@ -64,6 +64,11 @@ let db: Database.Database | null = null;
 // core에서 반환된 서비스 (ToolContext 생성 시 사용)
 let serverServices: ServerServices | null = null;
 
+/** Cursor 등 클라이언트가 7초 내에 Initialize 응답을 받도록, 무거운 초기화는 transport 연결 후 백그라운드에서 수행 */
+let initPromise: Promise<void>;
+let resolveInit: () => void;
+let rejectInit: (err: Error) => void;
+
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
 // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
@@ -187,35 +192,32 @@ async function checkInitialDatabaseStatus() {
   }
 }
 
-// MCP 서버 초기화
-async function initializeServer() {
+/**
+ * 무거운 초기화(DB·서비스·툴 등). transport 연결 후 백그라운드에서 실행하며,
+ * 완료 시 resolveInit()을 호출해 도구/리소스 요청이 동작하도록 함.
+ */
+async function runHeavyInit() {
   try {
     mcpLogger.logServer('info', `Memento MCP Server v${packageJson.version}`);
-    mcpLogger.logServer('info', 'MCP 서버 초기화 시작...');
-    
-    // 설정 검증
+    mcpLogger.logServer('info', 'MCP 서버 초기화(백그라운드) 시작...');
+
     validateConfig();
     mcpLogger.logServer('info', '설정 검증 완료');
 
-    // @memento/core로 DB·서비스 초기화
     const core = await createMementoCore({
       dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
     });
     db = core.db;
-    const services = core.services;
+    serverServices = core.services;
 
     mcpLogger.logServer('info', '데이터베이스·서비스 초기화 완료');
 
-    // 초기 데이터베이스 상태 확인 (주기적 모니터링은 DatabaseLockMonitor가 담당)
     await checkInitialDatabaseStatus();
     mcpLogger.logServer('info', '초기 데이터베이스 상태 확인 완료');
 
-    serverServices = services;
-    // 배치 스케줄러는 core bootstrap에서 이미 시작됨 (services.batchScheduler)
-
+    const services = serverServices;
     mcpLogger.logServer('info', '서비스 초기화 완료');
 
-    // 배치 스케줄러 상태 확인
     const batchScheduler = services.batchScheduler;
     const status = batchScheduler ? batchScheduler.getStatus() : { isRunning: false, activeJobs: 0, uptime: 0 };
     mcpLogger.logServer('info', `배치 스케줄러 상태: ${JSON.stringify({
@@ -223,8 +225,7 @@ async function initializeServer() {
       activeJobs: status.activeJobs,
       uptime: status.uptime
     }, null, 2)}`);
-    
-    // 임베딩 프로바이더 정보 표시
+
     const providerInfo: Record<string, unknown> = {
       provider: mementoConfig.embeddingProvider.toUpperCase()
     };
@@ -239,44 +240,32 @@ async function initializeServer() {
       providerInfo.dimensions = 512;
     }
     mcpLogger.logServer('info', '임베딩 프로바이더 정보', providerInfo);
-    
     mcpLogger.logServer('info', '검색 엔진 초기화 완료');
-    
-    // MCP 서버 생성
-    // MCP 스펙 준수: logging capability 선언 (MCP Spec 2024-11-05)
-    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
-    // instructions: InitializeResult에 포함되어 클라이언트(Cursor 등)가 AI에게 Memento 사용법을 안내하는 serverUseInstructions로 활용됨
-    server = new Server(
-      {
-        name: mementoConfig.serverName,
-        version: mementoConfig.serverVersion,
-      },
-      {
-        capabilities: {
-          tools: {},
-          resources: {},
-          prompts: {},
-          logging: {} // MCP 스펙: logging capability 선언 필수
-        },
-        instructions: MEMENTO_SERVER_INSTRUCTIONS
-      }
-    );
-    
-    // MCP 로거에 Server 인스턴스 설정
-    mcpLogger.setServer(server);
-    
-    mcpLogger.logServer('info', 'MCP 서버 생성 완료');
-    
-    // 주의: isTransportConnected 플래그는 server.connect() 호출 직전에 설정됨
-    // initializeServer()에서는 설정하지 않음
-    
-    // 도구 레지스트리 가져오기
+
+    resolveInit();
+    mcpLogger.logServer('info', 'MCP 서버 초기화(백그라운드) 완료');
+    mcpLogger.logServer('info', 'Memento MCP Server가 시작되었습니다!');
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    rejectInit(err);
+    mcpLogger.logServer('error', `서버 초기화 실패: ${err.message}`, { error: err.message, stack: err.stack });
+    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed (server stays up; tools will return this error)\n`);
+    process.stderr.write(`Error: ${err.message}\n`);
+    if (err.stack) process.stderr.write(`Stack:\n${err.stack}\n`);
+    process.stderr.write(`\n`);
+    // Do NOT process.exit(1): client would see "Connection closed" during initializing.
+    // Keep server alive so the client gets Initialize response; tool calls will fail with this error.
+  }
+}
+
+/** MCP 핸들러 등록. 각 핸들러는 await initPromise 후 실제 동작 수행(7초 내 Initialize 응답을 위해) */
+function registerHandlers() {
+  // Tools 등록
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    await initPromise;
+    await mcpLogger.logMCPProtocol('debug', '도구 목록 요청 처리');
     const toolRegistry = getToolRegistry();
-    
-    // Tools 등록
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
-      await mcpLogger.logMCPProtocol('debug', '도구 목록 요청 처리');
-      const tools = toolRegistry.getAll();
+    const tools = toolRegistry.getAll();
       await mcpLogger.logMCPProtocol('debug', `등록된 도구 개수: ${tools.length}`, { count: tools.length });
       
       return {
@@ -290,8 +279,8 @@ async function initializeServer() {
     
     // Resources 목록 핸들러
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      await initPromise;
       await mcpLogger.logMCPProtocol('debug', '리소스 목록 요청 처리');
-      
       if (!db) {
         throw new Error('Database not initialized');
       }
@@ -312,6 +301,7 @@ async function initializeServer() {
 
     // Prompts 목록 핸들러 (listOfferingsForUI 등 클라이언트 호출 시 Method not found 방지)
     server.setRequestHandler(ListPromptsRequestSchema, async () => {
+      await initPromise;
       await mcpLogger.logMCPProtocol('debug', '프롬프트 목록 요청 처리');
       return {
         prompts: [
@@ -330,6 +320,7 @@ async function initializeServer() {
 
     // Prompt 조회 핸들러
     server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      await initPromise;
       const { name } = request.params;
       await mcpLogger.logMCPProtocol('debug', `프롬프트 조회 요청: ${name}`, { name });
       if (name === 'memory_injection') {
@@ -347,6 +338,7 @@ async function initializeServer() {
     
     // Resource 읽기 핸들러
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      await initPromise;
       const { uri } = request.params;
       await mcpLogger.logMCPProtocol('debug', `리소스 읽기 요청: ${uri}`, { uri });
       
@@ -431,29 +423,17 @@ async function initializeServer() {
     
     // Tool 실행 핸들러 - 동시성 제한 적용
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      await initPromise;
       const { name, arguments: args } = request.params;
       await mcpLogger.logMCPProtocol('debug', `도구 실행 요청: ${name}`, { toolName: name, args });
-      
-      // 동시성 제한 적용
       await concurrencyLimiter.acquire();
-      
       try {
-        // Phase 7.8: 공통 에러 핸들러 사용
         return await withErrorHandling(
           async () => {
-            // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
-            if (!serverServices) {
-              throw new Error('서비스가 초기화되지 않았습니다');
-            }
-            
-            if (!db) {
-              throw new Error('데이터베이스가 초기화되지 않았습니다');
-            }
-            
-            // Phase 7.4: 표준 팩토리 함수 사용
+            if (!serverServices) throw new Error('서비스가 초기화되지 않았습니다');
+            if (!db) throw new Error('데이터베이스가 초기화되지 않았습니다');
             const context = createToolContext(db, serverServices);
-            
-            // 도구 실행
+            const toolRegistry = getToolRegistry();
             const toolResult = await toolRegistry.execute(name, args, context);
             await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
             
@@ -494,6 +474,7 @@ async function initializeServer() {
     // - 환경 변수에 로그 레벨 설정 (MCPLogger가 환경 변수를 읽음)
     // - 에러 처리: 잘못된 레벨 시 명확한 에러 메시지 반환
     server.setRequestHandler(SetLevelRequestSchema, async (request) => {
+      await initPromise;
       const { level } = request.params;
       await mcpLogger.logMCPProtocol('debug', `로그 레벨 변경 요청: ${level}`, { level });
       
@@ -511,67 +492,46 @@ async function initializeServer() {
       
       return {};
     });
-    
-    mcpLogger.logServer('info', 'MCP 서버 초기화 완료');
-    
-    // 실시간 성능 모니터링 시작
-    // performanceMonitoringIntegration.startRealTimeMonitoring();
-    
-    mcpLogger.logServer('info', 'Memento MCP Server가 시작되었습니다!');
-    // process.stderr.write('📊 실시간 성능 모니터링이 활성화되었습니다\n');
-    
-  } catch (error) {
-    // 에러 발생 시 상세 정보를 stderr에 출력
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    mcpLogger.logServer('error', `서버 초기화 실패: ${errorMessage}`, { 
-      error: errorMessage,
-      stack: errorStack,
-      type: error instanceof Error ? error.constructor.name : typeof error
-    });
-    
-    // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
-    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed\n`);
-    process.stderr.write(`Error: ${errorMessage}\n`);
-    if (errorStack) {
-      process.stderr.write(`Stack:\n${errorStack}\n`);
-    }
-    process.stderr.write(`\n`);
-    
-    process.exit(1);
-  }
 }
 
 // 서버 시작
 async function startServer() {
   try {
-    // MCP 프로토콜 준수: transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
-    // initializeServer() 호출 전에 플래그를 설정하여 초기화 중 로그 출력 방지
-    // ServerState를 통해 mcpLogger에서 접근 가능하도록 설정
     serverState.setMcpTransportConnected(false);
-    
-    await initializeServer();
-    mcpLogger.logServer('info', '서버 초기화 완료');
-    
-    // Stdio 전송 계층 사용
-    // MCP SDK의 StdioServerTransport가 stdout을 사용하여 JSON-RPC 메시지 전송
-    // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
-    
+
+    initPromise = new Promise<void>((resolve, reject) => {
+      resolveInit = resolve;
+      rejectInit = reject;
+    });
+
+    server = new Server(
+      {
+        name: mementoConfig.serverName,
+        version: mementoConfig.serverVersion,
+      },
+      {
+        capabilities: {
+          tools: {},
+          resources: {},
+          prompts: {},
+          logging: {}
+        },
+        instructions: MEMENTO_SERVER_INSTRUCTIONS
+      }
+    );
+    mcpLogger.setServer(server);
+    registerHandlers();
+
+    // transport를 먼저 연결해 Cursor가 7초 내에 Initialize 응답을 받도록 함
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    
-    // transport 연결 완료 후 로그 출력 허용
+
     serverState.setMcpTransportConnected(true);
-    
-    // 서버 초기화 완료 플래그 설정
-    // console.error 오버라이드가 MCP Logger를 사용하도록 전환
-    // MCP 스펙 준수 범위: 서버 초기화 완료 후부터 적용
-    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
     serverState.setMcpServerInitialized(true);
-    
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
-    
-    // MCP 클라이언트 연결 대기 중
+
+    // 무거운 초기화(DB·서비스)는 백그라운드에서 수행
+    void runHeavyInit();
     mcpLogger.logServer('info', 'MCP 클라이언트 연결 대기 중...');
     
     // 서버가 종료될 때까지 대기
