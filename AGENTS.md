@@ -50,6 +50,9 @@ Vitest로 단위·통합 테스트를 수행하며, 파일 네이밍 규칙은 �
 - **작업 전**: 답변을 제공하거나 작업을 진행하기 전에 Memento MCP로 관련 기억이 있는지 조회한다. 작업 주제·키워드로 `recall`(하이브리드 검색) 또는 `memory_injection`(쿼리 기반 컨텍스트 주입)을 사용하고, 앵커가 설정되어 있으면 `search_local`로 앵커 주변 기억을 참고한다. 발견한 관련 기억을 앵커로 설정해 두면 이후 작업에 일관되게 참고할 수 있다.
 - **작업 후**: 작업이 끝나면 결과를 기억으로 남긴다. `remember` 도구로 완료 기록은 `type: episodic`(태그 예: `completed`), 재사용 가능한 지식은 `type: semantic`(태그 예: `best-practice`, `knowledge`), 반복되는 절차는 `type: procedural`(태그 예: `procedure`)로 저장한다. 중복 저장을 줄이기 위해 저장 전에 관련 기억 검색으로 이미 있는지 확인하고, 구체적이고 검색 가능한 키워드를 포함해 둔다.
 
+## Memento CLI 사용 (AI/스크립트)
+- **CLI 사용 시**: 작업 전에는 `recall` 또는 `memory_injection`으로 관련 기억을 조회하고, 작업 후에는 `remember`로 결과를 저장한다. 설정은 **DB_PATH** 환경 변수 또는 **~/.memento/.env**에서 지정한다. 자세한 사용법은 [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md)를 참조한다.
+
 ## Serena MCP 사용
 - Codex는 가능한 한 Serena MCP 도구를 통해 코드 탐색·편집 작업을 수행한다. 전체 `read_file` 호출에 의존하기 전에 심볼 인식 명령(`get_symbols_overview`, `find_symbol`, `find_referencing_symbols`, `replace_symbol_body` 등)을 우선 사용한다.
 - 같은 파일을 여러 번 다시 읽지 않는다. 이전 Serena 응답을 캐시하고, overview나 시그니처만으로는 부족할 때만 추가 상세를 요청한다.

@@ -19,6 +19,7 @@ function getCurrentLogLevel(): LogLevel {
 }
 
 function shouldLog(level: LogLevel): boolean {
+  if (process.env.MEMENTO_CLI_QUIET === '1') return false;
   return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[getCurrentLogLevel()];
 }
 

@@ -287,8 +287,17 @@ function logWithMCPLogger(level: LogLevel, message: string, meta?: Record<string
  * - stderr.write()를 사용하여 표준 에러 출력
  * - 구조화된 텍스트 형식 (ISO 8601 타임스탬프 + 레벨 + 메시지 + JSON 메타데이터)
  */
+/**
+ * CLI 모드에서 로그 억제 (REQ-IO-4, AC8).
+ * MEMENTO_CLI_QUIET=1 이면 stdout/stderr에 로그를 남기지 않음.
+ */
+export function isCliQuiet(): boolean {
+  return process.env.MEMENTO_CLI_QUIET === '1';
+}
+
 export const logger: Logger = {
   debug(message: string, meta?: Record<string, unknown>): void {
+    if (isCliQuiet()) return;
     // 중복 로그 방지: MCP 모드와 일반 모드가 동시에 작동하지 않도록 보장
     const mcpMode = isMCPMode();
     if (mcpMode) {
@@ -298,6 +307,7 @@ export const logger: Logger = {
     }
   },
   info(message: string, meta?: Record<string, unknown>): void {
+    if (isCliQuiet()) return;
     const mcpMode = isMCPMode();
     if (mcpMode) {
       logWithMCPLogger('info', message, meta);
@@ -306,6 +316,7 @@ export const logger: Logger = {
     }
   },
   warn(message: string, meta?: Record<string, unknown>): void {
+    if (isCliQuiet()) return;
     const mcpMode = isMCPMode();
     if (mcpMode) {
       logWithMCPLogger('warn', message, meta);
@@ -314,6 +325,7 @@ export const logger: Logger = {
     }
   },
   error(message: string, meta?: Record<string, unknown>): void {
+    if (isCliQuiet()) return;
     const mcpMode = isMCPMode();
     if (mcpMode) {
       logWithMCPLogger('error', message, meta);

@@ -6,6 +6,7 @@
   "private": true,
   "main": "dist/server/index.js",
   "bin": {
+    "memento": "./dist/cli.js",
     "memento-mcp-server": "./dist/server/index.js",
     "memento-dev": "./dist/server/http-server.js",
     "memento-mcp": "./dist/server/index.js"
