@@ -10,7 +10,7 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
 import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
-import { logger } from '../../../shared/utils/logger.js';
+import { logger, isCliQuiet } from '../../../shared/utils/logger.js';
 import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
 
 export interface GeminiEmbeddingResult {
@@ -68,9 +68,11 @@ export class GeminiEmbeddingService {
       // 초기화 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      process.stderr.write(
-        `❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM 모델을 사용하세요: ${errorMsg}\n`
-      );
+      if (!isCliQuiet()) {
+        process.stderr.write(
+          `❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM 모델을 사용하세요: ${errorMsg}\n`
+        );
+      }
       this.genAI = null;
     }
   }
@@ -162,13 +164,13 @@ export class GeminiEmbeddingService {
         return embeddingResult;
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        process.stderr.write(`⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback: ${maskedError.message}\n`);
+        if (!isCliQuiet()) process.stderr.write(`⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback: ${maskedError.message}\n`);
         // Gemini 실패 시 MiniLM 서비스로 fallback
       }
     }
 
     // 3. Gemini가 없거나 실패한 경우 MiniLM 서비스 사용
-    process.stderr.write('🔄 MiniLM 임베딩 서비스 사용\n');
+    if (!isCliQuiet()) process.stderr.write('🔄 MiniLM 임베딩 서비스 사용\n');
     try {
       const miniLMResult = await this.miniLMService.generateEmbedding(text);
       if (!miniLMResult) {
@@ -188,7 +190,7 @@ export class GeminiEmbeddingService {
       return result;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
+      if (!isCliQuiet()) process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
       throw new Error(`임베딩 생성 실패: ${maskedError.message}`);
     }
   }

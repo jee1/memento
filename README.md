@@ -106,6 +106,8 @@ npx memento-mcp-server@latest setup
 > npm exec -- memento-mcp-server@latest dev
 > ```
 
+**npx 실행 시 모드**: MCP 서버(`memento-mcp-server` / stdio), HTTP 서버(`memento-dev`), **CLI**(`memento` — recall, remember, forget, memory_injection)를 구분해 사용할 수 있습니다. **CLI를 반복 사용할 때는** 매번 npx로 실행하면 다운로드가 발생할 수 있으므로 **글로벌 설치**(`npm i -g memento-mcp-server`) 또는 로컬 설치 후 `./node_modules/.bin/memento` 사용을 권장합니다. CLI 가이드: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
+
 ### 🥉 **Docker 방식 (프로덕션용)**
 ```bash
 # 개발 환경

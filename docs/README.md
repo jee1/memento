@@ -28,6 +28,7 @@
 ### 공통 (EN/KO)
 - Cursor MCP: [en](guides/en/cursor-mcp-setup.md) / [ko](guides/ko/cursor-mcp-setup.md)
 - MCP serverUseInstructions (서버 사용 지침): [ko](guides/ko/mcp-server-instructions.md)
+- **Memento CLI for AI**: [ko](guides/ko/memento-cli-for-ai.md) — recall, remember, forget, memory_injection, 설정(~/.memento, DB_PATH), 워크플로·예제.
 - 관계 라벨링: [en](guides/en/relation-labeling-guide.md) / [ko](guides/ko/relation-labeling-guide.md)
 - 앵커 연결 확인: [en](guides/en/how-to-check-anchor-connections.md) / [ko](guides/ko/how-to-check-anchor-connections.md)
 - 멀티 에이전트: [en](guides/en/multi-agent-usage.md) / [ko](guides/ko/multi-agent-usage.md)
@@ -70,6 +71,12 @@
 - [plans/ko/2026-03-02-memento-growth-strategy-design.md](plans/ko/2026-03-02-memento-growth-strategy-design.md) — 성장 전략 설계 (Phase 0 성능 적정성 판단 + 마일스톤 결합)
 - 기타: [plans/ko/](plans/ko/) 디렉터리 참고
 - PRD·태스크 목록: 루트 [tasks/](../tasks/) ([tasks/README.md](../tasks/README.md) 참고)
+
+### 명세 (specs) — SDD SPECIFY
+
+구현 명세(요구사항·인터페이스·수용 기준)를 정리한 문서. Plan → Tasks → Implement 시 기준으로 사용.
+
+- **Memento CLI for AI**: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](specs/ko/2026-03-11-memento-cli-for-ai-spec.md) — CLI 진입점, 입출력 규격, 환경 설정(~/.memento), 수용 기준. 설계: [design/memento-cli-for-ai-review.md](design/memento-cli-for-ai-review.md), 이슈 [#110](https://github.com/jee1/memento/issues/110). **구현 계획(PLAN)**: [plans/ko/2026-03-11-memento-cli-for-ai-implementation-plan.md](plans/ko/2026-03-11-memento-cli-for-ai-implementation-plan.md).
 
 ---
 

@@ -102,6 +102,8 @@ jobs:
       - run: npm ci
       - name: Build @memento/core (required for server test resolution)
         run: npm run build -w @memento/core
+      - name: Build memento-server (CLI dist for integration tests)
+        run: npm run build -w memento-server
       - name: Run tests (packages/memento-server)
         run: npm run test:ci:server
       - name: Upload test results

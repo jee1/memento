@@ -9,6 +9,7 @@
  */
 
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
   EmbeddingServiceInterface, 
   EmbeddingResult, 
@@ -64,7 +65,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ 임베딩 생성 실패: ${maskedError.message}\n`);
+      if (!isCliQuiet()) process.stderr.write(`❌ 임베딩 생성 실패: ${maskedError.message}\n`);
       this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
@@ -109,14 +110,14 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ 유사도 검색 실패: ${maskedError.message}\n`);
+      if (!isCliQuiet()) process.stderr.write(`❌ 유사도 검색 실패: ${maskedError.message}\n`);
       this.handleProviderFailure(this.currentProviderName);
       
       // 폴백 시도
       try {
         return await this.tryFallbackSearch(query, embeddings, limit, threshold);
       } catch (fallbackError) {
-        process.stderr.write('⚠️ 모든 제공자 실패, 빈 결과 반환\n');
+        if (!isCliQuiet()) process.stderr.write('⚠️ 모든 제공자 실패, 빈 결과 반환\n');
         return [];
       }
     }
@@ -246,7 +247,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       const expectedDimensions = VECTOR_SEARCH.PROVIDER_DIMENSIONS[decision.selectedProvider as keyof typeof VECTOR_SEARCH.PROVIDER_DIMENSIONS];
       if (expectedDimensions && result.embedding.length !== expectedDimensions) {
         // 차원 불일치 경고 (하지만 결과는 반환)
-        process.stderr.write(`⚠️ 차원 불일치: 예상 ${expectedDimensions}, 실제 ${result.embedding.length} (provider: ${decision.selectedProvider})\n`);
+        if (!isCliQuiet()) process.stderr.write(`⚠️ 차원 불일치: 예상 ${expectedDimensions}, 실제 ${result.embedding.length} (provider: ${decision.selectedProvider})\n`);
       }
       
       return result;
