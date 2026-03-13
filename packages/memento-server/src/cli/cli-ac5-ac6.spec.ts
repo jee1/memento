@@ -7,13 +7,14 @@
  * 실행 전 npm run build -w memento-server 필요.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
 const cliPath = path.join(__dirname, '../../dist/cli.js');
+const cliBuilt = fs.existsSync(cliPath);
 
 interface RunCliOptions {
   env?: NodeJS.ProcessEnv;
@@ -41,13 +42,7 @@ function runCli(
   });
 }
 
-describe('CLI AC5/AC6', () => {
-  beforeAll(() => {
-    if (!fs.existsSync(cliPath)) {
-      console.warn('CLI not built. Run: npm run build -w memento-server');
-    }
-  });
-
+describe.skipIf(!cliBuilt)('CLI AC5/AC6', () => {
   it('AC5: --db-path 지정 시 해당 DB 사용 (recall 호출 시 exit 0, JSON stdout)', async () => {
     const dbPath = path.join(os.tmpdir(), `memento-cli-ac5-${Date.now()}.db`);
     const { stdout, code } = await runCli([
