@@ -1,7 +1,7 @@
 # Memento CLI for AI — Structure (Memory Bank)
 
 SDD **Plan** 단계의 **Memory Bank** 문서 1/3. 시스템 아키텍처, 컴포넌트 간 관계, 디렉터리 구조를 정의한다.  
-**기준 명세**: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](../../specs/ko/2026-03-11-memento-cli-for-ai-spec.md)
+**기준 명세**: [spec.md](./spec.md)
 
 ---
 

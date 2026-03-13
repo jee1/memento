@@ -29,6 +29,7 @@
 - Cursor MCP: [en](guides/en/cursor-mcp-setup.md) / [ko](guides/ko/cursor-mcp-setup.md)
 - MCP serverUseInstructions (서버 사용 지침): [ko](guides/ko/mcp-server-instructions.md)
 - **Memento CLI for AI**: [ko](guides/ko/memento-cli-for-ai.md) — recall, remember, forget, memory_injection, 설정(~/.memento, DB_PATH), 워크플로·예제.
+- **SDD 워크플로**: [ko](guides/ko/sdd-workflow.md) — Specification-Driven Development: Design → SPEC → PLAN → 구현, 문서 위치·체크리스트.
 - 관계 라벨링: [en](guides/en/relation-labeling-guide.md) / [ko](guides/ko/relation-labeling-guide.md)
 - 앵커 연결 확인: [en](guides/en/how-to-check-anchor-connections.md) / [ko](guides/ko/how-to-check-anchor-connections.md)
 - 멀티 에이전트: [en](guides/en/multi-agent-usage.md) / [ko](guides/ko/multi-agent-usage.md)
@@ -72,11 +73,12 @@
 - 기타: [plans/ko/](plans/ko/) 디렉터리 참고
 - PRD·태스크 목록: 루트 [tasks/](../tasks/) ([tasks/README.md](../tasks/README.md) 참고)
 
-### 명세 (specs) — SDD SPECIFY
+### 명세·계획 (SDD) — 기능별 동일 경로
 
-구현 명세(요구사항·인터페이스·수용 기준)를 정리한 문서. Plan → Tasks → Implement 시 기준으로 사용.
+구현 명세(SPEC)와 구현 계획(PLAN)은 **기능마다 한 디렉터리**에 둔다: `plans/ko/YYYY-MM-DD-기능명/spec.md`, `implementation-plan.md` (선택: Structure.md, Tech.md, Product.md). Plan → Tasks → Implement 시 기준 문서로 사용. **SDD 절차**: [guides/ko/sdd-workflow.md](guides/ko/sdd-workflow.md).
 
-- **Memento CLI for AI**: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](specs/ko/2026-03-11-memento-cli-for-ai-spec.md) — CLI 진입점, 입출력 규격, 환경 설정(~/.memento), 수용 기준. 설계: [design/memento-cli-for-ai-review.md](design/memento-cli-for-ai-review.md), 이슈 [#110](https://github.com/jee1/memento/issues/110). **구현 계획(PLAN)**: [plans/ko/2026-03-11-memento-cli-for-ai-implementation-plan.md](plans/ko/2026-03-11-memento-cli-for-ai-implementation-plan.md).
+- **Memento CLI for AI**: 기능별 디렉터리 [plans/ko/2026-03-11-memento-cli-for-ai/](plans/ko/2026-03-11-memento-cli-for-ai/) — [design.md](plans/ko/2026-03-11-memento-cli-for-ai/design.md), [spec.md](plans/ko/2026-03-11-memento-cli-for-ai/spec.md), [implementation-plan.md](plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md), Memory Bank(Structure/Tech/Product). 이슈 [#110](https://github.com/jee1/memento/issues/110). *(신규 기능도 동일하게 기능별 디렉터리에 design + spec + plan 함께 둠.)*
+- **현 상태 SDD 이관 검토**: [plans/ko/2026-03-14-sdd-current-state-migration-review.md](plans/ko/2026-03-14-sdd-current-state-migration-review.md) — 기존 문서 정리·신규 문서 생성 방안, 기능별 그룹핑·우선순위.
 
 ---
 
