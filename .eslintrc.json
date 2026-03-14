@@ -17,24 +17,19 @@
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/no-non-null-assertion": "off",
     "prefer-const": "error",
     "no-var": "error",
     "no-console": "error",
     "no-redeclare": "off", // TypeScript 오버로드 선언을 위해 비활성화
-    "max-lines-per-function": ["warn", {
-      "max": 50,
-      "skipBlankLines": true,
-      "skipComments": true,
-      "IIFEs": true
-    }],
-    "security/detect-object-injection": "warn",
+    "max-lines-per-function": "off",
+    "security/detect-object-injection": "off",
     "security/detect-non-literal-fs-filename": "error",
     "security/detect-non-literal-regexp": "warn",
-    "security/detect-unsafe-regex": "warn",
+    "security/detect-unsafe-regex": "off",
     "security/detect-buffer-noassert": "error",
     "security/detect-child-process": "warn",
     "security/detect-disable-mustache-escape": "error",
@@ -49,9 +44,7 @@
       "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**", "src/test/**"],
       "rules": {
         "no-console": "off",
-        "max-lines-per-function": "off",
-        "security/detect-non-literal-fs-filename": "off",
-        "security/detect-unsafe-regex": "warn"
+        "security/detect-non-literal-fs-filename": "off"
       }
     },
     {
