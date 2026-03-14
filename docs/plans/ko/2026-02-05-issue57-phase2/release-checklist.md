@@ -39,5 +39,5 @@
 
 ## 관련 문서
 
-- `docs/recall-performance-tuning.md` — recall 프로파일링 사용법
-- `docs/multi-agent-usage.md` — owner_id / 다중 에이전트 사용법
+- [recall 성능 튜닝](../../../guides/ko/recall-performance-tuning.md) — recall 프로파일링 사용법
+- [다중 에이전트 사용](../../../guides/ko/multi-agent-usage.md) — owner_id / 다중 에이전트 사용법

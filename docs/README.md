@@ -67,7 +67,7 @@
 
 - **모노레포·memento-core 분리**: [plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md](plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md) — 구현 계획. 설계·브레인스토밍: [brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md). 실험 앱 연결 방식(라이브러리 in-process vs 서버 원격)은 계획서·브레인스토밍 참고.
 - [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
-- [plans/ko/2026-02-05-issue57-phase2-roadmap.md](plans/ko/2026-02-05-issue57-phase2-roadmap.md) — Phase2 로드맵
+- **Issue #57 Phase 2**: [plans/ko/2026-02-05-issue57-phase2/](plans/ko/2026-02-05-issue57-phase2/) — [roadmap.md](plans/ko/2026-02-05-issue57-phase2/roadmap.md), [spec.md](plans/ko/2026-02-05-issue57-phase2/spec.md), [implementation-plan.md](plans/ko/2026-02-05-issue57-phase2/implementation-plan.md)
 - [plans/ko/2026-03-03-repo-cleanup-design.md](plans/ko/2026-03-03-repo-cleanup-design.md) — 저장소 정리 설계 (불필요 파일·디렉토리, 단계별 정리)
 - [plans/ko/2026-03-02-memento-growth-strategy-design.md](plans/ko/2026-03-02-memento-growth-strategy-design.md) — 성장 전략 설계 (Phase 0 성능 적정성 판단 + 마일스톤 결합)
 - 기타: [plans/ko/](plans/ko/) 디렉터리 참고

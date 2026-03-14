@@ -2,7 +2,7 @@
 
 **일자**: 2026-02-05  
 **관련 이슈**: [Issue #57](https://github.com/jee1/memento/issues/57) — Procedural Memory Phase 2  
-**로드맵**: `docs/plans/2026-02-05-issue57-phase2-roadmap.md` (3단계 B)
+**로드맵**: [roadmap.md](./roadmap.md) (3단계 B)
 
 ---
 

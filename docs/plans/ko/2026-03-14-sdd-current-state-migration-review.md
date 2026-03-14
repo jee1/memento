@@ -165,6 +165,8 @@
 | 2단계 | monorepo-memento-core, repo-cleanup, procedural-version-management, procedural-llm-extractor — 폴더 생성·이동·spec 요약·리다이렉트 | 완료 |
 | 3단계 | issue-87, 88, 89, 90 — 폴더 생성·implementation-plan 이동·spec 요약·리다이렉트 | 완료 |
 | 4단계 | memento-growth-strategy, memori-inspired, remember-procedure — 폴더 생성·design.md 이동·리다이렉트 | 완료 |
-| 유보 | issue57-phase2(로드맵 여러 편), issue-21/91(설계 1편), database-design-consolidation — 필요 시 동일 패턴으로 폴더화 | 선택 |
+| 5단계 | issue-21(메타 메모리 인트로스펙션), issue-91(Process Attribute recall) — 구현 코드 기준 design/spec/implementation-plan 작성·폴더 이관·리다이렉트 | 완료 |
+| 6단계 | issue57-phase2(로드맵·B/D 설계·BD 계획·체크리스트) — `plans/ko/2026-02-05-issue57-phase2/` 폴더 생성, roadmap/design-b/design-d/implementation-plan/release-checklist/spec 배치, 리다이렉트 stub | 완료 |
+| 유보 | database-design-consolidation — 필요 시 동일 패턴으로 폴더화 | 선택 |
 
 이 검토안대로 진행하면 “이미 개발 완료된 현 상태”가 SDD의 기능별 동일 경로(design → spec → implementation-plan)에 맞게 정리되고, 이후 신규 기능도 동일 규칙으로 추가할 수 있다.
