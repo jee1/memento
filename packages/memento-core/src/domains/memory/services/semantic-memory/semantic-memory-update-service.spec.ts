@@ -1112,16 +1112,22 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episode Weight 누적 확인
       const updatedMemory = DatabaseUtils.get(db, `
-        SELECT id, importance, recall_count
+        SELECT id, importance, recall_count, num_times, last_mentioned_at
         FROM memory_item
         WHERE id = ?
       `, [semanticMemoryId]) as {
         id: string;
         importance: number;
         recall_count: number;
+        num_times: number;
+        last_mentioned_at: string | null;
       };
 
       expect(updatedMemory.recall_count).toBe(1); // Episode Weight 증가 확인
+      // Issue #20: 병합 시 반복 메타 보존
+      expect(updatedMemory.num_times).toBe(2); // 1(초기) + 1(병합)
+      expect(updatedMemory.last_mentioned_at).toBeDefined();
+      expect(new Date(updatedMemory.last_mentioned_at!).getTime()).toBeGreaterThanOrEqual(Date.now() - 5000);
       expect(updatedMemory.importance).toBeGreaterThanOrEqual(initialMemory.importance); // 중요도 증가 확인
     });
   });

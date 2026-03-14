@@ -654,14 +654,17 @@ export class SemanticMemoryUpdateService {
       episodeWeight
     );
 
-    // 기존 항목 업데이트 (병합)
+    // 기존 항목 업데이트 (병합). Issue #20: 반복 보존 — num_times·last_mentioned_at 갱신
+    const nowIso = new Date().toISOString();
     await DatabaseUtils.run(this.db, `
       UPDATE memory_item
       SET importance = ?,
           recall_count = recall_count + 1,
-          last_accessed_at = CURRENT_TIMESTAMP
+          last_accessed_at = CURRENT_TIMESTAMP,
+          num_times = COALESCE(num_times, 1) + 1,
+          last_mentioned_at = ?
       WHERE id = ?
-    `, [newImportance, semanticMemoryId]);
+    `, [newImportance, nowIso, semanticMemoryId]);
 
     logger.debug('SemanticMemoryUpdateService: Semantic Memory 업데이트 (병합)', {
       id: semanticMemoryId,
