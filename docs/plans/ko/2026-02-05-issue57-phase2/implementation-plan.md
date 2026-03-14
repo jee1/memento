@@ -290,14 +290,14 @@ git commit -m "docs: add multi-agent usage guide (Issue #57 Phase 2 D)"
 ## 로드맵 문서 업데이트
 
 **Files:**
-- Modify: `docs/plans/2026-02-05-issue57-phase2-roadmap.md`
+- Modify: [roadmap.md](./roadmap.md) (본 디렉터리)
 
 **Step 1:** 3단계 B, 4단계 D 행에 설계·구현 문서 링크 및 "(진행/완료)" 표기 추가.
 
 **Step 2: Commit**
 
 ```bash
-git add docs/plans/2026-02-05-issue57-phase2-roadmap.md
+git add docs/plans/ko/2026-02-05-issue57-phase2/roadmap.md
 git commit -m "docs: update Issue #57 roadmap with B and D design/plan links"
 ```
 

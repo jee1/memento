@@ -1,7 +1,7 @@
 # Memento CLI for AI — Tech (Memory Bank)
 
 SDD **Plan** 단계의 **Memory Bank** 문서 2/3. 프레임워크·라이브러리 버전, 데이터베이스 스키마, 기술적 제약 사항을 정의한다.  
-**기준 명세**: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](../../specs/ko/2026-03-11-memento-cli-for-ai-spec.md)
+**기준 명세**: [spec.md](./spec.md)
 
 ---
 
@@ -31,7 +31,7 @@ SDD **Plan** 단계의 **Memory Bank** 문서 2/3. 프레임워크·라이브러
 ## 3. 데이터베이스
 
 - **스키마**: CLI는 **기존 SQLite 스키마를 그대로 사용**한다. 스키마 변경·마이그레이션은 core 책임.
-- **진실 공급원**: `packages/memento-core/src/infrastructure/database/database/schema.sql` 및 마이그레이션 디렉터리. 참조: [architecture/ko/database-design.md](../../architecture/ko/database-design.md).
+- **진실 공급원**: `packages/memento-core/src/infrastructure/database/database/schema.sql` 및 마이그레이션 디렉터리. 참조: [architecture/ko/database-design.md](../../../architecture/ko/database-design.md).
 - **DB 경로 결정**: `opts.dbPath ?? process.env.DB_PATH ?? mementoConfig.dbPath`. CLI는 이 한 번 결정된 경로로만 `createMementoCore({ dbPath })` 호출.
 - **초기화/마이그레이션**: DB가 없거나 스키마가 낮은 경우 core 내부에서 처리. CLI는 `db:init`/`db:migrate` 스크립트를 실행하지 않으며, 사용자가 별도로 실행하는 것을 가이드 문서에서 안내.
 
@@ -72,8 +72,8 @@ SDD **Plan** 단계의 **Memory Bank** 문서 2/3. 프레임워크·라이브러
 ## 7. 참조 문서
 
 - Core 설정: `packages/memento-core/src/shared/config/index.ts`, environment 관련.
-- DB 설계: [docs/architecture/ko/database-design.md](../../architecture/ko/database-design.md).
-- 보안: [docs/reference/ko/security.md](../../reference/ko/security.md) — 경로 검증·에러 메시지 노출 정책.
+- DB 설계: [docs/architecture/ko/database-design.md](../../../architecture/ko/database-design.md).
+- 보안: [docs/reference/ko/security.md](../../../reference/ko/security.md) — 경로 검증·에러 메시지 노출 정책.
 
 ---
 

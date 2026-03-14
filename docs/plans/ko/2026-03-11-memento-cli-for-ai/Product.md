@@ -1,7 +1,7 @@
 # Memento CLI for AI — Product (Memory Bank)
 
 SDD **Plan** 단계의 **Memory Bank** 문서 3/3. 비즈니스 맥락과 기존 기능과의 유기적 연관성을 정리한다.  
-**기준 명세**: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](../../specs/ko/2026-03-11-memento-cli-for-ai-spec.md)
+**기준 명세**: [spec.md](./spec.md)
 
 ---
 
@@ -50,7 +50,7 @@ SDD **Plan** 단계의 **Memory Bank** 문서 3/3. 비즈니스 맥락과 기존
 ### 2.4 문서·에이전트 규칙
 
 - **AGENTS.md** / Cursor 규칙: “작업 전 recall·memory_injection, 작업 후 remember. 설정은 DB_PATH 또는 ~/.memento/.env.” — CLI 사용 시나리오를 전제로 한 워크플로.
-- **가이드**: [docs/guides/ko/memento-cli-for-ai.md](../../guides/ko/memento-cli-for-ai.md) — 명령 목록, 워크플로, 설정 방법, 예제. MCP 가이드와 나란히 CLI 전용 사용법을 제공.
+- **가이드**: [docs/guides/ko/memento-cli-for-ai.md](../../../guides/ko/memento-cli-for-ai.md) — 명령 목록, 워크플로, 설정 방법, 예제. MCP 가이드와 나란히 CLI 전용 사용법을 제공.
 
 ---
 

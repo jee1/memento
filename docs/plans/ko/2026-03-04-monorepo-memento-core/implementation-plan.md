@@ -13,8 +13,8 @@ date: 2026-03-04
 
 **Tech Stack:** npm workspaces(또는 선호 시 pnpm/Turborepo), TypeScript, Vitest, 기존 src/ 구조.
 
-**설계·브레인스토밍:** [docs/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md)  
-**현황 조사:** [docs/reference/ko/monorepo-migration-current-state-report.md](../../reference/ko/monorepo-migration-current-state-report.md)
+**설계·브레인스토밍:** [design.md](./design.md)  
+**현황 조사:** [monorepo-migration-current-state-report.md](../../../reference/ko/monorepo-migration-current-state-report.md)
 
 ---
 
@@ -73,8 +73,8 @@ date: 2026-03-04
 
 ## References & Research
 
-- 브레인스토밍: [docs/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md)
-- 현황 조사: [docs/reference/ko/monorepo-migration-current-state-report.md](../../reference/ko/monorepo-migration-current-state-report.md)
+- 브레인스토밍: [design.md](./design.md)
+- 현황 조사: [monorepo-migration-current-state-report.md](../../../reference/ko/monorepo-migration-current-state-report.md)
 - 스펙 플로우 분석: DB 경로 주입 API, 에셋 경로, 클라이언트 소스 위치, 워크스페이스 빌드 순서 등 수용 기준 반영됨.
 
 ---

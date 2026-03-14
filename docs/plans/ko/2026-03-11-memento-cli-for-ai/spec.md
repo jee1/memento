@@ -15,8 +15,8 @@ SDD(Specification-Driven Development)의 **Specify** 단계 산출물. 논의된
 | **상태** | draft |
 | **언어** | ko (한국어) |
 | **관련 이슈** | [#110](https://github.com/jee1/memento/issues/110) |
-| **설계 문서** | [docs/design/memento-cli-for-ai-review.md](../../design/memento-cli-for-ai-review.md) |
-| **사전 코드 리뷰** | [docs/code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md](../../code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md) |
+| **설계 문서** | [design.md](./design.md) |
+| **사전 코드 리뷰** | [2026-03-11-feat-110-cli-for-ai-ts-pre-review.md](../../../code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md) |
 
 ---
 
@@ -160,11 +160,11 @@ Phase 1에서 **반드시** 구현할 서브커맨드:
 
 ## 6. 참조 및 연관 문서
 
-- **설계(검토)**: [docs/design/memento-cli-for-ai-review.md](../../design/memento-cli-for-ai-review.md)
-- **사전 코드 리뷰(TS)**: [docs/code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md](../../code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md) — 타입 안전성, env-loader/option-map 문서화, 테스트(AC6·실패 시나리오) 권장 사항이 본 명세에 반영됨.
+- **설계(검토)**: [design.md](./design.md)
+- **사전 코드 리뷰(TS)**: [2026-03-11-feat-110-cli-for-ai-ts-pre-review.md](../../../code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md) — 타입 안전성, env-loader/option-map 문서화, 테스트(AC6·실패 시나리오) 권장 사항이 본 명세에 반영됨.
 - **이슈**: [GitHub #110 — feat: AI 사용을 위한 Memento CLI 제공](https://github.com/jee1/memento/issues/110)
-- **recall 컨텍스트 절약**: 아직 **미정**. [docs/design/recall-context-saving-ideas.md](../../design/recall-context-saving-ideas.md)는 검토용 아이디어 문서이며, 확정 시 CLI에서도 동일하게 반영할 수 있다.
-- **MCP serverUseInstructions**: [docs/guides/ko/mcp-server-instructions.md](../../guides/ko/mcp-server-instructions.md)
+- **recall 컨텍스트 절약**: 아직 **미정**. [recall-context-saving-ideas.md](../../../design/recall-context-saving-ideas.md)는 검토용 아이디어 문서이며, 확정 시 CLI에서도 동일하게 반영할 수 있다.
+- **MCP serverUseInstructions**: [mcp-server-instructions.md](../../../guides/ko/mcp-server-instructions.md)
 - **core 설정**: `packages/memento-core/src/shared/config/index.ts`, `environment.ts` — 기본값 및 env 해석
 
 ---
@@ -183,4 +183,4 @@ Phase 1에서 **반드시** 구현할 서브커맨드:
 
 *이 명세는 SDD의 Plan → Tasks → Implement 단계에서 기준 문서로 사용한다.*
 
-**다음 단계**: [구현 계획(PLAN)](../../plans/ko/2026-03-11-memento-cli-for-ai-implementation-plan.md)
+**다음 단계**: [구현 계획(PLAN)](./implementation-plan.md)

@@ -1,6 +1,6 @@
 # Memento CLI for AI 구현 계획 (PLAN)
 
-SDD **Plan** 단계 산출물. [명세(SPECIFY)](../specs/ko/2026-03-11-memento-cli-for-ai-spec.md)를 기준으로 구현 순서·태스크·검증을 정리한다.
+SDD **Plan** 단계 산출물. [명세(SPECIFY)](./spec.md)를 기준으로 구현 순서·태스크·검증을 정리한다.
 
 ---
 
@@ -10,10 +10,10 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](../specs/ko/2026-03-11-memento-
 |------|-----|
 | **기능명** | Memento CLI for AI |
 | **문서 유형** | PLAN (구현 계획) |
-| **기준 명세** | [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](../specs/ko/2026-03-11-memento-cli-for-ai-spec.md) |
+| **기준 명세** | [spec.md](./spec.md) |
 | **날짜** | 2026-03-11 |
 | **관련 이슈** | [#110](https://github.com/jee1/memento/issues/110) |
-| **Memory Bank** | [2026-03-11-memento-cli-for-ai/Structure.md](2026-03-11-memento-cli-for-ai/Structure.md), [Tech.md](2026-03-11-memento-cli-for-ai/Tech.md), [Product.md](2026-03-11-memento-cli-for-ai/Product.md) |
+| **Memory Bank** | [Structure.md](./Structure.md), [Tech.md](./Tech.md), [Product.md](./Product.md) |
 
 ---
 
@@ -23,9 +23,9 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](../specs/ko/2026-03-11-memento-
 
 | 문서 | 내용 |
 |------|------|
-| **[Structure.md](2026-03-11-memento-cli-for-ai/Structure.md)** | 시스템 아키텍처, 컴포넌트 간 관계, 디렉터리 구조 정의. |
-| **[Tech.md](2026-03-11-memento-cli-for-ai/Tech.md)** | 프레임워크·라이브러리 버전, DB 스키마 참조, 기술적 제약 사항. |
-| **[Product.md](2026-03-11-memento-cli-for-ai/Product.md)** | 비즈니스 맥락, 기존 기능(MCP/HTTP)과의 유기적 연관성. |
+| **[Structure.md](./Structure.md)** | 시스템 아키텍처, 컴포넌트 간 관계, 디렉터리 구조 정의. |
+| **[Tech.md](./Tech.md)** | 프레임워크·라이브러리 버전, DB 스키마 참조, 기술적 제약 사항. |
+| **[Product.md](./Product.md)** | 비즈니스 맥락, 기존 기능(MCP/HTTP)과의 유기적 연관성. |
 
 아키텍처·기술·제품 관점 변경 시 해당 Memory Bank 문서를 먼저 갱신한 뒤, 본 구현 계획(Tasks)을 수정한다.
 
@@ -47,14 +47,14 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](../specs/ko/2026-03-11-memento-
 ### 2.1 보안 정책
 
 - **민감 정보**: API 키·비밀은 **CLI 인자로 받지 않는다**(명세 CON-1). 환경변수 또는 .env로만 제공. 인자 파서에 `OPENAI_API_KEY`, `GEMINI_API_KEY` 등 옵션을 추가하지 않는다.
-- **경로 검증**: `--db-path`, `--env-file`, `--config-dir` 등 파일/디렉터리 경로는 core 또는 기존 서버에서 사용하는 **path validator**가 있으면 재사용한다. path traversal 등 비정상 경로는 거부한다. (참조: [reference/ko/security.md](../../reference/ko/security.md), PRD 0019 보안 강화)
+- **경로 검증**: `--db-path`, `--env-file`, `--config-dir` 등 파일/디렉터리 경로는 core 또는 기존 서버에서 사용하는 **path validator**가 있으면 재사용한다. path traversal 등 비정상 경로는 거부한다. (참조: [reference/ko/security.md](../../../reference/ko/security.md), PRD 0019 보안 강화)
 - **.env 로드**: 사용자 지정 경로(`--env-file`, `--config-dir`)는 **읽기 전용**으로만 사용. 해당 경로에 쓰기 연산을 하지 않는다.
 - **에러 메시지**: stderr에 출력하는 에러 메시지에 **스택 트레이스·내부 경로·비밀**이 포함되지 않도록 한다. 프로덕션 환경에서도 안전한 수준만 노출.
-- **참조**: [docs/reference/ko/security.md](../../reference/ko/security.md), [docs/reviews/ko/code-review-comprehensive-report.md](../../reviews/ko/code-review-comprehensive-report.md) 보안 검토 섹션.
+- **참조**: [docs/reference/ko/security.md](../../../reference/ko/security.md), [docs/reviews/ko/code-review-comprehensive-report.md](../../../reviews/ko/code-review-comprehensive-report.md) 보안 검토 섹션.
 
 ### 2.2 코딩 컨벤션
 
-저장소 루트 [AGENTS.md](../../../AGENTS.md) 및 기존 서버 코드 스타일을 따른다.
+저장소 루트 [AGENTS.md](../../../../AGENTS.md) 및 기존 서버 코드 스타일을 따른다.
 
 - **언어·런타임**: Node.js ≥ 20, ES 모듈 기반 TypeScript.
 - **들여쓰기·포맷**: 두 칸 들여쓰기, 후행 쉼표, **작은따옴표** 기본.
@@ -436,9 +436,9 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](../specs/ko/2026-03-11-memento-
 
 ## 11. 참조
 
-- **명세**: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](../specs/ko/2026-03-11-memento-cli-for-ai-spec.md) (코드 리뷰 반영: REQ-CFG-4, CON-4~6, AC9~AC10, forget 옵션 우선순위)
-- **사전 코드 리뷰**: [code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md](../../code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md)
-- **설계**: [design/memento-cli-for-ai-review.md](../design/memento-cli-for-ai-review.md)
+- **명세**: [spec.md](./spec.md) (코드 리뷰 반영: REQ-CFG-4, CON-4~6, AC9~AC10, forget 옵션 우선순위)
+- **사전 코드 리뷰**: [2026-03-11-feat-110-cli-for-ai-ts-pre-review.md](../../../code_review/ko/2026-03-11-feat-110-cli-for-ai-ts-pre-review.md)
+- **설계**: [design.md](./design.md)
 - **이슈**: [#110](https://github.com/jee1/memento/issues/110)
 - **기존 서버 초기화**: `packages/memento-server/src/server/index.ts` (createMementoCore, getToolRegistry, createToolContext), `http-server.ts` 동일.
 

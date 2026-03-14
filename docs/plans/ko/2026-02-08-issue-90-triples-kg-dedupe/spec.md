@@ -1,0 +1,23 @@
+# Issue #90 Triples/KG 중복 제거 — SPEC 요약
+
+SDD **Specify** 단계 사후 요약. 구현 계획 기반.
+
+---
+
+## 메타데이터
+
+| 항목 | 값 |
+|------|-----|
+| **기능명** | Triples/KG 중복 제거 (Dedupe) |
+| **문서 유형** | SPECIFY (요약 명세) |
+| **날짜** | 2026-02-08 |
+| **구현 계획** | [implementation-plan.md](./implementation-plan.md) |
+
+---
+
+## 범위·수용 기준 요약
+
+- **범위**: 구현 계획 문서의 목표·Task에 따름.
+- **수용 기준**: 구현 계획의 Acceptance Criteria 충족.
+
+**다음 단계**: [implementation-plan.md](./implementation-plan.md)
