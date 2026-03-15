@@ -133,8 +133,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
       const metaMemoryService = context.services.metaMemoryService as MetaMemoryService;
       const result: MetaMemoryStatsResult = await metaMemoryService.getStats(paramsWithDefaults);
 
-      // 결과를 ISO 8601 형식으로 변환하여 반환
-      return this.createSuccessResult({
+      const resultObj: Record<string, unknown> = {
         items: result.items.map(item => ({
           memory_id: item.memory_id,
           recall_count: item.recall_count,
@@ -147,7 +146,18 @@ export class GetMetaMemoryStatsTool extends BaseTool {
         })),
         total_count: result.total_count,
         message: '메타 메모리 통계 조회 완료'
-      });
+      };
+      // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
+      const cachedScan = context.services?.introspectionScanCache?.get();
+      if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
+        resultObj.introspection_hint = {
+          summary: `${cachedScan.result.summary} 자세한 내용은 get_introspection_summary 호출 권장.`,
+          low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
+          high_failure_count: cachedScan.result.highFailureMemoryIds.length,
+          scanned_at: cachedScan.scanned_at
+        };
+      }
+      return this.createSuccessResult(resultObj);
     } catch (error) {
       // Zod 에러는 사용자 친화적인 메시지로 변환
       if (error instanceof z.ZodError) {

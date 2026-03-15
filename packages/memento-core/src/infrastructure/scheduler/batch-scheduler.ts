@@ -33,6 +33,7 @@ import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
 import { MetaMemoryIntrospectionService } from '../../domains/memory/services/meta-memory-introspection-service.js';
+import type { IntrospectionScanCache } from '../../domains/memory/services/introspection-scan-cache.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
@@ -118,6 +119,7 @@ export class BatchScheduler implements IBatchScheduler {
   private startTime: Date | null = null;
   private lastExecution: Map<string, Date> = new Map();
   private totalExecutions: Map<string, number> = new Map();
+  private introspectionScanCache: IntrospectionScanCache | null = null;
   private jobProcessorInterval: ReturnType<typeof setInterval> | null = null;
 
   // 분리된 모듈들 (DI)
@@ -1583,6 +1585,8 @@ export class BatchScheduler implements IBatchScheduler {
         (this.totalExecutions.get('meta_memory_introspection') || 0) + 1
       );
 
+      this.introspectionScanCache?.set(scanResult, result.endTime.toISOString());
+
       this.log('Meta memory introspection scan completed', {
         duration: result.duration,
         lowConfidenceCount: scanResult.lowConfidenceMemoryIds.length,
@@ -1818,6 +1822,14 @@ export class BatchScheduler implements IBatchScheduler {
    */
   isJobRunning(name: string): boolean {
     return this.jobQueue.isRunning(name);
+  }
+
+  /**
+   * Issue #21 Phase B: 인트로스펙션 스캔 결과 캐시 설정.
+   * bootstrap에서 생성한 IntrospectionScanCache를 주입합니다.
+   */
+  setIntrospectionScanCache(cache: IntrospectionScanCache | null): void {
+    this.introspectionScanCache = cache;
   }
 }
 

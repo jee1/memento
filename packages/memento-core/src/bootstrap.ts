@@ -34,6 +34,7 @@ import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
 import { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
+import { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
 import type { SqlParam } from './shared/types/index.js';
 
 export interface ServerServices {
@@ -55,6 +56,8 @@ export interface ServerServices {
   databaseLockMonitor: DatabaseLockMonitor;
   vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
   batchScheduler?: IBatchScheduler;
+  /** Issue #21 Phase B: 인트로스펙션 스캔 결과 캐시 (recall/get_meta_memory_stats/get_introspection_summary용) */
+  introspectionScanCache?: IntrospectionScanCache;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -162,7 +165,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     }
     const metaMemoryService = new MetaMemoryService(db, writeCoalescingManager);
     logger.info('MetaMemoryService 초기화 완료');
+    const introspectionScanCache = new IntrospectionScanCache();
     const batchScheduler = getBatchScheduler();
+    batchScheduler.setIntrospectionScanCache(introspectionScanCache);
     await batchScheduler.start(db, reflexionWorker);
     return {
       searchEngine,
@@ -182,7 +187,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       reflexionWorker,
       walCheckpointScheduler,
       databaseLockMonitor,
-      batchScheduler
+      batchScheduler,
+      introspectionScanCache
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

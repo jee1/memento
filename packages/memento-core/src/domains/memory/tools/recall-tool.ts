@@ -1083,7 +1083,7 @@ export class RecallTool extends BaseTool {
         if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
-        return this.createSuccessResult({
+        const resultObj: Record<string, unknown> = {
           items: processedResults,
           total_count: searchResult?.total_count || processedResults.length,
           query_time: executionTime,
@@ -1097,7 +1097,18 @@ export class RecallTool extends BaseTool {
           },
           metadata,
           meta_stats: metaStats
-        });
+        };
+        // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
+        const cachedScan = context.services?.introspectionScanCache?.get();
+        if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
+          resultObj.introspection_hint = {
+            summary: `${cachedScan.result.summary} 자세한 내용은 get_introspection_summary 호출 권장.`,
+            low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
+            high_failure_count: cachedScan.result.highFailureMemoryIds.length,
+            scanned_at: cachedScan.scanned_at
+          };
+        }
+        return this.createSuccessResult(resultObj);
       }
       
     } catch (error) {

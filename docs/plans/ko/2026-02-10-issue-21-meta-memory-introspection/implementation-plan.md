@@ -55,9 +55,25 @@
 
 ---
 
-## Task 6: MCP/HTTP 도구 노출 (선택) — 미구현
+## Task 6: MCP/HTTP 도구 노출 (선택) — ✅ Phase B 구현 완료
 
-(계획 내용 생략. get_introspection_summary 도구 미노출.)
+Phase B에서 get_introspection_summary 도구 구현·등록 완료. (아래 Phase B 섹션 참조.)
+
+---
+
+## Phase B (2026-03-15) — 인트로스펙션 시그널·도구
+
+**산출물:** [spec-phase-b.md](./spec-phase-b.md), [tasks.md](./tasks.md).
+
+**구현 완료:**
+
+- **T-PB-1** IntrospectionScanCache 도입: `packages/memento-core/src/domains/memory/services/introspection-scan-cache.ts`. BatchScheduler runMetaMemoryIntrospection 성공 시 캐시 갱신, setIntrospectionScanCache()로 bootstrap에서 주입.
+- **T-PB-2** recall 응답에 introspection_hint: 저신뢰/고실패 1건 이상일 때만 summary, low_confidence_count, high_failure_count, scanned_at 포함.
+- **T-PB-3** get_meta_memory_stats 응답에 introspection_hint: 동일 조건.
+- **T-PB-4** get_introspection_summary 도구: 캐시에서 최근 스캔 결과 반환. coreTools에 등록.
+- **T-PB-5, T-PB-6** 단위 테스트: introspection-scan-cache.spec.ts, get-introspection-summary-tool.spec.ts.
+
+**미구현(선택):** T-PB-7 실패 회피 규칙 스키마·저장·조회.
 
 ---
 
