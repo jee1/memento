@@ -37,7 +37,9 @@ export default defineConfig({
         'src/test/**/*performance*.{test,spec}.{js,ts}',
         'src/test/**/*error-handling*.{test,spec}.{js,ts}',
         // CI 환경에서 네이티브 모듈을 사용하는 테스트 제외
-        'src/services/**/*migration*.spec.ts'
+        'src/services/**/*migration*.spec.ts',
+        // CI에서 DB 파일 이동/롤백 시 SQLITE_READONLY_DBMOVED 플레이크 방지
+        '**/migration-runner.integration.spec.ts'
       ]
     }),
     // CI 환경에서 JUnit 및 JSON 리포트 생성
