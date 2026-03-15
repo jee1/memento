@@ -22,6 +22,21 @@
 
 ---
 
+## Phase B (SDD, 2026-03-15)
+
+**목표:** 에이전트가 기존 도구 응답으로 “기억 품질 시그널”을 받고, 상세 요약 도구를 호출하며, (선택) 실패 회피 규칙을 Memento에 저장·조회할 수 있게 한다.
+
+**아키텍처 요약:**
+
+- **캐시**: `meta_memory_introspection` job 실행 시 `runScan` 결과를 프로세스 내 캐시에 저장. hint·get_introspection_summary는 이 캐시만 참조(실시간 runScan 없음).
+- **introspection_hint**: `recall`·`get_meta_memory_stats` 응답에, 저신뢰 또는 고실패가 1건 이상일 때만 `introspection_hint`(summary, low_confidence_count, high_failure_count, scanned_at) 포함.
+- **get_introspection_summary**: 신규 MCP/HTTP 도구. 캐시에서 최근 스캔 결과를 읽어 요약·ID 목록 반환.
+- **실패 회피 규칙(선택)**: Memento가 규칙 저장·조회 담당. 추출(LLM 요약)은 외부, 저장·조회는 Memento.
+
+**산출물:** [requirements.md](./requirements.md), [spec-phase-b.md](./spec-phase-b.md), [structure.md](./structure.md), [tech.md](./tech.md), [product.md](./product.md), [tasks.md](./tasks.md).
+
+---
+
 ## 참고
 
 - 이슈: https://github.com/jee1/memento/issues/21

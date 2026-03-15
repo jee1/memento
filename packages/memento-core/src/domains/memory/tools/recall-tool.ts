@@ -19,6 +19,7 @@ import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-reposi
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
@@ -1083,7 +1084,7 @@ export class RecallTool extends BaseTool {
         if (mementoConfig.recallProfileEnabled) {
           this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
         }
-        return this.createSuccessResult({
+        const resultObj: Record<string, unknown> = {
           items: processedResults,
           total_count: searchResult?.total_count || processedResults.length,
           query_time: executionTime,
@@ -1097,7 +1098,18 @@ export class RecallTool extends BaseTool {
           },
           metadata,
           meta_stats: metaStats
-        });
+        };
+        // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
+        const cachedScan = context.services?.introspectionScanCache?.get();
+        if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
+          resultObj.introspection_hint = {
+            summary: `${cachedScan.result.summary}${INTROSPECTION_HINT_SUFFIX}`,
+            low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
+            high_failure_count: cachedScan.result.highFailureMemoryIds.length,
+            scanned_at: cachedScan.scanned_at
+          };
+        }
+        return this.createSuccessResult(resultObj);
       }
       
     } catch (error) {

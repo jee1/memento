@@ -70,6 +70,7 @@ export { VisualizeRelationsTool } from './domains/relation/tools/visualize-relat
 export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.js';
 export { ConvertEpisodicToSemanticTool } from './domains/memory/tools/convert-episodic-to-semantic-tool.js';
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
+export { GetIntrospectionSummaryTool } from './domains/memory/tools/get-introspection-summary-tool.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)

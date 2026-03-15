@@ -19,6 +19,7 @@ import { ClearAnchorTool } from '../domains/anchor/tools/clear-anchor-tool.js';
 import { ProceduralDiffTool } from '../domains/memory/tools/procedural-diff-tool.js';
 import { ProceduralRollbackTool } from '../domains/memory/tools/procedural-rollback-tool.js';
 import { RememberProcedureTool } from '../domains/memory/tools/remember-procedure-tool.js';
+import { GetIntrospectionSummaryTool } from '../domains/memory/tools/get-introspection-summary-tool.js';
 
 const coreTools = [
   new RememberTool(),
@@ -34,7 +35,8 @@ const coreTools = [
   new ClearAnchorTool(),
   new ProceduralDiffTool(),
   new ProceduralRollbackTool(),
-  new RememberProcedureTool()
+  new RememberProcedureTool(),
+  new GetIntrospectionSummaryTool()
 ];
 
 export const toolRegistry = new ToolRegistry({
