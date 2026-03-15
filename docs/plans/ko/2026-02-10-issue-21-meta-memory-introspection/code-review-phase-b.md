@@ -1,8 +1,8 @@
 # 이슈 #21 Phase B — 코드 리뷰
 
 **브랜치**: `feat/issue-21-phase-b-introspection-signal`  
-**기준**: `main` 대비 1 commit (8d16ea5)  
-**리뷰 일자**: 2026-03-15
+**기준**: `main` 대비 2 commits (8d16ea5, 180d085)  
+**리뷰 일자**: 2026-03-15 (재리뷰 반영)
 
 ---
 
@@ -83,3 +83,18 @@ const INTROSPECTION_HINT_SUFFIX = ' 자세한 내용은 get_introspection_summar
 - **권장 (반영 완료)**: 4.1 summary 접미사 → `shared/constants/introspection-constants.ts`의 `INTROSPECTION_HINT_SUFFIX`로 추출함. 4.3 명세에 API 네이밍(snake vs camel) 문단 추가함.
 
 Phase B 범위(캐시, hint, get_introspection_summary, 스케줄 연동)는 명세와 tasks를 잘 반영했고, 테스트와 타입으로 품질이 확보되어 있다.
+
+---
+
+## 6. 재리뷰 (권장 사항 반영 후)
+
+**커밋 180d085**에서 아래 반영이 적용되었다.
+
+| 항목 | 반영 내용 |
+|------|-----------|
+| 4.1 hint summary 중복 | `shared/constants/introspection-constants.ts`에 `INTROSPECTION_HINT_SUFFIX` 추가, recall-tool·get-meta-memory-stats-tool에서 import 후 사용 |
+| 4.3 API 네이밍 문서화 | `spec-phase-b.md` §2에 "API 네이밍" 문단 추가 (introspection_hint는 snake_case, get_introspection_summary는 camelCase) |
+
+**검증**: type-check, lint, test:ci:core 통과 확인됨. 권장 사항 반영으로 중복 제거 및 명세·클라이언트 가이드가 보강되었고, 신규 이슈 없음.
+
+**최종**: Merge 권장 유지. main 머지 후 CI만 한 번 더 확인하면 된다.
