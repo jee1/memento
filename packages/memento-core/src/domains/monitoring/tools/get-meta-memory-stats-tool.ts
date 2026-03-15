@@ -27,6 +27,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { GetMetaMemoryStatsParams, MetaMemoryStatsResult } from '../../../shared/types/index.js';
+import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
 import type { MetaMemoryService } from '../../memory/services/meta-memory-service.js';
 
 /**
@@ -151,7 +152,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
       const cachedScan = context.services?.introspectionScanCache?.get();
       if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
         resultObj.introspection_hint = {
-          summary: `${cachedScan.result.summary} 자세한 내용은 get_introspection_summary 호출 권장.`,
+          summary: `${cachedScan.result.summary}${INTROSPECTION_HINT_SUFFIX}`,
           low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
           high_failure_count: cachedScan.result.highFailureMemoryIds.length,
           scanned_at: cachedScan.scanned_at

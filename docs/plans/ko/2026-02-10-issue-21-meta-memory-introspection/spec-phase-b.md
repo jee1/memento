@@ -56,6 +56,8 @@ introspection_hint?: {
 - **low_confidence_count**, **high_failure_count**: 조건 분기·우선순위 판단용.
 - **scanned_at**: “언제 기준 데이터인지” 명시.
 
+**API 네이밍**: `recall`·`get_meta_memory_stats`의 **introspection_hint** 필드는 snake_case(`low_confidence_count`, `high_failure_count`, `scanned_at`)를 사용한다. **get_introspection_summary** 도구 응답은 camelCase(`lowConfidenceMemoryIds`, `highFailureMemoryIds`, `scanned_at`)를 사용한다. 클라이언트에서 두 응답을 구분해 파싱하면 된다.
+
 ---
 
 ## 3. 기능 요구사항
