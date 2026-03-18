@@ -1,0 +1,9 @@
+[
+  { "query_id": "q_008", "query": "consolidation 점수 반영", "language": "ko", "category": "ranking", "notes": "검색 순위 조정" },
+  { "query_id": "q_021", "query": "search quality benchmark fixture", "language": "en", "category": "testing", "notes": "strict benchmark" },
+  { "query_id": "q_022", "query": "ground truth labeling", "language": "en", "category": "testing", "notes": "relevantIds" },
+  { "query_id": "q_023", "query": "export full memory snapshot", "language": "en", "category": "benchmark", "notes": "corpus export" },
+  { "query_id": "q_024", "query": "precision at K recall at K", "language": "en", "category": "metrics", "notes": "quality metrics" },
+  { "query_id": "q_025", "query": "nDCG MRR calculation", "language": "en", "category": "metrics", "notes": "ranking metrics" },
+  { "query_id": "q_026", "query": "Kendall tau order preservation", "language": "en", "category": "metrics", "notes": "consolidation order" }
+]

@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { QualityMetricsCollector, type CollectedMetrics } from './quality-metrics-collector.js';
@@ -59,6 +62,224 @@ describe('QualityMetricsCollector', () => {
       // Then: 지정된 컨텍스트가 반환되어야 함
       expect(result.context).toBe('ci');
       expect(result.namespace).toBe('search');
+    });
+
+    it('fails in strict benchmark mode when manifest is missing', async () => {
+      await expect(
+        collector.collectSearchMetrics('ci', {
+          benchmarkDir: '/tmp/does-not-exist',
+          strictBenchmark: true,
+        })
+      ).rejects.toThrow(/manifest/i);
+    });
+
+    it('fails in strict benchmark mode when no human-labeled ground truth exists', async () => {
+      const fixtureDir = join(tmpdir(), `memento-strict-bench-${Date.now()}`);
+      mkdirSync(fixtureDir, { recursive: true });
+      try {
+        writeFileSync(
+          join(fixtureDir, 'manifest.json'),
+          JSON.stringify({
+            benchmark_version: 'v1',
+            created_at: new Date().toISOString(),
+            corpus_size: 0,
+            query_count: 0,
+            ground_truth_count: 0,
+            source: 'auto-generated',
+            labeling_policy: 'auto',
+            strict_ci: false,
+            ground_truth_reviewed: false,
+          }),
+          'utf-8'
+        );
+        await expect(
+          collector.collectSearchMetrics('ci', {
+            benchmarkDir: fixtureDir,
+            strictBenchmark: true,
+          })
+        ).rejects.toThrow(/strict benchmark|human-labeled/i);
+      } finally {
+        if (existsSync(fixtureDir)) {
+          rmSync(fixtureDir, { recursive: true });
+        }
+      }
+    });
+
+    it('fails in strict benchmark mode when benchmarkDir is not provided', async () => {
+      await expect(
+        collector.collectSearchMetrics('ci', {
+          strictBenchmark: true,
+          groundTruths: [{ queryId: 'query1', relevantIds: ['id1'] }],
+          queryResults: new Map([
+            ['query1', [{ id: 'id1', score: 0.9 }]],
+          ]),
+        })
+      ).rejects.toThrow(/benchmarkDir/i);
+    });
+
+    it('fails when benchmarkDir is set but corpus is missing', async () => {
+      const fixtureDir = join(tmpdir(), `memento-bench-missing-corpus-${Date.now()}`);
+      mkdirSync(fixtureDir, { recursive: true });
+
+      try {
+        writeFileSync(
+          join(fixtureDir, 'manifest.json'),
+          JSON.stringify({
+            benchmark_version: 'v3',
+            created_at: new Date().toISOString(),
+            corpus_size: 1,
+            query_count: 1,
+            ground_truth_count: 1,
+            source: 'full-memory-snapshot',
+            labeling_policy: 'binary-human-labeled',
+            strict_ci: true,
+            ground_truth_reviewed: true,
+          }),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'ground-truth.json'),
+          JSON.stringify([
+            { queryId: 'q_001', relevantIds: ['bench_mem_000001'] },
+          ]),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'queries.json'),
+          JSON.stringify([
+            { query_id: 'q_001', query: '실제 검색 질의' },
+          ]),
+          'utf-8'
+        );
+
+        await expect(
+          collector.collectSearchMetrics('ci', {
+            benchmarkDir: fixtureDir,
+            queryResults: new Map([
+              ['q_001', [{ id: 'bench_mem_000001', score: 0.9 }]],
+            ]),
+          })
+        ).rejects.toThrow(/Benchmark corpus load failed/i);
+      } finally {
+        if (existsSync(fixtureDir)) {
+          rmSync(fixtureDir, { recursive: true });
+        }
+      }
+    });
+
+    it('remaps caller-provided query results to benchmark ids when benchmarkDir is set', async () => {
+      const fixtureDir = join(tmpdir(), `memento-bench-remap-${Date.now()}`);
+      mkdirSync(fixtureDir, { recursive: true });
+
+      try {
+        writeFileSync(
+          join(fixtureDir, 'manifest.json'),
+          JSON.stringify({
+            benchmark_version: 'v3',
+            created_at: new Date().toISOString(),
+            corpus_size: 1,
+            query_count: 1,
+            ground_truth_count: 1,
+            source: 'full-memory-snapshot',
+            labeling_policy: 'binary-human-labeled',
+            strict_ci: true,
+            ground_truth_reviewed: true,
+          }),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'ground-truth.json'),
+          JSON.stringify([
+            { queryId: 'query1', relevantIds: ['bench_mem_000001'] },
+          ]),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'queries.json'),
+          JSON.stringify([
+            { query_id: 'query1', query: 'query1' },
+          ]),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'corpus.jsonl'),
+          `${JSON.stringify({
+            benchmark_id: 'bench_mem_000001',
+            source_memory_id: 'mem_source_001',
+            type: 'semantic',
+            content: '검색 품질 벤치마크 관련 기억',
+          })}\n`,
+          'utf-8'
+        );
+
+        const result = await collector.collectSearchMetrics('ci', {
+          benchmarkDir: fixtureDir,
+          groundTruths: [{ queryId: 'query1', relevantIds: ['bench_mem_000001'] }],
+          queryResults: new Map([
+            ['query1', [{ id: 'mem_source_001', score: 0.9 }]],
+          ]),
+        });
+
+        expect(result.metrics.precision_at_5).toBeCloseTo(1, 5);
+        expect(result.metrics.recall_at_5).toBeCloseTo(1, 5);
+        expect(result.metrics.mrr).toBeCloseTo(1, 5);
+        expect(result.metadata?.has_ground_truth).toBe(true);
+        expect(result.metadata?.ground_truth_count).toBe(1);
+      } finally {
+        if (existsSync(fixtureDir)) {
+          rmSync(fixtureDir, { recursive: true });
+        }
+      }
+    });
+
+    it('fails when caller-provided query results are used without benchmark corpus', async () => {
+      const fixtureDir = join(tmpdir(), `memento-bench-query-key-${Date.now()}`);
+      mkdirSync(fixtureDir, { recursive: true });
+
+      try {
+        writeFileSync(
+          join(fixtureDir, 'manifest.json'),
+          JSON.stringify({
+            benchmark_version: 'v3',
+            created_at: new Date().toISOString(),
+            corpus_size: 0,
+            query_count: 1,
+            ground_truth_count: 1,
+            source: 'full-memory-snapshot',
+            labeling_policy: 'binary-human-labeled',
+            strict_ci: true,
+            ground_truth_reviewed: true,
+          }),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'ground-truth.json'),
+          JSON.stringify([
+            { queryId: 'q_001', relevantIds: ['bench_mem_000001'] },
+          ]),
+          'utf-8'
+        );
+        writeFileSync(
+          join(fixtureDir, 'queries.json'),
+          JSON.stringify([
+            { query_id: 'q_001', query: '실제 검색 질의' },
+          ]),
+          'utf-8'
+        );
+
+        await expect(
+          collector.collectSearchMetrics('ci', {
+            benchmarkDir: fixtureDir,
+            queryResults: new Map([
+              ['q_001', [{ id: 'bench_mem_000001', score: 0.9 }]],
+            ]),
+          })
+        ).rejects.toThrow(/Benchmark corpus load failed/i);
+      } finally {
+        if (existsSync(fixtureDir)) {
+          rmSync(fixtureDir, { recursive: true });
+        }
+      }
     });
 
     it('should return default values when no ground truth provided', async () => {
@@ -1006,4 +1227,3 @@ describe('QualityMetricsCollector', () => {
     });
   });
 });
-

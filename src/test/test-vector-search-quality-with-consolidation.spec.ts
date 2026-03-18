@@ -10,8 +10,12 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import Database from 'better-sqlite3';
 import { initializeServices } from '../server/bootstrap.js';
+import { QualityMetricsCollector } from '../domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
 import {
   generateVectorOnlySearchResults,
   generateConsolidationSearchResults,
@@ -94,6 +98,66 @@ describe('벡터 검색 품질 검증 통합 테스트', () => {
 
     it('검색 엔진이 초기화되어야 함', () => {
       expect(searchEngine).toBeDefined();
+    });
+  });
+
+  describe('strict benchmark fixture', () => {
+    it('reviewed fixture가 있으면 strict benchmark 품질 계산이 가능하다', async () => {
+      const benchmarkDir = join(tmpdir(), `memento-reviewed-benchmark-${Date.now()}`);
+      mkdirSync(benchmarkDir, { recursive: true });
+      writeFileSync(
+        join(benchmarkDir, 'manifest.json'),
+        `${JSON.stringify({
+          benchmark_version: 'v1',
+          created_at: new Date().toISOString(),
+          corpus_size: 1,
+          query_count: 1,
+          ground_truth_count: 1,
+          source: 'full-memory-snapshot',
+          labeling_policy: 'binary-human-labeled',
+          strict_ci: true,
+          ground_truth_reviewed: true,
+        }, null, 2)}\n`,
+        'utf-8'
+      );
+      writeFileSync(
+        join(benchmarkDir, 'corpus.jsonl'),
+        `${JSON.stringify({
+          benchmark_id: 'bench_mem_000001',
+          source_memory_id: memoryIds[0],
+          type: 'semantic',
+          tags: ['benchmark'],
+          content: 'Test memory 0',
+        })}\n`,
+        'utf-8'
+      );
+      writeFileSync(
+        join(benchmarkDir, 'ground-truth.json'),
+        `${JSON.stringify([{ queryId: 'test memory 0', relevantIds: ['bench_mem_000001'] }], null, 2)}\n`,
+        'utf-8'
+      );
+      writeFileSync(
+        join(benchmarkDir, 'queries.json'),
+        `${JSON.stringify([{ query_id: 'q_001', query: 'test memory 0' }], null, 2)}\n`,
+        'utf-8'
+      );
+
+      const collector = new QualityMetricsCollector(db);
+
+      try {
+        const result = await collector.collectSearchMetrics('ci', {
+          benchmarkDir,
+          strictBenchmark: true,
+        });
+
+        expect(result.metadata?.has_ground_truth).toBe(true);
+        expect(typeof result.metrics.precision_at_5).toBe('number');
+        expect(result.metrics.precision_at_5).toBeGreaterThanOrEqual(0);
+      } finally {
+        if (existsSync(benchmarkDir)) {
+          rmSync(benchmarkDir, { recursive: true });
+        }
+      }
     });
   });
 

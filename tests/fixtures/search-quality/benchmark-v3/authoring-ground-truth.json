@@ -1,0 +1,30 @@
+[
+  {
+    "queryId": "consolidation 점수 반영",
+    "relevantIds": []
+  },
+  {
+    "queryId": "search quality benchmark fixture",
+    "relevantIds": []
+  },
+  {
+    "queryId": "ground truth labeling",
+    "relevantIds": []
+  },
+  {
+    "queryId": "export full memory snapshot",
+    "relevantIds": []
+  },
+  {
+    "queryId": "precision at K recall at K",
+    "relevantIds": []
+  },
+  {
+    "queryId": "nDCG MRR calculation",
+    "relevantIds": []
+  },
+  {
+    "queryId": "Kendall tau order preservation",
+    "relevantIds": []
+  }
+]

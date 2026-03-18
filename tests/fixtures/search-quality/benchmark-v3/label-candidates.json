@@ -1,0 +1,453 @@
+[
+  {
+    "query_id": "q_001",
+    "query": "HTTP 서버 에러 처리",
+    "candidate_benchmark_ids": [
+      "bench_mem_003415",
+      "bench_mem_000549",
+      "bench_mem_000159",
+      "bench_mem_000158",
+      "bench_mem_001377",
+      "bench_mem_000424",
+      "bench_mem_000412",
+      "bench_mem_000440",
+      "bench_mem_000537",
+      "bench_mem_000249",
+      "bench_mem_001127",
+      "bench_mem_001157",
+      "bench_mem_001147",
+      "bench_mem_000413",
+      "bench_mem_000443"
+    ]
+  },
+  {
+    "query_id": "q_002",
+    "query": "검색 품질 측정 방법",
+    "candidate_benchmark_ids": [
+      "bench_mem_003402",
+      "bench_mem_003409",
+      "bench_mem_002161",
+      "bench_mem_002372",
+      "bench_mem_002202",
+      "bench_mem_002204",
+      "bench_mem_002201",
+      "bench_mem_002198",
+      "bench_mem_002184",
+      "bench_mem_002180",
+      "bench_mem_001660",
+      "bench_mem_000286",
+      "bench_mem_001354",
+      "bench_mem_001362",
+      "bench_mem_001330",
+      "bench_mem_002595",
+      "bench_mem_000922",
+      "bench_mem_002589",
+      "bench_mem_002541",
+      "bench_mem_002579",
+      "bench_mem_001487"
+    ]
+  },
+  {
+    "query_id": "q_003",
+    "query": "DB 마이그레이션 절차",
+    "candidate_benchmark_ids": [
+      "bench_mem_003081",
+      "bench_mem_003275",
+      "bench_mem_003205",
+      "bench_mem_001313",
+      "bench_mem_001303",
+      "bench_mem_001373",
+      "bench_mem_000489",
+      "bench_mem_002060",
+      "bench_mem_000522",
+      "bench_mem_001996",
+      "bench_mem_000542"
+    ]
+  },
+  {
+    "query_id": "q_004",
+    "query": "임베딩 모델 설정",
+    "candidate_benchmark_ids": [
+      "bench_mem_000557",
+      "bench_mem_001292",
+      "bench_mem_001284",
+      "bench_mem_002998",
+      "bench_mem_002982",
+      "bench_mem_002922",
+      "bench_mem_002070",
+      "bench_mem_002918",
+      "bench_mem_000102",
+      "bench_mem_000138",
+      "bench_mem_001407"
+    ]
+  },
+  {
+    "query_id": "q_005",
+    "query": "Memento MCP 서버는 어떻게 실행하나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003427",
+      "bench_mem_002566",
+      "bench_mem_001249",
+      "bench_mem_001255",
+      "bench_mem_001265",
+      "bench_mem_001225",
+      "bench_mem_001231",
+      "bench_mem_001295",
+      "bench_mem_003327",
+      "bench_mem_002360",
+      "bench_mem_003357"
+    ]
+  },
+  {
+    "query_id": "q_006",
+    "query": "기억은 어떻게 삭제되거나 자동으로 망각되나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003428",
+      "bench_mem_001699",
+      "bench_mem_000705",
+      "bench_mem_002459",
+      "bench_mem_002421",
+      "bench_mem_000137",
+      "bench_mem_000157",
+      "bench_mem_000147",
+      "bench_mem_002541",
+      "bench_mem_000084",
+      "bench_mem_000092"
+    ]
+  },
+  {
+    "query_id": "q_007",
+    "query": "앵커를 설정하면 검색 범위가 어떻게 달라지나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003429",
+      "bench_mem_002866",
+      "bench_mem_002854",
+      "bench_mem_002814",
+      "bench_mem_002806",
+      "bench_mem_003434",
+      "bench_mem_003402",
+      "bench_mem_002111",
+      "bench_mem_001899",
+      "bench_mem_000560",
+      "bench_mem_002865"
+    ]
+  },
+  {
+    "query_id": "q_009",
+    "query": "이 저장소에서 테스트와 CI는 어떻게 돌리나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003430",
+      "bench_mem_000941",
+      "bench_mem_002737",
+      "bench_mem_002049",
+      "bench_mem_000829",
+      "bench_mem_000551",
+      "bench_mem_001021",
+      "bench_mem_001035",
+      "bench_mem_000891",
+      "bench_mem_002613",
+      "bench_mem_002643"
+    ]
+  },
+  {
+    "query_id": "q_010",
+    "query": "Reflexion 기록은 어떻게 남기나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003431",
+      "bench_mem_001372",
+      "bench_mem_001216",
+      "bench_mem_001260",
+      "bench_mem_001276",
+      "bench_mem_000333",
+      "bench_mem_000383",
+      "bench_mem_000393",
+      "bench_mem_002641",
+      "bench_mem_002679",
+      "bench_mem_000961"
+    ]
+  },
+  {
+    "query_id": "q_011",
+    "query": "relation 추출 기능은 어떻게 검증하나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003432",
+      "bench_mem_003174",
+      "bench_mem_000154",
+      "bench_mem_000186",
+      "bench_mem_002521",
+      "bench_mem_000850",
+      "bench_mem_001559",
+      "bench_mem_000223",
+      "bench_mem_002284",
+      "bench_mem_000233",
+      "bench_mem_003107"
+    ]
+  },
+  {
+    "query_id": "q_012",
+    "query": "로그 및 모니터링",
+    "candidate_benchmark_ids": [
+      "bench_mem_002520",
+      "bench_mem_001298",
+      "bench_mem_002132",
+      "bench_mem_000144",
+      "bench_mem_002322",
+      "bench_mem_001312",
+      "bench_mem_001686",
+      "bench_mem_002787",
+      "bench_mem_002797",
+      "bench_mem_002767",
+      "bench_mem_002025",
+      "bench_mem_002055",
+      "bench_mem_001177",
+      "bench_mem_002923",
+      "bench_mem_002933",
+      "bench_mem_001881",
+      "bench_mem_001719"
+    ]
+  },
+  {
+    "query_id": "q_013",
+    "query": "하이브리드 검색에서 점수는 어떻게 합쳐지나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003433",
+      "bench_mem_002092",
+      "bench_mem_000783",
+      "bench_mem_001747",
+      "bench_mem_002799",
+      "bench_mem_002785",
+      "bench_mem_002719",
+      "bench_mem_002751",
+      "bench_mem_001405",
+      "bench_mem_000656",
+      "bench_mem_002745"
+    ]
+  },
+  {
+    "query_id": "q_014",
+    "query": "remember 도구로 어떤 기억을 저장할 수 있나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003434",
+      "bench_mem_000566",
+      "bench_mem_003249",
+      "bench_mem_003255",
+      "bench_mem_003265",
+      "bench_mem_003225",
+      "bench_mem_003231",
+      "bench_mem_003295",
+      "bench_mem_001327",
+      "bench_mem_000360",
+      "bench_mem_001357"
+    ]
+  },
+  {
+    "query_id": "q_015",
+    "query": "recall 결과에는 어떤 정보가 포함되나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003435",
+      "bench_mem_000444",
+      "bench_mem_001387",
+      "bench_mem_001397",
+      "bench_mem_002400",
+      "bench_mem_000312",
+      "bench_mem_000304",
+      "bench_mem_002294",
+      "bench_mem_001912",
+      "bench_mem_001964",
+      "bench_mem_001988"
+    ]
+  },
+  {
+    "query_id": "q_016",
+    "query": "FTS5 마이그레이션 fallback",
+    "candidate_benchmark_ids": [
+      "bench_mem_001844",
+      "bench_mem_001836",
+      "bench_mem_000542",
+      "bench_mem_001813",
+      "bench_mem_001837",
+      "bench_mem_001816",
+      "bench_mem_001842",
+      "bench_mem_001851",
+      "bench_mem_000982",
+      "bench_mem_000994",
+      "bench_mem_002700",
+      "bench_mem_001039",
+      "bench_mem_001081",
+      "bench_mem_002056",
+      "bench_mem_002040",
+      "bench_mem_002076",
+      "bench_mem_002036",
+      "bench_mem_002024"
+    ]
+  },
+  {
+    "query_id": "q_017",
+    "query": "PII 마스킹 로깅",
+    "candidate_benchmark_ids": [
+      "bench_mem_002433",
+      "bench_mem_002434",
+      "bench_mem_002423",
+      "bench_mem_002402",
+      "bench_mem_002334",
+      "bench_mem_002333",
+      "bench_mem_002090",
+      "bench_mem_002398",
+      "bench_mem_002355",
+      "bench_mem_002089",
+      "bench_mem_002842",
+      "bench_mem_001714",
+      "bench_mem_002854",
+      "bench_mem_001766",
+      "bench_mem_000528",
+      "bench_mem_002236",
+      "bench_mem_002284",
+      "bench_mem_002135",
+      "bench_mem_002121",
+      "bench_mem_002151"
+    ]
+  },
+  {
+    "query_id": "q_018",
+    "query": "재시도 전략 RetryManager",
+    "candidate_benchmark_ids": [
+      "bench_mem_002429",
+      "bench_mem_002433",
+      "bench_mem_002437",
+      "bench_mem_002434",
+      "bench_mem_002399",
+      "bench_mem_002398",
+      "bench_mem_000078",
+      "bench_mem_002491",
+      "bench_mem_000062",
+      "bench_mem_000014",
+      "bench_mem_000934",
+      "bench_mem_000902",
+      "bench_mem_000950",
+      "bench_mem_000191",
+      "bench_mem_001640",
+      "bench_mem_001612"
+    ]
+  },
+  {
+    "query_id": "q_019",
+    "query": "이 프로젝트의 코드 스타일과 린트 규칙은 무엇인가",
+    "candidate_benchmark_ids": [
+      "bench_mem_003192",
+      "bench_mem_003207",
+      "bench_mem_003215",
+      "bench_mem_003209",
+      "bench_mem_003367",
+      "bench_mem_003361",
+      "bench_mem_003360",
+      "bench_mem_003318",
+      "bench_mem_003227",
+      "bench_mem_002992",
+      "bench_mem_002986",
+      "bench_mem_002546",
+      "bench_mem_003201",
+      "bench_mem_002613",
+      "bench_mem_002664",
+      "bench_mem_002764",
+      "bench_mem_002609",
+      "bench_mem_002993",
+      "bench_mem_002789",
+      "bench_mem_002781",
+      "bench_mem_001518",
+      "bench_mem_001562",
+      "bench_mem_001574",
+      "bench_mem_003422",
+      "bench_mem_003418",
+      "bench_mem_002259",
+      "bench_mem_002229",
+      "bench_mem_002291",
+      "bench_mem_000248",
+      "bench_mem_002873"
+    ]
+  },
+  {
+    "query_id": "q_020",
+    "query": "이 모노레포는 어떤 순서로 빌드되나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003436",
+      "bench_mem_002926",
+      "bench_mem_002622",
+      "bench_mem_002986",
+      "bench_mem_001493",
+      "bench_mem_001551",
+      "bench_mem_003432",
+      "bench_mem_002881",
+      "bench_mem_002895",
+      "bench_mem_002825",
+      "bench_mem_000109"
+    ]
+  },
+  {
+    "query_id": "q_027",
+    "query": "데이터베이스 초기화와 마이그레이션은 어떻게 하나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003437",
+      "bench_mem_003007",
+      "bench_mem_001460",
+      "bench_mem_003067",
+      "bench_mem_003077",
+      "bench_mem_002812",
+      "bench_mem_000703",
+      "bench_mem_002872",
+      "bench_mem_000948",
+      "bench_mem_003173",
+      "bench_mem_003163"
+    ]
+  },
+  {
+    "query_id": "q_028",
+    "query": "OpenAI와 Gemini 임베딩 provider는 어떻게 다루나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003438",
+      "bench_mem_002732",
+      "bench_mem_002724",
+      "bench_mem_002624",
+      "bench_mem_002680",
+      "bench_mem_002696",
+      "bench_mem_000088",
+      "bench_mem_000008",
+      "bench_mem_001813",
+      "bench_mem_001803",
+      "bench_mem_001583"
+    ]
+  },
+  {
+    "query_id": "q_029",
+    "query": "memory injection은 어떤 컨텍스트를 주입하나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003439",
+      "bench_mem_000980",
+      "bench_mem_000924",
+      "bench_mem_001638",
+      "bench_mem_000826",
+      "bench_mem_000722",
+      "bench_mem_002441",
+      "bench_mem_002409",
+      "bench_mem_000886",
+      "bench_mem_002489",
+      "bench_mem_002996"
+    ]
+  },
+  {
+    "query_id": "q_030",
+    "query": "anchor, pin, unpin은 각각 무엇에 쓰이나",
+    "candidate_benchmark_ids": [
+      "bench_mem_003440",
+      "bench_mem_000376",
+      "bench_mem_002096",
+      "bench_mem_002088",
+      "bench_mem_002040",
+      "bench_mem_002076",
+      "bench_mem_001552",
+      "bench_mem_001532",
+      "bench_mem_000820",
+      "bench_mem_001378",
+      "bench_mem_002113"
+    ]
+  }
+]

@@ -30,6 +30,17 @@ import {
   type OrderPreservationReport
 } from '../../../../test/helpers/vector-search-quality-metrics.js';
 import {
+  loadBenchmarkManifest,
+  assertStrictBenchmark,
+  buildBenchmarkQueryLookup,
+  loadBenchmarkCorpus,
+  loadBenchmarkQueries,
+} from '../../../../test/helpers/search-quality-benchmark-fixtures.js';
+import {
+  normalizeBenchmarkGroundTruths,
+  verifyReviewableBenchmark,
+} from '../../../../test/helpers/search-quality-review-verifier.js';
+import {
   RelationQualityValidator,
   type ExpectedRelation,
   type ExtractedRelation
@@ -249,12 +260,55 @@ export class QualityMetricsCollector {
        * 벡터-only와 Consolidation 반영 후 결과 비교
        */
       searchResultPairs?: SearchResultPair[];
+
+      /**
+       * Benchmark fixture 디렉터리 (지정 시 manifest/ground truth를 여기서 로드)
+       */
+      benchmarkDir?: string;
+
+      /**
+       * strict benchmark 모드: manifest.strict_ci 및 human-labeled ground truth 필수
+       */
+      strictBenchmark?: boolean;
     }
   ): Promise<CollectedMetrics> {
     const metrics: Record<string, number> = {};
 
-    // Ground Truth 자동 로드 (옵션에 없으면 파일에서 로드 시도)
     let groundTruths = options?.groundTruths;
+    let memoryIdToBenchmarkId: Map<string, string> | undefined;
+    let queryIdToQueryText: Map<string, string> | undefined;
+    if (options?.strictBenchmark && !options.benchmarkDir) {
+      throw new Error('Strict benchmark mode requires benchmarkDir');
+    }
+    if (options?.benchmarkDir) {
+      const manifest = loadBenchmarkManifest(options.benchmarkDir);
+      if (options.strictBenchmark) {
+        assertStrictBenchmark(manifest);
+        const verification = verifyReviewableBenchmark(options.benchmarkDir, { requireReviewed: true });
+        if (!verification.ok) {
+          throw new Error(`Strict benchmark verification failed: ${verification.errors.join('; ')}`);
+        }
+      }
+      groundTruths = normalizeBenchmarkGroundTruths(options.benchmarkDir);
+      try {
+        const corpus = loadBenchmarkCorpus(options.benchmarkDir);
+        memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
+      } catch (error) {
+        throw new Error(
+          `Benchmark corpus load failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      const queries = loadBenchmarkQueries(options.benchmarkDir);
+      queryIdToQueryText = new Map(
+        [...buildBenchmarkQueryLookup(queries).byId.entries()].map(([queryId, query]) => [queryId, query.query])
+      );
+    }
+
+    if (options?.strictBenchmark && (!groundTruths || groundTruths.length === 0)) {
+      throw new Error('Strict benchmark mode requires human-labeled ground truth');
+    }
+
+    // Ground Truth 자동 로드 (옵션에 없고 benchmarkDir도 없으면 파일에서 로드 시도)
     if (!groundTruths || groundTruths.length === 0) {
       try {
         const loaded = loadGroundTruth();
@@ -276,6 +330,19 @@ export class QualityMetricsCollector {
     // 검색 결과 자동 생성 (옵션에 없고 Ground Truth가 있으면 실제 검색 수행, 병렬로 한 번만)
     let queryResults = options?.queryResults;
     const fullResultsByQuery = new Map<string, { items: HybridSearchResult[] }>();
+
+    if (queryResults) {
+      queryResults = new Map(
+        [...queryResults.entries()].map(([queryId, results]) => [
+          queryIdToQueryText?.get(queryId) ?? queryId,
+          results.map((result) => ({
+            ...result,
+            id: memoryIdToBenchmarkId?.get(result.id) ?? result.id,
+          })),
+        ])
+      );
+    }
+
     if (!queryResults && groundTruths && groundTruths.length > 0) {
       try {
         queryResults = new Map<string, SearchResult[]>();
@@ -293,7 +360,11 @@ export class QualityMetricsCollector {
         const resolved = await Promise.all(searchPromises);
 
         for (const { queryId, searchResult } of resolved) {
-          queryResults.set(queryId, searchResult.items.map((item) => ({ id: item.id, score: item.finalScore })));
+          const mapped = searchResult.items.map((item) => {
+            const id = memoryIdToBenchmarkId?.get(item.id) ?? item.id;
+            return { id, score: item.finalScore };
+          });
+          queryResults.set(queryId, mapped);
           fullResultsByQuery.set(queryId, searchResult);
         }
 
@@ -498,10 +569,15 @@ export class QualityMetricsCollector {
       });
     }
 
-      // has_ground_truth는 명시적으로 제공된 groundTruth만 true로 설정
-      // auto_loaded된 경우는 false로 처리 (테스트에서 명시적으로 제공하지 않은 경우)
-      const hasExplicitGroundTruth = options?.groundTruths !== undefined && (options.groundTruths.length > 0);
-      const hasAutoLoadedGroundTruth = !options?.groundTruths && groundTruths !== undefined && (groundTruths.length > 0);
+      // has_ground_truth: 옵션으로 제공되었거나 benchmarkDir에서 로드된 경우 true
+      const hasExplicitGroundTruth =
+        (options?.groundTruths !== undefined && options.groundTruths.length > 0) ||
+        (options?.benchmarkDir !== undefined && groundTruths !== undefined && groundTruths.length > 0);
+      const hasAutoLoadedGroundTruth =
+        !options?.groundTruths &&
+        !options?.benchmarkDir &&
+        groundTruths !== undefined &&
+        groundTruths.length > 0;
       
       return {
         namespace: 'search',
@@ -510,7 +586,7 @@ export class QualityMetricsCollector {
         metrics,
         metadata: {
           has_ground_truth: hasExplicitGroundTruth,
-          ground_truth_count: hasExplicitGroundTruth ? (options.groundTruths?.length || 0) : 0,
+          ground_truth_count: hasExplicitGroundTruth ? (groundTruths?.length ?? 0) : 0,
           auto_loaded: hasAutoLoadedGroundTruth,
           auto_searched: !options?.queryResults && queryResults !== undefined
         }
@@ -1243,4 +1319,3 @@ export class QualityMetricsCollector {
     }
   }
 }
-

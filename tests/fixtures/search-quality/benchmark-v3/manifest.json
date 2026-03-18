@@ -1,0 +1,16 @@
+{
+  "benchmark_version": "v3",
+  "created_at": "2026-03-18T10:16:43.277Z",
+  "corpus_size": 3440,
+  "query_count": 23,
+  "ground_truth_count": 23,
+  "source": "full-memory-snapshot",
+  "labeling_policy": "binary-human-labeled",
+  "strict_ci": true,
+  "ground_truth_reviewed": true,
+  "notes": [
+    "Exported from current memory_item snapshot",
+    "Human-labeled queries and ground truth must be added separately",
+    "Set ground_truth_reviewed=true only after manual review is complete"
+  ]
+}
