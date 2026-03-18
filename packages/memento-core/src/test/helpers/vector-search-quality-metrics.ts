@@ -8,6 +8,12 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import type { SearchResult, GroundTruth } from './search-quality-metrics.js';
+import {
+  assertStrictBenchmark,
+  DEFAULT_SEARCH_BENCHMARK_DIR,
+  loadBenchmarkGroundTruth,
+  loadBenchmarkManifest,
+} from './search-quality-benchmark-fixtures.js';
 import type { HybridSearchResult } from '../../domains/search/algorithms/hybrid-search-engine.js';
 import {
   calculatePrecisionAtK,
@@ -2908,6 +2914,20 @@ export function generateOrLoadGroundTruth(
   saveGroundTruth(generated, filePath);
   
   return generated;
+}
+
+/**
+ * strict benchmark fixture에서 사람이 확정한 Ground Truth를 로드합니다.
+ *
+ * @param benchmarkDir benchmark fixture 디렉터리
+ * @returns strict benchmark 검증을 통과한 Ground Truth 배열
+ */
+export function loadStrictBenchmarkGroundTruth(
+  benchmarkDir: string = DEFAULT_SEARCH_BENCHMARK_DIR
+): GroundTruth[] {
+  const manifest = loadBenchmarkManifest(benchmarkDir);
+  assertStrictBenchmark(manifest);
+  return loadBenchmarkGroundTruth(benchmarkDir);
 }
 
 /**
