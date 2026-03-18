@@ -148,3 +148,6 @@ test-logs/
 .worktrees/
 demo/.next/
 demo/node_modules/
+
+# Local / machine-specific
+compound-engineering.local.md
