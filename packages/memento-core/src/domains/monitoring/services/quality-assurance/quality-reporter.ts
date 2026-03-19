@@ -455,6 +455,32 @@ export class QualityReporter {
       fail: 'FAIL'
     };
 
+    /** class 속성에 사용자/DB status 문자열이 그대로 들어가지 않도록 allowlist */
+    const safeQualityRowClass = (status: string): string => {
+      const k = status.toLowerCase();
+      if (k === 'pass' || k === 'warning' || k === 'fail') {
+        return statusClass[k];
+      }
+      return 'status-warning';
+    };
+    const safeQualityLabel = (status: string): string => {
+      const k = status.toLowerCase();
+      if (k === 'pass') return statusText.pass;
+      if (k === 'warning') return statusText.warning;
+      if (k === 'fail') return statusText.fail;
+      return escapeHtml(status);
+    };
+    const safeHistoryRowClass = (status: string): string => {
+      const k = status.toLowerCase();
+      const map: Record<string, string> = {
+        success: 'status-pass',
+        warning: 'status-warning',
+        fail: 'status-fail',
+        error: 'status-fail'
+      };
+      return map[k] ?? 'status-warning';
+    };
+
     let html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -540,7 +566,7 @@ export class QualityReporter {
   <div class="container">
     <h1>Quality Assurance Report</h1>
     <p><strong>생성 일시:</strong> ${escapeHtml(reportData.generated_at)}</p>
-    <p><strong>전체 상태:</strong> <span class="${statusClass[summary.overall_status]}">${escapeHtml(statusText[summary.overall_status])}</span></p>
+    <p><strong>전체 상태:</strong> <span class="${safeQualityRowClass(summary.overall_status)}">${safeQualityLabel(summary.overall_status)}</span></p>
     
     <div class="summary-box">
       <h3>요약</h3>
@@ -551,7 +577,7 @@ export class QualityReporter {
         </tr>
         <tr>
           <td><strong>전체 상태</strong></td>
-          <td><span class="${statusClass[summary.overall_status]}">${escapeHtml(statusText[summary.overall_status])}</span></td>
+          <td><span class="${safeQualityRowClass(summary.overall_status)}">${safeQualityLabel(summary.overall_status)}</span></td>
         </tr>
         <tr>
           <td><strong>총 지표 수</strong></td>
@@ -588,7 +614,7 @@ export class QualityReporter {
         html += `
       <tr>
         <td><strong>${escapeHtml(ns.namespace)}</strong></td>
-        <td><span class="${statusClass[ns.status]}">${escapeHtml(statusText[ns.status])}</span></td>
+        <td><span class="${safeQualityRowClass(ns.status)}">${safeQualityLabel(ns.status)}</span></td>
         <td>${escapeHtml(ns.metrics_count)}</td>
         <td>${escapeHtml(ns.passed_count)}</td>
         <td>${escapeHtml(ns.failed_count)}</td>
@@ -648,7 +674,7 @@ export class QualityReporter {
         <td>${escapeHtml(metric.metric_namespace)}</td>
         <td>${escapeHtml(metric.metric_key)}</td>
         <td>${escapeHtml(metric.metric_value.toFixed(3))}</td>
-        <td><span class="${statusClass[metric.status as keyof typeof statusClass]}">${escapeHtml(statusText[metric.status as keyof typeof statusText])}</span></td>
+        <td><span class="${safeQualityRowClass(String(metric.status))}">${safeQualityLabel(String(metric.status))}</span></td>
         <td>${escapeHtml(thresholdStr)}</td>
         <td>${escapeHtml(metric.measured_at)}</td>
       </tr>`;
@@ -677,7 +703,7 @@ export class QualityReporter {
         <td>${escapeHtml(h.measurement_type)}</td>
         <td>${escapeHtml(h.namespace || 'N/A')}</td>
         <td>${escapeHtml(h.context || 'N/A')}</td>
-        <td><span class="${statusClass[h.status as keyof typeof statusClass] || 'status-warning'}">${escapeHtml(h.status.toUpperCase())}</span></td>
+        <td><span class="${safeHistoryRowClass(h.status)}">${escapeHtml(h.status.toUpperCase())}</span></td>
         <td>${escapeHtml(h.measured_at)}</td>
       </tr>`;
       }
