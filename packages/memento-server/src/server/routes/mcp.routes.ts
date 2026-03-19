@@ -4,7 +4,7 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { Router, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import {
@@ -14,8 +14,10 @@ import {
   logger,
   DatabaseUtils,
   MemoryNeighborService,
-  getVectorSearchEngine
+  getVectorSearchEngine,
+  mementoConfig
 } from '@memento/core';
+import { buildMcpManualCorsHeaders } from '../utils/cors-policy.js';
 
 /**
  * SSE Transport 타입
@@ -36,20 +38,31 @@ export function createMcpRouter(
 ): Router {
   const router = Router();
 
+  const sendMcpCorsPreflight = (req: Request, res: Response): void => {
+    const origin = req.get('origin') ?? undefined;
+    const h = buildMcpManualCorsHeaders(origin, mementoConfig.corsAllowedOrigins);
+    for (const [k, v] of Object.entries(h)) {
+      res.setHeader(k, v);
+    }
+    res.status(204).end();
+  };
+  router.options('/mcp', sendMcpCorsPreflight);
+  router.options('/messages', sendMcpCorsPreflight);
+
   // MCP SSE 엔드포인트
   router.get('/mcp', async (req, res) => {
     logger.info('MCP SSE client connection request');
 
     try {
-      // SSE 헤더 설정
+      const origin = req.get('origin') ?? undefined;
+      const manualCors = buildMcpManualCorsHeaders(origin, mementoConfig.corsAllowedOrigins);
+      // SSE 헤더 설정 (CORS_ALLOWED_ORIGINS와 정합; 비어 있으면 ACAO 미설정)
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'X-Accel-Buffering': 'no'
+        'X-Accel-Buffering': 'no',
+        ...manualCors
       });
 
       // 세션 ID 생성

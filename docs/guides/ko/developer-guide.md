@@ -1247,6 +1247,19 @@ async function testPerformanceAlerts() {
 }
 ```
 
+## HTTP 보안 (운영자 체크리스트)
+
+원격에서 HTTP 서버(`memento-dev` / `http-server` 등)에 접근 가능한 배포는 다음을 기본으로 한다.
+
+| 항목 | 환경 변수 | 설명 |
+|------|-----------|------|
+| 관리·API·품질 경로 보호 | `ADMIN_API_KEY` | 설정 시 `/admin`, `/api`, `/api/v1/quality`에 `Authorization: Bearer <key>` 또는 `X-API-Key` 필요 |
+| 바인딩 | `MEMENTO_HTTP_BIND_HOST` | 미설정 시 기본 `127.0.0.1`. `0.0.0.0` 등 비루프백으로 리슨할 때 키가 없으면 **기동 거부** |
+| 브라우저 CORS | `CORS_ALLOWED_ORIGINS` | 쉼표 구분. 비우면 크로스 오리진 미허용. MCP SSE 수동 헤더도 동일 목록 사용 |
+| (비권장) 무키 기동 | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | 개발 전용. 프로덕션 금지 |
+
+상세 절차·복구: [specs/001-http-trust-security/quickstart.md](../../../specs/001-http-trust-security/quickstart.md), `env.example` 주석.
+
 ## 추가 리소스
 
 - [API 참조 문서](../../api/ko/api-reference.md)

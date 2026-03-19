@@ -109,6 +109,15 @@ export const mementoConfig: MementoConfig = {
   // Admin/API/Quality 인증 (ADMIN_API_KEY 설정 시 해당 라우트에 Bearer 또는 X-API-Key 필요)
   adminApiKey: resolveOptionalString('ADMIN_API_KEY'),
 
+  // HTTP 바인드·보안 (원격 바인딩 시 ADMIN_API_KEY 또는 루프백/명시적 insecure 필요)
+  httpListenHost: resolveString('MEMENTO_HTTP_BIND_HOST', {
+    fallbackKeys: ['HTTP_BIND_HOST'],
+    // 신규 클론·ADMIN_API_KEY 미설정에서도 로컬 개발이 동작하도록 루프백 기본값.
+    // 모든 인터페이스에 노출하려면 0.0.0.0(또는 ::) + ADMIN_API_KEY 등 명시 필요.
+    defaultValue: '127.0.0.1'
+  }),
+  allowInsecureHttpAdmin: resolveBoolean('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN', { defaultValue: false }),
+
   recallProfileEnabled: getRawEnvValue('MEMENTO_RECALL_PROFILE') === '1',
   fts5FallbackEnabled: resolveBoolean('MEMENTO_FTS5_FALLBACK_ENABLED', { defaultValue: false })
 };

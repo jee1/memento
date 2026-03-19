@@ -26,7 +26,12 @@ export class SseServer implements Server {
     }
 
     this.isRunning = true;
-    await startSseServer();
+    try {
+      await startSseServer();
+    } catch (error) {
+      this.isRunning = false;
+      throw error;
+    }
   }
 
   /**

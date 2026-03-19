@@ -43,6 +43,13 @@ export type { ServerContext } from './context.js';
 
 // --- shared (설정·유틸·타입) re-export (서버 thin화용) ---
 export { mementoConfig, validateConfig } from './shared/config/index.js';
+export {
+  isHttpBindHostRemotelyReachable,
+  canonicalizeHttpBindHostForListen,
+  formatHttpBindHostForUrl,
+  getMementoHttpSecurityStartupViolationMessage,
+  MementoHttpSecurityStartupError
+} from './shared/http/http-bind-policy.js';
 export { DatabaseUtils } from './shared/utils/database.js';
 export { logger } from './shared/utils/logger.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';

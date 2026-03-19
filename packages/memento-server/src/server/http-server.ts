@@ -19,7 +19,12 @@ import {
   validateConfig,
   getVectorSearchEngine,
   getBatchScheduler,
-  logger
+  logger,
+  getMementoHttpSecurityStartupViolationMessage,
+  isHttpBindHostRemotelyReachable,
+  canonicalizeHttpBindHostForListen,
+  formatHttpBindHostForUrl,
+  MementoHttpSecurityStartupError
 } from '@memento/core';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
@@ -126,9 +131,6 @@ async function initializeServer() {
   try {
     logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
     logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
-    
-    // 설정 검증
-    validateConfig();
 
     // @memento/core로 DB·서비스 초기화
     const core = await createMementoCore({
@@ -192,7 +194,7 @@ async function initializeServer() {
     
   } catch (error) {
     logger.error('서버 초기화 실패', { error });
-    process.exit(1);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -239,9 +241,12 @@ async function cleanup() {
       closeDatabase(db);
       db = null;
     }
+    serverServices = null;
     logger.info('HTTP/WebSocket MCP 서버 v2 종료');
   } catch (error) {
     logger.error('정리 중 오류', { error });
+  } finally {
+    isCleaningUp = false;
   }
 }
 
@@ -426,14 +431,43 @@ wss.on('connection', (ws: WebSocket) => {
 
 // 서버 시작
 async function startServer() {
-  await initializeServer();
-  
-  // 정리 핸들러 등록
-  registerCleanupHandlers();
-  
-  // 포트 설정 (mementoConfig에서 가져오거나 기본값 9001)
+  // DB·스케줄러 기동 전에 설정·보안 정책을 검사해 실패 시 리소스가 남지 않게 한다.
+  validateConfig();
+
   const PORT = mementoConfig.port || 9001;
-  
+  const bindHostRaw = (mementoConfig.httpListenHost || '127.0.0.1').trim();
+  const bindHostListen = canonicalizeHttpBindHostForListen(bindHostRaw);
+  const bindHostForUrl = formatHttpBindHostForUrl(bindHostRaw);
+
+  const securityViolation = getMementoHttpSecurityStartupViolationMessage({
+    httpListenHost: bindHostRaw,
+    adminApiKey: mementoConfig.adminApiKey,
+    allowInsecureHttpAdmin: mementoConfig.allowInsecureHttpAdmin
+  });
+  if (securityViolation) {
+    logger.error(securityViolation);
+    throw new MementoHttpSecurityStartupError(securityViolation);
+  }
+  if (
+    mementoConfig.allowInsecureHttpAdmin &&
+    isHttpBindHostRemotelyReachable(bindHostRaw)
+  ) {
+    logger.warn(
+      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Admin/API/Quality routes are reachable without ADMIN_API_KEY on a non-loopback bind. Do not use in production.'
+    );
+  }
+
+  try {
+    await initializeServer();
+  } catch (error) {
+    logger.error('서버 초기화 실패 — 리소스 정리 시도', { error });
+    await cleanup();
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+
+  // 정리 핸들러 등록 (초기화 성공 후)
+  registerCleanupHandlers();
+
   // 이미 리스닝 중이면 먼저 종료
   if (server.listening) {
     logger.warn('서버가 이미 리스닝 중입니다. 종료 후 재시작합니다');
@@ -446,12 +480,12 @@ async function startServer() {
   
   // HTTP 서버를 사용하여 Express app과 WebSocket 서버 모두 바인딩
   // app.listen() 대신 server.listen()을 사용하여 WebSocket 서버와 동일한 인스턴스 사용
-  server.listen(Number(PORT), '0.0.0.0', () => {
+  server.listen(Number(PORT), bindHostListen, () => {
     logger.info('서버 시작 완료', {
-      http: `http://0.0.0.0:${PORT}`,
-      websocket: `ws://0.0.0.0:${PORT}`,
-      api_docs: `http://0.0.0.0:${PORT}/tools`,
-      health: `http://0.0.0.0:${PORT}/health`
+      http: `http://${bindHostForUrl}:${PORT}`,
+      websocket: `ws://${bindHostForUrl}:${PORT}`,
+      api_docs: `http://${bindHostForUrl}:${PORT}/tools`,
+      health: `http://${bindHostForUrl}:${PORT}/health`
     });
   });
   

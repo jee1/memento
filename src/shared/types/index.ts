@@ -254,6 +254,12 @@ export interface MementoConfig {
   corsAllowedOrigins: string[];
   // Admin/API/Quality 라우트 인증: 설정 시 Authorization: Bearer <key> 또는 X-API-Key: <key> 필요
   adminApiKey: string | undefined;
+  /** HTTP 서버 바인드 주소 (MEMENTO_HTTP_BIND_HOST, 미설정 시 기본 127.0.0.1) */
+  httpListenHost: string;
+  /**
+   * true이면 루프백이 아닌 바인딩에서도 ADMIN_API_KEY 없이 기동 허용(무인증 노출 위험, 문서화된 개발용).
+   */
+  allowInsecureHttpAdmin: boolean;
   // Recall 프로파일링 (MEMENTO_RECALL_PROFILE=1 시 활성화)
   recallProfileEnabled: boolean;
   // FTS5 fallback 강제 (MEMENTO_FTS5_FALLBACK_ENABLED=true 시 reflection_notes FTS 제외)

@@ -9,6 +9,12 @@ import { createServer } from 'http';
 import cors from 'cors';
 import { logger } from '../shared/utils/logger.js';
 import { mementoConfig } from '../shared/config/index.js';
+import {
+  isHttpBindHostRemotelyReachable,
+  canonicalizeHttpBindHostForListen,
+  formatHttpBindHostForUrl
+} from '../shared/http/http-bind-policy.js';
+import { buildMcpManualCorsHeaders } from './utils/cors-policy.js';
 
 const app = express();
 const server = createServer(app);
@@ -54,21 +60,14 @@ const tools = [
 app.get('/mcp', (req, res) => {
   logger.info('🔗 MCP SSE 클라이언트 연결 요청');
 
-  const origin = req.headers.origin;
-  const allowOrigin =
-    corsOrigins.length > 0 && origin && corsOrigins.includes(origin)
-      ? origin
-      : corsOrigins.length === 1
-        ? corsOrigins[0]
-        : undefined;
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+  const manualCors = buildMcpManualCorsHeaders(origin, corsOrigins);
   const headers: Record<string, string> = {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    ...manualCors
   };
-  if (allowOrigin) headers['Access-Control-Allow-Origin'] = allowOrigin;
 
   res.writeHead(200, headers);
 
@@ -188,12 +187,24 @@ app.get('/health', (req, res) => {
  */
 export async function startSimpleMcpServer(): Promise<void> {
   const PORT = process.env.PORT || 9001;
-  
+  const bindHostRaw = (mementoConfig.httpListenHost || '127.0.0.1').trim();
+  const bindHostListen = canonicalizeHttpBindHostForListen(bindHostRaw);
+  const bindHostForUrl = formatHttpBindHostForUrl(bindHostRaw);
+
+  // `/admin`, `/api`, 품질 라우트가 없는 최소 MCP 전용 서버이므로
+  // ADMIN_API_KEY·비루프백 기동 차단(getMementoHttpSecurityStartupViolationMessage)은 적용하지 않는다.
+  if (isHttpBindHostRemotelyReachable(bindHostRaw)) {
+    logger.warn(
+      '간단 MCP 서버가 비루프백 주소에 바인딩됩니다. /mcp·/messages·/health만 노출되며 ' +
+        '관리·API·품질 경로는 없습니다. 네트워크·CORS 노출 범위를 확인하세요.'
+    );
+  }
+
   return new Promise<void>((resolve) => {
-    server.listen(Number(PORT), '0.0.0.0', () => {
-      logger.info(`🌐 간단한 MCP 서버 시작: http://0.0.0.0:${PORT}`);
+    server.listen(Number(PORT), bindHostListen, () => {
+      logger.info(`🌐 간단한 MCP 서버 시작: http://${bindHostForUrl}:${PORT}`);
       logger.info(`📋 도구 개수: ${tools.length}개`);
-      logger.info(`❤️  헬스 체크: http://0.0.0.0:${PORT}/health`);
+      logger.info(`❤️  헬스 체크: http://${bindHostForUrl}:${PORT}/health`);
       resolve();
     });
   });
