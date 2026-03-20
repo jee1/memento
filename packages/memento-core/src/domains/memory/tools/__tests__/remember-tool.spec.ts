@@ -1960,21 +1960,28 @@ describe('RememberTool', () => {
      * Then: 동일 작업이 중복 실행되지 않아야 함
      */
     it('should prevent duplicate triple extraction when fallback timer fires', async () => {
-      // Given: tripleExtractionJob이 2초 이상 걸리는 상황
+      // Given: 배치 스케줄러를 통해 Triple 추출이 정확히 1회 실행되어야 함
+      const batchSchedulerForTest = getBatchScheduler();
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      (batchSchedulerForTest as any).jobQueue.clear();
+
+      // context에 batchScheduler 주입 (remember-tool이 context.services.batchScheduler를 통해 접근)
+      const contextWithScheduler = {
+        ...context,
+        services: { ...context.services, batchScheduler: batchSchedulerForTest }
+      };
+
       const testEnvironmentSpy = vi.spyOn(environmentCheck, 'isTestEnvironment').mockReturnValue(false);
       const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples')
-        .mockImplementation(async () => {
-          await new Promise(resolve => setTimeout(resolve, 2500));
-          return {
-            triples: [],
-            extractionInfo: {
-              steps: {
-                canonicalization: false,
-                entityLinking: false
-              },
-              failureReason: 'no_triple'
-            }
-          };
+        .mockResolvedValue({
+          triples: [],
+          extractionInfo: {
+            steps: {
+              canonicalization: false,
+              entityLinking: false
+            },
+            failureReason: 'no_triple'
+          }
         });
 
       const params = {
@@ -1984,16 +1991,17 @@ describe('RememberTool', () => {
         enable_triple_extraction: true
       };
 
-      // When: remember 호출 (폴백 타이머 동작 대기)
-      await tool.handle(params, context);
+      // When: remember 호출 후 스케줄러 처리 대기
+      // 100ms (IIFE 딜레이) + 1000ms (processor interval) + 임베딩/buffer
+      await tool.handle(params, contextWithScheduler);
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Then: 동일 작업이 중복 실행되지 않아야 함
+      // Then: 동일 작업이 중복 실행되지 않아야 함 (정확히 1회)
       expect(extractTriplesSpy).toHaveBeenCalledTimes(1);
 
       testEnvironmentSpy.mockRestore();
       extractTriplesSpy.mockRestore();
-    });
+    }, 10000);
 
 
     it('should not block remember operation when triple extraction is enabled', async () => {

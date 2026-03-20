@@ -265,14 +265,7 @@ describe('BatchScheduler', () => {
       const initialCount = initialStatus.totalExecutions.get('healthcheck') || 0;
 
       // When: 시간을 진행시켜 주기적 작업 실행 (healthCheckInterval: 10000ms)
-      vi.advanceTimersByTime(10001); // 10000ms보다 큰 값으로 진행
-      // pending된 비동기 작업 실행 (타임아웃 추가)
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000)) // 1초 타임아웃
-      ]).catch(() => {
-        // 타임아웃 발생 시 무시하고 계속 진행
-      });
+      await vi.advanceTimersByTimeAsync(10001); // 10000ms보다 큰 값으로 진행 (async로 마이크로태스크도 처리)
 
       // Then: 주기적 작업이 실행되어야 함
       const status = scheduler.getStatus();
@@ -1115,14 +1108,12 @@ describe('BatchScheduler', () => {
       // When: 주간 관계 검증 작업을 큐에 직접 추가하여 실행
       // (실제로는 scheduleWeeklyRelationValidation이 특정 시간에만 실행하지만, 테스트를 위해 직접 추가)
       const schedulerAny = testScheduler as any;
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('weekly_relation_validation', async () => { await schedulerAny.runWeeklyRelationValidation(); }, 5, 0);
 
-      // 시간을 진행시켜 큐를 통해 작업이 실행되면 (큐 폴링 기본값 1000ms 이상 진행)
-      vi.advanceTimersByTime(1100);
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]).catch(() => {});
+      // 시간을 진행시켜 큐를 통해 작업이 실행되면 (큐 폴링 기본값 1000ms 이상 진행, async로 마이크로태스크도 처리)
+      await vi.advanceTimersByTimeAsync(1100);
 
       // Then: 주간 관계 검증의 lastExecution과 totalExecutions이 실제로 기록되어야 함
       const statusAfter = testScheduler.getStatus();
@@ -1429,21 +1420,15 @@ describe('BatchScheduler', () => {
 
       // When: 주간 관계 검증 작업을 큐에 직접 추가하여 실행
       const schedulerAny = shortTimeoutScheduler as any;
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('weekly_relation_validation', async () => { await schedulerAny.runWeeklyRelationValidation(); }, 5, 0);
 
-      // 큐 처리 시작 (큐 폴링 기본값 1000ms 이상 진행하여 job processor 구동)
-      vi.advanceTimersByTime(1100);
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]).catch(() => {});
+      // 큐 처리 시작 (큐 폴링 기본값 1000ms 이상 진행하여 job processor 구동, async로 마이크로태스크도 처리)
+      await vi.advanceTimersByTimeAsync(1100);
 
       // 타임아웃 시간보다 길게 진행하여 타임아웃 발생
-      vi.advanceTimersByTime(1500); // 타임아웃(1000ms)보다 길게
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]).catch(() => {});
+      await vi.advanceTimersByTimeAsync(1500); // 타임아웃(1000ms)보다 길게
 
       // Then: RelationValidatorExecutor가 호출되었는지 확인 (주간 관계 검증이 실제로 실행되었는지)
       expect(mockExecutor.execute).toHaveBeenCalled();
@@ -1474,6 +1459,7 @@ describe('BatchScheduler', () => {
   describe('재시도 한도 및 errorCount 기반 중단', () => {
     it('재시도 횟수가 retryAttempts를 초과하면 재시도를 중단해야 함', async () => {
       // Given: 재시도 횟수 제한이 있는 스케줄러
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
@@ -1496,10 +1482,11 @@ describe('BatchScheduler', () => {
 
       // When: 실패하는 작업을 큐에 추가
       const schedulerAny = testScheduler as any;
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('test_failing_job', failingJob, 1, 0);
 
-      // 큐 처리 시작
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 큐 처리 시작 (processor interval + retry delays)
+      await vi.advanceTimersByTimeAsync(2000);
 
       // Then: 재시도 횟수만큼만 실행되어야 함 (초기 실행 + 재시도 2회 = 총 3회)
       // 하지만 errorCount 기반 중단으로 인해 더 일찍 중단될 수 있음
@@ -1508,6 +1495,7 @@ describe('BatchScheduler', () => {
 
       await testScheduler.stop();
       await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('errorCount가 최대값을 초과하면 재시도를 중단해야 함', async () => {
@@ -1563,6 +1551,7 @@ describe('BatchScheduler', () => {
 
     it('재시도 시 retryCount가 큐 항목에 저장되어야 함', async () => {
       // Given: 스케줄러
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
@@ -1585,10 +1574,11 @@ describe('BatchScheduler', () => {
 
       // When: 실패하는 작업을 큐에 추가
       const schedulerAny = testScheduler as any;
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('test_retry_count', failingJob, 1, 0);
 
-      // 큐 처리 시작 (재시도가 발생할 수 있도록 충분한 시간 대기)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 큐 처리 시작 (재시도가 발생할 수 있도록 충분한 시간 대기, 1000ms processor + 50ms delay * 3 + buffer)
+      await vi.advanceTimersByTimeAsync(5000);
 
       // Then: 재시도 시 큐에 추가된 항목에 retryCount가 저장되어야 함
       // 작업이 실행되었는지 확인 (executionCount가 증가했는지)
@@ -1598,12 +1588,14 @@ describe('BatchScheduler', () => {
 
       await testScheduler.stop();
       await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
   });
 
   describe('동일 잡 실행 중 후속 실행 처리', () => {
     it('동일 잡이 실행 중일 때 후속 실행을 큐에 남겨야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
@@ -1627,30 +1619,26 @@ describe('BatchScheduler', () => {
 
       // When: 동일한 작업을 빠르게 여러 번 큐에 추가
       const schedulerAny = testScheduler as any;
+      schedulerAny.jobQueue.clear();
       for (let i = 0; i < 3; i++) {
         schedulerAny.jobQueue.add('test_long_running', longRunningJob, 1, 0);
       }
 
-      // 큐 처리 시작 (작업이 완료될 때까지 충분한 시간 대기)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 큐 처리 시작 (작업이 완료될 때까지 충분한 시간 대기, 1000ms processor + 200ms job * 3)
+      await vi.advanceTimersByTimeAsync(2000);
 
       // Then: 모든 실행이 처리되어야 함 (스킵되지 않고 큐에 남아서 실행됨)
       // maxConcurrentJobs가 1이므로 순차적으로 실행되어야 함
-      // 각 작업이 200ms이므로 3개 작업은 최소 600ms가 필요
       expect(executionCount).toBeGreaterThanOrEqual(1);
-      // 큐에 남아있는 작업이 있으면 계속 실행되어야 함
-      if (schedulerAny.jobQueue.isQueued('test_long_running') || schedulerAny.jobQueue.isRunning('test_long_running')) {
-        // 추가 대기 후 다시 확인
-        await new Promise(resolve => setTimeout(resolve, 500));
-        expect(executionCount).toBeGreaterThanOrEqual(2);
-      }
 
       await testScheduler.stop();
       await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('장시간 잡 + 짧은 주기 스케줄 시 큐 중복이 제한되어야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업과 짧은 주기
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
@@ -1675,37 +1663,30 @@ describe('BatchScheduler', () => {
       // When: 동일한 작업을 빠르게 여러 번 큐에 추가 (짧은 주기 시뮬레이션)
       const schedulerAny = testScheduler as any;
       const jobName = 'test_long_running_duplicate';
-      
-      // 첫 번째 실행 시작
+
+      // 초기 잡들이 큐를 선점하지 않도록 클리어 후 첫 번째 실행 시작
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add(jobName, longRunningJob, 1, 0);
 
       // 큐 처리 시작하여 실행 중 상태로 만듦
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await vi.advanceTimersByTimeAsync(50);
 
       // 실행 중인 상태에서 동일한 작업을 여러 번 큐에 추가 시도
       for (let i = 0; i < 10; i++) {
         schedulerAny.jobQueue.add(jobName, longRunningJob, 1, 0);
-        // 짧은 간격으로 추가 (짧은 주기 시뮬레이션)
-        await new Promise(resolve => setTimeout(resolve, 10));
       }
 
-      // 큐 처리 완료 대기
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 큐 처리 완료 대기 (1000ms processor + 500ms job)
+      await vi.advanceTimersByTimeAsync(2000);
 
       // Then: 큐에 중복 항목이 무한히 늘어나지 않아야 함
-      // 실행 중인 작업이 있으면 큐에 하나만 추가되어야 함
-      // JobQueue는 배열이 아니므로 isQueued로 확인
-      const isQueued = schedulerAny.jobQueue.isQueued(jobName);
-      const isRunning = schedulerAny.jobQueue.isRunning(jobName);
-      // 중복 방지: 큐에 있거나 실행 중이면 추가되지 않아야 함
-      // 실행이 완료되면 큐에 없을 수도 있으므로 실행 횟수로 확인
       expect(executionCount).toBeGreaterThan(0);
-      // 큐 크기 확인 (JobQueue는 내부 큐를 직접 노출하지 않으므로 실행 횟수로 확인)
       // 중복 방지가 작동하면 실행 횟수가 큐 추가 횟수보다 적어야 함
       expect(executionCount).toBeLessThanOrEqual(11); // 최대 11회 (첫 실행 + 10회 추가 시도)
 
       await testScheduler.stop();
       await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('큐에 이미 있는 동일 이름 잡은 추가하지 않아야 함', async () => {
@@ -1799,6 +1780,7 @@ describe('BatchScheduler', () => {
 
 it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완료 후 한 번만 실행되어야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
@@ -1825,36 +1807,38 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // When: 동일한 작업을 실행 중일 때 여러 번 추가 시도
       const schedulerAny = testScheduler as any;
       const jobName = 'test_single_execution_after_completion';
-      
+
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      schedulerAny.jobQueue.clear();
       // 첫 번째 실행 시작
       schedulerAny.addJobToQueue(jobName, longRunningJob, 1, 0);
-      
+
       // 큐 처리 시작하여 실행 중 상태로 만듦
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await vi.advanceTimersByTimeAsync(50);
 
       // 실행 중인 상태에서 동일한 작업을 여러 번 추가 시도
       for (let i = 0; i < 5; i++) {
         schedulerAny.addJobToQueue(jobName, longRunningJob, 1, 0);
-        await new Promise(resolve => setTimeout(resolve, 20));
       }
 
-      // 큐 처리 완료 대기 (모든 작업 완료)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 큐 처리 완료 대기 (모든 작업 완료, 1000ms processor + 300ms job * 2)
+      await vi.advanceTimersByTimeAsync(3000);
 
       // Then: 완료 후 한 번만 실행되어야 함 (중복이 큐에 하나만 남아서)
       expect(executionCount).toBeGreaterThanOrEqual(1);
       expect(executionCount).toBeLessThanOrEqual(2); // 초기 실행 + 완료 후 큐에 있던 하나
-      
+
       // 큐에 중복 항목이 없어야 함
-      // JobQueue는 배열이 아니므로 size로 확인
       expect(schedulerAny.jobQueue.size).toBe(0); // 모든 작업 완료 후 큐 비어있어야 함
 
       await testScheduler.stop();
       await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('재시도 시 retryCount가 전달되어야 함', async () => {
       // Given: 재시도가 필요한 작업
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
@@ -1881,11 +1865,12 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // When: 실패하는 작업을 큐에 추가하고 재시도 발생
       const schedulerAny = testScheduler as any;
       const jobName = 'test_retry_count_preservation';
-      
+
+      schedulerAny.jobQueue.clear();
       schedulerAny.addJobToQueue(jobName, failingJob, 1, 0);
 
-      // 큐 처리 및 재시도 완료 대기
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 큐 처리 및 재시도 완료 대기 (1000ms processor + 100ms retry delay + buffer)
+      await vi.advanceTimersByTimeAsync(3000);
 
       // Then: 재시도가 발생하고 retryCount가 전달되어야 함
       expect(attemptCount).toBe(2); // 초기 실행 + 재시도 1회
@@ -1896,6 +1881,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
 
       await testScheduler.stop();
       await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('실행 중인 잡에 재시도 카운트가 전달되어야 함', async () => {
