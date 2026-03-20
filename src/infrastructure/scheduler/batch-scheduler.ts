@@ -35,6 +35,7 @@ import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job
 import { MetaMemoryIntrospectionService } from '../../domains/memory/services/meta-memory-introspection-service.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
+import { resolveValidatedNumber } from '../../shared/config/environment.js';
 import { logger } from '../../shared/utils/logger.js';
 
 export interface BatchJobConfig {
@@ -141,8 +142,8 @@ export class BatchScheduler implements IBatchScheduler {
   ) {
     this.config = {
       cleanupInterval: 60 * 60 * 1000,    // 1시간
-      monitoringInterval: 5 * 60 * 1000,   // 5분
-      healthCheckInterval: 30 * 1000,      // 30초
+      monitoringInterval: resolveValidatedNumber('BATCH_MONITORING_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
+      healthCheckInterval: resolveValidatedNumber('BATCH_HEALTH_CHECK_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
       consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
       consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000, // 24시간
       consolidationScoreFullSweepHour: 3,  // 새벽 3시
@@ -343,6 +344,9 @@ export class BatchScheduler implements IBatchScheduler {
     }
     if (this.config.monitoringInterval < 10000) {
       throw new Error('monitoringInterval must be at least 10 seconds');
+    }
+    if (this.config.healthCheckInterval < 10000) {
+      throw new Error('healthCheckInterval must be at least 10 seconds');
     }
     if (this.config.maxBatchSize < 1) {
       throw new Error('maxBatchSize must be at least 1');
@@ -591,7 +595,10 @@ export class BatchScheduler implements IBatchScheduler {
     };
 
     // 큐 처리 인터벌 (ID 저장)
-    this.jobProcessorInterval = setInterval(processQueue, 100);
+    this.jobProcessorInterval = setInterval(
+      processQueue,
+      resolveValidatedNumber('BATCH_JOB_PROCESSOR_INTERVAL_MS', 1000, n => n >= 100, '최솟값 100')
+    );
   }
 
   /**
@@ -706,7 +713,7 @@ export class BatchScheduler implements IBatchScheduler {
       }
 
       // 성능 모니터로 지표 수집
-      const metrics = await this.performanceMonitor.collectMetrics();
+      const metrics = await this.performanceMonitor.collectMetrics({ tick: true });
       
       // 데이터베이스 상태 확인
       const stats = await this.getDatabaseStats();

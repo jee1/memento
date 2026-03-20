@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
 
@@ -43,6 +43,135 @@ function createMetrics(overrides: Partial<PerformanceMetrics> = {}): Performance
     search: overrides.search ?? base.search
   };
 }
+
+describe('PerformanceMonitor CPU delta 계산', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('첫 번째 호출 시 0을 반환한다', () => {
+    const monitor = new PerformanceMonitor();
+    const result = (monitor as any).calculateCpuUsage(true);
+    expect(result).toBe(0);
+  });
+
+  it('두 번째 호출 시 [0, 100] 범위의 값을 반환한다', async () => {
+    const monitor = new PerformanceMonitor();
+    (monitor as any).calculateCpuUsage(true); // 기준점 설정
+
+    // 짧은 CPU 부하
+    const end = Date.now() + 5;
+    while (Date.now() < end) { /* busy wait */ }
+
+    const result = (monitor as any).calculateCpuUsage(true);
+    expect(result).toBeGreaterThanOrEqual(0);
+    expect(result).toBeLessThanOrEqual(100);
+  });
+
+  it('wallClockDelta가 0이면 lastCpuPercent를 반환한다', () => {
+    const monitor = new PerformanceMonitor();
+    const fakeCpu = { user: 1000, system: 500 };
+    (monitor as any).scheduledCpuUsage = fakeCpu;
+    (monitor as any).scheduledMeasurementTime = Date.now();
+
+    // Date.now()를 동일 값으로 mock
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    vi.spyOn(process, 'cpuUsage').mockReturnValue({ user: 2000, system: 1000 });
+
+    const result = (monitor as any).calculateCpuUsage(true);
+    expect(result).toBe((monitor as any).lastCpuPercent);
+  });
+
+  it('tick=false이면 lastCpuPercent가 갱신되지 않는다', () => {
+    const monitor = new PerformanceMonitor();
+    // scheduled 기준선 설정 (tick=true: lastCpuPercent 갱신됨)
+    vi.spyOn(process, 'cpuUsage')
+      .mockReturnValueOnce({ user: 0, system: 0 });
+    (monitor as any).calculateCpuUsage(true); // scheduledCpuUsage: { user:0, system:0 }
+
+    const lastCpuPercentBefore = (monitor as any).lastCpuPercent;
+    const scheduledSnapshotBefore = { ...(monitor as any).scheduledCpuUsage };
+
+    // on-demand read: onDemandCpuUsage만 갱신, scheduledCpuUsage·lastCpuPercent는 보존
+    vi.spyOn(process, 'cpuUsage').mockReturnValue({ user: 100000, system: 50000 });
+    const result = (monitor as any).calculateCpuUsage(false);
+
+    expect(result).toBeGreaterThanOrEqual(0);
+    // on-demand baseline은 갱신됨
+    expect((monitor as any).onDemandCpuUsage).toEqual({ user: 100000, system: 50000 });
+    // scheduled baseline은 영향 없음
+    expect((monitor as any).scheduledCpuUsage).toEqual(scheduledSnapshotBefore);
+    // lastCpuPercent는 tick=false 시 갱신되지 않음
+    expect((monitor as any).lastCpuPercent).toBe(lastCpuPercentBefore);
+  });
+
+  it('tick=false 후 tick=true는 scheduled baseline 구간만 측정한다', () => {
+    const monitor = new PerformanceMonitor();
+    const cpuSeq = [
+      { user: 0, system: 0 },          // tick=true baseline seed
+      { user: 200000, system: 100000 }, // tick=false on-demand read (high CPU)
+      { user: 210000, system: 105000 }  // tick=true scheduled (small delta only)
+    ];
+    let idx = 0;
+    vi.spyOn(process, 'cpuUsage').mockImplementation(() => cpuSeq[idx++]);
+
+    // T=0: seed scheduled baseline
+    (monitor as any).calculateCpuUsage(true);
+
+    // T=1: on-demand read — should NOT advance scheduled baseline
+    (monitor as any).calculateCpuUsage(false);
+
+    // T=2: scheduled tick — should measure delta from T=0, not T=1
+    // ∆cpu = (210000+105000) - (0+0) = 315000µs over elapsed wall time
+    // (we don't control wall time here, just verify scheduledCpuUsage advanced from T=0 snapshot)
+    const scheduledBefore = { ...(monitor as any).scheduledCpuUsage };
+    expect(scheduledBefore).toEqual({ user: 0, system: 0 }); // still T=0 snapshot
+    (monitor as any).calculateCpuUsage(true);
+    // After tick=true, scheduled baseline advances to T=2 snapshot
+    expect((monitor as any).scheduledCpuUsage).toEqual({ user: 210000, system: 105000 });
+  });
+});
+
+describe('PerformanceMonitor 임계값', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('기본 memoryUsagePercent 임계값이 85이어야 함', () => {
+    const monitor = new PerformanceMonitor();
+    expect((monitor as any).thresholds.memoryUsagePercent).toBe(85);
+  });
+
+  it('기본 cpuUsagePercent 임계값이 75이어야 함', () => {
+    const monitor = new PerformanceMonitor();
+    expect((monitor as any).thresholds.cpuUsagePercent).toBe(75);
+  });
+
+  it('PERF_MEMORY_WARN_PERCENT 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
+    const original = process.env.PERF_MEMORY_WARN_PERCENT;
+    process.env.PERF_MEMORY_WARN_PERCENT = '90';
+    try {
+      const monitor = new PerformanceMonitor();
+      expect((monitor as any).thresholds.memoryUsagePercent).toBe(90);
+    } finally {
+      if (original === undefined) delete process.env.PERF_MEMORY_WARN_PERCENT;
+      else process.env.PERF_MEMORY_WARN_PERCENT = original;
+    }
+  });
+
+  it('유효하지 않은 PERF_CPU_WARN_PERCENT는 기본값 75를 사용해야 함', () => {
+    const original = process.env.PERF_CPU_WARN_PERCENT;
+    process.env.PERF_CPU_WARN_PERCENT = 'invalid';
+    try {
+      const monitor = new PerformanceMonitor();
+      expect((monitor as any).thresholds.cpuUsagePercent).toBe(75);
+    } finally {
+      if (original === undefined) delete process.env.PERF_CPU_WARN_PERCENT;
+      else process.env.PERF_CPU_WARN_PERCENT = original;
+    }
+  });
+});
 
 describe('PerformanceMonitor analytics', () => {
   it('returns zeros when no metrics exist', () => {

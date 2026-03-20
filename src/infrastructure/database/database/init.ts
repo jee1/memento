@@ -325,20 +325,25 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
 
 export async function initializeDatabase(): Promise<Database.Database> {
   log('🗄️  SQLite 데이터베이스 초기화 중...');
-  
-  // 데이터 디렉토리 생성
-  const dbDir = dirname(mementoConfig.dbPath);
-  try {
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
+
+  const dbPath = mementoConfig.dbPath;
+
+  // 데이터 디렉토리 생성 (:memory: 등 비파일 경로는 스킵)
+  if (dbPath !== ':memory:' && !dbPath.startsWith('file:')) {
+    const dbDir = dirname(dbPath);
+    try {
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`[memento] DB 디렉터리 생성 실패: ${dbDir}\n원인: ${msg}`);
     }
-  } catch (error) {
-    // 디렉토리가 이미 존재하는 경우 무시
   }
-  
+
   try {
     // SQLite 데이터베이스 연결
-    const db = new Database(mementoConfig.dbPath);
+    const db = new Database(dbPath);
     
     // WAL 모드 사용 (동시 읽기 성능 향상)
     db.pragma('journal_mode = WAL');

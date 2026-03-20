@@ -37,12 +37,13 @@ import type { IntrospectionScanCache } from '../../domains/memory/services/intro
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
+import { resolveValidatedNumber } from '../../shared/config/environment.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
   cleanupInterval: number;        // 메모리 정리 간격 (기본: 1시간)
-  monitoringInterval: number;     // 모니터링 간격 (기본: 5분)
-  healthCheckInterval: number;    // 헬스체크 간격 (기본: 30초)
+  monitoringInterval: number;     // 모니터링 간격 (기본: 5분, env: BATCH_MONITORING_INTERVAL_MS)
+  healthCheckInterval: number;    // 헬스체크 간격 (기본: 5분, env: BATCH_HEALTH_CHECK_INTERVAL_MS)
   consolidationScoreIncrementalInterval: number;  // Consolidation Score 증분 재계산 간격 (기본: 1시간)
   consolidationScoreFullSweepInterval: number;   // Consolidation Score 전체 스윕 간격 (기본: 24시간)
   consolidationScoreFullSweepHour: number;        // 전체 스윕 실행 시간 (0-23, 기본: 3시)
@@ -143,8 +144,8 @@ export class BatchScheduler implements IBatchScheduler {
   ) {
     this.config = {
       cleanupInterval: 60 * 60 * 1000,    // 1시간
-      monitoringInterval: 5 * 60 * 1000,   // 5분
-      healthCheckInterval: 30 * 1000,      // 30초
+      monitoringInterval: resolveValidatedNumber('BATCH_MONITORING_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
+      healthCheckInterval: resolveValidatedNumber('BATCH_HEALTH_CHECK_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
       consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
       consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000, // 24시간
       consolidationScoreFullSweepHour: 3,  // 새벽 3시
@@ -345,6 +346,9 @@ export class BatchScheduler implements IBatchScheduler {
     }
     if (this.config.monitoringInterval < 10000) {
       throw new Error('monitoringInterval must be at least 10 seconds');
+    }
+    if (this.config.healthCheckInterval < 10000) {
+      throw new Error('healthCheckInterval must be at least 10 seconds');
     }
     if (this.config.maxBatchSize < 1) {
       throw new Error('maxBatchSize must be at least 1');
@@ -598,7 +602,10 @@ export class BatchScheduler implements IBatchScheduler {
     };
 
     // 큐 처리 인터벌 (ID 저장)
-    this.jobProcessorInterval = setInterval(processQueue, 100);
+    this.jobProcessorInterval = setInterval(
+      processQueue,
+      resolveValidatedNumber('BATCH_JOB_PROCESSOR_INTERVAL_MS', 1000, n => n >= 100, '최솟값 100')
+    );
   }
 
   /**
@@ -712,8 +719,8 @@ export class BatchScheduler implements IBatchScheduler {
         throw new Error('Database not initialized');
       }
 
-      // 성능 모니터로 지표 수집
-      const metrics = await this.performanceMonitor.collectMetrics();
+      // 성능 모니터로 지표 수집 (tick=true: CPU baseline 갱신)
+      const metrics = await this.performanceMonitor.collectMetrics({ tick: true });
       
       // 데이터베이스 상태 확인
       const stats = await this.getDatabaseStats();

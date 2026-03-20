@@ -4,12 +4,14 @@
  * - 빈 문자열은 기본적으로 무시하며 allowEmpty 옵션으로 허용 가능
  */
 
+import os from 'os';
+
 const ENV_DEFAULTS: Record<string, string> = {
   NODE_ENV: 'development',
   MCP_SERVER_NAME: 'memento-memory',
   MCP_SERVER_VERSION: '0.1.0',
   MCP_SERVER_PORT: '3000',
-  DB_PATH: './data/memory.db',
+  DB_PATH: `${os.homedir()}/.memento/memory.db`,
   LOG_LEVEL: 'info',
   EMBEDDING_PROVIDER: 'minilm',
   OPENAI_MODEL: 'text-embedding-3-small',
@@ -38,7 +40,14 @@ const ENV_DEFAULTS: Record<string, string> = {
   LOCK_MONITOR_DANGER_THRESHOLD_MS: '30000', // 30초
   LOCK_MONITOR_CRITICAL_THRESHOLD_MS: '60000', // 60초
   // PII 마스킹 설정 (PRD 0019: 보안 강화)
-  ENABLE_PII_MASKING: 'true' // 기본값: true (보안 우선)
+  ENABLE_PII_MASKING: 'true', // 기본값: true (보안 우선)
+  // 성능 경고 임계값
+  PERF_MEMORY_WARN_PERCENT: '85',
+  PERF_CPU_WARN_PERCENT: '75',
+  // 배치 스케줄러 간격
+  BATCH_HEALTH_CHECK_INTERVAL_MS: '300000',
+  BATCH_MONITORING_INTERVAL_MS: '300000',
+  BATCH_JOB_PROCESSOR_INTERVAL_MS: '1000'
 };
 
 interface ResolveEnvOptions {
@@ -182,6 +191,28 @@ export function resolveBoolean(
 
   const normalized = raw.toLowerCase().trim();
   return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+/**
+ * 환경 변수를 숫자로 읽어 validate 함수로 검증합니다.
+ * 유효하지 않은 값(NaN, 검증 실패)은 경고 로그를 출력하고 defaultValue를 반환합니다.
+ */
+export function resolveValidatedNumber(
+  key: string,
+  defaultValue: number,
+  validate: (n: number) => boolean,
+  hint: string
+): number {
+  const raw = process.env[key] ?? ENV_DEFAULTS[key];
+  if (raw === undefined) return defaultValue;
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed) || !validate(parsed)) {
+    console.warn(
+      `[memento] 환경 변수 ${key}="${raw}" 유효하지 않음 (${hint}). 기본값 ${defaultValue} 사용.`
+    );
+    return defaultValue;
+  }
+  return parsed;
 }
 
 export const providerDimensionDefaults: Record<string, number> = {

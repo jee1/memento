@@ -335,11 +335,10 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
   if (dbPath !== ':memory:' && !dbPath.startsWith('file:')) {
     const dbDir = dirname(dbPath);
     try {
-      if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true });
-      }
+      fs.mkdirSync(dbDir, { recursive: true });
     } catch (error) {
-      // 디렉토리가 이미 존재하는 경우 무시
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`[memento] DB 디렉터리 생성 실패: ${dbDir}\n원인: ${msg}`);
     }
   }
 
