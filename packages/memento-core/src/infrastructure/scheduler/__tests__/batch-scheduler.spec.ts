@@ -1117,8 +1117,8 @@ describe('BatchScheduler', () => {
       const schedulerAny = testScheduler as any;
       schedulerAny.jobQueue.add('weekly_relation_validation', async () => { await schedulerAny.runWeeklyRelationValidation(); }, 5, 0);
 
-      // 시간을 진행시켜 큐를 통해 작업이 실행되면
-      vi.advanceTimersByTime(500);
+      // 시간을 진행시켜 큐를 통해 작업이 실행되면 (큐 폴링 기본값 1000ms 이상 진행)
+      vi.advanceTimersByTime(1100);
       await Promise.race([
         vi.runOnlyPendingTimersAsync(),
         new Promise(resolve => setTimeout(resolve, 1000))
@@ -1431,8 +1431,8 @@ describe('BatchScheduler', () => {
       const schedulerAny = shortTimeoutScheduler as any;
       schedulerAny.jobQueue.add('weekly_relation_validation', async () => { await schedulerAny.runWeeklyRelationValidation(); }, 5, 0);
 
-      // 큐 처리 시작
-      vi.advanceTimersByTime(100);
+      // 큐 처리 시작 (큐 폴링 기본값 1000ms 이상 진행하여 job processor 구동)
+      vi.advanceTimersByTime(1100);
       await Promise.race([
         vi.runOnlyPendingTimersAsync(),
         new Promise(resolve => setTimeout(resolve, 1000))
