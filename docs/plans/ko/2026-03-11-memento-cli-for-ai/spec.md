@@ -35,7 +35,7 @@ SDD(Specification-Driven Development)의 **Specify** 단계 산출물. 논의된
 
 ### 1.2 목표
 
-- AI가 MCP 없이 터미널만으로 `memento recall ...`, `memento remember ...` 등으로 기억 조회·저장 가능.
+- AI가 MCP 없이 터미널만으로 `memento recall ...`, `memento remember ...` 등으로 기억 조회·저장 가능. 설치 여부가 불명확한 환경에서는 `npm exec --package memento-mcp-server -- memento ...` 형태를 기준 예시로 사용한다.
 - stdout=JSON, stderr=에러/로그, exit code로 성공/실패 구분하여 AI 파싱 용이.
 - 설정은 `~/.memento/.env` 및 글로벌 옵션으로 cwd 무관하게 사용 가능.
 
@@ -175,7 +175,7 @@ Phase 1에서 **반드시** 구현할 서브커맨드:
 
 | 문서 | 내용 |
 |------|------|
-| docs/guides/ko/memento-cli-for-ai.md (및 en) | CLI 명령 목록, 스키마 요약, 워크플로, 예제, 설정 방법(~/.memento, DB_PATH, npx 권장). |
+| docs/guides/ko/memento-cli-for-ai.md (및 en) | CLI 명령 목록, 스키마 요약, 워크플로, 예제, 설정 방법(~/.memento, DB_PATH, `npm exec --package memento-mcp-server -- memento ...` 권장). |
 | README | npx 실행 시 모드별 사용법(MCP / HTTP / CLI), "CLI 반복 사용 시 글로벌 또는 로컬 설치 권장" 문구. |
 | AGENTS.md 또는 .cursor 규칙 | "CLI 사용 시: 작업 전 recall/memory_injection, 작업 후 remember. 설정은 DB_PATH 또는 ~/.memento/.env." |
 
