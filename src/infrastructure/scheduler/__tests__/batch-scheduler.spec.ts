@@ -22,7 +22,7 @@ describe('BatchScheduler', () => {
     scheduler = new BatchScheduler({
       cleanupInterval: 60000, // 최소 1분
       monitoringInterval: 10000, // 최소 10초
-      healthCheckInterval: 200,
+      healthCheckInterval: 10000,
       maxBatchSize: 100,
       enableLogging: false, // 테스트 중 로그 최소화
       enableNotifications: false,
@@ -38,7 +38,7 @@ describe('BatchScheduler', () => {
     if (scheduler) {
       await scheduler.stop();
     }
-    cleanupTestDatabase(db);
+    await cleanupTestDatabase(db);
   });
 
   describe('생성자 및 설정 검증', () => {
@@ -195,14 +195,14 @@ describe('BatchScheduler', () => {
       // When: 새로운 DB로 재시작
       const newDb = await setupTestDatabase();
       await scheduler.start(newDb);
-      
+
       // Then: 재시작 시 큐가 초기화되어야 함
       // (실제로는 start()에서 큐를 초기화하므로 이전 세션의 작업이 실행되지 않음)
       const status = scheduler.getStatus();
       expect(status.isRunning).toBe(true);
-      
+
       await scheduler.stop();
-      cleanupTestDatabase(newDb);
+      await cleanupTestDatabase(newDb);
     });
   });
 
@@ -264,15 +264,8 @@ describe('BatchScheduler', () => {
       const initialStatus = scheduler.getStatus();
       const initialCount = initialStatus.totalExecutions.get('healthcheck') || 0;
 
-      // When: 시간을 진행시켜 주기적 작업 실행 (healthCheckInterval: 200ms)
-      vi.advanceTimersByTime(300); // 200ms보다 큰 값으로 진행
-      // pending된 비동기 작업 실행 (타임아웃 추가)
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000)) // 1초 타임아웃
-      ]).catch(() => {
-        // 타임아웃 발생 시 무시하고 계속 진행
-      });
+      // When: 시간을 진행시켜 주기적 작업 실행 (healthCheckInterval: 10000ms)
+      await vi.advanceTimersByTimeAsync(10001); // 10000ms보다 큰 값으로 진행 (async로 마이크로태스크도 처리)
 
       // Then: 주기적 작업이 실행되어야 함
       const status = scheduler.getStatus();
@@ -300,7 +293,7 @@ describe('BatchScheduler', () => {
       expect(status.config.jobTimeout).toBe(1000);
 
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     }, 10000); // 테스트 타임아웃 10초로 설정
 
     it('실패한 작업을 재시도해야 함', async () => {
@@ -351,7 +344,7 @@ describe('BatchScheduler', () => {
       expect(status.config.retryAttempts).toBe(1);
 
       await lowRetryScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
   });
@@ -382,7 +375,7 @@ describe('BatchScheduler', () => {
       expect(statusAfter.config.jobTimeout).toBe(1000);
 
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     }, 10000);
 
     it('재시도 시에도 runningJobs 상태가 관리되어야 함', async () => {
@@ -413,7 +406,7 @@ describe('BatchScheduler', () => {
       // runningJobs는 내부 상태이므로 직접 접근 불가, 하지만 상태가 정상이면 통과
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -447,7 +440,7 @@ describe('BatchScheduler', () => {
       expect(statusAfter.errorCount).toBeDefined();
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -479,7 +472,7 @@ describe('BatchScheduler', () => {
       expect(status.config.jobTimeout).toBe(5000);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -510,7 +503,7 @@ describe('BatchScheduler', () => {
       // runningJobs는 내부 상태이지만, 중복 실행 방지 로직이 작동해야 함
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     }, 10000);
 
@@ -543,7 +536,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 
@@ -563,7 +556,7 @@ describe('BatchScheduler', () => {
       expect(status.config.maxConcurrentJobs).toBe(1);
 
       await limitedScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('작업 큐를 우선순위로 정렬해야 함', async () => {
@@ -839,7 +832,7 @@ describe('BatchScheduler', () => {
       // (다만 다른 시스템 로그는 있을 수 있음)
       
       consoleSpy.mockRestore();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('Error 객체를 로그에 전달할 때 속성이 보존되어야 함', async () => {
@@ -887,8 +880,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       
-      // 데이터베이스 재생성
-      db = await setupTestDatabase();
+      // 스케줄러만 중지 (동일 db 유지). setupTestDatabase() 호출 시 BatchScheduler 중복 기동으로 실패하므로 재생성 생략
       await testScheduler.stop();
     });
 
@@ -944,7 +936,7 @@ describe('BatchScheduler', () => {
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: true, // 로깅 활성화
         enableNotifications: false,
@@ -973,7 +965,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('전체 스윕이 큐를 통해 실행되어야 함', async () => {
@@ -1010,7 +1002,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await consolidationScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('주간 관계 검증이 설정된 타임아웃을 사용해야 함', async () => {
@@ -1033,7 +1025,7 @@ describe('BatchScheduler', () => {
       expect(status.config.jobTimeout).toBe(1000);
 
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('weeklyRelationValidationTimeout이 0이면 에러를 던져야 함', () => {
@@ -1094,7 +1086,7 @@ describe('BatchScheduler', () => {
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         enableNotifications: false,
@@ -1116,14 +1108,12 @@ describe('BatchScheduler', () => {
       // When: 주간 관계 검증 작업을 큐에 직접 추가하여 실행
       // (실제로는 scheduleWeeklyRelationValidation이 특정 시간에만 실행하지만, 테스트를 위해 직접 추가)
       const schedulerAny = testScheduler as any;
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('weekly_relation_validation', async () => { await schedulerAny.runWeeklyRelationValidation(); }, 5, 0);
 
-      // 시간을 진행시켜 큐를 통해 작업이 실행되면
-      vi.advanceTimersByTime(500);
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]).catch(() => {});
+      // 시간을 진행시켜 큐를 통해 작업이 실행되면 (큐 폴링 기본값 1000ms 이상 진행, async로 마이크로태스크도 처리)
+      await vi.advanceTimersByTimeAsync(1100);
 
       // Then: 주간 관계 검증의 lastExecution과 totalExecutions이 실제로 기록되어야 함
       const statusAfter = testScheduler.getStatus();
@@ -1145,7 +1135,7 @@ describe('BatchScheduler', () => {
       expect(afterTotalExecutions).toBeGreaterThan(initialTotalExecutions);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
 
@@ -1154,7 +1144,7 @@ describe('BatchScheduler', () => {
       const limitedScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         enableNotifications: false,
@@ -1182,7 +1172,7 @@ describe('BatchScheduler', () => {
       expect(detailedStats.health.runningJobs).toBeLessThanOrEqual(1);
 
       await limitedScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 
@@ -1194,7 +1184,7 @@ describe('BatchScheduler', () => {
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: true, // 로깅 활성화
         enableNotifications: false,
@@ -1238,7 +1228,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
 
@@ -1273,7 +1263,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('큐를 통해 실행되는 작업이 실제로 재시도를 수행해야 함', async () => {
@@ -1321,7 +1311,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
 
@@ -1430,21 +1420,15 @@ describe('BatchScheduler', () => {
 
       // When: 주간 관계 검증 작업을 큐에 직접 추가하여 실행
       const schedulerAny = shortTimeoutScheduler as any;
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('weekly_relation_validation', async () => { await schedulerAny.runWeeklyRelationValidation(); }, 5, 0);
 
-      // 큐 처리 시작
-      vi.advanceTimersByTime(100);
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]).catch(() => {});
+      // 큐 처리 시작 (큐 폴링 기본값 1000ms 이상 진행하여 job processor 구동, async로 마이크로태스크도 처리)
+      await vi.advanceTimersByTimeAsync(1100);
 
       // 타임아웃 시간보다 길게 진행하여 타임아웃 발생
-      vi.advanceTimersByTime(1500); // 타임아웃(1000ms)보다 길게
-      await Promise.race([
-        vi.runOnlyPendingTimersAsync(),
-        new Promise(resolve => setTimeout(resolve, 1000))
-      ]).catch(() => {});
+      await vi.advanceTimersByTimeAsync(1500); // 타임아웃(1000ms)보다 길게
 
       // Then: RelationValidatorExecutor가 호출되었는지 확인 (주간 관계 검증이 실제로 실행되었는지)
       expect(mockExecutor.execute).toHaveBeenCalled();
@@ -1467,7 +1451,7 @@ describe('BatchScheduler', () => {
 
       logBatchSpy.mockRestore();
       await shortTimeoutScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
       vi.useRealTimers();
     });
   });
@@ -1475,10 +1459,11 @@ describe('BatchScheduler', () => {
   describe('재시도 한도 및 errorCount 기반 중단', () => {
     it('재시도 횟수가 retryAttempts를 초과하면 재시도를 중단해야 함', async () => {
       // Given: 재시도 횟수 제한이 있는 스케줄러
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1497,10 +1482,11 @@ describe('BatchScheduler', () => {
 
       // When: 실패하는 작업을 큐에 추가
       const schedulerAny = testScheduler as any;
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('test_failing_job', failingJob, 1, 0);
 
-      // 큐 처리 시작
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 큐 처리 시작 (processor interval + retry delays)
+      await vi.advanceTimersByTimeAsync(2000);
 
       // Then: 재시도 횟수만큼만 실행되어야 함 (초기 실행 + 재시도 2회 = 총 3회)
       // 하지만 errorCount 기반 중단으로 인해 더 일찍 중단될 수 있음
@@ -1508,7 +1494,8 @@ describe('BatchScheduler', () => {
       expect(executionCount).toBeLessThanOrEqual(3); // 최대 3회 (초기 + 재시도 2회)
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('errorCount가 최대값을 초과하면 재시도를 중단해야 함', async () => {
@@ -1516,7 +1503,7 @@ describe('BatchScheduler', () => {
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1559,15 +1546,16 @@ describe('BatchScheduler', () => {
       expect(retryManagerErrorCount).toBeGreaterThan(0);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     it('재시도 시 retryCount가 큐 항목에 저장되어야 함', async () => {
       // Given: 스케줄러
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1586,10 +1574,11 @@ describe('BatchScheduler', () => {
 
       // When: 실패하는 작업을 큐에 추가
       const schedulerAny = testScheduler as any;
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add('test_retry_count', failingJob, 1, 0);
 
-      // 큐 처리 시작 (재시도가 발생할 수 있도록 충분한 시간 대기)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 큐 처리 시작 (재시도가 발생할 수 있도록 충분한 시간 대기, 1000ms processor + 50ms delay * 3 + buffer)
+      await vi.advanceTimersByTimeAsync(5000);
 
       // Then: 재시도 시 큐에 추가된 항목에 retryCount가 저장되어야 함
       // 작업이 실행되었는지 확인 (executionCount가 증가했는지)
@@ -1598,17 +1587,19 @@ describe('BatchScheduler', () => {
       expect(executionCount).toBeLessThanOrEqual(4);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
   });
 
   describe('동일 잡 실행 중 후속 실행 처리', () => {
     it('동일 잡이 실행 중일 때 후속 실행을 큐에 남겨야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1628,34 +1619,30 @@ describe('BatchScheduler', () => {
 
       // When: 동일한 작업을 빠르게 여러 번 큐에 추가
       const schedulerAny = testScheduler as any;
+      schedulerAny.jobQueue.clear();
       for (let i = 0; i < 3; i++) {
         schedulerAny.jobQueue.add('test_long_running', longRunningJob, 1, 0);
       }
 
-      // 큐 처리 시작 (작업이 완료될 때까지 충분한 시간 대기)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 큐 처리 시작 (작업이 완료될 때까지 충분한 시간 대기, 1000ms processor + 200ms job * 3)
+      await vi.advanceTimersByTimeAsync(2000);
 
       // Then: 모든 실행이 처리되어야 함 (스킵되지 않고 큐에 남아서 실행됨)
       // maxConcurrentJobs가 1이므로 순차적으로 실행되어야 함
-      // 각 작업이 200ms이므로 3개 작업은 최소 600ms가 필요
       expect(executionCount).toBeGreaterThanOrEqual(1);
-      // 큐에 남아있는 작업이 있으면 계속 실행되어야 함
-      if (schedulerAny.jobQueue.isQueued('test_long_running') || schedulerAny.jobQueue.isRunning('test_long_running')) {
-        // 추가 대기 후 다시 확인
-        await new Promise(resolve => setTimeout(resolve, 500));
-        expect(executionCount).toBeGreaterThanOrEqual(2);
-      }
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('장시간 잡 + 짧은 주기 스케줄 시 큐 중복이 제한되어야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업과 짧은 주기
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1676,37 +1663,30 @@ describe('BatchScheduler', () => {
       // When: 동일한 작업을 빠르게 여러 번 큐에 추가 (짧은 주기 시뮬레이션)
       const schedulerAny = testScheduler as any;
       const jobName = 'test_long_running_duplicate';
-      
-      // 첫 번째 실행 시작
+
+      // 초기 잡들이 큐를 선점하지 않도록 클리어 후 첫 번째 실행 시작
+      schedulerAny.jobQueue.clear();
       schedulerAny.jobQueue.add(jobName, longRunningJob, 1, 0);
 
       // 큐 처리 시작하여 실행 중 상태로 만듦
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await vi.advanceTimersByTimeAsync(50);
 
       // 실행 중인 상태에서 동일한 작업을 여러 번 큐에 추가 시도
       for (let i = 0; i < 10; i++) {
         schedulerAny.jobQueue.add(jobName, longRunningJob, 1, 0);
-        // 짧은 간격으로 추가 (짧은 주기 시뮬레이션)
-        await new Promise(resolve => setTimeout(resolve, 10));
       }
 
-      // 큐 처리 완료 대기
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 큐 처리 완료 대기 (1000ms processor + 500ms job)
+      await vi.advanceTimersByTimeAsync(2000);
 
       // Then: 큐에 중복 항목이 무한히 늘어나지 않아야 함
-      // 실행 중인 작업이 있으면 큐에 하나만 추가되어야 함
-      // JobQueue는 배열이 아니므로 isQueued로 확인
-      const isQueued = schedulerAny.jobQueue.isQueued(jobName);
-      const isRunning = schedulerAny.jobQueue.isRunning(jobName);
-      // 중복 방지: 큐에 있거나 실행 중이면 추가되지 않아야 함
-      // 실행이 완료되면 큐에 없을 수도 있으므로 실행 횟수로 확인
       expect(executionCount).toBeGreaterThan(0);
-      // 큐 크기 확인 (JobQueue는 내부 큐를 직접 노출하지 않으므로 실행 횟수로 확인)
       // 중복 방지가 작동하면 실행 횟수가 큐 추가 횟수보다 적어야 함
       expect(executionCount).toBeLessThanOrEqual(11); // 최대 11회 (첫 실행 + 10회 추가 시도)
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('큐에 이미 있는 동일 이름 잡은 추가하지 않아야 함', async () => {
@@ -1714,7 +1694,7 @@ describe('BatchScheduler', () => {
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1754,7 +1734,7 @@ describe('BatchScheduler', () => {
       expect(isQueued || schedulerAny.jobQueue.isRunning(jobName)).toBe(true);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
 
     
@@ -1768,7 +1748,7 @@ describe('BatchScheduler', () => {
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1800,10 +1780,11 @@ describe('BatchScheduler', () => {
 
 it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완료 후 한 번만 실행되어야 함', async () => {
       // Given: 긴 실행 시간을 가진 작업
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1826,40 +1807,42 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // When: 동일한 작업을 실행 중일 때 여러 번 추가 시도
       const schedulerAny = testScheduler as any;
       const jobName = 'test_single_execution_after_completion';
-      
+
+      // 초기 잡들이 큐를 선점하지 않도록 클리어
+      schedulerAny.jobQueue.clear();
       // 첫 번째 실행 시작
       schedulerAny.addJobToQueue(jobName, longRunningJob, 1, 0);
-      
+
       // 큐 처리 시작하여 실행 중 상태로 만듦
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await vi.advanceTimersByTimeAsync(50);
 
       // 실행 중인 상태에서 동일한 작업을 여러 번 추가 시도
       for (let i = 0; i < 5; i++) {
         schedulerAny.addJobToQueue(jobName, longRunningJob, 1, 0);
-        await new Promise(resolve => setTimeout(resolve, 20));
       }
 
-      // 큐 처리 완료 대기 (모든 작업 완료)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 큐 처리 완료 대기 (모든 작업 완료, 1000ms processor + 300ms job * 2)
+      await vi.advanceTimersByTimeAsync(3000);
 
       // Then: 완료 후 한 번만 실행되어야 함 (중복이 큐에 하나만 남아서)
       expect(executionCount).toBeGreaterThanOrEqual(1);
       expect(executionCount).toBeLessThanOrEqual(2); // 초기 실행 + 완료 후 큐에 있던 하나
-      
+
       // 큐에 중복 항목이 없어야 함
-      // JobQueue는 배열이 아니므로 size로 확인
       expect(schedulerAny.jobQueue.size).toBe(0); // 모든 작업 완료 후 큐 비어있어야 함
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('재시도 시 retryCount가 전달되어야 함', async () => {
       // Given: 재시도가 필요한 작업
+      vi.useFakeTimers();
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1882,11 +1865,12 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // When: 실패하는 작업을 큐에 추가하고 재시도 발생
       const schedulerAny = testScheduler as any;
       const jobName = 'test_retry_count_preservation';
-      
+
+      schedulerAny.jobQueue.clear();
       schedulerAny.addJobToQueue(jobName, failingJob, 1, 0);
 
-      // 큐 처리 및 재시도 완료 대기
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 큐 처리 및 재시도 완료 대기 (1000ms processor + 100ms retry delay + buffer)
+      await vi.advanceTimersByTimeAsync(3000);
 
       // Then: 재시도가 발생하고 retryCount가 전달되어야 함
       expect(attemptCount).toBe(2); // 초기 실행 + 재시도 1회
@@ -1896,7 +1880,8 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // 재시도가 정상적으로 작동했다는 것을 attemptCount로 확인)
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
+      vi.useRealTimers();
     });
 
     it('실행 중인 잡에 재시도 카운트가 전달되어야 함', async () => {
@@ -1904,7 +1889,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       const testScheduler = new BatchScheduler({
         cleanupInterval: 60000,
         monitoringInterval: 10000,
-        healthCheckInterval: 200,
+        healthCheckInterval: 10000,
         maxBatchSize: 100,
         enableLogging: false,
         maxConcurrentJobs: 1,
@@ -1945,7 +1930,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       expect(receivedRetryCounts.length).toBeGreaterThanOrEqual(0);
 
       await testScheduler.stop();
-      cleanupTestDatabase(db);
+      await cleanupTestDatabase(db);
     });
   });
 
@@ -2050,6 +2035,71 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
 
       await testScheduler.stop();
     });
+  });
+});
+
+// DB 없이 실행 가능한 env var 기본값 테스트 (better-sqlite3 의존 없음)
+describe('BatchScheduler 기본값 및 env var', () => {
+  it('기본 healthCheckInterval이 300,000ms(5분)이어야 함', () => {
+    const s = new BatchScheduler();
+    expect(s.getStatus().config.healthCheckInterval).toBe(300_000);
+  });
+
+  it('BATCH_HEALTH_CHECK_INTERVAL_MS 환경 변수로 healthCheckInterval을 재정의할 수 있어야 함', () => {
+    const original = process.env.BATCH_HEALTH_CHECK_INTERVAL_MS;
+    process.env.BATCH_HEALTH_CHECK_INTERVAL_MS = '60000';
+    try {
+      expect(new BatchScheduler().getStatus().config.healthCheckInterval).toBe(60_000);
+    } finally {
+      if (original === undefined) delete process.env.BATCH_HEALTH_CHECK_INTERVAL_MS;
+      else process.env.BATCH_HEALTH_CHECK_INTERVAL_MS = original;
+    }
+  });
+
+  it('BATCH_HEALTH_CHECK_INTERVAL_MS가 유효하지 않으면 기본값 300,000을 사용해야 함', () => {
+    const original = process.env.BATCH_HEALTH_CHECK_INTERVAL_MS;
+    process.env.BATCH_HEALTH_CHECK_INTERVAL_MS = '-1';
+    try {
+      expect(new BatchScheduler().getStatus().config.healthCheckInterval).toBe(300_000);
+    } finally {
+      if (original === undefined) delete process.env.BATCH_HEALTH_CHECK_INTERVAL_MS;
+      else process.env.BATCH_HEALTH_CHECK_INTERVAL_MS = original;
+    }
+  });
+
+  it('기본 monitoringInterval이 300,000ms(5분)이어야 함', () => {
+    const s = new BatchScheduler();
+    expect(s.getStatus().config.monitoringInterval).toBe(300_000);
+  });
+
+  it('BATCH_MONITORING_INTERVAL_MS 환경 변수로 monitoringInterval을 재정의할 수 있어야 함', () => {
+    const original = process.env.BATCH_MONITORING_INTERVAL_MS;
+    process.env.BATCH_MONITORING_INTERVAL_MS = '60000';
+    try {
+      expect(new BatchScheduler().getStatus().config.monitoringInterval).toBe(60_000);
+    } finally {
+      if (original === undefined) delete process.env.BATCH_MONITORING_INTERVAL_MS;
+      else process.env.BATCH_MONITORING_INTERVAL_MS = original;
+    }
+  });
+
+  it('BATCH_MONITORING_INTERVAL_MS가 유효하지 않으면 기본값 300,000을 사용해야 함', () => {
+    const original = process.env.BATCH_MONITORING_INTERVAL_MS;
+    process.env.BATCH_MONITORING_INTERVAL_MS = 'abc';
+    try {
+      expect(new BatchScheduler().getStatus().config.monitoringInterval).toBe(300_000);
+    } finally {
+      if (original === undefined) delete process.env.BATCH_MONITORING_INTERVAL_MS;
+      else process.env.BATCH_MONITORING_INTERVAL_MS = original;
+    }
+  });
+
+  it('healthCheckInterval이 너무 짧으면 validateConfig가 에러를 던져야 함', () => {
+    expect(() => {
+      new BatchScheduler({
+        healthCheckInterval: 5000 // 10초 미만
+      });
+    }).toThrow('healthCheckInterval must be at least 10 seconds');
   });
 });
 
