@@ -1,6 +1,7 @@
 # Memento CLI for AI 가이드
 
 AI 에이전트가 Memento 기억을 사용할 때 CLI로 `recall`, `remember`, `forget`, `memory_injection`을 실행할 수 있습니다.
+다른 프로젝트에서도 가장 안전한 실행 형태는 `npm exec --package memento-mcp-server -- memento ...` 입니다.
 
 ---
 
@@ -32,7 +33,11 @@ AI 에이전트가 Memento 기억을 사용할 때 CLI로 `recall`, `remember`, 
   2) `--config-dir` 또는 `MEMENTO_CONFIG_DIR` 내 `.env`  
   3) 현재 작업 디렉터리 `.env`  
   4) `~/.memento/.env`
-- **npx 반복 사용**: 매번 `npx`로 실행하면 다운로드가 발생할 수 있으므로, 반복 사용 시 글로벌 설치(`npm i -g memento-mcp-server`) 또는 로컬 설치 후 `./node_modules/.bin/memento` 사용을 권장합니다.
+- **권장 실행 형태**:
+  - 패키지가 아직 설치되지 않은 다른 프로젝트: `npm exec --package memento-mcp-server -- memento ...`
+  - 현재 프로젝트에 `memento-mcp-server`가 로컬 의존성으로 설치된 경우: `npm exec -- memento ...`
+  - 글로벌 설치(`npm i -g memento-mcp-server`) 후: `memento ...`
+- **반복 사용**: AI가 `recall`/`remember`를 자주 호출하면 `npm exec`/`npx` 오버헤드가 누적될 수 있으므로, 반복 사용 시 글로벌 설치 또는 로컬 설치 후 `memento` 바이너리 직접 실행을 권장합니다.
 
 ---
 
@@ -41,16 +46,22 @@ AI 에이전트가 Memento 기억을 사용할 때 CLI로 `recall`, `remember`, 
 ### recall (검색)
 
 ```bash
-memento recall --query "프로젝트 결정 사항" --limit 5
-memento --db-path /path/to/db.db recall --query "test" --limit 2
+npm exec --package memento-mcp-server -- memento recall --query "프로젝트 결정 사항" --limit 5
+npm exec --package memento-mcp-server -- memento --db-path /path/to/db.db recall --query "test" --limit 2
 ```
 
 성공 시 stdout에 JSON (예: `{"items":[...],"total_count":n,...}`), exit code 0.
 
+로컬 설치 또는 글로벌 설치가 이미 되어 있다면 아래처럼 짧게 실행할 수 있습니다.
+
+```bash
+memento recall --query "프로젝트 결정 사항" --limit 5
+```
+
 ### remember (저장)
 
 ```bash
-memento remember --content "작업 완료: API 스펙 확정" --type episodic --tags completed,api
+npm exec --package memento-mcp-server -- memento remember --content "작업 완료: API 스펙 확정" --type episodic --tags completed,api
 ```
 
 성공 시 stdout에 `memory_id` 등이 포함된 JSON, exit code 0.
@@ -58,14 +69,14 @@ memento remember --content "작업 완료: API 스펙 확정" --type episodic --
 ### forget (삭제)
 
 ```bash
-memento forget --id mem_xxxxx
-memento forget --id mem_xxxxx --hard --confirm true
+npm exec --package memento-mcp-server -- memento forget --id mem_xxxxx
+npm exec --package memento-mcp-server -- memento forget --id mem_xxxxx --hard --confirm true
 ```
 
 ### memory_injection (컨텍스트 주입)
 
 ```bash
-memento memory_injection --query "이전에 논의한 보안 정책" --token_budget 1000
+npm exec --package memento-mcp-server -- memento memory_injection --query "이전에 논의한 보안 정책" --token_budget 1000
 ```
 
 ---
@@ -80,8 +91,8 @@ memento memory_injection --query "이전에 논의한 보안 정책" --token_bud
 
 ## 6. 검증 체크리스트 (AC5, AC6)
 
-- **AC5**: `memento --db-path /tmp/memento-cli-ac5.db recall --query "x" --limit 1` 실행 시 지정한 path의 DB가 사용되는지 확인 (해당 DB에 데이터가 있으면 그 결과가 stdout에 나와야 함).
-- **AC6**: `~/.memento/.env`에 `DB_PATH=<path>`만 두고 cwd에 `.env`가 없을 때, `memento recall --query "x" --limit 1` 실행 시 해당 DB_PATH가 적용되는지 확인.
+- **AC5**: `npm exec --package memento-mcp-server -- memento --db-path /tmp/memento-cli-ac5.db recall --query "x" --limit 1` 실행 시 지정한 path의 DB가 사용되는지 확인 (해당 DB에 데이터가 있으면 그 결과가 stdout에 나와야 함).
+- **AC6**: `~/.memento/.env`에 `DB_PATH=<path>`만 두고 cwd에 `.env`가 없을 때, `npm exec --package memento-mcp-server -- memento recall --query "x" --limit 1` 실행 시 해당 DB_PATH가 적용되는지 확인.
 
 ---
 

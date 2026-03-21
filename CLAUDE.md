@@ -1,0 +1,133 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Memento is an MCP (Model Context Protocol) server that provides persistent long-term memory for AI agents, modeling human memory structures: working (48h TTL), episodic (90d TTL), semantic (∞), and procedural (∞).
+
+## Commands
+
+```bash
+# Setup (one-time)
+npm install
+npm run db:init       # Initialize SQLite schema
+npm run db:migrate    # Run pending migrations
+
+# Development
+npm run dev           # MCP server (watch mode)
+npm run dev:http      # HTTP server (watch mode)
+
+# Build
+npm run build         # Full build: core → server → client
+
+# Quality gates (all must pass before commit)
+npm run lint
+npm run type-check
+npm test
+
+# Single test file
+npx vitest run packages/memento-core/src/domains/search/algorithms/vector-search-engine.spec.ts
+
+# Scenario tests
+npm run test:search
+npm run test:forgetting
+npm run test:performance
+
+# Database
+npm run db:migrate -w @memento/core
+npm run db:check-migration
+```
+
+## Architecture
+
+### Monorepo (npm workspaces — use npm, not pnpm/yarn)
+
+```
+packages/
+├── memento-core (@memento/core)   — all domain logic, DB, services (library)
+├── memento-server                 — MCP stdio + HTTP server (consumes core)
+└── memento-client (@memento/client) — client library for connecting to server
+apps/
+└── experimental-example           — in-process usage demo
+```
+
+### Package Internals (memento-core)
+
+```
+src/domains/
+├── memory/      — remember, recall, pin/unpin, forget
+├── search/      — hybrid search (FTS5 + vector), ranking
+├── embedding/   — multi-provider: TF-IDF → MiniLM → OpenAI → Gemini (fallback)
+├── forgetting/  — TTL policies, soft/hard delete
+├── anchor/      — context anchors (slots A/B/C) for scoped search
+├── relation/    — memory link extraction and visualization
+├── monitoring/  — perf stats, error logging, alerts
+└── procedural/  — procedural memory with versioning
+
+src/infrastructure/
+├── database/    — SQLite init/migrate, better-sqlite3, FTS5 + sqlite-vec
+└── ...          — caching (LRU+TTL), batch scheduler, logger
+
+src/shared/      — shared interfaces and types across domains
+```
+
+### Key Entry Points
+
+| File | Purpose |
+|------|---------|
+| `packages/memento-core/src/index.ts` | Library exports: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase` |
+| `packages/memento-core/src/bootstrap.ts` | Service initialization (wires all services with DB singleton) |
+| `packages/memento-server/src/server/index.ts` | MCP stdio server |
+| `packages/memento-server/src/server/http-server.ts` | HTTP + admin API |
+| `packages/memento-server/src/cli.ts` | CLI entry point |
+
+### MCP Tools vs HTTP Admin API
+
+**MCP tools (11, exposed to AI agents):** `remember`, `recall`, `pin`, `unpin`, `forget`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`
+
+**HTTP-only admin endpoints** (never exposed via MCP): `/admin/memory/cleanup`, `/admin/stats/*`, `/admin/embeddings/migrate`, `/admin/anchors/restore`, `/admin/database/optimize`, `/admin/errors/*`
+
+### Search Ranking Formula
+
+```
+S = α·relevance + β·recency + γ·importance + δ·usage − ε·duplication_penalty
+    (α=0.50,   β=0.20,    γ=0.20,       δ=0.10,   ε=0.15)
+```
+
+## Testing
+
+- **Unit tests** (`.spec.ts`): co-located with source files
+- **E2E / scenario tests** (`test-*.ts`): `src/test/` directory
+- **Integration fixtures**: root `tests/` directory
+- CI skips DB/integration tests via `SKIP_DB_TESTS=true`, `SKIP_INTEGRATION_TESTS=true`
+
+## Environment
+
+Copy `env.example` → `.env`. Key variables:
+
+```bash
+DB_PATH=./data/memory.db
+EMBEDDING_PROVIDER=minilm   # tfidf | lightweight | minilm | openai | gemini
+MEMENTO_HTTP_BIND_HOST=127.0.0.1   # loopback only by default
+```
+
+## Code Style
+
+- 2-space indent, trailing commas, single quotes
+- `kebab-case` filenames, `PascalCase` classes, `camelCase` functions
+- Conventional commits: `feat:`, `fix:`, `chore:` — Korean context in body is fine
+- Run `npm run lint -- --fix` before committing
+- Never commit `data/` or `dist/` contents
+
+## Memento MCP Usage (within this repo)
+
+Before starting work: query with `recall` or `memory_injection` for relevant prior context.
+After completing work: store results — `episodic` for completed tasks, `semantic` for reusable knowledge, `procedural` for repeatable workflows.
+
+## Active Technologies
+- TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest (002-fix-mcp-monitoring-overhead)
+- SQLite (better-sqlite3) — 스키마 변경 없음 (002-fix-mcp-monitoring-overhead)
+
+## Recent Changes
+- 002-fix-mcp-monitoring-overhead: Added TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest

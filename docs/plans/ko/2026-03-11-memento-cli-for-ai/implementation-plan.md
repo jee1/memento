@@ -166,8 +166,8 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](./spec.md)를 기준으로 구�
 8. **종료 전**: DB 연결 정리(closeDatabase 또는 core에서 제공하는 정리 함수 호출).
 
 **검증**:
-- DB 초기화된 상태에서 `memento recall --query "test" --limit 2` → stdout에 JSON, exit 0.
-- `memento remember --content "plan test" --type episodic --tags plan` → stdout에 memory_id 포함 JSON, exit 0.
+- DB 초기화된 상태에서 `memento recall --query "test" --limit 2` → stdout에 JSON, exit 0. 설치 여부가 불명확한 외부 프로젝트 예시는 `npm exec --package memento-mcp-server -- memento recall --query "test" --limit 2`.
+- `memento remember --content "plan test" --type episodic --tags plan` → stdout에 memory_id 포함 JSON, exit 0. 외부 프로젝트 예시는 `npm exec --package memento-mcp-server -- memento remember --content "plan test" --type episodic --tags plan`.
 - 잘못된 인자(예: 필수 누락) → stderr 메시지, exit !== 0.
 - 성공 시 stdout만 파싱하면 유효한 JSON(AC7).
 
@@ -244,7 +244,7 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](./spec.md)를 기준으로 구�
 **내용**:
 - 명령 목록·한 줄 설명.
 - 워크플로(작업 전 recall/memory_injection, 작업 후 remember).
-- 설정 방법: DB_PATH, ~/.memento/.env, MEMENTO_CONFIG_DIR, --db-path. npx 반복 사용 시 글로벌/로컬 설치 권장.
+- 설정 방법: DB_PATH, ~/.memento/.env, MEMENTO_CONFIG_DIR, --db-path. 설치 여부가 불명확한 예시는 `npm exec --package memento-mcp-server -- memento ...`, 반복 사용 시 글로벌/로컬 설치 후 `memento ...` 또는 `npm exec -- memento ...` 권장.
 - 예제 호출 및 샘플 출력(성공 JSON, 실패 시 stderr 예시).
 
 ---
@@ -330,7 +330,7 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](./spec.md)를 기준으로 구�
 - **TASK-07 (recall 서브커맨드 + executeTool + 입출력 규격)**  
   - **한다**: 서브커맨드가 recall일 때 createToolContext·getToolRegistry·executeTool('recall', params, context) 호출. 성공 시 결과만 stdout에 JSON.stringify. 실패 시 stderr에 메시지, process.exit(1). params는 최소 --query, --limit만.  
   - **산출물**: `cli.ts` 수정.  
-  - **검증**: `memento recall --query "test" --limit 2` → stdout에 JSON, exit 0. 실패 시 stderr, exit !== 0.
+  - **검증**: `memento recall --query "test" --limit 2` → stdout에 JSON, exit 0. 실패 시 stderr, exit !== 0. 외부 프로젝트 예시는 `npm exec --package memento-mcp-server -- memento recall --query "test" --limit 2`.
 
 - **TASK-08 (recall 옵션 전체 매핑)**  
   - **한다**: recall의 inputSchema에 맞춰 type, memory_types, tags, time_from, time_to 등 CLI 옵션→params 변환. 문자열→숫자, 쉼표→배열 처리. cli/option-map.ts에 recallParams(argv) 추가 또는 cli.ts 내 구현.  
@@ -340,7 +340,7 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](./spec.md)를 기준으로 구�
 - **TASK-09 (remember 옵션 매핑 및 실행)**  
   - **한다**: 서브커맨드 remember에 대해 옵션→params(content, type, tags, importance, privacy_scope 등) 매핑 후 executeTool('remember', params, context). 입출력 규격은 TASK-07과 동일.  
   - **산출물**: `cli.ts`, `cli/option-map.ts`.  
-  - **검증**: AC3. `memento remember --content "..." --type episodic --tags x,y` → stdout에 memory_id 등.
+  - **검증**: AC3. `memento remember --content "..." --type episodic --tags x,y` → stdout에 memory_id 등. 외부 프로젝트 예시는 `npm exec --package memento-mcp-server -- memento remember --content "..." --type episodic --tags x,y`.
 
 - **TASK-10 (forget 옵션 매핑 및 실행)**  
   - **한다**: 서브커맨드 forget에 대해 memory_id(별칭 --id), 소프트/하드 등 옵션 매핑 후 executeTool('forget', params, context). **명세 반영**: `--id`와 `--memory-id` 둘 다 주어지면 **`--memory-id` 우선**. 주석·명세에 우선순위 명시.  
@@ -368,7 +368,7 @@ SDD **Plan** 단계 산출물. [명세(SPECIFY)](./spec.md)를 기준으로 구�
   - **검증**: AC5 통과.
 
 - **TASK-15 (AC6 검증: ~/.memento/.env만 있을 때 DB_PATH 적용)**  
-  - **한다**: cwd에 .env 없이 `~/.memento/.env`에만 `DB_PATH=<path>` 두고 `memento recall --query "x" --limit 1` 실행 시 해당 DB가 사용되는지 검증.  
+  - **한다**: cwd에 .env 없이 `~/.memento/.env`에만 `DB_PATH=<path>` 두고 `memento recall --query "x" --limit 1` 실행 시 해당 DB가 사용되는지 검증. 외부 프로젝트 예시는 `npm exec --package memento-mcp-server -- memento recall --query "x" --limit 1`.  
   - **산출물**: 테스트 또는 체크리스트.  
   - **검증**: AC6 통과.
 

@@ -1302,41 +1302,6 @@ export class RememberTool extends BaseTool {
                     return;
                   }
 
-                  // JobQueue에 작업 등록 전에 상태를 'in_progress'로 설정하여 중복 실행 방지
-                  // (작업이 실행되기 전에 폴백 타이머가 실행될 수 있으므로)
-                  try {
-                    if (DatabaseUtils.isOpen(dbRef)) {
-                      const preStatusResult = DatabaseUtils.run(dbRef, `
-                        UPDATE memory_item SET
-                          triple_extracted_status = ?,
-                          triple_extraction_metadata = ?
-                        WHERE id = ? AND triple_extracted_status IS NULL
-                      `, [
-                        'in_progress',
-                        JSON.stringify({
-                          started_at: new Date().toISOString(),
-                          queued: true
-                        }),
-                        savedMemoryId
-                      ]);
-                      
-                      if (preStatusResult.changes === 0) {
-                        // 이미 진행 중이거나 완료된 상태
-                        this.logInfo('Triple 추출 작업이 이미 진행 중이거나 완료되었습니다 (작업 등록 스킵)', {
-                          memory_id: savedMemoryId,
-                          job_name: jobName
-                        });
-                        return;
-                      }
-                    }
-                  } catch (preStatusError) {
-                    // 상태 설정 실패는 로그만 출력하고 계속 진행
-                    this.logWarning('Triple 추출 작업 상태 사전 설정 실패', {
-                      memory_id: savedMemoryId,
-                      error: preStatusError instanceof Error ? preStatusError.message : String(preStatusError)
-                    });
-                  }
-
                   // JobQueue에 작업 등록 (우선순위: 5, 중간 우선순위). Issue #89: 폴백 제거 — 순수 비동기만 사용.
                   const added = batchScheduler.addJob(jobName, tripleExtractionJob, 5, 0);
                   if (added) {

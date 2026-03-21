@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import os from 'os';
 import { logger } from '../../../shared/utils/logger.js';
 import { alertNotificationService } from './alert-notification-service.js';
+import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 
 export interface PerformanceMetrics {
   timestamp: Date;
@@ -62,11 +63,19 @@ export class PerformanceMonitor {
   private metricsHistory: PerformanceMetrics[] = [];
   private maxHistorySize = 1000;
   private monitoringInterval: NodeJS.Timeout | null = null;
+  // Scheduled path: only advanced by tick=true — keeps 5-min window intact
+  private scheduledCpuUsage: NodeJS.CpuUsage | null = null;
+  private scheduledMeasurementTime: number | null = null;
+  // On-demand path: advanced on every tick=false call — gives fresh short-window reads
+  private onDemandCpuUsage: NodeJS.CpuUsage | null = null;
+  private onDemandMeasurementTime: number | null = null;
+  private latestCpuSnapshot: NodeJS.CpuUsage = { user: 0, system: 0 };
+  private lastCpuPercent: number = 0; // fallback; only updated by tick=true
 
   constructor(thresholds?: Partial<AlertThresholds>) {
     this.thresholds = {
-      memoryUsagePercent: 80,
-      cpuUsagePercent: 70,
+      memoryUsagePercent: resolveValidatedNumber('PERF_MEMORY_WARN_PERCENT', 85, n => n >= 1 && n <= 100, '범위 1-100'),
+      cpuUsagePercent: resolveValidatedNumber('PERF_CPU_WARN_PERCENT', 75, n => n >= 1 && n <= 100, '범위 1-100'),
       databaseSizeMB: 100,
       queryTimeMs: 1000,
       ...thresholds
@@ -78,6 +87,14 @@ export class PerformanceMonitor {
    */
   initialize(db: Database.Database): void {
     this.db = db;
+    // Seed both baselines from the same snapshot so neither path returns 0 on the first call.
+    const seed = process.cpuUsage();
+    const now = Date.now();
+    this.scheduledCpuUsage = seed;
+    this.scheduledMeasurementTime = now;
+    this.onDemandCpuUsage = seed;
+    this.onDemandMeasurementTime = now;
+    this.latestCpuSnapshot = seed;
     logger.info('PerformanceMonitor initialized');
   }
 
@@ -90,15 +107,16 @@ export class PerformanceMonitor {
 
   /**
    * 성능 지표 수집
+   *
+   * tick=true: 스케줄된 모니터링 호출 — scheduled baseline을 갱신하고 lastCpuPercent를 기록합니다.
+   * tick=false(기본): 온디맨드 읽기 — on-demand baseline만 갱신하여 scheduled baseline과 간섭하지 않습니다.
    */
-  async collectMetrics(): Promise<any> {
+  async collectMetrics(options?: { tick?: boolean }): Promise<any> {
+    const tick = options?.tick ?? false;
     const startTime = Date.now();
-    
+
     // 메모리 사용량
     const memUsage = process.memoryUsage();
-
-    // CPU 사용량
-    const cpuUsage = process.cpuUsage();
 
     // 데이터베이스 지표
     const dbMetrics = await this.getDatabaseMetrics();
@@ -115,7 +133,8 @@ export class PerformanceMonitor {
     const systemMetrics = this.getSystemMetrics();
 
     const memoryUsagePercent = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
-    const cpuUsagePercent = this.calculateCpuUsage(cpuUsage);
+    // tick=true: scheduled baseline 갱신 / tick=false: on-demand baseline만 갱신
+    const cpuUsagePercent = this.calculateCpuUsage(tick);
 
     const metrics: PerformanceMetrics = {
       timestamp: new Date(),
@@ -128,8 +147,8 @@ export class PerformanceMonitor {
         usagePercent: memoryUsagePercent
       },
       cpu: {
-        user: cpuUsage.user,
-        system: cpuUsage.system,
+        user: this.latestCpuSnapshot.user,
+        system: this.latestCpuSnapshot.system,
         percent: cpuUsagePercent
       },
       uptime: process.uptime(),
@@ -231,8 +250,8 @@ export class PerformanceMonitor {
       }
     }
 
-    // CPU 사용률 검사 (추가)
-    const cpuUsagePercent = this.calculateCpuUsage(metrics.cpu);
+    // CPU 사용률 검사
+    const cpuUsagePercent = metrics.cpu.percent;
     if (cpuUsagePercent > this.thresholds.cpuUsagePercent) {
       const alertId = `cpu-${now.getTime()}`;
       const severity = cpuUsagePercent > 90 ? 'critical' : 'warning';
@@ -422,7 +441,7 @@ export class PerformanceMonitor {
 
     this.monitoringInterval = setInterval(async () => {
       try {
-        await this.collectMetrics();
+        await this.collectMetrics({ tick: true });
       } catch (error) {
         logger.error('성능 모니터링 중 오류', { error: error instanceof Error ? error.message : String(error) });
       }
@@ -802,7 +821,7 @@ export class PerformanceMonitor {
 
     const memoryUsed = history.map(m => m.memory.heapUsed);
     const memoryPercentHistory = history.map(m => m.memory.usagePercent ?? (m.memory.heapTotal ? (m.memory.heapUsed / m.memory.heapTotal) * 100 : 0));
-    const cpuPercentHistory = history.map(m => m.cpu.percent ?? this.calculateCpuUsage(m.cpu));
+    const cpuPercentHistory = history.map(m => m.cpu.percent);
     const dbSizesMB = history.map(m => toMb(m.database.size));
 
     const latestEntry = history[history.length - 1];
@@ -884,13 +903,50 @@ export class PerformanceMonitor {
   }
 
   /**
-   * CPU 사용률 계산
+   * CPU 사용률 계산 (dual-baseline 설계)
+   * 직전 baseline 이후의 (∆user + ∆system) / wallClock 으로 실제 사용률을 계산합니다.
+   *
+   * tick=true (scheduled): scheduledCpuUsage baseline 사용·갱신. lastCpuPercent도 갱신됩니다.
+   * tick=false (on-demand): onDemandCpuUsage baseline 사용·갱신.
+   *   scheduledCpuUsage는 건드리지 않아 scheduled tick의 측정 창이 보존됩니다.
    */
-  private calculateCpuUsage(cpu: { user: number; system: number }): number {
-    // 간단한 CPU 사용률 추정 (실제로는 더 정교한 계산 필요)
-    const totalCpuTime = cpu.user + cpu.system;
-    const cpuUsagePercent = Math.min(100, (totalCpuTime / 1000000) * 100); // 마이크로초를 백분율로 변환
-    return cpuUsagePercent;
+  private calculateCpuUsage(tick: boolean): number {
+    const now = Date.now();
+    const current = process.cpuUsage();
+    this.latestCpuSnapshot = current;
+
+    if (tick) {
+      // Scheduled path
+      if (this.scheduledCpuUsage === null || this.scheduledMeasurementTime === null) {
+        this.scheduledCpuUsage = current;
+        this.scheduledMeasurementTime = now;
+        return 0;
+      }
+      const cpuDelta = (current.user - this.scheduledCpuUsage.user)
+                     + (current.system - this.scheduledCpuUsage.system);
+      const wallClockDelta = (now - this.scheduledMeasurementTime) * 1000; // ms → µs
+      this.scheduledCpuUsage = current;
+      this.scheduledMeasurementTime = now;
+      if (wallClockDelta === 0) return this.lastCpuPercent;
+      const result = Math.max(0, Math.min(100, (cpuDelta / wallClockDelta) * 100));
+      this.lastCpuPercent = result;
+      return result;
+    } else {
+      // On-demand path: always advance own baseline for fresh short-window reads;
+      // never touches scheduledCpuUsage so scheduled windows stay intact.
+      if (this.onDemandCpuUsage === null || this.onDemandMeasurementTime === null) {
+        this.onDemandCpuUsage = current;
+        this.onDemandMeasurementTime = now;
+        return this.lastCpuPercent;
+      }
+      const cpuDelta = (current.user - this.onDemandCpuUsage.user)
+                     + (current.system - this.onDemandCpuUsage.system);
+      const wallClockDelta = (now - this.onDemandMeasurementTime) * 1000; // ms → µs
+      this.onDemandCpuUsage = current;
+      this.onDemandMeasurementTime = now;
+      if (wallClockDelta === 0) return this.lastCpuPercent;
+      return Math.max(0, Math.min(100, (cpuDelta / wallClockDelta) * 100));
+    }
   }
 
   /**

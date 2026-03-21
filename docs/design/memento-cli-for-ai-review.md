@@ -13,7 +13,7 @@ AI가 Memento를 사용하기 쉽도록 CLI 형태로 제공하는 방안과, AI
 
 ### 목적
 
-- **CLI 형태**로 동일한 기능을 노출하여, AI가 `memento recall ...`, `memento remember ...`처럼 셸 명령으로 기억을 조회·저장할 수 있게 한다.
+- **CLI 형태**로 동일한 기능을 노출하여, AI가 `memento recall ...`, `memento remember ...`처럼 셸 명령으로 기억을 조회·저장할 수 있게 한다. 다른 프로젝트에서 설치 여부가 불명확할 때는 `npm exec --package memento-mcp-server -- memento ...` 형태를 기본 예시로 사용한다.
 - CLI를 사용하는 **AI에게 필요한 정보**(명령 목록, 스키마, 워크플로, 예제)를 정리하여, 도구 설명·시스템 프롬프트·문서에 활용할 수 있게 한다.
 
 ---
@@ -71,27 +71,27 @@ npx로 설치 없이 실행할 때 **어떤 모드(CLI / stdio MCP / HTTP 서버
 
 | 명령 | 동작 |
 |------|------|
-| `npx memento-mcp-server mcp` 또는 `npx memento mcp` | stdio MCP 서버 기동 (기존 index.js 로직). |
-| `npx memento http` | HTTP 서버 기동 (기존 http-server 로직). |
-| `npx memento recall ...` / `npx memento remember ...` 등 | **CLI 모드** — 한 번 실행 후 stdout에 JSON 출력하고 종료. |
+| `npx memento-mcp-server mcp` 또는 `npm exec --package memento-mcp-server -- memento mcp` | stdio MCP 서버 기동 (기존 index.js 로직). |
+| `npm exec --package memento-mcp-server -- memento http` | HTTP 서버 기동 (기존 http-server 로직). |
+| `npm exec --package memento-mcp-server -- memento recall ...` / `... remember ...` 등 | **CLI 모드** — 한 번 실행 후 stdout에 JSON 출력하고 종료. |
 
 이렇게 하면 “지금이 CLI인지, stdio인지, HTTP인지”는 **실행한 서브커맨드**만 보면 알 수 있다.  
 (기존처럼 bin을 여러 개 두는 방식도 유지할 수 있다: `memento-mcp-server` → stdio, `memento-dev` → http, `memento` → CLI.)
 
 #### CLI + npx: 다운로드/캐시 이슈
 
-**질문:** CLI를 `npx memento recall ...`처럼 매 명령마다 npx로 실행하면, 매번 패키지를 다운로드하나?
+**질문:** CLI를 `npm exec --package memento-mcp-server -- memento recall ...`처럼 매 명령마다 실행하면, 매번 패키지를 다운로드하나?
 
 **동작:** npx는 tarball을 **npm 캐시에 저장**하므로 매 실행마다 전부 재다운로드하는 것은 아니다. 다만 매 실행마다 캐시 풀기·메타데이터 확인 등 **npx 오버헤드**가 있어, CLI를 반복 호출(예: AI가 recall/remember 다수 호출)할 때는 지연이 누적된다.
 
-**권장:** CLI를 자주 쓸 때는 **글로벌 설치** (`npm install -g memento-mcp-server` 후 `memento recall ...`) 또는 **프로젝트 로컬 의존성**으로 두고 `npx memento recall ...`(로컬 node_modules 사용)을 권장한다. 문서에는 "CLI 반복 사용 시 한 번 설치 후 memento 바이너리 직접 실행 권장"으로 적어 둔다.
+**권장:** CLI를 자주 쓸 때는 **글로벌 설치** (`npm install -g memento-mcp-server` 후 `memento recall ...`) 또는 **프로젝트 로컬 의존성**으로 두고 `npm exec -- memento recall ...`(로컬 node_modules 사용)을 권장한다. 설치 여부가 불명확한 문서 예시는 `npm exec --package memento-mcp-server -- memento ...`를 기본으로 둔다.
 
 #### 문서·AI 안내 시
 
 - README·설치 가이드에 **“npx로 실행 시 모드별 사용법”** 표를 두고,  
-  - MCP(Cursor)용: `npx memento-mcp-server` 또는 `npx memento mcp`  
-  - HTTP 서버용: `npx memento-dev` 또는 `npx memento http`  
-  - CLI(도구 호출)용: `npx memento recall ...`  
+  - MCP(Cursor)용: `npx memento-mcp-server` 또는 `npm exec --package memento-mcp-server -- memento mcp`  
+  - HTTP 서버용: `npx memento-dev` 또는 `npm exec --package memento-mcp-server -- memento http`  
+  - CLI(도구 호출)용: `npm exec --package memento-mcp-server -- memento recall ...`  
   로 정리하면, 사용자·AI 모두 “어떤 명령이 어떤 모드인지” 한눈에 알 수 있다.
 
 ---
@@ -152,8 +152,8 @@ AI용 사용 지침은 기존 MCP serverUseInstructions와 맞춘다.
 문서에 다음을 포함하면 AI가 패턴을 학습하기 쉽다.
 
 - **예제 호출**  
-  - `memento recall --query "Memento CLI 설계" --limit 5`  
-  - `memento remember --content "CLI 검토 완료" --type episodic --tags completed,cli`  
+  - `npm exec --package memento-mcp-server -- memento recall --query "Memento CLI 설계" --limit 5`  
+  - `npm exec --package memento-mcp-server -- memento remember --content "CLI 검토 완료" --type episodic --tags completed,cli`  
   - `memento memory_injection --query "recall 결과 형식" --token_budget 500`
 - **샘플 출력**  
   - 성공 시 stdout에 나올 JSON 형태(예: recall이면 `{ "items": [...], "total_count": N }` 등)를 1~2개 예시로 제시.
@@ -216,15 +216,15 @@ CLI에서는 **`~/.memento/` 하위에 설정 파일을 확인**하도록 하면
 CLI for AI 가이드 문서에 다음을 포함하면 좋다.
 
 - **최소 설정**: DB만 쓰는 경우  
-  - `export DB_PATH=./data/memory.db` 후 `memento recall ...`  
+  - `export DB_PATH=./data/memory.db` 후 `npm exec --package memento-mcp-server -- memento recall ...`  
   - 또는 **`~/.memento/.env`**에 `DB_PATH=./data/memory.db` 두기 (CLI 기본 설정 위치).  
   - 또는 프로젝트 루트에 `.env`에 `DB_PATH=...` 두고, 해당 디렉터리에서 실행.
 - **임베딩(OpenAI/Gemini) 사용 시**:  
   - `.env` 또는 환경 변수에 `OPENAI_API_KEY` 또는 `GEMINI_API_KEY`, `EMBEDDING_PROVIDER=openai`(또는 `gemini`) 설정.  
   - 참조: 루트 `env.example`.
 - **여러 프로젝트/DB 구분**:  
-  - `MEMENTO_CONFIG_DIR=/path/to/projectA memento recall ...`  
-  - 또는 `memento --db-path /path/to/projectA/data/memory.db recall ...`.
+  - `MEMENTO_CONFIG_DIR=/path/to/projectA npm exec --package memento-mcp-server -- memento recall ...`  
+  - 또는 `npm exec --package memento-mcp-server -- memento --db-path /path/to/projectA/data/memory.db recall ...`.
 - **설정 확인**: (구현 시) `memento config --show` 또는 `memento --version` 옆에 `memento config`로 현재 적용된 DB_PATH·EMBEDDING_PROVIDER 등만 읽기 전용으로 출력하면, AI가 “지금 어떤 DB를 쓰는지” 디버깅하기 쉽다.
 
 ### 5.5 구현 시 참고
@@ -246,7 +246,7 @@ CLI for AI 가이드 문서에 다음을 포함하면 좋다.
 
 | 항목 | 내용 |
 |------|------|
-| **CLI 형태** | 서브커맨드형 (`memento recall`, `memento remember` 등), stdout=JSON, stderr=로그/에러, exit code로 성공/실패. |
+| **CLI 형태** | 서브커맨드형 (`memento recall`, `memento remember` 등). 설치가 보장되지 않은 문서 예시는 `npm exec --package memento-mcp-server -- memento ...` 사용. stdout=JSON, stderr=로그/에러, exit code로 성공/실패. |
 | **환경 설정** | 우선순위: CLI 글로벌 옵션 > 환경변수 > .env(탐색: --env-file, MEMENTO_CONFIG_DIR, cwd, **~/.memento/.env**). API 키는 환경변수/.env만 사용. |
 | **AI용 제공 정보** | (1) 명령 목록·한 줄 설명, (2) 각 명령 인자 스키마(문서 + 선택적으로 `memento schema`), (3) 워크플로 가이드(작업 전/후, 앵커), (4) 예제 호출·샘플 출력, (5) **설정 방법**(DB_PATH, .env, MEMENTO_CONFIG_DIR, `memento config`). |
 | **문서** | “Memento CLI for AI” 가이드 문서, `--help`/`memento schema`, **설정 방법 요약**, 시스템 프롬프트용 짧은 지침. |
