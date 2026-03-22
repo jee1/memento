@@ -1,142 +1,107 @@
-# Memento 문서 인덱스
+# Memento 문서 포털
 
-`docs/` 하위 문서를 **용도·대상**별로 정리한 목차입니다. 모든 문서는 **언어별**로 `en/`, `ko/` 하위에 있습니다.
-
-분류 체계: [docs-classification.md](docs-classification.md)
+`docs/`는 **공식 문서**(사용자·개발자·운영)와 **내부 작업 문서**(`_work/`)로 나뉩니다. 분류 체계는 [docs-classification.md](docs-classification.md)를 참고하세요.
 
 ---
 
-## 빠른 링크
+## Memento 사용하기
+
+MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입니다.
+
+### 시작하기
 
 | 문서 | KO | EN |
 |------|----|----|
-| DB 설계 명세 | [architecture/ko/database-design.md](architecture/ko/database-design.md) | [architecture/en/database-design.md](architecture/en/database-design.md) |
-| 마이그레이션 가이드 | [guides/ko/migration-system-guide.md](guides/ko/migration-system-guide.md) | [guides/en/migration-system-guide.md](guides/en/migration-system-guide.md) |
-| 사용자 매뉴얼 | [guides/ko/user-manual.md](guides/ko/user-manual.md) | [guides/en/user-manual.md](guides/en/user-manual.md) |
-| 개발자 가이드 | [guides/ko/developer-guide.md](guides/ko/developer-guide.md) | [guides/en/developer-guide.md](guides/en/developer-guide.md) |
-| Cursor/MCP 설정 | [guides/ko/cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [guides/en/cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
-| 보안 | [reference/ko/security.md](reference/ko/security.md) | [reference/en/security.md](reference/en/security.md) |
+| 사용자 매뉴얼 | [user-manual.md](guides/ko/user-manual.md) | [user-manual.md](guides/en/user-manual.md) |
+| Cursor / MCP 설정 | [cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
+| Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | — |
 
-**루트 문서:** [README](../README.md), [README.en](../README.en.md). [GEMINI.md](../GEMINI.md) — Gemini 등 AI 컨텍스트용 프로젝트 요약(빌드·실행). [AGENTS.md](../AGENTS.md) — 모노레포 구조·빌드·테스트·DB 명령 상세. 상세는 README·가이드 참고.
+- **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [AGENTS.md](../AGENTS.md)
 
-**현재 구조:** 저장소는 npm workspaces 모노레포로, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`가 구현되어 있습니다. 서버 진입점은 `packages/memento-server`(MCP/HTTP), DB·도메인 로직은 `packages/memento-core`에 있습니다.
+### 연동·레퍼런스
 
----
+| 문서 | KO | EN |
+|------|----|----|
+| 전체 API | [api-reference.md](api/ko/api-reference.md) | [api-reference.md](api/en/api-reference.md) |
+| 임베딩 API | [embedding-api-reference.md](api/ko/embedding-api-reference.md) | — |
+| 관계 그래프 API | [relation-graph-api.md](api/ko/relation-graph-api.md) | [relation-graph-api.md](api/en/relation-graph-api.md) |
+| 보안 | [security.md](reference/ko/security.md) | [security.md](reference/en/security.md) |
 
-## 1. 가이드 (guides/en, guides/ko)
+### How-to
 
-### 공통 (EN/KO)
-- Cursor MCP: [en](guides/en/cursor-mcp-setup.md) / [ko](guides/ko/cursor-mcp-setup.md)
-- MCP serverUseInstructions (서버 사용 지침): [ko](guides/ko/mcp-server-instructions.md)
-- **Memento CLI for AI**: [ko](guides/ko/memento-cli-for-ai.md) — recall, remember, forget, memory_injection, 설정(~/.memento, DB_PATH), 워크플로·예제.
-- **SDD 워크플로**: [ko](guides/ko/sdd-workflow.md) — Specification-Driven Development: Design → SPEC → PLAN → 구현, 문서 위치·체크리스트.
-- 관계 라벨링: [en](guides/en/relation-labeling-guide.md) / [ko](guides/ko/relation-labeling-guide.md)
-- 앵커 연결 확인: [en](guides/en/how-to-check-anchor-connections.md) / [ko](guides/ko/how-to-check-anchor-connections.md)
-- 멀티 에이전트: [en](guides/en/multi-agent-usage.md) / [ko](guides/ko/multi-agent-usage.md)
-- Recall 성능 튜닝: [en](guides/en/recall-performance-tuning.md) / [ko](guides/ko/recall-performance-tuning.md)
-
-### 한국어 (guides/ko/)
-- 사용자 매뉴얼, 개발자 가이드, 임베딩 서비스·설정, LLM 제공자 설정, 마이그레이션 시스템, 레거시 스크립트 마이그레이션, 캐시 동기화 전략
-
-### 영어 (guides/en/)
-- User manual, Developer guide, LLM provider configuration, Migration system guide, Embedding service·configuration, Legacy scripts migration, Cache synchronization strategy
+| 주제 | KO | EN |
+|------|----|----|
+| 멀티 에이전트 | [multi-agent-usage.md](guides/ko/multi-agent-usage.md) | [multi-agent-usage.md](guides/en/multi-agent-usage.md) |
+| 관계 라벨링 | [relation-labeling-guide.md](guides/ko/relation-labeling-guide.md) | [relation-labeling-guide.md](guides/en/relation-labeling-guide.md) |
+| 앵커 연결 확인 | [how-to-check-anchor-connections.md](guides/ko/how-to-check-anchor-connections.md) | [how-to-check-anchor-connections.md](guides/en/how-to-check-anchor-connections.md) |
+| Recall 성능 튜닝 | [recall-performance-tuning.md](guides/ko/recall-performance-tuning.md) | [recall-performance-tuning.md](guides/en/recall-performance-tuning.md) |
+| 마이그레이션 시스템 | [migration-system-guide.md](guides/ko/migration-system-guide.md) | [migration-system-guide.md](guides/en/migration-system-guide.md) |
+| MCP 서버 사용 지침 | [mcp-server-instructions.md](guides/ko/mcp-server-instructions.md) | — |
+| SDD 워크플로 | [sdd-workflow.md](guides/ko/sdd-workflow.md) | — |
 
 ---
 
-## 2. 아키텍처 (architecture/en, architecture/ko)
+## Memento 개발·기여하기
 
-- DB 설계: [ko](architecture/ko/database-design.md) / [en](architecture/en/database-design.md)
-- DB ERD: [ko](architecture/ko/database-erd.md) / [en](architecture/en/database-erd.md)
-- 비동기 보강 파이프라인: [ko](architecture/ko/async-augmentation-pipeline.md) / [en](architecture/en/async-augmentation-pipeline.md)
-- FTS5 무중단 마이그레이션: [ko](architecture/ko/zero-downtime-fts5-migration.md) / [en](architecture/en/zero-downtime-fts5-migration.md)
-- 아키텍처 개요: [en](architecture/en/architecture.md) / [ko](architecture/ko/architecture.md)
+코어·서버·클라이언트를 **빌드·수정·배포**할 때 쓰는 공식 문서입니다.
 
----
+### 개발자 온보딩
 
-## 3. API (api/en, api/ko)
+| 문서 | KO | EN |
+|------|----|----|
+| 개발자 가이드 | [developer-guide.md](guides/ko/developer-guide.md) | [developer-guide.md](guides/en/developer-guide.md) |
+| DB 설계 명세 | [database-design.md](architecture/ko/database-design.md) | [database-design.md](architecture/en/database-design.md) |
 
-- 관계 그래프 API: [ko](api/ko/relation-graph-api.md) / [en](api/en/relation-graph-api.md)
-- 전체 API 레퍼런스: [en](api/en/api-reference.md) / [ko](api/ko/api-reference.md)
-- 임베딩 API: [ko](api/ko/embedding-api-reference.md)
+- **저장소 가이드**: [AGENTS.md](../AGENTS.md) — 워크스페이스, 빌드·테스트·DB 명령
+- **기타 가이드**: 임베딩 서비스·설정, 레거시 스크립트, 캐시 동기화 등은 [guides/ko/](guides/ko/) · [guides/en/](guides/en/)
 
----
+### 아키텍처·설계
 
-## 4. 계획·제안 (plans/ko, plans/en)
+- DB ERD: [KO](architecture/ko/database-erd.md) / [EN](architecture/en/database-erd.md) (영문은 KO 링크 안내)
+- 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
+- FTS5 무중단 마이그레이션: [KO](architecture/ko/zero-downtime-fts5-migration.md) / [EN](architecture/en/zero-downtime-fts5-migration.md)
+- 아키텍처 개요: [KO](architecture/ko/architecture.md) / [EN](architecture/en/architecture.md)
 
-이슈별 설계·구현 계획. 주로 [plans/ko/](plans/ko/)에 있으며, [plans/en/README.md](plans/en/README.md)에서 안내.
+### 운영·도구
 
-- **모노레포·memento-core 분리**: [plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md](plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md) — 구현 계획. 설계·브레인스토밍: [brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md). 실험 앱 연결 방식(라이브러리 in-process vs 서버 원격)은 계획서·브레인스토밍 참고.
-- [plans/ko/database-design-consolidation-proposal.md](plans/ko/database-design-consolidation-proposal.md) — DB 설계 통합 제안
-- **Issue #57 Phase 2**: [plans/ko/2026-02-05-issue57-phase2/](plans/ko/2026-02-05-issue57-phase2/) — [roadmap.md](plans/ko/2026-02-05-issue57-phase2/roadmap.md), [spec.md](plans/ko/2026-02-05-issue57-phase2/spec.md), [implementation-plan.md](plans/ko/2026-02-05-issue57-phase2/implementation-plan.md)
-- [plans/ko/2026-03-03-repo-cleanup-design.md](plans/ko/2026-03-03-repo-cleanup-design.md) — 저장소 정리 설계 (불필요 파일·디렉토리, 단계별 정리)
-- [plans/ko/2026-03-02-memento-growth-strategy-design.md](plans/ko/2026-03-02-memento-growth-strategy-design.md) — 성장 전략 설계 (Phase 0 성능 적정성 판단 + 마일스톤 결합)
-- 기타: [plans/ko/](plans/ko/) 디렉터리 참고
-- PRD·태스크 목록: 루트 [tasks/](../tasks/) ([tasks/README.md](../tasks/README.md) 참고)
+| 문서 | KO | EN |
+|------|----|----|
+| 스크립트 인덱스 | [scripts-index.md](operations/ko/scripts-index.md) | — |
+| GitHub 릴리스 | [github-release-workflow.md](operations/ko/github-release-workflow.md) | [github-release-workflow.md](operations/en/github-release-workflow.md) |
+| 마이그레이션 상태 점검 | [check-migration-status.md](operations/ko/check-migration-status.md) | [check-migration-status.md](operations/en/check-migration-status.md) |
+| 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [operations/en/](operations/en/) |
 
-### 명세·계획 (SDD) — 기능별 동일 경로
+### 참조 (reference)
 
-구현 명세(SPEC)와 구현 계획(PLAN)은 **기능마다 한 디렉터리**에 둔다: `plans/ko/YYYY-MM-DD-기능명/spec.md`, `implementation-plan.md` (선택: Structure.md, Tech.md, Product.md). Plan → Tasks → Implement 시 기준 문서로 사용. **SDD 절차**: [guides/ko/sdd-workflow.md](guides/ko/sdd-workflow.md).
+- 코드베이스 분석·로깅·외부 API·마일스톤·수식 등: [reference/ko/](reference/ko/) · [reference/en/](reference/en/)
 
-- **Memento CLI for AI**: 기능별 디렉터리 [plans/ko/2026-03-11-memento-cli-for-ai/](plans/ko/2026-03-11-memento-cli-for-ai/) — [design.md](plans/ko/2026-03-11-memento-cli-for-ai/design.md), [spec.md](plans/ko/2026-03-11-memento-cli-for-ai/spec.md), [implementation-plan.md](plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md), Memory Bank(Structure/Tech/Product). 이슈 [#110](https://github.com/jee1/memento/issues/110). *(신규 기능도 동일하게 기능별 디렉터리에 design + spec + plan 함께 둠.)*
-- **현 상태 SDD 이관 검토**: [plans/ko/2026-03-14-sdd-current-state-migration-review.md](plans/ko/2026-03-14-sdd-current-state-migration-review.md) — 기존 문서 정리·신규 문서 생성 방안, 기능별 그룹핑·우선순위.
+### 명세·태스크 (저장소 루트)
 
----
+- [specs/](../specs/) — 기능별 명세(Spec Kit 등)
+- [tasks/](../tasks/) — PRD·작업 목록 ([tasks/README.md](../tasks/README.md))
 
-## 5.5. 해결 사례 (solutions/)
-
-이슈 해결 과정·근본 원인·검증이 정리된 문서. 문제 유형별 하위 디렉터리.
-
-- [integration-issues/mcp-log-duplicate-two-processes.md](solutions/integration-issues/mcp-log-duplicate-two-processes.md) — MCP 로그 두 번 출력 (두 프로세스 / Cursor UI)
-
----
-
-## 6. 리뷰·검증 (reviews/ko, code_review/ko)
-
-- 코드 리뷰: [code_review/ko/](code_review/ko/)
-- 검증·테스트 보고: [reviews/ko/](reviews/ko/)
-- [reviews/en/README.md](reviews/en/README.md), [code_review/en/README.md](code_review/en/README.md)
-
----
-
-## 7. 테스트 (testing/ko, testing/en)
-
-- Consolidation 품질 테스트: [ko](testing/ko/consolidation-quality-testing.md) / [testing/en/README.md](testing/en/README.md)
-
----
-
-## 8. 운영·도구 (operations/en, operations/ko)
-
-- GitHub 릴리스: [ko](operations/ko/github-release-workflow.md) / [en](operations/en/github-release-workflow.md)
-- 스크립트 인덱스: [ko](operations/ko/scripts-index.md)
-- 마이그레이션 상태 점검: [ko](operations/ko/check-migration-status.md) / [en](operations/en/check-migration-status.md)
-- 트러블슈팅: [ko](operations/ko/troubleshooting-node-version.md) / [en](operations/en/troubleshooting-node-version.md), [ko](operations/ko/npx-troubleshooting.md) / [en](operations/en/npx-troubleshooting.md)
-- npm unpublish: [ko](operations/ko/npm-unpublish-guide.md) / [en](operations/en/npm-unpublish-guide.md)
-
----
-
-## 9. 참조 (reference/en, reference/ko)
-
-- **코드베이스 분석**: [ko](reference/ko/codebase-analysis.md) — 전체 코드 구조·도메인·조건·데이터 흐름 정리
-- **파일 위치·필요성 감사**: [ko](reference/ko/file-location-audit.md) — 파일별 위치 적합성·필요여부·개선 방안
-- 로깅 스키마: [ko](reference/ko/logging-schema.md) / [en](reference/en/logging-schema.md)
-- 보안: [ko](reference/ko/security.md) / [en](reference/en/security.md)
-- 외부 API 호출: [ko](reference/ko/external-api-calls.md) / [en](reference/en/external-api-calls.md)
-- 임베딩 제공자 이슈: [ko](reference/ko/embedding-provider-issues.md) / [en](reference/en/embedding-provider-issues.md)
-- PRD·성능 테스트: [reference/ko/](reference/ko/)
-- Memento 목표·마일스톤·M1 스펙, 검색 랭킹·감쇠 수식, 임베딩 벤치마크: [reference/en/](reference/en/), [reference/ko/](reference/ko/)
-
----
-
-## 10. 리서치 (research/ko, research/en)
-
-- Memento 기반 개인 비서(OpenClaw 유사) 기능·MVP 리서치: [ko](research/ko/memento-based-personal-assistant-mvp-research.md)
-
----
-
-## 11. 블로그
+### 블로그
 
 - [blog/](blog/)
 
+### 내부 작업 문서 (`docs/_work/`)
+
+계획·설계 초안·코드 리뷰·검증 보고·품질 시나리오 등 **기여·자동화 작업용** 산출물입니다. 최종 사용자가 반드시 읽을 필요는 없습니다.
+
+| 경로 | 설명 |
+|------|------|
+| [_work/plans/](_work/plans/) | 이슈별 design / spec / implementation-plan, 로드맵, 제안 |
+| [_work/design/](_work/design/) | 설계·리뷰 초안 |
+| [_work/brainstorms/](_work/brainstorms/) | 브레인스토밍 |
+| [_work/code_review/](_work/code_review/) | 사전 코드 리뷰·리뷰 요청 |
+| [_work/reviews/](_work/reviews/) | 단계별 검증·테스트 보고 |
+| [_work/testing/](_work/testing/) | consolidation·검색 품질 등 작업용 테스트 가이드 |
+| [_work/research/](_work/research/) | 리서치 노트 |
+| [_work/solutions/](_work/solutions/) | 이슈 해결 사례 |
+| [_work/issues/](_work/issues/) | 이슈 메모·기능 제안 |
+
+- Plans 영문 안내: [_work/plans/en/README.md](_work/plans/en/README.md)
+
 ---
 
-*모든 문서는 해당 카테고리의 `en/` 또는 `ko/` 하위에 두고, 필요 시 반대 언어 번역을 추가합니다.*
+*공식 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/` 등에서 언어별 `ko/`·`en/` 하위를 기본으로 합니다. `_work/`는 작업 문서이며 하위에 `ko/`·`en/`가 혼재할 수 있습니다.*

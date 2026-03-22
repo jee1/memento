@@ -311,7 +311,7 @@ const results = await client.callTool({
 - [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md) - 성능 비교 결과
 - [API 레퍼런스](docs/api/ko/embedding-api-reference.md) - API 상세 문서
 - [설정 가이드](docs/guides/ko/embedding-configuration.md) - 환경 설정 방법
-- [Consolidation Score 테스트 가이드](docs/testing/consolidation-quality-testing.md) - Consolidation Score 검색 품질 테스트 가이드
+- [Consolidation Score 테스트 가이드](docs/_work/testing/ko/consolidation-quality-testing.md) - Consolidation Score 검색 품질 테스트 가이드
 
 ## 📋 API 문서
 

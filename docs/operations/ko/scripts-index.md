@@ -48,6 +48,6 @@
 | scripts/docker-migration.sh, scripts/start-container.sh | Docker 일회성 |
 | scripts/fix-vec-table-dimensions.ts, scripts/remove-benchmark-test-data.ts | 보조 |
 
-인벤토리: [docs/plans/ko/2026-03-03-scripts-inventory.md](../../plans/ko/2026-03-03-scripts-inventory.md)
+인벤토리: [docs/_work/plans/ko/2026-03-03-scripts-inventory.md](../../_work/plans/ko/2026-03-03-scripts-inventory.md)
 
 전체 목록은 `scripts/` 디렉터리를 참고하고, `package.json`의 `scripts` 필드에 등록된 항목을 우선 사용하세요.

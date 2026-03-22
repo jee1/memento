@@ -2,7 +2,7 @@
 
 **하는 일**: Memento MCP Server의 SQLite 스키마에 대한 단일 설계 명세. 테이블·컬럼 목적, 명명 규칙, 인덱스·제약, 마이그레이션 이력을 한 문서에서 참조한다.  
 **주의**: 실행용 DDL의 진실 공급원은 `packages/memento-core/src/infrastructure/database/database/schema.sql`과 마이그레이션 스크립트이며, 본 문서는 그에 대한 설명·정리용이다.  
-**연관**: [마이그레이션 시스템 가이드](../../guides/ko/migration-system-guide.md), [DB 설계 통합 제안서](../../plans/ko/database-design-consolidation-proposal.md), [전체 테이블 ERD](database-erd.md).
+**연관**: [마이그레이션 시스템 가이드](../../guides/ko/migration-system-guide.md), [DB 설계 통합 제안서](../../_work/plans/ko/database-design-consolidation-proposal.md), [전체 테이블 ERD](database-erd.md).
 
 ---
 

@@ -9,7 +9,7 @@
 - `src/test/helpers/search-quality-metrics.ts` - 기존 품질 지표 계산 로직 재사용 (Precision/Recall/NDCG)
 - `src/test/helpers/consolidation-test-data.ts` - 기존 테스트 데이터 생성 로직 재사용
 - `src/test/test-consolidation-search-quality.ts` - 기존 E2E 테스트 구조 참고
-- `docs/testing/consolidation-quality-testing.md` - 품질 검증 가이드 문서 업데이트 - 예정
+- `docs/_work/testing/ko/consolidation-quality-testing.md` - 품질 검증 가이드 문서 업데이트 - 예정
 - `data/vector-search-quality-baseline.json` - Baseline 스냅샷 저장 파일 - 예정
 
 ### Notes
@@ -63,6 +63,6 @@
   - [x] 5.7 Baseline 스냅샷 저장 및 비교 통합 테스트 작성
   - [x] 5.8 리포트 생성 및 파일 저장 기능 구현 (JSON, Markdown 형식)
   - [x] 5.9 품질 저하 감지 시 경고 메시지 출력 기능 구현
-  - [x] 5.10 `docs/testing/consolidation-quality-testing.md` 문서 업데이트 (벡터 검색 품질 검증 섹션 추가)
+  - [x] 5.10 `docs/_work/testing/ko/consolidation-quality-testing.md` 문서 업데이트 (벡터 검색 품질 검증 섹션 추가)
   - [x] 5.11 CI/CD 파이프라인 통합 (package.json에 테스트 스크립트 추가, 필요시 GitHub Actions 설정) - Vitest JUnit/JSON 리포트 아티팩트 업로드 포함 (FR-7.3), 테스트 실패 시 파이프라인 실패 처리 (exit code 1, FR-7.2)
   - [x] 5.12 전체 통합 테스트 실행 및 검증 (모든 테스트 케이스 통과 확인)
