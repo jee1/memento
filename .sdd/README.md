@@ -18,5 +18,5 @@
 ```
 .sdd/
 └── specs/           # 기능별 명세 (001-feature-name/, 002-.../)
-docs/plans/          # Superpowers 실행용 계획 문서
+docs/_work/plans/    # Superpowers 실행용 계획 문서
 ```

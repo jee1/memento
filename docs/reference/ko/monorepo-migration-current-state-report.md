@@ -1,7 +1,7 @@
 # 모노레포 전환 현황 조사 보고서
 
 **목적**: 모노레포 + memento-core/server/client 분리 계획을 위한 현재 저장소 상태·패턴 정리.  
-**컨텍스트**: [docs/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).  
+**컨텍스트**: [docs/_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).  
 **범위**: 구현 계획 없음. 현재 상태와 관찰된 패턴만 기술.
 
 > **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../AGENTS.md) 및 [README.md](../../README.md) 참조.
@@ -22,7 +22,7 @@
 
 ### 1.2 결론 (전환 후 반영됨)
 
-- 모노레포 전환 완료: workspaces 정의, core→server→client 빌드 순서, CI에 패키지별 빌드·테스트 포함. 상세는 [plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md](../plans/ko/2026-03-04-monorepo-memento-core-implementation-plan.md) 참조.
+- 모노레포 전환 완료: workspaces 정의, core→server→client 빌드 순서, CI에 패키지별 빌드·테스트 포함. 상세는 [implementation-plan.md](../../_work/plans/ko/2026-03-04-monorepo-memento-core/implementation-plan.md) 참조.
 
 ---
 

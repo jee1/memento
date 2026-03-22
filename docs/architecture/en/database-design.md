@@ -4,7 +4,7 @@
 
 **Note**: The source of truth for executable DDL is `packages/memento-core/src/infrastructure/database/database/schema.sql` and migration scripts; this document is explanatory.
 
-**Related**: [Migration system guide](../../guides/en/migration-system-guide.md), [DB design consolidation proposal](../../plans/ko/database-design-consolidation-proposal.md), [Full table ERD](../ko/database-erd.md).
+**Related**: [Migration system guide](../../guides/en/migration-system-guide.md), [DB design consolidation proposal](../../_work/plans/ko/database-design-consolidation-proposal.md), [Full table ERD](../ko/database-erd.md).
 
 ---
 

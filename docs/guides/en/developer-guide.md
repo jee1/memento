@@ -606,7 +606,7 @@ describe('MCP Server Integration', () => {
 - **Commands**:
   - `npm run test:consolidation-quality` - E2E quality validation
   - `npm run benchmark:consolidation-quality` - Quality benchmark with baseline comparison
-- **Documentation**: [Consolidation Score Testing Guide](../../testing/ko/consolidation-quality-testing.md)
+- **Documentation**: [Consolidation Score Testing Guide](../../_work/testing/ko/consolidation-quality-testing.md)
 
 ### Test Writing Guide
 

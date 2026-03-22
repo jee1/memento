@@ -832,7 +832,7 @@ describe('MCP Server Integration', () => {
 - **명령어**:
   - `npm run test:consolidation-quality` - E2E 품질 검증
   - `npm run benchmark:consolidation-quality` - Baseline 비교 벤치마크
-- **문서**: [Consolidation Score 테스트 가이드](../../testing/ko/consolidation-quality-testing.md)
+- **문서**: [Consolidation Score 테스트 가이드](../../_work/testing/ko/consolidation-quality-testing.md)
 
 ### 테스트 작성 가이드
 
