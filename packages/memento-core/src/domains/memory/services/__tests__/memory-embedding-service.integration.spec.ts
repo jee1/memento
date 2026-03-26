@@ -38,7 +38,7 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
       };
     }
 
-    getCurrentProviderName(): string {
+    getCurrentProviderName(): EmbeddingProvider | null {
       return currentProvider;
     }
   }

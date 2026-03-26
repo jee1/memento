@@ -151,3 +151,6 @@ demo/node_modules/
 
 # Local / machine-specific
 compound-engineering.local.md
+
+# Editor metadata
+.obsidian/

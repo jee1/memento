@@ -10,12 +10,15 @@ import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers
 import { createHybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { ErrorLoggingService } from '../../../monitoring/services/error-logging-service.js';
 import type { ToolContext } from '../../../tools/types.js';
+import { MemoryEmbeddingService } from '../../services/memory-embedding-service.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
 
 describe('MemoryInjectionPrompt', () => {
   let db: Database.Database;
   let tool: MemoryInjectionPrompt;
   let context: ToolContext;
   let errorLoggingService: ErrorLoggingService;
+  let embeddingService: MemoryEmbeddingService;
 
   beforeEach(async () => {
     db = await setupTestDatabase();
@@ -23,14 +26,14 @@ describe('MemoryInjectionPrompt', () => {
     
     // 에러 로깅 서비스 생성
     errorLoggingService = new ErrorLoggingService(db);
-    
-    // 하이브리드 검색 엔진 생성 (팩토리 함수 사용)
-    const hybridSearchEngine = createHybridSearchEngine();
+    embeddingService = new MemoryEmbeddingService();
+    const hybridSearchEngine = createHybridSearchEngine(undefined, embeddingService);
     
     context = {
       db,
       services: {
         hybridSearchEngine,
+        embeddingService,
         errorLoggingService
       }
     };
@@ -74,6 +77,7 @@ describe('MemoryInjectionPrompt', () => {
       expect(definition.inputSchema.type).toBe('object');
       expect(definition.inputSchema.properties).toBeDefined();
       expect(definition.inputSchema.properties.query).toBeDefined();
+      expect(String(definition.inputSchema.properties.query.description)).toContain('자연어 문장');
     });
   });
 
@@ -299,6 +303,135 @@ describe('MemoryInjectionPrompt', () => {
         // 스키마 문제 등으로 에러가 발생할 수 있음
         expect(error).toBeDefined();
       }
+    });
+  });
+
+  describe('TF-IDF 쿼리 임베딩 fallback stderr', () => {
+    let savedEmbeddingProvider: (typeof mementoConfig)['embeddingProvider'];
+
+    beforeEach(() => {
+      savedEmbeddingProvider = mementoConfig.embeddingProvider;
+      mementoConfig.embeddingProvider = 'minilm';
+    });
+
+    afterEach(() => {
+      mementoConfig.embeddingProvider = savedEmbeddingProvider;
+    });
+
+    const TFIDF_QUERY_FALLBACK_MSG =
+      '⚠️ [Memento] 이번 검색의 쿼리 임베딩에 TF-IDF가 사용되었습니다.' +
+      ' sqlite-vec 유사도 fallback이거나, 다중 provider VEC 검색에서 고차원 임베딩 대신 TF-IDF로 생성된 경우 의미 기반 검색 품질이 저하될 수 있습니다.\n';
+
+    it('fallback_used=true여도 tfidf_query_embedding_fallback이 true일 때만 stderr에 TF-IDF 품질 경고를 출력한다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 0,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true
+      });
+
+      await tool.handle({ query: 'unit test query' }, context);
+
+      expect(stderrSpy).toHaveBeenCalledWith(TFIDF_QUERY_FALLBACK_MSG);
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used=true이어도 tfidf_query_embedding_fallback이 설정되지 않으면 TF-IDF 품질 경고를 출력하지 않는다 (provider_filter=[tfidf])', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 0,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf']
+      });
+
+      await tool.handle({ query: 'unit test query' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used가 false이고 tfidf_query_embedding_fallback도 false면 TF-IDF 품질 경고를 출력하지 않는다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 0,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: false
+      });
+
+      await tool.handle({ query: 'unit test query' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used가 false여도 tfidf_query_embedding_fallback이면 TF-IDF 품질 경고를 출력한다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 0,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true
+      });
+
+      await tool.handle({ query: 'unit test query' }, context);
+
+      expect(stderrSpy).toHaveBeenCalledWith(TFIDF_QUERY_FALLBACK_MSG);
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used=true이어도 쿼리 임베딩이 minilm이면 TF-IDF 품질 경고를 출력하지 않는다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 0,
+        fallback_used: true,
+        query_embedding_providers: ['minilm']
+      });
+
+      await tool.handle({ query: 'unit test query' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
+
+    it('mementoConfig.embeddingProvider가 tfidf면 fallback_used+tfidf여도 TF-IDF 품질 경고를 출력하지 않는다', async () => {
+      mementoConfig.embeddingProvider = 'tfidf';
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(context.services.hybridSearchEngine!, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 0,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf']
+      });
+
+      await tool.handle({ query: 'unit test query' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
     });
   });
 

@@ -175,10 +175,11 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
   }
 
   /**
-   * 현재 사용 중인 제공자 이름 반환
+   * 마지막으로 사용된 임베딩 제공자 이름 반환 (진단용)
+   * recall 도구에서 TF-IDF fallback 감지에 사용됨
    */
-  getCurrentProviderName(): string {
-    return this.currentProviderName ?? 'none';
+  getCurrentProviderName(): EmbeddingProvider | null {
+    return this.currentProviderName;
   }
 
   /**

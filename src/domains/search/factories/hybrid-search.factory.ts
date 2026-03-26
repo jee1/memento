@@ -3,7 +3,7 @@
  * 의존성 주입 및 객체 생성 관리
  */
 
-import { HybridSearchEngine } from '../algorithms/hybrid-search-engine.js';
+import { HybridSearchEngine, resolveQueryUnifiedEmbeddingForHybridSearch } from '../algorithms/hybrid-search-engine.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
@@ -55,9 +55,9 @@ export class HybridSearchFactory {
   /**
    * 기본 설정으로 하이브리드 검색 엔진 생성
    */
-  static createDefaultEngine(db: Database): HybridSearchEngine {
+  static createDefaultEngine(db: Database, embeddingService?: MemoryEmbeddingService): HybridSearchEngine {
     const textSearchEngine = new SearchEngine();
-    const embeddingService = new MemoryEmbeddingService();
+    const emb = embeddingService ?? new MemoryEmbeddingService();
     const vectorSearchEngine = new VectorSearchEngine();
     const resultCombiner = new MockSearchResultCombiner();
     const weightCalculator = new MockAdaptiveWeightCalculator();
@@ -65,11 +65,12 @@ export class HybridSearchFactory {
 
     return new HybridSearchEngine(
       textSearchEngine,
-      embeddingService,
+      emb,
       vectorSearchEngine,
       resultCombiner,
       weightCalculator,
-      logger
+      logger,
+      resolveQueryUnifiedEmbeddingForHybridSearch(emb)
     );
   }
 
@@ -84,13 +85,15 @@ export class HybridSearchFactory {
     weightCalculator: any,
     logger: any
   ): HybridSearchEngine {
+    const queryUnified = resolveQueryUnifiedEmbeddingForHybridSearch(embeddingService);
     return new HybridSearchEngine(
       textSearchEngine,
       embeddingService,
       vectorSearchEngine,
       resultCombiner,
       weightCalculator,
-      logger
+      logger,
+      queryUnified
     );
   }
 }

@@ -14,9 +14,10 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
+import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 
 const MemoryInjectionSchema = z.object({
-  query: z.string().describe('검색할 쿼리'),
+  query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
   token_budget: z.number().optional().describe('토큰 예산 (기본값: 1000)'),
   max_memories: z.number().optional().describe('최대 기억 개수 (기본값: 5)'),
   memory_types: z.array(CommonSchemas.MemoryType).optional().describe('포함할 기억 타입들'),
@@ -33,7 +34,7 @@ export class MemoryInjectionPrompt extends BaseTool {
         properties: {
           query: { 
             type: 'string', 
-            description: '검색할 쿼리' 
+            description: '검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.' 
           },
           token_budget: { 
             type: 'number', 
@@ -128,6 +129,13 @@ export class MemoryInjectionPrompt extends BaseTool {
         vectorWeight: 0.7, // 의미적 유사성에 더 중점
         textWeight: 0.3
       });
+
+      emitTfidfFallbackWarningIfNeeded(
+        searchResult.fallback_used,
+        searchResult.query_embedding_providers,
+        searchResult.tfidf_query_embedding_fallback,
+        searchResult.tfidf_query_embedding_fallback_providers
+      );
 
       const memories = searchResult.items;
       logger.debug('검색된 기억', {

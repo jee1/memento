@@ -106,8 +106,10 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
   try {
     // 1. 기본 서비스 초기화 (검색 엔진, 임베딩 서비스)
     const searchEngine = new SearchEngine();
-    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
     const embeddingService = new MemoryEmbeddingService();
+    // 검색 경로는 별도 인스턴스를 사용해 remember 경로와 provider 상태를 공유하지 않도록 분리한다.
+    const queryEmbeddingService = new MemoryEmbeddingService();
+    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db, queryEmbeddingService);
     
     // 2. 고급 서비스 초기화 (성능 모니터, 에러 로깅, 알림)
     const forgettingPolicyService = new ForgettingPolicyService();

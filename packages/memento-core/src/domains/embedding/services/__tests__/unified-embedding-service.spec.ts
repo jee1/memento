@@ -66,7 +66,7 @@ describe('UnifiedEmbeddingService', () => {
       const currentProviderName = service.getCurrentProviderName();
 
       // Then: 현재 제공자의 차원과 일치해야 함
-      if (currentProviderName !== 'none') {
+      if (currentProviderName != null) {
         const expectedDimensions = VECTOR_SEARCH.PROVIDER_DIMENSIONS[currentProviderName as keyof typeof VECTOR_SEARCH.PROVIDER_DIMENSIONS];
         if (expectedDimensions) {
           expect(modelInfo.dimensions).toBe(expectedDimensions);
