@@ -187,6 +187,324 @@ describe('RecallTool', () => {
       expect(definition.inputSchema.properties.memory_types.items.enum).toContain('core');
       expect(definition.inputSchema.properties.memory_types.items.enum).toContain('vault');
     });
+
+    it('query 필드 설명에 자연어 문장 입력 안내가 포함되어야 함', () => {
+      const definition = tool.getDefinition();
+      const desc = String(definition.inputSchema.properties.query.description);
+      expect(desc).toContain('자연어 문장');
+      expect(desc).toMatch(/e\.g\./i);
+    });
+  });
+
+  describe('embedding_provider 및 벡터 인덱스 fallback stderr', () => {
+    let savedEmbeddingProvider: (typeof mementoConfig)['embeddingProvider'];
+
+    beforeEach(() => {
+      savedEmbeddingProvider = mementoConfig.embeddingProvider;
+      mementoConfig.embeddingProvider = 'minilm';
+    });
+
+    afterEach(() => {
+      mementoConfig.embeddingProvider = savedEmbeddingProvider;
+    });
+
+    const mockSearchItem = {
+      id: 'mem_1',
+      content: 'test',
+      type: 'episodic',
+      importance: 0.5,
+      created_at: new Date().toISOString(),
+      pinned: false,
+      tags: [],
+      origin_source: JSON.stringify({
+        tool: 'remember',
+        caller: 'user',
+        timestamp: new Date().toISOString(),
+        context: { type: 'episodic' }
+      }),
+      textScore: 0.8,
+      vectorScore: 0.7,
+      finalScore: 0.75,
+      recall_reason: '텍스트 검색 결과'
+    };
+
+    const TFIDF_QUERY_FALLBACK_MSG =
+      '⚠️ [Memento] 이번 검색의 쿼리 임베딩에 TF-IDF가 사용되었습니다.' +
+      ' sqlite-vec 유사도 fallback이거나, 다중 provider VEC 검색에서 고차원 임베딩 대신 TF-IDF로 생성된 경우 의미 기반 검색 품질이 저하될 수 있습니다.\n';
+    const TFIDF_QUERY_FALLBACK_MSG_WITH_MINILM =
+      '⚠️ [Memento] 이번 검색의 쿼리 임베딩에 TF-IDF가 사용되었습니다. TF-IDF로 대체된 요청 provider: minilm.' +
+      ' sqlite-vec 유사도 fallback이거나, 다중 provider VEC 검색에서 고차원 임베딩 대신 TF-IDF로 생성된 경우 의미 기반 검색 품질이 저하될 수 있습니다.\n';
+
+    it('fallback_used=true여도 tfidf_query_embedding_fallback이 true일 때만 stderr에 TF-IDF 품질 경고를 출력한다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      expect(stderrSpy).toHaveBeenCalledWith(TFIDF_QUERY_FALLBACK_MSG);
+      stderrSpy.mockRestore();
+    });
+
+    it('include_metadata=false여도 fallback_used+tfidf 쿼리일 때 stderr 경고는 출력한다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle(
+        { query: 'test', type: 'episodic', include_metadata: false },
+        context
+      );
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(stderrSpy).toHaveBeenCalledWith(TFIDF_QUERY_FALLBACK_MSG);
+      expect(resultData.metadata?.embedding_provider).toBeUndefined();
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used=true이어도 tfidf_query_embedding_fallback이 설정되지 않으면 TF-IDF 품질 경고를 출력하지 않는다 (provider_filter=[tfidf])', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used=true이어도 쿼리 임베딩이 minilm이면 TF-IDF 품질 경고를 출력하지 않는다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: true,
+        query_embedding_providers: ['minilm']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
+
+    it('query_embedding_providers가 있으면 metadata.embedding_provider·query_embedding_providers에 반영된다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle({ query: 'test', type: 'episodic' }, context);
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.metadata.embedding_provider).toBe('tfidf');
+      expect(resultData.metadata.query_embedding_providers).toEqual(['tfidf']);
+    });
+
+    it('복수 query_embedding_providers일 때 metadata.embedding_provider는 canonical 단일 값·배열은 전체 목록이다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf', 'minilm']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle({ query: 'test', type: 'episodic' }, context);
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.metadata.query_embedding_providers).toEqual(['minilm', 'tfidf']);
+      expect(resultData.metadata.embedding_provider).toBe('minilm');
+    });
+
+    it('fallback_used=false이고 tfidf_query_embedding_fallback도 false면 TF-IDF 품질 경고를 stderr에 출력하지 않는다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: false
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
+
+    it('fallback_used=false여도 tfidf_query_embedding_fallback이면 stderr에 TF-IDF 품질 경고를 출력한다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      expect(stderrSpy).toHaveBeenCalledWith(TFIDF_QUERY_FALLBACK_MSG);
+      stderrSpy.mockRestore();
+    });
+
+    it('tfidf_query_embedding_fallback_providers가 있으면 stderr에 대체된 요청 provider를 포함한다', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true,
+        tfidf_query_embedding_fallback_providers: ['minilm']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      expect(stderrSpy).toHaveBeenCalledWith(TFIDF_QUERY_FALLBACK_MSG_WITH_MINILM);
+      stderrSpy.mockRestore();
+    });
+
+    it('MEMENTO_CLI_QUIET=1이면 TF-IDF fallback 경고를 stderr에 출력하지 않는다', async () => {
+      const prevQuiet = process.env.MEMENTO_CLI_QUIET;
+      process.env.MEMENTO_CLI_QUIET = '1';
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true,
+        tfidf_query_embedding_fallback_providers: ['openai']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+      if (prevQuiet === undefined) {
+        delete process.env.MEMENTO_CLI_QUIET;
+      } else {
+        process.env.MEMENTO_CLI_QUIET = prevQuiet;
+      }
+    });
+
+    it('mementoConfig.embeddingProvider가 tfidf여도 명시적 provider 강등이면 TF-IDF 품질 경고를 출력한다', async () => {
+      mementoConfig.embeddingProvider = 'tfidf';
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: false,
+        query_embedding_providers: ['tfidf'],
+        tfidf_query_embedding_fallback: true,
+        tfidf_query_embedding_fallback_providers: ['openai']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(1);
+      expect(stderrSpy).toHaveBeenCalledWith(
+        '⚠️ [Memento] 이번 검색의 쿼리 임베딩에 TF-IDF가 사용되었습니다. TF-IDF로 대체된 요청 provider: openai. sqlite-vec 유사도 fallback이거나, 다중 provider VEC 검색에서 고차원 임베딩 대신 TF-IDF로 생성된 경우 의미 기반 검색 품질이 저하될 수 있습니다.\n'
+      );
+      stderrSpy.mockRestore();
+    });
+
+    it('mementoConfig.embeddingProvider가 tfidf면 fallback_used+tfidf여도 TF-IDF 품질 경고를 출력하지 않는다', async () => {
+      mementoConfig.embeddingProvider = 'tfidf';
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [mockSearchItem],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+        fallback_used: true,
+        query_embedding_providers: ['tfidf']
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      await tool.handle({ query: 'test', type: 'episodic' }, context);
+
+      const tfidfQualityWarnings = stderrSpy.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('이번 검색의 쿼리 임베딩에 TF-IDF')
+      );
+      expect(tfidfQualityWarnings).toHaveLength(0);
+      stderrSpy.mockRestore();
+    });
   });
 
   describe('Core Memory 조회', () => {

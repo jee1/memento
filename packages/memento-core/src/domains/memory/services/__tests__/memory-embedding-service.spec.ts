@@ -163,7 +163,7 @@ describe('MemoryEmbeddingService', () => {
       );
 
       // 검색 수행
-      const results = await service.searchBySimilarity(
+      const out = await service.searchBySimilarity(
         db,
         'Test memory',
         { limit: 10 }
@@ -171,7 +171,7 @@ describe('MemoryEmbeddingService', () => {
 
       // 임베딩 서비스가 사용 가능한 경우에만 결과 확인
       if (service.isAvailable()) {
-        expect(Array.isArray(results)).toBe(true);
+        expect(Array.isArray(out.results)).toBe(true);
       }
     });
 
@@ -179,7 +179,7 @@ describe('MemoryEmbeddingService', () => {
       createTestMemory(db, { content: 'Episodic memory', type: 'episodic' });
       createTestMemory(db, { content: 'Semantic memory', type: 'semantic' });
 
-      const results = await service.searchBySimilarity(
+      const { results } = await service.searchBySimilarity(
         db,
         'memory',
         { type: ['episodic'], limit: 10 }
@@ -200,7 +200,7 @@ describe('MemoryEmbeddingService', () => {
         await service.createAndStoreEmbedding(db, memoryId, `Memory ${i}`, 'episodic');
       }
 
-      const results = await service.searchBySimilarity(
+      const { results } = await service.searchBySimilarity(
         db,
         'Memory',
         { limit: 5 }
@@ -214,9 +214,26 @@ describe('MemoryEmbeddingService', () => {
     it('임베딩 서비스가 사용 불가능하면 빈 배열을 반환해야 함', async () => {
       vi.spyOn(service, 'isAvailable').mockReturnValue(false);
 
-      const results = await service.searchBySimilarity(db, 'test query');
+      const out = await service.searchBySimilarity(db, 'test query');
 
-      expect(results).toEqual([]);
+      expect(out.results).toEqual([]);
+    });
+
+    it('vec 유사도 SQL이 실패해도 쿼리에 사용된 provider는 query_embedding_providers로 반환해야 함', async () => {
+      const originalAll = DatabaseUtils.all.bind(DatabaseUtils);
+      const spy = vi.spyOn(DatabaseUtils, 'all').mockImplementation(async (db, sql, params) => {
+        if (typeof sql === 'string' && sql.includes('v.distance')) {
+          throw new Error('no such table: vec_tfidf');
+        }
+        return originalAll(db, sql as string, params as any[]);
+      });
+      try {
+        const out = await service.searchBySimilarity(db, 'test query', { limit: 10 });
+        expect(out.results).toEqual([]);
+        expect(out.query_embedding_providers).toEqual(['tfidf']);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

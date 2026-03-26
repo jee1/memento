@@ -26,6 +26,7 @@ import type { WriteCoalescingManager } from '../../../shared/utils/write-coalesc
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import type { MetaMemoryService } from '../services/meta-memory-service.js';
 
@@ -92,8 +93,15 @@ export interface RecallResponseMetadata {
   text_result_count?: number;
   vector_result_count?: number;
   fallback_used?: boolean;
+  /**
+   * 단일 canonical 쿼리 임베딩 provider (비교용). 복수 실제 사용은 query_embedding_providers 참고.
+   * 복수 provider 검색 시 설정 기본값이 목록에 있으면 그 값을, 아니면 정렬된 목록의 첫 값을 사용.
+   */
+  embedding_provider?: string;
+  /** 이번 검색에서 쿼리 임베딩에 실제 사용된 provider (VEC 다중·fallback 시 복수, 정렬·중복 제거) */
+  query_embedding_providers?: EmbeddingProvider[];
   /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: AnchorSetMetadata | null | boolean | string | number | undefined;
+  [key: string]: AnchorSetMetadata | null | boolean | string | number | EmbeddingProvider[] | undefined;
 }
 
 /**
@@ -394,6 +402,22 @@ interface MetaStatsItem {
   last_recalled_at?: string;
 }
 
+/** 하이브리드 검색 query_embedding_providers → metadata용 단일 canonical + 배열 */
+function buildQueryEmbeddingMetadataFields(providers: EmbeddingProvider[]): {
+  embedding_provider: string;
+  query_embedding_providers: EmbeddingProvider[];
+} {
+  const uniqueSorted = [...new Set(providers)].sort() as EmbeddingProvider[];
+  const cfg = mementoConfig.embeddingProvider as EmbeddingProvider | undefined;
+  const embedding_provider: string =
+    uniqueSorted.length === 1
+      ? uniqueSorted[0]!
+      : cfg !== undefined && uniqueSorted.includes(cfg)
+        ? cfg
+        : uniqueSorted[0]!;
+  return { embedding_provider, query_embedding_providers: uniqueSorted };
+}
+
 export class RecallTool extends BaseTool {
   constructor() {
     super(
@@ -404,7 +428,7 @@ export class RecallTool extends BaseTool {
         properties: {
           query: { 
             type: 'string', 
-            description: '검색 쿼리 (type이 core 또는 vault가 아닌 경우 필수). memory_types만 제공된 경우에도 query는 필수입니다.' 
+            description: '검색할 내용을 자연어 문장으로 입력하세요 (예: \'지난번에 JWT 토큰 만료 처리한 방법이 뭐였지?\', e.g. "How did we handle JWT expiry last time?"). 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다. type이 core 또는 vault가 아닌 경우 필수이며, memory_types만 제공된 경우에도 query는 필수입니다.' 
           },
           type: { 
             type: 'string', 
@@ -1068,11 +1092,40 @@ export class RecallTool extends BaseTool {
         }
 
         // 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용)
-        const sr = searchResult as unknown as { text_count?: number; vector_count?: number; fallback_used?: boolean };
+        const sr = searchResult as unknown as {
+          text_count?: number;
+          vector_count?: number;
+          fallback_used?: boolean;
+          query_embedding_providers?: string[];
+          tfidf_query_embedding_fallback?: boolean;
+          tfidf_query_embedding_fallback_providers?: string[];
+        };
         if (includeMetadata && searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
           metadata.text_result_count = sr.text_count;
           metadata.vector_result_count = sr.vector_count;
           if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
+        }
+
+        const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
+        if (hybridRan && searchResult) {
+          emitTfidfFallbackWarningIfNeeded(
+            sr.fallback_used,
+            sr.query_embedding_providers as EmbeddingProvider[] | undefined,
+            sr.tfidf_query_embedding_fallback,
+            sr.tfidf_query_embedding_fallback_providers as EmbeddingProvider[] | undefined
+          );
+        }
+        if (
+          includeMetadata &&
+          hybridRan &&
+          sr.query_embedding_providers &&
+          sr.query_embedding_providers.length > 0
+        ) {
+          const qe = buildQueryEmbeddingMetadataFields(
+            sr.query_embedding_providers as EmbeddingProvider[]
+          );
+          metadata.embedding_provider = qe.embedding_provider;
+          metadata.query_embedding_providers = qe.query_embedding_providers;
         }
 
         // Meta Memory Statistics 조회 (include_metadata=true일 때만)

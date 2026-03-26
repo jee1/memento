@@ -13,6 +13,8 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../../../../test/helpers/consolidation-test-data.js';
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
+import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
+import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
 vi.mock('@xenova/transformers', () => {
@@ -120,6 +122,120 @@ describe('HybridSearchEngine', () => {
   });
 
   describe('검색 기능 테스트', () => {
+    it('sqlite-vec 인덱스는 사용 가능하지만 VEC 경로가 런타임에 실패해 내부 fallback으로 강등되면 fallback_used가 true이다', async () => {
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue([]);
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+
+      const detectSpy = vi
+        .spyOn(hybridSearchEngine as unknown as { detectAllStoredEmbeddingProviders: (db: Database.Database) => Promise<StoredEmbeddingProviderStats[]> }, 'detectAllStoredEmbeddingProviders')
+        .mockRejectedValue(new Error('simulated VEC path failure'));
+
+      const out = await hybridSearchEngine.search(mockDb, { query: 'q', limit: 10 });
+      expect(out.fallback_used).toBe(true);
+      expect(mockEmbeddingService.searchBySimilarity).toHaveBeenCalled();
+      detectSpy.mockRestore();
+    });
+
+    it('VEC 성공이어도 고차원 provider 요청이 TF-IDF 쿼리 임베딩으로 바뀌면 tfidf_query_embedding_fallback이 true이다', async () => {
+      const mockQueryEmbedding = {
+        generateEmbedding: vi.fn(async (_q: string, preferred: EmbeddingProvider) => {
+          if (preferred === 'minilm') {
+            return { embedding: [0.1, 0.2, 0.3], provider: 'tfidf' };
+          }
+          return { embedding: [0.1, 0.2], provider: preferred };
+        })
+      };
+
+      hybridSearchEngine = new HybridSearchEngine(
+        mockTextEngine,
+        mockEmbeddingService,
+        mockVectorEngine,
+        mockResultCombiner,
+        mockWeightCalculator,
+        mockLogger,
+        mockQueryEmbedding as unknown as UnifiedEmbeddingService
+      );
+
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockVectorEngine.search as Mock).mockResolvedValue([
+        {
+          memory_id: 'm1',
+          content: 'c',
+          type: 'episodic',
+          similarity: 0.9,
+          created_at: '',
+          importance: 0.5
+        }
+      ]);
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+
+      const detectSpy = vi
+        .spyOn(hybridSearchEngine as unknown as { detectAllStoredEmbeddingProviders: (db: Database.Database) => Promise<StoredEmbeddingProviderStats[]> }, 'detectAllStoredEmbeddingProviders')
+        .mockResolvedValue([
+          { provider: 'minilm', count: 1, avg_dimensions: 384 },
+          { provider: 'tfidf', count: 1, avg_dimensions: 100 }
+        ]);
+
+      const out = await hybridSearchEngine.search(mockDb, { query: 'q', limit: 10 });
+      expect(out.fallback_used).toBe(false);
+      expect(out.tfidf_query_embedding_fallback).toBe(true);
+      expect(out.tfidf_query_embedding_fallback_providers).toEqual(['minilm']);
+      expect(out.query_embedding_providers).toContain('tfidf');
+      detectSpy.mockRestore();
+    });
+
+    it('provider_filter가 [tfidf]인 명시적 TF-IDF 전용 검색은 fallback 강등으로 분류하지 않는다', async () => {
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue({
+        results: [],
+        query_embedding_providers: ['tfidf']
+      });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+
+      const out = await hybridSearchEngine.search(mockDb, {
+        query: 'q',
+        limit: 10,
+        provider_filter: ['tfidf']
+      });
+
+      expect(out.fallback_used).toBe(true);
+      expect(out.tfidf_query_embedding_fallback).toBeUndefined();
+      expect(out.tfidf_query_embedding_fallback_providers).toBeUndefined();
+      expect(out.query_embedding_providers).toEqual(['tfidf']);
+    });
+
+    it('sqlite-vec fallback에서 provider_filter가 있으면 TF-IDF 대체 provider 라벨은 요청 provider 기준이다', async () => {
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue({
+        results: [],
+        query_embedding_providers: ['tfidf']
+      });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+
+      const out = await hybridSearchEngine.search(mockDb, {
+        query: 'q',
+        limit: 10,
+        provider_filter: ['openai']
+      });
+
+      expect(out.fallback_used).toBe(true);
+      expect(out.tfidf_query_embedding_fallback).toBe(true);
+      expect(out.tfidf_query_embedding_fallback_providers).toEqual(['openai']);
+    });
+
     it('텍스트 검색이 실패하면 SearchError를 던져야 함', async () => {
       const mockError = new Error('텍스트 검색 실패');
       (mockTextEngine.search as Mock).mockRejectedValue(mockError);
@@ -1185,6 +1301,44 @@ describe('HybridSearchEngine', () => {
                data?.error?.includes('타임아웃');
       });
       expect(timeoutLog).toBeDefined();
+    });
+
+    it('provider 타임아웃이어도 TF-IDF 쿼리 fallback 진단 정보는 유지한다', async () => {
+      insertMemoryItem(db, {
+        id: 'mem-openai-timeout',
+        type: 'episodic',
+        content: 'OpenAI timeout memory'
+      });
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem-openai-timeout',
+        embedding: new Array(1536).fill(0.2),
+        embedding_provider: 'openai',
+        dim: 1536,
+        dimensions: 1536
+      });
+
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
+      (mockQueryEmbeddingService.generateEmbedding as Mock).mockResolvedValue({
+        embedding: new Array(384).fill(0.1),
+        provider: 'tfidf'
+      });
+      (mockVectorEngine.search as Mock).mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        return [];
+      });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+
+      const result = await testEngine.search(db, {
+        query: 'timeout fallback query',
+        limit: 5,
+        provider_filter: ['openai']
+      });
+
+      expect(result.query_embedding_providers).toEqual(['tfidf']);
+      expect(result.tfidf_query_embedding_fallback).toBe(true);
+      expect(result.tfidf_query_embedding_fallback_providers).toEqual(['openai']);
     });
 
     it('부분 실패 케이스 - 일부 provider 검색 실패', async () => {

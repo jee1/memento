@@ -63,8 +63,10 @@ export interface ServerServices {
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
   try {
     const searchEngine = new SearchEngine();
-    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db);
     const embeddingService = new MemoryEmbeddingService();
+    // 검색 경로는 별도 인스턴스를 사용해 remember 경로와 provider 상태를 공유하지 않도록 분리한다.
+    const queryEmbeddingService = new MemoryEmbeddingService();
+    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db, queryEmbeddingService);
     const forgettingPolicyService = new ForgettingPolicyService();
     const databaseOptimizer = new DatabaseOptimizer(db);
     const errorLoggingService = new ErrorLoggingService();

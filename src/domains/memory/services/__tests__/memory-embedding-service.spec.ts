@@ -39,8 +39,8 @@ describe('MemoryEmbeddingService', () => {
     db = await setupTestDatabase();
   });
 
-  afterEach(() => {
-    cleanupTestDatabase(db);
+  afterEach(async () => {
+    await cleanupTestDatabase(db);
   });
 
   describe('createAndStoreEmbedding', () => {
@@ -78,9 +78,9 @@ describe('MemoryEmbeddingService', () => {
     });
 
     it('임베딩 서비스가 사용 불가능하면 null을 반환해야 함', async () => {
-      // isAvailable을 모킹하여 false 반환
-      const originalIsAvailable = service.isAvailable.bind(service);
-      vi.spyOn(service, 'isAvailable').mockReturnValue(false);
+      // 구현이 this.embeddingService.isAvailable()을 호출하므로 내부 서비스 모킹
+      const embeddingSvc = (service as any).embeddingService;
+      vi.spyOn(embeddingSvc, 'isAvailable').mockReturnValue(false);
 
       const memoryId = createTestMemory(db, {
         content: 'Test memory',
@@ -163,7 +163,7 @@ describe('MemoryEmbeddingService', () => {
       );
 
       // 검색 수행
-      const results = await service.searchBySimilarity(
+      const out = await service.searchBySimilarity(
         db,
         'Test memory',
         { limit: 10 }
@@ -171,7 +171,7 @@ describe('MemoryEmbeddingService', () => {
 
       // 임베딩 서비스가 사용 가능한 경우에만 결과 확인
       if (service.isAvailable()) {
-        expect(Array.isArray(results)).toBe(true);
+        expect(Array.isArray(out.results)).toBe(true);
       }
     });
 
@@ -179,7 +179,7 @@ describe('MemoryEmbeddingService', () => {
       createTestMemory(db, { content: 'Episodic memory', type: 'episodic' });
       createTestMemory(db, { content: 'Semantic memory', type: 'semantic' });
 
-      const results = await service.searchBySimilarity(
+      const { results } = await service.searchBySimilarity(
         db,
         'memory',
         { type: ['episodic'], limit: 10 }
@@ -200,7 +200,7 @@ describe('MemoryEmbeddingService', () => {
         await service.createAndStoreEmbedding(db, memoryId, `Memory ${i}`, 'episodic');
       }
 
-      const results = await service.searchBySimilarity(
+      const { results } = await service.searchBySimilarity(
         db,
         'Memory',
         { limit: 5 }
@@ -214,9 +214,26 @@ describe('MemoryEmbeddingService', () => {
     it('임베딩 서비스가 사용 불가능하면 빈 배열을 반환해야 함', async () => {
       vi.spyOn(service, 'isAvailable').mockReturnValue(false);
 
-      const results = await service.searchBySimilarity(db, 'test query');
+      const out = await service.searchBySimilarity(db, 'test query');
 
-      expect(results).toEqual([]);
+      expect(out.results).toEqual([]);
+    });
+
+    it('vec 유사도 SQL이 실패해도 쿼리에 사용된 provider는 query_embedding_providers로 반환해야 함', async () => {
+      const originalAll = DatabaseUtils.all.bind(DatabaseUtils);
+      const spy = vi.spyOn(DatabaseUtils, 'all').mockImplementation(async (db, sql, params) => {
+        if (typeof sql === 'string' && sql.includes('v.distance')) {
+          throw new Error('no such table: vec_tfidf');
+        }
+        return originalAll(db, sql as string, params as any[]);
+      });
+      try {
+        const out = await service.searchBySimilarity(db, 'test query', { limit: 10 });
+        expect(out.results).toEqual([]);
+        expect(out.query_embedding_providers).toEqual(['tfidf']);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 
@@ -347,22 +364,29 @@ describe('MemoryEmbeddingService', () => {
     });
 
     it('다양한 제공자로 임베딩을 생성할 수 있어야 함', async () => {
-      // Given: 여러 제공자 모킹
-      const providers = ['tfidf', 'minilm', 'openai', 'gemini'];
-      
+      // 제공자별 차원: tfidf 512, minilm 384, openai 1536, gemini 768 (vector-search.config와 일치)
+      const providerDimensions: Record<string, number> = {
+        tfidf: 512,
+        minilm: 384,
+        openai: 1536,
+        gemini: 768
+      };
+      const providers = ['tfidf', 'minilm', 'openai', 'gemini'] as const;
+
       for (const provider of providers) {
-        const { UnifiedEmbeddingService } = await import('./unified-embedding-service.js');
+        const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
         const mockService = new UnifiedEmbeddingService();
-        const dimensions = provider === 'openai' ? 1536 : provider === 'gemini' ? 768 : 384;
+        const dimensions = providerDimensions[provider];
         const mockEmbedding = new Array(dimensions).fill(0).map(() => Math.random());
-        
+
+        vi.spyOn(mockService, 'isAvailable').mockReturnValue(true);
         vi.spyOn(mockService, 'generateEmbedding').mockResolvedValue({
           embedding: mockEmbedding,
           provider: provider as any,
           dimensions,
           model: provider
         });
-        
+
         (service as any).embeddingService = mockService;
 
         const memoryId = createTestMemory(db, {
@@ -370,7 +394,6 @@ describe('MemoryEmbeddingService', () => {
           type: 'episodic'
         });
 
-        // When: 임베딩 생성
         const result = await service.createAndStoreEmbedding(
           db,
           memoryId,
@@ -378,7 +401,6 @@ describe('MemoryEmbeddingService', () => {
           'episodic'
         );
 
-        // Then: 제공자별 임베딩이 생성되어야 함
         if (service.isAvailable()) {
           expect(result).toBeDefined();
           if (result) {

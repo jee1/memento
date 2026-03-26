@@ -4,7 +4,11 @@
  */
 
 import { SearchEngine } from './search-engine.js';
-import { MemoryEmbeddingService, type VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
+import {
+  MemoryEmbeddingService,
+  type VectorSearchResult,
+  type SearchBySimilarityOutcome,
+} from '../../memory/services/memory-embedding-service.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider, ProcessAttribute } from '../../../shared/types/index.js';
@@ -28,8 +32,42 @@ export interface ITextSearchEngine {
 
 export interface IEmbeddingService {
   isAvailable(): boolean;
-  searchBySimilarity(db: Database.Database, query: string, options: { type?: MemoryType[]; limit?: number; threshold?: number }): Promise<VectorSearchResult[]>;
+  searchBySimilarity(
+    db: Database.Database,
+    query: string,
+    options: { type?: MemoryType[]; limit?: number; threshold?: number }
+  ): Promise<VectorSearchResult[] | SearchBySimilarityOutcome>;
   getEmbeddingStats(db: Database.Database): Promise<any>;
+}
+
+/** 테스트 목업(배열 반환)과 MemoryEmbeddingService(객체 반환) 모두 수용 */
+function normalizeSearchBySimilarityOutcome(
+  raw: VectorSearchResult[] | SearchBySimilarityOutcome
+): { results: VectorSearchResult[]; query_embedding_providers?: EmbeddingProvider[] } {
+  if (Array.isArray(raw)) {
+    return { results: raw };
+  }
+  return {
+    results: raw.results,
+    query_embedding_providers: raw.query_embedding_providers,
+  };
+}
+
+/**
+ * 하이브리드 검색의 쿼리 벡터 생성에 사용할 UnifiedEmbeddingService를 결정한다.
+ * MemoryEmbeddingService 및 동일 패턴의 주입 구현체는 getUnifiedEmbeddingService()로
+ * 인덱싱·검색과 동일한 인스턴스를 노출한다. 그렇지 않을 때만 기본 UnifiedEmbeddingService를 만든다.
+ */
+export function resolveQueryUnifiedEmbeddingForHybridSearch(
+  embeddingService: IEmbeddingService
+): UnifiedEmbeddingService {
+  const ext = embeddingService as IEmbeddingService & {
+    getUnifiedEmbeddingService?: () => UnifiedEmbeddingService;
+  };
+  if (typeof ext.getUnifiedEmbeddingService === 'function') {
+    return ext.getUnifiedEmbeddingService();
+  }
+  return new UnifiedEmbeddingService();
 }
 
 export interface IVectorSearchEngine {
@@ -323,6 +361,15 @@ export class HybridSearchEngine {
     text_count?: number;
     vector_count?: number;
     fallback_used?: boolean;
+    /** 이번 검색에서 쿼리 임베딩에 실제 사용된 provider (VEC 다중 provider 검색 시 복수 가능, 정렬·중복 제거) */
+    query_embedding_providers?: EmbeddingProvider[];
+    /**
+     * VEC(sqlite-vec) 경로에서 고차원 provider를 요청했으나 쿼리 임베딩이 TF-IDF로 생성된 경우(차원 불일치·fallback 등).
+     * fallback_used가 false여도 true일 수 있음.
+     */
+    tfidf_query_embedding_fallback?: boolean;
+    /** 위 상황에서 TF-IDF로 바뀐 **요청** provider 목록(진단용, 중복 제거·정렬) */
+    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
   }> {
     const searchId = this.generateSearchId();
     const startTime = process.hrtime.bigint();
@@ -407,7 +454,10 @@ export class HybridSearchEngine {
         query_time: queryTime,
         text_count: textResults.length,
         vector_count: vectorResults.length,
-        fallback_used: vectorOut.fallback_used
+        fallback_used: vectorOut.fallback_used,
+        query_embedding_providers: vectorOut.query_embedding_providers,
+        tfidf_query_embedding_fallback: vectorOut.tfidf_query_embedding_fallback,
+        tfidf_query_embedding_fallback_providers: vectorOut.tfidf_query_embedding_fallback_providers
       };
     } catch (error) {
       this.logger.logSearchError(searchId, error, query);
@@ -466,7 +516,13 @@ export class HybridSearchEngine {
     db: Database.Database,
     query: HybridSearchQuery,
     searchId: string
-  ): Promise<{ results: VectorSearchResult[]; fallback_used: boolean }> {
+  ): Promise<{
+    results: VectorSearchResult[];
+    fallback_used: boolean;
+    query_embedding_providers?: EmbeddingProvider[];
+    tfidf_query_embedding_fallback?: boolean;
+    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
+  }> {
     const vectorSearchStart = process.hrtime.bigint();
     this.logger.logSearchStep(searchId, '벡터 검색 시작', {
       query: query.query,
@@ -476,11 +532,24 @@ export class HybridSearchEngine {
     this.vectorSearchEngine.initialize(db);
 
     if (this.vectorSearchEngine.getIndexStatus().available) {
-      const results = await this.executeVecSearch(db, query, searchId, vectorSearchStart);
-      return { results, fallback_used: false };
+      const vecOut = await this.executeVecSearch(db, query, searchId, vectorSearchStart);
+      return {
+        results: vecOut.results,
+        // sqlite-vec 사용 가능이어도 VEC 쿼리가 런타임에 실패하면 executeFallbackSearch로 강등됨 → 동일하게 fallback으로 보고
+        fallback_used: vecOut.fallback_used,
+        query_embedding_providers: vecOut.query_embedding_providers,
+        tfidf_query_embedding_fallback: vecOut.tfidf_query_embedding_fallback,
+        tfidf_query_embedding_fallback_providers: vecOut.tfidf_query_embedding_fallback_providers
+      };
     }
-    const results = await this.executeFallbackSearch(db, query, searchId, vectorSearchStart);
-    return { results, fallback_used: true };
+    const fb = await this.executeFallbackSearch(db, query, searchId, vectorSearchStart);
+    return {
+      results: fb.results,
+      fallback_used: true,
+      query_embedding_providers: fb.query_embedding_providers,
+      tfidf_query_embedding_fallback: fb.tfidf_query_embedding_fallback,
+      tfidf_query_embedding_fallback_providers: fb.tfidf_query_embedding_fallback_providers
+    };
   }
 
   /**
@@ -492,7 +561,20 @@ export class HybridSearchEngine {
    * @param startTime - 시작 시간 (성능 측정용)
    * @returns 벡터 검색 결과 배열
    */
-  private async executeVecSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
+  private async executeVecSearch(
+    db: Database.Database,
+    query: HybridSearchQuery,
+    searchId: string,
+    startTime: bigint
+  ): Promise<{
+    results: VectorSearchResult[];
+    query_embedding_providers?: EmbeddingProvider[];
+    /** true면 VEC 경로 실패 후 executeFallbackSearch(임베딩 유사도)로 강등됨 */
+    fallback_used: boolean;
+    /** VEC 경로 성공이어도, 비-tfidf provider 태스크에서 쿼리 임베딩이 tfidf로 생성된 경우 */
+    tfidf_query_embedding_fallback?: boolean;
+    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
+  }> {
     try {
       // 데이터베이스에 저장된 모든 임베딩 provider를 감지하여 사용 가능한 검색 방법을 파악합니다.
       const detectedProviders = await this.detectAllStoredEmbeddingProviders(db);
@@ -500,7 +582,13 @@ export class HybridSearchEngine {
       // provider 필터링
       const providersToSearch = this.filterProvidersToSearch(detectedProviders, query.provider_filter, searchId);
       if (providersToSearch.length === 0) {
-        return [];
+        return {
+          results: [],
+          query_embedding_providers: [],
+          fallback_used: false,
+          tfidf_query_embedding_fallback: false,
+          tfidf_query_embedding_fallback_providers: undefined
+        };
       }
       
       // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
@@ -517,7 +605,14 @@ export class HybridSearchEngine {
       );
       
       // 모든 provider 검색을 실행하고 타임아웃을 관리하여 안정적인 결과 수집을 보장합니다.
-      const { allResults, providerStats, overallTimeoutOccurred } = 
+      const {
+        allResults,
+        providerStats,
+        overallTimeoutOccurred,
+        queryEmbeddingProviders,
+        tfidfQueryEmbeddingFallback,
+        tfidfQueryEmbeddingFallbackProviders
+      } =
         await this.executeProviderSearchesWithTimeout(searchPromises, providersToSearch, searchId);
       
       // 여러 provider의 결과를 정규화하고 중복을 제거하여 일관된 결과를 제공합니다.
@@ -534,13 +629,26 @@ export class HybridSearchEngine {
         overallTimeoutOccurred
       });
       
-      return vectorResults;
+      return {
+        results: vectorResults,
+        query_embedding_providers: queryEmbeddingProviders,
+        fallback_used: false,
+        tfidf_query_embedding_fallback: tfidfQueryEmbeddingFallback,
+        tfidf_query_embedding_fallback_providers: tfidfQueryEmbeddingFallbackProviders
+      };
     } catch (error) {
       this.logger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
         error: error instanceof Error ? error.message : String(error)
       });
       
-      return await this.executeFallbackSearch(db, query, searchId, startTime);
+      const fb = await this.executeFallbackSearch(db, query, searchId, startTime);
+      return {
+        results: fb.results,
+        query_embedding_providers: fb.query_embedding_providers,
+        fallback_used: true,
+        tfidf_query_embedding_fallback: fb.tfidf_query_embedding_fallback,
+        tfidf_query_embedding_fallback_providers: fb.tfidf_query_embedding_fallback_providers
+      };
     }
   }
 
@@ -598,8 +706,14 @@ export class HybridSearchEngine {
     success: boolean;
     timeMs: number;
     error: string | null;
+    /** 쿼리 임베딩 생성에 실제 사용된 provider (이번 provider 태스크 기준) */
+    queryEmbeddingProvider?: EmbeddingProvider;
+    /** 요청 provider가 tfidf가 아닌데 실제 쿼리 임베딩이 tfidf로 생성됨 */
+    tfidfQueryEmbeddingFallback?: boolean;
   }> {
     const providerStartTime = process.hrtime.bigint();
+    let timeoutQueryEmbeddingProvider: EmbeddingProvider | undefined;
+    let timeoutTfidfQueryEmbeddingFallback: boolean | undefined;
     
     // 타임아웃 Promise 생성
     const timeoutPromise = new Promise<{
@@ -608,6 +722,8 @@ export class HybridSearchEngine {
       success: boolean;
       timeMs: number;
       error: string | null;
+      queryEmbeddingProvider?: EmbeddingProvider;
+      tfidfQueryEmbeddingFallback?: boolean;
     }>((resolve) => {
       setTimeout(() => {
         const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
@@ -616,7 +732,9 @@ export class HybridSearchEngine {
           results: [] as Array<VectorSearchResult & { provider: string }>,
           success: false,
           timeMs: providerTime,
-          error: `Provider 검색 타임아웃 (${HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`
+          error: `Provider 검색 타임아웃 (${HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`,
+          queryEmbeddingProvider: timeoutQueryEmbeddingProvider,
+          tfidfQueryEmbeddingFallback: timeoutTfidfQueryEmbeddingFallback
         });
       }, HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS);
     });
@@ -625,6 +743,9 @@ export class HybridSearchEngine {
     const searchTask = (async () => {
       try {
         const { embedding, actualProvider } = await this.generateQueryVector(query, searchId, provider);
+        timeoutQueryEmbeddingProvider = actualProvider;
+        timeoutTfidfQueryEmbeddingFallback =
+          actualProvider === 'tfidf' && provider !== 'tfidf';
         // 요청한 provider와 실제 임베딩 provider가 다르면 차원 불일치로 해당 테이블 검색 스킵 (return [] 방지)
         if (actualProvider !== provider) {
           this.logger.logSearchStep(searchId, `VEC 검색 스킵 (provider 불일치: 요청=${provider}, 실제=${actualProvider})`, {
@@ -632,12 +753,15 @@ export class HybridSearchEngine {
             actualProvider
           });
           const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+          const tfidfQueryEmbeddingFallback = timeoutTfidfQueryEmbeddingFallback;
           return {
             provider,
             results: [] as Array<VectorSearchResult & { provider: string }>,
             success: true,
             timeMs: providerTime,
-            error: null as string | null
+            error: null as string | null,
+            queryEmbeddingProvider: actualProvider,
+            tfidfQueryEmbeddingFallback
           };
         }
         // 벡터 검색 실행
@@ -660,7 +784,9 @@ export class HybridSearchEngine {
           })),
           success: true,
           timeMs: providerTime,
-          error: null as string | null
+          error: null as string | null,
+          queryEmbeddingProvider: actualProvider,
+          tfidfQueryEmbeddingFallback: false
         };
       } catch (error) {
         const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
@@ -701,6 +827,8 @@ export class HybridSearchEngine {
       success: boolean;
       timeMs: number;
       error: string | null;
+      queryEmbeddingProvider?: EmbeddingProvider;
+      tfidfQueryEmbeddingFallback?: boolean;
     }>[],
     providersToSearch: EmbeddingProvider[],
     searchId: string
@@ -708,6 +836,9 @@ export class HybridSearchEngine {
     allResults: Array<VectorSearchResult & { provider: string }>;
     providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }>;
     overallTimeoutOccurred: boolean;
+    queryEmbeddingProviders?: EmbeddingProvider[];
+    tfidfQueryEmbeddingFallback: boolean;
+    tfidfQueryEmbeddingFallbackProviders?: EmbeddingProvider[];
   }> {
     // 전체 검색 프로세스의 최대 타임아웃을 설정하여 무한 대기를 방지합니다.
     // 모든 provider가 타임아웃되어도 부분 결과라도 반환하여 사용자 경험을 보장합니다.
@@ -752,10 +883,20 @@ export class HybridSearchEngine {
       // 성공한 검색 결과만 수집하여 신뢰할 수 있는 결과만 반환합니다.
       const allResults: Array<VectorSearchResult & { provider: string }> = [];
       const providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }> = [];
-      
+      const queryEmbeddingProvidersRaw: EmbeddingProvider[] = [];
+      const tfidfFallbackRequestedProvidersRaw: EmbeddingProvider[] = [];
+      let tfidfQueryEmbeddingFallback = false;
+
       searchResults.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           const providerResult = result.value;
+          if (providerResult.tfidfQueryEmbeddingFallback) {
+            tfidfQueryEmbeddingFallback = true;
+            tfidfFallbackRequestedProvidersRaw.push(providerResult.provider as EmbeddingProvider);
+          }
+          if (providerResult.queryEmbeddingProvider) {
+            queryEmbeddingProvidersRaw.push(providerResult.queryEmbeddingProvider);
+          }
           providerStats.push({
             provider: providerResult.provider,
             resultCount: providerResult.results.length,
@@ -803,7 +944,24 @@ export class HybridSearchEngine {
         }
       });
       
-      return { allResults, providerStats, overallTimeoutOccurred };
+      const queryEmbeddingProviders =
+        queryEmbeddingProvidersRaw.length > 0
+          ? [...new Set(queryEmbeddingProvidersRaw)].sort()
+          : undefined;
+
+      const tfidfQueryEmbeddingFallbackProviders =
+        tfidfFallbackRequestedProvidersRaw.length > 0
+          ? [...new Set(tfidfFallbackRequestedProvidersRaw)].sort()
+          : undefined;
+
+      return {
+        allResults,
+        providerStats,
+        overallTimeoutOccurred,
+        queryEmbeddingProviders,
+        tfidfQueryEmbeddingFallback,
+        tfidfQueryEmbeddingFallbackProviders
+      };
     } finally {
       // 예외 발생 시에도 타임아웃 타이머를 정리하여 메모리 누수를 방지합니다.
       cleanupTimeout();
@@ -926,26 +1084,64 @@ export class HybridSearchEngine {
    * @param startTime - 시작 시간 (성능 측정용, 현재는 사용하지 않음)
    * @returns 벡터 검색 결과 배열
    */
-  private async executeFallbackSearch(db: Database.Database, query: HybridSearchQuery, searchId: string, startTime: bigint): Promise<VectorSearchResult[]> {
+  private async executeFallbackSearch(
+    db: Database.Database,
+    query: HybridSearchQuery,
+    searchId: string,
+    startTime: bigint
+  ): Promise<{
+    results: VectorSearchResult[];
+    query_embedding_providers?: EmbeddingProvider[];
+    /** 임베딩 유사도 fallback에서 쿼리가 tfidf인데 설정 기본 provider는 그보다 고품질인 경우 */
+    tfidf_query_embedding_fallback?: boolean;
+    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
+  }> {
     if (!this.embeddingService.isAvailable()) {
       this.logger.logSearchStep(searchId, '임베딩 서비스 사용 불가', {});
-      return [];
+      return { results: [] };
     }
-    
+
     const fallbackStart = process.hrtime.bigint();
-    const vectorResults = await this.embeddingService.searchBySimilarity(db, query.query, {
+    const raw = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type as MemoryType[],
       limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
       threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
     });
+    const { results, query_embedding_providers } = normalizeSearchBySimilarityOutcome(raw);
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
-    
+
     this.logger.logSearchStep(searchId, 'Fallback 벡터 검색 완료', {
-      resultCount: vectorResults.length,
-      fallbackTime: `${fallbackTime.toFixed(2)}ms`
+      resultCount: results.length,
+      fallbackTime: `${fallbackTime.toFixed(2)}ms`,
     });
-    
-    return vectorResults;
+
+    const configured = mementoConfig.embeddingProvider as EmbeddingProvider;
+    const rawProviderFilter = (query.provider_filter ?? []).filter(Boolean) as EmbeddingProvider[];
+    const explicitProviderFilterRequested = rawProviderFilter.length > 0;
+    const explicitTfidfOnlyRequest =
+      explicitProviderFilterRequested && rawProviderFilter.every((p) => p === 'tfidf');
+    const requestedProviders = [...new Set(rawProviderFilter.filter((p) => p !== 'tfidf'))]
+      .sort() as EmbeddingProvider[];
+    let tfidf_query_embedding_fallback: boolean | undefined;
+    let tfidf_query_embedding_fallback_providers: EmbeddingProvider[] | undefined;
+    if (query_embedding_providers?.includes('tfidf')) {
+      if (explicitTfidfOnlyRequest) {
+        // provider_filter=['tfidf']는 의도적 TF-IDF 모드이므로 강등 진단을 세우지 않는다.
+      } else if (requestedProviders.length > 0) {
+        tfidf_query_embedding_fallback = true;
+        tfidf_query_embedding_fallback_providers = requestedProviders;
+      } else if (configured !== 'tfidf') {
+        tfidf_query_embedding_fallback = true;
+        tfidf_query_embedding_fallback_providers = [configured];
+      }
+    }
+
+    return {
+      results,
+      query_embedding_providers,
+      tfidf_query_embedding_fallback,
+      tfidf_query_embedding_fallback_providers
+    };
   }
 
   /**
@@ -1519,13 +1715,16 @@ export function createHybridSearchEngine(
   weightCalculator?: IAdaptiveWeightCalculator,
   logger?: ISearchLogger
 ): HybridSearchEngine {
+  const memEmb = embeddingService ?? new MemoryEmbeddingService();
+  const queryUnified = resolveQueryUnifiedEmbeddingForHybridSearch(memEmb);
   return new HybridSearchEngine(
     textSearchEngine ?? new SearchEngine(),
-    embeddingService ?? new MemoryEmbeddingService(),
+    memEmb,
     vectorSearchEngine ?? getVectorSearchEngine(),
     resultCombiner ?? new SearchResultCombiner(),
     weightCalculator ?? new AdaptiveWeightCalculator(),
-    logger ?? new SearchLogger()
+    logger ?? new SearchLogger(),
+    queryUnified
   );
 }
 

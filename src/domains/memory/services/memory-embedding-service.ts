@@ -34,6 +34,12 @@ export interface VectorSearchResult {
   score: number;
 }
 
+/** searchBySimilarity 결과: 쿼리 임베딩에 실제 사용된 provider 진단용 */
+export interface SearchBySimilarityOutcome {
+  results: VectorSearchResult[];
+  query_embedding_providers?: EmbeddingProvider[];
+}
+
 export class MemoryEmbeddingService {
   private embeddingService: UnifiedEmbeddingService;
   private readonly defaultProvider: EmbeddingProvider = 'tfidf';
@@ -41,6 +47,22 @@ export class MemoryEmbeddingService {
 
   constructor() {
     this.embeddingService = new UnifiedEmbeddingService();
+  }
+
+  /**
+   * 마지막으로 사용된 임베딩 제공자 이름 반환 (진단용)
+   * recall/memory_injection에서 TF-IDF fallback 감지에 사용됨
+   */
+  getCurrentProviderName(): EmbeddingProvider | null {
+    return this.embeddingService.getCurrentProviderName();
+  }
+
+  /**
+   * HybridSearchEngine 쿼리 임베딩과 동일한 UnifiedEmbeddingService 인스턴스.
+   * 별도 UnifiedEmbeddingService를 쓰면 VEC 경로에서 getCurrentProviderName()이 실제 쿼리 임베딩과 불일치함.
+   */
+  getUnifiedEmbeddingService(): UnifiedEmbeddingService {
+    return this.embeddingService;
   }
 
   /**
@@ -96,7 +118,7 @@ export class MemoryEmbeddingService {
       }
 
       const provider = this.normalizeProvider(
-        embeddingResult.provider || this.embeddingService.getCurrentProviderName()
+        embeddingResult.provider ?? this.embeddingService.getCurrentProviderName() ?? undefined
       );
 
       const compatibility = vectorCompatibilityService.assessProviderCompatibility(
@@ -203,11 +225,14 @@ export class MemoryEmbeddingService {
       limit?: number;
       threshold?: number;
     }
-  ): Promise<VectorSearchResult[]> {
+  ): Promise<SearchBySimilarityOutcome> {
     if (!this.embeddingService.isAvailable()) {
       process.stderr.write('⚠️ 임베딩 서비스가 사용 불가능합니다.\n');
-      return [];
+      return { results: [] };
     }
+
+    /** vec SQL 등 후속 단계 실패 시에도 쿼리 임베딩 provider 진단을 잃지 않도록 캡처 */
+    let queryEmbeddingProviders: EmbeddingProvider[] | undefined;
 
     try {
       // 레거시 데이터에 대해 메타데이터 보정
@@ -216,11 +241,12 @@ export class MemoryEmbeddingService {
       // 쿼리 임베딩 생성
       const queryEmbedding = await this.embeddingService.generateEmbedding(query);
       if (!queryEmbedding) {
-        return [];
+        return { results: [] };
       }
 
       // 제공자별 테이블에서 검색
       const provider = this.normalizeProvider(queryEmbedding.provider);
+      queryEmbeddingProviders = [provider];
       const tableName = this.getVectorTableName(provider);
       // SQL Injection 방지: 화이트리스트 검증은 getVectorTableName()에서 수행됨
       
@@ -269,12 +295,20 @@ export class MemoryEmbeddingService {
         score: row.score,
       }));
 
-      return results;
+      return {
+        results,
+        query_embedding_providers: [provider],
+      };
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       process.stderr.write(`❌ 벡터 검색 실패: ${maskedError.message}\n`);
-      return [];
+      return {
+        results: [],
+        ...(queryEmbeddingProviders !== undefined
+          ? { query_embedding_providers: queryEmbeddingProviders }
+          : {}),
+      };
     }
   }
 

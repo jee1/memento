@@ -206,7 +206,7 @@ await client.callTool({
 const results = await client.callTool({
   name: "recall",
   arguments: {
-    query: "React Hook 사용법",
+    query: "React Hook은 어떻게 사용하나요?",
     limit: 5
   }
 });
@@ -295,7 +295,7 @@ const result = await client.callTool({
 const results = await client.callTool({
   name: "recall",
   arguments: {
-    query: "React Hook",
+    query: "React Hook을 처음 배울 때 알아야 할 것들은?",
     filters: {
       type: ["episodic", "semantic"],
       tags: ["react"]
