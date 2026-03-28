@@ -421,6 +421,10 @@ export class DatabaseUtils {
           memory_id TEXT NOT NULL,
           event TEXT CHECK (event IN ('used', 'edited', 'neglected', 'helpful', 'not_helpful')) NOT NULL,
           score REAL,
+          comment TEXT,
+          session_id TEXT,
+          agent_id TEXT,
+          score_breakdown_json TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
         )
@@ -477,6 +481,12 @@ export class DatabaseUtils {
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_memory_id ON feedback_event(memory_id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_event ON feedback_event(event)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback_event(created_at)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback_event(session_id)');
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_feedback_agent ON feedback_event(agent_id)');
+      this.run(
+        db,
+        'CREATE INDEX IF NOT EXISTS idx_feedback_memory_created_at ON feedback_event(memory_id, created_at)'
+      );
 
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_wm_buffer_expires_at ON wm_buffer(expires_at)');
 

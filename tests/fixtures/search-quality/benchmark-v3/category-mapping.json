@@ -1,0 +1,34 @@
+{
+  "macro_categories": {
+    "episodic_recent": ["incident", "operations"],
+    "procedural": ["procedure", "procedural", "database", "build"],
+    "conceptual": ["search", "memory", "anchor", "embedding", "relation", "security", "forgetting"],
+    "tag_filter": ["config", "dev", "resilience", "testing"]
+  },
+  "query_overrides": {},
+  "query_id_to_category": {
+    "q_001": "incident",
+    "q_002": "testing",
+    "q_003": "procedure",
+    "q_004": "config",
+    "q_005": "operations",
+    "q_006": "forgetting",
+    "q_007": "search",
+    "q_009": "testing",
+    "q_010": "procedural",
+    "q_011": "relation",
+    "q_012": "operations",
+    "q_013": "search",
+    "q_014": "memory",
+    "q_015": "search",
+    "q_016": "database",
+    "q_017": "security",
+    "q_018": "resilience",
+    "q_019": "dev",
+    "q_020": "build",
+    "q_027": "database",
+    "q_028": "embedding",
+    "q_029": "search",
+    "q_030": "anchor"
+  }
+}

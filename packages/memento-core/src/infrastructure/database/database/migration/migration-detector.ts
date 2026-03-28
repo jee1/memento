@@ -161,6 +161,7 @@ export class MigrationDetector {
           error: maskedError.message,
           errorName: maskedError.name
         });
+        throw new Error(`마이그레이션 로드 실패: ${file} — ${maskedError.message}`, { cause: error });
       }
     }
 

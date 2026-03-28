@@ -20,7 +20,8 @@ export const SEARCH_RANKING = {
     relation_weight: 0.15,
     duplication_penalty: 0.10,
     consolidation_score: 0.2,
-    process_attribute_fit: 0.1 // θ (Issue #91)
+    process_attribute_fit: 0.1, // θ (Issue #91)
+    zeta_fb: 0.05
   },
 
   /**

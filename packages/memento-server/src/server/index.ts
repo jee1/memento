@@ -42,9 +42,10 @@ import packageJson from '../../package.json' with { type: 'json' };
  * Exposed to clients (e.g. Cursor) as serverUseInstructions so the LLM knows how to use Memento.
  * @see https://modelcontextprotocol.io/specification — InitializeResult optional "instructions" field
  */
-const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, memory_injection, search_local, anchors).
+const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors).
 
 - **Before a task**: Use \`recall\` (hybrid search) or \`memory_injection\` (query-based context) to check for relevant memories. If an anchor is set, use \`search_local\` for anchor-scoped memories.
+- **After using recall results**: Use \`feedback\` to record helpful/not_helpful (optional \`score_breakdown\` from recall when explaining poor results). Prefer calling after handling the recall response (FR-004 orchestration).
 - **After a task**: Use \`remember\` to store outcomes: episodic (e.g. tag: completed), semantic (e.g. best-practice, knowledge), or procedural (e.g. procedure). Check for existing memories first to avoid duplicates; include concrete, searchable keywords.
 - Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
 
@@ -247,22 +248,26 @@ async function runHeavyInit() {
     mcpLogger.logServer('info', 'Memento MCP Server가 시작되었습니다!');
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
+    try {
+      if (db) {
+        closeDatabase(db);
+        db = null;
+      }
+    } catch {
+      // ignore
+    }
     rejectInit(err);
-    mcpLogger.logServer('error', `서버 초기화 실패: ${err.message}`, { error: err.message, stack: err.stack });
-    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed (server stays up; tools will return this error)\n`);
-    process.stderr.write(`Error: ${err.message}\n`);
-    if (err.stack) process.stderr.write(`Stack:\n${err.stack}\n`);
-    process.stderr.write(`\n`);
-    // Do NOT process.exit(1): client would see "Connection closed" during initializing.
-    // Keep server alive so the client gets Initialize response; tool calls will fail with this error.
   }
 }
 
-/** MCP 핸들러 등록. 각 핸들러는 await initPromise 후 실제 동작 수행(7초 내 Initialize 응답을 위해) */
+/**
+ * MCP 핸들러 등록.
+ * - tools/list, prompts/list, prompts/get: 정적 목록·메타데이터만 반환하므로 무거운 init을 기다리지 않음(디스커버리 타임아웃 방지).
+ * - 그 외: DB·서비스가 필요하면 await initPromise.
+ */
 function registerHandlers() {
   // Tools 등록
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    await initPromise;
     await mcpLogger.logMCPProtocol('debug', '도구 목록 요청 처리');
     const toolRegistry = getToolRegistry();
     const tools = toolRegistry.getAll();
@@ -301,7 +306,6 @@ function registerHandlers() {
 
     // Prompts 목록 핸들러 (listOfferingsForUI 등 클라이언트 호출 시 Method not found 방지)
     server.setRequestHandler(ListPromptsRequestSchema, async () => {
-      await initPromise;
       await mcpLogger.logMCPProtocol('debug', '프롬프트 목록 요청 처리');
       return {
         prompts: [
@@ -320,7 +324,6 @@ function registerHandlers() {
 
     // Prompt 조회 핸들러
     server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-      await initPromise;
       const { name } = request.params;
       await mcpLogger.logMCPProtocol('debug', `프롬프트 조회 요청: ${name}`, { name });
       if (name === 'memory_injection') {
@@ -532,6 +535,13 @@ async function startServer() {
 
     // 무거운 초기화(DB·서비스)는 백그라운드에서 수행
     void runHeavyInit();
+    void initPromise.catch((err: unknown) => {
+      const e = err instanceof Error ? err : new Error(String(err));
+      mcpLogger.logServer('error', '백그라운드 초기화 실패(후속 MCP 요청은 JSON-RPC 오류로 반환됨)', {
+        error: e.message,
+        stack: e.stack
+      });
+    });
     mcpLogger.logServer('info', 'MCP 클라이언트 연결 대기 중...');
     
     // 서버가 종료될 때까지 대기

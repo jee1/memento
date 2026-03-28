@@ -20,10 +20,12 @@ import { ProceduralDiffTool } from '../domains/memory/tools/procedural-diff-tool
 import { ProceduralRollbackTool } from '../domains/memory/tools/procedural-rollback-tool.js';
 import { RememberProcedureTool } from '../domains/memory/tools/remember-procedure-tool.js';
 import { GetIntrospectionSummaryTool } from '../domains/memory/tools/get-introspection-summary-tool.js';
+import { FeedbackTool } from '../domains/memory/tools/feedback-tool.js';
 
 const coreTools = [
   new RememberTool(),
   new RecallTool(),
+  new FeedbackTool(),
   new ForgetTool(),
   new PinTool(),
   new UnpinTool(),

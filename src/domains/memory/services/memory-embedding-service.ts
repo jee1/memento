@@ -94,7 +94,8 @@ export class MemoryEmbeddingService {
     db: any,
     memoryId: string,
     content: string,
-    type: MemoryType
+    type: MemoryType,
+    preferredProvider?: EmbeddingProvider
   ): Promise<EmbeddingResult | null> {
     if (!this.embeddingService.isAvailable()) {
       process.stderr.write('⚠️ 임베딩 서비스가 사용 불가능합니다. 임베딩을 건너뜁니다.\n');
@@ -106,7 +107,7 @@ export class MemoryEmbeddingService {
       await this.loadVecExtension(db);
       
       // 임베딩 생성
-      const embeddingResult = await this.embeddingService.generateEmbedding(content);
+      const embeddingResult = await this.embeddingService.generateEmbedding(content, preferredProvider);
       if (!embeddingResult) {
         return null;
       }

@@ -3,10 +3,13 @@
  * 스키마 버전 검증 및 레거시 스키마 호환성 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
+import { mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { initializeDatabase } from './init.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { MigrationDetector } from './migration/migration-detector.js';
 
 describe('Database Initialization', () => {
   let db: Database.Database;
@@ -105,6 +108,36 @@ describe('Database Initialization', () => {
       
       expect(tableExists).toBeDefined();
       testDb.close();
+    });
+
+    it('Given: 빈 파일 DB, When: initializeDatabase로 초기화하면, Then: schema.sql 기준으로 모든 증분 마이그레이션 버전이 기록되어야 함', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'memento-init-'));
+      const dbPath = join(dir, 'fresh.db');
+      let opened: Database.Database | null = null;
+      try {
+        opened = await initializeDatabase(dbPath);
+        const detector = new MigrationDetector();
+        const all = await detector.detectAllMigrations();
+        expect(all.length).toBeGreaterThan(0);
+
+        const applied = opened
+          .prepare('SELECT version FROM memento_schema_version')
+          .all() as Array<{ version: string }>;
+        const appliedSet = new Set(applied.map(r => r.version));
+        for (const { migration } of all) {
+          expect(appliedSet.has(migration.version)).toBe(true);
+        }
+        expect(applied.length).toBe(all.length);
+      } finally {
+        if (opened) {
+          try {
+            opened.close();
+          } catch {
+            // ignore
+          }
+        }
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 

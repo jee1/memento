@@ -94,7 +94,8 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
       failureDetector: serverContext.services.failureDetector,
       reflexionWorker: serverContext.services.reflexionWorker,
       metaMemoryService: serverContext.services.metaMemoryService,
-      batchScheduler: serverContext.services.batchScheduler
+      batchScheduler: serverContext.services.batchScheduler,
+      introspectionScanCache: serverContext.services.introspectionScanCache
     }
   };
 }

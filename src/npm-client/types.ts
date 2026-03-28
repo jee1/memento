@@ -106,6 +106,19 @@ export interface SearchFilters {
   pinned?: boolean;
 }
 
+/**
+ * `/tools/recall`에 전달하는 추가 옵션.
+ * `score_breakdown`을 받으려면 서버 계약상 `include_metadata`와 `include_score_breakdown`을 모두 켜야 한다.
+ */
+export interface RecallCallOptions {
+  include_metadata?: boolean;
+  include_score_breakdown?: boolean;
+  /** 하이브리드 검색 가중치 (0–1). 서버 `recall` 도구 `vector_weight`와 동일 */
+  vector_weight?: number;
+  /** 하이브리드 검색 가중치 (0–1). 서버 `recall` 도구 `text_weight`와 동일 */
+  text_weight?: number;
+}
+
 export interface SearchResult {
   items: MemorySearchResult[];
   total_count: number;
@@ -126,6 +139,8 @@ export interface MemorySearchResult {
   privacy_scope: PrivacyScope;
   score: number;
   recall_reason: string;
+  /** `recall` 시 include_metadata·include_score_breakdown이 모두 true일 때만(서버 계약) */
+  score_breakdown?: unknown;
 }
 
 export interface HybridSearchParams {
@@ -134,6 +149,9 @@ export interface HybridSearchParams {
   limit?: number;
   vectorWeight?: number;
   textWeight?: number;
+  /** recall과 동일 — score_breakdown을 쓰려면 include_metadata·include_score_breakdown 필요 */
+  include_metadata?: boolean;
+  include_score_breakdown?: boolean;
 }
 
 export interface HybridSearchResult {
@@ -158,6 +176,7 @@ export interface HybridSearchItem {
   finalScore: number;
   score: number; // MemorySearchResult와 호환성을 위해 추가
   recall_reason: string;
+  score_breakdown?: unknown;
 }
 
 // ============================================================================
@@ -202,10 +221,21 @@ export interface ExportResult {
 
 export interface FeedbackResult {
   success: boolean;
-  memory_id: string;
-  feedback_id: string;
-  helpful: boolean;
-  created_at: string;
+  memory_id?: string;
+  feedback_id?: string;
+  helpful?: boolean;
+  created_at?: string;
+  /** 실패 시 (contracts/mcp-tools.md) */
+  error?: string;
+}
+
+/**
+ * `MementoClient.feedback()` 6번째 인자(FR-002) — `session_id`·`agent_id` 출처 추적.
+ * `score_breakdown`만 없고 attribution만 줄 때: `feedback(id, h, comment, score, undefined, options)`.
+ */
+export interface FeedbackCallOptions {
+  session_id?: string;
+  agent_id?: string;
 }
 
 // ============================================================================

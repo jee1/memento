@@ -51,11 +51,20 @@ class MockSearchLogger {
 /**
  * 하이브리드 검색 엔진 팩토리
  */
+export interface CreateDefaultHybridEngineOptions {
+  /** 지정 시 해당 TOML에서 랭킹 가중치 로드 (미지정 시 기본 config/ranking-weights.toml 등) */
+  rankingWeightsPath?: string;
+}
+
 export class HybridSearchFactory {
   /**
    * 기본 설정으로 하이브리드 검색 엔진 생성
    */
-  static createDefaultEngine(db: Database, embeddingService?: MemoryEmbeddingService): HybridSearchEngine {
+  static createDefaultEngine(
+    db: Database,
+    embeddingService?: MemoryEmbeddingService,
+    options?: CreateDefaultHybridEngineOptions
+  ): HybridSearchEngine {
     const textSearchEngine = new SearchEngine();
     const emb = embeddingService ?? new MemoryEmbeddingService();
     const vectorSearchEngine = new VectorSearchEngine();
@@ -70,7 +79,10 @@ export class HybridSearchFactory {
       resultCombiner,
       weightCalculator,
       logger,
-      resolveQueryUnifiedEmbeddingForHybridSearch(emb)
+      resolveQueryUnifiedEmbeddingForHybridSearch(emb),
+      undefined,
+      undefined,
+      options?.rankingWeightsPath
     );
   }
 

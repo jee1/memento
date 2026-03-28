@@ -15,41 +15,44 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
-import { mementoConfig, validateConfig } from '../shared/config/index.js';
-import { DatabaseUtils } from '../shared/utils/database.js';
-import { initializeServices, type ServerServices } from './bootstrap.js';
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../domains/monitoring/services/error-logging-service.js';
-import type { SearchEngine } from '../domains/search/algorithms/search-engine.js';
-import type { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import type { ForgettingPolicyService } from '../domains/forgetting/services/forgetting-policy-service.js';
-import type { PerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
-import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
-import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
-import type { IConsolidationScoreService } from '../shared/interfaces/consolidation-score.interface.js';
-import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
-import { getToolRegistry } from '../tools/index.js';
-import type { MemoryItem } from '../shared/types/index.js';
-import { createToolContext } from './context.js';
-import { withErrorHandling } from '../shared/utils/error-handling.js';
-import { MemoryNeighborService } from '../domains/memory/services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
-import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
+import {
+  createMementoCore,
+  closeDatabase,
+  createToolContext,
+  getToolRegistry,
+  type ServerServices,
+  mementoConfig,
+  validateConfig,
+  DatabaseUtils,
+  ErrorSeverity,
+  ErrorCategory,
+  type MemoryItem,
+  withErrorHandling,
+  MemoryNeighborService,
+  getVectorSearchEngine,
+  getBatchScheduler,
+  type ToolDefinition
+} from '@memento/core';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
 import { tryAcquireLock, releaseLock } from './instance-lock.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 
+/** 실제로 열리는 DB 경로 — process.env.DB_PATH가 설정되면 mementoConfig.dbPath보다 우선 */
+function getEffectiveDbPath(): string {
+  return process.env.DB_PATH ?? mementoConfig.dbPath;
+}
+
 /**
  * Server instructions (MCP InitializeResult.instructions).
  * Exposed to clients (e.g. Cursor) as serverUseInstructions so the LLM knows how to use Memento.
  * @see https://modelcontextprotocol.io/specification — InitializeResult optional "instructions" field
  */
-const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, memory_injection, search_local, anchors).
+const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors).
 
 - **Before a task**: Use \`recall\` (hybrid search) or \`memory_injection\` (query-based context) to check for relevant memories. If an anchor is set, use \`search_local\` for anchor-scoped memories.
+- **After using recall results**: Use \`feedback\` to record helpful/not_helpful (optional \`score_breakdown\` from recall when explaining poor results). Prefer calling after handling the recall response (FR-004 orchestration).
 - **After a task**: Use \`remember\` to store outcomes: episodic (e.g. tag: completed), semantic (e.g. best-practice, knowledge), or procedural (e.g. procedure). Check for existing memories first to avoid duplicates; include concrete, searchable keywords.
 - Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
 
@@ -66,23 +69,13 @@ process.stderr.write = function (chunk: any, ...args: any[]): boolean {
 // MCP 서버 인스턴스
 let server: Server;
 let db: Database.Database | null = null;
-// 부트스트랩 함수에서 초기화된 서비스들 (전역 변수로 저장)
-// 하위 호환성을 위해 유지하지만 현재는 serverServices를 통해 접근
-/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
-let searchEngine: SearchEngine;
-let hybridSearchEngine: HybridSearchEngine;
-let embeddingService: MemoryEmbeddingService;
-let forgettingPolicyService: ForgettingPolicyService;
-let performanceMonitor: PerformanceMonitor;
-let databaseOptimizer: IDatabaseOptimizer;
-let errorLoggingService: ErrorLoggingService;
-let performanceAlertService: PerformanceAlertService;
-let consolidationScoreService: IConsolidationScoreService | null = null;
-let writeCoalescingManager: WriteCoalescingManager | null = null;
-/* eslint-enable @typescript-eslint/no-unused-vars, no-unused-vars */
-// 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
+// core에서 반환된 서비스 (ToolContext 생성 시 사용)
 let serverServices: ServerServices | null = null;
-// let performanceMonitoringIntegration: PerformanceMonitoringIntegration;
+
+/** Cursor 등 클라이언트가 7초 내에 Initialize 응답을 받도록, 무거운 초기화는 transport 연결 후 백그라운드에서 수행 */
+let initPromise: Promise<void>;
+let resolveInit: () => void;
+let rejectInit: (err: Error) => void;
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
 // 모든 console 메서드를 빈 함수로 교체
@@ -102,7 +95,7 @@ serverState.setMcpServerInitialized(false);
  * 초기화 상태에 따라 로깅 전략을 변경:
  * - 초기화 전: fallback logger (stderr 직접 출력)
  * - 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
- * 
+ *
  * 중복 등록 방지:
  * - 이미 오버라이드되었는지 확인하여 중복 등록 방지
  * - 왜 필요한가? 모듈이 여러 번 로드되면 중복 등록 가능
@@ -112,10 +105,10 @@ function setupConsoleErrorOverride(): void {
   if (serverState.isConsoleErrorOverridden()) {
     return;
   }
-  
+
   console.error = (...args: any[]) => {
     const isInitialized = serverState.isMcpServerInitialized();
-    
+
     if (isInitialized) {
       // 초기화 후: MCP Logger 사용 (MCP 스펙 준수)
       const message = args.map(a => String(a)).join(' ');
@@ -126,7 +119,7 @@ function setupConsoleErrorOverride(): void {
       process.stderr.write(`[CONSOLE ERROR] ${args.map(a => String(a)).join(' ')}\n`);
     }
   };
-  
+
   // 오버라이드 완료 플래그 설정
   serverState.setConsoleErrorOverridden(true);
 }
@@ -190,7 +183,7 @@ const concurrencyLimiter = new Semaphore(20);
  */
 async function checkInitialDatabaseStatus() {
   if (!db) return;
-  
+
   try {
     const status = await DatabaseUtils.getDatabaseStatus(db);
     mcpLogger.logServer('info', '초기 데이터베이스 상태 확인', {
@@ -199,7 +192,7 @@ async function checkInitialDatabaseStatus() {
       busyTimeout: status.busyTimeout,
       isLocked: status.isLocked ? '잠김' : '정상'
     });
-    
+
     // 주기적 모니터링은 DatabaseLockMonitor가 담당하므로 여기서는 초기 상태만 확인
     // 락이 감지되면 DatabaseLockMonitor가 자동으로 처리함
   } catch (error) {
@@ -207,66 +200,40 @@ async function checkInitialDatabaseStatus() {
   }
 }
 
-// MCP 서버 초기화
-async function initializeServer() {
+/**
+ * 무거운 초기화(DB·서비스·툴 등). transport 연결 후 백그라운드에서 실행하며,
+ * 완료 시 resolveInit()을 호출해 도구/리소스 요청이 동작하도록 함.
+ */
+async function runHeavyInit() {
   try {
     mcpLogger.logServer('info', `Memento MCP Server v${packageJson.version}`);
-    mcpLogger.logServer('info', 'MCP 서버 초기화 시작...');
-    
-    // 설정 검증
+    mcpLogger.logServer('info', 'MCP 서버 초기화(백그라운드) 시작...');
+
     validateConfig();
     mcpLogger.logServer('info', '설정 검증 완료');
-    
-    // 데이터베이스 초기화
-    db = await initializeDatabase();
-    mcpLogger.logServer('info', '데이터베이스 초기화 완료');
-    
-    // 초기 데이터베이스 상태 확인 (주기적 모니터링은 DatabaseLockMonitor가 담당)
+
+    const core = await createMementoCore({
+      dbPath: getEffectiveDbPath(),
+    });
+    db = core.db;
+    serverServices = core.services;
+
+    mcpLogger.logServer('info', '데이터베이스·서비스 초기화 완료');
+
     await checkInitialDatabaseStatus();
     mcpLogger.logServer('info', '초기 데이터베이스 상태 확인 완료');
-    
-    // 공용 부트스트랩 함수를 사용하여 모든 서비스 초기화
-    const services = await initializeServices(db);
-    
-    // 전역 변수에 서비스 할당 (하위 호환성을 위해 유지)
-    /* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
-    searchEngine = services.searchEngine;
-    hybridSearchEngine = services.hybridSearchEngine;
-    embeddingService = services.embeddingService;
-    forgettingPolicyService = services.forgettingPolicyService;
-    performanceMonitor = services.performanceMonitor;
-    databaseOptimizer = services.databaseOptimizer;
-    errorLoggingService = services.errorLoggingService;
-    performanceAlertService = services.performanceAlertService;
-    consolidationScoreService = services.consolidationScoreService || null;
-    writeCoalescingManager = services.writeCoalescingManager || null;
-    /* eslint-enable @typescript-eslint/no-unused-vars, no-unused-vars */
-    
-    // 부트스트랩에서 반환된 전체 서비스 객체 저장 (ToolContext 생성 시 사용)
-    serverServices = services;
-    
-    mcpLogger.logServer('info', '서비스 초기화 완료');
-    
-    // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
-    const batchScheduler = getBatchScheduler();
-    if (batchScheduler.getStatus().isRunning) {
-      mcpLogger.logServer('warn', '이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다...');
-      await batchScheduler.stop();
-    }
-    // Reflexion Worker 통합 (Phase 2)
-    await batchScheduler.start(db, services.reflexionWorker);
-    serverServices!.batchScheduler = batchScheduler;
-    mcpLogger.logServer('info', '배치 스케줄러 시작됨');
 
-    // 배치 스케줄러 상태 확인
-    const status = batchScheduler.getStatus();
+    const services = serverServices;
+    mcpLogger.logServer('info', '서비스 초기화 완료');
+
+    const batchScheduler = services.batchScheduler;
+    const status = batchScheduler ? batchScheduler.getStatus() : { isRunning: false, activeJobs: 0, uptime: 0 };
     mcpLogger.logServer('info', `배치 스케줄러 상태: ${JSON.stringify({
       isRunning: status.isRunning,
       activeJobs: status.activeJobs,
       uptime: status.uptime
     }, null, 2)}`);
-    
-    // 임베딩 프로바이더 정보 표시
+
     const providerInfo: Record<string, unknown> = {
       provider: mementoConfig.embeddingProvider.toUpperCase()
     };
@@ -281,67 +248,59 @@ async function initializeServer() {
       providerInfo.dimensions = 512;
     }
     mcpLogger.logServer('info', '임베딩 프로바이더 정보', providerInfo);
-    
     mcpLogger.logServer('info', '검색 엔진 초기화 완료');
-    
-    // MCP 서버 생성
-    // MCP 스펙 준수: logging capability 선언 (MCP Spec 2024-11-05)
-    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
-    // instructions: InitializeResult에 포함되어 클라이언트(Cursor 등)가 AI에게 Memento 사용법을 안내하는 serverUseInstructions로 활용됨
-    server = new Server(
-      {
-        name: mementoConfig.serverName,
-        version: mementoConfig.serverVersion,
-      },
-      {
-        capabilities: {
-          tools: {},
-          resources: {},
-          prompts: {},
-          logging: {} // MCP 스펙: logging capability 선언 필수
-        },
-        instructions: MEMENTO_SERVER_INSTRUCTIONS
+
+    resolveInit();
+    mcpLogger.logServer('info', 'MCP 서버 초기화(백그라운드) 완료');
+    mcpLogger.logServer('info', 'Memento MCP Server가 시작되었습니다!');
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    try {
+      if (db) {
+        closeDatabase(db);
+        db = null;
       }
-    );
-    
-    // MCP 로거에 Server 인스턴스 설정
-    mcpLogger.setServer(server);
-    
-    mcpLogger.logServer('info', 'MCP 서버 생성 완료');
-    
-    // 주의: isTransportConnected 플래그는 server.connect() 호출 직전에 설정됨
-    // initializeServer()에서는 설정하지 않음
-    
-    // 도구 레지스트리 가져오기
+    } catch {
+      // ignore
+    }
+    rejectInit(err);
+  }
+}
+
+/**
+ * MCP 핸들러 등록.
+ * - tools/list, prompts/list, prompts/get: 정적 목록·메타데이터만 반환하므로 무거운 init을 기다리지 않음(디스커버리 타임아웃 방지).
+ * - 그 외: DB·서비스가 필요하면 await initPromise.
+ */
+function registerHandlers() {
+  // Tools 등록
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    await mcpLogger.logMCPProtocol('debug', '도구 목록 요청 처리');
     const toolRegistry = getToolRegistry();
-    
-    // Tools 등록
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
-      await mcpLogger.logMCPProtocol('debug', '도구 목록 요청 처리');
-      const tools = toolRegistry.getAll();
+    const tools = toolRegistry.getAll();
       await mcpLogger.logMCPProtocol('debug', `등록된 도구 개수: ${tools.length}`, { count: tools.length });
-      
+
       return {
-        tools: tools.map(tool => ({
+        tools: tools.map((tool: ToolDefinition) => ({
           name: tool.name,
           description: tool.description,
           inputSchema: tool.inputSchema
         }))
       };
     });
-    
+
     // Resources 목록 핸들러
     server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      await initPromise;
       await mcpLogger.logMCPProtocol('debug', '리소스 목록 요청 처리');
-      
       if (!db) {
         throw new Error('Database not initialized');
       }
-      
+
       // 모든 메모리 ID 조회
       const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
       await mcpLogger.logMCPProtocol('debug', `리소스 개수: ${memories.length}`, { count: memories.length });
-      
+
       return {
         resources: memories.map((memory: MemoryItem) => ({
           uri: `memory://${memory.id}`,
@@ -352,7 +311,7 @@ async function initializeServer() {
       };
     });
 
-    // Prompts 목록/조회 핸들러 (listOfferingsForUI 등 클라이언트 호출 시 Method not found 방지)
+    // Prompts 목록 핸들러 (listOfferingsForUI 등 클라이언트 호출 시 Method not found 방지)
     server.setRequestHandler(ListPromptsRequestSchema, async () => {
       await mcpLogger.logMCPProtocol('debug', '프롬프트 목록 요청 처리');
       return {
@@ -370,6 +329,7 @@ async function initializeServer() {
       };
     });
 
+    // Prompt 조회 핸들러
     server.setRequestHandler(GetPromptRequestSchema, async (request) => {
       const { name } = request.params;
       await mcpLogger.logMCPProtocol('debug', `프롬프트 조회 요청: ${name}`, { name });
@@ -388,38 +348,39 @@ async function initializeServer() {
 
     // Resource 읽기 핸들러
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      await initPromise;
       const { uri } = request.params;
       await mcpLogger.logMCPProtocol('debug', `리소스 읽기 요청: ${uri}`, { uri });
-      
+
       // URI 파싱: memory://{id}?include_neighbors=true
       const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
       if (!uriMatch) {
         throw new Error(`Invalid resource URI: ${uri}`);
       }
-      
+
       const memoryId = uriMatch[1];
       if (!memoryId) {
         throw new Error(`Invalid memory ID in URI: ${uri}`);
       }
-      
+
       const queryString = uriMatch[2] || '';
       const includeNeighbors = queryString.includes('include_neighbors=true');
-      
+
       if (!db) {
         throw new Error('Database not initialized');
       }
-      
+
       // 메모리 조회
       const memory = await DatabaseUtils.get(
         db,
         'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
         [memoryId]
       );
-      
+
       if (!memory) {
         throw new Error(`Memory not found: ${memoryId}`);
       }
-      
+
       // 메모리 데이터 구성
       const memoryData: Record<string, unknown> = {
         id: memory.id,
@@ -433,22 +394,22 @@ async function initializeServer() {
         last_accessed: memory.last_accessed,
         pinned: memory.pinned === 1
       };
-      
+
       // 이웃 기억 포함 여부 확인
       if (includeNeighbors) {
         try {
           const vectorSearchEngine = getVectorSearchEngine();
           const neighborService = new MemoryNeighborService(
             vectorSearchEngine,
-            embeddingService,
+            serverServices!.embeddingService,
             db
           );
-          
+
           const neighborsResult = await neighborService.getNeighbors(memoryId, {
             limit: 5,
             similarity_threshold: 0.8
           });
-          
+
           memoryData.neighbors = neighborsResult.neighbors;
           memoryData.neighbors_count = neighborsResult.total_count;
           memoryData.neighbors_query_time = neighborsResult.query_time;
@@ -458,7 +419,7 @@ async function initializeServer() {
           memoryData.neighbors_count = 0;
         }
       }
-      
+
       return {
         contents: [
           {
@@ -469,35 +430,23 @@ async function initializeServer() {
         ]
       };
     });
-    
+
     // Tool 실행 핸들러 - 동시성 제한 적용
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      await initPromise;
       const { name, arguments: args } = request.params;
       await mcpLogger.logMCPProtocol('debug', `도구 실행 요청: ${name}`, { toolName: name, args });
-      
-      // 동시성 제한 적용
       await concurrencyLimiter.acquire();
-      
       try {
-        // Phase 7.8: 공통 에러 핸들러 사용
         return await withErrorHandling(
           async () => {
-            // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
-            if (!serverServices) {
-              throw new Error('서비스가 초기화되지 않았습니다');
-            }
-            
-            if (!db) {
-              throw new Error('데이터베이스가 초기화되지 않았습니다');
-            }
-            
-            // Phase 7.4: 표준 팩토리 함수 사용
+            if (!serverServices) throw new Error('서비스가 초기화되지 않았습니다');
+            if (!db) throw new Error('데이터베이스가 초기화되지 않았습니다');
             const context = createToolContext(db, serverServices);
-            
-            // 도구 실행
+            const toolRegistry = getToolRegistry();
             const toolResult = await toolRegistry.execute(name, args, context);
             await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
-            
+
             // MCP 형식으로 변환
             return {
               content: [
@@ -514,10 +463,10 @@ async function initializeServer() {
             requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
           },
           {
-            errorLoggingService,
+            errorLoggingService: serverServices!.errorLoggingService,
             severity: ErrorSeverity.HIGH,
             category: ErrorCategory.TOOL_EXECUTION,
-            transformError: (error) => new Error(`Tool execution failed: ${error.message}`)
+            transformError: (error: Error) => new Error(`Tool execution failed: ${error.message}`)
           }
         );
       } finally {
@@ -525,70 +474,42 @@ async function initializeServer() {
         concurrencyLimiter.release();
       }
     });
-    
+
     // logging/setLevel 핸들러 - MCP 스펙 준수
     // MCP 스펙: logging/setLevel 요청 처리 필수
     // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
-    // 
+    //
     // 구현 사항:
     // - 유효한 로그 레벨 검증 (debug, info, warn, error)
     // - 환경 변수에 로그 레벨 설정 (MCPLogger가 환경 변수를 읽음)
     // - 에러 처리: 잘못된 레벨 시 명확한 에러 메시지 반환
     server.setRequestHandler(SetLevelRequestSchema, async (request) => {
+      await initPromise;
       const { level } = request.params;
       await mcpLogger.logMCPProtocol('debug', `로그 레벨 변경 요청: ${level}`, { level });
-      
+
       // 로그 레벨 검증 (MCP 스펙: 유효한 레벨만 허용)
       const validLevels = ['debug', 'info', 'warn', 'error'];
       if (!validLevels.includes(level)) {
         throw new Error(`Invalid log level: ${level}. Valid levels are: ${validLevels.join(', ')}`);
       }
-      
+
       // 환경 변수에 로그 레벨 설정 (MCPLogger의 getCurrentLogLevel()이 환경 변수를 읽음)
       // MCP 스펙: 로그 레벨 변경은 즉시 적용되어야 함
       process.env.LOG_LEVEL = level;
-      
+
       await mcpLogger.logMCPProtocol('info', `로그 레벨이 ${level}로 변경되었습니다`, { level });
-      
+
       return {};
     });
-    
-    mcpLogger.logServer('info', 'MCP 서버 초기화 완료');
-    
-    // 실시간 성능 모니터링 시작
-    // performanceMonitoringIntegration.startRealTimeMonitoring();
-    
-    mcpLogger.logServer('info', 'Memento MCP Server가 시작되었습니다!');
-    // process.stderr.write('📊 실시간 성능 모니터링이 활성화되었습니다\n');
-    
-  } catch (error) {
-    // 에러 발생 시 상세 정보를 stderr에 출력
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    mcpLogger.logServer('error', `서버 초기화 실패: ${errorMessage}`, { 
-      error: errorMessage,
-      stack: errorStack,
-      type: error instanceof Error ? error.constructor.name : typeof error
-    });
-    
-    // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
-    process.stderr.write(`\n[ERROR] MCP Server Initialization Failed\n`);
-    process.stderr.write(`Error: ${errorMessage}\n`);
-    if (errorStack) {
-      process.stderr.write(`Stack:\n${errorStack}\n`);
-    }
-    process.stderr.write(`\n`);
-    
-    process.exit(1);
-  }
 }
 
 // 서버 시작
 async function startServer() {
   try {
-    // 단일 인스턴스: 같은 DB를 쓰는 두 프로세스 방지 (로그 두 번 출력 근본 원인 해결)
+    // 단일 인스턴스: 같은 DB를 쓰는 두 프로세스 방지 (루트 publish bin 경로)
     if (process.env.MEMENTO_SINGLETON !== '0') {
-      const lockResult = tryAcquireLock(mementoConfig.dbPath);
+      const lockResult = tryAcquireLock(getEffectiveDbPath());
       if (!lockResult.acquired) {
         const msg = lockResult.existingPid > 0
           ? `[Memento MCP] Another instance is already running (PID ${lockResult.existingPid}). Exiting.\n`
@@ -597,39 +518,53 @@ async function startServer() {
         process.exit(0);
       }
     }
-    // 진단: 프로세스당 한 줄 (두 프로세스 기동 시 서로 다른 pid/id로 확인 가능)
     const instanceId = Math.random().toString(36).slice(2, 10);
     _stderrWrite(`[Memento MCP] instance pid=${process.pid} id=${instanceId}\n`);
 
-    // MCP 프로토콜 준수: transport 연결 전까지는 로그를 억제하여 stdout 오염 방지
-    // initializeServer() 호출 전에 플래그를 설정하여 초기화 중 로그 출력 방지
-    // ServerState를 통해 mcpLogger에서 접근 가능하도록 설정
     serverState.setMcpTransportConnected(false);
-    
-    await initializeServer();
-    mcpLogger.logServer('info', '서버 초기화 완료');
-    
-    // Stdio 전송 계층 사용
-    // MCP SDK의 StdioServerTransport가 stdout을 사용하여 JSON-RPC 메시지 전송
-    // MCP 프로토콜 스펙: stdio 전송 시 stdout에는 오직 JSON-RPC 메시지만 출력되어야 함
-    
+
+    initPromise = new Promise<void>((resolve, reject) => {
+      resolveInit = resolve;
+      rejectInit = reject;
+    });
+
+    server = new Server(
+      {
+        name: mementoConfig.serverName,
+        version: mementoConfig.serverVersion,
+      },
+      {
+        capabilities: {
+          tools: {},
+          resources: {},
+          prompts: {},
+          logging: {}
+        },
+        instructions: MEMENTO_SERVER_INSTRUCTIONS
+      }
+    );
+    mcpLogger.setServer(server);
+    registerHandlers();
+
+    // transport를 먼저 연결해 Cursor가 7초 내에 Initialize 응답을 받도록 함
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    
-    // transport 연결 완료 후 로그 출력 허용
+
     serverState.setMcpTransportConnected(true);
-    
-    // 서버 초기화 완료 플래그 설정
-    // console.error 오버라이드가 MCP Logger를 사용하도록 전환
-    // MCP 스펙 준수 범위: 서버 초기화 완료 후부터 적용
-    // 참조: https://spec.modelcontextprotocol.io/specification/server/#logging
     serverState.setMcpServerInitialized(true);
-    
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
-    
-    // MCP 클라이언트 연결 대기 중
+
+    // 무거운 초기화(DB·서비스)는 백그라운드에서 수행
+    void runHeavyInit();
+    void initPromise.catch((err: unknown) => {
+      const e = err instanceof Error ? err : new Error(String(err));
+      mcpLogger.logServer('error', '백그라운드 초기화 실패(후속 MCP 요청은 JSON-RPC 오류로 반환됨)', {
+        error: e.message,
+        stack: e.stack
+      });
+    });
     mcpLogger.logServer('info', 'MCP 클라이언트 연결 대기 중...');
-    
+
     // 서버가 종료될 때까지 대기
     return new Promise<void>((resolve) => {
       process.on('SIGINT', () => {
@@ -652,12 +587,12 @@ async function startServer() {
     // 에러 발생 시 상세 정보를 stderr에 출력
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    mcpLogger.logServer('error', `서버 시작 실패: ${errorMessage}`, { 
+    mcpLogger.logServer('error', `서버 시작 실패: ${errorMessage}`, {
       error: errorMessage,
       stack: errorStack,
       type: error instanceof Error ? error.constructor.name : typeof error
     });
-    
+
     // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
     process.stderr.write(`\n[ERROR] MCP Server Start Failed\n`);
     process.stderr.write(`Error: ${errorMessage}\n`);
@@ -665,7 +600,7 @@ async function startServer() {
       process.stderr.write(`Stack:\n${errorStack}\n`);
     }
     process.stderr.write(`\n`);
-    
+
     process.exit(1);
   }
 }
@@ -677,11 +612,11 @@ async function cleanup() {
   if (isCleaningUp) {
     return; // 이미 정리 중이면 중복 실행 방지
   }
-  
+
   isCleaningUp = true;
-  
+
   mcpLogger.logServer('info', '서버 정리 시작...');
-  
+
   // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
   if (serverServices) {
     try {
@@ -690,7 +625,7 @@ async function cleanup() {
     } catch (error) {
       mcpLogger.logServer('error', `WAL 체크포인트 스케줄러 중지 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
     }
-    
+
     try {
       serverServices.databaseLockMonitor.stop();
       mcpLogger.logServer('info', '데이터베이스 락 모니터 중지됨');
@@ -698,17 +633,17 @@ async function cleanup() {
       mcpLogger.logServer('error', `데이터베이스 락 모니터 중지 실패: ${error}`, { error: error instanceof Error ? error.message : String(error) });
     }
   }
-  
+
   // Write Coalescing Manager의 남은 버퍼 flush
-  if (writeCoalescingManager) {
+  if (serverServices?.writeCoalescingManager) {
     try {
-      await writeCoalescingManager.flush();
-      await writeCoalescingManager.destroy();
+      await serverServices.writeCoalescingManager.flush();
+      await serverServices.writeCoalescingManager.destroy();
     } catch (error) {
       mcpLogger.logServer('warn', `Write coalescing flush 실패 (종료 시): ${error instanceof Error ? error.message : String(error)}`, { error: error instanceof Error ? error.message : String(error) });
     }
   }
-  
+
   // 배치 스케줄러 중지
   try {
     const batchScheduler = getBatchScheduler();
@@ -717,14 +652,15 @@ async function cleanup() {
   } catch (error) {
     mcpLogger.logServer('warn', `배치 스케줄러 중지 실패: ${error instanceof Error ? error.message : String(error)}`, { error: error instanceof Error ? error.message : String(error) });
   }
-  
+
   if (db) {
     closeDatabase(db);
     db = null; // 참조 제거
   }
-  
+
   mcpLogger.logServer('info', '서버 정리 완료');
   releaseLock();
+  // Memento MCP Server 종료
 }
 
 // 프로세스 종료 시 정리
@@ -734,7 +670,7 @@ process.on('uncaughtException', (error) => {
   // 예상치 못한 오류 로깅
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;
-  
+
   // stderr에 직접 출력하여 Cursor에서도 확인 가능하도록
   process.stderr.write(`\n[FATAL ERROR] Uncaught Exception\n`);
   process.stderr.write(`Error: ${errorMessage}\n`);
@@ -742,17 +678,17 @@ process.on('uncaughtException', (error) => {
     process.stderr.write(`Stack:\n${errorStack}\n`);
   }
   process.stderr.write(`\n`);
-  
+
   // mcpLogger가 준비되었다면 사용
   try {
-    mcpLogger.logServer('error', 'Uncaught exception', { 
+    mcpLogger.logServer('error', 'Uncaught exception', {
       error: errorMessage,
       stack: errorStack
     });
   } catch {
     // mcpLogger 초기화 실패 시 무시
   }
-  
+
   cleanup();
   process.exit(1);
 });
@@ -774,24 +710,24 @@ async function main() {
     // stderr에 직접 출력
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    
+
     process.stderr.write(`\n[FATAL ERROR] Failed to start MCP server\n`);
     process.stderr.write(`Error: ${errorMessage}\n`);
     if (errorStack) {
       process.stderr.write(`Stack:\n${errorStack}\n`);
     }
     process.stderr.write(`\n`);
-    
+
     // mcpLogger가 준비되었다면 사용
     try {
-      mcpLogger.logServer('error', 'Failed to start server', { 
+      mcpLogger.logServer('error', 'Failed to start server', {
         error: errorMessage,
         stack: errorStack
       });
     } catch {
       // mcpLogger 초기화 실패 시 무시
     }
-    
+
     process.exit(1);
   }
 }
@@ -810,7 +746,7 @@ const scriptPath = process.argv[1] || '';
 // NPM 패키지로 실행할 때는 경로가 다를 수 있으므로 파일 이름으로도 확인
 // 가장 안전한 방법: process.argv[1]이 존재하고 index.js로 끝나거나 포함하는 경우
 // 또는 현재 파일이 index.js인 경우 항상 실행 (bin 필드로 실행되는 경우)
-const isMainModule = 
+const isMainModule =
   // 현재 파일이 index.js인 경우 (가장 안전한 방법)
   currentFileName === 'index.js' ||
   // process.argv[1]이 존재하고 index.js로 끝나는 경우 (직접 실행)
@@ -831,24 +767,24 @@ if (isMainModule) {
     // stderr에 직접 출력
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    
+
     process.stderr.write(`\n[FATAL ERROR] Failed to start MCP server (unhandled)\n`);
     process.stderr.write(`Error: ${errorMessage}\n`);
     if (errorStack) {
       process.stderr.write(`Stack:\n${errorStack}\n`);
     }
     process.stderr.write(`\n`);
-    
+
     // mcpLogger가 준비되었다면 사용
     try {
-      mcpLogger.logServer('error', 'Failed to start server', { 
+      mcpLogger.logServer('error', 'Failed to start server', {
         error: errorMessage,
         stack: errorStack
       });
     } catch {
       // mcpLogger 초기화 실패 시 무시
     }
-    
+
     process.exit(1);
   });
 }

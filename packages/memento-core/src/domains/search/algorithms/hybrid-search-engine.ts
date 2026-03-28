@@ -15,7 +15,7 @@ import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, Emb
 import Database from 'better-sqlite3';
 import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
-import { SearchRanking } from './search-ranking.js';
+import { SearchRanking, type SearchFeatures } from './search-ranking.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
@@ -24,10 +24,20 @@ import { logger } from '../../../shared/utils/logger.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { ProceduralMemoryMatcher } from './procedural-memory-matcher.js';
+import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
+import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
 
 // 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
 export interface ITextSearchEngine {
-  search(db: Database.Database, query: { query: string; filters?: MemorySearchFilters; limit?: number }): Promise<{ items: any[]; total_count: number; query_time: number }>;
+  search(
+    db: Database.Database,
+    query: {
+      query: string;
+      filters?: MemorySearchFilters;
+      limit?: number;
+      omit_feedback_in_ranking?: boolean;
+    }
+  ): Promise<{ items: any[]; total_count: number; query_time: number }>;
 }
 
 export interface IEmbeddingService {
@@ -282,6 +292,8 @@ export interface HybridSearchQuery {
   provider_filter?: EmbeddingProvider[]; // 검색할 provider 필터 (선택적, 미지정 시 모든 provider 검색)
   match_trigger_conditions?: boolean; // trigger_conditions 매칭 여부 (기본값: false)
   context?: TriggerContext; // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용)
+  /** true이면 각 결과에 score_breakdown(기여 점수 + 최종 점수 대비 pct) 포함 */
+  include_score_breakdown?: boolean;
 }
 
 export interface HybridSearchResult {
@@ -304,6 +316,7 @@ export interface HybridSearchResult {
     relation_type: string;
     confidence: number;
   }>;
+  score_breakdown?: ScoreBreakdown;
 }
 
 export class HybridSearchEngine {
@@ -323,18 +336,20 @@ export class HybridSearchEngine {
     private logger: ISearchLogger,
     private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService(),
     relationGraph?: RelationGraph,
-    proceduralMemoryMatcher?: IProceduralMemoryMatcher
+    proceduralMemoryMatcher?: IProceduralMemoryMatcher,
+    rankingWeightsPath?: string
   ) {
     this.proceduralMemoryMatcher = proceduralMemoryMatcher ?? new ProceduralMemoryMatcher();
     // 외부 설정 파일에서 가중치를 로드하여 런타임에 조정 가능하도록 합니다.
-    const config = getRankingWeights();
+    const config = getRankingWeights(rankingWeightsPath);
     this.ranking = new SearchRanking({
       relevance: config.ranking_weights.alpha,
       recency: config.ranking_weights.beta,
       importance: config.ranking_weights.gamma,
       usage: config.ranking_weights.delta,
       relation_weight: config.ranking_weights.zeta,
-      duplication_penalty: config.ranking_weights.epsilon
+      duplication_penalty: config.ranking_weights.epsilon,
+      zeta_fb: config.ranking_weights.zeta_fb ?? 0.05
     });
     this.relationGraph = relationGraph || null;
   }
@@ -493,6 +508,8 @@ export class HybridSearchEngine {
         query: query.query,
         filters: query.filters,
         limit: (query.limit || 10) * 2,
+        // 피드백은 combineAndSortResults → normalizeScores에서만 반영 (텍스트 단계와 이중 가산 방지)
+        omit_feedback_in_ranking: true,
       });
       
       const textSearchTime = Number(process.hrtime.bigint() - textSearchStart) / 1_000_000;
@@ -1355,7 +1372,9 @@ export class HybridSearchEngine {
     proceduralMemoryMatches: Map<string, any>,
     includeRelations: boolean,
     processAttributes: ProcessAttribute | null = null,
-    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map()
+    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map(),
+    feedbackNetByMemory: Map<string, number> = new Map(),
+    includeScoreBreakdown: boolean = false
   ): void {
     results.forEach(result => {
       const relationWeight = relationWeights.get(result.id);
@@ -1388,6 +1407,23 @@ export class HybridSearchEngine {
         processAttributes != null && memoryDetails != null
           ? computeProcessAttributeFit(processAttributes, memoryDetails)
           : undefined;
+
+      const net = feedbackNetByMemory.get(result.id) ?? 0;
+      const feedback_score = sigmoidNormalizedNet(net);
+
+      const applyScores = (features: SearchFeatures): void => {
+        if (includeScoreBreakdown) {
+          const { score, breakdown } = this.ranking.calculateFinalScoreAndBreakdown(features, {
+            includeBreakdown: true
+          });
+          result.finalScore = score;
+          if (breakdown) {
+            result.score_breakdown = breakdown;
+          }
+        } else {
+          result.finalScore = this.ranking.calculateFinalScore(features);
+        }
+      };
       
       if (consolidationScore !== undefined) {
         // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
@@ -1406,11 +1442,11 @@ export class HybridSearchEngine {
           workflow_name_match: proceduralMatch?.workflow_name_match || false,
           skill_name_match: proceduralMatch?.skill_name_match || false,
           trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,
+          feedback_score,
           ...(processAttributeFit !== undefined && { process_attribute_fit: processAttributeFit })
         };
         
-        // calculateFinalScoreWithConsolidation 대신 calculateFinalScore 사용 (procedural memory boost 포함)
-        result.finalScore = this.ranking.calculateFinalScore(features);
+        applyScores(features);
       } else {
         // 관계 가중치를 포함한 finalScore 재계산
         // SearchFeatures 구성 (Procedural Memory 특화 가중치 포함)
@@ -1424,10 +1460,11 @@ export class HybridSearchEngine {
           workflow_name_match: proceduralMatch?.workflow_name_match || false,
           skill_name_match: proceduralMatch?.skill_name_match || false,
           trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,
+          feedback_score,
           ...(processAttributeFit !== undefined && { process_attribute_fit: processAttributeFit })
         };
         
-        result.finalScore = this.ranking.calculateFinalScore(features);
+        applyScores(features);
       }
     });
   }
@@ -1506,6 +1543,16 @@ export class HybridSearchEngine {
             }
           }
           
+          let feedbackNetByMemory = new Map<string, number>();
+          try {
+            const feedbackRepo = new FeedbackRepository(db);
+            feedbackNetByMemory = feedbackRepo.getNetScores(memoryIds, 90);
+          } catch (err) {
+            logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+
           // Step 3: 점수 정규화 (관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산)
           this.normalizeScores(
             combinedResults,
@@ -1515,7 +1562,9 @@ export class HybridSearchEngine {
             proceduralMemoryMatches,
             includeRelations,
             processAttributes,
-            memoryDetailsMap
+            memoryDetailsMap,
+            feedbackNetByMemory,
+            query?.include_score_breakdown === true
           );
         }
       }

@@ -10,7 +10,6 @@ import { existsSync, unlinkSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { initializeDatabase, closeDatabase } from '../../src/infrastructure/database/database/init.js';
-import Database from 'better-sqlite3';
 
 describe('check-db-integrity 통합 테스트', () => {
   let testDbPath: string;
@@ -63,7 +62,7 @@ describe('check-db-integrity 통합 테스트', () => {
    */
   it('should pass integrity check for valid database', async () => {
     // Given: 정상적인 데이터베이스 초기화
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
       // 기본 테이블 생성 (initializeDatabase가 자동으로 생성하지만, 명시적으로 확인)
@@ -98,9 +97,9 @@ describe('check-db-integrity 통합 테스트', () => {
     const nonExistentPath = join(tmpdir(), `non-existent-${Date.now()}.db`);
     process.env.DB_PATH = nonExistentPath;
     
-    // When: initializeDatabase 호출
+    // When: initializeDatabase 호출 (DB_PATH는 mementoConfig에 스냅샷되므로 경로는 인자로 전달)
     // Then: 새 데이터베이스가 생성되어야 함 (initializeDatabase의 동작)
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(nonExistentPath);
     
     try {
       expect(db).toBeDefined();
@@ -120,7 +119,7 @@ describe('check-db-integrity 통합 테스트', () => {
    */
   it('should verify required tables exist', async () => {
     // Given: 정상적인 데이터베이스 초기화
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
       // When: 필수 테이블 확인
@@ -145,7 +144,7 @@ describe('check-db-integrity 통합 테스트', () => {
    */
   it('should count data correctly', async () => {
     // Given: 정상적인 데이터베이스 초기화
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
       // When: 데이터 개수 확인

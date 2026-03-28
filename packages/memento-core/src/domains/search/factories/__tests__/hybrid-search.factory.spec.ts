@@ -3,6 +3,8 @@
  * 하이브리드 검색 엔진 팩토리 테스트
  */
 
+import { existsSync } from 'fs';
+import { join } from 'path';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HybridSearchFactory } from '../hybrid-search.factory.js';
 import { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
@@ -10,6 +12,11 @@ import { SearchEngine } from '../../algorithms/search-engine.js';
 import { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import Database from 'better-sqlite3';
+
+function resolveRepoRankingProfile(rel: string): string | undefined {
+  const candidates = [join(process.cwd(), rel), join(process.cwd(), '..', rel)];
+  return candidates.find((p) => existsSync(p));
+}
 
 describe('HybridSearchFactory', () => {
   let db: Database.Database;
@@ -39,6 +46,17 @@ describe('HybridSearchFactory', () => {
       expect(engine).toBeDefined();
       expect(engine).toBeInstanceOf(HybridSearchEngine);
     });
+
+    const defaultProfileToml = resolveRepoRankingProfile('config/ranking-profiles/default.toml');
+    it.skipIf(!defaultProfileToml)(
+      'rankingWeightsPath로 랭킹 프로파일 TOML을 지정해 엔진을 생성할 수 있음',
+      () => {
+        const engine = HybridSearchFactory.createDefaultEngine(db, undefined, {
+          rankingWeightsPath: defaultProfileToml,
+        });
+        expect(engine).toBeInstanceOf(HybridSearchEngine);
+      }
+    );
   });
 
   describe('createEngine', () => {
