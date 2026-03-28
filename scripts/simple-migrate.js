@@ -4,7 +4,7 @@
  * 간단한 마이그레이션 스크립트 (레거시)
  * 임베딩 데이터 분석
  * 
- * ⚠️  레거시 스크립트: 이 스크립트는 simple-migrate-wrapper.ts로 대체되었습니다.
+ * ⚠️  레거시 스크립트: 이 스크립트는 simple-migrate-wrapper.ts(래퍼)로 대체되었습니다.
  * 
  * 사용법: 
  *   - 권장: npx tsx scripts/simple-migrate-wrapper.ts

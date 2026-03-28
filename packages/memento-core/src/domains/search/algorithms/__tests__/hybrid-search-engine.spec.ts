@@ -15,6 +15,7 @@ import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from 
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
 import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
 import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
+import { FeedbackRepository } from '../../../memory/repositories/feedback-repository.js';
 
 // Mock @xenova/transformers to prevent onnxruntime-node loading
 vi.mock('@xenova/transformers', () => {
@@ -444,7 +445,8 @@ describe('HybridSearchEngine', () => {
       expect(mockTextEngine.search).toHaveBeenCalledWith(mockDb, {
         query: 'test query',
         filters: undefined,
-        limit: 20
+        limit: 20,
+        omit_feedback_in_ranking: true,
       });
       expect(mockWeightCalculator.calculateWeights).toHaveBeenCalledWith('test query', 0.6, 0.4);
       expect(mockResultCombiner.combine).toHaveBeenCalledWith(mockTextResults, mockVectorResults, 0.4, 0.6);
@@ -2604,6 +2606,54 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
         expect(mem1Result.relations).toBeDefined();
       }
     });
+  });
+});
+
+describe('FR-004 피드백 집계 지연 (getNetScores, 하이브리드 combine 동일 경로, T037)', () => {
+  function p95(samples: number[]): number {
+    if (samples.length === 0) {
+      return 0;
+    }
+    const s = [...samples].sort((a, b) => a - b);
+    const idx = Math.min(s.length - 1, Math.max(0, Math.ceil(0.95 * s.length) - 1));
+    return s[idx]!;
+  }
+
+  it('feedback_event 대량 행이 있어도 getNetScores p95 증가분이 50ms 미만', async () => {
+    const db = new Database(':memory:');
+    await DatabaseUtils.initializeDatabase(db);
+    const repo = new FeedbackRepository(db);
+    const ids = Array.from({ length: 200 }, (_, i) => `mem_lat_${i}`);
+    for (const id of ids) {
+      db.prepare(`INSERT INTO memory_item (id, type, content) VALUES (?, 'semantic', 'x')`).run(id);
+    }
+
+    const samplesEmpty: number[] = [];
+    for (let r = 0; r < 40; r++) {
+      const t0 = Date.now();
+      repo.getNetScores(ids, 90);
+      samplesEmpty.push(Date.now() - t0);
+    }
+    const p95Empty = p95(samplesEmpty);
+
+    const ins = db.prepare(
+      `INSERT INTO feedback_event (memory_id, event, score, created_at) VALUES (?, 'helpful', NULL, datetime('now'))`
+    );
+    for (let i = 0; i < 6000; i++) {
+      ins.run(ids[i % ids.length]!);
+    }
+
+    const samplesHeavy: number[] = [];
+    for (let r = 0; r < 40; r++) {
+      const t0 = Date.now();
+      repo.getNetScores(ids, 90);
+      samplesHeavy.push(Date.now() - t0);
+    }
+    const p95Heavy = p95(samplesHeavy);
+
+    db.close();
+
+    expect(p95Heavy - p95Empty).toBeLessThan(50);
   });
 });
 

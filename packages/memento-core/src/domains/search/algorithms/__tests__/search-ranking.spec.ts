@@ -4,12 +4,14 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics, type SearchProfile } from '../search-ranking.js';
+import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.js';
 
 describe('SearchRanking', () => {
   let ranking: SearchRanking;
 
   beforeEach(() => {
-    ranking = new SearchRanking();
+    // 피드백 항(zeta_fb)은 별도 describe에서만 검증 — 레거시 기대값과 호환하려면 0
+    ranking = new SearchRanking({ zeta_fb: 0 });
   });
 
   afterEach(() => {
@@ -70,7 +72,8 @@ describe('SearchRanking', () => {
         importance: 0.1,
         usage: 0.1,
         relation_weight: 0.1,
-        duplication_penalty: 0.1
+        duplication_penalty: 0.1,
+        zeta_fb: 0,
       });
 
       const features: SearchFeatures = {
@@ -670,7 +673,8 @@ describe('SearchRanking', () => {
         };
 
         const customRanking = new SearchRanking({
-          consolidation_score: 0.2 // w2 = 0.2
+          consolidation_score: 0.2, // w2 = 0.2
+          zeta_fb: 0,
         });
 
         const score = customRanking.calculateFinalScore(features);
@@ -711,7 +715,8 @@ describe('SearchRanking', () => {
         };
 
         const customRanking = new SearchRanking({
-          consolidation_score: 0.5 // w2 = 0.5이지만 상한 0.4로 제한됨
+          consolidation_score: 0.5, // w2 = 0.5이지만 상한 0.4로 제한됨
+          zeta_fb: 0,
         });
 
         const score = customRanking.calculateFinalScore(features);
@@ -1032,7 +1037,8 @@ describe('SearchRanking', () => {
 
         // When: 최종 점수 계산 (consolidation_score 가중치가 설정된 ranking 사용)
         const customRanking = new SearchRanking({
-          consolidation_score: 0.2 // w2 = 0.2
+          consolidation_score: 0.2, // w2 = 0.2
+          zeta_fb: 0,
         });
         const score = customRanking.calculateFinalScore(features);
 
@@ -1049,7 +1055,7 @@ describe('SearchRanking', () => {
 
     describe('Process Attribute 적합도 (Issue #91)', () => {
       it('Given: process_attribute_fit 0.8, When: calculateFinalScore, Then: 기본 점수 + 0.1 * 0.8 반영', () => {
-        const rankingWithFit = new SearchRanking({ process_attribute_fit: 0.1 });
+        const rankingWithFit = new SearchRanking({ process_attribute_fit: 0.1, zeta_fb: 0 });
         const features: SearchFeatures = {
           relevance: 0.8,
           recency: 0.6,
@@ -1075,6 +1081,88 @@ describe('SearchRanking', () => {
         const expected = 0.45 * 0.8 + 0.2 * 0.6 + 0.2 * 0.7 + 0.1 * 0.5 - 0.1 * 0.2;
         expect(score).toBeCloseTo(expected, 3);
       });
+    });
+
+    describe('feedback_score 및 zeta_fb', () => {
+      it('feedback_score가 높을수록 zeta_fb만큼 가산된다', () => {
+        const r = new SearchRanking({ zeta_fb: 0.05 });
+        const base: SearchFeatures = {
+          relevance: 0.8,
+          recency: 0.6,
+          importance: 0.7,
+          usage: 0.5,
+          duplication_penalty: 0.2,
+        };
+        const low = r.calculateFinalScore({ ...base, feedback_score: 0.5 });
+        const high = r.calculateFinalScore({ ...base, feedback_score: 1.0 });
+        expect(high - low).toBeCloseTo(0.05 * 0.5, 5);
+      });
+
+      it('시그모이드 정규화 net=±1이 점수에 반영된다', () => {
+        const r = new SearchRanking({ zeta_fb: 0.05 });
+        const base: SearchFeatures = {
+          relevance: 0.5,
+          recency: 0.5,
+          importance: 0.5,
+          usage: 0.5,
+          duplication_penalty: 0,
+        };
+        const n0 = r.calculateFinalScore({ ...base, feedback_score: sigmoidNormalizedNet(0) });
+        const n1 = r.calculateFinalScore({ ...base, feedback_score: sigmoidNormalizedNet(1) });
+        const nm = r.calculateFinalScore({ ...base, feedback_score: sigmoidNormalizedNet(-1) });
+        expect(n1).toBeGreaterThan(n0);
+        expect(n0).toBeGreaterThan(nm);
+      });
+    });
+  });
+
+  describe('calculateFinalScoreAndBreakdown', () => {
+    it('includeBreakdown 미설정/ false면 breakdown 없음', () => {
+      const r = new SearchRanking({ zeta_fb: 0.05 });
+      const f: SearchFeatures = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2,
+        feedback_score: 0.5,
+      };
+      expect(r.calculateFinalScoreAndBreakdown(f).breakdown).toBeUndefined();
+      expect(r.calculateFinalScoreAndBreakdown(f, { includeBreakdown: false }).breakdown).toBeUndefined();
+    });
+
+    it('includeBreakdown true면 total 및 feedback 항 포함', () => {
+      const r = new SearchRanking({ zeta_fb: 0.05 });
+      const f: SearchFeatures = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2,
+        feedback_score: 0.6,
+      };
+      const out = r.calculateFinalScoreAndBreakdown(f, { includeBreakdown: true });
+      expect(out.breakdown).toBeDefined();
+      expect(out.breakdown?.feedback).toBeDefined();
+      expect(out.breakdown?.total).toBeCloseTo(out.score, 5);
+      const slots = ['relevance', 'recency', 'importance', 'usage', 'feedback', 'duplication_penalty'] as const;
+      for (const k of slots) {
+        expect(Number.isInteger(out.breakdown![k].pct)).toBe(true);
+      }
+    });
+
+    it('breakdown 계산은 단일 호출에서 100ms 이내 (SC-003)', () => {
+      const r = new SearchRanking({ zeta_fb: 0.05 });
+      const f: SearchFeatures = {
+        relevance: 0.8,
+        recency: 0.6,
+        importance: 0.7,
+        usage: 0.5,
+        duplication_penalty: 0.2,
+      };
+      const t0 = performance.now();
+      r.calculateFinalScoreAndBreakdown(f, { includeBreakdown: true });
+      expect(performance.now() - t0).toBeLessThan(100);
     });
   });
 });

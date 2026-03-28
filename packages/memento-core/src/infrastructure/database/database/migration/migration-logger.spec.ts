@@ -3,7 +3,8 @@
  * 마이그레이션 로거 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'fs';
 import { MigrationLogger, LogLevel } from './migration-logger.js';
 import type { MigrationResult } from '../types.js';
 import { existsSync, unlinkSync, readFileSync, mkdirSync } from 'fs';
@@ -266,6 +267,23 @@ describe('MigrationLogger', () => {
       expect(typeof logDir).toBe('string');
       expect(logDir).toBe(testLogDir);
     });
+  });
+
+  it('로그 디렉터리 생성 실패 시 예외 없이 파일 로깅만 비활성화', () => {
+    const mkdirSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => {
+      const err = new Error('EACCES') as NodeJS.ErrnoException;
+      err.code = 'EACCES';
+      throw err;
+    });
+    try {
+      const nested = join(testLogDir, `no-mkdir-${randomUUID()}`);
+      const fragile = new MigrationLogger(nested);
+      expect(fragile.isFileLoggingDisabled()).toBe(true);
+      fragile.initializeLogFile('1.0');
+      expect(fragile.getLogFile()).toBeNull();
+    } finally {
+      mkdirSpy.mockRestore();
+    }
   });
 });
 

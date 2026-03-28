@@ -19,7 +19,7 @@
     "dev": "npm run dev -w memento-server",
     "dev:http": "npm run dev:http -w memento-server",
     "dev:http-v2": "npm run dev:http-v2 -w memento-server",
-    "build": "npm run build:root && npm run build:packages",
+    "build": "npm run build:packages && npm run build:root",
     "build:root": "tsc && npm run copy:assets",
     "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client",
     "copy:assets": "node src/scripts/copy-assets.js",
@@ -52,6 +52,10 @@
     "quality:benchmark:candidates": "tsx scripts/generate-search-quality-candidates.ts",
     "quality:benchmark:checklist": "tsx scripts/generate-search-quality-review-checklist.ts",
     "quality:benchmark:verify-review": "tsx scripts/verify-search-quality-benchmark-review.ts",
+    "quality:benchmark:category-report": "tsx scripts/quality-benchmark-category-report.ts",
+    "quality:benchmark:verify-categories": "tsx scripts/quality-benchmark-verify-categories.ts",
+    "quality:benchmark:compare-profiles": "tsx scripts/compare-weight-profiles.ts",
+    "quality:feedback:reappearance-report": "tsx scripts/quality-feedback-reappearance-report.ts",
     "test:quality-assurance": "tsx src/test/test-quality-assurance.ts",
     "test:client": "tsx src/test/test-client.ts",
     "test:http-v2": "tsx src/test/test-http-server-v2.ts",
@@ -70,6 +74,7 @@
     "test:vector-search": "tsx src/test/test-vector-search-engine.ts",
     "test:memory-injection": "tsx src/test/test-memory-injection-prompt.ts",
     "test:consolidation-quality": "tsx src/test/test-consolidation-search-quality.ts",
+    "test:feedback-ranking": "vitest run packages/memento-core/src/test/test-feedback-ranking.spec.ts",
     "benchmark:consolidation-quality": "tsx src/test/consolidation-search-quality-benchmark.ts",
     "test:embedding-benchmark": "vitest src/test/embedding-performance-benchmark.spec.ts",
     "test:embedding-integration": "vitest src/test/embedding-integration-test.spec.ts",
@@ -82,7 +87,12 @@
     "setup": "node scripts/auto-setup.js",
     "postinstall": "node scripts/auto-setup.js",
     "rebuild-native": "npm rebuild better-sqlite3 sqlite-vec",
-    "prepublishOnly": "npm run build && npm run verify-bin",
+    "prepack": "node scripts/prepack-bundle-core.js",
+    "postpack": "node scripts/postpack-restore-workspace.js",
+    "pack:tarball": "node scripts/pack-with-restore.js",
+    "restore-workspace": "node scripts/postpack-restore-workspace.js",
+    "verify-pack-bundle": "node scripts/verify-npm-pack-bundle.js",
+    "prepublishOnly": "npm run build && npm run verify-bin && npm run verify-pack-bundle",
     "verify-bin": "node scripts/verify-bin.js",
     "quick-start": "npm install && npm run setup && npm run dev",
     "backup:embeddings": "node scripts/backup-embeddings.js",
@@ -116,6 +126,7 @@
   "author": "Memento Team",
   "license": "MIT",
   "dependencies": {
+    "@memento/core": "1.17.0",
     "@google/genai": "^1.21.0",
     "@google/generative-ai": "^0.24.1",
     "@iarna/toml": "^2.2.5",
@@ -151,6 +162,9 @@
     "typescript": "^5.3.0",
     "vitest": "^1.0.0"
   },
+  "bundledDependencies": [
+    "@memento/core"
+  ],
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
@@ -169,6 +183,7 @@
     "scripts",
     "prompts",
     "config",
+    "tests/fixtures/search-quality/benchmark-v3",
     "src/database/schema.sql",
     "README.md",
     "README.en.md",

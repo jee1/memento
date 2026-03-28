@@ -20,6 +20,7 @@ import type { IConsolidationScoreService } from '../shared/interfaces/consolidat
 import type { IDatabaseOptimizer } from '../shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
 import type { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
+import type { IntrospectionScanCache } from '../domains/memory/services/introspection-scan-cache.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
 
 export interface ToolDefinition {
@@ -83,6 +84,8 @@ export interface ToolContext {
     metaMemoryService?: MetaMemoryService;
     /** 배치 스케줄러 (Triple 추출 등 비동기 작업 등록, context 미제공 시 사용 불가) */
     batchScheduler?: IBatchScheduler;
+    /** 인트로스펙션 스캔 결과 캐시 (get_introspection_summary 등) */
+    introspectionScanCache?: IntrospectionScanCache;
   };
 }
 

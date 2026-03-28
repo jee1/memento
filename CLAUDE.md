@@ -84,15 +84,19 @@ src/shared/      — shared interfaces and types across domains
 
 ### MCP Tools vs HTTP Admin API
 
-**MCP tools (11, exposed to AI agents):** `remember`, `recall`, `pin`, `unpin`, `forget`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`
+**MCP tools (16, exposed to AI agents):** `remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `procedural_diff`, `procedural_rollback`, `remember_procedure`, `get_introspection_summary`
 
 **HTTP-only admin endpoints** (never exposed via MCP): `/admin/memory/cleanup`, `/admin/stats/*`, `/admin/embeddings/migrate`, `/admin/anchors/restore`, `/admin/database/optimize`, `/admin/errors/*`
 
 ### Search Ranking Formula
 
+기본 가중치는 `config/ranking-weights.toml`과 동일하게 둔다.
+
 ```
-S = α·relevance + β·recency + γ·importance + δ·usage − ε·duplication_penalty
-    (α=0.50,   β=0.20,    γ=0.20,       δ=0.10,   ε=0.15)
+S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
+    (α=0.45,   β=0.20,    γ=0.20,       δ=0.10,   ζ=0.15,  ζ_fb=0.05,                      ε=0.10)
+
+`feedback_norm` ∈ [0,1]는 net helpfulness의 시그모이드 정규화값이며, 기본·중립(0.5)이면 피드백 항이 0이 되어 랭킹을 바꾸지 않는다(FR-003).
 ```
 
 ## Testing
@@ -128,6 +132,10 @@ After completing work: store results — `episodic` for completed tasks, `semant
 ## Active Technologies
 - TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest (002-fix-mcp-monitoring-overhead)
 - SQLite (better-sqlite3) — 스키마 변경 없음 (002-fix-mcp-monitoring-overhead)
+- TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, zod, vitest (003-recall-sentence-query)
+- N/A (DB 스키마 변경 없음) (003-recall-sentence-query)
+- TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest, zod (기존 의존성 신규 추가 없음) (004-recall-quality-feedback-loop)
+- SQLite (better-sqlite3) — `feedback_event` 확장: SQL 참고 `005`~`008`, TS 마이그레이션 `021`~`024` (004-recall-quality-feedback-loop)
 
 ## Recent Changes
 - 002-fix-mcp-monitoring-overhead: Added TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest

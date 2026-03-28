@@ -3,19 +3,29 @@
  * 전문 검색 인덱스(FTS5)로 빠른 검색을 수행하고, 다차원 랭킹 알고리즘으로 관련성 높은 결과를 제공합니다.
  */
 
-import { SearchRanking } from './search-ranking.js';
+import { SearchRanking, type SearchFeatures } from './search-ranking.js';
 import type { MemorySearchFilters, MemorySearchResult } from '../../../shared/types/index.js';
+import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
+import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
 import Database from 'better-sqlite3';
 import { getStopWords } from '../../../shared/utils/stopwords.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
+import { logger } from '../../../shared/utils/logger.js';
 
 export interface SearchQuery {
   query: string;
   filters?: MemorySearchFilters | undefined;
   limit?: number | undefined;
+  /** true이면 텍스트 전용 랭킹 경로에서도 score_breakdown 포함 (하이브리드와 동일 계약) */
+  include_score_breakdown?: boolean | undefined;
+  /**
+   * true이면 텍스트 랭킹에서 피드백 가중치를 적용하지 않음.
+   * 하이브리드 검색은 combineAndSortResults → normalizeScores에서만 피드를 반영해 이중 가산을 막는다.
+   */
+  omit_feedback_in_ranking?: boolean | undefined;
 }
 
 
@@ -35,7 +45,13 @@ export class SearchEngine {
     query: SearchQuery
   ): Promise<{ items: MemorySearchResult[], total_count: number, query_time: number }> {
     const startTime = process.hrtime.bigint();
-    const { query: searchQuery, filters, limit = 10 } = query;
+    const {
+      query: searchQuery,
+      filters,
+      limit = 10,
+      include_score_breakdown: includeScoreBreakdown,
+      omit_feedback_in_ranking: omitFeedbackInRanking,
+    } = query;
     
     // ID로 직접 조회할 때는 이미 대상이 명확하므로 불필요한 텍스트 검색을 생략하여 성능을 최적화합니다.
     const hasIdFilter = filters?.id && filters.id.length > 0;
@@ -215,9 +231,30 @@ export class SearchEngine {
     mcpLogger.logServer('debug', '검색 결과', {
       resultCount: results.length
     });
+
+    /** 랭킹에 피드백 신호 반영(FR-003). score_breakdown 여부와 무관하게 조회 — 테이블 없으면 하이브리드와 동일하게 무시 */
+    /** omit_feedback_in_ranking: 하이브리드 하위 호출 시 병합 단계에서만 피드백 적용 */
+    let feedbackNetByMemory = new Map<string, number>();
+    if (results.length > 0 && !omitFeedbackInRanking) {
+      const ids = (results as Array<{ id?: string }>)
+        .map((r) => r.id)
+        .filter((id): id is string => typeof id === 'string');
+      if (ids.length > 0) {
+        try {
+          feedbackNetByMemory = new FeedbackRepository(db).getNetScores(ids, 90);
+        } catch (err) {
+          logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
     
     // FTS5 랭킹과 다차원 점수를 결합하여 사용자에게 가장 관련성 높은 결과를 우선 제공합니다.
-    const rankedResults = this.applyRanking(results, searchQuery);
+    const rankedResults = this.applyRanking(results, searchQuery, {
+      includeBreakdown: includeScoreBreakdown === true,
+      feedbackNetByMemory
+    });
     
     // 사용자가 요청한 개수만큼만 반환하여 응답 크기와 처리 시간을 최적화합니다.
     const finalResults = rankedResults.slice(0, limit);
@@ -315,11 +352,33 @@ export class SearchEngine {
     return db.prepare(sql).all(params);
   }
 
+  /** 각 항 score는 최종 점수에 대한 기여(텍스트 경로는 FTS 블렌드·factBoost 반영 후), pct는 displayTotal 대비 백분율(정수 반올림, contracts §1) */
+  private attachBreakdownToDisplayTotal(bd: ScoreBreakdown, displayTotal: number): ScoreBreakdown {
+    const denom = Math.abs(displayTotal) < 1e-12 ? 1e-12 : Math.abs(displayTotal);
+    const map = (c: { score: number; pct: number }) => ({
+      score: c.score,
+      pct: Math.round((100 * c.score) / denom),
+    });
+    return {
+      relevance: map(bd.relevance),
+      recency: map(bd.recency),
+      importance: map(bd.importance),
+      usage: map(bd.usage),
+      feedback: map(bd.feedback),
+      duplication_penalty: map(bd.duplication_penalty),
+      total: displayTotal
+    };
+  }
+
   /**
    * FTS5 랭킹과 다차원 점수를 결합하여 사용자에게 가장 관련성 높은 결과를 우선 제공합니다.
    * 관련성, 최근성, 중요도, 사용성 등을 종합적으로 고려하여 검색 품질을 향상시킵니다.
    */
-  private applyRanking(results: any[], query: string): MemorySearchResult[] {
+  private applyRanking(
+    results: any[],
+    query: string,
+    opts?: { includeBreakdown?: boolean; feedbackNetByMemory?: Map<string, number> }
+  ): MemorySearchResult[] {
     const selectedContents: string[] = [];
     
     return results
@@ -359,49 +418,52 @@ export class SearchEngine {
           row.content,
           selectedContents
         );
+
+        const net = opts?.feedbackNetByMemory?.get(row.id);
+        const feedback_score = sigmoidNormalizedNet(net ?? 0);
         
         // 통합 점수 기능이 활성화된 경우 추가적인 관련성 지표를 활용합니다.
         const consolidationScore = row.consolidation_score !== null && row.consolidation_score !== undefined
           ? Number(row.consolidation_score)
           : undefined;
 
-        // 최종 점수 계산
-        let finalScore: number;
-        
-        // 통합 점수 기능을 통해 더 정교한 관련성 평가를 수행하여 검색 품질을 향상시킵니다.
-        if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
-          // 벡터 검색 결과를 텍스트 관련성과 동일한 의미로 해석하여 일관된 점수 계산을 수행합니다.
-          const vectorSimilarity = relevance;
-          finalScore = this.ranking.calculateFinalScoreWithConsolidation(
-            vectorSimilarity,
-            consolidationScore,
-            'balanced' // 기본적으로 균형잡힌 점수 계산을 사용하고, 향후 사용자 요구에 따라 조정 가능하도록 설계했습니다.
-          );
-        } else {
-          // 통합 점수가 없는 경우 기존의 검증된 점수 계산 방식을 사용하여 안정성을 보장합니다.
-          finalScore = ftsRank > 0 ? 
-            ftsRank * 0.7 + this.ranking.calculateFinalScore({
+        const useConsolidationPath =
+          mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined;
+
+        /** 랭킹 코어 점수 — FTS 히트 시 0.3 가중, FTS 항(ftsRank*0.7)은 breakdown의 relevance 축에 합산 */
+        const baseFeatures: SearchFeatures = ftsRank > 0
+          ? {
               relevance: 0.3,
               recency,
               importance,
               usage,
-              duplication_penalty: duplicationPenalty
-            }) * 0.3 :
-            this.ranking.calculateFinalScore({
+              duplication_penalty: duplicationPenalty,
+              feedback_score,
+              ...(useConsolidationPath && consolidationScore !== undefined
+                ? { consolidation_score: consolidationScore }
+                : {})
+            }
+          : {
               relevance,
               recency,
               importance,
               usage,
-              duplication_penalty: duplicationPenalty
-            });
-        }
+              duplication_penalty: duplicationPenalty,
+              feedback_score,
+              ...(useConsolidationPath && consolidationScore !== undefined
+                ? { consolidation_score: consolidationScore }
+                : {})
+            };
+
+        const baseScore = this.ranking.calculateFinalScore(baseFeatures);
+        const preBoost = ftsRank > 0 ? ftsRank * 0.7 + baseScore * 0.3 : baseScore;
 
         // Fact 메타 가중 (Issue #88): num_times·last_mentioned_at으로 자주·최근 언급된 기억 보정
         const factBoost = this.calculateFactMetadataBoost(
           row.num_times != null ? Number(row.num_times) : 1,
           row.last_mentioned_at ? new Date(row.last_mentioned_at) : null
         );
-        finalScore *= factBoost;
+        const finalScore = preBoost * factBoost;
 
         // 중복 패널티 계산을 위해 이미 선택된 콘텐츠를 추적하여 결과의 다양성을 확보합니다.
         selectedContents.push(row.content);
@@ -435,6 +497,45 @@ export class SearchEngine {
         // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {
           result.consolidation_score = consolidationScore;
+        }
+
+        if (opts?.includeBreakdown) {
+          const bd = this.ranking.calculateFinalScoreAndBreakdown(baseFeatures, {
+            includeBreakdown: true
+          });
+          if (bd.breakdown) {
+            const ftsPart = ftsRank > 0 ? ftsRank * 0.7 : 0;
+            const scaled: ScoreBreakdown =
+              ftsRank > 0
+                ? {
+                    relevance: {
+                      score: (bd.breakdown.relevance.score * 0.3 + ftsPart) * factBoost,
+                      pct: 0
+                    },
+                    recency: { score: bd.breakdown.recency.score * 0.3 * factBoost, pct: 0 },
+                    importance: { score: bd.breakdown.importance.score * 0.3 * factBoost, pct: 0 },
+                    usage: { score: bd.breakdown.usage.score * 0.3 * factBoost, pct: 0 },
+                    feedback: { score: bd.breakdown.feedback.score * 0.3 * factBoost, pct: 0 },
+                    duplication_penalty: {
+                      score: bd.breakdown.duplication_penalty.score * 0.3 * factBoost,
+                      pct: 0
+                    },
+                    total: finalScore
+                  }
+                : {
+                    relevance: { score: bd.breakdown.relevance.score * factBoost, pct: 0 },
+                    recency: { score: bd.breakdown.recency.score * factBoost, pct: 0 },
+                    importance: { score: bd.breakdown.importance.score * factBoost, pct: 0 },
+                    usage: { score: bd.breakdown.usage.score * factBoost, pct: 0 },
+                    feedback: { score: bd.breakdown.feedback.score * factBoost, pct: 0 },
+                    duplication_penalty: {
+                      score: bd.breakdown.duplication_penalty.score * factBoost,
+                      pct: 0
+                    },
+                    total: finalScore
+                  };
+            result.score_breakdown = this.attachBreakdownToDisplayTotal(scaled, finalScore);
+          }
         }
 
         return result;

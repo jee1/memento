@@ -19,6 +19,8 @@ export interface SearchFeatures {
   trigger_conditions_match?: boolean; // trigger_conditions 매칭 여부
   // Process Attribute (Issue #91): recall 시 process 적합도 (0~1, 미제공 시 1)
   process_attribute_fit?: number;
+  /** 시그모이드 정규화된 피드백 점수 [0,1], 미제공 시 랭킹에서 0.5(중립)로 처리 */
+  feedback_score?: number;
 }
 
 export interface EmbeddingSimilarity {
@@ -49,6 +51,7 @@ export interface RelevanceInput {
 
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { SEARCH_RANKING } from '../../../shared/config/constants.js';
+import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
 
 export interface SearchRankingWeights {
   relevance: number;    // α = 0.45
@@ -59,6 +62,7 @@ export interface SearchRankingWeights {
   duplication_penalty: number; // ε = 0.10
   consolidation_score?: number; // w2 = 0.2 (기본값, 최대 0.4)
   process_attribute_fit?: number; // θ = 0.1 (Issue #91, process 적합도 가중치)
+  zeta_fb?: number; // 피드백 신호 가중치
 }
 
 /**
@@ -91,6 +95,7 @@ export class SearchRanking {
       duplication_penalty: configWeights.ranking_weights.epsilon ?? defaultWeights.duplication_penalty,
       consolidation_score: defaultWeights.consolidation_score,
       process_attribute_fit: configWeights.ranking_weights.theta ?? defaultWeights.process_attribute_fit,
+      zeta_fb: configWeights.ranking_weights.zeta_fb ?? defaultWeights.zeta_fb,
       ...weights
     };
   }
@@ -151,12 +156,18 @@ export class SearchRanking {
     }
 
     // 다차원 랭킹: 모든 신호를 포함한 최종 점수 계산
+    const zetaFb = this.weights.zeta_fb ?? SEARCH_RANKING.DEFAULT_WEIGHTS.zeta_fb ?? 0.05;
+    const feedbackNorm = features.feedback_score ?? 0.5;
+    // 피드백 없음(0.5)일 때 항 기여 0 — 전역 점수·임계값을 밀어 올리지 않음
+    const feedbackTerm = zetaFb * (feedbackNorm - 0.5);
+
     const finalScore = this.weights.relevance * relevanceScore +
                       this.weights.recency * features.recency +
                       this.weights.importance * features.importance +
                       this.weights.usage * features.usage +
                       (this.weights.relation_weight * (features.relation_weight || 0)) -
-                      this.weights.duplication_penalty * features.duplication_penalty;
+                      this.weights.duplication_penalty * features.duplication_penalty +
+                      feedbackTerm;
 
     // Procedural Memory 특화 가중치 부스트 적용
     const proceduralBoost = this.calculateProceduralMemoryBoost(features);
@@ -167,6 +178,69 @@ export class SearchRanking {
         ? processFitWeight * features.process_attribute_fit
         : 0;
     return finalScore + proceduralBoost + processFit;
+  }
+
+  /**
+   * 최종 점수와 (옵션) 점수 구성 요소. breakdown은 include_score_breakdown 경로에서만 계산.
+   *
+   * FR-008 6슬롯 고정: `breakdown.relevance`의 score·pct는 순수 α·relevance(블렌딩 후)만이 아니라,
+   * 동일 슬롯에 ζ·relation_weight·procedural_boost·process_attribute_fit 기여까지 합산한다
+   * (`ScoreBreakdown.relevance`, `contracts/mcp-tools.md` §1 `relevance` 슬롯).
+   */
+  calculateFinalScoreAndBreakdown(
+    features: SearchFeatures,
+    options?: { includeBreakdown?: boolean }
+  ): { score: number; breakdown?: ScoreBreakdown } {
+    const score = this.calculateFinalScore(features);
+    if (!options?.includeBreakdown) {
+      return { score };
+    }
+
+    let relevanceScore: number;
+    if (features.consolidation_score !== undefined && this.weights.consolidation_score !== undefined) {
+      const consolidationWeight = Math.min(this.weights.consolidation_score, SEARCH_RANKING.CONSOLIDATION_SCORE_MAX);
+      const relevanceWeight = 1 - consolidationWeight;
+      relevanceScore = relevanceWeight * features.relevance + consolidationWeight * features.consolidation_score;
+    } else {
+      relevanceScore = features.relevance;
+    }
+
+    const w = this.weights;
+    const zetaFb = w.zeta_fb ?? SEARCH_RANKING.DEFAULT_WEIGHTS.zeta_fb ?? 0.05;
+    const feedbackNorm = features.feedback_score ?? 0.5;
+
+    const cRel = w.relevance * relevanceScore;
+    const cRec = w.recency * features.recency;
+    const cImp = w.importance * features.importance;
+    const cUsage = w.usage * features.usage;
+    const cRelGraph = w.relation_weight * (features.relation_weight || 0);
+    const cDup = -w.duplication_penalty * features.duplication_penalty;
+    const cFb = zetaFb * (feedbackNorm - 0.5);
+
+    const proceduralBoost = this.calculateProceduralMemoryBoost(features);
+    const processFitWeight = w.process_attribute_fit ?? 0;
+    const processFit =
+      features.process_attribute_fit !== undefined
+        ? processFitWeight * features.process_attribute_fit
+        : 0;
+
+    /** FR-008 6슬롯: 관계·절차·process_fit은 별도 필드 없이 relevance 슬롯에 합산(spec 004). */
+    const relevanceBucket = cRel + cRelGraph + proceduralBoost + processFit;
+    /** FR-008: 각 항 기여값을 최종 점수(|total|) 대비 백분율로 표시; `pct`는 계약상 정수(반올림, contracts §1). */
+    const totalAbs = Math.abs(score) < 1e-12 ? 1e-12 : Math.abs(score);
+    const pct = (x: number): number => Math.round((100 * x) / totalAbs);
+
+    const breakdown: ScoreBreakdown = {
+      relevance: { score: relevanceBucket, pct: pct(relevanceBucket) },
+      recency: { score: cRec, pct: pct(cRec) },
+      importance: { score: cImp, pct: pct(cImp) },
+      usage: { score: cUsage, pct: pct(cUsage) },
+      feedback: { score: cFb, pct: pct(cFb) },
+      duplication_penalty: { score: cDup, pct: pct(cDup) },
+      total: score
+    };
+
+    return { score, breakdown };
   }
 
   /**

@@ -1,0 +1,13 @@
+# 기본 랭킹 프로파일 — 반드시 config/ranking-weights.toml(배포 기본값)과 동일하게 유지
+[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+theta = 0.10
+zeta_fb = 0.05
+
+[relation_weights]
+max_relations = 5

@@ -196,6 +196,109 @@ describe('RecallTool', () => {
     });
   });
 
+  describe('include_score_breakdown (US3, T021)', () => {
+    const mockItemBase = {
+      id: 'mem_1',
+      content: 'test',
+      type: 'episodic' as const,
+      importance: 0.5,
+      created_at: new Date().toISOString(),
+      pinned: false,
+      tags: [] as string[],
+      origin_source: JSON.stringify({
+        tool: 'remember',
+        caller: 'user',
+        timestamp: new Date().toISOString(),
+        context: { type: 'episodic' },
+      }),
+      textScore: 0.8,
+      vectorScore: 0.7,
+      finalScore: 0.75,
+      recall_reason: '텍스트 검색 결과',
+    };
+
+    const sampleBreakdown = {
+      relevance: { score: 0.2, pct: 25 },
+      recency: { score: 0.1, pct: 10 },
+      importance: { score: 0.1, pct: 10 },
+      usage: { score: 0.05, pct: 5 },
+      feedback: { score: 0.02, pct: 5 },
+      duplication_penalty: { score: -0.01, pct: 2 },
+      total: 0.75,
+    };
+
+    it('include_score_breakdown=true이면 항목에 score_breakdown이 포함된다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [{ ...mockItemBase, score_breakdown: sampleBreakdown }],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle(
+        {
+          query: 'test',
+          type: 'episodic',
+          include_score_breakdown: true,
+          include_metadata: true,
+        },
+        context,
+      );
+      const data = JSON.parse(result.content[0].text) as {
+        items?: Array<{ score_breakdown?: { total: number } }>;
+      };
+      expect(data.items?.[0]?.score_breakdown).toBeDefined();
+      expect(data.items?.[0]?.score_breakdown?.total).toBe(0.75);
+    });
+
+    it('include_score_breakdown=false면 응답에 score_breakdown이 없다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [{ ...mockItemBase }],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle(
+        { query: 'test', type: 'episodic', include_score_breakdown: false },
+        context,
+      );
+      const data = JSON.parse(result.content[0].text) as {
+        items?: Array<{ score_breakdown?: unknown }>;
+      };
+      expect(data.items?.[0]?.score_breakdown).toBeUndefined();
+    });
+
+    it('include_metadata=false이면 score_breakdown도 포함되지 않는다', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [{ ...mockItemBase, score_breakdown: sampleBreakdown }],
+        total_count: 1,
+        query_time: 10,
+        text_count: 1,
+        vector_count: 1,
+      });
+      vi.spyOn(hybridSearchEngine, 'isEmbeddingAvailable').mockReturnValue(true);
+
+      const result = await tool.handle(
+        {
+          query: 'test',
+          type: 'episodic',
+          include_score_breakdown: true,
+          include_metadata: false,
+        },
+        context,
+      );
+      const data = JSON.parse(result.content[0].text) as {
+        items?: Array<{ score_breakdown?: unknown }>;
+      };
+      expect(data.items?.[0]?.score_breakdown).toBeUndefined();
+    });
+  });
+
   describe('embedding_provider 및 벡터 인덱스 fallback stderr', () => {
     let savedEmbeddingProvider: (typeof mementoConfig)['embeddingProvider'];
 

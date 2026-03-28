@@ -61,6 +61,7 @@ export type {
   
   // 검색 관련
   SearchFilters,
+  RecallCallOptions,
   SearchResult,
   MemorySearchResult,
   HybridSearchParams,
@@ -74,6 +75,7 @@ export type {
   LinkResult,
   ExportResult,
   FeedbackResult,
+  FeedbackCallOptions,
   
   // 컨텍스트 주입
   ContextInjectionParams,

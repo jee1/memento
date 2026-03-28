@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import Database from 'better-sqlite3';
@@ -1224,6 +1224,43 @@ describe('QualityMetricsCollector', () => {
       // 현재는 인터페이스만 제공하므로 동일할 수 있지만, 구조는 일관되어야 함
       expect(result1.measured_at).toBeDefined();
       expect(result2.measured_at).toBeDefined();
+    });
+  });
+
+  describe('collectCategoryMetrics', () => {
+    it('category-mapping에 없는 category면 에러', async () => {
+      const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
+      const dir = join(tmpdir(), `bm-cat-${Date.now()}`);
+      mkdirSync(dir, { recursive: true });
+      const mapPath = join(dir, 'bad-map.json');
+      writeFileSync(
+        mapPath,
+        JSON.stringify({
+          macro_categories: { conceptual: ['nonexistent_cat'] },
+          query_overrides: {},
+          query_id_to_category: {}
+        })
+      );
+      await expect(collector.collectCategoryMetrics(benchmarkDir, mapPath)).rejects.toThrow(
+        /query_id_to_category/
+      );
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it('query_overrides 값이 알 수 없는 macro면 에러', async () => {
+      const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
+      const dir = join(tmpdir(), `bm-cat-ov-${Date.now()}`);
+      mkdirSync(dir, { recursive: true });
+      const mapPath = join(dir, 'bad-override.json');
+      const base = JSON.parse(
+        readFileSync(join(benchmarkDir, 'category-mapping.json'), 'utf8')
+      ) as { query_overrides?: Record<string, string> };
+      base.query_overrides = { ...base.query_overrides, q_001: 'typo_macro' };
+      writeFileSync(mapPath, JSON.stringify(base));
+      await expect(collector.collectCategoryMetrics(benchmarkDir, mapPath)).rejects.toThrow(
+        /query_overrides\[q_001\]/
+      );
+      rmSync(dir, { recursive: true, force: true });
     });
   });
 });

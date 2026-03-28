@@ -243,5 +243,45 @@ max_relations = 15
       expect(config2.ranking_weights.alpha).toBe(0.60);
       expect(config2.relation_weights.max_relations).toBe(15);
     });
+
+    it('should cache per config path (multi-profile)', () => {
+      const pathA = join(tempDir, `profile-a-${randomUUID()}.toml`);
+      const pathB = join(tempDir, `profile-b-${randomUUID()}.toml`);
+      writeFileSync(
+        pathA,
+        `[ranking_weights]
+alpha = 0.11
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 10
+`,
+        'utf-8'
+      );
+      writeFileSync(
+        pathB,
+        `[ranking_weights]
+alpha = 0.46
+beta = 0.20
+gamma = 0.20
+delta = 0.10
+zeta = 0.15
+epsilon = 0.10
+
+[relation_weights]
+max_relations = 10
+`,
+        'utf-8'
+      );
+
+      const a = getRankingWeights(pathA);
+      const b = getRankingWeights(pathB);
+      expect(a.ranking_weights.alpha).toBe(0.11);
+      expect(b.ranking_weights.alpha).toBe(0.46);
+    });
   });
 });

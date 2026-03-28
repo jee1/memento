@@ -32,6 +32,7 @@ import { logger } from '../shared/utils/logger.js';
 import { WalCheckpointScheduler } from '../infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from '../infrastructure/database/database-lock-monitor.js';
 import { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
+import { IntrospectionScanCache } from '../domains/memory/services/introspection-scan-cache.js';
 import type { SqlParam } from '../shared/types/index.js';
 
 /**
@@ -83,6 +84,8 @@ export interface ServerServices {
   vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
   // 배치 스케줄러 (시작 후 index/http-server에서 할당)
   batchScheduler?: IBatchScheduler;
+  /** 인트로스펙션 스캔 결과 캐시 (get_introspection_summary / BatchScheduler와 공유) */
+  introspectionScanCache?: IntrospectionScanCache;
 }
 
 /**
@@ -268,6 +271,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       logger.error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
       throw new Error(`MetaMemoryService 초기화 실패: ${errorMessage}`);
     }
+
+    const introspectionScanCache = new IntrospectionScanCache();
     
     return {
       searchEngine,
@@ -286,7 +291,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       failureDetector,
       reflexionWorker,
       walCheckpointScheduler,
-      databaseLockMonitor
+      databaseLockMonitor,
+      introspectionScanCache
     };
   } catch (error) {
     // 서비스 초기화 실패 시 예외를 그대로 전파 (서버 시작 실패)

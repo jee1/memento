@@ -251,3 +251,14 @@ export function clearConfigCache(key?: string): void {
   }
 }
 
+/**
+ * 접두사가 일치하는 캐시 키를 모두 제거합니다 (테스트·프로필별 캐시 정리용).
+ */
+export function clearConfigCacheByPrefix(prefix: string): void {
+  for (const key of [...configCache.keys()]) {
+    if (key.startsWith(prefix)) {
+      configCache.delete(key);
+    }
+  }
+}
+

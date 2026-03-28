@@ -1,0 +1,13 @@
+# 실험용: 피드백 가중치 상향
+[ranking_weights]
+alpha = 0.45
+beta = 0.18
+gamma = 0.18
+delta = 0.08
+zeta = 0.12
+epsilon = 0.12
+theta = 0.10
+zeta_fb = 0.12
+
+[relation_weights]
+max_relations = 5

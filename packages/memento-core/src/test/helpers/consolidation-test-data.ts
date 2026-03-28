@@ -101,6 +101,25 @@ export function initializeTestDatabase(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_memory_embedding_memory_id ON memory_embedding(memory_id);
     CREATE INDEX IF NOT EXISTS idx_memory_embedding_provider ON memory_embedding(embedding_provider);
 
+    CREATE TABLE IF NOT EXISTS feedback_event (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memory_id TEXT NOT NULL,
+      event TEXT CHECK (event IN ('used', 'edited', 'neglected', 'helpful', 'not_helpful')) NOT NULL,
+      score REAL,
+      comment TEXT,
+      session_id TEXT,
+      agent_id TEXT,
+      score_breakdown_json TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_feedback_memory_id ON feedback_event(memory_id);
+    CREATE INDEX IF NOT EXISTS idx_feedback_event ON feedback_event(event);
+    CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback_event(created_at);
+    CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback_event(session_id);
+    CREATE INDEX IF NOT EXISTS idx_feedback_agent ON feedback_event(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_feedback_memory_created_at ON feedback_event(memory_id, created_at);
+
     CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_fts USING fts5(
       content,
       tags,

@@ -3,9 +3,16 @@
  * TOML 파일에서 검색 랭킹 가중치를 로드하고 검증합니다.
  */
 
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { existsSync } from 'fs';
-import { loadTOMLConfig, mergeWithDefaults, validateConfig, getCachedConfig, clearConfigCache, findProjectRoot } from './config-loader-utils.js';
+import {
+  loadTOMLConfig,
+  mergeWithDefaults,
+  validateConfig,
+  getCachedConfig,
+  clearConfigCacheByPrefix,
+  findProjectRoot
+} from './config-loader-utils.js';
 
 export interface RankingWeights {
   alpha: number; // relevance 가중치
@@ -15,6 +22,7 @@ export interface RankingWeights {
   zeta: number; // relation_weight 가중치
   epsilon: number; // duplication_penalty 가중치
   theta?: number; // process_attribute_fit 가중치 (Issue #91, 기본 0.1)
+  zeta_fb?: number; // 피드백 신호 가중치 (Recall Quality Feedback Loop, 기본 0.05)
 }
 
 export interface RelationWeights {
@@ -34,12 +42,32 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     delta: 0.10,
     zeta: 0.15,
     epsilon: 0.10,
-    theta: 0.1
+    theta: 0.1,
+    zeta_fb: 0.05
   },
   relation_weights: {
     max_relations: 5
   }
 };
+
+/**
+ * 로드에 사용할 TOML 경로 (캐시 키와 동일 규칙).
+ */
+function resolveRankingWeightsFilePath(configPath?: string): string {
+  if (configPath !== undefined) {
+    return resolve(configPath);
+  }
+  const projectRoot = findProjectRoot();
+  let defaultPath = join(projectRoot, 'config', 'ranking-weights.toml');
+  const distConfigPath = join(projectRoot, 'dist', 'config', 'ranking-weights.toml');
+  const envPath = process.env.MEMENTO_RANKING_WEIGHTS_PATH;
+  if (envPath && existsSync(envPath)) {
+    defaultPath = envPath;
+  } else if (!existsSync(defaultPath) && existsSync(distConfigPath)) {
+    defaultPath = distConfigPath;
+  }
+  return resolve(defaultPath);
+}
 
 /**
  * TOML 파일에서 검색 랭킹 가중치 설정을 로드합니다.
@@ -48,21 +76,7 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
  * @throws 설정 파일을 읽을 수 없거나 파싱에 실패한 경우
  */
 export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
-  // 프로젝트 루트를 찾아서 config 파일 경로 구성
-  const projectRoot = findProjectRoot();
-  
-  // 여러 경로를 시도: config/ (소스), dist/config/ (빌드된 파일)
-  let defaultPath = join(projectRoot, 'config', 'ranking-weights.toml');
-  const distConfigPath = join(projectRoot, 'dist', 'config', 'ranking-weights.toml');
-  
-  // config/에 없으면 dist/config/ 시도
-  if (configPath === undefined) {
-    if (!existsSync(defaultPath) && existsSync(distConfigPath)) {
-      defaultPath = distConfigPath;
-    }
-  }
-  
-  const path = configPath ?? defaultPath;
+  const path = resolveRankingWeightsFilePath(configPath);
 
   try {
     // 공통 로더 유틸리티 사용
@@ -80,6 +94,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.zeta': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.epsilon': { type: 'number' as const, min: 0, max: 1 },
       'ranking_weights.theta': { type: 'number' as const, min: 0, max: 1 },
+      'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
       'relation_weights.max_relations': { type: 'number' as const, min: 1 }
     };
 
@@ -92,6 +107,7 @@ export function loadRankingWeights(configPath?: string): RankingWeightsConfig {
       'ranking_weights.zeta': config.ranking_weights.zeta,
       'ranking_weights.epsilon': config.ranking_weights.epsilon,
       'ranking_weights.theta': config.ranking_weights.theta ?? 0.1,
+      'ranking_weights.zeta_fb': config.ranking_weights.zeta_fb ?? 0.05,
       'relation_weights.max_relations': config.relation_weights.max_relations
     };
 
@@ -124,6 +140,7 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
 
   // 가중치 값 검증 (0 이상 1 이하)
   const theta = ranking_weights.theta ?? 0.1;
+  const zetaFb = ranking_weights.zeta_fb ?? 0.05;
   const weights = [
     { name: 'alpha', value: ranking_weights.alpha },
     { name: 'beta', value: ranking_weights.beta },
@@ -131,7 +148,8 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
     { name: 'delta', value: ranking_weights.delta },
     { name: 'zeta', value: ranking_weights.zeta },
     { name: 'epsilon', value: ranking_weights.epsilon },
-    { name: 'theta', value: theta }
+    { name: 'theta', value: theta },
+    { name: 'zeta_fb', value: zetaFb }
   ];
 
   for (const { name, value } of weights) {
@@ -162,12 +180,13 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
  * @returns 검색 랭킹 가중치 설정 객체
  */
 export function getRankingWeights(configPath?: string): RankingWeightsConfig {
-  return getCachedConfig('ranking-weights', () => loadRankingWeights(configPath));
+  const cacheKey = `ranking-weights:${resolveRankingWeightsFilePath(configPath)}`;
+  return getCachedConfig(cacheKey, () => loadRankingWeights(configPath));
 }
 
 /**
  * 캐시된 설정을 초기화합니다 (테스트용).
  */
 export function resetRankingWeightsCache(): void {
-  clearConfigCache('ranking-weights');
+  clearConfigCacheByPrefix('ranking-weights:');
 }

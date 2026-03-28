@@ -12,7 +12,14 @@
  */
 
 import Database from 'better-sqlite3';
+import { readFileSync } from 'fs';
 import { logger } from '../../../../shared/utils/logger.js';
+import {
+  assertMacroCategory,
+  BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
+  type CategoryQualityReport,
+  type MacroCategory,
+} from '../../../../shared/types/benchmark.types.js';
 import {
   calculatePrecisionAtK,
   calculateRecallAtK,
@@ -274,14 +281,12 @@ export class QualityMetricsCollector {
   ): Promise<CollectedMetrics> {
     const metrics: Record<string, number> = {};
 
-    let memoryIdToBenchmarkId: Map<string, string> | undefined;
     let groundTruths = options?.groundTruths;
+    let memoryIdToBenchmarkId: Map<string, string> | undefined;
     let queryIdToQueryText: Map<string, string> | undefined;
-
     if (options?.strictBenchmark && !options.benchmarkDir) {
       throw new Error('Strict benchmark mode requires benchmarkDir');
     }
-
     if (options?.benchmarkDir) {
       const manifest = loadBenchmarkManifest(options.benchmarkDir);
       if (options.strictBenchmark) {
@@ -1319,5 +1324,124 @@ export class QualityMetricsCollector {
       default:
         throw new Error(`Unknown namespace: ${namespace}`);
     }
+  }
+
+  /**
+   * macro_category별 MRR·NDCG 집계 (benchmark-v3 + category-mapping.json)
+   */
+  async collectCategoryMetrics(
+    benchmarkDir: string,
+    mappingPath: string
+  ): Promise<CategoryQualityReport[]> {
+    const raw = JSON.parse(readFileSync(mappingPath, 'utf8')) as {
+      macro_categories: Record<string, string[]>;
+      query_overrides?: Record<string, string>;
+    };
+    const queries = loadBenchmarkQueries(benchmarkDir);
+    const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir);
+    const corpus = loadBenchmarkCorpus(benchmarkDir);
+    const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
+
+    const categoryToMacro = new Map<string, MacroCategory>();
+    for (const [macro, cats] of Object.entries(raw.macro_categories)) {
+      const macroKey = assertMacroCategory(macro, 'macro_categories key');
+      for (const c of cats) {
+        categoryToMacro.set(c, macroKey);
+      }
+    }
+
+    if (raw.query_overrides) {
+      for (const qid of Object.keys(raw.query_overrides)) {
+        const v = raw.query_overrides[qid];
+        if (v !== undefined) {
+          assertMacroCategory(v, `query_overrides[${qid}]`);
+        }
+      }
+    }
+
+    const queryIdToMacro = new Map<string, MacroCategory>();
+    for (const q of queries) {
+      const overrideRaw = raw.query_overrides?.[q.query_id];
+      const macro =
+        overrideRaw !== undefined
+          ? (overrideRaw as MacroCategory)
+          : q.category !== undefined
+            ? categoryToMacro.get(q.category)
+            : undefined;
+      if (!macro) {
+        throw new Error(
+          `Category mapping missing for query ${q.query_id} (category=${q.category})`
+        );
+      }
+      queryIdToMacro.set(q.query_id, macro);
+      // normalizeBenchmarkGroundTruths가 queryId를 쿼리 본문으로 통일하므로 텍스트 키도 등록
+      if (q.query) {
+        queryIdToMacro.set(q.query, macro);
+      }
+    }
+
+    const searchEngine = HybridSearchFactory.createDefaultEngine(this.db);
+    const queryResultsByQueryId = new Map<string, SearchResult[]>();
+
+    for (const gt of groundTruths) {
+      const qrow = queries.find(q => q.query_id === gt.queryId);
+      const queryText = qrow?.query ?? gt.queryId;
+      const sr = await searchEngine.search(this.db, {
+        query: queryText,
+        limit: 20,
+        provider_filter: BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
+      });
+      const mapped: SearchResult[] = sr.items.map((item) => ({
+        id: memoryIdToBenchmarkId.get(item.id) ?? item.id,
+        score: item.finalScore
+      }));
+      queryResultsByQueryId.set(gt.queryId, mapped);
+    }
+
+    const ALL_MACROS: MacroCategory[] = [
+      'episodic_recent',
+      'procedural',
+      'conceptual',
+      'tag_filter'
+    ];
+    const MRR_THRESHOLD = 0.5;
+    const reports: CategoryQualityReport[] = [];
+
+    for (const macro of ALL_MACROS) {
+      const subsetGts = groundTruths.filter(gt => queryIdToMacro.get(gt.queryId) === macro);
+      const subMap = new Map<string, SearchResult[]>();
+      for (const gt of subsetGts) {
+        const r = queryResultsByQueryId.get(gt.queryId);
+        if (r) {
+          subMap.set(gt.queryId, r);
+        }
+      }
+
+      const mrr = this.calculateMRR(subMap, subsetGts);
+
+      let ndcg5 = 0;
+      let ndcg10 = 0;
+      const ndcgDenom = subsetGts.length;
+      for (const gt of subsetGts) {
+        const results = queryResultsByQueryId.get(gt.queryId);
+        if (!results || results.length === 0) {
+          continue;
+        }
+        ndcg5 += calculateNDCGAtK(results, gt.relevantIds, 5);
+        ndcg10 += calculateNDCGAtK(results, gt.relevantIds, 10);
+      }
+
+      const mrrVal = mrr;
+      reports.push({
+        macro_category: macro,
+        query_count: subsetGts.length,
+        mrr: mrrVal,
+        ndcg_at_5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
+        ndcg_at_10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,
+        threshold_passed: mrrVal >= MRR_THRESHOLD
+      });
+    }
+
+    return reports;
   }
 }

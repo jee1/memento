@@ -4,7 +4,7 @@
  * 간단한 데이터 업데이트 스크립트 (레거시)
  * 임베딩 메타데이터 업데이트
  * 
- * ⚠️  레거시 스크립트: 이 스크립트는 simple-update-wrapper.ts로 대체되었습니다.
+ * ⚠️  레거시 스크립트: 이 스크립트는 simple-update-wrapper.ts(래퍼)로 대체되었습니다.
  * simple-update-wrapper.ts는 정식 마이그레이션 시스템(MigrationRunner)을 사용합니다.
  * 
  * 사용법: 

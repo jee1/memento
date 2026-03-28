@@ -6,10 +6,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   resolve: {
-    alias: {
-      // 서버 테스트에서 @memento/core를 dist 없이 소스로 resolve (CI/로컬 npm test 시 진입점 오류 방지)
-      '@memento/core': path.resolve(__dirname, 'packages/memento-core/src/index.ts'),
-    },
+    alias: [
+      // 품질 스크립트 등 @memento/core 서브패스(…/*.js) → 소스 .ts (exports와 동일 경로)
+      {
+        find: /^@memento\/core\/(.+)\.js$/,
+        replacement: path.resolve(__dirname, 'packages/memento-core/src/$1.ts'),
+      },
+      {
+        // 서버 테스트에서 @memento/core를 dist 없이 소스로 resolve (CI/로컬 npm test 시 진입점 오류 방지)
+        find: '@memento/core',
+        replacement: path.resolve(__dirname, 'packages/memento-core/src/index.ts'),
+      },
+    ],
   },
   test: {
     globals: true,
@@ -17,6 +25,7 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{js,ts}',
       'tests/**/*.{test,spec}.{js,ts}',
+      'scripts/**/*.{test,spec}.{js,ts}',
       'packages/memento-core/src/**/*.{test,spec}.{js,ts}',
       'packages/memento-client/src/**/*.{test,spec}.{js,ts}',
       'packages/memento-server/src/**/*.{test,spec}.{js,ts}'

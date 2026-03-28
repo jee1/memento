@@ -29,6 +29,7 @@ import type {
   CreateMemoryParams,
   UpdateMemoryParams,
   SearchFilters,
+  RecallCallOptions,
   SearchResult,
   HybridSearchParams,
   HybridSearchResult,
@@ -38,6 +39,7 @@ import type {
   LinkResult,
   ExportResult,
   FeedbackResult,
+  FeedbackCallOptions,
   ContextInjectionParams,
   ContextInjectionResult,
   HealthCheck
@@ -229,18 +231,23 @@ export class MementoClient extends EventEmitter {
 
   /**
    * 기억 검색
+   *
+   * `feedback()`에 넘길 `score_breakdown`을 얻으려면 `recallOptions`에
+   * `{ include_metadata: true, include_score_breakdown: true }`를 지정한다(서버 계약).
    */
   async recall(
-    query: string, 
-    filters?: SearchFilters, 
-    limit?: number
+    query: string,
+    filters?: SearchFilters,
+    limit?: number,
+    recallOptions?: RecallCallOptions
   ): Promise<SearchResult> {
     this.ensureConnected();
-    
+
     const response = await this.httpClient.post('/tools/recall', {
       query,
       filters,
-      limit
+      limit,
+      ...recallOptions,
     });
     
     // 서버 응답에서 result 객체 추출
@@ -267,15 +274,25 @@ export class MementoClient extends EventEmitter {
     this.ensureConnected();
     
     // recall API를 사용하여 하이브리드 검색 수행
-    const searchResult = await this.recall(params.query, params.filters, params.limit);
-    
+    const recallExtras: RecallCallOptions = {
+      include_metadata: params.include_metadata,
+      include_score_breakdown: params.include_score_breakdown,
+    };
+    if (params.vectorWeight !== undefined) {
+      recallExtras.vector_weight = params.vectorWeight;
+    }
+    if (params.textWeight !== undefined) {
+      recallExtras.text_weight = params.textWeight;
+    }
+    const searchResult = await this.recall(params.query, params.filters, params.limit, recallExtras);
+
     // SearchResult를 HybridSearchResult로 변환
     return {
       items: searchResult.items.map(item => ({
         ...item,
         textScore: item.score || 0,
         vectorScore: 0, // 벡터 점수는 현재 사용하지 않음
-        finalScore: item.score || 0
+        finalScore: item.score || 0,
       })),
       total_count: searchResult.total_count,
       query_time: searchResult.query_time,
@@ -487,12 +504,16 @@ export class MementoClient extends EventEmitter {
 
   /**
    * 피드백 제공
+   * @param score_breakdown 5번째 인자 — `feedback(id, h, comment, score, breakdown)` 형태가 자연스럽게 동작
+   * @param options 6번째 인자 — 출처 추적(FR-002) `session_id`·`agent_id`
    */
   async feedback(
     memoryId: string,
     helpful: boolean,
     comment?: string,
-    score?: number
+    score?: number,
+    score_breakdown?: unknown,
+    options?: FeedbackCallOptions
   ): Promise<FeedbackResult> {
     this.ensureConnected();
     
@@ -500,10 +521,14 @@ export class MementoClient extends EventEmitter {
       memory_id: memoryId,
       helpful,
       comment,
-      score
+      score,
+      ...(score_breakdown !== undefined ? { score_breakdown } : {}),
+      ...(options?.session_id !== undefined ? { session_id: options.session_id } : {}),
+      ...(options?.agent_id !== undefined ? { agent_id: options.agent_id } : {})
     });
-    
-    return response.data;
+
+    const result = response.data.result;
+    return result;
   }
 
   /**

@@ -293,7 +293,8 @@ const RecallSchema = z.object({
   process_id: z.union([z.string(), z.array(z.string())]).optional(),
   /** Memori Attribution: 세션 ID 필터 (Issue #87) */
   session_id: z.union([z.string(), z.array(z.string())]).optional(),
-  include_diff_with: z.string().optional() // 'previous' 또는 비교할 메모리 id
+  include_diff_with: z.string().optional(), // 'previous' 또는 비교할 메모리 id
+  include_score_breakdown: z.boolean().optional().default(false)
 }).refine((data) => {
   // 조건부 필수 검증
   if (data.type === 'core' || data.type === 'vault') {
@@ -535,7 +536,14 @@ export class RecallTool extends BaseTool {
           include_metadata: {
             type: 'boolean',
             default: true,
-            description: '메타데이터 포함 여부 (선택사항)'
+            description:
+              '메타데이터 포함 여부 (선택사항). false면 응답에서 메타데이터 블록을 생략하며, score_breakdown도 포함하지 않음(include_score_breakdown=true여도).'
+          },
+          include_score_breakdown: {
+            type: 'boolean',
+            default: false,
+            description:
+              'true일 때 각 결과에 score_breakdown 포함. include_metadata=false이면 적용되지 않음(메타·세부 점수 모두 생략). relevance.score/pct는 α·relevance(블렌딩)뿐 아니라 관계·절차·process_fit 기여를 동일 슬롯에 합산(FR-008·contracts §1).'
           },
           provider_filter: {
             type: 'array',
@@ -657,7 +665,8 @@ export class RecallTool extends BaseTool {
         include_diff_with,
         owner_id: owner_id_filter,
         process_id: process_id_filter,
-        session_id: session_id_filter
+        session_id: session_id_filter,
+        include_score_breakdown
       } = RecallSchema.parse(params);
       
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
@@ -909,6 +918,8 @@ export class RecallTool extends BaseTool {
         const textWeight = text_weight ?? 0.4;
         const enableHybrid = enable_hybrid ?? true;
         const includeMetadata = include_metadata ?? true;
+        /** 계약: score_breakdown은 include_metadata∧include_score_breakdown일 때만(검색 엔진 부하 절감) */
+        const wantScoreBreakdown = includeMetadata && include_score_breakdown === true;
         
         // 가중치 정규화
         const totalWeight = vectorWeight + textWeight;
@@ -941,7 +952,8 @@ export class RecallTool extends BaseTool {
               textWeight: normalizedTextWeight,
               provider_filter: providerFilter,
               match_trigger_conditions: match_trigger_conditions,
-              context: actualTriggerContext // 구조화된 컨텍스트 정보 전달
+              context: actualTriggerContext, // 구조화된 컨텍스트 정보 전달
+              include_score_breakdown: wantScoreBreakdown
             });
           } else {
             // 텍스트 검색만 사용
@@ -954,7 +966,8 @@ export class RecallTool extends BaseTool {
             searchResult = await context.services.searchEngine.search(context.db, {
               query,
               filters,
-              limit
+              limit,
+              include_score_breakdown: wantScoreBreakdown
             });
           }
         } catch (searchError) {
@@ -1075,23 +1088,6 @@ export class RecallTool extends BaseTool {
           searchType: enableHybrid ? 'hybrid' : 'text'
         });
         
-        // 메타데이터 구성 (앵커 설정 결과 포함)
-        const metadata: RecallResponseMetadata = {
-          anchor_set: anchorSetResult?.anchor_set || null
-        };
-        
-        // 앵커 설정 실패 시
-        if (anchorSetResult && anchorSetResult.error) {
-          metadata.anchor_set_error = true;
-        }
-        
-        // 앵커 설정 건너뜀 시
-        if (anchorSetResult && anchorSetResult.skipped) {
-          metadata.anchor_set_skipped = true;
-          metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
-        }
-
-        // 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용)
         const sr = searchResult as unknown as {
           text_count?: number;
           vector_count?: number;
@@ -1100,10 +1096,46 @@ export class RecallTool extends BaseTool {
           tfidf_query_embedding_fallback?: boolean;
           tfidf_query_embedding_fallback_providers?: string[];
         };
-        if (includeMetadata && searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
-          metadata.text_result_count = sr.text_count;
-          metadata.vector_result_count = sr.vector_count;
-          if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
+
+        let metadata: RecallResponseMetadata | undefined;
+        let metaStats: Record<string, MetaStatsItem> | undefined;
+
+        if (includeMetadata) {
+          metadata = {
+            anchor_set: anchorSetResult?.anchor_set || null
+          };
+
+          if (anchorSetResult && anchorSetResult.error) {
+            metadata.anchor_set_error = true;
+          }
+
+          if (anchorSetResult && anchorSetResult.skipped) {
+            metadata.anchor_set_skipped = true;
+            metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
+          }
+
+          if (searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
+            metadata.text_result_count = sr.text_count;
+            metadata.vector_result_count = sr.vector_count;
+            if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
+          }
+
+          const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
+          if (
+            hybridRan &&
+            sr.query_embedding_providers &&
+            sr.query_embedding_providers.length > 0
+          ) {
+            const qe = buildQueryEmbeddingMetadataFields(
+              sr.query_embedding_providers as EmbeddingProvider[]
+            );
+            metadata.embedding_provider = qe.embedding_provider;
+            metadata.query_embedding_providers = qe.query_embedding_providers;
+          }
+
+          if (context.services.metaMemoryService && processedResults.length > 0) {
+            metaStats = await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService);
+          }
         }
 
         const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
@@ -1115,23 +1147,6 @@ export class RecallTool extends BaseTool {
             sr.tfidf_query_embedding_fallback_providers as EmbeddingProvider[] | undefined
           );
         }
-        if (
-          includeMetadata &&
-          hybridRan &&
-          sr.query_embedding_providers &&
-          sr.query_embedding_providers.length > 0
-        ) {
-          const qe = buildQueryEmbeddingMetadataFields(
-            sr.query_embedding_providers as EmbeddingProvider[]
-          );
-          metadata.embedding_provider = qe.embedding_provider;
-          metadata.query_embedding_providers = qe.query_embedding_providers;
-        }
-
-        // Meta Memory Statistics 조회 (include_metadata=true일 때만)
-        const metaStats = includeMetadata && context.services.metaMemoryService && processedResults.length > 0
-          ? await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService)
-          : undefined;
 
         // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
         if (mementoConfig.recallProfileEnabled) {
@@ -1148,10 +1163,14 @@ export class RecallTool extends BaseTool {
             vector_weight: normalizedVectorWeight,
             text_weight: normalizedTextWeight,
             enable_hybrid: enableHybrid
-          },
-          metadata,
-          meta_stats: metaStats
+          }
         };
+        if (includeMetadata && metadata !== undefined) {
+          resultObj.metadata = metadata;
+        }
+        if (includeMetadata && metaStats !== undefined) {
+          resultObj.meta_stats = metaStats;
+        }
         // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
         const cachedScan = context.services?.introspectionScanCache?.get();
         if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
@@ -1375,6 +1394,10 @@ export class RecallTool extends BaseTool {
         // Consolidation Score 포함 (기능 플래그 활성화 시)
         if (mementoConfig.consolidationScoreEnabled && item.consolidation_score !== undefined) {
           processed.consolidation_score = item.consolidation_score;
+        }
+
+        if (item.score_breakdown !== undefined) {
+          processed.score_breakdown = item.score_breakdown;
         }
       }
 

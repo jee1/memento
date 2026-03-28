@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { join } from 'path';
+import { randomUUID } from 'crypto';
 import { unlinkSync, existsSync, mkdirSync } from 'fs';
 import { MigrationDetector } from './migration-detector.js';
 import { MigrationRunner } from './migration-runner.js';
@@ -154,7 +155,7 @@ describe('Migration System Integration', () => {
     if (!existsSync(testDir)) {
       mkdirSync(testDir, { recursive: true });
     }
-    testDbPath = join(testDir, `test-migration-${Date.now()}.db`);
+    testDbPath = join(testDir, `test-migration-${randomUUID()}.db`);
     db = new Database(testDbPath);
     
     // 백업 디렉토리 설정

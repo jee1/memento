@@ -323,11 +323,12 @@ export class HybridSearchEngine {
     private logger: ISearchLogger,
     private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService(),
     relationGraph?: RelationGraph,
-    proceduralMemoryMatcher?: IProceduralMemoryMatcher
+    proceduralMemoryMatcher?: IProceduralMemoryMatcher,
+    rankingWeightsPath?: string
   ) {
     this.proceduralMemoryMatcher = proceduralMemoryMatcher ?? new ProceduralMemoryMatcher();
     // 외부 설정 파일에서 가중치를 로드하여 런타임에 조정 가능하도록 합니다.
-    const config = getRankingWeights();
+    const config = getRankingWeights(rankingWeightsPath);
     this.ranking = new SearchRanking({
       relevance: config.ranking_weights.alpha,
       recency: config.ranking_weights.beta,

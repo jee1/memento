@@ -6,11 +6,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, unlinkSync, mkdirSync } from 'fs';
+import { existsSync, unlinkSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { initializeDatabase, closeDatabase } from '../../src/infrastructure/database/database/init.js';
-import Database from 'better-sqlite3';
+function jsonEmbedding(dim: number): string {
+  return JSON.stringify(Array.from({ length: dim }, () => 0.01));
+}
 
 describe('migrate-embedding-data 통합 테스트', () => {
   let testDbPath: string;
@@ -58,25 +60,29 @@ describe('migrate-embedding-data 통합 테스트', () => {
    */
   it('should create backup successfully', async () => {
     // Given: 정상적인 데이터베이스 초기화
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
-      // 테스트 데이터 삽입
+      // 테스트 데이터 삽입 (memory_id NOT NULL, FK → memory_item)
       db.exec(`
-        INSERT INTO memory_embedding (id, embedding, dim, model)
-        VALUES (1, '[]', 384, 'lightweight-hybrid')
+        INSERT INTO memory_item (id, type, content) VALUES ('mig_emb_1', 'semantic', 'migrate-embedding test');
       `);
-      
-      // When: 백업 생성
-      const backupDb = new Database(testBackupPath);
-      db.backup(testBackupPath);
-      backupDb.close();
-      
-      // Then: 백업 파일이 생성되었는지 확인
-      expect(existsSync(testBackupPath)).toBe(true);
+      const ins = db.prepare(`
+        INSERT INTO memory_embedding (memory_id, embedding, dim, model, projection_type)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      ins.run('mig_emb_1', jsonEmbedding(384), 384, 'lightweight-hybrid', 'native');
     } finally {
       closeDatabase(db);
     }
+
+    // When: 파일 스냅샷 백업 (better-sqlite3 backup API는 비동기 step이 필요함)
+    if (existsSync(testDbPath)) {
+      copyFileSync(testDbPath, testBackupPath);
+    }
+
+    // Then: 백업 파일이 생성되었는지 확인
+    expect(existsSync(testBackupPath)).toBe(true);
   });
 
   /**
@@ -86,7 +92,7 @@ describe('migrate-embedding-data 통합 테스트', () => {
    */
   it('should analyze existing data correctly', async () => {
     // Given: 정상적인 데이터베이스 초기화 및 테스트 데이터
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
       // memory_embedding 테이블이 있는지 확인
@@ -130,7 +136,7 @@ describe('migrate-embedding-data 통합 테스트', () => {
    */
   it('should update metadata successfully', async () => {
     // Given: 정상적인 데이터베이스 초기화 및 테스트 데이터
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
       // memory_embedding 테이블 확인
@@ -183,7 +189,7 @@ describe('migrate-embedding-data 통합 테스트', () => {
    */
   it('should validate migration successfully', async () => {
     // Given: 정상적인 데이터베이스 초기화
-    const db = await initializeDatabase();
+    const db = await initializeDatabase(testDbPath);
     
     try {
       // memory_embedding 테이블 확인

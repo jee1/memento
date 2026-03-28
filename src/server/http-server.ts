@@ -9,20 +9,25 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
 import { createServer } from 'http';
-import { initializeDatabase, closeDatabase } from '../infrastructure/database/database/init.js';
-import { mementoConfig, validateConfig } from '../shared/config/index.js';
-import { initializeServices, type ServerServices } from './bootstrap.js';
-import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
-import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
-import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
-import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
-import { getBatchScheduler } from '../infrastructure/scheduler/batch-scheduler.js';
-// ConsolidationScoreService는 serverServices를 통해 접근
-import { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
-import { getToolRegistry } from '../tools/index.js';
+import {
+  createMementoCore,
+  closeDatabase,
+  createToolContext,
+  getToolRegistry,
+  type ServerServices as CoreServerServices,
+  mementoConfig,
+  validateConfig,
+  getVectorSearchEngine,
+  getBatchScheduler,
+  logger,
+  getMementoHttpSecurityStartupViolationMessage,
+  isHttpBindHostRemotelyReachable,
+  canonicalizeHttpBindHostForListen,
+  formatHttpBindHostForUrl,
+  MementoHttpSecurityStartupError
+} from '@memento/core';
+import type { ServerServices as LocalServerServices } from './bootstrap.js';
 import Database from 'better-sqlite3';
-import { createToolContext } from './context.js';
 import packageJson from '../../package.json' with { type: 'json' };
 // Phase 1.2: 라우터 import
 import { createToolsRouter } from './routes/tools.routes.js';
@@ -32,53 +37,38 @@ import { createMcpRouter, type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 // Phase 0: 공통 미들웨어 import
 import { createServiceInjector, createToolContextMiddleware, createAdminAuthMiddleware, errorHandler } from './middleware/index.js';
-import { logger } from '../shared/utils/logger.js';
-import {
-  getMementoHttpSecurityStartupViolationMessage,
-  isHttpBindHostRemotelyReachable,
-  canonicalizeHttpBindHostForListen,
-  formatHttpBindHostForUrl,
-  MementoHttpSecurityStartupError
-} from '../shared/http/http-bind-policy.js';
 
-// 전역 변수
+// 전역 변수 (서비스는 serverServices로만 접근)
 let db: Database.Database | null = null;
-let searchEngine: SearchEngine;
-let hybridSearchEngine: HybridSearchEngine;
-let vectorSearchEngine: ReturnType<typeof getVectorSearchEngine>;
-let embeddingService: MemoryEmbeddingService;
-// 서비스들은 serverServices를 통해 접근하므로 개별 변수는 제거
-// let forgettingPolicyService: ServerServices['forgettingPolicyService'];
-// let performanceMonitor: ServerServices['performanceMonitor'];
-// let databaseOptimizer: ServerServices['databaseOptimizer'];
-// let errorLoggingService: ServerServices['errorLoggingService'];
-// let performanceAlertService: ServerServices['performanceAlertService'];
-// let consolidationScoreService: ConsolidationScoreService | null = null;
-let writeCoalescingManager: WriteCoalescingManager | null = null;
-// 부트스트랩에서 반환된 전체 서비스 객체 (ToolContext 생성 시 사용)
-let serverServices: ServerServices | null = null;
+let serverServices: CoreServerServices | null = null;
 
 // Phase 1.2: 라우터에서 사용할 전역 변수들
 // SSE Transport 저장소 (MCP 라우터용)
 const transports: Record<string, SSETransport> = {};
 
 type TestDependencies = {
-  database: Database.Database;
-  searchEngine?: SearchEngine;
-  hybridSearchEngine?: HybridSearchEngine;
-  embeddingService?: MemoryEmbeddingService;
+  database: Database.Database | null;
+  serverServices?: CoreServerServices | null;
+  searchEngine?: CoreServerServices['searchEngine'];
+  hybridSearchEngine?: CoreServerServices['hybridSearchEngine'];
+  embeddingService?: CoreServerServices['embeddingService'];
 };
 
-function setTestDependencies({
-  database,
-  searchEngine: search,
-  hybridSearchEngine: hybrid,
-  embeddingService: embedding
-}: TestDependencies): void {
-  db = database;
-  searchEngine = search ?? new SearchEngine();
-  hybridSearchEngine = hybrid ?? HybridSearchFactory.createDefaultEngine(db);
-  embeddingService = embedding ?? new MemoryEmbeddingService();
+function setTestDependencies(_deps: TestDependencies): void {
+  db = _deps.database ?? null;
+  if (_deps.serverServices !== undefined) {
+    serverServices = _deps.serverServices ?? null;
+  } else if (
+    _deps.searchEngine != null &&
+    _deps.hybridSearchEngine != null &&
+    _deps.embeddingService != null
+  ) {
+    serverServices = {
+      searchEngine: _deps.searchEngine,
+      hybridSearchEngine: _deps.hybridSearchEngine,
+      embeddingService: _deps.embeddingService
+    } as CoreServerServices;
+  }
 }
 
 // Express 앱 생성
@@ -143,41 +133,30 @@ async function initializeServer() {
     logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
     logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
 
-    // 데이터베이스 초기화
-    db = await initializeDatabase();
-    
-    // 공용 부트스트랩 함수를 사용하여 모든 서비스 초기화
-    const services = await initializeServices(db);
-    
-    // 전역 변수에 서비스 할당
-    searchEngine = services.searchEngine;
-    hybridSearchEngine = services.hybridSearchEngine;
-    embeddingService = services.embeddingService;
-    // 서비스들은 serverServices를 통해 접근
-    // forgettingPolicyService = services.forgettingPolicyService;
-    // performanceMonitor = services.performanceMonitor;
-    // databaseOptimizer = services.databaseOptimizer;
-    // errorLoggingService = services.errorLoggingService;
-    // performanceAlertService = services.performanceAlertService;
-    // consolidationScoreService = services.consolidationScoreService || null;
-    writeCoalescingManager = services.writeCoalescingManager || null;
-    
-    // 부트스트랩에서 반환된 전체 서비스 객체 저장 (ToolContext 생성 시 사용)
+    // @memento/core로 DB·서비스 초기화
+    const core = await createMementoCore({
+      dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
+    });
+    db = core.db;
+    const services = core.services;
+
     serverServices = services;
-    
+
     // Vector Search Engine 초기화 (HTTP 서버 전용)
-    vectorSearchEngine = getVectorSearchEngine();
+    const vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);
-    
+
+    const localServices = serverServices as unknown as LocalServerServices;
+
     // Phase 0: 공통 미들웨어 적용
     // 서비스 주입 미들웨어 (모든 라우터에 적용)
-    app.use(createServiceInjector(serverServices, db));
-    
+    app.use(createServiceInjector(localServices, db));
+
     // Phase 1.2: 라우터 초기화 및 등록
-    toolsRouter = createToolsRouter(db, serverServices, anchorMapSubscribers);
-    adminRouter = createAdminRouter(db, serverServices);
-    apiRouter = createApiRouter(db, serverServices);
-    mcpRouter = createMcpRouter(db, serverServices, transports);
+    toolsRouter = createToolsRouter(db, localServices, anchorMapSubscribers);
+    adminRouter = createAdminRouter(db, localServices);
+    apiRouter = createApiRouter(db, localServices);
+    mcpRouter = createMcpRouter(db, localServices, transports);
     const qualityRouter = createQualityRouter(db);
     
     // 라우터 등록 (Admin/API/Quality는 ADMIN_API_KEY 설정 시 API 키 인증 적용)
@@ -192,17 +171,7 @@ async function initializeServer() {
     app.use(errorHandler);
     
     logger.info('서비스 초기화 완료');
-    
-    // 배치 스케줄러 시작 (이미 실행 중이면 먼저 중지)
-    const batchScheduler = getBatchScheduler();
-    if (batchScheduler.getStatus().isRunning) {
-      logger.warn('이전 BatchScheduler가 실행 중입니다. 중지 후 재시작합니다');
-      await batchScheduler.stop();
-    }
-    // Reflexion Worker 통합 (Phase 2)
-    await batchScheduler.start(db, services.reflexionWorker);
-    services.batchScheduler = batchScheduler;
-    logger.info('배치 스케줄러 시작됨');
+    // 배치 스케줄러는 core bootstrap에서 이미 시작됨 (services.batchScheduler)
 
     // 임베딩 프로바이더 정보 표시
     const providerInfo: Record<string, unknown> = {
@@ -260,10 +229,9 @@ async function cleanup() {
     }
     
     // Write Coalescing Manager 정리
-    if (writeCoalescingManager) {
-      await writeCoalescingManager.flush();
-      await writeCoalescingManager.destroy();
-      writeCoalescingManager = null;
+    if (serverServices?.writeCoalescingManager) {
+      await serverServices.writeCoalescingManager.flush();
+      await serverServices.writeCoalescingManager.destroy();
       logger.info('Write Coalescing Manager 정리 완료');
     }
     
@@ -466,6 +434,7 @@ wss.on('connection', (ws: WebSocket) => {
 
 // 서버 시작
 async function startServer() {
+  // DB·스케줄러 기동 전에 설정·보안 정책을 검사해 실패 시 리소스가 남지 않게 한다.
   validateConfig();
 
   const PORT = mementoConfig.port || 9001;
@@ -499,6 +468,7 @@ async function startServer() {
     throw error instanceof Error ? error : new Error(String(error));
   }
 
+  // 정리 핸들러 등록 (초기화 성공 후)
   registerCleanupHandlers();
 
   // 이미 리스닝 중이면 먼저 종료
@@ -539,17 +509,17 @@ export const __test: {
   getApp: () => express.Application;
   getServer: () => any;
   getDatabase: () => Database.Database | null;
-  getSearchEngine: () => SearchEngine | undefined;
-  getHybridSearchEngine: () => HybridSearchEngine | undefined;
-  getEmbeddingService: () => MemoryEmbeddingService | undefined;
+  getSearchEngine: () => CoreServerServices['searchEngine'];
+  getHybridSearchEngine: () => CoreServerServices['hybridSearchEngine'];
+  getEmbeddingService: () => CoreServerServices['embeddingService'];
 } = {
   setTestDependencies,
   getApp: () => app,
   getServer: () => server,
   getDatabase: () => db,
-  getSearchEngine: () => searchEngine,
-  getHybridSearchEngine: () => hybridSearchEngine,
-  getEmbeddingService: () => embeddingService
+  getSearchEngine: () => serverServices!.searchEngine,
+  getHybridSearchEngine: () => serverServices!.hybridSearchEngine,
+  getEmbeddingService: () => serverServices!.embeddingService
 };
 
 export { startServer, cleanup };

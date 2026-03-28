@@ -38,6 +38,8 @@ export class MigrationLogger {
   private logDir: string;
   private logFile: string | null = null;
   private entries: LogEntry[] = [];
+  /** true면 파일 로그만 건너뜀(읽기 전용 볼륨 등). 콘솔 로그는 유지. */
+  private fileLoggingDisabled = false;
 
   constructor(logDir?: string) {
     // 기본 로그 디렉토리: data/logs
@@ -56,22 +58,35 @@ export class MigrationLogger {
       }
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.error('❌ 로그 디렉토리 생성 실패', {
+      logger.warn('⚠️ 마이그레이션 로그 디렉터리를 만들 수 없습니다. 파일 로깅을 건너뜁니다.', {
         error: maskedError.message,
-        errorName: maskedError.name
+        errorName: maskedError.name,
+        logDir: this.logDir,
       });
-      throw error;
+      this.fileLoggingDisabled = true;
     }
+  }
+
+  /**
+   * 파일 로깅이 비활성화인지(테스트·진단용)
+   */
+  isFileLoggingDisabled(): boolean {
+    return this.fileLoggingDisabled;
   }
 
   /**
    * 로그 파일 초기화
    */
   initializeLogFile(migrationVersion: string): void {
+    this.entries = [];
+    if (this.fileLoggingDisabled) {
+      this.logFile = null;
+      return;
+    }
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `migration_${migrationVersion}_${timestamp}.log`;
     this.logFile = join(this.logDir, fileName);
-    this.entries = [];
 
     // 로그 파일 헤더 작성
     this.writeToFile(`=== 마이그레이션 로그 시작 ===\n`);
