@@ -175,7 +175,12 @@ function checkFile(filePath: string): PIIMaskingLocation[] {
     // 다양한 import 패턴 지원: import { logger } from '...', import logger from '...', import * as logger from '...'
     // 상대 경로와 절대 경로 모두 지원: '../utils/logger', '../../shared/utils/logger', 'shared/utils/logger', './logger'
     // 같은 디렉토리의 logger.js를 import하는 경우도 감지 (shared/utils/ 디렉토리 내에서)
-    const usesLoggerUtils = /import\s+.*\blogger\b.*from\s+['"].*utils\/logger|from\s+['"].*utils\/logger|import\s+.*\blogger\b.*from\s+['"]\.\/logger|from\s+['"]\.\/logger/.test(content);
+    // @memento/core은 packages/memento-core/src/shared/utils/logger를 re-export하므로 동일하게 마스킹됨
+    const importsLoggerFromMementoCore =
+      /import\s*\{[\s\S]*?\blogger\b[\s\S]*?\}\s*from\s*['"]@memento\/core['"]/.test(content);
+    const usesLoggerUtils =
+      /import\s+.*\blogger\b.*from\s+['"].*utils\/logger|from\s+['"].*utils\/logger|import\s+.*\blogger\b.*from\s+['"]\.\/logger|from\s+['"]\.\/logger/.test(content) ||
+      importsLoggerFromMementoCore;
     
     // shared/utils/ 디렉토리 내에서 logger를 import하는 경우도 확인
     // 같은 디렉토리나 상위 디렉토리의 logger.ts를 import하는 경우
