@@ -83,5 +83,5 @@ export { IntrospectionScanCache } from './domains/memory/services/introspection-
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)
-export type { ToolContext, ToolResult } from './tools/types.js';
+export type { ToolContext, ToolResult, ToolDefinition } from './tools/types.js';
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';

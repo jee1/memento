@@ -30,7 +30,8 @@ import {
   withErrorHandling,
   MemoryNeighborService,
   getVectorSearchEngine,
-  getBatchScheduler
+  getBatchScheduler,
+  type ToolDefinition
 } from '@memento/core';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
@@ -280,7 +281,7 @@ function registerHandlers() {
       await mcpLogger.logMCPProtocol('debug', `등록된 도구 개수: ${tools.length}`, { count: tools.length });
 
       return {
-        tools: tools.map(tool => ({
+        tools: tools.map((tool: ToolDefinition) => ({
           name: tool.name,
           description: tool.description,
           inputSchema: tool.inputSchema
@@ -465,7 +466,7 @@ function registerHandlers() {
             errorLoggingService: serverServices!.errorLoggingService,
             severity: ErrorSeverity.HIGH,
             category: ErrorCategory.TOOL_EXECUTION,
-            transformError: (error) => new Error(`Tool execution failed: ${error.message}`)
+            transformError: (error: Error) => new Error(`Tool execution failed: ${error.message}`)
           }
         );
       } finally {

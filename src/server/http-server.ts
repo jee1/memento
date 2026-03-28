@@ -138,26 +138,27 @@ async function initializeServer() {
       dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
     });
     db = core.db;
+    const connectedDb = core.db;
     const services = core.services;
 
     serverServices = services;
 
     // Vector Search Engine 초기화 (HTTP 서버 전용)
     const vectorSearchEngine = getVectorSearchEngine();
-    vectorSearchEngine.initialize(db);
+    vectorSearchEngine.initialize(connectedDb);
 
     const localServices = serverServices as unknown as LocalServerServices;
 
     // Phase 0: 공통 미들웨어 적용
     // 서비스 주입 미들웨어 (모든 라우터에 적용)
-    app.use(createServiceInjector(localServices, db));
+    app.use(createServiceInjector(localServices, connectedDb));
 
     // Phase 1.2: 라우터 초기화 및 등록
-    toolsRouter = createToolsRouter(db, localServices, anchorMapSubscribers);
-    adminRouter = createAdminRouter(db, localServices);
-    apiRouter = createApiRouter(db, localServices);
-    mcpRouter = createMcpRouter(db, localServices, transports);
-    const qualityRouter = createQualityRouter(db);
+    toolsRouter = createToolsRouter(connectedDb, localServices, anchorMapSubscribers);
+    adminRouter = createAdminRouter(connectedDb, localServices);
+    apiRouter = createApiRouter(connectedDb, localServices);
+    mcpRouter = createMcpRouter(connectedDb, localServices, transports);
+    const qualityRouter = createQualityRouter(connectedDb);
     
     // 라우터 등록 (Admin/API/Quality는 ADMIN_API_KEY 설정 시 API 키 인증 적용)
     const adminAuth = createAdminAuthMiddleware();

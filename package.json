@@ -36,7 +36,7 @@
     "test:vector-search-quality": "vitest --run src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "eslint src/**/*.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "npm run build -w @memento/core && tsc --noEmit",
     "db:init": "npm run db:init -w @memento/core",
     "db:migrate": "npm run db:migrate -w @memento/core",
     "db:check-migration": "tsx src/scripts/check-migration-status.ts",
