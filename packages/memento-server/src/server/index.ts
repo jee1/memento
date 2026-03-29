@@ -20,6 +20,7 @@ import {
   closeDatabase,
   createToolContext,
   getToolRegistry,
+  executeTool,
   type ServerServices,
   mementoConfig,
   validateConfig,
@@ -436,8 +437,7 @@ function registerHandlers() {
             if (!serverServices) throw new Error('서비스가 초기화되지 않았습니다');
             if (!db) throw new Error('데이터베이스가 초기화되지 않았습니다');
             const context = createToolContext(db, serverServices);
-            const toolRegistry = getToolRegistry();
-            const toolResult = await toolRegistry.execute(name, args, context);
+            const toolResult = await executeTool(name, args, context);
             await mcpLogger.logMCPProtocol('debug', `도구 실행 완료: ${name}`, { toolName: name });
             
             // MCP 형식으로 변환

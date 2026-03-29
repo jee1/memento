@@ -47,7 +47,8 @@ const ENV_DEFAULTS: Record<string, string> = {
   // 배치 스케줄러 간격
   BATCH_HEALTH_CHECK_INTERVAL_MS: '300000',    // 헬스체크 주기 (기본: 5분)
   BATCH_MONITORING_INTERVAL_MS: '300000',      // 모니터링 수집 주기 (기본: 5분)
-  BATCH_JOB_PROCESSOR_INTERVAL_MS: '1000'     // 큐 폴링 주기 (기본: 1000ms)
+  BATCH_JOB_PROCESSOR_INTERVAL_MS: '1000',     // 큐 폴링 주기 (기본: 1000ms)
+  TELEMETRY_RETENTION_DAYS: '90'
 };
 
 interface ResolveEnvOptions {

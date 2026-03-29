@@ -8,7 +8,7 @@ import { Router, type Request, type Response } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import type { ToolContext } from '../../tools/types.js';
-import { getToolRegistry } from '../../tools/index.js';
+import { executeTool, getToolRegistry, type ToolContext as CoreToolContext } from '@memento/core';
 import { createToolContext } from '../context.js';
 import { logger } from '../../shared/utils/logger.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
@@ -236,8 +236,7 @@ export function createMcpRouter(
           const toolContext = createToolContext(serverContext);
 
           // 도구 실행
-          const toolRegistry = getToolRegistry();
-          const toolResult = await toolRegistry.execute(name, args, toolContext);
+          const toolResult = await executeTool(name, args, toolContext as CoreToolContext);
 
           result = {
             jsonrpc: '2.0',
@@ -332,14 +331,13 @@ export function createMcpRouter(
               };
             } else {
               // MemoryInjectionPrompt 도구 사용
-              const toolRegistry = getToolRegistry();
               const serverContext = {
                 db: db!,
                 services: serverServices
               };
               const toolContext = createToolContext(serverContext);
 
-              const promptResult = await toolRegistry.execute('memory_injection', args, toolContext);
+              const promptResult = await executeTool('memory_injection', args, toolContext as CoreToolContext);
 
               result = {
                 jsonrpc: '2.0',

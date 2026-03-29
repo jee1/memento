@@ -117,6 +117,7 @@ export class FeedbackTool extends BaseTool {
   }
 
   async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
+    const t0 = Date.now();
     const parsed = FeedbackSchema.parse(params);
     this.validateDatabase(context);
 
@@ -143,6 +144,15 @@ export class FeedbackTool extends BaseTool {
         session_id: parsed.session_id,
         agent_id: parsed.agent_id,
         score_breakdown_json: scoreBreakdownJson
+      });
+
+      const ownerForTel = parsed.agent_id ?? context.agentId ?? null;
+      context.services?.telemetryService?.record({
+        eventType: parsed.helpful ? 'memory.feedback.positive' : 'memory.feedback.negative',
+        outcome: 'success',
+        ownerId: ownerForTel,
+        latencyMs: Date.now() - t0,
+        extraData: { memory_id: parsed.memory_id }
       });
 
       return this.createSuccessResult({

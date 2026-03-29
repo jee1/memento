@@ -38,6 +38,8 @@ import { DatabaseLockMonitor } from './infrastructure/database/database-lock-mon
 import { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
 import { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
 import type { SqlParam } from './shared/types/index.js';
+import { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
+import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 
 export interface ServerServices {
   searchEngine: SearchEngine;
@@ -62,6 +64,8 @@ export interface ServerServices {
   introspectionScanCache?: IntrospectionScanCache;
   /** 005 sleep consolidation */
   sleepConsolidationService?: SleepConsolidationService;
+  /** 006 observability telemetry */
+  telemetryService?: TelemetryService;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -172,11 +176,15 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const metaMemoryService = new MetaMemoryService(db, writeCoalescingManager);
     logger.info('MetaMemoryService 초기화 완료');
     const introspectionScanCache = new IntrospectionScanCache();
+    const telemetryRepository = new TelemetryRepository(db);
     const batchScheduler = getBatchScheduler();
+    batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
+    const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
     batchScheduler.setIntrospectionScanCache(introspectionScanCache);
     const sleepConsolidationService = new SleepConsolidationService(db, {
       relationGraph: createRelationGraph(db),
-      memoryEmbeddingService: embeddingService
+      memoryEmbeddingService: embeddingService,
+      telemetryService
     });
     batchScheduler.setSleepConsolidationService(sleepConsolidationService);
     await batchScheduler.start(db, reflexionWorker);
@@ -200,7 +208,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       databaseLockMonitor,
       batchScheduler,
       introspectionScanCache,
-      sleepConsolidationService
+      sleepConsolidationService,
+      telemetryService
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -268,6 +268,8 @@ export interface MementoConfig {
   recallProfileEnabled: boolean;
   // FTS5 fallback 강제 (MEMENTO_FTS5_FALLBACK_ENABLED=true 시 reflection_notes FTS 제외)
   fts5FallbackEnabled: boolean;
+  /** FR-014: true이면 recall 텔레메트리에 query 전문을 저장(기본 false = 해시만) */
+  telemetryStoreQueryPlaintext: boolean;
 }
 
 /**

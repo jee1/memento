@@ -14,6 +14,7 @@ import {
   closeDatabase,
   createToolContext,
   getToolRegistry,
+  executeTool,
   type ServerServices,
   mementoConfig,
   validateConfig,
@@ -382,7 +383,7 @@ wss.on('connection', (ws: WebSocket) => {
         const context = createToolContext(db, serverServices);
         
         // 도구 실행
-        const result = await toolRegistry.execute(name, args, context);
+        const result = await executeTool(name, args, context);
         
         ws.send(JSON.stringify({
           jsonrpc: '2.0',
