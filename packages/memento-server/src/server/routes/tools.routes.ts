@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { getToolRegistry, logger } from '@memento/core';
+import { getToolRegistry, executeTool, logger } from '@memento/core';
 import type { ServerServices } from '../bootstrap.js';
 import type Database from 'better-sqlite3';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
@@ -62,7 +62,7 @@ export function createToolsRouter(
       const toolContext = req.toolContext;
 
       // 도구 실행
-      const toolResult = await toolRegistry.execute(name, params, toolContext);
+      const toolResult = await executeTool(name, params, toolContext);
 
       // MCP 형식의 ToolResult에서 실제 데이터 추출
       let actualResult: any = toolResult;

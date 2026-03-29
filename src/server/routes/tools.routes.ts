@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { getToolRegistry } from '../../tools/index.js';
+import { executeTool, getToolRegistry, type ToolContext as CoreToolContext } from '@memento/core';
 import type { ServerServices } from '../bootstrap.js';
 import type Database from 'better-sqlite3';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
@@ -50,8 +50,6 @@ export function createToolsRouter(
     const params = req.body;
 
     try {
-      const toolRegistry = getToolRegistry();
-
       // Phase 0: 미들웨어에서 주입된 ToolContext 사용
       if (!req.toolContext) {
         return res.status(500).json({
@@ -63,7 +61,7 @@ export function createToolsRouter(
       const toolContext = req.toolContext;
 
       // 도구 실행
-      const toolResult = await toolRegistry.execute(name, params, toolContext);
+      const toolResult = await executeTool(name, params, toolContext as CoreToolContext);
 
       // MCP 형식의 ToolResult에서 실제 데이터 추출
       let actualResult: any = toolResult;

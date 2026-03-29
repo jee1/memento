@@ -438,6 +438,41 @@ BEGIN
   WHERE vault_id = NEW.vault_id;
 END;
 
+-- Telemetry (006-observability-telemetry, migrations 027–029)
+CREATE TABLE IF NOT EXISTS telemetry_events (
+  id          TEXT PRIMARY KEY,
+  event_type  TEXT NOT NULL,
+  request_id  TEXT NOT NULL,
+  owner_id    TEXT,
+  latency_ms  INTEGER,
+  outcome     TEXT NOT NULL,
+  error_code  TEXT,
+  extra_data  TEXT,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_te_event_type  ON telemetry_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_te_request_id  ON telemetry_events(request_id);
+CREATE INDEX IF NOT EXISTS idx_te_owner_id    ON telemetry_events(owner_id);
+CREATE INDEX IF NOT EXISTS idx_te_created_at  ON telemetry_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_te_outcome_err ON telemetry_events(outcome)
+  WHERE outcome != 'success';
+CREATE INDEX IF NOT EXISTS idx_te_event_type_created_at ON telemetry_events(event_type, created_at);
+
+CREATE TABLE IF NOT EXISTS telemetry_daily_metrics (
+  id              TEXT PRIMARY KEY,
+  date            TEXT NOT NULL,
+  event_type      TEXT NOT NULL,
+  owner_id        TEXT NOT NULL DEFAULT '',
+  event_count     INTEGER NOT NULL DEFAULT 0,
+  avg_latency_ms  REAL,
+  error_count     INTEGER NOT NULL DEFAULT 0,
+  updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE(date, event_type, owner_id)
+);
+CREATE INDEX IF NOT EXISTS idx_tdm_date       ON telemetry_daily_metrics(date);
+CREATE INDEX IF NOT EXISTS idx_tdm_event_type ON telemetry_daily_metrics(event_type);
+CREATE INDEX IF NOT EXISTS idx_tdm_owner_id   ON telemetry_daily_metrics(owner_id);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

@@ -14,6 +14,7 @@ import {
   closeDatabase,
   createToolContext,
   getToolRegistry,
+  executeTool,
   type ServerServices as CoreServerServices,
   mementoConfig,
   validateConfig,
@@ -353,8 +354,6 @@ wss.on('connection', (ws: WebSocket) => {
           return;
         }
         
-        const toolRegistry = getToolRegistry();
-        
         // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
         if (!serverServices) {
           ws.send(JSON.stringify({
@@ -386,7 +385,7 @@ wss.on('connection', (ws: WebSocket) => {
         const context = createToolContext(db, serverServices);
         
         // 도구 실행
-        const result = await toolRegistry.execute(name, args, context);
+        const result = await executeTool(name, args, context);
         
         ws.send(JSON.stringify({
           jsonrpc: '2.0',

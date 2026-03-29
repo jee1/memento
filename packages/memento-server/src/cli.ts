@@ -61,7 +61,7 @@ const {
   createMementoCore,
   closeDatabase,
   createToolContext,
-  getToolRegistry
+  executeTool
 } = await import('@memento/core');
 
 const dbPath = preOptions.dbPath ?? process.env.DB_PATH ?? mementoConfig.dbPath;
@@ -122,15 +122,13 @@ async function main(): Promise<void> {
     const core = await createMementoCore({ dbPath });
     db = core.db;
     const context = createToolContext(db, core.services);
-    const toolRegistry = getToolRegistry();
-
     if (subcommand === 'recall') {
       const params = recallParams(subcommandArgv(process.argv));
       if (typeof params.query !== 'string' || !String(params.query).trim()) {
         originalStderrWrite('recall requires --query <string>.\n');
         process.exit(1);
       }
-      const result = await toolRegistry.execute('recall', params, context);
+      const result = await executeTool('recall', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
       process.exit(0);
     }
@@ -141,7 +139,7 @@ async function main(): Promise<void> {
         originalStderrWrite('remember requires --content <string>.\n');
         process.exit(1);
       }
-      const result = await toolRegistry.execute('remember', params, context);
+      const result = await executeTool('remember', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
       process.exit(0);
     }
@@ -152,7 +150,7 @@ async function main(): Promise<void> {
         originalStderrWrite('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
         process.exit(1);
       }
-      const result = await toolRegistry.execute('forget', params, context);
+      const result = await executeTool('forget', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
       process.exit(0);
     }
@@ -163,7 +161,7 @@ async function main(): Promise<void> {
         originalStderrWrite('memory_injection requires --query <string>.\n');
         process.exit(1);
       }
-      const result = await toolRegistry.execute('memory_injection', params, context);
+      const result = await executeTool('memory_injection', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
       process.exit(0);
     }

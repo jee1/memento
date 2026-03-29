@@ -54,7 +54,8 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
       reflexionWorker: serverContext.services.reflexionWorker,
       metaMemoryService: serverContext.services.metaMemoryService,
       batchScheduler: serverContext.services.batchScheduler,
-      introspectionScanCache: serverContext.services.introspectionScanCache
+      introspectionScanCache: serverContext.services.introspectionScanCache,
+      telemetryService: serverContext.services.telemetryService
     }
   };
 }

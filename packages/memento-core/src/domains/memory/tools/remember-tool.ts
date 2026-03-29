@@ -7,6 +7,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { createHash } from 'crypto';
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
@@ -476,12 +477,35 @@ export class RememberTool extends BaseTool {
 
       const agent_id = 'default'; // TODO: 향후 context에서 가져오기
 
+      const ch = createHash('sha256').update(`${key}:${value}`).digest('hex').slice(0, 16);
+      const since24hCore = new Date(Date.now() - 86_400_000).toISOString();
+      const isDupCore =
+        context.services?.telemetryService?.hasPriorWriteWithContentHash(ownerId, ch, since24hCore) ??
+        false;
+      // memory_item 경로와 동일: 쓰기 시도 전에 requested 기록(실패 시 completed 부재로 상관 추적 가능)
+      context.services?.telemetryService?.record({
+        eventType: 'memory.write.requested',
+        outcome: 'success',
+        extraData: { memory_type: 'core', content_hash: ch }
+      });
+
       const record = await coreMemoryService.create({
         agent_id,
         key,
         value,
         always_load: always_load || false,
         origin_source
+      });
+      context.services?.telemetryService?.record({
+        eventType: 'memory.write.completed',
+        outcome: 'success',
+        latencyMs: Date.now() - startTime,
+        extraData: {
+          memory_type: 'core',
+          memory_id: record.core_id,
+          content_hash: ch,
+          is_duplicate: isDupCore
+        }
       });
 
       return this.createSuccessResult({
@@ -503,12 +527,34 @@ export class RememberTool extends BaseTool {
 
       const agent_id = 'default'; // TODO: 향후 context에서 가져오기
 
+      const vch = createHash('sha256').update(`${key}:${value}`).digest('hex').slice(0, 16);
+      const since24hVault = new Date(Date.now() - 86_400_000).toISOString();
+      const isDupVault =
+        context.services?.telemetryService?.hasPriorWriteWithContentHash(ownerId, vch, since24hVault) ??
+        false;
+      context.services?.telemetryService?.record({
+        eventType: 'memory.write.requested',
+        outcome: 'success',
+        extraData: { memory_type: 'vault', content_hash: vch }
+      });
+
       const record = await knowledgeVaultService.create({
         agent_id,
         key,
         value,
         immutable: immutable !== false, // 기본값 true
         origin_source
+      });
+      context.services?.telemetryService?.record({
+        eventType: 'memory.write.completed',
+        outcome: 'success',
+        latencyMs: Date.now() - startTime,
+        extraData: {
+          memory_type: 'vault',
+          memory_id: record.vault_id,
+          content_hash: vch,
+          is_duplicate: isDupVault
+        }
       });
 
       return this.createSuccessResult({
@@ -524,6 +570,13 @@ export class RememberTool extends BaseTool {
       if (!content) {
         throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
       }
+
+      const contentHash = createHash('sha256').update(content).digest('hex').slice(0, 16);
+      context.services?.telemetryService?.record({
+        eventType: 'memory.write.requested',
+        outcome: 'success',
+        extraData: { memory_type: type, content_hash: contentHash }
+      });
 
       // 타입 가드로 검증
       if (!isMemoryItemType(type)) {
@@ -1357,6 +1410,25 @@ export class RememberTool extends BaseTool {
             });
           });
         }
+
+        const since24h = new Date(Date.now() - 86_400_000).toISOString();
+        const isDuplicate =
+          context.services?.telemetryService?.hasPriorWriteWithContentHash(
+            ownerId,
+            contentHash,
+            since24h
+          ) ?? false;
+        context.services?.telemetryService?.record({
+          eventType: 'memory.write.completed',
+          outcome: 'success',
+          latencyMs: Date.now() - startTime,
+          extraData: {
+            memory_type: type,
+            memory_id: id,
+            content_hash: contentHash,
+            is_duplicate: isDuplicate
+          }
+        });
         
         return this.createSuccessResult({
           memory_id: id,

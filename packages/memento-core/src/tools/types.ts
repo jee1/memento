@@ -22,6 +22,7 @@ import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.int
 import type { MetaMemoryService } from '../domains/memory/services/meta-memory-service.js';
 import type { IntrospectionScanCache } from '../domains/memory/services/introspection-scan-cache.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
+import type { TelemetryService } from '../domains/telemetry/services/telemetry-service.js';
 
 export interface ToolDefinition {
   name: string;
@@ -86,6 +87,8 @@ export interface ToolContext {
     batchScheduler?: IBatchScheduler;
     /** Issue #21 Phase B: 인트로스펙션 스캔 결과 캐시 */
     introspectionScanCache?: IntrospectionScanCache;
+    /** 006: MCP 도구 텔레메트리 (fire-and-forget) */
+    telemetryService?: TelemetryService;
   };
 }
 

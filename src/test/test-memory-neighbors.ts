@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 // GetMemoryNeighborsTool은 사용되지 않음
-import { getToolRegistry } from '../tools/index.js';
+import { executeTool } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { getVectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
@@ -68,10 +68,9 @@ describe('Memory Neighbors E2E Tests', () => {
         return;
       }
 
-      const toolRegistry = getToolRegistry();
       const memoryId = testMemoryIds[0];
 
-      const result = await toolRegistry.execute(
+      const result = await executeTool(
         'get_memory_neighbors',
         {
           memory_id: memoryId,
@@ -96,10 +95,8 @@ describe('Memory Neighbors E2E Tests', () => {
     });
 
     it('should handle non-existent memory via MCP Tool', async () => {
-      const toolRegistry = getToolRegistry();
-
       await expect(
-        toolRegistry.execute(
+        executeTool(
           'get_memory_neighbors',
           {
             memory_id: 'non_existent_id',
@@ -117,10 +114,9 @@ describe('Memory Neighbors E2E Tests', () => {
         return;
       }
 
-      const toolRegistry = getToolRegistry();
       const memoryId = testMemoryIds[0];
 
-      const result = await toolRegistry.execute(
+      const result = await executeTool(
         'get_memory_neighbors',
         {
           memory_id: memoryId,
@@ -256,11 +252,10 @@ describe('Memory Neighbors E2E Tests', () => {
         return;
       }
 
-      const toolRegistry = getToolRegistry();
       const memoryId = testMemoryIds[0];
 
       const startTime = Date.now();
-      const result = await toolRegistry.execute(
+      const result = await executeTool(
         'get_memory_neighbors',
         {
           memory_id: memoryId,

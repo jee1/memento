@@ -5,7 +5,6 @@
 
 import { initializeDatabase, closeDatabase as closeDb } from './infrastructure/database/database/init.js';
 import { initializeServices } from './bootstrap.js';
-import { getToolRegistry } from './tools/index.js';
 import { validateAndNormalizeDbPath } from './shared/utils/db-path.js';
 
 export interface MementoCoreOptions {
@@ -36,7 +35,7 @@ export function closeDatabase(db: import('better-sqlite3').Database): void {
 }
 
 export { createToolContext, createServerContext } from './context.js';
-export { getToolRegistry } from './tools/index.js';
+export { getToolRegistry, executeTool, resolveTelemetryOwnerId } from './tools/index.js';
 export { initializeServices } from './bootstrap.js';
 export type { ServerServices } from './bootstrap.js';
 export type { ServerContext } from './context.js';
@@ -90,4 +89,9 @@ export type { SleepConsolidationServiceDeps } from './domains/consolidation/inde
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)
 export type { ToolContext, ToolResult, ToolDefinition } from './tools/types.js';
+export type { TelemetryPeriod, EventType } from './domains/telemetry/types/telemetry.types.js';
+export { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
+export { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
+export { TelemetryEventsMigration } from './infrastructure/database/database/migration/migrations/027-telemetry-events.js';
+export { TelemetryDailyMetricsMigration } from './infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';

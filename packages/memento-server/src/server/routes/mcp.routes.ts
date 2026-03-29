@@ -10,6 +10,7 @@ import type { ServerServices } from '../bootstrap.js';
 import {
   type ToolContext,
   getToolRegistry,
+  executeTool,
   createToolContext,
   logger,
   DatabaseUtils,
@@ -239,8 +240,7 @@ export function createMcpRouter(
           const toolContext = createToolContext(serverContext);
 
           // 도구 실행
-          const toolRegistry = getToolRegistry();
-          const toolResult = await toolRegistry.execute(name, args, toolContext);
+          const toolResult = await executeTool(name, args, toolContext);
 
           result = {
             jsonrpc: '2.0',
@@ -335,14 +335,13 @@ export function createMcpRouter(
               };
             } else {
               // MemoryInjectionPrompt 도구 사용
-              const toolRegistry = getToolRegistry();
               const serverContext = {
                 db: db!,
                 services: serverServices
               };
               const toolContext = createToolContext(serverContext);
 
-              const promptResult = await toolRegistry.execute('memory_injection', args, toolContext);
+              const promptResult = await executeTool('memory_injection', args, toolContext);
 
               result = {
                 jsonrpc: '2.0',

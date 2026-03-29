@@ -12,6 +12,8 @@ import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-s
 import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
+import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
+import type { Outcome } from '../../telemetry/types/telemetry.types.js';
 
 export interface SleepConsolidationRunOptions {
   dryRun?: boolean;
@@ -34,6 +36,8 @@ export interface SleepConsolidationServiceDeps {
   consolidationRepository?: ConsolidationRepository;
   clusteringService?: ClusteringService;
   summarizationService?: SummarizationService;
+  /** 006: consolidation.performed 텔레메트리 */
+  telemetryService?: TelemetryService;
 }
 
 function newSemanticId(): string {
@@ -52,6 +56,7 @@ export class SleepConsolidationService {
   private readonly summarization: SummarizationService;
   private readonly relationGraph: IRelationGraph;
   private readonly memoryEmbedding: MemoryEmbeddingService;
+  private readonly telemetryService?: TelemetryService;
 
   constructor(
     private readonly db: Database.Database,
@@ -62,6 +67,7 @@ export class SleepConsolidationService {
     this.summarization = deps.summarizationService ?? new SummarizationService();
     this.relationGraph = deps.relationGraph;
     this.memoryEmbedding = deps.memoryEmbeddingService ?? new MemoryEmbeddingService();
+    this.telemetryService = deps.telemetryService;
   }
 
   /**
@@ -83,7 +89,7 @@ export class SleepConsolidationService {
 
     const started = Date.now();
     const runAt = new Date().toISOString();
-    const result: SleepConsolidationRunResult = {
+    let result: SleepConsolidationRunResult = {
       runAt,
       durationMs: 0,
       clustersFound: 0,
@@ -94,6 +100,7 @@ export class SleepConsolidationService {
       errors: []
     };
 
+    let runThrew = false;
     try {
       const lookback = options.lookbackDays ?? this.repo.getLookbackDays();
       const ownerFilter = options.ownerIdFilter ?? null;
@@ -206,7 +213,26 @@ export class SleepConsolidationService {
 
       result.durationMs = Date.now() - started;
       return result;
+    } catch (e) {
+      runThrew = true;
+      result.durationMs = Date.now() - started;
+      throw e;
     } finally {
+      const outcome: Outcome =
+        runThrew || result.errors.length > 0 ? 'failure' : 'success';
+      // owner_id 미설정: 시스템 배치로 한 실행에 owner가 섞일 수 있어 이벤트는 전역(집계) 관측용이다.
+      this.telemetryService?.record({
+        eventType: 'consolidation.performed',
+        outcome,
+        latencyMs: result.durationMs,
+        extraData: {
+          clusters_found: result.clustersFound,
+          clusters_processed: result.clustersProcessed,
+          semantics_created: result.semanticsCreated,
+          duration_ms: result.durationMs,
+          error_count: result.errors.length
+        }
+      });
       this.activeRun = null;
       release();
     }

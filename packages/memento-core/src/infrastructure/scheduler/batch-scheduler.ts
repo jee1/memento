@@ -33,7 +33,9 @@ import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
 import { SleepConsolidationBatchJob } from './jobs/sleep-consolidation-batch-job.js';
+import { TelemetryCleanupBatchJob } from './jobs/telemetry-cleanup-batch-job.js';
 import type { SleepConsolidationService } from '../../domains/consolidation/services/sleep-consolidation-service.js';
+import type { TelemetryRepository } from '../../domains/telemetry/repositories/telemetry-repository.js';
 import { MetaMemoryIntrospectionService } from '../../domains/memory/services/meta-memory-introspection-service.js';
 import type { IntrospectionScanCache } from '../../domains/memory/services/introspection-scan-cache.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
@@ -62,6 +64,8 @@ export interface BatchJobConfig {
   metaMemoryIntrospectionInterval: number;      // M2 자기성찰 스캔 간격 (기본: 6시간, Issue #21)
   /** Sleep consolidation 배치 간격 (기본: 24h, env: SLEEP_CONSOLIDATION_INTERVAL_MS) */
   sleepConsolidationInterval: number;
+  /** Telemetry raw events cleanup 간격 (기본: 24h, env: TELEMETRY_CLEANUP_INTERVAL_MS) */
+  telemetryCleanupInterval: number;
 
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
@@ -123,6 +127,8 @@ export class BatchScheduler implements IBatchScheduler {
   private isRunning = false;
   private startTime: Date | null = null;
   private lastExecution: Map<string, Date> = new Map();
+  /** 마지막 작업 종료 시각·성공 여부·소요 ms (텔레메트리 system.background_jobs 노출용) */
+  private lastJobRunMeta: Map<string, { at: Date; success: boolean; durationMs: number }> = new Map();
   private totalExecutions: Map<string, number> = new Map();
   private introspectionScanCache: IntrospectionScanCache | null = null;
   private jobProcessorInterval: ReturnType<typeof setInterval> | null = null;
@@ -137,6 +143,8 @@ export class BatchScheduler implements IBatchScheduler {
   private qualityMeasurementBatchJob: QualityMeasurementBatchJob | null = null;
   private sleepConsolidationService: SleepConsolidationService | null = null;
   private sleepConsolidationBatchJob: SleepConsolidationBatchJob | null = null;
+  private telemetryCleanupRepository: TelemetryRepository | null = null;
+  private telemetryCleanupBatchJob: TelemetryCleanupBatchJob | null = null;
 
   constructor(
     config?: Partial<BatchJobConfig>,
@@ -168,6 +176,12 @@ export class BatchScheduler implements IBatchScheduler {
       metaMemoryIntrospectionInterval: 6 * 60 * 60 * 1000, // 6시간 (Issue #21)
       sleepConsolidationInterval: resolveValidatedNumber(
         'SLEEP_CONSOLIDATION_INTERVAL_MS',
+        24 * 60 * 60 * 1000,
+        n => n >= 60_000,
+        '최솟값 60000'
+      ),
+      telemetryCleanupInterval: resolveValidatedNumber(
+        'TELEMETRY_CLEANUP_INTERVAL_MS',
         24 * 60 * 60 * 1000,
         n => n >= 60_000,
         '최솟값 60000'
@@ -294,6 +308,10 @@ export class BatchScheduler implements IBatchScheduler {
       this.scheduleSleepConsolidation();
     }
 
+    if (this.telemetryCleanupRepository) {
+      this.scheduleTelemetryCleanup();
+    }
+
     // M2 자기성찰 스캔 스케줄링 (Issue #21)
     this.scheduleJob(
       'meta_memory_introspection',
@@ -395,6 +413,9 @@ export class BatchScheduler implements IBatchScheduler {
     if (this.config.sleepConsolidationInterval < 60000) {
       throw new Error('sleepConsolidationInterval must be at least 1 minute');
     }
+    if (this.config.telemetryCleanupInterval < 60000) {
+      throw new Error('telemetryCleanupInterval must be at least 1 minute');
+    }
     // weeklyRelationValidationTimeout 검증 (설정된 경우에만)
     if (this.config.weeklyRelationValidationTimeout !== undefined) {
       if (typeof this.config.weeklyRelationValidationTimeout !== 'number' || 
@@ -440,9 +461,11 @@ export class BatchScheduler implements IBatchScheduler {
     this.jobQueue.markRunning(name);
     const startTime = Date.now();
     let retryCount = initialRetryCount;
+    let jobOk = false;
 
     try {
       await this.executeWithTimeout(job, this.config.jobTimeout);
+      jobOk = true;
       this.lastExecution.set(name, new Date());
       this.totalExecutions.set(name, (this.totalExecutions.get(name) || 0) + 1);
       
@@ -511,6 +534,12 @@ export class BatchScheduler implements IBatchScheduler {
         }
       }
     } finally {
+      const durationMs = Date.now() - startTime;
+      this.lastJobRunMeta.set(name, {
+        at: new Date(),
+        success: jobOk,
+        durationMs
+      });
       this.jobQueue.markCompleted(name);
     }
   }
@@ -1867,6 +1896,20 @@ export class BatchScheduler implements IBatchScheduler {
     this.sleepConsolidationBatchJob = null; // 서비스 교체 시 캐시된 잡 무효화
   }
 
+  /**
+   * 텔레메트리 원시 이벤트 정리용 저장소 (bootstrap에서 주입, start 전에 설정)
+   */
+  setTelemetryCleanupRepository(repository: TelemetryRepository | null): void {
+    this.telemetryCleanupRepository = repository;
+    this.telemetryCleanupBatchJob = null;
+  }
+
+  getLastJobRunMeta(
+    name: string
+  ): { at: Date; success: boolean; durationMs: number } | undefined {
+    return this.lastJobRunMeta.get(name);
+  }
+
   private scheduleSleepConsolidation(): void {
     this.scheduleJob(
       'sleep_consolidation_batch',
@@ -1876,6 +1919,29 @@ export class BatchScheduler implements IBatchScheduler {
       },
       8
     );
+  }
+
+  private scheduleTelemetryCleanup(): void {
+    this.scheduleJob(
+      'telemetry_cleanup_batch',
+      this.config.telemetryCleanupInterval,
+      async () => {
+        await this.runTelemetryCleanupBatch();
+      },
+      9
+    );
+  }
+
+  private async runTelemetryCleanupBatch(): Promise<void> {
+    if (!this.telemetryCleanupRepository) {
+      return;
+    }
+    if (!this.telemetryCleanupBatchJob) {
+      this.telemetryCleanupBatchJob = new TelemetryCleanupBatchJob({
+        repository: this.telemetryCleanupRepository
+      });
+    }
+    await this.telemetryCleanupBatchJob.execute();
   }
 
   private async runSleepConsolidationBatch(): Promise<BatchJobResult> {
