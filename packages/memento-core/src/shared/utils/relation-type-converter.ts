@@ -22,7 +22,9 @@ const TYPE_TO_DB_MAP: Record<RelationType, string> = {
   'CONTRASTS_WITH': 'contradicts',
   'FOLLOWS': 'follows', // memory_relation 테이블용 (memory_link에는 없음)
   'REFERENCES': 'references', // memory_relation 테이블용 (memory_link에는 없음)
-  'BELONGS_TO': 'belongs_to' // memory_relation 테이블용 (memory_link에는 없음)
+  'BELONGS_TO': 'belongs_to', // memory_relation 테이블용 (memory_link에는 없음)
+  'extracted_from': 'extracted_from',
+  'supported_by': 'supported_by'
 };
 
 /**
@@ -40,7 +42,9 @@ const DB_TO_TYPE_MAP: Record<string, RelationType> = {
   // memory_relation 테이블용 (memory_link에는 없음)
   'follows': 'FOLLOWS',
   'references': 'REFERENCES',
-  'belongs_to': 'BELONGS_TO'
+  'belongs_to': 'BELONGS_TO',
+  'extracted_from': 'extracted_from',
+  'supported_by': 'supported_by'
 };
 
 /**

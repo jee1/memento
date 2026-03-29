@@ -13,7 +13,6 @@
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
-import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
 import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
@@ -95,8 +94,8 @@ export class SemanticMemoryUpdateService {
 
   constructor(
     private db: Database.Database,
+    relationGraph: RelationGraph,
     embeddingService?: UnifiedEmbeddingService,
-    relationGraph?: RelationGraph,
     kgTripleRepo?: KgTripleRepository
   ) {
     this.canonicalizer = new PredicateCanonicalizer();
@@ -120,7 +119,7 @@ export class SemanticMemoryUpdateService {
       this.embeddingService = new UnifiedEmbeddingService();
     }
     
-    this.relationGraph = relationGraph || createRelationGraph(db);
+    this.relationGraph = relationGraph;
     this.kgTripleRepo = kgTripleRepo ?? new KgTripleRepository(db);
 
     // PRD 8.2: Semantic Memory 생성 통계 수집
@@ -170,7 +169,7 @@ export class SemanticMemoryUpdateService {
         `, [
           'supported_by',
           'Structural',
-          '근거 관계: Semantic Memory가 Episodic Memory에 의해 근거를 가짐',
+          '지지 관계: Episodic Memory가 Semantic Memory에 의해 지지됨',
           JSON.stringify(['episodic', 'semantic']),
           0.7,
           1.1
@@ -995,10 +994,10 @@ export class SemanticMemoryUpdateService {
 
   /**
    * 관계 방향 검증
-   * 
-   * PRD 3.2 관계 타입 정의에 따라:
-   * - extracted_from: source가 Episodic, target이 Semantic이어야 함
-   * - supported_by: source가 Semantic, target이 Episodic이어야 함
+   *
+   * data-model(005) / 스키마와 일치:
+   * - extracted_from: source Semantic → target Episodic (시맨틱이 해당 에피소딕에서 추출됨)
+   * - supported_by: source Episodic → target Semantic (에피소딕이 시맨틱에 의해 지지됨)
    * 
    * @param sourceId 소스 Memory ID
    * @param targetId 타겟 Memory ID
@@ -1025,18 +1024,16 @@ export class SemanticMemoryUpdateService {
 
     // 관계 방향 검증
     if (relationType === 'extracted_from') {
-      // extracted_from: source가 Episodic, target이 Semantic이어야 함
-      if (sourceMemory.type !== 'episodic' || targetMemory.type !== 'semantic') {
+      if (sourceMemory.type !== 'semantic' || targetMemory.type !== 'episodic') {
         throw new Error(
-          `extracted_from 관계 방향 오류: source는 'episodic'이어야 하고 target은 'semantic'이어야 합니다. ` +
+          `extracted_from 관계 방향 오류: source는 'semantic'이어야 하고 target은 'episodic'이어야 합니다. ` +
           `현재: source=${sourceMemory.type}, target=${targetMemory.type}`
         );
       }
     } else if (relationType === 'supported_by') {
-      // supported_by: source가 Semantic, target이 Episodic이어야 함
-      if (sourceMemory.type !== 'semantic' || targetMemory.type !== 'episodic') {
+      if (sourceMemory.type !== 'episodic' || targetMemory.type !== 'semantic') {
         throw new Error(
-          `supported_by 관계 방향 오류: source는 'semantic'이어야 하고 target은 'episodic'이어야 합니다. ` +
+          `supported_by 관계 방향 오류: source는 'episodic'이어야 하고 target은 'semantic'이어야 합니다. ` +
           `현재: source=${sourceMemory.type}, target=${targetMemory.type}`
         );
       }
@@ -1053,8 +1050,8 @@ export class SemanticMemoryUpdateService {
    * - 각 relation 생성 시 계산된 confidence 값을 저장
    * 
    * 두 가지 관계를 생성:
-   * 1. extracted_from (Episodic → Semantic): Episodic Memory에서 Semantic Memory로 추출된 관계
-   * 2. supported_by (Semantic → Episodic): Semantic Memory가 Episodic Memory에 의해 지원되는 관계 (역방향)
+   * 1. extracted_from (Semantic → Episodic): 시맨틱이 해당 에피소딕 출처에서 추출됨
+   * 2. supported_by (Episodic → Semantic): 에피소딕이 시맨틱 요약에 의해 지지됨
    * 
    * 각 관계는 동일한 confidence 값을 가지며, 각 triple별로 독립적인 relation으로 저장됩니다.
    * 
@@ -1077,18 +1074,15 @@ export class SemanticMemoryUpdateService {
   ): Promise<void> {
     // 관계 방향 검증 (PRD 3.2 참고)
     // 검증 실패 시 에러를 상위로 전파
-    await this.validateRelationDirection(episodicMemoryId, semanticMemoryId, 'extracted_from');
-    await this.validateRelationDirection(semanticMemoryId, episodicMemoryId, 'supported_by');
-    
+    await this.validateRelationDirection(semanticMemoryId, episodicMemoryId, 'extracted_from');
+    await this.validateRelationDirection(episodicMemoryId, semanticMemoryId, 'supported_by');
+
     try {
-      // extracted_from 관계 생성 (Episodic → Semantic)
-      // Note: 'extracted_from'와 'supported_by'는 relation_type_registry에 등록되어 있지만
-      // RelationType 타입에는 아직 포함되지 않았으므로 타입 단언 사용
-      // confidence는 memory_relation.confidence 필드에 저장됨
+      // extracted_from (Semantic → Episodic)
       await this.relationGraph.addRelation(
-        episodicMemoryId,
         semanticMemoryId,
-        'extracted_from' as any, // TODO: RelationType 타입 확장 필요
+        episodicMemoryId,
+        'extracted_from',
         {
           confidence, // memory_relation.confidence 필드에 저장
           metadata: {
@@ -1106,12 +1100,11 @@ export class SemanticMemoryUpdateService {
         }
       );
 
-      // supported_by 관계 생성 (Semantic → Episodic, 역방향)
-      // 동일한 confidence 값을 저장
+      // supported_by (Episodic → Semantic)
       await this.relationGraph.addRelation(
-        semanticMemoryId,
         episodicMemoryId,
-        'supported_by' as any, // TODO: RelationType 타입 확장 필요
+        semanticMemoryId,
+        'supported_by',
         {
           confidence, // memory_relation.confidence 필드에 저장
           metadata: {

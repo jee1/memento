@@ -30,6 +30,8 @@ import { ConsolidationScoreService } from './infrastructure/consolidation-score-
 import { ReflexionWorker } from './infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
+import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
+import { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
@@ -58,6 +60,8 @@ export interface ServerServices {
   batchScheduler?: IBatchScheduler;
   /** Issue #21 Phase B: 인트로스펙션 스캔 결과 캐시 (recall/get_meta_memory_stats/get_introspection_summary용) */
   introspectionScanCache?: IntrospectionScanCache;
+  /** 005 sleep consolidation */
+  sleepConsolidationService?: SleepConsolidationService;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -170,6 +174,11 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const introspectionScanCache = new IntrospectionScanCache();
     const batchScheduler = getBatchScheduler();
     batchScheduler.setIntrospectionScanCache(introspectionScanCache);
+    const sleepConsolidationService = new SleepConsolidationService(db, {
+      relationGraph: createRelationGraph(db),
+      memoryEmbeddingService: embeddingService
+    });
+    batchScheduler.setSleepConsolidationService(sleepConsolidationService);
     await batchScheduler.start(db, reflexionWorker);
     return {
       searchEngine,
@@ -190,7 +199,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       walCheckpointScheduler,
       databaseLockMonitor,
       batchScheduler,
-      introspectionScanCache
+      introspectionScanCache,
+      sleepConsolidationService
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

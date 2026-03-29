@@ -368,22 +368,34 @@ export class RelationQualityValidator {
     // 관계 유형별 메트릭 계산
     const relationTypes = ALL_RELATION_TYPES;
 
-    const typeMetrics: Record<RelationType, {
+    const emptyTypeMetric = (): {
       precision: number;
       recall: number;
       f1Score: number;
       truePositives: number;
       falsePositives: number;
       falseNegatives: number;
-    }> = {
-      CAUSES: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      DEPENDS_ON: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      FOLLOWS: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      CONTRASTS_WITH: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      REFERENCES: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      BELONGS_TO: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 },
-      VERSION_OF: { precision: 0, recall: 0, f1Score: 0, truePositives: 0, falsePositives: 0, falseNegatives: 0 }
-    };
+    } => ({
+      precision: 0,
+      recall: 0,
+      f1Score: 0,
+      truePositives: 0,
+      falsePositives: 0,
+      falseNegatives: 0
+    });
+    const typeMetrics = Object.fromEntries(
+      relationTypes.map(t => [t, emptyTypeMetric()])
+    ) as Record<
+      RelationType,
+      {
+        precision: number;
+        recall: number;
+        f1Score: number;
+        truePositives: number;
+        falsePositives: number;
+        falseNegatives: number;
+      }
+    >;
 
     for (const type of relationTypes) {
       typeMetrics[type] = this.calculateTypeMetrics(
@@ -472,16 +484,11 @@ export class RelationQualityValidator {
   calculateConfusionMatrix(matches: RelationMatch[]): ConfusionMatrix {
     const relationTypes = ALL_RELATION_TYPES;
 
-    // 혼동 행렬 초기화
-    const matrix: Record<RelationType, Record<RelationType, number>> = {
-      CAUSES: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
-      DEPENDS_ON: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
-      FOLLOWS: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
-      CONTRASTS_WITH: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
-      REFERENCES: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
-      BELONGS_TO: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 },
-      VERSION_OF: { CAUSES: 0, DEPENDS_ON: 0, FOLLOWS: 0, CONTRASTS_WITH: 0, REFERENCES: 0, BELONGS_TO: 0, VERSION_OF: 0 }
-    };
+    const confusionZeroRow = (): Record<RelationType, number> =>
+      Object.fromEntries(relationTypes.map(t => [t, 0])) as Record<RelationType, number>;
+    const matrix = Object.fromEntries(
+      relationTypes.map(t => [t, confusionZeroRow()])
+    ) as Record<RelationType, Record<RelationType, number>>;
 
     // 매칭 결과를 기반으로 혼동 행렬 채우기
     for (const match of matches) {
@@ -496,16 +503,10 @@ export class RelationQualityValidator {
       }
     }
 
-    // 관계 유형별 정확도 계산
-    const typeAccuracy: Record<RelationType, number> = {
-      CAUSES: 0,
-      DEPENDS_ON: 0,
-      FOLLOWS: 0,
-      CONTRASTS_WITH: 0,
-      REFERENCES: 0,
-      BELONGS_TO: 0,
-      VERSION_OF: 0
-    };
+    const typeAccuracy = Object.fromEntries(relationTypes.map(t => [t, 0])) as Record<
+      RelationType,
+      number
+    >;
     for (const type of relationTypes) {
       const totalForType = matches.filter(
         m => m.expected.expected_relation_type === type
@@ -576,15 +577,9 @@ export class RelationQualityValidator {
     const maxConfidence = confidences.length === 0 ? 0 : Math.max(...confidences);
 
     // 혼동 행렬 계산 (이 관계 유형이 다른 관계 유형으로 잘못 분류된 횟수)
-    const confusionMatrix: Record<RelationType, number> = {
-      CAUSES: 0,
-      DEPENDS_ON: 0,
-      FOLLOWS: 0,
-      CONTRASTS_WITH: 0,
-      REFERENCES: 0,
-      BELONGS_TO: 0,
-      VERSION_OF: 0
-    };
+    const confusionMatrix = Object.fromEntries(
+      ALL_RELATION_TYPES.map(t => [t, 0])
+    ) as Record<RelationType, number>;
 
     // 예상 관계 유형이 relationType인데 다른 유형으로 추출된 경우
     const matchesForType = matches.filter(
@@ -644,16 +639,12 @@ export class RelationQualityValidator {
   ): Record<RelationType, TypeAnalysis> {
     const relationTypes = ALL_RELATION_TYPES;
 
-    // 모든 관계 유형에 대해 분석 수행
-    const analysis: Record<RelationType, TypeAnalysis> = {
-      CAUSES: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'CAUSES'),
-      DEPENDS_ON: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'DEPENDS_ON'),
-      FOLLOWS: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'FOLLOWS'),
-      CONTRASTS_WITH: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'CONTRASTS_WITH'),
-      REFERENCES: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'REFERENCES'),
-      BELONGS_TO: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'BELONGS_TO'),
-      VERSION_OF: this.analyzeRelationType(matches, extractedRelations, expectedRelations, 'VERSION_OF')
-    };
+    const analysis = Object.fromEntries(
+      relationTypes.map(t => [
+        t,
+        this.analyzeRelationType(matches, extractedRelations, expectedRelations, t)
+      ])
+    ) as Record<RelationType, TypeAnalysis>;
 
     return analysis;
   }

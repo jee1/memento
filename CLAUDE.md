@@ -123,6 +123,9 @@ MEMENTO_HTTP_BIND_HOST=127.0.0.1   # loopback only by default
 - Conventional commits: `feat:`, `fix:`, `chore:` — Korean context in body is fine
 - Run `npm run lint -- --fix` before committing
 - Never commit `data/` or `dist/` contents
+- **의존성 방향**: `shared` ← `domains` ← `infrastructure` 순서를 유지한다.
+  패키지 간 의존은 `@memento/core` ← `memento-server` 방향만 허용한다.
+  역방향 의존(core가 server를 참조하는 등)은 금지한다.
 
 ## Memento MCP Usage (within this repo)
 
@@ -136,6 +139,9 @@ After completing work: store results — `episodic` for completed tasks, `semant
 - N/A (DB 스키마 변경 없음) (003-recall-sentence-query)
 - TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest, zod (기존 의존성 신규 추가 없음) (004-recall-quality-feedback-loop)
 - SQLite (better-sqlite3) — `feedback_event` 확장: SQL 참고 `005`~`008`, TS 마이그레이션 `021`~`024` (004-recall-quality-feedback-loop)
+- TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, zod, vitest (기존 의존성, 신규 추가 없음) (005-sleep-consolidation)
+- SQLite (better-sqlite3) — `memory_item.is_consolidated`: TS 마이그레이션 `025-memory-item-is-consolidated.ts` + `schema.sql` 동기화 (005-sleep-consolidation)
 
 ## Recent Changes
+- 005-sleep-consolidation: 에피소딕→시맨틱 오프라인 증류(`SleepConsolidationService`), `is_consolidated`+마이그레이션 `025`, 배치(`SLEEP_CONSOLIDATION_INTERVAL_MS`), `POST /admin/consolidation/run`
 - 002-fix-mcp-monitoring-overhead: Added TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest

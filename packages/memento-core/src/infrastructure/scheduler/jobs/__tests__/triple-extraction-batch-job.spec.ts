@@ -15,6 +15,7 @@ import { TripleExtractionBatchJob } from '../triple-extraction-batch-job.js';
 import { TripleExtractionService } from '../../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 
 // generateId 헬퍼 함수 (테스트용)
 function generateId(): string {
@@ -100,7 +101,7 @@ describe('TripleExtractionBatchJob', () => {
   beforeEach(() => {
     db = initializeTestDatabase();
     tripleExtractionService = new TripleExtractionService();
-    semanticMemoryUpdateService = new SemanticMemoryUpdateService(db);
+    semanticMemoryUpdateService = new SemanticMemoryUpdateService(db, createRelationGraph(db));
     batchJob = new TripleExtractionBatchJob(
       {
         batchSize: 10,
@@ -191,7 +192,7 @@ describe('TripleExtractionBatchJob', () => {
         const relations = DatabaseUtils.all(db, `
           SELECT source_id, target_id, relation_type, confidence
           FROM memory_relation
-          WHERE source_id = ? AND relation_type = 'extracted_from'
+          WHERE target_id = ? AND relation_type = 'extracted_from'
         `, [episodicMemoryId]) as Array<{
           source_id: string;
           target_id: string;
@@ -201,9 +202,9 @@ describe('TripleExtractionBatchJob', () => {
 
         expect(relations.length).toBeGreaterThan(0);
         
-        // 각 relation은 confidence를 가져야 함
+        // 각 relation은 confidence를 가져야 함 (Semantic → Episodic extracted_from)
         for (const relation of relations) {
-          expect(relation.source_id).toBe(episodicMemoryId);
+          expect(relation.target_id).toBe(episodicMemoryId);
           expect(relation.relation_type).toBe('extracted_from');
           expect(relation.confidence).toBeGreaterThanOrEqual(0);
           expect(relation.confidence).toBeLessThanOrEqual(1);
@@ -898,7 +899,7 @@ describe('TripleExtractionBatchJob', () => {
           },
           {
             tripleExtractionService,
-            semanticMemoryUpdateService: new SemanticMemoryUpdateService(testDb)
+            semanticMemoryUpdateService: new SemanticMemoryUpdateService(testDb, createRelationGraph(testDb))
           }
         );
 

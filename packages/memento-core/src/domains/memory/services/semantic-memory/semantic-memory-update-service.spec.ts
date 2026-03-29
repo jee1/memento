@@ -11,6 +11,7 @@ import type { TripleExtractionResult, Triple } from '../../../../shared/types/tr
 import type { SemanticMemoryUpdateOptions, SemanticMemoryUpdateResult } from './semantic-memory-update-service.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 
 describe('SemanticMemoryUpdateService', () => {
   let db: Database.Database;
@@ -18,7 +19,7 @@ describe('SemanticMemoryUpdateService', () => {
 
   beforeEach(async () => {
     db = await setupTestDatabase();
-    service = new SemanticMemoryUpdateService(db);
+    service = new SemanticMemoryUpdateService(db, createRelationGraph(db));
   });
 
   afterEach(async () => {
@@ -1654,7 +1655,7 @@ describe('SemanticMemoryUpdateService', () => {
       }
     });
 
-    it('extracted_from 관계 방향 확인 (Episodic → Semantic)', async () => {
+    it('extracted_from 관계 방향 확인 (Semantic → Episodic)', async () => {
       // Given: Triple 배열
       const triples: Triple[] = [
         { subject: '사용자', predicate: '선호', object: '커피' }
@@ -1683,7 +1684,7 @@ describe('SemanticMemoryUpdateService', () => {
       // When: updateSemanticMemory 호출
       const result = await service.updateSemanticMemory(extractionResult, options);
 
-      // Then: extracted_from 관계 방향 확인 (Episodic → Semantic)
+      // Then: extracted_from 관계 방향 확인 (Semantic → Episodic)
       expect(result.created).toBeGreaterThan(0);
       const semanticMemoryId = result.semanticMemoryIds[0];
 
@@ -1691,33 +1692,31 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from']) as {
+      `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from']) as {
         source_id: string;
         target_id: string;
         relation_type: string;
       } | undefined;
 
       expect(extractedFromRelation).toBeDefined();
-      expect(extractedFromRelation?.source_id).toBe(options.episodicMemoryId);
-      expect(extractedFromRelation?.target_id).toBe(semanticMemoryId);
+      expect(extractedFromRelation?.source_id).toBe(semanticMemoryId);
+      expect(extractedFromRelation?.target_id).toBe(options.episodicMemoryId);
       expect(extractedFromRelation?.relation_type).toBe('extracted_from');
 
-      // source가 Episodic인지 확인
       const sourceMemory = DatabaseUtils.get(db, `
         SELECT id, type FROM memory_item WHERE id = ?
       `, [extractedFromRelation?.source_id]) as { id: string; type: string } | undefined;
 
-      expect(sourceMemory?.type).toBe('episodic');
+      expect(sourceMemory?.type).toBe('semantic');
 
-      // target이 Semantic인지 확인
       const targetMemory = DatabaseUtils.get(db, `
         SELECT id, type FROM memory_item WHERE id = ?
       `, [extractedFromRelation?.target_id]) as { id: string; type: string } | undefined;
 
-      expect(targetMemory?.type).toBe('semantic');
+      expect(targetMemory?.type).toBe('episodic');
     });
 
-    it('supported_by 관계 방향 확인 (Semantic → Episodic)', async () => {
+    it('supported_by 관계 방향 확인 (Episodic → Semantic)', async () => {
       // Given: Triple 배열
       const triples: Triple[] = [
         { subject: '사용자', predicate: '선호', object: '커피' }
@@ -1746,7 +1745,7 @@ describe('SemanticMemoryUpdateService', () => {
       // When: updateSemanticMemory 호출
       const result = await service.updateSemanticMemory(extractionResult, options);
 
-      // Then: supported_by 관계 방향 확인 (Semantic → Episodic)
+      // Then: supported_by 관계 방향 확인 (Episodic → Semantic)
       expect(result.created).toBeGreaterThan(0);
       const semanticMemoryId = result.semanticMemoryIds[0];
 
@@ -1754,36 +1753,34 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [semanticMemoryId, options.episodicMemoryId, 'supported_by']) as {
+      `, [options.episodicMemoryId, semanticMemoryId, 'supported_by']) as {
         source_id: string;
         target_id: string;
         relation_type: string;
       } | undefined;
 
       expect(supportedByRelation).toBeDefined();
-      expect(supportedByRelation?.source_id).toBe(semanticMemoryId);
-      expect(supportedByRelation?.target_id).toBe(options.episodicMemoryId);
+      expect(supportedByRelation?.source_id).toBe(options.episodicMemoryId);
+      expect(supportedByRelation?.target_id).toBe(semanticMemoryId);
       expect(supportedByRelation?.relation_type).toBe('supported_by');
 
-      // source가 Semantic인지 확인
       const sourceMemory = DatabaseUtils.get(db, `
         SELECT id, type FROM memory_item WHERE id = ?
       `, [supportedByRelation?.source_id]) as { id: string; type: string } | undefined;
 
-      expect(sourceMemory?.type).toBe('semantic');
+      expect(sourceMemory?.type).toBe('episodic');
 
-      // target이 Episodic인지 확인
       const targetMemory = DatabaseUtils.get(db, `
         SELECT id, type FROM memory_item WHERE id = ?
       `, [supportedByRelation?.target_id]) as { id: string; type: string } | undefined;
 
-      expect(targetMemory?.type).toBe('episodic');
+      expect(targetMemory?.type).toBe('semantic');
     });
   });
 
   describe('관계 방향 검증', () => {
-    it('잘못된 방향 - extracted_from: source가 Episodic이 아닌 경우 에러 발생', async () => {
-      // Given: Semantic Memory를 Episodic Memory로 잘못 전달
+    it('잘못된 방향 - extracted_from: episodicMemoryId가 episodic이 아닐 때 검증 실패', async () => {
+      // Given: semantic 행을 episodicMemoryId로 잘못 전달 → target이 episodic이 아님
       const triples: Triple[] = [
         { subject: '사용자', predicate: '선호', object: '커피' }
       ];
@@ -1866,7 +1863,7 @@ describe('SemanticMemoryUpdateService', () => {
       expect(secondResult).toBeDefined();
     });
 
-    it('잘못된 방향 - supported_by: source가 Semantic이 아닌 경우 에러 발생', async () => {
+    it('잘못된 방향 - supported_by: target이 Semantic이 아닌 경우 에러 발생', async () => {
       // Given: Episodic Memory를 Semantic Memory로 잘못 전달
       const triples: Triple[] = [
         { subject: '사용자', predicate: '선호', object: '커피' }
@@ -1911,7 +1908,7 @@ describe('SemanticMemoryUpdateService', () => {
       expect(secondResult).toBeDefined();
     });
 
-    it('올바른 방향 - extracted_from: source가 Episodic, target이 Semantic인 경우 성공', async () => {
+    it('올바른 방향 - extracted_from: source가 Semantic, target이 Episodic인 경우 성공', async () => {
       // Given: 올바른 타입의 Memory
       const triples: Triple[] = [
         { subject: '사용자', predicate: '선호', object: '커피' }
@@ -1949,25 +1946,23 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from']) as {
+      `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from']) as {
         source_id: string;
         target_id: string;
         relation_type: string;
       } | undefined;
 
       expect(extractedFromRelation).toBeDefined();
-      
-      // source가 Episodic인지 확인
+
       const sourceMemory = DatabaseUtils.get(db, `
         SELECT id, type FROM memory_item WHERE id = ?
       `, [extractedFromRelation?.source_id]) as { id: string; type: string } | undefined;
-      expect(sourceMemory?.type).toBe('episodic');
-      
-      // target이 Semantic인지 확인
+      expect(sourceMemory?.type).toBe('semantic');
+
       const targetMemory = DatabaseUtils.get(db, `
         SELECT id, type FROM memory_item WHERE id = ?
       `, [extractedFromRelation?.target_id]) as { id: string; type: string } | undefined;
-      expect(targetMemory?.type).toBe('semantic');
+      expect(targetMemory?.type).toBe('episodic');
     });
   });
 
@@ -2073,8 +2068,8 @@ describe('SemanticMemoryUpdateService', () => {
         relation_type: string;
       }>;
 
-      // 각 Episodic Memory마다 extracted_from와 supported_by 관계가 생성되므로
-      // 총 4개의 관계가 있어야 함 (episodic-1 -> semantic, semantic -> episodic-1, episodic-2 -> semantic, semantic -> episodic-2)
+      // 각 Episodic Memory마다 extracted_from·supported_by가 생성됨
+      // (semantic→episodic extracted_from, episodic→semantic supported_by) × 2에피소딕
       expect(allRelations.length).toBeGreaterThanOrEqual(4);
     });
 
@@ -2112,7 +2107,7 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT id, source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from']) as {
+      `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from']) as {
         id: number;
         source_id: string;
         target_id: string;
@@ -2134,7 +2129,7 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT id, source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from']) as Array<{
+      `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from']) as Array<{
         id: number;
         source_id: string;
         target_id: string;
@@ -2180,7 +2175,7 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT id, source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from']) as Array<{
+      `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from']) as Array<{
         id: number;
         source_id: string;
         target_id: string;
@@ -2196,7 +2191,7 @@ describe('SemanticMemoryUpdateService', () => {
         DatabaseUtils.run(db, `
           INSERT INTO memory_relation (source_id, target_id, relation_type, confidence)
           VALUES (?, ?, ?, ?)
-        `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from', 0.8]);
+        `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from', 0.8]);
         // 에러가 발생하지 않으면 테스트 실패
         expect.fail('UNIQUE 제약 조건 위반 에러가 발생해야 함');
       } catch (error) {
@@ -2240,7 +2235,7 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT id, source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [options.episodicMemoryId, semanticMemoryId, 'extracted_from']) as Array<{
+      `, [semanticMemoryId, options.episodicMemoryId, 'extracted_from']) as Array<{
         id: number;
         source_id: string;
         target_id: string;
@@ -2251,7 +2246,7 @@ describe('SemanticMemoryUpdateService', () => {
         SELECT id, source_id, target_id, relation_type
         FROM memory_relation
         WHERE source_id = ? AND target_id = ? AND relation_type = ?
-      `, [semanticMemoryId, options.episodicMemoryId, 'supported_by']) as Array<{
+      `, [options.episodicMemoryId, semanticMemoryId, 'supported_by']) as Array<{
         id: number;
         source_id: string;
         target_id: string;
@@ -2272,7 +2267,7 @@ describe('SemanticMemoryUpdateService', () => {
     it('Given: UnifiedEmbeddingService가 주입되지 않았을 때, When: SemanticMemoryUpdateService를 생성하면, Then: 기본값으로 UnifiedEmbeddingService를 사용해야 함', () => {
       // Given: embeddingService 없이 생성
       // When: SemanticMemoryUpdateService 생성
-      const newService = new SemanticMemoryUpdateService(db);
+      const newService = new SemanticMemoryUpdateService(db, createRelationGraph(db));
 
       // Then: embeddingService가 UnifiedEmbeddingService 인스턴스여야 함
       expect(newService).toBeDefined();
@@ -2283,7 +2278,7 @@ describe('SemanticMemoryUpdateService', () => {
 
     it('Given: UnifiedEmbeddingService가 null일 때, When: isAvailable()를 호출하면, Then: 에러가 발생하지 않아야 함', () => {
       // Given: embeddingService가 null인 경우 (이론적으로는 발생하지 않지만 방어적 코딩)
-      const newService = new SemanticMemoryUpdateService(db);
+      const newService = new SemanticMemoryUpdateService(db, createRelationGraph(db));
       
       // When: isAvailable() 호출
       // Then: 에러가 발생하지 않아야 함
@@ -2298,7 +2293,7 @@ describe('SemanticMemoryUpdateService', () => {
       // Given: UnifiedEmbeddingService 주입
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const embeddingService = new UnifiedEmbeddingService();
-      const newService = new SemanticMemoryUpdateService(db, embeddingService);
+      const newService = new SemanticMemoryUpdateService(db, createRelationGraph(db), embeddingService);
 
       // When: generateEmbedding 호출 (내부적으로 사용)
       // Then: 에러가 발생하지 않아야 함

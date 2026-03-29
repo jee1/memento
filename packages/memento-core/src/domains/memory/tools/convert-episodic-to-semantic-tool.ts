@@ -13,6 +13,7 @@ import { TripleExtractionService } from '../../relation/services/triple-extracti
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../domains/embedding/services/unified-embedding-service.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 
 /**
  * Convert Episodic to Semantic 스키마
@@ -249,8 +250,8 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
               : new UnifiedEmbeddingService();
             const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
               db,
-              embeddingService,
-              context.services.relationGraph
+              context.services.relationGraph ?? createRelationGraph(db),
+              embeddingService
             );
 
             const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
@@ -266,7 +267,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
             try {
               const relations = DatabaseUtils.all(db, `
                 SELECT confidence FROM memory_relation
-                WHERE source_id = ? AND relation_type = 'extracted_from'
+                WHERE target_id = ? AND relation_type = 'extracted_from'
               `, [episodicMemory.id]);
               for (const rel of relations) {
                 if (rel.confidence !== null && rel.confidence !== undefined) {

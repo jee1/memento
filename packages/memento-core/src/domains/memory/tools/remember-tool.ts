@@ -36,6 +36,7 @@ import { getNextVersionNumber } from '../services/procedural-versioning.js';
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 
 /**
  * 기존 reflection_notes 조회 결과 타입
@@ -115,6 +116,8 @@ interface MemoryItemRow {
   tags?: string | null;
   source?: string | null;
   embedding?: string | null;
+  /** sleep consolidation 등 — 컬럼 없으면 undefined */
+  is_consolidated?: number | boolean | null;
 }
 
 /** Procedural 기존 레코드 조회용 (MemoryItem + 메타/버전 필드) */
@@ -1105,8 +1108,8 @@ export class RememberTool extends BaseTool {
                             : new UnifiedEmbeddingService();
                           const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
                             dbRef,
-                            unifiedEmbeddingService,
-                            context.services.relationGraph
+                            context.services.relationGraph ?? createRelationGraph(dbRef),
+                            unifiedEmbeddingService
                           );
 
                           const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
@@ -1125,7 +1128,7 @@ export class RememberTool extends BaseTool {
                           try {
                             const relations = DatabaseUtils.all(dbRef, `
                               SELECT confidence FROM memory_relation
-                              WHERE source_id = ? AND relation_type = 'extracted_from'
+                              WHERE target_id = ? AND relation_type = 'extracted_from'
                             `, [savedMemoryId]);
                             for (const rel of relations) {
                               if (rel.confidence !== null && rel.confidence !== undefined) {
@@ -1488,7 +1491,8 @@ export class RememberTool extends BaseTool {
       const rows = await DatabaseUtils.all(db, `
         SELECT 
           id, type, content, importance, privacy_scope, 
-          created_at, last_accessed, pinned, tags, source, embedding
+          created_at, last_accessed, pinned, tags, source, embedding,
+          is_consolidated
         FROM memory_item
         WHERE id != ? -- 새로 저장된 기억 제외
         ORDER BY created_at DESC
@@ -1506,7 +1510,10 @@ export class RememberTool extends BaseTool {
         pinned: Boolean(row.pinned),
         tags: row.tags ? JSON.parse(row.tags) : undefined,
         source: row.source || undefined,
-        embedding: row.embedding ? JSON.parse(row.embedding) : undefined
+        embedding: row.embedding ? JSON.parse(row.embedding) : undefined,
+        ...(row.is_consolidated !== undefined && row.is_consolidated !== null
+          ? { isConsolidated: Boolean(row.is_consolidated) }
+          : {})
       }));
     } catch (error) {
       this.logWarning('기존 기억 조회 실패', {
@@ -1528,7 +1535,8 @@ export class RememberTool extends BaseTool {
       const row = await DatabaseUtils.get(db, `
         SELECT 
           id, type, content, importance, privacy_scope, 
-          created_at, last_accessed, pinned, tags, source, embedding
+          created_at, last_accessed, pinned, tags, source, embedding,
+          is_consolidated
         FROM memory_item
         WHERE id = ?
       `, [id]) as MemoryItemRow | undefined;
@@ -1548,7 +1556,10 @@ export class RememberTool extends BaseTool {
         pinned: Boolean(row.pinned),
         tags: row.tags ? JSON.parse(row.tags) : undefined,
         source: row.source || undefined,
-        embedding: row.embedding ? JSON.parse(row.embedding) : undefined
+        embedding: row.embedding ? JSON.parse(row.embedding) : undefined,
+        ...(row.is_consolidated !== undefined && row.is_consolidated !== null
+          ? { isConsolidated: Boolean(row.is_consolidated) }
+          : {})
       };
     } catch (error) {
       this.logWarning('기억 조회 실패', {

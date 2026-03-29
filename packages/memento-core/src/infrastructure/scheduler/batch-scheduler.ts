@@ -32,6 +32,8 @@ import { RelationValidatorExecutor } from './relation-validator-executor.js';
 import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
+import { SleepConsolidationBatchJob } from './jobs/sleep-consolidation-batch-job.js';
+import type { SleepConsolidationService } from '../../domains/consolidation/services/sleep-consolidation-service.js';
 import { MetaMemoryIntrospectionService } from '../../domains/memory/services/meta-memory-introspection-service.js';
 import type { IntrospectionScanCache } from '../../domains/memory/services/introspection-scan-cache.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
@@ -58,7 +60,9 @@ export interface BatchJobConfig {
   qualityMeasurementInterval: number;           // 품질 측정 배치 작업 간격 (기본: 24시간)
   qualityMeasurementHour?: number;               // 품질 측정 배치 작업 실행 시간 (0-23, 선택적, 지정 시 해당 시간에만 실행)
   metaMemoryIntrospectionInterval: number;      // M2 자기성찰 스캔 간격 (기본: 6시간, Issue #21)
-  
+  /** Sleep consolidation 배치 간격 (기본: 24h, env: SLEEP_CONSOLIDATION_INTERVAL_MS) */
+  sleepConsolidationInterval: number;
+
   // 작업 설정
   maxBatchSize: number;          // 한 번에 처리할 최대 메모리 수
   enableLogging: boolean;        // 로깅 활성화
@@ -131,6 +135,8 @@ export class BatchScheduler implements IBatchScheduler {
   private relationValidatorExecutor: RelationValidatorExecutor;
   private tripleExtractionBatchJob: TripleExtractionBatchJob | null = null;
   private qualityMeasurementBatchJob: QualityMeasurementBatchJob | null = null;
+  private sleepConsolidationService: SleepConsolidationService | null = null;
+  private sleepConsolidationBatchJob: SleepConsolidationBatchJob | null = null;
 
   constructor(
     config?: Partial<BatchJobConfig>,
@@ -160,6 +166,12 @@ export class BatchScheduler implements IBatchScheduler {
       qualityMeasurementInterval: 24 * 60 * 60 * 1000, // 24시간 (일일)
       qualityMeasurementHour: undefined, // 시간 지정 안 함 (간격 기반 실행)
       metaMemoryIntrospectionInterval: 6 * 60 * 60 * 1000, // 6시간 (Issue #21)
+      sleepConsolidationInterval: resolveValidatedNumber(
+        'SLEEP_CONSOLIDATION_INTERVAL_MS',
+        24 * 60 * 60 * 1000,
+        n => n >= 60_000,
+        '최솟값 60000'
+      ),
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -277,6 +289,11 @@ export class BatchScheduler implements IBatchScheduler {
     // 품질 측정 배치 작업 스케줄링 (PRD FR-5.6)
     this.scheduleQualityMeasurement();
 
+    // Sleep consolidation (005)
+    if (this.sleepConsolidationService) {
+      this.scheduleSleepConsolidation();
+    }
+
     // M2 자기성찰 스캔 스케줄링 (Issue #21)
     this.scheduleJob(
       'meta_memory_introspection',
@@ -374,6 +391,9 @@ export class BatchScheduler implements IBatchScheduler {
     }
     if (this.config.metaMemoryIntrospectionInterval < 60000) {
       throw new Error('metaMemoryIntrospectionInterval must be at least 1 minute');
+    }
+    if (this.config.sleepConsolidationInterval < 60000) {
+      throw new Error('sleepConsolidationInterval must be at least 1 minute');
     }
     // weeklyRelationValidationTimeout 검증 (설정된 경우에만)
     if (this.config.weeklyRelationValidationTimeout !== undefined) {
@@ -1837,6 +1857,63 @@ export class BatchScheduler implements IBatchScheduler {
    */
   setIntrospectionScanCache(cache: IntrospectionScanCache | null): void {
     this.introspectionScanCache = cache;
+  }
+
+  /**
+   * Sleep consolidation 서비스 주입 (bootstrap). 미주입 시 배치 미스케줄.
+   */
+  setSleepConsolidationService(service: SleepConsolidationService | null): void {
+    this.sleepConsolidationService = service;
+    this.sleepConsolidationBatchJob = null; // 서비스 교체 시 캐시된 잡 무효화
+  }
+
+  private scheduleSleepConsolidation(): void {
+    this.scheduleJob(
+      'sleep_consolidation_batch',
+      this.config.sleepConsolidationInterval,
+      async () => {
+        await this.runSleepConsolidationBatch();
+      },
+      8
+    );
+  }
+
+  private async runSleepConsolidationBatch(): Promise<BatchJobResult> {
+    try {
+      if (!this.sleepConsolidationService) {
+        throw new Error('SleepConsolidationService not configured');
+      }
+      if (!this.sleepConsolidationBatchJob) {
+        this.sleepConsolidationBatchJob = new SleepConsolidationBatchJob({
+          sleepConsolidationService: this.sleepConsolidationService,
+          fileLogger: this.fileLogger
+        });
+      }
+      const batchResult = await this.sleepConsolidationBatchJob.execute();
+
+      this.lastExecution.set('sleep_consolidation_batch', new Date());
+      this.totalExecutions.set(
+        'sleep_consolidation_batch',
+        (this.totalExecutions.get('sleep_consolidation_batch') || 0) + 1
+      );
+
+      return batchResult;
+    } catch (error) {
+      const startTime = new Date();
+      const endTime = new Date();
+      const message = error instanceof Error ? error.message : String(error);
+      this.log('Sleep consolidation batch failed', { error: message }, 'error');
+      return {
+        jobType: 'sleep_consolidation_batch',
+        startTime,
+        endTime,
+        duration: endTime.getTime() - startTime.getTime(),
+        success: false,
+        processed: 0,
+        errors: [message],
+        warnings: []
+      };
+    }
   }
 }
 

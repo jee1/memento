@@ -10,7 +10,7 @@ import type {
   ExtractOptions
 } from '../../../shared/types/relation.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
-import { isApplicableRelationType } from '../../../shared/types/relation.js';
+import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import { CONFIDENCE, LIMITS } from '../../../shared/constants/relation-constants.js';
 
 /**
@@ -151,7 +151,9 @@ const RELATION_KEYWORD_PATTERNS: Record<RelationType, KeywordPattern[]> = {
       keywords: ['updated', 'revised', 'improved', 'modified', 'enhanced'],
       weight: 0.7
     }
-  ]
+  ],
+  extracted_from: [],
+  supported_by: []
 };
 
 /**
@@ -282,7 +284,7 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
     // 새로운 기억의 타입에 적용 가능한 관계 유형 필터링
     const applicableTypes = allowedRelationTypes
       ? allowedRelationTypes.filter(type => isApplicableRelationType(newMemory.type, type))
-      : Object.keys(RELATION_KEYWORD_PATTERNS) as RelationType[];
+      : MEMORY_TYPE_RELATION_MAP[newMemory.type];
 
     // 각 기존 기억에 대해 관계 추출 시도
     for (const existingMemory of limitedMemories) {

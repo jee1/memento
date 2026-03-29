@@ -23,7 +23,8 @@ import {
   GetMetaMemoryStatsTool,
   DatabaseUtils,
   logger,
-  createToolContext
+  createToolContext,
+  ConsolidationAlreadyRunningError
 } from '@memento/core';
 
 /**
@@ -269,6 +270,40 @@ export function createAdminRouter(
       return res.status(500).json({
         error: '배치 작업 실행 실패',
         message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Sleep consolidation 수동 실행 (005)
+  router.post('/consolidation/run', async (req, res) => {
+    try {
+      const svc = serverServices?.sleepConsolidationService;
+      if (!db || !svc) {
+        return res.status(500).json({
+          success: false,
+          error: 'Sleep consolidation not available'
+        });
+      }
+
+      const dryRun = Boolean(req.body?.dryRun);
+      const ownerIdFilter =
+        typeof req.body?.ownerIdFilter === 'string' ? req.body.ownerIdFilter : null;
+
+      const result = await svc.run({ dryRun, ownerIdFilter });
+      return res.json({ success: true, result });
+    } catch (error) {
+      if (error instanceof ConsolidationAlreadyRunningError) {
+        return res.status(409).json({
+          success: false,
+          error: 'Consolidation already running'
+        });
+      }
+      logger.error('Sleep consolidation run failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        success: false,
+        error: `Consolidation failed: ${error instanceof Error ? error.message : String(error)}`
       });
     }
   });
