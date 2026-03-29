@@ -379,9 +379,17 @@ export class DatabaseUtils {
           num_times INTEGER NOT NULL DEFAULT 1,
           last_mentioned_at TIMESTAMP,
           source_session_id TEXT,
-          confidence REAL
+          confidence REAL,
+          is_consolidated BOOLEAN DEFAULT FALSE
         )
       `);
+
+      const memoryItemColumns = db
+        .prepare('PRAGMA table_info(memory_item)')
+        .all() as Array<{ name: string }>;
+      if (!memoryItemColumns.some(c => c.name === 'is_consolidated')) {
+        this.run(db, 'ALTER TABLE memory_item ADD COLUMN is_consolidated BOOLEAN DEFAULT FALSE');
+      }
 
       this.run(db, `
         CREATE TABLE IF NOT EXISTS memory_tag (
@@ -471,6 +479,12 @@ export class DatabaseUtils {
       // Memori Attribution (Issue #87, migration 016)
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_process_id ON memory_item(process_id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_session_id ON memory_item(session_id)');
+      this.run(
+        db,
+        `CREATE INDEX IF NOT EXISTS idx_memory_item_is_consolidated
+         ON memory_item(type, is_consolidated)
+         WHERE type = 'episodic'`
+      );
 
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_memory_id ON memory_item_tag(memory_id)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_tag_tag_id ON memory_item_tag(tag_id)');

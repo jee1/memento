@@ -220,7 +220,7 @@ describe('ConvertEpisodicToSemanticTool', () => {
         // extracted_from 관계 확인
         const extractedFromRelations = DatabaseUtils.all(db, `
           SELECT * FROM memory_relation
-          WHERE source_id = ? AND relation_type = 'extracted_from'
+          WHERE target_id = ? AND relation_type = 'extracted_from'
         `, [episodicMemoryId]);
 
         expect(extractedFromRelations.length).toBeGreaterThan(0);

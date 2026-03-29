@@ -56,6 +56,8 @@ export interface MemoryItem {
   last_mentioned_at?: Date | string | null;
   source_session_id?: string | null;
   confidence?: number | null;
+  /** Sleep consolidation (005): episodic이 통합 처리되었으면 true */
+  isConsolidated?: boolean;
 }
 
 /**
@@ -141,6 +143,8 @@ export type {
   TripleValidationResult,
   TripleExtractionStats
 } from './triple-extraction.js';
+
+export type { ConsolidationCluster, SleepConsolidationRunResult } from './consolidation.types.js';
 
 export {
   MEMORY_TYPE_RELATION_MAP,

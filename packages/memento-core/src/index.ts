@@ -81,6 +81,12 @@ export { GetIntrospectionSummaryTool } from './domains/memory/tools/get-introspe
 export { FeedbackTool } from './domains/memory/tools/feedback-tool.js';
 export { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
+export {
+  SleepConsolidationService,
+  ConsolidationAlreadyRunningError
+} from './domains/consolidation/index.js';
+export type { SleepConsolidationRunResult } from './shared/types/consolidation.types.js';
+export type { SleepConsolidationServiceDeps } from './domains/consolidation/index.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)
 export type { ToolContext, ToolResult, ToolDefinition } from './tools/types.js';

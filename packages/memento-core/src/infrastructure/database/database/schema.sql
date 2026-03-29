@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS memory_item (
   -- Arigraph/Semantic triple (migration 008): semantic memory structural storage
   subject TEXT,
   predicate TEXT,
-  object TEXT
+  object TEXT,
+  is_consolidated BOOLEAN DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_memory_item_triple ON memory_item(subject, predicate, object)
 WHERE type='semantic' AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL;
@@ -132,8 +133,8 @@ VALUES ('CAUSES', 'Causal', '인과 관계', '["episodic", "semantic"]', 0.7, 1.
        ('BELONGS_TO', 'Structural', '포함 관계', '["semantic", "episodic"]', 0.7, 1.0),
        ('CONTRASTS_WITH', 'Semantic', '대조 관계', '["semantic", "episodic"]', 0.7, 0.9),
        ('REFERENCES', 'Semantic', '참조 관계', '["working", "episodic", "semantic", "procedural"]', 0.7, 0.8),
-       ('extracted_from', 'Structural', 'Episodic→Semantic 추출 관계', '["episodic", "semantic"]', 0.7, 1.0),
-       ('supported_by', 'Structural', 'Semantic→Episodic 지지 관계', '["semantic", "episodic"]', 0.7, 1.0);
+       ('extracted_from', 'Structural', 'Semantic→Episodic 출처(에피소딕에서 시맨틱 추출)', '["semantic", "episodic"]', 0.7, 1.0),
+       ('supported_by', 'Structural', 'Episodic→Semantic 지지(시맨틱이 에피소딕을 지지)', '["episodic", "semantic"]', 0.7, 1.0);
 
 -- kg_triple (migration 018 호환, Issue #90)
 CREATE TABLE IF NOT EXISTS kg_triple (
@@ -206,6 +207,10 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_owner_id ON memory_item(owner_id);
 -- Memori Attribution (Issue #87, migration 016)
 CREATE INDEX IF NOT EXISTS idx_memory_item_process_id ON memory_item(process_id);
 CREATE INDEX IF NOT EXISTS idx_memory_item_session_id ON memory_item(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_memory_item_is_consolidated
+  ON memory_item(type, is_consolidated)
+  WHERE type = 'episodic';
 -- Fact metadata (Issue #88, migration 017)
 CREATE INDEX IF NOT EXISTS idx_memory_item_last_mentioned_at ON memory_item(last_mentioned_at);
 CREATE INDEX IF NOT EXISTS idx_memory_item_num_times ON memory_item(num_times);

@@ -105,8 +105,8 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
   beforeEach(() => {
     db = initializeTestDatabase();
     tripleExtractionService = new TripleExtractionService();
-    semanticMemoryUpdateService = new SemanticMemoryUpdateService(db);
     relationGraph = createRelationGraph(db);
+    semanticMemoryUpdateService = new SemanticMemoryUpdateService(db, relationGraph);
   });
 
   afterEach(() => {
@@ -141,8 +141,14 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         episodicImportance: 0.7
       });
 
-      // When: Relation Engine으로 extracted_from 관계 조회
-      const relations = await relationGraph.getRelations(episodicMemoryId, {
+      const semanticRows = DatabaseUtils.all(db, `
+        SELECT id FROM memory_item WHERE type = 'semantic'
+      `) as Array<{ id: string }>;
+      expect(semanticRows.length).toBeGreaterThan(0);
+      const semanticMemoryId = semanticRows[0].id;
+
+      // When: extracted_from는 Semantic → Episodic (시맨틱 기준 outgoing)
+      const relations = await relationGraph.getRelations(semanticMemoryId, {
         relationTypes: ['extracted_from' as any],
         direction: 'outgoing'
       });
@@ -170,6 +176,10 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
             expect(metadata.triple.predicate).toBeDefined();
             expect(metadata.triple.object).toBeDefined();
           }
+        }
+
+        for (const relation of extractedFromRelations) {
+          expect(relation.target_id).toBe(episodicMemoryId);
         }
     });
 
@@ -205,8 +215,8 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       expect(semanticMemories.length).toBeGreaterThan(0);
       const semanticMemoryId = semanticMemories[0].id;
 
-      // When: Relation Engine으로 supported_by 관계 조회
-      const relations = await relationGraph.getRelations(semanticMemoryId, {
+      // When: supported_by는 Episodic → Semantic (에피소딕 기준 outgoing)
+      const relations = await relationGraph.getRelations(episodicMemoryId, {
         relationTypes: ['supported_by' as any],
         direction: 'outgoing'
       });
@@ -217,11 +227,10 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const supportedByRelations = relations.filter(r => r.relation_type === 'supported_by');
       expect(supportedByRelations.length).toBeGreaterThan(0);
       
-      // 각 관계는 confidence를 가져야 함
       for (const relation of supportedByRelations) {
         expect(relation.confidence).toBeGreaterThanOrEqual(0);
         expect(relation.confidence).toBeLessThanOrEqual(1);
-        expect(relation.target_id).toBe(episodicMemoryId);
+        expect(relation.target_id).toBe(semanticMemoryId);
       }
     });
 
@@ -268,17 +277,15 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       });
 
       // Then: 양방향 관계가 모두 생성되어야 함
-      const extractedFromRelations = episodicRelations.filter(r => r.relation_type === 'extracted_from');
-      const supportedByRelations = semanticRelations.filter(r => r.relation_type === 'supported_by');
+      const extractedFromRelations = semanticRelations.filter(r => r.relation_type === 'extracted_from');
+      const supportedByRelations = episodicRelations.filter(r => r.relation_type === 'supported_by');
       
       expect(extractedFromRelations.length).toBeGreaterThan(0);
       expect(supportedByRelations.length).toBeGreaterThan(0);
       
-      // extracted_from 관계의 target_id는 semanticMemoryId와 일치해야 함
-      expect(extractedFromRelations.some(r => r.target_id === semanticMemoryId)).toBe(true);
+      expect(extractedFromRelations.some(r => r.target_id === episodicMemoryId)).toBe(true);
       
-      // supported_by 관계의 target_id는 episodicMemoryId와 일치해야 함
-      expect(supportedByRelations.some(r => r.target_id === episodicMemoryId)).toBe(true);
+      expect(supportedByRelations.some(r => r.target_id === semanticMemoryId)).toBe(true);
     });
   });
 
@@ -322,10 +329,9 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         return;
       }
 
-      // 관계가 생성되었는지 확인
       const relationsCheck = DatabaseUtils.all(db, `
         SELECT * FROM memory_relation WHERE (source_id = ? OR target_id = ?) AND relation_type = ?
-      `, [episodicMemory1Id, episodicMemory1Id, 'extracted_from']) as Array<any>;
+      `, [episodicMemory1Id, episodicMemory1Id, 'supported_by']) as Array<any>;
       
       // Triple이 추출되었지만 관계가 생성되지 않은 경우 테스트 스킵
       // (임베딩 생성 실패 등으로 인해 관계 생성이 실패할 수 있음)
@@ -334,11 +340,10 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         return;
       }
 
-      // When: Episodic Memory에서 1-hop 관계 탐색
-      // extracted_from 관계는 outgoing 방향이므로 direction을 명시하지 않아도 됨
+      // When: Episodic에서 supported_by outgoing으로 시맨틱 탐색
       const relatedMemories1 = await relationGraph.getRelatedMemories(episodicMemory1Id, {
         maxHops: 1,
-        relationTypes: ['extracted_from' as any]
+        relationTypes: ['supported_by' as any]
       });
 
       // Then: 연결된 Semantic Memory를 찾을 수 있어야 함 (triple이 추출되고 관계가 생성된 경우)
@@ -356,10 +361,9 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         const semanticMemories = relatedMemories1.filter(m => m.hop_distance === 1);
         expect(semanticMemories.length).toBeGreaterThan(0);
         
-        // relation_path에 extracted_from 관계가 포함되어야 함
         for (const memory of semanticMemories) {
           expect(memory.relation_path.length).toBe(1);
-          expect(memory.relation_path[0].relation_type).toBe('extracted_from');
+          expect(memory.relation_path[0].relation_type).toBe('supported_by');
           expect(memory.relation_path[0].source_id).toBe(episodicMemory1Id);
         }
       }
@@ -397,10 +401,9 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       expect(semanticMemories.length).toBeGreaterThan(0);
       const semanticMemoryId = semanticMemories[0].id;
 
-      // 관계가 생성되었는지 확인
       const relationsCheck = DatabaseUtils.all(db, `
         SELECT * FROM memory_relation WHERE (source_id = ? OR target_id = ?) AND relation_type = ?
-      `, [semanticMemoryId, semanticMemoryId, 'supported_by']) as Array<any>;
+      `, [semanticMemoryId, semanticMemoryId, 'extracted_from']) as Array<any>;
       
       // 관계가 생성되지 않은 경우 테스트 스킵
       // (임베딩 생성 실패 등으로 인해 관계 생성이 실패할 수 있음)
@@ -409,11 +412,10 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         return;
       }
 
-      // When: Semantic Memory에서 1-hop 관계 탐색 (supported_by 관계)
-      // supported_by 관계는 outgoing 방향이므로 direction을 명시하지 않아도 됨
+      // When: Semantic에서 extracted_from outgoing으로 에피소딕 탐색
       const relatedMemories = await relationGraph.getRelatedMemories(semanticMemoryId, {
         maxHops: 1,
-        relationTypes: ['supported_by' as any]
+        relationTypes: ['extracted_from' as any]
       });
 
       // Then: 연결된 Episodic Memory를 찾을 수 있어야 함
@@ -430,10 +432,9 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const episodicMemories = relatedMemories.filter(m => m.hop_distance === 1);
       expect(episodicMemories.length).toBeGreaterThan(0);
       
-      // relation_path에 supported_by 관계가 포함되어야 함
       for (const memory of episodicMemories) {
         expect(memory.relation_path.length).toBe(1);
-        expect(memory.relation_path[0].relation_type).toBe('supported_by');
+        expect(memory.relation_path[0].relation_type).toBe('extracted_from');
         expect(memory.relation_path[0].source_id).toBe(semanticMemoryId);
         expect(memory.relation_path[0].target_id).toBe(episodicMemoryId);
       }
@@ -458,8 +459,14 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
           episodicImportance: 0.8
         });
 
+        const semRows = DatabaseUtils.all(db, `
+          SELECT id FROM memory_item WHERE type = 'semantic'
+        `) as Array<{ id: string }>;
+        expect(semRows.length).toBeGreaterThan(0);
+        const semanticMemoryId = semRows[0].id;
+
         // When: confidence 임계값으로 관계 조회 (높은 confidence만)
-        const highConfidenceRelations = await relationGraph.getRelations(episodicMemoryId, {
+        const highConfidenceRelations = await relationGraph.getRelations(semanticMemoryId, {
           relationTypes: ['extracted_from' as any],
           direction: 'outgoing',
           minConfidence: 0.8 // 높은 confidence만
@@ -471,7 +478,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         }
 
         // When: 낮은 confidence 임계값으로 관계 조회
-        const allRelations = await relationGraph.getRelations(episodicMemoryId, {
+        const allRelations = await relationGraph.getRelations(semanticMemoryId, {
           relationTypes: ['extracted_from' as any],
           direction: 'outgoing',
           minConfidence: 0.0 // 모든 confidence
@@ -508,8 +515,13 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         episodicImportance: 0.7
       });
 
-      // When: 관계 조회
-      const relations = await relationGraph.getRelations(episodicMemoryId, {
+      const semMeta = DatabaseUtils.all(db, `
+        SELECT id FROM memory_item WHERE type = 'semantic'
+      `) as Array<{ id: string }>;
+      expect(semMeta.length).toBeGreaterThan(0);
+
+      // When: 관계 조회 (extracted_from: Semantic → Episodic)
+      const relations = await relationGraph.getRelations(semMeta[0].id, {
         relationTypes: ['extracted_from' as any],
         direction: 'outgoing'
       });

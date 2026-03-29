@@ -23,6 +23,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { TripleExtractionService } from '../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { createRelationGraph } from '../../relation-graph-factory.js';
 import type { BatchJobResult } from '../batch-scheduler.js';
 
 /**
@@ -170,7 +171,7 @@ export class TripleExtractionBatchJob {
 
       // SemanticMemoryUpdateService 초기화 (아직 초기화되지 않은 경우)
       if (!this.semanticMemoryUpdateService) {
-        this.semanticMemoryUpdateService = new SemanticMemoryUpdateService(db);
+        this.semanticMemoryUpdateService = new SemanticMemoryUpdateService(db, createRelationGraph(db));
       }
 
       // 배치 작업 대상 조회
@@ -824,7 +825,7 @@ export class TripleExtractionBatchJob {
       // memory_relation에서 confidence 값 수집 (각 triple별로 저장됨)
       const relations = DatabaseUtils.all(db, `
         SELECT confidence FROM memory_relation
-        WHERE source_id = ? AND relation_type = 'extracted_from'
+        WHERE target_id = ? AND relation_type = 'extracted_from'
       `, [episodicMemoryId]) as Array<{ confidence: number | null }>;
 
       if (relations.length === 0) {

@@ -1769,10 +1769,10 @@ describe('RememberTool', () => {
 
         expect(semanticMemories.length).toBeGreaterThan(0);
 
-        // extracted_from 관계 확인
+        // extracted_from: Semantic → Episodic (에피소딕이 target)
         const extractedFromRelations = DatabaseUtils.all(db, `
           SELECT * FROM memory_relation
-          WHERE source_id = ? AND relation_type = 'extracted_from'
+          WHERE target_id = ? AND relation_type = 'extracted_from'
         `, [resultData.memory_id]);
 
         expect(extractedFromRelations.length).toBeGreaterThan(0);
