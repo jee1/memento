@@ -16,6 +16,7 @@
     "memento-setup": "./scripts/auto-setup.js"
   },
   "scripts": {
+    "telemetry": "tsx packages/memento-server/src/telemetry-cli.ts",
     "dev": "npm run dev -w memento-server",
     "dev:http": "npm run dev:http -w memento-server",
     "dev:http-v2": "npm run dev:http-v2 -w memento-server",

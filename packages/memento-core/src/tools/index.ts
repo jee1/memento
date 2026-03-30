@@ -21,6 +21,7 @@ import { ProceduralRollbackTool } from '../domains/memory/tools/procedural-rollb
 import { RememberProcedureTool } from '../domains/memory/tools/remember-procedure-tool.js';
 import { GetIntrospectionSummaryTool } from '../domains/memory/tools/get-introspection-summary-tool.js';
 import { FeedbackTool } from '../domains/memory/tools/feedback-tool.js';
+import { GetTelemetrySummaryTool } from '../domains/telemetry/tools/get-telemetry-summary-tool.js';
 
 const coreTools = [
   new RememberTool(),
@@ -38,7 +39,8 @@ const coreTools = [
   new ProceduralDiffTool(),
   new ProceduralRollbackTool(),
   new RememberProcedureTool(),
-  new GetIntrospectionSummaryTool()
+  new GetIntrospectionSummaryTool(),
+  new GetTelemetrySummaryTool(),
 ];
 
 export const toolRegistry = new ToolRegistry({

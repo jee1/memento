@@ -142,6 +142,8 @@ After completing work: store results — `episodic` for completed tasks, `semant
 - TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, zod, vitest (기존 의존성, 신규 추가 없음) (005-sleep-consolidation)
 - SQLite (better-sqlite3) — `memory_item.is_consolidated`: TS 마이그레이션 `025-memory-item-is-consolidated.ts` + `schema.sql` 동기화 (005-sleep-consolidation)
 - SQLite (better-sqlite3) — `telemetry_events` (027), `telemetry_daily_metrics` (028) 테이블 추가 (006-observability-telemetry)
+- TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, @memento/core (TelemetryService, BaseTool) (007-telemetry-cli-mcp)
+- 기존 SQLite — 읽기 전용 (신규 마이그레이션 없음) (007-telemetry-cli-mcp)
 
 ## Recent Changes
 - 005-sleep-consolidation: 에피소딕→시맨틱 오프라인 증류(`SleepConsolidationService`), `is_consolidated`+마이그레이션 `025`, 배치(`SLEEP_CONSOLIDATION_INTERVAL_MS`), `POST /admin/consolidation/run`
