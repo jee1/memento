@@ -505,3 +505,247 @@ describe('admin.routes telemetry', () => {
     10_000
   );
 });
+
+// ============================================================
+// T003~T008: GET /admin/graph 테스트 (009-memory-graph-view)
+// Constitution I: 테스트 먼저 작성, 실패 확인 후 구현
+// ============================================================
+
+describe('admin.routes graph', () => {
+  let db: Database.Database;
+
+  beforeEach(() => {
+    db = new Database(':memory:');
+    // memory_item 테이블 생성
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS memory_item (
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'working',
+        importance REAL DEFAULT 0.5,
+        created_at TEXT DEFAULT (datetime('now')),
+        tags TEXT DEFAULT '[]',
+        pinned INTEGER DEFAULT 0
+      );
+    `);
+    // memory_relation 테이블 생성
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS memory_relation (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        confidence REAL DEFAULT 1.0
+      );
+    `);
+  });
+
+  afterEach(() => {
+    try { db.close(); } catch { /* ignore */ }
+    vi.restoreAllMocks();
+  });
+
+  function makeApp(database: Database.Database) {
+    const app = express();
+    app.use(express.json());
+    app.use('/admin', createAdminRouter(database, null));
+    return app;
+  }
+
+  // T003 + T006: 기본 구조 및 nodes/edges 반환 검증
+  it('GET /admin/graph — DB에 데이터가 있을 때 nodes와 edges를 반환한다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run(
+      'mem-1', 'TypeScript 인터페이스에 관한 기억', 'semantic', 0.8
+    );
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run(
+      'mem-2', 'TDD 방법론에 관한 기억', 'episodic', 0.6
+    );
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run(
+      'mem-1', 'mem-2', 'supports', 0.9
+    );
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { nodes: unknown[]; edges: unknown[]; meta: unknown };
+      expect(body.nodes).toBeDefined();
+      expect(body.edges).toBeDefined();
+      expect(body.meta).toBeDefined();
+      expect(body.nodes.length).toBe(2);
+      expect(body.edges.length).toBe(1);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T007: 빈 DB 처리
+  it('GET /admin/graph — DB가 비어있을 때 빈 nodes/edges를 반환한다', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { nodes: unknown[]; edges: unknown[] };
+      expect(Array.isArray(body.nodes)).toBe(true);
+      expect(Array.isArray(body.edges)).toBe(true);
+      expect(body.nodes.length).toBe(0);
+      expect(body.edges.length).toBe(0);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T008: 응답 포맷 검증 (GraphNode 필드)
+  it('GET /admin/graph — GraphNode 응답 포맷이 올바르다 (label, content, type, importance, created_at, tags, pinned)', async () => {
+    db.prepare(`
+      INSERT INTO memory_item (id, content, type, importance, tags, pinned)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('mem-1', 'A'.repeat(100), 'semantic', 0.75, '["tag1","tag2"]', 0);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { nodes: Array<Record<string, unknown>> };
+      const node = body.nodes[0];
+      expect(typeof node['id']).toBe('string');
+      expect(typeof node['label']).toBe('string');
+      expect((node['label'] as string).length).toBeLessThanOrEqual(53); // 50자 + '...'
+      expect(typeof node['content']).toBe('string');
+      expect((node['content'] as string).length).toBe(100); // 전체 내용
+      expect(typeof node['type']).toBe('string');
+      expect(typeof node['importance']).toBe('number');
+      expect(typeof node['created_at']).toBe('string');
+      expect(Array.isArray(node['tags'])).toBe(true);
+      expect(typeof node['pinned']).toBe('boolean');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T017: US2 — content 전체 포함 검증
+  it('GET /admin/graph — GraphNode에 content 전체와 label(truncated)이 모두 포함된다', async () => {
+    const longContent = 'B'.repeat(200);
+    db.prepare(`INSERT INTO memory_item (id, content, type) VALUES (?, ?, ?)`).run(
+      'mem-1', longContent, 'episodic'
+    );
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph');
+      const body = JSON.parse(res.body) as { nodes: Array<Record<string, unknown>> };
+      const node = body.nodes[0];
+      expect(node['content']).toBe(longContent);
+      expect(node['label']).toBe('B'.repeat(50) + '...');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T021: US3 — types 필터 검증
+  it('GET /admin/graph?types=episodic — episodic 타입 노드만 반환한다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type) VALUES (?, ?, ?)`).run('m1', '에피소딕 기억', 'episodic');
+    db.prepare(`INSERT INTO memory_item (id, content, type) VALUES (?, ?, ?)`).run('m2', '시맨틱 기억', 'semantic');
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?types=episodic');
+      const body = JSON.parse(res.body) as { nodes: Array<Record<string, unknown>> };
+      expect(body.nodes.length).toBe(1);
+      expect(body.nodes[0]['type']).toBe('episodic');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T022: US3 — min_importance 필터 검증
+  it('GET /admin/graph?min_importance=0.8 — importance < 0.8인 노드를 제외한다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('m1', '높은 중요도', 'semantic', 0.9);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('m2', '낮은 중요도', 'semantic', 0.5);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?min_importance=0.8');
+      const body = JSON.parse(res.body) as { nodes: Array<Record<string, unknown>> };
+      expect(body.nodes.length).toBe(1);
+      expect(body.nodes[0]['importance']).toBeGreaterThanOrEqual(0.8);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T023: US3 — limit 및 meta.truncated 검증
+  it('GET /admin/graph?limit=1 — 노드 1개만 반환하고 meta.truncated=true', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('m1', '기억1', 'semantic', 0.9);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run('m2', '기억2', 'semantic', 0.7);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?limit=1');
+      const body = JSON.parse(res.body) as { nodes: unknown[]; meta: { truncated: boolean } };
+      expect(body.nodes.length).toBeLessThanOrEqual(1);
+      expect(body.meta.truncated).toBe(true);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // I-002: relation_types 필터 검증
+  it('GET /admin/graph?relation_types=supports — 해당 relation_type 엣지만 반환한다', async () => {
+    db.prepare(`INSERT INTO memory_item (id, content, type) VALUES (?, ?, ?)`).run('m1', '기억1', 'semantic');
+    db.prepare(`INSERT INTO memory_item (id, content, type) VALUES (?, ?, ?)`).run('m2', '기억2', 'semantic');
+    db.prepare(`INSERT INTO memory_item (id, content, type) VALUES (?, ?, ?)`).run('m3', '기억3', 'semantic');
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('m1', 'm2', 'supports', 0.9);
+    db.prepare(`INSERT INTO memory_relation (source_id, target_id, relation_type, confidence) VALUES (?, ?, ?, ?)`).run('m1', 'm3', 'related_to', 0.7);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?relation_types=supports');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { nodes: unknown[]; edges: Array<Record<string, unknown>> };
+      expect(body.edges.length).toBe(1);
+      expect(body.edges[0]['relation_type']).toBe('supports');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // I-005: types 화이트리스트 검증
+  it('GET /admin/graph?types=invalid — 400 반환', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?types=invalid_type');
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: string };
+      expect(body.error).toBe('잘못된 파라미터');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T033: 잘못된 파라미터 검증 — min_importance 범위 초과
+  it('GET /admin/graph?min_importance=1.5 — 400 반환', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?min_importance=1.5');
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: string };
+      expect(body.error).toBe('잘못된 파라미터');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  // T033: 잘못된 파라미터 검증 — limit 범위 초과
+  it('GET /admin/graph?limit=9999 — 400 반환', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?limit=9999');
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: string };
+      expect(body.error).toBe('잘못된 파라미터');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+});
