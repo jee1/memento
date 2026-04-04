@@ -3,16 +3,25 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy root package files
 COPY package*.json ./
 COPY tsconfig*.json ./
+
+# Copy workspace package.json files (npm workspaces 의존성 설치에 필요)
+COPY packages/memento-core/package*.json ./packages/memento-core/
+COPY packages/memento-server/package*.json ./packages/memento-server/
+COPY packages/memento-client/package*.json ./packages/memento-client/
+COPY packages/mcp-client/package*.json ./packages/mcp-client/
+COPY apps/experimental-example/package*.json ./apps/experimental-example/
 
 # Install all dependencies (including dev dependencies for build) without running scripts
 RUN npm ci --ignore-scripts
 
-# Copy source code
+# Copy source code (packages/ 포함 — 모노레포 빌드에 필요)
 COPY src/ ./src/
 COPY scripts/ ./scripts/
+COPY packages/ ./packages/
+COPY apps/ ./apps/
 
 # Run postinstall scripts now that source code is available
 RUN npm run postinstall
@@ -59,6 +68,9 @@ RUN npm install sqlite-vec --build-from-source && \
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
+# workspace 패키지 dist 복사 (node_modules/@memento/* 심볼릭 링크가 참조)
+COPY --from=builder /app/packages/memento-core/dist ./packages/memento-core/dist
+COPY --from=builder /app/packages/memento-core/package.json ./packages/memento-core/package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 
@@ -67,7 +79,7 @@ COPY --from=builder /app/package*.json ./
 RUN npm ci --only=production --ignore-scripts && \
     npm rebuild better-sqlite3 --build-from-source && \
     npm install sqlite-vec --build-from-source && \
-    npm install --platform=linux --arch=x64 sharp && \
+    npm rebuild sharp && \
     npm cache clean --force && \
     node --input-type=module -e "\
       import { pipeline } from '@xenova/transformers'; \

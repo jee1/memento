@@ -1,4 +1,5 @@
 #!/bin/bash
+if [ -z "$BASH_VERSION" ]; then exec bash "$0" "$@"; fi
 
 # Memento MCP Server 자동 설치 스크립트
 # 사용법: curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
@@ -134,7 +135,14 @@ install_docker() {
     fi
     
     log_success "Docker 환경 확인 완료"
-    
+
+    # docker compose 명령어 결정 (플러그인 방식 우선)
+    if docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+    else
+        COMPOSE_CMD="docker-compose"
+    fi
+
     # 프로젝트 클론
     if [ ! -d "memento" ]; then
         log "프로젝트를 클론합니다..."
@@ -155,11 +163,11 @@ install_docker() {
     
     # Docker Compose 실행
     log "Docker 컨테이너를 시작합니다..."
-    docker-compose up -d
-    
+    $COMPOSE_CMD up -d
+
     log_success "Docker 방식 설치 완료!"
     log "서버가 http://localhost:9001 에서 실행 중입니다."
-    log "로그 확인: docker-compose logs -f"
+    log "로그 확인: $COMPOSE_CMD logs -f"
 }
 
 # 소스코드 방식 설치

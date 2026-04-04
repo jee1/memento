@@ -143,6 +143,64 @@ npm install -g memento-mcp-server
 
 > **DB_PATH 설정 참고**: 전역 설치 시에도 DB_PATH를 명시적으로 설정하는 것을 권장합니다. 절대 경로 사용을 권장합니다.
 
+### 방법 5: Docker 방식 (운영 환경용) 🐳
+
+`sh ./install.sh` → Docker 옵션으로 설치했거나 `docker compose up -d`로 컨테이너를 직접 실행한 경우입니다.
+
+Docker 컨테이너는 HTTP/SSE 서버로 동작하므로 `command` 대신 `url`로 연결합니다.
+
+#### 사전 확인
+
+```bash
+# 컨테이너가 실행 중인지 확인
+docker ps | grep memento
+
+# 서버가 응답하는지 확인
+curl http://localhost:9001/health
+```
+
+#### Cursor MCP 설정
+
+`.cursor/mcp.json` 또는 Cursor 전역 설정에 추가:
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "url": "http://localhost:9001/mcp"
+    }
+  }
+}
+```
+
+> **포트 변경 시**: `docker-compose.yml` 또는 `.env`에서 `MCP_SERVER_PORT`를 변경했다면 `9001`을 해당 포트로 교체하세요.
+
+#### Docker 컨테이너 시작/중지
+
+```bash
+# 컨테이너 시작 (memento/ 디렉토리에서)
+cd memento
+docker compose up -d
+
+# 로그 확인
+docker compose logs -f
+
+# 컨테이너 중지
+docker compose down
+```
+
+#### 장점
+- Node.js 설치 없이 사용 가능합니다
+- 데이터가 `memento/data/` 볼륨에 영구 보존됩니다
+- 서버 재시작 시 자동으로 복구됩니다 (`restart: unless-stopped`)
+
+#### 주의사항
+- Cursor를 재시작하거나 MCP 서버를 재연결하기 전에 컨테이너가 실행 중이어야 합니다
+- 컨테이너가 중지된 상태에서는 MCP 도구를 사용할 수 없습니다
+- 원격 서버에 Docker를 설치한 경우 `localhost` 대신 해당 서버 IP를 사용하세요
+
+---
+
 ### 방법 4: 문제 해결 (npm 캐시 정리)
 
 npx 사용 시 "Cannot destructure property 'package' of 'node.target' as it is null" 오류가 발생하는 경우:
