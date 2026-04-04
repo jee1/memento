@@ -443,7 +443,7 @@ export function createAdminRouter(
     try {
       const svc = serverServices?.sleepConsolidationService;
       if (!db || !svc) {
-        return res.status(500).json({
+        return res.status(503).json({
           success: false,
           error: 'Sleep consolidation not available'
         });
@@ -1038,7 +1038,7 @@ export function createAdminRouter(
   router.get('/telemetry/search-quality', (req, res) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(500).json({ error: 'DB unavailable' });
+        return res.status(503).json({ error: 'DB unavailable' });
       }
       const periodRaw = req.query.period as string | undefined;
       const effectivePeriod = effectiveTelemetryPeriod(periodRaw);
@@ -1065,7 +1065,7 @@ export function createAdminRouter(
   router.get('/telemetry/memory-quality', (req, res) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(500).json({ error: 'DB unavailable' });
+        return res.status(503).json({ error: 'DB unavailable' });
       }
       const ownerQ = req.query.owner_id as string | undefined;
       const data = serverServices.telemetryService.getMemoryQuality(
@@ -1086,7 +1086,7 @@ export function createAdminRouter(
   router.get('/telemetry/system', (req, res) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(500).json({ error: 'DB unavailable' });
+        return res.status(503).json({ error: 'DB unavailable' });
       }
       const periodRaw = req.query.period as string | undefined;
       const effectivePeriod = effectiveTelemetryPeriod(periodRaw);
@@ -1113,7 +1113,7 @@ export function createAdminRouter(
   router.get('/telemetry/events', (req, res) => {
     try {
       if (!db || !serverServices?.telemetryService) {
-        return res.status(500).json({ error: 'DB unavailable' });
+        return res.status(503).json({ error: 'DB unavailable' });
       }
       const from = req.query.from as string | undefined;
       const to = req.query.to as string | undefined;
@@ -1195,7 +1195,7 @@ export function createAdminRouter(
   router.get('/graph', (req, res) => {
     try {
       if (!db) {
-        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+        return res.status(503).json({ error: 'Service unavailable' });
       }
 
       // 쿼리 파라미터 파싱 및 검증 (T026)

@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { mementoConfig } from '../shared/config/index.js';
 import { getPerformanceMonitor } from '../domains/monitoring/services/performance-monitor.js';
+import { resetBatchScheduler } from '@memento/core';
 
 describe('initializeServices', () => {
   let db: Database.Database;
@@ -37,7 +38,18 @@ describe('initializeServices', () => {
       } catch (error) {
         console.warn('DatabaseLockMonitor stop 중 에러:', error);
       }
+
+      if (services.batchScheduler) {
+        try {
+          await services.batchScheduler.stop?.();
+        } catch (error) {
+          console.warn('BatchScheduler stop 중 에러:', error);
+        }
+      }
     }
+
+    // BatchScheduler 싱글톤 리셋 (다음 테스트에서 start() 재호출 가능하도록)
+    resetBatchScheduler();
 
     // Write Coalescing Manager 정리
     if (services?.writeCoalescingManager) {

@@ -9,7 +9,8 @@ import {
   DatabaseUtils,
   mementoConfig,
   getPerformanceMonitor,
-  getBatchScheduler
+  getBatchScheduler,
+  resetBatchScheduler
 } from '@memento/core';
 import Database from 'better-sqlite3';
 
@@ -37,6 +38,11 @@ describe('initializeServices', () => {
     }
 
     if (services) {
+      if (services.batchScheduler) {
+        try {
+          await services.batchScheduler.stop?.();
+        } catch { /* ignore */ }
+      }
       try {
         await services.walCheckpointScheduler.stop();
       } catch (error) {
@@ -75,6 +81,9 @@ describe('initializeServices', () => {
       }
       db = null as any;
     }
+
+    // BatchScheduler 싱글톤 리셋
+    resetBatchScheduler();
 
     // Mock 정리
     vi.clearAllMocks();

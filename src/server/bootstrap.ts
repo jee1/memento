@@ -5,6 +5,7 @@
 
 import Database from 'better-sqlite3';
 import { mementoConfig } from '../shared/config/index.js';
+import { TelemetryService, TelemetryRepository, SleepConsolidationService, getBatchScheduler, createRelationGraph } from '@memento/core';
 import { SearchEngine } from '../domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from '../domains/search/algorithms/hybrid-search-engine.js';
 import { HybridSearchFactory } from '../domains/search/factories/hybrid-search.factory.js';
@@ -86,6 +87,10 @@ export interface ServerServices {
   batchScheduler?: IBatchScheduler;
   /** 인트로스펙션 스캔 결과 캐시 (get_introspection_summary / BatchScheduler와 공유) */
   introspectionScanCache?: IntrospectionScanCache;
+  // 텔레메트리 서비스 (006-observability-telemetry)
+  telemetryService?: TelemetryService;
+  // Sleep Consolidation 서비스 (005-sleep-consolidation)
+  sleepConsolidationService?: SleepConsolidationService;
 }
 
 /**
@@ -273,7 +278,22 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     }
 
     const introspectionScanCache = new IntrospectionScanCache();
-    
+
+    // 5. TelemetryService 및 SleepConsolidationService 초기화 (006-observability-telemetry, 005-sleep-consolidation)
+    const telemetryRepository = new TelemetryRepository(db);
+    const batchScheduler = getBatchScheduler();
+    batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
+    const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
+    batchScheduler.setIntrospectionScanCache(introspectionScanCache);
+    const sleepConsolidationService = new SleepConsolidationService(db, {
+      relationGraph: createRelationGraph(db),
+      telemetryService
+    });
+    batchScheduler.setSleepConsolidationService(sleepConsolidationService);
+    if (!batchScheduler.getStatus().isRunning) {
+      await batchScheduler.start(db, reflexionWorker);
+    }
+
     return {
       searchEngine,
       hybridSearchEngine,
@@ -292,7 +312,10 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       reflexionWorker,
       walCheckpointScheduler,
       databaseLockMonitor,
-      introspectionScanCache
+      batchScheduler,
+      introspectionScanCache,
+      telemetryService,
+      sleepConsolidationService
     };
   } catch (error) {
     // 서비스 초기화 실패 시 예외를 그대로 전파 (서버 시작 실패)

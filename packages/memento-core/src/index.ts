@@ -57,7 +57,7 @@ export type { MemoryItem } from './shared/types/index.js';
 export type { IErrorLoggingService } from './shared/interfaces/error-logging.interface.js';
 export { ErrorSeverity, ErrorCategory } from './shared/types/error-types.js';
 export type { AppErrorContract } from './shared/types/error-types.js';
-export { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
+export { getBatchScheduler, resetBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 
 // --- 도메인·인프라 re-export (서버 thin화용) ---
 export { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
