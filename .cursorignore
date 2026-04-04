@@ -1,0 +1,51 @@
+# Cursor indexing — heavy or generated paths (see .gitignore)
+node_modules/
+dist/
+build/
+data/
+
+# SQLite / local DB
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+memory.db*
+
+# Secrets (do not index)
+.env
+.env.*
+
+# Tests & coverage
+coverage/
+.nyc_output/
+test-results/
+
+# Logs & temp
+logs/
+*.log
+tmp/
+temp/
+
+# Bundler / framework caches
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Tooling / local worktrees
+.worktrees/
+.serena/
+test-config/
+test-logs/
+
+# Demo app artifacts
+demo/.next/
+demo/node_modules/
+
+# Misc build metadata
+*.tsbuildinfo
+*.tgz

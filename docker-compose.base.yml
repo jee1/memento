@@ -22,6 +22,8 @@ x-default-environment: &default-environment
   MEMENTO_HTTP_BIND_HOST: ${MEMENTO_HTTP_BIND_HOST:-0.0.0.0}
   # 0.0.0.0 바인딩 시 보안 체크 우회 (컨테이너 내부 네트워크이므로 허용)
   MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: ${MEMENTO_ALLOW_INSECURE_HTTP_ADMIN:-true}
+  # SSE 전송 방식 사용 (HTTP/SSE 서버 모드)
+  TRANSPORT_TYPE: ${TRANSPORT_TYPE:-sse}
 
 services:
   memento-base:
