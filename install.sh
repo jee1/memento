@@ -113,7 +113,7 @@ install_npx() {
     fi
     
     log_success "npx 방식 설치 완료!"
-    log "서버가 http://localhost:8080 에서 실행 중입니다."
+    log "서버가 http://localhost:9001 에서 실행 중입니다."
 }
 
 # Docker 방식 설치
@@ -158,7 +158,7 @@ install_docker() {
     docker-compose up -d
     
     log_success "Docker 방식 설치 완료!"
-    log "서버가 http://localhost:8080 에서 실행 중입니다."
+    log "서버가 http://localhost:9001 에서 실행 중입니다."
     log "로그 확인: docker-compose logs -f"
 }
 
@@ -196,7 +196,7 @@ install_source() {
     npm run dev
     
     log_success "소스코드 방식 설치 완료!"
-    log "서버가 http://localhost:8080 에서 실행 중입니다."
+    log "서버가 http://localhost:9001 에서 실행 중입니다."
 }
 
 # 메인 함수

@@ -18,6 +18,10 @@ x-default-environment: &default-environment
   FORGET_EPISODIC_TTL: ${FORGET_EPISODIC_TTL:-2160}
   FORGET_SEMANTIC_TTL: ${FORGET_SEMANTIC_TTL:--1}
   FORGET_PROCEDURAL_TTL: ${FORGET_PROCEDURAL_TTL:--1}
+  # Docker 컨테이너에서는 모든 인터페이스에 바인딩해야 포트 매핑이 동작함
+  MEMENTO_HTTP_BIND_HOST: ${MEMENTO_HTTP_BIND_HOST:-0.0.0.0}
+  # 0.0.0.0 바인딩 시 보안 체크 우회 (컨테이너 내부 네트워크이므로 허용)
+  MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: ${MEMENTO_ALLOW_INSECURE_HTTP_ADMIN:-true}
 
 services:
   memento-base:
