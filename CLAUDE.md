@@ -144,6 +144,8 @@ After completing work: store results — `episodic` for completed tasks, `semant
 - SQLite (better-sqlite3) — `telemetry_events` (027), `telemetry_daily_metrics` (028) 테이블 추가 (006-observability-telemetry)
 - TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, @memento/core (TelemetryService, BaseTool) (007-telemetry-cli-mcp)
 - 기존 SQLite — 읽기 전용 (신규 마이그레이션 없음) (007-telemetry-cli-mcp)
+- TypeScript 5.x (Node.js 20+), ES modules + Express 4.x (기존), better-sqlite3 (기존), D3.js v7 (CDN, 프론트엔드 전용) (009-memory-graph-view)
+- SQLite (`memory_relation`, `kg_triple`, `memory_item` 테이블 — 읽기 전용, 스키마 변경 없음) (009-memory-graph-view)
 
 ## Recent Changes
 - 005-sleep-consolidation: 에피소딕→시맨틱 오프라인 증류(`SleepConsolidationService`), `is_consolidated`+마이그레이션 `025`, 배치(`SLEEP_CONSOLIDATION_INTERVAL_MS`), `POST /admin/consolidation/run`

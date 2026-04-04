@@ -1,0 +1,52 @@
+# Claude Code ignore file
+# Claude가 읽지 않아도 되는 파일/디렉터리
+
+# 빌드 산출물
+dist/
+packages/*/dist/
+apps/*/dist/
+*.js.map
+*.d.ts.map
+
+# 의존성
+node_modules/
+packages/*/node_modules/
+apps/*/node_modules/
+demo/node_modules/
+
+# 데이터베이스 및 런타임 데이터
+data/
+*.db
+*.db-shm
+*.db-wal
+backups/
+
+# 로그
+logs/
+test-logs/
+*.log
+
+# 테스트 결과물
+coverage/
+test-results/
+.nyc_output/
+
+# Lock 파일 (구조 파악에 불필요)
+package-lock.json
+
+# Docker 관련
+docker-compose.*.yml
+
+# 설치 스크립트 (바이너리/실행 파일)
+install.sh
+start-dev.sh
+start-docker.sh
+start-docker-setup.bat
+start-prod.sh
+
+# speckit 스크립트·템플릿 (메타 도구)
+.specify/scripts/
+.specify/templates/
+
+# 기타
+compound-engineering.local.md

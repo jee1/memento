@@ -125,6 +125,16 @@ app.get('/dashboard', (req, res) => {
   });
 });
 
+// 기억 관계 그래프 뷰 (009-memory-graph-view)
+app.get('/graph', (req, res) => {
+  res.sendFile('graph.html', { root: 'static' }, (err) => {
+    if (err) {
+      logger.error('그래프 파일 로드 실패', { error: err });
+      res.status(404).send('Graph view not found');
+    }
+  });
+});
+
 // Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
 // 주석 처리된 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
 // 서버 초기화
