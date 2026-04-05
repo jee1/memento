@@ -14,6 +14,7 @@ env:
   NODE_ENV: test
   SKIP_DB_TESTS: true
   SKIP_INTEGRATION_TESTS: true
+  DB_PATH: /tmp/memento-test.db
 
 jobs:
   lint-typecheck:

@@ -85,8 +85,11 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
+# .env, .env.local 등 민감 정보 포함 파일은 커밋 금지
 .env
-.env.test
+.env.local
+# .env.test는 커밋 허용 (테스트용 비민감 설정만 포함)
+.env.test.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
