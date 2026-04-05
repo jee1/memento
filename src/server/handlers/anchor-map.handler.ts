@@ -150,7 +150,7 @@ async function buildNetworkNodesAndLinks(
           anchor.slot as 'A' | 'B' | 'C',
           undefined,
           slotConfig.hop_limit,
-          { limit: 50 }
+          { limit: 50, vector_threshold: 0.3 } // 시각화용: 슬롯 기본값보다 낮은 threshold 사용
         );
 
         // 검색 결과를 노드와 링크로 변환

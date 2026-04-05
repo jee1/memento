@@ -238,7 +238,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     // 슬롯별 설정 가져오기
     const slotConfig = this.getSlotConfig(slot);
     const finalHopLimit = hopLimit ?? slotConfig.hop_limit;
-    const vectorThreshold = slotConfig.vector_threshold;
+    const vectorThreshold = options?.vector_threshold ?? slotConfig.vector_threshold;
 
     // 검색 옵션 기본값
     const limit = options?.limit ?? 10;

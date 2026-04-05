@@ -33,6 +33,7 @@ export interface SearchOptions {
   text_weight?: number;
   autoMoveEnabled?: boolean;
   use_relations?: boolean; // 관계 그래프 사용 여부 (기본값: true)
+  vector_threshold?: number; // 슬롯 기본값 대신 사용할 벡터 유사도 임계값 (시각화 등 특수 목적용)
 }
 
 /**
