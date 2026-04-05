@@ -540,8 +540,8 @@ async function performSearch() {
   }
   
   // slot이 필수이므로 반드시 설정
-  if (!slot || slot === '') {
-    alert('슬롯을 선택해주세요.');
+  if (!slot || !['A', 'B', 'C'].includes(slot)) {
+    alert('슬롯을 선택해주세요. (A, B, C 중 하나)');
     return;
   }
   

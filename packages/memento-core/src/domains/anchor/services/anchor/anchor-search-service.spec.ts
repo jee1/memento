@@ -153,6 +153,39 @@ describe('AnchorSearchService', () => {
       expect(result).toHaveProperty('query_time');
     });
 
+    it('limit이 100이어도 내부 벡터 검색 요청 limit은 100을 넘기지 않아야 함', async () => {
+      // Given: 최대 limit으로 로컬 검색을 수행할 때
+      const anchorMemoryId = createTestMemory(db, {
+        content: 'Anchor memory',
+        type: 'episodic'
+      });
+
+      const mockEmbedding = {
+        embedding: Array(384).fill(0.1),
+        provider: 'tfidf'
+      };
+
+      vi.spyOn(cacheService, 'getAnchorEmbedding').mockResolvedValue(mockEmbedding);
+      vi.spyOn(mockVectorSearchEngine, 'search').mockResolvedValue([] as any);
+
+      // When: limit=100으로 검색하면
+      await expect(service.searchLocal(
+        agentId,
+        'A',
+        'test query',
+        undefined,
+        { limit: 100 },
+        anchorMemoryId,
+        mockEmbedding,
+        Date.now()
+      )).resolves.toBeDefined();
+
+      // Then: 내부 벡터 검색 limit은 검증 상한을 넘지 않아야 함
+      expect(mockVectorSearchEngine.search).toHaveBeenCalled();
+      const [, options] = vi.mocked(mockVectorSearchEngine.search).mock.calls[0]!;
+      expect(options.limit).toBeLessThanOrEqual(100);
+    });
+
     it('N-hop 검색을 수행해야 함', async () => {
       // Given: 앵커 메모리 및 연결된 메모리들 생성
       const anchorMemoryId = createTestMemory(db, {
@@ -1440,4 +1473,3 @@ describe('AnchorSearchService', () => {
     });
   });
 });
-

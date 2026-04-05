@@ -202,6 +202,10 @@ export class NHopSearchService implements INHopSearchService {
     for (let hop = 1; hop <= maxHops; hop++) {
       const nextHopMemories: Array<{ memory_id: string; embedding: number[] }> = [];
       const hopResults: NHopSearchResult[] = [];
+      const vectorSearchLimit = Math.min(
+        100,
+        Math.max(1, Math.ceil(limit / maxHops) + 10)
+      );
 
       // 배치로 연결 메모리 조회 + 벡터 검색 병렬 실행 (N+1 완화)
       const memoryIdsThisHop = currentHopMemories.map(m => m.memory_id);
@@ -214,7 +218,7 @@ export class NHopSearchService implements INHopSearchService {
           this.vectorSearchEngine!.search(
             m.embedding,
             {
-              limit: Math.ceil(limit / maxHops) + 10,
+              limit: vectorSearchLimit,
               threshold: 0.0,
               includeContent: true,
               includeMetadata: true
@@ -634,4 +638,3 @@ export class NHopSearchService implements INHopSearchService {
     return rankingScore;
   }
 }
-

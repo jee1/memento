@@ -108,5 +108,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Copy startup script
 COPY --chmod=755 scripts/start-container.sh /app/start-container.sh
 
+# Copy static files (dashboard, graph UI)
+COPY static/ /app/static/
+
 # Start application
 CMD ["/app/start-container.sh"]
