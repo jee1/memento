@@ -1,5 +1,20 @@
 {
   "mcpServers": {
+    "memento": {
+      "url": "http://localhost:9001/mcp",
+      "env": {
+        "MEMENTO_SINGLETON": "0",
+        "NODE_ENV": "production",
+        "CI": "1",
+        "npm_config_loglevel": "error",
+        "DB_PATH": "/home/jee1lee/git/data/memento.db",
+        "CONSOLIDATION_SCORE_ENABLED": "true",
+        "OLLAMA_BASE_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "qwen3:latest",
+        "PROCEDURAL_EXTRACTION_STRATEGY": "llm_first",
+        "PROCEDURAL_LLM_EXTRACTOR_TIMEOUT_MS": "10000"
+      }
+    },
     "serena": {
       "command": "/home/jee1lee/.local/bin/uvx",
       "args": [
