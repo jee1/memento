@@ -6,9 +6,9 @@
 
 import { Router, type Request, type Response } from 'express';
 import type Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import type { ServerServices } from '../bootstrap.js';
 import {
-  type ToolContext,
   getToolRegistry,
   executeTool,
   createToolContext,
@@ -29,6 +29,372 @@ export interface SSETransport {
   keepAliveInterval: NodeJS.Timeout;
 }
 
+type McpRequestMessage = {
+  id?: unknown;
+  method?: string;
+  params?: Record<string, any>;
+};
+
+type JsonRpcResponse = {
+  jsonrpc: '2.0';
+  id: unknown;
+  result?: unknown;
+  error?: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+};
+
+function isJsonRpcNotification(message: McpRequestMessage): boolean {
+  return message.id === undefined;
+}
+
+function isInitializeRequest(message: McpRequestMessage): boolean {
+  return message.method === 'initialize';
+}
+
+function createJsonRpcError(
+  id: unknown,
+  code: number,
+  message: string,
+  data?: unknown
+): JsonRpcResponse {
+  return {
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code,
+      message,
+      ...(data === undefined ? {} : { data })
+    }
+  };
+}
+
+async function processMcpMessage(
+  message: McpRequestMessage,
+  db: Database.Database | null,
+  serverServices: ServerServices | null
+): Promise<JsonRpcResponse> {
+  if (message.method === 'initialize') {
+    logger.info('MCP initialize request processing');
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: {
+        protocolVersion: '2024-11-05',
+        capabilities: {
+          tools: {}
+        },
+        serverInfo: {
+          name: 'memento-memory',
+          version: '0.1.0'
+        }
+      }
+    };
+  }
+
+  if (message.method === 'notifications/initialized') {
+    logger.info('MCP initialized notification received');
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: {}
+    };
+  }
+
+  if (message.method === 'tools/list') {
+    logger.info('MCP tools/list request processing');
+
+    try {
+      const toolRegistry = getToolRegistry();
+      const tools = toolRegistry.getAll();
+
+      return {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: { tools }
+      };
+    } catch (toolsError) {
+      logger.error('tools/list processing error', {
+        error: toolsError instanceof Error ? toolsError.message : String(toolsError)
+      });
+      return createJsonRpcError(
+        message.id,
+        -32603,
+        'Internal error',
+        toolsError instanceof Error ? toolsError.message : String(toolsError)
+      );
+    }
+  }
+
+  if (message.method === 'tools/call') {
+    const { name, arguments: args } = message.params ?? {};
+
+    if (!serverServices) {
+      return createJsonRpcError(message.id, -32603, 'Internal error', '서비스가 초기화되지 않았습니다');
+    }
+
+    const serverContext = {
+      db: db!,
+      services: serverServices
+    };
+    const toolContext = createToolContext(serverContext);
+    const toolResult = await executeTool(name, args, toolContext);
+
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
+    };
+  }
+
+  if (message.method === 'prompts/list') {
+    logger.info('MCP prompts/list request processing');
+
+    const prompts = [
+      {
+        name: 'memory_injection',
+        description: '관련 기억을 요약하여 프롬프트에 주입',
+        arguments: [
+          {
+            name: 'query',
+            description: '검색할 쿼리',
+            required: true
+          },
+          {
+            name: 'token_budget',
+            description: '토큰 예산 (기본값: 1000)',
+            required: false
+          },
+          {
+            name: 'max_memories',
+            description: '최대 기억 개수 (기본값: 5)',
+            required: false
+          }
+        ]
+      }
+    ];
+
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: { prompts }
+    };
+  }
+
+  if (message.method === 'prompts/get') {
+    const { name } = message.params ?? {};
+
+    if (name === 'memory_injection') {
+      return {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          description: '관련 기억을 요약하여 프롬프트에 주입',
+          arguments: [
+            {
+              name: 'query',
+              description: '검색할 쿼리',
+              required: true
+            },
+            {
+              name: 'token_budget',
+              description: '토큰 예산 (기본값: 1000)',
+              required: false
+            },
+            {
+              name: 'max_memories',
+              description: '최대 기억 개수 (기본값: 5)',
+              required: false
+            }
+          ]
+        }
+      };
+    }
+
+    return createJsonRpcError(message.id, -32601, 'Prompt not found');
+  }
+
+  if (message.method === 'prompts/call') {
+    const { name, arguments: args } = message.params ?? {};
+
+    if (name === 'memory_injection') {
+      try {
+        if (!serverServices) {
+          return createJsonRpcError(message.id, -32603, 'Internal error', '서비스가 초기화되지 않았습니다');
+        }
+
+        const serverContext = {
+          db: db!,
+          services: serverServices
+        };
+        const toolContext = createToolContext(serverContext);
+        const promptResult = await executeTool('memory_injection', args, toolContext);
+
+        return {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: promptResult
+        };
+      } catch (error) {
+        return createJsonRpcError(
+          message.id,
+          -32603,
+          'Prompt execution failed',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    }
+
+    return createJsonRpcError(message.id, -32601, 'Prompt not found');
+  }
+
+  if (message.method === 'resources/list') {
+    logger.info('MCP resources/list request processing');
+
+    if (!db) {
+      return createJsonRpcError(message.id, -32603, 'Internal error', 'Database not initialized');
+    }
+
+    try {
+      const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
+
+      return {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          resources: memories.map((memory: any) => ({
+            uri: `memory://${memory.id}`,
+            name: `Memory ${memory.id}`,
+            description: `Memory item with ID: ${memory.id}`,
+            mimeType: 'application/json'
+          }))
+        }
+      };
+    } catch (error) {
+      logger.error('resources/list processing error', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return createJsonRpcError(
+        message.id,
+        -32603,
+        'Internal error',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+  }
+
+  if (message.method === 'resources/read') {
+    logger.info('MCP resources/read request processing', { uri: message.params?.uri });
+
+    const { uri } = message.params ?? {};
+
+    if (!uri) {
+      return createJsonRpcError(message.id, -32602, 'Invalid params', 'URI parameter is required');
+    }
+
+    if (!db) {
+      return createJsonRpcError(message.id, -32603, 'Internal error', 'Database not initialized');
+    }
+
+    try {
+      const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
+      if (!uriMatch) {
+        return createJsonRpcError(message.id, -32602, 'Invalid params', `Invalid resource URI: ${uri}`);
+      }
+
+      const memoryId = uriMatch[1];
+      if (!memoryId) {
+        return createJsonRpcError(message.id, -32602, 'Invalid params', `Invalid memory ID in URI: ${uri}`);
+      }
+
+      const queryString = uriMatch[2] || '';
+      const includeNeighbors = queryString.includes('include_neighbors=true');
+      const memory = await DatabaseUtils.get(
+        db,
+        'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
+        [memoryId]
+      );
+
+      if (!memory) {
+        return createJsonRpcError(message.id, -32602, 'Invalid params', `Memory not found: ${memoryId}`);
+      }
+
+      const memoryData: any = {
+        id: memory.id,
+        type: memory.type,
+        content: memory.content,
+        importance: memory.importance,
+        privacy_scope: memory.privacy_scope,
+        tags: memory.tags ? JSON.parse(memory.tags) : [],
+        source: memory.source,
+        created_at: memory.created_at,
+        last_accessed: memory.last_accessed,
+        pinned: memory.pinned === 1
+      };
+
+      if (includeNeighbors) {
+        try {
+          if (!serverServices) {
+            logger.warn('Server services not available for neighbor search');
+            memoryData.neighbors = [];
+            memoryData.neighbors_count = 0;
+          } else {
+            const vectorSearchEngine = getVectorSearchEngine();
+            const neighborService = new MemoryNeighborService(
+              vectorSearchEngine,
+              serverServices.embeddingService,
+              db
+            );
+
+            const neighborsResult = await neighborService.getNeighbors(memoryId, {
+              limit: 5,
+              similarity_threshold: 0.8
+            });
+
+            memoryData.neighbors = neighborsResult.neighbors;
+            memoryData.neighbors_count = neighborsResult.total_count;
+            memoryData.neighbors_query_time = neighborsResult.query_time;
+          }
+        } catch (error) {
+          logger.warn('Neighbor search failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+          memoryData.neighbors = [];
+          memoryData.neighbors_count = 0;
+        }
+      }
+
+      return {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(memoryData, null, 2)
+            }
+          ]
+        }
+      };
+    } catch (error) {
+      logger.error('resources/read processing error', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return createJsonRpcError(
+        message.id,
+        -32603,
+        'Internal error',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+  }
+
+  return createJsonRpcError(message.id, -32601, 'Method not found');
+}
+
 /**
  * MCP 라우터 생성
  */
@@ -39,12 +405,16 @@ export function createMcpRouter(
 ): Router {
   const router = Router();
 
-  const sendMcpCorsPreflight = (req: Request, res: Response): void => {
+  const applyMcpCorsHeaders = (req: Request, res: Response): void => {
     const origin = req.get('origin') ?? undefined;
-    const h = buildMcpManualCorsHeaders(origin, mementoConfig.corsAllowedOrigins);
-    for (const [k, v] of Object.entries(h)) {
-      res.setHeader(k, v);
+    const headers = buildMcpManualCorsHeaders(origin, mementoConfig.corsAllowedOrigins);
+    for (const [key, value] of Object.entries(headers)) {
+      res.setHeader(key, value);
     }
+  };
+
+  const sendMcpCorsPreflight = (req: Request, res: Response): void => {
+    applyMcpCorsHeaders(req, res);
     res.status(204).end();
   };
   router.options('/mcp', sendMcpCorsPreflight);
@@ -52,6 +422,16 @@ export function createMcpRouter(
 
   // MCP SSE 엔드포인트
   router.get('/mcp', async (req, res) => {
+    const protocolVersionHeader = req.get('mcp-protocol-version');
+    if (protocolVersionHeader) {
+      logger.info('MCP streamable_http GET not supported, returning 405', {
+        protocolVersion: protocolVersionHeader
+      });
+      applyMcpCorsHeaders(req, res);
+      res.status(405).end();
+      return;
+    }
+
     logger.info('MCP SSE client connection request');
 
     try {
@@ -130,6 +510,41 @@ export function createMcpRouter(
     }
   });
 
+  router.post('/mcp', async (req, res) => {
+    logger.info('MCP streamable_http request received', { method: req.body?.method });
+    applyMcpCorsHeaders(req, res);
+
+    const message = req.body as McpRequestMessage;
+    const notificationOnly = isJsonRpcNotification(message);
+    if (isInitializeRequest(message) && !req.get('mcp-session-id')) {
+      res.setHeader('mcp-session-id', randomUUID());
+    }
+
+    try {
+      const result = await processMcpMessage(message, db, serverServices);
+      if (notificationOnly) {
+        res.status(202).end();
+        return;
+      }
+      res.type('application/json').status(200).json(result);
+    } catch (error) {
+      logger.error('MCP streamable_http processing failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      if (notificationOnly) {
+        res.status(202).end();
+        return;
+      }
+      const errorResponse = createJsonRpcError(
+        message?.id ?? null,
+        -32603,
+        'Internal error',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      res.type('application/json').status(200).json(errorResponse);
+    }
+  });
+
   // Messages 엔드포인트 (JSON-RPC 요청 수신)
   router.post('/messages', async (req, res) => {
     logger.info('MCP message received', { method: req.body.method });
@@ -150,432 +565,9 @@ export function createMcpRouter(
     }
 
     const message = req.body;
-    let result: any;
 
     try {
-      if (message.method === 'initialize') {
-        logger.info('MCP initialize request processing');
-        result = {
-          jsonrpc: '2.0',
-          id: message.id,
-          result: {
-            protocolVersion: '2024-11-05',
-            capabilities: {
-              tools: {}
-            },
-            serverInfo: {
-              name: 'memento-memory',
-              version: '0.1.0'
-            }
-          }
-        };
-      } else if (message.method === 'notifications/initialized') {
-        logger.info('MCP initialized notification received');
-        result = {
-          jsonrpc: '2.0',
-          id: message.id,
-          result: {}
-        };
-      } else if (message.method === 'tools/list') {
-        logger.info('MCP tools/list request processing');
-        
-        try {
-          const toolRegistry = getToolRegistry();
-          const tools = toolRegistry.getAll();
-
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { tools }
-          };
-
-          // SSE 응답 즉시 전송
-          if (transport && transport.res && !transport.res.writableEnded) {
-            const sseData = `data: ${JSON.stringify(result)}\n\n`;
-            transport.res.write(sseData);
-          }
-
-          // HTTP 응답 전송
-          res.json({ status: 'ok' });
-          return;
-        } catch (toolsError) {
-          logger.error('tools/list processing error', {
-            error: toolsError instanceof Error ? toolsError.message : String(toolsError)
-          });
-          const errorResult = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32603,
-              message: 'Internal error',
-              data: toolsError instanceof Error ? toolsError.message : String(toolsError)
-            }
-          };
-
-          if (transport && transport.res && !transport.res.writableEnded) {
-            transport.res.write(`data: ${JSON.stringify(errorResult)}\n\n`);
-          }
-          res.json({ status: 'error' });
-          return;
-        }
-      } else if (message.method === 'tools/call') {
-        const { name, arguments: args } = message.params;
-
-        if (!serverServices) {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32603,
-              message: 'Internal error',
-              data: '서비스가 초기화되지 않았습니다'
-            }
-          };
-        } else {
-          // ToolContext 생성 (Phase 0의 공통 모듈 사용)
-          const serverContext = {
-            db: db!,
-            services: serverServices
-          };
-          const toolContext = createToolContext(serverContext);
-
-          // 도구 실행
-          const toolResult = await executeTool(name, args, toolContext);
-
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
-          };
-        }
-      } else if (message.method === 'prompts/list') {
-        logger.info('MCP prompts/list request processing');
-
-        const prompts = [
-          {
-            name: 'memory_injection',
-            description: '관련 기억을 요약하여 프롬프트에 주입',
-            arguments: [
-              {
-                name: 'query',
-                description: '검색할 쿼리',
-                required: true
-              },
-              {
-                name: 'token_budget',
-                description: '토큰 예산 (기본값: 1000)',
-                required: false
-              },
-              {
-                name: 'max_memories',
-                description: '최대 기억 개수 (기본값: 5)',
-                required: false
-              }
-            ]
-          }
-        ];
-
-        result = {
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { prompts }
-        };
-      } else if (message.method === 'prompts/get') {
-        const { name } = message.params;
-
-        if (name === 'memory_injection') {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            result: {
-              description: '관련 기억을 요약하여 프롬프트에 주입',
-              arguments: [
-                {
-                  name: 'query',
-                  description: '검색할 쿼리',
-                  required: true
-                },
-                {
-                  name: 'token_budget',
-                  description: '토큰 예산 (기본값: 1000)',
-                  required: false
-                },
-                {
-                  name: 'max_memories',
-                  description: '최대 기억 개수 (기본값: 5)',
-                  required: false
-                }
-              ]
-            }
-          };
-        } else {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32601,
-              message: 'Prompt not found'
-            }
-          };
-        }
-      } else if (message.method === 'prompts/call') {
-        const { name, arguments: args } = message.params;
-
-        if (name === 'memory_injection') {
-          try {
-            if (!serverServices) {
-              result = {
-                jsonrpc: '2.0',
-                id: message.id,
-                error: {
-                  code: -32603,
-                  message: 'Internal error',
-                  data: '서비스가 초기화되지 않았습니다'
-                }
-              };
-            } else {
-              // MemoryInjectionPrompt 도구 사용
-              const serverContext = {
-                db: db!,
-                services: serverServices
-              };
-              const toolContext = createToolContext(serverContext);
-
-              const promptResult = await executeTool('memory_injection', args, toolContext);
-
-              result = {
-                jsonrpc: '2.0',
-                id: message.id,
-                result: promptResult
-              };
-            }
-          } catch (error) {
-            result = {
-              jsonrpc: '2.0',
-              id: message.id,
-              error: {
-                code: -32603,
-                message: 'Prompt execution failed',
-                data: error instanceof Error ? error.message : 'Unknown error'
-              }
-            };
-          }
-        } else {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32601,
-              message: 'Prompt not found'
-            }
-          };
-        }
-      } else if (message.method === 'resources/list') {
-        logger.info('MCP resources/list request processing');
-        
-        if (!db) {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32603,
-              message: 'Internal error',
-              data: 'Database not initialized'
-            }
-          };
-        } else {
-          try {
-            // 모든 메모리 ID 조회
-            const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
-            
-            result = {
-              jsonrpc: '2.0',
-              id: message.id,
-              result: {
-                resources: memories.map((memory: any) => ({
-                  uri: `memory://${memory.id}`,
-                  name: `Memory ${memory.id}`,
-                  description: `Memory item with ID: ${memory.id}`,
-                  mimeType: 'application/json'
-                }))
-              }
-            };
-          } catch (error) {
-            logger.error('resources/list processing error', {
-              error: error instanceof Error ? error.message : String(error)
-            });
-            result = {
-              jsonrpc: '2.0',
-              id: message.id,
-              error: {
-                code: -32603,
-                message: 'Internal error',
-                data: error instanceof Error ? error.message : 'Unknown error'
-              }
-            };
-          }
-        }
-      } else if (message.method === 'resources/read') {
-        logger.info('MCP resources/read request processing', { uri: message.params?.uri });
-        
-        const { uri } = message.params;
-        
-        if (!uri) {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32602,
-              message: 'Invalid params',
-              data: 'URI parameter is required'
-            }
-          };
-        } else if (!db) {
-          result = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32603,
-              message: 'Internal error',
-              data: 'Database not initialized'
-            }
-          };
-        } else {
-          try {
-            // URI 파싱: memory://{id}?include_neighbors=true
-            const uriMatch = uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
-            if (!uriMatch) {
-              result = {
-                jsonrpc: '2.0',
-                id: message.id,
-                error: {
-                  code: -32602,
-                  message: 'Invalid params',
-                  data: `Invalid resource URI: ${uri}`
-                }
-              };
-            } else {
-              const memoryId = uriMatch[1];
-              if (!memoryId) {
-                result = {
-                  jsonrpc: '2.0',
-                  id: message.id,
-                  error: {
-                    code: -32602,
-                    message: 'Invalid params',
-                    data: `Invalid memory ID in URI: ${uri}`
-                  }
-                };
-              } else {
-                const queryString = uriMatch[2] || '';
-                const includeNeighbors = queryString.includes('include_neighbors=true');
-                
-                // 메모리 조회
-                const memory = await DatabaseUtils.get(
-                  db,
-                  'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
-                  [memoryId]
-                );
-                
-                if (!memory) {
-                  result = {
-                    jsonrpc: '2.0',
-                    id: message.id,
-                    error: {
-                      code: -32602,
-                      message: 'Invalid params',
-                      data: `Memory not found: ${memoryId}`
-                    }
-                  };
-                } else {
-                  // 메모리 데이터 구성
-                  const memoryData: any = {
-                    id: memory.id,
-                    type: memory.type,
-                    content: memory.content,
-                    importance: memory.importance,
-                    privacy_scope: memory.privacy_scope,
-                    tags: memory.tags ? JSON.parse(memory.tags) : [],
-                    source: memory.source,
-                    created_at: memory.created_at,
-                    last_accessed: memory.last_accessed,
-                    pinned: memory.pinned === 1
-                  };
-                  
-                  // 이웃 기억 포함 여부 확인
-                  if (includeNeighbors) {
-                    try {
-                      if (!serverServices) {
-                        logger.warn('Server services not available for neighbor search');
-                        memoryData.neighbors = [];
-                        memoryData.neighbors_count = 0;
-                      } else {
-                        const vectorSearchEngine = getVectorSearchEngine();
-                        const neighborService = new MemoryNeighborService(
-                          vectorSearchEngine,
-                          serverServices.embeddingService,
-                          db
-                        );
-                        
-                        const neighborsResult = await neighborService.getNeighbors(memoryId, {
-                          limit: 5,
-                          similarity_threshold: 0.8
-                        });
-                        
-                        memoryData.neighbors = neighborsResult.neighbors;
-                        memoryData.neighbors_count = neighborsResult.total_count;
-                        memoryData.neighbors_query_time = neighborsResult.query_time;
-                      }
-                    } catch (error) {
-                      logger.warn('Neighbor search failed', {
-                        error: error instanceof Error ? error.message : String(error)
-                      });
-                      memoryData.neighbors = [];
-                      memoryData.neighbors_count = 0;
-                    }
-                  }
-                  
-                  result = {
-                    jsonrpc: '2.0',
-                    id: message.id,
-                    result: {
-                      contents: [
-                        {
-                          uri,
-                          mimeType: 'application/json',
-                          text: JSON.stringify(memoryData, null, 2)
-                        }
-                      ]
-                    }
-                  };
-                }
-              }
-            }
-          } catch (error) {
-            logger.error('resources/read processing error', {
-              error: error instanceof Error ? error.message : String(error)
-            });
-            result = {
-              jsonrpc: '2.0',
-              id: message.id,
-              error: {
-                code: -32603,
-                message: 'Internal error',
-                data: error instanceof Error ? error.message : 'Unknown error'
-              }
-            };
-          }
-        }
-      } else {
-        result = {
-          jsonrpc: '2.0',
-          id: message.id,
-          error: {
-            code: -32601,
-            message: 'Method not found'
-          }
-        };
-      }
+      const result = await processMcpMessage(message, db, serverServices);
 
       // SSE 응답 전송
       try {
@@ -628,4 +620,3 @@ export function createMcpRouter(
 
   return router;
 }
-
