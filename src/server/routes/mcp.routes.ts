@@ -9,6 +9,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import type Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import type { ServerServices } from '../bootstrap.js';
 import {
   getToolRegistry,
@@ -48,6 +49,14 @@ type JsonRpcResponse = {
     data?: unknown;
   };
 };
+
+function isJsonRpcNotification(message: McpRequestMessage): boolean {
+  return message.id === undefined;
+}
+
+function isInitializeRequest(message: McpRequestMessage): boolean {
+  return message.method === 'initialize';
+}
 
 function createJsonRpcError(
   id: unknown,
@@ -421,6 +430,16 @@ export function createMcpRouter(
 
   // MCP SSE 엔드포인트
   router.get('/mcp', async (req, res) => {
+    const protocolVersionHeader = req.get('mcp-protocol-version');
+    if (protocolVersionHeader) {
+      logger.info('MCP streamable_http GET not supported, returning 405', {
+        protocolVersion: protocolVersionHeader
+      });
+      applyMcpCorsHeaders(req, res);
+      res.status(405).end();
+      return;
+    }
+
     logger.info('MCP SSE client connection request');
 
     try {
@@ -504,14 +523,26 @@ export function createMcpRouter(
     applyMcpCorsHeaders(req, res);
 
     const message = req.body as McpRequestMessage;
+    const notificationOnly = isJsonRpcNotification(message);
+    if (isInitializeRequest(message) && !req.get('mcp-session-id')) {
+      res.setHeader('mcp-session-id', randomUUID());
+    }
 
     try {
       const result = await processMcpMessage(message, db, serverServices);
+      if (notificationOnly) {
+        res.status(202).end();
+        return;
+      }
       res.type('application/json').status(200).json(result);
     } catch (error) {
       logger.error('MCP streamable_http processing failed', {
         error: error instanceof Error ? error.message : String(error)
       });
+      if (notificationOnly) {
+        res.status(202).end();
+        return;
+      }
       const errorResponse = createJsonRpcError(
         message?.id ?? null,
         -32603,
