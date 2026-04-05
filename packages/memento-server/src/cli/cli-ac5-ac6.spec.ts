@@ -28,7 +28,8 @@ function runCli(
   const { env: optEnv, cwd: optCwd } = typeof (options as RunCliOptions).cwd === 'string'
     ? (options as RunCliOptions)
     : { env: options as NodeJS.ProcessEnv, cwd: undefined };
-  const env = { ...process.env, ...optEnv };
+  // env를 명시적으로 전달한 경우 그대로 사용 (process.env 병합 안 함 — 격리 테스트 지원)
+  const env = optEnv !== undefined ? optEnv : { ...process.env };
   const cwd = optCwd ?? process.cwd();
   return new Promise((resolve) => {
     const proc = spawn(process.execPath, [cliPath, ...args], { env, cwd });
@@ -74,9 +75,10 @@ describe.skipIf(!cliBuilt)('CLI AC5/AC6', () => {
     try {
       fs.mkdirSync(path.join(fakeHome, '.memento'), { recursive: true });
       fs.writeFileSync(path.join(fakeHome, '.memento', '.env'), `DB_PATH=${dbPath.replace(/\\/g, '/')}\n`);
-      // DB_PATH를 env에서 제거해야 CLI가 ~/.memento/.env를 읽는 경로로 진입함
-      const { DB_PATH: _removed, ...envWithoutDbPath } = process.env;
-      const { stdout, code } = await runCli(['recall', '--query', 'test', '--limit', '1'], { env: { ...envWithoutDbPath, HOME: fakeHome }, cwd: tmpCwd });
+      // DB_PATH를 제거한 env를 명시적으로 전달해야 CLI가 ~/.memento/.env를 읽는 경로로 진입함
+      // runCli에 env를 명시하면 process.env를 병합하지 않으므로 DB_PATH가 주입되지 않음
+      const { DB_PATH: _omit, ...baseEnv } = process.env;
+      const { stdout, code } = await runCli(['recall', '--query', 'test', '--limit', '1'], { env: { ...baseEnv, HOME: fakeHome }, cwd: tmpCwd });
       expect(code).toBe(0);
       const parsed = JSON.parse(stdout.trim());
       expect(parsed.items !== undefined && Array.isArray(parsed.items) || Array.isArray(parsed.content)).toBe(true);
