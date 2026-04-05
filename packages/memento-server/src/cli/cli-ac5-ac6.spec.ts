@@ -74,7 +74,9 @@ describe.skipIf(!cliBuilt)('CLI AC5/AC6', () => {
     try {
       fs.mkdirSync(path.join(fakeHome, '.memento'), { recursive: true });
       fs.writeFileSync(path.join(fakeHome, '.memento', '.env'), `DB_PATH=${dbPath.replace(/\\/g, '/')}\n`);
-      const { stdout, code } = await runCli(['recall', '--query', 'test', '--limit', '1'], { env: { ...process.env, HOME: fakeHome }, cwd: tmpCwd });
+      // DB_PATH를 env에서 제거해야 CLI가 ~/.memento/.env를 읽는 경로로 진입함
+      const { DB_PATH: _removed, ...envWithoutDbPath } = process.env;
+      const { stdout, code } = await runCli(['recall', '--query', 'test', '--limit', '1'], { env: { ...envWithoutDbPath, HOME: fakeHome }, cwd: tmpCwd });
       expect(code).toBe(0);
       const parsed = JSON.parse(stdout.trim());
       expect(parsed.items !== undefined && Array.isArray(parsed.items) || Array.isArray(parsed.content)).toBe(true);
