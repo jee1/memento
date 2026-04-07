@@ -7,6 +7,58 @@
 
 ## [Unreleased]
 
+### 보안 강화 (011-docker-security-hardening) — Breaking Changes
+
+#### BREAKING: Admin API 인증 동작 변경 (US2)
+
+- **이전 동작**: `ADMIN_API_KEY` 미설정 시 모든 Admin/API/Quality 엔드포인트에 인증 없이 접근 가능 (fail-open)
+- **새로운 동작**: `ADMIN_API_KEY` 미설정(absent/empty/whitespace) 시 모든 Admin/API/Quality 엔드포인트에서 401 반환 (fail-closed)
+- **마이그레이션**: Admin 엔드포인트(`/admin/*`, `/api/*`, `/api/v1/quality/*`)를 사용하는 경우 반드시 `ADMIN_API_KEY` 환경변수를 설정해야 합니다.
+  ```bash
+  export ADMIN_API_KEY="your-secure-key"
+  ```
+
+#### BREAKING: Docker Compose 기본 설정에서 보안 우회 플래그 제거 (US1)
+
+- **이전 동작**: `docker-compose.base.yml`에 `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"` 하드코딩 — 모든 Docker 환경에서 서버 시작 보안 체크 자동 우회
+- **새로운 동작**: 해당 하드코딩 제거. 기본값은 `false` (코드 레벨).
+- **`MEMENTO_ALLOW_INSECURE_HTTP_ADMIN`의 정확한 역할**:
+  - 이 플래그는 **서버 시작(binding) 보안 체크**만 제어합니다.
+  - `ADMIN_API_KEY`가 미설정된 상태에서 non-loopback 주소로 바인딩하려 할 때 서버 시작이 거부되는 것을 우회합니다.
+  - **Admin/API/Quality 엔드포인트(`/admin/*`, `/api/*`)의 인증 동작에는 영향을 주지 않습니다.**
+  - Admin 엔드포인트는 이 플래그 설정 여부와 무관하게 항상 `ADMIN_API_KEY`가 필요합니다 (fail-closed).
+  - `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true`이더라도 `ADMIN_API_KEY`를 설정하지 않으면 Admin 엔드포인트는 항상 401을 반환합니다.
+- **마이그레이션**: 내부 네트워크 환경에서 `ADMIN_API_KEY` 없이 non-loopback 바인딩이 필요한 경우에만 uncommitted `docker-compose.override.yml`에서 설정:
+  ```yaml
+  services:
+    memento-mcp-server:
+      environment:
+        MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"
+  ```
+  단, 이 경우에도 Admin API에 접근하려면 `ADMIN_API_KEY`를 별도로 설정해야 합니다.
+
+#### Non-root Docker 컨테이너 실행 (US3)
+
+- `docker-compose.yml`에서 `user: root` 오버라이드 제거
+- 컨테이너는 이제 Dockerfile에 정의된 `memento` 사용자(UID 1001)로 실행됩니다.
+
+#### HTTP 보안 헤더 추가 (US4)
+
+- `helmet.js v8+`를 Express 미들웨어로 등록하여 모든 HTTP 응답에 OWASP 최소 보안 헤더 추가:
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `Content-Security-Policy` (D3.js CDN `d3js.org` 허용)
+  - `Referrer-Policy: no-referrer`
+- `static/graph.html` 인라인 스크립트 → `static/js/graph.js` 외부 파일로 추출 (CSP `'unsafe-inline'` 불필요)
+
+#### Known Limitation: 브라우저 대시보드 (`/dashboard`, `/graph`)
+
+`ADMIN_API_KEY`를 설정한 경우, 브라우저 대시보드가 호출하는 API(`/admin/graph`, `/api/anchors/map`)가 인증 헤더 없이 fetch하므로 401 응답을 받아 그래프/앵커맵이 표시되지 않습니다.
+
+- **영향 범위**: `ADMIN_API_KEY` 설정 환경에서 대시보드 UI 사용 시
+- **회피 방법**: `ADMIN_API_KEY`를 설정하지 않은 로컬 개발 환경에서는 정상 동작
+- **추적**: 브라우저 대시보드용 세션 인증 지원은 별도 이슈로 추적 예정
+
 ### 추가됨
 - **Issue #57 Phase 2 — Procedural Memory 확장**
   - **독립 remember_procedure 툴**: 절차적 기억 전용 MCP 툴 `remember_procedure` 추가 (검증·로깅·스키마 분리).

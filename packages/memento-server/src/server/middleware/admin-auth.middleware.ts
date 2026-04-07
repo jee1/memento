@@ -1,7 +1,8 @@
 /**
  * Admin/API/Quality 라우트용 API 키 인증 미들웨어
- * 하는 일: ADMIN_API_KEY가 설정된 경우 Authorization: Bearer <key> 또는 X-API-Key: <key> 검증
- * 주의: 키 미설정 시 인증 생략(기존 동작 유지). 키 설정 시만 401 반환.
+ * 하는 일: ADMIN_API_KEY 검증 — fail-closed 동작
+ *   - ADMIN_API_KEY 미설정(absent/empty/whitespace) → 모든 요청에 401 반환
+ *   - ADMIN_API_KEY 설정 시: Authorization: Bearer <key> 또는 X-API-Key: <key> 검증
  * 연관: http-server.ts (미들웨어 등록), shared/config (adminApiKey)
  */
 
@@ -12,8 +13,13 @@ export function createAdminAuthMiddleware(): (req: Request, res: Response, next:
   const expectedKey = mementoConfig.adminApiKey;
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!expectedKey || expectedKey === '') {
-      next();
+    // fail-closed: ADMIN_API_KEY 미설정(absent/empty/whitespace) → 401
+    if (!expectedKey || expectedKey.trim() === '') {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Admin API is disabled: ADMIN_API_KEY is not configured. Set ADMIN_API_KEY environment variable to enable admin access.',
+        timestamp: new Date().toISOString()
+      });
       return;
     }
 

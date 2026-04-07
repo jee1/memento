@@ -20,8 +20,8 @@ x-default-environment: &default-environment
   FORGET_PROCEDURAL_TTL: ${FORGET_PROCEDURAL_TTL:--1}
   # Docker 컨테이너에서는 반드시 0.0.0.0 — 로컬 .env의 값을 무시하고 고정
   MEMENTO_HTTP_BIND_HOST: "0.0.0.0"
-  # 0.0.0.0 바인딩 시 보안 체크 우회 (컨테이너 내부 네트워크이므로 허용)
-  MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"
+  # MEMENTO_ALLOW_INSECURE_HTTP_ADMIN 은 기본값 false 로 설정됨.
+  # 보안 체크 우회가 필요한 경우 uncommitted docker-compose.override.yml 에서만 설정할 것.
   # SSE 전송 방식 사용 (HTTP/SSE 서버 모드)
   TRANSPORT_TYPE: ${TRANSPORT_TYPE:-sse}
 
