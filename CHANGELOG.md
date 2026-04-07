@@ -20,15 +20,22 @@
 
 #### BREAKING: Docker Compose 기본 설정에서 보안 우회 플래그 제거 (US1)
 
-- **이전 동작**: `docker-compose.base.yml`에 `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"` 하드코딩 — 모든 Docker 환경에서 보안 체크 자동 우회
+- **이전 동작**: `docker-compose.base.yml`에 `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"` 하드코딩 — 모든 Docker 환경에서 서버 시작 보안 체크 자동 우회
 - **새로운 동작**: 해당 하드코딩 제거. 기본값은 `false` (코드 레벨).
-- **마이그레이션**: 보안 체크 우회가 필요한 경우(예: 내부 네트워크 전용 환경) uncommitted `docker-compose.override.yml`에서 설정:
+- **`MEMENTO_ALLOW_INSECURE_HTTP_ADMIN`의 정확한 역할**:
+  - 이 플래그는 **서버 시작(binding) 보안 체크**만 제어합니다.
+  - `ADMIN_API_KEY`가 미설정된 상태에서 non-loopback 주소로 바인딩하려 할 때 서버 시작이 거부되는 것을 우회합니다.
+  - **Admin/API/Quality 엔드포인트(`/admin/*`, `/api/*`)의 인증 동작에는 영향을 주지 않습니다.**
+  - Admin 엔드포인트는 이 플래그 설정 여부와 무관하게 항상 `ADMIN_API_KEY`가 필요합니다 (fail-closed).
+  - `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true`이더라도 `ADMIN_API_KEY`를 설정하지 않으면 Admin 엔드포인트는 항상 401을 반환합니다.
+- **마이그레이션**: 내부 네트워크 환경에서 `ADMIN_API_KEY` 없이 non-loopback 바인딩이 필요한 경우에만 uncommitted `docker-compose.override.yml`에서 설정:
   ```yaml
   services:
     memento-mcp-server:
       environment:
         MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"
   ```
+  단, 이 경우에도 Admin API에 접근하려면 `ADMIN_API_KEY`를 별도로 설정해야 합니다.
 
 #### Non-root Docker 컨테이너 실행 (US3)
 

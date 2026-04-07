@@ -189,7 +189,7 @@ async function initializeServer() {
     mcpRouter = createMcpRouter(db, serverServices, transports);
     const qualityRouter = createQualityRouter(db);
     
-    // 라우터 등록 (Admin/API/Quality는 ADMIN_API_KEY 설정 시 API 키 인증 적용)
+    // 라우터 등록 (Admin/API/Quality는 fail-closed: ADMIN_API_KEY 미설정 시 401, 설정 시 API 키 인증 적용)
     const adminAuth = createAdminAuthMiddleware();
     app.use('/tools', createToolContextMiddleware, toolsRouter);
     app.use('/admin', adminAuth, adminRouter);
@@ -484,7 +484,7 @@ async function startServer() {
     isHttpBindHostRemotelyReachable(bindHostRaw)
   ) {
     logger.warn(
-      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Admin/API/Quality routes are reachable without ADMIN_API_KEY on a non-loopback bind. Do not use in production.'
+      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: Admin/API/Quality routes still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
     );
   }
 
