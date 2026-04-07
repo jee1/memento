@@ -49,6 +49,15 @@
   - `X-Content-Type-Options: nosniff`
   - `Content-Security-Policy` (D3.js CDN `d3js.org` 허용)
   - `Referrer-Policy: no-referrer`
+- `static/graph.html` 인라인 스크립트 → `static/js/graph.js` 외부 파일로 추출 (CSP `'unsafe-inline'` 불필요)
+
+#### Known Limitation: 브라우저 대시보드 (`/dashboard`, `/graph`)
+
+`ADMIN_API_KEY`를 설정한 경우, 브라우저 대시보드가 호출하는 API(`/admin/graph`, `/api/anchors/map`)가 인증 헤더 없이 fetch하므로 401 응답을 받아 그래프/앵커맵이 표시되지 않습니다.
+
+- **영향 범위**: `ADMIN_API_KEY` 설정 환경에서 대시보드 UI 사용 시
+- **회피 방법**: `ADMIN_API_KEY`를 설정하지 않은 로컬 개발 환경에서는 정상 동작
+- **추적**: 브라우저 대시보드용 세션 인증 지원은 별도 이슈로 추적 예정
 
 ### 추가됨
 - **Issue #57 Phase 2 — Procedural Memory 확장**
