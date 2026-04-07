@@ -7,6 +7,42 @@
 
 ## [Unreleased]
 
+### 보안 강화 (011-docker-security-hardening) — Breaking Changes
+
+#### BREAKING: Admin API 인증 동작 변경 (US2)
+
+- **이전 동작**: `ADMIN_API_KEY` 미설정 시 모든 Admin/API/Quality 엔드포인트에 인증 없이 접근 가능 (fail-open)
+- **새로운 동작**: `ADMIN_API_KEY` 미설정(absent/empty/whitespace) 시 모든 Admin/API/Quality 엔드포인트에서 401 반환 (fail-closed)
+- **마이그레이션**: Admin 엔드포인트(`/admin/*`, `/api/*`, `/api/v1/quality/*`)를 사용하는 경우 반드시 `ADMIN_API_KEY` 환경변수를 설정해야 합니다.
+  ```bash
+  export ADMIN_API_KEY="your-secure-key"
+  ```
+
+#### BREAKING: Docker Compose 기본 설정에서 보안 우회 플래그 제거 (US1)
+
+- **이전 동작**: `docker-compose.base.yml`에 `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"` 하드코딩 — 모든 Docker 환경에서 보안 체크 자동 우회
+- **새로운 동작**: 해당 하드코딩 제거. 기본값은 `false` (코드 레벨).
+- **마이그레이션**: 보안 체크 우회가 필요한 경우(예: 내부 네트워크 전용 환경) uncommitted `docker-compose.override.yml`에서 설정:
+  ```yaml
+  services:
+    memento-mcp-server:
+      environment:
+        MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: "true"
+  ```
+
+#### Non-root Docker 컨테이너 실행 (US3)
+
+- `docker-compose.yml`에서 `user: root` 오버라이드 제거
+- 컨테이너는 이제 Dockerfile에 정의된 `memento` 사용자(UID 1001)로 실행됩니다.
+
+#### HTTP 보안 헤더 추가 (US4)
+
+- `helmet.js v8+`를 Express 미들웨어로 등록하여 모든 HTTP 응답에 OWASP 최소 보안 헤더 추가:
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `Content-Security-Policy` (D3.js CDN `d3js.org` 허용)
+  - `Referrer-Policy: no-referrer`
+
 ### 추가됨
 - **Issue #57 Phase 2 — Procedural Memory 확장**
   - **독립 remember_procedure 툴**: 절차적 기억 전용 MCP 툴 `remember_procedure` 추가 (검증·로깅·스키마 분리).

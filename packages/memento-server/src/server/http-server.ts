@@ -8,6 +8,7 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
+import helmet from 'helmet';
 import { createServer } from 'http';
 import {
   createMementoCore,
@@ -74,6 +75,27 @@ function setTestDependencies(_deps: TestDependencies): void {
 // Express 앱 생성
 const app = express();
 const server = createServer(app);
+
+// HTTP 보안 헤더 (FR-005/FR-006): 모든 응답에 OWASP 최소 보안 헤더 추가
+// D3.js CDN(d3js.org)은 dashboard.html 및 graph.html에서 사용하므로 CSP에서 허용
+app.use(helmet({
+  frameguard: { action: 'deny' },
+  referrerPolicy: { policy: 'no-referrer' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://d3js.org'],
+      scriptSrcAttr: ["'none'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"]
+    }
+  }
+}));
 
 // 미들웨어 설정: CORS는 corsAllowedOrigins로 제한 (비어 있으면 크로스 오리진 미허용)
 const corsOrigins = mementoConfig.corsAllowedOrigins;
@@ -360,8 +382,6 @@ wss.on('connection', (ws: WebSocket) => {
           return;
         }
         
-        const toolRegistry = getToolRegistry();
-        
         // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
         if (!serverServices) {
           ws.send(JSON.stringify({
@@ -465,6 +485,14 @@ async function startServer() {
   ) {
     logger.warn(
       'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Admin/API/Quality routes are reachable without ADMIN_API_KEY on a non-loopback bind. Do not use in production.'
+    );
+  }
+
+  // FR-003: ADMIN_API_KEY 미설정 시 경고 (loopback 포함 항상 emit)
+  const adminKey = mementoConfig.adminApiKey;
+  if (!adminKey || adminKey.trim() === '') {
+    logger.warn(
+      'ADMIN_API_KEY is not configured: all admin/API/quality endpoints are disabled and will return 401. Set ADMIN_API_KEY environment variable to enable admin access.'
     );
   }
 
