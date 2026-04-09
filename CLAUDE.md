@@ -148,6 +148,7 @@ After completing work: store results — `episodic` for completed tasks, `semant
 - SQLite (`memory_relation`, `kg_triple`, `memory_item` 테이블 — 읽기 전용, 스키마 변경 없음) (009-memory-graph-view)
 - TypeScript 5.x (Node.js 20+), ES modules + Express 4.x, better-sqlite3, @memento/core (010-fix-docker-api-sync)
 - SQLite (better-sqlite3) — 스키마 변경 없음 (읽기 전용 쿼리 추가) (010-fix-docker-api-sync)
+- TypeScript 5.x, Node.js 20+, ES modules + Express 4.x (현재 5.x beta 사용 중), helmet.js v7+ (신규), cors, better-sqlite3 (011-docker-security-hardening)
 
 ## Recent Changes
 - 005-sleep-consolidation: 에피소딕→시맨틱 오프라인 증류(`SleepConsolidationService`), `is_consolidated`+마이그레이션 `025`, 배치(`SLEEP_CONSOLIDATION_INTERVAL_MS`), `POST /admin/consolidation/run`

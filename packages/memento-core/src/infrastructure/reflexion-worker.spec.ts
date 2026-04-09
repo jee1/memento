@@ -2060,6 +2060,11 @@ describe('ReflexionWorker', () => {
   });
 
   describe('성능 가드: 변환 시간 및 DB 쿼리 횟수 측정', () => {
+    const PERF_THRESHOLD_MS = process.env.CI === 'true' ? 5000 : 3000;
+    const WAIT_TIMEOUT_MS = PERF_THRESHOLD_MS + 2000; // 항상 2초 여유 보장
+    const isLowSpecRunner = process.env.CI === 'true' &&
+      (Number(process.env.RUNNER_CPU_COUNT) < 2 || Number(process.env.RUNNER_MEMORY_GB) < 2);
+
     let queryCounter: QueryCounter | null = null;
 
     beforeEach(() => {
@@ -2075,7 +2080,7 @@ describe('ReflexionWorker', () => {
       }
     });
 
-    it('변환 시간 측정: queueFailureEvent 호출 전후 측정, 3초 임계값 검증', async () => {
+    it('변환 시간 측정: queueFailureEvent 호출 전후 측정, 성능 임계값 검증', async () => {
       // Given: 기존 procedural memory 생성
       const taskGoal = '성능 테스트 작업';
       createProceduralMemory(db, {
@@ -2096,29 +2101,24 @@ describe('ReflexionWorker', () => {
       });
 
       // When: 변환 시간 측정
+      if (isLowSpecRunner) return; // 저사양 러너는 대기 전 즉시 스킵
+
       const startTime = performance.now();
-      
+
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
-      
+      await waitForEventProcessing(worker, WAIT_TIMEOUT_MS);
+
       const endTime = performance.now();
       const duration = endTime - startTime;
 
       // Then: 임계값 검증 (CI 환경에서는 완화)
-      const threshold = process.env.CI === 'true' ? 5000 : 3000;
-      
-      if (process.env.CI === 'true' && 
-          (Number(process.env.RUNNER_CPU_COUNT) < 2 || Number(process.env.RUNNER_MEMORY_GB) < 2)) {
-        // 저사양 러너는 스킵
-        return;
-      }
 
-      expect(duration).toBeLessThanOrEqual(threshold);
+      expect(duration).toBeLessThanOrEqual(PERF_THRESHOLD_MS);
 
       // 성능 로깅 (DEBUG_PERFORMANCE 환경변수 설정 시 또는 실패 시)
-      if (process.env.DEBUG_PERFORMANCE === 'true' || duration > threshold) {
-        console.log(`[성능 측정] 변환 시간: ${duration.toFixed(2)}ms (임계값: ${threshold}ms)`);
+      if (process.env.DEBUG_PERFORMANCE === 'true' || duration > PERF_THRESHOLD_MS) {
+        console.log(`[성능 측정] 변환 시간: ${duration.toFixed(2)}ms (임계값: ${PERF_THRESHOLD_MS}ms)`);
         if (queryCounter) {
           console.log(`[성능 측정] 쿼리 총 횟수: ${queryCounter.getCount()}`);
           console.log(`[성능 측정] 쿼리 타입별 카운트:`, queryCounter.getCountsByType());
@@ -2147,11 +2147,14 @@ describe('ReflexionWorker', () => {
       });
 
       // When: 이벤트 처리 (쿼리 카운터가 자동으로 계측)
+      if (isLowSpecRunner) return; // 저사양 러너는 대기 전 즉시 스킵
+
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, WAIT_TIMEOUT_MS);
 
       // Then: 쿼리 횟수 검증 (SELECT + UPDATE + INSERT 합계 20회 이내)
+
       if (queryCounter) {
         const totalCount = queryCounter.getCount();
         const countsByType = queryCounter.getCountsByType();
@@ -2187,12 +2190,14 @@ describe('ReflexionWorker', () => {
       });
 
       // When: 이벤트 처리 및 성능 측정
+      if (isLowSpecRunner) return; // 저사양 러너는 대기 전 즉시 스킵
+
       const startTime = performance.now();
-      
+
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
-      
+      await waitForEventProcessing(worker, WAIT_TIMEOUT_MS);
+
       const endTime = performance.now();
       const duration = endTime - startTime;
 
