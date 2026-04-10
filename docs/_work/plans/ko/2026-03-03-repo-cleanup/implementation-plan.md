@@ -8,7 +8,7 @@
 
 **Tech Stack:** Git, Node/npm, 기존 docs/·AGENTS.md·package.json.
 
-**설계 문서:** [2026-03-03-repo-cleanup-design.md](2026-03-03-repo-cleanup-design.md)
+**설계 문서:** [design.md](./design.md)
 
 ---
 
@@ -244,7 +244,7 @@ test -f docs/plans/ko/2026-02-28-file-location-audit-improvements.md && echo "ex
 
 **Step 3: 최소 대체 문서 생성(선택)**
 
-- `docs/reference/ko/file-location-audit.md`: 제목 + “본 문서는 2026-03-03 저장소 정리 설계에서 통합됨. [design.md](../design.md) 참고.” 한 줄.
+- `docs/reference/ko/file-location-audit.md`: 제목 + “본 문서는 2026-03-03 저장소 정리 설계에서 통합됨. [design.md](./design.md) 참고.” 한 줄.
 
 **Step 4: 커밋**
 

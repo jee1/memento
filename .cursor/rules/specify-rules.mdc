@@ -10,7 +10,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-19
 
 ## Active Technologies
 
-- TypeScript (Node.js ≥ 20, ES modules) + Express, `cors`, `@memento/core`, `better-sqlite3` (001-http-trust-security)
+- TypeScript (Node.js ≥ 20, ES modules) + Express 5.x, `cors`, `@memento/core`, `better-sqlite3` (001-http-trust-security)
 
 ## Project Structure
 

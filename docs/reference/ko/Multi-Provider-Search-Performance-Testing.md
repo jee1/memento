@@ -147,6 +147,6 @@ npx tsx src/test/test-single-provider-regression.ts
 
 ## 추가 리소스
 
-- [Hybrid Search Engine 문서](../src/algorithms/hybrid-search-engine.ts)
-- [Performance Benchmark 문서](../src/test/performance-benchmark.ts)
-- [Regression Test 문서](../src/test/test-regression.ts)
+- [Hybrid Search Engine 소스](../../../packages/memento-core/src/domains/search/algorithms/hybrid-search-engine.ts)
+- [Performance Benchmark 스크립트](../../../src/test/performance-benchmark.ts)
+- [Regression Test 스크립트](../../../src/test/test-regression.ts)

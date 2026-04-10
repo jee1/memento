@@ -279,9 +279,9 @@ Memento는 다음 6가지 관계 유형을 지원합니다:
 
 ## 참고 자료
 
-- [관계 추출 엔진 PRD](../tasks/tasks-0007-prd-semantic-relation-engine.md)
-- [관계 그래프 API 문서](./api/relation-graph-api.md)
-- [관계 타입 정의](../src/types/relation.ts)
+- [관계 추출 엔진 PRD](../../../tasks/tasks-0007-prd-semantic-relation-engine.md)
+- [관계 그래프 API 문서](../../api/ko/relation-graph-api.md)
+- [관계 타입 정의](../../../packages/memento-core/src/shared/types/relation.ts)
 
 ## 업데이트 이력
 

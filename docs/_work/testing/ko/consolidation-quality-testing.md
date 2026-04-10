@@ -812,8 +812,8 @@ const gt = generateOrLoadGroundTruth(memoryIds, {
 
 ## 참고 자료
 
-- [Search Ranking 공식 문서](../../../reference/en/Search-Ranking-Memory-Decay-Formulas.md)
-- [Consolidation Score 시스템 PRD](../../../tasks/0004-prd-consolidation-score-system.md)
-- [벡터 검색 품질 검증 PRD](../../../tasks/tasks-0009-prd-vector-search-quality-verification-with-consolidation.md)
-- [Memento Goals](../../../reference/en/Memento-Goals.md)
+- [Search Ranking 공식 문서](../../../../docs/reference/en/Search-Ranking-Memory-Decay-Formulas.md)
+- [Consolidation Score 시스템 PRD](../../../../tasks/0004-prd-consolidation-score-system.md)
+- [벡터 검색 품질 검증 PRD](../../../../tasks/tasks-0009-prd-vector-search-quality-verification-with-consolidation.md)
+- [Memento Goals](../../../../docs/reference/en/Memento-Goals.md)
 

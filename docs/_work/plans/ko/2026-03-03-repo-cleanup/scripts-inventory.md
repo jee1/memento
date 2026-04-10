@@ -1,7 +1,7 @@
 # scripts/ 인벤토리 (저장소 정리용)
 
 **일자**: 2026-03-03  
-**목적**: [2026-03-03-repo-cleanup-design.md](2026-03-03-repo-cleanup-design.md) 2단계 — npm/문서 등록·운영 필수 스크립트만 유지, 나머지 archive 후보 분류.
+**목적**: [design.md](./design.md) 2단계 — npm/문서 등록·운영 필수 스크립트만 유지, 나머지 archive 후보 분류.
 
 ---
 

@@ -20,14 +20,14 @@
 
 ```bash
 # 저장소 클론
-git clone https://github.com/your-org/memento.git
+git clone https://github.com/jee1/memento.git
 cd memento
 
 # 의존성 설치
 npm install
 
 # 환경 변수 설정
-cp .env.example .env
+cp env.example .env
 # .env 파일을 편집하여 필요한 설정을 입력하세요
 
 # 데이터베이스 초기화
@@ -74,9 +74,13 @@ curl http://localhost:8080/health
 
 #### Cursor 설정
 
-1. Cursor 설정에서 MCP 서버 추가
-2. 서버 URL 입력: `ws://localhost:8080/mcp`
-3. 연결 테스트
+Cursor에서 Memento는 보통 **stdio MCP**로 붙입니다(로컬에서 `node`가 `packages/memento-server/dist/server/index.js`를 실행). **URL만 입력하는 방식**과 혼동하지 마세요.
+
+1. 저장소 루트에서 `npm install` 후 `npm run build`로 `packages/memento-server/dist/server/index.js`를 생성합니다.
+2. Cursor MCP 설정(예: `.cursor/mcp.json`)에 `command` / `args`로 위 진입점을 지정합니다.
+3. 예시·오류 대응은 **[Cursor MCP 설정 가이드](./cursor-mcp-setup.md)** 를 따르세요.
+
+HTTP로 MCP를 노출한 경우에 한해, 클라이언트가 지원하면 `http://127.0.0.1:<포트>/mcp` 등으로 연결할 수 있습니다. 기본 권장 흐름은 stdio입니다.
 
 ## 기본 사용법
 
@@ -84,30 +88,43 @@ curl http://localhost:8080/health
 
 AI Agent와의 대화에서 중요한 정보를 기억으로 저장할 수 있습니다.
 
-#### 실제 구현된 클라이언트 사용법
+#### `@memento/client` HTTP 클라이언트 예시
+
+HTTP 서버가 실행 중일 때(예: `npm run dev:http`, 기본 `http://localhost:8080`) npm 패키지 **`@memento/client`** 로 호출할 수 있습니다.
 
 ```typescript
-import { createMementoClient } from './src/client/index.js';
+import { MementoClient } from '@memento/client';
 
-const client = createMementoClient();
+const client = new MementoClient({
+  serverUrl: 'http://localhost:8080',
+});
+
 await client.connect();
 
 // 기본 저장
-const memoryId = await client.callTool('remember', {
-  content: "사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다."
+await client.remember({
+  content: '사용자가 React Hook에 대해 질문했고, useState와 useEffect의 차이점을 설명했다.',
 });
 
-// 태그와 함께 저장
-const memoryId = await client.callTool('remember', {
-  content: "프로젝트에서 TypeScript를 도입하기로 결정했다.",
+// 태그·중요도와 함께 저장
+await client.remember({
+  content: '프로젝트에서 TypeScript를 도입하기로 결정했다.',
   tags: ['typescript', 'decision', 'project'],
-  importance: 0.8
+  importance: 0.8,
 });
 
-// 기억 타입 지정
-
+// 기억 타입 지정(예: semantic)
+await client.remember({
+  content: 'React Hook 사용법 요약',
+  type: 'semantic',
+  tags: ['react', 'hooks', 'programming'],
+});
 ```
-@memento remember "React Hook 사용법" --type "semantic" --tags "react,hooks,programming"
+
+CLI(`memento` 등)를 사용하는 경우:
+
+```bash
+memento remember "React Hook 사용법" --type semantic --tags "react,hooks,programming"
 ```
 
 ### 2. 기억 검색하기
@@ -119,16 +136,16 @@ const memoryId = await client.callTool('remember', {
 FTS5 텍스트 검색과 벡터 검색을 결합한 하이브리드 검색을 사용하면 더 정확한 결과를 얻을 수 있습니다.
 
 ```typescript
-// 기본 하이브리드 검색 (벡터 60%, 텍스트 40%)
-const result = await client.callTool('hybrid_search', {
-  query: "React Hook 사용법"
+// 기본 하이브리드 검색 (가중치는 서버/클라이언트 기본에 따름)
+const result = await client.hybridSearch({
+  query: 'React Hook 사용법',
 });
 
-// 가중치 조정 (벡터 검색 비중 높이기)
-const result = await client.callTool('hybrid_search', {
-  query: "TypeScript 인터페이스",
-  vectorWeight: 0.8,  // 벡터 검색 80%
-  textWeight: 0.2     // 텍스트 검색 20%
+// 가중치 조정 (벡터 비중 높이기)
+const tuned = await client.hybridSearch({
+  query: 'TypeScript 인터페이스',
+  vectorWeight: 0.8,
+  textWeight: 0.2,
 });
 ```
 
@@ -182,18 +199,18 @@ npm run test:embedding
 #### 임베딩 검색 사용법
 
 ```typescript
-// 기억 저장 시 자동으로 임베딩이 생성됩니다
-const result = await client.callTool('remember', {
-  content: "React Hook에 대한 상세한 설명과 사용 예시",
+// 기억 저장 시 서버가 임베딩을 생성합니다
+await client.remember({
+  content: 'React Hook에 대한 상세한 설명과 사용 예시',
   type: 'semantic',
-  tags: ['react', 'hooks', 'javascript']
+  tags: ['react', 'hooks', 'javascript'],
 });
 
-// 하이브리드 검색에서 벡터 검색 활용
-const searchResult = await client.callTool('hybrid_search', {
-  query: "React 상태 관리",
-  vectorWeight: 0.7,  // 벡터 검색 비중 높이기
-  textWeight: 0.3
+// 하이브리드 검색
+const searchResult = await client.hybridSearch({
+  query: 'React 상태 관리',
+  vectorWeight: 0.7,
+  textWeight: 0.3,
 });
 ```
 
@@ -237,53 +254,13 @@ const searchResult = await client.callTool('hybrid_search', {
 - **간격 반복**: 중요한 기억을 주기적으로 리뷰하여 강화
 - **TTL 관리**: 메모리 타입별로 다른 수명 정책 적용
 
-#### 망각 정책 적용
+#### 망각 정책·배치·간격 반복
 
-```typescript
-// 기본 망각 정책 적용
-const result = await client.callTool('apply_forgetting_policy', {});
+TTL·배치 망각·스케줄링은 **서버 스케줄러와 MCP/HTTP admin** 쪽에서 다루는 경우가 많습니다. `@memento/client`가 노출하는 HTTP 메서드는 **`remember` / `recall` / `hybridSearch` / `forget` / `pin` / `unpin` 등** 중심이며, 과거 문서에 있던 `apply_forgetting_policy`·`schedule_review` 같은 가상의 `callTool` 이름과 일치하지 않을 수 있습니다.
 
-console.log('소프트 삭제된 메모리:', result.softDeleted);
-console.log('하드 삭제된 메모리:', result.hardDeleted);
-console.log('리뷰 예정된 메모리:', result.scheduledForReview);
-```
+개별 기억 삭제는 클라이언트에서 `forget(memoryId, hard)` 형태로 요청할 수 있습니다(서버가 해당 라우트를 노출하는 경우).
 
-#### 사용자 정의 망각 정책
-
-```typescript
-// 사용자 정의 설정으로 망각 정책 적용
-const result = await client.callTool('apply_forgetting_policy', {
-  config: {
-    forgetThreshold: 0.7,        // 망각 임계값 (0.7)
-    softDeleteThreshold: 0.7,    // 소프트 삭제 임계값 (0.7)
-    hardDeleteThreshold: 0.9,    // 하드 삭제 임계값 (0.9)
-    ttlSoft: {
-      working: 3,      // 작업기억 3일
-      episodic: 45,    // 일화기억 45일
-      semantic: 200,   // 의미기억 200일
-      procedural: 120  // 절차기억 120일
-    }
-  }
-});
-```
-
-#### 간격 반복 스케줄링
-
-```typescript
-// 리뷰 스케줄 생성
-const schedule = await client.callTool('schedule_review', {
-  memory_id: 'memory-123',
-  features: {
-    importance: 0.8,        // 중요도 80%
-    usage: 0.6,            // 사용성 60%
-    helpful_feedback: 0.7, // 도움됨 피드백 70%
-    bad_feedback: 0.1      // 나쁨 피드백 10%
-  }
-});
-
-console.log('다음 리뷰 날짜:', schedule.next_review);
-console.log('리콜 확률:', schedule.recall_probability);
-```
+운영·자동화 절차는 [API 참조](../../api/ko/api-reference.md)와 [개발자 가이드](developer-guide.md)를 참고하세요.
 
 ### 2. HTTP 서버 사용하기
 
@@ -594,6 +571,6 @@ A: `export` 명령어로 백업할 수 있습니다:
 
 - [API 참조 문서](../../api/ko/api-reference.md)
 - [개발자 가이드](developer-guide.md)
-- [문제 해결 가이드](troubleshooting.md)
-- [GitHub 저장소](https://github.com/your-org/memento)
-- [커뮤니티 포럼](https://github.com/your-org/memento/discussions)
+- [npx·실행 문제 해결](../../operations/ko/npx-troubleshooting.md) · [Node 버전 호환](../../operations/ko/troubleshooting-node-version.md)
+- [GitHub 저장소](https://github.com/jee1/memento)
+- [커뮤니티 포럼](https://github.com/jee1/memento/discussions)

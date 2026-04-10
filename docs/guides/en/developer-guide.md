@@ -80,7 +80,7 @@ npm install
 
 ```bash
 # Copy environment variable file
-cp .env.example .env
+cp env.example .env
 
 # Edit environment variables
 # Edit .env file to enter necessary settings
@@ -1026,7 +1026,7 @@ async function testPerformanceAlerts() {
 - [API Reference Documentation](../../api/en/api-reference.md)
 - [User Manual](user-manual.md)
 - [Architecture Documentation](../../architecture/en/architecture.md)
-- [Test Guide](testing-guide.md)
+- Tests and quality gates: [AGENTS.md](../../../AGENTS.md) (`npm test`, `npm run lint`, etc.)
 - [Cursor Rules](../../../.cursor/rules/)
 - [GitHub Repository](https://github.com/your-org/memento)
 - [Community Forum](https://github.com/your-org/memento/discussions)

@@ -131,7 +131,7 @@
 | **spec.md** | 이미 구현된 기능은 “사후 요약 명세”. 계획만 있는 기능은 계획서와 구현 결과를 바탕으로 범위, REQ/CON/AC를 요약. | 범위, 목표, REQ-*, CON-*, AC*, 메타데이터(관련 이슈, design.md 링크) |
 | **implementation-plan.md** | 기존 plans/ko 플랫 파일을 해당 기능 폴더로 옮겨 `implementation-plan.md`로 둠. | Phase·Task, 검증, 기준 명세(spec.md) 링크 |
 
-신규 작성 시 [guides/ko/sdd-workflow.md](guides/ko/sdd-workflow.md) §3·§4의 SPEC/PLAN 요건을 최소한으로 따른다.
+신규 작성 시 [guides/ko/sdd-workflow.md](../../../guides/ko/sdd-workflow.md) §3·§4의 SPEC/PLAN 요건을 최소한으로 따른다.
 
 ---
 

@@ -318,4 +318,4 @@ const result = await newService.generateEmbedding('텍스트');
 - [성능 벤치마크 결과](../../reference/ko/embedding-performance-benchmark.md)
 - [API 레퍼런스](../../api/ko/embedding-api-reference.md)
 - [설정 가이드](./embedding-configuration.md)
-- [문제 해결 FAQ](./embedding-troubleshooting.md)
+- 실행·패키지 문제: [npx 트러블슈팅](../../operations/ko/npx-troubleshooting.md)

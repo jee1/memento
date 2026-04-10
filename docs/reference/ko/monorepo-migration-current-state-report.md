@@ -4,7 +4,7 @@
 **컨텍스트**: [docs/_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).  
 **범위**: 구현 계획 없음. 현재 상태와 관찰된 패턴만 기술.
 
-> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../AGENTS.md) 및 [README.md](../../README.md) 참조.
+> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md) 참조.
 
 ---
 
@@ -27,6 +27,8 @@
 ---
 
 ## 2. src/ 구조와 의존 관계
+
+> **읽는 법**: 아래 표·절은 **전환 전 조사 시점**의 루트 `src/` 레이아웃을 기술한 것입니다. 모노레포 전환 이후 **현재 구조·진입점**은 `packages/memento-core`, `packages/memento-server`, `packages/memento-client` 및 [AGENTS.md](../../../AGENTS.md)를 기준으로 하세요.
 
 ### 2.1 디렉터리 구성
 

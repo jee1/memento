@@ -84,7 +84,7 @@ src/shared/      — shared interfaces and types across domains
 
 ### MCP Tools vs HTTP Admin API
 
-**MCP tools (16, exposed to AI agents):** `remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `procedural_diff`, `procedural_rollback`, `remember_procedure`, `get_introspection_summary`
+**MCP tools (17, exposed to AI agents):** `remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `procedural_diff`, `procedural_rollback`, `remember_procedure`, `get_introspection_summary`, `get_telemetry_summary`
 
 **HTTP-only admin endpoints** (never exposed via MCP): `/admin/memory/cleanup`, `/admin/stats/*`, `/admin/embeddings/migrate`, `/admin/anchors/restore`, `/admin/database/optimize`, `/admin/errors/*`
 
@@ -144,11 +144,11 @@ After completing work: store results — `episodic` for completed tasks, `semant
 - SQLite (better-sqlite3) — `telemetry_events` (027), `telemetry_daily_metrics` (028) 테이블 추가 (006-observability-telemetry)
 - TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, @memento/core (TelemetryService, BaseTool) (007-telemetry-cli-mcp)
 - 기존 SQLite — 읽기 전용 (신규 마이그레이션 없음) (007-telemetry-cli-mcp)
-- TypeScript 5.x (Node.js 20+), ES modules + Express 4.x (기존), better-sqlite3 (기존), D3.js v7 (CDN, 프론트엔드 전용) (009-memory-graph-view)
+- TypeScript 5.x (Node.js 20+), ES modules + Express 5.x, better-sqlite3 (기존), D3.js v7 (CDN, 프론트엔드 전용) (009-memory-graph-view)
 - SQLite (`memory_relation`, `kg_triple`, `memory_item` 테이블 — 읽기 전용, 스키마 변경 없음) (009-memory-graph-view)
-- TypeScript 5.x (Node.js 20+), ES modules + Express 4.x, better-sqlite3, @memento/core (010-fix-docker-api-sync)
+- TypeScript 5.x (Node.js 20+), ES modules + Express 5.x, better-sqlite3, @memento/core (010-fix-docker-api-sync)
 - SQLite (better-sqlite3) — 스키마 변경 없음 (읽기 전용 쿼리 추가) (010-fix-docker-api-sync)
-- TypeScript 5.x, Node.js 20+, ES modules + Express 4.x (현재 5.x beta 사용 중), helmet.js v7+ (신규), cors, better-sqlite3 (011-docker-security-hardening)
+- TypeScript 5.x, Node.js 20+, ES modules + Express 5.x, helmet.js v8+, cors, better-sqlite3 (011-docker-security-hardening)
 
 ## Recent Changes
 - 005-sleep-consolidation: 에피소딕→시맨틱 오프라인 증류(`SleepConsolidationService`), `is_consolidated`+마이그레이션 `025`, 배치(`SLEEP_CONSOLIDATION_INTERVAL_MS`), `POST /admin/consolidation/run`

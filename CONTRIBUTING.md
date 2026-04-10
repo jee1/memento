@@ -52,7 +52,7 @@ npm run test
 
 **PR 본문 참고:**
 - GitHub에서 PR을 만들면 **템플릿**으로 `.github/PULL_REQUEST_TEMPLATE.md`가 사용됩니다.
-- 본문 작성 시 참고할 **예시**로 루트의 `pr-description.md`, 문서의 [docs/operations/ko/pr-description-example-npm-workflow.md](docs/operations/ko/pr-description-example-npm-workflow.md)가 있습니다(각각 다른 PR의 예시이며, 형식·상세도 참고용).
+- 본문 작성 시 참고할 **예시**로 [docs/operations/ko/pr-description-example-npm-workflow.md](docs/operations/ko/pr-description-example-npm-workflow.md)가 있습니다(형식·상세도 참고용).
 
 ## 🛠️ 개발 가이드라인
 
@@ -105,19 +105,20 @@ docs(readme): 설치 가이드 업데이트
 
 ## 📁 프로젝트 구조
 
+npm workspaces 모노레포입니다. 도메인·DB·MCP 도구 구현은 **`packages/memento-core`**에, MCP/HTTP 서버는 **`packages/memento-server`**에 있습니다. 루트 `src/`·`tests/`에는 공유 스크립트·시나리오 테스트 등이 있습니다.
+
 ```
-src/
-├── algorithms/     # 검색 및 망각 알고리즘
-├── client/         # MCP 클라이언트
-├── config/         # 설정 관리
-├── database/       # 데이터베이스 스키마 및 마이그레이션
-├── server/         # MCP 서버 엔트리포인트
-├── services/       # 비즈니스 로직 서비스
-├── test/           # E2E 테스트
-├── tools/          # MCP 도구 구현
-├── types/          # 공유 타입 정의
-└── utils/          # 유틸리티 함수
+packages/
+├── memento-core/     # @memento/core — 도메인 로직, DB, MCP 도구
+├── memento-server/   # MCP stdio + HTTP 서버
+└── memento-client/   # @memento/client — 서버 연결 클라이언트
+apps/
+└── experimental-example/   # in-process 사용 예시
+src/                  # 루트 스크립트·일부 테스트·에셋 복사 등
+tests/                # 통합 픽스처·통합 테스트
 ```
+
+자세한 디렉터리 역할은 [AGENTS.md](AGENTS.md)를 참고하세요.
 
 ## 🔍 코드 리뷰 프로세스
 

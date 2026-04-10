@@ -52,10 +52,8 @@ Memento MCP Server 프로젝트의 기여자와 유지보수자로서, 우리는
 
 ## 번역
 
-이 행동 강령은 다음 언어로 번역되었습니다:
-
-- [English](CODE_OF_CONDUCT.en.md)
-- [한국어](CODE_OF_CONDUCT.md)
+- **영문**: [Contributor Covenant 2.1 (English)](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
+- **한국어**: 이 문서(`CODE_OF_CONDUCT.md`)
 
 ---
 

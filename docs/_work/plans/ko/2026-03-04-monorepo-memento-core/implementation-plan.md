@@ -173,7 +173,7 @@ date: 2026-03-04
 
 **검증:** `cd packages/memento-server && npm run build` 성공. `node dist/server/index.js` 또는 http-server로 MCP/HTTP 동작 확인(DB_PATH 설정 후).
 
-**서버 thin화 (Phase 3.1 보완):** 서버에서 domains/shared/infrastructure/workers 복사본을 제거하고 core만 사용하려면 [2026-03-04-monorepo-phase3-thin-server-plan.md](./2026-03-04-monorepo-phase3-thin-server-plan.md)의 단계별 계획( core export 목록, 제거 대상, 실행 순서)을 따른다.
+**서버 thin화 (Phase 3.1 보완):** 서버에서 domains/shared/infrastructure/workers 복사본을 제거하고 core만 사용하려면 [phase3-thin-server-plan.md](./phase3-thin-server-plan.md)의 단계별 계획( core export 목록, 제거 대상, 실행 순서)을 따른다.
 
 ---
 

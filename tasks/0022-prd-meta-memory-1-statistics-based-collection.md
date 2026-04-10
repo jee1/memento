@@ -552,6 +552,6 @@ src/
 ## 참고 자료
 
 - [GitHub Issue #66](https://github.com/jee1/memento/issues/66): Meta-Memory(1) 통계 기반 메타 메모리 수집 기능 제안
-- [Memento Goals](docs/Memento-Goals.md): Memento 프로젝트 전체 목표
-- [Memento M1 Detail Specs](docs/Memento-M1-DetailSpecs.md): M1 단계 상세 스펙
-- [Search Ranking Memory Decay Formulas](docs/Search-Ranking-Memory-Decay-Formulas.md): 검색 랭킹 및 메모리 감쇠 공식
+- [Memento Goals](../docs/reference/ko/Memento-Goals.md): Memento 프로젝트 전체 목표
+- [Memento M1 Detail Specs](../docs/reference/ko/Memento-M1-DetailSpecs.md): M1 단계 상세 스펙
+- [Search Ranking Memory Decay Formulas](../docs/reference/ko/Search-Ranking-Memory-Decay-Formulas.md): 검색 랭킹 및 메모리 감쇠 공식

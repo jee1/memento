@@ -443,7 +443,7 @@ Memento 프로젝트는 **전반적으로 클린코드 원칙과 보안 모범 �
 - [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
 - [TypeScript Best Practices](https://typescript-eslint.io/rules/)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [PRD 0019: 보안 강화](tasks/0019-prd-security-hardening.md)
+- [PRD 0019: 보안 강화](../../../../tasks/0019-prd-security-hardening.md)
 
 ---
 
