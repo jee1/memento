@@ -10,7 +10,7 @@ GitHub Issue: https://github.com/jee1/memento/issues/112
 ## 🚀 기능 설명
 
 LLM(에이전트)이 Memento CLI를 **언제·어떻게** 사용할지 안내하는 **Skill**을 제작합니다.  
-CLI 자체는 [#110](https://github.com/jee1/memento/issues/110)으로 구현되어 있고, [Memento CLI for AI 가이드](docs/guides/ko/memento-cli-for-ai.md)도 있으나, 에이전트가 이 정보를 **자동으로 발견하고 워크플로를 적용**하도록 하는 스킬(SKILL.md 등)은 아직 없습니다.
+CLI 자체는 [#110](https://github.com/jee1/memento/issues/110)으로 구현되어 있고, [Memento CLI for AI 가이드](../../guides/ko/memento-cli-for-ai.md)도 있으나, 에이전트가 이 정보를 **자동으로 발견하고 워크플로를 적용**하도록 하는 스킬(SKILL.md 등)은 아직 없습니다.
 
 - **Cursor**: Agent Skill(SKILL.md) 형태로 “작업 전 recall/memory_injection, 작업 후 remember” 등 워크플로와 트리거를 제공.
 - **기타 에이전트(Codex, 터미널 전용 에이전트 등)**: 동일한 워크플로·명령 목록·예제를 참조할 수 있는 문서 또는 스킬 포맷 제공.
@@ -29,7 +29,7 @@ CLI 자체는 [#110](https://github.com/jee1/memento/issues/110)으로 구현되
      - 작업 전: `recall` 또는 `memory_injection`으로 관련 기억 조회.  
      - 작업 후: `remember`로 episodic(완료 기록)/semantic(지식)/procedural(절차) 저장.  
      - 앵커 사용 시: `set_anchor` / `search_local` / `clear_anchor` 안내.  
-   - **참조**: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md), 명령별 인자·설정(DB_PATH, ~/.memento/.env), 예제 호출.
+   - **참조**: [Memento CLI for AI 가이드](../../guides/ko/memento-cli-for-ai.md), 명령별 인자·설정(DB_PATH, ~/.memento/.env), 예제 호출.
 
 2. **문서/아티팩트**  
    - 스킬 본문에 “명령 목록·한 줄 설명”, “워크플로(작업 전/후)”, “예제 호출·출력 규칙(stdout=JSON, exit code)” 요약.  
@@ -64,7 +64,7 @@ CLI 자체는 [#110](https://github.com/jee1/memento/issues/110)으로 구현되
 ## 🔗 관련 이슈·문서
 
 - **이슈**: [#110 Memento CLI for AI](https://github.com/jee1/memento/issues/110)  
-- **가이드**: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md)  
+- **가이드**: [Memento CLI for AI 가이드](../../guides/ko/memento-cli-for-ai.md)  
 - **설계**: [memento-cli-for-ai-review.md](../design/memento-cli-for-ai-review.md)  
 - **AGENTS.md**: 루트 AGENTS.md “Memento CLI 사용 (AI/스크립트)” 섹션
 

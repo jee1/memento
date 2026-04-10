@@ -423,8 +423,8 @@ npm run test -- --coverage
 
 - [Vitest 공식 문서](https://vitest.dev/)
 - [TDD Best Practices](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
-- [Testing Guidelines](.cursor/rules/testing.mdc)
-- [Clean Code Review Report](docs/clean-code-review-report.md)
+- Testing: [AGENTS.md](../../../../AGENTS.md), [ESLint 설정](../../../../.eslintrc.json) (프로젝트 루트)
+- 참고: 이 보고서 시점의 정적 분석 산출물; 별도 `clean-code-review-report.md`는 통합·이관됨
 
 ---
 

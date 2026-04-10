@@ -98,6 +98,6 @@ npm exec --package memento-mcp-server -- memento memory_injection --query "이�
 
 ## 7. 참고
 
-- 명세: [specs/ko/2026-03-11-memento-cli-for-ai-spec.md](../../specs/ko/2026-03-11-memento-cli-for-ai-spec.md)
+- 명세: [spec.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/spec.md)
 - 구현 계획: [implementation-plan.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md)
 - 이슈: [#110](https://github.com/jee1/memento/issues/110)

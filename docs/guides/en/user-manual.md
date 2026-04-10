@@ -20,14 +20,14 @@ This manual explains how to manage AI Agent memory using Memento MCP Server. It 
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/memento.git
+git clone https://github.com/jee1/memento.git
 cd memento
 
 # Install dependencies
 npm install
 
 # Set environment variables
-cp .env.example .env
+cp env.example .env
 # Edit .env file to enter necessary settings
 
 # Initialize database
@@ -74,9 +74,13 @@ curl http://localhost:8080/health
 
 #### Cursor Setup
 
-1. Add MCP server in Cursor settings
-2. Enter server URL: `ws://localhost:8080/mcp`
-3. Test connection
+Memento is typically used as a **stdio MCP** client (`node` runs `packages/memento-server/dist/server/index.js`). Do not confuse this with **URL-only** MCP configuration.
+
+1. From the repo root, run `npm install` and `npm run build` so `packages/memento-server/dist/server/index.js` exists.
+2. In Cursor MCP settings (e.g. `.cursor/mcp.json`), set `command` / `args` to that entrypoint.
+3. Follow **[Cursor MCP setup](./cursor-mcp-setup.md)** for examples and troubleshooting.
+
+If you expose MCP over HTTP, you may connect with `http://127.0.0.1:<port>/mcp` when your client supports it. The stdio flow is the default recommendation.
 
 ## Basic Usage
 
@@ -84,30 +88,43 @@ curl http://localhost:8080/health
 
 You can store important information from conversations with AI Agents as memories.
 
-#### Using the Actually Implemented Client
+#### `@memento/client` HTTP client example
+
+When the HTTP server is running (e.g. `npm run dev:http`, default `http://localhost:8080`), use the **`@memento/client`** package:
 
 ```typescript
-import { createMementoClient } from './src/client/index.js';
+import { MementoClient } from '@memento/client';
 
-const client = createMementoClient();
+const client = new MementoClient({
+  serverUrl: 'http://localhost:8080',
+});
+
 await client.connect();
 
 // Basic storage
-const memoryId = await client.callTool('remember', {
-  content: "User asked about React Hooks and I explained the difference between useState and useEffect."
+await client.remember({
+  content: 'User asked about React Hooks and I explained the difference between useState and useEffect.',
 });
 
-// Store with tags
-const memoryId = await client.callTool('remember', {
-  content: "Decided to introduce TypeScript in the project.",
+// With tags and importance
+await client.remember({
+  content: 'Decided to introduce TypeScript in the project.',
   tags: ['typescript', 'decision', 'project'],
-  importance: 0.8
+  importance: 0.8,
 });
 
-// Specify memory type
+// Memory type (e.g. semantic)
+await client.remember({
+  content: 'Summary of React Hook usage',
+  type: 'semantic',
+  tags: ['react', 'hooks', 'programming'],
+});
 ```
 
-@memento remember "React Hook usage" --type "semantic" --tags "react,hooks,programming"
+Using the CLI:
+
+```bash
+memento remember "React Hook usage" --type semantic --tags "react,hooks,programming"
 ```
 
 ### 2. Searching Memories
@@ -119,16 +136,16 @@ You can search stored memories to find related information. Memento provides bas
 Using hybrid search that combines FTS5 text search and vector search provides more accurate results.
 
 ```typescript
-// Basic hybrid search (vector 60%, text 40%)
-const result = await client.callTool('hybrid_search', {
-  query: "React Hook usage"
+// Basic hybrid search (weights follow client/server defaults)
+const result = await client.hybridSearch({
+  query: 'React Hook usage',
 });
 
-// Adjust weights (increase vector search ratio)
-const result = await client.callTool('hybrid_search', {
-  query: "TypeScript interface",
-  vectorWeight: 0.8,  // Vector search 80%
-  textWeight: 0.2     // Text search 20%
+// Adjust weights (emphasize vector search)
+const tuned = await client.hybridSearch({
+  query: 'TypeScript interface',
+  vectorWeight: 0.8,
+  textWeight: 0.2,
 });
 ```
 
@@ -178,18 +195,18 @@ npm run test:embedding
 #### Using Embedding Search
 
 ```typescript
-// Embeddings are automatically generated when storing memories
-const result = await client.callTool('remember', {
-  content: "Detailed explanation and usage examples of React Hooks",
+// Server generates embeddings when storing memories
+await client.remember({
+  content: 'Detailed explanation and usage examples of React Hooks',
   type: 'semantic',
-  tags: ['react', 'hooks', 'javascript']
+  tags: ['react', 'hooks', 'javascript'],
 });
 
-// Utilize vector search in hybrid search
-const searchResult = await client.callTool('hybrid_search', {
-  query: "React state management",
-  vectorWeight: 0.7,  // Increase vector search ratio
-  textWeight: 0.3
+// Hybrid search
+const searchResult = await client.hybridSearch({
+  query: 'React state management',
+  vectorWeight: 0.7,
+  textWeight: 0.3,
 });
 ```
 
@@ -233,53 +250,13 @@ Forgetting policy is a system that manages memory lifespan. It mimics human memo
 - **Spaced Repetition**: Periodically reviewing important memories to strengthen them
 - **TTL Management**: Applying different lifespan policies by memory type
 
-#### Applying Forgetting Policy
+#### Forgetting policy, batch jobs, and spaced repetition
 
-```typescript
-// Apply basic forgetting policy
-const result = await client.callTool('apply_forgetting_policy', {});
+TTL, batch forgetting, and scheduling are usually handled by the **server scheduler** and **MCP / HTTP admin** surfaces. The `@memento/client` HTTP wrapper centers on **`remember`** / **`recall`** / **`hybridSearch`** / **`forget`** / **`pin`** / **`unpin`**, etc. Older docs that used fictional `callTool` names such as `apply_forgetting_policy` or `schedule_review` may not match the client API.
 
-console.log('Soft deleted memories:', result.softDeleted);
-console.log('Hard deleted memories:', result.hardDeleted);
-console.log('Memories scheduled for review:', result.scheduledForReview);
-```
+You can delete a single memory with `forget(memoryId, hard)` when the server exposes that route.
 
-#### Custom Forgetting Policy
-
-```typescript
-// Apply forgetting policy with custom settings
-const result = await client.callTool('apply_forgetting_policy', {
-  config: {
-    forgetThreshold: 0.7,        // Forgetting threshold (0.7)
-    softDeleteThreshold: 0.7,    // Soft delete threshold (0.7)
-    hardDeleteThreshold: 0.9,    // Hard delete threshold (0.9)
-    ttlSoft: {
-      working: 3,      // Working memory 3 days
-      episodic: 45,    // Episodic memory 45 days
-      semantic: 200,   // Semantic memory 200 days
-      procedural: 120  // Procedural memory 120 days
-    }
-  }
-});
-```
-
-#### Spaced Repetition Scheduling
-
-```typescript
-// Create review schedule
-const schedule = await client.callTool('schedule_review', {
-  memory_id: 'memory-123',
-  features: {
-    importance: 0.8,        // Importance 80%
-    usage: 0.6,            // Usability 60%
-    helpful_feedback: 0.7, // Helpful feedback 70%
-    bad_feedback: 0.1      // Bad feedback 10%
-  }
-});
-
-console.log('Next review date:', schedule.next_review);
-console.log('Recall probability:', schedule.recall_probability);
-```
+See **[API reference](../../api/en/api-reference.md)** and **[Developer guide](developer-guide.md)** for operations and automation.
 
 ### 2. Using HTTP Server
 
@@ -590,6 +567,6 @@ A: Use the `export` command to backup:
 
 - [API Reference Documentation](../../api/en/api-reference.md)
 - [Developer Guide](developer-guide.md)
-- [Troubleshooting Guide](troubleshooting.md)
-- [GitHub Repository](https://github.com/your-org/memento)
-- [Community Forum](https://github.com/your-org/memento/discussions)
+- [npx and runtime issues](../../operations/en/npx-troubleshooting.md) · [Node.js compatibility](../../operations/en/troubleshooting-node-version.md)
+- [GitHub Repository](https://github.com/jee1/memento)
+- [Community Forum](https://github.com/jee1/memento/discussions)

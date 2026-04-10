@@ -270,7 +270,7 @@ Cursor에서 Memento MCP Server를 사용하려면:
 2. **Cursor 설정 추가**
    - Cursor 설정 → MCP Servers에 추가
    - 또는 `.cursor/mcp.json` 파일 생성
-   - 상세 가이드: [Cursor MCP 설정 가이드](docs/guides/cursor-mcp-setup.ko.md)
+   - 상세 가이드: [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md)
 
 **빠른 설정 예시 (Windows):**
 ```json
@@ -415,8 +415,8 @@ npm install --build-from-source
 ```
 
 **상세 가이드**: 
-- [Node.js 버전 호환성 문제 해결 가이드](docs/troubleshooting-node-version.md)
-- [npx 사용자 문제 해결 가이드](docs/npx-troubleshooting.md)
+- [Node.js 버전 호환성 문제 해결 가이드](docs/operations/ko/troubleshooting-node-version.md)
+- [npx 사용자 문제 해결 가이드](docs/operations/ko/npx-troubleshooting.md)
 
 #### 6. Docker 오류
 ```bash

@@ -284,6 +284,6 @@ WHERE ml.target_memory_id = 'mem_xxx';
 ## 📚 관련 문서
 
 - [Anchor Map Manual Test Guide](../../_work/reviews/ko/anchor-map-manual-test-guide.md)
-- [Anchor System PRD](../tasks/0006-prd-anchor-system.md)
+- [Anchor System PRD](../../../tasks/0006-prd-anchor-system.md)
 - [Anchor Map Browser Test Report](../../_work/reviews/ko/anchor-map-browser-test-report.md)
 

@@ -78,4 +78,4 @@ Node.js용 **@modelcontextprotocol/sdk**의 `Server` 클래스는 이미 `instru
   - Server Instructions 소개: https://modelcontextprotocol.info/tags/server-instructions/
 - Cursor MCP 설정: `~/.cursor/mcp.json` 또는 프로젝트 `.cursor/mcp.json`, Settings → Tools & MCP
 - mcps 폴더: `~/.cursor/projects/<project-id>/mcps/` (Cursor가 MCP 메타데이터·지침을 둘 수 있는 위치)
-- Memento 사용 규칙: 저장소 루트 [AGENTS.md](../../AGENTS.md)의 “Memento MCP 사용” 섹션
+- Memento 사용 규칙: 저장소 루트 [AGENTS.md](../../../AGENTS.md)의 “Memento MCP 사용” 섹션

@@ -24,6 +24,7 @@
     "build:root": "tsc && npm run copy:assets",
     "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client",
     "copy:assets": "node src/scripts/copy-assets.js",
+    "docs:audit-links": "node scripts/audit-markdown-links.mjs",
     "start": "npm run start -w memento-server",
     "start:http": "npm run start:http -w memento-server",
     "start:http-v2": "npm run start:http-v2 -w memento-server",

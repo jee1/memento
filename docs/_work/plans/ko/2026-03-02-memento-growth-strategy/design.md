@@ -75,7 +75,7 @@ Phase 0 통과 후 실행. 각 제품 마일스톤에 **채택·생태계 행동
 ## 4. 참조
 
 - [memento-based-personal-assistant-mvp-research.md](../../../../_work/research/ko/memento-based-personal-assistant-mvp-research.md) — MVP 범위·검증 지표
-- [2026-02-05-issue57-phase2-roadmap.md](./2026-02-05-issue57-phase2-roadmap.md) — Issue #57 Phase2
+- [Issue #57 Phase2 로드맵](../2026-02-05-issue57-phase2/roadmap.md) — Issue #57 Phase2
 - [Memento-Milestones.md](../../../../reference/ko/Memento-Milestones.md) — M1~M4 비전
 - [recall-performance-tuning.md](../../../../guides/ko/recall-performance-tuning.md) — recall 프로파일링
 - [Multi-Provider-Search-Performance-Testing.md](../../../../reference/ko/Multi-Provider-Search-Performance-Testing.md) — 검색 성능 기준(500ms 등)

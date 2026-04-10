@@ -59,7 +59,7 @@ docs/_work/plans/ko/2026-03-11-memento-cli-for-ai/
 - **수용 기준**: AC1, AC2, … — SPEC 대비 “완료” 판단 기준.
 - **다음 단계**: 같은 디렉터리의 implementation-plan.md 링크.
 
-참고: [spec.md](../_work/plans/ko/2026-03-11-memento-cli-for-ai/spec.md)
+참고: [spec.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/spec.md)
 
 ---
 
@@ -72,7 +72,7 @@ docs/_work/plans/ko/2026-03-11-memento-cli-for-ai/
 - **Phase·Task**: 단계별 목표, 산출물, 명세 요구사항 매핑. 각 Task는 실행 가능한 단위로.
 - **검증**: 단위 테스트·E2E·수동 확인 방법.
 
-참고: [implementation-plan.md](../_work/plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md)
+참고: [implementation-plan.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md)
 
 ---
 
@@ -115,7 +115,7 @@ docs/_work/plans/ko/2026-03-11-memento-cli-for-ai/
 
 ## 7. 참고 문서
 
-- **문서 인덱스**: [docs/README.md](../README.md) — 명세(specs)·계획(plans) 섹션.
-- **분류 체계**: [docs-classification.md](../docs-classification.md).
-- **예시(CLI for AI)**: [2026-03-11-memento-cli-for-ai/](../_work/plans/ko/2026-03-11-memento-cli-for-ai/) — [design.md](../_work/plans/ko/2026-03-11-memento-cli-for-ai/design.md), [spec.md](../_work/plans/ko/2026-03-11-memento-cli-for-ai/spec.md), [implementation-plan.md](../_work/plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md), [Memory Bank(Structure/Tech/Product)](../_work/plans/ko/2026-03-11-memento-cli-for-ai/).
+- **문서 인덱스**: [docs/README.md](../../README.md) — 명세(specs)·계획(plans) 섹션.
+- **분류 체계**: [docs-classification.md](../../docs-classification.md).
+- **예시(CLI for AI)**: [2026-03-11-memento-cli-for-ai/](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/) — [design.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/design.md), [spec.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/spec.md), [implementation-plan.md](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/implementation-plan.md), [Memory Bank(Structure/Tech/Product)](../../_work/plans/ko/2026-03-11-memento-cli-for-ai/).
 

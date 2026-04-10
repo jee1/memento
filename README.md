@@ -184,8 +184,8 @@ Cursor 등의 MCP 호스트에서는 위와 같이 `mcp.json`에 HTTP MCP 서버
 
 ### 📚 **상세 설치 가이드**
 - [INSTALL.md](INSTALL.md) - 전체 설치 가이드
-- [Cursor MCP 설정 가이드](docs/guides/cursor-mcp-setup.ko.md) - Cursor에서 MCP 서버 사용하기
-- [npx 사용자 문제 해결](docs/npx-troubleshooting.md) - npx 실행 시 문제 해결
+- [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md) - Cursor에서 MCP 서버 사용하기
+- [npx 사용자 문제 해결](docs/operations/ko/npx-troubleshooting.md) - npx 실행 시 문제 해결
 
 ## 💡 사용 예시
 

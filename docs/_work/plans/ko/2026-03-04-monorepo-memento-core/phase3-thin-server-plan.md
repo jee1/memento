@@ -148,4 +148,4 @@ thin화 후 **삭제**할 디렉터리:
 - `cd packages/memento-server && npm run build` 성공.
 - MCP stdio 및 HTTP 서버 기동 및 도구 호출 동작 확인.
 
-이 문서는 [2026-03-04-monorepo-memento-core-implementation-plan.md](./2026-03-04-monorepo-memento-core-implementation-plan.md) Phase 3.1 보완용이다.
+이 문서는 [implementation-plan.md](./implementation-plan.md) Phase 3.1 보완용이다.

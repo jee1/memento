@@ -151,7 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 라이선스
 
-MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일 참조
+MIT License — 저장소 루트 `package.json`의 `license` 필드와 동일합니다.
 
 ## 연락처
 

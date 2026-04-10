@@ -78,7 +78,7 @@ npm install
 
 ```bash
 # 환경 변수 파일 복사
-cp .env.example .env
+cp env.example .env
 
 # 환경 변수 편집
 # .env 파일을 편집하여 필요한 설정을 입력하세요
@@ -1265,7 +1265,7 @@ async function testPerformanceAlerts() {
 - [API 참조 문서](../../api/ko/api-reference.md)
 - [사용자 매뉴얼](user-manual.md)
 - [아키텍처 문서](../../architecture/ko/architecture.md)
-- [테스트 가이드](testing-guide.md)
+- 테스트·품질 게이트: [AGENTS.md](../../../AGENTS.md) (`npm test`, `npm run lint` 등)
 - [Cursor Rules](../../../.cursor/rules/)
 - [GitHub 저장소](https://github.com/your-org/memento)
 - [커뮤니티 포럼](https://github.com/your-org/memento/discussions)
