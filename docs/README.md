@@ -15,6 +15,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 사용자 매뉴얼 | [user-manual.md](guides/ko/user-manual.md) | [user-manual.md](guides/en/user-manual.md) |
 | Cursor / MCP 설정 | [cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | — |
+| Obsidian CLI | [obsidian-cli-setup.md](guides/ko/obsidian-cli-setup.md) | — |
 
 - **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [AGENTS.md](../AGENTS.md)
 
