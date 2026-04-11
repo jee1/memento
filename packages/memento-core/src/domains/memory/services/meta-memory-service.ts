@@ -6,6 +6,7 @@
  */
 
 import Database from 'better-sqlite3';
+import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
 import { WriteCoalescingManager, type CoalescedWrite } from '../../../shared/utils/write-coalescing.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -52,6 +53,8 @@ export class MetaMemoryService {
     if (!db) {
       throw new Error('Database instance is required');
     }
+
+    ensureMetaMemoryStatsSchema(db);
 
     // WriteCoalescingManager 초기화 (meta_memory_stats 업데이트용)
     if (writeCoalescingManager) {

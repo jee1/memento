@@ -6,6 +6,7 @@
  */
 
 import Database from 'better-sqlite3';
+import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
 import { logger } from '../../../shared/utils/logger.js';
 
 /** M2 스캔 옵션 */
@@ -68,6 +69,8 @@ export class MetaMemoryIntrospectionService {
     const highFailureMemoryIds: string[] = [];
 
     try {
+      ensureMetaMemoryStatsSchema(db);
+
       // 저신뢰: avg_confidence < 임계값
       const lowStmt = db.prepare(`
         SELECT memory_id
