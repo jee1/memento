@@ -58,3 +58,12 @@ Vitest로 단위·통합 테스트를 수행하며, 파일 네이밍 규칙은 �
 - 같은 파일을 여러 번 다시 읽지 않는다. 이전 Serena 응답을 캐시하고, overview나 시그니처만으로는 부족할 때만 추가 상세를 요청한다.
 - 편집 시에는 파일 전체를 가져오지 말고 Serena 헬퍼(`insert_after_symbol`, `insert_before_symbol`, `replace_content`, `replace_symbol_body`)로 특정 심볼이나 삽입 지점을 지정한다. 50줄 미만의 작은 파일만 전체 읽기를 허용한다.
 - 토큰 사용을 줄이기 위해 Serena 검색 헬퍼(`search_for_pattern`, `find_referencing_symbols`)를 쓰고, 저장소 전체 스캔 대신 현재 작업에 직접 관련된 도구 결과만 가져온다.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` to keep the graph current
