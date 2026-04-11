@@ -7,4 +7,4 @@ chown -R memento:nodejs /app/data
 
 # HTTP 서버 시작
 echo "🚀 Memento HTTP 서버 시작 중..."
-exec node dist/server/index.js
+exec node packages/memento-server/dist/server/index.js
