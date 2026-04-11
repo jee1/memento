@@ -76,6 +76,33 @@ function addMissingColumn(
 }
 
 /**
+ * memory_item의 트리플 추출 컬럼 보정 (마이그레이션 030과 동일 DDL, idempotent).
+ * 신규 DB가 예전 schema.sql + recordBundledSchemaSqlMigrationBaseline으로 030만 적용된 것처럼
+ * 기록된 경우 등, memento_schema_version과 실제 테이블 스키마가 어긋날 수 있음.
+ */
+function ensureMemoryItemTripleExtractionColumns(db: Database.Database): void {
+  const hasTable = db
+    .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_item' LIMIT 1`)
+    .get();
+  if (!hasTable) {
+    return;
+  }
+  addMissingColumn(db, 'memory_item', 'triple_extracted', 'BOOLEAN DEFAULT FALSE NOT NULL');
+  addMissingColumn(db, 'memory_item', 'triple_extracted_status', 'TEXT');
+  addMissingColumn(db, 'memory_item', 'triple_extraction_metadata', 'TEXT');
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_episodic
+      ON memory_item(triple_extracted)
+      WHERE type = 'episodic';
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_status_episodic
+      ON memory_item(triple_extracted_status)
+      WHERE type = 'episodic';
+  `);
+}
+
+/**
  * 레거시 스키마 호환성 보장
  * 
  * 왜 이 함수가 필요한가?
@@ -601,6 +628,8 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
         await recordBundledSchemaSqlMigrationBaseline(db);
       }
     }
+
+    ensureMemoryItemTripleExtractionColumns(db);
     
     // Core Memory 자동 로드 (always_load=true인 항목만)
     try {
