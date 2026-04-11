@@ -465,14 +465,11 @@ export class HybridSearchEngine {
       const queryTime = this.calculateQueryTime(startTime);
 
       // A/B 테스트 추적을 위해 검색 완료 로그에 실험 ID를 포함합니다.
-      const logData: Record<string, unknown> = {
+      const logData: { items: unknown[]; total_count: number; experiment_id?: string } = {
         items: finalResults,
-        total_count: finalResults.length
+        total_count: finalResults.length,
+        ...(query.experiment_id ? { experiment_id: query.experiment_id } : {})
       };
-
-      if (query.experiment_id) {
-        logData.experiment_id = query.experiment_id;
-      }
 
       this.logger.logSearchComplete(searchId, logData, queryTime);
 

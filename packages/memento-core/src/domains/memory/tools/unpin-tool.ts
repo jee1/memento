@@ -302,7 +302,7 @@ export class UnpinTool extends BaseTool {
     );
     
     return {
-      ...stats,
+      ...(stats != null && typeof stats === 'object' ? stats as Record<string, unknown> : {}),
       recent_unpins: recentUnpins
     };
   }

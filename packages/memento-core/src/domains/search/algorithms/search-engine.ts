@@ -426,7 +426,7 @@ export class SearchEngine {
         // 사용자가 명시적으로 설정한 중요도와 고정 여부를 반영하여 우선순위를 결정합니다.
         const importance = this.ranking.calculateImportance(
           row.importance,
-          row.pinned,
+          Boolean(row.pinned),
           row.type
         );
         
@@ -511,13 +511,13 @@ export class SearchEngine {
           score: finalScore,
           recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0),
         };
-        if (row.task_goal !== undefined) result.task_goal = row.task_goal;
-        if (row.steps !== undefined) result.steps = row.steps;
-        if (row.reflection_notes !== undefined) result.reflection_notes = row.reflection_notes;
-        if (row.workflow_name !== undefined) result.workflow_name = row.workflow_name;
-        if (row.skill_name !== undefined) result.skill_name = row.skill_name;
-        if (row.trigger_conditions !== undefined) result.trigger_conditions = row.trigger_conditions;
-        if (row.version !== undefined) result.version = row.version;
+        if (row.task_goal != null) result.task_goal = row.task_goal;
+        if (row.steps != null) result.steps = row.steps;
+        if (row.reflection_notes != null) result.reflection_notes = row.reflection_notes;
+        if (row.workflow_name != null) result.workflow_name = row.workflow_name;
+        if (row.skill_name != null) result.skill_name = row.skill_name;
+        if (row.trigger_conditions != null) result.trigger_conditions = row.trigger_conditions;
+        if (row.version !== undefined && row.version !== null) result.version = row.version;
         if (row.version_series_id !== undefined) result.version_series_id = row.version_series_id;
         if (row.owner_id !== undefined) result.owner_id = row.owner_id;
         if (row.process_id !== undefined) result.process_id = row.process_id;

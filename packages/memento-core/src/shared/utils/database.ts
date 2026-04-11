@@ -334,9 +334,11 @@ export class DatabaseUtils {
     inTransaction: boolean;
   } {
     try {
-      const journalMode = this.get(db, 'PRAGMA journal_mode');
-      const walAutoCheckpoint = this.get(db, 'PRAGMA wal_autocheckpoint');
-      const busyTimeout = this.get(db, 'PRAGMA busy_timeout');
+      const journalMode = this.get(db, 'PRAGMA journal_mode') as { journal_mode?: string } | undefined;
+      const walAutoCheckpoint = this.get(db, 'PRAGMA wal_autocheckpoint') as
+        | { wal_autocheckpoint?: number }
+        | undefined;
+      const busyTimeout = this.get(db, 'PRAGMA busy_timeout') as { busy_timeout?: number } | undefined;
 
       // 간단한 락 테스트
       let isLocked = false;
@@ -350,9 +352,9 @@ export class DatabaseUtils {
       }
 
       return {
-        journalMode: journalMode.journal_mode,
-        walAutoCheckpoint: walAutoCheckpoint.wal_autocheckpoint,
-        busyTimeout: busyTimeout.busy_timeout,
+        journalMode: String(journalMode?.journal_mode ?? ''),
+        walAutoCheckpoint: Number(walAutoCheckpoint?.wal_autocheckpoint ?? 0),
+        busyTimeout: Number(busyTimeout?.busy_timeout ?? 0),
         isLocked,
         inTransaction: this.getTransactionState(db).inTransaction
       };

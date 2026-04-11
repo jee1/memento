@@ -166,6 +166,8 @@ export interface MemorySearchResult {
   tags?: string[];
   score: number;
   recall_reason: string;
+  /** include_score_breakdown=true일 때 텍스트/하이브리드 검색 경로에서 포함 */
+  score_breakdown?: import('./search.types.js').ScoreBreakdown;
   // MIRIX Schema Expansion (v2.0) 필드
   task_goal?: string; // Procedural Memory 전용, 작업 목표
   steps?: string; // Procedural Memory 전용, JSON 배열 형식

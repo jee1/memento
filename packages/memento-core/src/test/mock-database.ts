@@ -80,9 +80,11 @@ export class MockDatabase {
       const tableName = (sql.match(/from\s+(\w+)/i)?.[1] ?? '').trim() || '';
       const tableData = this.mockData.get(tableName) ?? [];
       if (lowerSql.includes('join memory_item')) {
-        return tableData.map((vecItem) => {
-          const memoryItem = this.mockData.get('memory_item')?.find((item) => item.id === vecItem.rowid);
-          return { memory_id: vecItem.rowid, similarity: 1 - vecItem.distance, distance: vecItem.distance, content: memoryItem?.content ?? '', type: memoryItem?.type ?? 'semantic', importance: memoryItem?.importance ?? 0.5, created_at: memoryItem?.created_at ?? '2024-01-01T00:00:00Z', last_accessed: memoryItem?.last_accessed, pinned: memoryItem?.pinned ?? false, tags: memoryItem?.tags };
+        return tableData.map((vecItem: Record<string, unknown>) => {
+          const distance = typeof vecItem.distance === 'number' ? vecItem.distance : Number(vecItem.distance ?? 0);
+          const rowid = vecItem.rowid as string;
+          const memoryItem = this.mockData.get('memory_item')?.find((item) => item.id === rowid);
+          return { memory_id: rowid, similarity: 1 - distance, distance, content: memoryItem?.content ?? '', type: memoryItem?.type ?? 'semantic', importance: memoryItem?.importance ?? 0.5, created_at: memoryItem?.created_at ?? '2024-01-01T00:00:00Z', last_accessed: memoryItem?.last_accessed, pinned: memoryItem?.pinned ?? false, tags: memoryItem?.tags };
         });
       }
       return tableData;

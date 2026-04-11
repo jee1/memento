@@ -293,7 +293,7 @@ export class PinTool extends BaseTool {
     );
     
     return {
-      ...stats,
+      ...(stats != null && typeof stats === 'object' ? stats as Record<string, unknown> : {}),
       recent_pins: recentPins
     };
   }
