@@ -19,6 +19,7 @@ import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../../../shared/utils/fts5-migration-status.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { ensureMemoryItemTripleExtractionColumns } from './ensure-memory-item-triple-extraction-columns.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -73,33 +74,6 @@ function addMissingColumn(
       db.exec(postUpdateSql);
     }
   }
-}
-
-/**
- * memory_item의 트리플 추출 컬럼 보정 (마이그레이션 030과 동일 DDL, idempotent).
- * 신규 DB가 예전 schema.sql + recordBundledSchemaSqlMigrationBaseline으로 030만 적용된 것처럼
- * 기록된 경우 등, memento_schema_version과 실제 테이블 스키마가 어긋날 수 있음.
- */
-function ensureMemoryItemTripleExtractionColumns(db: Database.Database): void {
-  const hasTable = db
-    .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_item' LIMIT 1`)
-    .get();
-  if (!hasTable) {
-    return;
-  }
-  addMissingColumn(db, 'memory_item', 'triple_extracted', 'BOOLEAN DEFAULT FALSE NOT NULL');
-  addMissingColumn(db, 'memory_item', 'triple_extracted_status', 'TEXT');
-  addMissingColumn(db, 'memory_item', 'triple_extraction_metadata', 'TEXT');
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_episodic
-      ON memory_item(triple_extracted)
-      WHERE type = 'episodic';
-  `);
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_status_episodic
-      ON memory_item(triple_extracted_status)
-      WHERE type = 'episodic';
-  `);
 }
 
 /**
