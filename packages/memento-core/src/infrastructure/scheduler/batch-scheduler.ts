@@ -45,7 +45,7 @@ import { resolveValidatedNumber } from '../../shared/config/environment.js';
 
 export interface BatchJobConfig {
   // 배치 작업 간격 (밀리초)
-  cleanupInterval: number;        // 메모리 정리 간격 (기본: 1시간)
+  cleanupInterval: number;        // 메모리 정리 간격 (기본: 24h, env: FORGETTING_CLEANUP_INTERVAL_MS)
   monitoringInterval: number;     // 모니터링 간격 (기본: 5분, env: BATCH_MONITORING_INTERVAL_MS)
   healthCheckInterval: number;    // 헬스체크 간격 (기본: 5분, env: BATCH_HEALTH_CHECK_INTERVAL_MS)
   consolidationScoreIncrementalInterval: number;  // Consolidation Score 증분 재계산 간격 (기본: 1시간)
@@ -157,7 +157,12 @@ export class BatchScheduler implements IBatchScheduler {
     }
   ) {
     this.config = {
-      cleanupInterval: 60 * 60 * 1000,    // 1시간
+      cleanupInterval: resolveValidatedNumber(
+        'FORGETTING_CLEANUP_INTERVAL_MS',
+        24 * 60 * 60 * 1000,
+        n => n >= 60_000,
+        '최솟값 60000'
+      ),
       monitoringInterval: resolveValidatedNumber('BATCH_MONITORING_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
       healthCheckInterval: resolveValidatedNumber('BATCH_HEALTH_CHECK_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
       consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
@@ -176,7 +181,7 @@ export class BatchScheduler implements IBatchScheduler {
       metaMemoryIntrospectionInterval: 6 * 60 * 60 * 1000, // 6시간 (Issue #21)
       sleepConsolidationInterval: resolveValidatedNumber(
         'SLEEP_CONSOLIDATION_INTERVAL_MS',
-        24 * 60 * 60 * 1000,
+        60 * 60 * 1000,
         n => n >= 60_000,
         '최솟값 60000'
       ),

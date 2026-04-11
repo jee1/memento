@@ -9,7 +9,6 @@ import Database from 'better-sqlite3';
 import { createAdminRouter } from './admin.routes.js';
 import type { ServerServices } from '../bootstrap.js';
 import {
-  ConsolidationAlreadyRunningError,
   type SleepConsolidationRunResult,
   TelemetryService,
   TelemetryRepository,
@@ -118,6 +117,7 @@ describe('admin.routes consolidation', () => {
       clustersProcessed: 2,
       clustersSkipped: 0,
       semanticsCreated: 2,
+      semanticsMerged: 0,
       episodicsConsolidated: 8,
       errors: []
     };
@@ -146,8 +146,19 @@ describe('admin.routes consolidation', () => {
     }
   });
 
-  it('POST /admin/consolidation/run 동시 실행 시 409', async () => {
-    const run = vi.fn().mockRejectedValue(new ConsolidationAlreadyRunningError());
+  it('POST /admin/consolidation/run 동시 실행 시 no-op 결과(200)', async () => {
+    const run = vi.fn().mockResolvedValue({
+      runAt: '2026-03-28T03:00:00.000Z',
+      durationMs: 0,
+      clustersFound: 0,
+      clustersProcessed: 0,
+      clustersSkipped: 0,
+      semanticsCreated: 0,
+      semanticsMerged: 0,
+      episodicsConsolidated: 0,
+      errors: [],
+      skippedDueToConcurrentRun: true
+    } satisfies SleepConsolidationRunResult);
     const app = express();
     app.use(express.json());
     app.use(
@@ -159,10 +170,10 @@ describe('admin.routes consolidation', () => {
     const { server, port } = await listen(app);
     try {
       const res = await postAdminJson(port, '/admin/consolidation/run', {});
-      expect(res.statusCode).toBe(409);
-      const body = JSON.parse(res.body) as { success: boolean; error: string };
-      expect(body.success).toBe(false);
-      expect(body.error).toBe('Consolidation already running');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { success: boolean; result: SleepConsolidationRunResult };
+      expect(body.success).toBe(true);
+      expect(body.result.skippedDueToConcurrentRun).toBe(true);
     } finally {
       await new Promise<void>(r => server.close(() => r()));
     }

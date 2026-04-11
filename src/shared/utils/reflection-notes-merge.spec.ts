@@ -218,10 +218,14 @@ describe('Reflection Notes Merge Utility', () => {
 
     it('should accept object with exactly 10KB', () => {
       const existing: ExistingReflectionNotes = { type: 'null', value: null };
-      // 정확히 10KB에 가까운 객체 생성 (JSON 직렬화 오버헤드 고려)
+      // 스키마: failure_description 최대 5000자 — 나머지는 다른 필드로 채워 단일 JSON이 10KB 한도에 근접하도록 함
       const note = createValidReflectionNote({
-        failure_description: 'a'.repeat(9000) // 약 9KB + 메타데이터
+        failure_description: 'a'.repeat(5000),
+        lessons_learned: 'a'.repeat(4500)
       });
+      const size = new TextEncoder().encode(JSON.stringify(note)).length;
+      expect(size).toBeLessThanOrEqual(10240);
+      expect(size).toBeGreaterThan(9000);
 
       const result = mergeReflectionNotes(existing, note);
       expect(result.merged).toHaveLength(1);
@@ -272,11 +276,11 @@ describe('Reflection Notes Merge Utility', () => {
       // JSON 직렬화 오버헤드를 고려하여 약 7-8KB로 설정
       const createLargeNote = (timestamp: string) => ({
         failure_type: 'tool_error' as const,
-        failure_description: 'a'.repeat(6000), // 약 6KB
+        failure_description: 'a'.repeat(5000),
         timestamp,
-        original_task: 'a'.repeat(1000), // 약 1KB
-        lessons_learned: 'a'.repeat(1000), // 약 1KB
-        suggested_improvements: 'a'.repeat(1000), // 약 1KB
+        original_task: 'a'.repeat(1000),
+        lessons_learned: 'a'.repeat(2800),
+        suggested_improvements: 'a'.repeat(1000),
         phase: 'manual' as const
       });
 
@@ -439,11 +443,11 @@ describe('Reflection Notes Merge Utility', () => {
       // JSON 직렬화 오버헤드를 고려하여 약 7-8KB로 설정
       const createLargeNote = (timestamp: string) => ({
         failure_type: 'tool_error' as const,
-        failure_description: 'a'.repeat(6000), // 약 6KB
+        failure_description: 'a'.repeat(5000),
         timestamp,
-        original_task: 'a'.repeat(1000), // 약 1KB
-        lessons_learned: 'a'.repeat(1000), // 약 1KB
-        suggested_improvements: 'a'.repeat(1000), // 약 1KB
+        original_task: 'a'.repeat(1000),
+        lessons_learned: 'a'.repeat(2800),
+        suggested_improvements: 'a'.repeat(1000),
         phase: 'manual' as const
       });
 

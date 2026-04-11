@@ -232,7 +232,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         '  LIMIT ?' +
         ') t ' +
         'JOIN memory_embedding me ON t.rowid = me.id ' +
-        'JOIN memory_item mi ON mi.id = me.memory_id ' +
+        'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
         (typeFilters.length > 0 ? `WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
         'ORDER BY t.distance ASC ' +
         'LIMIT ?';
@@ -400,7 +400,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '    LIMIT ?' +
           '  ) t ' +
           '  JOIN memory_embedding me ON t.rowid = me.id ' +
-          '  JOIN memory_item mi ON mi.id = me.memory_id ' +
+          '  JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
           (typeFilters.length > 0 ? `  WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
           '), ' +
           'text_search AS (' +
@@ -421,7 +421,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '    mi.trigger_conditions, ' +
           '    fts.rank as text_rank ' +
           '  FROM memory_item_fts fts ' +
-          '  JOIN memory_item mi ON fts.rowid = mi.rowid ' +
+          '  JOIN memory_item mi ON fts.rowid = mi.rowid AND (COALESCE(mi.is_deleted, 0) = 0) ' +
           '  WHERE memory_item_fts MATCH ? ' +
           textTypeClause + ' ' +
           ') ' +
@@ -516,7 +516,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  LIMIT ?' +
           ') t ' +
           'JOIN memory_embedding me ON t.rowid = me.id ' +
-          'JOIN memory_item mi ON mi.id = me.memory_id ' +
+          'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
           (typeFilters.length > 0 ? `WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
           'ORDER BY t.distance ASC ' +
           'LIMIT ?';

@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import { initializeDatabase, closeDatabase as closeDb } from '../../infrastructure/database/database/init.js';
 import { initializeServices } from '../../bootstrap.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
+import { resetBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
 
 interface MementoCoreInstance {
   db: Database.Database;
@@ -48,6 +49,8 @@ export async function cleanupTestDatabase(db: Database.Database | null | undefin
       }
     } catch (_e) {
       // ignore
+    } finally {
+      resetBatchScheduler();
     }
     try {
       closeDb(core.db);

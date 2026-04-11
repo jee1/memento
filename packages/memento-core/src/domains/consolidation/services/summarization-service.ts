@@ -111,4 +111,25 @@ export class SummarizationService {
 
     return this.extractiveFallback(clusterEpisodes);
   }
+
+  /**
+   * 기존 시맨틱 본문 + 신규 에피소딕 묶음을 하나의 시맨틱으로 재요약 (병합 경로)
+   */
+  async summarizeMergeForConsolidation(input: {
+    existingSemanticContent: string;
+    clusterEpisodes: EpisodicCandidateRow[];
+  }): Promise<{ content: string; method: SummarizationMethod }> {
+    const { existingSemanticContent, clusterEpisodes } = input;
+    if (clusterEpisodes.length === 0) {
+      return { content: existingSemanticContent.trim(), method: 'extractive' };
+    }
+    const mergedEpisode: EpisodicCandidateRow = {
+      ...clusterEpisodes[0]!,
+      id: 'merge-input',
+      content:
+        `Existing consolidated knowledge:\n${existingSemanticContent}\n\n` +
+        `New episodic memories:\n${clusterEpisodes.map(e => `- (${e.id}) ${e.content}`).join('\n')}`
+    };
+    return this.summarizeCluster({ clusterEpisodes: [mergedEpisode] });
+  }
 }

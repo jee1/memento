@@ -22,6 +22,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // 기본 `threads` 풀은 워커 스레드가 동일 프로세스를 공유해 BatchScheduler 싱글톤이 파일 간에 충돌한다.
+    // `forks`는 파일마다 자식 프로세스로 격리한다.
+    pool: 'forks',
     include: [
       'src/**/*.{test,spec}.{js,ts}',
       'tests/**/*.{test,spec}.{js,ts}',
@@ -30,7 +33,12 @@ export default defineConfig({
       'packages/memento-client/src/**/*.{test,spec}.{js,ts}',
       'packages/memento-server/src/**/*.{test,spec}.{js,ts}'
     ],
-    exclude: ['node_modules', 'dist'],
+    exclude: [
+      'node_modules',
+      'dist',
+      // packages/memento-core와 동일 스펙이 루트 src에 복제되어 있으면 이중 실행·전역 싱글톤 충돌을 일으킨다.
+      'src/infrastructure/reflexion-worker.spec.ts',
+    ],
     hookTimeout: 30000, // 30초로 증가
     testTimeout: 30000, // 30초로 증가
     setupFiles: ['./src/test/vitest.setup.ts'], // 전역 설정 파일

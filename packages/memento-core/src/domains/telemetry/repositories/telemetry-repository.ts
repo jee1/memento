@@ -36,6 +36,16 @@ export interface MemoryQualityResult {
   timestamp: string;
 }
 
+/** 공고화 파이프라인 품질 (FR-009, SC-007) */
+export interface ConsolidationQualityResult {
+  episodic_consolidation_rate: number | null;
+  triple_extraction_success_rate: number | null;
+  cluster_processing_efficiency: number | null;
+  recent_semantic_count_7d: number | null;
+  pipeline_error_count: number | null;
+  timestamp: string;
+}
+
 export interface ToolMetricBucket {
   request_count: number | null;
   success_count: number | null;
@@ -416,6 +426,129 @@ export class TelemetryRepository {
       duplicate_write_rate_24h: dupRate,
       relation_coverage_ratio: coverage,
       orphan_memory_ratio: orphan,
+      timestamp: now
+    };
+  }
+
+  /**
+   * Sleep 공고화·트리플 추출 등 구조화 파이프라인 품질 지표 (최근 7일 윈도우, owner 선택)
+   */
+  queryConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
+    const now = new Date().toISOString();
+    const cutoff7d = periodCutoffIso('7d');
+    const memOwner =
+      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
+    const telOwner =
+      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
+    const params: Record<string, unknown> = { cutoff: cutoff7d };
+    if (ownerId !== undefined && ownerId !== null) {
+      params.owner = ownerId;
+    }
+
+    const ep = this.db
+      .prepare(
+        `SELECT
+           SUM(CASE WHEN type = 'episodic' AND COALESCE(is_consolidated, 0) = 1 THEN 1 ELSE 0 END) AS cons,
+           SUM(CASE WHEN type = 'episodic' THEN 1 ELSE 0 END) AS total
+         FROM memory_item WHERE 1 = 1 ${memOwner}`
+      )
+      .get(params) as { cons: number | null; total: number | null } | undefined;
+    const totalEp = ep?.total ?? 0;
+    const episodic_consolidation_rate =
+      totalEp > 0 && ep?.cons != null ? ep.cons / totalEp : null;
+
+    const tr = this.db
+      .prepare(
+        `SELECT
+           SUM(CASE WHEN triple_extracted_status = 'success' THEN 1 ELSE 0 END) AS ok,
+           SUM(CASE WHEN COALESCE(triple_extracted, 0) = 1 THEN 1 ELSE 0 END) AS te
+         FROM memory_item WHERE type = 'episodic' ${memOwner}`
+      )
+      .get(params) as { ok: number | null; te: number | null } | undefined;
+    const teCount = tr?.te ?? 0;
+    const triple_extraction_success_rate =
+      teCount > 0 && tr?.ok != null ? tr.ok / teCount : null;
+
+    const telParams = { cutoff: cutoff7d, ...params };
+    const perfRows = this.db
+      .prepare(
+        `SELECT extra_data FROM telemetry_events
+         WHERE event_type = 'consolidation.performed'
+           AND outcome = 'success'
+           AND created_at >= @cutoff ${telOwner}`
+      )
+      .all(telParams) as { extra_data: string | null }[];
+    let effSum = 0;
+    let effN = 0;
+    for (const r of perfRows) {
+      if (!r.extra_data) {
+        continue;
+      }
+      try {
+        const j = JSON.parse(r.extra_data) as {
+          clusters_processed?: number;
+          clusters_found?: number;
+        };
+        const cf = j.clusters_found ?? 0;
+        const cp = j.clusters_processed ?? 0;
+        if (cf > 0) {
+          effSum += cp / cf;
+          effN++;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    const cluster_processing_efficiency = effN > 0 ? effSum / effN : null;
+
+    const semRow = this.db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM memory_item
+         WHERE type = 'semantic' AND datetime(created_at) >= datetime(@cutoff) ${memOwner}`
+      )
+      .get(params) as { c: number };
+    const recent_semantic_count_7d = semRow?.c ?? 0;
+
+    const errRow = this.db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM telemetry_events
+         WHERE outcome = 'failure'
+           AND created_at >= @cutoff
+           AND event_type IN ('consolidation.performed', 'telemetry.cleanup.performed') ${telOwner}`
+      )
+      .get(params) as { c: number };
+    /** 트리플 추출 실패(FR-009 파이프라인 오류) — 텔레메트리 미발행 경로 포함 */
+    const tripleFailRow = this.db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM memory_item
+         WHERE type = 'episodic'
+           AND triple_extracted_status = 'failed'
+           AND COALESCE(is_deleted, 0) = 0
+           AND (
+             (
+               triple_extraction_metadata IS NOT NULL
+               AND json_extract(triple_extraction_metadata, '$.last_attempt') IS NOT NULL
+               AND datetime(json_extract(triple_extraction_metadata, '$.last_attempt')) >= datetime(@cutoff)
+             )
+             OR (
+               (
+                 triple_extraction_metadata IS NULL
+                 OR json_extract(triple_extraction_metadata, '$.last_attempt') IS NULL
+               )
+               AND datetime(created_at) >= datetime(@cutoff)
+             )
+           )
+           ${memOwner}`
+      )
+      .get(params) as { c: number };
+    const pipeline_error_count = (errRow?.c ?? 0) + (tripleFailRow?.c ?? 0);
+
+    return {
+      episodic_consolidation_rate,
+      triple_extraction_success_rate,
+      cluster_processing_efficiency,
+      recent_semantic_count_7d,
+      pipeline_error_count,
       timestamp: now
     };
   }

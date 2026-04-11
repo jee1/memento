@@ -178,6 +178,14 @@ export interface MemorySearchResult {
   version_chain?: import('./procedural-versioning.js').VersionChainItem[];
   diff_with_previous?: import('./procedural-versioning.js').ProceduralDiffResult | null;
   diff_with?: import('./procedural-versioning.js').ProceduralDiffResult | null;
+
+  // Search metadata (DB 조회 결과에 따라 존재)
+  consolidation_score?: number;
+  owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
+  num_times?: number;
+  last_mentioned_at?: Date;
 }
 
 export interface SearchRankingWeights {

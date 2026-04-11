@@ -5,36 +5,38 @@
 
 import { vi } from 'vitest';
 
+type MockRow = Record<string, unknown>;
+
 export class MockPreparedStatement {
-  private mockData: any[] = [];
+  private mockData: MockRow[] = [];
   private mockError: Error | null = null;
 
-  constructor(mockData: any[] = [], mockError: Error | null = null) {
+  constructor(mockData: MockRow[] = [], mockError: Error | null = null) {
     this.mockData = mockData;
     this.mockError = mockError;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-  all(...params: any[]): any[] {
+  all(..._params: unknown[]): MockRow[] {
     if (this.mockError) throw this.mockError;
     return this.mockData;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-  get(...params: any[]): any {
+  get(..._params: unknown[]): MockRow | null {
     if (this.mockError) throw this.mockError;
     return this.mockData[0] || null;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-  run(...params: any[]): { changes: number; lastInsertRowid: number } {
+  run(..._params: unknown[]): { changes: number; lastInsertRowid: number } {
     if (this.mockError) throw this.mockError;
     return { changes: 1, lastInsertRowid: 1 };
   }
 }
 
 export class MockDatabase {
-  private mockData: Map<string, any[]> = new Map();
+  private mockData: Map<string, MockRow[]> = new Map();
   private mockError: Error | null = null;
   private _isOpen = true;
 
@@ -106,7 +108,7 @@ export class MockDatabase {
     return new MockPreparedStatement(mockData);
   }
 
-  private analyzeQuery(sql: string): any[] {
+  private analyzeQuery(sql: string): MockRow[] {
     const lowerSql = sql.toLowerCase();
     
     // VEC 검색 쿼리
@@ -116,8 +118,8 @@ export class MockDatabase {
       
       // JOIN 쿼리인 경우 memory_item과 조인
       if (lowerSql.includes('join memory_item')) {
-        return tableData.map(vecItem => {
-          const memoryItem = this.mockData.get('memory_item')?.find(item => item.id === vecItem.rowid);
+        return tableData.map((vecItem) => {
+          const memoryItem = this.mockData.get('memory_item')?.find((item) => item.id === vecItem.rowid);
           return {
             memory_id: vecItem.rowid,
             similarity: 1 - vecItem.distance,
@@ -191,7 +193,7 @@ export class MockDatabase {
     this.mockError = error;
   }
 
-  addMockData(tableName: string, data: any[]): void {
+  addMockData(tableName: string, data: MockRow[]): void {
     this.mockData.set(tableName, data);
   }
 

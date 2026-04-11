@@ -875,9 +875,6 @@ export class RememberTool extends BaseTool {
           // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신/관계 추출은 백그라운드에서 처리
           (async () => {
             try {
-              // 트랜잭션이 완전히 커밋되도록 짧은 지연
-              await new Promise(resolve => setTimeout(resolve, 100));
-              
               // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
               // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
               try {
@@ -1429,12 +1426,52 @@ export class RememberTool extends BaseTool {
             is_duplicate: isDuplicate
           }
         });
-        
+
+        let similarity_warning: { count: number; similar_ids: string[] } | undefined;
+        try {
+          const embSvc = context.services?.embeddingService;
+          if (embSvc?.isAvailable()) {
+            const vecEng = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
+            vecEng.initialize(context.db!);
+            const unified = embSvc.getUnifiedEmbeddingService();
+            const qEmb = await unified.generateEmbedding(content);
+            if (qEmb?.embedding && Array.isArray(qEmb.embedding)) {
+              const prov = unified.getCurrentProviderName() ?? 'tfidf';
+              const hits = await vecEng.search(
+                qEmb.embedding,
+                { limit: 8, threshold: 0.85, types: [type] },
+                prov
+              );
+              const sameOwner = hits.filter(h => {
+                if (h.memory_id === id) {
+                  return false;
+                }
+                const row = DatabaseUtils.get(
+                  context.db!,
+                  `SELECT owner_id FROM memory_item WHERE id = ?`,
+                  [h.memory_id]
+                ) as { owner_id: string | null } | undefined;
+                const o = row?.owner_id ?? null;
+                return String(o ?? '') === String(ownerId ?? '');
+              });
+              if (sameOwner.length > 0) {
+                similarity_warning = {
+                  count: sameOwner.length,
+                  similar_ids: sameOwner.map(s => s.memory_id)
+                };
+              }
+            }
+          }
+        } catch {
+          /* FR-008: 유사도 경고 실패 시에도 저장은 성공 */
+        }
+
         return this.createSuccessResult({
           memory_id: id,
           type: type,
           message: `기억이 저장되었습니다: ${id}`,
-          embedding_created: context.services.embeddingService?.isAvailable() || false
+          embedding_created: context.services.embeddingService?.isAvailable() || false,
+          ...(similarity_warning ? { similarity_warning } : {})
         });
       } catch (error) {
         // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도

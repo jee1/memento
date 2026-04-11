@@ -819,9 +819,6 @@ export class RememberTool extends BaseTool {
           // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신/관계 추출은 백그라운드에서 처리
           (async () => {
             try {
-              // 트랜잭션이 완전히 커밋되도록 짧은 지연
-              await new Promise(resolve => setTimeout(resolve, 100));
-              
               // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
               // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
               try {

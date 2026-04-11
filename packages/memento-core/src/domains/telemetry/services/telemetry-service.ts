@@ -8,6 +8,7 @@ import { setImmediate } from 'timers';
 import type { BatchScheduler } from '../../../infrastructure/scheduler/batch-scheduler.js';
 import {
   TelemetryRepository,
+  type ConsolidationQualityResult,
   type MemoryQualityResult,
   type SchedulerJobSnapshot,
   type SearchQualityResult,
@@ -85,6 +86,10 @@ export class TelemetryService {
 
   getMemoryQuality(ownerId?: string | null): MemoryQualityResult {
     return this.repository.queryMemoryQuality(ownerId);
+  }
+
+  getConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
+    return this.repository.queryConsolidationQuality(ownerId);
   }
 
   getSystemMetrics(period: TelemetryPeriod, ownerId?: string | null): SystemMetricsResult {

@@ -128,7 +128,7 @@ export class MemoryNeighborService {
       try {
         memory = await DatabaseUtils.get(
           this.db,
-          'SELECT id FROM memory_item WHERE id = ?',
+          'SELECT id FROM memory_item WHERE id = ? AND (COALESCE(is_deleted, 0) = 0)',
           [memoryId]
         );
       } catch (error) {

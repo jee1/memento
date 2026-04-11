@@ -47,6 +47,57 @@ function newSemanticId(): string {
 const REL_EXTRACTED_FROM: RelationType = 'extracted_from';
 const REL_SUPPORTED_BY: RelationType = 'supported_by';
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) {
+    return 0;
+  }
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    dot += x * y;
+    na += x * x;
+    nb += y * y;
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+function getMergeSimilarityThreshold(): number {
+  const raw = process.env.CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD;
+  const n = raw ? parseFloat(raw) : 0.85;
+  return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.85;
+}
+
+function mergeOriginSourceJson(existingJson: string, clusterIds: string[]): string {
+  let o: Record<string, unknown> = {};
+  try {
+    o = JSON.parse(existingJson || '{}') as Record<string, unknown>;
+  } catch {
+    o = {};
+  }
+  const rawCtx = o.context;
+  const ctx =
+    rawCtx && typeof rawCtx === 'object'
+      ? ({ ...(rawCtx as Record<string, unknown>) } as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
+  const prev = Array.isArray(ctx.source_episodic_ids)
+    ? (ctx.source_episodic_ids as string[])
+    : [];
+  const mergedIds = [...new Set([...prev, ...clusterIds])];
+  return JSON.stringify({
+    ...o,
+    tool: o.tool ?? 'sleep-consolidation',
+    context: {
+      ...ctx,
+      source_episodic_ids: mergedIds,
+      merge_resummarize: true
+    }
+  });
+}
+
 export class SleepConsolidationService {
   /** 프로세스당 단일 인스턴스(bootstrap) 기준 동시 실행 방지 — static이면 테스트 간 상태가 오염된다 */
   private activeRun: Promise<void> | null = null;
@@ -79,7 +130,18 @@ export class SleepConsolidationService {
 
   async run(options: SleepConsolidationRunOptions = {}): Promise<SleepConsolidationRunResult> {
     if (this.activeRun) {
-      throw new ConsolidationAlreadyRunningError();
+      return {
+        runAt: new Date().toISOString(),
+        durationMs: 0,
+        clustersFound: 0,
+        clustersProcessed: 0,
+        clustersSkipped: 0,
+        semanticsCreated: 0,
+        semanticsMerged: 0,
+        episodicsConsolidated: 0,
+        errors: [],
+        skippedDueToConcurrentRun: true
+      };
     }
     let release!: () => void;
     const done = new Promise<void>(resolve => {
@@ -96,6 +158,7 @@ export class SleepConsolidationService {
       clustersProcessed: 0,
       clustersSkipped: 0,
       semanticsCreated: 0,
+      semanticsMerged: 0,
       episodicsConsolidated: 0,
       errors: []
     };
@@ -137,6 +200,77 @@ export class SleepConsolidationService {
             result.clustersSkipped++;
             result.errors.push({ clusterId, error: 'Empty summary' });
             continue;
+          }
+
+          const mergeTh = getMergeSimilarityThreshold();
+          const uni = this.memoryEmbedding.getUnifiedEmbeddingService();
+          let mergeTarget: { id: string; content: string; originSource: string } | null = null;
+          const sumEmbRes = await uni.generateEmbedding(summaryText);
+          if (sumEmbRes?.embedding && Array.isArray(sumEmbRes.embedding)) {
+            const sumVec = sumEmbRes.embedding as number[];
+            const semantics = this.repo.findSemanticsByOwner(cluster.ownerId);
+            let bestSim = -1;
+            for (const sem of semantics) {
+              const semEmbRes = await uni.generateEmbedding(sem.content);
+              if (!semEmbRes?.embedding || !Array.isArray(semEmbRes.embedding)) {
+                continue;
+              }
+              const sim = cosineSimilarity(sumVec, semEmbRes.embedding as number[]);
+              if (sim >= mergeTh && sim > bestSim) {
+                bestSim = sim;
+                mergeTarget = sem;
+              }
+            }
+          }
+
+          if (mergeTarget) {
+            const merged = await this.summarization.summarizeMergeForConsolidation({
+              existingSemanticContent: mergeTarget.content,
+              clusterEpisodes: episodes
+            });
+            if (merged.content.trim()) {
+              const newOrigin = mergeOriginSourceJson(mergeTarget.originSource, cluster.episodicIds);
+              await DatabaseUtils.runTransaction(this.db, async () => {
+                this.repo.updateSemanticMemory({
+                  id: mergeTarget!.id,
+                  content: merged.content.trim(),
+                  originSourceJson: newOrigin
+                });
+                for (const eid of cluster.episodicIds) {
+                  await this.relationGraph.addRelation(
+                    mergeTarget!.id,
+                    eid,
+                    REL_EXTRACTED_FROM,
+                    { confidence: 0.75, allowCyclic: true }
+                  );
+                  await this.relationGraph.addRelation(
+                    eid,
+                    mergeTarget!.id,
+                    REL_SUPPORTED_BY,
+                    { confidence: 0.75, allowCyclic: true }
+                  );
+                }
+                this.repo.markEpisodicsConsolidated(cluster.episodicIds);
+              });
+              const semanticType: MemoryType = 'semantic';
+              const storedEmbM = await this.memoryEmbedding.createAndStoreEmbedding(
+                this.db,
+                mergeTarget.id,
+                merged.content.trim(),
+                semanticType
+              );
+              if (!storedEmbM) {
+                result.errors.push({
+                  clusterId,
+                  error:
+                    'Semantic embedding not stored — hybrid vector recall may miss this consolidated memory'
+                });
+              }
+              result.clustersProcessed++;
+              result.semanticsMerged++;
+              result.episodicsConsolidated += cluster.episodicIds.length;
+              continue;
+            }
           }
 
           const semanticId = newSemanticId();
@@ -229,6 +363,7 @@ export class SleepConsolidationService {
           clusters_found: result.clustersFound,
           clusters_processed: result.clustersProcessed,
           semantics_created: result.semanticsCreated,
+          semantics_merged: result.semanticsMerged,
           duration_ms: result.durationMs,
           error_count: result.errors.length
         }

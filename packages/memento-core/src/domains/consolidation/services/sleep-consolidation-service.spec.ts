@@ -7,6 +7,7 @@ import { SummarizationService } from './summarization-service.js';
 import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-schema.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
+import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 
 function insertEpisodic(
   db: Database.Database,
@@ -186,7 +187,7 @@ describe('SleepConsolidationService', () => {
     expect(Number(semCount.c)).toBe(0);
   });
 
-  it('rejects concurrent run with ConsolidationAlreadyRunningError', async () => {
+  it('second concurrent run is a no-op (skippedDueToConcurrentRun)', async () => {
     delete process.env.OPENAI_API_KEY;
     const emb = [1, 0, 0, 0];
     for (let i = 0; i < 10; i++) {
@@ -208,7 +209,66 @@ describe('SleepConsolidationService', () => {
       relationGraph: createRelationGraph(db)
     });
     const p1 = svc.run({});
-    await expect(svc.run({})).rejects.toMatchObject({ name: 'ConsolidationAlreadyRunningError' });
+    const r2 = await svc.run({});
+    expect(r2.skippedDueToConcurrentRun).toBe(true);
+    expect(r2.semanticsCreated).toBe(0);
     await p1;
+  });
+
+  it('FR-002: 병합 요약이 비어 있으면 기존 시맨틱 갱신 없이 신규 시맨틱 삽입으로 폴백하고 에피소딕을 표시 완료 처리한다', async () => {
+    vi.stubEnv('CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD', '0.5');
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at)
+       VALUES ('sem_existing', 'semantic', 'base', 'agent-x', 0, 0.5, datetime('now'))`
+    );
+
+    const emb = [1, 0, 0, 0];
+    for (let i = 0; i < 10; i++) {
+      const id = `e${i}`;
+      insertEpisodic(db, id, { owner: 'agent-x' });
+      insertEmbedding(db, id, emb);
+    }
+
+    const memEmb = new MemoryEmbeddingService();
+    const uni = memEmb.getUnifiedEmbeddingService();
+    vi.spyOn(uni, 'generateEmbedding').mockResolvedValue({
+      embedding: emb,
+      provider: 'tfidf'
+    });
+
+    const summarization = new SummarizationService();
+    vi.spyOn(summarization, 'summarizeMergeForConsolidation').mockResolvedValue({
+      content: '',
+      method: 'extractive'
+    });
+
+    const { createRelationGraph } = await import(
+      '../../../infrastructure/relation-graph-factory.js'
+    );
+    const svc = new SleepConsolidationService(db, {
+      memoryEmbeddingService: memEmb,
+      summarizationService: summarization,
+      relationGraph: createRelationGraph(db)
+    });
+    const result = await svc.run({ ownerIdFilter: 'agent-x' });
+    expect(result.semanticsMerged).toBe(0);
+    expect(result.semanticsCreated).toBe(1);
+    expect(result.episodicsConsolidated).toBe(10);
+
+    const pending = DatabaseUtils.get(
+      db,
+      `SELECT COUNT(*) AS c FROM memory_item WHERE type = 'episodic' AND COALESCE(is_consolidated,0) = 0`
+    ) as { c: number };
+    expect(Number(pending.c)).toBe(0);
+
+    const unchanged = DatabaseUtils.get(
+      db,
+      `SELECT content FROM memory_item WHERE id = 'sem_existing'`
+    ) as { content: string };
+    expect(unchanged.content).toBe('base');
   });
 });

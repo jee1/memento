@@ -322,7 +322,9 @@ describe('HybridSearchEngine', () => {
       ]);
       (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
       (mockResultCombiner.combine as Mock).mockReturnValue([]);
-      const vectorSpy = vi.spyOn(hybridSearchEngine as any, 'generateQueryVector').mockResolvedValue({
+      const vectorSpy = vi
+        .spyOn(hybridSearchEngine as unknown as { generateQueryVector: (query: string, provider?: string) => Promise<{ embedding: number[]; provider: string }> }, 'generateQueryVector')
+        .mockResolvedValue({
         embedding: new Array(512).fill(0.1),
         actualProvider: 'tfidf'
       });
@@ -497,7 +499,10 @@ describe('HybridSearchEngine', () => {
           num_times INTEGER NOT NULL DEFAULT 1,
           last_mentioned_at TIMESTAMP,
           source_session_id TEXT,
-          confidence REAL
+          confidence REAL,
+          is_consolidated BOOLEAN DEFAULT FALSE,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         );
       `);
 
@@ -785,7 +790,7 @@ describe('HybridSearchEngine', () => {
 
     it('should handle search when RelationGraph is not set', async () => {
       // Given: RelationGraph가 설정되지 않은 상태
-      hybridSearchEngine.setRelationGraph(null as any);
+      hybridSearchEngine.setRelationGraph(null);
 
       // Mock 검색 결과 설정
       (mockTextEngine.search as Mock).mockResolvedValue({
@@ -861,7 +866,7 @@ describe('HybridSearchEngine', () => {
     let mockResultCombiner: ISearchResultCombiner;
     let mockWeightCalculator: IAdaptiveWeightCalculator;
     let mockLogger: ISearchLogger;
-    let mockQueryEmbeddingService: any;
+    let mockQueryEmbeddingService: { generateEmbedding: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       // 실제 메모리 데이터베이스 생성
@@ -935,7 +940,7 @@ describe('HybridSearchEngine', () => {
       });
 
       // When: 실제 detectAllStoredEmbeddingProviders 메서드 호출 (private 메서드이므로 타입 캐스팅 사용)
-      const detectedProviders = await (testEngine as any).detectAllStoredEmbeddingProviders(db);
+      const detectedProviders = await (testEngine as unknown as { detectAllStoredEmbeddingProviders: (db: Database.Database) => Promise<string[]> }).detectAllStoredEmbeddingProviders(db);
 
       // Then: 단일 provider만 감지되어야 함
       expect(detectedProviders).toHaveLength(1);
@@ -993,7 +998,7 @@ describe('HybridSearchEngine', () => {
       });
 
       // When: 실제 detectAllStoredEmbeddingProviders 메서드 호출
-      const detectedProviders = await (testEngine as any).detectAllStoredEmbeddingProviders(db);
+      const detectedProviders = await (testEngine as unknown as { detectAllStoredEmbeddingProviders: (db: Database.Database) => Promise<string[]> }).detectAllStoredEmbeddingProviders(db);
 
       // Then: 모든 provider가 감지되어야 함 (count 내림차순 정렬)
       expect(detectedProviders).toHaveLength(3);
@@ -1019,7 +1024,7 @@ describe('HybridSearchEngine', () => {
       });
 
       // When: 실제 detectAllStoredEmbeddingProviders 메서드 호출
-      const detectedProviders = await (testEngine as any).detectAllStoredEmbeddingProviders(db);
+      const detectedProviders = await (testEngine as unknown as { detectAllStoredEmbeddingProviders: (db: Database.Database) => Promise<string[]> }).detectAllStoredEmbeddingProviders(db);
 
       // Then: 빈 배열 반환
       expect(detectedProviders).toHaveLength(0);
@@ -1067,7 +1072,7 @@ describe('HybridSearchEngine', () => {
       });
 
       // When: 실제 detectAllStoredEmbeddingProviders 메서드 호출
-      const detectedProviders = await (testEngine as any).detectAllStoredEmbeddingProviders(db);
+      const detectedProviders = await (testEngine as unknown as { detectAllStoredEmbeddingProviders: (db: Database.Database) => Promise<string[]> }).detectAllStoredEmbeddingProviders(db);
 
       // Then: 통계 정보가 정확해야 함
       expect(detectedProviders).toHaveLength(1);
@@ -1085,7 +1090,7 @@ describe('HybridSearchEngine', () => {
     let mockResultCombiner: ISearchResultCombiner;
     let mockWeightCalculator: IAdaptiveWeightCalculator;
     let mockLogger: ISearchLogger;
-    let mockQueryEmbeddingService: any;
+    let mockQueryEmbeddingService: { generateEmbedding: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       // 실제 메모리 데이터베이스 생성
@@ -1171,7 +1176,7 @@ describe('HybridSearchEngine', () => {
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
       // Provider별 검색 결과 Mock
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             {
@@ -1259,7 +1264,7 @@ describe('HybridSearchEngine', () => {
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
       // minilm은 빠르게 반환, openai는 타임아웃 발생하도록 설정
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             {
@@ -1298,7 +1303,7 @@ describe('HybridSearchEngine', () => {
       const logCalls = (mockLogger.logSearchStep as Mock).mock.calls;
       const timeoutLog = logCalls.find(call => {
         const step = call[1] as string;
-        const data = call[2] as any;
+        const data = call[2] as Record<string, unknown>;
         return step.includes('VEC 벡터 검색 실패') && 
                data?.error?.includes('타임아웃');
       });
@@ -1376,7 +1381,7 @@ describe('HybridSearchEngine', () => {
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
       // minilm은 성공, openai는 실패하도록 설정
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             {
@@ -1423,7 +1428,7 @@ describe('HybridSearchEngine', () => {
       );
       expect(successLog).toBeDefined();
       if (successLog && successLog[2]) {
-        const stats = successLog[2] as any;
+        const stats = successLog[2] as Record<string, unknown>;
         expect(stats.successfulProviders).toBeGreaterThan(0);
       }
     });
@@ -1460,7 +1465,7 @@ describe('HybridSearchEngine', () => {
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             {
@@ -1504,7 +1509,7 @@ describe('HybridSearchEngine', () => {
     let mockResultCombiner: ISearchResultCombiner;
     let mockWeightCalculator: IAdaptiveWeightCalculator;
     let mockLogger: ISearchLogger;
-    let mockQueryEmbeddingService: any;
+    let mockQueryEmbeddingService: { generateEmbedding: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       // 실제 메모리 데이터베이스 생성
@@ -1569,7 +1574,7 @@ describe('HybridSearchEngine', () => {
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             { memory_id: 'mem-minilm-1', similarity: 0.5, content: 'MiniLM 1', type: 'episodic', importance: 0.7, created_at: new Date().toISOString() },
@@ -1584,7 +1589,7 @@ describe('HybridSearchEngine', () => {
       });
       
       // resultCombiner가 벡터 검색 결과를 처리하도록 Mock 설정
-      (mockResultCombiner.combine as Mock).mockImplementation((textResults: any[], vectorResults: any[]) => {
+      (mockResultCombiner.combine as Mock).mockImplementation((textResults: unknown[], vectorResults: unknown[]) => {
         return vectorResults.map(r => ({
           id: r.id,
           content: r.content,
@@ -1640,7 +1645,7 @@ describe('HybridSearchEngine', () => {
       ]);
       
       // resultCombiner가 벡터 검색 결과를 처리하도록 Mock 설정
-      (mockResultCombiner.combine as Mock).mockImplementation((textResults: any[], vectorResults: any[]) => {
+      (mockResultCombiner.combine as Mock).mockImplementation((textResults: unknown[], vectorResults: unknown[]) => {
         return vectorResults.map(r => ({
           id: r.id,
           content: r.content,
@@ -1686,7 +1691,7 @@ describe('HybridSearchEngine', () => {
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             { memory_id: 'mem-duplicate', similarity: 0.6, content: '중복 메모리', type: 'episodic', importance: 0.7, created_at: new Date().toISOString() }
@@ -1700,7 +1705,7 @@ describe('HybridSearchEngine', () => {
       });
       
       // resultCombiner가 벡터 검색 결과를 처리하도록 Mock 설정
-      (mockResultCombiner.combine as Mock).mockImplementation((textResults: any[], vectorResults: any[]) => {
+      (mockResultCombiner.combine as Mock).mockImplementation((textResults: unknown[], vectorResults: unknown[]) => {
         // 벡터 검색 결과를 그대로 반환 (텍스트 결과는 빈 배열)
         return vectorResults.map(r => ({
           id: r.id,
@@ -1756,7 +1761,7 @@ describe('HybridSearchEngine', () => {
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
       
-      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: any, provider: string) => {
+      (mockVectorEngine.search as Mock).mockImplementation(async (vector: number[], options: unknown, provider: string) => {
         if (provider === 'minilm') {
           return [
             { memory_id: 'mem-minilm-low', similarity: 0.3, content: 'MiniLM 낮은 점수', type: 'episodic', importance: 0.5, created_at: new Date().toISOString() },
@@ -1771,7 +1776,7 @@ describe('HybridSearchEngine', () => {
       });
       
       // resultCombiner가 벡터 검색 결과를 처리하도록 Mock 설정
-      (mockResultCombiner.combine as Mock).mockImplementation((textResults: any[], vectorResults: any[]) => {
+      (mockResultCombiner.combine as Mock).mockImplementation((textResults: unknown[], vectorResults: unknown[]) => {
         return vectorResults.map(r => ({
           id: r.id,
           content: r.content,
@@ -2060,7 +2065,7 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
         fetchProceduralMemoryMatches: (
           db: Database.Database,
           memoryIds: string[],
-          query?: any
+          query?: unknown
         ) => new Map()
       };
       
@@ -2076,7 +2081,7 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
         fetchProceduralMemoryMatches: (
           db: Database.Database,
           memoryIds: string[],
-          query?: any
+          query?: unknown
         ) => {
           const result = new Map<string, { workflow_name_match: boolean; skill_name_match: boolean; trigger_conditions_match: boolean }>();
           return result;
@@ -2147,7 +2152,10 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
           num_times INTEGER NOT NULL DEFAULT 1,
           last_mentioned_at TIMESTAMP,
           source_session_id TEXT,
-          confidence REAL
+          confidence REAL,
+          is_consolidated BOOLEAN DEFAULT FALSE,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         );
       `);
 
@@ -2669,8 +2677,8 @@ describe('ISearchResultCombiner 인터페이스', () => {
       type CombinerType = ISearchResultCombiner;
       const hasMethod: CombinerType = {
         combine: (
-          textResults: any[],
-          vectorResults: any[],
+          textResults: unknown[],
+          vectorResults: unknown[],
           textWeight: number,
           vectorWeight: number
         ) => []
@@ -2686,8 +2694,8 @@ describe('ISearchResultCombiner 인터페이스', () => {
       // When: 인터페이스의 반환 타입을 확인함
       const mockCombiner: ISearchResultCombiner = {
         combine: (
-          textResults: any[],
-          vectorResults: any[],
+          textResults: unknown[],
+          vectorResults: unknown[],
           textWeight: number,
           vectorWeight: number
         ) => []

@@ -5,36 +5,38 @@
 
 import { vi } from 'vitest';
 
+type MockRow = Record<string, unknown>;
+
 export class MockPreparedStatement {
-  private mockData: any[] = [];
+  private mockData: MockRow[] = [];
   private mockError: Error | null = null;
 
-  constructor(mockData: any[] = [], mockError: Error | null = null) {
+  constructor(mockData: MockRow[] = [], mockError: Error | null = null) {
     this.mockData = mockData;
     this.mockError = mockError;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-  all(..._params: any[]): any[] {
+  all(..._params: unknown[]): MockRow[] {
     if (this.mockError) throw this.mockError;
     return this.mockData;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-  get(..._params: any[]): any {
+  get(..._params: unknown[]): MockRow | null {
     if (this.mockError) throw this.mockError;
     return this.mockData[0] ?? null;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-  run(..._params: any[]): { changes: number; lastInsertRowid: number } {
+  run(..._params: unknown[]): { changes: number; lastInsertRowid: number } {
     if (this.mockError) throw this.mockError;
     return { changes: 1, lastInsertRowid: 1 };
   }
 }
 
 export class MockDatabase {
-  private mockData = new Map<string, any[]>();
+  private mockData = new Map<string, MockRow[]>();
   private mockError: Error | null = null;
   private _isOpen = true;
 
@@ -72,14 +74,14 @@ export class MockDatabase {
     return new MockPreparedStatement(this.analyzeQuery(sql));
   }
 
-  private analyzeQuery(sql: string): any[] {
+  private analyzeQuery(sql: string): MockRow[] {
     const lowerSql = sql.toLowerCase();
     if (lowerSql.includes('vec.embedding match')) {
       const tableName = (sql.match(/from\s+(\w+)/i)?.[1] ?? '').trim() || '';
       const tableData = this.mockData.get(tableName) ?? [];
       if (lowerSql.includes('join memory_item')) {
-        return tableData.map((vecItem: any) => {
-          const memoryItem = this.mockData.get('memory_item')?.find((item: any) => item.id === vecItem.rowid);
+        return tableData.map((vecItem) => {
+          const memoryItem = this.mockData.get('memory_item')?.find((item) => item.id === vecItem.rowid);
           return { memory_id: vecItem.rowid, similarity: 1 - vecItem.distance, distance: vecItem.distance, content: memoryItem?.content ?? '', type: memoryItem?.type ?? 'semantic', importance: memoryItem?.importance ?? 0.5, created_at: memoryItem?.created_at ?? '2024-01-01T00:00:00Z', last_accessed: memoryItem?.last_accessed, pinned: memoryItem?.pinned ?? false, tags: memoryItem?.tags };
         });
       }
@@ -113,7 +115,7 @@ export class MockDatabase {
     this.mockError = error;
   }
 
-  addMockData(tableName: string, data: any[]): void {
+  addMockData(tableName: string, data: MockRow[]): void {
     this.mockData.set(tableName, data);
   }
 

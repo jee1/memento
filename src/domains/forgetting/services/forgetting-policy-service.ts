@@ -3,6 +3,7 @@
  * 망각 알고리즘과 간격 반복을 통합하여 메모리 관리
  */
 
+import type Database from 'better-sqlite3';
 import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
 import { SpacedRepetitionAlgorithm, type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -34,6 +35,19 @@ export interface ForgettingPolicyConfig {
   reviewThreshold: number;        // 리뷰 임계값 (기본: 0.7)
   maxInterval: number;           // 최대 간격 (일, 기본: 365)
   minInterval: number;           // 최소 간격 (일, 기본: 1)
+}
+
+/** 망각 분석용 메모리 행 (getAllMemories) */
+interface PolicyMemoryRow {
+  id: string;
+  created_at: string;
+  last_accessed?: string;
+  importance: number;
+  pinned: boolean;
+  type: string;
+  view_count?: number;
+  cite_count?: number;
+  edit_count?: number;
 }
 
 export interface MemoryCleanupResult {
@@ -85,7 +99,7 @@ export class ForgettingPolicyService {
   /**
    * 메모리 정리 실행 (망각 + 간격 반복)
    */
-  async executeMemoryCleanup(db: any): Promise<MemoryCleanupResult> {
+  async executeMemoryCleanup(db: Database.Database): Promise<MemoryCleanupResult> {
     const result: MemoryCleanupResult = {
       softDeleted: [],
       hardDeleted: [],
@@ -155,6 +169,10 @@ export class ForgettingPolicyService {
         result.summary.actualReviews++;
       }));
 
+      const swept = await this.sweepExpiredSoftDeletes(db);
+      result.hardDeleted.push(...swept);
+      result.summary.actualHardDeletes += swept.length;
+
       return result;
 
     } catch (error) {
@@ -169,17 +187,7 @@ export class ForgettingPolicyService {
   /**
    * 모든 메모리 가져오기
    */
-  private async getAllMemories(db: any): Promise<Array<{
-    id: string;
-    created_at: string;
-    last_accessed?: string;
-    importance: number;
-    pinned: boolean;
-    type: string;
-    view_count?: number;
-    cite_count?: number;
-    edit_count?: number;
-  }>> {
+  private async getAllMemories(db: Database.Database): Promise<PolicyMemoryRow[]> {
     const rows = await DatabaseUtils.all(db, `
       SELECT 
         id, created_at, last_accessed, importance, pinned, type,
@@ -188,10 +196,11 @@ export class ForgettingPolicyService {
         COALESCE(edit_count, 0) as edit_count
       FROM memory_item
       WHERE pinned = FALSE
+        AND (is_deleted IS NULL OR is_deleted = 0)
       ORDER BY created_at DESC
     `);
 
-    return rows.map((row: any) => ({
+    return rows.map((row: PolicyMemoryRow) => ({
       id: row.id,
       created_at: row.created_at,
       last_accessed: row.last_accessed,
@@ -206,12 +215,13 @@ export class ForgettingPolicyService {
 
   /**
    * 리뷰 후보 분석
+   *
+   * @remarks 피드백 가중치는 feedback_event 연동 전까지 보수적 기본값을 사용한다(스케줄 생성만 수행).
    */
-  private async analyzeReviewCandidates(db: any, memories: any[]): Promise<ReviewSchedule[]> {
+  private async analyzeReviewCandidates(db: Database.Database, memories: PolicyMemoryRow[]): Promise<ReviewSchedule[]> {
     const schedules: ReviewSchedule[] = [];
 
     for (const memory of memories) {
-      // 간격 반복 테이블에서 정보 가져오기 (실제로는 별도 테이블 필요)
       const features = {
         importance: memory.importance,
         usage: this.calculateUsageScore(memory),
@@ -238,7 +248,7 @@ export class ForgettingPolicyService {
   /**
    * 사용성 점수 계산
    */
-  private calculateUsageScore(memory: any): number {
+  private calculateUsageScore(memory: PolicyMemoryRow): number {
     const viewScore = Math.log(1 + (memory.view_count || 0));
     const citeScore = 2 * Math.log(1 + (memory.cite_count || 0));
     const editScore = 0.5 * Math.log(1 + (memory.edit_count || 0));
@@ -249,7 +259,7 @@ export class ForgettingPolicyService {
   /**
    * 소프트 삭제 후보 확인
    */
-  private isSoftDeleteCandidate(memory: any, forgetScore: number): boolean {
+  private isSoftDeleteCandidate(memory: PolicyMemoryRow, forgetScore: number): boolean {
     const ageDays = this.getAgeInDays(new Date(memory.created_at));
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
     
@@ -261,7 +271,7 @@ export class ForgettingPolicyService {
   /**
    * 하드 삭제 후보 확인
    */
-  private isHardDeleteCandidate(memory: any, forgetScore: number): boolean {
+  private isHardDeleteCandidate(memory: PolicyMemoryRow, forgetScore: number): boolean {
     const ageDays = this.getAgeInDays(new Date(memory.created_at));
     const ttl = this.config.ttlHard[memory.type as keyof typeof this.config.ttlHard];
     
@@ -273,25 +283,68 @@ export class ForgettingPolicyService {
   /**
    * 소프트 삭제 실행
    */
-  private async softDeleteMemory(db: any, memoryId: string): Promise<void> {
-    await DatabaseUtils.run(db, `
-      UPDATE memory_item 
-      SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP
+  private getSoftDeleteGracePeriodDays(): number {
+    const raw = process.env.SOFT_DELETE_GRACE_PERIOD_DAYS;
+    const n = raw ? parseInt(raw, 10) : 30;
+    return Number.isFinite(n) && n > 0 ? n : 30;
+  }
+
+  /**
+   * 유예 기간이 지난 소프트 삭제 행을 물리 삭제
+   */
+  private async sweepExpiredSoftDeletes(db: Database.Database): Promise<string[]> {
+    const days = this.getSoftDeleteGracePeriodDays();
+    const rows = (await DatabaseUtils.all(db, `
+      SELECT id FROM memory_item
+      WHERE COALESCE(is_deleted, 0) = 1
+        AND COALESCE(pinned, 0) = 0
+        AND deleted_at IS NOT NULL
+        AND datetime(deleted_at) < datetime('now', '-' || ? || ' days')
+    `, [days])) as Array<{ id: string }>;
+    const deleted: string[] = [];
+    for (const r of rows) {
+      await DatabaseUtils.run(
+        db,
+        'DELETE FROM memory_item WHERE id = ? AND COALESCE(pinned, 0) = 0',
+        [r.id]
+      );
+      deleted.push(r.id);
+    }
+    return deleted;
+  }
+
+  private async softDeleteMemory(db: Database.Database, memoryId: string): Promise<void> {
+    const now = new Date().toISOString();
+    await DatabaseUtils.run(
+      db,
+      `
+      UPDATE memory_item
+      SET is_deleted = 1,
+          deleted_at = ?,
+          pinned = 0,
+          last_accessed = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [memoryId]);
+        AND COALESCE(pinned, 0) = 0
+    `,
+      [now, memoryId]
+    );
   }
 
   /**
    * 하드 삭제 실행
    */
-  private async hardDeleteMemory(db: any, memoryId: string): Promise<void> {
-    await DatabaseUtils.run(db, 'DELETE FROM memory_item WHERE id = ?', [memoryId]);
+  private async hardDeleteMemory(db: Database.Database, memoryId: string): Promise<void> {
+    await DatabaseUtils.run(
+      db,
+      'DELETE FROM memory_item WHERE id = ? AND COALESCE(pinned, 0) = 0',
+      [memoryId]
+    );
   }
 
   /**
    * 리뷰 스케줄 업데이트
    */
-  private async updateReviewSchedule(db: any, schedule: ReviewSchedule): Promise<void> {
+  private async updateReviewSchedule(db: Database.Database, schedule: ReviewSchedule): Promise<void> {
     // 실제로는 별도의 리뷰 스케줄 테이블에 저장
     await DatabaseUtils.run(db, `
       UPDATE memory_item 
@@ -312,7 +365,7 @@ export class ForgettingPolicyService {
   /**
    * 망각 통계 생성
    */
-  async generateForgettingStats(db: any): Promise<{
+  async generateForgettingStats(db: Database.Database): Promise<{
     totalMemories: number;
     forgetCandidates: number;
     reviewCandidates: number;

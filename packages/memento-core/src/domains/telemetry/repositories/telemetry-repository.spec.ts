@@ -104,6 +104,39 @@ describe('TelemetryRepository', () => {
     expect(rest.c).toBe(1);
   });
 
+  it('queryConsolidationQuality: pipeline_error_count는 텔레메트리 실패와 에피소딕 triple_extracted_status=failed를 합산한다', () => {
+    db.exec(`
+      CREATE TABLE memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        importance REAL DEFAULT 0.5,
+        owner_id TEXT,
+        is_consolidated INTEGER,
+        triple_extracted INTEGER DEFAULT 0,
+        triple_extracted_status TEXT,
+        triple_extraction_metadata TEXT,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    const recentIso = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO memory_item (id, type, content, owner_id, triple_extracted_status, triple_extracted, triple_extraction_metadata, is_deleted, created_at)
+      VALUES ('e1', 'episodic', 'x', 'o1', 'failed', 0, ?, 0, ?)
+    `).run(JSON.stringify({ last_attempt: recentIso, failureReason: 'no_triple' }), recentIso);
+
+    repo.insertEventSync({
+      eventType: 'consolidation.performed',
+      requestId: 'r-pipeline',
+      ownerId: 'o1',
+      outcome: 'failure'
+    });
+
+    const q = repo.queryConsolidationQuality('o1');
+    expect(q.pipeline_error_count).toBe(2);
+  });
+
   it('hasPriorWriteCompletedWithContentHash는 동일 owner·해시·기간 내 완료 이벤트를 본다', () => {
     const since = new Date(Date.now() - 3600_000).toISOString();
     const hash = 'abcd1234ef567890';

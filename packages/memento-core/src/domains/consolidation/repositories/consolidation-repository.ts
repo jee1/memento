@@ -15,13 +15,20 @@ export interface EpisodicCandidateRow {
   isConsolidated: boolean;
 }
 
+export interface SemanticOwnerRow {
+  id: string;
+  content: string;
+  originSource: string;
+  ownerId: string | null;
+}
+
 export class ConsolidationRepository {
   constructor(private readonly db: Database.Database) {}
 
   getLookbackDays(): number {
     const raw = process.env.CONSOLIDATION_LOOKBACK_DAYS;
-    const n = raw ? parseInt(raw, 10) : 30;
-    return Number.isFinite(n) && n > 0 ? n : 30;
+    const n = raw ? parseInt(raw, 10) : 90;
+    return Number.isFinite(n) && n > 0 ? n : 90;
   }
 
   /**
@@ -47,6 +54,7 @@ export class ConsolidationRepository {
       WHERE type = 'episodic'
         AND COALESCE(is_consolidated, 0) = 0
         AND COALESCE(pinned, 0) = 0
+        AND (is_deleted IS NULL OR is_deleted = 0)
         AND datetime(created_at) >= datetime('now', '-' || ? || ' days')
         AND (? IS NULL OR owner_id = ?)
       ORDER BY created_at DESC
@@ -70,7 +78,38 @@ export class ConsolidationRepository {
       createdAt: r.createdAt,
       pinned: Boolean(r.pinned),
       isConsolidated: Boolean(r.isConsolidated)
-    }));
+    }    ));
+  }
+
+  /**
+   * owner별 시맨틱 후보 (재요약 병합용)
+   */
+  findSemanticsByOwner(ownerId: string | null): SemanticOwnerRow[] {
+    const rows = DatabaseUtils.all(
+      this.db,
+      `
+      SELECT id, content, COALESCE(origin_source, '{}') AS originSource, owner_id AS ownerId
+      FROM memory_item
+      WHERE type = 'semantic'
+        AND (is_deleted IS NULL OR is_deleted = 0)
+        AND COALESCE(owner_id, '') = COALESCE(?, '')
+      ORDER BY created_at ASC
+    `,
+      [ownerId ?? null]
+    ) as SemanticOwnerRow[];
+    return rows;
+  }
+
+  updateSemanticMemory(params: { id: string; content: string; originSourceJson: string }): void {
+    DatabaseUtils.run(
+      this.db,
+      `
+      UPDATE memory_item
+      SET content = ?, origin_source = ?
+      WHERE id = ? AND type = 'semantic'
+    `,
+      [params.content, params.originSourceJson, params.id]
+    );
   }
 
   /**

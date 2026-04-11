@@ -106,6 +106,29 @@ describe('ForgettingPolicyService', () => {
       expect(memory).toBeDefined();
     });
 
+    it('sweep: 소프트 삭제되었어도 pinned=1이면 물리 삭제하지 않는다 (FR-007)', async () => {
+      vi.stubEnv('SOFT_DELETE_GRACE_PERIOD_DAYS', '1');
+      const memoryId = createTestMemory(db, {
+        content: 'Inconsistent pinned soft-deleted',
+        type: 'episodic',
+        importance: 0.5,
+        pinned: false
+      });
+      const oldDeleted = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      DatabaseUtils.run(db, `
+        UPDATE memory_item
+        SET is_deleted = 1, deleted_at = ?, pinned = 1
+        WHERE id = ?
+      `, [oldDeleted, memoryId]);
+
+      const result = await service.executeMemoryCleanup(db);
+
+      expect(result.hardDeleted).not.toContain(memoryId);
+      const row = DatabaseUtils.get(db, 'SELECT id FROM memory_item WHERE id = ?', [memoryId]) as { id: string } | undefined;
+      expect(row?.id).toBe(memoryId);
+      vi.unstubAllEnvs();
+    });
+
     it('리뷰 후보를 처리해야 함', async () => {
       createTestMemory(db, {
         content: 'Review candidate',

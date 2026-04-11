@@ -47,8 +47,22 @@ CREATE TABLE IF NOT EXISTS memory_item (
   subject TEXT,
   predicate TEXT,
   object TEXT,
-  is_consolidated BOOLEAN DEFAULT FALSE
+  is_consolidated BOOLEAN DEFAULT FALSE,
+  triple_extracted BOOLEAN DEFAULT FALSE NOT NULL,
+  triple_extracted_status TEXT,
+  triple_extraction_metadata TEXT,
+  is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+  deleted_at TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_episodic
+  ON memory_item(triple_extracted)
+  WHERE type = 'episodic';
+CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_status_episodic
+  ON memory_item(triple_extracted_status)
+  WHERE type = 'episodic';
+CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
+  ON memory_item(is_deleted)
+  WHERE COALESCE(is_deleted, 0) = 0;
 CREATE INDEX IF NOT EXISTS idx_memory_item_triple ON memory_item(subject, predicate, object)
 WHERE type='semantic' AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL;
 

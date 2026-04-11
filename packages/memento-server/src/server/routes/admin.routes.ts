@@ -24,7 +24,6 @@ import {
   DatabaseUtils,
   logger,
   createToolContext,
-  ConsolidationAlreadyRunningError,
   type TelemetryPeriod,
   type EventType
 } from '@memento/core';
@@ -297,6 +296,37 @@ export function createAdminRouter(
     }
   });
 
+  // 공고화·구조화 파이프라인 통계 (012)
+  router.get('/stats/consolidation', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const telemetry = serverServices?.telemetryService;
+      if (!telemetry) {
+        return res.status(503).json({ error: 'Telemetry not available' });
+      }
+      const rawOwner = req.query.owner_id;
+      const ownerId =
+        typeof rawOwner === 'string' && rawOwner.length > 0 ? rawOwner : null;
+      const consolidation_quality = telemetry.getConsolidationQuality(ownerId);
+      return res.json({
+        message: 'Consolidation stats',
+        consolidation_quality,
+        pipeline_error_summary: { count: consolidation_quality.pipeline_error_count },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Consolidation stats retrieval failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: '공고화 통계 조회 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // 데이터베이스 최적화
   router.post('/database/optimize', async (req, res) => {
     try {
@@ -456,12 +486,6 @@ export function createAdminRouter(
       const result = await svc.run({ dryRun, ownerIdFilter });
       return res.json({ success: true, result });
     } catch (error) {
-      if (error instanceof ConsolidationAlreadyRunningError) {
-        return res.status(409).json({
-          success: false,
-          error: 'Consolidation already running'
-        });
-      }
       logger.error('Sleep consolidation run failed', {
         error: error instanceof Error ? error.message : String(error)
       });

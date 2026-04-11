@@ -29,6 +29,32 @@ export interface SearchQuery {
 }
 
 
+type SearchEngineRow = {
+  id: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: Date | string;
+  last_accessed?: Date | string | null;
+  pinned: boolean | number;
+  tags?: string | null;
+  fts_rank?: number | null;
+  consolidation_score?: number | string | null;
+  task_goal?: string | null;
+  steps?: string | null;
+  reflection_notes?: string | null;
+  workflow_name?: string | null;
+  skill_name?: string | null;
+  trigger_conditions?: string | null;
+  version?: number | null;
+  version_series_id?: string | null;
+  owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
+  num_times?: number | string | null;
+  last_mentioned_at?: Date | string | null;
+} & Record<string, unknown>;
+
 export class SearchEngine {
   private ranking: SearchRanking;
 
@@ -158,7 +184,7 @@ export class SearchEngine {
     }
     
     // 사용자가 요청한 타입, 중요도, 시간 범위 등의 필터를 적용하여 정확한 결과를 제공합니다.
-    const conditions: string[] = [];
+    const conditions: string[] = ['(COALESCE(m.is_deleted, 0) = 0)'];
     
     if (filters?.id && filters.id.length > 0) {
       conditions.push(`m.id IN (${filters.id.map(() => '?').join(',')})`);
@@ -347,9 +373,9 @@ export class SearchEngine {
   /**
    * 준비된 SQL 쿼리를 실행하여 실제 검색 결과를 데이터베이스에서 획득합니다.
    */
-  private async executeQuery(db: Database.Database, sql: string, params: unknown[]): Promise<unknown[]> {
-    // better-sqlite3의 동기적 특성을 활용하여 간단하고 효율적인 쿼리 실행을 수행합니다.
-    return db.prepare(sql).all(params);
+  private async executeQuery(db: Database.Database, sql: string, params: unknown[]): Promise<SearchEngineRow[]> {
+    // better-sqlite3는 spread bind를 기본으로 하므로 params 배열을 펼쳐 전달합니다.
+    return db.prepare(sql).all(...params) as SearchEngineRow[];
   }
 
   /** 각 항 score는 최종 점수에 대한 기여(텍스트 경로는 FTS 블렌드·factBoost 반영 후), pct는 displayTotal 대비 백분율(정수 반올림, contracts §1) */
@@ -375,29 +401,27 @@ export class SearchEngine {
    * 관련성, 최근성, 중요도, 사용성 등을 종합적으로 고려하여 검색 품질을 향상시킵니다.
    */
   private applyRanking(
-    results: any[],
+    results: SearchEngineRow[],
     query: string,
     opts?: { includeBreakdown?: boolean; feedbackNetByMemory?: Map<string, number> }
   ): MemorySearchResult[] {
     const selectedContents: string[] = [];
     
     return results
-      .map((row: any) => {
+      .map((row) => {
         // FTS5 랭킹이 있으면 우선 활용하고, 없으면 텍스트 매칭으로 관련성을 계산하여 일관된 점수 체계를 유지합니다.
-        const ftsRank = row.fts_rank || 0;
+        const ftsRank = typeof row.fts_rank === 'number' ? row.fts_rank : Number(row.fts_rank ?? 0);
         const relevance = ftsRank > 0 ? 
           Math.min(ftsRank / 100, 1.0) : // FTS5 랭킹을 0-1 범위로 정규화하여 다른 점수와 일관된 비교가 가능하도록 합니다.
           this.ranking.calculateRelevance({
             query,
             content: row.content,
-            tags: row.tags ? JSON.parse(row.tags) : []
+            tags: typeof row.tags === 'string' ? (JSON.parse(row.tags) as string[]) : []
           });
         
         // 시간에 따른 기억의 자연스러운 감쇠를 반영하여 최신 정보를 우선 제공합니다.
-        const recency = this.ranking.calculateRecency(
-          new Date(row.created_at),
-          row.type
-        );
+        const createdAt = row.created_at instanceof Date ? row.created_at : new Date(row.created_at);
+        const recency = this.ranking.calculateRecency(createdAt, row.type);
         
         // 사용자가 명시적으로 설정한 중요도와 고정 여부를 반영하여 우선순위를 결정합니다.
         const importance = this.ranking.calculateImportance(
@@ -468,17 +492,24 @@ export class SearchEngine {
         // 중복 패널티 계산을 위해 이미 선택된 콘텐츠를 추적하여 결과의 다양성을 확보합니다.
         selectedContents.push(row.content);
         
-        const result: any = {
+        const lastAccessed =
+          row.last_accessed == null
+            ? undefined
+            : row.last_accessed instanceof Date
+              ? row.last_accessed
+              : new Date(row.last_accessed);
+
+        const result: MemorySearchResult = {
           id: row.id,
           content: row.content,
-          type: row.type,
+          type: row.type as MemorySearchResult['type'],
           importance: row.importance,
-          created_at: row.created_at,
-          last_accessed: row.last_accessed,
-          pinned: row.pinned,
-          tags: row.tags ? JSON.parse(row.tags) : [],
+          created_at: createdAt,
+          last_accessed: lastAccessed,
+          pinned: Boolean(row.pinned),
+          tags: typeof row.tags === 'string' ? (JSON.parse(row.tags) as string[]) : [],
           score: finalScore,
-          recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0)
+          recall_reason: this.generateRecallReason(relevance, recency, importance, finalScore, ftsRank > 0),
         };
         if (row.task_goal !== undefined) result.task_goal = row.task_goal;
         if (row.steps !== undefined) result.steps = row.steps;
@@ -491,8 +522,13 @@ export class SearchEngine {
         if (row.owner_id !== undefined) result.owner_id = row.owner_id;
         if (row.process_id !== undefined) result.process_id = row.process_id;
         if (row.session_id !== undefined) result.session_id = row.session_id;
-        if (row.num_times !== undefined) result.num_times = row.num_times;
-        if (row.last_mentioned_at !== undefined) result.last_mentioned_at = row.last_mentioned_at;
+        if (row.num_times != null) result.num_times = Number(row.num_times);
+        if (row.last_mentioned_at != null) {
+          result.last_mentioned_at =
+            row.last_mentioned_at instanceof Date
+              ? row.last_mentioned_at
+              : new Date(row.last_mentioned_at);
+        }
 
         // 통합 점수 기능이 활성화된 경우 결과에 추가 정보를 포함하여 상세한 분석을 가능하게 합니다.
         if (mementoConfig.consolidationScoreEnabled && consolidationScore !== undefined) {

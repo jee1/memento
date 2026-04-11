@@ -5,9 +5,41 @@
 import Database from 'better-sqlite3';
 import { normalizeReflectionNotes } from './reflection-notes-normalize.js';
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from './fts5-migration-status.js';
+import { logger } from './logger.js';
 
 // MCP 서버에서는 모든 로그 출력을 완전히 차단
-const log = (...args: any[]) => {};
+const log = (message: string, meta?: Record<string, unknown>): void => {
+  if (process.env.MEMENTO_DB_DEBUG === '1') {
+    logger.debug(message, meta);
+  }
+};
+
+function getSqliteErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const candidate = (error as { code?: unknown }).code;
+  return typeof candidate === 'string' ? candidate : undefined;
+}
+
+function getErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const candidate = (error as { message?: unknown }).message;
+  return typeof candidate === 'string' ? candidate : undefined;
+}
+
+function getErrorName(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const candidate = (error as { name?: unknown }).name;
+  return typeof candidate === 'string' ? candidate : undefined;
+}
 
 export class DatabaseUtils {
   // 트랜잭션 상태 추적을 위한 WeakMap
@@ -45,9 +77,9 @@ export class DatabaseUtils {
       // 간단한 쿼리로 연결 상태 확인
       db.prepare('SELECT 1').get();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // "The database connection is not open" 에러인 경우 연결이 닫혀있음
-      if (error?.message?.includes('not open') || error?.name === 'TypeError') {
+      if (getErrorMessage(error)?.includes('not open') || getErrorName(error) === 'TypeError') {
         return false;
       }
       // 다른 에러는 연결이 열려있지만 쿼리 실행에 실패한 경우
@@ -58,17 +90,17 @@ export class DatabaseUtils {
   /**
    * SQLite3 쿼리를 실행 (재시도 로직 포함)
    */
-  static run(db: Database.Database, sql: string, params: any[] = [], maxRetries: number = 3): Database.RunResult {
+  static run(db: Database.Database, sql: string, params: readonly unknown[] = [], maxRetries: number = 3): Database.RunResult {
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return db.prepare(sql).run(params);
+        return db.prepare(sql).run(...params);
       } catch (error) {
         lastError = error as Error;
         
         // SQLITE_BUSY 오류인 경우 재시도
-        if ((error as any).code === 'SQLITE_BUSY' && attempt < maxRetries) {
+        if (getSqliteErrorCode(error) === 'SQLITE_BUSY' && attempt < maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000); // 지수 백오프
           log(`⚠️  데이터베이스 잠금 감지, ${delay}ms 후 재시도 (${attempt}/${maxRetries})`);
           // 동기적으로 대기
@@ -90,17 +122,17 @@ export class DatabaseUtils {
   /**
    * SQLite3 쿼리 결과를 가져오기 (재시도 로직 포함)
    */
-  static get(db: Database.Database, sql: string, params: any[] = [], maxRetries: number = 3): any {
+  static get(db: Database.Database, sql: string, params: readonly unknown[] = [], maxRetries: number = 3): unknown {
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return db.prepare(sql).get(params);
+        return db.prepare(sql).get(...params);
       } catch (error) {
         lastError = error as Error;
         
         // SQLITE_BUSY 오류인 경우 재시도
-        if ((error as any).code === 'SQLITE_BUSY' && attempt < maxRetries) {
+        if (getSqliteErrorCode(error) === 'SQLITE_BUSY' && attempt < maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000);
           log(`⚠️  데이터베이스 잠금 감지, ${delay}ms 후 재시도 (${attempt}/${maxRetries})`);
           // 동기적으로 대기
@@ -121,17 +153,17 @@ export class DatabaseUtils {
   /**
    * SQLite3 쿼리 결과 배열을 가져오기 (재시도 로직 포함)
    */
-  static all(db: Database.Database, sql: string, params: any[] = [], maxRetries: number = 3): any[] {
+  static all(db: Database.Database, sql: string, params: readonly unknown[] = [], maxRetries: number = 3): unknown[] {
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return db.prepare(sql).all(params);
+        return db.prepare(sql).all(...params);
       } catch (error) {
         lastError = error as Error;
         
         // SQLITE_BUSY 오류인 경우 재시도
-        if ((error as any).code === 'SQLITE_BUSY' && attempt < maxRetries) {
+        if (getSqliteErrorCode(error) === 'SQLITE_BUSY' && attempt < maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000);
           log(`⚠️  데이터베이스 잠금 감지, ${delay}ms 후 재시도 (${attempt}/${maxRetries})`);
           // 동기적으로 대기
@@ -185,11 +217,15 @@ export class DatabaseUtils {
           this.run(db, 'BEGIN IMMEDIATE TRANSACTION');
           // 성공하면 트랜잭션 상태 설정
           this.setTransactionState(db, true, transactionId);
-        } catch (beginError: any) {
+        } catch (beginError: unknown) {
           // 트랜잭션이 이미 시작된 경우 에러 처리
-          if (beginError?.code === 'SQLITE_ERROR' && 
-              (beginError?.message?.includes('transaction') || 
-               beginError?.message?.includes('cannot start'))) {
+          const code = getSqliteErrorCode(beginError);
+          const message = getErrorMessage(beginError) ?? '';
+
+          if (code === 'SQLITE_ERROR' && (
+            message.includes('transaction') ||
+            message.includes('cannot start')
+          )) {
             // 이미 트랜잭션이 진행 중인 경우, 트랜잭션 상태를 설정하고 함수 실행
             this.setTransactionState(db, true, transactionId);
             const result = await transactionFn();
@@ -226,14 +262,14 @@ export class DatabaseUtils {
             this.run(db, 'ROLLBACK');
           }
         } catch (rollbackError) {
-          log('❌ 트랜잭션 롤백 실패:', rollbackError);
+          log('❌ 트랜잭션 롤백 실패', { error: rollbackError });
         } finally {
           // 롤백 실패해도 상태는 해제
           this.setTransactionState(db, false);
         }
         
         // SQLITE_BUSY 오류인 경우 재시도
-        if ((error as any).code === 'SQLITE_BUSY' && attempt < maxRetries) {
+        if (getSqliteErrorCode(error) === 'SQLITE_BUSY' && attempt < maxRetries) {
           const delay = Math.min(200 * Math.pow(2, attempt - 1), 2000);
           log(`⚠️ 트랜잭션 잠금 감지, ${delay}ms 후 재시도 (${attempt}/${maxRetries})`);
           // 비동기 대기로 변경 (블로킹 방지)
@@ -257,7 +293,7 @@ export class DatabaseUtils {
       this.run(db, 'PRAGMA wal_checkpoint(FULL)');
       log('✅ WAL 체크포인트 완료');
     } catch (error) {
-      log('❌ WAL 체크포인트 실패:', error);
+      log('❌ WAL 체크포인트 실패', { error });
       throw error;
     }
   }
@@ -281,7 +317,7 @@ export class DatabaseUtils {
       this.run(db, 'ROLLBACK');
       log('✅ 트랜잭션 강제 정리 완료');
     } catch (error) {
-      log('⚠️ 트랜잭션 강제 정리 중 오류:', error);
+      log('⚠️ 트랜잭션 강제 정리 중 오류', { error });
       // 상태는 해제
       this.setTransactionState(db, false);
     }
@@ -308,7 +344,7 @@ export class DatabaseUtils {
         this.run(db, 'BEGIN IMMEDIATE TRANSACTION');
         this.run(db, 'ROLLBACK');
       } catch (error) {
-        if ((error as any).code === 'SQLITE_BUSY') {
+        if (getSqliteErrorCode(error) === 'SQLITE_BUSY') {
           isLocked = true;
         }
       }
@@ -321,7 +357,7 @@ export class DatabaseUtils {
         inTransaction: this.getTransactionState(db).inTransaction
       };
     } catch (error) {
-      log('❌ 데이터베이스 상태 확인 실패:', error);
+      log('❌ 데이터베이스 상태 확인 실패', { error });
       throw error;
     }
   }
@@ -384,11 +420,20 @@ export class DatabaseUtils {
         )
       `);
 
-      const memoryItemColumns = db
+      let memoryItemColumns = db
         .prepare('PRAGMA table_info(memory_item)')
         .all() as Array<{ name: string }>;
       if (!memoryItemColumns.some(c => c.name === 'is_consolidated')) {
         this.run(db, 'ALTER TABLE memory_item ADD COLUMN is_consolidated BOOLEAN DEFAULT FALSE');
+      }
+
+      memoryItemColumns = db.prepare('PRAGMA table_info(memory_item)').all() as Array<{ name: string }>;
+      if (!memoryItemColumns.some(c => c.name === 'is_deleted')) {
+        this.run(db, 'ALTER TABLE memory_item ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE NOT NULL');
+      }
+      memoryItemColumns = db.prepare('PRAGMA table_info(memory_item)').all() as Array<{ name: string }>;
+      if (!memoryItemColumns.some(c => c.name === 'deleted_at')) {
+        this.run(db, 'ALTER TABLE memory_item ADD COLUMN deleted_at TEXT');
       }
 
       this.run(db, `
@@ -556,7 +601,7 @@ export class DatabaseUtils {
           END
         `);
       } catch (error) {
-        log('⚠️ FTS5 가상 테이블 생성 실패:', error);
+        log('⚠️ FTS5 가상 테이블 생성 실패', { error });
       }
       
       // FTS5 마이그레이션 상태 테이블 초기화 및 상태 로드
@@ -565,12 +610,12 @@ export class DatabaseUtils {
         loadMigrationStatusToConfig(db);
       } catch (error) {
         // 마이그레이션 상태 초기화 실패는 경고만 출력 (초기화는 계속 진행)
-        log('⚠️ FTS5 마이그레이션 상태 초기화 실패:', error);
+        log('⚠️ FTS5 마이그레이션 상태 초기화 실패', { error });
       }
 
       log('✅ 데이터베이스 초기화 완료');
     } catch (error) {
-      log('❌ 데이터베이스 초기화 실패:', error);
+      log('❌ 데이터베이스 초기화 실패', { error });
       throw error;
     }
   }
