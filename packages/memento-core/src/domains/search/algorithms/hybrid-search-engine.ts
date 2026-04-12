@@ -26,6 +26,7 @@ import { SearchResultCombiner } from './search-result-combiner.js';
 import { ProceduralMemoryMatcher } from './procedural-memory-matcher.js';
 import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
 import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
+import { normalizeSearchBySimilarityOutcome } from './hybrid-search-outcome-utils.js';
 
 // 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
 export interface ITextSearchEngine {
@@ -48,19 +49,6 @@ export interface IEmbeddingService {
     options: { type?: MemoryType[]; limit?: number; threshold?: number }
   ): Promise<VectorSearchResult[] | SearchBySimilarityOutcome>;
   getEmbeddingStats(db: Database.Database): Promise<unknown>;
-}
-
-/** 테스트 목업(배열 반환)과 MemoryEmbeddingService(객체 반환) 모두 수용 */
-function normalizeSearchBySimilarityOutcome(
-  raw: VectorSearchResult[] | SearchBySimilarityOutcome
-): { results: VectorSearchResult[]; query_embedding_providers?: EmbeddingProvider[] } {
-  if (Array.isArray(raw)) {
-    return { results: raw };
-  }
-  return {
-    results: raw.results,
-    query_embedding_providers: raw.query_embedding_providers,
-  };
 }
 
 /**

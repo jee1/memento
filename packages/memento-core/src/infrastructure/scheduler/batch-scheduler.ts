@@ -98,7 +98,8 @@ export interface BatchJobResult {
   processed: number;
   errors: string[];
   warnings: string[];
-  details?: any;
+  /** 작업별 메타데이터(구조는 jobType마다 다름 — 소비 시 좁힘) */
+  details?: unknown;
   retryCount?: number;
 }
 
@@ -115,6 +116,10 @@ export interface SchedulerStatus {
 /**
  * 비동기 Augmentation 파이프라인 워커.
  * @see docs/architecture/async-augmentation-pipeline.md
+ */
+/**
+ * 구성(`BatchJobConfig`/환경), 실행(인터벌·`JobQueue`/개별 job), 실패 처리(`RetryManager`/`HealthChecker`)를
+ * 필드·메서드 그룹으로 구분해 변경 시 스코프를 줄인다 (013 유지보수, FR-004).
  */
 export class BatchScheduler implements IBatchScheduler {
   private config: BatchJobConfig;
@@ -1158,12 +1163,12 @@ export class BatchScheduler implements IBatchScheduler {
    * 로깅
    * data 객체에 level 속성이 있으면 이를 우선적으로 사용하여 호출부의 편의성을 높임
    */
-  private log(message: string, data?: any, level: 'info' | 'warn' | 'error' = 'info'): void {
+  private log(message: string, data?: unknown, level: 'info' | 'warn' | 'error' = 'info'): void {
     if (!this.config.enableLogging) return;
 
     // 배치 작업 컨텍스트 정보 추가
     // Error 객체는 non-enumerable 속성을 가지므로 명시적으로 처리 필요
-    let safeData: Record<string, any>;
+    let safeData: Record<string, unknown>;
     let actualLevel: 'info' | 'warn' | 'error' = level;
     
     if (data instanceof Error) {
