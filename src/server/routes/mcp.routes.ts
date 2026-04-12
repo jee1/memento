@@ -319,11 +319,23 @@ async function processMcpMessage(
 
       const queryString = uriMatch[2] || '';
       const includeNeighbors = queryString.includes('include_neighbors=true');
+      type MemoryResourceRow = {
+        id: string;
+        type: string;
+        content: string;
+        importance: number;
+        privacy_scope: string;
+        tags: string | null;
+        source: string | null;
+        created_at: string;
+        last_accessed: string | null;
+        pinned: number | boolean;
+      };
       const memory = await DatabaseUtils.get(
         db,
         'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
         [memoryId]
-      );
+      ) as MemoryResourceRow | undefined;
 
       if (!memory) {
         return createJsonRpcError(message.id, -32602, 'Invalid params', `Memory not found: ${memoryId}`);

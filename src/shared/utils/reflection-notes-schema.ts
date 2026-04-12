@@ -68,6 +68,8 @@ export const ReflectionNoteSchema = z.object({
   suggested_improvements: z.string()
     .max(5000, 'suggested_improvements는 최대 5000자를 초과할 수 없습니다')
     .optional(),
+  /** Reflexion 등에서 선택적으로 기록 */
+  tool_name: z.string().optional(),
   phase: z.enum(['manual', 'auto'], {
     errorMap: (issue, ctx) => {
       if (issue.code === z.ZodIssueCode.invalid_enum_value) {

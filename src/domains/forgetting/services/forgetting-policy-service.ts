@@ -200,7 +200,7 @@ export class ForgettingPolicyService {
       ORDER BY created_at DESC
     `);
 
-    return rows.map((row: PolicyMemoryRow) => ({
+    return (rows as PolicyMemoryRow[]).map((row) => ({
       id: row.id,
       created_at: row.created_at,
       last_accessed: row.last_accessed,

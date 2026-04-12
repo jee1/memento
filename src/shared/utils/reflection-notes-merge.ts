@@ -128,8 +128,9 @@ function validateAndCleanupTotalSize(array: ReflectionNote[]): { cleaned: Reflec
     // 가장 오래된 항목 찾기
     const oldestIndex = cleaned.findIndex((item, idx) => {
       const itemTimestamp = item.timestamp ? new Date(item.timestamp).getTime() : 0;
-      const oldestTimestamp = sorted[removedCount]?.timestamp 
-        ? new Date(sorted[removedCount].timestamp).getTime() 
+      const oldestEntry = sorted[removedCount];
+      const oldestTimestamp = oldestEntry?.timestamp
+        ? new Date(oldestEntry.timestamp).getTime()
         : 0;
       return itemTimestamp === oldestTimestamp;
     });

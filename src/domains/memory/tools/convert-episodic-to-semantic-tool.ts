@@ -267,7 +267,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
               const relations = DatabaseUtils.all(db, `
                 SELECT confidence FROM memory_relation
                 WHERE source_id = ? AND relation_type = 'extracted_from'
-              `, [episodicMemory.id]);
+              `, [episodicMemory.id]) as Array<{ confidence?: number | null }>;
               for (const rel of relations) {
                 if (rel.confidence !== null && rel.confidence !== undefined) {
                   confidenceValues.push(rel.confidence);
@@ -320,7 +320,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
             try {
               const existing = DatabaseUtils.get(db, `
                 SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-              `, [episodicMemory.id]);
+              `, [episodicMemory.id]) as { triple_extraction_metadata?: string } | undefined;
               if (existing?.triple_extraction_metadata) {
                 const existingMeta = JSON.parse(existing.triple_extraction_metadata);
                 retryCount = (existingMeta.retry_count || 0) + 1;

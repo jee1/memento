@@ -27,7 +27,7 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { isTestEnvironment } from '../../../shared/utils/environment-check.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
-import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';
+import { validateReflectionNotes, formatValidationErrors, type ReflectionNote } from '../../../shared/utils/reflection-notes-schema.js';
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
@@ -43,7 +43,7 @@ import type { TripleExtractionResult } from '../../../shared/types/triple-extrac
 interface ExistingReflectionNotesResult {
   exists: boolean;
   type: 'null' | 'object' | 'array';
-  value: null | Record<string, unknown> | Record<string, unknown>[];
+  value: null | ReflectionNote | ReflectionNote[];
   rawValue: string | null;
 }
 
@@ -279,7 +279,7 @@ export class RememberTool extends BaseTool {
          WHERE type = 'procedural' AND task_goal = ? 
          ORDER BY created_at DESC LIMIT 1`,
         [taskGoal]
-      );
+      ) as { reflection_notes?: string | null } | undefined;
 
       if (!existingRecord || !existingRecord.reflection_notes) {
         return {
@@ -328,7 +328,7 @@ export class RememberTool extends BaseTool {
         return {
           exists: true,
           type: 'array',
-          value: parsed as Record<string, unknown>[],
+          value: parsed as ReflectionNote[],
           rawValue: reflectionNotes
         };
       }
@@ -337,7 +337,7 @@ export class RememberTool extends BaseTool {
         return {
           exists: true,
           type: 'object',
-          value: parsed as Record<string, unknown>,
+          value: parsed as ReflectionNote,
           rawValue: reflectionNotes
         };
       }
@@ -542,8 +542,8 @@ export class RememberTool extends BaseTool {
             // 병합 유틸리티 함수 사용
             const existing: ExistingReflectionNotes =
               existingReflectionNotes.type === 'null' ? { type: 'null', value: null } :
-              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value as Record<string, unknown> } :
-              { type: 'array', value: (existingReflectionNotes.value ?? []) as Record<string, unknown>[] };
+              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value as ReflectionNote } :
+              { type: 'array', value: (existingReflectionNotes.value ?? []) as ReflectionNote[] };
 
             const mergeResult = mergeReflectionNotes(existing, reflection_notes);
             
@@ -1123,7 +1123,7 @@ export class RememberTool extends BaseTool {
                             const relations = DatabaseUtils.all(dbRef, `
                               SELECT confidence FROM memory_relation
                               WHERE source_id = ? AND relation_type = 'extracted_from'
-                            `, [savedMemoryId]);
+                            `, [savedMemoryId]) as Array<{ confidence?: number | null }>;
                             for (const rel of relations) {
                               if (rel.confidence !== null && rel.confidence !== undefined) {
                                 confidenceValues.push(rel.confidence);
@@ -1176,7 +1176,7 @@ export class RememberTool extends BaseTool {
                           try {
                             const existing = DatabaseUtils.get(dbRef, `
                               SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-                            `, [savedMemoryId]);
+                            `, [savedMemoryId]) as { triple_extraction_metadata?: string } | undefined;
                             if (existing?.triple_extraction_metadata) {
                               const existingMeta = JSON.parse(existing.triple_extraction_metadata);
                               retryCount = (existingMeta.retry_count || 0) + 1;
@@ -1242,7 +1242,7 @@ export class RememberTool extends BaseTool {
                         try {
                           const existing = DatabaseUtils.get(dbRef, `
                             SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-                          `, [savedMemoryId]);
+                          `, [savedMemoryId]) as { triple_extraction_metadata?: string } | undefined;
                           if (existing?.triple_extraction_metadata) {
                             const existingMeta = JSON.parse(existing.triple_extraction_metadata);
                             retryCount = (existingMeta.retry_count || 0) + 1;
