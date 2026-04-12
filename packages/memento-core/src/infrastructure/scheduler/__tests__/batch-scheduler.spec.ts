@@ -258,22 +258,25 @@ describe('BatchScheduler', () => {
     it('주기적 작업이 setInterval로 실행되어야 함', async () => {
       // Given: vi.useFakeTimers()로 시간 제어
       vi.useFakeTimers();
-      
-      await scheduler.start(db);
-      
-      const initialStatus = scheduler.getStatus();
-      const initialCount = initialStatus.totalExecutions.get('healthcheck') || 0;
 
-      // When: 시간을 진행시켜 주기적 작업 실행 (healthCheckInterval: 10000ms)
-      await vi.advanceTimersByTimeAsync(10001); // 10000ms보다 큰 값으로 진행 (async로 마이크로태스크도 처리)
+      try {
+        await scheduler.start(db);
 
-      // Then: 주기적 작업이 실행되어야 함
-      const status = scheduler.getStatus();
-      expect(status.totalExecutions.get('healthcheck')).toBeGreaterThan(initialCount);
+        const initialStatus = scheduler.getStatus();
+        const initialCount = initialStatus.totalExecutions.get('healthcheck') || 0;
 
-      await scheduler.stop();
-      vi.useRealTimers();
-    }, 10000); // 테스트 타임아웃 10초로 증가
+        // When: 시간을 진행시켜 주기적 작업 실행 (healthCheckInterval: 10000ms)
+        await vi.advanceTimersByTimeAsync(10001); // 10000ms보다 큰 값으로 진행 (async로 마이크로태스크도 처리)
+
+        // Then: 주기적 작업이 실행되어야 함
+        const status = scheduler.getStatus();
+        expect(status.totalExecutions.get('healthcheck')).toBeGreaterThan(initialCount);
+      } finally {
+        // stop() → waitForRunningJobs()가 setTimeout(100)으로 대기하는데, 가짜 타이머가 멈춰 있으면 영구 대기한다.
+        vi.useRealTimers();
+        await scheduler.stop();
+      }
+    }, 15000);
 
     it('작업 타임아웃을 처리해야 함', async () => {
       // Given: 짧은 타임아웃을 가진 스케줄러

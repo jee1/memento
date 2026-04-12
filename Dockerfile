@@ -70,6 +70,7 @@ RUN npm install sqlite-vec --build-from-source && \
 
 # 빌드 산출물: 워크스페이스 패키지 (런타임은 memento-server 진입점 사용)
 COPY --from=builder /app/packages/memento-core/dist ./packages/memento-core/dist
+COPY --from=builder /app/packages/memento-core/prompts ./packages/memento-core/prompts
 COPY --from=builder /app/packages/memento-core/package.json ./packages/memento-core/package.json
 COPY --from=builder /app/packages/memento-server/dist ./packages/memento-server/dist
 COPY --from=builder /app/packages/memento-server/package.json ./packages/memento-server/package.json
