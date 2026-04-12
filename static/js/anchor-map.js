@@ -140,7 +140,8 @@ async function loadMapData() {
   const agentId = document.getElementById('agent-id-input').value || 'default';
   
   try {
-    const response = await fetch(`/api/anchors/map?agent_id=${encodeURIComponent(agentId)}`);
+    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    const response = await fetchFn(`/api/anchors/map?agent_id=${encodeURIComponent(agentId)}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -547,7 +548,8 @@ async function performSearch() {
   
   try {
     // search_local 도구 호출
-    const response = await fetch(`/tools/search_local`, {
+    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    const response = await fetchFn(`/tools/search_local`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

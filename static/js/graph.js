@@ -255,7 +255,8 @@
       if (simulation) { simulation.stop(); simulation = null; }
 
       try {
-        const res = await fetch(url);
+        const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+        const res = await fetchFn(url);
         if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
         const data = await res.json();
         showLoading(false);
