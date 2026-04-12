@@ -1150,11 +1150,9 @@ export class RememberTool extends BaseTool {
 
                         // Triple이 추출된 경우 Semantic Memory 생성/업데이트
                         if (extractionResult.triples.length > 0) {
-                          // MemoryEmbeddingService는 내부적으로 UnifiedEmbeddingService를 사용하므로,
-                          // 타입 단언을 사용하여 UnifiedEmbeddingService로 변환
-                          // 실제로는 MemoryEmbeddingService가 UnifiedEmbeddingService를 래핑하고 있음
+                          // MemoryEmbeddingService는 generateEmbedding을 노출하지 않음 — 내부 UnifiedEmbeddingService 사용
                           const unifiedEmbeddingService: UnifiedEmbeddingService = embeddingServiceRef
-                            ? (embeddingServiceRef as unknown as UnifiedEmbeddingService)
+                            ? embeddingServiceRef.getUnifiedEmbeddingService()
                             : new UnifiedEmbeddingService();
                           const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
                             dbRef,
