@@ -26,12 +26,12 @@ import { createQueryCounter, type QueryCounter } from '../test/helpers/query-cou
  * Then: 큐가 비워지고 활성 워커가 없을 때까지 대기
  * 
  * @param worker - ReflexionWorker 인스턴스
- * @param timeout - 최대 대기 시간 (ms, 기본값: 2000)
+ * @param timeout - 최대 대기 시간 (ms, 기본값: 30000)
  * @throws Error - 타임아웃 시 에러 발생
  */
 export async function waitForEventProcessing(
   worker: ReflexionWorker,
-  timeout: number = 2000
+  timeout: number = 30000
 ): Promise<void> {
   const startTime = Date.now();
 
@@ -146,7 +146,7 @@ export function createFailureEvent(options: {
   };
 }
 
-describe('ReflexionWorker', () => {
+describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
   let worker: ReflexionWorker;
   let detector: FailureDetector;
   let db: Database.Database;
@@ -162,13 +162,13 @@ describe('ReflexionWorker', () => {
   afterEach(async () => {
     await worker.stop();
     await detector.stopQueue();
-    // 이벤트 처리 완료 대기
+    // in-flight 이벤트가 끝날 때까지 짧게만 대기 (LLM 등으로 장시간 걸리면 훅 타임아웃·DB 조기 close 방지)
     try {
-      await waitForEventProcessing(worker, 2000);
-    } catch (error) {
-      // 타임아웃은 무시 (이미 stop() 호출했으므로)
+      await waitForEventProcessing(worker, 20000);
+    } catch {
+      // 무시하고 DB 정리 진행
     }
-    cleanupTestDatabase(db);
+    await cleanupTestDatabase(db);
     vi.clearAllMocks();
     vi.restoreAllMocks();
   });
@@ -816,7 +816,7 @@ describe('ReflexionWorker', () => {
       // When: 실패 이벤트 처리
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 처리 후 스냅샷 생성
       const afterSnapshot = createProceduralMemorySnapshot(db, existingMemoryId);
@@ -892,7 +892,7 @@ describe('ReflexionWorker', () => {
       // reflection_notes에서 steps를 추출하여 incremental 모드로 병합되도록 함
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 처리 후 스냅샷 생성
       const afterSnapshot = createProceduralMemorySnapshot(db, existingMemoryId);
@@ -980,7 +980,7 @@ describe('ReflexionWorker', () => {
       // When: 실패 이벤트 처리
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // Then: 새 메모리가 생성되었는지 확인
       const newMemories = DatabaseUtils.all(
@@ -1075,7 +1075,7 @@ describe('ReflexionWorker', () => {
 
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 개선된 메모리 ID 확인 (replace/incremental 모드면 동일 ID, versioned 모드면 새 ID)
       const improvedMemory = DatabaseUtils.get(
@@ -1257,7 +1257,7 @@ describe('ReflexionWorker', () => {
 
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 개선된 메모리 ID 확인 (replace/incremental 모드면 동일 ID, versioned 모드면 새 ID)
       const improvedMemory = DatabaseUtils.get(
@@ -1444,7 +1444,7 @@ describe('ReflexionWorker', () => {
 
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 변경 후 검색 결과 저장
       const afterSearchResult = await hybridSearchEngine.search(db, {
@@ -1560,7 +1560,7 @@ describe('ReflexionWorker', () => {
       
       for (let i = 0; i < events.length; i++) {
         await worker.queueFailureEvent(events[i]);
-        await waitForEventProcessing(worker, 2000);
+        await waitForEventProcessing(worker, 30000);
       }
 
       // Then: 각 실패 처리 후 reflection_notes 배열 길이가 증가하는지 확인
@@ -1618,7 +1618,7 @@ describe('ReflexionWorker', () => {
 
       // 첫 번째 실패 처리
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
       
       const afterSnapshot1 = createProceduralMemorySnapshot(db, existingMemoryId);
       const countAfterFirst = afterSnapshot1?.reflection_notes_count ?? 0;
@@ -1633,7 +1633,7 @@ describe('ReflexionWorker', () => {
         error_message: 'Test error 2',
       });
       await worker.queueFailureEvent(event2);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
       
       const afterSnapshot2 = createProceduralMemorySnapshot(db, existingMemoryId);
       const countAfterSecond = afterSnapshot2?.reflection_notes_count ?? 0;
@@ -1648,7 +1648,7 @@ describe('ReflexionWorker', () => {
         error_message: 'Test error 3',
       });
       await worker.queueFailureEvent(event3);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
       
       const afterSnapshot3 = createProceduralMemorySnapshot(db, existingMemoryId);
       const countAfterThird = afterSnapshot3?.reflection_notes_count ?? 0;
@@ -1703,7 +1703,7 @@ describe('ReflexionWorker', () => {
 
       await worker.start();
       await worker.queueFailureEvent(event1);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 첫 번째 실패 후 trigger_conditions 확인
       const afterSnapshot1 = createProceduralMemorySnapshot(db, existingMemoryId);
@@ -1730,7 +1730,7 @@ describe('ReflexionWorker', () => {
       });
 
       await worker.queueFailureEvent(event2);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 두 번째 실패 후 trigger_conditions 확인
       const triggerConditions2 = DatabaseUtils.get(
@@ -1784,7 +1784,7 @@ describe('ReflexionWorker', () => {
 
       await worker.start();
       await worker.queueFailureEvent(event1);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 첫 번째 실패 후 edit_count 확인
       const afterSnapshot1 = createProceduralMemorySnapshot(db, existingMemoryId);
@@ -1802,7 +1802,7 @@ describe('ReflexionWorker', () => {
       });
 
       await worker.queueFailureEvent(event2);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 두 번째 실패 후 edit_count 확인
       const afterSnapshot2 = createProceduralMemorySnapshot(db, existingMemoryId);
@@ -1820,7 +1820,7 @@ describe('ReflexionWorker', () => {
       });
 
       await worker.queueFailureEvent(event3);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // 세 번째 실패 후 edit_count 확인
       const afterSnapshot3 = createProceduralMemorySnapshot(db, existingMemoryId);
@@ -1861,7 +1861,7 @@ describe('ReflexionWorker', () => {
 
       await worker.start();
       await worker.queueFailureEvent(event1);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // Then: 빈 문자열 처리 확인 (reflection_notes는 DB에 저장되지만 파싱은 실패할 수 있음)
       const record1 = DatabaseUtils.get(
@@ -1893,7 +1893,7 @@ describe('ReflexionWorker', () => {
       });
 
       await worker.queueFailureEvent(event2);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // Then: 잘못된 JSON 처리 확인 (경고 로그는 확인할 수 없지만, reflection_notes는 업데이트될 수 있음)
       const record2 = DatabaseUtils.get(
@@ -1934,7 +1934,7 @@ describe('ReflexionWorker', () => {
       });
 
       await worker.queueFailureEvent(event3);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // Then: 빈 배열 처리 확인 (새 note가 배열에 추가되고 DB에 저장됨)
       const record3 = DatabaseUtils.get(
@@ -2099,7 +2099,7 @@ describe('ReflexionWorker', () => {
       
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
       
       const endTime = performance.now();
       const duration = endTime - startTime;
@@ -2148,7 +2148,7 @@ describe('ReflexionWorker', () => {
       // When: 이벤트 처리 (쿼리 카운터가 자동으로 계측)
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
 
       // Then: 쿼리 횟수 검증 (SELECT + UPDATE + INSERT 합계 20회 이내)
       if (queryCounter) {
@@ -2190,7 +2190,7 @@ describe('ReflexionWorker', () => {
       
       await worker.start();
       await worker.queueFailureEvent(event);
-      await waitForEventProcessing(worker, 2000);
+      await waitForEventProcessing(worker, 30000);
       
       const endTime = performance.now();
       const duration = endTime - startTime;

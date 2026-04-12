@@ -385,11 +385,13 @@ export class MemoryEmbeddingService {
         ORDER BY count DESC
       `);
 
-      const stat = stats[0];
-      
+      const stat = stats[0] as
+        | { total_embeddings?: number; avg_dimensions?: number }
+        | undefined;
+
       return {
-        totalEmbeddings: stat.total_embeddings || 0,
-        averageDimensions: stat.avg_dimensions || 0,
+        totalEmbeddings: stat?.total_embeddings ?? 0,
+        averageDimensions: stat?.avg_dimensions ?? 0,
         model: this.embeddingService.getModelInfo().model,
         providerStats: providerStats.map((row: any) => ({
           provider: this.normalizeProvider(row.provider),

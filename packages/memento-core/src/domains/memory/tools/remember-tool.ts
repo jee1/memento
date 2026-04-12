@@ -28,7 +28,7 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { isTestEnvironment } from '../../../shared/utils/environment-check.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
-import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';
+import { validateReflectionNotes, formatValidationErrors, type ReflectionNote } from '../../../shared/utils/reflection-notes-schema.js';
 import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
@@ -45,7 +45,7 @@ import { createRelationGraph } from '../../../infrastructure/relation-graph-fact
 interface ExistingReflectionNotesResult {
   exists: boolean;
   type: 'null' | 'object' | 'array';
-  value: null | Record<string, unknown> | Record<string, unknown>[];
+  value: null | ReflectionNote | ReflectionNote[];
   rawValue: string | null;
 }
 
@@ -283,7 +283,7 @@ export class RememberTool extends BaseTool {
          WHERE type = 'procedural' AND task_goal = ? 
          ORDER BY created_at DESC LIMIT 1`,
         [taskGoal]
-      );
+      ) as { reflection_notes?: string | null } | undefined;
 
       if (!existingRecord || !existingRecord.reflection_notes) {
         return {
@@ -332,7 +332,7 @@ export class RememberTool extends BaseTool {
         return {
           exists: true,
           type: 'array',
-          value: parsed as Record<string, unknown>[],
+          value: parsed as ReflectionNote[],
           rawValue: reflectionNotes
         };
       }
@@ -341,7 +341,7 @@ export class RememberTool extends BaseTool {
         return {
           exists: true,
           type: 'object',
-          value: parsed as Record<string, unknown>,
+          value: parsed as ReflectionNote,
           rawValue: reflectionNotes
         };
       }
@@ -598,8 +598,8 @@ export class RememberTool extends BaseTool {
             // 병합 유틸리티 함수 사용
             const existing: ExistingReflectionNotes =
               existingReflectionNotes.type === 'null' ? { type: 'null', value: null } :
-              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value as Record<string, unknown> } :
-              { type: 'array', value: (existingReflectionNotes.value ?? []) as Record<string, unknown>[] };
+              existingReflectionNotes.type === 'object' ? { type: 'object', value: existingReflectionNotes.value as ReflectionNote } :
+              { type: 'array', value: (existingReflectionNotes.value ?? []) as ReflectionNote[] };
 
             const mergeResult = mergeReflectionNotes(existing, reflection_notes);
             
@@ -875,9 +875,6 @@ export class RememberTool extends BaseTool {
           // 메모리 저장 응답은 즉시 반환하고, 임베딩/인접 기억 갱신/관계 추출은 백그라운드에서 처리
           (async () => {
             try {
-              // 트랜잭션이 완전히 커밋되도록 짧은 지연
-              await new Promise(resolve => setTimeout(resolve, 100));
-              
               // 데이터베이스 연결이 여전히 유효한지 확인 (간단한 쿼리로 테스트)
               // DatabaseUtils.get은 동기 함수이지만, 비동기 컨텍스트에서 안전하게 실행하기 위해 Promise로 감싸서 await
               try {
@@ -1153,11 +1150,9 @@ export class RememberTool extends BaseTool {
 
                         // Triple이 추출된 경우 Semantic Memory 생성/업데이트
                         if (extractionResult.triples.length > 0) {
-                          // MemoryEmbeddingService는 내부적으로 UnifiedEmbeddingService를 사용하므로,
-                          // 타입 단언을 사용하여 UnifiedEmbeddingService로 변환
-                          // 실제로는 MemoryEmbeddingService가 UnifiedEmbeddingService를 래핑하고 있음
+                          // MemoryEmbeddingService는 generateEmbedding을 노출하지 않음 — 내부 UnifiedEmbeddingService 사용
                           const unifiedEmbeddingService: UnifiedEmbeddingService = embeddingServiceRef
-                            ? (embeddingServiceRef as unknown as UnifiedEmbeddingService)
+                            ? embeddingServiceRef.getUnifiedEmbeddingService()
                             : new UnifiedEmbeddingService();
                           const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
                             dbRef,
@@ -1182,7 +1177,7 @@ export class RememberTool extends BaseTool {
                             const relations = DatabaseUtils.all(dbRef, `
                               SELECT confidence FROM memory_relation
                               WHERE target_id = ? AND relation_type = 'extracted_from'
-                            `, [savedMemoryId]);
+                            `, [savedMemoryId]) as Array<{ confidence?: number | null }>;
                             for (const rel of relations) {
                               if (rel.confidence !== null && rel.confidence !== undefined) {
                                 confidenceValues.push(rel.confidence);
@@ -1235,7 +1230,7 @@ export class RememberTool extends BaseTool {
                           try {
                             const existing = DatabaseUtils.get(dbRef, `
                               SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-                            `, [savedMemoryId]);
+                            `, [savedMemoryId]) as { triple_extraction_metadata?: string } | undefined;
                             if (existing?.triple_extraction_metadata) {
                               const existingMeta = JSON.parse(existing.triple_extraction_metadata);
                               retryCount = (existingMeta.retry_count || 0) + 1;
@@ -1301,7 +1296,7 @@ export class RememberTool extends BaseTool {
                         try {
                           const existing = DatabaseUtils.get(dbRef, `
                             SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-                          `, [savedMemoryId]);
+                          `, [savedMemoryId]) as { triple_extraction_metadata?: string } | undefined;
                           if (existing?.triple_extraction_metadata) {
                             const existingMeta = JSON.parse(existing.triple_extraction_metadata);
                             retryCount = (existingMeta.retry_count || 0) + 1;
@@ -1429,12 +1424,52 @@ export class RememberTool extends BaseTool {
             is_duplicate: isDuplicate
           }
         });
-        
+
+        let similarity_warning: { count: number; similar_ids: string[] } | undefined;
+        try {
+          const embSvc = context.services?.embeddingService;
+          if (embSvc?.isAvailable()) {
+            const vecEng = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
+            vecEng.initialize(context.db!);
+            const unified = embSvc.getUnifiedEmbeddingService();
+            const qEmb = await unified.generateEmbedding(content);
+            if (qEmb?.embedding && Array.isArray(qEmb.embedding)) {
+              const prov = unified.getCurrentProviderName() ?? 'tfidf';
+              const hits = await vecEng.search(
+                qEmb.embedding,
+                { limit: 8, threshold: 0.85, types: [type] },
+                prov
+              );
+              const sameOwner = hits.filter(h => {
+                if (h.memory_id === id) {
+                  return false;
+                }
+                const row = DatabaseUtils.get(
+                  context.db!,
+                  `SELECT owner_id FROM memory_item WHERE id = ?`,
+                  [h.memory_id]
+                ) as { owner_id: string | null } | undefined;
+                const o = row?.owner_id ?? null;
+                return String(o ?? '') === String(ownerId ?? '');
+              });
+              if (sameOwner.length > 0) {
+                similarity_warning = {
+                  count: sameOwner.length,
+                  similar_ids: sameOwner.map(s => s.memory_id)
+                };
+              }
+            }
+          }
+        } catch {
+          /* FR-008: 유사도 경고 실패 시에도 저장은 성공 */
+        }
+
         return this.createSuccessResult({
           memory_id: id,
           type: type,
           message: `기억이 저장되었습니다: ${id}`,
-          embedding_created: context.services.embeddingService?.isAvailable() || false
+          embedding_created: context.services.embeddingService?.isAvailable() || false,
+          ...(similarity_warning ? { similarity_warning } : {})
         });
       } catch (error) {
         // 데이터베이스 락 문제인 경우 WAL 체크포인트 시도

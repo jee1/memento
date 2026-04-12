@@ -37,7 +37,7 @@ export interface ITextSearchEngine {
       limit?: number;
       omit_feedback_in_ranking?: boolean;
     }
-  ): Promise<{ items: any[]; total_count: number; query_time: number }>;
+  ): Promise<{ items: unknown[]; total_count: number; query_time: number }>;
 }
 
 export interface IEmbeddingService {
@@ -47,7 +47,7 @@ export interface IEmbeddingService {
     query: string,
     options: { type?: MemoryType[]; limit?: number; threshold?: number }
   ): Promise<VectorSearchResult[] | SearchBySimilarityOutcome>;
-  getEmbeddingStats(db: Database.Database): Promise<any>;
+  getEmbeddingStats(db: Database.Database): Promise<unknown>;
 }
 
 /** 테스트 목업(배열 반환)과 MemoryEmbeddingService(객체 반환) 모두 수용 */
@@ -87,7 +87,7 @@ export interface IVectorSearchEngine {
 }
 
 export interface ISearchResultCombiner {
-  combine(textResults: any[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[];
+  combine(textResults: unknown[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[];
 }
 
 /**
@@ -118,13 +118,26 @@ export interface IAdaptiveWeightCalculator {
 
 export interface ISearchLogger {
   logSearchStart(searchId: string, query: HybridSearchQuery): void;
-  logSearchStep(searchId: string, step: string, data: any): void;
+  logSearchStep(searchId: string, step: string, data: unknown): void;
   logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void;
   logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void;
-  logExperiment?(searchId: string, experimentId: string, variant: Record<string, any>): void; // 실험 로그 (선택적)
+  logExperiment?(searchId: string, experimentId: string, variant: Record<string, unknown>): void; // 실험 로그 (선택적)
 }
 
 // 검색 과정에서 발생할 수 있는 다양한 오류를 분류하여 정확한 오류 처리를 수행합니다.
+type HybridWeights = { textWeight: number; vectorWeight: number };
+
+type RelationInfoRow = {
+  target_id: string;
+  relation_type: string;
+  confidence: number;
+};
+
+type ProceduralMemoryMatch = {
+  workflow_name_match: boolean;
+  skill_name_match: boolean;
+  trigger_conditions_match: boolean;
+};
 export enum SearchErrorType {
   EMBEDDING_GENERATION_FAILED = 'EMBEDDING_GENERATION_FAILED',
   VECTOR_SEARCH_FAILED = 'VECTOR_SEARCH_FAILED',
@@ -140,7 +153,7 @@ export class SearchError extends Error {
     public type: SearchErrorType,
     message: string,
     public originalError?: Error,
-    public context?: any
+    public context?: unknown
   ) {
     super(message);
     this.name = 'SearchError';
@@ -229,7 +242,7 @@ export class SearchLogger implements ISearchLogger {
     // });
   }
 
-  logSearchStep(searchId: string, step: string, data: any): void {
+  logSearchStep(searchId: string, step: string, data: unknown): void {
     logger.debug(`하이브리드 검색 단계: ${step}`, {
       searchId,
       step,
@@ -243,7 +256,7 @@ export class SearchLogger implements ISearchLogger {
     //   totalCount: result.total_count,
     //   queryTime: `${queryTime.toFixed(2)}ms`,
     //   searchType: 'hybrid',
-    //   experiment_id: (result as any).experiment_id
+    //   experiment_id: (result as unknown as { experiment_id?: string }).experiment_id
     // });
   }
 
@@ -261,7 +274,7 @@ export class SearchLogger implements ISearchLogger {
    * A/B 테스트를 통해 검색 알고리즘의 효과를 측정하고 개선합니다.
    * 실험 ID와 변이 파라미터를 로깅하여 데이터 기반 의사결정을 지원합니다.
    */
-  logExperiment(searchId: string, experimentId: string, variant: Record<string, any>): void {
+  logExperiment(searchId: string, experimentId: string, variant: Record<string, unknown>): void {
     // console.log(`🧪 [${searchId}] 실험 로그`, {
     //   experiment_id: experimentId,
     //   variant,
@@ -277,8 +290,8 @@ export class SearchLogger implements ISearchLogger {
 export interface TriggerContext {
   tool_name?: string;
   error_type?: string;
-  params?: Record<string, any>;
-  [key: string]: any; // 기타 컨텍스트 필드
+  params?: Record<string, unknown>;
+  [key: string]: unknown; // 기타 컨텍스트 필드
 }
 
 export interface HybridSearchQuery {
@@ -358,7 +371,7 @@ export class HybridSearchEngine {
    * 관계 그래프를 주입하여 관계 기반 검색 기능을 활성화합니다.
    * 선택적으로 설정하여 관계 그래프가 없는 환경에서도 동작하도록 합니다.
    */
-  setRelationGraph(relationGraph: RelationGraph): void {
+  setRelationGraph(relationGraph: RelationGraph | null): void {
     this.relationGraph = relationGraph;
   }
 
@@ -452,14 +465,11 @@ export class HybridSearchEngine {
       const queryTime = this.calculateQueryTime(startTime);
 
       // A/B 테스트 추적을 위해 검색 완료 로그에 실험 ID를 포함합니다.
-      const logData: any = {
+      const logData: { items: unknown[]; total_count: number; experiment_id?: string } = {
         items: finalResults,
-        total_count: finalResults.length
+        total_count: finalResults.length,
+        ...(query.experiment_id ? { experiment_id: query.experiment_id } : {})
       };
-
-      if (query.experiment_id) {
-        logData.experiment_id = query.experiment_id;
-      }
 
       this.logger.logSearchComplete(searchId, logData, queryTime);
 
@@ -499,7 +509,7 @@ export class HybridSearchEngine {
     };
   }
 
-  private async executeTextSearch(db: Database.Database, query: HybridSearchQuery, searchId: string): Promise<any[]> {
+  private async executeTextSearch(db: Database.Database, query: HybridSearchQuery, searchId: string): Promise<unknown[]> {
     try {
       const textSearchStart = process.hrtime.bigint();
       this.logger.logSearchStep(searchId, '텍스트 검색 시작', { query: query.query });
@@ -1352,7 +1362,7 @@ export class HybridSearchEngine {
   }
 
   private mergeResults(
-    textResults: any[],
+    textResults: unknown[],
     vectorResults: VectorSearchResult[],
     weights: { textWeight: number; vectorWeight: number }
   ): HybridSearchResult[] {
@@ -1367,9 +1377,9 @@ export class HybridSearchEngine {
   private normalizeScores(
     results: HybridSearchResult[],
     relationWeights: Map<string, number>,
-    relationInfo: Map<string, any[]>,
+    relationInfo: Map<string, RelationInfoRow[]>,
     consolidationScores: Map<string, number>,
-    proceduralMemoryMatches: Map<string, any>,
+    proceduralMemoryMatches: Map<string, ProceduralMemoryMatch>,
     includeRelations: boolean,
     processAttributes: ProcessAttribute | null = null,
     memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map(),
@@ -1478,9 +1488,9 @@ export class HybridSearchEngine {
    * 분리된 메서드들(mergeResults, normalizeScores, deduplicateResults, sortByFinalScore)을 조합하여 사용합니다.
    */
   private async combineAndSortResults(
-    textResults: any[], 
-    vectorResults: VectorSearchResult[], 
-    weights: any, 
+    textResults: unknown[],
+    vectorResults: VectorSearchResult[],
+    weights: HybridWeights, 
     limit: number,
     db?: Database.Database,
     includeRelations: boolean = false,
@@ -1731,10 +1741,10 @@ export class HybridSearchEngine {
   /**
    * 검색 통계 정보
    */
-  async getSearchStats(db: any): Promise<{
+  async getSearchStats(db: Database.Database): Promise<{
     textSearchAvailable: boolean;
     vectorSearchAvailable: boolean;
-    embeddingStats: any;
+    embeddingStats: unknown;
     searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }>;
   }> {
     const embeddingStats = await this.embeddingService.getEmbeddingStats(db);

@@ -41,6 +41,12 @@ export interface NeighborSearchOptions {
   similarity_threshold?: number;
 }
 
+/** memory_embedding 단일 행 (get 조회) */
+interface MemoryEmbeddingRow {
+  embedding?: string | number[] | unknown;
+  embedding_provider?: string;
+}
+
 /**
  * 메모리를 찾을 수 없을 때 발생하는 에러
  */
@@ -146,7 +152,7 @@ export class MemoryNeighborService {
       // 1.5 - 임베딩 조회 로직
       // memory_embedding 테이블에서 해당 기억의 임베딩 조회
       // 가장 최근에 생성된 임베딩을 우선 사용 (여러 제공자가 있을 수 있음)
-      let embeddingRecord;
+      let embeddingRecord: MemoryEmbeddingRow | undefined;
       try {
         embeddingRecord = await DatabaseUtils.get(
           this.db,
@@ -160,7 +166,7 @@ export class MemoryNeighborService {
           ORDER BY created_at DESC
           LIMIT 1`,
           [memoryId]
-        );
+        ) as MemoryEmbeddingRow | undefined;
       } catch (error) {
         logger.error('임베딩 조회 실패', {
           memoryId,
@@ -345,7 +351,7 @@ export class MemoryNeighborService {
         ORDER BY created_at DESC
         LIMIT 1`,
         [newMemoryId]
-      );
+      ) as MemoryEmbeddingRow | undefined;
 
       // 임베딩이 없으면 빈 배열 반환 (경고 없이)
       if (!embeddingRecord || !embeddingRecord.embedding) {

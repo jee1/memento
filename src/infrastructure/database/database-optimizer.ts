@@ -79,7 +79,7 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
 
     const stats: Record<string, any> = {};
 
-    for (const table of tables) {
+    for (const table of tables as Array<{ name: string }>) {
       const tableName = table.name;
       
       // 행 수
@@ -102,10 +102,13 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
         [tableName]
       );
 
+      const row0 = rowCount[0] as { count?: number } | undefined;
+      const size0 = size[0] as { size?: number } | undefined;
+      const idx0 = indexCount[0] as { count?: number } | undefined;
       stats[tableName] = {
-        rowCount: rowCount[0]?.count || 0,
-        size: size[0]?.size || 0,
-        indexCount: indexCount[0]?.count || 0,
+        rowCount: row0?.count ?? 0,
+        size: size0?.size ?? 0,
+        indexCount: idx0?.count ?? 0,
         lastAnalyzed: new Date()
       };
     }
@@ -125,7 +128,7 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
 
     const stats: Record<string, any> = {};
 
-    for (const index of indexes) {
+    for (const index of indexes as Array<{ name: string; tbl_name: string; sql: string | null }>) {
       // 인덱스 크기 (간단한 추정 - 인덱스는 테이블이 아니므로 페이지 정보를 직접 가져올 수 없음)
       const size = await DatabaseUtils.all(this.db, `
         SELECT page_count * page_size as size 
@@ -133,13 +136,14 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
       `);
 
       // 컬럼 추출 (간단한 파싱)
-      const columns = this.extractColumnsFromIndexSQL(index.sql);
+      const columns = this.extractColumnsFromIndexSQL(index.sql ?? '');
 
+      const sz0 = size[0] as { size?: number } | undefined;
       stats[index.name] = {
         name: index.name,
         table: index.tbl_name,
         columns,
-        size: size[0].size, // 전체 데이터베이스 크기로 추정
+        size: sz0?.size ?? 0, // 전체 데이터베이스 크기로 추정
         usage: 0 // 실제로는 SQLite 통계에서 가져와야 함
       };
     }

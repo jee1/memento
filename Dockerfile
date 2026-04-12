@@ -26,8 +26,10 @@ COPY apps/ ./apps/
 # Run postinstall scripts now that source code is available
 RUN npm run postinstall
 
-# Build application
-RUN npm run build
+# Workspace 패키지만 빌드 (@memento/core, memento-server, client).
+# 루트 src/의 레거시 tsc(build:root)는 Docker 이미지 런타임에 사용하지 않으며,
+# 패키지와 동기화되지 않으면 빌드가 실패할 수 있음.
+RUN npm run build:packages
 
 # Production stage
 FROM node:20-slim AS production
@@ -66,11 +68,12 @@ RUN npm install sqlite-vec --build-from-source && \
     chmod +x /usr/lib/vec0 && \
     ls -la /usr/lib/vec0
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
-# workspace 패키지 dist 복사 (node_modules/@memento/* 심볼릭 링크가 참조)
+# 빌드 산출물: 워크스페이스 패키지 (런타임은 memento-server 진입점 사용)
 COPY --from=builder /app/packages/memento-core/dist ./packages/memento-core/dist
+COPY --from=builder /app/packages/memento-core/prompts ./packages/memento-core/prompts
 COPY --from=builder /app/packages/memento-core/package.json ./packages/memento-core/package.json
+COPY --from=builder /app/packages/memento-server/dist ./packages/memento-server/dist
+COPY --from=builder /app/packages/memento-server/package.json ./packages/memento-server/package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 

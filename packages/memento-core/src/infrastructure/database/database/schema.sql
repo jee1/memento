@@ -47,8 +47,22 @@ CREATE TABLE IF NOT EXISTS memory_item (
   subject TEXT,
   predicate TEXT,
   object TEXT,
-  is_consolidated BOOLEAN DEFAULT FALSE
+  is_consolidated BOOLEAN DEFAULT FALSE,
+  triple_extracted BOOLEAN DEFAULT FALSE NOT NULL,
+  triple_extracted_status TEXT,
+  triple_extraction_metadata TEXT,
+  is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+  deleted_at TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_episodic
+  ON memory_item(triple_extracted)
+  WHERE type = 'episodic';
+CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_status_episodic
+  ON memory_item(triple_extracted_status)
+  WHERE type = 'episodic';
+CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
+  ON memory_item(is_deleted)
+  WHERE COALESCE(is_deleted, 0) = 0;
 CREATE INDEX IF NOT EXISTS idx_memory_item_triple ON memory_item(subject, predicate, object)
 WHERE type='semantic' AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL;
 
@@ -472,6 +486,93 @@ CREATE TABLE IF NOT EXISTS telemetry_daily_metrics (
 CREATE INDEX IF NOT EXISTS idx_tdm_date       ON telemetry_daily_metrics(date);
 CREATE INDEX IF NOT EXISTS idx_tdm_event_type ON telemetry_daily_metrics(event_type);
 CREATE INDEX IF NOT EXISTS idx_tdm_owner_id   ON telemetry_daily_metrics(owner_id);
+
+-- Quality assurance (migration 009: 009-quality-assurance-schema.sql)
+-- 품질 측정 이력: measurement_type 'batch'|'test'|'manual', status 'success'|'warning'|'error'
+CREATE TABLE IF NOT EXISTS quality_measurement_history (
+  id TEXT PRIMARY KEY,
+  measurement_type TEXT NOT NULL CHECK (measurement_type IN ('batch', 'test', 'manual')),
+  measured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  metrics TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('success', 'warning', 'error')) DEFAULT 'success',
+  warnings TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 최신 품질 지표 (namespace, key, context 별)
+CREATE TABLE IF NOT EXISTS quality_metrics (
+  metric_namespace TEXT NOT NULL,
+  metric_key TEXT NOT NULL,
+  context TEXT NOT NULL DEFAULT 'default',
+  metric_value REAL NOT NULL,
+  measured_at TIMESTAMP NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pass', 'warning', 'fail')) DEFAULT 'pass',
+  threshold_value REAL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (metric_namespace, metric_key, context)
+);
+
+-- 품질 임계값 (threshold_type 'min'|'max')
+CREATE TABLE IF NOT EXISTS quality_thresholds (
+  metric_namespace TEXT NOT NULL,
+  metric_key TEXT NOT NULL,
+  context TEXT NOT NULL DEFAULT 'default',
+  threshold_value REAL NOT NULL,
+  threshold_type TEXT NOT NULL CHECK (threshold_type IN ('min', 'max')),
+  description TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (metric_namespace, metric_key, context)
+);
+
+CREATE INDEX IF NOT EXISTS idx_quality_measurement_history_measured_at
+  ON quality_measurement_history(measured_at);
+CREATE INDEX IF NOT EXISTS idx_quality_measurement_history_type
+  ON quality_measurement_history(measurement_type);
+CREATE INDEX IF NOT EXISTS idx_quality_measurement_history_status
+  ON quality_measurement_history(status);
+
+CREATE INDEX IF NOT EXISTS idx_quality_metrics_namespace_key
+  ON quality_metrics(metric_namespace, metric_key);
+CREATE INDEX IF NOT EXISTS idx_quality_metrics_context
+  ON quality_metrics(context);
+CREATE INDEX IF NOT EXISTS idx_quality_metrics_status
+  ON quality_metrics(status);
+CREATE INDEX IF NOT EXISTS idx_quality_metrics_measured_at
+  ON quality_metrics(measured_at);
+
+CREATE INDEX IF NOT EXISTS idx_quality_thresholds_namespace_key
+  ON quality_thresholds(metric_namespace, metric_key);
+CREATE INDEX IF NOT EXISTS idx_quality_thresholds_context
+  ON quality_thresholds(context);
+
+-- Meta memory statistics (migration 011: 011-meta-memory-stats-schema.sql)
+-- recall 통계: memory_item 삭제 시 CASCADE
+CREATE TABLE IF NOT EXISTS meta_memory_stats (
+  memory_id TEXT PRIMARY KEY,
+  recall_count INTEGER DEFAULT 0 NOT NULL,
+  success_count INTEGER DEFAULT 0 NOT NULL,
+  failure_count INTEGER DEFAULT 0 NOT NULL,
+  avg_confidence REAL DEFAULT 0.0 NOT NULL,
+  last_recalled_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_meta_memory_stats_recall_count ON meta_memory_stats(recall_count DESC);
+CREATE INDEX IF NOT EXISTS idx_meta_memory_stats_avg_confidence ON meta_memory_stats(avg_confidence DESC);
+CREATE INDEX IF NOT EXISTS idx_meta_memory_stats_last_recalled_at ON meta_memory_stats(last_recalled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_meta_memory_stats_failure_count ON meta_memory_stats(failure_count DESC);
+
+CREATE TRIGGER IF NOT EXISTS trigger_meta_memory_stats_updated_at
+  AFTER UPDATE ON meta_memory_stats
+  FOR EACH ROW
+  WHEN NEW.updated_at = OLD.updated_at
+BEGIN
+  UPDATE meta_memory_stats
+  SET updated_at = CURRENT_TIMESTAMP
+  WHERE memory_id = NEW.memory_id;
+END;
 
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)

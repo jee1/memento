@@ -3,10 +3,27 @@
  * TDD 방법론 적용: Given/When/Then 형식
  */
 
+import { randomBytes } from 'node:crypto';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { CheckpointMode, type CheckpointResult, type WalCheckpointSchedulerConfig, WalCheckpointScheduler } from './wal-checkpoint-scheduler.js';
+import { CheckpointMode, type CheckpointResult, type Logger, type PerformanceMonitor, type WalCheckpointSchedulerConfig, WalCheckpointScheduler } from './wal-checkpoint-scheduler.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
+
+function uniqueWalTestDbPath(): string {
+  return join(tmpdir(), `wal-checkpoint-scheduler-${randomBytes(8).toString('hex')}.db`);
+}
+
+type WalCheckpointSchedulerTestAccess = {
+  checkpoint: (mode: CheckpointMode) => Promise<CheckpointResult>;
+  executeCheckpoint: (db: Database.Database, mode: CheckpointMode) => CheckpointResult;
+  getWalFileSize: () => Promise<number>;
+  dedicatedConnection: Database.Database | null;
+  checkpointInProgress: boolean;
+  intervalId: NodeJS.Timeout | null;
+  isRunning: boolean;
+};
 
 describe('CheckpointMode enum', () => {
   it('PASSIVE 모드가 정의되어야 함', () => {
@@ -116,8 +133,8 @@ describe('WalCheckpointSchedulerConfig interface', () => {
 describe('WalCheckpointScheduler class', () => {
   let db: Database.Database;
   let config: WalCheckpointSchedulerConfig;
-  let mockLogger: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
-  let mockPerformanceMonitor: { recordMetric: ReturnType<typeof vi.fn> };
+  let mockLogger: Logger & { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
+  let mockPerformanceMonitor: PerformanceMonitor & { recordMetric: ReturnType<typeof vi.fn>; incrementCounter: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     // Given: 테스트 데이터베이스와 설정이 준비되어 있음
@@ -140,7 +157,8 @@ describe('WalCheckpointScheduler class', () => {
     };
 
     mockPerformanceMonitor = {
-      recordMetric: vi.fn()
+      recordMetric: vi.fn(),
+      incrementCounter: vi.fn(),
     };
   });
 
@@ -156,8 +174,8 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any,
-        mockPerformanceMonitor as any
+        mockLogger,
+        mockPerformanceMonitor
       );
 
       // Then: 인스턴스가 생성되어야 함
@@ -180,7 +198,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: start() 메서드 호출
@@ -201,7 +219,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
       const firstCallCount = mockLogger.info.mock.calls.length;
@@ -221,7 +239,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
 
@@ -237,7 +255,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: stop() 메서드 호출
@@ -252,7 +270,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
 
@@ -272,7 +290,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow()를 PASSIVE 모드로 호출
@@ -292,7 +310,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow()를 TRUNCATE 모드로 호출
@@ -309,7 +327,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow()를 FULL 모드로 호출
@@ -326,7 +344,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow() 호출
@@ -345,7 +363,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow() 호출
@@ -364,13 +382,13 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, maxRetries: 3, retryBackoffMs: 10 }, // 짧은 백오프로 테스트 속도 향상
-        mockLogger as any
+        mockLogger
       );
 
       // executeCheckpoint를 모킹하여 busy=1을 반환하도록 설정
       let callCount = 0;
-      const originalExecuteCheckpoint = (scheduler as any).executeCheckpoint.bind(scheduler);
-      (scheduler as any).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
+      const originalExecuteCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
         callCount++;
         if (callCount < 3) {
           // 처음 2번은 busy=1 반환
@@ -400,12 +418,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, maxRetries: 3, retryBackoffMs: 10 },
-        mockLogger as any
+        mockLogger
       );
 
       // executeCheckpoint를 모킹하여 항상 busy=1을 반환하도록 설정
       let callCount = 0;
-      (scheduler as any).executeCheckpoint = vi.fn(() => {
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn(() => {
         callCount++;
         return {
           mode: CheckpointMode.PASSIVE,
@@ -432,12 +450,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, maxRetries: 3, retryBackoffMs },
-        mockLogger as any
+        mockLogger
       );
 
       let callCount = 0;
       const callTimes: number[] = [];
-      (scheduler as any).executeCheckpoint = vi.fn(() => {
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn(() => {
         callCount++;
         callTimes.push(Date.now());
         
@@ -479,12 +497,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: getWalFileSize() 호출 (private 메서드이므로 간접적으로 테스트)
       // 실제로는 checkpointNow() 내부에서 사용되지만, 여기서는 직접 접근
-      const walSize = await (scheduler as any).getWalFileSize();
+      const walSize = await (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize();
 
       // Then: WAL 파일 크기가 반환되어야 함 (메모리 DB의 경우 0일 수 있음)
       expect(typeof walSize).toBe('number');
@@ -497,11 +515,11 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         nonExistentDb,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: getWalFileSize() 호출
-      const walSize = await (scheduler as any).getWalFileSize();
+      const walSize = await (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize();
 
       // Then: 0을 반환해야 함 (메모리 DB는 WAL 파일이 없음)
       expect(walSize).toBe(0);
@@ -510,19 +528,19 @@ describe('WalCheckpointScheduler class', () => {
     });
 
     it('WAL 파일 경로가 올바르게 구성되어야 함', async () => {
-      // Given: 특정 경로의 데이터베이스를 가진 스케줄러
-      const testDbPath = '/tmp/test-db.db';
+      // Given: 특정 경로의 데이터베이스를 가진 스케줄러 (고정 /tmp 경로는 병렬 워커·잔존 파일과 충돌할 수 있음)
+      const testDbPath = uniqueWalTestDbPath();
       const testDb = new Database(testDbPath);
       testDb.pragma('journal_mode = WAL');
       
       const scheduler = new WalCheckpointScheduler(
         testDb,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: getWalFileSize() 호출
-      const walSize = await (scheduler as any).getWalFileSize();
+      const walSize = await (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize();
 
       // Then: WAL 파일 크기가 반환되어야 함 (파일이 없으면 0)
       expect(typeof walSize).toBe('number');
@@ -547,15 +565,15 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
 
       // When: start() 호출
       scheduler.start();
 
       // Then: 전용 커넥션이 생성되어야 함
-      expect((scheduler as any).dedicatedConnection).toBeDefined();
-      expect((scheduler as any).dedicatedConnection).not.toBe(db);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).toBeDefined();
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).not.toBe(db);
 
       // 정리
       scheduler.stop();
@@ -566,14 +584,14 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: false },
-        mockLogger as any
+        mockLogger
       );
 
       // When: start() 호출
       scheduler.start();
 
       // Then: 전용 커넥션이 생성되지 않아야 함
-      expect((scheduler as any).dedicatedConnection).toBeNull();
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).toBeNull();
 
       // 정리
       scheduler.stop();
@@ -581,21 +599,21 @@ describe('WalCheckpointScheduler class', () => {
 
     it('전용 커넥션이 생성되면 WAL 모드로 설정되어야 함', () => {
       // Given: useDedicatedConnection=true 설정 및 실제 파일 데이터베이스
-      const testDbPath = '/tmp/test-wal-db.db';
+      const testDbPath = uniqueWalTestDbPath();
       const testDb = new Database(testDbPath);
       testDb.pragma('journal_mode = WAL');
-      
+
       const scheduler = new WalCheckpointScheduler(
         testDb,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
 
       // When: start() 호출
       scheduler.start();
 
       // Then: 전용 커넥션이 WAL 모드로 설정되어야 함
-      const dedicatedConnection = (scheduler as any).dedicatedConnection;
+      const dedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
       if (dedicatedConnection) {
         const journalMode = dedicatedConnection.pragma('journal_mode', { simple: true });
         expect(journalMode).toBe('wal');
@@ -619,17 +637,17 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
-      const dedicatedConnection = (scheduler as any).dedicatedConnection;
+      const dedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
       expect(dedicatedConnection).toBeDefined();
 
       // When: stop() 호출
       await scheduler.stop();
 
       // Then: 전용 커넥션이 null이 되어야 함
-      expect((scheduler as any).dedicatedConnection).toBeNull();
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).toBeNull();
     });
 
     it('전용 커넥션을 사용할 때 checkpointNow()가 전용 커넥션을 사용해야 함', async () => {
@@ -637,14 +655,14 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
 
       // executeCheckpoint를 모킹하여 어떤 DB가 사용되는지 확인
       let usedDb: Database.Database | null = null;
-      const originalExecuteCheckpoint = (scheduler as any).executeCheckpoint.bind(scheduler);
-      (scheduler as any).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
+      const originalExecuteCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
         usedDb = db;
         return originalExecuteCheckpoint(db, mode);
       });
@@ -653,7 +671,7 @@ describe('WalCheckpointScheduler class', () => {
       await scheduler.checkpointNow(CheckpointMode.PASSIVE);
 
       // Then: 전용 커넥션이 사용되어야 함
-      const dedicatedConnection = (scheduler as any).dedicatedConnection;
+      const dedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
       expect(usedDb).toBe(dedicatedConnection);
       expect(usedDb).not.toBe(db);
 
@@ -666,14 +684,14 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: false },
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
 
       // executeCheckpoint를 모킹하여 어떤 DB가 사용되는지 확인
       let usedDb: Database.Database | null = null;
-      const originalExecuteCheckpoint = (scheduler as any).executeCheckpoint.bind(scheduler);
-      (scheduler as any).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
+      const originalExecuteCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
         usedDb = db;
         return originalExecuteCheckpoint(db, mode);
       });
@@ -695,14 +713,14 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // checkpoint() 메서드를 모킹하여 실행 시간을 지연시킴
       let firstCallStarted = false;
       let secondCallAttempted = false;
-      const originalCheckpoint = (scheduler as any).checkpoint.bind(scheduler);
-      (scheduler as any).checkpoint = vi.fn(async (mode: CheckpointMode) => {
+      const originalCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint = vi.fn(async (mode: CheckpointMode) => {
         if (!firstCallStarted) {
           firstCallStarted = true;
           // 첫 번째 호출은 지연시킴
@@ -721,7 +739,7 @@ describe('WalCheckpointScheduler class', () => {
 
       // Then: 두 번째 호출은 동시 실행 방지로 인해 대기하거나 스킵되어야 함
       // checkpointInProgress 플래그가 제대로 동작하는지 확인
-      expect((scheduler as any).checkpointInProgress).toBe(false); // 최종적으로 false여야 함
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpointInProgress).toBe(false); // 최종적으로 false여야 함
     });
 
     it('checkpointInProgress가 true일 때 새로운 체크포인트 요청이 거부되어야 함', async () => {
@@ -729,11 +747,11 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // checkpointInProgress를 수동으로 true로 설정
-      (scheduler as any).checkpointInProgress = true;
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpointInProgress = true;
 
       // When: checkpointNow() 호출 시도
       // Then: 에러가 발생하거나 대기해야 함
@@ -741,7 +759,7 @@ describe('WalCheckpointScheduler class', () => {
       // checkpointInProgress가 true일 때는 에러를 던지거나 대기해야 함
       
       // checkpointInProgress를 false로 복원
-      (scheduler as any).checkpointInProgress = false;
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpointInProgress = false;
     });
 
     it('체크포인트 완료 후 checkpointInProgress가 false로 설정되어야 함', async () => {
@@ -749,14 +767,14 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow() 호출
       await scheduler.checkpointNow(CheckpointMode.PASSIVE);
 
       // Then: checkpointInProgress가 false여야 함
-      expect((scheduler as any).checkpointInProgress).toBe(false);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpointInProgress).toBe(false);
     });
   });
 
@@ -770,12 +788,12 @@ describe('WalCheckpointScheduler class', () => {
           walSizeDangerThreshold: 1000, // 작은 임계치로 테스트
           walSizeWarningThreshold: 500
         },
-        mockLogger as any
+        mockLogger
       );
 
       // getWalFileSize를 모킹하여 위험 임계치를 넘는 크기 반환
       let getWalFileSizeCallCount = 0;
-      (scheduler as any).getWalFileSize = vi.fn(async () => {
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize = vi.fn(async () => {
         getWalFileSizeCallCount++;
         // 첫 번째 호출: 위험 임계치 초과
         // 두 번째 호출: TRUNCATE 후 크기 (작아짐)
@@ -784,8 +802,8 @@ describe('WalCheckpointScheduler class', () => {
 
       // executeCheckpoint를 모킹하여 TRUNCATE 모드 호출 확인
       let truncateModeCalled = false;
-      const originalExecuteCheckpoint = (scheduler as any).executeCheckpoint.bind(scheduler);
-      (scheduler as any).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
+      const originalExecuteCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
         if (mode === CheckpointMode.TRUNCATE) {
           truncateModeCalled = true;
         }
@@ -812,11 +830,11 @@ describe('WalCheckpointScheduler class', () => {
           walSizeWarningThreshold: 500,
           walSizeDangerThreshold: 2000
         },
-        mockLogger as any
+        mockLogger
       );
 
       // getWalFileSize를 모킹하여 경고 임계치를 넘지만 위험 임계치는 넘지 않는 크기 반환
-      (scheduler as any).getWalFileSize = vi.fn(async () => 1000);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize = vi.fn(async () => 1000);
 
       // When: checkpointNow() 호출
       await scheduler.checkpointNow(CheckpointMode.PASSIVE);
@@ -840,17 +858,17 @@ describe('WalCheckpointScheduler class', () => {
           walSizeWarningThreshold: 500,
           walSizeDangerThreshold: 2000
         },
-        mockLogger as any
+        mockLogger
       );
 
       // getWalFileSize를 모킹하여 정상 범위 크기 반환
-      (scheduler as any).getWalFileSize = vi.fn(async () => 100);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize = vi.fn(async () => 100);
 
       // When: checkpointNow() 호출
       await scheduler.checkpointNow(CheckpointMode.PASSIVE);
 
       // Then: 경고 로그가 출력되지 않아야 함
-      const warnCalls = mockLogger.warn.mock.calls.filter((call: any[]) => 
+      const warnCalls = mockLogger.warn.mock.calls.filter((call: unknown[]) => 
         call[0]?.includes('WAL 파일 크기')
       );
       expect(warnCalls.length).toBe(0);
@@ -864,16 +882,16 @@ describe('WalCheckpointScheduler class', () => {
           ...config,
           walSizeDangerThreshold: 1000
         },
-        mockLogger as any
+        mockLogger
       );
 
       // getWalFileSize를 모킹하여 위험 임계치를 넘는 크기 반환
-      (scheduler as any).getWalFileSize = vi.fn(async () => 2000);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize = vi.fn(async () => 2000);
 
       // executeCheckpoint 호출 횟수 추적
       let executeCheckpointCallCount = 0;
-      const originalExecuteCheckpoint = (scheduler as any).executeCheckpoint.bind(scheduler);
-      (scheduler as any).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
+      const originalExecuteCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn((db: Database.Database, mode: CheckpointMode) => {
         executeCheckpointCallCount++;
         return originalExecuteCheckpoint(db, mode);
       });
@@ -892,8 +910,8 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any,
-        mockPerformanceMonitor as any
+        mockLogger,
+        mockPerformanceMonitor
       );
 
       // When: checkpointNow() 호출
@@ -905,7 +923,7 @@ describe('WalCheckpointScheduler class', () => {
         expect.any(Number)
       );
       const durationCall = mockPerformanceMonitor.recordMetric.mock.calls.find(
-        (call: any[]) => call[0] === 'wal_checkpoint_duration'
+        (call: unknown[]) => call[0] === 'wal_checkpoint_duration'
       );
       expect(durationCall).toBeDefined();
       expect(durationCall[1]).toBeGreaterThanOrEqual(0);
@@ -916,12 +934,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any,
-        mockPerformanceMonitor as any
+        mockLogger,
+        mockPerformanceMonitor
       );
 
       // getWalFileSize를 모킹하여 특정 크기 반환
-      (scheduler as any).getWalFileSize = vi.fn(async () => 1024 * 1024); // 1MB
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).getWalFileSize = vi.fn(async () => 1024 * 1024); // 1MB
 
       // When: checkpointNow() 호출
       await scheduler.checkpointNow(CheckpointMode.PASSIVE);
@@ -932,7 +950,7 @@ describe('WalCheckpointScheduler class', () => {
         expect.any(Number)
       );
       const sizeCall = mockPerformanceMonitor.recordMetric.mock.calls.find(
-        (call: any[]) => call[0] === 'wal_file_size'
+        (call: unknown[]) => call[0] === 'wal_file_size'
       );
       expect(sizeCall).toBeDefined();
       expect(sizeCall[1]).toBeGreaterThanOrEqual(0);
@@ -943,12 +961,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, maxRetries: 1 }, // 재시도 없이 즉시 실패
-        mockLogger as any,
-        mockPerformanceMonitor as any
+        mockLogger,
+        mockPerformanceMonitor
       );
 
       // executeCheckpoint를 모킹하여 항상 busy=1 반환
-      (scheduler as any).executeCheckpoint = vi.fn(() => ({
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).executeCheckpoint = vi.fn(() => ({
         mode: CheckpointMode.PASSIVE,
         success: false,
         log: 0,
@@ -968,7 +986,7 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: checkpointNow() 호출
@@ -986,18 +1004,18 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
 
       // When: start() -> stop() -> start() 시퀀스 실행
       scheduler.start();
-      expect((scheduler as any).isRunning).toBe(true);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).isRunning).toBe(true);
       
       await scheduler.stop();
-      expect((scheduler as any).isRunning).toBe(false);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).isRunning).toBe(false);
       
       scheduler.start();
-      expect((scheduler as any).isRunning).toBe(true);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).isRunning).toBe(true);
 
       // Then: 정상적으로 동작해야 함
       expect(mockLogger.info).toHaveBeenCalledTimes(3); // 시작 2회, 중지 1회
@@ -1011,16 +1029,16 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         config,
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
-      const firstIntervalId = (scheduler as any).intervalId;
+      const firstIntervalId = (scheduler as unknown as WalCheckpointSchedulerTestAccess).intervalId;
 
       // When: start()를 다시 호출
       scheduler.start();
 
       // Then: 동일한 intervalId를 유지해야 함 (타이머 중복 생성 방지)
-      expect((scheduler as any).intervalId).toBe(firstIntervalId);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).intervalId).toBe(firstIntervalId);
       
       // 정리
       scheduler.stop();
@@ -1031,10 +1049,10 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
-      const dedicatedConnection = (scheduler as any).dedicatedConnection;
+      const dedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
       expect(dedicatedConnection).toBeDefined();
 
       // When: stop()을 여러 번 호출
@@ -1043,8 +1061,8 @@ describe('WalCheckpointScheduler class', () => {
       await scheduler.stop();
 
       // Then: dedicatedConnection이 null이어야 함 (한 번만 해제)
-      expect((scheduler as any).dedicatedConnection).toBeNull();
-      expect((scheduler as any).isRunning).toBe(false);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).toBeNull();
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).isRunning).toBe(false);
     });
 
     it('stop() 후 start() 호출 시 새로운 리소스가 생성되어야 함', async () => {
@@ -1052,18 +1070,18 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
-      const firstDedicatedConnection = (scheduler as any).dedicatedConnection;
+      const firstDedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
       expect(firstDedicatedConnection).toBeDefined();
 
       // When: stop() 후 start() 호출
       await scheduler.stop();
-      expect((scheduler as any).dedicatedConnection).toBeNull();
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).toBeNull();
       
       scheduler.start();
-      const secondDedicatedConnection = (scheduler as any).dedicatedConnection;
+      const secondDedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
 
       // Then: 새로운 전용 커넥션이 생성되어야 함
       expect(secondDedicatedConnection).toBeDefined();
@@ -1078,17 +1096,17 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, useDedicatedConnection: true },
-        mockLogger as any
+        mockLogger
       );
       scheduler.start();
-      const firstDedicatedConnection = (scheduler as any).dedicatedConnection;
+      const firstDedicatedConnection = (scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection;
       expect(firstDedicatedConnection).toBeDefined();
 
       // When: start()를 다시 호출
       scheduler.start();
 
       // Then: 동일한 전용 커넥션을 유지해야 함
-      expect((scheduler as any).dedicatedConnection).toBe(firstDedicatedConnection);
+      expect((scheduler as unknown as WalCheckpointSchedulerTestAccess).dedicatedConnection).toBe(firstDedicatedConnection);
       
       // 정리
       scheduler.stop();
@@ -1109,13 +1127,13 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, intervalMs: 100 }, // 짧은 주기로 테스트
-        mockLogger as any
+        mockLogger
       );
 
       // checkpoint() 메서드 호출 횟수 추적
       let checkpointCallCount = 0;
-      const originalCheckpoint = (scheduler as any).checkpoint.bind(scheduler);
-      (scheduler as any).checkpoint = vi.fn(async (mode: CheckpointMode) => {
+      const originalCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint = vi.fn(async (mode: CheckpointMode) => {
         checkpointCallCount++;
         return originalCheckpoint(mode);
       });
@@ -1141,12 +1159,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, intervalMs: 100 },
-        mockLogger as any
+        mockLogger
       );
 
       let checkpointCallCount = 0;
-      const originalCheckpoint = (scheduler as any).checkpoint.bind(scheduler);
-      (scheduler as any).checkpoint = vi.fn(async (mode: CheckpointMode) => {
+      const originalCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint = vi.fn(async (mode: CheckpointMode) => {
         checkpointCallCount++;
         return originalCheckpoint(mode);
       });
@@ -1176,17 +1194,17 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, intervalMs: 100 },
-        mockLogger as any
+        mockLogger
       );
 
       let checkpointCallCount = 0;
       // checkpoint()를 모킹하여 느리게 실행되도록 함
-      (scheduler as any).checkpoint = vi.fn(async (mode: CheckpointMode) => {
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint = vi.fn(async (mode: CheckpointMode) => {
         checkpointCallCount++;
         // checkpointInProgress를 수동으로 true로 설정하여 진행 중 상태 시뮬레이션
-        (scheduler as any).checkpointInProgress = true;
+        (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpointInProgress = true;
         await new Promise(resolve => setTimeout(resolve, 200));
-        (scheduler as any).checkpointInProgress = false;
+        (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpointInProgress = false;
         return {
           mode,
           success: true,
@@ -1219,11 +1237,11 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, intervalMs: 100 },
-        mockLogger as any
+        mockLogger
       );
 
       // checkpoint()를 모킹하여 에러 발생
-      (scheduler as any).checkpoint = vi.fn(async () => {
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint = vi.fn(async () => {
         throw new Error('체크포인트 실패');
       });
 
@@ -1246,12 +1264,12 @@ describe('WalCheckpointScheduler class', () => {
       const scheduler = new WalCheckpointScheduler(
         db,
         { ...config, intervalMs: 100 },
-        mockLogger as any
+        mockLogger
       );
 
       let checkpointCallCount = 0;
-      const originalCheckpoint = (scheduler as any).checkpoint.bind(scheduler);
-      (scheduler as any).checkpoint = vi.fn(async (mode: CheckpointMode) => {
+      const originalCheckpoint = (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint.bind(scheduler);
+      (scheduler as unknown as WalCheckpointSchedulerTestAccess).checkpoint = vi.fn(async (mode: CheckpointMode) => {
         checkpointCallCount++;
         return originalCheckpoint(mode);
       });

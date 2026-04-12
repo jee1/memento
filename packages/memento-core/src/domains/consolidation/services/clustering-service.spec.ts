@@ -39,6 +39,9 @@ describe('ClusteringService', () => {
 
   it('skips groups smaller than min cluster size', () => {
     vi.stubEnv('CONSOLIDATION_SIMILARITY_THRESHOLD', '0.75');
+    // 기본 min cluster size는 2이므로, 4개가 한 그룹으로 묶이면 유효 클러스터가 된다.
+    // 이 테스트는 입력 개수가 min보다 작을 때 조기 종료되는 경로를 검증한다.
+    vi.stubEnv('CONSOLIDATION_MIN_CLUSTER_SIZE', '5');
     const svc = new ClusteringService();
     const emb = [1, 0, 0, 0];
     const items = Array.from({ length: 4 }, (_, i) => ({

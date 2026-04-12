@@ -6,7 +6,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GetTelemetrySummaryTool } from './get-telemetry-summary-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import type { TelemetryService } from '../services/telemetry-service.js';
-import type { SearchQualityResult, MemoryQualityResult } from '../repositories/telemetry-repository.js';
+import type {
+  SearchQualityResult,
+  MemoryQualityResult,
+  ConsolidationQualityResult
+} from '../repositories/telemetry-repository.js';
 
 function makeSearchQuality(overrides: Partial<SearchQualityResult> = {}): SearchQualityResult {
   return {
@@ -36,6 +40,20 @@ function makeMemoryQuality(overrides: Partial<MemoryQualityResult> = {}): Memory
   };
 }
 
+function makeConsolidationQuality(
+  overrides: Partial<ConsolidationQualityResult> = {}
+): ConsolidationQualityResult {
+  return {
+    episodic_consolidation_rate: null,
+    triple_extraction_success_rate: null,
+    cluster_processing_efficiency: null,
+    recent_semantic_count_7d: 0,
+    pipeline_error_count: 0,
+    timestamp: '2026-03-29T10:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function makeContext(
   overrides: Partial<{
     ownerId: string | null;
@@ -43,6 +61,7 @@ function makeContext(
     memoryQuality: MemoryQualityResult;
     getSearchQualityImpl: (...args: unknown[]) => SearchQualityResult;
     getMemoryQualityImpl: (...args: unknown[]) => MemoryQualityResult;
+    getConsolidationQualityImpl: (...args: unknown[]) => ConsolidationQualityResult;
   }> = {}
 ): ToolContext {
   const {
@@ -51,6 +70,7 @@ function makeContext(
     memoryQuality = makeMemoryQuality(),
     getSearchQualityImpl,
     getMemoryQualityImpl,
+    getConsolidationQualityImpl,
   } = overrides;
 
   const mockTelemetryService = {
@@ -61,6 +81,9 @@ function makeContext(
     getMemoryQuality: getMemoryQualityImpl
       ? vi.fn().mockImplementation(getMemoryQualityImpl)
       : vi.fn().mockReturnValue(memoryQuality),
+    getConsolidationQuality: getConsolidationQualityImpl
+      ? vi.fn().mockImplementation(getConsolidationQualityImpl)
+      : vi.fn().mockReturnValue(makeConsolidationQuality()),
   } as unknown as TelemetryService;
 
   return {

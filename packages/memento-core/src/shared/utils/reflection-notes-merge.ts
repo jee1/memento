@@ -7,13 +7,13 @@
 
 import { logger } from './logger.js';
 import { PIIMasker } from './pii-masker.js';
-import { validateReflectionNotes } from './reflection-notes-schema.js';
+import { validateReflectionNotes, type ReflectionNote } from './reflection-notes-schema.js';
 
 /**
  * 병합 결과 타입
  */
 export interface MergeResult {
-  merged: any[]; // 병합된 배열
+  merged: ReflectionNote[]; // 병합된 배열
   removedCount: number; // 제거된 항목 수
   warnings: string[]; // 경고 메시지 목록
 }
@@ -21,15 +21,15 @@ export interface MergeResult {
 /**
  * 기존 reflection_notes 타입
  */
-export type ExistingReflectionNotes = 
+export type ExistingReflectionNotes =
   | { type: 'null'; value: null }
-  | { type: 'object'; value: any }
-  | { type: 'array'; value: any[] };
+  | { type: 'object'; value: ReflectionNote }
+  | { type: 'array'; value: ReflectionNote[] };
 
 /**
  * 새로 추가할 reflection_notes 타입
  */
-export type NewReflectionNotes = string | any | any[];
+export type NewReflectionNotes = string | unknown | unknown[];
 
 /**
  * 단일 객체 최대 크기 (10KB)
@@ -52,7 +52,7 @@ const MAX_ARRAY_SIZE = 100;
  * @param obj - 검증할 객체
  * @returns 객체 크기 (바이트)
  */
-function getObjectSize(obj: any): number {
+function getObjectSize(obj: unknown): number {
   try {
     return new TextEncoder().encode(JSON.stringify(obj)).length;
   } catch (error) {
@@ -67,7 +67,7 @@ function getObjectSize(obj: any): number {
  * @param obj - 검증할 객체
  * @throws Error - 10KB 초과 시
  */
-function validateSingleObjectSize(obj: any): void {
+function validateSingleObjectSize(obj: unknown): void {
   const size = getObjectSize(obj);
   if (size > MAX_SINGLE_OBJECT_SIZE) {
     throw new Error(
@@ -82,7 +82,7 @@ function validateSingleObjectSize(obj: any): void {
  * @param array - 제한을 적용할 배열
  * @returns 제한이 적용된 배열과 제거된 항목 수
  */
-function limitArraySize(array: any[]): { limited: any[]; removedCount: number } {
+function limitArraySize(array: ReflectionNote[]): { limited: ReflectionNote[]; removedCount: number } {
   if (array.length <= MAX_ARRAY_SIZE) {
     return { limited: array, removedCount: 0 };
   }
@@ -106,7 +106,7 @@ function limitArraySize(array: any[]): { limited: any[]; removedCount: number } 
  * @param array - 검증할 배열
  * @returns 정리된 배열과 제거된 항목 수
  */
-function validateAndCleanupTotalSize(array: any[]): { cleaned: any[]; removedCount: number } {
+function validateAndCleanupTotalSize(array: ReflectionNote[]): { cleaned: ReflectionNote[]; removedCount: number } {
   const totalSize = getObjectSize(array);
 
   if (totalSize <= MAX_TOTAL_FIELD_SIZE) {
@@ -128,8 +128,9 @@ function validateAndCleanupTotalSize(array: any[]): { cleaned: any[]; removedCou
     // 가장 오래된 항목 찾기
     const oldestIndex = cleaned.findIndex((item, idx) => {
       const itemTimestamp = item.timestamp ? new Date(item.timestamp).getTime() : 0;
-      const oldestTimestamp = sorted[removedCount]?.timestamp 
-        ? new Date(sorted[removedCount].timestamp).getTime() 
+      const oldestEntry = sorted[removedCount];
+      const oldestTimestamp = oldestEntry?.timestamp
+        ? new Date(oldestEntry.timestamp).getTime()
         : 0;
       return itemTimestamp === oldestTimestamp;
     });
@@ -163,7 +164,7 @@ function validateAndCleanupTotalSize(array: any[]): { cleaned: any[]; removedCou
  * @param newNotes - 새로 추가할 reflection_notes (문자열, 객체, 또는 배열)
  * @returns 배열로 변환된 reflection_notes
  */
-function normalizeNewReflectionNotes(newNotes: NewReflectionNotes): any[] {
+function normalizeNewReflectionNotes(newNotes: NewReflectionNotes): unknown[] {
   // 문자열인 경우 JSON 파싱
   if (typeof newNotes === 'string') {
     try {
@@ -222,22 +223,35 @@ export function mergeReflectionNotes(
     }
   }
 
+  // 새로 들어온 notes 스키마 검증
+  const validationTarget =
+    newNotesArray.length === 1 ? JSON.stringify(newNotesArray[0]) : JSON.stringify(newNotesArray);
+  const validation = validateReflectionNotes(validationTarget);
+  if (!validation.isValid) {
+    const message = validation.errors
+      ?.map((e) => `${e.field}: ${e.message}`)
+      .join('; ') ?? 'reflection_notes validation failed';
+    throw new Error(`reflection_notes 스키마 검증 실패: ${message}`);
+  }
+
+  const validatedNewNotesArray = newNotesArray as ReflectionNote[];
+
   // 기존 reflection_notes 처리
-  let merged: any[];
+  let merged: ReflectionNote[];
 
   if (existing.type === 'null') {
     // NULL → 새로 저장
-    merged = newNotesArray;
+    merged = validatedNewNotesArray;
   } else if (existing.type === 'object') {
     // 단일 객체 → 배열 변환 후 추가
-    merged = [existing.value, ...newNotesArray];
+    merged = [existing.value, ...validatedNewNotesArray];
   } else if (existing.type === 'array') {
     // 배열 → 배열에 추가
-    merged = [...existing.value, ...newNotesArray];
+    merged = [...existing.value, ...validatedNewNotesArray];
   } else {
     // 예상치 못한 타입
-    merged = newNotesArray;
-    warnings.push(`예상치 못한 기존 reflection_notes 타입: ${(existing as any).type}`);
+    merged = validatedNewNotesArray;
+    warnings.push(`예상치 못한 기존 reflection_notes 타입: ${String((existing as { type?: unknown }).type)}`);
   }
 
   // 배열 크기 제한 적용
@@ -273,7 +287,7 @@ export function mergeReflectionNotes(
  * @param merged - 병합된 배열
  * @returns JSON 문자열
  */
-export function serializeReflectionNotes(merged: any[]): string {
+export function serializeReflectionNotes(merged: ReflectionNote[]): string {
   // 배열이 1개인 경우 단일 객체로 저장 (Phase 1 호환성)
   if (merged.length === 1) {
     return JSON.stringify(merged[0]);

@@ -16,12 +16,14 @@ export interface EpisodicWithEmbedding {
 export class ClusteringService {
   getSimilarityThreshold(): number {
     const raw = process.env.CONSOLIDATION_SIMILARITY_THRESHOLD;
-    const n = raw ? parseFloat(raw) : 0.75;
-    return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.75;
+    const n = raw ? parseFloat(raw) : 0.65;
+    return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.65;
   }
 
   getMinClusterSize(): number {
-    return 5;
+    const raw = process.env.CONSOLIDATION_MIN_CLUSTER_SIZE;
+    const n = raw ? parseInt(raw, 10) : 2;
+    return Number.isFinite(n) && n >= 2 ? n : 2;
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {

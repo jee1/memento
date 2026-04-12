@@ -55,7 +55,7 @@ export class SchemaVersionManager {
         LIMIT 1
       `);
 
-      return result?.version || null;
+      return (result as { version?: string } | undefined)?.version ?? null;
     } catch (error) {
       // 테이블이 없는 경우 null 반환
       return null;

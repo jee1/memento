@@ -22,7 +22,9 @@ export function applyConsolidationTestSchema(db: Database.Database): void {
       source TEXT,
       origin_source TEXT DEFAULT '{}',
       owner_id TEXT NULL,
-      is_consolidated BOOLEAN DEFAULT FALSE
+      is_consolidated BOOLEAN DEFAULT FALSE,
+      is_deleted INTEGER DEFAULT 0,
+      deleted_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS memory_embedding (

@@ -13,6 +13,7 @@ import { TripleExtractionService } from '../../relation/services/triple-extracti
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../domains/embedding/services/unified-embedding-service.js';
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 
 /**
  * Convert Episodic to Semantic 스키마
@@ -241,16 +242,13 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
 
           // Triple이 추출된 경우 Semantic Memory 생성/업데이트
           if (extractionResult.triples.length > 0) {
-            // MemoryEmbeddingService는 내부적으로 UnifiedEmbeddingService를 사용하므로,
-            // 타입 단언을 사용하여 UnifiedEmbeddingService로 변환
-            // 실제로는 MemoryEmbeddingService가 UnifiedEmbeddingService를 래핑하고 있음
-            const embeddingService: UnifiedEmbeddingService = context.services.embeddingService 
-              ? (context.services.embeddingService as unknown as UnifiedEmbeddingService)
+            const unifiedForSemantic: UnifiedEmbeddingService = context.services.embeddingService
+              ? context.services.embeddingService.getUnifiedEmbeddingService()
               : new UnifiedEmbeddingService();
             const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
               db,
-              embeddingService,
-              context.services.relationGraph
+              unifiedForSemantic,
+              context.services.relationGraph ?? createRelationGraph(db)
             );
 
             const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
@@ -267,7 +265,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
               const relations = DatabaseUtils.all(db, `
                 SELECT confidence FROM memory_relation
                 WHERE source_id = ? AND relation_type = 'extracted_from'
-              `, [episodicMemory.id]);
+              `, [episodicMemory.id]) as Array<{ confidence?: number | null }>;
               for (const rel of relations) {
                 if (rel.confidence !== null && rel.confidence !== undefined) {
                   confidenceValues.push(rel.confidence);
@@ -320,7 +318,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
             try {
               const existing = DatabaseUtils.get(db, `
                 SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-              `, [episodicMemory.id]);
+              `, [episodicMemory.id]) as { triple_extraction_metadata?: string } | undefined;
               if (existing?.triple_extraction_metadata) {
                 const existingMeta = JSON.parse(existing.triple_extraction_metadata);
                 retryCount = (existingMeta.retry_count || 0) + 1;

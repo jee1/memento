@@ -27,7 +27,6 @@ import {
   DatabaseUtils,
   ErrorSeverity,
   ErrorCategory,
-  type MemoryItem,
   withErrorHandling,
   MemoryNeighborService,
   getVectorSearchEngine,
@@ -299,11 +298,11 @@ function registerHandlers() {
       }
 
       // 모든 메모리 ID 조회
-      const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
+      const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000') as Array<{ id: string }>;
       await mcpLogger.logMCPProtocol('debug', `리소스 개수: ${memories.length}`, { count: memories.length });
 
       return {
-        resources: memories.map((memory: MemoryItem) => ({
+        resources: memories.map((memory) => ({
           uri: `memory://${memory.id}`,
           name: `Memory ${memory.id}`,
           description: `Memory item with ID: ${memory.id}`,
@@ -372,11 +371,24 @@ function registerHandlers() {
       }
 
       // 메모리 조회
+      type MemoryResourceRow = {
+        id: string;
+        type: string;
+        content: string;
+        importance: number;
+        privacy_scope: string;
+        tags: string | null;
+        source: string | null;
+        created_at: string;
+        last_accessed: string | null;
+        pinned: number | boolean;
+      };
+
       const memory = await DatabaseUtils.get(
         db,
         'SELECT id, type, content, importance, privacy_scope, tags, source, created_at, last_accessed, pinned FROM memory_item WHERE id = ?',
         [memoryId]
-      );
+      ) as MemoryResourceRow | undefined;
 
       if (!memory) {
         throw new Error(`Memory not found: ${memoryId}`);

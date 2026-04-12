@@ -166,6 +166,8 @@ export interface MemorySearchResult {
   tags?: string[];
   score: number;
   recall_reason: string;
+  /** include_score_breakdown=true일 때 텍스트/하이브리드 검색 경로에서 포함 */
+  score_breakdown?: import('./search.types.js').ScoreBreakdown;
   // MIRIX Schema Expansion (v2.0) 필드
   task_goal?: string; // Procedural Memory 전용, 작업 목표
   steps?: string; // Procedural Memory 전용, JSON 배열 형식
@@ -182,6 +184,14 @@ export interface MemorySearchResult {
   version_chain?: import('./procedural-versioning.js').VersionChainItem[];
   diff_with_previous?: import('./procedural-versioning.js').ProceduralDiffResult | null;
   diff_with?: import('./procedural-versioning.js').ProceduralDiffResult | null;
+
+  // Search metadata (DB 조회 결과에 따라 존재)
+  consolidation_score?: number;
+  owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
+  num_times?: number;
+  last_mentioned_at?: Date;
 }
 
 export interface SearchRankingWeights {

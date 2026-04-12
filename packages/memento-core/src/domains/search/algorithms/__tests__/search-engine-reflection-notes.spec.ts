@@ -49,7 +49,10 @@ function initializeTestDatabase(db: Database.Database): void {
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
-      confidence REAL
+      confidence REAL,
+      is_consolidated BOOLEAN DEFAULT FALSE,
+      is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+      deleted_at TEXT
     );
   `);
 
@@ -85,7 +88,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
   });
 
   describe('4.5.1: SearchEngine의 reflection_notes 검색 fallback 테스트', () => {
-    const createValidReflectionNote = (overrides: Partial<any> = {}) => ({
+    const createValidReflectionNote = (overrides: Partial<Record<string, unknown>> = {}) => ({
       failure_type: 'tool_error',
       failure_description: 'Test error',
       timestamp: new Date().toISOString(),
@@ -213,7 +216,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(Array.isArray(result.items)).toBe(true);
         
         // reflection_notes에 'timeout'이 포함된 항목이 검색되어야 함
-        const found = result.items.some((item: any) => 
+        const found = result.items.some((item) => 
           item.id === 'proc_1' || item.id === 'proc_2'
         );
         expect(found).toBe(true);
@@ -238,7 +241,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(Array.isArray(result.items)).toBe(true);
         
         // reflection_notes에 'timeout'이 포함된 항목이 검색되어야 함
-        const found = result.items.some((item: any) => 
+        const found = result.items.some((item) => 
           item.id === 'proc_1' || item.id === 'proc_2'
         );
         expect(found).toBe(true);
@@ -297,7 +300,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(result.items).toBeDefined();
         
         // proc_1이 검색되어야 함 (단일 객체에 'API timeout' 포함)
-        const found = result.items.find((item: any) => item.id === 'proc_1');
+        const found = result.items.find((item) => item.id === 'proc_1');
         expect(found).toBeDefined();
       });
     });
@@ -317,7 +320,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(result.items).toBeDefined();
         
         // proc_2가 검색되어야 함 (배열에 'Network connection' 포함)
-        const found = result.items.find((item: any) => item.id === 'proc_2');
+        const found = result.items.find((item) => item.id === 'proc_2');
         expect(found).toBeDefined();
       });
     });
@@ -337,7 +340,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(result.items).toBeDefined();
         
         // proc_1과 proc_2가 검색되어야 함 (failure_type이 'tool_error')
-        const found = result.items.filter((item: any) => 
+        const found = result.items.filter((item) => 
           item.id === 'proc_1' || item.id === 'proc_2'
         );
         expect(found.length).toBeGreaterThan(0);
@@ -357,7 +360,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         expect(result.items).toBeDefined();
         
         // reflection_notes에 'error'가 포함된 항목이 검색되어야 함
-        const found = result.items.filter((item: any) => 
+        const found = result.items.filter((item) => 
           item.id === 'proc_1' || item.id === 'proc_2'
         );
         expect(found.length).toBeGreaterThan(0);
@@ -385,7 +388,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         // 검색 결과가 있는 경우에만 검증
         if (result.items.length > 0) {
           // 모든 검색 결과가 reflection_notes를 가지고 있는지 확인
-          const itemsWithReflectionNotes = result.items.filter((item: any) => {
+          const itemsWithReflectionNotes = result.items.filter((item) => {
             const record = db.prepare('SELECT reflection_notes FROM memory_item WHERE id = ?').get(item.id) as { reflection_notes: string | null } | undefined;
             return record && record.reflection_notes !== null;
           });
@@ -420,7 +423,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
         // 검색 결과가 있는 경우에만 검증
         if (result.items.length > 0) {
           // 모든 검색 결과가 reflection_notes가 없는지 확인
-          const itemsWithoutReflectionNotes = result.items.filter((item: any) => {
+          const itemsWithoutReflectionNotes = result.items.filter((item) => {
             const record = db.prepare('SELECT reflection_notes FROM memory_item WHERE id = ?').get(item.id) as { reflection_notes: string | null } | undefined;
             return record && record.reflection_notes === null;
           });

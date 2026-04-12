@@ -10,6 +10,7 @@ services:
       MCP_SERVER_PORT: ${MCP_SERVER_PORT:-9001}
       PORT: ${PORT:-9001}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: ${MEMENTO_ALLOW_INSECURE_HTTP_ADMIN:-false}
     ports:
       - "${MCP_SERVER_PORT:-9001}:${MCP_SERVER_PORT:-9001}"
     command: ["/app/start-container.sh"]

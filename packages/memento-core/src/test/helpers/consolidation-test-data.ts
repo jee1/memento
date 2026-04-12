@@ -70,7 +70,10 @@ export function initializeTestDatabase(db: Database.Database): void {
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
-      confidence REAL
+      confidence REAL,
+      is_consolidated BOOLEAN DEFAULT FALSE,
+      is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+      deleted_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);

@@ -373,8 +373,8 @@ export class ForgetTool extends BaseTool {
         context.db!,
         'SELECT embedding_provider FROM memory_embedding WHERE memory_id = ?',
         [id]
-      );
-      
+      ) as { embedding_provider?: string } | undefined;
+
       if (embeddingInfo) {
         const provider = embeddingInfo.embedding_provider || 'tfidf';
         const tableName = this.getVectorTableName(provider);
@@ -458,7 +458,7 @@ export class ForgetTool extends BaseTool {
     );
     
     return {
-      ...stats,
+      ...(stats != null && typeof stats === 'object' ? stats as Record<string, unknown> : {}),
       recent_deletes: recentDeletes
     };
   }

@@ -19,6 +19,9 @@ import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes
 import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../../../shared/utils/fts5-migration-status.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { ensureMemoryItemTripleExtractionColumns } from './ensure-memory-item-triple-extraction-columns.js';
+import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
+import { ensureQualityAssuranceSchema } from '../../../shared/utils/ensure-quality-assurance-schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -601,7 +604,11 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
         await recordBundledSchemaSqlMigrationBaseline(db);
       }
     }
-    
+
+    ensureMemoryItemTripleExtractionColumns(db);
+    ensureMetaMemoryStatsSchema(db);
+    ensureQualityAssuranceSchema(db);
+
     // Core Memory 자동 로드 (always_load=true인 항목만)
     try {
       log('🔄 Core Memory 자동 로드 중...');

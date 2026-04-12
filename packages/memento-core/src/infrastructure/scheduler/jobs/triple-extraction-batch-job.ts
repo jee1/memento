@@ -19,6 +19,7 @@
  */
 
 import Database from 'better-sqlite3';
+import { ensureMemoryItemTripleExtractionColumns } from '../../database/database/ensure-memory-item-triple-extraction-columns.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { TripleExtractionService } from '../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
@@ -158,6 +159,9 @@ export class TripleExtractionBatchJob {
     };
 
     try {
+      // 스키마 기준선과 실제 DB 불일치(구버전 dist·직접 DB 경로 등) 시 컬럼 누락 방지
+      ensureMemoryItemTripleExtractionColumns(db);
+
       // PRD 6.3: 배치 작업 로깅 - 시작 로깅
       logger.info('Starting triple extraction batch job', {
         batchSize: this.config.batchSize,

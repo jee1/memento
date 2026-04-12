@@ -153,3 +153,12 @@ After completing work: store results — `episodic` for completed tasks, `semant
 ## Recent Changes
 - 005-sleep-consolidation: 에피소딕→시맨틱 오프라인 증류(`SleepConsolidationService`), `is_consolidated`+마이그레이션 `025`, 배치(`SLEEP_CONSOLIDATION_INTERVAL_MS`), `POST /admin/consolidation/run`
 - 002-fix-mcp-monitoring-overhead: Added TypeScript (Node.js ≥ 20), ES modules + better-sqlite3, vitest
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` to keep the graph current
