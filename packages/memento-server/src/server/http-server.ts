@@ -5,6 +5,8 @@
  */
 
 import express from 'express';
+import { existsSync } from 'fs';
+import { join } from 'path';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
@@ -72,6 +74,29 @@ function setTestDependencies(_deps: TestDependencies): void {
   }
 }
 
+/**
+ * 정적 UI(graph.html 등) 위치 — Docker(/app/static), 로컬 모노레포 루트(./static),
+ * 또는 memento-server 패키지 cwd에서 상위 탐색.
+ */
+function resolveStaticRoot(): string {
+  const env = process.env.MEMENTO_STATIC_ROOT?.trim();
+  if (env) {
+    return env;
+  }
+  const cwd = process.cwd();
+  const candidates = [join(cwd, 'static'), join(cwd, '..', 'static'), join(cwd, '..', '..', 'static')];
+  for (const p of candidates) {
+    const graphPath = join(p, 'graph.html');
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 모노레포·Docker에서 static/ 위치만 탐색
+    if (existsSync(graphPath)) {
+      return p;
+    }
+  }
+  return join(cwd, 'static');
+}
+
+const staticRoot = resolveStaticRoot();
+
 // Express 앱 생성
 const app = express();
 const server = createServer(app);
@@ -110,8 +135,16 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 브라우저 대시보드용: 서버가 ADMIN_API_KEY를 알려주는 설정 스크립트(CSP 인라인 금지 대응)
+app.get('/static/js/memento-admin-config.js', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('application/javascript');
+  const payload = JSON.stringify({ apiKey: mementoConfig.adminApiKey ?? null });
+  res.send(`window.__MEMENTO_ADMIN_FETCH_CONFIG__=${payload};`);
+});
+
 // Static 파일 서빙 (대시보드 및 UI 리소스)
-app.use('/static', express.static('static'));
+app.use('/static', express.static(staticRoot));
 
 // 기본 API 엔드포인트
 app.get('/health', (req, res) => {
@@ -139,7 +172,7 @@ let mcpRouter: express.Router | null = null;
 
 // 대시보드 라우트 (정적 파일 서빙)
 app.get('/dashboard', (req, res) => {
-  res.sendFile('dashboard.html', { root: 'static' }, (err) => {
+  res.sendFile('dashboard.html', { root: staticRoot }, (err) => {
     if (err) {
       logger.error('대시보드 파일 로드 실패', { error: err });
       res.status(404).send('Dashboard not found');
@@ -149,7 +182,7 @@ app.get('/dashboard', (req, res) => {
 
 // 기억 관계 그래프 뷰 (009-memory-graph-view)
 app.get('/graph', (req, res) => {
-  res.sendFile('graph.html', { root: 'static' }, (err) => {
+  res.sendFile('graph.html', { root: staticRoot }, (err) => {
     if (err) {
       logger.error('그래프 파일 로드 실패', { error: err });
       res.status(404).send('Graph view not found');
@@ -493,6 +526,10 @@ async function startServer() {
   if (!adminKey || adminKey.trim() === '') {
     logger.warn(
       'ADMIN_API_KEY is not configured: all admin/API/quality endpoints are disabled and will return 401. Set ADMIN_API_KEY environment variable to enable admin access.'
+    );
+  } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
+    logger.warn(
+      'ADMIN_API_KEY contains non-ASCII characters: browser-based graph/dashboard may fail to send Authorization (use ASCII-only keys, e.g. hex or base64url).'
     );
   }
 
