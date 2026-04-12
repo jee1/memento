@@ -146,7 +146,7 @@ export function createFailureEvent(options: {
   };
 }
 
-describe('ReflexionWorker', () => {
+describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
   let worker: ReflexionWorker;
   let detector: FailureDetector;
   let db: Database.Database;
@@ -160,13 +160,14 @@ describe('ReflexionWorker', () => {
   });
 
   afterEach(async () => {
-    try {
-      await waitForEventProcessing(worker, 30000);
-    } catch {
-      // 타임아웃은 아래 stop/cleanup으로 정리
-    }
     await worker.stop();
     await detector.stopQueue();
+    // in-flight 이벤트가 끝날 때까지 짧게만 대기 (LLM 등으로 장시간 걸리면 훅 타임아웃·DB 조기 close 방지)
+    try {
+      await waitForEventProcessing(worker, 20000);
+    } catch {
+      // 무시하고 DB 정리 진행
+    }
     await cleanupTestDatabase(db);
     vi.clearAllMocks();
     vi.restoreAllMocks();
