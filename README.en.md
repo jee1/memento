@@ -47,6 +47,16 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Cache System**: LRU + TTL based caching
 - **Async Processing**: Worker pool based parallel processing
 
+### 🔗 Memory Graph View (Browser)
+
+After starting the HTTP server, visualize semantic relationships between memories as an interactive graph in your browser.
+
+```
+http://localhost:9001/graph
+```
+
+![Memento Memory Graph View](docs/graph-screenshot.png)
+
 ## 🚀 Quick Start
 
 ### 🥇 **One-click Installation (Recommended)**

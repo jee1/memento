@@ -3,6 +3,7 @@
  * LLM을 사용하여 Episodic Memory의 observation에서 (subject, predicate, object) 형태의 지식 그래프 트리플을 추출합니다.
  * 
  * AriGraph 파이프라인의 핵심 컴포넌트로, Episodic Memory에서 Semantic Memory로의 자동 학습을 지원합니다.
+ * RelationExtractor는 규칙/LLM 하이브리드 관계 후보를 담당; 본 서비스는 트리플 텍스트 추출·정규화·지속화 경로를 담당한다.
  * 
  * 비용 최적화 전략:
  * - Rate limit (토큰 버킷 알고리즘)

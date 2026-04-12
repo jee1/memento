@@ -30,47 +30,12 @@ import { MemoryEmbeddingService } from '../services/memory-embedding-service.js'
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import type { MetaMemoryService } from '../services/meta-memory-service.js';
-
-type RecallRetrievalStrategyTelemetry = 'hybrid' | 'vector' | 'fts' | 'graph';
-
-/** 텔레메트리 retrieval_strategy — recall 메인 경로는 hybrid·fts·vector 가중 조합만 사용(graph 전용 검색은 미구현) */
-function recallTelemetryRetrievalStrategy(
-  useHybridRecall: boolean,
-  normalizedVectorWeight: number,
-  normalizedTextWeight: number
-): RecallRetrievalStrategyTelemetry {
-  if (!useHybridRecall) return 'fts';
-  const eps = 1e-9;
-  if (normalizedTextWeight <= eps && normalizedVectorWeight > eps) return 'vector';
-  if (normalizedVectorWeight <= eps && normalizedTextWeight > eps) return 'fts';
-  return 'hybrid';
-}
-
-function recallSearchRequestedExtra(
-  queryHash: string,
-  query: string,
-  retrievalStrategy: RecallRetrievalStrategyTelemetry
-): Record<string, unknown> {
-  const extra: Record<string, unknown> = {
-    query_hash: queryHash,
-    retrieval_strategy: retrievalStrategy,
-    embedding_provider: mementoConfig.embeddingProvider,
-    ranking_version: 'ranking-weights-default-v1'
-  };
-  if (mementoConfig.telemetryStoreQueryPlaintext) {
-    extra.query = query;
-  }
-  return extra;
-}
-
-/** 후속 search.empty / search.selected 이벤트에서 요청과 상관시키기 위한 최소 필드 */
-function recallQueryCorrelationExtra(queryHash: string, query: string): Record<string, unknown> {
-  const e: Record<string, unknown> = { query_hash: queryHash };
-  if (mementoConfig.telemetryStoreQueryPlaintext) {
-    e.query = query;
-  }
-  return e;
-}
+import {
+  recallTelemetryRetrievalStrategy,
+  recallSearchRequestedExtra,
+  recallQueryCorrelationExtra,
+  buildQueryEmbeddingMetadataFields
+} from './recall-tool-telemetry.js';
 
 /**
  * 앵커 설정 메타데이터 타입
@@ -443,22 +408,6 @@ interface MetaStatsItem {
   failure_count: number;
   avg_confidence: number;
   last_recalled_at?: string;
-}
-
-/** 하이브리드 검색 query_embedding_providers → metadata용 단일 canonical + 배열 */
-function buildQueryEmbeddingMetadataFields(providers: EmbeddingProvider[]): {
-  embedding_provider: string;
-  query_embedding_providers: EmbeddingProvider[];
-} {
-  const uniqueSorted = [...new Set(providers)].sort() as EmbeddingProvider[];
-  const cfg = mementoConfig.embeddingProvider as EmbeddingProvider | undefined;
-  const embedding_provider: string =
-    uniqueSorted.length === 1
-      ? uniqueSorted[0]!
-      : cfg !== undefined && uniqueSorted.includes(cfg)
-        ? cfg
-        : uniqueSorted[0]!;
-  return { embedding_provider, query_embedding_providers: uniqueSorted };
 }
 
 export class RecallTool extends BaseTool {

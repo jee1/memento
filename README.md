@@ -67,6 +67,16 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **캐시 시스템**: LRU + TTL 기반 캐싱
 - **비동기 처리**: 워커 풀 기반 병렬 처리
 
+### 🔗 메모리 그래프 뷰 (브라우저)
+
+HTTP 서버 실행 후 브라우저에서 기억들의 의미적 관계를 그래프로 시각화할 수 있습니다.
+
+```
+http://localhost:9001/graph
+```
+
+![Memento Memory Graph View](docs/graph-screenshot.png)
+
 ## 🚀 빠른 시작
 
 ### 🥇 **원클릭 설치 (권장)**

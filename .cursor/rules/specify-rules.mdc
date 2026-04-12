@@ -6,9 +6,11 @@ alwaysApply: true
 
 # memento Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-19
+Auto-generated from all feature plans. Last updated: 2026-04-12
 
 ## Active Technologies
+- TypeScript 5.x, Node.js ≥ 20, ES modules + npm workspaces — `packages/memento-core` (`@memento/core`), `packages/memento-server` (MCP + Express HTTP admin), `packages/memento-client` (`@memento/client`); `better-sqlite3`, `zod`, Vitest, Express 5.x (server) (013-refactor-approach)
+- SQLite (`better-sqlite3`); **first wave** — no migrations or stored-format changes (FR-009) (013-refactor-approach)
 
 - TypeScript (Node.js ≥ 20, ES modules) + Express 5.x, `cors`, `@memento/core`, `better-sqlite3` (001-http-trust-security)
 
@@ -28,6 +30,7 @@ npm test && npm run lint
 TypeScript (Node.js ≥ 20, ES modules): Follow standard conventions
 
 ## Recent Changes
+- 013-refactor-approach: Added TypeScript 5.x, Node.js ≥ 20, ES modules + npm workspaces — `packages/memento-core` (`@memento/core`), `packages/memento-server` (MCP + Express HTTP admin), `packages/memento-client` (`@memento/client`); `better-sqlite3`, `zod`, Vitest, Express 5.x (server)
 
 - 001-http-trust-security: Added TypeScript (Node.js ≥ 20, ES modules) + Express, `cors`, `@memento/core`, `better-sqlite3`
 
