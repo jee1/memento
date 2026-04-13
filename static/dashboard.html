@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memento Anchor Map Dashboard</title>
+  <title>Memento Dashboard</title>
   <script src="/static/js/memento-admin-config.js"></script>
   <script src="/static/js/memento-admin-fetch.js"></script>
   <link rel="stylesheet" href="/static/css/dashboard.css">
@@ -11,7 +11,7 @@
 <body>
   <div class="dashboard-container">
     <header class="dashboard-header">
-      <h1>🎯 Memento Anchor Map</h1>
+      <h1>🎯 Memento Dashboard</h1>
       <div class="header-controls">
         <label for="agent-id-input">Agent ID:</label>
         <input type="text" id="agent-id-input" value="default" placeholder="default">
@@ -39,53 +39,129 @@
       </div>
     </header>
 
-    <main class="dashboard-main">
-      <div class="sidebar">
-        <section class="anchor-info">
-          <h2>Anchors</h2>
-          <div id="anchor-list">
-            <p class="no-data">No anchors set</p>
-          </div>
-        </section>
+    <div class="tab-bar" role="tablist">
+      <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="anchor">Anchor Map</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="embedding">Embedding Map</button>
+    </div>
 
-        <section class="memory-details">
-          <h2>Memory Details</h2>
-          <div id="memory-details">
-            <p class="no-data">Click on a node to view details</p>
-          </div>
-        </section>
-      </div>
+    <div id="tab-anchor-map" class="tab-panel active" role="tabpanel">
+      <main class="dashboard-main">
+        <div class="sidebar">
+          <section class="anchor-info">
+            <h2>Anchors</h2>
+            <div id="anchor-list">
+              <p class="no-data">No anchors set</p>
+            </div>
+          </section>
 
-      <div class="map-container">
-        <div id="anchor-map"></div>
-        <div class="map-legend">
-          <h3>Legend</h3>
-          <div class="legend-item">
-            <span class="legend-color anchor-a"></span>
-            <span>Slot A (1-hop)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color anchor-b"></span>
-            <span>Slot B (2-hop)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color anchor-c"></span>
-            <span>Slot C (3-hop)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color memory"></span>
-            <span>Memory</span>
+          <section class="memory-details">
+            <h2>Memory Details</h2>
+            <div id="memory-details">
+              <p class="no-data">Click on a node to view details</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="map-container">
+          <div id="anchor-map"></div>
+          <div class="map-legend">
+            <h3>Legend</h3>
+            <div class="legend-item">
+              <span class="legend-color anchor-a"></span>
+              <span>Slot A (1-hop)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color anchor-b"></span>
+              <span>Slot B (2-hop)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color anchor-c"></span>
+              <span>Slot C (3-hop)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color memory"></span>
+              <span>Memory</span>
+            </div>
           </div>
         </div>
+      </main>
+    </div>
+
+    <div id="tab-embedding-map" class="tab-panel" role="tabpanel">
+      <div class="embedding-map-layout">
+        <div class="em-controls">
+          <label>
+            Provider
+            <select id="em-provider">
+              <option value="minilm" selected>minilm</option>
+              <option value="tfidf">tfidf</option>
+              <option value="openai">openai</option>
+              <option value="gemini">gemini</option>
+            </select>
+          </label>
+          <label>
+            Limit
+            <input id="em-limit" type="number" min="1" max="500" value="300">
+          </label>
+          <label>
+            k
+            <input id="em-k" type="number" min="2" max="20" value="6">
+          </label>
+          <button type="button" id="em-load-btn">Load</button>
+          <span id="em-cache-info" class="em-cache-info"></span>
+        </div>
+        <div id="em-loading" class="em-loading hidden">UMAP 계산 중...</div>
+        <div id="em-error" class="em-error hidden"></div>
+        <div class="embedding-plot-row">
+          <div id="em-scatter" class="embedding-scatter-wrap"></div>
+          <aside id="em-side-panel" class="em-side-panel" aria-hidden="true"></aside>
+        </div>
       </div>
-    </main>
+    </div>
   </div>
 
   <!-- D3.js 라이브러리 (CDN) -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  
+
   <!-- Anchor Map 시각화 스크립트 -->
   <script src="/static/js/anchor-map.js"></script>
+
+  <script>
+    (function () {
+      function activateTab(name) {
+        var anchorPanel = document.getElementById('tab-anchor-map');
+        var embedPanel = document.getElementById('tab-embedding-map');
+        var buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(function (b) {
+          var on = b.getAttribute('data-tab') === name;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        if (anchorPanel) {
+          anchorPanel.classList.toggle('active', name === 'anchor');
+        }
+        if (embedPanel) {
+          embedPanel.classList.toggle('active', name === 'embedding');
+        }
+        if (name === 'embedding' && typeof window.initEmbeddingMap === 'function') {
+          window.initEmbeddingMap();
+        }
+        if (name === 'anchor') {
+          requestAnimationFrame(function () {
+            window.dispatchEvent(new Event('resize'));
+          });
+        }
+      }
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var tab = btn.getAttribute('data-tab');
+          if (tab) {
+            activateTab(tab);
+          }
+        });
+      });
+    })();
+  </script>
+  <script src="/static/js/embedding-map.js"></script>
 </body>
 </html>
-
