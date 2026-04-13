@@ -84,6 +84,17 @@ GET /admin/embedding-map
 }
 ```
 
+**500 — 임베딩 JSON 손상/파싱 불가** (DB에 행은 있으나 유효 벡터 0개)
+```json
+{
+  "error": "임베딩 데이터 손상",
+  "message": "저장된 임베딩 벡터를 파싱할 수 없습니다. DB 정합성(embedding JSON)을 확인하세요.",
+  "code": "CORRUPTED_EMBEDDINGS",
+  "provider": "minilm",
+  "rowCount": 12
+}
+```
+
 **500 — 서버 오류**
 ```json
 {
@@ -99,8 +110,10 @@ GET /admin/embedding-map
 1. **캐시**: 동일 파라미터 (`provider:limit:effectiveK`) 재요청 시 5분 이내면 캐시 반환 (`cached: true`)
 2. **k 자동 조정**: 요청 k > 실제 포인트 수 → k를 포인트 수로 조정. `requested_k`에 원래 값 보존.
 3. **nNeighbors**: `Math.min(15, n - 1)` 적용 (UMAP 제약)
-4. **임베딩 없는 기억**: JOIN 실패 → 제외 (오류 아님)
-5. **인증**: `Authorization: Bearer <ADMIN_API_KEY>` 필수. 미인증 시 401.
+4. **nEpochs**: `Math.min(400, Math.max(100, n * 4))` (UMAP 학습 에폭)
+5. **임베딩 없는 기억**: JOIN 실패 → 제외 (오류 아님)
+6. **소프트 삭제**: `memory_item.is_deleted`가 참인 행은 조회에서 제외
+7. **인증**: `Authorization: Bearer <ADMIN_API_KEY>` 필수. 미인증 시 401.
 
 ---
 

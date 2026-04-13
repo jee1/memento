@@ -20,6 +20,7 @@ import {
 import { registerAdminRelationRoutes } from './admin/admin-relations.routes.js';
 import { registerAdminTelemetryRoutes } from './admin/admin-telemetry.routes.js';
 import { registerAdminGraphRoute } from './admin/admin-graph.routes.js';
+import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.routes.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -632,6 +633,7 @@ export function createAdminRouter(
 
   registerAdminTelemetryRoutes(router, db, serverServices);
   registerAdminGraphRoute(router, db);
+  registerAdminEmbeddingMapRoute(router, db);
 
   return router;
 }

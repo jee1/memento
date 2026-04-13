@@ -84,6 +84,7 @@ static/
 - K-Means는 Lloyd's algorithm 직접 구현 (max 100 iter)
 - 캐시 키: `${provider}:${limit}:${effectiveK}` (k 자동 조정 후)
 - `nNeighbors = Math.min(15, n - 1)` UMAP 파라미터
+- `nEpochs = min(400, max(100, n * 4))` UMAP 학습 에폭 (규모에 따라 100~400으로 클램프)
 
 ---
 
@@ -175,18 +176,17 @@ export function buildEmbeddingMapResponse(
 ): EmbeddingMapResponse
 ```
 
-1. 먼저 임시 effectiveK = params.k로 캐시 조회 시도 (miss 시 실제 계산 후 effectiveK 결정)
-2. DB JOIN 쿼리로 임베딩 로드 (`embedding_provider = ?`, `projection_type = 'native'`, `LIMIT ?`)
+1. DB JOIN 쿼리로 임베딩 로드 (`embedding_provider = ?`, `projection_type = 'native'`, 활성 기억만 `COALESCE(mi.is_deleted,0)=0`, `LIMIT ?`)
+2. 포인트 수 === 0 → `{ code: 'NO_EMBEDDINGS', provider }` 예외
 3. 포인트 수 < 10 → `{ code: 'INSUFFICIENT_DATA', count: N }` 예외
-4. 포인트 수 === 0 → `{ code: 'NO_EMBEDDINGS', provider }` 예외
-5. `effectiveK = Math.min(params.k, points.length)`
-6. 캐시 키 생성 → 히트 시 즉시 반환 (`cached: true`)
-7. `nNeighbors = Math.min(15, points.length - 1)`
-8. `new UMAP({ nComponents: 2, nNeighbors }).fit(vectors)` → 2D 좌표
-9. `kMeans(coords2d, effectiveK)` → 클러스터 번호
-10. `EmbeddingPoint[]` 조합
-11. 캐시 저장 (TTL 5분)
-12. 반환 (`cached: false`)
+4. `effectiveK = Math.min(params.k, points.length)`
+5. 캐시 키 생성 (`${provider}:${limit}:${effectiveK}`) → 히트 시 즉시 반환 (`cached: true`)
+6. `nNeighbors = Math.min(15, points.length - 1)`; `nEpochs = Math.min(400, Math.max(100, n * 4))`
+7. `new UMAP({ nComponents: 2, nNeighbors, nEpochs }).fit(vectors)` → 2D 좌표
+8. `kMeans(coords2d, effectiveK)` → 클러스터 번호
+9. `EmbeddingPoint[]` 조합
+10. 캐시 저장 (TTL 5분)
+11. 반환 (`cached: false`)
 
 ---
 
@@ -212,6 +212,7 @@ export function registerAdminEmbeddingMapRoute(
 4. 에러 코드별 HTTP 상태 매핑:
    - `INSUFFICIENT_DATA` → 400 (사용자 친화적 메시지 포함)
    - `NO_EMBEDDINGS` → 400
+   - `CORRUPTED_EMBEDDINGS` → 500 (`code`, `provider`, `rowCount` 포함)
    - 기타 → 500
 5. 성공 → `res.json(result)`
 
@@ -281,12 +282,12 @@ function closeSidePanel() { ... }
 
 | 테스트 케이스 | 검증 항목 |
 |-------------|----------|
-| K-Means: k=3, 9개 포인트 | 출력 배열 길이 9, 클러스터 번호 0~2 범위 |
+| K-Means: k=3, 9개 포인트 | 출력 배열 길이 9, 클러스터 번호 0~2 범위 (특정 번호 단언 금지 — 비결정적 알고리즘) |
 | K-Means: k > n → k=n | effectiveK === n |
 | 캐시 히트: 동일 파라미터 재요청 | `cached: true`, `computed_at` 동일 |
 | 캐시 만료: TTL 경과 | `cached: false`, 새 `computed_at` |
-| 포인트 수 < 10 → INSUFFICIENT_DATA | 에러 코드, count 값 |
-| provider 임베딩 0건 → NO_EMBEDDINGS | 에러 코드, provider 값 |
+| provider 임베딩 0건 → NO_EMBEDDINGS | 에러 코드, provider 값 (count===0일 때 INSUFFICIENT_DATA 아님) |
+| 포인트 수 1~9건 → INSUFFICIENT_DATA | 에러 코드, count 값 |
 | 라우트: 잘못된 provider → 400 | status, message 검증 |
 | 라우트: limit=0 → 400 | status 검증 |
 | 라우트: k=1 → 400 | status 검증 |
@@ -327,3 +328,5 @@ function closeSidePanel() { ... }
 - [ ] 수동 검증: 탭 클릭 → 자동 로드 → scatter plot 렌더링
 - [ ] 수동 검증: 점 클릭 → 사이드 패널 열기 / X·Escape·빈 공간 → 닫기
 - [ ] 수동 검증: 캐시 히트 시 "N분 전 캐시" 표시
+- [ ] 수동 성능 검증: 300개 기억 기준 첫 응답 ≤30초(SC-001), 캐시 히트 ≤1초(SC-002)
+- [ ] 수동 정확도 검증: 유사 주제 기억이 같은 클러스터에 그룹화되는지 샘플 육안 검증(SC-003)
