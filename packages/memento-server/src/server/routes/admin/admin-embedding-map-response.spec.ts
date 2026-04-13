@@ -3,6 +3,15 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('umap-js', () => ({
+  UMAP: class {
+    fitAsync(X: number[][]) {
+      return Promise.resolve(X.map((row: number[]) => [row[0] ?? 0, (row[1] ?? 0) + 0.01]));
+    }
+  },
+}));
+
 import express from 'express';
 import http from 'http';
 import Database from 'better-sqlite3';
@@ -147,9 +156,9 @@ describe('buildEmbeddingMapResponse', () => {
     vi.useRealTimers();
   });
 
-  it('NO_EMBEDDINGS: 해당 provider 임베딩 0건', () => {
+  it('NO_EMBEDDINGS: 해당 provider 임베딩 0건', async () => {
     try {
-      buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
+      await buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
       expect.fail('expected EmbeddingMapBuildError');
     } catch (e) {
       expect(e).toBeInstanceOf(EmbeddingMapBuildError);
@@ -159,10 +168,10 @@ describe('buildEmbeddingMapResponse', () => {
     }
   });
 
-  it('NO_EMBEDDINGS: 활성 기억 없음(소프트 삭제만 있음)', () => {
+  it('NO_EMBEDDINGS: 활성 기억 없음(소프트 삭제만 있음)', async () => {
     seedEmbeddings(db, 12, 'minilm', true);
     try {
-      buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
+      await buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
       expect.fail('expected EmbeddingMapBuildError');
     } catch (e) {
       expect(e).toBeInstanceOf(EmbeddingMapBuildError);
@@ -170,10 +179,10 @@ describe('buildEmbeddingMapResponse', () => {
     }
   });
 
-  it('INSUFFICIENT_DATA: 0 < count < 10', () => {
+  it('INSUFFICIENT_DATA: 0 < count < 10', async () => {
     seedEmbeddings(db, 7, 'minilm');
     try {
-      buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
+      await buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
       expect.fail('expected EmbeddingMapBuildError');
     } catch (e) {
       expect(e).toBeInstanceOf(EmbeddingMapBuildError);
@@ -183,11 +192,11 @@ describe('buildEmbeddingMapResponse', () => {
     }
   });
 
-  it('CORRUPTED_EMBEDDINGS: 행은 있으나 JSON 파싱 후 유효 벡터 0개', () => {
+  it('CORRUPTED_EMBEDDINGS: 행은 있으나 JSON 파싱 후 유효 벡터 0개', async () => {
     seedEmbeddings(db, 12, 'minilm');
     db.exec(`UPDATE memory_embedding SET embedding = '[]'`);
     try {
-      buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
+      await buildEmbeddingMapResponse(db, { provider: 'minilm', limit: 300, k: 6 });
       expect.fail('expected EmbeddingMapBuildError');
     } catch (e) {
       expect(e).toBeInstanceOf(EmbeddingMapBuildError);
@@ -197,9 +206,9 @@ describe('buildEmbeddingMapResponse', () => {
     }
   });
 
-  it('성공 시 points/meta, k 자동 조정(requested_k 보존)', () => {
+  it('성공 시 points/meta, k 자동 조정(requested_k 보존)', async () => {
     seedEmbeddings(db, 12, 'minilm');
-    const res = buildEmbeddingMapResponse(db, {
+    const res = await buildEmbeddingMapResponse(db, {
       provider: 'minilm',
       limit: 300,
       k: 20,
@@ -214,17 +223,17 @@ describe('buildEmbeddingMapResponse', () => {
     }
   });
 
-  it('캐시 히트: 동일 파라미터 재요청 시 cached true, computed_at 동일', () => {
+  it('캐시 히트: 동일 파라미터 재요청 시 cached true, computed_at 동일', async () => {
     seedEmbeddings(db, 11, 'minilm');
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-13T10:00:00.000Z'));
-    const a = buildEmbeddingMapResponse(db, {
+    const a = await buildEmbeddingMapResponse(db, {
       provider: 'minilm',
       limit: 50,
       k: 4,
     });
     const t0 = a.meta.computed_at;
-    const b = buildEmbeddingMapResponse(db, {
+    const b = await buildEmbeddingMapResponse(db, {
       provider: 'minilm',
       limit: 50,
       k: 4,
@@ -233,18 +242,18 @@ describe('buildEmbeddingMapResponse', () => {
     expect(b.meta.computed_at).toBe(t0);
   });
 
-  it('캐시 만료 후 재계산: cached false, 새 computed_at', () => {
+  it('캐시 만료 후 재계산: cached false, 새 computed_at', async () => {
     seedEmbeddings(db, 11, 'minilm');
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-13T10:00:00.000Z'));
-    const a = buildEmbeddingMapResponse(db, {
+    const a = await buildEmbeddingMapResponse(db, {
       provider: 'minilm',
       limit: 50,
       k: 4,
     });
     const t0 = a.meta.computed_at;
     vi.advanceTimersByTime(5 * 60 * 1000 + 1);
-    const b = buildEmbeddingMapResponse(db, {
+    const b = await buildEmbeddingMapResponse(db, {
       provider: 'minilm',
       limit: 50,
       k: 4,

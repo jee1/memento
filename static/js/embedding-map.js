@@ -21,19 +21,6 @@
   /** zoom 팬 후 의도치 않은 배경 click으로 패널이 닫히지 않도록 pointerdown 위치 보관 */
   var lastScatterPointer = null;
 
-  function escapeHtml(str) {
-    if (str == null) {
-      return '';
-    }
-    var s = String(str);
-    return s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   function readParams() {
     var prov = document.getElementById('em-provider');
     var lim = document.getElementById('em-limit');
@@ -68,8 +55,16 @@
 
   function showTooltip(event, point) {
     var el = ensureTooltip();
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
     var preview = point.content.length > 80 ? point.content.slice(0, 80) + '…' : point.content;
-    el.innerHTML = escapeHtml(preview) + '<br><span style="opacity:0.85">' + escapeHtml(point.type) + '</span>';
+    el.appendChild(document.createTextNode(preview));
+    el.appendChild(document.createElement('br'));
+    var typeSpan = document.createElement('span');
+    typeSpan.style.opacity = '0.85';
+    typeSpan.textContent = point.type;
+    el.appendChild(typeSpan);
     el.style.display = 'block';
     el.style.left = event.clientX + 12 + 'px';
     el.style.top = event.clientY + 12 + 'px';
@@ -89,43 +84,61 @@
     }
   }
 
+  function appendLabeledLine(parent, label, valueText) {
+    var p = document.createElement('p');
+    var strong = document.createElement('strong');
+    strong.textContent = label;
+    p.appendChild(strong);
+    p.appendChild(document.createTextNode(' ' + valueText));
+    parent.appendChild(p);
+  }
+
   function openSidePanel(point) {
     var panel = document.getElementById('em-side-panel');
     if (!panel) {
       return;
     }
+    while (panel.firstChild) {
+      panel.removeChild(panel.firstChild);
+    }
     var tags = Array.isArray(point.tags) ? point.tags.join(', ') : '';
     var imp = typeof point.importance === 'number' ? point.importance.toFixed(2) : String(point.importance);
-    panel.innerHTML =
-      '<div class="em-panel-header">' +
-      '<h3>Memory</h3>' +
-      '<button type="button" id="em-panel-close" aria-label="Close">×</button>' +
-      '</div>' +
-      '<div class="em-panel-body">' +
-      '<p><strong>Type:</strong> ' +
-      escapeHtml(point.type) +
-      '</p>' +
-      '<p><strong>Importance:</strong> ' +
-      escapeHtml(imp) +
-      '</p>' +
-      '<p><strong>Created:</strong> ' +
-      escapeHtml(point.created_at) +
-      '</p>' +
-      '<p><strong>Tags:</strong> ' +
-      escapeHtml(tags) +
-      '</p>' +
-      '<hr><pre class="em-panel-content">' +
-      escapeHtml(point.content) +
-      '</pre></div>';
+
+    var header = document.createElement('div');
+    header.className = 'em-panel-header';
+    var h3 = document.createElement('h3');
+    h3.textContent = 'Memory';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.id = 'em-panel-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.textContent = '×';
+    header.appendChild(h3);
+    header.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.className = 'em-panel-body';
+    appendLabeledLine(body, 'Type:', String(point.type));
+    appendLabeledLine(body, 'Importance:', imp);
+    appendLabeledLine(body, 'Created:', String(point.created_at));
+    appendLabeledLine(body, 'Tags:', tags);
+
+    var hr = document.createElement('hr');
+    var pre = document.createElement('pre');
+    pre.className = 'em-panel-content';
+    pre.textContent = String(point.content);
+    body.appendChild(hr);
+    body.appendChild(pre);
+
+    panel.appendChild(header);
+    panel.appendChild(body);
+
     panel.classList.add('open');
     panel.setAttribute('aria-hidden', 'false');
-    var closeBtn = document.getElementById('em-panel-close');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        closeSidePanel();
-      });
-    }
+    closeBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeSidePanel();
+    });
   }
 
   function setupChart() {
@@ -288,22 +301,26 @@
     if (!el) {
       return;
     }
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
     if (!msg) {
       el.classList.add('hidden');
-      el.innerHTML = '';
       return;
     }
     el.classList.remove('hidden');
-    var html = '<p>' + escapeHtml(msg) + '</p>';
+    var p = document.createElement('p');
+    p.textContent = msg;
+    el.appendChild(p);
     if (showRetry) {
-      html += '<button type="button" id="em-retry-btn" class="em-retry-btn">Retry</button>';
-    }
-    el.innerHTML = html;
-    var retry = document.getElementById('em-retry-btn');
-    if (retry) {
+      var retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'em-retry-btn';
+      retry.textContent = 'Retry';
       retry.addEventListener('click', function () {
         loadEmbeddingMap(readParams());
       });
+      el.appendChild(retry);
     }
   }
 

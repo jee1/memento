@@ -62,6 +62,11 @@
 
     // ── D3 설정 ───────────────────────────────────────────────
     let simulation = null;
+    /** @type {unknown[] | null} */
+    let lastGraphNodes = null;
+    /** @type {unknown[] | null} */
+    let lastGraphEdges = null;
+    let resizeRedrawTimer = null;
 
     function renderGraph(nodes, edges) {
       const container = document.getElementById('graph-container');
@@ -251,6 +256,8 @@
     async function loadGraph(url) {
       clearStatus();
       showLoading(true);
+      lastGraphNodes = null;
+      lastGraphEdges = null;
       d3.select(svgEl).selectAll('*').remove();
       if (simulation) { simulation.stop(); simulation = null; }
 
@@ -266,7 +273,10 @@
           return;
         }
 
-        renderGraph(data.nodes, data.edges ?? []);
+        const edges = data.edges ?? [];
+        lastGraphNodes = data.nodes;
+        lastGraphEdges = edges;
+        renderGraph(data.nodes, edges);
 
         if (data.meta?.truncated) {
           console.info(`[graph] 노드 제한 초과: 상위 ${data.nodes.length}개 표시`);
@@ -292,6 +302,17 @@
       if (!detailPanel.contains(event.target) && !svgEl.contains(event.target)) {
         closePanel();
       }
+    });
+
+    // 대시보드 iframe 탭 전환 등에서 전달되는 resize에 맞춰 캔버스 재계산
+    window.addEventListener('resize', () => {
+      if (!lastGraphNodes || lastGraphNodes.length === 0) {
+        return;
+      }
+      clearTimeout(resizeRedrawTimer);
+      resizeRedrawTimer = setTimeout(() => {
+        renderGraph(/** @type {any[]} */ (lastGraphNodes), /** @type {any[]} */ (lastGraphEdges ?? []));
+      }, 120);
     });
 
     // ── 초기 로드 ─────────────────────────────────────────────

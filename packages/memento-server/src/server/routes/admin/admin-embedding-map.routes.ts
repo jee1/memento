@@ -51,7 +51,7 @@ function parseParams(
 }
 
 export function registerAdminEmbeddingMapRoute(router: Router, db: Database.Database | null): void {
-  router.get('/embedding-map', (req, res) => {
+  router.get('/embedding-map', async (req, res) => {
     try {
       if (!db) {
         return res.status(503).json({ error: 'Service unavailable' });
@@ -62,7 +62,7 @@ export function registerAdminEmbeddingMapRoute(router: Router, db: Database.Data
         return res.status(400).json(parsed);
       }
 
-      const result = buildEmbeddingMapResponse(db, parsed);
+      const result = await buildEmbeddingMapResponse(db, parsed);
       return res.json(result);
     } catch (error) {
       if (error instanceof EmbeddingMapBuildError) {

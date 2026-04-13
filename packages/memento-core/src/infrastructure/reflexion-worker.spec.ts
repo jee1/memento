@@ -2157,6 +2157,8 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       if (isLowSpecRunner) return; // 저사양 러너는 대기 전 즉시 스킵
 
       await worker.start();
+      // 프로시저 생성·start()까지의 쿼리는 제외하고, 실패 이벤트 처리 구간만 측정
+      queryCounter?.reset();
       await worker.queueFailureEvent(event);
       await waitForEventProcessing(worker, WAIT_TIMEOUT_MS);
 

@@ -39,12 +39,13 @@
       </div>
     </header>
 
-    <div class="tab-bar" role="tablist">
-      <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="anchor">Anchor Map</button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="embedding">Embedding Map</button>
+    <div class="tab-bar" role="tablist" aria-label="대시보드 보기 전환">
+      <button type="button" id="dashboard-tab-anchor" class="tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
+      <button type="button" id="dashboard-tab-embedding" class="tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
+      <button type="button" id="dashboard-tab-graph" class="tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
     </div>
 
-    <div id="tab-anchor-map" class="tab-panel active" role="tabpanel">
+    <div id="tab-anchor-map" class="tab-panel active" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
       <main class="dashboard-main">
         <div class="sidebar">
           <section class="anchor-info">
@@ -87,7 +88,7 @@
       </main>
     </div>
 
-    <div id="tab-embedding-map" class="tab-panel" role="tabpanel">
+    <div id="tab-embedding-map" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-embedding" aria-hidden="true">
       <div class="embedding-map-layout">
         <div class="em-controls">
           <label>
@@ -120,6 +121,16 @@
           <aside id="em-side-panel" class="em-side-panel" aria-hidden="true"></aside>
         </div>
       </div>
+    </div>
+
+    <div id="tab-graph" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-graph" aria-hidden="true">
+      <!-- iframe src는 dashboard-tabs.js의 GRAPH_IFRAME_SRC(기본 '/graph')와 동일해야 함. allow-same-origin이면 스크립트가 부모와 동일 출처로 취급되어 sandbox 완화됨; 내부 전용이면 의도된 설정 -->
+      <iframe
+        id="graph-view-iframe"
+        class="dashboard-graph-iframe"
+        title="기억 관계 그래프 (GET /graph)"
+        sandbox="allow-scripts allow-same-origin"
+      ></iframe>
     </div>
   </div>
 

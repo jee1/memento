@@ -103,8 +103,10 @@ const server = createServer(app);
 
 // HTTP 보안 헤더 (FR-005/FR-006): 모든 응답에 OWASP 최소 보안 헤더 추가
 // D3.js CDN(d3js.org)은 dashboard.html 및 graph.html에서 사용하므로 CSP에서 허용
+// frameguard: 대시보드가 동일 출처에서 /graph 를 iframe으로 포함하므로 SAMEORIGIN (외부 도메인 임베드 방지)
+// frame-src: dashboard.html 의 Memory Graph 탭 iframe 허용
 app.use(helmet({
-  frameguard: { action: 'deny' },
+  frameguard: { action: 'sameorigin' },
   referrerPolicy: { policy: 'no-referrer' },
   contentSecurityPolicy: {
     directives: {
@@ -117,7 +119,7 @@ app.use(helmet({
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"]
+      frameSrc: ["'self'"]
     }
   }
 }));
