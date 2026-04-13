@@ -20,6 +20,8 @@ GET /admin/embedding-map
 | `limit` | integer | `300` | 1~500 | 조회할 최대 기억 수 |
 | `k` | integer | `6` | 2~20 | K-Means 클러스터 수 |
 
+**설계 메모 (상한)**: 초기 아이디어로 더 큰 범위(예: limit 2000, k 50)가 논의될 수 있으나, **확정 스펙은 위 표와 동일**이다. 어드민 전용 UMAP 비용·이벤트 루프 부하·산점도/범례 가독성을 이유로 500/20으로 제한한다. 상향 시 본 계약·`spec.md` FR-001·라우트 검증·UI 입력 범위를 함께 갱신한다.
+
 ### Success Response: 200 OK
 
 ```json
@@ -44,6 +46,7 @@ GET /admin/embedding-map
     "requested_k": 6,
     "limit": 300,
     "cached": false,
+    "waited_for_in_flight": false,
     "computed_at": "2026-04-13T09:15:32.000Z"
   }
 }
@@ -80,7 +83,8 @@ GET /admin/embedding-map
 **503 — DB 미연결**
 ```json
 {
-  "error": "Service unavailable"
+  "error": "서비스 사용 불가",
+  "message": "데이터베이스에 연결되어 있지 않습니다."
 }
 ```
 
@@ -95,11 +99,11 @@ GET /admin/embedding-map
 }
 ```
 
-**500 — 서버 오류**
+**500 — 서버 오류** (UMAP 등 예기치 않은 예외; 상세는 서버 로그에만)
 ```json
 {
   "error": "임베딩 맵 계산 실패",
-  "message": "..."
+  "message": "서버에서 UMAP 계산 중 오류가 발생했습니다. 잠시 후 다시 시도하세요."
 }
 ```
 
@@ -107,7 +111,7 @@ GET /admin/embedding-map
 
 ## 동작 규칙
 
-1. **캐시**: 동일 파라미터 (`provider:limit:effectiveK`) 재요청 시 5분 이내면 캐시 반환 (`cached: true`)
+1. **캐시**: 동일 파라미터 (`provider:limit:effectiveK`) 재요청 시 5분 이내면 캐시 반환 (`cached: true`). 캐시 미스 직후 동시 요청은 한 번의 계산을 공유하며, 대기한 응답은 `waited_for_in_flight: true` (항상 부울로 포함).
 2. **k 자동 조정**: 요청 k > 실제 포인트 수 → k를 포인트 수로 조정. `requested_k`에 원래 값 보존.
 3. **nNeighbors**: `Math.min(15, n - 1)` 적용 (UMAP 제약)
 4. **nEpochs**: `Math.min(400, Math.max(100, n * 4))` (UMAP 학습 에폭)

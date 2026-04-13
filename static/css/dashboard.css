@@ -1,5 +1,10 @@
 /* Memento Anchor Map Dashboard Styles */
 
+:root {
+  /* /graph(graph.html) 페이지 배경과 맞춰 iframe 로드 전 플래시 완화 */
+  --dashboard-graph-bg: #0f1117;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -402,6 +407,16 @@ body {
   display: flex;
 }
 
+/* Memory Graph: /graph 페이지를 동일 출처 iframe으로 탭에 포함 */
+.dashboard-graph-iframe {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  display: block;
+  background: var(--dashboard-graph-bg);
+}
+
 .embedding-map-layout {
   display: flex;
   flex-direction: column;
@@ -432,6 +447,21 @@ body {
   padding: 0.35rem 0.5rem;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.em-color-legend {
+  margin: 0;
+  padding: 0.5rem 1rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #555;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.em-color-legend strong {
+  font-weight: 600;
+  color: #333;
 }
 
 #em-load-btn {

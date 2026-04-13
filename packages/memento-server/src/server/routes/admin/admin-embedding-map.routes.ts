@@ -13,6 +13,11 @@ import {
 
 const VALID_PROVIDERS = new Set(['tfidf', 'minilm', 'openai', 'gemini']);
 
+/**
+ * 쿼리 상한: FR-001·`contracts/embedding-map-api.md`와 동일해야 함.
+ * 더 큰 초안(예: limit 2000, k 50)은 UMAP 지연·서버 부하·클러스터 가독성을 이유로 채택하지 않음.
+ * 상향 시 spec·계약·대시보드 입력(`#em-limit`, `#em-k`)·본 검증을 함께 수정할 것.
+ */
 function parseParams(
   query: Record<string, unknown>
 ): EmbeddingMapParams | { error: string; message: string } {
@@ -51,10 +56,13 @@ function parseParams(
 }
 
 export function registerAdminEmbeddingMapRoute(router: Router, db: Database.Database | null): void {
-  router.get('/embedding-map', (req, res) => {
+  router.get('/embedding-map', async (req, res) => {
     try {
       if (!db) {
-        return res.status(503).json({ error: 'Service unavailable' });
+        return res.status(503).json({
+          error: '서비스 사용 불가',
+          message: '데이터베이스에 연결되어 있지 않습니다.',
+        });
       }
 
       const parsed = parseParams(req.query as Record<string, unknown>);
@@ -62,7 +70,7 @@ export function registerAdminEmbeddingMapRoute(router: Router, db: Database.Data
         return res.status(400).json(parsed);
       }
 
-      const result = buildEmbeddingMapResponse(db, parsed);
+      const result = await buildEmbeddingMapResponse(db, parsed);
       return res.json(result);
     } catch (error) {
       if (error instanceof EmbeddingMapBuildError) {
@@ -98,10 +106,12 @@ export function registerAdminEmbeddingMapRoute(router: Router, db: Database.Data
 
       logger.error('Embedding map failed', {
         error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       });
+      // 클라이언트에는 고정 문구만 전달 (상세는 logger.error)
       return res.status(500).json({
         error: '임베딩 맵 계산 실패',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: '서버에서 UMAP 계산 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.',
       });
     }
   });
