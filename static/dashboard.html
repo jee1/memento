@@ -124,12 +124,11 @@
     </div>
 
     <div id="tab-graph" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-graph" aria-hidden="true">
-      <!-- iframe src는 dashboard-tabs.js의 GRAPH_IFRAME_SRC(기본 '/graph')와 동일해야 함. allow-same-origin이면 스크립트가 부모와 동일 출처로 취급되어 sandbox 완화됨; 내부 전용이면 의도된 설정 -->
+      <!-- iframe src는 dashboard-tabs.js의 GRAPH_IFRAME_SRC(기본 '/graph')와 동일해야 함. 동일 출처·신뢰 경로(/graph)이므로 sandbox 미사용: allow-scripts+allow-same-origin 조합은 부모 DOM 접근이 가능해 사실상 격리 효과가 없음 -->
       <iframe
         id="graph-view-iframe"
         class="dashboard-graph-iframe"
         title="기억 관계 그래프 (GET /graph)"
-        sandbox="allow-scripts allow-same-origin"
       ></iframe>
     </div>
   </div>

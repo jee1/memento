@@ -33,7 +33,13 @@ export interface EmbeddingMapResponse {
     k: number;
     requested_k: number;
     limit: number;
+    /** LRU 캐시 히트 여부 */
     cached: boolean;
+    /**
+     * 다른 요청이 이미 시작한 in-flight 계산을 await만 한 경우 true.
+     * `cached===false`이면서 본 요청이 UMAP을 새로 돌리지 않았음을 구분할 때 사용(모니터링).
+     */
+    waited_for_in_flight: boolean;
     computed_at: string;
   };
 }
@@ -291,13 +297,21 @@ export async function buildEmbeddingMapResponse(
       meta: {
         ...hit.data.meta,
         cached: true,
+        waited_for_in_flight: false,
       },
     };
   }
 
   const shared = inFlight.get(cacheKey);
   if (shared) {
-    return await shared;
+    const data = await shared;
+    return {
+      ...data,
+      meta: {
+        ...data.meta,
+        waited_for_in_flight: true,
+      },
+    };
   }
 
   let resolve!: (value: EmbeddingMapResponse) => void;
@@ -356,6 +370,7 @@ export async function buildEmbeddingMapResponse(
           requested_k: params.k,
           limit: params.limit,
           cached: false,
+          waited_for_in_flight: false,
           computed_at: computedAt,
         },
       };

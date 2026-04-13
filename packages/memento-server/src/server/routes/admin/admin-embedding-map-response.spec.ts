@@ -4,11 +4,19 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+const { umapFitAsyncMock, umapFitMock } = vi.hoisted(() => {
+  const project = (X: number[][]) =>
+    X.map((row: number[]) => [row[0] ?? 0, (row[1] ?? 0) + 0.01]);
+  return {
+    umapFitAsyncMock: vi.fn((X: number[][]) => Promise.resolve(project(X))),
+    umapFitMock: vi.fn((X: number[][]) => project(X)),
+  };
+});
+
 vi.mock('umap-js', () => ({
   UMAP: class {
-    fitAsync(X: number[][]) {
-      return Promise.resolve(X.map((row: number[]) => [row[0] ?? 0, (row[1] ?? 0) + 0.01]));
-    }
+    fitAsync = umapFitAsyncMock;
+    fit = umapFitMock;
   },
 }));
 
@@ -142,6 +150,8 @@ describe('buildEmbeddingMapResponse', () => {
 
   beforeEach(() => {
     clearEmbeddingMapCacheForTests();
+    umapFitAsyncMock.mockClear();
+    umapFitMock.mockClear();
     db = new Database(':memory:');
     createMinimalSchema(db);
   });
@@ -217,6 +227,7 @@ describe('buildEmbeddingMapResponse', () => {
     expect(res.meta.k).toBe(12);
     expect(res.meta.requested_k).toBe(20);
     expect(res.meta.cached).toBe(false);
+    expect(res.meta.waited_for_in_flight).toBe(false);
     for (const p of res.points) {
       expect(p.cluster).toBeGreaterThanOrEqual(0);
       expect(p.cluster).toBeLessThan(12);
@@ -239,7 +250,20 @@ describe('buildEmbeddingMapResponse', () => {
       k: 4,
     });
     expect(b.meta.cached).toBe(true);
+    expect(b.meta.waited_for_in_flight).toBe(false);
     expect(b.meta.computed_at).toBe(t0);
+  });
+
+  it('동시 캐시 미스: in-flight 공유로 UMAP fitAsync 1회, 대기 측 waited_for_in_flight', async () => {
+    seedEmbeddings(db, 12, 'minilm');
+    umapFitAsyncMock.mockClear();
+    const params = { provider: 'minilm' as const, limit: 300, k: 6 };
+    const [a, b] = await Promise.all([
+      buildEmbeddingMapResponse(db, params),
+      buildEmbeddingMapResponse(db, params),
+    ]);
+    expect(umapFitAsyncMock).toHaveBeenCalledTimes(1);
+    expect([a, b].filter(r => r.meta.waited_for_in_flight).length).toBe(1);
   });
 
   it('캐시 만료 후 재계산: cached false, 새 computed_at', async () => {

@@ -304,7 +304,9 @@
       }
     });
 
-    // 대시보드 iframe 탭 전환 등에서 전달되는 resize에 맞춰 캔버스 재계산
+    // 대시보드 iframe 탭 전환 등에서 전달되는 resize에 맞춰 캔버스 재계산.
+    // 현재는 renderGraph 전체를 다시 그리며 force simulation을 새로 시작한다.
+    // 대형 그래프에서는 레이아웃이 흔들릴 수 있으므로, 필요 시 "크기만 조정·시뮬 유지" 경로는 별도 이슈로 다루는 것이 좋다.
     window.addEventListener('resize', () => {
       if (!lastGraphNodes || lastGraphNodes.length === 0) {
         return;

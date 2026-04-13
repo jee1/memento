@@ -11,7 +11,10 @@ export function registerAdminGraphRoute(router: Router, db: Database.Database | 
   router.get('/graph', (req, res) => {
     try {
       if (!db) {
-        return res.status(503).json({ error: 'Service unavailable' });
+        return res.status(503).json({
+          error: '서비스 사용 불가',
+          message: '데이터베이스에 연결되어 있지 않습니다.',
+        });
       }
 
       const typesRaw = req.query['types'] as string | undefined;

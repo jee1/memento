@@ -19,6 +19,7 @@
 | `importance` | REAL | 0.0~1.0, NULL 가능 (기본 0.5) |
 | `created_at` | TIMESTAMP | 생성 일시 |
 | `tags` | TEXT | JSON 배열 문자열 (`["tag1","tag2"]`) |
+| `is_deleted` | INTEGER | 소프트 삭제 플래그 (0=활성, 1=삭제됨). API는 `COALESCE(is_deleted,0)=0`인 행만 조회 |
 
 ### memory_embedding (기존)
 
@@ -66,6 +67,8 @@ interface EmbeddingMapResponse {
     requested_k: number;   // 요청된 k (조정 전)
     limit: number;         // 적용된 limit
     cached: boolean;       // 캐시에서 반환 여부
+    /** 동시 요청 시 in-flight 계산만 대기한 경우 true (모니터링용; 성공 응답에 항상 포함) */
+    waited_for_in_flight: boolean;
     computed_at: string;   // ISO 8601, 계산 완료 시각
   };
 }
