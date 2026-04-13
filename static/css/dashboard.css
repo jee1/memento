@@ -434,6 +434,21 @@ body {
   border-radius: 4px;
 }
 
+.em-color-legend {
+  margin: 0;
+  padding: 0.5rem 1rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #555;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.em-color-legend strong {
+  font-weight: 600;
+  color: #333;
+}
+
 #em-load-btn {
   padding: 0.4rem 1rem;
   border: none;
