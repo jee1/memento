@@ -3,8 +3,10 @@
  * D3.js를 사용한 네트워크 그래프 시각화
  */
 
-// 전역 변수
-let svg, simulation, nodes, links;
+// 전역 변수 (맵 미렌더/빈 데이터에서도 .find/.filter 호출 시 TypeError 방지)
+let svg, simulation;
+let nodes = [];
+let links = [];
 let mapData = null;
 let selectedNodeId = null;
 let searchResults = null; // 검색 결과 저장
@@ -178,6 +180,8 @@ async function loadMapData() {
  */
 function renderMap() {
   if (!mapData || !mapData.nodes || mapData.nodes.length === 0) {
+    nodes = [];
+    links = [];
     svg.selectAll('*').remove();
     return;
   }
@@ -499,6 +503,9 @@ function updateAnchorList() {
  * 앵커 노드 선택
  */
 function selectAnchorNode(memoryId) {
+  if (!Array.isArray(nodes)) {
+    return;
+  }
   const node = nodes.find(n => n.id === memoryId);
   if (node) {
     selectNode(node);
@@ -599,23 +606,25 @@ function highlightSearchResults() {
   // 노드 스타일 업데이트
   updateNodeHighlight();
   
-  // 검색 결과가 있는 경우 첫 번째 결과로 이동
+  // 검색 결과가 있는 경우 첫 번째 결과로 이동 (맵 노드 배열이 준비된 경우에만 줌/선택)
   if (searchResults.items.length > 0) {
     const firstResult = searchResults.items[0];
-    const node = nodes.find(n => n.id === firstResult.id);
-    if (node) {
-      selectNode(node);
-      // 노드가 보이도록 확대 및 이동
-      const width = svg.attr('width');
-      const height = svg.attr('height');
-      if (node.x && node.y) {
-        const transform = d3.zoomIdentity
-          .translate(parseFloat(width) / 2 - node.x, parseFloat(height) / 2 - node.y)
-          .scale(1.5);
-        svg.transition().duration(750).call(
-          svg.node().dispatchEvent,
-          new CustomEvent('zoom', { detail: { transform } })
-        );
+    if (Array.isArray(nodes)) {
+      const node = nodes.find(n => n.id === firstResult.id);
+      if (node) {
+        selectNode(node);
+        // 노드가 보이도록 확대 및 이동
+        const width = svg.attr('width');
+        const height = svg.attr('height');
+        if (node.x && node.y) {
+          const transform = d3.zoomIdentity
+            .translate(parseFloat(width) / 2 - node.x, parseFloat(height) / 2 - node.y)
+            .scale(1.5);
+          svg.transition().duration(750).call(
+            svg.node().dispatchEvent,
+            new CustomEvent('zoom', { detail: { transform } })
+          );
+        }
       }
     }
   }
