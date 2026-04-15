@@ -79,11 +79,23 @@ function parseCli(argv: string[]): {
   help: boolean;
   subcommand?: string;
   subIdx?: number;
+  commandToken?: string;
 } {
   const flags = parseGlobalFlags(argv);
   const help = argv.includes('--help') || argv.includes('-h');
   const { subcommand, subIdx } = findSubcommandWithIndex(argv);
-  return { ...flags, help, subcommand, subIdx };
+  let commandToken: string | undefined;
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
+      if (argv[i + 1]) i++;
+      continue;
+    }
+    if (arg.startsWith('-')) continue;
+    commandToken = arg;
+    break;
+  }
+  return { ...flags, help, subcommand, subIdx, commandToken };
 }
 
 // env 로드만 먼저 수행 (dotenv가 process.env를 채움)
@@ -105,7 +117,8 @@ const {
 const dbPath = preOptions.dbPath ?? process.env.DB_PATH ?? mementoConfig.dbPath;
 const subcommand = preOptions.subcommand;
 const subIdx = preOptions.subIdx;
-const showHelp = preOptions.help || !subcommand;
+const commandToken = preOptions.commandToken;
+const showHelp = preOptions.help || (!commandToken && !subcommand);
 
 async function main(): Promise<void> {
   if (showHelp) {
@@ -124,8 +137,13 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  if (!TOOL_SUBCOMMANDS.has(subcommand!)) {
-    originalStderrWrite(`Unknown command: ${subcommand}. Use --help.\n`);
+  if (!subcommand && commandToken) {
+    originalStderrWrite(`Unknown command: ${commandToken}. Use --help.\n`);
+    process.exit(1);
+  }
+
+  if (!subcommand || !TOOL_SUBCOMMANDS.has(subcommand)) {
+    originalStderrWrite(`Unknown command: ${String(subcommand)}. Use --help.\n`);
     process.exit(1);
   }
 
