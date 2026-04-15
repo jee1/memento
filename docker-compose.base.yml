@@ -32,6 +32,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # HF 게이트웨이 타임아웃 시 빌드만 건너뛰려면 1 (이미지 내 MiniLM 사전 캐시 없음, 런타임 다운로드)
+        SKIP_TRANSFORMERS_WARMUP: ${SKIP_TRANSFORMERS_WARMUP:-0}
     environment:
       <<: *default-environment
     volumes:

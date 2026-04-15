@@ -79,16 +79,29 @@ COPY --from=builder /app/package*.json ./
 
 # Install only production dependencies (skip scripts since they were already run in builder stage)
 # Rebuild better-sqlite3 for Debian Linux and install sqlite-vec
-RUN npm ci --only=production --ignore-scripts && \
+# MiniLM HF 워밍업은 네트워크(Hugging Face) 의존 — 타임아웃·차단 시에도 빌드는 성공시키고 런타임에 캐시되도록 함.
+# 완전히 생략하려면: docker build --build-arg SKIP_TRANSFORMERS_WARMUP=1 ...
+ARG SKIP_TRANSFORMERS_WARMUP=0
+RUN npm ci --omit=dev --ignore-scripts && \
     npm rebuild better-sqlite3 --build-from-source && \
     npm install sqlite-vec --build-from-source && \
     npm rebuild sharp && \
     npm cache clean --force && \
-    node --input-type=module -e "\
-      import { pipeline } from '@xenova/transformers'; \
-      const embed = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2'); \
-      await embed('cache warmup'); \
-    "
+    if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
+      echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: MiniLM cache warmup skipped'; \
+    else \
+      node --input-type=module -e "\
+        try { \
+          const { pipeline } = await import('@xenova/transformers'); \
+          const embed = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2'); \
+          await embed('cache warmup'); \
+          console.log('[docker] MiniLM cache warmup ok'); \
+        } catch (e) { \
+          const msg = e instanceof Error ? e.message : String(e); \
+          console.warn('[docker] MiniLM cache warmup skipped (will fetch at runtime if needed):', msg); \
+        } \
+      "; \
+    fi
 
 # Create data directory
 RUN mkdir -p /app/data

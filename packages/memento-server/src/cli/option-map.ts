@@ -3,6 +3,8 @@
  * 명세: REQ-TOOL-1. 서브커맨드별 --key val → params 매핑 (inputSchema 기반)
  */
 
+import { readFileSync } from 'fs';
+
 /** argv[3..] 구간에서 --key value 쌍 파싱. 쉼표 구분 문자열은 배열로 변환. */
 export function parseArgvToParams(argv: string[]): Record<string, unknown> {
   const params: Record<string, unknown> = {};
@@ -66,6 +68,9 @@ export function rememberParams(argv: string[]): Record<string, unknown> {
   const p = parseArgvToParams(argv);
   const out: Record<string, unknown> = {};
   if (typeof p.content === 'string') out.content = p.content;
+  else if (typeof p.content_file === 'string' && p.content_file.trim()) {
+    out.content = readFileSync(String(p.content_file), 'utf8');
+  }
   if (typeof p.type === 'string') out.type = p.type;
   if (Array.isArray(p.tags)) out.tags = p.tags;
   if (typeof p.importance === 'number') out.importance = p.importance;
