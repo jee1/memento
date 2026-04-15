@@ -18,6 +18,16 @@ MAX_WAIT=60
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 err() { echo "[$(date '+%H:%M:%S')] ERROR: $*" >&2; }
 
+# docker compose v2 플러그인 우선, 없으면 v1 standalone 사용
+if docker compose version &>/dev/null 2>&1; then
+  DC="docker compose"
+elif command -v docker-compose &>/dev/null 2>&1; then
+  DC="docker-compose"
+else
+  err "docker compose 또는 docker-compose를 찾을 수 없습니다."
+  exit 1
+fi
+
 cd "$(dirname "$0")/.."
 
 log "=== Memento 롤백 시작 ==="
@@ -43,7 +53,7 @@ docker tag "$ROLLBACK_IMAGE" "$IMAGE"
 
 # 컨테이너 재시작
 log "컨테이너 재시작..."
-docker-compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+$DC -f "$COMPOSE_FILE" up -d "$SERVICE"
 
 # 헬스체크 대기
 log "헬스체크 대기 (최대 ${MAX_WAIT}초)..."
@@ -51,7 +61,7 @@ for i in $(seq 1 $MAX_WAIT); do
   if curl -sf "$HEALTH_URL" >/dev/null 2>&1; then
     log "=== 롤백 성공! (${i}초 소요) ==="
     log "현재 실행 중인 이미지: $ROLLBACK_ID"
-    docker-compose -f "$COMPOSE_FILE" ps
+    $DC -f "$COMPOSE_FILE" ps
     exit 0
   fi
   printf "."

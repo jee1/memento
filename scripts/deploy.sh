@@ -29,6 +29,16 @@ done
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 err() { echo "[$(date '+%H:%M:%S')] ERROR: $*" >&2; }
 
+# docker compose v2 플러그인 우선, 없으면 v1 standalone 사용
+if docker compose version &>/dev/null 2>&1; then
+  DC="docker compose"
+elif command -v docker-compose &>/dev/null 2>&1; then
+  DC="docker-compose"
+else
+  err "docker compose 또는 docker-compose를 찾을 수 없습니다."
+  exit 1
+fi
+
 # 프로젝트 루트 기준으로 실행
 cd "$(dirname "$0")/.."
 
@@ -52,13 +62,13 @@ git pull origin "$BRANCH"
 
 # 3. 빌드 & 실행 (memento-prod 서비스만 재빌드, redis/nginx는 그대로)
 log "Docker 빌드 시작..."
-docker-compose -f "$COMPOSE_FILE" build "$SERVICE"
+$DC -f "$COMPOSE_FILE" build "$SERVICE"
 
 log "컨테이너 교체..."
-docker-compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+$DC -f "$COMPOSE_FILE" up -d "$SERVICE"
 
 # nginx, redis는 아직 실행 중이 아니면 함께 시작
-docker-compose -f "$COMPOSE_FILE" up -d
+$DC -f "$COMPOSE_FILE" up -d
 
 # 4. 헬스체크 대기
 log "헬스체크 대기 (최대 ${MAX_WAIT}초)..."
@@ -66,7 +76,7 @@ for i in $(seq 1 $MAX_WAIT); do
   if curl -sf "$HEALTH_URL" >/dev/null 2>&1; then
     log "=== 배포 성공! (${i}초 소요) ==="
     log "서비스 상태:"
-    docker-compose -f "$COMPOSE_FILE" ps
+    $DC -f "$COMPOSE_FILE" ps
     exit 0
   fi
   printf "."
@@ -77,12 +87,12 @@ echo ""
 # 5. 헬스체크 실패 → 자동 롤백
 err "헬스체크 실패 (${MAX_WAIT}초 초과)"
 log "컨테이너 로그 (마지막 30줄):"
-docker-compose -f "$COMPOSE_FILE" logs --tail=30 "$SERVICE" || true
+$DC -f "$COMPOSE_FILE" logs --tail=30 "$SERVICE" || true
 
 if docker image inspect "$ROLLBACK_IMAGE" &>/dev/null 2>&1; then
   log "자동 롤백 실행..."
   docker tag "$ROLLBACK_IMAGE" "$IMAGE"
-  docker-compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+  $DC -f "$COMPOSE_FILE" up -d "$SERVICE"
   log "롤백 완료. 수동 확인: docker-compose -f $COMPOSE_FILE logs $SERVICE"
 else
   err "롤백 이미지 없음. 수동 복구 필요."
