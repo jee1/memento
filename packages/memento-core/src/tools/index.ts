@@ -22,6 +22,7 @@ import { RememberProcedureTool } from '../domains/memory/tools/remember-procedur
 import { GetIntrospectionSummaryTool } from '../domains/memory/tools/get-introspection-summary-tool.js';
 import { FeedbackTool } from '../domains/memory/tools/feedback-tool.js';
 import { GetTelemetrySummaryTool } from '../domains/telemetry/tools/get-telemetry-summary-tool.js';
+import { ExtractTriplesTool } from '../domains/relation/tools/extract-triples-tool.js';
 
 const coreTools = [
   new RememberTool(),
@@ -41,6 +42,7 @@ const coreTools = [
   new RememberProcedureTool(),
   new GetIntrospectionSummaryTool(),
   new GetTelemetrySummaryTool(),
+  new ExtractTriplesTool(),
 ];
 
 export const toolRegistry = new ToolRegistry({

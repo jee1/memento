@@ -73,6 +73,7 @@ export { GetRelationsTool } from './domains/relation/tools/get-relations-tool.js
 export { AddRelationTool } from './domains/relation/tools/add-relation-tool.js';
 export { RemoveRelationTool } from './domains/relation/tools/remove-relation-tool.js';
 export { VisualizeRelationsTool } from './domains/relation/tools/visualize-relations-tool.js';
+export { ExtractTriplesTool } from './domains/relation/tools/extract-triples-tool.js';
 export { RestoreAnchorsTool } from './domains/anchor/tools/restore-anchors-tool.js';
 export { ConvertEpisodicToSemanticTool } from './domains/memory/tools/convert-episodic-to-semantic-tool.js';
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
