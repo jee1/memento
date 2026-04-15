@@ -84,9 +84,9 @@ src/shared/      — shared interfaces and types across domains
 
 ### MCP Tools vs HTTP Admin API
 
-**MCP tools (17, exposed to AI agents):** `remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `procedural_diff`, `procedural_rollback`, `remember_procedure`, `get_introspection_summary`, `get_telemetry_summary`
+**MCP tools (18, exposed to AI agents):** `remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `memory_injection`, `get_memory_neighbors`, `set_anchor`, `get_anchor`, `search_local`, `clear_anchor`, `procedural_diff`, `procedural_rollback`, `remember_procedure`, `get_introspection_summary`, `get_telemetry_summary`, `extract_triples`
 
-**HTTP-only admin endpoints** (never exposed via MCP): `/admin/memory/cleanup`, `/admin/stats/*`, `/admin/embeddings/migrate`, `/admin/anchors/restore`, `/admin/database/optimize`, `/admin/errors/*`
+**HTTP-only admin endpoints** (never exposed via MCP): `/admin/memory/cleanup`, `/admin/stats/*`, `/admin/embeddings/migrate`, `/admin/anchors/restore`, `/admin/database/optimize`, `/admin/errors/*`, `/admin/relations/*` (includes `visualize_relations` with `format: dot` for Graphviz DOT export)
 
 ### Search Ranking Formula
 
