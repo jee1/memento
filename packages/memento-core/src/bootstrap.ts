@@ -40,6 +40,7 @@ import { IntrospectionScanCache } from './domains/memory/services/introspection-
 import type { SqlParam } from './shared/types/index.js';
 import { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
+import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
 
 export interface ServerServices {
   searchEngine: SearchEngine;
@@ -66,6 +67,10 @@ export interface ServerServices {
   sleepConsolidationService?: SleepConsolidationService;
   /** 006 observability telemetry */
   telemetryService?: TelemetryService;
+  /** 런타임 샘플 및 부트스트랩 이벤트 진단 로거 */
+  runtimeDiagnosticsLogger?: RuntimeDiagnosticsLogger;
+  /** diagnostics sampler lifecycle handle */
+  runtimeDiagnosticsSampler?: ReturnType<typeof setInterval>;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -98,6 +103,15 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     await reflexionWorker.start();
     const performanceMonitor = getPerformanceMonitor();
     performanceMonitor.initialize(db);
+    const runtimeDiagnosticsLogger = new RuntimeDiagnosticsLogger(
+      mementoConfig.diagnosticsEnabled,
+      mementoConfig.diagnosticsLogDir
+    );
+    await runtimeDiagnosticsLogger.writeEvent({
+      type: 'bootstrap_start',
+      timestamp: new Date().toISOString(),
+      diagnosticsEnabled: mementoConfig.diagnosticsEnabled
+    });
     const walCheckpointScheduler = new WalCheckpointScheduler(
       db,
       {
@@ -123,9 +137,15 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       performanceMonitor,
       walCheckpointScheduler
     );
-    walCheckpointScheduler.start();
-    databaseLockMonitor.start();
-    logger.info('WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 시작됨');
+    if (mementoConfig.walCheckpointEnabled) {
+      walCheckpointScheduler.start();
+    }
+    if (mementoConfig.dbLockMonitorEnabled) {
+      databaseLockMonitor.start();
+    }
+    if (mementoConfig.walCheckpointEnabled || mementoConfig.dbLockMonitorEnabled) {
+      logger.info('WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 시작됨');
+    }
     let consolidationScoreService: ConsolidationScoreService | undefined;
     const writeCoalescingManager = new WriteCoalescingManager(
       1000,
@@ -187,7 +207,24 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       telemetryService
     });
     batchScheduler.setSleepConsolidationService(sleepConsolidationService);
-    await batchScheduler.start(db, reflexionWorker);
+    if (mementoConfig.batchSchedulerEnabled) {
+      await batchScheduler.start(db, reflexionWorker);
+    }
+    let runtimeDiagnosticsSampler: ReturnType<typeof setInterval> | undefined;
+    if (mementoConfig.diagnosticsEnabled) {
+      runtimeDiagnosticsSampler = setInterval(async () => {
+        await runtimeDiagnosticsLogger.writeSample({
+          type: 'runtime_sample',
+          timestamp: new Date().toISOString(),
+          memory: process.memoryUsage(),
+          uptime: process.uptime(),
+          batchScheduler: batchScheduler.getStatus(),
+          walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
+          dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
+        });
+      }, mementoConfig.diagnosticsIntervalMs);
+      runtimeDiagnosticsSampler.unref?.();
+    }
     return {
       searchEngine,
       hybridSearchEngine,
@@ -209,7 +246,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       batchScheduler,
       introspectionScanCache,
       sleepConsolidationService,
-      telemetryService
+      telemetryService,
+      runtimeDiagnosticsLogger,
+      runtimeDiagnosticsSampler
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
