@@ -37,7 +37,14 @@ const mockState = vi.hoisted(() => {
     setIntrospectionScanCache: vi.fn(),
     setSleepConsolidationService: vi.fn(),
     start: vi.fn().mockResolvedValue(undefined),
-    getStatus: vi.fn(() => ({ isRunning: true }))
+    getStatus: vi.fn(() => ({
+      isRunning: true,
+      activeJobs: ['cleanup'],
+      uptime: 42,
+      lastExecution: new Map([['cleanup', new Date('2026-01-01T00:00:00.000Z')]]),
+      totalExecutions: new Map([['cleanup', 3]]),
+      errorCount: new Map([['cleanup', 1]])
+    }))
   };
 
   const runtimeDiagnosticsLogger = {
@@ -67,6 +74,7 @@ const mockState = vi.hoisted(() => {
     walCheckpointSchedulerStart,
     databaseLockMonitorStart,
     runtimeDiagnosticsLoggerCtor,
+    lastIntervalHandle: null as ReturnType<typeof setInterval> | null,
     mockTimerCallbacks
   };
 });
@@ -250,6 +258,7 @@ describe('initializeServices bootstrap wiring', () => {
         unref: vi.fn(),
         ref: vi.fn()
       } as unknown as ReturnType<typeof setInterval>;
+      mockState.lastIntervalHandle = handle;
       mockState.mockTimerCallbacks.push(callback as (...args: unknown[]) => unknown);
       return handle;
     });
@@ -304,8 +313,8 @@ describe('initializeServices bootstrap wiring', () => {
     );
     expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 2500);
     expect(services.runtimeDiagnosticsLogger).toBeDefined();
-    expect(services.runtimeDiagnosticsSampler).toBeDefined();
-    expect((services.runtimeDiagnosticsSampler as { unref: ReturnType<typeof vi.fn> }).unref).toHaveBeenCalled();
+    expect(services.runtimeDiagnosticsSamplerCleanup).toBeTypeOf('function');
+    expect(mockState.lastIntervalHandle?.unref).toHaveBeenCalled();
 
     const callback = mockState.mockTimerCallbacks[0];
     expect(callback).toBeTypeOf('function');
@@ -315,7 +324,20 @@ describe('initializeServices bootstrap wiring', () => {
     expect(mockState.runtimeDiagnosticsLogger.writeSample).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'runtime_sample',
-        batchScheduler: expect.objectContaining({ isRunning: true }),
+        batchScheduler: expect.objectContaining({
+          isRunning: true,
+          activeJobs: ['cleanup'],
+          uptime: 42,
+          lastExecution: {
+            cleanup: '2026-01-01T00:00:00.000Z'
+          },
+          totalExecutions: {
+            cleanup: 3
+          },
+          errorCount: {
+            cleanup: 1
+          }
+        }),
         walCheckpointEnabled: true,
         dbLockMonitorEnabled: true,
         uptime: expect.any(Number),
@@ -335,7 +357,7 @@ describe('initializeServices bootstrap wiring', () => {
     const services = await initializeServices({} as never);
 
     expect(setIntervalSpy).not.toHaveBeenCalled();
-    expect(services.runtimeDiagnosticsSampler).toBeUndefined();
+    expect(services.runtimeDiagnosticsSamplerCleanup).toBeUndefined();
     expect(mockState.runtimeDiagnosticsLogger.writeSample).not.toHaveBeenCalled();
   });
 
@@ -347,8 +369,12 @@ describe('initializeServices bootstrap wiring', () => {
     const { initializeServices } = await loadBootstrap();
     const services = await initializeServices({} as never);
 
-    expect(services.runtimeDiagnosticsSampler).toBeDefined();
-    clearInterval(services.runtimeDiagnosticsSampler as ReturnType<typeof setInterval>);
-    expect(clearIntervalSpy).toHaveBeenCalledWith(services.runtimeDiagnosticsSampler);
+    expect(services.runtimeDiagnosticsSamplerCleanup).toBeTypeOf('function');
+    services.runtimeDiagnosticsSamplerCleanup?.();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(mockState.lastIntervalHandle);
+
+    const callback = mockState.mockTimerCallbacks[0];
+    await callback();
+    expect(mockState.runtimeDiagnosticsLogger.writeSample).not.toHaveBeenCalled();
   });
 });

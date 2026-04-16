@@ -69,8 +69,8 @@ export interface ServerServices {
   telemetryService?: TelemetryService;
   /** 런타임 샘플 및 부트스트랩 이벤트 진단 로거 */
   runtimeDiagnosticsLogger?: RuntimeDiagnosticsLogger;
-  /** diagnostics sampler lifecycle handle */
-  runtimeDiagnosticsSampler?: ReturnType<typeof setInterval>;
+  /** diagnostics sampler cleanup hook */
+  runtimeDiagnosticsSamplerCleanup?: () => void;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -139,12 +139,11 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     );
     if (mementoConfig.walCheckpointEnabled) {
       walCheckpointScheduler.start();
+      logger.info('WAL 체크포인트 스케줄러 시작됨');
     }
     if (mementoConfig.dbLockMonitorEnabled) {
       databaseLockMonitor.start();
-    }
-    if (mementoConfig.walCheckpointEnabled || mementoConfig.dbLockMonitorEnabled) {
-      logger.info('WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 시작됨');
+      logger.info('데이터베이스 락 모니터 시작됨');
     }
     let consolidationScoreService: ConsolidationScoreService | undefined;
     const writeCoalescingManager = new WriteCoalescingManager(
@@ -210,20 +209,48 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     if (mementoConfig.batchSchedulerEnabled) {
       await batchScheduler.start(db, reflexionWorker);
     }
-    let runtimeDiagnosticsSampler: ReturnType<typeof setInterval> | undefined;
+    let runtimeDiagnosticsSamplerCleanup: (() => void) | undefined;
     if (mementoConfig.diagnosticsEnabled) {
-      runtimeDiagnosticsSampler = setInterval(async () => {
+      let runtimeDiagnosticsSamplerStopped = false;
+      const runtimeDiagnosticsSampler = setInterval(async () => {
+        if (runtimeDiagnosticsSamplerStopped) {
+          return;
+        }
+
+        const batchSchedulerStatus = batchScheduler.getStatus();
         await runtimeDiagnosticsLogger.writeSample({
           type: 'runtime_sample',
           timestamp: new Date().toISOString(),
           memory: process.memoryUsage(),
           uptime: process.uptime(),
-          batchScheduler: batchScheduler.getStatus(),
+          batchScheduler: {
+            isRunning: batchSchedulerStatus.isRunning,
+            activeJobs: batchSchedulerStatus.activeJobs ?? [],
+            uptime: batchSchedulerStatus.uptime ?? 0,
+            lastExecution: batchSchedulerStatus.lastExecution
+              ? Object.fromEntries(
+                  Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
+                    jobName,
+                    executedAt.toISOString()
+                  ])
+                )
+              : undefined,
+            totalExecutions: batchSchedulerStatus.totalExecutions
+              ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
+              : undefined,
+            errorCount: batchSchedulerStatus.errorCount
+              ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
+              : undefined
+          },
           walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
           dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
         });
       }, mementoConfig.diagnosticsIntervalMs);
       runtimeDiagnosticsSampler.unref?.();
+      runtimeDiagnosticsSamplerCleanup = () => {
+        runtimeDiagnosticsSamplerStopped = true;
+        clearInterval(runtimeDiagnosticsSampler);
+      };
     }
     return {
       searchEngine,
@@ -248,7 +275,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       sleepConsolidationService,
       telemetryService,
       runtimeDiagnosticsLogger,
-      runtimeDiagnosticsSampler
+      runtimeDiagnosticsSamplerCleanup
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
