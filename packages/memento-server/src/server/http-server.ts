@@ -278,6 +278,15 @@ async function cleanup() {
   try {
     // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
     if (serverServices) {
+      if (serverServices.runtimeDiagnosticsSamplerCleanup) {
+        try {
+          await serverServices.runtimeDiagnosticsSamplerCleanup();
+          logger.info('런타임 진단 샘플러 중지됨');
+        } catch (error) {
+          logger.error('런타임 진단 샘플러 중지 실패', { error });
+        }
+      }
+
       try {
         await serverServices.walCheckpointScheduler.stop();
         logger.info('WAL 체크포인트 스케줄러 중지됨');

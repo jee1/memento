@@ -320,8 +320,16 @@ async function main(): Promise<void> {
   const dbPath = process.env.DB_PATH ?? mementoConfig.dbPath;
 
   let db: import('better-sqlite3').Database | null = null;
+  let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;
 
-  const cleanup = (): void => {
+  const cleanup = async (): Promise<void> => {
+    if (runtimeDiagnosticsSamplerCleanup) {
+      try {
+        await runtimeDiagnosticsSamplerCleanup();
+      } catch (_) { /* intentional: cleanup errors ignored on exit */ }
+      runtimeDiagnosticsSamplerCleanup = undefined;
+    }
+
     if (db) {
       try {
         closeDatabase(db);
@@ -330,14 +338,17 @@ async function main(): Promise<void> {
     }
   };
 
-  process.on('exit', cleanup);
-  process.on('uncaughtException', () => { cleanup(); process.exit(1); });
-  process.on('SIGINT', () => { cleanup(); process.exit(130); });
-  process.on('SIGTERM', () => { cleanup(); process.exit(143); });
+  process.on('exit', () => {
+    void cleanup();
+  });
+  process.on('uncaughtException', () => { void cleanup(); process.exit(1); });
+  process.on('SIGINT', () => { void cleanup(); process.exit(130); });
+  process.on('SIGTERM', () => { void cleanup(); process.exit(143); });
 
   try {
     const core = await createMementoCore({ dbPath });
     db = core.db;
+    runtimeDiagnosticsSamplerCleanup = core.services.runtimeDiagnosticsSamplerCleanup;
 
     const telService = core.services.telemetryService;
     if (!telService) {

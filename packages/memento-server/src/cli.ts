@@ -21,6 +21,7 @@ import {
   forgetParams,
   memoryInjectionParams
 } from './cli/option-map.js';
+import type { ServerServices } from '@memento/core';
 
 const TOOL_SUBCOMMANDS = new Set(['recall', 'remember', 'forget', 'memory_injection']);
 
@@ -120,7 +121,7 @@ const subIdx = preOptions.subIdx;
 const commandToken = preOptions.commandToken;
 const showHelp = preOptions.help || (!commandToken && !subcommand);
 
-async function main(): Promise<void> {
+async function main(): Promise<number> {
   if (showHelp) {
     originalStderrWrite('memento – Memento CLI for AI\n');
     originalStderrWrite('Usage: memento [options] <command> [command-args]\n\n');
@@ -134,22 +135,26 @@ async function main(): Promise<void> {
     originalStderrWrite('  --env-file <path>   .env 파일 경로\n');
     originalStderrWrite('  --config-dir <path> 설정 디렉터리 (~/.memento 대체)\n');
     originalStderrWrite('  --help, -h           이 도움말\n');
-    process.exit(0);
+    return 0;
   }
 
   if (!subcommand && commandToken) {
     originalStderrWrite(`Unknown command: ${commandToken}. Use --help.\n`);
-    process.exit(1);
+    return 1;
   }
 
   if (!subcommand || !TOOL_SUBCOMMANDS.has(subcommand)) {
     originalStderrWrite(`Unknown command: ${String(subcommand)}. Use --help.\n`);
-    process.exit(1);
+    return 1;
   }
 
   let db: import('better-sqlite3').Database | null = null;
+  let coreServices: ServerServices | null = null;
 
-  const cleanup = (): void => {
+  const cleanup = async (): Promise<void> => {
+    if (coreServices?.runtimeDiagnosticsSamplerCleanup) {
+      await coreServices.runtimeDiagnosticsSamplerCleanup();
+    }
     if (db) {
       try {
         closeDatabase(db);
@@ -159,23 +164,25 @@ async function main(): Promise<void> {
   };
 
   process.on('exit', (code) => {
-    cleanup();
+    void cleanup();
   });
-  process.on('uncaughtException', () => {
-    cleanup();
+  process.on('uncaughtException', async () => {
+    await cleanup();
+    process.exit(1);
   });
-  process.on('SIGINT', () => {
-    cleanup();
+  process.on('SIGINT', async () => {
+    await cleanup();
     process.exit(130);
   });
-  process.on('SIGTERM', () => {
-    cleanup();
+  process.on('SIGTERM', async () => {
+    await cleanup();
     process.exit(143);
   });
 
   try {
     const core = await createMementoCore({ dbPath });
     db = core.db;
+    coreServices = core.services;
     const context = createToolContext(db, core.services);
     const cmdArgv =
       subIdx !== undefined ? subcommandArgvFrom(process.argv, subIdx) : process.argv.slice(3);
@@ -184,56 +191,59 @@ async function main(): Promise<void> {
       const params = recallParams(cmdArgv);
       if (typeof params.query !== 'string' || !String(params.query).trim()) {
         originalStderrWrite('recall requires --query <string>.\n');
-        process.exit(1);
+        return 1;
       }
       const result = await executeTool('recall', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      return 0;
     }
 
     if (subcommand === 'remember') {
       const params = rememberParams(cmdArgv);
       if (typeof params.content !== 'string' || !String(params.content).trim()) {
         originalStderrWrite('remember requires --content <string>.\n');
-        process.exit(1);
+        return 1;
       }
       const result = await executeTool('remember', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      return 0;
     }
 
     if (subcommand === 'forget') {
       const params = forgetParams(cmdArgv);
       if (params.id === undefined && (!Array.isArray(params.batch) || params.batch.length === 0)) {
         originalStderrWrite('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
-        process.exit(1);
+        return 1;
       }
       const result = await executeTool('forget', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      return 0;
     }
 
     if (subcommand === 'memory_injection') {
       const params = memoryInjectionParams(cmdArgv);
       if (typeof params.query !== 'string' || !String(params.query).trim()) {
         originalStderrWrite('memory_injection requires --query <string>.\n');
-        process.exit(1);
+        return 1;
       }
       const result = await executeTool('memory_injection', params, context);
       process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      return 0;
     }
 
-    process.exit(0);
+    return 0;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     originalStderrWrite(msg + '\n');
-    cleanup();
-    process.exit(1);
+    return 1;
+  } finally {
+    await cleanup();
   }
 }
 
-main().catch((err) => {
+main().then((code) => {
+  process.exit(code);
+}).catch((err) => {
   originalStderrWrite(String(err?.message ?? err) + '\n');
   process.exit(1);
 });

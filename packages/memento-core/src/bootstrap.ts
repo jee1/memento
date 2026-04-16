@@ -236,34 +236,44 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
             return;
           }
 
-          const batchSchedulerStatus = batchScheduler.getStatus();
-          await runtimeDiagnosticsLogger.writeSample({
-            type: 'runtime_sample',
-            timestamp: new Date().toISOString(),
-            memory: process.memoryUsage(),
-            uptime: process.uptime(),
-            batchScheduler: {
-              isRunning: batchSchedulerStatus.isRunning,
-              activeJobs: batchSchedulerStatus.activeJobs ?? [],
-              uptime: batchSchedulerStatus.uptime ?? 0,
-              lastExecution: batchSchedulerStatus.lastExecution
-                ? Object.fromEntries(
-                    Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
-                      jobName,
-                      executedAt.toISOString()
-                    ])
-                  )
-                : undefined,
-              totalExecutions: batchSchedulerStatus.totalExecutions
-                ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
-                : undefined,
-              errorCount: batchSchedulerStatus.errorCount
-                ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
-                : undefined
-            },
-            walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
-            dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
-          });
+          try {
+            const batchSchedulerStatus = batchScheduler.getStatus();
+            await runtimeDiagnosticsLogger.writeSample({
+              type: 'runtime_sample',
+              timestamp: new Date().toISOString(),
+              memory: process.memoryUsage(),
+              uptime: process.uptime(),
+              batchScheduler: {
+                isRunning: batchSchedulerStatus.isRunning,
+                activeJobs: batchSchedulerStatus.activeJobs ?? [],
+                uptime: batchSchedulerStatus.uptime ?? 0,
+                lastExecution: batchSchedulerStatus.lastExecution
+                  ? Object.fromEntries(
+                      Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
+                        jobName,
+                        executedAt.toISOString()
+                      ])
+                    )
+                  : undefined,
+                totalExecutions: batchSchedulerStatus.totalExecutions
+                  ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
+                  : undefined,
+                errorCount: batchSchedulerStatus.errorCount
+                  ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
+                  : undefined
+              },
+              walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
+              dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
+            });
+          } catch (error) {
+            try {
+              logger.error('런타임 진단 샘플 기록 실패', {
+                error: error instanceof Error ? error.message : String(error)
+              });
+            } catch {
+              // diagnostics best-effort: sampler failure must not abort bootstrap
+            }
+          }
         })();
 
         runtimeDiagnosticsSamplerInFlight = currentRun;

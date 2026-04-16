@@ -351,6 +351,32 @@ describe('initializeServices bootstrap wiring', () => {
     expect(mockState.batchScheduler.getStatus).toHaveBeenCalled();
   });
 
+  it('diagnostics 샘플 기록 실패는 샘플러 루프를 중단하지 않아야 한다', async () => {
+    mockState.mementoConfig.diagnosticsEnabled = true;
+    const setTimeoutSpy = installTimeoutSpy();
+    mockState.runtimeDiagnosticsLogger.writeSample.mockRejectedValueOnce(new Error('diagnostics failed'));
+    const errorLogged = new Promise<void>((resolve) => {
+      mockState.logger.error.mockImplementation(() => {
+        resolve();
+      });
+    });
+
+    const { initializeServices } = await loadBootstrap();
+    await initializeServices({} as never);
+
+    void mockState.mockTimerCallbacks[0]?.();
+    await errorLogged;
+    await Promise.resolve();
+
+    expect(mockState.logger.error).toHaveBeenCalledWith(
+      '런타임 진단 샘플 기록 실패',
+      expect.objectContaining({
+        error: 'diagnostics failed'
+      })
+    );
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('diagnostics가 비활성화되면 sampler를 시작하지 않아야 한다', async () => {
     mockState.mementoConfig.diagnosticsEnabled = false;
     const setTimeoutSpy = installTimeoutSpy();

@@ -11,7 +11,7 @@ import {
   type TestDatabaseContext
 } from './test/helpers/test-database.js';
 import type { ServerServices } from '@memento/core';
-import { __test } from './http-server.js';
+import { __test, cleanup } from './http-server.js';
 
 describe('HTTP Server', () => {
   let ctx: TestDatabaseContext | null = null;
@@ -201,5 +201,21 @@ describe('HTTP Server', () => {
       expect(retrievedDb).toBeNull();
     });
   });
-});
 
+  describe('정리 경로', () => {
+    it('cleanup이 runtimeDiagnosticsSamplerCleanup을 호출해야 함', async () => {
+      const runtimeDiagnosticsSamplerCleanup = vi.fn().mockResolvedValue(undefined);
+      __test.setTestDependencies({
+        database: db,
+        serverServices: {
+          ...ctx!.services,
+          runtimeDiagnosticsSamplerCleanup
+        }
+      });
+
+      await cleanup();
+
+      expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+    });
+  });
+});
