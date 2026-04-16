@@ -72,6 +72,15 @@ describe('runtime diagnostics config', () => {
 });
 
 describe('RuntimeDiagnosticsLogger', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.doUnmock('fs/promises');
+    vi.resetModules();
+  });
+
   it('writeSample이 JSONL 파일에 기록해야 한다', async () => {
     const appendFileMock = vi.fn().mockResolvedValue(undefined);
     const mkdirMock = vi.fn().mockResolvedValue(undefined);
@@ -93,9 +102,7 @@ describe('RuntimeDiagnosticsLogger', () => {
         '{"type":"sample","count":1}\n',
         'utf8'
       );
-    } finally {
-      vi.doUnmock('fs/promises');
-    }
+    } finally {}
   });
 
   it('로그 파일 쓰기 실패가 예외를 전파하지 않아야 한다', async () => {
@@ -109,8 +116,6 @@ describe('RuntimeDiagnosticsLogger', () => {
       const logger = new RuntimeDiagnosticsLogger(true, '/root/forbidden');
 
       await expect(logger.writeEvent({ type: 'server_start' })).resolves.toBeUndefined();
-    } finally {
-      vi.doUnmock('fs/promises');
-    }
+    } finally {}
   });
 });
