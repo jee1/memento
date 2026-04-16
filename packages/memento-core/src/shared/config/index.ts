@@ -28,7 +28,16 @@ const embeddingDimensions: number =
   providerDimensionDefaults[embeddingProvider] ??
   providerDimensionDefaults.minilm) as number;
 
-export const mementoConfig: MementoConfig = {
+interface RuntimeDiagnosticsConfig {
+  diagnosticsEnabled: boolean;
+  diagnosticsIntervalMs: number;
+  diagnosticsLogDir: string;
+  batchSchedulerEnabled: boolean;
+  walCheckpointEnabled: boolean;
+  dbLockMonitorEnabled: boolean;
+}
+
+export const mementoConfig: MementoConfig & RuntimeDiagnosticsConfig = {
   // 데이터베이스 설정
   dbPath: resolveString('DB_PATH'),
 
@@ -87,12 +96,18 @@ export const mementoConfig: MementoConfig = {
   walCheckpointUseDedicatedConnection: resolveBoolean('WAL_CHECKPOINT_USE_DEDICATED_CONNECTION', { defaultValue: true }),
   walCheckpointMaxRetries: resolveNumber('WAL_CHECKPOINT_MAX_RETRIES', { defaultValue: 3 }),
   walCheckpointRetryBackoffMs: resolveNumber('WAL_CHECKPOINT_RETRY_BACKOFF_MS', { defaultValue: 1000 }),
+  diagnosticsEnabled: resolveBoolean('DIAGNOSTICS_ENABLED', { defaultValue: false }),
+  diagnosticsIntervalMs: resolveNumber('DIAGNOSTICS_INTERVAL_MS', { defaultValue: 15000 }),
+  diagnosticsLogDir: resolveString('DIAGNOSTICS_LOG_DIR', { defaultValue: '/app/logs/diagnostics' }),
 
   // 데이터베이스 락 모니터 설정
   lockMonitorIntervalMs: resolveNumber('LOCK_MONITOR_INTERVAL_MS', { defaultValue: 60000 }),
   lockMonitorWarningThresholdMs: resolveNumber('LOCK_MONITOR_WARNING_THRESHOLD_MS', { defaultValue: 5000 }),
   lockMonitorDangerThresholdMs: resolveNumber('LOCK_MONITOR_DANGER_THRESHOLD_MS', { defaultValue: 30000 }),
   lockMonitorCriticalThresholdMs: resolveNumber('LOCK_MONITOR_CRITICAL_THRESHOLD_MS', { defaultValue: 60000 }),
+  batchSchedulerEnabled: resolveBoolean('BATCH_SCHEDULER_ENABLED', { defaultValue: true }),
+  walCheckpointEnabled: resolveBoolean('WAL_CHECKPOINT_ENABLED', { defaultValue: true }),
+  dbLockMonitorEnabled: resolveBoolean('DB_LOCK_MONITOR_ENABLED', { defaultValue: true }),
 
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
   proceduralExtractionStrategy: (getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first'
