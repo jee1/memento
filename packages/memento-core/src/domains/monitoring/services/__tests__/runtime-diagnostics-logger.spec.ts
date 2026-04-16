@@ -4,7 +4,10 @@ describe('runtime diagnostics config', () => {
   const originalEnv = {
     DIAGNOSTICS_ENABLED: process.env.DIAGNOSTICS_ENABLED,
     DIAGNOSTICS_INTERVAL_MS: process.env.DIAGNOSTICS_INTERVAL_MS,
-    DIAGNOSTICS_LOG_DIR: process.env.DIAGNOSTICS_LOG_DIR
+    DIAGNOSTICS_LOG_DIR: process.env.DIAGNOSTICS_LOG_DIR,
+    BATCH_SCHEDULER_ENABLED: process.env.BATCH_SCHEDULER_ENABLED,
+    WAL_CHECKPOINT_ENABLED: process.env.WAL_CHECKPOINT_ENABLED,
+    DB_LOCK_MONITOR_ENABLED: process.env.DB_LOCK_MONITOR_ENABLED
   };
 
   beforeEach(() => {
@@ -12,9 +15,22 @@ describe('runtime diagnostics config', () => {
   });
 
   afterEach(() => {
-    process.env.DIAGNOSTICS_ENABLED = originalEnv.DIAGNOSTICS_ENABLED;
-    process.env.DIAGNOSTICS_INTERVAL_MS = originalEnv.DIAGNOSTICS_INTERVAL_MS;
-    process.env.DIAGNOSTICS_LOG_DIR = originalEnv.DIAGNOSTICS_LOG_DIR;
+    const restoreEnvValue = (key: keyof typeof originalEnv) => {
+      const value = originalEnv[key];
+      if (value === undefined) {
+        delete process.env[key];
+        return;
+      }
+
+      process.env[key] = value;
+    };
+
+    restoreEnvValue('DIAGNOSTICS_ENABLED');
+    restoreEnvValue('DIAGNOSTICS_INTERVAL_MS');
+    restoreEnvValue('DIAGNOSTICS_LOG_DIR');
+    restoreEnvValue('BATCH_SCHEDULER_ENABLED');
+    restoreEnvValue('WAL_CHECKPOINT_ENABLED');
+    restoreEnvValue('DB_LOCK_MONITOR_ENABLED');
     vi.resetModules();
   });
 
@@ -44,11 +60,13 @@ describe('RuntimeDiagnosticsLogger', () => {
       mkdir: vi.fn().mockResolvedValue(undefined)
     }));
 
-    const { RuntimeDiagnosticsLogger } = await import('../runtime-diagnostics-logger.js');
-    const logger = new RuntimeDiagnosticsLogger(true, '/root/forbidden');
+    try {
+      const { RuntimeDiagnosticsLogger } = await import('../runtime-diagnostics-logger.js');
+      const logger = new RuntimeDiagnosticsLogger(true, '/root/forbidden');
 
-    await expect(logger.writeEvent({ type: 'server_start' })).resolves.toBeUndefined();
-
-    vi.doUnmock('fs/promises');
+      await expect(logger.writeEvent({ type: 'server_start' })).resolves.toBeUndefined();
+    } finally {
+      vi.doUnmock('fs/promises');
+    }
   });
 });
