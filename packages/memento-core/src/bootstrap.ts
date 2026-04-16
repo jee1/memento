@@ -70,7 +70,7 @@ export interface ServerServices {
   /** 런타임 샘플 및 부트스트랩 이벤트 진단 로거 */
   runtimeDiagnosticsLogger?: RuntimeDiagnosticsLogger;
   /** diagnostics sampler cleanup hook */
-  runtimeDiagnosticsSamplerCleanup?: () => void;
+  runtimeDiagnosticsSamplerCleanup?: () => Promise<void>;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -209,47 +209,84 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     if (mementoConfig.batchSchedulerEnabled) {
       await batchScheduler.start(db, reflexionWorker);
     }
-    let runtimeDiagnosticsSamplerCleanup: (() => void) | undefined;
+    let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;
     if (mementoConfig.diagnosticsEnabled) {
       let runtimeDiagnosticsSamplerStopped = false;
-      const runtimeDiagnosticsSampler = setInterval(async () => {
+      let runtimeDiagnosticsSamplerInFlight: Promise<void> | null = null;
+      let runtimeDiagnosticsSamplerTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleRuntimeDiagnosticsSampler = (): void => {
         if (runtimeDiagnosticsSamplerStopped) {
           return;
         }
 
-        const batchSchedulerStatus = batchScheduler.getStatus();
-        await runtimeDiagnosticsLogger.writeSample({
-          type: 'runtime_sample',
-          timestamp: new Date().toISOString(),
-          memory: process.memoryUsage(),
-          uptime: process.uptime(),
-          batchScheduler: {
-            isRunning: batchSchedulerStatus.isRunning,
-            activeJobs: batchSchedulerStatus.activeJobs ?? [],
-            uptime: batchSchedulerStatus.uptime ?? 0,
-            lastExecution: batchSchedulerStatus.lastExecution
-              ? Object.fromEntries(
-                  Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
-                    jobName,
-                    executedAt.toISOString()
-                  ])
-                )
-              : undefined,
-            totalExecutions: batchSchedulerStatus.totalExecutions
-              ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
-              : undefined,
-            errorCount: batchSchedulerStatus.errorCount
-              ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
-              : undefined
-          },
-          walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
-          dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
-        });
-      }, mementoConfig.diagnosticsIntervalMs);
-      runtimeDiagnosticsSampler.unref?.();
-      runtimeDiagnosticsSamplerCleanup = () => {
+        runtimeDiagnosticsSamplerTimer = setTimeout(() => {
+          runtimeDiagnosticsSamplerTimer = null;
+          void runRuntimeDiagnosticsSampler();
+        }, mementoConfig.diagnosticsIntervalMs);
+        runtimeDiagnosticsSamplerTimer.unref?.();
+      };
+
+      const runRuntimeDiagnosticsSampler = async (): Promise<void> => {
+        if (runtimeDiagnosticsSamplerStopped) {
+          return;
+        }
+
+        const currentRun = (async () => {
+          if (runtimeDiagnosticsSamplerStopped) {
+            return;
+          }
+
+          const batchSchedulerStatus = batchScheduler.getStatus();
+          await runtimeDiagnosticsLogger.writeSample({
+            type: 'runtime_sample',
+            timestamp: new Date().toISOString(),
+            memory: process.memoryUsage(),
+            uptime: process.uptime(),
+            batchScheduler: {
+              isRunning: batchSchedulerStatus.isRunning,
+              activeJobs: batchSchedulerStatus.activeJobs ?? [],
+              uptime: batchSchedulerStatus.uptime ?? 0,
+              lastExecution: batchSchedulerStatus.lastExecution
+                ? Object.fromEntries(
+                    Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
+                      jobName,
+                      executedAt.toISOString()
+                    ])
+                  )
+                : undefined,
+              totalExecutions: batchSchedulerStatus.totalExecutions
+                ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
+                : undefined,
+              errorCount: batchSchedulerStatus.errorCount
+                ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
+                : undefined
+            },
+            walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
+            dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
+          });
+        })();
+
+        runtimeDiagnosticsSamplerInFlight = currentRun;
+        try {
+          await currentRun;
+        } finally {
+          if (runtimeDiagnosticsSamplerInFlight === currentRun) {
+            runtimeDiagnosticsSamplerInFlight = null;
+          }
+        }
+        if (!runtimeDiagnosticsSamplerStopped) {
+          scheduleRuntimeDiagnosticsSampler();
+        }
+      };
+
+      scheduleRuntimeDiagnosticsSampler();
+      runtimeDiagnosticsSamplerCleanup = async () => {
         runtimeDiagnosticsSamplerStopped = true;
-        clearInterval(runtimeDiagnosticsSampler);
+        if (runtimeDiagnosticsSamplerTimer) {
+          clearTimeout(runtimeDiagnosticsSamplerTimer);
+          runtimeDiagnosticsSamplerTimer = null;
+        }
+        await runtimeDiagnosticsSamplerInFlight;
       };
     }
     return {

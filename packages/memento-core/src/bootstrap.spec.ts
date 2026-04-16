@@ -63,6 +63,7 @@ const mockState = vi.hoisted(() => {
     };
   });
 
+  const clearTimeoutSpy = vi.fn();
   const mockTimerCallbacks: Array<(...args: unknown[]) => unknown> = [];
 
   return {
@@ -74,7 +75,8 @@ const mockState = vi.hoisted(() => {
     walCheckpointSchedulerStart,
     databaseLockMonitorStart,
     runtimeDiagnosticsLoggerCtor,
-    lastIntervalHandle: null as ReturnType<typeof setInterval> | null,
+    clearTimeoutSpy,
+    lastTimeoutHandle: null as ReturnType<typeof setTimeout> | null,
     mockTimerCallbacks
   };
 });
@@ -252,13 +254,13 @@ describe('initializeServices bootstrap wiring', () => {
     return import('./bootstrap.js');
   }
 
-  function installIntervalSpy() {
-    return vi.spyOn(globalThis, 'setInterval').mockImplementation((callback: TimerHandler, interval?: number) => {
+  function installTimeoutSpy() {
+    return vi.spyOn(globalThis, 'setTimeout').mockImplementation((callback: TimerHandler, interval?: number) => {
       const handle = {
         unref: vi.fn(),
         ref: vi.fn()
-      } as unknown as ReturnType<typeof setInterval>;
-      mockState.lastIntervalHandle = handle;
+      } as unknown as ReturnType<typeof setTimeout>;
+      mockState.lastTimeoutHandle = handle;
       mockState.mockTimerCallbacks.push(callback as (...args: unknown[]) => unknown);
       return handle;
     });
@@ -299,7 +301,7 @@ describe('initializeServices bootstrap wiring', () => {
   it('diagnostics가 활성화되면 bootstrap 이벤트와 주기 샘플링을 연결해야 한다', async () => {
     mockState.mementoConfig.diagnosticsEnabled = true;
     mockState.mementoConfig.diagnosticsIntervalMs = 2500;
-    const setIntervalSpy = installIntervalSpy();
+    const setTimeoutSpy = installTimeoutSpy();
 
     const { initializeServices } = await loadBootstrap();
     const services = await initializeServices({} as never);
@@ -311,10 +313,10 @@ describe('initializeServices bootstrap wiring', () => {
         diagnosticsEnabled: true
       })
     );
-    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 2500);
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2500);
     expect(services.runtimeDiagnosticsLogger).toBeDefined();
     expect(services.runtimeDiagnosticsSamplerCleanup).toBeTypeOf('function');
-    expect(mockState.lastIntervalHandle?.unref).toHaveBeenCalled();
+    expect(mockState.lastTimeoutHandle?.unref).toHaveBeenCalled();
 
     const callback = mockState.mockTimerCallbacks[0];
     expect(callback).toBeTypeOf('function');
@@ -351,30 +353,50 @@ describe('initializeServices bootstrap wiring', () => {
 
   it('diagnostics가 비활성화되면 sampler를 시작하지 않아야 한다', async () => {
     mockState.mementoConfig.diagnosticsEnabled = false;
-    const setIntervalSpy = installIntervalSpy();
+    const setTimeoutSpy = installTimeoutSpy();
 
     const { initializeServices } = await loadBootstrap();
     const services = await initializeServices({} as never);
 
-    expect(setIntervalSpy).not.toHaveBeenCalled();
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
     expect(services.runtimeDiagnosticsSamplerCleanup).toBeUndefined();
     expect(mockState.runtimeDiagnosticsLogger.writeSample).not.toHaveBeenCalled();
   });
 
-  it('sampler handle을 외부에서 clearInterval로 정리할 수 있어야 한다', async () => {
+  it('sampler cleanup은 느린 샘플 도중에도 후속 샘플이 완료되지 않게 해야 한다', async () => {
     mockState.mementoConfig.diagnosticsEnabled = true;
-    installIntervalSpy();
-    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+    const setTimeoutSpy = installTimeoutSpy();
+    let resolveSample: (() => void) | null = null;
+    mockState.runtimeDiagnosticsLogger.writeSample.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSample = resolve;
+        })
+    );
 
     const { initializeServices } = await loadBootstrap();
     const services = await initializeServices({} as never);
 
     expect(services.runtimeDiagnosticsSamplerCleanup).toBeTypeOf('function');
-    services.runtimeDiagnosticsSamplerCleanup?.();
-    expect(clearIntervalSpy).toHaveBeenCalledWith(mockState.lastIntervalHandle);
+    void mockState.mockTimerCallbacks[0]?.();
+    await Promise.resolve();
 
-    const callback = mockState.mockTimerCallbacks[0];
-    await callback();
-    expect(mockState.runtimeDiagnosticsLogger.writeSample).not.toHaveBeenCalled();
+    const cleanupPromise = services.runtimeDiagnosticsSamplerCleanup?.();
+
+    let cleanupResolved = false;
+    cleanupPromise?.then(() => {
+      cleanupResolved = true;
+    });
+
+    await Promise.resolve();
+    expect(cleanupResolved).toBe(false);
+    expect(mockState.runtimeDiagnosticsLogger.writeSample).toHaveBeenCalledTimes(1);
+
+    resolveSample?.();
+    await cleanupPromise;
+
+    expect(cleanupResolved).toBe(true);
+    expect(mockState.runtimeDiagnosticsLogger.writeSample).toHaveBeenCalledTimes(1);
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
   });
 });
