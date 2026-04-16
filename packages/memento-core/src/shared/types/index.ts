@@ -141,7 +141,9 @@ export type {
   PredicateCanonicalizationResult,
   EntityLinkingResult,
   TripleValidationResult,
-  TripleExtractionStats
+  TripleExtractionStats,
+  TriplePipelineChunkError,
+  TriplePipelineResult
 } from './triple-extraction.js';
 
 export type { ConsolidationCluster, SleepConsolidationRunResult } from './consolidation.types.js';

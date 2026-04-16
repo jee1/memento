@@ -13,7 +13,7 @@ import { RelationVisualizer, type VisualizationOptions } from '../../../shared/u
 const VisualizeRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
   max_depth: z.number().int().min(1).max(5).optional().default(2).describe('최대 깊이 (1~5, 기본값: 2)'),
-  format: z.enum(['text', 'subgraph', 'simple', 'json']).optional().default('subgraph').describe('시각화 형식 (text, subgraph, simple, json, 기본값: subgraph)'),
+  format: z.enum(['text', 'subgraph', 'simple', 'json', 'dot']).optional().default('subgraph').describe('시각화 형식 (text, subgraph, simple, json, dot, 기본값: subgraph)'),
   min_confidence: z.number().min(0).max(1).optional().describe('최소 신뢰도 (0.0~1.0)'),
   relation_types: z.array(z.enum(['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'])).optional().describe('관계 유형 필터'),
   show_memory_ids: z.boolean().optional().default(true).describe('메모리 ID 표시 여부 (기본값: true)'),
@@ -25,7 +25,7 @@ export class VisualizeRelationsTool extends BaseTool {
   constructor() {
     super(
       'visualize_relations',
-      '메모리 간의 관계를 시각화합니다. text, subgraph, simple, json 형식을 지원합니다.',
+      '메모리 간의 관계를 시각화합니다. text, subgraph, simple, json, dot(Graphviz) 형식을 지원합니다.',
       {
         type: 'object',
         properties: {
@@ -42,8 +42,8 @@ export class VisualizeRelationsTool extends BaseTool {
           },
           format: {
             type: 'string',
-            enum: ['text', 'subgraph', 'simple', 'json'],
-            description: '시각화 형식 (text, subgraph, simple, json, 기본값: subgraph)',
+            enum: ['text', 'subgraph', 'simple', 'json', 'dot'],
+            description: '시각화 형식 (text, subgraph, simple, json, dot, 기본값: subgraph)',
             default: 'subgraph'
           },
           min_confidence: {
@@ -151,6 +151,10 @@ export class VisualizeRelationsTool extends BaseTool {
 
         case 'json':
           visualization = RelationVisualizer.visualizeAsJSON(relations, true);
+          break;
+
+        case 'dot':
+          visualization = RelationVisualizer.visualizeAsDot(relations, visualizationOptions);
           break;
 
         default:

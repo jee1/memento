@@ -42,11 +42,12 @@ import packageJson from '../../package.json' with { type: 'json' };
  * Exposed to clients (e.g. Cursor) as serverUseInstructions so the LLM knows how to use Memento.
  * @see https://modelcontextprotocol.io/specification — InitializeResult optional "instructions" field
  */
-const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors).
+const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors, extract_triples).
 
 - **Before a task**: Use \`recall\` (hybrid search) or \`memory_injection\` (query-based context) to check for relevant memories. If an anchor is set, use \`search_local\` for anchor-scoped memories.
 - **After using recall results**: Use \`feedback\` to record helpful/not_helpful (optional \`score_breakdown\` from recall when explaining poor results). Prefer calling after handling the recall response (FR-004 orchestration).
 - **After a task**: Use \`remember\` to store outcomes: episodic (e.g. tag: completed), semantic (e.g. best-practice, knowledge), or procedural (e.g. procedure). Check for existing memories first to avoid duplicates; include concrete, searchable keywords.
+- **Triples / knowledge graph**: Use \`extract_triples\` (MCP) to extract subject–predicate–object triples from conversation or body text and optionally persist to \`kg_triple\`. For Graphviz DOT output of **memory relation** graphs, use the HTTP admin \`visualize_relations\` endpoint with \`format: "dot"\` (relation tools are not exposed via MCP stdio in this build).
 - Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
 
 // stderr.write 래핑: undefined/null 전달 및 "undefined" 문자열 출력 차단

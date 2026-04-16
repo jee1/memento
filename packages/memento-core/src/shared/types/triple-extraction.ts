@@ -115,3 +115,15 @@ export interface TripleExtractionStats {
   averageExtractionTime: number; // milliseconds
 }
 
+export interface TriplePipelineChunkError {
+  chunkIndex: number;
+  reason: TripleExtractionFailureReason;
+  message?: string;
+}
+
+export interface TriplePipelineResult {
+  triples: Triple[];
+  chunkErrors: TriplePipelineChunkError[];
+  chunksProcessed: number;
+}
+

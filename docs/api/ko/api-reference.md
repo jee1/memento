@@ -154,7 +154,7 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools (핵심 14개)
+## MCP Tools (핵심 도구)
 
 > **핵심 원칙**: AI Agent가 직접 사용하는 핵심 기능만 노출  
 > **중요**: 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.  
@@ -185,6 +185,10 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 12. **remember_procedure** - 절차 기억 저장 (workflow_name, skill_name, steps 등)
 13. **procedural_diff** - 절차 기억 버전 간 차이 비교
 14. **procedural_rollback** - 절차 기억 이전 버전으로 복원
+
+### 5. 관계·트리플 (1개)
+
+15. **extract_triples** - 대화·본문 텍스트에서 트리플을 추출하고, 선택한 항목만 지식 그래프에 저장합니다.
 
 ### remember
 

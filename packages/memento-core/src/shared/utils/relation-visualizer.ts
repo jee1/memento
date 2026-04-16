@@ -7,6 +7,17 @@ import type { MemoryRelation } from '../types/relation-graph.js';
 import type { RelationType } from '../types/relation.js';
 
 /**
+ * Graphviz DOT 문자열 내부에서 안전하게 쓰기 위해 이스케이프합니다.
+ */
+function escapeDotString(s: string): string {
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '');
+}
+
+/**
  * 관계 그래프 시각화 옵션
  */
 export interface VisualizationOptions {
@@ -345,5 +356,92 @@ export class RelationVisualizer {
     }));
 
     return pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
+  }
+
+  /**
+   * 관계 목록을 Graphviz DOT 형식으로 시각화
+   *
+   * @param relations 관계 목록
+   * @param options 시각화 옵션 (`showMemoryIds`, `showConfidence`, `showRelationTypes` 등)
+   * @returns DOT 문자열 (`digraph G { ... }`)
+   */
+  static visualizeAsDot(
+    relations: MemoryRelation[],
+    options: VisualizationOptions = {}
+  ): string {
+    const {
+      showMemoryIds = true,
+      showConfidence = true,
+      showRelationTypes = true,
+      indent = '  ',
+    } = options;
+
+    const lines: string[] = ['digraph G {'];
+
+    if (relations.length === 0) {
+      lines.push(`${indent}// no relations`);
+      lines.push('}');
+      return lines.join('\n');
+    }
+
+    const visited = new Set<string>();
+    const uniqueRelations: MemoryRelation[] = [];
+    for (const relation of relations) {
+      const key = `${relation.source_id}-${relation.target_id}-${relation.relation_type}`;
+      if (visited.has(key)) {
+        continue;
+      }
+      visited.add(key);
+      uniqueRelations.push(relation);
+    }
+
+    if (uniqueRelations.length === 0) {
+      return ['digraph G {', `${indent}// no relations`, '}'].join('\n');
+    }
+
+    const idToNode = new Map<string, string>();
+    let next = 0;
+    const ensureNode = (memoryId: string): string => {
+      let node = idToNode.get(memoryId);
+      if (!node) {
+        node = `n${next}`;
+        next += 1;
+        idToNode.set(memoryId, node);
+      }
+      return node;
+    };
+
+    for (const r of uniqueRelations) {
+      ensureNode(r.source_id);
+      ensureNode(r.target_id);
+    }
+
+    for (const [memoryId, nodeId] of idToNode) {
+      const label = showMemoryIds ? escapeDotString(memoryId) : '';
+      lines.push(`${indent}${nodeId} [label="${label}"];`);
+    }
+
+    for (const relation of uniqueRelations) {
+      const src = idToNode.get(relation.source_id)!;
+      const tgt = idToNode.get(relation.target_id)!;
+
+      const edgeParts: string[] = [];
+      if (showRelationTypes) {
+        edgeParts.push(relation.relation_type);
+      }
+      if (showConfidence) {
+        edgeParts.push(`confidence: ${relation.confidence.toFixed(2)}`);
+      }
+
+      if (edgeParts.length === 0) {
+        lines.push(`${indent}${src} -> ${tgt};`);
+      } else {
+        const edgeLabel = escapeDotString(edgeParts.join(' | '));
+        lines.push(`${indent}${src} -> ${tgt} [label="${edgeLabel}"];`);
+      }
+    }
+
+    lines.push('}');
+    return lines.join('\n');
   }
 }
