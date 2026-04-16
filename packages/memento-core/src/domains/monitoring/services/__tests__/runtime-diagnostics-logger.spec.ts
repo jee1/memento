@@ -51,9 +51,53 @@ describe('runtime diagnostics config', () => {
     expect(mementoConfig.walCheckpointEnabled).toBe(false);
     expect(mementoConfig.dbLockMonitorEnabled).toBe(false);
   });
+
+  it('진단 관련 환경 변수가 없으면 기본값을 사용해야 한다', async () => {
+    delete process.env.DIAGNOSTICS_ENABLED;
+    delete process.env.DIAGNOSTICS_INTERVAL_MS;
+    delete process.env.DIAGNOSTICS_LOG_DIR;
+    delete process.env.BATCH_SCHEDULER_ENABLED;
+    delete process.env.WAL_CHECKPOINT_ENABLED;
+    delete process.env.DB_LOCK_MONITOR_ENABLED;
+
+    const { mementoConfig } = await import('../../../../shared/config/index.js');
+
+    expect(mementoConfig.diagnosticsEnabled).toBe(false);
+    expect(mementoConfig.diagnosticsIntervalMs).toBe(15000);
+    expect(mementoConfig.diagnosticsLogDir).toBe('/app/logs/diagnostics');
+    expect(mementoConfig.batchSchedulerEnabled).toBe(true);
+    expect(mementoConfig.walCheckpointEnabled).toBe(true);
+    expect(mementoConfig.dbLockMonitorEnabled).toBe(true);
+  });
 });
 
 describe('RuntimeDiagnosticsLogger', () => {
+  it('writeSample이 JSONL 파일에 기록해야 한다', async () => {
+    const appendFileMock = vi.fn().mockResolvedValue(undefined);
+    const mkdirMock = vi.fn().mockResolvedValue(undefined);
+
+    vi.doMock('fs/promises', () => ({
+      appendFile: appendFileMock,
+      mkdir: mkdirMock
+    }));
+
+    try {
+      const { RuntimeDiagnosticsLogger } = await import('../runtime-diagnostics-logger.js');
+      const logger = new RuntimeDiagnosticsLogger(true, '/tmp/memento-diagnostics');
+
+      await expect(logger.writeSample({ type: 'sample', count: 1 })).resolves.toBeUndefined();
+
+      expect(mkdirMock).toHaveBeenCalledWith('/tmp/memento-diagnostics', { recursive: true });
+      expect(appendFileMock).toHaveBeenCalledWith(
+        '/tmp/memento-diagnostics/app-runtime.jsonl',
+        '{"type":"sample","count":1}\n',
+        'utf8'
+      );
+    } finally {
+      vi.doUnmock('fs/promises');
+    }
+  });
+
   it('로그 파일 쓰기 실패가 예외를 전파하지 않아야 한다', async () => {
     vi.doMock('fs/promises', () => ({
       appendFile: vi.fn().mockRejectedValue(new Error('simulated append failure')),

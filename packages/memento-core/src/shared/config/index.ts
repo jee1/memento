@@ -28,16 +28,7 @@ const embeddingDimensions: number =
   providerDimensionDefaults[embeddingProvider] ??
   providerDimensionDefaults.minilm) as number;
 
-interface RuntimeDiagnosticsConfig {
-  diagnosticsEnabled: boolean;
-  diagnosticsIntervalMs: number;
-  diagnosticsLogDir: string;
-  batchSchedulerEnabled: boolean;
-  walCheckpointEnabled: boolean;
-  dbLockMonitorEnabled: boolean;
-}
-
-export const mementoConfig: MementoConfig & RuntimeDiagnosticsConfig = {
+export const mementoConfig: MementoConfig = {
   // 데이터베이스 설정
   dbPath: resolveString('DB_PATH'),
 
