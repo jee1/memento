@@ -5,10 +5,19 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
+
+vi.mock('../domains/memory/services/procedural-llm-extractor.js', () => ({
+  LlmProceduralExtractor: class {
+    async extract(): Promise<null> {
+      return null;
+    }
+  }
+}));
+
 import { ReflexionWorker } from './reflexion-worker.js';
 import { FailureDetector, ErrorType, type FailureEvent } from '../domains/monitoring/services/failure-detector.js';
 import { AsyncTaskQueue } from './async-optimizer.js';
-import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../test/helpers/test-database.js';
+import { createTestDatabaseWithoutServices, cleanupTestDatabase, createTestMemory } from '../test/helpers/test-database.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import {
   createProceduralMemorySnapshot,
@@ -41,6 +50,11 @@ export async function waitForEventProcessing(
     
     // 큐가 비워지고 활성 워커가 없으면 완료
     if (status.queueSize === 0 && status.activeWorkers === 0) {
+      return;
+    }
+
+    // stop() 이후에는 새 작업이 시작되지 않으므로 활성 워커만 정리되면 충분하다.
+    if (!status.isRunning && status.activeWorkers === 0) {
       return;
     }
 
@@ -154,7 +168,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
   let eventQueue: AsyncTaskQueue;
 
   beforeEach(async () => {
-    db = await setupTestDatabase();
+    db = await createTestDatabaseWithoutServices();
     eventQueue = new AsyncTaskQueue(5, 100); // 최대 5개 동시 실행, 큐 크기 100
     detector = new FailureDetector(eventQueue);
     worker = new ReflexionWorker(detector, db, eventQueue);
@@ -2492,4 +2506,3 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
     });
   });
 });
-

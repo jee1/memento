@@ -26,7 +26,13 @@ export default defineConfig({
     // `forks`는 파일마다 자식 프로세스로 격리한다.
     pool: 'forks',
     include: [
-      'src/**/*.{test,spec}.{js,ts}',
+      // 루트 src에는 packages/*/src와 중복된 레거시 스펙이 많다.
+      // 전체 src를 포함하면 동일 테스트가 두 번 실행되어 전체 시간이 급격히 늘어난다.
+      'src/npm-client/**/*.{test,spec}.{js,ts}',
+      'src/services/**/*.{test,spec}.{js,ts}',
+      'src/test/**/*.{test,spec}.{js,ts}',
+      'src/tools/**/*.{test,spec}.{js,ts}',
+      'src/workers/**/*.{test,spec}.{js,ts}',
       'tests/**/*.{test,spec}.{js,ts}',
       'scripts/**/*.{test,spec}.{js,ts}',
       'packages/memento-core/src/**/*.{test,spec}.{js,ts}',
@@ -36,8 +42,6 @@ export default defineConfig({
     exclude: [
       'node_modules',
       'dist',
-      // packages/memento-core와 동일 스펙이 루트 src에 복제되어 있으면 이중 실행·전역 싱글톤 충돌을 일으킨다.
-      'src/infrastructure/reflexion-worker.spec.ts',
     ],
     hookTimeout: 30000, // 30초로 증가
     testTimeout: 30000, // 30초로 증가

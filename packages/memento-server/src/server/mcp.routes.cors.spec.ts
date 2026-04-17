@@ -2,10 +2,67 @@
  * MCP 라우터 수동 CORS 헤더 및 OPTIONS 프리플라이트
  */
 
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import http from 'node:http';
-import type { AddressInfo } from 'node:net';
-import express from 'express';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Request, Response } from 'express';
+
+type MockResponse = Pick<Response, 'status' | 'end' | 'setHeader'> & {
+  headers: Record<string, string>;
+  statusCode?: number;
+  ended?: boolean;
+};
+
+function createMockResponse(): MockResponse {
+  const response: MockResponse = {
+    headers: {},
+    statusCode: 200,
+    ended: false,
+    setHeader(name: string, value: string) {
+      response.headers[name.toLowerCase()] = value;
+    },
+    status(code: number) {
+      response.statusCode = code;
+      return response as Response;
+    },
+    end() {
+      response.ended = true;
+      return response as Response;
+    }
+  };
+
+  return response;
+}
+
+async function sendOptions(pathname: '/mcp' | '/messages', origin?: string) {
+  const { createMcpRouter } = await import('./routes/mcp.routes.js');
+  const router = createMcpRouter(null, null, {});
+  const request = {
+    method: 'OPTIONS',
+    url: pathname,
+    path: pathname,
+    originalUrl: pathname,
+    get(headerName: string) {
+      if (headerName.toLowerCase() === 'origin') {
+        return origin;
+      }
+
+      return undefined;
+    }
+  } as Request;
+  const response = createMockResponse();
+  const layer = (router as any).stack.find((candidate: any) => {
+    const routePath = candidate.route?.path;
+    const methods = candidate.route?.methods ?? {};
+    return routePath === pathname && methods.options;
+  });
+
+  if (!layer?.route?.stack?.[0]?.handle) {
+    throw new Error(`OPTIONS handler not found for ${pathname}`);
+  }
+
+  layer.route.stack[0].handle(request, response);
+
+  return response;
+}
 
 describe('mcp.routes CORS', () => {
   afterEach(() => {
@@ -13,57 +70,27 @@ describe('mcp.routes CORS', () => {
     vi.resetModules();
   });
 
-  async function listenWithMcpRouter(): Promise<{ port: number; close: () => Promise<void> }> {
-    const { createMcpRouter } = await import('./routes/mcp.routes.js');
-    const app = express();
-    const transports: Record<string, unknown> = {};
-    app.use(createMcpRouter(null, null, transports as any));
-    const server = http.createServer(app);
-    await new Promise<void>((resolve, reject) => {
-      server.listen(0, '127.0.0.1', () => resolve());
-      server.once('error', reject);
-    });
-    const port = (server.address() as AddressInfo).port;
-    return {
-      port,
-      close: () =>
-        new Promise<void>((resolve, reject) => {
-          server.close((err) => (err ? reject(err) : resolve()));
-        })
-    };
-  }
-
   it('OPTIONS /mcp returns 204 without Access-Control-Allow-Origin when allowlist empty', async () => {
     vi.stubEnv('CORS_ALLOWED_ORIGINS', '');
     vi.resetModules();
-    const { port, close } = await listenWithMcpRouter();
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/mcp`, {
-        method: 'OPTIONS',
-        headers: { Origin: 'https://any.example' }
-      });
-      expect(res.status).toBe(204);
-      expect(res.headers.get('access-control-allow-origin')).toBeNull();
-      expect(res.headers.get('vary')).toBeNull();
-    } finally {
-      await close();
-    }
+
+    const response = await sendOptions('/mcp', 'https://any.example');
+
+    expect(response.statusCode).toBe(204);
+    expect(response.ended).toBe(true);
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    expect(response.headers.vary).toBeUndefined();
   });
 
   it('OPTIONS /messages reflects Origin when listed in CORS_ALLOWED_ORIGINS', async () => {
     vi.stubEnv('CORS_ALLOWED_ORIGINS', 'https://trusted.app,http://localhost:3000');
     vi.resetModules();
-    const { port, close } = await listenWithMcpRouter();
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/messages`, {
-        method: 'OPTIONS',
-        headers: { Origin: 'https://trusted.app' }
-      });
-      expect(res.status).toBe(204);
-      expect(res.headers.get('access-control-allow-origin')).toBe('https://trusted.app');
-      expect(res.headers.get('vary')).toBe('Origin');
-    } finally {
-      await close();
-    }
+
+    const response = await sendOptions('/messages', 'https://trusted.app');
+
+    expect(response.statusCode).toBe(204);
+    expect(response.ended).toBe(true);
+    expect(response.headers['access-control-allow-origin']).toBe('https://trusted.app');
+    expect(response.headers.vary).toBe('Origin');
   });
 });

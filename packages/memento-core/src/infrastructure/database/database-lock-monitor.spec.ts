@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import { LockStatus, DatabaseLockMonitorConfig, DatabaseLockMonitor } from './database-lock-monitor.js';
-import { setupTestDatabase, cleanupTestDatabase } from '../../test/helpers/test-database.js';
+import { createTestDatabaseWithoutServices, cleanupTestDatabase } from '../../test/helpers/test-database.js';
 import type { Logger, PerformanceMonitor, WalCheckpointScheduler } from './wal-checkpoint-scheduler.js';
 
 describe('LockStatus interface', () => {
@@ -94,9 +94,16 @@ describe('DatabaseLockMonitor class', () => {
   let mockPerformanceMonitor: { recordMetric: ReturnType<typeof vi.fn>; incrementCounter: ReturnType<typeof vi.fn> };
   let mockCheckpointScheduler: { checkpointNow: ReturnType<typeof vi.fn> };
 
+  function openLockTestDatabase(testDbPath: string): Database.Database {
+    const database = new Database(testDbPath);
+    database.pragma('journal_mode = WAL');
+    database.pragma('busy_timeout = 0');
+    return database;
+  }
+
   beforeEach(async () => {
     // Given: 테스트 데이터베이스와 설정이 준비되어 있음
-    db = await setupTestDatabase();
+    db = await createTestDatabaseWithoutServices();
     db.pragma('journal_mode = WAL');
     
     config = {
@@ -304,12 +311,10 @@ describe('DatabaseLockMonitor class', () => {
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
       // 테스트 데이터베이스 생성
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run(); // 락 획득
 
@@ -338,12 +343,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -372,12 +375,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -409,12 +410,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -451,12 +450,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득 (BEGIN IMMEDIATE TRANSACTION)
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -484,12 +481,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득 (BEGIN IMMEDIATE TRANSACTION)
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -519,12 +514,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -557,12 +550,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -592,12 +583,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -634,12 +623,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -676,12 +663,10 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
       // 다른 연결로 락 획득
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -741,11 +726,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -774,11 +757,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -815,11 +796,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -863,11 +842,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -917,11 +894,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -956,11 +931,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -994,11 +967,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -1061,11 +1032,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -1096,11 +1065,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -1132,11 +1099,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -1169,11 +1134,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 
@@ -1215,11 +1178,9 @@ describe('DatabaseLockMonitor class', () => {
       const fs = await import('fs');
       const testDbPath = path.join(os.tmpdir(), `test-lock-${Date.now()}-${randomUUID()}.db`);
       
-      const testDb = new Database(testDbPath);
-      testDb.pragma('journal_mode = WAL');
+      const testDb = openLockTestDatabase(testDbPath);
       
-      const lockDb = new Database(testDbPath);
-      lockDb.pragma('journal_mode = WAL');
+      const lockDb = openLockTestDatabase(testDbPath);
       const lockStmt = lockDb.prepare('BEGIN IMMEDIATE TRANSACTION');
       lockStmt.run();
 

@@ -21,7 +21,6 @@ vi.mock('umap-js', () => ({
 }));
 
 import express from 'express';
-import http from 'http';
 import Database from 'better-sqlite3';
 import { createAdminRouter } from '../admin.routes.js';
 import {
@@ -31,44 +30,53 @@ import {
   kMeans,
 } from './admin-embedding-map-response.js';
 
-function listen(app: express.Express): Promise<{ server: http.Server; port: number }> {
-  return new Promise((resolve, reject) => {
-    const server = http.createServer(app);
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server.address();
-      if (addr && typeof addr === 'object') {
-        resolve({ server, port: addr.port });
-      } else {
-        reject(new Error('no port'));
-      }
-    });
-  });
+function getEmbeddingMapHandler(router: ReturnType<typeof createAdminRouter>): (req: any, res: any, next: (error?: unknown) => void) => unknown {
+  const layer = (router as any).stack.find(
+    (entry: any) => entry.route?.path === '/embedding-map' && entry.route.methods?.get
+  );
+  if (!layer?.route?.stack?.[0]?.handle) {
+    throw new Error('GET /embedding-map handler not found');
+  }
+  return layer.route.stack[0].handle;
 }
 
-function getAdmin(port: number, path: string): Promise<{ statusCode: number; body: string }> {
-  return new Promise((resolve, reject) => {
-    const req = http.request(
-      {
-        hostname: '127.0.0.1',
-        port,
-        path,
-        method: 'GET',
-        headers: { Connection: 'close' },
-      },
-      res => {
-        const chunks: Buffer[] = [];
-        res.on('data', (c: Buffer) => chunks.push(c));
-        res.on('end', () => {
-          resolve({
-            statusCode: res.statusCode ?? 0,
-            body: Buffer.concat(chunks).toString('utf8'),
-          });
-        });
+async function getAdmin(
+  router: ReturnType<typeof createAdminRouter>,
+  path: string
+): Promise<{ statusCode: number; body: string }> {
+  const url = new URL(path, 'http://localhost');
+  const query = Object.fromEntries(url.searchParams.entries());
+  const handler = getEmbeddingMapHandler(router);
+
+  let statusCode = 200;
+  let body = '';
+  const req = {
+    method: 'GET',
+    query,
+    path: url.pathname,
+    originalUrl: path,
+    url: path,
+  };
+  const res = {
+    status(code: number) {
+      statusCode = code;
+      return this;
+    },
+    json(payload: unknown) {
+      body = JSON.stringify(payload);
+      return this;
+    },
+  };
+
+  await Promise.resolve(
+    handler(req, res, (error?: unknown) => {
+      if (error) {
+        throw error;
       }
-    );
-    req.on('error', reject);
-    req.end();
-  });
+    })
+  );
+
+  return { statusCode, body };
 }
 
 function createMinimalSchema(db: Database.Database): void {
@@ -306,90 +314,54 @@ describe('GET /admin/embedding-map (라우터)', () => {
   });
 
   it('잘못된 provider → 400', async () => {
-    const app = express();
-    app.use('/admin', createAdminRouter(db, null));
-    const { server, port } = await listen(app);
-    try {
-      const res = await getAdmin(port, '/admin/embedding-map?provider=bad');
-      expect(res.statusCode).toBe(400);
-      const j = JSON.parse(res.body) as { message?: string };
-      expect(j.message).toMatch(/provider/);
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-map?provider=bad');
+    expect(res.statusCode).toBe(400);
+    const j = JSON.parse(res.body) as { message?: string };
+    expect(j.message).toMatch(/provider/);
   });
 
   it('limit=0 → 400', async () => {
-    const app = express();
-    app.use('/admin', createAdminRouter(db, null));
-    const { server, port } = await listen(app);
-    try {
-      const res = await getAdmin(port, '/admin/embedding-map?limit=0');
-      expect(res.statusCode).toBe(400);
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-map?limit=0');
+    expect(res.statusCode).toBe(400);
   });
 
   it('k=1 → 400', async () => {
-    const app = express();
-    app.use('/admin', createAdminRouter(db, null));
-    const { server, port } = await listen(app);
-    try {
-      const res = await getAdmin(port, '/admin/embedding-map?k=1');
-      expect(res.statusCode).toBe(400);
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-map?k=1');
+    expect(res.statusCode).toBe(400);
   });
 
   it('NO_EMBEDDINGS 응답에 provider 포함 (count===0일 때 INSUFFICIENT_DATA 아님)', async () => {
-    const app = express();
-    app.use('/admin', createAdminRouter(db, null));
-    const { server, port } = await listen(app);
-    try {
-      const res = await getAdmin(port, '/admin/embedding-map?provider=minilm');
-      expect(res.statusCode).toBe(400);
-      const j = JSON.parse(res.body) as { error?: string; provider?: string; count?: number };
-      expect(j.error).toBe('임베딩 없음');
-      expect(j.provider).toBe('minilm');
-      expect(j.count).toBeUndefined();
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-map?provider=minilm');
+    expect(res.statusCode).toBe(400);
+    const j = JSON.parse(res.body) as { error?: string; provider?: string; count?: number };
+    expect(j.error).toBe('임베딩 없음');
+    expect(j.provider).toBe('minilm');
+    expect(j.count).toBeUndefined();
   });
 
   it('CORRUPTED_EMBEDDINGS → 500 및 code 필드', async () => {
     seedEmbeddings(db, 12, 'minilm');
     db.exec(`UPDATE memory_embedding SET embedding = '[]'`);
-    const app = express();
-    app.use('/admin', createAdminRouter(db, null));
-    const { server, port } = await listen(app);
-    try {
-      const res = await getAdmin(port, '/admin/embedding-map?provider=minilm');
-      expect(res.statusCode).toBe(500);
-      const j = JSON.parse(res.body) as { code?: string; rowCount?: number; provider?: string };
-      expect(j.code).toBe('CORRUPTED_EMBEDDINGS');
-      expect(j.rowCount).toBe(12);
-      expect(j.provider).toBe('minilm');
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-map?provider=minilm');
+    expect(res.statusCode).toBe(500);
+    const j = JSON.parse(res.body) as { code?: string; rowCount?: number; provider?: string };
+    expect(j.code).toBe('CORRUPTED_EMBEDDINGS');
+    expect(j.rowCount).toBe(12);
+    expect(j.provider).toBe('minilm');
   });
 
   it('INSUFFICIENT_DATA 응답에 count 포함', async () => {
     seedEmbeddings(db, 5, 'minilm');
-    const app = express();
-    app.use('/admin', createAdminRouter(db, null));
-    const { server, port } = await listen(app);
-    try {
-      const res = await getAdmin(port, '/admin/embedding-map?provider=minilm');
-      expect(res.statusCode).toBe(400);
-      const j = JSON.parse(res.body) as { error?: string; count?: number };
-      expect(j.error).toBe('기억 부족');
-      expect(j.count).toBe(5);
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
+    const router = createAdminRouter(db, null);
+    const res = await getAdmin(router, '/admin/embedding-map?provider=minilm');
+    expect(res.statusCode).toBe(400);
+    const j = JSON.parse(res.body) as { error?: string; count?: number };
+    expect(j.error).toBe('기억 부족');
+    expect(j.count).toBe(5);
   });
 });

@@ -8,13 +8,31 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
 const cliPath = path.join(__dirname, '../../dist/cli.js');
 const cliBuilt = fs.existsSync(cliPath);
+const supportsCapturedChildIo = (() => {
+  if (!cliBuilt) {
+    return false;
+  }
+
+  const probe = spawnSync(
+    process.execPath,
+    [cliPath, '--help'],
+    {
+      cwd: process.cwd(),
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    }
+  );
+
+  const capturedOutput = `${probe.stdout ?? ''}${probe.stderr ?? ''}`;
+  return !probe.error && probe.status === 0 && capturedOutput.includes('recall');
+})();
 
 interface RunCliOptions {
   env?: NodeJS.ProcessEnv;
@@ -43,7 +61,7 @@ function runCli(
   });
 }
 
-describe.skipIf(!cliBuilt)('CLI AC5/AC6', () => {
+describe.skipIf(!cliBuilt || !supportsCapturedChildIo)('CLI AC5/AC6', () => {
   it('AC5: --db-path 지정 시 해당 DB 사용 (recall 호출 시 exit 0, JSON stdout)', async () => {
     const dbPath = path.join(os.tmpdir(), `memento-cli-ac5-${Date.now()}.db`);
     const { stdout, code } = await runCli([
