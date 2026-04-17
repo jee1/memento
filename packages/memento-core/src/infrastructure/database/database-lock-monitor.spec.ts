@@ -191,6 +191,24 @@ describe('DatabaseLockMonitor class', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith('데이터베이스 락 모니터가 이미 실행 중입니다');
       expect(mockLogger.info.mock.calls.length).toBe(firstCallCount);
     });
+
+    it('start 시 diagnostics 이벤트를 기록해야 함', () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const monitor = new DatabaseLockMonitor(
+        db,
+        config,
+        mockLogger as Logger,
+        mockPerformanceMonitor as PerformanceMonitor,
+        mockCheckpointScheduler as unknown as WalCheckpointScheduler,
+        { writeEvent } as any
+      );
+
+      monitor.start();
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'database_lock_monitor_start'
+      }));
+    });
   });
 
   describe('stop', () => {
@@ -241,6 +259,25 @@ describe('DatabaseLockMonitor class', () => {
 
       // Then: 에러가 발생하지 않아야 함
       expect(mockLogger.info).toHaveBeenCalledTimes(2); // 시작 1회, 중지 1회
+    });
+
+    it('stop 시 diagnostics 이벤트를 기록해야 함', () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const monitor = new DatabaseLockMonitor(
+        db,
+        config,
+        mockLogger as Logger,
+        mockPerformanceMonitor as PerformanceMonitor,
+        mockCheckpointScheduler as unknown as WalCheckpointScheduler,
+        { writeEvent } as any
+      );
+      monitor.start();
+
+      monitor.stop();
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'database_lock_monitor_stop'
+      }));
     });
   });
 
@@ -672,6 +709,31 @@ describe('DatabaseLockMonitor class', () => {
   });
 
   describe('임계값 기반 경고 및 조치', () => {
+    it('락 감지 시 diagnostics 이벤트를 기록해야 함', async () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const monitor = new DatabaseLockMonitor(
+        db,
+        config,
+        mockLogger as Logger,
+        mockPerformanceMonitor as PerformanceMonitor,
+        mockCheckpointScheduler as unknown as WalCheckpointScheduler,
+        { writeEvent } as any
+      );
+
+      await (monitor as any).handleLockStatus({
+        isLocked: true,
+        lockDuration: config.warningThresholdMs,
+        detectionMethod: 'busy_timeout',
+        busyCount: 1
+      });
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'database_lock_detected',
+        severity: 'warning',
+        detectionMethod: 'busy_timeout'
+      }));
+    });
+
     it('락 지속 시간이 warningThresholdMs 미만이면 경고하지 않아야 함', async () => {
       // Given: 락이 있지만 warningThresholdMs 미만인 상황
       const os = await import('os');
@@ -1196,4 +1258,3 @@ describe('DatabaseLockMonitor class', () => {
     });
   });
 });
-

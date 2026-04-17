@@ -206,6 +206,74 @@ describe('BatchScheduler', () => {
     });
   });
 
+  describe('diagnostics events', () => {
+    it('start와 stop 시 diagnostics 이벤트를 기록해야 함', async () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const diagnosticsScheduler = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        healthCheckInterval: 10000,
+        enableLogging: false,
+        maxConcurrentJobs: 1,
+        jobTimeout: 5000,
+        retryAttempts: 1,
+        retryDelay: 10
+      }, {
+        diagnosticsLogger: { writeEvent } as any
+      });
+
+      await diagnosticsScheduler.start(db);
+      await diagnosticsScheduler.stop();
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'batch_scheduler_start'
+      }));
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'batch_scheduler_stop'
+      }));
+    });
+
+    it('작업 성공/실패 시 diagnostics 이벤트를 기록해야 함', async () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const diagnosticsScheduler = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        healthCheckInterval: 10000,
+        enableLogging: false,
+        maxConcurrentJobs: 1,
+        jobTimeout: 5000,
+        retryAttempts: 1,
+        retryDelay: 10
+      }, {
+        diagnosticsLogger: { writeEvent } as any
+      });
+
+      await diagnosticsScheduler.start(db);
+      const schedulerAny = diagnosticsScheduler as any;
+
+      await schedulerAny.executeJobWithRetry('diagnostics_success', async () => {}, 1, 0);
+      await schedulerAny.executeJobWithRetry('diagnostics_failure', async () => {
+        throw new Error('boom');
+      }, 1, 0);
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'batch_job_start',
+        jobName: 'diagnostics_success'
+      }));
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'batch_job_finish',
+        jobName: 'diagnostics_success'
+      }));
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'batch_job_failure',
+        jobName: 'diagnostics_failure',
+        error: 'boom'
+      }));
+
+      await diagnosticsScheduler.stop();
+    });
+  });
+
   describe('runJob - 수동 작업 실행', () => {
     it('cleanup 작업을 수동으로 실행해야 함', async () => {
       await scheduler.start(db);
@@ -2105,4 +2173,3 @@ describe('BatchScheduler 기본값 및 env var', () => {
     }).toThrow('healthCheckInterval must be at least 10 seconds');
   });
 });
-

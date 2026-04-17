@@ -231,6 +231,23 @@ describe('WalCheckpointScheduler class', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith('WAL 체크포인트 스케줄러가 이미 실행 중입니다');
       expect(mockLogger.info.mock.calls.length).toBe(firstCallCount);
     });
+
+    it('start 시 diagnostics 이벤트를 기록해야 함', () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const scheduler = new WalCheckpointScheduler(
+        db,
+        config,
+        mockLogger,
+        mockPerformanceMonitor,
+        { writeEvent } as any
+      );
+
+      scheduler.start();
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'wal_checkpoint_scheduler_start'
+      }));
+    });
   });
 
   describe('stop', () => {
@@ -281,6 +298,24 @@ describe('WalCheckpointScheduler class', () => {
 
       // Then: 에러가 발생하지 않아야 함
       expect(mockLogger.info).toHaveBeenCalledTimes(2); // 시작 1회, 중지 1회
+    });
+
+    it('stop 시 diagnostics 이벤트를 기록해야 함', async () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const scheduler = new WalCheckpointScheduler(
+        db,
+        config,
+        mockLogger,
+        mockPerformanceMonitor,
+        { writeEvent } as any
+      );
+      scheduler.start();
+
+      await scheduler.stop();
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'wal_checkpoint_scheduler_stop'
+      }));
     });
   });
 
@@ -373,6 +408,47 @@ describe('WalCheckpointScheduler class', () => {
       if (result.busy === 0) {
         expect(result.success).toBe(true);
       }
+    });
+
+    it('체크포인트 성공과 실패 시 diagnostics 이벤트를 기록해야 함', async () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const successScheduler = new WalCheckpointScheduler(
+        db,
+        config,
+        mockLogger,
+        mockPerformanceMonitor,
+        { writeEvent } as any
+      );
+
+      await successScheduler.checkpointNow(CheckpointMode.PASSIVE);
+
+      const failingDb = {
+        name: db.name,
+        pragma: vi.fn().mockImplementation(() => {
+          throw new Error('checkpoint failed');
+        })
+      } as unknown as Database.Database;
+      const failingScheduler = new WalCheckpointScheduler(
+        failingDb,
+        {
+          ...config,
+          useDedicatedConnection: false,
+          maxRetries: 1
+        },
+        mockLogger,
+        mockPerformanceMonitor,
+        { writeEvent } as any
+      );
+
+      await failingScheduler.checkpointNow(CheckpointMode.PASSIVE);
+
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'wal_checkpoint_success'
+      }));
+      expect(writeEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'wal_checkpoint_failure',
+        error: 'checkpoint failed'
+      }));
     });
   });
 
@@ -1291,4 +1367,3 @@ describe('WalCheckpointScheduler class', () => {
     });
   });
 });
-

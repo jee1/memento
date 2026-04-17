@@ -66,6 +66,7 @@ export interface DatabaseLockMonitorConfig {
 import Database from 'better-sqlite3';
 import type { Logger, PerformanceMonitor } from './wal-checkpoint-scheduler.js';
 import type { WalCheckpointScheduler } from './wal-checkpoint-scheduler.js';
+import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services/runtime-diagnostics-logger.js';
 
 /**
  * 데이터베이스 락 모니터 클래스
@@ -84,7 +85,8 @@ export class DatabaseLockMonitor {
     private config: DatabaseLockMonitorConfig,
     private logger?: Logger,
     private performanceMonitor?: PerformanceMonitor,
-    private checkpointScheduler?: WalCheckpointScheduler
+    private checkpointScheduler?: WalCheckpointScheduler,
+    private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>
   ) {}
 
   /**
@@ -100,6 +102,10 @@ export class DatabaseLockMonitor {
     this.monitor();
 
     this.logger?.info('데이터베이스 락 모니터 시작됨', {
+      intervalMs: this.config.intervalMs
+    });
+    void this.writeDiagnosticsEvent({
+      type: 'database_lock_monitor_start',
       intervalMs: this.config.intervalMs
     });
   }
@@ -124,6 +130,9 @@ export class DatabaseLockMonitor {
     this.statsResetTime = Date.now() + 3600000;
 
     this.logger?.info('데이터베이스 락 모니터 중지됨');
+    void this.writeDiagnosticsEvent({
+      type: 'database_lock_monitor_stop'
+    });
   }
 
   /**
@@ -137,6 +146,10 @@ export class DatabaseLockMonitor {
         this.updateBusyStatistics();
       } catch (error) {
         this.logger?.error('락 모니터링 실패', { error });
+        await this.writeDiagnosticsEvent({
+          type: 'database_lock_monitor_error',
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }, this.config.intervalMs);
   }
@@ -285,6 +298,19 @@ export class DatabaseLockMonitor {
     }
 
     const { lockDuration } = status;
+    await this.writeDiagnosticsEvent({
+      type: 'database_lock_detected',
+      lockDuration,
+      detectionMethod: status.detectionMethod,
+      busyCount: status.busyCount,
+      severity: lockDuration >= this.config.criticalThresholdMs
+        ? 'critical'
+        : lockDuration >= this.config.dangerThresholdMs
+          ? 'danger'
+          : lockDuration >= this.config.warningThresholdMs
+            ? 'warning'
+            : 'info'
+    });
 
     // PerformanceMonitor 메트릭 수집
     if (this.performanceMonitor) {
@@ -349,5 +375,19 @@ export class DatabaseLockMonitor {
 
     // 임계값 미만이면 로그 출력하지 않음
   }
-}
 
+  private async writeDiagnosticsEvent(event: Record<string, unknown>): Promise<void> {
+    if (!this.diagnosticsLogger) {
+      return;
+    }
+
+    try {
+      await this.diagnosticsLogger.writeEvent({
+        timestamp: new Date().toISOString(),
+        ...event
+      });
+    } catch {
+      return;
+    }
+  }
+}

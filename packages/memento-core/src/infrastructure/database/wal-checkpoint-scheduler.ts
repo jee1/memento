@@ -115,6 +115,7 @@ export interface PerformanceMonitor {
 }
 
 import Database from 'better-sqlite3';
+import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services/runtime-diagnostics-logger.js';
 
 /**
  * WAL 체크포인트 스케줄러 클래스
@@ -130,7 +131,8 @@ export class WalCheckpointScheduler {
     private mainDb: Database.Database,
     private config: WalCheckpointSchedulerConfig,
     private logger?: Logger,
-    private performanceMonitor?: PerformanceMonitor
+    private performanceMonitor?: PerformanceMonitor,
+    private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>
   ) {}
 
   /**
@@ -154,6 +156,11 @@ export class WalCheckpointScheduler {
     this.scheduleCheckpoint();
 
     this.logger?.info('WAL 체크포인트 스케줄러 시작됨', {
+      intervalMs: this.config.intervalMs,
+      useDedicatedConnection: this.config.useDedicatedConnection
+    });
+    void this.writeDiagnosticsEvent({
+      type: 'wal_checkpoint_scheduler_start',
       intervalMs: this.config.intervalMs,
       useDedicatedConnection: this.config.useDedicatedConnection
     });
@@ -181,6 +188,9 @@ export class WalCheckpointScheduler {
 
     this.isRunning = false;
     this.logger?.info('WAL 체크포인트 스케줄러 중지됨');
+    await this.writeDiagnosticsEvent({
+      type: 'wal_checkpoint_scheduler_stop'
+    });
   }
 
   /**
@@ -232,7 +242,7 @@ export class WalCheckpointScheduler {
             continue; // 재시도
           } else {
             // 최대 재시도 횟수 초과
-            return {
+            const failureResult = {
               mode,
               success: false,
               log: result.log || 0,
@@ -240,6 +250,15 @@ export class WalCheckpointScheduler {
               busy: result.busy || 1,
               error: lastError
             };
+            await this.writeDiagnosticsEvent({
+              type: 'wal_checkpoint_failure',
+              mode,
+              log: failureResult.log,
+              checkpointed: failureResult.checkpointed,
+              busy: failureResult.busy,
+              error: lastError?.message
+            });
+            return failureResult;
           }
         }
         
@@ -262,6 +281,14 @@ export class WalCheckpointScheduler {
               const finalWalSize = await this.getWalFileSize();
               this.performanceMonitor.recordMetric('wal_file_size', finalWalSize);
             }
+            await this.writeDiagnosticsEvent({
+              type: 'wal_checkpoint_success',
+              mode: CheckpointMode.TRUNCATE,
+              log: truncateResult.log,
+              checkpointed: truncateResult.checkpointed,
+              busy: truncateResult.busy,
+              durationMs: duration
+            });
             return truncateResult;
           }
           // TRUNCATE 실패 시 원래 결과 사용 (성공했으므로)
@@ -278,6 +305,15 @@ export class WalCheckpointScheduler {
           this.performanceMonitor.recordMetric('wal_checkpoint_duration', duration);
           this.performanceMonitor.recordMetric('wal_file_size', walSize);
         }
+        await this.writeDiagnosticsEvent({
+          type: 'wal_checkpoint_success',
+          mode,
+          log: result.log,
+          checkpointed: result.checkpointed,
+          busy: result.busy,
+          durationMs: duration,
+          walSize
+        });
         
         return result;
       } catch (error) {
@@ -292,7 +328,7 @@ export class WalCheckpointScheduler {
     }
     
       // 모든 재시도 실패
-      return {
+      const failureResult = {
         mode,
         success: false,
         log: 0,
@@ -300,6 +336,15 @@ export class WalCheckpointScheduler {
         busy: 1,
         error: lastError
       };
+      await this.writeDiagnosticsEvent({
+        type: 'wal_checkpoint_failure',
+        mode,
+        log: failureResult.log,
+        checkpointed: failureResult.checkpointed,
+        busy: failureResult.busy,
+        error: lastError?.message
+      });
+      return failureResult;
     } finally {
       // 체크포인트 완료 후 플래그 해제
       this.checkpointInProgress = false;
@@ -399,5 +444,19 @@ export class WalCheckpointScheduler {
       return 0;
     }
   }
-}
 
+  private async writeDiagnosticsEvent(event: Record<string, unknown>): Promise<void> {
+    if (!this.diagnosticsLogger) {
+      return;
+    }
+
+    try {
+      await this.diagnosticsLogger.writeEvent({
+        timestamp: new Date().toISOString(),
+        ...event
+      });
+    } catch {
+      return;
+    }
+  }
+}

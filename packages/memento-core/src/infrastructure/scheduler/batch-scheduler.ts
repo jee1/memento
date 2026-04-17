@@ -19,6 +19,7 @@
 import type { IBatchScheduler } from '../../shared/interfaces/batch-scheduler.interface.js';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor, type PerformanceAlert } from '../../domains/monitoring/services/performance-monitor.js';
+import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services/runtime-diagnostics-logger.js';
 import Database from 'better-sqlite3';
 import { ConsolidationScoreWorker } from '../../workers/consolidation-score-worker.js';
 import type { IReflexionWorker } from '../../shared/interfaces/reflexion-worker.interface.js';
@@ -150,6 +151,7 @@ export class BatchScheduler implements IBatchScheduler {
   private sleepConsolidationBatchJob: SleepConsolidationBatchJob | null = null;
   private telemetryCleanupRepository: TelemetryRepository | null = null;
   private telemetryCleanupBatchJob: TelemetryCleanupBatchJob | null = null;
+  private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
 
   constructor(
     config?: Partial<BatchJobConfig>,
@@ -159,6 +161,7 @@ export class BatchScheduler implements IBatchScheduler {
       healthChecker?: HealthChecker;
       fileLogger?: FileLogger;
       relationValidatorExecutor?: RelationValidatorExecutor;
+      diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
     }
   ) {
     this.config = {
@@ -233,6 +236,7 @@ export class BatchScheduler implements IBatchScheduler {
     this.relationValidatorExecutor = dependencies?.relationValidatorExecutor ?? new RelationValidatorExecutor({
       timeout: this.config.weeklyRelationValidationTimeout ?? this.config.jobTimeout
     });
+    this.diagnosticsLogger = dependencies?.diagnosticsLogger;
   }
 
   /**
@@ -337,6 +341,11 @@ export class BatchScheduler implements IBatchScheduler {
       config: this.config,
       startTime: this.startTime.toISOString()
     });
+    await this.writeDiagnosticsEvent({
+      type: 'batch_scheduler_start',
+      config: this.config,
+      startTime: this.startTime.toISOString()
+    });
   }
 
   /**
@@ -377,6 +386,11 @@ export class BatchScheduler implements IBatchScheduler {
     }
 
     this.log('BatchScheduler stopped', {
+      uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
+      clearedQueuedJobs: queuedJobsCount
+    });
+    await this.writeDiagnosticsEvent({
+      type: 'batch_scheduler_stop',
       uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
       clearedQueuedJobs: queuedJobsCount
     });
@@ -472,6 +486,12 @@ export class BatchScheduler implements IBatchScheduler {
     const startTime = Date.now();
     let retryCount = initialRetryCount;
     let jobOk = false;
+    await this.writeDiagnosticsEvent({
+      type: 'batch_job_start',
+      jobName: name,
+      priority,
+      retryCount
+    });
 
     try {
       await this.executeWithTimeout(job, this.config.jobTimeout);
@@ -487,6 +507,13 @@ export class BatchScheduler implements IBatchScheduler {
         totalExecutions: this.totalExecutions.get(name),
         retryCount
       });
+      await this.writeDiagnosticsEvent({
+        type: 'batch_job_finish',
+        jobName: name,
+        durationMs: Date.now() - startTime,
+        totalExecutions: this.totalExecutions.get(name) ?? 0,
+        retryCount
+      });
     } catch (error) {
       retryCount++;
       const totalErrorCount = this.retryManager.incrementErrorCount(name);
@@ -500,6 +527,11 @@ export class BatchScheduler implements IBatchScheduler {
       };
       
       this.log(`Job ${name} failed`, errorInfo, 'error');
+      await this.writeDiagnosticsEvent({
+        type: 'batch_job_failure',
+        jobName: name,
+        ...errorInfo
+      });
 
       // RetryManager를 사용하여 재시도 여부 결정
       const retryResult = this.retryManager.shouldRetry(name, retryCount, totalErrorCount);
@@ -693,6 +725,21 @@ export class BatchScheduler implements IBatchScheduler {
 
     if (this.jobQueue.runningCount > 0) {
       this.log(`Warning: ${this.jobQueue.runningCount} jobs still running after timeout`, { level: 'warn' });
+    }
+  }
+
+  private async writeDiagnosticsEvent(event: Record<string, unknown>): Promise<void> {
+    if (!this.diagnosticsLogger) {
+      return;
+    }
+
+    try {
+      await this.diagnosticsLogger.writeEvent({
+        timestamp: new Date().toISOString(),
+        ...event
+      });
+    } catch {
+      return;
     }
   }
 
@@ -1912,6 +1959,10 @@ export class BatchScheduler implements IBatchScheduler {
   setTelemetryCleanupRepository(repository: TelemetryRepository | null): void {
     this.telemetryCleanupRepository = repository;
     this.telemetryCleanupBatchJob = null;
+  }
+
+  setDiagnosticsLogger(logger: Pick<RuntimeDiagnosticsLogger, 'writeEvent'> | undefined): void {
+    this.diagnosticsLogger = logger;
   }
 
   getLastJobRunMeta(

@@ -123,7 +123,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
         retryBackoffMs: mementoConfig.walCheckpointRetryBackoffMs
       },
       logger,
-      performanceMonitor
+      performanceMonitor,
+      runtimeDiagnosticsLogger
     );
     const databaseLockMonitor = new DatabaseLockMonitor(
       db,
@@ -135,7 +136,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       },
       logger,
       performanceMonitor,
-      walCheckpointScheduler
+      walCheckpointScheduler,
+      runtimeDiagnosticsLogger
     );
     if (mementoConfig.walCheckpointEnabled) {
       walCheckpointScheduler.start();
@@ -197,6 +199,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const introspectionScanCache = new IntrospectionScanCache();
     const telemetryRepository = new TelemetryRepository(db);
     const batchScheduler = getBatchScheduler();
+    batchScheduler.setDiagnosticsLogger(runtimeDiagnosticsLogger);
     batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
     const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
     batchScheduler.setIntrospectionScanCache(introspectionScanCache);

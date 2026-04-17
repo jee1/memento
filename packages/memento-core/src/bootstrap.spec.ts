@@ -33,6 +33,7 @@ const mockState = vi.hoisted(() => {
   };
 
   const batchScheduler = {
+    setDiagnosticsLogger: vi.fn(),
     setTelemetryCleanupRepository: vi.fn(),
     setIntrospectionScanCache: vi.fn(),
     setSleepConsolidationService: vi.fn(),
