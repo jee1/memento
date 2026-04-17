@@ -483,6 +483,9 @@ describe('MCP 서버 진입점', () => {
   describe('정리 경로', () => {
     it('cleanup이 runtimeDiagnosticsSamplerCleanup을 호출해야 함', async () => {
       const runtimeDiagnosticsSamplerCleanup = vi.fn().mockResolvedValue(undefined);
+      const runtimeDiagnosticsLogger = {
+        writeEvent: vi.fn().mockResolvedValue(undefined)
+      };
       const getBatchSchedulerSpy = vi.spyOn(core, 'getBatchScheduler').mockReturnValue({
         stop: vi.fn().mockResolvedValue(undefined)
       } as any);
@@ -497,13 +500,26 @@ describe('MCP 서버 진입점', () => {
               flush: vi.fn().mockResolvedValue(undefined),
               destroy: vi.fn().mockResolvedValue(undefined)
             } as any,
-            runtimeDiagnosticsSamplerCleanup
+            runtimeDiagnosticsSamplerCleanup,
+            runtimeDiagnosticsLogger
           } as any
         });
 
         await cleanup();
 
         expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+        expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'server_cleanup_start',
+            transport: 'stdio'
+          })
+        );
+        expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'server_cleanup_finish',
+            transport: 'stdio'
+          })
+        );
       } finally {
         getBatchSchedulerSpy.mockRestore();
       }

@@ -74,6 +74,26 @@ function setTestDependencies(_deps: TestDependencies): void {
   }
 }
 
+async function writeRuntimeDiagnosticsEvent(
+  type: string,
+  payload: Record<string, unknown> = {}
+): Promise<void> {
+  if (!serverServices?.runtimeDiagnosticsLogger) {
+    return;
+  }
+
+  try {
+    await serverServices.runtimeDiagnosticsLogger.writeEvent({
+      type,
+      timestamp: new Date().toISOString(),
+      transport: 'http',
+      ...payload
+    });
+  } catch {
+    return;
+  }
+}
+
 /**
  * 정적 UI(graph.html 등) 위치 — Docker(/app/static), 로컬 모노레포 루트(./static),
  * 또는 memento-server 패키지 cwd에서 상위 탐색.
@@ -236,6 +256,7 @@ async function initializeServer() {
     app.use(errorHandler);
     
     logger.info('서비스 초기화 완료');
+    await writeRuntimeDiagnosticsEvent('server_start');
     // 배치 스케줄러는 core bootstrap에서 이미 시작됨 (services.batchScheduler)
 
     // 임베딩 프로바이더 정보 표시
@@ -276,6 +297,8 @@ async function cleanup() {
   isCleaningUp = true;
   
   try {
+    await writeRuntimeDiagnosticsEvent('server_cleanup_start');
+
     // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
     if (serverServices) {
       if (serverServices.runtimeDiagnosticsSamplerCleanup) {
@@ -318,8 +341,9 @@ async function cleanup() {
       closeDatabase(db);
       db = null;
     }
-    serverServices = null;
     logger.info('HTTP/WebSocket MCP 서버 v2 종료');
+    await writeRuntimeDiagnosticsEvent('server_cleanup_finish');
+    serverServices = null;
   } catch (error) {
     logger.error('정리 중 오류', { error });
   } finally {
@@ -337,17 +361,23 @@ function registerCleanupHandlers() {
   cleanupRegistered = true;
   
   process.on('SIGINT', async () => {
+    await writeRuntimeDiagnosticsEvent('server_shutdown_signal', { signal: 'SIGINT' });
     await cleanup();
     process.exit(0);
   });
   
   process.on('SIGTERM', async () => {
+    await writeRuntimeDiagnosticsEvent('server_shutdown_signal', { signal: 'SIGTERM' });
     await cleanup();
     process.exit(0);
   });
   
   process.on('uncaughtException', async (error) => {
     logger.error('예상치 못한 오류', { error });
+    await writeRuntimeDiagnosticsEvent('uncaught_exception', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     await cleanup();
     process.exit(1);
   });

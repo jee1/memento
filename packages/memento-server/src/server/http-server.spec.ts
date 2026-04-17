@@ -205,17 +205,33 @@ describe('HTTP Server', () => {
   describe('정리 경로', () => {
     it('cleanup이 runtimeDiagnosticsSamplerCleanup을 호출해야 함', async () => {
       const runtimeDiagnosticsSamplerCleanup = vi.fn().mockResolvedValue(undefined);
+      const runtimeDiagnosticsLogger = {
+        writeEvent: vi.fn().mockResolvedValue(undefined)
+      };
       __test.setTestDependencies({
         database: db,
         serverServices: {
           ...ctx!.services,
-          runtimeDiagnosticsSamplerCleanup
+          runtimeDiagnosticsSamplerCleanup,
+          runtimeDiagnosticsLogger
         }
       });
 
       await cleanup();
 
       expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+      expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'server_cleanup_start',
+          transport: 'http'
+        })
+      );
+      expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'server_cleanup_finish',
+          transport: 'http'
+        })
+      );
     });
   });
 });
