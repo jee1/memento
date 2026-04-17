@@ -737,7 +737,11 @@ process.on('uncaughtException', (error) => {
 // 서버 시작 함수 export (팩토리 패턴을 위해)
 export { startServer, cleanup };
 
-export const __test = {
+export const __test: {
+  setTestDependencies: (deps: TestDependencies) => void;
+  getDatabase: () => unknown;
+  getServerServices: () => ServerServices | null;
+} = {
   setTestDependencies,
   getDatabase: () => db,
   getServerServices: () => serverServices

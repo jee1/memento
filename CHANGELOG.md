@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Docker instability 분석을 위한 runtime diagnostics 모드 추가: `/app/logs/diagnostics` JSONL 로그, background service feature flags, Docker 외부 관측 스크립트(`scripts/collect-docker-diagnostics.sh`) 및 운영 가이드 포함
+
 ### 보안 강화 (011-docker-security-hardening) — Breaking Changes
 
 #### BREAKING: Admin API 인증 동작 변경 (US2)
