@@ -10,8 +10,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import { supportsTsxSubprocess } from './supports-tsx-subprocess.js';
 
-describe('count-console-logs.ts 스크립트', () => {
+describe.skipIf(!supportsTsxSubprocess())('count-console-logs.ts 스크립트', () => {
   const testDir = join(process.cwd(), 'test-temp-console-logs');
   const scriptPath = join(process.cwd(), 'scripts', 'count-console-logs.ts');
 
@@ -254,4 +255,3 @@ describe('count-console-logs.ts 스크립트', () => {
     });
   });
 });
-

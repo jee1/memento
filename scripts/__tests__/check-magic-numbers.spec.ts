@@ -7,10 +7,12 @@ import { execSync } from 'child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { supportsTsxSubprocess } from './supports-tsx-subprocess.js';
 
 const onCi = Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
+const tsxUnavailable = !supportsTsxSubprocess();
 
-describe.skipIf(onCi)('check-magic-numbers 스크립트', () => {
+describe.skipIf(onCi || tsxUnavailable)('check-magic-numbers 스크립트', () => {
   const scriptPath = join(process.cwd(), 'scripts', 'check-magic-numbers.ts');
 
   it('스크립트가 정상적으로 실행됨', () => {

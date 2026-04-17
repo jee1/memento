@@ -18,6 +18,7 @@ describe('ErrorLoggingService', () => {
 
   beforeEach(() => {
     service = new ErrorLoggingService();
+    vi.spyOn(service as any, 'logToConsole').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -552,4 +553,3 @@ describe('ErrorLoggingService', () => {
     });
   });
 });
-

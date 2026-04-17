@@ -14,6 +14,30 @@ process.stderr.write = function (chunk: unknown, encoding?: unknown, callback?: 
   return originalStderrWrite(chunk as any, encoding as any, callback as any);
 };
 
+function writeStdout(message: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    process.stdout.write(message, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function writeStderr(message: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    originalStderrWrite(message, undefined, (error?: Error | null) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 import { loadEnv } from './cli/env-loader.js';
 import {
   recallParams,
@@ -21,6 +45,7 @@ import {
   forgetParams,
   memoryInjectionParams
 } from './cli/option-map.js';
+import type { ServerServices } from '@memento/core';
 
 const TOOL_SUBCOMMANDS = new Set(['recall', 'remember', 'forget', 'memory_injection']);
 
@@ -104,6 +129,9 @@ loadEnv({ envFile: preOptions.envFile, configDir: preOptions.configDir });
 
 // CLI 모드 로그 억제 (REQ-IO-4, AC8). core import 전에 설정.
 process.env.MEMENTO_CLI_QUIET = '1';
+process.env.BATCH_SCHEDULER_ENABLED = 'false';
+process.env.WAL_CHECKPOINT_ENABLED = 'false';
+process.env.DB_LOCK_MONITOR_ENABLED = 'false';
 
 // 2) core import는 env 로드 이후 (mementoConfig가 이미 env 반영)
 const {
@@ -111,7 +139,8 @@ const {
   createMementoCore,
   closeDatabase,
   createToolContext,
-  executeTool
+  executeTool,
+  getBatchScheduler
 } = await import('@memento/core');
 
 const dbPath = preOptions.dbPath ?? process.env.DB_PATH ?? mementoConfig.dbPath;
@@ -120,62 +149,98 @@ const subIdx = preOptions.subIdx;
 const commandToken = preOptions.commandToken;
 const showHelp = preOptions.help || (!commandToken && !subcommand);
 
-async function main(): Promise<void> {
+async function main(): Promise<number> {
   if (showHelp) {
-    originalStderrWrite('memento – Memento CLI for AI\n');
-    originalStderrWrite('Usage: memento [options] <command> [command-args]\n\n');
-    originalStderrWrite('Commands:\n');
-    originalStderrWrite('  recall              관련 기억을 검색합니다 (하이브리드 검색)\n');
-    originalStderrWrite('  remember            기억을 저장합니다\n');
-    originalStderrWrite('  forget              기억을 삭제합니다 (소프트/하드)\n');
-    originalStderrWrite('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n\n');
-    originalStderrWrite('Global options (서브커맨드 앞·뒤 모두 가능):\n');
-    originalStderrWrite('  --db-path <path>    DB 파일 경로\n');
-    originalStderrWrite('  --env-file <path>   .env 파일 경로\n');
-    originalStderrWrite('  --config-dir <path> 설정 디렉터리 (~/.memento 대체)\n');
-    originalStderrWrite('  --help, -h           이 도움말\n');
-    process.exit(0);
+    await writeStderr('memento – Memento CLI for AI\n');
+    await writeStderr('Usage: memento [options] <command> [command-args]\n\n');
+    await writeStderr('Commands:\n');
+    await writeStderr('  recall              관련 기억을 검색합니다 (하이브리드 검색)\n');
+    await writeStderr('  remember            기억을 저장합니다\n');
+    await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
+    await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n\n');
+    await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
+    await writeStderr('  --db-path <path>    DB 파일 경로\n');
+    await writeStderr('  --env-file <path>   .env 파일 경로\n');
+    await writeStderr('  --config-dir <path> 설정 디렉터리 (~/.memento 대체)\n');
+    await writeStderr('  --help, -h           이 도움말\n');
+    return 0;
   }
 
   if (!subcommand && commandToken) {
-    originalStderrWrite(`Unknown command: ${commandToken}. Use --help.\n`);
-    process.exit(1);
+    await writeStderr(`Unknown command: ${commandToken}. Use --help.\n`);
+    return 1;
   }
 
   if (!subcommand || !TOOL_SUBCOMMANDS.has(subcommand)) {
-    originalStderrWrite(`Unknown command: ${String(subcommand)}. Use --help.\n`);
-    process.exit(1);
+    await writeStderr(`Unknown command: ${String(subcommand)}. Use --help.\n`);
+    return 1;
   }
 
   let db: import('better-sqlite3').Database | null = null;
+  let coreServices: ServerServices | null = null;
+  let isCleaningUp = false;
 
-  const cleanup = (): void => {
+  const cleanup = async (): Promise<void> => {
+    if (isCleaningUp) {
+      return;
+    }
+
+    isCleaningUp = true;
+
+    if (coreServices?.runtimeDiagnosticsSamplerCleanup) {
+      try {
+        await coreServices.runtimeDiagnosticsSamplerCleanup();
+      } catch (_) {}
+    }
+
+    try {
+      await coreServices?.walCheckpointScheduler.stop();
+    } catch (_) {}
+
+    try {
+      coreServices?.databaseLockMonitor.stop();
+    } catch (_) {}
+
+    try {
+      await coreServices?.writeCoalescingManager?.flush();
+      await coreServices?.writeCoalescingManager?.destroy();
+    } catch (_) {}
+
+    try {
+      await getBatchScheduler().stop();
+    } catch (_) {}
+
     if (db) {
       try {
         closeDatabase(db);
       } catch (_) {}
       db = null;
     }
+
+    coreServices = null;
+    isCleaningUp = false;
   };
 
   process.on('exit', (code) => {
-    cleanup();
+    void cleanup();
   });
-  process.on('uncaughtException', () => {
-    cleanup();
+  process.on('uncaughtException', async () => {
+    await cleanup();
+    process.exit(1);
   });
-  process.on('SIGINT', () => {
-    cleanup();
+  process.on('SIGINT', async () => {
+    await cleanup();
     process.exit(130);
   });
-  process.on('SIGTERM', () => {
-    cleanup();
+  process.on('SIGTERM', async () => {
+    await cleanup();
     process.exit(143);
   });
 
   try {
     const core = await createMementoCore({ dbPath });
     db = core.db;
+    coreServices = core.services;
     const context = createToolContext(db, core.services);
     const cmdArgv =
       subIdx !== undefined ? subcommandArgvFrom(process.argv, subIdx) : process.argv.slice(3);
@@ -183,57 +248,61 @@ async function main(): Promise<void> {
     if (subcommand === 'recall') {
       const params = recallParams(cmdArgv);
       if (typeof params.query !== 'string' || !String(params.query).trim()) {
-        originalStderrWrite('recall requires --query <string>.\n');
-        process.exit(1);
+        await writeStderr('recall requires --query <string>.\n');
+        return 1;
       }
       const result = await executeTool('recall', params, context);
-      process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      await writeStdout(JSON.stringify(result) + '\n');
+      return 0;
     }
 
     if (subcommand === 'remember') {
       const params = rememberParams(cmdArgv);
       if (typeof params.content !== 'string' || !String(params.content).trim()) {
-        originalStderrWrite('remember requires --content <string>.\n');
-        process.exit(1);
+        await writeStderr('remember requires --content <string>.\n');
+        return 1;
       }
       const result = await executeTool('remember', params, context);
-      process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      await writeStdout(JSON.stringify(result) + '\n');
+      return 0;
     }
 
     if (subcommand === 'forget') {
       const params = forgetParams(cmdArgv);
       if (params.id === undefined && (!Array.isArray(params.batch) || params.batch.length === 0)) {
-        originalStderrWrite('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
-        process.exit(1);
+        await writeStderr('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
+        return 1;
       }
       const result = await executeTool('forget', params, context);
-      process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      await writeStdout(JSON.stringify(result) + '\n');
+      return 0;
     }
 
     if (subcommand === 'memory_injection') {
       const params = memoryInjectionParams(cmdArgv);
       if (typeof params.query !== 'string' || !String(params.query).trim()) {
-        originalStderrWrite('memory_injection requires --query <string>.\n');
-        process.exit(1);
+        await writeStderr('memory_injection requires --query <string>.\n');
+        return 1;
       }
       const result = await executeTool('memory_injection', params, context);
-      process.stdout.write(JSON.stringify(result) + '\n');
-      process.exit(0);
+      await writeStdout(JSON.stringify(result) + '\n');
+      return 0;
     }
 
-    process.exit(0);
+    return 0;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    originalStderrWrite(msg + '\n');
-    cleanup();
-    process.exit(1);
+    await writeStderr(msg + '\n');
+    return 1;
+  } finally {
+    await cleanup();
   }
 }
 
-main().catch((err) => {
-  originalStderrWrite(String(err?.message ?? err) + '\n');
-  process.exit(1);
+main().then((code) => {
+  process.exit(code);
+}).catch((err) => {
+  void writeStderr(String(err?.message ?? err) + '\n').finally(() => {
+    process.exit(1);
+  });
 });

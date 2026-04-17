@@ -40,6 +40,7 @@ import { IntrospectionScanCache } from './domains/memory/services/introspection-
 import type { SqlParam } from './shared/types/index.js';
 import { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
+import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
 
 export interface ServerServices {
   searchEngine: SearchEngine;
@@ -66,6 +67,10 @@ export interface ServerServices {
   sleepConsolidationService?: SleepConsolidationService;
   /** 006 observability telemetry */
   telemetryService?: TelemetryService;
+  /** 런타임 샘플 및 부트스트랩 이벤트 진단 로거 */
+  runtimeDiagnosticsLogger?: RuntimeDiagnosticsLogger;
+  /** diagnostics sampler cleanup hook */
+  runtimeDiagnosticsSamplerCleanup?: () => Promise<void>;
 }
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
@@ -98,6 +103,15 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     await reflexionWorker.start();
     const performanceMonitor = getPerformanceMonitor();
     performanceMonitor.initialize(db);
+    const runtimeDiagnosticsLogger = new RuntimeDiagnosticsLogger(
+      mementoConfig.diagnosticsEnabled,
+      mementoConfig.diagnosticsLogDir
+    );
+    await runtimeDiagnosticsLogger.writeEvent({
+      type: 'bootstrap_start',
+      timestamp: new Date().toISOString(),
+      diagnosticsEnabled: mementoConfig.diagnosticsEnabled
+    });
     const walCheckpointScheduler = new WalCheckpointScheduler(
       db,
       {
@@ -109,7 +123,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
         retryBackoffMs: mementoConfig.walCheckpointRetryBackoffMs
       },
       logger,
-      performanceMonitor
+      performanceMonitor,
+      runtimeDiagnosticsLogger
     );
     const databaseLockMonitor = new DatabaseLockMonitor(
       db,
@@ -121,11 +136,17 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       },
       logger,
       performanceMonitor,
-      walCheckpointScheduler
+      walCheckpointScheduler,
+      runtimeDiagnosticsLogger
     );
-    walCheckpointScheduler.start();
-    databaseLockMonitor.start();
-    logger.info('WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 시작됨');
+    if (mementoConfig.walCheckpointEnabled) {
+      walCheckpointScheduler.start();
+      logger.info('WAL 체크포인트 스케줄러 시작됨');
+    }
+    if (mementoConfig.dbLockMonitorEnabled) {
+      databaseLockMonitor.start();
+      logger.info('데이터베이스 락 모니터 시작됨');
+    }
     let consolidationScoreService: ConsolidationScoreService | undefined;
     const writeCoalescingManager = new WriteCoalescingManager(
       1000,
@@ -178,6 +199,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     const introspectionScanCache = new IntrospectionScanCache();
     const telemetryRepository = new TelemetryRepository(db);
     const batchScheduler = getBatchScheduler();
+    batchScheduler.setDiagnosticsLogger(runtimeDiagnosticsLogger);
     batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
     const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
     batchScheduler.setIntrospectionScanCache(introspectionScanCache);
@@ -187,7 +209,99 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       telemetryService
     });
     batchScheduler.setSleepConsolidationService(sleepConsolidationService);
-    await batchScheduler.start(db, reflexionWorker);
+    if (mementoConfig.batchSchedulerEnabled) {
+      await batchScheduler.start(db, reflexionWorker);
+    }
+    let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;
+    if (mementoConfig.diagnosticsEnabled) {
+      let runtimeDiagnosticsSamplerStopped = false;
+      let runtimeDiagnosticsSamplerInFlight: Promise<void> | null = null;
+      let runtimeDiagnosticsSamplerTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleRuntimeDiagnosticsSampler = (): void => {
+        if (runtimeDiagnosticsSamplerStopped) {
+          return;
+        }
+
+        runtimeDiagnosticsSamplerTimer = setTimeout(() => {
+          runtimeDiagnosticsSamplerTimer = null;
+          void runRuntimeDiagnosticsSampler();
+        }, mementoConfig.diagnosticsIntervalMs);
+        runtimeDiagnosticsSamplerTimer.unref?.();
+      };
+
+      const runRuntimeDiagnosticsSampler = async (): Promise<void> => {
+        if (runtimeDiagnosticsSamplerStopped) {
+          return;
+        }
+
+        const currentRun = (async () => {
+          if (runtimeDiagnosticsSamplerStopped) {
+            return;
+          }
+
+          try {
+            const batchSchedulerStatus = batchScheduler.getStatus();
+            await runtimeDiagnosticsLogger.writeSample({
+              type: 'runtime_sample',
+              timestamp: new Date().toISOString(),
+              memory: process.memoryUsage(),
+              uptime: process.uptime(),
+              batchScheduler: {
+                isRunning: batchSchedulerStatus.isRunning,
+                activeJobs: batchSchedulerStatus.activeJobs ?? [],
+                uptime: batchSchedulerStatus.uptime ?? 0,
+                lastExecution: batchSchedulerStatus.lastExecution
+                  ? Object.fromEntries(
+                      Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
+                        jobName,
+                        executedAt.toISOString()
+                      ])
+                    )
+                  : undefined,
+                totalExecutions: batchSchedulerStatus.totalExecutions
+                  ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
+                  : undefined,
+                errorCount: batchSchedulerStatus.errorCount
+                  ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
+                  : undefined
+              },
+              walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
+              dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
+            });
+          } catch (error) {
+            try {
+              logger.error('런타임 진단 샘플 기록 실패', {
+                error: error instanceof Error ? error.message : String(error)
+              });
+            } catch {
+              // diagnostics best-effort: sampler failure must not abort bootstrap
+            }
+          }
+        })();
+
+        runtimeDiagnosticsSamplerInFlight = currentRun;
+        try {
+          await currentRun;
+        } finally {
+          if (runtimeDiagnosticsSamplerInFlight === currentRun) {
+            runtimeDiagnosticsSamplerInFlight = null;
+          }
+        }
+        if (!runtimeDiagnosticsSamplerStopped) {
+          scheduleRuntimeDiagnosticsSampler();
+        }
+      };
+
+      scheduleRuntimeDiagnosticsSampler();
+      runtimeDiagnosticsSamplerCleanup = async () => {
+        runtimeDiagnosticsSamplerStopped = true;
+        if (runtimeDiagnosticsSamplerTimer) {
+          clearTimeout(runtimeDiagnosticsSamplerTimer);
+          runtimeDiagnosticsSamplerTimer = null;
+        }
+        await runtimeDiagnosticsSamplerInFlight;
+      };
+    }
     return {
       searchEngine,
       hybridSearchEngine,
@@ -209,7 +323,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       batchScheduler,
       introspectionScanCache,
       sleepConsolidationService,
-      telemetryService
+      telemetryService,
+      runtimeDiagnosticsLogger,
+      runtimeDiagnosticsSamplerCleanup
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

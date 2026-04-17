@@ -66,6 +66,36 @@ let db: Database.Database | null = null;
 // core에서 반환된 서비스 (ToolContext 생성 시 사용)
 let serverServices: ServerServices | null = null;
 
+type TestDependencies = {
+  database: Database.Database | null;
+  serverServices?: ServerServices | null;
+};
+
+function setTestDependencies(_deps: TestDependencies): void {
+  db = _deps.database ?? null;
+  serverServices = _deps.serverServices ?? null;
+}
+
+async function writeRuntimeDiagnosticsEvent(
+  type: string,
+  payload: Record<string, unknown> = {}
+): Promise<void> {
+  if (!serverServices?.runtimeDiagnosticsLogger) {
+    return;
+  }
+
+  try {
+    await serverServices.runtimeDiagnosticsLogger.writeEvent({
+      type,
+      timestamp: new Date().toISOString(),
+      transport: 'stdio',
+      ...payload
+    });
+  } catch {
+    return;
+  }
+}
+
 /** Cursor 등 클라이언트가 7초 내에 Initialize 응답을 받도록, 무거운 초기화는 transport 연결 후 백그라운드에서 수행 */
 let initPromise: Promise<void>;
 let resolveInit: () => void;
@@ -545,6 +575,7 @@ async function startServer() {
     serverState.setMcpTransportConnected(true);
     serverState.setMcpServerInitialized(true);
     mcpLogger.logServer('info', 'MCP 전송 계층 연결 완료');
+    await writeRuntimeDiagnosticsEvent('server_start');
 
     // 무거운 초기화(DB·서비스)는 백그라운드에서 수행
     void runHeavyInit();
@@ -561,6 +592,7 @@ async function startServer() {
     return new Promise<void>((resolve) => {
       process.on('SIGINT', () => {
         mcpLogger.logServer('info', '서버 종료 신호 수신 (SIGINT)');
+        void writeRuntimeDiagnosticsEvent('server_shutdown_signal', { signal: 'SIGINT' });
         cleanup().then(() => {
           resolve();
           process.exit(0);
@@ -569,6 +601,7 @@ async function startServer() {
 
       process.on('SIGTERM', () => {
         mcpLogger.logServer('info', '서버 종료 신호 수신 (SIGTERM)');
+        void writeRuntimeDiagnosticsEvent('server_shutdown_signal', { signal: 'SIGTERM' });
         cleanup().then(() => {
           resolve();
           process.exit(0);
@@ -608,9 +641,21 @@ async function cleanup() {
   isCleaningUp = true;
   
   mcpLogger.logServer('info', '서버 정리 시작...');
+  await writeRuntimeDiagnosticsEvent('server_cleanup_start');
   
   // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
   if (serverServices) {
+    if (serverServices.runtimeDiagnosticsSamplerCleanup) {
+      try {
+        await serverServices.runtimeDiagnosticsSamplerCleanup();
+        mcpLogger.logServer('info', '런타임 진단 샘플러 중지됨');
+      } catch (error) {
+        mcpLogger.logServer('error', `런타임 진단 샘플러 중지 실패: ${error}`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
     try {
       await serverServices.walCheckpointScheduler.stop();
       mcpLogger.logServer('info', 'WAL 체크포인트 스케줄러 중지됨');
@@ -651,6 +696,7 @@ async function cleanup() {
   }
   
   mcpLogger.logServer('info', '서버 정리 완료');
+  await writeRuntimeDiagnosticsEvent('server_cleanup_finish');
   // Memento MCP Server 종료
 }
 
@@ -680,12 +726,26 @@ process.on('uncaughtException', (error) => {
     // mcpLogger 초기화 실패 시 무시
   }
   
+  void writeRuntimeDiagnosticsEvent('uncaught_exception', {
+    error: errorMessage,
+    stack: errorStack
+  });
   cleanup();
   process.exit(1);
 });
 
 // 서버 시작 함수 export (팩토리 패턴을 위해)
 export { startServer, cleanup };
+
+export const __test: {
+  setTestDependencies: (deps: TestDependencies) => void;
+  getDatabase: () => unknown;
+  getServerServices: () => ServerServices | null;
+} = {
+  setTestDependencies,
+  getDatabase: () => db,
+  getServerServices: () => serverServices
+};
 
 // 팩토리 패턴을 사용하여 서버 시작
 import { createServerFactory } from './server-factory.js';

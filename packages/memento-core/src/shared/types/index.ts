@@ -258,11 +258,17 @@ export interface MementoConfig {
   walCheckpointUseDedicatedConnection: boolean;
   walCheckpointMaxRetries: number;
   walCheckpointRetryBackoffMs: number;
+  diagnosticsEnabled: boolean;
+  diagnosticsIntervalMs: number;
+  diagnosticsLogDir: string;
   // 데이터베이스 락 모니터 설정
   lockMonitorIntervalMs: number;
   lockMonitorWarningThresholdMs: number;
   lockMonitorDangerThresholdMs: number;
   lockMonitorCriticalThresholdMs: number;
+  batchSchedulerEnabled: boolean;
+  walCheckpointEnabled: boolean;
+  dbLockMonitorEnabled: boolean;
   // Procedural Memory 추출 전략 (Issue #57 Phase 2)
   proceduralExtractionStrategy: 'llm_first' | 'rule_only';
   proceduralLlmExtractorTimeoutMs: number;

@@ -7,9 +7,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase, type TestDatabaseContext } from './test/helpers/test-database.js';
 import { initializeServices, getToolRegistry, getBatchScheduler, type ServerServices } from '@memento/core';
+import * as core from '@memento/core';
 import { createToolContext, createServerContext } from './context.js';
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
+import { cleanup, __test } from './index.js';
 
 describe('MCP 서버 진입점', () => {
   let ctx: TestDatabaseContext | null = null;
@@ -477,5 +479,50 @@ describe('MCP 서버 진입점', () => {
       // 하지만 console.error 오버라이드에서 직접 호출하지 않으므로 검증은 제외
     });
   });
-});
 
+  describe('정리 경로', () => {
+    it('cleanup이 runtimeDiagnosticsSamplerCleanup을 호출해야 함', async () => {
+      const runtimeDiagnosticsSamplerCleanup = vi.fn().mockResolvedValue(undefined);
+      const runtimeDiagnosticsLogger = {
+        writeEvent: vi.fn().mockResolvedValue(undefined)
+      };
+      const getBatchSchedulerSpy = vi.spyOn(core, 'getBatchScheduler').mockReturnValue({
+        stop: vi.fn().mockResolvedValue(undefined)
+      } as any);
+
+      try {
+        __test.setTestDependencies({
+          database: null,
+          serverServices: {
+            walCheckpointScheduler: { stop: vi.fn().mockResolvedValue(undefined) } as any,
+            databaseLockMonitor: { stop: vi.fn() } as any,
+            writeCoalescingManager: {
+              flush: vi.fn().mockResolvedValue(undefined),
+              destroy: vi.fn().mockResolvedValue(undefined)
+            } as any,
+            runtimeDiagnosticsSamplerCleanup,
+            runtimeDiagnosticsLogger
+          } as any
+        });
+
+        await cleanup();
+
+        expect(runtimeDiagnosticsSamplerCleanup).toHaveBeenCalledTimes(1);
+        expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'server_cleanup_start',
+            transport: 'stdio'
+          })
+        );
+        expect(runtimeDiagnosticsLogger.writeEvent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'server_cleanup_finish',
+            transport: 'stdio'
+          })
+        );
+      } finally {
+        getBatchSchedulerSpy.mockRestore();
+      }
+    });
+  });
+});

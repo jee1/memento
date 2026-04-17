@@ -44,6 +44,7 @@ async function main(): Promise<void> {
       : [];
     console.log('recall result items:', Array.isArray(items) ? items.length : 0);
   } finally {
+    await services.runtimeDiagnosticsSamplerCleanup?.();
     closeDatabase(db);
     console.log('Done.');
     process.exit(0);
