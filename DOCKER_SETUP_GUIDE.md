@@ -48,6 +48,8 @@ Docker Desktop이 일정 시간 뒤 죽거나 멈추는 문제를 재현할 때�
 
 ### 앱 내부 진단 활성화
 ```bash
+cp docker-compose.override.example.yml docker-compose.override.yml
+
 DIAGNOSTICS_ENABLED=true \
 DIAGNOSTICS_INTERVAL_MS=10000 \
 docker-compose up -d
@@ -55,6 +57,7 @@ docker-compose up -d
 
 - 앱 내부 JSONL 로그는 `${HOME}/.memento/logs/diagnostics` 아래에 기록됩니다.
 - Docker 외부 관측은 별도 터미널에서 아래 스크립트로 수집합니다.
+- 반복 실험 시에는 `docker-compose.override.example.yml`을 `docker-compose.override.yml`로 복사한 뒤, 원하는 프로파일만 남기고 나머지는 주석 처리하는 방식이 가장 단순합니다.
 
 ```bash
 ./scripts/collect-docker-diagnostics.sh memento-mcp-server
@@ -70,9 +73,9 @@ docker-compose up -d
 
 예시:
 ```bash
-DIAGNOSTICS_ENABLED=true \
-DIAGNOSTICS_INTERVAL_MS=10000 \
-BATCH_SCHEDULER_ENABLED=false \
+cp docker-compose.override.example.yml docker-compose.override.yml
+# 이후 원하는 프로파일만 활성화
+
 docker-compose up -d
 ```
 
