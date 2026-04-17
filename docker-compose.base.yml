@@ -37,9 +37,22 @@ services:
         SKIP_TRANSFORMERS_WARMUP: ${SKIP_TRANSFORMERS_WARMUP:-0}
     environment:
       <<: *default-environment
+      # 진단 모드 예시 (필요 시 docker-compose.override.yml 또는 셸 환경변수로 활성화)
+      # DIAGNOSTICS_ENABLED: "true"
+      # DIAGNOSTICS_INTERVAL_MS: "10000"
+      # BATCH_SCHEDULER_ENABLED: "false"
+      # WAL_CHECKPOINT_ENABLED: "false"
+      # DB_LOCK_MONITOR_ENABLED: "false"
     volumes:
       - ${HOME}/.memento/data:/app/data
       - ${HOME}/.memento/logs:/app/logs
     restart: unless-stopped
     stdin_open: true
     tty: true
+    # Docker 엔진 내부의 json-file 로그가 무한정 커져서
+    # Docker Desktop/daemon 디스크를 고갈시키는 문제를 방지합니다.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
