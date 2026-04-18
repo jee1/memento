@@ -38,7 +38,7 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Auto Cleanup**: Automated soft/hard deletion
 
 ### 📊 Performance Monitoring (HTTP Management API)
-- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session or `ADMIN_API_KEY`; `/tools` and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
+- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
 - **Real-time Metrics**: Database, search, memory performance monitoring
 - **Real-time Alerts**: Automatic performance checks every 30 seconds with threshold-based alerts
 - **Error Logging**: Structured error logging and statistics collection
@@ -332,7 +332,7 @@ npm run test -- --coverage
 ### M1: Personal Use (Current Implementation)
 - **Storage**: better-sqlite3 embedded
 - **Index**: FTS5 + sqlite-vec
-- **Authentication**: Split browser-session and header-based trust model (`/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session or `ADMIN_API_KEY`; `/tools` and `/mcp` require `Authorization: Bearer` or `X-API-Key`)
+- **Authentication**: Split browser-session and header-based trust model (`/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`)
 - **Operation**: Local execution
 - **MCP Client**: Exposes 14 core tools
 - **Management Functions**: Separated into HTTP API

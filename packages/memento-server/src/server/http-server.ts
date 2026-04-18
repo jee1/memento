@@ -167,14 +167,6 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// 브라우저 대시보드용: 서버가 ADMIN_API_KEY를 알려주는 설정 스크립트(CSP 인라인 금지 대응)
-app.get('/static/js/memento-admin-config.js', (_req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.type('application/javascript');
-  const payload = JSON.stringify({ apiKey: mementoConfig.adminApiKey ?? null });
-  res.send(`window.__MEMENTO_ADMIN_FETCH_CONFIG__=${payload};`);
-});
-
 // Static 파일 서빙 (대시보드 및 UI 리소스)
 app.use('/static', express.static(staticRoot));
 
@@ -205,9 +197,9 @@ const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
 const HTTP_AUTH_TRUST_MODEL_NOTICE =
-  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session or ADMIN_API_KEY; /tools and /mcp require Authorization Bearer or X-API-Key.';
+  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /tools, and /mcp require Authorization Bearer or X-API-Key.';
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
-  'ADMIN_API_KEY is not configured: /admin, /api, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
+  'ADMIN_API_KEY is not configured: /api/v1/quality, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
 
 export function getHttpAuthTrustModelNotice(): string {
   return HTTP_AUTH_TRUST_MODEL_NOTICE;
@@ -285,7 +277,7 @@ async function initializeServer() {
     mcpRouter = createMcpRouter(db, serverServices, transports);
     const qualityRouter = createQualityRouter(db);
     
-    // 라우터 등록 (Admin/API/Quality는 fail-closed: ADMIN_API_KEY 미설정 시 401, 설정 시 API 키 인증 적용)
+    // 라우터 등록 (/admin, /api는 브라우저 세션; /api/v1/quality, /tools, /mcp는 API 키)
     const browserSessionAuth = createSessionAuthMiddleware({
       store: adminSessionStore,
       cookieName: DASHBOARD_SESSION_COOKIE_NAME
@@ -631,7 +623,7 @@ async function startServer() {
     isHttpBindHostRemotelyReachable(bindHostRaw)
   ) {
     logger.warn(
-      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: /admin, /api, /tools, /mcp, /messages, and /quality still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
+      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: /admin and /api still require a browser session, and /api/v1/quality, /tools, /mcp, and /messages still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
     );
   }
 
@@ -641,7 +633,7 @@ async function startServer() {
     logger.warn(getHttpAuthMissingAdminKeyWarning());
   } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
     logger.warn(
-      'ADMIN_API_KEY contains non-ASCII characters: browser-based graph/dashboard may fail to send Authorization (use ASCII-only keys, e.g. hex or base64url).'
+      'ADMIN_API_KEY contains non-ASCII characters: browser-based dashboard sign-in or programmatic clients may fail to send Authorization reliably (use ASCII-only keys, e.g. hex or base64url).'
     );
   }
 

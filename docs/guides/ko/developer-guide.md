@@ -1253,7 +1253,7 @@ async function testPerformanceAlerts() {
 
 | 항목 | 환경 변수 | 설명 |
 |------|-----------|------|
-| 관리·API·품질 경로 보호 | `ADMIN_API_KEY` | 설정 시 `/admin`, `/api`, `/api/v1/quality`에 `Authorization: Bearer <key>` 또는 `X-API-Key` 필요 |
+| 경로별 신뢰 경계 | `ADMIN_API_KEY` | `/auth/session`은 브라우저 세션을 시작하고, `/admin`, `/api`는 해당 세션이 필요합니다. `/api/v1/quality`는 헤더 기반 인증(`Authorization: Bearer <key>` 또는 `X-API-Key`)이 필요합니다. |
 | 바인딩 | `MEMENTO_HTTP_BIND_HOST` | 미설정 시 기본 `127.0.0.1`. `0.0.0.0` 등 비루프백으로 리슨할 때 키가 없으면 **기동 거부** |
 | 브라우저 CORS | `CORS_ALLOWED_ORIGINS` | 쉼표 구분. 비우면 크로스 오리진 미허용. MCP SSE 수동 헤더도 동일 목록 사용 |
 | (비권장) 무키 기동 | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | 개발 전용. 프로덕션 금지 |

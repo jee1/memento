@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 
 const dashboardHtmlPath = resolve(process.cwd(), 'static/dashboard.html');
+const graphHtmlPath = resolve(process.cwd(), 'static/graph.html');
 const dashboardFetchPath = resolve(process.cwd(), 'static/js/memento-admin-fetch.js');
 const dashboardAuthPath = resolve(process.cwd(), 'static/js/dashboard-auth.js');
 
@@ -168,6 +169,12 @@ describe('dashboard auth assets', () => {
     const dashboardHtml = readFileSync(dashboardHtmlPath, 'utf8');
 
     expect(dashboardHtml).not.toContain('/static/js/memento-admin-config.js');
+  });
+
+  it('does not load the browser key config script from graph.html', () => {
+    const graphHtml = readFileSync(graphHtmlPath, 'utf8');
+
+    expect(graphHtml).not.toContain('/static/js/memento-admin-config.js');
   });
 
   it('does not keep browser api key fallback logic in memento-admin-fetch.js', () => {
