@@ -183,20 +183,15 @@ export class AddProjectIdMigration implements Migration {
 export default AddProjectIdMigration;
 ```
 
-- [ ] **Step 4: Register the migration**
+- [ ] **Step 4: Confirm auto-discovery (no manual registration needed)**
 
-Find where migrations are registered (look for `030-triple-extraction-fields` import) and add:
+This project uses `MigrationDetector` which automatically scans the `migrations/` directory for files matching `/^\d{3}-/`. Since the file is named `032-add-project-id.ts`, it will be discovered automatically. **No import or registration in a registry file is required.** Just verify the file exists:
 
 ```bash
-grep -rn "031-soft-delete-fields\|030-triple-extraction" packages/memento-core/src/infrastructure/database/ --include="*.ts" | grep "import" | head -5
+ls packages/memento-core/src/infrastructure/database/database/migration/migrations/032-add-project-id.ts
 ```
 
-Add the import and registration in the same file, following the existing pattern:
-```typescript
-import { AddProjectIdMigration } from './migrations/032-add-project-id.js';
-// ... add to the migrations array:
-new AddProjectIdMigration(),
-```
+Expected: file exists
 
 - [ ] **Step 5: Run tests to verify they pass**
 
@@ -306,7 +301,7 @@ it('stores NULL project_id when not provided', async () => {
 npx vitest run packages/memento-core/src/domains/memory/tools/ 2>&1 | grep -E "FAIL|PASS|project_id" | head -10
 ```
 
-Expected: FAIL — `project_id` column does not exist yet (or test runs but assertion fails)
+Expected: FAIL — zod strips the unknown `project_id` param (not yet in `RememberSchema`), so the INSERT never includes it and the assertion `expect(row?.project_id).toBe('test-project')` fails with `null`.
 
 - [ ] **Step 3: Add `project_id` to the schema**
 
@@ -709,8 +704,12 @@ In `admin.routes.ts`, after the existing routes (e.g., after the `/embeddings/mi
   });
 
   // Helper: parse and validate cleanup query params
+  // NOTE: Place this function OUTSIDE the router callback (at module scope or before createAdminRouter),
+  // not inside the router chain, to match the existing file's style.
   function parseCleanupParams(query: Record<string, unknown>): { olderThanDays: number; types: string[] } | { error: string; status: number } {
-    const olderThanDays = Number(query['older_than_days']);
+    const olderThanDays = Math.floor(Number(query['older_than_days']));
+    // Math.floor ensures integer — safe for SQL string interpolation below.
+    // better-sqlite3 does not support bind params inside datetime() modifiers.
     if (!query['older_than_days'] || isNaN(olderThanDays) || olderThanDays <= 0) {
       return { error: 'older_than_days 파라미터가 필요합니다 (양의 정수)', status: 400 };
     }
