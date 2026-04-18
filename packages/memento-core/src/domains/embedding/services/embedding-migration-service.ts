@@ -203,15 +203,19 @@ export class EmbeddingMigrationService {
     };
   }
 
+
+  private resolveEffectiveMonitor(monitor: MigrationMonitorOptions): MigrationMonitorOptions {
+    return monitor.runId && !monitor.reporter
+      ? { ...monitor, reporter: migrationMonitorService }
+      : monitor;
+  }
+
   async execute(
     db: Database,
     plan: EmbeddingMigrationPlan,
     monitor: MigrationMonitorOptions = {}
   ): Promise<MigrationResult> {
-    const effectiveMonitor: MigrationMonitorOptions =
-      monitor.runId && !monitor.reporter
-        ? { ...monitor, reporter: migrationMonitorService }
-        : monitor;
+    const effectiveMonitor = this.resolveEffectiveMonitor(monitor);
 
     const totalRow = db
       .prepare('SELECT COUNT(*) AS count FROM memory_embedding WHERE embedding_provider = ?')
