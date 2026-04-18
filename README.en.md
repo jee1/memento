@@ -21,8 +21,7 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Memory Pinning**: Pin/unpin important memories
 - **Memory Deletion**: Soft/hard deletion
 - **Anchor System**: Set important memories as anchors for context management
-- **Meta Memory Statistics**: Query statistics such as memory search success rate and confidence scores
-- **Memory Conversion**: Automatic conversion from Episodic Memory to Semantic Memory
+> **Note**: Anchor recovery, embedding migration, Episodic → Semantic conversion, and meta memory statistics are exposed through the HTTP Management API, not MCP tools.
 
 ### 🔍 Advanced Search
 - **FTS5 Text Search**: SQLite's Full-Text Search
@@ -39,7 +38,7 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Auto Cleanup**: Automated soft/hard deletion
 
 ### 📊 Performance Monitoring (HTTP Management API)
-- **Security**: HTTP API has no authentication; use only on **internal networks or with MCP clients**. See [docs/reference/en/security.md](docs/reference/en/security.md).
+- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session or `ADMIN_API_KEY`; `/tools` and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
 - **Real-time Metrics**: Database, search, memory performance monitoring
 - **Real-time Alerts**: Automatic performance checks every 30 seconds with threshold-based alerts
 - **Error Logging**: Structured error logging and statistics collection
@@ -166,8 +165,7 @@ const results = await client.callTool({
 
 ### MCP Tools (Core 14)
 
-> **Important**: MCP client exposes 14 core memory management functions.  
-> Management functions are separated into HTTP API endpoints.
+> **Important**: MCP client exposes 14 core memory management functions. Operational functions are exposed through the HTTP Management API below, not through MCP.
 
 #### Basic Memory Management (7)
 | Tool | Description | Parameters |
@@ -180,21 +178,22 @@ const results = await client.callTool({
 | `get_memory_neighbors` | Find neighbor memories | memory_id, limit |
 | `memory_injection` | Generate context injection prompt | query, token_budget |
 
-#### Anchor System (5)
+#### Anchor System (4)
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `set_anchor` | Set anchor | memory_id, slot |
 | `get_anchor` | Get anchor | slot |
 | `search_local` | Search around anchor | slot, query, limit |
 | `clear_anchor` | Clear anchor | slot |
-| `restore_anchors` | Restore anchors | agent_id |
 
-#### Advanced Features (3)
+#### Procedural Memory (3)
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `migrate_embeddings` | Migrate embeddings | target_provider, batch_size |
-| `convert_episodic_to_semantic` | Convert Episodic → Semantic | memory_id, limit |
-| `get_meta_memory_stats` | Get meta memory statistics | memory_id, memory_ids |
+| `remember_procedure` | Store procedural memory | content, workflow_name, skill_name, steps, etc. |
+| `procedural_diff` | Compare procedural memory versions | left_id, right_id |
+| `procedural_rollback` | Roll back procedural memory to a previous version | current_id, target_version_id |
+
+**HTTP-only (not MCP)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` - see the HTTP Management API below.
 
 ### HTTP Management API
 

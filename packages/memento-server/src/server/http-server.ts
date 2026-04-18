@@ -204,6 +204,19 @@ const DASHBOARD_SESSION_COOKIE_NAME = 'memento_admin_session';
 const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
+const HTTP_AUTH_TRUST_MODEL_NOTICE =
+  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session or ADMIN_API_KEY; /tools and /mcp require Authorization Bearer or X-API-Key.';
+const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
+  'ADMIN_API_KEY is not configured: /admin, /api, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
+
+export function getHttpAuthTrustModelNotice(): string {
+  return HTTP_AUTH_TRUST_MODEL_NOTICE;
+}
+
+export function getHttpAuthMissingAdminKeyWarning(): string {
+  return HTTP_AUTH_MISSING_ADMIN_KEY_WARNING;
+}
+
 // Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
 // 주석 처리된 기존 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
 
@@ -618,21 +631,21 @@ async function startServer() {
     isHttpBindHostRemotelyReachable(bindHostRaw)
   ) {
     logger.warn(
-      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: Admin/API/Quality routes still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
+      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: /admin, /api, /tools, /mcp, /messages, and /quality still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
     );
   }
 
   // FR-003: ADMIN_API_KEY 미설정 시 경고 (loopback 포함 항상 emit)
   const adminKey = mementoConfig.adminApiKey;
   if (!adminKey || adminKey.trim() === '') {
-    logger.warn(
-      'ADMIN_API_KEY is not configured: all admin/API/quality endpoints are disabled and will return 401. Set ADMIN_API_KEY environment variable to enable admin access.'
-    );
+    logger.warn(getHttpAuthMissingAdminKeyWarning());
   } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
     logger.warn(
       'ADMIN_API_KEY contains non-ASCII characters: browser-based graph/dashboard may fail to send Authorization (use ASCII-only keys, e.g. hex or base64url).'
     );
   }
+
+  logger.info(getHttpAuthTrustModelNotice());
 
   try {
     await initializeServer();

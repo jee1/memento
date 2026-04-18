@@ -40,8 +40,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **기억 고정**: 중요한 기억 고정/해제
 - **기억 삭제**: 소프트/하드 삭제
 - **앵커 시스템**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
-- **메타 메모리 통계**: 기억 검색 성공률, 신뢰도 점수 등 통계 조회
-- **기억 변환**: Episodic Memory를 Semantic Memory로 자동 변환
+> **참고**: 앵커 복원, 임베딩 마이그레이션, Episodic → Semantic 변환, 메타 메모리 통계는 MCP 도구가 아니라 HTTP 관리 API로만 제공됩니다.
 
 ### 🔍 고급 검색
 - **FTS5 텍스트 검색**: SQLite의 Full-Text Search
@@ -59,7 +58,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 - **자동 정리**: 소프트/하드 삭제 자동화
 
 ### 📊 성능 모니터링 (HTTP 관리 API)
-- **보안**: HTTP API는 인증이 없으며 **내부망/MCP 전용** 사용을 권장합니다. 자세한 내용은 [docs/reference/ko/security.md](docs/reference/ko/security.md)를 참고하세요.
+- **보안**: HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다. `/auth/session`은 쿠키 기반 브라우저 세션을 시작하고, `/admin`과 `/api`는 브라우저 세션 또는 `ADMIN_API_KEY`가 필요하며, `/tools`와 `/mcp`는 `Authorization: Bearer` 또는 `X-API-Key`가 필요합니다. 자세한 내용은 [docs/reference/ko/security.md](docs/reference/ko/security.md)를 참고하세요.
 - **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
 - **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림
 - **에러 로깅**: 구조화된 에러 로깅 및 통계 수집
