@@ -36,14 +36,23 @@ import packageJson from '../../package.json' with { type: 'json' };
 import { createToolsRouter } from './routes/tools.routes.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
+import { createAuthRouter } from './routes/auth.routes.js';
 import { createMcpRouter, type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
+import { createSessionStore, type SessionStore } from './auth/session-store.js';
 // Phase 0: 공통 미들웨어 import
-import { createServiceInjector, createToolContextMiddleware, createAdminAuthMiddleware, errorHandler } from './middleware/index.js';
+import {
+  createServiceInjector,
+  createToolContextMiddleware,
+  createAdminAuthMiddleware,
+  createSessionAuthMiddleware,
+  errorHandler
+} from './middleware/index.js';
 
 // 전역 변수 (서비스는 serverServices로만 접근)
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
+let adminSessionStore: SessionStore | null = null;
 
 // Phase 1.2: 라우터에서 사용할 전역 변수들
 // SSE Transport 저장소 (MCP 라우터용)
@@ -188,6 +197,11 @@ let toolsRouter: express.Router | null = null;
 let adminRouter: express.Router | null = null;
 let apiRouter: express.Router | null = null;
 let mcpRouter: express.Router | null = null;
+let authRouter: express.Router | null = null;
+
+const DASHBOARD_SESSION_COOKIE_NAME = 'memento_admin_session';
+const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
+const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
 // Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
 // 주석 처리된 기존 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
@@ -220,14 +234,16 @@ async function initializeServer() {
     logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
     logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
 
-    // @memento/core로 DB·서비스 초기화
-    const core = await createMementoCore({
-      dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
-    });
-    db = core.db;
-    const services = core.services;
+    if (!db || !serverServices) {
+      // @memento/core로 DB·서비스 초기화
+      const core = await createMementoCore({
+        dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
+      });
+      db = core.db;
+      serverServices = core.services;
+    }
 
-    serverServices = services;
+    const services = serverServices;
 
     // Vector Search Engine 초기화 (HTTP 서버 전용)
     const vectorSearchEngine = getVectorSearchEngine();
@@ -237,18 +253,34 @@ async function initializeServer() {
     // 서비스 주입 미들웨어 (모든 라우터에 적용)
     app.use(createServiceInjector(serverServices, db));
     
+    adminSessionStore = createSessionStore({
+      idleTtlMs: DASHBOARD_SESSION_IDLE_TTL_MS,
+      absoluteTtlMs: DASHBOARD_SESSION_ABSOLUTE_TTL_MS
+    });
+
     // Phase 1.2: 라우터 초기화 및 등록
     toolsRouter = createToolsRouter(db, serverServices, anchorMapSubscribers);
     adminRouter = createAdminRouter(db, serverServices);
     apiRouter = createApiRouter(db, serverServices);
+    authRouter = createAuthRouter({
+      expectedKey: mementoConfig.adminApiKey,
+      store: adminSessionStore,
+      cookieName: DASHBOARD_SESSION_COOKIE_NAME,
+      secureCookie: process.env.NODE_ENV === 'production'
+    });
     mcpRouter = createMcpRouter(db, serverServices, transports);
     const qualityRouter = createQualityRouter(db);
     
     // 라우터 등록 (Admin/API/Quality는 fail-closed: ADMIN_API_KEY 미설정 시 401, 설정 시 API 키 인증 적용)
+    const browserSessionAuth = createSessionAuthMiddleware({
+      store: adminSessionStore,
+      cookieName: DASHBOARD_SESSION_COOKIE_NAME
+    });
     const adminAuth = createAdminAuthMiddleware();
     app.use('/tools', createToolContextMiddleware, toolsRouter);
-    app.use('/admin', adminAuth, adminRouter);
-    app.use('/api', adminAuth, apiRouter);
+    app.use('/auth', authRouter);
+    app.use('/admin', browserSessionAuth, adminRouter);
+    app.use('/api', browserSessionAuth, apiRouter);
     app.use('/api/v1/quality', adminAuth, qualityRouter);
     app.use('/', mcpRouter); // /mcp, /messages는 루트에 등록
     
@@ -620,6 +652,7 @@ async function startServer() {
 
 export const __test: {
   setTestDependencies: (deps: TestDependencies) => void;
+  initializeServer: () => Promise<void>;
   getApp: () => express.Application;
   getServer: () => any;
   getDatabase: () => Database.Database | null;
@@ -628,6 +661,7 @@ export const __test: {
   getEmbeddingService: () => ServerServices['embeddingService'];
 } = {
   setTestDependencies,
+  initializeServer,
   getApp: () => app,
   getServer: () => server,
   getDatabase: () => db,
