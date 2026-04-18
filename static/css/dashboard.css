@@ -30,10 +30,20 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.dashboard-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .dashboard-header h1 {
@@ -41,10 +51,87 @@ body {
   font-weight: 600;
 }
 
+.dashboard-subtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.dashboard-auth-panel {
+  min-width: min(100%, 28rem);
+  max-width: 32rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+}
+
+.dashboard-auth-form,
+.dashboard-auth-session {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-auth-label,
+.dashboard-auth-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.dashboard-auth-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.dashboard-auth-btn {
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  background: #0f172a;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dashboard-auth-btn:hover:not(:disabled) {
+  background: #111827;
+}
+
+.dashboard-auth-btn:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.dashboard-auth-btn-secondary {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.dashboard-auth-message {
+  min-height: 1.25rem;
+  margin-top: 0.55rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.dashboard-auth-message[data-tone='error'] {
+  color: #fee2e2;
+}
+
 .header-controls {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .header-controls label {
@@ -71,6 +158,13 @@ body {
 
 .header-controls button:hover {
   background-color: rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-container[data-auth-state='checking'] .session-only,
+.dashboard-container[data-auth-state='signed-out'] .session-only,
+.dashboard-container[data-auth-state='signing-in'] .session-only,
+.dashboard-container[data-auth-state='signing-out'] .session-only {
+  display: none !important;
 }
 
 /* Main Content */
@@ -313,13 +407,20 @@ body {
 /* 반응형 디자인 */
 @media (max-width: 768px) {
   .dashboard-header {
-    flex-direction: column;
-    gap: 1rem;
     padding: 1rem;
   }
 
+  .dashboard-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-auth-panel {
+    min-width: 0;
+    max-width: none;
+  }
+
   .header-controls {
-    flex-wrap: wrap;
     width: 100%;
   }
 
@@ -351,11 +452,19 @@ body {
     font-size: 1.2rem;
   }
 
+  .dashboard-auth-form,
+  .dashboard-auth-session {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .header-controls {
     flex-direction: column;
     width: 100%;
   }
 
+  .dashboard-auth-input,
+  .dashboard-auth-btn,
   .header-controls input,
   .header-controls button {
     width: 100%;
@@ -575,4 +684,3 @@ body {
   font-size: 0.85rem;
   margin-top: 0.5rem;
 }
-
