@@ -280,8 +280,8 @@ async function initializeServer() {
     app.use('/tools', createToolContextMiddleware, toolsRouter);
     app.use('/auth', authRouter);
     app.use('/admin', browserSessionAuth, adminRouter);
-    app.use('/api', browserSessionAuth, apiRouter);
     app.use('/api/v1/quality', adminAuth, qualityRouter);
+    app.use('/api', browserSessionAuth, apiRouter);
     app.use('/', mcpRouter); // /mcp, /messages는 루트에 등록
     
     // Phase 0: 공통 에러 핸들러 미들웨어 (모든 라우터 이후에 적용)
