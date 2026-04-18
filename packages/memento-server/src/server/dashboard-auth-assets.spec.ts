@@ -177,6 +177,22 @@ describe('dashboard auth assets', () => {
     expect(graphHtml).not.toContain('/static/js/memento-admin-config.js');
   });
 
+  it('loads the shared dashboard re-auth script from graph.html', () => {
+    const graphHtml = readFileSync(graphHtmlPath, 'utf8');
+
+    expect(graphHtml).toContain('/static/js/dashboard-auth.js');
+  });
+
+  it('renders a graph auth form so signed-out users can start a session from /graph', () => {
+    const graphHtml = readFileSync(graphHtmlPath, 'utf8');
+
+    expect(graphHtml).toContain('graph-auth-form');
+    expect(graphHtml).toContain('graph-api-key');
+    expect(graphHtml).toContain('graph-sign-in-btn');
+    expect(graphHtml).toContain('graph-sign-out-btn');
+    expect(graphHtml).toContain('graph-auth-message');
+  });
+
   it('does not keep browser api key fallback logic in memento-admin-fetch.js', () => {
     const dashboardFetch = readFileSync(dashboardFetchPath, 'utf8');
 

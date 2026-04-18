@@ -283,6 +283,12 @@ describe('programmatic auth integration', () => {
     });
     expect(mcpStreamWithCookieOnly.statusCode).toBe(401);
 
+    const mcpStreamTrailingSlashWithCookieOnly = await getRequest(port, '/mcp/', {
+      Accept: 'text/event-stream',
+      Cookie: sessionCookie
+    });
+    expect(mcpStreamTrailingSlashWithCookieOnly.statusCode).toBe(401);
+
     const mcpStreamWithHeader = await openMcpStream(port, {
       Authorization: 'Bearer integration-admin-key'
     });
@@ -347,6 +353,14 @@ describe('programmatic auth integration', () => {
       'X-API-Key': 'integration-admin-key'
     });
     expect(messagesWithApiKey.statusCode).toBe(200);
+
+    const messagesTrailingSlashWithCookieOnly = await postJson(port, '/messages/?sessionId=trailing-slash', {
+      jsonrpc: '2.0',
+      method: 'notifications/initialized'
+    }, {
+      Cookie: sessionCookie
+    });
+    expect(messagesTrailingSlashWithCookieOnly.statusCode).toBe(401);
 
     await mcpStreamWithApiKey.close();
     await mcpStreamWithHeader.close();

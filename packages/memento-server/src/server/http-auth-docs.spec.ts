@@ -59,6 +59,8 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(english).toContain('/admin` and `/api` require a browser session');
     expect(english).not.toContain('/admin` and `/api` require a browser session or `ADMIN_API_KEY`');
     expect(english).toContain('/api/v1/quality');
+    expect(english).toContain('`/dashboard` is the preferred entry point');
+    expect(english).toContain('opening `/graph` directly now offers the same `/auth/session` re-auth path');
     expect(english).toContain('HTTP-only (not MCP)');
     expect(korean).not.toContain('HTTP API는 인증이 없으며');
     expect(korean).toContain('HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다');
@@ -66,6 +68,8 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(korean).toContain('/admin`과 `/api`는 브라우저 세션');
     expect(korean).not.toContain('/admin`과 `/api`는 브라우저 세션 또는 `ADMIN_API_KEY`');
     expect(korean).toContain('/api/v1/quality');
+    expect(korean).toContain('전체 관리 흐름은 `/dashboard`에서 여는 편이 가장 안전');
+    expect(korean).toContain('`/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증 패널');
     expect(korean).toContain('HTTP 전용 (MCP에 없음)');
 
     const englishMcpSection = sectionBetween(
@@ -100,6 +104,8 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(englishSecurity).toContain('require that browser session');
     expect(englishSecurity).not.toContain('or `ADMIN_API_KEY`');
     expect(englishSecurity).toContain('/api/v1/quality');
+    expect(englishSecurity).toContain('/dashboard` is the recommended entry point');
+    expect(englishSecurity).toContain('opening `/graph` directly now offers the same session-backed sign-in/re-auth path');
     expect(englishSecurity).toContain('Authorization: Bearer');
     expect(englishSecurity).toContain('X-API-Key');
 
@@ -110,6 +116,8 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(koreanSecurity).toContain('브라우저 세션이 필요합니다');
     expect(koreanSecurity).not.toContain('브라우저 세션 또는 `ADMIN_API_KEY`');
     expect(koreanSecurity).toContain('/api/v1/quality');
+    expect(koreanSecurity).toContain('/dashboard`가 권장 진입점');
+    expect(koreanSecurity).toContain('/graph`를 직접 열어도 같은 세션 모델로 로그인/재인증');
     expect(koreanSecurity).toContain('Authorization: Bearer');
     expect(koreanSecurity).toContain('X-API-Key');
 

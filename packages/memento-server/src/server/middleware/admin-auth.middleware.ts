@@ -1,9 +1,11 @@
 /**
- * Admin/API/Quality 라우트용 API 키 인증 미들웨어
- * 하는 일: ADMIN_API_KEY 검증 — fail-closed 동작
+ * Programmatic quality API용 ADMIN_API_KEY 인증 미들웨어.
+ * 현재 HTTP trust model에서 이 미들웨어는 /api/v1/quality/* 에만 붙으며
+ * 브라우저 세션이 아니라 Authorization / X-API-Key 헤더만 허용한다.
+ *
+ * fail-closed 동작:
  *   - ADMIN_API_KEY 미설정(absent/empty/whitespace) → 모든 요청에 401 반환
  *   - ADMIN_API_KEY 설정 시: Authorization: Bearer <key> 또는 X-API-Key: <key> 검증
- * 연관: http-server.ts (미들웨어 등록), shared/config (adminApiKey)
  */
 
 import type { Request, Response, NextFunction } from 'express';
@@ -17,7 +19,7 @@ export function createAdminAuthMiddleware(): (req: Request, res: Response, next:
     if (!expectedKey || expectedKey.trim() === '') {
       res.status(401).json({
         error: 'Unauthorized',
-        message: 'Admin API is disabled: ADMIN_API_KEY is not configured. Set ADMIN_API_KEY environment variable to enable admin access.',
+        message: 'Quality API is disabled: ADMIN_API_KEY is not configured. Set ADMIN_API_KEY to enable /api/v1/quality access.',
         timestamp: new Date().toISOString()
       });
       return;
@@ -35,7 +37,7 @@ export function createAdminAuthMiddleware(): (req: Request, res: Response, next:
 
     res.status(401).json({
       error: 'Unauthorized',
-      message: 'Admin/API/Quality routes require a valid API key (Authorization: Bearer <key> or X-API-Key: <key>).',
+      message: 'The programmatic quality API (/api/v1/quality) requires a valid API key via Authorization: Bearer <key> or X-API-Key: <key>.',
       timestamp: new Date().toISOString()
     });
   };

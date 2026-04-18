@@ -127,6 +127,11 @@ describe('createAdminAuthMiddleware — fail-closed behavior', () => {
     middleware(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('/api/v1/quality')
+      })
+    );
     expect(next).not.toHaveBeenCalled();
   });
 

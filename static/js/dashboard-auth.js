@@ -20,6 +20,26 @@
   var statusEl = null;
   var messageEl = null;
 
+  function selectFirst(selectors) {
+    for (var i = 0; i < selectors.length; i += 1) {
+      var element = document.querySelector(selectors[i]);
+      if (element) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  function getElementByIdFallback(ids) {
+    for (var i = 0; i < ids.length; i += 1) {
+      var element = document.getElementById(ids[i]);
+      if (element) {
+        return element;
+      }
+    }
+    return null;
+  }
+
   function beginAuthRequest() {
     authRequestVersion += 1;
     return authRequestVersion;
@@ -225,14 +245,14 @@
   }
 
   function bindDom() {
-    rootEl = document.querySelector('.dashboard-container');
-    formEl = document.getElementById('dashboard-auth-form');
-    keyInputEl = document.getElementById('dashboard-api-key');
-    signInButtonEl = document.getElementById('dashboard-sign-in-btn');
-    signOutButtonEl = document.getElementById('dashboard-sign-out-btn');
-    sessionBoxEl = document.getElementById('dashboard-auth-session');
-    statusEl = document.getElementById('dashboard-auth-status');
-    messageEl = document.getElementById('dashboard-auth-message');
+    rootEl = selectFirst(['.dashboard-container', '.graph-view-container']);
+    formEl = getElementByIdFallback(['dashboard-auth-form', 'graph-auth-form']);
+    keyInputEl = getElementByIdFallback(['dashboard-api-key', 'graph-api-key']);
+    signInButtonEl = getElementByIdFallback(['dashboard-sign-in-btn', 'graph-sign-in-btn']);
+    signOutButtonEl = getElementByIdFallback(['dashboard-sign-out-btn', 'graph-sign-out-btn']);
+    sessionBoxEl = getElementByIdFallback(['dashboard-auth-session', 'graph-auth-session']);
+    statusEl = getElementByIdFallback(['dashboard-auth-status', 'graph-auth-status']);
+    messageEl = getElementByIdFallback(['dashboard-auth-message', 'graph-auth-message']);
 
     if (formEl) {
       formEl.addEventListener('submit', handleSignIn);

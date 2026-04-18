@@ -48,9 +48,10 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 
 ### 🔗 Memory Graph View (Browser)
 
-After starting the HTTP server, visualize semantic relationships between memories as an interactive graph in your browser.
+After starting the HTTP server, you can visualize semantic relationships between memories as an interactive graph in your browser. `/dashboard` is the preferred entry point for the full admin flow, and opening `/graph` directly now offers the same `/auth/session` re-auth path so signed-out users can recover the session in place.
 
 ```
+http://localhost:9001/dashboard
 http://localhost:9001/graph
 ```
 

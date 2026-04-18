@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memento Graph View</title>
   <script src="/static/js/memento-admin-fetch.js"></script>
+  <script src="/static/js/dashboard-auth.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,11 +31,62 @@
       flex-wrap: wrap;
     }
 
+    .header-spacer {
+      flex: 1 1 auto;
+    }
+
     header h1 {
       font-size: 15px;
       font-weight: 600;
       color: #a78bfa;
       white-space: nowrap;
+    }
+
+    .graph-auth-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .graph-auth-form,
+    .graph-auth-session {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .graph-auth-label,
+    .graph-auth-status,
+    .graph-auth-message,
+    .graph-auth-hint {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .graph-auth-input {
+      width: 220px;
+      padding: 6px 8px;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      background: #111827;
+      color: #e2e8f0;
+    }
+
+    .graph-auth-btn-secondary {
+      background: #374151;
+      color: #d1d5db;
+    }
+
+    .graph-auth-message[data-tone="error"] {
+      color: #fca5a5;
+    }
+
+    .graph-auth-hint a {
+      color: #c4b5fd;
     }
 
     .filter-group {
@@ -295,6 +347,7 @@
   </style>
 </head>
 <body>
+  <div class="graph-view-container dashboard-container" data-auth-state="checking">
   <header>
     <h1>🕸 Memento Graph View</h1>
     <div class="filter-group">
@@ -315,6 +368,26 @@
     </div>
     <button id="apply-btn">필터 적용</button>
     <button id="reset-btn">초기화</button>
+    <div class="header-spacer"></div>
+    <section class="graph-auth-panel" aria-label="Graph session">
+      <form id="graph-auth-form" class="graph-auth-form">
+        <label for="graph-api-key" class="graph-auth-label">Admin API Key</label>
+        <input
+          type="password"
+          id="graph-api-key"
+          class="graph-auth-input"
+          placeholder="Enter key for /auth/session"
+          autocomplete="current-password"
+        >
+        <button type="submit" id="graph-sign-in-btn">Sign in</button>
+      </form>
+      <div id="graph-auth-session" class="graph-auth-session" hidden>
+        <span id="graph-auth-status" class="graph-auth-status">Session active</span>
+        <button type="button" id="graph-sign-out-btn" class="graph-auth-btn-secondary">Sign out</button>
+      </div>
+      <p id="graph-auth-message" class="graph-auth-message" aria-live="polite"></p>
+      <p class="graph-auth-hint">Full admin UI is available in <a href="/dashboard">/dashboard</a>.</p>
+    </section>
   </header>
 
   <div class="main">
@@ -345,6 +418,7 @@
   </div>
 
   <div id="tooltip"></div>
+  </div>
 
   <script src="/static/js/graph.js"></script>
 </body>

@@ -68,9 +68,10 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 
 ### 🔗 메모리 그래프 뷰 (브라우저)
 
-HTTP 서버 실행 후 브라우저에서 기억들의 의미적 관계를 그래프로 시각화할 수 있습니다.
+HTTP 서버 실행 후 브라우저에서 기억들의 의미적 관계를 그래프로 시각화할 수 있습니다. 전체 관리 흐름은 `/dashboard`에서 여는 편이 가장 안전하며, `/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증 패널로 세션을 시작하거나 복구할 수 있습니다.
 
 ```
+http://localhost:9001/dashboard
 http://localhost:9001/graph
 ```
 

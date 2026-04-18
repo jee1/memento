@@ -201,6 +201,10 @@ const HTTP_AUTH_TRUST_MODEL_NOTICE =
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
   'ADMIN_API_KEY is not configured: /api/v1/quality, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
 
+function isProtectedMcpProgrammaticPath(pathname: string): boolean {
+  return /^\/(?:mcp|messages)\/?$/.test(pathname);
+}
+
 export function getHttpAuthTrustModelNotice(): string {
   return HTTP_AUTH_TRUST_MODEL_NOTICE;
 }
@@ -292,7 +296,7 @@ async function initializeServer() {
         return;
       }
 
-      if (req.path === '/mcp' || req.path === '/messages') {
+      if (isProtectedMcpProgrammaticPath(req.path)) {
         programmaticAuth(req, res, next);
         return;
       }
@@ -692,6 +696,7 @@ export const __test: {
   getSearchEngine: () => ServerServices['searchEngine'];
   getHybridSearchEngine: () => ServerServices['hybridSearchEngine'];
   getEmbeddingService: () => ServerServices['embeddingService'];
+  isProtectedMcpProgrammaticPath: (pathname: string) => boolean;
 } = {
   setTestDependencies,
   initializeServer,
@@ -700,7 +705,8 @@ export const __test: {
   getDatabase: () => db,
   getSearchEngine: () => serverServices!.searchEngine,
   getHybridSearchEngine: () => serverServices!.hybridSearchEngine,
-  getEmbeddingService: () => serverServices!.embeddingService
+  getEmbeddingService: () => serverServices!.embeddingService,
+  isProtectedMcpProgrammaticPath
 };
 
 export { startServer, cleanup };
