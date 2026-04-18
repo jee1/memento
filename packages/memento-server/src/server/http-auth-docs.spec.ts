@@ -51,9 +51,11 @@ describe('HTTP auth docs and startup messaging', () => {
 
     expect(english).not.toContain('HTTP API has no authentication');
     expect(english).toContain('HTTP server splits browser-session and header-based trust');
+    expect(english).toContain('Split browser-session and header-based trust model');
     expect(english).toContain('HTTP-only (not MCP)');
     expect(korean).not.toContain('HTTP API는 인증이 없으며');
     expect(korean).toContain('HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다');
+    expect(korean).toContain('브라우저 세션 + 헤더 기반 분리 신뢰 모델');
     expect(korean).toContain('HTTP 전용 (MCP에 없음)');
 
     const englishMcpSection = sectionBetween(

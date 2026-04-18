@@ -332,7 +332,7 @@ npm run test -- --coverage
 ### M1: Personal Use (Current Implementation)
 - **Storage**: better-sqlite3 embedded
 - **Index**: FTS5 + sqlite-vec
-- **Authentication**: None (local only)
+- **Authentication**: Split browser-session and header-based trust model (`/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session or `ADMIN_API_KEY`; `/tools` and `/mcp` require `Authorization: Bearer` or `X-API-Key`)
 - **Operation**: Local execution
 - **MCP Client**: Exposes 14 core tools
 - **Management Functions**: Separated into HTTP API

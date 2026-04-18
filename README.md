@@ -527,7 +527,7 @@ npm run test -- --coverage
 ### M1: 개인용 (현재 구현)
 - **스토리지**: better-sqlite3 임베디드
 - **인덱스**: FTS5 + sqlite-vec
-- **인증**: 없음 (로컬 전용)
+- **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델 (/auth/session은 쿠키 세션, /admin·/api는 세션 또는 ADMIN_API_KEY, /tools·/mcp는 Authorization Bearer 또는 X-API-Key)
 - **운영**: 로컬 실행
 - **MCP 클라이언트**: 핵심 14개 도구 노출
 - **관리 기능**: HTTP API로 분리
