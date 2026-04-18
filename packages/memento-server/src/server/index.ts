@@ -55,14 +55,16 @@ const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for 
 - **Triples / knowledge graph**: Use \`extract_triples\` (MCP) to extract subject–predicate–object triples from conversation or body text and optionally persist to \`kg_triple\`. For Graphviz DOT output of **memory relation** graphs, use the HTTP admin \`visualize_relations\` endpoint with \`format: "dot"\` (relation tools are not exposed via MCP stdio in this build).
 - Prefer \`recall\` for general lookup and \`memory_injection\` when you need injected context for a specific query.`;
 
-// stderr.write 래핑: undefined/null 전달 및 "undefined" 문자열 출력 차단
-// (Cursor MCP 클라이언트가 stderr 라인마다 반환값을 표시할 때 undefined가 찍히는 현상 완화)
 const _stderrWrite = process.stderr.write.bind(process.stderr);
-process.stderr.write = function (chunk: any, ...args: any[]): boolean {
+
+process.stderr.write = function (chunk: unknown, ...rest: unknown[]): boolean {
   if (chunk === undefined || chunk === null) return true;
   const s = typeof chunk === 'string' ? chunk : String(chunk);
   if (s === 'undefined' || s.trim() === 'undefined') return true;
-  return _stderrWrite(s, ...args);
+  return (_stderrWrite as (first: string | Uint8Array, ...args: unknown[]) => boolean)(
+    s,
+    ...rest
+  );
 } as typeof process.stderr.write;
 
 // MCP 서버 인스턴스
@@ -121,6 +123,16 @@ const serverState = ServerState.getInstance();
 serverState.setMcpServerInitialized(false);
 
 /**
+ * MCP stdio 전송 시 stdout에는 JSON-RPC 메시지만 있어야 한다.
+ * 모듈 로드 시점부터 `console.log` 등 기본 경로의 stdout 출력을 막는다.
+ * `console.error`는 `setupConsoleErrorOverride`에서 stderr/mcpLogger로 우회한다.
+ * @see https://github.com/jee1/memento/issues/179
+ */
+function silenceConsoleForMcpStdio(..._args: unknown[]): void {
+  // intentionally empty
+}
+
+/**
  * console.error 오버라이드 함수
  * 초기화 상태에 따라 로깅 전략을 변경:
  * - 초기화 전: fallback logger (stderr 직접 출력)
@@ -137,7 +149,7 @@ function setupConsoleErrorOverride(): void {
   }
   
   // eslint-disable-next-line no-console
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const isInitialized = serverState.isMcpServerInitialized();
     
     if (isInitialized) {
@@ -159,14 +171,14 @@ function setupConsoleErrorOverride(): void {
 // eslint-disable-next-line no-console
 if (!serverState.isConsoleOverridden()) {
   // eslint-disable-next-line no-console
-  console.log = () => {};
+  console.log = silenceConsoleForMcpStdio;
   setupConsoleErrorOverride();
   // eslint-disable-next-line no-console
-  console.warn = () => {};
+  console.warn = silenceConsoleForMcpStdio;
   // eslint-disable-next-line no-console
-  console.info = () => {};
+  console.info = silenceConsoleForMcpStdio;
   // eslint-disable-next-line no-console
-  console.debug = () => {};
+  console.debug = silenceConsoleForMcpStdio;
   serverState.setConsoleOverridden(true);
 }
 
