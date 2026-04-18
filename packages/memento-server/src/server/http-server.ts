@@ -45,6 +45,7 @@ import {
   createServiceInjector,
   createToolContextMiddleware,
   createAdminAuthMiddleware,
+  createProgrammaticAuthMiddleware,
   createSessionAuthMiddleware,
   errorHandler
 } from './middleware/index.js';
@@ -160,7 +161,7 @@ app.use(cors({
     ? corsOrigins
     : (_orig: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => cb(null, false),
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-API-Key']
 }));
 // DoS 완화: body 제한 1MB (리뷰 S4). 운영 시 rate limiting(예: express-rate-limit) 적용 권장.
 app.use(express.json({ limit: '1mb' }));
@@ -277,7 +278,24 @@ async function initializeServer() {
       cookieName: DASHBOARD_SESSION_COOKIE_NAME
     });
     const adminAuth = createAdminAuthMiddleware();
-    app.use('/tools', createToolContextMiddleware, toolsRouter);
+    const programmaticAuth = createProgrammaticAuthMiddleware({
+      expectedKey: mementoConfig.adminApiKey
+    });
+    const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
+      if (req.method === 'OPTIONS') {
+        next();
+        return;
+      }
+
+      if (req.path === '/mcp' || req.path === '/messages') {
+        programmaticAuth(req, res, next);
+        return;
+      }
+
+      next();
+    };
+
+    app.use('/tools', programmaticAuth, createToolContextMiddleware, toolsRouter);
     app.use('/auth', authRouter);
     app.use('/admin', browserSessionAuth, adminRouter);
     app.use(
@@ -292,7 +310,7 @@ async function initializeServer() {
       }
     );
     app.use('/api', browserSessionAuth, apiRouter);
-    app.use('/', mcpRouter); // /mcp, /messages는 루트에 등록
+    app.use('/', mcpProgrammaticAuth, mcpRouter); // /mcp, /messages는 루트에 등록
     
     // Phase 0: 공통 에러 핸들러 미들웨어 (모든 라우터 이후에 적용)
     app.use(errorHandler);
