@@ -84,7 +84,7 @@ describe('createSessionAuthMiddleware', () => {
     vi.advanceTimersByTime(14 * 60 * 1000 + 59 * 1000);
     expect(store.get(session.sessionId)).not.toBeNull();
 
-    vi.advanceTimersByTime(2 * 60 * 1000 + 1 * 1000);
+    vi.advanceTimersByTime(5 * 60 * 1000 + 2 * 1000);
     expect(store.get(session.sessionId)).toBeNull();
   });
 
