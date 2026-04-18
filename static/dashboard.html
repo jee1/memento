@@ -4,15 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memento Dashboard</title>
-  <script src="/static/js/memento-admin-config.js"></script>
   <script src="/static/js/memento-admin-fetch.js"></script>
+  <script src="/static/js/dashboard-auth.js"></script>
   <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
 <body>
-  <div class="dashboard-container">
+  <div class="dashboard-container" data-auth-state="checking">
     <header class="dashboard-header">
-      <h1>🎯 Memento Dashboard</h1>
-      <div class="header-controls">
+      <div class="dashboard-header-top">
+        <div class="dashboard-title-group">
+          <h1>🎯 Memento Dashboard</h1>
+          <p class="dashboard-subtitle">Sign in once to use the dashboard with the browser session cookie.</p>
+        </div>
+        <section class="dashboard-auth-panel" aria-label="Dashboard session">
+          <form id="dashboard-auth-form" class="dashboard-auth-form">
+            <label for="dashboard-api-key" class="dashboard-auth-label">Admin API Key</label>
+            <input
+              type="password"
+              id="dashboard-api-key"
+              class="dashboard-auth-input"
+              placeholder="Enter key for /auth/session"
+              autocomplete="current-password"
+            >
+            <button type="submit" id="dashboard-sign-in-btn" class="dashboard-auth-btn">Sign in</button>
+          </form>
+          <div id="dashboard-auth-session" class="dashboard-auth-session" hidden>
+            <span id="dashboard-auth-status" class="dashboard-auth-status">Session active</span>
+            <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn dashboard-auth-btn-secondary">Sign out</button>
+          </div>
+          <p id="dashboard-auth-message" class="dashboard-auth-message" aria-live="polite"></p>
+        </section>
+      </div>
+      <div class="header-controls session-only">
         <label for="agent-id-input">Agent ID:</label>
         <input type="text" id="agent-id-input" value="default" placeholder="default">
         <label for="search-query-input">Search:</label>
@@ -39,13 +62,13 @@
       </div>
     </header>
 
-    <div class="tab-bar" role="tablist" aria-label="대시보드 보기 전환">
+    <div class="tab-bar session-only" role="tablist" aria-label="대시보드 보기 전환">
       <button type="button" id="dashboard-tab-anchor" class="tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
       <button type="button" id="dashboard-tab-embedding" class="tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
       <button type="button" id="dashboard-tab-graph" class="tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
     </div>
 
-    <div id="tab-anchor-map" class="tab-panel active" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
+    <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
       <main class="dashboard-main">
         <div class="sidebar">
           <section class="anchor-info">
@@ -88,7 +111,7 @@
       </main>
     </div>
 
-    <div id="tab-embedding-map" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-embedding" aria-hidden="true">
+    <div id="tab-embedding-map" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-embedding" aria-hidden="true">
       <div class="embedding-map-layout">
         <div class="em-controls">
           <label>
@@ -123,7 +146,7 @@
       </div>
     </div>
 
-    <div id="tab-graph" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-graph" aria-hidden="true">
+    <div id="tab-graph" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-graph" aria-hidden="true">
       <!-- iframe src는 dashboard-tabs.js의 GRAPH_IFRAME_SRC(기본 '/graph')와 동일해야 함. 동일 출처·신뢰 경로(/graph)이므로 sandbox 미사용: allow-scripts+allow-same-origin 조합은 부모 DOM 접근이 가능해 사실상 격리 효과가 없음 -->
       <iframe
         id="graph-view-iframe"
