@@ -1104,7 +1104,7 @@ export class RememberTool extends BaseTool {
                           UPDATE memory_item SET
                             triple_extracted_status = ?,
                             triple_extraction_metadata = ?
-                          WHERE id = ? AND triple_extracted_status IS NULL
+                          WHERE id = ? AND (triple_extracted_status IS NULL OR triple_extracted_status = '')
                         `, [
                           'in_progress',
                           JSON.stringify({
