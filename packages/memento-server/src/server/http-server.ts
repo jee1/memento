@@ -280,7 +280,17 @@ async function initializeServer() {
     app.use('/tools', createToolContextMiddleware, toolsRouter);
     app.use('/auth', authRouter);
     app.use('/admin', browserSessionAuth, adminRouter);
-    app.use('/api/v1/quality', adminAuth, qualityRouter);
+    app.use(
+      '/api/v1/quality',
+      adminAuth,
+      qualityRouter,
+      (_req, res) => {
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'Quality API route not found.'
+        });
+      }
+    );
     app.use('/api', browserSessionAuth, apiRouter);
     app.use('/', mcpRouter); // /mcp, /messages는 루트에 등록
     

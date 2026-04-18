@@ -123,6 +123,24 @@ describe('auth session integration', () => {
   let ctx: TestDatabaseContext | null = null;
   let closeServer: (() => Promise<void>) | null = null;
 
+  async function startRealHttpServer(): Promise<number> {
+    const { __test, cleanup } = await import('./http-server.js');
+    __test.setTestDependencies({
+      database: ctx!.db,
+      serverServices: ctx!.services
+    });
+    await __test.initializeServer();
+
+    const server = __test.getServer() as http.Server;
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    closeServer = async () => {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+      await cleanup();
+    };
+
+    return (server.address() as AddressInfo).port;
+  }
+
   beforeEach(async () => {
     vi.stubEnv('ADMIN_API_KEY', 'integration-admin-key');
     vi.resetModules();
@@ -140,19 +158,7 @@ describe('auth session integration', () => {
   });
 
   it('creates a session cookie and allows /api access without Authorization header', async () => {
-    const { __test } = await import('./http-server.js');
-    __test.setTestDependencies({
-      database: ctx!.db,
-      serverServices: ctx!.services
-    });
-    await __test.initializeServer();
-
-    const server = __test.getServer() as http.Server;
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    closeServer = async () => {
-      await new Promise<void>(resolve => server.close(() => resolve()));
-    };
-    const port = (server.address() as AddressInfo).port;
+    const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
       Authorization: 'Bearer integration-admin-key'
@@ -169,19 +175,7 @@ describe('auth session integration', () => {
   });
 
   it('deletes the session cookie and invalidates subsequent /api access', async () => {
-    const { __test } = await import('./http-server.js');
-    __test.setTestDependencies({
-      database: ctx!.db,
-      serverServices: ctx!.services
-    });
-    await __test.initializeServer();
-
-    const server = __test.getServer() as http.Server;
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    closeServer = async () => {
-      await new Promise<void>(resolve => server.close(() => resolve()));
-    };
-    const port = (server.address() as AddressInfo).port;
+    const port = await startRealHttpServer();
 
     const login = await postJson(port, '/auth/session', {}, {
       Authorization: 'Bearer integration-admin-key'
@@ -203,19 +197,7 @@ describe('auth session integration', () => {
   });
 
   it('keeps /api/v1/quality on the header-auth path instead of browser session auth', async () => {
-    const { __test } = await import('./http-server.js');
-    __test.setTestDependencies({
-      database: ctx!.db,
-      serverServices: ctx!.services
-    });
-    await __test.initializeServer();
-
-    const server = __test.getServer() as http.Server;
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    closeServer = async () => {
-      await new Promise<void>(resolve => server.close(() => resolve()));
-    };
-    const port = (server.address() as AddressInfo).port;
+    const port = await startRealHttpServer();
 
     const qualityWithHeader = await getJson(port, '/api/v1/quality/thresholds', {
       Authorization: 'Bearer integration-admin-key'
@@ -233,5 +215,11 @@ describe('auth session integration', () => {
     });
 
     expect(qualityWithCookieOnly.statusCode).toBe(401);
+
+    const unknownQualityWithHeader = await getJson(port, '/api/v1/quality/not-found', {
+      Authorization: 'Bearer integration-admin-key'
+    });
+
+    expect(unknownQualityWithHeader.statusCode).toBe(404);
   });
 });
