@@ -193,6 +193,14 @@ describe('dashboard auth assets', () => {
     expect(graphHtml).toContain('graph-auth-message');
   });
 
+  it('keeps the graph controls gated behind a browser session', () => {
+    const graphHtml = readFileSync(graphHtmlPath, 'utf8');
+
+    expect(graphHtml).toContain('graph-auth-required');
+    expect(graphHtml).toContain('graph-session-only');
+    expect(graphHtml).toContain('/graph`는 브라우저 세션이 생긴 뒤에만 그래프를 표시합니다.');
+  });
+
   it('does not keep browser api key fallback logic in memento-admin-fetch.js', () => {
     const dashboardFetch = readFileSync(dashboardFetchPath, 'utf8');
 

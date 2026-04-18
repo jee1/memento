@@ -30,6 +30,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(notice).toContain('/api/v1/quality');
     expect(notice).toContain('/tools');
     expect(notice).toContain('/mcp');
+    expect(notice).toContain('/messages');
     expect(notice).toContain('browser-session cookie flow');
     expect(notice).toContain('browser session');
     expect(notice).not.toContain('/admin and /api require a browser session or ADMIN_API_KEY');
@@ -106,6 +107,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(englishSecurity).toContain('/api/v1/quality');
     expect(englishSecurity).toContain('/dashboard` is the recommended entry point');
     expect(englishSecurity).toContain('opening `/graph` directly now offers the same session-backed sign-in/re-auth path');
+    expect(englishSecurity).toContain('requires a browser session before the graph surface unlocks');
     expect(englishSecurity).toContain('Authorization: Bearer');
     expect(englishSecurity).toContain('X-API-Key');
 
@@ -118,6 +120,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(koreanSecurity).toContain('/api/v1/quality');
     expect(koreanSecurity).toContain('/dashboard`가 권장 진입점');
     expect(koreanSecurity).toContain('/graph`를 직접 열어도 같은 세션 모델로 로그인/재인증');
+    expect(koreanSecurity).toContain('브라우저 세션이 생긴 뒤에만 그래프 화면이 열립니다');
     expect(koreanSecurity).toContain('Authorization: Bearer');
     expect(koreanSecurity).toContain('X-API-Key');
 

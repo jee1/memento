@@ -197,7 +197,7 @@ const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
 const HTTP_AUTH_TRUST_MODEL_NOTICE =
-  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /tools, and /mcp require Authorization Bearer or X-API-Key.';
+  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /tools, /mcp, and /messages require Authorization Bearer or X-API-Key.';
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
   'ADMIN_API_KEY is not configured: /api/v1/quality, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
 

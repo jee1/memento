@@ -89,6 +89,40 @@
       color: #c4b5fd;
     }
 
+    .graph-auth-required {
+      display: none;
+      margin: 16px;
+      padding: 16px 18px;
+      border: 1px solid #312e81;
+      border-radius: 10px;
+      background: rgba(49, 46, 129, 0.18);
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .graph-auth-required strong {
+      color: #e2e8f0;
+    }
+
+    .graph-session-only {
+      display: none;
+    }
+
+    .dashboard-container[data-auth-state="signed-in"] .graph-session-only {
+      display: flex;
+    }
+
+    .dashboard-container[data-auth-state="signed-in"] .graph-auth-required {
+      display: none;
+    }
+
+    .dashboard-container[data-auth-state="checking"] .graph-auth-required,
+    .dashboard-container[data-auth-state="signed-out"] .graph-auth-required,
+    .dashboard-container[data-auth-state="signing-in"] .graph-auth-required,
+    .dashboard-container[data-auth-state="signing-out"] .graph-auth-required {
+      display: block;
+    }
+
     .filter-group {
       display: flex;
       align-items: center;
@@ -350,7 +384,7 @@
   <div class="graph-view-container dashboard-container" data-auth-state="checking">
   <header>
     <h1>🕸 Memento Graph View</h1>
-    <div class="filter-group">
+    <div class="filter-group graph-session-only">
       <label>타입</label>
       <div class="type-checks">
         <label class="type-check"><input type="checkbox" value="episodic" checked> Episodic</label>
@@ -359,15 +393,15 @@
         <label class="type-check"><input type="checkbox" value="working" checked> Working</label>
       </div>
     </div>
-    <div class="filter-group">
+    <div class="filter-group graph-session-only">
       <label>중요도 ≥</label>
       <div class="importance-row">
         <input type="range" id="importance-slider" min="0" max="1" step="0.05" value="0">
         <span id="importance-val">0.0</span>
       </div>
     </div>
-    <button id="apply-btn">필터 적용</button>
-    <button id="reset-btn">초기화</button>
+    <button id="apply-btn" class="graph-session-only">필터 적용</button>
+    <button id="reset-btn" class="graph-session-only">초기화</button>
     <div class="header-spacer"></div>
     <section class="graph-auth-panel" aria-label="Graph session">
       <form id="graph-auth-form" class="graph-auth-form">
@@ -390,7 +424,12 @@
     </section>
   </header>
 
-  <div class="main">
+  <section class="graph-auth-required" aria-live="polite">
+    <strong>세션이 필요합니다.</strong> `/graph`는 브라우저 세션이 생긴 뒤에만 그래프를 표시합니다.
+    위에서 로그인하거나, 전체 관리 흐름이 필요한 경우 <a href="/dashboard">/dashboard</a>에서 시작하세요.
+  </section>
+
+  <div class="main graph-session-only">
     <div id="graph-container">
       <svg id="graph"></svg>
 
