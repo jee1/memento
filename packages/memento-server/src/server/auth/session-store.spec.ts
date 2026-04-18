@@ -4,6 +4,7 @@ import { createSessionStore } from './session-store.js';
 
 describe('createSessionStore', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -50,6 +51,49 @@ describe('createSessionStore', () => {
 
     vi.setSystemTime(new Date('2026-04-18T01:00:00.001Z'));
 
+    expect(store.get(session.sessionId)).toBeNull();
+  });
+
+  it('cleans up stale sessions when another session is accessed', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-18T00:00:00.000Z'));
+
+    const deleteSpy = vi.spyOn(Map.prototype, 'delete');
+    const store = createSessionStore({
+      idleTtlMs: 15 * 60 * 1000,
+      absoluteTtlMs: 60 * 60 * 1000,
+    });
+
+    const staleSession = store.create();
+
+    vi.advanceTimersByTime(10 * 60 * 1000);
+
+    const freshSession = store.create();
+    deleteSpy.mockClear();
+
+    vi.advanceTimersByTime(6 * 60 * 1000);
+
+    expect(store.touch(freshSession.sessionId)).not.toBeNull();
+    expect(deleteSpy).toHaveBeenCalledWith(staleSession.sessionId);
+    expect(store.get(staleSession.sessionId)).toBeNull();
+  });
+
+  it('returns null when touch is called after expiry and evicts the session', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-18T00:00:00.000Z'));
+
+    const deleteSpy = vi.spyOn(Map.prototype, 'delete');
+    const store = createSessionStore({
+      idleTtlMs: 15 * 60 * 1000,
+      absoluteTtlMs: 60 * 60 * 1000,
+    });
+
+    const session = store.create();
+
+    vi.advanceTimersByTime(15 * 60 * 1000 + 1);
+
+    expect(store.touch(session.sessionId)).toBeNull();
+    expect(deleteSpy).toHaveBeenCalledWith(session.sessionId);
     expect(store.get(session.sessionId)).toBeNull();
   });
 });

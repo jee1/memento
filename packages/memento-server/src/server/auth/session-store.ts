@@ -26,9 +26,19 @@ export function createSessionStore(config: SessionStoreConfig): SessionStore {
     return now - session.lastSeenAt > config.idleTtlMs || now > session.expiresAt;
   };
 
+  const cleanupExpiredSessions = (now: number): void => {
+    for (const [sessionId, session] of sessions.entries()) {
+      if (isExpired(session, now)) {
+        sessions.delete(sessionId);
+      }
+    }
+  };
+
   const store: SessionStore = {
     create(): SessionRecord {
       const now = Date.now();
+      cleanupExpiredSessions(now);
+
       const session: SessionRecord = {
         sessionId: randomUUID(),
         createdAt: now,
@@ -41,12 +51,15 @@ export function createSessionStore(config: SessionStoreConfig): SessionStore {
     },
 
     get(sessionId: string): SessionRecord | null {
+      const now = Date.now();
+      cleanupExpiredSessions(now);
+
       const session = sessions.get(sessionId);
       if (!session) {
         return null;
       }
 
-      if (isExpired(session, Date.now())) {
+      if (isExpired(session, now)) {
         sessions.delete(sessionId);
         return null;
       }
@@ -55,12 +68,20 @@ export function createSessionStore(config: SessionStoreConfig): SessionStore {
     },
 
     touch(sessionId: string): SessionRecord | null {
-      const session = store.get(sessionId);
+      const now = Date.now();
+      cleanupExpiredSessions(now);
+
+      const session = sessions.get(sessionId);
       if (!session) {
         return null;
       }
 
-      session.lastSeenAt = Date.now();
+      if (isExpired(session, now)) {
+        sessions.delete(sessionId);
+        return null;
+      }
+
+      session.lastSeenAt = now;
       sessions.set(sessionId, session);
       return session;
     },
