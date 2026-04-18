@@ -8,16 +8,16 @@ services:
       service: memento-base
     environment:
       NODE_ENV: production
-      MCP_SERVER_PORT: ${MCP_SERVER_PORT:-8080}
-      PORT: ${PORT:-8080}
+      MCP_SERVER_PORT: ${MCP_SERVER_PORT:-9001}
+      PORT: ${PORT:-9001}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
-      - "${MCP_SERVER_PORT:-8080}:${MCP_SERVER_PORT:-8080}"
+      - "${MCP_SERVER_PORT:-9001}:${MCP_SERVER_PORT:-9001}"
     command: ["/app/start-container.sh"]
     networks:
       - memento-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${MCP_SERVER_PORT:-8080}/health"]
+      test: ["CMD", "node", "-e", "const http = require('http'); const req = http.get('http://localhost:${MCP_SERVER_PORT:-9001}/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => { process.exit(1); });"]
       interval: 30s
       timeout: 10s
       retries: 3
