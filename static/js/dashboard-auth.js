@@ -6,6 +6,7 @@
   'use strict';
 
   var authState = 'checking';
+  var authRequestVersion = 0;
   var sessionReady = false;
   var sessionPromise = null;
   var resolveSessionPromise = null;
@@ -18,6 +19,15 @@
   var sessionBoxEl = null;
   var statusEl = null;
   var messageEl = null;
+
+  function beginAuthRequest() {
+    authRequestVersion += 1;
+    return authRequestVersion;
+  }
+
+  function isCurrentAuthRequest(requestVersion) {
+    return requestVersion === authRequestVersion;
+  }
 
   function createSessionGate() {
     sessionReady = false;
@@ -110,6 +120,7 @@
   }
 
   function checkSession() {
+    var requestVersion = beginAuthRequest();
     setAuthState('checking', 'Checking for an existing dashboard session…');
 
     return fetch('/api/anchors/map?agent_id=default', {
@@ -118,6 +129,10 @@
         Accept: 'application/json'
       }
     }).then(function (response) {
+      if (!isCurrentAuthRequest(requestVersion)) {
+        return;
+      }
+
       if (response.ok) {
         unlockSessionGate();
         setAuthState('signed-in', 'Signed in with the current browser session.');
@@ -131,10 +146,16 @@
       }
 
       return readErrorMessage(response, 'Could not verify the dashboard session.').then(function (message) {
+        if (!isCurrentAuthRequest(requestVersion)) {
+          return;
+        }
         resetSessionGate();
         setAuthState('signed-out', message);
       });
     }).catch(function () {
+      if (!isCurrentAuthRequest(requestVersion)) {
+        return;
+      }
       resetSessionGate();
       setAuthState('signed-out', 'Could not reach the server to verify the dashboard session.');
     });
@@ -142,6 +163,7 @@
 
   function handleSignIn(event) {
     event.preventDefault();
+    var requestVersion = beginAuthRequest();
 
     var apiKey = keyInputEl ? keyInputEl.value.trim() : '';
     if (!apiKey) {
@@ -161,6 +183,10 @@
         'X-API-Key': apiKey
       }
     }).then(function (response) {
+      if (!isCurrentAuthRequest(requestVersion)) {
+        return;
+      }
+
       if (response.status === 204) {
         if (keyInputEl) {
           keyInputEl.value = '';
@@ -171,10 +197,16 @@
       }
 
       return readErrorMessage(response, 'Could not create the dashboard session.').then(function (message) {
+        if (!isCurrentAuthRequest(requestVersion)) {
+          return;
+        }
         resetSessionGate();
         setAuthState('signed-out', message);
       });
     }).catch(function () {
+      if (!isCurrentAuthRequest(requestVersion)) {
+        return;
+      }
       resetSessionGate();
       setAuthState('signed-out', 'Could not reach /auth/session.');
     });
