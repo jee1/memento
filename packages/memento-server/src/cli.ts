@@ -154,12 +154,6 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  // configDir 결정
-  const configDir =
-    preOptions.configDir ??
-    process.env.MEMENTO_CONFIG_DIR ??
-    path.join(os.homedir(), '.memento');
-
   // deprecated 옵션 경고
   if (preOptions.dbPath) {
     await writeStderr('[deprecated] --db-path 옵션은 더 이상 사용되지 않습니다. 서버가 DB를 관리합니다.\n');
@@ -167,6 +161,49 @@ async function main(): Promise<number> {
   if (preOptions.envFile) {
     await writeStderr('[deprecated] --env-file 옵션은 더 이상 사용되지 않습니다.\n');
   }
+
+  // 인자 검증 (서버 체크 이전: 필수 인자 누락 시 서버 오류보다 명확한 메시지 제공)
+  const cmdArgv =
+    subIdx !== undefined ? subcommandArgvFrom(process.argv, subIdx) : process.argv.slice(3);
+
+  let toolParams: Record<string, unknown>;
+  if (subcommand === 'recall') {
+    const params = recallParams(cmdArgv);
+    if (typeof params.query !== 'string' || !String(params.query).trim()) {
+      await writeStderr('recall requires --query <string>.\n');
+      return 1;
+    }
+    toolParams = params as Record<string, unknown>;
+  } else if (subcommand === 'remember') {
+    const params = rememberParams(cmdArgv);
+    if (typeof params.content !== 'string' || !String(params.content).trim()) {
+      await writeStderr('remember requires --content <string>.\n');
+      return 1;
+    }
+    toolParams = params as Record<string, unknown>;
+  } else if (subcommand === 'forget') {
+    const params = forgetParams(cmdArgv);
+    if (params.id === undefined && (!Array.isArray(params.batch) || params.batch.length === 0)) {
+      await writeStderr('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
+      return 1;
+    }
+    toolParams = params as Record<string, unknown>;
+  } else if (subcommand === 'memory_injection') {
+    const params = memoryInjectionParams(cmdArgv);
+    if (typeof params.query !== 'string' || !String(params.query).trim()) {
+      await writeStderr('memory_injection requires --query <string>.\n');
+      return 1;
+    }
+    toolParams = params as Record<string, unknown>;
+  } else {
+    return 0;
+  }
+
+  // configDir 결정
+  const configDir =
+    preOptions.configDir ??
+    process.env.MEMENTO_CONFIG_DIR ??
+    path.join(os.homedir(), '.memento');
 
   // 서버 발견
   const serverInfo = await readServerInfo(configDir);
@@ -183,53 +220,8 @@ async function main(): Promise<number> {
   }
 
   try {
-    const cmdArgv =
-      subIdx !== undefined ? subcommandArgvFrom(process.argv, subIdx) : process.argv.slice(3);
-
-    if (subcommand === 'recall') {
-      const params = recallParams(cmdArgv);
-      if (typeof params.query !== 'string' || !String(params.query).trim()) {
-        await writeStderr('recall requires --query <string>.\n');
-        return 1;
-      }
-      const result = await callToolViaHttp(serverInfo.port, 'recall', params as Record<string, unknown>);
-      await writeStdout(JSON.stringify(result) + '\n');
-      return 0;
-    }
-
-    if (subcommand === 'remember') {
-      const params = rememberParams(cmdArgv);
-      if (typeof params.content !== 'string' || !String(params.content).trim()) {
-        await writeStderr('remember requires --content <string>.\n');
-        return 1;
-      }
-      const result = await callToolViaHttp(serverInfo.port, 'remember', params as Record<string, unknown>);
-      await writeStdout(JSON.stringify(result) + '\n');
-      return 0;
-    }
-
-    if (subcommand === 'forget') {
-      const params = forgetParams(cmdArgv);
-      if (params.id === undefined && (!Array.isArray(params.batch) || params.batch.length === 0)) {
-        await writeStderr('forget requires --id <memory_id> or --batch <id1,id2,...>.\n');
-        return 1;
-      }
-      const result = await callToolViaHttp(serverInfo.port, 'forget', params as Record<string, unknown>);
-      await writeStdout(JSON.stringify(result) + '\n');
-      return 0;
-    }
-
-    if (subcommand === 'memory_injection') {
-      const params = memoryInjectionParams(cmdArgv);
-      if (typeof params.query !== 'string' || !String(params.query).trim()) {
-        await writeStderr('memory_injection requires --query <string>.\n');
-        return 1;
-      }
-      const result = await callToolViaHttp(serverInfo.port, 'memory_injection', params as Record<string, unknown>);
-      await writeStdout(JSON.stringify(result) + '\n');
-      return 0;
-    }
-
+    const result = await callToolViaHttp(serverInfo.port, subcommand, toolParams);
+    await writeStdout(JSON.stringify(result) + '\n');
     return 0;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
