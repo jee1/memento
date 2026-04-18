@@ -34,7 +34,7 @@ export function createSessionStore(config: SessionStoreConfig): SessionStore {
     }
   };
 
-  return {
+  const store: SessionStore = {
     create(): SessionRecord {
       const now = Date.now();
       cleanupExpiredSessions(now);
@@ -43,7 +43,7 @@ export function createSessionStore(config: SessionStoreConfig): SessionStore {
         sessionId: randomUUID(),
         createdAt: now,
         lastSeenAt: now,
-        expiresAt: now + config.absoluteTtlMs
+        expiresAt: now + config.absoluteTtlMs,
       };
 
       sessions.set(session.sessionId, session);
@@ -88,6 +88,8 @@ export function createSessionStore(config: SessionStoreConfig): SessionStore {
 
     delete(sessionId: string): void {
       sessions.delete(sessionId);
-    }
+    },
   };
+
+  return store;
 }

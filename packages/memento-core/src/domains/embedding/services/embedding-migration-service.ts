@@ -1,4 +1,4 @@
-import type { Database } from 'better-sqlite3';
+import type { Database, Statement } from 'better-sqlite3';
 import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../../shared/types/embedding.types.js';
 import type {
   EmbeddingMigrationError,
@@ -203,15 +203,19 @@ export class EmbeddingMigrationService {
     };
   }
 
+
+  private resolveEffectiveMonitor(monitor: MigrationMonitorOptions): MigrationMonitorOptions {
+    return monitor.runId && !monitor.reporter
+      ? { ...monitor, reporter: migrationMonitorService }
+      : monitor;
+  }
+
   async execute(
     db: Database,
     plan: EmbeddingMigrationPlan,
     monitor: MigrationMonitorOptions = {}
   ): Promise<MigrationResult> {
-    const effectiveMonitor: MigrationMonitorOptions =
-      monitor.runId && !monitor.reporter
-        ? { ...monitor, reporter: migrationMonitorService }
-        : monitor;
+    const effectiveMonitor = this.resolveEffectiveMonitor(monitor);
 
     const totalRow = db
       .prepare('SELECT COUNT(*) AS count FROM memory_embedding WHERE embedding_provider = ?')
@@ -248,8 +252,6 @@ export class EmbeddingMigrationService {
         rolledBack: false
       };
     }
-
-    let lastProcessedId = plan.resumeFromId ?? null;
 
     const selectStatement = db.prepare(
       `
@@ -302,87 +304,155 @@ export class EmbeddingMigrationService {
 
     const processBatch = (batch: RawEmbeddingRow[]): void => {
       for (const row of batch) {
-        progress.processed += 1;
-        progress.lastMemoryId = row.memory_id;
-
-        try {
-          const parsed = this.safeParseEmbedding(row.embedding);
-          const assessment = vectorCompatibilityService.assessProviderCompatibility(parsed, plan.targetProvider, {
-            targetDimensions: plan.targetDimensions,
-            normalization: normalizationMode
-          });
-
-          const storedVector = assessment.projection.vector;
-          const serialized = JSON.stringify(storedVector);
-          const projectionType = assessment.projection.projectionType;
-          const normalizedFlag = assessment.projection.normalized ? 1 : 0;
-          const targetModel = plan.targetModel ?? row.model ?? `compat-${plan.targetProvider}`;
-          const createdBy = plan.createdBy ?? DEFAULT_CREATED_BY;
-
-          if (!plan.dryRun) {
-            const existing = existingStatement.get(
-              row.memory_id,
-              plan.targetProvider,
-              projectionType
-            ) as ExistingEmbeddingRow | undefined;
-
-            upsertStatement.run(
-              row.memory_id,
-              plan.targetProvider,
-              projectionType,
-              serialized,
-              plan.targetDimensions,
-              targetModel,
-              plan.targetDimensions,
-              32,
-              normalizedFlag,
-              1,
-              createdBy
-            );
-
-            if (existing) {
-              rollbackEntries.push({
-                memoryId: row.memory_id,
-                provider: plan.targetProvider,
-                projectionType,
-                operation: 'restore',
-                embedding: existing.embedding,
-                dim: existing.dim,
-                dimensions: existing.dimensions,
-                model: existing.model,
-                precision: existing.precision,
-                normalized: existing.normalized,
-                version: existing.version,
-                createdBy: existing.created_by,
-                createdAt: existing.created_at ?? undefined
-              });
-            } else {
-              rollbackEntries.push({
-                memoryId: row.memory_id,
-                provider: plan.targetProvider,
-                projectionType,
-                operation: 'delete'
-              });
-            }
-          }
-
-          progress.succeeded += 1;
-        } catch (error) {
-          progress.failed += 1;
-          errors.push({
-            memoryId: row.memory_id,
-            provider: plan.targetProvider,
-            message: error instanceof Error ? error.message : 'Unknown error'
-          });
-        } finally {
-          progress.updatedAt = new Date();
-          if (reportEvery > 0 && progress.processed % reportEvery === 0) {
-            this.notifyProgress(progress, effectiveMonitor);
-          }
-        }
+        this.processMigrationRow({
+          row,
+          plan,
+          normalizationMode,
+          existingStatement,
+          upsertStatement,
+          progress,
+          errors,
+          rollbackEntries,
+          reportEvery,
+          effectiveMonitor
+        });
       }
     };
 
+    this.runMigrationBatchLoop(
+      plan,
+      selectStatement,
+      progress,
+      plan.resumeFromId ?? null,
+      processBatch,
+      effectiveMonitor
+    );
+
+    return this.finalizeMigrationExecution({
+      db,
+      plan,
+      progress,
+      step,
+      errors,
+      rollbackEntries,
+      effectiveMonitor
+    });
+  }
+
+  private processMigrationRow(params: {
+    row: RawEmbeddingRow;
+    plan: EmbeddingMigrationPlan;
+    normalizationMode: VectorNormalization;
+    existingStatement: Statement;
+    upsertStatement: Statement;
+    progress: MigrationProgress;
+    errors: EmbeddingMigrationError[];
+    rollbackEntries: MigrationRollbackEntry[];
+    reportEvery: number;
+    effectiveMonitor: MigrationMonitorOptions;
+  }): void {
+    const {
+      row,
+      plan,
+      normalizationMode,
+      existingStatement,
+      upsertStatement,
+      progress,
+      errors,
+      rollbackEntries,
+      reportEvery,
+      effectiveMonitor
+    } = params;
+
+    progress.processed += 1;
+    progress.lastMemoryId = row.memory_id;
+
+    try {
+      const parsed = this.safeParseEmbedding(row.embedding);
+      const assessment = vectorCompatibilityService.assessProviderCompatibility(parsed, plan.targetProvider, {
+        targetDimensions: plan.targetDimensions,
+        normalization: normalizationMode
+      });
+
+      const storedVector = assessment.projection.vector;
+      const serialized = JSON.stringify(storedVector);
+      const projectionType = assessment.projection.projectionType;
+      const normalizedFlag = assessment.projection.normalized ? 1 : 0;
+      const targetModel = plan.targetModel ?? row.model ?? `compat-${plan.targetProvider}`;
+      const createdBy = plan.createdBy ?? DEFAULT_CREATED_BY;
+
+      if (!plan.dryRun) {
+        const existing = existingStatement.get(
+          row.memory_id,
+          plan.targetProvider,
+          projectionType
+        ) as ExistingEmbeddingRow | undefined;
+
+        upsertStatement.run(
+          row.memory_id,
+          plan.targetProvider,
+          projectionType,
+          serialized,
+          plan.targetDimensions,
+          targetModel,
+          plan.targetDimensions,
+          32,
+          normalizedFlag,
+          1,
+          createdBy
+        );
+
+        if (existing) {
+          rollbackEntries.push({
+            memoryId: row.memory_id,
+            provider: plan.targetProvider,
+            projectionType,
+            operation: 'restore',
+            embedding: existing.embedding,
+            dim: existing.dim,
+            dimensions: existing.dimensions,
+            model: existing.model,
+            precision: existing.precision,
+            normalized: existing.normalized,
+            version: existing.version,
+            createdBy: existing.created_by,
+            createdAt: existing.created_at ?? undefined
+          });
+        } else {
+          rollbackEntries.push({
+            memoryId: row.memory_id,
+            provider: plan.targetProvider,
+            projectionType,
+            operation: 'delete'
+          });
+        }
+      }
+
+      progress.succeeded += 1;
+    } catch (error) {
+      progress.failed += 1;
+      errors.push({
+        memoryId: row.memory_id,
+        provider: plan.targetProvider,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      progress.updatedAt = new Date();
+      if (reportEvery > 0 && progress.processed % reportEvery === 0) {
+        this.notifyProgress(progress, effectiveMonitor);
+      }
+    }
+  }
+
+  private runMigrationBatchLoop(
+    plan: EmbeddingMigrationPlan,
+    selectStatement: Statement,
+    progress: MigrationProgress,
+    initialLastId: string | null,
+    processBatch: (batch: RawEmbeddingRow[]) => void,
+    effectiveMonitor: MigrationMonitorOptions
+  ): void {
+    let lastProcessedId = initialLastId;
     while (true) {
       const batch = selectStatement.all(
         plan.sourceProvider,
@@ -398,6 +468,18 @@ export class EmbeddingMigrationService {
       lastProcessedId = batch[batch.length - 1]?.memory_id ?? lastProcessedId;
       this.notifyProgress(progress, effectiveMonitor);
     }
+  }
+
+  private finalizeMigrationExecution(params: {
+    db: Database;
+    plan: EmbeddingMigrationPlan;
+    progress: MigrationProgress;
+    step: MigrationStep;
+    errors: EmbeddingMigrationError[];
+    rollbackEntries: MigrationRollbackEntry[];
+    effectiveMonitor: MigrationMonitorOptions;
+  }): MigrationResult {
+    const { db, plan, progress, step, errors, rollbackEntries, effectiveMonitor } = params;
 
     const endTime = new Date();
     const success = progress.failed === 0;
@@ -496,27 +578,35 @@ export class EmbeddingMigrationService {
 
     for (const entry of [...entries].reverse()) {
       if (entry.operation === 'delete') {
-        deleteStatement.run(entry.memoryId, entry.provider, entry.projectionType);
+        this.applyRollbackDelete(deleteStatement, entry);
       } else {
-        if (!entry.embedding) {
-          throw new Error(`Rollback 데이터가 누락되었습니다: ${entry.memoryId}`);
-        }
-        restoreStatement.run(
-          entry.memoryId,
-          entry.provider,
-          entry.projectionType,
-          entry.embedding,
-          entry.dim ?? entry.dimensions ?? 0,
-          entry.model ?? null,
-          entry.dimensions ?? entry.dim ?? 0,
-          entry.precision ?? 32,
-          entry.normalized ?? 0,
-          entry.version ?? 1,
-          entry.createdBy ?? DEFAULT_CREATED_BY,
-          entry.createdAt ?? new Date().toISOString()
-        );
+        this.applyRollbackRestore(restoreStatement, entry);
       }
     }
+  }
+
+  private applyRollbackDelete(deleteStatement: Statement, entry: MigrationRollbackEntry): void {
+    deleteStatement.run(entry.memoryId, entry.provider, entry.projectionType);
+  }
+
+  private applyRollbackRestore(restoreStatement: Statement, entry: MigrationRollbackEntry): void {
+    if (!entry.embedding) {
+      throw new Error(`Rollback 데이터가 누락되었습니다: ${entry.memoryId}`);
+    }
+    restoreStatement.run(
+      entry.memoryId,
+      entry.provider,
+      entry.projectionType,
+      entry.embedding,
+      entry.dim ?? entry.dimensions ?? 0,
+      entry.model ?? null,
+      entry.dimensions ?? entry.dim ?? 0,
+      entry.precision ?? 32,
+      entry.normalized ?? 0,
+      entry.version ?? 1,
+      entry.createdBy ?? DEFAULT_CREATED_BY,
+      entry.createdAt ?? new Date().toISOString()
+    );
   }
 
   listHistory(db: Database, limit: number = 20): MigrationHistoryRecord[] {

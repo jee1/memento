@@ -86,6 +86,22 @@ describe('EmbeddingMigrationService', () => {
     expect(plan.autoRollbackOnFailure).toBe(true);
   });
 
+  it('returns success immediately when no rows exist for the source provider', async () => {
+    const plan = embeddingMigrationService.createPlan('minilm', 'openai');
+    const result = await embeddingMigrationService.execute(db, plan);
+
+    expect(result.success).toBe(true);
+    expect(result.processed).toBe(0);
+    expect(result.succeeded).toBe(0);
+    expect(result.failed).toBe(0);
+    expect(result.rollbackEntries).toHaveLength(0);
+    expect(result.rolledBack).toBe(false);
+    expect(result.nextResumeFromId).toBe(plan.resumeFromId ?? undefined);
+
+    const historyCount = db.prepare('SELECT COUNT(*) AS cnt FROM migration_history').get() as { cnt: number };
+    expect(historyCount.cnt).toBe(0);
+  });
+
   it('reprojects embeddings to the target provider and inserts new rows', async () => {
     const memoryId = 'memory-001';
     seedMemoryItem(db, memoryId);
