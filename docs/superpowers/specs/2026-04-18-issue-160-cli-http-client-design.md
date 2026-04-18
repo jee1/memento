@@ -50,7 +50,7 @@ CLI(`memento remember` 등)가 `createMementoCore()`를 직접 호출해 DB를 �
 
 - 모든 서버 모드가 기동 시 기록, 종료 시 삭제
 - CLI가 서버를 발견하는 유일한 방법
-- PID 검증: 파일이 존재하더라도 해당 PID 프로세스가 살아있는지 확인 후 사용
+- **서버 생존 이중 검증**: PID 프로세스 존재 확인 → `GET http://localhost:{port}/health` 응답 확인. 어느 한쪽이라도 실패하면 stale 파일로 간주하고 자동 삭제 후 에러 반환. PID만으로는 PID 재사용(다른 프로세스) 오탐이 가능하므로 HTTP 응답 확인이 필수.
 
 ### 2. `src/server/server-info.ts` (신규)
 
@@ -66,15 +66,26 @@ export interface ServerInfo {
 export async function writeServerInfo(configDir: string, port: number): Promise<void>
 export async function readServerInfo(configDir: string): Promise<ServerInfo | null>
 export async function deleteServerInfo(configDir: string): Promise<void>
-export async function isServerAlive(info: ServerInfo): Promise<boolean>  // PID 검증
+export async function isServerAlive(info: ServerInfo): Promise<boolean>  // PID + HTTP /health 이중 검증
+```
+
+`callToolViaHttp` 헬퍼도 이 파일에 포함:
+
+```typescript
+// POST http://localhost:{port}/tools/{toolName} 요청 후 result 반환
+// Body: JSON (params 객체), Content-Type: application/json
+// 인증: localhost 전용이므로 인증 없음 (Admin auth 미들웨어 localhost 바이패스 또는 /tools 라우터는 인증 불필요 확인 필요)
+// 타임아웃: 30초
+export async function callToolViaHttp(port: number, toolName: string, params: Record<string, unknown>): Promise<unknown>
 ```
 
 ### 3. stdio 서버 (`src/server/index.ts`) 변경
 
 기존 stdio MCP 로직 유지, HTTP 관리 서버 병행 기동 추가:
 
-- 기동 시 Express 앱으로 `/tools/:name` 라우터만 마운트한 HTTP 서버를 포트 `:0`(OS 자동 배정)으로 올림
+- 기동 시 Express 앱으로 `/tools/:name`, `GET /health` 라우터만 마운트한 HTTP 서버를 포트 `:0`(OS 자동 배정)으로 올림
 - 실제 바인딩된 포트를 `server.json`에 기록
+- **HTTP 포트 바인딩 실패 시 stdio 서버도 fatal 종료** — CLI가 서버를 발견할 수 없으므로 degraded mode는 허용하지 않음
 - `SIGINT`/`SIGTERM`/`exit` 시 HTTP 서버 닫고 `server.json` 삭제
 
 ### 4. HTTP 서버 (`src/server/http-server.ts`) 변경
@@ -130,13 +141,17 @@ await writeStdout(JSON.stringify(result) + '\n');
 
 ## 테스트 전략
 
-- `server-info.ts` 유닛 테스트: 읽기/쓰기/삭제/PID 검증
+- `server-info.ts` 유닛 테스트: 읽기/쓰기/삭제/PID 검증/stale file 자동 삭제
 - CLI 통합 테스트: 서버 없을 때 에러 메시지 검증
 - CLI 통합 테스트: 실제 HTTP 서버 기동 후 `remember`/`recall` 왕복 테스트
+- **동시성 통합 테스트**: HTTP 서버 기동 상태에서 CLI N회 병렬 호출 → DB 무결성(row count, WAL 상태) 검증
 
 ---
 
 ## 마이그레이션 영향
 
 - 기존 CLI 사용자: 서버 없이 CLI만 사용하는 워크플로우는 더 이상 지원되지 않음 → 문서 및 에러 메시지로 명확히 안내
+- **`--db-path` 옵션**: 서버가 이미 사용 중인 DB를 변경할 수 없으므로 deprecated 처리. CLI에서 파싱은 하되 무시하고 deprecation 경고를 stderr에 출력.
+- **`--config-dir` 옵션**: `server.json` 위치를 결정하는 데 계속 사용됨 (유지).
+- **`--env-file` 옵션**: CLI가 DB를 직접 열지 않으므로 불필요. deprecated 처리 후 무시.
 - 환경 변수 `BATCH_SCHEDULER_ENABLED`, `WAL_CHECKPOINT_ENABLED`, `DB_LOCK_MONITOR_ENABLED`는 CLI에서 불필요 (제거 가능)
