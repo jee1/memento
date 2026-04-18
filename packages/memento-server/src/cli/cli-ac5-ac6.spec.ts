@@ -62,17 +62,14 @@ function runCli(
 }
 
 describe.skipIf(!cliBuilt || !supportsCapturedChildIo)('CLI AC5/AC6', () => {
-  it('AC5: --db-path 지정 시 해당 DB 사용 (recall 호출 시 exit 0, JSON stdout)', async () => {
+  it('AC5: --db-path 지정 시 deprecated 경고 출력 후 exit 1 (서버 미실행)', async () => {
     const dbPath = path.join(os.tmpdir(), `memento-cli-ac5-${Date.now()}.db`);
-    const { stdout, code } = await runCli([
+    const { stderr, code } = await runCli([
       '--db-path', dbPath,
       'recall', '--query', 'test', '--limit', '1'
     ]);
-    expect(code).toBe(0);
-    const parsed = JSON.parse(stdout.trim());
-    const hasItems = parsed.items !== undefined && Array.isArray(parsed.items);
-    const hasContent = Array.isArray(parsed.content) && parsed.content.length > 0;
-    expect(hasItems || hasContent).toBe(true);
+    expect(code).not.toBe(0);
+    expect(stderr).toMatch(/deprecated/);
     try { fs.unlinkSync(dbPath); } catch (_) {}
   }, 15000);
 
@@ -86,24 +83,19 @@ describe.skipIf(!cliBuilt || !supportsCapturedChildIo)('CLI AC5/AC6', () => {
     expect(out).toContain('memory_injection');
   });
 
-  it('AC6/AC9: cwd에 .env 없고 ~/.memento/.env에만 DB_PATH 있을 때 해당 DB 사용', async () => {
+  it('AC6/AC9: 서버 미실행 시 exit 1 및 서버 실행 안내 메시지 출력', async () => {
     const tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'memento-cli-ac6-cwd-'));
     const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'memento-cli-home-'));
-    const dbPath = path.join(os.tmpdir(), `memento-cli-ac6-db-${Date.now()}.db`);
     try {
       fs.mkdirSync(path.join(fakeHome, '.memento'), { recursive: true });
-      fs.writeFileSync(path.join(fakeHome, '.memento', '.env'), `DB_PATH=${dbPath.replace(/\\/g, '/')}\n`);
-      // DB_PATH를 제거한 env를 명시적으로 전달해야 CLI가 ~/.memento/.env를 읽는 경로로 진입함
-      // runCli에 env를 명시하면 process.env를 병합하지 않으므로 DB_PATH가 주입되지 않음
+      // server.json 없는 configDir → 서버 미실행 상태
       const { DB_PATH: _omit, ...baseEnv } = process.env;
-      const { stdout, code } = await runCli(['recall', '--query', 'test', '--limit', '1'], { env: { ...baseEnv, HOME: fakeHome }, cwd: tmpCwd });
-      expect(code).toBe(0);
-      const parsed = JSON.parse(stdout.trim());
-      expect(parsed.items !== undefined && Array.isArray(parsed.items) || Array.isArray(parsed.content)).toBe(true);
+      const { stderr, code } = await runCli(['recall', '--query', 'test', '--limit', '1'], { env: { ...baseEnv, HOME: fakeHome }, cwd: tmpCwd });
+      expect(code).not.toBe(0);
+      expect(stderr).toMatch(/서버/);
     } finally {
       try { fs.rmSync(tmpCwd, { recursive: true }); } catch (_) {}
       try { fs.rmSync(fakeHome, { recursive: true }); } catch (_) {}
-      try { fs.unlinkSync(dbPath); } catch (_) {}
     }
   }, 15000);
 

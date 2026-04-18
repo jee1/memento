@@ -6,7 +6,9 @@
 
 import express from 'express';
 import { existsSync } from 'fs';
+import { homedir } from 'os';
 import { join } from 'path';
+import { writeServerInfo, deleteServerInfo } from './server-info.js';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
@@ -295,8 +297,16 @@ async function cleanup() {
   }
   
   isCleaningUp = true;
-  
+
   try {
+    // delete server.json on shutdown
+    const configDirForCleanup = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+    try {
+      await deleteServerInfo(configDirForCleanup);
+    } catch {
+      // ignore cleanup errors
+    }
+
     await writeRuntimeDiagnosticsEvent('server_cleanup_start');
 
     // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
@@ -568,6 +578,7 @@ async function startServer() {
     logger.warn(
       'ADMIN_API_KEY is not configured: all admin/API/quality endpoints are disabled and will return 401. Set ADMIN_API_KEY environment variable to enable admin access.'
     );
+  // eslint-disable-next-line no-control-regex
   } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
     logger.warn(
       'ADMIN_API_KEY contains non-ASCII characters: browser-based graph/dashboard may fail to send Authorization (use ASCII-only keys, e.g. hex or base64url).'
@@ -611,6 +622,9 @@ async function startServer() {
     const address = server.address();
     if (address && typeof address === 'object') {
       logger.info('서버 바인딩 완료', { address: address.address, port: address.port });
+      // write server.json for CLI discovery
+      const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+      void writeServerInfo(configDir, address.port);
     }
   });
 }

@@ -35,6 +35,11 @@ import {
 import { mcpLogger } from './mcp-logger.js';
 import { ServerState } from './server-state.js';
 import Database from 'better-sqlite3';
+import express from 'express';
+import { createServer as createHttpServer } from 'http';
+import type { AddressInfo } from 'net';
+import { homedir } from 'os';
+import { writeServerInfo, deleteServerInfo } from './server-info.js';
 import packageJson from '../../package.json' with { type: 'json' };
 
 /**
@@ -65,6 +70,7 @@ let server: Server;
 let db: Database.Database | null = null;
 // core에서 반환된 서비스 (ToolContext 생성 시 사용)
 let serverServices: ServerServices | null = null;
+let mgmtHttpServer: ReturnType<typeof createHttpServer> | null = null;
 
 type TestDependencies = {
   database: Database.Database | null;
@@ -130,6 +136,7 @@ function setupConsoleErrorOverride(): void {
     return;
   }
   
+  // eslint-disable-next-line no-console
   console.error = (...args: any[]) => {
     const isInitialized = serverState.isMcpServerInitialized();
     
@@ -149,11 +156,16 @@ function setupConsoleErrorOverride(): void {
 }
 
 // console 메서드 오버라이드 (중복 등록 방지)
+// eslint-disable-next-line no-console
 if (!serverState.isConsoleOverridden()) {
+  // eslint-disable-next-line no-console
   console.log = () => {};
   setupConsoleErrorOverride();
+  // eslint-disable-next-line no-console
   console.warn = () => {};
+  // eslint-disable-next-line no-console
   console.info = () => {};
+  // eslint-disable-next-line no-console
   console.debug = () => {};
   serverState.setConsoleOverridden(true);
 }
@@ -540,6 +552,57 @@ function registerHandlers() {
     });
 }
 
+// 관리 HTTP 서버 기동 (CLI 통신용)
+async function startMgmtHttpServer(): Promise<void> {
+  const app = express();
+  app.use(express.json({ limit: '1mb' }));
+
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'healthy', transport: 'stdio' });
+  });
+
+  app.post('/tools/:name', async (req, res) => {
+    if (!db || !serverServices) {
+      res.status(503).json({ error: '서버 초기화 중입니다. 잠시 후 다시 시도하세요.' });
+      return;
+    }
+    const { name } = req.params;
+    try {
+      const context = createToolContext(db, serverServices);
+      const result = await executeTool(name, req.body as Record<string, unknown>, context);
+      let actual: unknown = result;
+      if (Array.isArray(result.content) && result.content[0]?.text) {
+        try { actual = JSON.parse(result.content[0].text as string); } catch { /* ignore parse error */ }
+      }
+      res.json({ result: actual, tool: name, timestamp: new Date().toISOString() });
+    } catch (err) {
+      res.status(500).json({
+        error: 'Tool execution failed',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  mgmtHttpServer = createHttpServer(app);
+
+  await new Promise<void>((resolvePromise, rejectPromise) => {
+    mgmtHttpServer!.once('error', rejectPromise);
+    mgmtHttpServer!.listen(0, '127.0.0.1', async () => {
+      const addr = mgmtHttpServer!.address() as AddressInfo;
+      const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+      try {
+        await writeServerInfo(configDir, addr.port);
+      } catch (err) {
+        mcpLogger.logServer('error', `server.json 기록 실패: ${err}`);
+        rejectPromise(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
+      mcpLogger.logServer('info', `관리 HTTP 서버 기동 완료 (port: ${addr.port})`);
+      resolvePromise();
+    });
+  });
+}
+
 // 서버 시작
 async function startServer() {
   try {
@@ -571,6 +634,9 @@ async function startServer() {
     // transport를 먼저 연결해 Cursor가 7초 내에 Initialize 응답을 받도록 함
     const transport = new StdioServerTransport();
     await server.connect(transport);
+
+    // 관리 HTTP 서버 기동 (CLI 통신용)
+    await startMgmtHttpServer();
 
     serverState.setMcpTransportConnected(true);
     serverState.setMcpServerInitialized(true);
@@ -639,7 +705,19 @@ async function cleanup() {
   }
   
   isCleaningUp = true;
-  
+
+  // server.json 삭제 및 관리 HTTP 서버 종료
+  if (mgmtHttpServer) {
+    const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+    try {
+      await deleteServerInfo(configDir);
+    } catch {
+      // ignore cleanup errors
+    }
+    await new Promise<void>((resolveClose) => mgmtHttpServer!.close(() => resolveClose()));
+    mgmtHttpServer = null;
+  }
+
   mcpLogger.logServer('info', '서버 정리 시작...');
   await writeRuntimeDiagnosticsEvent('server_cleanup_start');
   
@@ -787,7 +865,7 @@ async function main() {
 // 팩토리 패턴을 사용하지 않는 경우를 위해 기존 startServer도 유지
 // NPM 패키지로 실행할 때도 작동하도록 강화된 체크
 import { fileURLToPath } from 'url';
-import { basename, resolve } from 'path';
+import { basename, join, resolve } from 'path';
 
 const currentFile = fileURLToPath(import.meta.url);
 const currentFileName = basename(currentFile);
