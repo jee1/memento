@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { createSessionStore } from '../auth/session-store.js';
 import { createSessionAuthMiddleware } from './session-auth.middleware.js';
 
 function createMockResponse() {
@@ -24,12 +25,14 @@ describe('createSessionAuthMiddleware', () => {
   });
 
   it('accepts a valid session cookie for browser routes', () => {
-    const session = { sessionId: 'session-123' };
-    const store = {
-      touch: vi.fn((sessionId: string) => {
-        return sessionId === session.sessionId ? session : null;
-      })
-    };
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-18T00:00:00.000Z'));
+
+    const store = createSessionStore({
+      idleTtlMs: 15 * 60 * 1000,
+      absoluteTtlMs: 8 * 60 * 60 * 1000
+    });
+    const session = store.create();
     const middleware = createSessionAuthMiddleware({
       store,
       cookieName: 'memento_admin_session'
@@ -50,9 +53,10 @@ describe('createSessionAuthMiddleware', () => {
   });
 
   it('returns 401 when the browser session cookie is missing', () => {
-    const store = {
-      touch: vi.fn(() => null)
-    };
+    const store = createSessionStore({
+      idleTtlMs: 15 * 60 * 1000,
+      absoluteTtlMs: 8 * 60 * 60 * 1000
+    });
     const middleware = createSessionAuthMiddleware({
       store,
       cookieName: 'memento_admin_session'
@@ -78,10 +82,12 @@ describe('createSessionAuthMiddleware', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-18T00:00:00.000Z'));
 
-    const store = {
-      touch: vi.fn(() => null)
-    };
-    const session = { sessionId: 'session-expired' };
+    const store = createSessionStore({
+      idleTtlMs: 15 * 60 * 1000,
+      absoluteTtlMs: 8 * 60 * 60 * 1000
+    });
+    const session = store.create();
+    vi.advanceTimersByTime(15 * 60 * 1000 + 1);
 
     const middleware = createSessionAuthMiddleware({
       store,

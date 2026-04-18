@@ -1,15 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
-
-export type SessionRecordLike = {
-  sessionId: string;
-};
-
-export type SessionStoreLike = {
-  touch(sessionId: string): SessionRecordLike | null;
-};
+import type { SessionStore } from '../auth/session-store.js';
 
 export type SessionAuthMiddlewareConfig = {
-  store: SessionStoreLike;
+  store: SessionStore;
   cookieName: string;
 };
 
