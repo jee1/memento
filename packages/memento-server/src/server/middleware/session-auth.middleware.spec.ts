@@ -82,10 +82,38 @@ describe('createSessionAuthMiddleware', () => {
     expect(firstAccessRes.status).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(9 * 60 * 1000 + 59 * 1000);
-    expect(store.get(session.sessionId)).not.toBeNull();
+    const preAbsoluteReq = {
+      headers: {
+        cookie: `memento_admin_session=${session.sessionId}`
+      }
+    } as Request;
+    const preAbsoluteRes = createMockResponse();
+    const preAbsoluteNext = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(preAbsoluteReq, preAbsoluteRes, preAbsoluteNext);
+
+    expect(preAbsoluteNext).toHaveBeenCalledOnce();
+    expect(preAbsoluteRes.status).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(2 * 1000);
-    expect(store.get(session.sessionId)).toBeNull();
+    const postAbsoluteReq = {
+      headers: {
+        cookie: `memento_admin_session=${session.sessionId}`
+      }
+    } as Request;
+    const postAbsoluteRes = createMockResponse();
+    const postAbsoluteNext = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(postAbsoluteReq, postAbsoluteRes, postAbsoluteNext);
+
+    expect(postAbsoluteRes.status).toHaveBeenCalledWith(401);
+    expect(postAbsoluteRes.body).toEqual(
+      expect.objectContaining({
+        error: 'Unauthorized',
+        message: 'Admin dashboard session is missing or expired.'
+      })
+    );
+    expect(postAbsoluteNext).not.toHaveBeenCalled();
   });
 
   it('returns 401 when the browser session cookie is missing', () => {
