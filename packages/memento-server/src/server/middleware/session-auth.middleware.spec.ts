@@ -58,7 +58,7 @@ describe('createSessionAuthMiddleware', () => {
 
     const store = createSessionStore({
       idleTtlMs: 15 * 60 * 1000,
-      absoluteTtlMs: 30 * 60 * 1000
+      absoluteTtlMs: 20 * 60 * 1000
     });
     const session = store.create();
     const middleware = createSessionAuthMiddleware({
@@ -81,10 +81,10 @@ describe('createSessionAuthMiddleware', () => {
     expect(firstAccessNext).toHaveBeenCalledOnce();
     expect(firstAccessRes.status).not.toHaveBeenCalled();
 
-    vi.advanceTimersByTime(14 * 60 * 1000 + 59 * 1000);
+    vi.advanceTimersByTime(9 * 60 * 1000 + 59 * 1000);
     expect(store.get(session.sessionId)).not.toBeNull();
 
-    vi.advanceTimersByTime(5 * 60 * 1000 + 2 * 1000);
+    vi.advanceTimersByTime(2 * 1000);
     expect(store.get(session.sessionId)).toBeNull();
   });
 
