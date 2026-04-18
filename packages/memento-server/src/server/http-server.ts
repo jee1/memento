@@ -303,7 +303,9 @@ async function cleanup() {
     const configDirForCleanup = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
     try {
       await deleteServerInfo(configDirForCleanup);
-    } catch (_) {}
+    } catch {
+      // ignore cleanup errors
+    }
 
     await writeRuntimeDiagnosticsEvent('server_cleanup_start');
 
@@ -576,6 +578,7 @@ async function startServer() {
     logger.warn(
       'ADMIN_API_KEY is not configured: all admin/API/quality endpoints are disabled and will return 401. Set ADMIN_API_KEY environment variable to enable admin access.'
     );
+  // eslint-disable-next-line no-control-regex
   } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
     logger.warn(
       'ADMIN_API_KEY contains non-ASCII characters: browser-based graph/dashboard may fail to send Authorization (use ASCII-only keys, e.g. hex or base64url).'

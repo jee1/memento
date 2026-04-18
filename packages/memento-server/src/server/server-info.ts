@@ -12,13 +12,16 @@ function serverInfoPath(configDir: string): string {
 }
 
 export async function writeServerInfo(configDir: string, port: number): Promise<void> {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await mkdir(configDir, { recursive: true });
   const info: ServerInfo = { port, pid: process.pid, startedAt: new Date().toISOString() };
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await writeFile(serverInfoPath(configDir), JSON.stringify(info, null, 2), 'utf-8');
 }
 
 export async function readServerInfo(configDir: string): Promise<ServerInfo | null> {
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const raw = await readFile(serverInfoPath(configDir), 'utf-8');
     return JSON.parse(raw) as ServerInfo;
   } catch {
@@ -28,6 +31,7 @@ export async function readServerInfo(configDir: string): Promise<ServerInfo | nu
 
 export async function deleteServerInfo(configDir: string): Promise<void> {
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     await unlink(serverInfoPath(configDir));
   } catch {
     // ignore if file doesn't exist

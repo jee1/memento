@@ -6,7 +6,6 @@ import {
   writeServerInfo,
   readServerInfo,
   deleteServerInfo,
-  type ServerInfo,
 } from './server-info.js';
 
 describe('server-info', () => {

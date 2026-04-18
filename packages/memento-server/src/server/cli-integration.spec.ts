@@ -39,7 +39,7 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
         const result = await executeTool(req.params.name, req.body, context);
         let actual: unknown = result;
         if (Array.isArray(result.content) && result.content[0]?.text) {
-          try { actual = JSON.parse(result.content[0].text); } catch {}
+          try { actual = JSON.parse(result.content[0].text); } catch { /* ignore parse error */ }
         }
         res.json({ result: actual, tool: req.params.name, timestamp: new Date().toISOString() });
       } catch (err) {

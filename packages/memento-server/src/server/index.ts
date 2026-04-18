@@ -136,6 +136,7 @@ function setupConsoleErrorOverride(): void {
     return;
   }
   
+  // eslint-disable-next-line no-console
   console.error = (...args: any[]) => {
     const isInitialized = serverState.isMcpServerInitialized();
     
@@ -155,11 +156,16 @@ function setupConsoleErrorOverride(): void {
 }
 
 // console 메서드 오버라이드 (중복 등록 방지)
+// eslint-disable-next-line no-console
 if (!serverState.isConsoleOverridden()) {
+  // eslint-disable-next-line no-console
   console.log = () => {};
   setupConsoleErrorOverride();
+  // eslint-disable-next-line no-console
   console.warn = () => {};
+  // eslint-disable-next-line no-console
   console.info = () => {};
+  // eslint-disable-next-line no-console
   console.debug = () => {};
   serverState.setConsoleOverridden(true);
 }
@@ -566,7 +572,7 @@ async function startMgmtHttpServer(): Promise<void> {
       const result = await executeTool(name, req.body as Record<string, unknown>, context);
       let actual: unknown = result;
       if (Array.isArray(result.content) && result.content[0]?.text) {
-        try { actual = JSON.parse(result.content[0].text as string); } catch {}
+        try { actual = JSON.parse(result.content[0].text as string); } catch { /* ignore parse error */ }
       }
       res.json({ result: actual, tool: name, timestamp: new Date().toISOString() });
     } catch (err) {
@@ -705,7 +711,9 @@ async function cleanup() {
     const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
     try {
       await deleteServerInfo(configDir);
-    } catch (_) {}
+    } catch {
+      // ignore cleanup errors
+    }
     await new Promise<void>((resolveClose) => mgmtHttpServer!.close(() => resolveClose()));
     mgmtHttpServer = null;
   }

@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+### Fixed
+- CLI(`memento remember` 등)가 HTTP/stdio MCP 서버와 동시에 실행될 때 발생하던 WAL 체크포인트 충돌 및 DB 손상 버그 수정 (#160)
+
+### Changed
+- CLI가 DB를 직접 열지 않고 실행 중인 서버의 HTTP 관리 포트로 요청을 위임하도록 아키텍처 전환
+- stdio MCP 서버가 CLI 통신을 위한 localhost-only HTTP 관리 포트를 함께 기동
+- `--db-path`, `--env-file` CLI 옵션 deprecated (무시됨)
+
 ### Added
 
 - Docker instability 분석을 위한 runtime diagnostics 모드 추가: `/app/logs/diagnostics` JSONL 로그, background service feature flags, Docker 외부 관측 스크립트(`scripts/collect-docker-diagnostics.sh`) 및 운영 가이드 포함
