@@ -74,6 +74,11 @@ project_id: z.string().max(200).optional()
 
 > 근거: `owner_id`/`process_id`/`session_id` 필터가 이미 동일 방식(in-memory, recall-tool.ts:1020~1037)으로 구현되어 있으며, 일관성 유지가 중요.
 
+**⚠️ Precision Loss Trade-off (MVP 허용, 추후 최적화)**  
+`project_id`는 핵심 격리 단위이므로, 전체 기억 중 해당 프로젝트 비율이 낮으면 인메모리 필터 후 유효 결과가 `limit`보다 훨씬 적게 반환될 수 있다 (극단적으로 0건). MVP에서는 이 trade-off를 허용하고 일관성을 우선한다. 추후 사용량이 늘면 `HybridSearchService`에 `projectId`를 SQL-level 파라미터로 전달하는 방식으로 최적화한다.
+
+**타입 주의**: `recall-tool.ts` 내부에 `RecallSearchItem` 등 로컬 타입이 있다면 `project_id?: string` 필드를 해당 타입에도 추가해야 한다. `shared/types/index.ts`의 `MemoryItem` 수정만으로 커버되지 않을 수 있다.
+
 #### `memory_injection` 도구 (핵심)
 **파일**: `packages/memento-core/src/domains/memory/tools/memory-injection-prompt.ts`
 
