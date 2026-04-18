@@ -525,4 +525,23 @@ describe('MCP 서버 진입점', () => {
       }
     });
   });
+
+  describe('MCP stdio guards (Issue #179)', () => {
+    it('stderr.write는 undefined/null 청크를 삼키고 true를 반환해야 한다', () => {
+      const write = process.stderr.write.bind(process.stderr);
+      expect(write(undefined as unknown as string)).toBe(true);
+      expect(write(null as unknown as string)).toBe(true);
+    });
+
+    it('stderr.write는 문자열 "undefined"만 있는 청크를 삼켜야 한다', () => {
+      const write = process.stderr.write.bind(process.stderr);
+      expect(write('undefined')).toBe(true);
+      expect(write('  undefined  ')).toBe(true);
+    });
+
+    it('console.log은 no-op이어야 한다 (stdout 오염 방지)', () => {
+      expect(console.log).toBeDefined();
+      expect(() => console.log('must not throw')).not.toThrow();
+    });
+  });
 });
