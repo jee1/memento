@@ -21,7 +21,10 @@ const MemoryInjectionSchema = z.object({
   token_budget: z.number().optional().describe('토큰 예산 (기본값: 1000)'),
   max_memories: z.number().optional().describe('최대 기억 개수 (기본값: 5)'),
   memory_types: z.array(CommonSchemas.MemoryType).optional().describe('포함할 기억 타입들'),
-  importance_threshold: z.number().optional().describe('중요도 임계값 (기본값: 0.5)')
+  importance_threshold: z.number().optional().describe('중요도 임계값 (기본값: 0.5)'),
+  // Project-scoped memory (Issue #81)
+  project_id: z.string().max(200).optional()
+    .describe('지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색')
 });
 
 export class MemoryInjectionPrompt extends BaseTool {
@@ -55,10 +58,15 @@ export class MemoryInjectionPrompt extends BaseTool {
             description: '포함할 기억 타입들 (core/vault는 자동으로 제거됩니다)',
             default: ['working', 'episodic', 'semantic', 'procedural']
           },
-          importance_threshold: { 
-            type: 'number', 
+          importance_threshold: {
+            type: 'number',
             description: '중요도 임계값 (기본값: 0.5)',
             default: 0.5
+          },
+          project_id: {
+            type: 'string',
+            description: '지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색',
+            maxLength: 200
           }
         },
         required: ['query']
@@ -72,7 +80,8 @@ export class MemoryInjectionPrompt extends BaseTool {
       token_budget = 1000,
       max_memories = 5,
       memory_types = ['working', 'episodic', 'semantic', 'procedural'],
-      importance_threshold = 0.5
+      importance_threshold = 0.5,
+      project_id
     } = MemoryInjectionSchema.parse(params);
 
     try {
@@ -142,17 +151,22 @@ export class MemoryInjectionPrompt extends BaseTool {
         count: memories.length
       });
 
+      // Project-scoped memory filter (Issue #81)
+      const filteredMemories = project_id
+        ? memories.filter((m: any) => m.project_id != null && m.project_id === project_id)
+        : memories;
+
       // Consolidation Score System 업데이트 (기능 플래그 확인)
-      if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && memories.length > 0) {
+      if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && filteredMemories.length > 0) {
         await this.updateConsolidationScoreMetadata(
           context.db,
           context.services.consolidationScoreService,
           context.services.writeCoalescingManager,
-          memories
+          filteredMemories
         );
       }
 
-      if (memories.length === 0) {
+      if (filteredMemories.length === 0) {
         return this.createSuccessResult({
           message: '관련 기억을 찾을 수 없습니다.',
           memories_used: 0,
@@ -162,7 +176,7 @@ export class MemoryInjectionPrompt extends BaseTool {
       }
 
       // 2. 기억 요약 및 토큰 예산 관리
-      const summary = await this.summarizeMemories(memories, token_budget, max_memories);
+      const summary = await this.summarizeMemories(filteredMemories, token_budget, max_memories);
 
       // 3. 프롬프트 형식으로 포맷팅
       const formattedPrompt = this.formatMemoryPrompt(summary, query);

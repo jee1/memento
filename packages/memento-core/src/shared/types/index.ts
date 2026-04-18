@@ -198,6 +198,8 @@ export interface MemorySearchResult {
   session_id?: string | null;
   num_times?: number;
   last_mentioned_at?: Date;
+  // Project-scoped memory (Issue #81)
+  project_id?: string | null;
 }
 
 export interface SearchRankingWeights {
