@@ -48,8 +48,14 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
-    const providedKey = readBearerToken(req) ?? readApiKeyHeader(req);
-    if (providedKey === expectedKey) {
+    const bearerToken = readBearerToken(req);
+    if (bearerToken === expectedKey) {
+      next();
+      return;
+    }
+
+    const apiKeyHeader = readApiKeyHeader(req);
+    if (apiKeyHeader === expectedKey) {
       next();
       return;
     }

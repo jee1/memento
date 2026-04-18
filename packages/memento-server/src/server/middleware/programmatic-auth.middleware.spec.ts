@@ -81,6 +81,25 @@ describe('createProgrammaticAuthMiddleware', () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
+  it('accepts a valid X-API-Key even when Authorization is invalid', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      expectedKey: 'test-admin-key'
+    });
+    const req = {
+      headers: {
+        authorization: 'Bearer wrong-key',
+        'x-api-key': 'test-admin-key'
+      }
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when ADMIN_API_KEY is missing', () => {
     const middleware = createProgrammaticAuthMiddleware({
       expectedKey: undefined
