@@ -23,7 +23,15 @@ export async function readServerInfo(configDir: string): Promise<ServerInfo | nu
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
     const raw = await readFile(serverInfoPath(configDir), 'utf-8');
-    return JSON.parse(raw) as ServerInfo;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (
+      typeof parsed.port !== 'number' ||
+      typeof parsed.pid !== 'number' ||
+      typeof parsed.startedAt !== 'string'
+    ) {
+      return null;
+    }
+    return parsed as unknown as ServerInfo;
   } catch {
     return null;
   }
@@ -47,7 +55,7 @@ export async function isServerAlive(info: ServerInfo): Promise<boolean> {
   }
   // Step 2: HTTP /health check (prevents PID reuse false positives)
   try {
-    const res = await fetch(`http://localhost:${info.port}/health`, {
+    const res = await fetch(`http://127.0.0.1:${info.port}/health`, {
       signal: AbortSignal.timeout(3000),
     });
     return res.ok;
