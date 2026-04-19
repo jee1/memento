@@ -1518,13 +1518,13 @@ export class HybridSearchEngine {
         }
       }
       
-      // Step 4: 중복 제거 (방어적 프로그래밍)
+      // Step 3: 중복 제거 (방어적 프로그래밍)
       const deduplicatedResults = this.deduplicateResults(combinedResults);
-      
-      // Step 5: finalScore 기준 내림차순 정렬
+
+      // Step 4: finalScore 기준 내림차순 정렬
       const sortedResults = this.sortByFinalScore(deduplicatedResults);
-      
-      // Step 6: 제한 개수만큼 반환
+
+      // Step 5: 제한 개수만큼 반환
       return sortedResults.slice(0, limit);
     } catch (error) {
       throw new SearchError(
