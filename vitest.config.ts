@@ -25,6 +25,12 @@ export default defineConfig({
     // 기본 `threads` 풀은 워커 스레드가 동일 프로세스를 공유해 BatchScheduler 싱글톤이 파일 간에 충돌한다.
     // `forks`는 파일마다 자식 프로세스로 격리한다.
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 4,
+      },
+    },
     include: [
       // 루트 src에는 packages/*/src와 중복된 레거시 스펙이 많다.
       // 전체 src를 포함하면 동일 테스트가 두 번 실행되어 전체 시간이 급격히 늘어난다.
