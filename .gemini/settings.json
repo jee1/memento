@@ -23,6 +23,13 @@
         "serena",
         "start-mcp-server"
       ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
     }
   },
   "hooks": {
