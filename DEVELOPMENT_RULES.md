@@ -59,6 +59,8 @@ AI가 코드를 정확히 이해하고 검증할 수 있도록 비즈니스 로�
 *   **중복 방지:** 동일 파일에 대해 한 턴에 여러 번 `replace`를 호출하지 않습니다.
 
 ### Knowledge Graph (graphify)
+*   **분석 우선:** 코드베이스 구조나 아키텍처를 분석할 때는 먼저 `graphify-out/GRAPH_REPORT.md`에서 god nodes와 community 구조를 확인합니다.
+*   **위키 우선:** `graphify-out/wiki/index.md`가 있으면 원시 파일을 광범위하게 읽기 전에 해당 위키를 먼저 탐색합니다.
 *   **갱신 의무:** 코드 수정 후 반드시 지식 그래프 재빌드 명령을 실행합니다.
     `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"`
 
