@@ -51,6 +51,8 @@ export interface MemoryItem {
   // Memori Attribution (Issue #87)
   process_id?: string | null;
   session_id?: string | null;
+  // Project-scoped memory (Issue #81)
+  project_id?: string | null;
   // Fact metadata (Issue #88): semantic/Fact 표준 메타
   num_times?: number;
   last_mentioned_at?: Date | string | null;
@@ -96,6 +98,8 @@ export interface MemorySearchFilters {
   // Memori Attribution (Issue #87)
   process_id?: string | string[] | undefined;
   session_id?: string | string[] | undefined;
+  // Project-scoped memory (Issue #81)
+  project_id?: string | undefined;
 }
 
 // 관계 추출 타입 재export

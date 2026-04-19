@@ -1,0 +1,76 @@
+/* Memento Design Tokens */
+
+:root {
+  /* Colors - Brand */
+  --color-brand-primary: #667eea;
+  --color-brand-secondary: #764ba2;
+  --color-brand-gradient: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary) 100%);
+
+  /* Colors - Semantic */
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Colors - Neutral (Light Theme Focus) */
+  --color-bg-main: #f5f5f5;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #ffffff;
+  --color-text-main: #333333;
+  --color-text-muted: #666666;
+  --color-border-light: #e0e0e0;
+  --color-border-focus: var(--color-brand-primary);
+
+  /* Colors - Specialized (Graph/Dark areas) */
+  --color-bg-graph: #0f1117;
+  --color-text-graph: #e2e8f0;
+  --color-border-graph: #2d3748;
+
+  /* Colors - Anchor Slots */
+  --color-anchor-a: #ef4444;
+  --color-anchor-a-bg: #fee2e2;
+  --color-anchor-b: #f59e0b;
+  --color-anchor-b-bg: #fef3c7;
+  --color-anchor-c: #3b82f6;
+  --color-anchor-c-bg: #dbeafe;
+  --color-memory-neutral: #9ca3af;
+  --color-memory-neutral-bg: #e5e7eb;
+
+  /* Colors - Memory Types */
+  --color-memory-episodic: #818cf8;
+  --color-memory-semantic: var(--color-success);
+  --color-memory-procedural: var(--color-warning);
+  --color-memory-working: var(--color-memory-neutral);
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;  /* 4px */
+  --spacing-sm: 0.5rem;   /* 8px */
+  --spacing-md: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;   /* 24px */
+  --spacing-xl: 2rem;     /* 32px */
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Typography */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  
+  /* Z-index */
+  --z-index-dropdown: 100;
+  --z-index-sticky: 200;
+  --z-index-modal: 300;
+  --z-index-tooltip: 400;
+}

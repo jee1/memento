@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+coverage/
+
+# Logs and temporary files
+logs/
+test-logs/
+test-results/
+*.log
+tmp/
+
+# Version control and agent internals
+.git/
+.serena/
+.claude/
+.cursor/
+.worktrees/
+
+# Data and large generated files
+data/
+package-lock.json
+
+# Environment files (Security)
+.env*
+!.env.example
