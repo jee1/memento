@@ -75,7 +75,9 @@ S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weig
 
 - **MCP 사용**: 작업 전 `recall`, 작업 후 `remember`.
 - **Serena 활용**: 심볼 기반의 효율적 코드 탐색.
-- **graphify**: 코드 수정 후 반드시 지식 그래프 재빌드 수행.
+- **graphify 분석 우선**: 코드베이스 구조나 아키텍처 관련 질문에 답하기 전 `graphify-out/GRAPH_REPORT.md`를 먼저 확인하고, `graphify-out/wiki/index.md`가 있으면 원시 파일보다 우선 탐색합니다.
+- **graphify 갱신**: 코드 수정 후 반드시 지식 그래프를 재빌드합니다.
+- **Design System (Dashboard)**: 웹 대시보드 UI 수정 시 `static/css/tokens.css`의 토큰을 우선적으로 사용하며, 리터럴 값 사용을 지양합니다. ([DESIGN.md](./docs/DESIGN.md) 참조)
 
 ## 7. 최근 변경 사항 및 활성 기술
 - **016-env-config-cleanup**: 환경 설정 파일 및 문서 정리.

@@ -1,9 +1,9 @@
-    // ── 색상 맵 ──────────────────────────────────────────────
+    // ── 색상 맵 (tokens.css와 동기화) ──────────────────────────
     const NODE_COLORS = {
-      episodic:   '#818cf8',
-      semantic:   '#34d399',
-      procedural: '#fb923c',
-      working:    '#94a3b8',
+      episodic:   '#818cf8', // --color-anchor-a (유사색상 유지)
+      semantic:   '#34d399', // --color-success
+      procedural: '#fb923c', // --color-warning
+      working:    '#94a3b8', // --color-memory-neutral
     };
 
     const EDGE_COLORS = {

@@ -1,0 +1,123 @@
+/* Memento UI Component Rules */
+
+/* --- Buttons --- */
+.m-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: var(--spacing-xs);
+}
+
+.m-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.m-button-primary {
+  background: var(--color-brand-primary);
+  color: white;
+}
+
+.m-button-primary:hover:not(:disabled) {
+  background: var(--color-brand-secondary);
+}
+
+.m-button-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.m-button-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.m-button-ghost {
+  background: transparent;
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border-light);
+}
+
+.m-button-ghost:hover:not(:disabled) {
+  background: var(--color-bg-main);
+}
+
+/* --- Inputs --- */
+.m-input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-input);
+  color: var(--color-text-main);
+  font-size: var(--font-size-sm);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.m-input:focus {
+  border-color: var(--color-border-focus);
+}
+
+/* --- Cards --- */
+.m-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+}
+
+/* --- Header --- */
+.m-header {
+  background: var(--color-brand-gradient);
+  color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* --- Badges --- */
+.m-badge {
+  display: inline-flex;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* --- Tabs --- */
+.m-tab-bar {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: #e8eaf6;
+  border-bottom: 1px solid #c5cae9;
+}
+
+.m-tab-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  transition: all 0.2s;
+}
+
+.m-tab-btn.active {
+  background: var(--color-bg-card);
+  border-color: #c5cae9;
+  border-bottom-color: var(--color-bg-card);
+  color: var(--color-text-main);
+  margin-bottom: -1px;
+}
