@@ -1492,76 +1492,27 @@ export class HybridSearchEngine {
         weights
       );
       
-      // Step 2: 관계 그래프와 통합 점수를 활용하여 더 정교한 관련성 평가를 수행합니다.
+      // Step 2: 랭킹 컨텍스트 조회 및 점수 정규화
       if (db) {
         const memoryIds = combinedResults.map(r => r.id);
         if (memoryIds.length > 0) {
-          // 관계 그래프를 기반으로 관계 가중치와 관계 정보를 계산하여 관련성 점수에 반영합니다.
-          const relationData = await this.fetchRelationWeights(db, memoryIds);
-          const relationWeights = relationData.weights;
-          const relationInfo = relationData.relations;
-          
-          // 통합 점수 기능이 활성화된 경우 추가적인 관련성 지표를 조회합니다.
-          let consolidationScores: Map<string, number> = new Map();
-          if (mementoConfig.consolidationScoreEnabled) {
-            consolidationScores = this.fetchConsolidationScores(db, memoryIds);
-          }
-          
-          // Procedural Memory 특화 가중치를 위한 매칭 정보 조회
-          const proceduralMemoryMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(db, memoryIds, query);
-          
-          // Process Attribute 적합도 (Issue #91): process_id로 검색 시 process별 주제/속성 반영
-          let processAttributes: ProcessAttribute | null = null;
-          let memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map();
-          const processId = query?.filters?.process_id != null
-            ? (Array.isArray(query.filters.process_id) ? query.filters.process_id[0] : query.filters.process_id)
-            : undefined;
-          if (processId) {
-            const attrRepo = new ProcessAttributeRepository(db);
-            processAttributes = attrRepo.getByProcessId(processId);
-            const placeholders = memoryIds.map(() => '?').join(',');
-            const rows = db.prepare(
-              `SELECT id, tags, workflow_name, skill_name FROM memory_item WHERE id IN (${placeholders})`
-            ).all(...memoryIds) as Array<{ id: string; tags: string | null; workflow_name: string | null; skill_name: string | null }>;
-            for (const row of rows) {
-              let tags: string[] = [];
-              if (row.tags) {
-                try {
-                  const parsed = JSON.parse(row.tags);
-                  tags = Array.isArray(parsed) ? parsed : [];
-                } catch {
-                  tags = [];
-                }
-              }
-              memoryDetailsMap.set(row.id, {
-                tags,
-                workflow_name: row.workflow_name ?? null,
-                skill_name: row.skill_name ?? null
-              });
-            }
-          }
-          
-          let feedbackNetByMemory = new Map<string, number>();
-          try {
-            const feedbackRepo = new FeedbackRepository(db);
-            feedbackNetByMemory = feedbackRepo.getNetScores(memoryIds, 90);
-          } catch (err) {
-            logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
-              error: err instanceof Error ? err.message : String(err),
-            });
-          }
-
-          // Step 3: 점수 정규화 (관계 가중치와 통합 점수를 반영하여 각 결과의 최종 점수를 재계산)
+          const processId =
+            query?.filters?.process_id != null
+              ? Array.isArray(query.filters.process_id)
+                ? query.filters.process_id[0]
+                : query.filters.process_id
+              : undefined;
+          const ctx = await this.buildRankingContext(db, memoryIds, processId, query);
           this.normalizeScores(
             combinedResults,
-            relationWeights,
-            relationInfo,
-            consolidationScores,
-            proceduralMemoryMatches,
+            ctx.relationWeights,
+            ctx.relationInfo,
+            ctx.consolidationScores,
+            ctx.proceduralMatches,
             includeRelations,
-            processAttributes,
-            memoryDetailsMap,
-            feedbackNetByMemory,
+            ctx.processAttributes,
+            ctx.memoryDetailsMap,
+            ctx.feedbackScores,
             query?.include_score_breakdown === true
           );
         }
@@ -1680,6 +1631,52 @@ export class HybridSearchEngine {
       }
     }
     return { processAttributes, memoryDetailsMap };
+  }
+
+  private async buildRankingContext(
+    db: Database.Database,
+    memoryIds: string[],
+    processId: string | undefined,
+    query?: HybridSearchQuery
+  ): Promise<{
+    relationWeights: Map<string, number>;
+    relationInfo: Map<string, RelationInfoRow[]>;
+    consolidationScores: Map<string, number>;
+    proceduralMatches: Map<string, ProceduralMemoryMatch>;
+    processAttributes: ProcessAttribute | null;
+    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }>;
+    feedbackScores: Map<string, number>;
+  }> {
+    const relationData = await this.fetchRelationWeights(db, memoryIds);
+
+    let consolidationScores: Map<string, number> = new Map();
+    if (mementoConfig.consolidationScoreEnabled) {
+      consolidationScores = this.fetchConsolidationScores(db, memoryIds);
+    }
+
+    const proceduralMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(
+      db,
+      memoryIds,
+      query
+    );
+
+    const { processAttributes, memoryDetailsMap } = this.fetchProcessAttributeContext(
+      db,
+      memoryIds,
+      processId
+    );
+
+    const feedbackScores = this.fetchFeedbackScores(db, memoryIds);
+
+    return {
+      relationWeights: relationData.weights,
+      relationInfo: relationData.relations,
+      consolidationScores,
+      proceduralMatches,
+      processAttributes,
+      memoryDetailsMap,
+      feedbackScores,
+    };
   }
 
   // fetchProceduralMemoryMatches 메서드는 ProceduralMemoryMatcher 클래스로 분리됨
