@@ -1625,8 +1625,9 @@ export class HybridSearchEngine {
       const feedbackRepo = new FeedbackRepository(db);
       return feedbackRepo.getNetScores(memoryIds, 90);
     } catch (err) {
+      const maskedError = err instanceof Error ? PIIMasker.maskError(err) : { message: String(err), name: 'Error' };
       logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
-        error: err instanceof Error ? err.message : String(err),
+        error: maskedError.message,
       });
       return new Map();
     }
