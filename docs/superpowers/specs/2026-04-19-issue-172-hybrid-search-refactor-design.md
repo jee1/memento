@@ -44,15 +44,18 @@ slop-detector 분석에서 아래 두 파일이 **Critical Deficit (Score=50.0)*
 - `MockSearchLogger` 클래스
 
 **추가:**
-- `DefaultSearchLogger` 클래스 (인라인) — `ISearchLogger` 인터페이스를 정확히 구현
+- `DefaultSearchLogger` 클래스 (factory 파일 내 인라인, export 없음) — `ISearchLogger` 인터페이스를 정확히 구현
   - `logSearchStart(searchId: string, query: HybridSearchQuery): void`
   - `logSearchStep(searchId: string, step: string, data: unknown): void`
-  - `logSearchComplete(searchId: string, result: {...}, queryTime: number): void`
+  - `logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void`
   - `logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void`
-  - `logExperiment?(searchId, experimentId, variant): void`
+  - `logExperiment?(searchId: string, experimentId: string, variant: Record<string, unknown>): void` (optional)
+  - **주의**: `hybrid-search-engine.ts`에는 이미 `export class SearchLogger implements ISearchLogger`가 별도로 존재한다. 이 `SearchLogger`는 그대로 유지한다. `DefaultSearchLogger`는 factory 전용 로컬 구현체이므로 두 클래스는 독립적으로 공존한다.
 
 **수정:**
 - `createDefaultEngine()` — `MockSearchResultCombiner` → `SearchResultCombiner`, `MockAdaptiveWeightCalculator` → `AdaptiveWeightCalculator`, `MockSearchLogger` → `DefaultSearchLogger`
+  - `SearchResultCombiner` import 경로: `'../algorithms/search-result-combiner.js'` (engine 파일을 통한 re-export가 아닌 직접 import)
+  - `AdaptiveWeightCalculator` import 경로: `'../algorithms/hybrid-search-engine.js'` (현재 engine 파일에 정의됨)
 - `createEngine()` 파라미터 타입: `any` × 6 → `ITextSearchEngine`, `IEmbeddingService`, `IVectorSearchEngine`, `ISearchResultCombiner`, `IAdaptiveWeightCalculator`, `ISearchLogger`
 
 ### hybrid-search-engine.ts
@@ -81,14 +84,19 @@ private fetchFeedbackScores(
   memoryIds: string[]
 ): Map<string, number>
 ```
-- `FeedbackRepository.getNetScores()` 위임
+- `FeedbackRepository.getNetScores(memoryIds, 90)` 위임 — `90`(일수 파라미터)은 기존 하드코딩 값 그대로 유지
 - 에러 시 warn 로그 + 빈 Map 반환 (기존 동작 유지)
+
+#### `fetchProcessAttributeContext` 내 `processId` 추출 위치
+- `query?.filters?.process_id`에서 `processId`를 추출하는 로직(`Array.isArray` 분기 포함)은 `combineAndSortResults` 내부에서 `buildRankingContext` 호출 직전에 남긴다.
+- `buildRankingContext`는 이미 추출된 `processId?: string`을 받아 `fetchProcessAttributeContext`에 전달한다.
 
 #### `buildRankingContext`
 ```typescript
 private async buildRankingContext(
   db: Database.Database,
   memoryIds: string[],
+  processId: string | undefined,
   query?: HybridSearchQuery
 ): Promise<{
   relationWeights: Map<string, number>;
@@ -96,22 +104,28 @@ private async buildRankingContext(
   consolidationScores: Map<string, number>;
   proceduralMatches: Map<string, ProceduralMemoryMatch>;
   processAttributes: ProcessAttribute | null;
-  memoryDetailsMap: Map<string, {...}>;
+  memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }>;
   feedbackScores: Map<string, number>;
 }>
 ```
 - 기존 `fetchRelationWeights`, `fetchConsolidationScores`, `proceduralMemoryMatcher.fetchProceduralMemoryMatches` 호출
-- 신규 `fetchProcessAttributeContext`, `fetchFeedbackScores` 호출
+- 신규 `fetchProcessAttributeContext(db, memoryIds, processId)`, `fetchFeedbackScores(db, memoryIds)` 호출
 - `combineAndSortResults`의 DB 조회 블록(~50줄)을 이 메서드 한 곳으로 통합
 
+**`normalizeScores` 호출 조립:**
+- `buildRankingContext`는 `includeRelations`와 `includeScoreBreakdown`을 반환하지 않는다.
+- 이 두 값은 `combineAndSortResults`의 기존 파라미터(`includeRelations: boolean`, `query?.include_score_breakdown === true`)에서 직접 `normalizeScores` 호출 시 전달한다.
+
 **수정:**
-- `combineAndSortResults` Step 2 블록 → `buildRankingContext()` 호출로 대체
+- `combineAndSortResults` Step 2 블록 → `processId` 추출 후 `buildRankingContext()` 호출로 대체
+- `normalizeScores` 호출부는 `buildRankingContext` 결과 + 기존 파라미터 조합으로 구성
 
 ## 변경하지 않는 것
 
 - `HybridSearchEngine.search()` public 시그니처
 - 기존 private 메서드: `mergeResults`, `normalizeScores`, `deduplicateResults`, `sortByFinalScore`, `fetchRelationWeights`, `fetchConsolidationScores`, `groupResultsByProvider`, `normalizeResultsByProvider`, `deduplicateNormalizedResults`, `rankResults`
 - `AdaptiveWeightCalculator`, `SearchResultCombiner` 클래스 자체
+- `hybrid-search-engine.ts` 내 기존 `export class SearchLogger implements ISearchLogger` — 이 클래스는 그대로 유지
 - 기존 테스트 파일 (모두 green 유지 필요)
 
 ## 테스트 전략
