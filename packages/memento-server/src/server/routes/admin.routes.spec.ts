@@ -93,6 +93,32 @@ function getAdmin(port: number, path: string): Promise<{ statusCode: number; bod
   });
 }
 
+function deleteAdmin(port: number, path: string): Promise<{ statusCode: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path,
+        method: 'DELETE',
+        headers: { Connection: 'close' }
+      },
+      res => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode ?? 0,
+            body: Buffer.concat(chunks).toString('utf8')
+          });
+        });
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 describe('admin.routes consolidation', () => {
   let db: Database.Database;
 
@@ -755,6 +781,148 @@ describe('admin.routes graph', () => {
       expect(res.statusCode).toBe(400);
       const body = JSON.parse(res.body) as { error: string };
       expect(body.error).toBe('잘못된 파라미터');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+});
+
+// ============================================================
+// Project memory admin routes (Issue #81)
+// ============================================================
+
+describe('Project memory admin routes', () => {
+  let db: Database.Database;
+
+  beforeEach(() => {
+    db = new Database(':memory:');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL DEFAULT 'working',
+        content TEXT NOT NULL,
+        importance REAL DEFAULT 0.5,
+        project_id TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        is_deleted INTEGER DEFAULT 0
+      )
+    `);
+  });
+
+  afterEach(() => {
+    try { db.close(); } catch { /* ignore */ }
+    vi.restoreAllMocks();
+  });
+
+  function makeApp(database: Database.Database) {
+    const app = express();
+    app.use(express.json());
+    app.use('/admin', createAdminRouter(database, null));
+    return app;
+  }
+
+  it('GET /admin/memory/project/:project_id/stats returns counts', async () => {
+    db.exec(`
+      INSERT INTO memory_item (id, type, content, importance, project_id, created_at, is_deleted)
+      VALUES
+        ('ps1', 'semantic', 'a', 0.5, 'proj-test', datetime('now'), 0),
+        ('ps2', 'episodic', 'b', 0.5, 'proj-test', datetime('now'), 0),
+        ('ps3', 'semantic', 'c', 0.5, 'other-proj', datetime('now'), 0)
+    `);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/project/proj-test/stats');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { project_id: string; total: number };
+      expect(body.project_id).toBe('proj-test');
+      expect(body.total).toBe(2);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/project/:project_id/cleanup/preview returns 400 when older_than_days missing', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/project/proj-x/cleanup/preview');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/project/:project_id/cleanup/preview returns 400 when types includes core', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/project/proj-x/cleanup/preview?older_than_days=90&types=core');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/project/:project_id/cleanup/preview returns would_delete without deleting', async () => {
+    const old = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
+    db.exec(`INSERT INTO memory_item (id, type, content, importance, project_id, created_at, is_deleted) VALUES ('old1', 'episodic', 'old', 0.5, 'proj-preview', '${old}', 0)`);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/project/proj-preview/cleanup/preview?older_than_days=90');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { would_delete: number };
+      expect(body.would_delete).toBe(1);
+      // Verify not deleted
+      const count = db.prepare(`SELECT COUNT(*) as c FROM memory_item WHERE id = 'old1'`).get() as { c: number };
+      expect(count.c).toBe(1);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('DELETE /admin/memory/project/:project_id/cleanup deletes old memories', async () => {
+    const old = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
+    db.exec(`INSERT INTO memory_item (id, type, content, importance, project_id, created_at, is_deleted) VALUES ('del1', 'episodic', 'del', 0.5, 'proj-del', '${old}', 0)`);
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await deleteAdmin(port, '/admin/memory/project/proj-del/cleanup?older_than_days=90');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { deleted: number };
+      expect(body.deleted).toBe(1);
+      const count = db.prepare(`SELECT COUNT(*) as c FROM memory_item WHERE id = 'del1'`).get() as { c: number };
+      expect(count.c).toBe(0);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/project/:project_id/cleanup/preview returns 400 when older_than_days > 3650', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/project/proj-x/cleanup/preview?older_than_days=3651');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('DELETE /admin/memory/project/:project_id/cleanup returns 400 when older_than_days > 3650', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await deleteAdmin(port, '/admin/memory/project/proj-x/cleanup?older_than_days=9999999');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/project/:project_id/stats returns 400 when project_id exceeds 200 chars', async () => {
+    const longId = 'a'.repeat(201);
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, `/admin/memory/project/${longId}/stats`);
+      expect(res.statusCode).toBe(400);
     } finally {
       await new Promise<void>(r => server.close(() => r()));
     }

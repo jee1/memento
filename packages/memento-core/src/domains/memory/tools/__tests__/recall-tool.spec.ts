@@ -774,6 +774,40 @@ describe('RecallTool', () => {
     });
   });
 
+  describe('project_id 필터 (Project-scoped Memory, Issue #81)', () => {
+    it('Given: project_id가 서로 다른 메모리 2건, When: recall에 project_id 제공 시, Then: 해당 project 메모리만 반환', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          { id: 'mem-proj-a', content: 'proj-a 결정', type: 'semantic', importance: 0.8, created_at: new Date().toISOString(), project_id: 'proj-a', finalScore: 0.9 },
+          { id: 'mem-proj-b', content: 'proj-b 결정', type: 'semantic', importance: 0.8, created_at: new Date().toISOString(), project_id: 'proj-b', finalScore: 0.8 },
+        ],
+        total_count: 2,
+        query_time: 10,
+      });
+      const params = { query: '결정', type: 'semantic', project_id: 'proj-a' };
+      const result = await tool.handle(params, context);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.items).toHaveLength(1);
+      expect(data.items[0].memory_id).toBe('mem-proj-a');
+      expect(data.items[0].project_id).toBe('proj-a');
+    });
+
+    it('Given: project_id 미지정, When: recall 호출 시, Then: 모든 project 메모리 반환', async () => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          { id: 'mem-a2', content: '테스트 A2', type: 'semantic', importance: 0.8, created_at: new Date().toISOString(), project_id: 'proj-a', finalScore: 0.9 },
+          { id: 'mem-b2', content: '테스트 B2', type: 'semantic', importance: 0.8, created_at: new Date().toISOString(), project_id: null, finalScore: 0.8 },
+        ],
+        total_count: 2,
+        query_time: 10,
+      });
+      const params = { query: '테스트', type: 'semantic' };
+      const result = await tool.handle(params, context);
+      const data = JSON.parse(result.content[0].text);
+      expect(data.items).toHaveLength(2);
+    });
+  });
+
   describe('recall profiling (recallProfileEnabled)', () => {
     it('Given: recallProfileEnabled=true, When: recall 성공 시, Then: logInfo에 recall_profile 및 total_ms 호출됨', async () => {
       const configRestore = mementoConfig.recallProfileEnabled;

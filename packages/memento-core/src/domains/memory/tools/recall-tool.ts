@@ -300,6 +300,9 @@ const RecallSchema = z.object({
   process_id: z.union([z.string(), z.array(z.string())]).optional(),
   /** Memori Attribution: 세션 ID 필터 (Issue #87) */
   session_id: z.union([z.string(), z.array(z.string())]).optional(),
+  /** Project-scoped Memory: 프로젝트 ID 필터 (Issue #81) */
+  project_id: z.string().max(200).optional()
+    .describe('이 project_id로 저장된 기억만 검색. 미지정 시 전체 검색'),
   include_diff_with: z.string().optional(), // 'previous' 또는 비교할 메모리 id
   include_score_breakdown: z.boolean().optional().default(false)
 }).refine((data) => {
@@ -356,6 +359,7 @@ interface RecallSearchItem {
   owner_id?: string | null;
   process_id?: string | null;
   session_id?: string | null;
+  project_id?: string | null;
   last_accessed?: Date;
   pinned?: boolean;
   tags?: string[];
@@ -396,6 +400,7 @@ interface AppliedFilters extends Record<string, unknown> {
   owner_id?: string | string[];
   process_id?: string | string[];
   session_id?: string | string[];
+  project_id?: string;
 }
 
 /** Recall 내부 필터 (MemorySearchFilters + importance 범위) */
@@ -606,6 +611,10 @@ export class RecallTool extends BaseTool {
           session_id: {
             type: 'string',
             description: 'Memori Attribution: 세션 ID로 결과 필터 (Issue #87)'
+          },
+          project_id: {
+            type: 'string',
+            description: 'Project-scoped Memory: 프로젝트 ID로 결과 필터 (Issue #81). 미지정 시 전체 검색'
           }
         },
         required: [] // 조건부 필수는 런타임 검증 (RecallSchema.refine()에서 처리)
@@ -657,6 +666,7 @@ export class RecallTool extends BaseTool {
         owner_id: owner_id_filter,
         process_id: process_id_filter,
         session_id: session_id_filter,
+        project_id: project_id_filter,
         include_score_breakdown
       } = RecallSchema.parse(params);
       
@@ -1037,6 +1047,12 @@ export class RecallTool extends BaseTool {
             (i: RecallSearchItem) => i.session_id != null && sessionIds.includes(i.session_id)
           );
         }
+        // Project-scoped Memory (Issue #81): project_id 필터
+        if (project_id_filter && searchItems.length > 0) {
+          searchItems = searchItems.filter(
+            (i: RecallSearchItem) => i.project_id != null && i.project_id === project_id_filter
+          );
+        }
 
         // Procedural Version Management: version_chain·diff 보강 (procedural 항목만, db 필요)
         if ((include_version_chain || include_diff_with) && context.db && searchItems.length > 0) {
@@ -1380,6 +1396,7 @@ export class RecallTool extends BaseTool {
         if (item.owner_id !== undefined) processed.owner_id = item.owner_id;
         if (item.process_id !== undefined) processed.process_id = item.process_id;
         if (item.session_id !== undefined) processed.session_id = item.session_id;
+        if (item.project_id !== undefined) processed.project_id = item.project_id;
 
         // origin_source 필드 추가 (JSON 파싱)
         if (item.origin_source) {
@@ -1502,6 +1519,7 @@ export class RecallTool extends BaseTool {
     if (filters.owner_id !== undefined) applied.owner_id = filters.owner_id;
     if (filters.process_id !== undefined) applied.process_id = filters.process_id;
     if (filters.session_id !== undefined) applied.session_id = filters.session_id;
+    if (filters.project_id !== undefined) applied.project_id = filters.project_id;
     if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
 
     return applied;

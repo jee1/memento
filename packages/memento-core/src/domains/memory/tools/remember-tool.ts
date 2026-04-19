@@ -78,6 +78,9 @@ const RememberSchema = z.object({
   // Memori Attribution (Issue #87)
   process_id: z.string().optional(),
   session_id: z.string().optional(),
+  // Project-scoped memory (Issue #81)
+  project_id: z.string().max(200).optional()
+    .describe('프로젝트 식별자. 동일 project_id로 저장한 기억끼리 recall/memory_injection 시 필터링 가능'),
   // Fact metadata (Issue #88): semantic 표준 메타
   num_times: z.number().int().min(1).optional(),
   last_mentioned_at: z.string().datetime().optional(),
@@ -390,6 +393,7 @@ export class RememberTool extends BaseTool {
         owner_id: owner_id_param,
         process_id: process_id_param,
         session_id: session_id_param,
+        project_id: project_id_param,
         num_times: num_times_param,
         last_mentioned_at: last_mentioned_at_param,
         source_session_id: source_session_id_param,
@@ -803,22 +807,22 @@ export class RememberTool extends BaseTool {
             // INSERT 쿼리
             await DatabaseUtils.run(context.db!, `
               INSERT INTO memory_item (
-                id, type, content, importance, privacy_scope, tags, source, origin_source, 
-                task_goal, steps, reflection_notes, 
+                id, type, content, importance, privacy_scope, tags, source, origin_source,
+                task_goal, steps, reflection_notes,
                 workflow_name, skill_name, trigger_conditions,
                 created_at,
                 recall_count, last_accessed_at, g_value, consolidation_score,
-                version, version_series_id, owner_id, process_id, session_id,
+                version, version_series_id, owner_id, process_id, session_id, project_id,
                 num_times, last_mentioned_at, source_session_id, confidence
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
-              id, 
-              type, 
-              content, 
-              importance, 
-              privacy_scope, 
-              tags ? JSON.stringify(tags) : null, 
+              id,
+              type,
+              content,
+              importance,
+              privacy_scope,
+              tags ? JSON.stringify(tags) : null,
               source || null,
               origin_source,
               task_goal || null,
@@ -837,6 +841,7 @@ export class RememberTool extends BaseTool {
               ownerId,
               processId,
               sessionId,
+              project_id_param ?? null,
               numTimes,
               lastMentionedAt,
               sourceSessionId,
@@ -1104,7 +1109,7 @@ export class RememberTool extends BaseTool {
                           UPDATE memory_item SET
                             triple_extracted_status = ?,
                             triple_extraction_metadata = ?
-                          WHERE id = ? AND triple_extracted_status IS NULL
+                          WHERE id = ? AND (triple_extracted_status IS NULL OR triple_extracted_status = '')
                         `, [
                           'in_progress',
                           JSON.stringify({

@@ -53,6 +53,7 @@ function initializeTestDatabase(db: Database.Database): void {
       owner_id TEXT NULL,
       process_id TEXT NULL,
       session_id TEXT NULL,
+      project_id TEXT,
       -- Fact metadata (Issue #88, migration 017)
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,

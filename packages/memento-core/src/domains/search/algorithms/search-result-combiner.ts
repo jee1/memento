@@ -34,7 +34,7 @@ export class SearchResultCombiner implements ISearchResultCombiner {
     // 텍스트 검색 결과를 먼저 추가하여 기본 점수를 설정합니다.
     textResults.forEach(result => {
       const textScore = typeof result.score === 'number' ? result.score : HYBRID_SEARCH.DEFAULT_TEXT_WEIGHT * 0; // 0
-      resultMap.set(result.id, {
+      const entry: HybridSearchResult = {
         id: result.id,
         content: result.content,
         type: result.type,
@@ -47,7 +47,14 @@ export class SearchResultCombiner implements ISearchResultCombiner {
         vectorScore: 0,
         finalScore: textScore * textWeight,
         recall_reason: result.recall_reason || '텍스트 검색 결과',
-      });
+      };
+      // Project-scoped memory (Issue #81): project_id 전달
+      if (result.project_id !== undefined) entry.project_id = result.project_id;
+      // 기타 extended 필드 전달
+      if (result.owner_id !== undefined) (entry as any).owner_id = result.owner_id;
+      if (result.process_id !== undefined) (entry as any).process_id = result.process_id;
+      if (result.session_id !== undefined) (entry as any).session_id = result.session_id;
+      resultMap.set(result.id, entry);
     });
 
     // 벡터 검색 결과를 추가하거나 기존 텍스트 결과와 결합하여 하이브리드 점수를 계산합니다.

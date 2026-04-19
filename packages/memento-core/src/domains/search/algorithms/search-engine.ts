@@ -53,6 +53,7 @@ type SearchEngineRow = {
   session_id?: string | null;
   num_times?: number | string | null;
   last_mentioned_at?: Date | string | null;
+  project_id?: string | null;
 } & Record<string, unknown>;
 
 export class SearchEngine {
@@ -133,7 +134,7 @@ export class SearchEngine {
                 m.workflow_name, m.skill_name, m.trigger_conditions,
                 m.version, m.version_series_id,
                 m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
-                m.num_times, m.last_mentioned_at,
+                m.num_times, m.last_mentioned_at, m.project_id,
                 0 as fts_rank
               FROM memory_item m
             `;
@@ -148,7 +149,7 @@ export class SearchEngine {
                 m.workflow_name, m.skill_name, m.trigger_conditions,
                 m.version, m.version_series_id,
                 m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
-                m.num_times, m.last_mentioned_at,
+                m.num_times, m.last_mentioned_at, m.project_id,
                 memory_item_fts.rank as fts_rank
               FROM memory_item_fts
               JOIN memory_item m ON memory_item_fts.rowid = m.rowid
@@ -176,7 +177,7 @@ export class SearchEngine {
               m.workflow_name, m.skill_name, m.trigger_conditions,
               m.version, m.version_series_id,
               m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
-              m.num_times, m.last_mentioned_at,
+              m.num_times, m.last_mentioned_at, m.project_id,
               0 as fts_rank
             FROM memory_item m
             WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
@@ -572,6 +573,7 @@ export class SearchEngine {
         if (row.owner_id !== undefined) result.owner_id = row.owner_id;
         if (row.process_id !== undefined) result.process_id = row.process_id;
         if (row.session_id !== undefined) result.session_id = row.session_id;
+        if (row.project_id !== undefined) result.project_id = row.project_id;
         if (row.num_times != null) result.num_times = Number(row.num_times);
         if (row.last_mentioned_at != null) {
           result.last_mentioned_at =

@@ -318,6 +318,8 @@ export interface HybridSearchResult {
     confidence: number;
   }>;
   score_breakdown?: ScoreBreakdown;
+  // Project-scoped memory (Issue #81)
+  project_id?: string | null;
 }
 
 export class HybridSearchEngine {
