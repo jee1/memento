@@ -44,7 +44,12 @@ describe('Meta-Memory 통합 E2E 테스트', () => {
     } catch (error) {
       // 이미 존재하는 경우 무시
     }
-    
+    try {
+      DatabaseUtils.run(db, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
+    } catch (error) {
+      // 이미 존재하는 경우 무시
+    }
+
     // meta_memory_stats 테이블 마이그레이션 실행
     const migrationSQL = `
       CREATE TABLE IF NOT EXISTS meta_memory_stats (

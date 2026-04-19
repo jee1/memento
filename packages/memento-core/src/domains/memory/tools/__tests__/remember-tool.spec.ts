@@ -62,7 +62,9 @@ function initializeTestDatabase(db: Database.Database): void {
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
-      confidence REAL
+      confidence REAL,
+      -- Project-scoped memory (Issue #81)
+      project_id TEXT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
@@ -1683,6 +1685,35 @@ describe('RememberTool', () => {
           expect(link).toBeDefined();
         });
       });
+    });
+  });
+
+  describe('project_id (Project-scoped Memory, Issue #81)', () => {
+    it('stores project_id when provided', async () => {
+      const result = await tool.handle({
+        content: 'PostgreSQL을 사용한다',
+        type: 'semantic',
+        project_id: 'test-project'
+      }, context);
+
+      expect(result.isError).toBeFalsy();
+      const row = db.prepare(
+        `SELECT project_id FROM memory_item WHERE content = ?`
+      ).get('PostgreSQL을 사용한다') as { project_id: string | null } | undefined;
+      expect(row?.project_id).toBe('test-project');
+    });
+
+    it('stores NULL project_id when not provided', async () => {
+      const result = await tool.handle({
+        content: '프로젝트 없는 기억',
+        type: 'episodic'
+      }, context);
+
+      expect(result.isError).toBeFalsy();
+      const row = db.prepare(
+        `SELECT project_id FROM memory_item WHERE content = ?`
+      ).get('프로젝트 없는 기억') as { project_id: string | null } | undefined;
+      expect(row?.project_id).toBeNull();
     });
   });
 

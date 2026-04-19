@@ -52,7 +52,9 @@ CREATE TABLE IF NOT EXISTS memory_item (
   triple_extracted_status TEXT,
   triple_extraction_metadata TEXT,
   is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
-  deleted_at TEXT
+  deleted_at TEXT,
+  -- Project-scoped memory (Issue #81, migration 032)
+  project_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_episodic
   ON memory_item(triple_extracted)
@@ -63,6 +65,9 @@ CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted_status_episodic
 CREATE INDEX IF NOT EXISTS idx_memory_item_is_deleted_active
   ON memory_item(is_deleted)
   WHERE COALESCE(is_deleted, 0) = 0;
+CREATE INDEX IF NOT EXISTS idx_memory_item_project_id_type
+  ON memory_item(project_id, type)
+  WHERE project_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_memory_item_triple ON memory_item(subject, predicate, object)
 WHERE type='semantic' AND subject IS NOT NULL AND predicate IS NOT NULL AND object IS NOT NULL;
 

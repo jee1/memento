@@ -435,6 +435,29 @@ describe('MemoryInjectionPrompt', () => {
     });
   });
 
+  describe('project_id 필터', () => {
+    it('injects only project memories when project_id is specified', async () => {
+      // Pre-insert memories with different project_ids
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, project_id, created_at)
+        VALUES
+          ('inj_mine', 'semantic', 'proj-x 전용 결정', 0.9, 'proj-x', datetime('now')),
+          ('inj_other', 'semantic', '다른 프로젝트 결정', 0.9, 'proj-y', datetime('now')),
+          ('inj_none', 'semantic', '프로젝트 없는 기억', 0.9, NULL, datetime('now'))
+      `);
+
+      const result = await tool.handle({
+        query: '결정',
+        project_id: 'proj-x'
+      }, context);
+
+      expect(result.isError).toBeFalsy();
+      const text = result.content?.[0]?.text ?? JSON.stringify(result);
+      expect(text).toContain('proj-x 전용 결정');
+      expect(text).not.toContain('다른 프로젝트 결정');
+    });
+  });
+
   describe('도구 메타데이터', () => {
     it('도구 이름을 올바르게 반환해야 함', () => {
       // When: 도구 정의 조회
