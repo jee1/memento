@@ -57,6 +57,8 @@ type SearchEngineRow = {
 
 export class SearchEngine {
   private ranking: SearchRanking;
+  private cachedFts5Availability = new WeakSet<Database.Database>();
+  private cachedReflectionNotesAvailability = new WeakSet<Database.Database>();
 
   constructor() {
     this.ranking = new SearchRanking();
@@ -82,22 +84,68 @@ export class SearchEngine {
     // ID로 직접 조회할 때는 이미 대상이 명확하므로 불필요한 텍스트 검색을 생략하여 성능을 최적화합니다.
     const hasIdFilter = filters?.id && filters.id.length > 0;
     
-    let sql: string;
-    const params: unknown[] = [];
-    
-    // 전문 검색 인덱스를 활용하여 빠르고 정확한 검색 결과를 제공합니다.
-    if (!hasIdFilter && searchQuery.trim().length > 0) {
-      // FTS5 인덱스가 없으면 쿼리 오류가 발생할 수 있으므로, 인덱스가 준비되어 있는지 확인하여 안전한 검색을 보장합니다.
-      const ftsAvailable = await this.checkFTS5Availability(db);
-      
-      if (ftsAvailable) {
-        const ftsQuery = this.buildFTSQuery(searchQuery);
-        
-        // 빈 쿼리로 인한 FTS5 오류를 방지하고 모든 결과를 반환합니다.
-        if (ftsQuery === '""' || ftsQuery.length === 0) {
+    const buildSearchStatement = async (
+      preferFts: boolean
+    ): Promise<{ sql: string; params: unknown[]; usedFtsQuery: boolean }> => {
+      let sql: string;
+      const params: unknown[] = [];
+      let usedFtsQuery = false;
+
+      // 전문 검색 인덱스를 활용하여 빠르고 정확한 검색 결과를 제공합니다.
+      if (!hasIdFilter && searchQuery.trim().length > 0) {
+        const ftsAvailable = preferFts ? await this.checkFTS5Availability(db) : false;
+
+        if (ftsAvailable) {
+          const ftsQuery = this.buildFTSQuery(searchQuery);
+
+          // 빈 쿼리로 인한 FTS5 오류를 방지하고 모든 결과를 반환합니다.
+          if (ftsQuery === '""' || ftsQuery.length === 0) {
+            sql = `
+              SELECT
+                m.id, m.content, m.type, m.importance, m.created_at,
+                m.last_accessed, m.pinned, m.tags, m.source,
+                m.consolidation_score,
+                m.task_goal, m.steps, m.reflection_notes,
+                m.workflow_name, m.skill_name, m.trigger_conditions,
+                m.version, m.version_series_id,
+                m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
+                m.num_times, m.last_mentioned_at,
+                0 as fts_rank
+              FROM memory_item m
+            `;
+          } else {
+            usedFtsQuery = true;
+            sql = `
+              SELECT
+                m.id, m.content, m.type, m.importance, m.created_at,
+                m.last_accessed, m.pinned, m.tags, m.source,
+                m.consolidation_score,
+                m.task_goal, m.steps, m.reflection_notes,
+                m.workflow_name, m.skill_name, m.trigger_conditions,
+                m.version, m.version_series_id,
+                m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
+                m.num_times, m.last_mentioned_at,
+                memory_item_fts.rank as fts_rank
+              FROM memory_item_fts
+              JOIN memory_item m ON memory_item_fts.rowid = m.rowid
+              WHERE memory_item_fts MATCH ?
+            `;
+            params.push(ftsQuery);
+          }
+        } else {
+          // FTS5가 없는 환경에서도 검색 기능이 동작하도록 호환성을 보장합니다.
+          const likeQuery = `%${searchQuery}%`;
+
+          // reflection_notes 검색 조건 추가 (Fallback)
+          const reflectionNotesCondition = this.buildReflectionNotesSearchCondition(db, searchQuery);
+          const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
+          const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
+
+          // SQL Injection 방지를 위해 템플릿 리터럴 대신 문자열 연결 사용
+          // reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
           sql = `
-            SELECT 
-              m.id, m.content, m.type, m.importance, m.created_at, 
+            SELECT
+              m.id, m.content, m.type, m.importance, m.created_at,
               m.last_accessed, m.pinned, m.tags, m.source,
               m.consolidation_score,
               m.task_goal, m.steps, m.reflection_notes,
@@ -107,39 +155,14 @@ export class SearchEngine {
               m.num_times, m.last_mentioned_at,
               0 as fts_rank
             FROM memory_item m
-          `;
-        } else {
-          sql = `
-            SELECT 
-              m.id, m.content, m.type, m.importance, m.created_at, 
-              m.last_accessed, m.pinned, m.tags, m.source,
-              m.consolidation_score,
-              m.task_goal, m.steps, m.reflection_notes,
-              m.workflow_name, m.skill_name, m.trigger_conditions,
-              m.version, m.version_series_id,
-              m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
-              m.num_times, m.last_mentioned_at,
-              memory_item_fts.rank as fts_rank
-            FROM memory_item_fts
-            JOIN memory_item m ON memory_item_fts.rowid = m.rowid
-            WHERE memory_item_fts MATCH ?
-          `;
-          params.push(ftsQuery);
+            WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
+          params.push(likeQuery, likeQuery, likeQuery, ...reflectionNotesParams);
         }
       } else {
-        // FTS5가 없는 환경에서도 검색 기능이 동작하도록 호환성을 보장합니다.
-        const likeQuery = `%${searchQuery}%`;
-        
-        // reflection_notes 검색 조건 추가 (Fallback)
-        const reflectionNotesCondition = this.buildReflectionNotesSearchCondition(db, searchQuery);
-        const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
-        const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
-        
-        // SQL Injection 방지를 위해 템플릿 리터럴 대신 문자열 연결 사용
-        // reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
+        // ID 필터나 빈 검색어 상황에서 효율적인 직접 조회를 수행합니다.
         sql = `
-          SELECT 
-            m.id, m.content, m.type, m.importance, m.created_at, 
+          SELECT
+            m.id, m.content, m.type, m.importance, m.created_at,
             m.last_accessed, m.pinned, m.tags, m.source,
             m.consolidation_score,
             m.task_goal, m.steps, m.reflection_notes,
@@ -149,103 +172,91 @@ export class SearchEngine {
             m.num_times, m.last_mentioned_at,
             0 as fts_rank
           FROM memory_item m
-          WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
-        params.push(likeQuery, likeQuery, likeQuery, ...reflectionNotesParams);
+        `;
+
+        // 검색어가 있을 때만 텍스트 매칭을 수행하여 불필요한 연산을 방지합니다.
+        if (!hasIdFilter && searchQuery.trim().length > 0) {
+          const likeQuery = `%${searchQuery}%`;
+
+          // reflection_notes 검색 조건 추가 (Fallback)
+          const reflectionNotesCondition = this.buildReflectionNotesSearchCondition(db, searchQuery);
+          const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
+          const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
+
+          // SQL Injection 방지: reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
+          sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
+          params.push(likeQuery, ...reflectionNotesParams);
+        }
       }
-    } else {
-      // ID 필터나 빈 검색어 상황에서 효율적인 직접 조회를 수행합니다.
-      sql = `
-        SELECT 
-          m.id, m.content, m.type, m.importance, m.created_at, 
-          m.last_accessed, m.pinned, m.tags, m.source,
-          m.consolidation_score,
-          m.task_goal, m.steps, m.reflection_notes,
-          m.workflow_name, m.skill_name, m.trigger_conditions,
-          m.version, m.version_series_id,
-          m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
-          m.num_times, m.last_mentioned_at,
-          0 as fts_rank
-        FROM memory_item m
-      `;
-      
-      // 검색어가 있을 때만 텍스트 매칭을 수행하여 불필요한 연산을 방지합니다.
-      if (!hasIdFilter && searchQuery.trim().length > 0) {
-        const likeQuery = `%${searchQuery}%`;
-        
-        // reflection_notes 검색 조건 추가 (Fallback)
-        const reflectionNotesCondition = this.buildReflectionNotesSearchCondition(db, searchQuery);
-        const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
-        const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
-        
-        // SQL Injection 방지: reflectionNotesLike는 이미 ? 플레이스홀더를 포함하고 있어 안전함
-        sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
-        params.push(likeQuery, ...reflectionNotesParams);
+
+      // 사용자가 요청한 타입, 중요도, 시간 범위 등의 필터를 적용하여 정확한 결과를 제공합니다.
+      const conditions: string[] = ['(COALESCE(m.is_deleted, 0) = 0)'];
+
+      if (filters?.id && filters.id.length > 0) {
+        conditions.push(`m.id IN (${filters.id.map(() => '?').join(',')})`);
+        params.push(...filters.id);
       }
-    }
-    
-    // 사용자가 요청한 타입, 중요도, 시간 범위 등의 필터를 적용하여 정확한 결과를 제공합니다.
-    const conditions: string[] = ['(COALESCE(m.is_deleted, 0) = 0)'];
-    
-    if (filters?.id && filters.id.length > 0) {
-      conditions.push(`m.id IN (${filters.id.map(() => '?').join(',')})`);
-      params.push(...filters.id);
-    }
-    
-    if (filters?.type && filters.type.length > 0) {
-      conditions.push(`m.type IN (${filters.type.map(() => '?').join(',')})`);
-      params.push(...filters.type);
-    }
-    
-    if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
-      conditions.push(`m.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
-      params.push(...filters.privacy_scope);
-    }
-    
-    if (filters?.pinned !== undefined) {
-      conditions.push(`m.pinned = ?`);
-      params.push(filters.pinned ? 1 : 0); // SQLite가 boolean을 지원하지 않으므로 숫자로 변환하여 저장합니다.
-    }
-    
-    if (filters?.time_from) {
-      conditions.push(`m.created_at >= ?`);
-      params.push(filters.time_from);
-    }
-    
-    if (filters?.time_to) {
-      conditions.push(`m.created_at <= ?`);
-      params.push(filters.time_to);
-    }
-    
-    if (filters?.has_reflection_notes !== undefined) {
-      if (filters.has_reflection_notes) {
-        conditions.push(`m.reflection_notes IS NOT NULL`);
-      } else {
-        conditions.push(`m.reflection_notes IS NULL`);
+
+      if (filters?.type && filters.type.length > 0) {
+        conditions.push(`m.type IN (${filters.type.map(() => '?').join(',')})`);
+        params.push(...filters.type);
       }
-    }
-    
-    // Procedural Memory Enhancement (v7.0) 필터
-    if (filters?.workflow_name) {
-      conditions.push(`m.workflow_name = ?`);
-      params.push(filters.workflow_name);
-    }
-    
-    if (filters?.skill_name) {
-      conditions.push(`m.skill_name = ?`);
-      params.push(filters.skill_name);
-    }
-    
-    // WHERE 절 추가
-    // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
-    if (conditions.length > 0) {
-      const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';
-      sql += `${whereClause}${conditions.join(' AND ')}`;
-    }
-    
-    // FTS5 랭킹을 고려하여 충분한 후보를 확보한 후 재랭킹하여 최종 결과의 품질을 보장합니다.
-    // SQL Injection 방지: LIMIT 값은 파라미터 바인딩으로 전달됨
-    sql += ' ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?';
-    params.push(limit * 3); // FTS5 랭킹과 재랭킹 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
+
+      if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
+        conditions.push(`m.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
+        params.push(...filters.privacy_scope);
+      }
+
+      if (filters?.pinned !== undefined) {
+        conditions.push(`m.pinned = ?`);
+        params.push(filters.pinned ? 1 : 0); // SQLite가 boolean을 지원하지 않으므로 숫자로 변환하여 저장합니다.
+      }
+
+      if (filters?.time_from) {
+        conditions.push(`m.created_at >= ?`);
+        params.push(filters.time_from);
+      }
+
+      if (filters?.time_to) {
+        conditions.push(`m.created_at <= ?`);
+        params.push(filters.time_to);
+      }
+
+      if (filters?.has_reflection_notes !== undefined) {
+        if (filters.has_reflection_notes) {
+          conditions.push(`m.reflection_notes IS NOT NULL`);
+        } else {
+          conditions.push(`m.reflection_notes IS NULL`);
+        }
+      }
+
+      // Procedural Memory Enhancement (v7.0) 필터
+      if (filters?.workflow_name) {
+        conditions.push(`m.workflow_name = ?`);
+        params.push(filters.workflow_name);
+      }
+
+      if (filters?.skill_name) {
+        conditions.push(`m.skill_name = ?`);
+        params.push(filters.skill_name);
+      }
+
+      // WHERE 절 추가
+      // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
+      if (conditions.length > 0) {
+        const whereClause = sql.includes('WHERE') ? ' AND ' : ' WHERE ';
+        sql += `${whereClause}${conditions.join(' AND ')}`;
+      }
+
+      // FTS5 랭킹을 고려하여 충분한 후보를 확보한 후 재랭킹하여 최종 결과의 품질을 보장합니다.
+      // SQL Injection 방지: LIMIT 값은 파라미터 바인딩으로 전달됨
+      sql += ' ORDER BY fts_rank DESC, m.created_at DESC LIMIT ?';
+      params.push(limit * 3); // FTS5 랭킹과 재랭킹 과정에서 일부 결과가 제외될 수 있으므로 충분한 후보를 확보합니다.
+
+      return { sql, params, usedFtsQuery };
+    };
+
+    let { sql, params, usedFtsQuery } = await buildSearchStatement(true);
     
     // 구성된 쿼리를 실행하여 실제 검색 결과를 획득합니다.
     // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
@@ -253,7 +264,22 @@ export class SearchEngine {
       query: sql,
       params: params
     });
-    const results = await this.executeQuery(db, sql, params);
+    let results: SearchEngineRow[];
+    try {
+      results = await this.executeQuery(db, sql, params);
+    } catch (error) {
+      if (!usedFtsQuery) {
+        throw error;
+      }
+
+      this.cachedFts5Availability.delete(db);
+      mcpLogger.logServer('warn', 'FTS5 검색 쿼리 실패, Fallback으로 재시도', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      ({ sql, params } = await buildSearchStatement(false));
+      results = await this.executeQuery(db, sql, params);
+    }
     mcpLogger.logServer('debug', '검색 결과', {
       resultCount: results.length
     });
@@ -584,6 +610,10 @@ export class SearchEngine {
    * 인덱스가 없거나 비정상인 경우 대체 검색 방식을 사용하여 기능 안정성을 보장합니다.
    */
   private async checkFTS5Availability(db: Database.Database): Promise<boolean> {
+    if (this.cachedFts5Availability.has(db)) {
+      return true;
+    }
+
     try {
       // FTS5 인덱스 테이블이 생성되어 있는지 확인하여 전문 검색 사용 가능 여부를 판단합니다.
       const result = db.prepare(`
@@ -609,6 +639,7 @@ export class SearchEngine {
       try {
         db.prepare('SELECT * FROM memory_item_fts LIMIT 1').get();
         mcpLogger.logServer('info', 'FTS5 사용 가능');
+        this.cachedFts5Availability.add(db);
         return true;
       } catch (ftsError) {
         mcpLogger.logServer('warn', 'FTS5 쿼리 실패, 기본 검색으로 전환', { error: ftsError instanceof Error ? ftsError.message : String(ftsError) });
@@ -643,6 +674,10 @@ export class SearchEngine {
       return false;
     }
 
+    if (this.cachedReflectionNotesAvailability.has(db)) {
+      return true;
+    }
+
     // FTS5 테이블에 reflection_notes 컬럼이 있는지 확인
     try {
       const tableInfo = db.prepare(`
@@ -662,6 +697,7 @@ export class SearchEngine {
         return false;
       }
 
+      this.cachedReflectionNotesAvailability.add(db);
       return true;
     } catch (error) {
       mcpLogger.logServer('warn', 'reflection_notes 컬럼 확인 실패, Fallback 사용', { error: error instanceof Error ? error.message : String(error) });
