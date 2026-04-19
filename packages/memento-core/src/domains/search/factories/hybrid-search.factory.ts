@@ -3,54 +3,53 @@
  * 의존성 주입 및 객체 생성 관리
  */
 
-import { HybridSearchEngine, resolveQueryUnifiedEmbeddingForHybridSearch } from '../algorithms/hybrid-search-engine.js';
+import {
+  HybridSearchEngine,
+  AdaptiveWeightCalculator,
+  resolveQueryUnifiedEmbeddingForHybridSearch,
+} from '../algorithms/hybrid-search-engine.js';
+import type {
+  ITextSearchEngine,
+  IEmbeddingService,
+  IVectorSearchEngine,
+  ISearchResultCombiner,
+  IAdaptiveWeightCalculator,
+  ISearchLogger,
+  HybridSearchQuery,
+} from '../algorithms/hybrid-search-engine.js';
 import { SearchEngine } from '../algorithms/search-engine.js';
+import { SearchResultCombiner } from '../algorithms/search-result-combiner.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { Database } from 'better-sqlite3';
 
-// Mock implementations for missing services
-class MockSearchResultCombiner {
-  combine(textResults: any[], vectorResults: any[], textWeight: number, vectorWeight: number): any[] {
-    return [...vectorResults, ...textResults];
+class DefaultSearchLogger implements ISearchLogger {
+  logSearchStart(searchId: string, query: HybridSearchQuery): void {
+    logger.debug('하이브리드 검색 시작', { searchId, query: query.query });
   }
-}
 
-class MockAdaptiveWeightCalculator {
-  calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number, textWeight: number } {
-    return { vectorWeight: 0.6, textWeight: 0.4 };
+  logSearchStep(searchId: string, step: string, data: unknown): void {
+    logger.debug(`하이브리드 검색 단계: ${step}`, { searchId, data });
   }
-}
 
-class MockSearchLogger {
-  logSearchStart(query: string): void {
-    logger.info('검색 시작', { query });
-  }
-  
-  logSearchStep(step: string, details?: any): void {
-    logger.debug('검색 단계', { step, details });
-  }
-  
-  logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
-    logger.info('검색 완료', {
+  logSearchComplete(
+    searchId: string,
+    result: { items: unknown[]; total_count: number },
+    queryTime: number
+  ): void {
+    logger.info('하이브리드 검색 완료', {
       searchId,
       resultCount: result.total_count,
-      duration: queryTime
+      queryTime,
     });
   }
-  
-  logSearchError(query: string, error: Error): void {
-    logger.error('검색 에러', {
-      query,
-      error: error.message
-    });
+
+  logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void {
+    logger.error('하이브리드 검색 오류', { searchId, error, query: query.query });
   }
 }
 
-/**
- * 하이브리드 검색 엔진 팩토리
- */
 export interface CreateDefaultHybridEngineOptions {
   /** 지정 시 해당 TOML에서 랭킹 가중치 로드 (미지정 시 기본 config/ranking-weights.toml 등) */
   rankingWeightsPath?: string;
@@ -68,9 +67,9 @@ export class HybridSearchFactory {
     const textSearchEngine = new SearchEngine();
     const emb = embeddingService ?? new MemoryEmbeddingService();
     const vectorSearchEngine = new VectorSearchEngine();
-    const resultCombiner = new MockSearchResultCombiner();
-    const weightCalculator = new MockAdaptiveWeightCalculator();
-    const logger = new MockSearchLogger();
+    const resultCombiner = new SearchResultCombiner();
+    const weightCalculator = new AdaptiveWeightCalculator();
+    const searchLogger = new DefaultSearchLogger();
 
     return new HybridSearchEngine(
       textSearchEngine,
@@ -78,7 +77,7 @@ export class HybridSearchFactory {
       vectorSearchEngine,
       resultCombiner,
       weightCalculator,
-      logger,
+      searchLogger,
       resolveQueryUnifiedEmbeddingForHybridSearch(emb),
       undefined,
       undefined,
@@ -90,12 +89,12 @@ export class HybridSearchFactory {
    * 의존성 주입으로 하이브리드 검색 엔진 생성
    */
   static createEngine(
-    textSearchEngine: any,
-    embeddingService: any,
-    vectorSearchEngine: any,
-    resultCombiner: any,
-    weightCalculator: any,
-    logger: any
+    textSearchEngine: ITextSearchEngine,
+    embeddingService: IEmbeddingService,
+    vectorSearchEngine: IVectorSearchEngine,
+    resultCombiner: ISearchResultCombiner,
+    weightCalculator: IAdaptiveWeightCalculator,
+    searchLogger: ISearchLogger
   ): HybridSearchEngine {
     const queryUnified = resolveQueryUnifiedEmbeddingForHybridSearch(embeddingService);
     return new HybridSearchEngine(
@@ -104,7 +103,7 @@ export class HybridSearchFactory {
       vectorSearchEngine,
       resultCombiner,
       weightCalculator,
-      logger,
+      searchLogger,
       queryUnified
     );
   }
