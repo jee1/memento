@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SearchEngine, type SearchQuery } from '../search-engine.js';
 import { MockDatabase } from '../../../../test/mock-database.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { mcpLogger } from '../../../../server/mcp-logger.js';
 
 function createCountingSearchDb() {
   const counters = {
@@ -207,6 +208,7 @@ describe('SearchEngine', () => {
   let mockDb: MockDatabase;
   let originalFallbackEnabled: boolean;
   let originalFallbackEnv: string | undefined;
+  let originalNodeEnv: string | undefined;
 
   beforeEach(() => {
     searchEngine = new SearchEngine();
@@ -214,6 +216,7 @@ describe('SearchEngine', () => {
     vi.spyOn(searchEngine as any, 'executeQuery').mockResolvedValue(createSearchRows());
     originalFallbackEnabled = mementoConfig.fts5FallbackEnabled;
     originalFallbackEnv = process.env.MEMENTO_FTS5_FALLBACK_ENABLED;
+    originalNodeEnv = process.env.NODE_ENV;
     (mementoConfig as { fts5FallbackEnabled: boolean }).fts5FallbackEnabled = false;
     delete process.env.MEMENTO_FTS5_FALLBACK_ENABLED;
   });
@@ -225,6 +228,11 @@ describe('SearchEngine', () => {
       delete process.env.MEMENTO_FTS5_FALLBACK_ENABLED;
     } else {
       process.env.MEMENTO_FTS5_FALLBACK_ENABLED = originalFallbackEnv;
+    }
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
     }
   });
 
@@ -583,6 +591,60 @@ describe('SearchEngine', () => {
       (mementoConfig as { fts5FallbackEnabled: boolean }).fts5FallbackEnabled = false;
       state.migrationStatus = 'pending';
       expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+    });
+
+    it('테스트 환경에서는 반복된 fallback 경고를 warn 레벨로 재출력하지 않는다', () => {
+      const { db } = createRecoverableSearchDb();
+      const logServerSpy = vi.spyOn(mcpLogger, 'logServer').mockImplementation(() => {});
+      process.env.NODE_ENV = 'test';
+      process.env.MEMENTO_FTS5_FALLBACK_ENABLED = 'true';
+
+      try {
+        expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+        expect((searchEngine as any).checkReflectionNotesAvailability(db)).toBe(false);
+
+        const fallbackLogs = logServerSpy.mock.calls.filter((call) =>
+          call[1] === '설정으로 인해 reflection_notes Fallback 활성화'
+        );
+
+        expect(fallbackLogs).toHaveLength(2);
+        expect(fallbackLogs[0]?.[0]).toBe('warn');
+        expect(fallbackLogs[1]?.[0]).not.toBe('warn');
+      } finally {
+        delete process.env.MEMENTO_FTS5_FALLBACK_ENABLED;
+      }
+    });
+
+    it('테스트 환경에서도 일반 FTS5 fallback 경고는 warn 레벨을 유지한다', async () => {
+      const logServerSpy = vi.spyOn(mcpLogger, 'logServer').mockImplementation(() => {});
+      const unavailableDb = {
+        prepare: vi.fn((sql: string) => {
+          if (sql.includes(`SELECT name FROM sqlite_master`) && sql.includes(`name='memory_item_fts'`)) {
+            return {
+              get: () => undefined
+            };
+          }
+
+          return {
+            get: () => undefined,
+            all: () => [],
+            run: () => ({ changes: 1, lastInsertRowid: 1 }),
+          };
+        })
+      } as any;
+
+      process.env.NODE_ENV = 'test';
+
+      await expect((searchEngine as any).checkFTS5Availability(unavailableDb)).resolves.toBe(false);
+      await expect((searchEngine as any).checkFTS5Availability(unavailableDb)).resolves.toBe(false);
+
+      const fallbackLogs = logServerSpy.mock.calls.filter((call) =>
+        call[1] === 'FTS5 테이블이 존재하지 않음, 기본 검색으로 전환'
+      );
+
+      expect(fallbackLogs).toHaveLength(2);
+      expect(fallbackLogs[0]?.[0]).toBe('warn');
+      expect(fallbackLogs[1]?.[0]).toBe('warn');
     });
   });
 

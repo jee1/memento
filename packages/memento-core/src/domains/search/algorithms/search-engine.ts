@@ -59,9 +59,33 @@ export class SearchEngine {
   private ranking: SearchRanking;
   private cachedFts5Availability = new WeakSet<Database.Database>();
   private cachedReflectionNotesAvailability = new WeakSet<Database.Database>();
+  private emittedTestReflectionNotesConfigFallbackWarnings = new Set<string>();
 
   constructor() {
     this.ranking = new SearchRanking();
+  }
+
+  private isTestEnvironment(): boolean {
+    return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  }
+
+  private logFallbackWarning(message: string, data?: Record<string, unknown>): void {
+    mcpLogger.logServer('warn', message, data);
+  }
+
+  private logReflectionNotesConfigFallbackWarning(): void {
+    const message = '설정으로 인해 reflection_notes Fallback 활성화';
+
+    if (
+      this.isTestEnvironment() &&
+      this.emittedTestReflectionNotesConfigFallbackWarnings.has(message)
+    ) {
+      mcpLogger.logServer('info', message);
+      return;
+    }
+
+    this.emittedTestReflectionNotesConfigFallbackWarnings.add(message);
+    mcpLogger.logServer('warn', message);
   }
 
   /**
@@ -273,7 +297,7 @@ export class SearchEngine {
       }
 
       this.cachedFts5Availability.delete(db);
-      mcpLogger.logServer('warn', 'FTS5 검색 쿼리 실패, Fallback으로 재시도', {
+      this.logFallbackWarning('FTS5 검색 쿼리 실패, Fallback으로 재시도', {
         error: error instanceof Error ? error.message : String(error)
       });
 
@@ -622,7 +646,7 @@ export class SearchEngine {
       `).get();
       
       if (!result) {
-        mcpLogger.logServer('warn', 'FTS5 테이블이 존재하지 않음, 기본 검색으로 전환');
+        this.logFallbackWarning('FTS5 테이블이 존재하지 않음, 기본 검색으로 전환');
         return false;
       }
       
@@ -631,7 +655,7 @@ export class SearchEngine {
       const hasData = row != null && Number(row.count) > 0;
       
       if (!hasData) {
-        mcpLogger.logServer('warn', 'FTS5 테이블에 데이터가 없음, 기본 검색으로 전환');
+        this.logFallbackWarning('FTS5 테이블에 데이터가 없음, 기본 검색으로 전환');
         return false;
       }
       
@@ -642,11 +666,11 @@ export class SearchEngine {
         this.cachedFts5Availability.add(db);
         return true;
       } catch (ftsError) {
-        mcpLogger.logServer('warn', 'FTS5 쿼리 실패, 기본 검색으로 전환', { error: ftsError instanceof Error ? ftsError.message : String(ftsError) });
+        this.logFallbackWarning('FTS5 쿼리 실패, 기본 검색으로 전환', { error: ftsError instanceof Error ? ftsError.message : String(ftsError) });
         return false;
       }
     } catch (error) {
-      mcpLogger.logServer('warn', 'FTS5 사용 불가능, 기본 검색으로 전환', { error: error instanceof Error ? error.message : String(error) });
+      this.logFallbackWarning('FTS5 사용 불가능, 기본 검색으로 전환', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -660,17 +684,17 @@ export class SearchEngine {
    */
   private checkReflectionNotesAvailability(db: Database.Database): boolean {
     if (process.env.MEMENTO_FTS5_FALLBACK_ENABLED === 'true') {
-      mcpLogger.logServer('warn', '설정으로 인해 reflection_notes Fallback 활성화');
+      this.logReflectionNotesConfigFallbackWarning();
       return false;
     }
     if (mementoConfig.fts5FallbackEnabled) {
-      mcpLogger.logServer('warn', '설정으로 인해 reflection_notes Fallback 활성화');
+      this.logReflectionNotesConfigFallbackWarning();
       return false;
     }
 
     // 마이그레이션 상태 확인
     if (shouldUseFallback(db)) {
-      mcpLogger.logServer('warn', '마이그레이션 상태로 인해 reflection_notes Fallback 사용');
+      this.logFallbackWarning('마이그레이션 상태로 인해 reflection_notes Fallback 사용');
       return false;
     }
 
@@ -693,14 +717,14 @@ export class SearchEngine {
       const hasReflectionNotes = tableInfo.sql.includes('reflection_notes');
       
       if (!hasReflectionNotes) {
-        mcpLogger.logServer('warn', 'FTS5 테이블에 reflection_notes 컬럼이 없음, Fallback 사용');
+        this.logFallbackWarning('FTS5 테이블에 reflection_notes 컬럼이 없음, Fallback 사용');
         return false;
       }
 
       this.cachedReflectionNotesAvailability.add(db);
       return true;
     } catch (error) {
-      mcpLogger.logServer('warn', 'reflection_notes 컬럼 확인 실패, Fallback 사용', { error: error instanceof Error ? error.message : String(error) });
+      this.logFallbackWarning('reflection_notes 컬럼 확인 실패, Fallback 사용', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
