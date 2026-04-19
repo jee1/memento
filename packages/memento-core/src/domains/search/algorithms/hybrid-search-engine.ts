@@ -1617,6 +1617,70 @@ export class HybridSearchEngine {
     return scores;
   }
 
+  private fetchFeedbackScores(
+    db: Database.Database,
+    memoryIds: string[]
+  ): Map<string, number> {
+    try {
+      const feedbackRepo = new FeedbackRepository(db);
+      return feedbackRepo.getNetScores(memoryIds, 90);
+    } catch (err) {
+      logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return new Map();
+    }
+  }
+
+  private fetchProcessAttributeContext(
+    db: Database.Database,
+    memoryIds: string[],
+    processId: string | undefined
+  ): {
+    processAttributes: ProcessAttribute | null;
+    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }>;
+  } {
+    if (!processId) {
+      return { processAttributes: null, memoryDetailsMap: new Map() };
+    }
+    const attrRepo = new ProcessAttributeRepository(db);
+    const processAttributes = attrRepo.getByProcessId(processId);
+    const memoryDetailsMap = new Map<
+      string,
+      { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }
+    >();
+    if (memoryIds.length > 0) {
+      const placeholders = memoryIds.map(() => '?').join(',');
+      const rows = db
+        .prepare(
+          `SELECT id, tags, workflow_name, skill_name FROM memory_item WHERE id IN (${placeholders})`
+        )
+        .all(...memoryIds) as Array<{
+        id: string;
+        tags: string | null;
+        workflow_name: string | null;
+        skill_name: string | null;
+      }>;
+      for (const row of rows) {
+        let tags: string[] = [];
+        if (row.tags) {
+          try {
+            const parsed = JSON.parse(row.tags);
+            tags = Array.isArray(parsed) ? parsed : [];
+          } catch {
+            tags = [];
+          }
+        }
+        memoryDetailsMap.set(row.id, {
+          tags,
+          workflow_name: row.workflow_name ?? null,
+          skill_name: row.skill_name ?? null,
+        });
+      }
+    }
+    return { processAttributes, memoryDetailsMap };
+  }
+
   // fetchProceduralMemoryMatches 메서드는 ProceduralMemoryMatcher 클래스로 분리됨
 
   /**
