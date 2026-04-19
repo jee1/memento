@@ -33,6 +33,9 @@ function parseCleanupParams(query: Record<string, unknown>): { olderThanDays: nu
   if (!query['older_than_days'] || isNaN(olderThanDays) || olderThanDays <= 0) {
     return { error: 'older_than_days 파라미터가 필요합니다 (양의 정수)', status: 400 };
   }
+  if (olderThanDays > 3650) {
+    return { error: 'older_than_days는 최대 3650일(10년)입니다', status: 400 };
+  }
   const typesRaw = typeof query['types'] === 'string' ? query['types'] : 'episodic,working';
   const types = typesRaw.split(',').map(t => t.trim()).filter(Boolean);
   if (types.includes('core')) {
@@ -658,6 +661,9 @@ export function createAdminRouter(
     try {
       if (!db) return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
       const { project_id } = req.params;
+      if (!project_id || project_id.length > 200) {
+        return res.status(400).json({ error: 'project_id는 1~200자여야 합니다' });
+      }
       const total = (db.prepare(`SELECT COUNT(*) as c FROM memory_item WHERE project_id = ? AND COALESCE(is_deleted, 0) = 0`).get(project_id) as { c: number }).c;
       const byTypeRows = db.prepare(`SELECT type, COUNT(*) as c FROM memory_item WHERE project_id = ? AND COALESCE(is_deleted, 0) = 0 GROUP BY type`).all(project_id) as Array<{ type: string; c: number }>;
       const by_type: Record<string, number> = {};
@@ -674,6 +680,9 @@ export function createAdminRouter(
     try {
       if (!db) return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
       const { project_id } = req.params;
+      if (!project_id || project_id.length > 200) {
+        return res.status(400).json({ error: 'project_id는 1~200자여야 합니다' });
+      }
       const parsed = parseCleanupParams(req.query as Record<string, unknown>);
       if ('error' in parsed) return res.status(parsed.status).json({ error: parsed.error });
       const { olderThanDays, types } = parsed;
@@ -692,6 +701,9 @@ export function createAdminRouter(
     try {
       if (!db) return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
       const { project_id } = req.params;
+      if (!project_id || project_id.length > 200) {
+        return res.status(400).json({ error: 'project_id는 1~200자여야 합니다' });
+      }
       const parsed = parseCleanupParams(req.query as Record<string, unknown>);
       if ('error' in parsed) return res.status(parsed.status).json({ error: parsed.error });
       const { olderThanDays, types } = parsed;

@@ -896,4 +896,35 @@ describe('Project memory admin routes', () => {
       await new Promise<void>(r => server.close(() => r()));
     }
   });
+
+  it('GET /admin/memory/project/:project_id/cleanup/preview returns 400 when older_than_days > 3650', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/project/proj-x/cleanup/preview?older_than_days=3651');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('DELETE /admin/memory/project/:project_id/cleanup returns 400 when older_than_days > 3650', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await deleteAdmin(port, '/admin/memory/project/proj-x/cleanup?older_than_days=9999999');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/project/:project_id/stats returns 400 when project_id exceeds 200 chars', async () => {
+    const longId = 'a'.repeat(201);
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, `/admin/memory/project/${longId}/stats`);
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
 });
