@@ -21,32 +21,32 @@
   opacity: 0.6;
 }
 
-.m-button-primary {
+.m-button--primary {
   background: var(--color-brand-primary);
   color: white;
 }
 
-.m-button-primary:hover:not(:disabled) {
+.m-button--primary:hover:not(:disabled) {
   background: var(--color-brand-secondary);
 }
 
-.m-button-secondary {
+.m-button--secondary {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.m-button-secondary:hover:not(:disabled) {
+.m-button--secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.m-button-ghost {
+.m-button--ghost {
   background: transparent;
   color: var(--color-text-main);
   border: 1px solid var(--color-border-light);
 }
 
-.m-button-ghost:hover:not(:disabled) {
+.m-button--ghost:hover:not(:disabled) {
   background: var(--color-bg-main);
 }
 

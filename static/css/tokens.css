@@ -36,6 +36,12 @@
   --color-memory-neutral: #9ca3af;
   --color-memory-neutral-bg: #e5e7eb;
 
+  /* Colors - Memory Types */
+  --color-memory-episodic: #818cf8;
+  --color-memory-semantic: var(--color-success);
+  --color-memory-procedural: var(--color-warning);
+  --color-memory-working: var(--color-memory-neutral);
+
   /* Spacing */
   --spacing-xs: 0.25rem;  /* 4px */
   --spacing-sm: 0.5rem;   /* 8px */

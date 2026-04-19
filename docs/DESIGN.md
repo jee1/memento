@@ -16,6 +16,7 @@
 | `--color-success` | `#10b981` | 성공, Semantic Positive |
 | `--color-error` | `#ef4444` | 오류, Semantic Negative |
 | `--color-anchor-a` | `#ef4444` | 앵커 슬롯 A |
+| `--color-memory-episodic` | `#818cf8` | Episodic 기억 노드 컬러 |
 | `--color-bg-main` | `#f5f5f5` | 메인 대시보드 배경 |
 | `--color-bg-graph` | `#0f1117` | 그래프 뷰 배경 (Dark) |
 

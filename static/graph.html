@@ -74,7 +74,7 @@
     }
 
     .graph-auth-btn-secondary {
-      /* m-button-secondary 스타일과 유사하게 유지 */
+      /* m-button--secondary 스타일과 유사하게 유지 */
     }
 
     .graph-auth-message[data-tone="error"] {
@@ -374,8 +374,8 @@
         <span id="importance-val">0.0</span>
       </div>
     </div>
-    <button id="apply-btn" class="graph-session-only m-button m-button-primary" style="padding: 4px 10px;">필터 적용</button>
-    <button id="reset-btn" class="graph-session-only m-button m-button-secondary" style="padding: 4px 10px;">초기화</button>
+    <button id="apply-btn" class="graph-session-only m-button m-button--primary" style="padding: 4px 10px;">필터 적용</button>
+    <button id="reset-btn" class="graph-session-only m-button m-button--secondary" style="padding: 4px 10px;">초기화</button>
     <div class="header-spacer"></div>
     <section class="graph-auth-panel" aria-label="Graph session">
       <form id="graph-auth-form" class="graph-auth-form">
@@ -387,11 +387,11 @@
           placeholder="Enter key for /auth/session"
           autocomplete="current-password"
         >
-        <button type="submit" id="graph-sign-in-btn" class="m-button m-button-primary" style="padding: 4px 10px;">Sign in</button>
+        <button type="submit" id="graph-sign-in-btn" class="m-button m-button--primary" style="padding: 4px 10px;">Sign in</button>
       </form>
       <div id="graph-auth-session" class="graph-auth-session" hidden>
         <span id="graph-auth-status" class="graph-auth-status">Session active</span>
-        <button type="button" id="graph-sign-out-btn" class="m-button m-button-secondary" style="padding: 4px 10px;">Sign out</button>
+        <button type="button" id="graph-sign-out-btn" class="m-button m-button--secondary" style="padding: 4px 10px;">Sign out</button>
       </div>
       <p id="graph-auth-message" class="graph-auth-message" aria-live="polite"></p>
       <p class="graph-auth-hint">Full admin UI is available in <a href="/dashboard">/dashboard</a>.</p>
@@ -418,9 +418,9 @@
       <div id="legend">
         <div class="legend-title">노드 타입</div>
         <div class="legend-item"><span class="legend-dot" style="background:#818cf8"></span>Episodic</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#34d399"></span>Semantic</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#fb923c"></span>Procedural</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#94a3b8"></span>Working</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span>Semantic</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Procedural</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#9ca3af"></span>Working</div>
       </div>
     </div>
 

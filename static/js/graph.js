@@ -1,23 +1,23 @@
     // ── 색상 맵 (tokens.css와 동기화) ──────────────────────────
     const NODE_COLORS = {
-      episodic:   '#818cf8', // --color-anchor-a (유사색상 유지)
-      semantic:   '#34d399', // --color-success
-      procedural: '#fb923c', // --color-warning
-      working:    '#94a3b8', // --color-memory-neutral
+      episodic:   '#818cf8', // --color-memory-episodic
+      semantic:   '#10b981', // --color-success
+      procedural: '#f59e0b', // --color-warning
+      working:    '#9ca3af', // --color-memory-neutral
     };
 
     const EDGE_COLORS = {
       supports:        '#818cf8',
-      related_to:      '#34d399',
-      extracted_from:  '#fb923c',
-      contradicts:     '#f87171',
+      related_to:      '#10b981',
+      extracted_from:  '#f59e0b',
+      contradicts:     '#ef4444', // --color-error
       default:         '#475569',
     };
 
     const TYPE_BG = {
       episodic:   '#312e81',
       semantic:   '#064e3b',
-      procedural: '#431407',
+      procedural: '#451a03',
       working:    '#1e293b',
     };
 

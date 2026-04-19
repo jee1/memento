@@ -195,7 +195,7 @@ body {
 
 /* Memory Details */
 #memory-details {
-  background-color: #f9fafb;
+  background-color: var(--color-bg-main);
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
 }
@@ -299,22 +299,22 @@ body {
 
 .node.anchor.slot-a {
   fill: var(--color-anchor-a);
-  stroke: #dc2626;
+  stroke: var(--color-error);
 }
 
 .node.anchor.slot-b {
   fill: var(--color-anchor-b);
-  stroke: #d97706;
+  stroke: var(--color-warning);
 }
 
 .node.anchor.slot-c {
   fill: var(--color-anchor-c);
-  stroke: #2563eb;
+  stroke: var(--color-info);
 }
 
 .node.memory {
   fill: var(--color-memory-neutral);
-  stroke: #6b7280;
+  stroke: var(--color-text-muted);
 }
 
 .node.highlighted {
@@ -334,18 +334,18 @@ body {
 }
 
 .link {
-  stroke: #cbd5e1;
+  stroke: var(--color-border-light);
   stroke-opacity: 0.6;
   stroke-width: 1.5px;
 }
 
 .link.hop {
-  stroke: #94a3b8;
+  stroke: var(--color-text-muted);
   stroke-opacity: 0.8;
 }
 
 .link.link {
-  stroke: #cbd5e1;
+  stroke: var(--color-border-light);
   stroke-opacity: 0.4;
 }
 
@@ -416,13 +416,38 @@ body {
   }
 }
 
-/* Tabs + Embedding Map (014) - m-tab-bar 컴포넌트 활용 권장 */
-.tab-bar {
-  /* m-tab-bar와 유사한 스타일 유지 */
+/* Tabs + Embedding Map (014) - m-tab-bar 컴포넌트 활용 */
+.m-tab-bar {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: #e8eaf6;
+  border-bottom: 1px solid #c5cae9;
+  flex-shrink: 0;
 }
 
-.tab-btn {
-  /* m-tab-btn와 유사한 스타일 유지 */
+.m-tab-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  transition: all 0.2s;
+}
+
+.m-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.m-tab-btn.active {
+  background: var(--color-bg-card);
+  border-color: #c5cae9;
+  border-bottom-color: var(--color-bg-card);
+  margin-bottom: -1px;
+  color: var(--color-text-main);
 }
 
 .tab-panel {

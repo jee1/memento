@@ -28,11 +28,11 @@
               placeholder="Enter key for /auth/session"
               autocomplete="current-password"
             >
-            <button type="submit" id="dashboard-sign-in-btn" class="dashboard-auth-btn m-button m-button-primary">Sign in</button>
+            <button type="submit" id="dashboard-sign-in-btn" class="dashboard-auth-btn m-button m-button--primary">Sign in</button>
           </form>
           <div id="dashboard-auth-session" class="dashboard-auth-session" hidden>
             <span id="dashboard-auth-status" class="dashboard-auth-status">Session active</span>
-            <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn m-button m-button-secondary">Sign out</button>
+            <button type="button" id="dashboard-sign-out-btn" class="dashboard-auth-btn m-button m-button--secondary">Sign out</button>
           </div>
           <p id="dashboard-auth-message" class="dashboard-auth-message" aria-live="polite"></p>
         </section>
@@ -47,15 +47,15 @@
           <option value="B">Slot B</option>
           <option value="C">Slot C</option>
         </select>
-        <button id="search-btn" class="m-button m-button-secondary">Search</button>
-        <button id="load-map-btn" class="m-button m-button-secondary">Load Map</button>
-        <button id="refresh-btn" class="m-button m-button-secondary">Refresh</button>
-        <button id="clear-search-btn">Clear</button>
+        <button id="search-btn" class="m-button m-button--secondary">Search</button>
+        <button id="load-map-btn" class="m-button m-button--secondary">Load Map</button>
+        <button id="refresh-btn" class="m-button m-button--secondary">Refresh</button>
+        <button id="clear-search-btn" class="m-button m-button--ghost">Clear</button>
         <label for="auto-refresh-toggle" style="margin-left: 1rem;">
           <input type="checkbox" id="auto-refresh-toggle" style="margin-right: 0.25rem;">
           Auto Refresh
         </label>
-        <select id="refresh-interval-select" style="margin-left: 0.5rem;">
+        <select id="refresh-interval-select" class="m-input" style="margin-left: 0.5rem;">
           <option value="5000">5초</option>
           <option value="10000" selected>10초</option>
           <option value="30000">30초</option>
@@ -64,10 +64,10 @@
       </div>
     </header>
 
-    <div class="tab-bar session-only" role="tablist" aria-label="대시보드 보기 전환">
-      <button type="button" id="dashboard-tab-anchor" class="tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
-      <button type="button" id="dashboard-tab-embedding" class="tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
-      <button type="button" id="dashboard-tab-graph" class="tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
+    <div class="m-tab-bar session-only" role="tablist" aria-label="대시보드 보기 전환">
+      <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
+      <button type="button" id="dashboard-tab-embedding" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
+      <button type="button" id="dashboard-tab-graph" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
     </div>
 
     <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
@@ -118,7 +118,7 @@
         <div class="em-controls">
           <label>
             Provider
-            <select id="em-provider">
+            <select id="em-provider" class="m-input">
               <option value="minilm" selected>minilm</option>
               <option value="tfidf">tfidf</option>
               <option value="openai">openai</option>
@@ -127,13 +127,13 @@
           </label>
           <label>
             Limit
-            <input id="em-limit" type="number" min="1" max="500" value="300">
+            <input id="em-limit" class="m-input" type="number" min="1" max="500" value="300">
           </label>
           <label>
             k
-            <input id="em-k" type="number" min="2" max="20" value="6">
+            <input id="em-k" class="m-input" type="number" min="2" max="20" value="6">
           </label>
-          <button type="button" id="em-load-btn">Load</button>
+          <button type="button" id="em-load-btn" class="m-button m-button--primary">Load</button>
           <span id="em-cache-info" class="em-cache-info"></span>
         </div>
         <p class="em-color-legend">
