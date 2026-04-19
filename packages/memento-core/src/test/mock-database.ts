@@ -89,14 +89,14 @@ export class MockDatabase {
       }
       return tableData;
     }
+    if (lowerSql.includes('count(*)')) {
+      const tableName = (sql.match(/from\s+(\w+)/i)?.[1] ?? '').trim() || '';
+      return [{ count: (this.mockData.get(tableName) ?? []).length }];
+    }
     if (lowerSql.includes('memory_item_fts')) return this.mockData.get('memory_item_fts') ?? [];
     if (lowerSql.includes('sqlite_master')) {
       if (lowerSql.includes("name='memory_item_fts'")) return [{ name: 'memory_item_fts' }];
       return [{ name: 'memory_item_vec_tfidf' }, { name: 'memory_item_vec_minilm' }, { name: 'memory_item_vec_openai' }, { name: 'memory_item_vec_gemini' }, { name: 'memory_item_fts' }];
-    }
-    if (lowerSql.includes('count(*)')) {
-      const tableName = (sql.match(/from\s+(\w+)/i)?.[1] ?? '').trim() || '';
-      return [{ count: (this.mockData.get(tableName) ?? []).length }];
     }
     return [];
   }
