@@ -55,7 +55,12 @@ async function testReflexionE2E() {
     } catch (error) {
       // 이미 존재하는 경우 무시
     }
-    
+    try {
+      DatabaseUtils.run(testDb, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
+    } catch (error) {
+      // 이미 존재하는 경우 무시
+    }
+
     // FTS5 마이그레이션 상태 테이블 생성
     initializeMigrationStatusTable(testDb);
     setMigrationStatus(testDb, 'in_progress');
