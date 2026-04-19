@@ -7,13 +7,15 @@
   <script src="/static/js/memento-admin-fetch.js"></script>
   <script src="/static/js/dashboard-auth.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/components.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
+      font-family: var(--font-family-base);
+      background: var(--color-bg-graph);
+      color: var(--color-text-graph);
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -22,11 +24,11 @@
 
     header {
       background: #1a1d2e;
-      border-bottom: 1px solid #2d3748;
-      padding: 10px 16px;
+      border-bottom: 1px solid var(--color-border-graph);
+      padding: var(--spacing-sm) var(--spacing-md);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--spacing-md);
       flex-shrink: 0;
       flex-wrap: wrap;
     }
@@ -36,7 +38,7 @@
     }
 
     header h1 {
-      font-size: 15px;
+      font-size: var(--font-size-sm);
       font-weight: 600;
       color: #a78bfa;
       white-space: nowrap;
@@ -45,7 +47,7 @@
     .graph-auth-panel {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: var(--spacing-sm);
       margin-left: auto;
       flex-wrap: wrap;
       justify-content: flex-end;
@@ -55,7 +57,7 @@
     .graph-auth-session {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--spacing-sm);
       flex-wrap: wrap;
     }
 
@@ -63,22 +65,16 @@
     .graph-auth-status,
     .graph-auth-message,
     .graph-auth-hint {
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       color: #94a3b8;
     }
 
     .graph-auth-input {
-      width: 220px;
-      padding: 6px 8px;
-      border: 1px solid #374151;
-      border-radius: 6px;
-      background: #111827;
-      color: #e2e8f0;
+      width: 200px;
     }
 
     .graph-auth-btn-secondary {
-      background: #374151;
-      color: #d1d5db;
+      /* m-button--secondary 스타일과 유사하게 유지 */
     }
 
     .graph-auth-message[data-tone="error"] {
@@ -91,10 +87,10 @@
 
     .graph-auth-required {
       display: none;
-      margin: 16px;
-      padding: 16px 18px;
+      margin: var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-lg);
       border: 1px solid #312e81;
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       background: rgba(49, 46, 129, 0.18);
       color: #cbd5e1;
       line-height: 1.5;
@@ -126,19 +122,19 @@
     .filter-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--spacing-sm);
       flex-wrap: wrap;
     }
 
     .filter-group label {
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       color: #94a3b8;
       white-space: nowrap;
     }
 
     .type-checks {
       display: flex;
-      gap: 6px;
+      gap: var(--spacing-sm);
       flex-wrap: wrap;
     }
 
@@ -146,7 +142,7 @@
       display: flex;
       align-items: center;
       gap: 3px;
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       cursor: pointer;
     }
 
@@ -155,7 +151,7 @@
     .importance-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: var(--spacing-xs);
     }
 
     #importance-slider {
@@ -164,32 +160,10 @@
     }
 
     #importance-val {
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       color: #94a3b8;
       min-width: 28px;
     }
-
-    button {
-      padding: 4px 10px;
-      border-radius: 5px;
-      border: none;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    #apply-btn {
-      background: #7c3aed;
-      color: #fff;
-    }
-
-    #apply-btn:hover { background: #6d28d9; }
-
-    #reset-btn {
-      background: #374151;
-      color: #d1d5db;
-    }
-
-    #reset-btn:hover { background: #4b5563; }
 
     .main {
       display: flex;
@@ -219,8 +193,8 @@
       color: #64748b;
     }
 
-    #empty-msg .icon { font-size: 40px; margin-bottom: 8px; }
-    #empty-msg p { font-size: 14px; }
+    #empty-msg .icon { font-size: 40px; margin-bottom: var(--spacing-sm); }
+    #empty-msg p { font-size: var(--font-size-sm); }
 
     /* 로딩 */
     #loading {
@@ -230,7 +204,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       color: #94a3b8;
-      font-size: 14px;
+      font-size: var(--font-size-sm);
     }
 
     /* 오류 */
@@ -242,18 +216,18 @@
       transform: translate(-50%, -50%);
       text-align: center;
       color: #f87171;
-      font-size: 14px;
+      font-size: var(--font-size-sm);
     }
 
     /* 툴팁 */
     #tooltip {
       position: fixed;
       background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-size: 12px;
-      color: #e2e8f0;
+      border: 1px solid var(--color-border-graph);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-graph);
       pointer-events: none;
       max-width: 260px;
       word-break: break-all;
@@ -263,29 +237,29 @@
 
     /* 상세 패널 */
     #detail-panel {
-      width: 280px;
+      width: 300px;
       background: #1a1d2e;
-      border-left: 1px solid #2d3748;
-      padding: 14px;
+      border-left: 1px solid var(--color-border-graph);
+      padding: var(--spacing-md);
       overflow-y: auto;
       display: none;
       flex-shrink: 0;
     }
 
     #detail-panel h3 {
-      font-size: 13px;
+      font-size: var(--font-size-sm);
       color: #a78bfa;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #2d3748;
-      padding-bottom: 6px;
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border-graph);
+      padding-bottom: var(--spacing-xs);
     }
 
     .detail-row {
-      margin-bottom: 8px;
+      margin-bottom: var(--spacing-sm);
     }
 
     .detail-label {
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -293,10 +267,10 @@
     }
 
     .detail-value {
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       color: #cbd5e1;
       word-break: break-word;
-      max-height: 120px;
+      max-height: 150px;
       overflow-y: auto;
       line-height: 1.5;
     }
@@ -304,20 +278,20 @@
     .tag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: var(--spacing-xs);
     }
 
     .tag {
       background: #312e81;
       color: #a5b4fc;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       padding: 1px 6px;
       font-size: 11px;
     }
 
     .type-badge {
       display: inline-block;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       padding: 1px 7px;
       font-size: 11px;
       font-weight: 600;
@@ -326,18 +300,18 @@
     /* 범례 */
     #legend {
       position: absolute;
-      bottom: 12px;
-      left: 12px;
+      bottom: var(--spacing-md);
+      left: var(--spacing-md);
       background: rgba(26,29,46,0.92);
-      border: 1px solid #2d3748;
-      border-radius: 6px;
-      padding: 8px 12px;
+      border: 1px solid var(--color-border-graph);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-sm) var(--spacing-md);
       font-size: 11px;
     }
 
     #legend .legend-title {
       color: #64748b;
-      margin-bottom: 5px;
+      margin-bottom: var(--spacing-xs);
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -346,7 +320,7 @@
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: var(--spacing-sm);
       margin-bottom: 3px;
       color: #94a3b8;
     }
@@ -354,7 +328,7 @@
     .legend-dot {
       width: 10px;
       height: 10px;
-      border-radius: 50%;
+      border-radius: var(--radius-full);
       flex-shrink: 0;
     }
 
@@ -400,8 +374,8 @@
         <span id="importance-val">0.0</span>
       </div>
     </div>
-    <button id="apply-btn" class="graph-session-only">필터 적용</button>
-    <button id="reset-btn" class="graph-session-only">초기화</button>
+    <button id="apply-btn" class="graph-session-only m-button m-button--primary" style="padding: 4px 10px;">필터 적용</button>
+    <button id="reset-btn" class="graph-session-only m-button m-button--secondary" style="padding: 4px 10px;">초기화</button>
     <div class="header-spacer"></div>
     <section class="graph-auth-panel" aria-label="Graph session">
       <form id="graph-auth-form" class="graph-auth-form">
@@ -409,15 +383,15 @@
         <input
           type="password"
           id="graph-api-key"
-          class="graph-auth-input"
+          class="graph-auth-input m-input"
           placeholder="Enter key for /auth/session"
           autocomplete="current-password"
         >
-        <button type="submit" id="graph-sign-in-btn">Sign in</button>
+        <button type="submit" id="graph-sign-in-btn" class="m-button m-button--primary" style="padding: 4px 10px;">Sign in</button>
       </form>
       <div id="graph-auth-session" class="graph-auth-session" hidden>
         <span id="graph-auth-status" class="graph-auth-status">Session active</span>
-        <button type="button" id="graph-sign-out-btn" class="graph-auth-btn-secondary">Sign out</button>
+        <button type="button" id="graph-sign-out-btn" class="m-button m-button--secondary" style="padding: 4px 10px;">Sign out</button>
       </div>
       <p id="graph-auth-message" class="graph-auth-message" aria-live="polite"></p>
       <p class="graph-auth-hint">Full admin UI is available in <a href="/dashboard">/dashboard</a>.</p>
@@ -444,9 +418,9 @@
       <div id="legend">
         <div class="legend-title">노드 타입</div>
         <div class="legend-item"><span class="legend-dot" style="background:#818cf8"></span>Episodic</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#34d399"></span>Semantic</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#fb923c"></span>Procedural</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#94a3b8"></span>Working</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span>Semantic</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Procedural</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#9ca3af"></span>Working</div>
       </div>
     </div>
 

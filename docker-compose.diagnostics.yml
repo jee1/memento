@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  memento-mcp-server:
+    container_name: memento-mcp-server
+    environment:
+      DIAGNOSTICS_ENABLED: "true"
+      DIAGNOSTICS_INTERVAL_MS: "10000"
+
+  docker-diagnostics:
+    build:
+      context: .
+      dockerfile: docker/diagnostics/Dockerfile
+    depends_on:
+      - memento-mcp-server
+    environment:
+      DIAGNOSTICS_INTERVAL_SECONDS: ${DIAGNOSTICS_INTERVAL_SECONDS:-10}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/collect-docker-diagnostics.sh:/workspace/collect-docker-diagnostics.sh:ro
+      - ${HOME}/.memento/logs:/logs
+    restart: unless-stopped
+    command:
+      - /bin/bash
+      - /workspace/collect-docker-diagnostics.sh
+      - memento-mcp-server
+      - /logs/docker-diagnostics
