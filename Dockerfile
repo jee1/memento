@@ -104,7 +104,7 @@ RUN npm ci --omit=dev --ignore-scripts && \
     fi
 
 # Create data directory
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data /app/.memento
 
 # Create non-root user
 RUN groupadd -g 1001 nodejs

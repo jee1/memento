@@ -6,6 +6,7 @@ import {
   writeServerInfo,
   readServerInfo,
   deleteServerInfo,
+  resolveServerInfoConfigDir,
 } from './server-info.js';
 
 describe('server-info', () => {
@@ -42,5 +43,32 @@ describe('server-info', () => {
 
   it('deleteServerInfo는 파일이 없어도 에러를 던지지 않는다', async () => {
     await expect(deleteServerInfo(tmpDir)).resolves.not.toThrow();
+  });
+
+  it('resolveServerInfoConfigDir는 명시적 env를 우선 사용한다', () => {
+    expect(
+      resolveServerInfoConfigDir({
+        env: { MEMENTO_CONFIG_DIR: '/custom/config', DOCKER: 'true' },
+        homedirPath: '/home/memento',
+      })
+    ).toBe('/custom/config');
+  });
+
+  it('resolveServerInfoConfigDir는 docker 환경에서 /app/.memento를 기본값으로 사용한다', () => {
+    expect(
+      resolveServerInfoConfigDir({
+        env: { DOCKER: 'true' },
+        homedirPath: '/home/memento',
+      })
+    ).toBe('/app/.memento');
+  });
+
+  it('resolveServerInfoConfigDir는 일반 환경에서 홈 디렉터리 하위를 사용한다', () => {
+    expect(
+      resolveServerInfoConfigDir({
+        env: {},
+        homedirPath: '/Users/tester',
+      })
+    ).toBe('/Users/tester/.memento');
   });
 });

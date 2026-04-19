@@ -1,3 +1,4 @@
+import { homedir } from 'os';
 import { readFile, writeFile, unlink, mkdir } from 'fs/promises';
 import { join } from 'path';
 
@@ -7,8 +8,31 @@ export interface ServerInfo {
   startedAt: string;
 }
 
+type ConfigDirResolutionOptions = {
+  env?: NodeJS.ProcessEnv;
+  homedirPath?: string;
+};
+
 function serverInfoPath(configDir: string): string {
   return join(configDir, 'server.json');
+}
+
+export function resolveServerInfoConfigDir(
+  options: ConfigDirResolutionOptions = {}
+): string {
+  const env = options.env ?? process.env;
+  const explicit = env.MEMENTO_CONFIG_DIR?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  // Docker 이미지는 비루트 사용자로 실행되므로 HOME 기반 경로가 비어 있거나
+  // 부모 디렉터리가 생성되지 않은 경우를 대비해 앱 작업 디렉터리 하위를 기본값으로 사용한다.
+  if (env.DOCKER === 'true') {
+    return '/app/.memento';
+  }
+
+  return join(options.homedirPath ?? process.env.HOME ?? homedir(), '.memento');
 }
 
 export async function writeServerInfo(configDir: string, port: number): Promise<void> {

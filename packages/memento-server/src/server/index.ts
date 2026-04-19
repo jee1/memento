@@ -38,8 +38,7 @@ import Database from 'better-sqlite3';
 import express from 'express';
 import { createServer as createHttpServer } from 'http';
 import type { AddressInfo } from 'net';
-import { homedir } from 'os';
-import { writeServerInfo, deleteServerInfo } from './server-info.js';
+import { writeServerInfo, deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import packageJson from '../../package.json' with { type: 'json' };
 
 /**
@@ -601,7 +600,7 @@ async function startMgmtHttpServer(): Promise<void> {
     mgmtHttpServer!.once('error', rejectPromise);
     mgmtHttpServer!.listen(0, '127.0.0.1', async () => {
       const addr = mgmtHttpServer!.address() as AddressInfo;
-      const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+      const configDir = resolveServerInfoConfigDir();
       try {
         await writeServerInfo(configDir, addr.port);
       } catch (err) {
@@ -720,7 +719,7 @@ async function cleanup() {
 
   // server.json 삭제 및 관리 HTTP 서버 종료
   if (mgmtHttpServer) {
-    const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+    const configDir = resolveServerInfoConfigDir();
     try {
       await deleteServerInfo(configDir);
     } catch {

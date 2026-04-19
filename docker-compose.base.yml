@@ -5,6 +5,7 @@ x-default-environment: &default-environment
   MCP_SERVER_NAME: ${MCP_SERVER_NAME:-memento-memory}
   MCP_SERVER_VERSION: ${MCP_SERVER_VERSION:-0.1.0}
   DB_PATH: "/app/data/memory.db"
+  MEMENTO_CONFIG_DIR: "/app/.memento"
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_FILE: ${LOG_FILE:-}
   EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-minilm}

@@ -6,9 +6,8 @@
 
 import express from 'express';
 import { existsSync } from 'fs';
-import { homedir } from 'os';
 import { join } from 'path';
-import { writeServerInfo, deleteServerInfo } from './server-info.js';
+import { writeServerInfo, deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import cors from 'cors';
@@ -369,7 +368,7 @@ async function cleanup() {
 
   try {
     // delete server.json on shutdown
-    const configDirForCleanup = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
+    const configDirForCleanup = resolveServerInfoConfigDir();
     try {
       await deleteServerInfo(configDirForCleanup);
     } catch {
@@ -691,8 +690,13 @@ async function startServer() {
     if (address && typeof address === 'object') {
       logger.info('서버 바인딩 완료', { address: address.address, port: address.port });
       // write server.json for CLI discovery
-      const configDir = process.env.MEMENTO_CONFIG_DIR ?? join(homedir(), '.memento');
-      void writeServerInfo(configDir, address.port);
+      const configDir = resolveServerInfoConfigDir();
+      void writeServerInfo(configDir, address.port).catch((error) => {
+        logger.error('server.json 기록 실패', {
+          error: error instanceof Error ? error.message : String(error),
+          configDir,
+        });
+      });
     }
   });
 }
