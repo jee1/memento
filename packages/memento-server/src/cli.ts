@@ -4,9 +4,6 @@
  * 명세: REQ-CLI-1, REQ-OPT-1~3, REQ-CFG-1, REQ-IO-4, AC8. 서브커맨드: recall, remember, forget, memory_injection
  */
 
-import os from 'os';
-import path from 'path';
-
 function writeStdout(message: string): Promise<void> {
   return new Promise((resolve, reject) => {
     process.stdout.write(message, (error) => {
@@ -120,7 +117,13 @@ const preOptions = parseCli(process.argv);
 loadEnv({ envFile: preOptions.envFile, configDir: preOptions.configDir });
 
 // 2) server-info import (env 로드 이후)
-const { readServerInfo, isServerAlive, callToolViaHttp, deleteServerInfo } = await import('./server/server-info.js');
+const {
+  readServerInfo,
+  isServerAlive,
+  callToolViaHttp,
+  deleteServerInfo,
+  resolveServerInfoConfigDir,
+} = await import('./server/server-info.js');
 
 const subcommand = preOptions.subcommand;
 const subIdx = preOptions.subIdx;
@@ -200,10 +203,7 @@ async function main(): Promise<number> {
   }
 
   // configDir 결정
-  const configDir =
-    preOptions.configDir ??
-    process.env.MEMENTO_CONFIG_DIR ??
-    path.join(os.homedir(), '.memento');
+  const configDir = preOptions.configDir ?? resolveServerInfoConfigDir();
 
   // 서버 발견
   const serverInfo = await readServerInfo(configDir);
