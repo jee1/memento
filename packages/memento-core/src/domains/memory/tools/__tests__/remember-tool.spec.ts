@@ -11,6 +11,7 @@ import * as environmentCheck from '../../../../shared/utils/environment-check.js
 import { getBatchScheduler, resetBatchScheduler } from '../../../../infrastructure/scheduler/batch-scheduler.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { TripleExtractionService } from '../../../relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../../services/semantic-memory/semantic-memory-update-service.js';
 
 /**
  * 테스트용 데이터베이스 초기화
@@ -1983,6 +1984,128 @@ describe('RememberTool', () => {
 
       testEnvironmentSpy.mockRestore();
       extractTriplesSpy.mockRestore();
+    });
+
+    it('should record relation_graph_unavailable when semantic update needs relationGraph', async () => {
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [
+          { subject: 'Alice', predicate: 'works_at', object: 'Acme' }
+        ],
+        extractionInfo: {
+          steps: { canonicalization: true, entityLinking: true }
+        }
+      });
+
+      const contextWithoutRelationGraph: ToolContext = {
+        ...context,
+        services: {
+          hybridSearchEngine,
+          embeddingService,
+          batchScheduler: getBatchScheduler(),
+        }
+      };
+
+      const params = {
+        type: 'episodic',
+        content: 'Alice works at Acme.',
+        importance: 0.6,
+        enable_triple_extraction: true
+      };
+
+      const result = await tool.handle(params, contextWithoutRelationGraph);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      let metadata: Record<string, unknown> | null = null;
+      let status: string | null | undefined;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const row = DatabaseUtils.get(db, `
+          SELECT triple_extracted_status, triple_extraction_metadata
+          FROM memory_item WHERE id = ?
+        `, [memoryId]) as {
+          triple_extracted_status: string | null;
+          triple_extraction_metadata: string | null;
+        } | undefined;
+
+        status = row?.triple_extracted_status;
+        metadata = row?.triple_extraction_metadata ? JSON.parse(row.triple_extraction_metadata) : null;
+        if (status === 'failed' && metadata) {
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      expect(extractTriplesSpy).toHaveBeenCalledOnce();
+      expect(status).toBe('failed');
+      expect(metadata).toMatchObject({
+        failureReason: 'relation_graph_unavailable'
+      });
+      expect(metadata).not.toMatchObject({
+        failureReason: 'llm_api_error'
+      });
+    });
+
+
+    it('should record semantic_update_failed when semantic update crashes after extraction', async () => {
+      const extractTriplesSpy = vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [
+          { subject: 'Alice', predicate: 'works_at', object: 'Acme' }
+        ],
+        extractionInfo: {
+          steps: { canonicalization: true, entityLinking: true }
+        }
+      });
+      const updateSemanticMemorySpy = vi
+        .spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemory')
+        .mockRejectedValue(new Error('semantic update exploded'));
+
+      const contextWithScheduler: ToolContext = {
+        ...context,
+        services: {
+          ...context.services,
+          batchScheduler: getBatchScheduler(),
+        }
+      };
+
+      const params = {
+        type: 'episodic',
+        content: 'Alice works at Acme.',
+        importance: 0.6,
+        enable_triple_extraction: true
+      };
+
+      const result = await tool.handle(params, contextWithScheduler);
+      const resultData = JSON.parse(result.content[0].text);
+      const memoryId = resultData.memory_id;
+
+      let metadata: Record<string, unknown> | null = null;
+      let status: string | null | undefined;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const row = DatabaseUtils.get(db, `
+          SELECT triple_extracted_status, triple_extraction_metadata
+          FROM memory_item WHERE id = ?
+        `, [memoryId]) as {
+          triple_extracted_status: string | null;
+          triple_extraction_metadata: string | null;
+        } | undefined;
+
+        status = row?.triple_extracted_status;
+        metadata = row?.triple_extraction_metadata ? JSON.parse(row.triple_extraction_metadata) : null;
+        if (status === 'failed' && metadata) {
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      expect(extractTriplesSpy).toHaveBeenCalledOnce();
+      expect(updateSemanticMemorySpy).toHaveBeenCalledOnce();
+      expect(status).toBe('failed');
+      expect(metadata).toMatchObject({
+        failureReason: 'semantic_update_failed'
+      });
+      expect(metadata).not.toMatchObject({
+        failureReason: 'llm_api_error'
+      });
     });
 
     /**

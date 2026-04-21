@@ -103,6 +103,27 @@ describe('VisualizeRelationsTool', () => {
     expect(data.visualization).toContain('REFERENCES');
   });
 
+
+  it('relationGraph가 없으면 구성 오류를 반환해야 함', async () => {
+    createTestMemory(db, 'mem1', 'Test memory 1');
+
+    const result = await tool.handle(
+      {
+        memory_id: 'mem1',
+        format: 'dot',
+      },
+      {
+        db,
+        services: {},
+      }
+    );
+
+    const data = JSON.parse(result.content![0].text);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe('RELATION_GRAPH_UNAVAILABLE');
+    expect(data.message).toContain('관계 그래프 서비스');
+  });
+
   it('관계가 없을 때 dot 형식은 빈 그래프 주석을 포함할 수 있음', async () => {
     createTestMemory(db, 'mem1', 'Test memory 1');
 

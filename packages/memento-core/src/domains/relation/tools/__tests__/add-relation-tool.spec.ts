@@ -401,7 +401,7 @@ describe('AddRelationTool', () => {
   });
 
   describe('RelationGraph 통합', () => {
-    it('context에 relationGraph가 없으면 새로 생성해야 함', async () => {
+    it('context에 relationGraph가 없으면 구성 오류를 반환해야 함', async () => {
       // Given: relationGraph가 없는 context
       const contextWithoutGraph: ToolContext = {
         db,
@@ -420,10 +420,12 @@ describe('AddRelationTool', () => {
       // When: 관계 추가
       const result = await tool.handle(params, contextWithoutGraph);
 
-      // Then: 에러 없이 완료 (내부에서 RelationGraph 생성)
+      // Then: 구성 오류 반환
       expect(result.content).toBeDefined();
       const data = JSON.parse(result.content[0].text);
-      expect(data.relation_id).toBeDefined();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('RELATION_GRAPH_UNAVAILABLE');
+      expect(data.message).toContain('관계 그래프 서비스');
     });
 
     it('context에 relationGraph가 있으면 사용해야 함', async () => {

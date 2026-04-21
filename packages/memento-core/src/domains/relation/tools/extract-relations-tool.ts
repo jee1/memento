@@ -4,7 +4,6 @@
  */
 
 import { z } from 'zod';
-import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { convertMemoryRowToItem,isMemoryRow } from '../../../shared/utils/type-guards.js';
@@ -132,9 +131,20 @@ export class ExtractRelationsTool extends BaseTool {
       // 추출된 관계를 RelationGraph에 저장
       let savedCount = 0;
       if (candidates.length > 0) {
-        // RelationGraph 인스턴스 생성 (context에 없으면 새로 생성)
-        const relationGraph = context.services.relationGraph || createRelationGraph(db);
-        
+        const relationGraph = context.services.relationGraph;
+        if (!relationGraph) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: 'RELATION_GRAPH_UNAVAILABLE',
+                message: '관계 그래프 서비스가 구성되지 않았습니다'
+              }, null, 2)
+            }]
+          };
+        }
+
         for (const candidate of candidates) {
           try {
             await relationGraph.addRelation(

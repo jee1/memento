@@ -16,11 +16,15 @@ export interface Triple {
  * Triple 추출 실패 사유
  */
 export type TripleExtractionFailureReason =
-  | 'no_triple'           // 트리플이 추출되지 않음
-  | 'ambiguous_structure' // 구조가 모호함
-  | 'llm_parse_fail'      // LLM 응답 파싱 실패
-  | 'llm_api_error'       // LLM API 호출 실패
-  | 'llm_unavailable';    // LLM 서비스 사용 불가능 (초기화 실패 등)
+  | 'no_triple'                // 트리플이 추출되지 않음
+  | 'ambiguous_structure'      // 구조가 모호함
+  | 'llm_parse_fail'           // LLM 응답 파싱 실패
+  | 'llm_api_error'            // LLM API 호출 실패
+  | 'llm_unavailable'          // LLM 서비스 사용 불가능 (초기화 실패 등)
+  | 'db_connection_error'      // 후처리 중 DB 연결 문제
+  | 'relation_graph_unavailable' // Semantic 업데이트에 필요한 relation graph 미구성
+  | 'semantic_update_failed'   // Semantic update 단계 런타임 실패
+  | 'conversion_error';        // 수동 semantic 변환 중 기타 처리 오류
 
 /**
  * Triple 추출 단계별 성공 여부
