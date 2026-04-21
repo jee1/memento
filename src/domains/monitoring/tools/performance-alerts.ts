@@ -3,7 +3,6 @@
  * 성능 알림 조회, 해결, 통계 확인을 위한 MCP 도구
  */
 
-import { z } from 'zod';
 import type { ToolContext } from '../../../tools/types.js';
 
 export const performanceAlertsTool = {

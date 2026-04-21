@@ -4,42 +4,42 @@
  * 모듈화된 도구들을 사용하여 유지보수성 개선
  */
 
+import {
+DatabaseUtils,
+ErrorCategory,
+ErrorSeverity,
+MemoryNeighborService,
+closeDatabase,
+createMementoCore,
+createToolContext,
+executeTool,
+getBatchScheduler,
+getToolRegistry,
+getVectorSearchEngine,
+mementoConfig,
+validateConfig,
+withErrorHandling,
+type ServerServices
+} from '@memento/core';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  SetLevelRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema
+CallToolRequestSchema,
+GetPromptRequestSchema,
+ListPromptsRequestSchema,
+ListResourcesRequestSchema,
+ListToolsRequestSchema,
+ReadResourceRequestSchema,
+SetLevelRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import {
-  createMementoCore,
-  closeDatabase,
-  createToolContext,
-  getToolRegistry,
-  executeTool,
-  type ServerServices,
-  mementoConfig,
-  validateConfig,
-  DatabaseUtils,
-  ErrorSeverity,
-  ErrorCategory,
-  withErrorHandling,
-  MemoryNeighborService,
-  getVectorSearchEngine,
-  getBatchScheduler
-} from '@memento/core';
-import { mcpLogger } from './mcp-logger.js';
-import { ServerState } from './server-state.js';
 import Database from 'better-sqlite3';
 import express from 'express';
 import { createServer as createHttpServer } from 'http';
 import type { AddressInfo } from 'net';
-import { writeServerInfo, deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import packageJson from '../../package.json' with { type: 'json' };
+import { mcpLogger } from './mcp-logger.js';
+import { deleteServerInfo,resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
+import { ServerState } from './server-state.js';
 
 /**
  * Server instructions (MCP InitializeResult.instructions).
@@ -824,7 +824,7 @@ process.on('uncaughtException', (error) => {
 });
 
 // 서버 시작 함수 export (팩토리 패턴을 위해)
-export { startServer, cleanup };
+export { cleanup,startServer };
 
 export const __test: {
   setTestDependencies: (deps: TestDependencies) => void;
@@ -875,8 +875,8 @@ async function main() {
 // index.ts가 직접 실행되는 경우에만 팩토리 패턴으로 서버 시작
 // 팩토리 패턴을 사용하지 않는 경우를 위해 기존 startServer도 유지
 // NPM 패키지로 실행할 때도 작동하도록 강화된 체크
+import { basename,resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { basename, join, resolve } from 'path';
 
 const currentFile = fileURLToPath(import.meta.url);
 const currentFileName = basename(currentFile);

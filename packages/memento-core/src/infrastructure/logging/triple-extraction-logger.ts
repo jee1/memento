@@ -11,13 +11,12 @@
  * - 성공 케이스 10% 샘플링, 실패 케이스 100% 저장 (2.15에서 구현)
  */
 
-import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
-import { PIIMasker } from '../../shared/utils/pii-masker.js';
-import { validateFilePath } from '../../shared/utils/path-validator.js';
-import { logger } from '../../shared/utils/logger.js';
 import type { TripleExtractionResult } from '../../shared/types/triple-extraction.js';
+import { logger } from '../../shared/utils/logger.js';
+import { validateFilePath } from '../../shared/utils/path-validator.js';
+import { PIIMasker } from '../../shared/utils/pii-masker.js';
 
 /**
  * Triple 추출 로그 엔트리

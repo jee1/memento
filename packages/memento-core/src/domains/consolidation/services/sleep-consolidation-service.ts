@@ -151,7 +151,7 @@ export class SleepConsolidationService {
 
     const started = Date.now();
     const runAt = new Date().toISOString();
-    let result: SleepConsolidationRunResult = {
+    const result: SleepConsolidationRunResult = {
       runAt,
       durationMs: 0,
       clustersFound: 0,

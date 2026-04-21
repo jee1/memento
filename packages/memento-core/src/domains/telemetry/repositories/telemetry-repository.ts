@@ -5,13 +5,12 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import type {
-  DailyMetricRow,
-  EventType,
-  Outcome,
-  TelemetryEventInput,
-  TelemetryEventQueryFilters,
-  TelemetryEventRow,
-  TelemetryPeriod
+EventType,
+Outcome,
+TelemetryEventInput,
+TelemetryEventQueryFilters,
+TelemetryEventRow,
+TelemetryPeriod
 } from '../types/telemetry.types.js';
 
 export interface SearchQualityResult {
@@ -576,7 +575,7 @@ export class TelemetryRepository {
     if (terminalTypes.length > 0) {
       const placeholders = terminalTypes.map(() => '?').join(',');
       const args: unknown[] = [...terminalTypes, cutoff];
-      let sql = `SELECT outcome, latency_ms FROM telemetry_events WHERE event_type IN (${placeholders}) AND created_at >= ? ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = ?'}`;
+      const sql = `SELECT outcome, latency_ms FROM telemetry_events WHERE event_type IN (${placeholders}) AND created_at >= ? ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = ?'}`;
       if (ownerId !== undefined && ownerId !== null) args.push(ownerId);
       const rows = this.db.prepare(sql).all(...args) as { outcome: Outcome; latency_ms: number | null }[];
       for (const r of rows) {

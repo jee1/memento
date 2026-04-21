@@ -5,15 +5,13 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { Migration, MigrationResult, MigrationOptions } from './types.js';
-import { BackupManager } from './backup-manager.js';
-import { SchemaVersionManager } from './schema-version-manager.js';
-import { DependencyValidator } from './dependency-validator.js';
-import { MigrationLogger, LogLevel } from './migration-logger.js';
-import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
-import { logger } from '../../../../shared/utils/logger.js';
 import { createHash } from 'crypto';
-import { readFileSync } from 'fs';
+import { logger } from '../../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
+import { BackupManager } from './backup-manager.js';
+import { MigrationLogger } from './migration-logger.js';
+import { SchemaVersionManager } from './schema-version-manager.js';
+import type { Migration,MigrationOptions,MigrationResult } from './types.js';
 
 /**
  * 마이그레이션 실행기
@@ -173,7 +171,7 @@ export class MigrationRunner {
   /**
    * 마이그레이션 롤백
    */
-  async rollbackMigration(migration: Migration, backupPath: string): Promise<void> {
+  async rollbackMigration(migration: Migration, _backupPath: string): Promise<void> {
     try {
       logger.info(`↩️  마이그레이션 롤백 시작: ${migration.name} (v${migration.version})`);
 

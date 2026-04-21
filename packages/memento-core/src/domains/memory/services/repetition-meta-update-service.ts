@@ -56,7 +56,7 @@ export function updateRepresentativeRepetitionMeta(
     throw new Error(`대표 항목을 찾을 수 없습니다: ${representativeId}`);
   }
 
-  const prevNumTimes = rep.num_times ?? 1;
+  const _prevNumTimes = rep.num_times ?? 1;
   const prevLastMentioned = rep.last_mentioned_at ?? rep.created_at ?? null;
   const timestamps: (string | null)[] = [prevLastMentioned];
 

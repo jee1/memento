@@ -366,7 +366,7 @@ export class SearchCacheService {
   /**
    * 메모리 변경 시 관련 검색 결과 무효화
    */
-  invalidateByMemoryId(memoryId: string): void {
+  invalidateByMemoryId(_memoryId: string): void {
     // 메모리 ID가 포함된 검색 결과 캐시 무효화
     this.invalidateSearchResults();
   }
@@ -385,7 +385,7 @@ export class SearchCacheService {
   /**
    * 유사한 결과 찾기
    */
-  private findSimilarResults(normalizedQuery: string, filters?: any, limit?: number): any[] | null {
+  private findSimilarResults(normalizedQuery: string, _filters?: any, _limit?: number): any[] | null {
     const words = normalizedQuery.split(' ').filter(w => w.length > 1);
     
     for (const [cachedQuery, results] of this.queryPatternCache) {

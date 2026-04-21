@@ -5,9 +5,9 @@
 
 import Database from 'better-sqlite3';
 import os from 'os';
+import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { alertNotificationService } from './alert-notification-service.js';
-import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 
 export interface PerformanceMetrics {
   timestamp: Date;
@@ -130,7 +130,7 @@ export class PerformanceMonitor {
     const searchMetrics = this.getSearchMetrics();
 
     // 시스템 지표
-    const systemMetrics = this.getSystemMetrics();
+    const _systemMetrics = this.getSystemMetrics();
 
     const memoryUsagePercent = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
     // tick=true: scheduled baseline 갱신 / tick=false: on-demand baseline만 갱신
@@ -648,7 +648,7 @@ export class PerformanceMonitor {
    * 시스템 건강 상태 확인
    */
   async isHealthy(): Promise<boolean> {
-    const metrics = await this.collectMetrics();
+    const _metrics = await this.collectMetrics();
     const alerts = this.getActiveAlerts();
     
     // 심각한 알림이 있으면 비정상

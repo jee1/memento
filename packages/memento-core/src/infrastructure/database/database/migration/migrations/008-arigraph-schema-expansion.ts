@@ -7,10 +7,10 @@
 
 import type Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname,join } from 'path';
 import { fileURLToPath } from 'url';
-import type { Migration } from '../types.js';
 import { DependencyValidator } from '../dependency-validator.js';
+import type { Migration } from '../types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -157,11 +157,11 @@ export class AriGraphSchemaExpansionMigration implements Migration {
     }
 
     // Check if relation types already exist (should not exist, but use INSERT OR IGNORE in SQL)
-    const existingExtractedFrom = db.prepare(`
+    const _existingExtractedFrom = db.prepare(`
       SELECT type_name FROM relation_type_registry WHERE type_name = ?
     `).get('extracted_from') as { type_name: string } | undefined;
 
-    const existingSupportedBy = db.prepare(`
+    const _existingSupportedBy = db.prepare(`
       SELECT type_name FROM relation_type_registry WHERE type_name = ?
     `).get('supported_by') as { type_name: string } | undefined;
 

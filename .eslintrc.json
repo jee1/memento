@@ -1,4 +1,5 @@
 {
+  "root": true,
   "env": {
     "node": true,
     "es2022": true
@@ -16,7 +17,13 @@
     "security"
   ],
   "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -24,7 +31,9 @@
     "prefer-const": "error",
     "no-var": "error",
     "no-console": "error",
-    "no-redeclare": "off", // TypeScript 오버로드 선언을 위해 비활성화
+    "no-redeclare": "off",
+    "no-undef": "off",
+    "no-unused-vars": "off",
     "max-lines-per-function": "off",
     "security/detect-object-injection": "off",
     "security/detect-non-literal-fs-filename": "error",
@@ -41,28 +50,138 @@
   },
   "overrides": [
     {
-      "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**", "src/test/**"],
+      "files": [
+        "apps/**/*.ts"
+      ],
+      "excludedFiles": [
+        "**/*.spec.ts",
+        "**/test-*.ts"
+      ],
       "rules": {
-        "no-console": "off",
-        "security/detect-non-literal-fs-filename": "off"
+        "no-console": "error"
       }
     },
     {
-      "files": ["src/server/index.ts", "src/infrastructure/database/database/init.ts", "src/infrastructure/database/database/migrate.ts"],
+      "files": [
+        "packages/memento-client/src/**/*.ts"
+      ],
       "rules": {
         "no-console": "off"
       }
     },
     {
-      "files": ["src/infrastructure/database/**", "src/shared/utils/**"],
+      "files": [
+        "packages/memento-server/src/cli.ts",
+        "packages/memento-server/src/cli/**/*.ts"
+      ],
+      "rules": {
+        "security/detect-non-literal-fs-filename": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.spec.ts",
+        "**/test-*.ts",
+        "tests/**/*.ts",
+        "src/test/**/*.ts",
+        "packages/memento-core/src/test/**/*.ts",
+        "packages/mcp-client/examples/**/*.ts",
+        "scripts/**/*.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off",
+        "no-console": "off",
+        "security/detect-non-literal-fs-filename": "off"
+      }
+    },
+    {
+      "files": [
+        "static/**/*.js"
+      ],
+      "env": {
+        "browser": true,
+        "node": false,
+        "es2022": true
+      },
+      "globals": {
+        "d3": "readonly",
+        "mementoAdminFetch": "readonly"
+      },
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off",
+        "no-unused-vars": "error",
+        "no-undef": "error",
+        "no-console": "error",
+        "no-var": "error",
+        "prefer-const": "error"
+      }
+    },
+    {
+      "files": [
+        "src/server/index.ts",
+        "src/infrastructure/database/database/init.ts",
+        "src/infrastructure/database/database/migrate.ts"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": [
+        "src/infrastructure/database/**",
+        "src/shared/utils/**",
+        "src/shared/config/**",
+        "packages/memento-core/src/infrastructure/database/**",
+        "packages/memento-core/src/shared/utils/**",
+        "packages/memento-core/src/shared/config/**"
+      ],
       "rules": {
         "security/detect-non-literal-fs-filename": "warn"
+      }
+    },
+    {
+      "files": [
+        "src/domains/monitoring/services/**/*.ts",
+        "src/domains/monitoring/tools/**/*.ts",
+        "src/infrastructure/logging/**/*.ts",
+        "src/infrastructure/scheduler/file-logger.ts",
+        "src/test/helpers/**/*.ts",
+        "packages/memento-core/src/domains/monitoring/services/**/*.ts",
+        "packages/memento-core/src/domains/monitoring/tools/**/*.ts",
+        "packages/memento-core/src/infrastructure/logging/**/*.ts",
+        "packages/memento-core/src/infrastructure/scheduler/file-logger.ts",
+        "packages/memento-core/src/test/helpers/**/*.ts"
+      ],
+      "rules": {
+        "security/detect-non-literal-fs-filename": "warn"
+      }
+    },
+    {
+      "files": [
+        "src/shared/config/**/*.ts",
+        "src/shared/utils/write-coalescing.ts",
+        "src/shared/utils/fts5-migration-status.ts",
+        "src/shared/utils/reflection-notes-merge.ts",
+        "src/shared/utils/type-param-validator.ts",
+        "src/infrastructure/logging/**/*.ts",
+        "src/infrastructure/scheduler/file-logger.ts",
+        "src/domains/monitoring/services/performance-alert-service.ts",
+        "packages/memento-core/src/shared/config/**/*.ts",
+        "packages/memento-core/src/shared/utils/write-coalescing.ts",
+        "packages/memento-core/src/shared/utils/fts5-migration-status.ts",
+        "packages/memento-core/src/shared/utils/reflection-notes-merge.ts",
+        "packages/memento-core/src/shared/utils/type-param-validator.ts",
+        "packages/memento-core/src/infrastructure/logging/**/*.ts",
+        "packages/memento-core/src/infrastructure/scheduler/file-logger.ts",
+        "packages/memento-core/src/domains/monitoring/services/performance-alert-service.ts"
+      ],
+      "rules": {
+        "no-console": "off"
       }
     }
   ],
   "ignorePatterns": [
     "dist/",
-    "node_modules/",
-    "*.js"
+    "node_modules/"
   ]
 }

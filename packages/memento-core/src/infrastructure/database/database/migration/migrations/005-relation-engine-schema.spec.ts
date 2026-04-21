@@ -331,7 +331,7 @@ describe('RelationEngineSchemaMigration', () => {
       await migration.up(db);
 
       // Then: 첫 번째 관계가 삽입됨
-      let relations = db.prepare(`
+      const relations = db.prepare(`
         SELECT COUNT(*) as count FROM memory_relation
       `).get() as { count: number };
       expect(relations.count).toBe(1);

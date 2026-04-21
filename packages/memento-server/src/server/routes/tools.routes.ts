@@ -4,12 +4,12 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { Router } from 'express';
-import { getToolRegistry, executeTool, logger } from '@memento/core';
-import type { ServerServices } from '../bootstrap.js';
+import { executeTool,getToolRegistry,logger } from '@memento/core';
 import type Database from 'better-sqlite3';
-import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
+import { Router } from 'express';
 import type { WebSocket } from 'ws';
+import type { ServerServices } from '../bootstrap.js';
+import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
 
 /**
  * Tools 라우터 생성
@@ -49,7 +49,7 @@ export function createToolsRouter(
     const params = req.body;
 
     try {
-      const toolRegistry = getToolRegistry();
+      const _toolRegistry = getToolRegistry();
 
       // Phase 0: 미들웨어에서 주입된 ToolContext 사용
       if (!req.toolContext) {

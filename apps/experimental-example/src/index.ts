@@ -7,51 +7,58 @@
  * 환경: DB_PATH 또는 인자로 dbPath 전달.
  */
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import {
+  closeDatabase,
   createMementoCore,
   createToolContext,
   getToolRegistry,
-  closeDatabase
 } from '@memento/core';
 
-const dbPath = process.env.DB_PATH ?? ':memory:';
-
-async function main(): Promise<void> {
-  console.log('Initializing @memento/core with dbPath:', dbPath);
+export async function runExample(dbPath: string): Promise<number> {
   const { db, services } = await createMementoCore({ dbPath });
   const context = createToolContext(db, services);
   const registry = getToolRegistry();
 
   try {
-    const rememberResult = await registry.execute(
+    await registry.execute(
       'remember',
       {
         content: 'experimental-example에서 저장한 테스트 기억',
         type: 'episodic',
-        tags: ['experimental-example', 'demo']
+        tags: ['experimental-example', 'demo'],
       },
-      context
+      context,
     );
-    console.log('remember result:', rememberResult?.content?.length ? '(content present)' : rememberResult);
 
-    const recallResult = await registry.execute(
+    await registry.execute(
       'recall',
       { query: 'experimental-example', limit: 5 },
-      context
+      context,
     );
-    const items = recallResult && typeof recallResult === 'object' && 'items' in recallResult
-      ? (recallResult as unknown as { items: unknown[] }).items
-      : [];
-    console.log('recall result items:', Array.isArray(items) ? items.length : 0);
+
+    return 0;
   } finally {
     await services.runtimeDiagnosticsSamplerCleanup?.();
     closeDatabase(db);
-    console.log('Done.');
-    process.exit(0);
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+export async function main(): Promise<void> {
+  const code = await runExample(process.env.DB_PATH ?? ':memory:');
+  process.exit(code);
+}
+
+const isDirectRun = process.argv[1] !== undefined
+  && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  void main().catch((err: unknown) => {
+    const message = err instanceof Error ? (err.stack ?? err.message) : String(err);
+    process.stderr.write(`${message}
+`);
+    process.exit(1);
+  });
+}

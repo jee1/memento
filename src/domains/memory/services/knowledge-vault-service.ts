@@ -10,10 +10,8 @@
  */
 
 import {
-  KnowledgeVaultRepository,
-  type KnowledgeVaultRecord,
-  type CreateKnowledgeVaultInput,
-  type UpdateKnowledgeVaultInput
+KnowledgeVaultRepository,
+type KnowledgeVaultRecord
 } from '../repositories/knowledge-vault-repository.js';
 
 export interface CreateKnowledgeVaultServiceInput {

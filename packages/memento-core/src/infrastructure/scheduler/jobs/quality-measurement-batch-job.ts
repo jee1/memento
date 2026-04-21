@@ -216,7 +216,7 @@ export class QualityMeasurementBatchJob {
       let reportFilePath: string | undefined;
       if (this.config.generateReport) {
         try {
-          const report = await this.qualityService.generateReport({
+          const _report = await this.qualityService.generateReport({
             format: this.config.reportFormat,
             context: this.config.context,
             namespace: this.config.namespaces?.[0] // 첫 번째 네임스페이스만 필터링 (또는 전체)

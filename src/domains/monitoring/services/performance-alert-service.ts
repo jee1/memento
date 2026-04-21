@@ -3,10 +3,10 @@
  * 성능 임계값 모니터링, 알림 발송, 자동 복구 제안
  */
 
-import { writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
+import { appendFileSync,existsSync,mkdirSync } from 'fs';
 import { join } from 'path';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 export enum AlertLevel {
   INFO = 'info',
@@ -277,8 +277,8 @@ export class PerformanceAlertService {
       [AlertLevel.WARNING]: '\x1b[33m', // yellow
       [AlertLevel.CRITICAL]: '\x1b[31m' // red
     };
-    const resetColor = '\x1b[0m';
-    const color = colors[alert.level] || '';
+    const _resetColor = '\x1b[0m';
+    const _color = colors[alert.level] || '';
 
     logger.info('성능 알림', {
       level: alert.level,

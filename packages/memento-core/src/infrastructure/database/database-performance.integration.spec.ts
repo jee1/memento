@@ -48,11 +48,14 @@ function createBaseSchema(db: Database.Database): void {
  * 성능 측정 헬퍼
  */
 function measureTime(fn: () => void | Promise<void>): Promise<number> {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve, reject) => {
     const start = performance.now();
-    await fn();
-    const end = performance.now();
-    resolve(end - start);
+    Promise.resolve(fn())
+      .then(() => {
+        const end = performance.now();
+        resolve(end - start);
+      })
+      .catch(reject);
   });
 }
 

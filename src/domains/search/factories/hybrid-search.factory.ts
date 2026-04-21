@@ -3,22 +3,22 @@
  * 의존성 주입 및 객체 생성 관리
  */
 
-import { HybridSearchEngine, resolveQueryUnifiedEmbeddingForHybridSearch } from '../algorithms/hybrid-search-engine.js';
-import { SearchEngine } from '../algorithms/search-engine.js';
-import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
-import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
-import { logger } from '../../../shared/utils/logger.js';
 import type { Database } from 'better-sqlite3';
+import { logger } from '../../../shared/utils/logger.js';
+import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
+import { HybridSearchEngine,resolveQueryUnifiedEmbeddingForHybridSearch } from '../algorithms/hybrid-search-engine.js';
+import { SearchEngine } from '../algorithms/search-engine.js';
+import { VectorSearchEngine } from '../algorithms/vector-search-engine.js';
 
 // Mock implementations for missing services
 class MockSearchResultCombiner {
-  combine(textResults: any[], vectorResults: any[], textWeight: number, vectorWeight: number): any[] {
+  combine(textResults: any[], vectorResults: any[], _textWeight: number, _vectorWeight: number): any[] {
     return [...vectorResults, ...textResults];
   }
 }
 
 class MockAdaptiveWeightCalculator {
-  calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number, textWeight: number } {
+  calculateWeights(_query: string, _vectorWeight: number, _textWeight: number): { vectorWeight: number, textWeight: number } {
     return { vectorWeight: 0.6, textWeight: 0.4 };
   }
 }

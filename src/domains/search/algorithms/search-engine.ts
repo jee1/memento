@@ -3,14 +3,14 @@
  * 전문 검색 인덱스(FTS5)로 빠른 검색을 수행하고, 다차원 랭킹 알고리즘으로 관련성 높은 결과를 제공합니다.
  */
 
-import { SearchRanking } from './search-ranking.js';
-import type { MemorySearchFilters, MemorySearchResult } from '../../../shared/types/index.js';
 import Database from 'better-sqlite3';
-import { getStopWords } from '../../../shared/utils/stopwords.js';
-import { mementoConfig } from '../../../shared/config/index.js';
-import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
-import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
+import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import type { MemorySearchFilters,MemorySearchResult } from '../../../shared/types/index.js';
+import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
+import { getStopWords } from '../../../shared/utils/stopwords.js';
+import { SearchRanking } from './search-ranking.js';
 
 export interface SearchQuery {
   query: string;
@@ -554,7 +554,7 @@ export class SearchEngine {
       return null; // FTS5 MATCH 쿼리에서는 별도 조건 불필요
     } else {
       // LIKE 쿼리 사용 (Fallback)
-      const likeQuery = `%${searchQuery}%`;
+      const _likeQuery = `%${searchQuery}%`;
       return `m.reflection_notes LIKE ?`;
     }
   }

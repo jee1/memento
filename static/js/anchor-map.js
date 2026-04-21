@@ -8,12 +8,10 @@ let svg, simulation;
 let nodes = [];
 let links = [];
 let mapData = null;
-let selectedNodeId = null;
 let searchResults = null; // 검색 결과 저장
-let highlightedNodeIds = new Set(); // 하이라이트된 노드 ID 집합
+const highlightedNodeIds = new Set(); // 하이라이트된 노드 ID 집합
 let autoRefreshInterval = null; // 자동 새로고침 인터벌
 let websocket = null; // WebSocket 연결
-let lastUpdateTimestamp = null; // 마지막 업데이트 타임스탬프
 
 // 슬롯별 색상 정의
 const slotColors = {
@@ -32,6 +30,16 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function debugAnchorMap(eventName, detail) {
+  if (window.localStorage.getItem('memento.debug') !== '1') {
+    return;
+  }
+
+  document.body?.dispatchEvent(new CustomEvent('memento:debug', {
+    detail: { scope: 'anchor-map', eventName, detail },
+  }));
 }
 
 // 초기화
@@ -65,7 +73,7 @@ function initializeMap() {
   svg.call(zoom);
 
   // 그룹 생성 (zoom 적용)
-  const g = svg.append('g');
+  svg.append('g');
 
   // Force simulation 설정
   simulation = d3.forceSimulation()
@@ -112,7 +120,7 @@ function setupEventListeners() {
   });
   
   // 새로고침 간격 변경
-  document.getElementById('refresh-interval-select').addEventListener('change', (e) => {
+  document.getElementById('refresh-interval-select').addEventListener('change', () => {
     if (document.getElementById('auto-refresh-toggle').checked) {
       stopAutoRefresh();
       startAutoRefresh();
@@ -159,15 +167,14 @@ async function loadMapData() {
     
     if (hasChanged) {
       mapData = newMapData;
-      lastUpdateTimestamp = newMapData.timestamp;
       renderMap();
       updateAnchorList();
-      console.log('✅ 맵 데이터 업데이트됨:', newMapData.timestamp);
+      debugAnchorMap('map-updated', { timestamp: newMapData.timestamp });
     } else {
-      console.log('ℹ️ 맵 데이터 변경 없음');
+      debugAnchorMap('map-unchanged');
     }
   } catch (error) {
-    console.error('❌ 맵 데이터 로드 실패:', error);
+    debugAnchorMap('load-error', { message: error.message });
     // 에러 알림은 자동 새로고침 시에는 표시하지 않음
     if (!autoRefreshInterval) {
       alert(`맵 데이터를 불러올 수 없습니다: ${error.message}`);
@@ -374,7 +381,6 @@ function drag(simulation) {
  * 노드 선택
  */
 function selectNode(node) {
-  selectedNodeId = node.id;
   
   // 노드 하이라이트
   svg.selectAll('.node')
@@ -581,10 +587,10 @@ async function performSearch() {
     
     // 검색 결과 요약 표시
     const resultCount = searchResults.items ? searchResults.items.length : 0;
-    console.log(`✅ 검색 완료: ${resultCount}개 결과 발견`);
+    debugAnchorMap('search-complete', { resultCount });
     
   } catch (error) {
-    console.error('❌ 검색 실패:', error);
+    debugAnchorMap('search-error', { message: error.message });
     alert(`검색 중 오류가 발생했습니다: ${error.message}`);
   }
 }
@@ -698,7 +704,7 @@ function clearSearch() {
   // 노드 스타일 복원
   updateNodeHighlight();
   
-  console.log('✅ 검색 하이라이트 제거됨');
+  debugAnchorMap('search-cleared');
 }
 
 /**
@@ -712,7 +718,7 @@ function startAutoRefresh() {
     loadMapData();
   }, interval);
   
-  console.log(`✅ 자동 새로고침 시작: ${interval / 1000}초 간격`);
+  debugAnchorMap('auto-refresh-started', { intervalMs: interval });
 }
 
 /**
@@ -722,7 +728,7 @@ function stopAutoRefresh() {
   if (autoRefreshInterval) {
     clearInterval(autoRefreshInterval);
     autoRefreshInterval = null;
-    console.log('⏸️ 자동 새로고침 중지됨');
+    debugAnchorMap('auto-refresh-stopped');
   }
 }
 
@@ -732,7 +738,7 @@ function stopAutoRefresh() {
 function tryConnectWebSocket() {
   // WebSocket이 지원되는 경우에만 시도
   if (typeof WebSocket === 'undefined') {
-    console.log('ℹ️ WebSocket이 지원되지 않습니다. Polling 모드로 동작합니다.');
+    debugAnchorMap('websocket-unsupported');
     return;
   }
   
@@ -743,7 +749,7 @@ function tryConnectWebSocket() {
     websocket = new WebSocket(wsUrl);
     
     websocket.onopen = () => {
-      console.log('✅ WebSocket 연결됨');
+      debugAnchorMap('websocket-open');
       // WebSocket으로 Anchor Map 업데이트 구독 요청
       const agentId = document.getElementById('agent-id-input').value || 'default';
       websocket.send(JSON.stringify({
@@ -761,10 +767,9 @@ function tryConnectWebSocket() {
         
         if (message.type === 'anchor_map_update') {
           // Anchor Map 업데이트 수신
-          console.log('📨 Anchor Map 업데이트 수신:', message.data);
+          debugAnchorMap('websocket-update', { hasData: Boolean(message.data) });
           if (message.data) {
             mapData = message.data;
-            lastUpdateTimestamp = message.data.timestamp;
             renderMap();
             updateAnchorList();
           }
@@ -773,12 +778,12 @@ function tryConnectWebSocket() {
           websocket.send(JSON.stringify({ type: 'pong' }));
         }
       } catch (error) {
-        console.error('❌ WebSocket 메시지 파싱 실패:', error);
+        debugAnchorMap('websocket-parse-error', { message: error.message });
       }
     };
     
     websocket.onerror = (error) => {
-      console.error('❌ WebSocket 에러:', error);
+      debugAnchorMap('websocket-error', { type: error?.type ?? 'unknown' });
       // WebSocket 실패 시 polling으로 fallback
       if (!autoRefreshInterval && document.getElementById('auto-refresh-toggle').checked) {
         startAutoRefresh();
@@ -786,7 +791,7 @@ function tryConnectWebSocket() {
     };
     
     websocket.onclose = () => {
-      console.log('🔌 WebSocket 연결 종료됨');
+      debugAnchorMap('websocket-closed');
       websocket = null;
       
       // 자동 재연결 시도 (5초 후)
@@ -799,7 +804,7 @@ function tryConnectWebSocket() {
       }
     };
   } catch (error) {
-    console.error('❌ WebSocket 연결 실패:', error);
+    debugAnchorMap('websocket-connect-failed', { message: error.message });
     // WebSocket 실패 시 polling으로 fallback
     if (!autoRefreshInterval && document.getElementById('auto-refresh-toggle').checked) {
       startAutoRefresh();

@@ -6,7 +6,6 @@
 import type { IAsyncTaskQueue } from '../../../shared/interfaces/async-task-queue.interface.js';
 import type { FailureEvent } from '../../../shared/types/failure-event.js';
 import { logger } from '../../../shared/utils/logger.js';
-import type { ToolContext } from '../../../tools/types.js';
 
 /** 실패 이벤트 타입 재export (shared 타입 사용, 하위 호환) */
 export type { FailureEvent };

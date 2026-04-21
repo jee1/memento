@@ -6,9 +6,8 @@
  * PRD FR-4.7: HTTP API로 임계값 조회/업데이트 기능 구현
  */
 
-import { Router } from 'express';
 import type Database from 'better-sqlite3';
-import type { ServerServices } from '../bootstrap.js';
+import { Router } from 'express';
 import { QualityAssuranceService } from '../../domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { QualityThresholdManager } from '../../domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
 import { logger } from '../../shared/utils/logger.js';

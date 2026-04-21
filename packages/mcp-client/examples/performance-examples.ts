@@ -328,10 +328,10 @@ async function realTimeMonitoringExample() {
       setInterval(() => {
         const stats = this.getStats();
         console.log('📈 실시간 성능 통계:', {
-          요청 수: stats.requests,
-          평균 응답 시간: `${stats.averageResponseTime.toFixed(2)}ms`,
-          에러율: `${stats.errorRate.toFixed(2)}%`,
-          캐시 히트율: `${stats.cacheHitRate.toFixed(2)}%`
+          requestCount: stats.requests,
+          averageResponseTime: `${stats.averageResponseTime.toFixed(2)}ms`,
+          errorRate: `${stats.errorRate.toFixed(2)}%`,
+          cacheHitRate: `${stats.cacheHitRate.toFixed(2)}%`
         });
       }, intervalMs);
     }

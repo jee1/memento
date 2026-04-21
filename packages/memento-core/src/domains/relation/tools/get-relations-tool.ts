@@ -4,13 +4,13 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
-import type { RelationType, RelationCategory } from '../../../shared/types/relation.js';
-import { RELATION_TYPE_CATEGORY_MAP, getRelationCategory } from '../../../shared/types/relation.js';
-import type { RelationDirection, GetRelationsOptions, MemoryRelation } from '../../../shared/types/relation-graph.js';
+import type { GetRelationsOptions,MemoryRelation } from '../../../shared/types/relation-graph.js';
+import type { RelationType } from '../../../shared/types/relation.js';
+import { RELATION_TYPE_CATEGORY_MAP } from '../../../shared/types/relation.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
 
 const GetRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),

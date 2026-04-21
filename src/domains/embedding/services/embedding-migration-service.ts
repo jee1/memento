@@ -1,21 +1,20 @@
 import type { Database } from 'better-sqlite3';
-import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../../shared/types/embedding.types.js';
-import type {
-  EmbeddingMigrationError,
-  EmbeddingMigrationPlan,
-  EmbeddingMigrationTarget,
-  MigrationHistoryRecord,
-  MigrationMonitorOptions,
-  MigrationProgress,
-  MigrationProgressHandler,
-  MigrationRollbackEntry,
-  MigrationResult,
-  MigrationRunStatus,
-  MigrationStep,
-  MigrationStepStatus
-} from '../../../shared/types/migration.types.js';
-import { migrationMonitorService } from '../../../infrastructure/database/migration-monitor-service.js';
 import { migrationHistoryService } from '../../../infrastructure/database/migration-history-service.js';
+import { migrationMonitorService } from '../../../infrastructure/database/migration-monitor-service.js';
+import type { EmbeddingProvider,ProjectionType,VectorNormalization } from '../../../shared/types/embedding.types.js';
+import type {
+EmbeddingMigrationError,
+EmbeddingMigrationPlan,
+EmbeddingMigrationTarget,
+MigrationHistoryRecord,
+MigrationMonitorOptions,
+MigrationProgress,
+MigrationResult,
+MigrationRollbackEntry,
+MigrationRunStatus,
+MigrationStep,
+MigrationStepStatus
+} from '../../../shared/types/migration.types.js';
 import { vectorCompatibilityService } from './vector-compatibility-service.js';
 
 interface RawEmbeddingRow {
@@ -383,7 +382,7 @@ export class EmbeddingMigrationService {
       }
     };
 
-    while (true) {
+    for (;;) {
       const batch = selectStatement.all(
         plan.sourceProvider,
         lastProcessedId,

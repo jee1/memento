@@ -12,28 +12,27 @@
  */
 
 import Database from 'better-sqlite3';
+import { CONFIDENCE,LIMITS } from '../../../shared/constants/relation-constants.js';
+import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import type {
-  MemoryRelation,
-  RelationMetadata,
-  RelationDirection,
-  GetRelationsOptions,
-  GetRelatedMemoriesOptions,
-  AddRelationOptions,
-  IRelationGraph
+AddRelationOptions,
+GetRelatedMemoriesOptions,
+GetRelationsOptions,
+IRelationGraph,
+MemoryRelation,
+RelationMetadata
 } from '../../../shared/types/relation-graph.js';
 import type { RelationType } from '../../../shared/types/relation.js';
-import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
+import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import {
-  isExistingRelationRow,
-  isMetadataRow,
-  isRelationRow,
-  type RelationRow,
-  type ExistingRelationRow
+isExistingRelationRow,
+isMetadataRow,
+isRelationRow,
+type ExistingRelationRow,
+type RelationRow
 } from '../../../shared/utils/type-guards.js';
-import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
-import { CONFIDENCE, LIMITS } from '../../../shared/constants/relation-constants.js';
 
 /**
  * 관계 그래프 서비스

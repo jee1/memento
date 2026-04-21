@@ -4,13 +4,13 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { CommonSchemas } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { CommonSchemas } from '../../../tools/types.js';
 
 const ForgetSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
@@ -156,7 +156,7 @@ export class ForgetTool extends BaseTool {
       await this.logDeleteAction(id, hard, reason, context);
       
       // 트랜잭션으로 삭제 실행
-      const result = await DatabaseUtils.runTransaction(context.db!, async () => {
+      const _result = await DatabaseUtils.runTransaction(context.db!, async () => {
         if (hard) {
           // 하드 삭제: 완전 제거
           return await this.performHardDelete(id, context);
@@ -298,7 +298,7 @@ export class ForgetTool extends BaseTool {
   /**
    * 삭제 권한 확인
    */
-  private async validateDeletePermission(memory: any, context: ToolContext): Promise<void> {
+  private async validateDeletePermission(memory: any, _context: ToolContext): Promise<void> {
     // 핀된 기억은 하드 삭제 전에 확인 필요
     if (memory.pinned) {
       throw new Error('핀된 기억은 먼저 핀을 해제해야 합니다');

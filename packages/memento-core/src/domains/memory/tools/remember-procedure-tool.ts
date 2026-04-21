@@ -4,14 +4,14 @@
  * 전용 엔드포인트·검증·로깅 분리. 저장 로직은 RememberTool의 procedural 경로를 재사용합니다.
  */
 
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { RememberTool } from './remember-tool.js';
+import { formatValidationErrors,validateReflectionNotes } from '../../../shared/utils/reflection-notes-schema.js';
 import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
-import { validateReflectionNotes, formatValidationErrors } from '../../../shared/utils/reflection-notes-schema.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { RememberTool } from './remember-tool.js';
 
 /** remember_procedure 입력 (procedural 전용 필드만, type 없음) */
-interface RememberProcedureParams {
+interface _RememberProcedureParams {
   content: string;
   task_goal?: string | null;
   steps?: string | null;

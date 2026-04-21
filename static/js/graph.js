@@ -278,9 +278,6 @@
         lastGraphEdges = edges;
         renderGraph(data.nodes, edges);
 
-        if (data.meta?.truncated) {
-          console.info(`[graph] 노드 제한 초과: 상위 ${data.nodes.length}개 표시`);
-        }
       } catch (err) {
         showLoading(false);
         showError(err.message ?? '알 수 없는 오류');

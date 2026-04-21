@@ -4,30 +4,28 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { Router } from 'express';
+import {
+ConsolidationAlreadyRunningError,
+type EventType,
+type TelemetryPeriod
+} from '@memento/core';
 import type Database from 'better-sqlite3';
-import type { ServerServices } from '../bootstrap.js';
-import { getBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
+import { Router } from 'express';
+import { RestoreAnchorsTool } from '../../domains/anchor/tools/restore-anchors-tool.js';
+import { ConvertEpisodicToSemanticTool } from '../../domains/memory/tools/convert-episodic-to-semantic-tool.js';
 import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
-import { createRelationGraph } from '../../infrastructure/relation-graph-factory.js';
-import { RelationExtractor } from '../../domains/relation/services/relation-extractor.js';
+import { GetMetaMemoryStatsTool } from '../../domains/monitoring/tools/get-meta-memory-stats-tool.js';
+import { AddRelationTool } from '../../domains/relation/tools/add-relation-tool.js';
 import { ExtractRelationsTool } from '../../domains/relation/tools/extract-relations-tool.js';
 import { GetRelationsTool } from '../../domains/relation/tools/get-relations-tool.js';
-import { AddRelationTool } from '../../domains/relation/tools/add-relation-tool.js';
 import { RemoveRelationTool } from '../../domains/relation/tools/remove-relation-tool.js';
 import { VisualizeRelationsTool } from '../../domains/relation/tools/visualize-relations-tool.js';
-import { RestoreAnchorsTool } from '../../domains/anchor/tools/restore-anchors-tool.js';
-import { MigrateEmbeddingsTool } from '../../tools/migrate-embeddings-tool.js';
-import { ConvertEpisodicToSemanticTool } from '../../domains/memory/tools/convert-episodic-to-semantic-tool.js';
-import { GetMetaMemoryStatsTool } from '../../domains/monitoring/tools/get-meta-memory-stats-tool.js';
-import { DatabaseUtils } from '../../shared/utils/database.js';
+import { createRelationGraph } from '../../infrastructure/relation-graph-factory.js';
+import { getBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
 import { logger } from '../../shared/utils/logger.js';
+import { MigrateEmbeddingsTool } from '../../tools/migrate-embeddings-tool.js';
+import type { ServerServices } from '../bootstrap.js';
 import { createToolContext } from '../context.js';
-import {
-  ConsolidationAlreadyRunningError,
-  type TelemetryPeriod,
-  type EventType
-} from '@memento/core';
 
 const TELEMETRY_PERIODS: TelemetryPeriod[] = ['24h', '7d', '30d'];
 

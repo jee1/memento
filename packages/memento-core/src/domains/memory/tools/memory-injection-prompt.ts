@@ -3,18 +3,18 @@
  * MCP 프롬프트 인터페이스를 통한 관련 기억 주입
  */
 
+import { z } from 'zod';
+import { mementoConfig } from '../../../shared/config/index.js';
+import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
+import { isMemoryItemType,type MemoryType } from '../../../shared/types/index.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
-import { z } from 'zod';
 import { CommonSchemas } from '../../../tools/types.js';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType } from '../../../shared/types/index.js';
-import { mementoConfig } from '../../../shared/config/index.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { logger } from '../../../shared/utils/logger.js';
-import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
-import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
-import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
@@ -80,7 +80,7 @@ export class MemoryInjectionPrompt extends BaseTool {
       token_budget = 1000,
       max_memories = 5,
       memory_types = ['working', 'episodic', 'semantic', 'procedural'],
-      importance_threshold = 0.5,
+      importance_threshold: _importance_threshold = 0.5,
       project_id
     } = MemoryInjectionSchema.parse(params);
 

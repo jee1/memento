@@ -5,26 +5,26 @@
 (function (global) {
   'use strict';
 
-  var didSetup = false;
-  var firstAutoLoadDone = false;
-  var svg = null;
-  var zoomG = null;
-  var plotG = null;
-  var xScale = null;
-  var yScale = null;
-  var width = 0;
-  var height = 0;
-  var margin = { top: 24, right: 24, bottom: 40, left: 48 };
-  var tooltipEl = null;
-  var currentPoints = [];
-  var lastMeta = { k: 6, total: 0 };
+  let didSetup = false;
+  let firstAutoLoadDone = false;
+  let svg = null;
+  let zoomG = null;
+  let plotG = null;
+  let xScale = null;
+  let yScale = null;
+  let width = 0;
+  let height = 0;
+  const margin = { top: 24, right: 24, bottom: 40, left: 48 };
+  let tooltipEl = null;
+  let currentPoints = [];
+  let lastMeta = { k: 6, total: 0 };
   /** zoom 팬 후 의도치 않은 배경 click으로 패널이 닫히지 않도록 pointerdown 위치 보관 */
-  var lastScatterPointer = null;
+  let lastScatterPointer = null;
 
   function readParams() {
-    var prov = document.getElementById('em-provider');
-    var lim = document.getElementById('em-limit');
-    var kEl = document.getElementById('em-k');
+    const prov = document.getElementById('em-provider');
+    const lim = document.getElementById('em-limit');
+    const kEl = document.getElementById('em-k');
     return {
       provider: prov ? prov.value : 'minilm',
       limit: lim ? parseInt(lim.value, 10) || 300 : 300,
@@ -33,12 +33,12 @@
   }
 
   function clusterColor(k, clusterIndex) {
-    var t10 = d3.schemeTableau10;
-    var s3 = d3.schemeSet3;
+    const t10 = d3.schemeTableau10;
+    const s3 = d3.schemeSet3;
     if (k <= 10) {
       return t10[clusterIndex % t10.length];
     }
-    var merged = t10.concat(s3);
+    const merged = t10.concat(s3);
     return merged[clusterIndex % merged.length];
   }
 
@@ -54,14 +54,14 @@
   }
 
   function showTooltip(event, point) {
-    var el = ensureTooltip();
+    const el = ensureTooltip();
     while (el.firstChild) {
       el.removeChild(el.firstChild);
     }
-    var preview = point.content.length > 80 ? point.content.slice(0, 80) + '…' : point.content;
+    const preview = point.content.length > 80 ? point.content.slice(0, 80) + '…' : point.content;
     el.appendChild(document.createTextNode(preview));
     el.appendChild(document.createElement('br'));
-    var typeSpan = document.createElement('span');
+    const typeSpan = document.createElement('span');
     typeSpan.style.opacity = '0.85';
     typeSpan.textContent = point.type;
     el.appendChild(typeSpan);
@@ -77,7 +77,7 @@
   }
 
   function closeSidePanel() {
-    var panel = document.getElementById('em-side-panel');
+    const panel = document.getElementById('em-side-panel');
     if (panel) {
       panel.classList.remove('open');
       panel.setAttribute('aria-hidden', 'true');
@@ -85,8 +85,8 @@
   }
 
   function appendLabeledLine(parent, label, valueText) {
-    var p = document.createElement('p');
-    var strong = document.createElement('strong');
+    const p = document.createElement('p');
+    const strong = document.createElement('strong');
     strong.textContent = label;
     p.appendChild(strong);
     p.appendChild(document.createTextNode(' ' + valueText));
@@ -94,21 +94,21 @@
   }
 
   function openSidePanel(point) {
-    var panel = document.getElementById('em-side-panel');
+    const panel = document.getElementById('em-side-panel');
     if (!panel) {
       return;
     }
     while (panel.firstChild) {
       panel.removeChild(panel.firstChild);
     }
-    var tags = Array.isArray(point.tags) ? point.tags.join(', ') : '';
-    var imp = typeof point.importance === 'number' ? point.importance.toFixed(2) : String(point.importance);
+    const tags = Array.isArray(point.tags) ? point.tags.join(', ') : '';
+    const imp = typeof point.importance === 'number' ? point.importance.toFixed(2) : String(point.importance);
 
-    var header = document.createElement('div');
+    const header = document.createElement('div');
     header.className = 'em-panel-header';
-    var h3 = document.createElement('h3');
+    const h3 = document.createElement('h3');
     h3.textContent = 'Memory';
-    var closeBtn = document.createElement('button');
+    const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.id = 'em-panel-close';
     closeBtn.setAttribute('aria-label', 'Close');
@@ -116,15 +116,15 @@
     header.appendChild(h3);
     header.appendChild(closeBtn);
 
-    var body = document.createElement('div');
+    const body = document.createElement('div');
     body.className = 'em-panel-body';
     appendLabeledLine(body, 'Type:', String(point.type));
     appendLabeledLine(body, 'Importance:', imp);
     appendLabeledLine(body, 'Created:', String(point.created_at));
     appendLabeledLine(body, 'Tags:', tags);
 
-    var hr = document.createElement('hr');
-    var pre = document.createElement('pre');
+    const hr = document.createElement('hr');
+    const pre = document.createElement('pre');
     pre.className = 'em-panel-content';
     pre.textContent = String(point.content);
     body.appendChild(hr);
@@ -142,12 +142,12 @@
   }
 
   function setupChart() {
-    var container = d3.select('#em-scatter');
-    var node = container.node();
+    const container = d3.select('#em-scatter');
+    const node = container.node();
     if (!node) {
       return;
     }
-    var rect = node.getBoundingClientRect();
+    const rect = node.getBoundingClientRect();
     width = Math.max(320, rect.width || node.clientWidth || 640);
     height = Math.max(360, rect.height || node.clientHeight || 480);
 
@@ -158,7 +158,7 @@
       .attr('height', height)
       .attr('class', 'em-svg');
 
-    var zoom = d3
+    const zoom = d3
       .zoom()
       .scaleExtent([0.3, 10])
       .on('zoom', function (event) {
@@ -174,8 +174,8 @@
 
     plotG = zoomG.append('g').attr('class', 'em-plot').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-    var innerW = width - margin.left - margin.right;
-    var innerH = height - margin.top - margin.bottom;
+    const innerW = width - margin.left - margin.right;
+    const innerH = height - margin.top - margin.bottom;
 
     plotG
       .append('rect')
@@ -185,8 +185,8 @@
       .attr('fill', 'transparent')
       .on('click', function (event) {
         if (lastScatterPointer) {
-          var dx = event.clientX - lastScatterPointer.x;
-          var dy = event.clientY - lastScatterPointer.y;
+          const dx = event.clientX - lastScatterPointer.x;
+          const dy = event.clientY - lastScatterPointer.y;
           if (dx * dx + dy * dy > 36) {
             return;
           }
@@ -203,28 +203,28 @@
       return;
     }
 
-    var k = data.meta && typeof data.meta.k === 'number' ? data.meta.k : 6;
+    const k = data.meta && typeof data.meta.k === 'number' ? data.meta.k : 6;
     currentPoints = data.points;
 
-    var xs = data.points.map(function (p) {
+    const xs = data.points.map(function (p) {
       return p.x;
     });
-    var ys = data.points.map(function (p) {
+    const ys = data.points.map(function (p) {
       return p.y;
     });
-    var xPad = (d3.max(xs) - d3.min(xs)) * 0.08 || 0.5;
-    var yPad = (d3.max(ys) - d3.min(ys)) * 0.08 || 0.5;
+    const xPad = (d3.max(xs) - d3.min(xs)) * 0.08 || 0.5;
+    const yPad = (d3.max(ys) - d3.min(ys)) * 0.08 || 0.5;
     xScale.domain([d3.min(xs) - xPad, d3.max(xs) + xPad]);
     yScale.domain([d3.min(ys) - yPad, d3.max(ys) + yPad]);
 
-    var innerW = width - margin.left - margin.right;
-    var innerH = height - margin.top - margin.bottom;
+    const innerW = width - margin.left - margin.right;
+    const innerH = height - margin.top - margin.bottom;
 
     plotG.select('.em-plot-bg').attr('width', innerW).attr('height', innerH);
 
     plotG.selectAll('g.em-axis').remove();
-    var xAxis = d3.axisBottom(xScale).ticks(6);
-    var yAxis = d3.axisLeft(yScale).ticks(6);
+    const xAxis = d3.axisBottom(xScale).ticks(6);
+    const yAxis = d3.axisLeft(yScale).ticks(6);
     plotG
       .append('g')
       .attr('class', 'em-axis')
@@ -232,7 +232,7 @@
       .call(xAxis);
     plotG.append('g').attr('class', 'em-axis').call(yAxis);
 
-    var sel = plotG.selectAll('circle.em-dot').data(data.points, function (d) {
+    const sel = plotG.selectAll('circle.em-dot').data(data.points, function (d) {
       return d.id;
     });
 
@@ -290,14 +290,14 @@
   }
 
   function setLoading(on) {
-    var el = document.getElementById('em-loading');
+    const el = document.getElementById('em-loading');
     if (el) {
       el.classList.toggle('hidden', !on);
     }
   }
 
   function setError(msg, showRetry) {
-    var el = document.getElementById('em-error');
+    const el = document.getElementById('em-error');
     if (!el) {
       return;
     }
@@ -309,11 +309,11 @@
       return;
     }
     el.classList.remove('hidden');
-    var p = document.createElement('p');
+    const p = document.createElement('p');
     p.textContent = msg;
     el.appendChild(p);
     if (showRetry) {
-      var retry = document.createElement('button');
+      const retry = document.createElement('button');
       retry.type = 'button';
       retry.className = 'em-retry-btn';
       retry.textContent = 'Retry';
@@ -325,13 +325,13 @@
   }
 
   function updateCacheInfo(meta) {
-    var el = document.getElementById('em-cache-info');
+    const el = document.getElementById('em-cache-info');
     if (!el || !meta) {
       return;
     }
     if (meta.cached && meta.computed_at) {
-      var ms = Date.now() - new Date(meta.computed_at).getTime();
-      var min = Math.max(0, Math.round(ms / 60000));
+      const ms = Date.now() - new Date(meta.computed_at).getTime();
+      const min = Math.max(0, Math.round(ms / 60000));
       el.textContent = min + '분 전 캐시';
     } else {
       el.textContent = '';
@@ -345,7 +345,7 @@
     }
     setError('');
     setLoading(true);
-    var q =
+    const q =
       '?provider=' +
       encodeURIComponent(params.provider) +
       '&limit=' +
@@ -363,7 +363,7 @@
       .then(function (r) {
         setLoading(false);
         if (!r.ok) {
-          var msg =
+          const msg =
             (r.body && (r.body.message || r.body.error)) ||
             '요청 실패 (' + r.status + ')';
           setError(msg, r.status === 0 || r.status >= 500);
@@ -383,7 +383,7 @@
     if (!didSetup) {
       didSetup = true;
       setupChart();
-      var loadBtn = document.getElementById('em-load-btn');
+      const loadBtn = document.getElementById('em-load-btn');
       if (loadBtn) {
         loadBtn.addEventListener('click', function () {
           loadEmbeddingMap(readParams());
@@ -395,7 +395,7 @@
         }
       });
       window.addEventListener('resize', function () {
-        var tab = document.getElementById('tab-embedding-map');
+        const tab = document.getElementById('tab-embedding-map');
         if (tab && tab.classList.contains('active')) {
           setupChart();
           if (currentPoints.length) {

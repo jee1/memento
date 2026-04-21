@@ -3,15 +3,13 @@
  * 의존성 역전 원칙 (DIP) 적용
  */
 
-import type { 
-  SpacedRepetitionFeatures, 
-  SpacedRepetitionConfig, 
-  ReviewSchedule, 
-  ReviewPerformance,
-  MemoryData,
-  RecallHistory,
-  IntervalCalculationResult,
-  ReviewPriority
+import type {
+IntervalCalculationResult,
+MemoryData,
+ReviewPerformance,
+ReviewPriority,
+ReviewSchedule,
+SpacedRepetitionFeatures
 } from '../types/spaced-repetition.types.js';
 
 /**

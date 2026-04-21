@@ -101,7 +101,7 @@ export class AdaptiveRecallProbabilityCalculator implements RecallProbabilityCal
     this.forgettingCurves.set(memoryId, curve);
   }
 
-  private estimateForgettingCurve(recallData: boolean[]): number[] {
+  private estimateForgettingCurve(_recallData: boolean[]): number[] {
     // 간단한 망각 곡선 추정 (실제로는 더 복잡한 알고리즘 사용)
     const curve: number[] = [];
     const decayRate = 0.1;

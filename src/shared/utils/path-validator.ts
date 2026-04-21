@@ -6,7 +6,7 @@
  * 파일 경로 검증 및 파일명 정제를 제공하여 Path Traversal 공격을 방지합니다.
  */
 
-import { resolve, normalize, isAbsolute, join, dirname } from 'path';
+import { isAbsolute,join,normalize } from 'path';
 
 /**
  * 기본 허용 디렉토리 목록
@@ -173,7 +173,7 @@ export function sanitizeFileName(fileName: string): string {
     .replace(/\\\.\.\//g, '\\'); // \../
   
   // 경로 구분자 제거
-  sanitized = sanitized.replace(/[\/\\]/g, '');
+  sanitized = sanitized.replace(/[/\\]/g, '');
   
   // 허용된 문자만 남기기: 영문, 숫자, 점, 하이픈, 언더스코어
   sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '');

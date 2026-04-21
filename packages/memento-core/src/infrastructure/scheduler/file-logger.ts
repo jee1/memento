@@ -4,12 +4,11 @@
  * 비동기 I/O를 사용하여 이벤트 루프 블로킹 방지
  */
 
-import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
-import { PIIMasker } from '../../shared/utils/pii-masker.js';
-import { validateFilePath, sanitizeFileName } from '../../shared/utils/path-validator.js';
 import { logger } from '../../shared/utils/logger.js';
+import { sanitizeFileName,validateFilePath } from '../../shared/utils/path-validator.js';
+import { PIIMasker } from '../../shared/utils/pii-masker.js';
 
 export interface FileLoggerConfig {
   logDir?: string; // 로그 디렉토리 (기본: process.cwd()/logs)

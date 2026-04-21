@@ -10,7 +10,7 @@
   }
 
   function waitForSession() {
-    var dashboardAuth = getDashboardAuth();
+    const dashboardAuth = getDashboardAuth();
     if (dashboardAuth && typeof dashboardAuth.waitForSession === 'function') {
       return dashboardAuth.waitForSession();
     }
@@ -18,7 +18,7 @@
   }
 
   function buildRequestOptions(opts) {
-    var merged = Object.assign({}, opts || {});
+    const merged = Object.assign({}, opts || {});
     if (!merged.credentials) {
       merged.credentials = 'same-origin';
     }
@@ -27,7 +27,7 @@
 
   function performFetch(url, opts, retriedAfterAuthReset) {
     return fetch(url, opts).then(function (response) {
-      var dashboardAuth = getDashboardAuth();
+      const dashboardAuth = getDashboardAuth();
       if (
         response.status === 401 &&
         !retriedAfterAuthReset &&
@@ -49,7 +49,7 @@
    * @returns {Promise<Response>}
    */
   function mementoAdminFetch(url, opts) {
-    var requestOptions = buildRequestOptions(opts);
+    const requestOptions = buildRequestOptions(opts);
     return waitForSession().then(function () {
       return performFetch(url, requestOptions, false);
     });

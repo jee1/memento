@@ -3,11 +3,11 @@
  * 단일 책임 원칙 (SRP) 적용
  */
 
-import type { 
-  ReviewSchedule, 
-  ReviewPerformance 
-} from '../../../../shared/types/spaced-repetition.types.js';
 import type { PerformanceAnalyzer } from '../../../../shared/interfaces/spaced-repetition.interface.js';
+import type {
+ReviewPerformance,
+ReviewSchedule
+} from '../../../../shared/types/spaced-repetition.types.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
 /**
@@ -97,8 +97,8 @@ export class DetailedPerformanceAnalyzer implements PerformanceAnalyzer {
   }
 
   private calculateWeeklyPerformance(
-    schedules: ReviewSchedule[],
-    actualRecall: Map<string, boolean>
+    _schedules: ReviewSchedule[],
+    _actualRecall: Map<string, boolean>
   ): number[] {
     // 주별 성과 계산 로직
     return [];

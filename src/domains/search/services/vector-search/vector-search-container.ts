@@ -4,10 +4,9 @@
  */
 
 import Database from 'better-sqlite3';
-import { VectorSearchFacade } from './vector-search-facade.js';
-import { VectorSearchRepositoryImpl } from '../../repositories/vector-search.repository.js';
 import { VectorPerformanceRepositoryImpl } from '../../repositories/vector-performance.repository.js';
-import type { VectorSearchConfig } from '../../../../shared/types/vector-search.types.js';
+import { VectorSearchRepositoryImpl } from '../../repositories/vector-search.repository.js';
+import { VectorSearchFacade } from './vector-search-facade.js';
 
 export class VectorSearchContainer {
   private static instance: VectorSearchContainer | null = null;

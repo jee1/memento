@@ -19,9 +19,9 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { TripleExtractionService } from '../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../../../domains/memory/services/semantic-memory/semantic-memory-update-service.js';
+import { TripleExtractionService } from '../../../domains/relation/services/triple-extraction/triple-extraction-service.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { BatchJobResult } from '../batch-scheduler.js';
 
@@ -285,11 +285,11 @@ export class TripleExtractionBatchJob {
       // - 실패한 항목 수 및 에러 로그
       // - 배치 실행 시간 및 성능 메트릭
       const duration = result.endTime.getTime() - result.startTime.getTime();
-      const durationSeconds = (duration / 1000).toFixed(2);
-      const avgProcessingTime = result.details.processed > 0 
+      const _durationSeconds = (duration / 1000).toFixed(2);
+      const _avgProcessingTime = result.details.processed > 0 
         ? (duration / result.details.processed).toFixed(0) 
         : '0';
-      const successRate = result.details.processed > 0
+      const _successRate = result.details.processed > 0
         ? ((result.details.success / result.details.processed) * 100).toFixed(1)
         : '0.0';
       // 완료 로그는 batch-scheduler의 this.log('Triple extraction batch job completed', ...)에서 한 번만 출력 (중복·undefined 줄 감소)

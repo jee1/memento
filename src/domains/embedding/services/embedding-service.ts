@@ -10,12 +10,12 @@
 
 import OpenAI from 'openai';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
+import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { GeminiEmbeddingService, type GeminiEmbeddingResult, type GeminiSimilarityResult } from './gemini-embedding-service.js';
-import { LightweightEmbeddingService, type LightweightEmbeddingResult, type LightweightSimilarityResult } from './lightweight-embedding-service.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { GeminiEmbeddingService } from './gemini-embedding-service.js';
+import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 
 export interface EmbeddingResult {
   embedding: number[];

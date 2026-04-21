@@ -8,7 +8,7 @@
  *   tsx scripts/count-any-types.ts
  *   tsx scripts/count-any-types.ts --ci
  *   tsx scripts/count-any-types.ts --directory src/
- *   tsx scripts/count-any-types.ts --exclude "**/*.spec.ts"
+ *   tsx scripts/count-any-types.ts --exclude "<glob-for-spec-files>"
  * 
  * 목표:
  *   - 현재 any 타입 개수 측정
@@ -222,7 +222,7 @@ function findAnyTypes(filePath: string): AnyTypeLocation[] {
           /<\s*$/.test(beforeMatch) ||           // <any
           /,\s*$/.test(beforeMatch) ||           // , any
           /\(\s*$/.test(beforeMatch) ||          // (any
-          /\s+$/.test(beforeMatch) && /^[,\[\])>]/.test(afterMatch) || // any, any], any>
+          /\s+$/.test(beforeMatch) && [',', '[', ']', ')', '>'].includes(afterMatch[0] ?? '') || // any, any], any>
           /^\[\]/.test(afterMatch);              // any[]
         
         if (isTypeContext) {

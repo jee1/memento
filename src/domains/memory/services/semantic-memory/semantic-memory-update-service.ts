@@ -11,15 +11,16 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
-import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
-import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
-import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
-import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
-import type { Triple, TripleExtractionResult, ExtractionInfo } from '../../../../shared/types/triple-extraction.js';
+import type { ExtractionInfo,Triple,TripleExtractionResult } from '../../../../shared/types/triple-extraction.js';
+import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
+import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
+import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
+import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
+import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js';
 /**
  * Memory ID 생성 유틸리티
  */
@@ -28,7 +29,6 @@ function generateId(): string {
   const random = Math.random().toString(36).substring(2, 11);
   return `mem_${timestamp}_${random}`;
 }
-import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js';
 
 /**
  * Semantic Memory 업데이트 결과
@@ -906,12 +906,12 @@ export class SemanticMemoryUpdateService {
    * 신뢰도가 일정 수준 이상인 경우만 Semantic Memory 생성 (기본 임계값: 0.7)
    * 
    * @param triple Triple
-   * @param extractionInfo 추출 정보 (steps 정보 포함)
+   * @param _extractionInfo 추출 정보 (steps 정보 포함)
    * @returns Confidence (0.0~1.0)
    */
   private calculateConfidence(
     triple: Triple,
-    extractionInfo: ExtractionInfo
+    _extractionInfo: ExtractionInfo
   ): number {
     let confidence = 0.0;
 

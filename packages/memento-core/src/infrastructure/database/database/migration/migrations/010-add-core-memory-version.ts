@@ -6,11 +6,10 @@
  */
 
 import type Database from 'better-sqlite3';
-import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
+import { existsSync,readFileSync } from 'fs';
+import { dirname,join } from 'path';
 import { fileURLToPath } from 'url';
 import type { Migration } from '../types.js';
-import { DependencyValidator } from '../dependency-validator.js';
 
 /**
  * Add Core Memory Version Column Migration

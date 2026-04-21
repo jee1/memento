@@ -3,17 +3,17 @@
  * 전문 검색 인덱스(FTS5)로 빠른 검색을 수행하고, 다차원 랭킹 알고리즘으로 관련성 높은 결과를 제공합니다.
  */
 
-import { SearchRanking, type SearchFeatures } from './search-ranking.js';
-import type { MemorySearchFilters, MemorySearchResult } from '../../../shared/types/index.js';
-import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
-import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
 import Database from 'better-sqlite3';
-import { getStopWords } from '../../../shared/utils/stopwords.js';
-import { mementoConfig } from '../../../shared/config/index.js';
-import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
-import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
+import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import type { MemorySearchFilters,MemorySearchResult } from '../../../shared/types/index.js';
+import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
+import { shouldUseFallback } from '../../../shared/utils/fts5-migration-status.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { getStopWords } from '../../../shared/utils/stopwords.js';
+import { FeedbackRepository,sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
+import { SearchRanking,type SearchFeatures } from './search-ranking.js';
 
 export interface SearchQuery {
   query: string;
@@ -281,7 +281,9 @@ export class SearchEngine {
       return { sql, params, usedFtsQuery };
     };
 
-    let { sql, params, usedFtsQuery } = await buildSearchStatement(true);
+    const initialStatement = await buildSearchStatement(true);
+    let { sql, params } = initialStatement;
+    const { usedFtsQuery } = initialStatement;
     
     // 구성된 쿼리를 실행하여 실제 검색 결과를 획득합니다.
     // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
@@ -753,7 +755,7 @@ export class SearchEngine {
       return null; // FTS5 MATCH 쿼리에서는 별도 조건 불필요
     } else {
       // LIKE 쿼리 사용 (Fallback)
-      const likeQuery = `%${searchQuery}%`;
+      const _likeQuery = `%${searchQuery}%`;
       return `m.reflection_notes LIKE ?`;
     }
   }
