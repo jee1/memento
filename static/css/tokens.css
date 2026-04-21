@@ -25,15 +25,44 @@
   --color-bg-graph: #0f1117;
   --color-text-graph: #e2e8f0;
   --color-border-graph: #2d3748;
+  --color-graph-surface: #1a1d2e;
+  --color-graph-surface-elevated: #1e293b;
+  --color-graph-title: #a78bfa;
+  --color-graph-text-muted: #94a3b8;
+  --color-graph-text-subtle: #64748b;
+  --color-graph-link: #c4b5fd;
+  --color-graph-error: #f87171;
+  --color-graph-auth-error: #fca5a5;
+  --color-graph-auth-required-border: #312e81;
+  --color-graph-auth-required-bg: rgba(49, 46, 129, 0.18);
+  --color-graph-detail-text: #cbd5e1;
+  --color-graph-tag-bg: #312e81;
+  --color-graph-tag-text: #a5b4fc;
+  --color-graph-legend-bg: rgba(26, 29, 46, 0.92);
+  --color-graph-edge-default: #475569;
+  --color-graph-badge-episodic-bg: #312e81;
+  --color-graph-badge-episodic-text: #a5b4fc;
+  --color-graph-badge-semantic-bg: #064e3b;
+  --color-graph-badge-semantic-text: #6ee7b7;
+  --color-graph-badge-procedural-bg: #451a03;
+  --color-graph-badge-procedural-text: #fdba74;
+  --color-graph-badge-working-bg: #1e293b;
+  --color-graph-badge-working-text: #94a3b8;
+  --color-graph-badge-default-bg: var(--color-graph-surface-elevated);
+  --color-graph-badge-default-text: var(--color-graph-text-muted);
 
   /* Colors - Anchor Slots */
   --color-anchor-a: #ef4444;
+  --color-anchor-a-stroke: #dc2626;
   --color-anchor-a-bg: #fee2e2;
   --color-anchor-b: #f59e0b;
+  --color-anchor-b-stroke: #d97706;
   --color-anchor-b-bg: #fef3c7;
   --color-anchor-c: #3b82f6;
+  --color-anchor-c-stroke: #2563eb;
   --color-anchor-c-bg: #dbeafe;
   --color-memory-neutral: #9ca3af;
+  --color-memory-neutral-stroke: #6b7280;
   --color-memory-neutral-bg: #e5e7eb;
 
   /* Colors - Memory Types */
@@ -41,6 +70,26 @@
   --color-memory-semantic: var(--color-success);
   --color-memory-procedural: var(--color-warning);
   --color-memory-working: var(--color-memory-neutral);
+
+  /* Colors - Shared UI Surfaces */
+  --color-tab-surface: #e8eaf6;
+  --color-tab-border: #c5cae9;
+  --color-border-subtle: #eeeeee;
+  --color-text-inverse: #ffffff;
+  --color-status-loading-bg: #fff8e1;
+  --color-status-loading-text: #795548;
+  --color-status-error-bg: #ffebee;
+  --color-status-error-text: #c62828;
+  --color-status-error-border: #c62828;
+  --color-anchor-highlight-glow: rgba(16, 185, 129, 0.6);
+  --color-dashboard-text-on-brand: rgba(255, 255, 255, 0.88);
+  --color-dashboard-auth-panel-bg: rgba(15, 23, 42, 0.18);
+  --color-dashboard-auth-panel-border: rgba(255, 255, 255, 0.18);
+  --color-dashboard-auth-error: #fee2e2;
+  --color-tab-hover: rgba(255, 255, 255, 0.6);
+  --color-button-secondary-surface: rgba(255, 255, 255, 0.2);
+  --color-button-secondary-border: rgba(255, 255, 255, 0.3);
+  --color-button-secondary-hover: rgba(255, 255, 255, 0.3);
 
   /* Spacing */
   --spacing-xs: 0.25rem;  /* 4px */

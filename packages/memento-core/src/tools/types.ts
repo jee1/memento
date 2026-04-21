@@ -12,7 +12,7 @@ import type { ErrorLoggingService } from '../domains/monitoring/services/error-l
 import type { PerformanceAlertService } from '../domains/monitoring/services/performance-alert-service.js';
 import type { WriteCoalescingManager } from '../shared/utils/write-coalescing.js';
 import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
-import type { RelationGraph } from '../domains/relation/services/relation-graph.js';
+import type { RelationGraphPort } from '../domains/relation/ports/relation-graph.port.js';
 import type { VectorSearchEngine } from '../domains/search/algorithms/vector-search-engine.js';
 import type { FailureDetector } from '../domains/monitoring/services/failure-detector.js';
 import type { IBatchScheduler } from '../shared/interfaces/batch-scheduler.interface.js';
@@ -76,7 +76,7 @@ export interface ToolContext {
     /** 앵커 관리자 서비스 */
     anchorManager?: AnchorManager;
     /** 관계 그래프 서비스 */
-    relationGraph?: RelationGraph;
+    relationGraph?: RelationGraphPort;
     /** 실패 감지 서비스 (Phase 2) */
     failureDetector?: FailureDetector;
     /** Reflexion Worker 서비스 (Phase 2) */

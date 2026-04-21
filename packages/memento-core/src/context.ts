@@ -50,6 +50,7 @@ function createToolContextFromServerContext(serverContext: ServerContext): ToolC
       consolidationScoreService: serverContext.services.consolidationScoreService,
       writeCoalescingManager: serverContext.services.writeCoalescingManager,
       anchorManager: serverContext.services.anchorManager,
+      relationGraph: serverContext.services.relationGraph,
       failureDetector: serverContext.services.failureDetector,
       reflexionWorker: serverContext.services.reflexionWorker,
       metaMemoryService: serverContext.services.metaMemoryService,

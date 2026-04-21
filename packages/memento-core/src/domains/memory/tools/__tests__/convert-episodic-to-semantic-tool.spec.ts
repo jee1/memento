@@ -10,6 +10,8 @@ import { ConvertEpisodicToSemanticTool } from '../convert-episodic-to-semantic-t
 import type { ToolContext } from '../../../tools/types.js';
 import { UnifiedEmbeddingService } from '../../../../domains/embedding/services/unified-embedding-service.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
+import { TripleExtractionService } from '../../../relation/services/triple-extraction/triple-extraction-service.js';
+import { SemanticMemoryUpdateService } from '../../services/semantic-memory/semantic-memory-update-service.js';
 /**
  * Memory ID 생성 유틸리티 (테스트용)
  */
@@ -243,6 +245,90 @@ describe('ConvertEpisodicToSemanticTool', () => {
       // Then: 에러 반환
       expect(resultData.error).toBe('MEMORY_NOT_FOUND');
       expect(resultData.message).toContain(nonExistentId);
+    });
+
+    it('should mark conversion as relation_graph_unavailable when triples exist but relationGraph is missing', async () => {
+      const episodicMemoryId = generateId('mem');
+      createTestEpisodicMemory(db, episodicMemoryId, 'Alice mentors Bob at Acme.', 0.8);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [
+          { subject: 'Alice', predicate: 'mentors', object: 'Bob' }
+        ],
+        extractionInfo: {
+          steps: { canonicalization: true, entityLinking: true }
+        }
+      });
+
+      const contextWithoutRelationGraph: ToolContext = {
+        db,
+        services: {}
+      };
+
+      const result = await tool.handle({ memory_id: episodicMemoryId }, contextWithoutRelationGraph);
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(resultData.total).toBe(1);
+      expect(resultData.success).toBe(0);
+      expect(resultData.failed).toBe(1);
+
+      const episodicMemory = DatabaseUtils.get(db, `
+        SELECT triple_extracted_status, triple_extraction_metadata
+        FROM memory_item WHERE id = ?
+      `, [episodicMemoryId]) as {
+        triple_extracted_status: string | null;
+        triple_extraction_metadata: string | null;
+      } | undefined;
+
+      const metadata = JSON.parse(episodicMemory?.triple_extraction_metadata ?? '{}');
+      expect(episodicMemory?.triple_extracted_status).toBe('failed');
+      expect(metadata.failureReason).toBe('relation_graph_unavailable');
+    });
+
+
+    it('should mark conversion as semantic_update_failed when semantic update crashes after extraction', async () => {
+      const episodicMemoryId = generateId('mem');
+      createTestEpisodicMemory(db, episodicMemoryId, 'Alice mentors Bob at Acme.', 0.8);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [
+          { subject: 'Alice', predicate: 'mentors', object: 'Bob' }
+        ],
+        extractionInfo: {
+          steps: { canonicalization: true, entityLinking: true }
+        }
+      });
+      const updateSemanticMemorySpy = vi
+        .spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemory')
+        .mockRejectedValue(new Error('semantic update exploded'));
+
+      const contextWithRelationGraphOnly: ToolContext = {
+        db,
+        services: {
+          relationGraph: createRelationGraph(db)
+        }
+      };
+
+      const result = await tool.handle({ memory_id: episodicMemoryId }, contextWithRelationGraphOnly);
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(resultData.total).toBe(1);
+      expect(resultData.success).toBe(0);
+      expect(resultData.failed).toBe(1);
+      expect(updateSemanticMemorySpy).toHaveBeenCalledOnce();
+
+      const episodicMemory = DatabaseUtils.get(db, `
+        SELECT triple_extracted_status, triple_extraction_metadata
+        FROM memory_item WHERE id = ?
+      `, [episodicMemoryId]) as {
+        triple_extracted_status: string | null;
+        triple_extraction_metadata: string | null;
+      } | undefined;
+
+      const metadata = JSON.parse(episodicMemory?.triple_extraction_metadata ?? '{}');
+      expect(episodicMemory?.triple_extracted_status).toBe('failed');
+      expect(metadata.failureReason).toBe('semantic_update_failed');
+      expect(metadata.failureReason).not.toBe('conversion_error');
     });
 
     it('should return error when memory_id is not episodic type', async () => {

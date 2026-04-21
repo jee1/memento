@@ -13,11 +13,13 @@ import { TripleExtractionService } from '../../relation/services/triple-extracti
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../domains/embedding/services/unified-embedding-service.js';
-import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 
 /**
  * Convert Episodic to Semantic 스키마
  */
+const RELATION_GRAPH_UNAVAILABLE_ERROR = 'relation_graph_unavailable';
+const SEMANTIC_UPDATE_FAILED_ERROR = 'semantic_update_failed';
+
 const ConvertEpisodicToSemanticSchema = z.object({
   memory_id: z.string().optional(), // 단일 Episodic Memory ID (선택)
   // 필터 조건 (memory_id가 없을 때 사용)
@@ -238,16 +240,23 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
           const episodicMemory = batch[j];
           const extractionResult = extractionResults[j];
           if (!episodicMemory || !extractionResult) continue;
+          let semanticUpdateStarted = false;
           try {
 
           // Triple이 추출된 경우 Semantic Memory 생성/업데이트
           if (extractionResult.triples.length > 0) {
+            semanticUpdateStarted = true;
             const unifiedForSemantic: UnifiedEmbeddingService = context.services.embeddingService
               ? context.services.embeddingService.getUnifiedEmbeddingService()
               : new UnifiedEmbeddingService();
+            const relationGraph = context.services.relationGraph;
+            if (!relationGraph) {
+              throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
+            }
+
             const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
               db,
-              context.services.relationGraph ?? createRelationGraph(db),
+              relationGraph,
               unifiedForSemantic
             );
 
@@ -358,6 +367,11 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
           }
         } catch (error) {
           results.failed++;
+          const failureReason = error instanceof Error && error.message === RELATION_GRAPH_UNAVAILABLE_ERROR
+            ? 'relation_graph_unavailable'
+            : semanticUpdateStarted
+              ? SEMANTIC_UPDATE_FAILED_ERROR
+              : 'conversion_error';
           
           // 에러 발생 시에도 상태 업데이트 (PRD 5.5, 5.5a, 5.6)
           try {
@@ -371,7 +385,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
               0, // SQLite에서는 boolean을 INTEGER로 변환
               'failed',
               JSON.stringify({
-                failureReason: 'conversion_error',
+                failureReason,
                 error: error instanceof Error ? error.message : String(error),
                 last_attempt: new Date().toISOString()
               }),
@@ -386,6 +400,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
           
           logger.error('Episodic Memory 변환 중 에러 발생', {
             episodic_memory_id: episodicMemory.id,
+            failure_reason: failureReason,
             error: error instanceof Error ? error.message : String(error)
           });
         }

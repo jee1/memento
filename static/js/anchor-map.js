@@ -13,12 +13,37 @@ const highlightedNodeIds = new Set(); // 하이라이트된 노드 ID 집합
 let autoRefreshInterval = null; // 자동 새로고침 인터벌
 let websocket = null; // WebSocket 연결
 
-// 슬롯별 색상 정의
-const slotColors = {
-  'A': { fill: '#ef4444', stroke: '#dc2626' },
-  'B': { fill: '#f59e0b', stroke: '#d97706' },
-  'C': { fill: '#3b82f6', stroke: '#2563eb' }
+// 슬롯별 색상 토큰 정의
+const slotColorTokens = {
+  'A': { fill: '--color-anchor-a', stroke: '--color-anchor-a-stroke' },
+  'B': { fill: '--color-anchor-b', stroke: '--color-anchor-b-stroke' },
+  'C': { fill: '--color-anchor-c', stroke: '--color-anchor-c-stroke' }
 };
+
+function readAnchorMapToken(name, fallback = '') {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (value) {
+    return value;
+  }
+  if (fallback) {
+    return fallback;
+  }
+  throw new Error(`Missing CSS token: ${name}`);
+}
+
+function getAnchorMapPalette() {
+  return {
+    slotColors: Object.fromEntries(
+      Object.entries(slotColorTokens).map(([slot, tokenNames]) => [slot, {
+        fill: readAnchorMapToken(tokenNames.fill),
+        stroke: readAnchorMapToken(tokenNames.stroke),
+      }])
+    ),
+    memoryFill: readAnchorMapToken('--color-memory-neutral'),
+    memoryStroke: readAnchorMapToken('--color-memory-neutral-stroke'),
+    labelFill: readAnchorMapToken('--color-text-main'),
+  };
+}
 
 /** XSS 방지: HTML 특수문자 이스케이프 */
 function escapeHtml(str) {
@@ -37,7 +62,9 @@ function debugAnchorMap(eventName, detail) {
     return;
   }
 
-  document.body?.dispatchEvent(new CustomEvent('memento:debug', {
+  document.dispatchEvent(new CustomEvent('memento:debug', {
+    bubbles: true,
+    composed: true,
     detail: { scope: 'anchor-map', eventName, detail },
   }));
 }
@@ -196,6 +223,8 @@ function renderMap() {
   const g = svg.select('g');
   g.selectAll('*').remove();
 
+  const palette = getAnchorMapPalette();
+
   // 노드와 링크 데이터 준비
   nodes = mapData.nodes.map(d => ({
     ...d,
@@ -236,15 +265,15 @@ function renderMap() {
     .attr('r', d => d.radius)
     .attr('fill', d => {
       if (d.type === 'anchor' && d.slot) {
-        return slotColors[d.slot].fill;
+        return palette.slotColors[d.slot].fill;
       }
-      return '#9ca3af';
+      return palette.memoryFill;
     })
     .attr('stroke', d => {
       if (d.type === 'anchor' && d.slot) {
-        return slotColors[d.slot].stroke;
+        return palette.slotColors[d.slot].stroke;
       }
-      return '#6b7280';
+      return palette.memoryStroke;
     })
     .attr('stroke-width', d => d.type === 'anchor' ? 3 : 2)
     .attr('opacity', 1.0)
@@ -270,7 +299,7 @@ function renderMap() {
       return d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
     })
     .style('font-size', '12px')
-    .style('fill', '#333')
+    .style('fill', palette.labelFill)
     .style('pointer-events', 'none');
 
   // Tooltip 추가
@@ -431,7 +460,7 @@ function displayMemoryDetails(node) {
         <label>Created:</label>
         <div class="value">${created}</div>
       </div>
-      <button type="button" class="js-change-anchor" data-slot="${slot}" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <button type="button" class="anchor-change-btn js-change-anchor m-button m-button--primary" data-slot="${slot}">
         Change Anchor
       </button>
     `;
@@ -498,7 +527,7 @@ function updateAnchorList() {
         <div class="anchor-item slot-${slotClass} js-select-anchor" data-memory-id="${memoryId}">
           <div class="slot-label">Slot ${slot}</div>
           <div class="memory-id">${memoryId}</div>
-          ${memory ? `<div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">${contentPreview}</div>` : ''}
+          ${memory ? `<div class="anchor-item-preview">${contentPreview}</div>` : ''}
         </div>
       `;
     })

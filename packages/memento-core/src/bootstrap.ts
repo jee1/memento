@@ -32,6 +32,7 @@ import { getVectorSearchEngine } from './domains/search/algorithms/vector-search
 import { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
 import { createRelationGraph } from './infrastructure/relation-graph-factory.js';
+import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
 import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
@@ -55,6 +56,7 @@ export interface ServerServices {
   writeCoalescingManager: WriteCoalescingManager;
   metaMemoryService: MetaMemoryService;
   anchorManager: AnchorManager;
+  relationGraph: RelationGraphPort;
   failureDetector: FailureDetector;
   reflexionWorker?: IReflexionWorker;
   walCheckpointScheduler: WalCheckpointScheduler;
@@ -203,8 +205,9 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
     const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
     batchScheduler.setIntrospectionScanCache(introspectionScanCache);
+    const relationGraph = createRelationGraph(db);
     const sleepConsolidationService = new SleepConsolidationService(db, {
-      relationGraph: createRelationGraph(db),
+      relationGraph: relationGraph,
       memoryEmbeddingService: embeddingService,
       telemetryService
     });
@@ -316,6 +319,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       writeCoalescingManager,
       metaMemoryService,
       anchorManager,
+      relationGraph,
       failureDetector,
       reflexionWorker,
       walCheckpointScheduler,

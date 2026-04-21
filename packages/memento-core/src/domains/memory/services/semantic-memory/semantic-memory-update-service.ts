@@ -15,7 +15,7 @@ import type { ExtractionInfo,Triple,TripleExtractionResult } from '../../../../s
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
-import type { RelationGraph } from '../../../relation/services/relation-graph.js';
+import type { RelationGraphPort } from '../../../relation/ports/relation-graph.port.js';
 import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
 import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
 import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
@@ -75,7 +75,7 @@ export class SemanticMemoryUpdateService {
   private readonly canonicalizer: PredicateCanonicalizer;
   private readonly entityLinker: EntityLinker;
   private readonly embeddingService: UnifiedEmbeddingService;
-  private readonly relationGraph: RelationGraph;
+  private readonly relationGraph: RelationGraphPort;
   private readonly statistics: SemanticMemoryStatisticsService; // PRD 8.2: Semantic Memory 생성 통계 수집
   private readonly kgTripleRepo: KgTripleRepository; // Issue #90: KG 전용 저장소 dedupe
 
@@ -94,7 +94,7 @@ export class SemanticMemoryUpdateService {
 
   constructor(
     private db: Database.Database,
-    relationGraph: RelationGraph,
+    relationGraph: RelationGraphPort,
     embeddingService?: UnifiedEmbeddingService,
     kgTripleRepo?: KgTripleRepository
   ) {

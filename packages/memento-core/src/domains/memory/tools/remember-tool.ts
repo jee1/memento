@@ -30,7 +30,6 @@ import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getNextVersionNumber } from '../services/procedural-versioning.js';
 // AriGraph Pipeline
-import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
@@ -38,6 +37,9 @@ import { SemanticMemoryUpdateService } from '../services/semantic-memory/semanti
 /**
  * 기존 reflection_notes 조회 결과 타입
  */
+const RELATION_GRAPH_UNAVAILABLE_ERROR = 'relation_graph_unavailable';
+const SEMANTIC_UPDATE_FAILED_ERROR = 'semantic_update_failed';
+
 interface ExistingReflectionNotesResult {
   exists: boolean;
   type: 'null' | 'object' | 'array';
@@ -1052,6 +1054,7 @@ export class RememberTool extends BaseTool {
                   
                   // Triple 추출 작업 함수 정의
                   const tripleExtractionJob = async () => {
+                    let semanticUpdateStarted = false;
                     try {
                       // 데이터베이스 연결 재확인
                       let dbValid = false;
@@ -1151,13 +1154,19 @@ export class RememberTool extends BaseTool {
 
                         // Triple이 추출된 경우 Semantic Memory 생성/업데이트
                         if (extractionResult.triples.length > 0) {
+                          semanticUpdateStarted = true;
                           // MemoryEmbeddingService는 generateEmbedding을 노출하지 않음 — 내부 UnifiedEmbeddingService 사용
                           const unifiedEmbeddingService: UnifiedEmbeddingService = embeddingServiceRef
                             ? embeddingServiceRef.getUnifiedEmbeddingService()
                             : new UnifiedEmbeddingService();
+                          const relationGraph = context.services.relationGraph;
+                          if (!relationGraph) {
+                            throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
+                          }
+
                           const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
                             dbRef,
-                            context.services.relationGraph ?? createRelationGraph(dbRef),
+                            relationGraph,
                             unifiedEmbeddingService
                           );
 
@@ -1269,9 +1278,19 @@ export class RememberTool extends BaseTool {
                         }
                       }
                     } catch (error) {
+                      const errorMessage = error instanceof Error ? error.message : String(error);
+                      const failureReason = errorMessage === RELATION_GRAPH_UNAVAILABLE_ERROR
+                        ? 'relation_graph_unavailable'
+                        : errorMessage.includes('database connection')
+                          ? 'db_connection_error'
+                          : semanticUpdateStarted
+                            ? SEMANTIC_UPDATE_FAILED_ERROR
+                            : 'llm_api_error';
+
                       // Triple 추출 실패해도 메모리 저장은 성공했으므로 경고만 출력
                       this.logWarning(`Triple 추출 실패 (${savedMemoryId})`, {
-                        error: error instanceof Error ? error.message : String(error)
+                        failure_reason: failureReason,
+                        error: errorMessage
                       });
                       
                       // PRD 5.5, 5.5a, 5.6: 에러 발생 시에도 상태 업데이트
@@ -1288,9 +1307,6 @@ export class RememberTool extends BaseTool {
                         });
                         
                         // 데이터베이스 연결이 유효하면 상태 업데이트
-                        const failureReason = error instanceof Error && error.message.includes('database connection')
-                          ? 'db_connection_error'
-                          : 'llm_api_error';
                         
                         // 기존 metadata에서 retry_count 가져오기 (있는 경우)
                         let retryCount = 0;

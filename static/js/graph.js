@@ -1,32 +1,49 @@
-    // ── 색상 맵 (tokens.css와 동기화) ──────────────────────────
-    const NODE_COLORS = {
-      episodic:   '#818cf8', // --color-memory-episodic
-      semantic:   '#10b981', // --color-success
-      procedural: '#f59e0b', // --color-warning
-      working:    '#9ca3af', // --color-memory-neutral
-    };
+    function readGraphToken(name, fallback = '') {
+      const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      if (value) {
+        return value;
+      }
+      if (fallback) {
+        return fallback;
+      }
+      throw new Error(`Missing CSS token: ${name}`);
+    }
 
-    const EDGE_COLORS = {
-      supports:        '#818cf8',
-      related_to:      '#10b981',
-      extracted_from:  '#f59e0b',
-      contradicts:     '#ef4444', // --color-error
-      default:         '#475569',
-    };
+    function getGraphPalette() {
+      return {
+        nodeColors: {
+          episodic: readGraphToken('--color-memory-episodic'),
+          semantic: readGraphToken('--color-memory-semantic'),
+          procedural: readGraphToken('--color-memory-procedural'),
+          working: readGraphToken('--color-memory-working'),
+          default: readGraphToken('--color-memory-neutral'),
+        },
+        edgeColors: {
+          supports: readGraphToken('--color-memory-episodic'),
+          related_to: readGraphToken('--color-memory-semantic'),
+          extracted_from: readGraphToken('--color-memory-procedural'),
+          contradicts: readGraphToken('--color-error'),
+          default: readGraphToken('--color-graph-edge-default'),
+        },
+      };
+    }
 
-    const TYPE_BG = {
-      episodic:   '#312e81',
-      semantic:   '#064e3b',
-      procedural: '#451a03',
-      working:    '#1e293b',
-    };
+    function getNodeFillColor(type, palette) {
+      return palette.nodeColors[type] ?? palette.nodeColors.default;
+    }
 
-    const TYPE_FG = {
-      episodic:   '#a5b4fc',
-      semantic:   '#6ee7b7',
-      procedural: '#fdba74',
-      working:    '#94a3b8',
-    };
+    function getNodeStrokeColor(type, palette) {
+      const fill = getNodeFillColor(type, palette);
+      const color = d3.color(fill);
+      return color ? color.darker(0.5).formatHex() : fill;
+    }
+
+    function getTypeBadgeClass(type) {
+      const normalizedType = String(type ?? '').toLowerCase();
+      return ['episodic', 'semantic', 'procedural', 'working'].includes(normalizedType)
+        ? `type-badge--${normalizedType}`
+        : 'type-badge--default';
+    }
 
     // ── DOM refs ──────────────────────────────────────────────
     const svgEl      = document.getElementById('graph');
@@ -72,6 +89,7 @@
       const container = document.getElementById('graph-container');
       const W = container.clientWidth;
       const H = container.clientHeight;
+      const palette = getGraphPalette();
 
       d3.select(svgEl).selectAll('*').remove();
 
@@ -120,7 +138,7 @@
         .data(edges)
         .enter().append('line')
         .attr('class', 'link')
-        .attr('stroke', d => EDGE_COLORS[d.relation_type] ?? EDGE_COLORS.default)
+        .attr('stroke', d => palette.edgeColors[d.relation_type] ?? palette.edgeColors.default)
         .attr('stroke-width', d => Math.max(1, (d.confidence ?? 1) * 3));
 
       // 노드 그룹 (T013)
@@ -148,8 +166,8 @@
 
       node.append('circle')
         .attr('r', d => rScale(d.importance))
-        .attr('fill', d => NODE_COLORS[d.type] ?? '#94a3b8')
-        .attr('stroke', d => d3.color(NODE_COLORS[d.type] ?? '#94a3b8').darker(0.5))
+        .attr('fill', d => getNodeFillColor(d.type, palette))
+        .attr('stroke', d => getNodeStrokeColor(d.type, palette))
         // 마우스오버 툴팁 (T018)
         .on('mouseover', (event, d) => {
           tooltip.style.display = 'block';
@@ -186,17 +204,16 @@
 
     // ── 상세 패널 (T019, T020) ────────────────────────────────
     function showDetail(d) {
-      const typeBg = TYPE_BG[d.type] ?? '#1e293b';
-      const typeFg = TYPE_FG[d.type] ?? '#94a3b8';
+      const badgeClass = getTypeBadgeClass(d.type);
       const tagsHtml = (d.tags ?? []).length > 0
         ? `<div class="tag-list">${d.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>`
-        : '<span style="color:#475569">없음</span>';
+        : '<span class="detail-empty">없음</span>';
 
       detailContent.innerHTML = `
         <div class="detail-row">
           <div class="detail-label">타입</div>
           <div class="detail-value">
-            <span class="type-badge" style="background:${typeBg};color:${typeFg}">${escHtml(d.type)}</span>
+            <span class="type-badge ${badgeClass}">${escHtml(d.type)}</span>
           </div>
         </div>
         <div class="detail-row">
@@ -221,7 +238,7 @@
         </div>
         <div class="detail-row">
           <div class="detail-label">ID</div>
-          <div class="detail-value" style="font-family:monospace;font-size:10px;color:#64748b">${escHtml(d.id)}</div>
+          <div class="detail-value detail-value--mono">${escHtml(d.id)}</div>
         </div>
       `;
       detailPanel.style.display = 'block';
@@ -280,7 +297,8 @@
 
       } catch (err) {
         showLoading(false);
-        showError(err.message ?? '알 수 없는 오류');
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
+        showError(errorMessage);
       }
     }
 

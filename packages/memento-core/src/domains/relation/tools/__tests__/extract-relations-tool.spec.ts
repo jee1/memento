@@ -318,7 +318,7 @@ describe('ExtractRelationsTool', () => {
   });
 
   describe('RelationGraph 통합', () => {
-    it('context에 relationGraph가 없으면 새로 생성해야 함', async () => {
+    it('context에 relationGraph가 없으면 구성 오류를 반환해야 함', async () => {
       // Given: relationGraph가 없는 context
       const contextWithoutGraph: ToolContext = {
         db,
@@ -327,6 +327,14 @@ describe('ExtractRelationsTool', () => {
 
       createTestMemory(db, 'mem1', 'Test memory 1');
       createTestMemory(db, 'mem2', 'Test memory 2');
+      vi.spyOn(RelationExtractor.prototype, 'extractRelations').mockResolvedValue([
+        {
+          source_id: 'mem1',
+          target_id: 'mem2',
+          relation_type: 'CAUSES',
+          confidence: 0.8
+        }
+      ]);
 
       const params = {
         memory_id: 'mem1'
@@ -335,10 +343,12 @@ describe('ExtractRelationsTool', () => {
       // When: 관계 추출 수행
       const result = await tool.handle(params, contextWithoutGraph);
 
-      // Then: 에러 없이 완료 (내부에서 RelationGraph 생성)
+      // Then: 구성 오류 반환
       expect(result.content).toBeDefined();
       const data = JSON.parse(result.content[0].text);
-      expect(data.extracted_count).toBeGreaterThanOrEqual(0);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('RELATION_GRAPH_UNAVAILABLE');
+      expect(data.message).toContain('관계 그래프 서비스');
     });
 
     it('context에 relationGraph가 있으면 사용해야 함', async () => {
