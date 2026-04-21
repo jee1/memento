@@ -67,7 +67,7 @@ ConvertEpisodicToSemanticTool
 type EpisodicMemoryRow = {
   id: string;
   content: string;
-  importance: number;
+  importance: number | null; // DB에서 NULL 가능, 사용 시 || 0.5 폴백
 };
 
 type ConversionResults = {
@@ -143,7 +143,13 @@ private handleConversionError(
 ): Promise<void>
 ```
 
-`resolveMemories`와 `fetchSingleMemory`는 조기 종료가 필요한 경우 `ToolResult`를 반환하고, `handle()`에서 `instanceof` 또는 sentinel로 구별한다.
+`resolveMemories`와 `fetchSingleMemory`는 조기 종료가 필요한 경우 `ToolResult`를 반환한다. `ToolResult`는 클래스가 아닌 인터페이스이므로 `instanceof`는 사용 불가. `handle()`에서 `Array.isArray()`로 구별한다:
+
+```ts
+const resolved = await this.resolveMemories(...);
+if (!Array.isArray(resolved)) return resolved; // 조기 ToolResult 반환
+const memories = resolved;
+```
 
 ---
 
@@ -185,6 +191,8 @@ handle(params, context)
 | 배치에서 일부 성공 + 일부 실패 혼합 | `success + failed = total` |
 | `limit=2`, episodic 3개 → 2개만 처리 | `total=2` |
 | `triple_extracted_status='abandoned'` 항목 → 배치 제외 | `total`에 포함 안 됨 |
+| episodic 메모리 없을 때 배치 호출 | `{total:0, message:'변환할 Episodic Memory가 없습니다.'}` |
+| `retry_count` 증가 — 기존 `retry_count=1` 레코드 재처리 | DB 행의 `triple_extraction_metadata.retry_count === 2` |
 
 ---
 
@@ -192,13 +200,20 @@ handle(params, context)
 
 1. 타입 `EpisodicMemoryRow`, `ConversionResults` 파일 상단에 추가
 2. `fetchSingleMemory()` 추출 → 테스트 통과 확인
+   - 소스 138–152줄의 두 번째 `MEMORY_NOT_FOUND` 분기(도달 불가 코드)는 동작 보존 원칙상 그대로 유지
 3. `fetchBatchMemories()` 추출 → 테스트 통과 확인
+   - `params` 변수 섀도잉이 이 단계에서 자연스럽게 해소됨
 4. `resolveMemories()` 추출 (fetchSingle/fetchBatch 위임) → 테스트 통과 확인
+   - `handle()`에서 `Array.isArray(resolved)` 체크로 조기 반환 구별
 5. `fetchAlreadyConverted()` 추출 → 테스트 통과 확인
-6. `handleConversionSuccess()` 추출 → 테스트 통과 확인
-7. `handleNoTriples()` 추출 → 테스트 통과 확인
-8. `handleConversionError()` 추출 → 테스트 통과 확인
-9. `convertSingleMemory()` 추출 (3개 핸들러 위임) → 테스트 통과 확인
+6. **`convertSingleMemory()` 뼈대 먼저 추출** — try/catch 구조 + 3개 핸들러를 인라인으로 유지한 채 메서드만 분리
+   - `let semanticUpdateStarted = false`를 이 메서드 내에 선언
+   - `handleConversionSuccess()` 호출 직전에 `semanticUpdateStarted = true`로 세팅
+   - `catch` 블록에서 `handleConversionError(..., semanticUpdateStarted, ...)`로 전달
+   - → 테스트 통과 확인
+7. `handleConversionSuccess()` 추출 → 테스트 통과 확인
+8. `handleNoTriples()` 추출 → 테스트 통과 확인
+9. `handleConversionError()` 추출 → 테스트 통과 확인
 10. `handle()` 최종 정리 → 전체 테스트 통과 확인
 
 ---
