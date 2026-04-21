@@ -23,7 +23,7 @@
 
 .m-button--primary {
   background: var(--color-brand-primary);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .m-button--primary:hover:not(:disabled) {
@@ -31,13 +31,13 @@
 }
 
 .m-button--secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--color-button-secondary-surface);
+  color: var(--color-text-inverse);
+  border: 1px solid var(--color-button-secondary-border);
 }
 
 .m-button--secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--color-button-secondary-hover);
 }
 
 .m-button--ghost {
@@ -78,7 +78,7 @@
 /* --- Header --- */
 .m-header {
   background: var(--color-brand-gradient);
-  color: white;
+  color: var(--color-text-inverse);
   padding: var(--spacing-md) var(--spacing-lg);
   box-shadow: var(--shadow-md);
 }
@@ -98,8 +98,8 @@
   display: flex;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: #e8eaf6;
-  border-bottom: 1px solid #c5cae9;
+  background: var(--color-tab-surface);
+  border-bottom: 1px solid var(--color-tab-border);
 }
 
 .m-tab-btn {
@@ -116,7 +116,7 @@
 
 .m-tab-btn.active {
   background: var(--color-bg-card);
-  border-color: #c5cae9;
+  border-color: var(--color-tab-border);
   border-bottom-color: var(--color-bg-card);
   color: var(--color-text-main);
   margin-bottom: -1px;
