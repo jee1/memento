@@ -97,6 +97,12 @@ export class LLMClientInitializer {
       selectedProvider
     );
 
+    logger.info('LLM provider initialized', {
+      preferredProvider: result.preferredProvider,
+      llmModel: this.resolveLlmModelLabel(result.preferredProvider),
+      initializedProviders: result.initializedProviders,
+    });
+
     return result;
   }
 
@@ -112,9 +118,16 @@ export class LLMClientInitializer {
     };
   }
 
+  private resolveLlmModelLabel(provider: LLMClientInitializationResult['preferredProvider']): string {
+    if (provider === 'openai') return mementoConfig.openaiLlmModel ?? 'gpt-4o-mini';
+    if (provider === 'ollama') return mementoConfig.ollamaModel;
+    if (provider === 'gemini') return 'gemini (API key only)';
+    return 'none';
+  }
+
   /**
    * 환경 변수 우선순위에 따라 provider 선택
-   * 
+   *
    * @returns 선택된 provider
    */
   private getSelectedProvider(): LLMProvider {
