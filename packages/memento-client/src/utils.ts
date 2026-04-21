@@ -288,6 +288,17 @@ export function deserializeMemory(json: string): MemoryItem {
 }
 
 /**
+ * CSV 셀 값을 안전하게 이스케이프
+ */
+function toSafeCSVCell(value: string | null | undefined): string {
+  if (value == null) return '';
+
+  const neutralizedValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
+
+  return `"${neutralizedValue.replace(/"/g, '""')}"`;
+}
+
+/**
  * 메모리 배열을 CSV로 변환
  */
 export function memoriesToCSV(memories: MemoryItem[]): string {
@@ -308,15 +319,15 @@ export function memoriesToCSV(memories: MemoryItem[]): string {
 
   const rows = memories.map(memory => [
     memory.id,
-    `"${memory.content.replace(/"/g, '""')}"`, // CSV 이스케이프
+    toSafeCSVCell(memory.content),
     memory.type,
     memory.importance,
     memory.created_at,
     memory.last_accessed || '',
     memory.pinned,
-    memory.tags?.join(';') || '',
+    memory.tags?.length ? toSafeCSVCell(memory.tags.join(';')) : '',
     memory.privacy_scope,
-    memory.source || ''
+    memory.source ? toSafeCSVCell(memory.source) : ''
   ]);
 
   return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
