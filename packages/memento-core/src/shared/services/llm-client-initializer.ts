@@ -97,6 +97,20 @@ export class LLMClientInitializer {
       selectedProvider
     );
 
+    const llmModel =
+      result.preferredProvider === 'openai'
+        ? (mementoConfig.openaiLlmModel ?? 'gpt-4o-mini')
+        : result.preferredProvider === 'ollama'
+          ? (mementoConfig.ollamaModel ?? 'unknown')
+          : result.preferredProvider === 'gemini'
+            ? 'gemini (API key only)'
+            : 'none';
+    logger.info('LLM provider initialized', {
+      preferredProvider: result.preferredProvider,
+      llmModel,
+      initializedProviders: result.initializedProviders,
+    });
+
     return result;
   }
 

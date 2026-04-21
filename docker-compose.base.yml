@@ -11,6 +11,11 @@ x-default-environment: &default-environment
   EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-minilm}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_MODEL: ${OPENAI_MODEL:-text-embedding-3-small}
+  # LLM 제공자 및 모델 설정 (임베딩과 분리)
+  # OPENAI_MODEL  → 임베딩 전용 (text-embedding-*)
+  # OPENAI_LLM_MODEL → 추출·요약 등 LLM 호출 전용 (gpt-4o, gpt-4o-mini 등)
+  LLM_PROVIDER: ${LLM_PROVIDER:-auto}
+  OPENAI_LLM_MODEL: ${OPENAI_LLM_MODEL:-gpt-4o-mini}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   GEMINI_MODEL: ${GEMINI_MODEL:-text-embedding-004}
   SEARCH_DEFAULT_LIMIT: ${SEARCH_DEFAULT_LIMIT:-10}
