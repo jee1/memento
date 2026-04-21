@@ -4,9 +4,9 @@
  * 연관: shared/types/error-types.ts (AppErrorContract), shared/interfaces/error-logging.interface.ts
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction,Request,Response } from 'express';
 import type { IErrorLoggingService } from '../../shared/interfaces/error-logging.interface.js';
-import { ErrorSeverity, ErrorCategory, type AppErrorContract } from '../../shared/types/error-types.js';
+import { ErrorCategory,ErrorSeverity,type AppErrorContract } from '../../shared/types/error-types.js';
 import { logger } from '../../shared/utils/logger.js';
 
 /**
@@ -86,7 +86,7 @@ export function errorHandler(
   error: Error | unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;

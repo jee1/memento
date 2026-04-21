@@ -3,27 +3,27 @@
  * FTS5 전문 검색과 벡터 유사도 검색을 병렬로 수행하여 각각의 장점을 활용합니다.
  */
 
-import { SearchEngine } from './search-engine.js';
-import {
-  MemoryEmbeddingService,
-  type VectorSearchResult,
-  type SearchBySimilarityOutcome,
-} from '../../memory/services/memory-embedding-service.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { getVectorSearchEngine } from './vector-search-engine.js';
-import type { MemorySearchFilters, MemoryType, StoredEmbeddingProviderStats, EmbeddingProvider, ProcessAttribute } from '../../../shared/types/index.js';
 import Database from 'better-sqlite3';
-import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
-import { computeProcessAttributeFit } from './process-attribute-fit.js';
-import { SearchRanking } from './search-ranking.js';
-import { mementoConfig } from '../../../shared/config/index.js';
-import { RelationGraph } from '../../relation/services/relation-graph.js';
-import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { logger } from '../../../shared/utils/logger.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
-import { SearchResultCombiner } from './search-result-combiner.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
+import type { EmbeddingProvider,MemorySearchFilters,MemoryType,ProcessAttribute,StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
+import {
+MemoryEmbeddingService,
+type SearchBySimilarityOutcome,
+type VectorSearchResult,
+} from '../../memory/services/memory-embedding-service.js';
+import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { ProceduralMemoryMatcher } from './procedural-memory-matcher.js';
+import { computeProcessAttributeFit } from './process-attribute-fit.js';
+import { SearchEngine } from './search-engine.js';
+import { SearchRanking } from './search-ranking.js';
+import { SearchResultCombiner } from './search-result-combiner.js';
+import { getVectorSearchEngine } from './vector-search-engine.js';
 
 // 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
 export interface ITextSearchEngine {
@@ -208,7 +208,7 @@ export class AdaptiveWeightCalculator implements IAdaptiveWeightCalculator {
 }
 
 export class SearchLogger implements ISearchLogger {
-  logSearchStart(searchId: string, query: HybridSearchQuery): void {
+  logSearchStart(_searchId: string, _query: HybridSearchQuery): void {
     // console.log(`🔍 [${searchId}] 하이브리드 검색 시작`, {
     //   query: query.query,
     //   limit: query.limit,
@@ -227,7 +227,7 @@ export class SearchLogger implements ISearchLogger {
     });
   }
 
-  logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void {
+  logSearchComplete(_searchId: string, _result: { items: unknown[]; total_count: number }, _queryTime: number): void {
     // console.log(`✅ [${searchId}] 하이브리드 검색 완료`, {
     //   resultCount: result.items.length,
     //   totalCount: result.total_count,
@@ -237,7 +237,7 @@ export class SearchLogger implements ISearchLogger {
     // });
   }
 
-  logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void {
+  logSearchError(_searchId: string, _error: unknown, _query: HybridSearchQuery): void {
     // console.error(`❌ [${searchId}] 하이브리드 검색 에러`, {
     //   error: error instanceof Error ? error.message : String(error),
     //   stack: error instanceof Error ? error.stack : undefined,
@@ -251,7 +251,7 @@ export class SearchLogger implements ISearchLogger {
    * A/B 테스트를 통해 검색 알고리즘의 효과를 측정하고 개선합니다.
    * 실험 ID와 변이 파라미터를 로깅하여 데이터 기반 의사결정을 지원합니다.
    */
-  logExperiment(searchId: string, experimentId: string, variant: Record<string, any>): void {
+  logExperiment(_searchId: string, _experimentId: string, _variant: Record<string, any>): void {
     // console.log(`🧪 [${searchId}] 실험 로그`, {
     //   experiment_id: experimentId,
     //   variant,
@@ -1068,7 +1068,7 @@ export class HybridSearchEngine {
     deduplicatedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
   ): VectorSearchResult[] {
     return deduplicatedResults
-      .map(({ provider, normalizedScore, ...result }) => ({
+      .map(({ provider: _provider, normalizedScore, ...result }) => ({
         ...result,
         similarity: normalizedScore
       }))
@@ -1082,14 +1082,14 @@ export class HybridSearchEngine {
    * @param db - 데이터베이스 연결
    * @param query - 하이브리드 검색 쿼리
    * @param searchId - 검색 ID (로깅용)
-   * @param startTime - 시작 시간 (성능 측정용, 현재는 사용하지 않음)
+   * @param _startTime - 시작 시간 (성능 측정용, 현재는 사용하지 않음)
    * @returns 벡터 검색 결과 배열
    */
   private async executeFallbackSearch(
     db: Database.Database,
     query: HybridSearchQuery,
     searchId: string,
-    startTime: bigint
+    _startTime: bigint
   ): Promise<{
     results: VectorSearchResult[];
     query_embedding_providers?: EmbeddingProvider[];
@@ -1478,7 +1478,7 @@ export class HybridSearchEngine {
           
           // Process Attribute 적합도 (Issue #91): process_id로 검색 시 process별 주제/속성 반영
           let processAttributes: ProcessAttribute | null = null;
-          let memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map();
+          const memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map();
           const processId = query?.filters?.process_id != null
             ? (Array.isArray(query.filters.process_id) ? query.filters.process_id[0] : query.filters.process_id)
             : undefined;

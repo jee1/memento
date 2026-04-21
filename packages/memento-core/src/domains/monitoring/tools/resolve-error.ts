@@ -3,7 +3,6 @@
  * 특정 에러를 해결된 상태로 표시하는 MCP 도구
  */
 
-import { z } from 'zod';
 import type { ToolContext } from '../../../tools/types.js';
 
 export const resolveErrorTool = {

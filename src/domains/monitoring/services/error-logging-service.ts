@@ -6,11 +6,11 @@
  * 모든 오류 메시지, stack trace, context, metadata에 PII 마스킹 적용
  */
 
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { ErrorCategory,ErrorSeverity } from '../../../shared/types/error-types.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { ErrorSeverity, ErrorCategory } from '../../../shared/types/error-types.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
-export { ErrorSeverity, ErrorCategory };
+export { ErrorCategory,ErrorSeverity };
 
 export interface ErrorLog {
   id: string;
@@ -360,8 +360,8 @@ export class ErrorLoggingService {
       [ErrorSeverity.CRITICAL]: '\x1b[41m\x1b[37m' // red background, white text
     };
 
-    const resetColor = '\x1b[0m';
-    const color = severityColors[error.severity] || '';
+    const _resetColor = '\x1b[0m';
+    const _color = severityColors[error.severity] || '';
     
     // errorLog의 message, stack, context는 이미 마스킹되어 있음
     // 추가로 JSON 직렬화된 전체 문자열에도 마스킹 적용 (이중 방어)

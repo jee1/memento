@@ -4,16 +4,16 @@
  */
 
 import Database from 'better-sqlite3';
-import type { 
-  VectorSearchQuery, 
-  VectorSearchResult, 
-  VectorIndexStatus
-} from '../../../shared/types/vector-search.types.js';
-import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
-import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
-import { validateTableName, getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
+import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
 import type { SqlParam } from '../../../shared/types/index.js';
+import type {
+VectorIndexStatus,
+VectorSearchQuery,
+VectorSearchResult
+} from '../../../shared/types/vector-search.types.js';
+import { getVectorTableName as getValidatedVectorTableName,validateTableName } from '../../../shared/utils/sql-security-validator.js';
 
 /**
  * 데이터베이스에서 반환된 원시 결과 타입
@@ -201,7 +201,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       const tableName = this.getTableName(provider ?? 'tfidf', targetDimensions);
       // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
       // 템플릿 리터럴 대신 문자열 연결 사용
-      const typeClause = typeFilters.length > 0
+      const _typeClause = typeFilters.length > 0
         ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
         : '';
       // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
@@ -368,7 +368,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         // 텍스트 검색과 벡터 검색 모두 사용
         // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
         // 템플릿 리터럴 대신 문자열 연결 사용
-        const vectorTypeClause = typeFilters.length > 0
+        const _vectorTypeClause = typeFilters.length > 0
           ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
           : '';
         const textTypeClause = typeFilters.length > 0
@@ -484,7 +484,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         // 텍스트 검색 없이 벡터 검색만 사용
         // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
         // 템플릿 리터럴 대신 문자열 연결 사용
-        const typeClause = typeFilters.length > 0
+        const _typeClause = typeFilters.length > 0
           ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
           : '';
         // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함

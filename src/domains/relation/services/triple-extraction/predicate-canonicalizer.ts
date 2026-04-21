@@ -6,7 +6,6 @@
  */
 
 import type { PredicateCanonicalizationResult } from '../../../../shared/types/triple-extraction.js';
-import { logger } from '../../../../shared/utils/logger.js';
 
 /**
  * Predicate 사전

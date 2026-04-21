@@ -4,7 +4,6 @@
  */
 
 import type { RelationType } from '../../../shared/types/relation.js';
-import type { RelationCandidate } from '../../../shared/types/relation.js';
 import { ALL_RELATION_TYPES } from '../../../shared/types/relation.js';
 
 /**

@@ -2761,7 +2761,7 @@ export function generateGroundTruth(
         break;
       
       case 'random':
-      default:
+      default: {
         // 랜덤 선택 (시드 기반)
         const shuffled = [...memoryIds];
         // Fisher-Yates 셔플 (시드 기반)
@@ -2775,6 +2775,7 @@ export function generateGroundTruth(
         }
         relevantIds = shuffled.slice(0, relevantCountPerQuery);
         break;
+      }
     }
 
     groundTruths.push({

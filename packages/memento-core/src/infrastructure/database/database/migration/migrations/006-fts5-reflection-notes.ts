@@ -15,16 +15,15 @@
 
 import type Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname,join } from 'path';
 import { fileURLToPath } from 'url';
-import type { Migration } from '../types.js';
-import { DependencyValidator } from '../dependency-validator.js';
-import { normalizeReflectionNotes } from '../../../../../shared/utils/reflection-notes-normalize.js';
 import {
-  initializeMigrationStatusTable,
-  setMigrationStatus,
-  getMigrationStatus
+initializeMigrationStatusTable,
+setMigrationStatus
 } from '../../../../../shared/utils/fts5-migration-status.js';
+import { normalizeReflectionNotes } from '../../../../../shared/utils/reflection-notes-normalize.js';
+import { DependencyValidator } from '../dependency-validator.js';
+import type { Migration } from '../types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

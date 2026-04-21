@@ -3,9 +3,9 @@
  * 마이그레이션 가이드와 헬퍼를 제공하여 안전한 전환을 보장합니다.
  */
 
-import { VectorSearchEngine } from './vector-search-engine.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { VectorSearchEngine } from './vector-search-engine.js';
 
 /**
  * 기존 VectorSearchEngine에서 새로운 구조로의 전환을 지원합니다.
@@ -40,7 +40,7 @@ export class VectorSearchEngineMigration {
    * 
    * @deprecated 리팩토링이 완료되어 더 이상 필요하지 않습니다.
    */
-  static createAdapter(oldEngine: VectorSearchEngine): VectorSearchEngine {
+  static createAdapter(_oldEngine: VectorSearchEngine): VectorSearchEngine {
     // 리팩토링이 완료되어 기존 엔진을 그대로 반환
     return new VectorSearchEngine();
   }

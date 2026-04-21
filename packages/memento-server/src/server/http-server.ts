@@ -4,51 +4,51 @@
  * 모듈화된 구조로 새로 구현
  */
 
-import express from 'express';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { writeServerInfo, deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
-import { WebSocketServer } from 'ws';
-import type { WebSocket } from 'ws';
-import cors from 'cors';
-import helmet from 'helmet';
-import { createServer } from 'http';
 import {
-  createMementoCore,
-  closeDatabase,
-  createToolContext,
-  getToolRegistry,
-  executeTool,
-  type ServerServices,
-  mementoConfig,
-  validateConfig,
-  getVectorSearchEngine,
-  getBatchScheduler,
-  logger,
-  getMementoHttpSecurityStartupViolationMessage,
-  isHttpBindHostRemotelyReachable,
-  canonicalizeHttpBindHostForListen,
-  formatHttpBindHostForUrl,
-  MementoHttpSecurityStartupError
+canonicalizeHttpBindHostForListen,
+closeDatabase,
+createMementoCore,
+createToolContext,
+executeTool,
+formatHttpBindHostForUrl,
+getBatchScheduler,
+getMementoHttpSecurityStartupViolationMessage,
+getToolRegistry,
+getVectorSearchEngine,
+isHttpBindHostRemotelyReachable,
+logger,
+mementoConfig,
+MementoHttpSecurityStartupError,
+validateConfig,
+type ServerServices
 } from '@memento/core';
 import Database from 'better-sqlite3';
+import cors from 'cors';
+import express from 'express';
+import { existsSync } from 'fs';
+import helmet from 'helmet';
+import { createServer } from 'http';
+import { join } from 'path';
+import type { WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
 import packageJson from '../../package.json' with { type: 'json' };
+import { deleteServerInfo,resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
 // Phase 1.2: 라우터 import
-import { createToolsRouter } from './routes/tools.routes.js';
+import { createSessionStore,type SessionStore } from './auth/session-store.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
-import { createMcpRouter, type SSETransport } from './routes/mcp.routes.js';
+import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
-import { createSessionStore, type SessionStore } from './auth/session-store.js';
+import { createToolsRouter } from './routes/tools.routes.js';
 // Phase 0: 공통 미들웨어 import
 import {
-  createServiceInjector,
-  createToolContextMiddleware,
-  createAdminAuthMiddleware,
-  createProgrammaticAuthMiddleware,
-  createSessionAuthMiddleware,
-  errorHandler
+createAdminAuthMiddleware,
+createProgrammaticAuthMiddleware,
+createServiceInjector,
+createSessionAuthMiddleware,
+createToolContextMiddleware,
+errorHandler
 } from './middleware/index.js';
 
 // 전역 변수 (서비스는 serverServices로만 접근)
@@ -254,7 +254,7 @@ async function initializeServer() {
       serverServices = core.services;
     }
 
-    const services = serverServices;
+    const _services = serverServices;
 
     // Vector Search Engine 초기화 (HTTP 서버 전용)
     const vectorSearchEngine = getVectorSearchEngine();
@@ -644,7 +644,7 @@ async function startServer() {
   const adminKey = mementoConfig.adminApiKey;
   if (!adminKey || adminKey.trim() === '') {
     logger.warn(getHttpAuthMissingAdminKeyWarning());
-  } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
+  } else if ([...adminKey].some((char) => char.charCodeAt(0) > 0x7f)) {
     logger.warn(
       'ADMIN_API_KEY contains non-ASCII characters: browser-based dashboard sign-in or programmatic clients may fail to send Authorization reliably (use ASCII-only keys, e.g. hex or base64url).'
     );
@@ -726,4 +726,4 @@ export const __test: {
   isProtectedMcpProgrammaticPath
 };
 
-export { startServer, cleanup };
+export { cleanup,startServer };

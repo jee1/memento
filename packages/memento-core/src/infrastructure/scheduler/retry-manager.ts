@@ -47,7 +47,7 @@
  * - 최대 재시도 횟수: 기본값은 RetryConfig의 maxAttempts, 옵션으로 오버라이드 가능
  */
 
-import type { IRetryManager, IRetryOptions } from '../../shared/interfaces/retry-manager.interface.js';
+import type { IRetryManager } from '../../shared/interfaces/retry-manager.interface.js';
 
 export interface RetryConfig {
   maxAttempts: number; // 최대 재시도 횟수

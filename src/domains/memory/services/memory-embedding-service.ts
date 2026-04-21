@@ -3,14 +3,13 @@
  * 데이터베이스와 임베딩 서비스를 연동
  */
 
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
-import type { EmbeddingProvider, EmbeddingResult } from '../../../shared/types/embedding.types.js';
+import type { EmbeddingProvider,EmbeddingResult } from '../../../shared/types/embedding.types.js';
+import type { MemoryType } from '../../../shared/types/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import type { MemoryType } from '../../../shared/types/index.js';
-import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
 
 export interface MemoryEmbedding {
   memory_id: string;

@@ -4,11 +4,10 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
-import type { RelationType } from '../../../shared/types/relation.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
 
 const AddRelationSchema = z.object({
   source_id: z.string().min(1, 'source_id는 필수입니다'),

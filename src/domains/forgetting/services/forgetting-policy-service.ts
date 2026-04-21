@@ -4,11 +4,11 @@
  */
 
 import type Database from 'better-sqlite3';
-import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
-import { SpacedRepetitionAlgorithm, type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { ForgettingAlgorithm } from '../algorithms/forgetting-algorithm.js';
+import { SpacedRepetitionAlgorithm,type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 
 export interface ForgettingPolicyConfig {
   // 망각 정책 설정

@@ -5,9 +5,9 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
-import type { IAnchorCacheService, AnchorSlot } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import type { MemoryEmbeddingService } from '../../../memory/services/memory-embedding-service.js';
+import type { AnchorSlot,IAnchorCacheService } from './anchor-interfaces.js';
 
 /**
  * Anchor Cache Service 구현
@@ -215,10 +215,10 @@ export class AnchorCacheService implements IAnchorCacheService {
   /**
    * 캐시에서 앵커 조회
    * @param agentId - 에이전트 ID
-   * @param slot - 슬롯 (선택적)
+   * @param _slot - 슬롯 (선택적)
    * @returns 캐시된 앵커 정보
    */
-  getCachedAnchor(agentId: string, slot?: AnchorSlot): { A: string | null; B: string | null; C: string | null } | undefined {
+  getCachedAnchor(agentId: string, _slot?: AnchorSlot): { A: string | null; B: string | null; C: string | null } | undefined {
     return this.cache.get(agentId);
   }
 

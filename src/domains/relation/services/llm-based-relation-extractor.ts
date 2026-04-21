@@ -12,34 +12,33 @@
  * - 비용 모니터링
  */
 
-import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { mementoConfig } from '../../../shared/config/index.js';
-import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
-import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
-import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import OpenAI from 'openai';
 import { CacheService } from '../../../infrastructure/cache/cache-service.js';
+import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
+import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
+import { mementoConfig } from '../../../shared/config/index.js';
+import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
+import { CACHE,CONFIDENCE,LIMITS,LLM_COST,RATE_LIMITER,TIME } from '../../../shared/constants/relation-constants.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
-import type {
-  RelationCandidate,
-  RelationType,
-  IRelationExtractor,
-  ExtractOptions
-} from '../../../shared/types/relation.js';
-import { ALL_RELATION_TYPES } from '../../../shared/types/relation.js';
+import type { EmbeddingData } from '../../../shared/types/embedding.types.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
-import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
-import type { EmbeddingData, SimilarityResult } from '../../../shared/types/embedding.types.js';
-import { logger } from '../../../shared/utils/logger.js';
+import type {
+ExtractOptions,
+IRelationExtractor,
+RelationCandidate,
+RelationType
+} from '../../../shared/types/relation.js';
+import { ALL_RELATION_TYPES,isApplicableRelationType,MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
-import { CONFIDENCE, LIMITS, CACHE, LLM_COST, RATE_LIMITER, TIME } from '../../../shared/constants/relation-constants.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 
 /**
  * LLM 응답 파싱 결과 (레거시 호환성을 위해 유지)
  * @deprecated ParseResult를 사용하세요
  */
-interface ParsedLLMResponse {
+interface _ParsedLLMResponse {
   relations: Array<{
     target_id: string;
     relation_type: RelationType;
@@ -1132,7 +1131,7 @@ ${memoryList}
     // 추출된 JSON이 유효한지 빠르게 확인
     // 이 검증은 JSON.parse()가 실패하지 않도록 보장합니다
     try {
-      const parsed = JSON.parse(extracted);
+      const _parsed = JSON.parse(extracted);
       // 파싱 성공 시 유효한 JSON 반환
       return extracted;
     } catch (error) {
@@ -1265,15 +1264,15 @@ ${memoryList}
           } else {
             // extractJSON이 실패한 경우, 수동으로 첫 번째 '{'부터 마지막 '}'까지 추출
             // 그리고 JSON.parse()가 성공할 때까지 끝 부분을 점진적으로 제거
-            let firstBrace = cleanedJson.indexOf('{');
-            let lastBrace = cleanedJson.lastIndexOf('}');
+            const firstBrace = cleanedJson.indexOf('{');
+            const lastBrace = cleanedJson.lastIndexOf('}');
             
             if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
               // 먼저 첫 번째 '{'부터 마지막 '}'까지 추출
               cleanedJson = cleanedJson.substring(firstBrace, lastBrace + 1).trim();
               
               // JSON.parse()가 성공할 때까지 끝 부분을 점진적으로 제거
-              let attemptJson = cleanedJson;
+              const attemptJson = cleanedJson;
               let foundValidJson = false;
               
               for (let i = attemptJson.length; i > 0 && !foundValidJson; i--) {

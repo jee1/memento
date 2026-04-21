@@ -3,10 +3,10 @@
  * 단일 책임 원칙 (SRP) 적용
  */
 
-import type { 
-  SpacedRepetitionFeatures 
-} from '../../../../shared/types/spaced-repetition.types.js';
 import type { OptimalIntervalRecommender } from '../../../../shared/interfaces/spaced-repetition.interface.js';
+import type {
+SpacedRepetitionFeatures
+} from '../../../../shared/types/spaced-repetition.types.js';
 
 /**
  * 기본 최적 간격 추천기
@@ -20,7 +20,7 @@ export class DefaultOptimalIntervalRecommender implements OptimalIntervalRecomme
   recommendOptimalInterval(
     currentInterval: number,
     recallHistory: boolean[],
-    features: SpacedRepetitionFeatures
+    _features: SpacedRepetitionFeatures
   ): number {
     if (recallHistory.length === 0) {
       return currentInterval;
@@ -180,7 +180,7 @@ export class MLBasedOptimalIntervalRecommender implements OptimalIntervalRecomme
     this.model.set(memoryId, { weights });
   }
 
-  private trainLinearModel(trainingData: Array<{
+  private trainLinearModel(_trainingData: Array<{
     features: SpacedRepetitionFeatures;
     actualInterval: number;
     performance: number;
@@ -214,7 +214,7 @@ export class EnsembleOptimalIntervalRecommender implements OptimalIntervalRecomm
     currentInterval: number,
     recallHistory: boolean[],
     features: SpacedRepetitionFeatures,
-    memoryId?: string
+    _memoryId?: string
   ): number {
     const recommendations = this.recommenders.map(recommender => 
       recommender.recommendOptimalInterval(currentInterval, recallHistory, features)

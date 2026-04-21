@@ -41,6 +41,7 @@ export default defineConfig({
       'src/workers/**/*.{test,spec}.{js,ts}',
       'tests/**/*.{test,spec}.{js,ts}',
       'scripts/**/*.{test,spec}.{js,ts}',
+      'apps/**/*.{test,spec}.{js,ts}',
       'packages/memento-core/src/**/*.{test,spec}.{js,ts}',
       'packages/memento-client/src/**/*.{test,spec}.{js,ts}',
       'packages/memento-server/src/**/*.{test,spec}.{js,ts}'

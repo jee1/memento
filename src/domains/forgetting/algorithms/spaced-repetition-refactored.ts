@@ -3,15 +3,14 @@
  * 기존 인터페이스와의 호환성을 유지하여 점진적 마이그레이션을 가능하게 합니다.
  */
 
-import type { 
-  SpacedRepetitionFeatures,
-  SpacedRepetitionWeights,
-  ReviewSchedule,
-  ReviewPerformance,
-  MemoryData,
-  SpacedRepetitionConfig
+import type {
+MemoryData,
+ReviewPerformance,
+ReviewSchedule,
+SpacedRepetitionFeatures,
+SpacedRepetitionWeights
 } from '../../../../shared/types/spaced-repetition.types.js';
-import { getSpacedRepetitionService, initializeSpacedRepetitionWithDefaults } from '../services/spaced-repetition/spaced-repetition-container.js';
+import { getSpacedRepetitionService,initializeSpacedRepetitionWithDefaults } from '../services/spaced-repetition/spaced-repetition-container.js';
 
 /**
  * 리팩토링된 간격 반복 알고리즘으로 기존 코드와의 호환성을 유지하면서 개선된 구조를 제공합니다.

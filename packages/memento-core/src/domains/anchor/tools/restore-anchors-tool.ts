@@ -47,7 +47,7 @@ export class RestoreAnchorsTool extends BaseTool {
       await context.services.anchorManager!.restoreCacheFromDB(context.db!);
       
       // 복원된 앵커 정보 조회
-      let restoredAnchors: any = {};
+      const restoredAnchors: any = {};
       
       if (agent_id) {
         // 특정 agent_id의 앵커만 조회

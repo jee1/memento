@@ -3,15 +3,15 @@
  * 키워드 패턴 매칭을 통해 기억 간의 관계를 추출합니다.
  */
 
-import type {
-  RelationCandidate,
-  RelationType,
-  IRelationExtractor,
-  ExtractOptions
-} from '../../../shared/types/relation.js';
+import { CONFIDENCE,LIMITS } from '../../../shared/constants/relation-constants.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
+import type {
+ExtractOptions,
+IRelationExtractor,
+RelationCandidate,
+RelationType
+} from '../../../shared/types/relation.js';
 import { isApplicableRelationType } from '../../../shared/types/relation.js';
-import { CONFIDENCE, LIMITS } from '../../../shared/constants/relation-constants.js';
 
 /**
  * 키워드 패턴 정의
@@ -207,7 +207,7 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
   } {
     const normalizedText = text.toLowerCase();
     let maxStrength = 0;
-    let matchedPattern: KeywordPattern | null = null;
+    let _matchedPattern: KeywordPattern | null = null;
     let matchedKeyword = '';
 
     for (const pattern of patterns) {
@@ -223,7 +223,7 @@ export class RuleBasedRelationExtractor implements IRelationExtractor {
           const strength = pattern.weight;
           if (strength > maxStrength) {
             maxStrength = strength;
-            matchedPattern = pattern;
+            _matchedPattern = pattern;
             matchedKeyword = keyword;
           }
         }

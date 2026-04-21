@@ -12,31 +12,30 @@
  * - 에러 처리 및 폴백
  */
 
-import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { mementoConfig } from '../../../../shared/config/index.js';
-import { CacheService } from '../../../../infrastructure/cache/cache-service.js';
-import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
-import { PredicateCanonicalizer } from './predicate-canonicalizer.js';
-import { EntityLinker } from './entity-linker.js';
-import { TripleParser } from './triple-parser.js';
-import { TripleNormalizer } from './triple-normalizer.js';
+import OpenAI from 'openai';
 import { tripleExtractionLogger } from '../../../../infrastructure/logging/triple-extraction-logger.js';
-import { TripleCacheService } from '../../../../shared/utils/triple-cache.js';
-import { TripleExtractionStatisticsService } from './triple-extraction-statistics.js';
+import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
+import { mementoConfig } from '../../../../shared/config/index.js';
+import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
+import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
+import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
 import type {
-  Triple,
-  TripleExtractionResult,
-  TripleExtractionOptions,
-  TripleExtractionFailureReason,
-  ExtractionInfo,
-  ExtractionSteps
+ExtractionInfo,
+ExtractionSteps,
+Triple,
+TripleExtractionFailureReason,
+TripleExtractionOptions,
+TripleExtractionResult
 } from '../../../../shared/types/triple-extraction.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
-import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
-import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
-import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
+import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
+import { TripleCacheService } from '../../../../shared/utils/triple-cache.js';
+import { EntityLinker } from './entity-linker.js';
+import { PredicateCanonicalizer } from './predicate-canonicalizer.js';
+import { TripleExtractionStatisticsService } from './triple-extraction-statistics.js';
+import { TripleNormalizer } from './triple-normalizer.js';
+import { TripleParser } from './triple-parser.js';
 
 /**
  * 토큰 버킷 Rate Limiter

@@ -1971,7 +1971,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
 
       await testScheduler.start(db);
 
-      let receivedRetryCounts: number[] = [];
+      const receivedRetryCounts: number[] = [];
       const jobWithRetryCount = async () => {
         // 재시도 카운트를 확인할 수 있도록 저장
         const schedulerAny = testScheduler as any;

@@ -9,35 +9,31 @@
 import type Database from 'better-sqlite3';
 import { createHash } from 'crypto';
 import { z } from 'zod';
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { CommonSchemas } from '../../../tools/types.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
-import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { isMemoryItemType, type MemoryTypeRequest } from '../../../shared/types/index.js';
-import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
-import { CoreMemoryService } from '../services/core-memory-service.js';
-import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
-import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
-import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
-import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { isTestEnvironment } from '../../../shared/utils/environment-check.js';
-import { RelationExtractor } from '../../relation/services/relation-extractor.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
-import { validateReflectionNotes, formatValidationErrors, type ReflectionNote } from '../../../shared/utils/reflection-notes-schema.js';
-import { mergeReflectionNotes, serializeReflectionNotes, type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
-import { validateProceduralMemoryFields } from '../../../shared/utils/type-param-validator.js';
+import { isMemoryItemType,type MemoryTypeRequest } from '../../../shared/types/index.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { isTestEnvironment } from '../../../shared/utils/environment-check.js';
+import { mergeReflectionNotes,serializeReflectionNotes,type ExistingReflectionNotes } from '../../../shared/utils/reflection-notes-merge.js';
+import { formatValidationErrors,validateReflectionNotes,type ReflectionNote } from '../../../shared/utils/reflection-notes-schema.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
+import { validateProceduralMemoryFields,validateTypeParam } from '../../../shared/utils/type-param-validator.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { CommonSchemas } from '../../../tools/types.js';
+import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { RelationExtractor } from '../../relation/services/relation-extractor.js';
+import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { CoreMemoryService } from '../services/core-memory-service.js';
+import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
+import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { getNextVersionNumber } from '../services/procedural-versioning.js';
 // AriGraph Pipeline
+import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
+import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import { SemanticMemoryUpdateService } from '../services/semantic-memory/semantic-memory-update-service.js';
-import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
-import { createRelationGraph } from '../../../infrastructure/relation-graph-factory.js';
 
 /**
  * 기존 reflection_notes 조회 결과 타입
@@ -1165,7 +1161,7 @@ export class RememberTool extends BaseTool {
                             unifiedEmbeddingService
                           );
 
-                          const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
+                          const _updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
                             extractionResult,
                             {
                               episodicMemoryId: savedMemoryId,

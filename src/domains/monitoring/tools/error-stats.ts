@@ -3,7 +3,6 @@
  * 에러 로깅 서비스의 통계 정보를 조회하는 MCP 도구
  */
 
-import { z } from 'zod';
 import type { ToolContext } from '../../../tools/types.js';
 
 export const errorStatsTool = {

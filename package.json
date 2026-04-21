@@ -28,7 +28,7 @@
     "start": "npm run start -w memento-server",
     "start:http": "npm run start:http -w memento-server",
     "start:http-v2": "npm run start:http-v2 -w memento-server",
-    "test": "vitest --run",
+    "test": "npm run test:prepare && vitest --run",
     "test:server": "vitest run packages/memento-server/src/server/ --no-file-parallelism",
     "test:watch": "vitest",
     "test:ci": "vitest --run --reporter=basic",
@@ -37,8 +37,8 @@
     "test:ci:server": "vitest --run --reporter=basic packages/memento-server/src/",
     "test:vector-search-quality": "vitest --run src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json src/test/test-vector-search-quality-with-consolidation.spec.ts",
-    "lint": "eslint src/**/*.ts",
-    "type-check": "npm run build -w @memento/core && npm run type-check -w memento-server",
+    "lint": "npm run lint:ts && npm run lint:js",
+    "type-check": "npm run build -w @memento/core && npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @memento/client && npm run type-check -w experimental-example",
     "db:init": "npm run db:init -w @memento/core",
     "db:migrate": "npm run db:migrate -w @memento/core",
     "db:check-migration": "tsx src/scripts/check-migration-status.ts",
@@ -114,7 +114,10 @@
     "build:client": "npm run build -w @memento/client",
     "dev:client": "npm run dev -w @memento/client",
     "clean:client": "npm run clean -w @memento/client",
-    "publish:client": "npm publish --workspace @memento/client"
+    "publish:client": "npm publish --workspace @memento/client",
+    "test:prepare": "npm run build -w memento-server",
+    "lint:ts": "eslint \"{src,packages,apps,tests,scripts}/**/*.ts\"",
+    "lint:js": "eslint \"static/js/**/*.js\""
   },
   "keywords": [
     "mcp",

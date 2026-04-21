@@ -4,11 +4,10 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { IAnchorCacheService, AnchorSlot, SearchOptions, SearchResult } from './anchor-interfaces.js';
-import type { INHopSearchStrategy, IQueryFilterStrategy, IFallbackStrategy, NHopSearchResult } from './search-strategy-interfaces.js';
-import type { EmbeddingResult } from './embedding-types.js';
-import type { AnchorInfoRow, QueryResult } from './database-types.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import type { AnchorSlot,IAnchorCacheService,SearchOptions } from './anchor-interfaces.js';
+import type { AnchorInfoRow,QueryResult } from './database-types.js';
+import type { IFallbackStrategy,INHopSearchStrategy,IQueryFilterStrategy,NHopSearchResult } from './search-strategy-interfaces.js';
 
 /**
  * 앵커 정보 및 임베딩

@@ -4,9 +4,9 @@
 
 import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
 
-const PerformanceStatsSchema = z.object({});
+const _PerformanceStatsSchema = z.object({});
 
 export class PerformanceStatsTool extends BaseTool {
   constructor() {

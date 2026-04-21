@@ -102,7 +102,9 @@ describe('RuntimeDiagnosticsLogger', () => {
         '{"type":"sample","count":1}\n',
         'utf8'
       );
-    } finally {}
+    } finally {
+      vi.doUnmock('fs/promises');
+    }
   });
 
   it('로그 파일 쓰기 실패가 예외를 전파하지 않아야 한다', async () => {
@@ -116,6 +118,8 @@ describe('RuntimeDiagnosticsLogger', () => {
       const logger = new RuntimeDiagnosticsLogger(true, '/root/forbidden');
 
       await expect(logger.writeEvent({ type: 'server_start' })).resolves.toBeUndefined();
-    } finally {}
+    } finally {
+      vi.doUnmock('fs/promises');
+    }
   });
 });

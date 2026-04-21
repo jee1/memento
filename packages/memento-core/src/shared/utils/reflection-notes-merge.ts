@@ -7,7 +7,7 @@
 
 import { logger } from './logger.js';
 import { PIIMasker } from './pii-masker.js';
-import { validateReflectionNotes, type ReflectionNote } from './reflection-notes-schema.js';
+import { validateReflectionNotes,type ReflectionNote } from './reflection-notes-schema.js';
 
 /**
  * 병합 결과 타입
@@ -120,13 +120,13 @@ function validateAndCleanupTotalSize(array: ReflectionNote[]): { cleaned: Reflec
     return timestampA - timestampB; // 오래된 것부터
   });
 
-  let cleaned = [...array];
+  const cleaned = [...array];
   let removedCount = 0;
 
   // 전체 크기가 1MB 이하가 될 때까지 가장 오래된 항목 제거
   while (getObjectSize(cleaned) > MAX_TOTAL_FIELD_SIZE && cleaned.length > 0) {
     // 가장 오래된 항목 찾기
-    const oldestIndex = cleaned.findIndex((item, idx) => {
+    const oldestIndex = cleaned.findIndex((item, _idx) => {
       const itemTimestamp = item.timestamp ? new Date(item.timestamp).getTime() : 0;
       const oldestEntry = sorted[removedCount];
       const oldestTimestamp = oldestEntry?.timestamp
@@ -216,11 +216,7 @@ export function mergeReflectionNotes(
 
   // 각 새 항목의 크기 검증
   for (const item of newNotesArray) {
-    try {
-      validateSingleObjectSize(item);
-    } catch (error) {
-      throw error; // 단일 객체 크기 초과는 즉시 에러 반환
-    }
+    validateSingleObjectSize(item);
   }
 
   // 새로 들어온 notes 스키마 검증

@@ -4,7 +4,6 @@
  */
 
 import type { RelationType } from '../../../shared/types/relation.js';
-import type { RelationCandidate } from '../../../shared/types/relation.js';
 import { ALL_RELATION_TYPES } from '../../../shared/types/relation.js';
 
 /**
@@ -642,7 +641,7 @@ export class RelationQualityValidator {
     extractedRelations: ExtractedRelation[],
     expectedRelations: ExpectedRelation[]
   ): Record<RelationType, TypeAnalysis> {
-    const relationTypes = ALL_RELATION_TYPES;
+    const _relationTypes = ALL_RELATION_TYPES;
 
     // 모든 관계 유형에 대해 분석 수행
     const analysis: Record<RelationType, TypeAnalysis> = {

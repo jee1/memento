@@ -148,7 +148,7 @@ export class EntityLinker {
 
         // 3. 매핑되지 않은 경우 기본 정규화
         // Lowercasing + 내부 다중 공백을 단일 공백으로 치환
-        let basicNormalized = trimmed.toLowerCase().replace(/\s+/g, ' ');
+        const basicNormalized = trimmed.toLowerCase().replace(/\s+/g, ' ');
 
         return {
             linked: basicNormalized,

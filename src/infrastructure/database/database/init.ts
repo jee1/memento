@@ -5,27 +5,26 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 // 데이터베이스 경로는 환경 변수 또는 기본값에서 가져오며, 경로 검증이 적용됨
 import Database from 'better-sqlite3';
-import fs, { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import fs,{ readFileSync } from 'fs';
+import { dirname,join } from 'path';
 import { fileURLToPath } from 'url';
+import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { initializeMigrationStatusTable,loadMigrationStatusToConfig } from '../../../shared/utils/fts5-migration-status.js';
+import { logger } from '../../../shared/utils/logger.js';
+import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
+import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
 import { MigrationDetector } from './migration/migration-detector.js';
 import { MigrationRunner } from './migration/migration-runner.js';
 import { SchemaVersionManager } from './migration/schema-version-manager.js';
-import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
-import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
-import { CoreMemoryCacheService } from '../../../domains/memory/services/core-memory-cache-service.js';
-import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
-import { loadMigrationStatusToConfig, initializeMigrationStatusTable } from '../../../shared/utils/fts5-migration-status.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { logger } from '../../../shared/utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // MCP 프로토콜 준수를 위해 초기화 로그는 출력하지 않음
 // 로그가 stdout/stderr로 출력되면 JSON-RPC 통신을 방해할 수 있음
-const log = (...args: any[]) => {
+const log = (..._args: any[]) => {
   // MCP 프로토콜 준수를 위해 로그 출력 비활성화
   // 필요시 환경 변수로 제어 가능하도록 주석 처리
   // if (process.env.MCP_DEBUG === 'true') {
@@ -86,7 +85,7 @@ function addMissingColumn(
  * @param db 데이터베이스 인스턴스
  * @returns 재구축이 필요한 VEC 테이블 설정 목록
  */
-function ensureLegacySchema(db: Database.Database): VecTableConfig[] {
+function _ensureLegacySchema(db: Database.Database): VecTableConfig[] {
   const vecTablesToRepopulate: VecTableConfig[] = [];
 
   try {

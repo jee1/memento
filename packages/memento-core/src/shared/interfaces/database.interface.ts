@@ -39,10 +39,9 @@ export interface VectorPerformanceRepository {
 }
 
 // 타입 import
-import type { 
-  VectorSearchQuery, 
-  VectorSearchResult, 
-  VectorIndexStatus, 
-  HybridSearchResult,
-  PerformanceTestResult 
+import type {
+PerformanceTestResult,
+VectorIndexStatus,
+VectorSearchQuery,
+VectorSearchResult
 } from '../types/vector-search.types';

@@ -28,6 +28,9 @@ function writeStderr(message: string): Promise<void> {
   });
 }
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { loadEnv } from './cli/env-loader.js';
 import {
   recallParams,
@@ -130,7 +133,7 @@ const subIdx = preOptions.subIdx;
 const commandToken = preOptions.commandToken;
 const showHelp = preOptions.help || (!commandToken && !subcommand);
 
-async function main(): Promise<number> {
+export async function main(): Promise<number> {
   if (showHelp) {
     await writeStderr('memento – Memento CLI for AI\n');
     await writeStderr('Usage: memento [options] <command> [command-args]\n\n');
@@ -230,10 +233,15 @@ async function main(): Promise<number> {
   }
 }
 
-main().then((code) => {
-  process.exit(code);
-}).catch((err) => {
-  void writeStderr(String(err?.message ?? err) + '\n').finally(() => {
-    process.exit(1);
+const isDirectRun = process.argv[1] !== undefined
+  && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  void main().then((code) => {
+    process.exit(code);
+  }).catch((err) => {
+    void writeStderr(String(err?.message ?? err) + '\n').finally(() => {
+      process.exit(1);
+    });
   });
-});
+}

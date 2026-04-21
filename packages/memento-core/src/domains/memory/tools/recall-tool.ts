@@ -3,38 +3,36 @@
  * 하이브리드 검색을 통한 고성능 기억 검색
  */
 
-import { z } from 'zod';
-import { createHash } from 'crypto';
-import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { CommonSchemas } from '../../../tools/types.js';
 import type Database from 'better-sqlite3';
-import { isMemoryItemType, type MemoryTypeRequest, type MemoryType, type EmbeddingProvider, type MemorySearchFilters, type MetaMemoryStats } from '../../../shared/types/index.js';
-import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
-import { getVersionChain } from '../services/procedural-versioning.js';
-import { computeProceduralDiff } from '../services/procedural-memory-diff.js';
-import type { CoreMemoryRepository } from '../repositories/core-memory-repository.interface.js';
-import { CoreMemoryService } from '../services/core-memory-service.js';
-import { CoreMemoryCacheService } from '../services/core-memory-cache-service.js';
-import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
-import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
-import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
+import { createHash } from 'crypto';
+import { z } from 'zod';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
-import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
-import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
-import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
+import { isMemoryItemType,type EmbeddingProvider,type MemorySearchFilters,type MemoryType,type MemoryTypeRequest } from '../../../shared/types/index.js';
+import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
+import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
+import { validateTypeParam } from '../../../shared/utils/type-param-validator.js';
+import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
+import { BaseTool } from '../../../tools/base-tool.js';
+import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { CommonSchemas } from '../../../tools/types.js';
+import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
+import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { CoreMemoryService } from '../services/core-memory-service.js';
+import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
+import { MemoryEmbeddingService } from '../services/memory-embedding-service.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
+import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import type { MetaMemoryService } from '../services/meta-memory-service.js';
+import { computeProceduralDiff } from '../services/procedural-memory-diff.js';
+import { getVersionChain } from '../services/procedural-versioning.js';
 import {
-  recallTelemetryRetrievalStrategy,
-  recallSearchRequestedExtra,
-  recallQueryCorrelationExtra,
-  buildQueryEmbeddingMetadataFields
+buildQueryEmbeddingMetadataFields,
+recallQueryCorrelationExtra,
+recallSearchRequestedExtra,
+recallTelemetryRetrievalStrategy
 } from './recall-tool-telemetry.js';
 
 /**
@@ -639,8 +637,8 @@ export class RecallTool extends BaseTool {
         time_from, 
         time_to, 
         pinned, 
-        importance_min, 
-        importance_max,
+        importance_min: _importance_min, 
+        importance_max: _importance_max,
         workflow_name,
         skill_name,
         match_trigger_conditions,
@@ -1906,7 +1904,7 @@ export class RecallTool extends BaseTool {
       // 타임아웃 시에도 부분 완료 결과는 반환됨 (timeoutPromise에서 처리)
       // 완료된 결과만 반환
       const settledResults = await Promise.allSettled(neighborPromises);
-      return settledResults.map((r, idx) => 
+      return settledResults.map((r, _idx) => 
         r.status === 'fulfilled' 
           ? r.value.neighbors 
           : [] // 실패한 항목은 빈 배열

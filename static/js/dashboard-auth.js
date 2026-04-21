@@ -5,24 +5,24 @@
 (function (global) {
   'use strict';
 
-  var authState = 'checking';
-  var authRequestVersion = 0;
-  var sessionReady = false;
-  var sessionPromise = null;
-  var resolveSessionPromise = null;
+  let authState = 'checking';
+  let authRequestVersion = 0;
+  let sessionReady = false;
+  let sessionPromise = null;
+  let resolveSessionPromise = null;
 
-  var rootEl = null;
-  var formEl = null;
-  var keyInputEl = null;
-  var signInButtonEl = null;
-  var signOutButtonEl = null;
-  var sessionBoxEl = null;
-  var statusEl = null;
-  var messageEl = null;
+  let rootEl = null;
+  let formEl = null;
+  let keyInputEl = null;
+  let signInButtonEl = null;
+  let signOutButtonEl = null;
+  let sessionBoxEl = null;
+  let statusEl = null;
+  let messageEl = null;
 
   function selectFirst(selectors) {
-    for (var i = 0; i < selectors.length; i += 1) {
-      var element = document.querySelector(selectors[i]);
+    for (let i = 0; i < selectors.length; i += 1) {
+      const element = document.querySelector(selectors[i]);
       if (element) {
         return element;
       }
@@ -31,8 +31,8 @@
   }
 
   function getElementByIdFallback(ids) {
-    for (var i = 0; i < ids.length; i += 1) {
-      var element = document.getElementById(ids[i]);
+    for (let i = 0; i < ids.length; i += 1) {
+      const element = document.getElementById(ids[i]);
       if (element) {
         return element;
       }
@@ -140,7 +140,7 @@
   }
 
   function checkSession() {
-    var requestVersion = beginAuthRequest();
+    const requestVersion = beginAuthRequest();
     setAuthState('checking', 'Checking for an existing dashboard session…');
 
     return fetch('/api/anchors/map?agent_id=default', {
@@ -183,9 +183,9 @@
 
   function handleSignIn(event) {
     event.preventDefault();
-    var requestVersion = beginAuthRequest();
+    const requestVersion = beginAuthRequest();
 
-    var apiKey = keyInputEl ? keyInputEl.value.trim() : '';
+    const apiKey = keyInputEl ? keyInputEl.value.trim() : '';
     if (!apiKey) {
       setAuthState('signed-out', 'Enter the admin API key to create a dashboard session.');
       if (keyInputEl) {

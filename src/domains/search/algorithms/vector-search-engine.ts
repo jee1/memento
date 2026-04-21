@@ -8,13 +8,12 @@
  */
 
 import Database from 'better-sqlite3';
-import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
-import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 import { VECTOR_SEARCH } from '../../../shared/config/constants.js';
-import type { 
-  VectorSearchQuery,
-  PerformanceTestResult 
+import type {
+VectorSearchQuery
 } from '../../../shared/types/vector-search.types.js';
+import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
 
 // 기존 인터페이스 유지 (하위 호환성)
 export interface VectorSearchResult {

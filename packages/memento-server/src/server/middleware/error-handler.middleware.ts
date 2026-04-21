@@ -4,9 +4,9 @@
  * 연관: shared/types/error-types.ts (AppErrorContract), shared/interfaces/error-logging.interface.ts
  */
 
-import type { Request, Response, NextFunction } from 'express';
-import type { IErrorLoggingService, AppErrorContract } from '@memento/core';
-import { ErrorSeverity, ErrorCategory, logger } from '@memento/core';
+import type { AppErrorContract,IErrorLoggingService } from '@memento/core';
+import { ErrorCategory,ErrorSeverity,logger } from '@memento/core';
+import type { NextFunction,Request,Response } from 'express';
 
 /**
  * 에러 응답 인터페이스
@@ -85,7 +85,7 @@ export function errorHandler(
   error: Error | unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;

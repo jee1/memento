@@ -3,9 +3,9 @@
  * Phase 2.4: anchor-search-service.ts 분리
  */
 
-import type { IAnchorCacheService } from './anchor-interfaces.js';
-import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
+import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
+import type { IAnchorCacheService } from './anchor-interfaces.js';
 
 /**
  * 필터링 대상 결과 타입
@@ -53,7 +53,7 @@ export class QueryFilterService implements IQueryFilterService {
   async filterByQuery(
     query: string,
     results: FilterableResult[],
-    provider: string
+    _provider: string
   ): Promise<FilterableResult[]> {
     if (results.length === 0) {
       return results;
