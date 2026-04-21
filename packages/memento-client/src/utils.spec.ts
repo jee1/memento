@@ -1,6 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { isValidMemoryType } from './utils.js';
-import type { MemoryType } from './types.js';
+import { isValidMemoryType, memoriesToCSV } from './utils.js';
+import type { MemoryItem, MemoryType } from './types.js';
+
+const buildMemory = (overrides: Partial<MemoryItem> = {}): MemoryItem => ({
+  id: 'memory-1',
+  content: 'Default content',
+  type: 'episodic',
+  importance: 3,
+  created_at: '2026-04-20T00:00:00.000Z',
+  pinned: false,
+  tags: [],
+  privacy_scope: 'private',
+  ...overrides
+});
 
 describe('isValidMemoryType', () => {
   it('should return true for all valid memory types', () => {
@@ -79,6 +91,97 @@ describe('isValidMemoryType', () => {
     expect(isValidMemoryType(' ')).toBe(false);
     expect(isValidMemoryType('working ')).toBe(false);
     expect(isValidMemoryType(' working')).toBe(false);
+  });
+});
+
+describe('memoriesToCSV', () => {
+  it('should return empty string for empty input', () => {
+    expect(memoriesToCSV([])).toBe('');
+  });
+
+  it('should quote free-form fields and escape embedded double quotes', () => {
+    const csv = memoriesToCSV([
+      buildMemory({
+        content: 'He said "hello"',
+        tags: ['tag "one"', 'tag two'],
+        source: 'api "import"'
+      })
+    ]);
+
+    expect(csv).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"He said ""hello""",episodic,3,2026-04-20T00:00:00.000Z,,false,"tag ""one"";tag two",private,"api ""import"""'
+    );
+  });
+
+  it('should neutralize formula-like content prefixes inside quoted cells', () => {
+    expect(memoriesToCSV([buildMemory({ content: '=SUM(A1:A2)' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"\'=SUM(A1:A2)",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,'
+    );
+    expect(memoriesToCSV([buildMemory({ content: '+SUM(A1:A2)' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"\'+SUM(A1:A2)",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,'
+    );
+    expect(memoriesToCSV([buildMemory({ content: '-SUM(A1:A2)' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"\'-SUM(A1:A2)",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,'
+    );
+    expect(memoriesToCSV([buildMemory({ content: '@SUM(A1:A2)' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"\'@SUM(A1:A2)",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,'
+    );
+  });
+
+  it('should neutralize formula-like tag prefixes after joining the tag string', () => {
+    expect(memoriesToCSV([buildMemory({ tags: ['=danger', 'safe'] })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,"\'=danger;safe",private,'
+    );
+    expect(memoriesToCSV([buildMemory({ tags: ['+danger', 'safe'] })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,"\'+danger;safe",private,'
+    );
+    expect(memoriesToCSV([buildMemory({ tags: ['-danger', 'safe'] })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,"\'-danger;safe",private,'
+    );
+    expect(memoriesToCSV([buildMemory({ tags: ['@danger', 'safe'] })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,"\'@danger;safe",private,'
+    );
+  });
+
+  it('should neutralize formula-like source prefixes after quoting the free-form fields', () => {
+    expect(memoriesToCSV([buildMemory({ source: '=import' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,"\'=import"'
+    );
+    expect(memoriesToCSV([buildMemory({ source: '+import' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,"\'+import"'
+    );
+    expect(memoriesToCSV([buildMemory({ source: '-import' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,"\'-import"'
+    );
+    expect(memoriesToCSV([buildMemory({ source: '@import' })])).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,,private,"\'@import"'
+    );
+  });
+
+  it('should only neutralize tags after joining the tag string', () => {
+    const csv = memoriesToCSV([
+      buildMemory({
+        tags: ['safe', '=later']
+      })
+    ]);
+
+    expect(csv).toBe(
+      'id,content,type,importance,created_at,last_accessed,pinned,tags,privacy_scope,source\n' +
+      'memory-1,"Default content",episodic,3,2026-04-20T00:00:00.000Z,,false,"safe;=later",private,'
+    );
   });
 });
 
