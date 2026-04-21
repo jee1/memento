@@ -111,10 +111,10 @@
     "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
     "docker:dev:logs": "docker-compose -f docker-compose.dev.yml logs -f",
     "docker:prod:logs": "docker-compose -f docker-compose.prod.yml logs -f",
-    "build:client": "cd packages/mcp-client && npm run build",
-    "dev:client": "cd packages/mcp-client && npm run dev",
-    "clean:client": "cd packages/mcp-client && npm run clean",
-    "publish:client": "cd packages/mcp-client && npm publish"
+    "build:client": "npm run build -w @memento/client",
+    "dev:client": "npm run dev -w @memento/client",
+    "clean:client": "npm run clean -w @memento/client",
+    "publish:client": "npm publish --workspace @memento/client"
   },
   "keywords": [
     "mcp",

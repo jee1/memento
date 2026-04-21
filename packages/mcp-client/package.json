@@ -1,7 +1,7 @@
 {
-  "name": "@memento/client",
+  "name": "@memento/client-legacy",
   "version": "0.1.0",
-  "description": "Memento MCP Server client library for AI Agents",
+  "description": "Legacy client package kept only as a migration reference",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -52,7 +52,5 @@
   "peerDependencies": {
     "typescript": ">=5.0.0"
   },
-  "publishConfig": {
-    "access": "public"
-  }
+  "private": true
 }
