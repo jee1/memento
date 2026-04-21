@@ -823,50 +823,82 @@ describe('TripleExtractionBatchJob', () => {
       // Given: 동일한 content를 가진 여러 Episodic Memory 생성
       const memoryCount = 10;
       const sameContent = 'Alice works at Microsoft. She is a data scientist.';
-      
-      for (let i = 0; i < memoryCount; i++) {
-        const memoryId = generateId();
-        DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [memoryId, 'episodic', sameContent, 0.5, null, null]);
+      const previousAllowLlmInTests = process.env.MEMENTO_ALLOW_LLM_IN_TESTS;
+      let extractWithLLMSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+      try {
+        process.env.MEMENTO_ALLOW_LLM_IN_TESTS = 'true';
+
+        extractWithLLMSpy = vi.spyOn(
+          tripleExtractionService as unknown as {
+            extractWithLLM: (
+              observation: string,
+              provider: 'openai' | 'gemini' | 'ollama' | 'auto',
+              options: Record<string, unknown>
+            ) => Promise<unknown>;
+          },
+          'extractWithLLM'
+        ).mockResolvedValue({
+          result: {
+            triples: [
+              {
+                subject: 'Alice',
+                predicate: 'works_at',
+                object: 'Microsoft'
+              }
+            ],
+            extractionInfo: {
+              steps: {
+                canonicalization: false,
+                entityLinking: false
+              }
+            }
+          },
+          rawLLMOutput: '[{"subject":"Alice","predicate":"works_at","object":"Microsoft"}]'
+        });
+
+        for (let i = 0; i < memoryCount; i++) {
+          const memoryId = generateId();
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [memoryId, 'episodic', sameContent, 0.5, null, null]);
+        }
+
+        // When: 첫 번째 배치 실행 (첫 번째 메모리만 캐시 미스)
+        const result1 = await batchJob.execute(db);
+
+        // Then: 첫 번째 배치에서는 실제 추출 경로가 1회만 호출되어야 함
+        expect(result1).toBeDefined();
+        expect(result1.details.processed).toBe(memoryCount);
+        expect(result1.details.success).toBe(memoryCount);
+        expect(extractWithLLMSpy).toHaveBeenCalledTimes(1);
+
+        // 캐시가 채워진 상태에서 두 번째 배치 실행 (캐시 히트)
+        for (let i = 0; i < memoryCount; i++) {
+          const memoryId = generateId();
+          DatabaseUtils.run(db, `
+            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [memoryId, 'episodic', sameContent, 0.5, null, null]);
+        }
+
+        const result2 = await batchJob.execute(db);
+
+        // Then: 두 번째 배치에서는 캐시 히트로 추가 LLM 호출이 없어야 함
+        expect(result2).toBeDefined();
+        expect(result2.details.processed).toBe(memoryCount);
+        expect(result2.details.success).toBe(memoryCount);
+        expect(extractWithLLMSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        extractWithLLMSpy?.mockRestore();
+
+        if (previousAllowLlmInTests === undefined) {
+          delete process.env.MEMENTO_ALLOW_LLM_IN_TESTS;
+        } else {
+          process.env.MEMENTO_ALLOW_LLM_IN_TESTS = previousAllowLlmInTests;
+        }
       }
-
-      // When: 첫 번째 배치 실행 (캐시 미스)
-      const startTime1 = Date.now();
-      const result1 = await batchJob.execute(db);
-      const endTime1 = Date.now();
-      const duration1 = endTime1 - startTime1;
-
-      // 캐시가 채워진 상태에서 두 번째 배치 실행 (캐시 히트)
-      // 동일한 content를 가진 새로운 메모리 생성
-      for (let i = 0; i < memoryCount; i++) {
-        const memoryId = generateId();
-        DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [memoryId, 'episodic', sameContent, 0.5, null, null]);
-      }
-
-      const startTime2 = Date.now();
-      const result2 = await batchJob.execute(db);
-      const endTime2 = Date.now();
-      const duration2 = endTime2 - startTime2;
-
-      // Then: 캐시 히트로 인한 성능 향상 확인
-      expect(result1).toBeDefined();
-      expect(result2).toBeDefined();
-      
-      // 캐시 히트 시 더 빠른 처리 시간 (LLM 호출 생략)
-      // 주의: 실제 LLM 호출 시간에 따라 다를 수 있음
-      console.log('\n📊 캐시 성능 비교:');
-      console.log(`  - 첫 번째 배치 (캐시 미스): ${duration1}ms`);
-      console.log(`  - 두 번째 배치 (캐시 히트): ${duration2}ms`);
-      console.log(`  - 성능 향상: ${((duration1 - duration2) / duration1 * 100).toFixed(1)}%`);
-      
-      // 캐시 히트 시 더 빠르거나 비슷한 시간이어야 함 (LLM 호출이 없으므로 더 빠를 것으로 예상)
-      // CI/스케줄링 변동을 고려하여 3배 이내 오차 허용
-      expect(duration2).toBeLessThanOrEqual(Math.max(duration1 * 3, 20));
     });
 
     it('배치 크기에 따른 성능 비교', async () => {
