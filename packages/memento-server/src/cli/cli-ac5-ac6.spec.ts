@@ -17,7 +17,19 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const cliPath = fileURLToPath(new URL('../../dist/cli.js', import.meta.url));
 
 beforeAll(() => {
-  const build = spawnSync(
+  const buildCore = spawnSync(
+    npmCommand,
+    ['run', 'build', '-w', '@memento/core'],
+    {
+      cwd: process.cwd(),
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    },
+  );
+  const buildCoreOutput = `${buildCore.stdout ?? ''}${buildCore.stderr ?? ''}`;
+  expect(buildCore.status, buildCoreOutput).toBe(0);
+
+  const buildServer = spawnSync(
     npmCommand,
     ['run', 'build', '-w', 'memento-server'],
     {
@@ -26,9 +38,9 @@ beforeAll(() => {
       stdio: 'pipe',
     },
   );
-  const buildOutput = `${build.stdout ?? ''}${build.stderr ?? ''}`;
+  const buildOutput = `${buildCoreOutput}${buildServer.stdout ?? ''}${buildServer.stderr ?? ''}`;
 
-  expect(build.status, buildOutput).toBe(0);
+  expect(buildServer.status, buildOutput).toBe(0);
   expect(fs.existsSync(cliPath)).toBe(true);
 
   const probe = spawnSync(

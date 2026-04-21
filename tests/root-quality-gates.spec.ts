@@ -77,7 +77,7 @@ describe('root quality gate contracts', () => {
     expectExactScript(pkg, 'lint', 'npm run lint:ts && npm run lint:js');
     expectExactScript(pkg, 'lint:ts', 'eslint "{src,packages,apps,tests,scripts}/**/*.ts"');
     expectExactScript(pkg, 'lint:js', 'eslint "static/js/**/*.js"');
-    expectExactScript(pkg, 'test:prepare', 'npm run build -w memento-server');
+    expectExactScript(pkg, 'test:prepare', 'npm run build -w @memento/core && npm run build -w memento-server');
     expectExactScript(pkg, 'test', 'npm run test:prepare && vitest --run');
     expect(splitSequentialCommands(readScript(pkg, 'type-check'))).toEqual(typeCheckContract);
   });

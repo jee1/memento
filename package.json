@@ -115,7 +115,7 @@
     "dev:client": "npm run dev -w @memento/client",
     "clean:client": "npm run clean -w @memento/client",
     "publish:client": "npm publish --workspace @memento/client",
-    "test:prepare": "npm run build -w memento-server",
+    "test:prepare": "npm run build -w @memento/core && npm run build -w memento-server",
     "lint:ts": "eslint \"{src,packages,apps,tests,scripts}/**/*.ts\"",
     "lint:js": "eslint \"static/js/**/*.js\""
   },
