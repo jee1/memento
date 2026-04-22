@@ -5,6 +5,7 @@
  */
 
 import os from 'os';
+import path from 'path';
 
 const ENV_DEFAULTS: Record<string, string> = {
   NODE_ENV: 'development',
@@ -100,6 +101,18 @@ export function resolveString(
   options: ResolveEnvOptions = {}
 ): string {
   return resolveEnv(key, { ...options, useDefault: options.useDefault ?? true }) ?? '';
+}
+
+export function expandHomeDirPath(value: string): string {
+  if (value === '~') {
+    return os.homedir();
+  }
+
+  if (value.startsWith('~/') || value.startsWith('~\\')) {
+    return path.join(os.homedir(), value.slice(2));
+  }
+
+  return value;
 }
 
 export function resolveOptionalString(

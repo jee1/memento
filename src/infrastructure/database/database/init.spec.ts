@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { initializeDatabase } from './init.js';
-import { MigrationDetector } from './migration/migration-detector.js';
+import { MigrationDetector as CoreMigrationDetector } from '../../../../packages/memento-core/src/infrastructure/database/database/migration/migration-detector.js';
 
 describe('Database Initialization', () => {
   let db: Database.Database;
@@ -116,7 +116,7 @@ describe('Database Initialization', () => {
       let opened: Database.Database | null = null;
       try {
         opened = await initializeDatabase(dbPath);
-        const detector = new MigrationDetector();
+        const detector = new CoreMigrationDetector();
         const all = await detector.detectAllMigrations();
         expect(all.length).toBeGreaterThan(0);
 
@@ -128,6 +128,20 @@ describe('Database Initialization', () => {
           expect(appliedSet.has(migration.version)).toBe(true);
         }
         expect(applied.length).toBe(all.length);
+
+        const memoryItemColumns = opened
+          .prepare(`SELECT name FROM pragma_table_info('memory_item')`)
+          .all() as Array<{ name: string }>;
+        const columnNames = new Set(memoryItemColumns.map(column => column.name));
+
+        expect(columnNames.has('recall_count')).toBe(true);
+        expect(columnNames.has('consolidation_score')).toBe(true);
+        expect(columnNames.has('project_id')).toBe(true);
+
+        const anchorTableExists = opened
+          .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='anchor'`)
+          .get();
+        expect(anchorTableExists).toBeDefined();
       } finally {
         if (opened) {
           try {

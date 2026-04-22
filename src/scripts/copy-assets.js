@@ -13,9 +13,9 @@ const distDatabaseDir = join(projectRoot, 'dist', 'database');
 const distMigrationDir = join(projectRoot, 'dist', 'infrastructure', 'database', 'database', 'migration', 'migrations');
   const distPromptsDir = join(projectRoot, 'dist', 'prompts');
   const distConfigDir = join(projectRoot, 'dist', 'config');
-  const sourceSchemaFile = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'schema.sql');
+  const sourceSchemaFile = join(projectRoot, 'packages', 'memento-core', 'src', 'infrastructure', 'database', 'database', 'schema.sql');
   const targetSchemaFile = join(distDatabaseDir, 'schema.sql');
-  const sourceMigrationDir = join(projectRoot, 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
+  const sourceMigrationDir = join(projectRoot, 'packages', 'memento-core', 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
   const sourcePromptsDir = join(projectRoot, 'prompts');
   const sourceConfigDir = join(projectRoot, 'config');
 

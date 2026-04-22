@@ -14,7 +14,8 @@ import {
   resolveOptionalString,
   resolveString,
   resolveBoolean,
-  getRawEnvValue
+  getRawEnvValue,
+  expandHomeDirPath
 } from './environment.js';
 
 // 환경 변수 로드
@@ -30,7 +31,7 @@ const embeddingDimensions: number =
 
 export const mementoConfig: MementoConfig = {
   // 데이터베이스 설정
-  dbPath: resolveString('DB_PATH'),
+  dbPath: expandHomeDirPath(resolveString('DB_PATH')),
 
   // MCP 서버 설정
   serverName: resolveString('MCP_SERVER_NAME'),
