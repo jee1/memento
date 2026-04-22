@@ -5,7 +5,7 @@
 
 import { describe, it, expect, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { mkdtempSync, rmSync } from 'fs';
+import { closeSync, ftruncateSync, mkdtempSync, openSync, rmSync, statSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { initializeDatabase } from './init.js';
@@ -136,6 +136,26 @@ describe('Database Initialization', () => {
             // ignore
           }
         }
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('Given: 손상된 기존 DB 파일이 있을 때, When: initializeDatabase를 호출하면, Then: quarantine 복사 후 시작을 중단해야 함', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'memento-init-corrupt-'));
+      const dbPath = join(dir, 'memory.db');
+      const seedDb = new Database(dbPath);
+      seedDb.exec('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)');
+      seedDb.exec("INSERT INTO sample(value) VALUES ('corrupt-me')");
+      seedDb.close();
+
+      const size = statSync(dbPath).size;
+      const fd = openSync(dbPath, 'r+');
+      ftruncateSync(fd, Math.max(100, Math.floor(size / 2)));
+      closeSync(fd);
+
+      try {
+        await expect(initializeDatabase(dbPath)).rejects.toThrow(/데이터베이스 무결성 사전 검사 실패/);
+      } finally {
         rmSync(dir, { recursive: true, force: true });
       }
     });
