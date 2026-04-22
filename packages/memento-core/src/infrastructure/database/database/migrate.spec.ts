@@ -5,6 +5,9 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import { closeSync, ftruncateSync, mkdtempSync, openSync, rmSync, statSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { migrateDatabase } from './migrate.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -27,6 +30,36 @@ describe('Database Migration', () => {
   });
 
   describe('마이그레이션 상태 확인', () => {
+    it('Given: 손상된 DB 파일이 DB_PATH에 있을 때, When: migrateDatabase를 호출하면, Then: quarantine 복사 후 중단해야 함', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'memento-migrate-corrupt-'));
+      const dbPath = join(dir, 'memory.db');
+      const source = new Database(dbPath);
+      source.exec('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)');
+      source.exec("INSERT INTO sample(value) VALUES ('bad')");
+      source.close();
+
+      const size = statSync(dbPath).size;
+      const fd = openSync(dbPath, 'r+');
+      ftruncateSync(fd, Math.max(100, Math.floor(size / 2)));
+      closeSync(fd);
+
+      const previousDbPath = process.env.DB_PATH;
+      try {
+        vi.resetModules();
+        process.env.DB_PATH = dbPath;
+        const migrateModule = await import('./migrate.js');
+        expect(() => migrateModule.migrateDatabase()).toThrow(/데이터베이스 무결성 사전 검사 실패/);
+      } finally {
+        if (previousDbPath === undefined) {
+          delete process.env.DB_PATH;
+        } else {
+          process.env.DB_PATH = previousDbPath;
+        }
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+
     it('Given: 레거시 스키마에 embedding 컬럼이 없을 때, When: 마이그레이션을 실행하면, Then: embedding 컬럼을 추가해야 함', () => {
       // Given: 레거시 스키마 (embedding 컬럼 없음)
       db.exec(`

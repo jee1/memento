@@ -7,10 +7,12 @@ import Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
 
 function migrateDatabase() {
   logger.info('🔄 데이터베이스 마이그레이션 시작');
   
+  runDatabaseIntegrityPreflight(mementoConfig.dbPath);
   const db = new Database(mementoConfig.dbPath);
   
   try {

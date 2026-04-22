@@ -18,6 +18,7 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { normalizeReflectionNotes } from '../../../shared/utils/reflection-notes-normalize.js';
 import { createCoreMemoryRepository } from '../factories/core-memory-repository.factory.js';
 import { ensureMemoryItemTripleExtractionColumns } from './ensure-memory-item-triple-extraction-columns.js';
+import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
 import { MigrationDetector } from './migration/migration-detector.js';
 import { MigrationRunner } from './migration/migration-runner.js';
 import { SchemaVersionManager } from './migration/schema-version-manager.js';
@@ -384,6 +385,8 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       throw new Error(`[memento] DB 디렉터리 생성 실패: ${dbDir}\n원인: ${msg}`);
     }
   }
+
+  runDatabaseIntegrityPreflight(dbPath);
 
   try {
     // SQLite 데이터베이스 연결
