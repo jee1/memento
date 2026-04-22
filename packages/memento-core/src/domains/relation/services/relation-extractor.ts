@@ -18,10 +18,11 @@ import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../sha
 import type { MemoryType, MemoryItem } from '../../../shared/types/index.js';
 import { RuleBasedRelationExtractor } from './rule-based-relation-extractor.js';
 import { LLMBasedRelationExtractor } from './llm-based-relation-extractor.js';
-import { CacheService } from '../../../infrastructure/cache/cache-service.js';
+import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { CONFIDENCE, LIMITS, CACHE } from '../../../shared/constants/relation-constants.js';
+import { RelationCache } from './relation-cache.js';
 
 /**
  * 관계 추출 메인 서비스
@@ -29,16 +30,17 @@ import { CONFIDENCE, LIMITS, CACHE } from '../../../shared/constants/relation-co
 export class RelationExtractor implements IRelationExtractor {
   private readonly ruleExtractor: RuleBasedRelationExtractor;
   private readonly llmExtractor: LLMBasedRelationExtractor;
-  private readonly cache: CacheService<RelationCandidate[]>;
+  private readonly cache: ICacheService<RelationCandidate[]>;
 
   constructor(
     ruleExtractor?: RuleBasedRelationExtractor,
-    llmExtractor?: LLMBasedRelationExtractor
+    llmExtractor?: LLMBasedRelationExtractor,
+    cache?: ICacheService<RelationCandidate[]>,
   ) {
     this.ruleExtractor = ruleExtractor ?? new RuleBasedRelationExtractor();
     this.llmExtractor = llmExtractor ?? new LLMBasedRelationExtractor();
     // 캐시: 1000개 항목, 7일 TTL
-    this.cache = new CacheService<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
+    this.cache = cache ?? new RelationCache<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
   }
 
   /**

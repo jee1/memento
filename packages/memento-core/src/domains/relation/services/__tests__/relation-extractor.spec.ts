@@ -16,7 +16,7 @@ import { RuleBasedRelationExtractor } from '../rule-based-relation-extractor.js'
 import { LLMBasedRelationExtractor } from '../llm-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
-import { CacheService } from '../../../../infrastructure/cache/cache-service.js';
+import { RelationCache } from '../relation-cache.js';
 
 // mementoConfig 모킹
 vi.mock('../config/index.js', () => {
@@ -123,13 +123,13 @@ describe('RelationExtractor', () => {
       mockEmbeddingService.searchSimilar
     );
 
-    // CacheService 모킹
+    // RelationCache 모킹
     mockCacheService = {
       get: vi.fn(),
       set: vi.fn()
     };
-    vi.spyOn(CacheService.prototype, 'get').mockImplementation(mockCacheService.get);
-    vi.spyOn(CacheService.prototype, 'set').mockImplementation(mockCacheService.set);
+    vi.spyOn(RelationCache.prototype, 'get').mockImplementation(mockCacheService.get);
+    vi.spyOn(RelationCache.prototype, 'set').mockImplementation(mockCacheService.set);
 
     extractor = new RelationExtractor();
 

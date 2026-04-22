@@ -15,7 +15,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import { tripleExtractionLogger } from '../../../../infrastructure/logging/triple-extraction-logger.js';
-import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
+import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
@@ -36,6 +36,7 @@ import { PredicateCanonicalizer } from './predicate-canonicalizer.js';
 import { TripleExtractionStatisticsService } from './triple-extraction-statistics.js';
 import { TripleNormalizer } from './triple-normalizer.js';
 import { TripleParser } from './triple-parser.js';
+import { RelationRetryManager } from '../relation-retry-manager.js';
 
 /**
  * 토큰 버킷 Rate Limiter
@@ -117,7 +118,7 @@ export class TripleExtractionService {
   private readonly parser: TripleParser;
   private readonly normalizer: TripleNormalizer;
   private readonly statistics: TripleExtractionStatisticsService; // PRD 8.1: Triple 추출 통계 수집
-  private readonly retryManager: RetryManager;
+  private readonly retryManager: IRetryManager;
   private initializationPromise: Promise<void> | null = null;
 
   // 기본 설정
@@ -131,7 +132,7 @@ export class TripleExtractionService {
   // 로깅 설정
   private readonly SUCCESS_SAMPLING_RATE = 0.1; // 성공 케이스 10% 샘플링
 
-  constructor() {
+  constructor(retryManager?: IRetryManager) {
     // PRD 6.11: Triple 추출 결과 캐싱 구현
     // PRD 6.12: 캐시 키 생성 로직 구현 (content_hash 기반)
     // PRD 6.13: 캐시 TTL 기반 자동 무효화 구현
@@ -154,10 +155,9 @@ export class TripleExtractionService {
     this.statistics = new TripleExtractionStatisticsService();
     // RetryManager 초기화 (외부 API 호출 재시도용)
     const retryOptions = getRetryOptions();
-    this.retryManager = new RetryManager({
+    this.retryManager = retryManager ?? new RelationRetryManager({
       maxAttempts: retryOptions.external_api.maxAttempts,
       baseDelay: retryOptions.external_api.baseDelay,
-      maxErrorCount: retryOptions.default.maxErrorCount
     });
     
     // 비동기 초기화 시작 (constructor에서 Promise 저장)

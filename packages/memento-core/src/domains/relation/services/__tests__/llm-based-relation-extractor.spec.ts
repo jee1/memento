@@ -88,7 +88,7 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
 import { LLMBasedRelationExtractor } from '../llm-based-relation-extractor.js';
 import type { MemoryItem, RelationType } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
-import { CacheService } from '../../../../infrastructure/cache/cache-service.js';
+import { RelationCache } from '../relation-cache.js';
 import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
 import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -232,13 +232,13 @@ describe('LLMBasedRelationExtractor', () => {
       get searchSimilar() { return mockSearchSimilar; }
     };
 
-    // CacheService 모킹
+    // RelationCache 모킹
     mockCacheService = {
       get: vi.fn(),
       set: vi.fn()
     };
-    vi.spyOn(CacheService.prototype, 'get').mockImplementation(mockCacheService.get);
-    vi.spyOn(CacheService.prototype, 'set').mockImplementation(mockCacheService.set);
+    vi.spyOn(RelationCache.prototype, 'get').mockImplementation(mockCacheService.get);
+    vi.spyOn(RelationCache.prototype, 'set').mockImplementation(mockCacheService.set);
 
     // 모킹 초기화 (안전 체크)
     if (mockOpenAICreate && typeof mockOpenAICreate.mockClear === 'function') {
