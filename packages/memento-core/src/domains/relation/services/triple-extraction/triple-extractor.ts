@@ -12,12 +12,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { RetryManager } from '../../../../infrastructure/scheduler/retry-manager.js';
+import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { LLMClientInitializer } from '../../../../shared/services/llm-client-initializer.js';
 import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 import type { ITripleExtractor } from './interfaces.js';
 import type { Triple, TripleExtractionOptions } from '../../../../shared/types/triple-extraction.js';
+import { RelationRetryManager } from '../relation-retry-manager.js';
 
 /**
  * Triple 추출기 클래스
@@ -28,7 +29,7 @@ export class TripleExtractor implements ITripleExtractor {
   private geminiClient: GoogleGenerativeAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
-  private readonly retryManager: RetryManager;
+  private readonly retryManager: IRetryManager;
   private initializationPromise: Promise<void> | null = null;
 
   // 기본 설정
@@ -36,13 +37,12 @@ export class TripleExtractor implements ITripleExtractor {
   private readonly DEFAULT_MAX_TOKENS = 2000;
   private readonly SYSTEM_MESSAGE = 'You are a knowledge graph extractor. Extract triples (subject, predicate, object) from observations and return JSON format only.';
 
-  constructor() {
+  constructor(retryManager?: IRetryManager) {
     this.initializationPromise = this.initializeClients();
     const retryOptions = getRetryOptions();
-    this.retryManager = new RetryManager({
+    this.retryManager = retryManager ?? new RelationRetryManager({
       maxAttempts: retryOptions.external_api.maxAttempts,
       baseDelay: retryOptions.external_api.baseDelay,
-      maxErrorCount: retryOptions.default.maxErrorCount
     });
   }
 

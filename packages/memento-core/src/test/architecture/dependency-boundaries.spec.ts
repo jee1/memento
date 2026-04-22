@@ -36,6 +36,24 @@ async function collectDomainProductionFiles(dir: string): Promise<string[]> {
 }
 
 describe('dependency boundaries', () => {
+  it('keeps infrastructure cache and retry-manager imports out of relation service production files', async () => {
+    const relationServicesRoot = path.join(domainsRoot, 'relation', 'services');
+    const relationServiceFiles = await collectDomainProductionFiles(relationServicesRoot);
+    const offenders: string[] = [];
+
+    for (const relativePath of relationServiceFiles) {
+      const source = await readSource(relativePath);
+      const hasConcreteCacheImport = /import\s+.*['"].*infrastructure\/cache\/cache-service\.js['"]/m.test(source);
+      const hasConcreteRetryImport = /import\s+.*['"].*infrastructure\/scheduler\/retry-manager\.js['"]/m.test(source);
+
+      if (hasConcreteCacheImport || hasConcreteRetryImport) {
+        offenders.push(relativePath);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it('keeps relation graph factory imports and fallbacks out of domain production files', async () => {
     const domainFiles = await collectDomainProductionFiles(domainsRoot);
     const offenders: string[] = [];

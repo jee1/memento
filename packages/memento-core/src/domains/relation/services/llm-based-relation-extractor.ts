@@ -14,9 +14,8 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
-import { CacheService } from '../../../infrastructure/cache/cache-service.js';
-import type { RetryConfig } from '../../../infrastructure/scheduler/retry-manager.js';
-import { RetryManager } from '../../../infrastructure/scheduler/retry-manager.js';
+import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
+import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { CACHE,CONFIDENCE,LIMITS,LLM_COST,RATE_LIMITER,TIME } from '../../../shared/constants/relation-constants.js';
@@ -33,6 +32,8 @@ import { ALL_RELATION_TYPES,isApplicableRelationType,MEMORY_TYPE_RELATION_MAP } 
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
+import { RelationCache } from './relation-cache.js';
+import { RelationRetryManager } from './relation-retry-manager.js';
 
 /**
  * LLM 응답 파싱 결과 (레거시 호환성을 위해 유지)
@@ -153,16 +154,20 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
   private readonly initializationPromise: Promise<void>;
   private initializationCompleted = false;
   private readonly embeddingService: UnifiedEmbeddingService;
-  private readonly cache: CacheService<RelationCandidate[]>; // 7일 TTL
+  private readonly cache: ICacheService<RelationCandidate[]>; // 7일 TTL
   private readonly rateLimiter: TokenBucketRateLimiter;
   private readonly costMetrics: LLMCostMetrics;
-  private readonly retryManager: RetryManager;
+  private readonly retryManager: IRetryManager;
 
-  constructor(embeddingService?: UnifiedEmbeddingService) {
+  constructor(
+    embeddingService?: UnifiedEmbeddingService,
+    cache?: ICacheService<RelationCandidate[]>,
+    retryManager?: IRetryManager,
+  ) {
     // 초기화 지연: preferredProvider는 null로 시작하고, initializationPromise를 통해 비동기 초기화
     this.preferredProvider = null;
     this.embeddingService = embeddingService || new UnifiedEmbeddingService();
-    this.cache = new CacheService<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
+    this.cache = cache ?? new RelationCache<RelationCandidate[]>(CACHE.EXTRACTION_SIZE, CACHE.EXTRACTION_TTL_MS);
     this.rateLimiter = new TokenBucketRateLimiter(RATE_LIMITER.CAPACITY, RATE_LIMITER.REFILL_RATE);
     this.costMetrics = {
       totalCalls: 0,
@@ -173,11 +178,10 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     
     // RetryManager 초기화 (external_api 설정 사용)
     const retryOptions = getRetryOptions();
-    const retryConfig: RetryConfig = {
-      ...retryOptions.external_api,
-      maxErrorCount: retryOptions.default.maxErrorCount
-    };
-    this.retryManager = new RetryManager(retryConfig);
+    this.retryManager = retryManager ?? new RelationRetryManager({
+      maxAttempts: retryOptions.external_api.maxAttempts,
+      baseDelay: retryOptions.external_api.baseDelay,
+    });
     
     // 비동기 초기화: initializeClients()를 호출하고 결과를 설정
     this.initializationPromise = this.initializeClients().then((provider) => {
