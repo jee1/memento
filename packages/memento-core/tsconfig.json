@@ -25,14 +25,19 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
+    "paths": {
+      "@memento/core": ["./src/index.ts"],
+      "@memento/core/*": ["./src/*"]
+    },
     "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/__tests__/**"
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**",
+    "src/test/**"
   ]
 }

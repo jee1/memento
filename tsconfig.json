@@ -20,7 +20,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "removeComments": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -28,7 +27,10 @@
     "types": ["node"]
   },
   "include": [
-    "src/**/*"
+    "packages/*/src/**/*",
+    "apps/*/src/**/*",
+    "tests/**/*",
+    "scripts/**/*"
   ],
   "exclude": [
     "node_modules",

@@ -4,6 +4,9 @@
  */
 
 import type { MemoryType, PrivacyScope, MemoryItem } from './types.js';
+import { MementoClient } from './memento-client.js';
+import type { MementoClientOptions } from './types.js';
+
 
 // ============================================================================
 // 타입 검증 함수들
@@ -487,4 +490,11 @@ export function validateSearchParams(params: unknown): {
     isValid: errors.length === 0,
     errors
   };
+}
+
+/**
+ * MementoClient 인스턴스를 생성하는 팩토리 함수
+ */
+export function createMementoClient(options?: MementoClientOptions): MementoClient {
+  return new MementoClient(options);
 }

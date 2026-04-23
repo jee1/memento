@@ -95,4 +95,5 @@ export type {
 export type { ContextInjectionOptions } from './context-injector.js';
 
 // 편의 함수들
+export { createMementoClient } from './utils.js';
 export * from './utils.js';

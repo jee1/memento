@@ -66,6 +66,9 @@ export { ErrorLoggingService } from './domains/monitoring/services/error-logging
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 export { QualityAssuranceService } from './domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 export { QualityThresholdManager } from './domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
+export { PIIMasker } from './shared/utils/pii-masker.js';
+export { SchemaVersionManager } from './infrastructure/database/database/migration/schema-version-manager.js';
+export { MigrationDetector } from './infrastructure/database/database/migration/migration-detector.js';
 export { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 export { RelationExtractor } from './domains/relation/services/relation-extractor.js';
 export { ExtractRelationsTool } from './domains/relation/tools/extract-relations-tool.js';
