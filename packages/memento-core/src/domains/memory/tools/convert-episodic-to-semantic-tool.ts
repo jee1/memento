@@ -398,6 +398,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
       if (skipConverted) {
         conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status = 'failed')");
       }
+      // skipConverted=false이면 성공 항목도 포함되므로 status 필터를 추가하지 않음
     } else {
       conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status != 'failed')");
     }
