@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import type Database from 'better-sqlite3';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -19,6 +20,20 @@ import { UnifiedEmbeddingService } from '../../../domains/embedding/services/uni
  */
 const RELATION_GRAPH_UNAVAILABLE_ERROR = 'relation_graph_unavailable';
 const SEMANTIC_UPDATE_FAILED_ERROR = 'semantic_update_failed';
+
+type EpisodicMemoryRow = {
+  id: string;
+  content: string;
+  importance: number | null; // DB NULL 가능, 사용 시 ?? 0.5 폴백
+};
+
+type ConversionResults = {
+  total: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  semantic_memory_ids: string[];
+};
 
 const ConvertEpisodicToSemanticSchema = z.object({
   memory_id: z.string().optional(), // 단일 Episodic Memory ID (선택)
@@ -88,71 +103,12 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
       // PRD 5.9: 수동 변환 로직 구현
       // 선택된 Episodic Memory에 대해 Triple 추출 및 Semantic Memory 생성
       
-      let episodicMemories: Array<{ id: string; content: string; importance: number }> = [];
-      
+      let episodicMemories: EpisodicMemoryRow[] = [];
+
       if (memory_id) {
-        // 단일 Episodic Memory 변환
-        // skip_converted 옵션 확인
-        let memory: { id: string; content: string; importance: number; triple_extracted: number | null; triple_extracted_status: string | null } | undefined;
-        
-        // 먼저 메모리 존재 여부 확인
-        const memoryExists = DatabaseUtils.get(db, `
-          SELECT id, triple_extracted, triple_extracted_status FROM memory_item
-          WHERE id = ? AND type = 'episodic'
-        `, [memory_id]) as { id: string; triple_extracted: number | null; triple_extracted_status: string | null } | undefined;
-        
-        if (!memoryExists) {
-          // 메모리가 존재하지 않는 경우
-          return this.createErrorResult(
-            'MEMORY_NOT_FOUND',
-            `Episodic Memory를 찾을 수 없습니다: ${memory_id}`
-          );
-        }
-        
-        // skip_converted=true이고 이미 변환된 경우 skipped로 처리
-        if (skip_converted && memoryExists.triple_extracted === 1 && memoryExists.triple_extracted_status === 'success') {
-          return this.createSuccessResult({
-            total: 1,
-            success: 0,
-            failed: 0,
-            skipped: 1,
-            semantic_memory_ids: []
-          });
-        }
-        
-        // skip_converted=true인 경우: 이미 변환된 항목은 조회하지 않음
-        if (skip_converted) {
-          memory = DatabaseUtils.get(db, `
-            SELECT id, content, importance, triple_extracted, triple_extracted_status FROM memory_item
-            WHERE id = ? AND type = 'episodic'
-              AND (triple_extracted IS NULL OR triple_extracted = 0)
-          `, [memory_id]) as { id: string; content: string; importance: number; triple_extracted: number | null; triple_extracted_status: string | null } | undefined;
-        } else {
-          memory = DatabaseUtils.get(db, `
-            SELECT id, content, importance, triple_extracted, triple_extracted_status FROM memory_item
-            WHERE id = ? AND type = 'episodic'
-          `, [memory_id]) as { id: string; content: string; importance: number; triple_extracted: number | null; triple_extracted_status: string | null } | undefined;
-        }
-        
-        if (!memory) {
-          // skip_converted=true이고 이미 변환된 경우 (위에서 처리했지만 이중 검증)
-          if (skip_converted) {
-            return this.createSuccessResult({
-              total: 1,
-              success: 0,
-              failed: 0,
-              skipped: 1,
-              semantic_memory_ids: []
-            });
-          }
-          // 이 경우는 발생하지 않아야 하지만 안전을 위해
-          return this.createErrorResult(
-            'MEMORY_NOT_FOUND',
-            `Episodic Memory를 찾을 수 없습니다: ${memory_id}`
-          );
-        }
-        
-        episodicMemories = [{ id: memory.id, content: memory.content, importance: memory.importance }];
+        const resolved = this.fetchSingleMemory(db, memory_id, skip_converted);
+        if (!Array.isArray(resolved)) return resolved;
+        episodicMemories = resolved;
       } else {
         // PRD 5.10: 배치 처리 지원 - 필터 조건에 따라 Episodic Memory 조회
         // PRD 5.11: 변환 상태 추적 로직 (이미 변환된 항목 건너뛰기, 실패한 항목 재시도 옵션)
@@ -424,6 +380,51 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         error instanceof Error ? error.message : String(error)
       );
     }
+  }
+
+  private fetchSingleMemory(
+    db: Database.Database,
+    memoryId: string,
+    skipConverted: boolean,
+  ): EpisodicMemoryRow[] | ToolResult {
+    const memoryExists = DatabaseUtils.get(db, `
+      SELECT id, triple_extracted, triple_extracted_status FROM memory_item
+      WHERE id = ? AND type = 'episodic'
+    `, [memoryId]) as { id: string; triple_extracted: number | null; triple_extracted_status: string | null } | undefined;
+
+    if (!memoryExists) {
+      return this.createErrorResult('MEMORY_NOT_FOUND', `Episodic Memory를 찾을 수 없습니다: ${memoryId}`);
+    }
+
+    if (skipConverted && memoryExists.triple_extracted === 1 && memoryExists.triple_extracted_status === 'success') {
+      return this.createSuccessResult({ total: 1, success: 0, failed: 0, skipped: 1, semantic_memory_ids: [] });
+    }
+
+    type MemoryRow = { id: string; content: string; importance: number | null; triple_extracted: number | null; triple_extracted_status: string | null };
+    let memory: MemoryRow | undefined;
+
+    if (skipConverted) {
+      memory = DatabaseUtils.get(db, `
+        SELECT id, content, importance, triple_extracted, triple_extracted_status FROM memory_item
+        WHERE id = ? AND type = 'episodic'
+          AND (triple_extracted IS NULL OR triple_extracted = 0)
+      `, [memoryId]) as MemoryRow | undefined;
+    } else {
+      memory = DatabaseUtils.get(db, `
+        SELECT id, content, importance, triple_extracted, triple_extracted_status FROM memory_item
+        WHERE id = ? AND type = 'episodic'
+      `, [memoryId]) as MemoryRow | undefined;
+    }
+
+    if (!memory) {
+      // skipConverted=true이고 이미 변환된 케이스는 위에서 처리됨 (도달 불가 분기 — 동작 보존을 위해 유지)
+      if (skipConverted) {
+        return this.createSuccessResult({ total: 1, success: 0, failed: 0, skipped: 1, semantic_memory_ids: [] });
+      }
+      return this.createErrorResult('MEMORY_NOT_FOUND', `Episodic Memory를 찾을 수 없습니다: ${memoryId}`);
+    }
+
+    return [{ id: memory.id, content: memory.content, importance: memory.importance }];
   }
 }
 
