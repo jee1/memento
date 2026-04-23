@@ -116,17 +116,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         semantic_memory_ids: [] as string[]
       };
 
-      // 이미 변환된 ID 일괄 조회 (N+1 완화)
-      let alreadyConvertedIds = new Set<string>();
-      if (skip_converted && episodicMemories.length > 0) {
-        const ids = episodicMemories.map((m) => m.id);
-        const placeholders = ids.map(() => '?').join(',');
-        const rows = DatabaseUtils.all(db, `
-          SELECT id FROM memory_item
-          WHERE id IN (${placeholders}) AND triple_extracted = 1 AND triple_extracted_status = 'success'
-        `, ids) as Array<{ id: string }>;
-        alreadyConvertedIds = new Set(rows.map((r) => r.id));
-      }
+      const alreadyConvertedIds = this.fetchAlreadyConverted(db, episodicMemories, skip_converted);
 
       const tripleExtractionService = new TripleExtractionService();
       const toProcess = episodicMemories.filter((m) => !alreadyConvertedIds.has(m.id));
@@ -339,6 +329,21 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
       return this.fetchSingleMemory(db, memoryId, skipConverted);
     }
     return this.fetchBatchMemories(db, skipConverted, retryFailed, limit);
+  }
+
+  private fetchAlreadyConverted(
+    db: Database.Database,
+    memories: EpisodicMemoryRow[],
+    skipConverted: boolean,
+  ): Set<string> {
+    if (!skipConverted || memories.length === 0) return new Set();
+    const ids = memories.map((m) => m.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = DatabaseUtils.all(db, `
+      SELECT id FROM memory_item
+      WHERE id IN (${placeholders}) AND triple_extracted = 1 AND triple_extracted_status = 'success'
+    `, ids) as Array<{ id: string }>;
+    return new Set(rows.map((r) => r.id));
   }
 
   private fetchSingleMemory(
