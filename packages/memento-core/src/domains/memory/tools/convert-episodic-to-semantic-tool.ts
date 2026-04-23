@@ -417,7 +417,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
     }
 
     if (!memory) {
-      // skipConverted=true이고 이미 변환된 케이스는 위에서 처리됨 (도달 불가 분기 — 동작 보존을 위해 유지)
+      // triple_extracted=1이지만 status가 'success'가 아닌 레거시/부패 데이터 방어
       if (skipConverted) {
         return this.createSuccessResult({ total: 1, success: 0, failed: 0, skipped: 1, semantic_memory_ids: [] });
       }
