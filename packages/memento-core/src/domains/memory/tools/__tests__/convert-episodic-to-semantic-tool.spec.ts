@@ -441,6 +441,143 @@ describe('ConvertEpisodicToSemanticTool', () => {
     });
   });
 
+  describe('경계 케이스', () => {
+    it('skip_converted=false이면 이미 변환된 단일 메모리도 재처리 시도한다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Alice works at Google.', 0.7);
+      DatabaseUtils.run(db, `
+        UPDATE memory_item SET triple_extracted = 1, triple_extracted_status = 'success' WHERE id = ?
+      `, [memoryId]);
+
+      const result = await tool.handle({ memory_id: memoryId, skip_converted: false }, context);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.skipped).toBe(0);
+      expect(data.total).toBe(1);
+      expect(data.success + data.failed).toBe(1);
+    });
+
+    it('retry_failed=true + skip_converted=false 조합이면 성공 항목도 포함해 재처리한다', async () => {
+      const successId = generateId('mem');
+      const failedId = generateId('mem');
+      createTestEpisodicMemory(db, successId, 'Alice is a developer.', 0.7);
+      createTestEpisodicMemory(db, failedId, 'Bob is a manager.', 0.6);
+      DatabaseUtils.run(db, `UPDATE memory_item SET triple_extracted = 1, triple_extracted_status = 'success' WHERE id = ?`, [successId]);
+      DatabaseUtils.run(db, `UPDATE memory_item SET triple_extracted = 0, triple_extracted_status = 'failed' WHERE id = ?`, [failedId]);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: { failureReason: 'no_triple' }
+      });
+
+      const result = await tool.handle({ skip_converted: false, retry_failed: true, limit: 10 }, context);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.total).toBe(2);
+      expect(data.success + data.failed).toBe(data.total);
+    });
+
+    it('배치에서 일부 성공 + 일부 실패가 섞이면 success + failed = total이다', async () => {
+      const mem1 = generateId('mem');
+      const mem2 = generateId('mem');
+      createTestEpisodicMemory(db, mem1, 'Alice is a developer.', 0.7);
+      createTestEpisodicMemory(db, mem2, 'Bob is a manager.', 0.6);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples')
+        .mockResolvedValueOnce({ triples: [{ subject: 'Alice', predicate: 'is', object: 'developer' }], extractionInfo: {} })
+        .mockResolvedValueOnce({ triples: [], extractionInfo: { failureReason: 'no_triple' } });
+      vi.spyOn(SemanticMemoryUpdateService.prototype, 'updateSemanticMemory')
+        .mockResolvedValue({ semanticMemoryIds: ['sem_1'] });
+
+      // embeddingService 없이 relationGraph만 제공: 툴이 new UnifiedEmbeddingService()를 직접 생성하므로
+      // SemanticMemoryUpdateService prototype spy가 정상 동작함
+      const contextWithRelationGraphOnly: ToolContext = {
+        db,
+        services: {
+          relationGraph: createRelationGraph(db)
+        }
+      };
+
+      const result = await tool.handle({ skip_converted: true, limit: 10 }, contextWithRelationGraphOnly);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.total).toBe(2);
+      expect(data.success).toBe(1);
+      expect(data.failed).toBe(1);
+      expect(data.success + data.failed).toBe(data.total);
+    });
+
+    it('limit=2이면 episodic이 3개여도 2개만 처리한다', async () => {
+      createTestEpisodicMemory(db, generateId('mem'), 'Content 1', 0.5);
+      createTestEpisodicMemory(db, generateId('mem'), 'Content 2', 0.5);
+      createTestEpisodicMemory(db, generateId('mem'), 'Content 3', 0.5);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: { failureReason: 'no_triple' }
+      });
+
+      const result = await tool.handle({ limit: 2 }, context);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.total).toBe(2);
+    });
+
+    it('triple_extracted_status=abandoned인 항목은 배치에서 제외된다', async () => {
+      const normalId = generateId('mem');
+      const abandonedId = generateId('mem');
+      createTestEpisodicMemory(db, normalId, 'Normal content.', 0.5);
+      createTestEpisodicMemory(db, abandonedId, 'Abandoned content.', 0.5);
+      DatabaseUtils.run(db, `
+        UPDATE memory_item SET triple_extracted = 0, triple_extracted_status = 'abandoned' WHERE id = ?
+      `, [abandonedId]);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: { failureReason: 'no_triple' }
+      });
+
+      const result = await tool.handle({ skip_converted: true, limit: 10 }, context);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.total).toBe(1);
+    });
+
+    it('변환할 episodic 메모리가 없으면 total=0과 message를 반환한다', async () => {
+      const result = await tool.handle({ skip_converted: true, limit: 10 }, context);
+      const data = JSON.parse(result.content[0].text);
+
+      expect(data.total).toBe(0);
+      expect(data.message).toBe('변환할 Episodic Memory가 없습니다.');
+    });
+
+    it('이미 실패한 메모리를 재처리하면 retry_count가 증가한다', async () => {
+      const memoryId = generateId('mem');
+      createTestEpisodicMemory(db, memoryId, 'Retryable content.', 0.5);
+      DatabaseUtils.run(db, `
+        UPDATE memory_item SET
+          triple_extracted = 0,
+          triple_extracted_status = 'failed',
+          triple_extraction_metadata = ?
+        WHERE id = ?
+      `, [JSON.stringify({ failureReason: 'no_triple', retry_count: 1, last_attempt: new Date().toISOString() }), memoryId]);
+
+      vi.spyOn(TripleExtractionService.prototype, 'extractTriples').mockResolvedValue({
+        triples: [],
+        extractionInfo: { failureReason: 'no_triple' }
+      });
+
+      await tool.handle({ retry_failed: true, skip_converted: true, limit: 10 }, context);
+
+      const row = DatabaseUtils.get(db, `
+        SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
+      `, [memoryId]) as { triple_extraction_metadata: string } | undefined;
+      const metadata = JSON.parse(row?.triple_extraction_metadata ?? '{}');
+
+      expect(metadata.retry_count).toBe(2);
+    });
+  });
+
   describe('에러 처리', () => {
     it('should return error when database is not available', async () => {
       // Given: 데이터베이스가 없는 context
