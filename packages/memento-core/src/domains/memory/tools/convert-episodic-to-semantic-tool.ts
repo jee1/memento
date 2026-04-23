@@ -110,55 +110,9 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         if (!Array.isArray(resolved)) return resolved;
         episodicMemories = resolved;
       } else {
-        // PRD 5.10: 배치 처리 지원 - 필터 조건에 따라 Episodic Memory 조회
-        // PRD 5.11: 변환 상태 추적 로직 (이미 변환된 항목 건너뛰기, 실패한 항목 재시도 옵션)
-        
-        // WHERE 조건 구성
-        const conditions: string[] = ["type = 'episodic'"];
-        const params: any[] = [];
-        
-        // skip_converted=true인 경우: 이미 변환된 항목 건너뛰기
-        // triple_extracted IS NULL (미처리) 또는 triple_extracted = 0 (실패)
-        if (skip_converted) {
-          conditions.push("(triple_extracted IS NULL OR triple_extracted = 0)");
-        }
-        
-        // retry_failed 옵션에 따른 조건 추가
-        if (retry_failed) {
-          // 실패한 항목 재시도: failed 또는 미처리 항목 포함
-          // skip_converted=false이면 성공 항목도 포함되므로 조건을 추가하지 않음
-          if (skip_converted) {
-            conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status = 'failed')");
-          }
-        } else {
-          // retry_failed=false인 경우: 실패한 항목 제외
-          conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status != 'failed')");
-        }
-        
-        // 포기된 항목은 제외 (수동 재시도 필요)
-        conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status != 'abandoned')");
-        
-        // 쿼리 실행
-        // SQL Injection 방지: conditions는 이미 파라미터 바인딩(?)을 포함하고 있어 안전함
-        const query = 
-          `SELECT id, content, importance FROM memory_item ` +
-          `WHERE ${conditions.join(' AND ')} ` +
-          `ORDER BY created_at ASC ` +
-          `LIMIT ?`;
-        params.push(limit);
-        
-        episodicMemories = DatabaseUtils.all(db, query, params) as Array<{ id: string; content: string; importance: number }>;
-        
-        if (episodicMemories.length === 0) {
-          return this.createSuccessResult({
-            total: 0,
-            success: 0,
-            failed: 0,
-            skipped: 0,
-            semantic_memory_ids: [],
-            message: '변환할 Episodic Memory가 없습니다.'
-          });
-        }
+        const resolved = this.fetchBatchMemories(db, skip_converted, retry_failed, limit);
+        if (!Array.isArray(resolved)) return resolved;
+        episodicMemories = resolved;
       }
 
       // 변환 결과 추적
@@ -425,6 +379,52 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
     }
 
     return [{ id: memory.id, content: memory.content, importance: memory.importance }];
+  }
+
+  private fetchBatchMemories(
+    db: Database.Database,
+    skipConverted: boolean,
+    retryFailed: boolean,
+    limit: number,
+  ): EpisodicMemoryRow[] | ToolResult {
+    const conditions: string[] = ["type = 'episodic'"];
+    const queryParams: unknown[] = [];
+
+    if (skipConverted) {
+      conditions.push("(triple_extracted IS NULL OR triple_extracted = 0)");
+    }
+
+    if (retryFailed) {
+      if (skipConverted) {
+        conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status = 'failed')");
+      }
+    } else {
+      conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status != 'failed')");
+    }
+
+    conditions.push("(triple_extracted_status IS NULL OR triple_extracted_status != 'abandoned')");
+
+    const query =
+      `SELECT id, content, importance FROM memory_item ` +
+      `WHERE ${conditions.join(' AND ')} ` +
+      `ORDER BY created_at ASC ` +
+      `LIMIT ?`;
+    queryParams.push(limit);
+
+    const memories = DatabaseUtils.all(db, query, queryParams) as EpisodicMemoryRow[];
+
+    if (memories.length === 0) {
+      return this.createSuccessResult({
+        total: 0,
+        success: 0,
+        failed: 0,
+        skipped: 0,
+        semantic_memory_ids: [],
+        message: '변환할 Episodic Memory가 없습니다.'
+      });
+    }
+
+    return memories;
   }
 }
 
