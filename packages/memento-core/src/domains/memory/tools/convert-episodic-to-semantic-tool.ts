@@ -102,18 +102,10 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
 
       // PRD 5.9: 수동 변환 로직 구현
       // 선택된 Episodic Memory에 대해 Triple 추출 및 Semantic Memory 생성
-      
-      let episodicMemories: EpisodicMemoryRow[] = [];
 
-      if (memory_id) {
-        const resolved = this.fetchSingleMemory(db, memory_id, skip_converted);
-        if (!Array.isArray(resolved)) return resolved;
-        episodicMemories = resolved;
-      } else {
-        const resolved = this.fetchBatchMemories(db, skip_converted, retry_failed, limit);
-        if (!Array.isArray(resolved)) return resolved;
-        episodicMemories = resolved;
-      }
+      const resolved = this.resolveMemories(db, memory_id, skip_converted, retry_failed, limit);
+      if (!Array.isArray(resolved)) return resolved;
+      const episodicMemories = resolved;
 
       // 변환 결과 추적
       const results = {
@@ -334,6 +326,19 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         error instanceof Error ? error.message : String(error)
       );
     }
+  }
+
+  private resolveMemories(
+    db: Database.Database,
+    memoryId: string | undefined,
+    skipConverted: boolean,
+    retryFailed: boolean,
+    limit: number,
+  ): EpisodicMemoryRow[] | ToolResult {
+    if (memoryId) {
+      return this.fetchSingleMemory(db, memoryId, skipConverted);
+    }
+    return this.fetchBatchMemories(db, skipConverted, retryFailed, limit);
   }
 
   private fetchSingleMemory(
