@@ -10,9 +10,9 @@
  */
 
 import {
-KnowledgeVaultRepository,
-type KnowledgeVaultRecord
-} from '../repositories/knowledge-vault-repository.js';
+  type IKnowledgeVaultRepository,
+  type KnowledgeVaultRecord
+} from '../repositories/knowledge-vault-repository.interface.js';
 
 export interface CreateKnowledgeVaultServiceInput {
   agent_id?: string;
@@ -53,7 +53,7 @@ export class ImmutableDataError extends Error {
  * Knowledge Vault Service
  */
 export class KnowledgeVaultService {
-  constructor(private repository: KnowledgeVaultRepository) {}
+  constructor(private repository: IKnowledgeVaultRepository) {}
 
   /**
    * Knowledge Vault 생성
@@ -312,4 +312,3 @@ export class KnowledgeVaultService {
     return record.admin_override || admin_override;
   }
 }
-
