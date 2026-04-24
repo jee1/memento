@@ -240,79 +240,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
       // Triple이 추출된 경우 Semantic Memory 생성/업데이트
       if (extractionResult.triples.length > 0) {
         semanticUpdateStarted = true;
-        const unifiedForSemantic: UnifiedEmbeddingService = context.services.embeddingService
-          ? context.services.embeddingService.getUnifiedEmbeddingService()
-          : new UnifiedEmbeddingService();
-        const relationGraph = context.services.relationGraph;
-        if (!relationGraph) {
-          throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
-        }
-
-        const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
-          db,
-          relationGraph,
-          unifiedForSemantic
-        );
-
-        const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
-          extractionResult,
-          {
-            episodicMemoryId: episodicMemory.id,
-            episodicImportance: episodicMemory.importance ?? 0.5
-          }
-        );
-
-        // PRD 5.5, 5.5a, 5.6: Triple 추출 성공 시 상태 업데이트
-        const confidenceValues: number[] = [];
-        try {
-          const relations = DatabaseUtils.all(db, `
-            SELECT confidence FROM memory_relation
-            WHERE target_id = ? AND relation_type = 'extracted_from'
-          `, [episodicMemory.id]) as Array<{ confidence?: number | null }>;
-          for (const rel of relations) {
-            if (rel.confidence !== null && rel.confidence !== undefined) {
-              confidenceValues.push(rel.confidence);
-            }
-          }
-        } catch (err) {
-          logger.warn('Confidence 수집 실패', {
-            memory_id: episodicMemory.id,
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
-
-        const confidenceAvg = confidenceValues.length > 0
-          ? confidenceValues.reduce((sum, c) => sum + c, 0) / confidenceValues.length
-          : null;
-
-        const metadata = {
-          triple_count: extractionResult.triples.length,
-          ...(confidenceAvg !== null && { confidence_avg: confidenceAvg }),
-          extracted_at: new Date().toISOString()
-        };
-
-        await DatabaseUtils.run(db, `
-          UPDATE memory_item SET
-            triple_extracted = ?,
-            triple_extracted_status = ?,
-            triple_extraction_metadata = ?
-          WHERE id = ?
-        `, [
-          1, // SQLite에서는 boolean을 INTEGER로 변환
-          'success',
-          JSON.stringify(metadata),
-          episodicMemory.id
-        ]);
-
-        results.success++;
-        results.semantic_memory_ids.push(...updateResult.semanticMemoryIds);
-
-        logger.info('Episodic Memory 변환 성공', {
-          episodic_memory_id: episodicMemory.id,
-          triple_count: extractionResult.triples.length,
-          semantic_memory_count: updateResult.semanticMemoryIds.length,
-          confidence_avg: confidenceAvg
-        });
+        await this.handleConversionSuccess(episodicMemory, extractionResult, db, context, results);
       } else {
         // Triple 추출 실패 시 상태 업데이트
         const failureReason = extractionResult.extractionInfo.failureReason || 'no_triple';
@@ -398,6 +326,88 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         error: error instanceof Error ? error.message : String(error)
       });
     }
+  }
+
+  private async handleConversionSuccess(
+    episodicMemory: EpisodicMemoryRow,
+    extractionResult: Awaited<ReturnType<TripleExtractionService['extractTriples']>>,
+    db: Database.Database,
+    context: ToolContext,
+    results: ConversionResults,
+  ): Promise<void> {
+    const unifiedForSemantic: UnifiedEmbeddingService = context.services.embeddingService
+      ? context.services.embeddingService.getUnifiedEmbeddingService()
+      : new UnifiedEmbeddingService();
+    const relationGraph = context.services.relationGraph;
+    if (!relationGraph) {
+      throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
+    }
+
+    const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
+      db,
+      relationGraph,
+      unifiedForSemantic
+    );
+
+    const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
+      extractionResult,
+      {
+        episodicMemoryId: episodicMemory.id,
+        episodicImportance: episodicMemory.importance ?? 0.5
+      }
+    );
+
+    // PRD 5.5, 5.5a, 5.6: Triple 추출 성공 시 상태 업데이트
+    const confidenceValues: number[] = [];
+    try {
+      const relations = DatabaseUtils.all(db, `
+        SELECT confidence FROM memory_relation
+        WHERE target_id = ? AND relation_type = 'extracted_from'
+      `, [episodicMemory.id]) as Array<{ confidence?: number | null }>;
+      for (const rel of relations) {
+        if (rel.confidence !== null && rel.confidence !== undefined) {
+          confidenceValues.push(rel.confidence);
+        }
+      }
+    } catch (err) {
+      logger.warn('Confidence 수집 실패', {
+        memory_id: episodicMemory.id,
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+
+    const confidenceAvg = confidenceValues.length > 0
+      ? confidenceValues.reduce((sum, c) => sum + c, 0) / confidenceValues.length
+      : null;
+
+    const metadata = {
+      triple_count: extractionResult.triples.length,
+      ...(confidenceAvg !== null && { confidence_avg: confidenceAvg }),
+      extracted_at: new Date().toISOString()
+    };
+
+    await DatabaseUtils.run(db, `
+      UPDATE memory_item SET
+        triple_extracted = ?,
+        triple_extracted_status = ?,
+        triple_extraction_metadata = ?
+      WHERE id = ?
+    `, [
+      1, // SQLite에서는 boolean을 INTEGER로 변환
+      'success',
+      JSON.stringify(metadata),
+      episodicMemory.id
+    ]);
+
+    results.success++;
+    results.semantic_memory_ids.push(...updateResult.semanticMemoryIds);
+
+    logger.info('Episodic Memory 변환 성공', {
+      episodic_memory_id: episodicMemory.id,
+      triple_count: extractionResult.triples.length,
+      semantic_memory_count: updateResult.semanticMemoryIds.length,
+      confidence_avg: confidenceAvg
+    });
   }
 
   private fetchBatchMemories(
