@@ -13,10 +13,10 @@
  */
 
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';
-import { SearchEngine } from '@memento/coresearch/algorithms/search-engine.js';
-import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
-import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
+import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../../../memento-core/src/test/helpers/test-database.js';
+import { SearchEngine } from '../../../memento-core/src/domains/search/algorithms/search-engine.js';
+import { DatabaseUtils } from '../../../memento-core/src/shared/utils/database.js';
+import { PIIMasker } from '../../../memento-core/src/shared/utils/pii-masker.js';
 
 /**
  * 메인 테스트 함수

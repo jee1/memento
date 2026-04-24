@@ -17,8 +17,8 @@
 import { mkdirSync, writeFileSync, unlinkSync, rmdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { validateFilePath, sanitizeFileName } from '@memento/core/shared/utils/path-validator.js';
-import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
+import { validateFilePath, sanitizeFileName } from '../../../memento-core/src/shared/utils/path-validator.js';
+import { PIIMasker } from '../../../memento-core/src/shared/utils/pii-masker.js';
 
 /**
  * 메인 테스트 함수
