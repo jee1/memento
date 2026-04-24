@@ -8,7 +8,6 @@ type RootPackageJson = {
 };
 
 const typeCheckContract = [
-  'npm run build -w @memento/core',
   'npm run type-check -w @memento/core',
   'npm run type-check -w memento-server',
   'npm run type-check -w @memento/client',
@@ -75,7 +74,7 @@ describe('root quality gate contracts', () => {
     const pkg = readJson<RootPackageJson>('package.json');
 
     expectExactScript(pkg, 'lint', 'npm run lint:ts && npm run lint:js');
-    expectExactScript(pkg, 'lint:ts', 'eslint "{src,packages,apps,tests,scripts}/**/*.ts"');
+    expectExactScript(pkg, 'lint:ts', 'eslint "{packages,apps,tests,scripts}/**/*.ts"');
     expectExactScript(pkg, 'lint:js', 'eslint "static/js/**/*.js"');
     expectExactScript(pkg, 'test:prepare', 'npm run build -w @memento/core && npm run build -w memento-server');
     expectExactScript(pkg, 'test', 'npm run test:prepare && vitest --run');

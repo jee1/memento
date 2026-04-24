@@ -9,17 +9,17 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { ExtractRelationsTool } from '../../src/domains/relation/tools/extract-relations-tool.js';
-import { GetRelationsTool } from '../../src/domains/relation/tools/get-relations-tool.js';
-import { AddRelationTool } from '../../src/domains/relation/tools/add-relation-tool.js';
-import { RemoveRelationTool } from '../../src/domains/relation/tools/remove-relation-tool.js';
-import { VisualizeRelationsTool } from '../../src/domains/relation/tools/visualize-relations-tool.js';
-import { DatabaseUtils } from '../../src/shared/utils/database.js';
-import { RelationEngineSchemaMigration } from '../../src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
-import type { RelationGraph } from '../../src/domains/relation/services/relation-graph.js';
-import { createRelationGraph } from '../../src/infrastructure/relation-graph-factory.js';
-import { LLMBasedRelationExtractor } from '../../src/domains/relation/services/llm-based-relation-extractor.js';
-import type { ToolContext } from '../../src/domains/types.js';
+import { ExtractRelationsTool } from '@memento/core/domains/relation/tools/extract-relations-tool.js';
+import { GetRelationsTool } from '@memento/core/domains/relation/tools/get-relations-tool.js';
+import { AddRelationTool } from '@memento/core/domains/relation/tools/add-relation-tool.js';
+import { RemoveRelationTool } from '@memento/core/domains/relation/tools/remove-relation-tool.js';
+import { VisualizeRelationsTool } from '@memento/core/domains/relation/tools/visualize-relations-tool.js';
+import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
+import { RelationEngineSchemaMigration } from '@memento/core/infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import type { RelationGraph } from '@memento/core/domains/relation/services/relation-graph.js';
+import { createRelationGraph } from '@memento/core/infrastructure/relation-graph-factory.js';
+import { LLMBasedRelationExtractor } from '@memento/core/domains/relation/services/llm-based-relation-extractor.js';
+import type { ToolContext } from '@memento/core/domains/types.js';
 
 /**
  * 테스트용 기본 스키마 생성

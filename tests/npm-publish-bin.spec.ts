@@ -17,9 +17,12 @@ describe('npm publish bin 검증', () => {
     const packageJson = readRootPackageJson();
     const binEntries = Object.entries(packageJson.bin ?? {});
 
-    const workspaceBinEntries = binEntries.filter(([, targetPath]) =>
-      targetPath.startsWith('./packages/') || targetPath.startsWith('packages/')
-    );
+    const workspaceBinEntries = binEntries.filter(([, targetPath]) => {
+      const isWorkspacePath = targetPath.startsWith('./packages/') || targetPath.startsWith('packages/');
+      const isDistPath = targetPath.includes('/dist/');
+      // dist가 아닌 소스 경로나 직접적인 패키지 루트를 가리키는 것만 금지
+      return isWorkspacePath && !isDistPath;
+    });
 
     expect(workspaceBinEntries).toEqual([]);
   });
