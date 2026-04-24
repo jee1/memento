@@ -4,9 +4,6 @@
  */
 
 import {
-DatabaseUtils,
-ErrorCategory,
-ErrorSeverity,
 closeDatabase,
 createMementoCore,
 createToolContext,
@@ -14,7 +11,6 @@ executeTool,
 getToolRegistry,
 mementoConfig,
 validateConfig,
-withErrorHandling,
 type ServerServices
 } from '@memento/core';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -31,7 +27,7 @@ SetLevelRequestSchema
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 import { mcpLogger } from './mcp-logger.js';
-import { deleteServerInfo, resolveServerInfoConfigDir, writeServerInfo } from './server-info.js';
+import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import { ServerState } from './server-state.js';
 import { releaseLock } from './utils/instance-lock.js';
 
@@ -45,11 +41,10 @@ const serverState = ServerState.getInstance();
 serverState.setMcpServerInitialized(false);
 
 /** MCP 초기화 완료를 기다리기 위한 Promise */
-let initPromise: Promise<void>;
 let resolveInit: () => void;
 let rejectInit: (err: Error) => void;
 
-initPromise = new Promise((resolve, reject) => {
+const initPromise = new Promise<void>((resolve, reject) => {
   resolveInit = resolve;
   rejectInit = reject;
 });
@@ -143,7 +138,10 @@ export async function startServer() {
     const transport = new StdioServerTransport();
     server = new Server(
       { name: 'memento-mcp-server', version: packageJson.version },
-      { capabilities: { tools: {}, resources: {}, prompts: {} } }
+      { 
+        capabilities: { tools: {}, resources: {}, prompts: {} },
+        instructions: MEMENTO_SERVER_INSTRUCTIONS
+      }
     );
 
     registerHandlers();
