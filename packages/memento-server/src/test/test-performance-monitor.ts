@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getPerformanceMonitor, PerformanceMonitor } from '@memento/coremonitoring/services/performance-monitor.js';
+import { getPerformanceMonitor, PerformanceMonitor } from '@memento/core/domains/monitoring/services/performance-monitor.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 

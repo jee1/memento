@@ -7,7 +7,7 @@ import { startServer, cleanup, __test } from '../server/http-server.js';
 import { closeDatabase } from '@memento/core/infrastructure/database/database/init.js';
 import { SearchEngine } from '@memento/coresearch/algorithms/search-engine.js';
 import { HybridSearchEngine } from '@memento/coresearch/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '@memento/corememory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 import Database from 'better-sqlite3';
 import WebSocket from 'ws';
@@ -571,7 +571,7 @@ async function runTests() {
   try {
     // 0. 이전 테스트에서 남아있을 수 있는 BatchScheduler 정리
     try {
-      const { getBatchScheduler } = await import('@memento/corebatch-scheduler.js');
+      const { getBatchScheduler } = await import('@memento/core/infrastructure/scheduler/batch-scheduler.js');
       const batchScheduler = getBatchScheduler();
       if (batchScheduler.getStatus().isRunning) {
         console.log('🧹 이전 테스트의 BatchScheduler 정리 중...');

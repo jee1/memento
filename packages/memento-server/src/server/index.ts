@@ -29,9 +29,6 @@ ReadResourceRequestSchema,
 SetLevelRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from 'better-sqlite3';
-import express from 'express';
-import { createServer as createHttpServer } from 'http';
-import type { AddressInfo } from 'net';
 import packageJson from '../../package.json' with { type: 'json' };
 import { mcpLogger } from './mcp-logger.js';
 import { deleteServerInfo, resolveServerInfoConfigDir, writeServerInfo } from './server-info.js';
@@ -42,7 +39,7 @@ import { releaseLock } from './utils/instance-lock.js';
 let server: Server;
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
-let mgmtHttpServer: ReturnType<typeof createHttpServer> | null = null;
+let mgmtHttpServer: any = null; // 타입 추론 간소화
 
 const serverState = ServerState.getInstance();
 serverState.setMcpServerInitialized(false);
@@ -51,6 +48,11 @@ serverState.setMcpServerInitialized(false);
 let initPromise: Promise<void>;
 let resolveInit: () => void;
 let rejectInit: (err: Error) => void;
+
+initPromise = new Promise((resolve, reject) => {
+  resolveInit = resolve;
+  rejectInit = reject;
+});
 
 // Semaphore for concurrency
 export class Semaphore {
@@ -71,6 +73,16 @@ export class Semaphore {
   }
 }
 const concurrencyLimiter = new Semaphore(20);
+
+// process.stderr.write 가드 (Issue #179 방어)
+// Node 20+에서 stderr.write(undefined/null) 호출 시 발생하는 ERR_INVALID_ARG_TYPE 방지
+const originalStderrWrite = process.stderr.write.bind(process.stderr);
+process.stderr.write = ((chunk: any, encoding?: any, cb?: any) => {
+  if (chunk === undefined || chunk === null) {
+    return true;
+  }
+  return originalStderrWrite(chunk, encoding, cb);
+}) as any;
 
 // 서버 지침
 const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors, extract_triples).`;
@@ -98,105 +110,44 @@ async function runHeavyInit() {
  * MCP 요청 핸들러 등록
  */
 function registerHandlers() {
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools = getToolRegistry().getAll();
-    return { tools: tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })) };
-  });
-    
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    await initPromise;
-    if (!db) throw new Error('Database not initialized');
-    const memories = DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000') as Array<{ id: string }>;
-    return { resources: memories.map((m) => ({ uri: `memory://${m.id}`, name: `Memory ${m.id}`, mimeType: 'application/json' })) };
-  });
-
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
-    prompts: [{ name: 'memory_injection', description: '관련 기억을 요약하여 프롬프트에 주입' }]
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: getToolRegistry().getAll(),
   }));
 
-  server.setRequestHandler(GetPromptRequestSchema, async (req) => {
-    if (req.params.name === 'memory_injection') return { description: '관련 기억을 요약하여 프롬프트에 주입' };
-    throw new Error(`Prompt not found: ${req.params.name}`);
-  });
-    
-  server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
     await initPromise;
-    const match = req.params.uri.match(/^memory:\/\/([^?]+)(\?.*)?$/);
-    if (!match || !match[1]) throw new Error(`Invalid URI: ${req.params.uri}`);
-    if (!db) throw new Error('Database not initialized');
-    const memory = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [match[1]]) as any;
-    if (!memory) throw new Error(`Memory not found: ${match[1]}`);
-    return { contents: [{ uri: req.params.uri, mimeType: 'application/json', text: JSON.stringify(memory) }] };
-  });
-    
-  server.setRequestHandler(CallToolRequestSchema, async (req) => {
-    await initPromise;
-    const { name, arguments: args } = req.params;
-    await concurrencyLimiter.acquire();
-    try {
-      return await withErrorHandling(
-        async () => {
-          if (!serverServices || !db) throw new Error('Not initialized');
-          const result = await executeTool(name, args, createToolContext(db, serverServices));
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-        },
-        { operation: 'tool_execution', toolName: name },
-        { 
-          errorLoggingService: serverServices!.errorLoggingService, 
-          severity: ErrorSeverity.HIGH, 
-          category: ErrorCategory.TOOL_EXECUTION, 
-          transformError: (e) => new Error(`Tool execution failed: ${e.message}`) 
-        }
-      );
-    } finally { concurrencyLimiter.release(); }
-  });
-    
-  server.setRequestHandler(SetLevelRequestSchema, async (req) => {
-    process.env.LOG_LEVEL = req.params.level;
-    return {};
-  });
-}
+    if (!db || !serverServices) throw new Error('Server not initialized');
 
-/**
- * 관리용 HTTP 서버 기동 (API 호출용)
- */
-async function startMgmtHttpServer(): Promise<void> {
-  const app = express();
-  app.use(express.json({ limit: '1mb' }));
-  app.get('/health', (_req, res) => res.json({ status: 'healthy' }));
-  app.post('/tools/:name', async (req, res) => {
-    if (!db || !serverServices) return res.status(503).json({ error: 'Initializing' });
-    try {
-      const result = await executeTool(req.params.name, req.body, createToolContext(db, serverServices));
-      res.json({ result });
-    } catch (err: any) { res.status(500).json({ error: err.message }); }
-  });
-  mgmtHttpServer = createHttpServer(app);
-  await new Promise<void>((resolve) => {
-    mgmtHttpServer!.listen(0, '127.0.0.1', async () => {
-      const addr = mgmtHttpServer!.address() as AddressInfo;
-      await writeServerInfo(resolveServerInfoConfigDir(), addr.port);
-      mcpLogger.logServer('info', `Management HTTP server started on port ${addr.port}`);
-      resolve();
+    return await concurrencyLimiter.acquire().then(async () => {
+      try {
+        const context = createToolContext(db!, serverServices!);
+        return await executeTool(request.params.name, request.params.arguments, context);
+      } finally {
+        concurrencyLimiter.release();
+      }
     });
   });
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [] }));
+  server.setRequestHandler(ReadResourceRequestSchema, async () => { throw new Error('Not implemented'); });
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [] }));
+  server.setRequestHandler(GetPromptRequestSchema, async () => { throw new Error('Not implemented'); });
+  server.setRequestHandler(SetLevelRequestSchema, async () => ({}));
 }
 
 /**
- * 서버 시작 및 시그널 처리
+ * 서버 시작
  */
 export async function startServer() {
   try {
-    initPromise = new Promise<void>((res, rej) => { resolveInit = res; rejectInit = rej; });
+    const transport = new StdioServerTransport();
     server = new Server(
-      { name: mementoConfig.serverName, version: mementoConfig.serverVersion }, 
-      { capabilities: { tools: {}, resources: {}, prompts: {}, logging: {} }, instructions: MEMENTO_SERVER_INSTRUCTIONS }
+      { name: 'memento-mcp-server', version: packageJson.version },
+      { capabilities: { tools: {}, resources: {}, prompts: {} } }
     );
-    mcpLogger.setServer(server);
+
     registerHandlers();
-    
-    await server.connect(new StdioServerTransport());
-    await startMgmtHttpServer();
+    await server.connect(transport);
     
     serverState.setMcpTransportConnected(true);
     serverState.setMcpServerInitialized(true);
@@ -228,22 +179,58 @@ export async function cleanup() {
     await new Promise(r => mgmtHttpServer!.close(r));
     mgmtHttpServer = null;
   }
+  
   if (serverServices) {
     try {
+      if (serverServices.runtimeDiagnosticsLogger) {
+        await serverServices.runtimeDiagnosticsLogger.writeEvent({
+          type: 'server_cleanup_start',
+          timestamp: new Date().toISOString(),
+          transport: 'stdio'
+        });
+      }
+      
+      if (serverServices.runtimeDiagnosticsSamplerCleanup) {
+        await serverServices.runtimeDiagnosticsSamplerCleanup();
+      }
+      
       await serverServices.walCheckpointScheduler.stop();
       serverServices.databaseLockMonitor.stop();
+      
       if (serverServices.writeCoalescingManager) {
         await serverServices.writeCoalescingManager.flush();
         await serverServices.writeCoalescingManager.destroy();
       }
     } catch { /* ignore */ }
   }
+
   if (db) {
     closeDatabase(db);
     db = null;
   }
   releaseLock();
+
+  if (serverServices?.runtimeDiagnosticsLogger) {
+    try {
+      await serverServices.runtimeDiagnosticsLogger.writeEvent({
+        type: 'server_cleanup_finish',
+        timestamp: new Date().toISOString(),
+        transport: 'stdio'
+      });
+    } catch { /* ignore */ }
+  }
 }
+
+/** 테스트 전용 의존성 주입 도구 */
+export const __test = {
+  setTestDependencies: (deps: { 
+    database: Database.Database | null, 
+    serverServices: ServerServices | null 
+  }) => {
+    db = deps.database;
+    serverServices = deps.serverServices;
+  }
+};
 
 // Global error handlers
 process.on('uncaughtException', (error: any) => {

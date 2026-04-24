@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { initializeServices } from '../server/bootstrap.js';
+import { setupTestDatabase, cleanupTestDatabase, type TestDatabaseContext } from '../server/test/helpers/test-database.js';
 import { executeTool } from '@memento/core/index.js';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
@@ -13,7 +13,7 @@ import {
   initializeMigrationStatusTable, 
   setMigrationStatus 
 } from '@memento/core/shared/utils/fts5-migration-status.js';
-import { createToolContext } from '../server/context.js';
+import { createToolContext } from '@memento/core/context.js';
 
 async function testReflexionE2E() {
   console.log('🧪 Reflexion 기능 E2E 테스트 시작\n');
@@ -25,43 +25,18 @@ async function testReflexionE2E() {
   console.log('5. recall Tool로 업데이트된 reflection_notes 조회\n');
   console.log('6. FTS5 검색으로 업데이트된 reflection_notes 검색\n\n');
   
+  let ctx: TestDatabaseContext | null = null;
   let testDb: Database.Database | null = null;
   const createdMemoryIds: string[] = [];
   
   try {
     // 1. 데이터베이스 초기화
     console.log('1️⃣ 데이터베이스 초기화');
-    testDb = new Database(':memory:');
-    DatabaseUtils.initializeDatabase(testDb);
-    
-    // 마이그레이션 필드 추가 (recall_count, last_accessed_at, g_value, consolidation_score)
-    try {
-      DatabaseUtils.run(testDb, 'ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
-    } catch (error) {
-      // 이미 존재하는 경우 무시
-    }
-    try {
-      DatabaseUtils.run(testDb, 'ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
-    } catch (error) {
-      // 이미 존재하는 경우 무시
-    }
-    try {
-      DatabaseUtils.run(testDb, 'ALTER TABLE memory_item ADD COLUMN g_value REAL');
-    } catch (error) {
-      // 이미 존재하는 경우 무시
-    }
-    try {
-      DatabaseUtils.run(testDb, 'ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
-    } catch (error) {
-      // 이미 존재하는 경우 무시
-    }
-    try {
-      DatabaseUtils.run(testDb, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
-    } catch (error) {
-      // 이미 존재하는 경우 무시
-    }
+    ctx = await setupTestDatabase();
+    testDb = ctx.db;
+    const services = ctx.services;
 
-    // FTS5 마이그레이션 상태 테이블 생성
+    // FTS5 마이그레이션 상태 테이블 생성 (이미 core 초기화에서 생성되었을 수 있음)
     initializeMigrationStatusTable(testDb);
     setMigrationStatus(testDb, 'in_progress');
     setMigrationStatus(testDb, 'completed');
@@ -83,11 +58,10 @@ async function testReflexionE2E() {
     
     console.log('✅ 데이터베이스 초기화 완료\n');
     
-    // 2. 부트스트랩 함수로 서비스 초기화
-    console.log('2️⃣ 부트스트랩 함수로 서비스 초기화');
-    const services = await initializeServices(testDb);
+    // 2. 서비스 초기화 완료됨 (setupTestDatabase에서)
+    console.log('2️⃣ 서비스 초기화 확인');
     const context = createToolContext(testDb, services);
-    console.log('✅ 서비스 초기화 완료\n');
+    console.log('✅ 서비스 초기화 확인 완료\n');
     
     // 3. remember Tool로 reflection_notes 저장 (단일 객체)
     console.log('3️⃣ remember Tool로 reflection_notes 저장 (단일 객체)');
@@ -270,7 +244,8 @@ async function testReflexionE2E() {
     }
     console.log('✅ 업데이트된 reflection_notes 조회 완료\n');
     if (updatedMemory) {
-      const reflectionNotes3 = updatedMemory.reflection_notes || JSON.parse(DatabaseUtils.all(testDb, 'SELECT reflection_notes FROM memory_item WHERE id = ?', [rememberData2.memory_id])[0].reflection_notes);
+      const dbRec = DatabaseUtils.all(testDb, 'SELECT reflection_notes FROM memory_item WHERE id = ?', [rememberData2.memory_id])[0];
+      const reflectionNotes3 = updatedMemory.reflection_notes || JSON.parse(dbRec.reflection_notes);
       console.log(`   - reflection_notes 배열 길이: ${reflectionNotes3.length}`);
       console.log(`   - 첫 번째 항목: ${reflectionNotes3[0].failure_type}`);
       console.log(`   - 두 번째 항목: ${reflectionNotes3[1].failure_type}\n`);
@@ -354,8 +329,8 @@ async function testReflexionE2E() {
     console.error('❌ E2E 테스트 실패:', error);
     throw error;
   } finally {
-    if (testDb) {
-      testDb.close();
+    if (ctx) {
+      await cleanupTestDatabase(ctx);
     }
   }
 }
@@ -365,4 +340,3 @@ describe('Reflexion E2E 테스트', () => {
     await testReflexionE2E();
   });
 });
-

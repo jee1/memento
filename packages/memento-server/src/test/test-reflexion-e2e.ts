@@ -6,9 +6,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from './helpers/test-database.js';
-import { FailureDetector, ErrorType, type FailureEvent } from '@memento/coremonitoring/services/failure-detector.js';
-import { ReflexionWorker } from '@memento/corereflexion-worker.js';
-import { AsyncTaskQueue } from '@memento/coreasync-optimizer.js';
+import { FailureDetector, ErrorType, type FailureEvent } from '@memento/core/domains/monitoring/services/failure-detector.js';
+import { ReflexionWorker } from '@memento/core/infrastructure/reflexion-worker.js';
+import { AsyncTaskQueue } from '@memento/core/infrastructure/async-optimizer.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 
 describe('Reflexion E2E 테스트', () => {

@@ -4,9 +4,9 @@
 
 import { startServer, cleanup, __test } from '../server/http-server.js';
 import { closeDatabase } from '@memento/core/infrastructure/database/database/init.js';
-import { SearchEngine } from '@memento/coresearch/algorithms/search-engine.js';
-import { HybridSearchEngine } from '@memento/coresearch/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '@memento/corememory/services/memory-embedding-service.js';
+import { SearchEngine } from '@memento/core/domains/search/algorithms/search-engine.js';
+import { HybridSearchEngine } from '@memento/core/domains/search/algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 import Database from 'better-sqlite3';
 

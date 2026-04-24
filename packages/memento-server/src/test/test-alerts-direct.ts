@@ -3,8 +3,8 @@
  * MCP 서버 없이 직접 성능 알림 서비스를 테스트
  */
 
-import { PerformanceAlertService, AlertType } from '@memento/coremonitoring/services/performance-alert-service.js';
-import { PerformanceMonitoringIntegration } from '@memento/coreperformance-monitoring-integration.js';
+import { PerformanceAlertService, AlertType } from '@memento/core/domains/monitoring/services/performance-alert-service.js';
+// import { PerformanceMonitoringIntegration } from '@memento/coreperformance-monitoring-integration.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
@@ -19,8 +19,8 @@ async function testAlertsDirect() {
     // 성능 알림 서비스 생성
     const alertService = new PerformanceAlertService('./logs');
     
-    // 통합 모니터링 서비스 생성
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    // 통합 모니터링 서비스 생성 (현재 core에서 제거됨)
+    /*
     const monitoringIntegration = new PerformanceMonitoringIntegration(
       db,
       alertService,
@@ -35,6 +35,7 @@ async function testAlertsDirect() {
         }
       }
     );
+    */
 
     console.log('✅ 서비스 초기화 완료');
 

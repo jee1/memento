@@ -3,7 +3,7 @@
  * console.log 차단을 우회하여 테스트
  */
 
-import { PerformanceAlertService, AlertType } from '@memento/coremonitoring/services/performance-alert-service.js';
+import { PerformanceAlertService, AlertType } from '@memento/core/domains/monitoring/services/performance-alert-service.js';
 import fs from 'fs';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 

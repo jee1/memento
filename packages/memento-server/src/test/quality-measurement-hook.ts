@@ -11,7 +11,7 @@
 import { afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { initializeDatabase } from '@memento/core/infrastructure/database/database/init.js';
-import { QualityAssuranceService } from '@memento/coremonitoring/services/quality-assurance/quality-assurance-service.js';
+import { QualityAssuranceService } from '@memento/core/domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 import { logger } from '@memento/core/shared/utils/logger.js';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 import { existsSync, mkdirSync } from 'fs';

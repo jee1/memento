@@ -6,12 +6,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { RememberTool } from '@memento/corememory/tools/remember-tool.js';
-import { RecallTool } from '@memento/corememory/tools/recall-tool.js';
+import { RememberTool } from '@memento/core/domains/memory/tools/remember-tool.js';
+import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
 import type { ToolContext } from '@memento/core/index.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
-import { HybridSearchEngine } from '@memento/coresearch/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '@memento/corememory/services/memory-embedding-service.js';
+import { HybridSearchEngine } from '@memento/core/domains/search/algorithms/hybrid-search-engine.js';
+import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
 
 /* eslint-disable security/detect-non-literal-fs-filename */
 // 테스트 환경에서 파일 시스템 함수 사용은 안전함
@@ -60,7 +60,27 @@ function initializeTestDatabase(db: Database.Database): void {
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
-      confidence REAL
+      confidence REAL,
+      -- Project-scoped memory (Issue #81)
+      project_id TEXT
+    );
+  `);
+
+  // telemetry_events 테이블 생성 (RememberTool이 필요로 함)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS telemetry_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      request_id TEXT,
+      owner_id TEXT,
+      agent_id TEXT,
+      process_id TEXT,
+      session_id TEXT,
+      outcome TEXT,
+      error_type TEXT,
+      latency_ms INTEGER,
+      payload_json TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 }
