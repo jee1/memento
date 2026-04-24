@@ -242,50 +242,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         semanticUpdateStarted = true;
         await this.handleConversionSuccess(episodicMemory, extractionResult, db, context, results);
       } else {
-        // Triple 추출 실패 시 상태 업데이트
-        const failureReason = extractionResult.extractionInfo.failureReason || 'no_triple';
-
-        let retryCount = 0;
-        try {
-          const existing = DatabaseUtils.get(db, `
-            SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
-          `, [episodicMemory.id]) as { triple_extraction_metadata?: string } | undefined;
-          if (existing?.triple_extraction_metadata) {
-            const existingMeta = JSON.parse(existing.triple_extraction_metadata);
-            retryCount = (existingMeta.retry_count || 0) + 1;
-          } else {
-            retryCount = 1;
-          }
-        } catch {
-          retryCount = 1;
-        }
-
-        const metadata = {
-          failureReason,
-          retry_count: retryCount,
-          last_attempt: new Date().toISOString()
-        };
-
-        await DatabaseUtils.run(db, `
-          UPDATE memory_item SET
-            triple_extracted = ?,
-            triple_extracted_status = ?,
-            triple_extraction_metadata = ?
-          WHERE id = ?
-        `, [
-          0, // SQLite에서는 boolean을 INTEGER로 변환
-          'failed',
-          JSON.stringify(metadata),
-          episodicMemory.id
-        ]);
-
-        results.failed++;
-
-        logger.warn('Episodic Memory 변환 실패', {
-          episodic_memory_id: episodicMemory.id,
-          failure_reason: failureReason,
-          retry_count: retryCount
-        });
+        await this.handleNoTriples(episodicMemory, extractionResult, db, results);
       }
     } catch (error) {
       results.failed++;
@@ -407,6 +364,57 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
       triple_count: extractionResult.triples.length,
       semantic_memory_count: updateResult.semanticMemoryIds.length,
       confidence_avg: confidenceAvg
+    });
+  }
+
+  private async handleNoTriples(
+    episodicMemory: EpisodicMemoryRow,
+    extractionResult: Awaited<ReturnType<TripleExtractionService['extractTriples']>>,
+    db: Database.Database,
+    results: ConversionResults,
+  ): Promise<void> {
+    const failureReason = extractionResult.extractionInfo.failureReason || 'no_triple';
+
+    let retryCount = 0;
+    try {
+      const existing = DatabaseUtils.get(db, `
+        SELECT triple_extraction_metadata FROM memory_item WHERE id = ?
+      `, [episodicMemory.id]) as { triple_extraction_metadata?: string } | undefined;
+      if (existing?.triple_extraction_metadata) {
+        const existingMeta = JSON.parse(existing.triple_extraction_metadata);
+        retryCount = (existingMeta.retry_count || 0) + 1;
+      } else {
+        retryCount = 1;
+      }
+    } catch {
+      retryCount = 1;
+    }
+
+    const metadata = {
+      failureReason,
+      retry_count: retryCount,
+      last_attempt: new Date().toISOString()
+    };
+
+    await DatabaseUtils.run(db, `
+      UPDATE memory_item SET
+        triple_extracted = ?,
+        triple_extracted_status = ?,
+        triple_extraction_metadata = ?
+      WHERE id = ?
+    `, [
+      0, // SQLite에서는 boolean을 INTEGER로 변환
+      'failed',
+      JSON.stringify(metadata),
+      episodicMemory.id
+    ]);
+
+    results.failed++;
+
+    logger.warn('Episodic Memory 변환 실패', {
+      episodic_memory_id: episodicMemory.id,
+      failure_reason: failureReason,
+      retry_count: retryCount
     });
   }
 
