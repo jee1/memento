@@ -245,44 +245,54 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
         await this.handleNoTriples(episodicMemory, extractionResult, db, results);
       }
     } catch (error) {
-      results.failed++;
-      const failureReason = error instanceof Error && error.message === RELATION_GRAPH_UNAVAILABLE_ERROR
-        ? 'relation_graph_unavailable'
-        : semanticUpdateStarted
-          ? SEMANTIC_UPDATE_FAILED_ERROR
-          : 'conversion_error';
+      await this.handleConversionError(episodicMemory, error, semanticUpdateStarted, db, results);
+    }
+  }
 
-      // 에러 발생 시에도 상태 업데이트 (PRD 5.5, 5.5a, 5.6)
-      try {
-        await DatabaseUtils.run(db, `
-          UPDATE memory_item SET
-            triple_extracted = ?,
-            triple_extracted_status = ?,
-            triple_extraction_metadata = ?
-          WHERE id = ?
-        `, [
-          0, // SQLite에서는 boolean을 INTEGER로 변환
-          'failed',
-          JSON.stringify({
-            failureReason,
-            error: error instanceof Error ? error.message : String(error),
-            last_attempt: new Date().toISOString()
-          }),
-          episodicMemory.id
-        ]);
-      } catch (updateError) {
-        logger.warn('상태 업데이트 실패', {
-          episodic_memory_id: episodicMemory.id,
-          error: updateError instanceof Error ? updateError.message : String(updateError)
-        });
-      }
+  private async handleConversionError(
+    episodicMemory: EpisodicMemoryRow,
+    error: unknown,
+    semanticUpdateStarted: boolean,
+    db: Database.Database,
+    results: ConversionResults,
+  ): Promise<void> {
+    results.failed++;
+    const failureReason = error instanceof Error && error.message === RELATION_GRAPH_UNAVAILABLE_ERROR
+      ? 'relation_graph_unavailable'
+      : semanticUpdateStarted
+        ? SEMANTIC_UPDATE_FAILED_ERROR
+        : 'conversion_error';
 
-      logger.error('Episodic Memory 변환 중 에러 발생', {
+    // 에러 발생 시에도 상태 업데이트 (PRD 5.5, 5.5a, 5.6)
+    try {
+      await DatabaseUtils.run(db, `
+        UPDATE memory_item SET
+          triple_extracted = ?,
+          triple_extracted_status = ?,
+          triple_extraction_metadata = ?
+        WHERE id = ?
+      `, [
+        0, // SQLite에서는 boolean을 INTEGER로 변환
+        'failed',
+        JSON.stringify({
+          failureReason,
+          error: error instanceof Error ? error.message : String(error),
+          last_attempt: new Date().toISOString()
+        }),
+        episodicMemory.id
+      ]);
+    } catch (updateError) {
+      logger.warn('상태 업데이트 실패', {
         episodic_memory_id: episodicMemory.id,
-        failure_reason: failureReason,
-        error: error instanceof Error ? error.message : String(error)
+        error: updateError instanceof Error ? updateError.message : String(updateError)
       });
     }
+
+    logger.error('Episodic Memory 변환 중 에러 발생', {
+      episodic_memory_id: episodicMemory.id,
+      failure_reason: failureReason,
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 
   private async handleConversionSuccess(
