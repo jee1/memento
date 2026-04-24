@@ -20,11 +20,15 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "removeComments": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
+    "paths": {
+      "@memento/core": ["../memento-core/src/index.ts"],
+      "@memento/core/*": ["../memento-core/src/*"],
+      "@memento/client": ["../memento-client/src/index.ts"]
+    },
     "types": ["node"]
   },
   "include": ["src/**/*"],
