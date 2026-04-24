@@ -83,7 +83,7 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
    * When: convert_episodic_to_semantic 호출
    * Then: Triple 추출 및 Semantic Memory 생성 결과 반환
    */
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       const {
         memory_id,
