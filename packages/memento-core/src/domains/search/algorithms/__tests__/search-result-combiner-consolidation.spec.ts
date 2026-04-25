@@ -170,10 +170,12 @@ describe('SearchResultCombiner Consolidation Score 통합', () => {
           pinned INTEGER,
           tags TEXT,
           consolidation_score REAL,
-          owner_id TEXT NULL
+          owner_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         );
-        INSERT INTO memory_item (id, content, type, importance, created_at, last_accessed, pinned, tags, consolidation_score)
-        VALUES ('mem1', 'Test content', 'episodic', 0.8, '2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z', 0, '[]', 0.9);
+        INSERT INTO memory_item (id, content, type, importance, created_at, last_accessed, pinned, tags, consolidation_score) VALUES ('mem1', 'Test content', 'episodic', 0.8, '2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z', 0, '[]', 0.9);
       `);
 
       const textResults: any[] = [];

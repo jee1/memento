@@ -19,7 +19,10 @@ function createKgTripleTable(db: Database.Database): void {
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
       content TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
     CREATE TABLE IF NOT EXISTS kg_triple (
       id TEXT PRIMARY KEY,

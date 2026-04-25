@@ -40,7 +40,10 @@ function initializeTestDatabase(db: Database.Database): void {
       trigger_conditions TEXT,
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name);
@@ -364,8 +367,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId = 'mem_test_1';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, steps, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, steps, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',
@@ -399,8 +401,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId = 'mem_test_2';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',
@@ -432,8 +433,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId1 = 'mem_test_workflow_only';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId1,
           'procedural',
@@ -448,8 +448,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId2 = 'mem_test_skill_only';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId2,
           'procedural',
@@ -464,8 +463,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId3 = 'mem_test_both_match';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, steps, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, steps, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memoryId3,
           'procedural',
@@ -500,8 +498,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId1 = 'mem_test_workflow_single';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId1,
           'procedural',
@@ -880,8 +877,7 @@ describe('Procedural Memory Extractor', () => {
         const memoryId = 'mem_invalid_json';
         DatabaseUtils.run(
           db,
-          `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             memoryId,
             'procedural',
@@ -930,8 +926,7 @@ describe('Procedural Memory Extractor', () => {
         const memoryId = 'mem_workflow_only';
         DatabaseUtils.run(
           db,
-          `INSERT INTO memory_item (id, type, content, workflow_name, created_at)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO memory_item (id, type, content, workflow_name, created_at) VALUES (?, ?, ?, ?, ?)`,
           [
             memoryId,
             'procedural',
@@ -961,8 +956,7 @@ describe('Procedural Memory Extractor', () => {
         const memoryId = 'mem_skill_only';
         DatabaseUtils.run(
           db,
-          `INSERT INTO memory_item (id, type, content, skill_name, created_at)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO memory_item (id, type, content, skill_name, created_at) VALUES (?, ?, ?, ?, ?)`,
           [
             memoryId,
             'procedural',
@@ -994,8 +988,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId = 'mem_case_insensitive';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',
@@ -1024,8 +1017,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId = 'mem_partial_match';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, steps, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, steps, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',
@@ -1062,8 +1054,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId1 = 'mem_workflow_only_fallback';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId1,
           'procedural',
@@ -1078,8 +1069,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId2 = 'mem_skill_only_fallback';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId2,
           'procedural',
@@ -1113,8 +1103,7 @@ describe('Procedural Memory Extractor', () => {
       const memoryId = 'mem_whitespace';
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',

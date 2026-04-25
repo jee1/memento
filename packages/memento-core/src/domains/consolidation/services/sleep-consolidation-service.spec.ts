@@ -19,8 +19,7 @@ function insertEpisodic(
   const imp = opts?.importance ?? 0.5;
   DatabaseUtils.run(
     db,
-    `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at)
-     VALUES (?, 'episodic', ?, ?, ?, ?, datetime('now', '-1 day'))`,
+    `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at) VALUES (?, 'episodic', ?, ?, ?, ?, datetime('now', '-1 day'))`,
     [id, `body-${id}`, owner, pinned, imp]
   );
 }
@@ -222,8 +221,7 @@ describe('SleepConsolidationService', () => {
 
     DatabaseUtils.run(
       db,
-      `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at)
-       VALUES ('sem_existing', 'semantic', 'base', 'agent-x', 0, 0.5, datetime('now'))`
+      `INSERT INTO memory_item (id, type, content, owner_id, pinned, importance, created_at) VALUES ('sem_existing', 'semantic', 'base', 'agent-x', 0, 0.5, datetime('now'))`
     );
 
     const emb = [1, 0, 0, 0];

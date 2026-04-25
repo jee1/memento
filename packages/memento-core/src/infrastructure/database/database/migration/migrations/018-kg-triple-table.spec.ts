@@ -31,7 +31,10 @@ function createBaseSchema(db: Database.Database): void {
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
-      confidence REAL
+      confidence REAL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
   db.exec(`

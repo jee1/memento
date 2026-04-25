@@ -23,8 +23,7 @@ describe('DatabaseUtils', () => {
     it('SQL 쿼리를 실행해야 함', () => {
       // Given: 테스트 데이터 삽입 쿼리
       const sql = `
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `;
       const params = ['test-1', 'episodic', 'Test content'];
 
@@ -64,8 +63,7 @@ describe('DatabaseUtils', () => {
     it('단일 행을 조회해야 함', () => {
       // Given: 테스트 데이터 삽입
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('test-1', 'episodic', 'Test content')
+        INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Test content')
       `);
 
       // When: 단일 행 조회
@@ -93,8 +91,7 @@ describe('DatabaseUtils', () => {
     it('파라미터 없이 조회할 수 있어야 함', () => {
       // Given: 테스트 데이터 삽입
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('test-1', 'episodic', 'Test content')
+        INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Test content')
       `);
 
       // When: 파라미터 없이 조회
@@ -112,12 +109,10 @@ describe('DatabaseUtils', () => {
     it('여러 행을 조회해야 함', () => {
       // Given: 여러 테스트 데이터 삽입
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('test-1', 'episodic', 'Content 1')
+        INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Content 1')
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('test-2', 'semantic', 'Content 2')
+        INSERT INTO memory_item (id, type, content) VALUES ('test-2', 'semantic', 'Content 2')
       `);
 
       // When: 여러 행 조회
@@ -146,8 +141,7 @@ describe('DatabaseUtils', () => {
     it('파라미터 없이 조회할 수 있어야 함', () => {
       // Given: 테스트 데이터 삽입
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('test-1', 'episodic', 'Test content')
+        INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Test content')
       `);
 
       // When: 파라미터 없이 조회
@@ -183,12 +177,10 @@ describe('DatabaseUtils', () => {
       // Given: 트랜잭션 함수
       const transactionFn = async () => {
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content)
-          VALUES ('test-1', 'episodic', 'Content 1')
+          INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Content 1')
         `);
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content)
-          VALUES ('test-2', 'semantic', 'Content 2')
+          INSERT INTO memory_item (id, type, content) VALUES ('test-2', 'semantic', 'Content 2')
         `);
         return 'success';
       };
@@ -206,8 +198,7 @@ describe('DatabaseUtils', () => {
       // Given: 실패하는 트랜잭션 함수
       const transactionFn = async () => {
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content)
-          VALUES ('test-1', 'episodic', 'Content 1')
+          INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Content 1')
         `);
         throw new Error('Transaction failed');
       };
@@ -229,15 +220,13 @@ describe('DatabaseUtils', () => {
       // Given: 외부 트랜잭션
       const outerTransaction = async () => {
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content)
-          VALUES ('test-1', 'episodic', 'Content 1')
+          INSERT INTO memory_item (id, type, content) VALUES ('test-1', 'episodic', 'Content 1')
         `);
         
         // 내부 트랜잭션 (중첩)
         await DatabaseUtils.runTransaction(db, async () => {
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content)
-            VALUES ('test-2', 'semantic', 'Content 2')
+            INSERT INTO memory_item (id, type, content) VALUES ('test-2', 'semantic', 'Content 2')
           `);
         });
       };

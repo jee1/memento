@@ -5,11 +5,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { TelemetryEventsMigration } from '@memento/core/infrastructure/database/database/migration/migrations/027-telemetry-events.js';
 import { TelemetryDailyMetricsMigration } from '@memento/core/infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
-import { TelemetryRepository } from '@memento/coretelemetry/repositories/telemetry-repository.js';
-import { TelemetryService } from '@memento/coretelemetry/services/telemetry-service.js';
+import { TelemetryRepository } from '@memento/core/domains/telemetry/repositories/telemetry-repository.js';
+import { TelemetryService } from '@memento/core/domains/telemetry/services/telemetry-service.js';
 import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
 import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
-import type { ToolContext } from '@memento/coretypes.js';
+import type { ToolContext } from '@memento/core/types.js';
 
 async function telemetryDb(): Promise<Database.Database> {
   const db = new Database(':memory:');

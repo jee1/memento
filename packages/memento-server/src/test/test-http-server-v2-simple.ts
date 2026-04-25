@@ -37,7 +37,9 @@ async function testBasicFunctionality() {
         user_id TEXT,
         project_id TEXT,
         origin_trace TEXT,
-        tags TEXT
+        tags TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
       );
     `);
     

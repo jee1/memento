@@ -257,12 +257,9 @@ describe('VectorSearchRepositoryImpl', () => {
       const { DatabaseUtils } = await import('../../../../shared/utils/database.js');
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
-          id, type, content, workflow_name, skill_name, trigger_conditions
-        )
-        VALUES (
+          id, type, content, workflow_name, skill_name, trigger_conditions) VALUES (
           'mem_procedural_1', 'procedural', 'Test procedure',
-          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}'
-        )
+          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
       `);
 
       // Given: 임베딩 데이터 추가 (VEC 테이블이 있는 경우)
@@ -330,12 +327,9 @@ describe('VectorSearchRepositoryImpl', () => {
       const { DatabaseUtils } = await import('../../../../shared/utils/database.js');
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
-          id, type, content, workflow_name, skill_name, trigger_conditions
-        )
-        VALUES (
+          id, type, content, workflow_name, skill_name, trigger_conditions) VALUES (
           'mem_procedural_2', 'procedural', 'Test procedure',
-          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}'
-        )
+          '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
       `);
 
       // Given: 임베딩 데이터 추가 (VEC 테이블이 있는 경우)
@@ -404,12 +398,9 @@ describe('VectorSearchRepositoryImpl', () => {
         // 메모리 아이템 생성
         DatabaseUtils.run(db, `
           INSERT INTO memory_item (
-            id, type, content, importance, privacy_scope, created_at, last_accessed_at
-          )
-          VALUES (
+            id, type, content, importance, privacy_scope, created_at, last_accessed_at) VALUES (
             'mem_with_last_accessed', 'episodic', 'Test content', 0.7, 'private',
-            '2024-01-01T00:00:00Z', '2024-01-15T00:00:00Z'
-          )
+            '2024-01-01T00:00:00Z', '2024-01-15T00:00:00Z')
         `);
 
         // VEC 테이블 생성 (없는 경우)
@@ -473,12 +464,9 @@ describe('VectorSearchRepositoryImpl', () => {
         // 메모리 아이템 생성
         DatabaseUtils.run(db, `
           INSERT INTO memory_item (
-            id, type, content, importance, privacy_scope, created_at, last_accessed_at
-          )
-          VALUES (
+            id, type, content, importance, privacy_scope, created_at, last_accessed_at) VALUES (
             'mem_hybrid_last_accessed', 'semantic', 'Test content for hybrid', 0.8, 'private',
-            '2024-01-01T00:00:00Z', '2024-01-20T00:00:00Z'
-          )
+            '2024-01-01T00:00:00Z', '2024-01-20T00:00:00Z')
         `);
 
         // FTS5 테이블 생성 (없는 경우)
@@ -553,8 +541,7 @@ describe('VectorSearchRepositoryImpl', () => {
       try {
         // 테스트용 메모리 및 임베딩 생성
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES ('mem_no_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_no_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
         `);
 
         DatabaseUtils.run(db, `
@@ -605,8 +592,7 @@ describe('VectorSearchRepositoryImpl', () => {
       try {
         // 테스트용 메모리 및 임베딩 생성
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES ('mem_empty_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_empty_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
         `);
 
         DatabaseUtils.run(db, `
@@ -657,8 +643,7 @@ describe('VectorSearchRepositoryImpl', () => {
       try {
         // 테스트용 메모리 및 임베딩 생성
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES ('mem_whitespace_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_whitespace_text_query', 'episodic', 'Test content', 0.5, datetime('now'))
         `);
 
         DatabaseUtils.run(db, `
@@ -709,8 +694,7 @@ describe('VectorSearchRepositoryImpl', () => {
       try {
         // 테스트용 메모리 및 임베딩 생성
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES ('mem_undefined_text_query', 'episodic', 'Test content for undefined query', 0.5, datetime('now'))
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_undefined_text_query', 'episodic', 'Test content for undefined query', 0.5, datetime('now'))
         `);
 
         DatabaseUtils.run(db, `
@@ -762,8 +746,7 @@ describe('VectorSearchRepositoryImpl', () => {
       try {
         // 테스트용 메모리 및 임베딩 생성
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES ('mem_null_text_query', 'episodic', 'Test content for null query', 0.5, datetime('now'))
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('mem_null_text_query', 'episodic', 'Test content for null query', 0.5, datetime('now'))
         `);
 
         DatabaseUtils.run(db, `

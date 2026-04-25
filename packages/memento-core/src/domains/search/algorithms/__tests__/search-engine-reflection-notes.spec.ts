@@ -111,8 +111,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
 
       // reflection_notes가 단일 객체인 procedural memory
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'proc_1',
         'procedural',
@@ -127,8 +126,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
 
       // reflection_notes가 배열인 procedural memory
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'proc_2',
         'procedural',
@@ -143,8 +141,7 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
 
       // reflection_notes가 없는 procedural memory
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'proc_3',
         'procedural',
@@ -464,13 +461,11 @@ describe('SearchEngine reflection_notes 검색 통합 테스트', () => {
 
       // fact_high를 먼저 삽입해 rowid가 작아 검색 결과 순서에서 먼저 오도록 함. 중복 패널티가 fact_low에만 적용되어도 fact_high가 boost로 우선.
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `, ['fact_high', 'semantic', 'Fact test keyword item first', 0.5, 'private', oldDate, 10, recentDate]);
 
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, num_times, last_mentioned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `, ['fact_low', 'semantic', 'Fact test keyword item second', 0.5, 'private', oldDate, 1, oldDate]);
 
       const query: SearchQuery = { query: 'Fact test keyword', limit: 10 };

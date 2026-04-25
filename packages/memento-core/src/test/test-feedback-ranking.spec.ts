@@ -11,7 +11,7 @@ import { initializeServices } from '../bootstrap.js';
 import type { ServerServices } from '../bootstrap.js';
 import { RecallTool } from '@memento/core/domains/memory/tools/recall-tool.js';
 import { FeedbackRepository } from '@memento/core/domains/memory/repositories/feedback-repository.js';
-import { resetRankingWeightsCache } from '@memento/coreconfig/ranking-weights-loader.js';
+import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { cleanupTestDatabase, createTestMemory } from './helpers/test-database.js';
 import { insertMemoryEmbedding } from './helpers/consolidation-test-data.js';
 

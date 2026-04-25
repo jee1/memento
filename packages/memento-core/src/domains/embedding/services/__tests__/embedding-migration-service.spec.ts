@@ -8,7 +8,10 @@ function createSchema(db: Database.Database): void {
   db.exec('PRAGMA foreign_keys = OFF;');
   db.exec(`
     CREATE TABLE IF NOT EXISTS memory_item (
-      id TEXT PRIMARY KEY
+      id TEXT PRIMARY KEY,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 

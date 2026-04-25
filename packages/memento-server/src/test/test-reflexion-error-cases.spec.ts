@@ -62,7 +62,9 @@ function initializeTestDatabase(db: Database.Database): void {
       source_session_id TEXT,
       confidence REAL,
       -- Project-scoped memory (Issue #81)
-      project_id TEXT
+      project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -525,8 +527,7 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
       // reflection_notes에 잘못된 JSON이 저장된 메모리 생성 (직접 DB에 삽입)
       const memoryId = 'mem_test_invalid_json';
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         memoryId,
         'procedural',
@@ -592,8 +593,7 @@ describe('Reflexion 기능 에러 케이스 테스트', () => {
       }));
 
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         memoryId,
         'procedural',

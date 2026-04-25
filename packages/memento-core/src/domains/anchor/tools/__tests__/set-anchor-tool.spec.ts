@@ -131,13 +131,11 @@ describe('SetAnchorTool', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
     });
 
@@ -256,8 +254,7 @@ describe('SetAnchorTool', () => {
 
     it('should throw error when slot is invalid', async () => {
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content', 0.5, 'private']);
 
       const params = {
@@ -292,8 +289,7 @@ describe('SetAnchorTool', () => {
       };
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content', 0.5, 'private']);
 
       await expect(
@@ -312,8 +308,7 @@ describe('SetAnchorTool', () => {
       };
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content', 0.5, 'private']);
 
       await expect(

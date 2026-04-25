@@ -40,7 +40,10 @@ function createBaseSchema(db: Database.Database): void {
       source TEXT,
       view_count INTEGER DEFAULT 0,
       cite_count INTEGER DEFAULT 0,
-      edit_count INTEGER DEFAULT 0
+      edit_count INTEGER DEFAULT 0,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -63,8 +66,7 @@ function createTestMemory(
   type: string = 'episodic'
 ): void {
   DatabaseUtils.run(db, `
-    INSERT INTO memory_item (id, type, content)
-    VALUES (?, ?, ?)
+    INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
   `, [id, type, content]);
 }
 

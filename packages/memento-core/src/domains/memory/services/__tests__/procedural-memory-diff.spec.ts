@@ -17,13 +17,14 @@ function createSchema(db: Database.Database): void {
       skill_name TEXT,
       task_goal TEXT,
       trigger_conditions TEXT,
-      steps TEXT
+      steps TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
   db.exec(`
-    INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, trigger_conditions, steps)
-    VALUES
-      ('proc-left', 'procedural', 'Left', 'wf-a', 'skill-x', 'goal1', '{"a":1}', '["step1","step2"]'),
+    INSERT INTO memory_item (id, type, content, workflow_name, skill_name, task_goal, trigger_conditions, steps) VALUES ('proc-left', 'procedural', 'Left', 'wf-a', 'skill-x', 'goal1', '{"a":1}', '["step1","step2"]'),
       ('proc-right', 'procedural', 'Right', 'wf-b', 'skill-x', 'goal2', '{"a":2}', '["step1","step2-changed","step3"]'),
       ('episodic-1', 'episodic', 'E', NULL, NULL, NULL, NULL, NULL)
   `);

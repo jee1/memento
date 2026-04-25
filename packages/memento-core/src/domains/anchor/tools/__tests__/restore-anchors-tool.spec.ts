@@ -147,13 +147,11 @@ describe('RestoreAnchorsTool', () => {
     beforeEach(async () => {
       // 테스트용 메모리 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem1', 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem2', 'semantic', 'Test content 2', 0.5, 'private']);
 
       // DB에 직접 앵커 삽입 (캐시는 비워둠)
@@ -229,8 +227,7 @@ describe('RestoreAnchorsTool', () => {
     it('should restore anchors correctly with all slots', async () => {
       // C 슬롯도 추가
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, ['mem3', 'procedural', 'Test content 3', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `

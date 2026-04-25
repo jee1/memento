@@ -307,8 +307,7 @@ async function createTestMemories(
     
     // 메모리 아이템 생성
     await DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `, [memoryId, 'episodic', content, 0.5, 'private']);
 
     // 임베딩 생성 (가능한 경우)

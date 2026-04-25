@@ -23,7 +23,10 @@ function createSchema(db: Database.Database): void {
       skill_name TEXT,
       trigger_conditions TEXT,
       version INTEGER NULL,
-      version_series_id TEXT NULL
+      version_series_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
   db.exec(`
@@ -36,9 +39,7 @@ function createSchema(db: Database.Database): void {
     )
   `);
   db.exec(`
-    INSERT INTO memory_item (id, type, content, version, version_series_id, workflow_name, skill_name)
-    VALUES
-      ('proc-v1', 'procedural', 'V1 content', 1, 'series-a', 'wf', 'sk'),
+    INSERT INTO memory_item (id, type, content, version, version_series_id, workflow_name, skill_name) VALUES ('proc-v1', 'procedural', 'V1 content', 1, 'series-a', 'wf', 'sk'),
       ('proc-v2', 'procedural', 'V2 content', 2, 'series-a', 'wf', 'sk'),
       ('proc-v3', 'procedural', 'V3 content', 3, 'series-a', 'wf', 'sk'),
       ('other-series', 'procedural', 'Other', 1, 'series-b', 'wf2', 'sk2')

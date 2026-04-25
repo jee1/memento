@@ -24,7 +24,10 @@ function createMemoryItemTable(db: Database.Database): void {
       content TEXT NOT NULL,
       importance REAL DEFAULT 0.5,
       privacy_scope TEXT DEFAULT 'private',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
 }

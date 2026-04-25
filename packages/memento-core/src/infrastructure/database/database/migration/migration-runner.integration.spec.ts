@@ -34,7 +34,10 @@ function createBaseSchema(db: Database.Database): void {
       source TEXT,
       view_count INTEGER DEFAULT 0,
       cite_count INTEGER DEFAULT 0,
-      edit_count INTEGER DEFAULT 0
+      edit_count INTEGER DEFAULT 0,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -186,8 +189,7 @@ describe('Migration System Integration', () => {
   describe('Migration Detection and Execution', () => {
     it('should detect and execute pending migrations', async () => {
       // 마이그레이션 디렉토리 경로를 명시적으로 지정
-      const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
-      const detector = new MigrationDetector(migrationsDir);
+      const detector = new MigrationDetector();
       const detectionResult = await detector.detectPendingMigrations(db);
 
       // 마이그레이션이 감지되어야 함 (없을 수도 있으므로 스킵 가능)
@@ -241,11 +243,8 @@ describe('Migration System Integration', () => {
     });
 
     it('should not execute already applied migrations', async () => {
-      // 마이그레이션 디렉토리 경로를 명시적으로 지정
-      const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
-      
       // 첫 번째 마이그레이션 실행
-      const detector1 = new MigrationDetector(migrationsDir);
+      const detector1 = new MigrationDetector();
       const detectionResult1 = await detector1.detectPendingMigrations(db);
       
       if (detectionResult1.pendingMigrations.length === 0) {
@@ -258,7 +257,7 @@ describe('Migration System Integration', () => {
       await runner1.runMigrations(migrations1);
 
       // 두 번째 감지 (이미 적용된 마이그레이션은 제외되어야 함)
-      const detector2 = new MigrationDetector(migrationsDir);
+      const detector2 = new MigrationDetector();
       const detectionResult2 = await detector2.detectPendingMigrations(db);
 
       // pendingMigrations가 비어있어야 함
@@ -283,8 +282,7 @@ describe('Migration System Integration', () => {
     it('should restore from backup', async () => {
       // 원본 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('test-1', 'episodic', 'Test content');
 
       const backupManager = new BackupManager(backupDir);
@@ -411,14 +409,12 @@ describe('Migration System Integration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 
       // 마이그레이션 실행
-      const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
-      const detector = new MigrationDetector(migrationsDir);
+      const detector = new MigrationDetector();
       const detectionResult = await detector.detectPendingMigrations(db);
       
       if (detectionResult.pendingMigrations.length > 0) {

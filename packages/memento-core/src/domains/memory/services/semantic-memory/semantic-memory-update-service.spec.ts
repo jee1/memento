@@ -79,8 +79,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성 (관계 생성용)
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -173,8 +172,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성
@@ -200,8 +198,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: updateSemanticMemory 호출 (중복 Triple)
@@ -260,8 +257,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -298,8 +294,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -334,8 +329,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -369,8 +363,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -430,8 +423,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -496,8 +488,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // When: updateSemanticMemory 호출
@@ -531,8 +522,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // When: updateSemanticMemory 호출
@@ -565,8 +555,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // When: updateSemanticMemory 호출
@@ -599,8 +588,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // When: updateSemanticMemory 호출
@@ -634,8 +622,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // When: updateSemanticMemory 호출
@@ -669,8 +656,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // When: updateSemanticMemory 호출
@@ -704,8 +690,7 @@ describe('SemanticMemoryUpdateService', () => {
 
         // Episodic Memory 생성
         await DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
         // statistics.recordUpdate 호출을 확인하기 위해 spy 설정
@@ -784,8 +769,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성
@@ -811,8 +795,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: updateSemanticMemory 호출 (동일한 Triple)
@@ -860,8 +843,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성
@@ -888,8 +870,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: updateSemanticMemory 호출 (정규화 후 동일한 Triple)
@@ -921,8 +902,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성
@@ -948,8 +928,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: updateSemanticMemory 호출 (다른 Predicate)
@@ -995,8 +974,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성
@@ -1022,8 +1000,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: updateSemanticMemory 호출 (다른 Subject/Object)
@@ -1069,8 +1046,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성
@@ -1100,8 +1076,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: updateSemanticMemory 호출 (중복 Triple)
@@ -1156,8 +1131,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1219,8 +1193,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1283,8 +1256,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1347,8 +1319,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1413,8 +1384,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1475,8 +1445,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1536,8 +1505,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1606,8 +1574,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1677,8 +1644,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1738,8 +1704,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1796,8 +1761,7 @@ describe('SemanticMemoryUpdateService', () => {
       
       // Semantic Memory를 생성하고 이를 episodicMemoryId로 잘못 전달
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, ['semantic-1', 'semantic', 'Test semantic memory', 0.5]);
 
       const options: SemanticMemoryUpdateOptions = {
@@ -1833,8 +1797,7 @@ describe('SemanticMemoryUpdateService', () => {
       
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, ['episodic-1', 'episodic', 'Test episodic memory', 0.5]);
 
       const options: SemanticMemoryUpdateOptions = {
@@ -1880,8 +1843,7 @@ describe('SemanticMemoryUpdateService', () => {
       
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, ['episodic-1', 'episodic', 'Test episodic memory', 0.5]);
 
       const options: SemanticMemoryUpdateOptions = {
@@ -1930,8 +1892,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // When: updateSemanticMemory 호출
@@ -1987,8 +1948,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [firstOptions.episodicMemoryId, 'episodic', 'Test episodic memory 1', 0.5]);
 
       // 첫 번째 Semantic Memory 생성 및 관계 생성
@@ -2025,8 +1985,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // 두 번째 Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [secondOptions.episodicMemoryId, 'episodic', 'Test episodic memory 2', 0.6]);
 
       // When: 동일한 Triple로 두 번째 updateSemanticMemory 호출
@@ -2093,8 +2052,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // 첫 번째 Semantic Memory 생성 및 관계 생성
@@ -2161,8 +2119,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // Semantic Memory 생성 및 관계 생성
@@ -2221,8 +2178,7 @@ describe('SemanticMemoryUpdateService', () => {
 
       // Episodic Memory 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
       `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
 
       // Semantic Memory 생성 및 관계 생성

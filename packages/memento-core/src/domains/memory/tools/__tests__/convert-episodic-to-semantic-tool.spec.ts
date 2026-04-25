@@ -47,7 +47,10 @@ function initializeTestDatabase(db: Database.Database): void {
       object TEXT,
       triple_extracted BOOLEAN DEFAULT NULL,
       triple_extracted_status TEXT DEFAULT NULL,
-      triple_extraction_metadata TEXT DEFAULT NULL
+      triple_extraction_metadata TEXT DEFAULT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted ON memory_item(triple_extracted);
@@ -101,8 +104,7 @@ function createTestEpisodicMemory(
   importance: number = 0.5
 ): void {
   DatabaseUtils.run(db, `
-    INSERT INTO memory_item (id, type, content, importance, created_at)
-    VALUES (?, 'episodic', ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', ?, ?, CURRENT_TIMESTAMP)
   `, [id, content, importance]);
 }
 
@@ -335,8 +337,7 @@ describe('ConvertEpisodicToSemanticTool', () => {
       // Given: semantic type의 memory
       const semanticMemoryId = generateId('mem');
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES (?, 'semantic', 'Some semantic content', 0.5, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'semantic', 'Some semantic content', 0.5, CURRENT_TIMESTAMP)
       `, [semanticMemoryId]);
 
       // When: convert 호출

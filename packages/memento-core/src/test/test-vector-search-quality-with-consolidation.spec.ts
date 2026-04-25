@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import Database from 'better-sqlite3';
-import { initializeServices } from '../server/bootstrap.js';
+import { initializeServices } from '../bootstrap.js';
 import { QualityMetricsCollector } from '@memento/core/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
 import {
   generateVectorOnlySearchResults,

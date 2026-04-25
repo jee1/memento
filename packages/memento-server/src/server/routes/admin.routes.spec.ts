@@ -562,7 +562,10 @@ describe('admin.routes graph', () => {
         importance REAL DEFAULT 0.5,
         created_at TEXT DEFAULT (datetime('now')),
         tags TEXT DEFAULT '[]',
-        pinned INTEGER DEFAULT 0
+        pinned INTEGER DEFAULT 0,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
       );
     `);
     // memory_relation 테이블 생성
@@ -635,8 +638,7 @@ describe('admin.routes graph', () => {
   // T008: 응답 포맷 검증 (GraphNode 필드)
   it('GET /admin/graph — GraphNode 응답 포맷이 올바르다 (label, content, type, importance, created_at, tags, pinned)', async () => {
     db.prepare(`
-      INSERT INTO memory_item (id, content, type, importance, tags, pinned)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO memory_item (id, content, type, importance, tags, pinned) VALUES (?, ?, ?, ?, ?, ?)
     `).run('mem-1', 'A'.repeat(100), 'semantic', 0.75, '["tag1","tag2"]', 0);
 
     const { server, port } = await listen(makeApp(db));
@@ -804,7 +806,8 @@ describe('Project memory admin routes', () => {
         importance REAL DEFAULT 0.5,
         project_id TEXT,
         created_at TEXT DEFAULT (datetime('now')),
-        is_deleted INTEGER DEFAULT 0
+        is_deleted INTEGER DEFAULT 0,
+          deleted_at TEXT
       )
     `);
   });

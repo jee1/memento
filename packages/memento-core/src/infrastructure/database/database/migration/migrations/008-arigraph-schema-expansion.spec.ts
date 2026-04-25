@@ -29,7 +29,10 @@ function createBaseSchema(db: Database.Database): void {
       consolidation_score REAL,
       workflow_name TEXT,
       skill_name TEXT,
-      trigger_conditions TEXT
+      trigger_conditions TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -180,7 +183,10 @@ describe('AriGraphSchemaExpansionMigration', () => {
         CREATE TABLE memory_item (
           id TEXT PRIMARY KEY,
           type TEXT NOT NULL,
-          content TEXT NOT NULL
+          content TEXT NOT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         );
       `);
 
@@ -379,8 +385,7 @@ describe('AriGraphSchemaExpansionMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 
@@ -408,8 +413,7 @@ describe('AriGraphSchemaExpansionMigration', () => {
 
       // When: Triple 구조를 포함한 Semantic Memory 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, subject, predicate, object, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, subject, predicate, object, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         'sem-1',
         'semantic',
@@ -453,8 +457,7 @@ describe('AriGraphSchemaExpansionMigration', () => {
       });
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?)
       `).run(
         'epi-1',
         'episodic',
@@ -667,8 +670,7 @@ describe('AriGraphSchemaExpansionMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 
@@ -696,8 +698,7 @@ describe('AriGraphSchemaExpansionMigration', () => {
 
       // When: Triple 구조를 포함한 Semantic Memory 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, subject, predicate, object, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, subject, predicate, object, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         'sem-1',
         'semantic',
@@ -741,8 +742,7 @@ describe('AriGraphSchemaExpansionMigration', () => {
 
       // When: Triple 구조를 포함한 Semantic Memory 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, subject, predicate, object)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, subject, predicate, object) VALUES (?, ?, ?, ?, ?, ?)
       `).run(
         'sem-1',
         'semantic',

@@ -31,7 +31,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -64,9 +67,7 @@ describe('MetaMemoryService', () => {
 
     // 테스트용 memory_item 레코드 생성 (외래 키 제약 조건을 위해)
     db.exec(`
-      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
-      VALUES 
-        ('mem_1', 'episodic', 'Test content 1', 0.8, 'private', CURRENT_TIMESTAMP, 0),
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned) VALUES ('mem_1', 'episodic', 'Test content 1', 0.8, 'private', CURRENT_TIMESTAMP, 0),
         ('mem_2', 'semantic', 'Test content 2', 0.7, 'private', CURRENT_TIMESTAMP, 0),
         ('mem_success', 'episodic', 'Success content', 0.8, 'private', CURRENT_TIMESTAMP, 0),
         ('mem_failure', 'episodic', 'Failure content', 0.8, 'private', CURRENT_TIMESTAMP, 0),
@@ -597,8 +598,7 @@ describe('MetaMemoryService', () => {
 
       // memory_item 레코드 생성 (외래 키 제약 조건)
       const insertMemoryStmt = db.prepare(`
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
-        VALUES (?, 'episodic', 'Test content', 0.8, 'private', CURRENT_TIMESTAMP, 0)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned) VALUES (?, 'episodic', 'Test content', 0.8, 'private', CURRENT_TIMESTAMP, 0)
       `);
 
       const insertStatsStmt = db.prepare(`
@@ -746,8 +746,7 @@ describe('MetaMemoryService', () => {
     beforeEach(async () => {
       // 테스트용 memory_item 레코드 생성
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
-        VALUES ('mem_debounce', 'episodic', 'Debounce test content', 0.8, 'private', CURRENT_TIMESTAMP, 0)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned) VALUES ('mem_debounce', 'episodic', 'Debounce test content', 0.8, 'private', CURRENT_TIMESTAMP, 0)
       `);
     });
 
@@ -899,8 +898,7 @@ describe('MetaMemoryService', () => {
       // Given: 여러 memory_id에 대한 업데이트
       // memory_item 레코드 추가 생성
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
-        VALUES ('mem_debounce_2', 'episodic', 'Debounce test content 2', 0.8, 'private', CURRENT_TIMESTAMP, 0)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned) VALUES ('mem_debounce_2', 'episodic', 'Debounce test content 2', 0.8, 'private', CURRENT_TIMESTAMP, 0)
       `);
 
       const searchResults1: RecallResultItem[] = [

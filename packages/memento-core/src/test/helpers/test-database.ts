@@ -25,7 +25,7 @@ export async function setupTestDatabase(): Promise<Database.Database> {
     db.exec('DROP TRIGGER IF EXISTS memory_item_fts_delete');
     
     // reflection_notes 정규화 함수 등록
-    const { normalizeReflectionNotes } = await import('../../utils/reflection-notes-normalize.js');
+    const { normalizeReflectionNotes } = await import('../../shared/utils/reflection-notes-normalize.js');
     db.function('normalize_reflection_notes', {
       deterministic: true,
       varargs: false
@@ -61,8 +61,6 @@ export async function setupTestDatabase(): Promise<Database.Database> {
   }
   
   // 2. VEC 확장 로딩 (벡터 검색 기능 활성화)
-  // sqlite-vec 패키지의 getLoadablePath()를 사용하여 확장 경로 가져오기
-  // 테스트 환경에서는 VEC 확장이 없을 수 있으므로 try-catch로 처리
   let vecExtensionLoaded = false;
   try {
     const { getLoadablePath } = await import('sqlite-vec');
@@ -71,7 +69,6 @@ export async function setupTestDatabase(): Promise<Database.Database> {
     vecExtensionLoaded = true;
   } catch (error) {
     // VEC 확장이 없는 경우 벡터 테이블은 생성하지 않음
-    // 테스트는 벡터 기능 없이도 진행 가능하도록 설계
   }
   
   // 3. 벡터 테이블 초기화 (VEC 확장이 로드된 경우에만)
@@ -89,7 +86,7 @@ export async function setupTestDatabase(): Promise<Database.Database> {
         db.exec(`DROP TABLE IF EXISTS ${table.name}`);
         db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${table.name} USING vec0(embedding float[${table.dimension}])`);
       } catch (error) {
-        // 벡터 테이블 생성 실패는 무시 (테스트는 계속 진행)
+        // 벡터 테이블 생성 실패는 무시
       }
     }
   }
@@ -111,60 +108,32 @@ export async function setupTestDatabase(): Promise<Database.Database> {
     CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
   `);
   
-  // 5. AriGraph Pipeline 스키마 확장 (008-arigraph-schema-expansion.sql)
-  // memory_item 테이블에 subject, predicate, object 컬럼 추가
+  // 5. AriGraph Pipeline 스키마 확장
   try {
-    // 컬럼이 이미 존재하는지 확인
-    const columns = DatabaseUtils.all(db, `
-      SELECT name FROM pragma_table_info('memory_item')
-    `) as Array<{ name: string }>;
-    
+    const columns = DatabaseUtils.all(db, `SELECT name FROM pragma_table_info('memory_item')`) as Array<{ name: string }>;
     const columnNames = columns.map(c => c.name);
     
-    if (!columnNames.includes('subject')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN subject TEXT');
-    }
-    if (!columnNames.includes('predicate')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN predicate TEXT');
-    }
-    if (!columnNames.includes('object')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN object TEXT');
-    }
-    if (!columnNames.includes('triple_extracted')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted BOOLEAN DEFAULT NULL');
-    }
-    if (!columnNames.includes('triple_extracted_status')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted_status TEXT DEFAULT NULL');
-    }
-    if (!columnNames.includes('triple_extraction_metadata')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN triple_extraction_metadata TEXT DEFAULT NULL');
-    }
-    // Consolidation Score 필드 추가 (recall_count 등)
-    if (!columnNames.includes('recall_count')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
-    }
-    if (!columnNames.includes('last_accessed_at')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
-    }
-    if (!columnNames.includes('consolidation_score')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
-    }
-    if (!columnNames.includes('g_value')) {
-      db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
-    }
+    if (!columnNames.includes('subject')) db.exec('ALTER TABLE memory_item ADD COLUMN subject TEXT');
+    if (!columnNames.includes('predicate')) db.exec('ALTER TABLE memory_item ADD COLUMN predicate TEXT');
+    if (!columnNames.includes('object')) db.exec('ALTER TABLE memory_item ADD COLUMN object TEXT');
+    if (!columnNames.includes('triple_extracted')) db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted BOOLEAN DEFAULT NULL');
+    if (!columnNames.includes('triple_extracted_status')) db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted_status TEXT DEFAULT NULL');
+    if (!columnNames.includes('triple_extraction_metadata')) db.exec('ALTER TABLE memory_item ADD COLUMN triple_extraction_metadata TEXT DEFAULT NULL');
+    if (!columnNames.includes('recall_count')) db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+    if (!columnNames.includes('last_accessed_at')) db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+    if (!columnNames.includes('consolidation_score')) db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+    if (!columnNames.includes('g_value')) db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
     
-    // 인덱스 생성
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted ON memory_item(triple_extracted);
       CREATE INDEX IF NOT EXISTS idx_memory_item_triple_status ON memory_item(triple_extracted_status);
-      CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed_at ON memory_item(last_accessed_at DESC);
       CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
     `);
   } catch (error) {
-    // 컬럼 추가 실패는 무시 (이미 존재할 수 있음)
+    // 무시
   }
   
-  // memory_relation 테이블 생성 (AriGraph Pipeline용)
   db.exec(`
     CREATE TABLE IF NOT EXISTS memory_relation (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,13 +148,11 @@ export async function setupTestDatabase(): Promise<Database.Database> {
       FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
       UNIQUE(source_id, target_id, relation_type)
     );
-    
     CREATE INDEX IF NOT EXISTS idx_memory_relation_source ON memory_relation(source_id);
     CREATE INDEX IF NOT EXISTS idx_memory_relation_target ON memory_relation(target_id);
     CREATE INDEX IF NOT EXISTS idx_memory_relation_type ON memory_relation(relation_type);
   `);
-  
-  // relation_type_registry 테이블 생성 (AriGraph Pipeline용)
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS relation_type_registry (
       type_name TEXT PRIMARY KEY,
@@ -197,16 +164,14 @@ export async function setupTestDatabase(): Promise<Database.Database> {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
-  
-  // extracted_from, supported_by 관계 타입 등록
+
   db.exec(`
     INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
     VALUES 
-      ('extracted_from', 'Structural', '추출 관계: Semantic Memory가 Episodic Memory에서 추출됨', '["episodic", "semantic"]', 0.7, 1.1),
-      ('supported_by', 'Structural', '근거 관계: Semantic Memory가 Episodic Memory에 의해 근거를 가짐', '["episodic", "semantic"]', 0.7, 1.1);
+      ('extracted_from', 'Structural', '추출 관계', '["episodic", "semantic"]', 0.7, 1.1),
+      ('supported_by', 'Structural', '근거 관계', '["episodic", "semantic"]', 0.7, 1.1);
   `);
 
-  // Issue #90: kg_triple 테이블 (KG 전용 저장소 및 dedupe)
   db.exec(`
     CREATE TABLE IF NOT EXISTS kg_triple (
       id TEXT PRIMARY KEY,
@@ -222,12 +187,16 @@ export async function setupTestDatabase(): Promise<Database.Database> {
       UNIQUE(subject, predicate, object)
     );
     CREATE INDEX IF NOT EXISTS idx_kg_triple_spo ON kg_triple(subject, predicate, object);
-    CREATE INDEX IF NOT EXISTS idx_kg_triple_representative ON kg_triple(representative_memory_id);
-    CREATE INDEX IF NOT EXISTS idx_kg_triple_owner ON kg_triple(owner_id);
-    CREATE INDEX IF NOT EXISTS idx_kg_triple_process ON kg_triple(process_id);
   `);
 
   return db;
+}
+
+/**
+ * 서비스를 초기화하지 않고 데이터베이스만 준비 (setupTestDatabase와 동일한 역할의 별칭)
+ */
+export async function createTestDatabaseWithoutServices(): Promise<Database.Database> {
+  return await setupTestDatabase();
 }
 
 /**
@@ -255,6 +224,7 @@ export function createTestMemory(
     trigger_conditions?: string | null;
     task_goal?: string | null;
     edit_count?: number;
+    project_id?: string | null;
   }
 ): string {
   const memoryId = options.id || `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -264,10 +234,11 @@ export function createTestMemory(
   const pinned = options.pinned ?? false;
   const tags = options.tags ? JSON.stringify(options.tags) : null;
   const reflection_notes = options.reflection_notes !== undefined ? options.reflection_notes : null;
+  const project_id = options.project_id || null;
   
   DatabaseUtils.run(db, `
-    INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned, tags, source, reflection_notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned, tags, source, reflection_notes, project_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     memoryId,
     type,
@@ -277,7 +248,8 @@ export function createTestMemory(
     pinned ? 1 : 0,
     tags,
     options.source || null,
-    reflection_notes
+    reflection_notes,
+    project_id
   ]);
   
   return memoryId;
@@ -295,4 +267,3 @@ export function cleanupTestDatabase(db: Database.Database): void {
     // 이미 닫혀있거나 오류가 발생해도 무시
   }
 }
-

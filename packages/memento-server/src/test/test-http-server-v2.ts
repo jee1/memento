@@ -62,7 +62,9 @@ async function setupTestDatabase() {
       -- Procedural Memory Enhancement (v7.0) 추가 필드
       workflow_name TEXT,
       skill_name TEXT,
-      trigger_conditions TEXT
+      trigger_conditions TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS memory_embedding (
@@ -148,8 +150,7 @@ async function setupTestDatabase() {
   ];
   
   const insertStmt = db.prepare(`
-    INSERT INTO memory_item (id, type, content, importance, tags, created_at)
-    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO memory_item (id, type, content, importance, tags, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   `);
   
   for (const memory of testMemories) {

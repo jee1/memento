@@ -35,7 +35,10 @@ describe('Database Initialization', () => {
         CREATE TABLE IF NOT EXISTS memory_item (
           id TEXT PRIMARY KEY,
           type TEXT NOT NULL,
-          content TEXT NOT NULL
+          content TEXT NOT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         )
       `);
       

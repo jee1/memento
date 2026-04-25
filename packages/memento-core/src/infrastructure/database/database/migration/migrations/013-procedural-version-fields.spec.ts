@@ -31,7 +31,10 @@ function createMemoryItemTableWithoutVersion(db: Database.Database): void {
       reflection_notes TEXT,
       workflow_name TEXT,
       skill_name TEXT,
-      trigger_conditions TEXT
+      trigger_conditions TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
 }
@@ -131,9 +134,7 @@ describe('Migration 013 - Procedural Version Fields', () => {
 
     it('Given: version_of 체인 proc-v1 <- proc-v2 <- proc-v3, When: up 실행 후, Then: version 1,2,3 및 동일 version_series_id', async () => {
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, workflow_name)
-        VALUES
-          ('proc-v1', 'procedural', 'V1', 'wf'),
+        INSERT INTO memory_item (id, type, content, workflow_name) VALUES ('proc-v1', 'procedural', 'V1', 'wf'),
           ('proc-v2', 'procedural', 'V2', 'wf'),
           ('proc-v3', 'procedural', 'V3', 'wf')
       `).run();

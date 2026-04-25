@@ -42,7 +42,10 @@ function initializeTestDatabase(db: Database.Database): void {
       trigger_conditions TEXT,
       owner_id TEXT NULL,
       process_id TEXT NULL,
-      session_id TEXT NULL
+      session_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS core_memory (
@@ -706,12 +709,10 @@ describe('RecallTool', () => {
   describe('owner_id 필터 (다중 에이전트, Issue #57 Phase 2 D)', () => {
     it('Given: owner_id가 서로 다른 메모리 2건, When: recall에 owner_id 제공 시, Then: 해당 소유자 메모리만 반환', async () => {
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
-        VALUES ('mem-a', 'episodic', 'Agent A memory', 0.5, 'private', 'agent-a', CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at) VALUES ('mem-a', 'episodic', 'Agent A memory', 0.5, 'private', 'agent-a', CURRENT_TIMESTAMP)
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at)
-        VALUES ('mem-b', 'episodic', 'Agent B memory', 0.5, 'private', 'agent-b', CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, owner_id, created_at) VALUES ('mem-b', 'episodic', 'Agent B memory', 0.5, 'private', 'agent-b', CURRENT_TIMESTAMP)
       `);
       vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
         items: [
@@ -733,12 +734,10 @@ describe('RecallTool', () => {
   describe('process_id, session_id 필터 (Memori Attribution, Issue #87)', () => {
     it('Given: process_id가 서로 다른 메모리 2건, When: recall에 process_id 제공 시, Then: 해당 process 메모리만 반환', async () => {
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, process_id, created_at)
-        VALUES ('mem-p1', 'episodic', 'Process 1 memory', 0.5, 'private', 'process-deploy', CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, process_id, created_at) VALUES ('mem-p1', 'episodic', 'Process 1 memory', 0.5, 'private', 'process-deploy', CURRENT_TIMESTAMP)
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, process_id, created_at)
-        VALUES ('mem-p2', 'episodic', 'Process 2 memory', 0.5, 'private', 'process-review', CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, process_id, created_at) VALUES ('mem-p2', 'episodic', 'Process 2 memory', 0.5, 'private', 'process-review', CURRENT_TIMESTAMP)
       `);
       vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
         items: [
@@ -915,18 +914,15 @@ describe('RecallTool', () => {
       });
 
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, ['mem_1', 'episodic', 'I learned React hooks', 0.7, 'private', originSource]);
 
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, ['mem_2', 'semantic', 'React is a library', 0.9, 'private', originSource]);
 
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, ['mem_3', 'procedural', 'How to deploy', 0.8, 'private', originSource]);
     });
 
@@ -981,16 +977,13 @@ describe('RecallTool', () => {
     it('type 미지정 시 기본 episodic 필터가 적용되어야 함', async () => {
       // Given: 여러 타입의 메모리 생성
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem3', 'working', 'Working memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem3', 'working', 'Working memory content', 0.5, 'private', NULL, datetime('now'))
       `);
 
       const params = {
@@ -1037,12 +1030,10 @@ describe('RecallTool', () => {
     it('memory_types 미지정 시에도 type 기본값이 적용되어야 함', async () => {
       // Given: 여러 타입의 메모리 생성
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
       `);
 
       const params = {
@@ -1089,12 +1080,10 @@ describe('RecallTool', () => {
     it('type 미지정 + memory_types 제공 시 기본 타입이 우선 적용되어야 함', async () => {
       // Given: 여러 타입의 메모리 생성
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem1', 'episodic', 'Episodic memory content', 0.5, 'private', NULL, datetime('now'))
       `);
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at)
-        VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, origin_source, created_at) VALUES ('mem2', 'semantic', 'Semantic memory content', 0.5, 'private', NULL, datetime('now'))
       `);
 
       const params = {
@@ -1382,8 +1371,7 @@ describe('RecallTool', () => {
 
       // reflection_notes가 있는 procedural memory
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'proc_1',
         'procedural',
@@ -1398,8 +1386,7 @@ describe('RecallTool', () => {
 
       // reflection_notes가 배열인 procedural memory
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'proc_2',
         'procedural',
@@ -1414,8 +1401,7 @@ describe('RecallTool', () => {
 
       // reflection_notes가 없는 procedural memory
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'proc_3',
         'procedural',
@@ -1430,8 +1416,7 @@ describe('RecallTool', () => {
 
       // episodic memory (reflection_notes 없음)
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?)
       `, [
         'epi_1',
         'episodic',
@@ -1909,8 +1894,7 @@ describe('RecallTool', () => {
         it('should filter by workflow_name', async () => {
           // Given: workflow_name이 있는 procedural memory 생성
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name)
-            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업')
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name) VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업')
           `);
 
           const params = {
@@ -1951,8 +1935,7 @@ describe('RecallTool', () => {
         it('should filter by skill_name', async () => {
           // Given: skill_name이 있는 procedural memory 생성
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name)
-            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업')
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name) VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업')
           `);
 
           const params = {
@@ -1995,8 +1978,7 @@ describe('RecallTool', () => {
         it('should filter by trigger_conditions when match_trigger_conditions is true', async () => {
           // Given: trigger_conditions가 있는 procedural memory 생성
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
-            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions) VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '{"event": "migration_start"}')
           `);
 
           const params = {
@@ -2048,9 +2030,7 @@ describe('RecallTool', () => {
         it('should require all keys in trigger_conditions to match (not just first key)', async () => {
           // Given: 여러 키를 가진 trigger_conditions가 있는 procedural memory
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
-            VALUES 
-              ('mem_all_match', 'procedural', 'All match procedure', '데이터 마이그레이션', '스키마 백업', '{"tool_name": "remember", "error_type": "tool_error"}'),
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions) VALUES ('mem_all_match', 'procedural', 'All match procedure', '데이터 마이그레이션', '스키마 백업', '{"tool_name": "remember", "error_type": "tool_error"}'),
               ('mem_partial_match', 'procedural', 'Partial match procedure', 'API 배포', '배포 검증', '{"tool_name": "remember", "error_type": "validation_error"}')
           `);
 
@@ -2107,8 +2087,7 @@ describe('RecallTool', () => {
         it('should reject when trigger_conditions key is missing in context', async () => {
           // Given: 여러 키를 가진 trigger_conditions가 있는 procedural memory
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
-            VALUES ('mem_missing_key', 'procedural', 'Missing key procedure', '데이터 마이그레이션', '스키마 백업', '{"tool_name": "remember", "error_type": "tool_error"}')
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions) VALUES ('mem_missing_key', 'procedural', 'Missing key procedure', '데이터 마이그레이션', '스키마 백업', '{"tool_name": "remember", "error_type": "tool_error"}')
           `);
 
           // Mock 검색 결과
@@ -2153,8 +2132,7 @@ describe('RecallTool', () => {
         it('should return only steps when return_format is steps_only', async () => {
           // Given: procedural memory 생성
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps)
-            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '["step1", "step2", "step3"]')
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps) VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '["step1", "step2", "step3"]')
           `);
 
           const params = {
@@ -2202,8 +2180,7 @@ describe('RecallTool', () => {
         it('should return all fields when return_format is full', async () => {
           // Given: procedural memory 생성
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, task_goal)
-            VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '["step1", "step2"]', 'Test task')
+            INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, task_goal) VALUES ('mem1', 'procedural', 'Test procedure', '데이터 마이그레이션', '스키마 백업', '["step1", "step2"]', 'Test task')
           `);
 
           const params = {
@@ -2436,8 +2413,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -2498,9 +2474,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Memory A', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Memory A', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Memory B', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Memory C', 0.6, CURRENT_TIMESTAMP),
             (?, 'episodic', 'New Memory', 0.9, CURRENT_TIMESTAMP)
@@ -2580,9 +2554,7 @@ describe('RecallTool', () => {
         
         // pinned 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
-          VALUES 
-            (?, 'episodic', 'Pinned Memory', 0.9, 1, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at) VALUES (?, 'episodic', 'Pinned Memory', 0.9, 1, CURRENT_TIMESTAMP),
             (?, 'episodic', 'New Memory', 0.8, 0, CURRENT_TIMESTAMP)
         `).run(pinnedMemoryId, newMemoryId);
 
@@ -2641,9 +2613,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
-          VALUES 
-            (?, 'episodic', 'Memory A', 0.8, 0, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at) VALUES (?, 'episodic', 'Memory A', 0.8, 0, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Pinned Memory B', 0.9, 1, CURRENT_TIMESTAMP),
             (?, 'episodic', 'New Memory', 0.85, 0, CURRENT_TIMESTAMP)
         `).run(memoryIdA, pinnedMemoryIdB, newMemoryId);
@@ -2720,9 +2690,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
-          VALUES 
-            (?, 'episodic', 'Memory A', 0.8, 0, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at) VALUES (?, 'episodic', 'Memory A', 0.8, 0, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Memory B', 0.7, 0, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Pinned Memory C', 0.9, 1, CURRENT_TIMESTAMP),
             (?, 'episodic', 'New Memory', 0.85, 0, CURRENT_TIMESTAMP)
@@ -2806,8 +2774,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -2879,9 +2846,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Neighbor memory 1', 0.6, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Neighbor memory 2', 0.5, CURRENT_TIMESTAMP)
@@ -2953,9 +2918,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
         `).run(memoryId1, memoryId2, memoryId3);
@@ -3069,9 +3032,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
         `).run(memoryId1, memoryId2, memoryId3);
@@ -3212,9 +3173,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 4', 0.5, CURRENT_TIMESTAMP)
@@ -3362,9 +3321,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
         `).run(memoryId1, memoryId2, memoryId3);
@@ -3496,9 +3453,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 4', 0.5, CURRENT_TIMESTAMP),
@@ -3637,8 +3592,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         const insertStmt = db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', ?, 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', ?, 0.8, CURRENT_TIMESTAMP)
         `);
         
         for (let i = 0; i < 10; i++) {
@@ -3730,9 +3684,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES 
-            (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP),
             (?, 'episodic', 'Test memory 3', 0.6, CURRENT_TIMESTAMP)
         `).run(memoryId1, memoryId2, memoryId3);
@@ -3841,8 +3793,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -3933,8 +3884,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -3993,8 +3943,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -4048,8 +3997,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -4105,9 +4053,7 @@ describe('RecallTool', () => {
         
         // pinned 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, pinned, created_at)
-          VALUES 
-            (?, 'episodic', 'Pinned Memory', 0.9, 1, CURRENT_TIMESTAMP),
+          INSERT INTO memory_item (id, type, content, importance, pinned, created_at) VALUES (?, 'episodic', 'Pinned Memory', 0.9, 1, CURRENT_TIMESTAMP),
             (?, 'episodic', 'New Memory', 0.8, 0, CURRENT_TIMESTAMP)
         `).run(pinnedMemoryId, newMemoryId);
 
@@ -4163,8 +4109,7 @@ describe('RecallTool', () => {
         
         // 메모리 아이템 생성
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance, created_at)
-          VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
+          INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'episodic', 'Test memory content', 0.8, CURRENT_TIMESTAMP)
         `).run(memoryId);
 
         // Mock 검색 결과
@@ -4252,9 +4197,7 @@ describe('RecallTool', () => {
 
       // memory_item 테이블에 테스트 데이터 삽입
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES 
-          ('${memoryId1}', 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('${memoryId1}', 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
           ('${memoryId2}', 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP)
       `);
 
@@ -4354,8 +4297,7 @@ describe('RecallTool', () => {
 
       // memory_item 테이블에 테스트 데이터 삽입
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
       `);
 
       // meta_memory_stats 테이블 생성 (마이그레이션 실행)
@@ -4424,9 +4366,7 @@ describe('RecallTool', () => {
 
       // memory_item 테이블에 테스트 데이터 삽입
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES 
-          ('${memoryId1}', 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('${memoryId1}', 'episodic', 'Test memory 1', 0.8, CURRENT_TIMESTAMP),
           ('${memoryId2}', 'episodic', 'Test memory 2', 0.7, CURRENT_TIMESTAMP)
       `);
 
@@ -4534,8 +4474,7 @@ describe('RecallTool', () => {
 
       // memory_item 테이블에 테스트 데이터 삽입
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
       `);
 
       // meta_memory_stats 테이블 생성 (마이그레이션 실행)
@@ -4627,8 +4566,7 @@ describe('RecallTool', () => {
 
       // memory_item 테이블에 테스트 데이터 삽입
       db.exec(`
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
       `);
 
       // meta_memory_stats 테이블 생성 (마이그레이션 실행)

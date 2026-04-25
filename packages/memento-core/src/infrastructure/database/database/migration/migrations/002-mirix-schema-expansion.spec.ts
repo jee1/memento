@@ -20,7 +20,10 @@ function createBaseSchema(db: Database.Database): void {
       source TEXT,
       view_count INTEGER DEFAULT 0,
       cite_count INTEGER DEFAULT 0,
-      edit_count INTEGER DEFAULT 0
+      edit_count INTEGER DEFAULT 0,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -234,8 +237,7 @@ describe('MirixSchemaExpansionMigration', () => {
     it('should set default origin_source for existing memory_item records', async () => {
       // 기존 레코드 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('test-1', 'episodic', 'Test content');
 
       await migration.up(db);
@@ -345,8 +347,7 @@ describe('MirixSchemaExpansionMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 

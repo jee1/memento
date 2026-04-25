@@ -27,6 +27,9 @@ export interface TestMemoryItem {
   task_goal?: string;
   steps?: string;
   reflection_notes?: string;
+  project_id?: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
 }
 
 export interface TestMemoryEmbedding {
@@ -80,7 +83,10 @@ export function initializeTestDatabase(db: Database.Database): void {
       num_times INTEGER NOT NULL DEFAULT 1,
       last_mentioned_at TIMESTAMP,
       source_session_id TEXT,
-      confidence REAL
+      confidence REAL,
+      project_id TEXT,
+      is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+      deleted_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_type ON memory_item(type);
@@ -138,8 +144,9 @@ export function insertMemoryItem(
     INSERT INTO memory_item (
       id, type, content, importance, tags, created_at, last_accessed,
       pinned, recall_count, last_accessed_at, consolidation_score, g_value,
-      workflow_name, skill_name, trigger_conditions, task_goal, steps, reflection_notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      workflow_name, skill_name, trigger_conditions, task_goal, steps, reflection_notes,
+      project_id, is_deleted, deleted_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   DatabaseUtils.run(db, sql, [
@@ -160,7 +167,10 @@ export function insertMemoryItem(
     item.trigger_conditions ?? null,
     item.task_goal ?? null,
     item.steps ?? null,
-    item.reflection_notes ?? null
+    item.reflection_notes ?? null,
+    item.project_id ?? null,
+    item.is_deleted ? 1 : 0,
+    item.deleted_at ?? null
   ]);
 
   // FTS5 동기화 (트리거가 없으므로 수동 삽입)

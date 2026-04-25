@@ -19,13 +19,14 @@ function createSchema(db: Database.Database): void {
       content TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       version INTEGER NULL,
-      version_series_id TEXT NULL
+      version_series_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
   db.exec(`
-    INSERT INTO memory_item (id, type, content, version, version_series_id, created_at)
-    VALUES
-      ('proc-1', 'procedural', 'A', 1, 'series-x', '2026-01-01T00:00:00Z'),
+    INSERT INTO memory_item (id, type, content, version, version_series_id, created_at) VALUES ('proc-1', 'procedural', 'A', 1, 'series-x', '2026-01-01T00:00:00Z'),
       ('proc-2', 'procedural', 'B', 2, 'series-x', '2026-01-02T00:00:00Z'),
       ('proc-3', 'procedural', 'C', 3, 'series-x', '2026-01-03T00:00:00Z'),
       ('standalone', 'procedural', 'S', 1, NULL, '2026-01-04T00:00:00Z'),

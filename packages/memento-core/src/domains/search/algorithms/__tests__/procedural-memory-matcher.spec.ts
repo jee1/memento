@@ -24,7 +24,10 @@ describe('ProceduralMemoryMatcher', () => {
         workflow_name TEXT,
         skill_name TEXT,
         trigger_conditions TEXT,
-        owner_id TEXT NULL
+        owner_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
       );
     `);
   });
@@ -47,8 +50,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: workflow_name이 있는 메모리와 쿼리가 제공됨
       const memoryId = 'mem-1';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '데이터 마이그레이션', null, null);
       
       const query: HybridSearchQuery = { query: '마이그레이션' };
@@ -69,8 +71,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: skill_name이 있는 메모리와 쿼리가 제공됨
       const memoryId = 'mem-2';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, '스키마 백업', null);
       
       const query: HybridSearchQuery = { query: '백업' };
@@ -92,8 +93,7 @@ describe('ProceduralMemoryMatcher', () => {
       const memoryId = 'mem-3';
       const triggerConditions = JSON.stringify({ tool_name: 'migration', event: 'start' });
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, null, triggerConditions);
       
       const query: HybridSearchQuery = { 
@@ -118,8 +118,7 @@ describe('ProceduralMemoryMatcher', () => {
       const memoryId = 'mem-4';
       const triggerConditions = JSON.stringify({ tool_name: 'migration' });
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '데이터 마이그레이션', '마이그레이션 스킬', triggerConditions);
       
       const query: HybridSearchQuery = { 
@@ -144,8 +143,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: 필터가 있는 쿼리가 제공됨
       const memoryId = 'mem-5';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '데이터 마이그레이션', null, null);
       
       const query: HybridSearchQuery = { 
@@ -198,8 +196,7 @@ describe('ProceduralMemoryMatcher', () => {
       // When: extractQueryInfo를 호출함 (간접 테스트: fetchProceduralMemoryMatches를 통해)
       const memoryId = 'mem-extract-1';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '워크플로우', '스킬', null);
       
       const result = matcher.fetchProceduralMemoryMatches(db, [memoryId], query);
@@ -216,8 +213,7 @@ describe('ProceduralMemoryMatcher', () => {
       const query: HybridSearchQuery = { query: '마이그레이션' };
       const memoryId = 'mem-extract-2';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '데이터 마이그레이션', null, null);
       
       // When: extractQueryInfo를 호출함 (간접 테스트)
@@ -234,8 +230,7 @@ describe('ProceduralMemoryMatcher', () => {
       const query: HybridSearchQuery = {};
       const memoryId = 'mem-extract-3';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '워크플로우', null, null);
       
       // When: extractQueryInfo를 호출함 (간접 테스트)
@@ -254,12 +249,10 @@ describe('ProceduralMemoryMatcher', () => {
       const memoryId1 = 'mem-fetch-1';
       const memoryId2 = 'mem-fetch-2';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId1, '워크플로우1', null, null);
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId2, '워크플로우2', null, null);
       
       // When: fetchProceduralMemoryRows를 호출함 (간접 테스트)
@@ -288,8 +281,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: workflow_name, skill_name, trigger_conditions가 모두 null인 메모리가 제공됨
       const memoryId = 'mem-fetch-null';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, null, null);
       
       // When: fetchProceduralMemoryRows를 호출함 (간접 테스트)
@@ -306,8 +298,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: workflow_name과 쿼리가 제공됨
       const memoryId = 'mem-match-workflow-1';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '데이터 마이그레이션', null, null);
       
       // When: matchWorkflowName을 호출함 (간접 테스트)
@@ -324,8 +315,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: workflow_name과 필터가 제공됨
       const memoryId = 'mem-match-workflow-2';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, '데이터 마이그레이션', null, null);
       
       // When: matchWorkflowName을 호출함 (간접 테스트)
@@ -345,8 +335,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: workflow_name이 null임
       const memoryId = 'mem-match-workflow-3';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, null, null);
       
       // When: matchWorkflowName을 호출함 (간접 테스트)
@@ -363,8 +352,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: skill_name과 쿼리가 제공됨
       const memoryId = 'mem-match-skill-1';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, '스키마 백업', null);
       
       // When: matchSkillName을 호출함 (간접 테스트)
@@ -381,8 +369,7 @@ describe('ProceduralMemoryMatcher', () => {
       // Given: skill_name과 필터가 제공됨
       const memoryId = 'mem-match-skill-2';
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, '스키마 백업', null);
       
       // When: matchSkillName을 호출함 (간접 테스트)
@@ -405,8 +392,7 @@ describe('ProceduralMemoryMatcher', () => {
       const memoryId = 'mem-match-trigger-1';
       const triggerConditions = JSON.stringify({ tool_name: 'migration', event: 'start' });
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, null, triggerConditions);
       
       // When: matchTriggerConditions를 호출함 (간접 테스트)
@@ -427,8 +413,7 @@ describe('ProceduralMemoryMatcher', () => {
       const memoryId = 'mem-match-trigger-2';
       const triggerConditions = JSON.stringify({ tool_name: 'migration', event: 'start' });
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, null, triggerConditions);
       
       // When: matchTriggerConditions를 호출함 (간접 테스트)
@@ -450,8 +435,7 @@ describe('ProceduralMemoryMatcher', () => {
       const memoryId = 'mem-match-trigger-3';
       const triggerConditions = JSON.stringify({ tool_name: 'migration' });
       db.prepare(`
-        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?)
       `).run(memoryId, null, null, triggerConditions);
       
       // When: matchTriggerConditions를 호출함 (간접 테스트)

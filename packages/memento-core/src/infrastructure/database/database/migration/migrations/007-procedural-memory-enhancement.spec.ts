@@ -25,7 +25,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -173,7 +176,10 @@ describe('ProceduralMemoryEnhancementMigration', () => {
         CREATE TABLE memory_item (
           id TEXT PRIMARY KEY,
           type TEXT NOT NULL,
-          content TEXT NOT NULL
+          content TEXT NOT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         );
       `);
 
@@ -286,8 +292,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
     it('should allow inserting version_of relation type', async () => {
       // Given: 기본 스키마와 테스트 데이터
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('mem1', 'procedural', 'Memory 1'), ('mem2', 'procedural', 'Memory 2')
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'procedural', 'Memory 1'), ('mem2', 'procedural', 'Memory 2')
       `).run();
 
       // When: 마이그레이션 실행
@@ -317,8 +322,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 
@@ -343,8 +347,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
     it('should preserve existing memory_link data', async () => {
       // Given: 기존 memory_link 데이터가 있는 경우
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('mem1', 'episodic', 'Memory 1'), ('mem2', 'episodic', 'Memory 2')
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'episodic', 'Memory 1'), ('mem2', 'episodic', 'Memory 2')
       `).run();
 
       db.prepare(`
@@ -473,8 +476,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
 
       // memory_link에 version_of 관계가 있는 경우
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('mem1', 'procedural', 'Memory 1'), ('mem2', 'procedural', 'Memory 2')
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'procedural', 'Memory 1'), ('mem2', 'procedural', 'Memory 2')
       `).run();
 
       db.prepare(`
@@ -523,8 +525,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
       await migration.up(db);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES ('mem1', 'episodic', 'Memory 1'), ('mem2', 'episodic', 'Memory 2'), ('mem3', 'semantic', 'Memory 3')
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'episodic', 'Memory 1'), ('mem2', 'episodic', 'Memory 2'), ('mem3', 'semantic', 'Memory 3')
       `).run();
 
       db.prepare(`
@@ -596,8 +597,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, task_goal)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, task_goal) VALUES (?, ?, ?, ?)
         `).run(data.id, data.type, data.content, data.task_goal || null);
       }
 
@@ -626,8 +626,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
 
       // When: 새 필드를 포함한 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, workflow_name, skill_name, trigger_conditions) VALUES (?, ?, ?, ?, ?, ?)
       `).run(
         'proc-1',
         'procedural',
@@ -658,9 +657,7 @@ describe('ProceduralMemoryEnhancementMigration', () => {
 
       // When: 여러 버전의 procedural memory 생성
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, workflow_name)
-        VALUES 
-          ('proc-v1', 'procedural', 'Version 1', 'test-workflow'),
+        INSERT INTO memory_item (id, type, content, workflow_name) VALUES ('proc-v1', 'procedural', 'Version 1', 'test-workflow'),
           ('proc-v2', 'procedural', 'Version 2', 'test-workflow'),
           ('proc-v3', 'procedural', 'Version 3', 'test-workflow')
       `).run();

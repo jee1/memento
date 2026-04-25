@@ -117,13 +117,14 @@ describe('TelemetryRepository', () => {
         triple_extracted_status TEXT,
         triple_extraction_metadata TEXT,
         is_deleted INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          project_id TEXT,
+          deleted_at TEXT
       );
     `);
     const recentIso = new Date().toISOString();
     db.prepare(`
-      INSERT INTO memory_item (id, type, content, owner_id, triple_extracted_status, triple_extracted, triple_extraction_metadata, is_deleted, created_at)
-      VALUES ('e1', 'episodic', 'x', 'o1', 'failed', 0, ?, 0, ?)
+      INSERT INTO memory_item (id, type, content, owner_id, triple_extracted_status, triple_extracted, triple_extraction_metadata, is_deleted, created_at) VALUES ('e1', 'episodic', 'x', 'o1', 'failed', 0, ?, 0, ?)
     `).run(JSON.stringify({ last_attempt: recentIso, failureReason: 'no_triple' }), recentIso);
 
     repo.insertEventSync({

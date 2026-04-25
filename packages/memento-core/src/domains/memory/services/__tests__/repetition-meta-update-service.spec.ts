@@ -23,8 +23,7 @@ describe('RepetitionMetaUpdateService (Issue #20)', () => {
 
   it('Given: mergedIds 비어 있음, When: updateRepresentativeRepetitionMeta 호출, Then: null 반환', () => {
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('rep-1', 'semantic', '대표', 0.5, 2, '2026-01-01T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('rep-1', 'semantic', '대표', 0.5, 2, '2026-01-01T00:00:00.000Z')
     `);
     const result = updateRepresentativeRepetitionMeta(db, 'rep-1', []);
     expect(result).toBeNull();
@@ -32,12 +31,10 @@ describe('RepetitionMetaUpdateService (Issue #20)', () => {
 
   it('Given: 대표 1건 + 병합 대상 1건, When: updateRepresentativeRepetitionMeta 호출, Then: 대표 num_times 합산·last_mentioned_at 최신값', () => {
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('rep-1', 'semantic', '대표', 0.5, 2, '2026-01-01T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('rep-1', 'semantic', '대표', 0.5, 2, '2026-01-01T00:00:00.000Z')
     `);
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('merged-1', 'semantic', '병합됨', 0.5, 3, '2026-01-15T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('merged-1', 'semantic', '병합됨', 0.5, 3, '2026-01-15T00:00:00.000Z')
     `);
 
     const result = updateRepresentativeRepetitionMeta(db, 'rep-1', ['merged-1']);
@@ -55,16 +52,13 @@ describe('RepetitionMetaUpdateService (Issue #20)', () => {
 
   it('Given: 대표 1건 + 병합 대상 2건, When: updateRepresentativeRepetitionMeta 호출, Then: num_times 합·last_mentioned_at max', () => {
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('rep-1', 'semantic', '대표', 0.5, 1, '2026-01-01T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('rep-1', 'semantic', '대표', 0.5, 1, '2026-01-01T00:00:00.000Z')
     `);
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('m1', 'semantic', 'a', 0.5, 2, '2026-01-10T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('m1', 'semantic', 'a', 0.5, 2, '2026-01-10T00:00:00.000Z')
     `);
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('m2', 'semantic', 'b', 0.5, 1, '2026-01-20T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('m2', 'semantic', 'b', 0.5, 1, '2026-01-20T00:00:00.000Z')
     `);
 
     const result = updateRepresentativeRepetitionMeta(db, 'rep-1', ['m1', 'm2']);
@@ -83,12 +77,10 @@ describe('RepetitionMetaUpdateService (Issue #20)', () => {
 
   it('Given: mergedIds에 대표 ID 포함, When: updateRepresentativeRepetitionMeta 호출, Then: 대표 자신은 합산에서 제외', () => {
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('rep-1', 'semantic', '대표', 0.5, 3, '2026-01-05T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('rep-1', 'semantic', '대표', 0.5, 3, '2026-01-05T00:00:00.000Z')
     `);
     DatabaseUtils.run(db, `
-      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at)
-      VALUES ('m1', 'semantic', 'a', 0.5, 1, '2026-01-15T00:00:00.000Z')
+      INSERT INTO memory_item (id, type, content, importance, num_times, last_mentioned_at) VALUES ('m1', 'semantic', 'a', 0.5, 1, '2026-01-15T00:00:00.000Z')
     `);
     const result = updateRepresentativeRepetitionMeta(db, 'rep-1', ['rep-1', 'm1']);
     expect(result).not.toBeNull();

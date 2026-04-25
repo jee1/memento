@@ -301,8 +301,7 @@ export class ReflexionWorker implements IReflexionWorker {
           const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           DatabaseUtils.run(
             this.db,
-            `INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO memory_item (id, type, content, task_goal, steps, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               memoryId,
               'procedural',
@@ -341,8 +340,7 @@ export class ReflexionWorker implements IReflexionWorker {
         const memoryId = `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         DatabaseUtils.run(
           this.db,
-          `INSERT INTO memory_item (id, type, content, reflection_notes, importance, privacy_scope, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO memory_item (id, type, content, reflection_notes, importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             memoryId,
             'procedural',
@@ -797,9 +795,7 @@ export class ReflexionWorker implements IReflexionWorker {
         `INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, trigger_conditions, 
           steps, task_goal, reflection_notes, importance, privacy_scope, created_at,
-          version, version_series_id
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          version, version_series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memoryId,
           'procedural',

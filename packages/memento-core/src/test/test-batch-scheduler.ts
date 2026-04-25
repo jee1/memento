@@ -168,8 +168,7 @@ describe('BatchScheduler', () => {
       
       // Add some test data
       DatabaseUtils.runQuery(db, `
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES ('test1', 'episodic', 'Test memory 1', 0.5, datetime('now'))
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('test1', 'episodic', 'Test memory 1', 0.5, datetime('now'))
       `);
     });
 

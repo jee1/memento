@@ -24,7 +24,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -256,8 +259,7 @@ describe('RelationEngineSchemaMigration', () => {
 
       // 테스트 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content) VALUES
-        ('mem1', 'episodic', 'Memory 1'),
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'episodic', 'Memory 1'),
         ('mem2', 'episodic', 'Memory 2'),
         ('mem3', 'semantic', 'Memory 3')
       `).run();
@@ -317,8 +319,7 @@ describe('RelationEngineSchemaMigration', () => {
       createMemoryLinkTable(db);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content) VALUES
-        ('mem1', 'episodic', 'Memory 1'),
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'episodic', 'Memory 1'),
         ('mem2', 'episodic', 'Memory 2')
       `).run();
 
@@ -448,8 +449,7 @@ describe('RelationEngineSchemaMigration', () => {
 
       // 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content) VALUES
-        ('mem1', 'episodic', 'Memory 1'),
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'episodic', 'Memory 1'),
         ('mem2', 'episodic', 'Memory 2')
       `).run();
 
@@ -534,8 +534,7 @@ describe('RelationEngineSchemaMigration', () => {
       await migration.up(db);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content) VALUES
-        ('mem1', 'episodic', 'Memory 1'),
+        INSERT INTO memory_item (id, type, content) VALUES ('mem1', 'episodic', 'Memory 1'),
         ('mem2', 'episodic', 'Memory 2')
       `).run();
 

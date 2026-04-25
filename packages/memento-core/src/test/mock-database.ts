@@ -138,11 +138,6 @@ export class MockDatabase {
       return tableData;
     }
 
-    // FTS5 검색 쿼리
-    if (lowerSql.includes('memory_item_fts')) {
-      return this.mockData.get('memory_item_fts') || [];
-    }
-
     // 테이블 존재 확인 쿼리
     if (lowerSql.includes('sqlite_master')) {
       // memory_item_fts 테이블 존재 확인 쿼리
@@ -164,6 +159,11 @@ export class MockDatabase {
       const tableName = this.extractTableName(sql);
       const tableData = this.mockData.get(tableName) || [];
       return [{ count: tableData.length }];
+    }
+
+    // FTS5 검색 쿼리
+    if (lowerSql.includes('memory_item_fts')) {
+      return this.mockData.get('memory_item_fts') || [];
     }
 
     return [];
