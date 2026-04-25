@@ -17,7 +17,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | — |
 | Obsidian CLI | [obsidian-cli-setup.md](guides/ko/obsidian-cli-setup.md) | — |
 
-- **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [AGENTS.md](../AGENTS.md)
+- **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [DEVELOPMENT_RULES.md](../DEVELOPMENT_RULES.md) (개발 규칙 전체), [AGENTS.md](../AGENTS.md) (에이전트 진입 요약)
 
 ### 연동·레퍼런스
 
@@ -53,7 +53,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 개발자 가이드 | [developer-guide.md](guides/ko/developer-guide.md) | [developer-guide.md](guides/en/developer-guide.md) |
 | DB 설계 명세 | [database-design.md](architecture/ko/database-design.md) | [database-design.md](architecture/en/database-design.md) |
 
-- **저장소 가이드**: [AGENTS.md](../AGENTS.md) — 워크스페이스, 빌드·테스트·DB 명령
+- **저장소 가이드**: [DEVELOPMENT_RULES.md](../DEVELOPMENT_RULES.md) — 워크스페이스, 빌드·테스트·DB·PR 등. [AGENTS.md](../AGENTS.md) — 에이전트 도구 요약
 - **기타 가이드**: 임베딩 서비스·설정, 레거시 스크립트, 캐시 동기화 등은 [guides/ko/](guides/ko/) · [guides/en/](guides/en/)
 
 ### 아키텍처·설계

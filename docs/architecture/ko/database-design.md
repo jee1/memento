@@ -15,7 +15,7 @@
   - [마이그레이션 시스템 가이드](../../guides/ko/migration-system-guide.md)
   - 스키마 DDL: `packages/memento-core/src/infrastructure/database/database/schema.sql`
   - 마이그레이션: `packages/memento-core/src/infrastructure/database/database/migration/migrations/`
-  - 저장소 가이드(DB 절): `AGENTS.md`
+  - 저장소 가이드(DB 절): `DEVELOPMENT_RULES.md` (환경 및 DB 참고)
 
 ---
 

@@ -29,7 +29,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 | **packages/memento-client** (`@memento/client`) | 서버 연결용 클라이언트 라이브러리. |
 | **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core`를 in-process로 사용). |
 
-상세 구조·빌드·테스트 명령은 [AGENTS.md](AGENTS.md)를 참조하세요.
+상세 구조·빌드·테스트·스타일·PR 규칙은 [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md)를 참조하세요. AI 에이전트용 짧은 진입 요약은 [AGENTS.md](AGENTS.md)입니다.
 
 ## ✨ 주요 기능
 
@@ -477,9 +477,9 @@ npm run test -- --coverage
 
 ## 📚 개발자 가이드라인
 
-### 저장소 가이드라인 (`AGENTS.md`)
+### 저장소 가이드라인 (`DEVELOPMENT_RULES.md` / `AGENTS.md`)
 - **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버 코드는 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
-- **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등. 상세는 [AGENTS.md](AGENTS.md) 참조.
+- **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등. 상세는 [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) 참조. 에이전트 진입 요약은 [AGENTS.md](AGENTS.md).
 - **코딩 스타일**: Node.js ≥ 20, TypeScript ES 모듈, 2칸 들여쓰기
 - **테스트 가이드라인**: Vitest 기반, 각 패키지 `src/` 내 `*.spec.ts` 또는 루트 `src/test/`
 - **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함

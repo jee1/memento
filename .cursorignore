@@ -49,3 +49,56 @@ demo/node_modules/
 # Misc build metadata
 *.tsbuildinfo
 *.tgz
+.yarn-integrity
+
+# Package manager / tool caches
+.npm/
+jspm_packages/
+.eslintcache
+.node_repl_history
+
+# CI / coverage artifacts
+*.lcov
+
+# Runtime pid files
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Local TLS / keys (often untracked)
+ssl/
+
+# IDE (JetBrains); keep .vscode/ indexable for shared launch/tasks
+.idea/
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Storybook / misc tool output
+.out/
+.storybook-out/
+
+# Backup / local-only copies
+*-backup.ts
+*-backup.js
+*.bak
+*.backup
+compound-engineering.local.md
+
+# Editor vault metadata
+.obsidian/
+
+# npm auth/registry (may contain tokens)
+.npmrc

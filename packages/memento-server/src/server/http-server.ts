@@ -4,57 +4,46 @@
  * 모듈화된 구조로 새로 구현
  */
 
-import {
-canonicalizeHttpBindHostForListen,
-closeDatabase,
-createMementoCore,
-createToolContext,
-executeTool,
-formatHttpBindHostForUrl,
-getBatchScheduler,
-getMementoHttpSecurityStartupViolationMessage,
-getToolRegistry,
-getVectorSearchEngine,
-isHttpBindHostRemotelyReachable,
-logger,
-mementoConfig,
-MementoHttpSecurityStartupError,
-validateConfig,
-type ServerServices
-} from '@memento/core';
-import Database from 'better-sqlite3';
-import cors from 'cors';
 import express from 'express';
 import { existsSync } from 'fs';
+import { join } from 'path';
+import { WebSocketServer } from 'ws';
+import type { WebSocket } from 'ws';
+import cors from 'cors';
 import helmet from 'helmet';
 import { createServer } from 'http';
-import { join } from 'path';
-import type { WebSocket } from 'ws';
-import { WebSocketServer } from 'ws';
+import {
+  createMementoCore,
+  closeDatabase,
+  createToolContext,
+  getToolRegistry,
+  executeTool,
+  type ServerServices,
+  mementoConfig,
+  validateConfig,
+  getVectorSearchEngine,
+  getBatchScheduler,
+  logger,
+  getMementoHttpSecurityStartupViolationMessage,
+  isHttpBindHostRemotelyReachable,
+  canonicalizeHttpBindHostForListen,
+  formatHttpBindHostForUrl,
+  MementoHttpSecurityStartupError
+} from '@memento/core';
+import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
-import { deleteServerInfo,resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
 // Phase 1.2: 라우터 import
-import { createSessionStore,type SessionStore } from './auth/session-store.js';
+import { createToolsRouter } from './routes/tools.routes.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
-import { createAuthRouter } from './routes/auth.routes.js';
-import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
+import { createMcpRouter, type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
-import { createToolsRouter } from './routes/tools.routes.js';
 // Phase 0: 공통 미들웨어 import
-import {
-createAdminAuthMiddleware,
-createProgrammaticAuthMiddleware,
-createServiceInjector,
-createSessionAuthMiddleware,
-createToolContextMiddleware,
-errorHandler
-} from './middleware/index.js';
+import { createServiceInjector, createToolContextMiddleware, createAdminAuthMiddleware, errorHandler } from './middleware/index.js';
 
 // 전역 변수 (서비스는 serverServices로만 접근)
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
-let adminSessionStore: SessionStore | null = null;
 
 // Phase 1.2: 라우터에서 사용할 전역 변수들
 // SSE Transport 저장소 (MCP 라우터용)
@@ -103,6 +92,38 @@ async function writeRuntimeDiagnosticsEvent(
   } catch {
     return;
   }
+}
+
+const HTTP_AUTH_TRUST_MODEL_NOTICE = [
+  'HTTP auth split:',
+  '/auth/session issues cookie-backed browser sessions for the dashboard.',
+  '/admin and /api are browser-session routes and expect ADMIN_API_KEY for direct access.',
+  '/tools, /mcp, and /messages are header-only and require Authorization: Bearer <key> or X-API-Key: <key>.'
+].join(' ');
+
+const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING = [
+  'ADMIN_API_KEY is not configured:',
+  'use the browser session flow for /auth/session, /admin, and /api;',
+  'Set ADMIN_API_KEY when you need direct admin/API access.',
+  '/tools, /mcp, and /messages still require Authorization: Bearer <key> or X-API-Key: <key>.'
+].join(' ');
+
+const HTTP_AUTH_NON_ASCII_ADMIN_KEY_WARNING = [
+  'ADMIN_API_KEY contains non-ASCII characters:',
+  'browser-based Authorization headers can fail on some clients.',
+  'Use ASCII-only keys, e.g. hex or base64url.'
+].join(' ');
+
+export function getHttpAuthTrustModelNotice(): string {
+  return HTTP_AUTH_TRUST_MODEL_NOTICE;
+}
+
+export function getHttpAuthMissingAdminKeyWarning(): string {
+  return HTTP_AUTH_MISSING_ADMIN_KEY_WARNING;
+}
+
+export function getHttpAuthNonAsciiAdminKeyWarning(): string {
+  return HTTP_AUTH_NON_ASCII_ADMIN_KEY_WARNING;
 }
 
 /**
@@ -162,11 +183,19 @@ app.use(cors({
     ? corsOrigins
     : (_orig: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => cb(null, false),
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-API-Key']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control']
 }));
 // DoS 완화: body 제한 1MB (리뷰 S4). 운영 시 rate limiting(예: express-rate-limit) 적용 권장.
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// 브라우저 대시보드용: 서버가 ADMIN_API_KEY를 알려주는 설정 스크립트(CSP 인라인 금지 대응)
+app.get('/static/js/memento-admin-config.js', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('application/javascript');
+  const payload = JSON.stringify({ apiKey: mementoConfig.adminApiKey ?? null });
+  res.send(`window.__MEMENTO_ADMIN_FETCH_CONFIG__=${payload};`);
+});
 
 // Static 파일 서빙 (대시보드 및 UI 리소스)
 app.use('/static', express.static(staticRoot));
@@ -191,28 +220,6 @@ let toolsRouter: express.Router | null = null;
 let adminRouter: express.Router | null = null;
 let apiRouter: express.Router | null = null;
 let mcpRouter: express.Router | null = null;
-let authRouter: express.Router | null = null;
-
-const DASHBOARD_SESSION_COOKIE_NAME = 'memento_admin_session';
-const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
-const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
-
-const HTTP_AUTH_TRUST_MODEL_NOTICE =
-  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /tools, /mcp, and /messages require Authorization Bearer or X-API-Key.';
-const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
-  'ADMIN_API_KEY is not configured: /api/v1/quality, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
-
-function isProtectedMcpProgrammaticPath(pathname: string): boolean {
-  return /^\/(?:mcp|messages)\/?$/.test(pathname);
-}
-
-export function getHttpAuthTrustModelNotice(): string {
-  return HTTP_AUTH_TRUST_MODEL_NOTICE;
-}
-
-export function getHttpAuthMissingAdminKeyWarning(): string {
-  return HTTP_AUTH_MISSING_ADMIN_KEY_WARNING;
-}
 
 // Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
 // 주석 처리된 기존 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
@@ -245,16 +252,14 @@ async function initializeServer() {
     logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
     logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
 
-    if (!db || !serverServices) {
-      // @memento/core로 DB·서비스 초기화
-      const core = await createMementoCore({
-        dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
-      });
-      db = core.db;
-      serverServices = core.services;
-    }
+    // @memento/core로 DB·서비스 초기화
+    const core = await createMementoCore({
+      dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
+    });
+    db = core.db;
+    const services = core.services;
 
-    const _services = serverServices;
+    serverServices = services;
 
     // Vector Search Engine 초기화 (HTTP 서버 전용)
     const vectorSearchEngine = getVectorSearchEngine();
@@ -264,63 +269,20 @@ async function initializeServer() {
     // 서비스 주입 미들웨어 (모든 라우터에 적용)
     app.use(createServiceInjector(serverServices, db));
     
-    adminSessionStore = createSessionStore({
-      idleTtlMs: DASHBOARD_SESSION_IDLE_TTL_MS,
-      absoluteTtlMs: DASHBOARD_SESSION_ABSOLUTE_TTL_MS
-    });
-
     // Phase 1.2: 라우터 초기화 및 등록
     toolsRouter = createToolsRouter(db, serverServices, anchorMapSubscribers);
     adminRouter = createAdminRouter(db, serverServices);
     apiRouter = createApiRouter(db, serverServices);
-    authRouter = createAuthRouter({
-      expectedKey: mementoConfig.adminApiKey,
-      store: adminSessionStore,
-      cookieName: DASHBOARD_SESSION_COOKIE_NAME,
-      secureCookie: process.env.NODE_ENV === 'production'
-    });
     mcpRouter = createMcpRouter(db, serverServices, transports);
     const qualityRouter = createQualityRouter(db);
     
-    // 라우터 등록 (/admin, /api는 브라우저 세션; /api/v1/quality, /tools, /mcp는 API 키)
-    const browserSessionAuth = createSessionAuthMiddleware({
-      store: adminSessionStore,
-      cookieName: DASHBOARD_SESSION_COOKIE_NAME
-    });
+    // 라우터 등록 (Admin/API/Quality는 fail-closed: ADMIN_API_KEY 미설정 시 401, 설정 시 API 키 인증 적용)
     const adminAuth = createAdminAuthMiddleware();
-    const programmaticAuth = createProgrammaticAuthMiddleware({
-      expectedKey: mementoConfig.adminApiKey
-    });
-    const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
-      if (req.method === 'OPTIONS') {
-        next();
-        return;
-      }
-
-      if (isProtectedMcpProgrammaticPath(req.path)) {
-        programmaticAuth(req, res, next);
-        return;
-      }
-
-      next();
-    };
-
-    app.use('/tools', programmaticAuth, createToolContextMiddleware, toolsRouter);
-    app.use('/auth', authRouter);
-    app.use('/admin', browserSessionAuth, adminRouter);
-    app.use(
-      '/api/v1/quality',
-      adminAuth,
-      qualityRouter,
-      (_req, res) => {
-        res.status(404).json({
-          error: 'Not Found',
-          message: 'Quality API route not found.'
-        });
-      }
-    );
-    app.use('/api', browserSessionAuth, apiRouter);
-    app.use('/', mcpProgrammaticAuth, mcpRouter); // /mcp, /messages는 루트에 등록
+    app.use('/tools', createToolContextMiddleware, toolsRouter);
+    app.use('/admin', adminAuth, adminRouter);
+    app.use('/api', adminAuth, apiRouter);
+    app.use('/api/v1/quality', adminAuth, qualityRouter);
+    app.use('/', mcpRouter); // /mcp, /messages는 루트에 등록
     
     // Phase 0: 공통 에러 핸들러 미들웨어 (모든 라우터 이후에 적용)
     app.use(errorHandler);
@@ -365,16 +327,8 @@ async function cleanup() {
   }
   
   isCleaningUp = true;
-
+  
   try {
-    // delete server.json on shutdown
-    const configDirForCleanup = resolveServerInfoConfigDir();
-    try {
-      await deleteServerInfo(configDirForCleanup);
-    } catch {
-      // ignore cleanup errors
-    }
-
     await writeRuntimeDiagnosticsEvent('server_cleanup_start');
 
     // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
@@ -616,6 +570,7 @@ wss.on('connection', (ws: WebSocket) => {
 async function startServer() {
   // DB·스케줄러 기동 전에 설정·보안 정책을 검사해 실패 시 리소스가 남지 않게 한다.
   validateConfig();
+  logger.info(getHttpAuthTrustModelNotice());
 
   const PORT = mementoConfig.port || 9001;
   const bindHostRaw = (mementoConfig.httpListenHost || '127.0.0.1').trim();
@@ -636,7 +591,7 @@ async function startServer() {
     isHttpBindHostRemotelyReachable(bindHostRaw)
   ) {
     logger.warn(
-      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: /admin and /api still require a browser session, and /api/v1/quality, /tools, /mcp, and /messages still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
+      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Browser-session routes (/auth/session, /admin, /api) still need the dashboard session flow or ADMIN_API_KEY for direct access, and /tools, /mcp, and /messages still require Authorization: Bearer <key> or X-API-Key: <key>. Do not use in production.'
     );
   }
 
@@ -644,13 +599,9 @@ async function startServer() {
   const adminKey = mementoConfig.adminApiKey;
   if (!adminKey || adminKey.trim() === '') {
     logger.warn(getHttpAuthMissingAdminKeyWarning());
-  } else if ([...adminKey].some((char) => char.charCodeAt(0) > 0x7f)) {
-    logger.warn(
-      'ADMIN_API_KEY contains non-ASCII characters: browser-based dashboard sign-in or programmatic clients may fail to send Authorization reliably (use ASCII-only keys, e.g. hex or base64url).'
-    );
+  } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
+    logger.warn(getHttpAuthNonAsciiAdminKeyWarning());
   }
-
-  logger.info(getHttpAuthTrustModelNotice());
 
   try {
     await initializeServer();
@@ -689,14 +640,6 @@ async function startServer() {
     const address = server.address();
     if (address && typeof address === 'object') {
       logger.info('서버 바인딩 완료', { address: address.address, port: address.port });
-      // write server.json for CLI discovery
-      const configDir = resolveServerInfoConfigDir();
-      void writeServerInfo(configDir, address.port).catch((error) => {
-        logger.error('server.json 기록 실패', {
-          error: error instanceof Error ? error.message : String(error),
-          configDir,
-        });
-      });
     }
   });
 }
@@ -706,24 +649,20 @@ async function startServer() {
 
 export const __test: {
   setTestDependencies: (deps: TestDependencies) => void;
-  initializeServer: () => Promise<void>;
   getApp: () => express.Application;
   getServer: () => any;
   getDatabase: () => Database.Database | null;
   getSearchEngine: () => ServerServices['searchEngine'];
   getHybridSearchEngine: () => ServerServices['hybridSearchEngine'];
   getEmbeddingService: () => ServerServices['embeddingService'];
-  isProtectedMcpProgrammaticPath: (pathname: string) => boolean;
 } = {
   setTestDependencies,
-  initializeServer,
   getApp: () => app,
   getServer: () => server,
   getDatabase: () => db,
   getSearchEngine: () => serverServices!.searchEngine,
   getHybridSearchEngine: () => serverServices!.hybridSearchEngine,
-  getEmbeddingService: () => serverServices!.embeddingService,
-  isProtectedMcpProgrammaticPath
+  getEmbeddingService: () => serverServices!.embeddingService
 };
 
-export { cleanup,startServer };
+export { startServer, cleanup };

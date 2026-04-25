@@ -17,4 +17,4 @@
 
 ## 문서
 
-저장소 루트의 [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)를 참고하세요.
+저장소 루트의 [DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md)(개발 규칙), [AGENTS.md](../../AGENTS.md)(에이전트 요약), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)를 참고하세요.

@@ -11,7 +11,7 @@ model: auto
 - PR·`git diff`·지정 파일·커밋 범위를 기준으로 리뷰한다
 - **차단(merge block)**, **수정 권장**, **닛/선택**으로 우선순위를 나눈다
 - 의도·설계·에러 경로·호환성(브레이킹 변경)을 명시적으로 본다
-- 이 저장소 규칙(`AGENTS.md`, `CLAUDE.md`, 관련 `.cursor/rules`)과의 정합성을 점검한다
+- 이 저장소 규칙(`DEVELOPMENT_RULES.md`, `AGENTS.md`, `CLAUDE.md`, 관련 `.cursor/rules`)과의 정합성을 점검한다
 
 ## `ts-pre-reviewer`와의 구분
 

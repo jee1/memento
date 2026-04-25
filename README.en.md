@@ -21,7 +21,8 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Memory Pinning**: Pin/unpin important memories
 - **Memory Deletion**: Soft/hard deletion
 - **Anchor System**: Set important memories as anchors for context management
-> **Note**: Anchor recovery, embedding migration, Episodic → Semantic conversion, and meta memory statistics are exposed through the HTTP Management API, not MCP tools.
+- **Meta Memory Statistics**: Query statistics such as memory search success rate and confidence scores
+- **Memory Conversion**: Automatic conversion from Episodic Memory to Semantic Memory
 
 ### 🔍 Advanced Search
 - **FTS5 Text Search**: SQLite's Full-Text Search
@@ -38,7 +39,7 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Auto Cleanup**: Automated soft/hard deletion
 
 ### 📊 Performance Monitoring (HTTP Management API)
-- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
+- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the dashboard cookie session, `/admin` and `/api` use the browser session flow or `ADMIN_API_KEY`, and `/tools` plus `/mcp` only accept `Authorization: Bearer <key>` or `X-API-Key: <key>`. See [docs/reference/en/security.md](docs/reference/en/security.md).
 - **Real-time Metrics**: Database, search, memory performance monitoring
 - **Real-time Alerts**: Automatic performance checks every 30 seconds with threshold-based alerts
 - **Error Logging**: Structured error logging and statistics collection
@@ -46,12 +47,17 @@ Memento MCP Server is a Model Context Protocol (MCP) server that helps AI Agents
 - **Cache System**: LRU + TTL based caching
 - **Async Processing**: Worker pool based parallel processing
 
+### 🔐 HTTP Auth Model
+- `/auth/session` starts the browser cookie session for the dashboard.
+- `/admin` and `/api` require the browser session flow or `ADMIN_API_KEY`.
+- `/tools` and `/mcp` only accept `Authorization: Bearer <key>` or `X-API-Key: <key>`.
+- When exposing the server beyond localhost, set `ADMIN_API_KEY` and keep `CORS_ALLOWED_ORIGINS` narrow.
+
 ### 🔗 Memory Graph View (Browser)
 
-After starting the HTTP server, you can visualize semantic relationships between memories as an interactive graph in your browser. `/dashboard` is the preferred entry point for the full admin flow, and opening `/graph` directly now offers the same `/auth/session` re-auth path so signed-out users can recover the session in place.
+After starting the HTTP server, visualize semantic relationships between memories as an interactive graph in your browser.
 
 ```
-http://localhost:9001/dashboard
 http://localhost:9001/graph
 ```
 
@@ -166,7 +172,8 @@ const results = await client.callTool({
 
 ### MCP Tools (Core 14)
 
-> **Important**: MCP client exposes 14 core memory management functions. Operational functions are exposed through the HTTP Management API below, not through MCP.
+> **Important**: MCP client exposes 14 core memory management functions.  
+> Operational functions are exposed over the HTTP Management API below, not through MCP.
 
 #### Basic Memory Management (7)
 | Tool | Description | Parameters |
@@ -190,11 +197,11 @@ const results = await client.callTool({
 #### Procedural Memory (3)
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `remember_procedure` | Store procedural memory | content, workflow_name, skill_name, steps, etc. |
+| `remember_procedure` | Store procedural memory | content, workflow_name, skill_name, steps, ... |
 | `procedural_diff` | Compare procedural memory versions | left_id, right_id |
 | `procedural_rollback` | Roll back procedural memory to a previous version | current_id, target_version_id |
 
-**HTTP-only (not MCP)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` - see the HTTP Management API below.
+**HTTP-only (not MCP)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see the HTTP Management API below.
 
 ### HTTP Management API
 
@@ -282,9 +289,9 @@ npm run test -- --coverage
 
 ## 📚 Developer Guidelines
 
-### Repository Guidelines (`AGENTS.md`)
-- **Project Structure**: Module organization under `src/`
-- **Build/Test Commands**: `npm run dev`, `npm run build`, `npm run test`, etc.
+### Repository Guidelines (`DEVELOPMENT_RULES.md` / `AGENTS.md`)
+- **Full dev rules**: [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md) — monorepo layout, build/test, style, PR/issue linking, environment.
+- **Agent entry summary**: [AGENTS.md](AGENTS.md) — MCP/Serena/graphify shortcuts.
 - **Coding Style**: Node.js ≥ 20, TypeScript ES modules, 2-space indentation
 - **Testing Guidelines**: Vitest based, `src/test/` or `*.spec.ts` files
 - **Commit/PR Guidelines**: Conventional Commits, Korean context included
@@ -333,7 +340,7 @@ npm run test -- --coverage
 ### M1: Personal Use (Current Implementation)
 - **Storage**: better-sqlite3 embedded
 - **Index**: FTS5 + sqlite-vec
-- **Authentication**: Split browser-session and header-based trust model (`/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`)
+- **Authentication**: None (local only)
 - **Operation**: Local execution
 - **MCP Client**: Exposes 14 core tools
 - **Management Functions**: Separated into HTTP API

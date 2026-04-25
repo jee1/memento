@@ -17,6 +17,6 @@
   - [Migration system guide](../../guides/en/migration-system-guide.md)
   - Schema DDL: `packages/memento-core/src/infrastructure/database/database/schema.sql`
   - Migrations: `packages/memento-core/src/infrastructure/database/database/migration/migrations/`
-  - Repo guide (DB): `AGENTS.md`
+  - Repo guide (DB): `DEVELOPMENT_RULES.md` (Environment & DB)
 
 For full sections (concepts, tables, indexes, migration history), see the [Korean version](../ko/database-design.md).

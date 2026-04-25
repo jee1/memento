@@ -61,8 +61,14 @@ git checkout "$BRANCH"
 git pull origin "$BRANCH"
 
 # 3. 빌드 & 실행 (memento-prod 서비스만 재빌드, redis/nginx는 그대로)
+# ARM(라즈베리파이 등)에서는 MiniLM 워밍업을 건너뜀 — 최초 런타임에 자동 수행됨
+BUILD_ARGS=""
+if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then
+  log "ARM 아키텍처 감지 — SKIP_TRANSFORMERS_WARMUP=1 적용"
+  BUILD_ARGS="--build-arg SKIP_TRANSFORMERS_WARMUP=1"
+fi
 log "Docker 빌드 시작..."
-$DC -f "$COMPOSE_FILE" build "$SERVICE"
+$DC -f "$COMPOSE_FILE" build $BUILD_ARGS "$SERVICE"
 
 log "컨테이너 교체..."
 $DC -f "$COMPOSE_FILE" up -d "$SERVICE"

@@ -1,7 +1,7 @@
 # docs 분류 체계
 
 **하는 일**: `docs/` 하위 문서의 카테고리 정의와 찾아보기 가이드.  
-**연관**: [docs/README.md](README.md)(이중 포털 목차), [AGENTS.md](../AGENTS.md)(저장소 가이드).
+**연관**: [docs/README.md](README.md)(이중 포털 목차), [DEVELOPMENT_RULES.md](../DEVELOPMENT_RULES.md)(개발 규칙), [AGENTS.md](../AGENTS.md)(에이전트 진입 요약).
 
 ---
 

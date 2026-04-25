@@ -22,4 +22,4 @@
 
 ## 문서
 
-[AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)
+[DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md), [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)

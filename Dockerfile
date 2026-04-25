@@ -62,9 +62,12 @@ COPY scripts/ ./scripts/
 RUN npm cache clean --force && npm install --omit=dev
 
 # Install sqlite-vec npm package and copy .so files to /usr/lib/ without .so extension
+# 아키텍처(x64/arm64)에 따라 패키지 디렉터리가 달라지므로 find로 자동 탐지
 RUN npm install sqlite-vec --build-from-source && \
     find /app/node_modules -name "*.so" -type f && \
-    cp /app/node_modules/sqlite-vec-linux-x64/vec0.so /usr/lib/vec0 && \
+    SO_PATH=$(find /app/node_modules -path "*/sqlite-vec-linux-*/vec0.so" | head -1) && \
+    echo "sqlite-vec .so: $SO_PATH" && \
+    cp "$SO_PATH" /usr/lib/vec0 && \
     chmod +x /usr/lib/vec0 && \
     ls -la /usr/lib/vec0
 

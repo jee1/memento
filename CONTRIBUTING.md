@@ -118,7 +118,7 @@ src/                  # 루트 스크립트·일부 테스트·에셋 복사 등
 tests/                # 통합 픽스처·통합 테스트
 ```
 
-자세한 디렉터리 역할은 [AGENTS.md](AGENTS.md)를 참고하세요.
+자세한 디렉터리 역할·개발 규칙은 [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md)를 참고하세요. 에이전트 진입 요약은 [AGENTS.md](AGENTS.md)입니다.
 
 ## 🔍 코드 리뷰 프로세스
 
