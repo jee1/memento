@@ -788,11 +788,12 @@ import { loadAgentConfig } from '../../core/types.js';
 export function parseArgs(argv: string[]): { query: string; useSearch: boolean; json: boolean } {
   const args = argv.slice(2);
   if (args[0] === 'serve-mcp') {
-    // serve-mcp 진입점: mcp/server.ts를 직접 실행
+    // serve-mcp: MCP 서버를 기동하고 return — process.exit 호출 금지
+    // (server.ts가 장기 실행 stdio 서버이므로 프로세스를 살려두어야 함)
     import('../../interfaces/mcp/server.js').catch((e) => {
       console.error(e); process.exit(1);
     });
-    process.exit(0);
+    return { query: '', useSearch: false, json: false }; // dummy — main()에서 serve-mcp 분기 후 return
   }
   if (args[0] !== 'ask') {
     console.error('Usage: memento-agent ask [--no-search] [--json] "<query>"\n       memento-agent serve-mcp');
@@ -1118,13 +1119,13 @@ export function createAgentRouter(): Router {
 
   const router = Router();
 
-  // lazy-connect: 첫 요청 전 Memento 서버에 연결
-  let connected = false;
+  // lazy-connect: Promise 캐싱으로 경쟁 조건 방지
+  let connectPromise: Promise<void> | null = null;
   router.use(async (_req, _res, next) => {
-    if (!connected) {
-      await client.connect();
-      connected = true;
+    if (!connectPromise) {
+      connectPromise = client.connect();
     }
+    await connectPromise;
     next();
   });
 
