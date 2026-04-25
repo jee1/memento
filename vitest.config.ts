@@ -37,7 +37,8 @@ export default defineConfig({
       'apps/**/*.{test,spec}.{js,ts}',
       'packages/memento-core/src/**/*.{test,spec}.{js,ts}',
       'packages/memento-client/src/**/*.{test,spec}.{js,ts}',
-      'packages/memento-server/src/**/*.{test,spec}.{js,ts}'
+      'packages/memento-server/src/**/*.{test,spec}.{js,ts}',
+      'packages/memento-agent/src/**/*.{test,spec}.{js,ts}',
     ],
     exclude: [
       'node_modules',
