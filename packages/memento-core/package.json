@@ -56,7 +56,7 @@
   "scripts": {
     "build": "tsc && npm run copy:assets",
     "copy:assets": "node scripts/copy-assets.js",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --declaration --emitDeclarationOnly",
     "db:init": "node dist/infrastructure/database/database/init.js",
     "db:migrate": "node dist/infrastructure/database/database/migrate.js"
   },
