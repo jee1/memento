@@ -107,9 +107,7 @@ export function createProceduralMemory(
     `INSERT INTO memory_item (
       id, type, content, importance, privacy_scope, 
       workflow_name, skill_name, steps, trigger_conditions, task_goal,
-      reflection_notes, edit_count, created_at
-    )
-    VALUES (?, 'procedural', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      reflection_notes, edit_count, created_at) VALUES (?, 'procedural', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
     [
       memoryId,
       content,
@@ -689,9 +687,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       DatabaseUtils.run(
         db,
         `INSERT INTO memory_item (
-          id, type, content, workflow_name, skill_name, task_goal, steps, created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          id, type, content, workflow_name, skill_name, task_goal, steps, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           existingMemoryId,
           'procedural',
@@ -2248,9 +2244,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, steps, task_goal, 
-          importance, privacy_scope, created_at
-        )
-        VALUES (
+          importance, privacy_scope, created_at) VALUES (
           ?, 'procedural', 'Existing workflow', 
           'existing_workflow', 'existing_skill', 
           '["step1", "step2"]', 'existing_task_goal',
@@ -2302,9 +2296,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, steps, task_goal, 
-          importance, privacy_scope, created_at
-        )
-        VALUES (
+          importance, privacy_scope, created_at) VALUES (
           ?, 'procedural', 'Workflow with data', 
           'important_workflow', 'important_skill', 
           '["critical_step1", "critical_step2"]', 'important_task',
@@ -2355,9 +2347,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, steps, task_goal, 
-          importance, privacy_scope, created_at
-        )
-        VALUES (
+          importance, privacy_scope, created_at) VALUES (
           ?, 'procedural', 'Partial update test', 
           'old_workflow', 'old_skill', 
           '["old_step1"]', 'old_task',
@@ -2410,9 +2400,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, steps, task_goal, 
-          importance, privacy_scope, created_at
-        )
-        VALUES (
+          importance, privacy_scope, created_at) VALUES (
           ?, 'procedural', 'Incremental steps test', 
           'test_workflow', 'test_skill', 
           '["existing_step1", "existing_step2"]', 'test_task',
@@ -2463,9 +2451,7 @@ describe('ReflexionWorker', { hookTimeout: 120000, timeout: 120000 }, () => {
       DatabaseUtils.run(db, `
         INSERT INTO memory_item (
           id, type, content, workflow_name, skill_name, steps, task_goal, 
-          importance, privacy_scope, created_at
-        )
-        VALUES (
+          importance, privacy_scope, created_at) VALUES (
           ?, 'procedural', 'Incremental merge test', 
           'test_workflow', 'test_skill', 
           '["step1", "step2"]', 'test_task',

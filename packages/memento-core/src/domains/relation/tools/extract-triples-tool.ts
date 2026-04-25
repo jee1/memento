@@ -100,7 +100,7 @@ export class ExtractTriplesTool extends BaseTool {
     if (d.content !== undefined && d.content.trim().length > 0) {
       text = d.content.trim();
     } else {
-      text = normalizeChatMessagesToText(d.messages!);
+      text = normalizeChatMessagesToText(d.messages as any);
     }
 
     const chunkSize = d.chunk_size ?? 8000;

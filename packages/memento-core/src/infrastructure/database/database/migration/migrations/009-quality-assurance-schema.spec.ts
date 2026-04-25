@@ -36,7 +36,10 @@ function createBaseSchema(db: Database.Database): void {
       object TEXT,
       triple_extracted BOOLEAN DEFAULT NULL,
       triple_extracted_status TEXT DEFAULT NULL,
-      triple_extraction_metadata TEXT DEFAULT NULL
+      triple_extraction_metadata TEXT DEFAULT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 

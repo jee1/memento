@@ -539,8 +539,7 @@ describe('HybridSearchEngine', () => {
       type: 'working' | 'episodic' | 'semantic' | 'procedural' = 'episodic'
     ): void {
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES (?, ?, ?, 0.5, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, ?, ?, 0.5, CURRENT_TIMESTAMP)
       `, [id, type, content]);
     }
 
@@ -2487,8 +2486,7 @@ describe('IProceduralMemoryMatcher 인터페이스', () => {
       type: 'working' | 'episodic' | 'semantic' | 'procedural' = 'episodic'
     ): void {
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, created_at)
-        VALUES (?, ?, ?, 0.5, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, ?, ?, 0.5, CURRENT_TIMESTAMP)
       `, [id, type, content]);
     }
 

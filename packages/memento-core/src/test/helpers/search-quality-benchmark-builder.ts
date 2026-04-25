@@ -15,6 +15,11 @@ export interface BenchmarkSourceMemory {
   created_at?: string | null;
 }
 
+function extractBenchmarkSequence(benchmarkId: string): number | null {
+  const match = benchmarkId.match(/^bench_mem_(\d+)$/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
 function normalizeTags(tags?: string[] | string | null): string[] {
   if (Array.isArray(tags)) {
     return tags.filter((tag): tag is string => typeof tag === 'string' && tag.length > 0);
@@ -36,16 +41,35 @@ function normalizeTags(tags?: string[] | string | null): string[] {
   return [];
 }
 
-export function buildBenchmarkCorpus(rows: BenchmarkSourceMemory[]): BenchmarkCorpusEntry[] {
+export function buildBenchmarkCorpus(
+  rows: BenchmarkSourceMemory[],
+  existingCorpus: BenchmarkCorpusEntry[] = []
+): BenchmarkCorpusEntry[] {
   const corpus: BenchmarkCorpusEntry[] = [];
+  const existingBySourceId = new Map(existingCorpus.map((entry) => [entry.source_memory_id, entry]));
+  const usedBenchmarkIds = new Set(existingCorpus.map((entry) => entry.benchmark_id));
+  let nextSequence =
+    existingCorpus.reduce((max, entry) => Math.max(max, extractBenchmarkSequence(entry.benchmark_id) ?? 0), 0) + 1;
 
   for (const row of rows) {
     if (row.content.trim().length === 0) {
       continue;
     }
 
+    const existingEntry = existingBySourceId.get(row.id);
+    let benchmarkId = existingEntry?.benchmark_id;
+
+    if (!benchmarkId) {
+      do {
+        benchmarkId = `bench_mem_${String(nextSequence).padStart(6, '0')}`;
+        nextSequence++;
+      } while (usedBenchmarkIds.has(benchmarkId));
+    }
+
+    usedBenchmarkIds.add(benchmarkId);
+
     corpus.push({
-      benchmark_id: `bench_mem_${String(corpus.length + 1).padStart(6, '0')}`,
+      benchmark_id: benchmarkId,
       source_memory_id: row.id,
       type: row.type,
       tags: normalizeTags(row.tags),

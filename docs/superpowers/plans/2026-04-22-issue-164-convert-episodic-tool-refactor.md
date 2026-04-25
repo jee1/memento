@@ -186,7 +186,7 @@ Expected: 의존성 설치 완료 (이미 node_modules 공유이므로 빠름)
 npx vitest run packages/memento-core/src/domains/memory/tools/__tests__/convert-episodic-to-semantic-tool.spec.ts
 ```
 
-Expected: 총 15개 테스트 모두 PASS (기존 8 + 신규 7)
+Expected: 총 18개 테스트 모두 PASS (기존 11 + 신규 7)
 
 - [ ] **Step 3: 커밋**
 

@@ -57,14 +57,14 @@ jobs:
       
       - name: Security Unit Tests
         run: |
-          npm test -- src/shared/utils/__tests__/logger.spec.ts \
-            src/shared/utils/__tests__/path-validator.spec.ts \
-            src/shared/utils/__tests__/pii-masker-env-control.spec.ts
+          npm test -- packages/memento-core/src/shared/utils/logger.spec.ts \
+            packages/memento-core/src/shared/utils/__tests__/path-validator.spec.ts \
+            packages/memento-core/src/shared/utils/__tests__/pii-masker-env-control.spec.ts
         continue-on-error: false
       
       - name: Security E2E Tests
         run: |
-          npx tsx src/test/test-security-sql-injection.ts
-          npx tsx src/test/test-security-path-traversal.ts
+          npx tsx packages/memento-server/src/test/test-security-sql-injection.ts
+          npx tsx packages/memento-server/src/test/test-security-path-traversal.ts
         continue-on-error: false
 

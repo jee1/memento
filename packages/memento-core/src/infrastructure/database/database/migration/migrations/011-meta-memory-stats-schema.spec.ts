@@ -25,7 +25,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -477,8 +480,7 @@ describe('MetaMemoryStatsSchemaMigration', () => {
 
       // 테스트용 memory_item 생성
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('test-memory-1', 'episodic', 'Test content');
 
       // meta_memory_stats 레코드 생성
@@ -517,8 +519,7 @@ describe('MetaMemoryStatsSchemaMigration', () => {
       const memoryIds = ['test-memory-1', 'test-memory-2', 'test-memory-3'];
       for (const memoryId of memoryIds) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(memoryId, 'episodic', `Test content for ${memoryId}`);
 
         // 각 memory_item에 대한 meta_memory_stats 레코드 생성

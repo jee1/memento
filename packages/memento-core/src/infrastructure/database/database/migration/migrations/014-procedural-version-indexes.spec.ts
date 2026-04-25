@@ -26,7 +26,10 @@ function createMemoryItemWithVersionColumns(db: Database.Database): void {
       privacy_scope TEXT DEFAULT 'private',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       version INTEGER NULL,
-      version_series_id TEXT NULL
+      version_series_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
 }
@@ -84,7 +87,10 @@ describe('Migration 014 - Procedural Version Indexes', () => {
           id TEXT PRIMARY KEY,
           type TEXT NOT NULL,
           content TEXT NOT NULL,
-          version INTEGER NULL
+          version INTEGER NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
         )
       `);
       createSchemaVersionTable(altDb);

@@ -31,7 +31,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 

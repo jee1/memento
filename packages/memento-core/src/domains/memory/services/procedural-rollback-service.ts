@@ -62,8 +62,7 @@ export function rollbackToVersion(
     `INSERT INTO memory_item (
       id, type, content, importance, privacy_scope, tags,
       task_goal, steps, reflection_notes, workflow_name, skill_name, trigger_conditions,
-      version, version_series_id
-    ) VALUES (?, 'procedural', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      version, version_series_id) VALUES (?, 'procedural', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       newId,
       target.content,

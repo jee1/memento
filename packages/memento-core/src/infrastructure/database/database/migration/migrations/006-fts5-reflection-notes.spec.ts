@@ -53,7 +53,10 @@ function createBaseSchema(db: Database.Database): void {
       trigger_conditions TEXT,
       owner_id TEXT NULL,
       process_id TEXT NULL,
-      session_id TEXT NULL
+      session_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
 
@@ -306,8 +309,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       // Given: 마이그레이션 1-3단계 완료
       // 기존 데이터 추가
       db.exec(`
-        INSERT INTO memory_item (id, type, content, tags, source)
-        VALUES ('test-1', 'episodic', 'Test content 1', 'tag1', 'source1')
+        INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-1', 'episodic', 'Test content 1', 'tag1', 'source1')
       `);
 
       await step1CreateNewTable(db);
@@ -316,8 +318,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // When: 새 레코드 INSERT
       db.exec(`
-        INSERT INTO memory_item (id, type, content, tags, source, reflection_notes)
-        VALUES ('test-2', 'episodic', 'Test content 2', 'tag2', 'source2', '{"failure_type":"tool_error"}')
+        INSERT INTO memory_item (id, type, content, tags, source, reflection_notes) VALUES ('test-2', 'episodic', 'Test content 2', 'tag2', 'source2', '{"failure_type":"tool_error"}')
       `);
 
       // Then: 두 테이블 모두에 삽입 확인
@@ -351,8 +352,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
     it('Given: 마이그레이션 1-3단계가 완료된 상태일 때, When: memory_item의 기존 레코드를 UPDATE하면, Then: memory_item_fts와 memory_item_fts_new 모두에 업데이트가 반영되어야 함', async () => {
       // Given: 마이그레이션 1-3단계 완료 및 기존 데이터
       db.exec(`
-        INSERT INTO memory_item (id, type, content, tags, source)
-        VALUES ('test-3', 'episodic', 'Original content', 'original-tag', 'original-source')
+        INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-3', 'episodic', 'Original content', 'original-tag', 'original-source')
       `);
 
       await step1CreateNewTable(db);
@@ -395,8 +395,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
     it('Given: 마이그레이션 1-3단계가 완료된 상태일 때, When: memory_item의 reflection_notes를 UPDATE하면, Then: memory_item_fts_new에만 reflection_notes가 반영되어야 함', async () => {
       // Given: 마이그레이션 1-3단계 완료 및 기존 데이터
       db.exec(`
-        INSERT INTO memory_item (id, type, content, tags, source)
-        VALUES ('test-4', 'procedural', 'Test content', 'tag', 'source')
+        INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-4', 'procedural', 'Test content', 'tag', 'source')
       `);
 
       await step1CreateNewTable(db);
@@ -584,8 +583,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       try {
         // 첫 번째 INSERT
         db.exec(`
-          INSERT INTO memory_item (id, type, content, tags, source)
-          VALUES ('test-duplicate', 'episodic', 'First content', 'tag1', 'source1')
+          INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-duplicate', 'episodic', 'First content', 'tag1', 'source1')
         `);
 
         // 두 번째 INSERT 시도 (같은 id로는 불가능하므로, 다른 방법으로 테스트)
@@ -629,8 +627,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
     it('Given: 마이그레이션 1-3단계가 완료된 상태일 때, When: 트랜잭션 내에서 동일한 레코드를 여러 번 UPDATE하면, Then: 트리거가 각 UPDATE마다 정확히 한 번씩만 실행되어야 함', async () => {
       // Given: 마이그레이션 1-3단계 완료 및 기존 데이터
       db.exec(`
-        INSERT INTO memory_item (id, type, content, tags, source)
-        VALUES ('test-multiple-update', 'episodic', 'Original content', 'tag', 'source')
+        INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-multiple-update', 'episodic', 'Original content', 'tag', 'source')
       `);
 
       await setupMigrationSteps(db);
@@ -702,8 +699,7 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
 
       // When: 새 레코드 INSERT
       db.exec(`
-        INSERT INTO memory_item (id, type, content, tags, source)
-        VALUES ('test-single-insert', 'episodic', 'Single insert test', 'tag', 'source')
+        INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-single-insert', 'episodic', 'Single insert test', 'tag', 'source')
       `);
 
       // Then: 두 테이블 모두에 정확히 하나의 레코드만 존재해야 함
@@ -741,18 +737,15 @@ describe('FTS5 Reflection Notes Migration (006)', () => {
       
       try {
         db.exec(`
-          INSERT INTO memory_item (id, type, content, tags, source)
-          VALUES ('test-batch-1', 'episodic', 'Batch content 1', 'tag1', 'source1')
+          INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-batch-1', 'episodic', 'Batch content 1', 'tag1', 'source1')
         `);
 
         db.exec(`
-          INSERT INTO memory_item (id, type, content, tags, source)
-          VALUES ('test-batch-2', 'episodic', 'Batch content 2', 'tag2', 'source2')
+          INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-batch-2', 'episodic', 'Batch content 2', 'tag2', 'source2')
         `);
 
         db.exec(`
-          INSERT INTO memory_item (id, type, content, tags, source)
-          VALUES ('test-batch-3', 'episodic', 'Batch content 3', 'tag3', 'source3')
+          INSERT INTO memory_item (id, type, content, tags, source) VALUES ('test-batch-3', 'episodic', 'Batch content 3', 'tag3', 'source3')
         `);
 
         db.exec('COMMIT');

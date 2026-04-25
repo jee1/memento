@@ -36,7 +36,10 @@ function initializeTestDatabase(db: Database.Database): void {
       task_goal TEXT,
       steps TEXT,
       reflection_notes TEXT,
-      edit_count INTEGER DEFAULT 0
+      edit_count INTEGER DEFAULT 0,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS memory_link (
@@ -235,8 +238,7 @@ describe('Procedural Memory Change Detector', () => {
         const memoryId = 'test-memory-1';
         DatabaseUtils.run(
           db,
-          `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, trigger_conditions, task_goal, reflection_notes, edit_count)
-           VALUES (?, 'procedural', 'Test content', 'Test workflow', 'Test skill', '["step1","step2"]', '{"key":"value"}', 'Test goal', '[{"note":"test"}]', 1)`,
+          `INSERT INTO memory_item (id, type, content, workflow_name, skill_name, steps, trigger_conditions, task_goal, reflection_notes, edit_count) VALUES (?, 'procedural', 'Test content', 'Test workflow', 'Test skill', '["step1","step2"]', '{"key":"value"}', 'Test goal', '[{"note":"test"}]', 1)`,
           [memoryId]
         );
 

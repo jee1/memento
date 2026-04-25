@@ -25,7 +25,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -204,8 +207,7 @@ describe('AnchorTableMigration', () => {
 
       // 테스트 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('test-1', 'episodic', 'Test content');
 
       // 첫 번째 앵커 설정 (성공해야 함)
@@ -239,8 +241,7 @@ describe('AnchorTableMigration', () => {
       await migration.up(db);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('test-1', 'episodic', 'Test content');
 
       // 유효한 슬롯 (A, B, C)는 허용되어야 함
@@ -265,8 +266,7 @@ describe('AnchorTableMigration', () => {
 
       // 테스트 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('test-1', 'episodic', 'Test content');
 
       // 앵커 설정
@@ -419,8 +419,7 @@ describe('AnchorTableMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 
@@ -453,8 +452,7 @@ describe('AnchorTableMigration', () => {
 
       for (const mem of memories) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(mem.id, mem.type, mem.content);
       }
 
@@ -497,8 +495,7 @@ describe('AnchorTableMigration', () => {
 
       // 메모리 생성 및 앵커 설정
       db.prepare(`
-        INSERT INTO memory_item (id, type, content)
-        VALUES (?, ?, ?)
+        INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
       `).run('mem-1', 'episodic', 'Memory 1');
 
       db.prepare(`

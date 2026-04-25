@@ -86,8 +86,7 @@ describe('MemoryNeighborService', () => {
       // 메모리 아이템만 생성 (임베딩 없음)
       const memoryId = 'mem_test_1';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.getNeighbors(memoryId, {
@@ -109,18 +108,15 @@ describe('MemoryNeighborService', () => {
 
       // 메모리 아이템 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId1, 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId2, 'episodic', 'Test content 2', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId3, 'episodic', 'Test content 3', 0.5, 'private']);
 
       // 유사한 임베딩 생성 (동일한 벡터 사용)
@@ -161,8 +157,7 @@ describe('MemoryNeighborService', () => {
     it('should respect limit parameter', async () => {
       const memoryId = 'mem_test_limit';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.getNeighbors(memoryId, {
@@ -176,8 +171,7 @@ describe('MemoryNeighborService', () => {
     it('should respect similarity_threshold parameter', async () => {
       const memoryId = 'mem_test_threshold';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.getNeighbors(memoryId, {
@@ -202,8 +196,7 @@ describe('MemoryNeighborService', () => {
     it('should return empty array for invalid embedding format', async () => {
       const memoryId = 'mem_test_invalid';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       // 잘못된 형식의 임베딩 저장
@@ -225,8 +218,7 @@ describe('MemoryNeighborService', () => {
     it('should return empty array when memory has no embedding', async () => {
       const memoryId = 'mem_test_update_1';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       const result = await neighborService.updateNeighborsForNewMemory(memoryId, 0.8);
@@ -240,13 +232,11 @@ describe('MemoryNeighborService', () => {
 
       // 메모리 아이템 생성
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId1, 'episodic', 'Test content 1', 0.5, 'private']);
 
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId2, 'episodic', 'Test content 2', 0.5, 'private']);
 
       // 유사한 임베딩 생성
@@ -282,8 +272,7 @@ describe('MemoryNeighborService', () => {
     it('should return empty array on error without throwing', async () => {
       const memoryId = 'mem_test_update_error';
       await DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at)
-        VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+        INSERT INTO memory_item (id, type, content, importance, privacy_scope, reflection_notes, created_at) VALUES (?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
       `, [memoryId, 'episodic', 'Test content', 0.5, 'private']);
 
       // 데이터베이스 연결 해제하여 에러 발생

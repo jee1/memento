@@ -277,8 +277,7 @@ describe('MemoryInjectionPrompt', () => {
       
       try {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content, importance)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
         `).run(testMemory.id, testMemory.type, testMemory.content, testMemory.importance);
 
         const params = {

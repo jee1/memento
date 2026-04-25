@@ -88,7 +88,9 @@ function createMinimalSchema(db: Database.Database): void {
       importance REAL,
       created_at TEXT,
       tags TEXT,
-      is_deleted INTEGER NOT NULL DEFAULT 0
+      is_deleted INTEGER NOT NULL DEFAULT 0,
+          project_id TEXT,
+          deleted_at TEXT
     );
     CREATE TABLE memory_embedding (
       memory_id TEXT NOT NULL,
@@ -117,8 +119,7 @@ function seedEmbeddings(
   isDeleted = false
 ): void {
   const insMi = db.prepare(
-    `INSERT INTO memory_item (id, type, content, importance, created_at, tags, is_deleted)
-     VALUES (?, 'semantic', ?, 0.5, datetime('now'), '[]', ?)`
+    `INSERT INTO memory_item (id, type, content, importance, created_at, tags, is_deleted) VALUES (?, 'semantic', ?, 0.5, datetime('now'), '[]', ?)`
   );
   const insMe = db.prepare(
     `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim)

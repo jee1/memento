@@ -1,74 +1,210 @@
 /**
- * Core 패키지 테스트용 DB 헬퍼.
- * createMementoCore로 초기화하고, cleanup 시 스케줄러 정리·DB 종료.
+ * 테스트용 데이터베이스 헬퍼 유틸리티
+ * 표준화된 테스트 DB 초기화 및 관리
  */
 
 import Database from 'better-sqlite3';
-import { initializeDatabase, closeDatabase as closeDb } from '../../infrastructure/database/database/init.js';
-import { initializeServices } from '../../bootstrap.js';
 import { DatabaseUtils } from '../../shared/utils/database.js';
-import { resetBatchScheduler } from '../../infrastructure/scheduler/batch-scheduler.js';
-
-interface MementoCoreInstance {
-  db: Database.Database;
-  services: Awaited<ReturnType<typeof initializeServices>>;
-}
-
-const coreByDb = new WeakMap<Database.Database, MementoCoreInstance>();
 
 /**
- * :memory: DB만 생성 (스키마 적용, 서비스 미기동).
- * BatchScheduler 등 서비스 중복 기동을 피할 때 사용.
- */
-export async function createTestDatabaseWithoutServices(): Promise<Database.Database> {
-  return initializeDatabase(':memory:');
-}
-
-/**
- * :memory: DB로 core 초기화. 반환된 db를 테스트에서 사용 후 cleanupTestDatabase(db) 호출.
+ * 표준화된 테스트 데이터베이스 초기화
+ * 
+ * @returns 초기화된 SQLite 데이터베이스 인스턴스
  */
 export async function setupTestDatabase(): Promise<Database.Database> {
-  const db = await initializeDatabase(':memory:');
-  const services = await initializeServices(db);
-  const core: MementoCoreInstance = { db, services };
-  coreByDb.set(db, core);
+  const db = new Database(':memory:');
+  
+  // 1. 기본 스키마 초기화
+  await DatabaseUtils.initializeDatabase(db);
+  
+  // 1.5. FTS5 트리거 업데이트 (reflection_notes 포함)
+  // 기존 트리거를 삭제하고 새로 생성하여 reflection_notes를 포함하도록 함
+  try {
+    db.exec('DROP TRIGGER IF EXISTS memory_item_fts_insert');
+    db.exec('DROP TRIGGER IF EXISTS memory_item_fts_update');
+    db.exec('DROP TRIGGER IF EXISTS memory_item_fts_delete');
+    
+    // reflection_notes 정규화 함수 등록
+    const { normalizeReflectionNotes } = await import('../../shared/utils/reflection-notes-normalize.js');
+    db.function('normalize_reflection_notes', {
+      deterministic: true,
+      varargs: false
+    }, (reflectionNotes: string | null) => {
+      return normalizeReflectionNotes(reflectionNotes);
+    });
+    
+    // 새 트리거 생성 (reflection_notes 포함)
+    db.exec(`
+      CREATE TRIGGER memory_item_fts_insert AFTER INSERT ON memory_item BEGIN
+        INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+        VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
+      END
+    `);
+    
+    db.exec(`
+      CREATE TRIGGER memory_item_fts_update AFTER UPDATE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
+        INSERT INTO memory_item_fts(rowid, content, tags, source, reflection_notes)
+        VALUES (new.rowid, new.content, new.tags, new.source, normalize_reflection_notes(new.reflection_notes));
+      END
+    `);
+    
+    db.exec(`
+      CREATE TRIGGER memory_item_fts_delete AFTER DELETE ON memory_item BEGIN
+        INSERT INTO memory_item_fts(memory_item_fts, rowid, content, tags, source, reflection_notes)
+        VALUES('delete', old.rowid, old.content, old.tags, old.source, normalize_reflection_notes(old.reflection_notes));
+      END
+    `);
+  } catch (error) {
+    // FTS5 트리거 업데이트 실패는 무시 (테스트는 계속 진행)
+  }
+  
+  // 2. VEC 확장 로딩 (벡터 검색 기능 활성화)
+  let vecExtensionLoaded = false;
+  try {
+    const { getLoadablePath } = await import('sqlite-vec');
+    const extensionPath = getLoadablePath();
+    db.loadExtension(extensionPath);
+    vecExtensionLoaded = true;
+  } catch (error) {
+    // VEC 확장이 없는 경우 벡터 테이블은 생성하지 않음
+  }
+  
+  // 3. 벡터 테이블 초기화 (VEC 확장이 로드된 경우에만)
+  if (vecExtensionLoaded) {
+    const vecTables = [
+      { name: 'memory_item_vec', dimension: 384 },
+      { name: 'memory_item_vec_tfidf', dimension: 512 },
+      { name: 'memory_item_vec_minilm', dimension: 384 },
+      { name: 'memory_item_vec_openai', dimension: 1536 },
+      { name: 'memory_item_vec_gemini', dimension: 768 }
+    ];
+    
+    for (const table of vecTables) {
+      try {
+        db.exec(`DROP TABLE IF EXISTS ${table.name}`);
+        db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${table.name} USING vec0(embedding float[${table.dimension}])`);
+      } catch (error) {
+        // 벡터 테이블 생성 실패는 무시
+      }
+    }
+  }
+  
+  // 4. anchor 테이블 초기화
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS anchor (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id TEXT NOT NULL,
+      slot TEXT CHECK (slot IN ('A', 'B', 'C')) NOT NULL,
+      memory_id TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+      UNIQUE(agent_id, slot)
+    );
+    CREATE INDEX IF NOT EXISTS idx_anchor_agent_slot ON anchor(agent_id, slot);
+    CREATE INDEX IF NOT EXISTS idx_anchor_memory_id ON anchor(memory_id) WHERE memory_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_anchor_agent_memory ON anchor(agent_id, memory_id) WHERE memory_id IS NOT NULL;
+  `);
+  
+  // 5. AriGraph Pipeline 스키마 확장
+  try {
+    const columns = DatabaseUtils.all(db, `SELECT name FROM pragma_table_info('memory_item')`) as Array<{ name: string }>;
+    const columnNames = columns.map(c => c.name);
+    
+    if (!columnNames.includes('subject')) db.exec('ALTER TABLE memory_item ADD COLUMN subject TEXT');
+    if (!columnNames.includes('predicate')) db.exec('ALTER TABLE memory_item ADD COLUMN predicate TEXT');
+    if (!columnNames.includes('object')) db.exec('ALTER TABLE memory_item ADD COLUMN object TEXT');
+    if (!columnNames.includes('triple_extracted')) db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted BOOLEAN DEFAULT NULL');
+    if (!columnNames.includes('triple_extracted_status')) db.exec('ALTER TABLE memory_item ADD COLUMN triple_extracted_status TEXT DEFAULT NULL');
+    if (!columnNames.includes('triple_extraction_metadata')) db.exec('ALTER TABLE memory_item ADD COLUMN triple_extraction_metadata TEXT DEFAULT NULL');
+    if (!columnNames.includes('recall_count')) db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
+    if (!columnNames.includes('last_accessed_at')) db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
+    if (!columnNames.includes('consolidation_score')) db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
+    if (!columnNames.includes('g_value')) db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
+    
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_memory_item_triple_extracted ON memory_item(triple_extracted);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_triple_status ON memory_item(triple_extracted_status);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed_at ON memory_item(last_accessed_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_memory_item_consol_desc ON memory_item(consolidation_score DESC);
+    `);
+  } catch (error) {
+    // 무시
+  }
+  
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_relation (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      relation_type TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 0.7 CHECK (confidence >= 0.0 AND confidence <= 1.0),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      metadata TEXT,
+      FOREIGN KEY (source_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      FOREIGN KEY (target_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+      UNIQUE(source_id, target_id, relation_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_memory_relation_source ON memory_relation(source_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_relation_target ON memory_relation(target_id);
+    CREATE INDEX IF NOT EXISTS idx_memory_relation_type ON memory_relation(relation_type);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS relation_type_registry (
+      type_name TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      description TEXT,
+      applicable_types TEXT,
+      default_confidence REAL DEFAULT 0.7,
+      search_boost REAL DEFAULT 1.0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
+    INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+    VALUES 
+      ('extracted_from', 'Structural', '추출 관계', '["episodic", "semantic"]', 0.7, 1.1),
+      ('supported_by', 'Structural', '근거 관계', '["episodic", "semantic"]', 0.7, 1.1);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kg_triple (
+      id TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      predicate TEXT NOT NULL,
+      object TEXT NOT NULL,
+      owner_id TEXT NULL,
+      process_id TEXT NULL,
+      session_id TEXT NULL,
+      representative_memory_id TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (representative_memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+      UNIQUE(subject, predicate, object)
+    );
+    CREATE INDEX IF NOT EXISTS idx_kg_triple_spo ON kg_triple(subject, predicate, object);
+  `);
+
   return db;
 }
 
 /**
- * 테스트 DB 및 BatchScheduler 정리. 반드시 await 호출.
+ * 서비스를 초기화하지 않고 데이터베이스만 준비 (setupTestDatabase와 동일한 역할의 별칭)
  */
-export async function cleanupTestDatabase(db: Database.Database | null | undefined): Promise<void> {
-  if (!db) return;
-  const core = coreByDb.get(db);
-  if (core) {
-    try {
-      const scheduler = core.services.batchScheduler as { stop?: () => Promise<void> } | undefined;
-      if (typeof scheduler?.stop === 'function') {
-        await scheduler.stop();
-      }
-    } catch (_e) {
-      // ignore
-    } finally {
-      resetBatchScheduler();
-    }
-    try {
-      closeDb(core.db);
-    } catch (_e) {
-      // ignore
-    }
-    coreByDb.delete(db);
-  } else {
-    try {
-      db.close();
-    } catch (_e) {
-      // ignore
-    }
-  }
+export async function createTestDatabaseWithoutServices(): Promise<Database.Database> {
+  return await setupTestDatabase();
 }
 
 /**
- * 테스트용 메모리 한 건 삽입.
+ * 표준화된 테스트 메모리 생성 헬퍼
+ * 
+ * @param db 데이터베이스 인스턴스
+ * @param options 메모리 생성 옵션
+ * @returns 생성된 메모리 ID
  */
 export function createTestMemory(
   db: Database.Database,
@@ -88,19 +224,21 @@ export function createTestMemory(
     trigger_conditions?: string | null;
     task_goal?: string | null;
     edit_count?: number;
+    project_id?: string | null;
   }
 ): string {
-  const memoryId = options.id ?? `mem_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-  const type = options.type ?? 'episodic';
+  const memoryId = options.id || `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const type = options.type || 'episodic';
   const importance = options.importance ?? 0.5;
-  const privacy_scope = options.privacy_scope ?? 'private';
+  const privacy_scope = options.privacy_scope || 'private';
   const pinned = options.pinned ?? false;
-  const tags = options.tags != null ? JSON.stringify(options.tags) : null;
+  const tags = options.tags ? JSON.stringify(options.tags) : null;
   const reflection_notes = options.reflection_notes !== undefined ? options.reflection_notes : null;
-
+  const project_id = options.project_id || null;
+  
   DatabaseUtils.run(db, `
-    INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned, tags, source, reflection_notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned, tags, source, reflection_notes, project_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     memoryId,
     type,
@@ -109,9 +247,23 @@ export function createTestMemory(
     privacy_scope,
     pinned ? 1 : 0,
     tags,
-    options.source ?? null,
-    reflection_notes
+    options.source || null,
+    reflection_notes,
+    project_id
   ]);
-
+  
   return memoryId;
+}
+
+/**
+ * 테스트 데이터베이스 정리
+ * 
+ * @param db 데이터베이스 인스턴스
+ */
+export function cleanupTestDatabase(db: Database.Database): void {
+  try {
+    db.close();
+  } catch (error) {
+    // 이미 닫혀있거나 오류가 발생해도 무시
+  }
 }

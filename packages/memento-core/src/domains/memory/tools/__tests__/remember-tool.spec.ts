@@ -65,7 +65,9 @@ function initializeTestDatabase(db: Database.Database): void {
       source_session_id TEXT,
       confidence REAL,
       -- Project-scoped memory (Issue #81)
-      project_id TEXT NULL
+      project_id TEXT NULL,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);

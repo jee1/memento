@@ -28,7 +28,10 @@ function createSchemaWith018(db: Database.Database): void {
       object TEXT,
       owner_id TEXT,
       process_id TEXT,
-      session_id TEXT
+      session_id TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
   db.exec(`
@@ -70,8 +73,7 @@ describe('Migration 019 - backfill kg_triple from memory_item', () => {
 
   it('Given: semantic memory_item 2건(서로 다른 (s,p,o)), When: up 실행, Then: kg_triple 2행', async () => {
     db.prepare(`
-      INSERT INTO memory_item (id, type, content, subject, predicate, object)
-      VALUES ('mem1', 'semantic', 'A likes B', 'A', 'likes', 'B'),
+      INSERT INTO memory_item (id, type, content, subject, predicate, object) VALUES ('mem1', 'semantic', 'A likes B', 'A', 'likes', 'B'),
              ('mem2', 'semantic', 'C has D', 'C', 'has', 'D')
     `).run();
     await migration.up(db);
@@ -83,8 +85,7 @@ describe('Migration 019 - backfill kg_triple from memory_item', () => {
 
   it('Given: 동일 (s,p,o) semantic 2건, When: up 실행, Then: kg_triple 1행, representative는 하나', async () => {
     db.prepare(`
-      INSERT INTO memory_item (id, type, content, subject, predicate, object, created_at)
-      VALUES ('mem1', 'semantic', 'User likes Coffee', 'User', 'likes', 'Coffee', '2025-01-01T00:00:00.000Z'),
+      INSERT INTO memory_item (id, type, content, subject, predicate, object, created_at) VALUES ('mem1', 'semantic', 'User likes Coffee', 'User', 'likes', 'Coffee', '2025-01-01T00:00:00.000Z'),
              ('mem2', 'semantic', 'User likes Coffee', 'User', 'likes', 'Coffee', '2025-01-02T00:00:00.000Z')
     `).run();
     await migration.up(db);
@@ -97,8 +98,7 @@ describe('Migration 019 - backfill kg_triple from memory_item', () => {
 
   it('Given: subject/predicate/object 없는 semantic, When: up 실행, Then: backfill 대상 제외', async () => {
     db.prepare(`
-      INSERT INTO memory_item (id, type, content, subject, predicate, object)
-      VALUES ('mem1', 'semantic', 'No triple', NULL, NULL, NULL)
+      INSERT INTO memory_item (id, type, content, subject, predicate, object) VALUES ('mem1', 'semantic', 'No triple', NULL, NULL, NULL)
     `).run();
     await migration.up(db);
     const count = (db.prepare('SELECT COUNT(*) as c FROM kg_triple').get() as { c: number }).c;

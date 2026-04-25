@@ -22,7 +22,10 @@ function createBaseSchema(db: Database.Database): void {
       last_accessed TIMESTAMP,
       pinned BOOLEAN DEFAULT FALSE,
       tags TEXT,
-      source TEXT
+      source TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
   db.exec(`
@@ -48,9 +51,7 @@ describe('MetaMemoryIntrospectionService', () => {
 
     // Given: memory_item 레코드 (외래키용)
     db.exec(`
-      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
-      VALUES
-        ('mem_low_conf', 'episodic', 'Low confidence memory', 0.5, 'private', CURRENT_TIMESTAMP, 0),
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned) VALUES ('mem_low_conf', 'episodic', 'Low confidence memory', 0.5, 'private', CURRENT_TIMESTAMP, 0),
         ('mem_high_fail', 'episodic', 'High failure memory', 0.6, 'private', CURRENT_TIMESTAMP, 0),
         ('mem_ok', 'semantic', 'OK memory', 0.7, 'private', CURRENT_TIMESTAMP, 0)
     `);
@@ -98,8 +99,7 @@ describe('MetaMemoryIntrospectionService', () => {
     const migration = new MetaMemoryStatsSchemaMigration();
     await migration.up(emptyDb);
     emptyDb.exec(`
-      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned)
-      VALUES ('mem_only', 'episodic', 'Only item', 0.5, 'private', CURRENT_TIMESTAMP, 0)
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned) VALUES ('mem_only', 'episodic', 'Only item', 0.5, 'private', CURRENT_TIMESTAMP, 0)
     `);
 
     const result = await MetaMemoryIntrospectionService.runScan(emptyDb, { agentId: 'default' });

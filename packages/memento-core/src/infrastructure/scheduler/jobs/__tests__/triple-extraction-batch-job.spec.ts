@@ -51,7 +51,10 @@ describe('TripleExtractionBatchJob', () => {
         triple_extraction_metadata TEXT,
         privacy_scope TEXT DEFAULT 'private',
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
       )
     `);
 
@@ -130,8 +133,7 @@ describe('TripleExtractionBatchJob', () => {
       const content = 'Alice works at Microsoft. She is a data scientist.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.7, null, null]);
 
       // When: 배치 작업 실행
@@ -222,8 +224,7 @@ describe('TripleExtractionBatchJob', () => {
 
       for (const memory of memories) {
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
         `, [memory.id, 'episodic', memory.content, 0.6, null, null]);
       }
 
@@ -256,15 +257,13 @@ describe('TripleExtractionBatchJob', () => {
       // Given: 이미 처리된 Episodic Memory 생성
       const processedMemoryId = generateId();
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [processedMemoryId, 'episodic', 'Already processed content', 0.5, 1, 'success']);
 
       // Given: 미처리 Episodic Memory 생성
       const unprocessedMemoryId = generateId();
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [unprocessedMemoryId, 'episodic', 'Unprocessed content', 0.5, null, null]);
 
       // When: 배치 작업 실행
@@ -286,15 +285,13 @@ describe('TripleExtractionBatchJob', () => {
       // Given: abandoned 상태의 Episodic Memory 생성
       const abandonedMemoryId = generateId();
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [abandonedMemoryId, 'episodic', 'Abandoned content', 0.5, 0, 'abandoned']);
 
       // Given: 미처리 Episodic Memory 생성
       const unprocessedMemoryId = generateId();
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [unprocessedMemoryId, 'episodic', 'Unprocessed content', 0.5, null, null]);
 
       // When: 배치 작업 실행
@@ -316,8 +313,7 @@ describe('TripleExtractionBatchJob', () => {
       // Given: 빈 content를 가진 Episodic Memory 생성 (Triple 추출 실패 예상)
       const memoryId = generateId();
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [memoryId, 'episodic', '', 0.5, null, null]);
 
       // When: 배치 작업 실행
@@ -353,8 +349,7 @@ describe('TripleExtractionBatchJob', () => {
       for (let i = 0; i < totalMemories; i++) {
         const memoryId = generateId();
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
         `, [memoryId, 'episodic', `Content ${i}`, 0.5, null, null]);
       }
 
@@ -401,8 +396,7 @@ describe('TripleExtractionBatchJob', () => {
         const memoryId = generateId();
         memoryIds.push(memoryId);
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
         `, [memoryId, 'episodic', `Test content ${i}`, 0.5, null, null]);
       }
 
@@ -446,8 +440,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId, 'episodic', 'Test content', 0.5, 0, 'failed', JSON.stringify(metadata)]);
 
       // When: 배치 작업 실행
@@ -483,8 +476,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId, 'episodic', 'Alice works at Microsoft.', 0.5, 0, 'failed', JSON.stringify(metadata)]);
 
       // When: 배치 작업 실행
@@ -528,8 +520,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId, 'episodic', '', 0.5, 0, 'failed', JSON.stringify(initialMetadata)]);
 
       // When: 배치 작업 실행 (실패 예상)
@@ -566,8 +557,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId, 'episodic', '', 0.5, 0, 'failed', JSON.stringify(metadata)]);
 
       // When: 배치 작업 실행
@@ -609,8 +599,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId1, 'episodic', 'Test content 1', 0.5, 0, 'failed', JSON.stringify(metadata1)]);
 
       // Given: 두 번째 재시도 (2일 후)
@@ -626,8 +615,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId2, 'episodic', 'Test content 2', 0.5, 0, 'failed', JSON.stringify(metadata2)]);
 
       // Given: 세 번째 재시도 (4일 후)
@@ -643,8 +631,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId3, 'episodic', 'Test content 3', 0.5, 0, 'failed', JSON.stringify(metadata3)]);
 
       // When: 배치 작업 실행
@@ -668,8 +655,7 @@ describe('TripleExtractionBatchJob', () => {
       };
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status, triple_extraction_metadata) VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [memoryId, 'episodic', 'Alice works at Microsoft. She is a data scientist.', 0.5, 0, 'failed', JSON.stringify(metadata)]);
 
       // When: 배치 작업 실행 (성공 예상)
@@ -713,8 +699,7 @@ describe('TripleExtractionBatchJob', () => {
         memories.push({ id: memoryId, content });
         
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
         `, [memoryId, 'episodic', content, 0.5 + (i % 5) * 0.1, null, null]);
       }
 
@@ -777,8 +762,7 @@ describe('TripleExtractionBatchJob', () => {
         const content = `Chunk test ${i}: Person ${i} works at Company ${i}.`;
         
         DatabaseUtils.run(db, `
-          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
         `, [memoryId, 'episodic', content, 0.5, null, null]);
       }
 
@@ -860,8 +844,7 @@ describe('TripleExtractionBatchJob', () => {
         for (let i = 0; i < memoryCount; i++) {
           const memoryId = generateId();
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
           `, [memoryId, 'episodic', sameContent, 0.5, null, null]);
         }
 
@@ -878,8 +861,7 @@ describe('TripleExtractionBatchJob', () => {
         for (let i = 0; i < memoryCount; i++) {
           const memoryId = generateId();
           DatabaseUtils.run(db, `
-            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
           `, [memoryId, 'episodic', sameContent, 0.5, null, null]);
         }
 
@@ -917,8 +899,7 @@ describe('TripleExtractionBatchJob', () => {
           const content = `Batch size test ${i}: Person ${i} works at Company ${i}.`;
           
           DatabaseUtils.run(testDb, `
-            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
           `, [memoryId, 'episodic', content, 0.5, null, null]);
         }
 

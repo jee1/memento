@@ -25,7 +25,10 @@ function createBaseSchema(db: Database.Database): void {
       origin_source TEXT DEFAULT '{}',
       task_goal TEXT,
       steps TEXT,
-      reflection_notes TEXT
+      reflection_notes TEXT,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
   `);
 
@@ -205,13 +208,11 @@ describe('ConsolidationScoreFieldsMigration', () => {
       const pastTimeStr = pastTime.toISOString();
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, created_at, pinned)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, created_at, pinned) VALUES (?, ?, ?, ?, ?)
       `).run('test-1', 'episodic', 'Test content 1', pastTimeStr, 0);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, created_at, pinned)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, created_at, pinned) VALUES (?, ?, ?, ?, ?)
       `).run('test-2', 'procedural', 'Test content 2', pastTimeStr, 1);
 
       await migration.up(db);
@@ -248,18 +249,15 @@ describe('ConsolidationScoreFieldsMigration', () => {
       const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, created_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, created_at) VALUES (?, ?, ?, ?)
       `).run('recent', 'episodic', 'Recent content', oneHourAgo);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, created_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, created_at) VALUES (?, ?, ?, ?)
       `).run('old', 'episodic', 'Old content', oneWeekAgo);
 
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, created_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, created_at) VALUES (?, ?, ?, ?)
       `).run('procedural', 'procedural', 'Procedural content', oneDayAgo);
 
       await migration.up(db);
@@ -393,8 +391,7 @@ describe('ConsolidationScoreFieldsMigration', () => {
 
       for (const data of testData) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(data.id, data.type, data.content);
       }
 
@@ -419,8 +416,7 @@ describe('ConsolidationScoreFieldsMigration', () => {
       // 여러 레코드 삽입
       for (let i = 1; i <= 5; i++) {
         db.prepare(`
-          INSERT INTO memory_item (id, type, content)
-          VALUES (?, ?, ?)
+          INSERT INTO memory_item (id, type, content) VALUES (?, ?, ?)
         `).run(`test-${i}`, 'episodic', `Content ${i}`);
       }
 

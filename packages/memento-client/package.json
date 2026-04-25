@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
     "clean": "rimraf dist",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --declaration --emitDeclarationOnly",
     "test": "vitest run",
     "test:ci": "vitest run --reporter=basic"
   },

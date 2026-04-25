@@ -36,7 +36,10 @@ function initializeTestDatabase(db: Database.Database): void {
       recall_count INTEGER NOT NULL DEFAULT 0,
       last_accessed_at TIMESTAMP,
       consolidation_score REAL,
-      g_value REAL
+      g_value REAL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_item_last_accessed ON memory_item(last_accessed_at DESC);
@@ -113,8 +116,7 @@ describe('BatchScheduler와 ConsolidationScoreWorker 통합', () => {
 
     DatabaseUtils.run(
       db,
-      `INSERT INTO memory_item (id, type, content, recall_count, last_accessed_at, created_at, g_value, consolidation_score)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO memory_item (id, type, content, recall_count, last_accessed_at, created_at, g_value, consolidation_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ['mem1', 'episodic', 'Test memory', 5, thirtyMinutesAgo.toISOString(), thirtyMinutesAgo.toISOString(), 2.5, 0.8]
     );
 
@@ -135,8 +137,7 @@ describe('BatchScheduler와 ConsolidationScoreWorker 통합', () => {
     for (let i = 0; i < 10; i++) {
       DatabaseUtils.run(
         db,
-        `INSERT INTO memory_item (id, type, content, recall_count, last_accessed_at, created_at, g_value, consolidation_score)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memory_item (id, type, content, recall_count, last_accessed_at, created_at, g_value, consolidation_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [`mem${i}`, 'episodic', `Test memory ${i}`, i + 1, oneHourAgo.toISOString(), oneHourAgo.toISOString(), 1.0 + i * 0.1, 0.5 + i * 0.05]
       );
     }

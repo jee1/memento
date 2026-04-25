@@ -27,7 +27,10 @@ function createMemoryItemTable(db: Database.Database): void {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       owner_id TEXT NULL,
       process_id TEXT NULL,
-      session_id TEXT NULL
+      session_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
 }

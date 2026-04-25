@@ -28,8 +28,7 @@ describe('MigrationDetector', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     db.exec(SCHEMA_VERSION_TABLE);
-    const migrationsDir = join(process.cwd(), 'src', 'infrastructure', 'database', 'database', 'migration', 'migrations');
-    detector = new MigrationDetector(migrationsDir);
+    detector = new MigrationDetector();
   });
 
   afterEach(() => {

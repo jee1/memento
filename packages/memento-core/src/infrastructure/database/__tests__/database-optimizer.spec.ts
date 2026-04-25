@@ -26,8 +26,7 @@ describe('DatabaseOptimizer', () => {
     it('데이터베이스 성능을 분석해야 함', async () => {
       // Given: 테스트 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, reflection_notes)
-        VALUES ('test-1', 'episodic', 'Test content 1', NULL)
+        INSERT INTO memory_item (id, type, content, reflection_notes) VALUES ('test-1', 'episodic', 'Test content 1', NULL)
       `).run();
 
       // When: 성능 분석
@@ -43,8 +42,7 @@ describe('DatabaseOptimizer', () => {
     it('테이블 통계를 포함해야 함', async () => {
       // Given: 테스트 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, reflection_notes)
-        VALUES ('test-1', 'episodic', 'Test content 1', NULL)
+        INSERT INTO memory_item (id, type, content, reflection_notes) VALUES ('test-1', 'episodic', 'Test content 1', NULL)
       `).run();
 
       // When: 성능 분석
@@ -81,8 +79,7 @@ describe('DatabaseOptimizer', () => {
     it('인덱스 권장 사항을 반환해야 함', async () => {
       // Given: 테스트 데이터 삽입 및 쿼리 기록
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, reflection_notes)
-        VALUES ('test-1', 'episodic', 'Test content 1', NULL)
+        INSERT INTO memory_item (id, type, content, reflection_notes) VALUES ('test-1', 'episodic', 'Test content 1', NULL)
       `).run();
       optimizer.recordQuery('SELECT * FROM memory_item WHERE type = ?', 100);
 
@@ -214,8 +211,7 @@ describe('DatabaseOptimizer', () => {
     it('최적화 리포트를 생성해야 함', async () => {
       // Given: 테스트 데이터 삽입
       db.prepare(`
-        INSERT INTO memory_item (id, type, content, reflection_notes)
-        VALUES ('test-1', 'episodic', 'Test content 1', NULL)
+        INSERT INTO memory_item (id, type, content, reflection_notes) VALUES ('test-1', 'episodic', 'Test content 1', NULL)
       `).run();
 
       // When: 최적화 리포트 생성

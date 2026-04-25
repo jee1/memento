@@ -23,7 +23,10 @@ function createSchemaWith019(db: Database.Database): void {
       content TEXT NOT NULL,
       owner_id TEXT NULL,
       process_id TEXT NULL,
-      session_id TEXT NULL
+      session_id TEXT NULL,
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
     )
   `);
   db.exec(`

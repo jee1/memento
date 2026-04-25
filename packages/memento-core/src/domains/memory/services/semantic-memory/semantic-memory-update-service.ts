@@ -557,9 +557,7 @@ export class SemanticMemoryUpdateService {
     await DatabaseUtils.run(this.db, `
       INSERT INTO memory_item (
         id, type, content, subject, predicate, object,
-        importance, privacy_scope, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        importance, privacy_scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id,
       'semantic',

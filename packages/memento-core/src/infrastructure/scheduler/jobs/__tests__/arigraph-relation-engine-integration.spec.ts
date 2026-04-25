@@ -51,7 +51,10 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
         triple_extraction_metadata TEXT,
         privacy_scope TEXT DEFAULT 'private',
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          project_id TEXT,
+          is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+          deleted_at TEXT
       )
     `);
 
@@ -123,8 +126,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content = 'Alice works at Microsoft. She is a data scientist.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.7, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성
@@ -189,8 +191,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content = 'Bob likes coffee. He drinks it every morning.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.6, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성
@@ -240,8 +241,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content = 'Carol is a teacher. She teaches mathematics.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.8, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성
@@ -298,13 +298,11 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content2 = 'Bob works at Google.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemory1Id, 'episodic', content1, 0.7, null, null]);
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemory2Id, 'episodic', content2, 0.6, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성
@@ -375,8 +373,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content = 'David works at Amazon. He is a software engineer.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.9, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성
@@ -446,8 +443,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content = 'Eve is a doctor. She works at a hospital.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.8, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성
@@ -497,8 +493,7 @@ describe('AriGraph Pipeline - Relation Engine 통합', () => {
       const content = 'Frank is a musician. He plays the guitar.';
       
       DatabaseUtils.run(db, `
-        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO memory_item (id, type, content, importance, triple_extracted, triple_extracted_status) VALUES (?, ?, ?, ?, ?, ?)
       `, [episodicMemoryId, 'episodic', content, 0.7, null, null]);
 
       // Triple 추출 및 Semantic Memory 생성

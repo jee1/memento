@@ -79,9 +79,9 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
       const getTool = new GetRelationsTool();
       const result = await getTool.handle({
         memory_id,
-        relation_type: relation_type as Parameters<GetRelationsTool['handle']>[0]['relation_type'],
-        category: category as Parameters<GetRelationsTool['handle']>[0]['category'],
-        direction: (direction as Parameters<GetRelationsTool['handle']>[0]['direction']) || 'both'
+        relation_type: relation_type as any,
+        category: category as any,
+        direction: (direction as any) || 'both'
       }, context);
 
       const resultText = result.content[0]?.text || '{}';

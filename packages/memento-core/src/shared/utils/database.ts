@@ -418,7 +418,8 @@ export class DatabaseUtils {
           last_mentioned_at TIMESTAMP,
           source_session_id TEXT,
           confidence REAL,
-          is_consolidated BOOLEAN DEFAULT FALSE
+          is_consolidated BOOLEAN DEFAULT FALSE,
+          project_id TEXT
         )
       `);
 
@@ -436,6 +437,11 @@ export class DatabaseUtils {
       memoryItemColumns = db.prepare('PRAGMA table_info(memory_item)').all() as Array<{ name: string }>;
       if (!memoryItemColumns.some(c => c.name === 'deleted_at')) {
         this.run(db, 'ALTER TABLE memory_item ADD COLUMN deleted_at TEXT');
+      }
+
+      memoryItemColumns = db.prepare('PRAGMA table_info(memory_item)').all() as Array<{ name: string }>;
+      if (!memoryItemColumns.some(c => c.name === 'project_id')) {
+        this.run(db, 'ALTER TABLE memory_item ADD COLUMN project_id TEXT');
       }
 
       this.run(db, `
@@ -519,8 +525,13 @@ export class DatabaseUtils {
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_privacy_scope ON memory_item(privacy_scope)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_importance ON memory_item(importance)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_user_id ON memory_item(id)');
-      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(id)');
-      // Procedural Memory Enhancement (v7.0) 인덱스
+      this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_project_id ON memory_item(project_id)');
+      this.run(
+        db,
+        `CREATE INDEX IF NOT EXISTS idx_memory_item_project_id_type
+         ON memory_item(project_id, type)
+         WHERE project_id IS NOT NULL`
+      );      // Procedural Memory Enhancement (v7.0) 인덱스
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_workflow_name ON memory_item(workflow_name)');
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_memory_item_skill_name ON memory_item(skill_name)');
       // Memori Attribution (Issue #87, migration 016)

@@ -102,7 +102,7 @@ export class SchemaVersionManager {
   async recordVersion(version: SchemaVersion): Promise<void> {
     try {
       DatabaseUtils.run(this.db, `
-        INSERT INTO memento_schema_version (version, migration_name, checksum, applied_by, description)
+        INSERT OR IGNORE INTO memento_schema_version (version, migration_name, checksum, applied_by, description)
         VALUES (?, ?, ?, ?, ?)
       `, [
         version.version,
