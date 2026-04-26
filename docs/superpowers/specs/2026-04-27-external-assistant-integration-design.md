@@ -183,13 +183,17 @@ project_id = (비활용 — 향후 "워크스페이스" 도입 시)
 const memory = MementoAssistant.fromEnv({
   ownerId: 'user:jee1lee',
   channel: 'telegram',
+  userTags: ['persona:assistant-v1'],   // 사용자가 SDK 생성 시 옵션으로 주는 베이스 태그 (선택)
   policy: { crossChannelRecall: 'on' }
 });
 // remember 시: tags = [...userTags, 'channel:telegram'], owner_id = 'user:jee1lee'
 // recall 시:   crossChannelRecall='on'  → tags 필터 없음
 //              crossChannelRecall='off' → tags ⊇ ['channel:telegram']
-//              crossChannelRecall='sameContext' → 향후 (work/personal 컨텍스트 도입 시)
+//              crossChannelRecall='sameContext' → v0.2 예약. v0.1에서 이 값을 받으면
+//                                                 WARN 로그 1회 + 'on'으로 fallback (throw 안 함)
 ```
+
+`userTags`는 SDK 생성 시 사용자가 모든 remember에 자동 부여하고 싶은 베이스 태그 배열(선택, 기본 `[]`). 비서/페르소나/배포 환경 식별 등에 활용. ownerId 기반이 아니라 사용자가 직접 지정.
 
 기본값 `'on'`. 프라이버시 우려 있는 사용자는 `'off'`로 끔.
 
@@ -280,8 +284,18 @@ const hits = await memory.recall('지난번 그 식당 이름이 뭐였지?');
 
 ### `MementoAssistant.fromEnv()`
 - 환경변수만으로 stdio/HTTP 자동 결정 (T3 핵심)
-- `MEMENTO_TRANSPORT=stdio` (기본) → 자식 프로세스 spawn
-- `MEMENTO_TRANSPORT=http MEMENTO_URL=… MEMENTO_TOKEN=…` → HTTP
+
+| 환경변수 | 의미 | 기본 |
+|---|---|---|
+| `MEMENTO_TRANSPORT` | `stdio` \| `http` | `stdio` |
+| `MEMENTO_URL` | HTTP 트랙의 base URL | (HTTP일 때 필수) |
+| `MEMENTO_TOKEN` | HTTP 트랙의 Bearer 토큰 | (HTTP일 때 필수) |
+| `MEMENTO_STDIO_COMMAND` | stdio 트랙에서 spawn할 명령 | `npx -y memento-mcp-server@latest start --stdio` |
+| `MEMENTO_OWNER_ID` | 옵션이 없을 때의 기본 ownerId | `default` |
+| `MEMENTO_CHANNEL` | 옵션이 없을 때의 기본 channel | (없음, tag 미부여) |
+| `MEMENTO_LOG` | `error` \| `warn` \| `info` \| `debug` | `warn` |
+
+생성자 옵션이 환경변수보다 우선. 옵션 미지정 + 환경변수도 미지정이면 위 기본값 적용.
 
 ### 라이프사이클 훅
 
@@ -427,6 +441,9 @@ stdio: child 사망 → 5s 쿨다운 후 1회 재spawn, 연속 3회 실패 → �
 
 ### Dependency invariant
 SDK는 비서 측에 추가 데몬/사이드카를 요구하지 않는다. 단순 in-process 라이브러리.
+
+### 프로세스 종료 시 큐 처리
+`afterAssistantTurn`의 retry 큐는 in-process이며 **프로세스 종료 시 그대로 손실된다**(SIGTERM/SIGINT/crash 모두). graceful shutdown 시 큐를 flush하려는 시도도 하지 않는다 — 비서 종료를 지연시키지 않기 위함. 손실되는 항목은 working memory tier(48h TTL)이므로 무방하다는 §7 결정의 직접적 귀결.
 
 ---
 
