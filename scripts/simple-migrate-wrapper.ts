@@ -14,8 +14,8 @@
  *   node dist/scripts/simple-migrate-wrapper.js
  */
 
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { logger } from '../src/shared/utils/logger.js';
+import { initializeDatabase, closeDatabase } from '../packages/memento-core/src/infrastructure/database/database/init.js';
+import { logger } from '../packages/memento-core/src/shared/utils/logger.js';
 
 /**
  * simple-migrate.js의 기능 (임베딩 데이터 분석)

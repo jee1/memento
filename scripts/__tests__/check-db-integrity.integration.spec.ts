@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { existsSync, unlinkSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { initializeDatabase, closeDatabase } from '../../src/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '@memento/core/infrastructure/database/database/init.js';
 
 describe('check-db-integrity 통합 테스트', () => {
   let testDbPath: string;

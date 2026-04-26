@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { existsSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { initializeDatabase, closeDatabase } from '../../src/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '@memento/core/infrastructure/database/database/init.js';
 import Database from 'better-sqlite3';
 
 /** sqlite-vec 트리거가 json_extract(embedding)로 벡터를 쓰므로 빈 배열 []는 사용할 수 없음 */

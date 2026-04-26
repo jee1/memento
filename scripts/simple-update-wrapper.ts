@@ -14,10 +14,10 @@
  *   node dist/scripts/simple-update-wrapper.js
  */
 
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { MigrationRunner } from '../src/infrastructure/database/database/migration/migration-runner.js';
-import { MigrationDetector } from '../src/infrastructure/database/database/migration/migration-detector.js';
-import { logger } from '../src/shared/utils/logger.js';
+import { initializeDatabase, closeDatabase } from '../packages/memento-core/src/infrastructure/database/database/init.js';
+import { MigrationRunner } from '../packages/memento-core/src/infrastructure/database/database/migration/migration-runner.js';
+import { MigrationDetector } from '../packages/memento-core/src/infrastructure/database/database/migration/migration-detector.js';
+import { logger } from '../packages/memento-core/src/shared/utils/logger.js';
 
 /**
  * simple-update.js의 기능을 정식 마이그레이션 시스템으로 실행
