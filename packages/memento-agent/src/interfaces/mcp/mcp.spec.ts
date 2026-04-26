@@ -7,7 +7,7 @@ describe('agent_ask MCP tool definition', () => {
   });
 
   it('requires query parameter', () => {
-    const schema = AGENT_ASK_TOOL.inputSchema as { required: string[] };
+    const schema = AGENT_ASK_TOOL.inputSchema as unknown as { required: string[] };
     expect(schema.required).toContain('query');
   });
 });

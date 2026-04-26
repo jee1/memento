@@ -38,7 +38,7 @@ describe('AgentCore', () => {
     const core = new AgentCore(client, new NoopLLMProvider(), new NoopSearchProvider());
     const result = await core.ask('question');
     expect(result.usedMemories).toHaveLength(1);
-    expect(result.usedMemories[0].id).toBe('1');
+    expect(result.usedMemories[0]?.id).toBe('1');
   });
 
   it('saves answer as episodic memory after completing', async () => {

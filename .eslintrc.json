@@ -71,6 +71,15 @@
     },
     {
       "files": [
+        "packages/memento-agent/src/interfaces/cli/**/*.ts",
+        "packages/memento-agent/src/interfaces/mcp/server.ts"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": [
         "packages/memento-server/src/cli.ts",
         "packages/memento-server/src/cli/**/*.ts"
       ],

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { BraveSearchProvider } from './brave-search-provider.js';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('BraveSearchProvider', () => {
   it('returns empty array when API key is missing', async () => {
