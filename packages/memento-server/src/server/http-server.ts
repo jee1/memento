@@ -599,6 +599,7 @@ async function startServer() {
   const adminKey = mementoConfig.adminApiKey;
   if (!adminKey || adminKey.trim() === '') {
     logger.warn(getHttpAuthMissingAdminKeyWarning());
+  // eslint-disable-next-line no-control-regex
   } else if (!/^[\x00-\x7F]+$/.test(adminKey)) {
     logger.warn(getHttpAuthNonAsciiAdminKeyWarning());
   }
