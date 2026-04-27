@@ -10,9 +10,9 @@
     "apps/*"
   ],
   "bin": {
-    "memento-mcp-server": "./packages/memento-server/dist/server/index.js",
-    "memento-dev": "./packages/memento-server/dist/server/http-server.js",
-    "memento-mcp": "./packages/memento-server/dist/server/index.js",
+    "memento-mcp-server": "./dist/server/index.js",
+    "memento-dev": "./dist/server/http-server.js",
+    "memento-mcp": "./dist/server/index.js",
     "memento-setup": "./scripts/auto-setup.js"
   },
   "scripts": {
@@ -21,7 +21,7 @@
     "dev:http": "npm run dev:http -w memento-server",
     "dev:http-v2": "npm run dev:http-v2 -w memento-server",
     "build": "npm run build:packages",
-    "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client",
+    "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client && npm run sync:root-server-dist",
     "copy:assets": "npm run copy:assets -w @memento/core",
     "docs:audit-links": "node scripts/audit-markdown-links.mjs",
     "start": "npm run start -w memento-server",
@@ -114,7 +114,9 @@
     "publish:client": "npm publish --workspace @memento/client",
     "test:prepare": "npm run build -w @memento/core && npm run build -w memento-server",
     "lint:ts": "eslint \"{packages,apps,tests,scripts}/**/*.ts\"",
-    "lint:js": "eslint \"static/js/**/*.js\""
+    "lint:js": "eslint \"static/js/**/*.js\"",
+    "sync:root-server-dist": "node scripts/sync-root-server-dist.js",
+    "build:root": "npm run build -w memento-server && npm run sync:root-server-dist"
   },
   "keywords": [
     "mcp",
