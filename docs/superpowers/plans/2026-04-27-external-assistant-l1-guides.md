@@ -33,6 +33,29 @@
 
 ---
 
+## Task 0: 작업 브랜치 생성
+
+**Files:** (없음 — git 작업)
+
+### 배경
+
+이 저장소의 글로벌 규칙: **main 직접 커밋 금지, 항상 브랜치 → PR**. 모든 후속 task는 이 브랜치에서 수행한다.
+
+> **Note:** 본 plan 문서 자체가 이미 `docs/external-assistant-integration-design` 브랜치에 커밋되어 있다면 그 브랜치를 그대로 이어 쓰면 된다. 새로 시작하는 경우에만 아래 명령 실행.
+
+- [ ] **Step 1: 브랜치 확인 / 생성**
+
+```bash
+git branch --show-current
+# 결과가 'main'이면 새 브랜치 생성:
+git checkout -b docs/external-assistant-integration-design
+# 결과가 이미 'docs/external-assistant-integration-design'이면 skip
+```
+
+기대 결과: 작업 브랜치 `docs/external-assistant-integration-design`에 위치.
+
+---
+
 ## Task 1: memento-agent 아카이브
 
 **Files:**
@@ -43,14 +66,32 @@
 
 `packages/memento-agent/`는 이슈 #100의 자체 비서 빌드 산출물(설계 + 일부 스캐폴드). 외부 비서 통합으로 방향 전환했으므로 active 패키지에서 제외한다. 루트 `package.json`의 `workspaces` 배열에 이미 포함되어 있지 않아 빌드/테스트 영향 없음 — 그래도 `packages/` 아래에 있으면 혼란을 줄 수 있어 `_archived/`로 격리.
 
-- [ ] **Step 1: 아카이브 디렉터리 생성 및 이동**
+- [ ] **Step 1: 현재 git 상태 확인**
 
+```bash
+git status -s packages/memento-agent
+```
+
+결과 해석:
+- 라인이 `??`로 시작 → **untracked**. `git mv` 사용 불가. Step 2의 폴백 경로 사용.
+- 라인이 비어있거나 `M`/`A` 등으로 시작 → **tracked**. `git mv` 사용 가능.
+
+- [ ] **Step 2: 아카이브 디렉터리 생성 및 이동**
+
+tracked인 경우:
 ```bash
 mkdir -p packages/_archived
 git mv packages/memento-agent packages/_archived/memento-agent-issue-100
 ```
 
-- [ ] **Step 2: 아카이브 README 작성**
+untracked인 경우 (폴백):
+```bash
+mkdir -p packages/_archived
+mv packages/memento-agent packages/_archived/memento-agent-issue-100
+# 새 위치를 git이 인식하도록 (Step 5 commit에서 자동 staged됨)
+```
+
+- [ ] **Step 3: 아카이브 README 작성**
 
 ```markdown
 # _archived
@@ -69,7 +110,7 @@ git mv packages/memento-agent packages/_archived/memento-agent-issue-100
 
 저장: `packages/_archived/README.md`
 
-- [ ] **Step 3: 빌드 깨지지 않음 확인**
+- [ ] **Step 4: 빌드 깨지지 않음 확인**
 
 ```bash
 npm install
@@ -78,7 +119,7 @@ npm run build
 
 기대 결과: 둘 다 성공. `packages/memento-agent`가 `workspaces`에 없었으므로 영향 없어야 함.
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [ ] **Step 5: 테스트 통과 확인**
 
 ```bash
 npm test
@@ -86,7 +127,7 @@ npm test
 
 기대 결과: 모든 테스트 PASS.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 6: 커밋**
 
 ```bash
 git add packages/_archived
@@ -553,7 +594,11 @@ npx vitest run tests/integrations/smoke.spec.ts
 
 - [ ] **Step 3: vitest 설정 확인**
 
-`vitest.config.ts`에서 `tests/integrations/`가 include 되는지 확인. 안 되면 추가:
+```bash
+grep -n "include" vitest.config.ts
+```
+
+`tests/integrations/`나 `tests/**/*.spec.ts`가 include 패턴에 들어있는지 확인. 안 되면 추가:
 
 ```typescript
 test: {
