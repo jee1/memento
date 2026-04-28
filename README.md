@@ -77,6 +77,10 @@ http://localhost:9001/graph
 
 ![Memento Memory Graph View](docs/graph-screenshot.png)
 
+## 🔗 외부 AI 비서와 함께 쓰기
+
+OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
+
 ## 🚀 빠른 시작
 
 ### 🥇 **원클릭 설치 (권장)**

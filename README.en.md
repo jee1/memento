@@ -57,6 +57,10 @@ http://localhost:9001/graph
 
 ![Memento Memory Graph View](docs/graph-screenshot.png)
 
+## 🔗 Use Memento with External AI Assistants
+
+Personal AI assistants like OpenClaw, NanoClaw, and ZeroClaw can use Memento as a shared long-term memory backend. Guide: [docs/integrations/](./docs/integrations/README.md)
+
 ## 🚀 Quick Start
 
 ### 🥇 **One-click Installation (Recommended)**
