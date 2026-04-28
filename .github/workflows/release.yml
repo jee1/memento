@@ -4,32 +4,98 @@ on:
   release:
     types: [published]
   workflow_dispatch: # 수동 실행도 가능
+    inputs:
+      debug_release:
+        description: Enable detailed release diagnostics
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: "Preflight: GitHub API access"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          API_URL="https://api.github.com/repos/${{ github.repository }}"
+          GH_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${API_URL}")"
+          if [ "${GH_STATUS}" -lt 200 ] || [ "${GH_STATUS}" -ge 300 ]; then
+            echo "E_GH_API_ACCESS: GitHub API returned HTTP ${GH_STATUS}"
+            exit 1
+          fi
+          echo "github_api_status=${GH_STATUS}"
+
+      - name: "Preflight: repository context"
+        run: |
+          set -euo pipefail
+          if ! git rev-parse HEAD >/dev/null 2>&1; then
+            echo "E_CHECKOUT_CONTEXT: cannot resolve HEAD (invalid checkout context)"
+            exit 1
+          fi
+          EVENT_NAME="${{ github.event_name }}"
+          REF_VAL="${{ github.ref }}"
+          REF_TYPE_VAL="${{ github.ref_type }}"
+          IS_SHALLOW="$(git rev-parse --is-shallow-repository)"
+          TAG_COUNT="$(git tag -l | wc -l | tr -d ' ')"
+          echo "event=${EVENT_NAME}"
+          echo "ref=${REF_VAL}"
+          echo "ref_type=${REF_TYPE_VAL}"
+          echo "is_shallow=${IS_SHALLOW}"
+          echo "tag_count=${TAG_COUNT}"
+
+      - name: Log release debug flag
+        run: |
+          echo "github.event_name=${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "inputs.debug_release=${{ github.event.inputs.debug_release }}"
+          else
+            echo "inputs.debug_release not used (release event); debug_release applies only to workflow_dispatch"
+          fi
+
+      - name: "Debug diagnostics (conditional)"
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_release == 'true'
+        run: |
+          set -euo pipefail
+          echo "debug_release=${{ github.event.inputs.debug_release }}"
+          git --version
+          git remote -v
+          git show-ref --tags | tail -n 20
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
-          
+          node-version: "20"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Install dependencies
         run: npm ci
 
       # @memento/core 진입점이 dist/index.js이므로, 테스트 전에 빌드 필요 (server 스펙이 core 의존)
       - name: Build packages
         run: npm run build
-        
+
       - name: Run tests
         run: npm run test
-        
+
       - name: Extract version and release info
         id: version
         run: |
@@ -43,7 +109,7 @@ jobs:
             # workflow_dispatch 또는 태그 푸시인 경우 GitHub API로 Release 정보 조회
             TAG_NAME=${GITHUB_REF#refs/tags/}
             if [ -z "$TAG_NAME" ]; then
-              echo "❌ Error: Tag name not found"
+              echo "E_TAG_RESOLUTION: tag name not found from ref (${GITHUB_REF})"
               exit 1
             fi
             
@@ -63,16 +129,16 @@ jobs:
               echo "✅ Found Release: prerelease = $IS_PRERELEASE"
             fi
           fi
-          
+
           VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
-          
+
           # npm 태그 결정: pre-release는 "next", 정식 릴리스는 "latest"
           if [ "$IS_PRERELEASE" = "true" ]; then
             NPM_TAG="next"
           else
             NPM_TAG="latest"
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
@@ -80,7 +146,40 @@ jobs:
           echo "Extracted version: $VERSION from tag: $TAG_NAME"
           echo "Is pre-release (from GitHub Release UI): $IS_PRERELEASE"
           echo "npm tag: $NPM_TAG"
-          
+      - name: "Preflight: resolve and validate tag"
+        id: preflight_tag
+        run: |
+          set -euo pipefail
+          TAG_NAME=""
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          else
+            if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG_NAME="${GITHUB_REF#refs/tags/}"
+            fi
+            if [ -z "${TAG_NAME}" ]; then
+              TAG_NAME="${{ steps.version.outputs.tag_name }}"
+            fi
+          fi
+          TAG_NAME="$(printf '%s' "${TAG_NAME}" | tr -d '\r\n')"
+          if [ -z "${TAG_NAME}" ]; then
+            echo "E_TAG_RESOLUTION: TAG_NAME is empty after resolution rules"
+            exit 1
+          fi
+          # Strip optional leading v once; matches downstream VERSION=${TAG_NAME#v}
+          VERSION_CORE="${TAG_NAME#v}"
+          if [ -z "${VERSION_CORE}" ]; then
+            echo "E_TAG_RESOLUTION: invalid tag (empty version after optional v prefix): ${TAG_NAME}"
+            exit 1
+          fi
+          # Permissive: semver-like string must include a digit (covers 1.2.3, v1.2.3, 1.0.0-beta.1)
+          if ! printf '%s\n' "${VERSION_CORE}" | grep -qE '[0-9]'; then
+            echo "E_TAG_RESOLUTION: invalid tag (expected semver-like release version): ${TAG_NAME}"
+            exit 1
+          fi
+          echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "Preflight OK: tag_name=${TAG_NAME}"
+
       - name: Update package.json version
         run: |
           VERSION=${{ steps.version.outputs.version }}
@@ -96,14 +195,14 @@ jobs:
           else
             echo "⚠️ Version not found, skipping package.json update"
           fi
-          
+
       - name: Build package
         run: npm run build
-      
+
       - name: Configure npm registry
         run: |
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
-            echo "❌ Error: NPM_TOKEN secret is not set"
+            echo "E_NPM_AUTH: NPM_TOKEN secret is not set"
             exit 1
           fi
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
@@ -112,12 +211,12 @@ jobs:
           cat .npmrc
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
       - name: Verify npm token
         run: |
           echo "Verifying npm token..."
           if ! npm whoami --registry=https://registry.npmjs.org/ 2>/dev/null; then
-            echo "❌ Error: npm token is invalid or expired"
+            echo "E_NPM_AUTH: npm token is invalid or expired"
             echo "Please update NPM_TOKEN in GitHub Secrets"
             echo "Get a new token from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens"
             exit 1
@@ -126,7 +225,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        
+
       - name: Publish to npm
         run: |
           NPM_TAG="${{ steps.version.outputs.npm_tag }}"
@@ -138,7 +237,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          
+
       - name: Check if Release exists
         id: check_release
         run: |
@@ -177,7 +276,7 @@ jobs:
           TAG_NAME="${{ steps.check_release.outputs.tag_name }}"
           IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
           NPM_TAG="${{ steps.version.outputs.npm_tag }}"
-          
+
           if [ "$IS_PRERELEASE" = "true" ]; then
             RELEASE_NAME="Pre-release $TAG_NAME"
             RELEASE_TITLE="🧪 Memento MCP Server Pre-release $TAG_NAME"
@@ -191,17 +290,17 @@ jobs:
             INSTALL_LINE1="# 최신 정식 버전"
             INSTALL_LINE2="npx memento-mcp-server@latest"
           fi
-          
+
           # Multi-line output을 위해 delimiter 사용
           DELIMITER=$(dd if=/dev/urandom bs=15 count=1 2>/dev/null | base64 | tr -d '\n')
-          
+
           # Release name 출력
           {
             echo "name<<$DELIMITER"
             echo "$RELEASE_NAME"
             echo "$DELIMITER"
           } >> $GITHUB_OUTPUT
-          
+
           # Release body 출력
           {
             echo "body<<$DELIMITER"
