@@ -4,32 +4,47 @@ on:
   release:
     types: [published]
   workflow_dispatch: # 수동 실행도 가능
+    inputs:
+      debug_release:
+        description: Enable detailed release diagnostics
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
-          
+          node-version: "20"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Install dependencies
         run: npm ci
 
       # @memento/core 진입점이 dist/index.js이므로, 테스트 전에 빌드 필요 (server 스펙이 core 의존)
       - name: Build packages
         run: npm run build
-        
+
       - name: Run tests
         run: npm run test
-        
+
       - name: Extract version and release info
         id: version
         run: |
@@ -63,16 +78,16 @@ jobs:
               echo "✅ Found Release: prerelease = $IS_PRERELEASE"
             fi
           fi
-          
+
           VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
-          
+
           # npm 태그 결정: pre-release는 "next", 정식 릴리스는 "latest"
           if [ "$IS_PRERELEASE" = "true" ]; then
             NPM_TAG="next"
           else
             NPM_TAG="latest"
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
@@ -80,7 +95,7 @@ jobs:
           echo "Extracted version: $VERSION from tag: $TAG_NAME"
           echo "Is pre-release (from GitHub Release UI): $IS_PRERELEASE"
           echo "npm tag: $NPM_TAG"
-          
+
       - name: Update package.json version
         run: |
           VERSION=${{ steps.version.outputs.version }}
@@ -96,10 +111,10 @@ jobs:
           else
             echo "⚠️ Version not found, skipping package.json update"
           fi
-          
+
       - name: Build package
         run: npm run build
-      
+
       - name: Configure npm registry
         run: |
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
@@ -112,7 +127,7 @@ jobs:
           cat .npmrc
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
       - name: Verify npm token
         run: |
           echo "Verifying npm token..."
@@ -126,7 +141,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        
+
       - name: Publish to npm
         run: |
           NPM_TAG="${{ steps.version.outputs.npm_tag }}"
@@ -138,7 +153,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          
+
       - name: Check if Release exists
         id: check_release
         run: |
@@ -177,7 +192,7 @@ jobs:
           TAG_NAME="${{ steps.check_release.outputs.tag_name }}"
           IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
           NPM_TAG="${{ steps.version.outputs.npm_tag }}"
-          
+
           if [ "$IS_PRERELEASE" = "true" ]; then
             RELEASE_NAME="Pre-release $TAG_NAME"
             RELEASE_TITLE="🧪 Memento MCP Server Pre-release $TAG_NAME"
@@ -191,17 +206,17 @@ jobs:
             INSTALL_LINE1="# 최신 정식 버전"
             INSTALL_LINE2="npx memento-mcp-server@latest"
           fi
-          
+
           # Multi-line output을 위해 delimiter 사용
           DELIMITER=$(dd if=/dev/urandom bs=15 count=1 2>/dev/null | base64 | tr -d '\n')
-          
+
           # Release name 출력
           {
             echo "name<<$DELIMITER"
             echo "$RELEASE_NAME"
             echo "$DELIMITER"
           } >> $GITHUB_OUTPUT
-          
+
           # Release body 출력
           {
             echo "body<<$DELIMITER"
