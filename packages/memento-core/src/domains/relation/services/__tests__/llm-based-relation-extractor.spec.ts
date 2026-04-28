@@ -1086,18 +1086,20 @@ describe('LLMBasedRelationExtractor', () => {
       const mockEmbeddingService = await createMockEmbeddingService();
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
       mockSearchSimilar = mockEmbeddingService.searchSimilar;
+
+      // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
+      const OpenAI = (await import('openai')).default;
+      const mockOpenAIClient = new OpenAI({ apiKey: 'test-key' });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'openai',
+        openaiClient: mockOpenAIClient,
+        geminiClient: null,
+        warnings: []
+      });
       
       // 모킹된 embeddingService를 주입하여 extractor 생성
       extractor = new LLMBasedRelationExtractor(mockEmbeddingService);
-      
-      // preferredProvider를 'openai'로 설정
-      (extractor as any).preferredProvider = 'openai';
-      
-      // OpenAI 클라이언트가 없으면 생성
-      if (!(extractor as any).openaiClient) {
-        const OpenAI = (await import('openai')).default;
-        (extractor as any).openaiClient = new OpenAI({ apiKey: 'test-key' });
-      }
+      await (extractor as any).initializationPromise;
       
       // extractWithOpenAI 메서드를 직접 spy
       const extractorAny = extractor as any;
@@ -1275,17 +1277,19 @@ describe('LLMBasedRelationExtractor', () => {
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
       mockSearchSimilar = mockEmbeddingService.searchSimilar;
       
+      // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
+      const OpenAI = (await import('openai')).default;
+      const mockOpenAIClient = new OpenAI({ apiKey: 'test-key' });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'openai',
+        openaiClient: mockOpenAIClient,
+        geminiClient: null,
+        warnings: []
+      });
+
       // 모킹된 embeddingService를 주입하여 extractor 생성
       extractor = new LLMBasedRelationExtractor(mockEmbeddingService);
-      
-      // preferredProvider를 'openai'로 설정
-      (extractor as any).preferredProvider = 'openai';
-      
-      // OpenAI 클라이언트가 없으면 생성
-      if (!(extractor as any).openaiClient) {
-        const OpenAI = (await import('openai')).default;
-        (extractor as any).openaiClient = new OpenAI({ apiKey: 'test-key' });
-      }
+      await (extractor as any).initializationPromise;
       
       // extractWithOpenAI 메서드를 직접 spy
       const extractorAny = extractor as any;
@@ -1405,17 +1409,17 @@ describe('LLMBasedRelationExtractor', () => {
       mockConfig.openaiApiKey = 'test-key';
       mockConfig.llmProvider = 'openai';
       
+      const OpenAI = (await import('openai')).default;
+      const mockOpenAIClient = new OpenAI({ apiKey: 'test-key' });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'openai',
+        openaiClient: mockOpenAIClient,
+        geminiClient: null,
+        warnings: []
+      });
+
       extractor = new LLMBasedRelationExtractor();
-      
-      // preferredProvider를 'openai'로 설정
-      // (initializeClients()가 실제로 'openai'를 반환하지 않을 수 있으므로 직접 설정)
-      (extractor as any).preferredProvider = 'openai';
-      
-      // OpenAI 클라이언트가 없으면 생성
-      if (!(extractor as any).openaiClient) {
-        const OpenAI = (await import('openai')).default;
-        (extractor as any).openaiClient = new OpenAI({ apiKey: 'test-key' });
-      }
+      await (extractor as any).initializationPromise;
       
       // extractWithOpenAI 메서드를 직접 spy (private 메서드이므로 any로 접근)
       const extractorAny = extractor as any;
@@ -1698,17 +1702,19 @@ describe('LLMBasedRelationExtractor', () => {
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
       mockSearchSimilar = mockEmbeddingService.searchSimilar;
       
+      // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
+      const OpenAI = (await import('openai')).default;
+      const mockOpenAIClient = new OpenAI({ apiKey: 'test-key' });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'openai',
+        openaiClient: mockOpenAIClient,
+        geminiClient: null,
+        warnings: []
+      });
+
       // 모킹된 embeddingService를 주입하여 extractor 생성
       extractor = new LLMBasedRelationExtractor(mockEmbeddingService);
-      
-      // preferredProvider를 'openai'로 설정
-      (extractor as any).preferredProvider = 'openai';
-      
-      // OpenAI 클라이언트가 없으면 생성
-      if (!(extractor as any).openaiClient) {
-        const OpenAI = (await import('openai')).default;
-        (extractor as any).openaiClient = new OpenAI({ apiKey: 'test-key' });
-      }
+      await (extractor as any).initializationPromise;
       
       // extractWithOpenAI 메서드를 직접 spy
       const extractorAny = extractor as any;
@@ -1951,17 +1957,19 @@ describe('LLMBasedRelationExtractor', () => {
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
       mockSearchSimilar = mockEmbeddingService.searchSimilar;
       
+      // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
+      const OpenAI = (await import('openai')).default;
+      const mockOpenAIClient = new OpenAI({ apiKey: 'test-key' });
+      vi.spyOn(LLMClientInitializer.prototype, 'initialize').mockResolvedValue({
+        preferredProvider: 'openai',
+        openaiClient: mockOpenAIClient,
+        geminiClient: null,
+        warnings: []
+      });
+
       // 모킹된 embeddingService를 주입하여 extractor 생성
       extractor = new LLMBasedRelationExtractor(mockEmbeddingService);
-      
-      // preferredProvider를 'openai'로 설정
-      (extractor as any).preferredProvider = 'openai';
-      
-      // OpenAI 클라이언트가 없으면 생성
-      if (!(extractor as any).openaiClient) {
-        const OpenAI = (await import('openai')).default;
-        (extractor as any).openaiClient = new OpenAI({ apiKey: 'test-key' });
-      }
+      await (extractor as any).initializationPromise;
       
       // extractWithOpenAI 메서드를 직접 spy
       const extractorAny = extractor as any;
