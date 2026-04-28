@@ -166,13 +166,17 @@ jobs:
             echo "E_TAG_RESOLUTION: TAG_NAME is empty after resolution rules"
             exit 1
           fi
-          case "${TAG_NAME}" in
-            v*) ;;
-            *)
-              echo "E_TAG_RESOLUTION: invalid tag format (must start with v): ${TAG_NAME}"
-              exit 1
-              ;;
-          esac
+          # Strip optional leading v once; matches downstream VERSION=${TAG_NAME#v}
+          VERSION_CORE="${TAG_NAME#v}"
+          if [ -z "${VERSION_CORE}" ]; then
+            echo "E_TAG_RESOLUTION: invalid tag (empty version after optional v prefix): ${TAG_NAME}"
+            exit 1
+          fi
+          # Permissive: semver-like string must include a digit (covers 1.2.3, v1.2.3, 1.0.0-beta.1)
+          if ! printf '%s\n' "${VERSION_CORE}" | grep -qE '[0-9]'; then
+            echo "E_TAG_RESOLUTION: invalid tag (expected semver-like release version): ${TAG_NAME}"
+            exit 1
+          fi
           echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
           echo "Preflight OK: tag_name=${TAG_NAME}"
 
