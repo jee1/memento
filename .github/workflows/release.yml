@@ -27,6 +27,22 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - name: "Preflight: GitHub API access"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          API_URL="https://api.github.com/repos/${{ github.repository }}"
+          GH_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${API_URL}")"
+          if [ "${GH_STATUS}" -lt 200 ] || [ "${GH_STATUS}" -ge 300 ]; then
+            echo "E_GH_API_ACCESS: GitHub API returned HTTP ${GH_STATUS}"
+            exit 1
+          fi
+          echo "github_api_status=${GH_STATUS}"
+
       - name: "Preflight: repository context"
         run: |
           set -euo pipefail
@@ -49,6 +65,15 @@ jobs:
           else
             echo "inputs.debug_release not used (release event); debug_release applies only to workflow_dispatch"
           fi
+
+      - name: "Debug diagnostics (conditional)"
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_release == 'true'
+        run: |
+          set -euo pipefail
+          echo "debug_release=${{ github.event.inputs.debug_release }}"
+          git --version
+          git remote -v
+          git show-ref --tags | tail -n 20
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
