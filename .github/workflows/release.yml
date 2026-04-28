@@ -28,6 +28,15 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Log release debug flag
+        run: |
+          echo "github.event_name=${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "inputs.debug_release=${{ github.event.inputs.debug_release }}"
+          else
+            echo "inputs.debug_release not used (release event); debug_release applies only to workflow_dispatch"
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
