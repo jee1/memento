@@ -46,6 +46,10 @@ jobs:
       - name: "Preflight: repository context"
         run: |
           set -euo pipefail
+          if ! git rev-parse HEAD >/dev/null 2>&1; then
+            echo "E_CHECKOUT_CONTEXT: cannot resolve HEAD (invalid checkout context)"
+            exit 1
+          fi
           EVENT_NAME="${{ github.event_name }}"
           REF_VAL="${{ github.ref }}"
           REF_TYPE_VAL="${{ github.ref_type }}"
@@ -105,7 +109,7 @@ jobs:
             # workflow_dispatch 또는 태그 푸시인 경우 GitHub API로 Release 정보 조회
             TAG_NAME=${GITHUB_REF#refs/tags/}
             if [ -z "$TAG_NAME" ]; then
-              echo "❌ Error: Tag name not found"
+              echo "E_TAG_RESOLUTION: tag name not found from ref (${GITHUB_REF})"
               exit 1
             fi
             
@@ -194,7 +198,7 @@ jobs:
       - name: Configure npm registry
         run: |
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
-            echo "❌ Error: NPM_TOKEN secret is not set"
+            echo "E_NPM_AUTH: NPM_TOKEN secret is not set"
             exit 1
           fi
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
@@ -208,7 +212,7 @@ jobs:
         run: |
           echo "Verifying npm token..."
           if ! npm whoami --registry=https://registry.npmjs.org/ 2>/dev/null; then
-            echo "❌ Error: npm token is invalid or expired"
+            echo "E_NPM_AUTH: npm token is invalid or expired"
             echo "Please update NPM_TOKEN in GitHub Secrets"
             echo "Get a new token from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens"
             exit 1
