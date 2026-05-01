@@ -24,7 +24,7 @@ vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
 }));
 
 vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
-  StdioClientTransport: vi.fn().mockImplementation(() => ({})),
+  StdioClientTransport: vi.fn().mockImplementation(() => ({ close: vi.fn().mockResolvedValue(undefined) })),
 }));
 
 describe('StdioTransport', () => {
@@ -68,10 +68,13 @@ describe('StdioTransport', () => {
     expect(MockStdio).toHaveBeenCalledTimes(1);
   });
 
-  it('connect failure cleans up — subsequent recall retries connect', async () => {
+  it('connect failure cleans up — inner transport close is called', async () => {
     const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+    const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
     const MockClient = Client as any;
+    const MockStdio = StdioClientTransport as any;
     MockClient.mockClear();
+    MockStdio.mockClear();
     // First connect: fail
     MockClient.mockImplementationOnce(() => ({
       connect: vi.fn().mockRejectedValue(new Error('spawn failed')),
@@ -80,7 +83,10 @@ describe('StdioTransport', () => {
     }));
     const t = new StdioTransport({ command: 'npx', args: [] });
     await expect(t.connect()).rejects.toThrow('spawn failed');
-    // After failure, connected must remain false so recall() retries connect()
+    // connected stays false — recall() will retry connect()
     expect((t as any).connected).toBe(false);
+    // inner transport must be closed for cleanup (orphaned process prevention)
+    const innerInstance = MockStdio.mock.results[0]?.value;
+    expect(innerInstance?.close).toHaveBeenCalledTimes(1);
   });
 });
