@@ -3,9 +3,13 @@
  * 의존성 주입 및 객체 생성 관리
  */
 
-import type { 
+import type {
+  MemoryData,
+  ReviewPerformance,
+  ReviewSchedule,
   SpacedRepetitionConfig,
-  SpacedRepetitionWeights 
+  SpacedRepetitionFeatures,
+  SpacedRepetitionWeights,
 } from '../../../shared/types/spaced-repetition.types.js';
 import type { 
   SpacedRepetitionService,
@@ -194,7 +198,7 @@ class SpacedRepetitionServiceImpl implements SpacedRepetitionService {
     private optimalRecommender: OptimalIntervalRecommender
   ) {}
 
-  calculateNextInterval(currentInterval: number, features: any): number {
+  calculateNextInterval(currentInterval: number, features: SpacedRepetitionFeatures): number {
     const result = this.intervalStrategy.calculateInterval(currentInterval, features);
     return result.nextInterval;
   }
@@ -207,23 +211,35 @@ class SpacedRepetitionServiceImpl implements SpacedRepetitionService {
     return this.necessityChecker.needsReview(timeSinceLastReview, interval, threshold);
   }
 
-  createReviewSchedule(memoryId: string, currentInterval: number, lastReviewDate: Date, features: any): any {
+  createReviewSchedule(
+    memoryId: string,
+    currentInterval: number,
+    lastReviewDate: Date,
+    features: SpacedRepetitionFeatures,
+  ): ReviewSchedule {
     return this.scheduler.createReviewSchedule(memoryId, currentInterval, lastReviewDate, features);
   }
 
-  createBatchReviewSchedules(memories: any[]): any[] {
+  createBatchReviewSchedules(memories: MemoryData[]): ReviewSchedule[] {
     return this.scheduler.createBatchReviewSchedules(memories);
   }
 
-  calculateReviewPriority(schedule: any): number {
+  calculateReviewPriority(schedule: ReviewSchedule): number {
     return this.priorityCalculator.calculateReviewPriority(schedule);
   }
 
-  analyzeReviewPerformance(schedules: any[], actualRecall: Map<string, boolean>): any {
+  analyzeReviewPerformance(
+    schedules: ReviewSchedule[],
+    actualRecall: Map<string, boolean>,
+  ): ReviewPerformance {
     return this.performanceAnalyzer.analyzeReviewPerformance(schedules, actualRecall);
   }
 
-  recommendOptimalInterval(currentInterval: number, recallHistory: boolean[], features: any): number {
+  recommendOptimalInterval(
+    currentInterval: number,
+    recallHistory: boolean[],
+    features: SpacedRepetitionFeatures,
+  ): number {
     return this.optimalRecommender.recommendOptimalInterval(currentInterval, recallHistory, features);
   }
 }
