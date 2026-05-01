@@ -11,6 +11,50 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 
+function isSqliteBusy(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const code = (error as { code?: unknown }).code;
+  return code === 'SQLITE_BUSY';
+}
+
+/** memory_item 행 — 고정 해제 도구가 조회하는 최소 필드 */
+type MemoryItemUnpinRow = {
+  id: string;
+  pinned: number | boolean;
+  importance: number;
+};
+
+type UnpinnableMemoryRow = {
+  id: string;
+  content: string | null;
+  type: string | null;
+  importance: number | null;
+  created_at: string;
+  last_accessed: string | null;
+};
+
+type RecommendedUnpinRow = UnpinnableMemoryRow & { days_old: number };
+
+type UnpinStatsAggregateRow = {
+  total_memories: number;
+  pinned_count: number;
+  unpinned_count: number;
+  avg_importance: number | null;
+};
+
+type RecentUnpinFeedbackRow = {
+  memory_id: string;
+  event: string;
+  created_at: string;
+};
+
+/** SQLite 집계 행이 없을 때는 통계 키 없이 `recent_unpins`만 반환될 수 있음 */
+type UnpinStatsResult = Partial<UnpinStatsAggregateRow> & {
+  recent_unpins: RecentUnpinFeedbackRow[];
+};
+
 const UnpinSchema = z.object({
   id: CommonSchemas.MemoryId.optional(),
   reason: z.string().optional().describe('고정 해제 사유'),
@@ -58,7 +102,7 @@ export class UnpinTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     const { id, reason, batch, confirm = false } = UnpinSchema.parse(params);
     
     // 데이터베이스 연결 확인
@@ -134,7 +178,7 @@ export class UnpinTool extends BaseTool {
       
     } catch (error) {
       // 데이터베이스 락 문제 처리
-      if ((error as any).code === 'SQLITE_BUSY') {
+      if (isSqliteBusy(error)) {
         await this.handleDatabaseLock(context);
       }
       throw error;
@@ -199,25 +243,31 @@ export class UnpinTool extends BaseTool {
   /**
    * 기억 조회
    */
-  private async getMemoryById(id: string, context: ToolContext): Promise<any> {
+  private async getMemoryById(
+    id: string,
+    context: ToolContext
+  ): Promise<MemoryItemUnpinRow | undefined> {
     return await DatabaseUtils.get(
       context.db!,
       'SELECT * FROM memory_item WHERE id = ?',
       [id]
-    );
+    ) as MemoryItemUnpinRow | undefined;
   }
 
   /**
    * 여러 기억 일괄 조회 (N+1 완화)
    */
-  private async getMemoriesByIds(ids: string[], context: ToolContext): Promise<Map<string, any>> {
+  private async getMemoriesByIds(
+    ids: string[],
+    context: ToolContext
+  ): Promise<Map<string, MemoryItemUnpinRow>> {
     if (ids.length === 0) return new Map();
     const placeholders = ids.map(() => '?').join(',');
-    const rows = await DatabaseUtils.all(
+    const rows = (await DatabaseUtils.all(
       context.db!,
       `SELECT * FROM memory_item WHERE id IN (${placeholders})`,
       ids
-    ) as any[];
+    )) as MemoryItemUnpinRow[];
     return new Map(rows.map((r) => [r.id, r]));
   }
 
@@ -262,10 +312,13 @@ export class UnpinTool extends BaseTool {
   /**
    * 고정 해제 가능한 기억 목록 조회
    */
-  async getUnpinnableMemories(context: ToolContext, limit: number = 50): Promise<any[]> {
+  async getUnpinnableMemories(
+    context: ToolContext,
+    limit: number = 50
+  ): Promise<UnpinnableMemoryRow[]> {
     this.validateDatabase(context);
-    
-    return await DatabaseUtils.all(
+
+    return (await DatabaseUtils.all(
       context.db!,
       `SELECT id, content, type, importance, created_at, last_accessed 
        FROM memory_item 
@@ -273,16 +326,16 @@ export class UnpinTool extends BaseTool {
        ORDER BY importance ASC, created_at ASC 
        LIMIT ?`,
       [limit]
-    );
+    )) as UnpinnableMemoryRow[];
   }
 
   /**
    * 고정 해제 통계 조회
    */
-  async getUnpinStats(context: ToolContext): Promise<any> {
+  async getUnpinStats(context: ToolContext): Promise<UnpinStatsResult> {
     this.validateDatabase(context);
-    
-    const stats = await DatabaseUtils.get(
+
+    const stats = (await DatabaseUtils.get(
       context.db!,
       `SELECT 
          COUNT(*) as total_memories,
@@ -290,30 +343,33 @@ export class UnpinTool extends BaseTool {
          COUNT(CASE WHEN pinned = FALSE THEN 1 END) as unpinned_count,
          AVG(importance) as avg_importance
        FROM memory_item`
-    );
-    
-    const recentUnpins = await DatabaseUtils.all(
+    )) as UnpinStatsAggregateRow | undefined;
+
+    const recentUnpins = (await DatabaseUtils.all(
       context.db!,
       `SELECT memory_id, event, created_at 
        FROM feedback_event 
        WHERE event = 'unpinned' 
        ORDER BY created_at DESC 
        LIMIT 10`
-    );
-    
+    )) as RecentUnpinFeedbackRow[];
+
     return {
-      ...(stats != null && typeof stats === 'object' ? stats as Record<string, unknown> : {}),
-      recent_unpins: recentUnpins
+      ...(stats != null && typeof stats === 'object' ? stats : {}),
+      recent_unpins: recentUnpins,
     };
   }
 
   /**
    * 고정 해제 권장 기억 조회
    */
-  async getRecommendedUnpins(context: ToolContext, limit: number = 20): Promise<any[]> {
+  async getRecommendedUnpins(
+    context: ToolContext,
+    limit: number = 20
+  ): Promise<RecommendedUnpinRow[]> {
     this.validateDatabase(context);
-    
-    return await DatabaseUtils.all(
+
+    return (await DatabaseUtils.all(
       context.db!,
       `SELECT id, content, type, importance, created_at, last_accessed,
               (julianday('now') - julianday(created_at)) as days_old
@@ -324,6 +380,6 @@ export class UnpinTool extends BaseTool {
        ORDER BY importance ASC, days_old DESC 
        LIMIT ?`,
       [limit]
-    );
+    )) as RecommendedUnpinRow[];
   }
 }
