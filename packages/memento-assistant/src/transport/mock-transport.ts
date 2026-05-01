@@ -33,5 +33,6 @@ export class MockTransport implements Transport {
     return { id: `mock:${this.rememberCalls.length}` };
   }
 
+  /** Post-close calls still succeed — MockTransport does not enforce rejection after close. Production transports may differ. */
   async close() { this.closed = true; }
 }
