@@ -18,6 +18,7 @@ import type { WriteCoalescingManager } from './shared/utils/write-coalescing.js'
 import { createAnchorStack } from './bootstrap/anchor-stack.js';
 import { createWriteCoalescingMetaAndScore } from './bootstrap/write-and-meta.js';
 import { createMonitoringAndSchedulers } from './bootstrap/monitoring-schedulers.js';
+import { createBatchTelemetryRelationAndSleep } from './bootstrap/batch-telemetry-relation.js';
 import { startFailureAndReflexion } from './bootstrap/failure-reflexion.js';
 import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
 import type { FailureDetector } from './domains/monitoring/services/failure-detector.js';
@@ -26,16 +27,13 @@ import type { IConsolidationScoreService } from './shared/interfaces/consolidati
 import type { IDatabaseOptimizer } from './shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.interface.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
-import { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
-import { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
 import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
 import type { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
 import { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
-import { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
 
@@ -97,23 +95,18 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     } = await createMonitoringAndSchedulers(db);
     const { writeCoalescingManager, consolidationScoreService, metaMemoryService } =
       createWriteCoalescingMetaAndScore(db);
-    const introspectionScanCache = new IntrospectionScanCache();
-    const telemetryRepository = new TelemetryRepository(db);
-    const batchScheduler = getBatchScheduler();
-    batchScheduler.setDiagnosticsLogger(runtimeDiagnosticsLogger);
-    batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
-    const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
-    batchScheduler.setIntrospectionScanCache(introspectionScanCache);
-    const relationGraph = createRelationGraph(db);
-    const sleepConsolidationService = new SleepConsolidationService(db, {
-      relationGraph: relationGraph,
-      memoryEmbeddingService: embeddingService,
-      telemetryService
-    });
-    batchScheduler.setSleepConsolidationService(sleepConsolidationService);
-    if (mementoConfig.batchSchedulerEnabled) {
-      await batchScheduler.start(db, reflexionWorker);
-    }
+    const {
+      introspectionScanCache,
+      batchScheduler,
+      telemetryService,
+      relationGraph,
+      sleepConsolidationService
+    } = await createBatchTelemetryRelationAndSleep(
+      db,
+      embeddingService,
+      runtimeDiagnosticsLogger,
+      reflexionWorker
+    );
     let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;
     if (mementoConfig.diagnosticsEnabled) {
       let runtimeDiagnosticsSamplerStopped = false;
