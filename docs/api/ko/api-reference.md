@@ -1087,7 +1087,7 @@ interface ErrorResponse {
 
 - **MCP 프로토콜**: 2025-03-26
 - **TypeScript**: 5.0+
-- **Node.js**: 20+
+- **Node.js**: 24+
 
 ### 마이그레이션 가이드
 

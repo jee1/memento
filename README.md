@@ -484,7 +484,7 @@ npm run test -- --coverage
 ### 저장소 가이드라인 (`AGENTS.md`)
 - **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버 코드는 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
 - **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등. 상세는 [AGENTS.md](AGENTS.md) 참조.
-- **코딩 스타일**: Node.js ≥ 20, TypeScript ES 모듈, 2칸 들여쓰기
+- **코딩 스타일**: Node.js ≥ 24, TypeScript ES 모듈, 2칸 들여쓰기
 - **테스트 가이드라인**: Vitest 기반, 각 패키지 `src/` 내 `*.spec.ts` 또는 루트 `src/test/`
 - **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
 - **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리

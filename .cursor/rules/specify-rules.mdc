@@ -9,11 +9,11 @@ alwaysApply: true
 Auto-generated from all feature plans. Last updated: 2026-04-14
 
 ## Active Technologies
-- TypeScript 5.x, Node.js ≥ 20, ES modules + npm workspaces — `packages/memento-core` (`@memento/core`), `packages/memento-server` (MCP + Express HTTP admin), `packages/memento-client` (`@memento/client`); `better-sqlite3`, `zod`, Vitest, Express 5.x (server) (013-refactor-approach)
+- TypeScript 5.x, Node.js ≥ 24, ES modules + npm workspaces — `packages/memento-core` (`@memento/core`), `packages/memento-server` (MCP + Express HTTP admin), `packages/memento-client` (`@memento/client`); `better-sqlite3`, `zod`, Vitest, Express 5.x (server) (013-refactor-approach)
 - SQLite (`better-sqlite3`); **first wave** — no migrations or stored-format changes (FR-009) (013-refactor-approach)
 - 브라우저 정적 JS(`static/js/anchor-map.js`), D3.js, `mementoAdminFetch`/`fetch`; 스키마 변경 없음 (015-fix-anchor-map-search)
 
-- TypeScript (Node.js ≥ 20, ES modules) + Express 5.x, `cors`, `@memento/core`, `better-sqlite3` (001-http-trust-security)
+- TypeScript (Node.js ≥ 24, ES modules) + Express 5.x, `cors`, `@memento/core`, `better-sqlite3` (001-http-trust-security)
 
 ## Project Structure
 
@@ -28,11 +28,11 @@ npm test && npm run lint
 
 ## Code Style
 
-TypeScript (Node.js ≥ 20, ES modules): Follow standard conventions
+TypeScript (Node.js ≥ 24, ES modules): Follow standard conventions
 
 ## Recent Changes
 - 015-fix-anchor-map-search: Dashboard `static/js/anchor-map.js` 검색 시 nodes 미초기화 수정; D3; 스키마 변경 없음
-- 013-refactor-approach: Added TypeScript 5.x, Node.js ≥ 20, ES modules + npm workspaces — `packages/memento-core` (`@memento/core`), `packages/memento-server` (MCP + Express HTTP admin), `packages/memento-client` (`@memento/client`); `better-sqlite3`, `zod`, Vitest, Express 5.x (server)
+- 013-refactor-approach: Added TypeScript 5.x, Node.js ≥ 24, ES modules + npm workspaces — `packages/memento-core` (`@memento/core`), `packages/memento-server` (MCP + Express HTTP admin), `packages/memento-client` (`@memento/client`); `better-sqlite3`, `zod`, Vitest, Express 5.x (server)
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -31,7 +31,7 @@ AI가 코드를 정확히 이해하고 검증할 수 있도록 비즈니스 로�
 *   **도메인 기반 구조:** 코드는 비즈니스 도메인 단위로 조직화하며, 도메인 간 독립성을 최대한 유지합니다.
 
 ### 핵심 기술 스택
-*   **Runtime:** Node.js ≥ 20 (ES Modules).
+*   **Runtime:** Node.js ≥ 24 (ES Modules).
 *   **Language:** TypeScript 5.x (Strict mode).
 *   **Database:** SQLite (`better-sqlite3`).
 *   **Backend:** Express 5.x, Zod (Validation).

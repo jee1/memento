@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -80,9 +80,9 @@ jobs:
           git show-ref --tags | tail -n 20
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           registry-url: "https://registry.npmjs.org"
 
@@ -335,7 +335,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.check_release.outputs.tag_name }}
           name: ${{ steps.release_body.outputs.name }}

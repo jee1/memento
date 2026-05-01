@@ -6,7 +6,7 @@
 
 Memento는 AI 에이전트를 위한 지능형 메모리 관리 시스템으로, 인간의 메모리 구조를 모델링한 MCP(Model Context Protocol) 서버입니다.
 - **메모리 유형**: Working (48h TTL), Episodic (90d TTL), Semantic (∞), Procedural (∞).
-- **기술 스택**: Node.js (≥20), TypeScript, SQLite (better-sqlite3), Vitest.
+- **기술 스택**: Node.js (≥24), TypeScript, SQLite (better-sqlite3), Vitest.
 - **핵심 기능**: 하이브리드 검색(FTS5 + Vector), 망각 정책(Forgetting Policies), 성능 모니터링, 다중 임베딩 프로바이더.
 
 ## 2. 프로젝트 구조 및 아키텍처 (Architecture)

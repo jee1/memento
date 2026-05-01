@@ -34,27 +34,27 @@ node --version
 ```
 
 #### 권장 Node.js 버전
-- **최소 버전**: Node.js 20.0.0
-- **권장 버전**: Node.js 20.x LTS 또는 22.x
+- **최소 버전**: Node.js 24.0.0
+- **권장 버전**: Node.js 24.x LTS (또는 최신 Current)
 
 #### nvm으로 Node.js 버전 관리 (Linux/macOS)
 ```bash
 # nvm 설치 (이미 설치되어 있다면 생략)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 
-# Node.js 20 LTS 설치
-nvm install 20
-nvm use 20
-nvm alias default 20
+# Node.js 24 LTS 설치
+nvm install 24
+nvm use 24
+nvm alias default 24
 ```
 
 #### nvm-windows로 Node.js 버전 관리 (Windows)
 ```powershell
 # nvm-windows 설치: https://github.com/coreybutler/nvm-windows/releases
 
-# Node.js 20 LTS 설치
-nvm install 20.18.0
-nvm use 20.18.0
+# Node.js 24 LTS 설치
+nvm install 24
+nvm use 24
 ```
 
 ### 방법 3: 소스에서 빌드
