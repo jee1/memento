@@ -140,3 +140,22 @@ Last ~30 lines of output:
 ```
 
 **Overall:** PASS
+
+## Static analysis (optional)
+
+The optional scan described in `docs/superpowers/plans/2026-05-01-issue-175-bootstrap-verify.md` references `npx ai-slop-detector`. In this environment, **`ai-slop-detector` is not published on the public npm registry** (`npm error 404 Not Found - GET https://registry.npmjs.org/ai-slop-detector`), so that command cannot run here.
+
+Per the spec’s fallback path, this baseline does **not** rely on that tool: verification uses **`wc`** (line counts above), **`npm run lint`**, **`npm run type-check`**, and **`npm test`** (recorded under **Quality gates**).
+
+No other local slop/complexity binary was run for this note.
+
+## Phase B decision (Task 4 gate)
+
+**Phase B: SKIP**
+
+Rationale:
+
+1. `initializeServices` is already thin orchestration over `packages/memento-core/src/bootstrap/*.ts` (Wave #214).
+2. The line baseline above shows `bootstrap.ts` at **146** lines with modular slices under `bootstrap/`.
+3. No slop/complexity tool result is available here; per spec, an optional `assembleServerServices` extraction would add low-value indirection unless a tool or reviewers flag the function.
+4. Quality gates passed — see **Overall: PASS** under **Quality gates (lint / type-check / test)** in this file.
