@@ -155,5 +155,8 @@ demo/node_modules/
 # Local / machine-specific
 compound-engineering.local.md
 
+# Claude Code agent worktrees (must not be gitlinks; breaks actions/checkout post cleanup)
+.claude/worktrees/
+
 # Editor metadata
 .obsidian/

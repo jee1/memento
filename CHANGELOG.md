@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Fixed
+- 잘못 추적되던 `.claude/worktrees/*` gitlink 제거: `actions/checkout` Post 단계의 `git submodule foreach`가 exit 128로 경고 나던 문제 방지
 - CLI(`memento remember` 등)가 HTTP/stdio MCP 서버와 동시에 실행될 때 발생하던 WAL 체크포인트 충돌 및 DB 손상 버그 수정 (#160)
 
 ### Changed
