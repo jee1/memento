@@ -49,4 +49,38 @@ describe('StdioTransport', () => {
     await t.close();
     await t.close();
   });
+
+  it('remember throws on empty response', async () => {
+    const t = new StdioTransport({ command: 'npx', args: [] });
+    await t.connect();
+    // Override callTool to return empty content for this test
+    const mockCallTool = vi.fn().mockResolvedValue({ content: [] });
+    (t as any).client.callTool = mockCallTool;
+    await expect(t.remember({ content: 'x', type: 'working' })).rejects.toThrow('memento remember: empty response');
+  });
+
+  it('connect is idempotent — concurrent calls do not double-spawn', async () => {
+    const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
+    const MockStdio = StdioClientTransport as any;
+    MockStdio.mockClear();
+    const t = new StdioTransport({ command: 'npx', args: [] });
+    await Promise.all([t.connect(), t.connect()]);
+    expect(MockStdio).toHaveBeenCalledTimes(1);
+  });
+
+  it('connect failure cleans up — subsequent recall retries connect', async () => {
+    const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+    const MockClient = Client as any;
+    MockClient.mockClear();
+    // First connect: fail
+    MockClient.mockImplementationOnce(() => ({
+      connect: vi.fn().mockRejectedValue(new Error('spawn failed')),
+      close: vi.fn(),
+      callTool: vi.fn(),
+    }));
+    const t = new StdioTransport({ command: 'npx', args: [] });
+    await expect(t.connect()).rejects.toThrow('spawn failed');
+    // After failure, connected must remain false so recall() retries connect()
+    expect((t as any).connected).toBe(false);
+  });
 });

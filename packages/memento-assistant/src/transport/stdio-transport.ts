@@ -14,24 +14,36 @@ export class StdioTransport implements Transport {
   private client: Client | null = null;
   private inner: StdioClientTransport | null = null;
   private connected = false;
+  private connecting: Promise<void> | null = null;
 
   constructor(private readonly opts: StdioTransportOptions) {}
 
   async connect(): Promise<void> {
     if (this.connected) return;
-    this.inner = new StdioClientTransport({
-      command: this.opts.command,
-      args: this.opts.args ?? [],
-      env: { ...process.env, ...(this.opts.env ?? {}) } as Record<string, string>,
-      cwd: this.opts.cwd,
-    });
-    this.client = new Client({ name: 'memento-assistant', version: '0.1.0' }, { capabilities: {} });
-    await this.client.connect(this.inner);
-    this.connected = true;
+    if (this.connecting) return this.connecting;
+    this.connecting = (async () => {
+      const inner = new StdioClientTransport({
+        command: this.opts.command,
+        args: this.opts.args ?? [],
+        env: { ...process.env, ...(this.opts.env ?? {}) } as Record<string, string>,
+        cwd: this.opts.cwd,
+      });
+      const client = new Client({ name: 'memento-assistant', version: '0.1.0' }, { capabilities: {} });
+      try {
+        await client.connect(inner);
+      } catch (err) {
+        try { await (inner as any).close?.(); } catch { /* ignore */ }
+        throw err;
+      }
+      this.inner = inner;
+      this.client = client;
+      this.connected = true;
+    })().finally(() => { this.connecting = null; });
+    return this.connecting;
   }
 
   async recall(query: string, filters?: any, limit?: number): Promise<RecallResult> {
-    if (!this.client) await this.connect();
+    if (!this.connected) await this.connect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r = await this.client!.callTool({
       name: 'recall',
@@ -41,7 +53,7 @@ export class StdioTransport implements Transport {
   }
 
   async remember(params: RememberParams): Promise<RememberResult> {
-    if (!this.client) await this.connect();
+    if (!this.connected) await this.connect();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r = await this.client!.callTool({
       name: 'remember',
