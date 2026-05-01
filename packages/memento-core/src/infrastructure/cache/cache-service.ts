@@ -3,6 +3,12 @@
  * 검색 결과 및 자주 사용되는 데이터 캐싱
  */
 
+/** One row in the search-result cache (opaque object shape per caller). */
+export type CachedSearchHit = Record<string, unknown>;
+
+/** Filters object serialized into search cache keys. */
+export type SearchCacheFilters = Record<string, unknown>;
+
 export interface CacheEntry<T> {
   data: T;
   timestamp: number;
@@ -20,7 +26,7 @@ export interface CacheStats {
   memoryUsage: number;
 }
 
-export class CacheService<T = any> {
+export class CacheService<T = unknown> {
   private cache: Map<string, CacheEntry<T>> = new Map();
   private hits: number = 0;
   private misses: number = 0;
@@ -178,7 +184,7 @@ export class CacheService<T = any> {
   /**
    * 캐시 키 생성 (검색용)
    */
-  generateSearchKey(query: string, filters?: any, limit?: number): string {
+  generateSearchKey(query: string, filters?: SearchCacheFilters, limit?: number): string {
     const filterStr = filters ? JSON.stringify(filters) : '';
     return `search:${query}:${filterStr}:${limit || 10}`;
   }
@@ -286,18 +292,22 @@ export class CacheService<T = any> {
  * 검색 결과 캐시 서비스
  */
 export class SearchCacheService {
-  private cache: CacheService<any[]>;
+  private cache: CacheService<CachedSearchHit[]>;
   private searchStats: Map<string, number> = new Map();
-  private queryPatternCache: Map<string, string[]> = new Map(); // 쿼리 패턴 캐시
+  private queryPatternCache: Map<string, CachedSearchHit[]> = new Map(); // 쿼리 패턴 캐시
 
   constructor(maxSize: number = 1000, ttl: number = 600000) { // 10분 TTL로 증가
-    this.cache = new CacheService<any[]>(maxSize, ttl);
+    this.cache = new CacheService<CachedSearchHit[]>(maxSize, ttl);
   }
 
   /**
    * 검색 결과 캐시에서 가져오기 - 패턴 매칭 개선
    */
-  getSearchResults(query: string, filters?: any, limit?: number): any[] | null {
+  getSearchResults(
+    query: string,
+    filters?: SearchCacheFilters,
+    limit?: number,
+  ): CachedSearchHit[] | null {
     // 1. 정확한 키로 먼저 시도
     const exactKey = this.cache.generateSearchKey(query, filters, limit);
     const results = this.cache.get(exactKey);
@@ -324,7 +334,13 @@ export class SearchCacheService {
   /**
    * 검색 결과 캐시에 저장 - 다중 키 저장
    */
-  setSearchResults(query: string, results: any[], filters?: any, limit?: number, ttl?: number): void {
+  setSearchResults(
+    query: string,
+    results: CachedSearchHit[],
+    filters?: SearchCacheFilters,
+    limit?: number,
+    ttl?: number,
+  ): void {
     const key = this.cache.generateSearchKey(query, filters, limit);
     this.cache.set(key, results, ttl);
     
@@ -385,7 +401,11 @@ export class SearchCacheService {
   /**
    * 유사한 결과 찾기
    */
-  private findSimilarResults(normalizedQuery: string, _filters?: any, _limit?: number): any[] | null {
+  private findSimilarResults(
+    normalizedQuery: string,
+    _filters?: SearchCacheFilters,
+    _limit?: number,
+  ): CachedSearchHit[] | null {
     const words = normalizedQuery.split(' ').filter(w => w.length > 1);
     
     for (const [cachedQuery, results] of this.queryPatternCache) {
@@ -406,7 +426,7 @@ export class SearchCacheService {
   /**
    * 쿼리 패턴 캐시 업데이트
    */
-  private updateQueryPatternCache(query: string, results: any[]): void {
+  private updateQueryPatternCache(query: string, results: CachedSearchHit[]): void {
     const normalizedQuery = this.normalizeQuery(query);
     this.queryPatternCache.set(normalizedQuery, results);
     
