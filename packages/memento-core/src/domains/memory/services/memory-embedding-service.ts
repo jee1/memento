@@ -3,6 +3,7 @@
  * 데이터베이스와 임베딩 서비스를 연동
  */
 
+import type Database from 'better-sqlite3';
 import type { EmbeddingProvider,EmbeddingResult } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -34,10 +35,33 @@ export interface VectorSearchResult {
 }
 
 /** searchBySimilarity 결과: 쿼리 임베딩에 실제 사용된 provider 진단용 */
+/** Row shape from vec similarity JOIN query */
+interface SimilaritySearchRow {
+  id: string;
+  content: string;
+  type: string;
+  importance: number;
+  created_at: string;
+  last_accessed: string | null;
+  pinned: number | boolean;
+  tags: string | null;
+  similarity: number;
+  score: number;
+}
+
+/** Row shape from provider stats GROUP BY query */
+interface EmbeddingProviderStatRow {
+  provider: string;
+  count: number;
+  dimensions: number | null;
+}
+
 export interface SearchBySimilarityOutcome {
   results: VectorSearchResult[];
   query_embedding_providers?: EmbeddingProvider[];
 }
+
+type GlobalWithVecWarning = typeof globalThis & { __vecExtensionLoadWarningShown?: boolean };
 
 export class MemoryEmbeddingService {
   private embeddingService: UnifiedEmbeddingService;
@@ -68,7 +92,7 @@ export class MemoryEmbeddingService {
    * sqlite-vec 확장 로드
    * init.ts와 동일한 방식으로 sqlite-vec 패키지의 getLoadablePath() 사용
    */
-  private async loadVecExtension(db: any): Promise<void> {
+  private async loadVecExtension(db: Database.Database): Promise<void> {
     try {
       // sqlite-vec 패키지에서 올바른 경로 가져오기
       const { getLoadablePath } = await import('sqlite-vec');
@@ -78,10 +102,11 @@ export class MemoryEmbeddingService {
     } catch (error) {
       // 실패해도 치명적이지 않음 (TF-IDF fallback 사용)
       // 로그는 한 번만 출력하도록 조건부 처리
-      if (!(global as any).__vecExtensionLoadWarningShown) {
+      const g = globalThis as GlobalWithVecWarning;
+      if (!g.__vecExtensionLoadWarningShown) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
         process.stderr.write(`⚠️ sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용): ${maskedError.message}\n`);
-        (global as any).__vecExtensionLoadWarningShown = true;
+        g.__vecExtensionLoadWarningShown = true;
       }
     }
   }
@@ -90,7 +115,7 @@ export class MemoryEmbeddingService {
    * 메모리에 임베딩 생성 및 저장
    */
   async createAndStoreEmbedding(
-    db: any,
+    db: Database.Database,
     memoryId: string,
     content: string,
     type: MemoryType,
@@ -218,7 +243,7 @@ export class MemoryEmbeddingService {
    * 벡터 유사도 검색
    */
   async searchBySimilarity(
-    db: any,
+    db: Database.Database,
     query: string,
     filters?: {
       type?: MemoryType[];
@@ -282,13 +307,13 @@ export class MemoryEmbeddingService {
       ]);
 
       // 결과를 VectorSearchResult 형태로 변환
-      const results: VectorSearchResult[] = similarities.map((row: any) => ({
+      const results: VectorSearchResult[] = (similarities as SimilaritySearchRow[]).map((row) => ({
         id: row.id,
         content: row.content,
         type: row.type,
         importance: row.importance,
         created_at: row.created_at,
-        last_accessed: row.last_accessed,
+        last_accessed: row.last_accessed ?? undefined,
         pinned: Boolean(row.pinned),
         tags: this.safeParseTags(row.tags),
         similarity: row.similarity,
@@ -316,7 +341,7 @@ export class MemoryEmbeddingService {
   /**
    * 임베딩 삭제
    */
-  async deleteEmbedding(db: any, memoryId: string): Promise<void> {
+  async deleteEmbedding(db: Database.Database, memoryId: string): Promise<void> {
     try {
       // memory_embedding 테이블에서 삭제 (트리거가 자동으로 vec0 테이블에서도 삭제)
       await DatabaseUtils.run(db, 'DELETE FROM memory_embedding WHERE memory_id = ?', [memoryId]);
@@ -352,7 +377,7 @@ export class MemoryEmbeddingService {
   /**
    * 임베딩 통계 정보
    */
-  async getEmbeddingStats(db: any): Promise<{
+  async getEmbeddingStats(db: Database.Database): Promise<{
     totalEmbeddings: number;
     averageDimensions: number;
     model: string;
@@ -392,7 +417,7 @@ export class MemoryEmbeddingService {
         totalEmbeddings: stat?.total_embeddings ?? 0,
         averageDimensions: stat?.avg_dimensions ?? 0,
         model: this.embeddingService.getModelInfo().model,
-        providerStats: providerStats.map((row: any) => ({
+        providerStats: (providerStats as EmbeddingProviderStatRow[]).map((row) => ({
           provider: this.normalizeProvider(row.provider),
           count: row.count,
           dimensions: Math.round(row.dimensions || 0),
@@ -423,7 +448,7 @@ export class MemoryEmbeddingService {
     }
   }
 
-  private async ensureMetadataDefaults(db: any): Promise<void> {
+  private async ensureMetadataDefaults(db: Database.Database): Promise<void> {
     try {
       await DatabaseUtils.run(db, `
         UPDATE memory_embedding
