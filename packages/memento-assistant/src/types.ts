@@ -10,6 +10,10 @@ export type ExtractedItem =
 export interface Policy {
   autoRecall?: 'always' | 'heuristic' | 'off';
   autoRemember?: 'turn' | 'decision' | 'off';
+  /**
+   * 'sameContext' is accepted at the type level for forward compatibility but
+   * normalizes to 'on' at runtime in v0.1 (see spec § 5).
+   */
   crossChannelRecall?: 'on' | 'off' | 'sameContext';
   tokenBudget?: number;
   recallLimit?: number;
