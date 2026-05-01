@@ -12,6 +12,11 @@ import { RelationValidatorExecutor } from '../relation-validator-executor.js';
 import * as configModule from '../../../shared/config/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { FileLogger } from '../file-logger.js';
+import type { BatchJobExecutionCoordinator } from '../batch-job-execution-coordinator.js';
+
+function executionCoordinator(scheduler: BatchScheduler): BatchJobExecutionCoordinator {
+  return (scheduler as unknown as { jobExecutionCoordinator: BatchJobExecutionCoordinator }).jobExecutionCoordinator;
+}
 
 describe('BatchScheduler', () => {
   let scheduler: BatchScheduler;
@@ -249,10 +254,10 @@ describe('BatchScheduler', () => {
       });
 
       await diagnosticsScheduler.start(db);
-      const schedulerAny = diagnosticsScheduler as any;
+      const coord = executionCoordinator(diagnosticsScheduler);
 
-      await schedulerAny.executeJobWithRetry('diagnostics_success', async () => {}, 1, 0);
-      await schedulerAny.executeJobWithRetry('diagnostics_failure', async () => {
+      await coord.executeJobWithRetry('diagnostics_success', async () => {}, 1, 0);
+      await coord.executeJobWithRetry('diagnostics_failure', async () => {
         throw new Error('boom');
       }, 1, 0);
 
@@ -1593,13 +1598,9 @@ describe('BatchScheduler', () => {
 
       // When: 실패하는 작업을 큐에 추가하여 실행
       const schedulerAny = testScheduler as any;
+      const coord = executionCoordinator(testScheduler);
       // executeJobWithRetry를 직접 호출하여 실행 (큐를 통하지 않고 직접 실행)
-      // 에러가 발생하므로 catch로 처리
-      try {
-        await schedulerAny.executeJobWithRetry('test_failing_job', failingJob, 1, 0);
-      } catch (error) {
-        // 에러는 예상된 동작
-      }
+      await coord.executeJobWithRetry('test_failing_job', failingJob, 1, 0);
 
       // 에러 처리 후 상태 업데이트를 위해 잠시 대기
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -1793,7 +1794,7 @@ describe('BatchScheduler', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // 실행 중인 상태에서 동일한 작업 추가 시도
-      schedulerAny.executeJobWithRetry(jobName, testJob, 1, 0);
+      void executionCoordinator(testScheduler).executeJobWithRetry(jobName, testJob, 1, 0);
 
       // 큐 처리 완료 대기
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -1878,18 +1879,19 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       // When: 동일한 작업을 실행 중일 때 여러 번 추가 시도
       const schedulerAny = testScheduler as any;
       const jobName = 'test_single_execution_after_completion';
+      const coord = executionCoordinator(testScheduler);
 
       // 초기 잡들이 큐를 선점하지 않도록 클리어
       schedulerAny.jobQueue.clear();
       // 첫 번째 실행 시작
-      schedulerAny.addJobToQueue(jobName, longRunningJob, 1, 0);
+      coord.addJobToQueue(jobName, longRunningJob, 1, 0);
 
       // 큐 처리 시작하여 실행 중 상태로 만듦
       await vi.advanceTimersByTimeAsync(50);
 
       // 실행 중인 상태에서 동일한 작업을 여러 번 추가 시도
       for (let i = 0; i < 5; i++) {
-        schedulerAny.addJobToQueue(jobName, longRunningJob, 1, 0);
+        coord.addJobToQueue(jobName, longRunningJob, 1, 0);
       }
 
       // 큐 처리 완료 대기 (모든 작업 완료, 1000ms processor + 300ms job * 2)
@@ -1938,7 +1940,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       const jobName = 'test_retry_count_preservation';
 
       schedulerAny.jobQueue.clear();
-      schedulerAny.addJobToQueue(jobName, failingJob, 1, 0);
+      executionCoordinator(testScheduler).addJobToQueue(jobName, failingJob, 1, 0);
 
       // 큐 처리 및 재시도 완료 대기 (1000ms processor + 100ms retry delay + buffer)
       await vi.advanceTimersByTimeAsync(3000);
@@ -1990,7 +1992,7 @@ it('동일 이름 잡이 실행 중일 때 큐 중복이 발생하지 않고 완
       const jobName = 'test_retry_count_check';
       
       // 재시도 카운트 1로 시작
-      schedulerAny.addJobToQueue(jobName, jobWithRetryCount, 1, 1);
+      executionCoordinator(testScheduler).addJobToQueue(jobName, jobWithRetryCount, 1, 1);
 
       // 큐 처리 완료 대기
       await new Promise(resolve => setTimeout(resolve, 500));

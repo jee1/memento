@@ -1,0 +1,60 @@
+/**
+ * BatchScheduler 공개 설정·결과 타입 (순환 의존 방지용 분리).
+ */
+
+export interface BatchJobConfig {
+  cleanupInterval: number;
+  monitoringInterval: number;
+  healthCheckInterval: number;
+  consolidationScoreIncrementalInterval: number;
+  consolidationScoreFullSweepInterval: number;
+  consolidationScoreFullSweepHour: number;
+  relationValidationInterval: number;
+  relationValidationDayOfWeek: number;
+  relationValidationHour: number;
+  logRotationInterval: number;
+  tripleExtractionInterval: number;
+  tripleExtractionHour?: number;
+  tripleExtractionBatchSize: number;
+  tripleExtractionTimeout: number;
+  qualityMeasurementInterval: number;
+  qualityMeasurementHour?: number;
+  metaMemoryIntrospectionInterval: number;
+  sleepConsolidationInterval: number;
+  telemetryCleanupInterval: number;
+
+  maxBatchSize: number;
+  enableLogging: boolean;
+  enableNotifications: boolean;
+  enableMetrics: boolean;
+
+  maxConcurrentJobs: number;
+  jobTimeout: number;
+  retryAttempts: number;
+  retryDelay: number;
+  weeklyRelationValidationTimeout?: number;
+}
+
+export interface BatchJobResult {
+  jobType: string;
+  startTime: Date;
+  endTime: Date;
+  duration: number;
+  success: boolean;
+  processed: number;
+  errors: string[];
+  warnings: string[];
+  /** 작업별 메타데이터(구조는 jobType마다 다름 — 소비 시 좁힘) */
+  details?: unknown;
+  retryCount?: number;
+}
+
+export interface SchedulerStatus {
+  isRunning: boolean;
+  activeJobs: string[];
+  lastExecution: Map<string, Date>;
+  totalExecutions: Map<string, number>;
+  errorCount: Map<string, number>;
+  uptime: number;
+  config: BatchJobConfig;
+}
