@@ -6,6 +6,87 @@
 import type { IAsyncTaskQueue } from '../shared/interfaces/async-task-queue.interface.js';
 import { logger } from '../shared/utils/logger.js';
 
+/** Snapshot stored in failed TaskResult.data for retryTask */
+function failedTaskDataToTaskFields(data: unknown): {
+  type: string;
+  data: unknown;
+  priority: number;
+  createdAt: Date;
+  maxRetries: number;
+  timeout: number;
+} {
+  if (data === null || typeof data !== 'object') {
+    return {
+      type: 'unknown',
+      data: {},
+      priority: 0,
+      createdAt: new Date(),
+      maxRetries: 3,
+      timeout: 30000,
+    };
+  }
+  const o = data as Record<string, unknown>;
+  const createdAtRaw = o.createdAt;
+  let createdAt: Date;
+  if (createdAtRaw instanceof Date) {
+    createdAt = createdAtRaw;
+  } else if (typeof createdAtRaw === 'string' || typeof createdAtRaw === 'number') {
+    createdAt = new Date(createdAtRaw);
+  } else {
+    createdAt = new Date();
+  }
+  return {
+    type: typeof o.type === 'string' ? o.type : 'unknown',
+    data: o.data !== undefined && o.data !== null ? o.data : {},
+    priority: typeof o.priority === 'number' ? o.priority : 0,
+    createdAt,
+    maxRetries: typeof o.maxRetries === 'number' ? o.maxRetries : 3,
+    timeout: typeof o.timeout === 'number' ? o.timeout : 30000,
+  };
+}
+
+interface MemoryOperationTaskData {
+  operation: unknown;
+  content: unknown;
+  type: unknown;
+  tags: unknown;
+  importance: unknown;
+}
+
+function parseMemoryOperationTaskData(data: unknown): MemoryOperationTaskData {
+  if (data === null || typeof data !== 'object') {
+    throw new Error('Invalid memory operation task data');
+  }
+  const o = data as Record<string, unknown>;
+  return {
+    operation: o.operation,
+    content: o.content,
+    type: o.type,
+    tags: o.tags,
+    importance: o.importance,
+  };
+}
+
+interface FailureEventTaskData {
+  event: unknown;
+  handler: (event: unknown) => Promise<void>;
+}
+
+function parseFailureEventTaskData(data: unknown): FailureEventTaskData {
+  if (data === null || typeof data !== 'object') {
+    throw new Error('Invalid failure event task data');
+  }
+  const o = data as Record<string, unknown>;
+  const handler = o.handler;
+  if (typeof handler !== 'function') {
+    throw new Error('Failure event handler is not a function');
+  }
+  return {
+    event: o.event,
+    handler: handler as (event: unknown) => Promise<void>,
+  };
+}
+
 export interface Task<T = unknown> {
   id: string;
   type: string;
@@ -283,15 +364,16 @@ export class AsyncTaskQueue implements IAsyncTaskQueue {
     if (!failedResult) return false;
 
     // 실패한 작업의 원본 정보를 복원
+    const fields = failedTaskDataToTaskFields(failedResult.data);
     const originalTask: Task = {
       id: taskId,
-      type: (failedResult.data as any)?.type || 'unknown',
-      data: (failedResult.data as any)?.data || {},
-      priority: (failedResult.data as any)?.priority || 0,
-      createdAt: (failedResult.data as any)?.createdAt || new Date(),
-      maxRetries: (failedResult.data as any)?.maxRetries || 3,
+      type: fields.type,
+      data: fields.data,
+      priority: fields.priority,
+      createdAt: fields.createdAt,
+      maxRetries: fields.maxRetries,
       retryCount: failedResult.retryCount,
-      timeout: (failedResult.data as any)?.timeout || 30000
+      timeout: fields.timeout
     };
 
     if (originalTask.retryCount >= originalTask.maxRetries) {
@@ -413,7 +495,7 @@ class Worker {
   /**
    * 실제 작업 실행 - 최적화된 버전
    */
-  private async executeTask(): Promise<any> {
+  private async executeTask(): Promise<unknown> {
     switch (this.task.type) {
       case 'embedding':
         return await this.processEmbedding();
@@ -435,8 +517,8 @@ class Worker {
   /**
    * 메모리 작업 처리
    */
-  private async processMemoryOperation(): Promise<unknown> {
-    const { operation, content, type, tags, importance } = this.task.data as any;
+  private async processMemoryOperation(): Promise<Record<string, unknown>> {
+    const { operation, content, type, tags, importance } = parseMemoryOperationTaskData(this.task.data);
     
     // 실제 MCP 클라이언트 호출 시뮬레이션
     if (operation === 'remember') {
@@ -459,7 +541,7 @@ class Worker {
   /**
    * 임베딩 처리 - 최적화된 버전
    */
-  private async processEmbedding(): Promise<any> {
+  private async processEmbedding(): Promise<{ embedding: number[] }> {
     // 임베딩 생성 시뮬레이션 (지연 시간 단축)
     await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 30));
     return { embedding: new Array(1536).fill(0).map(() => Math.random()) };
@@ -468,7 +550,7 @@ class Worker {
   /**
    * 검색 처리 - 최적화된 버전
    */
-  private async processSearch(): Promise<any> {
+  private async processSearch(): Promise<{ results: unknown[]; count: number }> {
     // 검색 처리 시뮬레이션 (지연 시간 단축)
     await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 20));
     return { results: [], count: Math.floor(Math.random() * 10) };
@@ -477,7 +559,7 @@ class Worker {
   /**
    * 정리 처리
    */
-  private async processCleanup(): Promise<any> {
+  private async processCleanup(): Promise<{ cleaned: number }> {
     // 정리 처리 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
     return { cleaned: Math.floor(Math.random() * 5) };
@@ -486,24 +568,26 @@ class Worker {
   /**
    * 배치 삽입 처리
    */
-  private async processBatchInsert(): Promise<any> {
+  private async processBatchInsert(): Promise<{ inserted: number }> {
     // 배치 삽입 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
-    return { inserted: (this.task.data as any[]).length };
+    const payload = this.task.data;
+    const length = Array.isArray(payload) ? payload.length : 0;
+    return { inserted: length };
   }
 
   /**
    * 실패 이벤트 처리 (FailureDetector용)
    */
-  private async processFailureEvent(): Promise<any> {
-    const { event, handler } = this.task.data as { event: any; handler: (event: any) => Promise<void> };
-    
-    if (!handler || typeof handler !== 'function') {
-      throw new Error('Failure event handler is not a function');
-    }
-    
+  private async processFailureEvent(): Promise<{ processed: true; event_id: unknown }> {
+    const { event, handler } = parseFailureEventTaskData(this.task.data);
+
     await handler(event);
-    return { processed: true, event_id: event.id };
+    const eventId =
+      event !== null && typeof event === 'object' && 'id' in event
+        ? (event as { id: unknown }).id
+        : undefined;
+    return { processed: true, event_id: eventId };
   }
 
   /**
@@ -526,7 +610,7 @@ class Worker {
 export class BatchProcessor {
   private batchSize: number;
   private flushInterval: number;
-  private batches: Map<string, any[]> = new Map();
+  private batches: Map<string, unknown[]> = new Map();
   private timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(batchSize: number = 100, flushInterval: number = 5000) {
@@ -580,7 +664,7 @@ export class BatchProcessor {
   /**
    * 배치 처리 구현
    */
-  private async processBatch(batchKey: string, items: any[]): Promise<void> {
+  private async processBatch(batchKey: string, items: unknown[]): Promise<void> {
     switch (batchKey) {
       case 'memory_insert':
         await this.processMemoryBatch(items);
@@ -599,7 +683,7 @@ export class BatchProcessor {
   /**
    * 메모리 배치 처리
    */
-  private async processMemoryBatch(items: any[]): Promise<void> {
+  private async processMemoryBatch(items: unknown[]): Promise<void> {
     // 실제로는 데이터베이스에 배치 삽입
     logger.info(`메모리 배치 처리: ${items.length}개 항목`);
   }
@@ -607,7 +691,7 @@ export class BatchProcessor {
   /**
    * 임베딩 배치 처리
    */
-  private async processEmbeddingBatch(items: any[]): Promise<void> {
+  private async processEmbeddingBatch(items: unknown[]): Promise<void> {
     // 실제로는 임베딩 생성
     logger.info(`임베딩 배치 처리: ${items.length}개 항목`);
   }
@@ -615,7 +699,7 @@ export class BatchProcessor {
   /**
    * 검색 캐시 배치 처리
    */
-  private async processSearchCacheBatch(items: any[]): Promise<void> {
+  private async processSearchCacheBatch(items: unknown[]): Promise<void> {
     // 실제로는 캐시 업데이트
     logger.info(`검색 캐시 배치 처리: ${items.length}개 항목`);
   }
@@ -648,7 +732,7 @@ export class BatchProcessor {
    * 배치 상태 반환
    */
   getBatchStats(): Record<string, { size: number; lastFlush: Date }> {
-    const stats: Record<string, any> = {};
+    const stats: Record<string, { size: number; lastFlush: Date }> = {};
     
     for (const [key, batch] of this.batches) {
       stats[key] = {
