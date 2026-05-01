@@ -26,7 +26,7 @@ Operational failures SHOULD be observable with structured logs and SHOULD NOT br
 
 ## Additional Constraints
 
-- Runtime baseline: Node.js 20+ with TypeScript ES modules.
+- Runtime baseline: Node.js 24+ with TypeScript ES modules.
 - Package management baseline: npm workspaces.
 - Security/auth scope changes require explicit specification and are not implied by implementation details.
 

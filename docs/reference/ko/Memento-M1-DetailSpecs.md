@@ -106,7 +106,7 @@ CREATE VIRTUAL TABLE memory_item_vss USING vss0(embedding(1536));
 
 ## 8. 운영 및 배포
 
-- **실행 환경**: Node.js (v20 이상)
+- **실행 환경**: Node.js (v24 이상)
 - **배포 방법**: 로컬 실행
   ```bash
   node memory-server.js

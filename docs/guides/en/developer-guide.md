@@ -17,7 +17,7 @@ This guide explains the development environment setup, architecture understandin
 
 ### Prerequisites
 
-- **Node.js**: 20.0.0 or higher (package.json standard)
+- **Node.js**: 24.0.0 or higher (package.json standard)
 - **npm**: 10.0.0 or higher
 
 ### Repository Guidelines (`AGENTS.md`)
@@ -26,7 +26,7 @@ The project includes developer guidelines:
 
 - **Project Structure**: Module organization under `src/`
 - **Build/Test Commands**: `npm run dev`, `npm run build`, `npm run test`, etc.
-- **Coding Style**: Node.js ≥ 20, TypeScript ES modules, 2-space indentation
+- **Coding Style**: Node.js ≥ 24, TypeScript ES modules, 2-space indentation
 - **Testing Guidelines**: Vitest based with clear naming conventions:
   - Unit Tests (`.spec.ts`): Place in module directories (e.g., `src/algorithms/search-engine.spec.ts`)
   - E2E Tests (`test-*.ts`): Place in `src/test/` directory (e.g., `src/test/test-client.ts`)
@@ -719,7 +719,7 @@ What actually happened
 
 **Environment**
 - OS: [e.g., Windows 10]
-- Node.js: [e.g., 20.0.0]
+- Node.js: [e.g., 24.0.0]
 - Memento: [e.g., 0.1.0]
 ```
 

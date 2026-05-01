@@ -11,6 +11,8 @@
 - CLI(`memento remember` 등)가 HTTP/stdio MCP 서버와 동시에 실행될 때 발생하던 WAL 체크포인트 충돌 및 DB 손상 버그 수정 (#160)
 
 ### Changed
+- GitHub Actions 런타임 및 저장소 `engines` 기준 Node.js **24**로 상향; 워크플로 액션 메이저 갱신 (#211)
+- `sqlite-vec` **0.1.9**로 상향: `sqlite-vec-linux-arm64@0.1.6` 미배포로 인한 `npm ci` 실패(Node 24/npm 엄격 검증) 방지 (#212)
 - CLI가 DB를 직접 열지 않고 실행 중인 서버의 HTTP 관리 포트로 요청을 위임하도록 아키텍처 전환
 - stdio MCP 서버가 CLI 통신을 위한 localhost-only HTTP 관리 포트를 함께 기동
 - `--db-path`, `--env-file` CLI 옵션 deprecated (무시됨)

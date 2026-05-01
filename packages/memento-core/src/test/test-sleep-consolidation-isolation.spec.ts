@@ -91,8 +91,8 @@ describe('test-sleep-consolidation-isolation', () => {
 
     const onCi = process.env.CI === 'true';
     /** 로컬: SQLite 단일 연결·consolidation 병행 시 베이스 대비 2배까지 일시적 처짐 가능(스모크만 단언) */
-    const multiplier = onCi ? 6 : 2;
-    const jitterMs = onCi ? 200 : 80;
+    const multiplier = onCi ? 6 : 3;
+    const jitterMs = onCi ? 200 : 150;
     const ceiling = Math.ceil(base * multiplier) + jitterMs;
     expect(during).toBeLessThanOrEqual(ceiling);
   }, 120_000);

@@ -61,6 +61,6 @@
     "db:migrate": "node dist/infrastructure/database/database/migrate.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   }
 }

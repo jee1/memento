@@ -106,7 +106,7 @@ Periodically run batch jobs (cron jobs) to clean up expired records.
 
 ## 8. Operations and Deployment
 
-- **Runtime Environment**: Node.js (v20 or higher)
+- **Runtime Environment**: Node.js (v24 or higher)
 - **Deployment Method**: Local execution
   ```bash
   node memory-server.js

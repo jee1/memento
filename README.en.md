@@ -289,7 +289,7 @@ npm run test -- --coverage
 ### Repository Guidelines (`AGENTS.md`)
 - **Project Structure**: Module organization under `src/`
 - **Build/Test Commands**: `npm run dev`, `npm run build`, `npm run test`, etc.
-- **Coding Style**: Node.js ≥ 20, TypeScript ES modules, 2-space indentation
+- **Coding Style**: Node.js ≥ 24, TypeScript ES modules, 2-space indentation
 - **Testing Guidelines**: Vitest based, `src/test/` or `*.spec.ts` files
 - **Commit/PR Guidelines**: Conventional Commits, Korean context included
 - **Environment/Database**: `.env` configuration, `data/` folder management

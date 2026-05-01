@@ -209,7 +209,7 @@ npx 사용 시 "Cannot destructure property 'package' of 'node.target' as it is 
 # npm 캐시 정리
 npm cache clean --force
 
-# Node.js 버전 확인 (20 이상 필요)
+# Node.js 버전 확인 (24 이상 필요)
 node --version
 
 # 다시 시도
