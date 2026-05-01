@@ -17,15 +17,14 @@ import { PerformanceAlertService } from './domains/monitoring/services/performan
 import { WriteCoalescingManager, type CoalescedWrite } from './shared/utils/write-coalescing.js';
 import { DatabaseUtils } from './shared/utils/database.js';
 import { createAnchorStack } from './bootstrap/anchor-stack.js';
+import { startFailureAndReflexion } from './bootstrap/failure-reflexion.js';
 import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
-import { FailureDetector } from './domains/monitoring/services/failure-detector.js';
-import { AsyncTaskQueue } from './infrastructure/async-optimizer.js';
+import type { FailureDetector } from './domains/monitoring/services/failure-detector.js';
 import type { IBatchScheduler } from './shared/interfaces/batch-scheduler.interface.js';
 import type { IConsolidationScoreService } from './shared/interfaces/consolidation-score.interface.js';
 import type { IDatabaseOptimizer } from './shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.interface.js';
 import { ConsolidationScoreService } from './infrastructure/consolidation-score-service.js';
-import { ReflexionWorker } from './infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
 import { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
@@ -90,11 +89,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       hybridSearchEngine,
       errorLoggingService
     );
-    const failureEventQueue = new AsyncTaskQueue(5);
-    const failureDetector = new FailureDetector(failureEventQueue);
-    await failureDetector.startQueue();
-    const reflexionWorker = new ReflexionWorker(failureDetector, db);
-    await reflexionWorker.start();
+    const { failureDetector, reflexionWorker } = await startFailureAndReflexion(db);
     const performanceMonitor = getPerformanceMonitor();
     performanceMonitor.initialize(db);
     const runtimeDiagnosticsLogger = new RuntimeDiagnosticsLogger(
