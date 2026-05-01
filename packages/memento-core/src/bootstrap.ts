@@ -6,9 +6,9 @@
 
 import Database from 'better-sqlite3';
 import { mementoConfig } from './shared/config/index.js';
-import { SearchEngine } from './domains/search/algorithms/search-engine.js';
+import type { SearchEngine } from './domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
-import { HybridSearchFactory } from './domains/search/factories/hybrid-search.factory.js';
+import { createSearchEmbeddingAndOptimizerServices } from './bootstrap/search-and-embedding.js';
 import { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from './domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
@@ -25,7 +25,6 @@ import type { IBatchScheduler } from './shared/interfaces/batch-scheduler.interf
 import type { IConsolidationScoreService } from './shared/interfaces/consolidation-score.interface.js';
 import type { IDatabaseOptimizer } from './shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.interface.js';
-import { DatabaseOptimizer } from './infrastructure/database/database-optimizer.js';
 import { ConsolidationScoreService } from './infrastructure/consolidation-score-service.js';
 import { ReflexionWorker } from './infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
@@ -77,13 +76,13 @@ export interface ServerServices {
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
   try {
-    const searchEngine = new SearchEngine();
-    const embeddingService = new MemoryEmbeddingService();
-    // 검색 경로는 별도 인스턴스를 사용해 remember 경로와 provider 상태를 공유하지 않도록 분리한다.
-    const queryEmbeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db, queryEmbeddingService);
-    const forgettingPolicyService = new ForgettingPolicyService();
-    const databaseOptimizer = new DatabaseOptimizer(db);
+    const {
+      searchEngine,
+      embeddingService,
+      hybridSearchEngine,
+      forgettingPolicyService,
+      databaseOptimizer,
+    } = createSearchEmbeddingAndOptimizerServices(db);
     const errorLoggingService = new ErrorLoggingService();
     const performanceAlertService = new PerformanceAlertService('./logs');
     const anchorCacheService = new AnchorCacheService(db, embeddingService);
