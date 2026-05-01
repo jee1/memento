@@ -12,8 +12,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest --run",
-    "test:ci": "vitest --run --reporter=basic"
+    "test": "vitest --run --passWithNoTests",
+    "test:ci": "vitest --run --reporter=basic --passWithNoTests"
   },
   "keywords": [
     "memento",
