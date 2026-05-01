@@ -19,6 +19,7 @@ import { createAnchorStack } from './bootstrap/anchor-stack.js';
 import { createWriteCoalescingMetaAndScore } from './bootstrap/write-and-meta.js';
 import { createMonitoringAndSchedulers } from './bootstrap/monitoring-schedulers.js';
 import { createBatchTelemetryRelationAndSleep } from './bootstrap/batch-telemetry-relation.js';
+import { createRuntimeDiagnosticsSampler } from './bootstrap/runtime-diagnostics-sampler.js';
 import { startFailureAndReflexion } from './bootstrap/failure-reflexion.js';
 import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
 import type { FailureDetector } from './domains/monitoring/services/failure-detector.js';
@@ -29,7 +30,6 @@ import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.inte
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
 import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
-import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
 import type { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
@@ -107,96 +107,12 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       runtimeDiagnosticsLogger,
       reflexionWorker
     );
-    let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;
-    if (mementoConfig.diagnosticsEnabled) {
-      let runtimeDiagnosticsSamplerStopped = false;
-      let runtimeDiagnosticsSamplerInFlight: Promise<void> | null = null;
-      let runtimeDiagnosticsSamplerTimer: ReturnType<typeof setTimeout> | null = null;
-      const scheduleRuntimeDiagnosticsSampler = (): void => {
-        if (runtimeDiagnosticsSamplerStopped) {
-          return;
-        }
+    const { runtimeDiagnosticsSamplerCleanup } = createRuntimeDiagnosticsSampler({
+      mementoConfig,
+      batchScheduler,
+      runtimeDiagnosticsLogger
+    });
 
-        runtimeDiagnosticsSamplerTimer = setTimeout(() => {
-          runtimeDiagnosticsSamplerTimer = null;
-          void runRuntimeDiagnosticsSampler();
-        }, mementoConfig.diagnosticsIntervalMs);
-        runtimeDiagnosticsSamplerTimer.unref?.();
-      };
-
-      const runRuntimeDiagnosticsSampler = async (): Promise<void> => {
-        if (runtimeDiagnosticsSamplerStopped) {
-          return;
-        }
-
-        const currentRun = (async () => {
-          if (runtimeDiagnosticsSamplerStopped) {
-            return;
-          }
-
-          try {
-            const batchSchedulerStatus = batchScheduler.getStatus();
-            await runtimeDiagnosticsLogger.writeSample({
-              type: 'runtime_sample',
-              timestamp: new Date().toISOString(),
-              memory: process.memoryUsage(),
-              uptime: process.uptime(),
-              batchScheduler: {
-                isRunning: batchSchedulerStatus.isRunning,
-                activeJobs: batchSchedulerStatus.activeJobs ?? [],
-                uptime: batchSchedulerStatus.uptime ?? 0,
-                lastExecution: batchSchedulerStatus.lastExecution
-                  ? Object.fromEntries(
-                      Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
-                        jobName,
-                        executedAt.toISOString()
-                      ])
-                    )
-                  : undefined,
-                totalExecutions: batchSchedulerStatus.totalExecutions
-                  ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
-                  : undefined,
-                errorCount: batchSchedulerStatus.errorCount
-                  ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
-                  : undefined
-              },
-              walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
-              dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
-            });
-          } catch (error) {
-            try {
-              logger.error('런타임 진단 샘플 기록 실패', {
-                error: error instanceof Error ? error.message : String(error)
-              });
-            } catch {
-              // diagnostics best-effort: sampler failure must not abort bootstrap
-            }
-          }
-        })();
-
-        runtimeDiagnosticsSamplerInFlight = currentRun;
-        try {
-          await currentRun;
-        } finally {
-          if (runtimeDiagnosticsSamplerInFlight === currentRun) {
-            runtimeDiagnosticsSamplerInFlight = null;
-          }
-        }
-        if (!runtimeDiagnosticsSamplerStopped) {
-          scheduleRuntimeDiagnosticsSampler();
-        }
-      };
-
-      scheduleRuntimeDiagnosticsSampler();
-      runtimeDiagnosticsSamplerCleanup = async () => {
-        runtimeDiagnosticsSamplerStopped = true;
-        if (runtimeDiagnosticsSamplerTimer) {
-          clearTimeout(runtimeDiagnosticsSamplerTimer);
-          runtimeDiagnosticsSamplerTimer = null;
-        }
-        await runtimeDiagnosticsSamplerInFlight;
-      };
-    }
     return {
       searchEngine,
       hybridSearchEngine,
