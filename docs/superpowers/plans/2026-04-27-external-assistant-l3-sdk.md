@@ -532,12 +532,21 @@ git commit -m "feat(assistant): Transport interface + MockTransport"
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StdioTransport } from './stdio-transport.js';
 
+// 실제 MCP 서버는 `{ content: [{ type: 'text', text: JSON.stringify(...) }] }` 형태를 반환한다
+// (verified in packages/memento-core/src/tools/base-tool.ts). parseToolJson은 'json' / 'text'
+// 둘 다 지원하므로 mock 설계도 두 형태를 섞어 둔다 — drift 방지.
 vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
   Client: vi.fn().mockImplementation(() => ({
     connect: vi.fn().mockResolvedValue(undefined),
     callTool: vi.fn().mockImplementation(async ({ name, arguments: args }: any) => {
-      if (name === 'recall') return { content: [{ type: 'json', json: { items: [{ id: 'm:1', content: 'hi', type: 'semantic' }] } }] };
-      if (name === 'remember') return { content: [{ type: 'json', json: { id: 'm:2' } }] };
+      if (name === 'recall') {
+        // 실제 서버 shape: type:'text' + JSON.stringify
+        return { content: [{ type: 'text', text: JSON.stringify({ items: [{ id: 'm:1', content: 'hi', type: 'semantic' }] }) }] };
+      }
+      if (name === 'remember') {
+        // 또 하나의 허용 shape 확인용: type:'json' + json 직접
+        return { content: [{ type: 'json', json: { id: 'm:2' } }] };
+      }
       throw new Error(`unknown tool ${name}`);
     }),
     close: vi.fn().mockResolvedValue(undefined),
@@ -762,7 +771,9 @@ export class HttpTransport implements Transport {
 }
 ```
 
-> 정확한 `CreateMemoryParams` / `RememberResult` 시그니처는 `packages/memento-client/src/types.ts`에서 확인한다. `memory_id` vs `id` 명명은 client 결과를 직접 들여다본 뒤 결정.
+> 정확한 `CreateMemoryParams` / `RememberResult` 시그니처는 `packages/memento-client/src/types.ts`에서 확인한다. `RememberResult.memory_id: string` 가 정식 필드이므로 `r.memory_id ?? r.id` 폴백을 그대로 사용.
+
+> **Note (shape 차이 주의):** `MementoClient.recall`이 반환하는 `MemorySearchResult` 의 `score` / `recall_reason` / `privacy_scope` / `pinned` 등은 실제 응답에서 항상 채워져 들어오지만, 본 plan의 `RecallResult.items` 타입은 더 좁게 잡혀 있다(공통 분모). HttpTransport에서 들어온 score는 Task 16의 0.85 dedup에 그대로 활용 가능, MockTransport / stdio 응답은 score가 없을 수 있으므로 `top.score ?? 0` 로 안전 비교한다.
 
 - [ ] **Step 4: 테스트 통과.**
 
@@ -1431,6 +1442,8 @@ describe('RetryQueue', () => {
 ```
 
 - [ ] **Step 6: `retry-queue.ts` 구현.** (작성 시 `setTimeout` 기반 fire-and-forget. 자세한 구현은 implementer에게 위임 — 위 테스트 5개를 통과하는 최소 구현.)
+
+> **Implementer judgment 비중이 가장 큰 task.** 위 테스트 5개가 동작/타이밍 계약을 전부 박아두긴 했지만, 내부 자료구조(배열 vs 링버퍼), `setTimeout` ID 추적 방식, capacity drop 정책의 정확한 순서 등은 구현자가 결정한다. 막히면 status `BLOCKED` 으로 보고하고, 막힌 지점을 명시할 것.
 
 핵심 시그니처:
 ```ts
@@ -2225,11 +2238,20 @@ main().catch(e => { console.error(e); process.exit(1); });
 
 - [ ] **Step 4: 빌드 + 수동 실행 검증.**
 
+example app은 별도 빌드 산출물이 없도록 dist를 만들지 말고, `tsx`로 바로 실행한다. 단 `tsx` 가 root devDeps에 있는지 먼저 확인:
+
+```bash
+node -e "console.log(require('./package.json').devDependencies?.tsx ?? require('./package.json').dependencies?.tsx ?? 'NOT INSTALLED')"
+# expected: 버전 문자열 (이미 설치돼 있음 — root scripts에서 tsx 다수 사용)
+```
+
 ```bash
 npm run build -w @memento/assistant
 npx tsx apps/experimental-assistant-example/src/index.ts <<< 'exit'
 # expected: 정상 시작/종료
 ```
+
+> `tsx`가 누락된 환경이라면 `apps/experimental-assistant-example/package.json`의 devDependencies에 추가하거나, 빌드 후 `node dist/index.js` 로 실행 경로를 바꾼다.
 
 - [ ] **Step 5: Commit.**
 
@@ -2435,9 +2457,13 @@ npm install
 - [ ] **Step 3:** `@memento/assistant`가 import 가능한지 확인.
 
 ```bash
+# 워크스페이스 링크 + 빌드 산출물 보장
+npm run build -w @memento/assistant
 node -e "import('@memento/assistant').then(m => console.log(Object.keys(m)))"
 # expected: [ 'MementoAssistant', 'MockTransport', ... ]
 ```
+
+> `npm run build`가 선행되지 않으면 `dist/index.js` 가 없어 `import('@memento/assistant')` 가 모듈 해석에 실패한다. `npm install` 만으로는 부족하다는 점에 주의.
 
 - [ ] **Step 4:** 검증만이고 commit 없음.
 
