@@ -37,7 +37,6 @@ import {
   shouldRetryTripleLlmError,
 } from './triple-extraction-errors.js';
 import {
-  checkOllamaModelInstalled,
   extractRawWithGemini,
   extractRawWithOllama,
   extractRawWithOpenAI,
