@@ -17,6 +17,7 @@ import { PerformanceAlertService } from './domains/monitoring/services/performan
 import { WriteCoalescingManager, type CoalescedWrite } from './shared/utils/write-coalescing.js';
 import { DatabaseUtils } from './shared/utils/database.js';
 import { createAnchorStack } from './bootstrap/anchor-stack.js';
+import { createMonitoringAndSchedulers } from './bootstrap/monitoring-schedulers.js';
 import { startFailureAndReflexion } from './bootstrap/failure-reflexion.js';
 import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
 import type { FailureDetector } from './domains/monitoring/services/failure-detector.js';
@@ -90,52 +91,12 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       errorLoggingService
     );
     const { failureDetector, reflexionWorker } = await startFailureAndReflexion(db);
-    const performanceMonitor = getPerformanceMonitor();
-    performanceMonitor.initialize(db);
-    const runtimeDiagnosticsLogger = new RuntimeDiagnosticsLogger(
-      mementoConfig.diagnosticsEnabled,
-      mementoConfig.diagnosticsLogDir
-    );
-    await runtimeDiagnosticsLogger.writeEvent({
-      type: 'bootstrap_start',
-      timestamp: new Date().toISOString(),
-      diagnosticsEnabled: mementoConfig.diagnosticsEnabled
-    });
-    const walCheckpointScheduler = new WalCheckpointScheduler(
-      db,
-      {
-        intervalMs: mementoConfig.walCheckpointIntervalMs,
-        walSizeWarningThreshold: mementoConfig.walSizeWarningThreshold,
-        walSizeDangerThreshold: mementoConfig.walSizeDangerThreshold,
-        useDedicatedConnection: mementoConfig.walCheckpointUseDedicatedConnection,
-        maxRetries: mementoConfig.walCheckpointMaxRetries,
-        retryBackoffMs: mementoConfig.walCheckpointRetryBackoffMs
-      },
-      logger,
+    const {
       performanceMonitor,
-      runtimeDiagnosticsLogger
-    );
-    const databaseLockMonitor = new DatabaseLockMonitor(
-      db,
-      {
-        intervalMs: mementoConfig.lockMonitorIntervalMs,
-        warningThresholdMs: mementoConfig.lockMonitorWarningThresholdMs,
-        dangerThresholdMs: mementoConfig.lockMonitorDangerThresholdMs,
-        criticalThresholdMs: mementoConfig.lockMonitorCriticalThresholdMs
-      },
-      logger,
-      performanceMonitor,
+      runtimeDiagnosticsLogger,
       walCheckpointScheduler,
-      runtimeDiagnosticsLogger
-    );
-    if (mementoConfig.walCheckpointEnabled) {
-      walCheckpointScheduler.start();
-      logger.info('WAL 체크포인트 스케줄러 시작됨');
-    }
-    if (mementoConfig.dbLockMonitorEnabled) {
-      databaseLockMonitor.start();
-      logger.info('데이터베이스 락 모니터 시작됨');
-    }
+      databaseLockMonitor
+    } = await createMonitoringAndSchedulers(db);
     let consolidationScoreService: ConsolidationScoreService | undefined;
     const writeCoalescingManager = new WriteCoalescingManager(
       1000,
