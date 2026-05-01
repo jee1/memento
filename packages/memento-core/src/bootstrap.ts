@@ -16,9 +16,8 @@ import { ErrorLoggingService } from './domains/monitoring/services/error-logging
 import { PerformanceAlertService } from './domains/monitoring/services/performance-alert-service.js';
 import { WriteCoalescingManager, type CoalescedWrite } from './shared/utils/write-coalescing.js';
 import { DatabaseUtils } from './shared/utils/database.js';
-import { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
-import { AnchorCacheService } from './domains/anchor/services/anchor/anchor-cache-service.js';
-import { AnchorSearchService } from './domains/anchor/services/anchor/anchor-search-service.js';
+import { createAnchorStack } from './bootstrap/anchor-stack.js';
+import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
 import { FailureDetector } from './domains/monitoring/services/failure-detector.js';
 import { AsyncTaskQueue } from './infrastructure/async-optimizer.js';
 import type { IBatchScheduler } from './shared/interfaces/batch-scheduler.interface.js';
@@ -85,18 +84,12 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     } = createSearchEmbeddingAndOptimizerServices(db);
     const errorLoggingService = new ErrorLoggingService();
     const performanceAlertService = new PerformanceAlertService('./logs');
-    const anchorCacheService = new AnchorCacheService(db, embeddingService);
-    const vectorSearchEngine = getVectorSearchEngine();
-    const anchorSearchService = new AnchorSearchService(anchorCacheService, {
+    const { vectorSearchEngine, anchorManager } = await createAnchorStack(
       db,
+      embeddingService,
       hybridSearchEngine,
-      vectorSearchEngine
-    });
-    const anchorManager = new AnchorManager(anchorCacheService, anchorSearchService, {
-      db,
       errorLoggingService
-    });
-    await anchorCacheService.restoreCacheFromDB(db);
+    );
     const failureEventQueue = new AsyncTaskQueue(5);
     const failureDetector = new FailureDetector(failureEventQueue);
     await failureDetector.startQueue();
