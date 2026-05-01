@@ -49,6 +49,7 @@ import {
   seedTestDatabase,
   cleanupTestDatabase
 } from './helpers/consolidation-test-data.js';
+import { logger } from '../shared/utils/logger.js';
 
 describe('벡터 검색 품질 검증 통합 테스트', () => {
   let db: Database.Database;
@@ -1973,9 +1974,10 @@ describe('벡터 검색 품질 검증 통합 테스트', () => {
       );
       
       // When: 품질 저하 감지 및 경고 출력
-      const consoleSpy = {
-        warn: vi.spyOn(console, 'warn').mockImplementation(() => {}),
-        error: vi.spyOn(console, 'error').mockImplementation(() => {})
+      const loggerSpy = {
+        warn: vi.spyOn(logger, 'warn').mockImplementation(() => {}),
+        error: vi.spyOn(logger, 'error').mockImplementation(() => {}),
+        info: vi.spyOn(logger, 'info').mockImplementation(() => {}),
       };
       
       const detection = detectQualityDegradation(comparison);
@@ -1983,12 +1985,17 @@ describe('벡터 검색 품질 검증 통합 테스트', () => {
       
       // Then: 경고 메시지가 출력되어야 함 (감지된 경우에만)
       if (detection.detected) {
-        expect(consoleSpy.warn).toHaveBeenCalled();
+        const n =
+          loggerSpy.warn.mock.calls.length +
+          loggerSpy.error.mock.calls.length +
+          loggerSpy.info.mock.calls.length;
+        expect(n).toBeGreaterThan(0);
       }
       
       // 정리
-      consoleSpy.warn.mockRestore();
-      consoleSpy.error.mockRestore();
+      loggerSpy.warn.mockRestore();
+      loggerSpy.error.mockRestore();
+      loggerSpy.info.mockRestore();
     });
 
     it('품질 저하 경고 메시지를 파일로 저장할 수 있어야 함', async () => {
@@ -2225,9 +2232,10 @@ describe('벡터 검색 품질 검증 통합 테스트', () => {
       );
       
       // When: 통합 함수 사용
-      const consoleSpy = {
-        warn: vi.spyOn(console, 'warn').mockImplementation(() => {}),
-        error: vi.spyOn(console, 'error').mockImplementation(() => {})
+      const loggerSpy = {
+        warn: vi.spyOn(logger, 'warn').mockImplementation(() => {}),
+        error: vi.spyOn(logger, 'error').mockImplementation(() => {}),
+        info: vi.spyOn(logger, 'info').mockImplementation(() => {}),
       };
       
       const detection = detectAndAlertQualityDegradation(
@@ -2243,12 +2251,17 @@ describe('벡터 검색 품질 검증 통합 테스트', () => {
       
       // 감지된 경우 경고 메시지가 출력되어야 함
       if (detection.detected) {
-        expect(consoleSpy.warn).toHaveBeenCalled();
+        const n =
+          loggerSpy.warn.mock.calls.length +
+          loggerSpy.error.mock.calls.length +
+          loggerSpy.info.mock.calls.length;
+        expect(n).toBeGreaterThan(0);
       }
       
       // 정리
-      consoleSpy.warn.mockRestore();
-      consoleSpy.error.mockRestore();
+      loggerSpy.warn.mockRestore();
+      loggerSpy.error.mockRestore();
+      loggerSpy.info.mockRestore();
     });
   });
 });

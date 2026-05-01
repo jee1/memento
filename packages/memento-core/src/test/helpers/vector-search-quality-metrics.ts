@@ -20,6 +20,7 @@ import {
   calculateRecallAtK,
   calculateNDCGAtK
 } from './search-quality-metrics.js';
+import { logger } from '../../shared/utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -2595,14 +2596,11 @@ export function printQualityAlert(
   // 콘솔 출력
   if (output === 'console' || output === 'both') {
     if (detection.severity === 'critical') {
-      // Critical은 stderr로 출력
-      console.error(alertText);
+      logger.error(alertText);
     } else if (detection.severity === 'warning') {
-      // Warning은 console.warn으로 출력
-      console.warn(alertText);
+      logger.warn(alertText);
     } else {
-      // Info는 console.log로 출력
-      console.log(alertText);
+      logger.info(alertText);
     }
   }
   
