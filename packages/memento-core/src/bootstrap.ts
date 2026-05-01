@@ -6,40 +6,34 @@
 
 import Database from 'better-sqlite3';
 import { mementoConfig } from './shared/config/index.js';
-import { SearchEngine } from './domains/search/algorithms/search-engine.js';
+import type { SearchEngine } from './domains/search/algorithms/search-engine.js';
 import { HybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
-import { HybridSearchFactory } from './domains/search/factories/hybrid-search.factory.js';
+import { createSearchEmbeddingAndOptimizerServices } from './bootstrap/search-and-embedding.js';
 import { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
 import { ForgettingPolicyService } from './domains/forgetting/services/forgetting-policy-service.js';
 import { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 import { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 import { PerformanceAlertService } from './domains/monitoring/services/performance-alert-service.js';
-import { WriteCoalescingManager, type CoalescedWrite } from './shared/utils/write-coalescing.js';
-import { DatabaseUtils } from './shared/utils/database.js';
-import { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
-import { AnchorCacheService } from './domains/anchor/services/anchor/anchor-cache-service.js';
-import { AnchorSearchService } from './domains/anchor/services/anchor/anchor-search-service.js';
-import { FailureDetector } from './domains/monitoring/services/failure-detector.js';
-import { AsyncTaskQueue } from './infrastructure/async-optimizer.js';
+import type { WriteCoalescingManager } from './shared/utils/write-coalescing.js';
+import { createAnchorStack } from './bootstrap/anchor-stack.js';
+import { createWriteCoalescingMetaAndScore } from './bootstrap/write-and-meta.js';
+import { createMonitoringAndSchedulers } from './bootstrap/monitoring-schedulers.js';
+import { createBatchTelemetryRelationAndSleep } from './bootstrap/batch-telemetry-relation.js';
+import { createRuntimeDiagnosticsSampler } from './bootstrap/runtime-diagnostics-sampler.js';
+import { startFailureAndReflexion } from './bootstrap/failure-reflexion.js';
+import type { AnchorManager } from './domains/anchor/services/anchor/anchor-manager.js';
+import type { FailureDetector } from './domains/monitoring/services/failure-detector.js';
 import type { IBatchScheduler } from './shared/interfaces/batch-scheduler.interface.js';
 import type { IConsolidationScoreService } from './shared/interfaces/consolidation-score.interface.js';
 import type { IDatabaseOptimizer } from './shared/interfaces/database-optimizer.interface.js';
 import type { IReflexionWorker } from './shared/interfaces/reflexion-worker.interface.js';
-import { DatabaseOptimizer } from './infrastructure/database/database-optimizer.js';
-import { ConsolidationScoreService } from './infrastructure/consolidation-score-service.js';
-import { ReflexionWorker } from './infrastructure/reflexion-worker.js';
 import { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
-import { getBatchScheduler } from './infrastructure/scheduler/batch-scheduler.js';
 import { SleepConsolidationService } from './domains/consolidation/services/sleep-consolidation-service.js';
-import { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 import type { RelationGraphPort } from './domains/relation/ports/relation-graph.port.js';
-import { logger } from './shared/utils/logger.js';
 import { WalCheckpointScheduler } from './infrastructure/database/wal-checkpoint-scheduler.js';
 import { DatabaseLockMonitor } from './infrastructure/database/database-lock-monitor.js';
-import { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
+import type { MetaMemoryService } from './domains/memory/services/meta-memory-service.js';
 import { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
-import type { SqlParam } from './shared/types/index.js';
-import { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 import { RuntimeDiagnosticsLogger } from './domains/monitoring/services/runtime-diagnostics-logger.js';
 
@@ -77,234 +71,48 @@ export interface ServerServices {
 
 export async function initializeServices(db: Database.Database): Promise<ServerServices> {
   try {
-    const searchEngine = new SearchEngine();
-    const embeddingService = new MemoryEmbeddingService();
-    // 검색 경로는 별도 인스턴스를 사용해 remember 경로와 provider 상태를 공유하지 않도록 분리한다.
-    const queryEmbeddingService = new MemoryEmbeddingService();
-    const hybridSearchEngine = HybridSearchFactory.createDefaultEngine(db, queryEmbeddingService);
-    const forgettingPolicyService = new ForgettingPolicyService();
-    const databaseOptimizer = new DatabaseOptimizer(db);
+    const {
+      searchEngine,
+      embeddingService,
+      hybridSearchEngine,
+      forgettingPolicyService,
+      databaseOptimizer,
+    } = createSearchEmbeddingAndOptimizerServices(db);
     const errorLoggingService = new ErrorLoggingService();
     const performanceAlertService = new PerformanceAlertService('./logs');
-    const anchorCacheService = new AnchorCacheService(db, embeddingService);
-    const vectorSearchEngine = getVectorSearchEngine();
-    const anchorSearchService = new AnchorSearchService(anchorCacheService, {
+    const { vectorSearchEngine, anchorManager } = await createAnchorStack(
       db,
+      embeddingService,
       hybridSearchEngine,
-      vectorSearchEngine
-    });
-    const anchorManager = new AnchorManager(anchorCacheService, anchorSearchService, {
-      db,
       errorLoggingService
-    });
-    await anchorCacheService.restoreCacheFromDB(db);
-    const failureEventQueue = new AsyncTaskQueue(5);
-    const failureDetector = new FailureDetector(failureEventQueue);
-    await failureDetector.startQueue();
-    const reflexionWorker = new ReflexionWorker(failureDetector, db);
-    await reflexionWorker.start();
-    const performanceMonitor = getPerformanceMonitor();
-    performanceMonitor.initialize(db);
-    const runtimeDiagnosticsLogger = new RuntimeDiagnosticsLogger(
-      mementoConfig.diagnosticsEnabled,
-      mementoConfig.diagnosticsLogDir
     );
-    await runtimeDiagnosticsLogger.writeEvent({
-      type: 'bootstrap_start',
-      timestamp: new Date().toISOString(),
-      diagnosticsEnabled: mementoConfig.diagnosticsEnabled
-    });
-    const walCheckpointScheduler = new WalCheckpointScheduler(
-      db,
-      {
-        intervalMs: mementoConfig.walCheckpointIntervalMs,
-        walSizeWarningThreshold: mementoConfig.walSizeWarningThreshold,
-        walSizeDangerThreshold: mementoConfig.walSizeDangerThreshold,
-        useDedicatedConnection: mementoConfig.walCheckpointUseDedicatedConnection,
-        maxRetries: mementoConfig.walCheckpointMaxRetries,
-        retryBackoffMs: mementoConfig.walCheckpointRetryBackoffMs
-      },
-      logger,
+    const { failureDetector, reflexionWorker } = await startFailureAndReflexion(db);
+    const {
       performanceMonitor,
-      runtimeDiagnosticsLogger
-    );
-    const databaseLockMonitor = new DatabaseLockMonitor(
-      db,
-      {
-        intervalMs: mementoConfig.lockMonitorIntervalMs,
-        warningThresholdMs: mementoConfig.lockMonitorWarningThresholdMs,
-        dangerThresholdMs: mementoConfig.lockMonitorDangerThresholdMs,
-        criticalThresholdMs: mementoConfig.lockMonitorCriticalThresholdMs
-      },
-      logger,
-      performanceMonitor,
+      runtimeDiagnosticsLogger,
       walCheckpointScheduler,
+      databaseLockMonitor
+    } = await createMonitoringAndSchedulers(db);
+    const { writeCoalescingManager, consolidationScoreService, metaMemoryService } =
+      createWriteCoalescingMetaAndScore(db);
+    const {
+      introspectionScanCache,
+      batchScheduler,
+      telemetryService,
+      relationGraph,
+      sleepConsolidationService
+    } = await createBatchTelemetryRelationAndSleep(
+      db,
+      embeddingService,
+      runtimeDiagnosticsLogger,
+      reflexionWorker
+    );
+    const { runtimeDiagnosticsSamplerCleanup } = createRuntimeDiagnosticsSampler({
+      mementoConfig,
+      batchScheduler,
       runtimeDiagnosticsLogger
-    );
-    if (mementoConfig.walCheckpointEnabled) {
-      walCheckpointScheduler.start();
-      logger.info('WAL 체크포인트 스케줄러 시작됨');
-    }
-    if (mementoConfig.dbLockMonitorEnabled) {
-      databaseLockMonitor.start();
-      logger.info('데이터베이스 락 모니터 시작됨');
-    }
-    let consolidationScoreService: ConsolidationScoreService | undefined;
-    const writeCoalescingManager = new WriteCoalescingManager(
-      1000,
-      async (writes: CoalescedWrite[]) => {
-        if (!db || writes.length === 0) return;
-        const currentDb = db;
-        try {
-          await DatabaseUtils.runTransaction(currentDb, async () => {
-            for (const write of writes) {
-              const updates: string[] = [];
-              const params: SqlParam[] = [];
-              if (write.fields.recall_count !== undefined) {
-                updates.push('recall_count = ?');
-                params.push(write.fields.recall_count);
-              }
-              if (write.fields.last_accessed_at !== undefined) {
-                updates.push('last_accessed_at = ?');
-                params.push(write.fields.last_accessed_at);
-              }
-              if (mementoConfig.consolidationScoreEnabled) {
-                if (write.fields.g_value !== undefined) {
-                  updates.push('g_value = ?');
-                  params.push(write.fields.g_value);
-                }
-                if (write.fields.consolidation_score !== undefined) {
-                  updates.push('consolidation_score = ?');
-                  params.push(write.fields.consolidation_score);
-                }
-              }
-              if (updates.length > 0) {
-                params.push(write.memoryId);
-                DatabaseUtils.run(
-                  currentDb,
-                  `UPDATE memory_item SET ${updates.join(', ')} WHERE id = ?`,
-                  params
-                );
-              }
-            }
-          });
-        } catch (error) {
-          logger.error(`⚠️ Write coalescing flush 실패: ${error instanceof Error ? error.message : String(error)}`);
-        }
-      }
-    );
-    if (mementoConfig.consolidationScoreEnabled) {
-      consolidationScoreService = new ConsolidationScoreService();
-    }
-    const metaMemoryService = new MetaMemoryService(db, writeCoalescingManager);
-    logger.info('MetaMemoryService 초기화 완료');
-    const introspectionScanCache = new IntrospectionScanCache();
-    const telemetryRepository = new TelemetryRepository(db);
-    const batchScheduler = getBatchScheduler();
-    batchScheduler.setDiagnosticsLogger(runtimeDiagnosticsLogger);
-    batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
-    const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
-    batchScheduler.setIntrospectionScanCache(introspectionScanCache);
-    const relationGraph = createRelationGraph(db);
-    const sleepConsolidationService = new SleepConsolidationService(db, {
-      relationGraph: relationGraph,
-      memoryEmbeddingService: embeddingService,
-      telemetryService
     });
-    batchScheduler.setSleepConsolidationService(sleepConsolidationService);
-    if (mementoConfig.batchSchedulerEnabled) {
-      await batchScheduler.start(db, reflexionWorker);
-    }
-    let runtimeDiagnosticsSamplerCleanup: (() => Promise<void>) | undefined;
-    if (mementoConfig.diagnosticsEnabled) {
-      let runtimeDiagnosticsSamplerStopped = false;
-      let runtimeDiagnosticsSamplerInFlight: Promise<void> | null = null;
-      let runtimeDiagnosticsSamplerTimer: ReturnType<typeof setTimeout> | null = null;
-      const scheduleRuntimeDiagnosticsSampler = (): void => {
-        if (runtimeDiagnosticsSamplerStopped) {
-          return;
-        }
 
-        runtimeDiagnosticsSamplerTimer = setTimeout(() => {
-          runtimeDiagnosticsSamplerTimer = null;
-          void runRuntimeDiagnosticsSampler();
-        }, mementoConfig.diagnosticsIntervalMs);
-        runtimeDiagnosticsSamplerTimer.unref?.();
-      };
-
-      const runRuntimeDiagnosticsSampler = async (): Promise<void> => {
-        if (runtimeDiagnosticsSamplerStopped) {
-          return;
-        }
-
-        const currentRun = (async () => {
-          if (runtimeDiagnosticsSamplerStopped) {
-            return;
-          }
-
-          try {
-            const batchSchedulerStatus = batchScheduler.getStatus();
-            await runtimeDiagnosticsLogger.writeSample({
-              type: 'runtime_sample',
-              timestamp: new Date().toISOString(),
-              memory: process.memoryUsage(),
-              uptime: process.uptime(),
-              batchScheduler: {
-                isRunning: batchSchedulerStatus.isRunning,
-                activeJobs: batchSchedulerStatus.activeJobs ?? [],
-                uptime: batchSchedulerStatus.uptime ?? 0,
-                lastExecution: batchSchedulerStatus.lastExecution
-                  ? Object.fromEntries(
-                      Array.from(batchSchedulerStatus.lastExecution.entries()).map(([jobName, executedAt]) => [
-                        jobName,
-                        executedAt.toISOString()
-                      ])
-                    )
-                  : undefined,
-                totalExecutions: batchSchedulerStatus.totalExecutions
-                  ? Object.fromEntries(batchSchedulerStatus.totalExecutions.entries())
-                  : undefined,
-                errorCount: batchSchedulerStatus.errorCount
-                  ? Object.fromEntries(batchSchedulerStatus.errorCount.entries())
-                  : undefined
-              },
-              walCheckpointEnabled: mementoConfig.walCheckpointEnabled,
-              dbLockMonitorEnabled: mementoConfig.dbLockMonitorEnabled
-            });
-          } catch (error) {
-            try {
-              logger.error('런타임 진단 샘플 기록 실패', {
-                error: error instanceof Error ? error.message : String(error)
-              });
-            } catch {
-              // diagnostics best-effort: sampler failure must not abort bootstrap
-            }
-          }
-        })();
-
-        runtimeDiagnosticsSamplerInFlight = currentRun;
-        try {
-          await currentRun;
-        } finally {
-          if (runtimeDiagnosticsSamplerInFlight === currentRun) {
-            runtimeDiagnosticsSamplerInFlight = null;
-          }
-        }
-        if (!runtimeDiagnosticsSamplerStopped) {
-          scheduleRuntimeDiagnosticsSampler();
-        }
-      };
-
-      scheduleRuntimeDiagnosticsSampler();
-      runtimeDiagnosticsSamplerCleanup = async () => {
-        runtimeDiagnosticsSamplerStopped = true;
-        if (runtimeDiagnosticsSamplerTimer) {
-          clearTimeout(runtimeDiagnosticsSamplerTimer);
-          runtimeDiagnosticsSamplerTimer = null;
-        }
-        await runtimeDiagnosticsSamplerInFlight;
-      };
-    }
     return {
       searchEngine,
       hybridSearchEngine,

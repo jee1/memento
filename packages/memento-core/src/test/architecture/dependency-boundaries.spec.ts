@@ -88,10 +88,11 @@ describe('dependency boundaries', () => {
   });
 
   it('wires relationGraph through the domain port from bootstrap to tool context', async () => {
-    const [portSource, toolTypesSource, bootstrapSource, contextSource] = await Promise.all([
+    const [portSource, toolTypesSource, bootstrapSource, batchTelemetryRelationSource, contextSource] = await Promise.all([
       readSource('domains/relation/ports/relation-graph.port.ts'),
       readSource('tools/types.ts'),
       readSource('bootstrap.ts'),
+      readSource('bootstrap/batch-telemetry-relation.ts'),
       readSource('context.ts'),
     ]);
 
@@ -99,8 +100,8 @@ describe('dependency boundaries', () => {
     expect(toolTypesSource).toContain('relationGraph?: RelationGraphPort;');
     expect(toolTypesSource).not.toContain('services/relation-graph.js');
     expect(bootstrapSource).toContain('relationGraph: RelationGraphPort;');
-    expect(bootstrapSource).toContain('const relationGraph = createRelationGraph(db);');
-    expect(bootstrapSource).toContain('relationGraph: relationGraph,');
+    expect(batchTelemetryRelationSource).toContain('const relationGraph = createRelationGraph(db);');
+    expect(bootstrapSource).toContain('createBatchTelemetryRelationAndSleep');
     expect(contextSource).toContain('relationGraph: serverContext.services.relationGraph');
   });
 });
