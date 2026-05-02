@@ -7,6 +7,7 @@ import {
   getMemoryReviewCandidateById,
   listMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
+  markMemoryReviewCandidateDismissed,
 } from './memory-review-candidate-persistence-service.js';
 import {
   MemoryReviewCandidateError,
@@ -160,4 +161,25 @@ describe('memory-review-candidate-persistence upsert', () => {
       statusCode: 409,
     });
   });
+  it('dismiss updates only candidate row', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      NOW,
+    );
+    const row = listMemoryReviewCandidates(db, { status: 'pending' })[0];
+    const before = db.prepare(`SELECT content, importance FROM memory_item WHERE id = 'mem_a'`).get() as {
+      content: string;
+      importance: number;
+    };
+    markMemoryReviewCandidateDismissed(db, row.id, NOW);
+    const after = db.prepare(`SELECT content, importance FROM memory_item WHERE id = 'mem_a'`).get() as {
+      content: string;
+      importance: number;
+    };
+    expect(after).toEqual(before);
+    expect(getMemoryReviewCandidateById(db, row.id)?.status).toBe('dismissed');
+  });
+
 });
+

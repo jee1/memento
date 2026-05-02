@@ -154,3 +154,30 @@ export function markMemoryReviewCandidateReviewed(
   run();
 }
 
+export function markMemoryReviewCandidateDismissed(
+  db: Database.Database,
+  candidateId: string,
+  now: string,
+): void {
+  ensureMemoryReviewCandidateSchema(db);
+  const run = db.transaction(() => {
+    const cur = db
+      .prepare<[string], { status: string }>(`SELECT status FROM memory_review_candidate WHERE id = ?`)
+      .get(candidateId);
+    if (!cur) {
+      throw MemoryReviewCandidateError.notFound(candidateId);
+    }
+    if (cur.status !== 'pending') {
+      throw MemoryReviewCandidateError.notActionable(candidateId, cur.status);
+    }
+    const info = db
+      .prepare<[string, string, string]>(
+        `UPDATE memory_review_candidate SET status = 'dismissed', dismissed_at = ?, updated_at = ? WHERE id = ? AND status = 'pending'`,
+      )
+      .run(now, now, candidateId);
+    if (info.changes === 0) {
+      throw MemoryReviewCandidateError.notActionable(candidateId, cur.status);
+    }
+  });
+  run();
+}
