@@ -66,3 +66,22 @@ describe('afterAssistantTurn — decision mode', () => {
     expect(t.rememberCalls[0].type).toBe('working');
   });
 });
+
+describe('afterAssistantTurn — retry & drop', () => {
+  it('retries 3 times then drops on persistent failure', async () => {
+    vi.useFakeTimers();
+    try {
+      const t = new MockTransport();
+      let attempts = 0;
+      t.remember = async (_p) => { attempts++; throw new Error('always'); };
+
+      const a = MementoAssistant.fromEnv({ transport: t }, {});
+      await a.afterAssistantTurn({ userMessage: 'u', assistantReply: 'a', conversationId: 'c1' });
+      await vi.advanceTimersByTimeAsync(0);     // attempt 1
+      await vi.advanceTimersByTimeAsync(1000);  // attempt 2
+      await vi.advanceTimersByTimeAsync(2000);  // attempt 3
+      await vi.advanceTimersByTimeAsync(4000);  // drop
+      expect(attempts).toBe(3);
+    } finally { vi.useRealTimers(); }
+  });
+});
