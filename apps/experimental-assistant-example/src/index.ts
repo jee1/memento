@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-constant-condition */
 import { MementoAssistant } from '@memento/assistant';
 import * as readline from 'node:readline/promises';
 

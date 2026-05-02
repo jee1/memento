@@ -42,6 +42,8 @@ export function levelFromEnv(env: NodeJS.ProcessEnv): Level {
 
 export const consoleSink = (line: { level: Level; msg: string }) => {
   const out = `[memento-assistant] ${line.level}: ${line.msg}`;
+  // eslint-disable-next-line no-console
   if (line.level === 'error' || line.level === 'warn') console.error(out);
+  // eslint-disable-next-line no-console
   else console.log(out);
 };
