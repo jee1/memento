@@ -1,7 +1,7 @@
 // packages/memento-assistant/src/lifecycle/after-assistant-turn.ts
 import type { AfterAssistantTurnInput, Policy } from '../types.js';
 import type { Transport } from '../transport/transport.js';
-import { rememberDispatch, type RememberDispatchItem } from '../policy/auto-remember-policy.js';
+import { rememberDispatch } from '../policy/auto-remember-policy.js';
 import { scopeRememberTags } from '../scoping/channel-scope.js';
 import type { AssistantLogger } from '../fallback/logger.js';
 import type { RetryQueue } from '../fallback/retry-queue.js';
@@ -29,6 +29,8 @@ export async function afterAssistantTurn(deps: Deps, input: AfterAssistantTurnIn
     const isExtracted = item.type !== 'working';
     if (isExtracted) {
       try {
+        // v0.1: probe is scoped to the same channel+conversation tags intentionally;
+        // cross-conversation dedup is deferred to a future version.
         const probe = await deps.transport.recall(item.content, { ownerId: deps.ownerId, tags }, 1);
         const top = probe.items[0];
         if (top && (top.score ?? 0) >= SIM_THRESHOLD) updateExisting = { id: top.id };

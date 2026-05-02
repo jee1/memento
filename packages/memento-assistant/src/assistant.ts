@@ -1,6 +1,6 @@
 // packages/memento-assistant/src/assistant.ts
 import type { MementoAssistantOptions, Policy, BeforeUserTurnInput, BeforeUserTurnResult, AfterAssistantTurnInput } from './types.js';
-import type { Transport, RecallResult, RememberResult, RememberParams } from './transport/transport.js';
+import type { Transport, RecallResult, RememberResult, RememberParams, RecallParams } from './transport/transport.js';
 import { createTransportFromEnv } from './transport/factory.js';
 import { createRateLimitedLogger, levelFromEnv, consoleSink, type AssistantLogger } from './fallback/logger.js';
 import { CircuitBreaker } from './fallback/circuit-breaker.js';
@@ -26,7 +26,10 @@ export class MementoAssistant {
   readonly transport: Transport;
   readonly logger: AssistantLogger;
   private readonly breaker = new CircuitBreaker({ failureThreshold: 5, openMs: 30_000 });
-  private readonly retryQueue = new RetryQueue({ maxAttempts: 3, capacity: 50, backoffMs: [1000, 2000, 4000] });
+  private readonly retryQueue = new RetryQueue({
+    maxAttempts: 3, capacity: 50, backoffMs: [1000, 2000, 4000],
+    onDrop: (_reason, err) => this.logger.warn(`memento remember dropped: ${err instanceof Error ? err.message : String(err)}`),
+  });
 
   private constructor(args: {
     ownerId?: string; channel?: string; userTags?: string[];
@@ -69,7 +72,7 @@ export class MementoAssistant {
   }
 
   // Passthrough methods
-  async recall(query: string, filters?: any, limit?: number): Promise<RecallResult> {
+  async recall(query: string, filters?: RecallParams['filters'], limit?: number): Promise<RecallResult> {
     return this.transport.recall(query, filters, limit);
   }
   async remember(params: RememberParams): Promise<RememberResult> {
