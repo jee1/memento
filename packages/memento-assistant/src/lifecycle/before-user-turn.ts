@@ -24,13 +24,12 @@ export async function beforeUserTurn(deps: Deps, input: BeforeUserTurnInput): Pr
     return degraded;
   }
 
-  const filters = scopeRecallFilters(
-    { ownerId: deps.ownerId, channel: deps.channel, crossChannelRecall: deps.policy.crossChannelRecall },
-    {},
-    deps.logger,
-  );
-
   try {
+    const filters = scopeRecallFilters(
+      { ownerId: deps.ownerId, channel: deps.channel, crossChannelRecall: deps.policy.crossChannelRecall },
+      {},
+      deps.logger,
+    );
     const result = await withTimeout(
       deps.transport.recall(input.userMessage, filters, deps.policy.recallLimit),
       deps.policy.recallTimeoutMs,
@@ -45,7 +44,7 @@ export async function beforeUserTurn(deps: Deps, input: BeforeUserTurnInput): Pr
     };
   } catch (err) {
     deps.breaker.recordFailure();
-    deps.logger.warn(`memento recall failed: ${(err as Error).message}`);
+    deps.logger.warn(`memento recall failed: ${err instanceof Error ? err.message : String(err)}`);
     return degraded;
   }
 }
