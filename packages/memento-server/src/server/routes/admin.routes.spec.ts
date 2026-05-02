@@ -17,7 +17,9 @@ import {
   TelemetryDailyMetricsMigration,
   MetaMemoryStatsSchemaMigration,
   MemoryReviewCandidateSchemaMigration,
-  upsertPendingMemoryReviewCandidates
+  upsertPendingMemoryReviewCandidates,
+  getBatchScheduler,
+  resetBatchScheduler
 } from '@memento/core';
 
 async function listen(app: express.Express): Promise<{ server: http.Server; port: number }> {
@@ -974,6 +976,7 @@ describe('admin.routes memory review candidates', () => {
 
   function makeApp(database: Database.Database) {
     const app = express();
+    app.use(express.json());
     app.use('/admin', createAdminRouter(database, null));
     return app;
   }
@@ -1096,6 +1099,26 @@ describe('admin.routes memory review candidates', () => {
       expect(res.statusCode).toBe(400);
     } finally {
       await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST /admin/batch/run accepts memory_review_candidates (200 with started scheduler)', async () => {
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const res = await postAdminJson(port, '/admin/batch/run', { jobType: 'memory_review_candidates' });
+        expect(res.statusCode).toBe(200);
+        const body = JSON.parse(res.body) as { result?: { jobType?: string } };
+        expect(body.result?.jobType).toBe('memory_review_candidates');
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
     }
   });
 });
