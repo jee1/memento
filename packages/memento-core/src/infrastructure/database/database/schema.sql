@@ -579,6 +579,27 @@ BEGIN
   WHERE memory_id = NEW.memory_id;
 END;
 
+-- Memory review candidates (migration 033, Issue #240)
+CREATE TABLE IF NOT EXISTS memory_review_candidate (
+  id TEXT PRIMARY KEY NOT NULL,
+  memory_id TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending','reviewed','dismissed','expired')),
+  priority REAL NOT NULL,
+  reason TEXT NOT NULL,
+  due_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  reviewed_at TEXT,
+  dismissed_at TEXT,
+  metadata_json TEXT,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_review_candidate_pending_memory_id
+  ON memory_review_candidate(memory_id)
+  WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_memory_review_candidate_queue
+  ON memory_review_candidate(status, priority DESC, due_at ASC);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);
