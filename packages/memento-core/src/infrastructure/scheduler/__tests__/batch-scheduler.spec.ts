@@ -28,6 +28,7 @@ describe('BatchScheduler', () => {
       cleanupInterval: 60000, // 최소 1분
       monitoringInterval: 10000, // 최소 10초
       healthCheckInterval: 10000,
+      memoryReviewCandidatesInterval: 60000,
       maxBatchSize: 100,
       enableLogging: false, // 테스트 중 로그 최소화
       enableNotifications: false,
@@ -309,6 +310,22 @@ describe('BatchScheduler', () => {
       expect(result).toBeDefined();
       expect(result.jobType).toBe('healthcheck');
       expect(result).toHaveProperty('success');
+    });
+
+    it('memory_review_candidates 작업을 수동으로 실행해야 함', async () => {
+      await scheduler.start(db);
+
+      const result = await scheduler.runJob('memory_review_candidates');
+
+      expect(result).toBeDefined();
+      expect(result.jobType).toBe('memory_review_candidates');
+      expect(result).toHaveProperty('success');
+    });
+
+    it('시작 후 activeJobs에 memory_review_candidates가 포함되어야 함', async () => {
+      await scheduler.start(db);
+      const status = scheduler.getStatus();
+      expect(status.activeJobs).toContain('memory_review_candidates');
     });
   });
 

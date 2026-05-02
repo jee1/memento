@@ -46,6 +46,9 @@ import { resolveValidatedNumber } from '../../shared/config/environment.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
+import { selectMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-selection-service.js';
+import { upsertPendingMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-persistence-service.js';
+
 import { collectBatchSchedulerDatabaseStats } from './batch-scheduler-database-stats.js';
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
 
@@ -131,6 +134,12 @@ export class BatchScheduler implements IBatchScheduler {
       ),
       telemetryCleanupInterval: resolveValidatedNumber(
         'TELEMETRY_CLEANUP_INTERVAL_MS',
+        24 * 60 * 60 * 1000,
+        n => n >= 60_000,
+        '최솟값 60000'
+      ),
+      memoryReviewCandidatesInterval: resolveValidatedNumber(
+        'MEMORY_REVIEW_CANDIDATES_INTERVAL_MS',
         24 * 60 * 60 * 1000,
         n => n >= 60_000,
         '최솟값 60000'
@@ -281,6 +290,15 @@ export class BatchScheduler implements IBatchScheduler {
       this.config.metaMemoryIntrospectionInterval,
       async () => { await this.runMetaMemoryIntrospection(); },
       6
+    );
+
+    this.scheduleJob(
+      'memory_review_candidates',
+      this.config.memoryReviewCandidatesInterval,
+      async () => {
+        await this.runMemoryReviewCandidatesJob();
+      },
+      8
     );
 
     // 작업 큐 처리 시작
@@ -479,6 +497,71 @@ export class BatchScheduler implements IBatchScheduler {
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : String(error));
       this.log('Memory cleanup failed:', error, 'error');
+    } finally {
+      result.endTime = new Date();
+      result.duration = result.endTime.getTime() - result.startTime.getTime();
+    }
+
+    return result;
+  }
+
+  /**
+   * Issue #243: memory_review_candidate 큐를 선정 결과로 갱신
+   */
+  private async runMemoryReviewCandidatesJob(): Promise<BatchJobResult> {
+    const startTime = new Date();
+    const result: BatchJobResult = {
+      jobType: 'memory_review_candidates',
+      startTime,
+      endTime: new Date(),
+      duration: 0,
+      success: false,
+      processed: 0,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      if (!this.db) {
+        throw new Error('Database not initialized');
+      }
+      if (!DatabaseUtils.isOpen(this.db)) {
+        throw new Error('Database connection is not open. The database may have been closed.');
+      }
+
+      const items = selectMemoryReviewCandidates(this.db);
+      const dueDays = resolveValidatedNumber(
+        'MEMORY_REVIEW_CANDIDATE_DUE_DAYS',
+        14,
+        n => n >= 1 && n <= 366,
+        '1-366'
+      );
+      const nowIso = new Date().toISOString();
+      const dueAt = new Date(Date.now() + dueDays * 86_400_000).toISOString();
+
+      const inputs = items.map(i => ({
+        memory_id: i.memory_id,
+        priority: i.priority,
+        reason: i.reason,
+        due_at: dueAt,
+        metadata_json: JSON.stringify({ score_breakdown: i.score_breakdown })
+      }));
+
+      const upsert = upsertPendingMemoryReviewCandidates(this.db, inputs, nowIso);
+      result.success = true;
+      result.processed = inputs.length;
+      result.details = { inserted: upsert.inserted, updated: upsert.updated };
+
+      this.log('Memory review candidates batch completed', {
+        selected: items.length,
+        inserted: upsert.inserted,
+        updated: upsert.updated
+      });
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : String(error));
+      this.log('Memory review candidates batch failed', {
+        error: error instanceof Error ? error.message : String(error)
+      }, 'error');
     } finally {
       result.endTime = new Date();
       result.duration = result.endTime.getTime() - result.startTime.getTime();
@@ -945,7 +1028,7 @@ export class BatchScheduler implements IBatchScheduler {
    * 직접 실행하되 lastExecution과 totalExecutions을 기록함
    */
   async runJob(
-    jobType: 'cleanup' | 'monitoring' | 'healthcheck' | 'meta_memory_introspection'
+    jobType: 'cleanup' | 'monitoring' | 'healthcheck' | 'meta_memory_introspection' | 'memory_review_candidates'
   ): Promise<BatchJobResult> {
     let result: BatchJobResult;
 
@@ -961,6 +1044,9 @@ export class BatchScheduler implements IBatchScheduler {
         break;
       case 'meta_memory_introspection':
         result = await this.runMetaMemoryIntrospection();
+        break;
+      case 'memory_review_candidates':
+        result = await this.runMemoryReviewCandidatesJob();
         break;
       default:
         throw new Error(`Unknown job type: ${jobType}`);
@@ -1032,6 +1118,15 @@ export class BatchScheduler implements IBatchScheduler {
       this.scheduleJob('monitoring', this.config.monitoringInterval, async () => { await this.runMonitoring(); }, 2);
     } else if (jobName === 'healthcheck') {
       this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
+    } else if (jobName === 'memory_review_candidates') {
+      this.scheduleJob(
+        'memory_review_candidates',
+        this.config.memoryReviewCandidatesInterval,
+        async () => {
+          await this.runMemoryReviewCandidatesJob();
+        },
+        8
+      );
     } else {
       this.log(`Unknown job type for restart: ${jobName}`);
       return false;
