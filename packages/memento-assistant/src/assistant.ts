@@ -4,7 +4,9 @@ import type { Transport, RecallResult, RememberResult, RememberParams } from './
 import { createTransportFromEnv } from './transport/factory.js';
 import { createRateLimitedLogger, levelFromEnv, consoleSink, type AssistantLogger } from './fallback/logger.js';
 import { CircuitBreaker } from './fallback/circuit-breaker.js';
+import { RetryQueue } from './fallback/retry-queue.js';
 import { beforeUserTurn as _beforeUserTurn } from './lifecycle/before-user-turn.js';
+import { afterAssistantTurn as _afterAssistantTurn } from './lifecycle/after-assistant-turn.js';
 
 const DEFAULT_POLICY: Required<Policy> = {
   autoRecall: 'always',
@@ -24,6 +26,7 @@ export class MementoAssistant {
   readonly transport: Transport;
   readonly logger: AssistantLogger;
   private readonly breaker = new CircuitBreaker({ failureThreshold: 5, openMs: 30_000 });
+  private readonly retryQueue = new RetryQueue({ maxAttempts: 3, capacity: 50, backoffMs: [1000, 2000, 4000] });
 
   private constructor(args: {
     ownerId?: string; channel?: string; userTags?: string[];
@@ -58,8 +61,11 @@ export class MementoAssistant {
       input,
     );
   }
-  async afterAssistantTurn(_input: AfterAssistantTurnInput): Promise<void> {
-    throw new Error('not implemented');
+  async afterAssistantTurn(input: AfterAssistantTurnInput): Promise<void> {
+    return _afterAssistantTurn(
+      { transport: this.transport, policy: this.policy, ownerId: this.ownerId, channel: this.channel, userTags: this.userTags, logger: this.logger, retryQueue: this.retryQueue },
+      input,
+    );
   }
 
   // Passthrough methods
