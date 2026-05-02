@@ -66,11 +66,10 @@ export function parseJsonlRecord(raw: string): JsonlParseResult {
     }
     return { ok: true, value };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
     return {
       ok: false,
       raw,
-      error: message.includes('Unexpected') ? message : `Unexpected JSON parse error: ${message}`,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
