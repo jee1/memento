@@ -3,6 +3,8 @@ import type { MementoAssistantOptions, Policy, BeforeUserTurnInput, BeforeUserTu
 import type { Transport, RecallResult, RememberResult, RememberParams } from './transport/transport.js';
 import { createTransportFromEnv } from './transport/factory.js';
 import { createRateLimitedLogger, levelFromEnv, consoleSink, type AssistantLogger } from './fallback/logger.js';
+import { CircuitBreaker } from './fallback/circuit-breaker.js';
+import { beforeUserTurn as _beforeUserTurn } from './lifecycle/before-user-turn.js';
 
 const DEFAULT_POLICY: Required<Policy> = {
   autoRecall: 'always',
@@ -21,6 +23,7 @@ export class MementoAssistant {
   readonly policy: Required<Policy>;
   readonly transport: Transport;
   readonly logger: AssistantLogger;
+  private readonly breaker = new CircuitBreaker({ failureThreshold: 5, openMs: 30_000 });
 
   private constructor(args: {
     ownerId?: string; channel?: string; userTags?: string[];
@@ -48,9 +51,12 @@ export class MementoAssistant {
     });
   }
 
-  // Lifecycle methods — implemented in subsequent tasks
-  async beforeUserTurn(_input: BeforeUserTurnInput): Promise<BeforeUserTurnResult> {
-    throw new Error('not implemented');
+  // Lifecycle methods
+  async beforeUserTurn(input: BeforeUserTurnInput): Promise<BeforeUserTurnResult> {
+    return _beforeUserTurn(
+      { transport: this.transport, policy: this.policy, ownerId: this.ownerId, channel: this.channel, logger: this.logger, breaker: this.breaker },
+      input,
+    );
   }
   async afterAssistantTurn(_input: AfterAssistantTurnInput): Promise<void> {
     throw new Error('not implemented');
