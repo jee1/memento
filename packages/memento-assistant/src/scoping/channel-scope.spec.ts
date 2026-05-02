@@ -49,4 +49,30 @@ describe('scoping', () => {
       expect(tags.some(t => t.startsWith('channel:'))).toBe(false);
     });
   });
+
+  describe('edge cases', () => {
+    it("channel: '' (empty string) is treated as no channel", () => {
+      const out = scopeRecallFilters(
+        { ownerId: 'u', channel: '', crossChannelRecall: 'off' },
+        {}
+      );
+      expect(out.tags ?? []).toHaveLength(0);  // no channel tag added for empty string
+    });
+
+    it('scopeRememberTags: deduplicates duplicate userTags', () => {
+      const tags = scopeRememberTags(
+        { channel: 'discord', userTags: ['persona:asst', 'persona:asst'] },
+        {}
+      );
+      expect(tags.filter(t => t === 'persona:asst')).toHaveLength(1);
+    });
+
+    it('scopeRecallFilters: deduplicates when channel already in user tags', () => {
+      const out = scopeRecallFilters(
+        { channel: 'discord', crossChannelRecall: 'off' },
+        { tags: ['channel:discord'] }
+      );
+      expect((out.tags ?? []).filter(t => t === 'channel:discord')).toHaveLength(1);
+    });
+  });
 });

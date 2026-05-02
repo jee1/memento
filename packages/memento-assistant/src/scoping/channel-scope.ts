@@ -1,11 +1,11 @@
-interface ScopeOpts {
+export interface ScopeOpts {
   ownerId?: string;
   channel?: string;
   userTags?: string[];
   crossChannelRecall?: 'on' | 'off' | 'sameContext';
 }
 
-interface Logger {
+export interface Logger {
   warn(msg: string): void;
 }
 
