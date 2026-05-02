@@ -51,6 +51,19 @@ export {
 } from './shared/http/http-bind-policy.js';
 export { DatabaseUtils } from './shared/utils/database.js';
 export { ensureMemoryReviewCandidateSchema } from './shared/utils/ensure-memory-review-candidate-schema.js';
+export {
+  selectMemoryReviewCandidates,
+  selectionWindowLimit
+} from './domains/memory/services/memory-review-candidate-selection-service.js';
+export { parseMemoryReviewSelectionEnv } from './domains/memory/services/memory-review-candidate-selection-env.js';
+export type {
+  MemoryReviewStaleAnchorKind as StaleAnchorKind,
+  MemoryReviewCandidateSourceRow as SourceRow,
+  MemoryReviewCandidateScoreBreakdown as ScoreBreakdown,
+  MemoryReviewCandidateSelectionItem as SelectionItem,
+  MemoryReviewCandidateSelectionThresholds as Thresholds,
+  MemoryReviewCandidateSelectionOptions as Options
+} from './domains/memory/services/memory-review-candidate-selection.types.js';
 export { logger } from './shared/utils/logger.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export { withErrorHandling } from './shared/utils/error-handling.js';
