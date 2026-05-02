@@ -9,7 +9,7 @@ export interface AssistantLogger {
   debug(msg: string): void;
 }
 
-interface CreateOpts {
+export interface CreateOpts {
   level: Level;
   sink: (line: { level: Level; msg: string }) => void;
 }

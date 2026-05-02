@@ -32,6 +32,7 @@ export class RetryQueue {
   }
 
   private run(job: Job): void {
+    if (this.queue.indexOf(job) === -1) return;  // already dropped via capacity overflow
     job.attempts++;
     job.fn().then(
       () => {

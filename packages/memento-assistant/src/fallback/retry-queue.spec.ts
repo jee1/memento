@@ -46,4 +46,15 @@ describe('RetryQueue', () => {
     q.enqueue(vi.fn().mockResolvedValue(undefined));
     expect(q.size()).toBeLessThanOrEqual(2);
   });
+
+  it('dropped job does not execute after capacity overflow', async () => {
+    const q = new RetryQueue({ maxAttempts: 3, capacity: 1, backoffMs: [100, 200, 400] });
+    const first = vi.fn().mockResolvedValue(undefined);
+    const second = vi.fn().mockResolvedValue(undefined);
+    q.enqueue(first);       // occupies capacity slot
+    q.enqueue(second);      // capacity exceeded → first is dropped
+    await vi.advanceTimersByTimeAsync(0);
+    expect(first).not.toHaveBeenCalled();  // dropped job should NOT run
+    expect(second).toHaveBeenCalledTimes(1);
+  });
 });
