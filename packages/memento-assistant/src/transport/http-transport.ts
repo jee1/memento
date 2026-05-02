@@ -10,6 +10,7 @@ export interface HttpTransportOptions {
 export class HttpTransport implements Transport {
   private client: MementoClient;
   private connected = false;
+  private connecting: Promise<void> | null = null;
 
   constructor(opts: HttpTransportOptions) {
     // Adapt HttpTransportOptions → actual MementoClientOptions (serverUrl / apiKey)
@@ -18,8 +19,12 @@ export class HttpTransport implements Transport {
 
   async connect(): Promise<void> {
     if (this.connected) return;
-    await this.client.connect();
-    this.connected = true;
+    if (this.connecting) return this.connecting;
+    this.connecting = (async () => {
+      await this.client.connect();
+      this.connected = true;
+    })().finally(() => { this.connecting = null; });
+    return this.connecting;
   }
 
   async recall(query: string, filters?: any, limit?: number): Promise<RecallResult> {

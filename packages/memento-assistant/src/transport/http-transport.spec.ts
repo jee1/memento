@@ -34,4 +34,19 @@ describe('HttpTransport', () => {
     // double close is safe
     await t.close();
   });
+
+  it('auto-connects on first call — connect called exactly once', async () => {
+    const { MementoClient } = await import('@memento/client');
+    const MockClient = MementoClient as any;
+    MockClient.mockClear();
+    const t = new HttpTransport({ baseUrl: 'http://localhost:9001', token: 'tok' });
+    // Do NOT call connect() explicitly — test auto-connect
+    await t.recall('q', undefined, 1);
+    // mock.results[0].value is the object returned by mockImplementation (the plain object)
+    const instance = MockClient.mock.results[0].value;
+    expect(instance.connect).toHaveBeenCalledTimes(1);
+    // Second call should NOT call connect again
+    await t.recall('q', undefined, 1);
+    expect(instance.connect).toHaveBeenCalledTimes(1);
+  });
 });
