@@ -6,7 +6,7 @@ import type { Transport } from './transport.js';
 const DEFAULT_STDIO_COMMAND = 'npx';
 const DEFAULT_STDIO_ARGS = ['-y', 'memento-mcp-server@latest'];
 
-interface FactoryOptions {
+export interface FactoryOptions {
   transport?: Transport;
 }
 
