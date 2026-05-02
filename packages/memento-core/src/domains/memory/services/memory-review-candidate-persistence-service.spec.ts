@@ -8,10 +8,12 @@ import {
   listMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
+  markMemoryReviewCandidateExpired,
 } from './memory-review-candidate-persistence-service.js';
 import {
   MemoryReviewCandidateError,
   MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
+  MEMORY_REVIEW_CANDIDATE_NOT_FOUND,
 } from './memory-review-candidate-persistence-error.js';
 
 const NOW = '2026-06-01T12:00:00.000Z';
@@ -179,6 +181,39 @@ describe('memory-review-candidate-persistence upsert', () => {
     };
     expect(after).toEqual(before);
     expect(getMemoryReviewCandidateById(db, row.id)?.status).toBe('dismissed');
+  });
+  it('expire moves pending to expired without touching memory_item importance', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      NOW,
+    );
+    const row = listMemoryReviewCandidates(db, { status: 'pending' })[0];
+    const beforeImp = (
+      db.prepare(`SELECT importance FROM memory_item WHERE id = 'mem_a'`).get() as { importance: number }
+    ).importance;
+    markMemoryReviewCandidateExpired(db, row.id, NOW);
+    expect(getMemoryReviewCandidateById(db, row.id)?.status).toBe('expired');
+    const afterImp = (
+      db.prepare(`SELECT importance FROM memory_item WHERE id = 'mem_a'`).get() as { importance: number }
+    ).importance;
+    expect(afterImp).toBe(beforeImp);
+  });
+
+  it('unknown id on expire throws not found', () => {
+    let caught: unknown;
+    expect(() => {
+      try {
+        markMemoryReviewCandidateExpired(db, '00000000-0000-0000-0000-000000000000', NOW);
+      } catch (e) {
+        caught = e;
+        throw e;
+      }
+    }).toThrow(MemoryReviewCandidateError);
+    expect(caught).toMatchObject({
+      code: MEMORY_REVIEW_CANDIDATE_NOT_FOUND,
+      statusCode: 404,
+    });
   });
 
 });
