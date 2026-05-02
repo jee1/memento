@@ -64,6 +64,26 @@ export type {
   MemoryReviewCandidateSelectionThresholds as Thresholds,
   MemoryReviewCandidateSelectionOptions as Options
 } from './domains/memory/services/memory-review-candidate-selection.types.js';
+export {
+  upsertPendingMemoryReviewCandidates,
+  getMemoryReviewCandidateById,
+  listMemoryReviewCandidates,
+  markMemoryReviewCandidateReviewed,
+  markMemoryReviewCandidateDismissed,
+  markMemoryReviewCandidateExpired,
+} from './domains/memory/services/memory-review-candidate-persistence-service.js';
+export type {
+  MemoryReviewCandidateStatus,
+  MemoryReviewCandidateRow,
+  UpsertPendingMemoryReviewCandidateInput,
+  UpsertPendingMemoryReviewCandidatesResult,
+  ListMemoryReviewCandidatesQuery,
+} from './domains/memory/services/memory-review-candidate-persistence.types.js';
+export {
+  MemoryReviewCandidateError,
+  MEMORY_REVIEW_CANDIDATE_NOT_FOUND,
+  MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
+} from './domains/memory/services/memory-review-candidate-persistence-error.js';
 export { logger } from './shared/utils/logger.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export { withErrorHandling } from './shared/utils/error-handling.js';
