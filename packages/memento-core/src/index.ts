@@ -132,4 +132,7 @@ export { TelemetryService } from './domains/telemetry/services/telemetry-service
 export { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
 export { TelemetryEventsMigration } from './infrastructure/database/database/migration/migrations/027-telemetry-events.js';
 export { TelemetryDailyMetricsMigration } from './infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
+export { MetaMemoryStatsSchemaMigration } from './infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.js';
+export { MemoryReviewCandidateSchemaMigration } from './infrastructure/database/database/migration/migrations/033-memory-review-candidate-schema.js';
+
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';
