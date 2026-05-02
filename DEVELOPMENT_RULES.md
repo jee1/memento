@@ -78,6 +78,7 @@ AI가 코드를 정확히 이해하고 검증할 수 있도록 비즈니스 로�
 *   **브랜치 명명:** `feature/*`, `fix/*`, `docs/*`, `chore/*` 형식을 따릅니다.
 *   **커밋 메시지:** Conventional Commits 준수. **한국어 설명 포함**을 강력히 권장합니다.
     *   예: `feat(search): 하이브리드 검색 엔진 추가`
+*   **Pull Request:** 원격에 처음 올리는 PR은 **Draft PR**로 등록합니다. CI 통과, 셀프 리뷰, 설명·체크리스트 정리가 끝난 뒤 Ready for review로 전환합니다. (예: GitHub CLI `gh pr create --draft`)
 
 ### 문서화 원칙
 *   **한국어 우선:** 모든 문서는 한국어를 기본으로 작성하며, 필요시 영어로 번역합니다.

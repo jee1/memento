@@ -2592,7 +2592,10 @@ export function printQualityAlert(
   
   const alertText = lines.join('\n');
   
-  // 콘솔 출력
+  // `output: 'console'`: 터미널로 사람이 읽는 QA 알림만 보냄. 심각도에 따라 stderr/stdout을
+  // 나누기 위해 `console.*`를 쓴다(도입: #38, tasks-0009). 운영 로그(logger)와 역할이 다르므로
+  // 여기서는 logger로 바꾸지 않는다.
+  /* eslint-disable no-console -- matches QualityAlertOptions.output "console" contract */
   if (output === 'console' || output === 'both') {
     if (detection.severity === 'critical') {
       // Critical은 stderr로 출력
@@ -2605,6 +2608,7 @@ export function printQualityAlert(
       console.log(alertText);
     }
   }
+  /* eslint-enable no-console */
   
   // 파일 출력
   if ((output === 'file' || output === 'both') && filePath) {
