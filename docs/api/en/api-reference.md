@@ -693,6 +693,127 @@ Retrieves forgetting statistics.
 }
 ```
 
+#### Memory review candidates (MVP)
+
+Operators and agents can inspect the **review queue** (`memory_review_candidate`) over the HTTP Admin API and call `review` or `dismiss` on a candidate. Rows are refreshed periodically by the `memory_review_candidates` batch job. All routes are mounted under **`/admin`** and require the same **browser session** authentication as other admin endpoints.
+
+> **GitHub #244 note**: Names such as `MEMORY_REVIEW_INTERVAL_MS` or `MEMORY_REVIEW_CANDIDATE_TTL_DAYS` from the issue draft do not match or are not defined in current `main`. The paths and variables below reflect the **runtime**.
+
+##### List candidates
+
+```http
+GET /admin/memory/review-candidates
+GET /admin/memory/review-candidates?status=pending
+```
+
+**Query parameters**
+
+- `status` (optional): `pending` \| `reviewed` \| `dismissed` \| `expired`. Omit to return all statuses.
+
+**Response (200)**
+
+Each element of `candidates` contains only queue metadata (`id`, `memory_id`, `status`, `priority`, `reason`, `due_at`, timestamps, `metadata_json`). **`memory_item.content` and other memory body fields are not included.** Fetch the memory body via another endpoint using `memory_id`.
+
+```json
+{
+  "message": "Memory review candidates",
+  "candidates": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "memory_id": "mem_abc123",
+      "status": "pending",
+      "priority": 0.82,
+      "reason": "stale_high_importance",
+      "due_at": "2026-05-16T12:00:00.000Z",
+      "created_at": "2026-05-02T10:00:00.000Z",
+      "updated_at": "2026-05-02T10:00:00.000Z",
+      "reviewed_at": null,
+      "dismissed_at": null,
+      "metadata_json": "{\"score_breakdown\":{}}"
+    }
+  ],
+  "timestamp": "2026-05-02T12:00:00.000Z"
+}
+```
+
+**Errors**
+
+- `400`: invalid `status` value
+- `500`: database not connected or other server error
+
+##### Mark reviewed
+
+```http
+POST /admin/memory/review-candidates/:id/review
+Content-Type: application/json
+
+{}
+```
+
+**Response (200)**
+
+```json
+{
+  "ok": true,
+  "candidate": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "memory_id": "mem_abc123",
+    "status": "reviewed",
+    "priority": 0.82,
+    "reason": "stale_high_importance",
+    "due_at": "2026-05-16T12:00:00.000Z",
+    "created_at": "2026-05-02T10:00:00.000Z",
+    "updated_at": "2026-05-02T12:00:00.000Z",
+    "reviewed_at": "2026-05-02T12:00:00.000Z",
+    "dismissed_at": null,
+    "metadata_json": null
+  },
+  "timestamp": "2026-05-02T12:00:00.000Z"
+}
+```
+
+**Errors**
+
+- `400`: `:id` is not a UUID
+- `404`: candidate missing — body includes `code`: `memory_review_candidate_not_found`
+- `409`: not `pending` (e.g. double submit) — `code`: `memory_review_candidate_not_actionable`
+- `500`: other server error
+
+##### Dismiss candidate
+
+```http
+POST /admin/memory/review-candidates/:id/dismiss
+Content-Type: application/json
+
+{}
+```
+
+Responses and error mapping match **Mark reviewed**; on success `status` becomes `dismissed`.
+
+##### Batch: select and upsert queue
+
+```http
+POST /admin/batch/run
+Content-Type: application/json
+
+{ "jobType": "memory_review_candidates" }
+```
+
+- The `BatchScheduler` job registered as `memory_review_candidates` runs the same logic on `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS`.
+- `jobType` must be one of the allowed values (e.g. `cleanup`, `monitoring`, `memory_review_candidates`); invalid values return **400**.
+
+##### Environment variables (memory review MVP)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | Minimum importance for candidacy (0–1; invalid values fall back to default) |
+| `MEMORY_REVIEW_STALE_DAYS` | `14` | Minimum stale age in days (integer ≥ 1) |
+| `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | Max candidates from selection / upsert path (integer ≥ 1) |
+| `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` (24h) | Scheduler interval for `memory_review_candidates` in ms (minimum `60000`) |
+| `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | Days added to “now” when the batch computes each row’s `due_at` (1–366) |
+
+Tune **selection sensitivity** with the first three variables; tune **schedule cadence and due dates** with the last two.
+
 ### Performance Monitoring API
 
 #### Performance Statistics

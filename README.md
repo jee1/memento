@@ -372,6 +372,9 @@ const results = await client.callTool({
 | `/admin/memory/cleanup` | 메모리 정리 | POST |
 | `/admin/memory/convert-episodic-to-semantic` | Episodic → Semantic 변환 | POST |
 | `/admin/memory/meta-stats` | 메타 메모리 통계 조회 | GET |
+| `/admin/memory/review-candidates` | 기억 리뷰 후보 목록 | GET |
+| `/admin/memory/review-candidates/:id/review` | 기억 리뷰 후보 처리(리뷰 완료) | POST |
+| `/admin/memory/review-candidates/:id/dismiss` | 기억 리뷰 후보 기각 | POST |
 | `/admin/stats/forgetting` | 망각 통계 조회 | GET |
 
 #### 앵커 관리
@@ -401,7 +404,7 @@ const results = await client.callTool({
 |-----------|------|--------|
 | `/admin/database/optimize` | 데이터베이스 최적화 | POST |
 
-**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)를 참고하세요.
+**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`, `jobType`에 `memory_review_candidates` 포함), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)를 참고하세요. 기억 리뷰 후보 API·환경 변수·배치 연동은 같은 문서의 **「기억 리뷰 후보 (MVP)」** 절을 참고하세요.
 
 ### Resources
 
@@ -429,6 +432,11 @@ const results = await client.callTool({
 | `CONSOLIDATION_TEST_ITEM_COUNT` | 100 | 벤치마크 테스트 데이터 크기 |
 | `CORS_ALLOWED_ORIGINS` | (비어 있음) | CORS 허용 오리진 (쉼표 구분, 비어 있으면 크로스 오리진 미허용) |
 | `ENABLE_PII_MASKING` | true | PII 마스킹 활성화 (보안, [docs/reference/ko/security.md](docs/reference/ko/security.md) 참고) |
+| `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | 기억 리뷰 후보: 최소 importance (0~1). 상세·예시는 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md) 「기억 리뷰 후보 (MVP)」 |
+| `MEMORY_REVIEW_STALE_DAYS` | `14` | 기억 리뷰 후보: 최소 stale 일수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | 기억 리뷰 후보: 선정 시 최대 개수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` | 배치 `memory_review_candidates` 스케줄 간격(ms), 최소 `60000` |
+| `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | 배치가 `due_at`에 더하는 일 수 (1~366) |
 
 > **참고**: 망각 TTL, LLM/Ollama, 검색 한도 등 추가 변수는 `env.example`을 참고하세요.
 
