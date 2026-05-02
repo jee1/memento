@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { MetaMemoryStatsSchemaMigration } from '../../../infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.js';
 import { MemoryReviewCandidateSchemaMigration } from '../../../infrastructure/database/database/migration/migrations/033-memory-review-candidate-schema.js';
-import { upsertPendingMemoryReviewCandidates } from './memory-review-candidate-persistence-service.js';
+import {
+  upsertPendingMemoryReviewCandidates,
+  getMemoryReviewCandidateById,
+  listMemoryReviewCandidates,
+} from './memory-review-candidate-persistence-service.js';
 
 const NOW = '2026-06-01T12:00:00.000Z';
 
@@ -95,5 +99,18 @@ describe('memory-review-candidate-persistence upsert', () => {
       .get() as { priority: number; reason: string };
     expect(pr.priority).toBe(200);
     expect(pr.reason).toBe('r2');
+  });
+
+  it('get and list return pending candidate', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 42, reason: 'x', due_at: '2026-07-01T00:00:00.000Z' }],
+      NOW,
+    );
+    const rows = listMemoryReviewCandidates(db, { status: 'pending' });
+    expect(rows).toHaveLength(1);
+    const one = getMemoryReviewCandidateById(db, rows[0].id);
+    expect(one?.memory_id).toBe('mem_a');
+    expect(one?.status).toBe('pending');
   });
 });
