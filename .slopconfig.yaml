@@ -1,0 +1,13 @@
+version: "2.0"
+ignore:
+  - "**/coverage/**"
+  - "graphify-out/**"
+  - "**/.next/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "test-results/**"
+  - ".nyc_output/**"
+  - "**/.rpt2_cache/**"
+  - "**/.rts2_cache_cjs/**"
+  - "**/.rts2_cache_es/**"
+  - "**/.rts2_cache_umd/**"
