@@ -19,8 +19,9 @@ export interface MemoryReviewCandidateScoreBreakdown {
 }
 
 export interface MemoryReviewCandidateSelectionThresholds {
-  threshold_importance: number;
-  threshold_stale_days: number;
+  importanceThreshold: number;
+  staleDays: number;
+  maxCandidates: number;
 }
 
 export interface MemoryReviewCandidateSelectionOptions extends MemoryReviewCandidateSelectionThresholds {
@@ -30,6 +31,6 @@ export interface MemoryReviewCandidateSelectionOptions extends MemoryReviewCandi
 export interface MemoryReviewCandidateSelectionItem {
   memory_id: string;
   priority: number;
-  breakdown: MemoryReviewCandidateScoreBreakdown;
+  score_breakdown: MemoryReviewCandidateScoreBreakdown;
   reason: string;
 }

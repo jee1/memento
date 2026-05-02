@@ -77,13 +77,13 @@ export function passesEligibility(
   options: MemoryReviewCandidateSelectionOptions,
 ): boolean {
   if (!isMemoryRowActive(row)) return false;
-  if (row.importance < options.threshold_importance) return false;
+  if (row.importance < options.importanceThreshold) return false;
 
   const resolved = resolveStaleAnchor(row);
   if (!resolved) return false;
 
   const staleDays = computeStaleDays(resolved.instant, options.now);
-  return staleDays >= options.threshold_stale_days;
+  return staleDays >= options.staleDays;
 }
 
 export function buildScoreBreakdown(
@@ -98,16 +98,14 @@ export function buildScoreBreakdown(
     importance: row.importance,
     stale_days,
     anchor_kind,
-    threshold_importance: options.threshold_importance,
-    threshold_stale_days: options.threshold_stale_days,
+    threshold_importance: options.importanceThreshold,
+    threshold_stale_days: options.staleDays,
   };
 }
 
 export function buildReason(breakdown: MemoryReviewCandidateScoreBreakdown): string {
-  const anchor =
-    breakdown.anchor_kind === 'last_recalled_at' ? 'last recalled' : 'created (fallback anchor)';
   return (
-    `importance ${breakdown.importance} vs threshold ${breakdown.threshold_importance}; ` +
-    `stale ${breakdown.stale_days}d vs ${breakdown.threshold_stale_days}d (${anchor})`
+    `eligible: importance=${breakdown.importance.toFixed(3)}>=${breakdown.threshold_importance}, ` +
+    `stale=${breakdown.stale_days}d>=${breakdown.threshold_stale_days}d, anchor=${breakdown.anchor_kind}`
   );
 }

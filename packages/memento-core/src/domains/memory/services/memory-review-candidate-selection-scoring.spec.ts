@@ -86,7 +86,7 @@ describe('memory-review-candidate-selection-scoring', () => {
   });
 
   describe('passesEligibility', () => {
-    const thresholds = { threshold_importance: 0.4, threshold_stale_days: 14 };
+    const thresholds = { importanceThreshold: 0.4, staleDays: 14, maxCandidates: 50 };
 
     it('is false at 13 stale days and true at 14 for threshold 14', () => {
       const now = new Date('2025-05-15T00:00:00.000Z');
@@ -125,14 +125,16 @@ describe('memory-review-candidate-selection-scoring', () => {
         importance: 0.55,
         last_recalled_at: new Date(now.getTime() - 20 * MS_PER_DAY).toISOString(),
       });
-      const options = { threshold_importance: 0.4, threshold_stale_days: 14, now };
+      const options = { importanceThreshold: 0.4, staleDays: 14, maxCandidates: 50, now };
       const b = buildScoreBreakdown(row, options);
       expect(b.importance).toBe(0.55);
       expect(b.stale_days).toBe(20);
       expect(b.anchor_kind).toBe('last_recalled_at');
       expect(b.threshold_importance).toBe(0.4);
       expect(b.threshold_stale_days).toBe(14);
-      expect(buildReason(b)).toContain('last recalled');
+      expect(buildReason(b)).toBe(
+        'eligible: importance=0.550>=0.4, stale=20d>=14d, anchor=last_recalled_at',
+      );
     });
   });
 
