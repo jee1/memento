@@ -32,3 +32,30 @@ describe('beforeUserTurn — always mode', () => {
     expect(t.recallCalls[0].limit).toBe(3);
   });
 });
+
+describe('beforeUserTurn — off mode', () => {
+  it('skips transport call entirely', async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv({ transport: t, policy: { autoRecall: 'off' } }, {});
+    const r = await a.beforeUserTurn({ userMessage: 'anything?', conversationId: 'c1' });
+    expect(t.recallCalls).toHaveLength(0);
+    expect(r.systemContext).toBe('');
+    expect(r.degraded).toBe(false);
+  });
+});
+
+describe('beforeUserTurn — heuristic mode', () => {
+  it('does not recall on short greeting', async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv({ transport: t, policy: { autoRecall: 'heuristic' } }, {});
+    await a.beforeUserTurn({ userMessage: 'hi', conversationId: 'c1' });
+    expect(t.recallCalls).toHaveLength(0);
+  });
+
+  it('recalls on question', async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv({ transport: t, policy: { autoRecall: 'heuristic' } }, {});
+    await a.beforeUserTurn({ userMessage: 'where did we go last time?', conversationId: 'c1' });
+    expect(t.recallCalls).toHaveLength(1);
+  });
+});
