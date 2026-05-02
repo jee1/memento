@@ -10,3 +10,4 @@
 - **핵심 명령어**: `npm install`, `npm run build`, `npm run dev`, `npm test`
 - **MCP 사용**: 작업 전 `recall`/`memory_injection` 조회, 작업 후 `remember` 저장.
 - **graphify**: 코드 수정 후 지식 그래프 재빌드 명령 실행 필수.
+- **PR·지식 복리**: [AGENTS.md](./AGENTS.md) 6절 — PR 준비 시 해당하면 **`/ce-compound`** 제안, PR 템플릿 「지식 복리」 참고.
