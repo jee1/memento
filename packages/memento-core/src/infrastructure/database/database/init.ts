@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { ensureMetaMemoryStatsSchema } from '../../../shared/utils/ensure-meta-memory-stats-schema.js';
+import { ensureMemoryReviewCandidateSchema } from '../../../shared/utils/ensure-memory-review-candidate-schema.js';
 import { ensureQualityAssuranceSchema } from '../../../shared/utils/ensure-quality-assurance-schema.js';
 import { initializeMigrationStatusTable,loadMigrationStatusToConfig } from '../../../shared/utils/fts5-migration-status.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -610,6 +611,7 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
     ensureMemoryItemTripleExtractionColumns(db);
     ensureMetaMemoryStatsSchema(db);
     ensureQualityAssuranceSchema(db);
+    ensureMemoryReviewCandidateSchema(db);
 
     // Core Memory 자동 로드 (always_load=true인 항목만)
     try {

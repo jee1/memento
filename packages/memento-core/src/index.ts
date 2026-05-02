@@ -50,6 +50,7 @@ export {
   MementoHttpSecurityStartupError
 } from './shared/http/http-bind-policy.js';
 export { DatabaseUtils } from './shared/utils/database.js';
+export { ensureMemoryReviewCandidateSchema } from './shared/utils/ensure-memory-review-candidate-schema.js';
 export { logger } from './shared/utils/logger.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export { withErrorHandling } from './shared/utils/error-handling.js';
