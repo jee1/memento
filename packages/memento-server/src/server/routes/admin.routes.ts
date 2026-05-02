@@ -5,6 +5,7 @@
  */
 
 import { Router } from 'express';
+import { validate as uuidValidate } from 'uuid';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import {
@@ -14,6 +15,11 @@ import {
   MigrateEmbeddingsTool,
   ConvertEpisodicToSemanticTool,
   GetMetaMemoryStatsTool,
+  listMemoryReviewCandidates,
+  markMemoryReviewCandidateReviewed,
+  markMemoryReviewCandidateDismissed,
+  MemoryReviewCandidateError,
+  type MemoryReviewCandidateStatus,
   logger,
   createToolContext
 } from '@memento/core';
@@ -48,6 +54,26 @@ function parseCleanupParams(query: Record<string, unknown>): { olderThanDays: nu
   }
   return { olderThanDays, types };
 }
+
+const MEMORY_REVIEW_STATUSES: MemoryReviewCandidateStatus[] = [
+  'pending',
+  'reviewed',
+  'dismissed',
+  'expired'
+];
+
+function parseReviewCandidateStatusQuery(
+  raw: unknown
+): { status?: MemoryReviewCandidateStatus } | { error: string; status: number } {
+  if (raw === undefined || raw === '') {
+    return {};
+  }
+  if (typeof raw !== 'string' || !MEMORY_REVIEW_STATUSES.includes(raw as MemoryReviewCandidateStatus)) {
+    return { error: 'Invalid status query', status: 400 };
+  }
+  return { status: raw as MemoryReviewCandidateStatus };
+}
+
 
 /**
  * Admin 라우터 생성
@@ -275,6 +301,87 @@ export function createAdminRouter(
     }
   });
 
+
+  router.get('/memory/review-candidates', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const parsed = parseReviewCandidateStatusQuery(req.query['status']);
+      if ('error' in parsed) {
+        return res.status(parsed.status).json({ error: parsed.error });
+      }
+      const rows = listMemoryReviewCandidates(db, parsed.status ? { status: parsed.status } : {});
+      return res.json({
+        message: 'Memory review candidates',
+        candidates: rows,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('List review candidates failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: 'Failed to list review candidates',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  router.post('/memory/review-candidates/:id/review', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const { id } = req.params;
+      if (!uuidValidate(id)) {
+        return res.status(400).json({ error: 'Invalid candidate id' });
+      }
+      const nowIso = new Date().toISOString();
+      markMemoryReviewCandidateReviewed(db, id, nowIso);
+      const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
+      return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
+    } catch (error) {
+      if (error instanceof MemoryReviewCandidateError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      logger.error('Review candidate review failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: 'Failed to mark reviewed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  router.post('/memory/review-candidates/:id/dismiss', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const { id } = req.params;
+      if (!uuidValidate(id)) {
+        return res.status(400).json({ error: 'Invalid candidate id' });
+      }
+      const nowIso = new Date().toISOString();
+      markMemoryReviewCandidateDismissed(db, id, nowIso);
+      const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
+      return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
+    } catch (error) {
+      if (error instanceof MemoryReviewCandidateError) {
+        return res.status(error.statusCode).json({ error: error.message, code: error.code });
+      }
+      logger.error('Review candidate dismiss failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: 'Failed to mark dismissed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // 배치 스케줄러 상태
   router.get('/batch/status', async (req, res) => {
     try {
@@ -302,9 +409,9 @@ export function createAdminRouter(
     try {
       const { jobType } = req.body;
 
-      if (!jobType || !['cleanup', 'monitoring'].includes(jobType)) {
+      if (!jobType || !['cleanup', 'monitoring', 'memory_review_candidates'].includes(jobType)) {
         return res.status(400).json({
-          error: 'Invalid job type. Must be "cleanup" or "monitoring"'
+          error: 'Invalid job type. Must be "cleanup", "monitoring", or "memory_review_candidates"'
         });
       }
 

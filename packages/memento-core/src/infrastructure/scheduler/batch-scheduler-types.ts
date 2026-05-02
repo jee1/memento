@@ -22,6 +22,8 @@ export interface BatchJobConfig {
   metaMemoryIntrospectionInterval: number;
   sleepConsolidationInterval: number;
   telemetryCleanupInterval: number;
+  /** Issue #243: refresh memory_review_candidate pending rows from selection */
+  memoryReviewCandidatesInterval: number;
 
   maxBatchSize: number;
   enableLogging: boolean;
