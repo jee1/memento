@@ -7,6 +7,7 @@ import type {
   UpsertPendingMemoryReviewCandidateInput,
   UpsertPendingMemoryReviewCandidatesResult,
 } from './memory-review-candidate-persistence.types.js';
+import { MemoryReviewCandidateError } from './memory-review-candidate-persistence-error.js';
 
 export function upsertPendingMemoryReviewCandidates(
   db: Database.Database,
@@ -117,3 +118,39 @@ export function listMemoryReviewCandidates(
     .all()
     .map((row) => mapRow(row));
 }
+
+export function markMemoryReviewCandidateReviewed(
+  db: Database.Database,
+  candidateId: string,
+  now: string,
+): void {
+  ensureMemoryReviewCandidateSchema(db);
+  const run = db.transaction(() => {
+    const cur = db
+      .prepare<[string], { status: string }>(`SELECT status FROM memory_review_candidate WHERE id = ?`)
+      .get(candidateId);
+    if (!cur) {
+      throw MemoryReviewCandidateError.notFound(candidateId);
+    }
+    if (cur.status !== 'pending') {
+      throw MemoryReviewCandidateError.notActionable(candidateId, cur.status);
+    }
+    const info = db
+      .prepare<[string, string, string]>(
+        `UPDATE memory_review_candidate SET status = 'reviewed', reviewed_at = ?, updated_at = ? WHERE id = ? AND status = 'pending'`,
+      )
+      .run(now, now, candidateId);
+    if (info.changes === 0) {
+      throw MemoryReviewCandidateError.notActionable(candidateId, cur.status);
+    }
+    const mem = db
+      .prepare<[string], { memory_id: string }>(`SELECT memory_id FROM memory_review_candidate WHERE id = ?`)
+      .get(candidateId);
+    if (!mem) throw MemoryReviewCandidateError.notFound(candidateId);
+    db.prepare<[string, string]>(
+      `UPDATE memory_item SET last_accessed = CURRENT_TIMESTAMP, last_accessed_at = ? WHERE id = ?`,
+    ).run(now, mem.memory_id);
+  });
+  run();
+}
+

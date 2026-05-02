@@ -6,7 +6,12 @@ import {
   upsertPendingMemoryReviewCandidates,
   getMemoryReviewCandidateById,
   listMemoryReviewCandidates,
+  markMemoryReviewCandidateReviewed,
 } from './memory-review-candidate-persistence-service.js';
+import {
+  MemoryReviewCandidateError,
+  MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
+} from './memory-review-candidate-persistence-error.js';
 
 const NOW = '2026-06-01T12:00:00.000Z';
 
@@ -112,5 +117,47 @@ describe('memory-review-candidate-persistence upsert', () => {
     const one = getMemoryReviewCandidateById(db, rows[0].id);
     expect(one?.memory_id).toBe('mem_a');
     expect(one?.status).toBe('pending');
+  });
+
+  it('markReviewed updates candidate and memory_item access timestamps', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      NOW,
+    );
+    const row = listMemoryReviewCandidates(db, { status: 'pending' })[0];
+    markMemoryReviewCandidateReviewed(db, row.id, NOW);
+
+    const cand = getMemoryReviewCandidateById(db, row.id);
+    expect(cand?.status).toBe('reviewed');
+    expect(cand?.reviewed_at).toBe(NOW);
+
+    const mem = db.prepare(`SELECT last_accessed_at FROM memory_item WHERE id = 'mem_a'`).get() as {
+      last_accessed_at: string | null;
+    };
+    expect(mem.last_accessed_at).toBe(NOW);
+  });
+
+  it('second markReviewed throws not actionable', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      NOW,
+    );
+    const row = listMemoryReviewCandidates(db, { status: 'pending' })[0];
+    markMemoryReviewCandidateReviewed(db, row.id, NOW);
+    let caught: unknown;
+    expect(() => {
+      try {
+        markMemoryReviewCandidateReviewed(db, row.id, NOW);
+      } catch (e) {
+        caught = e;
+        throw e;
+      }
+    }).toThrow(MemoryReviewCandidateError);
+    expect(caught).toMatchObject({
+      code: MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
+      statusCode: 409,
+    });
   });
 });
