@@ -4,6 +4,7 @@ ignore:
   - "graphify-out/**"
   - "**/.next/**"
   - "**/node_modules/**"
+  - "**/.worktrees/**"
   - "**/dist/**"
   - "test-results/**"
   - ".nyc_output/**"

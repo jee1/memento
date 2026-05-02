@@ -95,3 +95,14 @@ it('should behavior when condition', async () => {
 ### 품질 게이트
 *   **검증 필수:** 커밋 전 `lint`, `type-check`, `test` 통과가 필수입니다.
 *   **실패 우선 테스트:** 버그 수정 시, 버그 재현 테스트를 먼저 작성합니다.
+
+### 선택적 정적 스캔 (slop-detector)
+*   **도구:** PyPI 패키지 `ai-slop-detector`, CLI `slop-detector`.
+*   **설치:** `pip install ai-slop-detector`
+*   **권장 명령(저장소 루트):**
+    *   패키지 소스: `slop-detector --project packages --js --config .slopconfig.yaml`
+    *   대시보드 정적 스크립트: `slop-detector --project static/js --js --config .slopconfig.yaml`
+    *   루트 전체(설정 반영): `slop-detector --project . --js --config .slopconfig.yaml`
+*   **`--gate`:** 상단 요약에 Python/LDR가 0으로 보일 수 있다. **`--js` 사용 시 JS/TS Analysis 구간을 게이트 판단의 주된 근거로 본다.**
+*   **CI:** 본 저장소의 필수 CI 게이트에는 포함하지 않는다(후속 이슈에서 선택).
+*   **테스트 경로 무시:** 기본 `.slopconfig`에서는 `*.spec.ts` 등을 대량 제외하지 않는다. 팀 정책에 따라 로컬에서만 ignore를 추가할 수 있다.
