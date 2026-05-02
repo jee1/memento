@@ -22,7 +22,6 @@ ListPromptsRequestSchema,
 ListResourcesRequestSchema,
 ListToolsRequestSchema,
 ReadResourceRequestSchema,
-SetLevelRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
