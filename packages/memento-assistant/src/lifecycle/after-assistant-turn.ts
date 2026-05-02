@@ -22,7 +22,20 @@ export async function afterAssistantTurn(deps: Deps, input: AfterAssistantTurnIn
 
   const tags = scopeRememberTags({ channel: deps.channel, userTags: deps.userTags }, { conversationId: input.conversationId });
 
+  const SIM_THRESHOLD = 0.85;
+
   for (const item of items) {
+    let updateExisting: { id: string } | undefined;
+    const isExtracted = item.type !== 'working';
+    if (isExtracted) {
+      try {
+        const probe = await deps.transport.recall(item.content, { ownerId: deps.ownerId, tags }, 1);
+        const top = probe.items[0];
+        if (top && (top.score ?? 0) >= SIM_THRESHOLD) updateExisting = { id: top.id };
+      } catch {
+        // ignore probe failure — save as new
+      }
+    }
     deps.retryQueue.enqueue(async () => {
       await deps.transport.remember({
         content: item.content,
@@ -30,6 +43,7 @@ export async function afterAssistantTurn(deps: Deps, input: AfterAssistantTurnIn
         tags: Array.from(new Set([...(item.tags ?? []), ...tags])),
         importance: item.importance,
         ownerId: deps.ownerId,
+        updateExisting,
       });
     });
   }

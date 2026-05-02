@@ -5,11 +5,11 @@ export class MockTransport implements Transport {
   rememberCalls: RememberParams[] = [];
   recallCalls: { query: string; filters?: any; limit?: number }[] = [];
   closed = false;
-  private fixtures = new Map<string, { content: string; type: string; importance?: number }>();
+  private fixtures = new Map<string, { content: string; type: string; importance?: number; score?: number }>();
   private nextRecallError: Error | null = null;
   private nextRememberError: Error | null = null;
 
-  fixture(id: string, item: { content: string; type: string; importance?: number }) {
+  fixture(id: string, item: { content: string; type: string; importance?: number; score?: number }) {
     this.fixtures.set(id, item);
   }
 
