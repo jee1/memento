@@ -813,6 +813,127 @@ GET /admin/stats/forgetting
 }
 ```
 
+#### 기억 리뷰 후보 (MVP)
+
+에이전트/운영자가 **리뷰 큐**(`memory_review_candidate`)를 HTTP Admin으로 조회하고, `review` 또는 `dismiss`로 처리합니다. 후보 행은 배치 작업 `memory_review_candidates`가 주기적으로 선정·갱신합니다. 모든 경로는 **`/admin` 마운트**와 기존과 동일한 **브라우저 세션** 인증 하에서만 동작합니다.
+
+> **GitHub #244 참고**: 이슈 초안에 등장한 `MEMORY_REVIEW_INTERVAL_MS`, `MEMORY_REVIEW_CANDIDATE_TTL_DAYS` 등은 현재 `main` 코드와 이름이 다르거나 정의되어 있지 않습니다. 아래 환경 변수와 경로는 **런타임 기준**입니다.
+
+##### 후보 목록
+
+```http
+GET /admin/memory/review-candidates
+GET /admin/memory/review-candidates?status=pending
+```
+
+**쿼리 파라미터**
+
+- `status` (선택): `pending` \| `reviewed` \| `dismissed` \| `expired`. 생략 시 전체 상태.
+
+**응답 (200)**
+
+`candidates` 배열 원소는 큐 테이블 메타(`id`, `memory_id`, `status`, `priority`, `reason`, `due_at`, 타임스탬프, `metadata_json`)만 포함합니다. **`memory_item.content` 등 기억 본문은 포함하지 않습니다.** 본문이 필요하면 `memory_id`로 다른 메모리 조회 API를 사용합니다.
+
+```json
+{
+  "message": "Memory review candidates",
+  "candidates": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "memory_id": "mem_abc123",
+      "status": "pending",
+      "priority": 0.82,
+      "reason": "stale_high_importance",
+      "due_at": "2026-05-16T12:00:00.000Z",
+      "created_at": "2026-05-02T10:00:00.000Z",
+      "updated_at": "2026-05-02T10:00:00.000Z",
+      "reviewed_at": null,
+      "dismissed_at": null,
+      "metadata_json": "{\"score_breakdown\":{}}"
+    }
+  ],
+  "timestamp": "2026-05-02T12:00:00.000Z"
+}
+```
+
+**에러**
+
+- `400`: 잘못된 `status` 값
+- `500`: DB 미연결 등 서버 오류
+
+##### 후보 리뷰 완료
+
+```http
+POST /admin/memory/review-candidates/:id/review
+Content-Type: application/json
+
+{}
+```
+
+**응답 (200)**
+
+```json
+{
+  "ok": true,
+  "candidate": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "memory_id": "mem_abc123",
+    "status": "reviewed",
+    "priority": 0.82,
+    "reason": "stale_high_importance",
+    "due_at": "2026-05-16T12:00:00.000Z",
+    "created_at": "2026-05-02T10:00:00.000Z",
+    "updated_at": "2026-05-02T12:00:00.000Z",
+    "reviewed_at": "2026-05-02T12:00:00.000Z",
+    "dismissed_at": null,
+    "metadata_json": null
+  },
+  "timestamp": "2026-05-02T12:00:00.000Z"
+}
+```
+
+**에러**
+
+- `400`: `:id`가 UUID 형식이 아님
+- `404`: 후보 없음 — 본문에 `code`: `memory_review_candidate_not_found` 포함
+- `409`: `pending`이 아님(재호출 등) — `code`: `memory_review_candidate_not_actionable`
+- `500`: 그 외 서버 오류
+
+##### 후보 기각
+
+```http
+POST /admin/memory/review-candidates/:id/dismiss
+Content-Type: application/json
+
+{}
+```
+
+응답·에러 매핑은 **리뷰 완료**와 동일하며, 성공 시 `status`가 `dismissed`로 갱신됩니다.
+
+##### 배치: 후보 선정·큐 갱신
+
+```http
+POST /admin/batch/run
+Content-Type: application/json
+
+{ "jobType": "memory_review_candidates" }
+```
+
+- 스케줄러에 등록된 주기(`BatchScheduler`의 `memory_review_candidates` 작업)로도 동일 로직이 실행됩니다.
+- `jobType`으로 `cleanup`, `monitoring`, `memory_review_candidates` 등 허용된 값만 전달할 수 있습니다(잘못된 값은 400).
+
+##### 환경 변수 (기억 리뷰 MVP)
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | 후보로 고려할 최소 importance (0~1; 잘못된 값은 기본값으로 대체) |
+| `MEMORY_REVIEW_STALE_DAYS` | `14` | 최소 stale 일수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | 선정 단계에서 반환·큐에 반영할 최대 후보 수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` (24h) | 배치 `memory_review_candidates` 스케줄 간격(ms). 최소 `60000` |
+| `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | 배치가 `due_at`을 계산할 때 기준 시각에 더하는 일 수 (1~366) |
+
+운영 시 **후보 선정 민감도**는 위 표의 앞 세 변수로, **스케줄 간격·마감 시각**은 마지막 두 변수로 조정합니다.
+
 ### 성능 모니터링 API
 
 #### 성능 통계

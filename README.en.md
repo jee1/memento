@@ -205,6 +205,9 @@ const results = await client.callTool({
 | Endpoint | Description | Method |
 |----------|-------------|--------|
 | `/admin/memory/cleanup` | Memory cleanup | POST |
+| `/admin/memory/review-candidates` | Memory review candidate queue | GET |
+| `/admin/memory/review-candidates/:id/review` | Mark review candidate as reviewed | POST |
+| `/admin/memory/review-candidates/:id/dismiss` | Dismiss review candidate | POST |
 | `/admin/stats/forgetting` | Forgetting statistics | GET |
 | `/admin/stats/performance` | Performance statistics | GET |
 | `/admin/stats/errors` | Error statistics | GET |
@@ -212,7 +215,7 @@ const results = await client.callTool({
 | `/admin/alerts/performance` | Performance alerts | GET |
 | `/admin/database/optimize` | Database optimization | POST |
 
-**Other HTTP admin**: Batch status/run (`/admin/batch/*`), performance metrics/alerts (`/admin/performance/*`), relation extract/get/visualize (`/admin/relations/*`). See [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md) (or [docs/api/en/api-reference.md](docs/api/en/api-reference.md) if available).
+**Other HTTP admin**: Batch status/run (`/admin/batch/*`, including `jobType` `memory_review_candidates`), performance metrics/alerts (`/admin/performance/*`), relation extract/get/visualize (`/admin/relations/*`). See [docs/api/en/api-reference.md](docs/api/en/api-reference.md). For the memory review MVP (endpoints, env, batch), use the **"Memory review candidates (MVP)"** section there.
 
 ### Resources
 
@@ -236,6 +239,11 @@ const results = await client.callTool({
 | `EMBEDDING_PROVIDER` | minilm | Embedding provider (tfidf, lightweight, minilm, openai, gemini) |
 | `CORS_ALLOWED_ORIGINS` | (empty) | CORS allowed origins (comma-separated; empty = no cross-origin) |
 | `ENABLE_PII_MASKING` | true | PII masking (security; see [docs/reference/en/security.md](docs/reference/en/security.md)) |
+| `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | Memory review: minimum importance (0-1). Details in [docs/api/en/api-reference.md](docs/api/en/api-reference.md) ("Memory review candidates (MVP)") |
+| `MEMORY_REVIEW_STALE_DAYS` | `14` | Memory review: minimum stale age in days (integer ≥ 1) |
+| `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | Memory review: max candidates from selection (integer ≥ 1) |
+| `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` | `memory_review_candidates` batch interval in ms (minimum `60000`) |
+| `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | Days added when the batch computes `due_at` (1–366) |
 
 > **Note**: For TTL, LLM/Ollama, search limits, and more, see `env.example`.
 
