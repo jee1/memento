@@ -23,7 +23,7 @@ export function rememberDispatch(
 
   if (m === 'turn') return [turnEntry];
 
-  // m === 'decision'
+  // m === 'decision': falls back to turn-only if no extracted items
   const out: RememberDispatchItem[] = [turnEntry];
   for (const item of extracted ?? []) {
     if (item.kind === 'fact') {
