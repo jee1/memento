@@ -93,3 +93,44 @@ describe('beforeUserTurn — crossChannelRecall', () => {
     spy.mockRestore();
   });
 });
+
+describe('beforeUserTurn — degraded mode', () => {
+  it('returns degraded=true when transport throws', async () => {
+    const t = new MockTransport();
+    t.throwOnNextRecall(new Error('network down'));
+    const a = MementoAssistant.fromEnv({ transport: t }, {});
+    const r = await a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+    expect(r.degraded).toBe(true);
+    expect(r.systemContext).toBe('');
+    expect(r.references).toEqual([]);
+  });
+
+  it('returns degraded=true on timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      class SlowTransport extends MockTransport {
+        async recall(): Promise<any> { return new Promise<any>(() => {}); }  // never resolves
+      }
+      const t = new SlowTransport();
+      const a = MementoAssistant.fromEnv({ transport: t, policy: { recallTimeoutMs: 500 } }, {});
+      const p = a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+      await vi.advanceTimersByTimeAsync(600);
+      const r = await p;
+      expect(r.degraded).toBe(true);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('opens circuit breaker after 5 consecutive failures and short-circuits next call', async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv({ transport: t }, {});
+    for (let i = 0; i < 5; i++) {
+      t.throwOnNextRecall(new Error('boom'));
+      await a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+    }
+    // 6th call: transport should NOT be called
+    const beforeCount = t.recallCalls.length;
+    const r = await a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+    expect(t.recallCalls.length).toBe(beforeCount);  // short-circuit
+    expect(r.degraded).toBe(true);
+  });
+});
