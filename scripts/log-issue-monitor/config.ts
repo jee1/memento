@@ -6,14 +6,18 @@ function optionalString(value: string | undefined): string | undefined {
 }
 
 function numberFromEnv(value: string | undefined, fallback: number): number {
-  if (!value?.trim()) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  const trimmed = value?.trim();
+  if (!trimmed || !/^\d+$/.test(trimmed)) return fallback;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function booleanFromEnv(value: string | undefined, fallback: boolean): boolean {
   if (!value?.trim()) return fallback;
-  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
 }
 
 function labelsFromEnv(value: string | undefined): string[] {
