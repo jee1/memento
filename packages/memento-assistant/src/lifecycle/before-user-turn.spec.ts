@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { MementoAssistant } from '../assistant.js';
 import { MockTransport } from '../transport/mock-transport.js';
 
@@ -57,5 +57,39 @@ describe('beforeUserTurn — heuristic mode', () => {
     const a = MementoAssistant.fromEnv({ transport: t, policy: { autoRecall: 'heuristic' } }, {});
     await a.beforeUserTurn({ userMessage: 'where did we go last time?', conversationId: 'c1' });
     expect(t.recallCalls).toHaveLength(1);
+  });
+});
+
+describe('beforeUserTurn — crossChannelRecall', () => {
+  it("'on' (default) sends no channel tag filter", async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv({ transport: t, channel: 'tg', ownerId: 'u' }, {});
+    await a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+    expect(t.recallCalls[0].filters?.tags).toBeUndefined();
+  });
+
+  it("'off' includes channel:* tag filter", async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv(
+      { transport: t, channel: 'discord', ownerId: 'u', policy: { crossChannelRecall: 'off' } },
+      {},
+    );
+    await a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+    expect(t.recallCalls[0].filters?.tags).toContain('channel:discord');
+  });
+
+  it("'sameContext' WARNs once and behaves like 'on'", async () => {
+    const t = new MockTransport();
+    const a = MementoAssistant.fromEnv(
+      { transport: t, channel: 'tg', policy: { crossChannelRecall: 'sameContext' } },
+      { MEMENTO_ASSISTANT_LOG: 'warn' },
+    );
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await a.beforeUserTurn({ userMessage: 'q', conversationId: 'c1' });
+    await a.beforeUserTurn({ userMessage: 'q2', conversationId: 'c1' });
+    const sameContextWarns = spy.mock.calls.flat().join(' ').match(/sameContext/g) ?? [];
+    expect(sameContextWarns.length).toBe(1);  // rate-limited
+    expect(t.recallCalls[0].filters?.tags).toBeUndefined();
+    spy.mockRestore();
   });
 });
