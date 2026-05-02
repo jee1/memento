@@ -79,6 +79,8 @@ S = α·relevance + β·recency + γ·importance + δ·usage + ζ·relation_weig
 - **graphify 갱신**: 코드 수정 후 반드시 지식 그래프를 재빌드합니다.
 - **Design System (Dashboard)**: 웹 대시보드 UI 수정 시 `static/css/tokens.css`의 토큰을 우선적으로 사용하며, 리터럴 값 사용을 지양합니다. ([DESIGN.md](./docs/DESIGN.md) 참조)
 - **UI 수정 시 토큰 우선 사용**: 새로운 스타일이나 컴포넌트를 추가할 때 항상 디자인 토큰을 기반으로 구현하세요.
+- **PR·지식 복리 (Compound Engineering)**: 작업을 마치고 Pull Request를 준비하는 단계에서, 재현·진단이 어려웠던 버그 수정, 통합·운영·환경 이슈, 같은 실수가 반복될 수 있는 함정 정리 등에 해당하면 **`/ce-compound`** 로 해결 사례를 문서화하도록 사용자에게 제안한다. 전제는 **문제 해결 및 검증 완료**이며, 단순 오타·자명한 변경은 생략해도 된다. PR 본문에서는 [.github/PULL_REQUEST_TEMPLATE.md](./.github/PULL_REQUEST_TEMPLATE.md)의 **「지식 복리」** 칸을 채운다. 기여 절차 요약은 [CONTRIBUTING.md](./CONTRIBUTING.md)를 참조한다.
+- **해결 사례 문서 위치**: 이 저장소에서 작업용 해결 사례를 두는 경로는 **`docs/_work/solutions/`** 이다([docs/README.md](./docs/README.md)). Compound Engineering 기본 출력이 `docs/solutions/`인 경우, 저장소 규칙에 맞게 옮기거나 정리한다.
 
 ## 7. 최근 변경 사항 및 활성 기술
 - **016-env-config-cleanup**: 환경 설정 파일 및 문서 정리.

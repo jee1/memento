@@ -53,6 +53,7 @@ npm run test
 **PR 본문 참고:**
 - GitHub에서 PR을 만들면 **템플릿**으로 `.github/PULL_REQUEST_TEMPLATE.md`가 사용됩니다.
 - 본문 작성 시 참고할 **예시**로 [docs/operations/ko/pr-description-example-npm-workflow.md](docs/operations/ko/pr-description-example-npm-workflow.md)가 있습니다(형식·상세도 참고용).
+- 조건부 **지식 문서화**(Compound Engineering **`/ce-compound`**)는 템플릿의 **「지식 복리」** 섹션을 따릅니다.
 
 ## 🛠️ 개발 가이드라인
 
