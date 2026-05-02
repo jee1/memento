@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { randomUUID } from 'crypto';
 import express from 'express';
 import http from 'http';
 import Database from 'better-sqlite3';
@@ -13,7 +14,10 @@ import {
   TelemetryService,
   TelemetryRepository,
   TelemetryEventsMigration,
-  TelemetryDailyMetricsMigration
+  TelemetryDailyMetricsMigration,
+  MetaMemoryStatsSchemaMigration,
+  MemoryReviewCandidateSchemaMigration,
+  upsertPendingMemoryReviewCandidates
 } from '@memento/core';
 
 async function listen(app: express.Express): Promise<{ server: http.Server; port: number }> {
@@ -931,3 +935,168 @@ describe('Project memory admin routes', () => {
     }
   });
 });
+
+describe('admin.routes memory review candidates', () => {
+  let db: Database.Database;
+  let pendingId: string;
+  const NOW = '2026-06-01T12:00:00.000Z';
+
+  function createBaseSchema(database: Database.Database): void {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL,
+        importance REAL DEFAULT 0.5,
+        privacy_scope TEXT DEFAULT 'private',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_accessed TIMESTAMP,
+        last_accessed_at TEXT,
+        pinned BOOLEAN DEFAULT FALSE,
+        tags TEXT,
+        source TEXT,
+        project_id TEXT,
+        is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+        deleted_at TEXT
+      );
+    `);
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS memento_schema_version (
+        version TEXT PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        migration_name TEXT NOT NULL,
+        checksum TEXT,
+        applied_by TEXT DEFAULT 'system',
+        description TEXT
+      );
+    `);
+  }
+
+  function makeApp(database: Database.Database) {
+    const app = express();
+    app.use('/admin', createAdminRouter(database, null));
+    return app;
+  }
+
+  beforeEach(async () => {
+    db = new Database(':memory:');
+    createBaseSchema(db);
+    await new MetaMemoryStatsSchemaMigration().up(db);
+    await new MemoryReviewCandidateSchemaMigration().up(db);
+    db.exec(`
+      INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned, is_deleted, deleted_at)
+      VALUES (
+        'mem_stale',
+        'semantic',
+        'Stale high-importance memory',
+        0.85,
+        'private',
+        '2020-01-15 00:00:00',
+        0,
+        0,
+        NULL
+      )
+    `);
+    db.exec(`
+      INSERT INTO meta_memory_stats (
+        memory_id, recall_count, success_count, failure_count,
+        avg_confidence, last_recalled_at, created_at, updated_at
+      ) VALUES (
+        'mem_stale',
+        10, 8, 2,
+        0.8,
+        '2020-06-01 00:00:00',
+        '2020-06-01 00:00:00',
+        '2020-06-01 00:00:00'
+      )
+    `);
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [
+        {
+          memory_id: 'mem_stale',
+          priority: 0.7,
+          reason: 'test seed',
+          due_at: '2026-07-01T00:00:00.000Z',
+          metadata_json: null
+        }
+      ],
+      NOW
+    );
+    const row = db
+      .prepare(`SELECT id FROM memory_review_candidate WHERE memory_id = ? AND status = 'pending'`)
+      .get('mem_stale') as { id: string };
+    pendingId = row.id;
+  });
+
+  afterEach(() => {
+    try {
+      db.close();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it('GET /admin/memory/review-candidates returns 200 and no memory_item.content field', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/review-candidates');
+      expect(res.statusCode).toBe(200);
+      const json = JSON.parse(res.body) as { candidates: unknown[] };
+      expect(Array.isArray(json.candidates)).toBe(true);
+      const first = json.candidates[0] as Record<string, unknown> | undefined;
+      if (first) {
+        expect(first).not.toHaveProperty('content');
+        expect(first).toHaveProperty('memory_id');
+      }
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/review-candidates?status=bad returns 400', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/review-candidates?status=bad');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST review twice returns 409 on second call', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res1 = await postAdminJson(port, `/admin/memory/review-candidates/${pendingId}/review`, {});
+      expect(res1.statusCode).toBe(200);
+      const res2 = await postAdminJson(port, `/admin/memory/review-candidates/${pendingId}/review`, {});
+      expect(res2.statusCode).toBe(409);
+      const j2 = JSON.parse(res2.body) as { code: string };
+      expect(j2.code).toBe('memory_review_candidate_not_actionable');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST dismiss for unknown UUID returns 404', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const id = randomUUID();
+      const res = await postAdminJson(port, `/admin/memory/review-candidates/${id}/dismiss`, {});
+      expect(res.statusCode).toBe(404);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST review with invalid id returns 400', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await postAdminJson(port, '/admin/memory/review-candidates/not-a-uuid/review', {});
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+});
+
