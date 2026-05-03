@@ -68,6 +68,7 @@
       <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
       <button type="button" id="dashboard-tab-embedding" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
       <button type="button" id="dashboard-tab-graph" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
+      <button type="button" id="dashboard-tab-review" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue</button>
     </div>
 
     <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
@@ -156,6 +157,34 @@
         title="기억 관계 그래프 (GET /graph)"
       ></iframe>
     </div>
+
+    <div id="tab-review-candidates" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-review" aria-hidden="true">
+      <div class="review-candidates-layout">
+        <header class="review-candidates-header">
+          <h2 class="review-candidates-title">Memory review candidates</h2>
+          <button type="button" id="rc-refresh-btn" class="m-button m-button--secondary">Refresh</button>
+        </header>
+        <p id="rc-status-line" class="review-candidates-status" aria-live="polite"></p>
+        <div id="rc-loading" class="rc-banner hidden">Loading…</div>
+        <div id="rc-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
+        <div id="rc-empty" class="rc-banner hidden">No pending review candidates.</div>
+        <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
+          <table id="rc-table" class="review-candidates-table">
+            <thead>
+              <tr>
+                <th scope="col">Priority</th>
+                <th scope="col">Memory ID</th>
+                <th scope="col">Status</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Due</th>
+                <th scope="col">Candidate ID</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- D3.js 라이브러리 (CDN) -->
@@ -165,5 +194,6 @@
   <script src="/static/js/anchor-map.js"></script>
   <script src="/static/js/dashboard-tabs.js"></script>
   <script src="/static/js/embedding-map.js"></script>
+  <script src="/static/js/review-candidates-panel.js"></script>
 </body>
 </html>
