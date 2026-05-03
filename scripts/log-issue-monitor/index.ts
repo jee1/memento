@@ -34,7 +34,7 @@ export async function runForever(): Promise<void> {
     `log-issue-monitor started for ${config.containerName}; interval=${config.intervalSeconds}s dryRun=${config.dryRun}\n`,
   );
 
-  while (true) {
+  for (;;) {
     await run();
     await new Promise(resolve => setTimeout(resolve, config.intervalSeconds * 1000));
   }
@@ -46,4 +46,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   });
 }
-
