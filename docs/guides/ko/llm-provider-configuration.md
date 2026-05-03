@@ -289,6 +289,6 @@ logger.warn('LLM 초기화 경고', {
 
 ## 참고 자료
 
-- [LLMClientInitializer 소스 코드](../../../src/shared/services/llm-client-initializer.ts)
-- [통합 테스트 예시](../../../src/domains/relation/services/__tests__/llm-provider-integration.spec.ts)
+- [LLMClientInitializer 소스 코드](../../../packages/memento-core/src/shared/services/llm-client-initializer.ts)
+- [통합 테스트 예시](../../../packages/memento-core/src/domains/relation/services/__tests__/llm-provider-integration/provider-openai.spec.ts)
 - [임베딩 서비스 설정 가이드](./embedding-configuration.md)

@@ -325,9 +325,8 @@ git commit -m "chore(docs): verify npm run script names cited in markdown"
 `npm run type-check` 줄 **바로 아래**에 다음을 넣는다(순서 고정: 타입체크 후 문서 검증).
 
 ```yaml
-      # 전수 docs:audit-links는 레거시 깨진 상대 링크가 정리되기 전까지 CI에 넣지 않는다.
-      # - name: Audit markdown relative links
-      #   run: npm run docs:audit-links
+      - name: Audit markdown relative links
+        run: npm run docs:audit-links
       - name: Verify npm scripts cited in docs
         run: npm run docs:verify-npm-scripts
 ```

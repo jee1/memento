@@ -23,6 +23,6 @@
 
 ## 마무리
 
+- [ ] `npm run docs:audit-links` 통과
 - [ ] `npm run docs:verify-npm-scripts` 통과 (오탐이면 스크립트 상단 ALLOWLIST에 스크립트명 근거와 함께 추가)
-- [ ] `npm run docs:audit-links` 통과(선택·권장: 레거시 링크 정리 후 또는 문서 PR 범위 한정 시)
 - [ ] PR 본문에 워크플로 문서의 요약 항목 포함

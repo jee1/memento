@@ -308,7 +308,7 @@ if (zeroVersionCount.count > 0) {
 
 ## 참고 자료
 
-- [CoreMemory Service 구현](../../../src/domains/memory/services/core-memory-service.ts)
-- [Cache Service 구현](../../../src/domains/memory/services/core-memory-cache-service.ts)
-- [Migration 010](../../../src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts)
+- [CoreMemory Service 구현](../../../packages/memento-core/src/domains/memory/services/core-memory-service.ts)
+- [Cache Service 구현](../../../packages/memento-core/src/domains/memory/services/core-memory-cache-service.ts)
+- [Migration 010](../../../packages/memento-core/src/infrastructure/database/database/migration/migrations/010-add-core-memory-version.ts)
 

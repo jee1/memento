@@ -33,7 +33,8 @@ jobs:
       - run: npx tsx scripts/archive/check-retry-usage.ts --ci
         continue-on-error: false
       - run: npm run type-check
-      # docs:audit-links — 루트 기준 전수 스캔 시 레거시 상대 링크 다수로 실패함. 정리 후 활성화 검토.
+      - name: Audit markdown relative links
+        run: npm run docs:audit-links
       - name: Verify npm scripts cited in docs
         run: npm run docs:verify-npm-scripts
 
