@@ -170,21 +170,21 @@ git commit -m "chore: archive memento-agent (issue #100 superseded by external a
 
 ## 어떤 비서를 쓰시나요?
 
-- [OpenClaw](./openclaw.md) — Node.js 게이트웨이 + 멀티채널
-- [NanoClaw](./nanoclaw.md) — 컨테이너 격리 + Claude Agent SDK
-- [ZeroClaw](./zeroclaw.md) — Rust 단일 바이너리
+- [OpenClaw](../../integrations/openclaw.md) — Node.js 게이트웨이 + 멀티채널
+- [NanoClaw](../../integrations/nanoclaw.md) — 컨테이너 격리 + Claude Agent SDK
+- [ZeroClaw](../../integrations/zeroclaw.md) — Rust 단일 바이너리
 
 ## 트랙 결정
 
-- 단일 머신만 사용 → [stdio 트랙](./_shared/transports.md#stdio-트랙) (5분 셋업)
-- 여러 디바이스/홈서버 → [HTTP 트랙](./_shared/transports.md#http-트랙) (멀티 디바이스 기억 공유)
+- 단일 머신만 사용 → [stdio 트랙](../../integrations/_shared/transports.md#stdio-트랙) (5분 셋업)
+- 여러 디바이스/홈서버 → [HTTP 트랙](../../integrations/_shared/transports.md#http-트랙) (멀티 디바이스 기억 공유)
 
 ## 공통 가이드
 
-- [Transport 결정 + 셋업](./_shared/transports.md)
-- [인증 / 토큰 관리](./_shared/auth.md)
-- [권장 시스템 프롬프트 패턴](./_shared/system-prompt.md)
-- [트러블슈팅](./_shared/troubleshooting.md)
+- [Transport 결정 + 셋업](../../integrations/_shared/transports.md)
+- [인증 / 토큰 관리](../../integrations/_shared/auth.md)
+- [권장 시스템 프롬프트 패턴](../../integrations/_shared/system-prompt.md)
+- [트러블슈팅](../../integrations/_shared/troubleshooting.md)
 
 ## 더 깊은 통합 (옵션)
 
@@ -498,7 +498,7 @@ git commit -m "docs(integrations): write openclaw guide"
 ```markdown
 ## 🔗 외부 AI 비서와 함께 쓰기
 
-OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
+OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](../../integrations/README.md)
 ```
 
 - [ ] **Step 2: README.en.md에 영문 동일 섹션 추가**
@@ -506,7 +506,7 @@ OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장�
 ```markdown
 ## 🔗 Use Memento with External AI Assistants
 
-Personal AI assistants like OpenClaw, NanoClaw, and ZeroClaw can use Memento as a shared long-term memory backend. Guide: [docs/integrations/](./docs/integrations/README.md)
+Personal AI assistants like OpenClaw, NanoClaw, and ZeroClaw can use Memento as a shared long-term memory backend. Guide: [docs/integrations/](../../integrations/README.md)
 ```
 
 - [ ] **Step 3: 링크 검증**

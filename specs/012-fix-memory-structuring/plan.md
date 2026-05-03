@@ -52,7 +52,7 @@
 specs/012-fix-memory-structuring/
 ├── plan.md              # 이 파일
 ├── research.md          # Phase 0 출력
-├── data-model.md        # Phase 1 출력
+├── (데이터 모델은 spec.md에 통합)
 ├── contracts/           # Phase 1 출력
 │   └── admin-api-consolidation-stats.md
 └── tasks.md             # Phase 2 출력 (/speckit.tasks)
@@ -135,7 +135,7 @@ packages/memento-server/src/server/routes/
 
 ### Data Model
 
-→ [data-model.md](./data-model.md)
+→ [spec.md](./spec.md) (데이터 모델·계약은 본 명세에 통합됨)
 
 ### API Contracts
 

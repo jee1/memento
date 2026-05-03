@@ -476,11 +476,10 @@ ws.on('message', (data) => {
 #### M1 (로컬)
 
 ```bash
-# 서버 로그 확인
-npm run logs
+# 로컬 개발 서버는 npm run dev 터미널 출력에서 로그 확인
 
-# 데이터베이스 상태 확인
-npm run db:status
+# 마이그레이션·DB 상태 점검
+npm run db:check-migration
 ```
 
 #### M2+ (Docker)

@@ -289,6 +289,6 @@ logger.warn('LLM initialization warning', {
 
 ## References
 
-- [LLMClientInitializer Source Code](../../../src/shared/services/llm-client-initializer.ts)
-- [Integration Test Examples](../../../src/domains/relation/services/__tests__/llm-provider-integration.spec.ts)
+- [LLMClientInitializer Source Code](../../../packages/memento-core/src/shared/services/llm-client-initializer.ts)
+- [Integration Test Examples](../../../packages/memento-core/src/domains/relation/services/__tests__/llm-provider-integration/provider-openai.spec.ts)
 - [Embedding Service Configuration Guide](./embedding-configuration.md)

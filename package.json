@@ -25,6 +25,7 @@
     "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client && npm run build -w @memento/assistant && npm run sync:root-server-dist",
     "copy:assets": "npm run copy:assets -w @memento/core",
     "docs:audit-links": "node scripts/audit-markdown-links.mjs",
+    "docs:verify-npm-scripts": "node scripts/verify-doc-npm-scripts.mjs",
     "start": "npm run start -w memento-server",
     "start:http": "npm run start:http -w memento-server",
     "start:http-v2": "npm run start:http-v2 -w memento-server",

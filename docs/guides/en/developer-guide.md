@@ -426,10 +426,7 @@ npm run dev
 # Run tests (separate terminal)
 npm run test:watch
 
-# Code formatting
-npm run format
-
-# Lint check
+# Lint (TypeScript + static JS)
 npm run lint
 ```
 

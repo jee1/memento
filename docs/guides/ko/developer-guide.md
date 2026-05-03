@@ -370,10 +370,7 @@ npm run dev
 # 테스트 실행 (별도 터미널)
 npm run test:watch
 
-# 코드 포맷팅
-npm run format
-
-# 린트 검사
+# 린트·스타일 검사 (TypeScript + static JS)
 npm run lint
 ```
 

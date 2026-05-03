@@ -472,11 +472,10 @@ Stores methods and procedures.
 #### M1 (Local)
 
 ```bash
-# Check server logs
-npm run logs
+# Local dev server: watch the npm run dev terminal for logs
 
-# Check database status
-npm run db:status
+# Migration / DB status
+npm run db:check-migration
 ```
 
 #### M2+ (Docker)

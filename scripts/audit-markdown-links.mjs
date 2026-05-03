@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 모든 .md 파일의 인라인 상대 링크 `[text](path)` 존재 여부를 검사합니다.
- * 제외: node_modules, dist, .git, http(s), mailto, #fragment-only
+ * 제외: node_modules, dist, .git, .worktrees, http(s), mailto, #fragment-only
  *
  * 사용: node scripts/audit-markdown-links.mjs
  * 종료 코드: 깨진 링크가 있으면 1
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.worktrees']);
 
 function shouldSkipDir(parts) {
   return parts.some((p) => SKIP_DIRS.has(p));

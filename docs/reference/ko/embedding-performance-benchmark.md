@@ -55,7 +55,7 @@ Memento 프로젝트의 4가지 임베딩 제공자에 대한 성능 벤치마�
 
 ```bash
 # 전체 벤치마크
-npm run benchmark:embedding
+npm run test:embedding-benchmark
 
 # 특정 서비스만
 npm run test:embedding-benchmark
