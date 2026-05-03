@@ -81,6 +81,8 @@ http://localhost:9001/graph
 
 OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
 
+`@memento/assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
+
 ## 🚀 빠른 시작
 
 ### 🥇 **원클릭 설치 (권장)**
