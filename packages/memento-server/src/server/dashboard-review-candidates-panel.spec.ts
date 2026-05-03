@@ -33,3 +33,17 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     expect(panelJs).toContain('initReviewCandidatesPanel');
   });
 });
+
+describe('dashboard review queue poll notify (#255)', () => {
+  it('dashboard.html includes toast and tab badge placeholders', () => {
+    expect(dashboardHtml).toContain('id="rc-toast"');
+    expect(dashboardHtml).toContain('id="rc-tab-badge"');
+  });
+
+  it('review-candidates-panel.js includes polling helpers', () => {
+    expect(panelJs).toContain('POLL_INTERVAL_MS');
+    expect(panelJs).toContain('runPollTick');
+    expect(panelJs).toContain('startPollingIfNeeded');
+  });
+});
+
