@@ -168,20 +168,40 @@
         <div id="rc-loading" class="rc-banner hidden">Loading…</div>
         <div id="rc-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
         <div id="rc-empty" class="rc-banner hidden">No pending review candidates.</div>
-        <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
-          <table id="rc-table" class="review-candidates-table">
-            <thead>
-              <tr>
-                <th scope="col">Priority</th>
-                <th scope="col">Memory ID</th>
-                <th scope="col">Status</th>
-                <th scope="col">Reason</th>
-                <th scope="col">Due</th>
-                <th scope="col">Candidate ID</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+        <div class="review-candidates-body">
+          <div class="rc-main-col">
+            <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
+              <table id="rc-table" class="review-candidates-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Memory ID</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col">Due</th>
+                    <th scope="col">Candidate ID</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <aside id="rc-preview-aside" class="rc-preview-aside" aria-label="Candidate and memory preview">
+            <div class="rc-preview-panel">
+              <h3 class="rc-preview-title">Preview</h3>
+              <p id="rc-preview-placeholder" class="rc-preview-placeholder">Select a row to load candidate details and memory content.</p>
+              <div id="rc-preview-detail" class="rc-preview-detail hidden">
+                <dl class="rc-preview-dl">
+                  <div><dt>Priority</dt><dd id="rc-preview-priority"></dd></div>
+                  <div><dt>Reason</dt><dd id="rc-preview-reason" class="rc-preview-reason-full"></dd></div>
+                  <div><dt>Due</dt><dd id="rc-preview-due" class="rc-cell-mono"></dd></div>
+                  <div><dt>Memory ID</dt><dd id="rc-preview-mid" class="rc-cell-mono"></dd></div>
+                </dl>
+                <p id="rc-preview-memory-status" class="rc-preview-memory-status" aria-live="polite"></p>
+                <pre id="rc-preview-content" class="rc-preview-content"></pre>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

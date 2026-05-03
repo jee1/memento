@@ -208,6 +208,7 @@ const results = await client.callTool({
 |----------|-------------|--------|
 | `/admin/memory/cleanup` | Memory cleanup | POST |
 | `/admin/memory/review-candidates` | Memory review candidate queue | GET |
+| `/admin/memory/items/:memory_id` | Single memory JSON preview (dashboard, etc.) | GET |
 | `/admin/memory/review-candidates/:id/review` | Mark review candidate as reviewed | POST |
 | `/admin/memory/review-candidates/:id/dismiss` | Dismiss review candidate | POST |
 | `/admin/stats/forgetting` | Forgetting statistics | GET |

@@ -379,6 +379,7 @@ const results = await client.callTool({
 | `/admin/memory/convert-episodic-to-semantic` | Episodic → Semantic 변환 | POST |
 | `/admin/memory/meta-stats` | 메타 메모리 통계 조회 | GET |
 | `/admin/memory/review-candidates` | 기억 리뷰 후보 목록 | GET |
+| `/admin/memory/items/:memory_id` | 단일 기억 프리뷰(JSON, 대시보드 등) | GET |
 | `/admin/memory/review-candidates/:id/review` | 기억 리뷰 후보 처리(리뷰 완료) | POST |
 | `/admin/memory/review-candidates/:id/dismiss` | 기억 리뷰 후보 기각 | POST |
 | `/admin/stats/forgetting` | 망각 통계 조회 | GET |
