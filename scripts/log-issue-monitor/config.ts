@@ -36,7 +36,7 @@ export function loadMonitorConfig(env: NodeJS.ProcessEnv = process.env): Monitor
     logsRoot,
     stateDir: optionalString(env.LOG_ISSUE_MONITOR_STATE_DIR) ?? `${logsRoot}/log-issue-monitor`,
     githubToken: optionalString(env.GITHUB_TOKEN),
-    githubRepository: optionalString(env.GITHUB_REPOSITORY) ?? 'jee1lee/memento',
+    githubRepository: optionalString(env.GITHUB_REPOSITORY) ?? 'jee1/memento',
     intervalSeconds: numberFromEnv(env.LOG_ISSUE_MONITOR_INTERVAL_SECONDS, 30),
     warnThreshold: numberFromEnv(env.LOG_ISSUE_MONITOR_WARN_THRESHOLD, 3),
     warnWindowSeconds: numberFromEnv(env.LOG_ISSUE_MONITOR_WARN_WINDOW_SECONDS, 600),
