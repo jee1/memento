@@ -1,0 +1,13 @@
+{
+  "name": "experimental-assistant-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Minimal echo bot demonstrating @memento/assistant SDK",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@memento/assistant": "*"
+  }
+}

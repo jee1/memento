@@ -11,6 +11,7 @@ const typeCheckContract = [
   'npm run type-check -w @memento/core',
   'npm run type-check -w memento-server',
   'npm run type-check -w @memento/client',
+  'npm run type-check -w @memento/assistant',
   'npm run type-check -w experimental-example',
 ];
 

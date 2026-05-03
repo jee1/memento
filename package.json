@@ -7,6 +7,7 @@
     "packages/memento-core",
     "packages/memento-server",
     "packages/memento-client",
+    "packages/memento-assistant",
     "apps/*"
   ],
   "bin": {
@@ -21,7 +22,7 @@
     "dev:http": "npm run dev:http -w memento-server",
     "dev:http-v2": "npm run dev:http-v2 -w memento-server",
     "build": "npm run build:packages",
-    "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client && npm run sync:root-server-dist",
+    "build:packages": "npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @memento/client && npm run build -w @memento/assistant && npm run sync:root-server-dist",
     "copy:assets": "npm run copy:assets -w @memento/core",
     "docs:audit-links": "node scripts/audit-markdown-links.mjs",
     "start": "npm run start -w memento-server",
@@ -37,7 +38,7 @@
     "test:vector-search-quality": "vitest --run packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "npm run lint:ts && npm run lint:js",
-    "type-check": "npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @memento/client && npm run type-check -w experimental-example",
+    "type-check": "npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @memento/client && npm run type-check -w @memento/assistant && npm run type-check -w experimental-example",
     "db:init": "npm run db:init -w @memento/core",
     "db:migrate": "npm run db:migrate -w @memento/core",
     "db:check-migration": "tsx packages/memento-server/src/scripts/check-migration-status.ts",
