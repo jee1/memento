@@ -22,4 +22,8 @@
 
 ## 더 깊은 통합 (옵션)
 
-베어 MCP만으로 부족하면 `@memento/assistant` SDK를 사용해 *결정론적 자동 회상/저장*을 얻을 수 있습니다. v0.2에서 별도 가이드 추가 예정.
+베어 MCP만으로 부족하면 `@memento/assistant` SDK를 사용해 *결정론적 자동 회상/저장*을 얻을 수 있습니다.
+
+- **빠른 시작**: [`_shared/sdk-quickstart.md`](./_shared/sdk-quickstart.md)
+- Node.js / TypeScript 비서에서 두 개의 훅(`beforeUserTurn` / `afterAssistantTurn`)만 붙이면 됩니다.
+- ZeroClaw(Rust)는 Node.js SDK를 직접 사용할 수 없으며, 베어 MCP + 시스템 프롬프트 패턴을 권장합니다.

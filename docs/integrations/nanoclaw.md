@@ -178,6 +178,64 @@ NanoClaw 자체 로그 위치(agent group 컨테이너의 stdout, journald, 또�
 
 ---
 
+## 한 단계 더: `@memento/assistant`로 자동 회상/저장
+
+베어 MCP로 기본 통합이 완료됐다면 `@memento/assistant` SDK를 추가해 **매 턴 결정론적 자동 recall/remember**를 얻을 수 있습니다.
+
+### NanoClaw 컨테이너에서 사용 시 주의
+
+NanoClaw는 컨테이너 기반이므로 SDK는 **컨테이너 내부에서 import**합니다. stdio child spawn은 컨테이너 격리와 충돌하므로 반드시 **HTTP transport를 사용**하세요.
+
+```bash
+# NanoClaw 컨테이너의 .env.local 또는 환경변수
+MEMENTO_TRANSPORT=http
+MEMENTO_URL=http://host.docker.internal:9001
+MEMENTO_TOKEN=<admin-api-key>
+```
+
+```ts
+import { MementoAssistant } from '@memento/assistant';
+
+const memory = MementoAssistant.fromEnv(
+  {
+    ownerId: agentGroup.name,  // NanoClaw agent group 이름 → ownerId
+    channel: moduleId,         // 채널 모듈 이름 → channel
+  },
+  process.env,
+);
+
+// agent 메시지 핸들러
+async function handleMessage(msg) {
+  const ctx = await memory.beforeUserTurn({
+    userMessage: msg.content,
+    conversationId: msg.sessionId,
+  });
+
+  const systemPrompt = ctx.systemContext
+    ? `${basePrompt}\n\n${ctx.systemContext}`
+    : basePrompt;
+
+  const reply = await agent.chat({ systemPrompt, userMessage: msg.content });
+
+  await memory.afterAssistantTurn({
+    userMessage: msg.content,
+    assistantReply: reply,
+    conversationId: msg.sessionId,
+  });
+}
+```
+
+### 식별자 매핑
+
+| Memento 파라미터 | NanoClaw 소스 | 예시 |
+|----------------|--------------|------|
+| `ownerId` | agent group 이름 | `'personal-assistant'` |
+| `channel` | 채널 모듈 이름 | `'telegram-bot'`, `'slack-app'` |
+
+환경변수 및 Policy 옵션은 [`_shared/sdk-quickstart.md`](./_shared/sdk-quickstart.md) 참조.
+
+---
+
 ## 다음 단계
 
 - [`./_shared/transports.md`](./_shared/transports.md) — stdio·HTTP 트랙 결정과 마이그레이션

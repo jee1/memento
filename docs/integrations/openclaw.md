@@ -147,6 +147,64 @@ OpenClaw 고유의 함정 두 가지를 짚어 둡니다.
 
 ---
 
+## 한 단계 더: `@memento/assistant`로 자동 회상/저장
+
+베어 MCP로 기본 통합이 완료됐다면 `@memento/assistant` SDK를 추가해 **매 턴 결정론적 자동 recall/remember**를 얻을 수 있습니다.
+
+### 게이트웨이 레벨 통합 (권장)
+
+skill 레벨에 개별 통합하면 매 skill마다 중복 코드가 생깁니다. **게이트웨이 메시지 파이프라인에 한 번** 붙이는 편이 효율적입니다.
+
+```ts
+import { MementoAssistant } from '@memento/assistant';
+
+const memory = MementoAssistant.fromEnv(
+  {
+    ownerId: gatewayUser.id,   // OpenClaw gateway user ID → ownerId
+    channel: adapterName,      // 어댑터 이름 (예: 'telegram', 'slack', 'discord')
+  },
+  process.env,
+);
+
+// 게이트웨이 메시지 핸들러
+async function handleMessage(msg) {
+  const conversationId = msg.conversationId ?? msg.channelId;
+
+  // ① 메시지 수신 후, LLM 호출 직전
+  const ctx = await memory.beforeUserTurn({
+    userMessage: msg.content,
+    conversationId,
+  });
+
+  const systemPrompt = ctx.systemContext
+    ? `${gatewayBasePrompt}\n\n${ctx.systemContext}`
+    : gatewayBasePrompt;
+
+  const reply = await gateway.llm.chat({ systemPrompt, userMessage: msg.content });
+  await gateway.send(reply);
+
+  // ② 응답 전송 직후
+  await memory.afterAssistantTurn({
+    userMessage: msg.content,
+    assistantReply: reply,
+    conversationId,
+  });
+}
+```
+
+### 식별자 매핑
+
+| Memento 파라미터 | OpenClaw 소스 | 예시 |
+|----------------|--------------|------|
+| `ownerId` | 게이트웨이 통합 user 객체의 안정적 ID | `'user_42'` |
+| `channel` | 어댑터 이름 또는 채널 종류 | `'telegram'`, `'slack'` |
+
+`ownerId`에는 raw 플랫폼 ID(텔레그램 `123456789` 등) 대신 **게이트웨이가 통합 관리하는 user ID**를 쓰세요. 같은 사람이 telegram·slack 두 채널에서 쓴 기억이 모두 같은 `ownerId` 아래에 모입니다.
+
+환경변수 및 Policy 옵션은 [`_shared/sdk-quickstart.md`](./_shared/sdk-quickstart.md) 참조.
+
+---
+
 ## 다음 단계
 
 - [`./_shared/transports.md`](./_shared/transports.md) — stdio·HTTP 트랙 결정과 마이그레이션
