@@ -22,7 +22,7 @@
 |------|------|----------------|
 | **속도 — recall** | recall 호출 시 전체 지연(전형적 쿼리·데이터 규모 기준) | `MEMENTO_RECALL_PROFILE=1` → 로그 `total_ms`, [recall-performance-tuning.md](../../../../guides/ko/recall-performance-tuning.md) |
 | **속도 — 검색(하이브리드/단일 provider)** | 단일 provider 검색 평균 응답 시간 | `npm run test:multi-provider-performance`, `npm run test:single-provider-regression` → 단일 provider **평균 500ms 이하** [Multi-Provider-Search-Performance-Testing.md](../../../../reference/ko/Multi-Provider-Search-Performance-Testing.md) |
-| **속도 — 임베딩** | 임베딩 생성 지연·메모리 | `npm run benchmark:embedding`, [embedding-performance-benchmark.md](../../../../reference/ko/embedding-performance-benchmark.md) |
+| **속도 — 임베딩** | 임베딩 생성 지연·메모리 | `npm run test:embedding-benchmark`, [embedding-performance-benchmark.md](../../../../reference/ko/embedding-performance-benchmark.md) |
 | **정확성 — 검색 품질** | consolidation 점수 반영·랭킹 일관성 | `npm run benchmark:consolidation-quality`, baseline 비교 [consolidation-quality-testing.md](../../../../_work/testing/ko/consolidation-quality-testing.md) |
 | **정확성 — recall 활용도** (선택) | recall 결과가 실제 답변/행동에 반영되는지 | MVP 검증 지표로 정의 가능 [memento-based-personal-assistant-mvp-research.md](../../../../_work/research/ko/memento-based-personal-assistant-mvp-research.md) |
 
@@ -41,7 +41,7 @@
 1. **측정 실행**
    - `MEMENTO_RECALL_PROFILE=1`로 일상/대표 시나리오에서 recall 호출 → `total_ms` 수집.
    - `npm run test:multi-provider-performance`, `npm run test:single-provider-regression` 실행.
-   - `npm run benchmark:embedding` 실행.
+   - `npm run test:embedding-benchmark` 실행.
    - `npm run benchmark:consolidation-quality` 실행 (baseline 경로 설정 시 `CONSOLIDATION_BASELINE_PATH` 사용).
 2. **기준 대조**
    - 위 2.2 기준(속도·정확성)에 맞는지 체크리스트로 정리.

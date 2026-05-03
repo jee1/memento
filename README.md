@@ -478,7 +478,7 @@ npm run test:memory-injection          # 메모리 주입 테스트
 npm run test:batch-scheduler           # 배치 스케줄러 테스트
 npm run benchmark:consolidation-quality # Consolidation Score 벤치마크 테스트
 npm run test:embedding-benchmark      # 임베딩 성능 벤치마크
-npm run test:embedding-integration     # 임베딩 통합 테스트
+npm run test:embedding                   # 임베딩 통합에 가까운 실행 테스트
 
 # 테스트 감시 모드
 npm run test -- --watch

@@ -36,14 +36,14 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 
 ```bash
 npm ci
-npm run docs:audit-links
 npm run docs:verify-npm-scripts
+npm run docs:audit-links   # 선택: 레거시 깨진 링크가 많으면 CI 전에만 로컬에서 실행
 npm run lint
 npm run type-check
 npm run test
 ```
 
-문서만 바꾼 PR이라도 팀 정책에 따라 위를 최소한 `docs:audit-links`와 `docs:verify-npm-scripts`까지 실행한다.
+문서만 바꾼 PR이라도 팀 정책에 따라 최소한 `npm run docs:verify-npm-scripts`는 실행한다. `docs:audit-links`는 저장소 전체 `.md`를 스캔하므로, 상대 링크 정리가 끝나기 전에는 **로컬에서 선택 실행**하는 것을 권장한다.
 
 ## 5. PR 본문에 넣을 요약
 

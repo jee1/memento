@@ -333,7 +333,7 @@ git commit -m "chore(docs): verify npm run script names cited in markdown"
 
 **실패 시 의미:**  
 - `docs:audit-links`: 상대 경로 링크가 가리키는 파일·디렉터리가 없음 → 링크 또는 파일 이동 수정.  
-- `docs:verify-npm-scripts`: 문서의 `npm run X` 중 집계 범위에 없는 `X` → 문서 오타, 삭제된 스크립트, 또는 ALLOWLIST 필요.
+- `docs:verify-npm-scripts`: 문서에 적힌 `npm run <스크립트명>` 중, 집계 범위에 없는 이름 → 문서 오타, 삭제된 스크립트, 또는 ALLOWLIST 필요.
 
 - [ ] **Step 2: 커밋**
 
@@ -351,11 +351,7 @@ git commit -m "ci: run markdown link audit and doc npm script check"
 
 - [ ] **Step 1: 「운영·도구」표에 한 행 추가**
 
-`docs/README.md`의 `### 운영·도구` 아래 표에서 **「마이그레이션 상태 점검」행 다음、「트러블슈팅」행 앞**에 다음 한 줄을 삽입한다(열 구분 `|` 유지).
-
-| 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) | — |
-
-영문 열은 다른 운영 문서와 같이 `—`로 둔다.
+`docs/README.md`의 `### 운영·도구` 아래 표에서 **「마이그레이션 상태 점검」행 다음、「트러블슈팅」행 앞**에 한 행을 삽입한다. `docs/README.md`는 `docs/` 기준이므로 링크 목적지는 `operations/ko/doc-audit-workflow.md`이다. 표 형식은 바로 위 행「마이그레이션 상태 점검」과 동일하게 맞추고, 두 번째 열은 스크립트 인덱스 행과 같은 패턴으로 `doc-audit-workflow.md`에 상대 링크를 건다(이 계획 파일 본문에는 해당 마크다운 링크를 적지 않는다. `docs:audit-links`가 `plans/` 기준으로 경로를 해석해 실패하기 때문이다).
 
 - [ ] **Step 2: 커밋**
 

@@ -189,7 +189,7 @@
   - CLI 명령어: `npm run quality:thresholds`
   - HTTP API: `GET /api/v1/quality/thresholds`
 - **FR-6.3**: 품질 임계값을 업데이트할 수 있어야 함
-  - CLI 명령어: `npm run quality:thresholds:update -- --namespace=search --key=precision_at_5 --threshold=0.8`
+  - CLI 명령어: `npm run quality:thresholds set search precision_at_5 0.8 min --context default`
   - HTTP API: `PUT /api/v1/quality/thresholds/{namespace}/{key}`
 
 ### FR-7: 기존 품질 검증 시스템 통합
@@ -318,7 +318,7 @@ npm run quality:report -- --from=2025-01-01 --to=2025-01-31
 
 # 품질 임계값 관리
 npm run quality:thresholds
-npm run quality:thresholds:update -- --namespace=search --key=precision_at_5 --threshold=0.8
+npm run quality:thresholds set search precision_at_5 0.8 min --context default
 ```
 
 ### HTTP API 엔드포인트

@@ -2,7 +2,7 @@
 /**
  * 모든 .md에서 `npm run <script>` 패턴을 찾아, <script>가 루트 또는 workspace
  * package.json의 scripts에 존재하는지 검사한다.
- * 제외 디렉터리: node_modules, dist, .git
+ * 제외 디렉터리: node_modules, dist, .git, .worktrees (git worktree 별 클론)
  *
  * 오탐(문서에만 등장하는 가상 명령 등): 아래 ALLOWLIST_NAMES에 스크립트명 추가.
  *
@@ -16,16 +16,12 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.worktrees']);
 
 /** 문서에만 허용할 npm 스크립트명 (실제 package.json에 없을 때만 추가) */
 const ALLOWLIST_NAMES = new Set([
   // 예: 'legacy-example-script'
 ]);
-
-function shouldSkipDir(parts) {
-  return parts.some((p) => SKIP_DIRS.has(p));
-}
 
 function* walkMarkdownFiles(dir, rel = '') {
   let entries;
@@ -84,14 +80,27 @@ function collectAllScriptNames() {
   return names;
 }
 
-const NPM_RUN_RE = /npm\s+run\s+([a-z0-9][a-z0-9:-]*)/gi;
+/**
+ * (1) 줄 시작(선행 공백만)의 `npm run <name>`
+ * (2) 인라인 백틱 `` `npm run <name>` ``
+ * 만 집계한다. 본문 속 "verify npm run script …" 같은 영어 구절은 제외한다.
+ */
+function collectReferencedScriptNames(mdText) {
+  const names = new Set();
+  for (const line of mdText.split('\n')) {
+    const m = line.match(/^\s*npm\s+run\s+([a-z0-9][a-z0-9:-]*)\b/i);
+    if (m) names.add(m[1]);
+  }
+  for (const m of mdText.matchAll(/`npm\s+run\s+([^`\s]+)`/gi)) {
+    const raw = m[1];
+    if (/^[a-z0-9][a-z0-9:-]*$/i.test(raw)) names.add(raw);
+  }
+  return names;
+}
 
 function findUnknownRuns(mdText, known) {
   const unknown = new Set();
-  let m;
-  const re = new RegExp(NPM_RUN_RE.source, NPM_RUN_RE.flags);
-  while ((m = re.exec(mdText)) !== null) {
-    const name = m[1];
+  for (const name of collectReferencedScriptNames(mdText)) {
     if (ALLOWLIST_NAMES.has(name)) continue;
     if (!known.has(name)) unknown.add(name);
   }

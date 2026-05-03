@@ -283,7 +283,7 @@ npm run test:vector-search             # Vector search tests
 npm run test:memory-injection         # Memory injection tests
 npm run test:batch-scheduler           # Batch scheduler tests
 npm run test:embedding-benchmark       # Embedding performance benchmark
-npm run test:embedding-integration     # Embedding integration tests
+npm run test:all-embedding             # All embedding-related Vitest files
 
 # Test watch mode
 npm run test -- --watch

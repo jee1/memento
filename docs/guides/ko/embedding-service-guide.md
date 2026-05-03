@@ -269,7 +269,7 @@ describe('임베딩 서비스 테스트', () => {
 
 ```bash
 # 벤치마크 실행
-npm run benchmark:embedding
+npm run test:embedding-benchmark
 
 # 특정 서비스 테스트
 npm run test:embedding-benchmark
