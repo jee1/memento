@@ -81,6 +81,8 @@ http://localhost:9001/graph
 
 OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
 
+`@memento/assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
+
 ## 🚀 빠른 시작
 
 ### 🥇 **원클릭 설치 (권장)**
@@ -130,6 +132,10 @@ docker-compose -f docker-compose.dev.yml up -d
 # 프로덕션 환경
 docker-compose -f docker-compose.prod.yml up -d
 ```
+
+#### Log Issue Monitor
+
+운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 opt-in `docker-compose.issue-monitor.yml` 오버레이를 사용할 수 있습니다. 자세한 절차는 [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md)를 참고하세요.
 
 ### 🛠️ **소스코드 방식 (개발자용)**
 

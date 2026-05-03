@@ -163,3 +163,19 @@ Memento는 **augmentation**이지 **dependency**가 아닙니다. 서버가 죽�
 - [NanoClaw 가이드](../nanoclaw.md) — 컨테이너 멀티채널 비서 통합
 - [ZeroClaw 가이드](../zeroclaw.md) — 24/7 무인 봇 통합
 - [통합 가이드 허브](../README.md) — 처음으로 돌아가기
+
+---
+
+## 한 단계 더: `@memento/assistant` 사용 시
+
+SDK가 매 턴 `<memento>...</memento>` 펜스 블록을 자동으로 만들어 시스템 프롬프트에 합성합니다.
+이 경우 위의 권장 프롬프트는 *짧아져도* 됩니다 — recall 호출 의지를 LLM에 부탁할 필요가 없으니까요.
+
+권장 SDK용 시스템 프롬프트:
+```
+당신은 사용자의 개인 비서입니다. 시스템 프롬프트에 포함된 <memento>...</memento> 블록은
+이 사용자에 관해 이전에 알게 된 사실/선호/사건의 회상입니다. 답변에 적극 활용하세요.
+없으면 그냥 답변하세요.
+```
+
+자동 저장 정책 옵션은 [`./sdk-quickstart.md`](./sdk-quickstart.md) 참조.

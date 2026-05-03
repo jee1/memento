@@ -12,7 +12,7 @@
   const GRAPH_IFRAME_SRC = '/graph';
 
   function getTabButtons() {
-    return Array.prototype.slice.call(document.querySelectorAll('.tab-bar .tab-btn'));
+    return Array.prototype.slice.call(document.querySelectorAll('.m-tab-bar .m-tab-btn'));
   }
 
   function dispatchGraphIframeResize(iframe) {
@@ -32,7 +32,8 @@
     const anchorPanel = document.getElementById('tab-anchor-map');
     const embedPanel = document.getElementById('tab-embedding-map');
     const graphPanel = document.getElementById('tab-graph');
-    const buttons = document.querySelectorAll('.tab-btn');
+    const reviewPanel = document.getElementById('tab-review-candidates');
+    const buttons = document.querySelectorAll('.m-tab-btn');
     buttons.forEach(function (b) {
       const on = b.getAttribute('data-tab') === name;
       b.classList.toggle('active', on);
@@ -50,8 +51,15 @@
       graphPanel.classList.toggle('active', name === 'graph');
       graphPanel.setAttribute('aria-hidden', name === 'graph' ? 'false' : 'true');
     }
+    if (reviewPanel) {
+      reviewPanel.classList.toggle('active', name === 'review');
+      reviewPanel.setAttribute('aria-hidden', name === 'review' ? 'false' : 'true');
+    }
     if (name === 'embedding' && typeof window.initEmbeddingMap === 'function') {
       window.initEmbeddingMap();
+    }
+    if (name === 'review' && typeof window.initReviewCandidatesPanel === 'function') {
+      window.initReviewCandidatesPanel();
     }
     if (name === 'graph') {
       const iframe = document.getElementById('graph-view-iframe');
@@ -71,24 +79,24 @@
           dispatchGraphIframeResize(iframe);
         });
       }
-    } else if (name === 'anchor' || name === 'embedding') {
+    } else if (name === 'anchor' || name === 'embedding' || name === 'review') {
       requestAnimationFrame(function () {
         window.dispatchEvent(new Event('resize'));
       });
     }
 
-    const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
+    const activeBtn = document.querySelector('.m-tab-btn[data-tab="' + name + '"]');
     if (activeBtn) {
       setRovingTabindex(activeBtn);
       activeBtn.focus();
     }
   }
 
-  const tabBar = document.querySelector('.tab-bar');
+  const tabBar = document.querySelector('.m-tab-bar');
   if (tabBar) {
     tabBar.addEventListener('keydown', function (e) {
       const target = e.target;
-      if (!target || !target.classList || !target.classList.contains('tab-btn')) {
+      if (!target || !target.classList || !target.classList.contains('m-tab-btn')) {
         return;
       }
       const buttons = getTabButtons();
@@ -128,7 +136,7 @@
     });
   }
 
-  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  document.querySelectorAll('.m-tab-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       const tab = btn.getAttribute('data-tab');
       if (tab) {
@@ -137,7 +145,7 @@
     });
   });
 
-  const initial = document.querySelector('.tab-btn[data-tab="anchor"]');
+  const initial = document.querySelector('.m-tab-btn[data-tab="anchor"]');
   if (initial) {
     setRovingTabindex(initial);
   }

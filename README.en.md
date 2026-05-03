@@ -61,6 +61,8 @@ http://localhost:9001/graph
 
 Personal AI assistants like OpenClaw, NanoClaw, and ZeroClaw can use Memento as a shared long-term memory backend. Guide: [docs/integrations/](./docs/integrations/README.md)
 
+Use the `@memento/assistant` SDK for deterministic auto recall/remember with just two hooks — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
+
 ## 🚀 Quick Start
 
 ### 🥇 **One-click Installation (Recommended)**

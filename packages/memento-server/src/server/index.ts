@@ -22,7 +22,6 @@ ListPromptsRequestSchema,
 ListResourcesRequestSchema,
 ListToolsRequestSchema,
 ReadResourceRequestSchema,
-SetLevelRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
@@ -127,7 +126,7 @@ function registerHandlers() {
   server.setRequestHandler(ReadResourceRequestSchema, async () => { throw new Error('Not implemented'); });
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [] }));
   server.setRequestHandler(GetPromptRequestSchema, async () => { throw new Error('Not implemented'); });
-  server.setRequestHandler(SetLevelRequestSchema, async () => ({}));
+  // Note: SetLevelRequestSchema is automatically handled by the SDK when logging capability is declared.
 }
 
 /**
@@ -139,7 +138,7 @@ export async function startServer() {
     server = new Server(
       { name: 'memento-mcp-server', version: packageJson.version },
       { 
-        capabilities: { tools: {}, resources: {}, prompts: {} },
+        capabilities: { tools: {}, resources: {}, prompts: {}, logging: {} },
         instructions: MEMENTO_SERVER_INSTRUCTIONS
       }
     );
