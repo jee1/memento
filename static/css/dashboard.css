@@ -641,3 +641,88 @@ body {
   margin-top: var(--spacing-sm);
 }
 
+
+/* Review candidates panel (#252) */
+.review-candidates-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+  background: var(--color-bg-main);
+}
+
+.review-candidates-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.review-candidates-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-main);
+}
+
+.review-candidates-status {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.rc-banner {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+}
+
+.rc-banner--error {
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+  border: 1px solid var(--color-status-error-border);
+}
+
+.review-candidates-table-wrap {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--color-tab-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.review-candidates-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.review-candidates-table th,
+.review-candidates-table td {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-tab-border);
+}
+
+.review-candidates-table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-card);
+  z-index: 1;
+}
+
+.rc-cell-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.rc-cell-reason {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 36rem;
+}
