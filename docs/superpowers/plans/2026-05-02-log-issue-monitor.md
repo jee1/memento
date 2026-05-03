@@ -1770,7 +1770,7 @@ Add this short paragraph near Docker or diagnostics documentation in `README.md`
 ```markdown
 ### Log Issue Monitor
 
-운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 opt-in `docker-compose.issue-monitor.yml` 오버레이를 사용할 수 있습니다. 자세한 절차는 [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md)를 참고하세요.
+운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 opt-in `docker-compose.issue-monitor.yml` 오버레이를 사용할 수 있습니다. 자세한 절차는 [Log Issue Monitor 운영 가이드](../../operations/ko/log-issue-monitor.md)를 참고하세요.
 ```
 
 - [ ] **Step 4: Run full monitor verification**
