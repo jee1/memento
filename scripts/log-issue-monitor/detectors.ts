@@ -17,6 +17,7 @@ export function detectAppLogEvent(line: ParsedAppLogLine): DetectedEvent | undef
     lower.includes('uncaughtexception') ||
     lower.includes('uncaught exception') ||
     lower.includes('unhandledrejection') ||
+    lower.includes('unhandledpromiserejection') ||
     lower.includes('unhandled rejection');
 
   if (critical) {

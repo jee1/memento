@@ -20,6 +20,13 @@ describe('detectAppLogEvent', () => {
     expect(event?.severity).toBe('critical');
     expect(event?.title).toBe('App critical: UncaughtException: TypeError: boom');
   });
+
+  it('detects unhandled promise rejections as critical', () => {
+    const event = detectAppLogEvent(parseAppLogLine('UnhandledPromiseRejection: timeout'));
+
+    expect(event?.severity).toBe('critical');
+    expect(event?.title).toBe('App critical: UnhandledPromiseRejection: timeout');
+  });
 });
 
 describe('detectRuntimeAnomaly', () => {
