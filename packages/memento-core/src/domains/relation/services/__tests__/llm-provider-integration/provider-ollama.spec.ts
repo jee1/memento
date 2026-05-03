@@ -76,6 +76,42 @@ describe('LLM Provider 통합 테스트', () => {
     });
 
     /**
+     * Given: LLM_PROVIDER='ollama'이고 클라우드 API 키는 없고 Ollama만 정상 응답함
+     * When: LLMClientInitializer.initialize()를 호출함
+     * Then: OpenAI/Gemini 키 부재로 인한 경고(warnings)가 없어야 함 (이슈 #260)
+     */
+    it('should not warn about missing OpenAI/Gemini keys when LLM_PROVIDER is "ollama" and Ollama succeeds', async () => {
+      process.env.LLM_PROVIDER = 'ollama';
+      mockMementoConfig.openaiApiKey = undefined;
+      mockMementoConfig.geminiApiKey = undefined;
+      mockMementoConfig.ollamaBaseUrl = 'http://localhost:11434';
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ models: [] })
+      });
+      global.fetch = mockFetch as typeof global.fetch;
+
+      const mockAbortSignal = new EventTarget() as AbortSignal;
+      const mockTimeout = vi.fn((ms: number) => mockAbortSignal);
+      global.AbortSignal = {
+        ...originalAbortSignal,
+        timeout: mockTimeout
+      } as typeof AbortSignal;
+
+      const initializer = new LLMClientInitializer();
+      const result = await initializer.initialize();
+
+      expect(result.preferredProvider).toBe('ollama');
+      expect(
+        result.warnings.some(
+          (w) => w.includes('OPENAI_API_KEY') || w.includes('GEMINI_API_KEY')
+        )
+      ).toBe(false);
+    });
+
+    /**
      * Given: LLM_PROVIDER='ollama'이고 Ollama 연결 실패하지만 OpenAI API 키가 있음
      * When: LLMClientInitializer.initialize()를 호출함
      * Then: preferredProvider가 'openai'로 설정되고 fallback이 발생해야 함

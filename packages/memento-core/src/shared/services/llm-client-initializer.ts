@@ -118,6 +118,18 @@ export class LLMClientInitializer {
     };
   }
 
+  /**
+   * 명시 LLM_PROVIDER일 때만 해당 클라우드 키 부재를 경고한다.
+   * ollama 전용 등으로 다른 provider를 쓰지 않는 경우 불필요한 WARN 로그를 막는다. auto는 탐색 목적상 기존과 같이 경고.
+   */
+  private shouldWarnMissingOpenaiKey(selectedProvider: LLMProvider): boolean {
+    return selectedProvider === 'openai' || selectedProvider === 'auto';
+  }
+
+  private shouldWarnMissingGeminiKey(selectedProvider: LLMProvider): boolean {
+    return selectedProvider === 'gemini' || selectedProvider === 'auto';
+  }
+
   private resolveLlmModelLabel(provider: LLMClientInitializationResult['preferredProvider']): string {
     if (provider === 'openai') return mementoConfig.openaiLlmModel ?? 'gpt-4o-mini';
     if (provider === 'ollama') return mementoConfig.ollamaModel;
@@ -175,16 +187,18 @@ export class LLMClientInitializer {
     selectedProvider: LLMProvider
   ): OpenAI | null {
     if (!mementoConfig.openaiApiKey) {
-      const warningMessage = 'OPENAI_API_KEY가 없습니다.';
-      this.addWarning(
-        result,
-        warningMessage,
-        'OpenAI API 키가 없어 초기화를 건너뜁니다.',
-        {
-          requestedProvider: selectedProvider,
-          reason: warningMessage
-        }
-      );
+      if (this.shouldWarnMissingOpenaiKey(selectedProvider)) {
+        const warningMessage = 'OPENAI_API_KEY가 없습니다.';
+        this.addWarning(
+          result,
+          warningMessage,
+          'OpenAI API 키가 없어 초기화를 건너뜁니다.',
+          {
+            requestedProvider: selectedProvider,
+            reason: warningMessage
+          }
+        );
+      }
       return null;
     }
 
@@ -226,16 +240,18 @@ export class LLMClientInitializer {
     selectedProvider: LLMProvider
   ): GoogleGenerativeAI | null {
     if (!mementoConfig.geminiApiKey) {
-      const warningMessage = 'GEMINI_API_KEY가 없습니다.';
-      this.addWarning(
-        result,
-        warningMessage,
-        'Gemini API 키가 없어 초기화를 건너뜁니다.',
-        {
-          requestedProvider: selectedProvider,
-          reason: warningMessage
-        }
-      );
+      if (this.shouldWarnMissingGeminiKey(selectedProvider)) {
+        const warningMessage = 'GEMINI_API_KEY가 없습니다.';
+        this.addWarning(
+          result,
+          warningMessage,
+          'Gemini API 키가 없어 초기화를 건너뜁니다.',
+          {
+            requestedProvider: selectedProvider,
+            reason: warningMessage
+          }
+        );
+      }
       return null;
     }
 
