@@ -123,6 +123,15 @@ curl -i -H "Authorization: Bearer $MEMENTO_TOKEN" \
 
 ---
 
+## SDK 사용에 관해
+
+ZeroClaw는 Rust 바이너리이므로 Node.js 기반 `@memento/assistant`를 직접 import 할 수 없습니다.
+v0.1에서는 베어 MCP 등록(stdio 또는 HTTP) + 권장 시스템 프롬프트 패턴으로 자동 회상/저장의 약 80%를 얻을 수 있습니다 ([`./_shared/system-prompt.md`](./_shared/system-prompt.md)).
+
+Rust 측 포팅(예: `memento-assistant-rs`)은 v0.2+ 로드맵 항목입니다. 트래킹 이슈가 열리면 여기에 링크합니다.
+
+---
+
 ## 다음 단계
 
 - [`./_shared/transports.md`](./_shared/transports.md) — stdio·HTTP 트랙 결정과 마이그레이션
