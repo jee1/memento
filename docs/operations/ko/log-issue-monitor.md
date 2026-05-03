@@ -44,7 +44,7 @@ GITHUB_TOKEN=... docker compose \
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
-| `GITHUB_REPOSITORY` | `jee1lee/memento` | 이슈를 생성할 저장소 |
+| `GITHUB_REPOSITORY` | `jee1/memento` | 이슈를 생성할 저장소 |
 | `LOG_ISSUE_MONITOR_CONTAINER_NAME` | `memento-mcp-server` | `docker logs`를 읽을 컨테이너 이름 |
 | `LOG_ISSUE_MONITOR_INTERVAL_SECONDS` | `30` | 주기 실행 간격 |
 | `LOG_ISSUE_MONITOR_WARN_THRESHOLD` | `3` | warning/anomaly를 이슈로 승격할 반복 횟수 |
@@ -65,4 +65,3 @@ GITHUB_TOKEN=... docker compose \
 ## 보안
 
 이 오버레이는 Docker socket을 마운트하므로 신뢰할 수 있는 운영/진단 환경에서만 사용합니다. GitHub로 전송되는 로그 excerpt는 민감정보 마스킹과 길이 제한을 거칩니다.
-

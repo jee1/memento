@@ -10,7 +10,7 @@ describe('loadMonitorConfig', () => {
 
     expect(config.containerName).toBe('memento-mcp-server');
     expect(config.githubToken).toBeUndefined();
-    expect(config.githubRepository).toBe('jee1lee/memento');
+    expect(config.githubRepository).toBe('jee1/memento');
     expect(config.intervalSeconds).toBe(30);
     expect(config.warnThreshold).toBe(3);
     expect(config.warnWindowSeconds).toBe(600);

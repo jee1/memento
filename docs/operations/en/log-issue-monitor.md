@@ -44,7 +44,7 @@ When an open issue already contains the same fingerprint, the monitor updates on
 
 | Environment variable | Default | Description |
 | --- | --- | --- |
-| `GITHUB_REPOSITORY` | `jee1lee/memento` | Repository where issues are created |
+| `GITHUB_REPOSITORY` | `jee1/memento` | Repository where issues are created |
 | `LOG_ISSUE_MONITOR_CONTAINER_NAME` | `memento-mcp-server` | Container name for `docker logs` |
 | `LOG_ISSUE_MONITOR_INTERVAL_SECONDS` | `30` | Polling interval |
 | `LOG_ISSUE_MONITOR_WARN_THRESHOLD` | `3` | Repetition count before warning/anomaly promotion |
@@ -65,4 +65,3 @@ The default output path is `${HOME}/.memento/logs/log-issue-monitor`.
 ## Security
 
 This overlay mounts the Docker socket, so use it only in trusted operations or diagnostics environments. Excerpts sent to GitHub are masked and length-limited.
-
