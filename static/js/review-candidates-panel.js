@@ -1,15 +1,20 @@
 /**
- * Review candidates panel (#252 list, #253 row preview + memory body)
+ * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify)
  */
 (function (global) {
   'use strict';
 
   const LIST_URL = '/admin/memory/review-candidates?status=pending';
   const REASON_TABLE_MAX = 120;
+  const POLL_INTERVAL_MS = 60 * 1000;
 
   let wired = false;
   let loadedOnce = false;
   let selectedRow = null;
+  let pollTimer = null;
+  let visListenerRegistered = false;
+  let lastPendingCount = -1;
+  let toastHideTimer = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -262,8 +267,133 @@
     setHidden($('rc-table-wrap'), true);
   }
 
-  async function loadList() {
+  function clearReviewTabBadge() {
+    const b = $('rc-tab-badge');
+    if (b) {
+      b.textContent = '';
+      b.classList.add('hidden');
+      b.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function setReviewTabBadge(totalPending) {
+    const b = $('rc-tab-badge');
+    if (!b || !(totalPending > 0)) {
+      return;
+    }
+    b.textContent = totalPending > 99 ? '99+' : String(totalPending);
+    b.classList.remove('hidden');
+    b.setAttribute('aria-hidden', 'false');
+  }
+
+  function showNewCandidatesToast(delta, onReviewTab) {
+    const t = $('rc-toast');
+    if (!t) {
+      return;
+    }
+    const msg =
+      delta === 1
+        ? '1 new review candidate (pending queue grew).'
+        : String(delta) + ' new review candidates (pending queue grew).';
+    t.textContent =
+      msg + (onReviewTab ? ' List updated.' : ' Open Review Queue to refresh.');
+    t.classList.remove('hidden');
+    if (toastHideTimer) {
+      clearTimeout(toastHideTimer);
+    }
+    toastHideTimer = setTimeout(function () {
+      t.classList.add('hidden');
+      t.textContent = '';
+      toastHideTimer = null;
+    }, 8000);
+  }
+
+  function registerVisibilityForPoll() {
+    if (visListenerRegistered) {
+      return;
+    }
+    visListenerRegistered = true;
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        runPollTick();
+      }
+    });
+  }
+
+  function startPollingIfNeeded() {
+    if (pollTimer !== null) {
+      return;
+    }
+    registerVisibilityForPoll();
+    pollTimer = setInterval(function () {
+      if (document.visibilityState === 'hidden') {
+        return;
+      }
+      runPollTick();
+    }, POLL_INTERVAL_MS);
+  }
+
+  async function fetchReviewCandidateListJson() {
     const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    const res = await fetchFn(LIST_URL, { headers: { Accept: 'application/json' } });
+    const body = await res.json().catch(function () {
+      return {};
+    });
+    return { res, body };
+  }
+
+  function applyListSuccess(body) {
+    const candidates = (body && body.candidates) || [];
+    const ts = body && body.timestamp;
+    const line = $('rc-status-line');
+    if (line && ts) {
+      line.textContent = 'Last updated: ' + ts;
+    }
+    lastPendingCount = candidates.length;
+    if (!candidates.length) {
+      showEmpty(true);
+      hideTable();
+      return;
+    }
+    renderTable(candidates);
+  }
+
+  async function runPollTick() {
+    if (lastPendingCount < 0) {
+      return;
+    }
+    let res;
+    let body;
+    try {
+      const r = await fetchReviewCandidateListJson();
+      res = r.res;
+      body = r.body;
+    } catch {
+      return;
+    }
+    if (!res.ok) {
+      return;
+    }
+    const candidates = (body && body.candidates) || [];
+    const n = candidates.length;
+    const prev = lastPendingCount;
+    if (prev >= 0 && n > prev) {
+      const delta = n - prev;
+      const reviewPanel = $('tab-review-candidates');
+      const onReview = !!(reviewPanel && reviewPanel.classList.contains('active'));
+      showNewCandidatesToast(delta, onReview);
+      if (!onReview) {
+        setReviewTabBadge(n);
+      }
+      if (onReview) {
+        applyListSuccess(body);
+        return;
+      }
+    }
+    lastPendingCount = n;
+  }
+
+  async function loadList() {
     showError('');
     showLoading(true);
     hideTable();
@@ -273,10 +403,7 @@
     resetPreviewPanel();
 
     try {
-      const res = await fetchFn(LIST_URL, { headers: { Accept: 'application/json' } });
-      const body = await res.json().catch(function () {
-        return {};
-      });
+      const { res, body } = await fetchReviewCandidateListJson();
       showLoading(false);
       if (!res.ok) {
         const msg =
@@ -285,17 +412,8 @@
         showError(String(msg));
         return;
       }
-      const candidates = (body && body.candidates) || [];
-      const ts = body && body.timestamp;
-      const line = $('rc-status-line');
-      if (line && ts) {
-        line.textContent = 'Last updated: ' + ts;
-      }
-      if (!candidates.length) {
-        showEmpty(true);
-        return;
-      }
-      renderTable(candidates);
+      applyListSuccess(body);
+      startPollingIfNeeded();
     } catch (e) {
       showLoading(false);
       showError(e instanceof Error ? e.message : 'Network error');
@@ -303,6 +421,7 @@
   }
 
   function initReviewCandidatesPanel() {
+    clearReviewTabBadge();
     if (!wired) {
       wired = true;
       const btn = $('rc-refresh-btn');
@@ -315,8 +434,8 @@
     }
     if (!loadedOnce) {
       loadedOnce = true;
-      loadList();
     }
+    loadList();
   }
 
   global.initReviewCandidatesPanel = initReviewCandidatesPanel;

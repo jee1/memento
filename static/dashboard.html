@@ -68,7 +68,7 @@
       <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
       <button type="button" id="dashboard-tab-embedding" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
       <button type="button" id="dashboard-tab-graph" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
-      <button type="button" id="dashboard-tab-review" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue</button>
+      <button type="button" id="dashboard-tab-review" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
     </div>
 
     <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
@@ -168,6 +168,7 @@
         <div id="rc-loading" class="rc-banner hidden">Loading…</div>
         <div id="rc-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
         <div id="rc-empty" class="rc-banner hidden">No pending review candidates.</div>
+        <div id="rc-toast" class="rc-toast hidden" role="status" aria-live="polite"></div>
         <div class="review-candidates-body">
           <div class="rc-main-col">
             <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
