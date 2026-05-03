@@ -1,0 +1,24 @@
+services:
+  log-issue-monitor:
+    build:
+      context: .
+      dockerfile: docker/log-issue-monitor/Dockerfile
+    depends_on:
+      - memento-mcp-server
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-jee1lee/memento}
+      LOG_ISSUE_MONITOR_CONTAINER_NAME: ${LOG_ISSUE_MONITOR_CONTAINER_NAME:-memento-mcp-server}
+      LOG_ISSUE_MONITOR_INTERVAL_SECONDS: ${LOG_ISSUE_MONITOR_INTERVAL_SECONDS:-30}
+      LOG_ISSUE_MONITOR_WARN_THRESHOLD: ${LOG_ISSUE_MONITOR_WARN_THRESHOLD:-3}
+      LOG_ISSUE_MONITOR_WARN_WINDOW_SECONDS: ${LOG_ISSUE_MONITOR_WARN_WINDOW_SECONDS:-600}
+      LOG_ISSUE_MONITOR_DRY_RUN: ${LOG_ISSUE_MONITOR_DRY_RUN:-false}
+      LOG_ISSUE_MONITOR_LABELS: ${LOG_ISSUE_MONITOR_LABELS:-bug,needs-triage,memento-log-monitor}
+      LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES: ${LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES:-6000}
+      LOG_ISSUE_MONITOR_INCLUDE_STACK: ${LOG_ISSUE_MONITOR_INCLUDE_STACK:-true}
+      LOG_ISSUE_MONITOR_LOGS_ROOT: /logs
+      LOG_ISSUE_MONITOR_STATE_DIR: /logs/log-issue-monitor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.memento/logs:/logs
+    restart: unless-stopped

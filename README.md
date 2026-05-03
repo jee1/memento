@@ -133,6 +133,10 @@ docker-compose -f docker-compose.dev.yml up -d
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+#### Log Issue Monitor
+
+운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 opt-in `docker-compose.issue-monitor.yml` 오버레이를 사용할 수 있습니다. 자세한 절차는 [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md)를 참고하세요.
+
 ### 🛠️ **소스코드 방식 (개발자용)**
 
 > **📦 패키지 매니저**: 이 프로젝트는 **npm**을 사용합니다. `pnpm`이나 `yarn`은 사용하지 않습니다.
