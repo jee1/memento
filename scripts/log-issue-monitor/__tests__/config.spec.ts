@@ -1,9 +1,12 @@
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadMonitorConfig } from '../config.js';
 
 describe('loadMonitorConfig', () => {
   it('uses safe defaults when optional environment variables are absent', () => {
     const config = loadMonitorConfig({});
+    const expectedLogs = join(homedir(), '.memento', 'logs');
 
     expect(config.containerName).toBe('memento-mcp-server');
     expect(config.githubToken).toBeUndefined();
@@ -13,8 +16,8 @@ describe('loadMonitorConfig', () => {
     expect(config.warnWindowSeconds).toBe(600);
     expect(config.dryRun).toBe(false);
     expect(config.labels).toEqual(['bug', 'needs-triage', 'memento-log-monitor']);
-    expect(config.logsRoot).toBe('/logs');
-    expect(config.stateDir).toBe('/logs/log-issue-monitor');
+    expect(config.logsRoot).toBe(expectedLogs);
+    expect(config.stateDir).toBe(join(expectedLogs, 'log-issue-monitor'));
     expect(config.maxExcerptBytes).toBe(6000);
     expect(config.includeStack).toBe(true);
   });

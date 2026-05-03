@@ -1,4 +1,8 @@
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { MonitorConfig } from './types.js';
+
+const defaultLogsRoot = (): string => join(homedir(), '.memento', 'logs');
 
 function optionalString(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -26,7 +30,7 @@ function labelsFromEnv(value: string | undefined): string[] {
 }
 
 export function loadMonitorConfig(env: NodeJS.ProcessEnv = process.env): MonitorConfig {
-  const logsRoot = optionalString(env.LOG_ISSUE_MONITOR_LOGS_ROOT) ?? '/logs';
+  const logsRoot = optionalString(env.LOG_ISSUE_MONITOR_LOGS_ROOT) ?? defaultLogsRoot();
   return {
     containerName: optionalString(env.LOG_ISSUE_MONITOR_CONTAINER_NAME) ?? 'memento-mcp-server',
     logsRoot,

@@ -1,3 +1,8 @@
+# GitHub 이슈 동기화: 저장소 루트에 `.env`를 두고 `GITHUB_TOKEN`(repo 또는 issues 권한)을 설정하세요.
+# Compose가 `.env`를 읽어 `${GITHUB_TOKEN}`에 주입합니다. 예시는 `.env.example` 참고.
+# `docker logs` 대상: 기본 `memento-mcp-server`는 `container_name`이 있을 때만 그 이름으로 뜹니다.
+# 그 외에는 `docker ps --format '{{.Names}}'`로 실제 이름을 확인해 `LOG_ISSUE_MONITOR_CONTAINER_NAME`에 맞추거나,
+# `docker-compose.diagnostics.yml`(container_name 고정)을 함께 올리세요.
 services:
   log-issue-monitor:
     build:

@@ -19,7 +19,11 @@ export class GitHubIssueClient {
   }
 
   async findOpenIssueByFingerprint(fingerprint: string, labels: string[]): Promise<GitHubIssue | undefined> {
-    const labelQuery = labels.map(label => `label:${label}`).join(' ');
+    // GitHub search ANDs multiple label: tokens; requiring every configured label misses issues
+    // where one label was removed. Prefer the tool-owned label for dedupe when present.
+    const labelQuery = labels.includes('memento-log-monitor')
+      ? 'label:memento-log-monitor'
+      : labels.map(label => `label:${label}`).join(' ');
     const query = encodeURIComponent(`repo:${this.options.repository} is:issue is:open ${labelQuery} ${fingerprint}`);
     const result = await this.request<{ items: GitHubIssue[] }>(`/search/issues?q=${query}`, { method: 'GET' });
 

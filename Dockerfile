@@ -17,8 +17,7 @@ COPY apps/experimental-example/package*.json ./apps/experimental-example/
 # Install all dependencies (including dev dependencies for build) without running scripts
 RUN npm ci --ignore-scripts
 
-# Copy source code (packages/ 포함 — 모노레포 빌드에 필요)
-COPY src/ ./src/
+# Copy source (모노레포: 루트 src/ 없음 — packages·apps·scripts)
 COPY scripts/ ./scripts/
 COPY packages/ ./packages/
 COPY apps/ ./apps/
@@ -26,9 +25,7 @@ COPY apps/ ./apps/
 # Run postinstall scripts now that source code is available
 RUN npm run postinstall
 
-# Workspace 패키지만 빌드 (@memento/core, memento-server, client).
-# 루트 src/의 레거시 tsc(build:root)는 Docker 이미지 런타임에 사용하지 않으며,
-# 패키지와 동기화되지 않으면 빌드가 실패할 수 있음.
+# Workspace 패키지 빌드 (@memento/core, memento-server, client, sync:root-server-dist)
 RUN npm run build:packages
 
 # Production stage
@@ -59,7 +56,8 @@ WORKDIR /app
 # Copy package files and scripts, then install dependencies
 COPY package*.json ./
 COPY scripts/ ./scripts/
-RUN npm cache clean --force && npm install --omit=dev
+# 소스·워크스페이스 미복사 상태 — postinstall(auto-setup)은 패키지 경로가 없어 실패하므로 스크립트 생략
+RUN npm cache clean --force && npm install --omit=dev --ignore-scripts
 
 # Install sqlite-vec npm package and copy .so files to /usr/lib/ without .so extension
 RUN npm install sqlite-vec --build-from-source && \
