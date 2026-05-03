@@ -958,6 +958,7 @@ describe('admin.routes memory review candidates', () => {
         tags TEXT,
         source TEXT,
         project_id TEXT,
+        owner_id TEXT,
         is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
         deleted_at TEXT
       );
@@ -1037,6 +1038,39 @@ describe('admin.routes memory review candidates', () => {
       db.close();
     } catch {
       /* ignore */
+    }
+  });
+
+  it('GET /admin/memory/items/mem_stale returns 200 with memory.content', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/items/mem_stale');
+      expect(res.statusCode).toBe(200);
+      const json = JSON.parse(res.body) as { memory?: { content?: string; id?: string } };
+      expect(json.memory?.id).toBe('mem_stale');
+      expect(json.memory?.content).toBe('Stale high-importance memory');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/items/bad..id returns 400', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/items/not%20valid');
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/memory/items/mem_missing returns 404', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/items/mem_does_not_exist');
+      expect(res.statusCode).toBe(404);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
     }
   });
 

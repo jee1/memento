@@ -861,6 +861,47 @@ GET /admin/memory/review-candidates?status=pending
 - `400`: 잘못된 `status` 값
 - `500`: DB 미연결 등 서버 오류
 
+##### 단일 기억 프리뷰 (Admin)
+
+리뷰 후보 목록에 본문이 없을 때, 대시보드 등에서 `memory_id`로 **`memory_item` 한 행**을 조회합니다.
+
+```http
+GET /admin/memory/items/:memory_id
+```
+
+- `:memory_id`는 URL 인코딩된 문자열이며, **`mem_` + 영문·숫자·밑줄(`_`)** 패턴만 허용합니다. 그 외 형식은 `400`입니다.
+- 소프트 삭제(`is_deleted = 1`)된 기억은 `404`입니다.
+
+**응답 (200)**
+
+```json
+{
+  "message": "Memory item",
+  "memory": {
+    "id": "mem_abc123",
+    "type": "semantic",
+    "content": "…",
+    "importance": 0.82,
+    "privacy_scope": "private",
+    "pinned": false,
+    "created_at": "2026-05-02T10:00:00.000Z",
+    "last_accessed": null,
+    "last_accessed_at": null,
+    "tags": null,
+    "source": null,
+    "project_id": null,
+    "owner_id": null
+  },
+  "timestamp": "2026-05-03T12:00:00.000Z"
+}
+```
+
+**에러**
+
+- `400`: 잘못된 `memory_id` 형식
+- `404`: 해당 ID 없음 또는 삭제됨
+- `500`: DB 미연결 등 서버 오류
+
 ##### 후보 리뷰 완료
 
 ```http

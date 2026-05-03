@@ -18,6 +18,8 @@ import {
   listMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
+  parseAdminMemoryItemIdParam,
+  getAdminMemoryItemPreviewById,
   MemoryReviewCandidateError,
   type MemoryReviewCandidateStatus,
   logger,
@@ -301,6 +303,36 @@ export function createAdminRouter(
     }
   });
 
+
+  router.get('/memory/items/:memory_id', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const parsedId = parseAdminMemoryItemIdParam(req.params.memory_id ?? '');
+      if ('error' in parsedId) {
+        return res.status(parsedId.status).json({ error: parsedId.error });
+      }
+      const item = getAdminMemoryItemPreviewById(db, parsedId.memoryId);
+      if (!item) {
+        return res.status(404).json({ error: 'Memory not found' });
+      }
+      logger.info('Admin memory item preview served', { memory_id: item.id });
+      return res.json({
+        message: 'Memory item',
+        memory: item,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Admin memory item preview failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to load memory item',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
 
   router.get('/memory/review-candidates', (req, res) => {
     try {

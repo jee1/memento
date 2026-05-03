@@ -84,6 +84,11 @@ export {
   MEMORY_REVIEW_CANDIDATE_NOT_FOUND,
   MEMORY_REVIEW_CANDIDATE_NOT_ACTIONABLE,
 } from './domains/memory/services/memory-review-candidate-persistence-error.js';
+export {
+  parseAdminMemoryItemIdParam,
+  getAdminMemoryItemPreviewById,
+} from './domains/memory/services/admin-memory-item-preview-service.js';
+export type { AdminMemoryItemPreview } from './domains/memory/services/admin-memory-item-preview-service.js';
 export { logger } from './shared/utils/logger.js';
 export { loggingRateLimiter } from './shared/utils/logging-rate-limiter.js';
 export { withErrorHandling } from './shared/utils/error-handling.js';

@@ -741,6 +741,47 @@ Each element of `candidates` contains only queue metadata (`id`, `memory_id`, `s
 - `400`: invalid `status` value
 - `500`: database not connected or other server error
 
+##### Single memory preview (Admin)
+
+When the review queue list omits body text, fetch one `memory_item` row by `memory_id` (e.g. for the dashboard preview pane).
+
+```http
+GET /admin/memory/items/:memory_id
+```
+
+- `:memory_id` must be URL-encoded and match **`mem_` + letters, digits, or `_`**. Anything else returns **400**.
+- Soft-deleted memories (`is_deleted = 1`) return **404**.
+
+**Response (200)**
+
+```json
+{
+  "message": "Memory item",
+  "memory": {
+    "id": "mem_abc123",
+    "type": "semantic",
+    "content": "…",
+    "importance": 0.82,
+    "privacy_scope": "private",
+    "pinned": false,
+    "created_at": "2026-05-02T10:00:00.000Z",
+    "last_accessed": null,
+    "last_accessed_at": null,
+    "tags": null,
+    "source": null,
+    "project_id": null,
+    "owner_id": null
+  },
+  "timestamp": "2026-05-03T12:00:00.000Z"
+}
+```
+
+**Errors**
+
+- `400`: invalid `memory_id` format
+- `404`: not found or deleted
+- `500`: database not connected or other server error
+
 ##### Mark reviewed
 
 ```http

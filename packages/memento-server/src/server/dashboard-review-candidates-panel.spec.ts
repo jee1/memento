@@ -8,13 +8,15 @@ const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8
 const tabsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs.js'), 'utf8');
 const panelJs = readFileSync(resolve(root, 'static/js/review-candidates-panel.js'), 'utf8');
 
-describe('dashboard review candidates panel (#252)', () => {
+describe('dashboard review candidates panel (#252, #253)', () => {
   it('dashboard.html includes review tab, panel, and script', () => {
     expect(dashboardHtml).toContain('id="dashboard-tab-review"');
     expect(dashboardHtml).toContain('data-tab="review"');
     expect(dashboardHtml).toContain('id="tab-review-candidates"');
     expect(dashboardHtml).toContain('/static/js/review-candidates-panel.js');
     expect(dashboardHtml).toContain('id="rc-refresh-btn"');
+    expect(dashboardHtml).toContain('id="rc-preview-aside"');
+    expect(dashboardHtml).toContain('review-candidates-body');
   });
 
   it('dashboard-tabs.js uses m-tab selectors and review branch', () => {
@@ -25,8 +27,9 @@ describe('dashboard review candidates panel (#252)', () => {
     expect(tabsJs).toContain('initReviewCandidatesPanel');
   });
 
-  it('review-candidates-panel.js targets pending list endpoint', () => {
+  it('review-candidates-panel.js targets pending list and admin memory preview', () => {
     expect(panelJs).toContain('/admin/memory/review-candidates?status=pending');
+    expect(panelJs).toContain('/admin/memory/items/');
     expect(panelJs).toContain('initReviewCandidatesPanel');
   });
 });
