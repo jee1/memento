@@ -15,6 +15,7 @@
   let visListenerRegistered = false;
   let lastPendingCount = -1;
   let toastHideTimer = null;
+  let actionInFlight = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -71,6 +72,95 @@
     return '/admin/memory/items/' + encodeURIComponent(memoryId);
   }
 
+  function reviewCandidatePostUrl(id, action) {
+    return '/admin/memory/review-candidates/' + encodeURIComponent(id) + '/' + action;
+  }
+
+  function getPreviewActionsEl() {
+    return $('rc-preview-actions');
+  }
+
+  function setPreviewActionsBusy(busy) {
+    const wrap = getPreviewActionsEl();
+    if (wrap) {
+      wrap.setAttribute('aria-busy', busy ? 'true' : 'false');
+    }
+  }
+
+  function syncReviewDismissButtons() {
+    const reviewBtn = $('rc-btn-review');
+    const dismissBtn = $('rc-btn-dismiss');
+    const id = selectedRow && selectedRow.dataset.candidateId ? String(selectedRow.dataset.candidateId) : '';
+    const detail = $('rc-preview-detail');
+    const visible = detail && !detail.classList.contains('hidden');
+    const enable = !!(id && visible && !actionInFlight);
+    if (reviewBtn) {
+      reviewBtn.disabled = !enable;
+    }
+    if (dismissBtn) {
+      dismissBtn.disabled = !enable;
+    }
+  }
+
+  function showActionToast(message) {
+    const t = $('rc-toast');
+    if (!t) {
+      return;
+    }
+    t.textContent = message;
+    t.classList.remove('hidden');
+    if (toastHideTimer) {
+      clearTimeout(toastHideTimer);
+    }
+    toastHideTimer = setTimeout(function () {
+      t.classList.add('hidden');
+      t.textContent = '';
+      toastHideTimer = null;
+    }, 4000);
+  }
+
+  async function postCandidateAction(action) {
+    const id = selectedRow && selectedRow.dataset.candidateId ? String(selectedRow.dataset.candidateId) : '';
+    if (!id || actionInFlight) {
+      return;
+    }
+    actionInFlight = true;
+    setPreviewActionsBusy(true);
+    syncReviewDismissButtons();
+    showError('');
+    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    const url = reviewCandidatePostUrl(id, action);
+    try {
+      const res = await fetchFn(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const body = await res.json().catch(function () {
+        return {};
+      });
+      if (!res.ok) {
+        const msg =
+          (body && (body.error || body.message)) ||
+          (res.status === 409
+            ? 'This candidate can no longer be updated (conflict).'
+            : res.status === 404
+              ? 'Review candidate not found.'
+              : 'HTTP ' + res.status);
+        showError(String(msg));
+        return;
+      }
+      showActionToast(action === 'review' ? 'Marked as reviewed.' : 'Dismissed.');
+      await loadList();
+    } catch (e) {
+      showError(e instanceof Error ? e.message : 'Network error');
+    } finally {
+      actionInFlight = false;
+      setPreviewActionsBusy(false);
+      syncReviewDismissButtons();
+    }
+  }
+
   function clearRowSelection() {
     if (selectedRow) {
       selectedRow.classList.remove('rc-row--selected');
@@ -96,6 +186,7 @@
     if (content) {
       content.textContent = '';
     }
+    syncReviewDismissButtons();
   }
 
   function setPreviewCandidateFields(priority, reason, due, memoryId) {
@@ -173,6 +264,7 @@
     }
     setPreviewCandidateFields(tr.dataset.priority, tr.dataset.reason, tr.dataset.due, tr.dataset.memoryId);
     loadMemoryPreview(tr.dataset.memoryId);
+    syncReviewDismissButtons();
   }
 
   function wireTableBody() {
@@ -217,6 +309,8 @@
       const memoryId = String(c.memory_id ?? '');
       const reasonFull = String(c.reason ?? '');
       const dueRaw = String(c.due_at ?? '');
+      const candidateId = String(c.id ?? '');
+      tr.dataset.candidateId = candidateId;
       tr.className = 'rc-row--clickable';
       tr.setAttribute('role', 'button');
       tr.setAttribute('tabindex', '0');
@@ -429,6 +523,18 @@
         btn.addEventListener('click', function () {
           loadedOnce = true;
           loadList();
+        });
+      }
+      const btnReview = $('rc-btn-review');
+      if (btnReview) {
+        btnReview.addEventListener('click', function () {
+          void postCandidateAction('review');
+        });
+      }
+      const btnDismiss = $('rc-btn-dismiss');
+      if (btnDismiss) {
+        btnDismiss.addEventListener('click', function () {
+          void postCandidateAction('dismiss');
         });
       }
     }
