@@ -259,8 +259,9 @@ describe('mcp.routes streamable_http', () => {
   });
 
   it('POST /messages with an unknown session should return 404 and log an inactive-session warning', async () => {
-    const errorSpy = vi.spyOn(core.logger, 'error').mockImplementation(() => undefined);
-    const warnSpy = vi.spyOn(core.logger, 'warn').mockImplementation(() => undefined);
+    const currentCore: typeof core = await import('@memento/core');
+    const errorSpy = vi.spyOn(currentCore.logger, 'error').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(currentCore.logger, 'warn').mockImplementation(() => undefined);
     const { port, close } = await listenWithMcpRouter();
 
     try {

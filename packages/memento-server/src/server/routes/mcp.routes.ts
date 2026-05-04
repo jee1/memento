@@ -571,7 +571,11 @@ export function createMcpRouter(
 
     const transport = transports[sessionId];
     if (!transport) {
-      logger.error('No active transport found for session ID', { sessionId });
+      logger.warn('MCP message received for inactive or unknown session', {
+        sessionId,
+        reason: 'inactive_session',
+        method: req.body?.method
+      });
       res.status(404).send('Session not found');
       return;
     }
