@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import * as core from '@memento/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
@@ -259,7 +258,7 @@ describe('mcp.routes streamable_http', () => {
   });
 
   it('POST /messages with an unknown session should return 404 and log an inactive-session warning', async () => {
-    const currentCore: typeof core = await import('@memento/core');
+    const currentCore: typeof import('@memento/core') = await import('@memento/core');
     const errorSpy = vi.spyOn(currentCore.logger, 'error').mockImplementation(() => undefined);
     const warnSpy = vi.spyOn(currentCore.logger, 'warn').mockImplementation(() => undefined);
     const { port, close } = await listenWithMcpRouter();
