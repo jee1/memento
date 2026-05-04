@@ -4,6 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
+import { vectorCompatibilityService } from '../../embedding/services/vector-compatibility-service.js';
 import { mcpLogger } from '../../../server/mcp-logger.js';
 import { VECTOR_SEARCH_CONFIG } from '../../../shared/config/vector-search.config.js';
 import type { VectorSearchRepository } from '../../../shared/interfaces/database.interface.js';
@@ -150,14 +151,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     let actualStoredDimensions: number | null = null;
     try {
       if (this.db) {
-        const dimensionResult = this.db.prepare(`
-          SELECT dimensions
-          FROM memory_embedding
-          WHERE embedding_provider = ?
-            AND dimensions IS NOT NULL
-          LIMIT 1
-        `).get(provider ?? 'tfidf') as { dimensions: number } | undefined;
-        actualStoredDimensions = dimensionResult?.dimensions ?? null;
+        actualStoredDimensions = this.getDominantStoredDimensions(provider ?? 'tfidf');
       }
     } catch (error) {
       // 차원 조회 실패 시 무시하고 예상 차원 사용
@@ -180,8 +174,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     // 테이블 선택: 저장된 차원이 있으면 사용 (tfidf+384 → memory_item_vec), 없으면 config 기준
     const targetDimensions = actualStoredDimensions ?? expectedDimensions;
 
-    // 벡터 차원 검증
-    if (queryVector.length !== targetDimensions) {
+    const effectiveQueryVector = this.alignQueryVectorToStoredDimensions(
+      queryVector,
+      provider,
+      expectedDimensions,
+      targetDimensions
+    );
+    if (!effectiveQueryVector) {
       mcpLogger.logServer('error', '벡터 차원 불일치', { 
         expected: targetDimensions, 
         actual: queryVector.length,
@@ -238,7 +237,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         'LIMIT ?';
 
       const params = [
-        JSON.stringify(queryVector),
+        JSON.stringify(effectiveQueryVector),
         prefetchLimit,
         ...typeFilters,
         limit
@@ -307,14 +306,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     let actualStoredDimensions: number | null = null;
     try {
       if (this.db) {
-        const dimensionResult = this.db.prepare(`
-          SELECT dimensions
-          FROM memory_embedding
-          WHERE embedding_provider = ?
-            AND dimensions IS NOT NULL
-          LIMIT 1
-        `).get(provider ?? 'tfidf') as { dimensions: number } | undefined;
-        actualStoredDimensions = dimensionResult?.dimensions ?? null;
+        actualStoredDimensions = this.getDominantStoredDimensions(provider ?? 'tfidf');
       }
     } catch (error) {
       // 차원 조회 실패 시 무시하고 예상 차원 사용
@@ -337,8 +329,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     // 테이블 선택: 저장된 차원이 있으면 사용 (tfidf+384 → memory_item_vec), 없으면 config 기준
     const targetDimensions = actualStoredDimensions ?? expectedDimensions;
 
-    // 벡터 차원 검증
-    if (queryVector.length !== targetDimensions) {
+    const effectiveQueryVector = this.alignQueryVectorToStoredDimensions(
+      queryVector,
+      provider,
+      expectedDimensions,
+      targetDimensions
+    );
+    if (!effectiveQueryVector) {
       mcpLogger.logServer('error', '벡터 차원 불일치', { 
         expected: targetDimensions, 
         actual: queryVector.length,
@@ -473,7 +470,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         // 서브쿼리에서 LIMIT을 적용하기 위해 prefetchLimit 사용
         const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
         params = [
-          JSON.stringify(queryVector),
+          JSON.stringify(effectiveQueryVector),
           prefetchLimit,
           ...typeFilters,
           textQuery.trim(),
@@ -522,7 +519,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           'LIMIT ?';
 
         params = [
-          JSON.stringify(queryVector),
+          JSON.stringify(effectiveQueryVector),
           prefetchLimit,
           ...typeFilters,
           limit
@@ -664,6 +661,70 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   checkAvailability(): boolean {
     return this.checkVecAvailability();
+  }
+
+  /**
+   * provider별로 가장 많이 등장하는 dimensions를 사용합니다.
+   * LIMIT 1 임의 행보다 혼재 차원 DB에서 테이블 선택이 안정적입니다.
+   */
+  private getDominantStoredDimensions(provider: string): number | null {
+    if (!this.db) {
+      return null;
+    }
+    const row = this.db
+      .prepare(
+        `SELECT dimensions
+         FROM memory_embedding
+         WHERE embedding_provider = ?
+           AND dimensions IS NOT NULL
+           AND dimensions > 0
+         GROUP BY dimensions
+         ORDER BY COUNT(*) DESC, dimensions DESC
+         LIMIT 1`
+      )
+      .get(provider) as { dimensions: number } | undefined;
+    return row?.dimensions ?? null;
+  }
+
+  /**
+   * 쿼리 벡터가 현재 설정상 네이티브 차원이면, 저장소 기준 차원으로 투영합니다.
+   * 그 외 길이 불일치는 null을 반환합니다(호출부에서 기존 오류 처리).
+   */
+  private alignQueryVectorToStoredDimensions(
+    queryVector: number[],
+    provider: string | undefined,
+    expectedDimensions: number,
+    targetDimensions: number
+  ): number[] | null {
+    if (!Array.isArray(queryVector) || queryVector.length === 0) {
+      return null;
+    }
+    if (queryVector.length === targetDimensions) {
+      return queryVector;
+    }
+    if (queryVector.length !== expectedDimensions) {
+      return null;
+    }
+    try {
+      const projected = vectorCompatibilityService.project(queryVector, {
+        targetDimensions,
+        normalization: 'none'
+      });
+      if (projected.vector.length !== targetDimensions) {
+        return null;
+      }
+      if (projected.sourceDimensions !== projected.targetDimensions) {
+        mcpLogger.logServer('warn', '쿼리 임베딩을 저장소 차원에 맞게 투영했습니다', {
+          provider: provider ?? 'tfidf',
+          fromDimensions: projected.sourceDimensions,
+          toDimensions: projected.targetDimensions,
+          projectionType: projected.projectionType
+        });
+      }
+      return projected.vector;
+    } catch {
+      return null;
+    }
   }
 
   private getExpectedDimensions(provider?: string): number {
