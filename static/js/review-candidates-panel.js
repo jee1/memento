@@ -15,6 +15,7 @@
   let visListenerRegistered = false;
   let lastPendingCount = -1;
   let toastHideTimer = null;
+  let actionInFlight = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -71,6 +72,104 @@
     return '/admin/memory/items/' + encodeURIComponent(memoryId);
   }
 
+  function reviewCandidatePostUrl(id, action) {
+    return '/admin/memory/review-candidates/' + encodeURIComponent(id) + '/' + encodeURIComponent(action);
+  }
+
+  function getPreviewActionsEl() {
+    return $('rc-preview-actions');
+  }
+
+  function setPreviewActionsBusy(busy) {
+    const review = $('rc-btn-review');
+    const dismiss = $('rc-btn-dismiss');
+    if (review) {
+      review.disabled = !!busy;
+    }
+    if (dismiss) {
+      dismiss.disabled = !!busy;
+    }
+  }
+
+  function syncReviewDismissButtons() {
+    const wrap = getPreviewActionsEl();
+    if (!wrap) {
+      return;
+    }
+    const cid = selectedRow && selectedRow.dataset ? selectedRow.dataset.candidateId : '';
+    const has = !!cid;
+    setHidden(wrap, !has);
+    const busy = actionInFlight;
+    const review = $('rc-btn-review');
+    const dismiss = $('rc-btn-dismiss');
+    if (review) {
+      review.disabled = !has || busy;
+    }
+    if (dismiss) {
+      dismiss.disabled = !has || busy;
+    }
+  }
+
+  function showActionToast(message, _ok) {
+    const t = $('rc-toast');
+    if (!t) {
+      return;
+    }
+    t.textContent = message;
+    t.classList.remove('hidden');
+    if (toastHideTimer) {
+      clearTimeout(toastHideTimer);
+    }
+    toastHideTimer = setTimeout(function () {
+      t.classList.add('hidden');
+      t.textContent = '';
+      toastHideTimer = null;
+    }, 8000);
+  }
+
+  async function postCandidateAction(action) {
+    if (actionInFlight) {
+      return;
+    }
+    const tr = selectedRow;
+    const id = tr && tr.dataset ? tr.dataset.candidateId : '';
+    if (!id) {
+      showActionToast('No candidate selected.', false);
+      return;
+    }
+    actionInFlight = true;
+    setPreviewActionsBusy(true);
+    try {
+      const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+      const url = reviewCandidatePostUrl(id, action);
+      const res = await fetchFn(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const body = await res.json().catch(function () {
+        return {};
+      });
+      if (!res.ok) {
+        const msg = (body && (body.error || body.message)) || 'HTTP ' + res.status;
+        showActionToast(String(msg), false);
+        return;
+      }
+      showActionToast(action === 'review' ? 'Marked reviewed.' : 'Dismissed.', true);
+      clearRowSelection();
+      resetPreviewPanel();
+      syncReviewDismissButtons();
+      loadedOnce = true;
+      await loadList();
+    } catch (e) {
+      showActionToast(e instanceof Error ? e.message : 'Network error', false);
+    } finally {
+      actionInFlight = false;
+      setPreviewActionsBusy(false);
+      syncReviewDismissButtons();
+    }
+  }
+
   function clearRowSelection() {
     if (selectedRow) {
       selectedRow.classList.remove('rc-row--selected');
@@ -96,6 +195,7 @@
     if (content) {
       content.textContent = '';
     }
+    syncReviewDismissButtons();
   }
 
   function setPreviewCandidateFields(priority, reason, due, memoryId) {
@@ -173,6 +273,7 @@
     }
     setPreviewCandidateFields(tr.dataset.priority, tr.dataset.reason, tr.dataset.due, tr.dataset.memoryId);
     loadMemoryPreview(tr.dataset.memoryId);
+    syncReviewDismissButtons();
   }
 
   function wireTableBody() {
@@ -217,6 +318,8 @@
       const memoryId = String(c.memory_id ?? '');
       const reasonFull = String(c.reason ?? '');
       const dueRaw = String(c.due_at ?? '');
+      const candidateId = String(c.id ?? '');
+      tr.dataset.candidateId = candidateId;
       tr.className = 'rc-row--clickable';
       tr.setAttribute('role', 'button');
       tr.setAttribute('tabindex', '0');
@@ -429,6 +532,18 @@
         btn.addEventListener('click', function () {
           loadedOnce = true;
           loadList();
+        });
+      }
+      const btnReview = $('rc-btn-review');
+      if (btnReview) {
+        btnReview.addEventListener('click', function () {
+          void postCandidateAction('review');
+        });
+      }
+      const btnDismiss = $('rc-btn-dismiss');
+      if (btnDismiss) {
+        btnDismiss.addEventListener('click', function () {
+          void postCandidateAction('dismiss');
         });
       }
     }
