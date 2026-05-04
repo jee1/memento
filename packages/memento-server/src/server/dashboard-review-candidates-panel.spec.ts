@@ -32,6 +32,16 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     expect(panelJs).toContain('/admin/memory/items/');
     expect(panelJs).toContain('initReviewCandidatesPanel');
   });
+
+  it('review-candidates-panel.js POST review/dismiss paths and dashboard preview actions (#254)', () => {
+    expect(panelJs).toContain('/admin/memory/review-candidates/');
+    expect(panelJs).toContain('encodeURIComponent');
+    expect(panelJs).toContain("postCandidateAction('review')");
+    expect(panelJs).toContain("postCandidateAction('dismiss')");
+    expect(dashboardHtml).toContain('id="rc-preview-actions"');
+    expect(dashboardHtml).toContain('id="rc-btn-review"');
+    expect(dashboardHtml).toContain('id="rc-btn-dismiss"');
+  });
 });
 
 describe('dashboard review queue poll notify (#255)', () => {
