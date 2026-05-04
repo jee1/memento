@@ -8,6 +8,7 @@ import { VectorSearchRepositoryImpl } from '../vector-search.repository.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import type { VectorSearchQuery } from '../../../shared/types/vector-search.types.js';
+import { mcpLogger } from '../../../../server/mcp-logger.js';
 
 describe('VectorSearchRepositoryImpl', () => {
   let db: Database.Database;
@@ -89,6 +90,48 @@ describe('VectorSearchRepositoryImpl', () => {
       // Then: 빈 배열 반환
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBe(0);
+    });
+
+    it('저장 차원 다수(384)와 네이티브 쿼리(512) 불일치 시 투영으로 벡터 차원 오류를 피해야 함', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+      const emb384 = JSON.stringify(new Array(384).fill(0.01));
+      const emb512 = JSON.stringify(new Array(512).fill(0.02));
+      const insertItem = db.prepare(
+        `INSERT INTO memory_item (id, type, content, triple_extracted) VALUES (?, 'episodic', ?, 0)`
+      );
+      const insertEmb = db.prepare(
+        `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
+         VALUES (?, ?, ?, 'tfidf', ?)`
+      );
+      for (let i = 0; i < 3; i += 1) {
+        const id = `dim-mix-${i}`;
+        insertItem.run(id, `content ${i}`);
+        insertEmb.run(id, emb384, 384, 384);
+      }
+      insertItem.run('dim-mix-512', 'content 512');
+      insertEmb.run('dim-mix-512', emb512, 512, 512);
+
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(512).fill(0.03),
+        provider: 'tfidf'
+      };
+
+      await repository.search(query);
+
+      const dimensionErrors = logSpy.mock.calls.filter(
+        (call) => call[0] === 'error' && call[1] === '벡터 차원 불일치'
+      );
+      expect(dimensionErrors.length).toBe(0);
+
+      const projected = logSpy.mock.calls.filter(
+        (call) => call[0] === 'warn' && call[1] === '쿼리 임베딩을 저장소 차원에 맞게 투영했습니다'
+      );
+      expect(projected.length).toBeGreaterThan(0);
+
+      logSpy.mockRestore();
     });
 
     it('옵션을 포함한 쿼리를 처리해야 함', async () => {
