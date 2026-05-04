@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-05-04)
 
 ## Corpus Check
-- 912 files · ~1,342,013 words
+- 912 files · ~1,342,445 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4633 nodes · 5701 edges · 909 communities detected
+- 4635 nodes · 5707 edges · 909 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1250,80 +1250,80 @@ Cohesion: 0.15
 Nodes (1): JobQueue
 
 ### Community 78 - "Community 78"
+Cohesion: 0.26
+Nodes (1): VectorSearchRepositoryImpl
+
+### Community 79 - "Community 79"
 Cohesion: 0.23
 Nodes (2): isSqliteBusy(), UnpinTool
 
-### Community 79 - "Community 79"
+### Community 80 - "Community 80"
 Cohesion: 0.2
 Nodes (1): MockCoreMemoryRepository
 
-### Community 80 - "Community 80"
+### Community 81 - "Community 81"
 Cohesion: 0.27
 Nodes (1): RelationQualityValidator
 
-### Community 81 - "Community 81"
+### Community 82 - "Community 82"
 Cohesion: 0.23
 Nodes (1): GeminiEmbeddingService
 
-### Community 82 - "Community 82"
+### Community 83 - "Community 83"
 Cohesion: 0.16
 Nodes (1): QualityAssuranceService
 
-### Community 83 - "Community 83"
+### Community 84 - "Community 84"
 Cohesion: 0.33
 Nodes (1): PerformanceBenchmark
 
-### Community 84 - "Community 84"
+### Community 85 - "Community 85"
 Cohesion: 0.23
 Nodes (1): EmbeddingMigration
 
-### Community 85 - "Community 85"
+### Community 86 - "Community 86"
 Cohesion: 0.27
 Nodes (11): buildExactMatchQuery(), calculateSimilarity(), determineMergeStrategy(), extractProceduralMemory(), extractSkillName(), extractSteps(), extractWorkflowName(), generateTriggerConditions() (+3 more)
 
-### Community 86 - "Community 86"
+### Community 87 - "Community 87"
 Cohesion: 0.19
 Nodes (1): AnchorManager
 
-### Community 87 - "Community 87"
+### Community 88 - "Community 88"
 Cohesion: 0.28
 Nodes (1): ForgettingAlgorithm
 
-### Community 88 - "Community 88"
+### Community 89 - "Community 89"
 Cohesion: 0.18
 Nodes (3): AdaptiveIntervalStrategy, ConservativeIntervalStrategy, DefaultIntervalStrategy
 
-### Community 89 - "Community 89"
+### Community 90 - "Community 90"
 Cohesion: 0.36
 Nodes (11): executeTelemetry(), fmt(), fmtMs(), fmtPct(), formatMemoryQuality(), formatSearchQuality(), formatSystemMetrics(), main() (+3 more)
 
-### Community 90 - "Community 90"
+### Community 91 - "Community 91"
 Cohesion: 0.32
 Nodes (1): ConsolidationScoreWorker
 
-### Community 91 - "Community 91"
+### Community 92 - "Community 92"
 Cohesion: 0.29
 Nodes (1): WalCheckpointScheduler
 
-### Community 92 - "Community 92"
+### Community 93 - "Community 93"
 Cohesion: 0.26
 Nodes (1): MigrationMonitorService
 
-### Community 93 - "Community 93"
+### Community 94 - "Community 94"
 Cohesion: 0.27
 Nodes (1): RelationEngineSchemaMigration
 
-### Community 94 - "Community 94"
+### Community 95 - "Community 95"
 Cohesion: 0.2
 Nodes (2): SqliteCoreMemoryAdapter, SqliteCoreMemoryPreparedStatement
 
-### Community 95 - "Community 95"
+### Community 96 - "Community 96"
 Cohesion: 0.18
 Nodes (1): NHopSearchService
-
-### Community 96 - "Community 96"
-Cohesion: 0.27
-Nodes (1): VectorSearchRepositoryImpl
 
 ### Community 97 - "Community 97"
 Cohesion: 0.26

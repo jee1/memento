@@ -1513,7 +1513,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L1",
       "id": "packages_memento_server_src_telemetry_cli_ts",
-      "community": 89
+      "community": 90
     },
     {
       "label": "parseCliOptions()",
@@ -1521,7 +1521,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L76",
       "id": "telemetry_cli_parseclioptions",
-      "community": 89
+      "community": 90
     },
     {
       "label": "executeTelemetry()",
@@ -1529,7 +1529,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L142",
       "id": "telemetry_cli_executetelemetry",
-      "community": 89
+      "community": 90
     },
     {
       "label": "fmt()",
@@ -1537,7 +1537,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L205",
       "id": "telemetry_cli_fmt",
-      "community": 89
+      "community": 90
     },
     {
       "label": "fmtPct()",
@@ -1545,7 +1545,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L210",
       "id": "telemetry_cli_fmtpct",
-      "community": 89
+      "community": 90
     },
     {
       "label": "fmtMs()",
@@ -1553,7 +1553,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L215",
       "id": "telemetry_cli_fmtms",
-      "community": 89
+      "community": 90
     },
     {
       "label": "pad()",
@@ -1561,7 +1561,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L220",
       "id": "telemetry_cli_pad",
-      "community": 89
+      "community": 90
     },
     {
       "label": "formatSearchQuality()",
@@ -1569,7 +1569,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L227",
       "id": "telemetry_cli_formatsearchquality",
-      "community": 89
+      "community": 90
     },
     {
       "label": "formatMemoryQuality()",
@@ -1577,7 +1577,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L242",
       "id": "telemetry_cli_formatmemoryquality",
-      "community": 89
+      "community": 90
     },
     {
       "label": "formatSystemMetrics()",
@@ -1585,7 +1585,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L266",
       "id": "telemetry_cli_formatsystemmetrics",
-      "community": 89
+      "community": 90
     },
     {
       "label": "printHelp()",
@@ -1593,7 +1593,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L287",
       "id": "telemetry_cli_printhelp",
-      "community": 89
+      "community": 90
     },
     {
       "label": "main()",
@@ -1601,7 +1601,7 @@
       "source_file": "packages/memento-server/src/telemetry-cli.ts",
       "source_location": "L304",
       "id": "telemetry_cli_main",
-      "community": 89
+      "community": 90
     },
     {
       "label": "cli.ts",
@@ -5425,7 +5425,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_workers_consolidation_score_worker_ts",
-      "community": 90
+      "community": 91
     },
     {
       "label": "ConsolidationScoreWorker",
@@ -5433,7 +5433,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L63",
       "id": "consolidation_score_worker_consolidationscoreworker",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".constructor()",
@@ -5441,7 +5441,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L67",
       "id": "consolidation_score_worker_consolidationscoreworker_constructor",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".runIncrementalRecalculation()",
@@ -5449,7 +5449,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L92",
       "id": "consolidation_score_worker_consolidationscoreworker_runincrementalrecalculation",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".runFullSweep()",
@@ -5457,7 +5457,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L217",
       "id": "consolidation_score_worker_consolidationscoreworker_runfullsweep",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".fetchRecentRecords()",
@@ -5465,7 +5465,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L345",
       "id": "consolidation_score_worker_consolidationscoreworker_fetchrecentrecords",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".fetchAllRecords()",
@@ -5473,7 +5473,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L387",
       "id": "consolidation_score_worker_consolidationscoreworker_fetchallrecords",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".processChunk()",
@@ -5481,7 +5481,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L423",
       "id": "consolidation_score_worker_consolidationscoreworker_processchunk",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".getCurrentScore()",
@@ -5489,7 +5489,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L535",
       "id": "consolidation_score_worker_consolidationscoreworker_getcurrentscore",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".chunkArray()",
@@ -5497,7 +5497,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L546",
       "id": "consolidation_score_worker_consolidationscoreworker_chunkarray",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".delay()",
@@ -5505,7 +5505,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L557",
       "id": "consolidation_score_worker_consolidationscoreworker_delay",
-      "community": 90
+      "community": 91
     },
     {
       "label": ".log()",
@@ -5513,7 +5513,7 @@
       "source_file": "packages/memento-core/src/workers/consolidation-score-worker.ts",
       "source_location": "L564",
       "id": "consolidation_score_worker_consolidationscoreworker_log",
-      "community": 90
+      "community": 91
     },
     {
       "label": "mcp-logger.ts",
@@ -6841,7 +6841,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_infrastructure_database_wal_checkpoint_scheduler_ts",
-      "community": 91
+      "community": 92
     },
     {
       "label": "WalCheckpointScheduler",
@@ -6849,7 +6849,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L124",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".constructor()",
@@ -6857,7 +6857,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L130",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_constructor",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".start()",
@@ -6865,7 +6865,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L141",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_start",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".stop()",
@@ -6873,7 +6873,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L172",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_stop",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".checkpointNow()",
@@ -6881,7 +6881,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L201",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_checkpointnow",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".checkpoint()",
@@ -6889,7 +6889,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L213",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_checkpoint",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".scheduleCheckpoint()",
@@ -6897,7 +6897,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L358",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_schedulecheckpoint",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".sleep()",
@@ -6905,7 +6905,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L378",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_sleep",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".executeCheckpoint()",
@@ -6913,7 +6913,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L390",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_executecheckpoint",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".getWalFileSize()",
@@ -6921,7 +6921,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L435",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_getwalfilesize",
-      "community": 91
+      "community": 92
     },
     {
       "label": ".writeDiagnosticsEvent()",
@@ -6929,7 +6929,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/wal-checkpoint-scheduler.ts",
       "source_location": "L448",
       "id": "wal_checkpoint_scheduler_walcheckpointscheduler_writediagnosticsevent",
-      "community": 91
+      "community": 92
     },
     {
       "label": "wal-checkpoint-scheduler.spec.ts",
@@ -6953,7 +6953,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_infrastructure_database_migration_monitor_service_ts",
-      "community": 92
+      "community": 93
     },
     {
       "label": "MigrationMonitorService",
@@ -6961,7 +6961,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L13",
       "id": "migration_monitor_service_migrationmonitorservice",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".publish()",
@@ -6969,7 +6969,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L19",
       "id": "migration_monitor_service_migrationmonitorservice_publish",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".subscribe()",
@@ -6977,7 +6977,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L27",
       "id": "migration_monitor_service_migrationmonitorservice_subscribe",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".subscribeAll()",
@@ -6985,7 +6985,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L44",
       "id": "migration_monitor_service_migrationmonitorservice_subscribeall",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".getLatest()",
@@ -6993,7 +6993,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L54",
       "id": "migration_monitor_service_migrationmonitorservice_getlatest",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".getStatus()",
@@ -7001,7 +7001,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L59",
       "id": "migration_monitor_service_migrationmonitorservice_getstatus",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".listActiveRuns()",
@@ -7009,7 +7009,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L63",
       "id": "migration_monitor_service_migrationmonitorservice_listactiveruns",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".clear()",
@@ -7017,7 +7017,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L69",
       "id": "migration_monitor_service_migrationmonitorservice_clear",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".channel()",
@@ -7025,7 +7025,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L74",
       "id": "migration_monitor_service_migrationmonitorservice_channel",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".cloneEvent()",
@@ -7033,7 +7033,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L78",
       "id": "migration_monitor_service_migrationmonitorservice_cloneevent",
-      "community": 92
+      "community": 93
     },
     {
       "label": ".cloneProgress()",
@@ -7041,7 +7041,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/migration-monitor-service.ts",
       "source_location": "L87",
       "id": "migration_monitor_service_migrationmonitorservice_cloneprogress",
-      "community": 92
+      "community": 93
     },
     {
       "label": "database-lock-monitor.spec.ts",
@@ -9953,7 +9953,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_infrastructure_database_database_migration_migrations_005_relation_engine_schema_ts",
-      "community": 93
+      "community": 94
     },
     {
       "label": "RelationEngineSchemaMigration",
@@ -9961,7 +9961,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L29",
       "id": "005_relation_engine_schema_relationengineschemamigration",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".loadSQLFile()",
@@ -9969,7 +9969,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L37",
       "id": "005_relation_engine_schema_relationengineschemamigration_loadsqlfile",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".executeSQL()",
@@ -9977,7 +9977,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L46",
       "id": "005_relation_engine_schema_relationengineschemamigration_executesql",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".tableExists()",
@@ -9985,7 +9985,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L71",
       "id": "005_relation_engine_schema_relationengineschemamigration_tableexists",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".indexExists()",
@@ -9993,7 +9993,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L82",
       "id": "005_relation_engine_schema_relationengineschemamigration_indexexists",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".columnExists()",
@@ -10001,7 +10001,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L93",
       "id": "005_relation_engine_schema_relationengineschemamigration_columnexists",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".mapRelationType()",
@@ -10009,7 +10009,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L101",
       "id": "005_relation_engine_schema_relationengineschemamigration_maprelationtype",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".validateBefore()",
@@ -10017,7 +10017,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L114",
       "id": "005_relation_engine_schema_relationengineschemamigration_validatebefore",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".up()",
@@ -10025,7 +10025,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L145",
       "id": "005_relation_engine_schema_relationengineschemamigration_up",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".down()",
@@ -10033,7 +10033,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L214",
       "id": "005_relation_engine_schema_relationengineschemamigration_down",
-      "community": 93
+      "community": 94
     },
     {
       "label": ".validateAfter()",
@@ -10041,7 +10041,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.ts",
       "source_location": "L241",
       "id": "005_relation_engine_schema_relationengineschemamigration_validateafter",
-      "community": 93
+      "community": 94
     },
     {
       "label": "019-backfill-kg-triple-from-memory-item.spec.ts",
@@ -11009,7 +11009,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_infrastructure_database_adapters_sqlite_core_memory_adapter_ts",
-      "community": 94
+      "community": 95
     },
     {
       "label": "SqliteCoreMemoryPreparedStatement",
@@ -11017,7 +11017,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L15",
       "id": "sqlite_core_memory_adapter_sqlitecorememorypreparedstatement",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".constructor()",
@@ -11025,7 +11025,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L18",
       "id": "sqlite_core_memory_adapter_sqlitecorememorypreparedstatement_constructor",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".all()",
@@ -11033,7 +11033,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L25",
       "id": "sqlite_core_memory_adapter_sqlitecorememorypreparedstatement_all",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".get()",
@@ -11041,7 +11041,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L36",
       "id": "sqlite_core_memory_adapter_sqlitecorememorypreparedstatement_get",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".run()",
@@ -11049,7 +11049,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L47",
       "id": "sqlite_core_memory_adapter_sqlitecorememorypreparedstatement_run",
-      "community": 94
+      "community": 95
     },
     {
       "label": "SqliteCoreMemoryAdapter",
@@ -11057,7 +11057,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L64",
       "id": "sqlite_core_memory_adapter_sqlitecorememoryadapter",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".constructor()",
@@ -11065,7 +11065,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L67",
       "id": "sqlite_core_memory_adapter_sqlitecorememoryadapter_constructor",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".prepare()",
@@ -11073,7 +11073,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L74",
       "id": "sqlite_core_memory_adapter_sqlitecorememoryadapter_prepare",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".exec()",
@@ -11081,7 +11081,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L86",
       "id": "sqlite_core_memory_adapter_sqlitecorememoryadapter_exec",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".close()",
@@ -11089,7 +11089,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L98",
       "id": "sqlite_core_memory_adapter_sqlitecorememoryadapter_close",
-      "community": 94
+      "community": 95
     },
     {
       "label": ".isOpen()",
@@ -11097,7 +11097,7 @@
       "source_file": "packages/memento-core/src/infrastructure/database/adapters/sqlite-core-memory-adapter.ts",
       "source_location": "L110",
       "id": "sqlite_core_memory_adapter_sqlitecorememoryadapter_isopen",
-      "community": 94
+      "community": 95
     },
     {
       "label": "sqlite-core-memory-adapter.spec.ts",
@@ -13201,7 +13201,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_shared_utils_procedural_memory_extractor_ts",
-      "community": 85
+      "community": 86
     },
     {
       "label": "buildExactMatchQuery()",
@@ -13209,7 +13209,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L46",
       "id": "procedural_memory_extractor_buildexactmatchquery",
-      "community": 85
+      "community": 86
     },
     {
       "label": "runFallbackSearchAnd()",
@@ -13217,7 +13217,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L67",
       "id": "procedural_memory_extractor_runfallbacksearchand",
-      "community": 85
+      "community": 86
     },
     {
       "label": "runFallbackSearchOr()",
@@ -13225,7 +13225,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L90",
       "id": "procedural_memory_extractor_runfallbacksearchor",
-      "community": 85
+      "community": 86
     },
     {
       "label": "extractWorkflowName()",
@@ -13233,7 +13233,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L120",
       "id": "procedural_memory_extractor_extractworkflowname",
-      "community": 85
+      "community": 86
     },
     {
       "label": "extractSkillName()",
@@ -13241,7 +13241,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L237",
       "id": "procedural_memory_extractor_extractskillname",
-      "community": 85
+      "community": 86
     },
     {
       "label": "extractSteps()",
@@ -13249,7 +13249,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L316",
       "id": "procedural_memory_extractor_extractsteps",
-      "community": 85
+      "community": 86
     },
     {
       "label": "generateTriggerConditions()",
@@ -13257,7 +13257,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L401",
       "id": "procedural_memory_extractor_generatetriggerconditions",
-      "community": 85
+      "community": 86
     },
     {
       "label": "extractProceduralMemory()",
@@ -13265,7 +13265,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L509",
       "id": "procedural_memory_extractor_extractproceduralmemory",
-      "community": 85
+      "community": 86
     },
     {
       "label": "calculateSimilarity()",
@@ -13273,7 +13273,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L541",
       "id": "procedural_memory_extractor_calculatesimilarity",
-      "community": 85
+      "community": 86
     },
     {
       "label": "determineMergeStrategy()",
@@ -13281,7 +13281,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L622",
       "id": "procedural_memory_extractor_determinemergestrategy",
-      "community": 85
+      "community": 86
     },
     {
       "label": "RuleBasedProceduralExtractor",
@@ -13289,7 +13289,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L704",
       "id": "procedural_memory_extractor_rulebasedproceduralextractor",
-      "community": 85
+      "community": 86
     },
     {
       "label": ".extract()",
@@ -13297,7 +13297,7 @@
       "source_file": "packages/memento-core/src/shared/utils/procedural-memory-extractor.ts",
       "source_location": "L705",
       "id": "procedural_memory_extractor_rulebasedproceduralextractor_extract",
-      "community": 85
+      "community": 86
     },
     {
       "label": "sql-security-validator.ts",
@@ -16673,7 +16673,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_anchor_services_anchor_anchor_manager_ts",
-      "community": 86
+      "community": 87
     },
     {
       "label": "AnchorManager",
@@ -16681,7 +16681,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L17",
       "id": "anchor_manager_anchormanager",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".constructor()",
@@ -16689,7 +16689,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L35",
       "id": "anchor_manager_anchormanager_constructor",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".setErrorLoggingService()",
@@ -16697,7 +16697,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L51",
       "id": "anchor_manager_anchormanager_seterrorloggingservice",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".setDatabase()",
@@ -16705,7 +16705,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L58",
       "id": "anchor_manager_anchormanager_setdatabase",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".setAnchor()",
@@ -16713,7 +16713,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L87",
       "id": "anchor_manager_anchormanager_setanchor",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".getAnchor()",
@@ -16721,7 +16721,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L194",
       "id": "anchor_manager_anchormanager_getanchor",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".clearAnchor()",
@@ -16729,7 +16729,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L282",
       "id": "anchor_manager_anchormanager_clearanchor",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".getSlotConfig()",
@@ -16737,7 +16737,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L327",
       "id": "anchor_manager_anchormanager_getslotconfig",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".getSearchService()",
@@ -16745,7 +16745,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L335",
       "id": "anchor_manager_anchormanager_getsearchservice",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".getCacheService()",
@@ -16753,7 +16753,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L343",
       "id": "anchor_manager_anchormanager_getcacheservice",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".restoreCacheFromDB()",
@@ -16761,7 +16761,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L351",
       "id": "anchor_manager_anchormanager_restorecachefromdb",
-      "community": 86
+      "community": 87
     },
     {
       "label": ".searchLocal()",
@@ -16769,7 +16769,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts",
       "source_location": "L363",
       "id": "anchor_manager_anchormanager_searchlocal",
-      "community": 86
+      "community": 87
     },
     {
       "label": "fallback-search-service.ts",
@@ -17097,7 +17097,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_anchor_services_anchor_n_hop_search_service_ts",
-      "community": 95
+      "community": 96
     },
     {
       "label": "NHopSearchService",
@@ -17105,7 +17105,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L73",
       "id": "n_hop_search_service_nhopsearchservice",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".constructor()",
@@ -17113,7 +17113,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L79",
       "id": "n_hop_search_service_nhopsearchservice_constructor",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".setDatabase()",
@@ -17121,7 +17121,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L86",
       "id": "n_hop_search_service_nhopsearchservice_setdatabase",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".setVectorSearchEngine()",
@@ -17129,7 +17129,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L96",
       "id": "n_hop_search_service_nhopsearchservice_setvectorsearchengine",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".setRelationGraph()",
@@ -17137,7 +17137,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L111",
       "id": "n_hop_search_service_nhopsearchservice_setrelationgraph",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".searchOneHop()",
@@ -17145,7 +17145,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L118",
       "id": "n_hop_search_service_nhopsearchservice_searchonehop",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".searchNHop()",
@@ -17153,7 +17153,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L171",
       "id": "n_hop_search_service_nhopsearchservice_searchnhop",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".getLinkedMemoriesBatch()",
@@ -17161,7 +17161,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L418",
       "id": "n_hop_search_service_nhopsearchservice_getlinkedmemoriesbatch",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".getLinkedMemories()",
@@ -17169,7 +17169,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L484",
       "id": "n_hop_search_service_nhopsearchservice_getlinkedmemories",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".getRelationTypeBoost()",
@@ -17177,7 +17177,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L595",
       "id": "n_hop_search_service_nhopsearchservice_getrelationtypeboost",
-      "community": 95
+      "community": 96
     },
     {
       "label": ".calculateRankingScore()",
@@ -17185,7 +17185,7 @@
       "source_file": "packages/memento-core/src/domains/anchor/services/anchor/n-hop-search-service.ts",
       "source_location": "L610",
       "id": "n_hop_search_service_nhopsearchservice_calculaterankingscore",
-      "community": 95
+      "community": 96
     },
     {
       "label": "database-types.ts",
@@ -18697,95 +18697,111 @@
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_search_repositories_vector_search_repository_ts",
-      "community": 96
+      "community": 78
     },
     {
       "label": "VectorSearchRepositoryImpl",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L44",
+      "source_location": "L45",
       "id": "vector_search_repository_vectorsearchrepositoryimpl",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".constructor()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L48",
+      "source_location": "L49",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_constructor",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".checkVecAvailability()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L56",
+      "source_location": "L57",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_checkvecavailability",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".search()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L129",
+      "source_location": "L130",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_search",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".hybridSearch()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L286",
+      "source_location": "L285",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".getIndexStatus()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L579",
+      "source_location": "L576",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_getindexstatus",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".rebuildIndex()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L637",
+      "source_location": "L634",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_rebuildindex",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".getTableName()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L658",
+      "source_location": "L655",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_gettablename",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".checkAvailability()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L665",
+      "source_location": "L662",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_checkavailability",
-      "community": 96
+      "community": 78
+    },
+    {
+      "label": ".getDominantStoredDimensions()",
+      "file_type": "code",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L670",
+      "id": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "community": 78
+    },
+    {
+      "label": ".alignQueryVectorToStoredDimensions()",
+      "file_type": "code",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L693",
+      "id": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "community": 78
     },
     {
       "label": ".getExpectedDimensions()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L669",
+      "source_location": "L730",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_getexpecteddimensions",
-      "community": 96
+      "community": 78
     },
     {
       "label": ".safeParseTags()",
       "file_type": "code",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L677",
+      "source_location": "L738",
       "id": "vector_search_repository_vectorsearchrepositoryimpl_safeparsetags",
-      "community": 96
+      "community": 78
     },
     {
       "label": "vector-performance.repository.ts",
@@ -19777,7 +19793,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_forgetting_algorithms_forgetting_algorithm_ts",
-      "community": 87
+      "community": 88
     },
     {
       "label": "ForgettingAlgorithm",
@@ -19785,7 +19801,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L30",
       "id": "forgetting_algorithm_forgettingalgorithm",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".constructor()",
@@ -19793,7 +19809,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L33",
       "id": "forgetting_algorithm_forgettingalgorithm_constructor",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".calculateForgetScore()",
@@ -19801,7 +19817,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L48",
       "id": "forgetting_algorithm_forgettingalgorithm_calculateforgetscore",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".shouldForget()",
@@ -19809,7 +19825,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L64",
       "id": "forgetting_algorithm_forgettingalgorithm_shouldforget",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".generateForgetReason()",
@@ -19817,7 +19833,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L72",
       "id": "forgetting_algorithm_forgettingalgorithm_generateforgetreason",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".calculateFeatures()",
@@ -19825,7 +19841,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L102",
       "id": "forgetting_algorithm_forgettingalgorithm_calculatefeatures",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".calculateRecency()",
@@ -19833,7 +19849,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L142",
       "id": "forgetting_algorithm_forgettingalgorithm_calculaterecency",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".calculateUsage()",
@@ -19841,7 +19857,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L153",
       "id": "forgetting_algorithm_forgettingalgorithm_calculateusage",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".calculateAccessScore()",
@@ -19849,7 +19865,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L177",
       "id": "forgetting_algorithm_forgettingalgorithm_calculateaccessscore",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".getAgeInDays()",
@@ -19857,7 +19873,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L187",
       "id": "forgetting_algorithm_forgettingalgorithm_getageindays",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".getHalfLife()",
@@ -19865,7 +19881,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L197",
       "id": "forgetting_algorithm_forgettingalgorithm_gethalflife",
-      "community": 87
+      "community": 88
     },
     {
       "label": ".analyzeForgetCandidates()",
@@ -19873,7 +19889,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts",
       "source_location": "L211",
       "id": "forgetting_algorithm_forgettingalgorithm_analyzeforgetcandidates",
-      "community": 87
+      "community": 88
     },
     {
       "label": "forgetting-algorithm.spec.ts",
@@ -20233,7 +20249,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_forgetting_services_spaced_repetition_interval_calculation_service_ts",
-      "community": 88
+      "community": 89
     },
     {
       "label": "DefaultIntervalStrategy",
@@ -20241,7 +20257,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L17",
       "id": "interval_calculation_service_defaultintervalstrategy",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".constructor()",
@@ -20249,7 +20265,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L18",
       "id": "interval_calculation_service_defaultintervalstrategy_constructor",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".calculateInterval()",
@@ -20257,7 +20273,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L20",
       "id": "interval_calculation_service_defaultintervalstrategy_calculateinterval",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".calculateConfidence()",
@@ -20265,7 +20281,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L42",
       "id": "interval_calculation_service_defaultintervalstrategy_calculateconfidence",
-      "community": 88
+      "community": 89
     },
     {
       "label": "ConservativeIntervalStrategy",
@@ -20273,7 +20289,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L57",
       "id": "interval_calculation_service_conservativeintervalstrategy",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".constructor()",
@@ -20281,7 +20297,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L58",
       "id": "interval_calculation_service_conservativeintervalstrategy_constructor",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".calculateInterval()",
@@ -20289,7 +20305,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L60",
       "id": "interval_calculation_service_conservativeintervalstrategy_calculateinterval",
-      "community": 88
+      "community": 89
     },
     {
       "label": "AdaptiveIntervalStrategy",
@@ -20297,7 +20313,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L88",
       "id": "interval_calculation_service_adaptiveintervalstrategy",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".constructor()",
@@ -20305,7 +20321,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L89",
       "id": "interval_calculation_service_adaptiveintervalstrategy_constructor",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".calculateInterval()",
@@ -20313,7 +20329,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L94",
       "id": "interval_calculation_service_adaptiveintervalstrategy_calculateinterval",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".calculatePerformanceAdjustment()",
@@ -20321,7 +20337,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L112",
       "id": "interval_calculation_service_adaptiveintervalstrategy_calculateperformanceadjustment",
-      "community": 88
+      "community": 89
     },
     {
       "label": ".updatePerformanceHistory()",
@@ -20329,7 +20345,7 @@
       "source_file": "packages/memento-core/src/domains/forgetting/services/spaced-repetition/interval-calculation.service.ts",
       "source_location": "L123",
       "id": "interval_calculation_service_adaptiveintervalstrategy_updateperformancehistory",
-      "community": 88
+      "community": 89
     },
     {
       "label": "review-scheduling.service.ts",
@@ -22137,7 +22153,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_memory_tools_unpin_tool_ts",
-      "community": 78
+      "community": 79
     },
     {
       "label": "isSqliteBusy()",
@@ -22145,7 +22161,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L14",
       "id": "unpin_tool_issqlitebusy",
-      "community": 78
+      "community": 79
     },
     {
       "label": "UnpinTool",
@@ -22153,7 +22169,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L67",
       "id": "unpin_tool_unpintool",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".constructor()",
@@ -22161,7 +22177,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L68",
       "id": "unpin_tool_unpintool_constructor",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".handle()",
@@ -22169,7 +22185,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L105",
       "id": "unpin_tool_unpintool_handle",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".handleSingleUnpin()",
@@ -22177,7 +22193,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L126",
       "id": "unpin_tool_unpintool_handlesingleunpin",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".handleBatchUnpin()",
@@ -22185,7 +22201,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L191",
       "id": "unpin_tool_unpintool_handlebatchunpin",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".getMemoryById()",
@@ -22193,7 +22209,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L246",
       "id": "unpin_tool_unpintool_getmemorybyid",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".getMemoriesByIds()",
@@ -22201,7 +22217,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L260",
       "id": "unpin_tool_unpintool_getmemoriesbyids",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".logUnpinAction()",
@@ -22209,7 +22225,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L277",
       "id": "unpin_tool_unpintool_logunpinaction",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".handleDatabaseLock()",
@@ -22217,7 +22233,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L300",
       "id": "unpin_tool_unpintool_handledatabaselock",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".getUnpinnableMemories()",
@@ -22225,7 +22241,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L315",
       "id": "unpin_tool_unpintool_getunpinnablememories",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".getUnpinStats()",
@@ -22233,7 +22249,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L335",
       "id": "unpin_tool_unpintool_getunpinstats",
-      "community": 78
+      "community": 79
     },
     {
       "label": ".getRecommendedUnpins()",
@@ -22241,7 +22257,7 @@
       "source_file": "packages/memento-core/src/domains/memory/tools/unpin-tool.ts",
       "source_location": "L366",
       "id": "unpin_tool_unpintool_getrecommendedunpins",
-      "community": 78
+      "community": 79
     },
     {
       "label": "get-introspection-summary-tool.ts",
@@ -24481,7 +24497,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_memory_services_tests_core_memory_service_spec_ts",
-      "community": 79
+      "community": 80
     },
     {
       "label": "MockCoreMemoryRepository",
@@ -24489,7 +24505,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L10",
       "id": "core_memory_service_spec_mockcorememoryrepository",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".create()",
@@ -24497,7 +24513,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L13",
       "id": "core_memory_service_spec_mockcorememoryrepository_create",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".findById()",
@@ -24505,7 +24521,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L29",
       "id": "core_memory_service_spec_mockcorememoryrepository_findbyid",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".findByKey()",
@@ -24513,7 +24529,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L33",
       "id": "core_memory_service_spec_mockcorememoryrepository_findbykey",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".findByAgentId()",
@@ -24521,7 +24537,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L42",
       "id": "core_memory_service_spec_mockcorememoryrepository_findbyagentid",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".findAlwaysLoad()",
@@ -24529,7 +24545,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L46",
       "id": "core_memory_service_spec_mockcorememoryrepository_findalwaysload",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".update()",
@@ -24537,7 +24553,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L54",
       "id": "core_memory_service_spec_mockcorememoryrepository_update",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".updateByKey()",
@@ -24545,7 +24561,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L68",
       "id": "core_memory_service_spec_mockcorememoryrepository_updatebykey",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".delete()",
@@ -24553,7 +24569,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L74",
       "id": "core_memory_service_spec_mockcorememoryrepository_delete",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".deleteByKey()",
@@ -24561,7 +24577,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L78",
       "id": "core_memory_service_spec_mockcorememoryrepository_deletebykey",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".deleteByAgentId()",
@@ -24569,7 +24585,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L84",
       "id": "core_memory_service_spec_mockcorememoryrepository_deletebyagentid",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".findAll()",
@@ -24577,7 +24593,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L95",
       "id": "core_memory_service_spec_mockcorememoryrepository_findall",
-      "community": 79
+      "community": 80
     },
     {
       "label": ".count()",
@@ -24585,7 +24601,7 @@
       "source_file": "packages/memento-core/src/domains/memory/services/__tests__/core-memory-service.spec.ts",
       "source_location": "L99",
       "id": "core_memory_service_spec_mockcorememoryrepository_count",
-      "community": 79
+      "community": 80
     },
     {
       "label": "semantic-memory-update-service.spec.ts",
@@ -25921,7 +25937,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_relation_services_relation_quality_validator_ts",
-      "community": 80
+      "community": 81
     },
     {
       "label": "RelationQualityValidator",
@@ -25929,7 +25945,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L126",
       "id": "relation_quality_validator_relationqualityvalidator",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".matchRelations()",
@@ -25937,7 +25953,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L134",
       "id": "relation_quality_validator_relationqualityvalidator_matchrelations",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculatePrecision()",
@@ -25945,7 +25961,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L192",
       "id": "relation_quality_validator_relationqualityvalidator_calculateprecision",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateRecall()",
@@ -25953,7 +25969,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L219",
       "id": "relation_quality_validator_relationqualityvalidator_calculaterecall",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateF1Score()",
@@ -25961,7 +25977,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L239",
       "id": "relation_quality_validator_relationqualityvalidator_calculatef1score",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateTypeMetrics()",
@@ -25969,7 +25985,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L254",
       "id": "relation_quality_validator_relationqualityvalidator_calculatetypemetrics",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateConfidenceComplianceRate()",
@@ -25977,7 +25993,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L326",
       "id": "relation_quality_validator_relationqualityvalidator_calculateconfidencecompliancerate",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateQualityMetrics()",
@@ -25985,7 +26001,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L344",
       "id": "relation_quality_validator_relationqualityvalidator_calculatequalitymetrics",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".validateThresholds()",
@@ -25993,7 +26009,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L432",
       "id": "relation_quality_validator_relationqualityvalidator_validatethresholds",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateConfusionMatrix()",
@@ -26001,7 +26017,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L483",
       "id": "relation_quality_validator_relationqualityvalidator_calculateconfusionmatrix",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".analyzeRelationType()",
@@ -26009,7 +26025,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L544",
       "id": "relation_quality_validator_relationqualityvalidator_analyzerelationtype",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".analyzeAllRelationTypes()",
@@ -26017,7 +26033,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L634",
       "id": "relation_quality_validator_relationqualityvalidator_analyzeallrelationtypes",
-      "community": 80
+      "community": 81
     },
     {
       "label": ".calculateQualityMetricsWithAnalysis()",
@@ -26025,7 +26041,7 @@
       "source_file": "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts",
       "source_location": "L658",
       "id": "relation_quality_validator_relationqualityvalidator_calculatequalitymetricswithanalysis",
-      "community": 80
+      "community": 81
     },
     {
       "label": "relation-extractor.ts",
@@ -28017,7 +28033,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_embedding_services_gemini_embedding_service_ts",
-      "community": 81
+      "community": 82
     },
     {
       "label": "GeminiEmbeddingService",
@@ -28025,7 +28041,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L32",
       "id": "gemini_embedding_service_geminiembeddingservice",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".constructor()",
@@ -28033,7 +28049,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L42",
       "id": "gemini_embedding_service_geminiembeddingservice_constructor",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".initializeGemini()",
@@ -28041,7 +28057,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L60",
       "id": "gemini_embedding_service_geminiembeddingservice_initializegemini",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".generateEmbedding()",
@@ -28049,7 +28065,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L83",
       "id": "gemini_embedding_service_geminiembeddingservice_generateembedding",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".searchSimilar()",
@@ -28057,7 +28073,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L201",
       "id": "gemini_embedding_service_geminiembeddingservice_searchsimilar",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".cosineSimilarity()",
@@ -28065,7 +28081,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L234",
       "id": "gemini_embedding_service_geminiembeddingservice_cosinesimilarity",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".generateCacheKey()",
@@ -28073,7 +28089,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L264",
       "id": "gemini_embedding_service_geminiembeddingservice_generatecachekey",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".hashText()",
@@ -28081,7 +28097,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L272",
       "id": "gemini_embedding_service_geminiembeddingservice_hashtext",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".cleanupCache()",
@@ -28089,7 +28105,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L285",
       "id": "gemini_embedding_service_geminiembeddingservice_cleanupcache",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".truncateText()",
@@ -28097,7 +28113,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L300",
       "id": "gemini_embedding_service_geminiembeddingservice_truncatetext",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".estimateTokens()",
@@ -28105,7 +28121,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L316",
       "id": "gemini_embedding_service_geminiembeddingservice_estimatetokens",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".isAvailable()",
@@ -28113,7 +28129,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L326",
       "id": "gemini_embedding_service_geminiembeddingservice_isavailable",
-      "community": 81
+      "community": 82
     },
     {
       "label": ".getModelInfo()",
@@ -28121,7 +28137,7 @@
       "source_file": "packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts",
       "source_location": "L333",
       "id": "gemini_embedding_service_geminiembeddingservice_getmodelinfo",
-      "community": 81
+      "community": 82
     },
     {
       "label": "unified-embedding-service.ts",
@@ -30385,7 +30401,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_domains_monitoring_services_quality_assurance_quality_assurance_service_ts",
-      "community": 82
+      "community": 83
     },
     {
       "label": "QualityAssuranceService",
@@ -30393,7 +30409,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L94",
       "id": "quality_assurance_service_qualityassuranceservice",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".constructor()",
@@ -30401,7 +30417,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L101",
       "id": "quality_assurance_service_qualityassuranceservice_constructor",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".measureQuality()",
@@ -30409,7 +30425,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L123",
       "id": "quality_assurance_service_qualityassuranceservice_measurequality",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".generateReport()",
@@ -30417,7 +30433,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L224",
       "id": "quality_assurance_service_qualityassuranceservice_generatereport",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".getReportData()",
@@ -30425,7 +30441,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L234",
       "id": "quality_assurance_service_qualityassuranceservice_getreportdata",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".initializeDefaultThresholds()",
@@ -30433,7 +30449,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L247",
       "id": "quality_assurance_service_qualityassuranceservice_initializedefaultthresholds",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".getThresholds()",
@@ -30441,7 +30457,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L258",
       "id": "quality_assurance_service_qualityassuranceservice_getthresholds",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".setThreshold()",
@@ -30449,7 +30465,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L273",
       "id": "quality_assurance_service_qualityassuranceservice_setthreshold",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".deleteThreshold()",
@@ -30457,7 +30473,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L297",
       "id": "quality_assurance_service_qualityassuranceservice_deletethreshold",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".getMeasurementHistory()",
@@ -30465,7 +30481,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L311",
       "id": "quality_assurance_service_qualityassuranceservice_getmeasurementhistory",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".getLatestMetrics()",
@@ -30473,7 +30489,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L328",
       "id": "quality_assurance_service_qualityassuranceservice_getlatestmetrics",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".runBatchMeasurement()",
@@ -30481,7 +30497,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L340",
       "id": "quality_assurance_service_qualityassuranceservice_runbatchmeasurement",
-      "community": 82
+      "community": 83
     },
     {
       "label": ".runTestMeasurement()",
@@ -30489,7 +30505,7 @@
       "source_file": "packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-assurance-service.ts",
       "source_location": "L357",
       "id": "quality_assurance_service_qualityassuranceservice_runtestmeasurement",
-      "community": 82
+      "community": 83
     },
     {
       "label": "quality-metrics-collector.ts",
@@ -31057,7 +31073,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L1",
       "id": "packages_memento_core_src_test_performance_benchmark_ts",
-      "community": 83
+      "community": 84
     },
     {
       "label": "PerformanceBenchmark",
@@ -31065,7 +31081,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L38",
       "id": "performance_benchmark_performancebenchmark",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".constructor()",
@@ -31073,7 +31089,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L45",
       "id": "performance_benchmark_performancebenchmark_constructor",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".runFullBenchmark()",
@@ -31081,7 +31097,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L54",
       "id": "performance_benchmark_performancebenchmark_runfullbenchmark",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".benchmarkMemoryOperations()",
@@ -31089,7 +31105,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L86",
       "id": "performance_benchmark_performancebenchmark_benchmarkmemoryoperations",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".benchmarkSearchOperations()",
@@ -31097,7 +31113,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L131",
       "id": "performance_benchmark_performancebenchmark_benchmarksearchoperations",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".benchmarkCacheOperations()",
@@ -31105,7 +31121,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L188",
       "id": "performance_benchmark_performancebenchmark_benchmarkcacheoperations",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".benchmarkAsyncOperations()",
@@ -31113,7 +31129,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L244",
       "id": "performance_benchmark_performancebenchmark_benchmarkasyncoperations",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".benchmarkConcurrentOperations()",
@@ -31121,7 +31137,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L318",
       "id": "performance_benchmark_performancebenchmark_benchmarkconcurrentoperations",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".waitForTaskCompletion()",
@@ -31129,7 +31145,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L431",
       "id": "performance_benchmark_performancebenchmark_waitfortaskcompletion",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".retryOperation()",
@@ -31137,7 +31153,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L448",
       "id": "performance_benchmark_performancebenchmark_retryoperation",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".calculateBenchmarkResult()",
@@ -31145,7 +31161,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L479",
       "id": "performance_benchmark_performancebenchmark_calculatebenchmarkresult",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".printResult()",
@@ -31153,7 +31169,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L526",
       "id": "performance_benchmark_performancebenchmark_printresult",
-      "community": 83
+      "community": 84
     },
     {
       "label": ".generateReport()",
@@ -31161,7 +31177,7 @@
       "source_file": "packages/memento-core/src/test/performance-benchmark.ts",
       "source_location": "L545",
       "id": "performance_benchmark_performancebenchmark_generatereport",
-      "community": 83
+      "community": 84
     },
     {
       "label": "test-bootstrap.ts",
@@ -34761,7 +34777,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L1",
       "id": "scripts_migrate_embedding_data_js",
-      "community": 84
+      "community": 85
     },
     {
       "label": "EmbeddingMigration",
@@ -34769,7 +34785,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L26",
       "id": "migrate_embedding_data_embeddingmigration",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".constructor()",
@@ -34777,7 +34793,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L27",
       "id": "migrate_embedding_data_embeddingmigration_constructor",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".connect()",
@@ -34785,7 +34801,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L38",
       "id": "migrate_embedding_data_embeddingmigration_connect",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".createBackup()",
@@ -34793,7 +34809,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L53",
       "id": "migrate_embedding_data_embeddingmigration_createbackup",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".migrate()",
@@ -34801,7 +34817,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L78",
       "id": "migrate_embedding_data_embeddingmigration_migrate",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".updateSchema()",
@@ -34809,7 +34825,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L117",
       "id": "migrate_embedding_data_embeddingmigration_updateschema",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".runDirectMigration()",
@@ -34817,7 +34833,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L149",
       "id": "migrate_embedding_data_embeddingmigration_rundirectmigration",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".analyzeExistingData()",
@@ -34825,7 +34841,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L213",
       "id": "migrate_embedding_data_embeddingmigration_analyzeexistingdata",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".migrateData()",
@@ -34833,7 +34849,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L245",
       "id": "migrate_embedding_data_embeddingmigration_migratedata",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".updateMetadata()",
@@ -34841,7 +34857,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L263",
       "id": "migrate_embedding_data_embeddingmigration_updatemetadata",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".regenerateEmbeddings()",
@@ -34849,7 +34865,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L288",
       "id": "migrate_embedding_data_embeddingmigration_regenerateembeddings",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".validateMigration()",
@@ -34857,7 +34873,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L301",
       "id": "migrate_embedding_data_embeddingmigration_validatemigration",
-      "community": 84
+      "community": 85
     },
     {
       "label": ".rollback()",
@@ -34865,7 +34881,7 @@
       "source_file": "scripts/migrate-embedding-data.js",
       "source_location": "L329",
       "id": "migrate_embedding_data_embeddingmigration_rollback",
-      "community": 84
+      "community": 85
     },
     {
       "label": "backup-embeddings.js",
@@ -69785,7 +69801,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L44",
+      "source_location": "L45",
       "weight": 1.0,
       "_src": "packages_memento_core_src_domains_search_repositories_vector_search_repository_ts",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl",
@@ -69797,7 +69813,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_constructor",
@@ -69809,7 +69825,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_checkvecavailability",
@@ -69821,7 +69837,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L129",
+      "source_location": "L130",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_search",
@@ -69833,7 +69849,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L286",
+      "source_location": "L285",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
@@ -69845,7 +69861,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L579",
+      "source_location": "L576",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getindexstatus",
@@ -69857,7 +69873,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L637",
+      "source_location": "L634",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_rebuildindex",
@@ -69869,7 +69885,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L658",
+      "source_location": "L655",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_gettablename",
@@ -69881,7 +69897,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L665",
+      "source_location": "L662",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_checkavailability",
@@ -69893,7 +69909,31 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L669",
+      "source_location": "L670",
+      "weight": 1.0,
+      "_src": "vector_search_repository_vectorsearchrepositoryimpl",
+      "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "source": "vector_search_repository_vectorsearchrepositoryimpl",
+      "target": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L693",
+      "weight": 1.0,
+      "_src": "vector_search_repository_vectorsearchrepositoryimpl",
+      "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "source": "vector_search_repository_vectorsearchrepositoryimpl",
+      "target": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L730",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getexpecteddimensions",
@@ -69905,7 +69945,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L677",
+      "source_location": "L738",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_safeparsetags",
@@ -69917,7 +69957,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_constructor",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_checkvecavailability",
@@ -69929,7 +69969,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L666",
+      "source_location": "L663",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_checkavailability",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_checkvecavailability",
@@ -69941,7 +69981,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L145",
+      "source_location": "L146",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_search",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getexpecteddimensions",
@@ -69953,7 +69993,31 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L201",
+      "source_location": "L154",
+      "weight": 1.0,
+      "_src": "vector_search_repository_vectorsearchrepositoryimpl_search",
+      "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "source": "vector_search_repository_vectorsearchrepositoryimpl_search",
+      "target": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L177",
+      "weight": 1.0,
+      "_src": "vector_search_repository_vectorsearchrepositoryimpl_search",
+      "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "source": "vector_search_repository_vectorsearchrepositoryimpl_search",
+      "target": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L200",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_search",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_gettablename",
@@ -69965,7 +70029,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L302",
+      "source_location": "L301",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getexpecteddimensions",
@@ -69977,7 +70041,31 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L358",
+      "source_location": "L309",
+      "weight": 1.0,
+      "_src": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
+      "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "source": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
+      "target": "vector_search_repository_vectorsearchrepositoryimpl_getdominantstoreddimensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L332",
+      "weight": 1.0,
+      "_src": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
+      "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "source": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
+      "target": "vector_search_repository_vectorsearchrepositoryimpl_alignqueryvectortostoreddimensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
+      "source_location": "L355",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_hybridsearch",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_gettablename",
@@ -69989,7 +70077,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/domains/search/repositories/vector-search.repository.ts",
-      "source_location": "L598",
+      "source_location": "L595",
       "weight": 1.0,
       "_src": "vector_search_repository_vectorsearchrepositoryimpl_getindexstatus",
       "_tgt": "vector_search_repository_vectorsearchrepositoryimpl_gettablename",
