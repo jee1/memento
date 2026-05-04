@@ -73,7 +73,7 @@
   }
 
   function reviewCandidatePostUrl(id, action) {
-    return '/admin/memory/review-candidates/' + encodeURIComponent(id) + '/' + encodeURIComponent(action);
+    return '/admin/memory/review-candidates/' + encodeURIComponent(id) + '/' + action;
   }
 
   function getPreviewActionsEl() {
@@ -81,36 +81,28 @@
   }
 
   function setPreviewActionsBusy(busy) {
-    const review = $('rc-btn-review');
-    const dismiss = $('rc-btn-dismiss');
-    if (review) {
-      review.disabled = !!busy;
-    }
-    if (dismiss) {
-      dismiss.disabled = !!busy;
+    const wrap = getPreviewActionsEl();
+    if (wrap) {
+      wrap.setAttribute('aria-busy', busy ? 'true' : 'false');
     }
   }
 
   function syncReviewDismissButtons() {
-    const wrap = getPreviewActionsEl();
-    if (!wrap) {
-      return;
+    const reviewBtn = $('rc-btn-review');
+    const dismissBtn = $('rc-btn-dismiss');
+    const id = selectedRow && selectedRow.dataset.candidateId ? String(selectedRow.dataset.candidateId) : '';
+    const detail = $('rc-preview-detail');
+    const visible = detail && !detail.classList.contains('hidden');
+    const enable = !!(id && visible && !actionInFlight);
+    if (reviewBtn) {
+      reviewBtn.disabled = !enable;
     }
-    const cid = selectedRow && selectedRow.dataset ? selectedRow.dataset.candidateId : '';
-    const has = !!cid;
-    setHidden(wrap, !has);
-    const busy = actionInFlight;
-    const review = $('rc-btn-review');
-    const dismiss = $('rc-btn-dismiss');
-    if (review) {
-      review.disabled = !has || busy;
-    }
-    if (dismiss) {
-      dismiss.disabled = !has || busy;
+    if (dismissBtn) {
+      dismissBtn.disabled = !enable;
     }
   }
 
-  function showActionToast(message, _ok) {
+  function showActionToast(message) {
     const t = $('rc-toast');
     if (!t) {
       return;
@@ -124,24 +116,21 @@
       t.classList.add('hidden');
       t.textContent = '';
       toastHideTimer = null;
-    }, 8000);
+    }, 4000);
   }
 
   async function postCandidateAction(action) {
-    if (actionInFlight) {
-      return;
-    }
-    const tr = selectedRow;
-    const id = tr && tr.dataset ? tr.dataset.candidateId : '';
-    if (!id) {
-      showActionToast('No candidate selected.', false);
+    const id = selectedRow && selectedRow.dataset.candidateId ? String(selectedRow.dataset.candidateId) : '';
+    if (!id || actionInFlight) {
       return;
     }
     actionInFlight = true;
     setPreviewActionsBusy(true);
+    syncReviewDismissButtons();
+    showError('');
+    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    const url = reviewCandidatePostUrl(id, action);
     try {
-      const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
-      const url = reviewCandidatePostUrl(id, action);
       const res = await fetchFn(url, {
         method: 'POST',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -151,18 +140,20 @@
         return {};
       });
       if (!res.ok) {
-        const msg = (body && (body.error || body.message)) || 'HTTP ' + res.status;
-        showActionToast(String(msg), false);
+        const msg =
+          (body && (body.error || body.message)) ||
+          (res.status === 409
+            ? 'This candidate can no longer be updated (conflict).'
+            : res.status === 404
+              ? 'Review candidate not found.'
+              : 'HTTP ' + res.status);
+        showError(String(msg));
         return;
       }
-      showActionToast(action === 'review' ? 'Marked reviewed.' : 'Dismissed.', true);
-      clearRowSelection();
-      resetPreviewPanel();
-      syncReviewDismissButtons();
-      loadedOnce = true;
+      showActionToast(action === 'review' ? 'Marked as reviewed.' : 'Dismissed.');
       await loadList();
     } catch (e) {
-      showActionToast(e instanceof Error ? e.message : 'Network error', false);
+      showError(e instanceof Error ? e.message : 'Network error');
     } finally {
       actionInFlight = false;
       setPreviewActionsBusy(false);
