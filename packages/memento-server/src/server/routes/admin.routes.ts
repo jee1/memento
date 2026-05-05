@@ -29,6 +29,10 @@ import { registerAdminRelationRoutes } from './admin/admin-relations.routes.js';
 import { registerAdminTelemetryRoutes } from './admin/admin-telemetry.routes.js';
 import { registerAdminGraphRoute } from './admin/admin-graph.routes.js';
 import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.routes.js';
+import {
+  attachReviewCandidatesSse,
+  notifyReviewCandidatesChanged
+} from '../review-candidates-sse-hub.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -360,6 +364,23 @@ export function createAdminRouter(
     }
   });
 
+  /** SSE: pending queue updates (same session as GET list; #276). */
+  router.get('/memory/review-candidates/stream', (_req, res) => {
+    try {
+      attachReviewCandidatesSse(res);
+    } catch (error) {
+      logger.error('Review candidates SSE attach failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      if (!res.headersSent) {
+        return res.status(500).json({
+          error: 'Failed to open review candidates stream',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+  });
+
   router.post('/memory/review-candidates/:id/review', (req, res) => {
     try {
       if (!db) {
@@ -372,6 +393,7 @@ export function createAdminRouter(
       const nowIso = new Date().toISOString();
       markMemoryReviewCandidateReviewed(db, id, nowIso);
       const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
+      notifyReviewCandidatesChanged('review');
       return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
     } catch (error) {
       if (error instanceof MemoryReviewCandidateError) {
@@ -399,6 +421,7 @@ export function createAdminRouter(
       const nowIso = new Date().toISOString();
       markMemoryReviewCandidateDismissed(db, id, nowIso);
       const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
+      notifyReviewCandidatesChanged('dismiss');
       return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
     } catch (error) {
       if (error instanceof MemoryReviewCandidateError) {
@@ -449,6 +472,10 @@ export function createAdminRouter(
 
       const batchScheduler = getBatchScheduler();
       const result = await batchScheduler.runJob(jobType);
+
+      if (jobType === 'memory_review_candidates') {
+        notifyReviewCandidatesChanged('batch_memory_review_candidates');
+      }
 
       return res.json({
         message: `배치 작업 ${jobType} 실행 완료`,

@@ -861,6 +861,21 @@ GET /admin/memory/review-candidates?status=pending
 - `400`: 잘못된 `status` 값
 - `500`: DB 미연결 등 서버 오류
 
+##### 리뷰 큐 SSE (선택 실시간)
+
+```http
+GET /admin/memory/review-candidates/stream
+```
+
+다른 `/admin` 경로와 동일한 **브라우저 세션 쿠키**가 필요합니다. 응답은 **`text/event-stream`**이며, 다음을 포함합니다.
+
+- `retry:` — 브라우저 `EventSource` 재연결 힌트
+- `event: ready` — 연결 수립(본문 `{"ok":true}`)
+- 주기적 `: ping` 코멘트(연결 유지)
+- `event: changed` — 큐가 바뀌었을 수 있음; 본문에 `reason` (`review`, `dismiss`, `batch_memory_review_candidates`)
+
+대시보드는 pending 목록 로드 성공 후 스트림을 연고, `EventSource` 미지원·오류 시 **#255 폴링으로 폴백**합니다. **단일 프로세스** 전제(레플리카 간 브로드캐스트 없음).
+
 ##### 단일 기억 프리뷰 (Admin)
 
 리뷰 후보 목록에 본문이 없을 때, 대시보드 등에서 `memory_id`로 **`memory_item` 한 행**을 조회합니다.

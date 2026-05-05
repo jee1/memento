@@ -741,6 +741,21 @@ Each element of `candidates` contains only queue metadata (`id`, `memory_id`, `s
 - `400`: invalid `status` value
 - `500`: database not connected or other server error
 
+##### Review queue SSE (optional real-time)
+
+```http
+GET /admin/memory/review-candidates/stream
+```
+
+Same **browser session** cookie as other `/admin` routes. Returns **`text/event-stream`** with:
+
+- `retry:` reconnection hint for the browser `EventSource` client
+- `event: ready` — connection established (payload `{"ok":true}`)
+- `: ping` comment frames periodically to keep the connection warm
+- `event: changed` — queue may have changed; payload includes `reason` (`review`, `dismiss`, or `batch_memory_review_candidates`)
+
+The dashboard client opens this stream after the pending list loads successfully; if `EventSource` is unavailable or the stream errors, it **falls back to the existing polling** from issue #255. **Single-process only** (no cross-replica fan-out without Redis or similar).
+
 ##### Single memory preview (Admin)
 
 When the review queue list omits body text, fetch one `memory_item` row by `memory_id` (e.g. for the dashboard preview pane).

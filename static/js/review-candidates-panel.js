@@ -1,10 +1,11 @@
 /**
- * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll, #275 optional Notification API)
+ * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll, #275 optional Notification API, #276 SSE + poll fallback)
  */
 (function (global) {
   'use strict';
 
   const LIST_URL = '/admin/memory/review-candidates?status=pending';
+  const STREAM_URL = '/admin/memory/review-candidates/stream';
   const REASON_TABLE_MAX = 120;
 
   let wired = false;
@@ -16,6 +17,7 @@
   let toastHideTimer = null;
   let actionInFlight = false;
   let pollFailureStreak = 0;
+  let reviewSse = null;
   let notifyPromptWired = false;
 
   /** @type {string} */
@@ -551,6 +553,14 @@
     }, safe);
   }
 
+  /** While EventSource is connected, skip poll timers (#276). */
+  function schedulePollAfterMsUnlessSse(delayMs) {
+    if (typeof EventSource !== 'undefined' && reviewSse && reviewSse.readyState === EventSource.OPEN) {
+      return;
+    }
+    schedulePollAfterMs(delayMs);
+  }
+
   function registerVisibilityForPoll() {
     if (visListenerRegistered) {
       return;
@@ -569,6 +579,77 @@
     }
     registerVisibilityForPoll();
     schedulePollAfterMs(getReviewQueueBoot().pollIntervalMs);
+  }
+
+  function stopReviewCandidatesStream() {
+    if (reviewSse) {
+      reviewSse.close();
+      reviewSse = null;
+    }
+  }
+
+  function resumePollingAfterStreamLoss() {
+    stopReviewCandidatesStream();
+    startPollingIfNeeded();
+  }
+
+  async function onReviewQueueSseChanged() {
+    let res;
+    let body;
+    try {
+      const r = await fetchReviewCandidateListJson();
+      res = r.res;
+      body = r.body;
+    } catch {
+      resumePollingAfterStreamLoss();
+      return;
+    }
+    if (!res.ok) {
+      resumePollingAfterStreamLoss();
+      return;
+    }
+    pollFailureStreak = 0;
+    const reviewPanel = $('tab-review-candidates');
+    const onReview = !!(reviewPanel && reviewPanel.classList.contains('active'));
+    if (onReview) {
+      applyListSuccess(body);
+      return;
+    }
+    const candidates = (body && body.candidates) || [];
+    const n = candidates.length;
+    const prev = lastPendingCount;
+    if (prev >= 0 && n > prev) {
+      showNewCandidatesToast(n - prev, false);
+      setReviewTabBadge(n);
+    }
+    lastPendingCount = n;
+  }
+
+  function maybeStartReviewCandidatesEventSource() {
+    if (typeof EventSource === 'undefined') {
+      startPollingIfNeeded();
+      return;
+    }
+    if (reviewSse) {
+      return;
+    }
+    try {
+      reviewSse = new EventSource(STREAM_URL);
+    } catch {
+      reviewSse = null;
+      startPollingIfNeeded();
+      return;
+    }
+    reviewSse.addEventListener('open', function () {
+      clearPollTimer();
+      pollFailureStreak = 0;
+    });
+    reviewSse.addEventListener('changed', function () {
+      void onReviewQueueSseChanged();
+    });
+    reviewSse.onerror = function () {
+      resumePollingAfterStreamLoss();
+    };
   }
 
   async function fetchReviewCandidateListJson() {
@@ -612,11 +693,11 @@
     const allowPollWhenHidden =
       reviewOsNotifyAvailable() && Notification.permission === 'granted';
     if (document.visibilityState === 'hidden' && !allowPollWhenHidden) {
-      schedulePollAfterMs(boot.pollIntervalMs);
+      schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
       return;
     }
     if (lastPendingCount < 0) {
-      schedulePollAfterMs(boot.pollIntervalMs);
+      schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
       return;
     }
     let res;
@@ -648,15 +729,15 @@
       }
       if (onReview) {
         applyListSuccess(body);
-        schedulePollAfterMs(boot.pollIntervalMs);
+        schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
         return;
       }
       lastPendingCount = n;
-      schedulePollAfterMs(boot.pollIntervalMs);
+      schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
       return;
     }
     lastPendingCount = n;
-    schedulePollAfterMs(boot.pollIntervalMs);
+    schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
   }
 
   async function loadList() {
@@ -680,7 +761,7 @@
       }
       applyListSuccess(body);
       pollFailureStreak = 0;
-      startPollingIfNeeded();
+      maybeStartReviewCandidatesEventSource();
     } catch (e) {
       showLoading(false);
       showError(e instanceof Error ? e.message : 'Network error');
@@ -691,6 +772,9 @@
     clearReviewTabBadge();
     if (!wired) {
       wired = true;
+      global.addEventListener('beforeunload', function () {
+        stopReviewCandidatesStream();
+      });
       const btn = $('rc-refresh-btn');
       if (btn) {
         btn.addEventListener('click', function () {
