@@ -132,7 +132,8 @@ export class PerformanceMonitor {
     // 시스템 지표
     const _systemMetrics = this.getSystemMetrics();
 
-    const memoryUsagePercent = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
+    const totalSystemMemory = os.totalmem();
+    const memoryUsagePercent = totalSystemMemory > 0 ? (memUsage.rss / totalSystemMemory) * 100 : 0;
     // tick=true: scheduled baseline 갱신 / tick=false: on-demand baseline만 갱신
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
@@ -182,7 +183,10 @@ export class PerformanceMonitor {
     const now = new Date();
 
     // 메모리 사용률 검사
-    const memoryUsagePercent = (metrics.memory.heapUsed / metrics.memory.heapTotal) * 100;
+    const totalSystemMemory = os.totalmem();
+    const memoryUsagePercent = totalSystemMemory > 0
+      ? (metrics.memory.rss / totalSystemMemory) * 100
+      : 0;
     if (memoryUsagePercent > this.thresholds.memoryUsagePercent) {
       const alertId = `memory-${now.getTime()}`;
       const severity = memoryUsagePercent > 90 ? 'critical' : 'warning';
@@ -196,7 +200,7 @@ export class PerformanceMonitor {
           id: alertId,
           type: 'memory',
           severity,
-          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% (${this.formatBytes(metrics.memory.heapUsed)}/${this.formatBytes(metrics.memory.heapTotal)})`,
+          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% RSS (${this.formatBytes(metrics.memory.rss)} / ${this.formatBytes(totalSystemMemory)})`,
           value: memoryUsagePercent,
           threshold: this.thresholds.memoryUsagePercent,
           timestamp: now,
@@ -953,10 +957,13 @@ export class PerformanceMonitor {
    * 심각한 알림 처리
    */
   private async handleCriticalAlert(alert: PerformanceAlert, metrics: PerformanceMetrics): Promise<void> {
-    logger.error('Critical performance alert handling', {
+    const _totalMem = os.totalmem();
+    logger.warn('Critical performance alert handling', {
       alert,
       metrics: {
-        memoryUsage: (metrics.memory.heapUsed / metrics.memory.heapTotal) * 100,
+        memoryUsage: alert.type === 'memory'
+          ? alert.value
+          : (_totalMem > 0 ? (metrics.memory.rss / _totalMem) * 100 : 0),
         dbSize: metrics.database.size / (1024 * 1024),
         queryTime: metrics.database.queryTime
       }
