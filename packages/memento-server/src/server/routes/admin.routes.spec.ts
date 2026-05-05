@@ -8,6 +8,7 @@ import express from 'express';
 import http from 'http';
 import Database from 'better-sqlite3';
 import { createAdminRouter } from './admin.routes.js';
+import { resetReviewCandidatesSseHubForTests } from '../review-candidates-sse-hub.js';
 import type { ServerServices } from '../bootstrap.js';
 import {
   type SleepConsolidationRunResult,
@@ -983,6 +984,7 @@ describe('admin.routes memory review candidates', () => {
   }
 
   beforeEach(async () => {
+    resetReviewCandidatesSseHubForTests();
     db = new Database(':memory:');
     createBaseSchema(db);
     await new MetaMemoryStatsSchemaMigration().up(db);
@@ -1034,12 +1036,59 @@ describe('admin.routes memory review candidates', () => {
   });
 
   afterEach(() => {
+    resetReviewCandidatesSseHubForTests();
     try {
       db.close();
     } catch {
       /* ignore */
     }
   });
+
+  function readStreamUntil(
+    port: number,
+    path: string,
+    needle: string,
+    timeoutMs: number
+  ): Promise<{ statusCode: number; contentType: string; text: string }> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        req.destroy();
+        reject(new Error(`stream read timeout waiting for: ${needle}`));
+      }, timeoutMs);
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path,
+          method: 'GET',
+          headers: { Connection: 'close' }
+        },
+        res => {
+          const statusCode = res.statusCode ?? 0;
+          const rawCt = res.headers['content-type'];
+          const contentType = Array.isArray(rawCt) ? rawCt[0] : (rawCt ?? '');
+          let buf = '';
+          res.on('data', (c: Buffer) => {
+            buf += c.toString('utf8');
+            if (buf.includes(needle)) {
+              clearTimeout(timer);
+              req.destroy();
+              resolve({ statusCode, contentType, text: buf });
+            }
+          });
+          res.on('end', () => {
+            clearTimeout(timer);
+            reject(new Error(`stream ended without needle; got: ${buf.slice(0, 200)}`));
+          });
+        }
+      );
+      req.on('error', err => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      req.end();
+    });
+  }
 
   it('GET /admin/memory/items/mem_stale returns 200 with memory.content', async () => {
     const { server, port } = await listen(makeApp(db));
@@ -1153,6 +1202,94 @@ describe('admin.routes memory review candidates', () => {
     } finally {
       await scheduler.stop();
       resetBatchScheduler();
+    }
+  });
+
+  it('GET /admin/memory/review-candidates/stream returns SSE ready (#276)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const { statusCode, contentType, text } = await readStreamUntil(
+        port,
+        '/admin/memory/review-candidates/stream',
+        'event: ready',
+        3000
+      );
+      expect(statusCode).toBe(200);
+      expect(contentType).toContain('text/event-stream');
+      expect(text).toContain('retry:');
+      expect(text).toContain('event: ready');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('SSE stream receives changed after POST review (#276)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          req.destroy();
+          reject(new Error('timeout waiting for SSE changed'));
+        }, 8000);
+        let posted = false;
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port,
+            path: '/admin/memory/review-candidates/stream',
+            method: 'GET',
+            headers: { Connection: 'close' }
+          },
+          res => {
+            try {
+              expect(res.statusCode).toBe(200);
+              const rawCt = res.headers['content-type'];
+              const ct = Array.isArray(rawCt) ? rawCt[0] : (rawCt ?? '');
+              expect(ct).toContain('text/event-stream');
+            } catch (e) {
+              clearTimeout(timer);
+              reject(e);
+              return;
+            }
+            let buf = '';
+            res.on('data', (c: Buffer) => {
+              buf += c.toString('utf8');
+              if (!posted && buf.includes('event: ready')) {
+                posted = true;
+                void postAdminJson(port, `/admin/memory/review-candidates/${pendingId}/review`, {})
+                  .then(r => {
+                    expect(r.statusCode).toBe(200);
+                  })
+                  .catch(err => {
+                    clearTimeout(timer);
+                    reject(err);
+                  });
+              }
+              if (buf.includes('event: changed')) {
+                clearTimeout(timer);
+                try {
+                  expect(buf).toContain('"reason":"review"');
+                  req.destroy();
+                  resolve();
+                } catch (e) {
+                  reject(e);
+                }
+              }
+            });
+            res.on('error', err => {
+              clearTimeout(timer);
+              reject(err);
+            });
+          }
+        );
+        req.on('error', err => {
+          clearTimeout(timer);
+          reject(err);
+        });
+        req.end();
+      });
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
     }
   });
 });

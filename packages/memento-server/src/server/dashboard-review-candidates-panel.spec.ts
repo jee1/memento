@@ -61,3 +61,16 @@ describe('dashboard review queue poll notify (#255)', () => {
   });
 });
 
+describe('dashboard review queue SSE (#276)', () => {
+  const root = resolve(process.cwd());
+  const panelJs = readFileSync(resolve(root, 'static/js/review-candidates-panel.js'), 'utf8');
+
+  it('review-candidates-panel.js wires EventSource stream URL and fallback helpers', () => {
+    expect(panelJs).toContain('/admin/memory/review-candidates/stream');
+    expect(panelJs).toContain('EventSource');
+    expect(panelJs).toContain('maybeStartReviewCandidatesEventSource');
+    expect(panelJs).toContain('resumePollingAfterStreamLoss');
+    expect(panelJs).toContain('schedulePollAfterMsUnlessSse');
+  });
+});
+
