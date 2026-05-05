@@ -185,6 +185,11 @@ export class PerformanceMonitor {
     // 메모리 사용률 검사
     const totalSystemMemory = os.totalmem();
     const memoryUsagePercent = metrics.memory.usagePercent;
+    if (memoryUsagePercent <= this.thresholds.memoryUsagePercent) {
+      const existing = Array.from(this.alerts.values())
+        .find(a => a.type === 'memory' && !a.resolved);
+      if (existing) this.resolveAlert(existing.id);
+    }
     if (memoryUsagePercent > this.thresholds.memoryUsagePercent) {
       const alertId = `memory-${now.getTime()}`;
       const severity = memoryUsagePercent > 90 ? 'critical' : 'warning';
@@ -254,6 +259,11 @@ export class PerformanceMonitor {
 
     // CPU 사용률 검사
     const cpuUsagePercent = metrics.cpu.percent;
+    if (cpuUsagePercent <= this.thresholds.cpuUsagePercent) {
+      const existing = Array.from(this.alerts.values())
+        .find(a => a.type === 'cpu' && !a.resolved);
+      if (existing) this.resolveAlert(existing.id);
+    }
     if (cpuUsagePercent > this.thresholds.cpuUsagePercent) {
       const alertId = `cpu-${now.getTime()}`;
       const severity = cpuUsagePercent > 90 ? 'critical' : 'warning';
