@@ -148,9 +148,12 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인 (데이터 불일치 감지용)
     // 왜 필요한가? 기존 데이터가 잘못된 차원으로 저장되어 있을 수 있으므로
     // 이를 감지하여 경고를 로깅하고, 테이블 선택과 일치하도록 expectedDimensions를 사용
+    // 이슈 #279: minilm 등 고정 vec 스키마 provider는 memory_embedding.dimensions 오염 시
+    // dominant=512 + 네이티브 384 쿼리가 패딩되어 384 vec0 테이블과 불일치할 수 있으므로
+    // 저장 우세 차원은 tfidf(레거시 384/512 테이블 분기)에만 적용한다.
     let actualStoredDimensions: number | null = null;
     try {
-      if (this.db) {
+      if (this.db && this.shouldUseDominantStoredDimensionsForTable(provider)) {
         actualStoredDimensions = this.getDominantStoredDimensions(provider ?? 'tfidf');
       }
     } catch (error) {
@@ -171,7 +174,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       });
     }
 
-    // 테이블 선택: 저장된 차원이 있으면 사용 (tfidf+384 → memory_item_vec), 없으면 config 기준
+    // 테이블 선택: tfidf는 저장 우세 차원(384→memory_item_vec), 그 외 provider는 config 네이티브 차원만
     const targetDimensions = actualStoredDimensions ?? expectedDimensions;
 
     const effectiveQueryVector = this.alignQueryVectorToStoredDimensions(
@@ -303,9 +306,12 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인 (데이터 불일치 감지용)
     // 왜 필요한가? 기존 데이터가 잘못된 차원으로 저장되어 있을 수 있으므로
     // 이를 감지하여 경고를 로깅하고, 테이블 선택과 일치하도록 expectedDimensions를 사용
+    // 이슈 #279: minilm 등 고정 vec 스키마 provider는 memory_embedding.dimensions 오염 시
+    // dominant=512 + 네이티브 384 쿼리가 패딩되어 384 vec0 테이블과 불일치할 수 있으므로
+    // 저장 우세 차원은 tfidf(레거시 384/512 테이블 분기)에만 적용한다.
     let actualStoredDimensions: number | null = null;
     try {
-      if (this.db) {
+      if (this.db && this.shouldUseDominantStoredDimensionsForTable(provider)) {
         actualStoredDimensions = this.getDominantStoredDimensions(provider ?? 'tfidf');
       }
     } catch (error) {
@@ -326,7 +332,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       });
     }
 
-    // 테이블 선택: 저장된 차원이 있으면 사용 (tfidf+384 → memory_item_vec), 없으면 config 기준
+    // 테이블 선택: tfidf는 저장 우세 차원(384→memory_item_vec), 그 외 provider는 config 네이티브 차원만
     const targetDimensions = actualStoredDimensions ?? expectedDimensions;
 
     const effectiveQueryVector = this.alignQueryVectorToStoredDimensions(
@@ -661,6 +667,16 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   checkAvailability(): boolean {
     return this.checkVecAvailability();
+  }
+
+  /**
+   * memory_embedding 우세 dimensions로 vec 테이블을 고를지 여부.
+   * tfidf만 memory_item_vec(384) vs memory_item_vec_tfidf(512) 레거시 분기가 있어
+   * 저장 차원을 따른다. minilm/openai/gemini/lightweight는 vec 스키마가 provider별로
+   * 고정이므로 오염된 dimensions 컬럼을 쓰면 쿼리 벡터만 늘어나 sqlite-vec 차원 오류가 난다.
+   */
+  private shouldUseDominantStoredDimensionsForTable(provider: string | undefined): boolean {
+    return (provider ?? 'tfidf').toLowerCase() === 'tfidf';
   }
 
   /**
