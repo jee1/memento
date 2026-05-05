@@ -1,5 +1,5 @@
 /**
- * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll, #276 SSE + poll fallback)
+ * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll, #275 optional Notification API, #276 SSE + poll fallback)
  */
 (function (global) {
   'use strict';
@@ -18,6 +18,11 @@
   let actionInFlight = false;
   let pollFailureStreak = 0;
   let reviewSse = null;
+  let notifyPromptWired = false;
+
+  /** @type {string} */
+  const LS_NOTIFY_PROMPT_DISMISSED = 'memento_review_queue_notify_prompt_dismissed_v1';
+  const OS_NOTIFY_TAG = 'memento-review-queue-pending-grow';
 
   function $(id) {
     return document.getElementById(id);
@@ -382,6 +387,113 @@
     b.setAttribute('aria-hidden', 'false');
   }
 
+
+  function reviewOsNotifyAvailable() {
+    if (!global.isSecureContext) {
+      return false;
+    }
+    return typeof Notification === 'function';
+  }
+
+  function isReviewNotifyPromptDismissed() {
+    try {
+      return !!(global.localStorage && localStorage.getItem(LS_NOTIFY_PROMPT_DISMISSED) === '1');
+    } catch {
+      return true;
+    }
+  }
+
+  function dismissReviewNotifyPrompt() {
+    try {
+      if (global.localStorage) {
+        localStorage.setItem(LS_NOTIFY_PROMPT_DISMISSED, '1');
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function syncReviewNotifyPromptUI() {
+    const wrap = $('rc-notify-prompt');
+    if (!wrap) {
+      return;
+    }
+    if (!reviewOsNotifyAvailable()) {
+      setHidden(wrap, true);
+      return;
+    }
+    if (Notification.permission !== 'default') {
+      setHidden(wrap, true);
+      return;
+    }
+    if (isReviewNotifyPromptDismissed()) {
+      setHidden(wrap, true);
+      return;
+    }
+    setHidden(wrap, false);
+  }
+
+  function wireReviewNotifyPrompt() {
+    if (notifyPromptWired) {
+      return;
+    }
+    notifyPromptWired = true;
+    const enable = $('rc-notify-enable-btn');
+    const dismiss = $('rc-notify-dismiss-btn');
+    if (enable) {
+      enable.addEventListener('click', function () {
+        void (async function () {
+          try {
+            await Notification.requestPermission();
+          } catch {
+            /* ignore */
+          }
+          syncReviewNotifyPromptUI();
+        })();
+      });
+    }
+    if (dismiss) {
+      dismiss.addEventListener('click', function () {
+        dismissReviewNotifyPrompt();
+        syncReviewNotifyPromptUI();
+      });
+    }
+  }
+
+  function tryOsNotifyReviewQueueGrowth(delta) {
+    if (!reviewOsNotifyAvailable()) {
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      return;
+    }
+    if (document.visibilityState !== 'hidden') {
+      return;
+    }
+    const title = 'Memento — Review queue';
+    const body =
+      delta === 1
+        ? 'The pending review queue has 1 new item.'
+        : 'The pending review queue has ' + String(delta) + ' new items.';
+    try {
+      const n = new Notification(title, { body: body, tag: OS_NOTIFY_TAG });
+      n.onclick = function () {
+        try {
+          global.focus();
+        } catch {
+          /* ignore */
+        }
+        try {
+          n.close();
+        } catch {
+          /* ignore */
+        }
+      };
+    } catch {
+      /* OS or browser blocked notification */
+    }
+  }
+
   function showNewCandidatesToast(delta, onReviewTab) {
     const t = $('rc-toast');
     if (!t) {
@@ -578,7 +690,9 @@
 
   async function runPollCycle() {
     const boot = getReviewQueueBoot();
-    if (document.visibilityState === 'hidden') {
+    const allowPollWhenHidden =
+      reviewOsNotifyAvailable() && Notification.permission === 'granted';
+    if (document.visibilityState === 'hidden' && !allowPollWhenHidden) {
       schedulePollAfterMsUnlessSse(boot.pollIntervalMs);
       return;
     }
@@ -609,6 +723,7 @@
       const reviewPanel = $('tab-review-candidates');
       const onReview = !!(reviewPanel && reviewPanel.classList.contains('active'));
       showNewCandidatesToast(delta, onReview);
+      tryOsNotifyReviewQueueGrowth(delta);
       if (!onReview) {
         setReviewTabBadge(n);
       }
@@ -679,10 +794,12 @@
           void postCandidateAction('dismiss');
         });
       }
+      wireReviewNotifyPrompt();
     }
     if (!loadedOnce) {
       loadedOnce = true;
     }
+    syncReviewNotifyPromptUI();
     loadList();
   }
 

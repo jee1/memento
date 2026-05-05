@@ -165,6 +165,23 @@
           <button type="button" id="rc-refresh-btn" class="m-button m-button--secondary">Refresh</button>
         </header>
         <p id="rc-status-line" class="review-candidates-status" aria-live="polite"></p>
+        <div
+          id="rc-notify-prompt"
+          class="rc-notify-prompt hidden"
+          role="region"
+          aria-label="Desktop notifications for the review queue"
+        >
+          <p id="rc-notify-prompt-text" class="rc-notify-prompt__text">
+            Optional: get a system notification when the pending queue grows while this tab is in the
+            background. Alerts only include counts, not memory content.
+          </p>
+          <div class="rc-notify-prompt__actions">
+            <button type="button" id="rc-notify-enable-btn" class="m-button m-button--secondary">
+              Enable system alerts
+            </button>
+            <button type="button" id="rc-notify-dismiss-btn" class="m-button m-button--ghost">Not now</button>
+          </div>
+        </div>
         <div id="rc-loading" class="rc-banner hidden">Loading…</div>
         <div id="rc-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
         <div id="rc-empty" class="rc-banner hidden">No pending review candidates.</div>
