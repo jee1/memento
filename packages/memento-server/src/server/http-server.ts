@@ -25,10 +25,14 @@ type ServerServices
 import Database from 'better-sqlite3';
 import cors from 'cors';
 import express from 'express';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import { join } from 'path';
+import {
+  injectReviewQueueBootIntoDashboardHtml,
+  resolveReviewQueueDashboardBootFromEnv
+} from './review-queue-dashboard-boot.js';
 import type { WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
 import packageJson from '../../package.json' with { type: 'json' };
@@ -217,14 +221,19 @@ export function getHttpAuthMissingAdminKeyWarning(): string {
 // Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
 // 주석 처리된 기존 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
 
-// 대시보드 라우트 (정적 파일 서빙)
+// 대시보드 라우트: Review Queue 폴링 부트를 환경 변수 기준으로 인라인 주입 (#274)
 app.get('/dashboard', (req, res) => {
-  res.sendFile('dashboard.html', { root: staticRoot }, (err) => {
-    if (err) {
-      logger.error('대시보드 파일 로드 실패', { error: err });
-      res.status(404).send('Dashboard not found');
-    }
-  });
+  const dashboardPath = join(staticRoot, 'dashboard.html');
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- staticRoot 하위 고정 파일 dashboard.html
+    const raw = readFileSync(dashboardPath, 'utf8');
+    const boot = resolveReviewQueueDashboardBootFromEnv();
+    const html = injectReviewQueueBootIntoDashboardHtml(raw, boot);
+    res.type('html').send(html);
+  } catch (err) {
+    logger.error('대시보드 파일 로드 실패', { error: err });
+    res.status(404).send('Dashboard not found');
+  }
 });
 
 // 기억 관계 그래프 뷰 (009-memory-graph-view)

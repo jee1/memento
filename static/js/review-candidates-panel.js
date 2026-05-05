@@ -1,12 +1,11 @@
 /**
- * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify)
+ * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll)
  */
 (function (global) {
   'use strict';
 
   const LIST_URL = '/admin/memory/review-candidates?status=pending';
   const REASON_TABLE_MAX = 120;
-  const POLL_INTERVAL_MS = 60 * 1000;
 
   let wired = false;
   let loadedOnce = false;
@@ -16,6 +15,7 @@
   let lastPendingCount = -1;
   let toastHideTimer = null;
   let actionInFlight = false;
+  let pollFailureStreak = 0;
 
   function $(id) {
     return document.getElementById(id);
@@ -402,6 +402,43 @@
     }, 8000);
   }
 
+  function getReviewQueueBoot() {
+    const b = global.__MEMENTO_REVIEW_QUEUE__;
+    const fallbackPoll = 60 * 1000;
+    const pollRaw = b && Number(b.pollIntervalMs);
+    const pollIntervalMs =
+      Number.isFinite(pollRaw) && pollRaw > 0 ? pollRaw : fallbackPoll;
+    const backoffRaw = b && b.pollErrorBackoffMs;
+    const pollErrorBackoffMs = Array.isArray(backoffRaw)
+      ? backoffRaw
+          .map(function (x) {
+            return Number(x);
+          })
+          .filter(function (n) {
+            return Number.isFinite(n) && n > 0;
+          })
+      : [];
+    return { pollIntervalMs: pollIntervalMs, pollErrorBackoffMs: pollErrorBackoffMs };
+  }
+
+  function clearPollTimer() {
+    if (pollTimer !== null) {
+      clearTimeout(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function schedulePollAfterMs(delayMs) {
+    clearPollTimer();
+    const boot = getReviewQueueBoot();
+    const d = Number(delayMs);
+    const safe = Number.isFinite(d) && d > 0 ? d : boot.pollIntervalMs;
+    pollTimer = setTimeout(function () {
+      pollTimer = null;
+      void runPollCycle();
+    }, safe);
+  }
+
   function registerVisibilityForPoll() {
     if (visListenerRegistered) {
       return;
@@ -409,7 +446,7 @@
     visListenerRegistered = true;
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') {
-        runPollTick();
+        void runPollCycle();
       }
     });
   }
@@ -419,12 +456,7 @@
       return;
     }
     registerVisibilityForPoll();
-    pollTimer = setInterval(function () {
-      if (document.visibilityState === 'hidden') {
-        return;
-      }
-      runPollTick();
-    }, POLL_INTERVAL_MS);
+    schedulePollAfterMs(getReviewQueueBoot().pollIntervalMs);
   }
 
   async function fetchReviewCandidateListJson() {
@@ -452,8 +484,25 @@
     renderTable(candidates);
   }
 
-  async function runPollTick() {
+  function scheduleAfterPollFailure(boot) {
+    pollFailureStreak += 1;
+    let delayMs = boot.pollIntervalMs;
+    const steps = boot.pollErrorBackoffMs;
+    if (steps.length > 0) {
+      const idx = Math.min(pollFailureStreak - 1, steps.length - 1);
+      delayMs = steps[idx];
+    }
+    schedulePollAfterMs(delayMs);
+  }
+
+  async function runPollCycle() {
+    const boot = getReviewQueueBoot();
+    if (document.visibilityState === 'hidden') {
+      schedulePollAfterMs(boot.pollIntervalMs);
+      return;
+    }
     if (lastPendingCount < 0) {
+      schedulePollAfterMs(boot.pollIntervalMs);
       return;
     }
     let res;
@@ -463,11 +512,14 @@
       res = r.res;
       body = r.body;
     } catch {
+      scheduleAfterPollFailure(boot);
       return;
     }
     if (!res.ok) {
+      scheduleAfterPollFailure(boot);
       return;
     }
+    pollFailureStreak = 0;
     const candidates = (body && body.candidates) || [];
     const n = candidates.length;
     const prev = lastPendingCount;
@@ -481,10 +533,15 @@
       }
       if (onReview) {
         applyListSuccess(body);
+        schedulePollAfterMs(boot.pollIntervalMs);
         return;
       }
+      lastPendingCount = n;
+      schedulePollAfterMs(boot.pollIntervalMs);
+      return;
     }
     lastPendingCount = n;
+    schedulePollAfterMs(boot.pollIntervalMs);
   }
 
   async function loadList() {
@@ -507,6 +564,7 @@
         return;
       }
       applyListSuccess(body);
+      pollFailureStreak = 0;
       startPollingIfNeeded();
     } catch (e) {
       showLoading(false);
