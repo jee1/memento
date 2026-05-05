@@ -853,6 +853,17 @@ Content-Type: application/json
 | `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` (24h) | Scheduler interval for `memory_review_candidates` in ms (minimum `60000`) |
 | `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | Days added to “now” when the batch computes each row’s `due_at` (1–366) |
 
+
+The dashboard **Review Queue** tab reads polling options from an inline `window.__MEMENTO_REVIEW_QUEUE__` object injected on `GET /dashboard` (GitHub #274).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEMENTO_REVIEW_QUEUE_POLL_INTERVAL_MS` | `60000` | Delay between successful background polls (ms). Invalid/absent values behave like `60000`. The server **clamps** to **10000**–**86400000** (1 day). |
+| `MEMENTO_REVIEW_QUEUE_POLL_ERROR_BACKOFF_MS` | (empty) | Backoff delays after a failed poll attempt, comma-separated (e.g. `60000,120000`). When empty, failures retry on the same interval as successes. Each step is **clamped** to **10000**–**86400000**. |
+
+**Recommendation:** keep the default 60s or increase it for quieter traffic; add gentle error backoff only if your environment sees intermittent admin errors (for example `MEMENTO_REVIEW_QUEUE_POLL_ERROR_BACKOFF_MS=60000,120000`). Do not confuse this with the batch scheduler variable `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS`.
+
+
 Tune **selection sensitivity** with the first three variables; tune **schedule cadence and due dates** with the last two.
 
 ### Performance Monitoring API

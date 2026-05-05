@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { REVIEW_QUEUE_DASHBOARD_BOOT_MARKER } from './review-queue-dashboard-boot.js';
+
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
 const tabsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs.js'), 'utf8');
@@ -14,6 +16,7 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     expect(dashboardHtml).toContain('data-tab="review"');
     expect(dashboardHtml).toContain('id="tab-review-candidates"');
     expect(dashboardHtml).toContain('/static/js/review-candidates-panel.js');
+    expect(dashboardHtml).toContain(REVIEW_QUEUE_DASHBOARD_BOOT_MARKER);
     expect(dashboardHtml).toContain('id="rc-refresh-btn"');
     expect(dashboardHtml).toContain('id="rc-preview-aside"');
     expect(dashboardHtml).toContain('review-candidates-body');
@@ -50,9 +53,10 @@ describe('dashboard review queue poll notify (#255)', () => {
     expect(dashboardHtml).toContain('id="rc-tab-badge"');
   });
 
-  it('review-candidates-panel.js includes polling helpers', () => {
-    expect(panelJs).toContain('POLL_INTERVAL_MS');
-    expect(panelJs).toContain('runPollTick');
+  it('review-candidates-panel.js includes polling helpers (#255, #274)', () => {
+    expect(panelJs).toContain('getReviewQueueBoot');
+    expect(panelJs).toContain('__MEMENTO_REVIEW_QUEUE__');
+    expect(panelJs).toContain('runPollCycle');
     expect(panelJs).toContain('startPollingIfNeeded');
   });
 });

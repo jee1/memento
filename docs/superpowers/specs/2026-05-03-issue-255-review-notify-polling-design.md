@@ -49,7 +49,7 @@
 
 **상수**
 
-- `POLL_INTERVAL_MS = 60_000` (1분). 필요 시 환경별 조정은 후속 이슈.
+- 기본 폴링 간격은 **60초**(클라이언트 폴백 및 서버 미주입 시). 운영 조정은 **#274**: `MEMENTO_REVIEW_QUEUE_POLL_INTERVAL_MS`, `MEMENTO_REVIEW_QUEUE_POLL_ERROR_BACKOFF_MS`(선택) 및 `docs/api/*/api-reference.md` 참고.
 
 **제한**
 

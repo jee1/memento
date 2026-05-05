@@ -975,6 +975,17 @@ Content-Type: application/json
 
 운영 시 **후보 선정 민감도**는 위 표의 앞 세 변수로, **스케줄 간격·마감 시각**은 마지막 두 변수로 조정합니다.
 
+대시보드 **Review Queue** 탭의 백그라운드 폴링은 HTTP 서버가 `GET /dashboard` HTML에 `window.__MEMENTO_REVIEW_QUEUE__`를 인라인으로 주입해 적용합니다(GitHub #274).
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `MEMENTO_REVIEW_QUEUE_POLL_INTERVAL_MS` | `60000` | 성공한 폴링 사이의 대기 시간(ms). 잘못된 값·미설정은 `60000`과 동일하게 취급. 서버는 **10000**~**86400000**(1일)로 클램프 |
+| `MEMENTO_REVIEW_QUEUE_POLL_ERROR_BACKOFF_MS` | (비어 있음) | 연속 폴링 실패 시 대기(ms). 쉼표 구분 목록(예: `60000,120000`). 비어 있으면 실패 후에도 성공 시와 동일 간격(`MEMENTO_REVIEW_QUEUE_POLL_INTERVAL_MS`)으로만 재시도. 각 값도 **10000**~**86400000**로 클램프 |
+
+**권장:** 운영에서는 기본 60초를 유지하거나 늘리고, 오류 시에만 완만한 백오프를 두려면 `MEMENTO_REVIEW_QUEUE_POLL_ERROR_BACKOFF_MS=60000,120000`처럼 설정합니다(배치 `memory_review_candidates`와 혼동하지 말 것).
+
+
+
 ### 성능 모니터링 API
 
 #### 성능 통계
