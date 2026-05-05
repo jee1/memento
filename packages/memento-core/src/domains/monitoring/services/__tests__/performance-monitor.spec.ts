@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
+import os from 'os';
+import { logger } from '../../../../shared/utils/logger.js';
 
 const toBytes = (mb: number): number => mb * 1024 * 1024;
 
@@ -210,5 +212,162 @@ describe('PerformanceMonitor analytics', () => {
     expect(analytics.database.growthRate).toBeGreaterThan(0);
     expect(analytics.search.totalSearches).toBe(20);
     expect(analytics.search.vectorShare).toBeCloseTo(8 / (8 + 8 + 4));
+  });
+});
+
+describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function makeMonitor(thresholds?: { memoryUsagePercent?: number; cpuUsagePercent?: number }) {
+    return new PerformanceMonitor(thresholds);
+  }
+
+  it('V8 힙 충전율이 높아도 rss가 낮으면 알림을 생성하지 않는다', async () => {
+    const totalMem = 8 * 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 30 * 1024 * 1024,
+      heapTotal: 32 * 1024 * 1024,
+      heapUsed: 30 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = makeMonitor({ memoryUsagePercent: 85 });
+    await monitor.collectMetrics();
+
+    const alerts = monitor.getActiveAlerts().filter(a => a.type === 'memory');
+    expect(alerts).toHaveLength(0);
+  });
+
+  it('heapUsed/heapTotal < 85%이지만 rss/totalmem > 85%이면 알림을 생성한다', async () => {
+    const totalMem = 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: Math.round(totalMem * 0.9),
+      heapTotal: Math.round(totalMem * 0.4),
+      heapUsed: Math.round(totalMem * 0.3),
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = makeMonitor({ memoryUsagePercent: 85 });
+    await monitor.collectMetrics();
+
+    const alerts = monitor.getActiveAlerts().filter(a => a.type === 'memory');
+    expect(alerts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('os.totalmem()이 0이면 알림을 생성하지 않고 오류도 없다', async () => {
+    vi.spyOn(os, 'totalmem').mockReturnValue(0);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 500 * 1024 * 1024,
+      heapTotal: 600 * 1024 * 1024,
+      heapUsed: 500 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = makeMonitor({ memoryUsagePercent: 85 });
+    await expect(monitor.collectMetrics()).resolves.not.toThrow();
+    const alerts = monitor.getActiveAlerts().filter(a => a.type === 'memory');
+    expect(alerts).toHaveLength(0);
+  });
+
+  it('memory: 알림 발생 후 조건 해소 시 auto-resolve, 재발생 시 새 알림 생성', async () => {
+    const totalMem = 1024 * 1024 * 1024;
+    const memMock = vi.spyOn(process, 'memoryUsage');
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    const monitor = makeMonitor({ memoryUsagePercent: 85 });
+
+    memMock.mockReturnValue({
+      rss: Math.round(totalMem * 0.9),
+      heapTotal: totalMem,
+      heapUsed: Math.round(totalMem * 0.9),
+      external: 0,
+      arrayBuffers: 0
+    });
+    await monitor.collectMetrics();
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'memory')).toHaveLength(1);
+
+    memMock.mockReturnValue({
+      rss: Math.round(totalMem * 0.5),
+      heapTotal: totalMem,
+      heapUsed: Math.round(totalMem * 0.5),
+      external: 0,
+      arrayBuffers: 0
+    });
+    await monitor.collectMetrics();
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'memory')).toHaveLength(0);
+
+    memMock.mockReturnValue({
+      rss: Math.round(totalMem * 0.9),
+      heapTotal: totalMem,
+      heapUsed: Math.round(totalMem * 0.9),
+      external: 0,
+      arrayBuffers: 0
+    });
+    await monitor.collectMetrics();
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'memory')).toHaveLength(1);
+  });
+
+  it('cpu: 알림 발생 후 조건 해소 시 auto-resolve, 재발생 시 새 알림 생성', async () => {
+    vi.spyOn(os, 'totalmem').mockReturnValue(8 * 1024 * 1024 * 1024);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 100 * 1024 * 1024,
+      heapTotal: 200 * 1024 * 1024,
+      heapUsed: 100 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = makeMonitor({ cpuUsagePercent: 10 });
+    await monitor.collectMetrics();
+    monitor.clearAlerts();
+
+    const baseMetrics = await monitor.collectMetrics();
+    monitor.clearAlerts();
+
+    const highCpuMetrics = { ...baseMetrics, cpu: { ...baseMetrics.cpu, percent: 80 } };
+    const lowCpuMetrics  = { ...baseMetrics, cpu: { ...baseMetrics.cpu, percent: 5  } };
+
+    await (monitor as any).checkAlerts(highCpuMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(1);
+
+    await (monitor as any).checkAlerts(lowCpuMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(0);
+
+    await (monitor as any).checkAlerts(highCpuMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(1);
+  });
+
+  it('critical alert는 logger.warn을 사용하고 logger.error를 사용하지 않는다', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    const errorSpy = vi.spyOn(logger, 'error');
+
+    const totalMem = 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: Math.round(totalMem * 0.95),
+      heapTotal: totalMem,
+      heapUsed: Math.round(totalMem * 0.95),
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = makeMonitor({ memoryUsagePercent: 85 });
+    await monitor.collectMetrics();
+
+    const criticalWarnCalls = warnSpy.mock.calls.filter(
+      args => args[0] === 'Critical performance alert handling'
+    );
+    const criticalErrorCalls = errorSpy.mock.calls.filter(
+      args => args[0] === 'Critical performance alert handling'
+    );
+
+    expect(criticalWarnCalls.length).toBeGreaterThanOrEqual(1);
+    expect(criticalErrorCalls).toHaveLength(0);
   });
 });
