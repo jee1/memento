@@ -29,12 +29,12 @@
 - `GET /mcp`: SSE 스트림을 열고 서버가 생성한 `sessionId`를 `event: endpoint`로 전달
 - `POST /messages?sessionId=...`: 해당 `sessionId`에 연결된 SSE transport를 통해 JSON-RPC 응답을 스트림으로 돌려줌
 
-문제는 [mcp.routes.ts](/home/jee1lee/git/memento/.worktrees/issue-271-investigation/packages/memento-server/src/server/routes/mcp.routes.ts:572) 에서 세션이 없을 때 현재 동작이 다음과 같다는 점이다.
+문제는 [mcp.routes.ts](../../../packages/memento-server/src/server/routes/mcp.routes.ts) 에서 세션이 없을 때 현재 동작이 다음과 같다는 점이다.
 
 - HTTP 응답: `404 Session not found`
 - 애플리케이션 로그: `logger.error('No active transport found for session ID', { sessionId })`
 
-한편 [detectors.ts](/home/jee1lee/git/memento/.worktrees/issue-271-investigation/scripts/log-issue-monitor/detectors.ts:29)는 모든 `error` 레벨 앱 로그를 즉시 운영 이슈 후보로 본다. 이 조합 때문에 실제 서버 장애가 아닌 다음 케이스도 GitHub 이슈로 승격된다.
+한편 [detectors.ts](../../../scripts/log-issue-monitor/detectors.ts)는 모든 `error` 레벨 앱 로그를 즉시 운영 이슈 후보로 본다. 이 조합 때문에 실제 서버 장애가 아닌 다음 케이스도 GitHub 이슈로 승격된다.
 
 - 클라이언트가 이미 종료된 SSE 세션으로 `/messages`를 재호출
 - 잘못된 세션 ID를 수동 또는 테스트 코드가 호출
@@ -77,7 +77,7 @@
 
 ### 5.2 서버 라우터 변경
 
-대상: [mcp.routes.ts](/home/jee1lee/git/memento/.worktrees/issue-271-investigation/packages/memento-server/src/server/routes/mcp.routes.ts:561)
+대상: [mcp.routes.ts](../../../packages/memento-server/src/server/routes/mcp.routes.ts)
 
 `transport`가 없는 분기에서 다음과 같이 조정한다.
 
@@ -113,7 +113,7 @@
 
 대상 후보:
 
-- [mcp.routes.streamable-http.spec.ts](/home/jee1lee/git/memento/.worktrees/issue-271-investigation/packages/memento-server/src/server/mcp.routes.streamable-http.spec.ts)
+- [mcp.routes.streamable-http.spec.ts](../../../packages/memento-server/src/server/mcp.routes.streamable-http.spec.ts)
 - 또는 라우터 단위 스펙 파일
 
 추가 케이스:
