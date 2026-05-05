@@ -110,6 +110,7 @@ function openSse(
 
 describe('mcp.routes streamable_http', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
     vi.resetModules();
   });
@@ -251,6 +252,39 @@ describe('mcp.routes streamable_http', () => {
           data: '서비스가 초기화되지 않았습니다'
         }
       });
+    } finally {
+      await close();
+    }
+  });
+
+  it('POST /messages with an unknown session should return 404 and log an inactive-session warning', async () => {
+    const currentCore: typeof import('@memento/core') = await import('@memento/core');
+    const errorSpy = vi.spyOn(currentCore.logger, 'error').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(currentCore.logger, 'warn').mockImplementation(() => undefined);
+    const { port, close } = await listenWithMcpRouter();
+
+    try {
+      const res = await postJsonRpc(port, '/messages?sessionId=test123', {
+        jsonrpc: '2.0',
+        id: 99,
+        method: 'initialize',
+        params: {}
+      });
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toBe('Session not found');
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        'No active transport found for session ID',
+        expect.anything()
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        'MCP message received for inactive or unknown session',
+        expect.objectContaining({
+          sessionId: 'test123',
+          reason: 'inactive_session',
+          method: 'initialize'
+        })
+      );
     } finally {
       await close();
     }
