@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-05-04)
+# Graph Report - .  (2026-05-05)
 
 ## Corpus Check
-- 912 files · ~1,342,445 words
+- 912 files · ~1,343,689 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4635 nodes · 5707 edges · 909 communities detected
+- 4636 nodes · 5710 edges · 909 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1206,52 +1206,52 @@ Cohesion: 0.13
 Nodes (7): AnchorError, AnchorNotFoundError, DatabaseValidationError, EmbeddingNotFoundError, MemoryNotFoundError, ServiceNotInitializedError, VectorDimensionMismatchError
 
 ### Community 67 - "Community 67"
+Cohesion: 0.26
+Nodes (1): VectorSearchRepositoryImpl
+
+### Community 68 - "Community 68"
 Cohesion: 0.16
 Nodes (1): VectorSearchFacade
 
-### Community 68 - "Community 68"
+### Community 69 - "Community 69"
 Cohesion: 0.13
 Nodes (1): SpacedRepetitionAlgorithmRefactored
 
-### Community 69 - "Community 69"
+### Community 70 - "Community 70"
 Cohesion: 0.15
 Nodes (1): TelemetryService
 
-### Community 70 - "Community 70"
+### Community 71 - "Community 71"
 Cohesion: 0.22
 Nodes (1): MetaMemoryService
 
-### Community 71 - "Community 71"
+### Community 72 - "Community 72"
 Cohesion: 0.23
 Nodes (1): MemoryEmbeddingService
 
-### Community 72 - "Community 72"
+### Community 73 - "Community 73"
 Cohesion: 0.19
 Nodes (1): ErrorLoggingService
 
-### Community 73 - "Community 73"
+### Community 74 - "Community 74"
 Cohesion: 0.14
 Nodes (2): handleFailure(), logError()
 
-### Community 74 - "Community 74"
+### Community 75 - "Community 75"
 Cohesion: 0.2
 Nodes (7): generateSampleEmbeddings(), generateSampleMemoryItems(), generateScenarioBasedTestData(), generateSeededEmbeddings(), initializeTestDatabase(), SeededRandom, seedTestDatabase()
 
-### Community 75 - "Community 75"
+### Community 76 - "Community 76"
 Cohesion: 0.48
 Nodes (14): checkDependencies(), checkNodeVersion(), createDataDirectory(), createEnvFile(), createStartScripts(), initializeDatabase(), log(), logError() (+6 more)
 
-### Community 76 - "Community 76"
+### Community 77 - "Community 77"
 Cohesion: 0.23
 Nodes (1): ConsolidationScoreFieldsMigration
 
-### Community 77 - "Community 77"
+### Community 78 - "Community 78"
 Cohesion: 0.15
 Nodes (1): JobQueue
-
-### Community 78 - "Community 78"
-Cohesion: 0.26
-Nodes (1): VectorSearchRepositoryImpl
 
 ### Community 79 - "Community 79"
 Cohesion: 0.23
