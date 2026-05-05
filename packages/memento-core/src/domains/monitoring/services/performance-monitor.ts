@@ -184,9 +184,7 @@ export class PerformanceMonitor {
 
     // 메모리 사용률 검사
     const totalSystemMemory = os.totalmem();
-    const memoryUsagePercent = totalSystemMemory > 0
-      ? (metrics.memory.rss / totalSystemMemory) * 100
-      : 0;
+    const memoryUsagePercent = metrics.memory.usagePercent;
     if (memoryUsagePercent > this.thresholds.memoryUsagePercent) {
       const alertId = `memory-${now.getTime()}`;
       const severity = memoryUsagePercent > 90 ? 'critical' : 'warning';
@@ -957,13 +955,13 @@ export class PerformanceMonitor {
    * 심각한 알림 처리
    */
   private async handleCriticalAlert(alert: PerformanceAlert, metrics: PerformanceMetrics): Promise<void> {
-    const _totalMem = os.totalmem();
+    const totalMem = os.totalmem();
     logger.warn('Critical performance alert handling', {
       alert,
       metrics: {
         memoryUsage: alert.type === 'memory'
           ? alert.value
-          : (_totalMem > 0 ? (metrics.memory.rss / _totalMem) * 100 : 0),
+          : (totalMem > 0 ? (metrics.memory.rss / totalMem) * 100 : 0),
         dbSize: metrics.database.size / (1024 * 1024),
         queryTime: metrics.database.queryTime
       }
