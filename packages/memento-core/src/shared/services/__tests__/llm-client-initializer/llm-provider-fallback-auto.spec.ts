@@ -19,8 +19,7 @@ describe('LLMClientInitializer', () => {
        * Given: LLM_PROVIDER='auto'이고 OpenAI API 키가 있음
        * When: initialize() 메서드를 호출함
        * Then: preferredProvider가 'openai'로 설정되어야 함 (첫 번째 우선순위)
-       * 
-       * Note: 현재 구현에서는 'auto' provider 선택 로직이 없으므로 이 테스트는 실패할 것임 (RED 단계)
+       * And: Ollama 프로브는 생략되어 fetch가 호출되지 않아야 함 (#261)
        */
       it('should select OpenAI as preferredProvider when OpenAI is available (first priority)', async () => {
         // Given: LLM_PROVIDER='auto'이고 OpenAI API 키가 있음
@@ -48,17 +47,16 @@ describe('LLMClientInitializer', () => {
         const result = await initializer.initialize();
 
         // Then: preferredProvider가 'openai'로 설정되어야 함 (첫 번째 우선순위)
-        // 현재 구현에서는 'auto' provider 선택 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
         expect(result.preferredProvider).toBe('openai');
         expect(result.openaiClient).not.toBeNull();
+        expect(mockFetch).not.toHaveBeenCalled();
       });
 
       /**
        * Given: LLM_PROVIDER='auto'이고 OpenAI API 키가 없지만 Gemini API 키가 있음
        * When: initialize() 메서드를 호출함
        * Then: preferredProvider가 'gemini'로 설정되어야 함 (두 번째 우선순위)
-       * 
-       * Note: 현재 구현에서는 'auto' provider 선택 로직이 없으므로 이 테스트는 실패할 것임 (RED 단계)
+       * And: Ollama 프로브는 생략되어 fetch가 호출되지 않아야 함 (#261)
        */
       it('should select Gemini as preferredProvider when OpenAI is not available but Gemini is available (second priority)', async () => {
         // Given: LLM_PROVIDER='auto'이고 OpenAI API 키가 없지만 Gemini API 키가 있음
@@ -86,10 +84,10 @@ describe('LLMClientInitializer', () => {
         const result = await initializer.initialize();
 
         // Then: preferredProvider가 'gemini'로 설정되어야 함 (두 번째 우선순위)
-        // 현재 구현에서는 'auto' provider 선택 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
         expect(result.preferredProvider).toBe('gemini');
         expect(result.openaiClient).toBeNull();
         expect(result.geminiClient).not.toBeNull();
+        expect(mockFetch).not.toHaveBeenCalled();
       });
 
       /**

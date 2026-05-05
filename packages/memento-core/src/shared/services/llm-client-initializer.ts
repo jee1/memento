@@ -86,9 +86,13 @@ export class LLMClientInitializer {
     result.openaiClient = this.initializeOpenAI(result, selectedProvider);
     result.geminiClient = this.initializeGemini(result, selectedProvider);
 
-    // Ollama 연결 테스트 (필요한 경우에만)
-    if (selectedProvider === 'ollama' || selectedProvider === 'auto') {
+    // Ollama 연결 테스트: ollama 모드는 항상; auto는 클라우드 클라이언트가 없을 때만 (이슈 #261)
+    if (selectedProvider === 'ollama') {
       await this.testOllamaConnection(result, selectedProvider);
+    } else if (selectedProvider === 'auto') {
+      if (result.openaiClient === null && result.geminiClient === null) {
+        await this.testOllamaConnection(result, selectedProvider);
+      }
     }
 
     // preferredProvider 설정
