@@ -132,7 +132,8 @@ export class PerformanceMonitor {
     // 시스템 지표
     const _systemMetrics = this.getSystemMetrics();
 
-    const memoryUsagePercent = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
+    const totalSystemMemory = os.totalmem();
+    const memoryUsagePercent = totalSystemMemory > 0 ? (memUsage.rss / totalSystemMemory) * 100 : 0;
     // tick=true: scheduled baseline 갱신 / tick=false: on-demand baseline만 갱신
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
@@ -182,7 +183,15 @@ export class PerformanceMonitor {
     const now = new Date();
 
     // 메모리 사용률 검사
-    const memoryUsagePercent = (metrics.memory.heapUsed / metrics.memory.heapTotal) * 100;
+    const totalSystemMemory = os.totalmem();
+    const memoryUsagePercent = metrics.memory.usagePercent;
+    if (memoryUsagePercent <= this.thresholds.memoryUsagePercent) {
+      // 조건 해소 시 알림을 시스템이 자동 해제한다. resolveAlert()의 acknowledgeAlert() 연쇄 호출은
+      // 알림 서비스에서 해당 알림을 제거하기 위한 의도된 동작이다.
+      const existing = Array.from(this.alerts.values())
+        .find(a => a.type === 'memory' && !a.resolved);
+      if (existing) this.resolveAlert(existing.id);
+    }
     if (memoryUsagePercent > this.thresholds.memoryUsagePercent) {
       const alertId = `memory-${now.getTime()}`;
       const severity = memoryUsagePercent > 90 ? 'critical' : 'warning';
@@ -196,7 +205,7 @@ export class PerformanceMonitor {
           id: alertId,
           type: 'memory',
           severity,
-          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% (${this.formatBytes(metrics.memory.heapUsed)}/${this.formatBytes(metrics.memory.heapTotal)})`,
+          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% RSS (${this.formatBytes(metrics.memory.rss)} / ${this.formatBytes(totalSystemMemory)})`,
           value: memoryUsagePercent,
           threshold: this.thresholds.memoryUsagePercent,
           timestamp: now,
@@ -205,7 +214,7 @@ export class PerformanceMonitor {
       }
     }
 
-    // 데이터베이스 크기 검사
+    // 데이터베이스 크기 검사 — DB 크기는 VACUUM 없이 자연히 감소하지 않으므로 auto-resolve를 지원하지 않는다.
     const dbSizeMB = metrics.database.size / (1024 * 1024);
     if (dbSizeMB > this.thresholds.databaseSizeMB) {
       const alertId = `database-${now.getTime()}`;
@@ -228,7 +237,7 @@ export class PerformanceMonitor {
       }
     }
 
-    // 쿼리 시간 검사
+    // 쿼리 시간 검사 — 순간 측정값으로 감소를 신뢰할 수 없어 auto-resolve를 지원하지 않는다.
     if (metrics.database.queryTime > this.thresholds.queryTimeMs) {
       const alertId = `query-${now.getTime()}`;
       const severity = metrics.database.queryTime > this.thresholds.queryTimeMs * 2 ? 'critical' : 'warning';
@@ -252,6 +261,12 @@ export class PerformanceMonitor {
 
     // CPU 사용률 검사
     const cpuUsagePercent = metrics.cpu.percent;
+    if (cpuUsagePercent <= this.thresholds.cpuUsagePercent) {
+      // memory와 동일: 조건 해소 시 시스템 auto-resolve. acknowledgeAlert() 연쇄는 의도된 동작.
+      const existing = Array.from(this.alerts.values())
+        .find(a => a.type === 'cpu' && !a.resolved);
+      if (existing) this.resolveAlert(existing.id);
+    }
     if (cpuUsagePercent > this.thresholds.cpuUsagePercent) {
       const alertId = `cpu-${now.getTime()}`;
       const severity = cpuUsagePercent > 90 ? 'critical' : 'warning';
@@ -953,10 +968,13 @@ export class PerformanceMonitor {
    * 심각한 알림 처리
    */
   private async handleCriticalAlert(alert: PerformanceAlert, metrics: PerformanceMetrics): Promise<void> {
-    logger.error('Critical performance alert handling', {
+    const totalMem = os.totalmem();
+    logger.warn('Critical performance alert handling', {
       alert,
       metrics: {
-        memoryUsage: (metrics.memory.heapUsed / metrics.memory.heapTotal) * 100,
+        memoryUsage: alert.type === 'memory'
+          ? alert.value
+          : (totalMem > 0 ? (metrics.memory.rss / totalMem) * 100 : 0),
         dbSize: metrics.database.size / (1024 * 1024),
         queryTime: metrics.database.queryTime
       }
