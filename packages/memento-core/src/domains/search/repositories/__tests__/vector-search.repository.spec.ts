@@ -134,6 +134,44 @@ describe('VectorSearchRepositoryImpl', () => {
       logSpy.mockRestore();
     });
 
+    it('minilm은 memory_embedding dimensions 메타 오염(512 우세)이어도 384 vec0와 쿼리 차원이 맞아야 함 (issue #279)', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+      const emb384 = JSON.stringify(new Array(384).fill(0.01));
+      const insertItem = db.prepare(
+        `INSERT INTO memory_item (id, type, content, triple_extracted) VALUES (?, 'episodic', ?, 0)`
+      );
+      const insertEmb = db.prepare(
+        `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
+         VALUES (?, ?, ?, 'minilm', ?)`
+      );
+      for (let i = 0; i < 3; i += 1) {
+        const id = `minilm-bad-meta-${i}`;
+        insertItem.run(id, `content ${i}`);
+        insertEmb.run(id, emb384, 384, 512);
+      }
+
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.03),
+        provider: 'minilm'
+      };
+
+      await repository.search(query);
+
+      const dimensionMismatchLogs = logSpy.mock.calls.filter((call) => {
+        if (call[0] !== 'error' || call[1] !== '벡터 검색 실패') {
+          return false;
+        }
+        const payload = call[2] as { error?: string } | undefined;
+        return Boolean(payload?.error?.includes('Dimension mismatch'));
+      });
+      expect(dimensionMismatchLogs.length).toBe(0);
+
+      logSpy.mockRestore();
+    });
+
     it('옵션을 포함한 쿼리를 처리해야 함', async () => {
       // Given: 옵션을 포함한 쿼리
       const query: VectorSearchQuery = {
