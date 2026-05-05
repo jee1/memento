@@ -186,6 +186,8 @@ export class PerformanceMonitor {
     const totalSystemMemory = os.totalmem();
     const memoryUsagePercent = metrics.memory.usagePercent;
     if (memoryUsagePercent <= this.thresholds.memoryUsagePercent) {
+      // 조건 해소 시 알림을 시스템이 자동 해제한다. resolveAlert()의 acknowledgeAlert() 연쇄 호출은
+      // 알림 서비스에서 해당 알림을 제거하기 위한 의도된 동작이다.
       const existing = Array.from(this.alerts.values())
         .find(a => a.type === 'memory' && !a.resolved);
       if (existing) this.resolveAlert(existing.id);
@@ -212,7 +214,7 @@ export class PerformanceMonitor {
       }
     }
 
-    // 데이터베이스 크기 검사
+    // 데이터베이스 크기 검사 — DB 크기는 VACUUM 없이 자연히 감소하지 않으므로 auto-resolve를 지원하지 않는다.
     const dbSizeMB = metrics.database.size / (1024 * 1024);
     if (dbSizeMB > this.thresholds.databaseSizeMB) {
       const alertId = `database-${now.getTime()}`;
@@ -235,7 +237,7 @@ export class PerformanceMonitor {
       }
     }
 
-    // 쿼리 시간 검사
+    // 쿼리 시간 검사 — 순간 측정값으로 감소를 신뢰할 수 없어 auto-resolve를 지원하지 않는다.
     if (metrics.database.queryTime > this.thresholds.queryTimeMs) {
       const alertId = `query-${now.getTime()}`;
       const severity = metrics.database.queryTime > this.thresholds.queryTimeMs * 2 ? 'critical' : 'warning';
@@ -260,6 +262,7 @@ export class PerformanceMonitor {
     // CPU 사용률 검사
     const cpuUsagePercent = metrics.cpu.percent;
     if (cpuUsagePercent <= this.thresholds.cpuUsagePercent) {
+      // memory와 동일: 조건 해소 시 시스템 auto-resolve. acknowledgeAlert() 연쇄는 의도된 동작.
       const existing = Array.from(this.alerts.values())
         .find(a => a.type === 'cpu' && !a.resolved);
       if (existing) this.resolveAlert(existing.id);
