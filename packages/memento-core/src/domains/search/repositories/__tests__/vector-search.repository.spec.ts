@@ -62,6 +62,34 @@ describe('VectorSearchRepositoryImpl', () => {
     });
   });
 
+  describe('checkVecAvailability (partial vec schema)', () => {
+    it('tfidf vec 테이블 없이 minilm vec 테이블만 있어도 VEC를 사용 가능으로 판정해야 함', async () => {
+      const testDb = new Database(':memory:');
+      try {
+        const { getLoadablePath } = await import('sqlite-vec');
+        testDb.loadExtension(getLoadablePath());
+      } catch {
+        testDb.close();
+        return;
+      }
+
+      try {
+        testDb.exec(`
+          CREATE VIRTUAL TABLE memory_item_vec_minilm
+          USING vec0(embedding float[384])
+        `);
+      } catch (error) {
+        console.warn('VEC 확장 테이블 생성 실패, 테스트 스킵:', error);
+        testDb.close();
+        return;
+      }
+
+      const repo = new VectorSearchRepositoryImpl(testDb);
+      expect(repo.checkVecAvailability()).toBe(true);
+      testDb.close();
+    });
+  });
+
   describe('search', () => {
     it('검색 결과가 배열 형태여야 함', async () => {
       // Given: 384차원 벡터 (tfidf 기본 차원)

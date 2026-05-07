@@ -64,36 +64,69 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     }
 
     try {
-      const runtimeContext = this.resolveRuntimeVectorContext();
-      if (!this.isVecTableRegistered(runtimeContext.tableName)) {
-        mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', {
-          category: 'VEC_UNAVAILABLE',
-          error: `no vec table registered: ${runtimeContext.tableName}`
+      const hasAnyWhitelistedVecTable = this.db.prepare(`
+        SELECT 1 as ok FROM sqlite_master
+        WHERE type IN ('table', 'virtual')
+          AND name IN (
+            'memory_item_vec',
+            'memory_item_vec_tfidf',
+            'memory_item_vec_minilm',
+            'memory_item_vec_openai',
+            'memory_item_vec_gemini'
+          )
+        LIMIT 1
+      `);
+      const anyRow =
+        typeof hasAnyWhitelistedVecTable.get === 'function'
+          ? (hasAnyWhitelistedVecTable.get() as { ok: number } | undefined)
+          : undefined;
+      if (!anyRow) {
+        mcpLogger.logServer('warn', 'VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.', {
+          category: 'VEC_UNAVAILABLE'
         });
         this.isVecAvailable = false;
         return false;
       }
-      const testStatement = this.db.prepare(
-        `SELECT distance FROM ${runtimeContext.tableName} WHERE embedding MATCH ? LIMIT 0`
-      );
 
-      if (typeof testStatement.get !== 'function') {
-        mcpLogger.logServer('warn', 'VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.', {
-          category: 'VEC_UNAVAILABLE',
-          provider: runtimeContext.provider,
-          tableName: runtimeContext.tableName,
-          expectedDimensions: runtimeContext.expectedDimensions,
-          targetDimensions: runtimeContext.targetDimensions
-        });
-        this.isVecAvailable = false;
-        return false;
+      // tfidf 기본 resolve 한 번만 preflight하면 다른 provider 전용 vec 테이블만 있는 DB에서
+      // isVecAvailable이 false로 고정되는 회귀가 생길 수 있음(issue #278 review).
+      const vecProbeProviders = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const;
+      let lastError: string | undefined;
+
+      for (const probeProvider of vecProbeProviders) {
+        const runtimeContext = this.resolveRuntimeVectorContext(probeProvider);
+        if (!this.isVecTableRegistered(runtimeContext.tableName)) {
+          continue;
+        }
+        try {
+          const testStatement = this.db.prepare(
+            `SELECT distance FROM ${runtimeContext.tableName} WHERE embedding MATCH ? LIMIT 0`
+          );
+
+          if (typeof testStatement.get !== 'function') {
+            lastError = 'VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.';
+            continue;
+          }
+
+          testStatement.get(JSON.stringify(new Array(runtimeContext.targetDimensions).fill(0)));
+
+          this.isVecAvailable = true;
+          mcpLogger.logServer('info', 'VEC (Vector Search) 사용 가능', {
+            provider: runtimeContext.provider,
+            tableName: runtimeContext.tableName
+          });
+          return true;
+        } catch (probeErr) {
+          lastError = probeErr instanceof Error ? probeErr.message : String(probeErr);
+        }
       }
 
-      testStatement.get(JSON.stringify(new Array(runtimeContext.targetDimensions).fill(0)));
-
-      this.isVecAvailable = true;
-      mcpLogger.logServer('info', 'VEC (Vector Search) 사용 가능');
-      return true;
+      mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', {
+        category: 'VEC_UNAVAILABLE',
+        error: lastError ?? 'no vec table succeeded for any known embedding provider'
+      });
+      this.isVecAvailable = false;
+      return false;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', {

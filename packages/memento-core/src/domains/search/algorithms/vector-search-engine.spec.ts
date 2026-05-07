@@ -9,6 +9,32 @@ import Database from 'better-sqlite3';
 
 // Mock Database - removed global mock to avoid conflicts with individual mocks
 
+/** Registry names used by VectorSearchRepositoryImpl bulk sqlite_master probe */
+const WHITELISTED_VEC_MASTER_NAMES = [
+  'memory_item_vec',
+  'memory_item_vec_tfidf',
+  'memory_item_vec_minilm',
+  'memory_item_vec_openai',
+  'memory_item_vec_gemini',
+] as const;
+
+function sqliteMasterPreparedMock(sql: string, tableRows: Array<{ name: string }>) {
+  const registered = new Set(tableRows.map((row) => row.name));
+  const hasWhitelisted = [...registered].some((name) =>
+    (WHITELISTED_VEC_MASTER_NAMES as readonly string[]).includes(name)
+  );
+  return {
+    all: vi.fn().mockReturnValue(tableRows),
+    get: vi.fn().mockImplementation((bound?: unknown) => {
+      if (typeof bound === 'string' && sql.includes('AND name = ?')) {
+        return registered.has(bound) ? { ok: 1 } : undefined;
+      }
+      // Bulk IN (...) probe: `.get()` is called without bound parameters (issue #278 / multi-provider preflight).
+      return hasWhitelisted ? { ok: 1 } : undefined;
+    }),
+  };
+}
+
 describe('VectorSearchEngine', () => {
   let vectorEngine: VectorSearchEngine;
   const createMockVectorRows = (provider: string, count: number) => Array.from({ length: count }, (_, idx) => ({
@@ -29,12 +55,7 @@ describe('VectorSearchEngine', () => {
     return (sql: string) => {
       if (sql.includes('sqlite_master')) {
         const tableRows = [{ name: 'memory_item_vec_tfidf' }, { name: 'memory_item_vec' }];
-        return {
-          all: vi.fn().mockReturnValue(tableRows),
-          get: vi.fn().mockImplementation((tableName: string) =>
-            tableRows.some((row) => row.name === tableName) ? { ok: 1 } : undefined
-          )
-        };
+        return sqliteMasterPreparedMock(sql, tableRows);
       }
       if (sql.includes('COUNT(*)')) {
         return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -68,18 +89,12 @@ describe('VectorSearchEngine', () => {
     };
   };
 
-  const mockSqliteMaster = (...tableNames: string[]) => {
-    const tableRows = tableNames.map((name) => ({ name }));
-    return {
-      all: vi.fn().mockReturnValue(tableRows),
-      get: vi.fn().mockImplementation((tableName: string) =>
-        tableRows.some((row) => row.name === tableName) ? { ok: 1 } : undefined
-      )
-    };
-  };
+  const mockSqliteMaster = (sql: string, ...tableNames: string[]) =>
+    sqliteMasterPreparedMock(sql, tableNames.map((name) => ({ name })));
 
   /** tfidf preflight는 legacy 384(memory_item_vec)과 512(tfidf) 테이블을 모두 확인할 수 있음 */
-  const defaultTfidfVecRegistry = () => mockSqliteMaster('memory_item_vec_tfidf', 'memory_item_vec');
+  const defaultTfidfVecRegistry = (sql: string) =>
+    mockSqliteMaster(sql, 'memory_item_vec_tfidf', 'memory_item_vec');
 
   beforeEach(() => {
     // 싱글톤 컨테이너 초기화
@@ -126,7 +141,10 @@ describe('VectorSearchEngine', () => {
     it('VEC 테이블이 없는 경우', () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([]) };
+          return {
+            all: vi.fn().mockReturnValue([]),
+            get: vi.fn().mockReturnValue(undefined),
+          };
         }
         return { get: vi.fn() };
       });
@@ -147,7 +165,7 @@ describe('VectorSearchEngine', () => {
     it('VEC 함수 사용 불가능한 경우', () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -230,7 +248,7 @@ describe('VectorSearchEngine', () => {
       const vectorAllSpy = vi.fn();
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -264,7 +282,10 @@ describe('VectorSearchEngine', () => {
       const unavailableDb = {
         prepare: vi.fn((sql: string) => {
           if (sql.includes('sqlite_master')) {
-            return { all: vi.fn().mockReturnValue([]) };
+            return {
+              all: vi.fn().mockReturnValue([]),
+              get: vi.fn().mockReturnValue(undefined),
+            };
           }
           if (sql.includes('COUNT(*)')) {
             return { get: vi.fn().mockReturnValue({ count: 0 }) };
@@ -333,7 +354,7 @@ describe('VectorSearchEngine', () => {
 
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -457,6 +478,7 @@ describe('VectorSearchEngine', () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
           return mockSqliteMaster(
+            sql,
             'memory_item_vec_tfidf',
             'memory_item_vec',
             `memory_item_vec_${provider}`
@@ -508,7 +530,7 @@ describe('VectorSearchEngine', () => {
       // VEC 사용 가능 상태로 설정
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -618,7 +640,10 @@ describe('VectorSearchEngine', () => {
     it('VEC 사용 불가능한 경우', () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([]) };
+          return {
+            all: vi.fn().mockReturnValue([]),
+            get: vi.fn().mockReturnValue(undefined),
+          };
         }
         return { get: vi.fn() };
       });
@@ -637,14 +662,10 @@ describe('VectorSearchEngine', () => {
           const tableRows = [
             { name: 'memory_item_vec_tfidf' },
             { name: 'memory_item_vec_minilm' },
-            { name: 'memory_item_vec_openai' }
+            { name: 'memory_item_vec_openai' },
+            { name: 'memory_item_vec_gemini' },
           ];
-          return {
-            all: vi.fn().mockReturnValue(tableRows),
-            get: vi.fn().mockImplementation((tableName: string) =>
-              tableRows.some((row) => row.name === tableName) ? { ok: 1 } : undefined
-            )
-          };
+          return sqliteMasterPreparedMock(sql, tableRows);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 5 }) };
@@ -685,7 +706,7 @@ describe('VectorSearchEngine', () => {
     beforeEach(() => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -744,7 +765,7 @@ describe('VectorSearchEngine', () => {
     it('성능 테스트 실패 처리', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -882,7 +903,7 @@ describe('VectorSearchEngine', () => {
     it('잘못된 JSON 태그 처리', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -920,7 +941,7 @@ describe('VectorSearchEngine', () => {
     it('매우 높은 임계값', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -956,7 +977,7 @@ describe('VectorSearchEngine', () => {
     it('매우 낮은 임계값', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -994,7 +1015,7 @@ describe('VectorSearchEngine', () => {
     it('대량 벡터 검색 성능', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -1034,7 +1055,7 @@ describe('VectorSearchEngine', () => {
     it('반복 검색 성능', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return defaultTfidfVecRegistry();
+          return defaultTfidfVecRegistry(sql);
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
