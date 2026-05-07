@@ -65,6 +65,14 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
     try {
       const runtimeContext = this.resolveRuntimeVectorContext();
+      if (!this.isVecTableRegistered(runtimeContext.tableName)) {
+        mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', {
+          category: 'VEC_UNAVAILABLE',
+          error: `no vec table registered: ${runtimeContext.tableName}`
+        });
+        this.isVecAvailable = false;
+        return false;
+      }
       const testStatement = this.db.prepare(
         `SELECT distance FROM ${runtimeContext.tableName} WHERE embedding MATCH ? LIMIT 0`
       );
@@ -615,6 +623,28 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   checkAvailability(): boolean {
     return this.checkVecAvailability();
+  }
+
+  /**
+   * sqlite_master에 vec 테이블이 등록되어 있는지 확인합니다.
+   * 단순한 DB mock이 테이블 부재를 반영하지 못해 preflight가 오탐되는 것을 줄입니다 (issue #278).
+   */
+  private isVecTableRegistered(tableName: string): boolean {
+    if (!this.db) {
+      return false;
+    }
+    try {
+      const statement = this.db.prepare(
+        `SELECT 1 as ok FROM sqlite_master WHERE type IN ('table', 'virtual') AND name = ? LIMIT 1`
+      );
+      if (typeof statement.get !== 'function') {
+        return false;
+      }
+      const row = statement.get(tableName) as { ok: number } | undefined;
+      return row !== undefined;
+    } catch {
+      return false;
+    }
   }
 
   /**

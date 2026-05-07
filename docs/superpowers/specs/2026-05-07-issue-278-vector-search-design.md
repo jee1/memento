@@ -84,6 +84,12 @@ Each log includes provider, table, expected/target/actual dimensions, and error 
 - Existing successful hybrid/vector search scenarios keep passing.
 - No spurious `벡터 검색 실패` errors in normal passing test runs.
 
+## Implementation Notes
+
+- `checkVecAvailability()` resolves the same runtime table as `search`/`hybridSearch` and confirms it is registered in `sqlite_master` before running the vec probe query, which avoids naive mocks (and phantom availability) drifting from real SQLite behavior.
+- Failure logs attach `category` (`VEC_UNAVAILABLE`, `VECTOR_DIMENSION_MISMATCH`, `VECTOR_SQL_EXECUTION_FAILED`) with provider/table/dimension context.
+- Task 3 verification: repository spec suite, entire `packages/memento-core/src/domains/search` Vitest subtree, plus `npm run lint` and `npm run type-check`; `vector-search-engine.spec.ts` mocks were aligned with sqlite_master-bound registration checks.
+
 ## Rollout Plan
 
 1. Implement alignment and categorized diagnostics in repository.

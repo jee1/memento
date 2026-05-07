@@ -28,12 +28,18 @@ describe('VectorSearchEngine', () => {
   const createMockImplementation = (mockResults: any[] = []) => {
     return (sql: string) => {
       if (sql.includes('sqlite_master')) {
-        return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+        const tableRows = [{ name: 'memory_item_vec_tfidf' }, { name: 'memory_item_vec' }];
+        return {
+          all: vi.fn().mockReturnValue(tableRows),
+          get: vi.fn().mockImplementation((tableName: string) =>
+            tableRows.some((row) => row.name === tableName) ? { ok: 1 } : undefined
+          )
+        };
       }
       if (sql.includes('COUNT(*)')) {
         return { get: vi.fn().mockReturnValue({ count: 1 }) };
       }
-      if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+      if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
         return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
       }
       if (sql.includes('SELECT embedding_provider as provider')) {
@@ -61,6 +67,19 @@ describe('VectorSearchEngine', () => {
       return { all: vi.fn().mockReturnValue([]) };
     };
   };
+
+  const mockSqliteMaster = (...tableNames: string[]) => {
+    const tableRows = tableNames.map((name) => ({ name }));
+    return {
+      all: vi.fn().mockReturnValue(tableRows),
+      get: vi.fn().mockImplementation((tableName: string) =>
+        tableRows.some((row) => row.name === tableName) ? { ok: 1 } : undefined
+      )
+    };
+  };
+
+  /** tfidf preflight는 legacy 384(memory_item_vec)과 512(tfidf) 테이블을 모두 확인할 수 있음 */
+  const defaultTfidfVecRegistry = () => mockSqliteMaster('memory_item_vec_tfidf', 'memory_item_vec');
 
   beforeEach(() => {
     // 싱글톤 컨테이너 초기화
@@ -128,12 +147,12 @@ describe('VectorSearchEngine', () => {
     it('VEC 함수 사용 불가능한 경우', () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockImplementation(() => { throw new Error('VEC error'); }) };
         }
         return { get: vi.fn() };
@@ -211,12 +230,12 @@ describe('VectorSearchEngine', () => {
       const vectorAllSpy = vi.fn();
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT embedding_provider as provider')) {
@@ -314,12 +333,12 @@ describe('VectorSearchEngine', () => {
 
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT embedding_provider as provider')) {
@@ -437,7 +456,11 @@ describe('VectorSearchEngine', () => {
 
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: `memory_item_vec_${provider}` }]) };
+          return mockSqliteMaster(
+            'memory_item_vec_tfidf',
+            'memory_item_vec',
+            `memory_item_vec_${provider}`
+          );
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
@@ -485,12 +508,12 @@ describe('VectorSearchEngine', () => {
       // VEC 사용 가능 상태로 설정
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('WITH vector_search AS')) {
@@ -611,16 +634,22 @@ describe('VectorSearchEngine', () => {
     it('다양한 제공자 테이블 확인', () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([
+          const tableRows = [
             { name: 'memory_item_vec_tfidf' },
             { name: 'memory_item_vec_minilm' },
             { name: 'memory_item_vec_openai' }
-          ]) };
+          ];
+          return {
+            all: vi.fn().mockReturnValue(tableRows),
+            get: vi.fn().mockImplementation((tableName: string) =>
+              tableRows.some((row) => row.name === tableName) ? { ok: 1 } : undefined
+            )
+          };
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 5 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         return { get: vi.fn() };
@@ -656,12 +685,12 @@ describe('VectorSearchEngine', () => {
     beforeEach(() => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT dimensions') && sql.includes('FROM memory_embedding') && sql.includes('WHERE embedding_provider')) {
@@ -715,12 +744,12 @@ describe('VectorSearchEngine', () => {
     it('성능 테스트 실패 처리', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT')) {
@@ -853,12 +882,12 @@ describe('VectorSearchEngine', () => {
     it('잘못된 JSON 태그 처리', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT') && sql.includes('FROM memory_item_vec_tfidf')) {
@@ -891,12 +920,12 @@ describe('VectorSearchEngine', () => {
     it('매우 높은 임계값', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT')) {
@@ -927,12 +956,12 @@ describe('VectorSearchEngine', () => {
     it('매우 낮은 임계값', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT') && sql.includes('FROM memory_item_vec_tfidf')) {
@@ -965,12 +994,12 @@ describe('VectorSearchEngine', () => {
     it('대량 벡터 검색 성능', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT')) {
@@ -1005,12 +1034,12 @@ describe('VectorSearchEngine', () => {
     it('반복 검색 성능', async () => {
       mockDb.prepare.mockImplementation((sql: string) => {
         if (sql.includes('sqlite_master')) {
-          return { all: vi.fn().mockReturnValue([{ name: 'memory_item_vec_tfidf' }]) };
+          return defaultTfidfVecRegistry();
         }
         if (sql.includes('COUNT(*)')) {
           return { get: vi.fn().mockReturnValue({ count: 1 }) };
         }
-        if (sql.includes('SELECT distance FROM memory_item_vec_tfidf')) {
+        if (sql.includes('SELECT distance FROM') && /memory_item_vec/i.test(sql)) {
           return { get: vi.fn().mockReturnValue({ distance: 0.5 }) };
         }
         if (sql.includes('SELECT')) {
