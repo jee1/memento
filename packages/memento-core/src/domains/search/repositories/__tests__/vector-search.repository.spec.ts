@@ -172,6 +172,53 @@ describe('VectorSearchRepositoryImpl', () => {
       logSpy.mockRestore();
     });
 
+    it('checkVecAvailability와 search가 동일한 provider/dimension 규칙을 사용해야 함', async () => {
+      const query: VectorSearchQuery = {
+        queryVector: new Array(512).fill(0.03),
+        provider: 'tfidf'
+      };
+
+      const available = repository.checkVecAvailability();
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+
+      await repository.search(query);
+
+      const errorLog = logSpy.mock.calls.find(
+        (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
+      );
+
+      if (available) {
+        const payload = (errorLog?.[2] ?? {}) as { sqlFailure?: unknown };
+        expect(payload.sqlFailure).toBeUndefined();
+      }
+
+      logSpy.mockRestore();
+    });
+
+    it('SQL 실행 실패를 VECTOR_SQL_EXECUTION_FAILED 카테고리로 로깅해야 함', async () => {
+      const prepareSpy = vi.spyOn(db, 'prepare').mockImplementation(() => {
+        throw new Error('simulated sqlite failure');
+      });
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.01),
+        provider: 'minilm'
+      };
+
+      const results = await repository.search(query);
+
+      expect(results).toEqual([]);
+      const errorLogs = logSpy.mock.calls.filter(
+        (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
+      );
+      expect(errorLogs.length).toBe(1);
+      const payload = (errorLogs[0]?.[2] ?? {}) as { category?: string };
+      expect(payload.category).toContain('VECTOR_SQL_EXECUTION_FAILED');
+
+      prepareSpy.mockRestore();
+      logSpy.mockRestore();
+    });
+
     it('옵션을 포함한 쿼리를 처리해야 함', async () => {
       // Given: 옵션을 포함한 쿼리
       const query: VectorSearchQuery = {
