@@ -181,18 +181,21 @@ describe('VectorSearchRepositoryImpl', () => {
       const available = repository.checkVecAvailability();
       const logSpy = vi.spyOn(mcpLogger, 'logServer');
 
-      await repository.search(query);
+      try {
+        if (!available) {
+          // vec extension 미가용 환경에서는 runtime 검증 경로를 건너뛴다.
+          return;
+        }
 
-      const errorLog = logSpy.mock.calls.find(
-        (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
-      );
+        await repository.search(query);
 
-      if (available) {
-        const payload = (errorLog?.[2] ?? {}) as { sqlFailure?: unknown };
-        expect(payload.sqlFailure).toBeUndefined();
+        const vectorSearchFailureLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
+        );
+        expect(vectorSearchFailureLogs).toHaveLength(0);
+      } finally {
+        logSpy.mockRestore();
       }
-
-      logSpy.mockRestore();
     });
 
     it('SQL 실행 실패를 VECTOR_SQL_EXECUTION_FAILED 카테고리로 로깅해야 함', async () => {
@@ -205,18 +208,20 @@ describe('VectorSearchRepositoryImpl', () => {
         provider: 'minilm'
       };
 
-      const results = await repository.search(query);
+      try {
+        const results = await repository.search(query);
 
-      expect(results).toEqual([]);
-      const errorLogs = logSpy.mock.calls.filter(
-        (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
-      );
-      expect(errorLogs.length).toBe(1);
-      const payload = (errorLogs[0]?.[2] ?? {}) as { category?: string };
-      expect(payload.category).toContain('VECTOR_SQL_EXECUTION_FAILED');
-
-      prepareSpy.mockRestore();
-      logSpy.mockRestore();
+        expect(results).toEqual([]);
+        const errorLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
+        );
+        expect(errorLogs.length).toBe(1);
+        const payload = errorLogs[0]?.[2] as { category?: unknown } | undefined;
+        expect(String(payload?.category ?? '')).toContain('VECTOR_SQL_EXECUTION_FAILED');
+      } finally {
+        prepareSpy.mockRestore();
+        logSpy.mockRestore();
+      }
     });
 
     it('옵션을 포함한 쿼리를 처리해야 함', async () => {
