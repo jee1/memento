@@ -199,6 +199,11 @@ describe('VectorSearchRepositoryImpl', () => {
     });
 
     it('SQL 실행 실패를 VECTOR_SQL_EXECUTION_FAILED 카테고리로 로깅해야 함', async () => {
+      // vec 미가용 환경에서는 SQL 실패 경로 검증을 건너뛴다.
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
       const prepareSpy = vi.spyOn(db, 'prepare').mockImplementation(() => {
         throw new Error('simulated sqlite failure');
       });
