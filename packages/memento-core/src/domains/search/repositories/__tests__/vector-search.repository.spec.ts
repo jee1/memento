@@ -77,6 +77,29 @@ describe('VectorSearchRepositoryImpl', () => {
       expect(Array.isArray(results)).toBe(true);
     });
 
+    it('VEC 미가용 시 VEC_UNAVAILABLE 카테고리를 로깅해야 함', async () => {
+      (repository as unknown as { isVecAvailable: boolean }).isVecAvailable = false;
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        provider: 'tfidf'
+      };
+
+      try {
+        const results = await repository.search(query);
+        expect(results).toEqual([]);
+
+        const warningLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'warn' && call[1] === 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.'
+        );
+        expect(warningLogs.length).toBe(1);
+        const payload = warningLogs[0]?.[2] as { category?: unknown } | undefined;
+        expect(payload?.category).toBe('VEC_UNAVAILABLE');
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
     it('벡터 차원이 불일치할 때 빈 배열을 반환해야 함', async () => {
       // Given: 잘못된 차원의 벡터
       const query: VectorSearchQuery = {
@@ -90,6 +113,32 @@ describe('VectorSearchRepositoryImpl', () => {
       // Then: 빈 배열 반환
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBe(0);
+    });
+
+    it('벡터 차원 불일치 시 VECTOR_DIMENSION_MISMATCH 카테고리를 로깅해야 함', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: [0.1, 0.2],
+        provider: 'tfidf'
+      };
+
+      try {
+        const results = await repository.search(query);
+        expect(results).toEqual([]);
+
+        const errorLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'error' && call[1] === '벡터 차원 불일치'
+        );
+        expect(errorLogs.length).toBe(1);
+        const payload = errorLogs[0]?.[2] as { category?: unknown } | undefined;
+        expect(payload?.category).toBe('VECTOR_DIMENSION_MISMATCH');
+      } finally {
+        logSpy.mockRestore();
+      }
     });
 
     it('저장 차원 다수(384)와 네이티브 쿼리(512) 불일치 시 투영으로 벡터 차원 오류를 피해야 함', async () => {
