@@ -1094,6 +1094,7 @@ export class SemanticMemoryUpdateService {
             failureReason: extractionInfo.failureReason,
             steps: extractionInfo.steps
           },
+          updateOnConflict: true, // Issue #301: 관계가 이미 존재하면 업데이트 (upsert)
           allowCyclic: true // Episodic-Semantic 간 양방향 관계 허용
         }
       );
@@ -1116,6 +1117,7 @@ export class SemanticMemoryUpdateService {
             failureReason: extractionInfo.failureReason,
             steps: extractionInfo.steps
           },
+          updateOnConflict: true, // Issue #301: 관계가 이미 존재하면 업데이트 (upsert)
           allowCyclic: true // Episodic-Semantic 간 양방향 관계 허용
         }
       );
