@@ -576,23 +576,30 @@ export class PerformanceMonitor {
 
   /**
    * 메모리 메트릭 조회
+   *
+   * 비율 분모는 `getMemoryPressureDenominatorBytes()`와 동일(cgroup 한도 우선).
+   * - `usagePercent` / `rssUsagePercent`: RSS가 프로세스에 부여된 메모리 예산에서 차지하는 비율(100% 초과 가능).
+   * - `heapShareOfBudgetPercent`: V8 heapUsed가 동일 예산 대비 차지하는 비율이며, **heapUsed/heapTotal(V8 충전률)과는 다름**.
+   * @deprecated `heapUsagePercent` — `heapShareOfBudgetPercent`와 동일 값. 혼동을 피하려면 새 필드만 사용하세요.
    */
   getMemoryMetrics(): {
     heapUsed: number;
     heapTotal: number;
     rss: number;
     external: number;
-    /** RSS ÷ (constrainedMemory ?? os.totalmem()) × 100 — 알림·collectMetrics와 동일 축 */
+    /** RSS ÷ 예산 바이트 × 100 — `collectMetrics`·메모리 알림과 동일 축. 100% 초과 가능 */
     usagePercent: number;
-    /** `usagePercent`와 동일 (명시적 별칭) */
+    /** `usagePercent`와 동일 */
     rssUsagePercent: number;
-    /** heapUsed ÷ 동일 분모 × 100 */
+    /** heapUsed ÷ 예산 바이트 × 100 (V8 heapTotal 대비 충전률 아님) */
+    heapShareOfBudgetPercent: number;
+    /** @deprecated `heapShareOfBudgetPercent`와 동일. 이름이 오해를 부를 수 있어 대체 필드 추가 */
     heapUsagePercent: number;
   } {
     const memUsage = process.memoryUsage();
     const denom = this.getMemoryPressureDenominatorBytes();
     const rssPct = this.memoryRatioToPercent(memUsage.rss, denom);
-    const heapPct = this.memoryRatioToPercent(memUsage.heapUsed, denom);
+    const heapSharePct = this.memoryRatioToPercent(memUsage.heapUsed, denom);
 
     return {
       heapUsed: memUsage.heapUsed,
@@ -601,7 +608,8 @@ export class PerformanceMonitor {
       external: memUsage.external,
       usagePercent: rssPct,
       rssUsagePercent: rssPct,
-      heapUsagePercent: heapPct
+      heapShareOfBudgetPercent: heapSharePct,
+      heapUsagePercent: heapSharePct
     };
   }
 

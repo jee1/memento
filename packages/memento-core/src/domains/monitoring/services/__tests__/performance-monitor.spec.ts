@@ -423,6 +423,24 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     const m = monitor.getMemoryMetrics();
     expect(m.usagePercent).toBeCloseTo(50, 5);
     expect(m.rssUsagePercent).toBeCloseTo(50, 5);
-    expect(m.heapUsagePercent).toBeCloseTo(12.5, 5);
+    expect(m.heapShareOfBudgetPercent).toBeCloseTo(12.5, 5);
+    expect(m.heapUsagePercent).toBe(m.heapShareOfBudgetPercent);
+  });
+
+  it('constrainedMemory가 0이면 os.totalmem() 분모로 폴백한다', () => {
+    const host = 2 * 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(host);
+    vi.spyOn(process as NodeJS.Process & { constrainedMemory: () => number }, 'constrainedMemory').mockReturnValue(0);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: host / 2,
+      heapTotal: host / 4,
+      heapUsed: host / 16,
+      external: 0,
+      arrayBuffers: 0
+    });
+    const monitor = new PerformanceMonitor();
+    const m = monitor.getMemoryMetrics();
+    expect(m.usagePercent).toBeCloseTo(50, 5);
+    expect(m.heapShareOfBudgetPercent).toBeCloseTo(6.25, 5);
   });
 });
