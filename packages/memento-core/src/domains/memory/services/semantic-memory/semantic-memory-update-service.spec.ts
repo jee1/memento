@@ -11,6 +11,7 @@ import type { TripleExtractionResult, Triple } from '../../../../shared/types/tr
 import type { SemanticMemoryUpdateOptions, SemanticMemoryUpdateResult } from './semantic-memory-update-service.js';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { logger } from '../../../../shared/utils/logger.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 
 describe('SemanticMemoryUpdateService', () => {
@@ -150,6 +151,81 @@ describe('SemanticMemoryUpdateService', () => {
       expect(semanticCount).toBe(1);
       const kgCount = (DatabaseUtils.get(db, 'SELECT COUNT(*) as c FROM kg_triple', []) as { c: number }).c;
       expect(kgCount).toBe(1);
+    });
+
+    it('Issue #301: 동일 semantic-episodic 관계 재처리 시 관계 생성 error 로그가 발생하지 않아야 함', async () => {
+      // Given: 동일 Triple로 두 번 처리할 준비
+      const errorSpy = vi.spyOn(logger, 'error');
+      const triple: Triple = { subject: '사용자', predicate: '선호', object: '커피' };
+      const extractionResult: TripleExtractionResult = {
+        triples: [triple],
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      };
+      const firstOptions: SemanticMemoryUpdateOptions = {
+        episodicMemoryId: 'issue301-ep-1',
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
+      };
+      const secondOptions: SemanticMemoryUpdateOptions = {
+        episodicMemoryId: 'issue301-ep-2',
+        episodicImportance: 0.6,
+        confidenceThreshold: 0.25
+      };
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [firstOptions.episodicMemoryId, 'episodic', 'Issue301 episodic 1', 0.5]);
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [secondOptions.episodicMemoryId, 'episodic', 'Issue301 episodic 2', 0.6]);
+
+      // When: 같은 Triple을 두 번 처리
+      const firstResult = await service.updateSemanticMemory(extractionResult, firstOptions);
+      const secondResult = await service.updateSemanticMemory(extractionResult, secondOptions);
+
+      // Then: 관계 생성 실패 error 로그가 없어야 함
+      expect(
+        errorSpy.mock.calls.some((args) => String(args[0]).includes('SemanticMemoryUpdateService: 관계 생성 실패'))
+      ).toBe(false);
+
+      // Then: Semantic memory는 재사용되어야 함
+      expect(firstResult.semanticMemoryIds[0]).toBeDefined();
+      expect(secondResult.semanticMemoryIds[0]).toBe(firstResult.semanticMemoryIds[0]);
+
+      // Then: 두 에피소드 각각에 대해 양방향 관계(extracted_from, supported_by)가 존재해야 함
+      const semanticMemoryId = firstResult.semanticMemoryIds[0];
+      const relationRows = DatabaseUtils.all(db, `
+        SELECT source_id, target_id, relation_type
+        FROM memory_relation
+        WHERE (
+          (source_id = ? AND target_id IN (?, ?))
+          OR
+          (target_id = ? AND source_id IN (?, ?))
+        )
+        AND relation_type IN ('extracted_from', 'supported_by')
+      `, [
+        semanticMemoryId,
+        firstOptions.episodicMemoryId,
+        secondOptions.episodicMemoryId,
+        semanticMemoryId,
+        firstOptions.episodicMemoryId,
+        secondOptions.episodicMemoryId
+      ]) as Array<{ source_id: string; target_id: string; relation_type: string }>;
+
+      expect(relationRows).toHaveLength(4);
+      expect(
+        relationRows.filter((r) =>
+          r.source_id === semanticMemoryId &&
+          (r.target_id === firstOptions.episodicMemoryId || r.target_id === secondOptions.episodicMemoryId) &&
+          r.relation_type === 'extracted_from'
+        )
+      ).toHaveLength(2);
+      expect(
+        relationRows.filter((r) =>
+          r.target_id === semanticMemoryId &&
+          (r.source_id === firstOptions.episodicMemoryId || r.source_id === secondOptions.episodicMemoryId) &&
+          r.relation_type === 'supported_by'
+        )
+      ).toHaveLength(2);
     });
 
     it('중복 Triple 처리 - 기존 Semantic Memory 업데이트', async () => {

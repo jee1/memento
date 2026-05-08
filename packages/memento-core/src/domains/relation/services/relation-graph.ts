@@ -33,6 +33,7 @@ isRelationRow,
 type ExistingRelationRow,
 type RelationRow
 } from '../../../shared/utils/type-guards.js';
+import { CyclicRelationError, DuplicateRelationError } from './relation-errors.js';
 
 /**
  * 관계 그래프 서비스
@@ -222,9 +223,11 @@ export class RelationGraph implements IRelationGraph {
           updateOnConflict
         );
       }
-      throw new Error(
-        `이미 존재하는 관계입니다: ${sourceId} -> ${targetId} (${relationType}). ` +
-        `동시성 문제로 인해 관계가 이미 추가되었습니다.`
+      throw new DuplicateRelationError(
+        sourceId,
+        targetId,
+        relationType,
+        `이미 존재하는 관계입니다: ${sourceId} -> ${targetId} (${relationType}). 동시성 문제로 인해 관계가 이미 추가되었습니다.`
       );
     }
     throw error;
@@ -261,7 +264,7 @@ export class RelationGraph implements IRelationGraph {
     // 트랜잭션 없이 실행되어야 합니다
     const isCyclic = await this.detectCycleInternal(sourceId, targetId, relationType);
     if (isCyclic) {
-      throw new Error(`순환 참조가 감지되었습니다: ${sourceId} -> ${targetId} (${relationType})`);
+      throw new CyclicRelationError(sourceId, targetId, relationType);
     }
   }
 
@@ -345,7 +348,7 @@ export class RelationGraph implements IRelationGraph {
     updateOnConflict: boolean
   ): Promise<number> {
     if (!updateOnConflict) {
-      throw new Error(`이미 존재하는 관계입니다: ${sourceId} -> ${targetId} (${relationType})`);
+      throw new DuplicateRelationError(sourceId, targetId, relationType);
     }
 
     // 기존 관계 업데이트
