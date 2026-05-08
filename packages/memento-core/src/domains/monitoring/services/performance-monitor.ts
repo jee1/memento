@@ -835,7 +835,7 @@ export class PerformanceMonitor {
     const average = (values: number[]): number => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 
     const memoryUsed = history.map(m => m.memory.heapUsed);
-    const memoryPercentHistory = history.map(m => m.memory.usagePercent ?? (m.memory.heapTotal ? (m.memory.heapUsed / m.memory.heapTotal) * 100 : 0));
+    const memoryPercentHistory = history.map(m => m.memory.usagePercent ?? 0);
     const cpuPercentHistory = history.map(m => m.cpu.percent ?? 0);
     const dbSizesMB = history.map(m => toMb(m.database.size));
 
