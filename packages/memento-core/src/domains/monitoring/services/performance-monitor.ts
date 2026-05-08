@@ -580,7 +580,7 @@ export class PerformanceMonitor {
    * 비율 분모는 `getMemoryPressureDenominatorBytes()`와 동일(cgroup 한도 우선).
    * - `usagePercent` / `rssUsagePercent`: RSS가 프로세스에 부여된 메모리 예산에서 차지하는 비율(100% 초과 가능).
    * - `heapShareOfBudgetPercent`: V8 heapUsed가 동일 예산 대비 차지하는 비율이며, **heapUsed/heapTotal(V8 충전률)과는 다름**.
-   * @deprecated `heapUsagePercent` — `heapShareOfBudgetPercent`와 동일 값. 혼동을 피하려면 새 필드만 사용하세요.
+   * - `heapUsagePercent`: `heapShareOfBudgetPercent`와 동일(하위 호환). 신규 코드는 `heapShareOfBudgetPercent` 사용.
    */
   getMemoryMetrics(): {
     heapUsed: number;
