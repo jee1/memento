@@ -217,6 +217,49 @@ describe('PerformanceMonitor analytics', () => {
   });
 });
 
+
+describe('getMemoryMetrics semantics', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('usagePercent is RSS-based and equals rssUsagePercent', () => {
+    const totalMem = 8 * 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 2 * 1024 * 1024 * 1024,
+      heapTotal: 3 * 1024 * 1024 * 1024,
+      heapUsed: 1 * 1024 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = new PerformanceMonitor();
+    const metrics = monitor.getMemoryMetrics();
+
+    expect(metrics.usagePercent).toBeCloseTo(25, 5);
+    expect(metrics.rssUsagePercent).toBeCloseTo(25, 5);
+    expect(metrics.usagePercent).toBe(metrics.rssUsagePercent);
+  });
+
+  it('correctly computes heapUsagePercent', () => {
+    const totalMem = 8 * 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 2 * 1024 * 1024 * 1024,
+      heapTotal: 3 * 1024 * 1024 * 1024,
+      heapUsed: 1 * 1024 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = new PerformanceMonitor();
+    const metrics = monitor.getMemoryMetrics();
+
+    expect(metrics.heapUsagePercent).toBeCloseTo(12.5, 5);
+  });
+});
+
 describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   afterEach(() => {
     vi.restoreAllMocks();

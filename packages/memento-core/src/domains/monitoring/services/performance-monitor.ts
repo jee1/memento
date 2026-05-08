@@ -563,17 +563,20 @@ export class PerformanceMonitor {
     heapUsagePercent: number;
   } {
     const memUsage = process.memoryUsage();
-    const totalMemory = 1024 * 1024 * 1024; // 1GB 가정
-    const usagePercent = (memUsage.heapUsed / totalMemory) * 100;
+    const totalMemory = os.totalmem();
+    const rssUsagePercent = totalMemory > 0 ? (memUsage.rss / totalMemory) * 100 : 0;
+    const heapUsagePercent = totalMemory > 0 ? (memUsage.heapUsed / totalMemory) * 100 : 0;
+    const safeRssPercent = Number.isFinite(rssUsagePercent) ? rssUsagePercent : 0;
+    const safeHeapPercent = Number.isFinite(heapUsagePercent) ? heapUsagePercent : 0;
 
     return {
       heapUsed: memUsage.heapUsed,
       heapTotal: memUsage.heapTotal,
       rss: memUsage.rss,
       external: memUsage.external,
-      usagePercent,
-      rssUsagePercent: usagePercent,
-      heapUsagePercent: usagePercent
+      usagePercent: safeRssPercent, // RSS-based primary memory pressure signal
+      rssUsagePercent: safeRssPercent, // Explicit alias for usagePercent
+      heapUsagePercent: safeHeapPercent // Supplementary host-relative heap signal
     };
   }
 
