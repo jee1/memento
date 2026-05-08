@@ -17,6 +17,8 @@ export interface PerformanceMetrics {
     heapUsed: number;
     external: number;
     usagePercent: number;
+    rssUsagePercent: number;
+    heapUsagePercent: number;
   };
   cpu: {
     user: number;
@@ -555,6 +557,8 @@ export class PerformanceMonitor {
     rss: number;
     external: number;
     usagePercent: number;
+    rssUsagePercent: number;
+    heapUsagePercent: number;
   } {
     const memUsage = process.memoryUsage();
     const totalMemory = 1024 * 1024 * 1024; // 1GB 가정
@@ -565,7 +569,9 @@ export class PerformanceMonitor {
       heapTotal: memUsage.heapTotal,
       rss: memUsage.rss,
       external: memUsage.external,
-      usagePercent
+      usagePercent,
+      rssUsagePercent: usagePercent,
+      heapUsagePercent: usagePercent
     };
   }
 

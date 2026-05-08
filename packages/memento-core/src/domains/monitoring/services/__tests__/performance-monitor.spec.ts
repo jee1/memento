@@ -14,7 +14,9 @@ function createMetrics(overrides: Partial<PerformanceMetrics> = {}): Performance
       heapTotal: toBytes(1024),
       heapUsed: toBytes(512),
       external: toBytes(50),
-      usagePercent: 50
+      usagePercent: 50,
+      rssUsagePercent: 50,
+      heapUsagePercent: 50
     },
     cpu: {
       user: 500000,
