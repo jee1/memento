@@ -83,6 +83,34 @@ export class PerformanceMonitor {
   }
 
   /**
+   * RSS·힙 압력 비율의 분모(바이트).
+   * Docker/Kubernetes 등 OS가 부과한 메모리 상한이 있으면 `process.constrainedMemory()`를 쓰고,
+   * 없거나 비정상 값이면 호스트 `os.totalmem()`으로 폴백한다.
+   */
+  private getMemoryPressureDenominatorBytes(): number {
+    try {
+      const fn = (process as NodeJS.Process & { constrainedMemory?: () => number }).constrainedMemory;
+      if (typeof fn === 'function') {
+        const v = fn.call(process);
+        if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
+          return v;
+        }
+      }
+    } catch {
+      // constrainedMemory 미지원·런타임 오류 시 호스트 메모리로 폴백
+    }
+    return os.totalmem();
+  }
+
+  private memoryRatioToPercent(numerator: number, denominator: number): number {
+    if (!(denominator > 0) || !Number.isFinite(numerator) || !Number.isFinite(denominator)) {
+      return 0;
+    }
+    const pct = (numerator / denominator) * 100;
+    return Number.isFinite(pct) ? pct : 0;
+  }
+
+  /**
    * 모니터링 시작
    */
   initialize(db: Database.Database): void {
@@ -132,8 +160,8 @@ export class PerformanceMonitor {
     // 시스템 지표
     const _systemMetrics = this.getSystemMetrics();
 
-    const totalSystemMemory = os.totalmem();
-    const memoryUsagePercent = totalSystemMemory > 0 ? (memUsage.rss / totalSystemMemory) * 100 : 0;
+    const memoryDenominator = this.getMemoryPressureDenominatorBytes();
+    const memoryUsagePercent = this.memoryRatioToPercent(memUsage.rss, memoryDenominator);
     // tick=true: scheduled baseline 갱신 / tick=false: on-demand baseline만 갱신
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
@@ -183,7 +211,7 @@ export class PerformanceMonitor {
     const now = new Date();
 
     // 메모리 사용률 검사
-    const totalSystemMemory = os.totalmem();
+    const memoryDenominator = this.getMemoryPressureDenominatorBytes();
     const memoryUsagePercent = metrics.memory.usagePercent;
     if (memoryUsagePercent <= this.thresholds.memoryUsagePercent) {
       // 조건 해소 시 알림을 시스템이 자동 해제한다. resolveAlert()의 acknowledgeAlert() 연쇄 호출은
@@ -205,7 +233,7 @@ export class PerformanceMonitor {
           id: alertId,
           type: 'memory',
           severity,
-          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% RSS (${this.formatBytes(metrics.memory.rss)} / ${this.formatBytes(totalSystemMemory)})`,
+          message: `High memory usage: ${memoryUsagePercent.toFixed(1)}% RSS (${this.formatBytes(metrics.memory.rss)} / ${this.formatBytes(memoryDenominator)})`,
           value: memoryUsagePercent,
           threshold: this.thresholds.memoryUsagePercent,
           timestamp: now,
@@ -548,24 +576,40 @@ export class PerformanceMonitor {
 
   /**
    * 메모리 메트릭 조회
+   *
+   * 비율 분모는 `getMemoryPressureDenominatorBytes()`와 동일(cgroup 한도 우선).
+   * - `usagePercent` / `rssUsagePercent`: RSS가 프로세스에 부여된 메모리 예산에서 차지하는 비율(100% 초과 가능).
+   * - `heapShareOfBudgetPercent`: V8 heapUsed가 동일 예산 대비 차지하는 비율이며, **heapUsed/heapTotal(V8 충전률)과는 다름**.
+   * - `heapUsagePercent`: `heapShareOfBudgetPercent`와 동일(하위 호환). 신규 코드는 `heapShareOfBudgetPercent` 사용.
    */
   getMemoryMetrics(): {
     heapUsed: number;
     heapTotal: number;
     rss: number;
     external: number;
+    /** RSS ÷ 예산 바이트 × 100 — `collectMetrics`·메모리 알림과 동일 축. 100% 초과 가능 */
     usagePercent: number;
+    /** `usagePercent`와 동일 */
+    rssUsagePercent: number;
+    /** heapUsed ÷ 예산 바이트 × 100 (V8 heapTotal 대비 충전률 아님) */
+    heapShareOfBudgetPercent: number;
+    /** @deprecated `heapShareOfBudgetPercent`와 동일. 이름이 오해를 부를 수 있어 대체 필드 추가 */
+    heapUsagePercent: number;
   } {
     const memUsage = process.memoryUsage();
-    const totalMemory = 1024 * 1024 * 1024; // 1GB 가정
-    const usagePercent = (memUsage.heapUsed / totalMemory) * 100;
+    const denom = this.getMemoryPressureDenominatorBytes();
+    const rssPct = this.memoryRatioToPercent(memUsage.rss, denom);
+    const heapSharePct = this.memoryRatioToPercent(memUsage.heapUsed, denom);
 
     return {
       heapUsed: memUsage.heapUsed,
       heapTotal: memUsage.heapTotal,
       rss: memUsage.rss,
       external: memUsage.external,
-      usagePercent
+      usagePercent: rssPct,
+      rssUsagePercent: rssPct,
+      heapShareOfBudgetPercent: heapSharePct,
+      heapUsagePercent: heapSharePct
     };
   }
 
@@ -968,13 +1012,13 @@ export class PerformanceMonitor {
    * 심각한 알림 처리
    */
   private async handleCriticalAlert(alert: PerformanceAlert, metrics: PerformanceMetrics): Promise<void> {
-    const totalMem = os.totalmem();
+    const denom = this.getMemoryPressureDenominatorBytes();
     logger.warn('Critical performance alert handling', {
       alert,
       metrics: {
         memoryUsage: alert.type === 'memory'
           ? alert.value
-          : (totalMem > 0 ? (metrics.memory.rss / totalMem) * 100 : 0),
+          : this.memoryRatioToPercent(metrics.memory.rss, denom),
         dbSize: metrics.database.size / (1024 * 1024),
         queryTime: metrics.database.queryTime
       }

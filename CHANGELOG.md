@@ -13,6 +13,8 @@
 - CLI(`memento remember` 등)가 HTTP/stdio MCP 서버와 동시에 실행될 때 발생하던 WAL 체크포인트 충돌 및 DB 손상 버그 수정 (#160)
 
 ### Changed
+- **`PerformanceMonitor.getMemoryMetrics()`** (#287, PR #307): `usagePercent` / `rssUsagePercent`는 **RSS ÷ 메모리 예산 바이트**(`process.constrainedMemory()`가 유한·양수면 우선, 아니면 `os.totalmem()`)로 계산되어 `collectMetrics` 메모리 알림과 동일 축이다. 예전 구현의 1GB 고정 분모·heap 기반 `usagePercent` 의미와 **호환되지 않는다**. `heapShareOfBudgetPercent`(및 하위 호환 필드 `heapUsagePercent`)는 **heapUsed ÷ 동일 예산**이며, **V8 `heapUsed / heapTotal` 힙 충전률과는 다르다**. 컨테이너·cgroup 환경에서 호스트 RAM만 분모로 쓸 때 RSS 압력이 과소평가되던 문제를 완화한다.
+
 - GitHub Actions 런타임 및 저장소 `engines` 기준 Node.js **24**로 상향; 워크플로 액션 메이저 갱신 (#211)
 - `sqlite-vec` **0.1.9**로 상향: `sqlite-vec-linux-arm64@0.1.6` 미배포로 인한 `npm ci` 실패(Node 24/npm 엄격 검증) 방지 (#212)
 - CLI가 DB를 직접 열지 않고 실행 중인 서버의 HTTP 관리 포트로 요청을 위임하도록 아키텍처 전환
