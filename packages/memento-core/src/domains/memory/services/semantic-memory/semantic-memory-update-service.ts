@@ -1076,71 +1076,92 @@ export class SemanticMemoryUpdateService {
     await this.validateRelationDirection(semanticMemoryId, episodicMemoryId, 'extracted_from');
     await this.validateRelationDirection(episodicMemoryId, semanticMemoryId, 'supported_by');
 
-    try {
-      // extracted_from (Semantic → Episodic)
-      await this.relationGraph.addRelation(
-        semanticMemoryId,
-        episodicMemoryId,
-        'extracted_from',
-        {
-          confidence, // memory_relation.confidence 필드에 저장
-          metadata: {
-            method: 'llm',
-            triple: {
-              subject: triple.subject,
-              predicate: triple.predicate,
-              object: triple.object
-            },
-            // 각 triple별 독립적인 metadata 저장
-            failureReason: extractionInfo.failureReason,
-            steps: extractionInfo.steps
-          },
-          updateOnConflict: true, // Issue #301: 관계가 이미 존재하면 업데이트 (upsert)
-          allowCyclic: true // Episodic-Semantic 간 양방향 관계 허용
-        }
-      );
+    const relationOptions = {
+      confidence, // memory_relation.confidence 필드에 저장
+      metadata: {
+        method: 'llm' as const,
+        triple: {
+          subject: triple.subject,
+          predicate: triple.predicate,
+          object: triple.object
+        },
+        // 각 triple별 독립적인 metadata 저장
+        failureReason: extractionInfo.failureReason,
+        steps: extractionInfo.steps
+      },
+      updateOnConflict: true, // Issue #301: 관계가 이미 존재하면 업데이트 (upsert)
+      allowCyclic: true // Episodic-Semantic 간 양방향 관계 허용
+    };
 
-      // supported_by (Episodic → Semantic)
-      await this.relationGraph.addRelation(
-        episodicMemoryId,
-        semanticMemoryId,
-        'supported_by',
-        {
-          confidence, // memory_relation.confidence 필드에 저장
-          metadata: {
-            method: 'llm',
-            triple: {
-              subject: triple.subject,
-              predicate: triple.predicate,
-              object: triple.object
-            },
-            // 각 triple별 독립적인 metadata 저장
-            failureReason: extractionInfo.failureReason,
-            steps: extractionInfo.steps
-          },
-          updateOnConflict: true, // Issue #301: 관계가 이미 존재하면 업데이트 (upsert)
-          allowCyclic: true // Episodic-Semantic 간 양방향 관계 허용
-        }
-      );
+    await this.tryCreateEpisodicRelation(
+      semanticMemoryId,
+      episodicMemoryId,
+      'extracted_from',
+      relationOptions,
+      episodicMemoryId,
+      semanticMemoryId,
+      confidence
+    );
+
+    await this.tryCreateEpisodicRelation(
+      episodicMemoryId,
+      semanticMemoryId,
+      'supported_by',
+      relationOptions,
+      episodicMemoryId,
+      semanticMemoryId,
+      confidence
+    );
+  }
+
+  private async tryCreateEpisodicRelation(
+    sourceId: string,
+    targetId: string,
+    relationType: 'extracted_from' | 'supported_by',
+    options: {
+      confidence: number;
+      metadata: {
+        method: 'llm';
+        triple: { subject: string; predicate: string; object: string };
+        failureReason?: string;
+        steps?: ExtractionInfo['steps'];
+      };
+      updateOnConflict: boolean;
+      allowCyclic: boolean;
+    },
+    episodicMemoryId: string,
+    semanticMemoryId: string,
+    confidence: number
+  ): Promise<void> {
+    try {
+      await this.relationGraph.addRelation(sourceId, targetId, relationType, options);
     } catch (error) {
       // 중복 관계는 정상 시나리오로 간주 (upsert 경합 포함)
-      if (error instanceof DuplicateRelationError) {
+      if (error instanceof DuplicateRelationError || this.isUniqueConstraintError(error)) {
         logger.debug('SemanticMemoryUpdateService: 관계 중복 (무시)', {
           episodicMemoryId,
           semanticMemoryId,
-          relationType: 'extracted_from/supported_by'
+          relationType
         });
         return;
       }
-      
+
       logger.error('SemanticMemoryUpdateService: 관계 생성 실패', {
         error: error instanceof Error ? error.message : String(error),
         episodicMemoryId,
         semanticMemoryId,
-        confidence
+        confidence,
+        relationType
       });
       // 기타 관계 생성 실패는 무시 (Semantic Memory 생성에는 영향 없음)
     }
+  }
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    return error instanceof Error &&
+      (error.message.includes('UNIQUE constraint') ||
+       error.message.includes('UNIQUE constraint failed') ||
+       (error as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE');
   }
 }
 

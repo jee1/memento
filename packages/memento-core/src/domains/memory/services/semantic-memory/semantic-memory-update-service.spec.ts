@@ -179,13 +179,53 @@ describe('SemanticMemoryUpdateService', () => {
       `, [secondOptions.episodicMemoryId, 'episodic', 'Issue301 episodic 2', 0.6]);
 
       // When: 같은 Triple을 두 번 처리
-      await service.updateSemanticMemory(extractionResult, firstOptions);
-      await service.updateSemanticMemory(extractionResult, secondOptions);
+      const firstResult = await service.updateSemanticMemory(extractionResult, firstOptions);
+      const secondResult = await service.updateSemanticMemory(extractionResult, secondOptions);
 
       // Then: 관계 생성 실패 error 로그가 없어야 함
       expect(
         errorSpy.mock.calls.some((args) => String(args[0]).includes('SemanticMemoryUpdateService: 관계 생성 실패'))
       ).toBe(false);
+
+      // Then: Semantic memory는 재사용되어야 함
+      expect(firstResult.semanticMemoryIds[0]).toBeDefined();
+      expect(secondResult.semanticMemoryIds[0]).toBe(firstResult.semanticMemoryIds[0]);
+
+      // Then: 두 에피소드 각각에 대해 양방향 관계(extracted_from, supported_by)가 존재해야 함
+      const semanticMemoryId = firstResult.semanticMemoryIds[0];
+      const relationRows = DatabaseUtils.all(db, `
+        SELECT source_id, target_id, relation_type
+        FROM memory_relation
+        WHERE (
+          (source_id = ? AND target_id IN (?, ?))
+          OR
+          (target_id = ? AND source_id IN (?, ?))
+        )
+        AND relation_type IN ('extracted_from', 'supported_by')
+      `, [
+        semanticMemoryId,
+        firstOptions.episodicMemoryId,
+        secondOptions.episodicMemoryId,
+        semanticMemoryId,
+        firstOptions.episodicMemoryId,
+        secondOptions.episodicMemoryId
+      ]) as Array<{ source_id: string; target_id: string; relation_type: string }>;
+
+      expect(relationRows).toHaveLength(4);
+      expect(
+        relationRows.filter((r) =>
+          r.source_id === semanticMemoryId &&
+          (r.target_id === firstOptions.episodicMemoryId || r.target_id === secondOptions.episodicMemoryId) &&
+          r.relation_type === 'extracted_from'
+        )
+      ).toHaveLength(2);
+      expect(
+        relationRows.filter((r) =>
+          r.target_id === semanticMemoryId &&
+          (r.source_id === firstOptions.episodicMemoryId || r.source_id === secondOptions.episodicMemoryId) &&
+          r.relation_type === 'supported_by'
+        )
+      ).toHaveLength(2);
     });
 
     it('중복 Triple 처리 - 기존 Semantic Memory 업데이트', async () => {
