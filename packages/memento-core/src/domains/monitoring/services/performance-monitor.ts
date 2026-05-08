@@ -147,7 +147,9 @@ export class PerformanceMonitor {
         heapTotal: memUsage.heapTotal,
         heapUsed: memUsage.heapUsed,
         external: memUsage.external,
-        usagePercent: memoryUsagePercent
+        usagePercent: memoryUsagePercent,
+        rssUsagePercent: memoryUsagePercent,
+        heapUsagePercent: memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0
       },
       cpu: {
         user: this.latestCpuSnapshot.user,
