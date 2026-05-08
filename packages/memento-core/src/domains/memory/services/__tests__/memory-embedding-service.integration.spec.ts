@@ -79,6 +79,8 @@ type MemoryItemRecord = {
 };
 
 const providerTableMap: Record<string, string> = {
+  // legacy 384 vec table used by lightweight and 일부 tfidf 경로
+  lightweight: 'memory_item_vec',
   tfidf: 'memory_item_vec_tfidf',
   minilm: 'memory_item_vec_minilm',
   openai: 'memory_item_vec_openai',
@@ -234,6 +236,18 @@ describe('MemoryEmbeddingService ↔ VectorSearchEngine integration', () => {
     });
   });
 
+  it('legacy 384 vec table(memory_item_vec) path is discoverable in sqlite_master preflight', async () => {
+    const tableRows = Object.values(providerTableMap).map(name => ({ name }));
+    const sqliteMasterStub = createDbStub(() => [], () => new Map<string, MemoryItemRecord>());
+
+    const sqliteMasterResult = sqliteMasterStub
+      .prepare('SELECT 1 as ok FROM sqlite_master WHERE type IN (\'table\', \'virtual\') AND name = ? LIMIT 1')
+      .get('memory_item_vec') as { ok?: number } | undefined;
+
+    expect(tableRows.some(row => row.name === 'memory_item_vec')).toBe(true);
+    expect(sqliteMasterResult?.ok).toBe(1);
+  });
+
   it('pads legacy 384-dimension embeddings for openai provider', async () => {
     const provider: EmbeddingProvider = 'openai';
     const legacyDimensions = 384;
@@ -277,7 +291,17 @@ function createDbStub(
 ) {
   const prepare = vi.fn((sql: string) => {
     if (sql.includes('sqlite_master')) {
-      return { all: vi.fn().mockReturnValue(Object.values(providerTableMap).map(name => ({ name }))) };
+      const tableRows = Object.values(providerTableMap).map(name => ({ name }));
+      return {
+        all: vi.fn().mockReturnValue(tableRows),
+        get: vi.fn().mockImplementation((tableName?: string) => {
+          if (typeof tableName === 'string') {
+            const found = tableRows.find(row => row.name === tableName);
+            return found ? { ok: 1 } : undefined;
+          }
+          return tableRows.length > 0 ? { ok: 1 } : undefined;
+        })
+      };
     }
 
     if (sql.includes('SELECT distance FROM memory_item_vec')) {

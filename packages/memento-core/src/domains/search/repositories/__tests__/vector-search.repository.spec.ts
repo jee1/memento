@@ -62,6 +62,34 @@ describe('VectorSearchRepositoryImpl', () => {
     });
   });
 
+  describe('checkVecAvailability (partial vec schema)', () => {
+    it('tfidf vec 테이블 없이 minilm vec 테이블만 있어도 VEC를 사용 가능으로 판정해야 함', async () => {
+      const testDb = new Database(':memory:');
+      try {
+        const { getLoadablePath } = await import('sqlite-vec');
+        testDb.loadExtension(getLoadablePath());
+      } catch {
+        testDb.close();
+        return;
+      }
+
+      try {
+        testDb.exec(`
+          CREATE VIRTUAL TABLE memory_item_vec_minilm
+          USING vec0(embedding float[384])
+        `);
+      } catch (error) {
+        console.warn('VEC 확장 테이블 생성 실패, 테스트 스킵:', error);
+        testDb.close();
+        return;
+      }
+
+      const repo = new VectorSearchRepositoryImpl(testDb);
+      expect(repo.checkVecAvailability()).toBe(true);
+      testDb.close();
+    });
+  });
+
   describe('search', () => {
     it('검색 결과가 배열 형태여야 함', async () => {
       // Given: 384차원 벡터 (tfidf 기본 차원)
@@ -77,6 +105,29 @@ describe('VectorSearchRepositoryImpl', () => {
       expect(Array.isArray(results)).toBe(true);
     });
 
+    it('VEC 미가용 시 VEC_UNAVAILABLE 카테고리를 로깅해야 함', async () => {
+      (repository as unknown as { isVecAvailable: boolean }).isVecAvailable = false;
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.1),
+        provider: 'tfidf'
+      };
+
+      try {
+        const results = await repository.search(query);
+        expect(results).toEqual([]);
+
+        const warningLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'warn' && call[1] === 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.'
+        );
+        expect(warningLogs.length).toBe(1);
+        const payload = warningLogs[0]?.[2] as { category?: unknown } | undefined;
+        expect(payload?.category).toBe('VEC_UNAVAILABLE');
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
     it('벡터 차원이 불일치할 때 빈 배열을 반환해야 함', async () => {
       // Given: 잘못된 차원의 벡터
       const query: VectorSearchQuery = {
@@ -90,6 +141,32 @@ describe('VectorSearchRepositoryImpl', () => {
       // Then: 빈 배열 반환
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBe(0);
+    });
+
+    it('벡터 차원 불일치 시 VECTOR_DIMENSION_MISMATCH 카테고리를 로깅해야 함', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: [0.1, 0.2],
+        provider: 'tfidf'
+      };
+
+      try {
+        const results = await repository.search(query);
+        expect(results).toEqual([]);
+
+        const errorLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'error' && call[1] === '벡터 차원 불일치'
+        );
+        expect(errorLogs.length).toBe(1);
+        const payload = errorLogs[0]?.[2] as { category?: unknown } | undefined;
+        expect(payload?.category).toBe('VECTOR_DIMENSION_MISMATCH');
+      } finally {
+        logSpy.mockRestore();
+      }
     });
 
     it('저장 차원 다수(384)와 네이티브 쿼리(512) 불일치 시 투영으로 벡터 차원 오류를 피해야 함', async () => {
@@ -170,6 +247,63 @@ describe('VectorSearchRepositoryImpl', () => {
       expect(dimensionMismatchLogs.length).toBe(0);
 
       logSpy.mockRestore();
+    });
+
+    it('checkVecAvailability와 search가 동일한 provider/dimension 규칙을 사용해야 함', async () => {
+      const query: VectorSearchQuery = {
+        queryVector: new Array(512).fill(0.03),
+        provider: 'tfidf'
+      };
+
+      const available = repository.checkVecAvailability();
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+
+      try {
+        if (!available) {
+          // vec extension 미가용 환경에서는 runtime 검증 경로를 건너뛴다.
+          return;
+        }
+
+        await repository.search(query);
+
+        const vectorSearchFailureLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
+        );
+        expect(vectorSearchFailureLogs).toHaveLength(0);
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it('SQL 실행 실패를 VECTOR_SQL_EXECUTION_FAILED 카테고리로 로깅해야 함', async () => {
+      // vec 미가용 환경에서는 SQL 실패 경로 검증을 건너뛴다.
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
+      const prepareSpy = vi.spyOn(db, 'prepare').mockImplementation(() => {
+        throw new Error('simulated sqlite failure');
+      });
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(384).fill(0.01),
+        provider: 'minilm'
+      };
+
+      try {
+        const results = await repository.search(query);
+
+        expect(results).toEqual([]);
+        const errorLogs = logSpy.mock.calls.filter(
+          (call) => call[0] === 'error' && call[1] === '벡터 검색 실패'
+        );
+        expect(errorLogs.length).toBe(1);
+        const payload = errorLogs[0]?.[2] as { category?: unknown } | undefined;
+        expect(String(payload?.category ?? '')).toContain('VECTOR_SQL_EXECUTION_FAILED');
+      } finally {
+        prepareSpy.mockRestore();
+        logSpy.mockRestore();
+      }
     });
 
     it('옵션을 포함한 쿼리를 처리해야 함', async () => {

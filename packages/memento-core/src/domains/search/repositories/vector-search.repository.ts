@@ -14,7 +14,7 @@ VectorIndexStatus,
 VectorSearchQuery,
 VectorSearchResult
 } from '../../../shared/types/vector-search.types.js';
-import { getVectorTableName as getValidatedVectorTableName,validateTableName } from '../../../shared/utils/sql-security-validator.js';
+import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
 
 /**
  * 데이터베이스에서 반환된 원시 결과 타입
@@ -56,69 +56,83 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   checkVecAvailability(): boolean {
     if (!this.db) {
+      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.', {
+        category: 'VEC_UNAVAILABLE'
+      });
       this.isVecAvailable = false;
       return false;
     }
 
     try {
-      // 제공자별 vec0 테이블 중 하나라도 존재하는지 확인
-      const tableStatement = this.db.prepare(`
-        SELECT name FROM sqlite_master 
-        WHERE type='table' AND name IN (
-          'memory_item_vec',
-          'memory_item_vec_tfidf',
-          'memory_item_vec_minilm', 
-          'memory_item_vec_openai',
-          'memory_item_vec_gemini'
-        )
+      const hasAnyWhitelistedVecTable = this.db.prepare(`
+        SELECT 1 as ok FROM sqlite_master
+        WHERE type IN ('table', 'virtual')
+          AND name IN (
+            'memory_item_vec',
+            'memory_item_vec_tfidf',
+            'memory_item_vec_minilm',
+            'memory_item_vec_openai',
+            'memory_item_vec_gemini'
+          )
+        LIMIT 1
       `);
-      const tableRows = typeof tableStatement.all === 'function'
-        ? tableStatement.all()
-        : [];
-      const tableCheck = Array.isArray(tableRows)
-        ? (tableRows as Array<{ name: string; type: string }>)
-        : [];
-
-      if (tableCheck.length === 0) {
-        mcpLogger.logServer('warn', 'VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.');
-        this.isVecAvailable = false;
-        return false;
-      }
-
-      // VEC 함수 사용 가능 여부 확인
-      try {
-        const testTableEntry = tableCheck.find((table): table is { name: string; type: string } => {
-          if (typeof table !== 'object' || table === null) {
-            return false;
-          }
-          const tableObj = table as Record<string, unknown>;
-          return typeof tableObj.name === 'string' && typeof tableObj.type === 'string';
+      const anyRow =
+        typeof hasAnyWhitelistedVecTable.get === 'function'
+          ? (hasAnyWhitelistedVecTable.get() as { ok: number } | undefined)
+          : undefined;
+      if (!anyRow) {
+        mcpLogger.logServer('warn', 'VEC 테이블이 없습니다. 벡터 검색이 비활성화됩니다.', {
+          category: 'VEC_UNAVAILABLE'
         });
-        const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
-        // SQL Injection 방지: 화이트리스트 검증 후 사용
-        validateTableName(testTable);
-        const testStatement = this.db.prepare(
-          `SELECT distance FROM ${testTable} WHERE embedding MATCH ? LIMIT 0`
-        );
-
-        if (typeof testStatement.get !== 'function') {
-          mcpLogger.logServer('warn', 'VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.');
-          this.isVecAvailable = false;
-          return false;
-        }
-
-        testStatement.get(JSON.stringify(new Array(VECTOR_SEARCH_CONFIG.defaultDimensions).fill(0)));
-        
-        this.isVecAvailable = true;
-        mcpLogger.logServer('info', 'VEC (Vector Search) 사용 가능');
-        return true;
-      } catch (vecError) {
-        mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', { error: vecError instanceof Error ? vecError.message : String(vecError) });
         this.isVecAvailable = false;
         return false;
       }
+
+      // tfidf 기본 resolve 한 번만 preflight하면 다른 provider 전용 vec 테이블만 있는 DB에서
+      // isVecAvailable이 false로 고정되는 회귀가 생길 수 있음(issue #278 review).
+      const vecProbeProviders = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const;
+      let lastError: string | undefined;
+
+      for (const probeProvider of vecProbeProviders) {
+        const runtimeContext = this.resolveRuntimeVectorContext(probeProvider);
+        if (!this.isVecTableRegistered(runtimeContext.tableName)) {
+          continue;
+        }
+        try {
+          const testStatement = this.db.prepare(
+            `SELECT distance FROM ${runtimeContext.tableName} WHERE embedding MATCH ? LIMIT 0`
+          );
+
+          if (typeof testStatement.get !== 'function') {
+            lastError = 'VEC 테스트 쿼리를 실행할 수 없습니다: get() 메서드가 없습니다.';
+            continue;
+          }
+
+          testStatement.get(JSON.stringify(new Array(runtimeContext.targetDimensions).fill(0)));
+
+          this.isVecAvailable = true;
+          mcpLogger.logServer('info', 'VEC (Vector Search) 사용 가능', {
+            provider: runtimeContext.provider,
+            tableName: runtimeContext.tableName
+          });
+          return true;
+        } catch (probeErr) {
+          lastError = probeErr instanceof Error ? probeErr.message : String(probeErr);
+        }
+      }
+
+      mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', {
+        category: 'VEC_UNAVAILABLE',
+        error: lastError ?? 'no vec table succeeded for any known embedding provider'
+      });
+      this.isVecAvailable = false;
+      return false;
     } catch (error) {
-      mcpLogger.logServer('error', 'VEC 가용성 확인 실패', { error: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      mcpLogger.logServer('warn', 'VEC 함수를 사용할 수 없습니다', {
+        category: 'VEC_UNAVAILABLE',
+        error: message
+      });
       this.isVecAvailable = false;
       return false;
     }
@@ -129,11 +143,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   async search(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
-      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
+      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.', {
+        category: 'VEC_UNAVAILABLE'
+      });
       return [];
     }
 
-    const { queryVector, options, provider } = query;
+    const { queryVector, options } = query;
     const normalizedOptions = options ?? {};
     const {
       limit = VECTOR_SEARCH_CONFIG.defaultLimit,
@@ -143,39 +159,15 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       includeContent = true,
       includeMetadata = false
     } = normalizedOptions;
-    const expectedDimensions = this.getExpectedDimensions(provider);
 
-    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인 (데이터 불일치 감지용)
-    // 왜 필요한가? 기존 데이터가 잘못된 차원으로 저장되어 있을 수 있으므로
-    // 이를 감지하여 경고를 로깅하고, 테이블 선택과 일치하도록 expectedDimensions를 사용
-    // 이슈 #279: minilm 등 고정 vec 스키마 provider는 memory_embedding.dimensions 오염 시
-    // dominant=512 + 네이티브 384 쿼리가 패딩되어 384 vec0 테이블과 불일치할 수 있으므로
-    // 저장 우세 차원은 tfidf(레거시 384/512 테이블 분기)에만 적용한다.
-    let actualStoredDimensions: number | null = null;
-    try {
-      if (this.db && this.shouldUseDominantStoredDimensionsForTable(provider)) {
-        actualStoredDimensions = this.getDominantStoredDimensions(provider ?? 'tfidf');
-      }
-    } catch (error) {
-      // 차원 조회 실패 시 무시하고 예상 차원 사용
-      mcpLogger.logServer('warn', '저장된 임베딩 차원 조회 실패', { 
-        provider, 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-    }
-
-    // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
-    if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
-      mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
-        provider,
-        expectedDimensions,
-        actualStoredDimensions,
-        message: '저장된 차원을 사용해 테이블을 선택합니다 (384 시 memory_item_vec).'
-      });
-    }
-
-    // 테이블 선택: tfidf는 저장 우세 차원(384→memory_item_vec), 그 외 provider는 config 네이티브 차원만
-    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+    const runtimeContext = this.resolveRuntimeVectorContext(query.provider);
+    const {
+      provider,
+      expectedDimensions,
+      actualStoredDimensions,
+      targetDimensions,
+      tableName
+    } = runtimeContext;
 
     const effectiveQueryVector = this.alignQueryVectorToStoredDimensions(
       queryVector,
@@ -184,23 +176,24 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       targetDimensions
     );
     if (!effectiveQueryVector) {
-      mcpLogger.logServer('error', '벡터 차원 불일치', { 
-        expected: targetDimensions, 
+      mcpLogger.logServer('error', '벡터 차원 불일치', {
+        category: 'VECTOR_DIMENSION_MISMATCH',
+        expected: targetDimensions,
         actual: queryVector.length,
         provider,
         expectedDimensions,
-        actualStoredDimensions
+        actualStoredDimensions,
+        targetDimensions
       });
       return [];
     }
 
     // types 배열 처리: types가 있으면 사용, 없으면 type 사용
-    const typeFilters = Array.isArray(types) && types.length > 0 
-      ? types.filter(Boolean) 
+    const typeFilters = Array.isArray(types) && types.length > 0
+      ? types.filter(Boolean)
       : (type ? [type] : []);
 
     try {
-      const tableName = this.getTableName(provider ?? 'tfidf', targetDimensions);
       // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
       // 템플릿 리터럴 대신 문자열 연결 사용
       const _typeClause = typeFilters.length > 0
@@ -209,7 +202,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
       // 서브쿼리로 먼저 벡터 검색을 수행하고 LIMIT을 적용한 후 JOIN
       const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
-      const vecQuery = 
+      const vecQuery =
         'SELECT ' +
         '  me.memory_id as memory_id, ' +
         '  t.distance as similarity, ' +
@@ -264,7 +257,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
             type: result.type,
             importance: result.importance,
             created_at: result.created_at,
-            last_accessed: includeMetadata 
+            last_accessed: includeMetadata
               ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
               : undefined,
             pinned: includeMetadata ? Boolean(result.pinned) : false,
@@ -277,7 +270,16 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       return normalizedResults;
 
     } catch (error) {
-      mcpLogger.logServer('error', '벡터 검색 실패', { error: error instanceof Error ? error.message : String(error) });
+      mcpLogger.logServer('error', '벡터 검색 실패', {
+        category: 'VECTOR_SQL_EXECUTION_FAILED',
+        error: error instanceof Error ? error.message : String(error),
+        provider,
+        tableName,
+        expectedDimensions,
+        targetDimensions,
+        actualStoredDimensions,
+        actualVectorLength: queryVector.length
+      });
       return [];
     }
   }
@@ -287,11 +289,13 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   async hybridSearch(query: VectorSearchQuery): Promise<VectorSearchResult[]> {
     if (!this.db || !this.isVecAvailable) {
-      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.');
+      mcpLogger.logServer('warn', 'VEC를 사용할 수 없습니다. 빈 결과를 반환합니다.', {
+        category: 'VEC_UNAVAILABLE'
+      });
       return [];
     }
 
-    const { queryVector, textQuery, options, provider } = query;
+    const { queryVector, textQuery, options } = query;
     const normalizedOptions = options ?? {};
     const {
       limit = VECTOR_SEARCH_CONFIG.defaultLimit,
@@ -301,39 +305,15 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       includeContent = true,
       includeMetadata = false
     } = normalizedOptions;
-    const expectedDimensions = this.getExpectedDimensions(provider);
 
-    // 벡터 차원 검증: 실제 저장된 임베딩 차원 확인 (데이터 불일치 감지용)
-    // 왜 필요한가? 기존 데이터가 잘못된 차원으로 저장되어 있을 수 있으므로
-    // 이를 감지하여 경고를 로깅하고, 테이블 선택과 일치하도록 expectedDimensions를 사용
-    // 이슈 #279: minilm 등 고정 vec 스키마 provider는 memory_embedding.dimensions 오염 시
-    // dominant=512 + 네이티브 384 쿼리가 패딩되어 384 vec0 테이블과 불일치할 수 있으므로
-    // 저장 우세 차원은 tfidf(레거시 384/512 테이블 분기)에만 적용한다.
-    let actualStoredDimensions: number | null = null;
-    try {
-      if (this.db && this.shouldUseDominantStoredDimensionsForTable(provider)) {
-        actualStoredDimensions = this.getDominantStoredDimensions(provider ?? 'tfidf');
-      }
-    } catch (error) {
-      // 차원 조회 실패 시 무시하고 예상 차원 사용
-      mcpLogger.logServer('warn', '저장된 임베딩 차원 조회 실패', { 
-        provider, 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-    }
-
-    // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
-    if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
-      mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
-        provider,
-        expectedDimensions,
-        actualStoredDimensions,
-        message: '저장된 차원을 사용해 테이블을 선택합니다 (384 시 memory_item_vec).'
-      });
-    }
-
-    // 테이블 선택: tfidf는 저장 우세 차원(384→memory_item_vec), 그 외 provider는 config 네이티브 차원만
-    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+    const runtimeContext = this.resolveRuntimeVectorContext(query.provider);
+    const {
+      provider,
+      expectedDimensions,
+      actualStoredDimensions,
+      targetDimensions,
+      tableName
+    } = runtimeContext;
 
     const effectiveQueryVector = this.alignQueryVectorToStoredDimensions(
       queryVector,
@@ -342,28 +322,28 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       targetDimensions
     );
     if (!effectiveQueryVector) {
-      mcpLogger.logServer('error', '벡터 차원 불일치', { 
-        expected: targetDimensions, 
+      mcpLogger.logServer('error', '벡터 차원 불일치', {
+        category: 'VECTOR_DIMENSION_MISMATCH',
+        expected: targetDimensions,
         actual: queryVector.length,
         provider,
         expectedDimensions,
-        actualStoredDimensions
+        actualStoredDimensions,
+        targetDimensions
       });
       return [];
     }
 
     // types 배열 처리: types가 있으면 사용, 없으면 type 사용
-    const typeFilters = Array.isArray(types) && types.length > 0 
-      ? types.filter(Boolean) 
+    const typeFilters = Array.isArray(types) && types.length > 0
+      ? types.filter(Boolean)
       : (type ? [type] : []);
 
     try {
-      const tableName = this.getTableName(provider ?? 'tfidf', targetDimensions);
-      
       // textQuery가 없거나 빈 문자열이면 텍스트 검색을 건너뛰고 벡터 검색만 사용
       // FTS5는 빈 쿼리를 에러로 처리하므로 이를 방지
       const hasTextQuery = textQuery && textQuery.trim().length > 0;
-      
+
       let hybridQuery: string;
       let params: SqlParam[];
 
@@ -377,7 +357,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         const textTypeClause = typeFilters.length > 0
           ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
           : '';
-        hybridQuery = 
+        hybridQuery =
           'WITH vector_search AS (' +
           '  SELECT ' +
           '    me.memory_id as memory_id, ' +
@@ -493,7 +473,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
         // 서브쿼리로 먼저 벡터 검색을 수행하고 LIMIT을 적용한 후 JOIN
         const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
-        hybridQuery = 
+        hybridQuery =
           'SELECT ' +
           '  me.memory_id as memory_id, ' +
           '  COALESCE(1 - t.distance, 0) as vector_similarity, ' +
@@ -546,11 +526,11 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           // 타입 안전성을 위해 필드 타입 검증
           const vectorSimilarity = typeof result.vector_similarity === 'number' ? result.vector_similarity : (result.similarity as number);
           const textSimilarity = typeof result.text_similarity === 'number' ? result.text_similarity : 0;
-          
-          const similarity = hasTextQuery 
+
+          const similarity = hasTextQuery
             ? vectorSimilarity * 0.6 + textSimilarity * 0.4 // 하이브리드 가중치
             : vectorSimilarity; // 텍스트 검색 없을 때는 벡터 유사도만 사용
-          
+
           return {
             memory_id: result.memory_id,
             similarity,
@@ -558,7 +538,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
             type: result.type,
             importance: result.importance,
             created_at: result.created_at,
-            last_accessed: includeMetadata 
+            last_accessed: includeMetadata
               ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
               : undefined,
             pinned: includeMetadata ? Boolean(result.pinned) : false,
@@ -571,7 +551,16 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       return normalizedResults;
 
     } catch (error) {
-      mcpLogger.logServer('error', '하이브리드 검색 실패', { error: error instanceof Error ? error.message : String(error) });
+      mcpLogger.logServer('error', '하이브리드 검색 실패', {
+        category: 'VECTOR_SQL_EXECUTION_FAILED',
+        error: error instanceof Error ? error.message : String(error),
+        provider,
+        tableName,
+        expectedDimensions,
+        targetDimensions,
+        actualStoredDimensions,
+        actualVectorLength: queryVector.length
+      });
       return [];
     }
   }
@@ -670,6 +659,28 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
   }
 
   /**
+   * sqlite_master에 vec 테이블이 등록되어 있는지 확인합니다.
+   * 단순한 DB mock이 테이블 부재를 반영하지 못해 preflight가 오탐되는 것을 줄입니다 (issue #278).
+   */
+  private isVecTableRegistered(tableName: string): boolean {
+    if (!this.db) {
+      return false;
+    }
+    try {
+      const statement = this.db.prepare(
+        `SELECT 1 as ok FROM sqlite_master WHERE type IN ('table', 'virtual') AND name = ? LIMIT 1`
+      );
+      if (typeof statement.get !== 'function') {
+        return false;
+      }
+      const row = statement.get(tableName) as { ok: number } | undefined;
+      return row !== undefined;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * memory_embedding 우세 dimensions로 vec 테이블을 고를지 여부.
    * tfidf만 memory_item_vec(384) vs memory_item_vec_tfidf(512) 레거시 분기가 있어
    * 저장 차원을 따른다. minilm/openai/gemini/lightweight는 vec 스키마가 provider별로
@@ -677,6 +688,51 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
    */
   private shouldUseDominantStoredDimensionsForTable(provider: string | undefined): boolean {
     return (provider ?? 'tfidf').toLowerCase() === 'tfidf';
+  }
+
+  private resolveRuntimeVectorContext(provider?: string): {
+    provider: string;
+    expectedDimensions: number;
+    actualStoredDimensions: number | null;
+    targetDimensions: number;
+    tableName: string;
+  } {
+    const effectiveProvider = provider ?? 'tfidf';
+    const expectedDimensions = this.getExpectedDimensions(effectiveProvider);
+
+    let actualStoredDimensions: number | null = null;
+    try {
+      if (this.db && this.shouldUseDominantStoredDimensionsForTable(effectiveProvider)) {
+        actualStoredDimensions = this.getDominantStoredDimensions(effectiveProvider);
+      }
+    } catch (error) {
+      // 차원 조회 실패 시 무시하고 예상 차원 사용
+      mcpLogger.logServer('warn', '저장된 임베딩 차원 조회 실패', {
+        provider: effectiveProvider,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
+    // 데이터 불일치 감지: actualStoredDimensions가 expectedDimensions와 다르면 경고
+    if (actualStoredDimensions !== null && actualStoredDimensions !== expectedDimensions) {
+      mcpLogger.logServer('warn', '저장된 임베딩 차원 불일치 감지', {
+        provider: effectiveProvider,
+        expectedDimensions,
+        actualStoredDimensions,
+        message: '저장된 차원을 사용해 테이블을 선택합니다 (384 시 memory_item_vec).'
+      });
+    }
+
+    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
+    const tableName = this.getTableName(effectiveProvider, targetDimensions);
+
+    return {
+      provider: effectiveProvider,
+      expectedDimensions,
+      actualStoredDimensions,
+      targetDimensions,
+      tableName
+    };
   }
 
   /**
