@@ -160,3 +160,6 @@ compound-engineering.local.md
 
 # Editor metadata
 .obsidian/
+
+# graphify cache artifacts (generated locally)
+graphify-out/cache/

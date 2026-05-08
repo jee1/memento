@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { CyclicRelationError, DuplicateRelationError } from '../services/relation-errors.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
@@ -148,32 +149,29 @@ export class AddRelationTool extends BaseTool {
         });
 
       } catch (error) {
-        // 중복 관계나 순환 관계 에러 처리
-        if (error instanceof Error) {
-          if (error.message.includes('이미 존재하는 관계')) {
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: 'DUPLICATE_RELATION',
-                  message: error.message
-                }, null, 2)
-              }]
-            };
-          }
-          if (error.message.includes('순환 참조')) {
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: 'CYCLIC_RELATION',
-                  message: error.message
-                }, null, 2)
-              }]
-            };
-          }
+        if (error instanceof DuplicateRelationError) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: 'DUPLICATE_RELATION',
+                message: error.message
+              }, null, 2)
+            }]
+          };
+        }
+        if (error instanceof CyclicRelationError) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: 'CYCLIC_RELATION',
+                message: error.message
+              }, null, 2)
+            }]
+          };
         }
         throw error;
       }

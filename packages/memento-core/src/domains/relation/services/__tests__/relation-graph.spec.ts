@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import type { RelationGraph } from '../relation-graph.js';
+import { CyclicRelationError, DuplicateRelationError } from '../relation-errors.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import type { RelationType } from '../../../shared/types/relation.js';
@@ -139,6 +140,9 @@ describe('RelationGraph', () => {
       await expect(
         relationGraph.addRelation('mem1', 'mem2', 'CAUSES')
       ).rejects.toThrow('이미 존재하는 관계입니다');
+      await expect(
+        relationGraph.addRelation('mem1', 'mem2', 'CAUSES')
+      ).rejects.toThrow(DuplicateRelationError);
     });
 
     it('should update existing relation when updateOnConflict is true', async () => {
@@ -176,6 +180,9 @@ describe('RelationGraph', () => {
       await expect(
         relationGraph.addRelation('mem3', 'mem1', 'CAUSES', { allowCyclic: false })
       ).rejects.toThrow('순환 참조가 감지되었습니다');
+      await expect(
+        relationGraph.addRelation('mem3', 'mem1', 'CAUSES', { allowCyclic: false })
+      ).rejects.toThrow(CyclicRelationError);
     });
 
     it('should allow cyclic relations when allowCyclic is true', async () => {

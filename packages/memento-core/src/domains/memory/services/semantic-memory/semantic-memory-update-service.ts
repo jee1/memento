@@ -16,6 +16,7 @@ import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { RelationGraphPort } from '../../../relation/ports/relation-graph.port.js';
+import { DuplicateRelationError } from '../../../relation/services/relation-errors.js';
 import { EntityLinker } from '../../../relation/services/triple-extraction/entity-linker.js';
 import { PredicateCanonicalizer } from '../../../relation/services/triple-extraction/predicate-canonicalizer.js';
 import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
@@ -1122,8 +1123,8 @@ export class SemanticMemoryUpdateService {
         }
       );
     } catch (error) {
-      // UNIQUE 제약 조건 위반은 무시 (이미 관계가 존재하는 경우)
-      if (error instanceof Error && error.message.includes('UNIQUE constraint')) {
+      // 중복 관계는 정상 시나리오로 간주 (upsert 경합 포함)
+      if (error instanceof DuplicateRelationError) {
         logger.debug('SemanticMemoryUpdateService: 관계 중복 (무시)', {
           episodicMemoryId,
           semanticMemoryId,
