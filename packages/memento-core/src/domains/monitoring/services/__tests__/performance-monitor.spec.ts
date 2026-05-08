@@ -259,6 +259,24 @@ describe('getMemoryMetrics semantics', () => {
     expect(metrics.heapUsagePercent).toBeCloseTo(12.5, 5);
   });
 
+  it('returns zeroed percentages when os.totalmem() is zero', () => {
+    vi.spyOn(os, 'totalmem').mockReturnValue(0);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 2 * 1024 * 1024 * 1024,
+      heapTotal: 3 * 1024 * 1024 * 1024,
+      heapUsed: 1 * 1024 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = new PerformanceMonitor();
+    const metrics = monitor.getMemoryMetrics();
+
+    expect(metrics.usagePercent).toBe(0);
+    expect(metrics.rssUsagePercent).toBe(0);
+    expect(metrics.heapUsagePercent).toBe(0);
+  });
+
 
   it('collectMetrics memory percentages align with getMemoryMetrics under same mocks', async () => {
     const totalMem = 8 * 1024 * 1024 * 1024;
@@ -278,6 +296,7 @@ describe('getMemoryMetrics semantics', () => {
     expect(collectedMetrics.memory.usagePercent).toBeCloseTo(directMetrics.usagePercent, 5);
     expect(collectedMetrics.memory.rssUsagePercent).toBeCloseTo(directMetrics.rssUsagePercent, 5);
     expect(collectedMetrics.memory.heapUsagePercent).toBeCloseTo(directMetrics.heapUsagePercent, 5);
+    expect(collectedMetrics.memory.usagePercent).toBeCloseTo(collectedMetrics.memory.rssUsagePercent, 5);
   });
 });
 
