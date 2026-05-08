@@ -277,7 +277,17 @@ function createDbStub(
 ) {
   const prepare = vi.fn((sql: string) => {
     if (sql.includes('sqlite_master')) {
-      return { all: vi.fn().mockReturnValue(Object.values(providerTableMap).map(name => ({ name }))) };
+      const tableRows = Object.values(providerTableMap).map(name => ({ name }));
+      return {
+        all: vi.fn().mockReturnValue(tableRows),
+        get: vi.fn().mockImplementation((tableName?: string) => {
+          if (typeof tableName === 'string') {
+            const found = tableRows.find(row => row.name === tableName);
+            return found ? { ok: 1 } : undefined;
+          }
+          return tableRows.length > 0 ? { ok: 1 } : undefined;
+        })
+      };
     }
 
     if (sql.includes('SELECT distance FROM memory_item_vec')) {
