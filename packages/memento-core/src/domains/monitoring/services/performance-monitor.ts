@@ -135,7 +135,10 @@ export class PerformanceMonitor {
     const _systemMetrics = this.getSystemMetrics();
 
     const totalSystemMemory = os.totalmem();
-    const memoryUsagePercent = totalSystemMemory > 0 ? (memUsage.rss / totalSystemMemory) * 100 : 0;
+    const rssUsagePercent = totalSystemMemory > 0 ? (memUsage.rss / totalSystemMemory) * 100 : 0;
+    const heapUsagePercent = totalSystemMemory > 0 ? (memUsage.heapUsed / totalSystemMemory) * 100 : 0;
+    const safeRssPercent = Number.isFinite(rssUsagePercent) ? rssUsagePercent : 0;
+    const safeHeapPercent = Number.isFinite(heapUsagePercent) ? heapUsagePercent : 0;
     // tick=true: scheduled baseline 갱신 / tick=false: on-demand baseline만 갱신
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
@@ -147,9 +150,9 @@ export class PerformanceMonitor {
         heapTotal: memUsage.heapTotal,
         heapUsed: memUsage.heapUsed,
         external: memUsage.external,
-        usagePercent: memoryUsagePercent,
-        rssUsagePercent: memoryUsagePercent,
-        heapUsagePercent: memoryUsagePercent
+        usagePercent: safeRssPercent,
+        rssUsagePercent: safeRssPercent,
+        heapUsagePercent: safeHeapPercent
       },
       cpu: {
         user: this.latestCpuSnapshot.user,

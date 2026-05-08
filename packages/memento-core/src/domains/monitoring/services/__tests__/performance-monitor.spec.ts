@@ -258,6 +258,27 @@ describe('getMemoryMetrics semantics', () => {
 
     expect(metrics.heapUsagePercent).toBeCloseTo(12.5, 5);
   });
+
+
+  it('collectMetrics memory percentages align with getMemoryMetrics under same mocks', async () => {
+    const totalMem = 8 * 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 2 * 1024 * 1024 * 1024,
+      heapTotal: 3 * 1024 * 1024 * 1024,
+      heapUsed: 1 * 1024 * 1024 * 1024,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = new PerformanceMonitor();
+    const directMetrics = monitor.getMemoryMetrics();
+    const collectedMetrics = await monitor.collectMetrics();
+
+    expect(collectedMetrics.memory.usagePercent).toBeCloseTo(directMetrics.usagePercent, 5);
+    expect(collectedMetrics.memory.rssUsagePercent).toBeCloseTo(directMetrics.rssUsagePercent, 5);
+    expect(collectedMetrics.memory.heapUsagePercent).toBeCloseTo(directMetrics.heapUsagePercent, 5);
+  });
 });
 
 describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
