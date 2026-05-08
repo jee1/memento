@@ -14,9 +14,7 @@ function createMetrics(overrides: Partial<PerformanceMetrics> = {}): Performance
       heapTotal: toBytes(1024),
       heapUsed: toBytes(512),
       external: toBytes(50),
-      usagePercent: 50,
-      rssUsagePercent: 50,
-      heapUsagePercent: 50
+      usagePercent: 50
     },
     cpu: {
       user: 500000,
@@ -217,99 +215,25 @@ describe('PerformanceMonitor analytics', () => {
   });
 });
 
-
-describe('getMemoryMetrics semantics', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('usagePercent is RSS-based and equals rssUsagePercent', () => {
-    const totalMem = 8 * 1024 * 1024 * 1024;
-    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
-    vi.spyOn(process, 'memoryUsage').mockReturnValue({
-      rss: 2 * 1024 * 1024 * 1024,
-      heapTotal: 3 * 1024 * 1024 * 1024,
-      heapUsed: 1 * 1024 * 1024 * 1024,
-      external: 0,
-      arrayBuffers: 0
-    });
-
-    const monitor = new PerformanceMonitor();
-    const metrics = monitor.getMemoryMetrics();
-
-    expect(metrics.usagePercent).toBeCloseTo(25, 5);
-    expect(metrics.rssUsagePercent).toBeCloseTo(25, 5);
-    expect(metrics.usagePercent).toBe(metrics.rssUsagePercent);
-  });
-
-  it('correctly computes heapUsagePercent', () => {
-    const totalMem = 8 * 1024 * 1024 * 1024;
-    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
-    vi.spyOn(process, 'memoryUsage').mockReturnValue({
-      rss: 2 * 1024 * 1024 * 1024,
-      heapTotal: 3 * 1024 * 1024 * 1024,
-      heapUsed: 1 * 1024 * 1024 * 1024,
-      external: 0,
-      arrayBuffers: 0
-    });
-
-    const monitor = new PerformanceMonitor();
-    const metrics = monitor.getMemoryMetrics();
-
-    expect(metrics.heapUsagePercent).toBeCloseTo(12.5, 5);
-  });
-
-  it('returns zeroed percentages when os.totalmem() is zero', () => {
-    vi.spyOn(os, 'totalmem').mockReturnValue(0);
-    vi.spyOn(process, 'memoryUsage').mockReturnValue({
-      rss: 2 * 1024 * 1024 * 1024,
-      heapTotal: 3 * 1024 * 1024 * 1024,
-      heapUsed: 1 * 1024 * 1024 * 1024,
-      external: 0,
-      arrayBuffers: 0
-    });
-
-    const monitor = new PerformanceMonitor();
-    const metrics = monitor.getMemoryMetrics();
-
-    expect(metrics.usagePercent).toBe(0);
-    expect(metrics.rssUsagePercent).toBe(0);
-    expect(metrics.heapUsagePercent).toBe(0);
-  });
-
-
-  it('collectMetrics memory percentages align with getMemoryMetrics under same mocks', async () => {
-    const totalMem = 8 * 1024 * 1024 * 1024;
-    vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
-    vi.spyOn(process, 'memoryUsage').mockReturnValue({
-      rss: 2 * 1024 * 1024 * 1024,
-      heapTotal: 3 * 1024 * 1024 * 1024,
-      heapUsed: 1 * 1024 * 1024 * 1024,
-      external: 0,
-      arrayBuffers: 0
-    });
-
-    const monitor = new PerformanceMonitor();
-    const directMetrics = monitor.getMemoryMetrics();
-    const collectedMetrics = await monitor.collectMetrics();
-
-    expect(collectedMetrics.memory.usagePercent).toBeCloseTo(directMetrics.usagePercent, 5);
-    expect(collectedMetrics.memory.rssUsagePercent).toBeCloseTo(directMetrics.rssUsagePercent, 5);
-    expect(collectedMetrics.memory.heapUsagePercent).toBeCloseTo(directMetrics.heapUsagePercent, 5);
-    expect(collectedMetrics.memory.usagePercent).toBeCloseTo(collectedMetrics.memory.rssUsagePercent, 5);
-  });
-});
-
 describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
+  /** 호스트 totalmem만 쓰는 시나리오: cgroup 한도가 없을 때와 동일하게 평가되도록 명시 */
+  function mockNoConstrainedMemory(): void {
+    const proc = process as NodeJS.Process & { constrainedMemory?: () => number | undefined };
+    if (typeof proc.constrainedMemory === 'function') {
+      vi.spyOn(proc, 'constrainedMemory').mockImplementation(() => undefined as unknown as number);
+    }
+  }
 
   function makeMonitor(thresholds?: { memoryUsagePercent?: number; cpuUsagePercent?: number }) {
     return new PerformanceMonitor(thresholds);
   }
 
   it('V8 힙 충전율이 높아도 rss가 낮으면 알림을 생성하지 않는다', async () => {
+    mockNoConstrainedMemory();
     const totalMem = 8 * 1024 * 1024 * 1024;
     vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
     vi.spyOn(process, 'memoryUsage').mockReturnValue({
@@ -328,6 +252,7 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   });
 
   it('heapUsed/heapTotal < 85%이지만 rss/totalmem > 85%이면 알림을 생성한다', async () => {
+    mockNoConstrainedMemory();
     const totalMem = 1024 * 1024 * 1024;
     vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
     vi.spyOn(process, 'memoryUsage').mockReturnValue({
@@ -346,6 +271,7 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   });
 
   it('os.totalmem()이 0이면 알림을 생성하지 않고 오류도 없다', async () => {
+    mockNoConstrainedMemory();
     vi.spyOn(os, 'totalmem').mockReturnValue(0);
     vi.spyOn(process, 'memoryUsage').mockReturnValue({
       rss: 500 * 1024 * 1024,
@@ -362,6 +288,7 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   });
 
   it('memory: 알림 발생 후 조건 해소 시 auto-resolve, 재발생 시 새 알림 생성', async () => {
+    mockNoConstrainedMemory();
     const totalMem = 1024 * 1024 * 1024;
     const memMock = vi.spyOn(process, 'memoryUsage');
     vi.spyOn(os, 'totalmem').mockReturnValue(totalMem);
@@ -399,6 +326,7 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   });
 
   it('cpu: 알림 발생 후 조건 해소 시 auto-resolve, 재발생 시 새 알림 생성', async () => {
+    mockNoConstrainedMemory();
     vi.spyOn(os, 'totalmem').mockReturnValue(8 * 1024 * 1024 * 1024);
     vi.spyOn(process, 'memoryUsage').mockReturnValue({
       rss: 100 * 1024 * 1024,
@@ -429,6 +357,7 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   });
 
   it('critical alert는 logger.warn을 사용하고 logger.error를 사용하지 않는다', async () => {
+    mockNoConstrainedMemory();
     const warnSpy = vi.spyOn(logger, 'warn');
     const errorSpy = vi.spyOn(logger, 'error');
 
@@ -454,5 +383,46 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
 
     expect(criticalWarnCalls.length).toBeGreaterThanOrEqual(1);
     expect(criticalErrorCalls).toHaveLength(0);
+  });
+
+  it('호스트 RAM은 크지만 cgroup 한도가 작을 때 RSS%는 constrainedMemory 기준으로 알림된다', async () => {
+    const hostMem = 64 * 1024 * 1024 * 1024;
+    const cgroupLimit = 1024 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(hostMem);
+    vi.spyOn(process as NodeJS.Process & { constrainedMemory: () => number }, 'constrainedMemory').mockReturnValue(
+      cgroupLimit
+    );
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: Math.round(cgroupLimit * 0.9),
+      heapTotal: Math.round(cgroupLimit * 0.4),
+      heapUsed: Math.round(cgroupLimit * 0.3),
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = makeMonitor({ memoryUsagePercent: 85 });
+    await monitor.collectMetrics();
+
+    const alerts = monitor.getActiveAlerts().filter(a => a.type === 'memory');
+    expect(alerts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('getMemoryMetrics는 constrainedMemory 분모로 RSS·힙 사용률을 반환한다', () => {
+    const limit = 512 * 1024 * 1024;
+    vi.spyOn(os, 'totalmem').mockReturnValue(16 * 1024 * 1024 * 1024);
+    vi.spyOn(process as NodeJS.Process & { constrainedMemory: () => number }, 'constrainedMemory').mockReturnValue(limit);
+    vi.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: limit / 2,
+      heapTotal: limit / 4,
+      heapUsed: limit / 8,
+      external: 0,
+      arrayBuffers: 0
+    });
+
+    const monitor = new PerformanceMonitor();
+    const m = monitor.getMemoryMetrics();
+    expect(m.usagePercent).toBeCloseTo(50, 5);
+    expect(m.rssUsagePercent).toBeCloseTo(50, 5);
+    expect(m.heapUsagePercent).toBeCloseTo(12.5, 5);
   });
 });
