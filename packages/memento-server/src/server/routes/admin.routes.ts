@@ -32,10 +32,8 @@ import { registerAdminRelationRoutes } from './admin/admin-relations.routes.js';
 import { registerAdminTelemetryRoutes } from './admin/admin-telemetry.routes.js';
 import { registerAdminGraphRoute } from './admin/admin-graph.routes.js';
 import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.routes.js';
-import {
-  attachReviewCandidatesSse,
-  notifyReviewCandidatesChanged
-} from '../review-candidates-sse-hub.js';
+import { attachReviewCandidatesSse } from '../review-candidates-sse-hub.js';
+import { broadcastReviewCandidatesChanged } from '../review-candidates-changed-fanout.js';
 import {
   BATCH_RUN_HISTORY_DEFAULT_LIMIT,
   BATCH_RUN_HISTORY_MAX_STORED,
@@ -441,7 +439,7 @@ export function createAdminRouter(
       const nowIso = new Date().toISOString();
       markMemoryReviewCandidateReviewed(db, id, nowIso);
       const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
-      notifyReviewCandidatesChanged('review');
+      broadcastReviewCandidatesChanged({ reason: 'review' });
       return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
     } catch (error) {
       if (error instanceof MemoryReviewCandidateError) {
@@ -469,7 +467,7 @@ export function createAdminRouter(
       const nowIso = new Date().toISOString();
       markMemoryReviewCandidateDismissed(db, id, nowIso);
       const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
-      notifyReviewCandidatesChanged('dismiss');
+      broadcastReviewCandidatesChanged({ reason: 'dismiss' });
       return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
     } catch (error) {
       if (error instanceof MemoryReviewCandidateError) {
@@ -552,7 +550,7 @@ export function createAdminRouter(
       recordManualBatchRunSuccess(jobType, requestedAt, result);
 
       if (jobType === 'memory_review_candidates') {
-        notifyReviewCandidatesChanged('batch_memory_review_candidates');
+        broadcastReviewCandidatesChanged({ reason: 'batch_memory_review_candidates' });
       }
 
       return res.json({

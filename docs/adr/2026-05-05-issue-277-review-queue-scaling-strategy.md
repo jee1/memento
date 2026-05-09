@@ -77,4 +77,9 @@ B -> C는 아래 조건에서만 검토한다.
 2. 후보 잡 실행 메타 표준 이벤트 정의
 3. 큐 도입 PoC(이벤트 fan-out 경로)
 4. idempotency + retry + DLQ 정책 문서화
-5. 스케줄 단일 실행 전략(leader/external trigger) 설계
+5. 스케줄 단일 실행 전략(leader/external trigger) 설계 — 기본 채택: 외부 트리거·단일 실행자 + `MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED`; 상세 [#299](https://github.com/jee1/memento/issues/299) / `docs/_work/solutions/2026-05-09-review-queue-schedule-single-runner-strategy.md`
+6. **멀티 인스턴스 Admin SSE** — 채택안 확정: Tier 1은 **폴링을 정합성 기본 경로**, SSE는 **동일 인스턴스 저지연 힌트**, 배포는 **sticky 권장**; Tier 2는 기존 HTTP 릴레이 관측; Tier 3는 Gate A→B 후 공유 버스. 상세 [#300](https://github.com/jee1/memento/issues/300) / `docs/_work/solutions/2026-05-09-review-queue-sse-multi-instance-strategy.md`
+
+## Amendment: Multi-instance Admin SSE (2026-05-09, #300)
+
+Admin Review Queue의 SSE는 **프로세스 로컬**이므로 멀티 인스턴스에서는 **교차 인스턴스 실시간 일치**를 보장하지 않는다. 제품 기준은 **폴링으로의 수렴**이며, 저지연 SSE는 sticky 또는 단일 노드에서 최적이다. HTTP 릴레이(#297)는 측정·실험 경로이며, 피어 ingest는 선택 후속이다. 전문은 위 solutions 문서를 따른다.
