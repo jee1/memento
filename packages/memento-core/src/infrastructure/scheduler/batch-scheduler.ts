@@ -48,6 +48,7 @@ export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-sc
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
 import { selectMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-selection-service.js';
 import { upsertPendingMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-persistence-service.js';
+import { recordMemoryReviewQueueHealthSnapshot } from '../../domains/memory/services/memory-review-queue-health-service.js';
 
 import { collectBatchSchedulerDatabaseStats } from './batch-scheduler-database-stats.js';
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
@@ -563,6 +564,13 @@ export class BatchScheduler implements IBatchScheduler {
         error: error instanceof Error ? error.message : String(error)
       }, 'error');
     } finally {
+      try {
+        if (this.db && DatabaseUtils.isOpen(this.db)) {
+          recordMemoryReviewQueueHealthSnapshot(this.db);
+        }
+      } catch {
+        /* best-effort (#294 snapshots are optional until migration 034) */
+      }
       result.endTime = new Date();
       result.duration = result.endTime.getTime() - result.startTime.getTime();
     }

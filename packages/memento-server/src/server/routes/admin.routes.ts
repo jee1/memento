@@ -18,6 +18,9 @@ import {
   listMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
+  computeMemoryReviewQueueHealthLive,
+  maybeRecordMemoryReviewQueueHealthSnapshot,
+  listMemoryReviewQueueHealthSnapshots,
   parseAdminMemoryItemIdParam,
   getAdminMemoryItemPreviewById,
   MemoryReviewCandidateError,
@@ -360,6 +363,44 @@ export function createAdminRouter(
       return res.status(500).json({
         error: 'Failed to list review candidates',
         message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  /** Pending queue health aggregates + optional snapshot history (#294). */
+  router.get('/memory/review-candidates/metrics', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const raw = req.query['history_limit'];
+      const parsed = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number.NaN;
+      const historyLimit = Number.isFinite(parsed) ? parsed : 48;
+      maybeRecordMemoryReviewQueueHealthSnapshot(db, 50 * 60 * 1000);
+      const live = computeMemoryReviewQueueHealthLive(db);
+      const snapshots = listMemoryReviewQueueHealthSnapshots(db, historyLimit);
+      logger.info('review_queue_health', {
+        pending_total: live.pendingTotal,
+        net_flow_1h: live.window1h.netFlow,
+        created_1h: live.window1h.candidatesCreated,
+        processed_1h: live.window1h.processedTotal,
+        snapshots_returned: snapshots.length,
+      });
+      return res.json({
+        message: 'Pending review queue health',
+        live,
+        snapshots,
+        snapshotNote:
+          'Snapshots append after each memory_review_candidates batch job and may append here when stale (≥50min since last sample).',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Review queue metrics failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to load review queue metrics',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });

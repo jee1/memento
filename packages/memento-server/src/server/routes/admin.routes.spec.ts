@@ -18,6 +18,7 @@ import {
   TelemetryDailyMetricsMigration,
   MetaMemoryStatsSchemaMigration,
   MemoryReviewCandidateSchemaMigration,
+  ReviewQueueHealthSnapshotMigration,
   upsertPendingMemoryReviewCandidates,
   getBatchScheduler,
   resetBatchScheduler
@@ -989,6 +990,7 @@ describe('admin.routes memory review candidates', () => {
     createBaseSchema(db);
     await new MetaMemoryStatsSchemaMigration().up(db);
     await new MemoryReviewCandidateSchemaMigration().up(db);
+    await new ReviewQueueHealthSnapshotMigration().up(db);
     db.exec(`
       INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned, is_deleted, deleted_at)
       VALUES (
@@ -1202,6 +1204,22 @@ describe('admin.routes memory review candidates', () => {
     } finally {
       await scheduler.stop();
       resetBatchScheduler();
+    }
+  });
+
+  it('GET /admin/memory/review-candidates/metrics returns live + snapshots (#294)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/review-candidates/metrics?history_limit=10');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        live?: { pendingTotal?: number; window1h?: { netFlow?: number } };
+        snapshots?: unknown[];
+      };
+      expect(body.live?.pendingTotal).toBe(1);
+      expect(Array.isArray(body.snapshots)).toBe(true);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
     }
   });
 

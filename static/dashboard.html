@@ -164,6 +164,31 @@
           <h2 class="review-candidates-title">Memory review candidates</h2>
           <button type="button" id="rc-refresh-btn" class="m-button m-button--secondary">Refresh</button>
         </header>
+        <section id="rc-health-panel" class="rc-health-panel" aria-label="Pending queue health metrics">
+          <h3 class="rc-health-title">Queue health (#294)</h3>
+          <p id="rc-health-hint" class="rc-health-hint">
+            Rolling windows use row timestamps (<code class="rc-health-code">created_at</code>, <code class="rc-health-code">reviewed_at</code>, <code class="rc-health-code">dismissed_at</code>, <code class="rc-health-code">expired</code> via <code class="rc-health-code">updated_at</code>).
+          </p>
+          <div id="rc-health-error" class="rc-banner rc-banner--error hidden"></div>
+          <div id="rc-health-live" class="rc-health-live hidden" aria-live="polite"></div>
+          <div id="rc-health-history-wrap" class="rc-health-history-wrap hidden">
+            <h4 class="rc-health-subtitle">Recent samples</h4>
+            <div class="rc-health-table-scroll">
+              <table id="rc-health-history-table" class="rc-health-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Sampled (UTC)</th>
+                    <th scope="col">Pending</th>
+                    <th scope="col">Net flow 1h</th>
+                    <th scope="col">Created 1h</th>
+                    <th scope="col">Processed 1h</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
         <p id="rc-status-line" class="review-candidates-status" aria-live="polite"></p>
         <div
           id="rc-notify-prompt"

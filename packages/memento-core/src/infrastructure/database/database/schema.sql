@@ -600,6 +600,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_review_candidate_pending_memory_id
 CREATE INDEX IF NOT EXISTS idx_memory_review_candidate_queue
   ON memory_review_candidate(status, priority DESC, due_at ASC);
 
+-- Pending review queue health snapshots (migration 034, Issue #294)
+CREATE TABLE IF NOT EXISTS memory_review_queue_health_snapshot (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sampled_at TEXT NOT NULL,
+  pending_total INTEGER NOT NULL,
+  created_last_1h INTEGER NOT NULL,
+  reviewed_last_1h INTEGER NOT NULL,
+  dismissed_last_1h INTEGER NOT NULL,
+  expired_last_1h INTEGER NOT NULL,
+  created_last_24h INTEGER NOT NULL,
+  reviewed_last_24h INTEGER NOT NULL,
+  dismissed_last_24h INTEGER NOT NULL,
+  expired_last_24h INTEGER NOT NULL,
+  net_flow_1h INTEGER NOT NULL,
+  processing_ratio_1h REAL
+);
+CREATE INDEX IF NOT EXISTS idx_memory_review_queue_health_sampled
+  ON memory_review_queue_health_snapshot(sampled_at DESC);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

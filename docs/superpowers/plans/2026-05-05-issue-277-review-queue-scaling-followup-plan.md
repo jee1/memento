@@ -28,6 +28,7 @@
 2) pending 큐 건강도 지표 추가
 - 산출물: pending 총량, 증가율, review/dismiss 처리량, 생성량 대비 처리량
 - 완료 조건: 주기별 추이 확인 가능(대시보드 또는 집계 로그)
+- 구현 상태(2026-05): `GET /admin/memory/review-candidates/metrics`(live 창별 집계 + 스냅샷 이력), `memory_review_queue_health_snapshot`(마이그레이션 034), 배치 `memory_review_candidates` 종료 시 스냅샷 append, 대시보드 Review Queue 패널에 건강 카드 표시 — [GitHub #294](https://github.com/jee1/memento/issues/294).
 
 3) 수동 실행 관측성 보강
 - 산출물: `/admin/batch/run` 실행 이력(잡 타입, 실행 시각, 결과) 추적 지점

@@ -18,6 +18,7 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     expect(dashboardHtml).toContain('/static/js/review-candidates-panel.js');
     expect(dashboardHtml).toContain(REVIEW_QUEUE_DASHBOARD_BOOT_MARKER);
     expect(dashboardHtml).toContain('id="rc-refresh-btn"');
+    expect(dashboardHtml).toContain('id="rc-health-panel"');
     expect(dashboardHtml).toContain('id="rc-preview-aside"');
     expect(dashboardHtml).toContain('review-candidates-body');
   });
@@ -32,6 +33,7 @@ describe('dashboard review candidates panel (#252, #253)', () => {
 
   it('review-candidates-panel.js targets pending list and admin memory preview', () => {
     expect(panelJs).toContain('/admin/memory/review-candidates?status=pending');
+    expect(panelJs).toContain('/admin/memory/review-candidates/metrics');
     expect(panelJs).toContain('/admin/memory/items/');
     expect(panelJs).toContain('initReviewCandidatesPanel');
   });

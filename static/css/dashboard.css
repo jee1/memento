@@ -688,6 +688,98 @@ body {
   color: var(--color-text-muted);
 }
 
+/* Review queue health (#294) */
+.rc-health-panel {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-card);
+}
+
+.rc-health-title {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.rc-health-hint {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed, 1.45);
+}
+
+.rc-health-code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+}
+
+.rc-health-live {
+  margin-bottom: var(--spacing-md);
+}
+
+.rc-health-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.rc-health-metric-card {
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-light);
+}
+
+.rc-health-metric-label {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.rc-health-metric-value {
+  margin: 0.125rem 0 0 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.rc-health-subtitle {
+  margin: var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.rc-health-history-wrap {
+  margin-top: var(--spacing-xs);
+}
+
+.rc-health-table-scroll {
+  max-height: 14rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.rc-health-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+}
+
+.rc-health-table th,
+.rc-health-table td {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.rc-health-table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-card);
+  z-index: 1;
+}
+
 /* Review queue optional OS notifications (#275) */
 .rc-notify-prompt {
   display: flex;
