@@ -299,7 +299,7 @@ describe('TripleExtractor', () => {
       expect(mockInitializer.initialize).toHaveBeenCalledTimes(1);
     });
 
-    it('preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
+    it('TripleExtractor에서 preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
       // Given: preferredProvider와 warnings를 함께 반환하는 LLMClientInitializer 결과를 모킹
       const mockOpenAIClient = new OpenAI({ apiKey: 'test-openai-key' });
       const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');

@@ -426,7 +426,7 @@ describe('LLMBasedRelationExtractor', () => {
      * When: LLMBasedRelationExtractor 인스턴스를 생성하고 초기화가 완료될 때까지 대기
      * Then: preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함
      */
-    it('preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
+    it('LLMBasedRelationExtractor에서 preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
       // Given: LLMClientInitializer.initialize()가 preferredProvider와 warnings를 함께 반환하도록 설정
       const mockOpenAIClient = {} as any;
       const mockGeminiClient = {} as any;
