@@ -213,6 +213,20 @@ describe('PerformanceMonitor analytics', () => {
     expect(analytics.search.totalSearches).toBe(20);
     expect(analytics.search.vectorShare).toBeCloseTo(8 / (8 + 8 + 4));
   });
+
+  it('usagePercent가 없는 레거시 메트릭은 0으로 fallback한다', () => {
+    const monitor = new PerformanceMonitor();
+
+    const legacyMetric = createMetrics({
+      memory: { heapUsed: toBytes(512), usagePercent: undefined as unknown as number }
+    });
+
+    (monitor as any).metricsHistory = [legacyMetric];
+
+    const analytics = monitor.getMetricsAnalytics();
+    expect(analytics.memory.averageUsagePercent).toBe(0);
+    expect(analytics.memory.history).toEqual([0]);
+  });
 });
 
 describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
