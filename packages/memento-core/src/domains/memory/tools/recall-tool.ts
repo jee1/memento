@@ -873,10 +873,8 @@ export class RecallTool extends BaseTool {
           filteredMemoryTypes = validMemoryTypes;
         }
         
-        // agent_id 파라미터 무시 경고
-        if (agent_id) {
-          this.logWarning('memory_item 검색 시 agent_id 파라미터는 무시됩니다', { agent_id });
-        }
+        // memory_item 검색에서는 agent_id를 계속 지원하지 않지만, 호출 레이어의 공통 파라미터로
+        // 자주 전달되므로 운영 warn은 남기지 않고 조용히 무시한다.
         
         // 필터 객체 재구성
         // filteredMemoryTypes는 이미 validMemoryTypes로 변환되어 MemoryType[] 타입이거나 undefined
