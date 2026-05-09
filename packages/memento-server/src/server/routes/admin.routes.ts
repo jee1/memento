@@ -36,6 +36,13 @@ import {
   attachReviewCandidatesSse,
   notifyReviewCandidatesChanged
 } from '../review-candidates-sse-hub.js';
+import {
+  BATCH_RUN_HISTORY_DEFAULT_LIMIT,
+  BATCH_RUN_HISTORY_MAX_STORED,
+  getManualBatchRunHistory,
+  recordManualBatchRunFailure,
+  recordManualBatchRunSuccess
+} from '../batch-run-history.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -500,8 +507,37 @@ export function createAdminRouter(
     }
   });
 
+  /** Manual POST /admin/batch/run execution trail (#295, in-memory per process) */
+  router.get('/batch/run-history', (req, res) => {
+    try {
+      const raw = req.query['limit'];
+      const parsed =
+        typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
+      const floored = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
+      const limit = Math.min(Math.max(1, floored), BATCH_RUN_HISTORY_MAX_STORED);
+      const slice = getManualBatchRunHistory(limit);
+
+      res.json({
+        message: 'Manual batch run history (POST /admin/batch/run)',
+        entries: slice,
+        limit,
+        maxStored: BATCH_RUN_HISTORY_MAX_STORED,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Batch run history retrieval failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      res.status(500).json({
+        error: '배치 실행 이력 조회 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // 배치 작업 실행
   router.post('/batch/run', async (req, res) => {
+    const requestedAt = new Date();
     try {
       const { jobType } = req.body;
 
@@ -513,6 +549,7 @@ export function createAdminRouter(
 
       const batchScheduler = getBatchScheduler();
       const result = await batchScheduler.runJob(jobType);
+      recordManualBatchRunSuccess(jobType, requestedAt, result);
 
       if (jobType === 'memory_review_candidates') {
         notifyReviewCandidatesChanged('batch_memory_review_candidates');
@@ -524,6 +561,11 @@ export function createAdminRouter(
         timestamp: new Date().toISOString()
       });
     } catch (error) {
+      const body = req.body as { jobType?: string };
+      const jt = body?.jobType;
+      if (jt && ['cleanup', 'monitoring', 'memory_review_candidates'].includes(jt)) {
+        recordManualBatchRunFailure(jt, requestedAt, new Date(), error instanceof Error ? error.message : String(error));
+      }
       logger.error('Batch job execution failed', {
         error: error instanceof Error ? error.message : String(error)
       });

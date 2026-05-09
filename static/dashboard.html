@@ -189,6 +189,36 @@
             </div>
           </div>
         </section>
+        <section
+          id="rc-batch-history-panel"
+          class="rc-health-panel"
+          aria-label="Manual admin batch run history"
+        >
+          <h3 class="rc-health-title">Manual batch runs</h3>
+          <p class="rc-health-hint">
+            Recent <code class="rc-health-code">POST /admin/batch/run</code> calls on this server process
+            (in-memory; cleared on restart). Issue <span class="rc-health-code">#295</span>.
+          </p>
+          <div id="rc-batch-history-error" class="rc-banner rc-banner--error hidden" role="alert"></div>
+          <div id="rc-batch-history-empty" class="rc-banner hidden">No manual batch runs recorded yet.</div>
+          <div id="rc-batch-history-wrap" class="rc-health-history-wrap hidden">
+            <div class="rc-health-table-scroll">
+              <table id="rc-batch-history-table" class="rc-health-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Completed (local)</th>
+                    <th scope="col">Job type</th>
+                    <th scope="col">OK</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col">Processed</th>
+                    <th scope="col">Errors / notes</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
         <p id="rc-status-line" class="review-candidates-status" aria-live="polite"></p>
         <div
           id="rc-notify-prompt"

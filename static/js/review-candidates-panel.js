@@ -1,5 +1,5 @@
 /**
- * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll, #275 optional Notification API, #276 SSE + poll fallback, #294 queue health metrics)
+ * Review candidates panel (#252 list, #253 row preview + memory body, #255 poll notify, #274 configurable poll, #275 optional Notification API, #276 SSE + poll fallback, #294 queue health metrics, #295 batch/run history)
  */
 (function (global) {
   'use strict';
@@ -7,6 +7,7 @@
   const LIST_URL = '/admin/memory/review-candidates?status=pending';
   const STREAM_URL = '/admin/memory/review-candidates/stream';
   const METRICS_URL = '/admin/memory/review-candidates/metrics?history_limit=24';
+  const BATCH_RUN_HISTORY_URL = '/admin/batch/run-history?limit=50';
   const REASON_TABLE_MAX = 120;
 
   let wired = false;
@@ -718,6 +719,99 @@
     }
   }
 
+  function formatDurationMs(ms) {
+    const n = Number(ms);
+    if (!Number.isFinite(n) || n < 0) {
+      return '—';
+    }
+    if (n < 1000) {
+      return String(Math.round(n)) + ' ms';
+    }
+    return (n / 1000).toFixed(2) + ' s';
+  }
+
+  /** @param {unknown[]} rows */
+  function renderBatchRunHistoryTable(rows) {
+    const tbody = document.querySelector('#rc-batch-history-table tbody');
+    if (!tbody) {
+      return;
+    }
+    tbody.innerHTML = '';
+    if (!rows || !rows.length) {
+      return;
+    }
+    for (let i = 0; i < rows.length; i++) {
+      const r = /** @type {Record<string, unknown>} */ (rows[i]);
+      const tr = document.createElement('tr');
+      const errPreview = String(r.errorsPreview || r.failureMessage || '');
+      const errCell =
+        (Number(r.errorCount) > 0 || errPreview ? escapeHtml(errPreview || '(see logs)') : '—') +
+        (Number(r.warningCount) > 0
+          ? ' <span class="rc-health-hint">(' + escapeHtml(String(r.warningCount)) + ' warnings)</span>'
+          : '');
+      tr.innerHTML =
+        '<td class="rc-cell-mono">' +
+        escapeHtml(formatDue(r.completedAt)) +
+        '</td><td class="rc-cell-mono">' +
+        escapeHtml(String(r.jobType || '')) +
+        '</td><td>' +
+        escapeHtml(r.success === true ? 'yes' : r.success === false ? 'no' : '—') +
+        '</td><td class="rc-cell-mono">' +
+        escapeHtml(formatDurationMs(r.durationMs)) +
+        '</td><td>' +
+        escapeHtml(String(r.processed != null ? r.processed : '—')) +
+        '</td><td class="rc-preview-reason-full">' +
+        errCell +
+        '</td>';
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function loadBatchRunHistory() {
+    const errEl = $('rc-batch-history-error');
+    const emptyEl = $('rc-batch-history-empty');
+    const wrap = $('rc-batch-history-wrap');
+    if (!wrap || !emptyEl) {
+      return;
+    }
+    if (errEl) {
+      setHidden(errEl, true);
+    }
+    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    try {
+      const res = await fetchFn(BATCH_RUN_HISTORY_URL, { headers: { Accept: 'application/json' } });
+      const body = await res.json().catch(function () {
+        return {};
+      });
+      if (!res.ok) {
+        const msg = (body && (body.error || body.message)) || 'HTTP ' + res.status;
+        if (errEl) {
+          errEl.textContent = String(msg);
+          setHidden(errEl, false);
+        }
+        setHidden(emptyEl, true);
+        setHidden(wrap, true);
+        return;
+      }
+      const entries = (body && body.entries) || [];
+      if (!entries.length) {
+        setHidden(emptyEl, false);
+        setHidden(wrap, true);
+        return;
+      }
+      setHidden(emptyEl, true);
+      setHidden(wrap, false);
+      renderBatchRunHistoryTable(entries);
+    } catch (e) {
+      if (errEl) {
+        errEl.textContent = e instanceof Error ? e.message : 'Network error';
+        setHidden(errEl, false);
+      }
+      setHidden(emptyEl, true);
+      setHidden(wrap, true);
+    }
+  }
+
   async function loadHealthMetrics() {
     const errEl = $('rc-health-error');
     const liveEl = $('rc-health-live');
@@ -877,6 +971,7 @@
       pollFailureStreak = 0;
       maybeStartReviewCandidatesEventSource();
       void loadHealthMetrics();
+      void loadBatchRunHistory();
     } catch (e) {
       showLoading(false);
       showError(e instanceof Error ? e.message : 'Network error');
