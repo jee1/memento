@@ -22,6 +22,9 @@ src/**/*.d.ts.map
 .env.test.local
 .env.production.local
 
+# Local-only slop-detector overrides (see DEVELOPMENT_RULES.md — optional static scan)
+.slopconfig.local.yaml
+
 # Database
 *.db
 *.db-journal

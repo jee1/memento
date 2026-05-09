@@ -105,4 +105,5 @@ it('should behavior when condition', async () => {
     *   루트 전체(설정 반영): `slop-detector --project . --js --config .slopconfig.yaml`
 *   **`--gate`:** 상단 요약에 Python/LDR가 0으로 보일 수 있다. **`--js` 사용 시 JS/TS Analysis 구간을 게이트 판단의 주된 근거로 본다.**
 *   **CI:** 본 저장소의 필수 CI 게이트에는 포함하지 않는다(후속 이슈에서 선택).
-*   **테스트 경로 무시:** 기본 `.slopconfig`에서는 `*.spec.ts` 등을 대량 제외하지 않는다. 팀 정책에 따라 로컬에서만 ignore를 추가할 수 있다.
+*   **테스트 경로 무시(저장소 기본):** 루트 `.slopconfig.yaml`에는 `*.spec.ts`·`tests/**` 등을 **대량으로 넣지 않는다**([#221](https://github.com/jee1/memento/issues/221) 정책).
+*   **로컬 전용 오버라이드(선택):** Vitest 노이즈를 줄이려면 (1) 루트 `.slopconfig.yaml`을 복사해 `.slopconfig.local.yaml`을 만들고, (2) `ignore`에 개인용 패턴(예: `**/*.spec.ts`, `**/tests/**`)만 추가한다. 이 파일은 `.gitignore`에 포함되어 **커밋되지 않는다**. (3) 스캔 시 `--config .slopconfig.local.yaml`을 지정한다. 예: `slop-detector --project packages --js --config .slopconfig.local.yaml`
