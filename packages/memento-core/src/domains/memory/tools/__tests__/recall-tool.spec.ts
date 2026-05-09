@@ -199,6 +199,46 @@ describe('RecallTool', () => {
     });
   });
 
+  describe('type 파라미터 롤아웃 (issue 290)', () => {
+    let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
+
+    beforeEach(() => {
+      savedTypeParamMode = mementoConfig.typeParamMode;
+      mementoConfig.typeParamMode = 'warn';
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 1,
+        text_count: 0,
+        vector_count: 0,
+      });
+    });
+
+    afterEach(() => {
+      mementoConfig.typeParamMode = savedTypeParamMode;
+    });
+
+    it("type 없고 memory_types만 있으면 missing-type 경고(validateTypeParam 문구)를 내지 않는다", async () => {
+      const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
+      await tool.handle(
+        { query: 'q', memory_types: ['semantic'] as const, limit: 5 },
+        context,
+      );
+      const missingTypeCalls = logWarningSpy.mock.calls.filter(
+        (c) => typeof c[0] === 'string' && c[0].includes("type' 파라미터가 지정되지 않았습니다"),
+      );
+      expect(missingTypeCalls).toHaveLength(0);
+    });
+
+    it('type·memory_types 모두 없으면 warn 모드에서 missing-type 경고를 낸다', async () => {
+      const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
+      await tool.handle({ query: 'q', limit: 5 }, context);
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining("type' 파라미터가 지정되지 않았습니다"),
+      );
+    });
+  });
+
   describe('include_score_breakdown (US3, T021)', () => {
     const mockItemBase = {
       id: 'mem_1',

@@ -428,7 +428,7 @@ export class RecallTool extends BaseTool {
           type: { 
             type: 'string', 
             enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'],
-            description: '단일 메모리 타입 지정 (선택사항)'
+            description: '단일 메모리 타입 지정 (선택사항). 가능하면 항상 명시하는 것을 권장합니다.'
           },
           key: { 
             type: 'string', 
@@ -441,7 +441,7 @@ export class RecallTool extends BaseTool {
           memory_types: { 
             type: 'array', 
             items: { type: 'string', enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'] },
-            description: '기억 타입 필터 (선택사항, type 파라미터와 동시 사용 시 type 우선). core/vault는 자동으로 제거됩니다.'
+            description: '복수 타입 필터 (선택사항, type 파라미터와 동시 사용 시 type 우선). core/vault는 자동으로 제거됩니다. type을 생략해도 이 배열이 비어 있지 않으면 missing-type 경고가 생략될 수 있습니다.'
           },
           tags: { 
             type: 'array', 
@@ -671,36 +671,30 @@ export class RecallTool extends BaseTool {
       // trigger_context가 제공되면 context로 사용 (하위 호환성)
       const actualTriggerContext = triggerContext || trigger_context;
       
-      // type 파라미터 롤아웃 모드 검증
-      // PRD 요구사항: Phase 1/2에서는 type 파라미터가 없으면 항상 경고/Deprecated 메시지를 띄워야 함
-      // memory_types만 있어도 경고를 띄워야 하므로, type이 없으면 항상 검증 수행
+      // type 파라미터 롤아웃 모드 검증 (issue #290)
+      // memory_types가 비어 있지 않으면 타입 필터 의도가 이미 드러나므로 missing-type 경고(validateTypeParam)를 생략한다.
       const typeParamMode = mementoConfig.typeParamMode;
       const originalTypeProvided = !!type; // 원래 type 파라미터가 제공되었는지 추적
       let validatedType = type;
-      
-      // type 파라미터가 없는 경우 항상 검증 수행 (memory_types로 우회 불가)
+      const hasMemoryTypesFilter = Array.isArray(memory_types) && memory_types.length > 0;
+
       if (!type) {
-        const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
-        
-        // error 모드에서는 에러 발생
-        if (!typeValidation.isValid) {
-          throw new Error(typeValidation.message || "type 파라미터는 필수입니다.");
-        }
-        
-        // warn/deprecate 모드에서는 경고/Deprecation 메시지 출력
-        // memory_types가 있어도 경고는 항상 출력되어야 함
-        if (typeValidation.message) {
-          if (typeParamMode === 'warn') {
-            this.logWarning(typeValidation.message);
-          } else if (typeParamMode === 'deprecate') {
+        if (hasMemoryTypesFilter) {
+          validatedType = 'episodic' as MemoryTypeRequest;
+        } else {
+          const typeValidation = validateTypeParam(undefined, typeParamMode, 'recall');
+
+          if (!typeValidation.isValid) {
+            throw new Error(typeValidation.message || "type 파라미터는 필수입니다.");
+          }
+
+          if (typeValidation.message && (typeParamMode === 'warn' || typeParamMode === 'deprecate')) {
             this.logWarning(typeValidation.message);
           }
-        }
-        
-        // 기본값 설정 (일관성을 위해 항상 설정)
-        // memory_types가 있어도 기본 타입을 설정하되, 나중에 memory_types를 사용할 때는 무시됨
-        if (typeValidation.defaultType) {
-          validatedType = typeValidation.defaultType as MemoryTypeRequest;
+
+          if (typeValidation.defaultType) {
+            validatedType = typeValidation.defaultType as MemoryTypeRequest;
+          }
         }
       }
       
