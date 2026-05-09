@@ -24,6 +24,11 @@ export interface BatchJobConfig {
   telemetryCleanupInterval: number;
   /** Issue #243: refresh memory_review_candidate pending rows from selection */
   memoryReviewCandidatesInterval: number;
+  /**
+   * When false, do not register the periodic `memory_review_candidates` interval (GitHub #299).
+   * Manual/HTTP `runJob('memory_review_candidates')` and `/admin/batch/run` still work.
+   */
+  memoryReviewCandidatesSchedulerEnabled: boolean;
 
   maxBatchSize: number;
   enableLogging: boolean;

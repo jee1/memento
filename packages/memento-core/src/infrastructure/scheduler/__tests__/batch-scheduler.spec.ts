@@ -361,6 +361,29 @@ describe('BatchScheduler', () => {
       const status = scheduler.getStatus();
       expect(status.activeJobs).toContain('memory_review_candidates');
     });
+
+    it('memoryReviewCandidatesSchedulerEnabled=false이면 주기 등록 없이 runJob는 동작해야 함', async () => {
+      const s = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        healthCheckInterval: 10000,
+        memoryReviewCandidatesInterval: 60000,
+        memoryReviewCandidatesSchedulerEnabled: false,
+        maxBatchSize: 100,
+        enableLogging: false,
+        enableNotifications: false,
+        enableMetrics: false,
+        maxConcurrentJobs: 2,
+        jobTimeout: 5000,
+        retryAttempts: 2,
+        retryDelay: 100
+      });
+      await s.start(db);
+      expect(s.getStatus().activeJobs).not.toContain('memory_review_candidates');
+      const result = await s.runJob('memory_review_candidates');
+      expect(result.jobType).toBe('memory_review_candidates');
+      await s.stop();
+    });
   });
 
   describe('작업 실행 및 재시도', () => {

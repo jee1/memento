@@ -42,7 +42,7 @@ import type { IntrospectionScanCache } from '../../domains/memory/services/intro
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
-import { resolveValidatedNumber } from '../../shared/config/environment.js';
+import { resolveBoolean, resolveValidatedNumber } from '../../shared/config/environment.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
@@ -146,6 +146,9 @@ export class BatchScheduler implements IBatchScheduler {
         n => n >= 60_000,
         '최솟값 60000'
       ),
+      memoryReviewCandidatesSchedulerEnabled: resolveBoolean('MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED', {
+        defaultValue: true
+      }),
       maxBatchSize: 1000,
       enableLogging: true,
       enableNotifications: false,
@@ -294,17 +297,23 @@ export class BatchScheduler implements IBatchScheduler {
       6
     );
 
-    this.scheduleJob(
-      'memory_review_candidates',
-      this.config.memoryReviewCandidatesInterval,
-      async () => {
-        const r = await this.runMemoryReviewCandidatesJob();
-        if (!r.success) {
-          throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
-        }
-      },
-      8
-    );
+    if (this.config.memoryReviewCandidatesSchedulerEnabled) {
+      this.scheduleJob(
+        'memory_review_candidates',
+        this.config.memoryReviewCandidatesInterval,
+        async () => {
+          const r = await this.runMemoryReviewCandidatesJob();
+          if (!r.success) {
+            throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
+          }
+        },
+        8
+      );
+    } else {
+      this.log('memory_review_candidates periodic schedule disabled (MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED=false)', {
+        level: 'info'
+      });
+    }
 
     // 작업 큐 처리 시작
     this.startJobProcessor();
@@ -1152,6 +1161,12 @@ export class BatchScheduler implements IBatchScheduler {
     } else if (jobName === 'healthcheck') {
       this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
     } else if (jobName === 'memory_review_candidates') {
+      if (!this.config.memoryReviewCandidatesSchedulerEnabled) {
+        this.log('restartJob(memory_review_candidates): periodic schedule is disabled; enable MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED or use runJob', {
+          level: 'warn'
+        });
+        return false;
+      }
       this.scheduleJob(
         'memory_review_candidates',
         this.config.memoryReviewCandidatesInterval,
