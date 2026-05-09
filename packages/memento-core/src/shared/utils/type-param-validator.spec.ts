@@ -49,6 +49,7 @@ describe('type-param-validator', () => {
         expect(result.defaultType).toBe('episodic');
         expect(result.message).toContain('DEPRECATED');
         expect(result.message).toContain('마이그레이션');
+        expect(result.message).toContain('type-param-rollout');
       });
 
       it('should return valid result when type is provided', () => {
