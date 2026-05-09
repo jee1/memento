@@ -24,6 +24,7 @@
 1) `memory_review_candidates` 실행 메타 표준화
 - 산출물: 실행 시작/종료/지연/결과(성공, inserted, updated, error count) 이벤트 스키마
 - 완료 조건: 운영 로그/진단에서 동일 키로 집계 가능
+- 구현 참고 (Issue #293): `RuntimeDiagnosticsLogger` 경로(`app-events.jsonl`)에 `type: memory_review_candidates_run` 레코드가 기록된다. 고정 키는 `schema_version`, `job_name`, `started_at`, `finished_at`, `duration_ms`, `result`(`success`|`failure`), `inserted`, `updated`, `error_count`, `selected_count`, `first_error`이다. diagnostics가 비활성화된 프로세스에서는 동일 페이로드가 앱 로그 메시지 `memory_review_candidates_run`으로 출력된다.
 
 2) pending 큐 건강도 지표 추가
 - 산출물: pending 총량, 증가율, review/dismiss 처리량, 생성량 대비 처리량

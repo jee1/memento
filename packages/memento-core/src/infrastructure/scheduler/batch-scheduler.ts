@@ -49,6 +49,7 @@ import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
 import { selectMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-selection-service.js';
 import { upsertPendingMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-persistence-service.js';
 import { recordMemoryReviewQueueHealthSnapshot } from '../../domains/memory/services/memory-review-queue-health-service.js';
+import { buildMemoryReviewCandidatesRunDiagnosticsPayload } from './memory-review-candidates-run-diagnostics.js';
 
 import { collectBatchSchedulerDatabaseStats } from './batch-scheduler-database-stats.js';
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
@@ -297,7 +298,10 @@ export class BatchScheduler implements IBatchScheduler {
       'memory_review_candidates',
       this.config.memoryReviewCandidatesInterval,
       async () => {
-        await this.runMemoryReviewCandidatesJob();
+        const r = await this.runMemoryReviewCandidatesJob();
+        if (!r.success) {
+          throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
+        }
       },
       8
     );
@@ -446,6 +450,18 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   /**
+   * Issue #293: `memory_review_candidates` 실행 메타(고정 키)를 diagnostics에 기록한다.
+   * diagnostics가 꺼져 있으면 동일 스키마로 앱 로그에 남겨 운영에서 grep/후처리할 수 있게 한다.
+   */
+  private async emitMemoryReviewCandidatesRunRecord(result: BatchJobResult): Promise<void> {
+    const payload = buildMemoryReviewCandidatesRunDiagnosticsPayload(result);
+    await this.writeDiagnosticsEvent(payload);
+    if (!this.diagnosticsLogger) {
+      this.log('memory_review_candidates_run', payload, 'info');
+    }
+  }
+
+  /**
    * 메모리 정리 작업 실행
    */
   private async runMemoryCleanup(): Promise<BatchJobResult> {
@@ -573,6 +589,7 @@ export class BatchScheduler implements IBatchScheduler {
       }
       result.endTime = new Date();
       result.duration = result.endTime.getTime() - result.startTime.getTime();
+      await this.emitMemoryReviewCandidatesRunRecord(result);
     }
 
     return result;
@@ -1063,7 +1080,15 @@ export class BatchScheduler implements IBatchScheduler {
     // lastExecution과 totalExecutions 업데이트 (큐를 통한 실행과 일관성 유지)
     this.lastExecution.set(jobType, new Date());
     this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
-    
+
+    if (jobType === 'memory_review_candidates') {
+      this.lastJobRunMeta.set(jobType, {
+        at: result.endTime,
+        success: result.success,
+        durationMs: result.duration
+      });
+    }
+
     return result;
   }
 
@@ -1131,7 +1156,10 @@ export class BatchScheduler implements IBatchScheduler {
         'memory_review_candidates',
         this.config.memoryReviewCandidatesInterval,
         async () => {
-          await this.runMemoryReviewCandidatesJob();
+          const r = await this.runMemoryReviewCandidatesJob();
+          if (!r.success) {
+            throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
+          }
         },
         8
       );
