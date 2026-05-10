@@ -20,8 +20,15 @@
 
 ## 착수 순서 (첫 1~2건)
 
-1. **PR-A:** `database/init.ts` vs `database/migrate.ts` 중 **Critical가 더 높은 쪽**부터 (로컬 slop 로그로 확인).
-2. **PR-B:** `n-hop-search-service.ts` **또는** `memory-embedding-service.ts` 중 하나만.
+1. ~~**PR-A:** `database/init.ts` / `database/migrate.ts`~~ — 머지됨: [`migrate.ts` #322](https://github.com/jee1/memento/pull/322), [`init.ts` 레거시 스키마 분해 #325](https://github.com/jee1/memento/pull/325). 추가 분해는 재스캔 후 필요 시만.
+2. **다음 PR-B:** `n-hop-search-service.ts` **또는** `memory-embedding-service.ts` 중 **하나만** 선정 (로컬 slop 로그로 Critical 비교).
+
+## 진행 기록
+
+| 날짜 (UTC) | 대상 | PR | 요약 |
+|------------|------|-----|------|
+| 2026-05-10 | `.../database/migrate.ts` | [#322](https://github.com/jee1/memento/pull/322) | duplicate column / `catch (err: unknown)` 정리 |
+| 2026-05-10 | `.../database/init.ts` | [#325](https://github.com/jee1/memento/pull/325) | `_ensureLegacySchema` → `ensureLegacyMemoryEmbeddingColumns` 등 분해, VEC 차원 주석 유지 |
 
 ## 갱신
 
