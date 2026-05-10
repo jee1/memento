@@ -25,7 +25,8 @@
 3. ~~**PR-B (2/2):** `memory-embedding-service.ts`~~ — [#328](https://github.com/jee1/memento/pull/328): 저장/검색 헬퍼 분리, stderr 이모지 → ASCII 진단 태그.
 4. ~~**순위 2 잔여:** `vector-search-quality-metrics.ts`~~ — [#329](https://github.com/jee1/memento/pull/329): Kendall tau-b·vector-only/consolidation 점수 헬퍼 분리(동작·export 동일).
 5. ~~**순위 3:** `triple-extraction-service.ts` + 파이프라인~~ — [#330](https://github.com/jee1/memento/pull/330): `triple-extraction-llm-pipeline.ts`로 LLM 호출·파싱·초기화 로깅 분리, \`enqueueExtractionLog\`로 중복 제거.
-6. **다음 (순위 4):** `packages/memento-server/src/**` admin 라우트 모듈화.
+6. ~~**순위 4:** `memento-server` admin 라우트~~ — [#331](https://github.com/jee1/memento/pull/331): `admin.routes.ts`를 `routes/admin/*` 등록 모듈로 분할(경로·핸들러 동일).
+7. **다음:** `slop-detector` 재스캔 후 상위 파일 갱신(표·[#315](https://github.com/jee1/memento/issues/315) 링크).
 
 ## 진행 기록
 
@@ -37,6 +38,7 @@
 | 2026-05-10 | `.../memory/services/memory-embedding-service.ts` | [#328](https://github.com/jee1/memento/pull/328) | 호환성/INSERT·vec SQL·맵 헬퍼, stderr ASCII 태그 |
 | 2026-05-10 | `.../test/helpers/vector-search-quality-metrics.ts` | [#329](https://github.com/jee1/memento/pull/329) | Kendall tau-b·하이브리드 점수 pick 헬퍼 추출 |
 | 2026-05-10 | `.../triple-extraction/triple-extraction-service.ts` (+ pipeline) | [#330](https://github.com/jee1/memento/pull/330) | LLM raw 호출·파싱·init 로깅 모듈 분리, 로깅 enqueue 헬퍼 |
+| 2026-05-10 | `memento-server/.../routes/admin.routes.ts` (+ admin/*.routes) | [#331](https://github.com/jee1/memento/pull/331) | 통계·리뷰·배치·성능·도구·프로젝트 메모리 라우트 모듈화 |
 
 ## 갱신
 
