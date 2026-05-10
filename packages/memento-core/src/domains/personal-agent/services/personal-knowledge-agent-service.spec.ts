@@ -25,7 +25,7 @@ describe('PersonalKnowledgeAgentService', () => {
     const result = await svc.runOneTurn({ userMessage: '테스트 입력' });
 
     expect(result.llmResponse).toBe('LLM 응답');
-    expect(result.persisted).toBe(true);
+    expect(result.persisted).toBe(false);
     expect(result.candidates).toEqual([]);
   });
 

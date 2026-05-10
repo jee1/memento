@@ -34,6 +34,6 @@ export class PersonalKnowledgeAgentService {
     // #235에서 승인 흐름 구현
     await this.deps.persistence.persist(candidates);
 
-    return { candidates, llmResponse, persisted: true };
+    return { candidates, llmResponse, persisted: false };
   }
 }
