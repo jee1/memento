@@ -29,13 +29,7 @@ import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
 import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
 import { buildMemoryReviewCandidatesRunDiagnosticsPayload } from './memory-review-candidates-run-diagnostics.js';
 
-import { collectBatchSchedulerDatabaseStats } from './batch-scheduler-database-stats.js';
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
-import {
-  assertSchedulerDbOpen,
-  createEmptyBatchJobResult,
-  finalizeBatchJobTiming
-} from './batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './handlers/batch-scheduler-run-context.js';
 import {
   runHealthCheck,
@@ -56,6 +50,19 @@ import {
   runQualityMeasurementBatch,
   runTripleExtractionBatch
 } from './handlers/batch-scheduler-augmentation-handlers.js';
+import {
+  runSleepConsolidationBatch,
+  runTelemetryCleanupBatch
+} from './handlers/batch-scheduler-sleep-telemetry-handlers.js';
+import {
+  registerAllRecurringJobs,
+  scheduleCleanupJob,
+  scheduleHealthcheckJob,
+  scheduleMemoryReviewCandidatesInterval,
+  scheduleMonitoringJob,
+  type BatchRecurringScheduleContext
+} from './batch-recurring-schedules.js';
+
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
@@ -248,73 +255,36 @@ export class BatchScheduler implements IBatchScheduler {
     });
   }
 
-  private scheduleCoreMaintenanceJobs(): void {
-    this.scheduleJob('cleanup', this.config.cleanupInterval, async () => { await this.runMemoryCleanup(); }, 1);
-    this.scheduleJob('monitoring', this.config.monitoringInterval, async () => { await this.runMonitoring(); }, 2);
-    this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
-  }
-
-  private scheduleConsolidationRelationAndLogJobs(): void {
-    if (mementoConfig.consolidationScoreEnabled && this.consolidationScoreWorker) {
-      this.scheduleJob(
-        'consolidation_score_incremental',
-        this.config.consolidationScoreIncrementalInterval,
-        async () => { await this.runConsolidationScoreIncremental(); },
-        4
-      );
-      this.scheduleConsolidationScoreFullSweep();
-    }
-    this.scheduleWeeklyRelationValidation();
-    this.scheduleJob(
-      'log_rotation',
-      this.config.logRotationInterval,
-      async () => { await this.runLogRotation(); },
-      5
-    );
-  }
-
-  private scheduleAugmentationAndTelemetryJobs(): void {
-    this.scheduleTripleExtractionBatch();
-    this.scheduleQualityMeasurement();
-    if (this.sleepConsolidationService) {
-      this.scheduleSleepConsolidation();
-    }
-    if (this.telemetryCleanupRepository) {
-      this.scheduleTelemetryCleanup();
-    }
-  }
-
-  private scheduleMetaMemoryAndReviewJobs(): void {
-    this.scheduleJob(
-      'meta_memory_introspection',
-      this.config.metaMemoryIntrospectionInterval,
-      async () => { await this.runMetaMemoryIntrospection(); },
-      6
-    );
-    if (this.config.memoryReviewCandidatesSchedulerEnabled) {
-      this.scheduleJob(
-        'memory_review_candidates',
-        this.config.memoryReviewCandidatesInterval,
-        async () => {
-          const r = await this.runMemoryReviewCandidatesJob();
-          if (!r.success) {
-            throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
-          }
-        },
-        8
-      );
-    } else {
-      this.log('memory_review_candidates periodic schedule disabled (MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED=false)', {
-        level: 'info'
-      });
-    }
+  private buildRecurringScheduleContext(): BatchRecurringScheduleContext {
+    return {
+      config: this.config,
+      consolidationScoreEnabled: mementoConfig.consolidationScoreEnabled,
+      hasConsolidationScoreWorker: this.consolidationScoreWorker !== null,
+      hasSleepConsolidation: this.sleepConsolidationService != null,
+      hasTelemetryCleanup: this.telemetryCleanupRepository != null,
+      scheduleJob: (name, interval, job, priority) => this.scheduleJob(name, interval, job, priority),
+      lastExecution: this.lastExecution,
+      intervals: this.intervals,
+      jobExecutionCoordinator: this.jobExecutionCoordinator,
+      log: (message, data, level) => this.log(message, data, level ?? 'info'),
+      runMemoryCleanup: () => this.runMemoryCleanup(),
+      runMonitoring: () => this.runMonitoring(),
+      runHealthCheck: () => this.runHealthCheck(),
+      runConsolidationScoreIncremental: () => this.runConsolidationScoreIncremental(),
+      runConsolidationScoreFullSweep: () => this.runConsolidationScoreFullSweep(),
+      runWeeklyRelationValidation: () => this.runWeeklyRelationValidation(),
+      runLogRotation: () => this.runLogRotation(),
+      runTripleExtractionBatch: () => this.runTripleExtractionBatch(),
+      runQualityMeasurementBatch: () => this.runQualityMeasurementBatch(),
+      runMetaMemoryIntrospection: () => this.runMetaMemoryIntrospection(),
+      runMemoryReviewCandidatesJob: () => this.runMemoryReviewCandidatesJob(),
+      runSleepConsolidationBatch: () => this.runSleepConsolidationBatch(),
+      runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch()
+    };
   }
 
   private scheduleAllRecurringJobs(): void {
-    this.scheduleCoreMaintenanceJobs();
-    this.scheduleConsolidationRelationAndLogJobs();
-    this.scheduleAugmentationAndTelemetryJobs();
-    this.scheduleMetaMemoryAndReviewJobs();
+    registerAllRecurringJobs(this.buildRecurringScheduleContext());
   }
 
   /**
@@ -490,82 +460,6 @@ export class BatchScheduler implements IBatchScheduler {
     return runConsolidationScoreIncremental(this.buildRunContext());
   }
 
-  /**
-   * Consolidation Score 전체 스윕 작업 스케줄링
-   * 지정된 시간에 하루 1회 실행
-   * 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함
-   */
-  private scheduleConsolidationScoreFullSweep(): void {
-    const checkAndRun = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      
-      // 지정된 시간에 실행
-      if (currentHour === this.config.consolidationScoreFullSweepHour) {
-        // 이미 오늘 실행했는지 확인 (lastExecution 체크)
-        const lastExecution = this.lastExecution.get('consolidation_score_full_sweep');
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
-        if (!lastExecution || lastExecution < today) {
-          // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
-          this.jobExecutionCoordinator.addJobToQueue(
-            'consolidation_score_full_sweep',
-            async () => { await this.runConsolidationScoreFullSweep(); },
-            4, // consolidation_score_incremental과 동일한 우선순위
-            0
-          );
-        }
-      }
-    };
-
-    // 매 시간마다 체크 (config 기반 간격 사용)
-    const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
-    const intervalId = setInterval(checkAndRun, checkInterval);
-    
-    // intervals Map에 저장하여 stop()에서 정리 가능하도록 함
-    this.intervals.set('consolidation_score_full_sweep', intervalId);
-    
-    // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
-    checkAndRun();
-  }
-
-  /**
-   * 주간 관계 추출 품질 검증 작업 스케줄링
-   * 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함
-   */
-  private scheduleWeeklyRelationValidation(): void {
-    const checkAndRun = () => {
-      const now = new Date();
-      const currentDayOfWeek = now.getDay(); // 0=일요일, 6=토요일
-      const currentHour = now.getHours();
-      
-      // 지정된 요일과 시간에 실행
-      if (currentDayOfWeek === this.config.relationValidationDayOfWeek && 
-          currentHour === this.config.relationValidationHour) {
-        // 이미 오늘 실행했는지 확인 (lastExecution 체크)
-        const lastExecution = this.lastExecution.get('weekly_relation_validation');
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
-        if (!lastExecution || lastExecution < today) {
-          // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
-          this.jobExecutionCoordinator.addJobToQueue(
-            'weekly_relation_validation',
-            async () => { await this.runWeeklyRelationValidation(); },
-            5, // 다른 작업보다 낮은 우선순위
-            0
-          );
-        }
-      }
-    };
-
-    // 매 시간마다 체크
-    const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
-    const intervalId = setInterval(checkAndRun, checkInterval);
-    this.intervals.set('weekly_relation_validation', intervalId);
-    
-    // 즉시 한 번 체크 (시작 시점이 실행 시간이면 바로 실행)
-    checkAndRun();
-  }
 
   /**
    * 주간 관계 추출 품질 검증 실행
@@ -762,12 +656,13 @@ export class BatchScheduler implements IBatchScheduler {
    */
   restartJob(jobName: string): boolean {
     // 작업 재시작 로직 (stopJob을 호출하지 않음)
+    const ctx = this.buildRecurringScheduleContext();
     if (jobName === 'cleanup') {
-      this.scheduleJob('cleanup', this.config.cleanupInterval, async () => { await this.runMemoryCleanup(); }, 1);
+      scheduleCleanupJob(ctx);
     } else if (jobName === 'monitoring') {
-      this.scheduleJob('monitoring', this.config.monitoringInterval, async () => { await this.runMonitoring(); }, 2);
+      scheduleMonitoringJob(ctx);
     } else if (jobName === 'healthcheck') {
-      this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
+      scheduleHealthcheckJob(ctx);
     } else if (jobName === 'memory_review_candidates') {
       if (!this.config.memoryReviewCandidatesSchedulerEnabled) {
         this.log('restartJob(memory_review_candidates): periodic schedule is disabled; enable MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED or use runJob', {
@@ -775,22 +670,12 @@ export class BatchScheduler implements IBatchScheduler {
         });
         return false;
       }
-      this.scheduleJob(
-        'memory_review_candidates',
-        this.config.memoryReviewCandidatesInterval,
-        async () => {
-          const r = await this.runMemoryReviewCandidatesJob();
-          if (!r.success) {
-            throw new Error(r.errors.join('; ') || 'memory_review_candidates batch failed');
-          }
-        },
-        8
-      );
+      scheduleMemoryReviewCandidatesInterval(ctx);
     } else {
       this.log(`Unknown job type for restart: ${jobName}`);
       return false;
     }
-    
+
     this.log(`Restarted job: ${jobName}`);
     return true;
   }
@@ -850,125 +735,7 @@ export class BatchScheduler implements IBatchScheduler {
     return runTripleExtractionBatch(this.buildRunContext());
   }
 
-  /**
-   * Triple 추출 배치 작업 스케줄링
-   * 
-   * PRD 6.1: 주기적 배치 실행
-   * - 주기: 매일 새벽 2시 (설정 가능, tripleExtractionInterval, tripleExtractionHour 설정)
-   * - tripleExtractionHour가 지정된 경우 해당 시간에만 실행
-   * - tripleExtractionHour가 지정되지 않은 경우 interval마다 실행
-   * 
-   * PRD 6.2: 기존 배치 작업과 충돌 방지
-   * - BatchScheduler의 maxConcurrentJobs 설정 고려
-   * - Triple 추출 배치 작업은 다른 배치 작업과 동시 실행되지 않도록 스케줄링
-   * - Triple Extraction Job은 독립적인 작업 큐로 관리
-   * - 우선순위 6 설정 (로그 로테이션 다음, 다른 중요 작업보다 낮은 우선순위)
-   * - JobQueue를 통해 실행하여 maxConcurrentJobs 제한 및 중복 방지 적용
-   */
-  private scheduleTripleExtractionBatch(): void {
-    if (this.config.tripleExtractionHour !== undefined) {
-      // 특정 시간에만 실행 (예: 매일 새벽 2시)
-      // PRD 6.1: 주기: 매일 새벽 2시 (설정 가능)
-      // scheduleConsolidationScoreFullSweep()와 동일한 패턴 사용
-      const checkAndRun = () => {
-        const now = new Date();
-        const currentHour = now.getHours();
-        
-        // 지정된 시간에 실행
-        if (currentHour === this.config.tripleExtractionHour) {
-          // 이미 오늘 실행했는지 확인 (lastExecution 체크)
-          const lastExecution = this.lastExecution.get('triple_extraction_batch');
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          
-          if (!lastExecution || lastExecution < today) {
-            // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
-            this.jobExecutionCoordinator.addJobToQueue(
-              'triple_extraction_batch',
-              async () => { await this.runTripleExtractionBatch(); },
-              6, // 우선순위 6 (로그 로테이션 다음)
-              0
-            );
-          }
-        }
-      };
 
-      // 매 시간마다 체크 (config 기반 간격 사용)
-      const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
-      const intervalId = setInterval(checkAndRun, checkInterval);
-      
-      // intervals Map에 저장하여 stop()에서 정리 가능하도록 함
-      this.intervals.set('triple_extraction_batch', intervalId);
-      
-      // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
-      checkAndRun();
-    } else {
-      // interval마다 실행 (기본: 1시간마다)
-      // PRD 6.1: 주기: 매일 새벽 2시 (설정 가능, tripleExtractionInterval)
-      // PRD 6.2: 기존 배치 작업과 충돌 방지
-      // scheduleJob()은 내부적으로 addJobToQueue()를 사용하여 maxConcurrentJobs 제한 및 중복 방지 적용
-      // 우선순위 6 설정: 로그 로테이션(5) 다음, 다른 중요 작업보다 낮은 우선순위
-      this.scheduleJob(
-        'triple_extraction_batch',
-        this.config.tripleExtractionInterval,
-        async () => { await this.runTripleExtractionBatch(); },
-        6 // 우선순위 6 (로그 로테이션 다음, 다른 중요 작업보다 낮은 우선순위)
-      );
-    }
-  }
-
-  /**
-   * 품질 측정 배치 작업 스케줄링
-   * 
-   * PRD FR-5.6: 일일 품질 측정 배치 작업
-   * - 기본: 24시간마다 실행
-   * - 특정 시간 지정 시: 해당 시간에만 실행
-   */
-  private scheduleQualityMeasurement(): void {
-    if (this.config.qualityMeasurementHour !== undefined) {
-      // 특정 시간에만 실행 (예: 매일 새벽 3시)
-      const checkAndRun = () => {
-        const now = new Date();
-        const currentHour = now.getHours();
-        
-        // 지정된 시간에 실행
-        if (currentHour === this.config.qualityMeasurementHour) {
-          // 이미 오늘 실행했는지 확인 (lastExecution 체크)
-          const lastExecution = this.lastExecution.get('quality_measurement_batch');
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          
-          if (!lastExecution || lastExecution < today) {
-            // 큐를 통해 실행하여 maxConcurrentJobs, 타임아웃, 재시도, lastExecution 기록이 적용되도록 함 (중복 방지 포함)
-            this.jobExecutionCoordinator.addJobToQueue(
-              'quality_measurement_batch',
-              async () => { await this.runQualityMeasurementBatch(); },
-              7, // 우선순위 7 (다른 배치 작업보다 낮은 우선순위)
-              0
-            );
-          }
-        }
-      };
-
-      // 매 시간마다 체크
-      const checkInterval = 60 * 60 * 1000; // 1시간마다 체크
-      const intervalId = setInterval(checkAndRun, checkInterval);
-      
-      // intervals Map에 저장하여 stop()에서 정리 가능하도록 함
-      this.intervals.set('quality_measurement_batch', intervalId);
-      
-      // 즉시 한 번 체크 (현재 시간이 지정된 시간이면 실행)
-      checkAndRun();
-    } else {
-      // interval마다 실행 (기본: 24시간마다)
-      // scheduleJob()은 내부적으로 addJobToQueue()를 사용하여 maxConcurrentJobs 제한 및 중복 방지 적용
-      // 우선순위 7 설정: 다른 배치 작업보다 낮은 우선순위
-      this.scheduleJob(
-        'quality_measurement_batch',
-        this.config.qualityMeasurementInterval,
-        async () => { await this.runQualityMeasurementBatch(); },
-        7 // 우선순위 7 (다른 배치 작업보다 낮은 우선순위)
-      );
-    }
-  }
 
   /**
    * M2 자기성찰 스캔 실행 (Issue 21)
@@ -1096,76 +863,13 @@ export class BatchScheduler implements IBatchScheduler {
     return this.lastJobRunMeta.get(name);
   }
 
-  private scheduleSleepConsolidation(): void {
-    this.scheduleJob(
-      'sleep_consolidation_batch',
-      this.config.sleepConsolidationInterval,
-      async () => {
-        await this.runSleepConsolidationBatch();
-      },
-      8
-    );
-  }
-
-  private scheduleTelemetryCleanup(): void {
-    this.scheduleJob(
-      'telemetry_cleanup_batch',
-      this.config.telemetryCleanupInterval,
-      async () => {
-        await this.runTelemetryCleanupBatch();
-      },
-      9
-    );
-  }
 
   private async runTelemetryCleanupBatch(): Promise<void> {
-    if (!this.telemetryCleanupRepository) {
-      return;
-    }
-    if (!this.telemetryCleanupBatchJob) {
-      this.telemetryCleanupBatchJob = new TelemetryCleanupBatchJob({
-        repository: this.telemetryCleanupRepository
-      });
-    }
-    await this.telemetryCleanupBatchJob.execute();
+    return runTelemetryCleanupBatch(this.buildRunContext());
   }
 
   private async runSleepConsolidationBatch(): Promise<BatchJobResult> {
-    try {
-      if (!this.sleepConsolidationService) {
-        throw new Error('SleepConsolidationService not configured');
-      }
-      if (!this.sleepConsolidationBatchJob) {
-        this.sleepConsolidationBatchJob = new SleepConsolidationBatchJob({
-          sleepConsolidationService: this.sleepConsolidationService,
-          fileLogger: this.fileLogger
-        });
-      }
-      const batchResult = await this.sleepConsolidationBatchJob.execute();
-
-      this.lastExecution.set('sleep_consolidation_batch', new Date());
-      this.totalExecutions.set(
-        'sleep_consolidation_batch',
-        (this.totalExecutions.get('sleep_consolidation_batch') || 0) + 1
-      );
-
-      return batchResult;
-    } catch (error) {
-      const startTime = new Date();
-      const endTime = new Date();
-      const message = error instanceof Error ? error.message : String(error);
-      this.log('Sleep consolidation batch failed', { error: message }, 'error');
-      return {
-        jobType: 'sleep_consolidation_batch',
-        startTime,
-        endTime,
-        duration: endTime.getTime() - startTime.getTime(),
-        success: false,
-        processed: 0,
-        errors: [message],
-        warnings: []
-      };
-    }
+    return runSleepConsolidationBatch(this.buildRunContext());
   }
 }
 
