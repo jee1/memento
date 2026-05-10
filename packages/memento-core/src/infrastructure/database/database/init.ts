@@ -79,14 +79,200 @@ function addMissingColumn(
   }
 }
 
+function ensureLegacyMemoryEmbeddingColumns(db: Database.Database): void {
+  const hasEmbeddingTable = !!db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'`)
+    .get();
+
+  if (!hasEmbeddingTable) {
+    return;
+  }
+
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'embedding',
+    "TEXT NOT NULL DEFAULT '[]'",
+    `
+          UPDATE memory_embedding
+          SET embedding = COALESCE(NULLIF(embedding, ''), '[]')
+          WHERE embedding IS NULL OR embedding = ''
+        `
+  );
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'embedding_provider',
+    "TEXT NOT NULL DEFAULT 'tfidf'",
+    `
+          UPDATE memory_embedding
+          SET embedding_provider = COALESCE(NULLIF(embedding_provider, ''), 'tfidf')
+          WHERE embedding_provider IS NULL OR embedding_provider = ''
+        `
+  );
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'projection_type',
+    "TEXT NOT NULL DEFAULT 'native'",
+    `
+          UPDATE memory_embedding
+          SET projection_type = COALESCE(NULLIF(projection_type, ''), 'native')
+          WHERE projection_type IS NULL OR projection_type = ''
+        `
+  );
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'dimensions',
+    'INTEGER DEFAULT 0',
+    `
+          UPDATE memory_embedding
+          SET dimensions = CASE
+            WHEN dimensions IS NULL OR dimensions <= 0 THEN COALESCE(NULLIF(dim, 0), dimensions)
+            ELSE dimensions
+          END
+        `
+  );
+  addMissingColumn(db, 'memory_embedding', 'model', 'TEXT');
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'precision',
+    'INTEGER DEFAULT 32',
+    `
+          UPDATE memory_embedding
+          SET precision = COALESCE(NULLIF(precision, 0), 32)
+        `
+  );
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'normalized',
+    'BOOLEAN DEFAULT FALSE',
+    `
+          UPDATE memory_embedding
+          SET normalized = COALESCE(normalized, 0)
+        `
+  );
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'version',
+    'INTEGER DEFAULT 1',
+    `
+          UPDATE memory_embedding
+          SET version = COALESCE(NULLIF(version, 0), 1)
+        `
+  );
+  addMissingColumn(
+    db,
+    'memory_embedding',
+    'created_by',
+    "TEXT DEFAULT 'system'",
+    `
+          UPDATE memory_embedding
+          SET created_by = COALESCE(NULLIF(created_by, ''), 'system')
+        `
+  );
+  addMissingColumn(db, 'memory_embedding', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+}
+
+function ensureLegacyEmbeddingModelRegistryProjectionType(db: Database.Database): void {
+  const hasRegistryTable = !!db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='embedding_model_registry'`)
+    .get();
+
+  if (!hasRegistryTable) {
+    return;
+  }
+
+  const registryColumns = db
+    .prepare('PRAGMA table_info(embedding_model_registry)')
+    .all() as Array<{ name: string }>;
+  const hasRegistryProjectionType = registryColumns.some(column => column.name === 'projection_type');
+
+  if (!hasRegistryProjectionType) {
+    db.exec(`
+          ALTER TABLE embedding_model_registry
+          ADD COLUMN projection_type TEXT NOT NULL DEFAULT 'native'
+        `);
+    db.exec(`
+          UPDATE embedding_model_registry
+          SET projection_type = 'native'
+          WHERE projection_type IS NULL OR projection_type = ''
+        `);
+  }
+}
+
+/**
+ * 제공자별 VEC 테이블 차원 검증 및 재생성 후, 재구축이 필요한 설정 목록을 반환한다.
+ */
+function reconcileMisalignedVecTables(db: Database.Database): VecTableConfig[] {
+  const vecTablesToRepopulate: VecTableConfig[] = [];
+
+  // 제공자별 VEC 테이블 차원 설정
+  // 왜 각 제공자별로 다른 차원인가? 각 임베딩 제공자가 다른 차원을 생성함
+  // - TF-IDF: 512차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf)
+  // - MiniLM: 384차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.minilm)
+  // - OpenAI: 1536차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.openai)
+  // - Gemini: 768차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.gemini)
+  const vecTables: VecTableConfig[] = [
+    {
+      name: 'memory_item_vec',
+      dimension: 384, // 기본 테이블은 MiniLM 차원 사용 (가장 일반적)
+      filter: 'dimensions = 384'
+    },
+    {
+      name: 'memory_item_vec_tfidf',
+      dimension: 512, // TF-IDF는 512차원 (수정: 기존 384에서 512로 변경)
+      filter: "embedding_provider = 'tfidf' AND dimensions = 512 AND projection_type = 'native'"
+    },
+    {
+      name: 'memory_item_vec_minilm',
+      dimension: 384,
+      filter: "embedding_provider = 'minilm' AND dimensions = 384 AND projection_type = 'native'"
+    },
+    {
+      name: 'memory_item_vec_openai',
+      dimension: 1536,
+      filter: "embedding_provider = 'openai' AND dimensions = 1536 AND projection_type = 'native'"
+    },
+    {
+      name: 'memory_item_vec_gemini',
+      dimension: 768,
+      filter: "embedding_provider = 'gemini' AND dimensions = 768 AND projection_type = 'native'"
+    }
+  ];
+
+  // 제공자별 VEC 테이블 차원 검증 및 재생성
+  // 왜 필요한가? "expected 384 vs actual 512" 에러 방지를 위해 차원 일치 보장
+  for (const config of vecTables) {
+    const existing = db
+      .prepare(`SELECT sql FROM sqlite_master WHERE type IN ('table','view') AND name = ?`)
+      .get(config.name) as { sql?: string } | undefined;
+    const expectedToken = `float[${config.dimension}]`;
+
+    // 차원 불일치 감지: 기존 테이블의 차원이 예상 차원과 다르면 재생성
+    if (!existing?.sql || !existing.sql.includes(expectedToken)) {
+      // 왜 재생성이 필요한가? VEC 테이블은 생성 시 차원이 고정되므로 재생성 필요
+      db.exec(`DROP TABLE IF EXISTS ${config.name}`);
+      db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${config.name} USING vec0(embedding float[${config.dimension}])`);
+      vecTablesToRepopulate.push(config);
+    }
+  }
+
+  return vecTablesToRepopulate;
+}
+
 /**
  * 레거시 스키마 호환성 보장
- * 
+ *
  * 왜 이 함수가 필요한가?
  * - 기존 데이터베이스가 최신 스키마와 다를 수 있음
  * - 마이그레이션 없이도 기존 데이터를 보존하면서 스키마 업데이트 필요
  * - embedding 컬럼이 없는 레거시 스키마 지원
- * 
+ *
  * @param db 데이터베이스 인스턴스
  * @returns 재구축이 필요한 VEC 테이블 설정 목록
  */
@@ -94,181 +280,9 @@ function _ensureLegacySchema(db: Database.Database): VecTableConfig[] {
   const vecTablesToRepopulate: VecTableConfig[] = [];
 
   try {
-    const hasEmbeddingTable = !!db
-      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embedding'`)
-      .get();
-
-    if (hasEmbeddingTable) {
-      // embedding 컬럼이 없으면 추가 (레거시 스키마 호환성)
-      // "no such column: embedding" 에러 방지를 위해 필수
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'embedding',
-        "TEXT NOT NULL DEFAULT '[]'",
-        `
-          UPDATE memory_embedding
-          SET embedding = COALESCE(NULLIF(embedding, ''), '[]')
-          WHERE embedding IS NULL OR embedding = ''
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'embedding_provider',
-        "TEXT NOT NULL DEFAULT 'tfidf'",
-        `
-          UPDATE memory_embedding
-          SET embedding_provider = COALESCE(NULLIF(embedding_provider, ''), 'tfidf')
-          WHERE embedding_provider IS NULL OR embedding_provider = ''
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'projection_type',
-        "TEXT NOT NULL DEFAULT 'native'",
-        `
-          UPDATE memory_embedding
-          SET projection_type = COALESCE(NULLIF(projection_type, ''), 'native')
-          WHERE projection_type IS NULL OR projection_type = ''
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'dimensions',
-        'INTEGER DEFAULT 0',
-        `
-          UPDATE memory_embedding
-          SET dimensions = CASE
-            WHEN dimensions IS NULL OR dimensions <= 0 THEN COALESCE(NULLIF(dim, 0), dimensions)
-            ELSE dimensions
-          END
-        `
-      );
-      addMissingColumn(db, 'memory_embedding', 'model', 'TEXT');
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'precision',
-        'INTEGER DEFAULT 32',
-        `
-          UPDATE memory_embedding
-          SET precision = COALESCE(NULLIF(precision, 0), 32)
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'normalized',
-        'BOOLEAN DEFAULT FALSE',
-        `
-          UPDATE memory_embedding
-          SET normalized = COALESCE(normalized, 0)
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'version',
-        'INTEGER DEFAULT 1',
-        `
-          UPDATE memory_embedding
-          SET version = COALESCE(NULLIF(version, 0), 1)
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'created_by',
-        "TEXT DEFAULT 'system'",
-        `
-          UPDATE memory_embedding
-          SET created_by = COALESCE(NULLIF(created_by, ''), 'system')
-        `
-      );
-      addMissingColumn(
-        db,
-        'memory_embedding',
-        'created_at',
-        'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
-      );
-    }
-
-    const hasRegistryTable = !!db
-      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='embedding_model_registry'`)
-      .get();
-
-    if (hasRegistryTable) {
-      const registryColumns = db
-        .prepare('PRAGMA table_info(embedding_model_registry)')
-        .all() as Array<{ name: string }>;
-      const hasRegistryProjectionType = registryColumns.some(column => column.name === 'projection_type');
-
-      if (!hasRegistryProjectionType) {
-        db.exec(`
-          ALTER TABLE embedding_model_registry
-          ADD COLUMN projection_type TEXT NOT NULL DEFAULT 'native'
-        `);
-        db.exec(`
-          UPDATE embedding_model_registry
-          SET projection_type = 'native'
-          WHERE projection_type IS NULL OR projection_type = ''
-        `);
-      }
-    }
-
-    // 제공자별 VEC 테이블 차원 설정
-    // 왜 각 제공자별로 다른 차원인가? 각 임베딩 제공자가 다른 차원을 생성함
-    // - TF-IDF: 512차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf)
-    // - MiniLM: 384차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.minilm)
-    // - OpenAI: 1536차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.openai)
-    // - Gemini: 768차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.gemini)
-    const vecTables: VecTableConfig[] = [
-      {
-        name: 'memory_item_vec',
-        dimension: 384, // 기본 테이블은 MiniLM 차원 사용 (가장 일반적)
-        filter: 'dimensions = 384'
-      },
-      {
-        name: 'memory_item_vec_tfidf',
-        dimension: 512, // TF-IDF는 512차원 (수정: 기존 384에서 512로 변경)
-        filter: "embedding_provider = 'tfidf' AND dimensions = 512 AND projection_type = 'native'"
-      },
-      {
-        name: 'memory_item_vec_minilm',
-        dimension: 384,
-        filter: "embedding_provider = 'minilm' AND dimensions = 384 AND projection_type = 'native'"
-      },
-      {
-        name: 'memory_item_vec_openai',
-        dimension: 1536,
-        filter: "embedding_provider = 'openai' AND dimensions = 1536 AND projection_type = 'native'"
-      },
-      {
-        name: 'memory_item_vec_gemini',
-        dimension: 768,
-        filter: "embedding_provider = 'gemini' AND dimensions = 768 AND projection_type = 'native'"
-      }
-    ];
-
-    // 제공자별 VEC 테이블 차원 검증 및 재생성
-    // 왜 필요한가? "expected 384 vs actual 512" 에러 방지를 위해 차원 일치 보장
-    for (const config of vecTables) {
-      const existing = db
-        .prepare(`SELECT sql FROM sqlite_master WHERE type IN ('table','view') AND name = ?`)
-        .get(config.name) as { sql?: string } | undefined;
-      const expectedToken = `float[${config.dimension}]`;
-
-      // 차원 불일치 감지: 기존 테이블의 차원이 예상 차원과 다르면 재생성
-      if (!existing?.sql || !existing.sql.includes(expectedToken)) {
-        // 왜 재생성이 필요한가? VEC 테이블은 생성 시 차원이 고정되므로 재생성 필요
-        db.exec(`DROP TABLE IF EXISTS ${config.name}`);
-        db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${config.name} USING vec0(embedding float[${config.dimension}])`);
-        vecTablesToRepopulate.push(config);
-      }
-    }
+    ensureLegacyMemoryEmbeddingColumns(db);
+    ensureLegacyEmbeddingModelRegistryProjectionType(db);
+    vecTablesToRepopulate.push(...reconcileMisalignedVecTables(db));
 
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert');
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update');
