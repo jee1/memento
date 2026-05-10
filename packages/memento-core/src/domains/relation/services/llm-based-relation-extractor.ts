@@ -18,9 +18,8 @@ import type { ICacheService } from '../../../shared/interfaces/cache.interface.j
 import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
-import { CACHE, CONFIDENCE, LIMITS, LLM_COST, RATE_LIMITER, TIME } from '../../../shared/constants/relation-constants.js';
+import { CACHE, CONFIDENCE, LIMITS, LLM_COST, RATE_LIMITER } from '../../../shared/constants/relation-constants.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
-import type { EmbeddingData } from '../../../shared/types/embedding.types.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
 import type {
 ExtractOptions,
@@ -28,111 +27,35 @@ IRelationExtractor,
 RelationCandidate,
 RelationType
 } from '../../../shared/types/relation.js';
-import { ALL_RELATION_TYPES,isApplicableRelationType,MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
+import { isApplicableRelationType, MEMORY_TYPE_RELATION_MAP } from '../../../shared/types/relation.js';
 import { CacheKeyGenerator } from '../../../shared/utils/cache-key-generator.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { RelationCache } from './relation-cache.js';
 import { RelationRetryManager } from './relation-retry-manager.js';
 
-/**
- * LLM 응답 파싱 결과 (레거시 호환성을 위해 유지)
- * @deprecated ParseResult를 사용하세요
- */
-interface _ParsedLLMResponse {
-  relations: Array<{
-    target_id: string;
-    relation_type: RelationType;
-    confidence: number;
-    reasoning?: string;
-  }>;
-}
-
-/**
- * LLM 응답 파싱 결과
- * 외부에서 접근 가능하도록 클래스 외부에 정의
- */
-export interface ParseResult {
-  success: boolean;
-  relations: Array<{
-    target_id: string;
-    relation_type: RelationType;
-    confidence: number;
-    reasoning?: string;
-  }>;
-  error?: string;
-}
-
-/**
- * 토큰 버킷 Rate Limiter
- * 
- * 경쟁 조건을 방지하기 위해 락 메커니즘을 사용합니다.
- * 동시에 여러 요청이 들어와도 토큰 계산이 정확하게 이루어집니다.
- */
-class TokenBucketRateLimiter {
-  private tokens: number;
-  private readonly capacity: number;
-  private readonly refillRate: number; // tokens per second
-  private lastRefill: number;
-  private lock: Promise<void> = Promise.resolve(); // 락을 위한 Promise 체인
-
-  constructor(capacity: number = 1, refillRate: number = 1) {
-    this.capacity = capacity;
-    this.refillRate = refillRate;
-    this.tokens = capacity;
-    this.lastRefill = Date.now();
-  }
-
-  /**
-   * 토큰을 소비하고 사용 가능 여부를 반환
-   * 
-   * 락 메커니즘을 사용하여 동시 요청 시 경쟁 조건을 방지합니다.
-   * refill()과 토큰 소비를 원자적으로 처리합니다.
-   */
-  async consume(): Promise<boolean> {
-    // 락을 획득하여 순차적으로 처리
-    return await new Promise<boolean>((resolve) => {
-      this.lock = this.lock.then(async () => {
-        // 토큰 리필 (락 내에서 실행)
-        this.refill();
-
-        if (this.tokens >= 1) {
-          this.tokens -= 1;
-          resolve(true);
-          return;
-        }
-
-        // 토큰이 부족한 경우, 다음 토큰이 채워질 때까지 대기
-        const waitTime = (1 - this.tokens) / this.refillRate * TIME.SECOND_MS;
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        
-        // 대기 후 다시 리필 및 확인 (락 내에서 실행)
-        this.refill();
-        
-        if (this.tokens >= 1) {
-          this.tokens -= 1;
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      });
-    });
-  }
-
-  /**
-   * 토큰 버킷 리필
-   * 
-   * 락 내에서만 호출되어야 하므로 private으로 유지합니다.
-   */
-  private refill(): void {
-    const now = Date.now();
-    const elapsed = (now - this.lastRefill) / TIME.SECOND_MS;
-    const tokensToAdd = elapsed * this.refillRate;
-    
-    this.tokens = Math.min(this.capacity, this.tokens + tokensToAdd);
-    this.lastRefill = now;
-  }
-}
+import { TokenBucketRateLimiter } from './llm-relation-extractor/token-bucket-rate-limiter.js';
+import {
+  determineRelationLlmProvider,
+  isOllamaPreferredSlotAvailable,
+  type RelationProviderSelectionContext
+} from './llm-relation-extractor/provider-selection.js';
+import { filterRelationCandidatesByEmbedding } from './llm-relation-extractor/embedding-candidate-filter.js';
+import { parseLlmRelationsResponse } from './llm-relation-extractor/llm-response-parse.js';
+import {
+  extractRelationsWithOpenAI,
+  type OpenAiRelationExtractDeps
+} from './llm-relation-extractor/extract-relations-openai.js';
+import {
+  extractRelationsWithGemini,
+  type GeminiRelationExtractDeps
+} from './llm-relation-extractor/extract-relations-gemini.js';
+import {
+  extractRelationsWithOllama,
+  type OllamaRelationExtractDeps
+} from './llm-relation-extractor/extract-relations-ollama.js';
+import type { ParseResult } from './llm-relation-extractor/types.js';
+export type { ParseResult } from './llm-relation-extractor/types.js';
 
 /**
  * LLM 비용 모니터링
@@ -242,64 +165,76 @@ export class LLMBasedRelationExtractor implements IRelationExtractor {
     return false;
   }
 
-  /**
-   * Ollama 사용 가능 여부 확인
-   * Ollama는 연결 테스트가 필요하므로 preferredProvider와 설정을 확인
-   * 
-   * @returns Ollama가 사용 가능하면 true, 아니면 false
-   */
-  private isOllamaAvailable(): boolean {
-    return this.preferredProvider === 'ollama' && mementoConfig.llmProvider === 'ollama';
+
+  private selectionContext(): RelationProviderSelectionContext {
+    return {
+      openaiClient: this.openaiClient,
+      geminiClient: this.geminiClient,
+      preferredProvider: this.preferredProvider,
+      llmProviderConfig: mementoConfig.llmProvider
+    };
   }
 
-  /**
-   * Provider 결정
-   * 요청된 provider와 초기화 상태를 확인하여 사용 가능한 provider를 반환
-   * 
-   * @param requestedProvider 요청된 provider
-   * @returns 사용 가능한 provider 또는 null
-   */
+
   private determineProvider(
     requestedProvider: 'openai' | 'gemini' | 'ollama' | 'auto'
   ): 'openai' | 'gemini' | 'ollama' | null {
-    // 'auto' 모드일 때 사용 가능한 첫 번째 provider 반환
-    if (requestedProvider === 'auto') {
-      if (this.openaiClient) return 'openai';
-      if (this.geminiClient) return 'gemini';
-      if (this.isOllamaAvailable()) return 'ollama';
-      return null;
-    }
-    
-    // 요청된 provider가 사용 가능한지 확인
-    if (requestedProvider === 'openai' && this.openaiClient) {
-      return 'openai';
-    }
-    if (requestedProvider === 'gemini' && this.geminiClient) {
-      return 'gemini';
-    }
-    if (requestedProvider === 'ollama' && this.isOllamaAvailable()) {
-      return 'ollama';
-    }
-    
-    // 요청된 provider가 사용 불가능한 경우 fallback
-    if (requestedProvider === 'openai') {
-      // OpenAI가 사용 불가능하면 Gemini로 fallback
-      if (this.geminiClient) return 'gemini';
-      // Gemini도 없으면 Ollama 확인
-      if (this.isOllamaAvailable()) return 'ollama';
-    } else if (requestedProvider === 'gemini') {
-      // Gemini가 사용 불가능하면 OpenAI로 fallback
-      if (this.openaiClient) return 'openai';
-      // OpenAI도 없으면 Ollama 확인
-      if (this.isOllamaAvailable()) return 'ollama';
-    } else if (requestedProvider === 'ollama') {
-      // Ollama가 사용 불가능하면 OpenAI -> Gemini 순서로 fallback
-      if (this.openaiClient) return 'openai';
-      if (this.geminiClient) return 'gemini';
-    }
-    
-    // 모든 provider가 사용 불가능한 경우 null 반환
-    return null;
+    return determineRelationLlmProvider(this.selectionContext(), requestedProvider);
+  }
+
+  private async filterCandidatesByEmbedding(
+    newMemory: MemoryItem,
+    existingMemories: MemoryItem[],
+    limit: number = LIMITS.LLM_CANDIDATE_DEFAULT
+  ): Promise<MemoryItem[]> {
+    return filterRelationCandidatesByEmbedding(
+      this.embeddingService,
+      newMemory,
+      existingMemories,
+      limit
+    );
+  }
+
+  private openAiDeps(): OpenAiRelationExtractDeps {
+    return {
+      rateLimiter: this.rateLimiter,
+      retryManager: this.retryManager,
+      calculateAndLogCost: (provider, promptTokens, completionTokens) =>
+        this.calculateAndLogCost(provider, promptTokens, completionTokens),
+      parseLlmRelationsResponse
+    };
+  }
+
+  private geminiDeps(): GeminiRelationExtractDeps {
+    return {
+      rateLimiter: this.rateLimiter,
+      retryManager: this.retryManager,
+      calculateAndLogCost: (provider, promptTokens, completionTokens) =>
+        this.calculateAndLogCost(provider, promptTokens, completionTokens),
+      parseLlmRelationsResponse
+    };
+  }
+
+  private ollamaDeps(): OllamaRelationExtractDeps {
+    return {
+      rateLimiter: this.rateLimiter,
+      retryManager: this.retryManager,
+      calculateAndLogCost: (provider, promptTokens, completionTokens) =>
+        this.calculateAndLogCost(provider, promptTokens, completionTokens),
+      parseLlmRelationsResponse
+    };
+  }
+
+  private async extractWithOpenAI(prompt: string): Promise<ParseResult> {
+    return extractRelationsWithOpenAI(this.openaiClient!, prompt, this.openAiDeps());
+  }
+
+  private async extractWithGemini(prompt: string): Promise<ParseResult> {
+    return extractRelationsWithGemini(this.geminiClient!, prompt, this.geminiDeps());
+  }
+
+  private async extractWithOllama(prompt: string): Promise<ParseResult> {
+    return extractRelationsWithOllama(prompt, this.ollamaDeps());
   }
 
   /**
@@ -340,83 +275,6 @@ ${memoryList}
 }
 
 관계가 없는 경우 빈 배열을 반환하세요. JSON 형식만 반환하고 다른 설명은 포함하지 마세요.`;
-  }
-
-  /**
-   * Embedding 기반 후보 필터링
-   * cosine similarity 상위 N개만 LLM 비교 대상으로 선정
-   */
-  private async filterCandidatesByEmbedding(
-    newMemory: MemoryItem,
-    existingMemories: MemoryItem[],
-    limit: number = LIMITS.LLM_CANDIDATE_DEFAULT
-  ): Promise<MemoryItem[]> {
-    if (existingMemories.length <= limit) {
-      return existingMemories;
-    }
-
-    try {
-      // 새로운 기억의 임베딩 생성
-      const newEmbedding = await this.embeddingService.generateEmbedding(newMemory.content);
-      if (!newEmbedding || !newEmbedding.embedding) {
-        // 임베딩 생성 실패 시 단순 제한
-        return existingMemories.slice(0, limit);
-      }
-
-      // 기존 기억들의 임베딩 데이터 준비
-      const embeddingData: EmbeddingData[] = [];
-      for (const memory of existingMemories) {
-        if (memory.embedding && memory.embedding.length > 0) {
-          embeddingData.push({
-            id: memory.id,
-            content: memory.content,
-            embedding: memory.embedding
-          });
-        }
-      }
-
-      // 임베딩이 없는 기억은 제외하고 유사도 검색
-      if (embeddingData.length === 0) {
-        return existingMemories.slice(0, limit);
-      }
-
-      // 유사도 검색
-      const similarMemories = await this.embeddingService.searchSimilar(
-        newMemory.content,
-        embeddingData,
-        limit,
-        0.0 // threshold 없이 상위 N개만
-      );
-
-      // 유사도 순으로 정렬된 기억 ID 목록
-      const similarIds = new Set(similarMemories.map(r => r.id));
-
-      // 원본 순서를 유지하면서 유사한 기억을 우선 배치
-      const result: MemoryItem[] = [];
-      const added = new Set<string>();
-
-      // 유사한 기억 먼저 추가
-      for (const memory of existingMemories) {
-        if (similarIds.has(memory.id) && result.length < limit) {
-          result.push(memory);
-          added.add(memory.id);
-        }
-      }
-
-      // 나머지 기억 추가 (임베딩이 없는 경우 포함)
-      for (const memory of existingMemories) {
-        if (!added.has(memory.id) && result.length < limit) {
-          result.push(memory);
-        }
-      }
-
-      return result;
-    } catch (error) {
-      logger.warn('Embedding 기반 필터링 실패, 기본 제한 사용', { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      return existingMemories.slice(0, limit);
-    }
   }
 
   /**
@@ -496,953 +354,6 @@ ${memoryList}
     return cost;
   }
 
-  /**
-   * OpenAI를 사용하여 관계 추출
-   */
-  private async extractWithOpenAI(
-    prompt: string
-  ): Promise<ParseResult> {
-    if (!this.openaiClient) {
-      throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다.');
-    }
-
-    // Rate limit 확인
-    await this.rateLimiter.consume();
-
-    try {
-      const model = mementoConfig.openaiLlmModel || 'gpt-4o-mini';
-      const retryOptions = getRetryOptions();
-      const response = await this.retryManager.retry(
-        async () => {
-          return await this.openaiClient!.chat.completions.create({
-            model,
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            temperature: 0.3, // 일관성을 위해 낮은 temperature
-            max_tokens: LIMITS.MAX_RESPONSE_TOKENS,
-            response_format: { type: 'json_object' } // JSON 모드 강제
-          });
-        },
-        {
-          maxAttempts: retryOptions.external_api.maxAttempts,
-          baseDelay: retryOptions.external_api.baseDelay,
-          shouldRetry: (error: Error) => {
-            const message = error.message.toLowerCase();
-            return message.includes('network') || 
-                   message.includes('timeout') || 
-                   message.includes('rate limit') ||
-                   message.includes('server error') ||
-                   message.includes('503') ||
-                   message.includes('502') ||
-                   message.includes('500');
-          },
-          onRetry: (error: Error, attempt: number, delay: number) => {
-            logger.warn('OpenAI API 호출 재시도 (관계 추출)', {
-              attempt,
-              delay,
-              error: error.message,
-              model
-            });
-          }
-        }
-      );
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('OpenAI 응답이 비어있습니다.');
-      }
-
-      // 비용 모니터링
-      const promptTokens = response.usage?.prompt_tokens || 0;
-      const completionTokens = response.usage?.completion_tokens || 0;
-      this.calculateAndLogCost('openai', promptTokens, completionTokens);
-
-      const parseResult = this.parseLLMResponse(content);
-      if (!parseResult.success) {
-        // 파싱 실패 시 예외를 던져 호출자가 실패를 인지할 수 있도록 함
-        throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
-      }
-      return parseResult;
-    } catch (error) {
-      logger.error('OpenAI 호출 실패', { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Ollama 모델 존재 여부 확인
-   */
-  private async checkOllamaModel(baseUrl: string, model: string): Promise<boolean> {
-    try {
-      const retryOptions = getRetryOptions();
-      const response = await this.retryManager.retry(
-        async () => {
-          return await fetch(`${baseUrl}/api/tags`, {
-            method: 'GET',
-            signal: AbortSignal.timeout(3000)
-          });
-        },
-        {
-          maxAttempts: retryOptions.external_api.maxAttempts,
-          baseDelay: retryOptions.external_api.baseDelay,
-          shouldRetry: (error: Error) => {
-            const message = error.message.toLowerCase();
-            return message.includes('network') || 
-                   message.includes('timeout') || 
-                   message.includes('fetch failed');
-          }
-        }
-      );
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const data = (await response.json()) as { models?: Array<{ name?: string }> };
-      const models = data.models || [];
-      return models.some(
-        (m: { name?: string }) => m.name === model || (m.name?.startsWith(`${model}:`) ?? false)
-      );
-    } catch (error) {
-      logger.warn('Ollama 모델 확인 실패', { 
-        error: error instanceof Error ? error.message : String(error),
-        baseUrl,
-        model
-      });
-      return false;
-    }
-  }
-
-  /** Ollama 디버그 로그용 요청/프롬프트 요약 (본문 전체는 길이 제한) */
-  private buildOllamaErrorLogContext(
-    requestBody: {
-      model: string;
-      messages: Array<{ role: string; content: string }>;
-      options: { temperature: number; num_predict: number };
-      format: 'json';
-    },
-    prompt: string
-  ): Record<string, unknown> {
-    return {
-      requestBody: {
-        ...requestBody,
-        messages: requestBody.messages.map(msg => ({
-          role: msg.role,
-          contentLength: msg.content.length,
-          contentPreview: msg.content.substring(0, 500),
-          contentFull:
-            msg.content.length < 2000
-              ? msg.content
-              : msg.content.substring(0, 1000) + '...' + msg.content.substring(msg.content.length - 1000)
-        }))
-      },
-      promptLength: prompt.length,
-      promptPreview: prompt.substring(0, 500),
-      promptFull:
-        prompt.length < 2000 ? prompt : prompt.substring(0, 1000) + '...' + prompt.substring(prompt.length - 1000)
-    };
-  }
-
-  /**
-   * Ollama /api/chat 응답 텍스트(NDJSON 또는 JSON)에서 assistant content와 메타 객체 추출
-   */
-  private parseOllamaChatResponsePayload(
-    responseText: string,
-    contentType: string,
-    http: { status: number; statusText: string; headers: Record<string, string> }
-  ): { content: string; data: Record<string, unknown> } {
-    const isNDJSON =
-      contentType.includes('application/x-ndjson') || contentType.includes('ndjson');
-
-    if (isNDJSON) {
-      const lines = responseText.trim().split('\n').filter((line): line is string => line.trim().length > 0);
-      const contentParts: string[] = [];
-      let lastData: Record<string, unknown> | null = null;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line) continue;
-        try {
-          const lineData = JSON.parse(line) as Record<string, unknown>;
-          lastData = lineData;
-          const message = lineData.message;
-          if (message && typeof message === 'object' && message !== null && 'content' in message) {
-            const c = (message as { content?: unknown }).content;
-            if (typeof c === 'string' && c.length > 0) {
-              contentParts.push(c);
-            }
-          }
-          if (lineData.done === true) {
-            break;
-          }
-        } catch (lineParseError) {
-          logger.warn('Ollama NDJSON 라인 파싱 실패', {
-            lineIndex: i,
-            linePreview: line.substring(0, 200),
-            error: lineParseError instanceof Error ? lineParseError.message : String(lineParseError),
-            responseTextLength: responseText.length,
-            responseTextPreview: responseText.substring(0, 500),
-            responseTextFull: responseText
-          });
-        }
-      }
-
-      const content = contentParts.join('');
-      const data: Record<string, unknown> = lastData ?? {};
-      if (data.message && typeof data.message === 'object' && data.message !== null) {
-        (data.message as { content: string }).content = content;
-      } else {
-        data.message = { role: 'assistant', content };
-      }
-      return { content, data };
-    }
-
-    try {
-      const data = JSON.parse(responseText) as Record<string, unknown>;
-      const message = data.message;
-      let content = '';
-      if (message && typeof message === 'object' && message !== null && 'content' in message) {
-        const c = (message as { content?: unknown }).content;
-        content = typeof c === 'string' ? c : '';
-      }
-      return { content, data };
-    } catch (parseError) {
-      logger.error('Ollama API 응답 JSON 파싱 실패', {
-        parseError: parseError instanceof Error ? parseError.message : String(parseError),
-        contentType,
-        isNDJSON,
-        responseTextLength: responseText.length,
-        responseTextPreview: responseText.substring(0, 500),
-        responseTextFull: responseText,
-        status: http.status,
-        statusText: http.statusText,
-        headers: http.headers
-      });
-      throw new Error(
-        `Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`
-      );
-    }
-  }
-
-  /** JSON.parse가 성공하는 최대 접두사로 `{`…`}` 블록 축소 (후행 노이즈 제거) */
-  private trimToValidJsonObject(content: string): string {
-    let finalJson = content;
-    const firstBraceFinal = finalJson.indexOf('{');
-    const lastBraceFinal = finalJson.lastIndexOf('}');
-    if (firstBraceFinal === -1 || lastBraceFinal === -1 || lastBraceFinal <= firstBraceFinal) {
-      return finalJson;
-    }
-    finalJson = finalJson.substring(firstBraceFinal, lastBraceFinal + 1).trim();
-    let validJson: string | null = null;
-    for (let i = finalJson.length; i > 0; i--) {
-      const testJson = finalJson.substring(0, i).trim();
-      if (testJson.endsWith('}')) {
-        try {
-          JSON.parse(testJson);
-          validJson = testJson;
-          break;
-        } catch {
-          // 계속 시도
-        }
-      }
-    }
-    return validJson ?? finalJson;
-  }
-
-  /** extractJSON + 중괄호 블록 + trimToValidJsonObject 순으로 관계 JSON 문자열 정리 */
-  private prepareOllamaRelationJsonContent(content: string): string {
-    let cleaned = content;
-    const extracted = this.extractJSON(content);
-    if (extracted) {
-      cleaned = extracted;
-    } else {
-      const firstBrace = content.indexOf('{');
-      const lastBrace = content.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        cleaned = content.substring(firstBrace, lastBrace + 1).trim();
-      }
-    }
-    return this.trimToValidJsonObject(cleaned);
-  }
-
-  /**
-   * Ollama를 사용하여 관계 추출
-   */
-  private async extractWithOllama(
-    prompt: string
-  ): Promise<ParseResult> {
-    // Rate limit 확인
-    await this.rateLimiter.consume();
-
-    const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-    const model = mementoConfig.ollamaModel || 'llama3';
-
-    // Ollama API 요청 준비 (에러 로깅을 위해 함수 스코프 밖에 선언)
-    const requestBody = {
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a semantic relation analyzer. Analyze relationships between memories and return JSON format only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      options: {
-        temperature: 0.3,
-        num_predict: LIMITS.MAX_RESPONSE_TOKENS
-      },
-      format: 'json' as const // JSON 형식 강제
-    };
-
-    try {
-      // 모델 존재 여부 확인
-      const modelExists = await this.checkOllamaModel(baseUrl, model);
-      if (!modelExists) {
-        throw new Error(
-          `Ollama 모델 '${model}'이 설치되지 않았습니다. ` +
-          `다음 명령어로 모델을 설치하세요: ollama pull ${model}`
-        );
-      }
-      
-      // Ollama API 호출
-      const apiUrl = `${baseUrl}/api/chat`;
-      
-      let response: Response;
-      try {
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(60000) // 60초 타임아웃
-        });
-      } catch (fetchError) {
-        logger.error('Ollama API fetch 실패', {
-          error: fetchError instanceof Error ? fetchError.message : String(fetchError),
-          url: apiUrl,
-          baseUrl,
-          model,
-          ...this.buildOllamaErrorLogContext(requestBody, prompt)
-        });
-        throw fetchError;
-      }
-
-      if (!response.ok) {
-        let errorText = '';
-        try {
-          errorText = await response.text();
-          logger.error('Ollama API 에러 응답', {
-            status: response.status,
-            statusText: response.statusText,
-            errorText,
-            url: apiUrl
-          });
-        } catch (textError) {
-          logger.error('Ollama API 에러 응답 텍스트 읽기 실패', {
-            status: response.status,
-            statusText: response.statusText,
-            textError: textError instanceof Error ? textError.message : String(textError)
-          });
-        }
-        
-        let errorMessage = `Ollama API 호출 실패: ${response.status} ${response.statusText}`;
-        
-        if (response.status === 404) {
-          errorMessage = `Ollama 모델 '${model}'을 찾을 수 없습니다. 모델이 설치되어 있는지 확인하세요: ollama pull ${model}`;
-        } else if (errorText) {
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            // JSON 파싱 실패 시 원본 에러 메시지 사용
-            errorMessage = errorText || errorMessage;
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      const isNDJSON =
-        contentType.includes('application/x-ndjson') || contentType.includes('ndjson');
-      const headerRecord = Object.fromEntries(response.headers.entries());
-
-      let responseText = '';
-      let data: Record<string, unknown>;
-      let content = '';
-      try {
-        responseText = await response.text();
-        const parsed = this.parseOllamaChatResponsePayload(responseText, contentType, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: headerRecord
-        });
-        data = parsed.data;
-        content = parsed.content;
-      } catch (textError) {
-        logger.error('Ollama API 응답 본문 읽기 실패', {
-          textError: textError instanceof Error ? textError.message : String(textError),
-          status: response.status,
-          statusText: response.statusText,
-          headers: headerRecord,
-          contentType,
-          isNDJSON,
-          responseTextLength: responseText.length,
-          responseTextPreview: responseText.substring(0, 500),
-          responseTextFull: responseText
-        });
-        throw textError;
-      }
-
-      if (!content && data.message && typeof data.message === 'object' && data.message !== null) {
-        const mc = (data.message as { content?: unknown }).content;
-        if (typeof mc === 'string') {
-          content = mc;
-        }
-      }
-
-      if (!content) {
-        logger.error('Ollama 응답이 비어있습니다', {
-          status: response.status,
-          statusText: response.statusText,
-          headers: headerRecord,
-          contentType,
-          isNDJSON,
-          responseTextLength: responseText.length,
-          responseTextPreview: responseText.substring(0, 500),
-          responseTextFull: responseText,
-          fullResponse: data
-        });
-        throw new Error('Ollama 응답이 비어있습니다.');
-      }
-
-      const promptTokens =
-        typeof data.prompt_eval_count === 'number' ? data.prompt_eval_count : 0;
-      const completionTokens = typeof data.eval_count === 'number' ? data.eval_count : 0;
-      this.calculateAndLogCost('ollama', promptTokens, completionTokens);
-
-      const finalJson = this.prepareOllamaRelationJsonContent(content);
-
-      const parseResult = this.parseLLMResponse(finalJson);
-      if (!parseResult.success) {
-        logger.error('Ollama 응답 파싱 실패', {
-          error: parseResult.error,
-          contentLength: content.length,
-          finalLength: finalJson.length,
-          contentPreview: content.substring(0, 500),
-          finalPreview: finalJson.substring(0, 500),
-          contentFull:
-            content.length < 2000
-              ? content
-              : content.substring(0, 1000) + '...' + content.substring(content.length - 1000),
-          model: mementoConfig.ollamaModel,
-          baseUrl: mementoConfig.ollamaBaseUrl,
-          ...this.buildOllamaErrorLogContext(requestBody, prompt),
-          responseTextLength: responseText.length,
-          responseTextPreview: responseText.substring(0, 500),
-          responseTextFull: responseText,
-          contentType,
-          isNDJSON,
-          status: response.status,
-          statusText: response.statusText,
-          headers: headerRecord
-        });
-        throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
-      }
-      return parseResult;
-    } catch (error) {
-      logger.error('Ollama 호출 실패', {
-        error: error instanceof Error ? error.message : String(error),
-        baseUrl: mementoConfig.ollamaBaseUrl,
-        model: mementoConfig.ollamaModel,
-        ...this.buildOllamaErrorLogContext(requestBody, prompt)
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Gemini를 사용하여 관계 추출
-   */
-  private async extractWithGemini(
-    prompt: string
-  ): Promise<ParseResult> {
-    if (!this.geminiClient) {
-      throw new Error('Gemini 클라이언트가 초기화되지 않았습니다.');
-    }
-
-    // Rate limit 확인
-    await this.rateLimiter.consume();
-
-    try {
-      const modelName = mementoConfig.geminiModel || 'gemini-1.5-flash';
-      const retryOptions = getRetryOptions();
-      const result = await this.retryManager.retry(
-        async () => {
-          const model = this.geminiClient!.getGenerativeModel({ model: modelName });
-          return await model.generateContent({
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: prompt }]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: LIMITS.MAX_RESPONSE_TOKENS,
-              responseMimeType: 'application/json'
-            }
-          });
-        },
-        {
-          maxAttempts: retryOptions.external_api.maxAttempts,
-          baseDelay: retryOptions.external_api.baseDelay,
-          shouldRetry: (error: Error) => {
-            const message = error.message.toLowerCase();
-            return message.includes('network error') ||
-                   message.includes('rate limit') ||
-                   message.includes('server error') ||
-                   message.includes('503') ||
-                   message.includes('502') ||
-                   message.includes('500');
-          },
-          onRetry: (error: Error, attempt: number, delay: number) => {
-            logger.warn('Gemini LLM 호출 재시도', { attempt, delay, error: error.message, model: modelName });
-          }
-        }
-      );
-
-      const response = result.response;
-      const text = response.text();
-      if (!text) {
-        throw new Error('Gemini 응답이 비어있습니다.');
-      }
-
-      // 비용 모니터링 (Gemini는 usage 정보를 직접 제공하지 않으므로 대략적 추정)
-      const estimatedPromptTokens = Math.ceil(prompt.length / 4); // 대략적 추정
-      const estimatedCompletionTokens = Math.ceil(text.length / 4);
-      this.calculateAndLogCost('gemini', estimatedPromptTokens, estimatedCompletionTokens);
-
-      const parseResult = this.parseLLMResponse(text);
-      if (!parseResult.success) {
-        // 파싱 실패 시 예외를 던져 호출자가 실패를 인지할 수 있도록 함
-        throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
-      }
-      return parseResult;
-    } catch (error) {
-      logger.error('Gemini 호출 실패', { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * LLM 응답에서 JSON 객체 추출
-   * JSON 뒤에 추가 텍스트가 있어도 첫 번째 유효한 JSON만 추출
-   * 
-   * Given: LLM 응답 텍스트 (JSON 형식이어야 하지만 추가 텍스트가 포함될 수 있음)
-   * When: JSON 객체 추출 시도
-   * Then: 유효한 JSON 객체만 반환 (추가 텍스트 제거)
-   */
-  private extractJSON(text: string): string | null {
-    if (!text || typeof text !== 'string') {
-      return null;
-    }
-    
-    let jsonText = text.trim();
-    
-    // 마크다운 코드 블록 제거
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```.*$/s, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```.*$/s, '');
-    }
-
-    // 첫 번째 '{'부터 시작하는 JSON 객체 찾기
-    const firstBrace = jsonText.indexOf('{');
-    if (firstBrace === -1) {
-      logger.warn('JSON 객체 시작 문자({)를 찾을 수 없습니다', {
-        textLength: jsonText.length,
-        textPreview: jsonText.substring(0, 200)
-      });
-      return null;
-    }
-
-    // 중괄호 매칭하여 JSON 객체 끝 찾기
-    // 이 방법은 JSON 뒤에 추가 텍스트가 있어도 정확하게 JSON 객체만 추출할 수 있습니다
-    let braceCount = 0;
-    let inString = false;
-    let escapeNext = false;
-    let jsonEnd = -1;
-    
-    for (let i = firstBrace; i < jsonText.length; i++) {
-      const char = jsonText[i];
-      
-      if (escapeNext) {
-        escapeNext = false;
-        continue;
-      }
-      
-      if (char === '\\') {
-        escapeNext = true;
-        continue;
-      }
-      
-      if (char === '"' && !escapeNext) {
-        inString = !inString;
-        continue;
-      }
-      
-      if (!inString) {
-        if (char === '{') {
-          braceCount++;
-        } else if (char === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            // JSON 객체 끝 찾음
-            jsonEnd = i + 1;
-            break;
-          }
-        }
-      }
-    }
-    
-    if (jsonEnd === -1) {
-      // 중괄호가 닫히지 않음 - 경고 로그
-      logger.warn('JSON 객체가 완전히 닫히지 않았습니다', {
-        braceCount,
-        textLength: jsonText.length,
-        extractedPreview: jsonText.substring(firstBrace, Math.min(firstBrace + 200, jsonText.length))
-      });
-      // 그래도 시도해보기 (마지막 '}'까지 추출)
-      const lastBrace = jsonText.lastIndexOf('}');
-      if (lastBrace !== -1 && lastBrace > firstBrace) {
-        return jsonText.substring(firstBrace, lastBrace + 1);
-      }
-      return jsonText.substring(firstBrace);
-    }
-    
-    // JSON 객체만 추출 (추가 텍스트 제거)
-    const extracted = jsonText.substring(firstBrace, jsonEnd).trim();
-    
-    // 추출된 JSON이 유효한지 빠르게 확인
-    // 이 검증은 JSON.parse()가 실패하지 않도록 보장합니다
-    try {
-      const _parsed = JSON.parse(extracted);
-      // 파싱 성공 시 유효한 JSON 반환
-      return extracted;
-    } catch (error) {
-      // 유효하지 않은 JSON인 경우, 에러 타입에 따라 처리
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      const isTrailingTextError = errorMsg.includes('Unexpected non-whitespace character after JSON');
-      
-      if (isTrailingTextError) {
-        // JSON 뒤에 추가 텍스트가 있는 경우, 더 정확하게 추출 시도
-        // 중괄호 매칭이 정확했지만, JSON.parse()가 여전히 추가 텍스트를 감지
-        // 이는 JSON 내부에 문제가 있거나, 추출 범위가 정확하지 않을 수 있음
-        // 점진적으로 JSON 끝을 조정하여 유효한 JSON 찾기
-        let validJson = null;
-        for (let i = extracted.length; i > 0; i--) {
-          const testJson = extracted.substring(0, i).trim();
-          if (testJson.endsWith('}')) {
-            try {
-              JSON.parse(testJson);
-              validJson = testJson;
-              logger.debug('JSON 점진적 추출 성공 (extractJSON 내부)', {
-                originalLength: extracted.length,
-                validLength: validJson.length,
-                removedChars: extracted.length - validJson.length
-              });
-              break;
-            } catch {
-              // 계속 시도
-            }
-          }
-        }
-        
-        if (validJson) {
-          return validJson;
-        }
-      }
-      
-      // 유효한 JSON을 찾지 못한 경우, 로그를 남기고 추출된 JSON 반환
-      // parseLLMResponse에서 추가 정리 시도
-      logger.warn('추출된 JSON이 유효하지 않습니다', {
-        error: errorMsg,
-        extractedLength: extracted.length,
-        extractedPreview: extracted.substring(0, 200),
-        originalPreview: jsonText.substring(0, 300)
-      });
-      // 그래도 반환 (parseLLMResponse에서 추가 정리 시도)
-      return extracted;
-    }
-  }
-
-  /**
-   * LLM 응답을 파싱하여 관계 후보 추출
-   * 
-   * @param responseText LLM 응답 텍스트
-   * @returns 파싱 결과 (성공 여부와 관계 목록 포함)
-   * @throws 파싱 실패 시 예외를 던지지 않고 ParseResult에 실패 정보를 포함하여 반환
-   */
-  private parseLLMResponse(responseText: string): ParseResult {
-    try {
-      // Given: LLM 응답 텍스트 (JSON 형식이어야 함)
-      // When: JSON 추출 및 파싱 시도
-      
-      // JSON 추출 (마크다운 코드 블록 및 추가 텍스트 제거)
-      let jsonText = this.extractJSON(responseText);
-      
-      if (!jsonText) {
-        // JSON 추출 실패 시 원본 텍스트에서 직접 시도
-        logger.warn('JSON 추출 실패, 원본 텍스트에서 직접 파싱 시도', {
-          responseLength: responseText.length,
-          responsePreview: responseText.substring(0, 200)
-        });
-        jsonText = responseText.trim();
-      }
-
-      // JSON 파싱 시도 (여러 방법)
-      let parsed: { relations?: Array<{
-        target_id: string;
-        relation_type: string;
-        confidence: number;
-        reasoning?: string;
-      }> };
-      
-      try {
-        // 첫 번째 시도: extractJSON으로 추출한 JSON 파싱
-        // extractJSON이 이미 유효한 JSON만 반환하도록 보장하지만, 
-        // 일부 모델은 JSON 뒤에 추가 텍스트를 포함할 수 있으므로 추가 정리 필요
-        // JSON.parse()가 실패할 수 있으므로, 먼저 정리된 JSON인지 확인
-        let trimmedJson = jsonText.trim();
-        
-        // JSON 뒤에 추가 텍스트가 있을 수 있으므로, 첫 번째 '{'부터 마지막 '}'까지만 추출
-        const firstBrace = trimmedJson.indexOf('{');
-        const lastBrace = trimmedJson.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          trimmedJson = trimmedJson.substring(firstBrace, lastBrace + 1).trim();
-        }
-        
-        parsed = JSON.parse(trimmedJson);
-        logger.debug('JSON 파싱 성공 (첫 번째 시도)');
-      } catch (parseError) {
-        // 첫 번째 시도 실패 시, 더 공격적인 정리 시도
-        const firstError = parseError instanceof Error ? parseError.message : String(parseError);
-        
-        // JSON 파싱 에러가 "Unexpected non-whitespace character after JSON"인 경우
-        // JSON 뒤에 추가 텍스트가 있다는 의미이므로, extractJSON을 다시 사용하거나
-        // 더 정확한 JSON 추출 시도
-        const isTrailingTextError = firstError.includes('Unexpected non-whitespace character after JSON');
-        
-        logger.warn('JSON 파싱 실패, 추가 정리 후 재시도', {
-          error: firstError,
-          isTrailingTextError,
-          jsonLength: jsonText.length,
-          jsonPreview: jsonText.substring(0, 300),
-          jsonFull: jsonText.length < 1000 ? jsonText : jsonText.substring(0, 500) + '...' + jsonText.substring(jsonText.length - 500)
-        });
-        
-        // 추가 정리: 첫 번째 '{'부터 마지막 '}'까지 추출
-        // extractJSON이 이미 이를 수행했지만, 다시 시도하여 더 정확하게 추출
-        let cleanedJson = jsonText.trim();
-        
-        // extractJSON을 다시 호출하여 더 정확한 추출 시도
-        if (isTrailingTextError) {
-          // "Unexpected non-whitespace character after JSON" 에러는 JSON 뒤에 추가 텍스트가 있다는 의미
-          // extractJSON이 이미 이를 처리했지만, 여전히 문제가 있을 수 있으므로 더 정확하게 추출
-          const reExtracted = this.extractJSON(responseText);
-          if (reExtracted && reExtracted !== jsonText) {
-            cleanedJson = reExtracted.trim();
-            logger.debug('JSON 재추출 완료 (trailing text 제거)', {
-              originalLength: jsonText.length,
-              cleanedLength: cleanedJson.length
-            });
-          } else {
-            // extractJSON이 실패한 경우, 수동으로 첫 번째 '{'부터 마지막 '}'까지 추출
-            // 그리고 JSON.parse()가 성공할 때까지 끝 부분을 점진적으로 제거
-            const firstBrace = cleanedJson.indexOf('{');
-            const lastBrace = cleanedJson.lastIndexOf('}');
-            
-            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-              // 먼저 첫 번째 '{'부터 마지막 '}'까지 추출
-              cleanedJson = cleanedJson.substring(firstBrace, lastBrace + 1).trim();
-              
-              // JSON.parse()가 성공할 때까지 끝 부분을 점진적으로 제거
-              const attemptJson = cleanedJson;
-              let foundValidJson = false;
-              
-              for (let i = attemptJson.length; i > 0 && !foundValidJson; i--) {
-                const testJson = attemptJson.substring(0, i);
-                // 마지막 문자가 '}'인지 확인
-                if (testJson.endsWith('}')) {
-                  try {
-                    JSON.parse(testJson);
-                    cleanedJson = testJson;
-                    foundValidJson = true;
-                    logger.debug('JSON 점진적 추출 성공', {
-                      originalLength: jsonText.length,
-                      cleanedLength: cleanedJson.length,
-                      removedChars: attemptJson.length - cleanedJson.length
-                    });
-                  } catch {
-                    // 계속 시도
-                  }
-                }
-              }
-              
-              if (!foundValidJson) {
-                logger.debug('JSON 수동 정리 완료 (점진적 추출 실패)', {
-                  originalLength: jsonText.length,
-                  cleanedLength: cleanedJson.length,
-                  cleanedPreview: cleanedJson.substring(0, 300)
-                });
-              }
-            }
-          }
-        } else {
-          // 다른 종류의 에러인 경우, 기본 정리 시도
-          const firstBrace = cleanedJson.indexOf('{');
-          const lastBrace = cleanedJson.lastIndexOf('}');
-          
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            cleanedJson = cleanedJson.substring(firstBrace, lastBrace + 1);
-            logger.debug('JSON 정리 완료', {
-              originalLength: jsonText.length,
-              cleanedLength: cleanedJson.length,
-              cleanedPreview: cleanedJson.substring(0, 300)
-            });
-          }
-        }
-        
-        // 두 번째 시도: 정리된 JSON 파싱
-        try {
-          parsed = JSON.parse(cleanedJson);
-          logger.debug('JSON 파싱 성공 (두 번째 시도)');
-        } catch (secondError) {
-          // 두 번째 시도도 실패 - 원본에서 직접 추출 시도
-          logger.warn('정리된 JSON 파싱도 실패, 원본에서 직접 추출 시도', {
-            secondError: secondError instanceof Error ? secondError.message : String(secondError),
-            cleanedLength: cleanedJson.length,
-            cleanedPreview: cleanedJson.substring(0, 300)
-          });
-          
-          // 원본 텍스트에서 다시 추출
-          const reExtracted = this.extractJSON(responseText);
-          if (reExtracted && reExtracted !== jsonText && reExtracted !== cleanedJson) {
-            try {
-              parsed = JSON.parse(reExtracted);
-              logger.debug('JSON 파싱 성공 (재추출 시도)');
-            } catch (thirdError) {
-              // 최종 실패
-              logger.error('JSON 파싱 최종 실패', {
-                firstError,
-                secondError: secondError instanceof Error ? secondError.message : String(secondError),
-                thirdError: thirdError instanceof Error ? thirdError.message : String(thirdError),
-                originalLength: responseText.length,
-                originalPreview: responseText.substring(0, 500),
-                extractedLength: reExtracted?.length || 0,
-                extractedPreview: reExtracted?.substring(0, 500) || 'null'
-              });
-              
-              return {
-                success: false,
-                relations: [],
-                error: `JSON 파싱 실패: ${thirdError instanceof Error ? thirdError.message : String(thirdError)}`
-              };
-            }
-          } else {
-            // 최종 실패
-            logger.error('JSON 파싱 최종 실패', {
-              firstError,
-              secondError: secondError instanceof Error ? secondError.message : String(secondError),
-              originalLength: responseText.length,
-              originalPreview: responseText.substring(0, 500),
-              cleanedLength: cleanedJson.length,
-              cleanedPreview: cleanedJson.substring(0, 500)
-            });
-            
-            return {
-              success: false,
-              relations: [],
-              error: `JSON 파싱 실패: ${secondError instanceof Error ? secondError.message : String(secondError)}`
-            };
-          }
-        }
-      }
-
-      // 응답 구조 검증
-      if (!parsed.relations || !Array.isArray(parsed.relations)) {
-        return {
-          success: false,
-          relations: [],
-          error: '응답 구조가 올바르지 않습니다: relations 배열이 없거나 배열이 아닙니다.'
-        };
-      }
-
-      // 관계 유형 및 신뢰도 검증
-      const validRelations = parsed.relations
-        .filter(rel => {
-          // 관계 유형 검증
-          if (!ALL_RELATION_TYPES.includes(rel.relation_type as RelationType)) {
-            return false;
-          }
-
-          // 신뢰도 범위 검증
-          if (typeof rel.confidence !== 'number' || rel.confidence < 0 || rel.confidence > 1) {
-            return false;
-          }
-
-          return true;
-        })
-        .map(rel => ({
-          target_id: rel.target_id,
-          relation_type: rel.relation_type as RelationType,
-          confidence: Math.max(0, Math.min(1, rel.confidence)), // 0~1 범위로 클램핑
-          reasoning: rel.reasoning
-        }));
-
-      return {
-        success: true,
-        relations: validRelations
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('LLM 응답 파싱 실패', { 
-        error: errorMessage,
-        responseText: responseText.substring(0, 500) // 처음 500자만 로깅
-      });
-      return {
-        success: false,
-        relations: [],
-        error: `JSON 파싱 실패: ${errorMessage}`
-      };
-    }
-  }
-
-  /**
-   * 새로운 기억과 기존 기억들 간의 관계를 추출합니다.
-   * 
-   * @param newMemory 새로운 기억
-   * @param existingMemories 기존 기억 목록
-   * @param options 추출 옵션
-   * @returns 관계 후보 목록
-   */
   async extractRelations(
     newMemory: MemoryItem,
     existingMemories: MemoryItem[],
@@ -1464,7 +375,7 @@ ${memoryList}
     const hasAvailableClient =
       this.openaiClient !== null ||
       this.geminiClient !== null ||
-      this.isOllamaAvailable();
+      isOllamaPreferredSlotAvailable(this.selectionContext());
 
     if (!hasAvailableClient) {
       throw new Error(
@@ -1532,6 +443,7 @@ ${memoryList}
 
     // LLM 호출
     let parsedResponse: ParseResult;
+
     try {
       switch (actualProvider) {
         case 'openai':
