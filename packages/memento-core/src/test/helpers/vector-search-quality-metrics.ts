@@ -134,6 +134,101 @@ export interface OrderPreservationReport {
   };
 }
 
+function buildKendallPositionMaps(
+  order1: string[],
+  order2: string[]
+): { position1: Map<string, number>; position2: Map<string, number> } {
+  const set1 = new Set(order1);
+  const set2 = new Set(order2);
+  const position1 = new Map<string, number>();
+  const position2 = new Map<string, number>();
+
+  order1.forEach((id, index) => {
+    if (set2.has(id)) {
+      position1.set(id, index);
+    }
+  });
+
+  order2.forEach((id, index) => {
+    if (set1.has(id)) {
+      position2.set(id, index);
+    }
+  });
+
+  return { position1, position2 };
+}
+
+type KendallPairBucket = 'concordant' | 'discordant' | 'tiedX' | 'tiedY' | 'tiedXY';
+
+function tallyKendallPairBucket(sign1: number, sign2: number): KendallPairBucket {
+  if (sign1 === 0 && sign2 === 0) {
+    return 'tiedXY';
+  }
+  if (sign1 === 0) {
+    return 'tiedX';
+  }
+  if (sign2 === 0) {
+    return 'tiedY';
+  }
+  if (sign1 === sign2) {
+    return 'concordant';
+  }
+  return 'discordant';
+}
+
+function countKendallTauBPairCategories(
+  commonIds: string[],
+  position1: Map<string, number>,
+  position2: Map<string, number>
+): { concordant: number; discordant: number; tiedX: number; tiedY: number; tiedXY: number } {
+  const tallies = { concordant: 0, discordant: 0, tiedX: 0, tiedY: 0, tiedXY: 0 };
+  const n = commonIds.length;
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const idI = commonIds[i];
+      const idJ = commonIds[j];
+      if (idI === undefined || idJ === undefined) {
+        continue;
+      }
+
+      const pos1I = position1.get(idI);
+      const pos1J = position1.get(idJ);
+      const pos2I = position2.get(idI);
+      const pos2J = position2.get(idJ);
+      if (pos1I === undefined || pos1J === undefined || pos2I === undefined || pos2J === undefined) {
+        continue;
+      }
+
+      const sign1 = pos1I < pos1J ? 1 : pos1I > pos1J ? -1 : 0;
+      const sign2 = pos2I < pos2J ? 1 : pos2I > pos2J ? -1 : 0;
+      const bucket = tallyKendallPairBucket(sign1, sign2);
+      tallies[bucket]++;
+    }
+  }
+
+  return tallies;
+}
+
+function computeKendallTauBFromPairCounts(counts: {
+  concordant: number;
+  discordant: number;
+  tiedX: number;
+  tiedY: number;
+}): number {
+  const { concordant, discordant, tiedX, tiedY } = counts;
+  const numerator = concordant - discordant;
+  const denominatorX = concordant + discordant + tiedX;
+  const denominatorY = concordant + discordant + tiedY;
+  const denominator = Math.sqrt(denominatorX * denominatorY);
+
+  if (denominator === 0) {
+    return 0;
+  }
+
+  return numerator / denominator;
+}
+
 /**
  * Kendall's Tau-b 순서 일치도 계산
  * 두 순서 간의 순위 상관관계를 측정 (-1 ~ 1)
@@ -159,101 +254,20 @@ export function calculateKendallTau(
   order1: string[],
   order2: string[]
 ): number {
-  // 빈 배열 처리
   if (order1.length === 0 || order2.length === 0) {
     return 0;
   }
 
-  // 두 순서에서 공통 ID만 추출
-  const set1 = new Set(order1);
   const set2 = new Set(order2);
-  const commonIds = order1.filter(id => set2.has(id));
+  const commonIds = order1.filter((id) => set2.has(id));
 
   if (commonIds.length < 2) {
-    // 공통 ID가 2개 미만이면 순서 비교 불가
     return 0;
   }
 
-  // 각 ID의 위치를 매핑
-  const position1 = new Map<string, number>();
-  const position2 = new Map<string, number>();
-
-  order1.forEach((id, index) => {
-    if (set2.has(id)) {
-      position1.set(id, index);
-    }
-  });
-
-  order2.forEach((id, index) => {
-    if (set1.has(id)) {
-      position2.set(id, index);
-    }
-  });
-
-  // 공통 ID만 사용하여 순서 비교
-  const n = commonIds.length;
-  let concordant = 0; // 일치하는 쌍
-  let discordant = 0; // 불일치하는 쌍
-  let tiedX = 0; // order1에서 동점인 쌍
-  let tiedY = 0; // order2에서 동점인 쌍
-  let tiedXY = 0; // 양쪽 모두 동점인 쌍
-
-  // 모든 쌍을 비교
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const idI = commonIds[i];
-      const idJ = commonIds[j];
-      
-      if (idI === undefined || idJ === undefined) {
-        continue;
-      }
-
-      const pos1I = position1.get(idI);
-      const pos1J = position1.get(idJ);
-      const pos2I = position2.get(idI);
-      const pos2J = position2.get(idJ);
-      
-      if (pos1I === undefined || pos1J === undefined || pos2I === undefined || pos2J === undefined) {
-        continue;
-      }
-
-      // order1에서의 관계
-      const sign1 = pos1I < pos1J ? 1 : pos1I > pos1J ? -1 : 0;
-      // order2에서의 관계
-      const sign2 = pos2I < pos2J ? 1 : pos2I > pos2J ? -1 : 0;
-
-      if (sign1 === 0 && sign2 === 0) {
-        // 양쪽 모두 동점
-        tiedXY++;
-      } else if (sign1 === 0) {
-        // order1에서만 동점
-        tiedX++;
-      } else if (sign2 === 0) {
-        // order2에서만 동점
-        tiedY++;
-      } else if (sign1 === sign2) {
-        // 일치하는 쌍 (둘 다 앞서거나 둘 다 뒤)
-        concordant++;
-      } else {
-        // 불일치하는 쌍 (하나는 앞서고 하나는 뒤)
-        discordant++;
-      }
-    }
-  }
-
-  // Tau-b 계산
-  // Tau-b = (concordant - discordant) / sqrt((concordant + discordant + tied_x) * (concordant + discordant + tied_y))
-  const numerator = concordant - discordant;
-  const denominatorX = concordant + discordant + tiedX;
-  const denominatorY = concordant + discordant + tiedY;
-  const denominator = Math.sqrt(denominatorX * denominatorY);
-
-  if (denominator === 0) {
-    // 분모가 0이면 모든 쌍이 동점이거나 비교 불가
-    return 0;
-  }
-
-  return numerator / denominator;
+  const { position1, position2 } = buildKendallPositionMaps(order1, order2);
+  const counts = countKendallTauBPairCategories(commonIds, position1, position2);
+  return computeKendallTauBFromPairCounts(counts);
 }
 
 /**
@@ -413,6 +427,23 @@ export function calculateTopKRetention(
   return retention;
 }
 
+function firstFiniteNumber(...values: Array<number | undefined | null>): number {
+  for (const v of values) {
+    if (v !== undefined && v !== null && !isNaN(v)) {
+      return v;
+    }
+  }
+  return 0;
+}
+
+function pickVectorOnlyComparableScore(result: HybridSearchResult): number {
+  return firstFiniteNumber(result.vectorScore, result.finalScore, result.textScore);
+}
+
+function pickConsolidationComparableScore(result: HybridSearchResult): number {
+  return firstFiniteNumber(result.finalScore, result.vectorScore, result.textScore);
+}
+
 /**
  * 벡터 유사도만 사용한 검색 결과 생성
  * Consolidation 점수를 제외하고 벡터 유사도만으로 정렬한 결과를 생성합니다.
@@ -434,34 +465,9 @@ export function generateVectorOnlySearchResults(
   searchResults: HybridSearchResult[],
   limit?: number
 ): SearchResult[] {
-  // 벡터 유사도가 있는 결과만 필터링하고, vectorScore로 정렬
-  // vectorScore가 없으면 textScore를 사용하거나, finalScore에서 textScore 부분을 제거
   const vectorOnlyResults = searchResults
-    .map(result => {
-      // vectorScore가 있으면 사용
-      let vectorScore: number | undefined = result.vectorScore;
-      
-      // vectorScore가 없고 finalScore가 유효한 숫자면 사용 (대략적인 근사치)
-      if ((vectorScore === undefined || vectorScore === null || isNaN(vectorScore)) 
-          && result.finalScore !== undefined 
-          && result.finalScore !== null 
-          && !isNaN(result.finalScore)) {
-        vectorScore = result.finalScore;
-      }
-      
-      // vectorScore가 여전히 없으면 textScore 사용
-      if ((vectorScore === undefined || vectorScore === null || isNaN(vectorScore))
-          && result.textScore !== undefined 
-          && result.textScore !== null 
-          && !isNaN(result.textScore)) {
-        vectorScore = result.textScore;
-      }
-      
-      // 모든 점수가 없으면 0 사용 (최후의 수단)
-      if (vectorScore === undefined || vectorScore === null || isNaN(vectorScore)) {
-        vectorScore = 0;
-      }
-      
+    .map((result) => {
+      const vectorScore = pickVectorOnlyComparableScore(result);
       return {
         id: result.id,
         score: vectorScore,
@@ -469,10 +475,9 @@ export function generateVectorOnlySearchResults(
         relevance: vectorScore
       };
     })
-    .filter(result => result.score !== undefined && result.score !== null && !isNaN(result.score))
-    .sort((a, b) => (b.score || 0) - (a.score || 0)); // 내림차순 정렬
+    .filter((result) => result.score !== undefined && result.score !== null && !isNaN(result.score))
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
 
-  // limit이 지정된 경우 상위 N개만 반환
   if (limit !== undefined && limit > 0) {
     return vectorOnlyResults.slice(0, limit);
   }
@@ -501,38 +506,19 @@ export function generateConsolidationSearchResults(
   searchResults: HybridSearchResult[],
   limit?: number
 ): SearchResult[] {
-  // finalScore를 사용하여 정렬 (벡터 유사도 + Consolidation 점수 반영)
   const consolidationResults = searchResults
-    .map(result => {
-      // finalScore가 유효한 숫자인지 확인
-      let finalScore: number = result.finalScore;
-      
-      // finalScore가 없거나 NaN이면 vectorScore 사용
-      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
-        finalScore = result.vectorScore;
-      }
-      
-      // vectorScore도 없으면 textScore 사용
-      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
-        finalScore = result.textScore;
-      }
-      
-      // 모든 점수가 없으면 0 사용 (최후의 수단)
-      if (finalScore === undefined || finalScore === null || isNaN(finalScore)) {
-        finalScore = 0;
-      }
-      
+    .map((result) => {
+      const finalScore = pickConsolidationComparableScore(result);
       return {
         id: result.id,
         score: finalScore,
-        finalScore: finalScore,
+        finalScore,
         relevance: result.vectorScore || result.textScore || 0
       };
     })
-    .filter(result => result.score !== undefined && result.score !== null && !isNaN(result.score))
-    .sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0)); // 내림차순 정렬
+    .filter((result) => result.score !== undefined && result.score !== null && !isNaN(result.score))
+    .sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
 
-  // limit이 지정된 경우 상위 N개만 반환
   if (limit !== undefined && limit > 0) {
     return consolidationResults.slice(0, limit);
   }
