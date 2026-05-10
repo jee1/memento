@@ -52,6 +52,10 @@ import {
   runLogRotation,
   runWeeklyRelationValidation
 } from './handlers/batch-scheduler-consolidation-relation-handlers.js';
+import {
+  runQualityMeasurementBatch,
+  runTripleExtractionBatch
+} from './handlers/batch-scheduler-augmentation-handlers.js';
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
@@ -843,67 +847,7 @@ export class BatchScheduler implements IBatchScheduler {
    * - abandoned 상태는 제외
    */
   private async runTripleExtractionBatch(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'triple_extraction_batch',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-
-      // TripleExtractionBatchJob 초기화 (아직 초기화되지 않은 경우)
-      if (!this.tripleExtractionBatchJob) {
-        this.tripleExtractionBatchJob = new TripleExtractionBatchJob({
-          batchSize: this.config.tripleExtractionBatchSize,
-          timeout: this.config.tripleExtractionTimeout,
-          chunkSize: 5, // SQLite WAL 환경 고려
-          chunkDelayMs: 100 // 청크 사이 지연
-        });
-      }
-
-      // 배치 작업 실행
-      const batchResult = await this.tripleExtractionBatchJob.execute(this.db);
-
-      // 결과 반영
-      result.success = batchResult.success;
-      result.processed = batchResult.processed;
-      result.errors = batchResult.errors;
-      result.warnings = batchResult.warnings;
-      result.details = batchResult.details;
-
-      // 실행 기록 업데이트
-      this.lastExecution.set('triple_extraction_batch', new Date());
-      this.totalExecutions.set(
-        'triple_extraction_batch',
-        (this.totalExecutions.get('triple_extraction_batch') || 0) + 1
-      );
-
-      this.log('Triple extraction batch job completed', {
-        processed: batchResult.details.processed,
-        success: batchResult.details.success,
-        failed: batchResult.details.failed,
-        semanticMemoriesCreated: batchResult.details.semanticMemoriesCreated,
-        semanticMemoriesUpdated: batchResult.details.semanticMemoriesUpdated
-      });
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Triple extraction batch job failed:', error, 'error');
-    } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
-    }
-
-    return result;
+    return runTripleExtractionBatch(this.buildRunContext());
   }
 
   /**
@@ -1040,86 +984,7 @@ export class BatchScheduler implements IBatchScheduler {
    * PRD FR-5.6: 일일 품질 측정 배치 작업
    */
   private async runQualityMeasurementBatch(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'quality_measurement_batch',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-
-      // QualityMeasurementBatchJob 초기화 (아직 초기화되지 않은 경우)
-      if (!this.qualityMeasurementBatchJob) {
-        this.qualityMeasurementBatchJob = new QualityMeasurementBatchJob({
-          measurementType: 'batch',
-          context: 'default',
-          record: true,
-          generateReport: true,
-          reportFormat: 'markdown',
-          timeout: this.config.jobTimeout
-        });
-      }
-
-      // 배치 작업 실행
-      const batchResult = await this.qualityMeasurementBatchJob.execute(this.db);
-
-      // 결과 변환
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - startTime.getTime();
-      result.success = batchResult.success;
-      result.processed = batchResult.processed;
-      result.errors = batchResult.errors;
-      result.warnings = batchResult.warnings;
-      result.details = batchResult.details;
-
-      // 실행 기록 업데이트
-      this.lastExecution.set('quality_measurement_batch', new Date());
-      this.totalExecutions.set(
-        'quality_measurement_batch',
-        (this.totalExecutions.get('quality_measurement_batch') || 0) + 1
-      );
-
-      // 로깅
-      if (batchResult.success) {
-        this.log('Quality measurement batch job completed', {
-          duration: result.duration,
-          processed: result.processed,
-          overallStatus: batchResult.details.overallStatus,
-          totalMetrics: batchResult.details.totalMetrics,
-          passedMetrics: batchResult.details.passedMetrics,
-          failedMetrics: batchResult.details.failedMetrics,
-          warningMetrics: batchResult.details.warningMetrics
-        });
-      } else {
-        this.log('Quality measurement batch job failed', {
-          duration: result.duration,
-          errors: result.errors
-        }, 'error');
-      }
-
-      return result;
-    } catch (error) {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - startTime.getTime();
-      result.success = false;
-      result.errors.push(error instanceof Error ? error.message : String(error));
-
-      this.log('Quality measurement batch job error', {
-        duration: result.duration,
-        error: error instanceof Error ? error.message : String(error)
-      }, 'error');
-
-      return result;
-    }
+    return runQualityMeasurementBatch(this.buildRunContext());
   }
 
   /**
