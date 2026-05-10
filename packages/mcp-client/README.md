@@ -1,4 +1,7 @@
-# @memento/client
+# @memento/client-legacy (`packages/mcp-client`)
+
+> **참고**: 이 디렉터리의 패키지명은 `@memento/client-legacy`이며, 루트 `package.json`의 **npm workspaces에 포함되어 있지 않습니다** (마이그레이션·참고용). HTTP/MCP 연동용 현행 클라이언트는 [`@memento/client`](../memento-client/README.md)(`packages/memento-client`)를 사용하세요.
+
 
 Memento MCP Server를 위한 TypeScript 클라이언트 라이브러리입니다. AI Agent의 기억을 관리하고 컨텍스트를 주입하는 기능을 제공합니다.
 
@@ -17,7 +20,7 @@ import { MementoClient, MemoryManager, ContextInjector } from '@memento/client';
 
 // 클라이언트 생성 및 연결
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
   apiKey: 'your-api-key' // M2+에서 사용
 });
 
@@ -95,7 +98,7 @@ new MementoClient(options?: MementoClientOptions)
 
 ```typescript
 interface MementoClientOptions {
-  serverUrl?: string;        // 서버 URL (기본값: http://localhost:8080)
+  serverUrl?: string;        // 서버 URL (기본값: http://localhost:9001)
   apiKey?: string;          // API 키 (M2+에서 사용)
   timeout?: number;         // 연결 타임아웃 (기본값: 10000ms)
   retryCount?: number;      // 재시도 횟수 (기본값: 3)
@@ -275,7 +278,7 @@ try {
 
 ```typescript
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
   retryCount: 5, // 5번 재시도
   timeout: 15000 // 15초 타임아웃
 });
@@ -283,19 +286,26 @@ const client = new MementoClient({
 
 ## 🛠️ 개발
 
+이 패키지는 워크스페이스에 없으므로, 아래는 **`packages/mcp-client` 디렉터리에서** 실행하는 로컬 스크립트입니다 (`package.json`의 `scripts`: `build`, `dev`, `clean`). 저장소 루트의 전체 빌드·검증은 `npm run build` / `npm test` 등 [루트 `package.json`](../../package.json)을 따릅니다.
+
 ### 빌드
 
 ```bash
+cd packages/mcp-client
+npm install
 npm run build
 ```
 
 ### 개발 모드
 
 ```bash
+cd packages/mcp-client
 npm run dev
 ```
 
 ### 테스트
+
+이 패키지에는 `test` 스크립트가 없습니다. 루트에서 전체 테스트를 실행하려면:
 
 ```bash
 npm test
@@ -311,6 +321,7 @@ MIT License
 
 ## 📚 관련 문서
 
-- [Memento MCP Server 문서](https://github.com/your-org/memento)
-- [API 참조](https://github.com/your-org/memento/docs/api-reference.md)
-- [아키텍처 가이드](https://github.com/your-org/memento/docs/architecture.md)
+- [저장소 문서 개요](../../docs/README.md)
+- [이 패키지 API 참조 (로컬)](./docs/API-REFERENCE.md)
+- [아키텍처 가이드](../../docs/architecture/ko/architecture.md)
+- [현행 클라이언트 `@memento/client`](../memento-client/README.md)

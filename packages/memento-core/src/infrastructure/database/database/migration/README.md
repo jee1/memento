@@ -3,14 +3,14 @@
 ## 디렉토리 구조
 
 ```
-src/database/migration/
+packages/memento-core/src/infrastructure/database/database/migration/
 ├── README.md                    # 이 파일
 ├── types.ts                     # 마이그레이션 타입 정의
 ├── migration-runner.ts          # 마이그레이션 실행 엔진
-├── migration-detector.ts         # 마이그레이션 자동 감지
-├── backup-manager.ts             # 백업 생성 및 복원 관리
+├── migration-detector.ts        # 마이그레이션 자동 감지
+├── backup-manager.ts            # 백업 생성 및 복원 관리
 ├── schema-version-manager.ts    # 스키마 버전 관리
-└── migrations/                   # 마이그레이션 스크립트 디렉토리
+└── migrations/                  # 마이그레이션 스크립트 디렉터리
     ├── 002-mirix-schema-expansion.ts  # MIRIX 스키마 확장 마이그레이션
     └── ...
 ```
