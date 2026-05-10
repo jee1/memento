@@ -11,8 +11,10 @@
 | `npm run build -w memento-server` | 빌드 |
 | `npm run start -w memento-server` | 빌드 산출물로 MCP 서버 실행 |
 | `npm run start:http -w memento-server` | 빌드 산출물로 HTTP 서버 실행 |
+| `npm run dev:http-v2 -w memento-server` | HTTP v2 (watch; 루트 `npm run dev:http-v2`) |
+| `npm run start:http-v2 -w memento-server` | HTTP v2 프로덕션 실행 (루트 `npm run start:http-v2`) |
 
-루트에서 `npm run dev` / `npm run dev:http`를 쓰면 위 워크스페이스 스크립트가 호출됩니다.
+루트에서 `npm run dev` / `npm run dev:http` / `npm run dev:http-v2`를 쓰면 위 워크스페이스 스크립트가 호출됩니다.
 
 ## 진입점
 

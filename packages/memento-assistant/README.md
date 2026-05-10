@@ -121,6 +121,16 @@ const ctx = await a.beforeUserTurn({ userMessage: '내 이름이 뭐야?', conve
 expect(ctx.systemContext).toContain('Alice');
 ```
 
+## 모노레포에서 개발
+
+이 저장소 루트에서 패키지를 빌드·검증하려면 [루트 `package.json`](../../package.json)의 워크스페이스 스크립트를 사용합니다. 예:
+
+```bash
+npm run build -w @memento/assistant
+npm run type-check -w @memento/assistant
+npm run test -w @memento/assistant
+```
+
 ## FAQ
 
 **Q: stdio vs HTTP 어느 걸 써야 하나요?**
