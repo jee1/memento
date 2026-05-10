@@ -21,19 +21,13 @@ import { SleepConsolidationBatchJob } from './jobs/sleep-consolidation-batch-job
 import { TelemetryCleanupBatchJob } from './jobs/telemetry-cleanup-batch-job.js';
 import type { SleepConsolidationService } from '../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../domains/telemetry/repositories/telemetry-repository.js';
-import { MetaMemoryIntrospectionService } from '../../domains/memory/services/meta-memory-introspection-service.js';
 import type { IntrospectionScanCache } from '../../domains/memory/services/introspection-scan-cache.js';
-import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
-import { resolveValidatedNumber } from '../../shared/config/environment.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
 import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
-import { selectMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-selection-service.js';
-import { upsertPendingMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-persistence-service.js';
-import { recordMemoryReviewQueueHealthSnapshot } from '../../domains/memory/services/memory-review-queue-health-service.js';
 import { buildMemoryReviewCandidatesRunDiagnosticsPayload } from './memory-review-candidates-run-diagnostics.js';
 
 import { collectBatchSchedulerDatabaseStats } from './batch-scheduler-database-stats.js';
@@ -49,6 +43,10 @@ import {
   runMemoryCleanup,
   runMonitoring
 } from './handlers/batch-scheduler-maintenance-handlers.js';
+import {
+  runMemoryReviewCandidatesJob,
+  runMetaMemoryIntrospection
+} from './handlers/batch-scheduler-review-meta-handlers.js';
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
@@ -458,74 +456,8 @@ export class BatchScheduler implements IBatchScheduler {
     return runMemoryCleanup(this.buildRunContext());
   }
 
-  /**
-   * Issue 243: memory_review_candidate 큐를 선정 결과로 갱신
-   */
-  private buildMemoryReviewCandidateUpsertInputs(db: Database.Database): {
-    inputs: Array<{
-      memory_id: string;
-      priority: number;
-      reason: string;
-      due_at: string;
-      metadata_json: string;
-    }>;
-    nowIso: string;
-    selectedCount: number;
-  } {
-    const items = selectMemoryReviewCandidates(db);
-    const dueDays = resolveValidatedNumber(
-      'MEMORY_REVIEW_CANDIDATE_DUE_DAYS',
-      14,
-      n => n >= 1 && n <= 366,
-      '1-366'
-    );
-    const nowIso = new Date().toISOString();
-    const dueAt = new Date(Date.now() + dueDays * 86_400_000).toISOString();
-    const inputs = items.map(i => ({
-      memory_id: i.memory_id,
-      priority: i.priority,
-      reason: i.reason,
-      due_at: dueAt,
-      metadata_json: JSON.stringify({ score_breakdown: i.score_breakdown })
-    }));
-    return { inputs, nowIso, selectedCount: items.length };
-  }
-
   private async runMemoryReviewCandidatesJob(): Promise<BatchJobResult> {
-    const result = createEmptyBatchJobResult('memory_review_candidates');
-
-    try {
-      assertSchedulerDbOpen(this.db);
-
-      const { inputs, nowIso, selectedCount } = this.buildMemoryReviewCandidateUpsertInputs(this.db);
-      const upsert = upsertPendingMemoryReviewCandidates(this.db, inputs, nowIso);
-      result.success = true;
-      result.processed = inputs.length;
-      result.details = { inserted: upsert.inserted, updated: upsert.updated };
-
-      this.log('Memory review candidates batch completed', {
-        selected: selectedCount,
-        inserted: upsert.inserted,
-        updated: upsert.updated
-      });
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Memory review candidates batch failed', {
-        error: error instanceof Error ? error.message : String(error)
-      }, 'error');
-    } finally {
-      try {
-        if (this.db && DatabaseUtils.isOpen(this.db)) {
-          recordMemoryReviewQueueHealthSnapshot(this.db);
-        }
-      } catch {
-        /* best-effort: snapshots optional until migration 34 */
-      }
-      finalizeBatchJobTiming(result);
-      await this.emitMemoryReviewCandidatesRunRecord(result);
-    }
-
-    return result;
+    return runMemoryReviewCandidatesJob(this.buildRunContext());
   }
 
   /**
@@ -1249,61 +1181,7 @@ export class BatchScheduler implements IBatchScheduler {
    * meta_memory_stats를 스캔하여 저신뢰, 고실패 메모리를 식별하고 요약합니다.
    */
   private async runMetaMemoryIntrospection(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'meta_memory_introspection',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-
-      const scanResult = await MetaMemoryIntrospectionService.runScan(this.db, {});
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - startTime.getTime();
-      result.success = true;
-      result.processed =
-        scanResult.lowConfidenceMemoryIds.length + scanResult.highFailureMemoryIds.length;
-      result.details = {
-        lowConfidenceMemoryIds: scanResult.lowConfidenceMemoryIds,
-        highFailureMemoryIds: scanResult.highFailureMemoryIds,
-        summary: scanResult.summary
-      };
-
-      this.lastExecution.set('meta_memory_introspection', new Date());
-      this.totalExecutions.set(
-        'meta_memory_introspection',
-        (this.totalExecutions.get('meta_memory_introspection') || 0) + 1
-      );
-
-      this.introspectionScanCache?.set(scanResult, result.endTime.toISOString());
-
-      this.log('Meta memory introspection scan completed', {
-        duration: result.duration,
-        lowConfidenceCount: scanResult.lowConfidenceMemoryIds.length,
-        highFailureCount: scanResult.highFailureMemoryIds.length,
-        summary: scanResult.summary
-      });
-      return result;
-    } catch (error) {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - startTime.getTime();
-      result.success = false;
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Meta memory introspection scan error', {
-        duration: result.duration,
-        error: error instanceof Error ? error.message : String(error)
-      }, 'error');
-      return result;
-    }
+    return runMetaMemoryIntrospection(this.buildRunContext());
   }
 
   /**
