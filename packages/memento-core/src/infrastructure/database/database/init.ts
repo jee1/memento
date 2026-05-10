@@ -29,7 +29,7 @@ const __dirname = dirname(__filename);
 
 // MCP 프로토콜 준수를 위해 초기화 로그는 출력하지 않음
 // 로그가 stdout/stderr로 출력되면 JSON-RPC 통신을 방해할 수 있음
-const log = (..._args: any[]) => {
+const log = (..._args: unknown[]) => {
   // MCP 프로토콜 준수를 위해 로그 출력 비활성화
   // 필요시 환경 변수로 제어 가능하도록 주석 처리
   // if (process.env.MCP_DEBUG === 'true') {
@@ -274,7 +274,7 @@ function _ensureLegacySchema(db: Database.Database): VecTableConfig[] {
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update');
     db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete');
   } catch (error) {
-    log('⚠️ 레거시 스키마 호환성 조정 실패:', error);
+    log('[WARN] 레거시 스키마 호환성 조정 실패:', error);
   }
 
   return vecTablesToRepopulate;
@@ -305,14 +305,14 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
         'memory_item_vec_gemini'
       ];
       if (!allowedTableNames.includes(config.name)) {
-        log(`⚠️ 허용되지 않은 테이블명: ${config.name}`);
+        log(`[WARN] 허용되지 않은 테이블명: ${config.name}`);
         continue;
       }
       
       // 테이블명 패턴 검증
       const tableNamePattern = /^[a-z0-9_]+$/;
       if (!tableNamePattern.test(config.name)) {
-        log(`⚠️ 잘못된 테이블명 패턴: ${config.name}`);
+        log(`[WARN] 잘못된 테이블명 패턴: ${config.name}`);
         continue;
       }
       
@@ -323,7 +323,7 @@ function populateVecTables(db: Database.Database, configs: VecTableConfig[]): vo
         `WHERE ${config.filter}`;
       db.exec(query);
     } catch (error) {
-      log(`⚠️ ${config.name} 재구축 중 오류 발생:`, error);
+      log(`[WARN] ${config.name} 재구축 중 오류 발생:`, error);
     }
   }
 }
@@ -372,7 +372,7 @@ async function recordBundledSchemaSqlMigrationBaseline(db: Database.Database): P
  * @param overrideDbPath DB 경로 오버라이드 (createMementoCore 등 라이브러리 호출 시 사용). 미지정 시 mementoConfig.dbPath 사용.
  */
 export async function initializeDatabase(overrideDbPath?: string): Promise<Database.Database> {
-  log('🗄️  SQLite 데이터베이스 초기화 중...');
+  log('[init]  SQLite 데이터베이스 초기화 중...');
 
   const dbPath = overrideDbPath ?? mementoConfig.dbPath;
 
@@ -403,13 +403,13 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
     try {
       // Docker 환경에서는 FTS5가 기본적으로 포함되어 있음
       if (process.env.NODE_ENV === 'production' || process.env.DOCKER === 'true') {
-        log('🐳 Docker 환경에서 FTS5 사용 가능');
+        log('[ENV] Docker 환경에서 FTS5 사용 가능');
       } else {
         db.loadExtension('fts5');
-        log('✅ FTS5 확장 로드 완료');
+        log('[OK] FTS5 확장 로드 완료');
       }
     } catch (error) {
-      log('⚠️  FTS5 확장 로드 실패, 기본 검색으로 전환:', error);
+      log('[WARN]  FTS5 확장 로드 실패, 기본 검색으로 전환:', error);
     }
     
     db.pragma('busy_timeout = 60000');
@@ -436,9 +436,9 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       const { getLoadablePath } = await import('sqlite-vec');
       const extensionPath = getLoadablePath();
       db.loadExtension(extensionPath);
-      log('✅ sqlite-vec 확장 로드 성공');
+      log('[OK] sqlite-vec 확장 로드 성공');
     } catch (error) {
-      log('⚠️ sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
+      log('[WARN] sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
     }
     
     // 마이그레이션 자동 실행 (스키마 실행 전에 확인)
@@ -452,12 +452,12 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
     // 기존 DB가 있으면 마이그레이션을 먼저 실행
     if (isExistingDatabase) {
       try {
-        log('🔄 기존 데이터베이스 감지 - 마이그레이션 먼저 실행');
+        log('[MIG] 기존 데이터베이스 감지 - 마이그레이션 먼저 실행');
         const detector = new MigrationDetector();
         const detectionResult = await detector.detectPendingMigrations(db);
         
         if (detectionResult.pendingMigrations.length > 0) {
-          log(`📦 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+          log(`[PKG] 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
           
           const runner = new MigrationRunner(db);
           const migrations = detectionResult.pendingMigrations.map(d => d.migration);
@@ -470,7 +470,7 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
           const successCount = results.filter(r => r.success).length;
           const failCount = results.filter(r => !r.success).length;
           
-          log(`✅ 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+          log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
           
           if (failCount > 0) {
             const failedMigrations = results.filter(r => !r.success);
@@ -485,17 +485,17 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
             );
           }
         } else {
-          log('✅ 실행해야 할 마이그레이션이 없습니다.');
+          log('[OK] 실행해야 할 마이그레이션이 없습니다.');
         }
       } catch (migrationError) {
-        log('❌ 기존 데이터베이스 마이그레이션 단계에서 예외가 발생했습니다.', migrationError);
+        log('[ERR] 기존 데이터베이스 마이그레이션 단계에서 예외가 발생했습니다.', migrationError);
         throw migrationError;
       }
     } else {
       // 새 DB인 경우: 마이그레이션을 먼저 체크하여 schema.sql과의 충돌 방지
       // 마이그레이션이 있으면 마이그레이션을 실행하고 schema.sql은 스킵
       // 마이그레이션이 없으면 schema.sql을 실행 (최신 스키마 포함)
-      log('📋 새 데이터베이스 감지 - 초기화 전략 결정 중...');
+      log('[INFO] 새 데이터베이스 감지 - 초기화 전략 결정 중...');
       
       // 스키마 버전 테이블 먼저 생성 (마이그레이션 감지에 필요)
       db.exec(`
@@ -523,12 +523,12 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
         hasPendingMigrations = pendingCount > 0 && memoryItemReady;
         if (pendingCount > 0 && !memoryItemReady) {
           log(
-            '📋 기본 테이블(memory_item) 없음 — 대기 중인 증분 마이그레이션은 건너뛰고 schema.sql로 초기화합니다'
+            '[INFO] 기본 테이블(memory_item) 없음 — 대기 중인 증분 마이그레이션은 건너뛰고 schema.sql로 초기화합니다'
           );
         }
 
         if (hasPendingMigrations) {
-          log(`📦 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개 - 마이그레이션 우선 실행`);
+          log(`[PKG] 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개 - 마이그레이션 우선 실행`);
           
           // 마이그레이션 실행
           const runner = new MigrationRunner(db);
@@ -542,7 +542,7 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
           const successCount = results.filter(r => r.success).length;
           const failCount = results.filter(r => !r.success).length;
           
-          log(`✅ 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+          log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
           
           if (failCount > 0) {
             const failedMigrations = results.filter(r => !r.success);
@@ -567,15 +567,15 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
 
               if (zeroVersionCount && zeroVersionCount.count > 0) {
                 const errorMessage = `마이그레이션 검증 실패: core_memory 테이블에 version=0인 행이 ${zeroVersionCount.count}개 있습니다. 마이그레이션 010이 완료되지 않았을 수 있습니다.`;
-                log(`❌ ${errorMessage}`);
+                log(`[ERR] ${errorMessage}`);
                 throw new Error(errorMessage);
               }
 
-              log('✅ core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
+              log('[OK] core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
             } catch (validationError) {
               // core_memory 테이블이 없는 경우는 무시 (마이그레이션 002가 아직 실행되지 않았을 수 있음)
               if (validationError instanceof Error && validationError.message.includes('no such table')) {
-                log('⚠️  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
+                log('[WARN]  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
               } else {
                 throw validationError;
               }
@@ -583,13 +583,13 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
           }
         }
       } catch (migrationError) {
-        log('❌ 신규 DB: 마이그레이션 감지/실행 중 오류 발생:', migrationError);
+        log('[ERR] 신규 DB: 마이그레이션 감지/실행 중 오류 발생:', migrationError);
         throw migrationError;
       }
       
       // 마이그레이션이 없거나 실패한 경우 schema.sql 실행 (최신 스키마 포함)
       if (!hasPendingMigrations) {
-        log('📋 schema.sql 실행 (최신 스키마 적용)');
+        log('[INFO] schema.sql 실행 (최신 스키마 적용)');
         // dist: copy:assets가 dist/database/schema.sql에 복사함. 소스(Vitest): 동일 디렉터리의 schema.sql
         let schemaPath = join(__dirname, '..', '..', '..', 'database', 'schema.sql');
         if (!fs.existsSync(schemaPath)) {
@@ -615,7 +615,7 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
 
     // Core Memory 자동 로드 (always_load=true인 항목만)
     try {
-      log('🔄 Core Memory 자동 로드 중...');
+      log('[MIG] Core Memory 자동 로드 중...');
       const coreMemoryRepository = createCoreMemoryRepository(db);
       const { getCoreMemoryCache, setCoreMemoryCache } = await import('../../../domains/memory/services/core-memory-cache-service.js');
       
@@ -629,19 +629,19 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       const alwaysLoadItems = await coreMemoryService.findAlwaysLoad();
       
       if (alwaysLoadItems.length > 0) {
-        log(`📦 Core Memory 자동 로드: ${alwaysLoadItems.length}개 항목`);
+        log(`[PKG] Core Memory 자동 로드: ${alwaysLoadItems.length}개 항목`);
         
         for (const item of alwaysLoadItems) {
           const cacheKey = `${item.agent_id}:${item.key}`;
           coreMemoryCache.set(cacheKey, item);
         }
         
-        log(`✅ Core Memory 캐시 로드 완료: ${coreMemoryCache.size()}개 항목`);
+        log(`[OK] Core Memory 캐시 로드 완료: ${coreMemoryCache.size()}개 항목`);
       } else {
-        log('✅ Core Memory 자동 로드할 항목이 없습니다.');
+        log('[OK] Core Memory 자동 로드할 항목이 없습니다.');
       }
     } catch (coreMemoryError) {
-      log('⚠️  Core Memory 자동 로드 중 오류 발생:', coreMemoryError);
+      log('[WARN]  Core Memory 자동 로드 중 오류 발생:', coreMemoryError);
       // Core Memory 로드 실패해도 서버는 계속 실행
       log('   Core Memory 없이 계속 진행합니다.');
     }
@@ -650,48 +650,48 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
     try {
       initializeMigrationStatusTable(db);
       loadMigrationStatusToConfig(db);
-      log('✅ FTS5 마이그레이션 상태 로드 완료');
+      log('[OK] FTS5 마이그레이션 상태 로드 완료');
     } catch (error) {
       // 마이그레이션 상태 초기화 실패는 경고만 출력 (초기화는 계속 진행)
-      log('⚠️ FTS5 마이그레이션 상태 초기화 실패:', error);
+      log('[WARN] FTS5 마이그레이션 상태 초기화 실패:', error);
     }
 
-    log('✅ 데이터베이스 초기화 완료');
-    log(`📁 데이터베이스 경로: ${dbPath}`);
+    log('[OK] 데이터베이스 초기화 완료');
+    log(`[PATH] 데이터베이스 경로: ${dbPath}`);
 
     return db;
   } catch (error) {
-    log('❌ 데이터베이스 초기화 실패:', error);
+    log('[ERR] 데이터베이스 초기화 실패:', error);
     throw error;
   }
 }
 
 export function closeDatabase(db: Database.Database): void {
   if (!db) {
-    log('🔒 데이터베이스가 이미 닫혔습니다');
+    log('[DB] 데이터베이스가 이미 닫혔습니다');
     return;
   }
   
   try {
     db.close();
-    log('🔒 데이터베이스 연결 종료');
+    log('[DB] 데이터베이스 연결 종료');
   } catch (error) {
-    log('❌ 데이터베이스 종료 실패:', error);
+    log('[ERR] 데이터베이스 종료 실패:', error);
   }
 }
 
 // CLI에서 직접 실행할 때
 if (process.argv[1] && process.argv[1].endsWith('init.ts')) {
-  logger.info('🚀 데이터베이스 초기화 스크립트 시작');
+  logger.info('[CLI] 데이터베이스 초기화 스크립트 시작');
   (async () => {
     try {
       const db = await initializeDatabase();
-      logger.info('🎉 데이터베이스 초기화 성공!');
+      logger.info('[CLI] 데이터베이스 초기화 성공!');
       closeDatabase(db);
       process.exit(0);
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.error('❌ 데이터베이스 초기화 실패', {
+      logger.error('[ERR] 데이터베이스 초기화 실패', {
         error: maskedError.message,
         errorName: maskedError.name
       });
