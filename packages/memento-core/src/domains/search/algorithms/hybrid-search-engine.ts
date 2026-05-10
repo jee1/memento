@@ -12,15 +12,19 @@ import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { FeedbackRepository,sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
+import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
 import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
 import {
-MemoryEmbeddingService,
-type SearchBySimilarityOutcome,
-type VectorSearchResult,
+  MemoryEmbeddingService,
+  type SearchBySimilarityOutcome,
+  type VectorSearchResult,
 } from '../../memory/services/memory-embedding-service.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { normalizeSearchBySimilarityOutcome } from './hybrid-search-outcome-utils.js';
+import {
+  executeProviderSearchesWithOverallTimeout,
+  type ProviderVectorRaceResult,
+} from './hybrid-search-provider-parallel.js';
 import { ProceduralMemoryMatcher } from './procedural-memory-matcher.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { SearchEngine } from './search-engine.js';
@@ -399,37 +403,7 @@ export class HybridSearchEngine {
       const weights = this.calculateAdaptiveWeights(query);
       this.logger.logSearchStep(searchId, '적응형 가중치 계산 완료', weights);
 
-      // A/B 테스트를 위한 실험 파라미터를 로깅하여 데이터 기반 개선을 지원합니다.
-      if (query.experiment_id) {
-        const config = getRankingWeights();
-        const variant = {
-          ranking_weights: {
-            alpha: config.ranking_weights.alpha,
-            beta: config.ranking_weights.beta,
-            gamma: config.ranking_weights.gamma,
-            delta: config.ranking_weights.delta,
-            zeta: config.ranking_weights.zeta,
-            epsilon: config.ranking_weights.epsilon
-          },
-          adaptive_weights: {
-            vectorWeight: weights.vectorWeight,
-            textWeight: weights.textWeight
-          },
-          relation_weights: {
-            max_relations: config.relation_weights.max_relations
-          }
-        };
-        
-        if (this.logger.logExperiment) {
-          this.logger.logExperiment(searchId, query.experiment_id, variant);
-        } else {
-          // logExperiment 메서드가 없는 경우 일반 로그로 대체하여 호환성을 유지합니다.
-          this.logger.logSearchStep(searchId, '실험 파라미터', {
-            experiment_id: query.experiment_id,
-            variant
-          });
-        }
-      }
+      this.logRankingExperimentIfApplicable(searchId, query, weights);
 
       // FTS5 전문 검색을 실행하여 정확한 키워드 매칭 결과를 획득합니다.
       const textResults = await this.executeTextSearch(db, query, searchId);
@@ -482,6 +456,43 @@ export class HybridSearchEngine {
 
   private generateSearchId(): string {
     return `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private logRankingExperimentIfApplicable(
+    searchId: string,
+    query: HybridSearchQuery,
+    weights: { vectorWeight: number; textWeight: number; originalVector: number; originalText: number }
+  ): void {
+    if (!query.experiment_id) {
+      return;
+    }
+    const config = getRankingWeights();
+    const variant = {
+      ranking_weights: {
+        alpha: config.ranking_weights.alpha,
+        beta: config.ranking_weights.beta,
+        gamma: config.ranking_weights.gamma,
+        delta: config.ranking_weights.delta,
+        zeta: config.ranking_weights.zeta,
+        epsilon: config.ranking_weights.epsilon
+      },
+      adaptive_weights: {
+        vectorWeight: weights.vectorWeight,
+        textWeight: weights.textWeight
+      },
+      relation_weights: {
+        max_relations: config.relation_weights.max_relations
+      }
+    };
+
+    if (this.logger.logExperiment) {
+      this.logger.logExperiment(searchId, query.experiment_id, variant);
+    } else {
+      this.logger.logSearchStep(searchId, '실험 파라미터', {
+        experiment_id: query.experiment_id,
+        variant
+      });
+    }
   }
 
   private calculateAdaptiveWeights(query: HybridSearchQuery): { vectorWeight: number, textWeight: number, originalVector: number, originalText: number } {
@@ -629,8 +640,12 @@ export class HybridSearchEngine {
         queryEmbeddingProviders,
         tfidfQueryEmbeddingFallback,
         tfidfQueryEmbeddingFallbackProviders
-      } =
-        await this.executeProviderSearchesWithTimeout(searchPromises, providersToSearch, searchId);
+      } = await executeProviderSearchesWithOverallTimeout(
+        searchPromises,
+        providersToSearch,
+        searchId,
+        (sid, step, data) => this.logger.logSearchStep(sid, step, data)
+      );
       
       // 여러 provider의 결과를 정규화하고 중복을 제거하여 일관된 결과를 제공합니다.
       const vectorResults = this.normalizeAndDeduplicateResults(allResults);
@@ -703,45 +718,89 @@ export class HybridSearchEngine {
     return providersToSearch;
   }
 
+  private async runProviderSearchTaskBody(
+    provider: EmbeddingProvider,
+    query: string,
+    searchOptions: { limit: number; threshold: number; types?: MemoryType[]; includeContent: boolean },
+    searchId: string,
+    providerStartTime: bigint,
+    timeoutMeta: { queryEmbeddingProvider?: EmbeddingProvider; tfidfQueryEmbeddingFallback?: boolean }
+  ): Promise<ProviderVectorRaceResult> {
+    try {
+      const { embedding, actualProvider } = await this.generateQueryVector(query, searchId, provider);
+      timeoutMeta.queryEmbeddingProvider = actualProvider;
+      timeoutMeta.tfidfQueryEmbeddingFallback = actualProvider === 'tfidf' && provider !== 'tfidf';
+      if (actualProvider !== provider) {
+        this.logger.logSearchStep(searchId, `VEC 검색 스킵 (provider 불일치: 요청=${provider}, 실제=${actualProvider})`, {
+          provider,
+          actualProvider
+        });
+        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+        return {
+          provider,
+          results: [] as Array<VectorSearchResult & { provider: string }>,
+          success: true,
+          timeMs: providerTime,
+          error: null as string | null,
+          queryEmbeddingProvider: actualProvider,
+          tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback
+        };
+      }
+      const vecResults = await this.vectorSearchEngine.search(embedding, searchOptions, provider);
+      const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+      return {
+        provider,
+        results: vecResults.map(result => ({
+          id: result.memory_id,
+          content: result.content,
+          type: result.type,
+          importance: result.importance,
+          created_at: result.created_at,
+          pinned: false,
+          score: result.similarity,
+          similarity: result.similarity,
+          provider
+        })),
+        success: true,
+        timeMs: providerTime,
+        error: null as string | null,
+        queryEmbeddingProvider: actualProvider,
+        tfidfQueryEmbeddingFallback: false
+      };
+    } catch (error) {
+      const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${provider}`, {
+        provider,
+        error: errorMessage,
+        timeMs: providerTime
+      });
+      return {
+        provider,
+        results: [] as Array<VectorSearchResult & { provider: string }>,
+        success: false,
+        timeMs: providerTime,
+        error: errorMessage
+      };
+    }
+  }
+
   /**
    * 단일 provider 검색 작업 생성 (타임아웃 포함)
-   * 
-   * @param provider - 검색할 provider
-   * @param query - 검색 쿼리 문자열
-   * @param searchOptions - 검색 옵션
-   * @param searchId - 검색 ID (로깅용)
-   * @returns 검색 결과 Promise (타임아웃 포함)
    */
   private createProviderSearchTask(
     provider: EmbeddingProvider,
     query: string,
     searchOptions: { limit: number; threshold: number; types?: MemoryType[]; includeContent: boolean },
     searchId: string
-  ): Promise<{
-    provider: string;
-    results: Array<VectorSearchResult & { provider: string }>;
-    success: boolean;
-    timeMs: number;
-    error: string | null;
-    /** 쿼리 임베딩 생성에 실제 사용된 provider (이번 provider 태스크 기준) */
-    queryEmbeddingProvider?: EmbeddingProvider;
-    /** 요청 provider가 tfidf가 아닌데 실제 쿼리 임베딩이 tfidf로 생성됨 */
-    tfidfQueryEmbeddingFallback?: boolean;
-  }> {
+  ): Promise<ProviderVectorRaceResult> {
     const providerStartTime = process.hrtime.bigint();
-    let timeoutQueryEmbeddingProvider: EmbeddingProvider | undefined;
-    let timeoutTfidfQueryEmbeddingFallback: boolean | undefined;
-    
-    // 타임아웃 Promise 생성
-    const timeoutPromise = new Promise<{
-      provider: string;
-      results: Array<VectorSearchResult & { provider: string }>;
-      success: boolean;
-      timeMs: number;
-      error: string | null;
+    const timeoutMeta: {
       queryEmbeddingProvider?: EmbeddingProvider;
       tfidfQueryEmbeddingFallback?: boolean;
-    }>((resolve) => {
+    } = {};
+
+    const timeoutPromise = new Promise<ProviderVectorRaceResult>(resolve => {
       setTimeout(() => {
         const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
         resolve({
@@ -750,239 +809,21 @@ export class HybridSearchEngine {
           success: false,
           timeMs: providerTime,
           error: `Provider 검색 타임아웃 (${HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`,
-          queryEmbeddingProvider: timeoutQueryEmbeddingProvider,
-          tfidfQueryEmbeddingFallback: timeoutTfidfQueryEmbeddingFallback
+          queryEmbeddingProvider: timeoutMeta.queryEmbeddingProvider,
+          tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback
         });
       }, HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS);
     });
-    
-    // 실제 검색 작업 Promise
-    const searchTask = (async () => {
-      try {
-        const { embedding, actualProvider } = await this.generateQueryVector(query, searchId, provider);
-        timeoutQueryEmbeddingProvider = actualProvider;
-        timeoutTfidfQueryEmbeddingFallback =
-          actualProvider === 'tfidf' && provider !== 'tfidf';
-        // 요청한 provider와 실제 임베딩 provider가 다르면 차원 불일치로 해당 테이블 검색 스킵 (return [] 방지)
-        if (actualProvider !== provider) {
-          this.logger.logSearchStep(searchId, `VEC 검색 스킵 (provider 불일치: 요청=${provider}, 실제=${actualProvider})`, {
-            provider,
-            actualProvider
-          });
-          const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-          const tfidfQueryEmbeddingFallback = timeoutTfidfQueryEmbeddingFallback;
-          return {
-            provider,
-            results: [] as Array<VectorSearchResult & { provider: string }>,
-            success: true,
-            timeMs: providerTime,
-            error: null as string | null,
-            queryEmbeddingProvider: actualProvider,
-            tfidfQueryEmbeddingFallback
-          };
-        }
-        // 벡터 검색 실행
-        const vecResults = await this.vectorSearchEngine.search(embedding, searchOptions, provider);
-        
-        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-        
-        return {
-          provider,
-          results: vecResults.map(result => ({
-            id: result.memory_id,
-            content: result.content,
-            type: result.type,
-            importance: result.importance,
-            created_at: result.created_at,
-            pinned: false,
-            score: result.similarity,
-            similarity: result.similarity,
-            provider // provider 정보 추가
-          })),
-          success: true,
-          timeMs: providerTime,
-          error: null as string | null,
-          queryEmbeddingProvider: actualProvider,
-          tfidfQueryEmbeddingFallback: false
-        };
-      } catch (error) {
-        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        
-        this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${provider}`, {
-          provider,
-          error: errorMessage,
-          timeMs: providerTime
-        });
-        
-        return {
-          provider,
-          results: [] as Array<VectorSearchResult & { provider: string }>,
-          success: false,
-          timeMs: providerTime,
-          error: errorMessage
-        };
-      }
-    })();
-    
-    // Promise.race로 타임아웃과 검색 작업 중 먼저 완료되는 것 반환
+
+    const searchTask = this.runProviderSearchTaskBody(
+      provider,
+      query,
+      searchOptions,
+      searchId,
+      providerStartTime,
+      timeoutMeta
+    );
     return Promise.race([searchTask, timeoutPromise]);
-  }
-
-  /**
-   * 모든 provider 검색 실행 및 결과 수집 (전체 타임아웃 포함)
-   * 
-   * @param searchPromises - 각 provider별 검색 Promise 배열
-   * @param providersToSearch - 검색할 provider 목록
-   * @param searchId - 검색 ID (로깅용)
-   * @returns 검색 결과 및 통계
-   */
-  private async executeProviderSearchesWithTimeout(
-    searchPromises: Promise<{
-      provider: string;
-      results: Array<VectorSearchResult & { provider: string }>;
-      success: boolean;
-      timeMs: number;
-      error: string | null;
-      queryEmbeddingProvider?: EmbeddingProvider;
-      tfidfQueryEmbeddingFallback?: boolean;
-    }>[],
-    providersToSearch: EmbeddingProvider[],
-    searchId: string
-  ): Promise<{
-    allResults: Array<VectorSearchResult & { provider: string }>;
-    providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }>;
-    overallTimeoutOccurred: boolean;
-    queryEmbeddingProviders?: EmbeddingProvider[];
-    tfidfQueryEmbeddingFallback: boolean;
-    tfidfQueryEmbeddingFallbackProviders?: EmbeddingProvider[];
-  }> {
-    // 전체 검색 프로세스의 최대 타임아웃을 설정하여 무한 대기를 방지합니다.
-    // 모든 provider가 타임아웃되어도 부분 결과라도 반환하여 사용자 경험을 보장합니다.
-    // 개별 provider 타임아웃보다 충분히 길게 설정하여 병렬 실행의 이점을 활용합니다.
-    let overallTimeoutOccurred = false;
-    let overallTimeoutHandle: NodeJS.Timeout | null = null;
-    
-    const overallTimeoutPromise = new Promise<void>((resolve) => {
-      overallTimeoutHandle = setTimeout(() => {
-        overallTimeoutOccurred = true;
-        this.logger.logSearchStep(searchId, 'VEC 벡터 검색 전체 타임아웃', {
-          timeoutMs: HYBRID_SEARCH.OVERALL_SEARCH_TIMEOUT_MS,
-          message: '전체 검색 프로세스 타임아웃 발생 - 현재까지 완료된 결과만 반환'
-        });
-        resolve();
-      }, HYBRID_SEARCH.OVERALL_SEARCH_TIMEOUT_MS);
-    });
-    
-    // 타임아웃 타이머를 정리하여 메모리 누수를 방지합니다.
-    const cleanupTimeout = () => {
-      if (overallTimeoutHandle !== null) {
-        clearTimeout(overallTimeoutHandle);
-        overallTimeoutHandle = null;
-      }
-    };
-    
-    try {
-      // Promise.allSettled()를 사용하여 일부 provider가 실패해도 나머지 검색이 계속 진행되도록 합니다.
-      // 전체 타임아웃과 병렬 검색 중 먼저 완료되는 것을 사용하여 응답성을 보장합니다.
-      const searchResults = await Promise.race([
-        Promise.allSettled(searchPromises).then(results => {
-          cleanupTimeout();
-          return results;
-        }),
-        overallTimeoutPromise.then(() => {
-          // 타임아웃 발생 시 현재까지 완료된 Promise만 수집하여 부분 결과라도 반환합니다.
-          // Promise.allSettled는 이미 실행 중이므로 결과를 기다림
-          return Promise.allSettled(searchPromises);
-        })
-      ]);
-      
-      // 성공한 검색 결과만 수집하여 신뢰할 수 있는 결과만 반환합니다.
-      const allResults: Array<VectorSearchResult & { provider: string }> = [];
-      const providerStats: Array<{ provider: string; resultCount: number; success: boolean; timeMs: number; error?: string }> = [];
-      const queryEmbeddingProvidersRaw: EmbeddingProvider[] = [];
-      const tfidfFallbackRequestedProvidersRaw: EmbeddingProvider[] = [];
-      let tfidfQueryEmbeddingFallback = false;
-
-      searchResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          const providerResult = result.value;
-          if (providerResult.tfidfQueryEmbeddingFallback) {
-            tfidfQueryEmbeddingFallback = true;
-            tfidfFallbackRequestedProvidersRaw.push(providerResult.provider as EmbeddingProvider);
-          }
-          if (providerResult.queryEmbeddingProvider) {
-            queryEmbeddingProvidersRaw.push(providerResult.queryEmbeddingProvider);
-          }
-          providerStats.push({
-            provider: providerResult.provider,
-            resultCount: providerResult.results.length,
-            success: providerResult.success,
-            timeMs: providerResult.timeMs,
-            error: providerResult.error || undefined
-          });
-          
-          // 타임아웃 또는 실패 시 상세 로깅하여 문제 진단과 모니터링을 지원합니다.
-          if (!providerResult.success) {
-            const isTimeout = providerResult.error?.includes('타임아웃');
-            this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${providerResult.provider}`, {
-              provider: providerResult.provider,
-              error: providerResult.error,
-              timeMs: providerResult.timeMs,
-              isTimeout,
-              resultCount: providerResult.results.length
-            });
-          }
-          
-          if (providerResult.success) {
-            allResults.push(...providerResult.results);
-          }
-        } else {
-          // Promise 자체가 실패한 예외적인 경우를 처리하여 시스템 안정성을 보장합니다.
-          const provider = providersToSearch[index];
-          if (!provider) {
-            // provider가 없는 예외적인 경우를 스킵하여 오류를 방지합니다.
-            return;
-          }
-          const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason);
-          providerStats.push({
-            provider,
-            resultCount: 0,
-            success: false,
-            timeMs: 0,
-            error: errorMessage
-          });
-          
-          this.logger.logSearchStep(searchId, `VEC 벡터 검색 Promise 실패 - ${provider}`, {
-            provider,
-            error: errorMessage,
-            isTimeout: false
-          });
-        }
-      });
-      
-      const queryEmbeddingProviders =
-        queryEmbeddingProvidersRaw.length > 0
-          ? [...new Set(queryEmbeddingProvidersRaw)].sort()
-          : undefined;
-
-      const tfidfQueryEmbeddingFallbackProviders =
-        tfidfFallbackRequestedProvidersRaw.length > 0
-          ? [...new Set(tfidfFallbackRequestedProvidersRaw)].sort()
-          : undefined;
-
-      return {
-        allResults,
-        providerStats,
-        overallTimeoutOccurred,
-        queryEmbeddingProviders,
-        tfidfQueryEmbeddingFallback,
-        tfidfQueryEmbeddingFallbackProviders
-      };
-    } finally {
-      // 예외 발생 시에도 타임아웃 타이머를 정리하여 메모리 누수를 방지합니다.
-      cleanupTimeout();
-    }
   }
 
   /**
