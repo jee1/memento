@@ -9,6 +9,10 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
 
+function isDuplicateColumnError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('duplicate column name');
+}
+
 function migrateDatabase() {
   logger.info('🔄 데이터베이스 마이그레이션 시작');
   
@@ -21,24 +25,24 @@ function migrateDatabase() {
     
     try {
       db.exec('ALTER TABLE memory_item ADD COLUMN view_count INTEGER DEFAULT 0');
-    } catch (err: any) {
-      if (!err.message.includes('duplicate column name')) {
+    } catch (err: unknown) {
+      if (!isDuplicateColumnError(err)) {
         throw err;
       }
     }
     
     try {
       db.exec('ALTER TABLE memory_item ADD COLUMN cite_count INTEGER DEFAULT 0');
-    } catch (err: any) {
-      if (!err.message.includes('duplicate column name')) {
+    } catch (err: unknown) {
+      if (!isDuplicateColumnError(err)) {
         throw err;
       }
     }
     
     try {
       db.exec('ALTER TABLE memory_item ADD COLUMN edit_count INTEGER DEFAULT 0');
-    } catch (err: any) {
-      if (!err.message.includes('duplicate column name')) {
+    } catch (err: unknown) {
+      if (!isDuplicateColumnError(err)) {
         throw err;
       }
     }
