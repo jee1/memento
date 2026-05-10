@@ -23,7 +23,7 @@
 1. ~~**PR-A:** `database/init.ts` / `database/migrate.ts`~~ — 머지됨: [`migrate.ts` #322](https://github.com/jee1/memento/pull/322), [`init.ts` 레거시 스키마 분해 #325](https://github.com/jee1/memento/pull/325). 추가 분해는 재스캔 후 필요 시만.
 2. ~~**PR-B (1/2):** `n-hop-search-service.ts`~~ — 단일 파일 slop 비교로 선정 후 [#327](https://github.com/jee1/memento/pull/327)에서 `searchNHop` 분해·`any` 초기화 제거.
 3. ~~**PR-B (2/2):** `memory-embedding-service.ts`~~ — [#328](https://github.com/jee1/memento/pull/328): 저장/검색 헬퍼 분리, stderr 이모지 → ASCII 진단 태그.
-4. **다음 (순위 2 잔여):** `vector-search-quality-metrics.ts` 등 대형 헬퍼 — 재스캔 후 단일 파일 PR 권장.
+4. ~~**순위 2 잔여:** `vector-search-quality-metrics.ts`~~ — [#329](https://github.com/jee1/memento/pull/329): Kendall tau-b·vector-only/consolidation 점수 헬퍼 분리(동작·export 동일).
 5. **다음 (순위 3):** `triple-extraction-service.ts` 중심 트리플 추출 파이프라인 분해.
 
 ## 진행 기록
@@ -34,6 +34,7 @@
 | 2026-05-10 | `.../database/init.ts` | [#325](https://github.com/jee1/memento/pull/325) | `_ensureLegacySchema` → `ensureLegacyMemoryEmbeddingColumns` 등 분해, VEC 차원 주석 유지 |
 | 2026-05-10 | `.../anchor/n-hop-search-service.ts` | [#327](https://github.com/jee1/memento/pull/327) | hop 병합·랭킹 헬퍼 추출, `requireVectorContext`로 초기화 통일 |
 | 2026-05-10 | `.../memory/services/memory-embedding-service.ts` | [#328](https://github.com/jee1/memento/pull/328) | 호환성/INSERT·vec SQL·맵 헬퍼, stderr ASCII 태그 |
+| 2026-05-10 | `.../test/helpers/vector-search-quality-metrics.ts` | [#329](https://github.com/jee1/memento/pull/329) | Kendall tau-b·하이브리드 점수 pick 헬퍼 추출 |
 
 ## 갱신
 
