@@ -418,6 +418,153 @@ async function configureSqliteSession(db: Database.Database): Promise<void> {
   }
 }
 
+async function migrateExistingDatabaseIfNeeded(db: Database.Database): Promise<void> {
+  try {
+    log('[MIG] 기존 데이터베이스 감지 - 마이그레이션 먼저 실행');
+    const detector = new MigrationDetector();
+    const detectionResult = await detector.detectPendingMigrations(db);
+
+    if (detectionResult.pendingMigrations.length > 0) {
+      log(`[PKG] 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
+
+      const runner = new MigrationRunner(db);
+      const migrations = detectionResult.pendingMigrations.map(d => d.migration);
+      const results = await runner.runMigrations(migrations, {
+        createBackup: true,
+        autoRollback: true,
+        validate: true
+      });
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+
+      if (failCount > 0) {
+        const failedMigrations = results.filter(r => !r.success);
+        for (const failed of failedMigrations) {
+          log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+        }
+        const detail = failedMigrations
+          .map(f => `${f.name} (v${f.version}): ${f.error ?? 'unknown error'}`)
+          .join('; ');
+        throw new Error(
+          `기존 DB 마이그레이션 실패 (${failCount}건). \`npm run db:migrate -w @memento/core\`로 점검하세요. ${detail}`
+        );
+      }
+    } else {
+      log('[OK] 실행해야 할 마이그레이션이 없습니다.');
+    }
+  } catch (migrationError) {
+    log('[ERR] 기존 데이터베이스 마이그레이션 단계에서 예외가 발생했습니다.', migrationError);
+    throw migrationError;
+  }
+}
+
+async function bootstrapNewDatabaseSchema(db: Database.Database): Promise<void> {
+  log('[INFO] 새 데이터베이스 감지 - 초기화 전략 결정 중...');
+
+  db.exec(`
+        CREATE TABLE IF NOT EXISTS memento_schema_version (
+          version TEXT PRIMARY KEY,
+          applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          migration_name TEXT NOT NULL,
+          checksum TEXT,
+          applied_by TEXT DEFAULT 'system',
+          description TEXT
+        )
+      `);
+
+  let hasPendingMigrations = false;
+  try {
+    const detector = new MigrationDetector();
+    const detectionResult = await detector.detectPendingMigrations(db);
+    const memoryItemReady = Boolean(
+      db
+        .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_item' LIMIT 1`)
+        .get()
+    );
+    const pendingCount = detectionResult.pendingMigrations.length;
+    hasPendingMigrations = pendingCount > 0 && memoryItemReady;
+    if (pendingCount > 0 && !memoryItemReady) {
+      log(
+        '[INFO] 기본 테이블(memory_item) 없음 — 대기 중인 증분 마이그레이션은 건너뛰고 schema.sql로 초기화합니다'
+      );
+    }
+
+    if (hasPendingMigrations) {
+      log(`[PKG] 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개 - 마이그레이션 우선 실행`);
+
+      const runner = new MigrationRunner(db);
+      const migrations = detectionResult.pendingMigrations.map(d => d.migration);
+      const results = await runner.runMigrations(migrations, {
+        createBackup: true,
+        autoRollback: true,
+        validate: true
+      });
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+
+      if (failCount > 0) {
+        const failedMigrations = results.filter(r => !r.success);
+        for (const failed of failedMigrations) {
+          log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
+        }
+        const detail = failedMigrations
+          .map(f => `${f.name} (v${f.version}): ${f.error ?? 'unknown error'}`)
+          .join('; ');
+        throw new Error(
+          `신규 DB 마이그레이션 실패 (${failCount}건). schema.sql 폴백 없이 중단합니다. ${detail}`
+        );
+      } else {
+        populateVecTables(db, []);
+
+        try {
+          const zeroVersionCount = db.prepare(`
+              SELECT COUNT(*) as count FROM core_memory WHERE version = 0
+            `).get() as { count: number } | undefined;
+
+          if (zeroVersionCount && zeroVersionCount.count > 0) {
+            const errorMessage = `마이그레이션 검증 실패: core_memory 테이블에 version=0인 행이 ${zeroVersionCount.count}개 있습니다. 마이그레이션 010이 완료되지 않았을 수 있습니다.`;
+            log(`[ERR] ${errorMessage}`);
+            throw new Error(errorMessage);
+          }
+
+          log('[OK] core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
+        } catch (validationError) {
+          if (validationError instanceof Error && validationError.message.includes('no such table')) {
+            log('[WARN]  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
+          } else {
+            throw validationError;
+          }
+        }
+      }
+    }
+  } catch (migrationError) {
+    log('[ERR] 신규 DB: 마이그레이션 감지/실행 중 오류 발생:', migrationError);
+    throw migrationError;
+  }
+
+  if (!hasPendingMigrations) {
+    log('[INFO] schema.sql 실행 (최신 스키마 적용)');
+    let schemaPath = join(__dirname, '..', '..', '..', 'database', 'schema.sql');
+    if (!fs.existsSync(schemaPath)) {
+      const fallback = join(__dirname, 'schema.sql');
+      if (fs.existsSync(fallback)) schemaPath = fallback;
+    }
+    const schema = readFileSync(schemaPath, 'utf-8');
+
+    db.exec(schema);
+
+    populateVecTables(db, []);
+
+    await recordBundledSchemaSqlMigrationBaseline(db);
+  }
+}
+
 /**
  * @param overrideDbPath DB 경로 오버라이드 (createMementoCore 등 라이브러리 호출 시 사용). 미지정 시 mementoConfig.dbPath 사용.
  */
@@ -452,164 +599,11 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
       WHERE type='table' AND name IN ('memory_item', 'core_memory', 'knowledge_vault')
     `).all() as Array<{ name: string }>;
     const isExistingDatabase = existingTables.length > 0;
-    
-    // 기존 DB가 있으면 마이그레이션을 먼저 실행
+
     if (isExistingDatabase) {
-      try {
-        log('[MIG] 기존 데이터베이스 감지 - 마이그레이션 먼저 실행');
-        const detector = new MigrationDetector();
-        const detectionResult = await detector.detectPendingMigrations(db);
-        
-        if (detectionResult.pendingMigrations.length > 0) {
-          log(`[PKG] 실행해야 할 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개`);
-          
-          const runner = new MigrationRunner(db);
-          const migrations = detectionResult.pendingMigrations.map(d => d.migration);
-          const results = await runner.runMigrations(migrations, {
-            createBackup: true,
-            autoRollback: true,
-            validate: true
-          });
-          
-          const successCount = results.filter(r => r.success).length;
-          const failCount = results.filter(r => !r.success).length;
-          
-          log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
-          
-          if (failCount > 0) {
-            const failedMigrations = results.filter(r => !r.success);
-            for (const failed of failedMigrations) {
-              log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
-            }
-            const detail = failedMigrations
-              .map(f => `${f.name} (v${f.version}): ${f.error ?? 'unknown error'}`)
-              .join('; ');
-            throw new Error(
-              `기존 DB 마이그레이션 실패 (${failCount}건). \`npm run db:migrate -w @memento/core\`로 점검하세요. ${detail}`
-            );
-          }
-        } else {
-          log('[OK] 실행해야 할 마이그레이션이 없습니다.');
-        }
-      } catch (migrationError) {
-        log('[ERR] 기존 데이터베이스 마이그레이션 단계에서 예외가 발생했습니다.', migrationError);
-        throw migrationError;
-      }
+      await migrateExistingDatabaseIfNeeded(db);
     } else {
-      // 새 DB인 경우: 마이그레이션을 먼저 체크하여 schema.sql과의 충돌 방지
-      // 마이그레이션이 있으면 마이그레이션을 실행하고 schema.sql은 스킵
-      // 마이그레이션이 없으면 schema.sql을 실행 (최신 스키마 포함)
-      log('[INFO] 새 데이터베이스 감지 - 초기화 전략 결정 중...');
-      
-      // 스키마 버전 테이블 먼저 생성 (마이그레이션 감지에 필요)
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS memento_schema_version (
-          version TEXT PRIMARY KEY,
-          applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          migration_name TEXT NOT NULL,
-          checksum TEXT,
-          applied_by TEXT DEFAULT 'system',
-          description TEXT
-        )
-      `);
-      
-      // 마이그레이션 감지 (증분 마이그레이션은 기본 테이블이 있을 때만 — 빈 파일에선 schema.sql이 선행)
-      let hasPendingMigrations = false;
-      try {
-        const detector = new MigrationDetector();
-        const detectionResult = await detector.detectPendingMigrations(db);
-        const memoryItemReady = Boolean(
-          db
-            .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_item' LIMIT 1`)
-            .get()
-        );
-        const pendingCount = detectionResult.pendingMigrations.length;
-        hasPendingMigrations = pendingCount > 0 && memoryItemReady;
-        if (pendingCount > 0 && !memoryItemReady) {
-          log(
-            '[INFO] 기본 테이블(memory_item) 없음 — 대기 중인 증분 마이그레이션은 건너뛰고 schema.sql로 초기화합니다'
-          );
-        }
-
-        if (hasPendingMigrations) {
-          log(`[PKG] 마이그레이션 발견: ${detectionResult.pendingMigrations.length}개 - 마이그레이션 우선 실행`);
-          
-          // 마이그레이션 실행
-          const runner = new MigrationRunner(db);
-          const migrations = detectionResult.pendingMigrations.map(d => d.migration);
-          const results = await runner.runMigrations(migrations, {
-            createBackup: true,
-            autoRollback: true,
-            validate: true
-          });
-          
-          const successCount = results.filter(r => r.success).length;
-          const failCount = results.filter(r => !r.success).length;
-          
-          log(`[OK] 마이그레이션 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
-          
-          if (failCount > 0) {
-            const failedMigrations = results.filter(r => !r.success);
-            for (const failed of failedMigrations) {
-              log(`   - ${failed.name} (v${failed.version}): ${failed.error}`);
-            }
-            const detail = failedMigrations
-              .map(f => `${f.name} (v${f.version}): ${f.error ?? 'unknown error'}`)
-              .join('; ');
-            throw new Error(
-              `신규 DB 마이그레이션 실패 (${failCount}건). schema.sql 폴백 없이 중단합니다. ${detail}`
-            );
-          } else {
-            // 마이그레이션 전부 성공한 경우에만 VEC 테이블 초기화 (실패 시 아래 schema.sql 경로에서 처리)
-            populateVecTables(db, []);
-
-            // 마이그레이션 완료 검증: core_memory 테이블의 version=0인 행이 없어야 함
-            try {
-              const zeroVersionCount = db.prepare(`
-              SELECT COUNT(*) as count FROM core_memory WHERE version = 0
-            `).get() as { count: number } | undefined;
-
-              if (zeroVersionCount && zeroVersionCount.count > 0) {
-                const errorMessage = `마이그레이션 검증 실패: core_memory 테이블에 version=0인 행이 ${zeroVersionCount.count}개 있습니다. 마이그레이션 010이 완료되지 않았을 수 있습니다.`;
-                log(`[ERR] ${errorMessage}`);
-                throw new Error(errorMessage);
-              }
-
-              log('[OK] core_memory 버전 마이그레이션 검증 완료 (version=0인 행 없음)');
-            } catch (validationError) {
-              // core_memory 테이블이 없는 경우는 무시 (마이그레이션 002가 아직 실행되지 않았을 수 있음)
-              if (validationError instanceof Error && validationError.message.includes('no such table')) {
-                log('[WARN]  core_memory 테이블이 없습니다. 마이그레이션 002가 아직 실행되지 않았을 수 있습니다.');
-              } else {
-                throw validationError;
-              }
-            }
-          }
-        }
-      } catch (migrationError) {
-        log('[ERR] 신규 DB: 마이그레이션 감지/실행 중 오류 발생:', migrationError);
-        throw migrationError;
-      }
-      
-      // 마이그레이션이 없거나 실패한 경우 schema.sql 실행 (최신 스키마 포함)
-      if (!hasPendingMigrations) {
-        log('[INFO] schema.sql 실행 (최신 스키마 적용)');
-        // dist: copy:assets가 dist/database/schema.sql에 복사함. 소스(Vitest): 동일 디렉터리의 schema.sql
-        let schemaPath = join(__dirname, '..', '..', '..', 'database', 'schema.sql');
-        if (!fs.existsSync(schemaPath)) {
-          const fallback = join(__dirname, 'schema.sql');
-          if (fs.existsSync(fallback)) schemaPath = fallback;
-        }
-        const schema = readFileSync(schemaPath, 'utf-8');
-        
-        // 스키마 실행
-        db.exec(schema);
-        
-        // VEC 테이블 초기화
-        populateVecTables(db, []);
-
-        await recordBundledSchemaSqlMigrationBaseline(db);
-      }
+      await bootstrapNewDatabaseSchema(db);
     }
 
     ensureMemoryItemTripleExtractionColumns(db);
