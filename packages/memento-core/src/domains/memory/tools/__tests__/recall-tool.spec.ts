@@ -239,6 +239,39 @@ describe('RecallTool', () => {
     });
   });
 
+  describe('agent_id 무시 경고 (issue 291)', () => {
+    beforeEach(() => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        query_time: 1,
+        text_count: 0,
+        vector_count: 0,
+      });
+    });
+
+    it('memory_item 검색에서 agent_id가 있어도 무시 경고를 남기지 않는다', async () => {
+      const logWarningSpy = vi.spyOn(
+        tool as unknown as { logWarning: (...args: unknown[]) => void },
+        'logWarning',
+      );
+
+      await tool.handle(
+        { query: 'q', type: 'episodic', agent_id: 'default', limit: 5 },
+        context,
+      );
+
+      const agentIdWarningCalls = logWarningSpy.mock.calls.filter(
+        (c) =>
+          typeof c[0] === 'string' &&
+          c[0].includes('memory_item 검색 시 agent_id 파라미터는 무시됩니다'),
+      );
+
+      expect(agentIdWarningCalls).toHaveLength(0);
+      expect(hybridSearchEngine.search).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('include_score_breakdown (US3, T021)', () => {
     const mockItemBase = {
       id: 'mem_1',
@@ -4676,4 +4709,3 @@ describe('RecallTool', () => {
     });
   });
 });
-
