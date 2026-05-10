@@ -5,7 +5,6 @@
 
 import type Database from 'better-sqlite3';
 import { createHash } from 'crypto';
-import { z } from 'zod';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
@@ -23,9 +22,6 @@ import { validateTypeParam } from '../../../shared/utils/type-param-validator.js
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
-import { CommonSchemas } from '../../../tools/types.js';
-import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
-import type { SearchEngine } from '../../search/algorithms/search-engine.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
@@ -43,390 +39,32 @@ recallSearchRequestedExtra,
 recallTelemetryRetrievalStrategy
 } from './recall-tool-telemetry.js';
 
-/**
- * 앵커 설정 메타데이터 타입
- */
-export interface AnchorSetMetadata {
-  memory_id: string;
-  slot: 'A';
-  agent_id: string;
-}
+import { filterRecallItemsByTriggerConditions, getAppliedRecallFilters } from './recall-tool-filters.js';
+import {
+  normalizeProviderFilter,
+  RecallSchema,
+  type RecallHybridOrTextSearchResult,
+  type RecallTelemetryRetrievalStrategy
+} from './recall-tool-schema.js';
+import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
+import type {
+  AnchorSetMetadata,
+  MetaStatsItem,
+  NeighborMemoryItem,
+  RecallResponseMetadata,
+  RecallResultItem,
+  RecallSearchItem
+} from './recall-tool-types.js';
+import type { RecallParams } from './recall-tool-schema.js';
 
-/**
- * 이웃 기억 항목 타입
- */
-export interface NeighborMemoryItem {
-  id: string;
-  content: string;
-  similarity: number;
-  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: string | number | undefined;
-}
-
-/**
- * Recall 응답 항목 타입 (neighbors 필드 포함)
- * 
- * @property neighbors - 이웃 기억 배열 (optional)
- *   - include_neighbors=true이고 상위 neighbors_limit개 결과에만 포함됨
- *   - neighbors_limit보다 많은 결과는 neighbors 필드가 없음 (undefined)
- *   - 이웃 기억 조회 실패 시 빈 배열 []로 설정됨
- */
-export interface RecallResultItem {
-  memory_id: string;
-  id?: string;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string;
-  final_score: number;
-  neighbors?: NeighborMemoryItem[]; // optional: neighbors_limit보다 많은 결과는 필드 없음
-  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: string | number | NeighborMemoryItem[] | undefined;
-}
-
-/**
- * Recall 응답 메타데이터 타입
- * 
- * @property anchor_set - 앵커 설정 정보 (auto_set_anchor=true일 때만 설정)
- *   - 성공 시: {memory_id, slot: "A", agent_id} 객체
- *   - 실패/건너뜀/비활성화 시: null
- * @property anchor_set_error - 앵커 설정 실패 여부 (optional)
- *   - anchor_set=null이고 anchor_set_error=true: 앵커 설정 실패
- * @property anchor_set_skipped - 앵커 설정 건너뜀 여부 (optional)
- *   - anchor_set=null이고 anchor_set_skipped=true: 앵커 설정 건너뜀 (pinned 앵커 보호 등)
- * @property anchor_set_skipped_reason - 앵커 설정 건너뜀 사유 (optional)
- *   - "pinned_anchor_protected": 슬롯 A에 pinned 앵커가 있어서 보호됨
- */
-export interface RecallResponseMetadata {
-  anchor_set: AnchorSetMetadata | null;
-  anchor_set_error?: boolean;
-  anchor_set_skipped?: boolean;
-  anchor_set_skipped_reason?: string;
-  /** 진단: 하이브리드 검색 시 텍스트/벡터 결과 수·Fallback 여부 (0건 원인 구분용) */
-  text_result_count?: number;
-  vector_result_count?: number;
-  fallback_used?: boolean;
-  /**
-   * 단일 canonical 쿼리 임베딩 provider (비교용). 복수 실제 사용은 query_embedding_providers 참고.
-   * 복수 provider 검색 시 설정 기본값이 목록에 있으면 그 값을, 아니면 정렬된 목록의 첫 값을 사용.
-   */
-  embedding_provider?: string;
-  /** 이번 검색에서 쿼리 임베딩에 실제 사용된 provider (VEC 다중·fallback 시 복수, 정렬·중복 제거) */
-  query_embedding_providers?: EmbeddingProvider[];
-  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: AnchorSetMetadata | null | boolean | string | number | EmbeddingProvider[] | undefined;
-}
-
-/**
- * Recall 응답 타입
- * 
- * @example 앵커 설정 성공 + 이웃 기억 포함
- * ```json
- * {
- *   "items": [
- *     {
- *       "memory_id": "mem_12345",
- *       "content": "검색 결과 내용",
- *       "type": "episodic",
- *       "importance": 0.8,
- *       "created_at": "2024-01-01T00:00:00Z",
- *       "final_score": 0.95,
- *       "neighbors": [
- *         {
- *           "id": "mem_67890",
- *           "content": "관련 기억 내용",
- *           "similarity": 0.85
- *         }
- *       ]
- *     },
- *     {
- *       "memory_id": "mem_11111",
- *       "content": "두 번째 결과",
- *       "neighbors": []
- *     },
- *     {
- *       "memory_id": "mem_22222",
- *       "content": "세 번째 결과 (neighbors_limit 초과로 neighbors 필드 없음)"
- *     }
- *   ],
- *   "total_count": 3,
- *   "query_time": 150,
- *   "search_type": "hybrid",
- *   "metadata": {
- *     "anchor_set": {
- *       "memory_id": "mem_12345",
- *       "slot": "A",
- *       "agent_id": "default"
- *     }
- *   }
- * }
- * ```
- * 
- * @example 앵커 설정 실패
- * ```json
- * {
- *   "items": [...],
- *   "metadata": {
- *     "anchor_set": null,
- *     "anchor_set_error": true
- *   }
- * }
- * ```
- * 
- * @example 앵커 설정 건너뜀 (pinned 앵커 보호)
- * ```json
- * {
- *   "items": [...],
- *   "metadata": {
- *     "anchor_set": null,
- *     "anchor_set_skipped": true,
- *     "anchor_set_skipped_reason": "pinned_anchor_protected"
- *   }
- * }
- * ```
- * 
- * @example 앵커 설정 비활성화
- * ```json
- * {
- *   "items": [...],
- *   "metadata": {
- *     "anchor_set": null
- *   }
- * }
- * ```
- * 
- * @example 이웃 기억 미포함 (include_neighbors=false)
- * ```json
- * {
- *   "items": [
- *     {
- *       "memory_id": "mem_12345",
- *       "content": "검색 결과",
- *       "neighbors": undefined  // neighbors 필드 없음
- *     }
- *   ]
- * }
- * ```
- */
-export interface RecallResponse {
-  items: RecallResultItem[];
-  total_count: number;
-  query_time: number;
-  search_type: string;
-  metadata?: RecallResponseMetadata;
-  /**
-   * 메타 메모리 통계 정보
-   * 
-   * recall 결과에 포함된 메모리 항목의 통계 정보를 포함합니다.
-   * include_metadata=true일 때만 포함됩니다.
-   * 
-   * @example
-   * ```json
-   * {
-   *   "meta_stats": {
-   *     "mem_12345": {
-   *       "recall_count": 10,
-   *       "success_count": 8,
-   *       "failure_count": 2,
-   *       "avg_confidence": 0.85,
-   *       "last_recalled_at": "2024-01-01T00:00:00.000Z"
-   *     }
-   *   }
-   * }
-   * ```
-   */
-  meta_stats?: {
-    [memory_id: string]: {
-      recall_count: number;
-      success_count: number;
-      failure_count: number;
-      avg_confidence: number;
-      last_recalled_at?: string; // ISO 8601 형식 (예: "2024-01-01T00:00:00.000Z")
-    };
-  };
-  /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
-  [key: string]: RecallResultItem[] | number | string | RecallResponseMetadata | Record<string, unknown> | undefined;
-}
-
-/**
- * Provider 필터 정규화 유틸리티
- * 빈 배열인 경우 undefined로 변환하여 모든 provider 검색을 의미
- * 
- * @param providerFilter - 원본 provider 필터 (빈 배열 가능)
- * @returns 정규화된 provider 필터 (undefined 또는 비어있지 않은 배열)
- */
-function normalizeProviderFilter(providerFilter: EmbeddingProvider[] | undefined): EmbeddingProvider[] | undefined {
-  return providerFilter && providerFilter.length > 0 ? providerFilter : undefined;
-}
-
-/** hybrid vs text-only 검색 엔진 반환형 공통 처리용 */
-type RecallHybridOrTextSearchResult =
-  | Awaited<ReturnType<HybridSearchEngine['search']>>
-  | Awaited<ReturnType<SearchEngine['search']>>;
-
-type RecallTelemetryRetrievalStrategy = ReturnType<typeof recallTelemetryRetrievalStrategy>;
-
-const RecallSchema = z.object({
-  // query를 optional로 변경 (조건부 필수는 refine에서 처리)
-  query: z.string().min(1, 'Query cannot be empty').optional(),
-  // 새 파라미터 추가
-  type: CommonSchemas.MemoryType.optional(), // 확장된 MemoryTypeRequest 사용
-  key: z.string().optional(),
-  agent_id: z.string().optional().default('default'),
-  // 기존 파라미터 유지
-  memory_types: z.array(CommonSchemas.MemoryType).optional(),
-  tags: z.array(z.string()).optional(),
-  privacy_scope: z.array(CommonSchemas.PrivacyScope).optional(),
-  time_from: z.string().optional(),
-  time_to: z.string().optional(),
-  pinned: z.boolean().optional(),
-  importance_min: z.number().min(0).max(1).optional(),
-  importance_max: z.number().min(0).max(1).optional(),
-  has_reflection_notes: z.boolean().optional(), // reflection_notes IS NOT NULL 필터링
-  // Procedural Memory Enhancement (v7.0) 필드
-  workflow_name: z.string().optional(),
-  skill_name: z.string().optional(),
-  match_trigger_conditions: z.boolean().optional().default(false),
-  context: z.record(z.string(), z.unknown()).optional(), // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용, 예: {tool_name, error_type, params})
-  trigger_context: z.record(z.string(), z.unknown()).optional(), // context의 별칭 (하위 호환성)
-  return_format: z.enum(['full', 'steps_only']).optional().default('full'),
-  limit: CommonSchemas.Limit,
-  vector_weight: z.number().min(0).max(1).optional(),
-  text_weight: z.number().min(0).max(1).optional(),
-  enable_hybrid: z.boolean().optional(),
-  include_metadata: z.boolean().optional(),
-  provider_filter: z.array(z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const)).optional(),
-  // 자동 앵커 설정 및 이웃 기억 포함 파라미터
-  auto_set_anchor: z.boolean().optional().default(false),
-  include_neighbors: z.boolean().optional().default(false),
-  neighbors_limit: z.number().min(1).max(10).optional().default(3),
-  neighbors_per_item: z.number().min(1).max(50).optional().default(5),
-  neighbors_similarity_threshold: z.number().min(0).max(1).optional().default(0.8),
-  // Procedural Version Management (Issue #57 Phase 2)
-  version_filter: z.enum(['latest_only', 'all_versions', 'specific_version']).optional(),
-  version_series_id: z.string().optional(),
-  version_number: z.number().int().min(1).optional(),
-  include_version_chain: z.boolean().optional(),
-  /** 다중 에이전트: 소유자 ID 필터 (단일 또는 배열). 미설정 시 전체 조회 */
-  owner_id: z.union([z.string(), z.array(z.string())]).optional(),
-  /** Memori Attribution: 프로세스 ID 필터 (Issue #87) */
-  process_id: z.union([z.string(), z.array(z.string())]).optional(),
-  /** Memori Attribution: 세션 ID 필터 (Issue #87) */
-  session_id: z.union([z.string(), z.array(z.string())]).optional(),
-  /** Project-scoped Memory: 프로젝트 ID 필터 (Issue #81) */
-  project_id: z.string().max(200).optional()
-    .describe('이 project_id로 저장된 기억만 검색. 미지정 시 전체 검색'),
-  include_diff_with: z.string().optional(), // 'previous' 또는 비교할 메모리 id
-  include_score_breakdown: z.boolean().optional().default(false)
-}).refine((data) => {
-  // 조건부 필수 검증
-  if (data.type === 'core' || data.type === 'vault') {
-    // query는 선택적 (없어도 됨)
-    return true;
-  } else {
-    // memory_types만 제공되고 type이 없는 경우, query는 선택적
-    // (memory_types로 필터링만 할 수 있음)
-    if (!data.type && data.memory_types && data.memory_types.length > 0) {
-      // memory_types가 제공되었고, core/vault가 아닌 경우 query는 선택적
-      // 단, core/vault만 있는 경우는 query가 필요 없음 (하지만 이미 위에서 처리됨)
-      const hasNonCoreVaultTypes = data.memory_types.some(t => t !== 'core' && t !== 'vault');
-      if (!hasNonCoreVaultTypes) {
-        // core/vault만 있으면 query 불필요
-        return true;
-      }
-      // core/vault가 아닌 타입이 있으면 query 필수
-      if (!data.query) {
-        return false;
-      }
-    } else {
-      // type이 있거나 memory_types가 없는 경우, query 필수
-      if (!data.query) {
-        return false;
-      }
-    }
-  }
-  return true;
-}, {
-  message: "type='core' 또는 'vault'가 아닌 경우 query 파라미터는 필수입니다 (memory_types만 제공된 경우에도 core/vault가 아닌 타입이 있으면 query 필수)"
-});
-
-/** Recall 도구 파라미터 타입 (Zod 스키마 추론) */
-export type RecallParams = z.infer<typeof RecallSchema>;
-
-/**
- * 검색 결과 항목 최소 형태 (filter/process/enrich 등 내부 처리용)
- */
-interface RecallSearchItem {
-  id?: string;
-  memory_id?: string;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string | Date;
-  final_score?: number;
-  finalScore?: number;
-  score?: number;
-  trigger_conditions?: string;
-  version?: number;
-  version_series_id?: string | null;
-  owner_id?: string | null;
-  process_id?: string | null;
-  session_id?: string | null;
-  project_id?: string | null;
-  last_accessed?: Date;
-  pinned?: boolean;
-  tags?: string[];
-  source?: string;
-  origin_source?: string;
-  privacy_scope?: string;
-  task_goal?: string | null;
-  steps?: string | null;
-  workflow_name?: string | null;
-  skill_name?: string | null;
-  reflection_notes?: string | null;
-  version_chain?: unknown;
-  diff_with_previous?: unknown;
-  diff_with?: unknown;
-  textScore?: number;
-  vectorScore?: number;
-  recall_reason?: string;
-  consolidation_score?: number;
-  [key: string]: unknown;
-}
-
-/** 적용된 필터 정보 (getAppliedFilters 반환형) */
-interface AppliedFilters extends Record<string, unknown> {
-  type?: MemoryType[];
-  tags?: string[];
-  privacy_scope?: string[];
-  time_from?: string;
-  time_to?: string;
-  pinned?: boolean;
-  importance_min?: number;
-  importance_max?: number;
-  has_reflection_notes?: boolean;
-  version_filter?: VersionFilterType;
-  version_series_id?: string;
-  version_number?: number;
-  include_version_chain?: boolean;
-  include_diff_with?: string;
-  owner_id?: string | string[];
-  process_id?: string | string[];
-  session_id?: string | string[];
-  project_id?: string;
-}
-
-/** Recall 내부 필터 (MemorySearchFilters + importance 범위) */
-type RecallFilters = MemorySearchFilters & { importance_min?: number; importance_max?: number };
-
-/** meta_stats에 넣을 항목 (last_recalled_at은 ISO 문자열) */
-interface MetaStatsItem {
-  recall_count: number;
-  success_count: number;
-  failure_count: number;
-  avg_confidence: number;
-  last_recalled_at?: string;
-}
+export type {
+  AnchorSetMetadata,
+  NeighborMemoryItem,
+  RecallResultItem,
+  RecallResponseMetadata,
+  RecallResponse
+} from './recall-tool-types.js';
+export type { RecallParams };
 
 export class RecallTool extends BaseTool {
   constructor() {
@@ -932,7 +570,7 @@ export class RecallTool extends BaseTool {
     }
 
     if (match_trigger_conditions && searchItems.length > 0) {
-      searchItems = this.filterByTriggerConditions(searchItems, query, actualTriggerContext);
+      searchItems = filterRecallItemsByTriggerConditions(searchItems, query, actualTriggerContext);
     }
 
     if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && searchItems.length > 0) {
@@ -955,7 +593,7 @@ export class RecallTool extends BaseTool {
       }
     }
 
-    const processedResults = this.processSearchResults(searchItems, includeMetadata, return_format);
+    const processedResults = mapRecallSearchItemsToResultItems(searchItems, includeMetadata, return_format);
     return { searchItems, processedResults };
   }
 
@@ -1114,7 +752,7 @@ export class RecallTool extends BaseTool {
       query_time: executionTime,
       search_type: enableHybrid ? 'hybrid' : 'text',
       vector_search_available: context.services.hybridSearchEngine?.isEmbeddingAvailable() || false,
-      filters_applied: this.getAppliedFilters(filters),
+      filters_applied: getAppliedRecallFilters(filters),
       search_options: {
         vector_weight: normalizedVectorWeight,
         text_weight: normalizedTextWeight,
@@ -1467,250 +1105,6 @@ export class RecallTool extends BaseTool {
       
       throw error;
     }
-  }
-
-  /**
-   * trigger_conditions로 필터링
-   * match_trigger_conditions=true일 때, 현재 컨텍스트와 trigger_conditions가 매칭되는 항목만 반환
-   * 
-   * PRD 요구사항: 구조화된 컨텍스트(예: tool_name, error_type, params)와 JSON 매칭
-   * 구조화된 컨텍스트가 제공되면 이를 우선 사용하고, 없으면 쿼리 텍스트를 사용
-   * 
-   * @param items 검색 결과 항목 배열
-   * @param query 검색 쿼리 (컨텍스트로 사용, fallback)
-   * @param context 구조화된 컨텍스트 정보 (우선 사용)
-   * @returns 필터링된 항목 배열
-   */
-  private filterByTriggerConditions(items: RecallSearchItem[], query?: string, triggerContext?: Record<string, unknown>): RecallSearchItem[] {
-    const queryText = query?.toLowerCase() || '';
-    
-    return items.filter(item => {
-      // trigger_conditions가 없는 항목은 제외
-      if (!item.trigger_conditions) {
-        return false;
-      }
-      
-      try {
-        // JSON 파싱 시도
-        const parsed = typeof item.trigger_conditions === 'string'
-          ? JSON.parse(item.trigger_conditions)
-          : item.trigger_conditions;
-        
-        // 객체인지 확인 (배열이나 null이 아닌 경우)
-        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-          return false;
-        }
-        
-        // 구조화된 컨텍스트가 제공된 경우: 키-값 기반 정확 매칭
-        // 모든 키/값 쌍이 매칭되어야 함 (첫 번째 키만 맞으면 통과하는 문제 수정)
-        if (triggerContext && Object.keys(triggerContext).length > 0) {
-          // trigger_conditions의 모든 키-값 쌍이 컨텍스트와 매칭되는지 확인
-          for (const [key, value] of Object.entries(parsed)) {
-            const contextValue = triggerContext[key];
-            
-            // trigger_conditions에 있는 키가 컨텍스트에 없으면 매칭 실패
-            if (contextValue === undefined) {
-              return false;
-            }
-            
-            // 값이 객체인 경우 재귀적으로 비교
-            if (typeof value === 'object' && typeof contextValue === 'object' && value !== null && contextValue !== null) {
-              // 중첩 객체 매칭: context의 값이 trigger_conditions의 값과 부분적으로 일치하는지 확인
-              const valueStr = JSON.stringify(value).toLowerCase();
-              const contextStr = JSON.stringify(contextValue).toLowerCase();
-              if (!(valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
-                // 하나라도 매칭되지 않으면 실패
-                return false;
-              }
-            } else {
-              // 단순 값 매칭: 문자열로 변환하여 비교
-              const valueStr = String(value).toLowerCase();
-              const contextStr = String(contextValue).toLowerCase();
-              if (!(valueStr === contextStr || valueStr.includes(contextStr) || contextStr.includes(valueStr))) {
-                // 하나라도 매칭되지 않으면 실패
-                return false;
-              }
-            }
-          }
-          // 모든 키/값 쌍이 매칭됨
-          return true;
-        }
-        
-        // 구조화된 컨텍스트가 없는 경우: 쿼리 텍스트 기반 매칭 (fallback)
-        if (queryText) {
-          // 키 매칭: tool_name, error_type, params 등 구조화된 필드명과 매칭
-          const triggerKeys = Object.keys(parsed).map(k => k.toLowerCase());
-          const triggerValues = Object.values(parsed).map(v => String(v).toLowerCase());
-          
-          // 키 또는 값 중 하나라도 쿼리와 매칭되면 통과
-          const keyMatch = triggerKeys.some(k => k.includes(queryText) || queryText.includes(k));
-          const valueMatch = triggerValues.some(v => v.includes(queryText) || queryText.includes(v));
-          return keyMatch || valueMatch;
-        }
-        
-        // 쿼리와 컨텍스트가 모두 없으면 매칭 기준이 없으므로 필터링
-        // PRD: "현재 컨텍스트와 매칭" 요구사항 - 매칭 기준이 없으면 통과하지 않음
-        return false;
-      } catch (error) {
-        // JSON 파싱 실패 시 제외
-        return false;
-      }
-    });
-  }
-
-  /**
-   * 검색 결과 후처리
-   */
-  private processSearchResults(items: RecallSearchItem[], includeMetadata: boolean, returnFormat: 'full' | 'steps_only' = 'full'): RecallResultItem[] {
-    return items.map(item => {
-      const createdAt = item.created_at instanceof Date ? item.created_at.toISOString() : String(item.created_at ?? '');
-      const memoryId = item.id ?? item.memory_id ?? '';
-      const processed: Record<string, unknown> = {
-        memory_id: memoryId,
-        id: item.id,
-        content: item.content,
-        type: item.type,
-        importance: item.importance,
-        created_at: createdAt,
-        final_score: item.finalScore ?? item.score ?? 0
-      };
-
-      if (includeMetadata) {
-        processed.last_accessed = item.last_accessed;
-        processed.pinned = item.pinned;
-        processed.tags = item.tags;
-        processed.source = item.source;
-        processed.privacy_scope = item.privacy_scope;
-        if (item.owner_id !== undefined) processed.owner_id = item.owner_id;
-        if (item.process_id !== undefined) processed.process_id = item.process_id;
-        if (item.session_id !== undefined) processed.session_id = item.session_id;
-        if (item.project_id !== undefined) processed.project_id = item.project_id;
-
-        // origin_source 필드 추가 (JSON 파싱)
-        if (item.origin_source) {
-          try {
-            processed.origin_source = typeof item.origin_source === 'string' 
-              ? JSON.parse(item.origin_source) 
-              : item.origin_source;
-          } catch (error) {
-            // JSON 파싱 실패 시 원본 문자열 반환
-            processed.origin_source = item.origin_source;
-          }
-        }
-        
-        // Procedural Memory 전용 필드 추가
-        if (item.type === 'procedural') {
-          processed.task_goal = item.task_goal || null;
-          processed.steps = item.steps || null;
-          
-          // Procedural Memory Enhancement (v7.0) 필드 추가
-          processed.workflow_name = item.workflow_name || null;
-          processed.skill_name = item.skill_name || null;
-          processed.trigger_conditions = item.trigger_conditions || null;
-
-          // Procedural Version Management (Issue #57 Phase 2)
-          if (item.version !== undefined) processed.version = item.version;
-          if (item.version_series_id !== undefined) processed.version_series_id = item.version_series_id;
-          if (item.version_chain !== undefined) processed.version_chain = item.version_chain;
-          if (item.diff_with_previous !== undefined) processed.diff_with_previous = item.diff_with_previous;
-          if (item.diff_with !== undefined) processed.diff_with = item.diff_with;
-          
-          // reflection_notes 필드 추가 (JSON 파싱)
-          if (item.reflection_notes) {
-            try {
-              // reflection_notes JSON 파싱 (문자열 → 객체/배열 변환)
-              processed.reflection_notes = typeof item.reflection_notes === 'string'
-                ? JSON.parse(item.reflection_notes)
-                : item.reflection_notes;
-            } catch (error) {
-              // JSON 파싱 실패 시 원본 문자열 반환
-              processed.reflection_notes = item.reflection_notes;
-            }
-          } else {
-            processed.reflection_notes = null;
-          }
-          
-          // return_format='steps_only'일 때 steps만 반환
-          if (returnFormat === 'steps_only') {
-            return {
-              memory_id: processed.memory_id,
-              id: processed.id,
-              steps: processed.steps
-            } as unknown as RecallResultItem;
-          }
-        }
-        
-        if (item.textScore !== undefined) {
-          processed.text_score = item.textScore;
-        }
-        if (item.vectorScore !== undefined) {
-          processed.vector_score = item.vectorScore;
-        }
-        if (item.recall_reason) {
-          processed.recall_reason = item.recall_reason;
-        }
-        
-        // Consolidation Score 포함 (기능 플래그 활성화 시)
-        if (mementoConfig.consolidationScoreEnabled && item.consolidation_score !== undefined) {
-          processed.consolidation_score = item.consolidation_score;
-        }
-
-        if (item.score_breakdown !== undefined) {
-          processed.score_breakdown = item.score_breakdown;
-        }
-      }
-
-      return processed as unknown as RecallResultItem;
-    }) as RecallResultItem[];
-  }
-
-  /**
-   * 적용된 필터 정보 반환
-   */
-  private getAppliedFilters(filters?: RecallFilters): AppliedFilters {
-    if (!filters) return {};
-    
-    const applied: AppliedFilters = {};
-    
-    if (filters.type && filters.type.length > 0) {
-      applied.type = filters.type;
-    }
-    if (filters.tags && filters.tags.length > 0) {
-      applied.tags = filters.tags;
-    }
-    if (filters.privacy_scope && filters.privacy_scope.length > 0) {
-      applied.privacy_scope = filters.privacy_scope;
-    }
-    if (filters.time_from) {
-      applied.time_from = filters.time_from;
-    }
-    if (filters.time_to) {
-      applied.time_to = filters.time_to;
-    }
-    if (filters.pinned !== undefined) {
-      applied.pinned = filters.pinned;
-    }
-    if (filters.importance_min !== undefined) {
-      applied.importance_min = filters.importance_min;
-    }
-    if (filters.importance_max !== undefined) {
-      applied.importance_max = filters.importance_max;
-    }
-    if (filters.has_reflection_notes !== undefined) {
-      applied.has_reflection_notes = filters.has_reflection_notes;
-    }
-    // Procedural Version Management (Issue #57 Phase 2)
-    if (filters.version_filter) applied.version_filter = filters.version_filter;
-    if (filters.version_series_id) applied.version_series_id = filters.version_series_id;
-    if (filters.version_number !== undefined) applied.version_number = filters.version_number;
-    if (filters.include_version_chain !== undefined) applied.include_version_chain = filters.include_version_chain;
-    if (filters.owner_id !== undefined) applied.owner_id = filters.owner_id;
-    if (filters.process_id !== undefined) applied.process_id = filters.process_id;
-    if (filters.session_id !== undefined) applied.session_id = filters.session_id;
-    if (filters.project_id !== undefined) applied.project_id = filters.project_id;
-    if (filters.include_diff_with) applied.include_diff_with = filters.include_diff_with;
-
-    return applied;
   }
 
   /**
@@ -2099,60 +1493,6 @@ export class RecallTool extends BaseTool {
           ? r.value.neighbors 
           : [] // 실패한 항목은 빈 배열
       );
-    }
-  }
-
-  /**
-   * 검색 쿼리 검증
-   */
-  private validateQuery(query: string): void {
-    if (!query || query.trim().length === 0) {
-      throw new Error('검색 쿼리는 비어있을 수 없습니다');
-    }
-    
-    if (query.length > 1000) {
-      throw new Error('검색 쿼리가 너무 깁니다 (최대 1000자)');
-    }
-    
-    // 특수 문자 검증
-    const dangerousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i
-    ];
-    
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(query)) {
-        throw new Error('검색 쿼리에 허용되지 않는 문자가 포함되어 있습니다');
-      }
-    }
-  }
-
-  /**
-   * 필터 검증
-   */
-  private validateFilters(filters?: RecallFilters): void {
-    if (!filters) return;
-    
-    // 시간 범위 검증
-    if (filters.time_from && filters.time_to) {
-      const fromDate = new Date(filters.time_from);
-      const toDate = new Date(filters.time_to);
-      
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        throw new Error('유효하지 않은 시간 형식입니다');
-      }
-      
-      if (fromDate > toDate) {
-        throw new Error('시작 시간은 종료 시간보다 이전이어야 합니다');
-      }
-    }
-    
-    // 중요도 범위 검증
-    if (filters.importance_min !== undefined && filters.importance_max !== undefined) {
-      if (filters.importance_min > filters.importance_max) {
-        throw new Error('최소 중요도는 최대 중요도보다 작거나 같아야 합니다');
-      }
     }
   }
 
