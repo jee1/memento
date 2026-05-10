@@ -9,7 +9,13 @@ import { z } from 'zod';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
-import { isMemoryItemType,type EmbeddingProvider,type MemorySearchFilters,type MemoryType,type MemoryTypeRequest } from '../../../shared/types/index.js';
+import {
+  isMemoryItemType,
+  type EmbeddingProvider,
+  type MemorySearchFilters,
+  type MemoryType,
+  type MemoryTypeRequest,
+} from '../../../shared/types/index.js';
 import type { VersionFilterType } from '../../../shared/types/procedural-versioning.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
@@ -18,6 +24,8 @@ import type { WriteCoalescingManager } from '../../../shared/utils/write-coalesc
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
+import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
+import type { SearchEngine } from '../../search/algorithms/search-engine.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
@@ -250,6 +258,13 @@ export interface RecallResponse {
 function normalizeProviderFilter(providerFilter: EmbeddingProvider[] | undefined): EmbeddingProvider[] | undefined {
   return providerFilter && providerFilter.length > 0 ? providerFilter : undefined;
 }
+
+/** hybrid vs text-only 검색 엔진 반환형 공통 처리용 */
+type RecallHybridOrTextSearchResult =
+  | Awaited<ReturnType<HybridSearchEngine['search']>>
+  | Awaited<ReturnType<SearchEngine['search']>>;
+
+type RecallTelemetryRetrievalStrategy = ReturnType<typeof recallTelemetryRetrievalStrategy>;
 
 const RecallSchema = z.object({
   // query를 optional로 변경 (조건부 필수는 refine에서 처리)
@@ -620,6 +635,533 @@ export class RecallTool extends BaseTool {
     );
   }
 
+  private async recallCoreMemoryDirect(
+    agentId: string,
+    key: string | undefined,
+    query: string | undefined,
+    memory_types: RecallParams['memory_types'],
+    searchStartTime: number,
+    startTime: number,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    if (query) {
+      this.logWarning('type="core"일 때 query 파라미터는 무시됩니다', { query });
+    }
+    if (memory_types && memory_types.length > 0) {
+      this.logWarning('type="core"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
+    }
+
+    const { createCoreMemoryRepository } = await import('../../../infrastructure/database/factories/core-memory-repository.factory.js');
+    const coreMemoryRepository = createCoreMemoryRepository(context.db!);
+    const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
+    const coreMemoryCache = getCoreMemoryCache();
+    const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
+
+    let records;
+    if (key) {
+      const record = await coreMemoryService.findByKey(agentId, key);
+      records = record ? [record] : [];
+    } else {
+      records = await coreMemoryService.findByAgentId(agentId);
+    }
+
+    const executionTime = Date.now() - searchStartTime;
+    const processedResults = records.map(record => ({
+      memory_id: record.core_id,
+      type: 'core',
+      key: record.key,
+      value: record.value,
+      always_load: record.always_load,
+      origin_source: record.origin_source ? JSON.parse(record.origin_source) : null,
+      created_at: record.created_at,
+      updated_at: record.updated_at
+    }));
+
+    if (mementoConfig.recallProfileEnabled) {
+      this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+    }
+    return this.createSuccessResult({
+      items: processedResults,
+      total_count: processedResults.length,
+      query_time: executionTime,
+      search_type: 'direct'
+    });
+  }
+
+  private async recallVaultMemoryDirect(
+    agentId: string,
+    key: string | undefined,
+    query: string | undefined,
+    memory_types: RecallParams['memory_types'],
+    searchStartTime: number,
+    startTime: number,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    if (query) {
+      this.logWarning('type="vault"일 때 query 파라미터는 무시됩니다', { query });
+    }
+    if (memory_types && memory_types.length > 0) {
+      this.logWarning('type="vault"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
+    }
+
+    const knowledgeVaultRepository = new KnowledgeVaultRepository(context.db!);
+    const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
+
+    let records;
+    if (key) {
+      const record = await knowledgeVaultService.findActiveByKey(agentId, key);
+      records = record ? [record] : [];
+    } else {
+      records = await knowledgeVaultService.findActiveByAgentId(agentId);
+    }
+
+    const executionTime = Date.now() - searchStartTime;
+    const processedResults = records.map(record => ({
+      memory_id: record.vault_id,
+      type: 'vault',
+      key: record.key,
+      value: record.value,
+      immutable: record.immutable,
+      version: record.version,
+      origin_source: record.origin_source ? JSON.parse(record.origin_source) : null,
+      created_at: record.created_at,
+      updated_at: record.updated_at
+    }));
+
+    if (mementoConfig.recallProfileEnabled) {
+      this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+    }
+    return this.createSuccessResult({
+      items: processedResults,
+      total_count: processedResults.length,
+      query_time: executionTime,
+      search_type: 'direct'
+    });
+  }
+
+  private async executeHybridOrTextSearchForMemoryItem(
+    context: ToolContext,
+    input: {
+      query: string;
+      filters: MemorySearchFilters;
+      limit: number;
+      normalizedVectorWeight: number;
+      normalizedTextWeight: number;
+      provider_filter: RecallParams['provider_filter'];
+      match_trigger_conditions: boolean;
+      actualTriggerContext: Record<string, unknown> | undefined;
+      wantScoreBreakdown: boolean;
+      useHybridRecall: boolean;
+      enableHybrid: boolean;
+      searchStartTime: number;
+      retrievalStrategy: RecallTelemetryRetrievalStrategy;
+      queryHash: string;
+    }
+  ): Promise<{ searchResult: RecallHybridOrTextSearchResult; executionTime: number }> {
+    const tel = context.services?.telemetryService;
+    const {
+      query,
+      filters,
+      limit,
+      normalizedVectorWeight,
+      normalizedTextWeight,
+      provider_filter,
+      match_trigger_conditions,
+      actualTriggerContext,
+      wantScoreBreakdown,
+      useHybridRecall,
+      enableHybrid,
+      searchStartTime,
+      retrievalStrategy,
+      queryHash
+    } = input;
+
+    tel?.record({
+      eventType: 'memory.search.requested',
+      outcome: 'success',
+      extraData: recallSearchRequestedExtra(queryHash, query, retrievalStrategy)
+    });
+
+    let searchResult: RecallHybridOrTextSearchResult;
+
+    try {
+      if (useHybridRecall) {
+        this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
+
+        this.logInfo('하이브리드 검색 실행', {
+          query,
+          vectorWeight: normalizedVectorWeight,
+          textWeight: normalizedTextWeight
+        });
+
+        const providerFilter = normalizeProviderFilter(provider_filter);
+
+        searchResult = await context.services.hybridSearchEngine.search(context.db, {
+          query,
+          filters,
+          limit,
+          vectorWeight: normalizedVectorWeight,
+          textWeight: normalizedTextWeight,
+          provider_filter: providerFilter,
+          match_trigger_conditions: match_trigger_conditions,
+          context: actualTriggerContext,
+          include_score_breakdown: wantScoreBreakdown
+        });
+      } else {
+        if (!context.services.searchEngine) {
+          throw new Error('텍스트 검색 엔진을 사용할 수 없습니다');
+        }
+
+        this.logInfo('텍스트 검색 실행', { query });
+
+        searchResult = await context.services.searchEngine.search(context.db, {
+          query,
+          filters,
+          limit,
+          include_score_breakdown: wantScoreBreakdown
+        });
+      }
+    } catch (searchError) {
+      this.logError(searchError as Error, '검색 실행 중 오류', { query, enableHybrid });
+      const msg = (searchError as Error).message;
+      tel?.record({
+        eventType: 'memory.search.failed',
+        outcome: 'failure',
+        errorCode: 'search_execution_error',
+        latencyMs: Date.now() - searchStartTime,
+        extraData: {
+          ...recallQueryCorrelationExtra(queryHash, query),
+          retrieval_strategy: retrievalStrategy,
+          message: msg
+        }
+      });
+      throw new Error(`검색 실행 실패: ${msg}`);
+    }
+
+    const candCount = searchResult?.items?.length ?? 0;
+    tel?.record({
+      eventType: 'memory.search.candidates_retrieved',
+      outcome: 'success',
+      extraData: { candidate_count: candCount }
+    });
+    tel?.record({
+      eventType: 'memory.search.reranked',
+      outcome: 'success',
+      extraData: { candidate_count: candCount }
+    });
+
+    const executionTime = Date.now() - searchStartTime;
+    return { searchResult, executionTime };
+  }
+
+  private async runMemoryItemPostSearchPipeline(
+    context: ToolContext,
+    searchResult: RecallHybridOrTextSearchResult | undefined,
+    input: {
+      query: string;
+      version_filter: RecallParams['version_filter'];
+      version_series_id: RecallParams['version_series_id'];
+      version_number: RecallParams['version_number'];
+      include_version_chain: RecallParams['include_version_chain'];
+      include_diff_with: RecallParams['include_diff_with'];
+      owner_id_filter: RecallParams['owner_id'];
+      process_id_filter: RecallParams['process_id'];
+      session_id_filter: RecallParams['session_id'];
+      project_id_filter: RecallParams['project_id'];
+      match_trigger_conditions: boolean;
+      actualTriggerContext: Record<string, unknown> | undefined;
+      includeMetadata: boolean;
+      return_format: 'full' | 'steps_only';
+    }
+  ): Promise<{ searchItems: RecallSearchItem[]; processedResults: RecallResultItem[] }> {
+    const {
+      query,
+      version_filter,
+      version_series_id,
+      version_number,
+      include_version_chain,
+      include_diff_with,
+      owner_id_filter,
+      process_id_filter,
+      session_id_filter,
+      project_id_filter,
+      match_trigger_conditions,
+      actualTriggerContext,
+      includeMetadata,
+      return_format
+    } = input;
+
+    let searchItems: RecallSearchItem[] = (searchResult?.items ?? []) as RecallSearchItem[];
+
+    if (version_filter && searchItems.length > 0) {
+      searchItems = this.applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
+    }
+
+    if (owner_id_filter && owner_id_filter.length > 0 && searchItems.length > 0) {
+      const ownerIds = Array.isArray(owner_id_filter) ? owner_id_filter : [owner_id_filter];
+      searchItems = searchItems.filter(
+        (i: RecallSearchItem) => i.owner_id != null && ownerIds.includes(i.owner_id)
+      );
+    }
+
+    if (process_id_filter && process_id_filter.length > 0 && searchItems.length > 0) {
+      const processIds = Array.isArray(process_id_filter) ? process_id_filter : [process_id_filter];
+      searchItems = searchItems.filter(
+        (i: RecallSearchItem) => i.process_id != null && processIds.includes(i.process_id)
+      );
+    }
+    if (session_id_filter && session_id_filter.length > 0 && searchItems.length > 0) {
+      const sessionIds = Array.isArray(session_id_filter) ? session_id_filter : [session_id_filter];
+      searchItems = searchItems.filter(
+        (i: RecallSearchItem) => i.session_id != null && sessionIds.includes(i.session_id)
+      );
+    }
+    if (project_id_filter && searchItems.length > 0) {
+      searchItems = searchItems.filter(
+        (i: RecallSearchItem) => i.project_id != null && i.project_id === project_id_filter
+      );
+    }
+
+    if ((include_version_chain || include_diff_with) && context.db && searchItems.length > 0) {
+      searchItems = await this.enrichProceduralVersionInfo(
+        context.db,
+        searchItems,
+        include_version_chain === true,
+        include_diff_with
+      );
+    }
+
+    if (match_trigger_conditions && searchItems.length > 0) {
+      searchItems = this.filterByTriggerConditions(searchItems, query, actualTriggerContext);
+    }
+
+    if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && searchItems.length > 0) {
+      await this.updateConsolidationScoreMetadata(
+        context.db!,
+        context.services.consolidationScoreService,
+        context.services.writeCoalescingManager,
+        searchItems
+      );
+    }
+
+    if (context.services.metaMemoryService && searchItems.length > 0) {
+      try {
+        await this.collectMetaMemoryStats(
+          searchItems,
+          context.services.metaMemoryService
+        );
+      } catch (error) {
+        this.logError(error as Error, '메타 통계 수집 실패', {});
+      }
+    }
+
+    const processedResults = this.processSearchResults(searchItems, includeMetadata, return_format);
+    return { searchItems, processedResults };
+  }
+
+  private async finalizeMemoryItemRecallEnvelope(
+    context: ToolContext,
+    input: {
+      agentId: string;
+      query: string;
+      searchItems: RecallSearchItem[];
+      processedResults: RecallResultItem[];
+      searchResult: RecallHybridOrTextSearchResult | undefined;
+      executionTime: number;
+      startTime: number;
+      searchStartTime: number;
+      enableHybrid: boolean;
+      includeMetadata: boolean;
+      auto_set_anchor: boolean;
+      include_neighbors: boolean;
+      neighbors_limit: number;
+      neighbors_per_item: number;
+      neighbors_similarity_threshold: number;
+      filters: MemorySearchFilters;
+      normalizedVectorWeight: number;
+      normalizedTextWeight: number;
+      retrievalStrategy: RecallTelemetryRetrievalStrategy;
+      queryHash: string;
+    }
+  ): Promise<ToolResult> {
+    const {
+      agentId,
+      query,
+      searchItems,
+      processedResults,
+      searchResult,
+      executionTime,
+      startTime,
+      searchStartTime,
+      enableHybrid,
+      includeMetadata,
+      auto_set_anchor,
+      include_neighbors,
+      neighbors_limit,
+      neighbors_per_item,
+      neighbors_similarity_threshold,
+      filters,
+      normalizedVectorWeight,
+      normalizedTextWeight,
+      retrievalStrategy,
+      queryHash
+    } = input;
+
+    const tel = context.services?.telemetryService;
+
+    let anchorSetResult: {
+      success: boolean;
+      anchor_set: AnchorSetMetadata | null;
+      error?: boolean;
+      skipped?: boolean;
+      skipped_reason?: string;
+    } | null = null;
+
+    if (auto_set_anchor && searchItems.length > 0) {
+      anchorSetResult = await this.handleAutoSetAnchor(searchItems, agentId, context);
+    }
+
+    let neighborsResults: NeighborMemory[][] = [];
+
+    if (include_neighbors && searchItems.length > 0) {
+      neighborsResults = await this.handleIncludeNeighbors(
+        searchItems,
+        neighbors_limit,
+        neighbors_per_item,
+        neighbors_similarity_threshold,
+        context
+      );
+
+      for (let i = 0; i < Math.min(neighborsResults.length, processedResults.length); i++) {
+        const row = processedResults[i];
+        const neighbors = neighborsResults[i];
+        if (row && neighbors) row.neighbors = neighbors as unknown as NeighborMemoryItem[];
+      }
+    }
+
+    this.logInfo('검색 완료', {
+      resultCount: processedResults.length,
+      executionTime,
+      searchType: enableHybrid ? 'hybrid' : 'text'
+    });
+
+    const sr = searchResult as unknown as {
+      text_count?: number;
+      vector_count?: number;
+      fallback_used?: boolean;
+      query_embedding_providers?: string[];
+      tfidf_query_embedding_fallback?: boolean;
+      tfidf_query_embedding_fallback_providers?: string[];
+    };
+
+    let metadata: RecallResponseMetadata | undefined;
+    let metaStats: Record<string, MetaStatsItem> | undefined;
+
+    if (includeMetadata) {
+      metadata = {
+        anchor_set: anchorSetResult?.anchor_set || null
+      };
+
+      if (anchorSetResult && anchorSetResult.error) {
+        metadata.anchor_set_error = true;
+      }
+
+      if (anchorSetResult && anchorSetResult.skipped) {
+        metadata.anchor_set_skipped = true;
+        metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
+      }
+
+      if (searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
+        metadata.text_result_count = sr.text_count;
+        metadata.vector_result_count = sr.vector_count;
+        if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
+      }
+
+      const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
+      if (
+        hybridRan &&
+        sr.query_embedding_providers &&
+        sr.query_embedding_providers.length > 0
+      ) {
+        const qe = buildQueryEmbeddingMetadataFields(
+          sr.query_embedding_providers as EmbeddingProvider[]
+        );
+        metadata.embedding_provider = qe.embedding_provider;
+        metadata.query_embedding_providers = qe.query_embedding_providers;
+      }
+
+      if (context.services.metaMemoryService && processedResults.length > 0) {
+        metaStats = await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService);
+      }
+    }
+
+    const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
+    if (hybridRan && searchResult) {
+      emitTfidfFallbackWarningIfNeeded(
+        sr.fallback_used,
+        sr.query_embedding_providers as EmbeddingProvider[] | undefined,
+        sr.tfidf_query_embedding_fallback,
+        sr.tfidf_query_embedding_fallback_providers as EmbeddingProvider[] | undefined
+      );
+    }
+
+    if (mementoConfig.recallProfileEnabled) {
+      this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
+    }
+    const resultObj: Record<string, unknown> = {
+      items: processedResults,
+      total_count: searchResult?.total_count || processedResults.length,
+      query_time: executionTime,
+      search_type: enableHybrid ? 'hybrid' : 'text',
+      vector_search_available: context.services.hybridSearchEngine?.isEmbeddingAvailable() || false,
+      filters_applied: this.getAppliedFilters(filters),
+      search_options: {
+        vector_weight: normalizedVectorWeight,
+        text_weight: normalizedTextWeight,
+        enable_hybrid: enableHybrid
+      }
+    };
+    if (includeMetadata && metadata !== undefined) {
+      resultObj.metadata = metadata;
+    }
+    if (includeMetadata && metaStats !== undefined) {
+      resultObj.meta_stats = metaStats;
+    }
+    const cachedScan = context.services?.introspectionScanCache?.get();
+    if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
+      resultObj.introspection_hint = {
+        summary: `${cachedScan.result.summary}${INTROSPECTION_HINT_SUFFIX}`,
+        low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
+        high_failure_count: cachedScan.result.highFailureMemoryIds.length,
+        scanned_at: cachedScan.scanned_at
+      };
+    }
+    const recallTelemetryLatency = Date.now() - searchStartTime;
+    if (processedResults.length === 0) {
+      tel?.record({
+        eventType: 'memory.search.empty',
+        outcome: 'empty',
+        latencyMs: recallTelemetryLatency,
+        extraData: {
+          ...recallQueryCorrelationExtra(queryHash, query),
+          retrieval_strategy: retrievalStrategy
+        }
+      });
+    } else {
+      tel?.record({
+        eventType: 'memory.search.selected',
+        outcome: 'success',
+        latencyMs: recallTelemetryLatency,
+        extraData: {
+          ...recallQueryCorrelationExtra(queryHash, query),
+          retrieval_strategy: retrievalStrategy,
+          selected_count: processedResults.length
+        }
+      });
+    }
+    return this.createSuccessResult(resultObj);
+  }
+
   async handle(params: RecallParams, context: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
     this.logInfo('Recall 도구 호출됨', { params });
@@ -721,96 +1263,12 @@ export class RecallTool extends BaseTool {
       
       // type 파라미터에 따른 분기 처리
       if (validatedType === 'core') {
-        // Core Memory 조회
-        if (query) {
-          this.logWarning('type="core"일 때 query 파라미터는 무시됩니다', { query });
-        }
-        if (memory_types && memory_types.length > 0) {
-          this.logWarning('type="core"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
-        }
-        
-        const { createCoreMemoryRepository } = await import('../../../infrastructure/database/factories/core-memory-repository.factory.js');
-        const coreMemoryRepository = createCoreMemoryRepository(context.db!);
-        const { getCoreMemoryCache } = await import('../services/core-memory-cache-service.js');
-        const coreMemoryCache = getCoreMemoryCache();
-        const coreMemoryService = new CoreMemoryService(coreMemoryRepository, coreMemoryCache);
-        
-        let records;
-        if (key) {
-          // 특정 키 조회
-          const record = await coreMemoryService.findByKey(agentId, key);
-          records = record ? [record] : [];
-        } else {
-          // 전체 Core Memory 조회
-          records = await coreMemoryService.findByAgentId(agentId);
-        }
-        
-        const executionTime = Date.now() - searchStartTime;
-        const processedResults = records.map(record => ({
-          memory_id: record.core_id,
-          type: 'core',
-          key: record.key,
-          value: record.value,
-          always_load: record.always_load,
-          origin_source: record.origin_source ? JSON.parse(record.origin_source) : null,
-          created_at: record.created_at,
-          updated_at: record.updated_at
-        }));
-
-        if (mementoConfig.recallProfileEnabled) {
-          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
-        }
-        return this.createSuccessResult({
-          items: processedResults,
-          total_count: processedResults.length,
-          query_time: executionTime,
-          search_type: 'direct'
-        });
-      } else if (validatedType === 'vault') {
-        // Knowledge Vault 조회
-        if (query) {
-          this.logWarning('type="vault"일 때 query 파라미터는 무시됩니다', { query });
-        }
-        if (memory_types && memory_types.length > 0) {
-          this.logWarning('type="vault"일 때 memory_types 파라미터는 무시됩니다', { memory_types });
-        }
-        
-        const knowledgeVaultRepository = new KnowledgeVaultRepository(context.db!);
-        const knowledgeVaultService = new KnowledgeVaultService(knowledgeVaultRepository);
-        
-        let records;
-        if (key) {
-          // 특정 키 조회 (활성 버전만)
-          const record = await knowledgeVaultService.findActiveByKey(agentId, key);
-          records = record ? [record] : [];
-        } else {
-          // 전체 Vault 조회 (활성 버전만)
-          records = await knowledgeVaultService.findActiveByAgentId(agentId);
-        }
-        
-        const executionTime = Date.now() - searchStartTime;
-        const processedResults = records.map(record => ({
-          memory_id: record.vault_id,
-          type: 'vault',
-          key: record.key,
-          value: record.value,
-          immutable: record.immutable,
-          version: record.version,
-          origin_source: record.origin_source ? JSON.parse(record.origin_source) : null,
-          created_at: record.created_at,
-          updated_at: record.updated_at
-        }));
-
-        if (mementoConfig.recallProfileEnabled) {
-          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
-        }
-        return this.createSuccessResult({
-          items: processedResults,
-          total_count: processedResults.length,
-          query_time: executionTime,
-          search_type: 'direct'
-        });
-      } else {
+        return await this.recallCoreMemoryDirect(agentId, key, query, memory_types, searchStartTime, startTime, context);
+      }
+      if (validatedType === 'vault') {
+        return await this.recallVaultMemoryDirect(agentId, key, query, memory_types, searchStartTime, startTime, context);
+      }
+      {
         // 기존 memory_item 검색 로직
         // query 필수 검증
         if (!query) {
@@ -917,7 +1375,6 @@ export class RecallTool extends BaseTool {
         const normalizedVectorWeight = totalWeight > 0 ? vectorWeight / totalWeight : 0.6;
         const normalizedTextWeight = totalWeight > 0 ? textWeight / totalWeight : 0.4;
 
-        const tel = context.services?.telemetryService;
         const queryHash = createHash('sha256').update(query).digest('hex').slice(0, 16);
         const useHybridRecall = Boolean(
           enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable()
@@ -927,321 +1384,62 @@ export class RecallTool extends BaseTool {
           normalizedVectorWeight,
           normalizedTextWeight
         );
-        tel?.record({
-          eventType: 'memory.search.requested',
-          outcome: 'success',
-          extraData: recallSearchRequestedExtra(queryHash, query, retrievalStrategy)
+        const { searchResult, executionTime } = await this.executeHybridOrTextSearchForMemoryItem(context, {
+          query,
+          filters,
+          limit,
+          normalizedVectorWeight,
+          normalizedTextWeight,
+          provider_filter,
+          match_trigger_conditions,
+          actualTriggerContext,
+          wantScoreBreakdown,
+          useHybridRecall,
+          enableHybrid,
+          searchStartTime,
+          retrievalStrategy,
+          queryHash
         });
-        
-        let searchResult;
-        
-        try {
-          if (useHybridRecall) {
-            // 하이브리드 검색 (텍스트 + 벡터)
-            // hybridSearchEngine이 undefined일 수 있으므로 optional chaining 사용
-            this.validateService(context.services.hybridSearchEngine, '하이브리드 검색 엔진');
-            
-            this.logInfo('하이브리드 검색 실행', { 
-              query, 
-              vectorWeight: normalizedVectorWeight, 
-              textWeight: normalizedTextWeight 
-            });
-            
-            // provider_filter는 zod 스키마에서 이미 EmbeddingProvider[] 타입으로 파싱됨
-            // 빈 배열인 경우 undefined로 처리하여 모든 provider 검색
-            const providerFilter = normalizeProviderFilter(provider_filter);
-            
-            searchResult = await context.services.hybridSearchEngine.search(context.db, {
-              query,
-              filters,
-              limit,
-              vectorWeight: normalizedVectorWeight,
-              textWeight: normalizedTextWeight,
-              provider_filter: providerFilter,
-              match_trigger_conditions: match_trigger_conditions,
-              context: actualTriggerContext, // 구조화된 컨텍스트 정보 전달
-              include_score_breakdown: wantScoreBreakdown
-            });
-          } else {
-            // 텍스트 검색만 사용
-            if (!context.services.searchEngine) {
-              throw new Error('텍스트 검색 엔진을 사용할 수 없습니다');
-            }
-            
-            this.logInfo('텍스트 검색 실행', { query });
-            
-            searchResult = await context.services.searchEngine.search(context.db, {
-              query,
-              filters,
-              limit,
-              include_score_breakdown: wantScoreBreakdown
-            });
-          }
-        } catch (searchError) {
-          this.logError(searchError as Error, '검색 실행 중 오류', { query, enableHybrid });
-          const msg = (searchError as Error).message;
-          tel?.record({
-            eventType: 'memory.search.failed',
-            outcome: 'failure',
-            errorCode: 'search_execution_error',
-            latencyMs: Date.now() - searchStartTime,
-            extraData: {
-              ...recallQueryCorrelationExtra(queryHash, query),
-              retrieval_strategy: retrievalStrategy,
-              message: msg
-            }
-          });
-          throw new Error(`검색 실행 실패: ${msg}`);
-        }
 
-        const candCount = searchResult?.items?.length ?? 0;
-        tel?.record({
-          eventType: 'memory.search.candidates_retrieved',
-          outcome: 'success',
-          extraData: { candidate_count: candCount }
+        const { searchItems, processedResults } = await this.runMemoryItemPostSearchPipeline(context, searchResult, {
+          query,
+          version_filter,
+          version_series_id,
+          version_number,
+          include_version_chain,
+          include_diff_with,
+          owner_id_filter,
+          process_id_filter,
+          session_id_filter,
+          project_id_filter,
+          match_trigger_conditions,
+          actualTriggerContext,
+          includeMetadata,
+          return_format
         });
-        tel?.record({
-          eventType: 'memory.search.reranked',
-          outcome: 'success',
-          extraData: { candidate_count: candCount }
-        });
-        
-        const executionTime = Date.now() - searchStartTime;
-        
-        // 검색 결과 가져오기 (파이프라인에서 공통 타입 사용, 검색 엔진 반환형 호환)
-        let searchItems: RecallSearchItem[] = (searchResult?.items ?? []) as RecallSearchItem[];
 
-        // Procedural Version Management: version_filter 후처리 (시리즈당 최신만 / 특정 버전만)
-        if (version_filter && searchItems.length > 0) {
-          searchItems = this.applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
-        }
-
-        // Multi-agent (Issue #57 Phase 2 D): owner_id 필터
-        if (owner_id_filter && owner_id_filter.length > 0 && searchItems.length > 0) {
-          const ownerIds = Array.isArray(owner_id_filter) ? owner_id_filter : [owner_id_filter];
-          searchItems = searchItems.filter(
-            (i: RecallSearchItem) => i.owner_id != null && ownerIds.includes(i.owner_id)
-          );
-        }
-
-        // Memori Attribution (Issue #87): process_id, session_id 필터
-        if (process_id_filter && process_id_filter.length > 0 && searchItems.length > 0) {
-          const processIds = Array.isArray(process_id_filter) ? process_id_filter : [process_id_filter];
-          searchItems = searchItems.filter(
-            (i: RecallSearchItem) => i.process_id != null && processIds.includes(i.process_id)
-          );
-        }
-        if (session_id_filter && session_id_filter.length > 0 && searchItems.length > 0) {
-          const sessionIds = Array.isArray(session_id_filter) ? session_id_filter : [session_id_filter];
-          searchItems = searchItems.filter(
-            (i: RecallSearchItem) => i.session_id != null && sessionIds.includes(i.session_id)
-          );
-        }
-        // Project-scoped Memory (Issue #81): project_id 필터
-        if (project_id_filter && searchItems.length > 0) {
-          searchItems = searchItems.filter(
-            (i: RecallSearchItem) => i.project_id != null && i.project_id === project_id_filter
-          );
-        }
-
-        // Procedural Version Management: version_chain·diff 보강 (procedural 항목만, db 필요)
-        if ((include_version_chain || include_diff_with) && context.db && searchItems.length > 0) {
-          searchItems = await this.enrichProceduralVersionInfo(
-            context.db,
-            searchItems,
-            include_version_chain === true,
-            include_diff_with
-          );
-        }
-        
-        // trigger_conditions 매칭 필터링 (match_trigger_conditions=true일 때)
-        if (match_trigger_conditions && searchItems.length > 0) {
-          searchItems = this.filterByTriggerConditions(searchItems, query, actualTriggerContext);
-        }
-        
-        // Consolidation Score System 업데이트 (기능 플래그 확인)
-        if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && searchItems.length > 0) {
-          await this.updateConsolidationScoreMetadata(
-            context.db!,
-            context.services.consolidationScoreService,
-            context.services.writeCoalescingManager,
-            searchItems
-          );
-        }
-        
-        // Meta Memory Statistics 수집 (검색 결과가 있을 때만)
-        if (context.services.metaMemoryService && searchItems.length > 0) {
-          try {
-            await this.collectMetaMemoryStats(
-              searchItems,
-              context.services.metaMemoryService
-            );
-          } catch (error) {
-            // 통계 수집 실패는 로깅만 수행하고 recall 성공 여부에 영향 없음
-            this.logError(error as Error, '메타 통계 수집 실패', {});
-          }
-        }
-        
-        // 결과 후처리 - searchResult가 undefined인 경우 처리
-        const processedResults = this.processSearchResults(searchItems, includeMetadata, return_format);
-        
-        // 자동 앵커 설정 처리 (auto_set_anchor=true이고 검색 결과가 있을 때)
-        let anchorSetResult: {
-          success: boolean;
-          anchor_set: AnchorSetMetadata | null;
-          error?: boolean;
-          skipped?: boolean;
-          skipped_reason?: string;
-        } | null = null;
-        
-        if (auto_set_anchor && searchItems.length > 0) {
-          anchorSetResult = await this.handleAutoSetAnchor(searchItems, agentId, context);
-        }
-        
-        // 자동 이웃 기억 포함 처리 (include_neighbors=true이고 검색 결과가 있을 때)
-        let neighborsResults: NeighborMemory[][] = [];
-        
-        if (include_neighbors && searchItems.length > 0) {
-          neighborsResults = await this.handleIncludeNeighbors(
-            searchItems,
-            neighbors_limit,
-            neighbors_per_item,
-            neighbors_similarity_threshold,
-            context
-          );
-          
-          // 검색 결과 항목에 neighbors 필드 추가
-          // neighbors_limit보다 많은 결과는 neighbors 필드 없음 (handleIncludeNeighbors가 상위 neighbors_limit개만 처리)
-          for (let i = 0; i < Math.min(neighborsResults.length, processedResults.length); i++) {
-            const row = processedResults[i];
-            const neighbors = neighborsResults[i];
-            if (row && neighbors) row.neighbors = neighbors as unknown as NeighborMemoryItem[];
-          }
-        }
-        
-        this.logInfo('검색 완료', { 
-          resultCount: processedResults.length, 
+        return await this.finalizeMemoryItemRecallEnvelope(context, {
+          agentId,
+          query,
+          searchItems,
+          processedResults,
+          searchResult,
           executionTime,
-          searchType: enableHybrid ? 'hybrid' : 'text'
+          startTime,
+          searchStartTime,
+          enableHybrid,
+          includeMetadata,
+          auto_set_anchor,
+          include_neighbors,
+          neighbors_limit,
+          neighbors_per_item,
+          neighbors_similarity_threshold,
+          filters,
+          normalizedVectorWeight,
+          normalizedTextWeight,
+          retrievalStrategy,
+          queryHash
         });
-        
-        const sr = searchResult as unknown as {
-          text_count?: number;
-          vector_count?: number;
-          fallback_used?: boolean;
-          query_embedding_providers?: string[];
-          tfidf_query_embedding_fallback?: boolean;
-          tfidf_query_embedding_fallback_providers?: string[];
-        };
-
-        let metadata: RecallResponseMetadata | undefined;
-        let metaStats: Record<string, MetaStatsItem> | undefined;
-
-        if (includeMetadata) {
-          metadata = {
-            anchor_set: anchorSetResult?.anchor_set || null
-          };
-
-          if (anchorSetResult && anchorSetResult.error) {
-            metadata.anchor_set_error = true;
-          }
-
-          if (anchorSetResult && anchorSetResult.skipped) {
-            metadata.anchor_set_skipped = true;
-            metadata.anchor_set_skipped_reason = anchorSetResult.skipped_reason;
-          }
-
-          if (searchResult && typeof sr.text_count === 'number' && typeof sr.vector_count === 'number') {
-            metadata.text_result_count = sr.text_count;
-            metadata.vector_result_count = sr.vector_count;
-            if (typeof sr.fallback_used === 'boolean') metadata.fallback_used = sr.fallback_used;
-          }
-
-          const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
-          if (
-            hybridRan &&
-            sr.query_embedding_providers &&
-            sr.query_embedding_providers.length > 0
-          ) {
-            const qe = buildQueryEmbeddingMetadataFields(
-              sr.query_embedding_providers as EmbeddingProvider[]
-            );
-            metadata.embedding_provider = qe.embedding_provider;
-            metadata.query_embedding_providers = qe.query_embedding_providers;
-          }
-
-          if (context.services.metaMemoryService && processedResults.length > 0) {
-            metaStats = await this.getMetaStatsForResults(processedResults, context.services.metaMemoryService);
-          }
-        }
-
-        const hybridRan = enableHybrid && context.services.hybridSearchEngine?.isEmbeddingAvailable();
-        if (hybridRan && searchResult) {
-          emitTfidfFallbackWarningIfNeeded(
-            sr.fallback_used,
-            sr.query_embedding_providers as EmbeddingProvider[] | undefined,
-            sr.tfidf_query_embedding_fallback,
-            sr.tfidf_query_embedding_fallback_providers as EmbeddingProvider[] | undefined
-          );
-        }
-
-        // Issue #57 Phase 2 B: recall 프로파일링 (환경 변수로 활성화)
-        if (mementoConfig.recallProfileEnabled) {
-          this.logInfo('recall_profile', { total_ms: Date.now() - startTime });
-        }
-        const resultObj: Record<string, unknown> = {
-          items: processedResults,
-          total_count: searchResult?.total_count || processedResults.length,
-          query_time: executionTime,
-          search_type: enableHybrid ? 'hybrid' : 'text',
-          vector_search_available: context.services.hybridSearchEngine?.isEmbeddingAvailable() || false,
-          filters_applied: this.getAppliedFilters(filters),
-          search_options: {
-            vector_weight: normalizedVectorWeight,
-            text_weight: normalizedTextWeight,
-            enable_hybrid: enableHybrid
-          }
-        };
-        if (includeMetadata && metadata !== undefined) {
-          resultObj.metadata = metadata;
-        }
-        if (includeMetadata && metaStats !== undefined) {
-          resultObj.meta_stats = metaStats;
-        }
-        // Issue #21 Phase B: 저신뢰/고실패가 있을 때만 introspection_hint 포함
-        const cachedScan = context.services?.introspectionScanCache?.get();
-        if (cachedScan && (cachedScan.result.lowConfidenceMemoryIds.length > 0 || cachedScan.result.highFailureMemoryIds.length > 0)) {
-          resultObj.introspection_hint = {
-            summary: `${cachedScan.result.summary}${INTROSPECTION_HINT_SUFFIX}`,
-            low_confidence_count: cachedScan.result.lowConfidenceMemoryIds.length,
-            high_failure_count: cachedScan.result.highFailureMemoryIds.length,
-            scanned_at: cachedScan.scanned_at
-          };
-        }
-        const recallTelemetryLatency = Date.now() - searchStartTime;
-        if (processedResults.length === 0) {
-          tel?.record({
-            eventType: 'memory.search.empty',
-            outcome: 'empty',
-            latencyMs: recallTelemetryLatency,
-            extraData: {
-              ...recallQueryCorrelationExtra(queryHash, query),
-              retrieval_strategy: retrievalStrategy
-            }
-          });
-        } else {
-          tel?.record({
-            eventType: 'memory.search.selected',
-            outcome: 'success',
-            latencyMs: recallTelemetryLatency,
-            extraData: {
-              ...recallQueryCorrelationExtra(queryHash, query),
-              retrieval_strategy: retrievalStrategy,
-              selected_count: processedResults.length
-            }
-          });
-        }
-        return this.createSuccessResult(resultObj);
       }
       
     } catch (error) {
