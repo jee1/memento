@@ -1,20 +1,4 @@
-/**
- * 배치 작업 스케줄러 (비동기 Augmentation 파이프라인 워커, Issue #89)
- *
- * remember/remember_procedure는 메모리를 즉시 저장한 뒤 응답을 반환하고,
- * Triple 추출·콘솔리데이션 등 augmentation은 이 스케줄러에서 배치/큐 기반으로 수행한다.
- *
- * 담당 작업:
- * (1) Per-item Triple 추출 (JobQueue — remember-tool에서 addJob으로 등록)
- * (2) Triple 추출 배치 (TripleExtractionBatchJob — 미처리 episodic 일괄 처리)
- * (3) 콘솔리데이션 점수 (ConsolidationScoreWorker — 증분/전체 스윕)
- * (4) 관계 검증 (RelationValidatorExecutor — 주간 검증)
- * (5) 품질 측정 (QualityMeasurementBatchJob — 일일 배치)
- * (6) 메모리 정리 (ForgettingPolicyService — TTL 기반 cleanup)
- *
- * 실패 재시도: RetryManager (BatchJobConfig.retryAttempts, retryDelay).
- * 모니터링: 로깅·getStatus()·admin 라우트에서 큐/실행 상태 확인 가능.
- */
+/* Batch job scheduler: async augmentation pipeline. See docs/architecture/async-augmentation-pipeline.md */
 
 import type { IBatchScheduler } from '../../shared/interfaces/batch-scheduler.interface.js';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
@@ -42,10 +26,11 @@ import type { IntrospectionScanCache } from '../../domains/memory/services/intro
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
-import { resolveBoolean, resolveValidatedNumber } from '../../shared/config/environment.js';
+import { resolveValidatedNumber } from '../../shared/config/environment.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
+import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
 import { selectMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-selection-service.js';
 import { upsertPendingMemoryReviewCandidates } from '../../domains/memory/services/memory-review-candidate-persistence-service.js';
 import { recordMemoryReviewQueueHealthSnapshot } from '../../domains/memory/services/memory-review-queue-health-service.js';
@@ -53,15 +38,13 @@ import { buildMemoryReviewCandidatesRunDiagnosticsPayload } from './memory-revie
 
 import { collectBatchSchedulerDatabaseStats } from './batch-scheduler-database-stats.js';
 import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
+import {
+  assertSchedulerDbOpen,
+  createEmptyBatchJobResult,
+  finalizeBatchJobTiming
+} from './batch-scheduler-internal-helpers.js';
 
-/**
- * 비동기 Augmentation 파이프라인 워커.
- * @see docs/architecture/async-augmentation-pipeline.md
- */
-/**
- * 구성(`BatchJobConfig`/환경), 실행(인터벌·`JobQueue`/개별 job), 실패 처리(`RetryManager`/`HealthChecker`)를
- * 필드·메서드 그룹으로 구분해 변경 시 스코프를 줄인다 (013 유지보수, FR-004).
- */
+/** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
   private config: BatchJobConfig;
   private forgettingService: ForgettingPolicyService;
@@ -73,7 +56,7 @@ export class BatchScheduler implements IBatchScheduler {
   private isRunning = false;
   private startTime: Date | null = null;
   private lastExecution: Map<string, Date> = new Map();
-  /** 마지막 작업 종료 시각·성공 여부·소요 ms (텔레메트리 system.background_jobs 노출용) */
+  /** 마지막 작업 종료 시각, 성공 여부, 소요 ms (텔레메트리 system.background_jobs 노출용) */
   private lastJobRunMeta: Map<string, { at: Date; success: boolean; durationMs: number }> = new Map();
   private totalExecutions: Map<string, number> = new Map();
   private introspectionScanCache: IntrospectionScanCache | null = null;
@@ -105,63 +88,7 @@ export class BatchScheduler implements IBatchScheduler {
       diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
     }
   ) {
-    this.config = {
-      cleanupInterval: resolveValidatedNumber(
-        'FORGETTING_CLEANUP_INTERVAL_MS',
-        24 * 60 * 60 * 1000,
-        n => n >= 60_000,
-        '최솟값 60000'
-      ),
-      monitoringInterval: resolveValidatedNumber('BATCH_MONITORING_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
-      healthCheckInterval: resolveValidatedNumber('BATCH_HEALTH_CHECK_INTERVAL_MS', 300_000, n => n >= 10_000, '최솟값 10000'),
-      consolidationScoreIncrementalInterval: 60 * 60 * 1000,  // 1시간
-      consolidationScoreFullSweepInterval: 24 * 60 * 60 * 1000, // 24시간
-      consolidationScoreFullSweepHour: 3,  // 새벽 3시
-      relationValidationInterval: 7 * 24 * 60 * 60 * 1000, // 7일
-      relationValidationDayOfWeek: 0,     // 일요일
-      relationValidationHour: 2,          // 새벽 2시
-      logRotationInterval: 24 * 60 * 60 * 1000, // 24시간 (매일)
-      tripleExtractionInterval: 60 * 60 * 1000, // 1시간
-      tripleExtractionHour: undefined,   // 시간 지정 안 함 (간격 기반 실행)
-      tripleExtractionBatchSize: 10,     // 배치 크기 10개
-      tripleExtractionTimeout: 30 * 1000, // 30초
-      qualityMeasurementInterval: 24 * 60 * 60 * 1000, // 24시간 (일일)
-      qualityMeasurementHour: undefined, // 시간 지정 안 함 (간격 기반 실행)
-      metaMemoryIntrospectionInterval: 6 * 60 * 60 * 1000, // 6시간 (Issue #21)
-      sleepConsolidationInterval: resolveValidatedNumber(
-        'SLEEP_CONSOLIDATION_INTERVAL_MS',
-        60 * 60 * 1000,
-        n => n >= 60_000,
-        '최솟값 60000'
-      ),
-      telemetryCleanupInterval: resolveValidatedNumber(
-        'TELEMETRY_CLEANUP_INTERVAL_MS',
-        24 * 60 * 60 * 1000,
-        n => n >= 60_000,
-        '최솟값 60000'
-      ),
-      memoryReviewCandidatesInterval: resolveValidatedNumber(
-        'MEMORY_REVIEW_CANDIDATES_INTERVAL_MS',
-        24 * 60 * 60 * 1000,
-        n => n >= 60_000,
-        '최솟값 60000'
-      ),
-      memoryReviewCandidatesSchedulerEnabled: resolveBoolean('MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED', {
-        defaultValue: true
-      }),
-      maxBatchSize: 1000,
-      enableLogging: true,
-      enableNotifications: false,
-      enableMetrics: true,
-      maxConcurrentJobs: 3,
-      jobTimeout: 5 * 60 * 1000,          // 5분
-      retryAttempts: 3,
-      retryDelay: 1000,                   // 1초
-      weeklyRelationValidationTimeout: undefined, // 기본값: jobTimeout 사용
-      ...config
-    };
-
-    // 생성자에서 설정 검증
+    this.config = mergeBatchSchedulerJobConfig(config);
     validateBatchJobConfig(this.config);
 
     this.forgettingService = new ForgettingPolicyService();
@@ -217,86 +144,86 @@ export class BatchScheduler implements IBatchScheduler {
     this.isRunning = true;
     this.startTime = new Date();
 
-    // 재시작 시 큐 초기화 (이전 세션의 작업이 남아있을 수 있음)
+    this.clearLeftoverJobsFromPreviousSession();
+    this.healthChecker.setStartTime(this.startTime);
+    this.performanceMonitor.initialize(db);
+    this.attachReflexionWorker(reflexionWorker);
+    this.scheduleAllRecurringJobs();
+    this.startJobProcessor();
+
+    this.log('BatchScheduler started', {
+      config: this.config,
+      startTime: this.startTime.toISOString()
+    });
+    await this.writeDiagnosticsEvent({
+      type: 'batch_scheduler_start',
+      config: this.config,
+      startTime: this.startTime.toISOString()
+    });
+  }
+
+  private clearLeftoverJobsFromPreviousSession(): void {
     if (this.jobQueue.size > 0) {
       this.log(`Clearing ${this.jobQueue.size} leftover jobs from previous session`, {
         leftoverJobs: this.jobQueue.size
       });
       this.jobQueue.clear();
     }
+  }
 
-    // 헬스체크 시작 시간 설정
-    this.healthChecker.setStartTime(this.startTime);
-
-    // 성능 모니터 초기화
-    this.performanceMonitor.initialize(db);
-
-    // Reflexion Worker 통합 (Phase 2)
-    if (reflexionWorker) {
-      this.reflexionWorker = reflexionWorker;
-      // Reflexion Worker는 이미 bootstrap.ts에서 시작되므로 여기서는 상태 확인만
-      this.log('Reflexion Worker 통합됨', {
-        worker_running: reflexionWorker.getStatus().isRunning
-      });
+  private attachReflexionWorker(reflexionWorker?: IReflexionWorker): void {
+    if (!reflexionWorker) {
+      return;
     }
+    this.reflexionWorker = reflexionWorker;
+    this.log('Reflexion Worker 통합됨', {
+      worker_running: reflexionWorker.getStatus().isRunning
+    });
+  }
 
-    // 메모리 정리 작업 스케줄링
+  private scheduleCoreMaintenanceJobs(): void {
     this.scheduleJob('cleanup', this.config.cleanupInterval, async () => { await this.runMemoryCleanup(); }, 1);
-    
-    // 모니터링 작업 스케줄링
     this.scheduleJob('monitoring', this.config.monitoringInterval, async () => { await this.runMonitoring(); }, 2);
-
-    // 헬스체크 작업 스케줄링
     this.scheduleJob('healthcheck', this.config.healthCheckInterval, async () => { await this.runHealthCheck(); }, 3);
+  }
 
-    // Consolidation Score 재계산 작업 스케줄링 (기능 플래그 활성화 시)
+  private scheduleConsolidationRelationAndLogJobs(): void {
     if (mementoConfig.consolidationScoreEnabled && this.consolidationScoreWorker) {
-      // 시간당 증분 재계산
       this.scheduleJob(
         'consolidation_score_incremental',
         this.config.consolidationScoreIncrementalInterval,
         async () => { await this.runConsolidationScoreIncremental(); },
         4
       );
-
-      // 야간 전체 스윕 (하루 1회, 지정된 시간에 실행)
       this.scheduleConsolidationScoreFullSweep();
     }
-
-    // 주간 관계 추출 품질 검증 작업 스케줄링
     this.scheduleWeeklyRelationValidation();
-
-    // 로그 로테이션 작업 스케줄링
     this.scheduleJob(
       'log_rotation',
       this.config.logRotationInterval,
       async () => { await this.runLogRotation(); },
       5
     );
+  }
 
-    // Triple 추출 배치 작업 스케줄링 (PRD 6.1)
+  private scheduleAugmentationAndTelemetryJobs(): void {
     this.scheduleTripleExtractionBatch();
-
-    // 품질 측정 배치 작업 스케줄링 (PRD FR-5.6)
     this.scheduleQualityMeasurement();
-
-    // Sleep consolidation (005)
     if (this.sleepConsolidationService) {
       this.scheduleSleepConsolidation();
     }
-
     if (this.telemetryCleanupRepository) {
       this.scheduleTelemetryCleanup();
     }
+  }
 
-    // M2 자기성찰 스캔 스케줄링 (Issue #21)
+  private scheduleMetaMemoryAndReviewJobs(): void {
     this.scheduleJob(
       'meta_memory_introspection',
       this.config.metaMemoryIntrospectionInterval,
       async () => { await this.runMetaMemoryIntrospection(); },
       6
     );
-
     if (this.config.memoryReviewCandidatesSchedulerEnabled) {
       this.scheduleJob(
         'memory_review_candidates',
@@ -314,19 +241,13 @@ export class BatchScheduler implements IBatchScheduler {
         level: 'info'
       });
     }
+  }
 
-    // 작업 큐 처리 시작
-    this.startJobProcessor();
-
-    this.log('BatchScheduler started', {
-      config: this.config,
-      startTime: this.startTime.toISOString()
-    });
-    await this.writeDiagnosticsEvent({
-      type: 'batch_scheduler_start',
-      config: this.config,
-      startTime: this.startTime.toISOString()
-    });
+  private scheduleAllRecurringJobs(): void {
+    this.scheduleCoreMaintenanceJobs();
+    this.scheduleConsolidationRelationAndLogJobs();
+    this.scheduleAugmentationAndTelemetryJobs();
+    this.scheduleMetaMemoryAndReviewJobs();
   }
 
   /**
@@ -459,7 +380,7 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   /**
-   * Issue #293: `memory_review_candidates` 실행 메타(고정 키)를 diagnostics에 기록한다.
+   * Issue 293: memory_review_candidates 실행 메타(고정 키)를 diagnostics에 기록한다.
    * diagnostics가 꺼져 있으면 동일 스키마로 앱 로그에 남겨 운영에서 grep/후처리할 수 있게 한다.
    */
   private async emitMemoryReviewCandidatesRunRecord(result: BatchJobResult): Promise<void> {
@@ -474,32 +395,13 @@ export class BatchScheduler implements IBatchScheduler {
    * 메모리 정리 작업 실행
    */
   private async runMemoryCleanup(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'memory_cleanup',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
+    const result = createEmptyBatchJobResult('memory_cleanup');
 
     try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-
-      // 데이터베이스 연결 상태 확인
-      // better-sqlite3는 close() 후에도 객체가 남아있지만 연결은 닫혀있으므로 확인 필요
-      if (!DatabaseUtils.isOpen(this.db)) {
-        throw new Error('Database connection is not open. The database may have been closed.');
-      }
+      assertSchedulerDbOpen(this.db);
 
       this.log('Starting memory cleanup job');
 
-      // 망각 정책 서비스로 메모리 정리 실행
       const cleanupResult: MemoryCleanupResult = await this.forgettingService.executeMemoryCleanup(this.db);
 
       result.success = true;
@@ -524,62 +426,59 @@ export class BatchScheduler implements IBatchScheduler {
       result.errors.push(error instanceof Error ? error.message : String(error));
       this.log('Memory cleanup failed:', error, 'error');
     } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
+      finalizeBatchJobTiming(result);
     }
 
     return result;
   }
 
   /**
-   * Issue #243: memory_review_candidate 큐를 선정 결과로 갱신
+   * Issue 243: memory_review_candidate 큐를 선정 결과로 갱신
    */
+  private buildMemoryReviewCandidateUpsertInputs(db: Database.Database): {
+    inputs: Array<{
+      memory_id: string;
+      priority: number;
+      reason: string;
+      due_at: string;
+      metadata_json: string;
+    }>;
+    nowIso: string;
+    selectedCount: number;
+  } {
+    const items = selectMemoryReviewCandidates(db);
+    const dueDays = resolveValidatedNumber(
+      'MEMORY_REVIEW_CANDIDATE_DUE_DAYS',
+      14,
+      n => n >= 1 && n <= 366,
+      '1-366'
+    );
+    const nowIso = new Date().toISOString();
+    const dueAt = new Date(Date.now() + dueDays * 86_400_000).toISOString();
+    const inputs = items.map(i => ({
+      memory_id: i.memory_id,
+      priority: i.priority,
+      reason: i.reason,
+      due_at: dueAt,
+      metadata_json: JSON.stringify({ score_breakdown: i.score_breakdown })
+    }));
+    return { inputs, nowIso, selectedCount: items.length };
+  }
+
   private async runMemoryReviewCandidatesJob(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'memory_review_candidates',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
+    const result = createEmptyBatchJobResult('memory_review_candidates');
 
     try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-      if (!DatabaseUtils.isOpen(this.db)) {
-        throw new Error('Database connection is not open. The database may have been closed.');
-      }
+      assertSchedulerDbOpen(this.db);
 
-      const items = selectMemoryReviewCandidates(this.db);
-      const dueDays = resolveValidatedNumber(
-        'MEMORY_REVIEW_CANDIDATE_DUE_DAYS',
-        14,
-        n => n >= 1 && n <= 366,
-        '1-366'
-      );
-      const nowIso = new Date().toISOString();
-      const dueAt = new Date(Date.now() + dueDays * 86_400_000).toISOString();
-
-      const inputs = items.map(i => ({
-        memory_id: i.memory_id,
-        priority: i.priority,
-        reason: i.reason,
-        due_at: dueAt,
-        metadata_json: JSON.stringify({ score_breakdown: i.score_breakdown })
-      }));
-
+      const { inputs, nowIso, selectedCount } = this.buildMemoryReviewCandidateUpsertInputs(this.db);
       const upsert = upsertPendingMemoryReviewCandidates(this.db, inputs, nowIso);
       result.success = true;
       result.processed = inputs.length;
       result.details = { inserted: upsert.inserted, updated: upsert.updated };
 
       this.log('Memory review candidates batch completed', {
-        selected: items.length,
+        selected: selectedCount,
         inserted: upsert.inserted,
         updated: upsert.updated
       });
@@ -594,66 +493,55 @@ export class BatchScheduler implements IBatchScheduler {
           recordMemoryReviewQueueHealthSnapshot(this.db);
         }
       } catch {
-        /* best-effort (#294 snapshots are optional until migration 034) */
+        /* best-effort: snapshots optional until migration 34 */
       }
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
+      finalizeBatchJobTiming(result);
       await this.emitMemoryReviewCandidatesRunRecord(result);
     }
 
     return result;
   }
 
+  private countMonitoringAlertBuckets(alerts: PerformanceAlert[]): {
+    count: number;
+    critical: number;
+    warning: number;
+  } {
+    return {
+      count: alerts.length,
+      critical: alerts.filter(a => a.severity === 'critical').length,
+      warning: alerts.filter(a => a.severity === 'warning').length
+    };
+  }
+
   /**
    * 모니터링 작업 실행
    */
   private async runMonitoring(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'monitoring',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
+    const result = createEmptyBatchJobResult('monitoring');
 
     try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
+      assertSchedulerDbOpen(this.db);
 
-      // 성능 모니터로 지표 수집 (tick=true: CPU baseline 갱신)
       const metrics = await this.performanceMonitor.collectMetrics({ tick: true });
-      
-      // 데이터베이스 상태 확인
       const stats = collectBatchSchedulerDatabaseStats(this.db, (msg, err) =>
         this.log(msg, err, 'warn')
       );
-      
-      // 활성 알림 확인
       const alerts = this.performanceMonitor.getActiveAlerts();
 
       result.success = true;
       result.processed = 1;
-      result.details = { 
-        metrics, 
-        stats, 
-        alerts: {
-          count: alerts.length,
-          critical: alerts.filter((a: PerformanceAlert) => a.severity === 'critical').length,
-          warning: alerts.filter((a: PerformanceAlert) => a.severity === 'warning').length
-        }
+      result.details = {
+        metrics,
+        stats,
+        alerts: this.countMonitoringAlertBuckets(alerts)
       };
 
-      // 경고 처리
       if (alerts.length > 0) {
         result.warnings.push(`${alerts.length} active alerts`);
       }
 
-      this.log('Monitoring completed', { 
+      this.log('Monitoring completed', {
         metrics: {
           memoryUsage: `${((metrics.memory.heapUsed / metrics.memory.heapTotal) * 100).toFixed(1)}%`,
           dbSize: `${(metrics.database.size / (1024 * 1024)).toFixed(1)}MB`,
@@ -666,8 +554,7 @@ export class BatchScheduler implements IBatchScheduler {
       result.errors.push(error instanceof Error ? error.message : String(error));
       this.log('Monitoring failed:', error, 'error');
     } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
+      finalizeBatchJobTiming(result);
     }
 
     return result;
@@ -1423,8 +1310,8 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   /**
-   * M2 자기성찰 스캔 실행 (Issue #21)
-   * meta_memory_stats를 스캔하여 저신뢰·고실패 메모리를 식별하고 요약합니다.
+   * M2 자기성찰 스캔 실행 (Issue 21)
+   * meta_memory_stats를 스캔하여 저신뢰, 고실패 메모리를 식별하고 요약합니다.
    */
   private async runMetaMemoryIntrospection(): Promise<BatchJobResult> {
     const startTime = new Date();
@@ -1702,7 +1589,7 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   /**
-   * Issue #21 Phase B: 인트로스펙션 스캔 결과 캐시 설정.
+   * Issue 21 Phase B: 인트로스펙션 스캔 결과 캐시 설정.
    * bootstrap에서 생성한 IntrospectionScanCache를 주입합니다.
    */
   setIntrospectionScanCache(cache: IntrospectionScanCache | null): void {

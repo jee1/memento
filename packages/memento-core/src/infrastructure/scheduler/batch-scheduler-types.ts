@@ -51,7 +51,7 @@ export interface BatchJobResult {
   processed: number;
   errors: string[];
   warnings: string[];
-  /** 작업별 메타데이터(구조는 jobType마다 다름 — 소비 시 좁힘) */
+  /** 작업별 메타데이터(구조는 jobType마다 다름; 소비 시 좁힘) */
   details?: unknown;
   retryCount?: number;
 }
