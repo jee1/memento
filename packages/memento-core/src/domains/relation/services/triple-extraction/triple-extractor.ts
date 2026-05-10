@@ -356,7 +356,7 @@ export class TripleExtractor implements ITripleExtractor {
     this.initializedProviders = result.initializedProviders;
     
     // 경고 메시지 로깅
-    if (result.warnings.length > 0) {
+    if (result.warnings.length > 0 && result.preferredProvider === null) {
       result.warnings.forEach((warning) => {
         logger.warn('LLM 초기화 경고', { warning });
       });

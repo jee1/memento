@@ -311,8 +311,8 @@ describe('TripleExtractionService', () => {
       expect(mockInitializer.initialize).toHaveBeenCalledTimes(1);
     });
 
-    it('LLMClientInitializer 결과를 사용하여 openaiClient, geminiClient, preferredProvider를 설정하고 warnings를 logger.warn()으로 출력해야 함', async () => {
-      // Given: LLMClientInitializer 결과를 모킹하고 logger.warn()을 모킹
+    it('TripleExtractionService에서 preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
+      // Given: preferredProvider와 warnings를 함께 반환하는 LLMClientInitializer 결과를 모킹
       const mockOpenAIClient = new OpenAI({ apiKey: 'test-openai-key' });
       const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
       const mockWarnings = ['Warning 1', 'Warning 2'];
@@ -350,15 +350,12 @@ describe('TripleExtractionService', () => {
       // @ts-expect-error - private 필드 접근 (테스트 목적)
       expect(serviceInstance.preferredProvider).toBe('openai');
       
-      // Then: warnings가 logger.warn()으로 출력되어야 함
-      // Note: LLMClientInitializer 내부에서도 경고를 출력할 수 있으므로,
-      // mockWarnings의 각 경고가 logger.warn()으로 출력되었는지만 확인
-      mockWarnings.forEach((warning) => {
-        expect(loggerWarnSpy).toHaveBeenCalledWith(
-          'LLM 초기화 경고',
-          expect.objectContaining({ warning })
-        );
-      });
+      // Then: preferredProvider가 있으면 warnings를 relation layer에서 재로깅하지 않아야 함
+      const llmInitWarningCalls = loggerWarnSpy.mock.calls.filter(
+        (call) => call[0] === 'LLM 초기화 경고',
+      );
+
+      expect(llmInitWarningCalls).toHaveLength(0);
     });
   });
 
@@ -909,4 +906,3 @@ describe('TripleExtractionService', () => {
     });
   });
 });
-
