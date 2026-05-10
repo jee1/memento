@@ -4,7 +4,10 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
+import type {
+  VectorSearchEngine,
+  VectorSearchResult
+} from '../../../search/algorithms/vector-search-engine.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { isInitializableVectorSearchEngine } from './vector-search-engine-types.js';
@@ -37,6 +40,19 @@ export interface OneHopSearchResult {
   created_at: string;
   tags?: string[];
 }
+
+/** memory_link / relation 그래프에서 수집한 1차 연결 메모리 요약 */
+type LinkedMemorySummary = {
+  memory_id: string;
+  content: string;
+  type: string;
+  similarity: number;
+  importance: number;
+  created_at: string;
+  tags?: string[];
+};
+
+type HopCandidate = LinkedMemorySummary & { isLinked: boolean };
 
 /**
  * N-hop 검색 서비스 인터페이스
@@ -112,6 +128,195 @@ export class NHopSearchService implements INHopSearchService {
     this.relationGraph = relationGraph;
   }
 
+  private requireVectorContext(): {
+    engine: VectorSearchEngine;
+    db: Database.Database;
+  } {
+    if (!this.vectorSearchEngine || !this.db) {
+      throw new Error('VectorSearchEngine or Database is not set.');
+    }
+    const engine = this.vectorSearchEngine;
+    const db = this.db;
+    if (isInitializableVectorSearchEngine(engine)) {
+      engine.initialize(db);
+    }
+    return { engine, db };
+  }
+
+  private mergeHopCandidates(
+    linkedMemories: LinkedMemorySummary[],
+    vectorSearchResults: VectorSearchResult[],
+    discoveredMemoryIds: Set<string>,
+    threshold: number
+  ): Map<string, HopCandidate> {
+    const allCandidates = new Map<string, HopCandidate>();
+    const relaxedThreshold = threshold * 0.5;
+
+    for (const linked of linkedMemories) {
+      if (!discoveredMemoryIds.has(linked.memory_id)) {
+        allCandidates.set(linked.memory_id, {
+          ...linked,
+          isLinked: true
+        });
+      }
+    }
+
+    for (const result of vectorSearchResults) {
+      if (!allCandidates.has(result.memory_id) && !discoveredMemoryIds.has(result.memory_id)) {
+        if (result.similarity >= relaxedThreshold) {
+          allCandidates.set(result.memory_id, {
+            memory_id: result.memory_id,
+            content: result.content,
+            type: result.type,
+            similarity: result.similarity,
+            importance: result.importance,
+            created_at: result.created_at,
+            tags: result.tags,
+            isLinked: false
+          });
+        }
+      } else if (allCandidates.has(result.memory_id)) {
+        const existing = allCandidates.get(result.memory_id)!;
+        existing.similarity = Math.max(existing.similarity, result.similarity);
+      }
+    }
+
+    return allCandidates;
+  }
+
+  private async tryGetNextHopSeed(
+    memoryId: string
+  ): Promise<{ memory_id: string; embedding: number[] } | null> {
+    try {
+      const nextEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
+      if (nextEmbedding?.embedding) {
+        return { memory_id: memoryId, embedding: nextEmbedding.embedding };
+      }
+    } catch (error) {
+      logger.debug('Skipping memory for next hop (no embedding)', {
+        memoryId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    return null;
+  }
+
+  private async materializeHopDiscoveries(
+    hop: number,
+    maxHops: number,
+    allCandidates: Map<string, HopCandidate>,
+    discoveredMemoryIds: Set<string>,
+    threshold: number
+  ): Promise<{
+    hopResults: NHopSearchResult[];
+    nextHopSeeds: Array<{ memory_id: string; embedding: number[] }>;
+  }> {
+    const hopResults: NHopSearchResult[] = [];
+    const nextHopSeeds: Array<{ memory_id: string; embedding: number[] }> = [];
+
+    for (const [memoryId, candidate] of allCandidates.entries()) {
+      if (discoveredMemoryIds.has(memoryId)) {
+        continue;
+      }
+
+      const effectiveThreshold = candidate.isLinked ? threshold * 0.8 : threshold;
+      if (candidate.similarity < effectiveThreshold) {
+        continue;
+      }
+
+      discoveredMemoryIds.add(memoryId);
+      hopResults.push({
+        memory_id: candidate.memory_id,
+        content: candidate.content,
+        type: candidate.type,
+        similarity: candidate.similarity,
+        hop_distance: hop,
+        importance: candidate.importance,
+        created_at: candidate.created_at,
+        tags: candidate.tags,
+        hasRelation: candidate.isLinked
+      });
+
+      if (hop < maxHops) {
+        const seed = await this.tryGetNextHopSeed(candidate.memory_id);
+        if (seed) {
+          nextHopSeeds.push(seed);
+        }
+      }
+    }
+
+    return { hopResults, nextHopSeeds };
+  }
+
+  private compareNHopRankedResults(a: NHopSearchResult, b: NHopSearchResult): number {
+    if (a.hasRelation && !b.hasRelation) {
+      return -1;
+    }
+    if (!a.hasRelation && b.hasRelation) {
+      return 1;
+    }
+    if (Math.abs(a.similarity - b.similarity) < 0.001) {
+      return a.hop_distance - b.hop_distance;
+    }
+    return b.similarity - a.similarity;
+  }
+
+  private async applyRelationWeightToNHopResult(
+    result: NHopSearchResult,
+    useRelations: boolean
+  ): Promise<NHopSearchResult> {
+    let relationWeight = 0;
+    let hasRelation = result.hasRelation ?? false;
+
+    if (useRelations && this.relationGraph) {
+      try {
+        const relations = await this.relationGraph.getRelations(result.memory_id, {
+          direction: 'both',
+          minConfidence: 0.5
+        });
+
+        if (relations.length > 0) {
+          hasRelation = true;
+          const avgConfidence = relations.reduce((sum, r) => sum + r.confidence, 0) / relations.length;
+          const avgBoost =
+            relations.reduce((sum, r) => sum + this.getRelationTypeBoost(r.relation_type), 0) /
+            relations.length;
+          relationWeight = Math.min(1.0, avgConfidence * avgBoost);
+        }
+      } catch (error) {
+        logger.debug('Relation weight calculation failed', {
+          memoryId: result.memory_id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    const rankingScore = this.calculateRankingScore(
+      result.similarity,
+      result.hop_distance,
+      result.importance,
+      relationWeight,
+      hasRelation
+    );
+    return {
+      ...result,
+      similarity: rankingScore,
+      hasRelation
+    };
+  }
+
+  private async rankAndTruncateNHopResults(
+    allResults: NHopSearchResult[],
+    useRelations: boolean,
+    limit: number
+  ): Promise<NHopSearchResult[]> {
+    const rankedResults = await Promise.all(
+      allResults.map((r) => this.applyRelationWeightToNHopResult(r, useRelations))
+    );
+    rankedResults.sort((a, b) => this.compareNHopRankedResults(a, b));
+    return rankedResults.slice(0, limit);
+  }
+
   /**
    * 1-hop 검색: 앵커와 직접적으로 유사한 메모리 검색
    */
@@ -122,18 +327,11 @@ export class NHopSearchService implements INHopSearchService {
     threshold: number,
     limit: number
   ): Promise<OneHopSearchResult[]> {
-    if (!this.vectorSearchEngine || !this.db) {
-      throw new Error('VectorSearchEngine or Database is not set.');
-    }
-
     try {
-      // VectorSearchEngine 초기화 확인
-      if (isInitializableVectorSearchEngine(this.vectorSearchEngine)) {
-        this.vectorSearchEngine.initialize(this.db);
-      }
+      const { engine } = this.requireVectorContext();
 
       // 벡터 검색 실행 (임계값은 낮게 설정하고 나중에 필터링)
-      const searchResults = await this.vectorSearchEngine.search(
+      const searchResults = await engine.search(
         anchorEmbedding,
         {
           limit: limit + 1, // 자기 자신 제외를 위해 +1
@@ -177,28 +375,14 @@ export class NHopSearchService implements INHopSearchService {
     limit: number,
     useRelations: boolean = true
   ): Promise<NHopSearchResult[]> {
-    if (!this.vectorSearchEngine || !this.db) {
-      throw new Error('VectorSearchEngine or Database is not set.');
-    }
+    const { engine } = this.requireVectorContext();
 
-    // VectorSearchEngine 초기화 확인
-    if (typeof (this.vectorSearchEngine as any).initialize === 'function') {
-      (this.vectorSearchEngine as any).initialize(this.db);
-    }
-
-    // 이미 발견된 메모리 ID 추적 (중복 방지)
     const discoveredMemoryIds = new Set<string>([anchorMemoryId]);
-    
-    // 각 hop 레벨의 결과를 저장
     const allResults: NHopSearchResult[] = [];
-
-    // 현재 hop 레벨의 메모리들 (임베딩 포함)
-    // 1-hop: 앵커 임베딩을 사용
     let currentHopMemories: Array<{ memory_id: string; embedding: number[] }> = [
       { memory_id: anchorMemoryId, embedding: anchorEmbedding }
     ];
 
-    // 각 hop 레벨별로 검색 수행
     for (let hop = 1; hop <= maxHops; hop++) {
       const nextHopMemories: Array<{ memory_id: string; embedding: number[] }> = [];
       const hopResults: NHopSearchResult[] = [];
@@ -207,15 +391,14 @@ export class NHopSearchService implements INHopSearchService {
         Math.max(1, Math.ceil(limit / maxHops) + 10)
       );
 
-      // 배치로 연결 메모리 조회 + 벡터 검색 병렬 실행 (N+1 완화)
       const memoryIdsThisHop = currentHopMemories.map(m => m.memory_id);
       const linkedByMemory = useRelations
         ? await this.getLinkedMemoriesBatch(memoryIdsThisHop)
-        : new Map<string, Array<{ memory_id: string; content: string; type: string; similarity: number; importance: number; created_at: string; tags?: string[] }>>();
+        : new Map<string, LinkedMemorySummary[]>();
 
       const vectorResults = await Promise.all(
         currentHopMemories.map((m) =>
-          this.vectorSearchEngine!.search(
+          engine.search(
             m.embedding,
             {
               limit: vectorSearchLimit,
@@ -234,92 +417,21 @@ export class NHopSearchService implements INHopSearchService {
         const linkedMemories = linkedByMemory.get(currentMemory.memory_id) ?? [];
         const vectorSearchResults = vectorResults[idx] ?? [];
         try {
-
-          // memory_link 결과와 벡터 검색 결과를 병합
-          const allCandidates = new Map<string, {
-            memory_id: string;
-            content: string;
-            type: string;
-            similarity: number;
-            importance: number;
-            created_at: string;
-            tags?: string[];
-            isLinked: boolean;
-          }>();
-
-          // memory_link 결과 추가 (우선순위 높음)
-          for (const linked of linkedMemories) {
-            if (!discoveredMemoryIds.has(linked.memory_id)) {
-              allCandidates.set(linked.memory_id, {
-                ...linked,
-                isLinked: true
-              });
-            }
-          }
-
-          // 벡터 검색 결과 추가
-          const relaxedThreshold = threshold * 0.5;
-          for (const result of vectorSearchResults) {
-            if (!allCandidates.has(result.memory_id) && !discoveredMemoryIds.has(result.memory_id)) {
-              if (result.similarity >= relaxedThreshold) {
-                allCandidates.set(result.memory_id, {
-                  ...result,
-                  isLinked: false
-                });
-              }
-            } else if (allCandidates.has(result.memory_id)) {
-              // memory_link로 이미 추가된 경우, 유사도 정보 업데이트
-              const existing = allCandidates.get(result.memory_id)!;
-              existing.similarity = Math.max(existing.similarity, result.similarity);
-            }
-          }
-
-          // 결과 필터링 및 추가
-          for (const [memoryId, candidate] of allCandidates.entries()) {
-            if (discoveredMemoryIds.has(memoryId)) {
-              continue;
-            }
-
-            const effectiveThreshold = candidate.isLinked 
-              ? threshold * 0.8
-              : threshold;
-            
-            if (candidate.similarity < effectiveThreshold) {
-              continue;
-            }
-
-            discoveredMemoryIds.add(memoryId);
-            hopResults.push({
-              memory_id: candidate.memory_id,
-              content: candidate.content,
-              type: candidate.type,
-              similarity: candidate.similarity,
-              hop_distance: hop,
-              importance: candidate.importance,
-              created_at: candidate.created_at,
-              tags: candidate.tags,
-              hasRelation: candidate.isLinked
-            });
-
-            // 다음 hop을 위한 임베딩 조회
-            if (hop < maxHops) {
-              try {
-                const nextEmbedding = await this.cacheService.getAnchorEmbedding(candidate.memory_id);
-                if (nextEmbedding && nextEmbedding.embedding) {
-                  nextHopMemories.push({
-                    memory_id: candidate.memory_id,
-                    embedding: nextEmbedding.embedding
-                  });
-                }
-              } catch (error) {
-                // 임베딩 조회 실패 시 다음 hop에서 제외
-                logger.debug('Skipping memory for next hop (no embedding)', {
-                  memoryId: candidate.memory_id,
-                  error: error instanceof Error ? error.message : String(error)
-                });
-              }
-            }
-          }
+          const merged = this.mergeHopCandidates(
+            linkedMemories,
+            vectorSearchResults,
+            discoveredMemoryIds,
+            threshold
+          );
+          const { hopResults: batchHop, nextHopSeeds } = await this.materializeHopDiscoveries(
+            hop,
+            maxHops,
+            merged,
+            discoveredMemoryIds,
+            threshold
+          );
+          hopResults.push(...batchHop);
+          nextHopMemories.push(...nextHopSeeds);
         } catch (error) {
           logger.error('Hop search failed', {
             hop,
@@ -329,110 +441,25 @@ export class NHopSearchService implements INHopSearchService {
         }
       }
 
-      // 현재 hop의 결과를 전체 결과에 추가
       allResults.push(...hopResults);
 
-      // limit에 도달했으면 중단
       if (allResults.length >= limit) {
         break;
       }
-
-      // 다음 hop을 위한 메모리가 없으면 중단
       if (nextHopMemories.length === 0) {
         break;
       }
-
-      // 다음 hop을 위한 메모리로 업데이트
       currentHopMemories = nextHopMemories;
     }
 
-    // 랭킹 점수 계산 및 적용 (관계 그래프 가중치 포함)
-    const rankedResults = await Promise.all(
-      allResults.map(async (result) => {
-        // 관계 가중치 계산 (관계 그래프가 있고 use_relations가 true인 경우)
-        let relationWeight = 0;
-        let hasRelation = result.hasRelation ?? false;
-        
-        if (useRelations && this.relationGraph) {
-          try {
-            const relations = await this.relationGraph.getRelations(result.memory_id, {
-              direction: 'both',
-              minConfidence: 0.5
-            });
-            
-            if (relations.length > 0) {
-              hasRelation = true;
-              // 관계 가중치 계산 (간단한 평균)
-              const avgConfidence = relations.reduce((sum, r) => sum + r.confidence, 0) / relations.length;
-              const avgBoost = relations.reduce((sum, r) => sum + this.getRelationTypeBoost(r.relation_type), 0) / relations.length;
-              relationWeight = Math.min(1.0, avgConfidence * avgBoost);
-            }
-          } catch (error) {
-            // 관계 조회 실패는 무시
-            logger.debug('Relation weight calculation failed', {
-              memoryId: result.memory_id,
-              error: error instanceof Error ? error.message : String(error)
-            });
-          }
-        }
-
-        const rankingScore = this.calculateRankingScore(
-          result.similarity,
-          result.hop_distance,
-          result.importance,
-          relationWeight,
-          hasRelation
-        );
-        return {
-          ...result,
-          similarity: rankingScore,
-          hasRelation
-        };
-      })
-    );
-
-    // 랭킹 점수 기준으로 정렬 (관계가 있는 기억 우선)
-    rankedResults.sort((a, b) => {
-      // 관계가 있는 기억에 우선순위 부여
-      if (a.hasRelation && !b.hasRelation) {
-        return -1;
-      }
-      if (!a.hasRelation && b.hasRelation) {
-        return 1;
-      }
-      
-      // 둘 다 관계가 있거나 둘 다 없는 경우, similarity 기준 정렬
-      if (Math.abs(a.similarity - b.similarity) < 0.001) {
-        return a.hop_distance - b.hop_distance;
-      }
-      return b.similarity - a.similarity;
-    });
-
-    // 최종 limit 적용
-    return rankedResults.slice(0, limit);
+    return this.rankAndTruncateNHopResults(allResults, useRelations, limit);
   }
 
   /**
    * 여러 메모리에 대한 연결 메모리 일괄 조회 (N+1 완화)
    */
-  private async getLinkedMemoriesBatch(memoryIds: string[]): Promise<Map<string, Array<{
-    memory_id: string;
-    content: string;
-    type: string;
-    similarity: number;
-    importance: number;
-    created_at: string;
-    tags?: string[];
-  }>>> {
-    const result = new Map<string, Array<{
-      memory_id: string;
-      content: string;
-      type: string;
-      similarity: number;
-      importance: number;
-      created_at: string;
-      tags?: string[];
-    }>>();
+  private async getLinkedMemoriesBatch(memoryIds: string[]): Promise<Map<string, LinkedMemorySummary[]>> {
+    const result = new Map<string, LinkedMemorySummary[]>();
     memoryIds.forEach(id => result.set(id, []));
     if (memoryIds.length === 0 || !this.db) return result;
 
@@ -481,15 +508,7 @@ export class NHopSearchService implements INHopSearchService {
   /**
    * 연결된 메모리 조회 (관계 그래프 또는 memory_link 사용)
    */
-  private async getLinkedMemories(memoryId: string): Promise<Array<{
-    memory_id: string;
-    content: string;
-    type: string;
-    similarity: number;
-    importance: number;
-    created_at: string;
-    tags?: string[];
-  }>> {
+  private async getLinkedMemories(memoryId: string): Promise<LinkedMemorySummary[]> {
     if (!this.db) {
       return [];
     }
