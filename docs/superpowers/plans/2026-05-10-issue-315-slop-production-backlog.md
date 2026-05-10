@@ -27,20 +27,20 @@
 5. ~~**순위 3:** `triple-extraction-service.ts` + 파이프라인~~ — [#330](https://github.com/jee1/memento/pull/330): `triple-extraction-llm-pipeline.ts`로 LLM 호출·파싱·초기화 로깅 분리, `enqueueExtractionLog`로 중복 제거.
 6. ~~**순위 4:** `memento-server` admin 라우트~~ — [#331](https://github.com/jee1/memento/pull/331): `admin.routes.ts`를 `routes/admin/*` 등록 모듈로 분할(경로·핸들러 동일).
 7. ~~**재스캔:** `slop-detector --project packages --js --config .slopconfig.yaml`~~ — 아래 **재스캔 스냅샷** 반영(2026-05-10).
-8. **다음 (프로덕션 소스 우선):** 아래 표의 **비-spec·비-test** `CRITICAL_DEFICIT`부터 단일 주제 PR(예: `batch-scheduler.ts` → `hybrid-search-engine.ts` → `recall-tool.ts` → `llm-based-relation-extractor.ts`). 테스트 전용 노이즈는 [#221](https://github.com/jee1/memento/issues/221) 정책대로 **커밋된** `.slopconfig`에 대량 ignore 없음; 로컬은 [DEVELOPMENT_RULES.md](../../../DEVELOPMENT_RULES.md)의 `.slopconfig.local.yaml` 권장.
+8. **다음 (프로덕션 소스 우선):** 아래 표의 **비-spec·비-test** `CRITICAL_DEFICIT`부터 단일 주제 PR. `llm-based-relation-extractor.ts` 1차 분해는 [#347](https://github.com/jee1/memento/pull/347)(머지 후 재스캔 권장). 그 외 우선 후보: `batch-scheduler.ts`, `hybrid-search-engine.ts`, `recall-tool.ts`(별도 PR 미열렸다면 여전히 상위), `triple-extraction-llm-providers.ts`(SUSPICIOUS·참고). 테스트 전용 노이즈는 [#221](https://github.com/jee1/memento/issues/221) 정책대로 **커밋된** `.slopconfig`에 대량 ignore 없음; 로컬은 [DEVELOPMENT_RULES.md](../../../DEVELOPMENT_RULES.md)의 `.slopconfig.local.yaml` 권장.
 
-## 재스캔 스냅샷 (2026-05-10)
+## 재스캔 스냅샷 (2026-05-10, PR #347 워킹트리 기준 2차)
 
 - **도구:** `ai-slop-detector==3.7.3`, 명령: `slop-detector --project packages --js --config .slopconfig.yaml --no-color`
 - **관찰:** `CRITICAL_DEFICIT` 다수가 `*.spec.ts`, `src/test/**`, `mcp-client/examples/**` — 백로그 1차 범위(프로덕션)와 분리해 해석할 것.
-- **프로덕션 `CRITICAL_DEFICIT` (재스캔 시점, `packages/` 기준·spec 제외):**
+- **프로덕션 `CRITICAL_DEFICIT` (`packages/` 기준·`*.spec.ts`·`__tests__`·`src/test/**` 제외한 상위):**
 
 | 우선(가칭) | 경로 |
 |-------------|------|
 | A | `memento-core/src/infrastructure/scheduler/batch-scheduler.ts` |
 | B | `memento-core/src/domains/search/algorithms/hybrid-search-engine.ts` |
 | C | `memento-core/src/domains/memory/tools/recall-tool.ts` |
-| D | `memento-core/src/domains/relation/services/llm-based-relation-extractor.ts` |
+| D | `memento-core/src/domains/relation/services/llm-based-relation-extractor.ts` — [#347](https://github.com/jee1/memento/pull/347)에서 Ollama 파싱·JSON trim·에러 로그 공통화 후에도 도구상 CRITICAL 잔존(`determineProvider`, `filterCandidatesByEmbedding`, `extractWithOpenAI`, `extractWithOllama` 등); 머지 후 재스캔으로 점수 변화 확인 |
 | (테스트 헬퍼, 지속) | `memento-core/src/test/helpers/vector-search-quality-metrics.ts` — [#329](https://github.com/jee1/memento/pull/329) 이후에도 도구상 Critical 잔존 가능; `generateOrderPreservationReport` 등 추가 분해 시 재평가 |
 
 - **SUSPICIOUS 예시 (참고):** `triple-extraction-llm-providers.ts` 등 — 필요 시 별도 소과제 PR.
@@ -57,6 +57,7 @@
 | 2026-05-10 | `.../triple-extraction/triple-extraction-service.ts` (+ pipeline) | [#330](https://github.com/jee1/memento/pull/330) | LLM raw 호출·파싱·init 로깅 모듈 분리, 로깅 enqueue 헬퍼 |
 | 2026-05-10 | `memento-server/.../routes/admin.routes.ts` (+ admin/*.routes) | [#331](https://github.com/jee1/memento/pull/331) | 통계·리뷰·배치·성능·도구·프로젝트 메모리 라우트 모듈화 |
 | 2026-05-10 | `slop-detector` packages 재스캔 | (문서) | `ai-slop-detector` 3.7.3; 프로덕션 후보 batch-scheduler / hybrid-search-engine / recall-tool / llm-based-relation-extractor |
+| 2026-05-10 | `.../relation/services/llm-based-relation-extractor.ts` | [#347](https://github.com/jee1/memento/pull/347) | Ollama 응답 파싱·JSON 정리 헬퍼 분리, `buildOllamaErrorLogContext`, `checkOllamaModel` 타입 보강; slop 잔여 이슈는 PR 본문·머지 후 재스캔 참고 |
 
 ## 갱신
 
