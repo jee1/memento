@@ -1,8 +1,8 @@
 /* Batch job scheduler: async augmentation pipeline. See docs/architecture/async-augmentation-pipeline.md */
 
 import type { IBatchScheduler } from '../../shared/interfaces/batch-scheduler.interface.js';
-import { ForgettingPolicyService, type MemoryCleanupResult } from '../../domains/forgetting/services/forgetting-policy-service.js';
-import { getPerformanceMonitor, type PerformanceAlert } from '../../domains/monitoring/services/performance-monitor.js';
+import { ForgettingPolicyService } from '../../domains/forgetting/services/forgetting-policy-service.js';
+import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
 import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services/runtime-diagnostics-logger.js';
 import Database from 'better-sqlite3';
 import { ConsolidationScoreWorker } from '../../workers/consolidation-score-worker.js';
@@ -44,6 +44,11 @@ import {
   finalizeBatchJobTiming
 } from './batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './handlers/batch-scheduler-run-context.js';
+import {
+  runHealthCheck,
+  runMemoryCleanup,
+  runMonitoring
+} from './handlers/batch-scheduler-maintenance-handlers.js';
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
@@ -450,41 +455,7 @@ export class BatchScheduler implements IBatchScheduler {
    * 메모리 정리 작업 실행
    */
   private async runMemoryCleanup(): Promise<BatchJobResult> {
-    const result = createEmptyBatchJobResult('memory_cleanup');
-
-    try {
-      assertSchedulerDbOpen(this.db);
-
-      this.log('Starting memory cleanup job');
-
-      const cleanupResult: MemoryCleanupResult = await this.forgettingService.executeMemoryCleanup(this.db);
-
-      result.success = true;
-      result.processed = cleanupResult.totalProcessed;
-      result.details = cleanupResult;
-
-      if (cleanupResult.softDeleted.length > 0) {
-        result.warnings.push(`${cleanupResult.softDeleted.length} memories soft deleted`);
-      }
-      if (cleanupResult.hardDeleted.length > 0) {
-        result.warnings.push(`${cleanupResult.hardDeleted.length} memories hard deleted`);
-      }
-
-      this.log('Memory cleanup completed', {
-        processed: cleanupResult.totalProcessed,
-        softDeleted: cleanupResult.softDeleted.length,
-        hardDeleted: cleanupResult.hardDeleted.length,
-        reviewed: cleanupResult.reviewed.length
-      });
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Memory cleanup failed:', error, 'error');
-    } finally {
-      finalizeBatchJobTiming(result);
-    }
-
-    return result;
+    return runMemoryCleanup(this.buildRunContext());
   }
 
   /**
@@ -557,109 +528,18 @@ export class BatchScheduler implements IBatchScheduler {
     return result;
   }
 
-  private countMonitoringAlertBuckets(alerts: PerformanceAlert[]): {
-    count: number;
-    critical: number;
-    warning: number;
-  } {
-    return {
-      count: alerts.length,
-      critical: alerts.filter(a => a.severity === 'critical').length,
-      warning: alerts.filter(a => a.severity === 'warning').length
-    };
-  }
-
   /**
    * 모니터링 작업 실행
    */
   private async runMonitoring(): Promise<BatchJobResult> {
-    const result = createEmptyBatchJobResult('monitoring');
-
-    try {
-      assertSchedulerDbOpen(this.db);
-
-      const metrics = await this.performanceMonitor.collectMetrics({ tick: true });
-      const stats = collectBatchSchedulerDatabaseStats(this.db, (msg, err) =>
-        this.log(msg, err, 'warn')
-      );
-      const alerts = this.performanceMonitor.getActiveAlerts();
-
-      result.success = true;
-      result.processed = 1;
-      result.details = {
-        metrics,
-        stats,
-        alerts: this.countMonitoringAlertBuckets(alerts)
-      };
-
-      if (alerts.length > 0) {
-        result.warnings.push(`${alerts.length} active alerts`);
-      }
-
-      this.log('Monitoring completed', {
-        metrics: {
-          memoryUsage: `${((metrics.memory.heapUsed / metrics.memory.heapTotal) * 100).toFixed(1)}%`,
-          dbSize: `${(metrics.database.size / (1024 * 1024)).toFixed(1)}MB`,
-          queryTime: `${metrics.database.queryTime}ms`
-        },
-        alerts: alerts.length
-      });
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Monitoring failed:', error, 'error');
-    } finally {
-      finalizeBatchJobTiming(result);
-    }
-
-    return result;
+    return runMonitoring(this.buildRunContext());
   }
 
   /**
    * 헬스체크 작업 실행
    */
   private async runHealthCheck(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'healthcheck',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      // HealthChecker를 사용하여 헬스체크 실행
-      const healthResult = await this.healthChecker.check(
-        this.db,
-        this.jobQueue.runningCount,
-        this.jobQueue.size,
-        this.config.maxConcurrentJobs
-      );
-
-      result.success = healthResult.isHealthy;
-      result.processed = 1;
-      result.warnings = healthResult.warnings;
-      result.errors = healthResult.errors;
-      result.details = {
-        memoryUsage: healthResult.memoryUsage,
-        runningJobs: healthResult.runningJobs,
-        queueSize: healthResult.queueSize,
-        uptime: healthResult.uptime
-      };
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Health check failed:', error, 'error');
-    } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
-    }
-
-    return result;
+    return runHealthCheck(this.buildRunContext());
   }
 
   /**
