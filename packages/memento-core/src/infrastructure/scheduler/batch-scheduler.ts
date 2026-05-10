@@ -14,7 +14,6 @@ import { RetryManager } from './retry-manager.js';
 import { HealthChecker } from './health-checker.js';
 import { FileLogger } from './file-logger.js';
 import { RelationValidatorExecutor } from './relation-validator-executor.js';
-import { tripleExtractionLogger } from '../logging/triple-extraction-logger.js';
 import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
 import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
 import { SleepConsolidationBatchJob } from './jobs/sleep-consolidation-batch-job.js';
@@ -47,6 +46,12 @@ import {
   runMemoryReviewCandidatesJob,
   runMetaMemoryIntrospection
 } from './handlers/batch-scheduler-review-meta-handlers.js';
+import {
+  runConsolidationScoreFullSweep,
+  runConsolidationScoreIncremental,
+  runLogRotation,
+  runWeeklyRelationValidation
+} from './handlers/batch-scheduler-consolidation-relation-handlers.js';
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
@@ -478,58 +483,7 @@ export class BatchScheduler implements IBatchScheduler {
    * Consolidation Score 증분 재계산 작업 실행
    */
   private async runConsolidationScoreIncremental(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'consolidation_score_incremental',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-
-      if (!this.consolidationScoreWorker) {
-        throw new Error('ConsolidationScoreWorker not initialized');
-      }
-
-      this.log('Starting consolidation score incremental recalculation');
-
-      const recalculationResult = await this.consolidationScoreWorker.runIncrementalRecalculation(this.db);
-
-      result.success = recalculationResult.success;
-      result.processed = recalculationResult.processed;
-      result.details = recalculationResult;
-      
-      if (recalculationResult.errors.length > 0) {
-        result.errors.push(...recalculationResult.errors);
-      }
-      if (recalculationResult.warnings.length > 0) {
-        result.warnings.push(...recalculationResult.warnings);
-      }
-
-      this.log('Consolidation score incremental recalculation completed', {
-        processed: recalculationResult.processed,
-        updated: recalculationResult.updated,
-        skipped: recalculationResult.skipped,
-        errors: recalculationResult.errors.length
-      });
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Consolidation score incremental recalculation failed:', error, 'error');
-    } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
-    }
-
-    return result;
+    return runConsolidationScoreIncremental(this.buildRunContext());
   }
 
   /**
@@ -614,118 +568,14 @@ export class BatchScheduler implements IBatchScheduler {
    * 타임아웃 및 강제 종료 로직 포함
    */
   private async runWeeklyRelationValidation(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'weekly_relation_validation',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      this.log('Starting weekly relation validation...');
-
-      // RelationValidatorExecutor를 사용하여 스크립트 실행
-      const timeout = this.config.weeklyRelationValidationTimeout ?? this.config.jobTimeout;
-      const executorResult = await this.relationValidatorExecutor.execute([], timeout);
-
-      result.success = executorResult.success;
-      result.endTime = new Date();
-      result.duration = executorResult.duration;
-      result.processed = 1;
-
-      if (executorResult.error) {
-        result.errors.push(executorResult.error);
-      }
-
-      if (executorResult.success) {
-        this.log('Weekly relation validation completed successfully', {
-          duration: result.duration,
-          stdout: executorResult.stdout.substring(0, 500) // 처음 500자만 로그
-        });
-      } else {
-        this.log('Weekly relation validation failed', {
-          error: executorResult.error,
-          duration: result.duration,
-          stderr: executorResult.stderr.substring(0, 500)
-        }, 'error');
-      }
-
-    } catch (error) {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - startTime.getTime();
-      result.errors.push(error instanceof Error ? error.message : String(error));
-
-      this.log('Weekly relation validation failed', {
-        error: error instanceof Error ? error.message : String(error),
-        duration: result.duration
-      }, 'error');
-    }
-
-    return result;
+    return runWeeklyRelationValidation(this.buildRunContext());
   }
 
   /**
    * Consolidation Score 전체 스윕 작업 실행
    */
   private async runConsolidationScoreFullSweep(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const result: BatchJobResult = {
-      jobType: 'consolidation_score_full_sweep',
-      startTime,
-      endTime: new Date(),
-      duration: 0,
-      success: false,
-      processed: 0,
-      errors: [],
-      warnings: []
-    };
-
-    try {
-      if (!this.db) {
-        throw new Error('Database not initialized');
-      }
-
-      if (!this.consolidationScoreWorker) {
-        throw new Error('ConsolidationScoreWorker not initialized');
-      }
-
-      this.log('Starting consolidation score full sweep recalculation');
-
-      const recalculationResult = await this.consolidationScoreWorker.runFullSweep(this.db);
-
-      result.success = recalculationResult.success;
-      result.processed = recalculationResult.processed;
-      result.details = recalculationResult;
-      
-      if (recalculationResult.errors.length > 0) {
-        result.errors.push(...recalculationResult.errors);
-      }
-      if (recalculationResult.warnings.length > 0) {
-        result.warnings.push(...recalculationResult.warnings);
-      }
-
-      this.log('Consolidation score full sweep recalculation completed', {
-        processed: recalculationResult.processed,
-        updated: recalculationResult.updated,
-        skipped: recalculationResult.skipped,
-        errors: recalculationResult.errors.length,
-        duration: recalculationResult.duration
-      });
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
-      this.log('Consolidation score full sweep recalculation failed:', error, 'error');
-    } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
-    }
-
-    return result;
+    return runConsolidationScoreFullSweep(this.buildRunContext());
   }
 
   /**
@@ -1277,61 +1127,7 @@ export class BatchScheduler implements IBatchScheduler {
    * 30일 이상 된 Triple 추출 로그 파일을 삭제합니다.
    */
   private async runLogRotation(): Promise<BatchJobResult> {
-    const startTime = new Date();
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    let deletedCount = 0;
-
-    try {
-      this.log('Starting log rotation...', { jobType: 'log_rotation' });
-      
-      // Triple 추출 로그 파일 정리 (30일 이상 된 파일 삭제)
-      deletedCount = await tripleExtractionLogger.deleteOldLogs(30);
-      
-      this.log('Log rotation completed', {
-        jobType: 'log_rotation',
-        deletedFiles: deletedCount
-      });
-
-      if (deletedCount > 0) {
-        this.log(`Deleted ${deletedCount} old log file(s)`, {
-          jobType: 'log_rotation',
-          retentionDays: 30
-        });
-      }
-
-      const endTime = new Date();
-      return {
-        jobType: 'log_rotation',
-        startTime,
-        endTime,
-        duration: endTime.getTime() - startTime.getTime(),
-        success: true,
-        processed: deletedCount,
-        errors,
-        warnings
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      errors.push(errorMessage);
-      
-      this.log('Log rotation failed', {
-        jobType: 'log_rotation',
-        error: errorMessage
-      }, 'error');
-
-      const endTime = new Date();
-      return {
-        jobType: 'log_rotation',
-        startTime,
-        endTime,
-        duration: endTime.getTime() - startTime.getTime(),
-        success: false,
-        processed: deletedCount,
-        errors,
-        warnings
-      };
-    }
+    return runLogRotation(this.buildRunContext());
   }
 
   /**
