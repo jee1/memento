@@ -4,7 +4,12 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { EmbeddingProvider,EmbeddingResult } from '../../../shared/types/embedding.types.js';
+import type {
+  EmbeddingProvider,
+  EmbeddingResult,
+  VectorCompatibilityAssessment,
+  VectorCompatibilityIssue
+} from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
@@ -88,6 +93,139 @@ export class MemoryEmbeddingService {
     return this.embeddingService;
   }
 
+  private writeEmbeddingStderr(level: 'warn' | 'error' | 'info', message: string): void {
+    const prefix =
+      level === 'warn' ? '[WARN] ' : level === 'error' ? '[ERROR] ' : '[INFO] ';
+    process.stderr.write(`${prefix}${message}\n`);
+  }
+
+  private getBlockingCompatibilityIssues(
+    compatibility: VectorCompatibilityAssessment
+  ): VectorCompatibilityIssue[] {
+    return compatibility.issues.filter(
+      (issue) => issue.severity === 'error' && issue.code !== 'dimension_mismatch'
+    );
+  }
+
+  private emitCompatibilityDiagnosticsForCreate(
+    compatibility: VectorCompatibilityAssessment
+  ): void {
+    const projection = compatibility.projection;
+    if (compatibility.needsProjection) {
+      const dimensionIssue = compatibility.issues.find((issue) => issue.code === 'dimension_mismatch');
+      if (dimensionIssue) {
+        this.writeEmbeddingStderr('warn', dimensionIssue.message);
+      }
+      this.writeEmbeddingStderr(
+        'info',
+        `벡터 차원 조정: ${projection.sourceDimensions} → ${projection.targetDimensions} (${projection.projectionType})`
+      );
+    }
+    compatibility.issues
+      .filter((issue) => issue.severity === 'warning')
+      .forEach((issue) => this.writeEmbeddingStderr('warn', `임베딩 경고: ${issue.message}`));
+  }
+
+  private async insertMemoryEmbeddingForCreate(
+    db: Database.Database,
+    memoryId: string,
+    provider: EmbeddingProvider,
+    embeddingResult: EmbeddingResult,
+    compatibility: VectorCompatibilityAssessment
+  ): Promise<void> {
+    const projection = compatibility.projection;
+    const storedVector = projection.vector;
+    const serializedEmbedding = JSON.stringify(storedVector);
+    const sourceDimensions = projection.sourceDimensions;
+    const storedDimensions = projection.targetDimensions;
+    const projectionType = projection.projectionType;
+    const normalized = projection.normalized ? 1 : 0;
+
+    await DatabaseUtils.run(
+      db,
+      `
+        INSERT OR REPLACE INTO memory_embedding (
+          memory_id,
+          embedding_provider,
+          projection_type,
+          embedding,
+          dim,
+          model,
+          dimensions,
+          precision,
+          normalized,
+          version,
+          created_by,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `,
+      [
+        memoryId,
+        provider,
+        projectionType,
+        serializedEmbedding,
+        sourceDimensions,
+        embeddingResult.model,
+        storedDimensions,
+        32,
+        normalized,
+        1,
+        this.createdByTag
+      ]
+    );
+  }
+
+  private buildVecSimilarityQuery(
+    provider: EmbeddingProvider,
+    tableName: string,
+    filters?: { type?: MemoryType[]; limit?: number; threshold?: number }
+  ): { sql: string; params: unknown[] } {
+    const typeFilter = filters?.type
+      ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')'
+      : '';
+    const sql =
+      'SELECT ' +
+      '  m.id, ' +
+      '  m.content, ' +
+      '  m.type, ' +
+      '  m.importance, ' +
+      '  m.created_at, ' +
+      '  m.last_accessed, ' +
+      '  m.pinned, ' +
+      '  m.tags, ' +
+      '  v.distance as similarity, ' +
+      '  (1 - v.distance) as score ' +
+      'FROM memory_item m ' +
+      'JOIN memory_embedding me ON m.id = me.memory_id ' +
+      'JOIN ' +
+      tableName +
+      ' v ON me.id = v.rowid ' +
+      'WHERE me.embedding_provider = ? ' +
+      typeFilter +
+      ' ' +
+      'ORDER BY v.distance ASC ' +
+      'LIMIT ?';
+
+    const params: unknown[] = [provider, ...(filters?.type || []), filters?.limit || 10];
+    return { sql, params };
+  }
+
+  private mapSimilaritySearchRows(rows: SimilaritySearchRow[]): VectorSearchResult[] {
+    return rows.map((row) => ({
+      id: row.id,
+      content: row.content,
+      type: row.type,
+      importance: row.importance,
+      created_at: row.created_at,
+      last_accessed: row.last_accessed ?? undefined,
+      pinned: Boolean(row.pinned),
+      tags: this.safeParseTags(row.tags),
+      similarity: row.similarity,
+      score: row.score
+    }));
+  }
+
   /**
    * sqlite-vec 확장 로드
    * init.ts와 동일한 방식으로 sqlite-vec 패키지의 getLoadablePath() 사용
@@ -105,7 +243,10 @@ export class MemoryEmbeddingService {
       const g = globalThis as GlobalWithVecWarning;
       if (!g.__vecExtensionLoadWarningShown) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        process.stderr.write(`⚠️ sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용): ${maskedError.message}\n`);
+        this.writeEmbeddingStderr(
+          'warn',
+          `sqlite-vec 확장 로드 실패 (TF-IDF fallback 사용): ${maskedError.message}`
+        );
         g.__vecExtensionLoadWarningShown = true;
       }
     }
@@ -118,19 +259,17 @@ export class MemoryEmbeddingService {
     db: Database.Database,
     memoryId: string,
     content: string,
-    type: MemoryType,
+    _type: MemoryType,
     preferredProvider?: EmbeddingProvider
   ): Promise<EmbeddingResult | null> {
     if (!this.embeddingService.isAvailable()) {
-      process.stderr.write('⚠️ 임베딩 서비스가 사용 불가능합니다. 임베딩을 건너뜁니다.\n');
+      this.writeEmbeddingStderr('warn', '임베딩 서비스가 사용 불가능합니다. 임베딩을 건너뜁니다.');
       return null;
     }
 
     try {
-      // sqlite-vec 확장 로드 (비동기)
       await this.loadVecExtension(db);
-      
-      // 임베딩 생성
+
       const embeddingResult = await this.embeddingService.generateEmbedding(content, preferredProvider);
       if (!embeddingResult) {
         return null;
@@ -138,7 +277,7 @@ export class MemoryEmbeddingService {
 
       const embeddingVector = Array.isArray(embeddingResult.embedding) ? embeddingResult.embedding : [];
       if (embeddingVector.length === 0) {
-        process.stderr.write(`⚠️ 임베딩 결과가 비어 있어 저장을 건너뜁니다. memoryId=${memoryId}\n`);
+        this.writeEmbeddingStderr('warn', `임베딩 결과가 비어 있어 저장을 건너뜁니다. memoryId=${memoryId}`);
         return null;
       }
 
@@ -146,87 +285,28 @@ export class MemoryEmbeddingService {
         embeddingResult.provider ?? this.embeddingService.getCurrentProviderName() ?? undefined
       );
 
-      const compatibility = vectorCompatibilityService.assessProviderCompatibility(
-        embeddingVector,
-        provider
-      );
-
-      const blockingIssues = compatibility.issues.filter(
-        issue => issue.severity === 'error' && issue.code !== 'dimension_mismatch'
-      );
+      const compatibility = vectorCompatibilityService.assessProviderCompatibility(embeddingVector, provider);
+      const blockingIssues = this.getBlockingCompatibilityIssues(compatibility);
 
       if (blockingIssues.length > 0) {
-        const errorMessages = blockingIssues.map(issue => issue.message).join(', ');
-        process.stderr.write(`❌ 임베딩 벡터 검증 실패: ${errorMessages}\n`);
+        const errorMessages = blockingIssues.map((issue) => issue.message).join(', ');
+        this.writeEmbeddingStderr('error', `임베딩 벡터 검증 실패: ${errorMessages}`);
         return null;
       }
 
-      const projection = compatibility.projection;
-      const storedVector = projection.vector;
-      const serializedEmbedding = JSON.stringify(storedVector);
-      const sourceDimensions = projection.sourceDimensions;
-      const storedDimensions = projection.targetDimensions;
-      const projectionType = projection.projectionType;
-      const normalized = projection.normalized ? 1 : 0;
+      this.emitCompatibilityDiagnosticsForCreate(compatibility);
 
-      if (compatibility.needsProjection) {
-        const dimensionIssue = compatibility.issues.find(
-          issue => issue.code === 'dimension_mismatch'
-        );
-        if (dimensionIssue) {
-          process.stderr.write(`⚠️ ${dimensionIssue.message}\n`);
-        }
-        process.stderr.write(`🔄 벡터 차원 조정: ${sourceDimensions} → ${storedDimensions} (${projectionType})\n`);
-      }
-
-      compatibility.issues
-        .filter(issue => issue.severity === 'warning')
-        .forEach(issue => process.stderr.write(`⚠️ 임베딩 경고: ${issue.message}\n`));
-
-      // metadata 보정 (기존 레거시 행 대비)
       await this.ensureMetadataDefaults(db);
+      await this.insertMemoryEmbeddingForCreate(db, memoryId, provider, embeddingResult, compatibility);
 
-      // memory_embedding 테이블에 저장 (트리거가 자동으로 vec0 테이블에 저장)
-      await DatabaseUtils.run(db, `
-        INSERT OR REPLACE INTO memory_embedding (
-          memory_id,
-          embedding_provider,
-          projection_type,
-          embedding,
-          dim,
-          model,
-          dimensions,
-          precision,
-          normalized,
-          version,
-          created_by,
-          created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `, [
-        memoryId,
-        provider,
-        projectionType,
-        serializedEmbedding,
-        sourceDimensions,
-        embeddingResult.model,
-        storedDimensions,
-        32,
-        normalized,
-        1,
-        this.createdByTag
-      ]);
-
-      // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
       return {
         ...embeddingResult,
         provider,
-        embedding: storedVector
+        embedding: compatibility.projection.vector
       };
-
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ 임베딩 저장 실패 (${memoryId}): ${maskedError.message}\n`);
+      this.writeEmbeddingStderr('error', `임베딩 저장 실패 (${memoryId}): ${maskedError.message}`);
       return null;
     }
   }
@@ -252,7 +332,7 @@ export class MemoryEmbeddingService {
     }
   ): Promise<SearchBySimilarityOutcome> {
     if (!this.embeddingService.isAvailable()) {
-      process.stderr.write('⚠️ 임베딩 서비스가 사용 불가능합니다.\n');
+      this.writeEmbeddingStderr('warn', '임베딩 서비스가 사용 불가능합니다.');
       return { results: [] };
     }
 
@@ -260,79 +340,31 @@ export class MemoryEmbeddingService {
     let queryEmbeddingProviders: EmbeddingProvider[] | undefined;
 
     try {
-      // 레거시 데이터에 대해 메타데이터 보정
       await this.ensureMetadataDefaults(db);
 
-      // 쿼리 임베딩 생성
       const queryEmbedding = await this.embeddingService.generateEmbedding(query);
       if (!queryEmbedding) {
         return { results: [] };
       }
 
-      // 제공자별 테이블에서 검색
       const provider = this.normalizeProvider(queryEmbedding.provider);
       queryEmbeddingProviders = [provider];
       const tableName = this.getVectorTableName(provider);
-      // SQL Injection 방지: 화이트리스트 검증은 getVectorTableName()에서 수행됨
-      
-      // vec0 테이블에서 유사도 검색
-      // 템플릿 리터럴 대신 문자열 연결 사용
-      const typeFilter = filters?.type 
-        ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')' 
-        : '';
-      const sqlQuery = 
-        'SELECT ' +
-        '  m.id, ' +
-        '  m.content, ' +
-        '  m.type, ' +
-        '  m.importance, ' +
-        '  m.created_at, ' +
-        '  m.last_accessed, ' +
-        '  m.pinned, ' +
-        '  m.tags, ' +
-        '  v.distance as similarity, ' +
-        '  (1 - v.distance) as score ' +
-        'FROM memory_item m ' +
-        'JOIN memory_embedding me ON m.id = me.memory_id ' +
-        'JOIN ' + tableName + ' v ON me.id = v.rowid ' +
-        'WHERE me.embedding_provider = ? ' +
-        typeFilter + ' ' +
-        'ORDER BY v.distance ASC ' +
-        'LIMIT ?';
-      
-      const similarities = await DatabaseUtils.all(db, sqlQuery, [
-        provider,
-        ...(filters?.type || []),
-        filters?.limit || 10
-      ]);
-
-      // 결과를 VectorSearchResult 형태로 변환
-      const results: VectorSearchResult[] = (similarities as SimilaritySearchRow[]).map((row) => ({
-        id: row.id,
-        content: row.content,
-        type: row.type,
-        importance: row.importance,
-        created_at: row.created_at,
-        last_accessed: row.last_accessed ?? undefined,
-        pinned: Boolean(row.pinned),
-        tags: this.safeParseTags(row.tags),
-        similarity: row.similarity,
-        score: row.score,
-      }));
+      const { sql, params } = this.buildVecSimilarityQuery(provider, tableName, filters);
+      const similarities = await DatabaseUtils.all(db, sql, params);
 
       return {
-        results,
-        query_embedding_providers: [provider],
+        results: this.mapSimilaritySearchRows(similarities as SimilaritySearchRow[]),
+        query_embedding_providers: [provider]
       };
-
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ 벡터 검색 실패: ${maskedError.message}\n`);
+      this.writeEmbeddingStderr('error', `벡터 검색 실패: ${maskedError.message}`);
       return {
         results: [],
         ...(queryEmbeddingProviders !== undefined
           ? { query_embedding_providers: queryEmbeddingProviders }
-          : {}),
+          : {})
       };
     }
   }
@@ -348,7 +380,7 @@ export class MemoryEmbeddingService {
       // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ 임베딩 삭제 실패 (${memoryId}): ${maskedError.message}\n`);
+      this.writeEmbeddingStderr('error', `임베딩 삭제 실패 (${memoryId}): ${maskedError.message}`);
     }
   }
 
@@ -362,7 +394,7 @@ export class MemoryEmbeddingService {
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`⚠️ 태그 JSON 파싱 실패, 빈 배열로 대체합니다. ${maskedError.message}\n`);
+      this.writeEmbeddingStderr('warn', `태그 JSON 파싱 실패, 빈 배열로 대체합니다. ${maskedError.message}`);
       return [];
     }
   }
@@ -425,7 +457,7 @@ export class MemoryEmbeddingService {
       };
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`❌ 임베딩 통계 조회 실패: ${maskedError.message}\n`);
+      this.writeEmbeddingStderr('error', `임베딩 통계 조회 실패: ${maskedError.message}`);
       return {
         totalEmbeddings: 0,
         averageDimensions: 0,
@@ -490,7 +522,7 @@ export class MemoryEmbeddingService {
       `, [this.defaultProvider]);
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      process.stderr.write(`⚠️ 임베딩 메타데이터 보정 실패: ${maskedError.message}\n`);
+      this.writeEmbeddingStderr('warn', `임베딩 메타데이터 보정 실패: ${maskedError.message}`);
     }
   }
 }
