@@ -369,6 +369,56 @@ async function recordBundledSchemaSqlMigrationBaseline(db: Database.Database): P
 }
 
 /**
+ * WAL/pragma, FTS5·sqlite-vec 확장, reflection_notes 정규화 UDF를 연결 직후에 적용한다.
+ */
+async function configureSqliteSession(db: Database.Database): Promise<void> {
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+
+  try {
+    if (process.env.NODE_ENV === 'production' || process.env.DOCKER === 'true') {
+      log('[ENV] Docker 환경에서 FTS5 사용 가능');
+    } else {
+      db.loadExtension('fts5');
+      log('[OK] FTS5 확장 로드 완료');
+    }
+  } catch (error) {
+    log('[WARN]  FTS5 확장 로드 실패, 기본 검색으로 전환:', error);
+  }
+
+  db.pragma('busy_timeout = 60000');
+  db.pragma('synchronous = NORMAL');
+  db.pragma('cache_size = 20000');
+  db.pragma('temp_store = MEMORY');
+  db.pragma('mmap_size = 268435456');
+  db.pragma('wal_autocheckpoint = 100');
+  db.pragma('journal_size_limit = 33554432');
+  db.pragma('wal_checkpoint(TRUNCATE)');
+  db.pragma('locking_mode = NORMAL');
+  db.pragma('read_uncommitted = 0');
+
+  db.function(
+    'normalize_reflection_notes',
+    {
+      deterministic: true,
+      varargs: false
+    },
+    (reflectionNotes: string | null) => {
+      return normalizeReflectionNotes(reflectionNotes);
+    }
+  );
+
+  try {
+    const { getLoadablePath } = await import('sqlite-vec');
+    const extensionPath = getLoadablePath();
+    db.loadExtension(extensionPath);
+    log('[OK] sqlite-vec 확장 로드 성공');
+  } catch (error) {
+    log('[WARN] sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
+  }
+}
+
+/**
  * @param overrideDbPath DB 경로 오버라이드 (createMementoCore 등 라이브러리 호출 시 사용). 미지정 시 mementoConfig.dbPath 사용.
  */
 export async function initializeDatabase(overrideDbPath?: string): Promise<Database.Database> {
@@ -392,55 +442,9 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
   try {
     // SQLite 데이터베이스 연결
     const db = new Database(dbPath);
-    
-    // WAL 모드 사용 (동시 읽기 성능 향상)
-    db.pragma('journal_mode = WAL');
-    
-    // 외래키 제약 조건 활성화
-    db.pragma('foreign_keys = ON');
-    
-    // FTS5 확장 로드 시도 (Docker 환경에서는 더 안정적)
-    try {
-      // Docker 환경에서는 FTS5가 기본적으로 포함되어 있음
-      if (process.env.NODE_ENV === 'production' || process.env.DOCKER === 'true') {
-        log('[ENV] Docker 환경에서 FTS5 사용 가능');
-      } else {
-        db.loadExtension('fts5');
-        log('[OK] FTS5 확장 로드 완료');
-      }
-    } catch (error) {
-      log('[WARN]  FTS5 확장 로드 실패, 기본 검색으로 전환:', error);
-    }
-    
-    db.pragma('busy_timeout = 60000');
-    db.pragma('synchronous = NORMAL');
-    db.pragma('cache_size = 20000');
-    db.pragma('temp_store = MEMORY');
-    db.pragma('mmap_size = 268435456');
-    db.pragma('wal_autocheckpoint = 100');
-    db.pragma('journal_size_limit = 33554432');
-    db.pragma('wal_checkpoint(TRUNCATE)');
-    db.pragma('locking_mode = NORMAL');
-    db.pragma('read_uncommitted = 0');
-    
-    // reflection_notes 정규화를 위한 사용자 정의 함수 등록
-    // 트리거에서 사용할 수 있도록 데이터베이스 연결 시점에 등록
-    db.function('normalize_reflection_notes', {
-      deterministic: true,
-      varargs: false
-    }, (reflectionNotes: string | null) => {
-      return normalizeReflectionNotes(reflectionNotes);
-    });
-    
-    try {
-      const { getLoadablePath } = await import('sqlite-vec');
-      const extensionPath = getLoadablePath();
-      db.loadExtension(extensionPath);
-      log('[OK] sqlite-vec 확장 로드 성공');
-    } catch (error) {
-      log('[WARN] sqlite-vec 확장 로드 실패 (벡터 검색 기능 비활성화):', error);
-    }
-    
+
+    await configureSqliteSession(db);
+
     // 마이그레이션 자동 실행 (스키마 실행 전에 확인)
     // 기존 DB가 있는지 확인하여 마이그레이션을 먼저 실행할지 결정
     const existingTables = db.prepare(`
