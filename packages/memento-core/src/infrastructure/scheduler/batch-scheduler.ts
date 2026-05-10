@@ -43,6 +43,7 @@ import {
   createEmptyBatchJobResult,
   finalizeBatchJobTiming
 } from './batch-scheduler-internal-helpers.js';
+import type { BatchSchedulerRunContext } from './handlers/batch-scheduler-run-context.js';
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
@@ -127,6 +128,60 @@ export class BatchScheduler implements IBatchScheduler {
       log: (m, d, l) => this.log(m, d, l),
       checkSchedulerHealth: () => this.checkSchedulerHealth()
     });
+  }
+
+  private buildRunContext(): BatchSchedulerRunContext {
+    const self = this;
+    return {
+      db: self.db,
+      config: self.config,
+      forgettingService: self.forgettingService,
+      performanceMonitor: self.performanceMonitor,
+      healthChecker: self.healthChecker,
+      jobQueue: self.jobQueue,
+      fileLogger: self.fileLogger,
+      relationValidatorExecutor: self.relationValidatorExecutor,
+      consolidationScoreWorker: self.consolidationScoreWorker,
+      introspectionScanCache: self.introspectionScanCache,
+      sleepConsolidationService: self.sleepConsolidationService,
+      telemetryCleanupRepository: self.telemetryCleanupRepository,
+      tripleExtractionBatchJob: {
+        get current() {
+          return self.tripleExtractionBatchJob;
+        },
+        set current(v) {
+          self.tripleExtractionBatchJob = v;
+        }
+      },
+      qualityMeasurementBatchJob: {
+        get current() {
+          return self.qualityMeasurementBatchJob;
+        },
+        set current(v) {
+          self.qualityMeasurementBatchJob = v;
+        }
+      },
+      sleepConsolidationBatchJob: {
+        get current() {
+          return self.sleepConsolidationBatchJob;
+        },
+        set current(v) {
+          self.sleepConsolidationBatchJob = v;
+        }
+      },
+      telemetryCleanupBatchJob: {
+        get current() {
+          return self.telemetryCleanupBatchJob;
+        },
+        set current(v) {
+          self.telemetryCleanupBatchJob = v;
+        }
+      },
+      lastExecution: self.lastExecution,
+      totalExecutions: self.totalExecutions,
+      log: self.log.bind(self),
+      emitMemoryReviewCandidatesRunRecord: self.emitMemoryReviewCandidatesRunRecord.bind(self)
+    };
   }
 
   /**
