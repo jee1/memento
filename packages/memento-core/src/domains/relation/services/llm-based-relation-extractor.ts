@@ -18,7 +18,7 @@ import type { ICacheService } from '../../../shared/interfaces/cache.interface.j
 import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
-import { CACHE,CONFIDENCE,LIMITS,LLM_COST,RATE_LIMITER,TIME } from '../../../shared/constants/relation-constants.js';
+import { CACHE, CONFIDENCE, LIMITS, LLM_COST, RATE_LIMITER, TIME } from '../../../shared/constants/relation-constants.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
 import type { EmbeddingData } from '../../../shared/types/embedding.types.js';
 import type { MemoryItem } from '../../../shared/types/index.js';
@@ -608,9 +608,11 @@ ${memoryList}
         return false;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { models?: Array<{ name?: string }> };
       const models = data.models || [];
-      return models.some((m: any) => m.name === model || m.name.startsWith(`${model}:`));
+      return models.some(
+        (m: { name?: string }) => m.name === model || (m.name?.startsWith(`${model}:`) ?? false)
+      );
     } catch (error) {
       logger.warn('Ollama 모델 확인 실패', { 
         error: error instanceof Error ? error.message : String(error),
@@ -619,6 +621,158 @@ ${memoryList}
       });
       return false;
     }
+  }
+
+  /** Ollama 디버그 로그용 요청/프롬프트 요약 (본문 전체는 길이 제한) */
+  private buildOllamaErrorLogContext(
+    requestBody: {
+      model: string;
+      messages: Array<{ role: string; content: string }>;
+      options: { temperature: number; num_predict: number };
+      format: 'json';
+    },
+    prompt: string
+  ): Record<string, unknown> {
+    return {
+      requestBody: {
+        ...requestBody,
+        messages: requestBody.messages.map(msg => ({
+          role: msg.role,
+          contentLength: msg.content.length,
+          contentPreview: msg.content.substring(0, 500),
+          contentFull:
+            msg.content.length < 2000
+              ? msg.content
+              : msg.content.substring(0, 1000) + '...' + msg.content.substring(msg.content.length - 1000)
+        }))
+      },
+      promptLength: prompt.length,
+      promptPreview: prompt.substring(0, 500),
+      promptFull:
+        prompt.length < 2000 ? prompt : prompt.substring(0, 1000) + '...' + prompt.substring(prompt.length - 1000)
+    };
+  }
+
+  /**
+   * Ollama /api/chat 응답 텍스트(NDJSON 또는 JSON)에서 assistant content와 메타 객체 추출
+   */
+  private parseOllamaChatResponsePayload(
+    responseText: string,
+    contentType: string,
+    http: { status: number; statusText: string; headers: Record<string, string> }
+  ): { content: string; data: Record<string, unknown> } {
+    const isNDJSON =
+      contentType.includes('application/x-ndjson') || contentType.includes('ndjson');
+
+    if (isNDJSON) {
+      const lines = responseText.trim().split('\n').filter((line): line is string => line.trim().length > 0);
+      const contentParts: string[] = [];
+      let lastData: Record<string, unknown> | null = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+        try {
+          const lineData = JSON.parse(line) as Record<string, unknown>;
+          lastData = lineData;
+          const message = lineData.message;
+          if (message && typeof message === 'object' && message !== null && 'content' in message) {
+            const c = (message as { content?: unknown }).content;
+            if (typeof c === 'string' && c.length > 0) {
+              contentParts.push(c);
+            }
+          }
+          if (lineData.done === true) {
+            break;
+          }
+        } catch (lineParseError) {
+          logger.warn('Ollama NDJSON 라인 파싱 실패', {
+            lineIndex: i,
+            linePreview: line.substring(0, 200),
+            error: lineParseError instanceof Error ? lineParseError.message : String(lineParseError),
+            responseTextLength: responseText.length,
+            responseTextPreview: responseText.substring(0, 500),
+            responseTextFull: responseText
+          });
+        }
+      }
+
+      const content = contentParts.join('');
+      const data: Record<string, unknown> = lastData ?? {};
+      if (data.message && typeof data.message === 'object' && data.message !== null) {
+        (data.message as { content: string }).content = content;
+      } else {
+        data.message = { role: 'assistant', content };
+      }
+      return { content, data };
+    }
+
+    try {
+      const data = JSON.parse(responseText) as Record<string, unknown>;
+      const message = data.message;
+      let content = '';
+      if (message && typeof message === 'object' && message !== null && 'content' in message) {
+        const c = (message as { content?: unknown }).content;
+        content = typeof c === 'string' ? c : '';
+      }
+      return { content, data };
+    } catch (parseError) {
+      logger.error('Ollama API 응답 JSON 파싱 실패', {
+        parseError: parseError instanceof Error ? parseError.message : String(parseError),
+        contentType,
+        isNDJSON,
+        responseTextLength: responseText.length,
+        responseTextPreview: responseText.substring(0, 500),
+        responseTextFull: responseText,
+        status: http.status,
+        statusText: http.statusText,
+        headers: http.headers
+      });
+      throw new Error(
+        `Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+      );
+    }
+  }
+
+  /** JSON.parse가 성공하는 최대 접두사로 `{`…`}` 블록 축소 (후행 노이즈 제거) */
+  private trimToValidJsonObject(content: string): string {
+    let finalJson = content;
+    const firstBraceFinal = finalJson.indexOf('{');
+    const lastBraceFinal = finalJson.lastIndexOf('}');
+    if (firstBraceFinal === -1 || lastBraceFinal === -1 || lastBraceFinal <= firstBraceFinal) {
+      return finalJson;
+    }
+    finalJson = finalJson.substring(firstBraceFinal, lastBraceFinal + 1).trim();
+    let validJson: string | null = null;
+    for (let i = finalJson.length; i > 0; i--) {
+      const testJson = finalJson.substring(0, i).trim();
+      if (testJson.endsWith('}')) {
+        try {
+          JSON.parse(testJson);
+          validJson = testJson;
+          break;
+        } catch {
+          // 계속 시도
+        }
+      }
+    }
+    return validJson ?? finalJson;
+  }
+
+  /** extractJSON + 중괄호 블록 + trimToValidJsonObject 순으로 관계 JSON 문자열 정리 */
+  private prepareOllamaRelationJsonContent(content: string): string {
+    let cleaned = content;
+    const extracted = this.extractJSON(content);
+    if (extracted) {
+      cleaned = extracted;
+    } else {
+      const firstBrace = content.indexOf('{');
+      const lastBrace = content.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = content.substring(firstBrace, lastBrace + 1).trim();
+      }
+    }
+    return this.trimToValidJsonObject(cleaned);
   }
 
   /**
@@ -677,24 +831,12 @@ ${memoryList}
           signal: AbortSignal.timeout(60000) // 60초 타임아웃
         });
       } catch (fetchError) {
-        // 에러 발생 시에만 요청 정보 로깅
         logger.error('Ollama API fetch 실패', {
           error: fetchError instanceof Error ? fetchError.message : String(fetchError),
           url: apiUrl,
           baseUrl,
           model,
-          requestBody: {
-            ...requestBody,
-            messages: requestBody.messages.map((msg: { role: string; content: string }) => ({
-              role: msg.role,
-              contentLength: msg.content.length,
-              contentPreview: msg.content.substring(0, 500),
-              contentFull: msg.content.length < 2000 ? msg.content : msg.content.substring(0, 1000) + '...' + msg.content.substring(msg.content.length - 1000)
-            }))
-          },
-          promptLength: prompt.length,
-          promptPreview: prompt.substring(0, 500),
-          promptFull: prompt.length < 2000 ? prompt : prompt.substring(0, 1000) + '...' + prompt.substring(prompt.length - 1000)
+          ...this.buildOllamaErrorLogContext(requestBody, prompt)
         });
         throw fetchError;
       }
@@ -734,96 +876,29 @@ ${memoryList}
         throw new Error(errorMessage);
       }
 
-      // 응답 본문 파싱
-      // Ollama는 NDJSON (Newline Delimited JSON) 형식으로 응답할 수 있습니다
       const contentType = response.headers.get('content-type') || '';
-      const isNDJSON = contentType.includes('application/x-ndjson') || contentType.includes('ndjson');
-      
-      let data: any;
-      let content = '';
-      
+      const isNDJSON =
+        contentType.includes('application/x-ndjson') || contentType.includes('ndjson');
+      const headerRecord = Object.fromEntries(response.headers.entries());
+
       let responseText = '';
+      let data: Record<string, unknown>;
+      let content = '';
       try {
         responseText = await response.text();
-        
-        if (isNDJSON) {
-          // NDJSON 형식 처리: 각 줄을 개별 JSON 객체로 파싱
-          const lines = responseText.trim().split('\n').filter((line): line is string => line.trim().length > 0);
-          
-          let lastData: any = null;
-          const contentParts: string[] = [];
-          
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (!line) continue;
-            
-            try {
-              const lineData = JSON.parse(line);
-              lastData = lineData; // 마지막 줄의 메타데이터 사용
-              
-              // message.content가 있으면 합치기
-              if (lineData.message?.content) {
-                contentParts.push(lineData.message.content);
-              }
-              
-              // done이 true이면 완료
-              if (lineData.done === true) {
-                break;
-              }
-            } catch (lineParseError) {
-              // 에러 발생 시에만 로깅
-              logger.warn('Ollama NDJSON 라인 파싱 실패', {
-                lineIndex: i,
-                linePreview: line.substring(0, 200),
-                error: lineParseError instanceof Error ? lineParseError.message : String(lineParseError),
-                responseTextLength: responseText.length,
-                responseTextPreview: responseText.substring(0, 500),
-                responseTextFull: responseText
-              });
-              // 계속 진행
-            }
-          }
-          
-          // content 합치기
-          content = contentParts.join('');
-          
-          // 마지막 데이터를 메인 데이터로 사용 (메타데이터 포함)
-          data = lastData || {};
-          
-          // content를 message에 설정
-          if (data.message) {
-            data.message.content = content;
-          } else {
-            data.message = { role: 'assistant', content };
-          }
-        } else {
-          // 일반 JSON 형식 처리
-          try {
-            data = JSON.parse(responseText);
-            content = data.message?.content || '';
-          } catch (parseError) {
-            // 에러 발생 시에만 상세 로깅
-            logger.error('Ollama API 응답 JSON 파싱 실패', {
-              parseError: parseError instanceof Error ? parseError.message : String(parseError),
-              contentType,
-              isNDJSON,
-              responseTextLength: responseText.length,
-              responseTextPreview: responseText.substring(0, 500),
-              responseTextFull: responseText,
-              status: response.status,
-              statusText: response.statusText,
-              headers: Object.fromEntries(response.headers.entries())
-            });
-            throw new Error(`Ollama 응답 JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
-          }
-        }
+        const parsed = this.parseOllamaChatResponsePayload(responseText, contentType, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: headerRecord
+        });
+        data = parsed.data;
+        content = parsed.content;
       } catch (textError) {
-        // 에러 발생 시에만 상세 로깅
         logger.error('Ollama API 응답 본문 읽기 실패', {
           textError: textError instanceof Error ? textError.message : String(textError),
           status: response.status,
           statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries()),
+          headers: headerRecord,
           contentType,
           isNDJSON,
           responseTextLength: responseText.length,
@@ -832,18 +907,19 @@ ${memoryList}
         });
         throw textError;
       }
-      
-      // content가 없으면 data.message?.content에서 가져오기
-      if (!content && data.message?.content) {
-        content = data.message.content;
+
+      if (!content && data.message && typeof data.message === 'object' && data.message !== null) {
+        const mc = (data.message as { content?: unknown }).content;
+        if (typeof mc === 'string') {
+          content = mc;
+        }
       }
-      
+
       if (!content) {
-        // 에러 발생 시에만 상세 로깅
         logger.error('Ollama 응답이 비어있습니다', {
           status: response.status,
           statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries()),
+          headers: headerRecord,
           contentType,
           isNDJSON,
           responseTextLength: responseText.length,
@@ -854,84 +930,28 @@ ${memoryList}
         throw new Error('Ollama 응답이 비어있습니다.');
       }
 
-      // 비용 모니터링 (Ollama는 로컬이므로 비용 0)
-      const promptTokens = data.prompt_eval_count || 0;
-      const completionTokens = data.eval_count || 0;
+      const promptTokens =
+        typeof data.prompt_eval_count === 'number' ? data.prompt_eval_count : 0;
+      const completionTokens = typeof data.eval_count === 'number' ? data.eval_count : 0;
       this.calculateAndLogCost('ollama', promptTokens, completionTokens);
 
-      // Given: Ollama 응답 내용 (JSON 형식이어야 하지만 추가 텍스트가 포함될 수 있음)
-      // When: JSON 파싱 시도
-      // Ollama는 format: 'json' 옵션을 사용하더라도 일부 모델은 JSON 뒤에 추가 텍스트를 포함할 수 있습니다
-      // 따라서 먼저 extractJSON으로 정리한 후 파싱을 시도합니다
-      let cleanedContent = content;
-      const extractedJson = this.extractJSON(content);
-      if (extractedJson) {
-        cleanedContent = extractedJson;
-      } else {
-        // extractJSON이 실패한 경우, 수동으로 첫 번째 '{'부터 마지막 '}'까지 추출
-        const firstBrace = content.indexOf('{');
-        const lastBrace = content.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          cleanedContent = content.substring(firstBrace, lastBrace + 1).trim();
-        }
-      }
-      
-      // JSON 파싱을 시도하기 전에 한 번 더 정리
-      // "Unexpected non-whitespace character after JSON" 에러를 방지합니다.
-      // 첫 번째 '{'부터 마지막 '}'까지만 추출하고, 그 사이의 모든 텍스트를 제거
-      let finalJson = cleanedContent;
-      const firstBraceFinal = finalJson.indexOf('{');
-      const lastBraceFinal = finalJson.lastIndexOf('}');
-      
-      if (firstBraceFinal !== -1 && lastBraceFinal !== -1 && lastBraceFinal > firstBraceFinal) {
-        finalJson = finalJson.substring(firstBraceFinal, lastBraceFinal + 1).trim();
-        
-        // JSON.parse()가 성공할 때까지 끝 부분을 점진적으로 제거
-        let validJson = null;
-        for (let i = finalJson.length; i > 0; i--) {
-          const testJson = finalJson.substring(0, i).trim();
-          if (testJson.endsWith('}')) {
-            try {
-              JSON.parse(testJson);
-              validJson = testJson;
-              break;
-            } catch {
-              // 계속 시도
-            }
-          }
-        }
-        
-        if (validJson) {
-          finalJson = validJson;
-        }
-      }
-      
+      const finalJson = this.prepareOllamaRelationJsonContent(content);
+
       const parseResult = this.parseLLMResponse(finalJson);
       if (!parseResult.success) {
-        // Then: 파싱 실패 시 상세한 에러 정보와 함께 예외 발생
         logger.error('Ollama 응답 파싱 실패', {
           error: parseResult.error,
           contentLength: content.length,
-          cleanedLength: cleanedContent.length,
           finalLength: finalJson.length,
           contentPreview: content.substring(0, 500),
-          cleanedPreview: cleanedContent.substring(0, 500),
           finalPreview: finalJson.substring(0, 500),
-          contentFull: content.length < 2000 ? content : content.substring(0, 1000) + '...' + content.substring(content.length - 1000),
+          contentFull:
+            content.length < 2000
+              ? content
+              : content.substring(0, 1000) + '...' + content.substring(content.length - 1000),
           model: mementoConfig.ollamaModel,
           baseUrl: mementoConfig.ollamaBaseUrl,
-          requestBody: {
-            ...requestBody,
-            messages: requestBody.messages.map((msg: { role: string; content: string }) => ({
-              role: msg.role,
-              contentLength: msg.content.length,
-              contentPreview: msg.content.substring(0, 500),
-              contentFull: msg.content.length < 2000 ? msg.content : msg.content.substring(0, 1000) + '...' + msg.content.substring(msg.content.length - 1000)
-            }))
-          },
-          promptLength: prompt.length,
-          promptPreview: prompt.substring(0, 500),
-          promptFull: prompt.length < 2000 ? prompt : prompt.substring(0, 1000) + '...' + prompt.substring(prompt.length - 1000),
+          ...this.buildOllamaErrorLogContext(requestBody, prompt),
           responseTextLength: responseText.length,
           responseTextPreview: responseText.substring(0, 500),
           responseTextFull: responseText,
@@ -939,29 +959,17 @@ ${memoryList}
           isNDJSON,
           status: response.status,
           statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries())
+          headers: headerRecord
         });
         throw new Error(`LLM 응답 파싱 실패: ${parseResult.error}`);
       }
       return parseResult;
     } catch (error) {
-      // 에러 발생 시에만 상세 로깅
-      logger.error('Ollama 호출 실패', { 
+      logger.error('Ollama 호출 실패', {
         error: error instanceof Error ? error.message : String(error),
         baseUrl: mementoConfig.ollamaBaseUrl,
         model: mementoConfig.ollamaModel,
-        requestBody: {
-          ...requestBody,
-          messages: requestBody.messages.map(msg => ({
-            role: msg.role,
-            contentLength: msg.content.length,
-            contentPreview: msg.content.substring(0, 500),
-            contentFull: msg.content.length < 2000 ? msg.content : msg.content.substring(0, 1000) + '...' + msg.content.substring(msg.content.length - 1000)
-          }))
-        },
-        promptLength: prompt.length,
-        promptPreview: prompt.substring(0, 500),
-        promptFull: prompt.length < 2000 ? prompt : prompt.substring(0, 1000) + '...' + prompt.substring(prompt.length - 1000)
+        ...this.buildOllamaErrorLogContext(requestBody, prompt)
       });
       throw error;
     }
