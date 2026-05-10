@@ -8,6 +8,7 @@ import express from 'express';
 import http from 'http';
 import Database from 'better-sqlite3';
 import { createAdminRouter } from './admin.routes.js';
+import { resetBatchRunHistoryForTests } from '../batch-run-history.js';
 import { resetReviewCandidatesSseHubForTests } from '../review-candidates-sse-hub.js';
 import type { ServerServices } from '../bootstrap.js';
 import {
@@ -18,6 +19,7 @@ import {
   TelemetryDailyMetricsMigration,
   MetaMemoryStatsSchemaMigration,
   MemoryReviewCandidateSchemaMigration,
+  ReviewQueueHealthSnapshotMigration,
   upsertPendingMemoryReviewCandidates,
   getBatchScheduler,
   resetBatchScheduler
@@ -989,6 +991,7 @@ describe('admin.routes memory review candidates', () => {
     createBaseSchema(db);
     await new MetaMemoryStatsSchemaMigration().up(db);
     await new MemoryReviewCandidateSchemaMigration().up(db);
+    await new ReviewQueueHealthSnapshotMigration().up(db);
     db.exec(`
       INSERT INTO memory_item (id, type, content, importance, privacy_scope, created_at, pinned, is_deleted, deleted_at)
       VALUES (
@@ -1202,6 +1205,65 @@ describe('admin.routes memory review candidates', () => {
     } finally {
       await scheduler.stop();
       resetBatchScheduler();
+      resetBatchRunHistoryForTests();
+    }
+  });
+
+  it('GET /admin/batch/run-history is empty before any manual run (#295)', async () => {
+    resetBatchRunHistoryForTests();
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const histRes = await getAdmin(port, '/admin/batch/run-history');
+      expect(histRes.statusCode).toBe(200);
+      const body = JSON.parse(histRes.body) as { entries?: unknown[] };
+      expect(body.entries).toEqual([]);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/batch/run-history lists entry after POST /admin/batch/run (#295)', async () => {
+    resetBatchRunHistoryForTests();
+    resetBatchScheduler();
+    const scheduler = getBatchScheduler();
+    await scheduler.start(db);
+    try {
+      const { server, port } = await listen(makeApp(db));
+      try {
+        const postRes = await postAdminJson(port, '/admin/batch/run', { jobType: 'memory_review_candidates' });
+        expect(postRes.statusCode).toBe(200);
+        const histRes = await getAdmin(port, '/admin/batch/run-history?limit=10');
+        expect(histRes.statusCode).toBe(200);
+        const body = JSON.parse(histRes.body) as {
+          entries?: Array<{ jobType?: string; success?: boolean }>;
+        };
+        expect(Array.isArray(body.entries)).toBe(true);
+        expect(body.entries?.length).toBeGreaterThanOrEqual(1);
+        expect(body.entries?.[0]?.jobType).toBe('memory_review_candidates');
+        expect(body.entries?.[0]?.success).toBe(true);
+      } finally {
+        await new Promise<void>(r => server.close(() => r()));
+      }
+    } finally {
+      await scheduler.stop();
+      resetBatchScheduler();
+      resetBatchRunHistoryForTests();
+    }
+  });
+
+  it('GET /admin/memory/review-candidates/metrics returns live + snapshots (#294)', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/memory/review-candidates/metrics?history_limit=10');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        live?: { pendingTotal?: number; window1h?: { netFlow?: number } };
+        snapshots?: unknown[];
+      };
+      expect(body.live?.pendingTotal).toBe(1);
+      expect(Array.isArray(body.snapshots)).toBe(true);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
     }
   });
 

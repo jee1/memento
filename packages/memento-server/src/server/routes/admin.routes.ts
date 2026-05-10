@@ -18,6 +18,9 @@ import {
   listMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
+  computeMemoryReviewQueueHealthLive,
+  maybeRecordMemoryReviewQueueHealthSnapshot,
+  listMemoryReviewQueueHealthSnapshots,
   parseAdminMemoryItemIdParam,
   getAdminMemoryItemPreviewById,
   MemoryReviewCandidateError,
@@ -29,10 +32,15 @@ import { registerAdminRelationRoutes } from './admin/admin-relations.routes.js';
 import { registerAdminTelemetryRoutes } from './admin/admin-telemetry.routes.js';
 import { registerAdminGraphRoute } from './admin/admin-graph.routes.js';
 import { registerAdminEmbeddingMapRoute } from './admin/admin-embedding-map.routes.js';
+import { attachReviewCandidatesSse } from '../review-candidates-sse-hub.js';
+import { broadcastReviewCandidatesChanged } from '../review-candidates-changed-fanout.js';
 import {
-  attachReviewCandidatesSse,
-  notifyReviewCandidatesChanged
-} from '../review-candidates-sse-hub.js';
+  BATCH_RUN_HISTORY_DEFAULT_LIMIT,
+  BATCH_RUN_HISTORY_MAX_STORED,
+  getManualBatchRunHistory,
+  recordManualBatchRunFailure,
+  recordManualBatchRunSuccess
+} from '../batch-run-history.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -364,6 +372,44 @@ export function createAdminRouter(
     }
   });
 
+  /** Pending queue health aggregates + optional snapshot history (#294). */
+  router.get('/memory/review-candidates/metrics', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+      }
+      const raw = req.query['history_limit'];
+      const parsed = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number.NaN;
+      const historyLimit = Number.isFinite(parsed) ? parsed : 48;
+      maybeRecordMemoryReviewQueueHealthSnapshot(db, 50 * 60 * 1000);
+      const live = computeMemoryReviewQueueHealthLive(db);
+      const snapshots = listMemoryReviewQueueHealthSnapshots(db, historyLimit);
+      logger.info('review_queue_health', {
+        pending_total: live.pendingTotal,
+        net_flow_1h: live.window1h.netFlow,
+        created_1h: live.window1h.candidatesCreated,
+        processed_1h: live.window1h.processedTotal,
+        snapshots_returned: snapshots.length,
+      });
+      return res.json({
+        message: 'Pending review queue health',
+        live,
+        snapshots,
+        snapshotNote:
+          'Snapshots append after each memory_review_candidates batch job and may append here when stale (≥50min since last sample).',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Review queue metrics failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to load review queue metrics',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
   /** SSE: pending queue updates (same session as GET list; #276). */
   router.get('/memory/review-candidates/stream', (_req, res) => {
     try {
@@ -393,7 +439,7 @@ export function createAdminRouter(
       const nowIso = new Date().toISOString();
       markMemoryReviewCandidateReviewed(db, id, nowIso);
       const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
-      notifyReviewCandidatesChanged('review');
+      broadcastReviewCandidatesChanged({ reason: 'review' });
       return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
     } catch (error) {
       if (error instanceof MemoryReviewCandidateError) {
@@ -421,7 +467,7 @@ export function createAdminRouter(
       const nowIso = new Date().toISOString();
       markMemoryReviewCandidateDismissed(db, id, nowIso);
       const row = listMemoryReviewCandidates(db, {}).find(r => r.id === id);
-      notifyReviewCandidatesChanged('dismiss');
+      broadcastReviewCandidatesChanged({ reason: 'dismiss' });
       return res.json({ ok: true, candidate: row ?? null, timestamp: nowIso });
     } catch (error) {
       if (error instanceof MemoryReviewCandidateError) {
@@ -459,8 +505,37 @@ export function createAdminRouter(
     }
   });
 
+  /** Manual POST /admin/batch/run execution trail (#295, in-memory per process) */
+  router.get('/batch/run-history', (req, res) => {
+    try {
+      const raw = req.query['limit'];
+      const parsed =
+        typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
+      const floored = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : BATCH_RUN_HISTORY_DEFAULT_LIMIT;
+      const limit = Math.min(Math.max(1, floored), BATCH_RUN_HISTORY_MAX_STORED);
+      const slice = getManualBatchRunHistory(limit);
+
+      res.json({
+        message: 'Manual batch run history (POST /admin/batch/run)',
+        entries: slice,
+        limit,
+        maxStored: BATCH_RUN_HISTORY_MAX_STORED,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Batch run history retrieval failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      res.status(500).json({
+        error: '배치 실행 이력 조회 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // 배치 작업 실행
   router.post('/batch/run', async (req, res) => {
+    const requestedAt = new Date();
     try {
       const { jobType } = req.body;
 
@@ -472,9 +547,10 @@ export function createAdminRouter(
 
       const batchScheduler = getBatchScheduler();
       const result = await batchScheduler.runJob(jobType);
+      recordManualBatchRunSuccess(jobType, requestedAt, result);
 
       if (jobType === 'memory_review_candidates') {
-        notifyReviewCandidatesChanged('batch_memory_review_candidates');
+        broadcastReviewCandidatesChanged({ reason: 'batch_memory_review_candidates' });
       }
 
       return res.json({
@@ -483,6 +559,11 @@ export function createAdminRouter(
         timestamp: new Date().toISOString()
       });
     } catch (error) {
+      const body = req.body as { jobType?: string };
+      const jt = body?.jobType;
+      if (jt && ['cleanup', 'monitoring', 'memory_review_candidates'].includes(jt)) {
+        recordManualBatchRunFailure(jt, requestedAt, new Date(), error instanceof Error ? error.message : String(error));
+      }
       logger.error('Batch job execution failed', {
         error: error instanceof Error ? error.message : String(error)
       });

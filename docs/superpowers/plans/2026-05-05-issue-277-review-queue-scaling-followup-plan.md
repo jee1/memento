@@ -24,10 +24,12 @@
 1) `memory_review_candidates` 실행 메타 표준화
 - 산출물: 실행 시작/종료/지연/결과(성공, inserted, updated, error count) 이벤트 스키마
 - 완료 조건: 운영 로그/진단에서 동일 키로 집계 가능
+- 구현 참고 (Issue #293): `RuntimeDiagnosticsLogger` 경로(`app-events.jsonl`)에 `type: memory_review_candidates_run` 레코드가 기록된다. 고정 키는 `schema_version`, `job_name`, `started_at`, `finished_at`, `duration_ms`, `result`(`success`|`failure`), `inserted`, `updated`, `error_count`, `selected_count`, `first_error`이다. diagnostics가 비활성화된 프로세스에서는 동일 페이로드가 앱 로그 메시지 `memory_review_candidates_run`으로 출력된다.
 
 2) pending 큐 건강도 지표 추가
 - 산출물: pending 총량, 증가율, review/dismiss 처리량, 생성량 대비 처리량
 - 완료 조건: 주기별 추이 확인 가능(대시보드 또는 집계 로그)
+- 구현 상태(2026-05): `GET /admin/memory/review-candidates/metrics`(live 창별 집계 + 스냅샷 이력), `memory_review_queue_health_snapshot`(마이그레이션 034), 배치 `memory_review_candidates` 종료 시 스냅샷 append, 대시보드 Review Queue 패널에 건강 카드 표시 — [GitHub #294](https://github.com/jee1/memento/issues/294).
 
 3) 수동 실행 관측성 보강
 - 산출물: `/admin/batch/run` 실행 이력(잡 타입, 실행 시각, 결과) 추적 지점
@@ -36,26 +38,27 @@
 ### Track B: 큐 전환 준비 (트리거 충족 시 착수)
 
 4) 큐 경계 인터페이스 설계
-- 산출물: producer/consumer 계약(메시지 스키마, 버전, idempotency key)
+- 산출물: producer/consumer 계약(메시지 스키마, 버전, idempotency key) — 문서: [`docs/_work/solutions/2026-05-09-review-queue-boundary-idempotency-contract.md`](../../_work/solutions/2026-05-09-review-queue-boundary-idempotency-contract.md)
 - 완료 조건: 기존 코드와 병행 가능한 adapter 초안
 
 5) 이벤트 fan-out PoC
-- 산출물: review-candidates changed 이벤트를 in-process 외 경로로 전파하는 실험
+- 산출물: review-candidates changed 이벤트를 in-process 외 경로로 전파하는 실험 — **HTTP 릴레이(`MEMENTO_REVIEW_CANDIDATES_CHANGED_RELAY_URLS`) + 계약 봉투 JSON** ([`docs/_work/solutions/2026-05-09-review-queue-changed-event-fan-out-poc.md`](../../_work/solutions/2026-05-09-review-queue-changed-event-fan-out-poc.md), GitHub #297)
 - 완료 조건: 단일 노드/다중 노드 시나리오에서 이벤트 손실/지연 측정값 확보
 
 6) 재시도/DLQ 정책 문서화
 - 산출물: retry 횟수, backoff, DLQ 전환 기준, 수동 재처리 절차
 - 완료 조건: 장애 대응 런북 포함
+- 구현 상태(2026-05): [`docs/_work/solutions/2026-05-09-review-queue-retry-backoff-dlq-runbook.md`](../../_work/solutions/2026-05-09-review-queue-retry-backoff-dlq-runbook.md) — GitHub [#298](https://github.com/jee1/memento/issues/298)
 
 ### Track C: 멀티 인스턴스 정합성 강화 (필요 시)
 
 7) 스케줄 단일 실행 전략 선택
-- 산출물: leader election 또는 external trigger 비교 및 채택안
+- 산출물: leader election 또는 external trigger 비교 및 채택안 — [`docs/_work/solutions/2026-05-09-review-queue-schedule-single-runner-strategy.md`](../../_work/solutions/2026-05-09-review-queue-schedule-single-runner-strategy.md); 구현: `MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED` (기본 true), GitHub [#299](https://github.com/jee1/memento/issues/299)
 - 완료 조건: 중복 실행 방지 검증 시나리오 통과
 
 8) SSE 전략 재정의
-- 산출물: shared bus fan-out 또는 polling-only 단순화 ADR
-- 완료 조건: 멀티 인스턴스에서도 사용자 체감 일관성 기준 충족
+- 산출물: ~~shared bus fan-out 또는 polling-only 단순화 ADR~~ → **계층 전략 문서 확정** ([#300](https://github.com/jee1/memento/issues/300)): [`docs/_work/solutions/2026-05-09-review-queue-sse-multi-instance-strategy.md`](../../_work/solutions/2026-05-09-review-queue-sse-multi-instance-strategy.md) 및 ADR 후속 항목 6
+- 완료 조건: 멀티 인스턴스에서 **정합성 = 폴링**, SSE = 동일 인스턴스 힌트 + sticky 권장, 릴레이/버스는 게이트에 따른 Tier 2/3로 명시
 
 ## 4. 트리거 기반 게이트
 
@@ -85,7 +88,7 @@
 5. changed 이벤트 fan-out PoC
 6. retry/DLQ/런북 문서화
 7. 스케줄 단일 실행 전략 선택 및 검증
-8. SSE fan-out 또는 polling-only 전략 ADR 확정
+8. 멀티 인스턴스 SSE 전략 문서 확정 ([#300](https://github.com/jee1/memento/issues/300) — `docs/_work/solutions/2026-05-09-review-queue-sse-multi-instance-strategy.md`)
 
 ## 7. 완료 정의
 

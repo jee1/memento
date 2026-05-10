@@ -322,10 +322,67 @@ describe('BatchScheduler', () => {
       expect(result).toHaveProperty('success');
     });
 
+    it('memory_review_candidates 수동 실행 시 표준 run 메타 diagnostics를 남겨야 함', async () => {
+      const writeEvent = vi.fn().mockResolvedValue(undefined);
+      const diagnosticsScheduler = new BatchScheduler(
+        {
+          cleanupInterval: 60000,
+          monitoringInterval: 10000,
+          healthCheckInterval: 10000,
+          enableLogging: false,
+          maxConcurrentJobs: 1,
+          jobTimeout: 5000,
+          retryAttempts: 1,
+          retryDelay: 10
+        },
+        {
+          diagnosticsLogger: { writeEvent } as any
+        }
+      );
+
+      await diagnosticsScheduler.start(db);
+      await diagnosticsScheduler.runJob('memory_review_candidates');
+
+      expect(writeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'memory_review_candidates_run',
+          schema_version: 1,
+          job_name: 'memory_review_candidates',
+          result: 'success',
+          error_count: 0
+        })
+      );
+
+      await diagnosticsScheduler.stop();
+    });
+
     it('시작 후 activeJobs에 memory_review_candidates가 포함되어야 함', async () => {
       await scheduler.start(db);
       const status = scheduler.getStatus();
       expect(status.activeJobs).toContain('memory_review_candidates');
+    });
+
+    it('memoryReviewCandidatesSchedulerEnabled=false이면 주기 등록 없이 runJob는 동작해야 함', async () => {
+      const s = new BatchScheduler({
+        cleanupInterval: 60000,
+        monitoringInterval: 10000,
+        healthCheckInterval: 10000,
+        memoryReviewCandidatesInterval: 60000,
+        memoryReviewCandidatesSchedulerEnabled: false,
+        maxBatchSize: 100,
+        enableLogging: false,
+        enableNotifications: false,
+        enableMetrics: false,
+        maxConcurrentJobs: 2,
+        jobTimeout: 5000,
+        retryAttempts: 2,
+        retryDelay: 100
+      });
+      await s.start(db);
+      expect(s.getStatus().activeJobs).not.toContain('memory_review_candidates');
+      const result = await s.runJob('memory_review_candidates');
+      expect(result.jobType).toBe('memory_review_candidates');
+      await s.stop();
     });
   });
 

@@ -72,6 +72,18 @@ export {
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,
 } from './domains/memory/services/memory-review-candidate-persistence-service.js';
+export {
+  computeMemoryReviewQueueHealthLive,
+  recordMemoryReviewQueueHealthSnapshot,
+  listMemoryReviewQueueHealthSnapshots,
+  maybeRecordMemoryReviewQueueHealthSnapshot,
+  memoryReviewQueueHealthSnapshotTableReady,
+} from './domains/memory/services/memory-review-queue-health-service.js';
+export type {
+  MemoryReviewQueueHealthLive,
+  ReviewQueueWindowCounts,
+  MemoryReviewQueueHealthSnapshotRow,
+} from './domains/memory/services/memory-review-queue-health-service.js';
 export type {
   MemoryReviewCandidateStatus,
   MemoryReviewCandidateRow,
@@ -139,5 +151,6 @@ export { TelemetryEventsMigration } from './infrastructure/database/database/mig
 export { TelemetryDailyMetricsMigration } from './infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
 export { MetaMemoryStatsSchemaMigration } from './infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.js';
 export { MemoryReviewCandidateSchemaMigration } from './infrastructure/database/database/migration/migrations/033-memory-review-candidate-schema.js';
+export { ReviewQueueHealthSnapshotMigration } from './infrastructure/database/database/migration/migrations/034-review-queue-health-snapshot.js';
 
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';

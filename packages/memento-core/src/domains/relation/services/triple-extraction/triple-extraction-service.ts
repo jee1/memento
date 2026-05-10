@@ -138,7 +138,7 @@ export class TripleExtractionService {
       this.preferredProvider = result.preferredProvider;
       this.initializedProviders = result.initializedProviders;
 
-      if (result.warnings.length > 0) {
+      if (result.warnings.length > 0 && result.preferredProvider === null) {
         result.warnings.forEach((warning) => {
           logger.warn('LLM 초기화 경고', { warning });
         });

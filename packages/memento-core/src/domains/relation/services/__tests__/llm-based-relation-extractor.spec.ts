@@ -422,12 +422,12 @@ describe('LLMBasedRelationExtractor', () => {
     });
 
     /**
-     * Given: LLMClientInitializer.initialize()가 mock 반환값(warnings 포함)을 반환하도록 설정
+     * Given: LLMClientInitializer.initialize()가 preferredProvider와 warnings를 함께 반환하도록 설정
      * When: LLMBasedRelationExtractor 인스턴스를 생성하고 초기화가 완료될 때까지 대기
-     * Then: LLMClientInitializer 결과를 사용하여 openaiClient, geminiClient, preferredProvider를 설정하고 warnings를 logger.warn()으로 출력해야 함 (로깅 표준 준수)
+     * Then: preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함
      */
-    it('should use LLMClientInitializer result to set clients and preferredProvider and log warnings with logger.warn()', async () => {
-      // Given: LLMClientInitializer.initialize()가 mock 반환값(warnings 포함)을 반환하도록 설정
+    it('LLMBasedRelationExtractor에서 preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
+      // Given: LLMClientInitializer.initialize()가 preferredProvider와 warnings를 함께 반환하도록 설정
       const mockOpenAIClient = {} as any;
       const mockGeminiClient = {} as any;
       const mockWarnings = ['Warning 1: API key missing', 'Warning 2: Fallback to alternative provider'];
@@ -459,15 +459,12 @@ describe('LLMBasedRelationExtractor', () => {
       expect((extractor as any).geminiClient).toBe(mockGeminiClient);
       expect((extractor as any).preferredProvider).toBe('openai');
       
-      // Then: warnings가 logger.warn()으로 출력되어야 함 (로깅 표준 준수)
-      expect(loggerWarnSpy).toHaveBeenCalledTimes(mockWarnings.length);
-      mockWarnings.forEach((warning, index) => {
-        expect(loggerWarnSpy).toHaveBeenNthCalledWith(
-          index + 1,
-          'LLM 초기화 경고',
-          { warning }
-        );
-      });
+      // Then: preferredProvider가 있으면 warnings를 relation layer에서 재로깅하지 않아야 함
+      const llmInitWarningCalls = loggerWarnSpy.mock.calls.filter(
+        (call) => call[0] === 'LLM 초기화 경고',
+      );
+
+      expect(llmInitWarningCalls).toHaveLength(0);
     });
   });
 

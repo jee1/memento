@@ -1,5 +1,6 @@
 /**
  * In-process SSE fan-out for Admin review queue (#276). Single-node only; no Redis.
+ * Admin routes should call `broadcastReviewCandidatesChanged` (#297) so optional HTTP relay runs too.
  */
 import type { Response } from 'express';
 
