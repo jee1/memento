@@ -22,8 +22,9 @@ import {
 import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { normalizeSearchBySimilarityOutcome } from './hybrid-search-outcome-utils.js';
 import {
+  createProviderVectorSearchTask,
   executeProviderSearchesWithOverallTimeout,
-  type ProviderVectorRaceResult,
+  type ProviderVectorSearchDeps,
 } from './hybrid-search-provider-parallel.js';
 import { ProceduralMemoryMatcher } from './procedural-memory-matcher.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
@@ -627,9 +628,10 @@ export class HybridSearchEngine {
         includeContent: true
       };
       
+      const providerVectorDeps = this.getProviderVectorSearchDeps();
       // 각 provider에 대해 독립적인 검색 작업을 생성하여 병렬 실행을 준비합니다.
-      const searchPromises = providersToSearch.map(provider => 
-        this.createProviderSearchTask(provider, query.query, searchOptions, searchId)
+      const searchPromises = providersToSearch.map(provider =>
+        createProviderVectorSearchTask(providerVectorDeps, provider, query.query, searchOptions, searchId)
       );
       
       // 모든 provider 검색을 실행하고 타임아웃을 관리하여 안정적인 결과 수집을 보장합니다.
@@ -718,112 +720,12 @@ export class HybridSearchEngine {
     return providersToSearch;
   }
 
-  private async runProviderSearchTaskBody(
-    provider: EmbeddingProvider,
-    query: string,
-    searchOptions: { limit: number; threshold: number; types?: MemoryType[]; includeContent: boolean },
-    searchId: string,
-    providerStartTime: bigint,
-    timeoutMeta: { queryEmbeddingProvider?: EmbeddingProvider; tfidfQueryEmbeddingFallback?: boolean }
-  ): Promise<ProviderVectorRaceResult> {
-    try {
-      const { embedding, actualProvider } = await this.generateQueryVector(query, searchId, provider);
-      timeoutMeta.queryEmbeddingProvider = actualProvider;
-      timeoutMeta.tfidfQueryEmbeddingFallback = actualProvider === 'tfidf' && provider !== 'tfidf';
-      if (actualProvider !== provider) {
-        this.logger.logSearchStep(searchId, `VEC 검색 스킵 (provider 불일치: 요청=${provider}, 실제=${actualProvider})`, {
-          provider,
-          actualProvider
-        });
-        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-        return {
-          provider,
-          results: [] as Array<VectorSearchResult & { provider: string }>,
-          success: true,
-          timeMs: providerTime,
-          error: null as string | null,
-          queryEmbeddingProvider: actualProvider,
-          tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback
-        };
-      }
-      const vecResults = await this.vectorSearchEngine.search(embedding, searchOptions, provider);
-      const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-      return {
-        provider,
-        results: vecResults.map(result => ({
-          id: result.memory_id,
-          content: result.content,
-          type: result.type,
-          importance: result.importance,
-          created_at: result.created_at,
-          pinned: false,
-          score: result.similarity,
-          similarity: result.similarity,
-          provider
-        })),
-        success: true,
-        timeMs: providerTime,
-        error: null as string | null,
-        queryEmbeddingProvider: actualProvider,
-        tfidfQueryEmbeddingFallback: false
-      };
-    } catch (error) {
-      const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.logSearchStep(searchId, `VEC 벡터 검색 실패 - ${provider}`, {
-        provider,
-        error: errorMessage,
-        timeMs: providerTime
-      });
-      return {
-        provider,
-        results: [] as Array<VectorSearchResult & { provider: string }>,
-        success: false,
-        timeMs: providerTime,
-        error: errorMessage
-      };
-    }
-  }
-
-  /**
-   * 단일 provider 검색 작업 생성 (타임아웃 포함)
-   */
-  private createProviderSearchTask(
-    provider: EmbeddingProvider,
-    query: string,
-    searchOptions: { limit: number; threshold: number; types?: MemoryType[]; includeContent: boolean },
-    searchId: string
-  ): Promise<ProviderVectorRaceResult> {
-    const providerStartTime = process.hrtime.bigint();
-    const timeoutMeta: {
-      queryEmbeddingProvider?: EmbeddingProvider;
-      tfidfQueryEmbeddingFallback?: boolean;
-    } = {};
-
-    const timeoutPromise = new Promise<ProviderVectorRaceResult>(resolve => {
-      setTimeout(() => {
-        const providerTime = Number(process.hrtime.bigint() - providerStartTime) / 1_000_000;
-        resolve({
-          provider,
-          results: [] as Array<VectorSearchResult & { provider: string }>,
-          success: false,
-          timeMs: providerTime,
-          error: `Provider 검색 타임아웃 (${HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS}ms 초과)`,
-          queryEmbeddingProvider: timeoutMeta.queryEmbeddingProvider,
-          tfidfQueryEmbeddingFallback: timeoutMeta.tfidfQueryEmbeddingFallback
-        });
-      }, HYBRID_SEARCH.PROVIDER_SEARCH_TIMEOUT_MS);
-    });
-
-    const searchTask = this.runProviderSearchTaskBody(
-      provider,
-      query,
-      searchOptions,
-      searchId,
-      providerStartTime,
-      timeoutMeta
-    );
-    return Promise.race([searchTask, timeoutPromise]);
+  private getProviderVectorSearchDeps(): ProviderVectorSearchDeps {
+    return {
+      generateQueryVector: (q, searchId, preferred) => this.generateQueryVector(q, searchId, preferred),
+      vectorSearch: (vector, options, provider) => this.vectorSearchEngine.search(vector, options, provider),
+      logSearchStep: (searchId, step, data) => this.logger.logSearchStep(searchId, step, data)
+    };
   }
 
   /**
