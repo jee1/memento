@@ -16,11 +16,13 @@ Memento 프로젝트의 임베딩 서비스는 4가지 제공자를 지원하는
 4. **폴백 메커니즘**: 상위 제공자 실패 시 자동으로 다음 우선순위 제공자로 전환
 
 ## 빠른 시작
+**경로 안내**: 아래 TypeScript `import` 예시는 작업 디렉터리를 `packages/memento-core`로 두었다고 가정한 상대 경로입니다.
+
 
 ### 1. 기본 사용법
 
 ```typescript
-import { UnifiedEmbeddingService } from './src/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from './src/domains/embedding/services/unified-embedding-service.js';
 
 const embeddingService = new UnifiedEmbeddingService();
 
@@ -75,7 +77,7 @@ EMBEDDING_DIMENSIONS=384  # MiniLM 기본값
 - 리소스 제약 환경
 
 ```typescript
-import { LightweightEmbeddingService } from './src/services/lightweight-embedding-service.js';
+import { LightweightEmbeddingService } from './src/domains/embedding/services/lightweight-embedding-service.js';
 
 const tfidfService = new LightweightEmbeddingService();
 const result = await tfidfService.generateEmbedding('빠른 처리가 필요한 텍스트');
@@ -95,7 +97,7 @@ const result = await tfidfService.generateEmbedding('빠른 처리가 필요한 
 - 성능과 정확성의 균형
 
 ```typescript
-import { MiniLMEmbeddingService } from './src/services/minilm-embedding-service.js';
+import { MiniLMEmbeddingService } from './src/domains/embedding/services/minilm-embedding-service.js';
 
 const minilmService = new MiniLMEmbeddingService();
 const result = await minilmService.generateEmbedding('의미를 이해해야 하는 텍스트');
@@ -251,7 +253,7 @@ try {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { UnifiedEmbeddingService } from '../src/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from './src/domains/embedding/services/unified-embedding-service.js';
 
 describe('임베딩 서비스 테스트', () => {
   it('텍스트 임베딩 생성', async () => {
@@ -269,9 +271,6 @@ describe('임베딩 서비스 테스트', () => {
 
 ```bash
 # 벤치마크 실행
-npm run test:embedding-benchmark
-
-# 특정 서비스 테스트
 npm run test:embedding-benchmark
 ```
 
@@ -302,11 +301,11 @@ A: MiniLM 모델이 메모리를 많이 사용합니다. TF-IDF를 사용하거�
 
 ```typescript
 // 기존 코드
-import { EmbeddingService } from './src/services/embedding-service.js';
+import { EmbeddingService } from './src/domains/embedding/services/embedding-service.js';
 const oldService = new EmbeddingService();
 
 // 새로운 코드
-import { UnifiedEmbeddingService } from './src/services/unified-embedding-service.js';
+import { UnifiedEmbeddingService } from './src/domains/embedding/services/unified-embedding-service.js';
 const newService = new UnifiedEmbeddingService();
 
 // API는 동일하므로 코드 변경 최소화
