@@ -45,6 +45,8 @@ LLM Provider 선택은 다음 우선순위에 따라 결정됩니다:
 
 ## LLMClientInitializer 사용법
 
+**경로 안내**: 아래 TypeScript 예시의 `./src/...` import는 **`packages/memento-core` 디렉터리를 작업 cwd로 둔 경우**를 가정합니다. 저장소 루트에 존재하지 않는 `src/`와 혼동하지 마세요.
+
 ### 기본 사용법
 
 ```typescript
