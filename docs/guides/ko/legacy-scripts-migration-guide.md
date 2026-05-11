@@ -54,12 +54,12 @@ npx tsx scripts/simple-update.js
 - 로깅 및 추적
 
 **사용 예제**:
-```typescript
-import { runUpdateMigration } from './scripts/simple-update-wrapper.js';
-
-// 실행 대기 중인 모든 마이그레이션 실행
-await runUpdateMigration();
+```bash
+# 저장소 루트에서 실행 (정식 마이그레이션 래퍼)
+npx tsx scripts/simple-update-wrapper.ts
 ```
+
+> **참고**: 래퍼 구현은 `packages/memento-core` 쪽 마이그레이션 러너를 호출합니다. 루트 `src/` 경로를 가정하는 예시는 사용하지 마세요.
 
 ## 마이그레이션 체크리스트
 

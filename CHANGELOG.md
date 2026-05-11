@@ -11,6 +11,8 @@
 - 루트 SSOT 문서(README, README.en, CONTRIBUTING)의 디렉터리·테스트 경로 설명을 현재 npm workspaces 트리에 맞게 정리 (#359).
 - [1.0.0] 절의 디렉터리 트리는 당시 레이아웃의 역사적 스냅샷임을 명시 (#359).
 - 패키지·앱 README 9경로: 루트 스크립트·실제 디렉터리 트리·내부 링크 정합성 정리 (#361).
+- `docs/guides/ko/legacy-scripts-migration-guide.md`: 루트 `src/` 가정이 들어갈 수 있는 TS import 예시를 제거하고 CLI 실행 예시로 정리 (#362).
+- `docs/guides/ko` 소형 가이드 8개(`type-param-rollout`, `recall-performance-tuning`, `multi-agent-usage`, `environment-variable-governance`, `obsidian-cli-setup`, `mcp-server-instructions`, `memento-cli-for-ai`, `sdd-workflow`): #362 기준 경로·명령 점검 — 추가 수정 없음.
 
 ### Fixed
 - **[회귀] stdio MCP 서버가 1.25.0에서 시작되지 않는 버그 수정** (#302): `capabilities`에 `logging: {}` 누락 + `SetLevelRequestSchema` 핸들러 수동 등록이 결합되어 MCP SDK가 예외를 throw, `process.exit(1)`으로 프로세스가 종료되던 문제. `logging: {}` capability 추가 및 중복 핸들러 제거로 수정 (SDK가 자동 처리).
