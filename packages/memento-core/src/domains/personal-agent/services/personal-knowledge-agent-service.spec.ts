@@ -6,7 +6,14 @@ import type { IPersistencePort } from '../ports/persistence-port.js';
 
 describe('PersonalKnowledgeAgentService', () => {
   function makeDeps() {
-    const completeFn = vi.fn().mockResolvedValue('LLM 응답');
+    const completeFn = vi.fn().mockResolvedValue({
+      content: 'LLM 응답',
+      metadata: {
+        provider: 'mock',
+        model: 'deterministic-mock-v1',
+        requestId: 'mock-123',
+      },
+    });
     const buildContextFn = vi.fn().mockResolvedValue('컨텍스트 텍스트');
     const proposeCandidatesFn = vi.fn().mockResolvedValue(undefined);
     const persistFn = vi.fn().mockResolvedValue(undefined);
@@ -18,13 +25,18 @@ describe('PersonalKnowledgeAgentService', () => {
     return { llm, context, persistence, completeFn, buildContextFn, proposeCandidatesFn, persistFn };
   }
 
-  it('mock dependency로 한 턴을 실행하고 llmResponse를 반환한다', async () => {
+  it('mock dependency로 한 턴을 실행하고 llmResponse와 metadata를 반환한다', async () => {
     const { llm, context, persistence } = makeDeps();
     const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
 
     const result = await svc.runOneTurn({ userMessage: '테스트 입력' });
 
     expect(result.llmResponse).toBe('LLM 응답');
+    expect(result.llmMetadata).toEqual({
+      provider: 'mock',
+      model: 'deterministic-mock-v1',
+      requestId: 'mock-123',
+    });
     expect(result.persisted).toBe(false);
     expect(result.candidates).toEqual([]);
   });

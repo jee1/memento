@@ -22,7 +22,7 @@ export class PersonalKnowledgeAgentService {
       input.projectId,
     );
 
-    const llmResponse = await this.deps.llm.complete([
+    const llmResult = await this.deps.llm.complete([
       { role: 'system', content: contextText },
       { role: 'user', content: input.userMessage },
     ]);
@@ -34,6 +34,11 @@ export class PersonalKnowledgeAgentService {
     // #235에서 승인 흐름 구현
     await this.deps.persistence.persist(candidates);
 
-    return { candidates, llmResponse, persisted: false };
+    return {
+      candidates,
+      llmResponse: llmResult.content,
+      llmMetadata: llmResult.metadata,
+      persisted: false,
+    };
   }
 }
