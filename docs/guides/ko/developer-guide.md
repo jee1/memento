@@ -17,7 +17,7 @@
 
 ### 필수 요구사항
 
-- **Node.js**: 20.0.0 이상 (package.json 기준)
+- **Node.js**: 24.0.0 이상 (`package.json`의 `engines.node` 기준)
 - **npm**: 10.0.0 이상
 
 ### 저장소 가이드라인 (`AGENTS.md`)
@@ -27,7 +27,7 @@
 - **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버·MCP 진입점은 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
 - **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등
 - **코딩 스타일**: Node.js ≥ 24, TypeScript ES 모듈, 2칸 들여쓰기
-- **테스트 가이드라인**: Vitest 기반, `src/test/` 또는 `*.spec.ts` 파일
+- **테스트 가이드라인**: Vitest 기반, `**/*.spec.ts`·`tests/**/*.ts`(루트)·`packages/memento-core/src/test/**/*.ts` 등
 - **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
 - **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리
 - **TypeScript**: 5.3.0 (실제 구현 기준)
@@ -104,7 +104,7 @@ npm run dev
 npm run dev:http
 
 # 별도 터미널에서 테스트 실행
-npm run test -- --watch
+npm run test:watch
 ```
 
 ### VS Code 설정
@@ -233,8 +233,9 @@ memento/
 │   └── memento-client/         # @memento/client — 서버 연결 클라이언트
 │       └── src/
 ├── apps/                       # 실험용 앱 (예: experimental-example)
-├── src/                        # 루트 E2E/시나리오 테스트, 스크립트
-│   └── test/                   # test-client, test-search 등
+├── tests/                      # 루트 Vitest 스펙(통합·게이트 등)
+├── packages/memento-core/src/test/   # 시나리오·벤치마크(tsx) 스크립트
+├── packages/memento-server/src/test/ # 서버 측 통합 스크립트(선택)
 ├── docs/                       # 문서
 ├── scripts/                    # 루트 스크립트 (auto-setup, check-migration 등)
 ├── package.json                # workspaces, bin 위임, 루트 스크립트
@@ -301,18 +302,17 @@ server.tool('recall', recallTool);
 server.start();
 ```
 
-#### 2. 검색 엔진 (`src/algorithms/`)
+#### 2. 검색 엔진 (`packages/memento-core/src/domains/search/algorithms/`)
 
 기억 검색을 위한 알고리즘을 구현합니다.
 
-**주요 파일**:
-- `search-ranking.ts`: 검색 랭킹 알고리즘
-- `forgetting.ts`: 망각 알고리즘
-- `spaced-review.ts`: 간격 반복 알고리즘
+**주요 파일** (일부):
+- `search-ranking.ts`, `search-engine.ts`, `hybrid-search-engine.ts`, `vector-search-engine.ts`
+- 망각·간격 반복: `packages/memento-core/src/domains/forgetting/algorithms/` (`forgetting-algorithm.ts`, `spaced-repetition-refactored.ts` 등)
 
 **예시 코드**:
 ```typescript
-// src/algorithms/search-ranking.ts
+// packages/memento-core/src/domains/search/algorithms/search-ranking.ts
 export class SearchRanking {
   calculateFinalScore(features: SearchFeatures): number {
     return this.ALPHA * features.relevance +
@@ -382,7 +382,7 @@ Memento 프로젝트는 `no-console` 규칙을 **error** 레벨로 설정하여 
 
 **규칙 목적**:
 - **MCP 프로토콜 준수**: MCP 서버는 stdio 전송 시 stdout에 오직 JSON-RPC 메시지만 출력해야 합니다
-- **로깅 시스템 통일**: 모든 로그는 중앙화된 로깅 시스템(`src/shared/utils/logger.ts`)을 통해 출력되어야 합니다
+- **로깅 시스템 통일**: 모든 로그는 중앙화된 로깅 시스템(`packages/memento-core/src/shared/utils/logger.ts`)을 통해 출력되어야 합니다
 - **PII 마스킹**: 중앙화된 로깅 시스템은 자동으로 PII(개인 식별 정보)를 마스킹합니다
 - **MCP 스펙 준수**: MCP Logger를 통해 `notifications/message` 형식으로 로그를 전송합니다
 
@@ -395,7 +395,7 @@ Memento 프로젝트는 `no-console` 규칙을 **error** 레벨로 설정하여 
    - **설명**: 초기화 전 에러는 stderr에 직접 출력하고, 초기화 후에는 MCP Logger를 사용합니다
    - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
 
-2. **테스트 파일** (`**/*.spec.ts`, `**/test-*.ts`, `src/test/**`):
+2. **테스트 파일** (`**/*.spec.ts`, `**/test-*.ts`, `tests/**`, `packages/memento-core/src/test/**`, 레거시 `src/test/**`):
    - **이유**: 테스트 코드에서 디버깅 및 출력이 필요합니다
    - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
 
@@ -474,7 +474,7 @@ Memento 프로젝트는 `no-console` 규칙을 **error** 레벨로 설정하여 
 
 #### 도메인별 로깅 패턴
 
-##### 1. Memory 도메인 (`src/domains/memory/`)
+##### 1. Memory 도메인 (`packages/memento-core/src/domains/memory/`)
 
 **서비스 파일**:
 ```typescript
@@ -499,7 +499,7 @@ logger.warn('고정 로그 기록 실패', {
 });
 ```
 
-##### 2. Search 도메인 (`src/domains/search/`)
+##### 2. Search 도메인 (`packages/memento-core/src/domains/search/`)
 
 **알고리즘 파일**:
 ```typescript
@@ -526,7 +526,7 @@ logger.info('검색 완료', {
 });
 ```
 
-##### 3. Monitoring 도메인 (`src/domains/monitoring/`)
+##### 3. Monitoring 도메인 (`packages/memento-core/src/domains/monitoring/`)
 
 **성능 모니터링**:
 ```typescript
@@ -618,9 +618,9 @@ logger.error('에러 로깅', {
 
 #### 참고 자료
 
-- **Logger 인터페이스**: `src/shared/utils/logger.ts`
+- **Logger 인터페이스**: `packages/memento-core/src/shared/utils/logger.ts`
 - **MCP Logger**: `packages/memento-server/src/server/mcp-logger.ts`
-- **PII 마스킹**: `src/shared/utils/pii-masker.ts`
+- **PII 마스킹**: `packages/memento-core/src/shared/utils/pii-masker.ts`
 - **MCP 스펙**: https://spec.modelcontextprotocol.io/specification/server/#logging
    - 새로운 예외 추가 시 PR에서 명확한 이유를 설명해야 합니다
    - 예외 추가는 `.eslintrc.json`의 `overrides` 섹션에 추가합니다
@@ -640,7 +640,15 @@ logger.error('에러 로깅', {
       }
     },
     {
-      "files": ["**/*.spec.ts", "**/test-*.ts", "scripts/**", "src/test/**"],
+      "files": [
+        "**/*.spec.ts",
+        "**/test-*.ts",
+        "tests/**/*.ts",
+        "src/test/**/*.ts",
+        "packages/memento-core/src/test/**/*.ts",
+        "packages/mcp-client/examples/**/*.ts",
+        "scripts/**/*.ts"
+      ],
       "rules": {
         "no-console": "off"  // 예외: 테스트 및 스크립트
       }
@@ -787,34 +795,34 @@ describe('MCP Server Integration', () => {
 - **도구**: Vitest
 - **위치**: 각 모듈 폴더 내부
 - **예시**: 
-  - `src/algorithms/search-engine.spec.ts`
-  - `src/services/forgetting-policy-service.spec.ts`
-  - `src/utils/database.spec.ts`
+  - `packages/memento-core/src/domains/search/algorithms/__tests__/search-engine.spec.ts`
+  - `packages/memento-core/src/domains/forgetting/services/__tests__/forgetting-policy-service.spec.ts`
+  - `packages/memento-core/src/shared/utils/database.spec.ts`
 
 #### 2. E2E 테스트 (End-to-End Tests) - `test-*.ts`
 
 - **목적**: 전체 워크플로우 검증
 - **범위**: 실제 MCP 서버와의 통신
 - **도구**: tsx + MCP 클라이언트
-- **위치**: `src/test/` 폴더
+- **위치**: `packages/memento-core/src/test/` 폴더
 - **예시**:
-  - `src/test/test-client.ts`
-  - `src/test/test-search.ts`
-  - `src/test/test-embedding.ts`
+  - `packages/memento-core/src/test/test-client.ts`
+  - `packages/memento-core/src/test/test-search.ts`
+  - `packages/memento-core/src/test/test-embedding.ts`
 
 ### 4. 에러 로깅 테스트
 
 - **목적**: 에러 로깅 시스템의 정상 동작 검증
 - **범위**: ErrorLoggingService, 에러 통계, 에러 해결
 - **도구**: tsx + 직접 서비스 테스트
-- **위치**: `src/test-error-logging.ts`
+- **위치**: `packages/memento-server/src/test/test-error-logging.ts`
 
 ### 5. 성능 알림 테스트
 
 - **목적**: 성능 알림 시스템의 정상 동작 검증
 - **범위**: PerformanceAlertService, 실시간 모니터링, 알림 관리
 - **도구**: tsx + 직접 서비스 테스트
-- **위치**: `src/test-performance-alerts.ts`
+- **위치**: `packages/memento-server/src/test/test-performance-alerts.ts`
 
 ### 6. Consolidation Score 품질 테스트
 
@@ -822,10 +830,10 @@ describe('MCP Server Integration', () => {
 - **범위**: 검색 랭킹 알고리즘, 하이브리드 검색 엔진, 품질 지표
 - **도구**: Vitest (단위/통합) + tsx (E2E/벤치마크)
 - **위치**:
-  - 단위 테스트: `src/algorithms/search-ranking.spec.ts`, `src/algorithms/search-result-combiner-consolidation.spec.ts`
-  - 통합 테스트: `src/algorithms/hybrid-search-engine-consolidation.spec.ts`
-  - E2E 테스트: `src/test/test-consolidation-search-quality.ts`
-  - 벤치마크: `src/test/consolidation-search-quality-benchmark.ts`
+  - 단위 테스트: `packages/memento-core/src/domains/search/algorithms/__tests__/search-ranking.spec.ts`, `packages/memento-core/src/domains/search/algorithms/__tests__/search-result-combiner-consolidation.spec.ts`
+  - 통합 테스트: `packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine-consolidation.spec.ts`
+  - E2E 테스트: `packages/memento-core/src/test/test-consolidation-search-quality.ts`
+  - 벤치마크: `packages/memento-core/src/test/consolidation-search-quality-benchmark.ts`
 - **명령어**:
   - `npm run test:consolidation-quality` - E2E 품질 검증
   - `npm run benchmark:consolidation-quality` - Baseline 비교 벤치마크
@@ -915,7 +923,7 @@ npm run test:performance-alerts
 npm run test -- --coverage
 
 # 감시 모드
-npm run test -- --watch
+npm run test:watch
 ```
 
 ## 기여 방법
@@ -1180,7 +1188,7 @@ monitoringIntegration.startRealTimeMonitoring();
 #### 1. 에러 로깅 테스트
 
 ```typescript
-// src/test-error-logging.ts
+// packages/memento-server/src/test/test-error-logging.ts
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from './services/error-logging-service.js';
 
 async function testErrorLogging() {
@@ -1214,7 +1222,7 @@ async function testErrorLogging() {
 #### 2. 성능 알림 테스트
 
 ```typescript
-// src/test-performance-alerts.ts
+// packages/memento-server/src/test/test-performance-alerts.ts
 import { PerformanceAlertService, AlertLevel, AlertType } from './services/performance-alert-service.js';
 
 async function testPerformanceAlerts() {

@@ -298,10 +298,10 @@ npm run test -- --coverage
 ## 📚 Developer Guidelines
 
 ### Repository Guidelines (`AGENTS.md`)
-- **Project Structure**: Module organization under `src/`
+- **Project Structure**: npm workspaces — code lives under `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, plus `apps/` and root-level `tests/`. See [AGENTS.md](AGENTS.md).
 - **Build/Test Commands**: `npm run dev`, `npm run build`, `npm run test`, etc.
 - **Coding Style**: Node.js ≥ 24, TypeScript ES modules, 2-space indentation
-- **Testing Guidelines**: Vitest based, `src/test/` or `*.spec.ts` files
+- **Testing Guidelines**: Vitest; colocate `*.spec.ts` under each package `src/`, workspace-level specs under root `tests/`, and scenario drivers under `packages/*/src/test/` where applicable.
 - **Commit/PR Guidelines**: Conventional Commits, Korean context included
 - **Environment/Database**: `.env` configuration, `data/` folder management
 

@@ -25,7 +25,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 ### 2. 사용 스크립트
 
 - `test:ci` — 로컬에서 전체 한 번에 실행할 때 (기존과 동일).
-- `test:ci:root` — `src/`, `tests/` (루트 전용).
+- `test:ci:root` — 루트 `tests/` 전용 (Vitest).
 - `test:ci:core` — `packages/memento-core/src/`.
 - `test:ci:server` — `packages/memento-server/src/`.
 - 클라이언트 — CI에서는 `npm run build` 후 `npm run test:ci -w @memento/client` 한 번만 실행.
@@ -43,7 +43,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 
 ## 현황 참고
 
-- **테스트 규모**: 루트 src/tests 약 225, memento-core 약 197, memento-server 13, memento-client 1 (총 약 436).
+- **테스트 규모**: 루트 `tests/` 약 225, memento-core 약 197, memento-server 13, memento-client 1 (총 약 436).
 - **이미 적용된 완화**: `SKIP_DB_TESTS`, `SKIP_INTEGRATION_TESTS`, `vitest.config.ts`의 CI 전용 exclude(일부 db/integration/performance 등).
 
 ---

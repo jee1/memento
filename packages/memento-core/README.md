@@ -9,6 +9,8 @@
 | `npm run build -w @memento/core` | TypeScript 빌드 |
 | `npm run db:init -w @memento/core` | SQLite 스키마 초기화 |
 | `npm run db:migrate -w @memento/core` | 대기 중인 마이그레이션 실행 |
+| `npm run type-check -w @memento/core` | 타입 검사 (루트 `npm run type-check`에 포함) |
+| `npm test` | 루트에서 전체 Vitest 스위트 (core 빌드는 `test:prepare`에서 선행) |
 
 ## 진입점
 

@@ -94,7 +94,7 @@ docs(readme): 설치 가이드 업데이트
 ### 테스트
 - **테스트 프레임워크**: Vitest
 - **단위 테스트**: `*.spec.ts` 파일로 작성
-- **E2E 테스트**: `src/test/` 디렉토리에 작성
+- **통합·시나리오 테스트**: 루트 `tests/` 및 필요 시 `packages/memento-core/src/test/`, `packages/memento-server/src/test/` 등에 두고, 단위 스펙은 각 패키지 `src/` 아래 `*.spec.ts`로 작성
 - **테스트 실행**: `npm run test`
 
 ### 브랜치 전략
@@ -106,7 +106,7 @@ docs(readme): 설치 가이드 업데이트
 
 ## 📁 프로젝트 구조
 
-npm workspaces 모노레포입니다. 도메인·DB·MCP 도구 구현은 **`packages/memento-core`**에, MCP/HTTP 서버는 **`packages/memento-server`**에 있습니다. 루트 `src/`·`tests/`에는 공유 스크립트·시나리오 테스트 등이 있습니다.
+npm workspaces 모노레포입니다. 도메인·DB·MCP 도구 구현은 **`packages/memento-core`**에, MCP/HTTP 서버는 **`packages/memento-server`**에 있습니다. 루트 **`tests/`**에는 워크스페이스·통합 수준 Vitest 스위트가 있고, 빌드·검증·운영 보조 스크립트는 주로 **`scripts/`**에 있습니다.
 
 ```
 packages/
@@ -115,8 +115,8 @@ packages/
 └── memento-client/   # @memento/client — 서버 연결 클라이언트
 apps/
 └── experimental-example/   # in-process 사용 예시
-src/                  # 루트 스크립트·일부 테스트·에셋 복사 등
-tests/                # 통합 픽스처·통합 테스트
+scripts/              # 빌드·검증·운영 보조 스크립트
+tests/                # 루트 워크스페이스 통합·품질 게이트 스펙 등
 ```
 
 자세한 디렉터리 역할은 [AGENTS.md](AGENTS.md)를 참고하세요.

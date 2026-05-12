@@ -9,7 +9,7 @@
 | auto-setup.js | 개발 환경 자동 설정 | `npm run setup` 또는 `npm run postinstall` |
 | verify-bin.js | 빌드 산출물·바이너리 검증 | `npm run verify-bin` |
 | check-and-fix-trigger.ts | DB 트리거 상태 확인/수정 | `npm run db:check-trigger`, `npm run db:fix-trigger` |
-| check-migration-status | 마이그레이션 상태 확인 | `npm run db:check-migration` (실제: src/scripts) |
+| check-migration-status | 마이그레이션 상태 확인 | `npm run db:check-migration` (구현: `packages/memento-server/src/scripts`) |
 | generate-relation-report.ts | 관계 엔진 리포트 생성 | `npm run generate-relation-report` |
 | weekly-relation-validation.ts | 관계 검증 (주간) | `npm run weekly-relation-validation` |
 | quality-thresholds.ts | 품질 임계값 | `npm run quality:thresholds` |

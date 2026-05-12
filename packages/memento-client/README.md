@@ -8,6 +8,7 @@ Memento MCP 서버에 연결하기 위한 **TypeScript 클라이언트 라이브
 |------|------|
 | `npm run build -w @memento/client` | 빌드 |
 | `npm run test -w @memento/client` | 단위 테스트 |
+| `npm run type-check -w @memento/client` | 타입 검사 |
 
 ## 문서
 

@@ -32,8 +32,8 @@ DB_PATH=/path/to/memory.db npm run db:check-migration
 # Recommended: use the root script
 npm run db:check-migration [database-path]
 
-# Or run with tsx (root src/scripts)
-npx tsx src/scripts/check-migration-status.ts [database-path]
+# Or run with tsx from the repo root (`packages/memento-server/src/scripts`)
+npx tsx packages/memento-server/src/scripts/check-migration-status.ts [database-path]
 ```
 
 ## What is checked

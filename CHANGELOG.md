@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+### Documentation
+- 루트 SSOT 문서(README, README.en, CONTRIBUTING)의 디렉터리·테스트 경로 설명을 현재 npm workspaces 트리에 맞게 정리 (#359).
+- [1.0.0] 절의 디렉터리 트리는 당시 레이아웃의 역사적 스냅샷임을 명시 (#359).
+- 패키지·앱 README 9경로: 루트 스크립트·실제 디렉터리 트리·내부 링크 정합성 정리 (#361).
+- `docs/guides/ko/legacy-scripts-migration-guide.md`: 루트 `src/` 가정이 들어갈 수 있는 TS import 예시를 제거하고 CLI 실행 예시로 정리 (#362).
+- `docs/guides/ko` 소형 가이드 8개(`type-param-rollout`, `recall-performance-tuning`, `multi-agent-usage`, `environment-variable-governance`, `obsidian-cli-setup`, `mcp-server-instructions`, `memento-cli-for-ai`, `sdd-workflow`): #362 기준 경로·명령 점검 — 추가 수정 없음.
+- `docs/guides/ko/developer-guide.md`: 루트 `src/`·구 테스트 경로를 workspaces 기준 경로로 정리하고, ESLint 예시·실행 명령을 현재 스크립트에 맞게 조정 (#362).
+- `docs/guides/ko/user-manual.md`: Docker Compose 파일명·기본 HTTP 포트(9001) 안내를 현재 스택에 맞게 조정 (#362).
+- `docs/guides/ko/embedding-service-guide.md`: 예제 import 경로를 `packages/memento-core/src/domains/embedding/services/`로 정리하고, 상대 경로 가정(cwd)을 명시 (#362).
+
 ### Fixed
 - **[회귀] stdio MCP 서버가 1.25.0에서 시작되지 않는 버그 수정** (#302): `capabilities`에 `logging: {}` 누락 + `SetLevelRequestSchema` 핸들러 수동 등록이 결합되어 MCP SDK가 예외를 throw, `process.exit(1)`으로 프로세스가 종료되던 문제. `logging: {}` capability 추가 및 중복 핸들러 제거로 수정 (SDK가 자동 처리).
 - 잘못 추적되던 `.claude/worktrees/*` gitlink 제거: `actions/checkout` Post 단계의 `git submodule foreach`가 exit 128로 경고 나던 문제 방지
@@ -346,6 +356,8 @@
 - **M4**: Kubernetes, Helm Charts
 
 ### 프로젝트 구조
+
+> **역사적 스냅샷**: 아래 트리는 **[1.0.0] (2025-09-22)** 시점 단일 패키지 레이아웃이다. **현재** 저장소는 npm workspaces(`packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`) 구조이며, 최신 경로는 [AGENTS.md](AGENTS.md)를 따른다.
 
 ```
 memento/
