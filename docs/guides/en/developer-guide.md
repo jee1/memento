@@ -24,12 +24,12 @@ This guide explains the development environment setup, architecture understandin
 
 The project includes developer guidelines:
 
-- **Project Structure**: Module organization under `src/`
+- **Project Structure**: npm workspaces monorepo — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. MCP/HTTP entry points live in `packages/memento-server`; domain and infrastructure code live in `packages/memento-core`.
 - **Build/Test Commands**: `npm run dev`, `npm run build`, `npm run test`, etc.
 - **Coding Style**: Node.js ≥ 24, TypeScript ES modules, 2-space indentation
 - **Testing Guidelines**: Vitest based with clear naming conventions:
-  - Unit Tests (`.spec.ts`): Place in module directories (e.g., `src/algorithms/search-engine.spec.ts`)
-  - E2E Tests (`test-*.ts`): Place in `src/test/` directory (e.g., `src/test/test-client.ts`)
+  - Unit Tests (`.spec.ts`): Colocated under domains (e.g., `packages/memento-core/src/domains/search/algorithms/__tests__/search-engine.spec.ts`)
+  - Scenario / benchmark scripts (`test-*.ts`): Under `packages/memento-core/src/test/` (e.g., `packages/memento-core/src/test/test-client.ts`) and root `tests/**` where applicable
 - **Commit/PR Guidelines**: Conventional Commits, Korean context included
 - **Environment/Database**: `.env` configuration, `data/` folder management
 - **TypeScript**: 5.3.0 (actual implementation standard)
@@ -157,18 +157,29 @@ npm run test -- --watch
 
 ## Project Structure
 
-### Domain-Based Architecture
+### Monorepo layout
 
-Memento uses a domain-based architecture to organize code by business domain.
+The repository is an **npm workspaces** monorepo.
+
+| Package | Role |
+|--------|------|
+| **packages/memento-core** | Domains (memory, search, anchor, forgetting, …), infrastructure, shared utilities. Entry points include `createMementoCore`, `createToolContext`, `getToolRegistry`. |
+| **packages/memento-server** | MCP / HTTP server; consumes core and exposes tools and routes. Entry points: `index.ts`, `http-server.ts`. |
+| **packages/memento-client** | Client library for connecting to the server (`@memento/client`). |
+| **apps/** | Experimental apps (e.g. `experimental-example` uses `@memento/core` in-process). |
+
+### Domain-based architecture (core)
+
+Domain logic lives under **`packages/memento-core/src/domains/`**.
 
 ```
-src/domains/
+packages/memento-core/src/domains/
 ├── memory/                           # Memory domain
 │   ├── services/                     # Memory services
 │   ├── tools/                        # Memory MCP tools
 │   └── ...
 ├── search/                           # Search domain
-│   ├── algorithms/                  # Search algorithms
+│   ├── algorithms/                   # Search algorithms
 │   └── ...
 ├── anchor/                           # Anchor system domain
 │   ├── services/                     # Anchor services
@@ -183,116 +194,53 @@ src/domains/
     └── ...
 ```
 
-**Service Layer Role**:
-- **External API Integration**: OpenAI API, database integration
-- **Business Logic**: Embedding generation, vector search, similarity calculation
-- **Error Handling**: API call failures, retry logic
-- **Caching**: Embedding result caching, performance optimization
-- **Fallback Solution**: Lightweight hybrid embedding service as OpenAI API replacement
-- **Performance Optimization**: Async processing, cache management, database optimization
-- **Monitoring**: Real-time performance metrics collection and analysis
+**Service layer responsibilities**:
+- **External API integration**: OpenAI API, database access
+- **Business logic**: Embedding generation, vector search, similarity scoring
+- **Error handling**: API failures, retries
+- **Caching**: Embedding caches, performance tuning
+- **Fallback**: Lightweight hybrid embedding when remote APIs are unavailable
+- **Performance**: Async paths, cache and DB tuning
+- **Monitoring**: Live performance metrics
 
-### Hybrid Search Engine (`src/algorithms/hybrid-search-engine.ts`)
+### Hybrid search (core)
 
-Hybrid search functionality has been added to the existing search engine.
+Hybrid search lives under **`packages/memento-core/src/domains/search/`** (e.g. `hybrid-search-engine.ts`, `search-engine.ts`, `search-ranking.ts`).
 
-```
-src/algorithms/
-├── search-engine.ts        # Basic search engine (233 lines)
-├── hybrid-search-engine.ts # Hybrid search engine (200 lines)
-└── search-ranking.ts       # Search ranking algorithm
-```
+**Hybrid search behavior**:
+- **FTS5 + vector**: Text and vector search combined
+- **Default blend**: Vector 60%, text 40%
+- **Score normalization**: Scores mapped to a 0–1 range
+- **Result fusion**: Single ranked list from both signals
 
-**Hybrid Search Features**:
-- **FTS5 + Vector Search**: Combination of text search and vector search
-- **Weight Adjustment**: Vector 60%, Text 40% (default)
-- **Score Normalization**: Normalize scores to 0-1 range
-- **Result Combination**: Final score integrating two search results
-
-### Complete Project Structure
+### Repository tree (high level)
 
 ```
 memento/
-├── src/                          # Source code
-│   ├── server/                   # MCP server
-│   │   ├── index.ts             # Server entry point (521 lines)
-│   │   ├── tools/               # MCP Tools implementation
-│   │   │   ├── remember.ts      # remember tool
-│   │   │   ├── recall.ts        # recall tool
-│   │   │   ├── pin.ts           # pin/unpin tool
-│   │   │   ├── forget.ts        # forget tool
-│   │   │   ├── summarize-thread.ts
-│   │   │   ├── link.ts          # link tool
-│   │   │   ├── export.ts        # export tool
-│   │   │   ├── feedback.ts      # feedback tool
-│   │   │   └── index.ts         # tool exports
-│   │   ├── resources/           # MCP Resources implementation
-│   │   │   ├── memory.ts        # memory/{id} resource
-│   │   │   ├── search.ts        # memory/search resource
-│   │   │   └── index.ts
-│   │   ├── prompts/             # MCP Prompts implementation
-│   │   │   ├── memory-injection.ts
-│   │   │   └── index.ts
-│   │   ├── database/            # Database related
-│   │   │   ├── sqlite.ts        # SQLite implementation
-│   │   │   ├── postgres.ts      # PostgreSQL implementation
-│   │   │   ├── migrations/      # Migrations
-│   │   │   └── index.ts
-│   │   └── middleware/          # Middleware
-│   │       ├── auth.ts          # Authentication middleware
-│   │       ├── logging.ts       # Logging middleware
-│   │       └── error.ts         # Error handling middleware
-│   ├── client/                  # MCP client
-│   │   ├── index.ts             # Client entry point
-│   │   ├── memory-manager.ts    # Memory manager
-│   │   ├── mcp-client.ts        # MCP client wrapper
-│   │   └── types.ts             # Client types
-│   ├── algorithms/              # Search and forgetting algorithms
-│   │   ├── search-ranking.ts    # Search ranking algorithm
-│   │   ├── forgetting.ts        # Forgetting algorithm
-│   │   ├── spaced-review.ts     # Spaced repetition algorithm
-│   │   └── index.ts
-│   └── shared/                  # Common utilities
-│       ├── types.ts             # Common type definitions
-│       ├── utils.ts             # Utility functions
-│       ├── constants.ts         # Constant definitions
-│       └── validation.ts        # Validation functions
-├── tests/                       # Test code
-│   ├── unit/                    # Unit tests
-│   │   ├── tools/              # Tool tests
-│   │   ├── algorithms/         # Algorithm tests
-│   │   └── utils/              # Utility tests
-│   ├── integration/            # Integration tests
-│   │   ├── mcp-server.test.ts  # MCP server integration test
-│   │   └── database.test.ts    # Database integration test
-│   ├── e2e/                    # E2E tests
-│   │   └── memory-workflow.test.ts
-│   └── fixtures/               # Test data
-│       ├── memories.json       # Sample memory data
-│       └── test-db.sql         # Test database
+├── packages/
+│   ├── memento-core/           # @memento/core — domains, infra, shared
+│   │   └── src/
+│   │       ├── domains/        # memory, search, anchor, forgetting, embedding, relation, …
+│   │       ├── infrastructure/ # DB, cache, scheduler
+│   │       ├── shared/         # types, utils, config helpers
+│   │       ├── tools/          # tool registry, migrate-embeddings, …
+│   │       ├── test/           # scenario / benchmark drivers (tsx)
+│   │       └── bootstrap.ts, context.ts
+│   ├── memento-server/         # MCP / HTTP server (uses core)
+│   │   └── src/server/
+│   │       ├── index.ts        # MCP stdio entry
+│   │       ├── http-server.ts  # HTTP / WebSocket entry
+│   │       ├── routes/         # MCP, admin, API routes
+│   │       ├── middleware/     # tool-context, error-handler, …
+│   │       └── servers/        # stdio, SSE implementations
+│   └── memento-client/         # @memento/client
+│       └── src/
+├── apps/                       # Experimental apps
+├── tests/                      # Root Vitest specs (integration gates, …)
 ├── docs/                       # Documentation
-├── scripts/                    # Build and deployment scripts
-│   ├── build.js               # Build script
-│   ├── deploy.js              # Deployment script
-│   └── db-migrate.js          # Database migration
-├── docker/                     # Docker related files
-│   ├── Dockerfile             # M1 Dockerfile
-│   ├── Dockerfile.m3          # M3 Dockerfile
-│   ├── docker-compose.dev.yml # Development environment
-│   ├── docker-compose.team.yml # Team environment
-│   └── docker-compose.org.yml # Organization environment
-├── .cursor/rules/              # Cursor development rules
-├── .github/                    # GitHub Actions
-│   └── workflows/
-│       ├── ci.yml             # CI pipeline
-│       ├── test.yml           # Test pipeline
-│       └── deploy.yml         # Deployment pipeline
-├── package.json               # Project configuration
-├── tsconfig.json              # TypeScript configuration
-├── jest.config.js             # Jest configuration
-├── .eslintrc.js               # ESLint configuration
-├── .prettierrc                # Prettier configuration
-└── README.md                  # Project documentation
+├── scripts/                    # Root scripts (auto-setup, check-migration, …)
+├── package.json                # workspaces, root npm scripts
+└── AGENTS.md                   # Detailed agent / developer guide
 ```
 
 ## Architecture Understanding
@@ -332,17 +280,15 @@ graph TB
 The core server implementing the MCP protocol.
 
 **Key Files**:
-- `index.ts`: Server entry point, MCP server initialization
-- `tools/`: MCP Tools implementation
-- `resources/`: MCP Resources implementation
-- `prompts/`: MCP Prompts implementation
+- `index.ts`: MCP stdio entry point
+- `http-server.ts`: HTTP / WebSocket entry point
+- `routes/`: MCP, admin, and API routes
+- `middleware/`: tool-context, error-handler, etc.
 
 **Example Code**:
 ```typescript
 // packages/memento-server/src/server/index.ts
-import { Server } from '@modelcontextprotocol/sdk/server';
-import { rememberTool } from './tools/remember';
-import { recallTool } from './tools/recall';
+// Uses createMementoCore, getToolRegistry, etc. from @memento/core to wire the MCP server
 
 const server = new Server({
   name: 'memento-memory-server',
@@ -357,18 +303,17 @@ server.tool('recall', recallTool);
 server.start();
 ```
 
-#### 2. Search Engine (`src/algorithms/`)
+#### 2. Search Engine (`packages/memento-core/src/domains/search/algorithms/`)
 
-Implements algorithms for memory search.
+Implements algorithms used for memory search.
 
-**Key Files**:
-- `search-ranking.ts`: Search ranking algorithm
-- `forgetting.ts`: Forgetting algorithm
-- `spaced-review.ts`: Spaced repetition algorithm
+**Key Files** (partial list):
+- `search-ranking.ts`, `search-engine.ts`, `hybrid-search-engine.ts`, `vector-search-engine.ts`
+- Forgetting / spaced repetition: `packages/memento-core/src/domains/forgetting/algorithms/` (`forgetting-algorithm.ts`, `spaced-repetition-refactored.ts`, etc.)
 
 **Example Code**:
 ```typescript
-// src/algorithms/search-ranking.ts
+// packages/memento-core/src/domains/search/algorithms/search-ranking.ts
 export class SearchRanking {
   calculateFinalScore(features: SearchFeatures): number {
     return this.ALPHA * features.relevance +
@@ -559,36 +504,36 @@ describe('MCP Server Integration', () => {
 
 - **Purpose**: Verify individual function/class behavior
 - **Scope**: All public methods
-- **Tool**: Jest
-- **Location**: `tests/unit/`
+- **Tool**: Vitest
+- **Location**: `**/*.spec.ts` under `packages/memento-core/src/domains/**/__tests__/`, root `tests/**`, etc.
 
 #### 2. Integration Tests
 
 - **Purpose**: Verify component interactions
 - **Scope**: MCP server, database integration
-- **Tool**: Jest + real database
-- **Location**: `tests/integration/`
+- **Tool**: Vitest
+- **Location**: `tests/**`, `packages/memento-core/src/domains/**/__tests__/`, etc.
 
 #### 3. E2E Tests
 
 - **Purpose**: Verify complete workflows
 - **Scope**: User scenarios
-- **Tool**: Jest + MCP client
-- **Location**: `tests/e2e/`
+- **Tool**: Vitest / tsx drivers as defined in `package.json`
+- **Location**: `packages/memento-core/src/test/**`, selected scripts under `packages/memento-server/src/test/**`
 
 #### 4. Error Logging Tests
 
 - **Purpose**: Verify error logging system normal operation
 - **Scope**: ErrorLoggingService, error statistics, error resolution
 - **Tool**: tsx + direct service testing
-- **Location**: `src/test-error-logging.ts`
+- **Location**: `packages/memento-server/src/test/test-error-logging.ts`
 
 #### 5. Performance Alert Tests
 
 - **Purpose**: Verify performance alert system normal operation
 - **Scope**: PerformanceAlertService, real-time monitoring, alert management
 - **Tool**: tsx + direct service testing
-- **Location**: `src/test-performance-alerts.ts`
+- **Location**: `packages/memento-server/src/test/test-performance-alerts.ts`
 
 #### 6. Consolidation Score Quality Tests
 
@@ -596,10 +541,10 @@ describe('MCP Server Integration', () => {
 - **Scope**: Search ranking algorithm, hybrid search engine, quality metrics
 - **Tool**: Vitest (unit/integration) + tsx (E2E/benchmark)
 - **Location**: 
-  - Unit tests: `src/algorithms/search-ranking.spec.ts`, `src/algorithms/search-result-combiner-consolidation.spec.ts`
-  - Integration tests: `src/algorithms/hybrid-search-engine-consolidation.spec.ts`
-  - E2E tests: `src/test/test-consolidation-search-quality.ts`
-  - Benchmark: `src/test/consolidation-search-quality-benchmark.ts`
+  - Unit tests: `packages/memento-core/src/domains/search/algorithms/__tests__/search-ranking.spec.ts`, `packages/memento-core/src/domains/search/algorithms/__tests__/search-result-combiner-consolidation.spec.ts`
+  - Integration tests: `packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine-consolidation.spec.ts`
+  - E2E tests: `packages/memento-core/src/test/test-consolidation-search-quality.ts`
+  - Benchmark: `packages/memento-core/src/test/consolidation-search-quality-benchmark.ts`
 - **Commands**:
   - `npm run test:consolidation-quality` - E2E quality validation
   - `npm run benchmark:consolidation-quality` - Quality benchmark with baseline comparison
@@ -954,7 +899,7 @@ monitoringIntegration.startRealTimeMonitoring();
 #### 1. Error Logging Tests
 
 ```typescript
-// src/test-error-logging.ts
+// packages/memento-server/src/test/test-error-logging.ts
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from './services/error-logging-service.js';
 
 async function testErrorLogging() {
@@ -988,7 +933,7 @@ async function testErrorLogging() {
 #### 2. Performance Alert Tests
 
 ```typescript
-// src/test-performance-alerts.ts
+// packages/memento-server/src/test/test-performance-alerts.ts
 import { PerformanceAlertService, AlertLevel, AlertType } from './services/performance-alert-service.js';
 
 async function testPerformanceAlerts() {
