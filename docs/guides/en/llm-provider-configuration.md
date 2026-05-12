@@ -45,6 +45,8 @@ LLM Provider selection follows this priority order:
 
 ## LLMClientInitializer Usage
 
+**Path note**: In the TypeScript snippets below, `./src/...` imports assume your **current working directory is `packages/memento-core`**. Do not confuse this with a repository-root `src/` folder (the monorepo does not use one).
+
 ### Basic Usage
 
 ```typescript
