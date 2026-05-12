@@ -7,7 +7,7 @@
 ## 사람 유지 문서 (SSOT)
 
 - [ ] 루트 `README.md`, `README.en.md`
-- [ ] `docs/README.md`
+- [x] `docs/README.md`
 - [ ] `AGENTS.md`, `DEVELOPMENT_RULES.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `GEMINI.md`
 - [ ] `CHANGELOG.md` (릴리스 절차와 모순 없는지)
 - [ ] `docs/guides/` (ko/en)
