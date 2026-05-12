@@ -1,9 +1,9 @@
 # 설계: 이슈 #233 — LLM adapter 인터페이스와 deterministic mock provider 추가
 
-**날짜**: 2026-05-10  
-**이슈**: [#233](https://github.com/jee1/memento/issues/233)  
-**부모**: [#82](https://github.com/jee1/memento/issues/82) 개인 지식 축적 Agent MVP  
-**선행 작업**: [#231](https://github.com/jee1/memento/issues/231) PersonalKnowledgeAgentService 계약 추가  
+**날짜**: 2026-05-10
+**이슈**: [#233](https://github.com/jee1/memento/issues/233)
+**부모**: [#82](https://github.com/jee1/memento/issues/82) 개인 지식 축적 Agent MVP
+**선행 작업**: [#231](https://github.com/jee1/memento/issues/231) PersonalKnowledgeAgentService 계약 추가
 **상태**: 설계 완료, 구현 대기
 
 ---

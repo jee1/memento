@@ -12,19 +12,19 @@
 
 ## File Structure
 
-- Modify: `packages/memento-core/src/domains/personal-agent/ports/llm-port.ts`  
+- Modify: `packages/memento-core/src/domains/personal-agent/ports/llm-port.ts`
   Owns LLM message, completion result, provider metadata, and `ILLMPort`.
-- Modify: `packages/memento-core/src/domains/personal-agent/types/agent-types.ts`  
+- Modify: `packages/memento-core/src/domains/personal-agent/types/agent-types.ts`
   Adds `llmMetadata` to `PersonalKnowledgeAgentResult`.
-- Modify: `packages/memento-core/src/domains/personal-agent/services/personal-knowledge-agent-service.ts`  
+- Modify: `packages/memento-core/src/domains/personal-agent/services/personal-knowledge-agent-service.ts`
   Maps `LLMCompletionResult.content` and `.metadata` into the agent result.
-- Modify: `packages/memento-core/src/domains/personal-agent/services/personal-knowledge-agent-service.spec.ts`  
+- Modify: `packages/memento-core/src/domains/personal-agent/services/personal-knowledge-agent-service.spec.ts`
   Updates mocks for the new LLM result shape and adds a real mock-adapter integration case.
-- Create: `packages/memento-core/src/domains/personal-agent/adapters/deterministic-mock-llm-adapter.ts`  
+- Create: `packages/memento-core/src/domains/personal-agent/adapters/deterministic-mock-llm-adapter.ts`
   Implements deterministic, fixture-capable mock LLM adapter.
-- Create: `packages/memento-core/src/domains/personal-agent/adapters/deterministic-mock-llm-adapter.spec.ts`  
+- Create: `packages/memento-core/src/domains/personal-agent/adapters/deterministic-mock-llm-adapter.spec.ts`
   Verifies deterministic output, fixture priority, input sensitivity, and safe metadata.
-- Modify: `packages/memento-core/src/domains/personal-agent/index.ts`  
+- Modify: `packages/memento-core/src/domains/personal-agent/index.ts`
   Exports new LLM types and mock adapter.
 
 ---
