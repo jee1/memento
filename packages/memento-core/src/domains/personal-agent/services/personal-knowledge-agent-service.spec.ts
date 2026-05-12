@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { DeterministicMockLlmAdapter } from '../adapters/deterministic-mock-llm-adapter.js';
 import { PersonalKnowledgeAgentService } from './personal-knowledge-agent-service.js';
 import type { ILLMPort } from '../ports/llm-port.js';
 import type { IContextPort } from '../ports/context-port.js';
@@ -69,6 +70,26 @@ describe('PersonalKnowledgeAgentService', () => {
       { role: 'system', content: '컨텍스트 텍스트' },
       { role: 'user', content: '질문' },
     ]);
+  });
+
+  it('deterministic mock adapter로 외부 API 없이 한 턴을 실행한다', async () => {
+    const { context, persistence } = makeDeps();
+    const llm = new DeterministicMockLlmAdapter({
+      fixtures: {
+        'mock-5b832cfd931a7db9': 'fixture 기반 응답',
+      },
+    });
+    const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
+
+    const result = await svc.runOneTurn({ userMessage: '질문' });
+
+    expect(result.llmResponse).toBe('fixture 기반 응답');
+    expect(result.llmMetadata).toEqual({
+      provider: 'mock',
+      model: 'deterministic-mock-v1',
+      requestId: 'mock-5b832cfd931a7db9',
+      finishReason: 'stop',
+    });
   });
 
   it('LLM 포트가 reject하면 에러를 그대로 전파한다', async () => {
