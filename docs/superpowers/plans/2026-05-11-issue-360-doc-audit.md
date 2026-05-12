@@ -79,10 +79,10 @@ Expected: `All relative markdown links resolve to existing paths.`
 ```markdown
 | 문서 | KO | EN |
 |------|----|----|
-| 전체 API | [api-reference.md](api/ko/api-reference.md) | [api-reference.md](api/en/api-reference.md) |
-| 임베딩 API | [embedding-api-reference.md](api/ko/embedding-api-reference.md) | — |
-| 관계 그래프 API | [relation-graph-api.md](api/ko/relation-graph-api.md) | [relation-graph-api.md](api/en/relation-graph-api.md) |
-| 보안 | [security.md](reference/ko/security.md) | [security.md](reference/en/security.md) |
+| 전체 API | [api-reference.md](../../api/ko/api-reference.md) | [api-reference.md](../../api/en/api-reference.md) |
+| 임베딩 API | [embedding-api-reference.md](../../api/ko/embedding-api-reference.md) | — |
+| 관계 그래프 API | [relation-graph-api.md](../../api/ko/relation-graph-api.md) | [relation-graph-api.md](../../api/en/relation-graph-api.md) |
+| 보안 | [security.md](../../reference/ko/security.md) | [security.md](../../reference/en/security.md) |
 ```
 
 - [ ] **Step 2: integrations 행 추가**
@@ -92,11 +92,11 @@ Expected: `All relative markdown links resolve to existing paths.`
 ```markdown
 | 문서 | KO | EN |
 |------|----|----|
-| 전체 API | [api-reference.md](api/ko/api-reference.md) | [api-reference.md](api/en/api-reference.md) |
-| 임베딩 API | [embedding-api-reference.md](api/ko/embedding-api-reference.md) | — |
-| 관계 그래프 API | [relation-graph-api.md](api/ko/relation-graph-api.md) | [relation-graph-api.md](api/en/relation-graph-api.md) |
-| 보안 | [security.md](reference/ko/security.md) | [security.md](reference/en/security.md) |
-| 외부 비서 통합 | [integrations/README.md](integrations/README.md) | — |
+| 전체 API | [api-reference.md](../../api/ko/api-reference.md) | [api-reference.md](../../api/en/api-reference.md) |
+| 임베딩 API | [embedding-api-reference.md](../../api/ko/embedding-api-reference.md) | — |
+| 관계 그래프 API | [relation-graph-api.md](../../api/ko/relation-graph-api.md) | [relation-graph-api.md](../../api/en/relation-graph-api.md) |
+| 보안 | [security.md](../../reference/ko/security.md) | [security.md](../../reference/en/security.md) |
+| 외부 비서 통합 | [integrations/README.md](../../integrations/README.md) | — |
 ```
 
 - [ ] **Step 3: 아키텍처·설계 섹션에 ADR 항목 추가**
@@ -105,19 +105,19 @@ Expected: `All relative markdown links resolve to existing paths.`
 
 현재:
 ```markdown
-- DB ERD: [KO](architecture/ko/database-erd.md) / [EN](architecture/en/database-erd.md) (영문은 KO 링크 안내)
-- 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
-- FTS5 무중단 마이그레이션: [KO](architecture/ko/zero-downtime-fts5-migration.md) / [EN](architecture/en/zero-downtime-fts5-migration.md)
-- 아키텍처 개요: [KO](architecture/ko/architecture.md) / [EN](architecture/en/architecture.md)
+- DB ERD: [KO](../../architecture/ko/database-erd.md) / [EN](../../architecture/en/database-erd.md) (영문은 KO 링크 안내)
+- 비동기 보강 파이프라인: [KO](../../architecture/ko/async-augmentation-pipeline.md) / [EN](../../architecture/en/async-augmentation-pipeline.md)
+- FTS5 무중단 마이그레이션: [KO](../../architecture/ko/zero-downtime-fts5-migration.md) / [EN](../../architecture/en/zero-downtime-fts5-migration.md)
+- 아키텍처 개요: [KO](../../architecture/ko/architecture.md) / [EN](../../architecture/en/architecture.md)
 ```
 
 다음으로 교체:
 ```markdown
-- DB ERD: [KO](architecture/ko/database-erd.md) / [EN](architecture/en/database-erd.md) (영문은 KO 링크 안내)
-- 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
-- FTS5 무중단 마이그레이션: [KO](architecture/ko/zero-downtime-fts5-migration.md) / [EN](architecture/en/zero-downtime-fts5-migration.md)
-- 아키텍처 개요: [KO](architecture/ko/architecture.md) / [EN](architecture/en/architecture.md)
-- 아키텍처 결정 기록(ADR): [adr/](adr/)
+- DB ERD: [KO](../../architecture/ko/database-erd.md) / [EN](../../architecture/en/database-erd.md) (영문은 KO 링크 안내)
+- 비동기 보강 파이프라인: [KO](../../architecture/ko/async-augmentation-pipeline.md) / [EN](../../architecture/en/async-augmentation-pipeline.md)
+- FTS5 무중단 마이그레이션: [KO](../../architecture/ko/zero-downtime-fts5-migration.md) / [EN](../../architecture/en/zero-downtime-fts5-migration.md)
+- 아키텍처 개요: [KO](../../architecture/ko/architecture.md) / [EN](../../architecture/en/architecture.md)
+- 아키텍처 결정 기록(ADR): [adr/](../../adr/)
 ```
 
 - [ ] **Step 4: 링크 검증**

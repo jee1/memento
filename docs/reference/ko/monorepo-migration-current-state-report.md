@@ -1,10 +1,10 @@
 # 모노레포 전환 현황 조사 보고서
 
-**목적**: 모노레포 + memento-core/server/client 분리 계획을 위한 현재 저장소 상태·패턴 정리.  
-**컨텍스트**: [docs/_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).  
+**목적**: 모노레포 + memento-core/server/client 분리 계획을 위한 현재 저장소 상태·패턴 정리.
+**컨텍스트**: [docs/_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).
 **범위**: 구현 계획 없음. 현재 상태와 관찰된 패턴만 기술.
 
-> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md) 참조.  
+> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md) 참조.
 > **최신 가이드**: [개발자 가이드](../../guides/ko/developer-guide.md), [아키텍처](../../architecture/ko/) — 전환 후 경로·DDL의 SSOT.
 
 ---
@@ -46,18 +46,18 @@
 
 ### 2.2 의존 방향 (관찰된 패턴)
 
-- **server →**  
+- **server →**
   `infrastructure/database/.../init.js`, `shared/config`, `shared/utils`, `domains/*`(search, memory, anchor, monitoring, relation 등), `infrastructure/scheduler`, `tools/index.js`(getToolRegistry).
-- **tools/index.ts →**  
+- **tools/index.ts →**
   `domains/memory/tools/*`, `domains/anchor/tools/*` 등 도메인 도구 클래스 직접 import.
-- **domains ↔ infrastructure**:  
-  `domains` 일부가 `shared`만 쓰고, `infrastructure`는 `domains`(예: memory, monitoring) 및 `shared` 참조.  
+- **domains ↔ infrastructure**:
+  `domains` 일부가 `shared`만 쓰고, `infrastructure`는 `domains`(예: memory, monitoring) 및 `shared` 참조.
   `init.ts`(infrastructure)는 `shared/config`, `domains/memory/services/core-memory-*`, `shared/utils` 사용.
-- **shared**:  
+- **shared**:
   타입·설정·유틸; `infrastructure/scheduler/retry-manager` 등 일부 인프라 타입을 참조하는 경우 있음(`shared/config/retry-options-loader.ts`).
 
-**요약**:  
-- **server**와 **tools**가 **domains + infrastructure + shared**에 직접 의존.  
+**요약**:
+- **server**와 **tools**가 **domains + infrastructure + shared**에 직접 의존.
 - core 분리 시, server/tools는 “core(domains+infrastructure+shared)를 소비하는 계층”으로 두고, core는 라이브러리 API만 노출하도록 진입점을 정리해야 함.
 
 ---
@@ -80,8 +80,8 @@
 ### 3.3 docs/ 요약
 
 - **docs/README.md**: 가이드·아키텍처·API·계획·테스트·운영·참조·리서치 등 분류.
-- **DB·초기화**:  
-  - `docs/architecture/ko/database-design.md`: 스키마 설계, DDL 진실 공급원은 `src/infrastructure/database/database/schema.sql` + 마이그레이션.  
+- **DB·초기화**:
+  - `docs/architecture/ko/database-design.md`: 스키마 설계, DDL 진실 공급원은 `src/infrastructure/database/database/schema.sql` + 마이그레이션.
   - `docs/guides/ko/migration-system-guide.md`: MigrationRunner, 마이그레이션 디렉터리(`migration/migrations/` vs 레거시 `migrations/`), 인터페이스.
 
 ---
@@ -97,7 +97,7 @@
 
 ### 4.2 소스 위치 (중요)
 
-- **클라이언트 소스는 패키지 안에 없음.**  
+- **클라이언트 소스는 패키지 안에 없음.**
   `packages/mcp-client/tsconfig.build.json`:
   - `rootDir`: `../../src/npm-client`
   - `include`: `../../src/npm-client/**/*`
@@ -111,7 +111,7 @@
 
 ### 4.4 정리
 
-- **memento-client** 패키지는 “소스는 루트 `src/npm-client/`, 패키지 메타와 빌드 설정은 `packages/mcp-client/`” 구조.  
+- **memento-client** 패키지는 “소스는 루트 `src/npm-client/`, 패키지 메타와 빌드 설정은 `packages/mcp-client/`” 구조.
 - 모노레포에서 `packages/memento-client`로 통일할 때, 소스를 `packages/memento-client/src`로 옮기거나, 워크스페이스에서 루트 `src/npm-client`를 계속 참조하도록 할지 선택 필요.
 
 ---
@@ -121,21 +121,21 @@
 ### 5.1 DB 경로
 
 - **env**: `env.example` 및 `src/shared/config/environment.ts` 기본값 `DB_PATH=./data/memory.db`.
-- **실제 사용**: `src/shared/config/index.ts`의 `mementoConfig.dbPath`가 `resolveString('DB_PATH')`로 로드.  
+- **실제 사용**: `src/shared/config/index.ts`의 `mementoConfig.dbPath`가 `resolveString('DB_PATH')`로 로드.
   `src/infrastructure/database/database/init.ts`는 `mementoConfig`를 통해 DB 경로를 사용.
 
 ### 5.2 설정 로드
 
-- `shared/config/index.ts`: `dotenv` 로드 후 `mementoConfig` 객체 구성(DB, MCP, 임베딩, 검색, 망각 TTL, 로깅 등).  
+- `shared/config/index.ts`: `dotenv` 로드 후 `mementoConfig` 객체 구성(DB, MCP, 임베딩, 검색, 망각 TTL, 로깅 등).
   core를 라이브러리로 쓸 때는 **호출자가 DB 경로(및 필요 시 전체 설정)를 주입**할 수 있는 API가 필요할 수 있음.
 
 ### 5.3 초기화
 
 - **스크립트**: `npm run db:init` → `src/infrastructure/database/database/init.ts`.
-- **역할**: 스키마 적용, 마이그레이션 감지/실행(MigrationDetector, MigrationRunner), 레거시 호환 컬럼 추가, core_memory/knowledge_vault 등 초기화.  
+- **역할**: 스키마 적용, 마이그레이션 감지/실행(MigrationDetector, MigrationRunner), 레거시 호환 컬럼 추가, core_memory/knowledge_vault 등 초기화.
   `init.ts`는 이미 `shared/config`, `domains/memory/services/core-memory-*`, `shared/utils` 등에 의존.
-- **문서**:  
-  - `docs/architecture/ko/database-design.md`: 스키마·마이그레이션 경로 명시.  
+- **문서**:
+  - `docs/architecture/ko/database-design.md`: 스키마·마이그레이션 경로 명시.
   - `docs/guides/ko/migration-system-guide.md`: 마이그레이션 디렉터리와 인터페이스.
 
 ### 5.4 core에서 노출할 것
