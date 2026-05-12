@@ -27,6 +27,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 임베딩 API | [embedding-api-reference.md](api/ko/embedding-api-reference.md) | — |
 | 관계 그래프 API | [relation-graph-api.md](api/ko/relation-graph-api.md) | [relation-graph-api.md](api/en/relation-graph-api.md) |
 | 보안 | [security.md](reference/ko/security.md) | [security.md](reference/en/security.md) |
+| 외부 비서 통합 | [integrations/README.md](integrations/README.md) | — |
 
 ### How-to
 
@@ -62,6 +63,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 - 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
 - FTS5 무중단 마이그레이션: [KO](architecture/ko/zero-downtime-fts5-migration.md) / [EN](architecture/en/zero-downtime-fts5-migration.md)
 - 아키텍처 개요: [KO](architecture/ko/architecture.md) / [EN](architecture/en/architecture.md)
+- 아키텍처 결정 기록(ADR): [adr/](adr/)
 
 ### 운영·도구
 
