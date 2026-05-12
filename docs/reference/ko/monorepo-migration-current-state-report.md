@@ -4,7 +4,8 @@
 **컨텍스트**: [docs/_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md](../../_work/brainstorms/2026-03-04-monorepo-memento-core-brainstorm.md) (Approach A: 3패키지 분리 선택).  
 **범위**: 구현 계획 없음. 현재 상태와 관찰된 패턴만 기술.
 
-> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md) 참조.
+> **적용 상태 (2026-03)**: 모노레포 전환이 **완료**되었습니다. 루트에 workspaces 정의, `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*` 구성. 실제 구조·빌드·실행은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md) 참조.  
+> **최신 가이드**: [개발자 가이드](../../guides/ko/developer-guide.md), [아키텍처](../../architecture/ko/) — 전환 후 경로·DDL의 SSOT.
 
 ---
 
