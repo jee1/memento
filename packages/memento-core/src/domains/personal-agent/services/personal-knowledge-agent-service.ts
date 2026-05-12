@@ -6,6 +6,7 @@ import type {
   PersonalKnowledgeAgentInput,
   PersonalKnowledgeAgentResult,
 } from '../types/agent-types.js';
+import { extractKnowledgeCandidates } from '../extractors/knowledge-candidate-extractor.js';
 
 export interface PersonalKnowledgeAgentDeps {
   llm: ILLMPort;
@@ -26,13 +27,13 @@ export class PersonalKnowledgeAgentService {
       memoryTypes: input.memoryTypes,
     });
 
+    const candidates: KnowledgeCandidate[] = extractKnowledgeCandidates(input.userMessage);
+
     const llmResult = await this.deps.llm.complete([
       { role: 'system', content: bundle.promptText },
       { role: 'user', content: input.userMessage },
     ]);
 
-    // #234에서 실제 후보 추출 구현
-    const candidates: KnowledgeCandidate[] = [];
     await this.deps.context.proposeCandidates(candidates);
 
     // #235에서 승인 흐름 구현

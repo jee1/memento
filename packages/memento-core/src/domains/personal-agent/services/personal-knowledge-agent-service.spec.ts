@@ -55,6 +55,22 @@ describe('PersonalKnowledgeAgentService', () => {
     expect(result.knowledgeContext.tokenEstimate).toBe(10);
   });
 
+  it('명시적 선호 신호가 있으면 후보를 추출하고 proposeCandidates에 전달한다', async () => {
+    const { llm, context, persistence, proposeCandidatesFn } = makeDeps();
+    const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
+
+    const msg = '앞으로는 PR 설명은 한국어로 쓰고 싶어';
+    const result = await svc.runOneTurn({ userMessage: msg });
+
+    expect(result.candidates.length).toBeGreaterThanOrEqual(1);
+    const c = result.candidates.find((x) => x.category === 'preference');
+    expect(c).toBeDefined();
+    expect(c!.reason.length).toBeGreaterThan(0);
+    expect(typeof c!.confidence).toBe('number');
+    expect(c!.suggestedMemoryType).toBe('semantic');
+    expect(proposeCandidatesFn).toHaveBeenCalledWith(result.candidates);
+  });
+
   it('buildContext를 userMessage와 projectId로 호출한다', async () => {
     const { llm, context, persistence, buildContextFn } = makeDeps();
     const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });

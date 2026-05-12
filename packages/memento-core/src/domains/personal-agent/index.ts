@@ -1,8 +1,10 @@
 export type {
   KnowledgeCandidate,
+  KnowledgeCandidateCategory,
   PersonalKnowledgeAgentInput,
   PersonalKnowledgeAgentResult,
   PersonalKnowledgeContextMeta,
+  SuggestedPersonalMemoryType,
 } from './types/agent-types.js';
 
 export type {
@@ -28,6 +30,8 @@ export type {
 export {
   ToolContextKnowledgeContextAdapter,
 } from './adapters/tool-context-knowledge-context-adapter.js';
+
+export { extractKnowledgeCandidates } from './extractors/knowledge-candidate-extractor.js';
 
 export {
   PersonalKnowledgeAgentService,
