@@ -42,8 +42,17 @@ function* walkMarkdownFiles(dir, rel = '') {
 
 const LINK_RE = /\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
+function stripCodeFences(text) {
+  const lines = text.split('\n');
+  let inFence = false;
+  return lines.map(line => {
+    if (/^```/.test(line)) { inFence = !inFence; return line; }
+    return inFence ? '' : line;
+  }).join('\n');
+}
+
 function checkFile(mdPath, relPath) {
-  const text = fs.readFileSync(mdPath, 'utf8');
+  const text = stripCodeFences(fs.readFileSync(mdPath, 'utf8'));
   const dir = path.dirname(mdPath);
   const broken = [];
 
