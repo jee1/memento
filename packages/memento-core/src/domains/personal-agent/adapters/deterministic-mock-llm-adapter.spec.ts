@@ -15,6 +15,7 @@ describe('DeterministicMockLlmAdapter', () => {
     const second = await adapter.complete(messages);
 
     expect(second).toEqual(first);
+    expect(first.metadata.requestId).toBe('mock-4bbac90d6f5300fa');
   });
 
   it('다른 입력에 다른 requestId를 반환한다', async () => {
