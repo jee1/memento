@@ -41,10 +41,10 @@ npm run dev
 
 ```bash
 # Docker Compose로 실행
-docker-compose -f docker-compose.team.yml up -d
+docker-compose up -d
 
 # 서버 상태 확인
-curl http://localhost:8080/health
+curl http://localhost:9001/health
 ```
 
 ### MCP 클라이언트 설정
@@ -90,13 +90,13 @@ AI Agent와의 대화에서 중요한 정보를 기억으로 저장할 수 있�
 
 #### `@memento/client` HTTP 클라이언트 예시
 
-HTTP 서버가 실행 중일 때(예: `npm run dev:http`, 기본 `http://localhost:8080`) npm 패키지 **`@memento/client`** 로 호출할 수 있습니다.
+HTTP 서버가 실행 중일 때(예: `npm run dev:http`, 기본 `http://localhost:9001`(`PORT`/`MCP_SERVER_PORT` 환경 변수로 변경 가능)) npm 패키지 **`@memento/client`** 로 호출할 수 있습니다.
 
 ```typescript
 import { MementoClient } from '@memento/client';
 
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
 });
 
 await client.connect();
@@ -450,7 +450,7 @@ ws.on('message', (data) => {
 
 **해결 방법**:
 1. 서버가 실행 중인지 확인
-2. 포트가 올바른지 확인 (기본: 8080)
+2. 포트가 올바른지 확인 (로컬 HTTP 기본: 9001; `docker-compose.dev.yml` 예시는 8080)
 3. 방화벽 설정 확인
 
 #### 2. 검색 결과가 없음
