@@ -15,6 +15,10 @@ export interface VectorSearchResult {
   last_accessed?: string;
   pinned: boolean;
   tags?: string[];
+  /** Project-scoped memory (Issue #81) — VEC/임베딩 경로에서 하이브리드 병합 시 전달 */
+  project_id?: string | null;
+  /** Multi-agent (Issue #57) */
+  owner_id?: string | null;
 }
 
 export interface VectorSearchOptions {
@@ -24,6 +28,8 @@ export interface VectorSearchOptions {
   types?: string[];   // 다중 타입 필터 (기존 엔진 호환성용)
   includeContent?: boolean;
   includeMetadata?: boolean;
+  project_id?: string;
+  owner_id?: string | string[];
 }
 
 export interface VectorSearchQuery {

@@ -30,6 +30,8 @@ interface RawVectorSearchResult {
   last_accessed_at?: string | null;
   pinned: number | boolean;
   tags?: string | null;
+  project_id?: string | null;
+  owner_id?: string | null;
   // 하이브리드 검색 결과에 포함될 수 있는 추가 필드
   vector_similarity?: number;
   text_similarity?: number;
@@ -157,7 +159,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       type,
       types,
       includeContent = true,
-      includeMetadata = false
+      includeMetadata = false,
+      project_id: scopeProjectId,
+      owner_id: scopeOwnerId,
     } = normalizedOptions;
 
     const runtimeContext = this.resolveRuntimeVectorContext(query.provider);
@@ -193,15 +197,32 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       ? types.filter(Boolean)
       : (type ? [type] : []);
 
+    const hasProjectScope = typeof scopeProjectId === 'string' && scopeProjectId.length > 0;
+    const hasOwnerStringScope = typeof scopeOwnerId === 'string' && scopeOwnerId.length > 0;
+    const ownerArrayScope = Array.isArray(scopeOwnerId) ? scopeOwnerId.filter(Boolean) : [];
+    const hasOwnerScope = hasOwnerStringScope || ownerArrayScope.length > 0;
+    const hasScopeFilter = hasProjectScope || hasOwnerScope;
+
     try {
       // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
-      // 템플릿 리터럴 대신 문자열 연결 사용
-      const _typeClause = typeFilters.length > 0
-        ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
-        : '';
       // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
       // 서브쿼리로 먼저 벡터 검색을 수행하고 LIMIT을 적용한 후 JOIN
-      const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
+      const prefetchLimit = typeFilters.length > 0 || hasScopeFilter ? limit * 5 : limit;
+
+      const whereParts: string[] = [];
+      if (typeFilters.length > 0) {
+        whereParts.push(`mi.type IN (${typeFilters.map(() => '?').join(',')})`);
+      }
+      if (hasProjectScope) {
+        whereParts.push('mi.project_id = ?');
+      }
+      if (hasOwnerStringScope) {
+        whereParts.push('mi.owner_id = ?');
+      } else if (ownerArrayScope.length > 0) {
+        whereParts.push(`mi.owner_id IN (${ownerArrayScope.map(() => '?').join(',')})`);
+      }
+      const outerWhereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
+
       const vecQuery =
         'SELECT ' +
         '  me.memory_id as memory_id, ' +
@@ -213,6 +234,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
         '  mi.pinned, ' +
         '  mi.tags, ' +
+        '  mi.project_id, ' +
+        '  mi.owner_id, ' +
         '  mi.task_goal, ' +
         '  mi.steps, ' +
         '  mi.reflection_notes, ' +
@@ -228,14 +251,25 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         ') t ' +
         'JOIN memory_embedding me ON t.rowid = me.id ' +
         'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
-        (typeFilters.length > 0 ? `WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
+        outerWhereSql +
         'ORDER BY t.distance ASC ' +
         'LIMIT ?';
+
+      const scopeParams: SqlParam[] = [];
+      if (hasProjectScope) {
+        scopeParams.push(scopeProjectId as string);
+      }
+      if (hasOwnerStringScope) {
+        scopeParams.push(scopeOwnerId as string);
+      } else if (ownerArrayScope.length > 0) {
+        scopeParams.push(...(ownerArrayScope as SqlParam[]));
+      }
 
       const params = [
         JSON.stringify(effectiveQueryVector),
         prefetchLimit,
         ...typeFilters,
+        ...scopeParams,
         limit
       ];
       const statement = this.db.prepare(vecQuery);
@@ -261,7 +295,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
               ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
               : undefined,
             pinned: includeMetadata ? Boolean(result.pinned) : false,
-            tags: includeMetadata ? this.safeParseTags(result.tags) : undefined
+            tags: includeMetadata ? this.safeParseTags(result.tags) : undefined,
+            ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
+            ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
           };
         })
         .filter(result => result.similarity >= threshold);

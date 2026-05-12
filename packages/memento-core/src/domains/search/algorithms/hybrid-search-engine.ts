@@ -51,7 +51,13 @@ export interface IEmbeddingService {
   searchBySimilarity(
     db: Database.Database,
     query: string,
-    options: { type?: MemoryType[]; limit?: number; threshold?: number }
+    options: {
+      type?: MemoryType[];
+      limit?: number;
+      threshold?: number;
+      project_id?: string;
+      owner_id?: string | string[];
+    }
   ): Promise<VectorSearchResult[] | SearchBySimilarityOutcome>;
   getEmbeddingStats(db: Database.Database): Promise<unknown>;
 }
@@ -76,7 +82,18 @@ export function resolveQueryUnifiedEmbeddingForHybridSearch(
 export interface IVectorSearchEngine {
   initialize(db: Database.Database): void;
   getIndexStatus(): { available: boolean };
-  search(vector: number[], options: { limit?: number; threshold?: number; types?: MemoryType[]; includeContent?: boolean }, provider?: string): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number }>>;
+  search(
+    vector: number[],
+    options: {
+      limit?: number;
+      threshold?: number;
+      types?: MemoryType[];
+      includeContent?: boolean;
+      project_id?: string;
+      owner_id?: string | string[];
+    },
+    provider?: string
+  ): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number; project_id?: string | null; owner_id?: string | null }>>;
 }
 
 export interface ISearchResultCombiner {
@@ -325,6 +342,8 @@ export interface HybridSearchResult {
   score_breakdown?: ScoreBreakdown;
   // Project-scoped memory (Issue #81)
   project_id?: string | null;
+  /** Multi-agent (Issue #57 Phase 2 D) */
+  owner_id?: string | null;
 }
 
 export class HybridSearchEngine {
@@ -625,7 +644,13 @@ export class HybridSearchEngine {
         limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
         threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
         types: query.filters?.type,
-        includeContent: true
+        includeContent: true,
+        ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
+          ? { project_id: query.filters.project_id }
+          : {}),
+        ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
+          ? { owner_id: query.filters.owner_id }
+          : {}),
       };
       
       const providerVectorDeps = this.getProviderVectorSearchDeps();
@@ -866,6 +891,12 @@ export class HybridSearchEngine {
       type: query.filters?.type as MemoryType[],
       limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
       threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
+      ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
+        ? { project_id: query.filters.project_id }
+        : {}),
+      ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
+        ? { owner_id: query.filters.owner_id }
+        : {}),
     });
     const { results, query_embedding_providers } = normalizeSearchBySimilarityOutcome(raw);
     const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;

@@ -37,6 +37,8 @@ export interface VectorSearchResult {
   tags?: string[];
   similarity: number;
   score: number;
+  project_id?: string | null;
+  owner_id?: string | null;
 }
 
 /** searchBySimilarity 결과: 쿼리 임베딩에 실제 사용된 provider 진단용 */
@@ -52,6 +54,8 @@ interface SimilaritySearchRow {
   tags: string | null;
   similarity: number;
   score: number;
+  project_id?: string | null;
+  owner_id?: string | null;
 }
 
 /** Row shape from provider stats GROUP BY query */
@@ -179,11 +183,31 @@ export class MemoryEmbeddingService {
   private buildVecSimilarityQuery(
     provider: EmbeddingProvider,
     tableName: string,
-    filters?: { type?: MemoryType[]; limit?: number; threshold?: number }
+    filters?: {
+      type?: MemoryType[];
+      limit?: number;
+      threshold?: number;
+      project_id?: string;
+      owner_id?: string | string[];
+    }
   ): { sql: string; params: unknown[] } {
     const typeFilter = filters?.type
       ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')'
       : '';
+    const projectClause =
+      typeof filters?.project_id === 'string' && filters.project_id.length > 0
+        ? 'AND m.project_id = ?'
+        : '';
+    let ownerClause = '';
+    const ownerParams: unknown[] = [];
+    const o = filters?.owner_id;
+    if (typeof o === 'string' && o.length > 0) {
+      ownerClause = 'AND m.owner_id = ?';
+      ownerParams.push(o);
+    } else if (Array.isArray(o) && o.length > 0) {
+      ownerClause = 'AND m.owner_id IN (' + o.map(() => '?').join(',') + ')';
+      ownerParams.push(...o);
+    }
     const sql =
       'SELECT ' +
       '  m.id, ' +
@@ -194,6 +218,8 @@ export class MemoryEmbeddingService {
       '  m.last_accessed, ' +
       '  m.pinned, ' +
       '  m.tags, ' +
+      '  m.project_id, ' +
+      '  m.owner_id, ' +
       '  v.distance as similarity, ' +
       '  (1 - v.distance) as score ' +
       'FROM memory_item m ' +
@@ -202,12 +228,25 @@ export class MemoryEmbeddingService {
       tableName +
       ' v ON me.id = v.rowid ' +
       'WHERE me.embedding_provider = ? ' +
+      'AND (COALESCE(m.is_deleted, 0) = 0) ' +
       typeFilter +
+      projectClause +
+      ' ' +
+      ownerClause +
       ' ' +
       'ORDER BY v.distance ASC ' +
       'LIMIT ?';
 
-    const params: unknown[] = [provider, ...(filters?.type || []), filters?.limit || 10];
+    const projectParams: unknown[] =
+      typeof filters?.project_id === 'string' && filters.project_id.length > 0 ? [filters.project_id] : [];
+
+    const params: unknown[] = [
+      provider,
+      ...(filters?.type || []),
+      ...projectParams,
+      ...ownerParams,
+      filters?.limit || 10,
+    ];
     return { sql, params };
   }
 
@@ -222,7 +261,9 @@ export class MemoryEmbeddingService {
       pinned: Boolean(row.pinned),
       tags: this.safeParseTags(row.tags),
       similarity: row.similarity,
-      score: row.score
+      score: row.score,
+      ...(row.project_id !== undefined ? { project_id: row.project_id } : {}),
+      ...(row.owner_id !== undefined ? { owner_id: row.owner_id } : {}),
     }));
   }
 
@@ -329,6 +370,8 @@ export class MemoryEmbeddingService {
       type?: MemoryType[];
       limit?: number;
       threshold?: number;
+      project_id?: string;
+      owner_id?: string | string[];
     }
   ): Promise<SearchBySimilarityOutcome> {
     if (!this.embeddingService.isAvailable()) {

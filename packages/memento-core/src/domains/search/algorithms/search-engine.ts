@@ -194,7 +194,7 @@ export class SearchEngine {
             m.workflow_name, m.skill_name, m.trigger_conditions,
             m.version, m.version_series_id,
             m.privacy_scope, m.origin_source, m.owner_id, m.process_id, m.session_id,
-            m.num_times, m.last_mentioned_at,
+            m.num_times, m.last_mentioned_at, m.project_id,
             0 as fts_rank
           FROM memory_item m
         `;
@@ -264,6 +264,23 @@ export class SearchEngine {
       if (filters?.skill_name) {
         conditions.push(`m.skill_name = ?`);
         params.push(filters.skill_name);
+      }
+
+      if (filters?.project_id !== undefined && filters.project_id !== null && filters.project_id !== '') {
+        conditions.push(`m.project_id = ?`);
+        params.push(filters.project_id);
+      }
+
+      if (filters?.owner_id !== undefined && filters.owner_id !== null) {
+        if (Array.isArray(filters.owner_id)) {
+          if (filters.owner_id.length > 0) {
+            conditions.push(`m.owner_id IN (${filters.owner_id.map(() => '?').join(',')})`);
+            params.push(...filters.owner_id);
+          }
+        } else if (typeof filters.owner_id === 'string' && filters.owner_id.length > 0) {
+          conditions.push(`m.owner_id = ?`);
+          params.push(filters.owner_id);
+        }
       }
 
       // WHERE 절 추가

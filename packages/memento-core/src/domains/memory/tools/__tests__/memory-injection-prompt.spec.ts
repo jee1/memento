@@ -457,6 +457,30 @@ describe('MemoryInjectionPrompt', () => {
     });
   });
 
+  describe('owner_id 필터', () => {
+    it('owner_id가 지정되면 해당 소유자 기억만 주입한다', async () => {
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, owner_id, created_at)
+        VALUES
+          ('inj_owner_a', 'episodic', 'owner-a 전용 노트', 0.9, 'agent-a', datetime('now')),
+          ('inj_owner_b', 'episodic', 'owner-b 전용 노트', 0.9, 'agent-b', datetime('now'))
+      `);
+
+      const result = await tool.handle(
+        {
+          query: '전용 노트',
+          owner_id: 'agent-a',
+        },
+        context,
+      );
+
+      expect(result.isError).toBeFalsy();
+      const text = result.content?.[0]?.text ?? JSON.stringify(result);
+      expect(text).toContain('owner-a');
+      expect(text).not.toContain('owner-b');
+    });
+  });
+
   describe('도구 메타데이터', () => {
     it('도구 이름을 올바르게 반환해야 함', () => {
       // When: 도구 정의 조회
@@ -491,6 +515,8 @@ describe('MemoryInjectionPrompt', () => {
       expect(definition.inputSchema.properties.max_memories).toBeDefined();
       expect(definition.inputSchema.properties.memory_types).toBeDefined();
       expect(definition.inputSchema.properties.importance_threshold).toBeDefined();
+      expect(definition.inputSchema.properties.project_id).toBeDefined();
+      expect(definition.inputSchema.properties.owner_id).toBeDefined();
     });
   });
 });

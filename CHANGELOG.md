@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **하이브리드·텍스트·벡터 검색**: `MemorySearchFilters`의 `project_id` / `owner_id`가 FTS·VEC SQL 및 임베딩 유사도(`searchBySimilarity`) fallback까지 전달되어, DB 단계에서 스코프가 적용됩니다. `memory_injection` / `buildKnowledgeContextBundle` 경로에서 좁은 스코프일 때 후보 부족을 줄이기 위해 검색 `limit` 배수를 키웁니다 (#232, PR #386 후속).
+
 ### Documentation
 - 루트 SSOT 문서(README, README.en, CONTRIBUTING)의 디렉터리·테스트 경로 설명을 현재 npm workspaces 트리에 맞게 정리 (#359).
 - [1.0.0] 절의 디렉터리 트리는 당시 레이아웃의 역사적 스냅샷임을 명시 (#359).
