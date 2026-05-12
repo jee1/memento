@@ -4,7 +4,8 @@
 **일자**: 2026-03-04  
 **범위**: 진입점, 패키지, 서버 vs 라이브러리 표면, 도메인 구조, 배포·MCP·HTTP 관련 문서/관례, 외부 소비자 사용 경로. **모노레포 구조 제안은 포함하지 않음.**
 
-> **적용 상태 (2026-03)**: 이 문서는 모노레포 전환 **이전** 상태를 기록한 조사 보고서입니다. 현재 저장소는 **npm workspaces 모노레포**로 전환되어 있으며, 실제 구조·진입점은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md)를 참조하세요. (packages/memento-core, packages/memento-server, packages/memento-client, apps/*)
+> **적용 상태 (2026-03)**: 이 문서는 모노레포 전환 **이전** 상태를 기록한 조사 보고서입니다. 현재 저장소는 **npm workspaces 모노레포**로 전환되어 있으며, 실제 구조·진입점은 [AGENTS.md](../../../AGENTS.md) 및 [README.md](../../../README.md)를 참조하세요. (packages/memento-core, packages/memento-server, packages/memento-client, apps/*)  
+> **최신 가이드**: 일상 개발·경로 기준은 [개발자 가이드](../../guides/ko/developer-guide.md), [아키텍처 개요](../../architecture/ko/)를 함께 보세요.
 
 ---
 

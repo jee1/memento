@@ -20,11 +20,11 @@
 
 ## 핵심 모듈 외부 API 호출 목록
 
-다음은 `src/domains/embedding/` 및 `src/domains/relation/` 디렉토리의 외부 API 호출 목록입니다.
+다음은 `packages/memento-core/src/domains/embedding/` 및 `packages/memento-core/src/domains/relation/` 디렉토리의 외부 API 호출 목록입니다.
 
 ### 우선순위 높음 (즉시 전환 권장)
 
-1. **src/domains/relation/services/llm-based-relation-extractor.ts** (우선순위: 135)
+1. **packages/memento-core/src/domains/relation/services/llm-based-relation-extractor.ts** (우선순위: 135)
    - 호출 수: 10개
    - 타입: fetch, sdk
    - 주요 호출:
@@ -34,21 +34,21 @@
      - `.completions.create()` - OpenAI API 호출
      - `.getGenerativeModel()`, `.generateContent()` - Gemini API 호출
 
-2. **src/domains/embedding/services/embedding-service.ts** (우선순위: 35)
+2. **packages/memento-core/src/domains/embedding/services/embedding-service.ts** (우선순위: 35)
    - 호출 수: 3개
    - 타입: sdk
    - 주요 호출:
      - `new OpenAI()` - OpenAI 클라이언트 초기화
      - OpenAI SDK import
 
-3. **src/domains/embedding/services/openai-embedding-service.ts** (우선순위: 35)
+3. **packages/memento-core/src/domains/embedding/services/openai-embedding-service.ts** (우선순위: 35)
    - 호출 수: 3개
    - 타입: sdk
    - 주요 호출:
      - `new OpenAI()` - OpenAI 클라이언트 초기화
      - OpenAI SDK import
 
-4. **src/domains/embedding/services/gemini-embedding-service.ts** (우선순위: 35)
+4. **packages/memento-core/src/domains/embedding/services/gemini-embedding-service.ts** (우선순위: 35)
    - 호출 수: 3개
    - 타입: sdk
    - 주요 호출:

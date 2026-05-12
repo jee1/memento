@@ -94,15 +94,18 @@
 - 잔여 과제: 문서 마무리(5.3) 및 전체 테스트 실행/증적 정리(5.4).
 
 ## 13. 테스트 커버리지 업데이트
-- `src/algorithms/vector-search-engine.spec.ts`  
+
+> **경로 (2026-05)**: 아래 스펙 파일은 모노레포 기준 `packages/memento-core/src/domains/search/algorithms/__tests__/`에 있습니다. 최신 실행은 저장소 루트에서 `npm test` 또는 개별 `vitest` 경로를 사용하세요.
+
+- `packages/memento-core/src/domains/search/algorithms/__tests__/vector-search-engine.spec.ts`  
   - 다중 타입 필터를 IN 절+바인딩으로 전달하는지 검증.  
   - 제공자별 차원 검증 실패 시 vec 쿼리가 호출되지 않는지 확인.  
   - sqlite-vec 미설치 환경에서 안전 폴백을 검증.  
   - 고차원(OpenAI/Gemini) 제공자에 대한 includeMetadata 흐름 확인.  
-- `src/algorithms/hybrid-search-engine.spec.ts`  
+- `packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine.spec.ts`  
   - vec 경로 활성화 시 타입 배열 전달과 임베딩 생성 플로를 검증.  
   - vec 인덱스가 비활성화된 경우 `searchBySimilarity` 폴백에 타입 배열이 동일하게 전달되는지 확인.  
-- 시나리오 스크립트: `npx vitest run src/algorithms/vector-search-engine.spec.ts src/algorithms/hybrid-search-engine.spec.ts`
+- 시나리오 예시: `npx vitest run packages/memento-core/src/domains/search/algorithms/__tests__/vector-search-engine.spec.ts packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine.spec.ts`
 
 ## 14. 릴리스 노트 초안
 ### 14.1 개선 사항

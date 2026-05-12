@@ -17,7 +17,7 @@ npm run test:multi-provider-performance
 
 또는 직접 실행:
 ```bash
-npx tsx src/test/multi-provider-search-performance-benchmark.ts
+npx tsx packages/memento-core/src/test/multi-provider-search-performance-benchmark.ts
 ```
 
 **측정 항목:**
@@ -66,7 +66,7 @@ npm run test:single-provider-regression
 
 또는 직접 실행:
 ```bash
-npx tsx src/test/test-single-provider-regression.ts
+npx tsx packages/memento-core/src/test/test-single-provider-regression.ts
 ```
 
 **검증 항목:**
