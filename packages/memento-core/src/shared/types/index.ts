@@ -16,6 +16,18 @@ export function isMemoryItemType(type: MemoryTypeRequest): type is MemoryType {
   return type === 'working' || type === 'episodic' || type === 'semantic' || type === 'procedural';
 }
 
+/** memory_item 하이브리드 검색에 쓰이는 네 타입(멤버가 바뀌면 isFullMemoryItemTypeSet·필터 생략 판정도 함께 조정) */
+export const MEMORY_ITEM_TYPES: readonly MemoryType[] = ['working', 'episodic', 'semantic', 'procedural'];
+
+/** 네 타입을 모두 포함하면 type 필터 생략(undefined)과 동등하게 취급 */
+export function isFullMemoryItemTypeSet(types: readonly MemoryType[]): boolean {
+  if (types.length !== MEMORY_ITEM_TYPES.length) {
+    return false;
+  }
+  const set = new Set(types);
+  return MEMORY_ITEM_TYPES.every((t) => set.has(t));
+}
+
 export type PrivacyScope = 'private' | 'team' | 'public';
 
 /**

@@ -4,13 +4,13 @@
  */
 
 import { z } from 'zod';
-import { isMemoryItemType,type MemoryType } from '../../../shared/types/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundle-builder.js';
+import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
@@ -104,29 +104,19 @@ export class MemoryInjectionPrompt extends BaseTool {
         throw new Error('하이브리드 검색 엔진이 사용할 수 없습니다');
       }
 
-      // memory_types 배열 전처리 ('core'/'vault' 제거)
-      let filteredMemoryTypes = memory_types;
-      if (memory_types && memory_types.length > 0) {
-        const invalidTypes = memory_types.filter(t => t === 'core' || t === 'vault');
-        if (invalidTypes.length > 0) {
-          this.logWarning('memory_types 배열에서 core/vault는 memory_item 검색에 사용할 수 없습니다. 자동으로 제거합니다.', {
+      const invalidTypes = memory_types.filter((t) => t === 'core' || t === 'vault');
+      if (invalidTypes.length > 0) {
+        this.logWarning(
+          'memory_types 배열에서 core/vault는 memory_item 검색에 사용할 수 없습니다. 자동으로 제거합니다.',
+          {
             invalid_types: invalidTypes,
             original_memory_types: memory_types,
-            suggestion: 'Core/Vault 조회는 recall Tool의 type 파라미터를 사용하세요.'
-          });
-          filteredMemoryTypes = memory_types.filter(t => t !== 'core' && t !== 'vault');
-          if (filteredMemoryTypes.length === 0) {
-            throw new Error("memory_types 배열에 유효한 타입이 없습니다. 'core'와 'vault'는 memory_types에서 사용할 수 없습니다.");
-          }
-        }
-        
-        // 타입 가드 적용: MemoryTypeRequest[] -> MemoryType[]
-        const validMemoryTypes = filteredMemoryTypes.filter(isMemoryItemType);
-        if (validMemoryTypes.length === 0) {
-          throw new Error("memory_types 배열에 유효한 타입이 없습니다.");
-        }
-        filteredMemoryTypes = validMemoryTypes;
+            suggestion: 'Core/Vault 조회는 recall Tool의 type 파라미터를 사용하세요.',
+          },
+        );
       }
+
+      const memoryTypesForBundle = normalizeMemoryTypesForHybridItemSearch(memory_types);
 
       const bundle = await buildKnowledgeContextBundle(
         {
@@ -139,7 +129,7 @@ export class MemoryInjectionPrompt extends BaseTool {
           query,
           tokenBudget: token_budget,
           maxMemories: max_memories,
-          memoryTypes: filteredMemoryTypes as MemoryType[],
+          memoryTypes: memoryTypesForBundle,
           projectId: project_id,
           ownerId: owner_id,
         },

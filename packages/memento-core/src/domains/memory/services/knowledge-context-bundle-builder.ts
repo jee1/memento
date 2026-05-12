@@ -6,12 +6,12 @@
 import type Database from 'better-sqlite3';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
-import type { MemoryType } from '../../../shared/types/index.js';
+import { isFullMemoryItemTypeSet, type MemoryType } from '../../../shared/types/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
-import type { HybridSearchEngine } from '../../search/algorithms/hybrid-search-engine.js';
+import type { HybridSearchEngine, HybridSearchResult } from '../../search/algorithms/hybrid-search-engine.js';
 
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
@@ -95,7 +95,7 @@ function summarizeMemoryContent(content: string, maxTokens: number): string {
 }
 
 function summarizeMemories(
-  memories: any[],
+  memories: HybridSearchResult[],
   tokenBudget: number,
   maxMemories: number,
 ): Array<{ id: string; content: string; type: string; importance: number; summary: string }> {
@@ -103,9 +103,7 @@ function summarizeMemories(
   let usedTokens = 0;
   const maxTokensPerMemory = Math.floor(tokenBudget / maxMemories);
 
-  const sortedMemories = memories
-    .sort((a, b) => b.finalScore + b.importance - (a.finalScore + a.importance))
-    .slice(0, maxMemories);
+  const sortedMemories = [...memories].sort((a, b) => b.finalScore + b.importance - (a.finalScore + a.importance)).slice(0, maxMemories);
 
   for (const memory of sortedMemories) {
     if (usedTokens >= tokenBudget) break;
@@ -158,7 +156,7 @@ async function updateConsolidationScoreMetadata(
   db: Database.Database,
   consolidationScoreService: IConsolidationScoreService,
   writeCoalescingManager: WriteCoalescingManager | undefined,
-  searchItems: any[],
+  searchItems: HybridSearchResult[],
 ): Promise<void> {
   if (!searchItems || searchItems.length === 0) {
     return;
@@ -169,7 +167,7 @@ async function updateConsolidationScoreMetadata(
     const nowISO = now.toISOString();
 
     for (const item of searchItems) {
-      const memoryId = item.id || item.memory_id;
+      const memoryId = item.id;
       if (!memoryId) {
         continue;
       }
@@ -263,12 +261,12 @@ async function updateConsolidationScoreMetadata(
   }
 }
 
-function filterByOwner(memories: any[], ownerId?: string | string[]): any[] {
+function filterByOwner(memories: HybridSearchResult[], ownerId?: string | string[]): HybridSearchResult[] {
   if (ownerId === undefined || ownerId === null) {
     return memories;
   }
   const ownerIds = Array.isArray(ownerId) ? ownerId : [ownerId];
-  return memories.filter((m: any) => m.owner_id != null && ownerIds.includes(String(m.owner_id)));
+  return memories.filter((m) => m.owner_id != null && ownerIds.includes(String(m.owner_id)));
 }
 
 /**
@@ -289,7 +287,7 @@ export async function buildKnowledgeContextBundle(
 
   const finalMemoryTypes: MemoryType[] | undefined =
     filteredMemoryTypes && filteredMemoryTypes.length > 0
-      ? filteredMemoryTypes.length === 4
+      ? isFullMemoryItemTypeSet(filteredMemoryTypes)
         ? undefined
         : filteredMemoryTypes
       : undefined;
@@ -311,9 +309,12 @@ export async function buildKnowledgeContextBundle(
     searchResult.tfidf_query_embedding_fallback_providers,
   );
 
-  let memories = searchResult.items;
+  // TODO(#232 follow-up): project_id / owner_id를 검색 단계(SQL/하이브리드 filters)에서 적용하지 않고
+  // 여기서 후처리만 하므로, 좁은 필터일 때 limit 이전에 걸러져 후보가 maxMemories보다 훨씬 적을 수 있음.
+
+  let memories: HybridSearchResult[] = searchResult.items;
   if (projectId) {
-    memories = memories.filter((m: any) => m.project_id != null && m.project_id === projectId);
+    memories = memories.filter((m) => m.project_id != null && m.project_id === projectId);
   }
   memories = filterByOwner(memories, ownerId);
 

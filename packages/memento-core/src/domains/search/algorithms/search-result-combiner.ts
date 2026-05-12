@@ -51,7 +51,7 @@ export class SearchResultCombiner implements ISearchResultCombiner {
       // Project-scoped memory (Issue #81): project_id 전달
       if (result.project_id !== undefined) entry.project_id = result.project_id;
       // 기타 extended 필드 전달
-      if (result.owner_id !== undefined) (entry as any).owner_id = result.owner_id;
+      if (result.owner_id !== undefined) entry.owner_id = result.owner_id;
       if (result.process_id !== undefined) (entry as any).process_id = result.process_id;
       if (result.session_id !== undefined) (entry as any).session_id = result.session_id;
       resultMap.set(result.id, entry);

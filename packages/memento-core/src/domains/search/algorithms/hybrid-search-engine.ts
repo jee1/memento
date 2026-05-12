@@ -325,6 +325,8 @@ export interface HybridSearchResult {
   score_breakdown?: ScoreBreakdown;
   // Project-scoped memory (Issue #81)
   project_id?: string | null;
+  /** Multi-agent (Issue #57 Phase 2 D) */
+  owner_id?: string | null;
 }
 
 export class HybridSearchEngine {
