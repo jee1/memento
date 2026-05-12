@@ -216,8 +216,8 @@ interface RememberResult {
 #### Usage Example
 
 ```typescript
-// Using the actually implemented client
-import { createMementoClient } from './src/client/index.js';
+// Use the workspace package `@memento/client` (see `packages/memento-client`).
+import { createMementoClient } from '@memento/client';
 
 const client = createMementoClient();
 await client.connect();
