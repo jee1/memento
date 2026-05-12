@@ -221,8 +221,8 @@ interface RememberResult {
 #### 사용 예시
 
 ```typescript
-// 실제 구현된 클라이언트 사용법
-import { createMementoClient } from './src/client/index.js';
+// Use the workspace package `@memento/client` (see `packages/memento-client`).
+import { createMementoClient } from '@memento/client';
 
 const client = createMementoClient();
 await client.connect();
