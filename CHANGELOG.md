@@ -11,6 +11,7 @@
 - 루트 SSOT 문서(README, README.en, CONTRIBUTING)의 디렉터리·테스트 경로 설명을 현재 npm workspaces 트리에 맞게 정리 (#359).
 - [1.0.0] 절의 디렉터리 트리는 당시 레이아웃의 역사적 스냅샷임을 명시 (#359).
 - 패키지·앱 README 9경로: 루트 스크립트·실제 디렉터리 트리·내부 링크 정합성 정리 (#361).
+- `docs/guides/ko/developer-guide.md`: 루트 `src/`·구 테스트 경로를 workspaces 기준 경로로 정리하고, ESLint 예시·실행 명령을 현재 스크립트에 맞게 조정 (#362).
 - `docs/guides/ko/user-manual.md`: Docker Compose 파일명·기본 HTTP 포트(9001) 안내를 현재 스택에 맞게 조정 (#362).
 
 ### Fixed
