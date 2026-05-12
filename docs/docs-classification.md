@@ -26,6 +26,8 @@
 | **운영·도구 (operations)** | 릴리스·점검·트러블슈팅 | `operations/ko/`, `operations/en/` | operator, contributor | stable |
 | **참조 (reference)** | 로깅·보안·수식·상태 보고 등 | `reference/ko/`, `reference/en/` | contributor, operator | stable |
 | **블로그 (blog)** | 비정기 게시·회고 | `blog/` | any | ephemeral |
+| **통합·외부 연동 (integrations)** | 외부 AI 비서와 Memento 연결 가이드 | `integrations/` | user, integrator | stable |
+| **아키텍처 결정 기록 (adr)** | 설계 결정 근거 기록 | `adr/` | contributor | stable |
 
 ---
 
@@ -55,6 +57,8 @@
 | `docs/operations/en/`, `docs/operations/ko/` | 공식 | 운영·도구 |
 | `docs/reference/en/`, `docs/reference/ko/` | 공식 | 참조 |
 | `docs/blog/` | 공식 | 블로그 |
+| `docs/integrations/` | 공식 | 통합·외부 연동 |
+| `docs/adr/` | 공식 | 아키텍처 결정 기록 |
 | `docs/_work/plans/**` | 작업 | 계획·제안 |
 | `docs/_work/design/**` | 작업 | 설계 초안 |
 | `docs/_work/brainstorms/**` | 작업 | 브레인스토밍 |
