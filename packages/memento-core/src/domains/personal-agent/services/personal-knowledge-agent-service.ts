@@ -17,13 +17,17 @@ export class PersonalKnowledgeAgentService {
   constructor(private readonly deps: PersonalKnowledgeAgentDeps) {}
 
   async runOneTurn(input: PersonalKnowledgeAgentInput): Promise<PersonalKnowledgeAgentResult> {
-    const contextText = await this.deps.context.buildContext(
-      input.userMessage,
-      input.projectId,
-    );
+    const bundle = await this.deps.context.buildContext({
+      userMessage: input.userMessage,
+      projectId: input.projectId,
+      ownerId: input.ownerId,
+      tokenBudget: input.tokenBudget,
+      maxMemories: input.maxMemories,
+      memoryTypes: input.memoryTypes,
+    });
 
     const llmResult = await this.deps.llm.complete([
-      { role: 'system', content: contextText },
+      { role: 'system', content: bundle.promptText },
       { role: 'user', content: input.userMessage },
     ]);
 
@@ -39,6 +43,11 @@ export class PersonalKnowledgeAgentService {
       llmResponse: llmResult.content,
       llmMetadata: llmResult.metadata,
       persisted: false,
+      knowledgeContext: {
+        itemCount: bundle.itemCount,
+        tokenEstimate: bundle.tokenEstimate,
+        summary: bundle.contextSummary,
+      },
     };
   }
 }

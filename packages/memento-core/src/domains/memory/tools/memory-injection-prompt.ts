@@ -4,17 +4,13 @@
  */
 
 import { z } from 'zod';
-import { mementoConfig } from '../../../shared/config/index.js';
-import type { IConsolidationScoreService } from '../../../shared/interfaces/consolidation-score.interface.js';
 import { isMemoryItemType,type MemoryType } from '../../../shared/types/index.js';
-import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import type { WriteCoalescingManager } from '../../../shared/utils/write-coalescing.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
+import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundle-builder.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
@@ -24,7 +20,9 @@ const MemoryInjectionSchema = z.object({
   importance_threshold: z.number().optional().describe('중요도 임계값 (기본값: 0.5)'),
   // Project-scoped memory (Issue #81)
   project_id: z.string().max(200).optional()
-    .describe('지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색')
+    .describe('지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색'),
+  owner_id: z.union([z.string(), z.array(z.string())]).optional()
+    .describe('소유자(owner) 범위로 결과를 제한합니다. 미지정 시 owner 필터를 적용하지 않습니다.')
 });
 
 export class MemoryInjectionPrompt extends BaseTool {
@@ -67,6 +65,13 @@ export class MemoryInjectionPrompt extends BaseTool {
             type: 'string',
             description: '지정 시 해당 프로젝트 기억만 주입. 미지정 시 전체 기억에서 검색',
             maxLength: 200
+          },
+          owner_id: {
+            oneOf: [
+              { type: 'string' },
+              { type: 'array', items: { type: 'string' } }
+            ],
+            description: '소유자(owner) 범위로 결과를 제한합니다.'
           }
         },
         required: ['query']
@@ -81,7 +86,8 @@ export class MemoryInjectionPrompt extends BaseTool {
       max_memories = 5,
       memory_types = ['working', 'episodic', 'semantic', 'procedural'],
       importance_threshold: _importance_threshold = 0.5,
-      project_id
+      project_id,
+      owner_id
     } = MemoryInjectionSchema.parse(params);
 
     try {
@@ -122,75 +128,33 @@ export class MemoryInjectionPrompt extends BaseTool {
         filteredMemoryTypes = validMemoryTypes;
       }
 
-      // 1. 관련 기억 검색
-      // importance_min은 MemorySearchFilters에 없으므로 제거
-      // importance 필터링은 검색 후 별도로 처리하거나 다른 방법 사용
-      // filteredMemoryTypes는 이미 validMemoryTypes로 변환되어 MemoryType[] 타입
-      const finalMemoryTypes: MemoryType[] | undefined = filteredMemoryTypes && filteredMemoryTypes.length > 0 
-        ? (filteredMemoryTypes.length === 4 ? undefined : filteredMemoryTypes as MemoryType[])
-        : undefined;
-      const searchResult = await context.services.hybridSearchEngine.search(context.db, {
-        query,
-        filters: {
-          type: finalMemoryTypes
+      const bundle = await buildKnowledgeContextBundle(
+        {
+          db: context.db,
+          hybridSearchEngine: context.services.hybridSearchEngine,
+          consolidationScoreService: context.services.consolidationScoreService,
+          writeCoalescingManager: context.services.writeCoalescingManager,
         },
-        limit: max_memories * 2, // 더 많은 후보를 가져와서 요약
-        vectorWeight: 0.7, // 의미적 유사성에 더 중점
-        textWeight: 0.3
-      });
-
-      emitTfidfFallbackWarningIfNeeded(
-        searchResult.fallback_used,
-        searchResult.query_embedding_providers,
-        searchResult.tfidf_query_embedding_fallback,
-        searchResult.tfidf_query_embedding_fallback_providers
+        {
+          query,
+          tokenBudget: token_budget,
+          maxMemories: max_memories,
+          memoryTypes: filteredMemoryTypes as MemoryType[],
+          projectId: project_id,
+          ownerId: owner_id,
+        },
       );
 
-      const memories = searchResult.items;
-      logger.debug('검색된 기억', {
-        count: memories.length
-      });
-
-      // Project-scoped memory filter (Issue #81)
-      const filteredMemories = project_id
-        ? memories.filter((m: any) => m.project_id != null && m.project_id === project_id)
-        : memories;
-
-      // Consolidation Score System 업데이트 (기능 플래그 확인)
-      if (mementoConfig.consolidationScoreEnabled && context.services.consolidationScoreService && filteredMemories.length > 0) {
-        await this.updateConsolidationScoreMetadata(
-          context.db,
-          context.services.consolidationScoreService,
-          context.services.writeCoalescingManager,
-          filteredMemories
-        );
-      }
-
-      if (filteredMemories.length === 0) {
-        return this.createSuccessResult({
-          message: '관련 기억을 찾을 수 없습니다.',
-          memories_used: 0,
-          token_estimate: 0,
-          query: query
-        });
-      }
-
-      // 2. 기억 요약 및 토큰 예산 관리
-      const summary = await this.summarizeMemories(filteredMemories, token_budget, max_memories);
-
-      // 3. 프롬프트 형식으로 포맷팅
-      const formattedPrompt = this.formatMemoryPrompt(summary, query);
-
       logger.info('Memory Injection 완료', {
-        memoryCount: summary.length,
-        tokenCount: this.estimateTokens(formattedPrompt)
+        memoryCount: bundle.itemCount,
+        tokenCount: bundle.tokenEstimate,
       });
 
       return this.createSuccessResult({
-        message: formattedPrompt,
-        memories_used: summary.length,
-        token_estimate: this.estimateTokens(formattedPrompt),
-        query: query
+        message: bundle.promptText,
+        memories_used: bundle.itemCount,
+        token_estimate: bundle.tokenEstimate,
+        query: bundle.query,
       });
 
     } catch (error) {
@@ -199,270 +163,6 @@ export class MemoryInjectionPrompt extends BaseTool {
         error: maskedError.message
       });
       throw error;
-    }
-  }
-
-  /**
-   * 기억들을 요약하여 토큰 예산 내에서 관리
-   */
-  private async summarizeMemories(
-    memories: any[], 
-    tokenBudget: number, 
-    maxMemories: number
-  ): Promise<Array<{id: string, content: string, type: string, importance: number, summary: string}>> {
-    const summaries: Array<{id: string, content: string, type: string, importance: number, summary: string}> = [];
-    let usedTokens = 0;
-    const maxTokensPerMemory = Math.floor(tokenBudget / maxMemories);
-
-    // 중요도와 점수 순으로 정렬
-    const sortedMemories = memories
-      .sort((a, b) => (b.finalScore + b.importance) - (a.finalScore + a.importance))
-      .slice(0, maxMemories);
-
-    for (const memory of sortedMemories) {
-      if (usedTokens >= tokenBudget) break;
-
-      // 기억 내용 요약
-      const summary = this.summarizeMemoryContent(memory.content, maxTokensPerMemory);
-      const summaryTokens = this.estimateTokens(summary);
-
-      if (usedTokens + summaryTokens <= tokenBudget) {
-        summaries.push({
-          id: memory.id,
-          content: memory.content,
-          type: memory.type,
-          importance: memory.importance,
-          summary
-        });
-        usedTokens += summaryTokens;
-      }
-    }
-
-    return summaries;
-  }
-
-  /**
-   * 개별 기억 내용 요약
-   */
-  private summarizeMemoryContent(content: string, maxTokens: number): string {
-    // 간단한 요약 로직 (실제로는 더 정교한 요약 알고리즘 사용 가능)
-    const words = content.split(' ');
-    const maxWords = Math.floor(maxTokens / 1.5); // 대략적인 단어 수 계산
-
-    if (words.length <= maxWords) {
-      return content;
-    }
-
-    // 중요도 기반 요약 (첫 문장 + 마지막 문장 + 중간 핵심 내용)
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
-    if (sentences.length <= 2) {
-      return words.slice(0, maxWords).join(' ') + '...';
-    }
-
-    const firstSentence = sentences[0]?.trim() || '';
-    const lastSentence = sentences[sentences.length - 1]?.trim() || '';
-    const middleSentences = sentences.slice(1, -1);
-    
-    let summary = firstSentence;
-    let remainingWords = maxWords - firstSentence.split(' ').length;
-
-    if (remainingWords > 0 && middleSentences.length > 0) {
-      const middleText = middleSentences.join('. ');
-      const middleWords = middleText.split(' ');
-      const middleWordsToInclude = Math.min(remainingWords - lastSentence.split(' ').length, middleWords.length);
-      
-      if (middleWordsToInclude > 0) {
-        summary += ' ' + middleWords.slice(0, middleWordsToInclude).join(' ');
-        remainingWords -= middleWordsToInclude;
-      }
-    }
-
-    if (remainingWords > 0) {
-      summary += ' ' + lastSentence;
-    }
-
-    return summary + (summary.length < content.length ? '...' : '');
-  }
-
-  /**
-   * 프롬프트 형식으로 포맷팅
-   */
-  private formatMemoryPrompt(
-    summaries: Array<{id: string, content: string, type: string, importance: number, summary: string}>,
-    query: string
-  ): string {
-    if (summaries.length === 0) {
-      return '관련 기억을 찾을 수 없습니다.';
-    }
-
-    let prompt = `# 관련 기억 (${summaries.length}개)\n\n`;
-    prompt += `**검색 쿼리**: "${query}"\n\n`;
-
-    summaries.forEach((memory, index) => {
-      const typeEmoji = this.getMemoryTypeEmoji(memory.type);
-      const importanceStars = '★'.repeat(Math.ceil(memory.importance * 5));
-      
-      prompt += `## ${index + 1}. ${typeEmoji} ${memory.type.toUpperCase()} 기억\n`;
-      prompt += `**중요도**: ${importanceStars} (${memory.importance.toFixed(2)})\n`;
-      prompt += `**내용**: ${memory.summary}\n\n`;
-    });
-
-    prompt += '---\n';
-    prompt += '*이 기억들은 현재 대화와 관련된 맥락 정보입니다. 참고하여 더 정확하고 관련성 높은 답변을 제공하세요.*';
-
-    return prompt;
-  }
-
-  /**
-   * 기억 타입별 이모지
-   */
-  private getMemoryTypeEmoji(type: string): string {
-    const emojiMap: Record<string, string> = {
-      'working': '🧠',
-      'episodic': '📝',
-      'semantic': '📚',
-      'procedural': '⚙️'
-    };
-    return emojiMap[type] || '💭';
-  }
-
-  /**
-   * 토큰 수 추정 (간단한 추정)
-   */
-  private estimateTokens(text: string): number {
-    // 대략적인 토큰 수 추정 (실제로는 더 정확한 토크나이저 사용 가능)
-    return Math.ceil(text.length / 4);
-  }
-
-  /**
-   * Consolidation Score 메타데이터 업데이트
-   * 검색 결과로 반환된 메모리들의 recall_count, last_accessed_at, g_value 업데이트
-   * Write Coalescing을 사용하여 I/O 부하를 줄입니다.
-   * (recall-tool.ts와 동일한 로직)
-   * 
-   * @param db 데이터베이스 연결
-   * @param consolidationScoreService Consolidation Score 서비스
-   * @param writeCoalescingManager Write Coalescing Manager (선택적)
-   * @param searchItems 검색 결과 아이템 배열
-   */
-  private async updateConsolidationScoreMetadata(
-    db: any,
-    consolidationScoreService: IConsolidationScoreService,
-    writeCoalescingManager: WriteCoalescingManager | undefined,
-    searchItems: any[]
-  ): Promise<void> {
-    if (!searchItems || searchItems.length === 0) {
-      return;
-    }
-
-    try {
-      const now = new Date();
-      const nowISO = now.toISOString();
-
-      // 각 검색 결과에 대해 업데이트
-      for (const item of searchItems) {
-        const memoryId = item.id || item.memory_id;
-        if (!memoryId) {
-          continue; // ID가 없으면 스킵
-        }
-
-        try {
-          // 기존 메모리 정보 조회 (recall_count, last_accessed_at, g_value, created_at, type, pinned)
-          const memory = DatabaseUtils.get(
-            db,
-            `SELECT 
-              recall_count, 
-              last_accessed_at, 
-              g_value, 
-              created_at, 
-              type, 
-              pinned 
-            FROM memory_item 
-            WHERE id = ?`,
-            [memoryId]
-          ) as {
-            recall_count: number;
-            last_accessed_at: string | null;
-            g_value: number | null;
-            created_at: string;
-            type: MemoryType;
-            pinned: boolean | number;
-          } | undefined;
-
-          if (!memory) {
-            this.logWarning(`메모리를 찾을 수 없습니다: ${memoryId}`);
-            continue;
-          }
-
-          // recall_count 증가
-          const newRecallCount = (memory.recall_count || 0) + 1;
-
-          // 경과 시간 계산 (last_accessed_at이 있으면 사용, 없으면 created_at 사용)
-          const lastAccessedAt = memory.last_accessed_at 
-            ? new Date(memory.last_accessed_at) 
-            : new Date(memory.created_at);
-          const timeElapsed = consolidationScoreService.calculateTimeElapsed(
-            lastAccessedAt,
-            new Date(memory.created_at),
-            now
-          );
-
-          // g_value 업데이트
-          const newGValue = consolidationScoreService.updateGValueForRecall({
-            previousGValue: memory.g_value,
-            timeElapsed
-          });
-
-          // consolidation_score 계산
-          const scoreResult = consolidationScoreService.calculateScore({
-            recallCount: newRecallCount,
-            lastAccessedAt: now,
-            createdAt: new Date(memory.created_at),
-            gValue: newGValue,
-            type: memory.type,
-            pinned: memory.pinned === 1 || memory.pinned === true
-          });
-
-          // Write Coalescing 사용 여부 확인
-          if (writeCoalescingManager) {
-            // 버퍼에 추가 (주기적으로 flush됨)
-            writeCoalescingManager.addWrite({
-              memoryId,
-              fields: {
-                recall_count: newRecallCount,
-                last_accessed_at: nowISO,
-                g_value: newGValue,
-                consolidation_score: scoreResult.score
-              }
-            });
-          } else {
-            // Write Coalescing이 없으면 즉시 업데이트
-            DatabaseUtils.run(
-              db,
-              `UPDATE memory_item 
-               SET 
-                 recall_count = ?,
-                 last_accessed_at = ?,
-                 g_value = ?,
-                 consolidation_score = ?
-               WHERE id = ?`,
-              [newRecallCount, nowISO, newGValue, scoreResult.score, memoryId]
-            );
-          }
-
-        } catch (error) {
-          // 개별 메모리 업데이트 실패해도 다른 메모리는 계속 업데이트
-          this.logWarning(`메모리 업데이트 실패 (${memoryId})`, {
-            error: error instanceof Error ? error.message : String(error)
-          });
-        }
-      }
-    } catch (error) {
-      // 전체 업데이트 실패해도 검색 결과는 정상 반환
-      this.logError(error as Error, 'Consolidation Score 메타데이터 업데이트 실패', {
-        itemCount: searchItems.length
-      });
     }
   }
 }
