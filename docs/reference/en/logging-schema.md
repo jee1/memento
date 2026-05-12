@@ -1,6 +1,6 @@
 # Logging field schema
 
-This document describes the logging field schema of the standard logger module (`src/shared/utils/logger.ts`) in the Memento project.
+This document describes the logging field schema of the standard logger module in the Memento monorepo. The standard logger lives at `packages/memento-core/src/shared/utils/logger.ts`; the MCP logger lives at `packages/memento-server/src/server/mcp-logger.ts`.
 
 ## Overview
 
