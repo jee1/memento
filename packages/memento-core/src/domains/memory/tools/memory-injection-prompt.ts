@@ -7,8 +7,7 @@ import { z } from 'zod';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { BaseTool } from '../../../tools/base-tool.js';
-import type { ToolContext } from '../../../tools/types.js';
-import { CommonSchemas } from '../../../tools/types.js';
+import { CommonSchemas, type ToolContext, type ToolResult } from '../../../tools/types.js';
 import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundle-builder.js';
 import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
 
@@ -79,7 +78,7 @@ export class MemoryInjectionPrompt extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<any> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     const {
       query,
       token_budget = 1000,

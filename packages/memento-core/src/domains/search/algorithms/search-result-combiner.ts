@@ -68,7 +68,7 @@ export class SearchResultCombiner implements ISearchResultCombiner {
         existing.recall_reason = this.generateHybridReason(existing.textScore, result.similarity);
       } else {
         // 벡터 검색에서만 발견된 결과를 추가하여 검색 포괄성을 확보합니다.
-        resultMap.set(result.id, {
+        const vectorOnly: HybridSearchResult = {
           id: result.id,
           content: result.content,
           type: result.type,
@@ -81,7 +81,10 @@ export class SearchResultCombiner implements ISearchResultCombiner {
           vectorScore: result.similarity,
           finalScore: result.similarity * vectorWeight,
           recall_reason: `벡터 유사도: ${result.similarity.toFixed(3)}`,
-        });
+        };
+        if (result.project_id !== undefined) vectorOnly.project_id = result.project_id;
+        if (result.owner_id !== undefined) vectorOnly.owner_id = result.owner_id;
+        resultMap.set(result.id, vectorOnly);
       }
     });
 

@@ -26,6 +26,8 @@ export interface VectorSearchResult {
   last_accessed?: string;
   pinned: boolean;
   tags?: string[];
+  project_id?: string | null;
+  owner_id?: string | null;
 }
 
 export interface VectorSearchOptions {
@@ -34,6 +36,8 @@ export interface VectorSearchOptions {
   types?: string[];    // 특정 메모리 타입만 검색하여 정확한 결과를 제공하기 위한 다중 메모리 타입 필터
   includeContent?: boolean;
   includeMetadata?: boolean; // 상세한 분석을 위해 메타데이터 포함 여부를 제어합니다.
+  project_id?: string;
+  owner_id?: string | string[];
 }
 
 export interface VectorIndexStatus {

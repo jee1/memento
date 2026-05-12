@@ -42,6 +42,8 @@ export type ProviderVectorSearchOptions = {
   threshold: number;
   types?: MemoryType[];
   includeContent: boolean;
+  project_id?: string;
+  owner_id?: string | string[];
 };
 
 type VectorSearchRow = {
@@ -51,6 +53,8 @@ type VectorSearchRow = {
   importance: number;
   created_at: string;
   similarity: number;
+  project_id?: string | null;
+  owner_id?: string | null;
 };
 
 /** Injected from HybridSearchEngine so this module stays free of SearchError / engine imports. */
@@ -110,7 +114,9 @@ export async function runSingleProviderVectorSearch(
         pinned: false,
         score: result.similarity,
         similarity: result.similarity,
-        provider
+        provider,
+        ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
+        ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
       })),
       success: true,
       timeMs: providerTime,

@@ -292,12 +292,24 @@ export async function buildKnowledgeContextBundle(
         : filteredMemoryTypes
       : undefined;
 
+  const hasScope = Boolean(
+    (projectId && projectId.length > 0) ||
+      (ownerId !== undefined &&
+        ownerId !== null &&
+        (Array.isArray(ownerId) ? ownerId.length > 0 : String(ownerId).length > 0)),
+  );
+  const searchLimitMultiplier = hasScope ? 6 : 2;
+
   const searchResult = await deps.hybridSearchEngine.search(deps.db, {
     query,
     filters: {
       type: finalMemoryTypes,
+      ...(projectId && projectId.length > 0 ? { project_id: projectId } : {}),
+      ...(ownerId !== undefined && ownerId !== null
+        ? { owner_id: ownerId }
+        : {}),
     },
-    limit: maxMemories * 2,
+    limit: maxMemories * searchLimitMultiplier,
     vectorWeight: 0.7,
     textWeight: 0.3,
   });
@@ -309,9 +321,7 @@ export async function buildKnowledgeContextBundle(
     searchResult.tfidf_query_embedding_fallback_providers,
   );
 
-  // TODO(#232 follow-up): project_id / owner_id를 검색 단계(SQL/하이브리드 filters)에서 적용하지 않고
-  // 여기서 후처리만 하므로, 좁은 필터일 때 limit 이전에 걸러져 후보가 maxMemories보다 훨씬 적을 수 있음.
-
+  // project_id / owner_id는 하이브리드 검색 filters 및 SQL(텍스트·VEC·임베딩 fallback)에서 적용됨.
   let memories: HybridSearchResult[] = searchResult.items;
   if (projectId) {
     memories = memories.filter((m) => m.project_id != null && m.project_id === projectId);
