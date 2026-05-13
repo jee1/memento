@@ -43,6 +43,10 @@ describe('extractKnowledgeCandidates', () => {
     it('모호한 질문은 결정 후보를 만들지 않는다', () => {
       expect(extractKnowledgeCandidates('하기로 했나?')).toEqual([]);
     });
+
+    it('가정절 하기로 했다면 은 결정 후보를 만들지 않는다', () => {
+      expect(extractKnowledgeCandidates('배포하기로 했다면 회의에서 정하자')).toEqual([]);
+    });
   });
 
   describe('learning', () => {
@@ -60,6 +64,10 @@ describe('extractKnowledgeCandidates', () => {
     it('알게 됐 신호를 인식한다', () => {
       const r = extractKnowledgeCandidates('알게 됐다: JWT는 만료가 중요하다');
       expect(r.some((x) => x.category === 'learning')).toBe(true);
+    });
+
+    it('TIL 본문이 물음표로 끝나면 학습 후보를 만들지 않는다', () => {
+      expect(extractKnowledgeCandidates('TIL: SQLite는 단일 파일일까?')).toEqual([]);
     });
   });
 
@@ -79,6 +87,12 @@ describe('extractKnowledgeCandidates', () => {
     it('먼저 그다음 패턴을 인식한다', () => {
       const r = extractKnowledgeCandidates('먼저 설치하고 그다음 실행해');
       expect(r.some((x) => x.category === 'procedure')).toBe(true);
+    });
+  });
+
+  describe('ambiguity', () => {
+    it('ASCII 물음표 없이 한국어 질문으로 끝나면 후보를 만들지 않는다', () => {
+      expect(extractKnowledgeCandidates('앞으로는 뭘 쓸까')).toEqual([]);
     });
   });
 

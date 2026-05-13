@@ -1,4 +1,5 @@
 import type { KnowledgeCandidate, KnowledgeCandidateCategory } from '../types/agent-types.js';
+import { isAmbiguousUserMessage } from './knowledge-candidate-text-ambiguity.js';
 
 const BASE = 'personal-agent' as const;
 
@@ -25,13 +26,13 @@ function pushUnique(out: KnowledgeCandidate[], c: KnowledgeCandidate): void {
 export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandidate[] {
   const text = userMessage.trim();
   if (text.length < 4) return [];
+  if (isAmbiguousUserMessage(userMessage)) return [];
 
   const out: KnowledgeCandidate[] = [];
-  const ambiguous = /\?\s*$/.test(text);
 
   // preference: "앞으로는 …"
   const pref = text.match(/앞으로는\s+(.{4,})/);
-  if (pref?.[1] && !ambiguous) {
+  if (pref?.[1]) {
     const content = pref[1].trim();
     if (content.length >= 4) {
       pushUnique(out, {
@@ -48,7 +49,7 @@ export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandid
   }
 
   const prefEn = text.match(/I\s+prefer\s+to\s+(.{4,})/i);
-  if (prefEn?.[1] && !ambiguous) {
+  if (prefEn?.[1]) {
     const content = prefEn[1].trim();
     if (content.length >= 4) {
       pushUnique(out, {
@@ -65,7 +66,7 @@ export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandid
   }
 
   const pref2 = text.match(/(.+?)을\s+선호(?:해|한다|합니다|해요)/);
-  if (pref2?.[1] && !ambiguous) {
+  if (pref2?.[1]) {
     const content = pref2[1].trim();
     if (content.length >= 4 && !content.includes('앞으로는')) {
       pushUnique(out, {
@@ -81,8 +82,8 @@ export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandid
     }
   }
 
-  const dec = text.match(/(.{2,}?)하기로\s*했(?:다|어|습니다|어요)?/);
-  if (dec?.[1] && !ambiguous) {
+  const dec = text.match(/(.{2,}?)하기로\s*했(?:다|어|습니다|어요)?(?!\면)/);
+  if (dec?.[1]) {
     const content = dec[1].trim();
     if (content.length >= 2) {
       pushUnique(out, {
@@ -99,7 +100,7 @@ export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandid
   }
 
   const decEn = text.match(/I\s+decided\s+to\s+(.{4,})/i);
-  if (decEn?.[1] && !ambiguous) {
+  if (decEn?.[1]) {
     const content = decEn[1].trim();
     pushUnique(out, {
       category: 'decision',
@@ -114,7 +115,7 @@ export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandid
   }
 
   const dec2 = text.match(/결정했(?:다|어|습니다|어요)?\s*[:\s]\s*(.{4,})/);
-  if (dec2?.[1] && !ambiguous) {
+  if (dec2?.[1]) {
     const content = dec2[1].trim();
     if (content.length >= 4) {
       pushUnique(out, {

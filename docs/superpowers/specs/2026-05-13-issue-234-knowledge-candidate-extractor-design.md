@@ -1,16 +1,16 @@
 # 설계: 이슈 #234 — KnowledgeCandidateExtractor (4종 규칙 기반 후보)
 
-**날짜**: 2026-05-13  
-**이슈**: [#234](https://github.com/jee1/memento/issues/234)  
-**부모**: [#82](https://github.com/jee1/memento/issues/82) 개인 지식 축적 Agent MVP  
-**선행**: [#231](https://github.com/jee1/memento/issues/231) 계약, [#232](https://github.com/jee1/memento/issues/232) 컨텍스트 빌더, [#233](https://github.com/jee1/memento/issues/233) LLM 메타데이터  
+**날짜**: 2026-05-13
+**이슈**: [#234](https://github.com/jee1/memento/issues/234)
+**부모**: [#82](https://github.com/jee1/memento/issues/82) 개인 지식 축적 Agent MVP
+**선행**: [#231](https://github.com/jee1/memento/issues/231) 계약, [#232](https://github.com/jee1/memento/issues/232) 컨텍스트 빌더, [#233](https://github.com/jee1/memento/issues/233) LLM 메타데이터
 **입력 범위 결정**: `userMessage`만 사용 (어시스턴트 응답은 범위 밖, 보수적 정확도 우선).
 
 ---
 
 ## 1. 목표
 
-사용자 메시지에서 **명시적 언어 신호**가 있을 때만 `preference` · `decision` · `learning` · `procedure` 네 가지 **후보 카테고리**를 구조화한다.  
+사용자 메시지에서 **명시적 언어 신호**가 있을 때만 `preference` · `decision` · `learning` · `procedure` 네 가지 **후보 카테고리**를 구조화한다.
 모호한 문장은 후보 배열에 포함하지 않는다. LLM 호출·자동 저장·추가 카테고리는 하지 않는다.
 
 ---
@@ -49,7 +49,7 @@
 **파일**: `packages/memento-core/src/domains/personal-agent/types/agent-types.ts`
 
 - `KnowledgeCandidateCategory`: `'preference' | 'decision' | 'learning' | 'procedure'`
-- `suggestedMemoryType`: `@memento/core` 공유 타입 `MemoryType` (`'working' | 'episodic' | 'semantic' | 'procedural'`)  
+- `suggestedMemoryType`: `@memento/core` 공유 타입 `MemoryType` (`'working' | 'episodic' | 'semantic' | 'procedural'`)
   - 개인 지식 후보는 기본적으로 **`working` 제외**만 허용한다. 규칙이 `working`을 제안하는 경우는 **만들지 않는다**(승인·저장 경로와 정합).
 - `KnowledgeCandidate` 필드(이슈와 동일 + 카테고리):
 
@@ -83,10 +83,10 @@
 
 ## 6. 규칙 설계 원칙
 
-1. **명시적 구문만**: 정규식 또는 고정 구문 목록(한국어 우선, 필요 시 영문 소수).  
-2. **한 메시지·다중 후보**: 서로 겹치지 않는 서로 다른 신호가 있으면 여러 항목 허용. 동일 카테고리 중복은 **내용이 같을 때만** 하나로 합친다.  
-3. **모호성**: 조건부·질문형만 있고 확정 없음 → 빈 배열.  
-4. **confidence**: 예) 고정 문구 매칭 `0.9`, 패턴 2개 이상 동시 만족 `0.95` 등 **문서화된 고정값**만 사용(LLM 없음).  
+1. **명시적 구문만**: 정규식 또는 고정 구문 목록(한국어 우선, 필요 시 영문 소수).
+2. **한 메시지·다중 후보**: 서로 겹치지 않는 서로 다른 신호가 있으면 여러 항목 허용. 동일 카테고리 중복은 **내용이 같을 때만** 하나로 합친다.
+3. **모호성**: 조건부·질문형만 있고 확정 없음 → 빈 배열.
+4. **confidence**: 예) 고정 문구 매칭 `0.9`, 패턴 2개 이상 동시 만족 `0.95` 등 **문서화된 고정값**만 사용(LLM 없음).
 5. **importance**: 카테고리별 기본값 상수(예 0.5–0.7) + 신호 강도에 따른 소수 단계만 허용.
 
 초기 규칙 예시(구현 시 이 목록을 테스트로 고정):
@@ -125,7 +125,7 @@ packages/memento-core/src/domains/personal-agent/
 1. `buildContext(request)` — 기존과 동일
 2. **`candidates = extractKnowledgeCandidates(input.userMessage)`** — LLM과 무관
 3. `llm.complete([...])` — 기존과 동일
-4. `proposeCandidates(candidates)` / `persist(candidates)` — 기존 순서 유지
+4. `proposeCandidates(candidates)` — #235에서 승인 후 `persist(candidates)` 호출
 
 추출을 LLM 앞에 두어 후보가 모델 출력에 의존하지 않음을 보장한다.
 

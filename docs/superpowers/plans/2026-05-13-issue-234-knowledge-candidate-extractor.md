@@ -54,7 +54,7 @@ npx vitest run packages/memento-core/src/domains/personal-agent/
 
 **Plan complete and saved to `docs/superpowers/plans/2026-05-13-issue-234-knowledge-candidate-extractor.md`. Two execution options:**
 
-1. **Subagent-Driven (recommended)** — 태스크마다 새 서브에이전트, 태스크 간 리뷰  
+1. **Subagent-Driven (recommended)** — 태스크마다 새 서브에이전트, 태스크 간 리뷰
 2. **Inline Execution** — `executing-plans`로 동일 세션 배치 실행
 
 본 워크트리에서는 위 검증 명령까지 구현이 반영되어 있다.

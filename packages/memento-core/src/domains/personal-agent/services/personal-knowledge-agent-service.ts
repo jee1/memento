@@ -36,8 +36,7 @@ export class PersonalKnowledgeAgentService {
 
     await this.deps.context.proposeCandidates(candidates);
 
-    // #235에서 승인 흐름 구현
-    await this.deps.persistence.persist(candidates);
+    // #235: 승인 후에만 persistence.persist 호출 — #234 범위에서는 자동 저장하지 않음
 
     return {
       candidates,

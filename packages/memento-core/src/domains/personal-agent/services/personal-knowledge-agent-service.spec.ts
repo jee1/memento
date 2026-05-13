@@ -38,7 +38,7 @@ describe('PersonalKnowledgeAgentService', () => {
   }
 
   it('mock dependency로 한 턴을 실행하고 llmResponse와 metadata를 반환한다', async () => {
-    const { llm, context, persistence } = makeDeps();
+    const { llm, context, persistence, persistFn } = makeDeps();
     const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
 
     const result = await svc.runOneTurn({ userMessage: '테스트 입력' });
@@ -53,10 +53,11 @@ describe('PersonalKnowledgeAgentService', () => {
     expect(result.candidates).toEqual([]);
     expect(result.knowledgeContext.itemCount).toBe(1);
     expect(result.knowledgeContext.tokenEstimate).toBe(10);
+    expect(persistFn).not.toHaveBeenCalled();
   });
 
   it('명시적 선호 신호가 있으면 후보를 추출하고 proposeCandidates에 전달한다', async () => {
-    const { llm, context, persistence, proposeCandidatesFn } = makeDeps();
+    const { llm, context, persistence, proposeCandidatesFn, persistFn } = makeDeps();
     const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
 
     const msg = '앞으로는 PR 설명은 한국어로 쓰고 싶어';
@@ -69,6 +70,16 @@ describe('PersonalKnowledgeAgentService', () => {
     expect(typeof c!.confidence).toBe('number');
     expect(c!.suggestedMemoryType).toBe('semantic');
     expect(proposeCandidatesFn).toHaveBeenCalledWith(result.candidates);
+    expect(persistFn).not.toHaveBeenCalled();
+  });
+
+  it('#234 범위에서는 후보가 있어도 persistence.persist를 호출하지 않는다', async () => {
+    const { llm, context, persistence, persistFn } = makeDeps();
+    const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
+
+    await svc.runOneTurn({ userMessage: '앞으로는 커밋 메시지는 영어로 쓰자' });
+
+    expect(persistFn).not.toHaveBeenCalled();
   });
 
   it('buildContext를 userMessage와 projectId로 호출한다', async () => {
