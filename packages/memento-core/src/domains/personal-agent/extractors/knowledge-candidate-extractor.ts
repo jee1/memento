@@ -82,7 +82,7 @@ export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandid
     }
   }
 
-  const dec = text.match(/(.{2,}?)하기로\s*했(?:다|어|습니다|어요)?(?!\면)/);
+  const dec = text.match(/(.{2,}?)하기로\s*했(?:다|어|습니다|어요)?(?!면)/);
   if (dec?.[1]) {
     const content = dec[1].trim();
     if (content.length >= 2) {
