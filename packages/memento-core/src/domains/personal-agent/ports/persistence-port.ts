@@ -1,5 +1,8 @@
-import type { KnowledgeCandidate } from '../types/agent-types.js';
+import type {
+  PersonalKnowledgePersistInput,
+  PersonalKnowledgePersistResult,
+} from '../types/agent-types.js';
 
 export interface IPersistencePort {
-  persist(candidates: KnowledgeCandidate[]): Promise<void>;
+  persistApproved(input: PersonalKnowledgePersistInput): Promise<PersonalKnowledgePersistResult>;
 }

@@ -1,9 +1,14 @@
 export type {
   KnowledgeCandidate,
   KnowledgeCandidateCategory,
+  KnowledgeCandidatePayload,
   PersonalKnowledgeAgentInput,
   PersonalKnowledgeAgentResult,
   PersonalKnowledgeContextMeta,
+  PersonalKnowledgePersistInput,
+  PersonalKnowledgePersistItemResult,
+  PersonalKnowledgePersistItemStatus,
+  PersonalKnowledgePersistResult,
   SuggestedPersonalMemoryType,
 } from './types/agent-types.js';
 
@@ -19,6 +24,14 @@ export type {
   KnowledgeContextRequest,
 } from './ports/context-port.js';
 export type { IPersistencePort } from './ports/persistence-port.js';
+
+export {
+  mapKnowledgeCandidateToRememberParams,
+  buildProceduralStepsJson,
+} from './mappers/knowledge-candidate-to-remember-params.js';
+export type { RememberParamsMappingContext, MapKnowledgeCandidateToRememberParamsResult } from './mappers/knowledge-candidate-to-remember-params.js';
+
+export { ToolContextRememberPersistenceAdapter } from './adapters/tool-context-remember-persistence-adapter.js';
 
 export {
   DeterministicMockLlmAdapter,
