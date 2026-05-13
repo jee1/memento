@@ -262,67 +262,158 @@ await client.callTool({
 
 ## 🛠️ 사용법
 
-### MCP 클라이언트 연결
+> **접근 방식 세 가지**:
+> - **mcp.json 설정**: Claude Desktop, Cursor, Claude Code 등 MCP 호스트에 Memento를 등록하는 방식 (코드 불필요)
+> - **MCP 프로토콜** (`@modelcontextprotocol/sdk`): 커스텀 에이전트 코드에서 MCP 프로토콜로 직접 연결하는 방식
+> - **HTTP API 클라이언트** (`@memento/client`): TypeScript/JavaScript 코드에서 Memento 서버의 REST API를 프로그래밍 방식으로 사용하는 방식
+
+### 0. mcp.json 설정 (Claude Desktop · Cursor · Claude Code)
+
+MCP 호스트 앱에서 Memento를 사용하려면 설정 파일에 서버 정보를 등록합니다.
+
+#### stdio 모드 (단일 에이전트 / 소스 실행)
+
+`npm run build` 후 아래처럼 등록합니다.
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["/path/to/memento/packages/memento-server/dist/server/index.js"],
+      "env": {
+        "DB_PATH": "/absolute/path/to/data/memory.db"
+      }
+    }
+  }
+}
+```
+
+> **파일 위치**:
+> - Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+> - Cursor: `.cursor/mcp.json` (프로젝트) 또는 `~/.cursor/mcp.json` (전역)
+> - Claude Code: `.claude/mcp.json` (프로젝트) 또는 `~/.claude/mcp.json` (전역)
+
+#### HTTP MCP 모드 (다중 에이전트 공유 서버)
+
+여러 에이전트가 동일한 서버에 접속할 때 사용합니다. 먼저 서버를 띄운 뒤 등록합니다.
+
+```bash
+# 서버 먼저 실행
+npm run build && npm run start:http   # 기본 포트: 8080
+```
+
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "type": "http",
+      "url": "http://127.0.0.1:8080/mcp"
+    }
+  }
+}
+```
+
+> **npx로 실행하는 경우** (소스 빌드 없이):
+> ```json
+> {
+>   "mcpServers": {
+>     "memento": {
+>       "command": "npx",
+>       "args": ["memento-mcp-server@latest"],
+>       "env": {
+>         "DB_PATH": "/absolute/path/to/data/memory.db"
+>       }
+>     }
+>   }
+> }
+> ```
+
+### 1. MCP 프로토콜 연결 (`@modelcontextprotocol/sdk`)
+
+MCP 호스트나 커스텀 에이전트에서 MCP 프로토콜로 직접 연결할 때 사용합니다.
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 const client = new Client({
-  name: "memento-client",
+  name: "my-agent",
   version: "0.1.0"
 }, {
-  capabilities: {
-    tools: {},
-    resources: {},
-    prompts: {}
-  }
+  capabilities: { tools: {}, resources: {}, prompts: {} }
 });
 
-// stdio 연결
+// stdio 연결 (단일 프로세스)
 await client.connect({
   command: "node",
   args: ["packages/memento-server/dist/server/index.js"]
 });
 
-// WebSocket 연결
+// HTTP MCP 연결 (다중 에이전트 공유 서버)
 await client.connect({
   transport: {
-    type: "websocket",
-    url: "ws://localhost:9001/mcp"
+    type: "http",
+    url: "http://127.0.0.1:7777"
   }
 });
 ```
 
-### 기억 저장
-
 ```typescript
-// 기억 저장
+// MCP 도구 호출
 const result = await client.callTool({
   name: "remember",
   arguments: {
-    content: "React Hook에 대해 학습했습니다. useState는 상태를 관리하고, useEffect는 사이드 이펙트를 처리합니다.",
+    content: "React Hook에 대해 학습했습니다.",
     type: "episodic",
-    tags: ["react", "hooks", "javascript"],
+    tags: ["react", "hooks"],
     importance: 0.8
   }
 });
-```
 
-### 기억 검색
-
-```typescript
-// 기억 검색
 const results = await client.callTool({
   name: "recall",
   arguments: {
     query: "React Hook을 처음 배울 때 알아야 할 것들은?",
-    filters: {
-      type: ["episodic", "semantic"],
-      tags: ["react"]
-    },
+    filters: { type: ["episodic", "semantic"], tags: ["react"] },
     limit: 10
   }
 });
+```
+
+### 2. HTTP API 클라이언트 (`@memento/client`)
+
+`@memento/client`는 MCP 프로토콜이 아닌 **HTTP REST API 래퍼**입니다. TypeScript/JavaScript 애플리케이션에서 Memento 서버의 `/tools/*` 엔드포인트를 직접 호출할 때 사용합니다.
+
+```typescript
+import { MementoClient } from "@memento/client";
+
+const client = new MementoClient({
+  serverUrl: "http://localhost:8080",
+  apiKey: "your-api-key"       // HTTP 서버의 Bearer 토큰
+});
+
+await client.connect();        // /health 엔드포인트로 연결 확인
+```
+
+```typescript
+// 기억 저장
+const result = await client.remember({
+  content: "React Hook에 대해 학습했습니다.",
+  type: "episodic",
+  tags: ["react", "hooks"],
+  importance: 0.8
+});
+
+// 기억 검색
+const results = await client.recall(
+  "React Hook을 처음 배울 때 알아야 할 것들은?",
+  { type: ["episodic", "semantic"], tags: ["react"] },
+  10
+);
+
+// 기억 고정 / 삭제
+await client.pin(result.memory_id);
+await client.forget(result.memory_id);
 ```
 
 ## 📚 문서

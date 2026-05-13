@@ -7,6 +7,8 @@ export type KnowledgeCandidateCategory = 'preference' | 'decision' | 'learning' 
 export type SuggestedPersonalMemoryType = Exclude<MemoryType, 'working'>;
 
 export interface KnowledgeCandidate {
+  /** `kc_` + UUID, `runOneTurn`에서 부여 */
+  id: string;
   category: KnowledgeCandidateCategory;
   content: string;
   reason: string;
@@ -16,6 +18,9 @@ export interface KnowledgeCandidate {
   confidence: number;
   sourceContext?: string;
 }
+
+/** 추출기 출력(#234). `runOneTurn`에서 `id`를 부여해 `KnowledgeCandidate`로 승격한다. */
+export type KnowledgeCandidatePayload = Omit<KnowledgeCandidate, 'id'>;
 
 export interface PersonalKnowledgeAgentInput {
   userMessage: string;
@@ -38,6 +43,32 @@ export interface PersonalKnowledgeAgentResult {
   candidates: KnowledgeCandidate[];
   llmResponse: string;
   llmMetadata?: LLMProviderMetadata;
+  /** `runOneTurn`에서는 remember를 호출하지 않으므로 항상 `false` */
   persisted: boolean;
   knowledgeContext: PersonalKnowledgeContextMeta;
+}
+
+/** 2단계: 승인된 후보만 저장 (#235) */
+export interface PersonalKnowledgePersistInput {
+  candidates: KnowledgeCandidate[];
+  approvedCandidateIds: string[];
+  projectId?: string;
+  ownerId?: string | string[];
+  sessionId?: string;
+  processId?: string;
+}
+
+export type PersonalKnowledgePersistItemStatus = 'persisted' | 'error';
+
+export interface PersonalKnowledgePersistItemResult {
+  candidateId: string;
+  status: PersonalKnowledgePersistItemStatus;
+  memoryId?: string;
+  errorMessage?: string;
+}
+
+export interface PersonalKnowledgePersistResult {
+  items: PersonalKnowledgePersistItemResult[];
+  persistedCount: number;
+  errorCount: number;
 }

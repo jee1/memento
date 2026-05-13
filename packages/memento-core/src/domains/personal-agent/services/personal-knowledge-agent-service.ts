@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { ILLMPort } from '../ports/llm-port.js';
 import type { IContextPort } from '../ports/context-port.js';
 import type { IPersistencePort } from '../ports/persistence-port.js';
@@ -5,6 +6,8 @@ import type {
   KnowledgeCandidate,
   PersonalKnowledgeAgentInput,
   PersonalKnowledgeAgentResult,
+  PersonalKnowledgePersistInput,
+  PersonalKnowledgePersistResult,
 } from '../types/agent-types.js';
 import { extractKnowledgeCandidates } from '../extractors/knowledge-candidate-extractor.js';
 
@@ -27,7 +30,11 @@ export class PersonalKnowledgeAgentService {
       memoryTypes: input.memoryTypes,
     });
 
-    const candidates: KnowledgeCandidate[] = extractKnowledgeCandidates(input.userMessage);
+    const raw = extractKnowledgeCandidates(input.userMessage);
+    const candidates: KnowledgeCandidate[] = raw.map((c) => ({
+      ...c,
+      id: `kc_${randomUUID()}`,
+    }));
 
     const llmResult = await this.deps.llm.complete([
       { role: 'system', content: bundle.promptText },
@@ -36,7 +43,7 @@ export class PersonalKnowledgeAgentService {
 
     await this.deps.context.proposeCandidates(candidates);
 
-    // #235: 승인 후에만 persistence.persist 호출 — #234 범위에서는 자동 저장하지 않음
+    // #235: remember는 `persistApprovedCandidates`에서만 호출
 
     return {
       candidates,
@@ -49,5 +56,20 @@ export class PersonalKnowledgeAgentService {
         summary: bundle.contextSummary,
       },
     };
+  }
+
+  /**
+   * 승인된 후보만 저장한다. LLM·proposeCandidates는 호출하지 않는다 (#235).
+   */
+  async persistApprovedCandidates(input: PersonalKnowledgePersistInput): Promise<PersonalKnowledgePersistResult> {
+    if (input.candidates.length === 0 && input.approvedCandidateIds.length > 0) {
+      throw new Error('personal-knowledge-agent: candidates가 비어 있는데 승인 id가 있습니다');
+    }
+    for (const c of input.candidates) {
+      if (!c.id) {
+        throw new Error('personal-knowledge-agent: 후보에 id가 없습니다');
+      }
+    }
+    return this.deps.persistence.persistApproved(input);
   }
 }

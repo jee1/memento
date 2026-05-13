@@ -1,4 +1,8 @@
-import type { KnowledgeCandidate, KnowledgeCandidateCategory } from '../types/agent-types.js';
+import type {
+  KnowledgeCandidateCategory,
+  KnowledgeCandidatePayload,
+  SuggestedPersonalMemoryType,
+} from '../types/agent-types.js';
 import { isAmbiguousUserMessage } from './knowledge-candidate-text-ambiguity.js';
 
 const BASE = 'personal-agent' as const;
@@ -7,14 +11,14 @@ function baseTags(category: KnowledgeCandidateCategory): string[] {
   return [BASE, category];
 }
 
-const CATEGORY_MEMORY: Record<KnowledgeCandidateCategory, KnowledgeCandidate['suggestedMemoryType']> = {
+const CATEGORY_MEMORY: Record<KnowledgeCandidateCategory, SuggestedPersonalMemoryType> = {
   preference: 'semantic',
   decision: 'episodic',
   learning: 'semantic',
   procedure: 'procedural',
 };
 
-function pushUnique(out: KnowledgeCandidate[], c: KnowledgeCandidate): void {
+function pushUnique(out: KnowledgeCandidatePayload[], c: KnowledgeCandidatePayload): void {
   const key = `${c.category}:${c.content.trim()}`;
   if (out.some((x) => `${x.category}:${x.content.trim()}` === key)) return;
   out.push(c);
@@ -23,12 +27,12 @@ function pushUnique(out: KnowledgeCandidate[], c: KnowledgeCandidate): void {
 /**
  * `userMessage`만 분석한다 (#234). 명시적 신호가 없으면 빈 배열.
  */
-export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandidate[] {
+export function extractKnowledgeCandidates(userMessage: string): KnowledgeCandidatePayload[] {
   const text = userMessage.trim();
   if (text.length < 4) return [];
   if (isAmbiguousUserMessage(userMessage)) return [];
 
-  const out: KnowledgeCandidate[] = [];
+  const out: KnowledgeCandidatePayload[] = [];
 
   // preference: "앞으로는 …"
   const pref = text.match(/앞으로는\s+(.{4,})/);

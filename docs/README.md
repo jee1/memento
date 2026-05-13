@@ -63,6 +63,8 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 - 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
 - FTS5 무중단 마이그레이션: [KO](architecture/ko/zero-downtime-fts5-migration.md) / [EN](architecture/en/zero-downtime-fts5-migration.md)
 - 아키텍처 개요: [KO](architecture/ko/architecture.md) / [EN](architecture/en/architecture.md)
+- 기억 구조화 문제 분석: [KO](architecture/ko/memory-structuring-problem-analysis.md)
+- 대시보드 디자인 시스템: [DESIGN.md](DESIGN.md)
 - 아키텍처 결정 기록(ADR): [adr/](adr/)
 
 ### 운영·도구
@@ -73,6 +75,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | GitHub 릴리스 | [github-release-workflow.md](operations/ko/github-release-workflow.md) | [github-release-workflow.md](operations/en/github-release-workflow.md) |
 | 마이그레이션 상태 점검 | [check-migration-status.md](operations/ko/check-migration-status.md) | [check-migration-status.md](operations/en/check-migration-status.md) |
 | 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) | — |
+| 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/env-deployment-checklist.md) | — |
 | 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [operations/en/](operations/en/) |
 
 ### 참조 (reference)
