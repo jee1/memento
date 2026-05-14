@@ -142,6 +142,19 @@ export {
 export type { SleepConsolidationRunResult } from './shared/types/consolidation.types.js';
 export type { SleepConsolidationServiceDeps } from './domains/consolidation/index.js';
 
+// 개인 지식 Agent (in-process CLI·예시 앱용)
+export {
+  PersonalKnowledgeAgentService,
+  DeterministicMockLlmAdapter,
+  ToolContextKnowledgeContextAdapter,
+  ToolContextRememberPersistenceAdapter,
+} from './domains/personal-agent/index.js';
+export type {
+  PersonalKnowledgeAgentDeps,
+  KnowledgeCandidate,
+  PersonalKnowledgePersistItemResult,
+} from './domains/personal-agent/index.js';
+
 // 타입·인터페이스 re-export (서버/앱에서 사용)
 export type { ToolContext, ToolResult, ToolDefinition } from './tools/types.js';
 export type { TelemetryPeriod, EventType } from './domains/telemetry/types/telemetry.types.js';

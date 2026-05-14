@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Memento CLI for AI
- * 명세: REQ-CLI-1, REQ-OPT-1~3, REQ-CFG-1, REQ-IO-4, AC8. 서브커맨드: recall, remember, forget, memory_injection
+ * 명세: REQ-CLI-1, REQ-OPT-1~3, REQ-CFG-1, REQ-IO-4, AC8. 서브커맨드: recall, remember, forget, memory_injection, agent ask
  */
 
 function writeStdout(message: string): Promise<void> {
@@ -40,6 +40,20 @@ import {
 } from './cli/option-map.js';
 
 const TOOL_SUBCOMMANDS = new Set(['recall', 'remember', 'forget', 'memory_injection']);
+
+/** agent 분기용: argv[2..]에서 글로벌 옵션 쌍 제거 (agent-ask.ts와 동일 규칙). */
+function stripGlobalArgvForAgentDetection(argv: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--db-path' || arg === '--env-file' || arg === '--config-dir') {
+      if (argv[i + 1]) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
 
 /** 전체 argv에서 글로벌 플래그를 수집 (--db-path 등은 서브커맨드 뒤에 와도 인식). */
 function parseGlobalFlags(argv: string[]): { dbPath?: string; envFile?: string; configDir?: string } {
@@ -134,6 +148,16 @@ const commandToken = preOptions.commandToken;
 const showHelp = preOptions.help || (!commandToken && !subcommand);
 
 export async function main(): Promise<number> {
+  const agentTokens = stripGlobalArgvForAgentDetection(process.argv);
+  if (agentTokens[0] === 'agent') {
+    const { runAgentAskMain, agentAskHelpText } = await import('./cli/agent-ask.js');
+    if (preOptions.help && agentTokens[1] !== 'ask') {
+      await writeStderr(agentAskHelpText());
+      return 0;
+    }
+    return runAgentAskMain(preOptions, process.argv);
+  }
+
   if (showHelp) {
     await writeStderr('memento – Memento CLI for AI\n');
     await writeStderr('Usage: memento [options] <command> [command-args]\n\n');
@@ -141,7 +165,8 @@ export async function main(): Promise<number> {
     await writeStderr('  recall              관련 기억을 검색합니다 (하이브리드 검색)\n');
     await writeStderr('  remember            기억을 저장합니다\n');
     await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
-    await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n\n');
+    await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n');
+    await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n\n');
     await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
     await writeStderr('  --db-path <path>    (deprecated) DB 파일 경로\n');
     await writeStderr('  --env-file <path>   (deprecated) .env 파일 경로\n');
