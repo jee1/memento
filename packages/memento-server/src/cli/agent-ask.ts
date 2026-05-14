@@ -5,7 +5,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
-import { stdin as stdinStream, stdout as stdoutStream } from 'node:process';
+import { stdin as stdinStream, stderr as stderrStream } from 'node:process';
 
 import {
   closeDatabase,
@@ -103,7 +103,17 @@ export function parseAgentAskInvocation(argv: string[]): ParsedAgentAsk {
     return { kind: 'help' };
   }
 
+  const flagErr = validateAgentAskFlagArgv(flagArgv);
+  if (flagErr) {
+    return { kind: 'usage', message: flagErr };
+  }
+
   const raw = parseArgvToParams(flagArgv);
+  const typeErr = validateAgentAskRawTypes(raw);
+  if (typeErr) {
+    return { kind: 'usage', message: typeErr };
+  }
+
   const json = raw.json === true;
   const noSave = raw.no_save === true;
 
@@ -131,6 +141,67 @@ export function parseAgentAskInvocation(argv: string[]): ParsedAgentAsk {
     noSave,
     jsonImplicitNoSave: json && !noSave,
   };
+}
+
+/** `agent ask` 가 허용하는 `--` 옵션만 통과(알 수 없는 플래그·남는 인자 거절). */
+const AGENT_ASK_ALLOWED_FLAGS = new Set([
+  'json',
+  'no_save',
+  'project_id',
+  'token_budget',
+  'llm',
+]);
+
+const AGENT_ASK_VALUE_FLAGS = new Set(['project_id', 'token_budget', 'llm']);
+
+export function validateAgentAskFlagArgv(flagArgv: string[]): string | null {
+  for (let i = 0; i < flagArgv.length; ) {
+    const arg = flagArgv[i];
+    if (arg === '-h' || arg === '--help') {
+      i += 1;
+      continue;
+    }
+    if (!arg.startsWith('-')) {
+      return `알 수 없는 인자: ${arg}`;
+    }
+    if (!arg.startsWith('--') || arg.length <= 2) {
+      return `알 수 없는 옵션: ${arg}`;
+    }
+    const key = arg.slice(2).replace(/-/g, '_');
+    if (!AGENT_ASK_ALLOWED_FLAGS.has(key)) {
+      return `알 수 없는 옵션: --${arg.slice(2)}`;
+    }
+    if (AGENT_ASK_VALUE_FLAGS.has(key)) {
+      const next = flagArgv[i + 1];
+      if (next === undefined || next.startsWith('-')) {
+        return `옵션 --${key.replace(/_/g, '-')} 에는 값이 필요합니다.`;
+      }
+      i += 2;
+      continue;
+    }
+    i += 1;
+  }
+  return null;
+}
+
+export function validateAgentAskRawTypes(raw: Record<string, unknown>): string | null {
+  if ('json' in raw && raw.json !== true) {
+    return 'agent ask: --json 은 값 없이 쓰는 플래그입니다.';
+  }
+  if ('no_save' in raw && raw.no_save !== true) {
+    return 'agent ask: --no-save 는 값 없이 쓰는 플래그입니다.';
+  }
+  if ('project_id' in raw) {
+    if (typeof raw.project_id !== 'string' || !String(raw.project_id).trim()) {
+      return 'agent ask: --project-id 는 비어 있지 않은 문자열이어야 합니다.';
+    }
+  }
+  if ('token_budget' in raw) {
+    if (typeof raw.token_budget !== 'number' || !Number.isFinite(raw.token_budget)) {
+      return 'agent ask: --token-budget 는 유한한 숫자여야 합니다.';
+    }
+  }
+  return null;
 }
 
 function resolveDbPath(pre: PreCliOptions): string {
@@ -185,7 +256,7 @@ async function promptApprove(
   index: number,
   total: number,
 ): Promise<'y' | 'n' | 's' | 'q'> {
-  const rl = createInterface({ input: stdinStream, output: stdoutStream });
+  const rl = createInterface({ input: stdinStream, output: stderrStream });
   try {
     const header =
       `\n[${index + 1}/${total}] (${candidate.category}, importance=${candidate.importance})\n` +

@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-05-14)
 
 ## Corpus Check
-- 981 files · ~1,576,782 words
+- 981 files · ~1,577,333 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4944 nodes · 6131 edges · 978 communities detected
+- 4946 nodes · 6135 edges · 978 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1367,84 +1367,84 @@ Cohesion: 0.23
 Nodes (1): EmbeddingMigration
 
 ### Community 90 - "Community 90"
+Cohesion: 0.31
+Nodes (12): agentAskHelpText(), debugErr(), jsonFailure(), parseAgentAskInvocation(), promptApprove(), resolveDbPath(), runAgentAskMain(), stripGlobalCliArgs() (+4 more)
+
+### Community 91 - "Community 91"
 Cohesion: 0.27
 Nodes (11): buildExactMatchQuery(), calculateSimilarity(), determineMergeStrategy(), extractProceduralMemory(), extractSkillName(), extractSteps(), extractWorkflowName(), generateTriggerConditions() (+3 more)
 
-### Community 91 - "Community 91"
+### Community 92 - "Community 92"
 Cohesion: 0.19
 Nodes (1): AnchorManager
 
-### Community 92 - "Community 92"
+### Community 93 - "Community 93"
 Cohesion: 0.28
 Nodes (1): ForgettingAlgorithm
 
-### Community 93 - "Community 93"
+### Community 94 - "Community 94"
 Cohesion: 0.18
 Nodes (3): AdaptiveIntervalStrategy, ConservativeIntervalStrategy, DefaultIntervalStrategy
 
-### Community 94 - "Community 94"
+### Community 95 - "Community 95"
 Cohesion: 0.36
 Nodes (11): executeTelemetry(), fmt(), fmtMs(), fmtPct(), formatMemoryQuality(), formatSearchQuality(), formatSystemMetrics(), main() (+3 more)
 
-### Community 95 - "Community 95"
+### Community 96 - "Community 96"
 Cohesion: 0.32
 Nodes (1): ConsolidationScoreWorker
 
-### Community 96 - "Community 96"
+### Community 97 - "Community 97"
 Cohesion: 0.29
 Nodes (1): WalCheckpointScheduler
 
-### Community 97 - "Community 97"
+### Community 98 - "Community 98"
 Cohesion: 0.26
 Nodes (1): MigrationMonitorService
 
-### Community 98 - "Community 98"
+### Community 99 - "Community 99"
 Cohesion: 0.27
 Nodes (1): RelationEngineSchemaMigration
 
-### Community 99 - "Community 99"
+### Community 100 - "Community 100"
 Cohesion: 0.2
 Nodes (2): SqliteCoreMemoryAdapter, SqliteCoreMemoryPreparedStatement
 
-### Community 100 - "Community 100"
+### Community 101 - "Community 101"
 Cohesion: 0.26
 Nodes (1): SpacedRepetitionAlgorithm
 
-### Community 101 - "Community 101"
+### Community 102 - "Community 102"
 Cohesion: 0.2
 Nodes (3): AdaptiveRecallProbabilityCalculator, DefaultRecallProbabilityCalculator, EnhancedRecallProbabilityCalculator
 
-### Community 102 - "Community 102"
+### Community 103 - "Community 103"
 Cohesion: 0.29
 Nodes (1): ConvertEpisodicToSemanticTool
 
-### Community 103 - "Community 103"
+### Community 104 - "Community 104"
 Cohesion: 0.27
 Nodes (1): PinTool
 
-### Community 104 - "Community 104"
+### Community 105 - "Community 105"
 Cohesion: 0.29
 Nodes (8): buildScoreBreakdown(), computeStaleDays(), isMemoryRowActive(), isNonEmptyDeletedAt(), isTruthyFlag(), parseSqliteInstant(), passesEligibility(), resolveStaleAnchor()
 
-### Community 105 - "Community 105"
+### Community 106 - "Community 106"
 Cohesion: 0.35
 Nodes (8): a(), B(), D(), g(), i(), k(), Q(), y()
 
-### Community 106 - "Community 106"
+### Community 107 - "Community 107"
 Cohesion: 0.35
 Nodes (10): batchProcessingExample(), benchmarkExample(), cachingExample(), compressedSearchExample(), memoryOptimizationExample(), parallelSearchExample(), processPageData(), realTimeMonitoringExample() (+2 more)
 
-### Community 107 - "Community 107"
+### Community 108 - "Community 108"
 Cohesion: 0.31
 Nodes (7): cleanup(), getHttpAuthMissingAdminKeyWarning(), getHttpAuthTrustModelNotice(), initializeServer(), registerCleanupHandlers(), startServer(), writeRuntimeDiagnosticsEvent()
 
-### Community 108 - "Community 108"
+### Community 109 - "Community 109"
 Cohesion: 0.22
 Nodes (5): buildEmbeddingMapResponse(), distSq(), EmbeddingMapBuildError, getCacheKey(), kMeans()
-
-### Community 109 - "Community 109"
-Cohesion: 0.36
-Nodes (10): agentAskHelpText(), debugErr(), jsonFailure(), parseAgentAskInvocation(), promptApprove(), resolveDbPath(), runAgentAskMain(), stripGlobalCliArgs() (+2 more)
 
 ### Community 110 - "Community 110"
 Cohesion: 0.18
