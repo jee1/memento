@@ -1,0 +1,45 @@
+export const answerOverTimeFixture = {
+  "scenario_id": "answer-over-time",
+  "question": "관리자 API에는 어떤 인증 방식을 채택했나요?",
+  "snapshots": {
+    "early": {
+      "point_label": "초기 (1일차)",
+      "answer": "1월 21일 보안 검토 회의에서 JWT Bearer 토큰 방식을 채택했습니다. 액세스 토큰은 15분 만료, 리프레시 토큰은 로테이션합니다. 대시보드는 httpOnly 쿠키로 전달하고, MCP stdio는 별도 API 키 경로를 씁니다. 세션 고정 공격을 피하려고 서버 측 리프레시 저장소를 검토했고, CORS는 관리 포트만 허용하기로 합의했습니다.",
+      "memory_summary": {
+        "episodic_count": 14,
+        "semantic_count": 0,
+        "forgotten_count": 0,
+        "preserved_count": 14,
+        "summary_text": "최근 회의·결정 맥락이 episodic 14건으로 남아 있고, 아직 semantic으로 응축되지 않았습니다."
+      },
+      "explanation": "이 시점의 답은 회의 원문에 가깝습니다. 기억은 그대로 저장된 것이 아니라, 아직 변형(압축·통합) 전 episodic 형태로 남아 있는 상태입니다.",
+      "timestamp": "2026-01-21T10:00:00.000Z"
+    },
+    "mid": {
+      "point_label": "중기 (30일차)",
+      "answer": "JWT Bearer 인증과 리프레시 로테이션입니다. 회의에서 논의한 CORS·쿠키 세부는 희미해졌지만, Bearer + 짧은 액세스 토큰 + 리프레시 구조는 그대로입니다.",
+      "memory_summary": {
+        "episodic_count": 6,
+        "semantic_count": 3,
+        "forgotten_count": 5,
+        "preserved_count": 9,
+        "summary_text": "episodic 6건, semantic 3건. 중요도 낮은 회의 잔여 5건은 망각되었고, 핵심 결정 9건은 유지됩니다."
+      },
+      "explanation": "답이 짧아진 것은 삭제가 아니라 변형입니다. 망각 정책이 잡음 episodic을 걸러내고, 수면 통합이 핵심 사실을 semantic으로 승격시켰습니다.",
+      "timestamp": "2026-02-20T10:00:00.000Z"
+    },
+    "late": {
+      "point_label": "후기 (90일차)",
+      "answer": "관리자 API는 JWT Bearer 인증, 리프레시 토큰 로테이션.",
+      "memory_summary": {
+        "episodic_count": 1,
+        "semantic_count": 4,
+        "forgotten_count": 9,
+        "preserved_count": 5,
+        "summary_text": "episodic 대부분이 망각·통합되었고, semantic 4건이 ‘JWT Bearer + 리프레시’ 사실을 유지합니다."
+      },
+      "explanation": "답은 semantic 중심 한 문장입니다. 세부 회의 기록은 사라진 것처럼 보이지만, 중요 사실은 semantic 기억으로 변형·보존되었습니다. 저장이 아니라 변형입니다.",
+      "timestamp": "2026-04-21T10:00:00.000Z"
+    }
+  }
+};

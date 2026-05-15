@@ -4,7 +4,7 @@
  * Snapshot copy: Issue #394 (answer-over-time Korean demo)
  */
 
-import answerOverTimeFixture from './fixtures/answer-over-time.snapshots.json' with { type: 'json' };
+import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js';
 import type { EvolutionDemoEpisodicSource, EvolutionDemoSnapshot } from './types.js';
 
 const CONSOLIDATION_QUESTION =
