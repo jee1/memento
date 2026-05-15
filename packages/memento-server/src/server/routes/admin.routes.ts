@@ -17,6 +17,7 @@ import { registerAdminBatchRoutes } from './admin/admin-batch.routes.js';
 import { registerAdminRuntimePerformanceRoutes } from './admin/admin-runtime-performance.routes.js';
 import { registerAdminToolRoutes } from './admin/admin-tools.routes.js';
 import { registerAdminProjectMemoryRoutes } from './admin/admin-project-memory.routes.js';
+import { registerAdminEvolutionDemoRoutes } from './admin/admin-evolution-demo.routes.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -41,6 +42,7 @@ export function createAdminRouter(
   registerAdminTelemetryRoutes(router, db, serverServices);
   registerAdminGraphRoute(router, db);
   registerAdminEmbeddingMapRoute(router, db);
+  registerAdminEvolutionDemoRoutes(router);
 
   return router;
 }
