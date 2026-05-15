@@ -23,6 +23,14 @@ const SCENARIO_CATALOG: EvolutionDemoScenario[] = [
       { point_id: 'late', label: '후기 (90일차)' },
     ],
   },
+  {
+    scenario_id: 'episodic-to-semantic',
+    title: 'Episodic to semantic consolidation',
+    points: [
+      { point_id: 'before', label: 'Before consolidation' },
+      { point_id: 'after', label: 'After consolidation' },
+    ],
+  },
 ];
 
 export class EvolutionDemoNotFoundError extends Error {

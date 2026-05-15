@@ -1,5 +1,5 @@
 /**
- * Admin evolution demo routes (Issue #341)
+ * Admin evolution demo routes (Issue #341, #396)
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -80,9 +80,13 @@ describe('admin evolution-demo routes', () => {
     const body = JSON.parse(res.body) as {
       scenarios: Array<{ scenario_id: string; title: string; points: Array<{ point_id: string }> }>;
     };
-    expect(body.scenarios).toHaveLength(1);
-    expect(body.scenarios[0]?.scenario_id).toBe('answer-over-time');
-    expect(body.scenarios[0]?.points.map(p => p.point_id)).toEqual(['early', 'mid', 'late']);
+    expect(body.scenarios).toHaveLength(2);
+
+    const answerOverTime = body.scenarios.find(s => s.scenario_id === 'answer-over-time');
+    expect(answerOverTime?.points.map(p => p.point_id)).toEqual(['early', 'mid', 'late']);
+
+    const consolidation = body.scenarios.find(s => s.scenario_id === 'episodic-to-semantic');
+    expect(consolidation?.points.map(p => p.point_id)).toEqual(['before', 'after']);
   });
 
   it('GET /admin/evolution-demo/snapshots/:scenario_id/:point_id returns snapshot body', async () => {
@@ -122,6 +126,45 @@ describe('admin evolution-demo routes', () => {
     expect(body.memory_summary.episodic_count).toBeGreaterThanOrEqual(0);
     expect(body.explanation.length).toBeGreaterThan(0);
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('GET episodic-to-semantic after snapshot returns consolidation read-model fields', async () => {
+    const app = express();
+    app.use('/admin', createAdminRouter(db, null));
+    const listened = await listen(app);
+    server = listened.server;
+
+    const res = await getAdmin(
+      listened.port,
+      '/admin/evolution-demo/snapshots/episodic-to-semantic/after'
+    );
+    expect(res.statusCode).toBe(200);
+
+    const body = JSON.parse(res.body) as {
+      scenario_id: string;
+      point_id: string;
+      episodic_sources?: Array<{ id: string; summary: string }>;
+      semantic_result?: {
+        id: string;
+        summary: string;
+        source_count: number;
+        explanation: string;
+      };
+      search_comparison?: { before_summary: string; after_summary: string };
+    };
+
+    expect(body.scenario_id).toBe('episodic-to-semantic');
+    expect(body.point_id).toBe('after');
+    expect(body.episodic_sources).toBeDefined();
+    expect(body.episodic_sources!.length).toBeGreaterThanOrEqual(3);
+    expect(body.semantic_result).toMatchObject({
+      id: expect.any(String),
+      summary: expect.any(String),
+      source_count: 4,
+      explanation: expect.any(String),
+    });
+    expect(body.search_comparison?.before_summary).toBeTruthy();
+    expect(body.search_comparison?.after_summary).toContain('semantic');
   });
 
   it('GET snapshot returns 404 for unknown scenario or point', async () => {
