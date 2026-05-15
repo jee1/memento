@@ -123,6 +123,8 @@ await client.remember({
 
 CLI(`memento` 등)를 사용하는 경우:
 
+개인 지식 Agent 한 턴(`memento agent ask`, mock LLM, 프로젝트 범위·승인 저장)은 [개인 지식 Agent MVP (한국어)](./personal-knowledge-agent-mvp.md)를 참고하세요.
+
 ```bash
 memento remember "React Hook 사용법" --type semantic --tags "react,hooks,programming"
 ```

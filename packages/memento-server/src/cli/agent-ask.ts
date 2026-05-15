@@ -1,6 +1,7 @@
 /**
  * `memento agent ask` — in-process 개인 지식 Agent 한 턴 (#236).
  * 설계: docs/superpowers/specs/2026-05-14-issue-236-agent-ask-cli-design.md
+ * 테스트 훅: `AgentAskRuntimeHooks` (#237, Vitest에서 stdin/승인 주입).
  */
 
 import { randomUUID } from 'node:crypto';
@@ -251,12 +252,15 @@ function debugErr(err: unknown): void {
   }
 }
 
-async function promptApprove(
+export type AgentAskApproveAnswer = 'y' | 'n' | 's' | 'q' | 'interrupt';
+
+/** 기본 readline 승인 프롬프트. 테스트에서는 `AgentAskRuntimeHooks.promptApprove`로 대체 가능 (#237). */
+export async function promptApproveInteractive(
   candidate: KnowledgeCandidate,
   index: number,
   total: number,
   interruptRef: { interrupted: boolean },
-): Promise<'y' | 'n' | 's' | 'q' | 'interrupt'> {
+): Promise<AgentAskApproveAnswer> {
   const rl = createInterface({ input: stdinStream, output: stderrStream });
   const onRlSigInt = (): void => {
     interruptRef.interrupted = true;
@@ -289,9 +293,25 @@ async function promptApprove(
   }
 }
 
+export type AgentAskPromptApprove = (
+  candidate: KnowledgeCandidate,
+  index: number,
+  total: number,
+  interruptRef: { interrupted: boolean },
+) => Promise<AgentAskApproveAnswer>;
+
+/** in-process 테스트 전용: 제품 CLI 경로는 `cli.ts`가 훅 없이 호출한다 (#237). */
+export interface AgentAskRuntimeHooks {
+  /** 미지정 시 `process.stdin.isTTY` */
+  stdinIsTTY?: boolean;
+  /** 미지정 시 `promptApproveInteractive` */
+  promptApprove?: AgentAskPromptApprove;
+}
+
 export async function runAgentAskMain(
   preOptions: PreCliOptions,
   argv: string[],
+  hooks?: AgentAskRuntimeHooks,
 ): Promise<number> {
   const parsed = parseAgentAskInvocation(argv);
   if (parsed.kind === 'help') {
@@ -322,7 +342,8 @@ export async function runAgentAskMain(
     process.env.MEMENTO_CLI_QUIET = '1';
   }
   try {
-  const stdinTty = Boolean(stdinStream.isTTY);
+  const stdinTty = hooks?.stdinIsTTY ?? Boolean(stdinStream.isTTY);
+  const promptFn = hooks?.promptApprove ?? promptApproveInteractive;
   const skipPersist = noSave || json;
 
   if (!stdinTty && !json && !noSave) {
@@ -447,7 +468,7 @@ export async function runAgentAskMain(
         return 130;
       }
       const c = runResult.candidates[i];
-      const ans = await promptApprove(c, i, runResult.candidates.length, interruptRef);
+      const ans = await promptFn(c, i, runResult.candidates.length, interruptRef);
       if (ans === 'interrupt') {
         await writeErr('중단되어 저장하지 않습니다.\n');
         await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
