@@ -50,3 +50,18 @@ export {
   PersonalKnowledgeAgentService,
 } from './services/personal-knowledge-agent-service.js';
 export type { PersonalKnowledgeAgentDeps } from './services/personal-knowledge-agent-service.js';
+
+export {
+  PersonalAgentLlmError,
+  isPersonalAgentLlmError,
+} from './errors/personal-agent-llm-error.js';
+export type { PersonalAgentLlmErrorCode } from './errors/personal-agent-llm-error.js';
+
+export { parsePersonalAgentLlmEnv } from './config/personal-agent-llm-env.js';
+export type {
+  ParsedPersonalAgentLlmEnv,
+  ParsePersonalAgentLlmEnvKeys,
+} from './config/personal-agent-llm-env.js';
+
+export { createPersonalAgentLlmPort } from './services/create-personal-agent-llm-port.js';
+export type { CreatePersonalAgentLlmPortDeps } from './services/create-personal-agent-llm-port.js';
