@@ -1,5 +1,5 @@
 /**
- * Admin evolution demo routes (Issue #341)
+ * Admin evolution demo routes (Issue #341, #396)
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -80,15 +80,16 @@ describe('admin evolution-demo routes', () => {
     const body = JSON.parse(res.body) as {
       scenarios: Array<{ scenario_id: string; title: string; points: Array<{ point_id: string }> }>;
     };
-    expect(body.scenarios).toHaveLength(2);
-    expect(body.scenarios.map(s => s.scenario_id)).toEqual([
-      'answer-over-time',
-      'forgetting-policy',
-    ]);
+    expect(body.scenarios).toHaveLength(3);
+
     const answerOverTime = body.scenarios.find(s => s.scenario_id === 'answer-over-time');
     expect(answerOverTime?.points.map(p => p.point_id)).toEqual(['early', 'mid', 'late']);
-    const forgettingPolicy = body.scenarios.find(s => s.scenario_id === 'forgetting-policy');
-    expect(forgettingPolicy?.points.map(p => p.point_id)).toEqual(['day-30', 'day-90']);
+
+    const consolidation = body.scenarios.find(s => s.scenario_id === 'episodic-to-semantic');
+    expect(consolidation?.points.map(p => p.point_id)).toEqual(['before', 'after']);
+
+    const forgetting = body.scenarios.find(s => s.scenario_id === 'forgetting-policy');
+    expect(forgetting?.points.map(p => p.point_id)).toEqual(['day-30', 'day-90']);
   });
 
   it('GET /admin/evolution-demo/snapshots/:scenario_id/:point_id returns snapshot body', async () => {
@@ -123,14 +124,53 @@ describe('admin evolution-demo routes', () => {
     expect(body.scenario_id).toBe('answer-over-time');
     expect(body.point_id).toBe('mid');
     expect(body.point_label).toBe('중기 (30일차)');
-    expect(body.question).toContain('인증');
+    expect(body.question).toContain('관리자 API');
     expect(body.answer.length).toBeGreaterThan(0);
     expect(body.memory_summary.episodic_count).toBeGreaterThanOrEqual(0);
     expect(body.explanation.length).toBeGreaterThan(0);
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it('GET forgetting-policy snapshot includes memory_groups (#344)', async () => {
+  it('GET episodic-to-semantic after snapshot returns consolidation read-model fields', async () => {
+    const app = express();
+    app.use('/admin', createAdminRouter(db, null));
+    const listened = await listen(app);
+    server = listened.server;
+
+    const res = await getAdmin(
+      listened.port,
+      '/admin/evolution-demo/snapshots/episodic-to-semantic/after'
+    );
+    expect(res.statusCode).toBe(200);
+
+    const body = JSON.parse(res.body) as {
+      scenario_id: string;
+      point_id: string;
+      episodic_sources?: Array<{ id: string; summary: string }>;
+      semantic_result?: {
+        id: string;
+        summary: string;
+        source_count: number;
+        explanation: string;
+      };
+      search_comparison?: { before_summary: string; after_summary: string };
+    };
+
+    expect(body.scenario_id).toBe('episodic-to-semantic');
+    expect(body.point_id).toBe('after');
+    expect(body.episodic_sources).toBeDefined();
+    expect(body.episodic_sources!.length).toBeGreaterThanOrEqual(3);
+    expect(body.semantic_result).toMatchObject({
+      id: expect.any(String),
+      summary: expect.any(String),
+      source_count: 4,
+      explanation: expect.any(String),
+    });
+    expect(body.search_comparison?.before_summary).toBeTruthy();
+    expect(body.search_comparison?.after_summary).toContain('semantic');
+  });
+
+it('GET forgetting-policy snapshot includes memory_groups (#344)', async () => {
     const app = express();
     app.use('/admin', createAdminRouter(db, null));
     const listened = await listen(app);
@@ -162,6 +202,7 @@ describe('admin evolution-demo routes', () => {
     expect(outcomes).toContain('preserve');
   });
 
+  
   it('GET snapshot returns 404 for unknown scenario or point', async () => {
     const app = express();
     app.use('/admin', createAdminRouter(db, null));

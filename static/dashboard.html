@@ -301,13 +301,18 @@
               <option value="">시나리오 불러오는 중…</option>
             </select>
           </label>
-          <label for="med-point-select">
-            시점
-            <select id="med-point-select" class="m-input" disabled>
-              <option value="">시점 선택</option>
-            </select>
-          </label>
+          <div id="med-point-controls" class="med-point-controls hidden">
+            <span class="med-point-controls-label" id="med-point-controls-label">시점</span>
+            <div id="med-point-segment" class="med-point-segment" role="tablist" aria-label="시점 선택" hidden></div>
+            <label for="med-point-select" class="med-point-select-label">
+              <span class="visually-hidden">시점</span>
+              <select id="med-point-select" class="m-input" disabled>
+                <option value="">시점 선택</option>
+              </select>
+            </label>
+          </div>
         </div>
+        <p id="med-comparison-hint" class="med-comparison-hint hidden" aria-live="polite"></p>
         <div id="med-loading" class="med-loading rc-banner hidden" role="status" aria-live="polite">시뮬레이션 데이터를 불러오는 중…</div>
         <div id="med-empty" class="med-empty rc-banner">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
         <div id="med-error" class="med-error rc-banner rc-banner--error hidden" role="alert"></div>
@@ -321,7 +326,8 @@
             <p id="med-answer-text" class="med-section-body med-placeholder">선택한 시점의 답변이 여기에 표시됩니다.</p>
           </section>
           <section class="med-section med-section--memory" aria-label="기억 요약">
-            <h3 class="med-section-title">기억 요약</h3>
+            <h3 class="med-section-title">기억 상태</h3>
+            <div id="med-memory-stats" class="med-memory-stats hidden" aria-label="기억 유형별 개수"></div>
             <p id="med-memory-summary" class="med-section-body med-placeholder">활성 기억 유형·상태 요약이 여기에 표시됩니다.</p>
           </section>
           <section id="med-memory-groups-section" class="med-section med-section--groups hidden" aria-label="기억군 비교">
@@ -329,9 +335,9 @@
             <p class="med-groups-intro">중요도·핀 여부에 따라 같은 시점에 저장된 기억도 운명이 달라집니다.</p>
             <div id="med-memory-groups" class="med-memory-groups" aria-live="polite"></div>
           </section>
-          <section class="med-section med-section--explanation" aria-label="설명">
-            <h3 id="med-explanation-heading" class="med-section-title">설명</h3>
-            <p id="med-explanation-text" class="med-section-body med-placeholder">이 시점에서 답변과 기억 상태가 이렇게 보이는 이유가 여기에 표시됩니다.</p>
+          <section class="med-section med-section--explanation med-section--explanation-prominent" aria-label="답변 변화 설명">
+            <h3 id="med-explanation-heading" class="med-section-title med-explanation-heading">왜 답변이 달라지나요?</h3>
+            <p id="med-explanation-text" class="med-section-body med-explanation-body med-placeholder">이 시점에서 답변과 기억 상태가 이렇게 보이는 이유가 여기에 표시됩니다.</p>
           </section>
         </div>
       </div>

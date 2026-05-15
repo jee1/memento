@@ -4,7 +4,11 @@
 
 import { z } from 'zod';
 
-export const EVOLUTION_DEMO_SCENARIO_IDS = ['answer-over-time', 'forgetting-policy'] as const;
+export const EVOLUTION_DEMO_SCENARIO_IDS = [
+  'answer-over-time',
+  'forgetting-policy',
+  'episodic-to-semantic',
+] as const;
 
 export const EvolutionDemoMemoryGroupSchema = z.object({
   label: z.string().min(1),
@@ -22,6 +26,26 @@ export const EvolutionDemoMemorySummarySchema = z.object({
   summary_text: z.string(),
 });
 
+
+export const EvolutionDemoEpisodicSourceSchema = z.object({
+  id: z.string().min(1),
+  summary: z.string(),
+  created_at: z.string().datetime().optional(),
+  importance: z.number().min(0).max(1).optional(),
+});
+
+export const EvolutionDemoSemanticResultSchema = z.object({
+  id: z.string().min(1),
+  summary: z.string(),
+  source_count: z.number().int().nonnegative(),
+  explanation: z.string(),
+});
+
+export const EvolutionDemoSearchComparisonSchema = z.object({
+  before_summary: z.string(),
+  after_summary: z.string(),
+});
+
 export const EvolutionDemoSnapshotSchema = z.object({
   scenario_id: z.string().min(1),
   point_id: z.string().min(1),
@@ -32,6 +56,9 @@ export const EvolutionDemoSnapshotSchema = z.object({
   explanation: z.string(),
   timestamp: z.string().datetime(),
   memory_groups: z.array(EvolutionDemoMemoryGroupSchema).optional(),
+  episodic_sources: z.array(EvolutionDemoEpisodicSourceSchema).optional(),
+  semantic_result: EvolutionDemoSemanticResultSchema.optional(),
+  search_comparison: EvolutionDemoSearchComparisonSchema.optional(),
 });
 
 export const EvolutionDemoPointSchema = z.object({

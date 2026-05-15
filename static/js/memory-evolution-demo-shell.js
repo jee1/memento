@@ -1,5 +1,5 @@
 /**
- * Memory evolution demo tab — API-backed shell (#340, #342, #344).
+ * Memory evolution demo tab — API-backed shell (#340, #342, #395).
  * View states: loading | empty | error | ready
  */
 (function (global) {
@@ -8,6 +8,11 @@
   const SCENARIOS_URL = '/admin/evolution-demo/scenarios';
   const SNAPSHOT_URL_PREFIX = '/admin/evolution-demo/snapshots/';
   const VALID_STATES = ['loading', 'empty', 'error', 'ready'];
+  const EMPTY_MESSAGE_SIGNED_OUT =
+    '관리자 API 키로 로그인하면 시뮬레이션 데이터를 불러올 수 있습니다.';
+  const EMPTY_MESSAGE_CHECKING =
+    '대시보드 세션을 확인하는 중입니다. 로그인 후 데모 API 데이터를 불러올 수 있습니다.';
+  const ANSWER_OVER_TIME_ID = 'answer-over-time';
   const FORGETTING_POLICY_ID = 'forgetting-policy';
 
   const OUTCOME_LABELS = {
@@ -16,11 +21,25 @@
     pin: '핀 고정',
   };
 
+  const COMPARISON_STAGES = [
+    { pointId: 'early', label: '상세', hint: '회의·결정 맥락이 그대로 드러나는 episodic 중심 답변' },
+    { pointId: 'mid', label: '압축', hint: '망각·통합으로 잡음이 걸러지고 핵심만 남은 답변' },
+    { pointId: 'late', label: 'semantic 중심', hint: '사실이 semantic 기억으로 응축된 한 줄 답변' },
+  ];
+
+  const MEMORY_STAT_DEFS = [
+    { key: 'episodic_count', label: '에피소딕', modifier: 'med-stat-chip--episodic' },
+    { key: 'semantic_count', label: '시맨틱', modifier: 'med-stat-chip--semantic' },
+    { key: 'forgotten_count', label: '망각', modifier: 'med-stat-chip--forgotten' },
+    { key: 'preserved_count', label: '보존', modifier: 'med-stat-chip--preserved' },
+  ];
+
   let viewState = 'loading';
   let bound = false;
   let panelInitialized = false;
   let scenarios = [];
   let loadGeneration = 0;
+  let currentScenarioId = '';
 
   const els = {
     loading: null,
@@ -28,14 +47,19 @@
     error: null,
     content: null,
     scenarioSelect: null,
+    pointControls: null,
+    pointSegment: null,
     pointSelect: null,
+    pointSelectLabel: null,
+    comparisonHint: null,
     question: null,
     answer: null,
+    memoryStats: null,
     memorySummary: null,
+    explanation: null,
+    explanationHeading: null,
     memoryGroupsSection: null,
     memoryGroups: null,
-    explanationHeading: null,
-    explanation: null,
   };
 
   function bindDom() {
@@ -47,14 +71,19 @@
     els.error = document.getElementById('med-error');
     els.content = document.getElementById('med-content');
     els.scenarioSelect = document.getElementById('med-scenario-select');
+    els.pointControls = document.getElementById('med-point-controls');
+    els.pointSegment = document.getElementById('med-point-segment');
     els.pointSelect = document.getElementById('med-point-select');
+    els.pointSelectLabel = document.querySelector('.med-point-select-label');
+    els.comparisonHint = document.getElementById('med-comparison-hint');
     els.question = document.getElementById('med-question-text');
     els.answer = document.getElementById('med-answer-text');
+    els.memoryStats = document.getElementById('med-memory-stats');
     els.memorySummary = document.getElementById('med-memory-summary');
+    els.explanation = document.getElementById('med-explanation-text');
+    els.explanationHeading = document.getElementById('med-explanation-heading');
     els.memoryGroupsSection = document.getElementById('med-memory-groups-section');
     els.memoryGroups = document.getElementById('med-memory-groups');
-    els.explanationHeading = document.getElementById('med-explanation-heading');
-    els.explanation = document.getElementById('med-explanation-text');
     bound = Boolean(
       els.loading &&
         els.empty &&
@@ -67,6 +96,43 @@
         els.memorySummary &&
         els.explanation
     );
+  }
+
+
+  function getAuthState() {
+    const auth = global.__MEMENTO_DASHBOARD_AUTH__;
+    if (auth && typeof auth.getState === 'function') {
+      return auth.getState();
+    }
+    return 'signed-in';
+  }
+
+  function canLoadFromApi() {
+    return getAuthState() === 'signed-in';
+  }
+
+  function isEvolutionTabActive() {
+    const panel = document.getElementById('tab-evolution-demo');
+    return Boolean(panel && panel.classList.contains('active'));
+  }
+
+  function showAuthRequiredState() {
+    bindDom();
+    if (!bound) {
+      return;
+    }
+    const authState = getAuthState();
+    if (els.empty) {
+      els.empty.textContent =
+        authState === 'checking' ? EMPTY_MESSAGE_CHECKING : EMPTY_MESSAGE_SIGNED_OUT;
+    }
+    if (els.scenarioSelect) {
+      els.scenarioSelect.disabled = true;
+    }
+    if (els.pointSelect) {
+      els.pointSelect.disabled = true;
+    }
+    setViewState('empty');
   }
 
   function setVisible(el, visible) {
@@ -89,6 +155,11 @@
     setVisible(els.empty, state === 'empty');
     setVisible(els.error, state === 'error');
     setVisible(els.content, state === 'ready');
+    if (state !== 'ready') {
+      setVisible(els.comparisonHint, false);
+    } else if (els.comparisonHint && isAnswerOverTime(currentScenarioId)) {
+      setVisible(els.comparisonHint, els.comparisonHint.innerHTML.trim() !== '');
+    }
   }
 
   function setErrorMessage(message) {
@@ -120,7 +191,7 @@
     return fallback;
   }
 
-  function isForgettingPolicy(scenarioId) {
+function isForgettingPolicy(scenarioId) {
     return scenarioId === FORGETTING_POLICY_ID;
   }
 
@@ -186,18 +257,135 @@
     });
   }
 
-  function formatMemorySummary(summary) {
+  
+  function isAnswerOverTime(scenarioId) {
+    return scenarioId === ANSWER_OVER_TIME_ID;
+  }
+
+  function formatMemorySummaryText(summary) {
     if (!summary || typeof summary !== 'object') {
       return '';
     }
-    const counts = [
-      '에피소딕 ' + (summary.episodic_count ?? 0),
-      '시맨틱 ' + (summary.semantic_count ?? 0),
-      '망각 ' + (summary.forgotten_count ?? 0),
-      '보존 ' + (summary.preserved_count ?? 0),
-    ].join(' · ');
-    const text = typeof summary.summary_text === 'string' ? summary.summary_text.trim() : '';
-    return text ? counts + '\n\n' + text : counts;
+    return typeof summary.summary_text === 'string' ? summary.summary_text.trim() : '';
+  }
+
+  function renderMemoryStats(summary) {
+    bindDom();
+    if (!els.memoryStats) {
+      return;
+    }
+    els.memoryStats.innerHTML = '';
+    if (!summary || typeof summary !== 'object') {
+      setVisible(els.memoryStats, false);
+      return;
+    }
+    MEMORY_STAT_DEFS.forEach(function (def) {
+      const chip = document.createElement('div');
+      chip.className = 'med-stat-chip ' + def.modifier;
+      const count = summary[def.key] ?? 0;
+      chip.innerHTML =
+        '<span class="med-stat-chip__label">' + def.label + '</span>' +
+        '<span class="med-stat-chip__value">' + count + '</span>';
+      els.memoryStats.appendChild(chip);
+    });
+    setVisible(els.memoryStats, true);
+  }
+
+  function buildComparisonHintMarkup(activePointId) {
+    const activeIndex = COMPARISON_STAGES.findIndex(function (stage) {
+      return stage.pointId === activePointId;
+    });
+    const parts = COMPARISON_STAGES.map(function (stage, index) {
+      const classes = ['med-comparison-stage'];
+      if (index === activeIndex) {
+        classes.push('med-comparison-stage--active');
+      }
+      if (activeIndex >= 0 && index < activeIndex) {
+        classes.push('med-comparison-stage--past');
+      }
+      return '<span class="' + classes.join(' ') + '">' + stage.label + '</span>';
+    });
+    const arrows = parts.join('<span class="med-comparison-arrow" aria-hidden="true">→</span>');
+    const activeStage = activeIndex >= 0 ? COMPARISON_STAGES[activeIndex] : null;
+    const hintText = activeStage ? activeStage.hint : '';
+    return (
+      '<span class="med-comparison-track" aria-hidden="true">' + arrows + '</span>' +
+      (hintText ? '<span class="med-comparison-caption">' + hintText + '</span>' : '')
+    );
+  }
+
+  function updateComparisonHint(pointId) {
+    bindDom();
+    if (!els.comparisonHint) {
+      return;
+    }
+    if (!isAnswerOverTime(currentScenarioId)) {
+      setVisible(els.comparisonHint, false);
+      els.comparisonHint.innerHTML = '';
+      return;
+    }
+    els.comparisonHint.innerHTML = buildComparisonHintMarkup(pointId);
+    setVisible(els.comparisonHint, viewState === 'ready');
+  }
+
+  function syncSegmentSelection(pointId) {
+    bindDom();
+    if (!els.pointSegment) {
+      return;
+    }
+    const buttons = els.pointSegment.querySelectorAll('[data-point-id]');
+    buttons.forEach(function (btn) {
+      const selected = btn.getAttribute('data-point-id') === pointId;
+      btn.classList.toggle('med-point-segment__btn--active', selected);
+      btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+      btn.tabIndex = selected ? 0 : -1;
+    });
+  }
+
+  function renderPointSegment(scenario) {
+    bindDom();
+    if (!els.pointSegment || !els.pointControls) {
+      return;
+    }
+    els.pointSegment.innerHTML = '';
+    const points = scenario && Array.isArray(scenario.points) ? scenario.points : [];
+    const useSegment = isAnswerOverTime(scenario && scenario.scenario_id);
+
+    setVisible(els.pointControls, points.length > 0);
+    if (els.pointSegment) {
+      els.pointSegment.hidden = !useSegment || points.length === 0;
+    }
+    if (els.pointSelectLabel) {
+      els.pointSelectLabel.classList.toggle('hidden', useSegment);
+    }
+
+    if (!useSegment || points.length === 0) {
+      return;
+    }
+
+    points.forEach(function (point, index) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'med-point-segment__btn';
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('data-point-id', point.point_id);
+      btn.setAttribute('aria-selected', 'false');
+      btn.textContent = point.label || point.point_id;
+      btn.addEventListener('click', function () {
+        if (!els.pointSelect) {
+          return;
+        }
+        els.pointSelect.value = point.point_id;
+        syncSegmentSelection(point.point_id);
+        onPointChange();
+      });
+      if (index === 0) {
+        btn.tabIndex = 0;
+      } else {
+        btn.tabIndex = -1;
+      }
+      els.pointSegment.appendChild(btn);
+    });
   }
 
   function renderSnapshot(snapshot, scenarioId) {
@@ -205,7 +393,7 @@
     if (!bound || !snapshot) {
       return;
     }
-    const activeScenarioId = scenarioId || (els.scenarioSelect ? els.scenarioSelect.value : '');
+    const activeScenarioId = scenarioId || currentScenarioId || (els.scenarioSelect ? els.scenarioSelect.value : '');
     if (els.question) {
       els.question.textContent = snapshot.question || '';
       els.question.classList.remove('med-placeholder');
@@ -214,21 +402,24 @@
       els.answer.textContent = snapshot.answer || '';
       els.answer.classList.remove('med-placeholder');
     }
+    renderMemoryStats(snapshot.memory_summary);
     if (els.memorySummary) {
-      els.memorySummary.textContent = formatMemorySummary(snapshot.memory_summary);
+      els.memorySummary.textContent = formatMemorySummaryText(snapshot.memory_summary);
       els.memorySummary.classList.remove('med-placeholder');
     }
     renderMemoryGroups(snapshot, activeScenarioId);
     if (els.explanationHeading) {
       els.explanationHeading.textContent = isForgettingPolicy(activeScenarioId)
         ? '왜 보존·망각이 갈리나요?'
-        : '설명';
+        : '왜 답변이 달라지나요?';
     }
     if (els.explanation) {
       els.explanation.textContent = snapshot.explanation || '';
       els.explanation.classList.remove('med-placeholder');
     }
+    syncSegmentSelection(snapshot.point_id);
     setViewState('ready');
+    updateComparisonHint(snapshot.point_id);
   }
 
   function populatePointSelect(scenario) {
@@ -245,6 +436,7 @@
       opt.textContent = '시점 없음';
       select.appendChild(opt);
       select.disabled = true;
+      renderPointSegment(scenario);
       return;
     }
     points.forEach(function (point) {
@@ -254,6 +446,7 @@
       select.appendChild(opt);
     });
     select.disabled = false;
+    renderPointSegment(scenario);
   }
 
   function populateScenarioSelect(catalog) {
@@ -274,6 +467,8 @@
         els.pointSelect.innerHTML = '<option value="">시점 선택</option>';
         els.pointSelect.disabled = true;
       }
+      setVisible(els.pointControls, false);
+      setVisible(els.comparisonHint, false);
       return null;
     }
     scenarios.forEach(function (scenario) {
@@ -293,7 +488,12 @@
   }
 
   function loadSnapshot(scenarioId, pointId) {
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     const fetchFn = getFetchFn();
+    currentScenarioId = scenarioId || '';
     if (!fetchFn) {
       setErrorMessage('mementoAdminFetch를 사용할 수 없습니다.');
       setViewState('error');
@@ -337,6 +537,7 @@
     }
     const scenarioId = els.scenarioSelect.value;
     const pointId = els.pointSelect.value;
+    syncSegmentSelection(pointId);
     loadSnapshot(scenarioId, pointId);
   }
 
@@ -346,6 +547,7 @@
       return;
     }
     const scenario = findScenario(els.scenarioSelect.value);
+    currentScenarioId = scenario ? scenario.scenario_id : '';
     populatePointSelect(scenario);
     if (scenario && scenario.points && scenario.points.length > 0) {
       if (els.pointSelect) {
@@ -372,6 +574,10 @@
   }
 
   function loadScenarios() {
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     const fetchFn = getFetchFn();
     if (!fetchFn) {
       setErrorMessage('mementoAdminFetch를 사용할 수 없습니다.');
@@ -398,6 +604,7 @@
           setViewState('empty');
           return;
         }
+        currentScenarioId = first.scenario_id;
         populatePointSelect(first);
         if (els.scenarioSelect) {
           els.scenarioSelect.value = first.scenario_id;
@@ -420,17 +627,48 @@
   function initPanel() {
     bindDom();
     bindControls();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     return loadScenarios();
   }
 
   function refresh() {
     bindDom();
     bindControls();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     return loadScenarios();
+  }
+
+
+  function onAuthStateChanged(nextState) {
+    if (!isEvolutionTabActive()) {
+      return;
+    }
+    if (nextState === 'signed-in') {
+      refresh();
+      return;
+    }
+    if (
+      nextState === 'signed-out' ||
+      nextState === 'checking' ||
+      nextState === 'signing-in' ||
+      nextState === 'signing-out'
+    ) {
+      showAuthRequiredState();
+    }
   }
 
   function init() {
     bindDom();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return;
+    }
     setViewState(viewState);
   }
 
@@ -438,6 +676,8 @@
     init: init,
     initPanel: initPanel,
     refresh: refresh,
+    showAuthRequiredState: showAuthRequiredState,
+    onAuthStateChanged: onAuthStateChanged,
     setViewState: setViewState,
     getViewState: function () {
       return viewState;

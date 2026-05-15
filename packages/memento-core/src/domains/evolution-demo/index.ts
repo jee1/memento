@@ -1,6 +1,9 @@
 export type {
   EvolutionDemoMemorySummary,
   EvolutionDemoMemoryGroup,
+  EvolutionDemoEpisodicSource,
+  EvolutionDemoSemanticResult,
+  EvolutionDemoSearchComparison,
   EvolutionDemoSnapshot,
   EvolutionDemoPoint,
   EvolutionDemoScenario,
@@ -9,8 +12,11 @@ export type {
 
 export {
   EVOLUTION_DEMO_SCENARIO_IDS,
-  EvolutionDemoMemoryGroupSchema,
   EvolutionDemoMemorySummarySchema,
+  EvolutionDemoMemoryGroupSchema,
+  EvolutionDemoEpisodicSourceSchema,
+  EvolutionDemoSemanticResultSchema,
+  EvolutionDemoSearchComparisonSchema,
   EvolutionDemoSnapshotSchema,
   EvolutionDemoPointSchema,
   EvolutionDemoScenarioSchema,

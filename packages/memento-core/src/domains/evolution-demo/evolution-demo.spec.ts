@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import answerOverTimeFixture from './fixtures/answer-over-time.snapshots.json' with { type: 'json' };
-import forgettingPolicyFixture from './fixtures/forgetting-policy.snapshots.json' with { type: 'json' };
+import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js';
+import { forgettingPolicyFixture } from './fixtures/forgetting-policy.snapshots.js';
 import {
   getEvolutionDemoSnapshot,
   listEvolutionDemoScenarios,
@@ -11,21 +11,33 @@ import {
 const POINT_IDS = ['early', 'mid', 'late'] as const;
 
 describe('evolution-demo getters', () => {
-  it('lists answer-over-time and forgetting-policy scenarios', () => {
+  it('lists answer-over-time, forgetting-policy, and episodic-to-semantic scenarios', () => {
     const catalog = listEvolutionDemoScenarios();
-    expect(catalog.scenarios).toHaveLength(2);
-    const scenario = catalog.scenarios[0];
-    expect(scenario?.scenario_id).toBe('answer-over-time');
-    expect(scenario?.title).toBe('시간 경과에 따른 답변 변화');
-    expect(scenario?.points.map(p => p.point_id)).toEqual([...POINT_IDS]);
-    expect(scenario?.points.map(p => p.label)).toEqual([
+    expect(catalog.scenarios).toHaveLength(3);
+
+    const answerOverTime = catalog.scenarios.find(
+      s => s.scenario_id === 'answer-over-time'
+    );
+    expect(answerOverTime?.title).toBe('시간 경과에 따른 답변 변화');
+    expect(answerOverTime?.points.map(p => p.point_id)).toEqual([...POINT_IDS]);
+    expect(answerOverTime?.points.map(p => p.label)).toEqual([
       '초기 (1일차)',
       '중기 (30일차)',
       '후기 (90일차)',
     ]);
+
+    const consolidation = catalog.scenarios.find(
+      s => s.scenario_id === 'episodic-to-semantic'
+    );
+    expect(consolidation?.title).toBe('Episodic to semantic consolidation');
+    expect(consolidation?.points.map(p => p.point_id)).toEqual(['before', 'after']);
+    const forgetting = catalog.scenarios.find(s => s.scenario_id === 'forgetting-policy');
+    expect(forgetting?.title).toBe('망각 정책 비교');
+    expect(forgetting?.points.map(p => p.point_id)).toEqual(['day-30', 'day-90']);
+
   });
 
-  it('returns snapshot for each point with same question and different answers', () => {
+  it('returns snapshot for each answer-over-time point with same question and different answers', () => {
     const early = getEvolutionDemoSnapshot('answer-over-time', 'early');
     const mid = getEvolutionDemoSnapshot('answer-over-time', 'mid');
     const late = getEvolutionDemoSnapshot('answer-over-time', 'late');
@@ -40,9 +52,11 @@ describe('evolution-demo getters', () => {
 
     expect(early.answer.length).toBeGreaterThan(mid.answer.length);
     expect(mid.answer.length).toBeGreaterThan(late.answer.length);
+    expect(early.episodic_sources).toBeUndefined();
+    expect(early.semantic_result).toBeUndefined();
   });
 
-  it('validates snapshot structure against spec schema for all points', () => {
+  it('validates snapshot structure against spec schema for all answer-over-time points', () => {
     for (const pointId of POINT_IDS) {
       const snapshot = getEvolutionDemoSnapshot('answer-over-time', pointId);
       const parsed = EvolutionDemoSnapshotSchema.safeParse(snapshot);
@@ -79,7 +93,7 @@ describe('evolution-demo getters', () => {
     expect(late.explanation).toContain('저장이 아니라 변형');
   });
 
-  it('matches fixture JSON for answer-over-time snapshots', () => {
+  it('matches fixture for answer-over-time snapshots', () => {
     for (const pointId of POINT_IDS) {
       const snapshot = getEvolutionDemoSnapshot('answer-over-time', pointId);
       const fixture = answerOverTimeFixture.snapshots[pointId];
@@ -91,16 +105,39 @@ describe('evolution-demo getters', () => {
     }
   });
 
-  it('throws EvolutionDemoNotFoundError for unknown scenario or point', () => {
-    expect(() => getEvolutionDemoSnapshot('missing', 'early')).toThrow(
-      EvolutionDemoNotFoundError
-    );
-    expect(() => getEvolutionDemoSnapshot('answer-over-time', 'missing')).toThrow(
-      EvolutionDemoNotFoundError
-    );
+  it('returns episodic-to-semantic before snapshot with episodic_sources and search_comparison', () => {
+    const before = getEvolutionDemoSnapshot('episodic-to-semantic', 'before');
+
+    expect(EvolutionDemoSnapshotSchema.safeParse(before).success).toBe(true);
+    expect(before.episodic_sources).toBeDefined();
+    expect(before.episodic_sources!.length).toBeGreaterThanOrEqual(3);
+    expect(before.episodic_sources![0]).toMatchObject({
+      id: expect.any(String),
+      summary: expect.any(String),
+    });
+    expect(before.semantic_result).toBeUndefined();
+    expect(before.search_comparison).toMatchObject({
+      before_summary: expect.stringContaining('episodic'),
+      after_summary: expect.any(String),
+    });
   });
 
-  describe('forgetting-policy scenario (#344)', () => {
+  it('returns episodic-to-semantic after snapshot with semantic_result and search_comparison', () => {
+    const after = getEvolutionDemoSnapshot('episodic-to-semantic', 'after');
+
+    expect(EvolutionDemoSnapshotSchema.safeParse(after).success).toBe(true);
+    expect(after.episodic_sources).toBeDefined();
+    expect(after.episodic_sources!.length).toBe(after.semantic_result!.source_count);
+    expect(after.semantic_result).toMatchObject({
+      id: expect.any(String),
+      summary: expect.any(String),
+      source_count: 4,
+      explanation: expect.any(String),
+    });
+    expect(after.search_comparison?.after_summary).toContain('semantic');
+  });
+
+describe('forgetting-policy scenario (#344)', () => {
     const FORGETTING_POINT_IDS = ['day-30', 'day-90'] as const;
 
     it('lists forgetting-policy with day-30 and day-90 points', () => {
@@ -152,5 +189,17 @@ describe('evolution-demo getters', () => {
         expect(snapshot.explanation).toBe(fixture.explanation);
       }
     });
+  });
+
+  it('throws EvolutionDemoNotFoundError for unknown scenario or point', () => {
+    expect(() => getEvolutionDemoSnapshot('missing', 'early')).toThrow(
+      EvolutionDemoNotFoundError
+    );
+    expect(() => getEvolutionDemoSnapshot('answer-over-time', 'missing')).toThrow(
+      EvolutionDemoNotFoundError
+    );
+    expect(() => getEvolutionDemoSnapshot('episodic-to-semantic', 'missing')).toThrow(
+      EvolutionDemoNotFoundError
+    );
   });
 });

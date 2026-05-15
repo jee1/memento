@@ -20,6 +20,29 @@ export interface EvolutionDemoMemoryGroup {
   pinned: boolean;
 }
 
+
+/** Episodic source contributing to consolidation (Issue #396) */
+export interface EvolutionDemoEpisodicSource {
+  id: string;
+  summary: string;
+  created_at?: string;
+  importance?: number;
+}
+
+/** Semantic memory produced by consolidation (Issue #396) */
+export interface EvolutionDemoSemanticResult {
+  id: string;
+  summary: string;
+  source_count: number;
+  explanation: string;
+}
+
+/** Search recall comparison before/after consolidation (Issue #396) */
+export interface EvolutionDemoSearchComparison {
+  before_summary: string;
+  after_summary: string;
+}
+
 export interface EvolutionDemoSnapshot {
   scenario_id: string;
   point_id: string;
@@ -31,6 +54,9 @@ export interface EvolutionDemoSnapshot {
   timestamp: string;
   /** Present for forgetting-policy and similar comparison scenarios */
   memory_groups?: EvolutionDemoMemoryGroup[];
+  episodic_sources?: EvolutionDemoEpisodicSource[];
+  semantic_result?: EvolutionDemoSemanticResult;
+  search_comparison?: EvolutionDemoSearchComparison;
 }
 
 export interface EvolutionDemoPoint {
