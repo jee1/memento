@@ -143,4 +143,19 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(hintIdx).toBeGreaterThan(readyIdx);
   });
 
+  it('dashboard.html includes forgetting-policy memory groups section (#344)', () => {
+    expect(dashboardHtml).toContain('id="med-memory-groups-section"');
+    expect(dashboardHtml).toContain('id="med-memory-groups"');
+  });
+
+  it('memory-evolution-demo-shell.js renders forgetting-policy comparison UI (#344)', () => {
+    expect(shellJs).toContain('forgetting-policy');
+    expect(shellJs).toContain('memory_groups');
+    expect(shellJs).toContain('med-memory-groups');
+  });
+
+  it('dashboard.css defines forgetting-policy comparison card styles (#344)', () => {
+    expect(dashboardCss).toContain('.med-memory-groups');
+  });
+
 });

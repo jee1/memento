@@ -24,6 +24,14 @@ const SCENARIO_CATALOG: EvolutionDemoScenario[] = [
     ],
   },
   {
+    scenario_id: 'forgetting-policy',
+    title: '망각 정책 비교',
+    points: [
+      { point_id: 'day-30', label: '30일 경과' },
+      { point_id: 'day-90', label: '90일 경과' },
+    ],
+  },
+  {
     scenario_id: 'episodic-to-semantic',
     title: 'Episodic to semantic consolidation',
     points: [
