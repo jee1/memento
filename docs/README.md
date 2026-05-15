@@ -40,6 +40,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 마이그레이션 시스템 | [migration-system-guide.md](guides/ko/migration-system-guide.md) | [migration-system-guide.md](guides/en/migration-system-guide.md) |
 | MCP 서버 사용 지침 | [mcp-server-instructions.md](guides/ko/mcp-server-instructions.md) | — |
 | SDD 워크플로 | [sdd-workflow.md](guides/ko/sdd-workflow.md) | — |
+| 기억 진화 데모 (시드·운영) | [evolution-demo.md](ko/evolution-demo.md) | — |
 
 ---
 
