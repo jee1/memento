@@ -282,7 +282,7 @@ curl -sS -b cookies.txt \
 1. **시드 스크립트** (`scripts/seed-evolution-demo.ts` 등) — 시나리오별 `remember` 또는 repository insert
 2. **스냅샷 빌더** — 질문·시점에 대한 `memory_summary`·`answer` 생성
 3. **기능 플래그** — `EVOLUTION_DEMO_SOURCE=fixture|db` 로 `getters.ts` 분기
-4. **운영** — `npm run db:seed:evolution-demo`(가칭)를 [스크립트 인덱스](../operations/ko/scripts-index.md)에 등록
+4. **운영** — `scripts/seed-evolution-demo.ts` 등 시드 스크립트를 추가한 뒤 [스크립트 인덱스](../operations/ko/scripts-index.md)에 실행 절차를 등록
 5. **테스트** — fixture 모드 회귀 + db 모드 통합 테스트
 
 로컬 발표는 당분간 **fixture 모드만으로도 충분**합니다.
