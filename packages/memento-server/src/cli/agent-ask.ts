@@ -255,8 +255,14 @@ async function promptApprove(
   candidate: KnowledgeCandidate,
   index: number,
   total: number,
-): Promise<'y' | 'n' | 's' | 'q'> {
+  interruptRef: { interrupted: boolean },
+): Promise<'y' | 'n' | 's' | 'q' | 'interrupt'> {
   const rl = createInterface({ input: stdinStream, output: stderrStream });
+  const onRlSigInt = (): void => {
+    interruptRef.interrupted = true;
+    rl.close();
+  };
+  rl.on('SIGINT', onRlSigInt);
   try {
     const header =
       `\n[${index + 1}/${total}] (${candidate.category}, importance=${candidate.importance})\n` +
@@ -264,7 +270,13 @@ async function promptApprove(
       `  reason: ${candidate.reason}\n` +
       `  suggested type: ${candidate.suggestedMemoryType}, tags: ${JSON.stringify(candidate.tags)}\n` +
       `  Save? (y)es / (n)o / (s)kip rest / (q)uit & save approved > `;
-    const line = await rl.question(header);
+    let line: string;
+    try {
+      line = await rl.question(header);
+    } catch {
+      if (interruptRef.interrupted) return 'interrupt';
+      return 'n';
+    }
     const t = String(line).trim().toLowerCase();
     if (t === '' || t === 'n') return 'n';
     if (t === 'y' || t === 'yes') return 'y';
@@ -272,6 +284,7 @@ async function promptApprove(
     if (t === 'q' || t === 'quit') return 'q';
     return 'n';
   } finally {
+    rl.removeListener('SIGINT', onRlSigInt);
     rl.close();
   }
 }
@@ -322,18 +335,17 @@ export async function runAgentAskMain(
     return 1;
   }
 
-  let interrupted = false;
-  const onSigInt = (): void => {
-    interrupted = true;
+  const interruptRef = { interrupted: false };
+  const onProcessSigInt = (): void => {
+    interruptRef.interrupted = true;
   };
-  process.once('SIGINT', onSigInt);
-
+  process.on('SIGINT', onProcessSigInt);
+  try {
   const sessionId = randomUUID();
   let dbPath: string;
   try {
     dbPath = resolveDbPath(preOptions);
   } catch (e) {
-    process.removeListener('SIGINT', onSigInt);
     const msg = e instanceof Error ? e.message : String(e);
     if (json) {
       await writeOut(jsonFailure('INVALID_OPTION', 'usage', msg));
@@ -347,7 +359,6 @@ export async function runAgentAskMain(
   try {
     core = await createMementoCore({ dbPath });
   } catch (e) {
-    process.removeListener('SIGINT', onSigInt);
     debugErr(e);
     const msg = e instanceof Error ? e.message : String(e);
     if (json) {
@@ -375,7 +386,6 @@ export async function runAgentAskMain(
       ownerId: undefined,
     });
   } catch (e) {
-    process.removeListener('SIGINT', onSigInt);
     debugErr(e);
     const msg = e instanceof Error ? e.message : String(e);
     if (json) {
@@ -388,8 +398,7 @@ export async function runAgentAskMain(
     return 3;
   }
 
-  if (interrupted) {
-    process.removeListener('SIGINT', onSigInt);
+  if (interruptRef.interrupted) {
     await writeErr('중단되어 저장하지 않습니다.\n');
     await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
     closeDatabase(db);
@@ -431,15 +440,20 @@ export async function runAgentAskMain(
   if (!skipPersist && stdinTty && runResult.candidates.length > 0) {
     const approved: string[] = [];
     for (let i = 0; i < runResult.candidates.length; i++) {
-      if (interrupted) {
-        process.removeListener('SIGINT', onSigInt);
+      if (interruptRef.interrupted) {
         await writeErr('중단되어 저장하지 않습니다.\n');
         await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
         closeDatabase(db);
         return 130;
       }
       const c = runResult.candidates[i];
-      const ans = await promptApprove(c, i, runResult.candidates.length);
+      const ans = await promptApprove(c, i, runResult.candidates.length, interruptRef);
+      if (ans === 'interrupt') {
+        await writeErr('중단되어 저장하지 않습니다.\n');
+        await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+        closeDatabase(db);
+        return 130;
+      }
       if (ans === 'y') {
         approved.push(c.id);
       } else if (ans === 's' || ans === 'q') {
@@ -463,7 +477,6 @@ export async function runAgentAskMain(
           errorCount: pr.errorCount,
         };
       } catch (e) {
-        process.removeListener('SIGINT', onSigInt);
         debugErr(e);
         const msg = e instanceof Error ? e.message : String(e);
         if (json) {
@@ -481,8 +494,6 @@ export async function runAgentAskMain(
       }
     }
   }
-
-  process.removeListener('SIGINT', onSigInt);
 
   const successObj = {
     ...basePayload,
@@ -513,6 +524,9 @@ export async function runAgentAskMain(
     return 4;
   }
   return 0;
+  } finally {
+    process.removeListener('SIGINT', onProcessSigInt);
+  }
   } finally {
     if (json) {
       if (prevCliQuiet === undefined) {

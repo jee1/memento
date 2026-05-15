@@ -69,7 +69,7 @@ export class ToolContextRememberPersistenceAdapter implements IPersistencePort {
       }
 
       const mapped = mapKnowledgeCandidateToRememberParams(candidate, ctx);
-      if (!mapped.ok) {
+      if (mapped.ok === false) {
         items.push({ candidateId: candidate.id, status: 'error', errorMessage: mapped.errorMessage });
         continue;
       }
@@ -77,7 +77,7 @@ export class ToolContextRememberPersistenceAdapter implements IPersistencePort {
       try {
         const result = await this.rememberTool.handle(mapped.params, this.toolContext);
         const parsed = parseRememberSuccess(result);
-        if (!parsed.ok) {
+        if (parsed.ok === false) {
           items.push({ candidateId: candidate.id, status: 'error', errorMessage: parsed.errorMessage });
           continue;
         }

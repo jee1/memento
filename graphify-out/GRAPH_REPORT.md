@@ -1,7 +1,7 @@
-# Graph Report - .  (2026-05-14)
+# Graph Report - /home/jee1lee/git/memento  (2026-05-14)
 
 ## Corpus Check
-- 981 files · ~1,577,333 words
+- 981 files · ~1,577,389 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
