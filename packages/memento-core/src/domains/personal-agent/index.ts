@@ -40,6 +40,9 @@ export type {
   DeterministicMockLlmAdapterOptions,
 } from './adapters/deterministic-mock-llm-adapter.js';
 
+export { OpenAiChatLlmAdapter } from './adapters/openai-chat-llm-adapter.js';
+export type { OpenAiChatLlmAdapterOptions } from './adapters/openai-chat-llm-adapter.js';
+
 export {
   ToolContextKnowledgeContextAdapter,
 } from './adapters/tool-context-knowledge-context-adapter.js';

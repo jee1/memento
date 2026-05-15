@@ -14,6 +14,7 @@ import {
   createPersonalAgentLlmPort,
   createToolContext,
   mementoConfig,
+  OpenAiChatLlmAdapter,
   parsePersonalAgentLlmEnv,
   PersonalAgentLlmError,
   PersonalKnowledgeAgentService,
@@ -402,7 +403,22 @@ export async function runAgentAskMain(
       openaiApiKey: mementoConfig.openaiApiKey,
       geminiApiKey: mementoConfig.geminiApiKey,
     });
-    llm = createPersonalAgentLlmPort(parsed, {});
+    llm = createPersonalAgentLlmPort(parsed, {
+      createOpenAi: (cfg) => {
+        const apiKey = mementoConfig.openaiApiKey?.trim();
+        if (!apiKey) {
+          throw new PersonalAgentLlmError({
+            code: 'provider_misconfigured',
+            message:
+              'OPENAI_API_KEY is required when MEMENTO_PERSONAL_AGENT_LLM_PROVIDER=openai',
+          });
+        }
+        return new OpenAiChatLlmAdapter({
+          apiKey,
+          model: cfg.model,
+        });
+      },
+    });
   } catch (e) {
     debugErr(e);
     if (e instanceof PersonalAgentLlmError) {

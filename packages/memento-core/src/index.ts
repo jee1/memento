@@ -152,6 +152,7 @@ export {
   isPersonalAgentLlmError,
   parsePersonalAgentLlmEnv,
   createPersonalAgentLlmPort,
+  OpenAiChatLlmAdapter,
 } from './domains/personal-agent/index.js';
 export type {
   PersonalKnowledgeAgentDeps,
@@ -162,6 +163,7 @@ export type {
   ParsePersonalAgentLlmEnvKeys,
   CreatePersonalAgentLlmPortDeps,
   ILLMPort,
+  OpenAiChatLlmAdapterOptions,
 } from './domains/personal-agent/index.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)
