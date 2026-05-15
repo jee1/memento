@@ -8,6 +8,10 @@
   const SCENARIOS_URL = '/admin/evolution-demo/scenarios';
   const SNAPSHOT_URL_PREFIX = '/admin/evolution-demo/snapshots/';
   const VALID_STATES = ['loading', 'empty', 'error', 'ready'];
+  const EMPTY_MESSAGE_SIGNED_OUT =
+    '관리자 API 키로 로그인하면 시뮬레이션 데이터를 불러올 수 있습니다.';
+  const EMPTY_MESSAGE_CHECKING =
+    '대시보드 세션을 확인하는 중입니다. 로그인 후 데모 API 데이터를 불러올 수 있습니다.';
 
   let viewState = 'loading';
   let bound = false;
@@ -54,6 +58,43 @@
         els.memorySummary &&
         els.explanation
     );
+  }
+
+
+  function getAuthState() {
+    const auth = global.__MEMENTO_DASHBOARD_AUTH__;
+    if (auth && typeof auth.getState === 'function') {
+      return auth.getState();
+    }
+    return 'signed-in';
+  }
+
+  function canLoadFromApi() {
+    return getAuthState() === 'signed-in';
+  }
+
+  function isEvolutionTabActive() {
+    const panel = document.getElementById('tab-evolution-demo');
+    return Boolean(panel && panel.classList.contains('active'));
+  }
+
+  function showAuthRequiredState() {
+    bindDom();
+    if (!bound) {
+      return;
+    }
+    const authState = getAuthState();
+    if (els.empty) {
+      els.empty.textContent =
+        authState === 'checking' ? EMPTY_MESSAGE_CHECKING : EMPTY_MESSAGE_SIGNED_OUT;
+    }
+    if (els.scenarioSelect) {
+      els.scenarioSelect.disabled = true;
+    }
+    if (els.pointSelect) {
+      els.pointSelect.disabled = true;
+    }
+    setViewState('empty');
   }
 
   function setVisible(el, visible) {
@@ -207,6 +248,10 @@
   }
 
   function loadSnapshot(scenarioId, pointId) {
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     const fetchFn = getFetchFn();
     if (!fetchFn) {
       setErrorMessage('mementoAdminFetch를 사용할 수 없습니다.');
@@ -286,6 +331,10 @@
   }
 
   function loadScenarios() {
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     const fetchFn = getFetchFn();
     if (!fetchFn) {
       setErrorMessage('mementoAdminFetch를 사용할 수 없습니다.');
@@ -334,17 +383,48 @@
   function initPanel() {
     bindDom();
     bindControls();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     return loadScenarios();
   }
 
   function refresh() {
     bindDom();
     bindControls();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     return loadScenarios();
+  }
+
+
+  function onAuthStateChanged(nextState) {
+    if (!isEvolutionTabActive()) {
+      return;
+    }
+    if (nextState === 'signed-in') {
+      refresh();
+      return;
+    }
+    if (
+      nextState === 'signed-out' ||
+      nextState === 'checking' ||
+      nextState === 'signing-in' ||
+      nextState === 'signing-out'
+    ) {
+      showAuthRequiredState();
+    }
   }
 
   function init() {
     bindDom();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return;
+    }
     setViewState(viewState);
   }
 
@@ -352,6 +432,8 @@
     init: init,
     initPanel: initPanel,
     refresh: refresh,
+    showAuthRequiredState: showAuthRequiredState,
+    onAuthStateChanged: onAuthStateChanged,
     setViewState: setViewState,
     getViewState: function () {
       return viewState;

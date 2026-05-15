@@ -16,11 +16,19 @@ import type {
 const SCENARIO_CATALOG: EvolutionDemoScenario[] = [
   {
     scenario_id: 'answer-over-time',
-    title: 'Answer changes over time',
+    title: '시간 경과에 따른 답변 변화',
     points: [
-      { point_id: 'early', label: 'Early (day 1)' },
-      { point_id: 'mid', label: 'Mid (day 30)' },
-      { point_id: 'late', label: 'Late (day 90)' },
+      { point_id: 'early', label: '초기 (1일차)' },
+      { point_id: 'mid', label: '중기 (30일차)' },
+      { point_id: 'late', label: '후기 (90일차)' },
+    ],
+  },
+  {
+    scenario_id: 'episodic-to-semantic',
+    title: 'Episodic to semantic consolidation',
+    points: [
+      { point_id: 'before', label: 'Before consolidation' },
+      { point_id: 'after', label: 'After consolidation' },
     ],
   },
 ];

@@ -144,6 +144,10 @@
 
     setMessage(message, nextState === 'signed-out' ? 'error' : 'neutral');
     maybeActivateTabForAuth(nextState);
+    const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
+    if (shell && typeof shell.onAuthStateChanged === 'function') {
+      shell.onAuthStateChanged(nextState);
+    }
   }
 
   function readErrorMessage(response, fallbackMessage) {

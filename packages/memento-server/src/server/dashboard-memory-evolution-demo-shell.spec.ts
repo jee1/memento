@@ -87,4 +87,16 @@ describe('dashboard memory evolution demo shell (#340, #342)', () => {
     expect(dashboardCss).toContain('var(--spacing-md)');
     expect(dashboardCss).toContain('#tab-evolution-demo.tab-panel.active');
   });
+  it('memory-evolution-demo-shell.js gates API load on signed-in auth state', () => {
+    expect(shellJs).toContain('canLoadFromApi');
+    expect(shellJs).toContain('showAuthRequiredState');
+    expect(shellJs).toContain('onAuthStateChanged');
+    expect(shellJs).toContain("getAuthState() === 'signed-in'");
+    expect(shellJs).toContain('EMPTY_MESSAGE_SIGNED_OUT');
+  });
+
+  it('dashboard-auth.js notifies evolution demo shell on auth state change', () => {
+    expect(authJs).toContain('onAuthStateChanged');
+  });
+
 });
