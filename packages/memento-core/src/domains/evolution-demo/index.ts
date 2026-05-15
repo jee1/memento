@@ -1,5 +1,6 @@
 export type {
   EvolutionDemoMemorySummary,
+  EvolutionDemoMemoryGroup,
   EvolutionDemoSnapshot,
   EvolutionDemoPoint,
   EvolutionDemoScenario,
@@ -8,6 +9,7 @@ export type {
 
 export {
   EVOLUTION_DEMO_SCENARIO_IDS,
+  EvolutionDemoMemoryGroupSchema,
   EvolutionDemoMemorySummarySchema,
   EvolutionDemoSnapshotSchema,
   EvolutionDemoPointSchema,

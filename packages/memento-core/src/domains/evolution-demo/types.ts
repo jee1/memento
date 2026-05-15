@@ -11,6 +11,15 @@ export interface EvolutionDemoMemorySummary {
   summary_text: string;
 }
 
+/** Per-memory fate comparison (#344 forgetting-policy scenario) */
+export interface EvolutionDemoMemoryGroup {
+  label: string;
+  importance: number;
+  status: string;
+  outcome: 'forget' | 'preserve' | 'pin';
+  pinned: boolean;
+}
+
 export interface EvolutionDemoSnapshot {
   scenario_id: string;
   point_id: string;
@@ -20,6 +29,8 @@ export interface EvolutionDemoSnapshot {
   memory_summary: EvolutionDemoMemorySummary;
   explanation: string;
   timestamp: string;
+  /** Present for forgetting-policy and similar comparison scenarios */
+  memory_groups?: EvolutionDemoMemoryGroup[];
 }
 
 export interface EvolutionDemoPoint {

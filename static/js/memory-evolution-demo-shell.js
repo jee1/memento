@@ -1,5 +1,5 @@
 /**
- * Memory evolution demo tab — API-backed shell (#340, #342).
+ * Memory evolution demo tab — API-backed shell (#340, #342, #344).
  * View states: loading | empty | error | ready
  */
 (function (global) {
@@ -8,6 +8,13 @@
   const SCENARIOS_URL = '/admin/evolution-demo/scenarios';
   const SNAPSHOT_URL_PREFIX = '/admin/evolution-demo/snapshots/';
   const VALID_STATES = ['loading', 'empty', 'error', 'ready'];
+  const FORGETTING_POLICY_ID = 'forgetting-policy';
+
+  const OUTCOME_LABELS = {
+    forget: '망각',
+    preserve: '보존 (semantic)',
+    pin: '핀 고정',
+  };
 
   let viewState = 'loading';
   let bound = false;
@@ -25,6 +32,9 @@
     question: null,
     answer: null,
     memorySummary: null,
+    memoryGroupsSection: null,
+    memoryGroups: null,
+    explanationHeading: null,
     explanation: null,
   };
 
@@ -41,6 +51,9 @@
     els.question = document.getElementById('med-question-text');
     els.answer = document.getElementById('med-answer-text');
     els.memorySummary = document.getElementById('med-memory-summary');
+    els.memoryGroupsSection = document.getElementById('med-memory-groups-section');
+    els.memoryGroups = document.getElementById('med-memory-groups');
+    els.explanationHeading = document.getElementById('med-explanation-heading');
     els.explanation = document.getElementById('med-explanation-text');
     bound = Boolean(
       els.loading &&
@@ -107,6 +120,72 @@
     return fallback;
   }
 
+  function isForgettingPolicy(scenarioId) {
+    return scenarioId === FORGETTING_POLICY_ID;
+  }
+
+  function formatImportance(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return '—';
+    }
+    return Math.round(value * 100) + '%';
+  }
+
+  function renderMemoryGroups(snapshot, scenarioId) {
+    bindDom();
+    const showGroups =
+      isForgettingPolicy(scenarioId) &&
+      snapshot &&
+      Array.isArray(snapshot.memory_groups) &&
+      snapshot.memory_groups.length > 0;
+
+    if (els.memoryGroupsSection) {
+      setVisible(els.memoryGroupsSection, showGroups);
+    }
+    if (!els.memoryGroups) {
+      return;
+    }
+    els.memoryGroups.innerHTML = '';
+    if (!showGroups) {
+      return;
+    }
+
+    snapshot.memory_groups.forEach(function (group) {
+      const outcome = group && group.outcome ? group.outcome : 'preserve';
+      const card = document.createElement('article');
+      card.className = 'med-memory-group-card med-memory-group-card--' + outcome;
+      card.setAttribute('data-outcome', outcome);
+      card.setAttribute('data-importance', String(group.importance ?? ''));
+      card.setAttribute('data-pinned', group.pinned ? 'true' : 'false');
+
+      const label = document.createElement('h4');
+      label.className = 'med-memory-group-card__label';
+      label.textContent = group.label || '기억';
+
+      const meta = document.createElement('p');
+      meta.className = 'med-memory-group-card__meta';
+      meta.textContent =
+        '중요도 ' +
+        formatImportance(group.importance) +
+        (group.pinned ? ' · 핀 고정' : '');
+
+      const status = document.createElement('p');
+      status.className = 'med-memory-group-card__status';
+      status.textContent = group.status || '';
+
+      const outcomeEl = document.createElement('p');
+      outcomeEl.className =
+        'med-memory-group-card__outcome med-memory-group-card__outcome--' + outcome;
+      outcomeEl.textContent = OUTCOME_LABELS[outcome] || outcome;
+
+      card.appendChild(label);
+      card.appendChild(meta);
+      card.appendChild(status);
+      card.appendChild(outcomeEl);
+      els.memoryGroups.appendChild(card);
+    });
+  }
+
   function formatMemorySummary(summary) {
     if (!summary || typeof summary !== 'object') {
       return '';
@@ -121,11 +200,12 @@
     return text ? counts + '\n\n' + text : counts;
   }
 
-  function renderSnapshot(snapshot) {
+  function renderSnapshot(snapshot, scenarioId) {
     bindDom();
     if (!bound || !snapshot) {
       return;
     }
+    const activeScenarioId = scenarioId || (els.scenarioSelect ? els.scenarioSelect.value : '');
     if (els.question) {
       els.question.textContent = snapshot.question || '';
       els.question.classList.remove('med-placeholder');
@@ -137,6 +217,12 @@
     if (els.memorySummary) {
       els.memorySummary.textContent = formatMemorySummary(snapshot.memory_summary);
       els.memorySummary.classList.remove('med-placeholder');
+    }
+    renderMemoryGroups(snapshot, activeScenarioId);
+    if (els.explanationHeading) {
+      els.explanationHeading.textContent = isForgettingPolicy(activeScenarioId)
+        ? '왜 보존·망각이 갈리나요?'
+        : '설명';
     }
     if (els.explanation) {
       els.explanation.textContent = snapshot.explanation || '';
@@ -233,7 +319,7 @@
           setViewState('error');
           return;
         }
-        renderSnapshot(result.body);
+        renderSnapshot(result.body, scenarioId);
       })
       .catch(function (err) {
         if (generation !== loadGeneration) {

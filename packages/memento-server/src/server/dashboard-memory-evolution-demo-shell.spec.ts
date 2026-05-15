@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -27,6 +28,10 @@ describe('dashboard memory evolution demo shell (#340, #342)', () => {
     expect(dashboardHtml).toContain('id="med-answer-text"');
     expect(dashboardHtml).toContain('id="med-memory-summary"');
     expect(dashboardHtml).toContain('id="med-explanation-text"');
+    expect(dashboardHtml).toContain('id="med-memory-groups-section"');
+    expect(dashboardHtml).toContain('id="med-memory-groups"');
+    expect(dashboardHtml).toContain('med-memory-groups');
+    expect(dashboardHtml).toContain('기억군 비교');
     expect(dashboardHtml).toContain('기억 진화 데모');
     expect(dashboardHtml).toContain('API에 연동되어 시나리오와 시점을 선택할 수 있습니다');
   });
@@ -86,5 +91,23 @@ describe('dashboard memory evolution demo shell (#340, #342)', () => {
     expect(dashboardCss).toContain('.med-controls');
     expect(dashboardCss).toContain('var(--spacing-md)');
     expect(dashboardCss).toContain('#tab-evolution-demo.tab-panel.active');
+  });
+
+  it('memory-evolution-demo-shell.js renders forgetting-policy comparison UI (#344)', () => {
+    expect(shellJs).toContain('forgetting-policy');
+    expect(shellJs).toContain('FORGETTING_POLICY_ID');
+    expect(shellJs).toContain('memory_groups');
+    expect(shellJs).toContain('med-memory-groups');
+    expect(shellJs).toContain('med-memory-group-card');
+    expect(shellJs).toContain('renderMemoryGroups');
+    expect(shellJs).toContain('왜 보존·망각이 갈리나요?');
+  });
+
+  it('dashboard.css defines forgetting-policy comparison card styles (#344)', () => {
+    expect(dashboardCss).toContain('.med-memory-groups');
+    expect(dashboardCss).toContain('.med-memory-group-card');
+    expect(dashboardCss).toContain('.med-memory-group-card--forget');
+    expect(dashboardCss).toContain('.med-memory-group-card--preserve');
+    expect(dashboardCss).toContain('.med-memory-group-card--pin');
   });
 });

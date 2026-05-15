@@ -4,7 +4,15 @@
 
 import { z } from 'zod';
 
-export const EVOLUTION_DEMO_SCENARIO_IDS = ['answer-over-time'] as const;
+export const EVOLUTION_DEMO_SCENARIO_IDS = ['answer-over-time', 'forgetting-policy'] as const;
+
+export const EvolutionDemoMemoryGroupSchema = z.object({
+  label: z.string().min(1),
+  importance: z.number().min(0).max(1),
+  status: z.string().min(1),
+  outcome: z.enum(['forget', 'preserve', 'pin']),
+  pinned: z.boolean(),
+});
 
 export const EvolutionDemoMemorySummarySchema = z.object({
   episodic_count: z.number().int().nonnegative(),
@@ -23,6 +31,7 @@ export const EvolutionDemoSnapshotSchema = z.object({
   memory_summary: EvolutionDemoMemorySummarySchema,
   explanation: z.string(),
   timestamp: z.string().datetime(),
+  memory_groups: z.array(EvolutionDemoMemoryGroupSchema).optional(),
 });
 
 export const EvolutionDemoPointSchema = z.object({

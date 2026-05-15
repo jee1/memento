@@ -80,9 +80,15 @@ describe('admin evolution-demo routes', () => {
     const body = JSON.parse(res.body) as {
       scenarios: Array<{ scenario_id: string; title: string; points: Array<{ point_id: string }> }>;
     };
-    expect(body.scenarios).toHaveLength(1);
-    expect(body.scenarios[0]?.scenario_id).toBe('answer-over-time');
-    expect(body.scenarios[0]?.points.map(p => p.point_id)).toEqual(['early', 'mid', 'late']);
+    expect(body.scenarios).toHaveLength(2);
+    expect(body.scenarios.map(s => s.scenario_id)).toEqual([
+      'answer-over-time',
+      'forgetting-policy',
+    ]);
+    const answerOverTime = body.scenarios.find(s => s.scenario_id === 'answer-over-time');
+    expect(answerOverTime?.points.map(p => p.point_id)).toEqual(['early', 'mid', 'late']);
+    const forgettingPolicy = body.scenarios.find(s => s.scenario_id === 'forgetting-policy');
+    expect(forgettingPolicy?.points.map(p => p.point_id)).toEqual(['day-30', 'day-90']);
   });
 
   it('GET /admin/evolution-demo/snapshots/:scenario_id/:point_id returns snapshot body', async () => {
@@ -116,12 +122,44 @@ describe('admin evolution-demo routes', () => {
 
     expect(body.scenario_id).toBe('answer-over-time');
     expect(body.point_id).toBe('mid');
-    expect(body.point_label).toBe('Mid (day 30)');
-    expect(body.question).toContain('authentication');
+    expect(body.point_label).toBe('중기 (30일차)');
+    expect(body.question).toContain('인증');
     expect(body.answer.length).toBeGreaterThan(0);
     expect(body.memory_summary.episodic_count).toBeGreaterThanOrEqual(0);
     expect(body.explanation.length).toBeGreaterThan(0);
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('GET forgetting-policy snapshot includes memory_groups (#344)', async () => {
+    const app = express();
+    app.use('/admin', createAdminRouter(db, null));
+    const listened = await listen(app);
+    server = listened.server;
+
+    const res = await getAdmin(
+      listened.port,
+      '/admin/evolution-demo/snapshots/forgetting-policy/day-30'
+    );
+    expect(res.statusCode).toBe(200);
+
+    const body = JSON.parse(res.body) as {
+      scenario_id: string;
+      point_id: string;
+      memory_groups?: Array<{
+        label: string;
+        importance: number;
+        outcome: string;
+        pinned: boolean;
+      }>;
+    };
+
+    expect(body.scenario_id).toBe('forgetting-policy');
+    expect(body.point_id).toBe('day-30');
+    expect(body.memory_groups).toBeDefined();
+    expect(body.memory_groups!.length).toBeGreaterThanOrEqual(2);
+    const outcomes = body.memory_groups!.map(g => g.outcome);
+    expect(outcomes).toContain('forget');
+    expect(outcomes).toContain('preserve');
   });
 
   it('GET snapshot returns 404 for unknown scenario or point', async () => {

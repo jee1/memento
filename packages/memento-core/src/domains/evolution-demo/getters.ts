@@ -23,6 +23,14 @@ const SCENARIO_CATALOG: EvolutionDemoScenario[] = [
       { point_id: 'late', label: '후기 (90일차)' },
     ],
   },
+  {
+    scenario_id: 'forgetting-policy',
+    title: '망각 정책 비교',
+    points: [
+      { point_id: 'day-30', label: '30일 경과' },
+      { point_id: 'day-90', label: '90일 경과' },
+    ],
+  },
 ];
 
 export class EvolutionDemoNotFoundError extends Error {

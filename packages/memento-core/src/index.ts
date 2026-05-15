@@ -189,6 +189,7 @@ export {
   getEvolutionDemoSnapshot,
   EvolutionDemoNotFoundError,
   EVOLUTION_DEMO_SCENARIO_IDS,
+  EvolutionDemoMemoryGroupSchema,
   EvolutionDemoMemorySummarySchema,
   EvolutionDemoSnapshotSchema,
   EvolutionDemoPointSchema,
@@ -197,6 +198,7 @@ export {
 } from './domains/evolution-demo/index.js';
 export type {
   EvolutionDemoMemorySummary,
+  EvolutionDemoMemoryGroup,
   EvolutionDemoSnapshot,
   EvolutionDemoPoint,
   EvolutionDemoScenario,

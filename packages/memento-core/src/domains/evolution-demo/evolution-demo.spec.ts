@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import answerOverTimeFixture from './fixtures/answer-over-time.snapshots.json' with { type: 'json' };
+import forgettingPolicyFixture from './fixtures/forgetting-policy.snapshots.json' with { type: 'json' };
 import {
   getEvolutionDemoSnapshot,
   listEvolutionDemoScenarios,
@@ -10,9 +11,9 @@ import {
 const POINT_IDS = ['early', 'mid', 'late'] as const;
 
 describe('evolution-demo getters', () => {
-  it('lists answer-over-time scenario with early, mid, late points', () => {
+  it('lists answer-over-time and forgetting-policy scenarios', () => {
     const catalog = listEvolutionDemoScenarios();
-    expect(catalog.scenarios).toHaveLength(1);
+    expect(catalog.scenarios).toHaveLength(2);
     const scenario = catalog.scenarios[0];
     expect(scenario?.scenario_id).toBe('answer-over-time');
     expect(scenario?.title).toBe('시간 경과에 따른 답변 변화');
@@ -97,5 +98,59 @@ describe('evolution-demo getters', () => {
     expect(() => getEvolutionDemoSnapshot('answer-over-time', 'missing')).toThrow(
       EvolutionDemoNotFoundError
     );
+  });
+
+  describe('forgetting-policy scenario (#344)', () => {
+    const FORGETTING_POINT_IDS = ['day-30', 'day-90'] as const;
+
+    it('lists forgetting-policy with day-30 and day-90 points', () => {
+      const catalog = listEvolutionDemoScenarios();
+      const scenario = catalog.scenarios.find(s => s.scenario_id === 'forgetting-policy');
+      expect(scenario?.title).toBe('망각 정책 비교');
+      expect(scenario?.points.map(p => p.point_id)).toEqual([...FORGETTING_POINT_IDS]);
+    });
+
+    it('returns memory_groups comparing low vs high importance fates', () => {
+      const day30 = getEvolutionDemoSnapshot('forgetting-policy', 'day-30');
+      const day90 = getEvolutionDemoSnapshot('forgetting-policy', 'day-90');
+
+      expect(day30.memory_groups).toBeDefined();
+      expect(day30.memory_groups).toHaveLength(3);
+      expect(day90.memory_groups).toHaveLength(3);
+
+      const low30 = day30.memory_groups!.find(g => g.importance < 0.5);
+      const high30 = day30.memory_groups!.find(g => g.importance >= 0.8);
+      const pinned30 = day30.memory_groups!.find(g => g.pinned);
+
+      expect(low30?.outcome).toBe('forget');
+      expect(high30?.outcome).toBe('preserve');
+      expect(pinned30?.outcome).toBe('pin');
+      expect(pinned30?.pinned).toBe(true);
+
+      const low90 = day90.memory_groups!.find(g => g.importance < 0.5);
+      expect(low90?.status).toMatch(/망각/);
+      expect(day90.explanation).toMatch(/핀|semantic/);
+    });
+
+    it('validates forgetting-policy snapshots against schema', () => {
+      for (const pointId of FORGETTING_POINT_IDS) {
+        const snapshot = getEvolutionDemoSnapshot('forgetting-policy', pointId);
+        const parsed = EvolutionDemoSnapshotSchema.safeParse(snapshot);
+        expect(parsed.success, `schema failed for ${pointId}`).toBe(true);
+        expect(snapshot.scenario_id).toBe('forgetting-policy');
+        expect(snapshot.memory_groups?.length).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    it('matches fixture JSON for forgetting-policy snapshots', () => {
+      for (const pointId of FORGETTING_POINT_IDS) {
+        const snapshot = getEvolutionDemoSnapshot('forgetting-policy', pointId);
+        const fixture = forgettingPolicyFixture.snapshots[pointId];
+        expect(snapshot.question).toBe(forgettingPolicyFixture.question);
+        expect(snapshot.answer).toBe(fixture.answer);
+        expect(snapshot.memory_groups).toEqual(fixture.memory_groups);
+        expect(snapshot.explanation).toBe(fixture.explanation);
+      }
+    });
   });
 });
