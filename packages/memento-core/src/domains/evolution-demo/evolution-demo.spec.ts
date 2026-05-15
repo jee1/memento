@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import answerOverTimeFixture from './fixtures/answer-over-time.snapshots.json' with { type: 'json' };
+import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js';
 import {
   getEvolutionDemoSnapshot,
   listEvolutionDemoScenarios,
@@ -78,7 +78,7 @@ describe('evolution-demo getters', () => {
     expect(late.explanation).toContain('저장이 아니라 변형');
   });
 
-  it('matches fixture JSON for answer-over-time snapshots', () => {
+  it('matches fixture for answer-over-time snapshots', () => {
     for (const pointId of POINT_IDS) {
       const snapshot = getEvolutionDemoSnapshot('answer-over-time', pointId);
       const fixture = answerOverTimeFixture.snapshots[pointId];
