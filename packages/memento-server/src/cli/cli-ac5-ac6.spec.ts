@@ -121,7 +121,57 @@ describe('CLI AC5/AC6', () => {
     expect(output).toContain('remember');
     expect(output).toContain('forget');
     expect(output).toContain('memory_injection');
+    expect(output).toContain('agent ask');
   });
+
+  it('issue #236: agent ask --json --no-save prints JSON only on stdout', async () => {
+    const dbPath = path.join(os.tmpdir(), `memento-cli-agent236-${Date.now()}.db`);
+    const { stdout, stderr, code } = await runCli([
+      '--db-path', dbPath,
+      'agent',
+      'ask',
+      '앞으로는 커밋 메시지는 영어로 쓰자',
+      '--json',
+      '--no-save',
+    ]);
+    expect(code).toBe(0);
+    expect(stderr).toBe('');
+    const obj = JSON.parse(stdout.trim()) as {
+      ok: boolean;
+      llm: { response: string };
+      persistence: { attempted: boolean };
+    };
+    expect(obj.ok).toBe(true);
+    expect(obj.llm.response.length).toBeGreaterThan(0);
+    expect(obj.persistence.attempted).toBe(false);
+    try {
+      fs.unlinkSync(dbPath);
+    } catch {
+      // ignore
+    }
+  }, 30_000);
+
+  it('issue #236: agent ask 알 수 없는 옵션 + --json → exit 1, stdout에 JSON 오류', async () => {
+    const dbPath = path.join(os.tmpdir(), `memento-cli-agent236-bad-${Date.now()}.db`);
+    const { stdout, stderr, code } = await runCli([
+      '--db-path', dbPath,
+      'agent',
+      'ask',
+      'hello',
+      '--json',
+      '--not-a-real-flag',
+    ]);
+    expect(code).toBe(1);
+    const obj = JSON.parse(stdout.trim()) as { ok: boolean; error?: { code: string } };
+    expect(obj.ok).toBe(false);
+    expect(obj.error?.code).toBe('INVALID_OPTION');
+    expect(stderr).toBe('');
+    try {
+      fs.unlinkSync(dbPath);
+    } catch {
+      // ignore
+    }
+  }, 15_000);
 
   it('AC6/AC9: 서버 미실행 시 exit 1 및 서버 실행 안내 메시지 출력', async () => {
     const tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'memento-cli-ac6-cwd-'));
