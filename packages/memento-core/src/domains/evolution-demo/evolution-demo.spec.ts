@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import answerOverTimeFixture from './fixtures/answer-over-time.snapshots.json' with { type: 'json' };
+import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js';
+import { forgettingPolicyFixture } from './fixtures/forgetting-policy.snapshots.js';
 import {
   getEvolutionDemoSnapshot,
   listEvolutionDemoScenarios,
@@ -10,14 +11,13 @@ import {
 const POINT_IDS = ['early', 'mid', 'late'] as const;
 
 describe('evolution-demo getters', () => {
-  it('lists answer-over-time and episodic-to-semantic scenarios', () => {
+  it('lists answer-over-time, forgetting-policy, and episodic-to-semantic scenarios', () => {
     const catalog = listEvolutionDemoScenarios();
-    expect(catalog.scenarios).toHaveLength(2);
+    expect(catalog.scenarios).toHaveLength(3);
 
     const answerOverTime = catalog.scenarios.find(
       s => s.scenario_id === 'answer-over-time'
     );
-    expect(answerOverTime?.scenario_id).toBe('answer-over-time');
     expect(answerOverTime?.title).toBe('시간 경과에 따른 답변 변화');
     expect(answerOverTime?.points.map(p => p.point_id)).toEqual([...POINT_IDS]);
     expect(answerOverTime?.points.map(p => p.label)).toEqual([
@@ -29,8 +29,12 @@ describe('evolution-demo getters', () => {
     const consolidation = catalog.scenarios.find(
       s => s.scenario_id === 'episodic-to-semantic'
     );
-    expect(consolidation?.title).toBe('에피소딕→시맨틱 통합');
+    expect(consolidation?.title).toBe('Episodic to semantic consolidation');
     expect(consolidation?.points.map(p => p.point_id)).toEqual(['before', 'after']);
+    const forgetting = catalog.scenarios.find(s => s.scenario_id === 'forgetting-policy');
+    expect(forgetting?.title).toBe('망각 정책 비교');
+    expect(forgetting?.points.map(p => p.point_id)).toEqual(['day-30', 'day-90']);
+
   });
 
   it('returns snapshot for each answer-over-time point with same question and different answers', () => {
@@ -48,14 +52,11 @@ describe('evolution-demo getters', () => {
 
     expect(early.answer.length).toBeGreaterThan(mid.answer.length);
     expect(mid.answer.length).toBeGreaterThan(late.answer.length);
-
-    expect(EvolutionDemoSnapshotSchema.safeParse(early).success).toBe(true);
-    expect(EvolutionDemoSnapshotSchema.safeParse(late).success).toBe(true);
     expect(early.episodic_sources).toBeUndefined();
     expect(early.semantic_result).toBeUndefined();
   });
 
-  it('validates snapshot structure against spec schema for all points', () => {
+  it('validates snapshot structure against spec schema for all answer-over-time points', () => {
     for (const pointId of POINT_IDS) {
       const snapshot = getEvolutionDemoSnapshot('answer-over-time', pointId);
       const parsed = EvolutionDemoSnapshotSchema.safeParse(snapshot);
@@ -92,7 +93,7 @@ describe('evolution-demo getters', () => {
     expect(late.explanation).toContain('저장이 아니라 변형');
   });
 
-  it('matches fixture JSON for answer-over-time snapshots', () => {
+  it('matches fixture for answer-over-time snapshots', () => {
     for (const pointId of POINT_IDS) {
       const snapshot = getEvolutionDemoSnapshot('answer-over-time', pointId);
       const fixture = answerOverTimeFixture.snapshots[pointId];
@@ -134,6 +135,60 @@ describe('evolution-demo getters', () => {
       explanation: expect.any(String),
     });
     expect(after.search_comparison?.after_summary).toContain('semantic');
+  });
+
+describe('forgetting-policy scenario (#344)', () => {
+    const FORGETTING_POINT_IDS = ['day-30', 'day-90'] as const;
+
+    it('lists forgetting-policy with day-30 and day-90 points', () => {
+      const catalog = listEvolutionDemoScenarios();
+      const scenario = catalog.scenarios.find(s => s.scenario_id === 'forgetting-policy');
+      expect(scenario?.title).toBe('망각 정책 비교');
+      expect(scenario?.points.map(p => p.point_id)).toEqual([...FORGETTING_POINT_IDS]);
+    });
+
+    it('returns memory_groups comparing low vs high importance fates', () => {
+      const day30 = getEvolutionDemoSnapshot('forgetting-policy', 'day-30');
+      const day90 = getEvolutionDemoSnapshot('forgetting-policy', 'day-90');
+
+      expect(day30.memory_groups).toBeDefined();
+      expect(day30.memory_groups).toHaveLength(3);
+      expect(day90.memory_groups).toHaveLength(3);
+
+      const low30 = day30.memory_groups!.find(g => g.importance < 0.5);
+      const high30 = day30.memory_groups!.find(g => g.importance >= 0.8);
+      const pinned30 = day30.memory_groups!.find(g => g.pinned);
+
+      expect(low30?.outcome).toBe('forget');
+      expect(high30?.outcome).toBe('preserve');
+      expect(pinned30?.outcome).toBe('pin');
+      expect(pinned30?.pinned).toBe(true);
+
+      const low90 = day90.memory_groups!.find(g => g.importance < 0.5);
+      expect(low90?.status).toMatch(/망각/);
+      expect(day90.explanation).toMatch(/핀|semantic/);
+    });
+
+    it('validates forgetting-policy snapshots against schema', () => {
+      for (const pointId of FORGETTING_POINT_IDS) {
+        const snapshot = getEvolutionDemoSnapshot('forgetting-policy', pointId);
+        const parsed = EvolutionDemoSnapshotSchema.safeParse(snapshot);
+        expect(parsed.success, `schema failed for ${pointId}`).toBe(true);
+        expect(snapshot.scenario_id).toBe('forgetting-policy');
+        expect(snapshot.memory_groups?.length).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    it('matches fixture JSON for forgetting-policy snapshots', () => {
+      for (const pointId of FORGETTING_POINT_IDS) {
+        const snapshot = getEvolutionDemoSnapshot('forgetting-policy', pointId);
+        const fixture = forgettingPolicyFixture.snapshots[pointId];
+        expect(snapshot.question).toBe(forgettingPolicyFixture.question);
+        expect(snapshot.answer).toBe(fixture.answer);
+        expect(snapshot.memory_groups).toEqual(fixture.memory_groups);
+        expect(snapshot.explanation).toBe(fixture.explanation);
+      }
+    });
   });
 
   it('throws EvolutionDemoNotFoundError for unknown scenario or point', () => {

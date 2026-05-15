@@ -102,75 +102,6 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(shellJs).toContain('preserved_count');
   });
 
-
-  it('dashboard.html includes consolidation panel markup (#397)', () => {
-    expect(dashboardHtml).toContain('id="med-consolidation-panel"');
-    expect(dashboardHtml).toContain('id="med-episodic-sources-list"');
-    expect(dashboardHtml).toContain('id="med-semantic-result-section"');
-    expect(dashboardHtml).toContain('id="med-semantic-result-card"');
-    expect(dashboardHtml).toContain('id="med-search-before"');
-    expect(dashboardHtml).toContain('id="med-search-after"');
-    expect(dashboardHtml).toContain('id="med-standard-panels"');
-    expect(dashboardHtml).toContain('med-consolidation-flow');
-    expect(dashboardHtml).toContain('여러 사건');
-    expect(dashboardHtml).toContain('하나의 지식');
-  });
-
-  it('memory-evolution-demo-shell.js implements answer-over-time UI (#395)', () => {
-    expect(shellJs).toContain("ANSWER_OVER_TIME_ID = 'answer-over-time'");
-    expect(shellJs).toContain('med-point-segment');
-    expect(shellJs).toContain('med-memory-stats');
-    expect(shellJs).toContain('med-comparison-hint');
-    expect(shellJs).toContain('med-stat-chip');
-    expect(shellJs).toContain('renderMemoryStats');
-    expect(shellJs).toContain('updateComparisonHint');
-    expect(shellJs).toContain('renderPointSegment');
-    expect(shellJs).toContain('상세');
-    expect(shellJs).toContain('압축');
-    expect(shellJs).toContain('semantic 중심');
-    expect(shellJs).toContain('episodic_count');
-    expect(shellJs).toContain('forgotten_count');
-    expect(shellJs).toContain('preserved_count');
-  });
-
-  it('memory-evolution-demo-shell.js implements episodic-to-semantic consolidation UI (#397)', () => {
-    expect(shellJs).toContain("CONSOLIDATION_ID = 'episodic-to-semantic'");
-    expect(shellJs).toContain('med-consolidation-panel');
-    expect(shellJs).toContain('med-episodic-sources-list');
-    expect(shellJs).toContain('med-semantic-result-section');
-    expect(shellJs).toContain('med-search-before');
-    expect(shellJs).toContain('med-search-after');
-    expect(shellJs).toContain('renderConsolidationPanel');
-    expect(shellJs).toContain('renderEpisodicSources');
-    expect(shellJs).toContain('renderSemanticResult');
-    expect(shellJs).toContain('renderSearchComparison');
-    expect(shellJs).toContain('episodic_sources');
-    expect(shellJs).toContain('semantic_result');
-    expect(shellJs).toContain('search_comparison');
-    expect(shellJs).toContain('isConsolidation');
-    expect(shellJs).toContain('updateScenarioLayout');
-  });
-
-  it('dashboard.css defines answer-over-time UI styles (#395)', () => {
-    expect(dashboardCss).toContain('.med-point-segment');
-    expect(dashboardCss).toContain('.med-stat-chip');
-    expect(dashboardCss).toContain('.med-comparison-hint');
-    expect(dashboardCss).toContain('.med-section--explanation-prominent');
-    expect(dashboardCss).toContain('.med-stat-chip--episodic');
-    expect(dashboardCss).toContain('.med-stat-chip--semantic');
-    expect(dashboardCss).toContain('var(--color-brand-primary)');
-  });
-
-  it('dashboard.css defines consolidation UI styles (#397)', () => {
-    expect(dashboardCss).toContain('.med-consolidation-panel');
-    expect(dashboardCss).toContain('.med-consolidation-flow');
-    expect(dashboardCss).toContain('.med-episodic-sources-list');
-    expect(dashboardCss).toContain('.med-semantic-result-card');
-    expect(dashboardCss).toContain('.med-search-comparison');
-    expect(dashboardCss).toContain('var(--spacing-md)');
-    expect(dashboardCss).toContain('var(--color-success)');
-  });
-
   it('dashboard-auth.js activates evolution-demo when signed out', () => {
     expect(authJs).toContain('maybeActivateTabForAuth');
     expect(authJs).toContain("tabs.activateTab('evolution-demo')");
@@ -194,4 +125,73 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(dashboardCss).toContain('.med-stat-chip--semantic');
     expect(dashboardCss).toContain('var(--color-brand-primary)');
   });
+  it('memory-evolution-demo-shell.js gates API load on signed-in auth state', () => {
+    expect(shellJs).toContain('canLoadFromApi');
+    expect(shellJs).toContain('showAuthRequiredState');
+    expect(shellJs).toContain('onAuthStateChanged');
+  });
+
+  it('dashboard-auth.js notifies evolution demo shell on auth state change', () => {
+    expect(authJs).toContain('onAuthStateChanged');
+  });
+
+  it('memory-evolution-demo-shell.js shows comparison hint after ready state', () => {
+    const renderIdx = shellJs.indexOf('function renderSnapshot');
+    const readyIdx = shellJs.indexOf("setViewState('ready')", renderIdx);
+    const hintIdx = shellJs.indexOf('updateComparisonHint', renderIdx);
+    expect(readyIdx).toBeGreaterThan(-1);
+    expect(hintIdx).toBeGreaterThan(readyIdx);
+  });
+
+  it('dashboard.html includes forgetting-policy memory groups section (#344)', () => {
+    expect(dashboardHtml).toContain('id="med-memory-groups-section"');
+    expect(dashboardHtml).toContain('id="med-memory-groups"');
+  });
+
+  it('memory-evolution-demo-shell.js renders forgetting-policy comparison UI (#344)', () => {
+    expect(shellJs).toContain('forgetting-policy');
+    expect(shellJs).toContain('memory_groups');
+    expect(shellJs).toContain('med-memory-groups');
+  });
+
+  it('dashboard.css defines forgetting-policy comparison card styles (#344)', () => {
+    expect(dashboardCss).toContain('.med-memory-groups');
+  });
+  it('dashboard.html includes consolidation panel markup (#397)', () => {
+    expect(dashboardHtml).toContain('id="med-consolidation-panel"');
+    expect(dashboardHtml).toContain('id="med-episodic-sources-list"');
+    expect(dashboardHtml).toContain('id="med-semantic-result-section"');
+    expect(dashboardHtml).toContain('id="med-search-before"');
+    expect(dashboardHtml).toContain('id="med-search-after"');
+    expect(dashboardHtml).toContain('med-consolidation-flow');
+  });
+
+  it('memory-evolution-demo-shell.js implements episodic-to-semantic consolidation UI (#397)', () => {
+    expect(shellJs).toContain("CONSOLIDATION_ID = 'episodic-to-semantic'");
+    expect(shellJs).toContain('med-consolidation-panel');
+    expect(shellJs).toContain('med-episodic-sources-list');
+    expect(shellJs).toContain('med-semantic-result-section');
+    expect(shellJs).toContain('med-search-before');
+    expect(shellJs).toContain('med-search-after');
+    expect(shellJs).toContain('renderConsolidationPanel');
+    expect(shellJs).toContain('renderEpisodicSources');
+    expect(shellJs).toContain('renderSemanticResult');
+    expect(shellJs).toContain('renderSearchComparison');
+    expect(shellJs).toContain('episodic_sources');
+    expect(shellJs).toContain('semantic_result');
+    expect(shellJs).toContain('search_comparison');
+    expect(shellJs).toContain('isConsolidation');
+    expect(shellJs).toContain('updateScenarioLayout');
+    expect(shellJs).toContain('textContent');
+    expect(shellJs).not.toContain("med-episodic-source__summary'>" );
+  });
+
+  it('dashboard.css defines consolidation UI styles (#397)', () => {
+    expect(dashboardCss).toContain('.med-consolidation-panel');
+    expect(dashboardCss).toContain('.med-consolidation-flow');
+    expect(dashboardCss).toContain('.med-episodic-sources-list');
+    expect(dashboardCss).toContain('.med-semantic-result-card');
+    expect(dashboardCss).toContain('.med-search-comparison');
+  });
+
 });

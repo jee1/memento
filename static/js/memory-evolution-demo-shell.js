@@ -1,5 +1,5 @@
 /**
- * Memory evolution demo tab — API-backed shell (#340, #342, #395, #397).
+ * Memory evolution demo tab — API-backed shell (#340, #342, #395).
  * View states: loading | empty | error | ready
  */
 (function (global) {
@@ -8,8 +8,19 @@
   const SCENARIOS_URL = '/admin/evolution-demo/scenarios';
   const SNAPSHOT_URL_PREFIX = '/admin/evolution-demo/snapshots/';
   const VALID_STATES = ['loading', 'empty', 'error', 'ready'];
+  const EMPTY_MESSAGE_SIGNED_OUT =
+    '관리자 API 키로 로그인하면 시뮬레이션 데이터를 불러올 수 있습니다.';
+  const EMPTY_MESSAGE_CHECKING =
+    '대시보드 세션을 확인하는 중입니다. 로그인 후 데모 API 데이터를 불러올 수 있습니다.';
   const ANSWER_OVER_TIME_ID = 'answer-over-time';
+  const FORGETTING_POLICY_ID = 'forgetting-policy';
   const CONSOLIDATION_ID = 'episodic-to-semantic';
+
+  const OUTCOME_LABELS = {
+    forget: '망각',
+    preserve: '보존 (semantic)',
+    pin: '핀 고정',
+  };
 
   const COMPARISON_STAGES = [
     { pointId: 'early', label: '상세', hint: '회의·결정 맥락이 그대로 드러나는 episodic 중심 답변' },
@@ -42,20 +53,22 @@
     pointSelect: null,
     pointSelectLabel: null,
     comparisonHint: null,
-    consolidationPanel: null,
-    standardPanels: null,
-    explanationSection: null,
-    explanationHeading: null,
-    episodicSourcesList: null,
-    semanticResultSection: null,
-    semanticResultCard: null,
-    searchBefore: null,
-    searchAfter: null,
     question: null,
     answer: null,
     memoryStats: null,
     memorySummary: null,
     explanation: null,
+    explanationHeading: null,
+    consolidationPanel: null,
+    standardPanels: null,
+    explanationSection: null,
+    episodicSourcesList: null,
+    semanticResultSection: null,
+    semanticResultCard: null,
+    searchBefore: null,
+    searchAfter: null,
+    memoryGroupsSection: null,
+    memoryGroups: null,
   };
 
   function bindDom() {
@@ -72,20 +85,22 @@
     els.pointSelect = document.getElementById('med-point-select');
     els.pointSelectLabel = document.querySelector('.med-point-select-label');
     els.comparisonHint = document.getElementById('med-comparison-hint');
-    els.consolidationPanel = document.getElementById('med-consolidation-panel');
-    els.standardPanels = document.getElementById('med-standard-panels');
-    els.explanationSection = document.querySelector('.med-section--explanation');
-    els.explanationHeading = document.querySelector('.med-explanation-heading');
-    els.episodicSourcesList = document.getElementById('med-episodic-sources-list');
-    els.semanticResultSection = document.getElementById('med-semantic-result-section');
-    els.semanticResultCard = document.getElementById('med-semantic-result-card');
-    els.searchBefore = document.getElementById('med-search-before');
-    els.searchAfter = document.getElementById('med-search-after');
     els.question = document.getElementById('med-question-text');
     els.answer = document.getElementById('med-answer-text');
     els.memoryStats = document.getElementById('med-memory-stats');
     els.memorySummary = document.getElementById('med-memory-summary');
     els.explanation = document.getElementById('med-explanation-text');
+    els.explanationHeading = document.getElementById('med-explanation-heading');
+    els.consolidationPanel = document.getElementById('med-consolidation-panel');
+    els.standardPanels = document.getElementById('med-standard-panels');
+    els.explanationSection = document.querySelector('.med-section--explanation');
+    els.episodicSourcesList = document.getElementById('med-episodic-sources-list');
+    els.semanticResultSection = document.getElementById('med-semantic-result-section');
+    els.semanticResultCard = document.getElementById('med-semantic-result-card');
+    els.searchBefore = document.getElementById('med-search-before');
+    els.searchAfter = document.getElementById('med-search-after');
+    els.memoryGroupsSection = document.getElementById('med-memory-groups-section');
+    els.memoryGroups = document.getElementById('med-memory-groups');
     bound = Boolean(
       els.loading &&
         els.empty &&
@@ -98,6 +113,43 @@
         els.memorySummary &&
         els.explanation
     );
+  }
+
+
+  function getAuthState() {
+    const auth = global.__MEMENTO_DASHBOARD_AUTH__;
+    if (auth && typeof auth.getState === 'function') {
+      return auth.getState();
+    }
+    return 'signed-in';
+  }
+
+  function canLoadFromApi() {
+    return getAuthState() === 'signed-in';
+  }
+
+  function isEvolutionTabActive() {
+    const panel = document.getElementById('tab-evolution-demo');
+    return Boolean(panel && panel.classList.contains('active'));
+  }
+
+  function showAuthRequiredState() {
+    bindDom();
+    if (!bound) {
+      return;
+    }
+    const authState = getAuthState();
+    if (els.empty) {
+      els.empty.textContent =
+        authState === 'checking' ? EMPTY_MESSAGE_CHECKING : EMPTY_MESSAGE_SIGNED_OUT;
+    }
+    if (els.scenarioSelect) {
+      els.scenarioSelect.disabled = true;
+    }
+    if (els.pointSelect) {
+      els.pointSelect.disabled = true;
+    }
+    setViewState('empty');
   }
 
   function setVisible(el, visible) {
@@ -122,6 +174,8 @@
     setVisible(els.content, state === 'ready');
     if (state !== 'ready') {
       setVisible(els.comparisonHint, false);
+    } else if (els.comparisonHint && isAnswerOverTime(currentScenarioId)) {
+      setVisible(els.comparisonHint, els.comparisonHint.innerHTML.trim() !== '');
     }
   }
 
@@ -154,26 +208,87 @@
     return fallback;
   }
 
+function isForgettingPolicy(scenarioId) {
+    return scenarioId === FORGETTING_POLICY_ID;
+  }
+
+  function formatImportance(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return '—';
+    }
+    return Math.round(value * 100) + '%';
+  }
+
+  function renderMemoryGroups(snapshot, scenarioId) {
+    bindDom();
+    const showGroups =
+      isForgettingPolicy(scenarioId) &&
+      snapshot &&
+      Array.isArray(snapshot.memory_groups) &&
+      snapshot.memory_groups.length > 0;
+
+    if (els.memoryGroupsSection) {
+      setVisible(els.memoryGroupsSection, showGroups);
+    }
+    if (!els.memoryGroups) {
+      return;
+    }
+    els.memoryGroups.innerHTML = '';
+    if (!showGroups) {
+      return;
+    }
+
+    snapshot.memory_groups.forEach(function (group) {
+      const outcome = group && group.outcome ? group.outcome : 'preserve';
+      const card = document.createElement('article');
+      card.className = 'med-memory-group-card med-memory-group-card--' + outcome;
+      card.setAttribute('data-outcome', outcome);
+      card.setAttribute('data-importance', String(group.importance ?? ''));
+      card.setAttribute('data-pinned', group.pinned ? 'true' : 'false');
+
+      const label = document.createElement('h4');
+      label.className = 'med-memory-group-card__label';
+      label.textContent = group.label || '기억';
+
+      const meta = document.createElement('p');
+      meta.className = 'med-memory-group-card__meta';
+      meta.textContent =
+        '중요도 ' +
+        formatImportance(group.importance) +
+        (group.pinned ? ' · 핀 고정' : '');
+
+      const status = document.createElement('p');
+      status.className = 'med-memory-group-card__status';
+      status.textContent = group.status || '';
+
+      const outcomeEl = document.createElement('p');
+      outcomeEl.className =
+        'med-memory-group-card__outcome med-memory-group-card__outcome--' + outcome;
+      outcomeEl.textContent = OUTCOME_LABELS[outcome] || outcome;
+
+      card.appendChild(label);
+      card.appendChild(meta);
+      card.appendChild(status);
+      card.appendChild(outcomeEl);
+      els.memoryGroups.appendChild(card);
+    });
+  }
+
+  
   function isAnswerOverTime(scenarioId) {
     return scenarioId === ANSWER_OVER_TIME_ID;
   }
 
-  function isConsolidation(scenarioId) {
-    return scenarioId === CONSOLIDATION_ID;
-  }
-
   function formatMemorySummaryText(summary) {
-    if (!summary || typeof summary !== 'object') {
+    if (!summary || typeof summary !== 'object' || isConsolidation(currentScenarioId)) {
       return '';
     }
     return typeof summary.summary_text === 'string' ? summary.summary_text.trim() : '';
   }
 
-  function formatImportance(value) {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-      return '';
-    }
-    return '중요도 ' + Math.round(value * 100) + '%';
+
+  function isConsolidation(scenarioId) {
+    return scenarioId === CONSOLIDATION_ID;
   }
 
   function formatDate(iso) {
@@ -195,14 +310,7 @@
     bindDom();
     const consolidation = isConsolidation(scenarioId);
     setVisible(els.consolidationPanel, consolidation);
-    if (els.explanationHeading) {
-      els.explanationHeading.textContent = consolidation
-        ? '통합이 답변에 미치는 영향'
-        : '왜 답변이 달라지나요?';
-    }
-    if (els.explanationSection) {
-      els.explanationSection.classList.toggle('med-section--explanation-prominent', !consolidation);
-    }
+    setVisible(els.standardPanels, !consolidation);
     if (!consolidation) {
       clearConsolidationPanel();
     }
@@ -243,6 +351,15 @@
     sources.forEach(function (source, index) {
       const item = document.createElement('li');
       item.className = 'med-episodic-source';
+
+      const indexSpan = document.createElement('span');
+      indexSpan.className = 'med-episodic-source__index';
+      indexSpan.setAttribute('aria-hidden', 'true');
+      indexSpan.textContent = String(index + 1);
+
+      const body = document.createElement('div');
+      body.className = 'med-episodic-source__body';
+
       const metaParts = [];
       if (source && source.id) {
         metaParts.push(source.id);
@@ -253,17 +370,22 @@
       }
       const importance = source && formatImportance(source.importance);
       if (importance) {
-        metaParts.push(importance);
+        metaParts.push('중요도 ' + importance);
       }
-      const summary = source && typeof source.summary === 'string' ? source.summary : '';
-      item.innerHTML =
-        '<span class="med-episodic-source__index" aria-hidden="true">' + (index + 1) + '</span>' +
-        '<div class="med-episodic-source__body">' +
-        (metaParts.length > 0
-          ? '<span class="med-episodic-source__meta">' + metaParts.join(' · ') + '</span>'
-          : '') +
-        '<p class="med-episodic-source__summary">' + summary + '</p>' +
-        '</div>';
+      if (metaParts.length > 0) {
+        const meta = document.createElement('span');
+        meta.className = 'med-episodic-source__meta';
+        meta.textContent = metaParts.join(' · ');
+        body.appendChild(meta);
+      }
+
+      const summaryEl = document.createElement('p');
+      summaryEl.className = 'med-episodic-source__summary';
+      summaryEl.textContent = source && typeof source.summary === 'string' ? source.summary : '';
+      body.appendChild(summaryEl);
+
+      item.appendChild(indexSpan);
+      item.appendChild(body);
       els.episodicSourcesList.appendChild(item);
     });
   }
@@ -273,8 +395,8 @@
     if (!els.semanticResultSection || !els.semanticResultCard) {
       return;
     }
+    els.semanticResultCard.innerHTML = '';
     if (!result || typeof result !== 'object') {
-      els.semanticResultCard.innerHTML = '';
       setVisible(els.semanticResultSection, false);
       return;
     }
@@ -285,16 +407,26 @@
     if (typeof result.source_count === 'number') {
       metaParts.push('출처 ' + result.source_count + '건 통합');
     }
+    if (metaParts.length > 0) {
+      const meta = document.createElement('p');
+      meta.className = 'med-semantic-result-card__meta';
+      meta.textContent = metaParts.join(' · ');
+      els.semanticResultCard.appendChild(meta);
+    }
     const summary = typeof result.summary === 'string' ? result.summary : '';
+    if (summary) {
+      const summaryEl = document.createElement('p');
+      summaryEl.className = 'med-semantic-result-card__summary';
+      summaryEl.textContent = summary;
+      els.semanticResultCard.appendChild(summaryEl);
+    }
     const explanation = typeof result.explanation === 'string' ? result.explanation : '';
-    els.semanticResultCard.innerHTML =
-      (metaParts.length > 0
-        ? '<p class="med-semantic-result-card__meta">' + metaParts.join(' · ') + '</p>'
-        : '') +
-      '<p class="med-semantic-result-card__summary">' + summary + '</p>' +
-      (explanation
-        ? '<p class="med-semantic-result-card__explanation">' + explanation + '</p>'
-        : '');
+    if (explanation) {
+      const expl = document.createElement('p');
+      expl.className = 'med-semantic-result-card__explanation';
+      expl.textContent = explanation;
+      els.semanticResultCard.appendChild(expl);
+    }
     setVisible(els.semanticResultSection, true);
   }
 
@@ -332,7 +464,7 @@
       return;
     }
     els.memoryStats.innerHTML = '';
-    if (!summary || typeof summary !== 'object' || isConsolidation(currentScenarioId)) {
+    if (!summary || typeof summary !== 'object') {
       setVisible(els.memoryStats, false);
       return;
     }
@@ -445,13 +577,13 @@
     });
   }
 
-  function renderSnapshot(snapshot) {
+  function renderSnapshot(snapshot, scenarioId) {
     bindDom();
     if (!bound || !snapshot) {
       return;
     }
-    updateScenarioLayout(snapshot.scenario_id || currentScenarioId);
-
+    const activeScenarioId = scenarioId || currentScenarioId || (els.scenarioSelect ? els.scenarioSelect.value : '');
+    updateScenarioLayout(activeScenarioId);
     if (els.question) {
       els.question.textContent = snapshot.question || '';
       els.question.classList.remove('med-placeholder');
@@ -465,19 +597,32 @@
       els.memorySummary.textContent = formatMemorySummaryText(snapshot.memory_summary);
       els.memorySummary.classList.remove('med-placeholder');
     }
+    renderMemoryGroups(snapshot, activeScenarioId);
+    if (els.explanationHeading) {
+      els.explanationHeading.textContent = isConsolidation(activeScenarioId)
+        ? '통합이 답변에 미치는 영향'
+        : isForgettingPolicy(activeScenarioId)
+          ? '왜 보존·망각이 갈리나요?'
+          : '왜 답변이 달라지나요?';
+    }
+    if (els.explanationSection) {
+      els.explanationSection.classList.toggle(
+        'med-section--explanation-prominent',
+        !isConsolidation(activeScenarioId)
+      );
+    }
     if (els.explanation) {
       els.explanation.textContent = snapshot.explanation || '';
       els.explanation.classList.remove('med-placeholder');
     }
-    if (isConsolidation(currentScenarioId)) {
+    if (isConsolidation(activeScenarioId)) {
       renderConsolidationPanel(snapshot);
     } else {
       clearConsolidationPanel();
     }
-
     syncSegmentSelection(snapshot.point_id);
-    updateComparisonHint(snapshot.point_id);
     setViewState('ready');
+    updateComparisonHint(snapshot.point_id);
   }
 
   function populatePointSelect(scenario) {
@@ -546,6 +691,10 @@
   }
 
   function loadSnapshot(scenarioId, pointId) {
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     const fetchFn = getFetchFn();
     currentScenarioId = scenarioId || '';
     updateScenarioLayout(currentScenarioId);
@@ -574,7 +723,7 @@
           setViewState('error');
           return;
         }
-        renderSnapshot(result.body);
+        renderSnapshot(result.body, scenarioId);
       })
       .catch(function (err) {
         if (generation !== loadGeneration) {
@@ -630,6 +779,10 @@
   }
 
   function loadScenarios() {
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     const fetchFn = getFetchFn();
     if (!fetchFn) {
       setErrorMessage('mementoAdminFetch를 사용할 수 없습니다.');
@@ -657,7 +810,6 @@
           return;
         }
         currentScenarioId = first.scenario_id;
-        updateScenarioLayout(currentScenarioId);
         populatePointSelect(first);
         if (els.scenarioSelect) {
           els.scenarioSelect.value = first.scenario_id;
@@ -680,17 +832,48 @@
   function initPanel() {
     bindDom();
     bindControls();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     return loadScenarios();
   }
 
   function refresh() {
     bindDom();
     bindControls();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return Promise.resolve();
+    }
     return loadScenarios();
+  }
+
+
+  function onAuthStateChanged(nextState) {
+    if (!isEvolutionTabActive()) {
+      return;
+    }
+    if (nextState === 'signed-in') {
+      refresh();
+      return;
+    }
+    if (
+      nextState === 'signed-out' ||
+      nextState === 'checking' ||
+      nextState === 'signing-in' ||
+      nextState === 'signing-out'
+    ) {
+      showAuthRequiredState();
+    }
   }
 
   function init() {
     bindDom();
+    if (!canLoadFromApi()) {
+      showAuthRequiredState();
+      return;
+    }
     setViewState(viewState);
   }
 
@@ -698,6 +881,8 @@
     init: init,
     initPanel: initPanel,
     refresh: refresh,
+    showAuthRequiredState: showAuthRequiredState,
+    onAuthStateChanged: onAuthStateChanged,
     setViewState: setViewState,
     getViewState: function () {
       return viewState;

@@ -24,11 +24,19 @@ const SCENARIO_CATALOG: EvolutionDemoScenario[] = [
     ],
   },
   {
-    scenario_id: 'episodic-to-semantic',
-    title: '에피소딕→시맨틱 통합',
+    scenario_id: 'forgetting-policy',
+    title: '망각 정책 비교',
     points: [
-      { point_id: 'before', label: '통합 전' },
-      { point_id: 'after', label: '통합 후' },
+      { point_id: 'day-30', label: '30일 경과' },
+      { point_id: 'day-90', label: '90일 경과' },
+    ],
+  },
+  {
+    scenario_id: 'episodic-to-semantic',
+    title: 'Episodic to semantic consolidation',
+    points: [
+      { point_id: 'before', label: 'Before consolidation' },
+      { point_id: 'after', label: 'After consolidation' },
     ],
   },
 ];

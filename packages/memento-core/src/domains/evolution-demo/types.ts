@@ -1,6 +1,6 @@
 /**
- * Evolution demo snapshot types (Issue #341, #396)
- * Stable response shape for frontend #342 / #397
+ * Evolution demo snapshot types (Issue #341)
+ * Stable response shape for frontend #342
  */
 
 export interface EvolutionDemoMemorySummary {
@@ -10,6 +10,16 @@ export interface EvolutionDemoMemorySummary {
   preserved_count: number;
   summary_text: string;
 }
+
+/** Per-memory fate comparison (#344 forgetting-policy scenario) */
+export interface EvolutionDemoMemoryGroup {
+  label: string;
+  importance: number;
+  status: string;
+  outcome: 'forget' | 'preserve' | 'pin';
+  pinned: boolean;
+}
+
 
 /** Episodic source contributing to consolidation (Issue #396) */
 export interface EvolutionDemoEpisodicSource {
@@ -42,7 +52,8 @@ export interface EvolutionDemoSnapshot {
   memory_summary: EvolutionDemoMemorySummary;
   explanation: string;
   timestamp: string;
-  /** Present on episodic-to-semantic scenario snapshots */
+  /** Present for forgetting-policy and similar comparison scenarios */
+  memory_groups?: EvolutionDemoMemoryGroup[];
   episodic_sources?: EvolutionDemoEpisodicSource[];
   semantic_result?: EvolutionDemoSemanticResult;
   search_comparison?: EvolutionDemoSearchComparison;

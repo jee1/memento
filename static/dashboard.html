@@ -317,7 +317,7 @@
         <div id="med-empty" class="med-empty rc-banner">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
         <div id="med-error" class="med-error rc-banner rc-banner--error hidden" role="alert"></div>
         <div id="med-content" class="med-content hidden">
-          <div id="med-consolidation-panel" class="med-consolidation-panel hidden" aria-label="에피소딕→시맨틱 통합">
+<div id="med-consolidation-panel" class="med-consolidation-panel hidden" aria-label="에피소딕→시맨틱 통합">
             <div class="med-consolidation-flow" aria-hidden="true">
               <span class="med-consolidation-flow__from">여러 사건</span>
               <span class="med-consolidation-flow__arrow" aria-hidden="true">→</span>
@@ -345,7 +345,7 @@
               </div>
             </section>
           </div>
-          <div id="med-standard-panels" class="med-standard-panels">
+                    <div id="med-standard-panels" class="med-standard-panels">
           <section class="med-section med-section--question" aria-label="질문">
             <h3 class="med-section-title">질문</h3>
             <p id="med-question-text" class="med-section-body med-placeholder">질문 텍스트가 여기에 표시됩니다.</p>
@@ -359,8 +359,13 @@
             <div id="med-memory-stats" class="med-memory-stats hidden" aria-label="기억 유형별 개수"></div>
             <p id="med-memory-summary" class="med-section-body med-placeholder">활성 기억 유형·상태 요약이 여기에 표시됩니다.</p>
           </section>
+          <section id="med-memory-groups-section" class="med-section med-section--groups hidden" aria-label="기억군 비교">
+            <h3 class="med-section-title">기억군 비교</h3>
+            <p class="med-groups-intro">중요도·핀 여부에 따라 같은 시점에 저장된 기억도 운명이 달라집니다.</p>
+            <div id="med-memory-groups" class="med-memory-groups" aria-live="polite"></div>
+          </section>
           <section class="med-section med-section--explanation med-section--explanation-prominent" aria-label="답변 변화 설명">
-            <h3 class="med-section-title med-explanation-heading">왜 답변이 달라지나요?</h3>
+            <h3 id="med-explanation-heading" class="med-section-title med-explanation-heading">왜 답변이 달라지나요?</h3>
             <p id="med-explanation-text" class="med-section-body med-explanation-body med-placeholder">이 시점에서 답변과 기억 상태가 이렇게 보이는 이유가 여기에 표시됩니다.</p>
           </section>
           </div>

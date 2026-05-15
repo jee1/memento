@@ -1,11 +1,70 @@
 /**
  * In-code fixtures for evolution demo snapshots.
  * Designed for #346 to replace with DB seed later.
- * Snapshot copy: Issue #394 (answer-over-time Korean demo)
+ * Snapshot copy: Issue #394 (answer-over-time Korean demo), #344 forgetting-policy
  */
 
 import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js';
+import { forgettingPolicyFixture } from './fixtures/forgetting-policy.snapshots.js';
 import type { EvolutionDemoEpisodicSource, EvolutionDemoSnapshot } from './types.js';
+
+type SnapshotKey = `${string}:${string}`;
+
+function key(scenarioId: string, pointId: string): SnapshotKey {
+  return `${scenarioId}:${pointId}`;
+}
+
+type FixturePoint = {
+  point_label: string;
+  answer: string;
+  memory_summary: EvolutionDemoSnapshot['memory_summary'];
+  explanation: string;
+  timestamp: string;
+  memory_groups?: Array<{
+    label: string;
+    importance: number;
+    status: string;
+    outcome: string;
+    pinned: boolean;
+  }>;
+};
+
+type FixtureFile = {
+  scenario_id: string;
+  question: string;
+  snapshots: Record<string, FixturePoint>;
+};
+
+function buildSnapshotsFromFixture(fixture: FixtureFile): Record<SnapshotKey, EvolutionDemoSnapshot> {
+  const { scenario_id, question, snapshots } = fixture;
+  const entries: Record<SnapshotKey, EvolutionDemoSnapshot> = {};
+
+  for (const [pointId, point] of Object.entries(snapshots)) {
+    entries[key(scenario_id, pointId)] = {
+      scenario_id,
+      point_id: pointId,
+      point_label: point.point_label,
+      question,
+      answer: point.answer,
+      memory_summary: point.memory_summary,
+      explanation: point.explanation,
+      timestamp: point.timestamp,
+      ...(point.memory_groups
+        ? {
+            memory_groups: point.memory_groups.map(g => ({
+              label: g.label,
+              importance: g.importance,
+              status: g.status,
+              outcome: g.outcome as 'forget' | 'preserve' | 'pin',
+              pinned: g.pinned,
+            })),
+          }
+        : {}),
+    };
+  }
+
+  return entries;
+}
 
 const CONSOLIDATION_QUESTION =
   'How should we secure the admin API endpoints?';
@@ -40,32 +99,6 @@ const EPISODIC_SOURCES: EvolutionDemoEpisodicSource[] = [
     importance: 0.6,
   },
 ];
-
-type SnapshotKey = `${string}:${string}`;
-
-function key(scenarioId: string, pointId: string): SnapshotKey {
-  return `${scenarioId}:${pointId}`;
-}
-
-function buildAnswerOverTimeSnapshots(): Record<SnapshotKey, EvolutionDemoSnapshot> {
-  const { scenario_id, question, snapshots } = answerOverTimeFixture;
-  const entries: Record<SnapshotKey, EvolutionDemoSnapshot> = {};
-
-  for (const [pointId, point] of Object.entries(snapshots)) {
-    entries[key(scenario_id, pointId)] = {
-      scenario_id,
-      point_id: pointId,
-      point_label: point.point_label,
-      question,
-      answer: point.answer,
-      memory_summary: point.memory_summary,
-      explanation: point.explanation,
-      timestamp: point.timestamp,
-    };
-  }
-
-  return entries;
-}
 
 const CONSOLIDATION_SNAPSHOTS: Record<SnapshotKey, EvolutionDemoSnapshot> = {
   [key('episodic-to-semantic', 'before')]: {
@@ -131,7 +164,8 @@ const CONSOLIDATION_SNAPSHOTS: Record<SnapshotKey, EvolutionDemoSnapshot> = {
 };
 
 const SNAPSHOTS: Record<SnapshotKey, EvolutionDemoSnapshot> = {
-  ...buildAnswerOverTimeSnapshots(),
+  ...buildSnapshotsFromFixture(answerOverTimeFixture),
+  ...buildSnapshotsFromFixture(forgettingPolicyFixture),
   ...CONSOLIDATION_SNAPSHOTS,
 };
 
