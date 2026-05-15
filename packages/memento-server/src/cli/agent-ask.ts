@@ -11,14 +11,19 @@ import { stdin as stdinStream, stderr as stderrStream } from 'node:process';
 import {
   closeDatabase,
   createMementoCore,
+  createPersonalAgentLlmPort,
   createToolContext,
   mementoConfig,
+  GeminiChatLlmAdapter,
+  OpenAiChatLlmAdapter,
+  OllamaChatLlmAdapter,
+  parsePersonalAgentLlmEnv,
+  PersonalAgentLlmError,
   PersonalKnowledgeAgentService,
-  DeterministicMockLlmAdapter,
   ToolContextKnowledgeContextAdapter,
   ToolContextRememberPersistenceAdapter,
 } from '@memento/core';
-import type { KnowledgeCandidate, PersonalKnowledgePersistItemResult } from '@memento/core';
+import type { ILLMPort, KnowledgeCandidate, PersonalKnowledgePersistItemResult } from '@memento/core';
 
 import { parseArgvToParams } from './option-map.js';
 
@@ -58,6 +63,8 @@ export type ParsedAgentAsk =
       noSave: boolean;
       /** `--json`만 있고 `--no-save`는 없을 때 true — stderr 안내 한 줄 출력 */
       jsonImplicitNoSave: boolean;
+      /** `--llm mock`이면 환경 변수 provider보다 mock을 우선한다. */
+      forceLlmMock: boolean;
     };
 
 /**
@@ -141,6 +148,7 @@ export function parseAgentAskInvocation(argv: string[]): ParsedAgentAsk {
     json,
     noSave,
     jsonImplicitNoSave: json && !noSave,
+    forceLlmMock: raw.llm === 'mock',
   };
 }
 
@@ -220,7 +228,8 @@ type ErrorCode =
   | 'AGENT_RUN_FAILED'
   | 'PERSIST_FAILED'
   | 'INTERRUPTED'
-  | 'NON_INTERACTIVE';
+  | 'NON_INTERACTIVE'
+  | 'PROVIDER_MISCONFIGURED';
 
 function jsonFailure(
   code: ErrorCode,
@@ -313,17 +322,17 @@ export async function runAgentAskMain(
   argv: string[],
   hooks?: AgentAskRuntimeHooks,
 ): Promise<number> {
-  const parsed = parseAgentAskInvocation(argv);
-  if (parsed.kind === 'help') {
+  const invocation = parseAgentAskInvocation(argv);
+  if (invocation.kind === 'help') {
     await writeErr(agentAskHelpText());
     return 0;
   }
-  if (parsed.kind === 'usage') {
+  if (invocation.kind === 'usage') {
     const useJson = argv.includes('--json');
     if (useJson) {
-      await writeOut(jsonFailure('INVALID_OPTION', 'usage', parsed.message));
+      await writeOut(jsonFailure('INVALID_OPTION', 'usage', invocation.message));
     } else {
-      await writeErr(parsed.message + '\n');
+      await writeErr(invocation.message + '\n');
     }
     return 1;
   }
@@ -335,7 +344,8 @@ export async function runAgentAskMain(
     json,
     noSave,
     jsonImplicitNoSave,
-  } = parsed;
+    forceLlmMock,
+  } = invocation;
 
   const prevCliQuiet = process.env.MEMENTO_CLI_QUIET;
   if (json) {
@@ -392,7 +402,73 @@ export async function runAgentAskMain(
 
   const { db, services } = core;
   const toolContext = createToolContext(db, services);
-  const llm = new DeterministicMockLlmAdapter();
+
+  let llm: ILLMPort;
+  try {
+    const envForLlm = forceLlmMock
+      ? { ...process.env, MEMENTO_PERSONAL_AGENT_LLM_PROVIDER: 'mock' }
+      : process.env;
+    const llmEnv = parsePersonalAgentLlmEnv(envForLlm, {
+      openaiApiKey: mementoConfig.openaiApiKey,
+      geminiApiKey: mementoConfig.geminiApiKey,
+    });
+    llm = createPersonalAgentLlmPort(llmEnv, {
+      createOpenAi: (cfg) => {
+        const apiKey = mementoConfig.openaiApiKey?.trim();
+        if (!apiKey) {
+          throw new PersonalAgentLlmError({
+            code: 'provider_misconfigured',
+            message:
+              'OPENAI_API_KEY is required when MEMENTO_PERSONAL_AGENT_LLM_PROVIDER=openai',
+          });
+        }
+        return new OpenAiChatLlmAdapter({
+          apiKey,
+          model: cfg.model,
+        });
+      },
+      createGemini: (cfg) => {
+        const apiKey = mementoConfig.geminiApiKey?.trim();
+        if (!apiKey) {
+          throw new PersonalAgentLlmError({
+            code: 'provider_misconfigured',
+            message:
+              'GEMINI_API_KEY is required when MEMENTO_PERSONAL_AGENT_LLM_PROVIDER=gemini',
+          });
+        }
+        return new GeminiChatLlmAdapter({
+          apiKey,
+          model: cfg.model,
+        });
+      },
+      createOllama: (cfg) =>
+        new OllamaChatLlmAdapter({
+          baseUrl: cfg.baseUrl,
+          model: cfg.model,
+        }),
+    });
+  } catch (e) {
+    debugErr(e);
+    if (e instanceof PersonalAgentLlmError) {
+      const msg = e.message;
+      if (json) {
+        await writeOut(jsonFailure('PROVIDER_MISCONFIGURED', 'usage', msg));
+      } else {
+        await writeErr(msg + '\n');
+      }
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (json) {
+        await writeOut(jsonFailure('BOOTSTRAP_FAILED', 'bootstrap', msg));
+      } else {
+        await writeErr(msg + '\n');
+      }
+    }
+    await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+    closeDatabase(db);
+    return 2;
+  }
+
   const context = new ToolContextKnowledgeContextAdapter(toolContext);
   const persistence = new ToolContextRememberPersistenceAdapter(toolContext);
   const service = new PersonalKnowledgeAgentService({ llm, context, persistence });
@@ -569,7 +645,9 @@ export function agentAskHelpText(): string {
     '  --token-budget <n>    memory_injection 추정 예산\n' +
     '  --json                stdout에 JSON 한 줄 (--json 단독 시 저장 생략)\n' +
     '  --no-save             승인·저장 단계 생략\n' +
-    '  --llm mock            LLM 어댑터(현재 mock만)\n\n' +
+    '  --llm mock            환경 변수 LLM provider를 무시하고 mock만 사용\n\n' +
+    'LLM provider(선택): 환경 변수 MEMENTO_PERSONAL_AGENT_LLM_PROVIDER(mock|openai|gemini|ollama).\n' +
+    '  미설정 시 mock. Ollama: MEMENTO_PERSONAL_AGENT_OLLAMA_MODEL 필수, URL은 MEMENTO_PERSONAL_AGENT_OLLAMA_URL(기본 http://127.0.0.1:11434).\n\n' +
     'Global options: --config-dir, --db-path (in-process DB 경로), --env-file\n'
   );
 }

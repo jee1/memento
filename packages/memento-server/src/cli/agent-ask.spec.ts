@@ -35,6 +35,17 @@ describe('parseAgentAskInvocation', () => {
       expect(p.json).toBe(true);
       expect(p.noSave).toBe(true);
       expect(p.jsonImplicitNoSave).toBe(false);
+      expect(p.forceLlmMock).toBe(false);
+    }
+  });
+
+  it('--llm mock 이면 forceLlmMock', () => {
+    const p = parseAgentAskInvocation(
+      argv('agent', 'ask', 'hi', '--json', '--no-save', '--llm', 'mock'),
+    );
+    expect(p.kind).toBe('run');
+    if (p.kind === 'run') {
+      expect(p.forceLlmMock).toBe(true);
     }
   });
 
@@ -43,6 +54,7 @@ describe('parseAgentAskInvocation', () => {
     expect(p.kind).toBe('run');
     if (p.kind === 'run') {
       expect(p.jsonImplicitNoSave).toBe(true);
+      expect(p.forceLlmMock).toBe(false);
     }
   });
 

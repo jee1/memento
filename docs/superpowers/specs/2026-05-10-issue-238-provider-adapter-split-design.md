@@ -4,6 +4,17 @@
 **부모 기능:** [GitHub #82](https://github.com/jee1/memento/issues/82)  
 **관련 구현 이슈:** [#231](https://github.com/jee1/memento/issues/231) ~ [#237](https://github.com/jee1/memento/issues/237)
 
+**하위 실행 이슈(실제 provider 연결):**
+
+| 순서 | 이슈 | 제목(요약) |
+| ---: | --- | --- |
+| 1 | [#334](https://github.com/jee1/memento/issues/334) | provider runtime contract + config gating |
+| 2 | [#335](https://github.com/jee1/memento/issues/335) | OpenAI provider adapter 연결 |
+| 3 | [#336](https://github.com/jee1/memento/issues/336) | Gemini provider adapter 연결 |
+| 4 | [#337](https://github.com/jee1/memento/issues/337) | Ollama provider adapter + local smoke/docs |
+
+**문서 개정 이력:** 2026-05-15 — `#238` GitHub 본문의 하위 이슈 번호·완료 기준·용어를 본 설계에 반영(추적성 보강). 설계 결정(분해 구조·권장 순서)은 변경 없음.
+
 ## 1. 문제
 
 `#238`은 현재 다음 책임을 한 이슈에 함께 담고 있다.
@@ -48,9 +59,9 @@
 
 직접 구현 항목:
 
-- 없음. 실제 코드는 모두 하위 이슈에서 처리한다.
+- 없음. 실제 코드는 모두 하위 이슈([#334](https://github.com/jee1/memento/issues/334)~[#337](https://github.com/jee1/memento/issues/337))에서 처리한다.
 
-### 하위 이슈 1: provider runtime contract + config gating
+### [#334](https://github.com/jee1/memento/issues/334) — provider runtime contract + config gating
 
 공통 런타임 경계를 먼저 고정하는 이슈다.
 
@@ -71,10 +82,10 @@
 완료 기준:
 
 - 명시적 설정 없이는 실제 provider가 절대 활성화되지 않는다.
-- disabled/provider-misconfigured/provider-runtime-failed 상태가 구분된다.
+- **provider disabled**, **misconfigured**, **runtime-failed**(구현·로그에서는 `provider-misconfigured`, `provider-runtime-failed` 등 기계 판독형 식별자와 매핑 가능)가 상호 배타적으로 구분된다.
 - 공통 계약을 검증하는 단위 테스트가 있다.
 
-### 하위 이슈 2: OpenAI adapter 연결
+### [#335](https://github.com/jee1/memento/issues/335) — OpenAI adapter 연결
 
 가장 먼저 붙일 실제 hosted provider 구현이다.
 
@@ -97,7 +108,7 @@
 - 실패 시 공통 오류 모델로 반환된다.
 - mock 기반 기존 테스트는 외부 API 없이 유지된다.
 
-### 하위 이슈 3: Gemini adapter 연결
+### [#336](https://github.com/jee1/memento/issues/336) — Gemini adapter 연결
 
 OpenAI와 분리된 두 번째 hosted provider 구현이다.
 
@@ -117,7 +128,7 @@ OpenAI와 분리된 두 번째 hosted provider 구현이다.
 - 명시적 Gemini 설정이 있을 때만 활성화된다.
 - OpenAI 구현과 독립적으로 테스트 가능하다.
 
-### 하위 이슈 4: Ollama adapter + local smoke/docs
+### [#337](https://github.com/jee1/memento/issues/337) — Ollama adapter + local smoke/docs
 
 로컬 런타임 특성이 커서 별도 이슈로 둔다.
 
@@ -141,10 +152,10 @@ OpenAI와 분리된 두 번째 hosted provider 구현이다.
 
 ## 5. 권장 순서
 
-1. `provider runtime contract + config gating`
-2. `OpenAI adapter 연결`
-3. `Gemini adapter 연결`
-4. `Ollama adapter + local smoke/docs`
+1. [#334](https://github.com/jee1/memento/issues/334) — provider runtime contract + config gating
+2. [#335](https://github.com/jee1/memento/issues/335) — OpenAI adapter 연결
+3. [#336](https://github.com/jee1/memento/issues/336) — Gemini adapter 연결
+4. [#337](https://github.com/jee1/memento/issues/337) — Ollama adapter + local smoke/docs
 
 이 순서의 이유는 공통 경계를 먼저 고정해야 provider별 구현이 흔들리지 않기 때문이다. 또한 hosted provider를 먼저 정리하면 로컬 런타임 특수성이 큰 Ollama를 마지막에 별도로 닫을 수 있다.
 
@@ -159,7 +170,7 @@ OpenAI와 분리된 두 번째 hosted provider 구현이다.
 ## 7. GitHub 정리 방식
 
 - `#238` 본문 상단에 “umbrella” 성격을 명시한다.
-- 하위 이슈 4개를 새로 생성하고 모두 `Parent: #238`를 적는다.
+- 하위 이슈 4개([#334](https://github.com/jee1/memento/issues/334)~[#337](https://github.com/jee1/memento/issues/337))는 생성되었으며, 각 본문에 `Parent: #238`를 적는다.
 - `#82`에는 `#231`~`#238`이 MVP 분해 구조임을 유지하되, `#238` 아래에 실제 provider 연결 서브트리가 있음을 링크로 보강한다.
 - 기존 `#238` 본문에 있던 구현 세부사항은 하위 이슈로 이동하고, `#238` 본문에는 추적용 요약만 남긴다.
 
@@ -168,3 +179,20 @@ OpenAI와 분리된 두 번째 hosted provider 구현이다.
 - 각 하위 이슈가 단독 PR로 닫힐 수 있는지 확인한다.
 - 각 하위 이슈의 제외 범위가 겹치지 않는지 확인한다.
 - `#238` 본문이 실행 이슈가 아니라 umbrella로 읽히는지 확인한다.
+
+## 9. Umbrella(`#238`) 완료 기준 요약
+
+`#238` GitHub 본문과 동일한 상위 완료 조건을 설계 상위에서도 고정한다.
+
+- 실제 provider 사용은 **명시적 설정이 있을 때만** 활성화된다.
+- **provider disabled** / **misconfigured** / **runtime-failed** 상태가 구분된다(구현체는 공통 오류 모델·코드로 표현).
+- 각 provider 구현이 **독립 이슈(#335~#337)**로 검증 가능하다.
+- **mock provider** 기반 테스트는 계속 외부 API 없이 통과한다.
+
+(`#238` 본문의 **제외 범위**는 아래 **비목표(섹션 6)**와 동일 주제이며, “다중 provider 자동 튜닝·후보 추출 고도화·24/7 background agent”는 비목표로 유지한다.)
+
+## 10. 권장 검증(수동·자동)
+
+- mock provider 테스트
+- provider disabled 상태 테스트
+- 각 provider별 수동 smoke test(해당 하위 이슈·문서에 절차 명시)

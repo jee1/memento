@@ -148,11 +148,26 @@ export {
   DeterministicMockLlmAdapter,
   ToolContextKnowledgeContextAdapter,
   ToolContextRememberPersistenceAdapter,
+  PersonalAgentLlmError,
+  isPersonalAgentLlmError,
+  parsePersonalAgentLlmEnv,
+  createPersonalAgentLlmPort,
+  OpenAiChatLlmAdapter,
+  GeminiChatLlmAdapter,
+  OllamaChatLlmAdapter,
 } from './domains/personal-agent/index.js';
 export type {
   PersonalKnowledgeAgentDeps,
   KnowledgeCandidate,
   PersonalKnowledgePersistItemResult,
+  PersonalAgentLlmErrorCode,
+  ParsedPersonalAgentLlmEnv,
+  ParsePersonalAgentLlmEnvKeys,
+  CreatePersonalAgentLlmPortDeps,
+  ILLMPort,
+  OpenAiChatLlmAdapterOptions,
+  GeminiChatLlmAdapterOptions,
+  OllamaChatLlmAdapterOptions,
 } from './domains/personal-agent/index.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)
