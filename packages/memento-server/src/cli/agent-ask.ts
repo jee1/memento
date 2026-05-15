@@ -16,6 +16,7 @@ import {
   mementoConfig,
   GeminiChatLlmAdapter,
   OpenAiChatLlmAdapter,
+  OllamaChatLlmAdapter,
   parsePersonalAgentLlmEnv,
   PersonalAgentLlmError,
   PersonalKnowledgeAgentService,
@@ -62,6 +63,8 @@ export type ParsedAgentAsk =
       noSave: boolean;
       /** `--json`만 있고 `--no-save`는 없을 때 true — stderr 안내 한 줄 출력 */
       jsonImplicitNoSave: boolean;
+      /** `--llm mock`이면 환경 변수 provider보다 mock을 우선한다. */
+      forceLlmMock: boolean;
     };
 
 /**
@@ -145,6 +148,7 @@ export function parseAgentAskInvocation(argv: string[]): ParsedAgentAsk {
     json,
     noSave,
     jsonImplicitNoSave: json && !noSave,
+    forceLlmMock: raw.llm === 'mock',
   };
 }
 
@@ -318,17 +322,17 @@ export async function runAgentAskMain(
   argv: string[],
   hooks?: AgentAskRuntimeHooks,
 ): Promise<number> {
-  const parsed = parseAgentAskInvocation(argv);
-  if (parsed.kind === 'help') {
+  const invocation = parseAgentAskInvocation(argv);
+  if (invocation.kind === 'help') {
     await writeErr(agentAskHelpText());
     return 0;
   }
-  if (parsed.kind === 'usage') {
+  if (invocation.kind === 'usage') {
     const useJson = argv.includes('--json');
     if (useJson) {
-      await writeOut(jsonFailure('INVALID_OPTION', 'usage', parsed.message));
+      await writeOut(jsonFailure('INVALID_OPTION', 'usage', invocation.message));
     } else {
-      await writeErr(parsed.message + '\n');
+      await writeErr(invocation.message + '\n');
     }
     return 1;
   }
@@ -340,7 +344,8 @@ export async function runAgentAskMain(
     json,
     noSave,
     jsonImplicitNoSave,
-  } = parsed;
+    forceLlmMock,
+  } = invocation;
 
   const prevCliQuiet = process.env.MEMENTO_CLI_QUIET;
   if (json) {
@@ -400,11 +405,14 @@ export async function runAgentAskMain(
 
   let llm: ILLMPort;
   try {
-    const parsed = parsePersonalAgentLlmEnv(process.env, {
+    const envForLlm = forceLlmMock
+      ? { ...process.env, MEMENTO_PERSONAL_AGENT_LLM_PROVIDER: 'mock' }
+      : process.env;
+    const llmEnv = parsePersonalAgentLlmEnv(envForLlm, {
       openaiApiKey: mementoConfig.openaiApiKey,
       geminiApiKey: mementoConfig.geminiApiKey,
     });
-    llm = createPersonalAgentLlmPort(parsed, {
+    llm = createPersonalAgentLlmPort(llmEnv, {
       createOpenAi: (cfg) => {
         const apiKey = mementoConfig.openaiApiKey?.trim();
         if (!apiKey) {
@@ -433,6 +441,11 @@ export async function runAgentAskMain(
           model: cfg.model,
         });
       },
+      createOllama: (cfg) =>
+        new OllamaChatLlmAdapter({
+          baseUrl: cfg.baseUrl,
+          model: cfg.model,
+        }),
     });
   } catch (e) {
     debugErr(e);
@@ -632,7 +645,9 @@ export function agentAskHelpText(): string {
     '  --token-budget <n>    memory_injection 추정 예산\n' +
     '  --json                stdout에 JSON 한 줄 (--json 단독 시 저장 생략)\n' +
     '  --no-save             승인·저장 단계 생략\n' +
-    '  --llm mock            LLM 어댑터(현재 mock만)\n\n' +
+    '  --llm mock            환경 변수 LLM provider를 무시하고 mock만 사용\n\n' +
+    'LLM provider(선택): 환경 변수 MEMENTO_PERSONAL_AGENT_LLM_PROVIDER(mock|openai|gemini|ollama).\n' +
+    '  미설정 시 mock. Ollama: MEMENTO_PERSONAL_AGENT_OLLAMA_MODEL 필수, URL은 MEMENTO_PERSONAL_AGENT_OLLAMA_URL(기본 http://127.0.0.1:11434).\n\n' +
     'Global options: --config-dir, --db-path (in-process DB 경로), --env-file\n'
   );
 }

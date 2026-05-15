@@ -46,6 +46,9 @@ export type { OpenAiChatLlmAdapterOptions } from './adapters/openai-chat-llm-ada
 export { GeminiChatLlmAdapter } from './adapters/gemini-chat-llm-adapter.js';
 export type { GeminiChatLlmAdapterOptions } from './adapters/gemini-chat-llm-adapter.js';
 
+export { OllamaChatLlmAdapter } from './adapters/ollama-chat-llm-adapter.js';
+export type { OllamaChatLlmAdapterOptions } from './adapters/ollama-chat-llm-adapter.js';
+
 export {
   ToolContextKnowledgeContextAdapter,
 } from './adapters/tool-context-knowledge-context-adapter.js';
