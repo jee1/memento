@@ -317,6 +317,35 @@
         <div id="med-empty" class="med-empty rc-banner">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
         <div id="med-error" class="med-error rc-banner rc-banner--error hidden" role="alert"></div>
         <div id="med-content" class="med-content hidden">
+<div id="med-consolidation-panel" class="med-consolidation-panel hidden" aria-label="에피소딕→시맨틱 통합">
+            <div class="med-consolidation-flow" aria-hidden="true">
+              <span class="med-consolidation-flow__from">여러 사건</span>
+              <span class="med-consolidation-flow__arrow" aria-hidden="true">→</span>
+              <span class="med-consolidation-flow__to">하나의 지식</span>
+            </div>
+            <section class="med-section med-section--episodic-sources" aria-label="에피소딕 기억">
+              <h3 class="med-section-title">에피소딕 기억</h3>
+              <ul id="med-episodic-sources-list" class="med-episodic-sources-list"></ul>
+            </section>
+            <section id="med-semantic-result-section" class="med-section med-section--semantic-result hidden" aria-label="시맨틱 결과">
+              <h3 class="med-section-title">통합된 시맨틱 기억</h3>
+              <article id="med-semantic-result-card" class="med-semantic-result-card"></article>
+            </section>
+            <section class="med-section med-section--search-comparison" aria-label="검색 비교">
+              <h3 class="med-section-title">검색·요약 비교</h3>
+              <div class="med-search-comparison">
+                <div class="med-search-comparison__col">
+                  <h4 class="med-search-comparison__heading">통합 전</h4>
+                  <p id="med-search-before" class="med-search-comparison__body"></p>
+                </div>
+                <div class="med-search-comparison__col">
+                  <h4 class="med-search-comparison__heading">통합 후</h4>
+                  <p id="med-search-after" class="med-search-comparison__body"></p>
+                </div>
+              </div>
+            </section>
+          </div>
+                    <div id="med-standard-panels" class="med-standard-panels">
           <section class="med-section med-section--question" aria-label="질문">
             <h3 class="med-section-title">질문</h3>
             <p id="med-question-text" class="med-section-body med-placeholder">질문 텍스트가 여기에 표시됩니다.</p>
@@ -339,6 +368,7 @@
             <h3 id="med-explanation-heading" class="med-section-title med-explanation-heading">왜 답변이 달라지나요?</h3>
             <p id="med-explanation-text" class="med-section-body med-explanation-body med-placeholder">이 시점에서 답변과 기억 상태가 이렇게 보이는 이유가 여기에 표시됩니다.</p>
           </section>
+          </div>
         </div>
       </div>
     </div>

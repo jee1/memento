@@ -14,6 +14,7 @@
     '대시보드 세션을 확인하는 중입니다. 로그인 후 데모 API 데이터를 불러올 수 있습니다.';
   const ANSWER_OVER_TIME_ID = 'answer-over-time';
   const FORGETTING_POLICY_ID = 'forgetting-policy';
+  const CONSOLIDATION_ID = 'episodic-to-semantic';
 
   const OUTCOME_LABELS = {
     forget: '망각',
@@ -58,6 +59,14 @@
     memorySummary: null,
     explanation: null,
     explanationHeading: null,
+    consolidationPanel: null,
+    standardPanels: null,
+    explanationSection: null,
+    episodicSourcesList: null,
+    semanticResultSection: null,
+    semanticResultCard: null,
+    searchBefore: null,
+    searchAfter: null,
     memoryGroupsSection: null,
     memoryGroups: null,
   };
@@ -82,6 +91,14 @@
     els.memorySummary = document.getElementById('med-memory-summary');
     els.explanation = document.getElementById('med-explanation-text');
     els.explanationHeading = document.getElementById('med-explanation-heading');
+    els.consolidationPanel = document.getElementById('med-consolidation-panel');
+    els.standardPanels = document.getElementById('med-standard-panels');
+    els.explanationSection = document.querySelector('.med-section--explanation');
+    els.episodicSourcesList = document.getElementById('med-episodic-sources-list');
+    els.semanticResultSection = document.getElementById('med-semantic-result-section');
+    els.semanticResultCard = document.getElementById('med-semantic-result-card');
+    els.searchBefore = document.getElementById('med-search-before');
+    els.searchAfter = document.getElementById('med-search-after');
     els.memoryGroupsSection = document.getElementById('med-memory-groups-section');
     els.memoryGroups = document.getElementById('med-memory-groups');
     bound = Boolean(
@@ -263,10 +280,182 @@ function isForgettingPolicy(scenarioId) {
   }
 
   function formatMemorySummaryText(summary) {
-    if (!summary || typeof summary !== 'object') {
+    if (!summary || typeof summary !== 'object' || isConsolidation(currentScenarioId)) {
       return '';
     }
     return typeof summary.summary_text === 'string' ? summary.summary_text.trim() : '';
+  }
+
+
+  function isConsolidation(scenarioId) {
+    return scenarioId === CONSOLIDATION_ID;
+  }
+
+  function formatDate(iso) {
+    if (typeof iso !== 'string' || iso.trim() === '') {
+      return '';
+    }
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  function updateScenarioLayout(scenarioId) {
+    bindDom();
+    const consolidation = isConsolidation(scenarioId);
+    setVisible(els.consolidationPanel, consolidation);
+    setVisible(els.standardPanels, !consolidation);
+    if (!consolidation) {
+      clearConsolidationPanel();
+    }
+  }
+
+  function clearConsolidationPanel() {
+    bindDom();
+    if (els.episodicSourcesList) {
+      els.episodicSourcesList.innerHTML = '';
+    }
+    if (els.semanticResultCard) {
+      els.semanticResultCard.innerHTML = '';
+    }
+    if (els.semanticResultSection) {
+      setVisible(els.semanticResultSection, false);
+    }
+    if (els.searchBefore) {
+      els.searchBefore.textContent = '';
+    }
+    if (els.searchAfter) {
+      els.searchAfter.textContent = '';
+    }
+  }
+
+  function renderEpisodicSources(sources) {
+    bindDom();
+    if (!els.episodicSourcesList) {
+      return;
+    }
+    els.episodicSourcesList.innerHTML = '';
+    if (!Array.isArray(sources) || sources.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'med-episodic-source med-episodic-source--empty';
+      empty.textContent = '에피소딕 출처가 없습니다.';
+      els.episodicSourcesList.appendChild(empty);
+      return;
+    }
+    sources.forEach(function (source, index) {
+      const item = document.createElement('li');
+      item.className = 'med-episodic-source';
+
+      const indexSpan = document.createElement('span');
+      indexSpan.className = 'med-episodic-source__index';
+      indexSpan.setAttribute('aria-hidden', 'true');
+      indexSpan.textContent = String(index + 1);
+
+      const body = document.createElement('div');
+      body.className = 'med-episodic-source__body';
+
+      const metaParts = [];
+      if (source && source.id) {
+        metaParts.push(source.id);
+      }
+      const created = source && formatDate(source.created_at);
+      if (created) {
+        metaParts.push(created);
+      }
+      const importance = source && formatImportance(source.importance);
+      if (importance) {
+        metaParts.push('중요도 ' + importance);
+      }
+      if (metaParts.length > 0) {
+        const meta = document.createElement('span');
+        meta.className = 'med-episodic-source__meta';
+        meta.textContent = metaParts.join(' · ');
+        body.appendChild(meta);
+      }
+
+      const summaryEl = document.createElement('p');
+      summaryEl.className = 'med-episodic-source__summary';
+      summaryEl.textContent = source && typeof source.summary === 'string' ? source.summary : '';
+      body.appendChild(summaryEl);
+
+      item.appendChild(indexSpan);
+      item.appendChild(body);
+      els.episodicSourcesList.appendChild(item);
+    });
+  }
+
+  function renderSemanticResult(result) {
+    bindDom();
+    if (!els.semanticResultSection || !els.semanticResultCard) {
+      return;
+    }
+    els.semanticResultCard.innerHTML = '';
+    if (!result || typeof result !== 'object') {
+      setVisible(els.semanticResultSection, false);
+      return;
+    }
+    const metaParts = [];
+    if (result.id) {
+      metaParts.push(result.id);
+    }
+    if (typeof result.source_count === 'number') {
+      metaParts.push('출처 ' + result.source_count + '건 통합');
+    }
+    if (metaParts.length > 0) {
+      const meta = document.createElement('p');
+      meta.className = 'med-semantic-result-card__meta';
+      meta.textContent = metaParts.join(' · ');
+      els.semanticResultCard.appendChild(meta);
+    }
+    const summary = typeof result.summary === 'string' ? result.summary : '';
+    if (summary) {
+      const summaryEl = document.createElement('p');
+      summaryEl.className = 'med-semantic-result-card__summary';
+      summaryEl.textContent = summary;
+      els.semanticResultCard.appendChild(summaryEl);
+    }
+    const explanation = typeof result.explanation === 'string' ? result.explanation : '';
+    if (explanation) {
+      const expl = document.createElement('p');
+      expl.className = 'med-semantic-result-card__explanation';
+      expl.textContent = explanation;
+      els.semanticResultCard.appendChild(expl);
+    }
+    setVisible(els.semanticResultSection, true);
+  }
+
+  function renderSearchComparison(comparison) {
+    bindDom();
+    if (!els.searchBefore || !els.searchAfter) {
+      return;
+    }
+    const before =
+      comparison && typeof comparison.before_summary === 'string'
+        ? comparison.before_summary
+        : '통합 전 검색 요약이 없습니다.';
+    const after =
+      comparison && typeof comparison.after_summary === 'string'
+        ? comparison.after_summary
+        : '통합 후 검색 요약이 없습니다.';
+    els.searchBefore.textContent = before;
+    els.searchAfter.textContent = after;
+  }
+
+  function renderConsolidationPanel(snapshot) {
+    bindDom();
+    if (!isConsolidation(currentScenarioId)) {
+      clearConsolidationPanel();
+      return;
+    }
+    renderEpisodicSources(snapshot && snapshot.episodic_sources);
+    renderSemanticResult(snapshot && snapshot.semantic_result);
+    renderSearchComparison(snapshot && snapshot.search_comparison);
   }
 
   function renderMemoryStats(summary) {
@@ -394,6 +583,7 @@ function isForgettingPolicy(scenarioId) {
       return;
     }
     const activeScenarioId = scenarioId || currentScenarioId || (els.scenarioSelect ? els.scenarioSelect.value : '');
+    updateScenarioLayout(activeScenarioId);
     if (els.question) {
       els.question.textContent = snapshot.question || '';
       els.question.classList.remove('med-placeholder');
@@ -409,13 +599,26 @@ function isForgettingPolicy(scenarioId) {
     }
     renderMemoryGroups(snapshot, activeScenarioId);
     if (els.explanationHeading) {
-      els.explanationHeading.textContent = isForgettingPolicy(activeScenarioId)
-        ? '왜 보존·망각이 갈리나요?'
-        : '왜 답변이 달라지나요?';
+      els.explanationHeading.textContent = isConsolidation(activeScenarioId)
+        ? '통합이 답변에 미치는 영향'
+        : isForgettingPolicy(activeScenarioId)
+          ? '왜 보존·망각이 갈리나요?'
+          : '왜 답변이 달라지나요?';
+    }
+    if (els.explanationSection) {
+      els.explanationSection.classList.toggle(
+        'med-section--explanation-prominent',
+        !isConsolidation(activeScenarioId)
+      );
     }
     if (els.explanation) {
       els.explanation.textContent = snapshot.explanation || '';
       els.explanation.classList.remove('med-placeholder');
+    }
+    if (isConsolidation(activeScenarioId)) {
+      renderConsolidationPanel(snapshot);
+    } else {
+      clearConsolidationPanel();
     }
     syncSegmentSelection(snapshot.point_id);
     setViewState('ready');
@@ -494,6 +697,7 @@ function isForgettingPolicy(scenarioId) {
     }
     const fetchFn = getFetchFn();
     currentScenarioId = scenarioId || '';
+    updateScenarioLayout(currentScenarioId);
     if (!fetchFn) {
       setErrorMessage('mementoAdminFetch를 사용할 수 없습니다.');
       setViewState('error');
@@ -548,6 +752,7 @@ function isForgettingPolicy(scenarioId) {
     }
     const scenario = findScenario(els.scenarioSelect.value);
     currentScenarioId = scenario ? scenario.scenario_id : '';
+    updateScenarioLayout(currentScenarioId);
     populatePointSelect(scenario);
     if (scenario && scenario.points && scenario.points.length > 0) {
       if (els.pointSelect) {

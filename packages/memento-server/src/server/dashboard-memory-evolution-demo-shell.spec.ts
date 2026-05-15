@@ -157,5 +157,41 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
   it('dashboard.css defines forgetting-policy comparison card styles (#344)', () => {
     expect(dashboardCss).toContain('.med-memory-groups');
   });
+  it('dashboard.html includes consolidation panel markup (#397)', () => {
+    expect(dashboardHtml).toContain('id="med-consolidation-panel"');
+    expect(dashboardHtml).toContain('id="med-episodic-sources-list"');
+    expect(dashboardHtml).toContain('id="med-semantic-result-section"');
+    expect(dashboardHtml).toContain('id="med-search-before"');
+    expect(dashboardHtml).toContain('id="med-search-after"');
+    expect(dashboardHtml).toContain('med-consolidation-flow');
+  });
+
+  it('memory-evolution-demo-shell.js implements episodic-to-semantic consolidation UI (#397)', () => {
+    expect(shellJs).toContain("CONSOLIDATION_ID = 'episodic-to-semantic'");
+    expect(shellJs).toContain('med-consolidation-panel');
+    expect(shellJs).toContain('med-episodic-sources-list');
+    expect(shellJs).toContain('med-semantic-result-section');
+    expect(shellJs).toContain('med-search-before');
+    expect(shellJs).toContain('med-search-after');
+    expect(shellJs).toContain('renderConsolidationPanel');
+    expect(shellJs).toContain('renderEpisodicSources');
+    expect(shellJs).toContain('renderSemanticResult');
+    expect(shellJs).toContain('renderSearchComparison');
+    expect(shellJs).toContain('episodic_sources');
+    expect(shellJs).toContain('semantic_result');
+    expect(shellJs).toContain('search_comparison');
+    expect(shellJs).toContain('isConsolidation');
+    expect(shellJs).toContain('updateScenarioLayout');
+    expect(shellJs).toContain('textContent');
+    expect(shellJs).not.toContain("med-episodic-source__summary'>" );
+  });
+
+  it('dashboard.css defines consolidation UI styles (#397)', () => {
+    expect(dashboardCss).toContain('.med-consolidation-panel');
+    expect(dashboardCss).toContain('.med-consolidation-flow');
+    expect(dashboardCss).toContain('.med-episodic-sources-list');
+    expect(dashboardCss).toContain('.med-semantic-result-card');
+    expect(dashboardCss).toContain('.med-search-comparison');
+  });
 
 });
