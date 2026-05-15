@@ -39,13 +39,14 @@
 packages/memento-core/src/domains/evolution-demo/
 ├── types.ts          # 스냅샷·시나리오 TypeScript 타입
 ├── spec.ts           # Zod 스키마·허용 scenario_id 목록
-├── store.ts          # 픽스처 로드·병합 (getFixtureSnapshot)
+├── store.ts          # TS 픽스처 import·병합 (getFixtureSnapshot)
 ├── getters.ts        # SCENARIO_CATALOG + list/get 공개 API
 ├── index.ts          # 패키지 export
 ├── evolution-demo.spec.ts
-└── fixtures/         # JSON 픽스처 (시나리오별, 점진 도입)
-    ├── answer-over-time.snapshots.json
-    └── forgetting-policy.snapshots.json
+└── fixtures/         # 런타임 TS 픽스처 (ESM import)
+    ├── answer-over-time.snapshots.ts
+    └── forgetting-policy.snapshots.ts
+    # (선택) *.snapshots.json — 참고/원본 카피용. store.ts는 import하지 않음
 ```
 
 `packages/memento-server`는 라우트만 담당합니다.
@@ -58,8 +59,8 @@ packages/memento-server/src/server/routes/admin/admin-evolution-demo.routes.ts
 
 | 파일 | 역할 |
 |------|------|
-| `fixtures/*.snapshots.json` | 시나리오별 질문·시점(point)·답·`memory_summary`·`explanation` 카피 (한국어 데모 문안은 [#394](https://github.com/jee1/memento/issues/394) 등에서 정의) |
-| `store.ts` | JSON을 읽어 `EvolutionDemoSnapshot` 맵으로 병합. `memory_groups`(망각 비교), `episodic_sources`·`semantic_result`(통합 시나리오) 등 선택 필드 포함 |
+| `fixtures/*.snapshots.ts` | 시나리오별 질문·시점(point)·답·`memory_summary`·`explanation`을 **export한 객체** (한국어 데모 문안은 [#394](https://github.com/jee1/memento/issues/394) 등). Node ESM에서 `import` 가능한 형태 |
+| `store.ts` | TS 픽스처를 `buildSnapshotsFromFixture()`로 평탄화해 `EvolutionDemoSnapshot` 맵에 병합. `episodic-to-semantic`은 동일 파일에 `CONSOLIDATION_SNAPSHOTS` 인라인 정의. `memory_groups`, `episodic_sources`, `semantic_result` 등 선택 필드 지원 |
 | `getters.ts` | **시나리오 카탈로그**(`SCENARIO_CATALOG`: id, title, points)와 스냅샷 조회. 카탈로그 라벨이 API 응답의 `point_label`에 반영됨 |
 | `spec.ts` | `EvolutionDemoSnapshotSchema` 등으로 응답 형식 고정. `EVOLUTION_DEMO_SCENARIO_IDS`에 허용 ID 나열 |
 
@@ -76,33 +77,36 @@ packages/memento-server/src/server/routes/admin/admin-evolution-demo.routes.ts
 
 **중요:** 데모 데이터는 운영 DB의 `remember` 결과가 아닙니다. 발표 재현성을 위해 **고정 스냅샷**을 씁니다.
 
-### JSON 픽스처 형식 (예)
+### TS 픽스처 형식 (예)
 
-`fixtures/answer-over-time.snapshots.json`:
+`fixtures/answer-over-time.snapshots.ts` (런타임 소스):
 
-```json
-{
-  "scenario_id": "answer-over-time",
-  "question": "관리자 API에는 어떤 인증 방식을 채택했나요?",
-  "snapshots": {
-    "early": {
-      "point_label": "초기 (1일차)",
-      "answer": "...",
-      "memory_summary": {
-        "episodic_count": 14,
-        "semantic_count": 0,
-        "forgotten_count": 0,
-        "preserved_count": 14,
-        "summary_text": "..."
+```typescript
+export const answerOverTimeFixture = {
+  scenario_id: 'answer-over-time',
+  question: '관리자 API에는 어떤 인증 방식을 채택했나요?',
+  snapshots: {
+    early: {
+      point_label: '초기 (1일차)',
+      answer: '...',
+      memory_summary: {
+        episodic_count: 14,
+        semantic_count: 0,
+        forgotten_count: 0,
+        preserved_count: 14,
+        summary_text: '...',
       },
-      "explanation": "...",
-      "timestamp": "2026-01-21T10:00:00.000Z"
-    }
-  }
-}
+      explanation: '...',
+      timestamp: '2026-01-21T10:00:00.000Z',
+    },
+    // mid, late ...
+  },
+} as const;
 ```
 
-`store.ts`의 `buildSnapshotsFromFixture()`가 `scenario_id` + `point_id` 키로 평탄화합니다.
+`store.ts`에서 `import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js'` 후 `buildSnapshotsFromFixture()`가 `scenario_id` + `point_id` 키로 평탄화합니다.
+
+**JSON 파일(`*.snapshots.json`)** 이 저장소에 남아 있을 수 있으나, **런타임 경로는 사용하지 않습니다** (과거 카피·diff 참고용). 새 시나리오는 `.snapshots.ts`만 추가하세요.
 
 ---
 
@@ -129,7 +133,14 @@ npm run dev:http
 http://localhost:<PORT>/dashboard
 ```
 
-**「기억 진화 데모」** 탭이 기본 탭입니다(미로그인 상태에서도 패널은 보입니다). 시나리오·시점을 선택하면 스냅샷 API에서 데이터를 불러옵니다 ([#342](https://github.com/jee1/memento/issues/342)).
+**기본 탭은 로그인 상태에 따라 다릅니다** ([#342](https://github.com/jee1/memento/issues/342) API 연동·`dashboard-auth.js`):
+
+| 상태 | 처음 보이는 탭 | 이유 |
+|------|----------------|------|
+| **로그인됨** (`signed-in`) | **Anchor Map** | HTML 초기 `active` 탭이 anchor이며, 인증 성공 시 `maybeActivateTabForAuth`가 anchor로 전환 |
+| **미로그인·세션 확인 중** (`signed-out` / `checking` 등) | **기억 진화 데모** | 세션 전용 탭(anchor 등)은 `session-only`로 숨기고, 데모 탭만 노출·활성화 |
+
+데모 탭 패널은 미로그인에서도 열리지만, **시나리오·스냅샷 API 로드는 로그인 후**에만 동작합니다. 시나리오·시점을 선택하면 스냅샷 API에서 데이터를 불러옵니다.
 
 ### 3. 관리자 API 키로 로그인
 
@@ -258,13 +269,15 @@ curl -sS -b cookies.txt \
 
 ### 절차
 
-1. **`fixtures/<scenario-id>.snapshots.json` 추가** (또는 `store.ts` 인라인 맵에 항목 추가)
-2. **`store.ts`에서 import·병합**
+1. **`fixtures/<scenario-id>.snapshots.ts` 추가** — `export const …Fixture = { scenario_id, question, snapshots }` 형태 (또는 `store.ts`에 `CONSOLIDATION_SNAPSHOTS`처럼 인라인 맵)
+2. **`store.ts`에서 ESM import** — `import { …Fixture } from './fixtures/<name>.snapshots.js'` 후 `SNAPSHOTS` spread에 `...buildSnapshotsFromFixture(…Fixture)` 추가 (**JSON import 사용 금지** — 번들/런타임 이슈)
 3. **`getters.ts`의 `SCENARIO_CATALOG`에 시나리오·points 등록**
 4. **`spec.ts`의 `EVOLUTION_DEMO_SCENARIO_IDS`에 ID 추가**
 5. **Zod 스키마·`types.ts`** — 새 선택 필드가 있으면 확장
 6. **테스트** — `evolution-demo.spec.ts`, `admin-evolution-demo.routes.spec.ts`
 7. **`npm run build`** 후 관련 `vitest` 실행
+
+JSON으로 문안을 초안 작성한 뒤 TS 모듈로 옮기는 것은 가능하지만, **머지 기준 소스는 항상 `.snapshots.ts`** 입니다.
 
 ### 네이밍 규칙
 
