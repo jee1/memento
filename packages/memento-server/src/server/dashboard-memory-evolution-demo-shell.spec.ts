@@ -125,4 +125,22 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(dashboardCss).toContain('.med-stat-chip--semantic');
     expect(dashboardCss).toContain('var(--color-brand-primary)');
   });
+  it('memory-evolution-demo-shell.js gates API load on signed-in auth state', () => {
+    expect(shellJs).toContain('canLoadFromApi');
+    expect(shellJs).toContain('showAuthRequiredState');
+    expect(shellJs).toContain('onAuthStateChanged');
+  });
+
+  it('dashboard-auth.js notifies evolution demo shell on auth state change', () => {
+    expect(authJs).toContain('onAuthStateChanged');
+  });
+
+  it('memory-evolution-demo-shell.js shows comparison hint after ready state', () => {
+    const renderIdx = shellJs.indexOf('function renderSnapshot');
+    const readyIdx = shellJs.indexOf("setViewState('ready')", renderIdx);
+    const hintIdx = shellJs.indexOf('updateComparisonHint', renderIdx);
+    expect(readyIdx).toBeGreaterThan(-1);
+    expect(hintIdx).toBeGreaterThan(readyIdx);
+  });
+
 });
