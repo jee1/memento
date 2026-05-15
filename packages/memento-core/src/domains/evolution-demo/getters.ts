@@ -46,7 +46,8 @@ export class EvolutionDemoNotFoundError extends Error {
 
 export function listEvolutionDemoScenarios(): EvolutionDemoScenarioCatalog {
   const catalog: EvolutionDemoScenarioCatalog = { scenarios: SCENARIO_CATALOG };
-  return EvolutionDemoScenarioCatalogSchema.parse(catalog);
+  EvolutionDemoScenarioCatalogSchema.parse(catalog);
+  return catalog;
 }
 
 export function getEvolutionDemoSnapshot(
@@ -67,8 +68,10 @@ export function getEvolutionDemoSnapshot(
     throw new EvolutionDemoNotFoundError(scenarioId, pointId);
   }
 
-  return EvolutionDemoSnapshotSchema.parse({
+  const result: EvolutionDemoSnapshot = {
     ...snapshot,
     point_label: point.label,
-  });
+  };
+  EvolutionDemoSnapshotSchema.parse(result);
+  return result;
 }
