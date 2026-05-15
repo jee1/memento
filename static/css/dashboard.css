@@ -996,3 +996,82 @@ body {
   outline: 2px solid var(--color-border-focus);
   outline-offset: -2px;
 }
+
+/* Memory evolution demo shell (#340) */
+.med-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-height: 0;
+  padding: var(--spacing-md);
+  overflow: auto;
+}
+
+.med-header {
+  flex-shrink: 0;
+}
+
+.med-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.med-intro {
+  margin: 0;
+  max-width: 48rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed, 1.45);
+}
+
+.med-loading,
+.med-empty,
+.med-error {
+  flex-shrink: 0;
+}
+
+.med-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-height: 0;
+}
+
+.med-section {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-tab-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.med-section-title {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.med-section-body {
+  margin: 0;
+  color: var(--color-text-main);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed, 1.45);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.med-placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+#tab-evolution-demo.tab-panel.active {
+  display: flex;
+  flex-direction: column;
+}

@@ -1,12 +1,12 @@
 /**
- * Dashboard Anchor / Embedding / Memory Graph 탭 전환
+ * Dashboard Anchor / Embedding / Memory Graph / Evolution demo 탭 전환
  * CSP(script-src에 unsafe-inline 없음) 대응: 인라인 스크립트 대신 외부 파일로 로드
  *
  * WAI-ARIA Tabs — Manual activation:
  * - 좌/우/Home/End: 같은 tablist 안에서 포커스만 이동(roving tabindex); 패널은 바꾸지 않음(그래프 iframe 지연 로드 유지)
  * - Enter/Space 또는 클릭: 해당 탭 활성화
  */
-(function () {
+(function (global) {
   'use strict';
 
   const GRAPH_IFRAME_SRC = '/graph';
@@ -29,6 +29,7 @@
   }
 
   function activateTab(name) {
+    const evolutionPanel = document.getElementById('tab-evolution-demo');
     const anchorPanel = document.getElementById('tab-anchor-map');
     const embedPanel = document.getElementById('tab-embedding-map');
     const graphPanel = document.getElementById('tab-graph');
@@ -39,6 +40,10 @@
       b.classList.toggle('active', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    if (evolutionPanel) {
+      evolutionPanel.classList.toggle('active', name === 'evolution-demo');
+      evolutionPanel.setAttribute('aria-hidden', name === 'evolution-demo' ? 'false' : 'true');
+    }
     if (anchorPanel) {
       anchorPanel.classList.toggle('active', name === 'anchor');
       anchorPanel.setAttribute('aria-hidden', name === 'anchor' ? 'false' : 'true');
@@ -55,11 +60,20 @@
       reviewPanel.classList.toggle('active', name === 'review');
       reviewPanel.setAttribute('aria-hidden', name === 'review' ? 'false' : 'true');
     }
-    if (name === 'embedding' && typeof window.initEmbeddingMap === 'function') {
-      window.initEmbeddingMap();
+    if (name === 'evolution-demo') {
+      const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
+      if (shell && typeof shell.init === 'function') {
+        shell.init();
+      }
+      requestAnimationFrame(function () {
+        global.dispatchEvent(new Event('resize'));
+      });
     }
-    if (name === 'review' && typeof window.initReviewCandidatesPanel === 'function') {
-      window.initReviewCandidatesPanel();
+    if (name === 'embedding' && typeof global.initEmbeddingMap === 'function') {
+      global.initEmbeddingMap();
+    }
+    if (name === 'review' && typeof global.initReviewCandidatesPanel === 'function') {
+      global.initReviewCandidatesPanel();
     }
     if (name === 'graph') {
       const iframe = document.getElementById('graph-view-iframe');
@@ -68,20 +82,20 @@
         iframe.addEventListener('load', function onGraphFrameLoad() {
           iframe.removeEventListener('load', onGraphFrameLoad);
           requestAnimationFrame(function () {
-            window.dispatchEvent(new Event('resize'));
+            global.dispatchEvent(new Event('resize'));
             dispatchGraphIframeResize(iframe);
           });
         });
         iframe.src = GRAPH_IFRAME_SRC;
       } else if (iframe) {
         requestAnimationFrame(function () {
-          window.dispatchEvent(new Event('resize'));
+          global.dispatchEvent(new Event('resize'));
           dispatchGraphIframeResize(iframe);
         });
       }
     } else if (name === 'anchor' || name === 'embedding' || name === 'review') {
       requestAnimationFrame(function () {
-        window.dispatchEvent(new Event('resize'));
+        global.dispatchEvent(new Event('resize'));
       });
     }
 
@@ -145,8 +159,12 @@
     });
   });
 
-  const initial = document.querySelector('.m-tab-btn[data-tab="anchor"]');
+  const initial = document.querySelector('.m-tab-btn[data-tab="evolution-demo"]');
   if (initial) {
     setRovingTabindex(initial);
   }
-})();
+
+  global.__MEMENTO_DASHBOARD_TABS__ = {
+    activateTab: activateTab,
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

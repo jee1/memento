@@ -42,7 +42,6 @@ export interface EvolutionDemoSnapshot {
   memory_summary: EvolutionDemoMemorySummary;
   explanation: string;
   timestamp: string;
-  /** Present on episodic-to-semantic scenario snapshots */
   episodic_sources?: EvolutionDemoEpisodicSource[];
   semantic_result?: EvolutionDemoSemanticResult;
   search_comparison?: EvolutionDemoSearchComparison;
