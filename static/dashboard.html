@@ -65,44 +65,16 @@
     </header>
 
     <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
-      <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
-      <button type="button" id="dashboard-tab-anchor" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
+      <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
       <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
       <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
       <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+      <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
     </div>
 
     
-    <div id="tab-evolution-demo" class="tab-panel active" role="tabpanel" aria-labelledby="dashboard-tab-evolution-demo" aria-hidden="false">
-      <div class="med-layout">
-        <header class="med-header">
-          <h2 class="med-title">기억 진화 데모</h2>
-        </header>
-        <p class="med-intro">
-          시간이 지나면서 동일한 질문에 대한 답변과 기억 상태가 어떻게 변하는지 보여 주는 인터랙티브 데모입니다.
-          이 탭은 로그인 없이 미리 볼 수 있으며, 시뮬레이션 데이터 연동은 이후 단계에서 추가됩니다.
-        </p>
-        <div id="med-loading" class="med-loading rc-banner hidden" role="status" aria-live="polite">시뮬레이션 데이터를 불러오는 중…</div>
-        <div id="med-empty" class="med-empty rc-banner">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
-        <div id="med-error" class="med-error rc-banner rc-banner--error hidden" role="alert"></div>
-        <div id="med-content" class="med-content hidden">
-          <section class="med-section med-section--question" aria-label="질문">
-            <h3 class="med-section-title">질문</h3>
-            <p id="med-question-text" class="med-section-body med-placeholder">질문 텍스트가 여기에 표시됩니다.</p>
-          </section>
-          <section class="med-section med-section--answer" aria-label="답변">
-            <h3 class="med-section-title">답변</h3>
-            <p id="med-answer-text" class="med-section-body med-placeholder">선택한 시점의 답변이 여기에 표시됩니다.</p>
-          </section>
-          <section class="med-section med-section--memory" aria-label="기억 요약">
-            <h3 class="med-section-title">기억 요약</h3>
-            <p id="med-memory-summary" class="med-section-body med-placeholder">활성 기억 유형·상태 요약이 여기에 표시됩니다.</p>
-          </section>
-        </div>
-      </div>
-    </div>
 
-    <div id="tab-anchor-map" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="true">
+    <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
       <main class="dashboard-main">
         <div class="sidebar">
           <section class="anchor-info">
@@ -313,6 +285,53 @@
         </div>
       </div>
     </div>
+    <div id="tab-evolution-demo" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-evolution-demo" aria-hidden="true">
+      <div class="med-layout">
+        <header class="med-header">
+          <h2 class="med-title">기억 진화 데모</h2>
+        </header>
+        <p class="med-intro">
+          시간이 지나면서 동일한 질문에 대한 답변과 기억 상태가 어떻게 변하는지 보여 주는 인터랙티브 데모입니다.
+          API에 연동되어 시나리오와 시점을 선택할 수 있습니다. 데이터 조회에는 관리자 세션(로그인)이 필요할 수 있습니다.
+        </p>
+        <div class="med-controls" aria-label="데모 시나리오 선택">
+          <label for="med-scenario-select">
+            시나리오
+            <select id="med-scenario-select" class="m-input" disabled>
+              <option value="">시나리오 불러오는 중…</option>
+            </select>
+          </label>
+          <label for="med-point-select">
+            시점
+            <select id="med-point-select" class="m-input" disabled>
+              <option value="">시점 선택</option>
+            </select>
+          </label>
+        </div>
+        <div id="med-loading" class="med-loading rc-banner hidden" role="status" aria-live="polite">시뮬레이션 데이터를 불러오는 중…</div>
+        <div id="med-empty" class="med-empty rc-banner">데모 콘텐츠가 아직 준비되지 않았습니다. 곧 타임라인과 기억 변화 시각화가 이 영역에 표시됩니다.</div>
+        <div id="med-error" class="med-error rc-banner rc-banner--error hidden" role="alert"></div>
+        <div id="med-content" class="med-content hidden">
+          <section class="med-section med-section--question" aria-label="질문">
+            <h3 class="med-section-title">질문</h3>
+            <p id="med-question-text" class="med-section-body med-placeholder">질문 텍스트가 여기에 표시됩니다.</p>
+          </section>
+          <section class="med-section med-section--answer" aria-label="답변">
+            <h3 class="med-section-title">답변</h3>
+            <p id="med-answer-text" class="med-section-body med-placeholder">선택한 시점의 답변이 여기에 표시됩니다.</p>
+          </section>
+          <section class="med-section med-section--memory" aria-label="기억 요약">
+            <h3 class="med-section-title">기억 요약</h3>
+            <p id="med-memory-summary" class="med-section-body med-placeholder">활성 기억 유형·상태 요약이 여기에 표시됩니다.</p>
+          </section>
+          <section class="med-section med-section--explanation" aria-label="설명">
+            <h3 class="med-section-title">설명</h3>
+            <p id="med-explanation-text" class="med-section-body med-placeholder">이 시점에서 답변과 기억 상태가 이렇게 보이는 이유가 여기에 표시됩니다.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- D3.js 라이브러리 (CDN) -->

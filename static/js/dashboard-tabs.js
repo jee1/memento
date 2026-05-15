@@ -62,8 +62,14 @@
     }
     if (name === 'evolution-demo') {
       const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
-      if (shell && typeof shell.init === 'function') {
-        shell.init();
+      if (shell) {
+        if (typeof shell.initPanel === 'function') {
+          shell.initPanel();
+        } else if (typeof shell.refresh === 'function') {
+          shell.refresh();
+        } else if (typeof shell.init === 'function') {
+          shell.init();
+        }
       }
       requestAnimationFrame(function () {
         global.dispatchEvent(new Event('resize'));
@@ -159,7 +165,7 @@
     });
   });
 
-  const initial = document.querySelector('.m-tab-btn[data-tab="evolution-demo"]');
+  const initial = document.querySelector('.m-tab-btn[data-tab="anchor"]');
   if (initial) {
     setRovingTabindex(initial);
   }
