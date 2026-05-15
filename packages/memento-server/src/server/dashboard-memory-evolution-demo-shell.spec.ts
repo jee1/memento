@@ -10,7 +10,7 @@ const shellJs = readFileSync(resolve(root, 'static/js/memory-evolution-demo-shel
 const authJs = readFileSync(resolve(root, 'static/js/dashboard-auth.js'), 'utf8');
 const dashboardCss = readFileSync(resolve(root, 'static/css/dashboard.css'), 'utf8');
 
-describe('dashboard memory evolution demo shell (#340, #342)', () => {
+describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
   it('dashboard.html includes evolution demo tab, panel, controls, and script', () => {
     expect(dashboardHtml).toContain('id="dashboard-tab-evolution-demo"');
     expect(dashboardHtml).toContain('data-tab="evolution-demo"');
@@ -29,6 +29,17 @@ describe('dashboard memory evolution demo shell (#340, #342)', () => {
     expect(dashboardHtml).toContain('id="med-explanation-text"');
     expect(dashboardHtml).toContain('기억 진화 데모');
     expect(dashboardHtml).toContain('API에 연동되어 시나리오와 시점을 선택할 수 있습니다');
+  });
+
+  it('dashboard.html includes answer-over-time UI shells (#395)', () => {
+    expect(dashboardHtml).toContain('id="med-point-segment"');
+    expect(dashboardHtml).toContain('id="med-point-controls"');
+    expect(dashboardHtml).toContain('id="med-comparison-hint"');
+    expect(dashboardHtml).toContain('id="med-memory-stats"');
+    expect(dashboardHtml).toContain('왜 답변이 달라지나요?');
+    expect(dashboardHtml).toContain('med-section--explanation-prominent');
+    expect(dashboardHtml).toContain('med-point-segment');
+    expect(dashboardHtml).toContain('role="tablist"');
   });
 
   it('tab bar: anchor default active; evolution demo last without session-only', () => {
@@ -74,6 +85,23 @@ describe('dashboard memory evolution demo shell (#340, #342)', () => {
     expect(shellJs).not.toMatch(/\bfetch\s*\(/);
   });
 
+  it('memory-evolution-demo-shell.js implements answer-over-time UI (#395)', () => {
+    expect(shellJs).toContain("ANSWER_OVER_TIME_ID = 'answer-over-time'");
+    expect(shellJs).toContain('med-point-segment');
+    expect(shellJs).toContain('med-memory-stats');
+    expect(shellJs).toContain('med-comparison-hint');
+    expect(shellJs).toContain('med-stat-chip');
+    expect(shellJs).toContain('renderMemoryStats');
+    expect(shellJs).toContain('updateComparisonHint');
+    expect(shellJs).toContain('renderPointSegment');
+    expect(shellJs).toContain('상세');
+    expect(shellJs).toContain('압축');
+    expect(shellJs).toContain('semantic 중심');
+    expect(shellJs).toContain('episodic_count');
+    expect(shellJs).toContain('forgotten_count');
+    expect(shellJs).toContain('preserved_count');
+  });
+
   it('dashboard-auth.js activates evolution-demo when signed out', () => {
     expect(authJs).toContain('maybeActivateTabForAuth');
     expect(authJs).toContain("tabs.activateTab('evolution-demo')");
@@ -86,5 +114,15 @@ describe('dashboard memory evolution demo shell (#340, #342)', () => {
     expect(dashboardCss).toContain('.med-controls');
     expect(dashboardCss).toContain('var(--spacing-md)');
     expect(dashboardCss).toContain('#tab-evolution-demo.tab-panel.active');
+  });
+
+  it('dashboard.css defines answer-over-time UI styles (#395)', () => {
+    expect(dashboardCss).toContain('.med-point-segment');
+    expect(dashboardCss).toContain('.med-stat-chip');
+    expect(dashboardCss).toContain('.med-comparison-hint');
+    expect(dashboardCss).toContain('.med-section--explanation-prominent');
+    expect(dashboardCss).toContain('.med-stat-chip--episodic');
+    expect(dashboardCss).toContain('.med-stat-chip--semantic');
+    expect(dashboardCss).toContain('var(--color-brand-primary)');
   });
 });
