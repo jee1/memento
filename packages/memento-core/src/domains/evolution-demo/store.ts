@@ -4,8 +4,8 @@
  * Snapshot copy: Issue #394 (answer-over-time Korean demo)
  */
 
-import answerOverTimeFixture from './fixtures/answer-over-time.snapshots.json' with { type: 'json' };
-import forgettingPolicyFixture from './fixtures/forgetting-policy.snapshots.json' with { type: 'json' };
+import { answerOverTimeFixture } from './fixtures/answer-over-time.snapshots.js';
+import { forgettingPolicyFixture } from './fixtures/forgetting-policy.snapshots.js';
 import type { EvolutionDemoSnapshot } from './types.js';
 
 type SnapshotKey = `${string}:${string}`;
