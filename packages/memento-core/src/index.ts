@@ -183,13 +183,16 @@ export { ReviewQueueHealthSnapshotMigration } from './infrastructure/database/da
 
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';
 
-// Evolution demo (Issue #341)
+// Evolution demo (Issue #341, #396)
 export {
   listEvolutionDemoScenarios,
   getEvolutionDemoSnapshot,
   EvolutionDemoNotFoundError,
   EVOLUTION_DEMO_SCENARIO_IDS,
   EvolutionDemoMemorySummarySchema,
+  EvolutionDemoEpisodicSourceSchema,
+  EvolutionDemoSemanticResultSchema,
+  EvolutionDemoSearchComparisonSchema,
   EvolutionDemoSnapshotSchema,
   EvolutionDemoPointSchema,
   EvolutionDemoScenarioSchema,
@@ -197,6 +200,9 @@ export {
 } from './domains/evolution-demo/index.js';
 export type {
   EvolutionDemoMemorySummary,
+  EvolutionDemoEpisodicSource,
+  EvolutionDemoSemanticResult,
+  EvolutionDemoSearchComparison,
   EvolutionDemoSnapshot,
   EvolutionDemoPoint,
   EvolutionDemoScenario,
