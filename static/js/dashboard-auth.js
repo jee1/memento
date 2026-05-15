@@ -80,6 +80,26 @@
     createSessionGate();
   }
 
+
+  function maybeActivateTabForAuth(nextState) {
+    const tabs = global.__MEMENTO_DASHBOARD_TABS__;
+    if (!tabs || typeof tabs.activateTab !== 'function') {
+      return;
+    }
+    if (nextState === 'signed-in') {
+      tabs.activateTab('anchor');
+      return;
+    }
+    if (
+      nextState === 'signed-out' ||
+      nextState === 'checking' ||
+      nextState === 'signing-in' ||
+      nextState === 'signing-out'
+    ) {
+      tabs.activateTab('evolution-demo');
+    }
+  }
+
   function setMessage(text, tone) {
     if (!messageEl) {
       return;
@@ -123,6 +143,7 @@
     }
 
     setMessage(message, nextState === 'signed-out' ? 'error' : 'neutral');
+    maybeActivateTabForAuth(nextState);
   }
 
   function readErrorMessage(response, fallbackMessage) {
