@@ -14,6 +14,7 @@ import {
   createPersonalAgentLlmPort,
   createToolContext,
   mementoConfig,
+  GeminiChatLlmAdapter,
   OpenAiChatLlmAdapter,
   parsePersonalAgentLlmEnv,
   PersonalAgentLlmError,
@@ -414,6 +415,20 @@ export async function runAgentAskMain(
           });
         }
         return new OpenAiChatLlmAdapter({
+          apiKey,
+          model: cfg.model,
+        });
+      },
+      createGemini: (cfg) => {
+        const apiKey = mementoConfig.geminiApiKey?.trim();
+        if (!apiKey) {
+          throw new PersonalAgentLlmError({
+            code: 'provider_misconfigured',
+            message:
+              'GEMINI_API_KEY is required when MEMENTO_PERSONAL_AGENT_LLM_PROVIDER=gemini',
+          });
+        }
+        return new GeminiChatLlmAdapter({
           apiKey,
           model: cfg.model,
         });
