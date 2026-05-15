@@ -161,6 +161,7 @@ export type {
   ParsedPersonalAgentLlmEnv,
   ParsePersonalAgentLlmEnvKeys,
   CreatePersonalAgentLlmPortDeps,
+  ILLMPort,
 } from './domains/personal-agent/index.js';
 
 // 타입·인터페이스 re-export (서버/앱에서 사용)

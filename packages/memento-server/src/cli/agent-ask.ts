@@ -11,14 +11,16 @@ import { stdin as stdinStream, stderr as stderrStream } from 'node:process';
 import {
   closeDatabase,
   createMementoCore,
+  createPersonalAgentLlmPort,
   createToolContext,
   mementoConfig,
+  parsePersonalAgentLlmEnv,
+  PersonalAgentLlmError,
   PersonalKnowledgeAgentService,
-  DeterministicMockLlmAdapter,
   ToolContextKnowledgeContextAdapter,
   ToolContextRememberPersistenceAdapter,
 } from '@memento/core';
-import type { KnowledgeCandidate, PersonalKnowledgePersistItemResult } from '@memento/core';
+import type { ILLMPort, KnowledgeCandidate, PersonalKnowledgePersistItemResult } from '@memento/core';
 
 import { parseArgvToParams } from './option-map.js';
 
@@ -220,7 +222,8 @@ type ErrorCode =
   | 'AGENT_RUN_FAILED'
   | 'PERSIST_FAILED'
   | 'INTERRUPTED'
-  | 'NON_INTERACTIVE';
+  | 'NON_INTERACTIVE'
+  | 'PROVIDER_MISCONFIGURED';
 
 function jsonFailure(
   code: ErrorCode,
@@ -392,7 +395,36 @@ export async function runAgentAskMain(
 
   const { db, services } = core;
   const toolContext = createToolContext(db, services);
-  const llm = new DeterministicMockLlmAdapter();
+
+  let llm: ILLMPort;
+  try {
+    const parsed = parsePersonalAgentLlmEnv(process.env, {
+      openaiApiKey: mementoConfig.openaiApiKey,
+      geminiApiKey: mementoConfig.geminiApiKey,
+    });
+    llm = createPersonalAgentLlmPort(parsed, {});
+  } catch (e) {
+    debugErr(e);
+    if (e instanceof PersonalAgentLlmError) {
+      const msg = e.message;
+      if (json) {
+        await writeOut(jsonFailure('PROVIDER_MISCONFIGURED', 'usage', msg));
+      } else {
+        await writeErr(msg + '\n');
+      }
+    } else {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (json) {
+        await writeOut(jsonFailure('BOOTSTRAP_FAILED', 'bootstrap', msg));
+      } else {
+        await writeErr(msg + '\n');
+      }
+    }
+    await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+    closeDatabase(db);
+    return 2;
+  }
+
   const context = new ToolContextKnowledgeContextAdapter(toolContext);
   const persistence = new ToolContextRememberPersistenceAdapter(toolContext);
   const service = new PersonalKnowledgeAgentService({ llm, context, persistence });
