@@ -116,8 +116,8 @@ describe('admin evolution-demo routes', () => {
 
     expect(body.scenario_id).toBe('answer-over-time');
     expect(body.point_id).toBe('mid');
-    expect(body.point_label).toBe('Mid (day 30)');
-    expect(body.question).toContain('authentication');
+    expect(body.point_label).toBe('중기 (30일차)');
+    expect(body.question).toContain('관리자 API');
     expect(body.answer.length).toBeGreaterThan(0);
     expect(body.memory_summary.episodic_count).toBeGreaterThanOrEqual(0);
     expect(body.explanation.length).toBeGreaterThan(0);
