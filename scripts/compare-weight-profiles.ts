@@ -63,6 +63,7 @@ export interface ProfileEvalResult {
 export function calcP95(latencyMs: number[]): number {
   if (latencyMs.length === 0) return 0;
   const sorted = [...latencyMs].sort((a, b) => a - b);
+  // nearest-rank method: ceil(n * 0.95) - 1
   const idx = Math.ceil(sorted.length * 0.95) - 1;
   return sorted[Math.max(0, idx)]!;
 }
