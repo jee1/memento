@@ -10,7 +10,7 @@
  * `config/ranking-weights.toml` 및 `config/ranking-profiles/*.toml`은 자동 갱신하지 않는다(오프라인 A/B).
  *
  * US4 / CI 기준선 반영(수동 운영):
- * 1) `significant`·`p_value`·`verdict` 확인
+ * 1) `mrr_significant`·`mrr_p_value`·`verdict` 확인
  * 2) 우승 프로파일 TOML 내용을 `config/ranking-weights.toml`에 반영(필요 시 `default.toml` 동기화)
  * 3) PR 머지 — CI는 머지된 커밋의 TOML을 읽는다
  * 상세: `specs/004-recall-quality-feedback-loop/contracts/mcp-tools.md` §3.3
@@ -20,18 +20,18 @@ import { existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import type Database from 'better-sqlite3';
-import { createSeededBenchmarkDatabase } from '@memento/core/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
-} from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
-import { normalizeBenchmarkGroundTruths } from '@memento/core/test/helpers/search-quality-review-verifier.js';
+} from '../packages/memento-core/src/test/helpers/search-quality-benchmark-fixtures.js';
+import { normalizeBenchmarkGroundTruths } from '../packages/memento-core/src/test/helpers/search-quality-review-verifier.js';
 import {
   calculateNDCGAtK,
   calculateRecallAtK,
   type SearchResult,
-} from '@memento/core/test/helpers/search-quality-metrics.js';
+} from '../packages/memento-core/src/test/helpers/search-quality-metrics.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER } from '@memento/core/shared/types/benchmark.types.js';
 
