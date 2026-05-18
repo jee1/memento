@@ -166,3 +166,5 @@ compound-engineering.local.md
 
 # graphify cache artifacts (generated locally)
 graphify-out/cache/
+
+tmp/tune-weights/
