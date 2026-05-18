@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { stringify } from '@iarna/toml';
 import type Database from 'better-sqlite3';
-import { createSeededBenchmarkDatabase } from '@memento/core/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
 import {
   loadRankingWeights,
   type RankingWeights,
