@@ -140,7 +140,7 @@ async function main(): Promise<void> {
 
     for (let i = 0; i < args.candidates; i++) {
       const candidateWeights = generateCandidate(baselineWeights, rand);
-      const weightSum = Object.values(candidateWeights).reduce((a, b) => a + b, 0);
+      const weightSum = (Object.values(candidateWeights) as number[]).reduce((a, b) => a + b, 0);
       const sumWarning = weightSum > 1.5;
       if (sumWarning) candidatesWithSumWarning++;
 
