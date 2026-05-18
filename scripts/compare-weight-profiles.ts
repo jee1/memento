@@ -20,18 +20,18 @@ import { existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import type Database from 'better-sqlite3';
-import { createSeededBenchmarkDatabase } from '@memento/core/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
-} from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
-import { normalizeBenchmarkGroundTruths } from '@memento/core/test/helpers/search-quality-review-verifier.js';
+} from '../packages/memento-core/src/test/helpers/search-quality-benchmark-fixtures.js';
+import { normalizeBenchmarkGroundTruths } from '../packages/memento-core/src/test/helpers/search-quality-review-verifier.js';
 import {
   calculateNDCGAtK,
   calculateRecallAtK,
   type SearchResult,
-} from '@memento/core/test/helpers/search-quality-metrics.js';
+} from '../packages/memento-core/src/test/helpers/search-quality-metrics.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER } from '@memento/core/shared/types/benchmark.types.js';
 
