@@ -58,6 +58,8 @@
     "quality:benchmark:category-report": "tsx scripts/quality-benchmark-category-report.ts",
     "quality:benchmark:verify-categories": "tsx scripts/quality-benchmark-verify-categories.ts",
     "quality:benchmark:compare-profiles": "tsx scripts/compare-weight-profiles.ts",
+    "quality:benchmark:tune-weights": "tsx scripts/tune-weights.ts",
+    "quality:benchmark:tune-report": "tsx scripts/tune-report.ts",
     "quality:feedback:reappearance-report": "tsx scripts/quality-feedback-reappearance-report.ts",
     "test:quality-assurance": "tsx packages/memento-core/src/test/test-quality-assurance.ts",
     "test:client": "tsx packages/memento-server/src/test/test-client.ts",
