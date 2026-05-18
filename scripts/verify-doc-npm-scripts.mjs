@@ -21,6 +21,9 @@ const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.worktrees']);
 /** 문서에만 허용할 npm 스크립트명 (실제 package.json에 없을 때만 추가) */
 const ALLOWLIST_NAMES = new Set([
   // 예: 'legacy-example-script'
+  // issue-409 PR에서 추가 예정인 스크립트 (plan 파일 선참조)
+  'quality:benchmark:tune-weights',
+  'quality:benchmark:tune-report',
 ]);
 
 function* walkMarkdownFiles(dir, rel = '') {
