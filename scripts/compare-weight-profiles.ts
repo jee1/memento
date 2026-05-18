@@ -10,7 +10,7 @@
  * `config/ranking-weights.toml` 및 `config/ranking-profiles/*.toml`은 자동 갱신하지 않는다(오프라인 A/B).
  *
  * US4 / CI 기준선 반영(수동 운영):
- * 1) `significant`·`p_value`·`verdict` 확인
+ * 1) `mrr_significant`·`mrr_p_value`·`verdict` 확인
  * 2) 우승 프로파일 TOML 내용을 `config/ranking-weights.toml`에 반영(필요 시 `default.toml` 동기화)
  * 3) PR 머지 — CI는 머지된 커밋의 TOML을 읽는다
  * 상세: `specs/004-recall-quality-feedback-loop/contracts/mcp-tools.md` §3.3
@@ -20,17 +20,18 @@ import { existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import type Database from 'better-sqlite3';
-import { createSeededBenchmarkDatabase } from '@memento/core/test/helpers/benchmark-search-database.js';
+import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
 import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
   loadBenchmarkCorpus,
   loadBenchmarkQueries,
-} from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
-import { normalizeBenchmarkGroundTruths } from '@memento/core/test/helpers/search-quality-review-verifier.js';
+} from '../packages/memento-core/src/test/helpers/search-quality-benchmark-fixtures.js';
+import { normalizeBenchmarkGroundTruths } from '../packages/memento-core/src/test/helpers/search-quality-review-verifier.js';
 import {
   calculateNDCGAtK,
+  calculateRecallAtK,
   type SearchResult,
-} from '@memento/core/test/helpers/search-quality-metrics.js';
+} from '../packages/memento-core/src/test/helpers/search-quality-metrics.js';
 import { resetRankingWeightsCache } from '@memento/core/shared/config/ranking-weights-loader.js';
 import { BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER } from '@memento/core/shared/types/benchmark.types.js';
 
@@ -48,7 +49,31 @@ export function mean(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-export function pairedPermutationPValue(rrA: number[], rrB: number[], iterations: number): number {
+export interface ProfileEvalResult {
+  mrr: number;
+  ndcg_at_5: number;
+  ndcg_at_10: number;
+  recall_at_10: number;
+  empty_result_rate: number;
+  latency_ms: number[];
+  p95_latency_ms: number;
+  rr: number[];
+}
+
+export function calcP95(latencyMs: number[]): number {
+  if (latencyMs.length === 0) return 0;
+  const sorted = [...latencyMs].sort((a, b) => a - b);
+  // nearest-rank method: ceil(n * 0.95) - 1
+  const idx = Math.ceil(sorted.length * 0.95) - 1;
+  return sorted[Math.max(0, idx)]!;
+}
+
+export function pairedPermutationPValue(
+  rrA: number[],
+  rrB: number[],
+  iterations: number,
+  rng: () => number = Math.random,
+): number {
   const n = rrA.length;
   if (n === 0) {
     return 1;
@@ -62,7 +87,7 @@ export function pairedPermutationPValue(rrA: number[], rrB: number[], iterations
   for (let it = 0; it < iterations; it++) {
     let s = 0;
     for (let i = 0; i < n; i++) {
-      const flip = Math.random() < 0.5 ? 1 : -1;
+      const flip = rng() < 0.5 ? 1 : -1;
       s += diff[i]! * flip;
     }
     if (Math.abs(s / n) >= observed - 1e-12) {
@@ -72,15 +97,16 @@ export function pairedPermutationPValue(rrA: number[], rrB: number[], iterations
   return count / iterations;
 }
 
-async function runProfile(
+export async function evaluateProfile(
   db: Database.Database,
-  profilePath: string
-): Promise<{ mrr: number; ndcg5: number; ndcg10: number; rr: number[] }> {
+  profilePath: string,
+  benchmarkDir: string = BENCHMARK_DIR,
+): Promise<ProfileEvalResult> {
   resetRankingWeightsCache();
 
-  const queries = loadBenchmarkQueries(BENCHMARK_DIR);
-  const groundTruths = normalizeBenchmarkGroundTruths(BENCHMARK_DIR);
-  const corpus = loadBenchmarkCorpus(BENCHMARK_DIR);
+  const queries = loadBenchmarkQueries(benchmarkDir);
+  const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir);
+  const corpus = loadBenchmarkCorpus(benchmarkDir);
   const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
   const qById = new Map(queries.map((q) => [q.query_id, q]));
 
@@ -88,15 +114,18 @@ async function runProfile(
     rankingWeightsPath: resolve(profilePath),
   });
   const queryResults = new Map<string, SearchResult[]>();
+  const latencyMs: number[] = [];
 
   for (const gt of groundTruths) {
     const qrow = qById.get(gt.queryId);
     const queryText = qrow?.query ?? gt.queryId;
+    const t0 = performance.now();
     const sr = await searchEngine.search(db, {
       query: queryText,
       limit: 20,
       provider_filter: BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
     });
+    latencyMs.push(performance.now() - t0);
     const mapped: SearchResult[] = sr.items.map((item) => ({
       id: memoryIdToBenchmarkId.get(item.id) ?? item.id,
       score: item.finalScore,
@@ -124,20 +153,29 @@ async function runProfile(
 
   let ndcg5 = 0;
   let ndcg10 = 0;
+  let recall10 = 0;
+  let emptyCount = 0;
   const ndcgDenom = groundTruths.length;
+
   for (const gt of groundTruths) {
-    const results = queryResults.get(gt.queryId);
-    if (!results || results.length === 0) {
+    const results = queryResults.get(gt.queryId) ?? [];
+    if (results.length === 0) {
+      emptyCount++;
       continue;
     }
     ndcg5 += calculateNDCGAtK(results, gt.relevantIds, 5);
     ndcg10 += calculateNDCGAtK(results, gt.relevantIds, 10);
+    recall10 += calculateRecallAtK(results, gt.relevantIds, 10);
   }
 
   return {
     mrr,
-    ndcg5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
-    ndcg10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,
+    ndcg_at_5: ndcgDenom > 0 ? ndcg5 / ndcgDenom : 0,
+    ndcg_at_10: ndcgDenom > 0 ? ndcg10 / ndcgDenom : 0,
+    recall_at_10: ndcgDenom > 0 ? recall10 / ndcgDenom : 0,
+    empty_result_rate: ndcgDenom > 0 ? emptyCount / ndcgDenom : 0,
+    latency_ms: latencyMs,
+    p95_latency_ms: calcP95(latencyMs),
     rr,
   };
 }
@@ -178,10 +216,9 @@ async function main(): Promise<void> {
 
   const { db, close } = await createSeededBenchmarkDatabase(BENCHMARK_DIR);
   try {
-    const a = await runProfile(db, pathA);
-    const b = await runProfile(db, pathB);
+    const a = await evaluateProfile(db, pathA);
+    const b = await evaluateProfile(db, pathB);
     const pVal = pairedPermutationPValue(a.rr, b.rr, PERM_ITER);
-    /** B − A (리포트 `mrr_delta`와 동일 부호 — 양수면 B가 MRR 우위) */
     const mrrDelta = b.mrr - a.mrr;
 
     let verdict: 'a_better' | 'b_better' | 'inconclusive';
@@ -200,13 +237,13 @@ async function main(): Promise<void> {
       profile_b: profileB,
       profile_a_mrr: a.mrr,
       profile_b_mrr: b.mrr,
-      profile_a_ndcg_at_5: a.ndcg5,
-      profile_b_ndcg_at_5: b.ndcg5,
-      profile_a_ndcg_at_10: a.ndcg10,
-      profile_b_ndcg_at_10: b.ndcg10,
+      profile_a_ndcg_at_5: a.ndcg_at_5,
+      profile_b_ndcg_at_5: b.ndcg_at_5,
+      profile_a_ndcg_at_10: a.ndcg_at_10,
+      profile_b_ndcg_at_10: b.ndcg_at_10,
       mrr_delta: mrrDelta,
-      p_value: pVal,
-      significant: pVal < 0.05,
+      mrr_p_value: pVal,
+      mrr_significant: pVal < 0.05,
       verdict,
     };
     console.log(JSON.stringify(report, null, 2));
