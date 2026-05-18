@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { stringify } from '@iarna/toml';
@@ -50,9 +50,11 @@ export function parseTuneArgs(argv: string[]): TuneArgs {
   };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--candidates' && argv[i + 1]) {
-      args.candidates = parseInt(argv[++i]!, 10);
+      const v = parseInt(argv[++i]!, 10);
+      if (!isNaN(v) && v > 0) args.candidates = v;
     } else if (argv[i] === '--seed' && argv[i + 1]) {
-      args.seed = parseInt(argv[++i]!, 10);
+      const v = parseInt(argv[++i]!, 10);
+      if (!isNaN(v)) args.seed = v;
     } else if (argv[i] === '--benchmark-dir' && argv[i + 1]) {
       args.benchmarkDir = argv[++i]!;
     } else if (argv[i] === '--output-dir' && argv[i + 1]) {
@@ -104,6 +106,9 @@ async function main(): Promise<void> {
   const rand = mulberry32(args.seed);
 
   const baselineProfilePath = join(PROFILES_DIR, `${args.baselineProfile}.toml`);
+  if (!existsSync(baselineProfilePath)) {
+    throw new Error(`랭킹 프로파일 파일을 찾을 수 없습니다: ${baselineProfilePath}`);
+  }
   const baselineConfig = loadRankingWeights(baselineProfilePath);
   const baselineWeights = baselineConfig.ranking_weights;
 
