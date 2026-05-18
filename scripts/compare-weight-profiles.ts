@@ -10,7 +10,7 @@
  * `config/ranking-weights.toml` 및 `config/ranking-profiles/*.toml`은 자동 갱신하지 않는다(오프라인 A/B).
  *
  * US4 / CI 기준선 반영(수동 운영):
- * 1) `significant`·`p_value`·`verdict` 확인
+ * 1) `mrr_significant`·`mrr_p_value`·`verdict` 확인
  * 2) 우승 프로파일 TOML 내용을 `config/ranking-weights.toml`에 반영(필요 시 `default.toml` 동기화)
  * 3) PR 머지 — CI는 머지된 커밋의 TOML을 읽는다
  * 상세: `specs/004-recall-quality-feedback-loop/contracts/mcp-tools.md` §3.3
