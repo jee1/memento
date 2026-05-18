@@ -70,7 +70,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const summary: Summary = JSON.parse(readFileSync(summaryPath, 'utf-8'));
+  let summary: Summary;
+  try {
+    summary = JSON.parse(readFileSync(summaryPath, 'utf-8'));
+  } catch {
+    console.error(`Failed to parse summary.json in ${runDir}: invalid JSON`);
+    process.exit(1);
+  }
 
   console.log('=== Tuning Run Report ===');
   console.log(`Seed:                    ${summary.seed}`);
@@ -82,7 +88,7 @@ async function main(): Promise<void> {
     `Baseline composite score: ${summary.baseline_composite_score?.toFixed(4) ?? 'N/A'}`,
   );
   console.log(
-    `Best composite score:    ${summary.best_composite_score != null ? summary.best_composite_score.toFixed(4) : 'N/A'}`,
+    `Best composite score:    ${summary.best_composite_score?.toFixed(4) ?? 'N/A'}`,
   );
   console.log(`MRR p-value:             ${summary.mrr_p_value?.toFixed(4) ?? 'N/A'}`);
   console.log(`MRR significant:         ${summary.mrr_significant}`);
