@@ -45,7 +45,7 @@ describe('compare-weight-profiles (T026)', () => {
   });
 
   it('pairedPermutationPValue — seeded rng 주입 시 재현성', () => {
-    let seed = 42;
+    const seed = 42;
     const makeRng = () => {
       let s = seed;
       return () => {
