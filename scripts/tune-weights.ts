@@ -51,10 +51,12 @@ export function parseTuneArgs(argv: string[]): TuneArgs {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--candidates' && argv[i + 1]) {
       const v = parseInt(argv[++i]!, 10);
-      if (!isNaN(v) && v > 0) args.candidates = v;
+      if (isNaN(v) || v <= 0) throw new Error(`--candidates must be a positive integer, got: ${argv[i]}`);
+      args.candidates = v;
     } else if (argv[i] === '--seed' && argv[i + 1]) {
       const v = parseInt(argv[++i]!, 10);
-      if (!isNaN(v)) args.seed = v;
+      if (isNaN(v)) throw new Error(`--seed must be an integer, got: ${argv[i]}`);
+      args.seed = v;
     } else if (argv[i] === '--benchmark-dir' && argv[i + 1]) {
       args.benchmarkDir = argv[++i]!;
     } else if (argv[i] === '--output-dir' && argv[i + 1]) {
@@ -147,7 +149,7 @@ async function main(): Promise<void> {
         relation_weights: baselineConfig.relation_weights,
       };
       const tmpTomlPath = join(candidatesDir, `candidate-${i}.toml`);
-      writeFileSync(tmpTomlPath, stringify(candidateConfig as Record<string, unknown>));
+      writeFileSync(tmpTomlPath, stringify(JSON.parse(JSON.stringify(candidateConfig))));
 
       const result = await evaluateProfile(db, tmpTomlPath, args.benchmarkDir);
       const score = compositeScore(result, baseline);

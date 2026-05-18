@@ -21,7 +21,12 @@ function findLatestRunDir(tuneDir: string): string | null {
   if (!existsSync(tuneDir)) return null;
   const entries = readdirSync(tuneDir, { withFileTypes: true })
     .filter((e) => e.isDirectory() && e.name.startsWith('run-'))
-    .sort((a, b) => b.name.localeCompare(a.name));
+    .sort((a, b) => {
+      const seedA = parseInt(a.name.slice(4), 10);
+      const seedB = parseInt(b.name.slice(4), 10);
+      if (!isNaN(seedA) && !isNaN(seedB)) return seedB - seedA;
+      return b.name.localeCompare(a.name);
+    });
   const latest = entries[0];
   return latest ? join(tuneDir, latest.name) : null;
 }
