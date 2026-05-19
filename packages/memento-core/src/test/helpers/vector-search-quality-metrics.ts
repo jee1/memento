@@ -14,7 +14,7 @@ import {
   loadBenchmarkGroundTruth,
   loadBenchmarkManifest,
 } from './search-quality-benchmark-fixtures.js';
-import type { HybridSearchResult } from '@memento/core/domains/search/algorithms/hybrid-search-engine.js';
+import type { HybridSearchResult } from '../../domains/search/algorithms/hybrid-search-engine.js';
 import {
   calculatePrecisionAtK,
   calculateRecallAtK,

@@ -7,14 +7,14 @@ import Database from 'better-sqlite3';
 import { existsSync, mkdtempSync, rmSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { closeDatabase, initializeDatabase } from '@memento/core/infrastructure/database/database/init.js';
-import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
-import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
+import { closeDatabase, initializeDatabase } from '../../infrastructure/database/database/init.js';
+import { MemoryEmbeddingService } from '../../domains/memory/services/memory-embedding-service.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
 import {
   loadBenchmarkCorpus,
   type BenchmarkCorpusEntry,
 } from './search-quality-benchmark-fixtures.js';
-import type { MemoryType } from '@memento/core/index.js';
+import type { MemoryType } from '../../index.js';
 
 const VALID_TYPES = new Set(['working', 'episodic', 'semantic', 'procedural']);
 
