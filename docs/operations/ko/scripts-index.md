@@ -15,6 +15,9 @@
 | quality-thresholds.ts | 품질 임계값 | `npm run quality:thresholds` |
 | quality-report.ts | 품질 리포트 | `npm run quality:report` |
 | generate-ground-truth.ts | ground truth 생성 | `npm run quality:ground-truth:generate` |
+| compare-weight-profiles.ts | 랭킹 프로파일 A/B 비교 (MRR·NDCG·permutation test) | `npm run quality:benchmark:compare-profiles` |
+| tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality:benchmark:tune-weights` |
+| tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality:benchmark:tune-report` |
 | migrate-embedding-data.js | 임베딩 데이터 마이그레이션 | `npm run migrate:embedding`, `migrate:embedding:analyze`, `migrate:embedding:rollback` |
 | backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
 | regenerate-embeddings.js | 임베딩 재생성 | `npm run regenerate:embeddings` |
