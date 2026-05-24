@@ -249,6 +249,31 @@ describe('VectorSearchRepositoryImpl', () => {
       logSpy.mockRestore();
     });
 
+    it('512차원 쿼리를 minilm(384 vec)에 넘겨도 sqlite Dimension mismatch가 나면 안 됨 (issue #436)', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
+      const logSpy = vi.spyOn(mcpLogger, 'logServer');
+      const query: VectorSearchQuery = {
+        queryVector: new Array(512).fill(0.03),
+        provider: 'minilm',
+      };
+
+      await repository.search(query);
+
+      const dimensionMismatchLogs = logSpy.mock.calls.filter((call) => {
+        if (call[0] !== 'error' || call[1] !== '벡터 검색 실패') {
+          return false;
+        }
+        const payload = call[2] as { error?: string } | undefined;
+        return Boolean(payload?.error?.includes('Dimension mismatch'));
+      });
+      expect(dimensionMismatchLogs.length).toBe(0);
+
+      logSpy.mockRestore();
+    });
+
     it('checkVecAvailability와 search가 동일한 provider/dimension 규칙을 사용해야 함', async () => {
       const query: VectorSearchQuery = {
         queryVector: new Array(512).fill(0.03),
