@@ -726,6 +726,22 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
     return (provider ?? 'tfidf').toLowerCase() === 'tfidf';
   }
 
+  /**
+   * vec0 가상 테이블 스키마 차원. getTableName()이 dimensions 인자를 무시하는 provider에서
+   * metadata targetDimensions(예: 512)와 실제 테이블(384) 불일치로 MATCH 오류가 나는 것을 막습니다.
+   */
+  private getVecTableSchemaDimensions(tableName: string): number {
+    const { providerDimensions, defaultDimensions } = VECTOR_SEARCH_CONFIG;
+    const schemaByTable: Record<string, number> = {
+      memory_item_vec: providerDimensions.lightweight ?? defaultDimensions,
+      memory_item_vec_tfidf: providerDimensions.tfidf ?? defaultDimensions,
+      memory_item_vec_minilm: providerDimensions.minilm ?? defaultDimensions,
+      memory_item_vec_openai: providerDimensions.openai ?? defaultDimensions,
+      memory_item_vec_gemini: providerDimensions.gemini ?? defaultDimensions,
+    };
+    return schemaByTable[tableName] ?? defaultDimensions;
+  }
+
   private resolveRuntimeVectorContext(provider?: string): {
     provider: string;
     expectedDimensions: number;
@@ -759,8 +775,18 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       });
     }
 
-    const targetDimensions = actualStoredDimensions ?? expectedDimensions;
-    const tableName = this.getTableName(effectiveProvider, targetDimensions);
+    const preliminaryTargetDimensions = actualStoredDimensions ?? expectedDimensions;
+    const tableName = this.getTableName(effectiveProvider, preliminaryTargetDimensions);
+    const targetDimensions = this.getVecTableSchemaDimensions(tableName);
+
+    if (targetDimensions !== preliminaryTargetDimensions) {
+      mcpLogger.logServer('warn', 'vec0 테이블 스키마 차원으로 MATCH 차원을 보정했습니다', {
+        provider: effectiveProvider,
+        preliminaryTargetDimensions,
+        targetDimensions,
+        tableName,
+      });
+    }
 
     return {
       provider: effectiveProvider,
