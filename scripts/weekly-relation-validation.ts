@@ -12,12 +12,15 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import Database from 'better-sqlite3';
-import { RelationExtractor } from '../src/services/relation-extractor.js';
-import { RelationQualityValidator } from '../src/services/relation-quality-validator.js';
-import type { ExpectedRelation, ExtractedRelation } from '../src/services/relation-quality-validator.js';
-import { DatabaseUtils } from '../src/utils/database.js';
-import { RelationEngineSchemaMigration } from '../src/database/migration/migrations/005-relation-engine-schema.js';
-import type { MemoryItem } from '../src/types/index.js';
+import { RelationExtractor } from '../packages/memento-core/src/domains/relation/services/relation-extractor.js';
+import {
+  RelationQualityValidator,
+  type ExpectedRelation,
+  type ExtractedRelation,
+} from '../packages/memento-core/src/domains/relation/services/relation-quality-validator.js';
+import { DatabaseUtils } from '../packages/memento-core/src/shared/utils/database.js';
+import { RelationEngineSchemaMigration } from '../packages/memento-core/src/infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+import type { MemoryItem } from '../packages/memento-core/src/shared/types/index.js';
 
 /**
  * 명령줄 인자 파싱
