@@ -15,6 +15,8 @@ const mockState = vi.hoisted(() => {
     diagnosticsEnabled: false,
     diagnosticsIntervalMs: 15000,
     diagnosticsLogDir: '/tmp/memento-diagnostics',
+    diagnosticsJsonlMaxBytes: 67108864,
+    diagnosticsJsonlRetainFiles: 3,
     consolidationScoreEnabled: false,
     batchSchedulerEnabled: true,
     walCheckpointEnabled: true,

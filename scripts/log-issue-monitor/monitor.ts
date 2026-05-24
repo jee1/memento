@@ -8,8 +8,8 @@ import { parseAppLogLine, parseJsonlRecord } from './parsers.js';
 import { shouldSyncToGitHub } from './promotion.js';
 import { sanitizeExcerpt } from './sanitizer.js';
 import { appendOccurrence, loadState, saveState, upsertOccurrence } from './state-store.js';
-import type { JsonlFileCursors, JsonlReadSkip, LogIssueOccurrence, MonitorConfig } from './types.js';
 import type { ReadJsonlFilesResult } from './sources.js';
+import type { JsonlFileCursors, JsonlReadSkip, LogIssueOccurrence, MonitorConfig } from './types.js';
 
 export interface MonitorCycleDeps {
   readDockerLogs: (containerName: string, since?: string) => Promise<string[]>;
@@ -164,4 +164,3 @@ export async function runMonitorCycle(config: MonitorConfig, deps: MonitorCycleD
     await recordMonitorError(config.stateDir, normalized);
   }
 }
-

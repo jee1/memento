@@ -16,7 +16,9 @@ export async function createMonitoringAndSchedulers(db: Database.Database): Prom
   performanceMonitor.initialize(db);
   const runtimeDiagnosticsLogger = new RuntimeDiagnosticsLogger(
     mementoConfig.diagnosticsEnabled,
-    mementoConfig.diagnosticsLogDir
+    mementoConfig.diagnosticsLogDir,
+    mementoConfig.diagnosticsJsonlMaxBytes,
+    mementoConfig.diagnosticsJsonlRetainFiles,
   );
   await runtimeDiagnosticsLogger.writeEvent({
     type: 'bootstrap_start',

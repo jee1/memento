@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
 
 /**
  * 쿼리 타입
