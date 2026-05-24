@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { loadMonitorConfig } from './config.js';
 import { GitHubIssueClient } from './github-client.js';
 import { runMonitorCycle } from './monitor.js';
-import { readDockerLogs, readJsonlFiles } from './sources.js';
+import { readDockerLogs, readJsonlFiles as readJsonlFilesFromSources } from './sources.js';
 import type { MonitorConfig } from './types.js';
 
 function isExecutedAsMainCli(): boolean {
@@ -35,7 +35,7 @@ export async function runForever(): Promise<void> {
     await runMonitorCycle(config, {
       readDockerLogs,
       readJsonlFiles: (logsRoot, cursors, maxReadBytes) =>
-        readJsonlFiles(logsRoot, cursors, maxReadBytes ?? config.jsonlMaxReadBytes),
+        readJsonlFilesFromSources(logsRoot, cursors, maxReadBytes ?? config.jsonlMaxReadBytes),
       githubClient,
       onMonitorError: error => {
         process.stderr.write(`log-issue-monitor error: ${error.message}\n`);

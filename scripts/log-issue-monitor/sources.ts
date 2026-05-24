@@ -280,7 +280,9 @@ export async function readJsonlFiles(
       if (directory === dockerDiagnosticsDir && file === DOCKER_INSPECT_JSONL) {
         records.push(lines[lines.length - 1]!);
       } else {
-        records.push(...lines);
+        for (const line of lines) {
+          records.push(line);
+        }
       }
     }
   }
