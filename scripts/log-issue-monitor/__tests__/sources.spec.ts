@@ -88,7 +88,7 @@ describe('readJsonlFiles', () => {
     });
     await writeFile(join(dockerDiag, 'docker-inspect.jsonl'), `${oldUnhealthy}\n${newHealthy}\n`, 'utf8');
 
-    const lines = await readJsonlFiles(root);
+    const { lines } = await readJsonlFiles(root);
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0]!).State.Health.Status).toBe('healthy');
 
@@ -101,8 +101,26 @@ describe('readJsonlFiles', () => {
     await mkdir(diag, { recursive: true });
     await writeFile(join(diag, 'events.jsonl'), '{"x":1}\n{"x":2}\n', 'utf8');
 
-    const lines = await readJsonlFiles(root);
+    const { lines } = await readJsonlFiles(root);
     expect(lines).toEqual(['{"x":1}', '{"x":2}']);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it('reads only appended lines on subsequent calls using byte cursors', async () => {
+    const root = join(tmpdir(), `memento-sources-test-cursor-${Date.now()}`);
+    const diag = join(root, 'diagnostics');
+    await mkdir(diag, { recursive: true });
+    const filePath = join(diag, 'events.jsonl');
+    await writeFile(filePath, '{"x":1}\n', 'utf8');
+
+    const first = await readJsonlFiles(root);
+    expect(first.lines).toEqual(['{"x":1}']);
+    expect(first.cursors['diagnostics/events.jsonl']).toBeGreaterThan(0);
+
+    await writeFile(filePath, '{"x":1}\n{"x":2}\n', 'utf8');
+    const second = await readJsonlFiles(root, first.cursors);
+    expect(second.lines).toEqual(['{"x":2}']);
 
     await rm(root, { recursive: true, force: true });
   });

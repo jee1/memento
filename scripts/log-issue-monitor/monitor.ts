@@ -8,11 +8,12 @@ import { parseAppLogLine, parseJsonlRecord } from './parsers.js';
 import { shouldSyncToGitHub } from './promotion.js';
 import { sanitizeExcerpt } from './sanitizer.js';
 import { appendOccurrence, loadState, saveState, upsertOccurrence } from './state-store.js';
-import type { LogIssueOccurrence, MonitorConfig } from './types.js';
+import type { JsonlFileCursors, LogIssueOccurrence, MonitorConfig } from './types.js';
+import type { ReadJsonlFilesResult } from './sources.js';
 
 export interface MonitorCycleDeps {
   readDockerLogs: (containerName: string, since?: string) => Promise<string[]>;
-  readJsonlFiles: (logsRoot: string) => Promise<string[]>;
+  readJsonlFiles: (logsRoot: string, cursors?: JsonlFileCursors) => Promise<ReadJsonlFilesResult>;
   githubClient?: GitHubIssueClient;
   onMonitorError: (error: Error) => void;
 }
@@ -103,8 +104,9 @@ async function syncFingerprint(
 export async function runMonitorCycle(config: MonitorConfig, deps: MonitorCycleDeps): Promise<void> {
   try {
     let state = await loadState(config.stateDir);
-    const dockerLines = await deps.readDockerLogs(config.containerName, state.cursors.dockerLogsSince as string | undefined);
-    const jsonlLines = await deps.readJsonlFiles(config.logsRoot);
+    const dockerLines = await deps.readDockerLogs(config.containerName, state.cursors.dockerLogsSince);
+    const jsonlResult = await deps.readJsonlFiles(config.logsRoot, state.cursors.jsonlFiles);
+    const jsonlLines = jsonlResult.lines;
 
     const occurrences: LogIssueOccurrence[] = [];
     for (const line of dockerLines) {
@@ -126,6 +128,7 @@ export async function runMonitorCycle(config: MonitorConfig, deps: MonitorCycleD
     }
 
     state.cursors.dockerLogsSince = new Date().toISOString();
+    state.cursors.jsonlFiles = jsonlResult.cursors;
     await saveState(config.stateDir, state);
 
     for (const occurrence of occurrences) {

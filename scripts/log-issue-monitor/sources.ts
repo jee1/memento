@@ -1,6 +1,8 @@
 import { execFile, type ExecFileOptions } from 'node:child_process';
-import { readdir, readFile, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { open, readdir, stat } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+
+import type { JsonlFileCursors } from './types.js';
 
 const execOpts: ExecFileOptions = { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 };
 
@@ -18,6 +20,68 @@ export function splitJsonlLines(content: string): string[] {
 }
 
 export type ExecFileLike = typeof execFile;
+
+export interface ReadJsonlFilesResult {
+  lines: string[];
+  cursors: JsonlFileCursors;
+}
+
+function cursorKey(logsRoot: string, filePath: string): string {
+  return relative(logsRoot, filePath);
+}
+
+async function readIncrementalJsonlLines(
+  filePath: string,
+  offset: number,
+): Promise<{ lines: string[]; nextOffset: number }> {
+  const handle = await open(filePath, 'r');
+  try {
+    const { size } = await handle.stat();
+    if (offset > size) {
+      offset = 0;
+    }
+
+    const length = size - offset;
+    if (length <= 0) {
+      return { lines: [], nextOffset: offset };
+    }
+
+    const buffer = Buffer.alloc(length);
+    const { bytesRead } = await handle.read(buffer, 0, length, offset);
+    const chunk = buffer.subarray(0, bytesRead);
+
+    let start = 0;
+    if (offset > 0) {
+      const priorByte = Buffer.alloc(1);
+      await handle.read(priorByte, 0, 1, offset - 1);
+      if (priorByte[0] !== 0x0a) {
+        const firstNewline = chunk.indexOf(0x0a);
+        if (firstNewline === -1) {
+          return { lines: [], nextOffset: offset };
+        }
+        start = firstNewline + 1;
+      }
+    }
+
+    if (start >= chunk.length) {
+      return { lines: [], nextOffset: size };
+    }
+
+    let end = chunk.length;
+    if (chunk[chunk.length - 1] !== 0x0a) {
+      const lastNewline = chunk.lastIndexOf(0x0a);
+      if (lastNewline < start) {
+        return { lines: [], nextOffset: offset };
+      }
+      end = lastNewline + 1;
+    }
+
+    const lines = splitJsonlLines(chunk.subarray(start, end).toString('utf8'));
+    return { lines, nextOffset: offset + end };
+  } finally {
+    await handle.close();
+  }
+}
 
 function runDocker(
   args: readonly string[],
@@ -115,11 +179,15 @@ export async function readDockerLogs(
     .filter(Boolean);
 }
 
-export async function readJsonlFiles(logsRoot: string): Promise<string[]> {
+export async function readJsonlFiles(
+  logsRoot: string,
+  cursors: JsonlFileCursors = {},
+): Promise<ReadJsonlFilesResult> {
   const diagnosticsDir = join(logsRoot, 'diagnostics');
   const dockerDiagnosticsDir = join(logsRoot, 'docker-diagnostics');
   const directories = [diagnosticsDir, dockerDiagnosticsDir];
   const records: string[] = [];
+  const nextCursors: JsonlFileCursors = { ...cursors };
 
   for (const directory of directories) {
     let files: string[] = [];
@@ -134,7 +202,11 @@ export async function readJsonlFiles(logsRoot: string): Promise<string[]> {
       const info = await stat(path);
       if (!info.isFile()) continue;
 
-      const lines = splitJsonlLines(await readFile(path, 'utf8'));
+      const key = cursorKey(logsRoot, path);
+      const offset = cursors[key] ?? 0;
+      const { lines, nextOffset } = await readIncrementalJsonlLines(path, offset);
+      nextCursors[key] = nextOffset;
+
       if (lines.length === 0) continue;
 
       if (directory === dockerDiagnosticsDir && file === DOCKER_INSPECT_JSONL) {
@@ -145,6 +217,5 @@ export async function readJsonlFiles(logsRoot: string): Promise<string[]> {
     }
   }
 
-  return records;
+  return { lines: records, cursors: nextCursors };
 }
-
