@@ -84,19 +84,24 @@ describe('RuntimeDiagnosticsLogger', () => {
   it('writeSample이 JSONL 파일에 기록해야 한다', async () => {
     const appendFileMock = vi.fn().mockResolvedValue(undefined);
     const mkdirMock = vi.fn().mockResolvedValue(undefined);
+    const rotateMock = vi.fn().mockResolvedValue(false);
 
     vi.doMock('fs/promises', () => ({
       appendFile: appendFileMock,
       mkdir: mkdirMock
     }));
+    vi.doMock('../../../../shared/utils/jsonl-rotation.js', () => ({
+      rotateJsonlIfNeeded: rotateMock
+    }));
 
     try {
       const { RuntimeDiagnosticsLogger } = await import('../runtime-diagnostics-logger.js');
-      const logger = new RuntimeDiagnosticsLogger(true, '/tmp/memento-diagnostics');
+      const logger = new RuntimeDiagnosticsLogger(true, '/tmp/memento-diagnostics', 1024, 2);
 
       await expect(logger.writeSample({ type: 'sample', count: 1 })).resolves.toBeUndefined();
 
       expect(mkdirMock).toHaveBeenCalledWith('/tmp/memento-diagnostics', { recursive: true });
+      expect(rotateMock).toHaveBeenCalledWith('/tmp/memento-diagnostics/app-runtime.jsonl', 1024, 2);
       expect(appendFileMock).toHaveBeenCalledWith(
         '/tmp/memento-diagnostics/app-runtime.jsonl',
         '{"type":"sample","count":1}\n',
@@ -104,6 +109,7 @@ describe('RuntimeDiagnosticsLogger', () => {
       );
     } finally {
       vi.doUnmock('fs/promises');
+      vi.doUnmock('../../../../shared/utils/jsonl-rotation.js');
     }
   });
 

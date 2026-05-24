@@ -279,6 +279,8 @@ export interface MementoConfig {
   diagnosticsEnabled: boolean;
   diagnosticsIntervalMs: number;
   diagnosticsLogDir: string;
+  diagnosticsJsonlMaxBytes: number;
+  diagnosticsJsonlRetainFiles: number;
   // 데이터베이스 락 모니터 설정
   lockMonitorIntervalMs: number;
   lockMonitorWarningThresholdMs: number;

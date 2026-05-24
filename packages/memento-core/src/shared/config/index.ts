@@ -91,6 +91,8 @@ export const mementoConfig: MementoConfig = {
   diagnosticsEnabled: resolveBoolean('DIAGNOSTICS_ENABLED', { defaultValue: false }),
   diagnosticsIntervalMs: resolveNumber('DIAGNOSTICS_INTERVAL_MS', { defaultValue: 15000 }),
   diagnosticsLogDir: resolveString('DIAGNOSTICS_LOG_DIR', { defaultValue: '/app/logs/diagnostics' }),
+  diagnosticsJsonlMaxBytes: resolveNumber('DIAGNOSTICS_JSONL_MAX_BYTES', { defaultValue: 64 * 1024 * 1024 }),
+  diagnosticsJsonlRetainFiles: resolveNumber('DIAGNOSTICS_JSONL_RETAIN_FILES', { defaultValue: 3 }),
 
   // 데이터베이스 락 모니터 설정
   lockMonitorIntervalMs: resolveNumber('LOCK_MONITOR_INTERVAL_MS', { defaultValue: 60000 }),
