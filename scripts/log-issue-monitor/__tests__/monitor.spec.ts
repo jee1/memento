@@ -36,7 +36,7 @@ describe('runMonitorCycle', () => {
   it('records detected app log errors locally in dry-run mode', async () => {
     await runMonitorCycle(config(), {
       readDockerLogs: async () => ['2026-05-02T00:00:00.000Z | ERROR | DB failed | {"component":"db"}'],
-      readJsonlFiles: async () => [],
+      readJsonlFiles: async () => ({ lines: [], cursors: {} }),
       githubClient: undefined,
       onMonitorError: vi.fn(),
     });
@@ -59,7 +59,7 @@ describe('runMonitorCycle', () => {
 
     await runMonitorCycle(config({ dryRun: false, githubToken: 'ghp_token' }), {
       readDockerLogs: async () => ['2026-05-02T00:00:00.000Z | ERROR | DB failed | {"component":"db"}'],
-      readJsonlFiles: async () => [],
+      readJsonlFiles: async () => ({ lines: [], cursors: {} }),
       githubClient: githubClient as never,
       onMonitorError: vi.fn(),
     });

@@ -48,8 +48,15 @@ export interface LogIssueFingerprintState {
   lastSyncError?: string;
 }
 
+/** Byte offsets keyed by path relative to logs root (e.g. `diagnostics/app-runtime.jsonl`). */
+export type JsonlFileCursors = Record<string, number>;
+
 export interface LogIssueState {
   version: 1;
-  cursors: Record<string, unknown>;
+  cursors: {
+    dockerLogsSince?: string;
+    jsonlFiles?: JsonlFileCursors;
+    [key: string]: unknown;
+  };
   fingerprints: Record<string, LogIssueFingerprintState>;
 }
