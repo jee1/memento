@@ -139,4 +139,16 @@ describe('readJsonlFiles', () => {
 
     await rm(root, { recursive: true, force: true });
   });
+
+  it('concatenates many lines without spread stack overflow', async () => {
+    const root = join(tmpdir(), `memento-sources-test-many-${Date.now()}`);
+    const diag = join(root, 'diagnostics');
+    await mkdir(diag, { recursive: true });
+    const payload = `${'{"n":1}\n'.repeat(20_000)}`;
+    await writeFile(join(diag, 'events.jsonl'), payload, 'utf8');
+
+    await expect(readJsonlFiles(root)).resolves.toMatchObject({ lines: expect.any(Array) });
+
+    await rm(root, { recursive: true, force: true });
+  });
 });
