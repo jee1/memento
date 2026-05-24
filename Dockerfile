@@ -56,6 +56,7 @@ WORKDIR /app
 # Copy package files and scripts, then install dependencies
 COPY package*.json ./
 COPY scripts/ ./scripts/
+COPY tests/fixtures/relation_testset.json ./tests/fixtures/relation_testset.json
 # 소스·워크스페이스 미복사 상태 — postinstall(auto-setup)은 패키지 경로가 없어 실패하므로 스크립트 생략
 RUN npm cache clean --force && npm install --omit=dev --ignore-scripts
 

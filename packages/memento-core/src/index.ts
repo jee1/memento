@@ -122,6 +122,12 @@ export { SchemaVersionManager } from './infrastructure/database/database/migrati
 export { MigrationDetector } from './infrastructure/database/database/migration/migration-detector.js';
 export { createRelationGraph } from './infrastructure/relation-graph-factory.js';
 export { RelationExtractor } from './domains/relation/services/relation-extractor.js';
+export {
+  RelationQualityValidator,
+  type ExpectedRelation,
+  type ExtractedRelation,
+} from './domains/relation/services/relation-quality-validator.js';
+export { RelationEngineSchemaMigration } from './infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 export { ExtractRelationsTool } from './domains/relation/tools/extract-relations-tool.js';
 export { GetRelationsTool } from './domains/relation/tools/get-relations-tool.js';
 export { AddRelationTool } from './domains/relation/tools/add-relation-tool.js';
