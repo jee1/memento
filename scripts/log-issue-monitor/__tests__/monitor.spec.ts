@@ -28,6 +28,7 @@ function config(overrides: Partial<MonitorConfig> = {}): MonitorConfig {
     labels: ['bug', 'memento-log-monitor'],
     maxExcerptBytes: 6000,
     includeStack: true,
+    jsonlMaxReadBytes: 64 * 1024 * 1024,
     ...overrides,
   };
 }
@@ -36,7 +37,7 @@ describe('runMonitorCycle', () => {
   it('records detected app log errors locally in dry-run mode', async () => {
     await runMonitorCycle(config(), {
       readDockerLogs: async () => ['2026-05-02T00:00:00.000Z | ERROR | DB failed | {"component":"db"}'],
-      readJsonlFiles: async () => ({ lines: [], cursors: {} }),
+      readJsonlFiles: async () => ({ lines: [], cursors: {}, skips: [] }),
       githubClient: undefined,
       onMonitorError: vi.fn(),
     });
@@ -59,7 +60,7 @@ describe('runMonitorCycle', () => {
 
     await runMonitorCycle(config({ dryRun: false, githubToken: 'ghp_token' }), {
       readDockerLogs: async () => ['2026-05-02T00:00:00.000Z | ERROR | DB failed | {"component":"db"}'],
-      readJsonlFiles: async () => ({ lines: [], cursors: {} }),
+      readJsonlFiles: async () => ({ lines: [], cursors: {}, skips: [] }),
       githubClient: githubClient as never,
       onMonitorError: vi.fn(),
     });

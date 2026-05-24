@@ -124,4 +124,19 @@ describe('readJsonlFiles', () => {
 
     await rm(root, { recursive: true, force: true });
   });
+
+  it('skips oversized unread JSONL without throwing', async () => {
+    const root = join(tmpdir(), `memento-sources-test-skip-${Date.now()}`);
+    const diag = join(root, 'diagnostics');
+    await mkdir(diag, { recursive: true });
+    await writeFile(join(diag, 'huge.jsonl'), '{"x":1}\n', 'utf8');
+
+    const { lines, skips, cursors } = await readJsonlFiles(root, {}, 1);
+    expect(lines).toEqual([]);
+    expect(skips).toHaveLength(1);
+    expect(skips[0]?.unreadBytes).toBeGreaterThan(1);
+    expect(cursors['diagnostics/huge.jsonl']).toBeGreaterThan(0);
+
+    await rm(root, { recursive: true, force: true });
+  });
 });

@@ -1,8 +1,10 @@
+import { createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { execFile, type ExecFileOptions } from 'node:child_process';
 import { open, readdir, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
-import type { JsonlFileCursors } from './types.js';
+import type { JsonlFileCursors, JsonlReadSkip } from './types.js';
 
 const execOpts: ExecFileOptions = { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 };
 
@@ -24,16 +26,95 @@ export type ExecFileLike = typeof execFile;
 export interface ReadJsonlFilesResult {
   lines: string[];
   cursors: JsonlFileCursors;
+  skips: JsonlReadSkip[];
 }
 
 function cursorKey(logsRoot: string, filePath: string): string {
   return relative(logsRoot, filePath);
 }
 
+async function findLastNewlineBefore(
+  handle: Awaited<ReturnType<typeof open>>,
+  size: number,
+): Promise<number> {
+  const chunkSize = 4096;
+  let position = size;
+  while (position > 0) {
+    const readSize = Math.min(chunkSize, position);
+    position -= readSize;
+    const buffer = Buffer.alloc(readSize);
+    await handle.read(buffer, 0, readSize, position);
+    for (let index = readSize - 1; index >= 0; index -= 1) {
+      if (buffer[index] === 0x0a) {
+        return position + index;
+      }
+    }
+  }
+  return -1;
+}
+
+async function readStreamLines(
+  filePath: string,
+  offset: number,
+  length: number,
+): Promise<{ lines: string[]; nextOffset: number }> {
+  if (length <= 0) {
+    return { lines: [], nextOffset: offset };
+  }
+
+  const end = offset + length - 1;
+  let droppedPartialFirstLine = false;
+  if (offset > 0) {
+    const handle = await open(filePath, 'r');
+    try {
+      const priorByte = Buffer.alloc(1);
+      await handle.read(priorByte, 0, 1, offset - 1);
+      droppedPartialFirstLine = priorByte[0] !== 0x0a;
+    } finally {
+      await handle.close();
+    }
+  }
+
+  const lines: string[] = [];
+  await new Promise<void>((resolve, reject) => {
+    const stream = createReadStream(filePath, { start: offset, end });
+    const reader = createInterface({ input: stream, crlfDelay: Infinity });
+    reader.on('line', line => {
+      if (droppedPartialFirstLine) {
+        droppedPartialFirstLine = false;
+        return;
+      }
+      const trimmed = line.trim();
+      if (trimmed) lines.push(trimmed);
+    });
+    reader.on('close', resolve);
+    reader.on('error', reject);
+    stream.on('error', reject);
+  });
+
+  const handle = await open(filePath, 'r');
+  try {
+    const { size } = await handle.stat();
+    if (size > offset && lines.length > 0) {
+      const tail = Buffer.alloc(1);
+      await handle.read(tail, 0, 1, size - 1);
+      if (tail[0] !== 0x0a) {
+        lines.pop();
+        const lastNewline = await findLastNewlineBefore(handle, size);
+        return { lines, nextOffset: lastNewline >= offset ? lastNewline + 1 : offset };
+      }
+    }
+    return { lines, nextOffset: size };
+  } finally {
+    await handle.close();
+  }
+}
+
 async function readIncrementalJsonlLines(
   filePath: string,
   offset: number,
-): Promise<{ lines: string[]; nextOffset: number }> {
+  maxReadBytes: number,
+): Promise<{ lines: string[]; nextOffset: number; skipped?: JsonlReadSkip }> {
   const handle = await open(filePath, 'r');
   try {
     const { size } = await handle.stat();
@@ -41,43 +122,24 @@ async function readIncrementalJsonlLines(
       offset = 0;
     }
 
-    const length = size - offset;
-    if (length <= 0) {
+    const unread = size - offset;
+    if (unread <= 0) {
       return { lines: [], nextOffset: offset };
     }
 
-    const buffer = Buffer.alloc(length);
-    const { bytesRead } = await handle.read(buffer, 0, length, offset);
-    const chunk = buffer.subarray(0, bytesRead);
-
-    let start = 0;
-    if (offset > 0) {
-      const priorByte = Buffer.alloc(1);
-      await handle.read(priorByte, 0, 1, offset - 1);
-      if (priorByte[0] !== 0x0a) {
-        const firstNewline = chunk.indexOf(0x0a);
-        if (firstNewline === -1) {
-          return { lines: [], nextOffset: offset };
-        }
-        start = firstNewline + 1;
-      }
+    if (maxReadBytes > 0 && unread > maxReadBytes) {
+      process.stderr.write(
+        `log-issue-monitor: skipping oversized JSONL ${filePath} (${unread} unread bytes > ${maxReadBytes}); ` +
+          'truncate or rotate the file — see docs/operations/en/log-issue-monitor.md\n',
+      );
+      return {
+        lines: [],
+        nextOffset: size,
+        skipped: { path: filePath, unreadBytes: unread, maxReadBytes },
+      };
     }
 
-    if (start >= chunk.length) {
-      return { lines: [], nextOffset: size };
-    }
-
-    let end = chunk.length;
-    if (chunk[chunk.length - 1] !== 0x0a) {
-      const lastNewline = chunk.lastIndexOf(0x0a);
-      if (lastNewline < start) {
-        return { lines: [], nextOffset: offset };
-      }
-      end = lastNewline + 1;
-    }
-
-    const lines = splitJsonlLines(chunk.subarray(start, end).toString('utf8'));
-    return { lines, nextOffset: offset + end };
+    return readStreamLines(filePath, offset, unread);
   } finally {
     await handle.close();
   }
@@ -182,12 +244,14 @@ export async function readDockerLogs(
 export async function readJsonlFiles(
   logsRoot: string,
   cursors: JsonlFileCursors = {},
+  maxReadBytes = 0,
 ): Promise<ReadJsonlFilesResult> {
   const diagnosticsDir = join(logsRoot, 'diagnostics');
   const dockerDiagnosticsDir = join(logsRoot, 'docker-diagnostics');
   const directories = [diagnosticsDir, dockerDiagnosticsDir];
   const records: string[] = [];
   const nextCursors: JsonlFileCursors = { ...cursors };
+  const skips: JsonlReadSkip[] = [];
 
   for (const directory of directories) {
     let files: string[] = [];
@@ -204,8 +268,12 @@ export async function readJsonlFiles(
 
       const key = cursorKey(logsRoot, path);
       const offset = cursors[key] ?? 0;
-      const { lines, nextOffset } = await readIncrementalJsonlLines(path, offset);
+      const { lines, nextOffset, skipped } = await readIncrementalJsonlLines(path, offset, maxReadBytes);
       nextCursors[key] = nextOffset;
+      if (skipped) {
+        skips.push(skipped);
+        continue;
+      }
 
       if (lines.length === 0) continue;
 
@@ -217,5 +285,5 @@ export async function readJsonlFiles(
     }
   }
 
-  return { lines: records, cursors: nextCursors };
+  return { lines: records, cursors: nextCursors, skips };
 }

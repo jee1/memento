@@ -34,7 +34,8 @@ export async function runForever(): Promise<void> {
   const run = async (): Promise<void> => {
     await runMonitorCycle(config, {
       readDockerLogs,
-      readJsonlFiles,
+      readJsonlFiles: (logsRoot, cursors, maxReadBytes) =>
+        readJsonlFiles(logsRoot, cursors, maxReadBytes ?? config.jsonlMaxReadBytes),
       githubClient,
       onMonitorError: error => {
         process.stderr.write(`log-issue-monitor error: ${error.message}\n`);
