@@ -65,3 +65,70 @@ GITHUB_TOKEN=... docker compose \
 ## 보안
 
 이 오버레이는 Docker socket을 마운트하므로 신뢰할 수 있는 운영/진단 환경에서만 사용합니다. GitHub로 전송되는 로그 excerpt는 민감정보 마스킹과 길이 제한을 거칩니다.
+
+## 문제 해결: `Invalid string length`
+
+### 증상
+
+컨테이너는 `restart: unless-stopped`로 **계속 실행**되지만, 로그에 아래 메시지가 **약 30초(`LOG_ISSUE_MONITOR_INTERVAL_SECONDS`)마다** 반복됩니다.
+
+```text
+log-issue-monitor error: Invalid string length
+```
+
+`~/.memento/logs/log-issue-monitor/monitor-errors.jsonl`에도 동일 오류가 기록됩니다.
+
+### 원인
+
+- `diagnostics/*.jsonl`, `docker-diagnostics/*.jsonl`이 **로테이션 없이** 커짐
+- monitor가 매 주기 **전체 파일**을 메모리에 올리려 할 때 Node.js(V8) **최대 문자열 한도(약 512MB)** 를 초과
+- **Docker 컨테이너 memory limit(예: 1GB)과는 별개** — OOM이면 `Killed`/heap OOM이 발생하며, 본 오류는 문자열 길이 한도 문제입니다
+
+관련 이슈: [#420](https://github.com/jee1/memento/issues/420)
+
+### 진단
+
+```bash
+du -sh ~/.memento/logs/diagnostics/*.jsonl ~/.memento/logs/docker-diagnostics/*.jsonl
+tail -3 ~/.memento/logs/log-issue-monitor/monitor-errors.jsonl
+```
+
+`app-runtime.jsonl` 등이 **수백 MB**이면 본 장애 패턴과 일치합니다.
+
+### 즉시 복구 (코드 배포 없이)
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.diagnostics.yml \
+  -f docker-compose.issue-monitor.yml \
+  stop log-issue-monitor
+
+mv ~/.memento/logs/diagnostics/app-runtime.jsonl \
+   ~/.memento/logs/diagnostics/app-runtime.jsonl.bak.$(date +%Y%m%d)
+touch ~/.memento/logs/diagnostics/app-runtime.jsonl
+
+# docker-diagnostics JSONL도 수십~수백 MB면 동일 처리
+for f in docker-inspect docker-stats docker-log-size; do
+  p=~/.memento/logs/docker-diagnostics/${f}.jsonl
+  if [ -f "$p" ] && [ "$(wc -c < "$p")" -gt 50000000 ]; then
+    mv "$p" "${p}.bak.$(date +%Y%m%d)"
+    touch "$p"
+  fi
+done
+
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.diagnostics.yml \
+  -f docker-compose.issue-monitor.yml \
+  start log-issue-monitor
+```
+
+복구 후 `monitor-errors.jsonl`에 새 `Invalid string length`가 더 이상 쌓이지 않는지 확인합니다.
+
+### 재발 방지
+
+- [#422](https://github.com/jee1/memento/issues/422) — 앱 diagnostics JSONL rotation
+- [#423](https://github.com/jee1/memento/issues/423) — Docker diagnostics JSONL rotation
+- [#424](https://github.com/jee1/memento/issues/424) — monitor JSONL 증분 읽기(cursor)
+- [#425](https://github.com/jee1/memento/issues/425) — 대용량 JSONL 스트리밍/방어
