@@ -20,6 +20,7 @@ describe('loadMonitorConfig', () => {
     expect(config.stateDir).toBe(join(expectedLogs, 'log-issue-monitor'));
     expect(config.maxExcerptBytes).toBe(6000);
     expect(config.includeStack).toBe(true);
+    expect(config.jsonlMaxReadBytes).toBe(64 * 1024 * 1024);
   });
 
   it('parses overrides and treats missing GitHub token as local-only capable', () => {

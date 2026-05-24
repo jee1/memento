@@ -15,6 +15,7 @@ export interface MonitorConfig {
   labels: string[];
   maxExcerptBytes: number;
   includeStack: boolean;
+  jsonlMaxReadBytes: number;
 }
 
 export interface LogIssueOccurrence {
@@ -50,6 +51,12 @@ export interface LogIssueFingerprintState {
 
 /** Byte offsets keyed by path relative to logs root (e.g. `diagnostics/app-runtime.jsonl`). */
 export type JsonlFileCursors = Record<string, number>;
+
+export interface JsonlReadSkip {
+  path: string;
+  unreadBytes: number;
+  maxReadBytes: number;
+}
 
 export interface LogIssueState {
   version: 1;

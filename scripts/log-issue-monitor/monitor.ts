@@ -8,12 +8,12 @@ import { parseAppLogLine, parseJsonlRecord } from './parsers.js';
 import { shouldSyncToGitHub } from './promotion.js';
 import { sanitizeExcerpt } from './sanitizer.js';
 import { appendOccurrence, loadState, saveState, upsertOccurrence } from './state-store.js';
-import type { JsonlFileCursors, LogIssueOccurrence, MonitorConfig } from './types.js';
 import type { ReadJsonlFilesResult } from './sources.js';
+import type { JsonlFileCursors, JsonlReadSkip, LogIssueOccurrence, MonitorConfig } from './types.js';
 
 export interface MonitorCycleDeps {
   readDockerLogs: (containerName: string, since?: string) => Promise<string[]>;
-  readJsonlFiles: (logsRoot: string, cursors?: JsonlFileCursors) => Promise<ReadJsonlFilesResult>;
+  readJsonlFiles: (logsRoot: string, cursors?: JsonlFileCursors, maxReadBytes?: number) => Promise<ReadJsonlFilesResult>;
   githubClient?: GitHubIssueClient;
   onMonitorError: (error: Error) => void;
 }
@@ -23,6 +23,22 @@ async function recordMonitorError(stateDir: string, error: Error): Promise<void>
   await appendFile(
     join(stateDir, 'monitor-errors.jsonl'),
     `${JSON.stringify({ timestamp: new Date().toISOString(), error: error.message })}\n`,
+    'utf8',
+  );
+}
+
+async function recordJsonlSkip(stateDir: string, skip: JsonlReadSkip): Promise<void> {
+  await mkdir(stateDir, { recursive: true });
+  await appendFile(
+    join(stateDir, 'monitor-errors.jsonl'),
+    `${JSON.stringify({
+      timestamp: new Date().toISOString(),
+      kind: 'jsonl_skip',
+      path: skip.path,
+      unreadBytes: skip.unreadBytes,
+      maxReadBytes: skip.maxReadBytes,
+      runbook: 'docs/operations/en/log-issue-monitor.md',
+    })}\n`,
     'utf8',
   );
 }
@@ -105,8 +121,16 @@ export async function runMonitorCycle(config: MonitorConfig, deps: MonitorCycleD
   try {
     let state = await loadState(config.stateDir);
     const dockerLines = await deps.readDockerLogs(config.containerName, state.cursors.dockerLogsSince);
-    const jsonlResult = await deps.readJsonlFiles(config.logsRoot, state.cursors.jsonlFiles);
+    const jsonlResult = await deps.readJsonlFiles(
+      config.logsRoot,
+      state.cursors.jsonlFiles,
+      config.jsonlMaxReadBytes,
+    );
     const jsonlLines = jsonlResult.lines;
+
+    for (const skip of jsonlResult.skips) {
+      await recordJsonlSkip(config.stateDir, skip);
+    }
 
     const occurrences: LogIssueOccurrence[] = [];
     for (const line of dockerLines) {
@@ -140,4 +164,3 @@ export async function runMonitorCycle(config: MonitorConfig, deps: MonitorCycleD
     await recordMonitorError(config.stateDir, normalized);
   }
 }
-

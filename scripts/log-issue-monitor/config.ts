@@ -44,5 +44,6 @@ export function loadMonitorConfig(env: NodeJS.ProcessEnv = process.env): Monitor
     labels: labelsFromEnv(env.LOG_ISSUE_MONITOR_LABELS),
     maxExcerptBytes: numberFromEnv(env.LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES, 6000),
     includeStack: booleanFromEnv(env.LOG_ISSUE_MONITOR_INCLUDE_STACK, true),
+    jsonlMaxReadBytes: numberFromEnv(env.LOG_ISSUE_MONITOR_JSONL_MAX_READ_BYTES, 64 * 1024 * 1024),
   };
 }
