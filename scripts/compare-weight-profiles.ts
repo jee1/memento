@@ -17,7 +17,7 @@
  */
 
 import { existsSync } from 'fs';
-import { join, dirname, resolve } from 'path';
+import { join, dirname, resolve, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import type Database from 'better-sqlite3';
 import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
@@ -210,8 +210,12 @@ export function parseArgs(argv: string[]): { profileA: string; profileB: string 
 
 async function main(): Promise<void> {
   const { profileA, profileB } = parseArgs(process.argv.slice(2));
-  const pathA = join(PROFILES_DIR, `${profileA}.toml`);
-  const pathB = join(PROFILES_DIR, `${profileB}.toml`);
+  const resolveProfile = (nameOrPath: string) =>
+    isAbsolute(nameOrPath)
+      ? nameOrPath.endsWith('.toml') ? nameOrPath : `${nameOrPath}.toml`
+      : join(PROFILES_DIR, `${nameOrPath}.toml`);
+  const pathA = resolveProfile(profileA);
+  const pathB = resolveProfile(profileB);
   assertRankingProfileFilesExist(pathA, pathB);
 
   const { db, close } = await createSeededBenchmarkDatabase(BENCHMARK_DIR);

@@ -4,8 +4,8 @@
  */
 
 import Database from 'better-sqlite3';
-import { DatabaseUtils } from '@memento/core/shared/utils/database.js';
-import type { MemoryType } from '@memento/core/index.js';
+import { DatabaseUtils } from '../../shared/utils/database.js';
+import type { MemoryType } from '../../index.js';
 
 export interface TestMemoryItem {
   id: string;
