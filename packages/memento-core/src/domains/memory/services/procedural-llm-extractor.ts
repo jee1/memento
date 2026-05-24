@@ -5,6 +5,7 @@
 
 import { logger } from '../../../shared/utils/logger.js';
 import { mementoConfig } from '../../../shared/config/index.js';
+import { resolveLlmModel } from '../../../shared/config/llm-model-resolver.js';
 import type { IProceduralMemoryExtractor, ExtractedProceduralMemory, ReflectionNotes } from '../../../shared/utils/procedural-memory-extractor.types.js';
 import type { FailureEvent } from '../../monitoring/services/failure-detector.js';
 import { LLMClientInitializer } from '../../../shared/services/llm-client-initializer.js';
@@ -108,7 +109,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     const res = await this.retryManager.retry(
       async () => {
         return await client.chat.completions.create({
-          model: mementoConfig.openaiLlmModel || 'gpt-4o-mini',
+          model: resolveLlmModel('openai', 'procedural'),
           messages: messages as OpenAI.ChatCompletionMessageParam[],
           temperature: 0.3,
           max_tokens: 1024,
@@ -138,7 +139,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     return await this.retryManager.retry(
       async () => {
         const model = client.getGenerativeModel({
-          model: mementoConfig.geminiModel || 'gemini-1.5-flash'
+          model: resolveLlmModel('gemini', 'procedural')
         });
         const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const controller = new AbortController();

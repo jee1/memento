@@ -10,6 +10,8 @@ const mockMementoConfig = vi.hoisted(() => ({
   ollamaModel: 'llama3',
   openaiLlmModel: 'gpt-4o-mini',
   geminiModel: 'gemini-1.5-flash',
+  geminiLlmModel: 'gemini-2.0-flash',
+  llmModelOverrides: {},
   llmProvider: 'auto' as const
 }));
 
@@ -56,6 +58,8 @@ export function resetLlmClientInitializerTestEnv(): void {
   mockMementoConfig.ollamaModel = 'llama3';
   mockMementoConfig.openaiLlmModel = 'gpt-4o-mini';
   mockMementoConfig.geminiModel = 'gemini-1.5-flash';
+  mockMementoConfig.geminiLlmModel = 'gemini-2.0-flash';
+  mockMementoConfig.llmModelOverrides = {};
   mockMementoConfig.llmProvider = 'auto';
   globalThis.fetch = originalFetch;
   globalThis.AbortSignal = originalAbortSignal;

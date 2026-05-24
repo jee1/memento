@@ -21,7 +21,14 @@ OPENAI_LLM_MODEL=gpt-4o-mini  # Default: gpt-4o-mini
 
 # Gemini configuration (optional)
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-flash  # Default: gemini-1.5-flash
+GEMINI_MODEL=text-embedding-004  # Embedding only
+GEMINI_LLM_MODEL=gemini-2.0-flash  # LLM only (default: gemini-2.0-flash)
+
+# Per use-case LLM model overrides (optional; take precedence over provider LLM defaults)
+# LLM_MODEL_TRIPLE_EXTRACTION=
+# LLM_MODEL_RELATION_EXTRACTION=
+# LLM_MODEL_PROCEDURAL=
+# LLM_MODEL_CONSOLIDATION=
 
 # Ollama configuration (optional)
 OLLAMA_BASE_URL=http://localhost:11434  # Default: http://localhost:11434
