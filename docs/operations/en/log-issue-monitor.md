@@ -65,3 +65,69 @@ The default output path is `${HOME}/.memento/logs/log-issue-monitor`.
 ## Security
 
 This overlay mounts the Docker socket, so use it only in trusted operations or diagnostics environments. Excerpts sent to GitHub are masked and length-limited.
+
+## Troubleshooting: `Invalid string length`
+
+### Symptoms
+
+The container keeps running under `restart: unless-stopped`, but logs repeat roughly every 30 seconds (`LOG_ISSUE_MONITOR_INTERVAL_SECONDS`):
+
+```text
+log-issue-monitor error: Invalid string length
+```
+
+The same error is appended to `~/.memento/logs/log-issue-monitor/monitor-errors.jsonl`.
+
+### Cause
+
+- `diagnostics/*.jsonl` and `docker-diagnostics/*.jsonl` grow without rotation
+- Each cycle loads entire files into memory, exceeding the Node.js (V8) **maximum string size (~512MB)**
+- **Not the same as Docker memory limits (e.g. 1GB)** — OOM would show `Killed` or heap OOM instead
+
+Related epic: [#420](https://github.com/jee1/memento/issues/420)
+
+### Diagnosis
+
+```bash
+du -sh ~/.memento/logs/diagnostics/*.jsonl ~/.memento/logs/docker-diagnostics/*.jsonl
+tail -3 ~/.memento/logs/log-issue-monitor/monitor-errors.jsonl
+```
+
+Files such as `app-runtime.jsonl` in the hundreds of MB match this failure mode.
+
+### Immediate recovery (no code deploy)
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.diagnostics.yml \
+  -f docker-compose.issue-monitor.yml \
+  stop log-issue-monitor
+
+mv ~/.memento/logs/diagnostics/app-runtime.jsonl \
+   ~/.memento/logs/diagnostics/app-runtime.jsonl.bak.$(date +%Y%m%d)
+touch ~/.memento/logs/diagnostics/app-runtime.jsonl
+
+for f in docker-inspect docker-stats docker-log-size; do
+  p=~/.memento/logs/docker-diagnostics/${f}.jsonl
+  if [ -f "$p" ] && [ "$(wc -c < "$p")" -gt 50000000 ]; then
+    mv "$p" "${p}.bak.$(date +%Y%m%d)"
+    touch "$p"
+  fi
+done
+
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.diagnostics.yml \
+  -f docker-compose.issue-monitor.yml \
+  start log-issue-monitor
+```
+
+Confirm that `monitor-errors.jsonl` stops accumulating `Invalid string length`.
+
+### Long-term fixes
+
+- [#422](https://github.com/jee1/memento/issues/422) — app diagnostics JSONL rotation
+- [#423](https://github.com/jee1/memento/issues/423) — Docker diagnostics JSONL rotation
+- [#424](https://github.com/jee1/memento/issues/424) — monitor JSONL incremental read (cursor)
+- [#425](https://github.com/jee1/memento/issues/425) — streaming read and size guard
