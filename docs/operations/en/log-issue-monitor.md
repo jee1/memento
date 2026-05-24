@@ -9,8 +9,11 @@ docker compose \
   -f docker-compose.yml \
   -f docker-compose.diagnostics.yml \
   -f docker-compose.issue-monitor.yml \
+  -f docker-compose.mem-limits.yml \
   up -d
 ```
+
+Per-container memory caps live in `docker-compose.mem-limits.yml` (defaults: MCP 768MB, monitor 256MB, docker-diagnostics 128MB). Override with `MEMENTO_MCP_MEM_LIMIT` and related env vars.
 
 ## Local-Only Mode
 
@@ -23,6 +26,7 @@ LOG_ISSUE_MONITOR_DRY_RUN=true docker compose \
   -f docker-compose.yml \
   -f docker-compose.diagnostics.yml \
   -f docker-compose.issue-monitor.yml \
+  -f docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -35,6 +39,7 @@ GITHUB_TOKEN=... docker compose \
   -f docker-compose.yml \
   -f docker-compose.diagnostics.yml \
   -f docker-compose.issue-monitor.yml \
+  -f docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -51,6 +56,18 @@ When an open issue already contains the same fingerprint, the monitor updates on
 | `LOG_ISSUE_MONITOR_WARN_WINDOW_SECONDS` | `600` | Time window for repetition checks |
 | `LOG_ISSUE_MONITOR_LABELS` | `bug,needs-triage,memento-log-monitor` | GitHub labels used for create/search |
 | `LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES` | `6000` | Maximum stored/sent excerpt length |
+
+## Container memory limits
+
+Docker Desktop may not expose sub-1GB per-container limits in the UI. Use the `docker-compose.mem-limits.yml` overlay instead.
+
+| Environment variable | Default | Service |
+| --- | --- | --- |
+| `MEMENTO_MCP_MEM_LIMIT` | `768m` | `memento-mcp-server` |
+| `LOG_ISSUE_MONITOR_MEM_LIMIT` | `256m` | `log-issue-monitor` |
+| `DOCKER_DIAGNOSTICS_MEM_LIMIT` | `128m` | `docker-diagnostics` |
+
+Optional `*_MEM_SWAP_LIMIT` vars default to the same value (no swap). Raise limits on OOM/`Killed`; lower monitor/diagnostics first if trimming headroom.
 
 `critical` and `error` events sync immediately. `warn` and `anomaly` events sync only after crossing the threshold within the time window.
 

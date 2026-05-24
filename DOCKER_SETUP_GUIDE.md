@@ -42,6 +42,26 @@ docker exec memento-mcp-server sqlite3 /app/data/memory.db "SELECT COUNT(*) FROM
 curl http://localhost:9001/health
 ```
 
+## 컨테이너 메모리 상한 (선택)
+
+Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다. `docker-compose.mem-limits.yml`로 서비스별 cgroup 상한을 둡니다.
+
+| 기본값 | 서비스 |
+| --- | --- |
+| `768m` | `memento-mcp-server` |
+| `256m` | `log-issue-monitor` |
+| `128m` | `docker-diagnostics` |
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mem-limits.yml up -d
+```
+
+`.env` 예: `MEMENTO_MCP_MEM_LIMIT=512m`, `LOG_ISSUE_MONITOR_MEM_LIMIT=192m`. OOM이면 올리고, 여유가 크면 monitor/diagnostics부터 내립니다. 진단·monitor 전체 스택은 [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md)를 참고하세요.
+
+```bash
+docker stats --no-stream
+```
+
 ## 🧪 진단 모드
 
 Docker Desktop이 일정 시간 뒤 죽거나 멈추는 문제를 재현할 때는 앱 내부 진단 로그와 Docker 외부 관측 로그를 같이 수집해야 합니다.
