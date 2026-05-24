@@ -9,8 +9,11 @@ docker compose \
   -f docker-compose.yml \
   -f docker-compose.diagnostics.yml \
   -f docker-compose.issue-monitor.yml \
+  -f docker-compose.mem-limits.yml \
   up -d
 ```
+
+컨테이너별 메모리 상한은 `docker-compose.mem-limits.yml`에서 설정합니다 (Desktop UI 1GB 제한과 무관). 기본값은 MCP 768MB, monitor 256MB, docker-diagnostics 128MB이며 `.env` 또는 셸에서 `MEMENTO_MCP_MEM_LIMIT` 등으로 조절할 수 있습니다.
 
 ## Local-only 모드
 
@@ -23,6 +26,7 @@ LOG_ISSUE_MONITOR_DRY_RUN=true docker compose \
   -f docker-compose.yml \
   -f docker-compose.diagnostics.yml \
   -f docker-compose.issue-monitor.yml \
+  -f docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -35,6 +39,7 @@ GITHUB_TOKEN=... docker compose \
   -f docker-compose.yml \
   -f docker-compose.diagnostics.yml \
   -f docker-compose.issue-monitor.yml \
+  -f docker-compose.mem-limits.yml \
   up -d
 ```
 
@@ -51,6 +56,22 @@ GITHUB_TOKEN=... docker compose \
 | `LOG_ISSUE_MONITOR_WARN_WINDOW_SECONDS` | `600` | 반복 횟수 판정 시간 창 |
 | `LOG_ISSUE_MONITOR_LABELS` | `bug,needs-triage,memento-log-monitor` | 생성/검색에 사용할 GitHub label |
 | `LOG_ISSUE_MONITOR_MAX_EXCERPT_BYTES` | `6000` | 저장/전송할 excerpt 최대 길이 |
+
+## 컨테이너 메모리 상한
+
+Docker Desktop UI는 컨테이너별 1GB 미만 설정이 어려울 수 있습니다. `docker-compose.mem-limits.yml` 오버레이로 cgroup 상한을 서비스별로 둡니다.
+
+| 환경변수 | 기본값 | 서비스 |
+| --- | --- | --- |
+| `MEMENTO_MCP_MEM_LIMIT` | `768m` | `memento-mcp-server` (Node + SQLite + 임베딩) |
+| `LOG_ISSUE_MONITOR_MEM_LIMIT` | `256m` | `log-issue-monitor` |
+| `DOCKER_DIAGNOSTICS_MEM_LIMIT` | `128m` | `docker-diagnostics` |
+
+`memswap_limit`은 각각 `*_MEM_SWAP_LIMIT`으로 덮어쓸 수 있으며, 기본은 limit과 동일(swap 비활성)입니다.
+
+- **OOM / `Killed`**: 해당 service limit을 올립니다 (MCP는 `512m`→`768m`→`1g` 순).
+- **여유가 크면**: monitor·diagnostics부터 낮춥니다.
+- **확인**: `docker stats --no-stream` 또는 `docker inspect <name> --format '{{.HostConfig.Memory}}'`
 
 `critical`과 `error`는 즉시 GitHub 동기화 대상입니다. `warn`과 `anomaly`는 시간 창 안에서 threshold를 넘을 때만 동기화됩니다.
 

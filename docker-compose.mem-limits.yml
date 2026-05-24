@@ -1,0 +1,29 @@
+# Per-container cgroup memory caps (Compose `mem_limit`).
+# Docker Desktop UI may not expose sub-1GB limits; this overlay applies them reliably.
+#
+# Tune via shell env or `.env` (examples):
+#   MEMENTO_MCP_MEM_LIMIT=512m
+#   LOG_ISSUE_MONITOR_MEM_LIMIT=192m
+#   DOCKER_DIAGNOSTICS_MEM_LIMIT=96m
+#
+# Apply with your usual compose stack, e.g.:
+#   docker compose -f docker-compose.yml \
+#     -f docker-compose.diagnostics.yml \
+#     -f docker-compose.issue-monitor.yml \
+#     -f docker-compose.mem-limits.yml up -d
+#
+# Verify: docker inspect <container> --format '{{.HostConfig.Memory}}'
+# OOM / slowness → raise the service limit; headroom waste → lower it.
+
+services:
+  memento-mcp-server:
+    mem_limit: ${MEMENTO_MCP_MEM_LIMIT:-768m}
+    memswap_limit: ${MEMENTO_MCP_MEM_SWAP_LIMIT:-768m}
+
+  log-issue-monitor:
+    mem_limit: ${LOG_ISSUE_MONITOR_MEM_LIMIT:-256m}
+    memswap_limit: ${LOG_ISSUE_MONITOR_MEM_SWAP_LIMIT:-256m}
+
+  docker-diagnostics:
+    mem_limit: ${DOCKER_DIAGNOSTICS_MEM_LIMIT:-128m}
+    memswap_limit: ${DOCKER_DIAGNOSTICS_MEM_SWAP_LIMIT:-128m}
