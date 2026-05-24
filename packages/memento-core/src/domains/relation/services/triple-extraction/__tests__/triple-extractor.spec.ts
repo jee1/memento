@@ -22,6 +22,8 @@ vi.mock('../../../../../shared/config/index.js', () => {
       ollamaModel: 'llama3',
       openaiLlmModel: 'gpt-4o-mini',
       geminiModel: 'gemini-1.5-flash',
+      geminiLlmModel: 'gemini-2.0-flash',
+      llmModelOverrides: {},
       llmProvider: 'openai'
     }
   };

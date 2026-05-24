@@ -108,7 +108,10 @@ const createMockConfig = () => ({
   geminiApiKey: undefined as string | undefined,
   llmProvider: 'auto' as string,
   openaiModel: 'gpt-4o-mini',
+  openaiLlmModel: 'gpt-4o-mini',
   geminiModel: 'gemini-1.5-flash',
+  geminiLlmModel: 'gemini-2.0-flash',
+  llmModelOverrides: {} as Record<string, string | undefined>,
   ollamaBaseUrl: undefined as string | undefined,
   ollamaModel: undefined as string | undefined
 });

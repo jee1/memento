@@ -12,6 +12,7 @@
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mementoConfig } from '../config/index.js';
+import { resolveLlmModel } from '../config/llm-model-resolver.js';
 import { logger } from '../utils/logger.js';
 import { getRawEnvValue } from '../config/environment.js';
 import type { LLMProvider } from '../types/index.js';
@@ -135,9 +136,9 @@ export class LLMClientInitializer {
   }
 
   private resolveLlmModelLabel(provider: LLMClientInitializationResult['preferredProvider']): string {
-    if (provider === 'openai') return mementoConfig.openaiLlmModel ?? 'gpt-4o-mini';
-    if (provider === 'ollama') return mementoConfig.ollamaModel;
-    if (provider === 'gemini') return 'gemini (API key only)';
+    if (provider === 'openai') return resolveLlmModel('openai');
+    if (provider === 'gemini') return resolveLlmModel('gemini');
+    if (provider === 'ollama') return resolveLlmModel('ollama');
     return 'none';
   }
 

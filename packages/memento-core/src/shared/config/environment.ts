@@ -18,6 +18,7 @@ const ENV_DEFAULTS: Record<string, string> = {
   OPENAI_MODEL: 'text-embedding-3-small',
   OPENAI_LLM_MODEL: 'gpt-4o-mini',
   GEMINI_MODEL: 'text-embedding-004',
+  GEMINI_LLM_MODEL: 'gemini-2.0-flash',
   OLLAMA_BASE_URL: 'http://localhost:11434',
   OLLAMA_MODEL: 'llama3',
   LLM_PROVIDER: 'auto',

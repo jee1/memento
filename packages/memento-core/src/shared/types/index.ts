@@ -247,11 +247,20 @@ export interface MementoConfig {
   openaiLlmModel: string;
   geminiApiKey: string | undefined;
   geminiModel: string;
+  /** Gemini generateContent/chat 전용 (GEMINI_MODEL 임베딩과 분리) */
+  geminiLlmModel: string;
   embeddingDimensions: number;
   // LLM 설정
   llmProvider: LLMProvider;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  /** 용도별 LLM 모델 override (설정 시 provider default보다 우선) */
+  llmModelOverrides: {
+    triple_extraction?: string;
+    relation_extraction?: string;
+    procedural?: string;
+    consolidation?: string;
+  };
   searchDefaultLimit: number;
   searchMaxLimit: number;
   forgetTTL: {

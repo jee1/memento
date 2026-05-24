@@ -1,4 +1,5 @@
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
@@ -29,7 +30,7 @@ export async function extractRelationsWithOllama(
     await deps.rateLimiter.consume();
 
     const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-    const model = mementoConfig.ollamaModel || 'llama3';
+    const model = resolveLlmModel('ollama', 'relation_extraction');
 
     // Ollama API 요청 준비 (에러 로깅을 위해 함수 스코프 밖에 선언)
     const requestBody = {

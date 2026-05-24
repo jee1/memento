@@ -6,6 +6,7 @@ import type { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
+import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import type { TripleExtractionOptions } from '../../../../shared/types/triple-extraction.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -37,7 +38,7 @@ export async function extractRawWithOpenAI(
   prompt: string,
   options: TripleExtractionOptions
 ): Promise<string> {
-  const model = mementoConfig.openaiLlmModel || 'gpt-4o-mini';
+  const model = resolveLlmModel('openai', 'triple_extraction');
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
 
@@ -95,7 +96,7 @@ export async function extractRawWithGemini(
   prompt: string,
   options: TripleExtractionOptions
 ): Promise<string> {
-  const modelName = mementoConfig.geminiModel || 'gemini-1.5-flash';
+  const modelName = resolveLlmModel('gemini', 'triple_extraction');
   const model = geminiClient.getGenerativeModel({ model: modelName });
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
@@ -151,7 +152,7 @@ export async function extractRawWithOllama(
   options: TripleExtractionOptions
 ): Promise<string> {
   const baseUrl = mementoConfig.ollamaBaseUrl || 'http://localhost:11434';
-  const model = mementoConfig.ollamaModel || 'llama3';
+  const model = resolveLlmModel('ollama', 'triple_extraction');
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
 

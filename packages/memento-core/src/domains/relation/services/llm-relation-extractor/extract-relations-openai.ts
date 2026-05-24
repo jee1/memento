@@ -1,5 +1,5 @@
 import type OpenAI from 'openai';
-import { mementoConfig } from '../../../../shared/config/index.js';
+import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -31,7 +31,7 @@ export async function extractRelationsWithOpenAI(
     await deps.rateLimiter.consume();
 
     try {
-      const model = mementoConfig.openaiLlmModel || 'gpt-4o-mini';
+      const model = resolveLlmModel('openai', 'relation_extraction');
       const retryOptions = getRetryOptions();
       const response = await deps.retryManager.retry(
         async () => {

@@ -5,6 +5,7 @@
  * 여기서는 LLM 호출 실패 시 extractive로 전환해 빈 요약만 피한다(스킵·에러 집계는 상위 담당).
  */
 
+import { resolveLlmModel } from '../../../shared/config/llm-model-resolver.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
 export type SummarizationMethod = 'llm' | 'extractive';
@@ -55,7 +56,7 @@ export class SummarizationService {
     try {
       const apiKey = process.env.OPENAI_API_KEY?.trim();
       if (apiKey) {
-        const model = process.env.OPENAI_LLM_MODEL?.trim() || 'gpt-4o-mini';
+        const model = resolveLlmModel('openai', 'consolidation');
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -85,7 +86,7 @@ export class SummarizationService {
 
       const geminiKey = process.env.GEMINI_API_KEY?.trim();
       if (geminiKey) {
-        const model = 'gemini-2.0-flash';
+        const model = resolveLlmModel('gemini', 'consolidation');
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',

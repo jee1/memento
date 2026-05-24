@@ -21,14 +21,30 @@ OPENAI_LLM_MODEL=gpt-4o-mini  # 기본값: gpt-4o-mini
 
 # Gemini 설정 (선택사항)
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-flash  # 기본값: gemini-1.5-flash
+GEMINI_MODEL=text-embedding-004  # 임베딩 전용
+GEMINI_LLM_MODEL=gemini-2.0-flash  # LLM 전용 (기본값: gemini-2.0-flash)
+
+# 용도별 LLM 모델 override (선택, 설정 시 provider LLM default보다 우선)
+# LLM_MODEL_TRIPLE_EXTRACTION=
+# LLM_MODEL_RELATION_EXTRACTION=
+# LLM_MODEL_PROCEDURAL=
+# LLM_MODEL_CONSOLIDATION=
 
 # Ollama 설정 (선택사항)
 OLLAMA_BASE_URL=http://localhost:11434  # 기본값: http://localhost:11434
 OLLAMA_MODEL=llama3  # 기본값: llama3
 ```
 
-### 환경 변수 우선순위
+### LLM 모델 해석 순서
+
+각 LLM 호출(triple/관계/procedural/consolidation)은 다음 순서로 모델 이름을 선택합니다:
+
+1. 용도별 override (`LLM_MODEL_*`, 설정된 경우)
+2. Provider LLM default (`OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`, `OLLAMA_MODEL`)
+3. 코드 fallback (`gpt-4o-mini`, `gemini-2.0-flash`, `llama3`)
+
+**주의**: `GEMINI_MODEL`은 임베딩 전용입니다. LLM 호출에 사용되지 않습니다.
+
 
 LLM Provider 선택은 다음 우선순위에 따라 결정됩니다:
 

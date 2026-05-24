@@ -45,11 +45,18 @@ export const mementoConfig: MementoConfig = {
   openaiLlmModel: resolveString('OPENAI_LLM_MODEL'),
   geminiApiKey: resolveOptionalString('GEMINI_API_KEY'),
   geminiModel: resolveString('GEMINI_MODEL'),
+  geminiLlmModel: resolveString('GEMINI_LLM_MODEL'),
   embeddingDimensions,
   // LLM 설정
   llmProvider,
   ollamaBaseUrl: resolveString('OLLAMA_BASE_URL'),
   ollamaModel: resolveString('OLLAMA_MODEL'),
+  llmModelOverrides: {
+    triple_extraction: resolveOptionalString('LLM_MODEL_TRIPLE_EXTRACTION'),
+    relation_extraction: resolveOptionalString('LLM_MODEL_RELATION_EXTRACTION'),
+    procedural: resolveOptionalString('LLM_MODEL_PROCEDURAL'),
+    consolidation: resolveOptionalString('LLM_MODEL_CONSOLIDATION'),
+  },
 
   // 검색 설정
   searchDefaultLimit: resolveNumber('SEARCH_DEFAULT_LIMIT'),

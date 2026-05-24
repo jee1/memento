@@ -1,5 +1,5 @@
 import type { GoogleGenerativeAI } from '@google/generative-ai';
-import { mementoConfig } from '../../../../shared/config/index.js';
+import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
@@ -31,7 +31,7 @@ export async function extractRelationsWithGemini(
     await deps.rateLimiter.consume();
 
     try {
-      const modelName = mementoConfig.geminiModel || 'gemini-1.5-flash';
+      const modelName = resolveLlmModel('gemini', 'relation_extraction');
       const retryOptions = getRetryOptions();
       const result = await deps.retryManager.retry(
         async () => {
