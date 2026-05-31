@@ -8,7 +8,22 @@ import { REVIEW_QUEUE_DASHBOARD_BOOT_MARKER } from './review-queue-dashboard-boo
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
 const tabsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs.js'), 'utf8');
-const panelJs = readFileSync(resolve(root, 'static/js/review-candidates-panel.js'), 'utf8');
+
+const PANEL_COMPANION_SCRIPTS = [
+  'review-candidates-panel-shared.js',
+  'review-candidates-panel-render.js',
+  'review-candidates-panel-poll.js',
+  'review-candidates-panel-health.js',
+  'review-candidates-panel.js',
+] as const;
+
+function readReviewCandidatesPanelSources(): string {
+  return PANEL_COMPANION_SCRIPTS.map((name) =>
+    readFileSync(resolve(root, 'static/js', name), 'utf8'),
+  ).join('\n');
+}
+
+const panelJs = readReviewCandidatesPanelSources();
 
 describe('dashboard review candidates panel (#252, #253)', () => {
   it('dashboard.html includes review tab, panel, and script', () => {
@@ -16,6 +31,9 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     expect(dashboardHtml).toContain('data-tab="review"');
     expect(dashboardHtml).toContain('id="tab-review-candidates"');
     expect(dashboardHtml).toContain('/static/js/review-candidates-panel.js');
+    for (const name of PANEL_COMPANION_SCRIPTS) {
+      expect(dashboardHtml).toContain(`/static/js/${name}`);
+    }
     expect(dashboardHtml).toContain(REVIEW_QUEUE_DASHBOARD_BOOT_MARKER);
     expect(dashboardHtml).toContain('id="rc-refresh-btn"');
     expect(dashboardHtml).toContain('id="rc-health-panel"');
@@ -64,9 +82,6 @@ describe('dashboard review queue poll notify (#255)', () => {
 });
 
 describe('dashboard review queue SSE (#276)', () => {
-  const root = resolve(process.cwd());
-  const panelJs = readFileSync(resolve(root, 'static/js/review-candidates-panel.js'), 'utf8');
-
   it('review-candidates-panel.js wires EventSource stream URL and fallback helpers', () => {
     expect(panelJs).toContain('/admin/memory/review-candidates/stream');
     expect(panelJs).toContain('EventSource');
@@ -75,4 +90,3 @@ describe('dashboard review queue SSE (#276)', () => {
     expect(panelJs).toContain('schedulePollAfterMsUnlessSse');
   });
 });
-
