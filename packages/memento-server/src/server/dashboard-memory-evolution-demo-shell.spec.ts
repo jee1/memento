@@ -6,9 +6,23 @@ import { describe, expect, it } from 'vitest';
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
 const tabsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs.js'), 'utf8');
-const shellJs = readFileSync(resolve(root, 'static/js/memory-evolution-demo-shell.js'), 'utf8');
 const authJs = readFileSync(resolve(root, 'static/js/dashboard-auth.js'), 'utf8');
 const dashboardCss = readFileSync(resolve(root, 'static/css/dashboard.css'), 'utf8');
+
+const SHELL_COMPANION_SCRIPTS = [
+  'memory-evolution-demo-shell-shared.js',
+  'memory-evolution-demo-shell-render.js',
+  'memory-evolution-demo-shell-data.js',
+  'memory-evolution-demo-shell.js',
+] as const;
+
+function readShellSources(): string {
+  return SHELL_COMPANION_SCRIPTS.map((name) =>
+    readFileSync(resolve(root, 'static/js', name), 'utf8'),
+  ).join('\n');
+}
+
+const shellJs = readShellSources();
 
 describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
   it('dashboard.html includes evolution demo tab, panel, controls, and script', () => {
@@ -16,6 +30,9 @@ describe('dashboard memory evolution demo shell (#340, #342, #395)', () => {
     expect(dashboardHtml).toContain('data-tab="evolution-demo"');
     expect(dashboardHtml).toContain('id="tab-evolution-demo"');
     expect(dashboardHtml).toContain('/static/js/memory-evolution-demo-shell.js');
+    for (const name of SHELL_COMPANION_SCRIPTS) {
+      expect(dashboardHtml).toContain(`/static/js/${name}`);
+    }
     expect(dashboardHtml).toContain('id="med-loading"');
     expect(dashboardHtml).toContain('id="med-empty"');
     expect(dashboardHtml).toContain('id="med-error"');
