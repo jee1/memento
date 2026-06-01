@@ -1,5 +1,5 @@
 /**
- * Memory evolution demo — shared constants, state, DOM, auth, and fetch helpers (#445).
+ * Memory evolution demo - shared constants, state, DOM, auth, and fetch helpers (#445).
  */
 (function (global) {
   'use strict';

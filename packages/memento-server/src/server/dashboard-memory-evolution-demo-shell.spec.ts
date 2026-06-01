@@ -11,6 +11,9 @@ const dashboardCss = readFileSync(resolve(root, 'static/css/dashboard.css'), 'ut
 
 const SHELL_COMPANION_SCRIPTS = [
   'memory-evolution-demo-shell-shared.js',
+  'memory-evolution-demo-shell-render-timeline.js',
+  'memory-evolution-demo-shell-render-consolidation.js',
+  'memory-evolution-demo-shell-render-snapshot.js',
   'memory-evolution-demo-shell-render.js',
   'memory-evolution-demo-shell-data.js',
   'memory-evolution-demo-shell.js',

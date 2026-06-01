@@ -1,5 +1,5 @@
 /**
- * Memory evolution demo — data loading, controls, and panel lifecycle (#445).
+ * Memory evolution demo - data loading, controls, and panel lifecycle (#445).
  */
 (function (global) {
   'use strict';
