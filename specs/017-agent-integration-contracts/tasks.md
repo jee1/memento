@@ -44,7 +44,7 @@
 - `npm run docs:audit-links`: 이번 spec 경로 오류는 없었으나, `.omx/state/sessions/omx-1779702102519-huowdk/AGENTS.md`의 기존 상대 링크 6건으로 실패했다.
 - `npm run lint`: 오류 없이 통과했다. 기존 security warning 245건은 유지된다.
 - `npm run type-check`: 모든 workspace에서 통과했다.
-- `npm test`: 변경되지 않은 HTTP 통합 테스트가 30초 타임아웃에 걸려 전체 게이트는 실패했다. 이 작업은 문서와 graphify 산출물만 변경한다.
+- `npm test`: sandbox가 `127.0.0.1` listen을 `EPERM`으로 차단해 HTTP 통합 테스트가 연쇄 타임아웃됐다. 최종 결과는 344 files/4,307 tests 통과, 10 files/68 tests 실패다. 이 작업은 문서와 graphify 산출물만 변경한다.
 - graphify rebuild: 5,088 nodes, 6,216 edges, 1,025 communities로 완료했다.
 
 ## #454 Test-First Handoff
