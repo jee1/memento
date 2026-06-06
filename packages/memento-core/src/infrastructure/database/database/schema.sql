@@ -619,6 +619,85 @@ CREATE TABLE IF NOT EXISTS memory_review_queue_health_snapshot (
 CREATE INDEX IF NOT EXISTS idx_memory_review_queue_health_sampled
   ON memory_review_queue_health_snapshot(sampled_at DESC);
 
+-- Agent lifecycle persistence (migration 035, Issue #454)
+CREATE TABLE IF NOT EXISTS agent_session (
+  id TEXT PRIMARY KEY,
+  adapter_name TEXT NOT NULL,
+  adapter_version TEXT NOT NULL,
+  contract_version INTEGER NOT NULL,
+  owner_id TEXT,
+  project_id TEXT,
+  process_id TEXT,
+  status TEXT NOT NULL CHECK (
+    status IN ('ACTIVE','COMPACTING','STOPPING','COMPLETED','DEGRADED','ABANDONED')
+  ),
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  last_event_at TEXT NOT NULL,
+  max_sequence_no INTEGER NOT NULL DEFAULT 0,
+  agent_metadata_json TEXT,
+  summary_memory_id TEXT,
+  degraded_reason TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  FOREIGN KEY (summary_memory_id) REFERENCES memory_item(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_session_status_last_event
+  ON agent_session(status, last_event_at);
+CREATE INDEX IF NOT EXISTS idx_agent_session_scope
+  ON agent_session(owner_id, project_id, process_id);
+
+CREATE TABLE IF NOT EXISTS agent_observation (
+  id TEXT PRIMARY KEY,
+  adapter_name TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK (
+    event_type IN ('SESSION_START','USER_PROMPT','TOOL_RESULT','PRE_COMPACT','STOP')
+  ),
+  sequence_no INTEGER NOT NULL CHECK (sequence_no >= 0),
+  tool_name TEXT,
+  outcome TEXT,
+  payload_json TEXT,
+  payload_sha256 TEXT NOT NULL,
+  redaction_metadata_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL CHECK (
+    status IN ('ACCEPTED','REDACTED','DUPLICATE','DROPPED','DEGRADED','INVALID')
+  ),
+  drop_reason TEXT,
+  late_arrival INTEGER NOT NULL DEFAULT 0 CHECK (late_arrival IN (0, 1)),
+  occurred_at TEXT NOT NULL,
+  received_at TEXT NOT NULL,
+  expires_at TEXT,
+  FOREIGN KEY (session_id) REFERENCES agent_session(id) ON DELETE CASCADE,
+  UNIQUE(adapter_name, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_agent_observation_timeline
+  ON agent_observation(session_id, sequence_no, occurred_at, received_at, id);
+CREATE INDEX IF NOT EXISTS idx_agent_observation_expires_at
+  ON agent_observation(expires_at);
+CREATE INDEX IF NOT EXISTS idx_agent_observation_status_drop
+  ON agent_observation(status, drop_reason);
+
+CREATE TABLE IF NOT EXISTS memory_provenance (
+  id TEXT PRIMARY KEY,
+  memory_id TEXT NOT NULL,
+  session_id TEXT,
+  observation_id TEXT,
+  derivation_type TEXT NOT NULL,
+  source_deleted INTEGER NOT NULL DEFAULT 0 CHECK (source_deleted IN (0, 1)),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  CHECK (session_id IS NOT NULL OR observation_id IS NOT NULL),
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  UNIQUE(memory_id, observation_id, derivation_type)
+);
+CREATE INDEX IF NOT EXISTS idx_memory_provenance_memory
+  ON memory_provenance(memory_id);
+CREATE INDEX IF NOT EXISTS idx_memory_provenance_session
+  ON memory_provenance(session_id);
+CREATE INDEX IF NOT EXISTS idx_memory_provenance_observation
+  ON memory_provenance(observation_id);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

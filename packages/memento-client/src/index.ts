@@ -88,7 +88,11 @@ export type {
   // 유틸리티 타입들
   PaginationParams,
   PaginatedResult,
-  HealthCheck
+  HealthCheck,
+  AgentEventEnvelopeLike,
+  AgentObservationQuery,
+  AgentProvenanceQuery,
+  AgentProvenanceLinkInput
 } from './types.js';
 
 // ContextInjector 옵션 타입

@@ -40,6 +40,7 @@ import { deleteServerInfo,resolveServerInfoConfigDir,writeServerInfo } from './s
 // Phase 1.2: 라우터 import
 import { createSessionStore,type SessionStore } from './auth/session-store.js';
 import { createAdminRouter } from './routes/admin.routes.js';
+import { createAgentRouter } from './routes/agent.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
@@ -202,9 +203,9 @@ const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
 const HTTP_AUTH_TRUST_MODEL_NOTICE =
-  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /tools, /mcp, and /messages require Authorization Bearer or X-API-Key.';
+  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages require Authorization Bearer or X-API-Key.';
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
-  'ADMIN_API_KEY is not configured: /api/v1/quality, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
+  'ADMIN_API_KEY is not configured: /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
 
 function isProtectedMcpProgrammaticPath(pathname: string): boolean {
   return /^\/(?:mcp|messages)\/?$/.test(pathname);
@@ -290,6 +291,12 @@ async function initializeServer() {
     });
     mcpRouter = createMcpRouter(db, serverServices, transports);
     const qualityRouter = createQualityRouter(db);
+    const retentionDays = Number(process.env.MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS);
+    const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
+    const agentRouter = createAgentRouter(db, {
+      retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
+      abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
+    });
     
     // 라우터 등록 (/admin, /api는 브라우저 세션; /api/v1/quality, /tools, /mcp는 API 키)
     const browserSessionAuth = createSessionAuthMiddleware({
@@ -299,6 +306,10 @@ async function initializeServer() {
     const adminAuth = createAdminAuthMiddleware();
     const programmaticAuth = createProgrammaticAuthMiddleware({
       expectedKey: mementoConfig.adminApiKey
+    });
+    const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
+      expectedKey: mementoConfig.adminApiKey,
+      errorFormat: 'agent',
     });
     const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
       if (req.method === 'OPTIONS') {
@@ -328,6 +339,7 @@ async function initializeServer() {
         });
       }
     );
+    app.use('/api/v1/agent', agentProgrammaticAuth, agentRouter);
     app.use('/api', browserSessionAuth, apiRouter);
     app.use('/', mcpProgrammaticAuth, mcpRouter); // /mcp, /messages는 루트에 등록
     
@@ -645,7 +657,7 @@ async function startServer() {
     isHttpBindHostRemotelyReachable(bindHostRaw)
   ) {
     logger.warn(
-      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: /admin and /api still require a browser session, and /api/v1/quality, /tools, /mcp, and /messages still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
+      'MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true: Server is allowed to bind on a non-loopback address without ADMIN_API_KEY. Note: /admin and /api still require a browser session, and /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages still return 401 unless ADMIN_API_KEY is set (fail-closed). Do not use in production.'
     );
   }
 

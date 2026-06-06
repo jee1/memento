@@ -186,6 +186,28 @@ export { TelemetryDailyMetricsMigration } from './infrastructure/database/databa
 export { MetaMemoryStatsSchemaMigration } from './infrastructure/database/database/migration/migrations/011-meta-memory-stats-schema.js';
 export { MemoryReviewCandidateSchemaMigration } from './infrastructure/database/database/migration/migrations/033-memory-review-candidate-schema.js';
 export { ReviewQueueHealthSnapshotMigration } from './infrastructure/database/database/migration/migrations/034-review-queue-health-snapshot.js';
+export { AgentIntegrationSchemaMigration } from './infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
+export { SqliteAgentIntegrationRepository } from './infrastructure/database/repositories/sqlite-agent-integration-repository.js';
+export {
+  AgentIntegrationError,
+  AgentLifecycleService,
+} from './domains/agent-integration/services/agent-lifecycle-service.js';
+export type {
+  AgentIntegrationReasonCode,
+  AgentLifecycleServiceOptions,
+} from './domains/agent-integration/services/agent-lifecycle-service.js';
+export type {
+  AgentCaptureStatus,
+  AgentEventType,
+  AgentObservation,
+  AgentSession,
+  AgentSessionStatus,
+  CaptureResult,
+  MemoryProvenance,
+  ObservationPage,
+  PersistedAgentEventInput,
+  ProvenanceTrace,
+} from './domains/agent-integration/types.js';
 
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';
 
@@ -214,5 +236,4 @@ export type {
   EvolutionDemoScenario,
   EvolutionDemoScenarioCatalog,
 } from './domains/evolution-demo/index.js';
-
 

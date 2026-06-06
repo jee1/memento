@@ -42,7 +42,11 @@ import type {
   FeedbackCallOptions,
   ContextInjectionParams,
   ContextInjectionResult,
-  HealthCheck
+  HealthCheck,
+  AgentEventEnvelopeLike,
+  AgentObservationQuery,
+  AgentProvenanceQuery,
+  AgentProvenanceLinkInput
 } from './types.js';
 import {
   MementoError,
@@ -97,8 +101,7 @@ export class MementoClient extends EventEmitter {
         if (this.options.logLevel === 'debug') {
           logger.debug('[MementoClient] Request:', {
             method: config.method?.toUpperCase(),
-            url: config.url,
-            data: config.data
+            url: config.url
           });
         }
         
@@ -115,8 +118,7 @@ export class MementoClient extends EventEmitter {
       (response: AxiosResponse) => {
         if (this.options.logLevel === 'debug') {
           logger.debug('[MementoClient] Response:', {
-            status: response.status,
-            data: response.data
+            status: response.status
           });
         }
         return response;
@@ -539,6 +541,107 @@ export class MementoClient extends EventEmitter {
     
     const response = await this.httpClient.post('/prompts/memory_injection', params);
     return response.data;
+  }
+
+  // ============================================================================
+  // Agent integration API
+  // ============================================================================
+
+  async getAgentCapabilities<T = Record<string, unknown>>(): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.get('/api/v1/agent/capabilities');
+    return response.data as T;
+  }
+
+  async startAgentSession<T = Record<string, unknown>>(
+    event: AgentEventEnvelopeLike,
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.post('/api/v1/agent/sessions', event);
+    return response.data as T;
+  }
+
+  async ingestAgentObservations<T = Record<string, unknown>>(
+    events: AgentEventEnvelopeLike[],
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.post('/api/v1/agent/observations:ingest', { events });
+    return response.data as T;
+  }
+
+  async preCompactAgentSession<T = Record<string, unknown>>(
+    sessionId: string,
+    event: AgentEventEnvelopeLike,
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.post(
+      `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}:pre-compact`,
+      event,
+    );
+    return response.data as T;
+  }
+
+  async stopAgentSession<T = Record<string, unknown>>(
+    sessionId: string,
+    event: AgentEventEnvelopeLike,
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.post(
+      `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}:stop`,
+      event,
+    );
+    return response.data as T;
+  }
+
+  async getAgentSession<T = Record<string, unknown>>(sessionId: string): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.get(
+      `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}`,
+    );
+    return response.data as T;
+  }
+
+  async listAgentObservations<T = Record<string, unknown>>(
+    sessionId: string,
+    query: AgentObservationQuery = {},
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.get(
+      `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}/observations`,
+      { params: query },
+    );
+    return response.data as T;
+  }
+
+  async getAgentProvenance<T = Record<string, unknown>>(
+    query: AgentProvenanceQuery,
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.get('/api/v1/agent/provenance', {
+      params: query,
+    });
+    return response.data as T;
+  }
+
+  async linkAgentProvenance<T = Record<string, unknown>>(
+    input: AgentProvenanceLinkInput,
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.post('/api/v1/agent/provenance', input);
+    return response.data as T;
+  }
+
+  async exportAgentSession<T = Record<string, unknown>>(sessionId: string): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.get(
+      `/api/v1/agent/sessions/${encodeURIComponent(sessionId)}/export`,
+    );
+    return response.data as T;
+  }
+
+  async deleteAgentSession(sessionId: string): Promise<void> {
+    this.ensureConnected();
+    await this.httpClient.delete(`/api/v1/agent/sessions/${encodeURIComponent(sessionId)}`);
   }
 
   // ============================================================================

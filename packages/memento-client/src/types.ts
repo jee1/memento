@@ -259,6 +259,35 @@ export interface ContextInjectionResult {
 }
 
 // ============================================================================
+// Agent integration transport
+// ============================================================================
+
+export type AgentEventEnvelopeLike = Record<string, unknown>;
+
+export interface AgentObservationQuery {
+  cursor?: string;
+  limit?: number;
+  event_type?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface AgentProvenanceQuery {
+  memory_id?: string;
+  observation_id?: string;
+  direction?: 'sources' | 'derived' | 'both';
+  max_depth?: number;
+}
+
+export interface AgentProvenanceLinkInput {
+  memory_id: string;
+  session_id?: string;
+  observation_id?: string;
+  derivation_type: string;
+}
+
+// ============================================================================
 // 에러 타입들
 // ============================================================================
 
