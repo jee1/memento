@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { randomUUID } from 'crypto';
 import type {
   AgentIntegrationRepository,
   CreateObservationInput,
@@ -363,8 +364,81 @@ export class SqliteAgentIntegrationRepository implements AgentIntegrationReposit
     };
   }
 
-  markExpiredSessionsAbandoned(cutoff: string, now: string): number {
-    return this.db.prepare(`
+  listAllObservations(sessionId: string): AgentObservation[] {
+    return (
+      this.db.prepare(`
+        SELECT * FROM agent_observation
+        WHERE session_id = ?
+        ORDER BY sequence_no, occurred_at, received_at, id
+      `).all(sessionId) as ObservationRow[]
+    ).map(mapObservation);
+  }
+
+  persistSessionSummary(input: {
+    memoryId: string;
+    session: AgentSession;
+    content: string;
+    observationIds: string[];
+    createdAt: string;
+  }): { memoryId: string; created: boolean } {
+    return this.runInTransaction(() => {
+      const current = this.getSession(input.session.id);
+      if (!current) throw new Error(`Agent session not found: ${input.session.id}`);
+      if (current.summaryMemoryId) {
+        return { memoryId: current.summaryMemoryId, created: false };
+      }
+      if (!['COMPLETED', 'DEGRADED', 'ABANDONED'].includes(current.status)) {
+        throw new Error(`Agent session is not terminal: ${input.session.id}`);
+      }
+
+      this.db.prepare(`
+        INSERT INTO memory_item (
+          id, type, content, importance, privacy_scope, tags, source, origin_source,
+          owner_id, process_id, session_id, project_id, source_session_id, created_at
+        ) VALUES (?, 'episodic', ?, 0.7, 'private', ?, 'agent_session_summary', ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        input.memoryId,
+        input.content,
+        JSON.stringify(['agent-session', 'summary', current.adapterName]),
+        JSON.stringify({
+          tool: 'agent-session-summary',
+          caller: 'agent-integration',
+          timestamp: input.createdAt,
+        }),
+        current.ownerId,
+        current.processId,
+        current.id,
+        current.projectId,
+        current.id,
+        input.createdAt,
+      );
+
+      const insertProvenance = this.db.prepare(`
+        INSERT INTO memory_provenance (
+          id, memory_id, session_id, observation_id, derivation_type, created_at
+        ) VALUES (?, ?, ?, ?, 'summary', ?)
+      `);
+      for (const observationId of input.observationIds) {
+        insertProvenance.run(
+          randomUUID(),
+          input.memoryId,
+          current.id,
+          observationId,
+          input.createdAt,
+        );
+      }
+
+      this.db.prepare(`
+        UPDATE agent_session
+        SET summary_memory_id = ?, updated_at = ?
+        WHERE id = ? AND summary_memory_id IS NULL
+      `).run(input.memoryId, input.createdAt, current.id);
+      return { memoryId: input.memoryId, created: true };
+    });
+  }
+
+  markExpiredSessionsAbandoned(cutoff: string, now: string): string[] {
+    const rows = this.db.prepare(`
       UPDATE agent_session
       SET status = 'ABANDONED', ended_at = last_event_at, updated_at = ?
       WHERE (
@@ -372,7 +446,9 @@ export class SqliteAgentIntegrationRepository implements AgentIntegrationReposit
           OR (status = 'DEGRADED' AND ended_at IS NULL)
         )
         AND last_event_at < ?
-    `).run(now, cutoff).changes;
+      RETURNING id
+    `).all(now, cutoff) as Array<{ id: string }>;
+    return rows.map(row => row.id);
   }
 
   clearExpiredObservationPayloads(cutoff: string): number {

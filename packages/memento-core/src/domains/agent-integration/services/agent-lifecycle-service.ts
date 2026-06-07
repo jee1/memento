@@ -49,6 +49,10 @@ export interface AgentLifecycleServiceOptions {
   now?: () => Date;
 }
 
+export interface AgentSessionSummarizer {
+  summarize(sessionId: string): unknown;
+}
+
 const TERMINAL_STATUSES = new Set<AgentSession['status']>([
   'COMPLETED',
   'DEGRADED',
@@ -69,6 +73,7 @@ export class AgentLifecycleService {
   constructor(
     private readonly repository: AgentIntegrationRepository,
     options: AgentLifecycleServiceOptions = {},
+    private readonly sessionSummarizer?: AgentSessionSummarizer,
   ) {
     this.retentionDays = boundedNumber(options.retentionDays, 30, 1, 90);
     this.abandonedTtlMs = boundedNumber(
@@ -104,9 +109,15 @@ export class AgentLifecycleService {
     const abandonedCutoff = new Date(
       Date.parse(receivedAt) - this.abandonedTtlMs,
     ).toISOString();
-    this.repository.markExpiredSessionsAbandoned(abandonedCutoff, receivedAt);
+    const abandonedSessionIds = this.repository.markExpiredSessionsAbandoned(
+      abandonedCutoff,
+      receivedAt,
+    );
+    for (const sessionId of abandonedSessionIds) {
+      this.trySummarize(sessionId);
+    }
 
-    return this.repository.runInTransaction(() => {
+    const result: CaptureResult = this.repository.runInTransaction(() => {
       const existing = this.repository.findObservationByIdempotencyKey(
         event.adapterName,
         event.eventId,
@@ -219,6 +230,10 @@ export class AgentLifecycleService {
         lateArrival: observation.lateArrival,
       };
     });
+    if (event.eventType === 'STOP') {
+      this.trySummarize(event.sessionId);
+    }
+    return result;
   }
 
   getSession(id: string): AgentSession | null {
@@ -234,7 +249,19 @@ export class AgentLifecycleService {
 
   abandonExpiredSessions(at = this.now()): number {
     const cutoff = new Date(at.getTime() - this.abandonedTtlMs).toISOString();
-    return this.repository.markExpiredSessionsAbandoned(cutoff, at.toISOString());
+    const sessionIds = this.repository.markExpiredSessionsAbandoned(cutoff, at.toISOString());
+    for (const sessionId of sessionIds) {
+      this.trySummarize(sessionId);
+    }
+    return sessionIds.length;
+  }
+
+  private trySummarize(sessionId: string): void {
+    try {
+      this.sessionSummarizer?.summarize(sessionId);
+    } catch {
+      // Summary failures are recorded by the summarizer and retried on duplicate stop or sweep.
+    }
   }
 
   linkProvenance(input: {

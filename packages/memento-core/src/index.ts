@@ -192,10 +192,20 @@ export {
   AgentIntegrationError,
   AgentLifecycleService,
 } from './domains/agent-integration/services/agent-lifecycle-service.js';
+export {
+  AgentSessionSummaryService,
+  buildAgentSessionSummary,
+} from './domains/agent-integration/services/agent-session-summary-service.js';
 export type {
   AgentIntegrationReasonCode,
   AgentLifecycleServiceOptions,
+  AgentSessionSummarizer,
 } from './domains/agent-integration/services/agent-lifecycle-service.js';
+export type {
+  AgentSessionSummaryResult,
+  AgentSessionSummaryServiceOptions,
+  AgentSummaryTelemetryEvent,
+} from './domains/agent-integration/services/agent-session-summary-service.js';
 export type {
   AgentCaptureStatus,
   AgentEventType,
@@ -236,4 +246,3 @@ export type {
   EvolutionDemoScenario,
   EvolutionDemoScenarioCatalog,
 } from './domains/evolution-demo/index.js';
-

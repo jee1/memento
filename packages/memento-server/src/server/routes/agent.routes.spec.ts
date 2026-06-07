@@ -32,7 +32,46 @@ describe('agent integration routes', () => {
   beforeEach(async () => {
     db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
-    db.exec('CREATE TABLE memory_item (id TEXT PRIMARY KEY, session_id TEXT)');
+    db.exec(`
+      CREATE TABLE memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL DEFAULT 'episodic',
+        content TEXT NOT NULL DEFAULT '',
+        importance REAL DEFAULT 0.5,
+        privacy_scope TEXT DEFAULT 'private',
+        tags TEXT,
+        source TEXT,
+        origin_source TEXT,
+        owner_id TEXT,
+        process_id TEXT,
+        session_id TEXT,
+        project_id TEXT,
+        source_session_id TEXT,
+        created_at TEXT
+      );
+      CREATE TABLE telemetry_events (
+        id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        request_id TEXT NOT NULL,
+        owner_id TEXT,
+        latency_ms INTEGER,
+        outcome TEXT NOT NULL,
+        error_code TEXT,
+        extra_data TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE telemetry_daily_metrics (
+        id TEXT PRIMARY KEY,
+        date TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        owner_id TEXT NOT NULL DEFAULT '',
+        event_count INTEGER NOT NULL DEFAULT 0,
+        avg_latency_ms REAL,
+        error_count INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        UNIQUE(date, event_type, owner_id)
+      )
+    `);
     await new AgentIntegrationSchemaMigration().up(db);
     router = createAgentRouter(db, {
       now: () => new Date('2026-06-06T00:00:10.000Z'),
@@ -137,7 +176,27 @@ describe('agent integration routes', () => {
     expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
       session: expect.objectContaining({ status: 'COMPLETED' }),
       result: expect.objectContaining({ status: 'ACCEPTED' }),
-      summary_job_id: null,
+      summary_job_id: expect.any(String),
+    }));
+    const stopped = vi.mocked(response.json).mock.calls.at(-1)?.[0] as {
+      summary_job_id: string;
+    };
+    expect(db.prepare(`
+      SELECT type, session_id, source_session_id
+      FROM memory_item WHERE id = ?
+    `).get(stopped.summary_job_id)).toEqual({
+      type: 'episodic',
+      session_id: 'session-1',
+      source_session_id: 'session-1',
+    });
+    expect(db.prepare(`
+      SELECT event_type, outcome, extra_data
+      FROM telemetry_events
+      WHERE event_type = 'agent.summary.completed'
+    `).get()).toEqual(expect.objectContaining({
+      event_type: 'agent.summary.completed',
+      outcome: 'success',
+      extra_data: expect.stringContaining('"observation_count":3'),
     }));
   });
 

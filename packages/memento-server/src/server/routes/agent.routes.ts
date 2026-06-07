@@ -1,7 +1,9 @@
 import {
   AgentIntegrationError,
   AgentLifecycleService,
+  AgentSessionSummaryService,
   SqliteAgentIntegrationRepository,
+  TelemetryRepository,
   type AgentLifecycleServiceOptions,
   type AgentObservation,
   type AgentSession,
@@ -219,8 +221,35 @@ export function createAgentRouter(
   options: AgentLifecycleServiceOptions = {},
 ): Router {
   const router = Router();
-  const service = db
-    ? new AgentLifecycleService(new SqliteAgentIntegrationRepository(db), options)
+  const repository = db ? new SqliteAgentIntegrationRepository(db) : null;
+  const telemetryRepository = db ? new TelemetryRepository(db) : null;
+  const summarizer = repository
+    ? new AgentSessionSummaryService(repository, {
+        now: options.now,
+        recordTelemetry: event => {
+          const eventType = event.outcome === 'success'
+            ? 'agent.summary.completed'
+            : event.outcome === 'empty'
+              ? 'agent.summary.skipped'
+              : 'agent.summary.failed';
+          telemetryRepository?.insertEventSync({
+            eventType,
+            requestId: `agent-summary:${event.sessionId}`,
+            ownerId: repository.getSession(event.sessionId)?.ownerId ?? null,
+            latencyMs: event.latencyMs,
+            outcome: event.outcome,
+            errorCode: event.reason,
+            extraData: {
+              session_id: event.sessionId,
+              observation_count: event.observationCount,
+              ...(event.reason ? { reason: event.reason } : {}),
+            },
+          });
+        },
+      })
+    : null;
+  const service = repository
+    ? new AgentLifecycleService(repository, options, summarizer ?? undefined)
     : null;
 
   router.get('/capabilities', (_req, res) => {
@@ -370,8 +399,9 @@ export function createAgentRouter(
           throw new AgentIntegrationError(`${expectedType} is required`, 'INTERNAL_ERROR', 400);
         }
         const result = service.capture(prepared);
+        const session = service.getSession(prepared.sessionId)!;
         return res.json({
-          session: sessionDto(service.getSession(prepared.sessionId)!),
+          session: sessionDto(session),
           result: {
             event_id: result.eventId,
             status: result.status,
@@ -381,7 +411,7 @@ export function createAgentRouter(
           },
           ...(expectedType === 'PRE_COMPACT'
             ? { injection: null }
-            : { summary_job_id: null }),
+            : { summary_job_id: session.summaryMemoryId }),
         });
       } catch (error) {
         return writeError(res, error);
@@ -470,7 +500,11 @@ export function createAgentRouter(
   router.post('/retention:enforce', (_req, res) => {
     try {
       if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
-      return res.json(service.enforceRetention());
+      const abandonedSessions = service.abandonExpiredSessions();
+      return res.json({
+        ...service.enforceRetention(),
+        abandonedSessions,
+      });
     } catch (error) {
       return writeError(res, error);
     }
