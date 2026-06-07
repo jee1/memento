@@ -1,0 +1,16 @@
+{
+  "session_id": "claude-session-018",
+  "transcript_path": "/tmp/claude/projects/memento/session.jsonl",
+  "cwd": "/workspace/memento",
+  "permission_mode": "default",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_use_id": "toolu_018",
+  "tool_input": {
+    "file_path": "/workspace/memento/packages/example.ts",
+    "content": "export const ready = true;"
+  },
+  "tool_response": {
+    "success": true
+  }
+}

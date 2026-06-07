@@ -157,6 +157,14 @@ export async function main(): Promise<number> {
     const { runCodexHookCommand } = await import('./cli/codex-hook.js');
     return runCodexHookCommand();
   }
+  if (agentTokens[0] === 'connect' && agentTokens[1] === 'claude-code') {
+    const { runClaudeCodeConnect } = await import('./cli/claude-code-connect.js');
+    return runClaudeCodeConnect(agentTokens.slice(2));
+  }
+  if (agentTokens[0] === 'hook' && agentTokens[1] === 'claude-code') {
+    const { runClaudeCodeHookCommand } = await import('./cli/claude-code-hook.js');
+    return runClaudeCodeHookCommand();
+  }
   if (agentTokens[0] === 'agent') {
     const { runAgentAskMain, agentAskHelpText } = await import('./cli/agent-ask.js');
     if (preOptions.help && agentTokens[1] !== 'ask') {
@@ -175,6 +183,10 @@ export async function main(): Promise<number> {
     await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
     await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n');
     await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n');
+    await writeStderr('  connect codex       Codex lifecycle hook 연결\n');
+    await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
+    await writeStderr('  connect claude-code Claude Code lifecycle hook 연결\n');
+    await writeStderr('  hook claude-code    Claude Code hook stdin 처리 (internal)\n');
     await writeStderr('  connect codex       Codex lifecycle hook 연결\n');
     await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
     await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
