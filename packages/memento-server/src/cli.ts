@@ -149,6 +149,14 @@ const showHelp = preOptions.help || (!commandToken && !subcommand);
 
 export async function main(): Promise<number> {
   const agentTokens = stripGlobalArgvForAgentDetection(process.argv);
+  if (agentTokens[0] === 'connect' && agentTokens[1] === 'codex') {
+    const { runCodexConnect } = await import('./cli/codex-connect.js');
+    return runCodexConnect(agentTokens.slice(2));
+  }
+  if (agentTokens[0] === 'hook' && agentTokens[1] === 'codex') {
+    const { runCodexHookCommand } = await import('./cli/codex-hook.js');
+    return runCodexHookCommand();
+  }
   if (agentTokens[0] === 'agent') {
     const { runAgentAskMain, agentAskHelpText } = await import('./cli/agent-ask.js');
     if (preOptions.help && agentTokens[1] !== 'ask') {
@@ -166,7 +174,9 @@ export async function main(): Promise<number> {
     await writeStderr('  remember            기억을 저장합니다\n');
     await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
     await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n');
-    await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n\n');
+    await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n');
+    await writeStderr('  connect codex       Codex lifecycle hook 연결\n');
+    await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
     await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
     await writeStderr('  --db-path <path>    (deprecated) DB 파일 경로\n');
     await writeStderr('  --env-file <path>   (deprecated) .env 파일 경로\n');
