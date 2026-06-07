@@ -32,6 +32,7 @@ const KEY_RULES: Array<[RegExp, RedactionRule]> = [
   [/(?:^|_)password(?:$|_)/i, 'PASSWORD'],
   [/(?:^|_)credential(?:s)?(?:$|_)/i, 'CREDENTIAL'],
 ];
+const NON_SECRET_CONTROL_KEYS = new Set(['token_budget']);
 const INLINE_RULES: Array<[RedactionRule, RegExp]> = [
   ['API_KEY', /\b(?:sk|pk)(?:[_-](?:live|test|proj))?[_-][A-Za-z0-9_-]{16,}\b/g],
   ['TOKEN', /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g],
@@ -89,7 +90,7 @@ function redactValue(
   counts: Map<RedactionRule, number>,
   key?: string,
 ): unknown {
-  if (key) {
+  if (key && !NON_SECRET_CONTROL_KEYS.has(key)) {
     const keyRule = KEY_RULES.find(([pattern]) => pattern.test(key))?.[1];
     if (keyRule && value !== undefined) {
       increment(counts, keyRule);

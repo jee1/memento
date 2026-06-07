@@ -5,22 +5,25 @@
  */
 
 import {
-canonicalizeHttpBindHostForListen,
-closeDatabase,
-createMementoCore,
-createToolContext,
-executeTool,
-formatHttpBindHostForUrl,
-getBatchScheduler,
-getMementoHttpSecurityStartupViolationMessage,
-getToolRegistry,
-getVectorSearchEngine,
-isHttpBindHostRemotelyReachable,
-logger,
-mementoConfig,
-MementoHttpSecurityStartupError,
-validateConfig,
-type ServerServices
+  AgentContextInjectionService,
+  AgentContextRecallService,
+  canonicalizeHttpBindHostForListen,
+  closeDatabase,
+  createMementoCore,
+  createToolContext,
+  executeTool,
+  formatHttpBindHostForUrl,
+  getBatchScheduler,
+  getMementoHttpSecurityStartupViolationMessage,
+  getToolRegistry,
+  getVectorSearchEngine,
+  isHttpBindHostRemotelyReachable,
+  logger,
+  mementoConfig,
+  MementoHttpSecurityStartupError,
+  SqliteHybridAgentContextSource,
+  validateConfig,
+  type ServerServices,
 } from '@memento/core';
 import Database from 'better-sqlite3';
 import cors from 'cors';
@@ -293,9 +296,28 @@ async function initializeServer() {
     const qualityRouter = createQualityRouter(db);
     const retentionDays = Number(process.env.MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS);
     const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
+    const injectionTimeoutMs = Number(process.env.MEMENTO_AGENT_INJECTION_TIMEOUT_MS);
+    const initialInjectionTokenBudget = Number(
+      process.env.MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET,
+    );
+    const contextInjectionService = new AgentContextInjectionService({
+      recallService: new AgentContextRecallService({
+        sources: [
+          new SqliteHybridAgentContextSource({
+            db,
+            hybridSearchEngine: serverServices.hybridSearchEngine,
+          }),
+        ],
+      }),
+      timeoutMs: Number.isFinite(injectionTimeoutMs) ? injectionTimeoutMs : undefined,
+    });
     const agentRouter = createAgentRouter(db, {
       retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
       abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
+      contextInjectionService,
+      initialInjectionTokenBudget: Number.isFinite(initialInjectionTokenBudget)
+        ? initialInjectionTokenBudget
+        : undefined,
     });
     
     // 라우터 등록 (/admin, /api는 브라우저 세션; /api/v1/quality, /tools, /mcp는 API 키)

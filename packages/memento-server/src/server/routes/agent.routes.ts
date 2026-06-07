@@ -1,5 +1,8 @@
 import {
   AgentIntegrationError,
+  type AgentContextInjectionBundle,
+  type AgentContextInjectionRequest,
+  type AgentContextInjectionService,
   AgentLifecycleService,
   AgentSessionSummaryService,
   SqliteAgentIntegrationRepository,
@@ -21,6 +24,7 @@ import {
   normalizeAgentEvent,
   redactAgentEvent,
   validateAgentEvent,
+  type InjectionBundle,
   type CaptureReason,
 } from '@memento/agent-integration';
 import type Database from 'better-sqlite3';
@@ -199,6 +203,85 @@ function provenanceDto(provenance: MemoryProvenance) {
   };
 }
 
+function injectionDto(bundle: AgentContextInjectionBundle): InjectionBundle {
+  return {
+    bundle_version: bundle.bundleVersion,
+    injection_id: bundle.injectionId,
+    trigger: bundle.trigger,
+    status: bundle.status,
+    generated_at: bundle.generatedAt,
+    query: bundle.query,
+    context_text: bundle.contextText,
+    items: bundle.selected.map(item => ({
+      memory_id: item.id,
+      content: item.content,
+      memory_type: item.type,
+      score: item.score,
+      scope_level: item.scopeLevel,
+      token_estimate: item.tokenEstimate,
+      selection_reason: item.selectionReason,
+    })),
+    exclusions: bundle.excluded.map(item => ({
+      memory_id: item.id,
+      reason: item.reason,
+      score: item.score,
+      token_estimate: item.tokenEstimate,
+      ...(item.duplicateOf ? { duplicate_of: item.duplicateOf } : {}),
+    })),
+    token_usage: bundle.tokenUsage,
+    degraded_reasons: bundle.degradedReasons,
+    ...(bundle.failureReason ? { failure_reason: bundle.failureReason } : {}),
+  };
+}
+
+function parsePayload(prepared: PersistedAgentEventInput): Record<string, unknown> {
+  if (!prepared.payloadJson) return {};
+  try {
+    const parsed: unknown = JSON.parse(prepared.payloadJson);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function initialInjectionQuery(prepared: PersistedAgentEventInput): string {
+  const payload = parsePayload(prepared);
+  if (typeof payload.initial_context === 'string' && payload.initial_context.trim()) {
+    return payload.initial_context.trim();
+  }
+  if (typeof payload.working_directory === 'string' && payload.working_directory.trim()) {
+    return payload.working_directory.trim();
+  }
+  return prepared.scope.processId ?? prepared.scope.projectId ?? 'session start';
+}
+
+function injectionScope(prepared: PersistedAgentEventInput) {
+  return {
+    ownerId: prepared.scope.ownerId ?? '',
+    projectId: prepared.scope.projectId,
+    processId: prepared.scope.processId,
+    sessionId: prepared.sessionId,
+  };
+}
+
+interface AgentRouterOptions extends AgentLifecycleServiceOptions {
+  contextInjectionService?: Pick<AgentContextInjectionService, 'build'>;
+  initialInjectionTokenBudget?: number;
+}
+
+function percentile(sorted: number[], ratio: number): number | null {
+  if (sorted.length === 0) return null;
+  const index = Math.ceil(sorted.length * ratio) - 1;
+  return sorted[Math.max(0, index)]!;
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function writeError(res: Response, error: unknown): Response {
   if (error instanceof AgentIntegrationError) {
     return res.status(error.httpStatus).json({
@@ -218,7 +301,7 @@ function writeError(res: Response, error: unknown): Response {
 
 export function createAgentRouter(
   db: Database.Database | null,
-  options: AgentLifecycleServiceOptions = {},
+  options: AgentRouterOptions = {},
 ): Router {
   const router = Router();
   const repository = db ? new SqliteAgentIntegrationRepository(db) : null;
@@ -251,6 +334,68 @@ export function createAgentRouter(
   const service = repository
     ? new AgentLifecycleService(repository, options, summarizer ?? undefined)
     : null;
+  const injectionService = options.contextInjectionService;
+  const initialInjectionTokenBudget = Number.isSafeInteger(options.initialInjectionTokenBudget)
+    ? Math.min(32_768, Math.max(1, options.initialInjectionTokenBudget!))
+    : 2_048;
+
+  const recordInjection = (
+    bundle: AgentContextInjectionBundle,
+    ownerId: string | null,
+    sessionId: string,
+  ) => {
+    try {
+      telemetryRepository?.insertEventSync({
+        eventType: 'agent.injection.completed',
+        requestId: `agent-injection:${bundle.injectionId}`,
+        ownerId,
+        latencyMs: bundle.latencyMs,
+        outcome: bundle.status === 'ok'
+          ? 'success'
+          : bundle.status === 'empty'
+            ? 'empty'
+            : 'failure',
+        errorCode: bundle.failureReason ?? undefined,
+        extraData: {
+          injection_id: bundle.injectionId,
+          session_id: sessionId,
+          trigger: bundle.trigger,
+          candidate_count: bundle.selected.length + bundle.excluded.length,
+          selected_count: bundle.selected.length,
+          exclusion_count: bundle.excluded.length,
+          selected: bundle.selected.map(item => ({
+            memory_id: item.id,
+            score: item.score,
+            token_estimate: item.tokenEstimate,
+            selection_reason: item.selectionReason,
+            scope_level: item.scopeLevel,
+          })),
+          exclusions: bundle.excluded.map(item => ({
+            memory_id: item.id,
+            reason: item.reason,
+            score: item.score,
+            token_estimate: item.tokenEstimate,
+            ...(item.duplicateOf ? { duplicate_of: item.duplicateOf } : {}),
+          })),
+          token_budget: bundle.tokenUsage.budget,
+          token_used: bundle.tokenUsage.used,
+          budget_exceeded: bundle.tokenUsage.used > bundle.tokenUsage.budget,
+          degraded_reasons: bundle.degradedReasons,
+        },
+      });
+    } catch {
+      return;
+    }
+  };
+  const buildInjection = async (
+    request: AgentContextInjectionRequest,
+  ): Promise<AgentContextInjectionBundle | null> => {
+    try {
+      return await injectionService?.build(request) ?? null;
+    } catch {
+      return null;
+    }
+  };
 
   router.get('/capabilities', (_req, res) => {
     return res.json({
@@ -265,13 +410,13 @@ export function createAgentRouter(
       features: {
         session_storage: true,
         provenance_trace: true,
-        pre_compact_injection: false,
+        pre_compact_injection: injectionService !== undefined,
       },
       schema_ready: service?.schemaReady() ?? false,
     });
   });
 
-  router.post('/sessions', (req, res) => {
+  router.post('/sessions', async (req, res) => {
     try {
       if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
       const prepared = prepareEvent(req.body);
@@ -279,6 +424,17 @@ export function createAgentRouter(
         throw new AgentIntegrationError('SESSION_START is required', 'INTERNAL_ERROR', 400);
       }
       const result = service.capture(prepared);
+      const injection = injectionService
+        ? await buildInjection({
+            trigger: 'session_start',
+            query: initialInjectionQuery(prepared),
+            scope: injectionScope(prepared),
+            tokenBudget: initialInjectionTokenBudget,
+          })
+        : null;
+      if (injection) {
+        recordInjection(injection, prepared.scope.ownerId ?? null, prepared.sessionId);
+      }
       return res.status(201).json({
         session: sessionDto(service.getSession(prepared.sessionId)!),
         observation: observationDto(
@@ -291,7 +447,7 @@ export function createAgentRouter(
           observation_id: result.observationId,
           late_arrival: result.lateArrival,
         },
-        initial_injection: null,
+        initial_injection: injection ? injectionDto(injection) : null,
       });
     } catch (error) {
       return writeError(res, error);
@@ -391,7 +547,7 @@ export function createAgentRouter(
   });
 
   const captureSessionEvent = (expectedType: 'PRE_COMPACT' | 'STOP') =>
-    (req: Parameters<Parameters<Router['post']>[1]>[0], res: Response) => {
+    async (req: Parameters<Parameters<Router['post']>[1]>[0], res: Response) => {
       try {
         if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
         const prepared = prepareEvent({ ...req.body, session_id: req.params.id });
@@ -400,6 +556,23 @@ export function createAgentRouter(
         }
         const result = service.capture(prepared);
         const session = service.getSession(prepared.sessionId)!;
+        const payload = parsePayload(prepared);
+        const requestedTokenBudget = typeof payload.token_budget === 'number'
+          ? payload.token_budget
+          : initialInjectionTokenBudget;
+        const injection = expectedType === 'PRE_COMPACT' && injectionService
+          ? await buildInjection({
+              trigger: 'pre_compact',
+              query: typeof payload.context_summary === 'string'
+                ? payload.context_summary
+                : '',
+              scope: injectionScope(prepared),
+              tokenBudget: requestedTokenBudget,
+            })
+          : null;
+        if (injection) {
+          recordInjection(injection, session.ownerId, session.id);
+        }
         return res.json({
           session: sessionDto(session),
           result: {
@@ -410,7 +583,7 @@ export function createAgentRouter(
             late_arrival: result.lateArrival,
           },
           ...(expectedType === 'PRE_COMPACT'
-            ? { injection: null }
+            ? { injection: injection ? injectionDto(injection) : null }
             : { summary_job_id: session.summaryMemoryId }),
         });
       } catch (error) {
@@ -420,6 +593,83 @@ export function createAgentRouter(
 
   router.post('/sessions/:id\\:pre-compact', captureSessionEvent('PRE_COMPACT'));
   router.post('/sessions/:id\\:stop', captureSessionEvent('STOP'));
+
+  router.post('/sessions/:id/injections/:injectionId/usage', (req, res) => {
+    try {
+      if (!service || !telemetryRepository) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const session = service.getSession(req.params.id);
+      if (!session) {
+        throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
+      }
+      const injectionId = requireString(req.params.injectionId, 'injection_id');
+      const usedMemoryIds = Array.isArray(req.body?.used_memory_ids)
+        ? req.body.used_memory_ids.filter((item: unknown): item is string =>
+            typeof item === 'string' && item.trim() !== ''
+          )
+        : [];
+      telemetryRepository.insertEventSync({
+        eventType: 'agent.injection.used',
+        requestId: `agent-injection:${injectionId}`,
+        ownerId: session.ownerId,
+        outcome: 'success',
+        extraData: {
+          injection_id: injectionId,
+          session_id: session.id,
+          observation_id: typeof req.body?.observation_id === 'string'
+            ? req.body.observation_id
+            : null,
+          tool_name: typeof req.body?.tool_name === 'string' ? req.body.tool_name : null,
+          used_memory_ids: usedMemoryIds,
+        },
+      });
+      return res.status(202).json({ accepted: true, injection_id: injectionId });
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
+  router.get('/injections/metrics', (_req, res) => {
+    if (!db) {
+      return writeError(
+        res,
+        new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true),
+      );
+    }
+    const rows = db.prepare(`
+      SELECT latency_ms, extra_data
+      FROM telemetry_events
+      WHERE event_type = 'agent.injection.completed'
+      ORDER BY latency_ms
+    `).all() as Array<{ latency_ms: number | null; extra_data: string | null }>;
+    const latencies = rows
+      .map(row => row.latency_ms)
+      .filter((value): value is number => typeof value === 'number');
+    const metrics = rows.map(row => {
+      try {
+        return JSON.parse(row.extra_data ?? '{}') as Record<string, unknown>;
+      } catch {
+        return {};
+      }
+    });
+    const budgets = metrics
+      .map(item => item.token_budget)
+      .filter((value): value is number => typeof value === 'number');
+    const used = metrics
+      .map(item => item.token_used)
+      .filter((value): value is number => typeof value === 'number');
+    const budgetExceededCount = metrics.filter(item => item.budget_exceeded === true).length;
+    return res.json({
+      sample_count: rows.length,
+      p50_latency_ms: percentile(latencies, 0.5),
+      p95_latency_ms: percentile(latencies, 0.95),
+      average_token_budget: average(budgets),
+      average_token_used: average(used),
+      budget_exceeded_count: budgetExceededCount,
+      budget_exceeded_rate: rows.length === 0 ? 0 : budgetExceededCount / rows.length,
+    });
+  });
 
   router.get('/sessions/:id', (req, res) => {
     try {

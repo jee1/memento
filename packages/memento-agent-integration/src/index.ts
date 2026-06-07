@@ -1,4 +1,5 @@
 export * from './normalize.js';
+export * from './injection-contract.js';
 export * from './priority-queue.js';
 export * from './redaction.js';
 export * from './runtime.js';

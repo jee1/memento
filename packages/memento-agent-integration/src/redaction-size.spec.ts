@@ -56,6 +56,20 @@ describe('fail-closed redaction', () => {
     expect(result.metadata).toContainEqual({ rule: 'API_KEY', count: 1 });
   });
 
+  it('preserves the pre-compact token budget control field', () => {
+    const result = redactAgentEvent(eventFixture('PRE_COMPACT', {
+      payload: {
+        context_summary: 'Current implementation context',
+        token_budget: 4096,
+      },
+    }));
+
+    expect(result.action).toBe('ACCEPTED');
+    if (result.action !== 'DROPPED') {
+      expect(result.event.payload).toMatchObject({ token_budget: 4096 });
+    }
+  });
+
   it('drops an observation containing private key material without echoing it', () => {
     const privateKey = '-----BEGIN PRIVATE KEY-----\nraw-private-material\n-----END PRIVATE KEY-----';
 
