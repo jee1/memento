@@ -1,0 +1,9 @@
+{
+  "session_id": "claude-session-018",
+  "transcript_path": "/tmp/claude/projects/memento/session.jsonl",
+  "cwd": "/workspace/memento",
+  "permission_mode": "default",
+  "hook_event_name": "PreCompact",
+  "trigger": "manual",
+  "custom_instructions": "Preserve adapter decisions"
+}
