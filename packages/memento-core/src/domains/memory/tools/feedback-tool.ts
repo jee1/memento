@@ -30,6 +30,24 @@ const FEEDBACK_COMMENT_MAX_LEN = 4096;
 const FEEDBACK_SCORE_BREAKDOWN_JSON_MAX = 32_768;
 const FEEDBACK_ATTRIBUTION_ID_MAX_LEN = 512;
 
+function findApprovedPromotionCandidate(
+  db: NonNullable<ToolContext['db']>,
+  memoryId: string,
+): { id: string } | null {
+  const tableExists = db.prepare(`
+    SELECT 1 FROM sqlite_master
+    WHERE type = 'table' AND name = 'agent_memory_promotion_candidate'
+  `).get();
+  if (!tableExists) return null;
+  const candidate = db.prepare(`
+    SELECT id FROM agent_memory_promotion_candidate
+    WHERE memory_id = ? AND status = 'approved'
+    ORDER BY reviewed_at DESC, id
+    LIMIT 1
+  `).get(memoryId) as { id: string } | undefined;
+  return candidate ?? null;
+}
+
 const FeedbackSchema = z.object({
   memory_id: CommonSchemas.MemoryId,
   helpful: z.boolean(),
@@ -154,6 +172,20 @@ export class FeedbackTool extends BaseTool {
         latencyMs: Date.now() - t0,
         extraData: { memory_id: parsed.memory_id }
       });
+      const promotionCandidate = findApprovedPromotionCandidate(context.db!, parsed.memory_id);
+      if (promotionCandidate) {
+        context.services?.telemetryService?.record({
+          eventType: 'agent.promotion.usage',
+          outcome: parsed.helpful ? 'success' : 'failure',
+          ownerId: ownerForTel,
+          latencyMs: Date.now() - t0,
+          extraData: {
+            candidateId: promotionCandidate.id,
+            memoryId: parsed.memory_id,
+            usageOutcome: parsed.helpful ? 'used' : 'negative'
+          }
+        });
+      }
 
       return this.createSuccessResult({
         success: true,

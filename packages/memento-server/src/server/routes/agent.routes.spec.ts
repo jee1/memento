@@ -1,7 +1,10 @@
 import Database from 'better-sqlite3';
 import type { Request, Response } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AgentIntegrationSchemaMigration } from '@memento/core';
+import {
+  AgentIntegrationSchemaMigration,
+  AgentMemoryPromotionSchemaMigration,
+} from '@memento/core';
 import { createAgentRouter } from './agent.routes.js';
 
 function event(overrides: Record<string, unknown> = {}) {
@@ -47,7 +50,16 @@ describe('agent integration routes', () => {
         session_id TEXT,
         project_id TEXT,
         source_session_id TEXT,
+        confidence REAL,
         created_at TEXT
+      );
+      CREATE TABLE memory_link (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        created_at TEXT,
+        UNIQUE(source_id, target_id, relation_type)
       );
       CREATE TABLE telemetry_events (
         id TEXT PRIMARY KEY,
@@ -73,6 +85,7 @@ describe('agent integration routes', () => {
       )
     `);
     await new AgentIntegrationSchemaMigration().up(db);
+    await new AgentMemoryPromotionSchemaMigration().up(db);
     router = createAgentRouter(db, {
       now: () => new Date('2026-06-06T00:00:10.000Z'),
     });
@@ -386,5 +399,80 @@ describe('agent integration routes', () => {
     expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
       reason_code: 'SESSION_NOT_STARTED',
     }));
+  });
+
+  it('creates promotion candidates on stop and exposes approve/reject review actions', async () => {
+    await invoke('post', '/sessions', { body: event() });
+    await invoke('post', '/observations:ingest', {
+      body: {
+        events: [
+          event({
+            event_id: 'evt-decision',
+            event_type: 'TOOL_RESULT',
+            sequence_no: 1,
+            payload: {
+              tool_name: 'exec_command',
+              outcome: 'success',
+              output: {
+                decision: 'Keep agent capture hooks non-throwing.',
+              },
+            },
+          }),
+          event({
+            event_id: 'evt-procedure',
+            event_type: 'TOOL_RESULT',
+            sequence_no: 2,
+            payload: {
+              tool_name: 'exec_command',
+              outcome: 'success',
+              output: {
+                procedure: 'Verify release',
+                steps: ['Run tests', 'Run lint'],
+              },
+            },
+          }),
+        ],
+      },
+    });
+    await invoke('post', '/sessions/:id\\:stop', {
+      params: { id: 'session-1' },
+      body: event({
+        event_id: 'evt-stop',
+        event_type: 'STOP',
+        sequence_no: 3,
+        payload: { outcome: 'completed' },
+      }),
+    });
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('get', '/memory/promotion-candidates', {
+      query: { session_id: 'session-1', status: 'pending' },
+    });
+    const candidates = (response.json as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+      .candidates as Array<{ id: string; category: string }>;
+    expect(candidates).toHaveLength(2);
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('post', '/memory/promotion-candidates/:id\\:approve', {
+      params: { id: candidates.find(candidate => candidate.category === 'decision')!.id },
+    });
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'approved',
+      memory_id: expect.any(String),
+    }));
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('post', '/memory/promotion-candidates/:id\\:reject', {
+      params: { id: candidates.find(candidate => candidate.category === 'procedure')!.id },
+      body: { reason: 'too generic' },
+    });
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'rejected',
+      memory_id: null,
+      rejection_reason: 'too generic',
+    }));
+    expect(db.prepare(`
+      SELECT COUNT(*) AS count FROM memory_item WHERE type IN ('semantic', 'procedural')
+    `).get()).toEqual({ count: 1 });
   });
 });

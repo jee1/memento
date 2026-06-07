@@ -17,7 +17,11 @@ export type EventType =
   | 'telemetry.cleanup.performed'
   | 'agent.summary.completed'
   | 'agent.summary.failed'
-  | 'agent.summary.skipped';
+  | 'agent.summary.skipped'
+  | 'agent.promotion.extracted'
+  | 'agent.promotion.approved'
+  | 'agent.promotion.rejected'
+  | 'agent.promotion.usage';
 
 export type Outcome = 'success' | 'failure' | 'empty';
 
