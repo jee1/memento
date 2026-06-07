@@ -218,6 +218,23 @@ export type {
   PersistedAgentEventInput,
   ProvenanceTrace,
 } from './domains/agent-integration/types.js';
+export { AgentContextRecallService } from './domains/agent-integration/services/agent-context-recall-service.js';
+export type {
+  AgentContextCandidate,
+  AgentContextRecallRequest,
+  AgentContextRecallResult,
+  AgentContextRecallServiceOptions,
+  AgentContextRecallSource,
+  AgentContextScope,
+  AgentContextScopeLevel,
+  AgentContextSourceResult,
+  AgentContextStatus,
+  AgentTokenEstimator,
+  ExcludedAgentContextItem,
+  SelectedAgentContextItem,
+} from './domains/agent-integration/services/agent-context-recall-service.js';
+export { SqliteHybridAgentContextSource } from './domains/agent-integration/services/sqlite-hybrid-agent-context-source.js';
+export type { SqliteHybridAgentContextSourceOptions } from './domains/agent-integration/services/sqlite-hybrid-agent-context-source.js';
 
 export type { RecallResultItem } from './domains/memory/tools/recall-tool.js';
 
