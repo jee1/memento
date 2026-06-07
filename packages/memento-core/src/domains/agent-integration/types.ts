@@ -118,3 +118,26 @@ export interface ProvenanceTrace {
   edges: Array<{ from: string; to: string; type: string }>;
   truncated: boolean;
 }
+
+export type AgentMemoryPromotionTargetType = 'semantic' | 'procedural';
+export type AgentMemoryPromotionCategory = 'decision' | 'error_resolution' | 'procedure';
+export type AgentMemoryPromotionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AgentMemoryPromotionCandidate {
+  id: string;
+  fingerprint: string;
+  sessionId: string;
+  summaryMemoryId: string;
+  targetType: AgentMemoryPromotionTargetType;
+  category: AgentMemoryPromotionCategory;
+  content: string;
+  confidence: number;
+  evidenceObservationIds: string[];
+  mergeTargetMemoryId: string | null;
+  status: AgentMemoryPromotionStatus;
+  memoryId: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+}

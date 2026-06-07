@@ -19,7 +19,11 @@ export type EventType =
   | 'agent.summary.failed'
   | 'agent.summary.skipped'
   | 'agent.injection.completed'
-  | 'agent.injection.used';
+  | 'agent.injection.used'
+  | 'agent.promotion.extracted'
+  | 'agent.promotion.approved'
+  | 'agent.promotion.rejected'
+  | 'agent.promotion.usage';
 
 export type Outcome = 'success' | 'failure' | 'empty';
 

@@ -187,15 +187,23 @@ export { MetaMemoryStatsSchemaMigration } from './infrastructure/database/databa
 export { MemoryReviewCandidateSchemaMigration } from './infrastructure/database/database/migration/migrations/033-memory-review-candidate-schema.js';
 export { ReviewQueueHealthSnapshotMigration } from './infrastructure/database/database/migration/migrations/034-review-queue-health-snapshot.js';
 export { AgentIntegrationSchemaMigration } from './infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
+export { AgentMemoryPromotionSchemaMigration } from './infrastructure/database/database/migration/migrations/036-agent-memory-promotion-schema.js';
 export { SqliteAgentIntegrationRepository } from './infrastructure/database/repositories/sqlite-agent-integration-repository.js';
 export {
   AgentIntegrationError,
   AgentLifecycleService,
 } from './domains/agent-integration/services/agent-lifecycle-service.js';
 export {
+  AgentMemoryPromotionService,
+} from './domains/agent-integration/services/agent-memory-promotion-service.js';
+export {
   AgentSessionSummaryService,
   buildAgentSessionSummary,
 } from './domains/agent-integration/services/agent-session-summary-service.js';
+export type {
+  AgentMemoryPromotionServiceOptions,
+  AgentMemoryPromotionTelemetryEvent,
+} from './domains/agent-integration/services/agent-memory-promotion-service.js';
 export type {
   AgentIntegrationReasonCode,
   AgentLifecycleServiceOptions,
@@ -209,6 +217,10 @@ export type {
 export type {
   AgentCaptureStatus,
   AgentEventType,
+  AgentMemoryPromotionCandidate,
+  AgentMemoryPromotionCategory,
+  AgentMemoryPromotionStatus,
+  AgentMemoryPromotionTargetType,
   AgentObservation,
   AgentSession,
   AgentSessionStatus,

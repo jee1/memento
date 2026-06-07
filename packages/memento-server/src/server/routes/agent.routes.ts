@@ -4,10 +4,12 @@ import {
   type AgentContextInjectionRequest,
   type AgentContextInjectionService,
   AgentLifecycleService,
+  AgentMemoryPromotionService,
   AgentSessionSummaryService,
   SqliteAgentIntegrationRepository,
   TelemetryRepository,
   type AgentLifecycleServiceOptions,
+  type AgentMemoryPromotionCandidate,
   type AgentObservation,
   type AgentSession,
   type MemoryProvenance,
@@ -282,6 +284,26 @@ function average(values: number[]): number | null {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function promotionCandidateDto(candidate: AgentMemoryPromotionCandidate) {
+  return {
+    id: candidate.id,
+    session_id: candidate.sessionId,
+    summary_memory_id: candidate.summaryMemoryId,
+    target_type: candidate.targetType,
+    category: candidate.category,
+    content: candidate.content,
+    confidence: candidate.confidence,
+    evidence_observation_ids: candidate.evidenceObservationIds,
+    merge_target_memory_id: candidate.mergeTargetMemoryId,
+    status: candidate.status,
+    memory_id: candidate.memoryId,
+    rejection_reason: candidate.rejectionReason,
+    created_at: candidate.createdAt,
+    updated_at: candidate.updatedAt,
+    reviewed_at: candidate.reviewedAt,
+  };
+}
+
 function writeError(res: Response, error: unknown): Response {
   if (error instanceof AgentIntegrationError) {
     return res.status(error.httpStatus).json({
@@ -306,7 +328,39 @@ export function createAgentRouter(
   const router = Router();
   const repository = db ? new SqliteAgentIntegrationRepository(db) : null;
   const telemetryRepository = db ? new TelemetryRepository(db) : null;
-  const summarizer = repository
+  const promotionService = repository
+    ? new AgentMemoryPromotionService(repository, {
+        now: options.now,
+        recordTelemetry: event => {
+          const sessionId = event.action === 'extracted' ? event.sessionId : null;
+          const session = sessionId ? repository.getSession(sessionId) : null;
+          const eventType = {
+            extracted: 'agent.promotion.extracted',
+            approved: 'agent.promotion.approved',
+            rejected: 'agent.promotion.rejected',
+            usage: 'agent.promotion.usage',
+          } as const;
+          const outcome = event.action === 'rejected'
+            || (event.action === 'usage' && event.usageOutcome === 'negative')
+            ? 'failure'
+            : event.action === 'usage' && event.usageOutcome === 'unused'
+              ? 'empty'
+              : 'success';
+          telemetryRepository?.insertEventSync({
+            eventType: eventType[event.action],
+            requestId: event.action === 'extracted'
+              ? `agent-promotion:${event.sessionId}`
+              : event.action === 'usage'
+                ? `agent-promotion-usage:${event.memoryId}`
+                : `agent-promotion-review:${event.candidateId}`,
+            ownerId: session?.ownerId ?? null,
+            outcome,
+            extraData: { ...event },
+          });
+        },
+      })
+    : null;
+  const summaryService = repository
     ? new AgentSessionSummaryService(repository, {
         now: options.now,
         recordTelemetry: event => {
@@ -330,6 +384,17 @@ export function createAgentRouter(
           });
         },
       })
+    : null;
+  const summarizer = summaryService
+    ? {
+        summarize(sessionId: string) {
+          const result = summaryService.summarize(sessionId);
+          if (result.status !== 'SKIPPED') {
+            promotionService?.extractCandidates(sessionId);
+          }
+          return result;
+        },
+      }
     : null;
   const service = repository
     ? new AgentLifecycleService(repository, options, summarizer ?? undefined)
@@ -410,6 +475,7 @@ export function createAgentRouter(
       features: {
         session_storage: true,
         provenance_trace: true,
+        memory_promotion_review: true,
         pre_compact_injection: injectionService !== undefined,
       },
       schema_ready: service?.schemaReady() ?? false,
@@ -742,6 +808,58 @@ export function createAgentRouter(
             : 'sources',
         maxDepth: typeof req.query.max_depth === 'string' ? Number(req.query.max_depth) : undefined,
       }));
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
+  router.get('/memory/promotion-candidates', (req, res) => {
+    try {
+      if (!promotionService) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const status = req.query.status;
+      return res.json({
+        candidates: promotionService.listCandidates({
+          sessionId: typeof req.query.session_id === 'string'
+            ? req.query.session_id
+            : undefined,
+          status: status === 'pending' || status === 'approved' || status === 'rejected'
+            ? status
+            : undefined,
+        }).map(promotionCandidateDto),
+      });
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
+  router.post('/memory/promotion-candidates/:id\\:approve', (req, res) => {
+    try {
+      if (!promotionService) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const candidateId = (req.params as Record<string, string>).id;
+      return res.json(promotionCandidateDto(
+        promotionService.approveCandidate(candidateId),
+      ));
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
+  router.post('/memory/promotion-candidates/:id\\:reject', (req, res) => {
+    try {
+      if (!promotionService) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const candidateId = (req.params as Record<string, string>).id;
+      return res.json(promotionCandidateDto(
+        promotionService.rejectCandidate(
+          candidateId,
+          requireString(req.body?.reason, 'reason'),
+        ),
+      ));
     } catch (error) {
       return writeError(res, error);
     }

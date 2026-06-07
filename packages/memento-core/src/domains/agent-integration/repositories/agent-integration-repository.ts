@@ -1,4 +1,5 @@
 import type {
+  AgentMemoryPromotionCandidate,
   AgentObservation,
   AgentSession,
   MemoryProvenance,
@@ -11,6 +12,20 @@ export interface CreateObservationInput extends PersistedAgentEventInput {
   lateArrival: boolean;
   receivedAt: string;
   expiresAt: string | null;
+}
+
+export interface CreateAgentMemoryPromotionCandidateInput {
+  id: string;
+  fingerprint: string;
+  sessionId: string;
+  summaryMemoryId: string;
+  targetType: AgentMemoryPromotionCandidate['targetType'];
+  category: AgentMemoryPromotionCandidate['category'];
+  content: string;
+  confidence: number;
+  evidenceObservationIds: string[];
+  mergeTargetMemoryId: string | null;
+  createdAt: string;
 }
 
 export interface AgentIntegrationRepository {
@@ -42,6 +57,33 @@ export interface AgentIntegrationRepository {
     },
   ): ObservationPage;
   listAllObservations(sessionId: string): AgentObservation[];
+  findPromotionCandidateByFingerprint(
+    fingerprint: string,
+  ): AgentMemoryPromotionCandidate | null;
+  createPromotionCandidate(
+    input: CreateAgentMemoryPromotionCandidateInput,
+  ): AgentMemoryPromotionCandidate;
+  listPromotionCandidates(query?: {
+    sessionId?: string;
+    status?: AgentMemoryPromotionCandidate['status'];
+  }): AgentMemoryPromotionCandidate[];
+  findScopedMemoryByContent(input: {
+    targetType: AgentMemoryPromotionCandidate['targetType'];
+    content: string;
+    ownerId: string | null;
+    projectId: string | null;
+    processId: string | null;
+  }): string | null;
+  approvePromotionCandidate(
+    candidateId: string,
+    memoryId: string,
+    now: string,
+  ): AgentMemoryPromotionCandidate;
+  rejectPromotionCandidate(
+    candidateId: string,
+    reason: string,
+    now: string,
+  ): AgentMemoryPromotionCandidate;
   persistSessionSummary(input: {
     memoryId: string;
     session: AgentSession;
