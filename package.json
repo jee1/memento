@@ -40,7 +40,7 @@
     "test:vector-search-quality": "vitest --run packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "npm run lint:ts && npm run lint:js",
-    "type-check": "npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @memento/client && npm run type-check -w @memento/assistant && npm run type-check -w @memento/agent-integration && npm run type-check -w experimental-example",
+    "type-check": "npm run type-check -w @memento/agent-integration && npm run type-check -w @memento/core && npm run type-check -w memento-server && npm run type-check -w @memento/client && npm run type-check -w @memento/assistant && npm run type-check -w experimental-example",
     "db:init": "npm run db:init -w @memento/core",
     "db:migrate": "npm run db:migrate -w @memento/core",
     "db:check-migration": "tsx packages/memento-server/src/scripts/check-migration-status.ts",

@@ -105,6 +105,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
+      - name: Build @memento/agent-integration (required for server resolution)
+        run: npm run build -w @memento/agent-integration
       - name: Build @memento/core (required for server test resolution)
         run: npm run build -w @memento/core
       - name: Build memento-server (CLI dist for integration tests)
