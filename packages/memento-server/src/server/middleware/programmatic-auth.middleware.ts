@@ -2,9 +2,22 @@ import type { NextFunction, Request, Response } from 'express';
 
 export type ProgrammaticAuthMiddlewareConfig = {
   expectedKey: string | undefined | null;
+  errorFormat?: 'legacy' | 'agent';
 };
 
-function writeDisabledResponse(res: Response): void {
+function writeDisabledResponse(
+  res: Response,
+  format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
+): void {
+  if (format === 'agent') {
+    res.status(401).json({
+      status: 401,
+      reason_code: 'AUTH_FAILED',
+      message: 'Programmatic API is disabled: ADMIN_API_KEY is not configured.',
+      retryable: false,
+    });
+    return;
+  }
   res.status(401).json({
     error: 'Unauthorized',
     message: 'Programmatic API is disabled: ADMIN_API_KEY is not configured.',
@@ -12,7 +25,19 @@ function writeDisabledResponse(res: Response): void {
   });
 }
 
-function writeUnauthorized(res: Response): void {
+function writeUnauthorized(
+  res: Response,
+  format: ProgrammaticAuthMiddlewareConfig['errorFormat'],
+): void {
+  if (format === 'agent') {
+    res.status(401).json({
+      status: 401,
+      reason_code: 'AUTH_FAILED',
+      message: 'Programmatic routes require Authorization: Bearer <key> or X-API-Key.',
+      retryable: false,
+    });
+    return;
+  }
   res.status(401).json({
     error: 'Unauthorized',
     message: 'Programmatic routes require Authorization: Bearer <key> or X-API-Key.',
@@ -44,7 +69,7 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
   return (req: Request, res: Response, next: NextFunction): void => {
     const expectedKey = config.expectedKey?.trim();
     if (!expectedKey) {
-      writeDisabledResponse(res);
+      writeDisabledResponse(res, config.errorFormat);
       return;
     }
 
@@ -60,6 +85,6 @@ export function createProgrammaticAuthMiddleware(config: ProgrammaticAuthMiddlew
       return;
     }
 
-    writeUnauthorized(res);
+    writeUnauthorized(res, config.errorFormat);
   };
 }

@@ -22,6 +22,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@memento/agent-integration": "*",
     "@memento/core": "*",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "better-sqlite3": "^12.4.1",

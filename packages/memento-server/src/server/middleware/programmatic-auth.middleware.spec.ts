@@ -123,4 +123,23 @@ describe('createProgrammaticAuthMiddleware', () => {
     );
     expect(next).not.toHaveBeenCalled();
   });
+
+  it('returns the stable agent API error envelope when requested', () => {
+    const middleware = createProgrammaticAuthMiddleware({
+      expectedKey: 'test-admin-key',
+      errorFormat: 'agent',
+    });
+    const req = { headers: {} } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+
+    expect(res.body).toEqual({
+      status: 401,
+      reason_code: 'AUTH_FAILED',
+      message: 'Programmatic routes require Authorization: Bearer <key> or X-API-Key.',
+      retryable: false,
+    });
+  });
 });
