@@ -41,7 +41,15 @@ export interface AgentIntegrationRepository {
       to?: string;
     },
   ): ObservationPage;
-  markExpiredSessionsAbandoned(cutoff: string, now: string): number;
+  listAllObservations(sessionId: string): AgentObservation[];
+  persistSessionSummary(input: {
+    memoryId: string;
+    session: AgentSession;
+    content: string;
+    observationIds: string[];
+    createdAt: string;
+  }): { memoryId: string; created: boolean };
+  markExpiredSessionsAbandoned(cutoff: string, now: string): string[];
   clearExpiredObservationPayloads(cutoff: string): number;
   createProvenance(input: {
     id: string;

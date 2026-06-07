@@ -14,7 +14,10 @@ export type EventType =
   | 'memory.feedback.positive'
   | 'memory.feedback.negative'
   | 'consolidation.performed'
-  | 'telemetry.cleanup.performed';
+  | 'telemetry.cleanup.performed'
+  | 'agent.summary.completed'
+  | 'agent.summary.failed'
+  | 'agent.summary.skipped';
 
 export type Outcome = 'success' | 'failure' | 'empty';
 

@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentIntegrationSchemaMigration } from '../../../infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
 import { SqliteAgentIntegrationRepository } from '../../../infrastructure/database/repositories/sqlite-agent-integration-repository.js';
 import { AgentIntegrationError, AgentLifecycleService } from './agent-lifecycle-service.js';
@@ -182,6 +182,43 @@ describe('AgentLifecycleService', () => {
 
     expect(service.abandonExpiredSessions(new Date('2026-06-06T00:10:00.000Z'))).toBe(0);
     expect(repository.getSession('session-1')?.status).toBe('DEGRADED');
+  });
+
+  it('requests a summary after stop and retries it for an idempotent stop replay', () => {
+    const summarize = vi.fn()
+      .mockImplementationOnce(() => {
+        throw new Error('temporary summary failure');
+      })
+      .mockReturnValue({ status: 'CREATED', memoryId: 'summary-1', observationCount: 2 });
+    service = new AgentLifecycleService(repository, {
+      now: () => new Date('2026-06-06T00:00:10.000Z'),
+    }, { summarize });
+    service.capture(startEvent);
+    const stop = {
+      ...startEvent,
+      eventId: 'evt-stop-summary',
+      eventType: 'STOP' as const,
+      sequenceNo: 1,
+      payloadSha256: '6'.repeat(64),
+      outcome: 'completed',
+    };
+
+    expect(service.capture(stop).status).toBe('ACCEPTED');
+    expect(service.capture(stop).status).toBe('DUPLICATE');
+    expect(summarize).toHaveBeenNthCalledWith(1, 'session-1');
+    expect(summarize).toHaveBeenNthCalledWith(2, 'session-1');
+  });
+
+  it('requests summaries for sessions newly marked abandoned', () => {
+    const summarize = vi.fn();
+    service = new AgentLifecycleService(repository, {
+      abandonedTtlMs: 60_000,
+      now: () => new Date('2026-06-06T00:00:10.000Z'),
+    }, { summarize });
+    service.capture(startEvent);
+
+    expect(service.abandonExpiredSessions(new Date('2026-06-06T00:01:01.000Z'))).toBe(1);
+    expect(summarize).toHaveBeenCalledWith('session-1');
   });
 
   it('rejects events that do not match the session adapter contract or scope', () => {
