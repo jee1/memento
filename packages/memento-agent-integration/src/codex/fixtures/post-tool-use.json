@@ -1,0 +1,1 @@
+{"hook_event_name":"PostToolUse","session_id":"codex-session-019","cwd":"/workspace/memento","tool_name":"apply_patch","tool_input":{"path":"packages/example.ts"},"tool_response":{"success":true},"duration_ms":12,"file_changes":["/workspace/memento/packages/example.ts"]}
