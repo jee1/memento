@@ -6,6 +6,8 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { TelemetryEventsMigration } from '../../../../infrastructure/database/database/migration/migrations/027-telemetry-events.js';
 import { TelemetryDailyMetricsMigration } from '../../../../infrastructure/database/database/migration/migrations/028-telemetry-daily-metrics.js';
+import { AgentIntegrationSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/035-agent-integration-schema.js';
+import { AgentMemoryPromotionSchemaMigration } from '../../../../infrastructure/database/database/migration/migrations/036-agent-memory-promotion-schema.js';
 import { TelemetryRepository } from '../../../telemetry/repositories/telemetry-repository.js';
 import { TelemetryService } from '../../../telemetry/services/telemetry-service.js';
 import { FeedbackTool } from '../feedback-tool.js';
@@ -19,6 +21,8 @@ describe('telemetry instrumentation (feedback + service)', () => {
   beforeEach(async () => {
     db = new Database(':memory:');
     await DatabaseUtils.initializeDatabase(db);
+    await new AgentIntegrationSchemaMigration().up(db);
+    await new AgentMemoryPromotionSchemaMigration().up(db);
     await new TelemetryEventsMigration().up(db);
     await new TelemetryDailyMetricsMigration().up(db);
     db.prepare(
@@ -58,6 +62,58 @@ describe('telemetry instrumentation (feedback + service)', () => {
     expect(row.event_type).toBe('memory.feedback.positive');
     expect(row.outcome).toBe('success');
     expect(row.latency_ms).not.toBeNull();
+  });
+
+  it('승급 기억 피드백은 downstream usage telemetry에도 연결된다', async () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content) VALUES ('mem_tel_summary', 'episodic', 'summary')`
+    ).run();
+    db.prepare(`
+      INSERT INTO agent_session (
+        id, adapter_name, adapter_version, contract_version, status,
+        started_at, last_event_at, max_sequence_no, summary_memory_id,
+        created_at, updated_at
+      ) VALUES (
+        'session-feedback', 'codex', '1.0.0', 1, 'COMPLETED',
+        '2026-06-07T00:00:00.000Z', '2026-06-07T00:00:01.000Z', 1,
+        'mem_tel_summary', '2026-06-07T00:00:00.000Z', '2026-06-07T00:00:01.000Z'
+      )
+    `).run();
+    db.prepare(`
+      INSERT INTO agent_memory_promotion_candidate (
+        id, fingerprint, session_id, summary_memory_id, target_type, category,
+        content, confidence, evidence_observation_ids_json, status, memory_id,
+        created_at, updated_at, reviewed_at
+      ) VALUES (
+        'promotion-feedback', ?, 'session-feedback', 'mem_tel_summary',
+        'semantic', 'decision', 'x', 0.85, '[]', 'approved', 'mem_tel_fb',
+        '2026-06-07T00:00:01.000Z', '2026-06-07T00:00:01.000Z',
+        '2026-06-07T00:00:01.000Z'
+      )
+    `).run('f'.repeat(64));
+    const tool = new FeedbackTool();
+    const context: ToolContext = {
+      db,
+      agentId: 'agent-tel',
+      services: { telemetryService }
+    };
+
+    await tool.handle({ memory_id: 'mem_tel_fb', helpful: false }, context);
+    await new Promise<void>(resolve => setImmediate(resolve));
+
+    const row = db.prepare(`
+      SELECT event_type, outcome, extra_data
+      FROM telemetry_events
+      WHERE event_type = 'agent.promotion.usage'
+      ORDER BY created_at DESC LIMIT 1
+    `).get() as { event_type: string; outcome: string; extra_data: string };
+    expect(row.event_type).toBe('agent.promotion.usage');
+    expect(row.outcome).toBe('failure');
+    expect(JSON.parse(row.extra_data)).toEqual(expect.objectContaining({
+      memoryId: 'mem_tel_fb',
+      candidateId: 'promotion-feedback',
+      usageOutcome: 'negative'
+    }));
   });
 
   it('runWithContext 안에서 연속 record는 동일 request_id를 쓴다', async () => {

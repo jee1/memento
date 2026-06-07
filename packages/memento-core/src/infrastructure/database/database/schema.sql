@@ -698,6 +698,34 @@ CREATE INDEX IF NOT EXISTS idx_memory_provenance_session
 CREATE INDEX IF NOT EXISTS idx_memory_provenance_observation
   ON memory_provenance(observation_id);
 
+-- Reviewable semantic/procedural promotion candidates (migration 036, Issue #465)
+CREATE TABLE IF NOT EXISTS agent_memory_promotion_candidate (
+  id TEXT PRIMARY KEY,
+  fingerprint TEXT NOT NULL UNIQUE,
+  session_id TEXT NOT NULL,
+  summary_memory_id TEXT NOT NULL,
+  target_type TEXT NOT NULL CHECK (target_type IN ('semantic', 'procedural')),
+  category TEXT NOT NULL CHECK (category IN ('decision', 'error_resolution', 'procedure')),
+  content TEXT NOT NULL,
+  confidence REAL NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+  evidence_observation_ids_json TEXT NOT NULL,
+  merge_target_memory_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  memory_id TEXT,
+  rejection_reason TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  reviewed_at TEXT,
+  FOREIGN KEY (session_id) REFERENCES agent_session(id) ON DELETE CASCADE,
+  FOREIGN KEY (summary_memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+  FOREIGN KEY (merge_target_memory_id) REFERENCES memory_item(id) ON DELETE SET NULL,
+  FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_memory_promotion_queue
+  ON agent_memory_promotion_candidate(status, confidence DESC, created_at);
+CREATE INDEX IF NOT EXISTS idx_agent_memory_promotion_session
+  ON agent_memory_promotion_candidate(session_id, created_at);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);
