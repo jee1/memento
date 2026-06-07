@@ -231,6 +231,21 @@ export type {
   ProvenanceTrace,
 } from './domains/agent-integration/types.js';
 export { AgentContextRecallService } from './domains/agent-integration/services/agent-context-recall-service.js';
+export {
+  AgentContextInjectionService,
+  summarizeAgentInjectionTelemetry,
+} from './domains/agent-integration/services/agent-context-injection-service.js';
+export type {
+  AgentContextInjectionBundle,
+  AgentContextInjectionFailureReason,
+  AgentContextInjectionRequest,
+  AgentContextInjectionServiceOptions,
+  AgentContextInjectionTrigger,
+  AgentInjectionBuiltTelemetryEvent,
+  AgentInjectionTelemetryEvent,
+  AgentInjectionTelemetrySummary,
+  AgentInjectionUsageTelemetryEvent,
+} from './domains/agent-integration/services/agent-context-injection-service.js';
 export type {
   AgentContextCandidate,
   AgentContextRecallRequest,

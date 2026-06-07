@@ -18,6 +18,8 @@ export type EventType =
   | 'agent.summary.completed'
   | 'agent.summary.failed'
   | 'agent.summary.skipped'
+  | 'agent.injection.completed'
+  | 'agent.injection.used'
   | 'agent.promotion.extracted'
   | 'agent.promotion.approved'
   | 'agent.promotion.rejected'
