@@ -56,6 +56,8 @@
 
 ## Phase 6 - Delivery
 
-- [ ] T031 Lore protocol commit
-- [ ] T032 branch push
-- [ ] T033 Draft PR 생성: `Closes #458`, Spec Kit, tests, 지식 복리
+- [x] T031 Lore protocol commit
+- [x] T032 branch push
+- [x] T033 Draft PR 생성: `Closes #458`, Spec Kit, tests, 지식 복리
+
+Delivery: Draft PR https://github.com/jee1/memento/pull/474
