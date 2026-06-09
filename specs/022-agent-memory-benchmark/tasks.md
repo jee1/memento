@@ -38,7 +38,7 @@
 - [x] T022 security/static checks를 실행한다.
 - [x] T023 graphify를 rebuild한다.
 - [x] T024 diff/PR self-review를 수행한다.
-- [ ] T025 Lore commit, push, Draft PR을 생성한다.
+- [x] T025 Lore commit, push, Draft PR을 생성한다.
 
 ## Validation Notes
 
@@ -51,3 +51,4 @@
 - security workflow: SQL/PII/path static checks, 68 security unit tests, SQL injection 5 cases, path traversal 7 cases passed.
 - `npm audit --audit-level=high`: 기존 lockfile에서 32건(critical 3, high 16, moderate 13)을 보고했다. dependency/lockfile 변경은 없다.
 - graphify rebuild: 5,444 nodes, 6,691 edges, 1,089 communities.
+- Draft PR: https://github.com/jee1/memento/pull/480
