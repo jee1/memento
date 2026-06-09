@@ -32,6 +32,24 @@ describe('MementoClient agent API transport', () => {
     expect(http.get).toHaveBeenCalledWith('/api/v1/agent/capabilities');
   });
 
+  it('reads payload-free agent operations status', async () => {
+    http.get.mockResolvedValue({
+      data: {
+        counts: { captures: 2, injections: 1, dropped: 0, degraded: 0 },
+      },
+    });
+
+    await expect(client.getAgentOperationsStatus({
+      since: '2026-06-06T00:00:00.000Z',
+      limit: 20,
+    })).resolves.toMatchObject({
+      counts: { captures: 2, injections: 1 },
+    });
+    expect(http.get).toHaveBeenCalledWith('/api/v1/agent/operations/status', {
+      params: { since: '2026-06-06T00:00:00.000Z', limit: 20 },
+    });
+  });
+
   it('sends lifecycle events to start, ingest, pre-compact, and stop endpoints', async () => {
     const start = { event_id: 'start', session_id: 'session-1' };
     const prompt = { event_id: 'prompt', session_id: 'session-1' };

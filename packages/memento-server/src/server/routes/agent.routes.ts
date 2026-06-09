@@ -284,6 +284,29 @@ function average(values: number[]): number | null {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function boundedStatusLimit(value: unknown): number {
+  const parsed = typeof value === 'string' ? Number(value) : NaN;
+  return Number.isSafeInteger(parsed) ? Math.min(100, Math.max(1, parsed)) : 20;
+}
+
+function boundedStatusSince(value: unknown, now = new Date()): string {
+  const maximumWindowMs = 7 * 24 * 60 * 60 * 1_000;
+  const fallback = new Date(now.getTime() - 24 * 60 * 60 * 1_000);
+  if (typeof value !== 'string') return fallback.toISOString();
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed > now) return fallback.toISOString();
+  return new Date(Math.max(parsed.getTime(), now.getTime() - maximumWindowMs)).toISOString();
+}
+
+function safeTelemetrySessionId(extraData: string | null): string | null {
+  try {
+    const parsed = JSON.parse(extraData ?? '{}') as Record<string, unknown>;
+    return typeof parsed.session_id === 'string' ? parsed.session_id : null;
+  } catch {
+    return null;
+  }
+}
+
 function promotionCandidateDto(candidate: AgentMemoryPromotionCandidate) {
   return {
     id: candidate.id,
@@ -480,6 +503,109 @@ export function createAgentRouter(
       },
       schema_ready: service?.schemaReady() ?? false,
     });
+  });
+
+  router.get('/operations/status', (req, res) => {
+    try {
+      if (!service || !db) {
+        throw new AgentIntegrationError(
+          'Database unavailable',
+          'SCHEMA_NOT_READY',
+          503,
+          true,
+        );
+      }
+      const generatedAt = (options.now ?? (() => new Date()))().toISOString();
+      const since = boundedStatusSince(req.query.since, new Date(generatedAt));
+      const limit = boundedStatusLimit(req.query.limit);
+      const observationRows = db.prepare(`
+        SELECT
+          received_at AS occurred_at,
+          status,
+          drop_reason,
+          session_id,
+          adapter_name,
+          event_type
+        FROM agent_observation
+        WHERE received_at >= ?
+        ORDER BY received_at DESC
+        LIMIT ?
+      `).all(since, limit) as Array<{
+        occurred_at: string;
+        status: string;
+        drop_reason: string | null;
+        session_id: string;
+        adapter_name: string;
+        event_type: string;
+      }>;
+      const injectionRows = db.prepare(`
+        SELECT created_at, outcome, error_code, extra_data
+        FROM telemetry_events
+        WHERE event_type = 'agent.injection.completed'
+          AND created_at >= ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `).all(since, limit) as Array<{
+        created_at: string;
+        outcome: string;
+        error_code: string | null;
+        extra_data: string | null;
+      }>;
+      const observationCounts = db.prepare(`
+        SELECT
+          COUNT(*) AS captures,
+          SUM(CASE WHEN status = 'DROPPED' THEN 1 ELSE 0 END) AS dropped,
+          SUM(CASE WHEN status = 'DEGRADED' THEN 1 ELSE 0 END) AS degraded
+        FROM agent_observation
+        WHERE received_at >= ?
+      `).get(since) as { captures: number; dropped: number | null; degraded: number | null };
+      const injectionCounts = db.prepare(`
+        SELECT
+          COUNT(*) AS injections,
+          SUM(CASE WHEN outcome = 'failure' THEN 1 ELSE 0 END) AS degraded
+        FROM telemetry_events
+        WHERE event_type = 'agent.injection.completed'
+          AND created_at >= ?
+      `).get(since) as { injections: number; degraded: number | null };
+      const recentEvents = [
+        ...observationRows.map(row => ({
+          occurred_at: row.occurred_at,
+          kind: 'capture',
+          status: row.status,
+          reason_code: row.drop_reason ?? 'NONE',
+          session_id: row.session_id,
+          adapter_name: row.adapter_name,
+          event_type: row.event_type,
+        })),
+        ...injectionRows.map(row => ({
+          occurred_at: row.created_at,
+          kind: 'injection',
+          status: row.outcome === 'failure'
+            ? 'degraded'
+            : row.outcome === 'empty'
+              ? 'empty'
+              : 'ok',
+          reason_code: row.error_code ?? 'NONE',
+          session_id: safeTelemetrySessionId(row.extra_data),
+        })),
+      ]
+        .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at))
+        .slice(0, limit);
+
+      return res.json({
+        generated_at: generatedAt,
+        window: { since, limit },
+        counts: {
+          captures: observationCounts.captures,
+          injections: injectionCounts.injections,
+          dropped: observationCounts.dropped ?? 0,
+          degraded: (observationCounts.degraded ?? 0) + (injectionCounts.degraded ?? 0),
+        },
+        recent_events: recentEvents,
+      });
+    } catch (error) {
+      return writeError(res, error);
+    }
   });
 
   router.post('/sessions', async (req, res) => {

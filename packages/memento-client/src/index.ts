@@ -91,6 +91,7 @@ export type {
   HealthCheck,
   AgentEventEnvelopeLike,
   AgentObservationQuery,
+  AgentOperationsStatusQuery,
   AgentProvenanceQuery,
   AgentProvenanceLinkInput
 } from './types.js';

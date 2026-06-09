@@ -45,6 +45,7 @@ import type {
   HealthCheck,
   AgentEventEnvelopeLike,
   AgentObservationQuery,
+  AgentOperationsStatusQuery,
   AgentProvenanceQuery,
   AgentProvenanceLinkInput
 } from './types.js';
@@ -550,6 +551,16 @@ export class MementoClient extends EventEmitter {
   async getAgentCapabilities<T = Record<string, unknown>>(): Promise<T> {
     this.ensureConnected();
     const response = await this.httpClient.get('/api/v1/agent/capabilities');
+    return response.data as T;
+  }
+
+  async getAgentOperationsStatus<T = Record<string, unknown>>(
+    query: AgentOperationsStatusQuery = {},
+  ): Promise<T> {
+    this.ensureConnected();
+    const response = await this.httpClient.get('/api/v1/agent/operations/status', {
+      params: query,
+    });
     return response.data as T;
   }
 
