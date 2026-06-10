@@ -58,4 +58,17 @@ describe('detectDockerAnomaly', () => {
       title: 'Docker critical: container OOMKilled',
     });
   });
+
+  it('redacts container env vars from docker inspect excerpts', () => {
+    const secret = 'sk-proj-example-secret-value';
+    const event = detectDockerAnomaly({
+      Name: '/memento-mcp-server',
+      State: { Health: { Status: 'unhealthy' }, Status: 'running' },
+      Config: { Env: [`OPENAI_API_KEY=${secret}`, 'NODE_ENV=production'] },
+    });
+
+    expect(event?.excerpt).toContain('OPENAI_API_KEY=[REDACTED]');
+    expect(event?.excerpt).toContain('NODE_ENV=[REDACTED]');
+    expect(event?.excerpt).not.toContain(secret);
+  });
 });

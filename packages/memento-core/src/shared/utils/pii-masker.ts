@@ -137,8 +137,8 @@ export class PIIMasker {
 
     // API 키 마스킹
     if (types.includes('api_key')) {
-      // OpenAI API 키: sk-... 또는 sk-proj-...
-      const openaiKeyPattern = /sk-[a-zA-Z0-9]{32,}/g;
+      // OpenAI API 키: sk-... 또는 sk-proj-... (하이픈·언더스코어 포함)
+      const openaiKeyPattern = /sk-(?:proj-)?[a-zA-Z0-9_-]{20,}/g;
       const openaiMatches = masked.match(openaiKeyPattern);
       if (openaiMatches) {
         masked = masked.replace(openaiKeyPattern, usePlaceholder ? '[API_KEY]' : '');
@@ -159,8 +159,8 @@ export class PIIMasker {
         totalMaskedCount += googleMatches.length;
       }
 
-      // 일반 API 키 패턴: api_key=..., apikey=... 등
-      const generalApiKeyPattern = /\b(api[_-]?key|apikey)[=:]\s*[a-zA-Z0-9_-]{20,}/gi;
+      // 일반 API 키 패턴: api_key=..., OPENAI_API_KEY=..., *_SECRET=... 등
+      const generalApiKeyPattern = /\b(?:[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD)[A-Z0-9_]*|api[_-]?key|apikey)[=:]["']?\s*[^\s&"',]+/gi;
       const generalMatches = masked.match(generalApiKeyPattern);
       if (generalMatches) {
         masked = masked.replace(generalApiKeyPattern, (match) => {

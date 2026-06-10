@@ -11,6 +11,31 @@ function truncateTitle(value: string): string {
   return value.length <= 120 ? value : `${value.slice(0, 117)}...`;
 }
 
+function redactDockerInspectEnv(record: Record<string, unknown>): Record<string, unknown> {
+  const config = record.Config;
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return record;
+  }
+
+  const typedConfig = config as { Env?: unknown };
+  if (!Array.isArray(typedConfig.Env)) {
+    return record;
+  }
+
+  return {
+    ...record,
+    Config: {
+      ...typedConfig,
+      Env: typedConfig.Env.map(entry => {
+        if (typeof entry !== 'string') return '[REDACTED]';
+        const eq = entry.indexOf('=');
+        return eq >= 0 ? `${entry.slice(0, eq)}=[REDACTED]` : '[REDACTED]';
+      }),
+    },
+  };
+}
+
+
 export function detectAppLogEvent(line: ParsedAppLogLine): DetectedEvent | undefined {
   const lower = `${line.level} ${line.message}`.toLowerCase();
   const critical =
@@ -71,7 +96,7 @@ export function detectRuntimeAnomaly(record: Record<string, unknown>): DetectedE
             severity: 'anomaly',
             title: `Runtime anomaly: scheduler errors for ${jobName}`,
             normalizedMessage: `scheduler error count increased for ${jobName}`,
-            excerpt: JSON.stringify(record),
+            excerpt: JSON.stringify(redactDockerInspectEnv(record)),
             observedAt: typeof record.timestamp === 'string' ? record.timestamp : nowIso(),
             context: { jobName, count },
           };
@@ -92,7 +117,7 @@ export function detectDockerAnomaly(record: Record<string, unknown>): DetectedEv
         severity: 'critical',
         title: 'Docker critical: container OOMKilled',
         normalizedMessage: 'container OOMKilled',
-        excerpt: JSON.stringify(record),
+        excerpt: JSON.stringify(redactDockerInspectEnv(record)),
         observedAt: nowIso(),
         context: { status: typedState.Status },
       };
@@ -103,7 +128,7 @@ export function detectDockerAnomaly(record: Record<string, unknown>): DetectedEv
         severity: 'error',
         title: 'Docker error: container unhealthy',
         normalizedMessage: 'container unhealthy',
-        excerpt: JSON.stringify(record),
+        excerpt: JSON.stringify(redactDockerInspectEnv(record)),
         observedAt: nowIso(),
         context: { status: typedState.Status, health: typedState.Health.Status },
       };
