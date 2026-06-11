@@ -159,8 +159,8 @@ export class PIIMasker {
         totalMaskedCount += googleMatches.length;
       }
 
-      // 일반 API 키 패턴: api_key=..., OPENAI_API_KEY=..., *_SECRET=... 등
-      const generalApiKeyPattern = /\b(?:[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD)[A-Z0-9_]*|api[_-]?key|apikey)[=:]["']?\s*[^\s&"',]+/gi;
+      // 일반 API 키 패턴: api_key=..., OPENAI_API_KEY=..., *_SECRET=... (= 할당만; Token: 등은 토큰 마스킹에 위임)
+      const generalApiKeyPattern = /\b(?:[A-Z0-9_]*(?:API[_-]?KEY|SECRET)[A-Z0-9_]*|api[_-]?key|apikey)=[^\s&"',]+/gi;
       const generalMatches = masked.match(generalApiKeyPattern);
       if (generalMatches) {
         masked = masked.replace(generalApiKeyPattern, (match) => {

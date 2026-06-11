@@ -28,4 +28,11 @@ describe('PIIMasker API key patterns', () => {
     expect(result.masked).toContain('[API_KEY]');
     expect(result.masked).toContain('NODE_ENV=production');
   });
+  it('does not treat bearer token assignments as API keys', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9abcdefghijklmnop';
+    const result = PIIMasker.mask(`Authorization: token=${jwt}`);
+    expect(result.masked).toContain('[TOKEN]');
+    expect(result.masked).not.toContain('[API_KEY]');
+  });
+
 });
