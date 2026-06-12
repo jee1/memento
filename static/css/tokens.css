@@ -90,6 +90,20 @@
   --color-button-secondary-surface: rgba(255, 255, 255, 0.2);
   --color-button-secondary-border: rgba(255, 255, 255, 0.3);
   --color-button-secondary-hover: rgba(255, 255, 255, 0.3);
+  --color-agent-event-prompt: var(--color-brand-primary);
+  --color-agent-event-tool: var(--color-info);
+  --color-agent-event-result: var(--color-success);
+  --color-agent-event-error: var(--color-error);
+  --color-agent-event-response: var(--color-brand-secondary);
+  --color-agent-event-lifecycle: var(--color-memory-neutral-stroke);
+  --color-agent-state-redacted-bg: var(--color-status-loading-bg);
+  --color-agent-state-redacted-text: var(--color-status-loading-text);
+  --color-agent-state-dropped-bg: var(--color-status-error-bg);
+  --color-agent-state-dropped-text: var(--color-status-error-text);
+  --color-agent-state-degraded-bg: var(--color-anchor-b-bg);
+  --color-agent-state-degraded-text: var(--color-anchor-b-stroke);
+  --color-agent-state-used-bg: var(--color-anchor-c-bg);
+  --color-agent-state-used-text: var(--color-anchor-c-stroke);
 
   /* Spacing */
   --spacing-xs: 0.25rem;  /* 4px */

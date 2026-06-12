@@ -113,6 +113,38 @@ export interface ObservationPage {
   };
 }
 
+export interface AgentSessionObservationAggregate {
+  total: number;
+  late: number;
+  byEventType: Record<string, number>;
+  byStatus: Record<string, number>;
+  redacted: number;
+  dropped: number;
+  degraded: number;
+}
+
+export interface AgentSessionListItem {
+  session: AgentSession;
+  aggregate: AgentSessionObservationAggregate;
+}
+
+export interface AgentSessionPage {
+  items: AgentSessionListItem[];
+  nextCursor: string | null;
+}
+
+export interface AgentDashboardAggregate {
+  sessionsTotal: number;
+  sessionsByStatus: Record<string, number>;
+  observationsTotal: number;
+  observationsByStatus: Record<string, number>;
+  observationsByEventType: Record<string, number>;
+  redactedTotal: number;
+  droppedTotal: number;
+  degradedTotal: number;
+  lateTotal: number;
+}
+
 export interface ProvenanceTrace {
   nodes: Array<{ kind: 'memory' | 'observation' | 'session'; id: string; sourceDeleted?: boolean }>;
   edges: Array<{ from: string; to: string; type: string }>;
