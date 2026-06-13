@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RelationValidatorExecutor } from '../relation-validator-executor.js';
+import { RelationValidatorExecutor, resolveMementoRepoRoot } from '../relation-validator-executor.js';
 import { spawn } from 'child_process';
 
 // child_process 모듈 모킹
@@ -187,9 +187,9 @@ describe('RelationValidatorExecutor', () => {
 
       // Then: spawn이 올바른 인자로 호출됨
       expect(spawn).toHaveBeenCalledWith(
-        'npx',
-        expect.arrayContaining(['tsx', expect.any(String), ...additionalArgs]),
-        expect.any(Object)
+        expect.any(String),
+        expect.arrayContaining([expect.any(String), ...additionalArgs]),
+        expect.objectContaining({ cwd: expect.any(String) })
       );
     });
 

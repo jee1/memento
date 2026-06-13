@@ -4,12 +4,61 @@
  */
 
 import { spawn, type ChildProcess } from 'child_process';
-import { join } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 export interface RelationValidatorConfig {
   scriptPath?: string; // 스크립트 경로 (기본: scripts/weekly-relation-validation.ts)
   timeout?: number; // 타임아웃 (밀리초)
   defaultArgs?: string[]; // 기본 인자
+  repoRoot?: string; // monorepo 루트 (기본: 자동 탐색)
+}
+
+interface TsxCommand {
+  command: string;
+  argsPrefix: string[];
+}
+
+/** package.json의 workspaces 또는 weekly-relation-validation 스크립트로 repo root 탐색 */
+export function resolveMementoRepoRoot(startDir?: string): string {
+  let dir = startDir ?? dirname(fileURLToPath(import.meta.url));
+
+  for (let depth = 0; depth < 12; depth += 1) {
+    const pkgPath = join(dir, 'package.json');
+    /* eslint-disable security/detect-non-literal-fs-filename -- monorepo root walk-up */
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as {
+          workspaces?: unknown;
+          scripts?: Record<string, string>;
+        };
+        if (pkg.workspaces || pkg.scripts?.['weekly-relation-validation']) {
+          return dir;
+        }
+      } catch {
+        // malformed package.json — keep walking up
+      }
+    }
+    /* eslint-enable security/detect-non-literal-fs-filename */
+
+    const parent = dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+
+  return process.cwd();
+}
+
+function resolveTsxCommand(repoRoot: string): TsxCommand {
+  const localTsx = join(repoRoot, 'node_modules', '.bin', 'tsx');
+  /* eslint-disable-next-line security/detect-non-literal-fs-filename -- resolved repo-local binary */
+  if (existsSync(localTsx)) {
+    return { command: localTsx, argsPrefix: [] };
+  }
+  return { command: 'npx', argsPrefix: ['--yes', 'tsx'] };
 }
 
 export interface RelationValidatorResult {
@@ -32,10 +81,12 @@ export class RelationValidatorExecutor {
   private config: Required<RelationValidatorConfig>;
 
   constructor(config: RelationValidatorConfig = {}) {
+    const repoRoot = config.repoRoot ?? resolveMementoRepoRoot();
     this.config = {
-      scriptPath: config.scriptPath ?? join(process.cwd(), 'scripts', 'weekly-relation-validation.ts'),
-      timeout: config.timeout ?? 5 * 60 * 1000, // 기본 5분
-      defaultArgs: config.defaultArgs ?? ['--method', 'hybrid', '--allow-soft-fail']
+      repoRoot,
+      scriptPath: config.scriptPath ?? join(repoRoot, 'scripts', 'weekly-relation-validation.ts'),
+      timeout: config.timeout ?? 5 * 60 * 1000, // 기본 5분 (스케줄러가 weeklyRelationValidationTimeout으로 덮어씀)
+      defaultArgs: config.defaultArgs ?? ['--method', 'rule', '--allow-soft-fail']
     };
   }
 
@@ -59,8 +110,9 @@ export class RelationValidatorExecutor {
     try {
       // 스크립트 실행
       const scriptArgs = [...this.config.defaultArgs, ...args];
-      childProcess = spawn('npx', ['tsx', this.config.scriptPath, ...scriptArgs], {
-        cwd: process.cwd(),
+      const { command, argsPrefix } = resolveTsxCommand(this.config.repoRoot);
+      childProcess = spawn(command, [...argsPrefix, this.config.scriptPath, ...scriptArgs], {
+        cwd: this.config.repoRoot,
         stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env }
       });

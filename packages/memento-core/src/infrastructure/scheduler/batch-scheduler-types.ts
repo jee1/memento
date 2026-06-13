@@ -40,6 +40,8 @@ export interface BatchJobConfig {
   retryAttempts: number;
   retryDelay: number;
   weeklyRelationValidationTimeout?: number;
+  /** Per-memory remember() triple extraction queue jobs (Issue #475) */
+  tripleExtractionJobTimeout?: number;
 }
 
 export interface BatchJobResult {

@@ -19,6 +19,7 @@ import {
   mementoConfig
 } from '@memento/core';
 import { buildMcpManualCorsHeaders } from '../utils/cors-policy.js';
+import { mapToolExecutionErrorToJsonRpc } from '../utils/mcp-tool-call-error.js';
 
 /**
  * SSE Transport 타입
@@ -140,13 +141,22 @@ async function processMcpMessage(
       services: serverServices
     };
     const toolContext = createToolContext(serverContext);
-    const toolResult = await executeTool(name, args, toolContext);
+    try {
+      const toolResult = await executeTool(name, args, toolContext);
 
-    return {
-      jsonrpc: '2.0',
-      id: message.id,
-      result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
-    };
+      return {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
+      };
+    } catch (error) {
+      const mapped = mapToolExecutionErrorToJsonRpc(error);
+      if (mapped) {
+        logger.warn('MCP tools/call rejected invalid params', { tool: name, error: mapped.data });
+        return createJsonRpcError(message.id, mapped.code, mapped.message, mapped.data);
+      }
+      throw error;
+    }
   }
 
   if (message.method === 'prompts/list') {
