@@ -377,6 +377,26 @@ describe('AgentLifecycleService', () => {
     });
   });
 
+  it('delegates session pages and dashboard aggregates to the repository', () => {
+    service.capture(startEvent);
+
+    expect(service.listSessions({ ownerId: 'owner-1' })).toMatchObject({
+      items: [
+        {
+          session: { id: 'session-1' },
+          aggregate: { total: 1, byStatus: { ACCEPTED: 1 } },
+        },
+      ],
+      nextCursor: null,
+    });
+    expect(service.getDashboardAggregate()).toMatchObject({
+      sessionsTotal: 1,
+      sessionsByStatus: { ACTIVE: 1 },
+      observationsTotal: 1,
+      observationsByStatus: { ACCEPTED: 1 },
+    });
+  });
+
   it('exports a session and deletes capture rows while preserving deleted provenance', () => {
     const capture = service.capture(startEvent);
     db.prepare('INSERT INTO memory_item (id) VALUES (?)').run('memory-1');

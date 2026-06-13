@@ -509,6 +509,123 @@ describe('agent integration routes', () => {
     }));
   });
 
+  it('lists sessions with filters, cursor pagination, and dashboard aggregate', async () => {
+    await invoke('post', '/sessions', { body: event() });
+    response.status = vi.fn().mockReturnThis();
+    response.json = vi.fn().mockReturnThis();
+    await invoke('post', '/sessions', {
+      body: event({
+        event_id: 'evt-start-2',
+        session_id: 'session-2',
+        adapter_name: 'claude-code',
+        occurred_at: '2026-06-06T00:00:01.000Z',
+      }),
+    });
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('get', '/sessions', {
+      query: { limit: '1', adapter_name: 'claude-code' },
+    });
+
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+      sessions: [
+        expect.objectContaining({
+          session: expect.objectContaining({
+            id: 'session-2',
+            adapter_name: 'claude-code',
+          }),
+          aggregate: expect.objectContaining({ total: 1 }),
+        }),
+      ],
+      next_cursor: null,
+    }));
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('get', '/sessions/aggregate');
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+      sessions_total: 2,
+      sessions_by_status: { ACTIVE: 2 },
+      observations_total: 2,
+      observations_by_event_type: { SESSION_START: 2 },
+    }));
+  });
+
+  it('returns safe observation metadata without payload or redacted values', async () => {
+    const secret = ['sk', 'live', 'SAFE_DTO_SECRET_12345678901234567890'].join('_');
+    await invoke('post', '/sessions', {
+      body: event({
+        payload: {
+          client_version: '1.0.0',
+          initial_context: `token=${secret} user@example.com`,
+        },
+      }),
+    });
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('get', '/sessions/:id/observations', {
+      params: { id: 'session-1' },
+    });
+    const payload = vi.mocked(response.json).mock.calls.at(-1)?.[0] as {
+      observations: Array<Record<string, unknown>>;
+    };
+    expect(payload.observations[0]).toEqual(expect.objectContaining({
+      event_category: 'lifecycle',
+      status: 'REDACTED',
+      redaction_count: expect.any(Number),
+      has_payload: true,
+    }));
+    expect(payload.observations[0]).not.toHaveProperty('payload_json');
+    expect(payload.observations[0]).not.toHaveProperty('payload_sha256');
+    expect(JSON.stringify(payload)).not.toContain(secret);
+    expect(JSON.stringify(payload)).not.toContain('user@example.com');
+  });
+
+  it('returns session injection candidates with score, tokens, and used state', async () => {
+    await invoke('post', '/sessions', { body: event() });
+    const start = vi.mocked(response.json).mock.calls.at(-1)?.[0] as {
+      initial_injection: { injection_id: string };
+    };
+    await invoke('post', '/sessions/:id/injections/:injectionId/usage', {
+      params: {
+        id: 'session-1',
+        injectionId: start.initial_injection.injection_id,
+      },
+      body: {
+        used_memory_ids: ['memory-selected'],
+      },
+    });
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('get', '/sessions/:id/injections', {
+      params: { id: 'session-1' },
+    });
+    expect(response.json).toHaveBeenCalledWith({
+      injections: [
+        expect.objectContaining({
+          injection_id: start.initial_injection.injection_id,
+          session_id: 'session-1',
+          token_budget: 128,
+          token_used: 20,
+          candidates: expect.arrayContaining([
+            expect.objectContaining({
+              memory_id: 'memory-selected',
+              decision: 'selected',
+              score: 0.93,
+              token_estimate: 20,
+              used: true,
+            }),
+            expect.objectContaining({
+              memory_id: 'memory-excluded',
+              decision: 'excluded',
+              used: false,
+            }),
+          ]),
+        }),
+      ],
+      degraded: false,
+    });
+  });
+
   it('links and queries provenance, exports, and deletes session capture data', async () => {
     await invoke('post', '/sessions', { body: event() });
     const startResponse = vi.mocked(response.json).mock.calls.at(-1)?.[0] as {
@@ -556,6 +673,106 @@ describe('agent integration routes', () => {
     await invoke('delete', '/sessions/:id', { params: { id: 'session-1' } });
     expect(response.status).toHaveBeenCalledWith(204);
     expect(response.send).toHaveBeenCalled();
+  });
+
+  it('returns bounded provenance detail with safe memory, observation, and session links', async () => {
+    await invoke('post', '/sessions', { body: event() });
+    const startResponse = vi.mocked(response.json).mock.calls.at(-1)?.[0] as {
+      observation: { id: string };
+    };
+    db.prepare(`
+      INSERT INTO memory_item (id, type, content, created_at, session_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      'memory-detail',
+      'episodic',
+      'Safe derived memory preview',
+      '2026-06-06T00:00:20.000Z',
+      'session-1',
+    );
+    await invoke('post', '/provenance', {
+      body: {
+        memory_id: 'memory-detail',
+        session_id: 'session-1',
+        observation_id: startResponse.observation.id,
+        derivation_type: 'agent_capture',
+      },
+    });
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('get', '/provenance/detail', {
+      query: { memory_id: 'memory-detail' },
+    });
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+      edges: [
+        expect.objectContaining({
+          memory_id: 'memory-detail',
+          observation_id: startResponse.observation.id,
+          session_id: 'session-1',
+        }),
+      ],
+      memories: [
+        expect.objectContaining({
+          id: 'memory-detail',
+          content_preview: 'Safe derived memory preview',
+        }),
+      ],
+      observations: [
+        expect.objectContaining({
+          id: startResponse.observation.id,
+          event_category: 'lifecycle',
+        }),
+      ],
+      sessions: [
+        expect.objectContaining({ id: 'session-1' }),
+      ],
+    }));
+  });
+
+  it('dry-runs transcript import by default and commits only after full validation', async () => {
+    const transcript = [
+      JSON.stringify(event()),
+      JSON.stringify(event({
+        event_id: 'evt-prompt',
+        event_type: 'USER_PROMPT',
+        sequence_no: 1,
+        payload: { content: 'hello', content_format: 'text' },
+      })),
+    ].join('\n');
+
+    await invoke('post', '/transcripts/import', {
+      body: { jsonl: transcript },
+    });
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+      dry_run: true,
+      valid: true,
+      line_count: 2,
+      accepted_count: 2,
+    }));
+    expect(db.prepare('SELECT COUNT(*) AS count FROM agent_session').get()).toEqual({ count: 0 });
+
+    response.json = vi.fn().mockReturnThis();
+    await invoke('post', '/transcripts/import', {
+      body: { jsonl: transcript, dry_run: false },
+    });
+    expect(response.status).toHaveBeenCalledWith(201);
+    expect(db.prepare('SELECT COUNT(*) AS count FROM agent_session').get()).toEqual({ count: 1 });
+    expect(db.prepare('SELECT COUNT(*) AS count FROM agent_observation').get()).toEqual({ count: 2 });
+  });
+
+  it('rejects the full transcript before write and never reflects malformed input', async () => {
+    const secret = 'TRANSCRIPT_SECRET_SHOULD_NOT_RETURN';
+    const transcript = `${JSON.stringify(event())}\n{"payload":"${secret}"`;
+
+    await invoke('post', '/transcripts/import', {
+      body: { jsonl: transcript, dry_run: false },
+    });
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    const payload = vi.mocked(response.json).mock.calls.at(-1)?.[0];
+    expect(JSON.stringify(payload)).not.toContain(secret);
+    expect(db.prepare('SELECT COUNT(*) AS count FROM agent_session').get()).toEqual({ count: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS count FROM agent_observation').get()).toEqual({ count: 0 });
   });
 
   it('maps idempotency conflicts to the stable 409 error envelope', async () => {

@@ -6,9 +6,12 @@ import type {
   CreateObservationInput,
 } from '../../../domains/agent-integration/repositories/agent-integration-repository.js';
 import type {
+  AgentDashboardAggregate,
   AgentMemoryPromotionCandidate,
   AgentObservation,
   AgentSession,
+  AgentSessionObservationAggregate,
+  AgentSessionPage,
   MemoryProvenance,
   ObservationPage,
   PersistedAgentEventInput,
@@ -181,6 +184,35 @@ function decodeCursor(cursor: string): [number, string, string, string] {
   return parsed as [number, string, string, string];
 }
 
+function encodeSessionCursor(session: AgentSession): string {
+  return Buffer.from(JSON.stringify([session.lastEventAt, session.id])).toString('base64url');
+}
+
+function decodeSessionCursor(cursor: string): [string, string] {
+  const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+  if (
+    !Array.isArray(parsed)
+    || parsed.length !== 2
+    || typeof parsed[0] !== 'string'
+    || typeof parsed[1] !== 'string'
+  ) {
+    throw new Error('Invalid session cursor');
+  }
+  return [parsed[0], parsed[1]];
+}
+
+function emptySessionObservationAggregate(): AgentSessionObservationAggregate {
+  return {
+    total: 0,
+    late: 0,
+    byEventType: {},
+    byStatus: {},
+    redacted: 0,
+    dropped: 0,
+    degraded: 0,
+  };
+}
+
 export class SqliteAgentIntegrationRepository implements AgentIntegrationRepository {
   constructor(private readonly db: Database.Database) {}
 
@@ -230,6 +262,149 @@ export class SqliteAgentIntegrationRepository implements AgentIntegrationReposit
       | SessionRow
       | undefined;
     return row ? mapSession(row) : null;
+  }
+
+  listSessions(
+    query: {
+      cursor?: string;
+      limit?: number;
+      status?: AgentSession['status'];
+      adapterName?: string;
+      ownerId?: string;
+      projectId?: string;
+    } = {},
+  ): AgentSessionPage {
+    const limit = Math.min(Math.max(query.limit ?? 50, 1), 100);
+    const conditions: string[] = [];
+    const parameters: unknown[] = [];
+    if (query.status) {
+      conditions.push('status = ?');
+      parameters.push(query.status);
+    }
+    if (query.adapterName) {
+      conditions.push('adapter_name = ?');
+      parameters.push(query.adapterName);
+    }
+    if (query.ownerId) {
+      conditions.push('owner_id = ?');
+      parameters.push(query.ownerId);
+    }
+    if (query.projectId) {
+      conditions.push('project_id = ?');
+      parameters.push(query.projectId);
+    }
+    if (query.cursor) {
+      const [lastEventAt, id] = decodeSessionCursor(query.cursor);
+      conditions.push('(last_event_at < ? OR (last_event_at = ? AND id < ?))');
+      parameters.push(lastEventAt, lastEventAt, id);
+    }
+
+    const where = conditions.length > 0
+      ? `WHERE ${conditions.map(condition => `(${condition})`).join(' AND ')}`
+      : '';
+    const rows = this.db
+      .prepare(`
+        SELECT * FROM agent_session
+        ${where}
+        ORDER BY last_event_at DESC, id DESC
+        LIMIT ?
+      `)
+      .all(...parameters, limit + 1) as SessionRow[];
+    const hasMore = rows.length > limit;
+    const sessions = rows.slice(0, limit).map(mapSession);
+    const aggregateBySession = new Map<string, AgentSessionObservationAggregate>(
+      sessions.map(session => [session.id, emptySessionObservationAggregate()]),
+    );
+
+    if (sessions.length > 0) {
+      const placeholders = sessions.map(() => '?').join(', ');
+      const aggregateRows = this.db
+        .prepare(`
+          SELECT session_id, event_type, status, late_arrival, COUNT(*) AS count
+          FROM agent_observation
+          WHERE session_id IN (${placeholders})
+          GROUP BY session_id, event_type, status, late_arrival
+        `)
+        .all(...sessions.map(session => session.id)) as Array<{
+          session_id: string;
+          event_type: string;
+          status: string;
+          late_arrival: number;
+          count: number;
+        }>;
+      for (const row of aggregateRows) {
+        const aggregate = aggregateBySession.get(row.session_id)!;
+        aggregate.total += row.count;
+        if (row.late_arrival === 1) aggregate.late += row.count;
+        aggregate.byEventType[row.event_type] =
+          (aggregate.byEventType[row.event_type] ?? 0) + row.count;
+        aggregate.byStatus[row.status] = (aggregate.byStatus[row.status] ?? 0) + row.count;
+        if (row.status === 'REDACTED') aggregate.redacted += row.count;
+        if (row.status === 'DROPPED') aggregate.dropped += row.count;
+        if (row.status === 'DEGRADED') aggregate.degraded += row.count;
+      }
+    }
+
+    return {
+      items: sessions.map(session => ({
+        session,
+        aggregate: aggregateBySession.get(session.id)!,
+      })),
+      nextCursor: hasMore && sessions.length > 0
+        ? encodeSessionCursor(sessions[sessions.length - 1]!)
+        : null,
+    };
+  }
+
+  getDashboardAggregate(): AgentDashboardAggregate {
+    const sessionRows = this.db
+      .prepare(`
+        SELECT status, COUNT(*) AS count
+        FROM agent_session
+        GROUP BY status
+      `)
+      .all() as Array<{ status: string; count: number }>;
+    const observationRows = this.db
+      .prepare(`
+        SELECT event_type, status, late_arrival, COUNT(*) AS count
+        FROM agent_observation
+        GROUP BY event_type, status, late_arrival
+      `)
+      .all() as Array<{
+        event_type: string;
+        status: string;
+        late_arrival: number;
+        count: number;
+      }>;
+    const aggregate: AgentDashboardAggregate = {
+      sessionsTotal: 0,
+      sessionsByStatus: {},
+      observationsTotal: 0,
+      observationsByStatus: {},
+      observationsByEventType: {},
+      redactedTotal: 0,
+      droppedTotal: 0,
+      degradedTotal: 0,
+      lateTotal: 0,
+    };
+
+    for (const row of sessionRows) {
+      aggregate.sessionsTotal += row.count;
+      aggregate.sessionsByStatus[row.status] = row.count;
+    }
+    for (const row of observationRows) {
+      aggregate.observationsTotal += row.count;
+      aggregate.observationsByStatus[row.status] =
+        (aggregate.observationsByStatus[row.status] ?? 0) + row.count;
+      aggregate.observationsByEventType[row.event_type] =
+        (aggregate.observationsByEventType[row.event_type] ?? 0) + row.count;
+      if (row.status === 'REDACTED') aggregate.redactedTotal += row.count;
+      if (row.status === 'DROPPED') aggregate.droppedTotal += row.count;
+      if (row.status === 'DEGRADED') aggregate.degradedTotal += row.count;
+      if (row.late_arrival === 1) aggregate.lateTotal += row.count;
+    }
+
+    return aggregate;
   }
 
   updateSession(

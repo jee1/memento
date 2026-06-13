@@ -31,6 +31,10 @@ import {
 } from '@memento/agent-integration';
 import type Database from 'better-sqlite3';
 import { Router, type Response } from 'express';
+import {
+  AgentTranscriptImportError,
+  AgentTranscriptImporter,
+} from './agent-transcript-import.js';
 
 const EVENT_TYPES = [...AGENT_EVENT_TYPES];
 const EVENT_PAYLOAD_BYTES = MAX_EVENT_BYTES;
@@ -167,6 +171,32 @@ function sessionDto(session: AgentSession) {
 }
 
 function observationDto(observation: AgentObservation) {
+  let redactionCount = 0;
+  try {
+    const metadata = JSON.parse(observation.redactionMetadataJson) as unknown;
+    if (Array.isArray(metadata)) {
+      redactionCount = metadata.reduce((total, item) => {
+        if (
+          typeof item === 'object'
+          && item !== null
+          && 'count' in item
+          && typeof item.count === 'number'
+        ) {
+          return total + item.count;
+        }
+        return total;
+      }, 0);
+    }
+  } catch {
+    redactionCount = 0;
+  }
+  const eventCategory = observation.eventType === 'USER_PROMPT'
+    ? 'prompt'
+    : observation.eventType === 'TOOL_RESULT'
+      ? observation.outcome === 'failed' || observation.outcome === 'error'
+        ? 'error'
+        : 'result'
+      : 'lifecycle';
   return {
     id: observation.id,
     event_id: observation.eventId,
@@ -181,6 +211,9 @@ function observationDto(observation: AgentObservation) {
     occurred_at: observation.occurredAt,
     received_at: observation.receivedAt,
     expires_at: observation.expiresAt,
+    event_category: eventCategory,
+    redaction_count: redactionCount,
+    has_payload: observation.payloadJson !== null,
   };
 }
 
@@ -334,6 +367,9 @@ function writeError(res: Response, error: unknown): Response {
       reason_code: error.reasonCode,
       message: error.message,
       retryable: error.retryable,
+      ...(error instanceof AgentTranscriptImportError && error.line
+        ? { line: error.line }
+        : {}),
     });
   }
   return res.status(500).json({
@@ -342,6 +378,116 @@ function writeError(res: Response, error: unknown): Response {
     message: 'Agent integration request failed',
     retryable: false,
   });
+}
+
+function safeRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function safeNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function buildInjectionDetails(
+  db: Database.Database,
+  sessionId: string,
+): { injections: Array<Record<string, unknown>>; degraded: boolean } {
+  const rows = db.prepare(`
+    SELECT event_type, created_at, extra_data
+    FROM telemetry_events
+    WHERE event_type IN ('agent.injection.completed', 'agent.injection.used')
+      AND json_extract(extra_data, '$.session_id') = ?
+    ORDER BY created_at, id
+  `).all(sessionId) as Array<{
+    event_type: string;
+    created_at: string;
+    extra_data: string | null;
+  }>;
+  const injections = new Map<string, {
+    completed?: Record<string, unknown>;
+    usedMemoryIds: Set<string>;
+    createdAt: string;
+  }>();
+  let degraded = false;
+  for (const row of rows) {
+    try {
+      const data = safeRecord(JSON.parse(row.extra_data ?? '{}'));
+      const injectionId = typeof data.injection_id === 'string' ? data.injection_id : '';
+      if (!injectionId) {
+        degraded = true;
+        continue;
+      }
+      const entry = injections.get(injectionId) ?? {
+        usedMemoryIds: new Set<string>(),
+        createdAt: row.created_at,
+      };
+      if (row.event_type === 'agent.injection.completed') {
+        entry.completed = data;
+      } else if (Array.isArray(data.used_memory_ids)) {
+        for (const memoryId of data.used_memory_ids) {
+          if (typeof memoryId === 'string') entry.usedMemoryIds.add(memoryId);
+        }
+      }
+      injections.set(injectionId, entry);
+    } catch {
+      degraded = true;
+    }
+  }
+
+  return {
+    injections: [...injections.entries()].map(([injectionId, entry]) => {
+      const completed = entry.completed ?? {};
+      const selected = Array.isArray(completed.selected) ? completed.selected : [];
+      const exclusions = Array.isArray(completed.exclusions) ? completed.exclusions : [];
+      const candidates = [
+        ...selected.map((item) => {
+          const candidate = safeRecord(item);
+          const memoryId = typeof candidate.memory_id === 'string' ? candidate.memory_id : '';
+          return {
+            memory_id: memoryId,
+            decision: 'selected',
+            score: safeNumber(candidate.score),
+            token_estimate: safeNumber(candidate.token_estimate),
+            reason: typeof candidate.selection_reason === 'string'
+              ? candidate.selection_reason
+              : null,
+            used: entry.usedMemoryIds.has(memoryId),
+          };
+        }),
+        ...exclusions.map((item) => {
+          const candidate = safeRecord(item);
+          const memoryId = typeof candidate.memory_id === 'string' ? candidate.memory_id : '';
+          return {
+            memory_id: memoryId,
+            decision: 'excluded',
+            score: safeNumber(candidate.score),
+            token_estimate: safeNumber(candidate.token_estimate),
+            reason: typeof candidate.reason === 'string' ? candidate.reason : null,
+            used: entry.usedMemoryIds.has(memoryId),
+          };
+        }),
+      ];
+      return {
+        injection_id: injectionId,
+        session_id: sessionId,
+        trigger: typeof completed.trigger === 'string' ? completed.trigger : null,
+        status: Array.isArray(completed.degraded_reasons)
+          && completed.degraded_reasons.length > 0
+          ? 'degraded'
+          : candidates.length > 0 ? 'ok' : 'empty',
+        created_at: entry.createdAt,
+        token_budget: safeNumber(completed.token_budget),
+        token_used: safeNumber(completed.token_used),
+        degraded_reasons: Array.isArray(completed.degraded_reasons)
+          ? completed.degraded_reasons.filter((item): item is string => typeof item === 'string')
+          : [],
+        candidates,
+      };
+    }),
+    degraded,
+  };
 }
 
 export function createAgentRouter(
@@ -421,6 +567,13 @@ export function createAgentRouter(
     : null;
   const service = repository
     ? new AgentLifecycleService(repository, options, summarizer ?? undefined)
+    : null;
+  const transcriptImporter = repository && service
+    ? new AgentTranscriptImporter({
+        prepareEvent,
+        lifecycleService: service,
+        repository,
+      })
     : null;
   const injectionService = options.contextInjectionService;
   const initialInjectionTokenBudget = Number.isSafeInteger(options.initialInjectionTokenBudget)
@@ -503,6 +656,66 @@ export function createAgentRouter(
       },
       schema_ready: service?.schemaReady() ?? false,
     });
+  });
+
+  router.get('/sessions', (req, res) => {
+    try {
+      if (!service) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const page = service.listSessions({
+        cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+        limit: typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined,
+        status: typeof req.query.status === 'string'
+          ? req.query.status as AgentSession['status']
+          : undefined,
+        adapterName: typeof req.query.adapter_name === 'string'
+          ? req.query.adapter_name
+          : typeof req.query.adapter === 'string' ? req.query.adapter : undefined,
+        ownerId: typeof req.query.owner_id === 'string' ? req.query.owner_id : undefined,
+        projectId: typeof req.query.project_id === 'string' ? req.query.project_id : undefined,
+      });
+      const aggregate = service.getDashboardAggregate();
+      return res.json({
+        sessions: page.items.map(item => ({
+          session: sessionDto(item.session),
+          aggregate: item.aggregate,
+        })),
+        next_cursor: page.nextCursor,
+        aggregate: {
+          sessions_total: aggregate.sessionsTotal,
+          observations_total: aggregate.observationsTotal,
+          redacted_total: aggregate.redactedTotal,
+          dropped_total: aggregate.droppedTotal,
+          degraded_total: aggregate.degradedTotal,
+          late_total: aggregate.lateTotal,
+        },
+      });
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
+  router.get('/sessions/aggregate', (_req, res) => {
+    try {
+      if (!service) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const aggregate = service.getDashboardAggregate();
+      return res.json({
+        sessions_total: aggregate.sessionsTotal,
+        sessions_by_status: aggregate.sessionsByStatus,
+        observations_total: aggregate.observationsTotal,
+        observations_by_status: aggregate.observationsByStatus,
+        observations_by_event_type: aggregate.observationsByEventType,
+        redacted_total: aggregate.redactedTotal,
+        dropped_total: aggregate.droppedTotal,
+        degraded_total: aggregate.degradedTotal,
+        late_total: aggregate.lateTotal,
+      });
+    } catch (error) {
+      return writeError(res, error);
+    }
   });
 
   router.get('/operations/status', (req, res) => {
@@ -738,6 +951,38 @@ export function createAgentRouter(
     }
   });
 
+  router.post('/transcripts/import', (req, res) => {
+    try {
+      if (!transcriptImporter) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const result = transcriptImporter.import({
+        transcript: req.body?.jsonl,
+        dryRun: req.body?.dry_run,
+      });
+      return res.status(result.dryRun ? 200 : 201).json({
+        dry_run: result.dryRun,
+        valid: true,
+        session_id: result.sessionId,
+        line_count: result.total,
+        accepted_count: result.accepted,
+        duplicate_count: result.duplicates,
+        redacted_count: result.redacted,
+        dropped_count: result.dropped,
+        lines: result.lines.map(line => ({
+          line: line.line,
+          event_id: line.eventId,
+          status: line.status,
+          reason_code: line.reasonCode,
+          observation_id: line.observationId,
+          late_arrival: line.lateArrival,
+        })),
+      });
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
   const captureSessionEvent = (expectedType: 'PRE_COMPACT' | 'STOP') =>
     async (req: Parameters<Parameters<Router['post']>[1]>[0], res: Response) => {
       try {
@@ -863,6 +1108,20 @@ export function createAgentRouter(
     });
   });
 
+  router.get('/sessions/:id/injections', (req, res) => {
+    try {
+      if (!service || !db) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      if (!service.getSession(req.params.id)) {
+        throw new AgentIntegrationError('Agent session not found', 'SESSION_NOT_STARTED', 404);
+      }
+      return res.json(buildInjectionDetails(db, req.params.id));
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
   router.get('/sessions/:id', (req, res) => {
     try {
       if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
@@ -934,6 +1193,69 @@ export function createAgentRouter(
             : 'sources',
         maxDepth: typeof req.query.max_depth === 'string' ? Number(req.query.max_depth) : undefined,
       }));
+    } catch (error) {
+      return writeError(res, error);
+    }
+  });
+
+  router.get('/provenance/detail', (req, res) => {
+    try {
+      if (!service || !repository || !db) {
+        throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
+      }
+      const memoryId = typeof req.query.memory_id === 'string'
+        ? req.query.memory_id
+        : undefined;
+      const observationId = typeof req.query.observation_id === 'string'
+        ? req.query.observation_id
+        : undefined;
+      if (!memoryId && !observationId) {
+        throw new AgentIntegrationError(
+          'memory_id or observation_id is required',
+          'INVALID_ENVELOPE',
+          400,
+        );
+      }
+      const edges = repository.listProvenance({ memoryId, observationId }).slice(0, 100);
+      const memoryIds = [...new Set(edges.map(edge => edge.memoryId))];
+      const observationIds = [...new Set(
+        edges.flatMap(edge => edge.observationId ? [edge.observationId] : []),
+      )];
+      const sessionIds = [...new Set(
+        edges.flatMap(edge => edge.sessionId ? [edge.sessionId] : []),
+      )];
+      const memoryStatement = db.prepare(`
+        SELECT id, type, substr(content, 1, 240) AS content_preview, created_at
+        FROM memory_item
+        WHERE id = ?
+      `);
+      const memories = memoryIds.flatMap((id) => {
+        const row = memoryStatement.get(id) as {
+          id: string;
+          type: string;
+          content_preview: string;
+          created_at: string | null;
+        } | undefined;
+        return row ? [{
+          ...row,
+          source_deleted: edges.some(edge => edge.memoryId === id && edge.sourceDeleted),
+        }] : [];
+      });
+      const observations = observationIds.flatMap((id) => {
+        const observation = repository.getObservation(id);
+        return observation ? [observationDto(observation)] : [];
+      });
+      const sessions = sessionIds.flatMap((id) => {
+        const session = service.getSession(id);
+        return session ? [sessionDto(session)] : [];
+      });
+      return res.json({
+        edges: edges.map(provenanceDto),
+        memories,
+        observations,
+        sessions,
+        truncated: edges.length === 100,
+      });
     } catch (error) {
       return writeError(res, error);
     }

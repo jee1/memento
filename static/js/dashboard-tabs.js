@@ -34,6 +34,7 @@
     const embedPanel = document.getElementById('tab-embedding-map');
     const graphPanel = document.getElementById('tab-graph');
     const reviewPanel = document.getElementById('tab-review-candidates');
+    const agentSessionsPanel = document.getElementById('tab-agent-sessions');
     const buttons = document.querySelectorAll('.m-tab-btn');
     buttons.forEach(function (b) {
       const on = b.getAttribute('data-tab') === name;
@@ -60,6 +61,10 @@
       reviewPanel.classList.toggle('active', name === 'review');
       reviewPanel.setAttribute('aria-hidden', name === 'review' ? 'false' : 'true');
     }
+    if (agentSessionsPanel) {
+      agentSessionsPanel.classList.toggle('active', name === 'agent-sessions');
+      agentSessionsPanel.setAttribute('aria-hidden', name === 'agent-sessions' ? 'false' : 'true');
+    }
     if (name === 'evolution-demo') {
       const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
       if (shell) {
@@ -81,6 +86,9 @@
     if (name === 'review' && typeof global.initReviewCandidatesPanel === 'function') {
       global.initReviewCandidatesPanel();
     }
+    if (name === 'agent-sessions' && typeof global.initAgentSessionsPanel === 'function') {
+      global.initAgentSessionsPanel();
+    }
     if (name === 'graph') {
       const iframe = document.getElementById('graph-view-iframe');
       if (iframe && !iframe.hasAttribute('data-loaded')) {
@@ -99,7 +107,7 @@
           dispatchGraphIframeResize(iframe);
         });
       }
-    } else if (name === 'anchor' || name === 'embedding' || name === 'review') {
+    } else if (name === 'anchor' || name === 'embedding' || name === 'review' || name === 'agent-sessions') {
       requestAnimationFrame(function () {
         global.dispatchEvent(new Event('resize'));
       });

@@ -69,6 +69,7 @@
       <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
       <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
       <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+      <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
       <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
     </div>
 
@@ -285,6 +286,97 @@
         </div>
       </div>
     </div>
+    <div id="tab-agent-sessions" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-agent-sessions" aria-hidden="true">
+      <div class="as-layout">
+        <header class="as-header">
+          <div>
+            <h2 class="as-title">Agent Sessions</h2>
+            <p class="as-intro">Programmatic API 경계에서 session, observation, provenance, injection 결정을 탐색합니다. 원문 payload는 표시하지 않습니다.</p>
+          </div>
+          <form id="as-auth-form" class="as-auth" autocomplete="off">
+            <label for="as-api-key">Programmatic API Key</label>
+            <input id="as-api-key" class="m-input" type="password" autocomplete="off" placeholder="Memory only">
+            <button type="submit" class="m-button m-button--primary">Connect</button>
+            <button type="button" id="as-disconnect" class="m-button m-button--ghost">Clear key</button>
+          </form>
+        </header>
+
+        <div id="as-loading" class="as-banner as-banner--loading hidden" role="status" aria-live="polite">Loading agent sessions…</div>
+        <div id="as-empty" class="as-banner hidden">No sessions match the current filters.</div>
+        <div id="as-error" class="as-banner as-banner--error hidden" role="alert"></div>
+        <div id="as-status" class="as-banner hidden" role="status" aria-live="polite"></div>
+
+        <section class="as-aggregate" aria-label="Agent session aggregate">
+          <article><span>Sessions</span><strong id="as-count-sessions">0</strong></article>
+          <article><span>Observations</span><strong id="as-count-observations">0</strong></article>
+          <article><span>Redacted</span><strong id="as-count-redacted">0</strong></article>
+          <article><span>Dropped</span><strong id="as-count-dropped">0</strong></article>
+          <article><span>Degraded</span><strong id="as-count-degraded">0</strong></article>
+        </section>
+
+        <section class="as-filter-card" aria-label="Session filters">
+          <label>Status <select id="as-session-status" class="m-input"><option value="">All</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="ABANDONED">Abandoned</option><option value="DEGRADED">Degraded</option></select></label>
+          <label>Adapter <input id="as-session-adapter" class="m-input" type="text"></label>
+          <label>Owner <input id="as-session-owner" class="m-input" type="text"></label>
+          <label>Project <input id="as-session-project" class="m-input" type="text"></label>
+          <button type="button" id="as-refresh-sessions" class="m-button m-button--secondary">Refresh</button>
+        </section>
+
+        <div class="as-browser">
+          <section class="as-session-column" aria-label="Session list">
+            <div id="as-session-list" class="as-session-list"></div>
+            <button type="button" id="as-load-more-sessions" class="m-button m-button--secondary hidden">Load more sessions</button>
+          </section>
+          <section id="as-session-detail" class="as-detail" aria-label="Selected session detail">
+            <p class="as-placeholder">Select a session to inspect its safe metadata.</p>
+          </section>
+        </div>
+
+        <section class="as-timeline-card" aria-labelledby="as-timeline-title">
+          <header class="as-section-header">
+            <h3 id="as-timeline-title">Observation timeline</h3>
+            <div class="as-inline-filters">
+              <label>Event <select id="as-event-type" class="m-input"><option value="">All</option><option value="USER_PROMPT">Prompt</option><option value="TOOL_CALL">Tool</option><option value="TOOL_RESULT">Result</option><option value="ERROR">Error</option><option value="ASSISTANT_RESPONSE">Response</option><option value="SESSION_START">Lifecycle</option><option value="STOP">Stop</option></select></label>
+              <label>Status <select id="as-observation-status" class="m-input"><option value="">All</option><option value="ACCEPTED">Accepted</option><option value="REDACTED">Redacted</option><option value="DROPPED">Dropped</option><option value="DEGRADED">Degraded</option></select></label>
+              <button type="button" id="as-refresh-timeline" class="m-button m-button--secondary">Apply</button>
+            </div>
+          </header>
+          <ol id="as-timeline" class="as-timeline"></ol>
+          <button type="button" id="as-load-more-observations" class="m-button m-button--secondary hidden">Load more observations</button>
+        </section>
+
+        <div class="as-inspection-grid">
+          <section class="as-card" aria-labelledby="as-injections-title">
+            <h3 id="as-injections-title">Injection decisions</h3>
+            <div id="as-injections" class="as-stack"><p class="as-placeholder">Select a session.</p></div>
+          </section>
+          <section class="as-card" aria-labelledby="as-provenance-title">
+            <h3 id="as-provenance-title">Provenance navigation</h3>
+            <form id="as-provenance-form" class="as-provenance-form">
+              <label for="as-provenance-kind">Lookup</label>
+              <select id="as-provenance-kind" class="m-input"><option value="memory_id">Memory ID</option><option value="observation_id">Observation ID</option></select>
+              <input id="as-provenance-id" class="m-input" type="text" required>
+              <button type="submit" class="m-button m-button--secondary">Trace</button>
+            </form>
+            <div id="as-provenance-results" class="as-stack"></div>
+          </section>
+        </div>
+
+        <section class="as-card as-import" aria-labelledby="as-import-title">
+          <h3 id="as-import-title">JSONL transcript import</h3>
+          <p class="as-hint">Dry-run is mandatory. Import becomes available only when the unchanged transcript validates successfully.</p>
+          <label for="as-transcript-file">JSONL file</label>
+          <input id="as-transcript-file" class="m-input" type="file" accept=".jsonl,application/json,text/plain">
+          <label for="as-transcript-jsonl">JSONL text</label>
+          <textarea id="as-transcript-jsonl" class="m-input as-transcript-input" rows="8" spellcheck="false"></textarea>
+          <div class="as-import-actions">
+            <button type="button" id="as-transcript-dry-run" class="m-button m-button--secondary">Validate dry-run</button>
+            <button type="button" id="as-transcript-import" class="m-button m-button--primary" disabled>Import validated transcript</button>
+          </div>
+          <div id="as-import-results" class="as-stack" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
     <div id="tab-evolution-demo" class="tab-panel" role="tabpanel" aria-labelledby="dashboard-tab-evolution-demo" aria-hidden="true">
       <div class="med-layout">
         <header class="med-header">
@@ -395,5 +487,10 @@
   <script src="/static/js/review-candidates-panel-poll.js"></script>
   <script src="/static/js/review-candidates-panel-health.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
+  <script src="/static/js/agent-sessions-panel-shared.js"></script>
+  <script src="/static/js/agent-sessions-panel-data.js"></script>
+  <script src="/static/js/agent-sessions-panel-render.js"></script>
+  <script src="/static/js/agent-sessions-panel-import.js"></script>
+  <script src="/static/js/agent-sessions-panel.js"></script>
 </body>
 </html>

@@ -1,7 +1,9 @@
 import { randomUUID } from 'crypto';
 import type { AgentIntegrationRepository } from '../repositories/agent-integration-repository.js';
 import type {
+  AgentDashboardAggregate,
   AgentSession,
+  AgentSessionPage,
   CaptureResult,
   MemoryProvenance,
   ObservationPage,
@@ -238,6 +240,16 @@ export class AgentLifecycleService {
 
   getSession(id: string): AgentSession | null {
     return this.repository.getSession(id);
+  }
+
+  listSessions(
+    query?: Parameters<AgentIntegrationRepository['listSessions']>[0],
+  ): AgentSessionPage {
+    return this.repository.listSessions(query);
+  }
+
+  getDashboardAggregate(): AgentDashboardAggregate {
+    return this.repository.getDashboardAggregate();
   }
 
   listObservations(

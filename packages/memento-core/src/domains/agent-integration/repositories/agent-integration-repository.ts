@@ -1,7 +1,9 @@
 import type {
+  AgentDashboardAggregate,
   AgentMemoryPromotionCandidate,
   AgentObservation,
   AgentSession,
+  AgentSessionPage,
   MemoryProvenance,
   ObservationPage,
   PersistedAgentEventInput,
@@ -33,6 +35,15 @@ export interface AgentIntegrationRepository {
   schemaReady(): boolean;
   createSession(event: PersistedAgentEventInput, now: string): AgentSession;
   getSession(id: string): AgentSession | null;
+  listSessions(query?: {
+    cursor?: string;
+    limit?: number;
+    status?: AgentSession['status'];
+    adapterName?: string;
+    ownerId?: string;
+    projectId?: string;
+  }): AgentSessionPage;
+  getDashboardAggregate(): AgentDashboardAggregate;
   updateSession(
     id: string,
     patch: Partial<Pick<
