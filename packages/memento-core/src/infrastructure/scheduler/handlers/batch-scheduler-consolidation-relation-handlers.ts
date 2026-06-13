@@ -80,8 +80,15 @@ export async function runWeeklyRelationValidation(ctx: BatchSchedulerRunContext)
     result.duration = executorResult.duration;
     result.processed = 1;
 
+    const isTimeout = Boolean(
+      executorResult.error?.toLowerCase().includes('timeout')
+    );
+
     if (executorResult.error) {
       result.errors.push(executorResult.error);
+      if (isTimeout) {
+        result.warnings.push(executorResult.error);
+      }
     }
 
     if (executorResult.success) {
@@ -90,11 +97,15 @@ export async function runWeeklyRelationValidation(ctx: BatchSchedulerRunContext)
         stdout: executorResult.stdout.substring(0, 500)
       });
     } else {
-      ctx.log('Weekly relation validation failed', {
-        error: executorResult.error,
-        duration: result.duration,
-        stderr: executorResult.stderr.substring(0, 500)
-      }, 'error');
+      ctx.log(
+        isTimeout ? 'Weekly relation validation timeout' : 'Weekly relation validation failed',
+        {
+          error: executorResult.error,
+          duration: result.duration,
+          stderr: executorResult.stderr.substring(0, 500)
+        },
+        isTimeout ? 'warn' : 'error'
+      );
     }
   } catch (error) {
     result.endTime = new Date();

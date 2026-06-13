@@ -2,6 +2,11 @@ import type { BatchJobConfig } from './batch-scheduler-types.js';
 import { JobQueue } from './job-queue.js';
 import { RetryManager } from './retry-manager.js';
 import { resolveValidatedNumber } from '../../shared/config/environment.js';
+import {
+  isJobTimeoutError,
+  isTripleExtractionQueueJob,
+  resolveBatchJobTimeout
+} from './batch-job-timeout-resolver.js';
 
 export interface BatchJobExecutionCoordinatorDeps {
   jobQueue: JobQueue;
@@ -113,7 +118,8 @@ export class BatchJobExecutionCoordinator {
     });
 
     try {
-      await this.executeWithTimeout(job, this.deps.getConfig().jobTimeout);
+      const jobTimeoutMs = resolveBatchJobTimeout(name, this.deps.getConfig());
+      await this.executeWithTimeout(job, jobTimeoutMs);
       jobOk = true;
       this.deps.lastExecution.set(name, new Date());
       this.deps.totalExecutions.set(name, (this.deps.totalExecutions.get(name) || 0) + 1);
@@ -144,12 +150,29 @@ export class BatchJobExecutionCoordinator {
         duration: Date.now() - startTime
       };
 
-      this.deps.log(`Job ${name} failed`, errorInfo, 'error');
+      const isTripleExtractionTimeout =
+        isTripleExtractionQueueJob(name) && isJobTimeoutError(error);
+
+      this.deps.log(
+        isTripleExtractionTimeout ? `Job ${name} timed out` : `Job ${name} failed`,
+        errorInfo,
+        isTripleExtractionTimeout ? 'warn' : 'error'
+      );
       await this.deps.writeDiagnosticsEvent({
         type: 'batch_job_failure',
         jobName: name,
-        ...errorInfo
+        ...errorInfo,
+        severity: isTripleExtractionTimeout ? 'warn' : 'error'
       });
+
+      if (isTripleExtractionTimeout) {
+        this.deps.log(
+          `Skipping immediate retry for ${name}; batch triple extraction will handle backlog`,
+          { jobName: name, duration: errorInfo.duration },
+          'warn'
+        );
+        return;
+      }
 
       const retryResult = this.deps.retryManager.shouldRetry(name, retryCount, totalErrorCount);
 
