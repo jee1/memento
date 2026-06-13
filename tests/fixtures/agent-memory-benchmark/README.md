@@ -8,4 +8,10 @@ This corpus is synthetic and authored for Memento issue #455.
 - Secrets/credentials: reviewed; no live values
 - Purpose: deterministic CI coverage for coding-agent memory retrieval, E2E evidence injection, and graph-RRF gates
 
-`longmemeval-s-sample.jsonl` documents the supported adapter input shape. It is not copied from the LongMemEval-S dataset.
+`longmemeval-s-sample.jsonl` documents the legacy adapter input shape.
+`longmemeval-s-official-shape.json` is an independently authored, two-question
+fixture matching the official cleaned JSON schema. Neither file copies
+LongMemEval content.
+
+`longmemeval-judge-results.jsonl` documents the task-completion judge result
+protocol with synthetic values.

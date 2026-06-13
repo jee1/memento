@@ -157,6 +157,8 @@ demo/node_modules/
 
 # Local / machine-specific
 compound-engineering.local.md
+.local/longmemeval/
+artifacts/longmemeval-s/
 
 # Claude Code agent worktrees (must not be gitlinks; breaks actions/checkout post cleanup)
 .claude/worktrees/
