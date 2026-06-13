@@ -39012,11 +39012,11 @@
       "community": 724
     },
     {
-      "label": "agent-sessions.spec.ts",
+      "label": "agent-sessions.e2e.ts",
       "file_type": "code",
-      "source_file": "tests/e2e/dashboard/agent-sessions.spec.ts",
+      "source_file": "tests/e2e/dashboard/agent-sessions.e2e.ts",
       "source_location": "L1",
-      "id": "tests_e2e_dashboard_agent_sessions_spec_ts",
+      "id": "tests_e2e_dashboard_agent_sessions_e2e_ts",
       "community": 1078
     },
     {

@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-06-13)
 
 ## Corpus Check
-- 1117 files · ~1,504,719 words
+- 1117 files · ~1,497,599 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -6653,7 +6653,7 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 1077`** (1 nodes): `benchmark-search-database.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 1078`** (1 nodes): `agent-sessions.spec.ts`
+- **Thin community `Community 1078`** (1 nodes): `agent-sessions.e2e.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 1079`** (1 nodes): `sync-root-server-dist.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
