@@ -227,7 +227,10 @@
             ' · tokens ' +
             number(candidate.token_estimate) +
             ' · ' +
-            (candidate.used ? 'used' : candidate.decision || 'excluded'),
+            (candidate.used ? 'selected' : candidate.decision || 'excluded') +
+            (candidate.reason || candidate.reason_code
+              ? ' · reason ' + (candidate.reason || candidate.reason_code)
+              : ''),
         );
         if (candidate.used) {
           addBadge(row, 'used', 'used');
