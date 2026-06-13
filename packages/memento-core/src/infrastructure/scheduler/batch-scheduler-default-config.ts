@@ -62,6 +62,12 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
       n => n >= 60_000,
       '최솟값 60000'
     ),
+    tripleExtractionJobTimeout: resolveValidatedNumber(
+      'TRIPLE_EXTRACTION_JOB_TIMEOUT_MS',
+      30 * 60 * 1000,
+      n => n >= 60_000,
+      '최솟값 60000'
+    ),
     ...overrides
   };
 }

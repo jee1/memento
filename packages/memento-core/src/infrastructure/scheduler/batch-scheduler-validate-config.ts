@@ -61,4 +61,16 @@ export function validateBatchJobConfig(config: BatchJobConfig): void {
       throw new Error('weeklyRelationValidationTimeout must be at least 1 second');
     }
   }
+  if (config.tripleExtractionJobTimeout !== undefined) {
+    if (
+      typeof config.tripleExtractionJobTimeout !== 'number' ||
+      Number.isNaN(config.tripleExtractionJobTimeout) ||
+      config.tripleExtractionJobTimeout <= 0
+    ) {
+      throw new Error('tripleExtractionJobTimeout must be a positive number (at least 1 second)');
+    }
+    if (config.tripleExtractionJobTimeout < 1000) {
+      throw new Error('tripleExtractionJobTimeout must be at least 1 second');
+    }
+  }
 }
