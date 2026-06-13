@@ -32,6 +32,7 @@
     "start:http-v2": "npm run start:http-v2 -w memento-server",
     "test": "npm run test:prepare && vitest --run",
     "test:server": "vitest run packages/memento-server/src/server/ --no-file-parallelism",
+    "test:e2e:dashboard": "playwright test",
     "test:watch": "vitest",
     "test:ci": "vitest --run --reporter=basic",
     "test:ci:root": "vitest --run --reporter=basic tests/",
@@ -162,6 +163,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
