@@ -1,0 +1,8 @@
+[
+  {"id":"e2e-auth","queryId":"query-auth-recovery","requiredEvidenceIds":["memory-auth-diagnosis","memory-auth-resolution"],"tokenBudget":180},
+  {"id":"e2e-migration","queryId":"query-migration-recovery","requiredEvidenceIds":["memory-migration-diagnosis","memory-migration-recovery"],"tokenBudget":180},
+  {"id":"e2e-search","queryId":"query-search-evaluation","requiredEvidenceIds":["memory-search-metrics","memory-search-latency"],"tokenBudget":180},
+  {"id":"e2e-security","queryId":"query-secret-safety","requiredEvidenceIds":["memory-redaction-policy","memory-redaction-test"],"tokenBudget":180},
+  {"id":"e2e-runtime","queryId":"query-capture-degradation","requiredEvidenceIds":["memory-queue-priority","memory-timeout-degrade"],"tokenBudget":180},
+  {"id":"e2e-graph","queryId":"query-graph-evidence","requiredEvidenceIds":["memory-auth-resolution"],"tokenBudget":100}
+]
