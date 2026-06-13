@@ -328,8 +328,6 @@ function evaluateBaselines(
   graphRrf: boolean,
 ): Map<BaselineName, QueryEvaluation[]> {
   const documentById = new Map(dataset.documents.map((document) => [document.id, document]));
-  const vectorIndex = buildVectorIndex(dataset.documents);
-  const fts = createFtsIndex(dataset.documents);
   const byBaseline = new Map<BaselineName, QueryEvaluation[]>([
     ['grep', []],
     ['fts_only', []],
@@ -340,9 +338,14 @@ function evaluateBaselines(
     byBaseline.set('graph_rrf', []);
   }
 
-  try {
-    for (const query of dataset.queries) {
-      const grepResult = timedRank(() => rankByGrep(dataset.documents, query.query, topK));
+  for (const query of dataset.queries) {
+    const scopedDocuments = query.scopeId
+      ? dataset.documents.filter((document) => document.scopeId === query.scopeId)
+      : dataset.documents;
+    const vectorIndex = buildVectorIndex(scopedDocuments);
+    const fts = createFtsIndex(scopedDocuments);
+    try {
+      const grepResult = timedRank(() => rankByGrep(scopedDocuments, query.query, topK));
       const ftsResult = timedRank(() => rankByFts(fts, query.query, topK));
       const vectorResult = timedRank(() => rankByVector(vectorIndex, query.query, topK));
       const mementoResult = timedRank(() => reciprocalRankFusion(
@@ -384,9 +387,9 @@ function evaluateBaselines(
           documentById,
         );
       }
+    } finally {
+      fts.close();
     }
-  } finally {
-    fts.close();
   }
   return byBaseline;
 }
