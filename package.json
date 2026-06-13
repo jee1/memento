@@ -64,6 +64,8 @@
     "quality:benchmark:tune-report": "tsx scripts/tune-report.ts",
     "quality:agent-memory:benchmark": "tsx scripts/agent-memory-benchmark.ts",
     "quality:agent-memory:test": "vitest run scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts",
+    "quality:agent-integration:release-gate": "tsx scripts/agent-integration-release-gate.ts",
+    "quality:agent-integration:release-gate:test": "vitest run scripts/agent-integration-release-gate.spec.ts",
     "quality:longmemeval:acquire": "tsx scripts/acquire-longmemeval.ts",
     "quality:longmemeval:validate": "tsx scripts/longmemeval-validation.ts",
     "quality:longmemeval:test": "vitest run scripts/acquire-longmemeval.spec.ts scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts scripts/longmemeval-validation.spec.ts",
