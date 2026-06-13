@@ -37,6 +37,64 @@ describe('agent memory benchmark adapter', () => {
     ]);
   });
 
+  it('normalizes the official LongMemEval-S JSON array at session granularity', () => {
+    const dataset = adaptLongMemEvalS(
+      join(FIXTURE_DIR, 'longmemeval-s-official-shape.json'),
+      { sourceRevision: 'fixture-revision' },
+    );
+
+    expect(dataset.manifest.synthetic).toBe(false);
+    expect(dataset.manifest.source_revision).toBe('fixture-revision');
+    expect(dataset.manifest.redaction_count).toBe(1);
+    expect(dataset.documents).toEqual([
+      expect.objectContaining({
+        id: 'question-1:000:session-1',
+        sessionId: 'session-1',
+        scopeId: 'question-1',
+        content: expect.stringContaining('[user] I prefer window seats.'),
+      }),
+      expect.objectContaining({
+        id: 'question-1:001:session-2',
+        sessionId: 'session-2',
+        content: expect.stringContaining('[assistant] Your flight is on Friday.'),
+      }),
+      expect.objectContaining({
+        id: 'question-2:000:session-3',
+        sessionId: 'session-3',
+        content: expect.stringContaining('[REDACTED:API_key]'),
+      }),
+    ]);
+    expect(dataset.queries).toEqual([
+      {
+        id: 'question-1',
+        scopeId: 'question-1',
+        query: 'When is my flight?',
+        relevantIds: ['question-1:001:session-2'],
+        targetSessionIds: ['session-2'],
+      },
+    ]);
+    expect(dataset.e2eCases).toEqual([
+      {
+        id: 'longmemeval-question-1',
+        queryId: 'question-1',
+        requiredEvidenceIds: ['question-1:001:session-2'],
+        tokenBudget: 4096,
+      },
+    ]);
+    expect(dataset.taskCases).toEqual([
+      expect.objectContaining({
+        id: 'question-1',
+        expectedAnswer: 'Friday',
+        abstention: false,
+      }),
+      expect.objectContaining({
+        id: 'question-2_abs',
+        expectedAnswer: '0',
+        abstention: true,
+      }),
+    ]);
+  });
+
   it('fails closed when a corpus contains a credential marker', () => {
     const unsafe: AgentMemoryBenchmarkDataset = {
       manifest: {

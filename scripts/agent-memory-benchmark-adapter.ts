@@ -22,12 +22,14 @@ export interface AgentMemoryBenchmarkManifest {
   seed: number;
   top_k: number;
   token_budget: number;
+  redaction_count?: number;
   gates: AgentMemoryBenchmarkGateThresholds;
 }
 
 export interface AgentMemoryDocument {
   id: string;
   sessionId: string;
+  scopeId?: string;
   content: string;
   type: 'episodic' | 'semantic' | 'procedural';
   createdAt: string;
@@ -36,6 +38,7 @@ export interface AgentMemoryDocument {
 
 export interface AgentMemoryRetrievalQuery {
   id: string;
+  scopeId?: string;
   query: string;
   relevantIds: string[];
   targetSessionIds: string[];
@@ -54,15 +57,26 @@ export interface AgentMemoryE2ECase {
   tokenBudget: number;
 }
 
+export interface AgentMemoryTaskCase {
+  id: string;
+  questionType: string;
+  question: string;
+  expectedAnswer: string;
+  questionDate: string;
+  requiredEvidenceSessionIds: string[];
+  abstention: boolean;
+}
+
 export interface AgentMemoryBenchmarkDataset {
   manifest: AgentMemoryBenchmarkManifest;
   documents: AgentMemoryDocument[];
   queries: AgentMemoryRetrievalQuery[];
   graphEdges: AgentMemoryGraphEdge[];
   e2eCases: AgentMemoryE2ECase[];
+  taskCases?: AgentMemoryTaskCase[];
 }
 
-interface LongMemEvalSRecord {
+interface LegacyLongMemEvalSRecord {
   question_id: string;
   question: string;
   haystack_sessions: Array<{
@@ -75,6 +89,30 @@ interface LongMemEvalSRecord {
   }>;
   answer_session_ids: string[];
   answer_memory_ids: string[];
+}
+
+interface OfficialLongMemEvalTurn {
+  role: string;
+  content: string;
+  has_answer?: boolean;
+}
+
+interface OfficialLongMemEvalSRecord {
+  question_id: string;
+  question_type: string;
+  question: string;
+  answer: string | number;
+  question_date: string;
+  haystack_session_ids: string[];
+  haystack_dates: string[];
+  haystack_sessions: OfficialLongMemEvalTurn[][];
+  answer_session_ids: string[];
+}
+
+type LongMemEvalSRecord = LegacyLongMemEvalSRecord | OfficialLongMemEvalSRecord;
+
+interface LongMemEvalAdapterOptions {
+  sourceRevision?: string;
 }
 
 const SECRET_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
@@ -122,8 +160,26 @@ export function loadAgentMemoryFixture(fixtureDir: string): AgentMemoryBenchmark
   };
 }
 
-export function adaptLongMemEvalS(inputPath: string): AgentMemoryBenchmarkDataset {
-  const records = readJsonLines<LongMemEvalSRecord>(inputPath, 'LongMemEval-S input');
+export function adaptLongMemEvalS(
+  inputPath: string,
+  options: LongMemEvalAdapterOptions = {},
+): AgentMemoryBenchmarkDataset {
+  const records = readLongMemEvalRecords(inputPath);
+  if (records.length === 0) {
+    throw new Error('LongMemEval-S input has no records');
+  }
+  if (isOfficialLongMemEvalSRecord(records[0])) {
+    return adaptOfficialLongMemEvalS(
+      records as OfficialLongMemEvalSRecord[],
+      options.sourceRevision,
+    );
+  }
+  return adaptLegacyLongMemEvalS(records as LegacyLongMemEvalSRecord[]);
+}
+
+function adaptLegacyLongMemEvalS(
+  records: LegacyLongMemEvalSRecord[],
+): AgentMemoryBenchmarkDataset {
   const documentsById = new Map<string, AgentMemoryDocument>();
   const queries: AgentMemoryRetrievalQuery[] = [];
 
@@ -176,6 +232,100 @@ export function adaptLongMemEvalS(inputPath: string): AgentMemoryBenchmarkDatase
     queries,
     graphEdges: [],
     e2eCases: [],
+    taskCases: [],
+  };
+  assertDatasetSafe(dataset);
+  return dataset;
+}
+
+function adaptOfficialLongMemEvalS(
+  records: OfficialLongMemEvalSRecord[],
+  sourceRevision: string = 'unrecorded',
+): AgentMemoryBenchmarkDataset {
+  const documents: AgentMemoryDocument[] = [];
+  const queries: AgentMemoryRetrievalQuery[] = [];
+  const e2eCases: AgentMemoryE2ECase[] = [];
+  const taskCases: AgentMemoryTaskCase[] = [];
+  let redactionCount = 0;
+
+  for (const record of records) {
+    assertOfficialLongMemEvalSRecord(record);
+    const documentIdsBySession = new Map<string, string[]>();
+    record.haystack_session_ids.forEach((sessionId, index) => {
+      const documentId = [
+        record.question_id.replace(/_abs$/, ''),
+        String(index).padStart(3, '0'),
+        sessionId,
+      ].join(':');
+      documentIdsBySession.set(sessionId, [
+        ...(documentIdsBySession.get(sessionId) ?? []),
+        documentId,
+      ]);
+      const sessionContent = formatSession(record.haystack_sessions[index] ?? []);
+      const redacted = redactSecretMarkers(sessionContent);
+      redactionCount += redacted.count;
+      documents.push({
+        id: documentId,
+        sessionId,
+        scopeId: record.question_id,
+        content: redacted.content,
+        type: 'episodic',
+        createdAt: normalizeLongMemEvalDate(record.haystack_dates[index]),
+        provenanceObservationIds: [],
+      });
+    });
+
+    const abstention = record.question_id.endsWith('_abs');
+    const relevantIds = record.answer_session_ids.flatMap((sessionId) => {
+      return documentIdsBySession.get(sessionId) ?? [];
+    });
+    if (!abstention) {
+      queries.push({
+        id: record.question_id,
+        scopeId: record.question_id,
+        query: record.question,
+        relevantIds,
+        targetSessionIds: [...record.answer_session_ids],
+      });
+      e2eCases.push({
+        id: `longmemeval-${record.question_id}`,
+        queryId: record.question_id,
+        requiredEvidenceIds: relevantIds,
+        tokenBudget: 4096,
+      });
+    }
+    taskCases.push({
+      id: record.question_id,
+      questionType: record.question_type,
+      question: record.question,
+      expectedAnswer: String(record.answer),
+      questionDate: record.question_date,
+      requiredEvidenceSessionIds: [...record.answer_session_ids],
+      abstention,
+    });
+  }
+
+  const dataset: AgentMemoryBenchmarkDataset = {
+    manifest: {
+      benchmark_version: 'longmemeval-s-cleaned-adapter-v1',
+      name: 'LongMemEval-S cleaned session retrieval benchmark',
+      license: 'MIT (upstream repository); dataset acquired separately',
+      redistribution: 'allowed',
+      license_reviewed: true,
+      secret_reviewed: true,
+      synthetic: false,
+      source_revision: sourceRevision,
+      seed: 483,
+      top_k: 10,
+      token_budget: 4096,
+      redaction_count: redactionCount,
+      gates: defaultGateThresholds(),
+    },
+    documents: documents.sort((a, b) => a.id.localeCompare(b.id)),
+    queries,
+    graphEdges: [],
+    e2eCases,
+    taskCases,
   };
   assertDatasetSafe(dataset);
   return dataset;
@@ -248,7 +398,7 @@ export function assertDatasetSafe(dataset: AgentMemoryBenchmarkDataset): void {
   }
 }
 
-function assertLongMemEvalSRecord(record: LongMemEvalSRecord): void {
+function assertLongMemEvalSRecord(record: LegacyLongMemEvalSRecord): void {
   if (
     !record
     || typeof record.question_id !== 'string'
@@ -271,12 +421,90 @@ function assertLongMemEvalSRecord(record: LongMemEvalSRecord): void {
   }
 }
 
+function readLongMemEvalRecords(inputPath: string): LongMemEvalSRecord[] {
+  if (!existsSync(inputPath)) {
+    throw new Error(`LongMemEval-S input not found: ${inputPath}`);
+  }
+  const content = readFileSync(inputPath, 'utf8').trim();
+  if (!content) {
+    return [];
+  }
+  if (content.startsWith('[')) {
+    const records = readJson<LongMemEvalSRecord[]>(inputPath, 'LongMemEval-S input');
+    if (!Array.isArray(records)) {
+      throw new Error('LongMemEval-S input must be a JSON array or JSONL');
+    }
+    return records;
+  }
+  return readJsonLines<LongMemEvalSRecord>(inputPath, 'LongMemEval-S input');
+}
+
+function isOfficialLongMemEvalSRecord(
+  record: LongMemEvalSRecord,
+): record is OfficialLongMemEvalSRecord {
+  return 'question_type' in record && Array.isArray(record.haystack_session_ids);
+}
+
+function assertOfficialLongMemEvalSRecord(record: OfficialLongMemEvalSRecord): void {
+  if (
+    !record
+    || typeof record.question_id !== 'string'
+    || typeof record.question_type !== 'string'
+    || typeof record.question !== 'string'
+    || !['string', 'number'].includes(typeof record.answer)
+    || !Array.isArray(record.haystack_session_ids)
+    || !Array.isArray(record.haystack_dates)
+    || !Array.isArray(record.haystack_sessions)
+    || !Array.isArray(record.answer_session_ids)
+    || record.haystack_session_ids.length !== record.haystack_sessions.length
+    || record.haystack_dates.length !== record.haystack_sessions.length
+  ) {
+    throw new Error('Invalid official LongMemEval-S input contract');
+  }
+  const sessionIds = new Set(record.haystack_session_ids);
+  for (const sessionId of record.answer_session_ids) {
+    if (!sessionIds.has(sessionId)) {
+      throw new Error(
+        `LongMemEval-S question ${record.question_id} references missing session: ${sessionId}`,
+      );
+    }
+  }
+}
+
+function formatSession(turns: OfficialLongMemEvalTurn[]): string {
+  return turns.map((turn) => `[${turn.role}] ${turn.content}`).join('\n');
+}
+
+function normalizeLongMemEvalDate(value: string | undefined): string {
+  if (!value) {
+    return '1970-01-01T00:00:00.000Z';
+  }
+  const withoutWeekday = value.replace(/\s+\([^)]+\)/, '');
+  const parsed = new Date(`${withoutWeekday.replaceAll('/', '-')}Z`);
+  return Number.isNaN(parsed.getTime())
+    ? '1970-01-01T00:00:00.000Z'
+    : parsed.toISOString();
+}
+
 function assertNoSecretMarkers(content: string, documentId: string): void {
   for (const { name, pattern } of SECRET_PATTERNS) {
     if (pattern.test(content)) {
       throw new Error(`Secret marker detected (${name}) in document ${documentId}`);
     }
   }
+}
+
+function redactSecretMarkers(content: string): { content: string; count: number } {
+  let redacted = content;
+  let count = 0;
+  for (const { name, pattern } of SECRET_PATTERNS) {
+    const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+    redacted = redacted.replace(new RegExp(pattern.source, flags), () => {
+      count++;
+      return `[REDACTED:${name.replaceAll(' ', '_')}]`;
+    });
+  }
+  return { content: redacted, count };
 }
 
 function defaultGateThresholds(): AgentMemoryBenchmarkGateThresholds {
