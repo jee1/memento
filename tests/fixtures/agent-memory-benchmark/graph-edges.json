@@ -1,0 +1,8 @@
+[
+  {"sourceId":"memory-auth-diagnosis","targetId":"memory-auth-resolution","type":"same_incident"},
+  {"sourceId":"memory-migration-diagnosis","targetId":"memory-migration-recovery","type":"same_incident"},
+  {"sourceId":"memory-search-metrics","targetId":"memory-search-latency","type":"supports"},
+  {"sourceId":"memory-redaction-policy","targetId":"memory-redaction-test","type":"supports"},
+  {"sourceId":"memory-queue-priority","targetId":"memory-timeout-degrade","type":"supports"},
+  {"sourceId":"memory-escalation-pointer","targetId":"memory-auth-resolution","type":"supports"}
+]

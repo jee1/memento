@@ -1,0 +1,38 @@
+[
+  {
+    "id": "query-auth-recovery",
+    "query": "How should the agent recover after authentication rotation causes 401?",
+    "relevantIds": ["memory-auth-diagnosis", "memory-auth-resolution"],
+    "targetSessionIds": ["session-auth"]
+  },
+  {
+    "id": "query-migration-recovery",
+    "query": "migration incident recovery after agent_session table failure",
+    "relevantIds": ["memory-migration-diagnosis", "memory-migration-recovery"],
+    "targetSessionIds": ["session-migration"]
+  },
+  {
+    "id": "query-search-evaluation",
+    "query": "retrieval quality metrics and p95 latency reporting",
+    "relevantIds": ["memory-search-metrics", "memory-search-latency"],
+    "targetSessionIds": ["session-search"]
+  },
+  {
+    "id": "query-secret-safety",
+    "query": "redaction secret leak security fixture surfaces",
+    "relevantIds": ["memory-redaction-policy", "memory-redaction-test"],
+    "targetSessionIds": ["session-security"]
+  },
+  {
+    "id": "query-capture-degradation",
+    "query": "capture queue timeout degraded behavior",
+    "relevantIds": ["memory-queue-priority", "memory-timeout-degrade"],
+    "targetSessionIds": ["session-runtime"]
+  },
+  {
+    "id": "query-graph-evidence",
+    "query": "incident handbook escalation evidence",
+    "relevantIds": ["memory-auth-resolution"],
+    "targetSessionIds": ["session-auth"]
+  }
+]
