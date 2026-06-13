@@ -67,6 +67,8 @@
     "quality:longmemeval:acquire": "tsx scripts/acquire-longmemeval.ts",
     "quality:longmemeval:validate": "tsx scripts/longmemeval-validation.ts",
     "quality:longmemeval:test": "vitest run scripts/acquire-longmemeval.spec.ts scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts scripts/longmemeval-validation.spec.ts",
+    "quality:agent-smoke": "node --import tsx scripts/agent-smoke-matrix.ts",
+    "quality:agent-smoke:test": "vitest run scripts/agent-smoke-matrix.spec.ts",
     "quality:feedback:reappearance-report": "tsx scripts/quality-feedback-reappearance-report.ts",
     "test:quality-assurance": "tsx packages/memento-core/src/test/test-quality-assurance.ts",
     "test:client": "tsx packages/memento-server/src/test/test-client.ts",
