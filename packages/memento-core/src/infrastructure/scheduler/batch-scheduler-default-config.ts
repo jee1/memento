@@ -56,7 +56,12 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     jobTimeout: 5 * 60 * 1000,          // 5분
     retryAttempts: 3,
     retryDelay: 1000,                   // 1초
-    weeklyRelationValidationTimeout: undefined, // 기본값: jobTimeout 사용
+    weeklyRelationValidationTimeout: resolveValidatedNumber(
+      'WEEKLY_RELATION_VALIDATION_TIMEOUT_MS',
+      30 * 60 * 1000,
+      n => n >= 60_000,
+      '최솟값 60000'
+    ),
     ...overrides
   };
 }
