@@ -149,6 +149,14 @@ const showHelp = preOptions.help || (!commandToken && !subcommand);
 
 export async function main(): Promise<number> {
   const agentTokens = stripGlobalArgvForAgentDetection(process.argv);
+  if (
+    agentTokens[0] === 'doctor'
+    || agentTokens[0] === 'status'
+    || agentTokens[0] === 'demo'
+  ) {
+    const { runAgentOpsCommand } = await import('./cli/agent-ops.js');
+    return runAgentOpsCommand(agentTokens[0], agentTokens.slice(1));
+  }
   if (agentTokens[0] === 'connect' && agentTokens[1] === 'codex') {
     const { runCodexConnect } = await import('./cli/codex-connect.js');
     return runCodexConnect(agentTokens.slice(2));
@@ -183,12 +191,14 @@ export async function main(): Promise<number> {
     await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
     await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n');
     await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n');
+    await writeStderr('  doctor              Agent endpoint/auth/schema/redaction 진단\n');
+    await writeStderr('  status              최근 capture/injection/drop/degraded 요약\n');
+    await writeStderr('  demo                두 session 자동 기억 주입 E2E 검증\n');
     await writeStderr('  connect codex       Codex lifecycle hook 연결\n');
     await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
     await writeStderr('  connect claude-code Claude Code lifecycle hook 연결\n');
     await writeStderr('  hook claude-code    Claude Code hook stdin 처리 (internal)\n');
-    await writeStderr('  connect codex       Codex lifecycle hook 연결\n');
-    await writeStderr('  hook codex          Codex hook stdin 처리 (internal)\n\n');
+    await writeStderr('\n');
     await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
     await writeStderr('  --db-path <path>    (deprecated) DB 파일 경로\n');
     await writeStderr('  --env-file <path>   (deprecated) .env 파일 경로\n');

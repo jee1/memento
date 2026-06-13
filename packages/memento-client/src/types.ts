@@ -273,6 +273,11 @@ export interface AgentObservationQuery {
   to?: string;
 }
 
+export interface AgentOperationsStatusQuery {
+  since?: string;
+  limit?: number;
+}
+
 export interface AgentProvenanceQuery {
   memory_id?: string;
   observation_id?: string;
