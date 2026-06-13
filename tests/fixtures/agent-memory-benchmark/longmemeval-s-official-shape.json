@@ -1,0 +1,38 @@
+[
+  {
+    "question_id": "question-1",
+    "question_type": "single-session-user",
+    "question": "When is my flight?",
+    "answer": "Friday",
+    "question_date": "2026/01/03 (Sat) 12:00",
+    "haystack_session_ids": ["session-1", "session-2"],
+    "haystack_dates": ["2026/01/01 (Thu) 10:00", "2026/01/02 (Fri) 11:00"],
+    "haystack_sessions": [
+      [
+        {"role": "user", "content": "I prefer window seats."},
+        {"role": "assistant", "content": "I will remember that."}
+      ],
+      [
+        {"role": "user", "content": "When is my flight?"},
+        {"role": "assistant", "content": "Your flight is on Friday.", "has_answer": true}
+      ]
+    ],
+    "answer_session_ids": ["session-2"]
+  },
+  {
+    "question_id": "question-2_abs",
+    "question_type": "single-session-user",
+    "question": "What is my passport number?",
+    "answer": 0,
+    "question_date": "2026/01/04 (Sun) 12:00",
+    "haystack_session_ids": ["session-3"],
+    "haystack_dates": ["2026/01/03 (Sat) 09:00"],
+    "haystack_sessions": [
+      [
+        {"role": "user", "content": "I packed my suitcase. password: example-secret-value"},
+        {"role": "assistant", "content": "Have a safe trip."}
+      ]
+    ],
+    "answer_session_ids": []
+  }
+]
