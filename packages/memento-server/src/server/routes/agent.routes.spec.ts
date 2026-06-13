@@ -194,6 +194,65 @@ describe('agent integration routes', () => {
     }));
   });
 
+  it('returns payload-free recent operations status', async () => {
+    await invoke('post', '/sessions', {
+      body: event({
+        payload: {
+          client_version: '1.0.0',
+        },
+      }),
+    });
+    db.prepare(`
+      INSERT INTO telemetry_events (
+        id, event_type, request_id, owner_id, latency_ms,
+        outcome, error_code, extra_data, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'telemetry-injection-1',
+      'agent.injection.completed',
+      'agent-injection:injection-status',
+      'owner-1',
+      12,
+      'failure',
+      'VECTOR_PROVIDER_UNAVAILABLE',
+      JSON.stringify({
+        injection_id: 'injection-status',
+        session_id: 'session-1',
+        context_text: 'must-not-appear',
+      }),
+      '2026-06-06T00:00:09.000Z',
+    );
+
+    await invoke('get', '/operations/status', {
+      query: { since: '2026-06-05T00:00:00.000Z', limit: '10' },
+    });
+
+    const payload = vi.mocked(response.json!).mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      counts: {
+        captures: 1,
+        injections: 2,
+        dropped: 0,
+        degraded: 1,
+      },
+    });
+    expect(JSON.stringify(payload)).not.toContain('must-not-appear');
+    expect(JSON.stringify(payload)).not.toContain('payload_json');
+    expect(payload.recent_events).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: 'capture',
+        session_id: 'session-1',
+        status: 'ACCEPTED',
+      }),
+      expect.objectContaining({
+        kind: 'injection',
+        session_id: 'session-1',
+        status: 'degraded',
+        reason_code: 'VECTOR_PROVIDER_UNAVAILABLE',
+      }),
+    ]));
+  });
+
   it('returns a versioned initial injection bundle and records detailed telemetry', async () => {
     await invoke('post', '/sessions', {
       body: event({
