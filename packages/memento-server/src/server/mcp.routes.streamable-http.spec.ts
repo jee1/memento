@@ -108,6 +108,31 @@ function openSse(
   });
 }
 
+
+async function listenWithMcpRouterAndMocks(): Promise<{ port: number; close: () => Promise<void> }> {
+  const core = await import('@memento/core');
+  const { createMcpRouter } = await import('./routes/mcp.routes.js');
+  const app = express();
+  const transports: Record<string, unknown> = {};
+
+  app.use(express.json());
+  app.use(createMcpRouter({} as never, {} as never, transports as any));
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve, reject) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+    server.once('error', reject);
+  });
+
+  return {
+    port: (server.address() as import('node:net').AddressInfo).port,
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        server.close(error => (error ? reject(error) : resolve()));
+      })
+  };
+}
+
 describe('mcp.routes streamable_http', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -289,4 +314,54 @@ describe('mcp.routes streamable_http', () => {
       await close();
     }
   });
+  it('POST /mcp tools/call should return -32602 for Zod validation errors without streamable ERROR log', async () => {
+    const { z } = await import('zod');
+    const core = await import('@memento/core');
+    const errorSpy = vi.spyOn(core.logger, 'error').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(core.logger, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(core, 'executeTool').mockRejectedValue(
+      new z.ZodError([
+        {
+          code: 'custom',
+          path: ['content'],
+          message: "type='core' 또는 'vault'일 때는 key, value가 필수이고, 나머지는 content가 필수입니다"
+        }
+      ])
+    );
+
+    const { port, close } = await listenWithMcpRouterAndMocks();
+
+    try {
+      const res = await postJsonRpc(port, '/mcp', {
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: {
+          name: 'remember',
+          arguments: {}
+        }
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        jsonrpc: string;
+        id: number;
+        error: { code: number; message: string; data: unknown };
+      };
+      expect(body.error.code).toBe(-32602);
+      expect(body.error.message).toBe('Invalid params');
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        'MCP streamable_http processing failed',
+        expect.anything()
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        'MCP tools/call rejected invalid params',
+        expect.objectContaining({ tool: 'remember' })
+      );
+    } finally {
+      await close();
+    }
+  });
+
+
 });
