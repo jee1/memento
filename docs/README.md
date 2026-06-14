@@ -74,6 +74,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 스크립트 인덱스 | [scripts-index.md](operations/ko/scripts-index.md) | — |
 | GitHub 릴리스 | [github-release-workflow.md](operations/ko/github-release-workflow.md) | [github-release-workflow.md](operations/en/github-release-workflow.md) |
 | 마이그레이션 상태 점검 | [check-migration-status.md](operations/ko/check-migration-status.md) | [check-migration-status.md](operations/en/check-migration-status.md) |
+| 검토 큐 안전 정리 | [review-queue-cleanup.md](operations/ko/review-queue-cleanup.md) | [review-queue-cleanup.md](operations/en/review-queue-cleanup.md) |
 | 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) | — |
 | 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/env-deployment-checklist.md) | — |
 | 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [operations/en/](operations/en/) |

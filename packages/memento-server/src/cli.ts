@@ -181,6 +181,10 @@ export async function main(): Promise<number> {
     }
     return runAgentAskMain(preOptions, process.argv);
   }
+  if (agentTokens[0] === 'review-queue' && agentTokens[1] === 'cleanup') {
+    const { runReviewQueueCleanup } = await import('./cli/review-queue-cleanup.js');
+    return runReviewQueueCleanup(agentTokens.slice(2), { dbPath: preOptions.dbPath });
+  }
 
   if (showHelp) {
     await writeStderr('memento – Memento CLI for AI\n');
@@ -190,6 +194,7 @@ export async function main(): Promise<number> {
     await writeStderr('  remember            기억을 저장합니다\n');
     await writeStderr('  forget              기억을 삭제합니다 (소프트/하드)\n');
     await writeStderr('  memory_injection    관련 기억을 요약하여 프롬프트에 주입\n');
+    await writeStderr('  review-queue cleanup 검토 큐를 dry-run 후 일괄 정리\n');
     await writeStderr('  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n');
     await writeStderr('  doctor              Agent endpoint/auth/schema/redaction 진단\n');
     await writeStderr('  status              최근 capture/injection/drop/degraded 요약\n');
@@ -200,7 +205,7 @@ export async function main(): Promise<number> {
     await writeStderr('  hook claude-code    Claude Code hook stdin 처리 (internal)\n');
     await writeStderr('\n');
     await writeStderr('Global options (서브커맨드 앞·뒤 모두 가능):\n');
-    await writeStderr('  --db-path <path>    (deprecated) DB 파일 경로\n');
+    await writeStderr('  --db-path <path>    review-queue cleanup DB 경로 (기타 명령은 deprecated)\n');
     await writeStderr('  --env-file <path>   (deprecated) .env 파일 경로\n');
     await writeStderr('  --config-dir <path> 설정 디렉터리 (~/.memento 대체)\n');
     await writeStderr('  --help, -h           이 도움말\n');

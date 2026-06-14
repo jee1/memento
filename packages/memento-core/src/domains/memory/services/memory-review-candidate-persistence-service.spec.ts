@@ -10,6 +10,7 @@ import {
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,
   bulkUpdatePendingMemoryReviewCandidates,
+  countPendingMemoryReviewCandidatesBySelector,
 } from './memory-review-candidate-persistence-service.js';
 import {
   MemoryReviewCandidateError,
@@ -244,6 +245,25 @@ describe('memory-review-candidate-persistence upsert', () => {
       updated: 1,
     });
     expect(listMemoryReviewCandidates(db, { status: 'expired' })).toHaveLength(1);
+  });
+
+  it('counts the same pending candidates without mutating them', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      '2026-05-01T00:00:00.000Z',
+    );
+
+    const targetCount = countPendingMemoryReviewCandidatesBySelector(
+      db,
+      { older_than_days: 30 },
+      NOW,
+    );
+    expect(targetCount).toBe(1);
+    expect(listMemoryReviewCandidates(db, { status: 'pending' })).toHaveLength(1);
+    expect(
+      bulkUpdatePendingMemoryReviewCandidates(db, 'expire', { older_than_days: 30 }, NOW),
+    ).toEqual({ matched: targetCount, updated: targetCount });
   });
 
   it.each([

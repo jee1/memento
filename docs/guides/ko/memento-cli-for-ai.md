@@ -108,6 +108,17 @@ memento agent ask "지금까지 저장된 TypeScript 관련 결정 사항을 요
 
 LLM 제공자는 `LLM_PROVIDER` 환경 변수로 설정합니다(`openai`, `gemini`, `ollama`, `auto`).
 
+### review-queue cleanup — 검토 큐 일괄 정리
+
+누적된 pending 검토 후보를 서버 없이 확인하고 정리합니다. 기본은 dry-run이며, 실제 변경에는 `--execute --yes`가 모두 필요합니다.
+
+```bash
+memento review-queue cleanup --older-than-days 30 --expire
+memento review-queue cleanup --older-than-days 30 --expire --execute --yes
+```
+
+운영 절차와 전체 옵션은 [검토 큐 안전 정리](../../operations/ko/review-queue-cleanup.md)를 참고하세요.
+
 ## 전역 옵션
 
 다음 옵션은 모든 서브커맨드 앞에 올 수 있습니다.
