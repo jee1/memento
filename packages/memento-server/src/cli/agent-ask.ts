@@ -402,6 +402,8 @@ export async function runAgentAskMain(
 
   const { db, services } = core;
   const toolContext = createToolContext(db, services);
+  // Diagnostic sampler cleanup may fail if already stopped during process exit; failure is non-critical.
+  const ignoreCleanupError = (_err: unknown): void => { /* intentional noop — swallows non-critical cleanup errors */ };
 
   let llm: ILLMPort;
   try {
@@ -464,7 +466,7 @@ export async function runAgentAskMain(
         await writeErr(msg + '\n');
       }
     }
-    await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+    await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
     closeDatabase(db);
     return 2;
   }
@@ -490,14 +492,14 @@ export async function runAgentAskMain(
     } else {
       await writeErr(msg + '\n');
     }
-    await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+    await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
     closeDatabase(db);
     return 3;
   }
 
   if (interruptRef.interrupted) {
     await writeErr('중단되어 저장하지 않습니다.\n');
-    await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+    await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
     closeDatabase(db);
     return 130;
   }
@@ -539,7 +541,7 @@ export async function runAgentAskMain(
     for (let i = 0; i < runResult.candidates.length; i++) {
       if (interruptRef.interrupted) {
         await writeErr('중단되어 저장하지 않습니다.\n');
-        await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+        await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
         closeDatabase(db);
         return 130;
       }
@@ -547,7 +549,7 @@ export async function runAgentAskMain(
       const ans = await promptFn(c, i, runResult.candidates.length, interruptRef);
       if (ans === 'interrupt') {
         await writeErr('중단되어 저장하지 않습니다.\n');
-        await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+        await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
         closeDatabase(db);
         return 130;
       }
@@ -585,7 +587,7 @@ export async function runAgentAskMain(
         } else {
           await writeErr(msg + '\n');
         }
-        await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+        await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
         closeDatabase(db);
         return 4;
       }
@@ -614,7 +616,7 @@ export async function runAgentAskMain(
     await writeOut(JSON.stringify(successObj) + '\n');
   }
 
-  await services.runtimeDiagnosticsSamplerCleanup?.().catch(() => {});
+  await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
   closeDatabase(db);
 
   if (persistenceBlock.attempted && persistenceBlock.errorCount > 0) {

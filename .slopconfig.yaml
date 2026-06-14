@@ -1,5 +1,11 @@
 version: "2.0"
 ignore:
+  - "**/*.spec.ts"
+  - "**/*.spec.js"
+  - "**/__tests__/**"
+  - "**/test/**"
+  - "tests/**"
+  - "packages/memento-server/src/test/**"
   - "**/coverage/**"
   - "graphify-out/**"
   - "**/.next/**"
