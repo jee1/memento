@@ -19,7 +19,6 @@ import {
 import type Database from 'better-sqlite3';
 import { Router, type Request, type Response } from 'express';
 import {
-  AgentTranscriptImportError,
   AgentTranscriptImporter,
 } from './agent-transcript-import.js';
 import {
@@ -37,8 +36,6 @@ import {
   parsePayload,
   percentile,
   requireString,
-  safeRecord,
-  safeNumber,
   safeTelemetrySessionId,
   writeError,
 } from './agent.routes.utils.js';
