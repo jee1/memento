@@ -838,6 +838,43 @@ body {
   font-size: var(--font-size-sm);
 }
 
+.rc-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.rc-bulk-actions[aria-busy='true'] {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.rc-bulk-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-main);
+}
+
+.rc-selected-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.rc-bulk-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
 .review-candidates-table-wrap {
   overflow: auto;
   flex: 1;
@@ -871,6 +908,11 @@ body {
 .rc-cell-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   word-break: break-all;
+}
+
+.rc-cell-select {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .rc-cell-reason {
