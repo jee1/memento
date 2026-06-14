@@ -272,7 +272,7 @@ A memory system is only useful if it also forgets. Memories that only accumulate
 
 ### 📊 Performance Monitoring (HTTP Management API)
 
-> **Security**: The HTTP server separates browser-session and header-based trust boundaries. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
+- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
 
 - **Real-time metrics**: Database, search, memory performance monitoring
 - **Real-time alerts**: Automatic performance checks every 30 seconds with threshold-based alerts
@@ -283,7 +283,7 @@ A memory system is only useful if it also forgets. Memories that only accumulate
 
 ### 🔗 Memory Graph View (Browser)
 
-After starting the HTTP server, visualize semantic relationships between memories as an interactive graph. `/dashboard` is the preferred entry point for the full admin flow; opening `/graph` directly offers the same `/auth/session` re-auth path for session recovery.
+After starting the HTTP server, visualize semantic relationships between memories as an interactive graph. `/dashboard` is the preferred entry point for the full admin flow; opening `/graph` directly now offers the same `/auth/session` re-auth path for session recovery.
 
 ```
 http://localhost:9001/dashboard
@@ -447,7 +447,7 @@ npm run test -- --coverage
 
 Memento is designed to grow: from a personal local server, through team collaboration, to an organization-scale memory platform.
 
-**M1: Personal (current)** — the form you can use today. SQLite embedded, FTS5 + sqlite-vec indexes, local execution. Security model separates browser-session and header-based trust (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key). 14 MCP tools, management functions separated into HTTP API.
+**M1: Personal (current)** — the form you can use today. SQLite embedded, FTS5 + sqlite-vec indexes, local execution. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key). 14 MCP tools, management functions separated into HTTP API.
 
 **M2: Team (planned)** — SQLite server mode, API Key auth, Docker single container. Multiple teammates share one memory backend.
 
