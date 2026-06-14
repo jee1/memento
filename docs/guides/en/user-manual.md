@@ -1,61 +1,47 @@
 # User Manual
 
-## Overview
+Memento is an MCP (Model Context Protocol) server designed for AI agents to store and retrieve information across conversations and work sessions. An agent can save important decisions, technical knowledge, and in-progress context to Memento, then recover that continuity in later sessions using `recall` or `memory_injection`.
 
-This manual explains how to manage AI Agent memory using Memento MCP Server. It is designed for users of all levels, from beginners to advanced users.
-
-## Table of Contents
-
-1. [Getting Started](#getting-started)
-2. [Basic Usage](#basic-usage)
-3. [Advanced Features](#advanced-features)
-4. [Troubleshooting](#troubleshooting)
-5. [FAQ](#faq)
+This manual covers everyone from first-time installers to developers integrating programmatically through the HTTP client.
 
 ## Getting Started
 
 ### Installation
 
-#### M1 (Personal) - Local Installation
+Clone the repository, install dependencies, and build.
 
 ```bash
-# Clone repository
 git clone https://github.com/jee1/memento.git
 cd memento
 
-# Install dependencies
 npm install
 
-# Set environment variables
+# Create environment file (optional — defaults work out of the box)
 cp env.example .env
-# Edit .env file to enter necessary settings
 
-# Initialize database
+# Initialize the database
 npm run db:init
 
-# Start server (hot reload)
+# Start the MCP stdio server (with hot reload)
 npm run dev
 ```
 
-#### M2 (Team) - Docker Installation
+If you prefer Docker, start the container and verify the server is healthy.
 
 ```bash
-# Run with Docker Compose
-docker-compose -f docker-compose.team.yml up -d
-
-# Check server status
-curl http://localhost:8080/health
+docker-compose up -d
+curl http://localhost:9001/health
 ```
 
-### MCP Client Setup
+### Connecting an MCP Client
 
-#### Claude Desktop Setup
+#### Claude Desktop
 
-1. Open Claude Desktop configuration file:
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+Open the Claude Desktop configuration file and add the Memento server entry.
 
-2. Add MCP server:
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
 ```json
 {
   "mcpServers": {
@@ -70,502 +56,225 @@ curl http://localhost:8080/health
 }
 ```
 
-3. Restart Claude Desktop
+Restart Claude Desktop after saving the file to activate the Memento MCP tools.
 
-#### Cursor Setup
+#### Cursor
 
-Memento is typically used as a **stdio MCP** client (`node` runs `packages/memento-server/dist/server/index.js`). Do not confuse this with **URL-only** MCP configuration.
+In Cursor, connect via the **stdio MCP** approach, pointing `command` and `args` at `packages/memento-server/dist/server/index.js`. Do not confuse this with the URL-based MCP configuration.
 
-1. From the repo root, run `npm install` and `npm run build` so `packages/memento-server/dist/server/index.js` exists.
-2. In Cursor MCP settings (e.g. `.cursor/mcp.json`), set `command` / `args` to that entrypoint.
-3. Follow **[Cursor MCP setup](./cursor-mcp-setup.md)** for examples and troubleshooting.
+Run `npm install && npm run build` from the repo root to generate the build output, then configure `.cursor/mcp.json` accordingly. For full examples and troubleshooting, see the [Cursor MCP Setup Guide](./cursor-mcp-setup.md).
 
-If you expose MCP over HTTP, you may connect with `http://127.0.0.1:<port>/mcp` when your client supports it. The stdio flow is the default recommendation.
+If you run the HTTP server separately, clients that support it can also connect via `http://127.0.0.1:<port>/mcp`. The stdio flow is the default recommendation.
 
-## Basic Usage
+## Storing Memories
 
-### 1. Storing Memories
+The simplest way to store information is through the `remember` MCP tool, which any connected MCP client (Claude Desktop, Cursor, etc.) can call directly. When the HTTP server is also running, you can store memories programmatically using the `@memento/client` package.
 
-You can store important information from conversations with AI Agents as memories.
-
-#### `@memento/client` HTTP client example
-
-When the HTTP server is running (e.g. `npm run dev:http`, default `http://localhost:8080`), use the **`@memento/client`** package:
+The HTTP server defaults to `http://localhost:9001` (configurable via `MCP_SERVER_PORT` or `PORT`). Start it with `npm run dev:http` during development.
 
 ```typescript
 import { MementoClient } from '@memento/client';
 
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
 });
 
 await client.connect();
 
 // Basic storage
 await client.remember({
-  content: 'User asked about React Hooks and I explained the difference between useState and useEffect.',
+  content: 'User asked about React Hooks; explained the difference between useState and useEffect.',
 });
 
 // With tags and importance
 await client.remember({
-  content: 'Decided to introduce TypeScript in the project.',
+  content: 'Decided to introduce TypeScript across the project.',
   tags: ['typescript', 'decision', 'project'],
   importance: 0.8,
 });
 
-// Memory type (e.g. semantic)
+// Specify a memory type
 await client.remember({
-  content: 'Summary of React Hook usage',
+  content: 'Summary of React Hook usage patterns',
   type: 'semantic',
   tags: ['react', 'hooks', 'programming'],
 });
 ```
 
-Using the CLI:
+The CLI equivalent looks like this:
 
 ```bash
-memento remember "React Hook usage" --type semantic --tags "react,hooks,programming"
+memento remember "React Hook usage patterns" --type semantic --tags "react,hooks,programming"
 ```
 
-### 2. Searching Memories
+For full CLI documentation, see the [Memento CLI for AI Guide](./memento-cli-for-ai.md).
 
-You can search stored memories to find related information. Memento provides basic search and hybrid search.
+## Understanding Memory Types
 
-#### Hybrid Search (Recommended)
+Memento distinguishes four memory types that govern storage purpose and automatic expiry.
 
-Using hybrid search that combines FTS5 text search and vector search provides more accurate results.
+**Working memory** holds temporary context for the current session. It expires automatically after 48 hours, making it suitable for in-progress bug fixes, scratch notes, or ephemeral task state.
+
+**Episodic memory** records events and experiences — meeting outcomes, task completion notes, project milestones. Memories of this type are deleted after 90 days unless pinned.
+
+**Semantic memory** holds knowledge that should persist indefinitely: technical explanations, architectural guidelines, team conventions. It is never automatically deleted.
+
+**Procedural memory** captures repeatable processes such as deployment steps, configuration procedures, and troubleshooting runbooks. Like semantic memory, it has no automatic expiry.
+
+```bash
+# Working memory — short-lived context
+memento remember "Bug fix in progress: null check on auth middleware" --type working
+
+# Episodic memory — record an event
+memento remember "Decisions made in today's sprint planning" --type episodic --tags "meeting,decision"
+
+# Semantic memory — accumulate knowledge
+memento remember "React Hook fundamentals and usage" --type semantic --tags "react,hooks"
+
+# Procedural memory — document a process
+memento remember "Docker container deployment steps" --type procedural --tags "docker,deployment"
+```
+
+## Searching Memories
+
+When retrieving memories, Memento runs a hybrid search that combines FTS5 full-text search with vector similarity. This means a query does not need to match the exact wording of a stored memory — semantically related content surfaces too.
 
 ```typescript
-// Basic hybrid search (weights follow client/server defaults)
+// Basic hybrid search
 const result = await client.hybridSearch({
   query: 'React Hook usage',
 });
 
-// Adjust weights (emphasize vector search)
+// Shift weight toward vector search for meaning-driven retrieval
 const tuned = await client.hybridSearch({
-  query: 'TypeScript interface',
+  query: 'TypeScript interfaces',
   vectorWeight: 0.8,
   textWeight: 0.2,
 });
 ```
 
-#### Basic Search
-
-```
-@memento recall "React Hook"
-```
-
-#### Advanced Search
-
-```
-@memento recall "TypeScript" --type "episodic,semantic" --tags "programming" --limit 10
-```
-
-#### Time Range Search
-
-```
-@memento recall "project decision" --from "2024-01-01" --to "2024-12-31"
-```
-
-### 3. Using Embedding Features
-
-Memento uses OpenAI's `text-embedding-3-small` model to provide semantic similarity-based search. If OpenAI API is not available, it automatically uses the lightweight hybrid embedding service (TF-IDF + keyword matching).
-
-#### Embedding Feature Setup
-
-1. **Set OpenAI API Key**:
-```bash
-# Add to .env file (optional - uses lightweight embedding if not available)
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-2. **Test Embedding Service**:
-```bash
-# Test embedding functionality
-npm run test:embedding
-```
-
-#### Benefits of Embedding Features
-
-- **Semantic Search**: Search based on meaning rather than keywords
-- **Synonym Recognition**: Recognizes "car" and "vehicle" as the same meaning
-- **Related Concept Search**: Recognizes "programming" and "coding" as related concepts
-- **Automatic Embedding Generation**: Automatically generates vectors when storing memories
-
-#### Using Embedding Search
-
-```typescript
-// Server generates embeddings when storing memories
-await client.remember({
-  content: 'Detailed explanation and usage examples of React Hooks',
-  type: 'semantic',
-  tags: ['react', 'hooks', 'javascript'],
-});
-
-// Hybrid search
-const searchResult = await client.hybridSearch({
-  query: 'React state management',
-  vectorWeight: 0.7,
-  textWeight: 0.3,
-});
-```
-
-### 4. Managing Memories
-
-#### Pinning Memories
-
-You can pin important memories to protect them from automatic deletion.
-
-```
-@memento pin memory-123
-```
-
-#### Unpinning Memories
-
-```
-@memento unpin memory-123
-```
-
-#### Deleting Memories
-
-```
-@memento forget memory-123
-```
-
-#### Hard Delete
-
-```
-@memento forget memory-123 --hard
-```
-
-## Advanced Features
-
-### 1. Using Forgetting Policy
-
-#### What is Forgetting Policy?
-
-Forgetting policy is a system that manages memory lifespan. It mimics human memory systems by:
-
-- **Automatic Forgetting**: Automatically deleting old and unused memories
-- **Spaced Repetition**: Periodically reviewing important memories to strengthen them
-- **TTL Management**: Applying different lifespan policies by memory type
-
-#### Forgetting policy, batch jobs, and spaced repetition
-
-TTL, batch forgetting, and scheduling are usually handled by the **server scheduler** and **MCP / HTTP admin** surfaces. The `@memento/client` HTTP wrapper centers on **`remember`** / **`recall`** / **`hybridSearch`** / **`forget`** / **`pin`** / **`unpin`**, etc. Older docs that used fictional `callTool` names such as `apply_forgetting_policy` or `schedule_review` may not match the client API.
-
-You can delete a single memory with `forget(memoryId, hard)` when the server exposes that route.
-
-See **[API reference](../../api/en/api-reference.md)** and **[Developer guide](developer-guide.md)** for operations and automation.
-
-### 2. Using HTTP Server
-
-#### What is HTTP Server?
-
-HTTP server is a real-time communication server that supports WebSocket. It is designed for communication with web clients.
-
-#### Starting HTTP Server
+From the CLI, use the `recall` command.
 
 ```bash
-# Start HTTP server
-npm run dev:http
+# Basic search
+memento recall --query "React Hook" --limit 5
 
-# Or run directly
-node packages/memento-server/dist/server/http-server.js
+# Filter by type and tags
+memento recall --query "TypeScript" --type "episodic,semantic" --tags "programming" --limit 10
 ```
 
-#### WebSocket Connection
+Search results include a `score` (relevance) and `recall_reason` (why the memory was returned), which helps you understand and refine retrieval behavior.
 
-```javascript
-// WebSocket connection from web client
-const ws = new WebSocket('ws://localhost:3000');
+### Configuring Embeddings
 
-ws.on('open', () => {
-  console.log('WebSocket connected');
-  
-  // Send MCP message
-  ws.send(JSON.stringify({
-    method: 'tools/call',
-    params: {
-      name: 'remember',
-      arguments: {
-        content: 'Memory stored from web',
-        type: 'episodic'
-      }
-    },
-    id: 'web-1'
-  }));
-});
+Memento defaults to MiniLM embeddings, which work without an API key. For higher-quality semantic search, switch to OpenAI or Gemini embeddings via the `EMBEDDING_PROVIDER` environment variable. Supported values are `tfidf`, `lightweight`, `minilm`, `openai`, and `gemini`.
 
-ws.on('message', (data) => {
-  const response = JSON.parse(data);
-  console.log('Server response:', response);
-});
+```bash
+# In your .env file
+EMBEDDING_PROVIDER=minilm       # Default — no API key needed
+# EMBEDDING_PROVIDER=openai     # Higher quality; requires API key
+OPENAI_API_KEY=your_key_here
+# EMBEDDING_PROVIDER=gemini
+GEMINI_API_KEY=your_key_here
 ```
 
-### 3. Session Summary
+With semantic embeddings active, a search for "car" can match memories containing "vehicle," and a search for "programming" will surface memories about "coding."
 
-You can summarize conversation sessions and store them as memories.
+## Managing Memories
 
-```
-@memento summarize_thread session-456 --importance 0.8
-```
+### Pinning and Unpinning
 
-### 4. Creating Memory Relationships
+To protect a memory from TTL-based deletion, pin it with the `pin` MCP tool or `client.pin(memoryId)`. A pinned memory remains until you explicitly delete it. Use `client.unpin(memoryId)` to remove the pin and restore normal TTL behavior.
 
-You can set relationships between memories to get better search results.
+### Deleting Memories
 
-```
-@memento link memory-123 memory-456 --relation "derived_from"
-```
+Deletion comes in two forms. A soft delete marks the memory as deleted and may be recoverable; a hard delete removes it permanently.
 
-Available relationship types:
-- `cause_of`: Cause relationship
-- `derived_from`: Derived relationship
-- `duplicates`: Duplicate relationship
-- `contradicts`: Contradiction relationship
+```bash
+# Soft delete
+memento forget --id mem_xxxxx
 
-### 5. Exporting Memories
-
-You can export stored memories in various formats.
-
-#### JSON Format
-
-```
-@memento export --format json --type "episodic,semantic"
+# Hard delete — irreversible
+memento forget --id mem_xxxxx --hard --confirm true
 ```
 
-#### CSV Format
+From the client library: `client.forget(memoryId, hard)`.
 
-```
-@memento export --format csv --tags "programming,react"
-```
+### Providing Feedback
 
-#### Markdown Format
+You can signal whether a recalled memory was useful via the `feedback` MCP tool or `client.feedback(...)`. This information can help tune retrieval quality over time.
 
-```
-@memento export --format markdown --from "2024-01-01"
-```
+## Using Tags
 
-### 4. Providing Feedback
+Tags are the primary way to organize and filter memories. A consistent tagging convention pays off when you need to retrieve memories across a large collection.
 
-You can provide feedback on memory usefulness to improve search quality.
-
-```
-@memento feedback memory-123 --helpful true --comment "Very useful information"
-```
-
-## Memory Type Usage
-
-### Working Memory
-
-Temporarily stores currently processing information.
-
-```
-@memento remember "Current bug fix work in progress" --type "working"
-```
-
-- **Features**: Automatically deleted after 48 hours
-- **Usage**: Maintain current work context
-
-### Episodic Memory
-
-Stores events and experiences.
-
-```
-@memento remember "Decisions made in today's meeting" --type "episodic" --tags "meeting,decision"
-```
-
-- **Features**: Automatically deleted after 90 days (if not pinned)
-- **Usage**: Project progress, meeting content, experiences
-
-### Semantic Memory
-
-Stores knowledge and facts.
-
-```
-@memento remember "Basic concepts and usage of React Hooks" --type "semantic" --tags "react,hooks,knowledge"
-```
-
-- **Features**: Preserved indefinitely
-- **Usage**: Technical knowledge, guidelines, rules
-
-### Procedural Memory
-
-Stores methods and procedures.
-
-```
-@memento remember "Docker container deployment procedure" --type "procedural" --tags "docker,deployment,procedure"
-```
-
-- **Features**: Preserved indefinitely
-- **Usage**: Work procedures, setup methods, problem-solving processes
-
-## Tag System
-
-### Tag Naming Rules
+Suggested tag categories:
 
 - **Language/Technology**: `javascript`, `typescript`, `react`, `docker`
 - **Category**: `programming`, `design`, `meeting`, `decision`
 - **Status**: `todo`, `in-progress`, `completed`, `blocked`
 - **Priority**: `critical`, `important`, `nice-to-have`
 
-### Tag Usage Examples
+For multi-project setups, the simplest isolation strategy is a consistent project tag.
 
+```bash
+memento remember "Project A architecture decision" --tags "project-a,architecture,decision"
+memento recall --query "architecture" --tags "project-a"
 ```
-@memento remember "Project architecture design" --tags "architecture,design,typescript,important"
-```
 
-## Search Tips
+## Memory Relationships
 
-### 1. Writing Effective Search Queries
+You can link memories to one another using the `add_relation` MCP tool. Once memories are connected, `get_relations` lists the connections, and `get_memory_neighbors` retrieves related memories alongside a given starting memory, making it easier to navigate clusters of related knowledge.
 
-- **Use specific keywords**: "React Hook" > "programming"
-- **Utilize synonyms**: Both "JavaScript" and "JS" are searchable
-- **Include context**: "Project setup" > "setup"
-
-### 2. Using Filters
-
-- **Type filter**: Search only specific memory types
-- **Tag filter**: Search only memories with related tags
-- **Time filter**: Search only memories from specific periods
-
-### 3. Interpreting Search Results
-
-- **Score**: Higher scores indicate higher relevance
-- **recall_reason**: Explanation of why it was retrieved
-- **Tags**: Classification information of the memory
+See the [Relation Labeling Guide](./relation-labeling-guide.md) for details on relationship types and usage patterns.
 
 ## Troubleshooting
 
-### Common Issues
+### Cannot Connect to the Server
 
-#### 1. Connection Error
+First confirm the server is running. For stdio, test it by running `node packages/memento-server/dist/server/index.js` directly. For HTTP, check `curl http://localhost:9001/health`. The default HTTP port is 9001, configurable via `MCP_SERVER_PORT`.
 
-**Symptoms**: Cannot connect to MCP server
+If the build output is missing, run `npm run build` first. The entry point is `packages/memento-server/dist/server/index.js`.
 
-**Solutions**:
-1. Check if server is running
-2. Verify port is correct (default: 8080)
-3. Check firewall settings
+### No Search Results
 
-#### 2. No Search Results
+Try different keywords or relax your type/tag filters. Verify the memory was actually saved by checking `recall` with a broad query. If the embedding provider was changed between storage and search, semantic similarity scores may differ from expectations.
 
-**Symptoms**: No results when searching
+### Reviewing Logs
 
-**Solutions**:
-1. Try different keywords
-2. Relax filter conditions
-3. Verify memories are actually stored
+During local development, the `npm run dev` terminal shows server output. For database and migration issues, run `npm run db:check-migration`.
 
-#### 3. Memory Shortage
-
-**Symptoms**: Server performance degradation, response delays
-
-**Solutions**:
-1. Clean up old memories
-2. Delete unnecessary memories
-3. Check server resources
-
-### Log Checking
-
-#### M1 (Local)
+For Docker deployments:
 
 ```bash
-# Local dev server: watch the npm run dev terminal for logs
-
-# Migration / DB status
-npm run db:check-migration
-```
-
-#### M2+ (Docker)
-
-```bash
-# Check container logs
 docker-compose logs memento-server
-
-# Check container status
 docker-compose ps
-```
-
-### Performance Optimization
-
-#### 1. Memory Cleanup
-
-Regularly clean up unnecessary memories:
-
-```bash
-# Clean up old working memories
-@memento forget --type "working" --older-than "2 days"
-
-# Clean up duplicate memories
-@memento cleanup --duplicates
-```
-
-#### 2. Index Optimization
-
-```bash
-# Rebuild search indexes
-@memento optimize --indexes
 ```
 
 ## FAQ
 
-### Q: Are memories automatically deleted?
+**Are memories automatically deleted?**
 
-A: Yes, memories are automatically deleted based on type:
-- Working memory: After 48 hours
-- Episodic memory: After 90 days (if not pinned)
-- Semantic/Procedural memory: Not automatically deleted
+It depends on the type. Working memory expires after 48 hours; episodic memory after 90 days. Semantic and procedural memories are never automatically deleted. Pinned memories are exempt from TTL-based deletion regardless of type.
 
-### Q: How to preserve memories permanently?
+**How do I keep a memory permanently?**
 
-A: Use the `pin` command to exclude memories from automatic deletion:
+Pin it with the `pin` MCP tool or `client.pin(memoryId)`. Pinned memories are excluded from automatic expiry.
 
-```
-@memento pin memory-123
-```
+**How do I improve search accuracy?**
 
-### Q: How to improve search result accuracy?
+Use specific, contextual queries and attach meaningful tags when storing memories. Submit `feedback` signals after retrieval to help refine results. For the best semantic search quality, use MiniLM or an API-backed embedding provider rather than TF-IDF.
 
-A: Try these methods:
-1. Use more specific search queries
-2. Add related tags
-3. Provide feedback to improve learning
+**Where is the database stored?**
 
-### Q: How to separate memories from multiple projects?
-
-A: Use tags or project IDs:
-
-```
-@memento remember "Project A related content" --tags "project-a"
-@memento recall "project-a" --tags "project-a"
-```
-
-### Q: Can I share memories with others?
-
-A: Team sharing is available in M2+ version:
-
-```
-@memento remember "Team shared information" --privacy-scope "team"
-```
-
-### Q: How to backup?
-
-A: Use the `export` command to backup:
-
-```bash
-# Full backup
-@memento export --format json > backup.json
-
-# Backup specific period
-@memento export --format json --from "2024-01-01" > backup-2024.json
-```
+The default location is `~/.memento/memory.db`. Override this with the `DB_PATH` environment variable or the `--db-path` flag. Absolute paths are recommended for predictable behavior across different working directories.
 
 ## Additional Resources
 
-- [API Reference Documentation](../../api/en/api-reference.md)
+- [API Reference](../../api/en/api-reference.md)
 - [Developer Guide](developer-guide.md)
-- [npx and runtime issues](../../operations/en/npx-troubleshooting.md) · [Node.js compatibility](../../operations/en/troubleshooting-node-version.md)
+- [Memento CLI for AI Guide](./memento-cli-for-ai.md)
+- [Cursor MCP Setup Guide](./cursor-mcp-setup.md)
+- [npx Troubleshooting](../../operations/en/npx-troubleshooting.md)
+- [Node.js Version Compatibility](../../operations/en/troubleshooting-node-version.md)
 - [GitHub Repository](https://github.com/jee1/memento)
-- [Community Forum](https://github.com/jee1/memento/discussions)

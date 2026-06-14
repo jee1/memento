@@ -1,312 +1,144 @@
-# LLM Provider 설정 가이드
+# LLM 프로바이더 설정 가이드
 
-## 개요
+## LLM이 필요한 이유
 
-Memento 프로젝트의 LLM Provider 초기화는 `LLMClientInitializer` 공통 모듈을 통해 일관된 방식으로 관리됩니다. 이 모듈은 OpenAI, Gemini, Ollama 세 가지 LLM 제공자를 지원하며, 자동 fallback 메커니즘을 제공합니다.
+Memento는 기억을 단순히 저장하고 꺼내는 것 이상을 수행합니다. 새로운 기억을 저장할 때 기존 기억들과의 관계를 추출하고, 장기 보관 가치가 있는 지식을 episodic에서 semantic으로 공고화하며, 절차 기억의 내용을 분석합니다. 이 모든 지능형 처리에 LLM이 사용됩니다.
 
-## 환경 변수 설정
+임베딩 제공자(텍스트를 벡터로 변환)와 LLM 제공자(추론 및 텍스트 생성)는 독립적으로 설정됩니다. 예를 들어 임베딩은 로컬 minilm을 사용하면서 관계 추출에는 Ollama를 쓰는 조합이 가능합니다.
 
-### 기본 설정
+## 기본 설정
 
-`.env` 파일에 다음 환경 변수를 설정할 수 있습니다:
+`LLM_PROVIDER` 환경 변수로 사용할 LLM 제공자를 지정합니다.
 
 ```bash
-# LLM Provider 선택 (선택사항)
-# 옵션: 'openai', 'gemini', 'ollama', 'auto' (기본값: 'auto')
-LLM_PROVIDER=auto
-
-# OpenAI 설정 (선택사항)
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_LLM_MODEL=gpt-4o-mini  # 기본값: gpt-4o-mini
-
-# Gemini 설정 (선택사항)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=text-embedding-004  # 임베딩 전용
-GEMINI_LLM_MODEL=gemini-2.0-flash  # LLM 전용 (기본값: gemini-2.0-flash)
-
-# 용도별 LLM 모델 override (선택, 설정 시 provider LLM default보다 우선)
-# LLM_MODEL_TRIPLE_EXTRACTION=
-# LLM_MODEL_RELATION_EXTRACTION=
-# LLM_MODEL_PROCEDURAL=
-# LLM_MODEL_CONSOLIDATION=
-
-# Ollama 설정 (선택사항)
-OLLAMA_BASE_URL=http://localhost:11434  # 기본값: http://localhost:11434
-OLLAMA_MODEL=llama3  # 기본값: llama3
+LLM_PROVIDER=auto   # 기본값: auto
 ```
 
-### LLM 모델 해석 순서
+유효한 값은 `openai`, `gemini`, `ollama`, `auto`입니다. `auto`는 사용 가능한 제공자를 우선순위에 따라 자동으로 선택합니다.
 
-각 LLM 호출(triple/관계/procedural/consolidation)은 다음 순서로 모델 이름을 선택합니다:
+## 제공자별 설정
 
-1. 용도별 override (`LLM_MODEL_*`, 설정된 경우)
-2. Provider LLM default (`OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`, `OLLAMA_MODEL`)
-3. 코드 fallback (`gpt-4o-mini`, `gemini-2.0-flash`, `llama3`)
+### Ollama (로컬 무료)
 
-**주의**: `GEMINI_MODEL`은 임베딩 전용입니다. LLM 호출에 사용되지 않습니다.
+Ollama는 로컬에서 실행되는 오픈소스 LLM 런타임입니다. API 비용 없이 다양한 모델을 사용할 수 있습니다.
 
-
-LLM Provider 선택은 다음 우선순위에 따라 결정됩니다:
-
-1. **`process.env['LLM_PROVIDER']`** (최우선)
-   - 런타임 환경 변수로 직접 설정된 값
-   - 예: `export LLM_PROVIDER=openai`
-
-2. **`mementoConfig.llmProvider`** (차순위)
-   - `.env` 파일에서 읽은 값
-   - 또는 코드에서 설정된 값
-
-3. **`'auto'`** (최종 기본값)
-   - 위 값들이 모두 없을 경우 자동 선택 모드
-
-## LLMClientInitializer 사용법
-
-**경로 안내**: 아래 TypeScript 예시의 `./src/...` import는 **`packages/memento-core` 디렉터리를 작업 cwd로 둔 경우**를 가정합니다. 저장소 루트에 존재하지 않는 `src/`와 혼동하지 마세요.
-
-### 기본 사용법
-
-```typescript
-import { LLMClientInitializer } from './src/shared/services/llm-client-initializer.js';
-import type { LLMClientInitializationResult } from './src/shared/services/llm-client-initializer.js';
-
-// LLM 클라이언트 초기화
-const initializer = new LLMClientInitializer();
-const result: LLMClientInitializationResult = await initializer.initialize();
-
-// 초기화 결과 확인
-if (result.preferredProvider) {
-  console.log('선택된 Provider:', result.preferredProvider);
-  console.log('초기화된 Providers:', result.initializedProviders);
-  
-  // OpenAI 클라이언트 사용
-  if (result.openaiClient) {
-    // OpenAI 클라이언트 사용 로직
-  }
-  
-  // Gemini 클라이언트 사용
-  if (result.geminiClient) {
-    // Gemini 클라이언트 사용 로직
-  }
-} else {
-  console.error('사용 가능한 LLM Provider가 없습니다.');
-  console.error('경고 메시지:', result.warnings);
-}
+```bash
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434   # 기본값
+OLLAMA_MODEL=llama3                      # 기본값
 ```
 
-### API 키 검증
+Ollama를 사용하려면 먼저 `ollama serve`로 데몬을 실행하고, `ollama pull llama3`으로 모델을 다운로드해야 합니다. Memento는 초기화 시 `OLLAMA_BASE_URL/api/tags`에 GET 요청을 보내 연결을 확인합니다. 연결 확인이 실패하면 경고 로그와 함께 폴백이 수행됩니다.
 
-초기화 전에 API 키 존재 여부를 확인할 수 있습니다:
+### OpenAI
 
-```typescript
-const initializer = new LLMClientInitializer();
-const apiKeys = initializer.validateApiKeys();
-
-console.log('OpenAI API 키 존재:', apiKeys.openai);
-console.log('Gemini API 키 존재:', apiKeys.gemini);
+```bash
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your_api_key_here
+OPENAI_LLM_MODEL=gpt-4o-mini   # 기본값
 ```
 
-### 초기화 결과 구조
+`OPENAI_LLM_MODEL`은 LLM 추론 전용입니다. 임베딩에 사용되는 `OPENAI_MODEL`과 별개입니다.
 
-`LLMClientInitializationResult` 인터페이스:
+### Gemini
 
-```typescript
-interface LLMClientInitializationResult {
-  /** 선택된 provider (null이면 사용 가능한 provider 없음) */
-  preferredProvider: 'openai' | 'gemini' | 'ollama' | null;
-  
-  /** OpenAI 클라이언트 인스턴스 (초기화 실패 시 null) */
-  openaiClient: OpenAI | null;
-  
-  /** Gemini 클라이언트 인스턴스 (초기화 실패 시 null) */
-  geminiClient: GoogleGenerativeAI | null;
-  
-  /** 성공적으로 초기화된 provider 목록 */
-  initializedProviders: ('openai' | 'gemini' | 'ollama')[];
-  
-  /** 초기화 과정에서 발생한 경고 메시지 목록 */
-  warnings: string[];
-}
+```bash
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_api_key_here
+GEMINI_LLM_MODEL=gemini-2.0-flash   # 기본값
 ```
 
-## Provider 선택 및 Fallback 전략
+`GEMINI_LLM_MODEL`은 LLM 추론 전용입니다. 임베딩에 사용되는 `GEMINI_MODEL`과 별개입니다.
 
-### LLM_PROVIDER='openai'
+### auto (자동 선택)
 
-1. **우선 시도**: OpenAI
-   - `OPENAI_API_KEY`가 있으면 OpenAI 클라이언트 초기화
-   - 성공 시 `preferredProvider = 'openai'`
+`LLM_PROVIDER=auto`로 설정하면 다음 순서로 사용 가능한 제공자를 자동 선택합니다.
 
-2. **Fallback**: Gemini
-   - OpenAI 초기화 실패 시 Gemini로 자동 전환
-   - `GEMINI_API_KEY`가 있으면 `preferredProvider = 'gemini'`
-   - 경고 메시지 로깅: "OpenAI를 사용할 수 없어 Gemini로 fallback합니다."
+1. OpenAI — `OPENAI_API_KEY`가 있으면 선택
+2. Gemini — OpenAI를 쓸 수 없고 `GEMINI_API_KEY`가 있으면 선택
+3. Ollama — 클라우드 API가 모두 없으면 로컬 Ollama 연결을 시도
 
-3. **모두 실패**: `preferredProvider = null`
-   - 에러 로그 출력
+## 제공자 선택 우선순위
 
-### LLM_PROVIDER='gemini'
+동일한 환경 변수를 여러 곳에서 설정하는 경우 다음 우선순위로 결정됩니다.
 
-1. **우선 시도**: Gemini
-   - `GEMINI_API_KEY`가 있으면 Gemini 클라이언트 초기화
-   - 성공 시 `preferredProvider = 'gemini'`
+1. 런타임에 `export LLM_PROVIDER=...`로 설정한 환경 변수
+2. `.env` 파일에 설정된 값
+3. 코드 기본값 (`auto`)
 
-2. **Fallback**: OpenAI
-   - Gemini 초기화 실패 시 OpenAI로 자동 전환
-   - `OPENAI_API_KEY`가 있으면 `preferredProvider = 'openai'`
-   - 경고 메시지 로깅: "Gemini를 사용할 수 없어 OpenAI로 fallback합니다."
+## 용도별 모델 오버라이드
 
-3. **모두 실패**: `preferredProvider = null`
-   - 에러 로그 출력
+Memento는 네 가지 LLM 사용 용도가 있으며, 각 용도에 다른 모델을 지정할 수 있습니다. 이는 비용과 품질을 용도에 맞게 조정할 때 유용합니다. 예를 들어 트리플 추출에는 저렴한 소형 모델을, 공고화에는 더 정교한 모델을 쓸 수 있습니다.
 
-### LLM_PROVIDER='ollama'
-
-1. **우선 시도**: Ollama
-   - `OLLAMA_BASE_URL`로 연결 테스트 (GET `/api/tags`, 5초 타임아웃)
-   - HTTP 200 응답 및 JSON 파싱 성공 시 `preferredProvider = 'ollama'`
-
-2. **Fallback**: OpenAI → Gemini
-   - Ollama 연결 실패 시 OpenAI 우선 시도
-   - OpenAI도 실패하면 Gemini 시도
-   - 경고 메시지 로깅
-
-3. **모두 실패**: `preferredProvider = null`
-   - 에러 로그 출력
-
-### LLM_PROVIDER='auto' (기본값)
-
-사용 가능한 첫 번째 provider를 자동 선택:
-
-1. **우선순위 1**: OpenAI
-   - `OPENAI_API_KEY`가 있으면 선택
-
-2. **우선순위 2**: Gemini
-   - OpenAI가 없고 `GEMINI_API_KEY`가 있으면 선택
-
-3. **우선순위 3**: Ollama
-   - OpenAI와 Gemini가 모두 없으면 Ollama 연결 테스트
-   - 성공 시 선택
-
-4. **모두 실패**: `preferredProvider = null`
-
-## Ollama 연결 테스트
-
-Ollama는 로컬 서버이므로 연결 테스트가 필요합니다:
-
-- **테스트 엔드포인트**: `GET {OLLAMA_BASE_URL}/api/tags`
-- **타임아웃**: 5초
-- **성공 조건**: HTTP 200 응답 및 JSON 파싱 성공
-- **실패 조건**:
-  - HTTP 비-200 응답
-  - 타임아웃 (5초)
-  - 네트워크 에러 (`ECONNREFUSED`, `ENOTFOUND` 등)
-
-실패 시 경고 메시지가 로그에 기록되고, fallback이 수행됩니다.
-
-## 서비스별 통합 예시
-
-### TripleExtractionService
-
-```typescript
-import { TripleExtractionService } from './src/domains/relation/services/triple-extraction/triple-extraction-service.js';
-
-// 서비스 생성 시 자동으로 LLMClientInitializer를 사용하여 초기화
-const service = new TripleExtractionService();
-
-// Triple 추출 (자동으로 초기화된 provider 사용)
-const result = await service.extractTriples('관찰 텍스트', {
-  provider: 'auto'  // 또는 'openai', 'gemini', 'ollama'
-});
+```bash
+# 용도별 모델 오버라이드 (선택사항)
+LLM_MODEL_TRIPLE_EXTRACTION=     # 트리플 추출
+LLM_MODEL_RELATION_EXTRACTION=   # 관계 추출
+LLM_MODEL_PROCEDURAL=            # 절차 기억 처리
+LLM_MODEL_CONSOLIDATION=         # episodic → semantic 공고화
 ```
 
-### LLMBasedRelationExtractor
+이 값들은 설정 시 해당 용도에서 제공자 기본 모델(`OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`, `OLLAMA_MODEL`)보다 우선합니다. 설정하지 않으면 제공자 기본 모델이 사용됩니다.
 
-```typescript
-import { LLMBasedRelationExtractor } from './src/domains/relation/services/llm-based-relation-extractor.js';
+모델 선택 순서를 정리하면 다음과 같습니다.
 
-// 서비스 생성 시 자동으로 LLMClientInitializer를 사용하여 초기화
-const extractor = new LLMBasedRelationExtractor();
+1. 해당 용도의 `LLM_MODEL_*` 환경 변수 (설정된 경우)
+2. 제공자의 기본 LLM 모델 (`OPENAI_LLM_MODEL` 등)
+3. 코드 하드코딩 기본값 (gpt-4o-mini, gemini-2.0-flash, llama3)
 
-// 관계 추출 (자동으로 초기화된 provider 사용)
-const relations = await extractor.extractRelations(newMemory, existingMemories);
+## 폴백 동작
+
+각 제공자에 대한 폴백 동작은 다음과 같습니다.
+
+`LLM_PROVIDER=openai`로 설정했는데 OpenAI 초기화가 실패하면, Gemini API 키가 있으면 Gemini로 자동 전환됩니다.
+
+`LLM_PROVIDER=gemini`로 설정했는데 Gemini 초기화가 실패하면, OpenAI API 키가 있으면 OpenAI로 자동 전환됩니다.
+
+`LLM_PROVIDER=ollama`로 설정했는데 Ollama 연결이 실패하면, OpenAI를 먼저 시도하고 그것도 실패하면 Gemini를 시도합니다.
+
+모든 제공자가 실패하면 LLM이 필요한 기능(관계 추출, 공고화 등)은 비활성화되고 경고 로그가 기록됩니다. 기본적인 `remember`와 `recall`은 계속 동작합니다.
+
+## 완성된 설정 예시
+
+### 완전 로컬 (비용 없음)
+
+```bash
+EMBEDDING_PROVIDER=minilm
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
 ```
 
-### TripleExtractor
+### 혼합 (임베딩은 로컬, LLM은 클라우드)
 
-```typescript
-import { TripleExtractor } from './src/domains/relation/services/triple-extraction/triple-extractor.js';
-
-// 서비스 생성 시 자동으로 LLMClientInitializer를 사용하여 초기화
-const extractor = new TripleExtractor();
-
-// Triple 추출 (자동으로 초기화된 provider 사용)
-const result = await extractor.extract('텍스트', {
-  provider: 'auto'  // 또는 'openai', 'gemini', 'ollama'
-});
+```bash
+EMBEDDING_PROVIDER=minilm
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_LLM_MODEL=gpt-4o-mini
 ```
 
-## 로깅
+### 완전 클라우드 (최고 품질)
 
-LLMClientInitializer는 초기화 과정에서 다음 로그를 출력합니다:
-
-- **`logger.info()`**: 초기화 성공 시
-- **`logger.warn()`**: Fallback 발생, API 키 없음 등 경고 상황
-- **`logger.error()`**: 모든 provider 초기화 실패 시
-
-로그 메타데이터 형식:
-
-```typescript
-logger.warn('LLM 초기화 경고', { 
-  warning: 'OPENAI_API_KEY가 없습니다.',
-  requestedProvider: 'openai',
-  fallbackProvider: 'gemini'
-});
+```bash
+EMBEDDING_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=text-embedding-3-small
+LLM_PROVIDER=openai
+OPENAI_LLM_MODEL=gpt-4o-mini
+# 공고화에만 고성능 모델 사용
+LLM_MODEL_CONSOLIDATION=gpt-4o
 ```
 
 ## 문제 해결
 
-### 모든 Provider가 사용 불가능한 경우
+**모든 제공자가 사용 불가능한 경우**: API 키가 설정되어 있는지, Ollama 서버가 실행 중인지 확인하세요. `ollama serve` 명령으로 Ollama를 시작하고, `http://localhost:11434/api/tags`에 접근이 가능한지 브라우저에서 확인해보세요.
 
-**증상**: `preferredProvider`가 `null`로 반환됨
+**Ollama 연결 실패**: `OLLAMA_BASE_URL`이 올바른지, 방화벽이 해당 포트를 차단하지 않는지 확인하세요. Docker 컨테이너 내에서 실행 중이라면 `http://host.docker.internal:11434`와 같이 호스트 주소를 명시해야 할 수 있습니다.
 
-**원인**:
-- API 키가 설정되지 않음
-- Ollama 서버가 실행되지 않음
-- 네트워크 연결 문제
+**폴백이 예상과 다르게 동작**: 런타임 환경 변수가 `.env` 파일보다 우선하므로, `export LLM_PROVIDER=...`로 설정된 값이 있는지 먼저 확인하세요.
 
-**해결 방법**:
-1. `.env` 파일에 API 키 설정 확인
-2. Ollama 서버 실행 확인: `ollama serve`
-3. `result.warnings` 배열에서 상세한 오류 메시지 확인
+## 관련 문서
 
-### Ollama 연결 실패
-
-**증상**: Ollama를 선택했지만 연결 실패
-
-**원인**:
-- Ollama 서버가 실행되지 않음
-- `OLLAMA_BASE_URL`이 잘못 설정됨
-- 방화벽 또는 네트워크 문제
-
-**해결 방법**:
-1. Ollama 서버 실행 확인: `ollama serve`
-2. `OLLAMA_BASE_URL` 환경 변수 확인
-3. 브라우저에서 `http://localhost:11434/api/tags` 접근 테스트
-
-### Fallback이 예상대로 동작하지 않는 경우
-
-**증상**: 설정한 provider가 사용되지 않고 다른 provider가 사용됨
-
-**원인**:
-- 환경 변수 우선순위 문제
-- API 키가 설정되지 않음
-
-**해결 방법**:
-1. `process.env['LLM_PROVIDER']` 확인 (최우선)
-2. `.env` 파일의 `LLM_PROVIDER` 확인
-3. `validateApiKeys()`로 API 키 존재 여부 확인
-
-## 참고 자료
-
-- [LLMClientInitializer 소스 코드](../../../packages/memento-core/src/shared/services/llm-client-initializer.ts)
-- [통합 테스트 예시](../../../packages/memento-core/src/domains/relation/services/__tests__/llm-provider-integration/provider-openai.spec.ts)
-- [임베딩 서비스 설정 가이드](./embedding-configuration.md)
+- [임베딩 설정 가이드](./embedding-configuration.md)
+- [임베딩 서비스 개요](./embedding-service-guide.md)

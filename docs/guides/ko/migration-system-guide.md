@@ -1,87 +1,57 @@
-# 마이그레이션 시스템 사용 가이드
+# 마이그레이션 시스템 가이드
 
-## 개요
+데이터베이스 스키마는 시간이 지나면서 반드시 변경됩니다. 변경 과정이 체계적으로 추적되지 않으면 운영 환경에서 데이터 손실이나 서버 기동 실패로 이어질 수 있습니다. Memento는 이 문제를 해결하기 위해 버전 관리·백업·검증을 모두 지원하는 정식 마이그레이션 시스템을 사용합니다.
 
-Memento 프로젝트는 정식 마이그레이션 시스템을 사용하여 데이터베이스 스키마 변경을 안전하게 관리합니다. 이 문서는 마이그레이션 시스템의 인터페이스와 사용 방법을 설명합니다.
+스키마를 변경한 뒤에는 [database-design.md](../../architecture/ko/database-design.md)의 해당 절(테이블·인덱스·마이그레이션 이력)도 함께 갱신해야 합니다.
 
-스키마를 변경한 뒤에는 **설계 문서**([database-design.md](../../architecture/ko/database-design.md))의 해당 절(테이블·인덱스·마이그레이션 이력)을 함께 갱신한다.
+## 핵심 컴포넌트
 
-## 마이그레이션 시스템 구조
+마이그레이션 시스템은 `packages/memento-core/src/infrastructure/database/database/migration/` 아래에 위치하며 다섯 개의 컴포넌트로 구성됩니다.
 
-### 핵심 컴포넌트
+**MigrationRunner**는 마이그레이션 실행 엔진입니다. 개별 마이그레이션을 트랜잭션 내에서 실행하고, 실패 시 자동 롤백을 시도하며, 실행 결과를 `MigrationResult` 객체로 반환합니다.
 
-- **MigrationRunner**: 마이그레이션 실행 엔진 (`packages/memento-core/src/infrastructure/database/database/migration/migration-runner.ts`)
-- **MigrationDetector**: 마이그레이션 자동 감지 (`packages/memento-core/src/infrastructure/database/database/migration/migration-detector.ts`)
-- **BackupManager**: 백업 생성 및 복원 관리 (`packages/memento-core/src/infrastructure/database/database/migration/backup-manager.ts`)
-- **SchemaVersionManager**: 스키마 버전 관리 (`packages/memento-core/src/infrastructure/database/database/migration/schema-version-manager.ts`)
-- **MigrationLogger**: 마이그레이션 로깅 (`packages/memento-core/src/infrastructure/database/database/migration/migration-logger.ts`)
+**MigrationDetector**는 마이그레이션 파일을 자동으로 감지하고, 이미 적용된 버전과 아직 실행되지 않은 버전을 구분합니다. `detectPendingMigrations(db)` 호출 하나로 현재 스키마 버전과 대기 중인 마이그레이션 목록을 얻을 수 있습니다.
 
-### 마이그레이션 디렉토리 (이중 구조)
+**BackupManager**는 마이그레이션 전 자동 백업을 생성하고 복원을 관리합니다. 프로덕션 환경에서는 항상 백업 옵션을 활성화하는 것이 권장됩니다.
 
-같은 `database/` 아래에 마이그레이션 관련 디렉터리가 두 가지 있습니다.
+**SchemaVersionManager**는 각 마이그레이션의 적용 여부를 DB에 기록하여 현재 스키마 버전을 추적합니다.
 
-| 경로 | 역할 | 사용 여부 |
-|------|------|-----------|
-| `database/migration/migrations/` | **버전드 TS+SQL 마이그레이션**. Migration 인터페이스를 구현한 `.ts`/`.sql` 파일. MigrationRunner가 실행. | **현재 정식 시스템**. 새 마이그레이션은 여기에 추가. |
-| `database/migrations/` | **레거시 SQL**. `001_xxx.sql`, `002_xxx.sql` 등 예전 형식. | 레거시/초기화용. 새로 추가하지 않음. |
+**MigrationLogger**는 마이그레이션 전 과정(시작·완료·실패)을 로그 파일에 기록합니다.
 
-**새 스키마 변경이 필요할 때:** `packages/memento-core/src/infrastructure/database/database/migration/migrations/` 에 `{버전}-{이름}.ts` (및 필요 시 `.sql`) 파일을 추가하고, [마이그레이션 작성 예제](#마이그레이션-작성-예제)를 따릅니다.
+## 마이그레이션 파일 위치
 
-파일 명명 규칙 (정식): `{버전}-{이름}.ts`
+정식 마이그레이션은 다음 경로에 위치합니다.
 
-예:
+```
+packages/memento-core/src/infrastructure/database/database/migration/migrations/
+```
+
+파일 명명 규칙은 `{버전}-{이름}.ts`입니다. 버전은 3자리 숫자 형식을 권장합니다.
+
 - `002-mirix-schema-expansion.ts`
 - `003-consolidation-score-fields.ts`
+- `014-procedural-version-indexes.ts`
+
+같은 `database/` 디렉터리 아래에 `migration/migrations/`(정식)와 `migrations/`(레거시 SQL) 두 경로가 공존하는 구조에 주의하십시오. 새 마이그레이션은 반드시 `migration/migrations/`(정식 시스템)에 추가합니다.
 
 ## Migration 인터페이스
 
-모든 마이그레이션 스크립트는 다음 인터페이스를 구현해야 합니다:
+모든 마이그레이션 파일은 다음 인터페이스를 구현해야 합니다.
 
 ```typescript
 export interface Migration {
-  /**
-   * 마이그레이션 버전 (예: "002")
-   * 숫자 3자리 형식 권장 (예: "001", "002", "003")
-   */
-  version: string;
+  version: string;      // "014" 형식 — 3자리 숫자 권장
+  name: string;         // "procedural-version-indexes" 형식
+  description: string;  // 변경 내용 요약
 
-  /**
-   * 마이그레이션 이름 (예: "mirix-schema-expansion")
-   */
-  name: string;
-
-  /**
-   * 마이그레이션 설명
-   */
-  description: string;
-
-  /**
-   * 마이그레이션 실행 (Up)
-   * @param db 데이터베이스 인스턴스
-   */
-  up(db: Database.Database): Promise<void>;
-
-  /**
-   * 마이그레이션 롤백 (Down)
-   * @param db 데이터베이스 인스턴스
-   */
-  down(db: Database.Database): Promise<void>;
-
-  /**
-   * 마이그레이션 전 검증
-   * @param db 데이터베이스 인스턴스
-   * @throws {Error} 검증 실패 시
-   */
-  validateBefore(db: Database.Database): Promise<void>;
-
-  /**
-   * 마이그레이션 후 검증
-   * @param db 데이터베이스 인스턴스
-   * @throws {Error} 검증 실패 시
-   */
-  validateAfter(db: Database.Database): Promise<void>;
+  up(db: Database.Database): Promise<void>;           // 마이그레이션 실행
+  down(db: Database.Database): Promise<void>;         // 롤백 (가능한 경우)
+  validateBefore(db: Database.Database): Promise<void>; // 실행 전 상태 검증
+  validateAfter(db: Database.Database): Promise<void>;  // 실행 후 상태 검증
 }
 ```
+
+`validateBefore`와 `validateAfter`는 선택이 아닌 권장 사항입니다. 마이그레이션이 이미 적용된 환경에서 재실행되더라도 오류 없이 처리되려면, `validateBefore`에서 중복 적용 여부를 확인하는 것이 좋습니다.
 
 ## 마이그레이션 작성 예제
 
@@ -89,278 +59,107 @@ export interface Migration {
 import type Database from 'better-sqlite3';
 import type { Migration } from '../types.js';
 
-export class MirixSchemaExpansion implements Migration {
-  version = '002';
-  name = 'mirix-schema-expansion';
-  description = 'MIRIX 스키마 확장 마이그레이션';
+export class AddViewCountColumn implements Migration {
+  version = '015';
+  name = 'add-view-count-column';
+  description = 'memory_item 테이블에 view_count 컬럼 추가';
 
   async up(db: Database.Database): Promise<void> {
-    // 마이그레이션 실행 로직
     db.exec(`
-      ALTER TABLE memory_item 
+      ALTER TABLE memory_item
       ADD COLUMN view_count INTEGER DEFAULT 0
     `);
   }
 
   async down(db: Database.Database): Promise<void> {
-    // 롤백 로직 (SQLite는 ALTER TABLE DROP COLUMN을 지원하지 않으므로
-    // 테이블 재생성이 필요할 수 있음)
-    // 주의: 실제 롤백은 복잡할 수 있으므로 신중하게 구현해야 함
+    // SQLite는 ALTER TABLE DROP COLUMN을 지원하지 않으므로
+    // 필요 시 테이블 재생성 방식으로 구현해야 합니다.
+    // 대부분의 경우 BackupManager를 통한 복원이 더 안전합니다.
   }
 
   async validateBefore(db: Database.Database): Promise<void> {
-    // 마이그레이션 전 상태 검증
-    const tableInfo = db.prepare("PRAGMA table_info(memory_item)").all();
-    const hasViewCount = tableInfo.some((col: any) => col.name === 'view_count');
-    
-    if (hasViewCount) {
-      throw new Error('view_count 컬럼이 이미 존재합니다');
+    const cols = db.prepare("PRAGMA table_info(memory_item)").all() as Array<{ name: string }>;
+    if (cols.some(c => c.name === 'view_count')) {
+      throw new Error('view_count 컬럼이 이미 존재합니다 — 마이그레이션 중복 적용 방지');
     }
   }
 
   async validateAfter(db: Database.Database): Promise<void> {
-    // 마이그레이션 후 상태 검증
-    const tableInfo = db.prepare("PRAGMA table_info(memory_item)").all();
-    const hasViewCount = tableInfo.some((col: any) => col.name === 'view_count');
-    
-    if (!hasViewCount) {
+    const cols = db.prepare("PRAGMA table_info(memory_item)").all() as Array<{ name: string }>;
+    if (!cols.some(c => c.name === 'view_count')) {
       throw new Error('view_count 컬럼이 생성되지 않았습니다');
     }
   }
 }
 
-// default export 또는 named export
-export default MirixSchemaExpansion;
+export default AddViewCountColumn;
 ```
 
-## MigrationRunner API
+## 실행 흐름
 
-### 생성자
+`MigrationRunner.runMigration(migration, options)`을 호출하면 다음 순서로 실행됩니다.
 
-```typescript
-const runner = new MigrationRunner(db, logger?);
+1. `BackupManager`가 옵션에 따라 자동 백업을 생성합니다.
+2. `SchemaVersionManager`가 현재 스키마 버전을 확인합니다.
+3. `validateBefore(db)`를 실행하여 사전 조건을 검증합니다.
+4. 트랜잭션 내에서 `up(db)`를 실행합니다.
+5. `validateAfter(db)`를 실행하여 사후 상태를 검증합니다.
+6. 성공하면 스키마 버전 레코드를 기록합니다.
+7. 실패하면 `autoRollback` 옵션에 따라 자동으로 트랜잭션을 롤백합니다.
+8. 모든 단계가 `MigrationLogger`에 기록됩니다.
+
+## CLI 명령어
+
+```bash
+npm run db:migrate           # 대기 중인 마이그레이션 실행
+npm run db:check-migration   # 마이그레이션 상태 확인
+npm run db:init              # DB 스키마 초기화 (최초 1회)
 ```
 
-- `db`: Database.Database 인스턴스
-- `logger`: MigrationLogger 인스턴스 (선택적)
+## 프로그래밍 방식으로 실행
 
-### runMigration 메서드
-
-```typescript
-const result = await runner.runMigration(migration, options?);
-```
-
-**옵션:**
-
-```typescript
-interface MigrationOptions {
-  createBackup?: boolean;  // 백업 생성 여부 (기본값: true)
-  autoRollback?: boolean;  // 실패 시 자동 롤백 여부 (기본값: true)
-  validate?: boolean;      // 검증 수행 여부 (기본값: true)
-}
-```
-
-**반환값:**
-
-```typescript
-interface MigrationResult {
-  version: string;
-  name: string;
-  success: boolean;
-  startTime: Date;
-  endTime?: Date;
-  error?: Error;
-  backupPath?: string;
-}
-```
-
-### 사용 예제
-
-```typescript
-import Database from 'better-sqlite3';
-import { MigrationRunner } from './migration-runner.js';
-import { MirixSchemaExpansion } from './migrations/002-mirix-schema-expansion.js';
-
-const db = new Database('data/memory.db');
-const runner = new MigrationRunner(db);
-
-const migration = new MirixSchemaExpansion();
-
-try {
-  const result = await runner.runMigration(migration, {
-    createBackup: true,
-    autoRollback: true,
-    validate: true
-  });
-
-  if (result.success) {
-    console.log(`✅ 마이그레이션 성공: ${result.name} (v${result.version})`);
-  } else {
-    console.error(`❌ 마이그레이션 실패: ${result.error?.message}`);
-  }
-} catch (error) {
-  console.error('마이그레이션 실행 중 오류:', error);
-} finally {
-  db.close();
-}
-```
-
-## MigrationDetector API
-
-### 생성자
-
-```typescript
-const detector = new MigrationDetector(migrationsDir?);
-```
-
-- `migrationsDir`: 마이그레이션 디렉토리 경로 (기본값: `migrations/`)
-
-### detectAllMigrations 메서드
-
-모든 마이그레이션 파일을 감지합니다.
-
-```typescript
-const migrations = await detector.detectAllMigrations();
-// 반환값: DetectedMigration[]
-```
-
-### detectPendingMigrations 메서드
-
-실행해야 할 마이그레이션을 감지합니다.
-
-```typescript
-const result = await detector.detectPendingMigrations(db);
-// 반환값: MigrationDetectionResult
-```
-
-**반환값 구조:**
-
-```typescript
-interface MigrationDetectionResult {
-  pendingMigrations: DetectedMigration[];  // 실행해야 할 마이그레이션
-  appliedMigrations: DetectedMigration[]; // 이미 실행된 마이그레이션
-  currentVersion: string | null;           // 현재 스키마 버전
-}
-```
-
-### 사용 예제
+자동화 스크립트나 서버 초기화 코드에서 마이그레이션을 실행할 때는 다음 패턴을 사용합니다.
 
 ```typescript
 import Database from 'better-sqlite3';
 import { MigrationDetector } from './migration-detector.js';
 import { MigrationRunner } from './migration-runner.js';
 
-const db = new Database('data/memory.db');
+const db = new Database(process.env.DB_PATH ?? '~/.memento/memory.db');
 const detector = new MigrationDetector();
 const runner = new MigrationRunner(db);
 
-// 실행해야 할 마이그레이션 감지
 const detection = await detector.detectPendingMigrations(db);
 
-console.log(`현재 버전: ${detection.currentVersion || '없음'}`);
-console.log(`실행 대기 중인 마이그레이션: ${detection.pendingMigrations.length}개`);
+if (detection.pendingMigrations.length === 0) {
+  console.log('적용할 마이그레이션 없음');
+} else {
+  for (const detected of detection.pendingMigrations) {
+    const result = await runner.runMigration(detected.migration, {
+      createBackup: true,
+      autoRollback: true,
+      validate: true,
+    });
 
-// 각 마이그레이션 실행
-for (const detected of detection.pendingMigrations) {
-  console.log(`실행 중: ${detected.migration.name} (v${detected.migration.version})`);
-  
-  const result = await runner.runMigration(detected.migration);
-  
-  if (result.success) {
-    console.log(`✅ 완료: ${detected.migration.name}`);
-  } else {
-    console.error(`❌ 실패: ${detected.migration.name}`);
-    break; // 실패 시 중단
+    if (!result.success) {
+      console.error(`마이그레이션 실패: ${result.name}`, result.error);
+      break;
+    }
   }
 }
 
 db.close();
 ```
 
-## 마이그레이션 실행 흐름
+## 마이그레이션 작성 시 주의사항
 
-1. **마이그레이션 감지**: `MigrationDetector`가 미실행 마이그레이션 감지
-2. **백업 생성**: `BackupManager`가 자동 백업 생성 (옵션)
-3. **스키마 버전 확인**: `SchemaVersionManager`가 현재 스키마 버전 확인
-4. **마이그레이션 전 검증**: `validateBefore` 실행
-5. **마이그레이션 실행**: 트랜잭션 내에서 `up` 실행
-6. **마이그레이션 후 검증**: `validateAfter` 실행
-7. **스키마 버전 업데이트**: 성공 시 스키마 버전 기록
-8. **롤백 (실패 시)**: 자동 롤백 또는 수동 복구 가이드 제공
-9. **로깅**: 모든 단계를 로그 파일에 기록
+SQLite는 `ALTER TABLE DROP COLUMN`을 포함한 일부 DDL 변경을 지원하지 않습니다. 컬럼 삭제나 타입 변경이 필요한 경우 새 테이블을 만들고 데이터를 복사한 뒤 기존 테이블을 교체하는 방식으로 구현해야 합니다. 이런 이유로 마이그레이션을 한 번 적용한 뒤에는 수정하지 말고, 수정이 필요하다면 새 버전을 추가합니다.
 
-## 마이그레이션 실행 방법
+마이그레이션 작성 체크리스트:
 
-### CLI 명령어
-
-```bash
-# 마이그레이션 실행
-npm run db:migrate
-
-# 마이그레이션 상태 확인
-npm run db:check-migration
-```
-
-### 프로그래밍 방식
-
-```typescript
-import { initializeDatabase } from './init.js';
-import { MigrationDetector } from './migration-detector.js';
-import { MigrationRunner } from './migration-runner.js';
-
-const db = await initializeDatabase();
-const detector = new MigrationDetector();
-const runner = new MigrationRunner(db);
-
-const detection = await detector.detectPendingMigrations(db);
-
-for (const detected of detection.pendingMigrations) {
-  await runner.runMigration(detected.migration);
-}
-```
-
-## 주의사항
-
-1. **트랜잭션**: 마이그레이션은 자동으로 트랜잭션 내에서 실행됩니다.
-2. **백업**: 프로덕션 환경에서는 항상 백업을 생성하는 것을 권장합니다.
-3. **롤백**: SQLite는 일부 DDL 작업(예: DROP COLUMN)을 지원하지 않으므로, `down` 메서드 구현 시 주의가 필요합니다.
-4. **검증**: `validateBefore`와 `validateAfter`를 통해 마이그레이션 전후 상태를 검증하는 것을 강력히 권장합니다.
-5. **버전 관리**: 마이그레이션 버전은 순차적으로 증가해야 하며, 이미 실행된 버전은 수정하지 않아야 합니다.
-
-## 레거시 스크립트와의 차이점
-
-### 레거시 스크립트 (simple-migrate.js, simple-update.js)
-
-- 직접 SQL 실행
-- 백업 수동 관리
-- 버전 관리 없음
-- 검증 로직 없음
-- 롤백 지원 없음
-
-### 정식 마이그레이션 시스템
-
-- 구조화된 인터페이스
-- 자동 백업 생성
-- 스키마 버전 관리
-- 전후 검증 지원
-- 자동 롤백 지원
-- 로깅 및 추적
-
-## 마이그레이션 작성 체크리스트
-
-- [ ] `Migration` 인터페이스 구현
-- [ ] 버전 번호 설정 (3자리 숫자 형식)
-- [ ] `up` 메서드 구현
-- [ ] `down` 메서드 구현 (가능한 경우)
-- [ ] `validateBefore` 메서드 구현
-- [ ] `validateAfter` 메서드 구현
-- [ ] 파일명 규칙 준수 (`{버전}-{이름}.ts`)
-- [ ] default export 또는 named export 제공
-- [ ] 테스트 작성 (선택적)
-
-## 참고 자료
-
-- [마이그레이션 시스템 README](../../../packages/memento-core/src/infrastructure/database/database/migration/README.md)
-- [MigrationRunner 소스 코드](../../../packages/memento-core/src/infrastructure/database/database/migration/migration-runner.ts)
-- [Migration 타입 정의](../../../packages/memento-core/src/infrastructure/database/database/migration/types.ts)
-
+- `Migration` 인터페이스 구현 (version, name, description, up, down, validateBefore, validateAfter)
+- 버전 번호가 기존 마이그레이션과 충돌하지 않는지 확인
+- `validateBefore`에서 중복 적용 방지 로직 구현
+- `validateAfter`에서 변경이 실제로 적용되었는지 검증
+- 파일명이 `{버전}-{이름}.ts` 규칙을 따르는지 확인
+- `default export` 또는 named export로 클래스 노출

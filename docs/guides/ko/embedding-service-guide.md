@@ -1,320 +1,82 @@
-# 임베딩 서비스 사용 가이드
+# 임베딩 서비스 가이드
 
-## 개요
+## 임베딩이란 무엇이며 왜 필요한가
 
-Memento 프로젝트의 임베딩 서비스는 4가지 제공자를 지원하는 통합 시스템입니다:
-- **OpenAI** (1순위): 최고 성능, 1536차원, 유료, 클라우드 API
-- **Gemini** (2순위): 고성능, 768차원, 유료, 클라우드 API
-- **MiniLM** (3순위): 균형잡힌 성능, 384차원, 무료, 로컬 처리
-- **TF-IDF** (4순위): 빠른 속도, 512차원, 무료, 로컬 처리
+Memento는 저장된 기억들을 단순 키워드 매칭이 아닌 의미적 유사도로 검색합니다. 이를 가능하게 하는 핵심 기술이 임베딩입니다. 텍스트를 고차원 숫자 벡터로 변환하면, "React 컴포넌트 생명주기"와 "useEffect 정리 함수"처럼 단어는 다르지만 의미가 가까운 기억들을 연결할 수 있습니다.
 
-### 제공자 선택 및 적용 순서
+Memento의 임베딩 시스템은 `UnifiedEmbeddingService`라는 단일 인터페이스 뒤에 여러 제공자를 추상화합니다. 사용자는 환경 변수 하나로 제공자를 교체할 수 있고, 제공자가 실패하면 자동으로 대안으로 전환됩니다.
 
-1. **명시적 요청**: API 호출 시 특정 제공자를 지정하면 해당 제공자를 우선 사용
-2. **설정 기본값**: `.env`의 `EMBEDDING_PROVIDER` 설정값 사용
-3. **우선순위 자동 선택**: 사용 가능한 제공자를 위 순서대로 자동 선택
-4. **폴백 메커니즘**: 상위 제공자 실패 시 자동으로 다음 우선순위 제공자로 전환
+## 제공자 비교
 
-## 빠른 시작
-**경로 안내**: 아래 TypeScript `import` 예시는 작업 디렉터리를 `packages/memento-core`로 두었다고 가정한 상대 경로입니다.
+Memento는 네 가지 임베딩 제공자를 지원합니다.
 
+**tfidf / lightweight**: TF-IDF 기반의 통계적 임베딩입니다. 평균 0.82ms 수준의 극도로 빠른 속도와 낮은 메모리 사용량(약 4.48MB)이 특징이며, 완전 무료입니다. 512차원 벡터를 생성합니다. 대량 텍스트를 빠르게 처리해야 하거나 리소스가 제한된 환경에 적합합니다. 의미적 이해보다는 어휘 빈도에 의존하므로 검색 정확도는 다른 제공자보다 낮습니다.
 
-### 1. 기본 사용법
+**minilm**: 로컬에서 실행되는 경량 신경망 모델입니다. 평균 56ms 내외의 처리 속도로 의미를 실질적으로 이해하며, 완전 무료입니다. 384차원 벡터를 생성합니다. 기본 제공자이며, 대부분의 AI 에이전트 워크플로우에 적합한 성능과 비용의 균형점을 제공합니다.
 
-```typescript
-import { UnifiedEmbeddingService } from './src/domains/embedding/services/unified-embedding-service.js';
+**openai**: OpenAI의 클라우드 API(`text-embedding-3-small` 등)를 사용합니다. 최고 수준의 의미 이해 능력을 제공하며, 1536차원 벡터를 생성합니다. 유료이며 `OPENAI_API_KEY`가 필요합니다. 복잡한 의미 분석이나 높은 검색 정확도가 요구되는 환경에 적합합니다.
 
-const embeddingService = new UnifiedEmbeddingService();
+**gemini**: Google의 클라우드 API(`text-embedding-004` 등)를 사용합니다. 768차원 벡터를 생성하며, 다국어 텍스트 처리에 강점이 있습니다. 유료이며 `GEMINI_API_KEY`가 필요합니다.
 
-// 텍스트 임베딩 생성
-const result = await embeddingService.generateEmbedding('안녕하세요, Memento입니다!');
-console.log('임베딩 차원:', result.embedding.length);
-console.log('사용된 모델:', result.model);
+## 제공자 선택 방법
 
-// 유사도 검색
-const memories = [
-  { id: '1', content: 'React Hook 사용법', embedding: [0.1, 0.2, ...] },
-  { id: '2', content: 'TypeScript 타입 정의', embedding: [0.3, 0.4, ...] }
-];
-
-const similar = await embeddingService.searchSimilar('React 관련 질문', memories, 5, 0.7);
-console.log('유사한 메모리:', similar);
-```
-
-### 2. 환경 설정
-
-`.env` 파일에 설정:
+임베딩 제공자는 `EMBEDDING_PROVIDER` 환경 변수로 지정합니다.
 
 ```bash
-# 기본 임베딩 제공자 선택
-EMBEDDING_PROVIDER=minilm  # 옵션: tfidf, minilm, openai, gemini
-
-# OpenAI 설정 (선택사항)
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=text-embedding-3-small
-
-# Gemini 설정 (선택사항)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=text-embedding-004
-
-# 임베딩 차원 (자동 설정됨)
-EMBEDDING_DIMENSIONS=384  # MiniLM 기본값
+# .env 파일
+EMBEDDING_PROVIDER=minilm   # 기본값
+# EMBEDDING_PROVIDER=tfidf
+# EMBEDDING_PROVIDER=openai
+# EMBEDDING_PROVIDER=gemini
 ```
 
-## 제공자별 상세 가이드
+설정 우선순위는 다음과 같습니다.
 
-### TF-IDF 제공자
+1. 환경 변수 `EMBEDDING_PROVIDER`에 명시된 값을 우선 사용합니다.
+2. 설정이 없으면 `minilm`이 기본값으로 사용됩니다.
+3. 지정된 제공자가 초기화에 실패하면(예: API 키 누락, 네트워크 오류) 시스템은 자동으로 다음 우선순위 제공자로 폴백합니다. 유료 제공자가 실패하면 무료 제공자(minilm 또는 tfidf)가 최종 대안이 됩니다.
 
-**특징**:
-- ⚡ 극도로 빠른 속도 (0.82ms 평균)
-- 💾 낮은 메모리 사용량 (4.48MB)
-- 🆓 완전 무료
-- 📊 512차원 벡터
-
-**사용 시나리오**:
-- 대량 텍스트 처리
-- 실시간 검색
-- 리소스 제약 환경
-
-```typescript
-import { LightweightEmbeddingService } from './src/domains/embedding/services/lightweight-embedding-service.js';
-
-const tfidfService = new LightweightEmbeddingService();
-const result = await tfidfService.generateEmbedding('빠른 처리가 필요한 텍스트');
-```
-
-### MiniLM 제공자
-
-**특징**:
-- 🎯 균형잡힌 성능 (56.50ms 평균)
-- 🧠 의미 이해 능력
-- 🆓 완전 무료
-- 📊 384차원 벡터
-
-**사용 시나리오**:
-- 일반적인 AI Agent 용도
-- 의미 기반 검색
-- 성능과 정확성의 균형
-
-```typescript
-import { MiniLMEmbeddingService } from './src/domains/embedding/services/minilm-embedding-service.js';
-
-const minilmService = new MiniLMEmbeddingService();
-const result = await minilmService.generateEmbedding('의미를 이해해야 하는 텍스트');
-```
-
-### OpenAI 제공자
-
-**특징**:
-- 🏆 최고 성능
-- 🧠 뛰어난 의미 이해
-- 💰 유료 (API 비용)
-- 📊 1536차원 벡터
-
-**사용 시나리오**:
-- 고품질 임베딩 필요
-- 복잡한 의미 분석
-- 비용을 감수할 수 있는 경우
-
-```typescript
-// 환경 변수에 OPENAI_API_KEY 설정 필요
-const result = await embeddingService.generateEmbedding('고품질 임베딩이 필요한 텍스트');
-```
-
-### Gemini 제공자
-
-**특징**:
-- 🚀 고성능
-- 🌍 다국어 지원
-- 💰 유료 (API 비용)
-- 📊 768차원 벡터
-
-**사용 시나리오**:
-- 다국어 텍스트 처리
-- Google 생태계 활용
-- 고성능이 필요한 경우
-
-```typescript
-// 환경 변수에 GEMINI_API_KEY 설정 필요
-const result = await embeddingService.generateEmbedding('다국어 텍스트');
-```
-
-## 고급 사용법
-
-### 1. 제공자 직접 선택
-
-```typescript
-// 특정 제공자 강제 사용
-const result = await embeddingService.generateEmbedding(
-  '텍스트', 
-  'minilm'  // 제공자 명시
-);
-```
-
-### 2. 폴백 메커니즘
-
-```typescript
-// 폴백 제공자 설정
-embeddingService.setFallbackProviders(['minilm', 'tfidf']);
-
-// 기본 제공자 실패 시 자동으로 폴백 제공자 시도
-const result = await embeddingService.generateEmbedding('텍스트');
-```
-
-### 3. 서비스 상태 확인
-
-```typescript
-// 사용 가능 여부 확인
-if (embeddingService.isAvailable()) {
-  const result = await embeddingService.generateEmbedding('텍스트');
-}
-
-// 현재 사용 중인 제공자 확인
-const currentProvider = embeddingService.getCurrentProviderName();
-console.log('현재 제공자:', currentProvider);
-
-// 모델 정보 확인
-const modelInfo = embeddingService.getModelInfo();
-console.log('모델 정보:', modelInfo);
-```
-
-## 성능 최적화
-
-### 1. 배치 처리
-
-```typescript
-// 여러 텍스트를 동시에 처리
-const texts = ['텍스트1', '텍스트2', '텍스트3'];
-const results = await Promise.all(
-  texts.map(text => embeddingService.generateEmbedding(text))
-);
-```
-
-### 2. 캐싱 활용
-
-```typescript
-// MiniLM 서비스는 자동으로 캐싱됨
-const result1 = await minilmService.generateEmbedding('같은 텍스트'); // 모델 로딩
-const result2 = await minilmService.generateEmbedding('같은 텍스트'); // 캐시에서 반환
-```
-
-### 3. 메모리 관리
-
-```typescript
-// 대량 처리 시 메모리 정리
-for (const text of largeTextArray) {
-  const result = await embeddingService.generateEmbedding(text);
-  // 결과 처리
-  // 가비지 컬렉션을 위해 참조 해제
-}
-```
-
-## 에러 처리
-
-### 1. 기본 에러 처리
-
-```typescript
-try {
-  const result = await embeddingService.generateEmbedding('텍스트');
-} catch (error) {
-  if (error.message.includes('텍스트가 비어있습니다')) {
-    console.error('입력 텍스트를 확인해주세요');
-  } else if (error.message.includes('사용 가능한 제공자가 없습니다')) {
-    console.error('모든 임베딩 제공자가 사용 불가능합니다');
-  } else {
-    console.error('임베딩 생성 실패:', error.message);
-  }
-}
-```
-
-### 2. 제공자별 에러 처리
-
-```typescript
-try {
-  const result = await embeddingService.generateEmbedding('텍스트');
-} catch (error) {
-  // OpenAI API 에러
-  if (error.status === 429) {
-    console.error('API 할당량 초과');
-  } else if (error.status === 401) {
-    console.error('API 키가 유효하지 않습니다');
-  }
-  
-  // Gemini API 에러
-  if (error.message.includes('quota')) {
-    console.error('Gemini API 할당량 초과');
-  }
-}
-```
-
-## 테스트
-
-### 1. 단위 테스트
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { UnifiedEmbeddingService } from './src/domains/embedding/services/unified-embedding-service.js';
-
-describe('임베딩 서비스 테스트', () => {
-  it('텍스트 임베딩 생성', async () => {
-    const service = new UnifiedEmbeddingService();
-    const result = await service.generateEmbedding('테스트 텍스트');
-    
-    expect(result).toBeDefined();
-    expect(result.embedding).toBeInstanceOf(Array);
-    expect(result.embedding.length).toBeGreaterThan(0);
-  });
-});
-```
-
-### 2. 성능 벤치마크
+## 환경 변수 요약
 
 ```bash
-# 벤치마크 실행
-npm run test:embedding-benchmark
+# 임베딩 제공자 선택
+EMBEDDING_PROVIDER=minilm        # tfidf | lightweight | minilm | openai | gemini
+
+# OpenAI 임베딩 설정 (EMBEDDING_PROVIDER=openai 사용 시 필요)
+OPENAI_API_KEY=your_api_key
+OPENAI_MODEL=text-embedding-3-small   # 임베딩 모델 (LLM 모델과 별도)
+
+# Gemini 임베딩 설정 (EMBEDDING_PROVIDER=gemini 사용 시 필요)
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=text-embedding-004       # 임베딩 모델 (LLM 모델과 별도)
+
+# 임베딩 차원 오버라이드 (일반적으로 불필요)
+EMBEDDING_DIMENSIONS=384              # 미설정 시 제공자 기본값 사용
 ```
+
+`OPENAI_MODEL`과 `GEMINI_MODEL`은 임베딩 전용입니다. LLM 추론(관계 추출, 공고화 등)에 사용되는 모델은 별도로 `OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`로 설정합니다.
+
+## 폴백 동작
+
+상위 제공자가 실패하면 Memento는 자동으로 대안 제공자로 전환하고 경고 로그를 기록합니다. 예를 들어 `EMBEDDING_PROVIDER=openai`로 설정했는데 `OPENAI_API_KEY`가 없거나 API 호출이 실패하면, 시스템은 minilm 또는 tfidf로 자동 전환됩니다.
+
+이 폴백 동작 덕분에 API 서비스 장애나 키 만료 상황에서도 Memento는 검색 기능을 유지합니다.
+
+## 차원 일관성
+
+임베딩 차원은 데이터베이스와 일관성을 유지해야 합니다. 기존 데이터가 384차원(minilm)으로 저장된 상태에서 1536차원(openai)으로 제공자를 바꾸면 벡터 유사도 검색이 올바르게 동작하지 않습니다. 제공자를 변경할 경우 기존 임베딩을 재생성하거나 새로운 DB로 시작하는 것을 권장합니다.
+
+`EMBEDDING_DIMENSIONS`를 명시적으로 설정하지 않으면 제공자의 기본 차원이 자동으로 사용됩니다.
 
 ## 문제 해결
 
-### 1. 일반적인 문제
+**MiniLM 첫 실행이 느립니다.** 첫 번째 호출 시 로컬에서 모델을 로드하기 때문입니다. 이후 호출은 메모리에 캐시된 모델을 사용하므로 빠릅니다.
 
-**Q: MiniLM 모델 로딩이 느려요**
-A: 첫 번째 호출 시에만 모델을 로딩합니다. 이후 호출은 캐시에서 빠르게 처리됩니다.
+**OpenAI/Gemini API 오류가 발생합니다.** API 키가 올바르게 설정되어 있는지, 할당량이 남아 있는지 확인하세요. HTTP 429는 할당량 초과, 401은 키 오류입니다. 오류 발생 시 폴백 제공자로 자동 전환됩니다.
 
-**Q: OpenAI API 에러가 발생해요**
-A: API 키가 올바른지, 할당량이 남아있는지 확인해주세요.
+**벡터 차원 불일치 오류가 발생합니다.** 제공자를 교체했을 때 발생할 수 있습니다. DB를 초기화하거나 `EMBEDDING_DIMENSIONS`를 현재 제공자의 기본값에 맞게 설정하세요.
 
-**Q: 벡터 차원이 맞지 않아요**
-A: 각 제공자는 다른 차원을 사용합니다. 통합 서비스를 사용하면 자동으로 처리됩니다.
+## 관련 문서
 
-### 2. 성능 문제
-
-**Q: 임베딩 생성이 너무 느려요**
-A: TF-IDF 제공자를 사용하거나, 배치 처리를 고려해보세요.
-
-**Q: 메모리 사용량이 많아요**
-A: MiniLM 모델이 메모리를 많이 사용합니다. TF-IDF를 사용하거나 서버 리소스를 늘려보세요.
-
-## 마이그레이션 가이드
-
-### 기존 코드에서 통합 서비스로 마이그레이션
-
-```typescript
-// 기존 코드
-import { EmbeddingService } from './src/domains/embedding/services/embedding-service.js';
-const oldService = new EmbeddingService();
-
-// 새로운 코드
-import { UnifiedEmbeddingService } from './src/domains/embedding/services/unified-embedding-service.js';
-const newService = new UnifiedEmbeddingService();
-
-// API는 동일하므로 코드 변경 최소화
-const result = await newService.generateEmbedding('텍스트');
-```
-
-## 추가 리소스
-
-- [성능 벤치마크 결과](../../reference/ko/embedding-performance-benchmark.md)
-- [API 레퍼런스](../../api/ko/embedding-api-reference.md)
-- [설정 가이드](./embedding-configuration.md)
-- 실행·패키지 문제: [npx 트러블슈팅](../../operations/ko/npx-troubleshooting.md)
+- [임베딩 설정 상세 가이드](./embedding-configuration.md)
+- [LLM 프로바이더 설정 가이드](./llm-provider-configuration.md)

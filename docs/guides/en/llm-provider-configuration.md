@@ -1,303 +1,140 @@
 # LLM Provider Configuration Guide
 
-## Overview
+## Why Memento Needs an LLM
 
-Memento project's LLM Provider initialization is managed consistently through the `LLMClientInitializer` common module. This module supports three LLM providers (OpenAI, Gemini, Ollama) and provides automatic fallback mechanisms.
+Memento does more than store and retrieve memories. When a new memory is saved, the system extracts semantic relationships with existing memories. Over time, episodic memories are consolidated into semantic knowledge. Procedural memories are analyzed when versions change. All of this intelligent processing relies on an LLM.
 
-## Environment Variables
+The LLM provider (used for reasoning and text generation) is configured independently from the embedding provider (used to convert text into vectors). You can, for example, use local minilm for embeddings while relying on Ollama for relation extraction and consolidation.
 
-### Basic Configuration
+## Basic Configuration
 
-You can set the following environment variables in your `.env` file:
+Set the `LLM_PROVIDER` environment variable to choose your LLM provider.
 
 ```bash
-# LLM Provider selection (optional)
-# Options: 'openai', 'gemini', 'ollama', 'auto' (default: 'auto')
-LLM_PROVIDER=auto
-
-# OpenAI configuration (optional)
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_LLM_MODEL=gpt-4o-mini  # Default: gpt-4o-mini
-
-# Gemini configuration (optional)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=text-embedding-004  # Embedding only
-GEMINI_LLM_MODEL=gemini-2.0-flash  # LLM only (default: gemini-2.0-flash)
-
-# Per use-case LLM model overrides (optional; take precedence over provider LLM defaults)
-# LLM_MODEL_TRIPLE_EXTRACTION=
-# LLM_MODEL_RELATION_EXTRACTION=
-# LLM_MODEL_PROCEDURAL=
-# LLM_MODEL_CONSOLIDATION=
-
-# Ollama configuration (optional)
-OLLAMA_BASE_URL=http://localhost:11434  # Default: http://localhost:11434
-OLLAMA_MODEL=llama3  # Default: llama3
+LLM_PROVIDER=auto   # default
 ```
 
-### Environment Variable Priority
+Valid values are `openai`, `gemini`, `ollama`, and `auto`. When set to `auto`, Memento automatically selects the first available provider based on a priority order.
 
-LLM Provider selection follows this priority order:
+## Provider-Specific Settings
 
-1. **`process.env['LLM_PROVIDER']`** (Highest priority)
-   - Directly set runtime environment variable
-   - Example: `export LLM_PROVIDER=openai`
+### Ollama (local, free)
 
-2. **`mementoConfig.llmProvider`** (Second priority)
-   - Value read from `.env` file
-   - Or value set in code
+Ollama is an open-source LLM runtime that runs locally without API costs.
 
-3. **`'auto'`** (Final default)
-   - Auto-selection mode when above values are not set
-
-## LLMClientInitializer Usage
-
-**Path note**: In the TypeScript snippets below, `./src/...` imports assume your **current working directory is `packages/memento-core`**. Do not confuse this with a repository-root `src/` folder (the monorepo does not use one).
-
-### Basic Usage
-
-```typescript
-import { LLMClientInitializer } from './src/shared/services/llm-client-initializer.js';
-import type { LLMClientInitializationResult } from './src/shared/services/llm-client-initializer.js';
-
-// Initialize LLM clients
-const initializer = new LLMClientInitializer();
-const result: LLMClientInitializationResult = await initializer.initialize();
-
-// Check initialization result
-if (result.preferredProvider) {
-  console.log('Selected Provider:', result.preferredProvider);
-  console.log('Initialized Providers:', result.initializedProviders);
-  
-  // Use OpenAI client
-  if (result.openaiClient) {
-    // OpenAI client usage logic
-  }
-  
-  // Use Gemini client
-  if (result.geminiClient) {
-    // Gemini client usage logic
-  }
-} else {
-  console.error('No available LLM Provider.');
-  console.error('Warnings:', result.warnings);
-}
+```bash
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434   # default
+OLLAMA_MODEL=llama3                      # default
 ```
 
-### API Key Validation
+Before using Ollama, start the daemon with `ollama serve` and download a model with `ollama pull llama3`. Memento verifies the connection at startup by sending a GET request to `OLLAMA_BASE_URL/api/tags`. If the connection check fails, a warning is logged and fallback is triggered.
 
-You can check API key existence before initialization:
+### OpenAI
 
-```typescript
-const initializer = new LLMClientInitializer();
-const apiKeys = initializer.validateApiKeys();
-
-console.log('OpenAI API key exists:', apiKeys.openai);
-console.log('Gemini API key exists:', apiKeys.gemini);
+```bash
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your_api_key_here
+OPENAI_LLM_MODEL=gpt-4o-mini   # default
 ```
 
-### Initialization Result Structure
+`OPENAI_LLM_MODEL` is for LLM inference only and is separate from `OPENAI_MODEL`, which controls the embedding model.
 
-`LLMClientInitializationResult` interface:
+### Gemini
 
-```typescript
-interface LLMClientInitializationResult {
-  /** Selected provider (null if no provider is available) */
-  preferredProvider: 'openai' | 'gemini' | 'ollama' | null;
-  
-  /** OpenAI client instance (null if initialization failed) */
-  openaiClient: OpenAI | null;
-  
-  /** Gemini client instance (null if initialization failed) */
-  geminiClient: GoogleGenerativeAI | null;
-  
-  /** List of successfully initialized providers */
-  initializedProviders: ('openai' | 'gemini' | 'ollama')[];
-  
-  /** List of warning messages during initialization */
-  warnings: string[];
-}
+```bash
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_api_key_here
+GEMINI_LLM_MODEL=gemini-2.0-flash   # default
 ```
 
-## Provider Selection and Fallback Strategy
+`GEMINI_LLM_MODEL` is for LLM inference only and is separate from `GEMINI_MODEL`, which controls the embedding model.
 
-### LLM_PROVIDER='openai'
+### auto (automatic selection)
 
-1. **Primary attempt**: OpenAI
-   - Initialize OpenAI client if `OPENAI_API_KEY` exists
-   - On success: `preferredProvider = 'openai'`
+With `LLM_PROVIDER=auto`, Memento selects the first available provider in this priority order:
 
-2. **Fallback**: Gemini
-   - Auto-switch to Gemini if OpenAI initialization fails
-   - If `GEMINI_API_KEY` exists: `preferredProvider = 'gemini'`
-   - Warning logged: "OpenAI를 사용할 수 없어 Gemini로 fallback합니다."
+1. OpenAI — selected if `OPENAI_API_KEY` is present
+2. Gemini — selected if OpenAI is unavailable and `GEMINI_API_KEY` is present
+3. Ollama — tested for connectivity if neither cloud provider is available
 
-3. **Both fail**: `preferredProvider = null`
-   - Error log output
+## Environment Variable Priority
 
-### LLM_PROVIDER='gemini'
+When the same variable is set in multiple places, the following priority applies:
 
-1. **Primary attempt**: Gemini
-   - Initialize Gemini client if `GEMINI_API_KEY` exists
-   - On success: `preferredProvider = 'gemini'`
+1. Runtime environment variable (set via `export LLM_PROVIDER=...`)
+2. Value in the `.env` file
+3. Code default (`auto`)
 
-2. **Fallback**: OpenAI
-   - Auto-switch to OpenAI if Gemini initialization fails
-   - If `OPENAI_API_KEY` exists: `preferredProvider = 'openai'`
-   - Warning logged: "Gemini를 사용할 수 없어 OpenAI로 fallback합니다."
+## Per-Use-Case Model Overrides
 
-3. **Both fail**: `preferredProvider = null`
-   - Error log output
+Memento uses LLMs in four distinct contexts: triple extraction, relation extraction, procedural memory processing, and episodic-to-semantic consolidation. You can assign a different model to each context, which allows you to balance cost and quality — for example, using an inexpensive small model for extraction while reserving a more capable model for consolidation.
 
-### LLM_PROVIDER='ollama'
-
-1. **Primary attempt**: Ollama
-   - Connection test to `OLLAMA_BASE_URL` (GET `/api/tags`, 5 second timeout)
-   - On HTTP 200 response and JSON parsing success: `preferredProvider = 'ollama'`
-
-2. **Fallback**: OpenAI → Gemini
-   - Try OpenAI first if Ollama connection fails
-   - Try Gemini if OpenAI also fails
-   - Warning messages logged
-
-3. **All fail**: `preferredProvider = null`
-   - Error log output
-
-### LLM_PROVIDER='auto' (Default)
-
-Automatically select the first available provider:
-
-1. **Priority 1**: OpenAI
-   - Selected if `OPENAI_API_KEY` exists
-
-2. **Priority 2**: Gemini
-   - Selected if OpenAI is unavailable and `GEMINI_API_KEY` exists
-
-3. **Priority 3**: Ollama
-   - Ollama connection test if both OpenAI and Gemini are unavailable
-   - Selected on success
-
-4. **All fail**: `preferredProvider = null`
-
-## Ollama Connection Test
-
-Ollama requires connection testing as it's a local server:
-
-- **Test endpoint**: `GET {OLLAMA_BASE_URL}/api/tags`
-- **Timeout**: 5 seconds
-- **Success condition**: HTTP 200 response and JSON parsing success
-- **Failure conditions**:
-  - HTTP non-200 response
-  - Timeout (5 seconds)
-  - Network errors (`ECONNREFUSED`, `ENOTFOUND`, etc.)
-
-On failure, warning messages are logged and fallback is performed.
-
-## Service Integration Examples
-
-### TripleExtractionService
-
-```typescript
-import { TripleExtractionService } from './src/domains/relation/services/triple-extraction/triple-extraction-service.js';
-
-// Service automatically uses LLMClientInitializer on creation
-const service = new TripleExtractionService();
-
-// Extract triples (uses automatically initialized provider)
-const result = await service.extractTriples('observation text', {
-  provider: 'auto'  // or 'openai', 'gemini', 'ollama'
-});
+```bash
+# Per-use-case model overrides (all optional)
+LLM_MODEL_TRIPLE_EXTRACTION=     # triples extraction
+LLM_MODEL_RELATION_EXTRACTION=   # relation extraction between memories
+LLM_MODEL_PROCEDURAL=            # procedural memory processing
+LLM_MODEL_CONSOLIDATION=         # episodic → semantic consolidation
 ```
 
-### LLMBasedRelationExtractor
+When set, these values take precedence over the provider's default model (`OPENAI_LLM_MODEL`, `GEMINI_LLM_MODEL`, or `OLLAMA_MODEL`). The resolution order for any given LLM call is:
 
-```typescript
-import { LLMBasedRelationExtractor } from './src/domains/relation/services/llm-based-relation-extractor.js';
+1. The corresponding `LLM_MODEL_*` variable (if set)
+2. The provider's default model variable (`OPENAI_LLM_MODEL`, etc.)
+3. The code's hardcoded fallback (gpt-4o-mini, gemini-2.0-flash, llama3)
 
-// Service automatically uses LLMClientInitializer on creation
-const extractor = new LLMBasedRelationExtractor();
+## Fallback Behavior
 
-// Extract relations (uses automatically initialized provider)
-const relations = await extractor.extractRelations(newMemory, existingMemories);
+Memento applies automatic fallback when a provider cannot be initialized:
+
+- `LLM_PROVIDER=openai` with a failing OpenAI initialization: falls back to Gemini if `GEMINI_API_KEY` is available.
+- `LLM_PROVIDER=gemini` with a failing Gemini initialization: falls back to OpenAI if `OPENAI_API_KEY` is available.
+- `LLM_PROVIDER=ollama` with a failed Ollama connection: tries OpenAI first, then Gemini.
+
+If all providers fail, LLM-dependent features (relation extraction, consolidation, etc.) are disabled and a warning is logged. Core `remember` and `recall` operations continue to function.
+
+## Complete Configuration Examples
+
+### Fully local (no cost)
+
+```bash
+EMBEDDING_PROVIDER=minilm
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
 ```
 
-### TripleExtractor
+### Mixed (local embeddings, cloud LLM)
 
-```typescript
-import { TripleExtractor } from './src/domains/relation/services/triple-extraction/triple-extractor.js';
-
-// Service automatically uses LLMClientInitializer on creation
-const extractor = new TripleExtractor();
-
-// Extract triples (uses automatically initialized provider)
-const result = await extractor.extract('text', {
-  provider: 'auto'  // or 'openai', 'gemini', 'ollama'
-});
+```bash
+EMBEDDING_PROVIDER=minilm
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_LLM_MODEL=gpt-4o-mini
 ```
 
-## Logging
+### Fully cloud with per-use-case tuning
 
-LLMClientInitializer outputs the following logs during initialization:
-
-- **`logger.info()`**: On successful initialization
-- **`logger.warn()`**: On fallback, missing API keys, etc.
-- **`logger.error()`**: When all providers fail to initialize
-
-Log metadata format:
-
-```typescript
-logger.warn('LLM initialization warning', { 
-  warning: 'OPENAI_API_KEY is missing.',
-  requestedProvider: 'openai',
-  fallbackProvider: 'gemini'
-});
+```bash
+EMBEDDING_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=text-embedding-3-small
+LLM_PROVIDER=openai
+OPENAI_LLM_MODEL=gpt-4o-mini
+# Use a more capable model only for consolidation
+LLM_MODEL_CONSOLIDATION=gpt-4o
 ```
 
 ## Troubleshooting
 
-### All Providers Unavailable
+**All providers unavailable.** Check that API keys are set correctly and that the Ollama server is running. Start Ollama with `ollama serve` and verify `http://localhost:11434/api/tags` is reachable in a browser.
 
-**Symptom**: `preferredProvider` returns `null`
+**Ollama connection failure.** Confirm `OLLAMA_BASE_URL` is correct. If running inside a Docker container, you may need to use `http://host.docker.internal:11434` instead of `localhost`.
 
-**Causes**:
-- API keys not set
-- Ollama server not running
-- Network connection issues
+**Unexpected provider selection.** Runtime environment variables override `.env` file values. Check whether `LLM_PROVIDER` has been exported in your shell session before looking at the `.env` file.
 
-**Solutions**:
-1. Check API key settings in `.env` file
-2. Verify Ollama server is running: `ollama serve`
-3. Check detailed error messages in `result.warnings` array
+## Related Documentation
 
-### Ollama Connection Failure
-
-**Symptom**: Ollama selected but connection fails
-
-**Causes**:
-- Ollama server not running
-- Incorrect `OLLAMA_BASE_URL` setting
-- Firewall or network issues
-
-**Solutions**:
-1. Verify Ollama server is running: `ollama serve`
-2. Check `OLLAMA_BASE_URL` environment variable
-3. Test access in browser: `http://localhost:11434/api/tags`
-
-### Fallback Not Working as Expected
-
-**Symptom**: Configured provider not used, different provider used instead
-
-**Causes**:
-- Environment variable priority issues
-- API keys not set
-
-**Solutions**:
-1. Check `process.env['LLM_PROVIDER']` (highest priority)
-2. Check `LLM_PROVIDER` in `.env` file
-3. Verify API key existence with `validateApiKeys()`
-
-## References
-
-- [LLMClientInitializer Source Code](../../../packages/memento-core/src/shared/services/llm-client-initializer.ts)
-- [Integration Test Examples](../../../packages/memento-core/src/domains/relation/services/__tests__/llm-provider-integration/provider-openai.spec.ts)
-- [Embedding Service Configuration Guide](./embedding-configuration.md)
+- [Embedding Configuration](./embedding-configuration.md)
+- [Embedding Service Overview](./embedding-service-guide.md)
