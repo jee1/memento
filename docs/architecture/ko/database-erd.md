@@ -7,7 +7,7 @@
 
 ## 1. 개요
 
-- **범위**: `schema.sql` 및 마이그레이션 002~020에서 정의된 모든 물리 테이블.
+- **범위**: `schema.sql` 및 마이그레이션 002~036에서 정의된 주요 물리 테이블. §2 Mermaid 다이어그램은 핵심 엔티티(002~020 기준)를 표시하며, §3 테이블 목록이 021~036 추가 테이블을 포함하는 완전한 참조본이다.
 - **관계**: 실선은 DB에 정의된 FOREIGN KEY, 점선은 논리적 참조(예: `memory_relation.relation_type` → `relation_type_registry.type_name`).
 - **가상 테이블**: `memory_item_fts`, `memory_item_vec*`는 `memory_embedding`/`memory_item`과 트리거로 연동되며 ERD에는 그리지 않는다.
 
@@ -192,6 +192,15 @@ erDiagram
 | quality_metrics | 마이그레이션 009 | 없음 (품질 지표) |
 | quality_thresholds | 마이그레이션 009 | 없음 (품질 임계값) |
 | meta_memory_stats | 마이그레이션 011 | memory_id → memory_item |
+| telemetry_events | 마이그레이션 027 | 없음 (도구 호출 이벤트 로그) |
+| telemetry_daily_metrics | 마이그레이션 028 | 없음 (일별 집계) |
+| triple_extraction 컬럼 | 마이그레이션 030 | memory_item 컬럼 추가 (triple_extracted_status 등) |
+| soft_delete 컬럼 | 마이그레이션 031 | memory_item 컬럼 추가 (is_deleted, deleted_at) |
+| project_id 컬럼 | 마이그레이션 032 | memory_item.project_id 추가 |
+| memory_review_candidate | 마이그레이션 033 | memory_id → memory_item (복습 후보) |
+| review_queue_health_snapshot | 마이그레이션 034 | 없음 (복습 큐 건강 지표) |
+| agent_integration 테이블 | 마이그레이션 035 | 에이전트 통합 스키마 |
+| agent_memory_promotion | 마이그레이션 036 | 에이전트 메모리 승격 스키마 |
 
 ---
 
