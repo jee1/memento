@@ -15,14 +15,17 @@
 
 다음 작업은 **BatchScheduler**에서 배치/큐 기반으로 실행된다.
 
-| 작업 | 구현 위치 | 비고 |
-|------|-----------|------|
-| Per-item Triple 추출 | JobQueue (`addJob` from remember-tool) | episodic 저장 시 작업 등록 |
-| Triple 추출 배치 | `TripleExtractionBatchJob` | 미처리 episodic 배치 처리 |
-| 콘솔리데이션 점수 | `ConsolidationScoreWorker` | 증분/전체 스윕 |
-| 관계 검증 | `RelationValidatorExecutor` | 주간 검증 |
-| 품질 측정 | `QualityMeasurementBatchJob` | 일일 배치 |
-| 메모리 정리(TTL 등) | `ForgettingPolicyService` | cleanup 배치 |
+| 작업 | 트리거 | 역할 |
+|------|--------|------|
+| Per-item Triple 추출 | JobQueue (`addJob` from remember-tool) | episodic 저장 직후 작업 등록 |
+| `triple_extraction` 배치 | 1시간 주기 | 미처리 episodic 배치 처리 (배치 크기 10) |
+| `sleep_consolidation` | 1시간 주기 | 에피소드 → 시맨틱 증류 (`SleepConsolidationService`) |
+| `consolidation_score_incremental` | 1시간 주기 | 통합 점수 증분 업데이트 |
+| `consolidation_score_full_sweep` | 24시간 (새벽 3시) | 전체 통합 점수 재계산 |
+| `relation_validation` | 7일 (일요일 새벽 2시) | 관계 그래프 유효성 검증 |
+| `quality_measurement` | 24시간 | 메모리 품질 측정 |
+| `forgetting_cleanup` | 24시간 | TTL 만료 기억 정리 |
+| `memory_review_candidates` | 24시간 | 복습 후보 갱신 |
 
 참고 파일:
 - `packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`

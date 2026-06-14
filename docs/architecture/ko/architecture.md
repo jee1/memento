@@ -1,1434 +1,227 @@
-# 아키텍처 문서
+# Memento 아키텍처
 
-## 개요
+## 왜 Memento인가
 
-Memento MCP Server는 AI Agent의 기억을 인간의 기억 체계를 모사하여 관리하는 시스템입니다. 이 문서는 시스템의 전체 아키텍처, 컴포넌트 간 상호작용, 데이터 플로우를 상세히 설명합니다.
+AI 에이전트는 기본적으로 무상태(stateless)다. 대화가 끝나면 그 안에서 벌어진 모든 일은 사라진다. Memento는 이 공백을 메운다. 인간의 기억 체계 — 단기 작업 기억, 에피소드 기억, 장기 의미 기억, 절차 기억 — 를 모사하여, 에이전트가 대화 세션을 넘어 경험을 축적할 수 있게 한다.
 
-## 목차
+인터페이스는 MCP(Model Context Protocol)다. 에이전트는 `remember`, `recall`, `forget` 같은 도구를 호출하고, Memento는 나머지를 처리한다.
 
-1. [시스템 아키텍처](#시스템-아키텍처)
-2. [핵심 컴포넌트](#핵심-컴포넌트)
-3. [데이터 모델](#데이터-모델)
-4. [검색 시스템](#검색-시스템)
-5. [망각 시스템](#망각-시스템)
-6. [마일스톤별 아키텍처](#마일스톤별-아키텍처)
-7. [성능 고려사항](#성능-고려사항)
-8. [보안 아키텍처](#보안-아키텍처)
+---
 
-## 시스템 아키텍처
+## 패키지 구조
 
-### 전체 아키텍처 다이어그램
+루트는 npm workspaces 기반 모노레포다. 의존 방향은 단방향이다.
 
-```mermaid
-graph TB
-    subgraph "AI Agent Layer"
-        A[Claude Desktop] --> B[MCP Client]
-        C[ChatGPT] --> B
-        D[Cursor] --> B
-        E[Other AI Agents] --> B
-    end
-    
-    subgraph "MCP Protocol Layer"
-        B --> F[MCP Memory Server]
-    end
-    
-    subgraph "Memory Management Layer"
-        F --> G[Memory Manager]
-        F --> H[Search Engine]
-        F --> I[Forgetting Policy]
-        F --> J[Spaced Review]
-        F --> K[Error Logging Service]
-        F --> L[Performance Alert Service]
-        F --> M[Performance Monitoring Integration]
-        F --> N[Anchor System]
-        F --> O[Meta Memory Stats]
-        F --> P[Relation Graph Engine]
-    end
-    
-    subgraph "Storage Layer"
-        G --> N[SQLite M1]
-        G --> O[PostgreSQL M3+]
-        H --> P[Vector Search]
-        H --> Q[Text Search]
-        I --> R[Memory Queue]
-        K --> S[Error Logs]
-        L --> T[Alert Logs]
-    end
-    
-    subgraph "Data Processing"
-        J --> U[Memory Consolidation]
-        I --> V[Memory Deletion]
-        U --> W[Memory Summary]
-        M --> X[Real-time Monitoring]
-        K --> Y[Error Analysis]
-        L --> Z[Alert Management]
-    end
+```
+memento-core  ←  memento-server
+              ←  memento-client
+              ←  memento-assistant
+              ←  memento-agent-integration
 ```
 
-### 레이어별 역할
+**`packages/memento-core` (`@memento/core`)**
+모든 도메인 로직, DB 접근, 서비스, 스케줄러, MCP 도구가 여기 있다. 나머지 패키지는 모두 이 라이브러리를 소비하는 셸이다.
 
-#### 1. AI Agent Layer
-- **역할**: MCP 클라이언트를 통해 기억 시스템과 상호작용
-- **구성요소**: Claude Desktop, ChatGPT, Cursor 등
-- **특징**: 다양한 AI Agent가 동일한 MCP 프로토콜 사용
+**`packages/memento-server`**
+`@memento/core`를 외부로 노출하는 두 종류의 서버를 담고 있다.
+- **MCP 서버** (`cli.ts`): AI 에이전트가 직접 연결. stdio, SSE, Streamable HTTP 트랜스포트를 지원한다.
+- **HTTP 관리 서버** (`http-server.ts`): 대시보드, 배치 수동 실행, 에이전트 세션 관리 등 운영 API를 제공한다.
 
-#### 2. MCP Protocol Layer
-- **역할**: 표준화된 통신 프로토콜 제공
-- **구성요소**: MCP Memory Server
-- **특징**: Tools, Resources, Prompts를 통한 기능 제공
+**`packages/memento-client` (`@memento/client`)**
+서버에 원격으로 연결하는 클라이언트 라이브러리.
 
-#### 3. Memory Management Layer
-- **역할**: 기억의 생성, 검색, 관리, 삭제 및 시스템 모니터링
-- **구성요소**: Memory Manager, Search Engine, Forgetting Policy, Spaced Review, Error Logging Service, Performance Alert Service, Performance Monitoring Integration, Anchor System, Meta Memory Stats, Meta Memory Introspection, Relation Graph Engine
-- **특징**: 인간의 기억 체계를 모사한 관리, 실시간 시스템 모니터링, 앵커 기반 컨텍스트 관리, 기억 품질 추적 및 자기 성찰(인트로스펙션)
+**`packages/memento-assistant`**
+외부 어시스턴트(OpenClaw/NanoClaw 계열) 통합용 패키지.
 
-#### 4. Storage Layer
-- **역할**: 데이터 영구 저장 및 검색
-- **구성요소**: SQLite/PostgreSQL, Vector Search, Text Search
-- **특징**: 마일스톤별 다른 저장소 사용
+**`packages/memento-agent-integration`**
+에이전트가 Memento를 in-process로 삽입할 때 사용하는 계약(contract)과 런타임.
 
-## 핵심 컴포넌트
+---
 
-### 1. MCP Memory Server
+## 기억이 저장되는 여정
 
-#### 구조
+`remember` 도구 호출 하나가 시스템을 어떻게 통과하는지 따라가보자.
 
-```typescript
-interface MCPServer {
-  // Tools
-  tools: {
-    remember: RememberTool;
-    recall: RecallTool;
-    pin: PinTool;
-    unpin: UnpinTool;
-    forget: ForgetTool;
-    summarize_thread: SummarizeThreadTool;
-    link: LinkTool;
-    export: ExportTool;
-    feedback: FeedbackTool;
-  };
-  
-  // Resources
-  resources: {
-    memory: MemoryResource;
-    search: SearchResource;
-  };
-  
-  // Prompts
-  prompts: {
-    memory_injection: MemoryInjectionPrompt;
-  };
-}
+1. **수신**: MCP 서버(stdio 또는 HTTP)가 JSON-RPC 요청을 받아 `tools.routes.ts`로 전달한다.
+2. **실행**: `executeTool('remember', params, context)` → `RememberTool.execute()`. 텔레메트리 컨텍스트는 `owner_id`/`agent_id` 기반으로 자동 설정된다.
+3. **즉시 저장**: `memory_item` 테이블에 레코드를 기록하고 **바로 응답을 반환**한다. 후속 처리를 기다리지 않는다.
+4. **잡큐 등록**: 에피소드 기억이라면, `BatchScheduler.addJob()`으로 Triple 추출 작업을 큐에 등록한다.
+5. **백그라운드 정제**: 이후 배치 워커가 그 기억에서 Subject–Predicate–Object Triple을 추출하고, 관계 그래프를 업데이트한다.
+
+이 "즉시 저장, 나중에 정제" 패턴이 Memento의 **비동기 Augmentation 파이프라인**의 핵심이다. 에이전트는 저장 즉시 응답을 받고, 정제 작업은 백그라운드에서 수렴한다.
+
+---
+
+## 도메인 구조
+
+`memento-core/src/domains/` 아래 도메인이 수직으로 분리되어 있다. 각 도메인은 자신의 서비스, 저장소, 도구를 가진다.
+
+### memory
+
+기억의 CRUD 홈. `remember`, `recall`, `pin`, `unpin`, `forget`, `feedback` 도구가 여기서 작동한다.
+
+메모리 타입은 4가지이며, TTL이 다르다:
+
+| 타입 | TTL | 용도 |
+|------|-----|------|
+| `working` | 48시간 | 현재 작업 맥락, 임시 정보 |
+| `episodic` | 90일 | 과거 대화·사건 기록 |
+| `semantic` | 무제한 | 지식, 사실, 규칙 |
+| `procedural` | 무제한 | 반복 가능한 절차·워크플로우 |
+
+에피소드 기억이 쌓이면 Triple 추출과 Sleep Consolidation이 시맨틱 기억으로 증류한다. 기억은 소프트 삭제(`is_deleted = true`) 후 일정 기간 뒤 하드 삭제된다.
+
+### search
+
+하이브리드 검색 엔진. FTS5 텍스트 검색과 벡터 검색을 병렬로 실행한 뒤 점수를 합산해 최종 순위를 계산한다.
+
+**랭킹 공식** (`config/ranking-weights.toml`):
 ```
-
-#### 주요 기능
-
-- **Tool 처리**: MCP Tools 실행 및 응답
-- **Resource 제공**: 캐시된 데이터 제공
-- **Prompt 생성**: 컨텍스트 주입용 프롬프트 생성
-- **인증/권한**: 사용자 인증 및 권한 관리 (M2+)
-
-### 2. Memory Manager
-
-#### 구조
-
-```typescript
-interface MemoryManager {
-  // 기억 생성
-  createMemory(params: CreateMemoryParams): Promise<MemoryItem>;
-  
-  // 기억 조회
-  getMemory(id: string): Promise<MemoryItem | null>;
-  
-  // 기억 업데이트
-  updateMemory(id: string, updates: Partial<MemoryItem>): Promise<MemoryItem>;
-  
-  // 기억 삭제
-  deleteMemory(id: string, hard?: boolean): Promise<boolean>;
-  
-  // 기억 고정
-  pinMemory(id: string): Promise<boolean>;
-  unpinMemory(id: string): Promise<boolean>;
-}
+S = α·relevance + β·recency + γ·importance + δ·usage
+  + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5)
+  + θ·process_attribute_fit − ε·duplication_penalty
 ```
+가중치: α=0.45, β=0.20, γ=0.20, δ=0.10, ζ=0.15, ζ_fb=0.05, θ=0.10, ε=0.10.
 
-#### 주요 기능
-
-- **CRUD 작업**: 기억의 생성, 조회, 수정, 삭제
-- **타입 관리**: 작업기억, 일화기억, 의미기억, 절차기억 구분
-- **메타데이터 관리**: 태그, 중요도, 출처 등 관리
-- **관계 관리**: 기억 간의 관계 설정 및 관리
-
-### 3. Search Engine
-
-#### 구조
-
-```typescript
-interface SearchEngine {
-  // 2단계 검색
-  search(query: string, filters?: SearchFilters): Promise<SearchResult>;
-  
-  // 벡터 검색
-  vectorSearch(query: string, limit: number): Promise<VectorSearchResult>;
-  
-  // 키워드 검색
-  keywordSearch(query: string, filters?: SearchFilters): Promise<KeywordSearchResult>;
-  
-  // 랭킹 계산
-  calculateRanking(results: SearchResult[]): Promise<RankedResult[]>;
-}
-```
-
-#### 검색 파이프라인
-
-```mermaid
-graph LR
-    A[검색 쿼리] --> B[쿼리 전처리]
-    B --> C[벡터 검색]
-    B --> D[키워드 검색]
-    C --> E[결과 병합]
-    D --> E
-    E --> F[랭킹 계산]
-    F --> G[MMR 다양성 제어]
-    G --> H[최종 결과]
-```
-
-#### 랭킹 알고리즘
-
-```typescript
-interface SearchRanking {
-  calculateFinalScore(features: SearchFeatures): number {
-    return this.ALPHA * features.relevance +           // 0.50
-           this.BETA * features.recency +              // 0.20
-           this.GAMMA * features.importance +          // 0.20
-           this.DELTA * features.usage -               // 0.10
-           this.EPSILON * features.duplication_penalty; // 0.15
-  }
-}
-```
-
-### 4. Forgetting Policy
-
-#### 구조
-
-```typescript
-interface ForgettingPolicy {
-  // 망각 점수 계산
-  calculateForgetScore(memory: MemoryItem): number;
-  
-  // 삭제 후보 선정
-  getDeletionCandidates(): Promise<MemoryItem[]>;
-  
-  // 소프트 삭제
-  softDelete(memory: MemoryItem): Promise<boolean>;
-  
-  // 하드 삭제
-  hardDelete(memory: MemoryItem): Promise<boolean>;
-}
-```
-
-#### 망각 알고리즘
-
-```typescript
-interface ForgetScore {
-  calculate(memory: MemoryItem): number {
-    const age = this.calculateAge(memory.created_at);
-    const importance = memory.importance;
-    const usage = this.calculateUsage(memory);
-    
-    return this.baseForgetScore * 
-           Math.exp(-this.importanceWeight * importance) *
-           Math.exp(-this.usageWeight * usage) *
-           Math.exp(this.ageWeight * age);
-  }
-}
-```
-
-### 5. Spaced Review
-
-#### 구조
-
-```typescript
-interface SpacedReview {
-  // 리뷰 스케줄 계산
-  calculateReviewSchedule(memory: MemoryItem): Date;
-  
-  // 리뷰 대상 선정
-  getReviewCandidates(): Promise<MemoryItem[]>;
-  
-  // 리뷰 실행
-  executeReview(memory: MemoryItem): Promise<ReviewResult>;
-  
-  // 간격 조정
-  adjustInterval(memory: MemoryItem, performance: number): void;
-}
-```
-
-### 6. Error Logging Service
-
-#### 구조
-
-```typescript
-interface ErrorLoggingService {
-  // 에러 로깅
-  logError(error: Error, severity: ErrorSeverity, category: ErrorCategory, context?: Record<string, any>): void;
-  
-  // 에러 통계 조회
-  getErrorStats(filters?: ErrorFilters): Promise<ErrorStats>;
-  
-  // 에러 해결
-  resolveError(errorId: string, resolvedBy: string, resolution?: string): Promise<boolean>;
-  
-  // 에러 검색
-  searchErrors(filters: ErrorSearchFilters): Promise<ErrorLog[]>;
-}
-
-enum ErrorSeverity {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM', 
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
-}
-
-enum ErrorCategory {
-  UNKNOWN = 'UNKNOWN',
-  DATABASE = 'DATABASE',
-  NETWORK = 'NETWORK',
-  TOOL_EXECUTION = 'TOOL_EXECUTION',
-  VALIDATION = 'VALIDATION',
-  SYSTEM = 'SYSTEM'
-}
-```
-
-#### 주요 기능
-
-- **구조화된 에러 로깅**: 심각도, 카테고리, 컨텍스트 정보 포함
-- **에러 통계 수집**: 심각도별, 카테고리별 에러 분석
-- **에러 해결 추적**: 에러 해결 상태 및 해결 방법 기록
-- **실시간 모니터링**: 에러 발생 패턴 분석 및 알림
-
-### 7. Performance Alert Service
-
-#### 구조
-
-```typescript
-interface PerformanceAlertService {
-  // 알림 생성
-  createAlert(level: AlertLevel, type: AlertType, metric: string, value: number, threshold: number, message: string, context?: Record<string, any>): PerformanceAlert;
-  
-  // 알림 해결
-  resolveAlert(alertId: string, resolvedBy: string, resolution?: string): PerformanceAlert | null;
-  
-  // 활성 알림 조회
-  getActiveAlerts(): PerformanceAlert[];
-  
-  // 알림 검색
-  searchAlerts(filters: AlertSearchFilters): PerformanceAlert[];
-  
-  // 알림 통계
-  getStats(): AlertStats;
-}
-
-enum AlertLevel {
-  INFO = 'INFO',
-  WARNING = 'WARNING',
-  CRITICAL = 'CRITICAL'
-}
-
-enum AlertType {
-  RESPONSE_TIME = 'response_time',
-  MEMORY_USAGE = 'memory_usage',
-  ERROR_RATE = 'error_rate',
-  THROUGHPUT = 'throughput',
-  CUSTOM = 'custom'
-}
-```
-
-#### 주요 기능
-
-- **임계값 기반 알림**: 성능 메트릭이 임계값을 초과할 때 자동 알림
-- **알림 관리**: 알림 생성, 해결, 검색, 통계 기능
-- **로그 파일 저장**: 알림을 JSONL 형식으로 파일에 저장
-- **콘솔 출력**: 심각도별 색상 구분된 콘솔 알림
-
-### 8. Performance Monitoring Integration
-
-#### 구조
-
-```typescript
-interface PerformanceMonitoringIntegration {
-  // 실시간 모니터링 시작
-  startRealTimeMonitoring(): void;
-  
-  // 실시간 모니터링 중지
-  stopRealTimeMonitoring(): void;
-  
-  // 성능 체크
-  private checkPerformance(): Promise<void>;
-  
-  // 임계값 확인
-  private checkResponseTime(avgResponseTime: number): void;
-  private checkMemoryUsage(heapUsedMB: number): void;
-  private checkErrorRate(errorRate: number): void;
-  private checkThroughput(throughput: number): void;
-}
-
-interface AlertThresholds {
-  responseTime: { warning: number; critical: number }; // ms
-  memoryUsage: { warning: number; critical: number }; // MB
-  errorRate: { warning: number; critical: number }; // %
-  throughput: { warning: number; critical: number }; // ops/sec
-}
-```
-
-#### 주요 기능
-
-- **실시간 모니터링**: 30초마다 자동 성능 체크
-- **임계값 기반 알림**: 설정된 임계값 초과 시 자동 알림 생성
-- **통합 모니터링**: PerformanceMonitor와 PerformanceAlertService 연동
-- **자동 복구**: 심각한 문제 발생 시 자동 복구 작업 수행
-
-#### 간격 반복 알고리즘
-
-```typescript
-interface SpacedRepetition {
-  calculateNextReview(memory: MemoryItem, performance: number): Date {
-    const currentInterval = memory.review_interval || 1;
-    const newInterval = this.calculateInterval(currentInterval, performance);
-    
-    return new Date(Date.now() + newInterval * 24 * 60 * 60 * 1000);
-  }
-}
-```
-
-### 9. 앵커 시스템
-
-#### 구조
-
-```typescript
-interface AnchorSystem {
-  // 앵커 설정
-  setAnchor(memoryId: string, slot: 'A' | 'B' | 'C', agentId?: string): Promise<boolean>;
-  
-  // 앵커 조회
-  getAnchor(slot?: 'A' | 'B' | 'C', agentId?: string): Promise<Anchor | AnchorMap | null>;
-  
-  // 앵커 주변 검색
-  searchLocal(slot: 'A' | 'B' | 'C', query?: string, options?: SearchLocalOptions): Promise<SearchResult>;
-  
-  // 앵커 제거
-  clearAnchor(slot?: 'A' | 'B' | 'C', agentId?: string): Promise<boolean>;
-  
-  // 데이터베이스에서 앵커 복원
-  restoreAnchors(agentId?: string): Promise<AnchorMap>;
-}
-
-interface Anchor {
-  memory_id: string;
-  slot: 'A' | 'B' | 'C';
-  agent_id: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-interface AnchorMap {
-  A: Anchor | null;
-  B: Anchor | null;
-  C: Anchor | null;
-}
-```
-
-#### 주요 기능
-
-- **컨텍스트 관리**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
-- **국소 검색**: 관계 그래프를 사용하여 앵커 주변 기억 검색
-- **다중 에이전트 지원**: 별도의 앵커 맵으로 여러 에이전트 지원
-- **영구 저장**: 앵커는 데이터베이스에 저장되며 복원 가능
-
-### 10. 메타 메모리 통계 시스템
-
-#### 구조
-
-```typescript
-interface MetaMemoryStatsService {
-  // 통계 조회
-  getStats(params: GetMetaMemoryStatsParams): Promise<MetaMemoryStatsResult>;
-  
-  // recall 시도 기록
-  recordRecall(memoryId: string, success: boolean, confidence?: number): Promise<void>;
-}
-
-interface MetaMemoryStatsItem {
-  memory_id: string;
-  recall_count: number;
-  success_count: number;
-  failure_count: number;
-  avg_confidence: number;
-  last_recalled_at?: Date;
-  created_at: Date;
-  updated_at: Date;
-}
-```
-
-#### 주요 기능
-
-- **Recall 추적**: recall 성공/실패율 추적
-- **신뢰도 점수**: 평균 신뢰도 점수 계산
-- **품질 지표**: 메모리 검색 품질 지표 제공
-- **성능 분석**: 시간에 따른 검색 성능 분석
-
-#### 메타 메모리 인트로스펙션 (M2 자기 성찰)
-
-메타 메모리 통계(`meta_memory_stats`)를 활용해 기억 품질을 주기적으로 스캔하는 서비스입니다. `MetaMemoryIntrospectionService`가 저신뢰도·고실패 기억을 식별하고 요약하며, 필요 시 `BatchScheduler`의 `meta_memory_introspection` job으로 백그라운드 실행됩니다.
-
-- **역할**: 신뢰도 평가, 실패 패턴 인식, 정보 부족(Gap) 식별
-- **입력**: `meta_memory_stats`와 `memory_item` JOIN (avg_confidence, failure_count 등)
-- **출력**: lowConfidenceMemoryIds, highFailureMemoryIds, summary
-- **HTTP API**: 메타 통계 조회는 `GET /admin/memory/meta-stats`로 제공 (MCP 도구 아님)
-
-### 11. 관계 그래프 엔진
-
-#### 구조
-
-```typescript
-interface RelationGraphEngine {
-  // 관계 추출
-  extractRelations(memory: MemoryItem): Promise<Relation[]>;
-  
-  // 관계 조회
-  getRelations(memoryId: string): Promise<Relation[]>;
-  
-  // 관계 추가
-  addRelation(sourceId: string, targetId: string, type: RelationType): Promise<boolean>;
-  
-  // 관계 제거
-  removeRelation(relationId: string): Promise<boolean>;
-}
-
-interface Relation {
-  id: string;
-  source_id: string;
-  target_id: string;
-  relation_type: RelationType;
-  strength: number;
-  created_at: Date;
-}
-
-enum RelationType {
-  SIMILAR_TO = 'SIMILAR_TO',
-  RELATED_TO = 'RELATED_TO',
-  VERSION_OF = 'VERSION_OF',
-  DERIVED_FROM = 'DERIVED_FROM',
-  CAUSE_OF = 'CAUSE_OF'
-}
-```
-
-#### 주요 기능
-
-- **자동 추출**: 기억에서 관계를 자동으로 추출
-- **Triple 추출**: 주어-술어-목적어 triple 추출
-- **관계 분류**: 관계를 타입별로 분류
-- **그래프 탐색**: 관계를 사용하여 메모리 그래프 탐색
-
-## 데이터 모델
-
-### 1. 메모리 아이템
-
-```typescript
-interface MemoryItem {
-  id: string;                       // 고유 식별자
-  content: string;                  // 기억 내용
-  type: 'working' | 'episodic' | 'semantic' | 'procedural';  // 기억 타입
-  importance: number;               // 중요도 (0-1)
-  created_at: Date;                 // 생성 시간
-  last_accessed: Date;              // 마지막 접근 시간
-  access_count: number;             // 접근 횟수
-  pinned: boolean;                  // 고정 여부
-  source?: string;                  // 출처
-  tags: string[];                   // 태그
-  privacy_scope: 'private' | 'team' | 'public';  // 공개 범위
-  project_id?: string;              // 프로젝트 ID (M2+)
-  user_id?: string;                 // 사용자 ID (M3+)
-  metadata: Record<string, any>;    // 추가 메타데이터
-}
-```
-
-### 2. 검색 결과
-
-```typescript
-interface SearchResult {
-  items: MemoryItem[];              // 검색된 기억 목록
-  total_count: number;              // 전체 결과 수
-  query_time: number;               // 검색 소요 시간 (ms)
-  search_metadata: {
-    vector_matches: number;         // 벡터 검색 매치 수
-    keyword_matches: number;        // 키워드 검색 매치 수
-    ranking_time: number;           // 랭킹 계산 시간
-  };
-}
-```
-
-### 3. 기억 관계
-
-```typescript
-interface MemoryLink {
-  id: string;                       // 링크 ID
-  source_id: string;                // 소스 기억 ID
-  target_id: string;                // 대상 기억 ID
-  relation_type: 'cause_of' | 'derived_from' | 'duplicates' | 'contradicts';
-  created_at: Date;                 // 생성 시간
-  strength: number;                 // 관계 강도 (0-1)
-}
-```
-
-### 4. 피드백
-
-```typescript
-interface Feedback {
-  id: string;                       // 피드백 ID
-  memory_id: string;                // 기억 ID
-  helpful: boolean;                 // 유용성 여부
-  score?: number;                   // 점수 (0-1)
-  comment?: string;                 // 코멘트
-  created_at: Date;                 // 생성 시간
-  user_id?: string;                 // 사용자 ID (M3+)
-}
-```
-
-## 검색 시스템
-
-### 하이브리드 검색 아키텍처
-
-Memento는 FTS5 텍스트 검색과 벡터 검색을 결합한 하이브리드 검색 시스템을 제공합니다.
-
-```mermaid
-graph TB
-    subgraph "하이브리드 검색 엔진"
-        A[사용자 쿼리] --> B[하이브리드 검색 엔진]
-        B --> C[FTS5 텍스트 검색]
-        B --> D[벡터 검색]
-        C --> E[텍스트 점수]
-        D --> F[벡터 점수]
-        E --> G[점수 정규화]
-        F --> G
-        G --> H[가중치 적용]
-        H --> I[최종 하이브리드 점수]
-        I --> J[결과 정렬 및 반환]
-    end
-    
-    subgraph "임베딩 서비스"
-        K[텍스트 입력] --> L[OpenAI API]
-        L --> M[1536차원 벡터]
-        M --> N[데이터베이스 저장]
-        N --> O[벡터 검색 인덱스]
-    end
-```
-
-### 임베딩 서비스 아키텍처
-
-```mermaid
-graph TB
-    subgraph "임베딩 서비스 레이어"
-        A[텍스트 입력] --> B[EmbeddingService]
-        B --> C[OpenAI API 호출]
-        C --> D[text-embedding-3-small]
-        D --> E[1536차원 벡터]
-        E --> F[MemoryEmbeddingService]
-        F --> G[데이터베이스 저장]
-        G --> H[벡터 검색 인덱스]
-    end
-    
-    subgraph "에러 처리 및 캐싱"
-        I[API 재시도 로직]
-        J[임베딩 결과 캐싱]
-        K[에러 복구 메커니즘]
-    end
-```
-
-### 1. 2단계 검색 파이프라인
-
-#### 1단계: 벡터 검색 (ANN)
-
-```typescript
-interface VectorSearch {
-  // 임베딩 생성
-  generateEmbedding(text: string): Promise<number[]>;
-  
-  // 벡터 검색
-  search(embedding: number[], limit: number): Promise<VectorSearchResult>;
-  
-  // 인덱스 업데이트
-  updateIndex(memory: MemoryItem): Promise<void>;
-}
-```
-
-**특징**:
-- 의미적 유사도 검색
-- 빠른 검색 속도 (O(log n))
-- 다국어 지원
-
-#### 2단계: 키워드 검색 (BM25)
-
-```typescript
-interface KeywordSearch {
-  // 텍스트 인덱싱
-  indexText(memory: MemoryItem): Promise<void>;
-  
-  // BM25 검색
-  search(query: string, filters?: SearchFilters): Promise<KeywordSearchResult>;
-  
-  // 인덱스 최적화
-  optimizeIndex(): Promise<void>;
-}
-```
-
-**특징**:
-- 정확한 키워드 매칭
-- 가중치 기반 랭킹
-- 필터링 지원
-
-### 2. 랭킹 알고리즘
-
-#### 복합 점수 계산
-
-```typescript
-interface SearchRanking {
-  calculateFinalScore(features: SearchFeatures): number {
-    const relevance = this.calculateRelevance(features);
-    const recency = this.calculateRecency(features);
-    const importance = this.calculateImportance(features);
-    const usage = this.calculateUsage(features);
-    const duplication = this.calculateDuplicationPenalty(features);
-    
-    return this.ALPHA * relevance +           // 0.50
-           this.BETA * recency +              // 0.20
-           this.GAMMA * importance +          // 0.20
-           this.DELTA * usage -               // 0.10
-           this.EPSILON * duplication;        // 0.15
-  }
-}
-```
-
-#### 관련성 계산
-
-```typescript
-interface RelevanceCalculation {
-  calculate(features: SearchFeatures): number {
-    const vectorSimilarity = features.vector_similarity;
-    const bm25Score = features.bm25_score;
-    const tagMatch = features.tag_match_score;
-    const titleHit = features.title_hit_score;
-    
-    return (vectorSimilarity * 0.4) +
-           (bm25Score * 0.3) +
-           (tagMatch * 0.2) +
-           (titleHit * 0.1);
-  }
-}
-```
-
-### 3. MMR 다양성 제어
-
-```typescript
-interface MMRDiversity {
-  selectDiverseResults(results: SearchResult[], lambda: number = 0.7): SearchResult[] {
-    const selected: SearchResult[] = [];
-    const remaining = [...results];
-    
-    while (remaining.length > 0 && selected.length < this.maxResults) {
-      let bestIndex = 0;
-      let bestScore = -Infinity;
-      
-      for (let i = 0; i < remaining.length; i++) {
-        const relevance = remaining[i].score;
-        const diversity = this.calculateDiversity(remaining[i], selected);
-        const score = lambda * relevance + (1 - lambda) * diversity;
-        
-        if (score > bestScore) {
-          bestScore = score;
-          bestIndex = i;
-        }
-      }
-      
-      selected.push(remaining[bestIndex]);
-      remaining.splice(bestIndex, 1);
-    }
-    
-    return selected;
-  }
-}
-```
-
-## 망각 시스템
-
-### 1. TTL 기반 자동 삭제
-
-#### 기억 타입별 TTL
-
-```typescript
-interface MemoryTTL {
-  WORKING_MEMORY: 48 * 60 * 60 * 1000;    // 48시간
-  EPISODIC_MEMORY: 90 * 24 * 60 * 60 * 1000;  // 90일
-  SEMANTIC_MEMORY: Infinity;              // 무기한
-  PROCEDURAL_MEMORY: Infinity;            // 무기한
-}
-```
-
-#### 삭제 스케줄링
-
-```typescript
-interface DeletionScheduler {
-  scheduleDeletion(memory: MemoryItem): void {
-    const ttl = this.getTTL(memory.type);
-    if (ttl === Infinity) return;
-    
-    const deletionTime = new Date(memory.created_at.getTime() + ttl);
-    this.scheduleTask(deletionTime, () => this.deleteMemory(memory));
-  }
-}
-```
-
-### 2. 중요도 기반 망각
-
-#### 망각 점수 계산
-
-```typescript
-interface ForgetScore {
-  calculate(memory: MemoryItem): number {
-    const age = this.calculateAge(memory.created_at);
-    const importance = memory.importance;
-    const usage = this.calculateUsage(memory);
-    const recency = this.calculateRecency(memory.last_accessed);
-    
-    return this.baseForgetScore *
-           Math.exp(-this.importanceWeight * importance) *
-           Math.exp(-this.usageWeight * usage) *
-           Math.exp(-this.recencyWeight * recency) *
-           Math.exp(this.ageWeight * age);
-  }
-}
-```
-
-### 3. 간격 반복 시스템
-
-#### 리뷰 스케줄 계산
-
-```typescript
-interface SpacedRepetition {
-  calculateNextReview(memory: MemoryItem, performance: number): Date {
-    const currentInterval = memory.review_interval || 1;
-    const newInterval = this.calculateInterval(currentInterval, performance);
-    
-    return new Date(Date.now() + newInterval * 24 * 60 * 60 * 1000);
-  }
-  
-  calculateInterval(currentInterval: number, performance: number): number {
-    if (performance >= 0.8) {
-      return Math.min(currentInterval * 2.5, 365);  // 성공 시 간격 증가
-    } else if (performance >= 0.6) {
-      return Math.max(currentInterval * 1.2, 1);    // 보통 시 약간 증가
-    } else {
-      return 1;  // 실패 시 다시 1일 후
-    }
-  }
-}
-```
-
-## 마일스톤별 아키텍처
-
-### M1: 개인용 (MVP)
-
-#### 아키텍처
-
-```mermaid
-graph TB
-    A[AI Agent] --> B[MCP Client]
-    B --> C[MCP Memory Server]
-    C --> D[SQLite Database]
-    C --> E[FTS5 Index]
-    C --> F[VEC Index]
-    C --> G[Local File System]
-```
-
-#### 특징
-
-- **스토리지**: better-sqlite3 임베디드
-- **검색**: FTS5 + sqlite-vec
-- **인증**: 없음 (로컬 전용)
-- **배포**: 로컬 실행
-- **추가 기능**: 다중 임베딩 제공자(TF-IDF, MiniLM, OpenAI, Gemini), 성능 모니터링, 캐시 시스템
-- **확장성**: 단일 사용자
-
-#### 기술 스택
-
-- **데이터베이스**: better-sqlite3 12.4+
-- **벡터 검색**: sqlite-vec
-- **텍스트 검색**: FTS5
-- **웹 서버**: Express 5.1+
-- **WebSocket**: ws 8.18+
-- **테스트**: Vitest 1.0+
-- **런타임**: Node.js 20+
-
-### M2: 팀 협업
-
-#### 아키텍처
-
-```mermaid
-graph TB
-    A[AI Agents] --> B[MCP Client]
-    B --> C[MCP Memory Server]
-    C --> D[SQLite Server Mode]
-    C --> E[Redis Cache]
-    C --> F[API Gateway]
-    F --> G[Authentication]
-```
-
-#### 특징
-
-- **스토리지**: SQLite 서버 모드 (WAL)
-- **캐싱**: Redis
-- **인증**: API Key
-- **배포**: Docker
-- **확장성**: 팀 단위 (10-50명)
-
-#### 기술 스택
-
-- **데이터베이스**: SQLite Server Mode
-- **캐시**: Redis 7+
-- **컨테이너**: Docker
-- **인증**: API Key
-
-### M3: 조직 초입
-
-#### 아키텍처
-
-```mermaid
-graph TB
-    A[AI Agents] --> B[MCP Client]
-    B --> C[Load Balancer]
-    C --> D[MCP Memory Server]
-    D --> E[PostgreSQL]
-    D --> F[Redis Cache]
-    D --> G[Authentication Service]
-    G --> H[JWT Token]
-```
-
-#### 특징
-
-- **스토리지**: PostgreSQL + pgvector
-- **검색**: pgvector + tsvector
-- **인증**: JWT
-- **배포**: Docker Compose
-- **확장성**: 조직 단위 (100-1000명)
-
-#### 기술 스택
-
-- **데이터베이스**: PostgreSQL 15+ + pgvector
-- **검색**: pgvector, tsvector
-- **캐시**: Redis 7+
-- **인증**: JWT
-- **배포**: Docker Compose
-
-### M4: 엔터프라이즈
-
-#### 아키텍처
-
-```mermaid
-graph TB
-    A[AI Agents] --> B[MCP Client]
-    B --> C[API Gateway]
-    C --> D[Load Balancer]
-    D --> E[MCP Memory Server Cluster]
-    E --> F[PostgreSQL HA]
-    E --> G[Redis Cluster]
-    E --> H[Authentication Service]
-    H --> I[SSO/LDAP]
-    E --> J[Monitoring]
-    J --> K[Prometheus]
-    J --> L[Grafana]
-```
-
-#### 특징
-
-- **스토리지**: PostgreSQL 고가용성
-- **캐싱**: Redis 클러스터
-- **인증**: JWT + RBAC + SSO/LDAP
-- **배포**: Kubernetes
-- **확장성**: 엔터프라이즈 (1000명+)
-
-#### 기술 스택
-
-- **데이터베이스**: PostgreSQL HA + pgvector
-- **캐시**: Redis Cluster
-- **인증**: JWT + RBAC + SSO/LDAP
-- **배포**: Kubernetes
-- **모니터링**: Prometheus + Grafana
-
-## 성능 고려사항
-
-### 1. 검색 성능
-
-#### 하이브리드 검색 최적화
-
-```typescript
-interface HybridSearchOptimization {
-  // FTS5 + 벡터 검색 결합
-  optimizeHybridSearch(): void {
-    this.createFTSIndex('memory_item_fts', 'content');
-    this.createVectorIndex('memory_embedding', 'embedding', 'ivfflat');
-    this.analyzeTable('memory_item');
-  }
-  
-  // 배치 처리
-  batchUpdateEmbeddings(memories: MemoryItem[]): void {
-    const batchSize = 100;
-    for (let i = 0; i < memories.length; i += batchSize) {
-      const batch = memories.slice(i, i + batchSize);
-      this.updateEmbeddingsBatch(batch);
-    }
-  }
-}
-```
-
-#### 경량 임베딩 최적화
-
-```typescript
-interface LightweightEmbeddingOptimization {
-  // TF-IDF 벡터화
-  optimizeTFIDF(): void {
-    this.updateVocabulary();
-    this.calculateIDF();
-    this.normalizeVectors();
-  }
-  
-  // 다국어 지원
-  preprocessText(text: string): string {
-    return this.removeStopWords(text)
-      .normalizeUnicode()
-      .tokenize()
-      .stem();
-  }
-}
-```
-
-#### 캐싱 전략
-
-```typescript
-interface CachingStrategy {
-  // LRU 캐시 구현
-  cacheSearchResult(query: string, result: SearchResult): void {
-    const key = `search:${this.hashQuery(query)}`;
-    this.lruCache.set(key, result, 3600); // 1시간 TTL
-  }
-  
-  // 임베딩 캐싱
-  cacheEmbedding(text: string, embedding: number[]): void {
-    const key = `embedding:${this.hashText(text)}`;
-    this.lruCache.set(key, embedding, 86400); // 24시간 TTL
-  }
-  
-  // 인기 검색어 캐싱
-  cachePopularQueries(): void {
-    const popular = this.getPopularQueries(100);
-    this.lruCache.set('popular_queries', popular, 86400); // 24시간 TTL
-  }
-}
-```
-
-### 2. 메모리 사용량
-
-#### 성능 모니터링
-
-```typescript
-interface PerformanceMonitoring {
-  // 메모리 사용량 모니터링
-  monitorMemoryUsage(): void {
-    const usage = process.memoryUsage();
-    this.metrics.record('memory.heapUsed', usage.heapUsed);
-    this.metrics.record('memory.heapTotal', usage.heapTotal);
-    this.metrics.record('memory.rss', usage.rss);
-  }
-  
-  // 캐시 성능 모니터링
-  monitorCachePerformance(): void {
-    this.metrics.record('cache.hitRate', this.cache.getHitRate());
-    this.metrics.record('cache.size', this.cache.getSize());
-    this.metrics.record('cache.memoryUsage', this.cache.getMemoryUsage());
-  }
-}
-```
-
-#### 메모리 풀 관리
-
-```typescript
-interface MemoryPool {
-  private pool: Buffer[] = [];
-  private maxSize: number = 100;
-  
-  getBuffer(size: number): Buffer {
-    const buffer = this.pool.find(b => b.length >= size);
-    if (buffer) {
-      return buffer;
-    }
-    return Buffer.alloc(size);
-  }
-  
-  returnBuffer(buffer: Buffer): void {
-    if (this.pool.length < this.maxSize) {
-      this.pool.push(buffer);
-    }
-  }
-}
-```
-
-#### 가비지 컬렉션 최적화
-
-```typescript
-interface GCOptimization {
-  // 메모리 사용량 모니터링
-  monitorMemoryUsage(): void {
-    const usage = process.memoryUsage();
-    if (usage.heapUsed > this.threshold) {
-      this.triggerGC();
-    }
-  }
-  
-  // 불필요한 객체 정리
-  cleanup(): void {
-    this.clearExpiredCache();
-    this.clearUnusedConnections();
-    this.optimizeIndexes();
-  }
-}
-```
-
-### 3. 데이터베이스 성능
-
-#### better-sqlite3 최적화
-
-```sql
--- 인덱스 최적화
-CREATE INDEX idx_memory_type_created ON memory_item(type, created_at);
-CREATE INDEX idx_memory_importance ON memory_item(importance DESC);
-CREATE INDEX idx_memory_tags ON memory_item USING GIN(tags);
-
--- 벡터 검색 인덱스
-CREATE INDEX idx_memory_embedding ON memory_embedding 
-USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-
--- FTS 인덱스
-CREATE VIRTUAL TABLE memory_fts USING fts5(
-  content, 
-  tags, 
-  source,
-  content='memory_item',
-  content_rowid='id'
-);
-```
-
-#### 데이터베이스 최적화 서비스
-
-```typescript
-interface DatabaseOptimization {
-  // 자동 인덱스 추천
-  recommendIndexes(): IndexRecommendation[] {
-    const slowQueries = this.analyzeSlowQueries();
-    return slowQueries.map(query => this.generateIndexRecommendation(query));
-  }
-  
-  // 쿼리 성능 분석
-  analyzeQueryPerformance(): QueryAnalysis {
-    return {
-      averageQueryTime: this.getAverageQueryTime(),
-      slowQueries: this.getSlowQueries(),
-      indexUsage: this.getIndexUsage(),
-      recommendations: this.generateRecommendations()
-    };
-  }
-}
-```
-
-#### 연결 풀 관리
-
-```typescript
-interface ConnectionPool {
-  private pool: DatabaseConnection[] = [];
-  private maxConnections: number = 20;
-  
-  async getConnection(): Promise<DatabaseConnection> {
-    if (this.pool.length > 0) {
-      return this.pool.pop()!;
-    }
-    
-    if (this.activeConnections < this.maxConnections) {
-      return await this.createConnection();
-    }
-    
-    return await this.waitForConnection();
-  }
-  
-  releaseConnection(conn: DatabaseConnection): void {
-    if (this.pool.length < this.maxConnections) {
-      this.pool.push(conn);
-    } else {
-      conn.close();
-    }
-  }
-}
-```
-
-## 보안 아키텍처
-
-### 1. 인증 및 권한
-
-#### JWT 기반 인증 (M3+)
-
-```typescript
-interface JWTAuthentication {
-  generateToken(user: User): string {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24시간
-    };
-    
-    return jwt.sign(payload, this.secretKey, { algorithm: 'HS256' });
-  }
-  
-  verifyToken(token: string): UserPayload {
-    return jwt.verify(token, this.secretKey) as UserPayload;
-  }
-}
-```
-
-#### RBAC 권한 관리 (M4)
-
-```typescript
-interface RBAC {
-  hasPermission(user: User, resource: string, action: string): boolean {
-    const role = this.getRole(user.role);
-    return role.permissions.some(p => 
-      p.resource === resource && p.actions.includes(action)
-    );
-  }
-  
-  checkMemoryAccess(user: User, memory: MemoryItem): boolean {
-    if (memory.privacy_scope === 'public') return true;
-    if (memory.privacy_scope === 'team' && user.team_id === memory.team_id) return true;
-    if (memory.privacy_scope === 'private' && user.id === memory.user_id) return true;
-    return false;
-  }
-}
-```
-
-### 2. 데이터 암호화
-
-#### 민감한 데이터 암호화
-
-```typescript
-interface DataEncryption {
-  encryptSensitiveData(data: string): string {
-    const cipher = crypto.createCipher('aes-256-gcm', this.encryptionKey);
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
-  }
-  
-  decryptSensitiveData(encryptedData: string): string {
-    const decipher = crypto.createDecipher('aes-256-gcm', this.encryptionKey);
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  }
-}
-```
-
-#### 전송 중 암호화
-
-```typescript
-interface TransportEncryption {
-  // HTTPS 강제
-  enforceHTTPS(): void {
-    this.app.use((req, res, next) => {
-      if (!req.secure && req.get('x-forwarded-proto') !== 'https') {
-        return res.redirect(`https://${req.get('host')}${req.url}`);
-      }
-      next();
-    });
-  }
-  
-  // HSTS 헤더 설정
-  setHSTS(): void {
-    this.app.use((req, res, next) => {
-      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-      next();
-    });
-  }
-}
-```
-
-### 3. 감사 로깅
-
-#### 보안 이벤트 로깅
-
-```typescript
-interface SecurityAudit {
-  logSecurityEvent(event: SecurityEvent): void {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      event_type: event.type,
-      user_id: event.user_id,
-      ip_address: event.ip_address,
-      user_agent: event.user_agent,
-      details: event.details,
-      severity: event.severity
-    };
-    
-    this.auditLogger.info(logEntry);
-  }
-  
-  detectAnomalies(): void {
-    // 비정상적인 접근 패턴 감지
-    const recentEvents = this.getRecentEvents(5 * 60 * 1000); // 5분
-    const suspiciousEvents = this.analyzePatterns(recentEvents);
-    
-    if (suspiciousEvents.length > 0) {
-      this.alertSecurityTeam(suspiciousEvents);
-    }
-  }
-}
-```
-
-## 모니터링 및 관측성
-
-### 1. 메트릭 수집
-
-#### Prometheus 메트릭
-
-```typescript
-interface Metrics {
-  // 메모리 관련 메트릭
-  memoryCounter: Counter<string>;
-  memorySize: Gauge<string>;
-  
-  // 검색 관련 메트릭
-  searchDuration: Histogram<string>;
-  searchResults: Counter<string>;
-  
-  // 에러 관련 메트릭
-  errorCounter: Counter<string>;
-  errorRate: Gauge<string>;
-  
-  // 성능 관련 메트릭
-  responseTime: Histogram<string>;
-  throughput: Counter<string>;
-}
-```
-
-### 2. 로깅
-
-#### 구조화된 로깅
-
-```typescript
-interface StructuredLogging {
-  logMemoryOperation(operation: string, memoryId: string, userId?: string): void {
-    this.logger.info({
-      operation,
-      memory_id: memoryId,
-      user_id: userId,
-      timestamp: new Date().toISOString(),
-      level: 'info'
-    });
-  }
-  
-  logSearchQuery(query: string, resultCount: number, duration: number): void {
-    this.logger.info({
-      event: 'search_query',
-      query,
-      result_count: resultCount,
-      duration_ms: duration,
-      timestamp: new Date().toISOString()
-    });
-  }
-}
-```
-
-### 3. 헬스 체크
-
-#### 서비스 상태 모니터링
-
-```typescript
-interface HealthCheck {
-  async checkHealth(): Promise<HealthStatus> {
-    const checks = await Promise.allSettled([
-      this.checkDatabase(),
-      this.checkRedis(),
-      this.checkSearchIndex(),
-      this.checkMemoryUsage()
-    ]);
-    
-    return {
-      status: checks.every(c => c.status === 'fulfilled') ? 'healthy' : 'unhealthy',
-      checks: checks.map((check, index) => ({
-        name: this.checkNames[index],
-        status: check.status === 'fulfilled' ? 'ok' : 'error',
-        details: check.status === 'fulfilled' ? check.value : check.reason
-      }))
-    };
-  }
-}
-```
-
-## 확장성 고려사항
-
-### 1. 수평적 확장
-
-#### 샤딩 전략
-
-```typescript
-interface ShardingStrategy {
-  getShard(memoryId: string): string {
-    const hash = this.hash(memoryId);
-    return `shard_${hash % this.shardCount}`;
-  }
-  
-  routeQuery(query: string): string[] {
-    // 쿼리를 모든 샤드에 전송
-    return this.shards.map(shard => `${shard}/search`);
-  }
-}
-```
-
-### 2. 캐싱 전략
-
-#### 다층 캐싱
-
-```typescript
-interface MultiLevelCache {
-  async get(key: string): Promise<any> {
-    // L1: 메모리 캐시
-    let value = this.memoryCache.get(key);
-    if (value) return value;
-    
-    // L2: Redis 캐시
-    value = await this.redis.get(key);
-    if (value) {
-      this.memoryCache.set(key, value);
-      return value;
-    }
-    
-    // L3: 데이터베이스
-    value = await this.database.get(key);
-    if (value) {
-      this.memoryCache.set(key, value);
-      await this.redis.setex(key, 3600, value);
-      return value;
-    }
-    
-    return null;
-  }
-}
-```
-
-이 아키텍처 문서는 Memento MCP Server의 전체적인 구조와 설계 원칙을 설명합니다. 각 컴포넌트의 상세한 구현은 개별 개발 문서를 참조하세요.
+`relevance` 슬롯에는 벡터 유사도(0.4), BM25 점수(0.3), 태그 매칭(0.2), 제목 히트(0.1)가 합산된다. 마지막으로 MMR(Maximal Marginal Relevance)이 결과 다양성을 조절한다.
+
+### embedding
+
+다중 임베딩 프로바이더를 지원한다. `EmbeddingProviderFactory`가 환경 설정에 따라 적절한 프로바이더를 선택한다:
+
+| 프로바이더 | 특징 |
+|-----------|------|
+| **TF-IDF** | 외부 API 없이 로컬 실행. 기본값. |
+| **MiniLM** | 경량 로컬 모델. |
+| **OpenAI** (`text-embedding-3-small`) | API 키 필요, 1536차원. |
+| **Gemini** | Google Gemini 임베딩. |
+
+임베딩은 `memory_embedding` 테이블에 저장되고 sqlite-vec 인덱스로 근사 최근접 이웃(ANN) 검색을 제공한다.
+
+### forgetting
+
+TTL이 만료된 기억을 정리하는 정책 서비스(`ForgettingPolicyService`). Forget Score는 나이, 중요도, 사용 빈도를 고려한 지수 감쇠 함수로 계산된다. 고정(`pinned`)된 기억은 삭제 대상에서 제외된다. `BatchScheduler`가 24시간마다 정리 작업을 실행한다.
+
+### anchor
+
+A/B/C 세 슬롯의 컨텍스트 앵커. 현재 작업과 밀접한 기억을 앵커로 지정하면, `search_local` 도구가 그 주변 관계 그래프를 탐색해 맥락 관련 기억을 좁은 범위에서 빠르게 찾는다.
+
+앵커는 DB에 영구 저장되어 서버 재시작 후에도 자동으로 복원된다. `owner_id`로 에이전트마다 독립된 앵커맵을 가질 수 있다.
+
+### relation
+
+메모리 간 관계를 추출하고 관리한다. 두 레이어가 있다:
+- **`memory_link` 테이블**: 기억 간 명시적 관계(`cause_of`, `derived_from`, `duplicates`, `contradicts`, `version_of`)를 저장한다.
+- **Triple 추출**: `ExtractTriplesTool`이 에피소드 기억에서 Subject–Predicate–Object Triple을 추출해 `memory_item`의 semantic 레코드로 저장한다. 에피소드 저장 시 비동기로 큐에 등록되고, `TripleExtractionBatchJob`이 배치로 처리한다.
+
+`triple_extracted_status` 컬럼이 처리 상태를 추적하여 실패 시 재시도한다.
+
+### procedural
+
+버전 관리가 가능한 절차 기억. 동일한 워크플로우의 여러 버전을 `version_series_id`로 추적한다. `remember_procedure`로 새 버전을 저장하고, `procedural_diff`로 버전 간 차이를 확인하고, `procedural_rollback`으로 이전 버전으로 되돌린다.
+
+### consolidation
+
+에피소드 기억을 시맨틱 기억으로 증류하는 **Sleep Consolidation** 서비스. `SleepConsolidationService`가 1시간마다 실행되어 에피소드 기억에서 핵심 사실을 시맨틱 메모리로 응축한다. 이름이 "수면 통합"인 것은, 인간이 자는 동안 단기 기억이 장기 기억으로 전환되는 기제를 모사하기 때문이다.
+
+### monitoring
+
+세 계층의 모니터링이 있다:
+- **`ErrorLoggingService`**: LOW/MEDIUM/HIGH/CRITICAL 심각도와 DATABASE/NETWORK/VALIDATION 등 카테고리별 구조화된 오류 로깅.
+- **`PerformanceAlertService`**: 응답 시간·메모리 사용량·오류율·처리량이 임계값을 초과하면 경보를 생성한다. 경보는 JSONL 파일과 컬러 콘솔에 기록된다.
+- **`FailureDetector` + `ReflexionWorker`**: 반복 실패 패턴을 감지하고, `MetaMemoryIntrospectionService`가 신뢰도 낮은 기억을 식별해 자기 교정을 돕는다.
+
+### telemetry
+
+도구 호출과 메모리 접근 패턴을 추적한다. `TelemetryService`가 `owner_id`/`agent_id` 기반으로 컨텍스트를 격리하여 에이전트별 사용 통계를 제공한다. `get_telemetry_summary` 도구로 조회하고, HTTP 관리 API로도 접근 가능하다.
+
+---
+
+## MCP 도구 목록
+
+서버가 에이전트에게 노출하는 18개 도구:
+
+| 도구 | 카테고리 | 설명 |
+|------|----------|------|
+| `remember` | memory | 기억 저장 |
+| `recall` | memory | 하이브리드 검색으로 기억 조회 |
+| `forget` | memory | 기억 삭제 (소프트/하드) |
+| `pin` / `unpin` | memory | 기억 고정·해제 |
+| `feedback` | memory | 기억 유용성 피드백 |
+| `memory_injection` | memory | 현재 세션에 기억을 주입하는 프롬프트 생성 |
+| `get_memory_neighbors` | memory | 관련 기억 이웃 탐색 |
+| `set_anchor` / `get_anchor` / `clear_anchor` | anchor | 컨텍스트 앵커 설정·조회·해제 |
+| `search_local` | anchor | 앵커 주변 로컬 검색 |
+| `remember_procedure` | procedural | 버전 관리 절차 기억 저장 |
+| `procedural_diff` / `procedural_rollback` | procedural | 버전 비교·롤백 |
+| `extract_triples` | relation | 에피소드에서 Triple 수동 추출 |
+| `get_introspection_summary` | meta | 메모리 품질 인트로스펙션 요약 |
+| `get_telemetry_summary` | telemetry | 에이전트 사용 통계 조회 |
+
+---
+
+## BatchScheduler와 백그라운드 파이프라인
+
+`BatchScheduler`가 다음 작업들을 주기적으로 관리한다. 작업마다 타임아웃·재시도 정책이 있고, HTTP 관리 API(`/admin/batch/run`)로 수동 실행도 가능하다.
+
+| 작업 | 기본 주기 | 역할 |
+|------|-----------|------|
+| `triple_extraction` | 1시간 | 미처리 에피소드에서 Triple 추출 |
+| `sleep_consolidation` | 1시간 | 에피소드 → 시맨틱 증류 |
+| `consolidation_score_incremental` | 1시간 | 통합 점수 증분 업데이트 |
+| `consolidation_score_full_sweep` | 24시간 (새벽 3시) | 전체 통합 점수 재계산 |
+| `quality_measurement` | 24시간 | 메모리 품질 측정 |
+| `forgetting_cleanup` | 24시간 | TTL 만료 기억 정리 |
+| `memory_review_candidates` | 24시간 | 복습 후보 갱신 |
+| `meta_memory_introspection` | 6시간 | 신뢰도 낮은 기억 식별 |
+| `relation_validation` | 7일 (일요일 새벽 2시) | 관계 유효성 검증 |
+| `log_rotation` | 24시간 | 로그 파일 순환 |
+| `telemetry_cleanup` | 24시간 | 텔레메트리 데이터 정리 |
+
+Triple 추출은 두 단계로 이루어진다. `remember`가 에피소드를 저장할 때 잡큐에 per-item 작업을 등록한다. 1시간마다 실행되는 배치는 누락된 에피소드를 배치 크기 10개 단위로 처리한다. 실패한 항목은 `triple_extracted_status = 'failed'`로 기록되어 다음 배치에서 재처리된다.
+
+---
+
+## 데이터베이스
+
+Memento는 현재 **SQLite(better-sqlite3)** 단일 스토리지를 사용한다. WAL 모드로 동시 읽기 성능을 확보하고, `WalCheckpointScheduler`가 WAL 파일을 주기적으로 체크포인트한다. `DatabaseLockMonitor`가 잠금 경합을 감시한다.
+
+주요 테이블:
+- **`memory_item`**: 모든 기억의 홈. 타입, 내용, 중요도, 태그, 임베딩 메타, Triple 필드, 버전 필드 등이 한 테이블에 있다.
+- **`memory_tag` / `memory_item_tag`**: N:N 태그 관계.
+- **`memory_link`**: 기억 간 명시적 관계.
+- **`memory_embedding`**: 벡터 임베딩 (sqlite-vec ANN 검색).
+- **`memory_item_fts`** (가상 테이블): FTS5 전문 검색 인덱스.
+- **`anchor`**: 앵커 영구 저장 (migration 004).
+- **`meta_memory_stats`**: 기억별 리콜 성공/실패 통계.
+- **`telemetry_events` / `telemetry_daily_metrics`**: 텔레메트리 데이터.
+- **`memory_review_candidate`**: 복습 후보 목록.
+- **`kg_triple`**: 기억에서 추출된 Knowledge Graph Triple (중복 제거 포함).
+
+스키마 변경은 `packages/memento-core/src/infrastructure/database/database/migration/migrations/` 아래 번호 순으로 실행되는 마이그레이션으로 관리된다. 실행 가능한 DDL의 원본은 `schema.sql`이다.
+
+PostgreSQL, Redis, Kubernetes 기반 멀티테넌트 확장은 현재 구현되어 있지 않다. 향후 로드맵 항목이다.
+
+---
+
+## 서비스 초기화 순서
+
+서버가 시작될 때 `initializeServices(db)`가 다음 순서로 서비스를 초기화한다:
+
+1. **검색 + 임베딩**: `HybridSearchEngine`, `MemoryEmbeddingService`, `ForgettingPolicyService`, `DatabaseOptimizer`
+2. **모니터링**: `ErrorLoggingService`, `PerformanceAlertService`
+3. **앵커 스택**: `VectorSearchEngine`, `AnchorManager`
+4. **실패 감지**: `FailureDetector`, `ReflexionWorker`
+5. **모니터링 스케줄러**: `PerformanceMonitor`, `WalCheckpointScheduler`, `DatabaseLockMonitor`, `RuntimeDiagnosticsLogger`
+6. **메타 + 콘솔리데이션**: `WriteCoalescingManager`, `ConsolidationScoreService`, `MetaMemoryService`
+7. **배치 파이프라인**: `BatchScheduler`, `TelemetryService`, `RelationGraph`, `SleepConsolidationService`, `IntrospectionScanCache`
+8. **런타임 진단 샘플러**: 부트스트랩 이벤트 기록
+
+모든 서비스가 준비된 후에야 MCP 서버가 요청을 받기 시작한다.
+
+---
+
+관련 문서:
+- [비동기 Augmentation 파이프라인](./async-augmentation-pipeline.md)
+- [데이터베이스 설계](./database-design.md)
+- [데이터베이스 ERD](./database-erd.md)
