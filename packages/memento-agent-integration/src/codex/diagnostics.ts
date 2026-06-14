@@ -8,6 +8,7 @@ export interface CodexDiagnosticInput {
 
 export interface CodexDiagnosticResult {
   compatible: boolean;
+  trustApproval: 'unverified';
   version?: string;
   hooksFeature?: {
     stage: string;
@@ -31,8 +32,8 @@ export function diagnoseCodex(
   const missingEvents = CODEX_HOOK_EVENTS.filter(event => !configured.has(event));
   const warnings: string[] = [];
   if (!version) warnings.push('Unable to parse Codex CLI version.');
-  if (version && version !== '0.137.0') {
-    warnings.push(`Codex CLI ${version} differs from tested version 0.137.0.`);
+  if (version && version !== '0.139.0') {
+    warnings.push(`Codex CLI ${version} differs from tested version 0.139.0.`);
   }
   if (!hooksFeature) warnings.push('Codex hooks capability was not reported.');
   else if (!hooksFeature.enabled) warnings.push('Codex hooks capability is disabled.');
@@ -45,7 +46,11 @@ export function diagnoseCodex(
   warnings.push(
     'PostToolUse coverage depends on Codex hook discovery and tool handlers; verify after upgrades.',
   );
+  warnings.push(
+    'Codex requires hook trust approval after installation; open /hooks and trust the Memento handlers.',
+  );
   return {
+    trustApproval: 'unverified',
     compatible: Boolean(version)
       && hooksFeature?.enabled === true
       && hooksFeature.stage === 'stable'

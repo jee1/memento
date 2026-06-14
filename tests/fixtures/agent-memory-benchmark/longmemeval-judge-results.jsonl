@@ -1,0 +1,1 @@
+{"question_id":"question-1","hypothesis":"Friday","correct":true,"cited_evidence_session_ids":["session-2"],"required_evidence_session_ids":["session-2"],"judge":{"provider":"fixture","model":"deterministic-reviewer","prompt_version":"longmemeval-v1"}}

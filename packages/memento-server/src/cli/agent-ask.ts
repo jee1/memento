@@ -422,7 +422,6 @@ export async function runAgentAskMain(
 
   const { db, services } = core;
   const toolContext = createToolContext(db, services);
-
   let llm: ILLMPort;
   try {
     const envForLlm = forceLlmMock

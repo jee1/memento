@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-14T01:35:07.326Z",
+  "ok": true,
+  "environment": {
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.11.0",
+    "codex": {
+      "status": "pass",
+      "version": "0.139.0",
+      "reason_code": "NONE",
+      "evidence": "hooks enabled"
+    },
+    "claude_code": {
+      "status": "pass",
+      "version": "2.1.153",
+      "reason_code": "NONE",
+      "evidence": "--include-hook-events available"
+    }
+  },
+  "adapters": {
+    "codex": {
+      "connect": {
+        "status": "pass",
+        "preserved": true,
+        "backup_verified": true,
+        "reconnect_idempotent": true,
+        "hook_count": 5,
+        "reason_code": "NONE"
+      },
+      "lifecycle": [
+        {
+          "event": "SessionStart",
+          "normalized_event": "SESSION_START",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "UserPromptSubmit",
+          "normalized_event": "USER_PROMPT",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "PostToolUse",
+          "normalized_event": "TOOL_RESULT",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "PreCompact",
+          "normalized_event": "PRE_COMPACT",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "Stop",
+          "normalized_event": "STOP",
+          "status": "pass",
+          "reason_code": "NONE"
+        }
+      ],
+      "failures": [
+        {
+          "scenario": "server_down",
+          "status": "pass",
+          "reason_code": "SERVER_UNAVAILABLE",
+          "non_blocking": true,
+          "elapsed_ms": 6
+        },
+        {
+          "scenario": "auth_failure",
+          "status": "pass",
+          "reason_code": "AUTH_FAILED",
+          "non_blocking": true,
+          "elapsed_ms": 6
+        },
+        {
+          "scenario": "timeout",
+          "status": "pass",
+          "reason_code": "TIMEOUT",
+          "non_blocking": true,
+          "elapsed_ms": 57
+        }
+      ]
+    },
+    "claude_code": {
+      "connect": {
+        "status": "pass",
+        "preserved": true,
+        "backup_verified": true,
+        "reconnect_idempotent": true,
+        "hook_count": 5,
+        "reason_code": "NONE"
+      },
+      "lifecycle": [
+        {
+          "event": "SessionStart",
+          "normalized_event": "SESSION_START",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "UserPromptSubmit",
+          "normalized_event": "USER_PROMPT",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "PostToolUse",
+          "normalized_event": "TOOL_RESULT",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "PreCompact",
+          "normalized_event": "PRE_COMPACT",
+          "status": "pass",
+          "reason_code": "NONE"
+        },
+        {
+          "event": "Stop",
+          "normalized_event": "STOP",
+          "status": "pass",
+          "reason_code": "NONE"
+        }
+      ],
+      "failures": [
+        {
+          "scenario": "server_down",
+          "status": "pass",
+          "reason_code": "SERVER_UNAVAILABLE",
+          "non_blocking": true,
+          "elapsed_ms": 6
+        },
+        {
+          "scenario": "auth_failure",
+          "status": "pass",
+          "reason_code": "AUTH_FAILED",
+          "non_blocking": true,
+          "elapsed_ms": 5
+        },
+        {
+          "scenario": "timeout",
+          "status": "pass",
+          "reason_code": "TIMEOUT",
+          "non_blocking": true,
+          "elapsed_ms": 56
+        }
+      ]
+    }
+  },
+  "operations": {
+    "simulated": {
+      "doctor_human": "pass",
+      "status_human": "pass",
+      "demo_human": "pass",
+      "doctor_json": "pass",
+      "status_json": "pass",
+      "demo_json": "pass"
+    },
+    "live": {
+      "status": "pass",
+      "reason_code": "NONE",
+      "commands": {
+        "doctor_human": "pass",
+        "status_human": "pass",
+        "demo_human": "pass",
+        "doctor_json": "pass",
+        "status_json": "pass",
+        "demo_json": "pass"
+      }
+    }
+  },
+  "live_agent_sessions": {
+    "codex": {
+      "status": "pass",
+      "reason_code": "NONE",
+      "command_configured": true
+    },
+    "claude_code": {
+      "status": "pass",
+      "reason_code": "NONE",
+      "command_configured": true
+    }
+  },
+  "compatibility_matrix": [
+    {
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.11.0",
+      "agent": "codex",
+      "agent_version": "0.139.0",
+      "server": "1.17.0",
+      "result": "pass",
+      "evidence": "installed CLI probe + isolated connect + lifecycle replay + failure fallback"
+    },
+    {
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.11.0",
+      "agent": "claude-code",
+      "agent_version": "2.1.153",
+      "server": "1.17.0",
+      "result": "pass",
+      "evidence": "installed CLI probe + isolated connect + lifecycle replay + failure fallback"
+    }
+  ],
+  "constraints": []
+}

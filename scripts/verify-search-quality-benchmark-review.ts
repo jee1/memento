@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { isAbsolute, join } from 'path';
-import { verifyReviewableBenchmark } from '../src/test/helpers/search-quality-review-verifier.js';
+import { verifyReviewableBenchmark } from '../packages/memento-core/src/test/helpers/search-quality-review-verifier.js';
 
 interface CliOptions {
   benchmarkDir: string;

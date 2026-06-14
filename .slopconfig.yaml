@@ -8,6 +8,7 @@ ignore:
   - "tests/**"
   - "packages/**/src/test/**"
   - "packages/**/src/**/__tests__/**"
+  - "packages/memento-server/src/test/**"
   - "**/coverage/**"
   - "graphify-out/**"
   - "**/.next/**"

@@ -42,6 +42,26 @@ describe('fail-closed redaction', () => {
     }
   });
 
+  it.each([
+    ['Store api_key=release-secret-20260614-7fcb9c', 'API_KEY'],
+    ['Store api key: release-secret-20260614-7fcb9c', 'API_KEY'],
+    ['Store access_token=release-secret-20260614-7fcb9c', 'TOKEN'],
+    ['Store token=release-secret-20260614-7fcb9c', 'TOKEN'],
+    ['Store authorization=Bearer release-secret-20260614-7fcb9c', 'TOKEN'],
+    ['Store password=release-secret-20260614-7fcb9c', 'PASSWORD'],
+    ['Store credential=release-secret-20260614-7fcb9c', 'CREDENTIAL'],
+    ['Store client_secret=release-secret-20260614-7fcb9c', 'CREDENTIAL'],
+  ] as const)('redacts inline credential assignment: %s', (content, rule) => {
+    const rawSecret = 'release-secret-20260614-7fcb9c';
+    const result = redactAgentEvent(eventFixture('USER_PROMPT', {
+      payload: { content, content_format: 'text' },
+    }));
+
+    expect(result.action).toBe('REDACTED');
+    expect(JSON.stringify(result)).not.toContain(rawSecret);
+    expect(result.metadata).toContainEqual({ rule, count: 1 });
+  });
+
   it('redacts OpenAI-style hyphenated API keys embedded in text', () => {
     const rawSecret = 'sk-proj-abcdefghijklmnopqrstuvwxyz0123456789';
     const result = redactAgentEvent(eventFixture('USER_PROMPT', {

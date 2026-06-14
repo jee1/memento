@@ -27,6 +27,7 @@ Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 �
 | **packages/memento-core** (`@memento/core`) | 도메인·인프라·공유 라이브러리. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB 초기화·마이그레이션은 루트에서 `npm run db:init` / `npm run db:migrate`로 실행. |
 | **packages/memento-server** | core를 사용하는 MCP/HTTP 서버. 루트 `npm run dev`, `npm start`, `npm run dev:http` 등으로 실행. |
 | **packages/memento-client** (`@memento/client`) | 서버 연결용 클라이언트 라이브러리. |
+| **packages/memento-agent-integration** (`@memento/agent-integration`) | Codex CLI·Claude Code lifecycle hook 수집, 민감정보 마스킹, 비차단 fallback을 제공하는 adapter 라이브러리. |
 | **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core`를 in-process로 사용). |
 
 상세 구조·빌드·테스트 명령은 [AGENTS.md](AGENTS.md)를 참조하세요.
@@ -82,6 +83,45 @@ http://localhost:9001/graph
 OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
 
 `@memento/assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
+
+### Codex CLI·Claude Code 자동 연동
+
+Memento HTTP 서버를 실행한 뒤 CLI adapter를 연결하면 `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `PreCompact`, `Stop` lifecycle을 자동으로 수집할 수 있습니다. 기존 agent 설정은 보존되며, 변경 전 원본의 backup이 생성됩니다.
+
+```bash
+# 1. Memento 서버 실행
+npm run build
+npm run start:http
+
+# 2. 사용할 agent 연결
+memento connect codex
+memento connect claude-code
+
+# 3. 연결 및 수집 상태 확인
+memento doctor
+memento status
+
+# 4. 격리된 예제 session으로 전체 흐름 확인
+memento demo
+```
+
+Codex는 연결 후 `/hooks`에서 Memento handler 5개를 신뢰 처리해야 실제 hook이 활성화됩니다. 서버 중단, 인증 실패, timeout이 발생해도 adapter는 agent 작업을 중단시키지 않고 제한 시간 내에 fallback합니다.
+
+- 설치·장애 진단·실제 agent 검증: [Agent Integration Smoke Matrix](docs/operations/ko/agent-smoke-matrix.md)
+- 자동화된 release gate 결과: [2026-06-14 검증 기록](docs/_work/testing/agent-integration-release-gate/latest/run-note.md)
+
+### 검증 상태
+
+2026-06-14 기준 격리된 실제 서버와 Codex CLI·Claude Code를 사용한 release gate를 통과했습니다.
+
+- lifecycle capture: **39/39**
+- provenance coverage: **9/9**
+- credential fixture leak: **0건**
+- hook return p95: **37.58ms**
+- memory injection p95: **10ms**
+- server-down·인증 실패·timeout 시 agent unblocked: **6/6**
+
+이 수치는 로컬 격리 환경의 출시 검증 결과이며 장기 운영 SLO나 전체 플랫폼 인증을 의미하지 않습니다. LongMemEval-S 검증 범위와 해석 제한은 [실제 데이터 검증 문서](docs/_work/testing/ko/longmemeval-s-validation.md)를 참고하세요.
 
 ## 🚀 빠른 시작
 
@@ -418,6 +458,9 @@ await client.forget(result.memory_id);
 
 ## 📚 문서
 
+- [Agent Integration Smoke Matrix](docs/operations/ko/agent-smoke-matrix.md) - Codex CLI·Claude Code 연결 및 장애 fallback 검증
+- [Agent Integration Release Gate](docs/_work/testing/agent-integration-release-gate/latest/run-note.md) - 최신 release gate 결과와 재현 절차
+- [LongMemEval-S 실제 데이터 검증](docs/_work/testing/ko/longmemeval-s-validation.md) - 장기 기억 retrieval·외부 judge 검증 범위와 한계
 - [임베딩 서비스 가이드](docs/guides/ko/embedding-service-guide.md) - 임베딩 서비스 사용법
 - [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md) - 성능 비교 결과
 - [API 레퍼런스](docs/api/ko/embedding-api-reference.md) - API 상세 문서

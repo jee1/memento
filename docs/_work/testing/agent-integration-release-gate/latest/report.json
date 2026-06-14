@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-14T02:39:21.585Z",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "capture_success_rate",
+      "status": "pass",
+      "actual": 1,
+      "threshold": ">=0.99",
+      "sample_count": 39
+    },
+    {
+      "name": "provenance_coverage",
+      "status": "pass",
+      "actual": 1,
+      "threshold": "1.0",
+      "sample_count": 9
+    },
+    {
+      "name": "secret_leak_count",
+      "status": "pass",
+      "actual": 0,
+      "threshold": 0,
+      "sample_count": 1
+    },
+    {
+      "name": "hook_return_p95_ms",
+      "status": "pass",
+      "actual": 37.576404000000025,
+      "threshold": "<=50",
+      "sample_count": 20
+    },
+    {
+      "name": "injection_p95_ms",
+      "status": "pass",
+      "actual": 10,
+      "threshold": "<=1500",
+      "sample_count": 40
+    },
+    {
+      "name": "injection_budget_exceeded",
+      "status": "pass",
+      "actual": 0,
+      "threshold": 0,
+      "sample_count": 40
+    },
+    {
+      "name": "queue_dropped_count",
+      "status": "pass",
+      "actual": 0,
+      "threshold": 0,
+      "sample_count": 6
+    },
+    {
+      "name": "duplicate_event_rows",
+      "status": "pass",
+      "actual": 0,
+      "threshold": 0,
+      "sample_count": 39
+    },
+    {
+      "name": "agent_unblocked_rate",
+      "status": "pass",
+      "actual": 1,
+      "threshold": "1.0",
+      "sample_count": 6
+    },
+    {
+      "name": "regression_suite",
+      "status": "pass",
+      "actual": true,
+      "threshold": true,
+      "sample_count": 3
+    }
+  ]
+}

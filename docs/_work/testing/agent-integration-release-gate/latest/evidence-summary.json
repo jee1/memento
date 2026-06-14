@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "base_commit": "4524fdadbbb059f5e356a181dbc1cfe65722f501",
+  "input_hashes": {
+    "database_sha256": "9c3482f57c74b4ddf81b4ca5b4631d091d5ba5eeabe094d2c221da191c1c91a9",
+    "raw_evidence_sha256": "9eabeea976e17c6057f78e70fa95ca94615f9f36dbf9c0778f31bf937b7afe8f",
+    "smoke_report_sha256": "b2803b9b8a0b027594fddeacf2103fc91fb970a2cbb98ddd9ea8fd181d7f9780"
+  },
+  "hook_return_latency_ms": [
+    54.240376999999995,
+    14.053742999999997,
+    12.719589000000013,
+    32.70038100000002,
+    19.415376000000037,
+    8.441567999999961,
+    8.161765000000003,
+    9.115706999999986,
+    36.90727700000002,
+    10.713870999999983,
+    8.255606999999998,
+    10.48607800000002,
+    37.576404000000025,
+    11.551429999999982,
+    10.610562000000016,
+    10.04335599999996,
+    35.619889,
+    9.717854000000045,
+    10.836941000000024,
+    10.841346999999985
+  ],
+  "agent_attempts": 6,
+  "agent_unblocked_attempts": 6,
+  "queue_dropped_count": 0,
+  "secret_fixture_count": 1,
+  "regressions": {
+    "benchmark_v3": true,
+    "mcp_tools": true,
+    "assistant": true
+  }
+}
