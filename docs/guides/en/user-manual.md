@@ -107,7 +107,7 @@ The CLI equivalent looks like this:
 memento remember "React Hook usage patterns" --type semantic --tags "react,hooks,programming"
 ```
 
-For full CLI documentation, see the [Memento CLI for AI Guide](./memento-cli-for-ai.md).
+For full CLI documentation, see the [Memento CLI for AI Guide](../ko/memento-cli-for-ai.md).
 
 ## Understanding Memory Types
 
@@ -273,7 +273,7 @@ The default location is `~/.memento/memory.db`. Override this with the `DB_PATH`
 
 - [API Reference](../../api/en/api-reference.md)
 - [Developer Guide](developer-guide.md)
-- [Memento CLI for AI Guide](./memento-cli-for-ai.md)
+- [Memento CLI for AI Guide](../ko/memento-cli-for-ai.md)
 - [Cursor MCP Setup Guide](./cursor-mcp-setup.md)
 - [npx Troubleshooting](../../operations/en/npx-troubleshooting.md)
 - [Node.js Version Compatibility](../../operations/en/troubleshooting-node-version.md)
