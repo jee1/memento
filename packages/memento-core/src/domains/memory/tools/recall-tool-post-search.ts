@@ -19,6 +19,30 @@ import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
 import type { RecallHybridOrTextSearchResult, RecallParams } from './recall-tool-schema.js';
 import type { RecallResultItem, RecallSearchItem } from './recall-tool-types.js';
 
+function filterLatestOnly(procedural: RecallSearchItem[]): RecallSearchItem[] {
+  const bySeries = new Map<string, RecallSearchItem>();
+  for (const item of procedural) {
+    const sid = item.version_series_id ?? item.id ?? '';
+    if (!sid) continue;
+    const cur = bySeries.get(sid);
+    const v = item.version ?? 0;
+    if (!cur || (cur.version ?? 0) < v) bySeries.set(sid, item);
+  }
+  return Array.from(bySeries.values());
+}
+
+function filterSpecificVersion(
+  procedural: RecallSearchItem[],
+  versionSeriesId?: string,
+  versionNumber?: number,
+): RecallSearchItem[] {
+  return procedural.filter((i: RecallSearchItem) => {
+    if (versionSeriesId && i.version_series_id !== versionSeriesId) return false;
+    if (versionNumber !== undefined && (i.version ?? 0) !== versionNumber) return false;
+    return true;
+  });
+}
+
 /**
  * version_filter에 따라 검색 결과를 필터링합니다.
  * latest_only: version_series_id별 최신(version 최대) 1건만 유지.
@@ -33,26 +57,8 @@ export function applyVersionFilter(
   const procedural = items.filter((i: RecallSearchItem) => i.type === 'procedural');
   const nonProcedural = items.filter((i: RecallSearchItem) => i.type !== 'procedural');
   if (procedural.length === 0) return items;
-
-  if (versionFilter === 'latest_only') {
-    const bySeries = new Map<string, RecallSearchItem>();
-    for (const item of procedural) {
-      const sid = item.version_series_id ?? item.id ?? '';
-      if (!sid) continue;
-      const cur = bySeries.get(sid);
-      const v = item.version ?? 0;
-      if (!cur || (cur.version ?? 0) < v) bySeries.set(sid, item);
-    }
-    return [...nonProcedural, ...Array.from(bySeries.values())];
-  }
-  if (versionFilter === 'specific_version') {
-    const filtered = procedural.filter((i: RecallSearchItem) => {
-      if (versionSeriesId && i.version_series_id !== versionSeriesId) return false;
-      if (versionNumber !== undefined && (i.version ?? 0) !== versionNumber) return false;
-      return true;
-    });
-    return [...nonProcedural, ...filtered];
-  }
+  if (versionFilter === 'latest_only') return [...nonProcedural, ...filterLatestOnly(procedural)];
+  if (versionFilter === 'specific_version') return [...nonProcedural, ...filterSpecificVersion(procedural, versionSeriesId, versionNumber)];
   return items;
 }
 
