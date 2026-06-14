@@ -10,39 +10,15 @@ import type {
   PersistedAgentEventInput,
   ProvenanceTrace,
 } from '../types.js';
+import { executeAgentCaptureTransaction } from './agent-capture-transaction.js';
+import {
+  AgentIntegrationError,
+  type AgentIntegrationReasonCode,
+} from './agent-integration-error.js';
+import { buildProvenanceTrace } from './agent-provenance-graph.js';
 
-export type AgentIntegrationReasonCode =
-  | 'NONE'
-  | 'AUTH_FAILED'
-  | 'SERVER_UNAVAILABLE'
-  | 'TIMEOUT'
-  | 'QUEUE_OVERFLOW'
-  | 'INVALID_ENVELOPE'
-  | 'INVALID_PAYLOAD'
-  | 'UNSUPPORTED_CONTRACT_VERSION'
-  | 'UNSUPPORTED_EVENT_TYPE'
-  | 'SCHEMA_NOT_READY'
-  | 'SESSION_NOT_STARTED'
-  | 'INVALID_SESSION_STATE'
-  | 'IDEMPOTENCY_CONFLICT'
-  | 'SENSITIVE_PATH'
-  | 'BINARY_CONTENT'
-  | 'PRIVATE_KEY_MATERIAL'
-  | 'PAYLOAD_TOO_LARGE'
-  | 'BATCH_TOO_LARGE'
-  | 'INTERNAL_ERROR';
-
-export class AgentIntegrationError extends Error {
-  constructor(
-    message: string,
-    readonly reasonCode: AgentIntegrationReasonCode,
-    readonly httpStatus: number,
-    readonly retryable = false,
-  ) {
-    super(message);
-    this.name = 'AgentIntegrationError';
-  }
-}
+export type { AgentIntegrationReasonCode };
+export { AgentIntegrationError };
 
 export interface AgentLifecycleServiceOptions {
   retentionDays?: number;
@@ -54,12 +30,6 @@ export interface AgentLifecycleServiceOptions {
 export interface AgentSessionSummarizer {
   summarize(sessionId: string): unknown;
 }
-
-const TERMINAL_STATUSES = new Set<AgentSession['status']>([
-  'COMPLETED',
-  'DEGRADED',
-  'ABANDONED',
-]);
 
 function boundedNumber(value: number | undefined, fallback: number, min: number, max: number): number {
   if (value === undefined || !Number.isFinite(value)) return fallback;
@@ -119,119 +89,17 @@ export class AgentLifecycleService {
       this.trySummarize(sessionId);
     }
 
-    const result: CaptureResult = this.repository.runInTransaction(() => {
-      const existing = this.repository.findObservationByIdempotencyKey(
-        event.adapterName,
-        event.eventId,
-      );
-      if (existing) {
-        if (existing.payloadSha256 !== event.payloadSha256) {
-          throw new AgentIntegrationError(
-            'The idempotency key already exists with a different payload hash',
-            'IDEMPOTENCY_CONFLICT',
-            409,
-          );
-        }
-        return {
-          eventId: event.eventId,
-          status: 'DUPLICATE',
-          reasonCode: 'NONE',
-          observationId: existing.id,
-          lateArrival: existing.lateArrival,
-        };
-      }
-
-      let session = this.repository.getSession(event.sessionId);
-      if (!session) {
-        if (event.eventType !== 'SESSION_START') {
-          throw new AgentIntegrationError(
-            'Agent session has not been started',
-            'SESSION_NOT_STARTED',
-            404,
-          );
-        }
-        session = this.repository.createSession(event, receivedAt);
-      } else if (event.eventType === 'SESSION_START') {
-        throw new AgentIntegrationError(
-          'Agent session is already active',
-          'INVALID_SESSION_STATE',
-          409,
-        );
-      }
-
-      if (
-        session.adapterName !== event.adapterName
-        || session.adapterVersion !== event.adapterVersion
-        || session.contractVersion !== event.contractVersion
-        || session.ownerId !== (event.scope.ownerId ?? null)
-        || session.projectId !== (event.scope.projectId ?? null)
-        || session.processId !== (event.scope.processId ?? null)
-      ) {
-        throw new AgentIntegrationError(
-          'Agent event identity does not match the existing session',
-          'INVALID_SESSION_STATE',
-          409,
-        );
-      }
-
-      if (TERMINAL_STATUSES.has(session.status)) {
-        const terminalAt = session.endedAt ? Date.parse(session.endedAt) : Number.NaN;
-        if (!Number.isFinite(terminalAt) || Date.parse(receivedAt) > terminalAt + this.terminalGraceMs) {
-          throw new AgentIntegrationError(
-            'Agent session no longer accepts lifecycle events',
-            'INVALID_SESSION_STATE',
-            409,
-          );
-        }
-      }
-
-      const lateArrival = event.sequenceNo < session.maxSequenceNo || TERMINAL_STATUSES.has(session.status);
-      const expiresAt = new Date(
-        Date.parse(receivedAt) + this.retentionDays * 24 * 60 * 60 * 1000,
-      ).toISOString();
-      const observation = this.repository.createObservation({
-        ...event,
-        id: randomUUID(),
-        lateArrival,
+    const result: CaptureResult = this.repository.runInTransaction(() =>
+      executeAgentCaptureTransaction(
+        this.repository,
+        {
+          retentionDays: this.retentionDays,
+          terminalGraceMs: this.terminalGraceMs,
+        },
+        event,
         receivedAt,
-        expiresAt,
-      });
-
-      if (!TERMINAL_STATUSES.has(session.status)) {
-        const maxSequenceNo = Math.max(session.maxSequenceNo, event.sequenceNo);
-        if (event.eventType === 'STOP') {
-          const status =
-            event.outcome === 'failed'
-              ? 'DEGRADED'
-              : event.outcome === 'abandoned'
-                ? 'ABANDONED'
-                : 'COMPLETED';
-          session = this.repository.updateSession(event.sessionId, {
-            status,
-            endedAt: receivedAt,
-            lastEventAt: event.occurredAt,
-            maxSequenceNo,
-            degradedReason: status === 'DEGRADED' ? 'STOP_FAILED' : null,
-          }, receivedAt);
-        } else {
-          session = this.repository.updateSession(event.sessionId, {
-            status: event.eventType === 'PRE_COMPACT'
-              ? (session.status === 'DEGRADED' ? 'DEGRADED' : 'ACTIVE')
-              : session.status,
-            lastEventAt: event.occurredAt,
-            maxSequenceNo,
-          }, receivedAt);
-        }
-      }
-
-      return {
-        eventId: event.eventId,
-        status: observation.status,
-        reasonCode: observation.dropReason ?? 'NONE',
-        observationId: observation.id,
-        lateArrival: observation.lateArrival,
-      };
-    });
+      ),
+    );
     if (event.eventType === 'STOP') {
       this.trySummarize(event.sessionId);
     }
@@ -327,113 +195,7 @@ export class AgentLifecycleService {
     maxDepth?: number;
   }): ProvenanceTrace {
     const rows = this.repository.listProvenance(query);
-    const nodes = new Map<string, ProvenanceTrace['nodes'][number]>();
-    const edges: ProvenanceTrace['edges'] = [];
-    const direction = query.direction ?? 'sources';
-    const maxDepth = Math.min(Math.max(query.maxDepth ?? 3, 0), 10);
-    let truncated = false;
-
-    if (query.memoryId) {
-      nodes.set(`memory:${query.memoryId}`, { kind: 'memory', id: query.memoryId });
-    }
-    if (query.observationId) {
-      nodes.set(`observation:${query.observationId}`, {
-        kind: 'observation',
-        id: query.observationId,
-      });
-    }
-
-    for (const row of rows) {
-      const memoryKey = `memory:${row.memoryId}`;
-      const observationKey = row.observationId
-        ? `observation:${row.observationId}`
-        : null;
-      const sessionKey = row.sessionId ? `session:${row.sessionId}` : null;
-
-      if (
-        query.observationId
-        && (direction === 'derived' || direction === 'both')
-      ) {
-        if (maxDepth >= 1) {
-          nodes.set(memoryKey, { kind: 'memory', id: row.memoryId });
-          edges.push({
-            from: `observation:${query.observationId}`,
-            to: memoryKey,
-            type: row.derivationType,
-          });
-        } else {
-          truncated = true;
-        }
-      }
-
-      if (
-        query.observationId
-        && sessionKey
-        && (direction === 'sources' || direction === 'both')
-      ) {
-        if (maxDepth >= 1) {
-          nodes.set(sessionKey, {
-            kind: 'session',
-            id: row.sessionId!,
-            sourceDeleted: row.sourceDeleted,
-          });
-          edges.push({
-            from: `observation:${query.observationId}`,
-            to: sessionKey,
-            type: 'observed_in',
-          });
-        } else {
-          truncated = true;
-        }
-      }
-
-      if (
-        query.memoryId
-        && (direction === 'sources' || direction === 'both')
-        && observationKey
-      ) {
-        if (maxDepth < 1) {
-          truncated = true;
-          continue;
-        }
-        nodes.set(observationKey, {
-          kind: 'observation',
-          id: row.observationId!,
-          sourceDeleted: row.sourceDeleted,
-        });
-        edges.push({ from: memoryKey, to: observationKey, type: row.derivationType });
-        if (sessionKey && maxDepth >= 2) {
-          nodes.set(sessionKey, {
-            kind: 'session',
-            id: row.sessionId!,
-            sourceDeleted: row.sourceDeleted,
-          });
-          edges.push({
-            from: observationKey,
-            to: sessionKey,
-            type: 'observed_in',
-          });
-        } else if (sessionKey) {
-          truncated = true;
-        }
-      } else if (
-        query.memoryId
-        && (direction === 'sources' || direction === 'both')
-        && sessionKey
-      ) {
-        if (maxDepth >= 1) {
-          nodes.set(sessionKey, {
-            kind: 'session',
-            id: row.sessionId!,
-            sourceDeleted: row.sourceDeleted,
-          });
-          edges.push({ from: memoryKey, to: sessionKey, type: row.derivationType });
-        } else {
-          truncated = true;
-        }
-      }
-    }
-    return { nodes: [...nodes.values()], edges, truncated };
+    return buildProvenanceTrace(rows, query);
   }
 
   enforceRetention(at = this.now()): { payloadsCleared: number } {

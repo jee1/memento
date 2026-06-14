@@ -134,7 +134,8 @@
     "lint:ts": "eslint \"{packages,apps,tests,scripts}/**/*.ts\"",
     "lint:js": "eslint \"static/js/**/*.js\"",
     "sync:root-server-dist": "node scripts/sync-root-server-dist.js",
-    "build:root": "npm run build -w memento-server && npm run sync:root-server-dist"
+    "build:root": "npm run build -w memento-server && npm run sync:root-server-dist",
+    "quality:slop:gate": "bash scripts/slop-gate-scan.sh"
   },
   "keywords": [
     "mcp",

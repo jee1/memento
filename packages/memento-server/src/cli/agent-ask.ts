@@ -23,7 +23,13 @@ import {
   ToolContextKnowledgeContextAdapter,
   ToolContextRememberPersistenceAdapter,
 } from '@memento/core';
-import type { ILLMPort, KnowledgeCandidate, PersonalKnowledgePersistItemResult } from '@memento/core';
+import type {
+  ILLMPort,
+  KnowledgeCandidate,
+  PersonalKnowledgePersistItemResult,
+  ServerServices,
+} from '@memento/core';
+import type Database from 'better-sqlite3';
 
 import { parseArgvToParams } from './option-map.js';
 
@@ -261,6 +267,20 @@ function debugErr(err: unknown): void {
   }
 }
 
+async function teardownAgentAsk(
+  services: ServerServices,
+  db: Database.Database,
+): Promise<void> {
+  if (services.runtimeDiagnosticsSamplerCleanup) {
+    try {
+      await services.runtimeDiagnosticsSamplerCleanup();
+    } catch {
+      // Intentional: sampler teardown must not block CLI exit when diagnostics already stopped.
+    }
+  }
+  closeDatabase(db);
+}
+
 export type AgentAskApproveAnswer = 'y' | 'n' | 's' | 'q' | 'interrupt';
 
 /** 기본 readline 승인 프롬프트. 테스트에서는 `AgentAskRuntimeHooks.promptApprove`로 대체 가능 (#237). */
@@ -402,9 +422,6 @@ export async function runAgentAskMain(
 
   const { db, services } = core;
   const toolContext = createToolContext(db, services);
-  // Diagnostic sampler cleanup may fail if already stopped during process exit; failure is non-critical.
-  const ignoreCleanupError = (_err: unknown): void => { /* intentional noop — swallows non-critical cleanup errors */ };
-
   let llm: ILLMPort;
   try {
     const envForLlm = forceLlmMock
@@ -466,8 +483,7 @@ export async function runAgentAskMain(
         await writeErr(msg + '\n');
       }
     }
-    await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-    closeDatabase(db);
+    await teardownAgentAsk(services, db);
     return 2;
   }
 
@@ -492,15 +508,13 @@ export async function runAgentAskMain(
     } else {
       await writeErr(msg + '\n');
     }
-    await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-    closeDatabase(db);
+    await teardownAgentAsk(services, db);
     return 3;
   }
 
   if (interruptRef.interrupted) {
     await writeErr('중단되어 저장하지 않습니다.\n');
-    await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-    closeDatabase(db);
+    await teardownAgentAsk(services, db);
     return 130;
   }
 
@@ -541,16 +555,14 @@ export async function runAgentAskMain(
     for (let i = 0; i < runResult.candidates.length; i++) {
       if (interruptRef.interrupted) {
         await writeErr('중단되어 저장하지 않습니다.\n');
-        await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-        closeDatabase(db);
+        await teardownAgentAsk(services, db);
         return 130;
       }
       const c = runResult.candidates[i];
       const ans = await promptFn(c, i, runResult.candidates.length, interruptRef);
       if (ans === 'interrupt') {
         await writeErr('중단되어 저장하지 않습니다.\n');
-        await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-        closeDatabase(db);
+        await teardownAgentAsk(services, db);
         return 130;
       }
       if (ans === 'y') {
@@ -587,8 +599,7 @@ export async function runAgentAskMain(
         } else {
           await writeErr(msg + '\n');
         }
-        await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-        closeDatabase(db);
+        await teardownAgentAsk(services, db);
         return 4;
       }
     }
@@ -616,8 +627,7 @@ export async function runAgentAskMain(
     await writeOut(JSON.stringify(successObj) + '\n');
   }
 
-  await services.runtimeDiagnosticsSamplerCleanup?.().catch(ignoreCleanupError);
-  closeDatabase(db);
+  await teardownAgentAsk(services, db);
 
   if (persistenceBlock.attempted && persistenceBlock.errorCount > 0) {
     return 4;
