@@ -9,6 +9,7 @@ import {
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,
+  bulkUpdatePendingMemoryReviewCandidates,
 } from './memory-review-candidate-persistence-service.js';
 import {
   MemoryReviewCandidateError,
@@ -216,5 +217,59 @@ describe('memory-review-candidate-persistence upsert', () => {
     });
   });
 
-});
+  it('bulk dismiss updates only selected pending ids and reports matched rows', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      NOW,
+    );
+    const row = listMemoryReviewCandidates(db, { status: 'pending' })[0];
+    expect(bulkUpdatePendingMemoryReviewCandidates(db, 'dismiss', { ids: [row.id] }, NOW)).toEqual({
+      matched: 1,
+      updated: 1,
+    });
+    expect(getMemoryReviewCandidateById(db, row.id)?.status).toBe('dismissed');
+  });
 
+  it('bulk expire selects pending candidates older than the requested age', () => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      '2026-05-01T00:00:00.000Z',
+    );
+    expect(
+      bulkUpdatePendingMemoryReviewCandidates(db, 'expire', { older_than_days: 30 }, NOW),
+    ).toEqual({
+      matched: 1,
+      updated: 1,
+    });
+    expect(listMemoryReviewCandidates(db, { status: 'expired' })).toHaveLength(1);
+  });
+
+  it.each([
+    ['dismiss', 'ids'],
+    ['dismiss', 'older_than_days'],
+    ['dismiss', 'all_pending'],
+    ['expire', 'ids'],
+    ['expire', 'older_than_days'],
+    ['expire', 'all_pending'],
+  ] as const)('supports %s with the %s selector', (action, selectorKind) => {
+    upsertPendingMemoryReviewCandidates(
+      db,
+      [{ memory_id: 'mem_a', priority: 1, reason: 'q', due_at: '2026-07-01T00:00:00.000Z' }],
+      '2026-05-01T00:00:00.000Z',
+    );
+    const row = listMemoryReviewCandidates(db, { status: 'pending' })[0];
+    const selector =
+      selectorKind === 'ids'
+        ? { ids: [row.id] }
+        : selectorKind === 'older_than_days'
+          ? { older_than_days: 30 }
+          : { all_pending: true as const };
+
+    expect(bulkUpdatePendingMemoryReviewCandidates(db, action, selector, NOW)).toEqual({
+      matched: 1,
+      updated: 1,
+    });
+  });
+});

@@ -2,6 +2,9 @@ import type Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { ensureMemoryReviewCandidateSchema } from '../../../shared/utils/ensure-memory-review-candidate-schema.js';
 import type {
+  BulkMemoryReviewCandidateAction,
+  BulkMemoryReviewCandidateSelector,
+  BulkMemoryReviewCandidatesResult,
   ListMemoryReviewCandidatesQuery,
   MemoryReviewCandidateRow,
   UpsertPendingMemoryReviewCandidateInput,
@@ -210,3 +213,45 @@ export function markMemoryReviewCandidateExpired(
   run();
 }
 
+export function bulkUpdatePendingMemoryReviewCandidates(
+  db: Database.Database,
+  action: BulkMemoryReviewCandidateAction,
+  selector: BulkMemoryReviewCandidateSelector,
+  now: string,
+): BulkMemoryReviewCandidatesResult {
+  ensureMemoryReviewCandidateSchema(db);
+
+  return db.transaction(() => {
+    let whereSql: string;
+    let params: unknown[];
+    if ('ids' in selector) {
+      whereSql = `status = 'pending' AND id IN (SELECT value FROM json_each(?))`;
+      params = [JSON.stringify(selector.ids)];
+    } else if ('older_than_days' in selector) {
+      whereSql = `status = 'pending' AND datetime(created_at) < datetime(?, '-' || ? || ' days')`;
+      params = [now, selector.older_than_days];
+    } else {
+      whereSql = `status = 'pending'`;
+      params = [];
+    }
+
+    const matched = (
+      db.prepare<unknown[], { count: number }>(
+        `SELECT COUNT(*) AS count FROM memory_review_candidate WHERE ${whereSql}`,
+      ).get(...params) ?? { count: 0 }
+    ).count;
+    if (matched === 0) {
+      return { matched: 0, updated: 0 };
+    }
+
+    const setSql =
+      action === 'dismiss'
+        ? `status = 'dismissed', dismissed_at = ?, updated_at = ?`
+        : `status = 'expired', updated_at = ?`;
+    const updateParams = action === 'dismiss' ? [now, now, ...params] : [now, ...params];
+    const info = db
+      .prepare(`UPDATE memory_review_candidate SET ${setSql} WHERE ${whereSql}`)
+      .run(...updateParams);
+    return { matched, updated: info.changes };
+  })();
+}

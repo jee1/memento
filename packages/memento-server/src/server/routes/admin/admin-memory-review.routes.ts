@@ -9,6 +9,8 @@ import {
   listMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
+  bulkUpdatePendingMemoryReviewCandidates,
+  type BulkMemoryReviewCandidateSelector,
   computeMemoryReviewQueueHealthLive,
   maybeRecordMemoryReviewQueueHealthSnapshot,
   listMemoryReviewQueueHealthSnapshots,
@@ -38,6 +40,44 @@ function parseReviewCandidateStatusQuery(
     return { error: 'Invalid status query', status: 400 };
   }
   return { status: raw as MemoryReviewCandidateStatus };
+}
+
+function parseBulkSelector(body: unknown): BulkMemoryReviewCandidateSelector | { error: string } {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { error: 'Request body must contain exactly one bulk selector' };
+  }
+  const input = body as Record<string, unknown>;
+  const hasIds = Object.prototype.hasOwnProperty.call(input, 'ids');
+  const hasOlderThanDays = Object.prototype.hasOwnProperty.call(input, 'older_than_days');
+  const hasAllPending = Object.prototype.hasOwnProperty.call(input, 'all_pending');
+  if ([hasIds, hasOlderThanDays, hasAllPending].filter(Boolean).length !== 1) {
+    return { error: 'Exactly one of ids, older_than_days, or all_pending is required' };
+  }
+  if (hasIds) {
+    if (
+      !Array.isArray(input.ids) ||
+      input.ids.length === 0 ||
+      !input.ids.every(id => typeof id === 'string' && uuidValidate(id))
+    ) {
+      return { error: 'ids must be a non-empty array of UUIDs' };
+    }
+    return { ids: [...new Set(input.ids as string[])] };
+  }
+  if (hasOlderThanDays) {
+    if (
+      typeof input.older_than_days !== 'number' ||
+      !Number.isInteger(input.older_than_days) ||
+      input.older_than_days < 1 ||
+      input.older_than_days > 3650
+    ) {
+      return { error: 'older_than_days must be an integer between 1 and 3650' };
+    }
+    return { older_than_days: input.older_than_days };
+  }
+  if (input.all_pending !== true) {
+    return { error: 'all_pending must be true' };
+  }
+  return { all_pending: true };
 }
 
 export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Database | null): void {
@@ -147,6 +187,58 @@ export function registerAdminMemoryReviewRoutes(router: Router, db: Database.Dat
           message: error instanceof Error ? error.message : 'Unknown error'
         });
       }
+    }
+  });
+
+  router.post('/memory/review-candidates/bulk-dismiss', (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+    }
+    const selector = parseBulkSelector(req.body);
+    if ('error' in selector) {
+      return res.status(400).json({ error: selector.error });
+    }
+    try {
+      const nowIso = new Date().toISOString();
+      const result = bulkUpdatePendingMemoryReviewCandidates(db, 'dismiss', selector, nowIso);
+      if (result.updated > 0) {
+        broadcastReviewCandidatesChanged({ reason: 'bulk_dismiss' });
+      }
+      return res.json({ ok: true, action: 'dismiss', ...result, timestamp: nowIso });
+    } catch (error) {
+      logger.error('Bulk dismiss review candidates failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to bulk dismiss review candidates',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  router.post('/memory/review-candidates/bulk-expire', (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
+    }
+    const selector = parseBulkSelector(req.body);
+    if ('error' in selector) {
+      return res.status(400).json({ error: selector.error });
+    }
+    try {
+      const nowIso = new Date().toISOString();
+      const result = bulkUpdatePendingMemoryReviewCandidates(db, 'expire', selector, nowIso);
+      if (result.updated > 0) {
+        broadcastReviewCandidatesChanged({ reason: 'bulk_expire' });
+      }
+      return res.json({ ok: true, action: 'expire', ...result, timestamp: nowIso });
+    } catch (error) {
+      logger.error('Bulk expire review candidates failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to bulk expire review candidates',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   });
 
