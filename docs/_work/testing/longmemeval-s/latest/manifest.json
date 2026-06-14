@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "benchmark": "LongMemEval-S cleaned",
-  "status": "partial",
+  "status": "completed",
   "dataset": {
     "upstream_repository": "https://github.com/xiaowu0162/LongMemEval",
     "upstream_dataset": "https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned",

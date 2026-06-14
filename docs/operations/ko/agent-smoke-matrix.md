@@ -53,10 +53,12 @@ npm run quality:agent-smoke
 
 1. 검증 전용 Memento 서버를 실행하고 `MEMENTO_SMOKE_ENDPOINT`를 설정한다.
 2. 임시 HOME에서 `memento connect codex`와 `memento connect claude-code`를 실행한다.
-3. 각 agent에서 prompt 1회와 tool call 1회를 수행하고 compact 및 정상 stop을 만든다.
-4. `memento status --json`과 session export에서 lifecycle 5종이 수동 `remember`
+3. Codex를 시작해 `/hooks`를 열고 Memento handler 5개를 신뢰 처리한다. 설치 직후에는
+   hook이 발견돼도 trust review 전까지 `0 active` 상태이므로 이 단계를 생략하면 안 된다.
+4. 각 agent에서 prompt 1회와 tool call 1회를 수행하고 compact 및 정상 stop을 만든다.
+5. `memento status --json`과 session export에서 lifecycle 5종이 수동 `remember`
    없이 저장됐는지 확인한다.
-5. 실제 agent 실행과 server export 검증을 수행하는 controlled runner의 argv를 JSON
+6. 실제 agent 실행과 server export 검증을 수행하는 controlled runner의 argv를 JSON
    배열로 `MEMENTO_SMOKE_CODEX_COMMAND`, `MEMENTO_SMOKE_CLAUDE_COMMAND`에 지정한다.
 
 controlled runner는 마지막 stdout 줄에 다음 JSON evidence를 출력해야 한다.
@@ -107,6 +109,7 @@ reason code와 조치 문구로 추적한다.
 
 - `CLI_NOT_INSTALLED`: 해당 CLI를 설치하고 PATH를 확인한다.
 - `HOOK_CAPABILITY_MISSING`: 지원 버전으로 맞추고 feature/help 출력을 확인한다.
+- `Codex 0 active hooks`: Codex `/hooks`에서 Memento handler 5개를 신뢰 처리한다.
 - `CONNECT_VALIDATION_FAILED`: backup 원문, hook count, reconnect 결과를 확인한다.
 - `LIVE_SERVER_NOT_CONFIGURED`: 검증 전용 endpoint와 API key를 설정한다.
 - `LIVE_OPERATIONS_FAILED`: `doctor --json`의 guidance와 server log를 확인한다.
