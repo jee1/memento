@@ -3,16 +3,39 @@ import type { BatchJobResult } from './batch-scheduler-types.js';
 /** Issue #293: diagnostics / log aggregation용 고정 타입 */
 export const MEMORY_REVIEW_CANDIDATES_RUN_EVENT_TYPE = 'memory_review_candidates_run' as const;
 
-function readInsertedUpdated(details: unknown): { inserted: number; updated: number } {
+interface MemoryReviewCandidatesRunDetails {
+  inserted: number;
+  updated: number;
+  expired: number;
+  pendingBefore: number;
+  pendingAfter: number;
+  skippedForBacklog: boolean;
+}
+
+function readRunDetails(details: unknown): MemoryReviewCandidatesRunDetails {
   if (!details || typeof details !== 'object') {
-    return { inserted: 0, updated: 0 };
+    return {
+      inserted: 0,
+      updated: 0,
+      expired: 0,
+      pendingBefore: 0,
+      pendingAfter: 0,
+      skippedForBacklog: false
+    };
   }
   const d = details as Record<string, unknown>;
   const inserted = Number(d.inserted);
   const updated = Number(d.updated);
+  const expired = Number(d.expired);
+  const pendingBefore = Number(d.pendingBefore);
+  const pendingAfter = Number(d.pendingAfter);
   return {
     inserted: Number.isFinite(inserted) ? inserted : 0,
-    updated: Number.isFinite(updated) ? updated : 0
+    updated: Number.isFinite(updated) ? updated : 0,
+    expired: Number.isFinite(expired) ? expired : 0,
+    pendingBefore: Number.isFinite(pendingBefore) ? pendingBefore : 0,
+    pendingAfter: Number.isFinite(pendingAfter) ? pendingAfter : 0,
+    skippedForBacklog: d.skippedForBacklog === true
   };
 }
 
@@ -23,7 +46,14 @@ function readInsertedUpdated(details: unknown): { inserted: number; updated: num
 export function buildMemoryReviewCandidatesRunDiagnosticsPayload(
   result: BatchJobResult
 ): Record<string, unknown> {
-  const { inserted, updated } = readInsertedUpdated(result.details);
+  const {
+    inserted,
+    updated,
+    expired,
+    pendingBefore,
+    pendingAfter,
+    skippedForBacklog
+  } = readRunDetails(result.details);
   const errorCount = result.errors.length;
   const firstError =
     errorCount > 0 ? String(result.errors[0] ?? '').slice(0, 2000) : null;
@@ -38,6 +68,10 @@ export function buildMemoryReviewCandidatesRunDiagnosticsPayload(
     result: result.success ? 'success' : 'failure',
     inserted,
     updated,
+    expired,
+    pending_before: pendingBefore,
+    pending_after: pendingAfter,
+    skipped_for_backlog: skippedForBacklog,
     error_count: errorCount,
     selected_count: result.processed,
     first_error: firstError
