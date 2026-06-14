@@ -15,14 +15,16 @@ describe('memento connect codex', () => {
 
     expect(await runCodexConnect(['--dry-run', '--hooks-path', hooksPath], {
       probe: () => ({
-        versionOutput: 'codex-cli 0.137.0',
+        versionOutput: 'codex-cli 0.139.0',
         featuresOutput: 'hooks stable true',
       }),
       write: message => output.push(message),
     })).toBe(0);
     expect(output.join('')).toContain('"compatible":true');
+    expect(output.join('')).toContain('"trustApproval":"unverified"');
     expect(output.join('')).toContain('"hooksFeature":{"stage":"stable","enabled":true}');
     expect(output.join('')).toContain('+ PostToolUse');
+    expect(output.join('')).toContain('open /hooks');
     expect(JSON.parse(await readFile(hooksPath, 'utf8')))
       .toEqual({ state: { preserve: true } });
   });
@@ -33,7 +35,7 @@ describe('memento connect codex', () => {
     const write = vi.fn();
     const dependencies = {
       probe: () => ({
-        versionOutput: 'codex-cli 0.137.0',
+        versionOutput: 'codex-cli 0.139.0',
         featuresOutput: 'hooks stable true',
       }),
       write,

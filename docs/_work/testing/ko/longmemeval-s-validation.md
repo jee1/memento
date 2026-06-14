@@ -98,4 +98,11 @@ judge 결과가 없으면 retrieval은 실행하되 task completion은 `judge_re
 - TF-IDF vector baseline은 외부 embedding 모델 없이 재현성을 우선한 비교선이다.
 - task-completion accuracy는 사용한 reader와 judge model에 종속된다.
 - retrieval 개선만으로 task completion 개선을 주장하지 않는다.
-- graph-RRF는 실제 데이터 gate가 완료되기 전 기본 활성화하지 않는다.
+- graph-RRF는 이번 실행에서 평가하지 않았고 18건 표본만으로 채택 근거가 부족하므로 기본 활성화하지 않는다.
+
+
+## 2026-06-14 외부 judge 실행
+
+공개 산출물은 `docs/_work/testing/longmemeval-s/latest/`에 있다. Codex CLI 0.139.0의 `gpt-5.5`를 reader로, Claude Code 2.1.153의 `claude-sonnet-4-6`을 독립 judge로 사용했다. 6개 질문 유형에서 각 3건을 선택한 18건 표본의 accuracy는 55.56%, required evidence coverage는 62.50%였다.
+
+이 실행은 외부 reader/judge 파이프라인 검증용이다. reader에는 oracle session을 제공했고 케이스당 12,000자 제한을 적용했으므로 Memento retrieval-to-answer 정확도로 해석하지 않는다. 표본, 비용, 토큰, truncation 영향은 `latest/run-note.md`에 기록했고 개별 hypothesis와 판정은 `latest/judge-results.jsonl`에 공개한다.

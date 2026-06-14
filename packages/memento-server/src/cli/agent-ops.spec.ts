@@ -222,13 +222,17 @@ describe('agent operations CLI', () => {
     ) as { ok: boolean; injection: { summary_reused: boolean } };
     expect(result.ok).toBe(true);
     expect(result.injection.summary_reused).toBe(true);
+    expect(request).toHaveBeenCalledWith('/api/v1/agent/sessions', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('Use the established agent operations CLI workflow.'),
+    }));
     expect(deleted).toEqual([
       '/api/v1/agent/sessions/memento-demo-fixed-id-2',
       '/api/v1/agent/sessions/memento-demo-fixed-id-1',
     ]);
     expect(request).toHaveBeenCalledWith('/tools/forget', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ id: 'summary-memory-1', hard: true }),
+      body: JSON.stringify({ id: 'summary-memory-1', hard: true, confirm: true }),
     }));
   });
 

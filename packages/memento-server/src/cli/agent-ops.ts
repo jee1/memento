@@ -620,7 +620,7 @@ async function runDemo(
         now().toISOString(),
         {
           client_version: '1.0.0',
-          initial_context: 'Continue the agent operations CLI workflow.',
+          initial_context: 'Use the established agent operations CLI workflow.',
         },
         scope,
       )),
@@ -666,7 +666,7 @@ async function runDemo(
     if (summaryMemoryId) {
       const cleanup = await request('/tools/forget', {
         method: 'POST',
-        body: JSON.stringify({ id: summaryMemoryId, hard: true }),
+        body: JSON.stringify({ id: summaryMemoryId, hard: true, confirm: true }),
       });
       steps.push(item(
         'cleanup_summary',

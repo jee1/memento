@@ -33,6 +33,13 @@ const KEY_RULES: Array<[RegExp, RedactionRule]> = [
   [/(?:^|_)credential(?:s)?(?:$|_)/i, 'CREDENTIAL'],
 ];
 const NON_SECRET_CONTROL_KEYS = new Set(['token_budget']);
+const INLINE_ASSIGNMENT_RULES: Array<[RedactionRule, RegExp]> = [
+  ['API_KEY', /(\bapi(?:[_-]|\s)?key\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['TOKEN', /(\b(?:(?:access|auth)(?:[_-]|\s)?)?token\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['TOKEN', /(\bauthorization\s*[:=]\s*(?:Bearer\s+)?)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['PASSWORD', /(\bpassword\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+  ['CREDENTIAL', /(\b(?:credentials?|client(?:[_-]|\s)?secret)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi],
+];
 const INLINE_RULES: Array<[RedactionRule, RegExp]> = [
   ['API_KEY', /\b(?:sk|pk)(?:[_-](?:live|test|proj))?[_-][A-Za-z0-9_-]{16,}\b/g],
   ['TOKEN', /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g],
@@ -76,6 +83,12 @@ function scanBlocked(value: unknown): BlockingRule | undefined {
 
 function redactString(value: string, counts: Map<RedactionRule, number>): string {
   let redacted = value;
+  for (const [rule, pattern] of INLINE_ASSIGNMENT_RULES) {
+    redacted = redacted.replace(pattern, (_match, prefix: string) => {
+      increment(counts, rule);
+      return `${prefix}[REDACTED:${rule}]`;
+    });
+  }
   for (const [rule, pattern] of INLINE_RULES) {
     redacted = redacted.replace(pattern, () => {
       increment(counts, rule);

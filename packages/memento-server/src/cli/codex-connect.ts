@@ -88,6 +88,7 @@ export async function runCodexConnect(
       hooksPath: parsed.hooksPath,
       dryRun: parsed.dryRun,
       compatible: diagnostic.compatible,
+      trustApproval: diagnostic.trustApproval,
       version: diagnostic.version,
       hooksFeature: diagnostic.hooksFeature,
       missingEvents: diagnostic.missingEvents,

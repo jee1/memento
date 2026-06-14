@@ -22,8 +22,8 @@
         "mrr": 0.21068389057750786,
         "ndcg_at_10": 0.2540084919389579,
         "latency_ms": {
-          "p50": 3.599166999998488,
-          "p95": 8.519784000000072
+          "p50": 3.42305800000031,
+          "p95": 7.632462999998097
         },
         "injected_tokens": {
           "total": 297756,
@@ -40,8 +40,8 @@
         "mrr": 0.9164066193853426,
         "ndcg_at_10": 0.902476039554101,
         "latency_ms": {
-          "p50": 0.4669159999994008,
-          "p95": 0.9940600000008999
+          "p50": 0.4412609999999404,
+          "p95": 0.8821769999995013
         },
         "injected_tokens": {
           "total": 1572767,
@@ -58,8 +58,8 @@
         "mrr": 0.7895753123944612,
         "ndcg_at_10": 0.773237786959751,
         "latency_ms": {
-          "p50": 0.2994889999990846,
-          "p95": 0.45966199999747914
+          "p50": 0.29854100000011385,
+          "p95": 0.3882819999998901
         },
         "injected_tokens": {
           "total": 1581321,
@@ -76,8 +76,8 @@
         "mrr": 0.8750075987841944,
         "ndcg_at_10": 0.8593178587284529,
         "latency_ms": {
-          "p50": 0.787015000001702,
-          "p95": 1.4894009999989066
+          "p50": 0.7507539999987785,
+          "p95": 1.2826320000021951
         },
         "injected_tokens": {
           "total": 1579704,
@@ -89,11 +89,19 @@
     }
   },
   "task_completion": {
-    "status": "not_run",
-    "reason": "judge_results_missing"
+    "status": "completed",
+    "case_count": 18,
+    "accuracy": 0.5555555555555556,
+    "evidence_coverage": 0.625,
+    "judges": [
+      "anthropic-claude-code/claude-sonnet-4-6"
+    ],
+    "prompt_versions": [
+      "longmemeval-v1"
+    ]
   },
   "graph_rrf": {
     "default_enabled": false,
-    "reason": "Requires a completed real-dataset gate before adoption"
+    "reason": "Disabled: this run did not evaluate Graph-RRF and the sampled task-completion evidence is insufficient for adoption"
   }
 }

@@ -11,18 +11,20 @@ const CODEX_EVENTS = [
 ] as const;
 
 describe('Codex diagnostics', () => {
-  it('reports local 0.137.0 capabilities and known limitations', () => {
+  it('reports local 0.139.0 capabilities and activation requirements', () => {
     const result = diagnoseCodex({
-      versionOutput: 'codex-cli 0.137.0',
+      versionOutput: 'codex-cli 0.139.0',
       featuresOutput: 'hooks stable true',
       configuredEvents: CODEX_EVENTS,
     });
 
-    expect(result.version).toBe('0.137.0');
+    expect(result.version).toBe('0.139.0');
     expect(result.hooksFeature).toEqual({ stage: 'stable', enabled: true });
     expect(result.missingEvents).toEqual([]);
     expect(result.compatible).toBe(true);
+    expect(result.trustApproval).toBe('unverified');
     expect(result.warnings.join(' ')).toContain('PostToolUse');
+    expect(result.warnings.join(' ')).toContain('/hooks');
   });
 
   it('does not throw for old or malformed versions', () => {
@@ -35,12 +37,12 @@ describe('Codex diagnostics', () => {
 
   it('rejects missing or disabled hooks capability', () => {
     const disabled = diagnoseCodex({
-      versionOutput: 'codex-cli 0.137.0',
+      versionOutput: 'codex-cli 0.139.0',
       featuresOutput: 'hooks stable false',
       configuredEvents: CODEX_EVENTS,
     });
     const missing = diagnoseCodex({
-      versionOutput: 'codex-cli 0.137.0',
+      versionOutput: 'codex-cli 0.139.0',
       featuresOutput: 'apps stable true',
       configuredEvents: CODEX_EVENTS,
     });
