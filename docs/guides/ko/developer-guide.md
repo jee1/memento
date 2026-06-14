@@ -1,1276 +1,171 @@
 # 개발자 가이드
 
-## 개요
+Memento는 AI 에이전트를 위한 지능형 메모리 관리 MCP 서버입니다. 이 가이드는 새 기여자가 개발 환경을 구성하고, 코드베이스의 구조를 이해하며, 안정적으로 기여하기 위한 흐름 전반을 설명합니다.
 
-이 가이드는 Memento MCP Server의 개발 환경 설정, 아키텍처 이해, 기여 방법을 설명합니다.
+## 사전 요구사항
 
-## 목차
+Memento는 Node.js 24.0.0 이상과 npm 10.0.0 이상을 요구합니다. 이 버전 요건은 TypeScript ES 모듈과 최신 런타임 기능을 활용하기 때문에 더 낮은 버전에서는 빌드 자체가 실패합니다. 개발에는 VS Code를 권장하며, ESLint·Prettier·Vitest 확장과 함께 사용하면 가장 원활합니다.
 
-1. [개발 환경 설정](#개발-환경-설정)
-2. [프로젝트 구조](#프로젝트-구조)
-3. [아키텍처 이해](#아키텍처-이해)
-4. [개발 워크플로우](#개발-워크플로우)
-5. [테스트 작성](#테스트-작성)
-6. [기여 방법](#기여-방법)
+## 환경 설정
 
-## 개발 환경 설정
-
-### 필수 요구사항
-
-- **Node.js**: 24.0.0 이상 (`package.json`의 `engines.node` 기준)
-- **npm**: 10.0.0 이상
-
-### 저장소 가이드라인 (`AGENTS.md`)
-
-프로젝트에는 개발자 가이드라인이 포함되어 있습니다:
-
-- **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버·MCP 진입점은 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
-- **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등
-- **코딩 스타일**: Node.js ≥ 24, TypeScript ES 모듈, 2칸 들여쓰기
-- **테스트 가이드라인**: Vitest 기반, `**/*.spec.ts`·`tests/**/*.ts`(루트)·`packages/memento-core/src/test/**/*.ts` 등
-- **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
-- **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리
-- **TypeScript**: 5.3.0 (실제 구현 기준)
-- **Git**: 2.30.0 이상
-
-### 개발 도구
-
-- **IDE**: VS Code (권장)
-- **확장 프로그램**:
-  - TypeScript and JavaScript Language Features
-  - ESLint
-  - Prettier
-  - Vitest (실제 사용)
-  - GitLens
-
-### 환경 설정
-
-#### 1. 저장소 클론
+저장소를 클론한 뒤 루트에서 `npm install`을 실행하면 npm workspaces가 모든 패키지의 의존성을 한 번에 설치합니다. 그 다음 환경 변수 파일을 준비합니다.
 
 ```bash
 git clone https://github.com/your-org/memento.git
 cd memento
-```
-
-#### 2. 의존성 설치
-
-```bash
-# 모든 의존성 설치 (package.json 기준)
 npm install
-
-# 실제 사용된 의존성들:
-# - @modelcontextprotocol/sdk: ^1.18.2
-# - better-sqlite3: ^12.4.1
-# - express: ^5.1.0
-# - cors: ^2.8.5
-# - ws: ^8.18.3
-# - zod: ^3.22.4
-# - uuid: ^9.0.1
-# - openai: ^4.20.1
-# - @google/genai: ^1.21.0
-# - sqlite-vec: ^0.1.6
-# - dotenv: ^16.3.1
-# - vitest: ^1.0.0 (테스트)
-# - tsx: ^4.6.0 (개발)
-```
-
-#### 3. 환경 변수 설정
-
-```bash
-# 환경 변수 파일 복사
 cp env.example .env
-
-# 환경 변수 편집
-# .env 파일을 편집하여 필요한 설정을 입력하세요
 ```
 
-#### 4. 데이터베이스 초기화
+`.env`를 열어 필요한 값을 채운 뒤 데이터베이스를 초기화합니다.
 
 ```bash
-# better-sqlite3 데이터베이스 초기화
-npm run db:init
-
-# 데이터베이스 마이그레이션
-npm run db:migrate
+npm run db:init      # SQLite 스키마 생성
+npm run db:migrate   # 보류 중인 마이그레이션 실행
 ```
 
-#### 5. 개발 서버 시작
-
-```bash
-# MCP 서버 개발 모드 (핫 리로드)
-npm run dev
-
-# HTTP/WebSocket 서버 개발 모드
-npm run dev:http
-
-# 별도 터미널에서 테스트 실행
-npm run test:watch
-```
-
-### VS Code 설정
-
-#### .vscode/settings.json
-
-```json
-{
-  "typescript.preferences.importModuleSpecifier": "relative",
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
-  "vitest.commandLine": "npm run test",
-  "vitest.autoRun": "watch"
-}
-```
-
-#### .vscode/launch.json
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Debug MCP Server",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/memento-server/src/server/index.ts",
-      "outFiles": ["${workspaceFolder}/packages/memento-server/dist/**/*.js"],
-      "env": {
-        "NODE_ENV": "development"
-      },
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Debug Tests",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/vitest",
-      "args": ["--run"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    }
-  ]
-}
-```
+이후 개발 서버를 시작합니다. MCP stdio 서버를 띄우려면 `npm run dev`, HTTP 관리 서버를 함께 띄우려면 `npm run dev:http`를 사용합니다. 두 명령은 소스 변경을 감지하여 자동으로 재시작합니다.
 
 ## 프로젝트 구조
 
-### 모노레포 구성
-
-저장소는 **npm workspaces** 기반 모노레포입니다.
-
-| 패키지 | 역할 |
-|--------|------|
-| **packages/memento-core** | 도메인(memory, search, anchor, forgetting 등)·인프라·공유. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`. |
-| **packages/memento-server** | MCP/HTTP 서버. core를 소비하여 도구·라우트 노출. 진입점: `index.ts`, `http-server.ts`. |
-| **packages/memento-client** | 서버 연결용 클라이언트 라이브러리. |
-| **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core` in-process 사용). |
-
-### 도메인 기반 아키텍처 (core)
-
-도메인 로직은 **packages/memento-core**의 `src/domains/` 아래에 있습니다.
-
-```
-packages/memento-core/src/domains/
-├── memory/                           # 메모리 도메인
-│   ├── services/                     # 메모리 서비스
-│   ├── tools/                        # 메모리 MCP 도구
-│   └── ...
-├── search/                           # 검색 도메인
-│   ├── algorithms/                   # 검색 알고리즘
-│   └── ...
-├── anchor/                           # 앵커 시스템 도메인
-│   ├── services/                     # 앵커 서비스
-│   ├── tools/                        # 앵커 MCP 도구
-│   └── ...
-├── monitoring/                       # 모니터링 도메인
-│   ├── services/                     # 모니터링 서비스
-│   ├── tools/                        # 모니터링 MCP 도구
-│   └── ...
-└── forgetting/                       # 망각 도메인
-    ├── services/                     # 망각 서비스
-    └── ...
-```
-
-**서비스 레이어의 역할**:
-- **외부 API 연동**: OpenAI API, 데이터베이스 연동
-- **비즈니스 로직**: 임베딩 생성, 벡터 검색, 유사도 계산
-- **에러 처리**: API 호출 실패, 재시도 로직
-- **캐싱**: 임베딩 결과 캐싱, 성능 최적화
-- **Fallback 솔루션**: 경량 하이브리드 임베딩 서비스로 OpenAI API 대체
-- **성능 최적화**: 비동기 처리, 캐시 관리, 데이터베이스 최적화
-- **모니터링**: 실시간 성능 메트릭 수집 및 분석
-
-### 하이브리드 검색 엔진 (core)
-
-검색 엔진·하이브리드 검색은 **packages/memento-core**의 `src/domains/search/` 등에 위치합니다.
-
-**하이브리드 검색의 특징**:
-- **FTS5 + 벡터 검색**: 텍스트 검색과 벡터 검색 결합
-- **가중치 조정**: 벡터 60%, 텍스트 40% (기본값)
-- **점수 정규화**: 0-1 범위로 점수 정규화
-- **결과 결합**: 두 검색 결과를 통합한 최종 점수
-
-### 전체 프로젝트 구조
+저장소는 npm workspaces 기반 모노레포입니다. 핵심 구조는 다음과 같습니다.
 
 ```
 memento/
 ├── packages/
-│   ├── memento-core/           # @memento/core — 도메인·인프라·공유
-│   │   └── src/
-│   │       ├── domains/        # memory, search, anchor, forgetting, embedding, relation 등
-│   │       ├── infrastructure/ # DB, 캐시, 스케줄러
-│   │       ├── shared/         # 타입, 유틸, 설정
-│   │       ├── tools/          # 도구 레지스트리, migrate-embeddings 등
-│   │       └── bootstrap.ts, context.ts
-│   ├── memento-server/         # MCP/HTTP 서버 (core 소비)
-│   │   └── src/server/
-│   │       ├── index.ts        # MCP stdio 진입점
-│   │       ├── http-server.ts  # HTTP/WebSocket 진입점
-│   │       ├── routes/         # MCP, admin, API 라우트
-│   │       ├── middleware/     # tool-context, error-handler 등
-│   │       └── servers/        # stdio, SSE 구현
-│   └── memento-client/         # @memento/client — 서버 연결 클라이언트
-│       └── src/
-├── apps/                       # 실험용 앱 (예: experimental-example)
-├── tests/                      # 루트 Vitest 스펙(통합·게이트 등)
-├── packages/memento-core/src/test/   # 시나리오·벤치마크(tsx) 스크립트
-├── packages/memento-server/src/test/ # 서버 측 통합 스크립트(선택)
-├── docs/                       # 문서
-├── scripts/                    # 루트 스크립트 (auto-setup, check-migration 등)
-├── package.json                # workspaces, bin 위임, 루트 스크립트
-└── AGENTS.md                   # 구조·빌드·테스트 상세 가이드
+│   ├── memento-core/       # @memento/core — 도메인·인프라·공유
+│   ├── memento-server/     # MCP/HTTP 서버 진입점
+│   └── memento-client/     # @memento/client — HTTP 클라이언트 라이브러리
+├── apps/
+│   └── experimental-example/
+├── tests/                  # 루트 통합 테스트
+├── scripts/                # 빌드·마이그레이션 유틸리티
+├── config/                 # 랭킹 가중치 등 런타임 설정
+├── env.example             # 환경 변수 기준 파일
+└── AGENTS.md               # 상세 개발·운영 가이드
 ```
 
-## 아키텍처 이해
+세 패키지의 역할은 명확히 분리되어 있습니다. `memento-core`는 도메인 로직과 인프라를 모두 담으며, `memento-server`는 이를 소비하여 MCP 프로토콜과 HTTP 엔드포인트를 노출합니다. `memento-client`는 외부 프로세스에서 서버에 연결할 때 쓰는 클라이언트 라이브러리입니다.
 
-### 전체 아키텍처
+## 아키텍처 원칙
 
-```mermaid
-graph TB
-    subgraph "AI Agent Layer"
-        A[Claude Desktop] --> B[MCP Client]
-        C[ChatGPT] --> B
-        D[Cursor] --> B
-    end
-    
-    subgraph "MCP Protocol Layer"
-        B --> E[MCP Memory Server]
-    end
-    
-    subgraph "Memory Management Layer"
-        E --> F[Memory Manager]
-        E --> G[Search Engine]
-        E --> H[Forgetting Policy]
-    end
-    
-    subgraph "Storage Layer"
-        F --> I[SQLite M1]
-        F --> J[PostgreSQL M3+]
-        G --> K[Vector Search]
-        G --> L[Text Search]
-    end
+Memento의 아키텍처는 "Functional Core, Structured Shell" 원칙을 따릅니다. 도메인 로직은 `memento-core`의 순수 함수와 서비스로 구현되고, 서버 레이어는 이를 조합하여 외부에 노출할 뿐입니다. 의존성은 항상 shared → domains → infrastructure 방향으로 흐르며, 역방향 의존을 도입하면 안 됩니다.
+
+### 도메인 구조
+
+`packages/memento-core/src/domains/`는 기능별로 분리된 도메인들로 구성됩니다. 각 도메인은 내부적으로 `services/`, `tools/`, `algorithms/` 등 하위 디렉터리를 가집니다.
+
+| 도메인 | 역할 |
+|--------|------|
+| memory/ | 저장(remember), 검색(recall), 고정(pin), 망각(forget), 절차 기억 |
+| search/ | 하이브리드 검색 (FTS5 + 벡터) |
+| embedding/ | 다중 임베딩 프로바이더 (tfidf, minilm, openai, gemini) |
+| forgetting/ | TTL 정책 + 스페이스드 리피티션 |
+| anchor/ | A/B/C 슬롯 앵커 기반 컨텍스트 검색 |
+| relation/ | 관계 추출 (LLM + 규칙 기반) + 트리플 추출 |
+| consolidation/ | sleep consolidation (episodic → semantic 증류) |
+| telemetry/ | 텔레메트리 수집 |
+| monitoring/ | 성능 모니터링·품질 보증 |
+| personal-agent/ | personal knowledge agent CLI |
+| agent-integration/ | 에이전트 세션 관리·프로버넌스 |
+
+### 검색 랭킹
+
+recall과 하이브리드 검색의 최종 점수는 다음 공식으로 계산됩니다.
+
+```
+S = α·relevance + β·recency + γ·importance + δ·usage
+    + ζ·relation_weight + ζ_fb·(feedback_norm − 0.5) − ε·duplication_penalty
 ```
 
-### 핵심 컴포넌트
+가중치 기본값(α=0.45, β=0.20, γ=0.20, δ=0.10 등)은 `config/ranking-weights.toml`에 있으며, 벤치마크 기반으로 조정할 수 있습니다(검색 품질 튜닝 가이드 참고).
 
-#### 1. MCP 서버 (`packages/memento-server/src/server/`)
+## 빌드 시스템
 
-MCP 프로토콜을 구현하는 핵심 서버입니다. **packages/memento-server**에 위치하며, 도구·리소스·프롬프트는 core의 도구 레지스트리를 사용합니다.
+빌드는 core → server → client 순서로 진행되어야 합니다. `npm run build`를 루트에서 실행하면 이 순서가 자동으로 보장됩니다. 개별 패키지만 빌드할 때는 `-w` 플래그를 사용합니다.
 
-**주요 파일**:
-- `index.ts`: MCP stdio 진입점
-- `http-server.ts`: HTTP/WebSocket 진입점
-- `routes/`: MCP·admin·API 라우트
-- `middleware/`: tool-context, error-handler 등
+```bash
+npm run build                    # 전체 빌드 (권장)
+npm run build -w @memento/core   # core만 빌드
+npm run type-check               # 타입 검사 (빌드 없이)
+npm run lint                     # ESLint 검사
+```
 
-**예시 코드**:
+### no-console 규칙
+
+MCP 서버는 stdio 전송 시 stdout에 JSON-RPC 메시지만 출력해야 하므로, 프로젝트 전체에 `no-console` ESLint 규칙이 error 레벨로 설정되어 있습니다. 모든 로그는 `packages/memento-core/src/shared/utils/logger.ts`의 중앙화된 logger를 통해 출력해야 합니다. 이 logger는 PII를 자동으로 마스킹하고, MCP 컨텍스트에서는 `notifications/message` 형식으로 로그를 전송합니다.
+
 ```typescript
-// packages/memento-server/src/server/index.ts
-// core의 createMementoCore, getToolRegistry 등을 사용해 MCP 서버 구성
+// console.log/error 직접 사용 금지
+// 대신 아래처럼 사용합니다
+import { logger } from '../shared/utils/logger.js';
 
-const server = new Server({
-  name: 'memento-memory-server',
-  version: '0.1.0'
-});
-
-// Tools 등록
-server.tool('remember', rememberTool);
-server.tool('recall', recallTool);
-
-// 서버 시작
-server.start();
+logger.info('작업 완료', { duration: queryTime, resultCount: results.length });
+logger.error('작업 실패', { error: error.message, operation: 'search' });
 ```
 
-#### 2. 검색 엔진 (`packages/memento-core/src/domains/search/algorithms/`)
+예외는 `packages/memento-server/src/server/index.ts`(MCP 프로토콜 준수), 테스트 파일(`**/*.spec.ts`), 스크립트(`scripts/**`)에만 적용됩니다.
 
-기억 검색을 위한 알고리즘을 구현합니다.
+## 테스트 워크플로우
 
-**주요 파일** (일부):
-- `search-ranking.ts`, `search-engine.ts`, `hybrid-search-engine.ts`, `vector-search-engine.ts`
-- 망각·간격 반복: `packages/memento-core/src/domains/forgetting/algorithms/` (`forgetting-algorithm.ts`, `spaced-repetition-refactored.ts` 등)
+테스트는 Vitest 기반이며 `**/*.spec.ts` 패턴을 따릅니다. 단위 테스트는 각 도메인 폴더 내 `__tests__/` 하위에 위치합니다. 시나리오·벤치마크용 스크립트(`test-*.ts`)는 `packages/memento-core/src/test/`에 있으며 tsx로 실행합니다.
 
-**예시 코드**:
-```typescript
-// packages/memento-core/src/domains/search/algorithms/search-ranking.ts
-export class SearchRanking {
-  calculateFinalScore(features: SearchFeatures): number {
-    return this.ALPHA * features.relevance +
-           this.BETA * features.recency +
-           this.GAMMA * features.importance +
-           this.DELTA * features.usage -
-           this.EPSILON * features.duplication_penalty;
-  }
-}
+```bash
+npm test                   # 전체 테스트 (Vitest)
+npm run test:search        # 검색 시나리오 테스트
+npm run test -- --coverage # 커버리지 포함
+npm run test -- --watch    # 감시 모드
 ```
 
-#### 3. 데이터베이스·인프라 (`packages/memento-core`)
-
-데이터 저장 및 검색을 담당합니다.
-
-**주요 파일**:
-- `sqlite.ts`: SQLite 구현 (M1)
-- `postgres.ts`: PostgreSQL 구현 (M3+)
-- `migrations/`: 데이터베이스 마이그레이션
-
-### 데이터 플로우
-
-#### 1. 기억 저장 플로우
-
-```
-AI Agent → MCP Client → MCP Server → Memory Manager → Database
-```
-
-#### 2. 기억 검색 플로우
-
-```
-AI Agent → MCP Client → MCP Server → Search Engine → Database → Ranking → Results
-```
+테스트를 작성할 때는 AAA(Arrange-Act-Assert) 패턴을 따릅니다. 외부 의존성은 mock 객체로 대체하고, 테스트 픽스처는 `tests/fixtures/`에 모아 관리합니다.
 
 ## 개발 워크플로우
 
-### 1. 기능 개발
-
-#### 브랜치 생성
+새 기능은 반드시 별도 브랜치에서 개발합니다. 커밋 메시지는 Conventional Commits 형식을 따릅니다.
 
 ```bash
-# 기능 브랜치 생성
-git checkout -b feature/new-tool
-
-# 또는 버그 수정 브랜치
-git checkout -b fix/memory-leak
-```
-
-#### 개발 진행
-
-```bash
-# 개발 서버 시작
-npm run dev
-
-# 테스트 실행 (별도 터미널)
-npm run test:watch
-
-# 린트·스타일 검사 (TypeScript + static JS)
-npm run lint
-```
-
-### ESLint 설정 및 규칙
-
-#### no-console 규칙
-
-Memento 프로젝트는 `no-console` 규칙을 **error** 레벨로 설정하여 `console.log`, `console.error` 등의 직접 사용을 금지합니다.
-
-**규칙 목적**:
-- **MCP 프로토콜 준수**: MCP 서버는 stdio 전송 시 stdout에 오직 JSON-RPC 메시지만 출력해야 합니다
-- **로깅 시스템 통일**: 모든 로그는 중앙화된 로깅 시스템(`packages/memento-core/src/shared/utils/logger.ts`)을 통해 출력되어야 합니다
-- **PII 마스킹**: 중앙화된 로깅 시스템은 자동으로 PII(개인 식별 정보)를 마스킹합니다
-- **MCP 스펙 준수**: MCP Logger를 통해 `notifications/message` 형식으로 로그를 전송합니다
-
-**예외 처리**:
-
-다음 파일/디렉토리는 `no-console` 규칙 예외가 적용됩니다:
-
-1. **`packages/memento-server/src/server/index.ts`**:
-   - **이유**: MCP 프로토콜 준수를 위해 console 메서드를 오버라이드합니다
-   - **설명**: 초기화 전 에러는 stderr에 직접 출력하고, 초기화 후에는 MCP Logger를 사용합니다
-   - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
-
-2. **테스트 파일** (`**/*.spec.ts`, `**/test-*.ts`, `tests/**`, `packages/memento-core/src/test/**`, 레거시 `src/test/**`):
-   - **이유**: 테스트 코드에서 디버깅 및 출력이 필요합니다
-   - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
-
-3. **스크립트 파일** (`scripts/**`):
-   - **이유**: 스크립트 실행 시 직접 출력이 필요합니다
-   - **설정 위치**: `.eslintrc.json`의 `overrides` 섹션
-
-**규칙 위반 시 대응 방법**:
-
-1. **일반 코드에서 console 사용이 필요한 경우**:
-   ```typescript
-   // ❌ 잘못된 방법
-   console.log('User logged in:', userId);
-   console.error('Database error:', error);
-   
-   // ✅ 올바른 방법
-   import { logger } from '../shared/utils/logger.js';
-   
-   logger.info('User logged in', { userId });
-   logger.error('Database error', { error: error.message });
-   ```
-
-2. **MCP 서버 코드에서 로깅이 필요한 경우**:
-   ```typescript
-   // ✅ MCP Logger 사용
-   import { mcpLogger } from './mcp-logger.js';
-   
-   mcpLogger.info('Server initialized', { component: 'server' });
-   mcpLogger.error('Initialization failed', { error: error.message });
-   ```
-
-3. **예외가 필요한 경우**:
-   - 예외는 최소한으로 유지해야 합니다
-
-### 도메인별 로깅 패턴 통일
-
-**목적**: 모든 도메인에서 일관된 로깅 패턴을 사용하여 로그 분석 및 디버깅을 용이하게 합니다.
-
-#### 기본 원칙
-
-1. **구조화된 로깅**: 모든 로그는 메시지와 메타데이터 객체를 포함해야 합니다
-2. **적절한 로그 레벨 사용**: 상황에 맞는 로그 레벨 선택
-3. **PII 자동 마스킹**: logger는 자동으로 PII를 마스킹하므로 안전하게 사용 가능
-4. **컨텍스트 포함**: 디버깅에 필요한 컨텍스트 정보를 메타데이터에 포함
-
-#### 로그 레벨 가이드라인
-
-- **`logger.debug()`**: 개발 및 디버깅 목적, 상세한 실행 흐름 추적
-  ```typescript
-  logger.debug('검색 단계', { searchId, step, data });
-  ```
-
-- **`logger.info()`**: 일반적인 정보성 메시지, 중요한 작업 시작/완료
-  ```typescript
-  logger.info('Memory Injection 시작', { query, token_budget });
-  logger.info('벡터 인덱스 재구성 완료');
-  ```
-
-- **`logger.warn()`**: 잠재적인 문제나 경고 상황, 복구 가능한 오류
-  ```typescript
-  logger.warn('데이터베이스가 설정되지 않아 인접 기억 갱신을 건너뜁니다');
-  logger.warn('임베딩 삭제 실패', { id, error: error.message });
-  ```
-
-- **`logger.error()`**: 오류나 예외 상황, 복구 불가능한 오류
-  ```typescript
-  logger.error('메모리 조회 실패', {
-    memoryId,
-    error: error instanceof Error ? error.message : String(error)
-  });
-  logger.error('벡터 검색 실패', {
-    memoryId,
-    error: error.message
-  });
-  ```
-
-#### 도메인별 로깅 패턴
-
-##### 1. Memory 도메인 (`packages/memento-core/src/domains/memory/`)
-
-**서비스 파일**:
-```typescript
-// ✅ 올바른 패턴
-logger.error('메모리 조회 실패', {
-  memoryId,
-  error: error instanceof Error ? error.message : String(error)
-});
-
-logger.warn('높은 중요도의 기억 삭제', {
-  memoryId: memory.id,
-  importance: memory.importance
-});
-```
-
-**Tool 파일**:
-```typescript
-// ✅ 올바른 패턴
-logger.info('WAL 체크포인트 완료');
-logger.warn('고정 로그 기록 실패', {
-  error: maskedError.message
-});
-```
-
-##### 2. Search 도메인 (`packages/memento-core/src/domains/search/`)
-
-**알고리즘 파일**:
-```typescript
-// ✅ 올바른 패턴
-logger.debug('하이브리드 검색 단계', {
-  searchId,
-  step,
-  data
-});
-
-logger.warn('저장된 임베딩 provider 감지 실패', {
-  error: maskedError.message
-});
-```
-
-**팩토리 파일**:
-```typescript
-// ✅ 올바른 패턴
-logger.info('검색 시작', { query });
-logger.info('검색 완료', {
-  searchId,
-  resultCount: result.total_count,
-  duration: queryTime
-});
-```
-
-##### 3. Monitoring 도메인 (`packages/memento-core/src/domains/monitoring/`)
-
-**성능 모니터링**:
-```typescript
-// ✅ 올바른 패턴
-logger.info('성능 알림', {
-  level: alert.level,
-  metric: alert.metric,
-  id: alert.id,
-  value: alert.value,
-  threshold: alert.threshold
-});
-
-logger.error('에러 로깅', {
-  severity: error.severity,
-  category: error.category,
-  id: error.id,
-  message: error.message
-});
-```
-
-#### 메타데이터 구조화 가이드라인
-
-1. **에러 로깅 시 필수 필드**:
-   ```typescript
-   logger.error('작업 실패', {
-     error: error instanceof Error ? error.message : String(error),
-     // 추가 컨텍스트
-     operation: 'operation_name',
-     resourceId: 'resource_id'
-   });
-   ```
-
-2. **성능 로깅 시 필수 필드**:
-   ```typescript
-   logger.info('작업 완료', {
-     duration: queryTime,
-     resultCount: results.length,
-     // 추가 메트릭
-   });
-   ```
-
-3. **경고 로깅 시 필수 필드**:
-   ```typescript
-   logger.warn('경고 상황', {
-     reason: 'reason_description',
-     // 복구 가능한 경우 복구 정보 포함
-     fallback: 'fallback_action'
-   });
-   ```
-
-#### 금지 사항
-
-1. **❌ 이모지나 특수 문자 사용 금지**:
-   ```typescript
-   // ❌ 잘못된 방법
-   logger.error('❌ 메모리 조회 실패:', error);
-   logger.warn('⚠️ 데이터베이스가 설정되지 않았습니다');
-   
-   // ✅ 올바른 방법
-   logger.error('메모리 조회 실패', { error: error.message });
-   logger.warn('데이터베이스가 설정되지 않았습니다');
-   ```
-
-2. **❌ 문자열 연결 대신 메타데이터 사용**:
-   ```typescript
-   // ❌ 잘못된 방법
-   logger.info(`Memory Injection 시작: "${query}" (토큰 예산: ${token_budget})`);
-   
-   // ✅ 올바른 방법
-   logger.info('Memory Injection 시작', { query, token_budget });
-   ```
-
-3. **❌ console.log 직접 사용 금지**:
-   ```typescript
-   // ❌ 잘못된 방법
-   console.log('작업 시작');
-   console.error('작업 실패:', error);
-   
-   // ✅ 올바른 방법
-   logger.info('작업 시작');
-   logger.error('작업 실패', { error: error.message });
-   ```
-
-#### 검증 방법
-
-1. **ESLint 검증**: `npm run lint`로 `no-console` 규칙 위반 확인
-2. **스크립트 검증**: `npx tsx scripts/count-console-logs.ts --core-only`로 핵심 모듈 console.* 사용 확인
-3. **CI 검증**: CI 파이프라인에서 자동으로 console.* 사용 검증
-
-#### 참고 자료
-
-- **Logger 인터페이스**: `packages/memento-core/src/shared/utils/logger.ts`
-- **MCP Logger**: `packages/memento-server/src/server/mcp-logger.ts`
-- **PII 마스킹**: `packages/memento-core/src/shared/utils/pii-masker.ts`
-- **MCP 스펙**: https://spec.modelcontextprotocol.io/specification/server/#logging
-   - 새로운 예외 추가 시 PR에서 명확한 이유를 설명해야 합니다
-   - 예외 추가는 `.eslintrc.json`의 `overrides` 섹션에 추가합니다
-
-**ESLint 설정 파일 구조**:
-
-```json
-{
-  "rules": {
-    "no-console": "error"  // 기본 규칙: error 레벨
-  },
-  "overrides": [
-    {
-      "files": ["packages/memento-server/src/server/index.ts"],
-      "rules": {
-        "no-console": "off"  // 예외: MCP 프로토콜 준수
-      }
-    },
-    {
-      "files": [
-        "**/*.spec.ts",
-        "**/test-*.ts",
-        "tests/**/*.ts",
-        "src/test/**/*.ts",
-        "packages/memento-core/src/test/**/*.ts",
-        "packages/mcp-client/examples/**/*.ts",
-        "scripts/**/*.ts"
-      ],
-      "rules": {
-        "no-console": "off"  // 예외: 테스트 및 스크립트
-      }
-    }
-  ]
-}
-```
-
-**CI/CD 검증**:
-
-- CI 파이프라인(`.github/workflows/ci.yml`)에서 `npm run lint` 실행
-- `no-console` 규칙 위반 시 빌드 실패
-- 규칙 위반 개수 추적을 위한 스냅샷 체크 (향후 추가 예정)
-
-#### 커밋
-
-```bash
-# 변경사항 스테이징
-git add .
-
-# 커밋 (컨벤셔널 커밋 형식)
-git commit -m "feat: add new summarize_thread tool"
-
-# 푸시
-git push origin feature/new-tool
-```
-
-### 2. 테스트 작성
-
-#### 단위 테스트
-
-```typescript
-// tests/unit/tools/remember.test.ts
-import { RememberTool } from '@/server/tools/remember';
-import { MockDatabase } from '@/tests/mocks/database.mock';
-
-describe('RememberTool', () => {
-  let rememberTool: RememberTool;
-  let mockDatabase: MockDatabase;
-
-  beforeEach(() => {
-    mockDatabase = new MockDatabase();
-    rememberTool = new RememberTool(mockDatabase);
-  });
-
-  it('should create memory with valid parameters', async () => {
-    // Given
-    const params = {
-      content: 'Test memory',
-      type: 'episodic',
-      importance: 0.8
-    };
-
-    // When
-    const result = await rememberTool.execute(params);
-
-    // Then
-    expect(result.memory_id).toBeDefined();
-    expect(mockDatabase.createMemory).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: 'Test memory',
-        type: 'episodic',
-        importance: 0.8
-      })
-    );
-  });
-});
-```
-
-#### 통합 테스트
-
-```typescript
-// tests/integration/mcp-server.test.ts
-import { MCPClient } from '@modelcontextprotocol/sdk';
-import { MCPServer } from '@/server';
-
-describe('MCP Server Integration', () => {
-  let server: MCPServer;
-  let client: MCPClient;
-
-  beforeAll(async () => {
-    server = new MCPServer();
-    await server.start();
-    
-    client = new MCPClient({
-      name: 'test-client',
-      version: '1.0.0'
-    });
-    await client.connect({
-      command: 'node',
-      args: ['packages/memento-server/dist/server/index.js']
-    });
-  });
-
-  afterAll(async () => {
-    await client.close();
-    await server.stop();
-  });
-
-  it('should handle remember and recall workflow', async () => {
-    // Remember
-    const rememberResult = await client.callTool('remember', {
-      content: 'Integration test memory'
-    });
-
-    expect(rememberResult.memory_id).toBeDefined();
-
-    // Recall
-    const recallResult = await client.callTool('recall', {
-      query: 'integration test'
-    });
-
-    expect(recallResult.items).toHaveLength(1);
-    expect(recallResult.items[0].content).toContain('Integration test memory');
-  });
-});
-```
-
-### 3. 코드 리뷰
-
-#### Pull Request 생성
-
-1. GitHub에서 Pull Request 생성
-2. 변경사항 설명 작성
-3. 관련 이슈 연결
-4. 리뷰어 지정
-
-#### 리뷰 체크리스트
-
-- [ ] 코드가 프로젝트 스타일 가이드를 따르는가?
-- [ ] 테스트가 충분히 작성되었는가?
-- [ ] 문서가 업데이트되었는가?
-- [ ] 성능에 영향을 주는가?
-- [ ] 보안 취약점이 없는가?
-
-## 테스트 작성
-
-### 테스트 전략
-
-#### 1. 단위 테스트 (Unit Tests) - `.spec.ts`
-
-- **목적**: 개별 함수/클래스의 동작 검증
-- **범위**: 모든 public 메서드
-- **도구**: Vitest
-- **위치**: 각 모듈 폴더 내부
-- **예시**: 
-  - `packages/memento-core/src/domains/search/algorithms/__tests__/search-engine.spec.ts`
-  - `packages/memento-core/src/domains/forgetting/services/__tests__/forgetting-policy-service.spec.ts`
-  - `packages/memento-core/src/shared/utils/database.spec.ts`
-
-#### 2. E2E 테스트 (End-to-End Tests) - `test-*.ts`
-
-- **목적**: 전체 워크플로우 검증
-- **범위**: 실제 MCP 서버와의 통신
-- **도구**: tsx + MCP 클라이언트
-- **위치**: `packages/memento-core/src/test/` 폴더
-- **예시**:
-  - `packages/memento-core/src/test/test-client.ts`
-  - `packages/memento-core/src/test/test-search.ts`
-  - `packages/memento-core/src/test/test-embedding.ts`
-
-### 4. 에러 로깅 테스트
-
-- **목적**: 에러 로깅 시스템의 정상 동작 검증
-- **범위**: ErrorLoggingService, 에러 통계, 에러 해결
-- **도구**: tsx + 직접 서비스 테스트
-- **위치**: `packages/memento-server/src/test/test-error-logging.ts`
-
-### 5. 성능 알림 테스트
-
-- **목적**: 성능 알림 시스템의 정상 동작 검증
-- **범위**: PerformanceAlertService, 실시간 모니터링, 알림 관리
-- **도구**: tsx + 직접 서비스 테스트
-- **위치**: `packages/memento-server/src/test/test-performance-alerts.ts`
-
-### 6. Consolidation Score 품질 테스트
-
-- **목적**: Consolidation Score가 검색 랭킹에 올바르게 반영되는지 검증
-- **범위**: 검색 랭킹 알고리즘, 하이브리드 검색 엔진, 품질 지표
-- **도구**: Vitest (단위/통합) + tsx (E2E/벤치마크)
-- **위치**:
-  - 단위 테스트: `packages/memento-core/src/domains/search/algorithms/__tests__/search-ranking.spec.ts`, `packages/memento-core/src/domains/search/algorithms/__tests__/search-result-combiner-consolidation.spec.ts`
-  - 통합 테스트: `packages/memento-core/src/domains/search/algorithms/__tests__/hybrid-search-engine-consolidation.spec.ts`
-  - E2E 테스트: `packages/memento-core/src/test/test-consolidation-search-quality.ts`
-  - 벤치마크: `packages/memento-core/src/test/consolidation-search-quality-benchmark.ts`
-- **명령어**:
-  - `npm run test:consolidation-quality` - E2E 품질 검증
-  - `npm run benchmark:consolidation-quality` - Baseline 비교 벤치마크
-- **문서**: [Consolidation Score 테스트 가이드](../../_work/testing/ko/consolidation-quality-testing.md)
-
-### 테스트 작성 가이드
-
-#### 1. 테스트 구조 (AAA 패턴)
-
-```typescript
-describe('ComponentName', () => {
-  describe('methodName', () => {
-    it('should do something when condition', async () => {
-      // Arrange (준비)
-      const input = createTestInput();
-      const expected = createExpectedOutput();
-      
-      // Act (실행)
-      const result = await component.method(input);
-      
-      // Assert (검증)
-      expect(result).toEqual(expected);
-    });
-  });
-});
-```
-
-#### 2. Mock 사용
-
-```typescript
-// Mock 객체 생성
-const mockDatabase = {
-  createMemory: jest.fn(),
-  getMemory: jest.fn(),
-  searchMemories: jest.fn()
-};
-
-// Mock 설정
-mockDatabase.createMemory.mockResolvedValue('memory-123');
-
-// Mock 검증
-expect(mockDatabase.createMemory).toHaveBeenCalledWith(expectedParams);
-```
-
-#### 3. 테스트 데이터 관리
-
-```typescript
-// tests/fixtures/memories.json
-{
-  "episodic": [
-    {
-      "id": "memory-1",
-      "content": "Test episodic memory",
-      "type": "episodic",
-      "importance": 0.8
-    }
-  ],
-  "semantic": [
-    {
-      "id": "memory-2",
-      "content": "Test semantic memory",
-      "type": "semantic",
-      "importance": 0.9
-    }
-  ]
-}
-```
-
-### 테스트 실행
-
-```bash
-# 모든 테스트 실행 (Vitest)
-npm test
-
-# 특정 테스트 실행
-npm run test:client
-npm run test:search
-npm run test:embedding
-npm run test:lightweight-embedding
-npm run test:forgetting
-npm run test:performance
-npm run test:monitoring
-npm run test:error-logging
-npm run test:performance-alerts
-
-# 커버리지 포함 테스트
-npm run test -- --coverage
-
-# 감시 모드
-npm run test:watch
-```
-
-## 기여 방법
-
-### 1. 이슈 생성
-
-#### 버그 리포트
-
-```markdown
-**버그 설명**
-간단명료한 버그 설명
-
-**재현 단계**
-1. '...'로 이동
-2. '...' 클릭
-3. '...' 입력
-4. 오류 발생
-
-**예상 동작**
-어떤 일이 일어나야 하는지
-
-**실제 동작**
-실제로 일어난 일
-
-**환경**
-- OS: [예: Windows 10]
-- Node.js: [예: 24.0.0]
-- Memento: [예: 0.1.0]
-```
-
-#### 기능 요청
-
-```markdown
-**기능 설명**
-원하는 기능에 대한 간단명료한 설명
-
-**사용 사례**
-이 기능이 왜 필요한지, 어떤 문제를 해결하는지
-
-**제안하는 해결책**
-구체적인 구현 방안 (있는 경우)
-
-**대안**
-고려한 다른 해결책들
-```
-
-### 2. 코드 기여
-
-#### 1단계: 저장소 포크
-
-1. GitHub에서 저장소 포크
-2. 로컬에 클론
-
-```bash
-git clone https://github.com/your-username/memento.git
-cd memento
-```
-
-#### 2단계: 개발 환경 설정
-
-```bash
-# 원본 저장소 추가
-git remote add upstream https://github.com/your-org/memento.git
-
-# 의존성 설치
-npm install
-
-# 개발 서버 시작
-npm run dev
-```
-
-#### 3단계: 기능 개발
-
-```bash
-# 새 브랜치 생성
 git checkout -b feature/your-feature
 
 # 개발 진행
-# ... 코드 작성 ...
+npm run dev
 
-# 테스트 작성
-npm run test
+# 변경사항 검증
+npm test
+npm run lint
+npm run type-check
 
 # 커밋
-git add .
-git commit -m "feat: add your feature"
-```
-
-#### 4단계: Pull Request 생성
-
-1. 변경사항 푸시
-```bash
+git commit -m "feat(tools): add new tool"
 git push origin feature/your-feature
 ```
 
-2. GitHub에서 Pull Request 생성
-3. 템플릿에 따라 설명 작성
-4. 리뷰어 지정
+### 커밋 타입
 
-### 3. 문서 기여
-
-#### 문서 작성 가이드
-
-- **언어**: 한국어 (기술 용어는 영어 병기)
-- **형식**: Markdown
-- **구조**: 명확한 목차와 섹션 구분
-- **예시**: 실제 사용 가능한 코드 예시
-
-#### 문서 업데이트
-
-1. 관련 문서 파일 수정
-2. 변경사항 설명
-3. 리뷰 요청
-
-### 4. 커밋 메시지 규칙
-
-#### 컨벤셔널 커밋 형식
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-#### 타입
-
-- `feat`: 새로운 기능
-- `fix`: 버그 수정
-- `docs`: 문서 변경
-- `style`: 코드 포맷팅
-- `refactor`: 코드 리팩토링
-- `test`: 테스트 추가/수정
-- `chore`: 빌드 프로세스 또는 보조 도구 변경
-
-#### 예시
-
-```bash
-feat(tools): add summarize_thread tool
-fix(database): resolve memory leak in SQLite connection
-docs(api): update remember tool documentation
-test(integration): add MCP server integration tests
-```
-
-## 에러 로깅 및 성능 모니터링 개발 가이드
-
-### 에러 로깅 시스템
-
-#### 1. 에러 로깅 서비스 사용
-
-```typescript
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../services/error-logging-service.js';
-
-// 에러 로깅 서비스 초기화
-const errorLoggingService = new ErrorLoggingService();
-
-// 에러 로깅
-try {
-  // 위험한 작업 수행
-  await riskyOperation();
-} catch (error) {
-  errorLoggingService.logError(
-    error instanceof Error ? error : new Error(String(error)),
-    ErrorSeverity.HIGH,
-    ErrorCategory.TOOL_EXECUTION,
-    {
-      operation: 'risky_operation',
-      userId: 'user123',
-      timestamp: new Date().toISOString()
-    }
-  );
-}
-```
-
-#### 2. 에러 통계 조회
-
-```typescript
-// 기본 에러 통계
-const stats = await errorLoggingService.getErrorStats();
-
-// 필터링된 에러 통계
-const highErrors = await errorLoggingService.getErrorStats({
-  severity: ErrorSeverity.HIGH,
-  hours: 24
-});
-
-// 데이터베이스 관련 에러만 조회
-const dbErrors = await errorLoggingService.getErrorStats({
-  category: ErrorCategory.DATABASE,
-  limit: 10
-});
-```
-
-#### 3. 에러 해결 처리
-
-```typescript
-// 에러 해결
-const resolved = await errorLoggingService.resolveError(
-  'error-123',
-  'admin',
-  '데이터베이스 연결 문제 해결됨'
-);
-```
-
-### 성능 알림 시스템
-
-#### 1. 성능 알림 서비스 사용
-
-```typescript
-import { PerformanceAlertService, AlertLevel, AlertType } from '../services/performance-alert-service.js';
-
-// 성능 알림 서비스 초기화
-const alertService = new PerformanceAlertService('./logs');
-
-// 알림 생성
-const alert = alertService.createAlert(
-  AlertLevel.WARNING,
-  AlertType.RESPONSE_TIME,
-  '평균 응답시간',
-  150,
-  100,
-  '🟡 응답시간이 임계값을 초과했습니다',
-  { component: 'search_engine', operation: 'search' }
-);
-
-// 알림 해결
-const resolvedAlert = alertService.resolveAlert(
-  alert.id,
-  'admin',
-  '성능 최적화 완료'
-);
-```
-
-#### 2. 실시간 모니터링 설정
-
-```typescript
-import { PerformanceMonitoringIntegration } from '../services/performance-monitoring-integration.js';
-
-// 모니터링 통합 서비스 초기화
-const monitoringIntegration = new PerformanceMonitoringIntegration(
-  db,
-  alertService,
-  {
-    enableRealTimeMonitoring: true,
-    monitoringInterval: 30000, // 30초마다 체크
-    alertThresholds: {
-      responseTime: { warning: 100, critical: 500 },
-      memoryUsage: { warning: 100, critical: 200 },
-      errorRate: { warning: 5, critical: 10 },
-      throughput: { warning: 10, critical: 5 }
-    }
-  }
-);
-
-// 실시간 모니터링 시작
-monitoringIntegration.startRealTimeMonitoring();
-```
-
-### 테스트 작성
-
-#### 1. 에러 로깅 테스트
-
-```typescript
-// packages/memento-server/src/test/test-error-logging.ts
-import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from './services/error-logging-service.js';
-
-async function testErrorLogging() {
-  const errorService = new ErrorLoggingService();
-  
-  // 에러 로깅 테스트
-  errorService.logError(
-    new Error('Test error'),
-    ErrorSeverity.HIGH,
-    ErrorCategory.SYSTEM,
-    { test: true }
-  );
-  
-  // 통계 조회 테스트
-  const stats = errorService.getErrorStats();
-  console.log('Error stats:', stats);
-  
-  // 에러 해결 테스트
-  const errors = errorService.searchErrors({ limit: 1 });
-  if (errors.length > 0) {
-    const resolved = errorService.resolveError(
-      errors[0].id,
-      'test_user',
-      'Test resolution'
-    );
-    console.log('Error resolved:', resolved);
-  }
-}
-```
-
-#### 2. 성능 알림 테스트
-
-```typescript
-// packages/memento-server/src/test/test-performance-alerts.ts
-import { PerformanceAlertService, AlertLevel, AlertType } from './services/performance-alert-service.js';
-
-async function testPerformanceAlerts() {
-  const alertService = new PerformanceAlertService('./logs');
-  
-  // 알림 생성 테스트
-  const alert = alertService.createAlert(
-    AlertLevel.WARNING,
-    AlertType.MEMORY_USAGE,
-    '메모리 사용량',
-    150,
-    100,
-    '🟡 메모리 사용량 초과'
-  );
-  
-  // 알림 통계 조회
-  const stats = alertService.getStats();
-  console.log('Alert stats:', stats);
-  
-  // 알림 해결 테스트
-  const resolved = alertService.resolveAlert(
-    alert.id,
-    'test_user',
-    'Test resolution'
-  );
-  console.log('Alert resolved:', resolved);
-}
-```
+| 타입 | 용도 |
+|------|------|
+| feat | 새 기능 |
+| fix | 버그 수정 |
+| docs | 문서 변경 |
+| refactor | 리팩토링 |
+| test | 테스트 추가·수정 |
+| chore | 빌드·도구 변경 |
 
 ## HTTP 보안 (운영자 체크리스트)
 
-원격에서 HTTP 서버(`memento-dev` / `http-server` 등)에 접근 가능한 배포는 다음을 기본으로 한다.
+HTTP 서버를 원격에서 접근 가능하게 배포할 때는 다음 항목을 확인합니다.
 
 | 항목 | 환경 변수 | 설명 |
 |------|-----------|------|
-| 경로별 신뢰 경계 | `ADMIN_API_KEY` | `/auth/session`은 브라우저 세션을 시작하고, `/admin`, `/api`는 해당 세션이 필요합니다. `/api/v1/quality`는 헤더 기반 인증(`Authorization: Bearer <key>` 또는 `X-API-Key`)이 필요합니다. |
-| 바인딩 | `MEMENTO_HTTP_BIND_HOST` | 미설정 시 기본 `127.0.0.1`. `0.0.0.0` 등 비루프백으로 리슨할 때 키가 없으면 **기동 거부** |
-| 브라우저 CORS | `CORS_ALLOWED_ORIGINS` | 쉼표 구분. 비우면 크로스 오리진 미허용. MCP SSE 수동 헤더도 동일 목록 사용 |
-| (비권장) 무키 기동 | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | 개발 전용. 프로덕션 금지 |
+| API 인증 | `ADMIN_API_KEY` | 프로덕션 필수. `/admin`, `/api` 엔드포인트 인증에 사용됩니다. |
+| 바인딩 | `MEMENTO_HTTP_BIND_HOST` | 기본 `127.0.0.1`. 비루프백 주소로 설정 시 키가 없으면 기동을 거부합니다. |
+| CORS | `CORS_ALLOWED_ORIGINS` | 쉼표 구분. 비우면 크로스 오리진 요청을 차단합니다. |
+| 무키 기동 (비권장) | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | 로컬 개발 전용. 프로덕션에서 절대 사용하지 마십시오. |
 
-상세 절차·복구: [specs/001-http-trust-security/quickstart.md](../../../specs/001-http-trust-security/quickstart.md), `env.example` 주석.
+자세한 절차는 `env.example` 주석과 `AGENTS.md`를 참고하십시오.
 
-## 추가 리소스
+## 추가 참고 자료
 
-- [API 참조 문서](../../api/ko/api-reference.md)
-- [사용자 매뉴얼](user-manual.md)
-- [아키텍처 문서](../../architecture/ko/architecture.md)
-- 테스트·품질 게이트: [AGENTS.md](../../../AGENTS.md) (`npm test`, `npm run lint` 등)
-- [Cursor Rules](../../../.cursor/rules/)
-- [GitHub 저장소](https://github.com/your-org/memento)
-- [커뮤니티 포럼](https://github.com/your-org/memento/discussions)
+- `AGENTS.md` — 프로젝트 마스터 가이드 (아키텍처, 커맨드, 운영 절차)
+- `docs/guides/ko/migration-system-guide.md` — 마이그레이션 시스템
+- `docs/guides/ko/sdd-workflow.md` — SPECIFY → PLAN → 구현 워크플로우
+- `docs/guides/ko/environment-variable-governance.md` — 환경 변수 거버넌스

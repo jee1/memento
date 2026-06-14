@@ -1,31 +1,23 @@
 # Cursor MCP Setup Guide
 
-How to configure Memento MCP Server in Cursor.
+This guide explains how to connect Memento MCP Server in Cursor. Memento primarily connects via the **stdio MCP** approach, where Cursor spawns a `node` process pointing at the server entry point. If you run Memento in Docker, you can also connect via HTTP URL.
 
-## 🚨 Troubleshooting: "Cannot destructure property 'package' of 'node.target' as it is null"
+## Before You Start: Build the Project
 
-This error can occur when using `npx -y memento-mcp-server@latest` due to an internal npm error.
-
-> **Latest Update**: We've improved the package by adding `prepublishOnly` scripts and bin file validation to ensure builds are guaranteed during npm publish. Future versions should work more reliably.
-
-## ✅ Solutions
-
-### Method 1: Use Local Path (Recommended) ⭐
-
-Use the built files from your locally cloned project directly.
-
-#### 1. Build the Project
+The Memento server entry point is `packages/memento-server/dist/server/index.js`. This file is not committed to Git, so you must build the project before using the local path method.
 
 ```bash
-# From the project directory
-cd /path/to/memento
 npm install
 npm run build
 ```
 
-#### 2. Configure Cursor MCP
+A successful build produces `packages/memento-server/dist/server/index.js`. Confirm the path in your Cursor MCP configuration matches this file.
 
-Add the following to your Cursor settings file or `.cursor/mcp.json`:
+## Method 1: Use a Local Path (Recommended)
+
+This method uses the build output from your locally cloned repository. It is the most reliable approach because it avoids network and npm cache issues.
+
+Add the following to your Cursor settings file or `.cursor/mcp.json`.
 
 **Windows:**
 ```json
@@ -33,7 +25,7 @@ Add the following to your Cursor settings file or `.cursor/mcp.json`:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "args": ["C:\\Users\\username\\git\\memento\\packages\\memento-server\\dist\\server\\index.js"],
       "env": {
         "NODE_ENV": "production",
         "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
@@ -59,15 +51,29 @@ Add the following to your Cursor settings file or `.cursor/mcp.json`:
 }
 ```
 
-> **Note**: Change the paths to match your actual project path.
+Replace the paths with your actual project location. On Windows, backslashes must be escaped as `\\`.
 
-### Method 2: Direct Execution with npx (Simple Method)
+If you prefer to keep the configuration inside the project, place `.cursor/mcp.json` in the project root and set `cwd` to make relative paths work.
 
-Use npx to run the package directly without downloading it first.
+```json
+{
+  "mcpServers": {
+    "memento": {
+      "command": "node",
+      "args": ["./packages/memento-server/dist/server/index.js"],
+      "cwd": "/home/username/git/memento",
+      "env": {
+        "NODE_ENV": "production",
+        "DB_PATH": "/home/username/git/memento/data/memory.db"
+      }
+    }
+  }
+}
+```
 
-#### Cursor MCP Configuration
+## Method 2: Run Directly with npx
 
-Add the following to your Cursor settings file or `.cursor/mcp.json`:
+Use `npx` to run the published package without a separate installation step. This is convenient but can fail due to npm cache issues; switch to Method 1 if you run into problems.
 
 ```json
 {
@@ -76,42 +82,24 @@ Add the following to your Cursor settings file or `.cursor/mcp.json`:
       "command": "npx",
       "args": ["-y", "memento-mcp-server@latest"],
       "env": {
-        "DB_PATH": "./data/memory.db"
+        "DB_PATH": "/home/username/memento/data/memory.db"
       }
     }
   }
 }
 ```
 
-> **DB_PATH Configuration Notes**:
-> - Default value: `./data/memory.db` (relative to current working directory)
-> - Windows absolute path example: `"DB_PATH": "C:\\Users\\username\\memento\\data\\memory.db"`
-> - Linux/macOS absolute path example: `"DB_PATH": "/home/username/memento/data/memory.db"`
-> - Relative paths may vary depending on the working directory when npx runs, so using absolute paths is recommended.
+Use an absolute path for `DB_PATH`. A relative path can cause the database to be created in an unexpected location depending on the working directory when npx runs.
 
-> **Notes**: 
-> - The `-y` flag automatically accepts package installation prompts.
-> - `@latest` uses the latest version. You can specify a version like `@1.0.0` if needed.
-> - The package will be automatically downloaded on first run.
+The `-y` flag auto-accepts the installation prompt; `@latest` always uses the newest published version. To pin a specific version, write `memento-mcp-server@1.0.0`. The package will be downloaded on the first run, so an internet connection is required.
 
-#### Advantages
-- No separate installation process required
-- Always uses the latest version
-- Can be used without global installation
-
-#### Disadvantages
-- May take time to download on first run
-- May fail due to npm cache issues (see Method 4 for troubleshooting)
-
-### Method 3: Global Installation
-
-#### 1. Global Installation
+## Method 3: Global Installation
 
 ```bash
 npm install -g memento-mcp-server
 ```
 
-#### 2. Cursor MCP Configuration
+After global installation, reference the binary by name in the `command` field.
 
 ```json
 {
@@ -119,143 +107,115 @@ npm install -g memento-mcp-server
     "memento": {
       "command": "memento-mcp-server",
       "env": {
-        "DB_PATH": "./data/memory.db"
+        "DB_PATH": "/home/username/memento/data/memory.db"
       }
     }
   }
 }
 ```
 
-> **DB_PATH Configuration Note**: It's recommended to explicitly set DB_PATH even with global installation. Using absolute paths is recommended.
+## Method 4: Docker (Production / Server Deployment)
 
-### Method 4: Troubleshooting (npm Cache Cleanup)
+When Memento runs as a Docker container, it exposes an HTTP/SSE server. Connect using `url` instead of `command`.
 
-If you encounter the "Cannot destructure property 'package' of 'node.target' as it is null" error when using npx:
+First verify the container is running and responsive.
 
 ```bash
-# Clear npm cache
-npm cache clean --force
-
-# Check Node.js version (requires 20 or higher)
-node --version
-
-# Try again
-npx -y memento-mcp-server@latest
+docker ps | grep memento
+curl http://localhost:9001/health
 ```
 
-If the problem persists, we recommend Method 1 (using local path).
-
-## 📋 Detailed Configuration Examples
-
-### Windows (Complete Example)
+Then add the URL entry to `.cursor/mcp.json` or your global Cursor settings.
 
 ```json
 {
   "mcpServers": {
     "memento": {
-      "command": "node",
-      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
-      "env": {
-        "NODE_ENV": "production",
-        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db"
-      }
+      "url": "http://localhost:9001/mcp"
     }
   }
 }
 ```
 
-### Using Relative Path (Within Project)
+If you changed the port, replace `9001` with the value of your `MCP_SERVER_PORT` setting.
 
-Create a `.cursor/mcp.json` file in the project root:
-
-```json
-{
-  "mcpServers": {
-    "memento": {
-      "command": "node",
-      "args": ["./packages/memento-server/dist/server/index.js"],
-      "cwd": "C:\\Users\\username\\git\\memento",
-      "env": {
-        "NODE_ENV": "production",
-        "DB_PATH": "./data/memory.db"
-      }
-    }
-  }
-}
-```
-
-> **Note**: Since `cwd` is set, `DB_PATH` can use a relative path. However, using absolute paths is recommended.
-
-## 🔍 Troubleshooting
-
-### 1. Verify Build
+Manage the container lifecycle with Docker Compose.
 
 ```bash
-# Windows
-dir dist\server\index.js
+# Start
+docker compose up -d
 
-# Linux/macOS
-ls -la packages/memento-server/dist/server/index.js
+# Tail logs
+docker compose logs -f
+
+# Stop
+docker compose down
 ```
 
-### 2. Direct Execution Test
+The container must be running before you restart Cursor or reconnect the MCP server. If the container is stopped, the MCP tools will be unavailable.
 
-```bash
-# From the project directory
-node packages/memento-server/dist/server/index.js
-```
+## Troubleshooting
 
-If it runs successfully, the MCP server has started.
+### "Cannot find module '.../dist/server/index.js'"
 
-### 3. Check Node.js Version
-
-```bash
-node --version  # Should be 20.0.0 or higher
-```
-
-### 4. Verify Dependencies
+The build output is missing or stale. Run the following from the project root, then restart Cursor.
 
 ```bash
 npm install
 npm run build
 ```
 
-## 🎯 Recommended Setup Steps
+You can confirm the file exists with:
 
-1. ✅ Clone the project (already done)
-   ```bash
-   cd /path/to/memento
-   ```
+```bash
+# Linux/macOS
+ls -la packages/memento-server/dist/server/index.js
 
-2. ✅ Install dependencies and build
-   ```bash
-   npm install
-   npm run build
-   ```
+# Windows
+dir packages\memento-server\dist\server\index.js
+```
 
-3. ✅ Add local path to Cursor settings
-   - Cursor Settings → MCP Servers
-   - Or create a `.cursor/mcp.json` file
+### "Cannot destructure property 'package' of 'node.target' as it is null"
 
-4. ✅ Restart Cursor
+This npm internal error can occur when running `npx -y memento-mcp-server@latest`. Clear the npm cache and retry.
 
-5. ✅ Test connection
+```bash
+npm cache clean --force
+node --version  # Must be 20.0.0 or higher
+npx -y memento-mcp-server@latest
+```
 
-## 💡 Additional Tips
+If the issue persists, switch to Method 1 (local path).
 
-### Environment Variable Configuration
+### Direct Execution Test
 
-If you need specific environment variables:
+To verify the server itself works independently of Cursor configuration, run the entry point directly.
+
+```bash
+node packages/memento-server/dist/server/index.js
+```
+
+If the process starts without error, the MCP server is functional.
+
+### Check Node.js Version
+
+```bash
+node --version  # Should be 20.0.0 or higher
+```
+
+## Environment Variable Reference
+
+Add environment variables to the `env` section of your configuration to enable optional features.
 
 ```json
 {
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\username\\git\\memento\\dist\\server\\index.js"],
+      "args": ["/home/username/git/memento/packages/memento-server/dist/server/index.js"],
       "env": {
         "NODE_ENV": "production",
-        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
+        "DB_PATH": "/home/username/git/memento/data/memory.db",
         "OPENAI_API_KEY": "your-key-here",
         "GEMINI_API_KEY": "your-key-here",
         "EMBEDDING_PROVIDER": "minilm",
@@ -266,23 +226,18 @@ If you need specific environment variables:
 }
 ```
 
-#### Key Environment Variables
+Key environment variables:
 
-- **DB_PATH** (Recommended): Database file path
-  - Default: `./data/memory.db`
-  - Windows example: `C:\\Users\\username\\memento\\data\\memory.db`
-  - Linux/macOS example: `/home/username/memento/data/memory.db`
-  - Using absolute paths is recommended (relative paths may vary depending on execution location)
+- **DB_PATH**: Path to the SQLite database file. Absolute paths are strongly recommended. Defaults to `~/.memento/memory.db`.
+- **NODE_ENV**: Runtime mode (`development` or `production`).
+- **OPENAI_API_KEY**: Required when using OpenAI embeddings.
+- **GEMINI_API_KEY**: Required when using Gemini embeddings.
+- **EMBEDDING_PROVIDER**: Embedding provider to use (`tfidf`, `lightweight`, `minilm`, `openai`, `gemini`). Defaults to `minilm`.
+- **LOG_LEVEL**: Logging verbosity (`debug`, `info`, `warn`, `error`).
 
-- **NODE_ENV**: Execution environment (`development` or `production`)
-- **OPENAI_API_KEY**: OpenAI API key (when using OpenAI embeddings)
-- **GEMINI_API_KEY**: Google Gemini API key (when using Gemini embeddings)
-- **EMBEDDING_PROVIDER**: Embedding provider (`tfidf`, `lightweight`, `minilm`, `openai`, `gemini`)
-- **LOG_LEVEL**: Log level (`debug`, `info`, `warn`, `error`)
+## Running from Source (Development)
 
-### Debug Mode
-
-If you're developing, you can run the source file directly:
+If you want to run the TypeScript source directly without building first, use `tsx`.
 
 ```json
 {
@@ -290,10 +245,10 @@ If you're developing, you can run the source file directly:
     "memento": {
       "command": "npx",
       "args": ["-y", "tsx", "packages/memento-server/src/server/index.ts"],
-      "cwd": "C:\\Users\\username\\git\\memento",
+      "cwd": "/home/username/git/memento",
       "env": {
         "NODE_ENV": "development",
-        "DB_PATH": "C:\\Users\\username\\git\\memento\\data\\memory.db",
+        "DB_PATH": "/home/username/git/memento/data/memory.db",
         "LOG_LEVEL": "debug"
       }
     }
@@ -301,11 +256,9 @@ If you're developing, you can run the source file directly:
 }
 ```
 
-## ⚠️ Important Notes
+## Quick Setup Summary
 
-- On Windows, you must escape backslashes (`\`) by using two backslashes (`\\`).
-- Using absolute paths is most reliable.
-- The `npx` method is convenient but may fail due to npm cache issues. In such cases, we recommend Method 1 (using local path).
-- Method 2 (npx) requires an internet connection as it downloads the package on first run.
-- **DB_PATH Configuration**: It's recommended to explicitly set the database file path. If not set, the default value (`./data/memory.db`) will be used, but the database may be created in an unexpected location depending on the execution location.
-- **Database Directory**: If the directory specified in DB_PATH doesn't exist, it will be created automatically. However, write permissions are required, so specify an appropriate location.
+1. Clone the repository and run `npm install && npm run build`.
+2. Add the Method 1 JSON snippet to `.cursor/mcp.json`, updating the paths for your system.
+3. Restart Cursor or reconnect the MCP server.
+4. Verify that Memento tools (`remember`, `recall`, etc.) appear in the tool list.

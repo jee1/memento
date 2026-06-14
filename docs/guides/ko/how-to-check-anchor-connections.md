@@ -1,60 +1,33 @@
 # 앵커에 연결된 정보 확인 방법
 
-앵커에 연결된 메모리들을 확인하는 여러 방법을 안내합니다.
+앵커(Anchor)는 A·B·C 세 슬롯에 특정 메모리를 고정하여, 이후 `search_local` 호출 시 그 메모리 주변의 관련 정보만 좁혀서 탐색하는 메커니즘입니다. 앵커에 어떤 메모리들이 연결되어 있는지 확인하는 방법은 네 가지입니다.
 
-## 📋 목차
+## 1. Anchor Map UI (대시보드)
 
-1. [Anchor Map UI에서 확인](#1-anchor-map-ui에서-확인)
-2. [API를 통한 확인](#2-api를-통한-확인)
-3. [MCP Tool을 통한 확인](#3-mcp-tool을-통한-확인)
-4. [데이터베이스 직접 조회](#4-데이터베이스-직접-조회)
+HTTP 서버가 실행 중이라면 대시보드에서 앵커 연결 관계를 시각적으로 확인할 수 있습니다.
 
----
-
-## 1. Anchor Map UI에서 확인
-
-### 1.1 대시보드 접속
 ```
-http://localhost:8080/dashboard
+http://localhost:9001/dashboard
 ```
 
-### 1.2 Load Map 버튼 클릭
-- "Load Map" 버튼을 클릭하면 앵커와 연결된 메모리들이 시각화됩니다
-- 앵커 노드는 슬롯별 색상으로 표시됩니다:
-  - **Slot A**: 빨간색 (#ef4444)
-  - **Slot B**: 주황색 (#f59e0b)
-  - **Slot C**: 파란색 (#3b82f6)
+대시보드에 접속한 뒤 "Load Map" 버튼을 클릭하면 앵커 노드와 연결된 메모리 노드들이 그래프로 표시됩니다. 앵커 노드는 슬롯별로 색상이 다릅니다. Slot A는 빨간색, Slot B는 주황색, Slot C는 파란색입니다.
 
-### 1.3 노드 클릭
-- 맵에서 노드를 클릭하면 사이드바에 메모리 상세 정보가 표시됩니다:
-  - **Type**: Anchor 또는 Memory
-  - **Memory ID**: 메모리 고유 ID
-  - **Content**: 메모리 내용
-  - **Hop Distance**: 앵커로부터의 거리 (1-hop, 2-hop, ...)
-  - **Similarity**: 유사도 점수
-  - **Importance**: 중요도
-  - **Created**: 생성 시간
+그래프에서 노드를 클릭하면 사이드바에 해당 메모리의 상세 정보(Memory ID, 내용, 앵커로부터의 Hop 거리, 유사도 점수, 중요도, 생성 시간)가 표시됩니다. 왼쪽 사이드바의 "Anchors" 섹션에서는 현재 설정된 앵커 목록을 확인하고, 항목을 클릭하면 해당 앵커 노드로 이동할 수 있습니다.
 
-### 1.4 사이드바 확인
-- 왼쪽 사이드바의 "Anchors" 섹션에서 설정된 앵커 목록을 확인할 수 있습니다
-- 각 앵커를 클릭하면 해당 앵커 노드로 이동합니다
+검색어를 입력하고 슬롯을 선택한 뒤 "Search"를 클릭하면, 앵커 주변에서 검색어와 관련된 메모리들을 찾아 결과를 하이라이트합니다.
 
-### 1.5 검색 기능 사용
-- 검색어를 입력하고 Slot을 선택한 후 "Search" 버튼을 클릭하면:
-  - 앵커 주변에서 검색어와 관련된 메모리들을 찾습니다
-  - 검색 결과가 하이라이트됩니다 (펄스 애니메이션)
-  - 첫 번째 검색 결과로 자동 확대/이동합니다
+## 2. HTTP API
 
----
+### Anchor Map API
 
-## 2. API를 통한 확인
+앵커와 연결된 전체 노드·링크 구조를 JSON으로 조회합니다.
 
-### 2.1 Anchor Map API
 ```bash
-curl "http://localhost:8080/api/anchors/map?agent_id=default"
+curl "http://localhost:9001/api/anchors/map?agent_id=default"
 ```
 
-**응답 구조:**
+응답에는 `anchors`(설정된 앵커 목록), `nodes`(앵커와 연결된 모든 노드), `links`(노드 간 연결 관계) 세 가지 배열이 포함됩니다.
+
 ```json
 {
   "agent_id": "default",
@@ -63,8 +36,7 @@ curl "http://localhost:8080/api/anchors/map?agent_id=default"
       "agent_id": "default",
       "slot": "A",
       "memory_id": "mem_xxx",
-      "created_at": "2025-11-09 06:35:26",
-      "updated_at": "2025-11-09 06:35:26"
+      "created_at": "2025-11-09 06:35:26"
     }
   ],
   "nodes": [
@@ -73,8 +45,7 @@ curl "http://localhost:8080/api/anchors/map?agent_id=default"
       "type": "anchor",
       "slot": "A",
       "content": "앵커 메모리 내용",
-      "importance": 0.7,
-      "created_at": "2025-11-09T06:31:47.827Z"
+      "importance": 0.7
     },
     {
       "id": "mem_yyy",
@@ -82,8 +53,7 @@ curl "http://localhost:8080/api/anchors/map?agent_id=default"
       "content": "연결된 메모리 내용",
       "hop_distance": 1,
       "similarity": 0.85,
-      "importance": 0.6,
-      "created_at": "2025-11-09T06:32:10.123Z"
+      "importance": 0.6
     }
   ],
   "links": [
@@ -94,25 +64,18 @@ curl "http://localhost:8080/api/anchors/map?agent_id=default"
       "hop_distance": 1,
       "similarity": 0.85
     }
-  ],
-  "timestamp": "2025-11-09T06:54:58.329Z"
+  ]
 }
 ```
 
-**설명:**
-- `anchors`: 설정된 앵커 목록
-- `nodes`: 앵커와 연결된 모든 메모리 노드
-  - `type: "anchor"`: 앵커 노드
-  - `type: "memory"`: 연결된 메모리 노드
-  - `hop_distance`: 앵커로부터의 거리 (1, 2, 3, ...)
-  - `similarity`: 앵커와의 유사도 (0.0 ~ 1.0)
-- `links`: 노드 간 연결 관계
-  - `type: "hop"`: Hop 거리 기반 연결
-  - `type: "link"`: memory_link 테이블 기반 직접 연결
+`nodes`의 `type`이 `"anchor"`이면 앵커 메모리 자체, `"memory"`이면 앵커와 연결된 일반 메모리입니다. `hop_distance`는 앵커로부터의 연결 거리를 나타내며, `links`의 `type`이 `"hop"`이면 hop 거리 기반 연결, `"link"`이면 `memory_link` 테이블 기반 직접 연결입니다.
 
-### 2.2 Search Local API
+### Search Local API
+
+특정 슬롯의 앵커 주변에서 검색어와 관련된 메모리를 조회합니다.
+
 ```bash
-curl -X POST "http://localhost:8080/tools/search_local" \
+curl -X POST "http://localhost:9001/tools/search_local" \
   -H "Content-Type: application/json" \
   -d '{
     "agent_id": "default",
@@ -123,41 +86,17 @@ curl -X POST "http://localhost:8080/tools/search_local" \
   }'
 ```
 
-**파라미터:**
-- `agent_id`: 에이전트 ID (기본값: "default")
-- `slot`: 앵커 슬롯 (A, B, C)
-- `query`: 검색어 (선택적, 없으면 앵커 기반 recall)
-- `hop_limit`: 최대 hop 거리 (선택적, 기본값: 슬롯별 설정)
-- `limit`: 최대 결과 수 (기본값: 10)
+`query`를 생략하면 검색어 없이 앵커 주변의 모든 관련 메모리를 반환합니다. 검색 결과가 부족하고 `query`가 제공된 경우에만 전역 검색으로 자동 전환됩니다.
 
-**응답 구조:**
+## 3. MCP 도구
+
+MCP 클라이언트에서 직접 앵커 정보를 조회할 때는 `get_anchor`와 `search_local` 도구를 사용합니다.
+
+`get_anchor`는 특정 슬롯에 설정된 앵커의 memory_id와 타임스탬프를 반환합니다.
+
 ```json
 {
-  "items": [
-    {
-      "id": "mem_yyy",
-      "content": "메모리 내용",
-      "type": "episodic",
-      "similarity": 0.85,
-      "hop_distance": 1,
-      "importance": 0.6,
-      "created_at": "2025-11-09T06:32:10.123Z"
-    }
-  ],
-  "total": 1,
-  "anchor_slot": "A",
-  "search_type": "local"
-}
-```
-
----
-
-## 3. MCP Tool을 통한 확인
-
-### 3.1 get_anchor Tool
-```json
-{
-  "name": "memento.get_anchor",
+  "name": "get_anchor",
   "arguments": {
     "agent_id": "default",
     "slot": "A"
@@ -165,21 +104,11 @@ curl -X POST "http://localhost:8080/tools/search_local" \
 }
 ```
 
-**응답:**
-```json
-{
-  "agent_id": "default",
-  "slot": "A",
-  "memory_id": "mem_xxx",
-  "created_at": "2025-11-09 06:35:26",
-  "updated_at": "2025-11-09 06:35:26"
-}
-```
+`search_local`은 앵커 주변에서 hop 거리 내의 메모리를 탐색합니다.
 
-### 3.2 search_local Tool
 ```json
 {
-  "name": "memento.search_local",
+  "name": "search_local",
   "arguments": {
     "agent_id": "default",
     "slot": "A",
@@ -190,42 +119,25 @@ curl -X POST "http://localhost:8080/tools/search_local" \
 }
 ```
 
-**응답:**
-```json
-{
-  "items": [
-    {
-      "id": "mem_yyy",
-      "content": "메모리 내용",
-      "type": "episodic",
-      "similarity": 0.85,
-      "hop_distance": 1,
-      "importance": 0.6,
-      "created_at": "2025-11-09T06:32:10.123Z"
-    }
-  ],
-  "total": 1,
-  "anchor_slot": "A",
-  "search_type": "local"
-}
-```
-
----
+응답에는 각 메모리의 ID·내용·타입·유사도·hop 거리·중요도·생성 시간이 포함됩니다.
 
 ## 4. 데이터베이스 직접 조회
 
-### 4.1 앵커 정보 조회
+디버깅이나 데이터 분석 목적으로 SQLite DB를 직접 쿼리할 수 있습니다.
+
+앵커 목록을 조회합니다.
+
 ```sql
 SELECT * FROM anchor WHERE agent_id = 'default';
 ```
 
-### 4.2 앵커 주변 메모리 조회 (memory_link 활용)
+앵커 메모리 ID가 `mem_xxx`일 때 직접 연결된 메모리들을 `memory_link` 테이블에서 조회합니다.
+
 ```sql
--- 앵커 메모리 ID가 'mem_xxx'인 경우
-SELECT 
-  ml.target_memory_id as connected_memory_id,
+SELECT
+  ml.target_memory_id AS connected_memory_id,
   ml.similarity,
-  ml.created_at as link_created_at,
+  ml.created_at AS link_created_at,
   mi.content,
   mi.type,
   mi.importance
@@ -233,10 +145,10 @@ FROM memory_link ml
 JOIN memory_item mi ON mi.id = ml.target_memory_id
 WHERE ml.source_memory_id = 'mem_xxx'
 UNION
-SELECT 
-  ml.source_memory_id as connected_memory_id,
+SELECT
+  ml.source_memory_id AS connected_memory_id,
   ml.similarity,
-  ml.created_at as link_created_at,
+  ml.created_at AS link_created_at,
   mi.content,
   mi.type,
   mi.importance
@@ -245,45 +157,16 @@ JOIN memory_item mi ON mi.id = ml.source_memory_id
 WHERE ml.target_memory_id = 'mem_xxx';
 ```
 
-### 4.3 임베딩 기반 유사 메모리 조회
-```sql
--- 앵커 메모리의 임베딩을 기준으로 유사한 메모리 찾기
--- (벡터 검색은 VectorSearchEngine을 통해 수행)
-```
+## Hop Distance 개념
 
----
+Hop Distance는 앵커 메모리로부터의 연결 거리를 나타냅니다. 1-hop은 앵커와 직접 연결된 메모리, 2-hop은 1-hop 메모리와 연결된 메모리, 이런 식으로 거리가 멀어집니다.
 
-## 🔍 Hop Distance 설명
+슬롯별 기본 설정은 탐색 범위를 조절합니다.
 
-**Hop Distance**는 앵커로부터의 연결 거리를 나타냅니다:
+| 슬롯 | hop_limit | vector_threshold | 특성 |
+|------|-----------|-----------------|------|
+| A | 2 | 0.7 | 가장 좁은 범위, 높은 관련성 |
+| B | 3 | 0.6 | 중간 범위 |
+| C | 5 | 0.5 | 넓은 범위 |
 
-- **1-hop**: 앵커와 직접 연결된 메모리 (가장 관련성 높음)
-- **2-hop**: 1-hop 메모리와 연결된 메모리
-- **3-hop**: 2-hop 메모리와 연결된 메모리
-- ...
-
-**슬롯별 기본 설정:**
-- **Slot A**: hop_limit = 2, vector_threshold = 0.7 (가장 가까운 연결)
-- **Slot B**: hop_limit = 3, vector_threshold = 0.6 (중간 범위)
-- **Slot C**: hop_limit = 5, vector_threshold = 0.5 (넓은 범위)
-
----
-
-## 💡 팁
-
-1. **검색어 없이 검색**: `query` 파라미터를 생략하면 앵커 주변의 모든 관련 메모리를 가져옵니다 (앵커 기반 recall)
-
-2. **Fallback 동작**: 검색 결과가 부족하고 `query`가 제공된 경우에만 전역 검색으로 자동 전환됩니다
-
-3. **실시간 업데이트**: WebSocket을 통해 앵커 변경 시 맵이 자동으로 업데이트됩니다
-
-4. **노드 드래그**: 맵에서 노드를 드래그하여 위치를 조정할 수 있습니다
-
----
-
-## 📚 관련 문서
-
-- [Anchor Map Manual Test Guide](../../_work/reviews/ko/anchor-map-manual-test-guide.md)
-- [Anchor System PRD](../../../tasks/0006-prd-anchor-system.md)
-- [Anchor Map Browser Test Report](../../_work/reviews/ko/anchor-map-browser-test-report.md)
-
+작업 컨텍스트가 명확하고 관련 메모리가 집중되어 있을 때는 Slot A나 B를 사용하는 것이 recall보다 빠른 결과를 제공합니다.
