@@ -1,159 +1,68 @@
-# 🧠 Memento MCP Server
+# 🧠 Memento
 
 <div align="center">
   <img src="static/logo.png" alt="Memento Logo" width="200" height="200">
-  
-  <h3>✨ AI Agent의 기억을 영원히 기억하세요 ✨</h3>
-  
-  <p><strong>사람의 기억 구조를 모사한 지능형 메모리 관리 시스템</strong></p>
-  
+
   [🇰🇷 한국어](README.md) | [🇺🇸 English](README.en.md)
 </div>
 
-> **🚀 Memento is a memory operating system for LLM agents.**  
-> Memento는 LLM이 '대화를 기억하는 척'이 아니라, 기억을 생성·분류·강화·망각하는 주체로 행동하게 만드는 MCP 기반 메모리 운영 시스템입니다.  
-> 작업기억, 일화기억, 의미기억, 절차기억을 모사하여 **진정한 장기 기억**을 구현합니다.
+---
 
-## 🎯 프로젝트 개요
+LLM은 대화가 끝나면 모든 것을 잊는다. 이름도, 결정도, 지난 주에 함께 디버깅했던 맥락도. 이건 기술적 한계가 아니라 **기억 인프라의 부재**다.
 
-Memento MCP Server는 AI Agent가 장기 기억을 저장하고 관리할 수 있도록 도와주는 MCP(Model Context Protocol) 서버입니다. 사람의 기억 구조(작업기억, 일화기억, 의미기억, 절차기억)를 모사하여 효율적인 기억 관리 시스템을 제공합니다.
+Memento는 그 인프라다. 기억을 저장하는 데이터베이스가 아니라, 기억이 생성·분류·강화·망각되는 **MCP 기반 기억 운영 체제**.
 
-### 📦 프로젝트 구조 (모노레포)
+## 기억은 단순하지 않다
 
-이 저장소는 **npm workspaces** 기반 모노레포입니다.
+심리학과 신경과학이 수십 년에 걸쳐 밝혀낸 것이 있다. 인간의 기억은 한 종류가 아니다.
+
+**작업기억(Working Memory)** 은 지금 이 순간 처리 중인 정보다. 몇 초 안에 사라지지만, 그 순간만큼은 모든 판단의 기반이 된다. **일화기억(Episodic Memory)** 은 경험의 흔적이다. "그날 오후 React Hook을 처음 배웠을 때"처럼 시간과 맥락이 붙어 있는 기억. **의미기억(Semantic Memory)** 은 경험에서 증류된 지식이다. 수백 번의 디버깅을 거쳐 쌓인 "TypeScript 제네릭은 이렇게 동작한다"는 이해. 그리고 **절차기억(Procedural Memory)** 은 손에 밴 절차다. Docker 배포 순서, PR 체크리스트, 팀의 코딩 컨벤션.
+
+현재 대부분의 LLM은 이 네 가지를 매 대화마다 잃는다. Memento는 이 네 가지를 모두 영속화한다 — `remember` 호출 시 `type` 파라미터로 `working`, `episodic`, `semantic`, `procedural` 중 하나를 지정하면 된다.
+
+## 살아있는 기억
+
+단순한 저장소가 아니다. Memento의 기억은 살아있다.
+
+중요하게 쓰인 기억은 강화된다. 오래되고 쓸모없어진 기억은 망각 알고리즘에 의해 정리된다. 비슷한 기억들은 벡터 유사도로 서로 연결되어 그래프를 형성한다. 반복 사용하는 절차는 버전 관리되어 `procedural_diff`와 `procedural_rollback`으로 진화를 추적한다. 핵심 맥락은 앵커(Anchor)로 고정되어 새 대화에서도 즉시 복원된다.
+
+AI가 "기억하는 척"하는 것이 아니라, 기억을 생성·분류·강화·망각하는 주체로 행동하게 만드는 것 — 그것이 Memento의 목표다.
+
+### 📦 모노레포 구조
+
+이 저장소는 **npm workspaces** 기반 모노레포다.
 
 | 경로 | 설명 |
 |------|------|
 | **packages/memento-core** (`@memento/core`) | 도메인·인프라·공유 라이브러리. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB 초기화·마이그레이션은 루트에서 `npm run db:init` / `npm run db:migrate`로 실행. |
 | **packages/memento-server** | core를 사용하는 MCP/HTTP 서버. 루트 `npm run dev`, `npm start`, `npm run dev:http` 등으로 실행. |
 | **packages/memento-client** (`@memento/client`) | 서버 연결용 클라이언트 라이브러리. |
-| **packages/memento-agent-integration** (`@memento/agent-integration`) | Codex CLI·Claude Code lifecycle hook 수집, 민감정보 마스킹, 비차단 fallback을 제공하는 adapter 라이브러리. |
 | **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core`를 in-process로 사용). |
 
 상세 구조·빌드·테스트 명령은 [AGENTS.md](AGENTS.md)를 참조하세요.
 
-## ✨ 주요 기능
-
-### 🧠 핵심 메모리 관리 (MCP 클라이언트)
-- **기억 저장**: 4가지 타입의 기억 저장 (working, episodic, semantic, procedural)
-- **기억 검색**: 하이브리드 검색 (텍스트 + 벡터)
-- **이웃 기억 탐색**: 벡터 유사도 기반 유사한 기억 자동 추천
-- **기억 고정**: 중요한 기억 고정/해제
-- **기억 삭제**: 소프트/하드 삭제
-- **앵커 시스템**: 중요한 기억을 앵커로 설정하여 컨텍스트 관리
-> **참고**: 앵커 복원, 임베딩 마이그레이션, Episodic → Semantic 변환, 메타 메모리 통계는 MCP 도구가 아니라 HTTP 관리 API로만 제공됩니다.
-
-### 🔍 고급 검색
-- **FTS5 텍스트 검색**: SQLite의 Full-Text Search
-- **벡터 검색**: sqlite-vec 기반 의미적 검색
-- **하이브리드 검색**: 텍스트와 벡터 검색의 결합
-- **다중 임베딩 제공자**: TF-IDF, MiniLM, OpenAI, Gemini 지원
-- **자동 제공자 선택**: 설정 기반 최적 제공자 자동 선택
-- **폴백 메커니즘**: 제공자 실패 시 자동 대체 (OpenAI → 경량 서비스)
-- **태그 기반 필터링**: 메타데이터 기반 검색
-
-### 🧹 망각 정책
-- **망각 알고리즘**: 최근성, 사용성, 중복 비율 기반 망각 점수 계산
-- **간격 반복**: 중요도와 사용성 기반 리뷰 스케줄링
-- **TTL 관리**: 타입별 수명 관리
-- **자동 정리**: 소프트/하드 삭제 자동화
-
-### 📊 성능 모니터링 (HTTP 관리 API)
-- **보안**: HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다. `/auth/session`은 쿠키 기반 브라우저 세션을 시작하고, `/admin`과 `/api`는 브라우저 세션이 필요하며, `/api/v1/quality`, `/tools`, `/mcp`는 `Authorization: Bearer` 또는 `X-API-Key`가 필요합니다. 자세한 내용은 [docs/reference/ko/security.md](docs/reference/ko/security.md)를 참고하세요.
-- **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
-- **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림
-- **에러 로깅**: 구조화된 에러 로깅 및 통계 수집
-- **데이터베이스 최적화**: 자동 인덱스 추천 및 생성
-- **캐시 시스템**: LRU + TTL 기반 캐싱
-- **비동기 처리**: 워커 풀 기반 병렬 처리
-
-### 🔗 메모리 그래프 뷰 (브라우저)
-
-HTTP 서버 실행 후 브라우저에서 기억들의 의미적 관계를 그래프로 시각화할 수 있습니다. 전체 관리 흐름은 `/dashboard`에서 여는 편이 가장 안전하며, `/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증 패널로 세션을 시작하거나 복구할 수 있습니다.
-
-```
-http://localhost:9001/dashboard
-http://localhost:9001/graph
-```
-
-![Memento Memory Graph View](docs/graph-screenshot.png)
-
-## 🔗 외부 AI 비서와 함께 쓰기
-
-OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
-
-`@memento/assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
-
-### Codex CLI·Claude Code 자동 연동
-
-Memento HTTP 서버를 실행한 뒤 CLI adapter를 연결하면 `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `PreCompact`, `Stop` lifecycle을 자동으로 수집할 수 있습니다. 기존 agent 설정은 보존되며, 변경 전 원본의 backup이 생성됩니다.
-
-```bash
-# 1. Memento 서버 실행
-npm run build
-npm run start:http
-
-# 2. 사용할 agent 연결
-memento connect codex
-memento connect claude-code
-
-# 3. 연결 및 수집 상태 확인
-memento doctor
-memento status
-
-# 4. 격리된 예제 session으로 전체 흐름 확인
-memento demo
-```
-
-Codex는 연결 후 `/hooks`에서 Memento handler 5개를 신뢰 처리해야 실제 hook이 활성화됩니다. 서버 중단, 인증 실패, timeout이 발생해도 adapter는 agent 작업을 중단시키지 않고 제한 시간 내에 fallback합니다.
-
-- 설치·장애 진단·실제 agent 검증: [Agent Integration Smoke Matrix](docs/operations/ko/agent-smoke-matrix.md)
-- 자동화된 release gate 결과: [2026-06-14 검증 기록](docs/_work/testing/agent-integration-release-gate/latest/run-note.md)
-
-### 검증 상태
-
-2026-06-14 기준 격리된 실제 서버와 Codex CLI·Claude Code를 사용한 release gate를 통과했습니다.
-
-- lifecycle capture: **39/39**
-- provenance coverage: **9/9**
-- credential fixture leak: **0건**
-- hook return p95: **37.58ms**
-- memory injection p95: **10ms**
-- server-down·인증 실패·timeout 시 agent unblocked: **6/6**
-
-이 수치는 로컬 격리 환경의 출시 검증 결과이며 장기 운영 SLO나 전체 플랫폼 인증을 의미하지 않습니다. LongMemEval-S 검증 범위와 해석 제한은 [실제 데이터 검증 문서](docs/_work/testing/ko/longmemeval-s-validation.md)를 참고하세요.
-
 ## 🚀 빠른 시작
 
-### 🥇 **원클릭 설치 (권장)**
+> **📦 패키지 매니저**: 이 프로젝트는 **npm**을 사용합니다. `pnpm`이나 `yarn`은 지원하지 않습니다.
+
+### 원클릭 설치 (권장)
 ```bash
-# 자동 설치 스크립트 실행
 curl -sSL https://raw.githubusercontent.com/jee1/memento/main/install.sh | bash
 ```
 
-### 🥈 **npx 방식 (개발자용) - 모든 플랫폼 지원**
+### npx 방식 (개발자용)
 
 #### Windows (PowerShell/CMD)
 ```powershell
-# 즉시 실행 (설치 없이)
 npx memento-mcp-server@latest dev
-
-# MCP 서버 실행
 npx memento-mcp-server@latest
-
-# 자동 설정
 npx memento-mcp-server@latest setup
 ```
 
 #### Linux/macOS
 ```bash
-# 즉시 실행 (설치 없이)
 npx memento-mcp-server@latest dev
-
-# MCP 서버 실행
 npx memento-mcp-server@latest
-
-# 자동 설정
 npx memento-mcp-server@latest setup
 ```
 
@@ -162,58 +71,38 @@ npx memento-mcp-server@latest setup
 > npm exec -- memento-mcp-server@latest dev
 > ```
 
-**npx 실행 시 모드**: MCP 서버(`memento-mcp-server` / stdio), HTTP 서버(`memento-dev`), **CLI**(`memento` — recall, remember, forget, memory_injection)를 구분해 사용할 수 있습니다. **CLI를 반복 사용할 때는** 매번 npx로 실행하면 다운로드가 발생할 수 있으므로 **글로벌 설치**(`npm i -g memento-mcp-server`) 또는 로컬 설치 후 `./node_modules/.bin/memento` 사용을 권장합니다. CLI 가이드: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
+**반복 사용 시 주의**: 매번 npx로 실행하면 다운로드가 발생할 수 있으므로 반복 사용에는 **글로벌 설치**(`npm i -g memento-mcp-server`) 또는 로컬 설치 후 `./node_modules/.bin/memento` 사용을 권장합니다. 모드 구분: MCP 서버(`memento-mcp-server` / stdio), HTTP 서버(`memento-dev`), CLI(`memento` — recall, remember, forget, memory_injection). CLI 가이드: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
 
-### 🥉 **Docker 방식 (프로덕션용)**
+### Docker 방식 (프로덕션용)
 ```bash
-# 개발 환경
-docker-compose -f docker-compose.dev.yml up -d
-
-# 프로덕션 환경
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.dev.yml up -d   # 개발
+docker-compose -f docker-compose.prod.yml up -d  # 프로덕션
 ```
 
-#### Log Issue Monitor
+**Log Issue Monitor**: 운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 `docker-compose.issue-monitor.yml` 오버레이를 사용합니다. 자세한 절차: [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md).
 
-운영 로그와 Docker diagnostics를 주기적으로 검사해 반복 오류를 GitHub Issue로 묶어 관리하려면 opt-in `docker-compose.issue-monitor.yml` 오버레이를 사용할 수 있습니다. 자세한 절차는 [Log Issue Monitor 운영 가이드](docs/operations/ko/log-issue-monitor.md)를 참고하세요.
-
-### 🛠️ **소스코드 방식 (개발자용)**
-
-> **📦 패키지 매니저**: 이 프로젝트는 **npm**을 사용합니다. `pnpm`이나 `yarn`은 사용하지 않습니다.
+### 소스코드 방식 (개발자용)
 
 ```bash
-# 저장소 클론
 git clone https://github.com/jee1/memento.git
 cd memento
-
-# 의존성 설치 (루트에서 워크스페이스 전체 설치)
 npm install
-
-# 빌드 (core → server → client 순서)
 npm run build
-
-# DB 초기화·마이그레이션 (core 워크스페이스에 위임)
 npm run db:init
 npm run db:migrate
-
-# 원클릭 설치 및 실행
 npm run quick-start
 ```
 
-### 🔌 **다중 에이전트 운영을 위한 HTTP MCP 서버**
+### 다중 에이전트 운영을 위한 HTTP MCP 서버
 
 SQLite는 WAL 모드를 사용해도 동시에 하나의 writer만 허용합니다. 여러 AI Agent가 각각 프로세스로 `remember`/`forget`을 호출하면 `SQLITE_BUSY`가 발생할 수 있으므로, **반드시 MCP 서버 프로세스를 하나만 띄워 DB를 전담**하도록 구성하는 것을 권장합니다.
 
 ```bash
-# 개발 모드 (Hot Reload)
-npm run dev:http
-
-# 빌드 후 프로덕션 실행
-npm run build
-npm run start:http      # 또는 node packages/memento-server/dist/server/http-server.js
+npm run dev:http                          # 개발 모드 (Hot Reload)
+npm run build && npm run start:http       # 프로덕션
 ```
 
-이 방식으로 **packages/memento-server**의 HTTP MCP 서비스를 띄워 두면, 모든 에이전트는 HTTP/WebSocket 인터페이스를 통해 이 서버에만 접속하게 되고 실제 SQLite writer는 단일 프로세스로 제한됩니다. npx로도 동일하게 실행할 수 있으니, 다중 에이전트 환경에서는 이 구조를 반드시 적용해 주세요.
+이 방식으로 `packages/memento-server`의 HTTP MCP 서비스를 띄워 두면, 모든 에이전트는 HTTP/WebSocket 인터페이스를 통해 이 서버에만 접속하고 SQLite writer는 단일 프로세스로 제한됩니다.
 
 #### MCP 클라이언트 설정 예시 (`mcp.json`)
 
@@ -224,9 +113,7 @@ npm run start:http      # 또는 node packages/memento-server/dist/server/http-s
   "clients": {
     "memento": {
       "command": "node",
-      "args": [
-        "/path/to/memento/packages/memento-server/dist/server/http-server.js"
-      ],
+      "args": ["/path/to/memento/packages/memento-server/dist/server/http-server.js"],
       "env": {
         "DB_PATH": "/absolute/path/to/data/memory.db",
         "MCP_SERVER_PORT": "7777"
@@ -240,18 +127,22 @@ npm run start:http      # 또는 node packages/memento-server/dist/server/http-s
 }
 ```
 
-Cursor 등의 MCP 호스트에서는 위와 같이 `mcp.json`에 HTTP MCP 서버 정보를 등록한 뒤, 모든 AI Agent가 동일한 포트(예: 7777)로 접속하도록 맞춰 주시면 됩니다.
+### 상세 설치 가이드
+- [INSTALL.md](INSTALL.md) — 전체 설치 가이드
+- [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md)
+- [npx 사용자 문제 해결](docs/operations/ko/npx-troubleshooting.md)
 
-### 📚 **상세 설치 가이드**
-- [INSTALL.md](INSTALL.md) - 전체 설치 가이드
-- [Cursor MCP 설정 가이드](docs/guides/ko/cursor-mcp-setup.md) - Cursor에서 MCP 서버 사용하기
-- [npx 사용자 문제 해결](docs/operations/ko/npx-troubleshooting.md) - npx 실행 시 문제 해결
+## 🔗 외부 AI 비서와 함께 쓰기
+
+OpenClaw / NanoClaw / ZeroClaw 같은 개인 AI 비서가 Memento를 공유 장기 기억 백엔드로 사용할 수 있습니다. 가이드: [docs/integrations/](./docs/integrations/README.md)
+
+`@memento/assistant` SDK를 사용하면 자동 recall/remember를 코드 두 줄로 붙일 수 있습니다 — [SDK quickstart](./docs/integrations/_shared/sdk-quickstart.md)
 
 ## 💡 사용 예시
 
-### 🤖 AI Agent와의 연동
+### AI Agent와의 연동
 ```typescript
-// AI Agent가 학습한 내용을 기억에 저장
+// 일화기억으로 학습 내용 저장
 await client.callTool({
   name: "remember",
   arguments: {
@@ -262,7 +153,7 @@ await client.callTool({
   }
 });
 
-// 나중에 관련 정보를 검색
+// 나중에 관련 기억 검색
 const results = await client.callTool({
   name: "recall",
   arguments: {
@@ -272,9 +163,9 @@ const results = await client.callTool({
 });
 ```
 
-### 📚 지식 관리 시스템
+### 의미기억으로 지식 관리
 ```typescript
-// 중요한 지식을 의미기억으로 저장
+// 경험에서 증류된 지식을 의미기억으로 저장
 await client.callTool({
   name: "remember",
   arguments: {
@@ -286,9 +177,9 @@ await client.callTool({
 });
 ```
 
-### 🔧 절차 기억 관리
+### 절차기억으로 워크플로 보존
 ```typescript
-// 작업 절차를 절차기억으로 저장
+// 반복 작업 절차를 절차기억으로 저장 (버전 관리됨)
 await client.callTool({
   name: "remember",
   arguments: {
@@ -302,10 +193,11 @@ await client.callTool({
 
 ## 🛠️ 사용법
 
-> **접근 방식 세 가지**:
-> - **mcp.json 설정**: Claude Desktop, Cursor, Claude Code 등 MCP 호스트에 Memento를 등록하는 방식 (코드 불필요)
-> - **MCP 프로토콜** (`@modelcontextprotocol/sdk`): 커스텀 에이전트 코드에서 MCP 프로토콜로 직접 연결하는 방식
-> - **HTTP API 클라이언트** (`@memento/client`): TypeScript/JavaScript 코드에서 Memento 서버의 REST API를 프로그래밍 방식으로 사용하는 방식
+세 가지 접근 방식으로 Memento에 연결할 수 있습니다.
+
+- **mcp.json 설정**: Claude Desktop, Cursor, Claude Code 등 MCP 호스트에 Memento를 등록하는 방식 (코드 불필요)
+- **MCP 프로토콜** (`@modelcontextprotocol/sdk`): 커스텀 에이전트 코드에서 MCP 프로토콜로 직접 연결하는 방식
+- **HTTP API 클라이언트** (`@memento/client`): TypeScript/JavaScript 코드에서 Memento 서버의 REST API를 프로그래밍 방식으로 사용하는 방식
 
 ### 0. mcp.json 설정 (Claude Desktop · Cursor · Claude Code)
 
@@ -336,10 +228,7 @@ MCP 호스트 앱에서 Memento를 사용하려면 설정 파일에 서버 정�
 
 #### HTTP MCP 모드 (다중 에이전트 공유 서버)
 
-여러 에이전트가 동일한 서버에 접속할 때 사용합니다. 먼저 서버를 띄운 뒤 등록합니다.
-
 ```bash
-# 서버 먼저 실행
 npm run build && npm run start:http   # 기본 포트: 8080
 ```
 
@@ -371,8 +260,6 @@ npm run build && npm run start:http   # 기본 포트: 8080
 
 ### 1. MCP 프로토콜 연결 (`@modelcontextprotocol/sdk`)
 
-MCP 호스트나 커스텀 에이전트에서 MCP 프로토콜로 직접 연결할 때 사용합니다.
-
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
@@ -399,7 +286,6 @@ await client.connect({
 ```
 
 ```typescript
-// MCP 도구 호출
 const result = await client.callTool({
   name: "remember",
   arguments: {
@@ -422,21 +308,18 @@ const results = await client.callTool({
 
 ### 2. HTTP API 클라이언트 (`@memento/client`)
 
-`@memento/client`는 MCP 프로토콜이 아닌 **HTTP REST API 래퍼**입니다. TypeScript/JavaScript 애플리케이션에서 Memento 서버의 `/tools/*` 엔드포인트를 직접 호출할 때 사용합니다.
+`@memento/client`는 MCP 프로토콜이 아닌 **HTTP REST API 래퍼**입니다. TypeScript/JavaScript 애플리케이션에서 `/tools/*` 엔드포인트를 직접 호출할 때 사용합니다.
 
 ```typescript
 import { MementoClient } from "@memento/client";
 
 const client = new MementoClient({
   serverUrl: "http://localhost:8080",
-  apiKey: "your-api-key"       // HTTP 서버의 Bearer 토큰
+  apiKey: "your-api-key"
 });
 
-await client.connect();        // /health 엔드포인트로 연결 확인
-```
+await client.connect();
 
-```typescript
-// 기억 저장
 const result = await client.remember({
   content: "React Hook에 대해 학습했습니다.",
   type: "episodic",
@@ -444,35 +327,84 @@ const result = await client.remember({
   importance: 0.8
 });
 
-// 기억 검색
 const results = await client.recall(
   "React Hook을 처음 배울 때 알아야 할 것들은?",
   { type: ["episodic", "semantic"], tags: ["react"] },
   10
 );
 
-// 기억 고정 / 삭제
 await client.pin(result.memory_id);
 await client.forget(result.memory_id);
 ```
 
+## 🧠 기능
+
+### 핵심 메모리 관리 (MCP 클라이언트)
+
+MCP 도구로 노출되는 핵심 기능은 14개다. 나머지 관리·운영 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 통계)은 HTTP API로만 제공한다.
+
+- **기억 저장**: `working`, `episodic`, `semantic`, `procedural` 4가지 타입
+- **기억 검색**: 하이브리드 검색 (텍스트 FTS5 + 벡터)
+- **이웃 기억 탐색**: 벡터 유사도 기반 자동 추천
+- **기억 고정**: 중요 기억 pin/unpin
+- **기억 삭제**: 소프트/하드 삭제
+- **앵커 시스템**: 핵심 기억을 앵커로 고정해 다음 대화에서 즉시 컨텍스트 복원
+
+### 🔍 하이브리드 검색
+
+텍스트와 의미(벡터)를 함께 검색한다. 키워드가 정확히 기억나지 않아도, 개념이 비슷하면 찾아낸다.
+
+- **FTS5 텍스트 검색**: SQLite Full-Text Search
+- **벡터 검색**: sqlite-vec 기반 의미적 유사도 검색
+- **하이브리드 검색**: 두 검색의 결합 (Consolidation Score로 가중치 조정)
+- **다중 임베딩 제공자**: TF-IDF, MiniLM, OpenAI, Gemini 지원
+- **자동 제공자 선택**: 설정 기반 최적 제공자 자동 선택, 실패 시 자동 폴백
+- **태그 기반 필터링**: 메타데이터 기반 검색
+
+### 🧹 망각 정책
+
+기억 시스템이 진짜 유용하려면, 망각도 설계해야 한다. 쌓이기만 하는 기억은 잡음이 된다.
+
+- **망각 알고리즘**: 최근성·사용성·중복 비율 기반 망각 점수 계산
+- **간격 반복**: 중요도와 사용성 기반 리뷰 스케줄링
+- **TTL 관리**: 타입별 수명 관리 (working 2일, episodic 30일, semantic 180일, procedural 90일)
+- **자동 정리**: 소프트/하드 삭제 자동화
+
+### 📊 성능 모니터링 (HTTP 관리 API)
+
+> **보안**: HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다. `/auth/session`은 쿠키 기반 브라우저 세션을 시작하고, `/admin`과 `/api`는 브라우저 세션이 필요하며, `/api/v1/quality`, `/tools`, `/mcp`는 `Authorization: Bearer` 또는 `X-API-Key`가 필요합니다. 자세한 내용: [docs/reference/ko/security.md](docs/reference/ko/security.md)
+
+- **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
+- **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림
+- **에러 로깅**: 구조화된 에러 로깅 및 통계 수집
+- **데이터베이스 최적화**: 자동 인덱스 추천 및 생성
+- **캐시 시스템**: LRU + TTL 기반 캐싱
+- **비동기 처리**: 워커 풀 기반 병렬 처리
+
+### 🔗 메모리 그래프 뷰 (브라우저)
+
+HTTP 서버 실행 후 브라우저에서 기억들의 의미적 관계를 그래프로 시각화할 수 있습니다. `/dashboard`가 전체 관리 흐름의 진입점이며, `/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증으로 세션을 복원할 수 있습니다.
+
+```
+http://localhost:9001/dashboard
+http://localhost:9001/graph
+```
+
+![Memento Memory Graph View](docs/graph-screenshot.png)
+
 ## 📚 문서
 
-- [Agent Integration Smoke Matrix](docs/operations/ko/agent-smoke-matrix.md) - Codex CLI·Claude Code 연결 및 장애 fallback 검증
-- [Agent Integration Release Gate](docs/_work/testing/agent-integration-release-gate/latest/run-note.md) - 최신 release gate 결과와 재현 절차
-- [LongMemEval-S 실제 데이터 검증](docs/_work/testing/ko/longmemeval-s-validation.md) - 장기 기억 retrieval·외부 judge 검증 범위와 한계
-- [임베딩 서비스 가이드](docs/guides/ko/embedding-service-guide.md) - 임베딩 서비스 사용법
-- [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md) - 성능 비교 결과
-- [API 레퍼런스](docs/api/ko/embedding-api-reference.md) - API 상세 문서
-- [설정 가이드](docs/guides/ko/embedding-configuration.md) - 환경 설정 방법
-- [Consolidation Score 테스트 가이드](docs/_work/testing/ko/consolidation-quality-testing.md) - Consolidation Score 검색 품질 테스트 가이드
+- [임베딩 서비스 가이드](docs/guides/ko/embedding-service-guide.md)
+- [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md)
+- [API 레퍼런스](docs/api/ko/api-reference.md)
+- [설정 가이드](docs/guides/ko/embedding-configuration.md)
+- [Consolidation Score 테스트 가이드](docs/_work/testing/ko/consolidation-quality-testing.md)
 
 ## 📋 API 문서
 
 ### MCP Tools (핵심 14개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 14개를 노출합니다.  
-> 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.
+> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 14개를 노출합니다. 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.
 
 #### 기본 메모리 관리 (7개)
 | Tool | 설명 | 파라미터 |
@@ -514,7 +446,7 @@ await client.forget(result.memory_id);
 | `/admin/memory/meta-stats` | 메타 메모리 통계 조회 | GET |
 | `/admin/memory/review-candidates` | 기억 리뷰 후보 목록 | GET |
 | `/admin/memory/items/:memory_id` | 단일 기억 프리뷰(JSON, 대시보드 등) | GET |
-| `/admin/memory/review-candidates/:id/review` | 기억 리뷰 후보 처리(리뷰 완료) | POST |
+| `/admin/memory/review-candidates/:id/review` | 기억 리뷰 후보 처리 | POST |
 | `/admin/memory/review-candidates/:id/dismiss` | 기억 리뷰 후보 기각 | POST |
 | `/admin/stats/forgetting` | 망각 통계 조회 | GET |
 
@@ -545,7 +477,7 @@ await client.forget(result.memory_id);
 |-----------|------|--------|
 | `/admin/database/optimize` | 데이터베이스 최적화 | POST |
 
-**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`, `jobType`에 `memory_review_candidates` 포함), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)를 참고하세요. 기억 리뷰 후보 API·환경 변수·배치 연동은 같은 문서의 **「기억 리뷰 후보 (MVP)」** 절을 참고하세요.
+**기타 HTTP admin**: 배치 상태/실행(`/admin/batch/*`, `jobType`에 `memory_review_candidates` 포함), 성능 메트릭·알림(`/admin/performance/*`), 관계 추출·조회·시각화(`/admin/relations/*`) 등은 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md)를 참고하세요.
 
 ### Resources
 
@@ -572,11 +504,11 @@ await client.forget(result.memory_id);
 | `CONSOLIDATION_BASELINE_PATH` | ./data/consolidation-baseline.json | Baseline 스냅샷 저장 경로 |
 | `CONSOLIDATION_TEST_ITEM_COUNT` | 100 | 벤치마크 테스트 데이터 크기 |
 | `CORS_ALLOWED_ORIGINS` | (비어 있음) | CORS 허용 오리진 (쉼표 구분, 비어 있으면 크로스 오리진 미허용) |
-| `ENABLE_PII_MASKING` | true | PII 마스킹 활성화 (보안, [docs/reference/ko/security.md](docs/reference/ko/security.md) 참고) |
-| `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | 기억 리뷰 후보: 최소 importance (0~1). 상세·예시는 [docs/api/ko/api-reference.md](docs/api/ko/api-reference.md) 「기억 리뷰 후보 (MVP)」 |
-| `MEMORY_REVIEW_STALE_DAYS` | `14` | 기억 리뷰 후보: 최소 stale 일수 (정수 ≥ 1) |
-| `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | 기억 리뷰 후보: 선정 시 최대 개수 (정수 ≥ 1) |
-| `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` | 배치 `memory_review_candidates` 스케줄 간격(ms), 최소 `60000` |
+| `ENABLE_PII_MASKING` | true | PII 마스킹 활성화 ([docs/reference/ko/security.md](docs/reference/ko/security.md) 참고) |
+| `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | 기억 리뷰 후보 최소 importance (0~1) |
+| `MEMORY_REVIEW_STALE_DAYS` | `14` | 기억 리뷰 후보 최소 stale 일수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | 기억 리뷰 후보 최대 개수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` | 배치 스케줄 간격(ms), 최소 `60000` |
 | `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | 배치가 `due_at`에 더하는 일 수 (1~366) |
 
 > **참고**: 망각 TTL, LLM/Ollama, 검색 한도 등 추가 변수는 `env.example`을 참고하세요.
@@ -584,12 +516,10 @@ await client.forget(result.memory_id);
 ### 망각 정책 설정
 
 ```bash
-# 망각 임계값
 FORGET_THRESHOLD=0.6
 SOFT_DELETE_THRESHOLD=0.6
 HARD_DELETE_THRESHOLD=0.8
 
-# TTL 설정 (일 단위)
 TTL_SOFT_WORKING=2
 TTL_SOFT_EPISODIC=30
 TTL_SOFT_SEMANTIC=180
@@ -599,144 +529,90 @@ TTL_SOFT_PROCEDURAL=90
 ## 🧪 테스트
 
 ```bash
-# 모든 테스트 실행 (Vitest)
 npm run test
 
-# 개별 테스트 실행
-npm run test:client                    # 클라이언트 테스트
-npm run test:search                    # 검색 기능 테스트
-npm run test:embedding                 # 임베딩 기능 테스트
-npm run test:lightweight-embedding     # 경량 임베딩 테스트
-npm run test:gemini-embedding         # Gemini 임베딩 테스트
-npm run test:forgetting                # 망각 정책 테스트
-npm run test:performance               # 성능 벤치마크
-npm run test:monitoring                # 성능 모니터링 테스트
-npm run test:error-logging             # 에러 로깅 테스트
-npm run test:performance-alerts        # 성능 알림 테스트
-npm run test:consolidation-quality     # Consolidation Score 품질 검증 테스트
-npm run test:vector-search             # 벡터 검색 테스트
-npm run test:memory-injection          # 메모리 주입 테스트
-npm run test:batch-scheduler           # 배치 스케줄러 테스트
-npm run benchmark:consolidation-quality # Consolidation Score 벤치마크 테스트
-npm run test:embedding-benchmark      # 임베딩 성능 벤치마크
-npm run test:embedding                   # 임베딩 통합에 가까운 실행 테스트
+npm run test:client
+npm run test:search
+npm run test:embedding
+npm run test:lightweight-embedding
+npm run test:gemini-embedding
+npm run test:forgetting
+npm run test:performance
+npm run test:monitoring
+npm run test:error-logging
+npm run test:performance-alerts
+npm run test:consolidation-quality
+npm run test:vector-search
+npm run test:memory-injection
+npm run test:batch-scheduler
+npm run benchmark:consolidation-quality
+npm run test:embedding-benchmark
 
-# 테스트 감시 모드
 npm run test -- --watch
-
-# 커버리지 포함 테스트
 npm run test -- --coverage
 ```
 
 ## 📚 개발자 가이드라인
 
-### 저장소 가이드라인 (`AGENTS.md`)
-- **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 서버 코드는 `packages/memento-server`, 도메인·인프라는 `packages/memento-core`.
-- **빌드/테스트 명령어**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test` 등. 상세는 [AGENTS.md](AGENTS.md) 참조.
+- **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 상세: [AGENTS.md](AGENTS.md)
+- **빌드/테스트**: `npm run build`(core→server→client), `npm run dev`·`npm start`(서버), `npm run db:init`·`npm run db:migrate`(DB), `npm test`
 - **코딩 스타일**: Node.js ≥ 24, TypeScript ES 모듈, 2칸 들여쓰기
-- **테스트 가이드라인**: Vitest 기반. 단위·스펙은 주로 `packages/memento-core/src/**`, `packages/memento-server/src/**` 등 패키지 트리의 `*.spec.ts`에 두고, 루트 `tests/`에는 워크스페이스 수준 통합 스펙이 있다.
-- **커밋/PR 가이드라인**: Conventional Commits, 한국어 컨텍스트 포함
-- **환경/데이터베이스**: `.env` 설정, `data/` 폴더 관리
+- **테스트**: Vitest 기반. 단위·스펙은 `packages/*/src/**/*.spec.ts`, 워크스페이스 수준 통합 스펙은 루트 `tests/`
+- **커밋/PR**: Conventional Commits, 한국어 컨텍스트 포함
 
 ## 📊 성능 지표
 
 ### 기본 성능
-- **데이터베이스 성능**: 평균 쿼리 시간 0.16-0.22ms
-- **검색 성능**: 0.78-4.24ms (캐시 효과로 개선)
-- **메모리 사용량**: 11-15MB 힙 사용량
-- **동시 연결**: 최대 1000개 연결 지원
+- **데이터베이스**: 평균 쿼리 시간 0.16-0.22ms
+- **검색**: 0.78-4.24ms (캐시 효과로 개선)
+- **메모리 사용량**: 11-15MB 힙
+- **동시 연결**: 최대 1000개
 
-### 고급 성능 최적화
-- **캐시 히트율**: 80% 이상 (검색 결과 캐싱)
-- **임베딩 캐싱**: 24시간 TTL로 비용 절약
-- **비동기 처리**: 워커 풀 기반 병렬 처리
-- **데이터베이스 최적화**: 자동 인덱스 추천 및 생성
-- **실시간 모니터링**: 30초마다 자동 성능 체크
-- **에러 로깅**: 구조화된 에러 추적 및 통계
-- **성능 알림**: 임계값 기반 자동 알림 시스템
-
-### 임베딩 제공자 성능
+### 임베딩 제공자 비교
 
 #### 무료 제공자 (로컬 처리)
-- **TF-IDF**: 512차원, 극도로 빠른 속도 (0.82ms), 낮은 메모리 사용량 (4.48MB)
+- **TF-IDF**: 512차원, 극도로 빠름 (0.82ms), 낮은 메모리 (4.48MB)
 - **MiniLM**: 384차원, 균형잡힌 성능, 다국어 지원
 
 #### 유료 제공자 (클라우드 API)
 - **OpenAI**: 1536차원, 최고 성능, 높은 정확도
 - **Gemini**: 768차원, 고성능, 다국어 지원
 
-**자동 선택 및 적용 순서**:
-1. **명시적 요청**: API 호출 시 특정 제공자를 지정하면 해당 제공자를 우선 사용
-2. **설정 기본값**: `.env`의 `EMBEDDING_PROVIDER` 설정값 사용
-3. **우선순위 자동 선택**: 사용 가능한 제공자를 다음 순서로 자동 선택
-   - 1순위: **OpenAI** (유료, 최고 성능)
-   - 2순위: **Gemini** (유료, 고성능)
-   - 3순위: **MiniLM** (무료, 균형잡힌 성능)
-   - 4순위: **TF-IDF** (무료, 빠른 속도)
+**자동 선택 순서**: 명시적 요청 → `.env`의 `EMBEDDING_PROVIDER` → OpenAI(1) → Gemini(2) → MiniLM(3) → TF-IDF(4). 상위 제공자 실패 시 자동 폴백.
 
-**폴백 메커니즘**: 상위 제공자 실패 시 자동으로 다음 우선순위 제공자로 전환됩니다.
+## 🏗️ 아키텍처 여정
 
-## 🏗️ 아키텍처
+Memento는 개인용 로컬 서버로 시작해, 팀 협업을 거쳐, 조직 규모의 메모리 플랫폼으로 성장하도록 설계되어 있다.
 
-### M1: 개인용 (현재 구현)
-- **스토리지**: better-sqlite3 임베디드
-- **인덱스**: FTS5 + sqlite-vec
-- **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델 (/auth/session은 쿠키 세션, /admin·/api는 브라우저 세션, /api/v1/quality·/tools·/mcp는 Authorization Bearer 또는 X-API-Key)
-- **운영**: 로컬 실행
-- **MCP 클라이언트**: 핵심 14개 도구 노출
-- **관리 기능**: HTTP API로 분리
-- **추가 기능**: 
-  - 다중 임베딩 제공자(TF-IDF, MiniLM, OpenAI, Gemini)
-  - 성능 모니터링 및 알림 시스템
-  - 캐시 시스템
-  - 앵커 시스템 (컨텍스트 관리)
-  - 관계 그래프 (의미적 관계 추출)
-  - 메타 메모리 통계
-  - 통합 점수 시스템 (Consolidation Score)
+**M1: 개인용 (현재)** — 지금 사용할 수 있는 형태다. SQLite 임베디드, FTS5 + sqlite-vec 인덱스, 로컬 실행. 브라우저 세션과 헤더 기반으로 신뢰 경계를 분리한 보안 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구). 14개 MCP 도구, 관리 기능은 HTTP API로 분리.
 
-### M2: 팀 협업 (계획)
-- **스토리지**: SQLite 서버 모드
-- **인증**: API Key
-- **운영**: Docker 단일 컨테이너
+**M2: 팀 협업 (계획)** — SQLite 서버 모드, API Key 인증, Docker 단일 컨테이너. 여러 팀원이 하나의 기억 백엔드를 공유한다.
 
-### M3: 조직 초입 (계획)
-- **스토리지**: PostgreSQL + pgvector
-- **인증**: JWT
-- **운영**: Docker Compose
+**M3: 조직 (계획)** — PostgreSQL + pgvector, JWT 인증, Docker Compose. 수백 명의 에이전트가 조직의 기억을 공유한다.
 
-## ❓ 자주 묻는 질문 (FAQ)
+## ❓ 자주 묻는 질문
 
 ### Q: Memento는 어떤 AI Agent와 호환되나요?
 A: MCP(Model Context Protocol)를 지원하는 모든 AI Agent와 호환됩니다. Claude, GPT-4, Gemini 등과 연동 가능합니다.
 
 ### Q: 기억 데이터는 어디에 저장되나요?
-A: 기본적으로 로컬 SQLite 데이터베이스(`./data/memory.db`)에 저장됩니다. Docker를 사용하는 경우 컨테이너 내부에 저장됩니다.
+A: 기본적으로 로컬 SQLite 데이터베이스(`./data/memory.db`)에 저장됩니다.
 
 ### Q: OpenAI API 키가 필요한가요?
-A: 선택사항입니다. OpenAI API 키가 없어도 **TF-IDF** 또는 **MiniLM** 기반 임베딩으로 동작합니다. 
-
-**제공자별 특징**:
-- **OpenAI** (1순위): 최고 성능, 1536차원, 유료, 클라우드 API
-- **Gemini** (2순위): 고성능, 768차원, 유료, 클라우드 API
-- **MiniLM** (3순위): 균형잡힌 성능, 384차원, 완전 무료, 로컬 처리
-- **TF-IDF** (4순위): 빠른 속도, 512차원, 완전 무료, 로컬 처리
-
-**적용 순서**: API 키가 설정되어 있으면 우선순위에 따라 자동 선택되며, 상위 제공자 실패 시 자동으로 다음 제공자로 전환됩니다.
-
-더 정확한 검색을 원한다면 OpenAI 또는 Gemini API 키를 설정하세요.
+A: 선택사항입니다. API 키 없이도 **TF-IDF** 또는 **MiniLM** 기반 임베딩으로 동작합니다. 더 정확한 검색을 원한다면 OpenAI 또는 Gemini API 키를 설정하세요.
 
 ### Q: 기억 용량에 제한이 있나요?
-A: SQLite 데이터베이스의 제한에 따라 달라집니다. 일반적으로 수백만 개의 기억을 저장할 수 있습니다.
+A: SQLite 데이터베이스 제한에 따라 달라집니다. 일반적으로 수백만 개의 기억을 저장할 수 있습니다.
 
 ### Q: 다른 사용자와 기억을 공유할 수 있나요?
-A: 현재 M1 버전은 개인용입니다. M2 버전부터 팀 협업 기능이 추가될 예정입니다.
+A: 현재 M1은 개인용입니다. M2부터 팀 협업 기능이 추가될 예정입니다.
 
 ### Q: 기억이 자동으로 삭제되나요?
-A: 네, 망각 정책에 따라 자동으로 삭제됩니다. 중요한 기억은 `pin` 기능으로 고정할 수 있습니다.
+A: 망각 정책에 따라 자동으로 삭제됩니다. 중요한 기억은 `pin` 기능으로 고정할 수 있습니다.
 
 ## 🤝 기여하기
 
-Memento 프로젝트에 기여하고 싶으신가요? 자세한 가이드는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조하세요.
+Memento 프로젝트에 기여하고 싶으신가요? 자세한 가이드: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### 빠른 기여 시작
 1. **Fork** the Project
@@ -747,29 +623,22 @@ Memento 프로젝트에 기여하고 싶으신가요? 자세한 가이드는 [CO
 
 ### 개발 환경 설정
 ```bash
-# 저장소 포크 후 클론
 git clone https://github.com/your-username/memento.git
 cd memento
-
-# 의존성 설치
 npm install
-
-# 개발 서버 시작
 npm run dev
-
-# 테스트 실행
 npm run test
 ```
 
 ### 기여 방법
-- 🐛 **버그 리포트**: [GitHub Issues](https://github.com/jee1/memento/issues)에서 버그를 신고하세요
-- 💡 **기능 제안**: 새로운 아이디어를 제안해주세요
-- 📝 **문서 개선**: 문서를 더 명확하게 만들어주세요
-- 🔧 **코드 기여**: 새로운 기능이나 버그 수정을 도와주세요
+- 버그 리포트: [GitHub Issues](https://github.com/jee1/memento/issues)
+- 기능 제안: 새로운 아이디어를 제안해주세요
+- 문서 개선: 문서를 더 명확하게 만들어주세요
+- 코드 기여: 새로운 기능이나 버그 수정을 도와주세요
 
 ## 📄 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
+MIT 라이선스. 자세한 내용은 `LICENSE` 파일을 참조하세요.
 
 ## 📞 지원
 
@@ -780,9 +649,9 @@ npm run test
 
 ## 🙏 감사의 말
 
-- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP 프로토콜
-- [OpenAI](https://openai.com/) - 임베딩 서비스
-- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) - 고성능 SQLite 드라이버
-- [Express](https://expressjs.com/) - 웹 프레임워크
-- [Vitest](https://vitest.dev/) - 테스트 프레임워크
-- [TypeScript](https://www.typescriptlang.org/) - 개발 언어
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [OpenAI](https://openai.com/)
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)
+- [Express](https://expressjs.com/)
+- [Vitest](https://vitest.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
