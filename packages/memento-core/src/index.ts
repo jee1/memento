@@ -55,19 +55,24 @@ export {
   selectMemoryReviewCandidates,
   selectionWindowLimit
 } from './domains/memory/services/memory-review-candidate-selection-service.js';
-export { parseMemoryReviewSelectionEnv } from './domains/memory/services/memory-review-candidate-selection-env.js';
+export {
+  parseMemoryReviewQueueControlEnv,
+  parseMemoryReviewSelectionEnv
+} from './domains/memory/services/memory-review-candidate-selection-env.js';
 export type {
   MemoryReviewStaleAnchorKind as StaleAnchorKind,
   MemoryReviewCandidateSourceRow as SourceRow,
   MemoryReviewCandidateScoreBreakdown as ScoreBreakdown,
   MemoryReviewCandidateSelectionItem as SelectionItem,
   MemoryReviewCandidateSelectionThresholds as Thresholds,
-  MemoryReviewCandidateSelectionOptions as Options
+  MemoryReviewCandidateSelectionOptions as Options,
+  MemoryReviewQueueControlConfig
 } from './domains/memory/services/memory-review-candidate-selection.types.js';
 export {
   upsertPendingMemoryReviewCandidates,
   getMemoryReviewCandidateById,
   listMemoryReviewCandidates,
+  countPendingMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,

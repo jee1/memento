@@ -24,6 +24,11 @@ export interface MemoryReviewCandidateSelectionThresholds {
   maxCandidates: number;
 }
 
+export interface MemoryReviewQueueControlConfig {
+  maxBacklog: number;
+  candidateTtlDays: number;
+}
+
 export interface MemoryReviewCandidateSelectionOptions extends MemoryReviewCandidateSelectionThresholds {
   now: Date;
 }
