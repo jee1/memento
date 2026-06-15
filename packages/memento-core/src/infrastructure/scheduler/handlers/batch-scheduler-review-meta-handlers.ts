@@ -1,7 +1,12 @@
 import type Database from 'better-sqlite3';
 import { MetaMemoryIntrospectionService } from '../../../domains/memory/services/meta-memory-introspection-service.js';
+import { parseMemoryReviewQueueControlEnv } from '../../../domains/memory/services/memory-review-candidate-selection-env.js';
 import { selectMemoryReviewCandidates } from '../../../domains/memory/services/memory-review-candidate-selection-service.js';
-import { upsertPendingMemoryReviewCandidates } from '../../../domains/memory/services/memory-review-candidate-persistence-service.js';
+import {
+  bulkUpdatePendingMemoryReviewCandidates,
+  countPendingMemoryReviewCandidates,
+  upsertPendingMemoryReviewCandidates
+} from '../../../domains/memory/services/memory-review-candidate-persistence-service.js';
 import { recordMemoryReviewQueueHealthSnapshot } from '../../../domains/memory/services/memory-review-queue-health-service.js';
 import { resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
@@ -13,7 +18,10 @@ import {
 } from '../batch-scheduler-internal-helpers.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
-export function buildMemoryReviewCandidateUpsertInputs(db: Database.Database): {
+export function buildMemoryReviewCandidateUpsertInputs(
+  db: Database.Database,
+  maxCandidates?: number
+): {
   inputs: Array<{
     memory_id: string;
     priority: number;
@@ -21,17 +29,18 @@ export function buildMemoryReviewCandidateUpsertInputs(db: Database.Database): {
     due_at: string;
     metadata_json: string;
   }>;
-  nowIso: string;
   selectedCount: number;
 } {
-  const items = selectMemoryReviewCandidates(db);
+  const items = selectMemoryReviewCandidates(
+    db,
+    maxCandidates === undefined ? undefined : { maxCandidates }
+  );
   const dueDays = resolveValidatedNumber(
     'MEMORY_REVIEW_CANDIDATE_DUE_DAYS',
     14,
     n => n >= 1 && n <= 366,
     '1-366'
   );
-  const nowIso = new Date().toISOString();
   const dueAt = new Date(Date.now() + dueDays * 86_400_000).toISOString();
   const inputs = items.map(i => ({
     memory_id: i.memory_id,
@@ -40,7 +49,7 @@ export function buildMemoryReviewCandidateUpsertInputs(db: Database.Database): {
     due_at: dueAt,
     metadata_json: JSON.stringify({ score_breakdown: i.score_breakdown })
   }));
-  return { inputs, nowIso, selectedCount: items.length };
+  return { inputs, selectedCount: items.length };
 }
 
 export async function runMemoryReviewCandidatesJob(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
@@ -49,16 +58,67 @@ export async function runMemoryReviewCandidatesJob(ctx: BatchSchedulerRunContext
   try {
     assertSchedulerDbOpen(ctx.db);
 
-    const { inputs, nowIso, selectedCount } = buildMemoryReviewCandidateUpsertInputs(ctx.db!);
+    const nowIso = new Date().toISOString();
+    const queueControl = parseMemoryReviewQueueControlEnv();
+    const expired =
+      queueControl.candidateTtlDays > 0
+        ? bulkUpdatePendingMemoryReviewCandidates(
+            ctx.db!,
+            'expire',
+            { older_than_days: queueControl.candidateTtlDays },
+            nowIso
+          ).updated
+        : 0;
+    const pendingBefore = countPendingMemoryReviewCandidates(ctx.db!);
+    const skippedForBacklog =
+      queueControl.maxBacklog > 0 && pendingBefore >= queueControl.maxBacklog;
+
+    if (skippedForBacklog) {
+      result.success = true;
+      result.details = {
+        inserted: 0,
+        updated: 0,
+        expired,
+        pendingBefore,
+        pendingAfter: pendingBefore,
+        skippedForBacklog: true,
+        ...queueControl
+      };
+      ctx.log('Memory review candidates batch skipped at backlog limit', {
+        expired,
+        pending: pendingBefore,
+        maxBacklog: queueControl.maxBacklog
+      });
+      return result;
+    }
+
+    const remainingCapacity =
+      queueControl.maxBacklog === 0 ? undefined : queueControl.maxBacklog - pendingBefore;
+    const { inputs, selectedCount } = buildMemoryReviewCandidateUpsertInputs(
+      ctx.db!,
+      remainingCapacity
+    );
     const upsert = upsertPendingMemoryReviewCandidates(ctx.db!, inputs, nowIso);
+    const pendingAfter = countPendingMemoryReviewCandidates(ctx.db!);
     result.success = true;
     result.processed = inputs.length;
-    result.details = { inserted: upsert.inserted, updated: upsert.updated };
+    result.details = {
+      inserted: upsert.inserted,
+      updated: upsert.updated,
+      expired,
+      pendingBefore,
+      pendingAfter,
+      skippedForBacklog: false,
+      ...queueControl
+    };
 
     ctx.log('Memory review candidates batch completed', {
       selected: selectedCount,
       inserted: upsert.inserted,
-      updated: upsert.updated
+      updated: upsert.updated,
+      expired,
+      pendingBefore,
+      pendingAfter
     });
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : String(error));

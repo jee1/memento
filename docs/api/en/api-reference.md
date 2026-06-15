@@ -904,6 +904,8 @@ Content-Type: application/json
 | `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | Minimum importance for candidacy (0–1; invalid values fall back to default) |
 | `MEMORY_REVIEW_STALE_DAYS` | `14` | Minimum stale age in days (integer ≥ 1) |
 | `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | Max candidates from selection / upsert path (integer ≥ 1) |
+| `MEMORY_REVIEW_MAX_BACKLOG` | `500` | Skip new selection when pending candidates reach this count (`0`: disabled) |
+| `MEMORY_REVIEW_CANDIDATE_TTL_DAYS` | `30` | Expire pending candidates older than this many days before each batch (`0`: disabled) |
 | `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` (24h) | Scheduler interval for `memory_review_candidates` in ms (minimum `60000`) |
 | `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | Days added to “now” when the batch computes each row’s `due_at` (1–366) |
 

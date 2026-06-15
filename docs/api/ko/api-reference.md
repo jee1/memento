@@ -1024,10 +1024,12 @@ Content-Type: application/json
 | `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | 후보로 고려할 최소 importance (0~1; 잘못된 값은 기본값으로 대체) |
 | `MEMORY_REVIEW_STALE_DAYS` | `14` | 최소 stale 일수 (정수 ≥ 1) |
 | `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | 선정 단계에서 반환·큐에 반영할 최대 후보 수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_MAX_BACKLOG` | `500` | pending 후보가 이 수 이상이면 신규 선정을 건너뜀 (`0`: 비활성화) |
+| `MEMORY_REVIEW_CANDIDATE_TTL_DAYS` | `30` | 이 일수보다 오래된 pending 후보를 배치 실행 전에 만료 (`0`: 비활성화) |
 | `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` (24h) | 배치 `memory_review_candidates` 스케줄 간격(ms). 최소 `60000` |
 | `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | 배치가 `due_at`을 계산할 때 기준 시각에 더하는 일 수 (1~366) |
 
-운영 시 **후보 선정 민감도**는 위 표의 앞 세 변수로, **스케줄 간격·마감 시각**은 마지막 두 변수로 조정합니다.
+운영 시 **후보 선정 민감도**는 앞 세 변수로, **큐 누적 제어**는 backlog·TTL 변수로, **스케줄 간격·마감 시각**은 마지막 두 변수로 조정합니다.
 
 대시보드 **Review Queue** 탭의 백그라운드 폴링은 HTTP 서버가 `GET /dashboard` HTML에 `window.__MEMENTO_REVIEW_QUEUE__`를 인라인으로 주입해 적용합니다(GitHub #274).
 
