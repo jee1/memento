@@ -17,6 +17,8 @@ const RELAY_TIMEOUT_MS = 3000;
 export type ReviewCandidatesChangedReason =
   | 'review'
   | 'dismiss'
+  | 'bulk_dismiss'
+  | 'bulk_expire'
   | 'batch_memory_review_candidates';
 
 /** Wire contract: `kind: review_candidates_changed` (schema v1). */

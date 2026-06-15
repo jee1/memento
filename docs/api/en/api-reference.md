@@ -846,6 +846,45 @@ Content-Type: application/json
 
 Responses and error mapping match **Mark reviewed**; on success `status` becomes `dismissed`.
 
+##### Bulk dismiss or expire candidates
+
+```http
+POST /admin/memory/review-candidates/bulk-dismiss
+POST /admin/memory/review-candidates/bulk-expire
+Content-Type: application/json
+```
+
+The request body must contain **exactly one** selector:
+
+```json
+{ "ids": ["550e8400-e29b-41d4-a716-446655440000"] }
+```
+
+```json
+{ "older_than_days": 30 }
+```
+
+```json
+{ "all_pending": true }
+```
+
+`ids` must be a non-empty UUID array. `older_than_days` must be an integer from 1 through 3650. Both endpoints update only rows that are currently `pending`; already processed candidates are ignored.
+
+```json
+{
+  "ok": true,
+  "action": "dismiss",
+  "matched": 12,
+  "updated": 12,
+  "timestamp": "2026-06-14T12:00:00.000Z"
+}
+```
+
+- `matched`: rows matching both the selector and `pending` status
+- `updated`: rows actually changed by the transaction
+- `400`: missing, mixed, or invalid selector
+- `500`: database unavailable or update failure
+
 ##### Batch: select and upsert queue
 
 ```http

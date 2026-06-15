@@ -71,6 +71,7 @@ export {
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,
+  bulkUpdatePendingMemoryReviewCandidates,
 } from './domains/memory/services/memory-review-candidate-persistence-service.js';
 export {
   computeMemoryReviewQueueHealthLive,
@@ -89,6 +90,9 @@ export type {
   MemoryReviewCandidateRow,
   UpsertPendingMemoryReviewCandidateInput,
   UpsertPendingMemoryReviewCandidatesResult,
+  BulkMemoryReviewCandidateAction,
+  BulkMemoryReviewCandidateSelector,
+  BulkMemoryReviewCandidatesResult,
   ListMemoryReviewCandidatesQuery,
 } from './domains/memory/services/memory-review-candidate-persistence.types.js';
 export {

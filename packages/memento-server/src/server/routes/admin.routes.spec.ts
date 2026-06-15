@@ -21,6 +21,7 @@ import {
   MemoryReviewCandidateSchemaMigration,
   ReviewQueueHealthSnapshotMigration,
   upsertPendingMemoryReviewCandidates,
+  listMemoryReviewCandidates,
   getBatchScheduler,
   resetBatchScheduler
 } from '@memento/core';
@@ -1188,6 +1189,34 @@ describe('admin.routes memory review candidates', () => {
     }
   });
 
+  it('POST bulk-dismiss updates all pending candidates', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await postAdminJson(port, '/admin/memory/review-candidates/bulk-dismiss', {
+        all_pending: true,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { action?: string; matched?: number; updated?: number };
+      expect(body).toMatchObject({ action: 'dismiss', matched: 1, updated: 1 });
+      expect(listMemoryReviewCandidates(db, { status: 'dismissed' })).toHaveLength(1);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('POST bulk-expire rejects mixed selectors', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await postAdminJson(port, '/admin/memory/review-candidates/bulk-expire', {
+        all_pending: true,
+        ids: [pendingId],
+      });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
   it('POST /admin/batch/run accepts memory_review_candidates (200 with started scheduler)', async () => {
     resetBatchScheduler();
     const scheduler = getBatchScheduler();
@@ -1355,4 +1384,3 @@ describe('admin.routes memory review candidates', () => {
     }
   });
 });
-

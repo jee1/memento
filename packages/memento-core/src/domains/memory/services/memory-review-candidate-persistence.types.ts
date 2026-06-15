@@ -29,6 +29,18 @@ export interface UpsertPendingMemoryReviewCandidatesResult {
   updated: number;
 }
 
+export type BulkMemoryReviewCandidateSelector =
+  | { ids: string[] }
+  | { older_than_days: number }
+  | { all_pending: true };
+
+export type BulkMemoryReviewCandidateAction = 'dismiss' | 'expire';
+
+export interface BulkMemoryReviewCandidatesResult {
+  matched: number;
+  updated: number;
+}
+
 export interface ListMemoryReviewCandidatesQuery {
   status?: MemoryReviewCandidateStatus;
 }

@@ -966,6 +966,45 @@ Content-Type: application/json
 
 응답·에러 매핑은 **리뷰 완료**와 동일하며, 성공 시 `status`가 `dismissed`로 갱신됩니다.
 
+##### 후보 일괄 기각·만료
+
+```http
+POST /admin/memory/review-candidates/bulk-dismiss
+POST /admin/memory/review-candidates/bulk-expire
+Content-Type: application/json
+```
+
+요청 본문은 다음 selector 중 **정확히 하나**만 포함해야 합니다.
+
+```json
+{ "ids": ["550e8400-e29b-41d4-a716-446655440000"] }
+```
+
+```json
+{ "older_than_days": 30 }
+```
+
+```json
+{ "all_pending": true }
+```
+
+`ids`는 비어 있지 않은 UUID 배열, `older_than_days`는 1~3650의 정수여야 합니다. 두 endpoint 모두 현재 `pending`인 행만 변경하며, 이미 처리된 후보는 건너뜁니다.
+
+```json
+{
+  "ok": true,
+  "action": "dismiss",
+  "matched": 12,
+  "updated": 12,
+  "timestamp": "2026-06-14T12:00:00.000Z"
+}
+```
+
+- `matched`: selector와 `pending` 조건을 모두 충족한 행 수
+- `updated`: 트랜잭션에서 실제 상태가 변경된 행 수
+- `400`: selector 누락·중복 또는 값 형식 오류
+- `500`: DB 미연결 또는 상태 변경 실패
+
 ##### 배치: 후보 선정·큐 갱신
 
 ```http

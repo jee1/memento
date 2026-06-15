@@ -154,9 +154,12 @@ git push origin feature/your-feature
 
 HTTP 서버를 원격에서 접근 가능하게 배포할 때는 다음 항목을 확인합니다.
 
+HTTP 라우트는 신뢰 경계를 분리합니다. `/admin`, `/api`는 `/auth/session`에서 시작한 브라우저 세션이 필요합니다. `/api/v1/quality`, `/tools`, `/mcp`, `/messages`는 `Authorization: Bearer` 또는 `X-API-Key`를 사용하는 헤더 기반 프로그램용 표면입니다.
+
 | 항목 | 환경 변수 | 설명 |
 |------|-----------|------|
-| API 인증 | `ADMIN_API_KEY` | 프로덕션 필수. `/admin`, `/api` 엔드포인트 인증에 사용됩니다. |
+| 브라우저 세션 | `ADMIN_API_KEY` | 프로덕션 필수. `/auth/session`에서 키를 HTTP-only 세션 쿠키로 교환합니다. |
+| 헤더 기반 API | `ADMIN_API_KEY` | 프로그램 호출은 Bearer 또는 API-Key 헤더로 인증합니다. |
 | 바인딩 | `MEMENTO_HTTP_BIND_HOST` | 기본 `127.0.0.1`. 비루프백 주소로 설정 시 키가 없으면 기동을 거부합니다. |
 | CORS | `CORS_ALLOWED_ORIGINS` | 쉼표 구분. 비우면 크로스 오리진 요청을 차단합니다. |
 | 무키 기동 (비권장) | `MEMENTO_ALLOW_INSECURE_HTTP_ADMIN` | 로컬 개발 전용. 프로덕션에서 절대 사용하지 마십시오. |
