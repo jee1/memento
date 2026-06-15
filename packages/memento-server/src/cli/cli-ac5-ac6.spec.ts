@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Database from 'better-sqlite3';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const cliPath = fileURLToPath(new URL('../../dist/cli.js', import.meta.url));
@@ -95,6 +96,43 @@ function runCli(
   });
 }
 
+function createReviewQueueDatabase(dbPath: string): void {
+  const db = new Database(dbPath);
+  try {
+    db.exec(`
+      CREATE TABLE memory_item (id TEXT PRIMARY KEY);
+      CREATE TABLE memory_review_candidate (
+        id TEXT PRIMARY KEY,
+        memory_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        priority REAL NOT NULL,
+        reason TEXT NOT NULL,
+        due_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        reviewed_at TEXT,
+        dismissed_at TEXT,
+        metadata_json TEXT
+      );
+      CREATE UNIQUE INDEX idx_memory_review_candidate_pending_memory_id
+        ON memory_review_candidate(memory_id)
+        WHERE status = 'pending';
+      CREATE INDEX idx_memory_review_candidate_queue
+        ON memory_review_candidate(status, priority DESC, due_at ASC);
+      INSERT INTO memory_item (id) VALUES ('mem-review');
+      INSERT INTO memory_review_candidate (
+        id, memory_id, status, priority, reason, due_at, created_at, updated_at
+      ) VALUES (
+        'candidate-review', 'mem-review', 'pending', 1, 'cleanup test',
+        '2026-05-01T00:00:00.000Z', '2026-05-01T00:00:00.000Z',
+        '2026-05-01T00:00:00.000Z'
+      );
+    `);
+  } finally {
+    db.close();
+  }
+}
+
 describe('CLI AC5/AC6', () => {
   it('AC5: --db-path 지정 시 deprecated 경고 출력 후 exit 1 (서버 미실행)', async () => {
     const dbPath = path.join(os.tmpdir(), `memento-cli-ac5-${Date.now()}.db`);
@@ -122,6 +160,48 @@ describe('CLI AC5/AC6', () => {
     expect(output).toContain('forget');
     expect(output).toContain('memory_injection');
     expect(output).toContain('agent ask');
+    expect(output).toContain('review-queue cleanup');
+  });
+
+  it('review-queue cleanup routes to a dry-run without starting the server', async () => {
+    const dbPath = path.join(os.tmpdir(), `memento-cli-review-${Date.now()}.db`);
+    createReviewQueueDatabase(dbPath);
+    try {
+      const { stdout, stderr, code } = await runCli([
+        '--db-path', dbPath,
+        'review-queue', 'cleanup',
+        '--all-pending', '--dismiss',
+      ]);
+
+      expect(code).toBe(0);
+      expect(stderr).toBe('');
+      expect(JSON.parse(stdout.trim())).toMatchObject({
+        ok: true,
+        dry_run: true,
+        action: 'dismiss',
+        target_count: 1,
+        updated_count: 0,
+      });
+    } finally {
+      fs.rmSync(dbPath, { force: true });
+    }
+  });
+
+  it('review-queue cleanup rejects execute mode without --yes', async () => {
+    const dbPath = path.join(os.tmpdir(), `memento-cli-review-confirm-${Date.now()}.db`);
+    createReviewQueueDatabase(dbPath);
+    try {
+      const { stderr, code } = await runCli([
+        'review-queue', 'cleanup',
+        '--all-pending', '--expire', '--execute',
+        '--db-path', dbPath,
+      ]);
+
+      expect(code).toBe(1);
+      expect(stderr).toMatch(/--yes/);
+    } finally {
+      fs.rmSync(dbPath, { force: true });
+    }
   });
 
   it('issue #236: agent ask --json --no-save prints JSON only on stdout', async () => {

@@ -77,6 +77,7 @@ export {
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,
   bulkUpdatePendingMemoryReviewCandidates,
+  countPendingMemoryReviewCandidatesBySelector,
 } from './domains/memory/services/memory-review-candidate-persistence-service.js';
 export {
   computeMemoryReviewQueueHealthLive,

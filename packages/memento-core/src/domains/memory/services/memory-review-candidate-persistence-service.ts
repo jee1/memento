@@ -224,6 +224,50 @@ export function markMemoryReviewCandidateExpired(
   run();
 }
 
+function buildPendingMemoryReviewCandidateSelector(
+  selector: BulkMemoryReviewCandidateSelector,
+  now: string,
+): { whereSql: string; params: unknown[] } {
+  if ('ids' in selector) {
+    return {
+      whereSql: `status = 'pending' AND id IN (SELECT value FROM json_each(?))`,
+      params: [JSON.stringify(selector.ids)],
+    };
+  }
+  if ('older_than_days' in selector) {
+    return {
+      whereSql: `status = 'pending' AND datetime(created_at) < datetime(?, '-' || ? || ' days')`,
+      params: [now, selector.older_than_days],
+    };
+  }
+  return {
+    whereSql: `status = 'pending'`,
+    params: [],
+  };
+}
+
+function countPendingMemoryReviewCandidatesBySelectorUnsafe(
+  db: Database.Database,
+  whereSql: string,
+  params: unknown[],
+): number {
+  return (
+    db.prepare<unknown[], { count: number }>(
+      `SELECT COUNT(*) AS count FROM memory_review_candidate WHERE ${whereSql}`,
+    ).get(...params) ?? { count: 0 }
+  ).count;
+}
+
+export function countPendingMemoryReviewCandidatesBySelector(
+  db: Database.Database,
+  selector: BulkMemoryReviewCandidateSelector,
+  now: string,
+): number {
+  ensureMemoryReviewCandidateSchema(db);
+  const { whereSql, params } = buildPendingMemoryReviewCandidateSelector(selector, now);
+  return countPendingMemoryReviewCandidatesBySelectorUnsafe(db, whereSql, params);
+}
+
 export function bulkUpdatePendingMemoryReviewCandidates(
   db: Database.Database,
   action: BulkMemoryReviewCandidateAction,
@@ -233,24 +277,8 @@ export function bulkUpdatePendingMemoryReviewCandidates(
   ensureMemoryReviewCandidateSchema(db);
 
   return db.transaction(() => {
-    let whereSql: string;
-    let params: unknown[];
-    if ('ids' in selector) {
-      whereSql = `status = 'pending' AND id IN (SELECT value FROM json_each(?))`;
-      params = [JSON.stringify(selector.ids)];
-    } else if ('older_than_days' in selector) {
-      whereSql = `status = 'pending' AND datetime(created_at) < datetime(?, '-' || ? || ' days')`;
-      params = [now, selector.older_than_days];
-    } else {
-      whereSql = `status = 'pending'`;
-      params = [];
-    }
-
-    const matched = (
-      db.prepare<unknown[], { count: number }>(
-        `SELECT COUNT(*) AS count FROM memory_review_candidate WHERE ${whereSql}`,
-      ).get(...params) ?? { count: 0 }
-    ).count;
+    const { whereSql, params } = buildPendingMemoryReviewCandidateSelector(selector, now);
+    const matched = countPendingMemoryReviewCandidatesBySelectorUnsafe(db, whereSql, params);
     if (matched === 0) {
       return { matched: 0, updated: 0 };
     }
