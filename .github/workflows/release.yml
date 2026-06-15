@@ -87,7 +87,7 @@ jobs:
           node-version: "24"
           cache: "npm"
           registry-url: "https://registry.npmjs.org"
-          always-auth: true
+          token: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
         run: npm ci
@@ -211,8 +211,8 @@ jobs:
           fi
           echo "Verifying npm token (length=${#NODE_AUTH_TOKEN})..."
           if ! npm whoami --registry=https://registry.npmjs.org/ 2>/dev/null; then
-            echo "E_NPM_AUTH: npm token is invalid or expired"
-            echo "Please update NPM_TOKEN in GitHub Secrets"
+            echo "E_NPM_AUTH: npm token is invalid or expired (length=${#NODE_AUTH_TOKEN})"
+            echo "Please update NPM_TOKEN in GitHub Secrets with a full npm automation/publish token"
             echo "Get a new token from: https://www.npmjs.com/settings/YOUR_USERNAME/tokens"
             exit 1
           fi
