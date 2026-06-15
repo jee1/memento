@@ -6,6 +6,7 @@ import {
   upsertPendingMemoryReviewCandidates,
   getMemoryReviewCandidateById,
   listMemoryReviewCandidates,
+  countPendingMemoryReviewCandidates,
   markMemoryReviewCandidateReviewed,
   markMemoryReviewCandidateDismissed,
   markMemoryReviewCandidateExpired,
@@ -118,6 +119,7 @@ describe('memory-review-candidate-persistence upsert', () => {
     );
     const rows = listMemoryReviewCandidates(db, { status: 'pending' });
     expect(rows).toHaveLength(1);
+    expect(countPendingMemoryReviewCandidates(db)).toBe(1);
     const one = getMemoryReviewCandidateById(db, rows[0].id);
     expect(one?.memory_id).toBe('mem_a');
     expect(one?.status).toBe('pending');

@@ -122,6 +122,17 @@ export function listMemoryReviewCandidates(
     .map((row) => mapRow(row));
 }
 
+export function countPendingMemoryReviewCandidates(db: Database.Database): number {
+  ensureMemoryReviewCandidateSchema(db);
+  return (
+    db
+      .prepare<[], { count: number }>(
+        `SELECT COUNT(*) AS count FROM memory_review_candidate WHERE status = 'pending'`,
+      )
+      .get() ?? { count: 0 }
+  ).count;
+}
+
 export function markMemoryReviewCandidateReviewed(
   db: Database.Database,
   candidateId: string,

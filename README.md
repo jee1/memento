@@ -507,6 +507,8 @@ http://localhost:9001/graph
 | `MEMORY_REVIEW_IMPORTANCE_THRESHOLD` | `0.7` | 기억 리뷰 후보 최소 importance (0~1) |
 | `MEMORY_REVIEW_STALE_DAYS` | `14` | 기억 리뷰 후보 최소 stale 일수 (정수 ≥ 1) |
 | `MEMORY_REVIEW_MAX_CANDIDATES` | `50` | 기억 리뷰 후보 최대 개수 (정수 ≥ 1) |
+| `MEMORY_REVIEW_MAX_BACKLOG` | `500` | pending 후보가 이 수 이상이면 신규 선정을 건너뜀 (`0`: 비활성화) |
+| `MEMORY_REVIEW_CANDIDATE_TTL_DAYS` | `30` | 이 일수보다 오래된 pending 후보를 배치 실행 전에 만료 (`0`: 비활성화) |
 | `MEMORY_REVIEW_CANDIDATES_INTERVAL_MS` | `86400000` | 배치 스케줄 간격(ms), 최소 `60000` |
 | `MEMORY_REVIEW_CANDIDATE_DUE_DAYS` | `14` | 배치가 `due_at`에 더하는 일 수 (1~366) |
 
