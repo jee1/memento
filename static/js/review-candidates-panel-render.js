@@ -78,6 +78,9 @@
     state.actionInFlight = true;
     setPreviewActionsBusy(true);
     syncReviewDismissButtons();
+    if (ns.syncBulkControls) {
+      ns.syncBulkControls();
+    }
     showError('');
     const url = ns.reviewCandidatePostUrl(id, action);
     try {
@@ -108,6 +111,9 @@
       state.actionInFlight = false;
       setPreviewActionsBusy(false);
       syncReviewDismissButtons();
+      if (ns.syncBulkControls) {
+        ns.syncBulkControls();
+      }
     }
   }
 
@@ -225,6 +231,9 @@
     }
     tbody.dataset.rcWired = '1';
     tbody.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.closest && ev.target.closest('[data-candidate-select]')) {
+        return;
+      }
       const tr = ev.target && ev.target.closest && ev.target.closest('tr[data-memory-id]');
       if (!tr) {
         return;
@@ -254,6 +263,7 @@
     clearRowSelection();
     resetPreviewPanel();
     tbody.textContent = '';
+    const candidateIds = [];
     for (let i = 0; i < candidates.length; i += 1) {
       const c = candidates[i];
       const tr = document.createElement('tr');
@@ -261,6 +271,7 @@
       const reasonFull = String(c.reason ?? '');
       const dueRaw = String(c.due_at ?? '');
       const candidateId = String(c.id ?? '');
+      candidateIds.push(candidateId);
       tr.dataset.candidateId = candidateId;
       tr.className = 'rc-row--clickable';
       tr.setAttribute('role', 'button');
@@ -271,7 +282,11 @@
       tr.dataset.reason = reasonFull;
       tr.dataset.due = dueRaw;
       tr.innerHTML =
-        '<td>' +
+        '<td class="rc-cell-select"><input type="checkbox" data-candidate-select="' +
+        ns.escapeAttr(candidateId) +
+        '" aria-label="Select candidate ' +
+        ns.escapeAttr(candidateId) +
+        '"></td><td>' +
         ns.escapeHtml(String(c.priority ?? '')) +
         '</td><td class="rc-cell-mono">' +
         ns.escapeHtml(memoryId) +
@@ -288,7 +303,13 @@
         '</td>';
       tbody.appendChild(tr);
     }
+    if (ns.resetBulkSelection) {
+      ns.resetBulkSelection(candidateIds);
+    }
     wireTableBody();
+    if (ns.wireBulkTableSelection) {
+      ns.wireBulkTableSelection();
+    }
     setHidden(wrap, false);
   }
 
@@ -321,6 +342,9 @@
     }
     state.lastPendingCount = candidates.length;
     if (!candidates.length) {
+      if (ns.resetBulkSelection) {
+        ns.resetBulkSelection([]);
+      }
       showEmpty(true);
       hideTable();
       return;

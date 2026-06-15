@@ -247,10 +247,22 @@
         <div id="rc-toast" class="rc-toast hidden" role="status" aria-live="polite"></div>
         <div class="review-candidates-body">
           <div class="rc-main-col">
+            <div id="rc-bulk-actions" class="rc-bulk-actions" aria-busy="false">
+              <label class="rc-bulk-select-all" for="rc-select-all">
+                <input type="checkbox" id="rc-select-all">
+                Select all visible
+              </label>
+              <span id="rc-selected-count" class="rc-selected-count" aria-live="polite">0 selected</span>
+              <div class="rc-bulk-buttons">
+                <button type="button" id="rc-bulk-dismiss-btn" class="m-button m-button--secondary" disabled>Dismiss selected</button>
+                <button type="button" id="rc-bulk-expire-btn" class="m-button m-button--ghost" disabled>Expire selected</button>
+              </div>
+            </div>
             <div id="rc-table-wrap" class="review-candidates-table-wrap hidden">
               <table id="rc-table" class="review-candidates-table">
                 <thead>
                   <tr>
+                    <th scope="col" aria-label="Select candidates"></th>
                     <th scope="col">Priority</th>
                     <th scope="col">Memory ID</th>
                     <th scope="col">Status</th>
@@ -486,6 +498,7 @@
   <script src="/static/js/review-candidates-panel-render.js"></script>
   <script src="/static/js/review-candidates-panel-poll.js"></script>
   <script src="/static/js/review-candidates-panel-health.js"></script>
+  <script src="/static/js/review-candidates-panel-bulk.js"></script>
   <script src="/static/js/review-candidates-panel.js"></script>
   <script src="/static/js/agent-sessions-panel-shared.js"></script>
   <script src="/static/js/agent-sessions-panel-data.js"></script>

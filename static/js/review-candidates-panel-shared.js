@@ -28,6 +28,8 @@
     pollFailureStreak: 0,
     reviewSse: null,
     notifyPromptWired: false,
+    selectedCandidateIds: new Set(),
+    currentCandidateIds: [],
   };
 
   function $(id) {

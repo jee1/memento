@@ -14,6 +14,7 @@ const PANEL_COMPANION_SCRIPTS = [
   'review-candidates-panel-render.js',
   'review-candidates-panel-poll.js',
   'review-candidates-panel-health.js',
+  'review-candidates-panel-bulk.js',
   'review-candidates-panel.js',
 ] as const;
 
@@ -64,6 +65,18 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     expect(dashboardHtml).toContain('id="rc-preview-actions"');
     expect(dashboardHtml).toContain('id="rc-btn-review"');
     expect(dashboardHtml).toContain('id="rc-btn-dismiss"');
+  });
+
+  it('supports selecting visible candidates and bulk dismiss/expire (#519)', () => {
+    expect(dashboardHtml).toContain('id="rc-select-all"');
+    expect(dashboardHtml).toContain('id="rc-selected-count"');
+    expect(dashboardHtml).toContain('id="rc-bulk-dismiss-btn"');
+    expect(dashboardHtml).toContain('id="rc-bulk-expire-btn"');
+    expect(panelJs).toContain('/admin/memory/review-candidates/bulk-dismiss');
+    expect(panelJs).toContain('/admin/memory/review-candidates/bulk-expire');
+    expect(panelJs).toContain('selectedCandidateIds');
+    expect(panelJs).toContain('JSON.stringify({ ids: ids })');
+    expect(panelJs).toContain('await ns.loadList()');
   });
 });
 
