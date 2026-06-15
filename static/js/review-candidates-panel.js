@@ -39,6 +39,7 @@
           void ns.postCandidateAction('dismiss');
         });
       }
+      ns.wireBulkReviewActions();
       ns.wireReviewNotifyPrompt();
     }
     if (!state.loadedOnce) {
