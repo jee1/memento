@@ -368,7 +368,7 @@ export class ErrorLoggingService {
     const contextJson = JSON.stringify(error.context, null, 2);
     const maskedContextJson = PIIMasker.mask(contextJson).masked;
     
-    logger.error('에러 로깅', {
+    const logMeta = {
       severity: error.severity,
       category: error.category,
       id: error.id,
@@ -377,7 +377,12 @@ export class ErrorLoggingService {
       component: error.context.component,
       stack: error.stack,
       context: maskedContextJson
-    });
+    };
+    if (error.severity === ErrorSeverity.HIGH || error.severity === ErrorSeverity.CRITICAL) {
+      logger.error('에러 로깅', logMeta);
+    } else {
+      logger.warn('에러 로깅', logMeta);
+    }
   }
 
 

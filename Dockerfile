@@ -10,6 +10,7 @@ COPY tsconfig*.json ./
 # Copy workspace package.json files (npm workspaces 의존성 설치에 필요)
 COPY packages/memento-core/package*.json ./packages/memento-core/
 COPY packages/memento-server/package*.json ./packages/memento-server/
+COPY packages/memento-agent-integration/package*.json ./packages/memento-agent-integration/
 COPY packages/memento-client/package*.json ./packages/memento-client/
 COPY packages/mcp-client/package*.json ./packages/mcp-client/
 COPY apps/experimental-example/package*.json ./apps/experimental-example/
@@ -73,6 +74,8 @@ COPY --from=builder /app/packages/memento-core/prompts ./packages/memento-core/p
 COPY --from=builder /app/packages/memento-core/package.json ./packages/memento-core/package.json
 COPY --from=builder /app/packages/memento-server/dist ./packages/memento-server/dist
 COPY --from=builder /app/packages/memento-server/package.json ./packages/memento-server/package.json
+COPY --from=builder /app/packages/memento-agent-integration/dist ./packages/memento-agent-integration/dist
+COPY --from=builder /app/packages/memento-agent-integration/package.json ./packages/memento-agent-integration/package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 

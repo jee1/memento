@@ -433,24 +433,7 @@ export class AnchorManager implements IAnchorManager {
     // 앵커 임베딩 가져오기
     const anchorEmbedding = await this.cacheService.getAnchorEmbedding(anchorMemoryId);
     if (!anchorEmbedding) {
-      // Phase 8.4: 커스텀 에러 클래스 사용
-      const error = new EmbeddingNotFoundError(anchorMemoryId);
-      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
-      if (this.errorLoggingService) {
-        this.errorLoggingService.logError(
-          error,
-          ErrorSeverity.MEDIUM,
-          ErrorCategory.EMBEDDING,
-          {
-            component: 'AnchorManager',
-            operation: 'searchLocal',
-            agentId,
-            slot,
-            anchorMemoryId
-          }
-        );
-      }
-      throw error;
+      throw new EmbeddingNotFoundError(anchorMemoryId);
     }
 
     const startTime = Date.now();

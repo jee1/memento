@@ -180,10 +180,18 @@ async function buildNetworkNodesAndLinks(
           }
         }
       } catch (error) {
-        logger.error('Anchor search failed', {
-          slot: anchor.slot,
-          error: error instanceof Error ? error.message : String(error)
-        });
+        const isEmbeddingMissing = error instanceof Error && error.name === 'EmbeddingNotFoundError';
+        if (isEmbeddingMissing) {
+          logger.debug('Anchor search skipped: embedding not found', {
+            slot: anchor.slot,
+            anchorMemoryId: anchor.memory_id
+          });
+        } else {
+          logger.error('Anchor search failed', {
+            slot: anchor.slot,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
       }
     }
   }
