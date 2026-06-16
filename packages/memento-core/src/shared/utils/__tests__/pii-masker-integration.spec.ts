@@ -179,11 +179,12 @@ describe('PII 마스킹 통합 테스트', () => {
 
   describe('ErrorLoggingService PII 마스킹 검증', () => {
     let loggerErrorSpy: ReturnType<typeof vi.spyOn> | null = null;
+    let loggerWarnSpy: ReturnType<typeof vi.spyOn> | null = null;
     let stderrWriteSpy: ReturnType<typeof vi.spyOn> | null = null;
 
     beforeEach(() => {
-      // logger.error를 spy (ErrorLoggingService가 logger.error를 사용)
       loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+      loggerWarnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
       // stderr.write를 spy하여 실제 출력 캡처
       stderrWriteSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     });
@@ -192,6 +193,10 @@ describe('PII 마스킹 통합 테스트', () => {
       if (loggerErrorSpy) {
         loggerErrorSpy.mockRestore();
         loggerErrorSpy = null;
+      }
+      if (loggerWarnSpy) {
+        loggerWarnSpy.mockRestore();
+        loggerWarnSpy = null;
       }
       if (stderrWriteSpy) {
         stderrWriteSpy.mockRestore();
@@ -213,10 +218,10 @@ describe('PII 마스킹 통합 테스트', () => {
       );
       
       expect(errorId).toBeDefined();
-      
-      // logger.error가 호출되었는지 확인
-      expect(loggerErrorSpy).toHaveBeenCalled();
-      
+
+      // MEDIUM severity는 logger.warn을 사용
+      expect(loggerWarnSpy).toHaveBeenCalled();
+
       // stderr.write 출력에서 PII가 마스킹되었는지 확인
       const consoleOutput = stderrWriteSpy ? stderrWriteSpy.mock.calls.map((call: any[]) => String(call[0])).join('\n') : '';
       // PII가 마스킹되었는지 확인 (원본이 없어야 함)
@@ -269,10 +274,10 @@ describe('PII 마스킹 통합 테스트', () => {
       );
       
       expect(errorId).toBeDefined();
-      
-      // logger.error가 호출되었는지 확인
-      expect(loggerErrorSpy).toHaveBeenCalled();
-      
+
+      // LOW severity는 logger.warn을 사용
+      expect(loggerWarnSpy).toHaveBeenCalled();
+
       // stderr.write 출력에서 metadata의 PII가 마스킹되었는지 확인
       const consoleOutput = stderrWriteSpy ? stderrWriteSpy.mock.calls.map((call: any[]) => String(call[0])).join('\n') : '';
       

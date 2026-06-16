@@ -178,6 +178,18 @@ function safeStringify(value: unknown): string {
   }
 }
 
+function normalizeMetaErrors(meta: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(meta)) {
+    if (value instanceof Error) {
+      result[key] = { message: value.message, name: value.name, stack: value.stack };
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 function formatTime(date: Date = new Date()): string {
   return date.toISOString();
 }
@@ -207,8 +219,9 @@ function buildLogMessage(level: LogLevel, message: string, meta?: Record<string,
  * 일반 모드에서 stderr로 로그 출력
  */
 function logToStderr(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
-  // PII 마스킹 적용 (중첩 객체도 깊이 마스킹)
-  const maskedMeta = meta ? PIIMasker.maskObject(meta) : undefined;
+  // Error 객체를 PIIMasker.maskObject 전에 plain object로 변환 (JSON.stringify가 Error를 {}로 직렬화하는 버그 방지)
+  const normalizedMeta = meta ? normalizeMetaErrors(meta) : undefined;
+  const maskedMeta = normalizedMeta ? PIIMasker.maskObject(normalizedMeta) : undefined;
   const logMessage = buildLogMessage(level, message, maskedMeta);
   // undefined가 넘어가면 Node가 문자열 "undefined"를 출력하므로 항상 문자열만 전달
   const line = typeof logMessage === 'string' ? `${logMessage}\n` : '\n';
@@ -249,8 +262,9 @@ function logWithMCPLogger(level: LogLevel, message: string, meta?: Record<string
     
     // PII 마스킹 적용 (MCP 스펙 필수: 자격 증명, 내부 시스템 세부사항 포함 금지)
     const maskedMessage = PIIMasker.mask(message).masked;
-    // 중첩 객체도 깊이 마스킹하기 위해 PIIMasker.maskObject 사용
-    const maskedMeta = meta ? PIIMasker.maskObject(meta) : undefined;
+    // Error 객체를 PIIMasker.maskObject 전에 plain object로 변환
+    const normalizedMeta = meta ? normalizeMetaErrors(meta) : undefined;
+    const maskedMeta = normalizedMeta ? PIIMasker.maskObject(normalizedMeta) : undefined;
     
     // mcpLogger.logServer는 동기 함수이므로 동기적으로 호출
     // MCP 스펙: notifications/message 형식 준수 (mcpLogger 내부에서 처리)

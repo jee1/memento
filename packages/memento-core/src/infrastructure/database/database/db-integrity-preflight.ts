@@ -40,7 +40,52 @@ function buildQuarantinePath(dbPath: string, now: Date): string {
   return join(quarantineDir, `${baseName}-corrupt-${formatTimestamp(now)}${ext || '.db'}`);
 }
 
+const QUARANTINE_DEDUP_WINDOW_MS = 15 * 60 * 1000;
+
+function findRecentQuarantineSnapshot(dbPath: string, now: Date): string | null {
+  const quarantineDir = join(dirname(dbPath), 'quarantine');
+  if (!fs.existsSync(quarantineDir)) {
+    return null;
+  }
+  let sourceStat: fs.Stats;
+  try {
+    sourceStat = fs.statSync(dbPath);
+  } catch {
+    return null;
+  }
+  const baseName = basename(dbPath, extname(dbPath) || undefined);
+  const prefix = `${baseName}-corrupt-`;
+  const entries = fs.readdirSync(quarantineDir);
+  let newest: { path: string; mtimeMs: number } | null = null;
+  for (const entry of entries) {
+    if (!entry.startsWith(prefix) || !entry.endsWith(extname(dbPath) || '.db')) {
+      continue;
+    }
+    const fullPath = join(quarantineDir, entry);
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(fullPath);
+    } catch {
+      continue;
+    }
+    if (stat.size !== sourceStat.size) {
+      continue;
+    }
+    if (now.getTime() - stat.mtimeMs > QUARANTINE_DEDUP_WINDOW_MS) {
+      continue;
+    }
+    if (!newest || stat.mtimeMs > newest.mtimeMs) {
+      newest = { path: fullPath, mtimeMs: stat.mtimeMs };
+    }
+  }
+  return newest?.path ?? null;
+}
+
 function quarantineDatabaseFile(dbPath: string, now: Date): string {
+  const existing = findRecentQuarantineSnapshot(dbPath, now);
+  if (existing) {
+    return existing;
+  }
   const quarantinePath = buildQuarantinePath(dbPath, now);
   fs.mkdirSync(dirname(quarantinePath), { recursive: true });
   fs.copyFileSync(dbPath, quarantinePath);
