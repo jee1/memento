@@ -9,6 +9,14 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <link rel="stylesheet" href="/static/css/tokens.css">
   <link rel="stylesheet" href="/static/css/components.css">
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('embed') === 'dashboard') {
+        document.documentElement.classList.add('graph-view--embedded');
+      }
+    })();
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -406,6 +414,75 @@
     /* 엣지 스타일 */
     .link {
       stroke-opacity: 0.55;
+    }
+
+    /* Dashboard embed — Embedding Map 등 다른 탭과 동일한 라이트 패널 스타일 */
+    .graph-view--embedded {
+      --color-bg-graph: var(--color-bg-main);
+      --color-text-graph: var(--color-text-main);
+      --color-border-graph: var(--color-border-light);
+      --color-graph-surface: var(--color-bg-card);
+      --color-graph-surface-elevated: var(--color-bg-card);
+      --color-graph-title: var(--color-text-main);
+      --color-graph-text-muted: var(--color-text-muted);
+      --color-graph-text-subtle: var(--color-text-muted);
+      --color-graph-detail-text: var(--color-text-main);
+      --color-graph-edge-default: var(--color-memory-neutral-stroke);
+      --color-graph-legend-bg: var(--color-bg-card);
+      --color-graph-tag-bg: var(--color-tab-surface);
+      --color-graph-tag-text: var(--color-text-main);
+      --color-graph-badge-episodic-bg: var(--color-anchor-c-bg);
+      --color-graph-badge-episodic-text: var(--color-anchor-c-stroke);
+      --color-graph-badge-semantic-bg: color-mix(in srgb, var(--color-success) 18%, var(--color-bg-card));
+      --color-graph-badge-semantic-text: var(--color-success);
+      --color-graph-badge-procedural-bg: var(--color-agent-state-degraded-bg);
+      --color-graph-badge-procedural-text: var(--color-agent-state-degraded-text);
+      --color-graph-badge-working-bg: var(--color-memory-neutral-bg);
+      --color-graph-badge-working-text: var(--color-memory-neutral-stroke);
+    }
+
+    .graph-view--embedded header h1,
+    .graph-view--embedded .graph-auth-panel,
+    .graph-view--embedded .graph-auth-required,
+    .graph-view--embedded .graph-auth-hint {
+      display: none !important;
+    }
+
+    .graph-view--embedded header {
+      background: var(--color-bg-card);
+      border-bottom: 1px solid var(--color-border-light);
+      padding: var(--spacing-sm) var(--spacing-md);
+      gap: 0.75rem 1rem;
+    }
+
+    .graph-view--embedded .filter-group label,
+    .graph-view--embedded .type-check,
+    .graph-view--embedded #importance-val {
+      color: var(--color-text-muted);
+    }
+
+    .graph-view--embedded #graph-container {
+      background: var(--color-bg-card);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .graph-view--embedded #detail-panel {
+      background: var(--color-bg-card);
+      border-left: 1px solid var(--color-border-light);
+      box-shadow: var(--shadow-md);
+    }
+
+    .graph-view--embedded #detail-panel h3 {
+      color: var(--color-text-main);
+      border-bottom-color: var(--color-border-light);
+    }
+
+    .graph-view--embedded #legend {
+      box-shadow: var(--shadow-sm);
+    }
+
+    .graph-view--embedded #tooltip {
+      box-shadow: var(--shadow-md);
     }
   </style>
 </head>

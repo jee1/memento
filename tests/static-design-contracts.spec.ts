@@ -47,6 +47,15 @@ describe('static design contracts', () => {
     expect(source).not.toMatch(/#[0-9A-Fa-f]{3,8}(?![0-9A-Za-z_-])/);
   });
 
+  it('dashboard graph iframe loads embed mode for consistent light dashboard styling', () => {
+    const tabsSource = readStaticFile('static/js/dashboard-tabs.js');
+    const graphSource = readStaticFile('static/graph.html');
+
+    expect(tabsSource).toContain("'/graph?embed=dashboard'");
+    expect(graphSource).toContain('graph-view--embedded');
+    expect(graphSource).toContain("params.get('embed') === 'dashboard'");
+  });
+
   it('dashboard.css uses tokens for tab hover and auth messaging colors', () => {
     const source = readStaticFile('static/css/dashboard.css');
 

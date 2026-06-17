@@ -31,12 +31,22 @@
 }
 
 .m-button--secondary {
+  background: var(--color-button-secondary-on-light-surface);
+  color: var(--color-button-secondary-on-light-text);
+  border: 1px solid var(--color-button-secondary-on-light-border);
+}
+
+.m-button--secondary:hover:not(:disabled) {
+  background: var(--color-button-secondary-on-light-hover);
+}
+
+.m-header .m-button--secondary {
   background: var(--color-button-secondary-surface);
   color: var(--color-text-inverse);
   border: 1px solid var(--color-button-secondary-border);
 }
 
-.m-button--secondary:hover:not(:disabled) {
+.m-header .m-button--secondary:hover:not(:disabled) {
   background: var(--color-button-secondary-hover);
 }
 

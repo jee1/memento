@@ -37,6 +37,8 @@ describe('dashboard review candidates panel (#252, #253)', () => {
     }
     expect(dashboardHtml).toContain(REVIEW_QUEUE_DASHBOARD_BOOT_MARKER);
     expect(dashboardHtml).toContain('id="rc-refresh-btn"');
+    expect(dashboardHtml).toContain('class="rc-intro"');
+    expect(dashboardHtml).toContain('class="rc-howto"');
     expect(dashboardHtml).toContain('id="rc-health-panel"');
     expect(dashboardHtml).toContain('id="rc-preview-aside"');
     expect(dashboardHtml).toContain('review-candidates-body');

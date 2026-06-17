@@ -87,9 +87,15 @@
   --color-dashboard-auth-panel-border: rgba(255, 255, 255, 0.18);
   --color-dashboard-auth-error: #fee2e2;
   --color-tab-hover: rgba(255, 255, 255, 0.6);
+  /* Secondary buttons on brand/dark surfaces (e.g. dashboard header) */
   --color-button-secondary-surface: rgba(255, 255, 255, 0.2);
   --color-button-secondary-border: rgba(255, 255, 255, 0.3);
   --color-button-secondary-hover: rgba(255, 255, 255, 0.3);
+  /* Secondary buttons on light dashboard panels */
+  --color-button-secondary-on-light-surface: var(--color-bg-card);
+  --color-button-secondary-on-light-text: var(--color-text-main);
+  --color-button-secondary-on-light-border: var(--color-border-light);
+  --color-button-secondary-on-light-hover: var(--color-tab-surface);
   --color-agent-event-prompt: var(--color-brand-primary);
   --color-agent-event-tool: var(--color-info);
   --color-agent-event-result: var(--color-success);
