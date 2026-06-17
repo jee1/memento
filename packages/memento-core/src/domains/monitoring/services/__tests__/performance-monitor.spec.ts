@@ -458,3 +458,104 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     expect(m.heapShareOfBudgetPercent).toBeCloseTo(6.25, 5);
   });
 });
+
+describe('PerformanceMonitor database/query auto-resolve', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const MB = 1024 * 1024;
+
+  // database: threshold 이하로 크기 감소 시 auto-resolve
+  it('database: 알림 발생 후 크기 임계값 이하로 감소 시 auto-resolve', async () => {
+    const monitor = new PerformanceMonitor({ databaseSizeMB: 100 });
+
+    const highDbMetrics = createMetrics({ database: { size: 120 * MB, memoryCount: 5000, queryTime: 0 } });
+    await (monitor as any).checkAlerts(highDbMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(1);
+
+    const lowDbMetrics = createMetrics({ database: { size: 80 * MB, memoryCount: 4000, queryTime: 0 } });
+    await (monitor as any).checkAlerts(lowDbMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(0);
+  });
+
+  // database: auto-resolve 후 재발생 시 새 알림 생성
+  it('database: auto-resolve 후 크기 재증가 시 새 알림 생성', async () => {
+    const monitor = new PerformanceMonitor({ databaseSizeMB: 100 });
+
+    const highDbMetrics = createMetrics({ database: { size: 120 * MB, memoryCount: 5000, queryTime: 0 } });
+    const lowDbMetrics = createMetrics({ database: { size: 80 * MB, memoryCount: 4000, queryTime: 0 } });
+
+    await (monitor as any).checkAlerts(highDbMetrics);
+    await (monitor as any).checkAlerts(lowDbMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(0);
+
+    await (monitor as any).checkAlerts(highDbMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(1);
+  });
+
+  // query: 연속 N회(기본 3) 임계값 이하 시 auto-resolve
+  it('query: 연속 3회 임계값 이하 시 auto-resolve', async () => {
+    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3 });
+
+    const highQueryMetrics = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 1500 } });
+    const okQueryMetrics   = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 500  } });
+
+    await (monitor as any).checkAlerts(highQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(1);
+
+    // 1회 ok — 아직 resolve 안 됨
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(1);
+
+    // 2회 ok — 아직 resolve 안 됨
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(1);
+
+    // 3회 ok — resolve
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(0);
+  });
+
+  // query: 스파이크 발생 시 카운터 리셋
+  it('query: ok 중 스파이크 발생 시 카운터 리셋 후 N회 다시 채워야 resolve', async () => {
+    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3 });
+
+    const highQueryMetrics = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 1500 } });
+    const okQueryMetrics   = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 500  } });
+
+    await (monitor as any).checkAlerts(highQueryMetrics);
+    // ok 2회
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    // 스파이크 — 카운터 리셋
+    await (monitor as any).checkAlerts(highQueryMetrics);
+    // ok 2회 더 — 아직 3회 미달
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(1);
+
+    // 3번째 ok — resolve
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(0);
+  });
+
+  // clearAlerts() 시 query window 카운터 리셋
+  it('clearAlerts() 호출 시 query 연속 카운터가 리셋된다', async () => {
+    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3 });
+
+    const highQueryMetrics = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 1500 } });
+    const okQueryMetrics   = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 500  } });
+
+    await (monitor as any).checkAlerts(highQueryMetrics);
+    // ok 2회 진행 후 clearAlerts
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    monitor.clearAlerts();
+
+    // 새 알림 발생 후 ok 1회 — 리셋됐으니 resolve 안 됨
+    await (monitor as any).checkAlerts(highQueryMetrics);
+    await (monitor as any).checkAlerts(okQueryMetrics);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'query')).toHaveLength(1);
+  });
+});
