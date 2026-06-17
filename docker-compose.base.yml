@@ -59,6 +59,7 @@ services:
       - ${HOME}/.memento/data:/app/data
       - ${HOME}/.memento/logs:/app/logs
     restart: unless-stopped
+    stop_grace_period: 30s
     stdin_open: true
     tty: true
     # Docker 엔진 내부의 json-file 로그가 무한정 커져서

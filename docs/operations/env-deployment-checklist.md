@@ -22,3 +22,4 @@
 ## 검증
 
 - [ ] `npm run lint`, `npm run type-check`, `npm test`가 통과했는가?
+- [ ] Docker 재배포 전 [Docker 배포 절차](ko/docker-deploy-procedure.md)에 따라 `npm run db:pre-docker-deploy`를 실행했는가?

@@ -16,7 +16,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | Cursor / MCP 설정 | [cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
 | Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | — |
 
-- **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [AGENTS.md](../AGENTS.md)
+- **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [AGENTS.md](../AGENTS.md) (상세: [agents/](agents/README.md))
 
 ### 연동·레퍼런스
 
@@ -77,6 +77,7 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 검토 큐 안전 정리 | [review-queue-cleanup.md](operations/ko/review-queue-cleanup.md) | [review-queue-cleanup.md](operations/en/review-queue-cleanup.md) |
 | 문서 전수 검수 (worktree) | [doc-audit-workflow.md](operations/ko/doc-audit-workflow.md) | — |
 | 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/env-deployment-checklist.md) | — |
+| Docker 배포 절차 (DB 백업 포함) | [docker-deploy-procedure.md](operations/ko/docker-deploy-procedure.md) | — |
 | 트러블슈팅 | [npx-troubleshooting.md](operations/ko/npx-troubleshooting.md) 등 | [operations/en/](operations/en/) |
 
 ### 참조 (reference)

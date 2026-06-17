@@ -19,6 +19,9 @@
 | tune-weights.ts | 랭킹 가중치 자동 튜닝 (후보 생성·평가·게이트) | `npm run quality:benchmark:tune-weights` |
 | tune-report.ts | 튜닝 run 결과 리포트 출력 | `npm run quality:benchmark:tune-report` |
 | migrate-embedding-data.js | 임베딩 데이터 마이그레이션 | `npm run migrate:embedding`, `migrate:embedding:analyze`, `migrate:embedding:rollback` |
+| backup-memory-db.mjs | memory.db online backup (배포 전) | `npm run db:backup` |
+| pre-docker-deploy.mjs | 배포 전 백업 + quick_check | `npm run db:pre-docker-deploy` |
+| restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
 | backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
 | regenerate-embeddings.js | 임베딩 재생성 | `npm run regenerate:embeddings` |
 | debug-embeddings.js | 임베딩 디버깅 | `npm run debug:embeddings` |
