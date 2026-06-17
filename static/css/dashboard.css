@@ -1,8 +1,8 @@
 /* Memento Anchor Map Dashboard Styles */
 
 :root {
-  /* /graph(graph.html) 페이지 배경과 맞춰 iframe 로드 전 플래시 완화 */
-  --dashboard-graph-bg: var(--color-bg-graph);
+  /* Memory Graph 탭(대시보드 embed 모드)과 동일한 라이트 배경 */
+  --dashboard-graph-bg: var(--color-bg-main);
 }
 
 * {
@@ -663,6 +663,7 @@ body {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
   padding: var(--spacing-md);
   gap: var(--spacing-sm);
   background: var(--color-bg-main);
@@ -671,14 +672,37 @@ body {
 .review-candidates-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-sm);
+}
+
+.review-candidates-header-text {
+  flex: 1 1 20rem;
+  min-width: 0;
 }
 
 .review-candidates-title {
   margin: 0;
   font-size: var(--font-size-lg);
+  color: var(--color-text-main);
+}
+
+.rc-intro,
+.rc-howto {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed, 1.45);
+}
+
+.rc-howto {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+}
+
+.rc-howto-label {
+  font-weight: 600;
   color: var(--color-text-main);
 }
 
@@ -945,18 +969,49 @@ body {
   .review-candidates-body {
     grid-template-columns: 1fr;
   }
+
+  .rc-preview-aside {
+    max-height: min(24rem, 50vh);
+  }
 }
 
 .rc-preview-aside {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
+  max-height: 100%;
   border: 1px solid var(--color-tab-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
   padding: var(--spacing-md);
-  overflow: auto;
+  overflow: hidden;
+}
+
+.rc-preview-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rc-preview-detail {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.rc-preview-dl,
+.rc-preview-memory-status {
+  flex-shrink: 0;
 }
 
 .rc-preview-title {
+  flex-shrink: 0;
   margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-base);
   color: var(--color-text-main);
@@ -1009,15 +1064,20 @@ body {
   word-break: break-word;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: var(--font-size-xs);
-  max-height: min(50vh, 28rem);
-  overflow: auto;
+  flex: 0 0 auto;
 }
 
 .rc-preview-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
+  flex-shrink: 0;
   margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-card);
+  position: sticky;
+  bottom: 0;
 }
 
 .rc-preview-actions[aria-busy='true'] {

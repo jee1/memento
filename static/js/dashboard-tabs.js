@@ -9,7 +9,7 @@
 (function (global) {
   'use strict';
 
-  const GRAPH_IFRAME_SRC = '/graph';
+  const GRAPH_IFRAME_SRC = '/graph?embed=dashboard';
 
   function getTabButtons() {
     return Array.prototype.slice.call(document.querySelectorAll('.m-tab-bar .m-tab-btn'));
