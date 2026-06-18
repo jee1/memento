@@ -14,6 +14,8 @@
 
 MCP 서버나 HTTP 대시보드 없이 SQLite DB 파일 하나로 완결되는 가벼운 사용 방식입니다.
 
+HTTP 서버를 띄운 호스트는 같은 개인 지식 Agent를 두 단계 API로 사용할 수 있습니다. 이 경로는 서버 프로세스의 실제 `ToolContext`와 `remember` 도구를 사용하므로, 승인된 후보가 현재 서버 DB에 저장됩니다.
+
 ## 전제 조건
 
 저장소 루트에서 `npm install`과 `npm run build`를 완료한 상태여야 합니다.
@@ -114,6 +116,69 @@ node packages/memento-server/dist/cli.js --db-path "$DB" agent ask \
 ```
 
 stdout에 JSON 한 줄이 출력되고, 저장이나 대화형 입력 없이 종료됩니다.
+
+## HTTP 서버 런타임 사용법
+
+HTTP 호스트는 저장을 자동으로 수행하지 않습니다. 먼저 한 턴을 실행해 후보를 받은 뒤, 사용자 승인 결과를 별도 요청으로 제출합니다.
+
+### 1. 서버 실행
+
+`/api/v1/agent/*` 엔드포인트는 API 키 인증을 사용합니다. 로컬 테스트에서는 mock LLM이 기본값입니다.
+
+```bash
+export ADMIN_API_KEY=dev-key
+export MEMENTO_PERSONAL_AGENT_LLM_PROVIDER=mock
+npm run dev:http
+```
+
+### 2. 한 턴 실행
+
+```bash
+curl -sS http://127.0.0.1:3000/api/v1/agent/personal:run \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_message": "앞으로는 커밋 메시지는 영어로 쓰자",
+    "project_id": "my-project",
+    "session_id": "session-1",
+    "token_budget": 1000
+  }'
+```
+
+응답에는 `llm.response`, `knowledgeContext`, `candidates`, `persistence`가 포함됩니다. 이 단계의 `persistence.attempted`는 항상 `false`이며 DB 저장을 하지 않습니다.
+
+호스트는 응답의 `candidates` 배열을 그대로 보관해야 합니다. 후보 `id`는 해당 응답 스냅샷 안에서 승인 목록과 매칭하기 위한 값입니다.
+
+### 3. 승인 후보 저장
+
+사용자가 승인한 후보 id만 `approved_candidate_ids`에 넣고, 직전 응답의 `candidates` 배열을 그대로 보냅니다.
+
+```bash
+curl -sS http://127.0.0.1:3000/api/v1/agent/personal:persist-approved \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "candidates": [
+      {
+        "id": "kc_...",
+        "category": "preference",
+        "content": "커밋 메시지는 영어로 쓰자",
+        "reason": "사용자 메시지에 선호·습관 변경 신호가 포함되어 있습니다.",
+        "suggestedMemoryType": "semantic",
+        "tags": ["personal-agent", "preference"],
+        "importance": 0.62,
+        "confidence": 0.9,
+        "sourceContext": "앞으로는 커밋 메시지는 영어로 쓰자"
+      }
+    ],
+    "approved_candidate_ids": ["kc_..."],
+    "project_id": "my-project",
+    "session_id": "session-1",
+    "process_id": "http-host"
+  }'
+```
+
+성공 응답의 `persistence.items[]`에는 후보별 `status`, 성공 시 `memoryId`, 실패 시 `errorMessage`가 들어갑니다. 승인하지 않은 후보는 저장되지 않습니다.
 
 ## 관련 문서
 

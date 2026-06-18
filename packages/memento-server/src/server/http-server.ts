@@ -318,6 +318,7 @@ async function initializeServer() {
       initialInjectionTokenBudget: Number.isFinite(initialInjectionTokenBudget)
         ? initialInjectionTokenBudget
         : undefined,
+      serverServices,
     });
     
     // 라우터 등록 (/admin, /api는 브라우저 세션; /api/v1/quality, /tools, /mcp는 API 키)
