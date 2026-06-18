@@ -400,6 +400,118 @@ describe('VectorSearchRepositoryImpl', () => {
     });
   });
 
+  describe('hybridSearch scope filters (issue #387)', () => {
+    const queryVector = new Array(512).fill(0.1);
+    const embeddingJson = JSON.stringify(queryVector);
+
+    async function seedScopedHybridMemories(): Promise<boolean> {
+      if (!repository.checkVecAvailability()) {
+        return false;
+      }
+
+      const insertItem = db.prepare(
+        `INSERT INTO memory_item (
+          id, type, content, importance, created_at, project_id, owner_id
+        ) VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?, ?)`
+      );
+      const insertEmb = db.prepare(
+        `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
+         VALUES (?, ?, ?, 'tfidf', ?)`
+      );
+
+      const rows = [
+        { id: 'mem_hybrid_scope_a', content: 'alpha scoped hybrid content', projectId: 'proj-a', ownerId: 'owner-a' },
+        { id: 'mem_hybrid_scope_b', content: 'beta scoped hybrid content', projectId: 'proj-b', ownerId: 'owner-b' },
+      ] as const;
+
+      for (const row of rows) {
+        insertItem.run(row.id, row.content, row.projectId, row.ownerId);
+        insertEmb.run(row.id, embeddingJson, 512, 512);
+
+        const embeddingId = db.prepare(
+          `SELECT id FROM memory_embedding WHERE memory_id = ?`
+        ).get(row.id) as { id: number } | undefined;
+
+        if (embeddingId) {
+          db.exec(`
+            INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+            VALUES (${embeddingId.id}, '${embeddingJson}')
+          `);
+        }
+      }
+
+      return true;
+    }
+
+    it('project_id 스코프가 벡터 전용 hybridSearch 분기에 적용되어야 함', async () => {
+      if (!(await seedScopedHybridMemories())) {
+        return;
+      }
+
+      const query: VectorSearchQuery = {
+        queryVector,
+        provider: 'tfidf',
+        options: {
+          limit: 10,
+          threshold: 0,
+          project_id: 'proj-a',
+        },
+      };
+
+      const results = await repository.hybridSearch(query);
+      const memoryIds = results.map((result) => result.memory_id);
+
+      expect(memoryIds).toContain('mem_hybrid_scope_a');
+      expect(memoryIds).not.toContain('mem_hybrid_scope_b');
+    });
+
+    it('project_id·owner_id 스코프가 텍스트+벡터 hybridSearch CTE에 적용되어야 함', async () => {
+      if (!(await seedScopedHybridMemories())) {
+        return;
+      }
+
+      const query: VectorSearchQuery = {
+        queryVector,
+        textQuery: 'scoped hybrid',
+        provider: 'tfidf',
+        options: {
+          limit: 10,
+          threshold: 0,
+          project_id: 'proj-b',
+          owner_id: 'owner-b',
+        },
+      };
+
+      const results = await repository.hybridSearch(query);
+      const memoryIds = results.map((result) => result.memory_id);
+
+      expect(memoryIds).toContain('mem_hybrid_scope_b');
+      expect(memoryIds).not.toContain('mem_hybrid_scope_a');
+    });
+
+    it('owner_id 배열 스코프가 hybridSearch에 적용되어야 함', async () => {
+      if (!(await seedScopedHybridMemories())) {
+        return;
+      }
+
+      const query: VectorSearchQuery = {
+        queryVector,
+        provider: 'tfidf',
+        options: {
+          limit: 10,
+          threshold: 0,
+          owner_id: ['owner-a', 'owner-x'],
+        },
+      };
+
+      const results = await repository.hybridSearch(query);
+      const memoryIds = results.map((result) => result.memory_id);
+
+      expect(memoryIds).toContain('mem_hybrid_scope_a');
+      expect(memoryIds).not.toContain('mem_hybrid_scope_b');
+    });
+  });
+
   describe('getIndexStatus', () => {
     it('인덱스 상태를 반환해야 함', () => {
       // When: 인덱스 상태 확인

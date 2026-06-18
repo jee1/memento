@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### Changed
+- **VectorSearchRepository.hybridSearch**: `project_id` / `owner_id` 스코프가 vector·text CTE SQL에 반영되어 `search()`와 동작이 정렬됩니다. 텍스트 하이브리드 UNION의 `last_accessed`·ORDER BY SQL 오류도 함께 수정합니다 (#387).
 - **하이브리드·텍스트·벡터 검색**: `MemorySearchFilters`의 `project_id` / `owner_id`가 FTS·VEC SQL 및 임베딩 유사도(`searchBySimilarity`) fallback까지 전달되어, DB 단계에서 스코프가 적용됩니다. `memory_injection` / `buildKnowledgeContextBundle` 경로에서 좁은 스코프일 때 후보 부족을 줄이기 위해 검색 `limit` 배수를 키웁니다 (#232, PR #386 후속).
 
 ### Documentation
