@@ -276,7 +276,8 @@ function renderMap() {
       return palette.memoryStroke;
     })
     .attr('stroke-width', d => d.type === 'anchor' ? 3 : 2)
-    .attr('opacity', 1.0)
+    .attr('stroke-dasharray', d => d.embedding_missing ? '5,3' : null)
+    .attr('opacity', d => d.embedding_missing ? 0.6 : 1.0)
     .call(drag(simulation))
     .on('click', (event, d) => {
       event.stopPropagation();
@@ -306,7 +307,8 @@ function renderMap() {
   node.append('title')
     .text(d => {
       if (d.type === 'anchor') {
-        return `Anchor ${d.slot}\n${d.content}`;
+        const warning = d.embedding_missing ? '\n⚠ 임베딩 없음 — 연결 메모리 검색 불가' : '';
+        return `Anchor ${d.slot}\n${d.content}${warning}`;
       }
       return `Memory\n${d.content}\nHop: ${d.hop_distance || 'N/A'}`;
     });
