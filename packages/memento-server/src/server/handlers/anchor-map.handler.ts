@@ -21,6 +21,7 @@ export interface AnchorMapNode {
   similarity?: number;
   importance?: number;
   created_at?: string;
+  embedding_missing?: boolean;
 }
 
 /**
@@ -186,6 +187,8 @@ async function buildNetworkNodesAndLinks(
             slot: anchor.slot,
             anchorMemoryId: anchor.memory_id
           });
+          const anchorNode = nodes.find(n => n.id === anchor.memory_id);
+          if (anchorNode) anchorNode.embedding_missing = true;
         } else {
           logger.error('Anchor search failed', {
             slot: anchor.slot,
