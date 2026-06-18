@@ -1,12 +1,13 @@
 # CLAUDE.md
 
-This repository follows a unified guidance system for AI agents. 
+이 저장소의 프로젝트 컨텍스트·명령어·에이전트 워크플로는 **[AGENTS.md](./AGENTS.md)** 에서만 관리합니다.
 
-**IMPORTANT: Please read [AGENTS.md](./AGENTS.md) for the master guide on project overview, architecture, commands, and development workflows.**
+**작업 시작 전 [AGENTS.md](./AGENTS.md)를 읽으십시오.**
 
-## Quick Reference
-- **Master Guide**: [AGENTS.md](./AGENTS.md)
-- **Architecture**: npm workspaces (@memento/core, memento-server, @memento/client)
-- **Primary Commands**: `npm install`, `npm run build`, `npm run dev`, `npm test`
-- **MCP Usage**: Use `recall`/`memory_injection` before work and `remember` after work.
-- **PR / compound learnings**: See [AGENTS.md](./AGENTS.md) §6 — suggest conditional `/ce-compound` before opening a PR when applicable; PR template「지식 복리」.
+| 상세 문서 (`docs/agents/`) | |
+|---------------------------|---|
+| [commands.md](./docs/agents/commands.md) | npm·Docker·DB 운영 |
+| [architecture.md](./docs/agents/architecture.md) | 패키지·도메인 구조 |
+| [agent-workflow.md](./docs/agents/agent-workflow.md) | MCP·graphify·UI |
+
+**요구사항:** Node.js ≥24, npm ≥10
