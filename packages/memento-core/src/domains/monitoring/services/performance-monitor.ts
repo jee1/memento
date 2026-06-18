@@ -43,6 +43,7 @@ export interface AlertThresholds {
   cpuUsagePercent: number;         // CPU 사용률 임계값 (기본: 75%)
   databaseSizeMB: number;          // DB 크기 임계값 (기본: 100MB)
   queryTimeMs: number;             // 쿼리 시간 임계값 (기본: 1000ms)
+  queryResolveWindow: number;      // query auto-resolve에 필요한 연속 ok 횟수 (기본: 3)
 }
 
 export interface PerformanceAlert {
@@ -71,6 +72,8 @@ export class PerformanceMonitor {
   private onDemandMeasurementTime: number | null = null;
   private latestCpuSnapshot: NodeJS.CpuUsage = { user: 0, system: 0 };
   private lastCpuPercent: number = 0; // fallback; only updated by tick=true
+  // query sliding-window: 연속 ok 횟수. clearAlerts() 또는 스파이크 발생 시 리셋.
+  private queryConsecutiveOkCount: number = 0;
 
   constructor(thresholds?: Partial<AlertThresholds>) {
     this.thresholds = {
@@ -78,6 +81,7 @@ export class PerformanceMonitor {
       cpuUsagePercent: resolveValidatedNumber('PERF_CPU_WARN_PERCENT', 75, n => n >= 1 && n <= 100, '범위 1-100'),
       databaseSizeMB: 100,
       queryTimeMs: 1000,
+      queryResolveWindow: 3,
       ...thresholds
     };
   }
@@ -242,8 +246,15 @@ export class PerformanceMonitor {
       }
     }
 
-    // 데이터베이스 크기 검사 — DB 크기는 VACUUM 없이 자연히 감소하지 않으므로 auto-resolve를 지원하지 않는다.
+    // 데이터베이스 크기 검사
+    // memory/cpu와 달리 DB 크기는 VACUUM 같은 명시적 외부 작업 후에만 감소한다.
+    // 그러나 실제로 감소했다면 (예: VACUUM 완료) 즉시 resolve하는 것이 안전하다.
     const dbSizeMB = metrics.database.size / (1024 * 1024);
+    if (dbSizeMB <= this.thresholds.databaseSizeMB) {
+      const existing = Array.from(this.alerts.values())
+        .find(a => a.type === 'database' && !a.resolved);
+      if (existing) this.resolveAlert(existing.id);
+    }
     if (dbSizeMB > this.thresholds.databaseSizeMB) {
       const alertId = `database-${now.getTime()}`;
       const severity = dbSizeMB > this.thresholds.databaseSizeMB * 1.5 ? 'critical' : 'warning';
@@ -265,14 +276,28 @@ export class PerformanceMonitor {
       }
     }
 
-    // 쿼리 시간 검사 — 순간 측정값으로 감소를 신뢰할 수 없어 auto-resolve를 지원하지 않는다.
+    // 쿼리 시간 검사
+    // 순간 스파이크가 정상이므로 연속 N회(queryResolveWindow) 임계값 이하일 때만 auto-resolve.
+    // memory/cpu(즉시 해소)와 달리 sliding window를 써서 일시적 회복을 제외한다.
+    if (metrics.database.queryTime <= this.thresholds.queryTimeMs) {
+      const existingQueryAlert = Array.from(this.alerts.values())
+        .find(a => a.type === 'query' && !a.resolved);
+      if (existingQueryAlert) {
+        this.queryConsecutiveOkCount++;
+        if (this.queryConsecutiveOkCount >= this.thresholds.queryResolveWindow) {
+          this.resolveAlert(existingQueryAlert.id);
+          this.queryConsecutiveOkCount = 0;
+        }
+      }
+    }
     if (metrics.database.queryTime > this.thresholds.queryTimeMs) {
+      this.queryConsecutiveOkCount = 0; // 스파이크 발생 시 카운터 리셋
       const alertId = `query-${now.getTime()}`;
       const severity = metrics.database.queryTime > this.thresholds.queryTimeMs * 2 ? 'critical' : 'warning';
-      
+
       const existingQueryAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'query' && !alert.resolved);
-      
+
       if (!existingQueryAlert) {
         alerts.push({
           id: alertId,
@@ -409,6 +434,7 @@ export class PerformanceMonitor {
    */
   clearAlerts(): void {
     this.alerts.clear();
+    this.queryConsecutiveOkCount = 0;
   }
 
   /**
