@@ -117,7 +117,6 @@ interface MemoryItemRow {
   pinned: number | boolean;
   tags?: string | null;
   source?: string | null;
-  embedding?: string | null;
   /** sleep consolidation 등 — 컬럼 없으면 undefined */
   is_consolidated?: number | boolean | null;
 }
@@ -1615,7 +1614,7 @@ export class RememberTool extends BaseTool {
       const rows = await DatabaseUtils.all(db, `
         SELECT 
           id, type, content, importance, privacy_scope, 
-          created_at, last_accessed, pinned, tags, source, embedding,
+          created_at, last_accessed, pinned, tags, source,
           is_consolidated
         FROM memory_item
         WHERE id != ? -- 새로 저장된 기억 제외
@@ -1634,7 +1633,6 @@ export class RememberTool extends BaseTool {
         pinned: Boolean(row.pinned),
         tags: row.tags ? JSON.parse(row.tags) : undefined,
         source: row.source || undefined,
-        embedding: row.embedding ? JSON.parse(row.embedding) : undefined,
         ...(row.is_consolidated !== undefined && row.is_consolidated !== null
           ? { isConsolidated: Boolean(row.is_consolidated) }
           : {})
@@ -1659,7 +1657,7 @@ export class RememberTool extends BaseTool {
       const row = await DatabaseUtils.get(db, `
         SELECT 
           id, type, content, importance, privacy_scope, 
-          created_at, last_accessed, pinned, tags, source, embedding,
+          created_at, last_accessed, pinned, tags, source,
           is_consolidated
         FROM memory_item
         WHERE id = ?
@@ -1680,7 +1678,6 @@ export class RememberTool extends BaseTool {
         pinned: Boolean(row.pinned),
         tags: row.tags ? JSON.parse(row.tags) : undefined,
         source: row.source || undefined,
-        embedding: row.embedding ? JSON.parse(row.embedding) : undefined,
         ...(row.is_consolidated !== undefined && row.is_consolidated !== null
           ? { isConsolidated: Boolean(row.is_consolidated) }
           : {})
