@@ -339,7 +339,9 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       type,
       types,
       includeContent = true,
-      includeMetadata = false
+      includeMetadata = false,
+      project_id: scopeProjectId,
+      owner_id: scopeOwnerId,
     } = normalizedOptions;
 
     const runtimeContext = this.resolveRuntimeVectorContext(query.provider);
@@ -375,6 +377,51 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       ? types.filter(Boolean)
       : (type ? [type] : []);
 
+    const hasProjectScope = typeof scopeProjectId === 'string' && scopeProjectId.length > 0;
+    const hasOwnerStringScope = typeof scopeOwnerId === 'string' && scopeOwnerId.length > 0;
+    const ownerArrayScope = Array.isArray(scopeOwnerId) ? scopeOwnerId.filter(Boolean) : [];
+    const hasOwnerScope = hasOwnerStringScope || ownerArrayScope.length > 0;
+    const hasScopeFilter = hasProjectScope || hasOwnerScope;
+
+    const scopeParams: SqlParam[] = [];
+    if (hasProjectScope) {
+      scopeParams.push(scopeProjectId as string);
+    }
+    if (hasOwnerStringScope) {
+      scopeParams.push(scopeOwnerId as string);
+    } else if (ownerArrayScope.length > 0) {
+      scopeParams.push(...(ownerArrayScope as SqlParam[]));
+    }
+
+    const buildItemScopeClause = (): string => {
+      const parts: string[] = [];
+      if (hasProjectScope) {
+        parts.push('mi.project_id = ?');
+      }
+      if (hasOwnerStringScope) {
+        parts.push('mi.owner_id = ?');
+      } else if (ownerArrayScope.length > 0) {
+        parts.push(`mi.owner_id IN (${ownerArrayScope.map(() => '?').join(',')})`);
+      }
+      return parts.length > 0 ? `${parts.map(part => `AND ${part}`).join(' ')} ` : '';
+    };
+
+    const buildItemWhereSql = (): string => {
+      const whereParts: string[] = [];
+      if (typeFilters.length > 0) {
+        whereParts.push(`mi.type IN (${typeFilters.map(() => '?').join(',')})`);
+      }
+      if (hasProjectScope) {
+        whereParts.push('mi.project_id = ?');
+      }
+      if (hasOwnerStringScope) {
+        whereParts.push('mi.owner_id = ?');
+      } else if (ownerArrayScope.length > 0) {
+        whereParts.push(`mi.owner_id IN (${ownerArrayScope.map(() => '?').join(',')})`);
+      }
+      return whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
+    };
+
     try {
       // textQuery가 없거나 빈 문자열이면 텍스트 검색을 건너뛰고 벡터 검색만 사용
       // FTS5는 빈 쿼리를 에러로 처리하므로 이를 방지
@@ -387,12 +434,11 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
         // 텍스트 검색과 벡터 검색 모두 사용
         // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
         // 템플릿 리터럴 대신 문자열 연결 사용
-        const _vectorTypeClause = typeFilters.length > 0
-          ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
-          : '';
         const textTypeClause = typeFilters.length > 0
           ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
           : '';
+        const textScopeClause = buildItemScopeClause();
+        const vectorWhereSql = buildItemWhereSql().replace(/^WHERE /, '  WHERE ');
         hybridQuery =
           'WITH vector_search AS (' +
           '  SELECT ' +
@@ -420,7 +466,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  ) t ' +
           '  JOIN memory_embedding me ON t.rowid = me.id ' +
           '  JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
-          (typeFilters.length > 0 ? `  WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
+          vectorWhereSql +
           '), ' +
           'text_search AS (' +
           '  SELECT ' +
@@ -442,8 +488,10 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  FROM memory_item_fts fts ' +
           '  JOIN memory_item mi ON fts.rowid = mi.rowid AND (COALESCE(mi.is_deleted, 0) = 0) ' +
           '  WHERE memory_item_fts MATCH ? ' +
-          textTypeClause + ' ' +
+          textTypeClause +
+          textScopeClause +
           ') ' +
+          'SELECT * FROM (' +
           'SELECT ' +
           '  COALESCE(vs.memory_id, ts.memory_id) as memory_id, ' +
           '  COALESCE(1 - vs.vector_distance, 0) as vector_similarity, ' +
@@ -452,7 +500,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  COALESCE(vs.type, ts.type) as type, ' +
           '  COALESCE(vs.importance, ts.importance) as importance, ' +
           '  COALESCE(vs.created_at, ts.created_at) as created_at, ' +
-          '  COALESCE(vs.last_accessed_at, ts.last_accessed_at, vs.last_accessed, ts.last_accessed) as last_accessed_at, ' +
+          '  COALESCE(vs.last_accessed_at, ts.last_accessed_at) as last_accessed_at, ' +
           '  COALESCE(vs.pinned, ts.pinned) as pinned, ' +
           '  COALESCE(vs.tags, ts.tags) as tags, ' +
           '  COALESCE(vs.task_goal, ts.task_goal) as task_goal, ' +
@@ -473,7 +521,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           '  ts.type, ' +
           '  ts.importance, ' +
           '  ts.created_at, ' +
-          '  COALESCE(ts.last_accessed_at, ts.last_accessed) as last_accessed_at, ' +
+          '  ts.last_accessed_at as last_accessed_at, ' +
           '  ts.pinned, ' +
           '  ts.tags, ' +
           '  ts.task_goal, ' +
@@ -485,30 +533,31 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           'FROM text_search ts ' +
           'LEFT JOIN vector_search vs ON ts.memory_id = vs.memory_id ' +
           'WHERE vs.memory_id IS NULL ' +
+          ') hybrid_ranked ' +
           'ORDER BY (vector_similarity * 0.6 + text_similarity * 0.4) DESC ' +
           'LIMIT ?';
 
         // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
         // 서브쿼리에서 LIMIT을 적용하기 위해 prefetchLimit 사용
-        const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
+        const prefetchLimit = typeFilters.length > 0 || hasScopeFilter ? limit * 5 : limit;
         params = [
           JSON.stringify(effectiveQueryVector),
           prefetchLimit,
           ...typeFilters,
+          ...scopeParams,
           textQuery.trim(),
           ...typeFilters,
+          ...scopeParams,
           limit
         ];
       } else {
         // 텍스트 검색 없이 벡터 검색만 사용
         // SQL Injection 방지: 화이트리스트 검증은 getTableName()에서 수행됨
         // 템플릿 리터럴 대신 문자열 연결 사용
-        const _typeClause = typeFilters.length > 0
-          ? `AND mi.type IN (${typeFilters.map(() => '?').join(',')})`
-          : '';
+        const outerWhereSql = buildItemWhereSql();
         // sqlite-vec의 vec0_knn은 MATCH 다음에 바로 LIMIT이 와야 함
         // 서브쿼리로 먼저 벡터 검색을 수행하고 LIMIT을 적용한 후 JOIN
-        const prefetchLimit = typeFilters.length > 0 ? limit * 5 : limit;
+        const prefetchLimit = typeFilters.length > 0 || hasScopeFilter ? limit * 5 : limit;
         hybridQuery =
           'SELECT ' +
           '  me.memory_id as memory_id, ' +
@@ -536,7 +585,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           ') t ' +
           'JOIN memory_embedding me ON t.rowid = me.id ' +
           'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
-          (typeFilters.length > 0 ? `WHERE mi.type IN (${typeFilters.map(() => '?').join(',')}) ` : '') +
+          outerWhereSql +
           'ORDER BY t.distance ASC ' +
           'LIMIT ?';
 
@@ -544,6 +593,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
           JSON.stringify(effectiveQueryVector),
           prefetchLimit,
           ...typeFilters,
+          ...scopeParams,
           limit
         ];
       }
