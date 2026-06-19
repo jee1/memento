@@ -12,11 +12,23 @@ import { MemoryEmbeddingService } from '../../domains/memory/services/memory-emb
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import {
   loadBenchmarkCorpus,
+  loadBenchmarkGroundTruth,
   type BenchmarkCorpusEntry,
 } from './search-quality-benchmark-fixtures.js';
 import type { MemoryType } from '../../index.js';
 
 const VALID_TYPES = new Set(['working', 'episodic', 'semantic', 'procedural']);
+
+function mulberry32(seed: number): () => number {
+  let s = seed;
+  return function () {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 function normalizeMemoryType(type: string): MemoryType {
   if (VALID_TYPES.has(type)) {
@@ -44,6 +56,26 @@ export async function createSeededBenchmarkDatabase(
     throw new Error(`Benchmark corpus is empty: ${benchmarkDir}`);
   }
 
+  const benchmarkIdToSourceId = new Map<string, string>(
+    corpus.map((e) => [e.benchmark_id, e.source_memory_id])
+  );
+
+  const groundTruthPath = join(benchmarkDir, 'ground-truth.json');
+  const relevantSourceIds = new Set<string>();
+  if (existsSync(groundTruthPath)) {
+    const groundTruth = loadBenchmarkGroundTruth(benchmarkDir);
+    for (const entry of groundTruth) {
+      for (const benchmarkId of entry.relevantIds) {
+        const sourceId = benchmarkIdToSourceId.get(benchmarkId);
+        if (sourceId) {
+          relevantSourceIds.add(sourceId);
+        }
+      }
+    }
+  }
+
+  const rand = mulberry32(42);
+
   const useTempDir = !options?.dbPath;
   const tmpRoot = useTempDir ? mkdtempSync(join(tmpdir(), 'memento-bench-')) : null;
   const dbPath = options?.dbPath ?? join(tmpRoot!, 'benchmark.db');
@@ -58,7 +90,8 @@ export async function createSeededBenchmarkDatabase(
   try {
     for (let i = 0; i < corpus.length; i++) {
       const entry = corpus[i]!;
-      await seedOneCorpusRow(db, embeddingService, entry);
+      const isRelevant = relevantSourceIds.has(entry.source_memory_id);
+      await seedOneCorpusRow(db, embeddingService, entry, isRelevant, rand);
       if ((i + 1) % 500 === 0) {
         process.stderr.write(`[benchmark-seed] ${i + 1}/${corpus.length}\n`);
       }
@@ -101,17 +134,38 @@ export async function createSeededBenchmarkDatabase(
 async function seedOneCorpusRow(
   db: Database.Database,
   embeddingService: MemoryEmbeddingService,
-  entry: BenchmarkCorpusEntry
+  entry: BenchmarkCorpusEntry,
+  isRelevant: boolean,
+  rand: () => number
 ): Promise<void> {
   const id = entry.source_memory_id;
   const type = normalizeMemoryType(entry.type);
   const tagsJson = JSON.stringify(entry.tags ?? []);
   const createdAt = entry.created_at ?? new Date().toISOString();
 
+  const r1 = rand();
+  const r2 = rand();
+  const r3 = rand();
+  const r4 = rand();
+
+  let importance: number;
+  let lastAccessedAt: string | null;
+  let recallCount: number;
+
+  if (isRelevant) {
+    importance = 0.7 + r1 * 0.3;
+    lastAccessedAt = new Date(Date.now() - (1 + r2 * 6) * 86400_000).toISOString();
+    recallCount = Math.floor(20 + r3 * 31);
+  } else {
+    importance = 0.1 + r1 * 0.5;
+    lastAccessedAt = r4 < 0.2 ? null : new Date(Date.now() - (30 + r2 * 150) * 86400_000).toISOString();
+    recallCount = Math.floor(r3 * 16);
+  }
+
   DatabaseUtils.run(
     db,
-    `INSERT INTO memory_item (id, type, content, tags, created_at, importance) VALUES (?, ?, ?, ?, ?, 0.5)`,
-    [id, type, entry.content, tagsJson, createdAt]
+    `INSERT INTO memory_item (id, type, content, tags, created_at, importance, last_accessed_at, recall_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, type, entry.content, tagsJson, createdAt, importance, lastAccessedAt, recallCount]
   );
 
   /** mementoConfig.embeddingProvider는 모듈 로드 시 고정되므로, 시드 시 명시적으로 TF-IDF를 요청한다 */
