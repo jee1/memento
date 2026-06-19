@@ -64,7 +64,7 @@ export interface EmbeddingServiceInterface {
 /**
  * 임베딩 제공자 타입
  */
-export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
+export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini' | 'mock';
 
 /**
  * 임베딩 제공자 정보

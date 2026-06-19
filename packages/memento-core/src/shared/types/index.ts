@@ -222,7 +222,7 @@ export interface SearchRankingWeights {
   duplication_penalty: number; // ε = 0.15
 }
 
-export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini';
+export type EmbeddingProvider = 'tfidf' | 'lightweight' | 'minilm' | 'openai' | 'gemini' | 'mock';
 export type LLMProvider = 'openai' | 'gemini' | 'ollama' | 'auto';
 
 /**

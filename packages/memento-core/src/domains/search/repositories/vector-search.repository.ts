@@ -74,7 +74,8 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
             'memory_item_vec_tfidf',
             'memory_item_vec_minilm',
             'memory_item_vec_openai',
-            'memory_item_vec_gemini'
+            'memory_item_vec_gemini',
+            'memory_item_vec_mock'
           )
         LIMIT 1
       `);
@@ -92,7 +93,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
       // tfidf 기본 resolve 한 번만 preflight하면 다른 provider 전용 vec 테이블만 있는 DB에서
       // isVecAvailable이 false로 고정되는 회귀가 생길 수 있음(issue #278 review).
-      const vecProbeProviders = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const;
+      const vecProbeProviders = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini', 'mock'] as const;
       let lastError: string | undefined;
 
       for (const probeProvider of vecProbeProviders) {
@@ -788,6 +789,7 @@ export class VectorSearchRepositoryImpl implements VectorSearchRepository {
       memory_item_vec_minilm: providerDimensions.minilm ?? defaultDimensions,
       memory_item_vec_openai: providerDimensions.openai ?? defaultDimensions,
       memory_item_vec_gemini: providerDimensions.gemini ?? defaultDimensions,
+      memory_item_vec_mock: providerDimensions.mock ?? 64,
     };
     return schemaByTable[tableName] ?? defaultDimensions;
   }

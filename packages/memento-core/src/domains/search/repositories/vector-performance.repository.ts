@@ -30,13 +30,14 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
 
     try {
       const tableStatement = this.db.prepare(`
-        SELECT name FROM sqlite_master 
+        SELECT name FROM sqlite_master
         WHERE type='table' AND name IN (
           'memory_item_vec',
           'memory_item_vec_tfidf',
-          'memory_item_vec_minilm', 
+          'memory_item_vec_minilm',
           'memory_item_vec_openai',
-          'memory_item_vec_gemini'
+          'memory_item_vec_gemini',
+          'memory_item_vec_mock'
         )
       `);
       const tableRows = typeof tableStatement.all === 'function'

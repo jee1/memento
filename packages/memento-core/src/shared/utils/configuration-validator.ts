@@ -35,7 +35,8 @@ const providerRequirements: Record<EmbeddingProvider, ProviderRequirement> = {
   lightweight: {},
   minilm: {},
   openai: { requiresKey: true, keyField: 'openaiApiKey' },
-  gemini: { requiresKey: true, keyField: 'geminiApiKey' }
+  gemini: { requiresKey: true, keyField: 'geminiApiKey' },
+  mock: {}
 };
 
 function issue(level: ValidationLevel, code: string, message: string, suggestion?: string): ConfigValidationIssue {
