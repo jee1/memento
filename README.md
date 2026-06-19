@@ -449,6 +449,14 @@ http://localhost:9001/graph
 | `/admin/memory/review-candidates/:id/dismiss` | 기억 리뷰 후보 기각 | POST |
 | `/admin/stats/forgetting` | 망각 통계 조회 | GET |
 
+#### 개인 지식 Agent
+| 엔드포인트 | 설명 | 메서드 |
+|-----------|------|--------|
+| `/api/v1/agent/personal:run` | 한 턴 실행, 지식 후보 반환(저장 없음) | POST |
+| `/api/v1/agent/personal:persist-approved` | 승인된 후보만 `remember`로 저장 | POST |
+
+사용 절차: [개인 지식 에이전트 HTTP 서버 런타임 사용법](docs/guides/ko/personal-knowledge-agent-mvp.md#http-서버-런타임-사용법)
+
 #### 앵커 관리
 | 엔드포인트 | 설명 | 메서드 |
 |-----------|------|--------|

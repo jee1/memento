@@ -6,9 +6,23 @@ import {
   AgentLifecycleService,
   AgentMemoryPromotionService,
   AgentSessionSummaryService,
+  createPersonalAgentLlmPort,
+  createToolContext,
+  GeminiChatLlmAdapter,
+  mementoConfig,
+  OllamaChatLlmAdapter,
+  OpenAiChatLlmAdapter,
+  parsePersonalAgentLlmEnv,
+  PersonalAgentLlmError,
+  PersonalKnowledgeAgentService,
+  ToolContextKnowledgeContextAdapter,
+  ToolContextRememberPersistenceAdapter,
   SqliteAgentIntegrationRepository,
   TelemetryRepository,
   type AgentLifecycleServiceOptions,
+  type ILLMPort,
+  type KnowledgeCandidate,
+  type ServerServices,
 } from '@memento/core';
 import {
   AGENT_EVENT_TYPES,
@@ -50,10 +64,13 @@ const EVENT_TYPES = [...AGENT_EVENT_TYPES];
 const EVENT_PAYLOAD_BYTES = MAX_EVENT_BYTES;
 const BATCH_EVENTS = MAX_BATCH_EVENTS;
 const BATCH_PAYLOAD_BYTES = MAX_BATCH_BYTES;
+type PersonalAgentMemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
 
 export interface AgentRouterOptions extends AgentLifecycleServiceOptions {
   contextInjectionService?: Pick<AgentContextInjectionService, 'build'>;
   initialInjectionTokenBudget?: number;
+  serverServices?: ServerServices;
+  personalAgentLlm?: ILLMPort;
 }
 
 interface AgentRouterCtx {
@@ -75,6 +92,96 @@ interface AgentRouterCtx {
   buildInjection: (
     request: AgentContextInjectionRequest,
   ) => Promise<AgentContextInjectionBundle | null>;
+}
+
+function optionalString(value: unknown, name: string): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new AgentIntegrationError(`${name} must be a non-empty string`, 'INVALID_PAYLOAD', 400);
+  }
+  return value.trim();
+}
+
+function optionalStringArray(value: unknown, name: string): string[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || item.trim() === '')) {
+    throw new AgentIntegrationError(`${name} must be an array of non-empty strings`, 'INVALID_PAYLOAD', 400);
+  }
+  return value.map(item => item.trim());
+}
+
+function optionalOwnerId(value: unknown): string | string[] | undefined {
+  if (Array.isArray(value)) return optionalStringArray(value, 'owner_id');
+  return optionalString(value, 'owner_id');
+}
+
+function optionalPositiveInteger(value: unknown, name: string): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    throw new AgentIntegrationError(`${name} must be a positive integer`, 'INVALID_PAYLOAD', 400);
+  }
+  return value;
+}
+
+function optionalMemoryTypes(value: unknown): PersonalAgentMemoryType[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  const allowed = new Set<PersonalAgentMemoryType>(['working', 'episodic', 'semantic', 'procedural']);
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !allowed.has(item as PersonalAgentMemoryType))) {
+    throw new AgentIntegrationError('memory_types must be an array of memory type strings', 'INVALID_PAYLOAD', 400);
+  }
+  return value as PersonalAgentMemoryType[];
+}
+
+function requireCandidates(value: unknown): KnowledgeCandidate[] {
+  if (!Array.isArray(value)) {
+    throw new AgentIntegrationError('candidates must be an array', 'INVALID_PAYLOAD', 400);
+  }
+  for (const candidate of value) {
+    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+      throw new AgentIntegrationError('candidates must contain objects', 'INVALID_PAYLOAD', 400);
+    }
+  }
+  return value as KnowledgeCandidate[];
+}
+
+function createDefaultPersonalAgentLlm(): ILLMPort {
+  const parsed = parsePersonalAgentLlmEnv(process.env, {
+    openaiApiKey: mementoConfig.openaiApiKey,
+    geminiApiKey: mementoConfig.geminiApiKey,
+  });
+  return createPersonalAgentLlmPort(parsed, {
+    createOpenAi: (cfg) => new OpenAiChatLlmAdapter({
+      apiKey: mementoConfig.openaiApiKey ?? '',
+      model: cfg.model,
+    }),
+    createGemini: (cfg) => new GeminiChatLlmAdapter({
+      apiKey: mementoConfig.geminiApiKey ?? '',
+      model: cfg.model,
+    }),
+    createOllama: (cfg) => new OllamaChatLlmAdapter({
+      baseUrl: cfg.baseUrl,
+      model: cfg.model,
+    }),
+  });
+}
+
+function createPersonalKnowledgeAgent(ctx: AgentRouterCtx): PersonalKnowledgeAgentService {
+  if (!ctx.db || !ctx.options.serverServices) {
+    throw new AgentIntegrationError('Personal knowledge agent runtime is not initialized', 'SERVER_UNAVAILABLE', 503, true);
+  }
+  try {
+    const toolContext = createToolContext(ctx.db, ctx.options.serverServices);
+    return new PersonalKnowledgeAgentService({
+      llm: ctx.options.personalAgentLlm ?? createDefaultPersonalAgentLlm(),
+      context: new ToolContextKnowledgeContextAdapter(toolContext),
+      persistence: new ToolContextRememberPersistenceAdapter(toolContext),
+    });
+  } catch (error) {
+    if (error instanceof PersonalAgentLlmError) {
+      throw new AgentIntegrationError(error.message, 'INVALID_PAYLOAD', 400);
+    }
+    throw error;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -626,6 +733,79 @@ function handlePostTranscriptsImport(req: Request, res: Response, ctx: AgentRout
   }
 }
 
+async function handlePostPersonalRun(req: Request, res: Response, ctx: AgentRouterCtx): Promise<Response | void> {
+  try {
+    const body = req.body ?? {};
+    const service = createPersonalKnowledgeAgent(ctx);
+    const result = await service.runOneTurn({
+      userMessage: requireString(body.user_message ?? body.userMessage, 'user_message'),
+      projectId: optionalString(body.project_id ?? body.projectId, 'project_id'),
+      ownerId: optionalOwnerId(body.owner_id ?? body.ownerId),
+      sessionId: optionalString(body.session_id ?? body.sessionId, 'session_id'),
+      tokenBudget: optionalPositiveInteger(body.token_budget ?? body.tokenBudget, 'token_budget'),
+      maxMemories: optionalPositiveInteger(body.max_memories ?? body.maxMemories, 'max_memories'),
+      memoryTypes: optionalMemoryTypes(body.memory_types ?? body.memoryTypes),
+    });
+
+    return res.json({
+      ok: true,
+      knowledgeContext: {
+        itemCount: result.knowledgeContext.itemCount,
+        tokenEstimate: result.knowledgeContext.tokenEstimate,
+        summary: result.knowledgeContext.summary,
+      },
+      llm: {
+        response: result.llmResponse,
+        metadata: result.llmMetadata ?? null,
+      },
+      candidates: result.candidates,
+      persistence: {
+        attempted: false,
+        items: [],
+        persistedCount: 0,
+        errorCount: 0,
+      },
+    });
+  } catch (error) {
+    return writeError(res, error);
+  }
+}
+
+async function handlePostPersonalPersistApproved(req: Request, res: Response, ctx: AgentRouterCtx): Promise<Response | void> {
+  try {
+    const body = req.body ?? {};
+    const approvedCandidateIds = optionalStringArray(
+      body.approved_candidate_ids ?? body.approvedCandidateIds,
+      'approved_candidate_ids',
+    );
+    if (!approvedCandidateIds) {
+      throw new AgentIntegrationError('approved_candidate_ids is required', 'INVALID_PAYLOAD', 400);
+    }
+
+    const service = createPersonalKnowledgeAgent(ctx);
+    const result = await service.persistApprovedCandidates({
+      candidates: requireCandidates(body.candidates),
+      approvedCandidateIds,
+      projectId: optionalString(body.project_id ?? body.projectId, 'project_id'),
+      ownerId: optionalOwnerId(body.owner_id ?? body.ownerId),
+      sessionId: optionalString(body.session_id ?? body.sessionId, 'session_id'),
+      processId: optionalString(body.process_id ?? body.processId, 'process_id'),
+    });
+
+    return res.json({
+      ok: true,
+      persistence: {
+        attempted: approvedCandidateIds.length > 0,
+        items: result.items,
+        persistedCount: result.persistedCount,
+        errorCount: result.errorCount,
+      },
+    });
+  } catch (error) {
+    return writeError(res, error);
+  }
+}
+
 async function handleCaptureSessionEvent(
   req: Request,
   res: Response,
@@ -1027,6 +1207,8 @@ export function createAgentRouter(
   router.get('/sessions', (req, res) => handleGetSessions(req, res, ctx));
   router.get('/sessions/aggregate', (_req, res) => handleGetSessionsAggregate(_req, res, ctx));
   router.get('/operations/status', (req, res) => handleGetOperationsStatus(req, res, ctx));
+  router.post('/personal\\:run', (req, res) => handlePostPersonalRun(req, res, ctx));
+  router.post('/personal\\:persist-approved', (req, res) => handlePostPersonalPersistApproved(req, res, ctx));
   router.post('/sessions', (req, res) => handlePostSessions(req, res, ctx));
   router.post('/observations:ingest', (req, res) => handlePostObservationsIngest(req, res, ctx));
   router.post('/transcripts/import', (req, res) => handlePostTranscriptsImport(req, res, ctx));
