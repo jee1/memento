@@ -730,7 +730,7 @@ function clearSearch() {
   searchResults = null;
   highlightedNodeIds.clear();
   document.getElementById('search-query-input').value = '';
-  document.getElementById('search-slot-select').value = '';
+  document.getElementById('search-slot-select').value = 'A';
   
   // 노드 스타일 복원
   updateNodeHighlight();

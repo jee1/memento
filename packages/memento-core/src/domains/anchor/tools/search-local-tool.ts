@@ -105,8 +105,11 @@ export class SearchLocalTool extends BaseTool {
           anchor_info: searchResult.anchor_info
         });
       } catch (searchError: any) {
-        // 앵커가 없고 query가 있으면 fallback
-        if (query && searchError?.message?.includes('Anchor not found')) {
+        // 앵커가 없거나 앵커 메모리에 임베딩이 없으면 fallback
+        if (query && (
+          searchError?.message?.includes('Anchor not found') ||
+          searchError?.message?.includes('Embedding not found')
+        )) {
           if (!context.services.hybridSearchEngine) {
             throw new Error('HybridSearchEngine is not available for fallback');
           }
