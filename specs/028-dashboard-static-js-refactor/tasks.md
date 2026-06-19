@@ -7,4 +7,4 @@
 - [x] T005 `review-candidates-panel-render.js` 분해
 - [x] T006 `review-candidates-panel-health.js` 분해
 - [x] T007 `npm test`, lint, type-check, slop-detector 검증
-- [ ] T008 PR 등록 (Closes #546)
+- [x] T008 PR 등록 (Closes #546)
