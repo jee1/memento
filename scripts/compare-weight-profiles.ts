@@ -58,6 +58,8 @@ export interface ProfileEvalResult {
   latency_ms: number[];
   p95_latency_ms: number;
   rr: number[];
+  ndcg_at_10_per_query: number[];
+  recall_at_10_per_query: number[];
 }
 
 export function calcP95(latencyMs: number[]): number {
@@ -156,16 +158,24 @@ export async function evaluateProfile(
   let recall10 = 0;
   let emptyCount = 0;
   const ndcgDenom = groundTruths.length;
+  const ndcgAt10PerQuery: number[] = [];
+  const recallAt10PerQuery: number[] = [];
 
   for (const gt of groundTruths) {
     const results = queryResults.get(gt.queryId) ?? [];
     if (results.length === 0) {
       emptyCount++;
+      ndcgAt10PerQuery.push(0);
+      recallAt10PerQuery.push(0);
       continue;
     }
+    const q10 = calculateNDCGAtK(results, gt.relevantIds, 10);
+    const r10 = calculateRecallAtK(results, gt.relevantIds, 10);
     ndcg5 += calculateNDCGAtK(results, gt.relevantIds, 5);
-    ndcg10 += calculateNDCGAtK(results, gt.relevantIds, 10);
-    recall10 += calculateRecallAtK(results, gt.relevantIds, 10);
+    ndcg10 += q10;
+    recall10 += r10;
+    ndcgAt10PerQuery.push(q10);
+    recallAt10PerQuery.push(r10);
   }
 
   return {
@@ -177,6 +187,8 @@ export async function evaluateProfile(
     latency_ms: latencyMs,
     p95_latency_ms: calcP95(latencyMs),
     rr,
+    ndcg_at_10_per_query: ndcgAt10PerQuery,
+    recall_at_10_per_query: recallAt10PerQuery,
   };
 }
 

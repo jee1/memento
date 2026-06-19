@@ -102,6 +102,28 @@ export function compositeScore(
 
 const LATENCY_BUDGET_MS = 2000;
 const NDCG_REGRESSION_THRESHOLD = 0.05;
+const COMPOSITE_EPSILON = 1e-4;
+
+type CandidateRecord = {
+  candidate_index: number;
+  weights: RankingWeights;
+  result: ProfileEvalResult;
+  composite_score: number;
+  gate_passed: boolean;
+  gate_reject_reason?: string;
+  sum_warning: boolean;
+};
+
+function selectBest(passed: CandidateRecord[]): CandidateRecord | null {
+  if (passed.length === 0) return null;
+  return passed.reduce((a, b) => {
+    const diff = b.composite_score - a.composite_score;
+    if (Math.abs(diff) > COMPOSITE_EPSILON) return diff > 0 ? b : a;
+    const ndcgDiff = b.result.ndcg_at_10 - a.result.ndcg_at_10;
+    if (Math.abs(ndcgDiff) > COMPOSITE_EPSILON) return ndcgDiff > 0 ? b : a;
+    return b.result.mrr > a.result.mrr ? b : a;
+  });
+}
 
 async function main(): Promise<void> {
   const args = parseTuneArgs(process.argv.slice(2));
@@ -124,16 +146,6 @@ async function main(): Promise<void> {
   try {
     const baseline = await evaluateProfile(db, baselineProfilePath, args.benchmarkDir);
     const baselineScore = compositeScore(baseline, baseline);
-
-    type CandidateRecord = {
-      candidate_index: number;
-      weights: RankingWeights;
-      result: ProfileEvalResult;
-      composite_score: number;
-      gate_passed: boolean;
-      gate_reject_reason?: string;
-      sum_warning: boolean;
-    };
 
     const results: CandidateRecord[] = [];
     let candidatesWithSumWarning = 0;
@@ -178,10 +190,7 @@ async function main(): Promise<void> {
     }
 
     const passed = results.filter((r) => r.gate_passed);
-    const best =
-      passed.length > 0
-        ? passed.reduce((a, b) => (a.composite_score > b.composite_score ? a : b))
-        : null;
+    const best = selectBest(passed);
 
     let mrrPValue = 1;
     let mrrSignificant = false;
@@ -198,6 +207,33 @@ async function main(): Promise<void> {
         : 'inconclusive';
     } else {
       mrrVerdict = 'no_candidates_passed_gate';
+    }
+
+    let ndcgPValue = 1;
+    let ndcgSignificant = false;
+    let ndcgVerdict: string;
+
+    let recallPValue = 1;
+    let recallSignificant = false;
+    let recallVerdict: string;
+
+    if (best) {
+      const ndcgPVal = pairedPermutationPValue(best.result.ndcg_at_10_per_query, baseline.ndcg_at_10_per_query, 1000);
+      ndcgPValue = ndcgPVal;
+      ndcgSignificant = ndcgPVal < 0.05;
+      ndcgVerdict = ndcgSignificant
+        ? best.result.ndcg_at_10 > baseline.ndcg_at_10 ? 'best_better' : 'baseline_better'
+        : 'inconclusive';
+
+      const recallPVal = pairedPermutationPValue(best.result.recall_at_10_per_query, baseline.recall_at_10_per_query, 1000);
+      recallPValue = recallPVal;
+      recallSignificant = recallPVal < 0.05;
+      recallVerdict = recallSignificant
+        ? best.result.recall_at_10 > baseline.recall_at_10 ? 'best_better' : 'baseline_better'
+        : 'inconclusive';
+    } else {
+      ndcgVerdict = 'no_candidates_passed_gate';
+      recallVerdict = 'no_candidates_passed_gate';
     }
 
     const sortedByScore = [...results].sort((a, b) => b.composite_score - a.composite_score);
@@ -227,6 +263,12 @@ async function main(): Promise<void> {
       mrr_p_value: mrrPValue,
       mrr_significant: mrrSignificant,
       mrr_verdict: mrrVerdict,
+      ndcg_p_value: ndcgPValue,
+      ndcg_significant: ndcgSignificant,
+      ndcg_verdict: ndcgVerdict,
+      recall_p_value: recallPValue,
+      recall_significant: recallSignificant,
+      recall_verdict: recallVerdict,
       top_candidates: topCandidates,
     };
 
