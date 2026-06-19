@@ -797,6 +797,92 @@ describe('admin.routes graph', () => {
       await new Promise<void>(r => server.close(() => r()));
     }
   });
+
+  it('GET /admin/graph?view=full — 기본 1000개 제한을 넘겨 축약 그래프를 반환한다', async () => {
+    const insert = db.prepare(`
+      INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, 'semantic', ?)
+    `);
+    const tx = db.transaction(() => {
+      for (let i = 0; i < 1100; i++) {
+        insert.run(`m${i}`, `전체 그래프 테스트 기억 ${i}`, 0.5);
+      }
+    });
+    tx();
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?view=full');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        nodes: unknown[];
+        meta: {
+          total_available_nodes: number;
+          graph_view: string;
+          fields: string;
+          default_limit: number;
+          max_limit: number;
+          truncated: boolean;
+        };
+      };
+      expect(body.nodes).toHaveLength(1100);
+      expect(body.meta.total_available_nodes).toBe(1100);
+      expect(body.meta.graph_view).toBe('full');
+      expect(body.meta.fields).toBe('minimal');
+      expect(body.meta.default_limit).toBe(5000);
+      expect(body.meta.max_limit).toBe(5000);
+      expect(body.meta.truncated).toBe(false);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/graph?view=full&fields=minimal — 긴 content를 축약해 대용량 응답을 완화한다', async () => {
+    const longContent = '긴 본문 '.repeat(120);
+    db.prepare(`INSERT INTO memory_item (id, content, type, importance) VALUES (?, ?, ?, ?)`).run(
+      'm-long', longContent, 'semantic', 0.9
+    );
+
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?view=full&fields=minimal');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as {
+        nodes: Array<{ content: string; content_truncated?: boolean }>;
+        meta: { fields: string };
+      };
+      expect(body.meta.fields).toBe('minimal');
+      expect(body.nodes[0].content.length).toBeLessThan(longContent.length);
+      expect(body.nodes[0].content_truncated).toBe(true);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/graph?view=full&limit=5001 — full 모드 상한 초과 시 400 반환', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?view=full&limit=5001');
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: string; message: string };
+      expect(body.error).toBe('잘못된 파라미터');
+      expect(body.message).toContain('1~5000');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
+  it('GET /admin/graph?view=full&fields=full — 대용량 본문 응답을 거부한다', async () => {
+    const { server, port } = await listen(makeApp(db));
+    try {
+      const res = await getAdmin(port, '/admin/graph?view=full&fields=full');
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body) as { error: string; message: string };
+      expect(body.error).toBe('잘못된 파라미터');
+      expect(body.message).toContain('fields=minimal');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
 });
 
 // ============================================================

@@ -57,6 +57,11 @@
     const impVal     = document.getElementById('importance-val');
     const applyBtn   = document.getElementById('apply-btn');
     const resetBtn   = document.getElementById('reset-btn');
+    const searchInput = document.getElementById('graph-search');
+    const searchBtn = document.getElementById('search-btn');
+    const matchBadge = document.getElementById('graph-match-badge');
+    const fullGraphToggle = document.getElementById('full-graph-toggle');
+    const graphModeHint = document.getElementById('graph-mode-hint');
 
     // ── 슬라이더 표시 ─────────────────────────────────────────
     impSlider.addEventListener('input', () => {
@@ -73,6 +78,10 @@
       }
       const imp = parseFloat(impSlider.value);
       if (imp > 0) params.set('min_importance', imp.toFixed(2));
+      if (fullGraphToggle.checked) {
+        params.set('view', 'full');
+        params.set('fields', 'minimal');
+      }
       const q = params.toString();
       return '/admin/graph' + (q ? '?' + q : '');
     }
@@ -84,6 +93,10 @@
     /** @type {unknown[] | null} */
     let lastGraphEdges = null;
     let resizeRedrawTimer = null;
+    let lastGraphMeta = null;
+    let activeSearchQuery = '';
+    let renderedNodeSelection = null;
+    let renderedLinkSelection = null;
 
     function renderGraph(nodes, edges) {
       const container = document.getElementById('graph-container');
@@ -140,6 +153,7 @@
         .attr('class', 'link')
         .attr('stroke', d => palette.edgeColors[d.relation_type] ?? palette.edgeColors.default)
         .attr('stroke-width', d => Math.max(1, (d.confidence ?? 1) * 3));
+      renderedLinkSelection = link;
 
       // 노드 그룹 (T013)
       const node = g.append('g')
@@ -163,9 +177,13 @@
               d.fx = null; d.fy = null;
             })
         );
+      renderedNodeSelection = node;
 
       node.append('circle')
-        .attr('r', d => rScale(d.importance))
+        .attr('r', d => {
+          d.__graphRadius = rScale(d.importance);
+          return d.__graphRadius;
+        })
         .attr('fill', d => getNodeFillColor(d.type, palette))
         .attr('stroke', d => getNodeStrokeColor(d.type, palette))
         // 마우스오버 툴팁 (T018)
@@ -191,6 +209,8 @@
         .attr('text-anchor', 'middle')
         .text(d => d.label.length > 18 ? d.label.slice(0, 18) + '…' : d.label);
 
+      applySearchHighlight();
+
       simulation.on('tick', () => {
         link
           .attr('x1', d => d.source.x)
@@ -202,12 +222,100 @@
       });
     }
 
+    function normalizeSearchText(value) {
+      return String(value ?? '').trim().toLocaleLowerCase('ko-KR');
+    }
+
+    function getSearchHaystack(node) {
+      return [
+        node.content,
+        node.summary,
+        node.label,
+        ...(Array.isArray(node.tags) ? node.tags : []),
+      ].map(value => String(value ?? '')).join(' ').toLocaleLowerCase('ko-KR');
+    }
+
+    function getNodeId(edgeEndpoint) {
+      return typeof edgeEndpoint === 'object' && edgeEndpoint !== null ? edgeEndpoint.id : edgeEndpoint;
+    }
+
+    function setMatchBadge(count, total) {
+      if (!activeSearchQuery) {
+        matchBadge.style.display = 'none';
+        matchBadge.textContent = '';
+        return;
+      }
+      matchBadge.textContent = `${count}개 노드 매칭`;
+      matchBadge.style.display = 'inline-block';
+      if (total > 0 && count === 0) {
+        matchBadge.textContent = '0개 노드 매칭';
+      }
+    }
+
+    function applySearchHighlight() {
+      const nodes = Array.isArray(lastGraphNodes) ? lastGraphNodes : [];
+      const query = normalizeSearchText(activeSearchQuery);
+      const hasQuery = query.length > 0;
+      const matchingIds = new Set();
+
+      if (hasQuery) {
+        for (const node of nodes) {
+          if (getSearchHaystack(node).includes(query)) {
+            matchingIds.add(node.id);
+          }
+        }
+      }
+
+      setMatchBadge(matchingIds.size, nodes.length);
+
+      if (!renderedNodeSelection || !renderedLinkSelection) {
+        return;
+      }
+
+      renderedNodeSelection
+        .classed('search-match', d => hasQuery && matchingIds.has(d.id))
+        .classed('search-dim', d => hasQuery && !matchingIds.has(d.id));
+
+      renderedNodeSelection.select('circle')
+        .attr('r', d => hasQuery && matchingIds.has(d.id)
+          ? (d.__graphRadius ?? 8) * 1.25
+          : (d.__graphRadius ?? 8));
+
+      renderedLinkSelection
+        .classed('search-dim', d => {
+          if (!hasQuery) return false;
+          return !matchingIds.has(getNodeId(d.source)) && !matchingIds.has(getNodeId(d.target));
+        });
+    }
+
+    function applySearchFromInput() {
+      activeSearchQuery = searchInput.value;
+      applySearchHighlight();
+    }
+
+    function updateGraphModeHint(meta) {
+      if (!meta) {
+        graphModeHint.style.display = 'none';
+        graphModeHint.textContent = '';
+        return;
+      }
+      const total = meta.total_available_nodes ?? meta.total_nodes ?? 0;
+      const shown = meta.total_nodes ?? 0;
+      const mode = meta.graph_view === 'full' ? '전체' : '기본';
+      const suffix = meta.truncated ? ` / ${total}개 중 ${shown}개 표시` : ` / ${shown}개 표시`;
+      graphModeHint.textContent = `${mode} 모드${suffix}`;
+      graphModeHint.style.display = 'inline';
+    }
+
     // ── 상세 패널 (T019, T020) ────────────────────────────────
     function showDetail(d) {
       const badgeClass = getTypeBadgeClass(d.type);
       const tagsHtml = (d.tags ?? []).length > 0
         ? `<div class="tag-list">${d.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>`
         : '<span class="detail-empty">없음</span>';
+      const contentNote = d.content_truncated
+        ? '<div class="detail-empty">전체 로드 모드에서는 본문이 축약됩니다.</div>'
+        : '';
 
       detailContent.innerHTML = `
         <div class="detail-row">
@@ -218,7 +326,7 @@
         </div>
         <div class="detail-row">
           <div class="detail-label">내용</div>
-          <div class="detail-value">${escHtml(d.content)}</div>
+          <div class="detail-value">${escHtml(d.content)}${contentNote}</div>
         </div>
         <div class="detail-row">
           <div class="detail-label">중요도</div>
@@ -275,6 +383,10 @@
       showLoading(true);
       lastGraphNodes = null;
       lastGraphEdges = null;
+      lastGraphMeta = null;
+      renderedNodeSelection = null;
+      renderedLinkSelection = null;
+      updateGraphModeHint(null);
       d3.select(svgEl).selectAll('*').remove();
       if (simulation) { simulation.stop(); simulation = null; }
 
@@ -284,8 +396,11 @@
         if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
         const data = await res.json();
         showLoading(false);
+        lastGraphMeta = data.meta ?? null;
+        updateGraphModeHint(lastGraphMeta);
 
         if (!data.nodes || data.nodes.length === 0) {
+          applySearchHighlight();
           showEmpty(true);
           return;
         }
@@ -303,12 +418,31 @@
     }
 
     // ── 이벤트 바인딩 ─────────────────────────────────────────
-    applyBtn.addEventListener('click', () => loadGraph(buildUrl()));
+    applyBtn.addEventListener('click', () => {
+      activeSearchQuery = searchInput.value;
+      loadGraph(buildUrl());
+    });
+    searchBtn.addEventListener('click', applySearchFromInput);
+    searchInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        applySearchFromInput();
+      }
+    });
+    searchInput.addEventListener('input', () => {
+      if (searchInput.value.trim() === '' && activeSearchQuery !== '') {
+        activeSearchQuery = '';
+        applySearchHighlight();
+      }
+    });
 
     resetBtn.addEventListener('click', () => {
       document.querySelectorAll('.type-check input').forEach(el => { el.checked = true; });
       impSlider.value = '0';
       impVal.textContent = '0.0';
+      searchInput.value = '';
+      activeSearchQuery = '';
+      fullGraphToggle.checked = false;
       loadGraph('/admin/graph');
     });
 
