@@ -517,6 +517,7 @@ export class MemoryEmbeddingService {
       case 'minilm':
       case 'openai':
       case 'gemini':
+      case 'mock':
         return normalized as EmbeddingProvider;
       default:
         return this.defaultProvider;
@@ -534,6 +535,7 @@ export class MemoryEmbeddingService {
             WHEN model LIKE '%minilm%' THEN 'minilm'
             WHEN model LIKE '%openai%' THEN 'openai'
             WHEN model LIKE '%gemini%' THEN 'gemini'
+            WHEN model = 'mock' THEN 'mock'
             ELSE ?
           END
         ),

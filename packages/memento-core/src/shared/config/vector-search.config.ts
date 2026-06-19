@@ -15,14 +15,16 @@ export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
     tfidf: 'memory_item_vec_tfidf',
     minilm: 'memory_item_vec_minilm',
     openai: 'memory_item_vec_openai',
-    gemini: 'memory_item_vec_gemini'
+    gemini: 'memory_item_vec_gemini',
+    mock: 'memory_item_vec_mock'
   },
   providerDimensions: {
     lightweight: 384,
     tfidf: 512,
     minilm: 384,
     openai: 1536,
-    gemini: 768
+    gemini: 768,
+    mock: 64
   }
 } as const;
 
@@ -31,7 +33,8 @@ export const VECTOR_SEARCH_PROVIDERS = {
   TFIDF: 'tfidf',
   MINILM: 'minilm',
   OPENAI: 'openai',
-  GEMINI: 'gemini'
+  GEMINI: 'gemini',
+  MOCK: 'mock'
 } as const;
 
 export const VECTOR_SEARCH_DEFAULTS = {

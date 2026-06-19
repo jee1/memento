@@ -180,4 +180,16 @@ async function seedOneCorpusRow(
         'TF-IDF health check must pass; do not rely on process.env after startup.'
     );
   }
+
+  /** mock 임베딩도 저장: TF-IDF와 랭킹 상관관계가 낮아 alpha 가중치 효과를 측정 가능하게 함 */
+  const mockEmb = await embeddingService.createAndStoreEmbedding(db, id, entry.content, type, 'mock');
+  if (!mockEmb) {
+    throw new Error(`Failed to create mock embedding for benchmark memory ${id}`);
+  }
+  const mockProviderUsed = String(mockEmb.provider ?? '').toLowerCase();
+  if (mockProviderUsed !== 'mock') {
+    throw new Error(
+      `Benchmark corpus seed must store mock embeddings with provider='mock' (got "${mockEmb.provider}").`
+    );
+  }
 }

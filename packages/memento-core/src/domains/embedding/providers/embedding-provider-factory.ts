@@ -15,6 +15,7 @@ import { MiniLMEmbeddingService } from '../services/minilm-embedding-service.js'
 import { LightweightEmbeddingService } from '../services/lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
 import { OpenAIEmbeddingService } from '../services/openai-embedding-service.js';
+import { MockEmbeddingService } from '../services/mock-embedding-service.js';
 import { ModelAvailabilityService } from './model-availability-service.js';
 
 /**
@@ -53,6 +54,7 @@ export class EmbeddingProviderFactory {
     this.providers.set('tfidf', this.createService('tfidf'));
     this.providers.set('gemini', this.createService('gemini'));
     this.providers.set('openai', this.createService('openai'));
+    this.providers.set('mock', this.createService('mock'));
   }
 
   /**
@@ -115,6 +117,16 @@ export class EmbeddingProviderFactory {
       priority: 1,
       cost: 'paid',
       performance: 'high'
+    });
+
+    // Mock (오프라인 벤치마크 전용, 항상 사용 가능)
+    const mock = this.providers.get('mock');
+    providerInfos.push({
+      name: 'mock',
+      available: this.resolveAvailability('mock', mock, this.availabilityService.getLastStatus('mock')),
+      priority: 99,
+      cost: 'free',
+      performance: 'low'
     });
 
     return providerInfos.sort((a, b) => a.priority - b.priority);
@@ -223,6 +235,8 @@ export class EmbeddingProviderFactory {
         return 'gemini';
       case 'lightweight':
         return 'tfidf';
+      case 'mock':
+        return 'mock';
       default:
         return null;
     }
@@ -263,6 +277,8 @@ export class EmbeddingProviderFactory {
         return new GeminiEmbeddingService();
       case 'openai':
         return new OpenAIEmbeddingService();
+      case 'mock':
+        return new MockEmbeddingService();
       default:
         return new LightweightEmbeddingService();
     }

@@ -33,7 +33,8 @@ export class VectorCompatibilityService {
     lightweight: 384,
     minilm: 384,
     openai: 1536,
-    gemini: 768
+    gemini: 768,
+    mock: 64 // MockEmbeddingService는 64차원을 생성
   };
 
   /**

@@ -333,29 +333,35 @@ CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf USING vec0(embedding fl
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_minilm USING vec0(embedding float[384]);
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_openai USING vec0(embedding float[1536]);
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_gemini USING vec0(embedding float[768]);
+-- Mock 임베딩 제공자 (오프라인 벤치마크 전용, 결정론적 64차원 해시 벡터)
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_mock USING vec0(embedding float[64]);
 
 -- VEC 테이블 트리거 (임베딩이 생성될 때 자동으로 VEC 테이블에 추가)
 -- 제공자별 테이블에 저장하도록 수정
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
-  INSERT INTO memory_item_vec(rowid, embedding) 
+  INSERT INTO memory_item_vec(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.dimensions = 384;
-  
-  INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_tfidf(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
-  
-  INSERT INTO memory_item_vec_minilm(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_minilm(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
-  
-  INSERT INTO memory_item_vec_openai(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_openai(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
-  
-  INSERT INTO memory_item_vec_gemini(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_gemini(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
+
+  INSERT INTO memory_item_vec_mock(rowid, embedding)
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'mock' AND NEW.dimensions = 64 AND NEW.projection_type = 'native';
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
@@ -364,26 +370,31 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_
   DELETE FROM memory_item_vec_minilm WHERE rowid = NEW.id;
   DELETE FROM memory_item_vec_openai WHERE rowid = NEW.id;
   DELETE FROM memory_item_vec_gemini WHERE rowid = NEW.id;
+  DELETE FROM memory_item_vec_mock WHERE rowid = NEW.id;
 
-  INSERT INTO memory_item_vec(rowid, embedding) 
+  INSERT INTO memory_item_vec(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.dimensions = 384;
-  
-  INSERT INTO memory_item_vec_tfidf(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_tfidf(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
-  
-  INSERT INTO memory_item_vec_minilm(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_minilm(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
-  
-  INSERT INTO memory_item_vec_openai(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_openai(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
-  
-  INSERT INTO memory_item_vec_gemini(rowid, embedding) 
+
+  INSERT INTO memory_item_vec_gemini(rowid, embedding)
   SELECT NEW.id, json_extract(NEW.embedding, '$')
   WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
+
+  INSERT INTO memory_item_vec_mock(rowid, embedding)
+  SELECT NEW.id, json_extract(NEW.embedding, '$')
+  WHERE NEW.embedding_provider = 'mock' AND NEW.dimensions = 64 AND NEW.projection_type = 'native';
 END;
 
 CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
@@ -392,6 +403,7 @@ CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_
   DELETE FROM memory_item_vec_minilm WHERE rowid = OLD.id;
   DELETE FROM memory_item_vec_openai WHERE rowid = OLD.id;
   DELETE FROM memory_item_vec_gemini WHERE rowid = OLD.id;
+  DELETE FROM memory_item_vec_mock WHERE rowid = OLD.id;
 END;
 
 -- Core Memory 테이블 (MIRIX Schema Expansion v2.0)
