@@ -48,7 +48,13 @@ describe('static design contracts', () => {
   });
 
   it('dashboard graph iframe loads embed mode for consistent light dashboard styling', () => {
-    const tabsSource = readStaticFile('static/js/dashboard-tabs.js');
+    const tabsSource = [
+      'dashboard-tabs-panels.js',
+      'dashboard-tabs-init.js',
+      'dashboard-tabs.js',
+    ]
+      .map((name) => readStaticFile('static/js/' + name))
+      .join('\n');
     const graphSource = readStaticFile('static/graph.html');
 
     expect(tabsSource).toContain("'/graph?embed=dashboard'");

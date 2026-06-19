@@ -2,24 +2,21 @@
  * Dashboard Anchor / Embedding / Memory Graph / Evolution demo 탭 전환
  * CSP(script-src에 unsafe-inline 없음) 대응: 인라인 스크립트 대신 외부 파일로 로드
  *
- * WAI-ARIA Tabs — Manual activation:
+ * WAI-ARIA Tabs - Manual activation:
  * - 좌/우/Home/End: 같은 tablist 안에서 포커스만 이동(roving tabindex); 패널은 바꾸지 않음(그래프 iframe 지연 로드 유지)
  * - Enter/Space 또는 클릭: 해당 탭 활성화
  */
 (function (global) {
   'use strict';
 
-  const GRAPH_IFRAME_SRC = '/graph?embed=dashboard';
+  const panels = global.__MEMENTO_DASHBOARD_TAB_PANELS__;
+  const tabInit = global.__MEMENTO_DASHBOARD_TAB_INIT__;
+  if (!panels || !tabInit) {
+    return;
+  }
 
   function getTabButtons() {
     return Array.prototype.slice.call(document.querySelectorAll('.m-tab-bar .m-tab-btn'));
-  }
-
-  function dispatchGraphIframeResize(iframe) {
-    if (!iframe || !iframe.contentWindow) {
-      return;
-    }
-    iframe.contentWindow.dispatchEvent(new Event('resize'));
   }
 
   function setRovingTabindex(focusedBtn) {
@@ -28,96 +25,20 @@
     });
   }
 
-  function activateTab(name) {
-    const evolutionPanel = document.getElementById('tab-evolution-demo');
-    const anchorPanel = document.getElementById('tab-anchor-map');
-    const embedPanel = document.getElementById('tab-embedding-map');
-    const graphPanel = document.getElementById('tab-graph');
-    const reviewPanel = document.getElementById('tab-review-candidates');
-    const agentSessionsPanel = document.getElementById('tab-agent-sessions');
-    const buttons = document.querySelectorAll('.m-tab-btn');
-    buttons.forEach(function (b) {
-      const on = b.getAttribute('data-tab') === name;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    if (evolutionPanel) {
-      evolutionPanel.classList.toggle('active', name === 'evolution-demo');
-      evolutionPanel.setAttribute('aria-hidden', name === 'evolution-demo' ? 'false' : 'true');
-    }
-    if (anchorPanel) {
-      anchorPanel.classList.toggle('active', name === 'anchor');
-      anchorPanel.setAttribute('aria-hidden', name === 'anchor' ? 'false' : 'true');
-    }
-    if (embedPanel) {
-      embedPanel.classList.toggle('active', name === 'embedding');
-      embedPanel.setAttribute('aria-hidden', name === 'embedding' ? 'false' : 'true');
-    }
-    if (graphPanel) {
-      graphPanel.classList.toggle('active', name === 'graph');
-      graphPanel.setAttribute('aria-hidden', name === 'graph' ? 'false' : 'true');
-    }
-    if (reviewPanel) {
-      reviewPanel.classList.toggle('active', name === 'review');
-      reviewPanel.setAttribute('aria-hidden', name === 'review' ? 'false' : 'true');
-    }
-    if (agentSessionsPanel) {
-      agentSessionsPanel.classList.toggle('active', name === 'agent-sessions');
-      agentSessionsPanel.setAttribute('aria-hidden', name === 'agent-sessions' ? 'false' : 'true');
-    }
-    if (name === 'evolution-demo') {
-      const shell = global.__MEMENTO_EVOLUTION_DEMO_SHELL__;
-      if (shell) {
-        if (typeof shell.initPanel === 'function') {
-          shell.initPanel();
-        } else if (typeof shell.refresh === 'function') {
-          shell.refresh();
-        } else if (typeof shell.init === 'function') {
-          shell.init();
-        }
-      }
-      requestAnimationFrame(function () {
-        global.dispatchEvent(new Event('resize'));
-      });
-    }
-    if (name === 'embedding' && typeof global.initEmbeddingMap === 'function') {
-      global.initEmbeddingMap();
-    }
-    if (name === 'review' && typeof global.initReviewCandidatesPanel === 'function') {
-      global.initReviewCandidatesPanel();
-    }
-    if (name === 'agent-sessions' && typeof global.initAgentSessionsPanel === 'function') {
-      global.initAgentSessionsPanel();
-    }
-    if (name === 'graph') {
-      const iframe = document.getElementById('graph-view-iframe');
-      if (iframe && !iframe.hasAttribute('data-loaded')) {
-        iframe.setAttribute('data-loaded', '');
-        iframe.addEventListener('load', function onGraphFrameLoad() {
-          iframe.removeEventListener('load', onGraphFrameLoad);
-          requestAnimationFrame(function () {
-            global.dispatchEvent(new Event('resize'));
-            dispatchGraphIframeResize(iframe);
-          });
-        });
-        iframe.src = GRAPH_IFRAME_SRC;
-      } else if (iframe) {
-        requestAnimationFrame(function () {
-          global.dispatchEvent(new Event('resize'));
-          dispatchGraphIframeResize(iframe);
-        });
-      }
-    } else if (name === 'anchor' || name === 'embedding' || name === 'review' || name === 'agent-sessions') {
-      requestAnimationFrame(function () {
-        global.dispatchEvent(new Event('resize'));
-      });
-    }
-
+  function focusActiveTabButton(name) {
     const activeBtn = document.querySelector('.m-tab-btn[data-tab="' + name + '"]');
-    if (activeBtn) {
-      setRovingTabindex(activeBtn);
-      activeBtn.focus();
+    if (!activeBtn) {
+      return;
     }
+    setRovingTabindex(activeBtn);
+    activeBtn.focus();
+  }
+
+  function activateTab(name) {
+    panels.setTabButtonsActive(name);
+    panels.setPanelVisibility(name);
+    tabInit.runTabInit(name);
+    focusActiveTabButton(name);
   }
 
   const tabBar = document.querySelector('.m-tab-bar');
