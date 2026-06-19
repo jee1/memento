@@ -5,7 +5,15 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
-const tabsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs.js'), 'utf8');
+const DASHBOARD_TABS_SCRIPTS = [
+  'dashboard-tabs-panels.js',
+  'dashboard-tabs-init.js',
+  'dashboard-tabs.js',
+] as const;
+
+const tabsJs = DASHBOARD_TABS_SCRIPTS.map((name) =>
+  readFileSync(resolve(root, 'static/js', name), 'utf8'),
+).join('\n');
 const authJs = readFileSync(resolve(root, 'static/js/dashboard-auth.js'), 'utf8');
 const dashboardCss = readFileSync(resolve(root, 'static/css/dashboard.css'), 'utf8');
 

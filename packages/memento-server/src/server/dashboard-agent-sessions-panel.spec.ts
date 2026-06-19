@@ -5,13 +5,27 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
-const tabsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs.js'), 'utf8');
+const DASHBOARD_TABS_SCRIPTS = [
+  'dashboard-tabs-panels.js',
+  'dashboard-tabs-init.js',
+  'dashboard-tabs.js',
+] as const;
+
+const tabsJs = DASHBOARD_TABS_SCRIPTS.map((name) =>
+  readFileSync(resolve(root, 'static/js', name), 'utf8'),
+).join('\n');
 const dashboardCss = readFileSync(resolve(root, 'static/css/dashboard.css'), 'utf8');
 const tokensCss = readFileSync(resolve(root, 'static/css/tokens.css'), 'utf8');
 
 const PANEL_SCRIPTS = [
   'agent-sessions-panel-shared.js',
   'agent-sessions-panel-data.js',
+  'agent-sessions-panel-render-dom.js',
+  'agent-sessions-panel-render-sessions.js',
+  'agent-sessions-panel-render-timeline-category.js',
+  'agent-sessions-panel-render-timeline.js',
+  'agent-sessions-panel-render-injections.js',
+  'agent-sessions-panel-render-provenance.js',
   'agent-sessions-panel-render.js',
   'agent-sessions-panel-import.js',
   'agent-sessions-panel.js',
