@@ -177,6 +177,32 @@
       min-width: 28px;
     }
 
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    #graph-search {
+      width: min(260px, 38vw);
+      min-width: 160px;
+    }
+
+    #graph-match-badge,
+    #graph-mode-hint {
+      display: none;
+      font-size: var(--font-size-xs);
+      color: var(--color-graph-text-muted);
+      white-space: nowrap;
+    }
+
+    #graph-match-badge {
+      border: 1px solid var(--color-border-graph);
+      border-radius: var(--radius-sm);
+      padding: 2px 7px;
+      background: var(--color-graph-surface-elevated);
+    }
+
     .main {
       display: flex;
       flex: 1;
@@ -416,6 +442,19 @@
       stroke-opacity: 0.55;
     }
 
+    .node.search-dim {
+      opacity: 0.18;
+    }
+
+    .node.search-match circle {
+      stroke: var(--color-graph-title);
+      stroke-width: 4;
+    }
+
+    .link.search-dim {
+      stroke-opacity: 0.12;
+    }
+
     /* Dashboard embed — Embedding Map 등 다른 탭과 동일한 라이트 패널 스타일 */
     .graph-view--embedded {
       --color-bg-graph: var(--color-bg-main);
@@ -457,7 +496,9 @@
 
     .graph-view--embedded .filter-group label,
     .graph-view--embedded .type-check,
-    .graph-view--embedded #importance-val {
+    .graph-view--embedded #importance-val,
+    .graph-view--embedded #graph-match-badge,
+    .graph-view--embedded #graph-mode-hint {
       color: var(--color-text-muted);
     }
 
@@ -505,6 +546,26 @@
         <input type="range" id="importance-slider" min="0" max="1" step="0.05" value="0">
         <span id="importance-val">0.0</span>
       </div>
+    </div>
+    <div class="filter-group graph-session-only">
+      <label for="graph-search">검색</label>
+      <div class="search-row">
+        <input
+          id="graph-search"
+          class="m-input"
+          type="search"
+          placeholder="키워드 또는 문장"
+          autocomplete="off"
+        >
+        <button id="search-btn" class="graph-action-button m-button m-button--secondary" type="button">검색</button>
+        <span id="graph-match-badge" aria-live="polite"></span>
+      </div>
+    </div>
+    <div class="filter-group graph-session-only">
+      <label class="type-check" title="본문을 축약한 전체 그래프 모드로 최대 5,000개 노드를 요청합니다.">
+        <input type="checkbox" id="full-graph-toggle"> 전체 로드
+      </label>
+      <span id="graph-mode-hint"></span>
     </div>
     <button id="apply-btn" class="graph-session-only graph-action-button m-button m-button--primary">필터 적용</button>
     <button id="reset-btn" class="graph-session-only graph-action-button m-button m-button--secondary">초기화</button>

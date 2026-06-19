@@ -8,6 +8,7 @@ export interface GraphNode {
   id: string;
   label: string;
   content: string;
+  content_truncated?: boolean;
   type: 'episodic' | 'semantic' | 'procedural' | 'working';
   importance: number;
   created_at: string;
@@ -29,6 +30,8 @@ export interface GraphFilter {
   relation_types?: string[] | null;
   min_importance?: number;
   limit?: number;
+  view?: 'focused' | 'full';
+  fields?: 'full' | 'minimal';
 }
 
 export interface GraphResponse {
@@ -36,9 +39,14 @@ export interface GraphResponse {
   edges: GraphEdge[];
   meta: {
     total_nodes: number;
+    total_available_nodes: number;
     total_edges: number;
     applied_filters: GraphFilter;
     truncated: boolean;
+    graph_view: 'focused' | 'full';
+    fields: 'full' | 'minimal';
+    default_limit: number;
+    max_limit: number;
   };
 }
 
@@ -65,24 +73,36 @@ interface MemoryRelationRow {
  * FR-001~FR-003, FR-010~FR-012
  */
 export function buildGraphResponse(db: Database.Database, filters: GraphFilter): GraphResponse {
-  const limit = Math.min(filters.limit ?? 200, 1000); // FR-006: 기본 200
+  const graphView = filters.view ?? 'focused';
+  const fields = filters.fields ?? (graphView === 'full' ? 'minimal' : 'full');
+  const defaultLimit = graphView === 'full' ? 5000 : 200;
+  const maxLimit = graphView === 'full' ? 5000 : 1000;
+  const limit = Math.min(filters.limit ?? defaultLimit, maxLimit); // FR-006: 기본 200
   const minImportance = filters.min_importance ?? 0.0;
 
   let nodeQuery = `SELECT id, content, type, importance, created_at, tags, pinned FROM memory_item WHERE 1=1`;
+  let countQuery = `SELECT COUNT(*) AS count FROM memory_item WHERE 1=1`;
   const nodeParams: (string | number)[] = [];
+  const countParams: (string | number)[] = [];
 
   if (filters.types && filters.types.length > 0) {
     const placeholders = filters.types.map(() => '?').join(', ');
     nodeQuery += ` AND type IN (${placeholders})`;
+    countQuery += ` AND type IN (${placeholders})`;
     nodeParams.push(...filters.types);
+    countParams.push(...filters.types);
   }
 
   nodeQuery += ` AND COALESCE(importance, 0.5) >= ?`;
+  countQuery += ` AND COALESCE(importance, 0.5) >= ?`;
   nodeParams.push(minImportance);
+  countParams.push(minImportance);
 
   nodeQuery += ` ORDER BY COALESCE(importance, 0.5) DESC LIMIT ?`;
   nodeParams.push(limit + 1);
 
+  const countRow = db.prepare(countQuery).get(...countParams) as { count: number } | undefined;
+  const totalAvailableNodes = countRow?.count ?? 0;
   const rawNodes = db.prepare(nodeQuery).all(...nodeParams) as MemoryItemRow[];
   const truncated = rawNodes.length > limit;
   const nodeRows = truncated ? rawNodes.slice(0, limit) : rawNodes;
@@ -92,7 +112,10 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
   const nodes: GraphNode[] = nodeRows.map(r => ({
     id: r.id,
     label: r.content.length > 50 ? r.content.slice(0, 50) + '...' : r.content,
-    content: r.content,
+    content: fields === 'minimal' && r.content.length > 280
+      ? r.content.slice(0, 280) + '...'
+      : r.content,
+    content_truncated: fields === 'minimal' && r.content.length > 280,
     type: r.type as GraphNode['type'],
     importance: r.importance ?? 0.5,
     created_at: r.created_at ?? new Date().toISOString(),
@@ -136,14 +159,21 @@ export function buildGraphResponse(db: Database.Database, filters: GraphFilter):
     edges,
     meta: {
       total_nodes: nodes.length,
+      total_available_nodes: totalAvailableNodes,
       total_edges: edges.length,
       applied_filters: {
         types: filters.types ?? null,
         relation_types: filters.relation_types ?? null,
         min_importance: minImportance,
         limit,
+        view: graphView,
+        fields,
       },
       truncated,
+      graph_view: graphView,
+      fields,
+      default_limit: defaultLimit,
+      max_limit: maxLimit,
     },
   };
 }

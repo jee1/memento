@@ -21,6 +21,8 @@ export function registerAdminGraphRoute(router: Router, db: Database.Database | 
       const relationTypesRaw = req.query['relation_types'] as string | undefined;
       const minImportanceRaw = req.query['min_importance'] as string | undefined;
       const limitRaw = req.query['limit'] as string | undefined;
+      const viewRaw = req.query['view'] as string | undefined;
+      const fieldsRaw = req.query['fields'] as string | undefined;
 
       const filters: GraphFilter = {};
 
@@ -46,12 +48,34 @@ export function registerAdminGraphRoute(router: Router, db: Database.Database | 
         }
         filters.min_importance = val;
       }
+      if (viewRaw !== undefined) {
+        if (viewRaw !== 'focused' && viewRaw !== 'full') {
+          return res.status(400).json({ error: '잘못된 파라미터', message: 'view는 focused 또는 full이어야 합니다' });
+        }
+        filters.view = viewRaw;
+      }
+      if (fieldsRaw !== undefined) {
+        if (fieldsRaw !== 'full' && fieldsRaw !== 'minimal') {
+          return res.status(400).json({ error: '잘못된 파라미터', message: 'fields는 full 또는 minimal이어야 합니다' });
+        }
+        filters.fields = fieldsRaw;
+      }
       if (limitRaw !== undefined) {
         const val = parseInt(limitRaw, 10);
-        if (isNaN(val) || val < 1 || val > 1000) {
-          return res.status(400).json({ error: '잘못된 파라미터', message: 'limit은 1~1000 사이여야 합니다' });
+        const maxLimit = filters.view === 'full' ? 5000 : 1000;
+        if (isNaN(val) || val < 1 || val > maxLimit) {
+          return res.status(400).json({ error: '잘못된 파라미터', message: `limit은 1~${maxLimit} 사이여야 합니다` });
         }
         filters.limit = val;
+      }
+      if (filters.view === 'full' && filters.fields === undefined) {
+        filters.fields = 'minimal';
+      }
+      if (filters.view === 'full' && filters.fields === 'full') {
+        return res.status(400).json({
+          error: '잘못된 파라미터',
+          message: 'view=full은 대용량 응답 완화를 위해 fields=minimal만 지원합니다',
+        });
       }
 
       const graphData = buildGraphResponse(db, filters);
