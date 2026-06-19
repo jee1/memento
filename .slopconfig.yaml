@@ -9,6 +9,7 @@ ignore:
   - "packages/**/src/test/**"
   - "packages/**/src/**/__tests__/**"
   - "packages/memento-server/src/test/**"
+  - "packages/mcp-client/examples/**"
   - "**/coverage/**"
   - "graphify-out/**"
   - "**/.next/**"
