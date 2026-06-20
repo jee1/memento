@@ -250,6 +250,14 @@ describe('programmatic auth integration', () => {
     });
     expect(toolsWithCookieOnly.statusCode).toBe(401);
 
+    const searchLocalWithCookieOnly = await postJson(
+      port,
+      '/tools/search_local',
+      { query: 'test', slot: 'A', agent_id: 'default', limit: 10 },
+      { Cookie: sessionCookie }
+    );
+    expect(searchLocalWithCookieOnly.statusCode).toBe(401);
+
     const toolsWithHeader = await getRequest(port, '/tools', {
       Authorization: 'Bearer integration-admin-key'
     });

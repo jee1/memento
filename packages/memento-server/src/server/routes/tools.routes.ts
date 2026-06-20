@@ -10,6 +10,7 @@ import { Router } from 'express';
 import type { WebSocket } from 'ws';
 import type { ServerServices } from '../bootstrap.js';
 import { broadcastAnchorMapUpdate } from '../handlers/anchor-map.handler.js';
+import { extractToolResultPayload } from '../handlers/tool-result.utils.js';
 
 /**
  * Tools 라우터 생성
@@ -64,20 +65,7 @@ export function createToolsRouter(
       // 도구 실행
       const toolResult = await executeTool(name, params, toolContext);
 
-      // MCP 형식의 ToolResult에서 실제 데이터 추출
-      let actualResult: any = toolResult;
-      if (toolResult.content && Array.isArray(toolResult.content) && toolResult.content.length > 0) {
-        const firstContent = toolResult.content[0];
-        if (firstContent && firstContent.text) {
-          try {
-            const textContent = firstContent.text;
-            actualResult = JSON.parse(textContent);
-          } catch (parseError) {
-            // JSON 파싱 실패 시 원본 content 사용
-            actualResult = toolResult;
-          }
-        }
-      }
+      const actualResult = extractToolResultPayload(toolResult);
 
       // 앵커 관련 도구 실행 후 WebSocket 브로드캐스트
       if (name === 'set_anchor' || name === 'clear_anchor') {

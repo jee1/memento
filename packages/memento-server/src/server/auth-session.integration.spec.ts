@@ -174,6 +174,41 @@ describe('auth session integration', () => {
     expect(api.statusCode).toBe(200);
   });
 
+  it('allows signed-in POST /api/anchors/search with search_local-compatible result shape', async () => {
+    const port = await startRealHttpServer();
+
+    const login = await postJson(port, '/auth/session', {}, {
+      Authorization: 'Bearer integration-admin-key'
+    });
+    const sessionCookie = login.headers['set-cookie']?.[0] ?? '';
+
+    const search = await postJson(
+      port,
+      '/api/anchors/search',
+      { query: 'test', slot: 'A', agent_id: 'default', limit: 10 },
+      { Cookie: sessionCookie }
+    );
+
+    expect(search.statusCode).toBe(200);
+    const payload = JSON.parse(search.body) as {
+      result?: { items?: unknown[] };
+    };
+    expect(Array.isArray(payload.result?.items)).toBe(true);
+  });
+
+  it('rejects unsigned POST /api/anchors/search with 401', async () => {
+    const port = await startRealHttpServer();
+
+    const search = await postJson(port, '/api/anchors/search', {
+      query: 'test',
+      slot: 'A',
+      agent_id: 'default',
+      limit: 10
+    });
+
+    expect(search.statusCode).toBe(401);
+  });
+
   it('deletes the session cookie and invalidates subsequent /api access', async () => {
     const port = await startRealHttpServer();
 
