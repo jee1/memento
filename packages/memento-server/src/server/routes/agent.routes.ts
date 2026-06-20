@@ -185,6 +185,94 @@ function createPersonalKnowledgeAgent(ctx: AgentRouterCtx): PersonalKnowledgeAge
 }
 
 // ---------------------------------------------------------------------------
+// Injection / promotion / router-ctx helpers
+// ---------------------------------------------------------------------------
+
+function buildInjectionExtraData(
+  bundle: AgentContextInjectionBundle,
+  sessionId: string,
+): Record<string, unknown> {
+  return {
+    injection_id: bundle.injectionId,
+    session_id: sessionId,
+    trigger: bundle.trigger,
+    candidate_count: bundle.selected.length + bundle.excluded.length,
+    selected_count: bundle.selected.length,
+    exclusion_count: bundle.excluded.length,
+    selected: bundle.selected.map(item => ({
+      memory_id: item.id,
+      score: item.score,
+      token_estimate: item.tokenEstimate,
+      selection_reason: item.selectionReason,
+      scope_level: item.scopeLevel,
+    })),
+    exclusions: bundle.excluded.map(item => ({
+      memory_id: item.id,
+      reason: item.reason,
+      score: item.score,
+      token_estimate: item.tokenEstimate,
+      ...(item.duplicateOf ? { duplicate_of: item.duplicateOf } : {}),
+    })),
+    token_budget: bundle.tokenUsage.budget,
+    token_used: bundle.tokenUsage.used,
+    budget_exceeded: bundle.tokenUsage.used > bundle.tokenUsage.budget,
+    degraded_reasons: bundle.degradedReasons,
+  };
+}
+
+function promotionEventType(action: string): string {
+  const map: Record<string, string> = {
+    extracted: 'agent.promotion.extracted',
+    approved: 'agent.promotion.approved',
+    rejected: 'agent.promotion.rejected',
+    usage: 'agent.promotion.usage',
+  };
+  return map[action] ?? 'agent.promotion.unknown';
+}
+
+function promotionOutcome(
+  action: string,
+  usageOutcome?: string,
+): 'success' | 'failure' | 'empty' {
+  if (action === 'rejected' || (action === 'usage' && usageOutcome === 'negative')) {
+    return 'failure';
+  }
+  if (action === 'usage' && usageOutcome === 'unused') return 'empty';
+  return 'success';
+}
+
+function promotionRequestId(event: {
+  action: string;
+  sessionId?: string;
+  memoryId?: string;
+  candidateId?: string;
+}): string {
+  if (event.action === 'extracted') return `agent-promotion:${event.sessionId}`;
+  if (event.action === 'usage') return `agent-promotion-usage:${event.memoryId}`;
+  return `agent-promotion-review:${event.candidateId}`;
+}
+
+function clampTokenBudget(value: number | undefined): number {
+  return Number.isSafeInteger(value) ? Math.min(32_768, Math.max(1, value!)) : 2_048;
+}
+
+function buildSummarizer(
+  summaryService: InstanceType<typeof AgentSessionSummaryService> | null,
+  promotionService: InstanceType<typeof AgentMemoryPromotionService> | null,
+): AgentRouterCtx['summarizer'] {
+  if (!summaryService) return null;
+  return {
+    summarize(sessionId: string) {
+      const result = summaryService.summarize(sessionId);
+      if (result.status !== 'SKIPPED') {
+        promotionService?.extractCandidates(sessionId);
+      }
+      return result;
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Service setup helpers
 // ---------------------------------------------------------------------------
 
@@ -208,32 +296,7 @@ function makeRecordInjection(
             ? 'empty'
             : 'failure',
         errorCode: bundle.failureReason ?? undefined,
-        extraData: {
-          injection_id: bundle.injectionId,
-          session_id: sessionId,
-          trigger: bundle.trigger,
-          candidate_count: bundle.selected.length + bundle.excluded.length,
-          selected_count: bundle.selected.length,
-          exclusion_count: bundle.excluded.length,
-          selected: bundle.selected.map(item => ({
-            memory_id: item.id,
-            score: item.score,
-            token_estimate: item.tokenEstimate,
-            selection_reason: item.selectionReason,
-            scope_level: item.scopeLevel,
-          })),
-          exclusions: bundle.excluded.map(item => ({
-            memory_id: item.id,
-            reason: item.reason,
-            score: item.score,
-            token_estimate: item.tokenEstimate,
-            ...(item.duplicateOf ? { duplicate_of: item.duplicateOf } : {}),
-          })),
-          token_budget: bundle.tokenUsage.budget,
-          token_used: bundle.tokenUsage.used,
-          budget_exceeded: bundle.tokenUsage.used > bundle.tokenUsage.budget,
-          degraded_reasons: bundle.degradedReasons,
-        },
+        extraData: buildInjectionExtraData(bundle, sessionId),
       });
     } catch {
       return;
@@ -262,27 +325,11 @@ function makePromotionTelemetryCallback(
   return function recordPromotionTelemetry(event: { action: string; sessionId?: string; memoryId?: string; candidateId?: string; usageOutcome?: string }) {
     const sessionId = event.action === 'extracted' ? event.sessionId ?? null : null;
     const session = sessionId ? repository.getSession(sessionId) : null;
-    const eventTypeMap: Record<string, string> = {
-      extracted: 'agent.promotion.extracted',
-      approved: 'agent.promotion.approved',
-      rejected: 'agent.promotion.rejected',
-      usage: 'agent.promotion.usage',
-    };
-    const outcome = event.action === 'rejected'
-      || (event.action === 'usage' && event.usageOutcome === 'negative')
-      ? 'failure'
-      : event.action === 'usage' && event.usageOutcome === 'unused'
-        ? 'empty'
-        : 'success';
     telemetryRepository?.insertEventSync({
-      eventType: (eventTypeMap[event.action] ?? 'agent.promotion.unknown') as Parameters<typeof telemetryRepository.insertEventSync>[0]['eventType'],
-      requestId: event.action === 'extracted'
-        ? `agent-promotion:${event.sessionId}`
-        : event.action === 'usage'
-          ? `agent-promotion-usage:${event.memoryId}`
-          : `agent-promotion-review:${event.candidateId}`,
+      eventType: promotionEventType(event.action) as Parameters<typeof telemetryRepository.insertEventSync>[0]['eventType'],
+      requestId: promotionRequestId(event),
       ownerId: session?.ownerId ?? null,
-      outcome: outcome as Parameters<typeof telemetryRepository.insertEventSync>[0]['outcome'],
+      outcome: promotionOutcome(event.action, event.usageOutcome) as Parameters<typeof telemetryRepository.insertEventSync>[0]['outcome'],
       extraData: { ...event },
     });
   };
@@ -332,17 +379,7 @@ function buildRouterCtx(
         recordTelemetry: makeSummaryTelemetryCallback(repository, telemetryRepository),
       })
     : null;
-  const summarizer = summaryService
-    ? {
-        summarize(sessionId: string) {
-          const result = summaryService.summarize(sessionId);
-          if (result.status !== 'SKIPPED') {
-            promotionService?.extractCandidates(sessionId);
-          }
-          return result;
-        },
-      }
-    : null;
+  const summarizer = buildSummarizer(summaryService, promotionService);
   const service = repository
     ? new AgentLifecycleService(repository, options, summarizer ?? undefined)
     : null;
@@ -354,9 +391,7 @@ function buildRouterCtx(
       })
     : null;
   const injectionService = options.contextInjectionService;
-  const initialInjectionTokenBudget = Number.isSafeInteger(options.initialInjectionTokenBudget)
-    ? Math.min(32_768, Math.max(1, options.initialInjectionTokenBudget!))
-    : 2_048;
+  const initialInjectionTokenBudget = clampTokenBudget(options.initialInjectionTokenBudget);
 
   return {
     db,
@@ -372,6 +407,117 @@ function buildRouterCtx(
     recordInjection: makeRecordInjection(telemetryRepository),
     buildInjection: makeBuildInjection(injectionService),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Operations status query helpers
+// ---------------------------------------------------------------------------
+
+interface ObservationRow {
+  occurred_at: string;
+  status: string;
+  drop_reason: string | null;
+  session_id: string;
+  adapter_name: string;
+  event_type: string;
+}
+
+interface InjectionRow {
+  created_at: string;
+  outcome: string;
+  error_code: string | null;
+  extra_data: string | null;
+}
+
+interface ObservationCounts {
+  captures: number;
+  dropped: number | null;
+  degraded: number | null;
+}
+
+interface InjectionCounts {
+  injections: number;
+  degraded: number | null;
+}
+
+function queryObservationRows(db: Database.Database, since: string, limit: number): ObservationRow[] {
+  return db.prepare(`
+    SELECT
+      received_at AS occurred_at,
+      status,
+      drop_reason,
+      session_id,
+      adapter_name,
+      event_type
+    FROM agent_observation
+    WHERE received_at >= ?
+    ORDER BY received_at DESC
+    LIMIT ?
+  `).all(since, limit) as ObservationRow[];
+}
+
+function queryInjectionRows(db: Database.Database, since: string, limit: number): InjectionRow[] {
+  return db.prepare(`
+    SELECT created_at, outcome, error_code, extra_data
+    FROM telemetry_events
+    WHERE event_type = 'agent.injection.completed'
+      AND created_at >= ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(since, limit) as InjectionRow[];
+}
+
+function queryObservationCounts(db: Database.Database, since: string): ObservationCounts {
+  return db.prepare(`
+    SELECT
+      COUNT(*) AS captures,
+      SUM(CASE WHEN status = 'DROPPED' THEN 1 ELSE 0 END) AS dropped,
+      SUM(CASE WHEN status = 'DEGRADED' THEN 1 ELSE 0 END) AS degraded
+    FROM agent_observation
+    WHERE received_at >= ?
+  `).get(since) as ObservationCounts;
+}
+
+function queryInjectionCounts(db: Database.Database, since: string): InjectionCounts {
+  return db.prepare(`
+    SELECT
+      COUNT(*) AS injections,
+      SUM(CASE WHEN outcome = 'failure' THEN 1 ELSE 0 END) AS degraded
+    FROM telemetry_events
+    WHERE event_type = 'agent.injection.completed'
+      AND created_at >= ?
+  `).get(since) as InjectionCounts;
+}
+
+function buildRecentEvents(
+  observationRows: ObservationRow[],
+  injectionRows: InjectionRow[],
+  limit: number,
+) {
+  return [
+    ...observationRows.map(row => ({
+      occurred_at: row.occurred_at,
+      kind: 'capture',
+      status: row.status,
+      reason_code: row.drop_reason ?? 'NONE',
+      session_id: row.session_id,
+      adapter_name: row.adapter_name,
+      event_type: row.event_type,
+    })),
+    ...injectionRows.map(row => ({
+      occurred_at: row.created_at,
+      kind: 'injection',
+      status: row.outcome === 'failure'
+        ? 'degraded'
+        : row.outcome === 'empty'
+          ? 'empty'
+          : 'ok',
+      reason_code: row.error_code ?? 'NONE',
+      session_id: safeTelemetrySessionId(row.extra_data),
+    })),
+  ]
+    .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at))
+    .slice(0, limit);
 }
 
 // ---------------------------------------------------------------------------
@@ -464,90 +610,15 @@ function handleGetOperationsStatus(req: Request, res: Response, ctx: AgentRouter
   try {
     const { service, db, options } = ctx;
     if (!service || !db) {
-      throw new AgentIntegrationError(
-        'Database unavailable',
-        'SCHEMA_NOT_READY',
-        503,
-        true,
-      );
+      throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     }
     const generatedAt = (options.now ?? (() => new Date()))().toISOString();
     const since = boundedStatusSince(req.query.since, new Date(generatedAt));
     const limit = boundedStatusLimit(req.query.limit);
-    const observationRows = db.prepare(`
-      SELECT
-        received_at AS occurred_at,
-        status,
-        drop_reason,
-        session_id,
-        adapter_name,
-        event_type
-      FROM agent_observation
-      WHERE received_at >= ?
-      ORDER BY received_at DESC
-      LIMIT ?
-    `).all(since, limit) as Array<{
-      occurred_at: string;
-      status: string;
-      drop_reason: string | null;
-      session_id: string;
-      adapter_name: string;
-      event_type: string;
-    }>;
-    const injectionRows = db.prepare(`
-      SELECT created_at, outcome, error_code, extra_data
-      FROM telemetry_events
-      WHERE event_type = 'agent.injection.completed'
-        AND created_at >= ?
-      ORDER BY created_at DESC
-      LIMIT ?
-    `).all(since, limit) as Array<{
-      created_at: string;
-      outcome: string;
-      error_code: string | null;
-      extra_data: string | null;
-    }>;
-    const observationCounts = db.prepare(`
-      SELECT
-        COUNT(*) AS captures,
-        SUM(CASE WHEN status = 'DROPPED' THEN 1 ELSE 0 END) AS dropped,
-        SUM(CASE WHEN status = 'DEGRADED' THEN 1 ELSE 0 END) AS degraded
-      FROM agent_observation
-      WHERE received_at >= ?
-    `).get(since) as { captures: number; dropped: number | null; degraded: number | null };
-    const injectionCounts = db.prepare(`
-      SELECT
-        COUNT(*) AS injections,
-        SUM(CASE WHEN outcome = 'failure' THEN 1 ELSE 0 END) AS degraded
-      FROM telemetry_events
-      WHERE event_type = 'agent.injection.completed'
-        AND created_at >= ?
-    `).get(since) as { injections: number; degraded: number | null };
-    const recentEvents = [
-      ...observationRows.map(row => ({
-        occurred_at: row.occurred_at,
-        kind: 'capture',
-        status: row.status,
-        reason_code: row.drop_reason ?? 'NONE',
-        session_id: row.session_id,
-        adapter_name: row.adapter_name,
-        event_type: row.event_type,
-      })),
-      ...injectionRows.map(row => ({
-        occurred_at: row.created_at,
-        kind: 'injection',
-        status: row.outcome === 'failure'
-          ? 'degraded'
-          : row.outcome === 'empty'
-            ? 'empty'
-            : 'ok',
-        reason_code: row.error_code ?? 'NONE',
-        session_id: safeTelemetrySessionId(row.extra_data),
-      })),
-    ]
-      .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at))
-      .slice(0, limit);
-
+    const observationRows = queryObservationRows(db, since, limit);
+    const injectionRows = queryInjectionRows(db, since, limit);
+    const observationCounts = queryObservationCounts(db, since);
+    const injectionCounts = queryInjectionCounts(db, since);
     return res.json({
       generated_at: generatedAt,
       window: { since, limit },
@@ -557,7 +628,7 @@ function handleGetOperationsStatus(req: Request, res: Response, ctx: AgentRouter
         dropped: observationCounts.dropped ?? 0,
         degraded: (observationCounts.degraded ?? 0) + (injectionCounts.degraded ?? 0),
       },
-      recent_events: recentEvents,
+      recent_events: buildRecentEvents(observationRows, injectionRows, limit),
     });
   } catch (error) {
     return writeError(res, error);
@@ -1193,7 +1264,7 @@ function handleDeleteSession(req: Request, res: Response, ctx: AgentRouterCtx): 
 }
 
 // ---------------------------------------------------------------------------
-// Router factory — thin shell that wires handlers to routes
+// Router factory - thin shell that wires handlers to routes
 // ---------------------------------------------------------------------------
 
 export function createAgentRouter(
