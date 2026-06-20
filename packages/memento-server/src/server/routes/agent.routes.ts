@@ -678,92 +678,162 @@ async function handlePostSessions(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Batch ingest helpers
+// ---------------------------------------------------------------------------
+
+interface BatchPrepResult {
+  prepared?: ReturnType<typeof prepareEvent>;
+  errorResult?: { event_id: string; status: string; reason_code: string; late_arrival: boolean };
+}
+
+function prepareBatchEvent(item: unknown): BatchPrepResult {
+  try {
+    return { prepared: prepareEvent(item) };
+  } catch (error) {
+    const eventId =
+      item && typeof item === 'object' && 'event_id' in item
+      && typeof (item as { event_id?: unknown }).event_id === 'string'
+        ? (item as { event_id: string }).event_id
+        : '';
+    if (error instanceof AgentIntegrationError) {
+      return { errorResult: { event_id: eventId, status: 'INVALID', reason_code: error.reasonCode, late_arrival: false } };
+    }
+    return { errorResult: { event_id: eventId, status: 'DEGRADED', reason_code: 'INTERNAL_ERROR', late_arrival: false } };
+  }
+}
+
+function captureOneBatchEvent(
+  service: InstanceType<typeof AgentLifecycleService>,
+  prepared: ReturnType<typeof prepareEvent>,
+): object {
+  try {
+    const result = service.capture(prepared);
+    return {
+      event_id: result.eventId,
+      status: result.status,
+      reason_code: result.reasonCode,
+      observation_id: result.observationId,
+      late_arrival: result.lateArrival,
+    };
+  } catch (error) {
+    if (error instanceof AgentIntegrationError && error.reasonCode === 'IDEMPOTENCY_CONFLICT') {
+      throw error;
+    }
+    if (error instanceof AgentIntegrationError) {
+      return { event_id: prepared.eventId, status: 'INVALID', reason_code: error.reasonCode, late_arrival: false };
+    }
+    return { event_id: prepared.eventId, status: 'DEGRADED', reason_code: 'INTERNAL_ERROR', late_arrival: false };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Personal agent body helper
+// ---------------------------------------------------------------------------
+
+function parsePersonalRunBody(body: Record<string, unknown>) {
+  return {
+    userMessage: requireString(body.user_message ?? body.userMessage, 'user_message'),
+    projectId: optionalString(body.project_id ?? body.projectId, 'project_id'),
+    ownerId: optionalOwnerId(body.owner_id ?? body.ownerId),
+    sessionId: optionalString(body.session_id ?? body.sessionId, 'session_id'),
+    tokenBudget: optionalPositiveInteger(body.token_budget ?? body.tokenBudget, 'token_budget'),
+    maxMemories: optionalPositiveInteger(body.max_memories ?? body.maxMemories, 'max_memories'),
+    memoryTypes: optionalMemoryTypes(body.memory_types ?? body.memoryTypes),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Capture session event helpers
+// ---------------------------------------------------------------------------
+
+async function maybePreCompactInjection(
+  ctx: AgentRouterCtx,
+  prepared: ReturnType<typeof prepareEvent>,
+  payload: Record<string, unknown>,
+  tokenBudget: number,
+): Promise<AgentContextInjectionBundle | null> {
+  if (!ctx.injectionService) return null;
+  return ctx.buildInjection({
+    trigger: 'pre_compact',
+    query: typeof payload.context_summary === 'string' ? payload.context_summary : '',
+    scope: injectionScope(prepared),
+    tokenBudget,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Provenance detail helpers
+// ---------------------------------------------------------------------------
+
+function resolveProvenanceFilter(
+  query: Request['query'],
+): { memoryId: string | undefined; observationId: string | undefined } {
+  return {
+    memoryId: typeof query.memory_id === 'string' ? query.memory_id : undefined,
+    observationId: typeof query.observation_id === 'string' ? query.observation_id : undefined,
+  };
+}
+
+function loadProvenanceMemories(
+  db: Database.Database,
+  edges: ReadonlyArray<{ memoryId: string; sourceDeleted?: boolean | null }>,
+) {
+  const stmt = db.prepare(`
+    SELECT id, type, substr(content, 1, 240) AS content_preview, created_at
+    FROM memory_item
+    WHERE id = ?
+  `);
+  const memoryIds = [...new Set(edges.map(e => e.memoryId))];
+  return memoryIds.flatMap((id) => {
+    const row = stmt.get(id) as {
+      id: string; type: string; content_preview: string; created_at: string | null;
+    } | undefined;
+    return row ? [{ ...row, source_deleted: edges.some(e => e.memoryId === id && e.sourceDeleted) }] : [];
+  });
+}
+
+function loadProvenanceObservations(
+  repository: InstanceType<typeof SqliteAgentIntegrationRepository>,
+  edges: ReadonlyArray<{ observationId?: string | null }>,
+) {
+  const observationIds = [...new Set(edges.flatMap(e => e.observationId ? [e.observationId] : []))];
+  return observationIds.flatMap((id) => {
+    const observation = repository.getObservation(id);
+    return observation ? [observationDto(observation)] : [];
+  });
+}
+
+function loadProvenanceSessions(
+  service: InstanceType<typeof AgentLifecycleService>,
+  edges: ReadonlyArray<{ sessionId?: string | null }>,
+) {
+  const sessionIds = [...new Set(edges.flatMap(e => e.sessionId ? [e.sessionId] : []))];
+  return sessionIds.flatMap((id) => {
+    const session = service.getSession(id);
+    return session ? [sessionDto(session)] : [];
+  });
+}
+
 function handlePostObservationsIngest(req: Request, res: Response, ctx: AgentRouterCtx): Response {
   try {
     const { service } = ctx;
     if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     const events = Array.isArray(req.body?.events) ? req.body.events : [];
     if (events.length > BATCH_EVENTS) {
-      throw new AgentIntegrationError(
-        'Agent event batch exceeds configured limits',
-        'BATCH_TOO_LARGE',
-        413,
-      );
+      throw new AgentIntegrationError('Agent event batch exceeds configured limits', 'BATCH_TOO_LARGE', 413);
     }
-    const preparedEvents = events.map((item: unknown) => {
-      try {
-        return { prepared: prepareEvent(item) };
-      } catch (error) {
-        const eventId =
-          item && typeof item === 'object' && 'event_id' in item
-          && typeof (item as { event_id?: unknown }).event_id === 'string'
-            ? (item as { event_id: string }).event_id
-            : '';
-        if (error instanceof AgentIntegrationError) {
-          return {
-            errorResult: {
-              event_id: eventId,
-              status: 'INVALID',
-              reason_code: error.reasonCode,
-              late_arrival: false,
-            },
-          };
-        }
-        return {
-          errorResult: {
-            event_id: eventId,
-            status: 'DEGRADED',
-            reason_code: 'INTERNAL_ERROR',
-            late_arrival: false,
-          },
-        };
-      }
-    });
+    const preparedEvents = events.map((item: unknown) => prepareBatchEvent(item));
     const safeBatchBytes = Buffer.byteLength(
-      JSON.stringify(preparedEvents.flatMap(item =>
-        item.prepared ? [item.prepared] : [])),
+      JSON.stringify(preparedEvents.flatMap(item => item.prepared ? [item.prepared] : [])),
       'utf8',
     );
     if (safeBatchBytes > BATCH_PAYLOAD_BYTES) {
-      throw new AgentIntegrationError(
-        'Agent event batch exceeds configured limits',
-        'BATCH_TOO_LARGE',
-        413,
-      );
+      throw new AgentIntegrationError('Agent event batch exceeds configured limits', 'BATCH_TOO_LARGE', 413);
     }
     const results = preparedEvents.map((item) => {
       if (!item.prepared) return item.errorResult;
-      try {
-        const result = service.capture(item.prepared);
-        return {
-          event_id: result.eventId,
-          status: result.status,
-          reason_code: result.reasonCode,
-          observation_id: result.observationId,
-          late_arrival: result.lateArrival,
-        };
-      } catch (error) {
-        if (
-          error instanceof AgentIntegrationError
-          && error.reasonCode === 'IDEMPOTENCY_CONFLICT'
-        ) {
-          throw error;
-        }
-        if (error instanceof AgentIntegrationError) {
-          return {
-            event_id: item.prepared.eventId,
-            status: 'INVALID',
-            reason_code: error.reasonCode,
-            late_arrival: false,
-          };
-        }
-        return {
-          event_id: item.prepared.eventId,
-          status: 'DEGRADED',
-          reason_code: 'INTERNAL_ERROR',
-          late_arrival: false,
-        };
-      }
+      return captureOneBatchEvent(service, item.prepared);
     });
     return res.json({ results });
   } catch (error) {
@@ -806,18 +876,8 @@ function handlePostTranscriptsImport(req: Request, res: Response, ctx: AgentRout
 
 async function handlePostPersonalRun(req: Request, res: Response, ctx: AgentRouterCtx): Promise<Response | void> {
   try {
-    const body = req.body ?? {};
-    const service = createPersonalKnowledgeAgent(ctx);
-    const result = await service.runOneTurn({
-      userMessage: requireString(body.user_message ?? body.userMessage, 'user_message'),
-      projectId: optionalString(body.project_id ?? body.projectId, 'project_id'),
-      ownerId: optionalOwnerId(body.owner_id ?? body.ownerId),
-      sessionId: optionalString(body.session_id ?? body.sessionId, 'session_id'),
-      tokenBudget: optionalPositiveInteger(body.token_budget ?? body.tokenBudget, 'token_budget'),
-      maxMemories: optionalPositiveInteger(body.max_memories ?? body.maxMemories, 'max_memories'),
-      memoryTypes: optionalMemoryTypes(body.memory_types ?? body.memoryTypes),
-    });
-
+    const agent = createPersonalKnowledgeAgent(ctx);
+    const result = await agent.runOneTurn(parsePersonalRunBody(req.body ?? {}));
     return res.json({
       ok: true,
       knowledgeContext: {
@@ -830,12 +890,7 @@ async function handlePostPersonalRun(req: Request, res: Response, ctx: AgentRout
         metadata: result.llmMetadata ?? null,
       },
       candidates: result.candidates,
-      persistence: {
-        attempted: false,
-        items: [],
-        persistedCount: 0,
-        errorCount: 0,
-      },
+      persistence: { attempted: false, items: [], persistedCount: 0, errorCount: 0 },
     });
   } catch (error) {
     return writeError(res, error);
@@ -884,7 +939,7 @@ async function handleCaptureSessionEvent(
   expectedType: 'PRE_COMPACT' | 'STOP',
 ): Promise<Response> {
   try {
-    const { service, injectionService, buildInjection, recordInjection, initialInjectionTokenBudget } = ctx;
+    const { service, recordInjection, initialInjectionTokenBudget } = ctx;
     if (!service) throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     const prepared = prepareEvent({ ...req.body, session_id: req.params.id });
     if (prepared.eventType !== expectedType) {
@@ -893,18 +948,11 @@ async function handleCaptureSessionEvent(
     const result = service.capture(prepared);
     const session = service.getSession(prepared.sessionId)!;
     const payload = parsePayload(prepared);
-    const requestedTokenBudget = typeof payload.token_budget === 'number'
+    const tokenBudget = typeof payload.token_budget === 'number'
       ? payload.token_budget
       : initialInjectionTokenBudget;
-    const injection = expectedType === 'PRE_COMPACT' && injectionService
-      ? await buildInjection({
-          trigger: 'pre_compact',
-          query: typeof payload.context_summary === 'string'
-            ? payload.context_summary
-            : '',
-          scope: injectionScope(prepared),
-          tokenBudget: requestedTokenBudget,
-        })
+    const injection = expectedType === 'PRE_COMPACT'
+      ? await maybePreCompactInjection(ctx, prepared, payload, tokenBudget)
       : null;
     if (injection) {
       recordInjection(injection, session.ownerId, session.id);
@@ -1107,57 +1155,16 @@ function handleGetProvenanceDetail(req: Request, res: Response, ctx: AgentRouter
     if (!service || !repository || !db) {
       throw new AgentIntegrationError('Database unavailable', 'SCHEMA_NOT_READY', 503, true);
     }
-    const memoryId = typeof req.query.memory_id === 'string'
-      ? req.query.memory_id
-      : undefined;
-    const observationId = typeof req.query.observation_id === 'string'
-      ? req.query.observation_id
-      : undefined;
+    const { memoryId, observationId } = resolveProvenanceFilter(req.query);
     if (!memoryId && !observationId) {
-      throw new AgentIntegrationError(
-        'memory_id or observation_id is required',
-        'INVALID_ENVELOPE',
-        400,
-      );
+      throw new AgentIntegrationError('memory_id or observation_id is required', 'INVALID_ENVELOPE', 400);
     }
     const edges = repository.listProvenance({ memoryId, observationId }).slice(0, 100);
-    const memoryIds = [...new Set(edges.map(edge => edge.memoryId))];
-    const observationIds = [...new Set(
-      edges.flatMap(edge => edge.observationId ? [edge.observationId] : []),
-    )];
-    const sessionIds = [...new Set(
-      edges.flatMap(edge => edge.sessionId ? [edge.sessionId] : []),
-    )];
-    const memoryStatement = db.prepare(`
-      SELECT id, type, substr(content, 1, 240) AS content_preview, created_at
-      FROM memory_item
-      WHERE id = ?
-    `);
-    const memories = memoryIds.flatMap((id) => {
-      const row = memoryStatement.get(id) as {
-        id: string;
-        type: string;
-        content_preview: string;
-        created_at: string | null;
-      } | undefined;
-      return row ? [{
-        ...row,
-        source_deleted: edges.some(edge => edge.memoryId === id && edge.sourceDeleted),
-      }] : [];
-    });
-    const observations = observationIds.flatMap((id) => {
-      const observation = repository.getObservation(id);
-      return observation ? [observationDto(observation)] : [];
-    });
-    const sessions = sessionIds.flatMap((id) => {
-      const session = service.getSession(id);
-      return session ? [sessionDto(session)] : [];
-    });
     return res.json({
       edges: edges.map(provenanceDto),
-      memories,
-      observations,
-      sessions,
+      memories: loadProvenanceMemories(db, edges),
+      observations: loadProvenanceObservations(repository, edges),
+      sessions: loadProvenanceSessions(service, edges),
       truncated: edges.length === 100,
     });
   } catch (error) {
