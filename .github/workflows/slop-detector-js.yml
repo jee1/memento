@@ -1,6 +1,6 @@
-# Advisory JS/TS scan via ai-slop-detector. Not a required merge check (#314, #504).
-# Triggers: manual + weekly schedule. Project gate HALT (LDR/DDC) is expected for TS monorepos;
-# use per-file Clean/Suspicious/Critical counts and targeted refactors as the actionable signal.
+# Advisory JS/TS scan via ai-slop-detector. Not a required merge check (#314, #504, #547).
+# Triggers: manual + weekly schedule. CI-style review is the PR-quality signal; project
+# gate HALT (LDR/DDC) is expected for TS monorepos and remains diagnostic only.
 
 name: Slop detector (JS/TS)
 
@@ -32,6 +32,11 @@ jobs:
 
       - name: Install ai-slop-detector
         run: pip install --progress-bar off 'ai-slop-detector==3.8.5'
+
+      - name: Review repository (CI hard advisory)
+        run: |
+          set -o pipefail
+          slop-detector review . --js --config .slopconfig.yaml --ci-mode hard --no-color 2>&1 | tee slop-review-hard.log
 
       - name: Scan packages (prod src, JS/TS gate report)
         run: |
