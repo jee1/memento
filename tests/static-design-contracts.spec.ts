@@ -15,6 +15,13 @@ describe('static design contracts', () => {
     expect(source).not.toMatch(/style\s*=/);
   });
 
+  it('anchor-map.js uses session-protected /api/anchors/search instead of /tools/search_local', () => {
+    const source = readStaticFile('static/js/anchor-map.js');
+
+    expect(source).toContain('/api/anchors/search');
+    expect(source).not.toContain('/tools/search_local');
+  });
+
   it('anchor-map.js emits observable debug events for document-level listeners', () => {
     const source = readStaticFile('static/js/anchor-map.js');
 

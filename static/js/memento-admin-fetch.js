@@ -25,12 +25,18 @@
     return merged;
   }
 
+  function isProgrammaticToolsRequest(url) {
+    const path = typeof url === 'string' ? url : String(url);
+    return path.indexOf('/tools/') === 0 || path === '/tools';
+  }
+
   function performFetch(url, opts, retriedAfterAuthReset) {
     return fetch(url, opts).then(function (response) {
       const dashboardAuth = getDashboardAuth();
       if (
         response.status === 401 &&
         !retriedAfterAuthReset &&
+        !isProgrammaticToolsRequest(url) &&
         dashboardAuth &&
         typeof dashboardAuth.handleUnauthorized === 'function'
       ) {

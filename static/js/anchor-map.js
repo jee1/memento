@@ -593,7 +593,7 @@ async function performSearch() {
   try {
     // search_local 도구 호출
     const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
-    const response = await fetchFn(`/tools/search_local`, {
+    const response = await fetchFn(`/api/anchors/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

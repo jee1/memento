@@ -297,4 +297,33 @@ describe('dashboard auth assets', () => {
     expect(protectedCallCount).toBe(2);
     expect(harness.context.__MEMENTO_DASHBOARD_AUTH__.getState()).toBe('signed-in');
   });
+
+  it('does not treat /tools/* 401 as dashboard session expiration', async () => {
+    const harness = createDashboardHarness((url) => {
+      if (url === '/api/anchors/map?agent_id=default') {
+        return Promise.resolve(createJsonResponse(200, { anchors: [], nodes: [], links: [] }));
+      }
+      if (url === '/tools/search_local') {
+        return Promise.resolve(
+          createJsonResponse(401, {
+            message: 'Programmatic routes require Authorization: Bearer <key> or X-API-Key.'
+          })
+        );
+      }
+      throw new Error('Unexpected fetch: ' + url);
+    });
+
+    await flushPromises();
+    expect(harness.context.__MEMENTO_DASHBOARD_AUTH__.getState()).toBe('signed-in');
+
+    const response = await harness.context.mementoAdminFetch('/tools/search_local', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: 'test', slot: 'A', agent_id: 'default' })
+    });
+
+    expect(response.status).toBe(401);
+    expect(harness.context.__MEMENTO_DASHBOARD_AUTH__.getState()).toBe('signed-in');
+    expect(harness.root.dataset.authState).toBe('signed-in');
+  });
 });

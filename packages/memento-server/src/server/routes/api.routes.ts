@@ -8,7 +8,15 @@ import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
 import { buildAnchorMapData } from '../handlers/anchor-map.handler.js';
-import { MemoryNeighborService, MemoryNotFoundError, getVectorSearchEngine, logger } from '@memento/core';
+import { extractToolResultPayload } from '../handlers/tool-result.utils.js';
+import { createToolContext } from '../context.js';
+import {
+  MemoryNeighborService,
+  MemoryNotFoundError,
+  executeTool,
+  getVectorSearchEngine,
+  logger,
+} from '@memento/core';
 
 /**
  * API 라우터 생성
@@ -52,6 +60,35 @@ export function createApiRouter(
         error: 'Failed to get anchor map data',
         message: error instanceof Error ? error.message : 'Unknown error',
         agent_id: agentId
+      });
+    }
+  });
+
+  // Anchor Map 검색 (브라우저 세션; /tools/search_local 과 동일 result shape)
+  router.post('/anchors/search', async (req, res) => {
+    try {
+      if (!db || !serverServices) {
+        return res.status(500).json({
+          error: 'Services not initialized',
+          message: '서비스가 초기화되지 않았습니다',
+        });
+      }
+
+      const toolContext = createToolContext(db, serverServices);
+      const toolResult = await executeTool('search_local', req.body, toolContext);
+      const result = extractToolResultPayload(toolResult);
+
+      return res.json({
+        result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Anchor search failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to search anchors',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
