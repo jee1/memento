@@ -103,10 +103,17 @@ it('should behavior when condition', async () => {
 *   **도구:** PyPI 패키지 `ai-slop-detector`, CLI `slop-detector`.
 *   **설치:** `pip install ai-slop-detector`
 *   **권장 명령(저장소 루트):**
-    *   패키지 소스: `slop-detector --project packages --js --config .slopconfig.yaml`
+    *   CI/PR 판정 기준: `slop-detector review . --js --config .slopconfig.yaml --ci-mode hard`
+    *   패키지 소스 참고 스캔: `slop-detector --project packages --js --config .slopconfig.yaml`
+    *   패키지별 로컬 Gate 로그: `npm run quality:slop:gate` (`packages/*/src` 프로덕션 경로만 순회)
     *   대시보드 정적 스크립트: `slop-detector --project static/js --js --config .slopconfig.yaml`
     *   루트 전체(설정 반영): `slop-detector --project . --js --config .slopconfig.yaml`
-*   **`--gate`:** 상단 요약에 Python/LDR가 0으로 보일 수 있다. **`--js` 사용 시 JS/TS Analysis 구간을 게이트 판단의 주된 근거로 본다.**
-*   **CI:** 본 저장소의 필수 CI 게이트에는 포함하지 않는다. 선택적으로 GitHub Actions **「Slop detector (JS/TS)」** (`.github/workflows/slop-detector-js.yml`)를 사용한다: `workflow_dispatch`와 주간 `schedule`만 트리거하며 **필수 merge check로 등록하지 않는다**([#314](https://github.com/jee1/memento/issues/314)). 실패 시에도 워크플로는 참고용으로 `continue-on-error` 처리되어 Actions 기본 화면이 붉게 덮이지 않도록 했다. 로그·아티팩트의 **JS/TS Analysis** 구간을 본다(`--gate` 상단 HALT는 TS-only 맥락에서 오해 소지가 있음 — 위 `--gate` 항목 참고).
-*   **테스트 경로 무시(저장소 기본):** 루트 `.slopconfig.yaml`에는 `*.spec.ts`·`tests/**` 등을 **대량으로 넣지 않는다**([#221](https://github.com/jee1/memento/issues/221) 정책).
+*   **전체 스캔 vs review vs gate:**
+    *   전체 스캔(`--project ... --js`)은 파일별 Clean/Suspicious/Critical 신호를 보기 위한 탐색용이다.
+    *   `review ... --ci-mode hard`는 저장소/PR의 CI 판정용이다. TypeScript-only 저장소의 Python import 기반 DDC=0을 HALT 조건으로 직접 쓰지 않으므로, `--gate`의 TS DDC false positive와 분리한다.
+    *   `--gate`는 로컬 진단용 SNP Gate다. 이 저장소에서는 `packages/*/src` 프로덕션 경로로만 실행하고, 상단 LDR/DDC HALT보다 **JS/TS Analysis**와 평균 Deficit/패턴 페널티를 우선 해석한다.
+*   **TS-only DDC 주의:** `ddc=0.000`은 Python import 추적 기반 지표가 TypeScript 내부 import를 반영하지 못해 발생할 수 있는 false positive다. TS DDC=0만으로 코드 품질 실패나 PR 차단으로 판단하지 않는다.
+*   **CI:** 본 저장소의 필수 CI 게이트에는 포함하지 않는다. 선택적으로 GitHub Actions **「Slop detector (JS/TS)」** (`.github/workflows/slop-detector-js.yml`)를 사용한다: `workflow_dispatch`와 주간 `schedule`만 트리거하며 **필수 merge check로 등록하지 않는다**([#314](https://github.com/jee1/memento/issues/314)). 실패 시에도 워크플로는 참고용으로 `continue-on-error` 처리되어 Actions 기본 화면이 붉게 덮이지 않도록 했다. 로그·아티팩트의 `review --ci-mode hard` 결과와 **JS/TS Analysis** 구간을 본다(`--gate` 상단 HALT는 TS-only 맥락에서 오해 소지가 있음 — 위 `--gate` 항목 참고).
+*   **설정 필수:** 항상 `--config .slopconfig.yaml`을 지정한다. 지정하지 않으면 저장소 ignore가 적용되지 않아 빌드 산출물·테스트 경로·워크트리 복제본이 결과에 섞일 수 있다.
+*   **Test path ignore (repo default):** Current root `.slopconfig.yaml` excludes `*.spec.ts`, `tests/**`, and `packages/**/src/test/**` for prod-oriented slop signals. Use a local config or explicit `--project` when test code must be evaluated.
 *   **로컬 전용 오버라이드(선택):** Vitest 노이즈를 줄이려면 (1) 루트 `.slopconfig.yaml`을 복사해 `.slopconfig.local.yaml`을 만들고, (2) `ignore`에 개인용 패턴(예: `**/*.spec.ts`, `**/tests/**`)만 추가한다. 이 파일은 `.gitignore`에 포함되어 **커밋되지 않는다**. (3) 스캔 시 `--config .slopconfig.local.yaml`을 지정한다. 예: `slop-detector --project packages --js --config .slopconfig.local.yaml`
