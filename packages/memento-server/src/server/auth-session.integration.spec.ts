@@ -174,6 +174,27 @@ describe('auth session integration', () => {
     expect(api.statusCode).toBe(200);
   });
 
+  it('allows signed-in GET /api/anchors/agents with agent list shape', async () => {
+    const port = await startRealHttpServer();
+
+    const login = await postJson(port, '/auth/session', {}, {
+      Authorization: 'Bearer integration-admin-key'
+    });
+    const sessionCookie = login.headers['set-cookie']?.[0] ?? '';
+
+    const agents = await getJson(port, '/api/anchors/agents', { Cookie: sessionCookie });
+
+    expect(agents.statusCode).toBe(200);
+    const payload = JSON.parse(agents.body) as {
+      agents?: unknown[];
+      agent_ids?: unknown[];
+      timestamp?: string;
+    };
+    expect(Array.isArray(payload.agents)).toBe(true);
+    expect(Array.isArray(payload.agent_ids)).toBe(true);
+    expect(typeof payload.timestamp).toBe('string');
+  });
+
   it('allows signed-in POST /api/anchors/search with search_local-compatible result shape', async () => {
     const port = await startRealHttpServer();
 

@@ -36,6 +36,32 @@ export interface AnchorMapLink {
 }
 
 /**
+ * Agent ID별 앵커 개수 항목
+ */
+export interface AnchorAgentIdEntry {
+  agent_id: string;
+  anchor_count: number;
+}
+
+/**
+ * memory_id가 설정된 앵커를 agent_id별로 집계
+ */
+export function listAnchorAgentIds(db: Database.Database): AnchorAgentIdEntry[] {
+  const rows = db.prepare(`
+    SELECT agent_id, COUNT(*) AS anchor_count
+    FROM anchor
+    WHERE memory_id IS NOT NULL
+    GROUP BY agent_id
+    ORDER BY agent_id ASC
+  `).all() as Array<{ agent_id: string; anchor_count: number }>;
+
+  return rows.map(row => ({
+    agent_id: row.agent_id,
+    anchor_count: Number(row.anchor_count),
+  }));
+}
+
+/**
  * Anchor Map 데이터 타입
  */
 export interface AnchorMapData {
