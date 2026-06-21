@@ -377,6 +377,12 @@
       errorEl.style.display   = 'none';
     }
 
+    function scheduleGraphResize() {
+      requestAnimationFrame(function () {
+        window.dispatchEvent(new Event('resize'));
+      });
+    }
+
     // ── 데이터 로드 ───────────────────────────────────────────
     async function loadGraph(url) {
       clearStatus();
@@ -402,6 +408,7 @@
         if (!data.nodes || data.nodes.length === 0) {
           applySearchHighlight();
           showEmpty(true);
+          scheduleGraphResize();
           return;
         }
 
@@ -409,6 +416,7 @@
         lastGraphNodes = data.nodes;
         lastGraphEdges = edges;
         renderGraph(data.nodes, edges);
+        scheduleGraphResize();
 
       } catch (err) {
         showLoading(false);

@@ -9,16 +9,13 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <link rel="stylesheet" href="/static/css/tokens.css">
   <link rel="stylesheet" href="/static/css/components.css">
-  <script>
-    (function () {
-      var params = new URLSearchParams(window.location.search);
-      if (params.get('embed') === 'dashboard') {
-        document.documentElement.classList.add('graph-view--embedded');
-      }
-    })();
-  </script>
+  <script src="/static/js/graph-embed-init.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      height: 100%;
+    }
 
     body {
       font-family: var(--font-family-base);
@@ -27,6 +24,14 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+    }
+
+    .graph-view-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
       overflow: hidden;
     }
 
@@ -206,11 +211,13 @@
     .main {
       display: flex;
       flex: 1;
+      min-height: 0;
       overflow: hidden;
     }
 
     #graph-container {
       flex: 1;
+      min-height: 0;
       position: relative;
       overflow: hidden;
     }
@@ -455,8 +462,9 @@
       stroke-opacity: 0.12;
     }
 
-    /* Dashboard embed — Embedding Map 등 다른 탭과 동일한 라이트 패널 스타일 */
+    /* Dashboard embed — iframe viewport + Embedding Map 등과 동일한 라이트 패널 스타일 */
     .graph-view--embedded {
+      height: 100%;
       --color-bg-graph: var(--color-bg-main);
       --color-text-graph: var(--color-text-main);
       --color-border-graph: var(--color-border-light);
@@ -478,6 +486,10 @@
       --color-graph-badge-procedural-text: var(--color-agent-state-degraded-text);
       --color-graph-badge-working-bg: var(--color-memory-neutral-bg);
       --color-graph-badge-working-text: var(--color-memory-neutral-stroke);
+    }
+
+    .graph-view--embedded body {
+      height: 100%;
     }
 
     .graph-view--embedded header h1,

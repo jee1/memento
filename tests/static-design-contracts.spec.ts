@@ -63,10 +63,14 @@ describe('static design contracts', () => {
       .map((name) => readStaticFile('static/js/' + name))
       .join('\n');
     const graphSource = readStaticFile('static/graph.html');
+    const embedInitSource = readStaticFile('static/js/graph-embed-init.js');
 
     expect(tabsSource).toContain("'/graph?embed=dashboard'");
     expect(graphSource).toContain('graph-view--embedded');
-    expect(graphSource).toContain("params.get('embed') === 'dashboard'");
+    expect(graphSource).toContain('/static/js/graph-embed-init.js');
+    expect(graphSource).not.toMatch(/<script>\s*\(function\s*\(\)/);
+    expect(embedInitSource).toContain("params.get('embed') === 'dashboard'");
+    expect(embedInitSource).toContain('graph-view--embedded');
   });
 
   it('dashboard.css uses tokens for tab hover and auth messaging colors', () => {
