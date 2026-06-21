@@ -54,19 +54,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy package files and scripts, then install dependencies
+# Copy package files and scripts
 COPY package*.json ./
 COPY scripts/ ./scripts/
 COPY tests/fixtures/relation_testset.json ./tests/fixtures/relation_testset.json
-# 소스·워크스페이스 미복사 상태 — postinstall(auto-setup)은 패키지 경로가 없어 실패하므로 스크립트 생략
-RUN npm cache clean --force && npm install --omit=dev --ignore-scripts
-
-# Install sqlite-vec npm package and copy .so files to /usr/lib/ without .so extension
-RUN npm install sqlite-vec --build-from-source && \
-    find /app/node_modules -name "*.so" -type f && \
-    cp /app/node_modules/sqlite-vec-linux-x64/vec0.so /usr/lib/vec0 && \
-    chmod +x /usr/lib/vec0 && \
-    ls -la /usr/lib/vec0
 
 # 빌드 산출물: 워크스페이스 패키지 (런타임은 memento-server 진입점 사용)
 COPY --from=builder /app/packages/memento-core/dist ./packages/memento-core/dist
@@ -76,18 +67,20 @@ COPY --from=builder /app/packages/memento-server/dist ./packages/memento-server/
 COPY --from=builder /app/packages/memento-server/package.json ./packages/memento-server/package.json
 COPY --from=builder /app/packages/memento-agent-integration/dist ./packages/memento-agent-integration/dist
 COPY --from=builder /app/packages/memento-agent-integration/package.json ./packages/memento-agent-integration/package.json
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 
-# Install only production dependencies (skip scripts since they were already run in builder stage)
-# Rebuild better-sqlite3 for Debian Linux and install sqlite-vec
-# MiniLM HF 워밍업은 네트워크(Hugging Face) 의존 — 타임아웃·차단 시에도 빌드는 성공시키고 런타임에 캐시되도록 함.
-# 완전히 생략하려면: docker build --build-arg SKIP_TRANSFORMERS_WARMUP=1 ...
+# Install production dependencies and rebuild native modules for Debian/Linux
+# better-sqlite3, sharp: try prebuilt binaries first (much faster), fallback to source compile
+# sqlite-vec: build from source (no reliable prebuilts), copy .so to /usr/lib/
 ARG SKIP_TRANSFORMERS_WARMUP=0
 RUN npm ci --omit=dev --ignore-scripts && \
-    npm rebuild better-sqlite3 --build-from-source && \
+    (npm rebuild better-sqlite3 2>/dev/null || npm rebuild better-sqlite3 --build-from-source) && \
     npm install sqlite-vec --build-from-source && \
-    npm rebuild sharp && \
+    find /app/node_modules -name "*.so" -type f && \
+    cp /app/node_modules/sqlite-vec-linux-x64/vec0.so /usr/lib/vec0 && \
+    chmod +x /usr/lib/vec0 && \
+    ls -la /usr/lib/vec0 && \
+    (npm rebuild sharp 2>/dev/null || npm rebuild sharp --build-from-source) && \
     npm cache clean --force && \
     if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
       echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: MiniLM cache warmup skipped'; \
