@@ -38,24 +38,24 @@
         </section>
       </div>
       <div class="header-controls session-only">
-        <label for="agent-id-input">Agent ID:</label>
-        <input type="text" id="agent-id-input" class="m-input" value="default" placeholder="default">
-        <label for="search-query-input">Search:</label>
-        <input type="text" id="search-query-input" class="m-input" placeholder="Search memories...">
-        <select id="search-slot-select" class="m-input">
+        <label for="agent-id-input" title="맵·검색 API에 사용할 에이전트 식별자입니다. 기본값은 default입니다.">Agent ID:</label>
+        <input type="text" id="agent-id-input" class="m-input" value="default" placeholder="default" title="맵·검색 API에 사용할 에이전트 식별자입니다.">
+        <label for="search-query-input" title="선택한 앵커 슬롯 주변에서 검색합니다. 국소 결과가 부족하면 전역 검색으로 확장됩니다.">Search:</label>
+        <input type="text" id="search-query-input" class="m-input" placeholder="Search memories..." title="검색어를 입력하고 Search 또는 Enter를 누르세요.">
+        <select id="search-slot-select" class="m-input" title="검색 기준 앵커 슬롯입니다. A=1-hop, B=2-hop, C=3-hop 범위가 적용됩니다.">
           <option value="A" selected>Slot A</option>
           <option value="B">Slot B</option>
           <option value="C">Slot C</option>
         </select>
-        <button id="search-btn" class="m-button m-button--secondary">Search</button>
-        <button id="load-map-btn" class="m-button m-button--secondary">Load Map</button>
-        <button id="refresh-btn" class="m-button m-button--secondary">Refresh</button>
-        <button id="clear-search-btn" class="m-button m-button--ghost">Clear</button>
-        <label for="auto-refresh-toggle" style="margin-left: 1rem;">
-          <input type="checkbox" id="auto-refresh-toggle" style="margin-right: 0.25rem;">
+        <button id="search-btn" class="m-button m-button--secondary" title="앵커 주변 국소 검색을 실행합니다.">Search</button>
+        <button id="load-map-btn" class="m-button m-button--secondary" title="현재 Agent ID의 앵커 맵 데이터를 불러옵니다.">Load Map</button>
+        <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
+        <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
+        <label for="auto-refresh-toggle" class="header-controls__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
+          <input type="checkbox" id="auto-refresh-toggle" class="header-controls__checkbox">
           Auto Refresh
         </label>
-        <select id="refresh-interval-select" class="m-input" style="margin-left: 0.5rem;">
+        <select id="refresh-interval-select" class="m-input header-controls__interval" title="자동 새로고침 간격을 설정합니다.">
           <option value="5000">5초</option>
           <option value="10000" selected>10초</option>
           <option value="30000">30초</option>
@@ -79,14 +79,22 @@
       <main class="dashboard-main">
         <div class="sidebar">
           <section class="anchor-info">
-            <h2>Anchors</h2>
+            <h2 title="현재 Agent ID에 설정된 앵커 슬롯 목록입니다. 항목을 클릭하면 맵에서 해당 노드로 이동합니다.">Anchors</h2>
             <div id="anchor-list">
               <p class="no-data">No anchors set</p>
             </div>
           </section>
 
+          <section class="anchor-search-results">
+            <h2 title="검색 결과 목록입니다. 맵에 있는 항목은 강조 표시되며, 클릭하면 상세 정보를 볼 수 있습니다.">Search Results</h2>
+            <p id="anchor-search-status" class="anchor-search-status no-data" aria-live="polite">검색 후 결과가 여기에 표시됩니다.</p>
+            <div id="anchor-search-results">
+              <p class="no-data">No search results</p>
+            </div>
+          </section>
+
           <section class="memory-details">
-            <h2>Memory Details</h2>
+            <h2 title="맵 노드 또는 검색 결과를 선택하면 메모리 상세 정보가 표시됩니다.">Memory Details</h2>
             <div id="memory-details">
               <p class="no-data">Click on a node to view details</p>
             </div>
@@ -96,20 +104,20 @@
         <div class="map-container">
           <div id="anchor-map"></div>
           <div class="map-legend">
-            <h3>Legend</h3>
-            <div class="legend-item">
+            <h3 title="맵 노드 색상과 의미입니다.">Legend</h3>
+            <div class="legend-item" title="Slot A 앵커 — 1-hop 국소 검색 범위">
               <span class="legend-color anchor-a"></span>
               <span>Slot A (1-hop)</span>
             </div>
-            <div class="legend-item">
+            <div class="legend-item" title="Slot B 앵커 — 2-hop 국소 검색 범위">
               <span class="legend-color anchor-b"></span>
               <span>Slot B (2-hop)</span>
             </div>
-            <div class="legend-item">
+            <div class="legend-item" title="Slot C 앵커 — 3-hop 국소 검색 범위">
               <span class="legend-color anchor-c"></span>
               <span>Slot C (3-hop)</span>
             </div>
-            <div class="legend-item">
+            <div class="legend-item" title="앵커 주변 연결 메모리 노드">
               <span class="legend-color memory"></span>
               <span>Memory</span>
             </div>

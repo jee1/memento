@@ -33,6 +33,15 @@ import { SearchRanking,type SearchFeatures } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
 
+/** 하이브리드 검색 벡터 prefetch limit (VectorSearchService 상한 100 준수) */
+export function resolveHybridVectorPrefetchLimit(requestedLimit?: number): number {
+  const base = requestedLimit ?? 10;
+  return Math.min(
+    HYBRID_SEARCH.MAX_VECTOR_PREFETCH_LIMIT,
+    base * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER
+  );
+}
+
 // 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
 export interface ITextSearchEngine {
   search(
@@ -641,7 +650,7 @@ export class HybridSearchEngine {
       
       // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
       const searchOptions = {
-        limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
+        limit: resolveHybridVectorPrefetchLimit(query.limit),
         threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
         types: query.filters?.type,
         includeContent: true,
@@ -889,7 +898,7 @@ export class HybridSearchEngine {
     const fallbackStart = process.hrtime.bigint();
     const raw = await this.embeddingService.searchBySimilarity(db, query.query, {
       type: query.filters?.type as MemoryType[],
-      limit: (query.limit || 10) * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER,
+      limit: resolveHybridVectorPrefetchLimit(query.limit),
       threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
       ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
         ? { project_id: query.filters.project_id }

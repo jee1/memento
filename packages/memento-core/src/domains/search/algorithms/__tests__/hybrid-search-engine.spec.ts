@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
-import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType } from '../hybrid-search-engine.js';
+import { HybridSearchEngine, createHybridSearchEngine, SearchError, SearchErrorType, resolveHybridVectorPrefetchLimit } from '../hybrid-search-engine.js';
 import type { ITextSearchEngine, IEmbeddingService, IVectorSearchEngine, ISearchResultCombiner, IAdaptiveWeightCalculator, ISearchLogger, IProceduralMemoryMatcher } from '../hybrid-search-engine.js';
 import Database from 'better-sqlite3';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
@@ -73,6 +73,20 @@ const createMockLogger = (): ISearchLogger => ({
 });
 
 describe('HybridSearchEngine', () => {
+  describe('resolveHybridVectorPrefetchLimit', () => {
+    it('limit 100일 때 prefetch limit은 100을 넘지 않아야 함', () => {
+      expect(resolveHybridVectorPrefetchLimit(100)).toBe(100);
+    });
+
+    it('limit 5일 때 multiplier를 적용해야 함', () => {
+      expect(resolveHybridVectorPrefetchLimit(5)).toBe(10);
+    });
+
+    it('limit 미지정 시 기본값 10에 multiplier를 적용해야 함', () => {
+      expect(resolveHybridVectorPrefetchLimit()).toBe(20);
+    });
+  });
+
   let hybridSearchEngine: HybridSearchEngine;
   let mockTextEngine: ITextSearchEngine;
   let mockEmbeddingService: IEmbeddingService;
@@ -348,6 +362,52 @@ describe('HybridSearchEngine', () => {
           includeContent: true
         }),
         expect.any(String) // provider 파라미터
+      );
+      vectorSpy.mockRestore();
+      db.close();
+    });
+
+    it('limit이 100이어도 VEC 벡터 prefetch limit은 100을 넘기지 않아야 함', async () => {
+      const db = new Database(':memory:');
+      initializeTestDatabase(db);
+
+      insertMemoryItem(db, {
+        id: 'mem1',
+        type: 'episodic',
+        content: 'test content'
+      });
+
+      insertMemoryEmbedding(db, {
+        memory_id: 'mem1',
+        embedding: new Array(1536).fill(0.1),
+        embedding_provider: 'tfidf',
+        dim: 1536
+      });
+
+      const typeFilters = ['episodic', 'semantic'];
+      (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(true);
+      (mockVectorEngine.search as Mock).mockResolvedValue([]);
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockResultCombiner.combine as Mock).mockReturnValue([]);
+      const vectorSpy = vi
+        .spyOn(hybridSearchEngine as unknown as { generateQueryVector: (query: string, provider?: string) => Promise<{ embedding: number[]; provider: string }> }, 'generateQueryVector')
+        .mockResolvedValue({
+          embedding: new Array(512).fill(0.1),
+          actualProvider: 'tfidf'
+        });
+
+      await hybridSearchEngine.search(db, {
+        query: 'test query',
+        limit: 100,
+        filters: { type: typeFilters }
+      });
+
+      expect(mockVectorEngine.search).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.objectContaining({ limit: 100 }),
+        expect.any(String)
       );
       vectorSpy.mockRestore();
       db.close();

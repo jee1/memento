@@ -4,7 +4,7 @@
  */
 
 // 전역 변수 (맵 미렌더/빈 데이터에서도 .find/.filter 호출 시 TypeError 방지)
-let svg, simulation;
+let svg, simulation, zoomBehavior;
 let nodes = [];
 let links = [];
 let mapData = null;
@@ -57,6 +57,107 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+/** 검색 결과 item에서 memory ID 추출 */
+function getSearchItemId(item) {
+  if (!item) return '';
+  return item.id || item.memory_id || '';
+}
+
+/** 검색 결과 중 맵에 표시된 노드와 일치하는 개수 */
+function countSearchMapMatches(items, mapNodes) {
+  if (!Array.isArray(items) || !Array.isArray(mapNodes)) {
+    return 0;
+  }
+  const mapIds = new Set(mapNodes.map(n => n.id));
+  let matched = 0;
+  for (const item of items) {
+    if (mapIds.has(getSearchItemId(item))) {
+      matched += 1;
+    }
+  }
+  return matched;
+}
+
+/** 검색 상태 메시지 생성 */
+function buildSearchStatusMessage(searchResult, mapMatchCount) {
+  const total = searchResult?.items?.length ?? 0;
+  if (total === 0) {
+    return '검색 결과가 없습니다.';
+  }
+  const parts = [`${total}건 검색됨`, `맵 ${mapMatchCount}건 표시`];
+  if (searchResult.fallback_used) {
+    parts.push('전역 검색 사용');
+  }
+  if (searchResult.local_results_count != null && !searchResult.fallback_used) {
+    parts.push(`국소 ${searchResult.local_results_count}건`);
+  }
+  return parts.join(' · ');
+}
+
+function updateSearchStatus(message, isActive = false) {
+  const statusEl = document.getElementById('anchor-search-status');
+  if (!statusEl) return;
+  statusEl.textContent = message;
+  statusEl.classList.toggle('is-active', isActive);
+  statusEl.classList.toggle('no-data', !isActive);
+}
+
+function renderSearchResultsList() {
+  const container = document.getElementById('anchor-search-results');
+  if (!container) return;
+
+  if (!searchResults?.items?.length) {
+    container.innerHTML = '<p class="no-data">No search results</p>';
+    return;
+  }
+
+  const mapIds = new Set(Array.isArray(nodes) ? nodes.map(n => n.id) : []);
+  container.innerHTML = searchResults.items
+    .map((item, index) => {
+      const id = getSearchItemId(item);
+      if (!id) return '';
+      const onMap = mapIds.has(id);
+      const preview = escapeHtml((item.content || '').substring(0, 80));
+      const suffix = item.content && item.content.length > 80 ? '...' : '';
+      const similarity = item.similarity != null
+        ? escapeHtml((item.similarity * 100).toFixed(1) + '%')
+        : 'N/A';
+      return `
+        <div class="anchor-search-result-item${onMap ? ' is-on-map' : ''} js-search-result-item"
+             data-memory-id="${escapeHtml(id)}"
+             title="${onMap ? '맵에 표시됨 — 클릭하여 포커스' : '맵 밖 결과 — 클릭하여 상세 보기'}">
+          <div class="search-result-meta">#${index + 1} · ${escapeHtml(id)} · ${similarity}</div>
+          <div class="search-result-preview">${preview}${suffix}</div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function focusOnNode(node, scale = 1.5) {
+  if (!node || node.x == null || node.y == null || !zoomBehavior || !svg) {
+    return;
+  }
+  const width = parseFloat(svg.attr('width'));
+  const height = parseFloat(svg.attr('height'));
+  const transform = d3.zoomIdentity
+    .translate(width / 2 - node.x * scale, height / 2 - node.y * scale)
+    .scale(scale);
+  svg.transition().duration(750).call(zoomBehavior.transform, transform);
+}
+
+function displaySearchResultDetails(item) {
+  displayMemoryDetails({
+    id: getSearchItemId(item),
+    type: 'memory',
+    content: item.content || '',
+    hop_distance: item.hop_distance,
+    similarity: item.similarity,
+    importance: item.importance,
+    created_at: item.created_at,
+  });
+}
+
 function debugAnchorMap(eventName, detail) {
   if (window.localStorage.getItem('memento.debug') !== '1') {
     return;
@@ -91,13 +192,13 @@ function initializeMap() {
     .attr('height', height);
 
   // Zoom 패닝 기능
-  const zoom = d3.zoom()
+  zoomBehavior = d3.zoom()
     .scaleExtent([0.1, 4])
     .on('zoom', (event) => {
       svg.select('g').attr('transform', event.transform);
     });
 
-  svg.call(zoom);
+  svg.call(zoomBehavior);
 
   // 그룹 생성 (zoom 적용)
   svg.append('g');
@@ -135,6 +236,22 @@ function setupEventListeners() {
   document.getElementById('anchor-list')?.addEventListener('click', (e) => {
     const el = e.target.closest('.js-select-anchor');
     if (el && el.dataset.memoryId) selectAnchorNode(el.dataset.memoryId);
+  });
+
+  document.getElementById('anchor-search-results')?.addEventListener('click', (e) => {
+    const el = e.target.closest('.js-search-result-item');
+    if (!el?.dataset.memoryId || !searchResults?.items) return;
+    const item = searchResults.items.find(i => getSearchItemId(i) === el.dataset.memoryId);
+    if (!item) return;
+    if (Array.isArray(nodes)) {
+      const node = nodes.find(n => n.id === el.dataset.memoryId);
+      if (node) {
+        selectNode(node);
+        focusOnNode(node, 1.5);
+        return;
+      }
+    }
+    displaySearchResultDetails(item);
   });
   
   // 자동 새로고침 토글
@@ -332,6 +449,10 @@ function renderMap() {
 
   simulation.force('link').links(links);
   simulation.alpha(1).restart();
+
+  if (searchResults?.items?.length) {
+    highlightSearchResults();
+  }
 }
 
 /**
@@ -546,19 +667,7 @@ function selectAnchorNode(memoryId) {
   const node = nodes.find(n => n.id === memoryId);
   if (node) {
     selectNode(node);
-    
-    // 맵에서 해당 노드로 이동 (노드가 보이도록 확대 및 이동)
-    const width = svg.attr('width');
-    const height = svg.attr('height');
-    if (node.x && node.y) {
-      const transform = d3.zoomIdentity
-        .translate(parseFloat(width) / 2 - node.x, parseFloat(height) / 2 - node.y)
-        .scale(2);
-      svg.transition().duration(750).call(
-        svg.node().dispatchEvent,
-        new CustomEvent('zoom', { detail: { transform } })
-      );
-    }
+    focusOnNode(node, 2);
   }
 }
 
@@ -591,7 +700,8 @@ async function performSearch() {
   }
   
   try {
-    // search_local 도구 호출
+    updateSearchStatus('검색 중...', false);
+
     const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
     const response = await fetchFn(`/api/anchors/search`, {
       method: 'POST',
@@ -613,14 +723,13 @@ async function performSearch() {
     const result = await response.json();
     searchResults = result.result || result;
     
-    // 검색 결과 하이라이트
     highlightSearchResults();
     
-    // 검색 결과 요약 표시
     const resultCount = searchResults.items ? searchResults.items.length : 0;
     debugAnchorMap('search-complete', { resultCount });
     
   } catch (error) {
+    updateSearchStatus(`검색 실패: ${error.message}`, false);
     debugAnchorMap('search-error', { message: error.message });
     alert(`검색 중 오류가 발생했습니다: ${error.message}`);
   }
@@ -631,38 +740,30 @@ async function performSearch() {
  */
 function highlightSearchResults() {
   if (!searchResults || !searchResults.items) {
+    updateSearchStatus('검색 결과가 없습니다.', false);
+    renderSearchResultsList();
     return;
   }
   
-  // 하이라이트할 노드 ID 수집
   highlightedNodeIds.clear();
   searchResults.items.forEach(item => {
-    highlightedNodeIds.add(item.id);
+    const id = getSearchItemId(item);
+    if (id) highlightedNodeIds.add(id);
   });
   
-  // 노드 스타일 업데이트
   updateNodeHighlight();
+
+  const mapMatchCount = countSearchMapMatches(searchResults.items, nodes);
+  updateSearchStatus(buildSearchStatusMessage(searchResults, mapMatchCount), true);
+  renderSearchResultsList();
   
-  // 검색 결과가 있는 경우 첫 번째 결과로 이동 (맵 노드 배열이 준비된 경우에만 줌/선택)
-  if (searchResults.items.length > 0) {
-    const firstResult = searchResults.items[0];
-    if (Array.isArray(nodes)) {
-      const node = nodes.find(n => n.id === firstResult.id);
-      if (node) {
-        selectNode(node);
-        // 노드가 보이도록 확대 및 이동
-        const width = svg.attr('width');
-        const height = svg.attr('height');
-        if (node.x && node.y) {
-          const transform = d3.zoomIdentity
-            .translate(parseFloat(width) / 2 - node.x, parseFloat(height) / 2 - node.y)
-            .scale(1.5);
-          svg.transition().duration(750).call(
-            svg.node().dispatchEvent,
-            new CustomEvent('zoom', { detail: { transform } })
-          );
-        }
-      }
+  if (searchResults.items.length > 0 && Array.isArray(nodes)) {
+    const firstOnMap = searchResults.items
+      .map(item => nodes.find(n => n.id === getSearchItemId(item)))
+      .find(Boolean);
+    if (firstOnMap) {
+      selectNode(firstOnMap);
+      focusOnNode(firstOnMap, 1.5);
     }
   }
 }
@@ -672,28 +773,30 @@ function highlightSearchResults() {
  */
 function updateNodeHighlight() {
   const nodeElements = svg.selectAll('.node');
+  const mapMatchCount = Array.isArray(nodes)
+    ? nodes.filter(n => highlightedNodeIds.has(n.id)).length
+    : 0;
+  const shouldDimOthers = highlightedNodeIds.size > 0 && mapMatchCount > 0;
   
   nodeElements
     .classed('highlighted', d => highlightedNodeIds.has(d.id))
     .attr('stroke-width', d => {
       if (highlightedNodeIds.has(d.id)) {
-        return d.type === 'anchor' ? 5 : 4; // 하이라이트된 노드는 더 두꺼운 테두리
+        return d.type === 'anchor' ? 5 : 4;
       }
       return d.type === 'anchor' ? 3 : 2;
     })
     .attr('opacity', d => {
-      // 하이라이트되지 않은 노드는 약간 투명하게
-      if (highlightedNodeIds.size > 0 && !highlightedNodeIds.has(d.id)) {
+      if (shouldDimOthers && !highlightedNodeIds.has(d.id)) {
         return 0.3;
       }
-      return 1.0;
+      return d.embedding_missing ? 0.6 : 1.0;
     });
   
-  // 링크도 하이라이트 (검색 결과와 연결된 링크)
   const linkElements = svg.selectAll('.link');
   linkElements
     .attr('opacity', d => {
-      if (highlightedNodeIds.size > 0) {
+      if (shouldDimOthers) {
         const sourceHighlighted = highlightedNodeIds.has(d.source.id || d.source);
         const targetHighlighted = highlightedNodeIds.has(d.target.id || d.target);
         if (sourceHighlighted || targetHighlighted) {
@@ -732,7 +835,8 @@ function clearSearch() {
   document.getElementById('search-query-input').value = '';
   document.getElementById('search-slot-select').value = 'A';
   
-  // 노드 스타일 복원
+  updateSearchStatus('검색 후 결과가 여기에 표시됩니다.', false);
+  renderSearchResultsList();
   updateNodeHighlight();
   
   debugAnchorMap('search-cleared');
