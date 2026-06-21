@@ -94,6 +94,28 @@ function buildSearchStatusMessage(searchResult, mapMatchCount) {
   return parts.join(' · ');
 }
 
+function normalizeMapData(data) {
+  return {
+    ...(data || {}),
+    anchors: Array.isArray(data?.anchors) ? data.anchors : [],
+    nodes: Array.isArray(data?.nodes) ? data.nodes : [],
+    links: Array.isArray(data?.links) ? data.links : [],
+    timestamp: data?.timestamp || new Date().toISOString(),
+  };
+}
+
+function normalizeSearchResults(payload) {
+  const candidate = payload?.result || payload || {};
+  return {
+    ...candidate,
+    items: Array.isArray(candidate.items) ? candidate.items : [],
+  };
+}
+
+function getLinkNodeId(value) {
+  return value && typeof value === 'object' ? value.id : value;
+}
+
 function updateSearchStatus(message, isActive = false) {
   const statusEl = document.getElementById('anchor-search-status');
   if (!statusEl) return;
@@ -181,6 +203,15 @@ document.addEventListener('DOMContentLoaded', () => {
  * 맵 초기화
  */
 function initializeMap() {
+  if (typeof d3 === 'undefined') {
+    const fallbackContainer = document.getElementById('anchor-map');
+    if (fallbackContainer) {
+      fallbackContainer.innerHTML = '<p class="no-data">Anchor Map renderer is unavailable.</p>';
+    }
+    debugAnchorMap('d3-unavailable');
+    return;
+  }
+
   const container = d3.select('#anchor-map');
   const width = container.node().getBoundingClientRect().width;
   const height = container.node().getBoundingClientRect().height;
@@ -300,7 +331,7 @@ async function loadMapData() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const newMapData = await response.json();
+    const newMapData = normalizeMapData(await response.json());
     
     // 데이터 변경 감지
     const hasChanged = !mapData || 
@@ -330,10 +361,21 @@ async function loadMapData() {
  * 맵 렌더링
  */
 function renderMap() {
+  if (!svg || !simulation) {
+    return;
+  }
+
+  mapData = normalizeMapData(mapData);
+
   if (!mapData || !mapData.nodes || mapData.nodes.length === 0) {
     nodes = [];
     links = [];
-    svg.selectAll('*').remove();
+    const g = svg.select('g');
+    if (g.node()) {
+      g.selectAll('*').remove();
+    } else {
+      svg.selectAll('*').remove();
+    }
     return;
   }
 
@@ -348,11 +390,13 @@ function renderMap() {
     radius: d.type === 'anchor' ? 12 : 8
   }));
 
-  links = mapData.links.map(d => ({
-    ...d,
-    source: typeof d.source === 'string' ? nodes.find(n => n.id === d.source) : d.source,
-    target: typeof d.target === 'string' ? nodes.find(n => n.id === d.target) : d.target
-  }));
+  links = mapData.links
+    .map(d => ({
+      ...d,
+      source: typeof d.source === 'string' ? nodes.find(n => n.id === d.source) : d.source,
+      target: typeof d.target === 'string' ? nodes.find(n => n.id === d.target) : d.target
+    }))
+    .filter(d => d.source && d.target);
 
   // Hop 거리에 따른 원형 레이어 배치 (초기 위치)
   layoutNodesByHop();
@@ -632,6 +676,7 @@ function displayMemoryDetails(node) {
  */
 function updateAnchorList() {
   const anchorListContainer = document.getElementById('anchor-list');
+  mapData = normalizeMapData(mapData);
   
   if (!mapData || !mapData.anchors || mapData.anchors.length === 0) {
     anchorListContainer.innerHTML = '<p class="no-data">No anchors set</p>';
@@ -720,8 +765,7 @@ async function performSearch() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const result = await response.json();
-    searchResults = result.result || result;
+    searchResults = normalizeSearchResults(await response.json());
     
     highlightSearchResults();
     
@@ -772,6 +816,10 @@ function highlightSearchResults() {
  * 노드 하이라이트 업데이트
  */
 function updateNodeHighlight() {
+  if (!svg) {
+    return;
+  }
+
   const nodeElements = svg.selectAll('.node');
   const mapMatchCount = Array.isArray(nodes)
     ? nodes.filter(n => highlightedNodeIds.has(n.id)).length
@@ -797,8 +845,8 @@ function updateNodeHighlight() {
   linkElements
     .attr('opacity', d => {
       if (shouldDimOthers) {
-        const sourceHighlighted = highlightedNodeIds.has(d.source.id || d.source);
-        const targetHighlighted = highlightedNodeIds.has(d.target.id || d.target);
+        const sourceHighlighted = highlightedNodeIds.has(getLinkNodeId(d.source));
+        const targetHighlighted = highlightedNodeIds.has(getLinkNodeId(d.target));
         if (sourceHighlighted || targetHighlighted) {
           return 1.0;
         }
@@ -808,8 +856,8 @@ function updateNodeHighlight() {
     })
     .attr('stroke-width', d => {
       if (highlightedNodeIds.size > 0) {
-        const sourceHighlighted = highlightedNodeIds.has(d.source.id || d.source);
-        const targetHighlighted = highlightedNodeIds.has(d.target.id || d.target);
+        const sourceHighlighted = highlightedNodeIds.has(getLinkNodeId(d.source));
+        const targetHighlighted = highlightedNodeIds.has(getLinkNodeId(d.target));
         if (sourceHighlighted && targetHighlighted) {
           return 3;
         } else if (sourceHighlighted || targetHighlighted) {
