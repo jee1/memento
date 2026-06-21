@@ -39,6 +39,7 @@ const mockState = vi.hoisted(() => {
     setTelemetryCleanupRepository: vi.fn(),
     setIntrospectionScanCache: vi.fn(),
     setSleepConsolidationService: vi.fn(),
+    setAnchorManager: vi.fn(),
     start: vi.fn().mockResolvedValue(undefined),
     getStatus: vi.fn(() => ({
       isRunning: true,
