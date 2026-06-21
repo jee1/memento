@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(window.location.search);
   if (params.get('embed') === 'dashboard') {
     document.documentElement.classList.add('graph-view--embedded');
   }
