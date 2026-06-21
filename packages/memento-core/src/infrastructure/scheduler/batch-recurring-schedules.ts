@@ -7,6 +7,7 @@ export interface BatchRecurringScheduleContext {
   readonly hasConsolidationScoreWorker: boolean;
   readonly hasSleepConsolidation: boolean;
   readonly hasTelemetryCleanup: boolean;
+  readonly hasAnchorManager: boolean;
   scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) => void;
   readonly lastExecution: Map<string, Date>;
   readonly intervals: Map<string, ReturnType<typeof setInterval>>;
@@ -25,6 +26,7 @@ export interface BatchRecurringScheduleContext {
   runMemoryReviewCandidatesJob: () => Promise<BatchJobResult>;
   runSleepConsolidationBatch: () => Promise<BatchJobResult>;
   runTelemetryCleanupBatch: () => Promise<void>;
+  runAnchorAutoRefresh: () => Promise<BatchJobResult>;
 }
 
 export function scheduleCleanupJob(ctx: BatchRecurringScheduleContext): void {
@@ -241,9 +243,25 @@ export function scheduleTelemetryCleanup(ctx: BatchRecurringScheduleContext): vo
   );
 }
 
+export function scheduleAnchorAutoRefresh(ctx: BatchRecurringScheduleContext): void {
+  ctx.scheduleJob(
+    'anchor_auto_refresh',
+    ctx.config.anchorAutoRefreshInterval,
+    async () => { await ctx.runAnchorAutoRefresh(); },
+    9
+  );
+}
+
 export function registerAllRecurringJobs(ctx: BatchRecurringScheduleContext): void {
   scheduleCoreMaintenanceJobs(ctx);
   scheduleConsolidationRelationAndLogJobs(ctx);
   scheduleAugmentationAndTelemetryJobs(ctx);
   scheduleMetaMemoryAndReviewJobs(ctx);
+  if (ctx.config.anchorAutoRefreshEnabled && ctx.hasAnchorManager) {
+    scheduleAnchorAutoRefresh(ctx);
+  } else {
+    ctx.log('anchor_auto_refresh schedule disabled (ANCHOR_AUTO_REFRESH_ENABLED=false or anchorManager not available)', {
+      level: 'info'
+    });
+  }
 }

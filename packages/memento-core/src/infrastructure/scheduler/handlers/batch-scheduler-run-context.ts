@@ -19,6 +19,7 @@ import type { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-j
 import type { SleepConsolidationService } from '../../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../../domains/telemetry/repositories/telemetry-repository.js';
 import type { PerformanceMonitor } from '../../../domains/monitoring/services/performance-monitor.js';
+import type { AnchorManager } from '../../../domains/anchor/services/anchor/anchor-manager.js';
 
 /** Matches `BatchScheduler.log` (third arg defaults to info). */
 export type BatchSchedulerLogMethod = (
@@ -51,6 +52,7 @@ export interface BatchSchedulerRunContext {
   readonly telemetryCleanupBatchJob: MutableJobRef<TelemetryCleanupBatchJob>;
   readonly lastExecution: Map<string, Date>;
   readonly totalExecutions: Map<string, number>;
+  readonly anchorManager: AnchorManager | null;
   log: BatchSchedulerLogMethod;
   emitMemoryReviewCandidatesRunRecord: (result: BatchJobResult) => Promise<void>;
 }

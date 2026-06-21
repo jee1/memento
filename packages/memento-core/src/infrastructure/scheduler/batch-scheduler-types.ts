@@ -29,6 +29,10 @@ export interface BatchJobConfig {
    * Manual/HTTP `runJob('memory_review_candidates')` and `/admin/batch/run` still work.
    */
   memoryReviewCandidatesSchedulerEnabled: boolean;
+  /** Interval (ms) for the periodic anchor auto-refresh batch job. */
+  anchorAutoRefreshInterval: number;
+  /** When false, skip registering the anchor auto-refresh periodic schedule. */
+  anchorAutoRefreshEnabled: boolean;
 
   maxBatchSize: number;
   enableLogging: boolean;

@@ -9,12 +9,14 @@ import { TelemetryService } from '../domains/telemetry/services/telemetry-servic
 import type { MemoryEmbeddingService } from '../domains/memory/services/memory-embedding-service.js';
 import type { RuntimeDiagnosticsLogger } from '../domains/monitoring/services/runtime-diagnostics-logger.js';
 import type { IReflexionWorker } from '../shared/interfaces/reflexion-worker.interface.js';
+import type { AnchorManager } from '../domains/anchor/services/anchor/anchor-manager.js';
 
 export async function createBatchTelemetryRelationAndSleep(
   db: Database.Database,
   embeddingService: MemoryEmbeddingService,
   runtimeDiagnosticsLogger: RuntimeDiagnosticsLogger,
-  reflexionWorker: IReflexionWorker | undefined
+  reflexionWorker: IReflexionWorker | undefined,
+  anchorManager?: AnchorManager
 ): Promise<{
   introspectionScanCache: IntrospectionScanCache;
   telemetryRepository: TelemetryRepository;
@@ -30,6 +32,9 @@ export async function createBatchTelemetryRelationAndSleep(
   batchScheduler.setTelemetryCleanupRepository(telemetryRepository);
   const telemetryService = new TelemetryService(telemetryRepository, () => getBatchScheduler());
   batchScheduler.setIntrospectionScanCache(introspectionScanCache);
+  if (anchorManager) {
+    batchScheduler.setAnchorManager(anchorManager);
+  }
   const relationGraph = createRelationGraph(db);
   const sleepConsolidationService = new SleepConsolidationService(db, {
     relationGraph: relationGraph,

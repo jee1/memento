@@ -105,7 +105,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       db,
       embeddingService,
       runtimeDiagnosticsLogger,
-      reflexionWorker
+      reflexionWorker,
+      anchorManager
     );
     const { runtimeDiagnosticsSamplerCleanup } = createRuntimeDiagnosticsSampler({
       mementoConfig,
