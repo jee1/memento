@@ -110,6 +110,11 @@ export const HYBRID_SEARCH = {
   VECTOR_SEARCH_LIMIT_MULTIPLIER: 2,
 
   /**
+   * VectorSearchService가 허용하는 prefetch limit 상한
+   */
+  MAX_VECTOR_PREFETCH_LIMIT: 100,
+
+  /**
    * 벡터 검색 기본 임계값 (일반 경로)
    */
   VECTOR_SEARCH_THRESHOLD: 0.5,
