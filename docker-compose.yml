@@ -1,6 +1,13 @@
 version: '3.8'
 
 services:
+  memento-base:
+    profiles:
+      - base-only
+    extends:
+      file: docker-compose.base.yml
+      service: memento-base
+
   memento-mcp-server:
     extends:
       file: docker-compose.base.yml

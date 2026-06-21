@@ -54,6 +54,8 @@ import {
   runSleepConsolidationBatch,
   runTelemetryCleanupBatch
 } from './handlers/batch-scheduler-sleep-telemetry-handlers.js';
+import { runAnchorAutoRefresh } from './handlers/batch-scheduler-anchor-handlers.js';
+import type { AnchorManager } from '../../domains/anchor/services/anchor/anchor-manager.js';
 import {
   registerAllRecurringJobs,
   scheduleCleanupJob,
@@ -95,6 +97,7 @@ export class BatchScheduler implements IBatchScheduler {
   private telemetryCleanupRepository: TelemetryRepository | null = null;
   private telemetryCleanupBatchJob: TelemetryCleanupBatchJob | null = null;
   private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
+  private anchorManager: AnchorManager | null = null;
   private jobExecutionCoordinator!: BatchJobExecutionCoordinator;
 
   constructor(
@@ -198,6 +201,7 @@ export class BatchScheduler implements IBatchScheduler {
       },
       lastExecution: self.lastExecution,
       totalExecutions: self.totalExecutions,
+      anchorManager: self.anchorManager,
       log: self.log.bind(self),
       emitMemoryReviewCandidatesRunRecord: self.emitMemoryReviewCandidatesRunRecord.bind(self)
     };
@@ -262,6 +266,7 @@ export class BatchScheduler implements IBatchScheduler {
       hasConsolidationScoreWorker: this.consolidationScoreWorker !== null,
       hasSleepConsolidation: this.sleepConsolidationService != null,
       hasTelemetryCleanup: this.telemetryCleanupRepository != null,
+      hasAnchorManager: this.anchorManager != null,
       scheduleJob: (name, interval, job, priority) => this.scheduleJob(name, interval, job, priority),
       lastExecution: this.lastExecution,
       intervals: this.intervals,
@@ -279,7 +284,8 @@ export class BatchScheduler implements IBatchScheduler {
       runMetaMemoryIntrospection: () => this.runMetaMemoryIntrospection(),
       runMemoryReviewCandidatesJob: () => this.runMemoryReviewCandidatesJob(),
       runSleepConsolidationBatch: () => this.runSleepConsolidationBatch(),
-      runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch()
+      runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch(),
+      runAnchorAutoRefresh: () => this.runAnchorAutoRefresh()
     };
   }
 
@@ -564,7 +570,7 @@ export class BatchScheduler implements IBatchScheduler {
    * 직접 실행하되 lastExecution과 totalExecutions을 기록함
    */
   async runJob(
-    jobType: 'cleanup' | 'monitoring' | 'healthcheck' | 'meta_memory_introspection' | 'memory_review_candidates'
+    jobType: 'cleanup' | 'monitoring' | 'healthcheck' | 'meta_memory_introspection' | 'memory_review_candidates' | 'anchor_auto_refresh'
   ): Promise<BatchJobResult> {
     let result: BatchJobResult;
 
@@ -583,6 +589,9 @@ export class BatchScheduler implements IBatchScheduler {
         break;
       case 'memory_review_candidates':
         result = await this.runMemoryReviewCandidatesJob();
+        break;
+      case 'anchor_auto_refresh':
+        result = await this.runAnchorAutoRefresh();
         break;
       default:
         throw new Error(`Unknown job type: ${jobType}`);
@@ -857,6 +866,10 @@ export class BatchScheduler implements IBatchScheduler {
     this.diagnosticsLogger = logger;
   }
 
+  setAnchorManager(anchorManager: AnchorManager | null): void {
+    this.anchorManager = anchorManager;
+  }
+
   getLastJobRunMeta(
     name: string
   ): { at: Date; success: boolean; durationMs: number } | undefined {
@@ -870,6 +883,10 @@ export class BatchScheduler implements IBatchScheduler {
 
   private async runSleepConsolidationBatch(): Promise<BatchJobResult> {
     return runSleepConsolidationBatch(this.buildRunContext());
+  }
+
+  private async runAnchorAutoRefresh(): Promise<BatchJobResult> {
+    return runAnchorAutoRefresh(this.buildRunContext());
   }
 }
 

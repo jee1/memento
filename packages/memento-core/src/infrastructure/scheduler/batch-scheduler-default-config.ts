@@ -48,6 +48,15 @@ export function mergeBatchSchedulerJobConfig(overrides?: Partial<BatchJobConfig>
     memoryReviewCandidatesSchedulerEnabled: resolveBoolean('MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED', {
       defaultValue: true
     }),
+    anchorAutoRefreshInterval: resolveValidatedNumber(
+      'ANCHOR_AUTO_REFRESH_INTERVAL_MS',
+      6 * 60 * 60 * 1000,
+      n => n >= 60_000,
+      '최솟값 60000'
+    ),
+    anchorAutoRefreshEnabled: resolveBoolean('ANCHOR_AUTO_REFRESH_ENABLED', {
+      defaultValue: true
+    }),
     maxBatchSize: 1000,
     enableLogging: true,
     enableNotifications: false,
