@@ -37,7 +37,21 @@
           <p id="dashboard-auth-message" class="dashboard-auth-message" aria-live="polite"></p>
         </section>
       </div>
-      <div class="header-controls session-only">
+    </header>
+
+    <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
+      <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
+      <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
+      <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
+      <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
+      <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
+      <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
+    </div>
+
+    
+
+    <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
+      <div class="anchor-map-toolbar" aria-label="Anchor Map controls">
         <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">Agent ID:</label>
         <select id="agent-id-select" class="m-input" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">
           <option value="default">default (앵커 없음)</option>
@@ -53,31 +67,17 @@
         <button id="load-map-btn" class="m-button m-button--secondary" title="현재 Agent ID의 앵커 맵 데이터를 불러옵니다.">Load Map</button>
         <button id="refresh-btn" class="m-button m-button--secondary" title="맵 데이터를 다시 불러와 그래프를 갱신합니다.">Refresh</button>
         <button id="clear-search-btn" class="m-button m-button--ghost" title="검색어, 하이라이트, 검색 결과 목록을 초기화합니다.">Clear</button>
-        <label for="auto-refresh-toggle" class="header-controls__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
-          <input type="checkbox" id="auto-refresh-toggle" class="header-controls__checkbox">
+        <label for="auto-refresh-toggle" class="anchor-map-toolbar__auto-refresh" title="켜면 선택한 간격마다 맵 데이터를 자동으로 갱신합니다.">
+          <input type="checkbox" id="auto-refresh-toggle" class="anchor-map-toolbar__checkbox">
           Auto Refresh
         </label>
-        <select id="refresh-interval-select" class="m-input header-controls__interval" title="자동 새로고침 간격을 설정합니다.">
+        <select id="refresh-interval-select" class="m-input anchor-map-toolbar__interval" title="자동 새로고침 간격을 설정합니다.">
           <option value="5000">5초</option>
           <option value="10000" selected>10초</option>
           <option value="30000">30초</option>
           <option value="60000">1분</option>
         </select>
       </div>
-    </header>
-
-    <div class="m-tab-bar" role="tablist" aria-label="대시보드 보기 전환">
-      <button type="button" id="dashboard-tab-anchor" class="m-tab-btn active session-only" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-anchor-map" data-tab="anchor">Anchor Map</button>
-      <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">Embedding Map</button>
-      <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">Memory Graph</button>
-      <button type="button" id="dashboard-tab-review" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-review-candidates" data-tab="review">Review Queue <span id="rc-tab-badge" class="m-tab-badge hidden" aria-hidden="true"></span></button>
-      <button type="button" id="dashboard-tab-agent-sessions" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-agent-sessions" data-tab="agent-sessions">Agent Sessions</button>
-      <button type="button" id="dashboard-tab-evolution-demo" class="m-tab-btn" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-evolution-demo" data-tab="evolution-demo">기억 진화 데모</button>
-    </div>
-
-    
-
-    <div id="tab-anchor-map" class="tab-panel active session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="false">
       <main class="dashboard-main">
         <div class="sidebar">
           <section class="anchor-info">
