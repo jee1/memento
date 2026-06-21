@@ -193,9 +193,10 @@ function debugAnchorMap(eventName, detail) {
 }
 
 // 초기화
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initializeMap();
   setupEventListeners();
+  await loadAgentIdOptions();
   loadMapData();
 });
 
@@ -302,10 +303,9 @@ function setupEventListeners() {
     }
   });
   
-  document.getElementById('agent-id-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      loadMapData();
-    }
+  document.getElementById('agent-id-select').addEventListener('change', () => {
+    loadMapData();
+    resubscribeWebSocket();
   });
   
   document.getElementById('search-query-input').addEventListener('keypress', (e) => {
@@ -319,10 +319,73 @@ function setupEventListeners() {
 }
 
 /**
+ * 선택된 Agent ID 반환
+ */
+function getSelectedAgentId() {
+  const select = document.getElementById('agent-id-select');
+  return select?.value || 'default';
+}
+
+/**
+ * Agent ID 선택 목록 로드
+ */
+async function loadAgentIdOptions() {
+  const select = document.getElementById('agent-id-select');
+  if (!select) return;
+
+  const previousSelection = getSelectedAgentId();
+
+  try {
+    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
+    const response = await fetchFn('/api/anchors/agents');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const agents = Array.isArray(payload.agents) ? payload.agents : [];
+
+    select.innerHTML = '';
+
+    if (agents.length === 0) {
+      const option = document.createElement('option');
+      option.value = 'default';
+      option.textContent = 'default (앵커 없음)';
+      select.appendChild(option);
+    } else {
+      for (const entry of agents) {
+        const option = document.createElement('option');
+        option.value = entry.agent_id;
+        option.textContent = `${entry.agent_id} (${entry.anchor_count} anchors)`;
+        select.appendChild(option);
+      }
+    }
+
+    const validValues = Array.from(select.options).map(option => option.value);
+    if (validValues.includes(previousSelection)) {
+      select.value = previousSelection;
+    } else if (agents.length > 0) {
+      select.value = agents[0].agent_id;
+    } else {
+      select.value = 'default';
+    }
+  } catch (error) {
+    debugAnchorMap('agent-list-load-error', { message: error.message });
+    if (select.options.length === 0) {
+      const option = document.createElement('option');
+      option.value = 'default';
+      option.textContent = 'default (앵커 없음)';
+      select.appendChild(option);
+      select.value = 'default';
+    }
+  }
+}
+
+/**
  * 맵 데이터 로드
  */
 async function loadMapData() {
-  const agentId = document.getElementById('agent-id-input').value || 'default';
+  const agentId = getSelectedAgentId();
   
   try {
     const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
@@ -348,6 +411,8 @@ async function loadMapData() {
     } else {
       debugAnchorMap('map-unchanged');
     }
+
+    await loadAgentIdOptions();
   } catch (error) {
     debugAnchorMap('load-error', { message: error.message });
     // 에러 알림은 자동 새로고침 시에는 표시하지 않음
@@ -731,7 +796,7 @@ async function performSearch() {
   const query = document.getElementById('search-query-input').value.trim();
   const slotSelect = document.getElementById('search-slot-select');
   const slot = slotSelect ? slotSelect.value : 'A'; // 기본값: A
-  const agentId = document.getElementById('agent-id-input').value || 'default';
+  const agentId = getSelectedAgentId();
   
   if (!query) {
     alert('검색어를 입력해주세요.');
@@ -933,15 +998,7 @@ function tryConnectWebSocket() {
     
     websocket.onopen = () => {
       debugAnchorMap('websocket-open');
-      // WebSocket으로 Anchor Map 업데이트 구독 요청
-      const agentId = document.getElementById('agent-id-input').value || 'default';
-      websocket.send(JSON.stringify({
-        method: 'subscribe',
-        params: {
-          type: 'anchor_map_updates',
-          agent_id: agentId
-        }
-      }));
+      resubscribeWebSocket();
     };
     
     websocket.onmessage = (event) => {
@@ -996,6 +1053,21 @@ function tryConnectWebSocket() {
 }
 
 /**
+ * WebSocket 재구독
+ */
+function resubscribeWebSocket() {
+  if (websocket && websocket.readyState === WebSocket.OPEN) {
+    websocket.send(JSON.stringify({
+      method: 'subscribe',
+      params: {
+        type: 'anchor_map_updates',
+        agent_id: getSelectedAgentId()
+      }
+    }));
+  }
+}
+
+/**
  * WebSocket 연결 종료
  */
 function disconnectWebSocket() {
@@ -1004,25 +1076,6 @@ function disconnectWebSocket() {
     websocket = null;
   }
 }
-
-// Agent ID 변경 시 WebSocket 재구독
-document.addEventListener('DOMContentLoaded', () => {
-  const agentIdInput = document.getElementById('agent-id-input');
-  if (agentIdInput) {
-    agentIdInput.addEventListener('change', () => {
-      if (websocket && websocket.readyState === WebSocket.OPEN) {
-        const agentId = agentIdInput.value || 'default';
-        websocket.send(JSON.stringify({
-          method: 'subscribe',
-          params: {
-            type: 'anchor_map_updates',
-            agent_id: agentId
-          }
-        }));
-      }
-    });
-  }
-});
 
 // 페이지 언로드 시 정리
 window.addEventListener('beforeunload', () => {

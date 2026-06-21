@@ -7,7 +7,7 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import type { ServerServices } from '../bootstrap.js';
-import { buildAnchorMapData } from '../handlers/anchor-map.handler.js';
+import { buildAnchorMapData, listAnchorAgentIds } from '../handlers/anchor-map.handler.js';
 import { extractToolResultPayload } from '../handlers/tool-result.utils.js';
 import { createToolContext } from '../context.js';
 import {
@@ -26,6 +26,35 @@ export function createApiRouter(
   serverServices: ServerServices | null
 ): Router {
   const router = Router();
+
+  // Agent ID 목록 (앵커가 설정된 agent_id 집계)
+  router.get('/anchors/agents', (req, res) => {
+    try {
+      if (!db) {
+        return res.status(500).json({
+          error: 'Database not connected',
+          message: '데이터베이스가 연결되지 않았습니다',
+        });
+      }
+
+      const agents = listAnchorAgentIds(db);
+      const agent_ids = agents.map(entry => entry.agent_id);
+
+      return res.json({
+        agents,
+        agent_ids,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Anchor agent list retrieval failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({
+        error: 'Failed to list anchor agent ids',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
 
   // Anchor Map 조회
   router.get('/anchors/map', async (req, res) => {

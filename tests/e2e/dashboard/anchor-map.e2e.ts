@@ -234,6 +234,17 @@ test.describe('Anchor Map dashboard', () => {
     await page.route('https://d3js.org/**', (route) =>
       route.fulfill({ status: 200, contentType: 'text/javascript', body: d3Stub }),
     );
+    await page.route('**/api/anchors/agents', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          agents: [{ agent_id: 'default', anchor_count: 3 }],
+          agent_ids: ['default'],
+          timestamp: '2026-06-21T00:00:00.000Z',
+        }),
+      }),
+    );
     await page.route('**/api/anchors/map?**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mapPayload) }),
     );
