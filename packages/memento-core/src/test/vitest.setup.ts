@@ -9,9 +9,9 @@ import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
 
 const isPrimaryVitestWorker = !process.env.VITEST_WORKER_ID || process.env.VITEST_WORKER_ID === '1';
 
-// @xenova/transformers 모킹 (onnxruntime-node 로딩 방지)
+// @huggingface/transformers 모킹 (onnxruntime-node 로딩 방지)
 // 모든 테스트에서 일관되게 모킹되도록 전역 설정
-vi.mock('@xenova/transformers', () => {
+vi.mock('@huggingface/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
@@ -24,7 +24,7 @@ vi.mock('@xenova/transformers', () => {
 });
 
 // onnxruntime-node 모킹 (네이티브 바인딩 로딩 실패 방지)
-// @xenova/transformers가 default export를 기대하므로 default도 포함
+// @huggingface/transformers가 default export를 기대하므로 default도 포함
 vi.mock('onnxruntime-node', () => {
   const mockInferenceSession = vi.fn().mockImplementation(() => ({
     load: vi.fn(),

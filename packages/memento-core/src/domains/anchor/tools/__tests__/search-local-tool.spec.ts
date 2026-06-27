@@ -10,8 +10,8 @@ import { MemoryEmbeddingService } from '../../../memory/services/memory-embeddin
 import { createHybridSearchEngine, type HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { getVectorSearchEngine, type VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 
-// Mock @xenova/transformers to prevent onnxruntime-node loading
-vi.mock('@xenova/transformers', () => {
+// Mock @huggingface/transformers to prevent onnxruntime-node loading
+vi.mock('@huggingface/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
