@@ -95,7 +95,7 @@ function normalizeReflectionNoteObject(note: unknown): string {
  * @param reflectionNotes - 정규화할 reflection_notes (JSON 문자열, 객체, 또는 배열)
  * @returns 정규화된 텍스트 문자열 (FTS5 인덱싱용)
  */
-export function normalizeReflectionNotes(reflectionNotes: string | null | undefined | any): string {
+export function normalizeReflectionNotes(reflectionNotes: unknown): string {
   // NULL 또는 빈 값 처리
   if (!reflectionNotes || reflectionNotes === '') {
     return '';
