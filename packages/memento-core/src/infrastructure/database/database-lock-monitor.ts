@@ -208,8 +208,8 @@ export class DatabaseLockMonitor {
         detectionMethod: 'immediate_transaction',
         busyCount: this.busyCount
       };
-    } catch (error: any) {
-      if (error.code === 'SQLITE_BUSY') {
+    } catch (error: unknown) {
+      if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'SQLITE_BUSY') {
         // 락 감지 (IMMEDIATE 트랜잭션 방법)
         this.busyCount++;
         
@@ -249,8 +249,8 @@ export class DatabaseLockMonitor {
           detectionMethod: 'immediate_transaction',
           busyCount: this.busyCount
         };
-      } catch (queryError: any) {
-        if (queryError.code === 'SQLITE_BUSY') {
+      } catch (queryError: unknown) {
+        if (queryError instanceof Error && (queryError as NodeJS.ErrnoException).code === 'SQLITE_BUSY') {
           // 락 감지 (단순 상태 확인 쿼리 방법)
           this.busyCount++;
           

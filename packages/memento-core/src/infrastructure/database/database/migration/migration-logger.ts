@@ -28,7 +28,7 @@ export interface LogEntry {
   timestamp: Date;
   level: LogLevel;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -99,7 +99,7 @@ export class MigrationLogger {
   /**
    * 로그 기록
    */
-  log(level: LogLevel, message: string, data?: any): void {
+  log(level: LogLevel, message: string, data?: unknown): void {
     const entry: LogEntry = {
       timestamp: new Date(),
       level,
@@ -130,28 +130,28 @@ export class MigrationLogger {
   /**
    * INFO 레벨 로그
    */
-  info(message: string, data?: any): void {
+  info(message: string, data?: unknown): void {
     this.log(LogLevel.INFO, message, data);
   }
 
   /**
    * WARN 레벨 로그
    */
-  warn(message: string, data?: any): void {
+  warn(message: string, data?: unknown): void {
     this.log(LogLevel.WARN, message, data);
   }
 
   /**
    * ERROR 레벨 로그
    */
-  error(message: string, data?: any): void {
+  error(message: string, data?: unknown): void {
     this.log(LogLevel.ERROR, message, data);
   }
 
   /**
    * DEBUG 레벨 로그
    */
-  debug(message: string, data?: any): void {
+  debug(message: string, data?: unknown): void {
     this.log(LogLevel.DEBUG, message, data);
   }
 

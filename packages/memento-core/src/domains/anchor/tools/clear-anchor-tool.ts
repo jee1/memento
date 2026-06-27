@@ -35,7 +35,7 @@ export class ClearAnchorTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
       const { slot, agent_id } = ClearAnchorSchema.parse(params);

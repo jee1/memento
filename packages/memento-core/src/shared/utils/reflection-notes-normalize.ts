@@ -37,18 +37,19 @@ const KEY_TOKEN_PREFIXES: Record<string, string> = {
  * @param note - 정규화할 Reflection Note 객체
  * @returns 정규화된 텍스트 문자열
  */
-function normalizeReflectionNoteObject(note: any): string {
+function normalizeReflectionNoteObject(note: unknown): string {
   if (!note || typeof note !== 'object') {
     return '';
   }
 
+  const noteObj = note as Record<string, unknown>;
   const tokens: string[] = [];
 
   // 키 토큰 포함 (failure_type, phase)
   for (const key of KEY_TOKEN_FIELDS) {
-    if (note[key] !== undefined && note[key] !== null) {
+    if (noteObj[key] !== undefined && noteObj[key] !== null) {
       const prefix = KEY_TOKEN_PREFIXES[key] || key;
-      const value = String(note[key]).trim();
+      const value = String(noteObj[key]).trim();
       if (value.length > 0) {
         tokens.push(`${prefix}:${value}`);
       }
@@ -56,7 +57,7 @@ function normalizeReflectionNoteObject(note: any): string {
   }
 
   // 값 필드 토큰화 (모든 값 필드 추출)
-  for (const [key, value] of Object.entries(note)) {
+  for (const [key, value] of Object.entries(noteObj)) {
     // 키 토큰 필드와 제외 필드는 이미 처리했거나 제외
     if (KEY_TOKEN_FIELDS.includes(key as any) || EXCLUDED_FIELDS.includes(key as any)) {
       continue;
@@ -94,14 +95,14 @@ function normalizeReflectionNoteObject(note: any): string {
  * @param reflectionNotes - 정규화할 reflection_notes (JSON 문자열, 객체, 또는 배열)
  * @returns 정규화된 텍스트 문자열 (FTS5 인덱싱용)
  */
-export function normalizeReflectionNotes(reflectionNotes: string | null | undefined | any): string {
+export function normalizeReflectionNotes(reflectionNotes: unknown): string {
   // NULL 또는 빈 값 처리
   if (!reflectionNotes || reflectionNotes === '') {
     return '';
   }
 
   // 문자열인 경우 JSON 파싱
-  let parsed: any;
+  let parsed: unknown;
   if (typeof reflectionNotes === 'string') {
     try {
       parsed = JSON.parse(reflectionNotes);

@@ -19,7 +19,7 @@ export interface IndexRecommendation {
 export interface QueryAnalysis {
   query: string;
   executionTime: number;
-  explainPlan: any[];
+  explainPlan: unknown[];
   recommendations: string[];
   complexity: 'simple' | 'medium' | 'complex';
 }

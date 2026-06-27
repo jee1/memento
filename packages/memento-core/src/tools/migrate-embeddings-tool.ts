@@ -11,6 +11,7 @@ import type { EmbeddingProvider } from '../shared/types/index.js';
 import { DatabaseUtils } from '../shared/utils/database.js';
 import { vectorCompatibilityService } from '../domains/embedding/services/vector-compatibility-service.js';
 import { logger } from '../shared/utils/logger.js';
+import type Database from 'better-sqlite3';
 
 const MigrationSchema = z.object({
   source_provider: z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini']).optional(),
@@ -79,7 +80,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
   /**
    * sqlite-vec 확장 로드
    */
-  private async loadVecExtension(db: any): Promise<void> {
+  private async loadVecExtension(db: Database.Database): Promise<void> {
     try {
       const { getLoadablePath } = await import('sqlite-vec');
       const extensionPath = getLoadablePath();
@@ -93,7 +94,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
    * 특정 provider로 임베딩 생성 및 저장
    */
   private async createAndStoreEmbeddingForProvider(
-    db: any,
+    db: Database.Database,
     memoryId: string,
     content: string,
     targetProvider: EmbeddingProvider
@@ -180,7 +181,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
     ]);
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     this.logInfo('Migrate Embeddings 도구 호출됨', { params });
 
     try {
@@ -216,7 +217,7 @@ export class MigrateEmbeddingsTool extends BaseTool {
           AND me.embedding_provider != ''
       `;
 
-      const queryParams: any[] = [];
+      const queryParams: unknown[] = [];
 
       if (source_provider) {
         memoryQuery += ` AND me.embedding_provider = ?`;

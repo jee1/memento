@@ -113,7 +113,7 @@ export class GetMetaMemoryStatsTool extends BaseTool {
    * @throws {Error} 파라미터 검증 실패 시
    * @throws {Error} 통계 조회 실패 시
    */
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     // 데이터베이스 연결 확인
     this.validateDatabase(context);
 

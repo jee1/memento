@@ -140,18 +140,19 @@ export class TripleParser implements ITripleParser {
    * @param triple - 검증할 Triple 객체
    * @returns 유효성 검증 결과
    */
-  isValidTriple(triple: any): boolean {
+  isValidTriple(triple: unknown): boolean {
     if (!triple || typeof triple !== 'object') {
       return false;
     }
     
+    const t = triple as Record<string, unknown>;
     return (
-      typeof triple.subject === 'string' &&
-      typeof triple.predicate === 'string' &&
-      typeof triple.object === 'string' &&
-      triple.subject.trim().length > 0 &&
-      triple.predicate.trim().length > 0 &&
-      triple.object.trim().length > 0
+      typeof t['subject'] === 'string' &&
+      typeof t['predicate'] === 'string' &&
+      typeof t['object'] === 'string' &&
+      t['subject'].trim().length > 0 &&
+      t['predicate'].trim().length > 0 &&
+      t['object'].trim().length > 0
     );
   }
 }

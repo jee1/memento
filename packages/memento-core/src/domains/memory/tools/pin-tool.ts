@@ -60,7 +60,7 @@ export class PinTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     const { id, reason, priority = 3, batch } = PinSchema.parse(params);
     
     // 데이터베이스 연결 확인

@@ -174,7 +174,7 @@ export class AnchorTableMigration implements Migration {
     }
 
     // Verify table structure (check columns)
-    const columns = db.prepare(`PRAGMA table_info(anchor)`).all() as Array<{ name: string; type: string; notnull: number; dflt_value: any }>;
+    const columns = db.prepare(`PRAGMA table_info(anchor)`).all() as Array<{ name: string; type: string; notnull: number; dflt_value: unknown }>;
     const columnNames = columns.map(col => col.name);
     
     const requiredColumns = ['id', 'agent_id', 'slot', 'memory_id', 'created_at', 'updated_at'];

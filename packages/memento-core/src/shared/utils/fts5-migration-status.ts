@@ -131,7 +131,7 @@ export function setMigrationStatus(
     // 상태 업데이트
     const now = new Date().toISOString();
     let updateSql = '';
-    let params: any[] = [];
+    let params: unknown[] = [];
 
     if (status === 'in_progress') {
       updateSql = `
@@ -309,7 +309,7 @@ export function forceSetMigrationStatus(
   // 상태 전이 검증 없이 강제 업데이트
   const now = new Date().toISOString();
   let updateSql = '';
-  let params: any[] = [];
+  let params: unknown[] = [];
 
   if (status === 'in_progress') {
     updateSql = `

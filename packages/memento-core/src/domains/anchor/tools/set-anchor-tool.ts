@@ -42,7 +42,7 @@ export class SetAnchorTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
       const { memory_id, slot, agent_id } = SetAnchorSchema.parse(params);

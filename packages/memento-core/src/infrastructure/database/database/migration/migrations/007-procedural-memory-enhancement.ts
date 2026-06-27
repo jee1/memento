@@ -159,9 +159,9 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'workflow_name')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN workflow_name TEXT');
-      } catch (err: any) {
+      } catch (err: unknown) {
         // 컬럼이 이미 존재하는 경우 무시 (다른 프로세스에서 추가했을 수 있음)
-        if (!err.message?.includes('duplicate column name')) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }
@@ -170,8 +170,8 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'skill_name')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN skill_name TEXT');
-      } catch (err: any) {
-        if (!err.message?.includes('duplicate column name')) {
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }
@@ -180,8 +180,8 @@ export class ProceduralMemoryEnhancementMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'trigger_conditions')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN trigger_conditions TEXT');
-      } catch (err: any) {
-        if (!err.message?.includes('duplicate column name')) {
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }

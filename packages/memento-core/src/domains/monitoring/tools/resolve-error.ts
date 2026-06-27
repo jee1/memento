@@ -29,8 +29,10 @@ export const resolveErrorTool = {
   }
 };
 
-export async function executeResolveError(args: any, context: ToolContext) {
-  const { errorId, resolvedBy, reason } = args;
+export async function executeResolveError(args: Record<string, unknown>, context: ToolContext) {
+  const errorId = args['errorId'] as string;
+  const resolvedBy = args['resolvedBy'] as string | undefined;
+  const reason = args['reason'] as string | undefined;
   
   try {
     if (!context.services.errorLoggingService) {

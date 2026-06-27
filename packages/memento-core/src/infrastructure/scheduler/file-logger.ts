@@ -21,7 +21,7 @@ export interface LogEntry {
   service: string;
   level: 'info' | 'warn' | 'error';
   message: string;
-  data?: any;
+  data?: unknown;
   uptime?: number;
   activeJobs?: number;
   queueSize?: number;
@@ -127,7 +127,7 @@ export class FileLogger {
    */
   async logWarn(
     message: string,
-    data?: any,
+    data?: Record<string, unknown>,
     context?: {
       uptime?: number;
       activeJobs?: number;
@@ -159,7 +159,7 @@ export class FileLogger {
    */
   async logError(
     message: string,
-    data?: any,
+    data?: Record<string, unknown>,
     context?: {
       uptime?: number;
       activeJobs?: number;
@@ -191,7 +191,7 @@ export class FileLogger {
    * @param data 원본 데이터
    * @returns 정제된 데이터 (PII 마스킹 적용)
    */
-  private sanitizeData(data?: any): Record<string, any> {
+  private sanitizeData(data?: unknown): Record<string, unknown> {
     if (data instanceof Error) {
       // 공통 유틸리티 함수 사용
       return PIIMasker.maskError(data);

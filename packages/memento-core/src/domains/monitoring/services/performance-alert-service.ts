@@ -46,7 +46,7 @@ export interface PerformanceAlert {
     operation?: string;
     userId?: string;
     sessionId?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   resolved: boolean;
   resolvedAt?: Date;

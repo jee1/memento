@@ -129,7 +129,7 @@ export class AdaptiveOptimalIntervalRecommender implements OptimalIntervalRecomm
  * 고급 알고리즘을 사용한 간격 추천
  */
 export class MLBasedOptimalIntervalRecommender implements OptimalIntervalRecommender {
-  private model: Map<string, any> = new Map();
+  private model: Map<string, { weights: ModelWeights }> = new Map();
 
   recommendOptimalInterval(
     currentInterval: number,
@@ -184,7 +184,7 @@ export class MLBasedOptimalIntervalRecommender implements OptimalIntervalRecomme
     features: SpacedRepetitionFeatures;
     actualInterval: number;
     performance: number;
-  }>): any {
+  }>): ModelWeights {
     // 간단한 가중치 계산 (실제로는 더 정교한 ML 알고리즘 사용)
     return {
       importance: 0.6,
@@ -228,4 +228,11 @@ export class EnsembleOptimalIntervalRecommender implements OptimalIntervalRecomm
     
     return Math.ceil(weightedSum);
   }
+}interface ModelWeights {
+  importance: number;
+  usage: number;
+  helpful_feedback: number;
+  bad_feedback: number;
 }
+
+

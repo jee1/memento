@@ -71,7 +71,7 @@ export class SearchLocalTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
       const { slot, query, hop_limit, limit, min_results, agent_id, use_relations } = SearchLocalSchema.parse(params);
@@ -104,11 +104,12 @@ export class SearchLocalTool extends BaseTool {
           query_time: searchResult.query_time,
           anchor_info: searchResult.anchor_info
         });
-      } catch (searchError: any) {
+      } catch (searchError: unknown) {
         // 앵커가 없거나 앵커 메모리에 임베딩이 없으면 fallback
+        const searchMsg = searchError instanceof Error ? searchError.message : '';
         if (query && (
-          searchError?.message?.includes('Anchor not found') ||
-          searchError?.message?.includes('Embedding not found')
+          searchMsg.includes('Anchor not found') ||
+          searchMsg.includes('Embedding not found')
         )) {
           if (!context.services.hybridSearchEngine) {
             throw new Error('HybridSearchEngine is not available for fallback');
@@ -128,7 +129,7 @@ export class SearchLocalTool extends BaseTool {
               query_time: fallbackResult.query_time || 0,
               anchor_info: null
             });
-          } catch (fallbackError: any) {
+          } catch (fallbackError: unknown) {
             // Fallback도 실패하면 빈 결과 반환
             return this.createSuccessResult({
               items: [],

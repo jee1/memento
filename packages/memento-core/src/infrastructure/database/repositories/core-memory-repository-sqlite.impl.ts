@@ -14,10 +14,11 @@ import type { CoreMemoryDatabaseConnection } from '../../../domains/memory/repos
 /**
  * always_load 불리언 변환 헬퍼 함수
  */
-function convertAlwaysLoad(record: any): CoreMemoryRecord {
+function convertAlwaysLoad(record: unknown): CoreMemoryRecord {
+  const r = record as CoreMemoryRecord;
   return {
-    ...record,
-    always_load: Boolean(record.always_load)
+    ...r,
+    always_load: Boolean(r.always_load)
   };
 }
 
@@ -184,7 +185,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
    */
   async update(core_id: string, input: UpdateCoreMemoryInput): Promise<CoreMemoryRecord | null> {
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     if (input.value !== undefined) {
       updates.push('value = ?');
@@ -228,7 +229,7 @@ export class CoreMemoryRepositorySqliteImpl implements CoreMemoryRepository {
     input: UpdateCoreMemoryInput
   ): Promise<CoreMemoryRecord | null> {
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     if (input.value !== undefined) {
       updates.push('value = ?');

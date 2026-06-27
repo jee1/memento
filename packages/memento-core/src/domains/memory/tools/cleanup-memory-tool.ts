@@ -29,7 +29,7 @@ export class CleanupMemoryTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     const { dry_run } = CleanupMemorySchema.parse(params);
     
     // 데이터베이스 연결 확인

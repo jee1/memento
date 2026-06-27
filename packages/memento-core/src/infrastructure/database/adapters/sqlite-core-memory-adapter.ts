@@ -22,7 +22,7 @@ class SqliteCoreMemoryPreparedStatement implements CoreMemoryPreparedStatement {
   /**
    * 모든 결과 행을 반환
    */
-  async all(...params: any[]): Promise<any[]> {
+  async all(...params: unknown[]): Promise<unknown[]> {
     try {
       return Promise.resolve(this.stmt.all(...params));
     } catch (error) {
@@ -33,7 +33,7 @@ class SqliteCoreMemoryPreparedStatement implements CoreMemoryPreparedStatement {
   /**
    * 첫 번째 결과 행을 반환
    */
-  async get(...params: any[]): Promise<any> {
+  async get(...params: unknown[]): Promise<unknown> {
     try {
       return Promise.resolve(this.stmt.get(...params));
     } catch (error) {
@@ -44,7 +44,7 @@ class SqliteCoreMemoryPreparedStatement implements CoreMemoryPreparedStatement {
   /**
    * 쿼리를 실행하고 변경된 행 수와 마지막 삽입된 행 ID를 반환
    */
-  async run(...params: any[]): Promise<{ changes: number; lastInsertRowid: number }> {
+  async run(...params: unknown[]): Promise<{ changes: number; lastInsertRowid: number }> {
     try {
       const result = this.stmt.run(...params);
       return Promise.resolve({

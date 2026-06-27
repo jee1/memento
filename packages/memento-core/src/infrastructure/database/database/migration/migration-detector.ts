@@ -96,7 +96,7 @@ export class MigrationDetector {
         const module = await import(importPath);
         
         // default export 또는 named export 찾기
-        let MigrationClass: any = module.default;
+        let MigrationClass: unknown = module.default;
         
         // named export에서 Migration 클래스 찾기
         if (!MigrationClass || typeof MigrationClass !== 'function') {
@@ -129,7 +129,7 @@ export class MigrationDetector {
         }
 
         // 클래스 인스턴스 생성
-        const migration = new MigrationClass() as Migration;
+        const migration = new (MigrationClass as new () => Migration)();
 
         if (!migration || !migration.version || !migration.up) {
           logger.warn('⚠️  마이그레이션 파일에서 유효한 마이그레이션 인스턴스를 생성할 수 없습니다', {

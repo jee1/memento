@@ -91,7 +91,7 @@ export abstract class BaseTool {
   /**
    * 안전한 문자열 검증
    */
-  protected validateString(value: any, fieldName: string, maxLength: number = 1000): string {
+  protected validateString(value: unknown, fieldName: string, maxLength: number = 1000): string {
     if (typeof value !== 'string') {
       throw new Error(`${fieldName}은 문자열이어야 합니다`);
     }
@@ -110,7 +110,7 @@ export abstract class BaseTool {
   /**
    * 안전한 숫자 검증
    */
-  protected validateNumber(value: any, fieldName: string, min?: number, max?: number): number {
+  protected validateNumber(value: unknown, fieldName: string, min?: number, max?: number): number {
     const num = Number(value);
     
     if (isNaN(num)) {
