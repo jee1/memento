@@ -8,6 +8,7 @@ import type {
   MigrationResult,
   MigrationRollbackEntry
 } from '../../shared/types/migration.types.js';
+import type { EmbeddingProvider, ProjectionType, VectorNormalization } from '../../shared/types/embedding.types.js';
 import { PIIMasker } from '../../shared/utils/pii-masker.js';
 import { logger } from '../../shared/utils/logger.js';
 
@@ -291,7 +292,32 @@ class MigrationHistoryService {
     logger.info(summary);
   }
 
-  private mapRow(row: any): MigrationHistoryRecord {
+  private mapRow(rowUnknown: unknown): MigrationHistoryRecord {
+    type MigrationRow = {
+      id: number | bigint;
+      plan_provider_from: EmbeddingProvider;
+      plan_provider_to: EmbeddingProvider;
+      plan_target_dimensions: number;
+      plan_projection_type: ProjectionType;
+      plan_normalization: VectorNormalization;
+      plan_batch_size: number;
+      plan_dry_run: number;
+      plan_resume_from_id: string | null;
+      plan_target_model: string | null;
+      plan_created_by: string | null;
+      success: number;
+      processed: number;
+      succeeded: number;
+      failed: number;
+      start_time: string | null;
+      end_time: string | null;
+      next_resume_from_id: string | null;
+      errors_json: string | null;
+      rollback_entries_json: string | null;
+      created_at: string;
+      error_count: number;
+    };
+    const row = rowUnknown as MigrationRow;
     let rollbackEntries: MigrationRollbackEntry[] = [];
     let rolledBack = false;
 
@@ -332,8 +358,8 @@ class MigrationHistoryService {
         processed: row.processed,
         succeeded: row.succeeded,
         failed: row.failed,
-        startTime: normalizeDate(row.start_time) ?? new Date(row.start_time),
-        endTime: normalizeDate(row.end_time) ?? new Date(row.end_time),
+        startTime: normalizeDate(row.start_time) ?? new Date(row.start_time ?? ''),
+        endTime: normalizeDate(row.end_time) ?? new Date(row.end_time ?? ''),
         nextResumeFromId: row.next_resume_from_id ?? undefined,
         errors: row.errors_json ? JSON.parse(row.errors_json) : undefined,
         rollbackEntries,

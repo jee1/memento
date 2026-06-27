@@ -25,14 +25,14 @@ export interface ErrorLog {
     requestId?: string;
     operation?: string;
     component?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   metadata: {
     userAgent?: string;
     ipAddress?: string;
     memoryUsage?: NodeJS.MemoryUsage;
     cpuUsage?: NodeJS.CpuUsage;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   resolved: boolean;
   resolvedAt?: Date;
@@ -109,10 +109,10 @@ export class ErrorLoggingService {
       message: errorMessage,
       stack,
       context: {
-        ...maskedContext,
-        component: maskedContext.component || 'unknown'
+        ...(maskedContext as Record<string, unknown>),
+        component: (maskedContext as Record<string, unknown>)['component'] as string | undefined || 'unknown'
       },
-      metadata: maskedMetadata,
+      metadata: maskedMetadata as ErrorLog['metadata'],
       resolved: false
     };
 

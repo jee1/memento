@@ -71,7 +71,7 @@ export class FailureDetector {
   detectToolError(
     toolName: string,
     error: Error,
-    params?: any,
+    params?: unknown,
     executionTimeMs?: number
   ): FailureDetectionResult {
     try {
@@ -87,7 +87,7 @@ export class FailureDetector {
         error_message_hash: this.hashMessage(error.message),
         timestamp: new Date().toISOString(),
         context: {
-          params,
+          params: params as Record<string, unknown> | undefined,
           stack: error.stack,
           execution_time_ms: executionTimeMs
         },
@@ -95,11 +95,12 @@ export class FailureDetector {
       };
 
       // 원래 작업 목표 추출 시도
-      if (params?.task_goal) {
-        event.original_task = params.task_goal;
-      } else if (params?.content) {
+      const paramsRecord = params as Record<string, unknown> | undefined;
+      if (paramsRecord?.task_goal) {
+        event.original_task = String(paramsRecord.task_goal);
+      } else if (paramsRecord?.content) {
         // content에서 작업 목표 추출 시도
-        event.original_task = this.extractTaskGoal(params.content);
+        event.original_task = this.extractTaskGoal(String(paramsRecord.content));
       }
 
       logger.info('Tool 에러 감지', {
@@ -131,7 +132,7 @@ export class FailureDetector {
   detectUserFeedback(
     toolName: string,
     feedback: string,
-    params?: any
+    params?: unknown
   ): FailureDetectionResult {
     try {
       // 키워드 기반 감지
@@ -156,10 +157,10 @@ export class FailureDetector {
         error_message_hash: this.hashMessage(feedback),
         timestamp: new Date().toISOString(),
         context: {
-          params,
+          params: params as Record<string, unknown> | undefined,
           feedback_text: feedback
         },
-        original_task: params?.task_goal || this.extractTaskGoal(feedback),
+        original_task: (params as Record<string, unknown> | undefined)?.task_goal as string | undefined || this.extractTaskGoal(feedback),
         priority: 8 // 사용자 피드백은 높은 우선순위
       };
 
@@ -192,7 +193,7 @@ export class FailureDetector {
     toolName: string,
     executionTimeMs: number,
     success: boolean,
-    params?: any
+    params?: unknown
   ): FailureDetectionResult {
     try {
       // 메트릭 업데이트
@@ -225,7 +226,7 @@ export class FailureDetector {
         error_message_hash: this.hashMessage(`performance_${executionTimeMs}ms`),
         timestamp: new Date().toISOString(),
         context: {
-          params,
+          params: params as Record<string, unknown> | undefined,
           execution_time_ms: executionTimeMs,
           response_time_exceeded: responseTimeExceeded,
           error_rate_exceeded: errorRateExceeded,
@@ -237,7 +238,7 @@ export class FailureDetector {
             error_rate: metrics.failure / metrics.count
           } : undefined
         },
-        original_task: params?.task_goal,
+        original_task: (params as Record<string, unknown> | undefined)?.task_goal as string | undefined,
         priority: responseTimeExceeded ? 6 : 5
       };
 

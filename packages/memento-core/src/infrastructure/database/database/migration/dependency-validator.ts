@@ -154,11 +154,11 @@ export class DependencyValidator {
           on_update: fk.on_update
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         name: 'memory_embedding_foreign_key',
         success: false,
-        error: error.message || 'Unknown error during foreign key validation'
+        error: (error instanceof Error ? error.message : null) || 'Unknown error during foreign key validation'
       };
     }
   }
@@ -226,11 +226,11 @@ export class DependencyValidator {
           fts_table_exists: true
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         name: 'fts5_triggers',
         success: false,
-        error: error.message || 'Unknown error during FTS5 trigger validation'
+        error: (error instanceof Error ? error.message : null) || 'Unknown error during FTS5 trigger validation'
       };
     }
   }
@@ -357,11 +357,11 @@ export class DependencyValidator {
           }
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         name: 'vec_triggers',
         success: false,
-        error: error.message || 'Unknown error during VEC trigger validation'
+        error: (error instanceof Error ? error.message : null) || 'Unknown error during VEC trigger validation'
       };
     }
   }

@@ -178,9 +178,10 @@ export class LocalSearchService {
 
       // Local 결과와 Fallback 결과 병합 (중복 제거)
       const localMemoryIds = new Set(localResults.map(r => r.id));
-      const fallbackItems = fallbackResult.items
-        .filter((item: any) => !localMemoryIds.has(item.id))
-        .map((item: any) => ({
+      type FallbackItem = { id: string; content: string; importance: number; type: string; created_at: string; similarity?: number; hop_distance?: number; tags?: string[] };
+      const fallbackItems = (fallbackResult.items as FallbackItem[])
+        .filter((item) => !localMemoryIds.has(item.id))
+        .map((item) => ({
           id: item.id,
           content: item.content,
           type: item.type,
@@ -189,7 +190,7 @@ export class LocalSearchService {
           importance: item.importance ?? 0.5,
           created_at: item.created_at ?? new Date().toISOString(),
           tags: item.tags ?? undefined
-        }));
+        }))
 
       const finalResults = [...localResults, ...fallbackItems].slice(0, limit);
 

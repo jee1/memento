@@ -52,7 +52,7 @@ export class GetMemoryNeighborsTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     this.logInfo('Get Memory Neighbors 도구 호출됨', { params });
     
     try {

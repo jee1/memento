@@ -36,11 +36,11 @@ export class FallbackStrategy implements IFallbackStrategy {
   /**
    * 전략 실행 (ISearchStrategy 인터페이스 구현)
    */
-  async execute(...args: any[]): Promise<SearchResult> {
+  async execute(...args: unknown[]): Promise<SearchResult> {
     return this.fallback(
-      args[0], // query
-      args[1], // options
-      args[2]  // startTime
+      args[0] as string, // query
+      args[1] as SearchOptions | undefined, // options
+      args[2] as number | undefined  // startTime
     );
   }
 }

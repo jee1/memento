@@ -166,10 +166,10 @@ export function validateConfig(): void {
   // console.warn/error는 이미 오버라이드되었지만, 명시적으로 stderr logger 전달
   validateConfiguration(mementoConfig, {
     logger: {
-      warn: (message?: any, ...optionalParams: any[]) => {
+      warn: (message?: unknown, ...optionalParams: unknown[]) => {
         process.stderr.write(`[CONFIG WARN] ${String(message)} ${optionalParams.map(String).join(' ')}\n`);
       },
-      error: (message?: any, ...optionalParams: any[]) => {
+      error: (message?: unknown, ...optionalParams: unknown[]) => {
         process.stderr.write(`[CONFIG ERROR] ${String(message)} ${optionalParams.map(String).join(' ')}\n`);
       }
     }

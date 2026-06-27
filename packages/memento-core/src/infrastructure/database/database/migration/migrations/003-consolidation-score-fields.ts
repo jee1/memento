@@ -212,9 +212,9 @@ export class ConsolidationScoreFieldsMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'recall_count')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN recall_count INTEGER NOT NULL DEFAULT 0');
-      } catch (err: any) {
+      } catch (err: unknown) {
         // 컬럼이 이미 존재하는 경우 무시 (다른 프로세스에서 추가했을 수 있음)
-        if (!err.message?.includes('duplicate column name')) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }
@@ -223,8 +223,8 @@ export class ConsolidationScoreFieldsMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'last_accessed_at')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN last_accessed_at TIMESTAMP');
-      } catch (err: any) {
-        if (!err.message?.includes('duplicate column name')) {
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }
@@ -233,8 +233,8 @@ export class ConsolidationScoreFieldsMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'consolidation_score')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN consolidation_score REAL');
-      } catch (err: any) {
-        if (!err.message?.includes('duplicate column name')) {
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }
@@ -243,8 +243,8 @@ export class ConsolidationScoreFieldsMigration implements Migration {
     if (!this.columnExists(db, 'memory_item', 'g_value')) {
       try {
         db.exec('ALTER TABLE memory_item ADD COLUMN g_value REAL');
-      } catch (err: any) {
-        if (!err.message?.includes('duplicate column name')) {
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message?.includes('duplicate column name'))) {
           throw err;
         }
       }

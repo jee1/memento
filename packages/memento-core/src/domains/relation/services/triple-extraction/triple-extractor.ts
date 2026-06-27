@@ -471,7 +471,7 @@ export class TripleExtractor implements ITripleExtractor {
 
       const data = await response.json();
       const models = data.models || [];
-      return models.some((m: any) => m.name === model || m.name.startsWith(`${model}:`));
+      return (models as Array<{ name: string }>).some((m) => m.name === model || m.name.startsWith(`${model}:`));
     } catch {
       return false;
     }
@@ -495,11 +495,11 @@ export class TripleExtractor implements ITripleExtractor {
         return { success: false, triples: [], error: 'triples 배열이 없거나 유효하지 않습니다.', errorType: 'parse' };
       }
       const validTriples = parsed.triples
-        .filter((t: any) => this.isValidTriple(t))
-        .map((t: any) => ({
-          subject: String(t.subject).trim(),
-          predicate: String(t.predicate).trim(),
-          object: String(t.object).trim()
+        .filter((t: unknown) => this.isValidTriple(t))
+        .map((t: unknown) => ({
+          subject: String((t as Record<string, unknown>)['subject']).trim(),
+          predicate: String((t as Record<string, unknown>)['predicate']).trim(),
+          object: String((t as Record<string, unknown>)['object']).trim()
         }));
       if (validTriples.length === 0 && parsed.triples.length > 0) {
         return { success: false, triples: [], error: '모든 triple이 유효하지 않습니다.', errorType: 'no_triple' };
@@ -548,14 +548,16 @@ export class TripleExtractor implements ITripleExtractor {
    * When: Triple의 유효성을 검증함
    * Then: 유효성 검증 결과를 반환함
    */
-  private isValidTriple(triple: any): boolean {
-    return triple &&
-           typeof triple === 'object' &&
-           typeof triple.subject === 'string' &&
-           typeof triple.predicate === 'string' &&
-           typeof triple.object === 'string' &&
-           triple.subject.trim().length > 0 &&
-           triple.predicate.trim().length > 0 &&
-           triple.object.trim().length > 0;
+  private isValidTriple(triple: unknown): boolean {
+    if (!triple || typeof triple !== 'object') return false;
+    const t = triple as Record<string, unknown>;
+    return (
+      typeof t['subject'] === 'string' &&
+      typeof t['predicate'] === 'string' &&
+      typeof t['object'] === 'string' &&
+      t['subject'].trim().length > 0 &&
+      t['predicate'].trim().length > 0 &&
+      t['object'].trim().length > 0
+    );
   }
 }

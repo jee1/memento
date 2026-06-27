@@ -47,15 +47,15 @@ export class NHopSearchStrategy implements INHopSearchStrategy {
   /**
    * 전략 실행 (ISearchStrategy 인터페이스 구현)
    */
-  async execute(...args: any[]): Promise<NHopSearchResult[]> {
+  async execute(...args: unknown[]): Promise<NHopSearchResult[]> {
     return this.search(
-      args[0], // anchorEmbedding
-      args[1], // provider
-      args[2], // anchorMemoryId
-      args[3], // threshold
-      args[4], // maxHops
-      args[5], // limit
-      args[6]  // useRelations
+      args[0] as number[], // anchorEmbedding
+      args[1] as string, // provider
+      args[2] as string, // anchorMemoryId
+      args[3] as number, // threshold
+      args[4] as number, // maxHops
+      args[5] as number, // limit
+      args[6] as boolean | undefined // useRelations
     );
   }
 }

@@ -48,7 +48,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private readonly modelName = MiniLMEmbeddingService.MODEL_NAME;
   private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
   private readonly maxTokens = MiniLMEmbeddingService.MAX_TOKENS;
-  private model: any = null;
+  private model: unknown = null;
   private loadingPromise: Promise<any> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
 

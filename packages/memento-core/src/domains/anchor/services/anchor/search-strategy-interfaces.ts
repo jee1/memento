@@ -24,7 +24,7 @@ export interface ISearchStrategy {
   /**
    * 전략 실행
    */
-  execute(...args: any[]): Promise<any>;
+  execute(...args: unknown[]): Promise<unknown>;
 }
 
 /**

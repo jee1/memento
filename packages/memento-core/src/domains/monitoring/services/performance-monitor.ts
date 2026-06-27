@@ -1177,8 +1177,8 @@ export class PerformanceMonitor {
   /**
    * 로깅
    */
-  private log(message: string, data?: any): void {
-    logger.debug(`PerformanceMonitor: ${message}`, data);
+  private log(message: string, data?: unknown): void {
+    logger.debug(`PerformanceMonitor: ${message}`, data as Record<string, unknown> | undefined);
   }
 }
 

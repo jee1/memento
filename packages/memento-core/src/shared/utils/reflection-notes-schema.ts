@@ -95,7 +95,7 @@ export interface ValidationResult {
   errors?: Array<{
     field: string;
     expected: string;
-    actual: any;
+    actual: unknown;
     message: string;
   }>;
 }
@@ -121,7 +121,7 @@ export function validateReflectionNote(data: unknown): ValidationResult {
             : err.code === z.ZodIssueCode.invalid_type
             ? err.expected
             : '유효한 값',
-          actual: err.path.length > 0 ? err.path.reduce((obj: any, key) => obj?.[key], data) : data,
+          actual: err.path.length > 0 ? err.path.reduce((obj: unknown, key) => (obj as Record<string | number, unknown>)?.[key], data) : data,
           message: err.message
         };
       });
@@ -188,7 +188,7 @@ export function validateReflectionNotes(jsonString: string): ValidationResult {
     }
 
     // 배열의 각 요소 검증
-    const allErrors: Array<{ field: string; expected: string; actual: any; message: string }> = [];
+    const allErrors: Array<{ field: string; expected: string; actual: unknown; message: string }> = [];
     parsed.forEach((item, index) => {
       const result = validateReflectionNote(item);
       if (!result.isValid && result.errors) {

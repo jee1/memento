@@ -57,7 +57,7 @@ export interface RelationMetadata {
   /**
    * 기타 메타데이터
    */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

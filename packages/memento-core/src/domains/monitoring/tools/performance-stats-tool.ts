@@ -20,7 +20,7 @@ export class PerformanceStatsTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     // 데이터베이스 연결 확인
     this.validateDatabase(context);
     

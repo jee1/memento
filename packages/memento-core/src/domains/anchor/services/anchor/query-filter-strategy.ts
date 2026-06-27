@@ -35,11 +35,11 @@ export class QueryFilterStrategy implements IQueryFilterStrategy {
   /**
    * 전략 실행 (ISearchStrategy 인터페이스 구현)
    */
-  async execute(...args: any[]): Promise<NHopSearchResult[]> {
+  async execute(...args: unknown[]): Promise<NHopSearchResult[]> {
     return this.filter(
-      args[0], // query
-      args[1], // results
-      args[2]  // provider
+      args[0] as string, // query
+      args[1] as NHopSearchResult[], // results
+      args[2] as string  // provider
     );
   }
 }
