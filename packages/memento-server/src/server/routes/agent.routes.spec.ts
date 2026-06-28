@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import express from 'express';
 import type { Request, Response } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -192,6 +193,31 @@ describe('agent integration routes', () => {
         pre_compact_injection: true,
       }),
     }));
+  });
+
+  it('serves capabilities through the mounted HTTP admin agent API path', async () => {
+    const app = express();
+    app.use(express.json());
+    app.use('/api/v1/agent', router);
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise<void>(resolve => server.once('listening', resolve));
+
+    try {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      const httpResponse = await fetch(`http://127.0.0.1:${port}/api/v1/agent/capabilities`);
+      const payload = await httpResponse.json() as Record<string, unknown>;
+
+      expect(httpResponse.status).toBe(200);
+      expect(payload).toMatchObject({
+        contract_versions: [1],
+        schema_ready: true,
+      });
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => error ? reject(error) : resolve());
+      });
+    }
   });
 
   it('returns payload-free recent operations status', async () => {
