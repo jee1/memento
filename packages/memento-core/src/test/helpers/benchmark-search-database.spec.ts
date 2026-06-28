@@ -52,15 +52,20 @@ describe('createSeededBenchmarkDatabase', () => {
     }
   });
 
-  it('corpus 행만큼 memory_item·임베딩이 생긴다', async () => {
+  it('corpus 행만큼 memory_item과 provider별 임베딩이 생긴다', async () => {
     const prev = process.env.EMBEDDING_PROVIDER;
     process.env.EMBEDDING_PROVIDER = 'tfidf';
     const { db, close } = await createSeededBenchmarkDatabase(dir);
     try {
       const row = db.prepare('SELECT COUNT(*) AS c FROM memory_item').get() as { c: number };
       expect(row.c).toBe(2);
-      const emb = db.prepare('SELECT COUNT(*) AS c FROM memory_embedding').get() as { c: number };
-      expect(emb.c).toBe(4); // corpus 2행 × (tfidf + mock) provider
+      const emb = db
+        .prepare('SELECT embedding_provider AS provider, COUNT(*) AS c FROM memory_embedding GROUP BY embedding_provider')
+        .all() as Array<{ provider: string; c: number }>;
+      expect(emb).toEqual([
+        { provider: 'mock', c: 2 },
+        { provider: 'tfidf', c: 2 },
+      ]);
     } finally {
       close();
       if (prev === undefined) {

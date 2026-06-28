@@ -63,8 +63,16 @@ export const performanceAlertsTool = {
   }
 };
 
-export async function executePerformanceAlerts(args: any, context: ToolContext) {
-  const { action, hours, level, type, resolved, limit, alertId, resolvedBy, resolution } = args;
+export async function executePerformanceAlerts(args: Record<string, unknown>, context: ToolContext) {
+  const action = args['action'] as string | undefined;
+  const hours = args['hours'] as number | undefined;
+  const level = args['level'] as string | undefined;
+  const type = args['type'] as string | undefined;
+  const resolved = args['resolved'] as boolean | undefined;
+  const limit = args['limit'] as number | undefined;
+  const alertId = args['alertId'] as string | undefined;
+  const resolvedBy = args['resolvedBy'] as string | undefined;
+  const resolution = args['resolution'] as string | undefined;
   
   try {
     // 성능 알림 서비스가 없으면 기본 응답
@@ -85,16 +93,16 @@ export async function executePerformanceAlerts(args: any, context: ToolContext) 
 
     switch (action) {
       case 'stats':
-        return await handleStats(context, hours);
-      
+        return await handleStats(context, hours ?? 24);
+
       case 'list':
-        return await handleList(context, hours, limit);
-      
+        return await handleList(context, hours ?? 24, limit ?? 10);
+
       case 'search':
         return await handleSearch(context, { level, type, resolved, hours, limit });
-      
+
       case 'resolve':
-        return await handleResolve(context, alertId, resolvedBy, resolution);
+        return await handleResolve(context, alertId, resolvedBy ?? '', resolution);
       
       default:
         return {
@@ -120,7 +128,7 @@ async function handleStats(context: ToolContext, hours: number) {
     success: true,
     stats: {
       ...stats,
-      recentAlerts: stats.recentAlerts.map((alert: any) => ({
+      recentAlerts: stats.recentAlerts.map((alert) => ({
         id: alert.id,
         timestamp: alert.timestamp.toISOString(),
         level: alert.level,
@@ -154,7 +162,7 @@ async function handleList(context: ToolContext, hours: number, limit: number) {
 
   return {
     success: true,
-    activeAlerts: activeAlerts.map((alert: any) => ({
+    activeAlerts: activeAlerts.map((alert) => ({
       id: alert.id,
       timestamp: alert.timestamp.toISOString(),
       level: alert.level,
@@ -165,7 +173,7 @@ async function handleList(context: ToolContext, hours: number, limit: number) {
       message: alert.message,
       context: alert.context
     })),
-    recentAlerts: recentAlerts.map((alert: any) => ({
+    recentAlerts: recentAlerts.map((alert) => ({
       id: alert.id,
       timestamp: alert.timestamp.toISOString(),
       level: alert.level,
@@ -180,7 +188,7 @@ async function handleList(context: ToolContext, hours: number, limit: number) {
   };
 }
 
-async function handleSearch(context: ToolContext, filters: any) {
+async function handleSearch(context: ToolContext, filters: Record<string, unknown>) {
   if (!context.services.performanceAlertService) {
     throw new Error('성능 알림 서비스가 초기화되지 않았습니다');
   }
@@ -188,7 +196,7 @@ async function handleSearch(context: ToolContext, filters: any) {
 
   return {
     success: true,
-    alerts: alerts.map((alert: any) => ({
+    alerts: alerts.map((alert) => ({
       id: alert.id,
       timestamp: alert.timestamp.toISOString(),
       level: alert.level,

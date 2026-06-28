@@ -73,7 +73,7 @@ export class SchemaVersionManager {
         ORDER BY applied_at ASC
       `);
 
-      return results.map((r: any) => r.version);
+      return results.map((r) => (r as { version: string }).version);
     } catch (error) {
       return [];
     }
@@ -153,13 +153,16 @@ export class SchemaVersionManager {
         ORDER BY applied_at ASC
       `);
 
-      return results.map((r: any) => ({
-        version: r.version,
-        appliedAt: new Date(r.applied_at),
-        migrationName: r.migration_name,
-        checksum: r.checksum || undefined,
-        appliedBy: r.applied_by || 'system'
-      }));
+      return results.map((r) => {
+        const row = r as { version: string; applied_at: string; migration_name: string; checksum?: string; applied_by?: string };
+        return {
+          version: row.version,
+          appliedAt: new Date(row.applied_at),
+          migrationName: row.migration_name,
+          checksum: row.checksum || undefined,
+          appliedBy: row.applied_by || 'system'
+        };
+      });
     } catch (error) {
       return [];
     }

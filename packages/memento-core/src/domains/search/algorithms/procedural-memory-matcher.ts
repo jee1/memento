@@ -6,10 +6,9 @@
  */
 
 import Database from 'better-sqlite3';
-import type { HybridSearchQuery } from './hybrid-search-engine.js';
+import type { HybridSearchQuery, IProceduralMemoryMatcher } from './hybrid-search-types.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
-import type { IProceduralMemoryMatcher } from './hybrid-search-engine.js';
 
 /**
  * Procedural Memory 매칭을 수행하는 클래스

@@ -17,8 +17,8 @@ import type { EmbeddingProvider } from '../../../../shared/types/embedding.types
 import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import { FeedbackRepository } from '../../../memory/repositories/feedback-repository.js';
 
-// Mock @xenova/transformers to prevent onnxruntime-node loading
-vi.mock('@xenova/transformers', () => {
+// Mock @huggingface/transformers to prevent onnxruntime-node loading
+vi.mock('@huggingface/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])

@@ -561,7 +561,7 @@ export class ConsolidationScoreWorker {
   /**
    * 로깅
    */
-  private log(message: string, data?: any, level: 'info' | 'warn' | 'error' = 'info'): void {
+  private log(message: string, data?: unknown, level: 'info' | 'warn' | 'error' = 'info'): void {
     if (!this.config.enableLogging) return;
 
     const timestamp = new Date().toISOString();

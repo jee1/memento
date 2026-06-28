@@ -182,8 +182,8 @@ export class MigrationValidator {
     newEngine: VectorSearchEngine,
     testVector: number[]
   ): Promise<{
-    oldPerformance: any;
-    newPerformance: any;
+    oldPerformance: { averageTime: number; minTime: number; maxTime: number; results: number; successRate: number };
+    newPerformance: { averageTime: number; minTime: number; maxTime: number; results: number; successRate: number };
     improvement: number;
   }> {
     try {

@@ -11,17 +11,17 @@ export interface CoreMemoryPreparedStatement {
   /**
    * 모든 결과 행을 반환
    */
-  all(...params: any[]): Promise<any[]>;
+  all(...params: unknown[]): Promise<unknown[]>;
 
   /**
    * 첫 번째 결과 행을 반환
    */
-  get(...params: any[]): Promise<any>;
+  get(...params: unknown[]): Promise<unknown>;
 
   /**
    * 쿼리를 실행하고 변경된 행 수와 마지막 삽입된 행 ID를 반환
    */
-  run(...params: any[]): Promise<{ changes: number; lastInsertRowid: number }>;
+  run(...params: unknown[]): Promise<{ changes: number; lastInsertRowid: number }>;
 }
 
 /**

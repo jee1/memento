@@ -8,7 +8,7 @@
  * - 개방-폐쇄: 확장에는 열려있고 수정에는 닫혀있음
  */
 
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
@@ -48,7 +48,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private readonly modelName = MiniLMEmbeddingService.MODEL_NAME;
   private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
   private readonly maxTokens = MiniLMEmbeddingService.MAX_TOKENS;
-  private model: any = null;
+  private model: unknown = null;
   private loadingPromise: Promise<any> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
 
@@ -220,8 +220,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         'feature-extraction',
         'Xenova/all-MiniLM-L6-v2',
         {
-          // quantized 모델 사용 (메모리 사용량 감소)
-          quantized: true
+          // q8 모델 사용 (메모리 사용량 감소)
+          dtype: 'q8'
         }
       );
       if (!isCliQuiet()) process.stderr.write('✅ MiniLM 모델 로딩 완료\n');

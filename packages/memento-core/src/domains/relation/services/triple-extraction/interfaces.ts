@@ -72,7 +72,7 @@ export interface ITripleParser {
    * @param triple - 검증할 Triple 객체
    * @returns 유효성 검증 결과
    */
-  isValidTriple(triple: any): boolean;
+  isValidTriple(triple: unknown): boolean;
 }
 
 /**

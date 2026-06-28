@@ -72,7 +72,7 @@ export class ForgetTool extends BaseTool {
     return getValidatedVectorTableName(provider, dimensions);
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     this.logInfo('Forget 도구 호출됨', { params });
     
     try {
@@ -298,17 +298,18 @@ export class ForgetTool extends BaseTool {
   /**
    * 삭제 권한 확인
    */
-  private async validateDeletePermission(memory: any, _context: ToolContext): Promise<void> {
+  private async validateDeletePermission(memory: unknown, _context: ToolContext): Promise<void> {
+    const record = memory as { pinned?: unknown; importance?: number; id?: string };
     // 핀된 기억은 하드 삭제 전에 확인 필요
-    if (memory.pinned) {
+    if (record.pinned) {
       throw new Error('핀된 기억은 먼저 핀을 해제해야 합니다');
     }
     
     // 중요도가 높은 기억은 확인 필요
-    if (memory.importance > 0.8) {
+    if (typeof record.importance === 'number' && record.importance > 0.8) {
       logger.warn('높은 중요도의 기억 삭제', {
-        memoryId: memory.id,
-        importance: memory.importance
+        memoryId: record.id,
+        importance: record.importance
       });
     }
   }

@@ -254,7 +254,7 @@ export class RelationEngineSchemaMigration implements Migration {
       name: string;
       type: string;
       notnull: number;
-      dflt_value: any;
+      dflt_value: unknown;
     }>;
     const relationColumnNames = relationColumns.map(col => col.name);
     

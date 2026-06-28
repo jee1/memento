@@ -289,7 +289,7 @@ export class QualityRecorder {
       FROM quality_measurement_history
     `;
 
-    const params: any[] = [];
+    const params: unknown[] = [];
     const conditions: string[] = [];
 
     if (namespace) {
@@ -363,7 +363,7 @@ export class QualityRecorder {
       FROM quality_metrics
     `;
 
-    const params: any[] = [];
+    const params: unknown[] = [];
     const conditions: string[] = [];
 
     if (namespace) {

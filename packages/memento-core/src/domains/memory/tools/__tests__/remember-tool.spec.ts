@@ -414,6 +414,14 @@ describe('RememberTool', () => {
       expect(row.confidence).toBeNull();
     });
 
+    it('Given: importance·privacy_scope 미제공, When: remember 호출 시, Then: DB에 Zod default(importance=0.5, privacy_scope=private) 저장 (regression #582)', async () => {
+      const result = await tool.handle({ type: 'semantic', content: 'default fields regression test' }, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const row = DatabaseUtils.get(db, 'SELECT importance, privacy_scope FROM memory_item WHERE id = ?', [resultData.memory_id]) as { importance: number; privacy_scope: string };
+      expect(row.importance).toBe(0.5);
+      expect(row.privacy_scope).toBe('private');
+    });
+
     it('Given: semantic remember에 Fact 메타 지정, When: remember 호출 시, Then: num_times·last_mentioned_at·source_session_id·confidence 저장됨 (Issue #88)', async () => {
       const params = {
         type: 'semantic',

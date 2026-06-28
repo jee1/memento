@@ -5,7 +5,7 @@
  * 단일 책임 원칙을 준수하여 HybridSearchEngine에서 분리되었습니다.
  */
 
-import type { ISearchResultCombiner, HybridSearchResult } from './hybrid-search-engine.js';
+import type { ISearchResultCombiner, HybridSearchResult } from './hybrid-search-types.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 
@@ -28,11 +28,12 @@ export class SearchResultCombiner implements ISearchResultCombiner {
    * @param vectorWeight - 벡터 검색 가중치
    * @returns 통합된 하이브리드 검색 결과 배열
    */
-  combine(textResults: any[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[] {
+  combine(textResults: unknown[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[] {
     const resultMap = new Map<string, HybridSearchResult>();
 
     // 텍스트 검색 결과를 먼저 추가하여 기본 점수를 설정합니다.
-    textResults.forEach(result => {
+    textResults.forEach((rawResult) => {
+      const result = rawResult as { id: string; content: string; type: string; importance: number; created_at: string; last_accessed: string; pinned: number | boolean; tags: string[]; score?: number; recall_reason?: string; project_id?: string; owner_id?: string; process_id?: string; session_id?: string };
       const textScore = typeof result.score === 'number' ? result.score : HYBRID_SEARCH.DEFAULT_TEXT_WEIGHT * 0; // 0
       const entry: HybridSearchResult = {
         id: result.id,
@@ -41,7 +42,7 @@ export class SearchResultCombiner implements ISearchResultCombiner {
         importance: result.importance,
         created_at: result.created_at,
         last_accessed: result.last_accessed,
-        pinned: result.pinned,
+        pinned: Boolean(result.pinned),
         tags: result.tags,
         textScore: textScore,
         vectorScore: 0,

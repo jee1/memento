@@ -45,8 +45,12 @@ export const errorStatsTool = {
   }
 };
 
-export async function executeErrorStats(args: any, context: ToolContext) {
-  const { hours, severity, category, includeResolved, limit } = args;
+export async function executeErrorStats(args: Record<string, unknown>, context: ToolContext) {
+  const hours = args['hours'] as number | undefined;
+  const severity = args['severity'] as string | undefined;
+  const category = args['category'] as string | undefined;
+  const includeResolved = args['includeResolved'] as boolean | undefined;
+  const limit = args['limit'] as number | undefined;
   
   try {
     // 에러 로깅 서비스가 없으면 기본 응답
@@ -70,7 +74,7 @@ export async function executeErrorStats(args: any, context: ToolContext) {
     const alerts = context.services.errorLoggingService.getActiveAlerts();
     
     // 필터링된 에러 검색
-    const searchFilters: any = {};
+    const searchFilters: Record<string, unknown> = {};
     if (severity) searchFilters.severity = severity;
     if (category) searchFilters.category = category;
     if (includeResolved !== undefined) searchFilters.resolved = includeResolved;
@@ -82,7 +86,7 @@ export async function executeErrorStats(args: any, context: ToolContext) {
       success: true,
       stats: {
         ...stats,
-        filteredErrors: filteredErrors.map((error: any) => ({
+        filteredErrors: filteredErrors.map((error) => ({
           id: error.id,
           timestamp: error.timestamp.toISOString(),
           severity: error.severity,
@@ -93,7 +97,7 @@ export async function executeErrorStats(args: any, context: ToolContext) {
           resolvedAt: error.resolvedAt?.toISOString()
         }))
       },
-      alerts: alerts.map((alert: any) => ({
+      alerts: alerts.map((alert) => ({
         id: alert.id,
         errorId: alert.errorId,
         severity: alert.severity,

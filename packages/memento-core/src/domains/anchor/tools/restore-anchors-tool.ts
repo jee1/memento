@@ -30,7 +30,7 @@ export class RestoreAnchorsTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     try {
       // 파라미터 검증
       const { agent_id } = RestoreAnchorsSchema.parse(params);
@@ -47,7 +47,7 @@ export class RestoreAnchorsTool extends BaseTool {
       await context.services.anchorManager!.restoreCacheFromDB(context.db!);
       
       // 복원된 앵커 정보 조회
-      const restoredAnchors: any = {};
+      const restoredAnchors: Record<string, { A: unknown; B: unknown; C: unknown }> = {};
       
       if (agent_id) {
         // 특정 agent_id의 앵커만 조회
@@ -103,7 +103,7 @@ export class RestoreAnchorsTool extends BaseTool {
       }
       
       const agentCount = Object.keys(restoredAnchors).length;
-      const totalAnchors = Object.values(restoredAnchors).reduce((sum: number, anchors: any) => {
+      const totalAnchors = Object.values(restoredAnchors).reduce((sum: number, anchors) => {
         return sum + (anchors.A ? 1 : 0) + (anchors.B ? 1 : 0) + (anchors.C ? 1 : 0);
       }, 0);
       

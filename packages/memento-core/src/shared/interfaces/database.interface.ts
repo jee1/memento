@@ -4,9 +4,9 @@
  */
 
 export interface PreparedStatement {
-  all(...params: any[]): any[];
-  get(...params: any[]): any;
-  run(...params: any[]): { changes: number; lastInsertRowid: number };
+  all(...params: unknown[]): unknown[];
+  get(...params: unknown[]): unknown;
+  run(...params: unknown[]): { changes: number; lastInsertRowid: number };
 }
 
 export interface DatabaseConnection {

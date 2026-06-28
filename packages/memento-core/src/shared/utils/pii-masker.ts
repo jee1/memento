@@ -290,18 +290,18 @@ export class PIIMasker {
    * @param obj 마스킹할 객체
    * @returns 마스킹된 객체
    */
-  static maskObject(obj: any, visited: WeakSet<any> = new WeakSet()): any {
+  static maskObject(obj: unknown, visited: WeakSet<object> = new WeakSet()): Record<string, unknown> {
     // 환경 변수로 마스킹 비활성화된 경우 원본 반환
     if (!isPIIMaskingEnabled()) {
-      return obj;
+      return obj as Record<string, unknown>;
     }
     if (!obj || typeof obj !== 'object') {
-      return obj;
+      return obj as Record<string, unknown>;
     }
 
     // 순환 참조 감지
     if (visited.has(obj)) {
-      return '[Circular Reference]';
+      return { _circular: '[Circular Reference]' };
     }
     visited.add(obj);
 
@@ -310,11 +310,12 @@ export class PIIMasker {
       const serialized = JSON.stringify(obj);
       const masked = this.mask(serialized).masked;
       // 역직렬화하여 객체로 복원
-      return JSON.parse(masked);
+      return JSON.parse(masked) as Record<string, unknown>;
     } catch {
       // 직렬화/역직렬화 실패 시 개별 필드에 마스킹 적용 시도
-      const masked: any = Array.isArray(obj) ? [] : {};
-      for (const [key, value] of Object.entries(obj)) {
+      const objRecord = obj as Record<string, unknown>;
+      const masked: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(objRecord)) {
         if (typeof value === 'string') {
           masked[key] = this.mask(value).masked;
         } else if (typeof value === 'object' && value !== null) {

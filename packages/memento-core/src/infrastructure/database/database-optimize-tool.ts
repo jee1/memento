@@ -35,7 +35,7 @@ export class DatabaseOptimizeTool extends BaseTool {
     );
   }
 
-  async handle(params: any, context: ToolContext): Promise<ToolResult> {
+  async handle(params: unknown, context: ToolContext): Promise<ToolResult> {
     const { analyze, create_indexes } = DatabaseOptimizeSchema.parse(params);
     
     // 데이터베이스 연결 확인
@@ -45,7 +45,7 @@ export class DatabaseOptimizeTool extends BaseTool {
     this.validateService(context.services.databaseOptimizer, '데이터베이스 최적화기');
     
     try {
-      const results: any = {
+      const results: { message: string; operations: string[] } = {
         message: '데이터베이스 최적화 완료',
         operations: []
       };
@@ -60,7 +60,7 @@ export class DatabaseOptimizeTool extends BaseTool {
       
       if (create_indexes) {
         const recommendations = await context.services.databaseOptimizer.generateIndexRecommendations();
-        const highPriorityRecs = recommendations.filter((r: any) => r.priority === 'high');
+        const highPriorityRecs = recommendations.filter((r) => r.priority === 'high');
         
         for (const rec of highPriorityRecs) {
           const indexName = `idx_${rec.table}_${rec.columns.join('_')}`;

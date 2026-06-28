@@ -4,7 +4,7 @@
  */
 
 import type { NHopSearchResult } from './n-hop-search-service.js';
-import type { SearchOptions } from './anchor-interfaces.js';
+import type { SearchOptions, SearchResult } from './anchor-interfaces.js';
 
 /**
  * N-hop 검색 결과 타입 (재export)
@@ -24,7 +24,7 @@ export interface ISearchStrategy {
   /**
    * 전략 실행
    */
-  execute(...args: any[]): Promise<any>;
+  execute(...args: unknown[]): Promise<unknown>;
 }
 
 /**
@@ -70,6 +70,6 @@ export interface IFallbackStrategy extends ISearchStrategy {
     query: string,
     options: SearchOptions | undefined,
     startTime: number | undefined
-  ): Promise<any>; // SearchResult는 anchor-interfaces에서 import
+  ): Promise<SearchResult>;
 }
 

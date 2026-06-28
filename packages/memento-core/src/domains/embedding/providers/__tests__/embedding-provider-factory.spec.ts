@@ -5,9 +5,9 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock @xenova/transformers to prevent onnxruntime-node loading
+// Mock @huggingface/transformers to prevent onnxruntime-node loading
 // MUST be at the top before any imports
-vi.mock('@xenova/transformers', () => {
+vi.mock('@huggingface/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
