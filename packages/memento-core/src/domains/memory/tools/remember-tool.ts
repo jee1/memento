@@ -130,6 +130,7 @@ export class RememberTool extends BaseTool {
   async handle(params: RememberParams, context: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
     try {
+      const parsedParams = RememberSchema.parse(params);
       const {
         type: rawType,
         key, value, always_load, immutable,
@@ -138,7 +139,7 @@ export class RememberTool extends BaseTool {
         session_id: session_id_param, project_id: project_id_param,
         num_times: num_times_param, last_mentioned_at: last_mentioned_at_param,
         source_session_id: source_session_id_param, confidence: confidence_param
-      } = RememberSchema.parse(params);
+      } = parsedParams;
 
       const ownerId = owner_id_param ?? context.agentId ?? null;
       const processId = process_id_param ?? context.processId ?? null;
@@ -185,7 +186,7 @@ export class RememberTool extends BaseTool {
         timestamp: new Date().toISOString(),
         context: {
           type,
-          has_content: !!(params as { content?: string }).content,
+          has_content: !!parsedParams.content,
           has_key: !!key,
           has_value: !!value,
           type_param_mode: typeParamMode,
@@ -204,7 +205,7 @@ export class RememberTool extends BaseTool {
       }
 
       return await handleMemoryItem(
-        params as RememberParams,
+        parsedParams,
         context,
         {
           type, ownerId, processId, sessionId,
