@@ -34,6 +34,13 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 - `static/css/tokens.css` 디자인 토큰 우선 ([DESIGN.md](../DESIGN.md))
 - 리터럴 색·간격 값 지양
 
+## Spec Kit · 이슈 격리 워크트리
+
+- **초기화됨**: `.specify/`, `specs/NNN-short-name/` (spec · plan · tasks)
+- **격리 작업**: `git worktree add -b NNN-name ../memento-issue-NNN main` → worktree에서 `npm install` → spec/plan/tasks → 구현 → PR (`Closes #이슈`)
+- **정리 순서**: `git worktree remove ../memento-issue-NNN` → `git branch -D NNN-name` → `git pull origin main`
+- **god node 분해** (#593 계열): public import 경로·export surface 유지, 내부만 composition sub-module; 선행 `performance-monitor.spec.ts` green
+
 ## PR·지식 복리
 
 - 재현 어려운 버그·운영 함정 해결 후 PR 준비 시 `/ce-compound` 제안 (검증 완료 후)

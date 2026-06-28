@@ -44,6 +44,8 @@ npm run lint && npm run type-check  # 커밋 전 필수
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
+- **git worktree**: 브랜치 삭제·`gh pr merge --delete-branch` 전에 `git worktree remove <path>` 필수 (attach 상태면 로컬 브랜치 삭제 실패)
+- **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)
 
 ## 4. 코딩 에이전트 행동 지침 (Karpathy Guidelines)
 

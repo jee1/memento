@@ -30,6 +30,15 @@ npm run test:search  # 검색 시나리오 테스트
 
 커밋 전 `lint`, `type-check`, `test` 통과 필수.
 
+## Git worktree (이슈 격리)
+
+```bash
+git worktree add -b 031-feature-name ../memento-issue-123 main
+cd ../memento-issue-123 && npm install
+git worktree list
+git worktree remove ../memento-issue-123   # 브랜치 삭제 전 필수
+```
+
 ## Docker 및 DB 운영
 
 ```bash

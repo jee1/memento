@@ -24,6 +24,7 @@
 | `anchor/` | 앵커 슬롯(A/B/C) 검색 |
 | `relation/` | 관계 추출·시각화 |
 | `procedural/` | 버전 관리 절차 메모리 |
+| `monitoring/services/` | `PerformanceMonitor` — types·CPU·알림·검색통계·DB·analytics sub-module (#594); 진입점 `performance-monitor.ts` |
 
 ## Workspace 의존성 pin 정책
 
