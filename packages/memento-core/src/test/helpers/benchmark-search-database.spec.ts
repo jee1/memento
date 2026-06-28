@@ -60,7 +60,7 @@ describe('createSeededBenchmarkDatabase', () => {
       const row = db.prepare('SELECT COUNT(*) AS c FROM memory_item').get() as { c: number };
       expect(row.c).toBe(2);
       const emb = db.prepare('SELECT COUNT(*) AS c FROM memory_embedding').get() as { c: number };
-      expect(emb.c).toBe(2);
+      expect(emb.c).toBe(4); // corpus 2행 × (tfidf + mock) provider
     } finally {
       close();
       if (prev === undefined) {

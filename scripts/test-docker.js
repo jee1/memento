@@ -3,7 +3,22 @@
  */
 
 const { spawn } = require('child_process');
-const axios = require('axios');
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
 
 async function testDockerServer() {
   console.log('🐳 Docker 환경에서 Memento 서버 테스트 시작');
@@ -46,8 +61,8 @@ async function testDockerServer() {
     // 4. HTTP 서버 테스트
     console.log('\n4️⃣ HTTP 서버 테스트');
     try {
-      const response = await axios.get('http://localhost:9001/health');
-      console.log('✅ HTTP 서버 응답:', response.data);
+      const health = await fetchJson('http://localhost:9001/health');
+      console.log('✅ HTTP 서버 응답:', health);
     } catch (error) {
       console.log('⚠️  HTTP 서버 테스트 실패:', error.message);
     }
@@ -62,14 +77,20 @@ async function testDockerServer() {
         importance: 0.8
       };
       
-      const rememberResponse = await axios.post('http://localhost:9001/api/remember', testData);
-      console.log('✅ 메모리 저장 성공:', rememberResponse.data);
-      
-      const recallResponse = await axios.post('http://localhost:9001/api/recall', {
-        query: "Docker",
-        limit: 5
+      const rememberResult = await fetchJson('http://localhost:9001/api/remember', {
+        method: 'POST',
+        body: JSON.stringify(testData),
       });
-      console.log('✅ 메모리 검색 성공:', recallResponse.data);
+      console.log('✅ 메모리 저장 성공:', rememberResult);
+      
+      const recallResult = await fetchJson('http://localhost:9001/api/recall', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: "Docker",
+          limit: 5
+        }),
+      });
+      console.log('✅ 메모리 검색 성공:', recallResult);
       
     } catch (error) {
       console.log('⚠️  MCP 서버 테스트 실패:', error.message);

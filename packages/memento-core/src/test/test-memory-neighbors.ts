@@ -14,8 +14,6 @@ import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/me
 import { initializeDatabase } from '@memento/core/infrastructure/database/database/init.js';
 import { startServer, cleanup, __test } from '../server/http-server.js';
 import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
-import fetch from 'node-fetch';
-
 describe('Memory Neighbors E2E Tests', () => {
   let db: Database.Database;
   let context: ToolContext;
