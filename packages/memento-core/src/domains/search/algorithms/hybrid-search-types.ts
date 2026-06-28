@@ -106,6 +106,18 @@ export type RelationInfoRow = {
   confidence: number;
 };
 
+export type HybridRelationGraphReader = {
+  getRelationsBatch(
+    memoryIds: string[],
+    options: { direction: 'both'; minConfidence: number }
+  ): Promise<Map<string, Array<{
+    source_id: string;
+    target_id: string;
+    relation_type: string;
+    confidence: number;
+  }>>>;
+};
+
 export type ProceduralMemoryMatch = {
   workflow_name_match: boolean;
   skill_name_match: boolean;

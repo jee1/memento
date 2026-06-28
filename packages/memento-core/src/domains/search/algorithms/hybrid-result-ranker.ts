@@ -7,11 +7,11 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
 import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
-import { RelationGraph } from '../../relation/services/relation-graph.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { SearchRanking, type SearchFeatures } from './search-ranking.js';
 import { SearchError, SearchErrorType } from './search-error.js';
 import type {
+  HybridRelationGraphReader,
   HybridSearchQuery,
   HybridSearchResult,
   HybridWeights,
@@ -28,7 +28,7 @@ export class HybridResultRanker {
     private resultCombiner: ISearchResultCombiner,
     private ranking: SearchRanking,
     private proceduralMemoryMatcher: IProceduralMemoryMatcher,
-    private getRelationGraph: () => RelationGraph | null
+    private getRelationGraph: () => HybridRelationGraphReader | null
   ) {}
 
   async combineAndSortResults(
