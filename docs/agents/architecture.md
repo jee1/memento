@@ -25,6 +25,16 @@
 | `relation/` | 관계 추출·시각화 |
 | `procedural/` | 버전 관리 절차 메모리 |
 
+## Workspace 의존성 pin 정책
+
+| 위치 | `@memento/core` 선언 | 이유 |
+|------|---------------------|------|
+| 루트 `package.json` | exact `"1.17.0"` + `bundledDependencies` | npm pack/배포 시 workspace 패키지를 단일 tarball에 고정 번들 |
+| `packages/memento-server`, `apps/experimental-example` | `"*"` | monorepo 내부 개발 시 항상 로컬 workspace 빌드 사용 |
+| `_archived/*` | exact pin | 아카이브 스냅샷 재현성 |
+
+루트 exact pin은 `^`/`~`로 바꾸지 않는다. 버전 bump는 `@memento/core` 릴리스와 루트 `bundledDependencies`를 함께 갱신하는 별도 chore로 처리한다.
+
 ## 개발 원칙
 
 - **Functional Core, Structured Shell**

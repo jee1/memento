@@ -6,7 +6,6 @@
  */
 
 import { spawn } from 'child_process';
-import fetch from 'node-fetch';
 
 const serverUrl = process.env.MEMENTO_SERVER_URL || 'http://localhost:9001';
 const apiKey = process.env.MEMENTO_API_KEY || 'default-key';
