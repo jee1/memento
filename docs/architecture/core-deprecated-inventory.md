@@ -14,7 +14,7 @@ Issue #586 · 부모 [#580](https://github.com/jee1/memento/issues/580)
 | `ProcessAttributeRepository` (`process-attribute-repository.ts`) | `IProcessAttributeRepository` + SQLite impl | Compatibility re-export |
 | `EmbeddingService` (`embedding-service.ts`) | `EmbeddingManager` / factory | Class unused; file retained for import stability |
 | `AnchorManager` search/cache helpers | `searchService` / `cacheService` directly | Private deprecated wrappers |
-| `PerformanceMonitor.getMemoryMetrics().heapUsagePercent` | `heapShareOfBudgetPercent` | Same value; misleading name |
+| `PerformanceMonitor.getMemoryMetrics().heapUsagePercent` | `heapShareOfBudgetPercent` | Same value; misleading name. Implementation: `memory-pressure-utils.ts` (`getMemoryPressureDenominatorBytes`, `memoryRatioToPercent`); exposed via `performance-monitor.ts` `getMemoryMetrics()` |
 | `ReflexionWorker` legacy queue hook | `AsyncTaskQueue` | No-op deprecated method |
 | `type-param-validator` runtime warning `[LEGACY TYPE]` | Always pass MCP `type` param | [type-param-rollout.md](../guides/ko/type-param-rollout.md) |
 | `@google/generative-ai` (llm-client-initializer note) | `@google/genai` migration | Upstream SDK sunset 2025-08-31 |
