@@ -7,4 +7,4 @@
 - [x] T005 `test-memory-neighbors.ts` native fetch 마이그레이션
 - [x] T006 `@memento/core` pin 정책 문서화
 - [x] T007 `npm run build && npm test && npm run lint && npm run type-check`
-- [ ] T008 PR 등록 (Closes #584)
+- [x] T008 PR 등록 (Closes #584)
