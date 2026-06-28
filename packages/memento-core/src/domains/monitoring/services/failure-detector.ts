@@ -42,7 +42,7 @@ export interface PerformanceThresholds {
  */
 const USER_FEEDBACK_KEYWORDS = [
   '실패', '오류', '에러', '문제', '잘못', '틀림', '안됨', '안되', '못함',
-  'failed', 'error', 'wrong', 'incorrect', 'problem', 'issue', 'bug',
+  'failed', 'error', 'wrong', 'incorrect', 'problem', 'issue', 'defect',
   '실패했습니다', '오류가 발생했습니다', '문제가 있습니다'
 ];
 

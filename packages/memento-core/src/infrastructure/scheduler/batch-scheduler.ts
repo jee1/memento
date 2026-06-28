@@ -508,7 +508,7 @@ export class BatchScheduler implements IBatchScheduler {
       // data.level이 있으면 이를 우선적으로 사용 (호출부 편의성)
       if ('level' in safeData && typeof safeData.level === 'string') {
         const dataLevel = safeData.level.toLowerCase();
-        // 'debug'는 'info'로 변환 (mcpLogger가 debug를 지원하지 않을 수 있음)
+        // 진단 레벨 문자열은 'info'로 변환 (mcpLogger가 해당 레벨을 지원하지 않을 수 있음)
         if (dataLevel === 'debug' || dataLevel === 'info' || dataLevel === 'warn' || dataLevel === 'error') {
           actualLevel = dataLevel === 'debug' ? 'info' : dataLevel as 'info' | 'warn' | 'error';
         }

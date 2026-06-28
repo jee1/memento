@@ -228,7 +228,7 @@ export class FixTfidfDimensionTriggerMigration implements Migration {
       db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update');
 
       // Recreate triggers with old dimension condition (384 for TF-IDF)
-      // Note: This restores the buggy behavior, but allows rollback
+      // Note: This restores the prior incorrect behavior, but allows rollback
       db.exec(`
         CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
           INSERT INTO memory_item_vec(rowid, embedding) 

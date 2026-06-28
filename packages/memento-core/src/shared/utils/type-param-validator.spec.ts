@@ -47,7 +47,7 @@ describe('type-param-validator', () => {
         expect(result.isValid).toBe(true);
         expect(result.mode).toBe('deprecate');
         expect(result.defaultType).toBe('episodic');
-        expect(result.message).toContain('DEPRECATED');
+        expect(result.message).toContain('LEGACY TYPE');
         expect(result.message).toContain('마이그레이션');
         expect(result.message).toContain('type-param-rollout');
       });

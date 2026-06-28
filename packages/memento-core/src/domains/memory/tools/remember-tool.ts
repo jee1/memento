@@ -19,9 +19,7 @@ import { handleCoreMemory } from './remember-tool-core.js';
 import { handleVaultMemory } from './remember-tool-vault.js';
 import { handleMemoryItem } from './remember-tool-memory-item.js';
 import { validateReflectionNotesJson } from './remember-tool-reflection.js';
-import type { MemoryItem, MemoryTypeRequest } from '../../../shared/types/index.js';
-import type Database from 'better-sqlite3';
-import { getMemoryById as _getMemoryById, getExistingMemoriesForRelationExtraction as _getExistingMemoriesForRelationExtraction } from './remember-tool-db-helpers.js';
+import type { MemoryTypeRequest } from '../../../shared/types/index.js';
 
 export type { RememberParams } from './remember-tool-schema.js';
 
@@ -226,27 +224,5 @@ export class RememberTool extends BaseTool {
       );
       throw error;
     }
-  }
-
-  /** @deprecated 테스트 호환용 — 직접 사용하지 말 것. getMemoryById from remember-tool-db-helpers 사용. */
-  private async getMemoryById(db: Database.Database, id: string): Promise<MemoryItem | null> {
-    const host: RememberToolHost = {
-      logInfo: (msg, data) => this.logInfo(msg, data),
-      logWarning: (msg, data) => this.logWarning(msg, data),
-      logError: (err, ctx, data) => this.logError(err, ctx, data),
-      createSuccessResult: (data) => this.createSuccessResult(data)
-    };
-    return _getMemoryById(db, id, host);
-  }
-
-  /** @deprecated 테스트 호환용 — 직접 사용하지 말 것. getExistingMemoriesForRelationExtraction from remember-tool-db-helpers 사용. */
-  private async getExistingMemoriesForRelationExtraction(db: Database.Database, excludeId: string, limit: number = 100): Promise<MemoryItem[]> {
-    const host: RememberToolHost = {
-      logInfo: (msg, data) => this.logInfo(msg, data),
-      logWarning: (msg, data) => this.logWarning(msg, data),
-      logError: (err, ctx, data) => this.logError(err, ctx, data),
-      createSuccessResult: (data) => this.createSuccessResult(data)
-    };
-    return _getExistingMemoriesForRelationExtraction(db, excludeId, limit, host);
   }
 }

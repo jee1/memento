@@ -27,6 +27,7 @@
     "copy:assets": "npm run copy:assets -w @memento/core",
     "docs:audit-links": "node scripts/audit-markdown-links.mjs",
     "docs:verify-npm-scripts": "node scripts/verify-doc-npm-scripts.mjs",
+    "check-debt-markers": "tsx scripts/check-debt-markers.ts",
     "start": "npm run start -w memento-server",
     "start:http": "npm run start:http -w memento-server",
     "start:http-v2": "npm run start:http-v2 -w memento-server",
