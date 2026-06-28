@@ -1,0 +1,11 @@
+import {
+  AGENT_EVENT_TYPES,
+  MAX_BATCH_BYTES,
+  MAX_BATCH_EVENTS,
+  MAX_EVENT_BYTES,
+} from '@memento/agent-integration';
+
+export const EVENT_TYPES = [...AGENT_EVENT_TYPES];
+export const EVENT_PAYLOAD_BYTES = MAX_EVENT_BYTES;
+export const BATCH_EVENTS = MAX_BATCH_EVENTS;
+export const BATCH_PAYLOAD_BYTES = MAX_BATCH_BYTES;
