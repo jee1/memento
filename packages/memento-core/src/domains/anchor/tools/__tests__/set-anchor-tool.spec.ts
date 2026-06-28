@@ -1,7 +1,7 @@
-// Mock @xenova/transformers to prevent onnxruntime-node and sharp loading
+// Mock @huggingface/transformers to prevent onnxruntime-node and sharp loading
 // MUST be at the top before any imports
 import { vi } from 'vitest';
-vi.mock('@xenova/transformers', () => {
+vi.mock('@huggingface/transformers', () => {
   return {
     pipeline: vi.fn().mockResolvedValue({
       __call: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
