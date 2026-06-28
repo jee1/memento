@@ -21,6 +21,14 @@
 python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
 ```
 
+## 기술 부채·아키텍처 검사
+
+- **정량 스캔**: `python3 ~/.agents/skills/tech-debt-analyzer/scripts/detect_code_smells.py packages scripts static tests --output markdown`
+- **actionable 마커**: `npm run check-debt-markers -- --production-only` (memento-core 프로덕션)
+- **아키텍처**: graphify → `$analyze`(read-only) → 리팩터 전 `gstack-plan-eng-review`
+- **formal 감사(선택)**: `helderberto/skills@architecture-audit` 또는 `nkootstra/skills@code-complexity-audit` (`npx skills add …`)
+- **추적 이슈**: #593 · deprecated inventory: [core-deprecated-inventory.md](../architecture/core-deprecated-inventory.md)
+
 ## 대시보드 UI
 
 - `static/css/tokens.css` 디자인 토큰 우선 ([DESIGN.md](../DESIGN.md))
