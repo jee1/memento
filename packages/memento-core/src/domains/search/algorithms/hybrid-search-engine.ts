@@ -1,367 +1,73 @@
 /**
  * 텍스트 검색과 벡터 검색을 결합하여 검색 정확도와 포괄성을 동시에 확보합니다.
- * FTS5 전문 검색과 벡터 유사도 검색을 병렬로 수행하여 각각의 장점을 활용합니다.
+ * 세부 실행, 랭킹 컨텍스트, 보조 구현은 하위 모듈에 둡니다.
  */
 
 import Database from 'better-sqlite3';
-import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
-import { mementoConfig } from '../../../shared/config/index.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
-import type { EmbeddingProvider,MemorySearchFilters,MemoryType,ProcessAttribute,StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
-import type { ScoreBreakdown } from '../../../shared/types/search.types.js';
-import { logger } from '../../../shared/utils/logger.js';
-import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import type { EmbeddingProvider, StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
-import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
-import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
-import {
-  MemoryEmbeddingService,
-  type SearchBySimilarityOutcome,
-  type VectorSearchResult,
-} from '../../memory/services/memory-embedding-service.js';
+import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { RelationGraph } from '../../relation/services/relation-graph.js';
-import { normalizeSearchBySimilarityOutcome } from './hybrid-search-outcome-utils.js';
+import { AdaptiveWeightCalculator } from './adaptive-weight-calculator.js';
+import { HybridResultRanker } from './hybrid-result-ranker.js';
 import {
-  createProviderVectorSearchTask,
-  executeProviderSearchesWithOverallTimeout,
-  type ProviderVectorSearchDeps,
-} from './hybrid-search-provider-parallel.js';
+  HybridVectorSearchExecutor,
+  resolveHybridVectorPrefetchLimit,
+  resolveQueryUnifiedEmbeddingForHybridSearch,
+} from './hybrid-vector-search-executor.js';
 import { ProceduralMemoryMatcher } from './procedural-memory-matcher.js';
-import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { SearchEngine } from './search-engine.js';
-import { SearchRanking,type SearchFeatures } from './search-ranking.js';
+import { SearchError, SearchErrorType } from './search-error.js';
+import { SearchLogger } from './search-logger.js';
+import { SearchRanking } from './search-ranking.js';
 import { SearchResultCombiner } from './search-result-combiner.js';
 import { getVectorSearchEngine } from './vector-search-engine.js';
+import type {
+  HybridSearchQuery,
+  HybridSearchResult,
+  HybridWeights,
+  IAdaptiveWeightCalculator,
+  IEmbeddingService,
+  IProceduralMemoryMatcher,
+  ISearchLogger,
+  ISearchResultCombiner,
+  ITextSearchEngine,
+  IVectorSearchEngine,
+} from './hybrid-search-types.js';
 
-/** 하이브리드 검색 벡터 prefetch limit (VectorSearchService 상한 100 준수) */
-export function resolveHybridVectorPrefetchLimit(requestedLimit?: number): number {
-  const base = requestedLimit ?? 10;
-  return Math.min(
-    HYBRID_SEARCH.MAX_VECTOR_PREFETCH_LIMIT,
-    base * HYBRID_SEARCH.VECTOR_SEARCH_LIMIT_MULTIPLIER
-  );
-}
-
-// 의존성 주입과 테스트 가능성을 위해 인터페이스를 정의하여 느슨한 결합을 유지합니다.
-export interface ITextSearchEngine {
-  search(
-    db: Database.Database,
-    query: {
-      query: string;
-      filters?: MemorySearchFilters;
-      limit?: number;
-      omit_feedback_in_ranking?: boolean;
-    }
-  ): Promise<{ items: unknown[]; total_count: number; query_time: number }>;
-}
-
-export interface IEmbeddingService {
-  isAvailable(): boolean;
-  searchBySimilarity(
-    db: Database.Database,
-    query: string,
-    options: {
-      type?: MemoryType[];
-      limit?: number;
-      threshold?: number;
-      project_id?: string;
-      owner_id?: string | string[];
-    }
-  ): Promise<VectorSearchResult[] | SearchBySimilarityOutcome>;
-  getEmbeddingStats(db: Database.Database): Promise<unknown>;
-}
-
-/**
- * 하이브리드 검색의 쿼리 벡터 생성에 사용할 UnifiedEmbeddingService를 결정한다.
- * MemoryEmbeddingService 및 동일 패턴의 주입 구현체는 getUnifiedEmbeddingService()로
- * 인덱싱·검색과 동일한 인스턴스를 노출한다. 그렇지 않을 때만 기본 UnifiedEmbeddingService를 만든다.
- */
-export function resolveQueryUnifiedEmbeddingForHybridSearch(
-  embeddingService: IEmbeddingService
-): UnifiedEmbeddingService {
-  const ext = embeddingService as IEmbeddingService & {
-    getUnifiedEmbeddingService?: () => UnifiedEmbeddingService;
-  };
-  if (typeof ext.getUnifiedEmbeddingService === 'function') {
-    return ext.getUnifiedEmbeddingService();
-  }
-  return new UnifiedEmbeddingService();
-}
-
-export interface IVectorSearchEngine {
-  initialize(db: Database.Database): void;
-  getIndexStatus(): { available: boolean };
-  search(
-    vector: number[],
-    options: {
-      limit?: number;
-      threshold?: number;
-      types?: MemoryType[];
-      includeContent?: boolean;
-      project_id?: string;
-      owner_id?: string | string[];
-    },
-    provider?: string
-  ): Promise<Array<{ memory_id: string; content: string; type: string; importance: number; created_at: string; similarity: number; project_id?: string | null; owner_id?: string | null }>>;
-}
-
-export interface ISearchResultCombiner {
-  combine(textResults: unknown[], vectorResults: VectorSearchResult[], textWeight: number, vectorWeight: number): HybridSearchResult[];
-}
-
-/**
- * Procedural Memory 매칭을 수행하는 인터페이스
- * workflow_name, skill_name, trigger_conditions와 쿼리/필터를 매칭하여 부스트 가중치를 결정합니다.
- */
-export interface IProceduralMemoryMatcher {
-  /**
-   * Given: 데이터베이스와 메모리 ID 목록, 검색 쿼리가 제공됨
-   * When: Procedural Memory 항목들을 조회하고 쿼리/필터와 매칭함
-   * Then: 각 메모리 ID에 대한 매칭 결과를 반환함
-   * 
-   * @param db - 데이터베이스 연결
-   * @param memoryIds - 매칭할 메모리 ID 목록
-   * @param query - 검색 쿼리 (선택적)
-   * @returns 각 메모리 ID에 대한 매칭 결과 맵
-   */
-  fetchProceduralMemoryMatches(
-    db: Database.Database,
-    memoryIds: string[],
-    query?: HybridSearchQuery
-  ): Map<string, { workflow_name_match: boolean; skill_name_match: boolean; trigger_conditions_match: boolean }>;
-}
-
-export interface IAdaptiveWeightCalculator {
-  calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number; textWeight: number };
-}
-
-export interface ISearchLogger {
-  logSearchStart(searchId: string, query: HybridSearchQuery): void;
-  logSearchStep(searchId: string, step: string, data: unknown): void;
-  logSearchComplete(searchId: string, result: { items: unknown[]; total_count: number }, queryTime: number): void;
-  logSearchError(searchId: string, error: unknown, query: HybridSearchQuery): void;
-  logExperiment?(searchId: string, experimentId: string, variant: Record<string, unknown>): void; // 실험 로그 (선택적)
-}
-
-// 검색 과정에서 발생할 수 있는 다양한 오류를 분류하여 정확한 오류 처리를 수행합니다.
-type HybridWeights = { textWeight: number; vectorWeight: number };
-
-type RelationInfoRow = {
-  target_id: string;
-  relation_type: string;
-  confidence: number;
+export {
+  resolveHybridVectorPrefetchLimit,
+  resolveQueryUnifiedEmbeddingForHybridSearch,
+  SearchError,
+  SearchErrorType,
+  AdaptiveWeightCalculator,
+  SearchLogger,
+  SearchResultCombiner,
 };
 
-type ProceduralMemoryMatch = {
-  workflow_name_match: boolean;
-  skill_name_match: boolean;
-  trigger_conditions_match: boolean;
-};
-export enum SearchErrorType {
-  EMBEDDING_GENERATION_FAILED = 'EMBEDDING_GENERATION_FAILED',
-  VECTOR_SEARCH_FAILED = 'VECTOR_SEARCH_FAILED',
-  TEXT_SEARCH_FAILED = 'TEXT_SEARCH_FAILED',
-  RESULT_COMBINATION_FAILED = 'RESULT_COMBINATION_FAILED',
-  DATABASE_CONNECTION_FAILED = 'DATABASE_CONNECTION_FAILED',
-  INVALID_QUERY = 'INVALID_QUERY',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE'
-}
-
-export class SearchError extends Error {
-  constructor(
-    public type: SearchErrorType,
-    message: string,
-    public originalError?: Error,
-    public context?: unknown
-  ) {
-    super(message);
-    this.name = 'SearchError';
-  }
-}
-
-// SearchResultCombiner는 별도 파일로 분리됨 (search-result-combiner.ts)
-export { SearchResultCombiner } from './search-result-combiner.js';
-
-export class AdaptiveWeightCalculator implements IAdaptiveWeightCalculator {
-  private adaptiveWeights: Map<string, { vectorWeight: number, textWeight: number }> = new Map();
-
-  calculateWeights(query: string, vectorWeight: number, textWeight: number): { vectorWeight: number, textWeight: number } {
-    const queryKey = this.normalizeQuery(query);
-    
-    // 이전에 계산된 가중치를 재사용하여 일관성 있는 검색 결과를 제공하고 성능을 최적화합니다.
-    if (this.adaptiveWeights.has(queryKey)) {
-      return this.adaptiveWeights.get(queryKey)!;
-    }
-
-    // 쿼리의 특성을 분석하여 최적의 가중치를 결정합니다.
-    const queryAnalysis = this.analyzeQuery(query);
-    
-    // 쿼리 특성에 따라 벡터 검색과 텍스트 검색의 가중치를 동적으로 조정하여 검색 정확도를 향상시키기 위해
-    let adjustedVectorWeight = vectorWeight;
-    let adjustedTextWeight = textWeight;
-
-    if (queryAnalysis.isTechnicalTerm) {
-      // 기술 용어는 의미적 유사성이 중요하므로 벡터 검색에 더 높은 가중치를 부여합니다.
-      adjustedVectorWeight = Math.min(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.max_weight, 
-        vectorWeight + HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_vector_boost);
-      adjustedTextWeight = Math.max(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.min_weight, 
-        textWeight - HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_text_boost);
-    } else if (queryAnalysis.isPhrase) {
-      // 구문 검색은 정확한 단어 매칭이 중요하므로 텍스트 검색에 더 높은 가중치를 부여합니다.
-      adjustedVectorWeight = Math.max(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.min_weight, 
-        vectorWeight - HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_vector_boost);
-      adjustedTextWeight = Math.min(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.max_weight, 
-        textWeight + HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.high_text_boost);
-    } else if (queryAnalysis.isShortQuery) {
-      // 짧은 쿼리는 키워드 매칭이 제한적이므로 의미적 유사성을 활용하는 벡터 검색에 더 의존합니다.
-      adjustedVectorWeight = Math.min(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.max_weight - 0.1, 
-        vectorWeight + HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.medium_boost);
-      adjustedTextWeight = Math.max(HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.min_weight + 0.1, 
-        textWeight - HYBRID_SEARCH.ADAPTIVE_WEIGHT_ADJUSTMENT.medium_boost);
-    }
-
-    // 가중치의 합이 1이 되도록 정규화하여 일관된 점수 범위를 유지합니다.
-    const totalWeight = adjustedVectorWeight + adjustedTextWeight;
-    const normalizedVectorWeight = adjustedVectorWeight / totalWeight;
-    const normalizedTextWeight = adjustedTextWeight / totalWeight;
-
-    const weights = { vectorWeight: normalizedVectorWeight, textWeight: normalizedTextWeight };
-    this.adaptiveWeights.set(queryKey, weights);
-    
-    return weights;
-  }
-
-  private analyzeQuery(query: string): { isTechnicalTerm: boolean, isPhrase: boolean, isShortQuery: boolean } {
-    const normalizedQuery = query.toLowerCase().trim();
-    
-    return {
-      isTechnicalTerm: /^(api|sql|http|json|xml|css|html|js|ts|react|vue|angular|node|python|java|c\+\+|go|rust|docker|kubernetes|aws|azure|gcp)$/i.test(normalizedQuery),
-      isPhrase: normalizedQuery.includes(' ') && normalizedQuery.split(' ').length >= 3,
-      isShortQuery: normalizedQuery.length <= 10
-    };
-  }
-
-  private normalizeQuery(query: string): string {
-    if (!query) {
-      return '';
-    }
-    return query.toLowerCase().trim().replace(/\s+/g, ' ');
-  }
-}
-
-export class SearchLogger implements ISearchLogger {
-  logSearchStart(_searchId: string, _query: HybridSearchQuery): void {
-    // console.log(`🔍 [${searchId}] 하이브리드 검색 시작`, {
-    //   query: query.query,
-    //   limit: query.limit,
-    //   vectorWeight: query.vectorWeight,
-    //   textWeight: query.textWeight,
-    //   filters: query.filters,
-    //   experiment_id: query.experiment_id
-    // });
-  }
-
-  logSearchStep(searchId: string, step: string, data: unknown): void {
-    logger.debug(`하이브리드 검색 단계: ${step}`, {
-      searchId,
-      step,
-      data
-    });
-  }
-
-  logSearchComplete(_searchId: string, _result: { items: unknown[]; total_count: number }, _queryTime: number): void {
-    // console.log(`✅ [${searchId}] 하이브리드 검색 완료`, {
-    //   resultCount: result.items.length,
-    //   totalCount: result.total_count,
-    //   queryTime: `${queryTime.toFixed(2)}ms`,
-    //   searchType: 'hybrid',
-    //   experiment_id: (result as unknown as { experiment_id?: string }).experiment_id
-    // });
-  }
-
-  logSearchError(_searchId: string, _error: unknown, _query: HybridSearchQuery): void {
-    // console.error(`❌ [${searchId}] 하이브리드 검색 에러`, {
-    //   error: error instanceof Error ? error.message : String(error),
-    //   stack: error instanceof Error ? error.stack : undefined,
-    //   query: query.query,
-    //   limit: query.limit,
-    //   experiment_id: query.experiment_id
-    // });
-  }
-
-  /**
-   * A/B 테스트를 통해 검색 알고리즘의 효과를 측정하고 개선합니다.
-   * 실험 ID와 변이 파라미터를 로깅하여 데이터 기반 의사결정을 지원합니다.
-   */
-  logExperiment(_searchId: string, _experimentId: string, _variant: Record<string, unknown>): void {
-    // console.log(`🧪 [${searchId}] 실험 로그`, {
-    //   experiment_id: experimentId,
-    //   variant,
-    //   timestamp: new Date().toISOString()
-    // });
-  }
-}
-
-/**
- * 구조화된 컨텍스트 정보
- * PRD 요구사항: trigger_conditions와 매칭하기 위한 현재 컨텍스트
- */
-export interface TriggerContext {
-  tool_name?: string;
-  error_type?: string;
-  params?: Record<string, unknown>;
-  [key: string]: unknown; // 기타 컨텍스트 필드
-}
-
-export interface HybridSearchQuery {
-  query: string;
-  filters?: MemorySearchFilters | undefined;
-  limit?: number | undefined;
-  vectorWeight?: number | undefined; // 벡터 검색 가중치 (0.0 ~ 1.0)
-  textWeight?: number | undefined;   // 텍스트 검색 가중치 (0.0 ~ 1.0)
-  includeRelations?: boolean; // 관계 정보 포함 여부 (기본값: false)
-  experiment_id?: string; // 실험 ID (A/B 테스트용)
-  provider_filter?: EmbeddingProvider[]; // 검색할 provider 필터 (선택적, 미지정 시 모든 provider 검색)
-  match_trigger_conditions?: boolean; // trigger_conditions 매칭 여부 (기본값: false)
-  context?: TriggerContext; // 구조화된 컨텍스트 정보 (trigger_conditions 매칭용)
-  /** true이면 각 결과에 score_breakdown(기여 점수 + 최종 점수 대비 pct) 포함 */
-  include_score_breakdown?: boolean;
-}
-
-export interface HybridSearchResult {
-  id: string;
-  content: string;
-  type: string;
-  importance: number;
-  created_at: string;
-  last_accessed?: string | undefined;
-  pinned: boolean;
-  tags?: string[] | undefined;
-  textScore: number;
-  vectorScore: number;
-  finalScore: number;
-  recall_reason: string;
-  consolidation_score?: number; // Consolidation Score (선택적)
-  relation_weight?: number; // 관계 가중치 (관계 그래프 기반)
-  relations?: Array<{ // 관계 정보 (선택적)
-    target_id: string;
-    relation_type: string;
-    confidence: number;
-  }>;
-  score_breakdown?: ScoreBreakdown;
-  // Project-scoped memory (Issue #81)
-  project_id?: string | null;
-  /** Multi-agent (Issue #57 Phase 2 D) */
-  owner_id?: string | null;
-}
+export type {
+  HybridSearchQuery,
+  HybridSearchResult,
+  IAdaptiveWeightCalculator,
+  IEmbeddingService,
+  IProceduralMemoryMatcher,
+  ISearchLogger,
+  ISearchResultCombiner,
+  ITextSearchEngine,
+  IVectorSearchEngine,
+  TriggerContext,
+} from './hybrid-search-types.js';
 
 export class HybridSearchEngine {
-  private readonly defaultVectorWeight = 0.6; // 의미적 유사성을 더 중요하게 평가하여 검색 정확도를 향상시키기 위해
-  private readonly defaultTextWeight = 0.4;   // 정확한 키워드 매칭도 일정 비율로 반영하여 검색 포괄성을 확보합니다.
-  private searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }> = new Map();
+  private readonly defaultVectorWeight = 0.6;
+  private readonly defaultTextWeight = 0.4;
+  private searchStats: Map<string, { textHits: number; vectorHits: number; totalSearches: number }> = new Map();
   private ranking: SearchRanking;
   private relationGraph: RelationGraph | null = null;
   private proceduralMemoryMatcher: IProceduralMemoryMatcher;
+  private vectorExecutor: HybridVectorSearchExecutor;
+  private resultRanker: HybridResultRanker;
 
   constructor(
     private textSearchEngine: ITextSearchEngine,
@@ -376,7 +82,6 @@ export class HybridSearchEngine {
     rankingWeightsPath?: string
   ) {
     this.proceduralMemoryMatcher = proceduralMemoryMatcher ?? new ProceduralMemoryMatcher();
-    // 외부 설정 파일에서 가중치를 로드하여 런타임에 조정 가능하도록 합니다.
     const config = getRankingWeights(rankingWeightsPath);
     this.ranking = new SearchRanking({
       relevance: config.ranking_weights.alpha,
@@ -385,23 +90,30 @@ export class HybridSearchEngine {
       usage: config.ranking_weights.delta,
       relation_weight: config.ranking_weights.zeta,
       duplication_penalty: config.ranking_weights.epsilon,
-      zeta_fb: config.ranking_weights.zeta_fb ?? 0.05
+      zeta_fb: config.ranking_weights.zeta_fb ?? 0.05,
     });
     this.relationGraph = relationGraph || null;
+    this.vectorExecutor = new HybridVectorSearchExecutor(
+      this.embeddingService,
+      this.vectorSearchEngine,
+      this.queryEmbeddingService,
+      this.logger,
+      db => this.detectAllStoredEmbeddingProviders(db),
+      (query, searchId, preferredProvider) =>
+        this.generateQueryVector(query, searchId, preferredProvider)
+    );
+    this.resultRanker = new HybridResultRanker(
+      this.resultCombiner,
+      this.ranking,
+      this.proceduralMemoryMatcher,
+      () => this.relationGraph
+    );
   }
 
-  /**
-   * 관계 그래프를 주입하여 관계 기반 검색 기능을 활성화합니다.
-   * 선택적으로 설정하여 관계 그래프가 없는 환경에서도 동작하도록 합니다.
-   */
   setRelationGraph(relationGraph: RelationGraph | null): void {
     this.relationGraph = relationGraph;
   }
 
-  /**
-   * 텍스트 검색과 벡터 검색을 병렬로 실행하고 결과를 결합하여 최적의 검색 결과를 제공합니다.
-   * 쿼리 특성에 따라 적응형 가중치를 적용하여 검색 정확도를 향상시키기 위해
-   */
   async search(
     db: Database.Database,
     query: HybridSearchQuery
@@ -412,39 +124,24 @@ export class HybridSearchEngine {
     text_count?: number;
     vector_count?: number;
     fallback_used?: boolean;
-    /** 이번 검색에서 쿼리 임베딩에 실제 사용된 provider (VEC 다중 provider 검색 시 복수 가능, 정렬·중복 제거) */
     query_embedding_providers?: EmbeddingProvider[];
-    /**
-     * VEC(sqlite-vec) 경로에서 고차원 provider를 요청했으나 쿼리 임베딩이 TF-IDF로 생성된 경우(차원 불일치·fallback 등).
-     * fallback_used가 false여도 true일 수 있음.
-     */
     tfidf_query_embedding_fallback?: boolean;
-    /** 위 상황에서 TF-IDF로 바뀐 **요청** provider 목록(진단용, 중복 제거·정렬) */
     tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
   }> {
     const searchId = this.generateSearchId();
     const startTime = process.hrtime.bigint();
-    
+
     try {
       this.logger.logSearchStart(searchId, query);
-      
-      // 쿼리 특성에 따라 최적의 가중치를 계산하여 검색 정확도를 향상시키기 위해
       const weights = this.calculateAdaptiveWeights(query);
       this.logger.logSearchStep(searchId, '적응형 가중치 계산 완료', weights);
-
       this.logRankingExperimentIfApplicable(searchId, query, weights);
 
-      // FTS5 전문 검색을 실행하여 정확한 키워드 매칭 결과를 획득합니다.
       const textResults = await this.executeTextSearch(db, query, searchId);
-
-      // 벡터 유사도 검색을 실행하여 의미적으로 관련된 결과를 획득합니다.
-      const vectorOut = await this.executeVectorSearch(db, query, searchId);
-      const vectorResults = vectorOut.results;
-
-      // 텍스트와 벡터 검색 결과를 결합하고 통합 점수와 관계 가중치를 조회하여 최종 정렬합니다.
-      const finalResults = await this.combineAndSortResults(
+      const vectorOut = await this.vectorExecutor.execute(db, query, searchId);
+      const finalResults = await this.resultRanker.combineAndSortResults(
         textResults,
-        vectorResults,
+        vectorOut.results,
         weights,
         query.limit || 10,
         db,
@@ -452,18 +149,13 @@ export class HybridSearchEngine {
         query
       );
 
-      // 검색 통계를 업데이트하여 향후 가중치 조정에 활용합니다.
-      this.updateSearchStats(query.query, textResults.length, vectorResults.length);
-
+      this.updateSearchStats(query.query, textResults.length, vectorOut.results.length);
       const queryTime = this.calculateQueryTime(startTime);
-
-      // A/B 테스트 추적을 위해 검색 완료 로그에 실험 ID를 포함합니다.
       const logData: { items: unknown[]; total_count: number; experiment_id?: string } = {
         items: finalResults,
         total_count: finalResults.length,
-        ...(query.experiment_id ? { experiment_id: query.experiment_id } : {})
+        ...(query.experiment_id ? { experiment_id: query.experiment_id } : {}),
       };
-
       this.logger.logSearchComplete(searchId, logData, queryTime);
 
       return {
@@ -471,11 +163,11 @@ export class HybridSearchEngine {
         total_count: finalResults.length,
         query_time: queryTime,
         text_count: textResults.length,
-        vector_count: vectorResults.length,
+        vector_count: vectorOut.results.length,
         fallback_used: vectorOut.fallback_used,
         query_embedding_providers: vectorOut.query_embedding_providers,
         tfidf_query_embedding_fallback: vectorOut.tfidf_query_embedding_fallback,
-        tfidf_query_embedding_fallback_providers: vectorOut.tfidf_query_embedding_fallback_providers
+        tfidf_query_embedding_fallback_providers: vectorOut.tfidf_query_embedding_fallback_providers,
       };
     } catch (error) {
       this.logger.logSearchError(searchId, error, query);
@@ -483,81 +175,48 @@ export class HybridSearchEngine {
     }
   }
 
-  private generateSearchId(): string {
-    return `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
+  async getSearchStats(db: Database.Database): Promise<{
+    textSearchAvailable: boolean;
+    vectorSearchAvailable: boolean;
+    embeddingStats: unknown;
+    searchStats: Map<string, { textHits: number; vectorHits: number; totalSearches: number }>;
+  }> {
+    const embeddingStats = await this.embeddingService.getEmbeddingStats(db);
 
-  private logRankingExperimentIfApplicable(
-    searchId: string,
-    query: HybridSearchQuery,
-    weights: { vectorWeight: number; textWeight: number; originalVector: number; originalText: number }
-  ): void {
-    if (!query.experiment_id) {
-      return;
-    }
-    const config = getRankingWeights();
-    const variant = {
-      ranking_weights: {
-        alpha: config.ranking_weights.alpha,
-        beta: config.ranking_weights.beta,
-        gamma: config.ranking_weights.gamma,
-        delta: config.ranking_weights.delta,
-        zeta: config.ranking_weights.zeta,
-        epsilon: config.ranking_weights.epsilon
-      },
-      adaptive_weights: {
-        vectorWeight: weights.vectorWeight,
-        textWeight: weights.textWeight
-      },
-      relation_weights: {
-        max_relations: config.relation_weights.max_relations
-      }
-    };
-
-    if (this.logger.logExperiment) {
-      this.logger.logExperiment(searchId, query.experiment_id, variant);
-    } else {
-      this.logger.logSearchStep(searchId, '실험 파라미터', {
-        experiment_id: query.experiment_id,
-        variant
-      });
-    }
-  }
-
-  private calculateAdaptiveWeights(query: HybridSearchQuery): { vectorWeight: number, textWeight: number, originalVector: number, originalText: number } {
-    const vectorWeight = query.vectorWeight ?? this.defaultVectorWeight;
-    const textWeight = query.textWeight ?? this.defaultTextWeight;
-    
-    const queryString = query.query || '';
-    const adaptiveWeights = this.weightCalculator.calculateWeights(queryString, vectorWeight, textWeight);
-    
     return {
-      vectorWeight: adaptiveWeights.vectorWeight,
-      textWeight: adaptiveWeights.textWeight,
-      originalVector: vectorWeight,
-      originalText: textWeight
+      textSearchAvailable: true,
+      vectorSearchAvailable: this.embeddingService.isAvailable(),
+      embeddingStats,
+      searchStats: this.searchStats,
     };
   }
 
-  private async executeTextSearch(db: Database.Database, query: HybridSearchQuery, searchId: string): Promise<unknown[]> {
+  isEmbeddingAvailable(): boolean {
+    return this.embeddingService.isAvailable();
+  }
+
+  private async executeTextSearch(
+    db: Database.Database,
+    query: HybridSearchQuery,
+    searchId: string
+  ): Promise<unknown[]> {
     try {
       const textSearchStart = process.hrtime.bigint();
       this.logger.logSearchStep(searchId, '텍스트 검색 시작', { query: query.query });
-      
+
       const textSearchResult = await this.textSearchEngine.search(db, {
         query: query.query,
         filters: query.filters,
         limit: (query.limit || 10) * 2,
-        // 피드백은 combineAndSortResults → normalizeScores에서만 반영 (텍스트 단계와 이중 가산 방지)
         omit_feedback_in_ranking: true,
       });
-      
+
       const textSearchTime = Number(process.hrtime.bigint() - textSearchStart) / 1_000_000;
       this.logger.logSearchStep(searchId, '텍스트 검색 완료', {
         resultCount: textSearchResult.items.length,
-        searchTime: `${textSearchTime.toFixed(2)}ms`
+        searchTime: `${textSearchTime.toFixed(2)}ms`,
       });
-      
+
       return textSearchResult.items;
     } catch (error) {
       throw new SearchError(
@@ -569,1000 +228,82 @@ export class HybridSearchEngine {
     }
   }
 
-  private async executeVectorSearch(
-    db: Database.Database,
-    query: HybridSearchQuery,
-    searchId: string
-  ): Promise<{
-    results: VectorSearchResult[];
-    fallback_used: boolean;
-    query_embedding_providers?: EmbeddingProvider[];
-    tfidf_query_embedding_fallback?: boolean;
-    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
-  }> {
-    const vectorSearchStart = process.hrtime.bigint();
-    this.logger.logSearchStep(searchId, '벡터 검색 시작', {
-      query: query.query,
-      embeddingAvailable: this.embeddingService.isAvailable()
-    });
+  private calculateAdaptiveWeights(query: HybridSearchQuery): HybridWeights & {
+    originalVector: number;
+    originalText: number;
+  } {
+    const vectorWeight = query.vectorWeight ?? this.defaultVectorWeight;
+    const textWeight = query.textWeight ?? this.defaultTextWeight;
+    const adaptiveWeights = this.weightCalculator.calculateWeights(query.query || '', vectorWeight, textWeight);
 
-    this.vectorSearchEngine.initialize(db);
-
-    if (this.vectorSearchEngine.getIndexStatus().available) {
-      const vecOut = await this.executeVecSearch(db, query, searchId, vectorSearchStart);
-      return {
-        results: vecOut.results,
-        // sqlite-vec 사용 가능이어도 VEC 쿼리가 런타임에 실패하면 executeFallbackSearch로 강등됨 → 동일하게 fallback으로 보고
-        fallback_used: vecOut.fallback_used,
-        query_embedding_providers: vecOut.query_embedding_providers,
-        tfidf_query_embedding_fallback: vecOut.tfidf_query_embedding_fallback,
-        tfidf_query_embedding_fallback_providers: vecOut.tfidf_query_embedding_fallback_providers
-      };
-    }
-    const fb = await this.executeFallbackSearch(db, query, searchId, vectorSearchStart);
     return {
-      results: fb.results,
-      fallback_used: true,
-      query_embedding_providers: fb.query_embedding_providers,
-      tfidf_query_embedding_fallback: fb.tfidf_query_embedding_fallback,
-      tfidf_query_embedding_fallback_providers: fb.tfidf_query_embedding_fallback_providers
+      vectorWeight: adaptiveWeights.vectorWeight,
+      textWeight: adaptiveWeights.textWeight,
+      originalVector: vectorWeight,
+      originalText: textWeight,
     };
   }
 
-  /**
-   * 벡터 검색 실행 (다중 provider 지원)
-   * 
-   * @param db - 데이터베이스 연결
-   * @param query - 하이브리드 검색 쿼리
-   * @param searchId - 검색 ID (로깅용)
-   * @param startTime - 시작 시간 (성능 측정용)
-   * @returns 벡터 검색 결과 배열
-   */
-  private async executeVecSearch(
-    db: Database.Database,
-    query: HybridSearchQuery,
+  private logRankingExperimentIfApplicable(
     searchId: string,
-    startTime: bigint
-  ): Promise<{
-    results: VectorSearchResult[];
-    query_embedding_providers?: EmbeddingProvider[];
-    /** true면 VEC 경로 실패 후 executeFallbackSearch(임베딩 유사도)로 강등됨 */
-    fallback_used: boolean;
-    /** VEC 경로 성공이어도, 비-tfidf provider 태스크에서 쿼리 임베딩이 tfidf로 생성된 경우 */
-    tfidf_query_embedding_fallback?: boolean;
-    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
-  }> {
-    try {
-      // 데이터베이스에 저장된 모든 임베딩 provider를 감지하여 사용 가능한 검색 방법을 파악합니다.
-      const detectedProviders = await this.detectAllStoredEmbeddingProviders(db);
-      
-      // provider 필터링
-      const providersToSearch = this.filterProvidersToSearch(detectedProviders, query.provider_filter, searchId);
-      if (providersToSearch.length === 0) {
-        return {
-          results: [],
-          query_embedding_providers: [],
-          fallback_used: false,
-          tfidf_query_embedding_fallback: false,
-          tfidf_query_embedding_fallback_providers: undefined
-        };
-      }
-      
-      // 여러 provider를 병렬로 검색하여 검색 속도를 향상시키고 포괄성을 확보합니다.
-      const searchOptions = {
-        limit: resolveHybridVectorPrefetchLimit(query.limit),
-        threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
-        types: query.filters?.type,
-        includeContent: true,
-        ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
-          ? { project_id: query.filters.project_id }
-          : {}),
-        ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
-          ? { owner_id: query.filters.owner_id }
-          : {}),
-      };
-      
-      const providerVectorDeps = this.getProviderVectorSearchDeps();
-      // 각 provider에 대해 독립적인 검색 작업을 생성하여 병렬 실행을 준비합니다.
-      const searchPromises = providersToSearch.map(provider =>
-        createProviderVectorSearchTask(providerVectorDeps, provider, query.query, searchOptions, searchId)
-      );
-      
-      // 모든 provider 검색을 실행하고 타임아웃을 관리하여 안정적인 결과 수집을 보장합니다.
-      const {
-        allResults,
-        providerStats,
-        overallTimeoutOccurred,
-        queryEmbeddingProviders,
-        tfidfQueryEmbeddingFallback,
-        tfidfQueryEmbeddingFallbackProviders
-      } = await executeProviderSearchesWithOverallTimeout(
-        searchPromises,
-        providersToSearch,
-        searchId,
-        (sid, step, data) => this.logger.logSearchStep(sid, step, data)
-      );
-      
-      // 여러 provider의 결과를 정규화하고 중복을 제거하여 일관된 결과를 제공합니다.
-      const vectorResults = this.normalizeAndDeduplicateResults(allResults);
-      
-      const totalTime = Number(process.hrtime.bigint() - startTime) / 1_000_000;
-      
-      this.logger.logSearchStep(searchId, 'VEC 벡터 검색 완료', {
-        resultCount: vectorResults.length,
-        totalVectorTime: `${totalTime.toFixed(2)}ms`,
-        providerStats,
-        searchedProviders: providersToSearch.length,
-        successfulProviders: providerStats.filter(s => s.success).length,
-        overallTimeoutOccurred
-      });
-      
-      return {
-        results: vectorResults,
-        query_embedding_providers: queryEmbeddingProviders,
-        fallback_used: false,
-        tfidf_query_embedding_fallback: tfidfQueryEmbeddingFallback,
-        tfidf_query_embedding_fallback_providers: tfidfQueryEmbeddingFallbackProviders
-      };
-    } catch (error) {
-      this.logger.logSearchStep(searchId, 'VEC 벡터 검색 실패, fallback 사용', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      
-      const fb = await this.executeFallbackSearch(db, query, searchId, startTime);
-      return {
-        results: fb.results,
-        query_embedding_providers: fb.query_embedding_providers,
-        fallback_used: true,
-        tfidf_query_embedding_fallback: fb.tfidf_query_embedding_fallback,
-        tfidf_query_embedding_fallback_providers: fb.tfidf_query_embedding_fallback_providers
-      };
-    }
-  }
-
-  /**
-   * Provider 필터링
-   * 
-   * @param detectedProviders - 감지된 모든 provider 목록
-   * @param providerFilter - 필터링할 provider 목록 (선택적, 빈 배열이면 undefined로 처리되어 모든 provider 검색)
-   * @param searchId - 검색 ID (로깅용)
-   * @returns 필터링된 provider 목록
-   */
-  private filterProvidersToSearch(
-    detectedProviders: StoredEmbeddingProviderStats[],
-    providerFilter: EmbeddingProvider[] | undefined,
-    searchId: string
-  ): EmbeddingProvider[] {
-    let providersToSearch = detectedProviders.map(p => p.provider);
-    
-    // 사용자가 특정 provider만 검색하도록 요청한 경우에만 필터링합니다.
-    // 빈 배열은 모든 provider를 검색하도록 처리하여 유연성을 제공합니다.
-    if (providerFilter && providerFilter.length > 0) {
-      providersToSearch = providersToSearch.filter(p => 
-        providerFilter.includes(p as EmbeddingProvider)
-      );
-    }
-    
-    // 검색할 provider가 없는 경우를 로깅하여 문제를 진단할 수 있도록 합니다.
-    if (providersToSearch.length === 0) {
-      this.logger.logSearchStep(searchId, 'VEC 벡터 검색 - 검색할 provider 없음', {
-        detectedProviders: detectedProviders.map(p => p.provider),
-        providerFilter: providerFilter || []
-      });
-    }
-    
-    return providersToSearch;
-  }
-
-  private getProviderVectorSearchDeps(): ProviderVectorSearchDeps {
-    return {
-      generateQueryVector: (q, searchId, preferred) => this.generateQueryVector(q, searchId, preferred),
-      vectorSearch: (vector, options, provider) => this.vectorSearchEngine.search(vector, options, provider),
-      logSearchStep: (searchId, step, data) => this.logger.logSearchStep(searchId, step, data)
-    };
-  }
-
-  /**
-   * 결과 정규화 및 중복 제거
-   * Provider별로 Min-Max 정규화를 수행하고, 중복된 memory_id는 최고 점수만 유지
-   * 
-   * @param allResults - 모든 provider의 검색 결과
-   * @returns 정규화 및 중복 제거된 결과 배열
-   */
-  private normalizeAndDeduplicateResults(
-    allResults: Array<VectorSearchResult & { provider: string }>
-  ): VectorSearchResult[] {
-    const resultsByProvider = this.groupResultsByProvider(allResults);
-    const normalizedResults = this.normalizeResultsByProvider(resultsByProvider);
-    const deduplicatedResults = this.deduplicateNormalizedResults(normalizedResults);
-    return this.rankResults(deduplicatedResults);
-  }
-
-  /**
-   * Provider별로 결과 그룹화
-   */
-  private groupResultsByProvider(
-    allResults: Array<VectorSearchResult & { provider: string }>
-  ): Map<string, Array<VectorSearchResult & { provider: string }>> {
-    const resultsByProvider = new Map<string, Array<VectorSearchResult & { provider: string }>>();
-    allResults.forEach(result => {
-      const provider = result.provider;
-      if (!resultsByProvider.has(provider)) {
-        resultsByProvider.set(provider, []);
-      }
-      const providerResults = resultsByProvider.get(provider);
-      if (providerResults) {
-        providerResults.push(result);
-      }
-    });
-    return resultsByProvider;
-  }
-
-  /**
-   * Provider별로 Min-Max 정규화 수행
-   */
-  private normalizeResultsByProvider(
-    resultsByProvider: Map<string, Array<VectorSearchResult & { provider: string }>>
-  ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
-    const normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }> = [];
-    
-    resultsByProvider.forEach((results) => {
-      if (results.length === 0) {
-        return;
-      }
-      
-      const scores = results.map(r => r.similarity);
-      const minScore = Math.min(...scores);
-      const maxScore = Math.max(...scores);
-      
-      // 모든 점수가 동일한 경우 원본 점수 유지, 그 외에는 Min-Max 정규화
-      if (maxScore === minScore) {
-        results.forEach(result => {
-          normalizedResults.push({
-            ...result,
-            normalizedScore: result.similarity
-          });
-        });
-      } else {
-        results.forEach(result => {
-          const normalizedScore = (result.similarity - minScore) / (maxScore - minScore);
-          normalizedResults.push({
-            ...result,
-            normalizedScore
-          });
-        });
-      }
-    });
-    
-    return normalizedResults;
-  }
-
-  /**
-   * 중복 제거 (memory_id 기준, 정규화된 점수 중 최고 점수만 유지)
-   * Provider별 정규화된 결과를 처리하는 전용 메서드입니다.
-   */
-  private deduplicateNormalizedResults(
-    normalizedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
-  ): Array<VectorSearchResult & { provider: string; normalizedScore: number }> {
-    const resultMap = new Map<string, VectorSearchResult & { provider: string; normalizedScore: number }>();
-    normalizedResults.forEach(result => {
-      const existing = resultMap.get(result.id);
-      if (!existing || result.normalizedScore > existing.normalizedScore) {
-        resultMap.set(result.id, result);
-      }
-    });
-    return Array.from(resultMap.values());
-  }
-
-  /**
-   * 정규화된 점수로 재랭킹
-   */
-  private rankResults(
-    deduplicatedResults: Array<VectorSearchResult & { provider: string; normalizedScore: number }>
-  ): VectorSearchResult[] {
-    return deduplicatedResults
-      .map(({ provider: _provider, normalizedScore, ...result }) => ({
-        ...result,
-        similarity: normalizedScore
-      }))
-      .sort((a, b) => b.similarity - a.similarity);
-  }
-
-  /**
-   * Fallback 벡터 검색 실행
-   * 벡터 인덱스가 사용 불가능한 경우 임베딩 서비스를 직접 사용하여 검색
-   * 
-   * @param db - 데이터베이스 연결
-   * @param query - 하이브리드 검색 쿼리
-   * @param searchId - 검색 ID (로깅용)
-   * @param _startTime - 시작 시간 (성능 측정용, 현재는 사용하지 않음)
-   * @returns 벡터 검색 결과 배열
-   */
-  private async executeFallbackSearch(
-    db: Database.Database,
     query: HybridSearchQuery,
-    searchId: string,
-    _startTime: bigint
-  ): Promise<{
-    results: VectorSearchResult[];
-    query_embedding_providers?: EmbeddingProvider[];
-    /** 임베딩 유사도 fallback에서 쿼리가 tfidf인데 설정 기본 provider는 그보다 고품질인 경우 */
-    tfidf_query_embedding_fallback?: boolean;
-    tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
-  }> {
-    if (!this.embeddingService.isAvailable()) {
-      this.logger.logSearchStep(searchId, '임베딩 서비스 사용 불가', {});
-      return { results: [] };
+    weights: HybridWeights & { originalVector: number; originalText: number }
+  ): void {
+    if (!query.experiment_id) {
+      return;
     }
 
-    const fallbackStart = process.hrtime.bigint();
-    const raw = await this.embeddingService.searchBySimilarity(db, query.query, {
-      type: query.filters?.type as MemoryType[],
-      limit: resolveHybridVectorPrefetchLimit(query.limit),
-      threshold: HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD,
-      ...(typeof query.filters?.project_id === 'string' && query.filters.project_id.length > 0
-        ? { project_id: query.filters.project_id }
-        : {}),
-      ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
-        ? { owner_id: query.filters.owner_id }
-        : {}),
-    });
-    const { results, query_embedding_providers } = normalizeSearchBySimilarityOutcome(raw);
-    const fallbackTime = Number(process.hrtime.bigint() - fallbackStart) / 1_000_000;
-
-    this.logger.logSearchStep(searchId, 'Fallback 벡터 검색 완료', {
-      resultCount: results.length,
-      fallbackTime: `${fallbackTime.toFixed(2)}ms`,
-    });
-
-    const configured = mementoConfig.embeddingProvider as EmbeddingProvider;
-    const rawProviderFilter = (query.provider_filter ?? []).filter(Boolean) as EmbeddingProvider[];
-    const explicitProviderFilterRequested = rawProviderFilter.length > 0;
-    const explicitTfidfOnlyRequest =
-      explicitProviderFilterRequested && rawProviderFilter.every((p) => p === 'tfidf');
-    const requestedProviders = [...new Set(rawProviderFilter.filter((p) => p !== 'tfidf'))]
-      .sort() as EmbeddingProvider[];
-    let tfidf_query_embedding_fallback: boolean | undefined;
-    let tfidf_query_embedding_fallback_providers: EmbeddingProvider[] | undefined;
-    if (query_embedding_providers?.includes('tfidf')) {
-      if (explicitTfidfOnlyRequest) {
-        // provider_filter=['tfidf']는 의도적 TF-IDF 모드이므로 강등 진단을 세우지 않는다.
-      } else if (requestedProviders.length > 0) {
-        tfidf_query_embedding_fallback = true;
-        tfidf_query_embedding_fallback_providers = requestedProviders;
-      } else if (configured !== 'tfidf') {
-        tfidf_query_embedding_fallback = true;
-        tfidf_query_embedding_fallback_providers = [configured];
-      }
-    }
-
-    return {
-      results,
-      query_embedding_providers,
-      tfidf_query_embedding_fallback,
-      tfidf_query_embedding_fallback_providers
+    const config = getRankingWeights();
+    const variant = {
+      ranking_weights: {
+        alpha: config.ranking_weights.alpha,
+        beta: config.ranking_weights.beta,
+        gamma: config.ranking_weights.gamma,
+        delta: config.ranking_weights.delta,
+        zeta: config.ranking_weights.zeta,
+        epsilon: config.ranking_weights.epsilon,
+      },
+      adaptive_weights: {
+        vectorWeight: weights.vectorWeight,
+        textWeight: weights.textWeight,
+      },
+      relation_weights: {
+        max_relations: config.relation_weights.max_relations,
+      },
     };
-  }
 
-  /**
-   * Provider 목록 캐시 (메모리 캐시)
-   * Provider 목록은 자주 변경되지 않으므로 캐싱하여 성능 개선
-   */
-  private providerCache: {
-    stats: StoredEmbeddingProviderStats[];
-    timestamp: number;
-  } | null = null;
-
-  /**
-   * Provider 캐시 TTL (밀리초)
-   * 5분간 캐시 유지
-   */
-  private static readonly PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
-
-  /**
-   * 데이터베이스에 저장된 모든 임베딩 provider를 감지하여 사용 가능한 검색 방법을 파악합니다.
-   * 모든 provider 목록을 반환하고 count 내림차순으로 정렬하여 주요 provider를 우선 확인합니다.
-   * 캐싱을 사용하여 반복적인 데이터베이스 조회를 줄이고 성능을 개선합니다.
-   */
-  private async detectAllStoredEmbeddingProviders(db: Database.Database): Promise<StoredEmbeddingProviderStats[]> {
-    // 캐시된 provider 정보를 확인하여 불필요한 데이터베이스 조회를 방지합니다.
-    const now = Date.now();
-    if (this.providerCache && (now - this.providerCache.timestamp) < HybridSearchEngine.PROVIDER_CACHE_TTL_MS) {
-      return this.providerCache.stats;
-    }
-
-    try {
-      const providerStatsList = db.prepare(`
-        SELECT 
-          LOWER(embedding_provider) as provider,
-          COUNT(*) as count,
-          AVG(dimensions) as avg_dimensions
-        FROM memory_embedding
-        WHERE embedding_provider IS NOT NULL
-          AND embedding_provider != ''
-          AND dimensions IS NOT NULL
-        GROUP BY LOWER(embedding_provider)
-        ORDER BY count DESC
-      `).all() as Array<{ provider: string; count: number; avg_dimensions: number }>;
-
-      if (providerStatsList && providerStatsList.length > 0) {
-        const normalizedStats: StoredEmbeddingProviderStats[] = providerStatsList
-          .filter(stat => {
-            // 알려진 EmbeddingProvider인지 확인하여 잘못된 데이터를 필터링합니다.
-            const validProviders: EmbeddingProvider[] = ['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'];
-            return validProviders.includes(stat.provider as EmbeddingProvider);
-          })
-          .map(stat => ({
-            provider: stat.provider as EmbeddingProvider,
-            count: stat.count,
-            avg_dimensions: Math.round(stat.avg_dimensions || 0)
-          }));
-        
-        // 새로 조회한 provider 정보를 캐시에 저장하여 향후 조회 성능을 향상시키기 위해
-        this.providerCache = {
-          stats: normalizedStats,
-          timestamp: now
-        };
-        
-        this.logger.logSearchStep('', '저장된 임베딩 provider 감지', {
-          providers: normalizedStats.map(s => s.provider),
-          total_providers: normalizedStats.length
-        });
-        
-        return normalizedStats;
-      }
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.warn('저장된 임베딩 provider 감지 실패', {
-        error: maskedError.message
+    if (this.logger.logExperiment) {
+      this.logger.logExperiment(searchId, query.experiment_id, variant);
+    } else {
+      this.logger.logSearchStep(searchId, '실험 파라미터', {
+        experiment_id: query.experiment_id,
+        variant,
       });
     }
-
-    // provider가 없는 경우 빈 배열을 반환하여 안정적인 동작을 보장합니다.
-    const emptyStats: StoredEmbeddingProviderStats[] = [];
-    this.providerCache = {
-      stats: emptyStats,
-      timestamp: now
-    };
-    return emptyStats;
   }
 
-  /**
-   * 쿼리 임베딩 벡터 생성
-   * preferredProvider가 지정된 경우 해당 provider로만 임베딩 생성
-   * 각 provider는 서로 다른 차원의 임베딩을 사용할 수 있으므로 fallback을 사용하지 않음
-   * 
-   * @param query - 검색 쿼리 문자열
-   * @param searchId - 검색 ID (로깅용)
-   * @param preferredProvider - 선호하는 임베딩 provider (필수, 각 provider별로 다른 차원의 임베딩 필요)
-   * @returns 임베딩 벡터와 실제 사용된 provider (preferred unavailable 시 fallback provider로 생성될 수 있음)
-   * @throws SearchError - 임베딩 생성 실패 시
-   */
+  private async detectAllStoredEmbeddingProviders(
+    db: Database.Database
+  ): Promise<StoredEmbeddingProviderStats[]> {
+    return this.vectorExecutor.detectAllStoredEmbeddingProviders(db);
+  }
+
   private async generateQueryVector(
     query: string,
     searchId: string,
     preferredProvider: EmbeddingProvider
   ): Promise<{ embedding: number[]; actualProvider: EmbeddingProvider }> {
-    try {
-      const embeddingStart = process.hrtime.bigint();
-
-      const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider);
-
-      if (!embeddingResult) {
-        throw new SearchError(
-          SearchErrorType.EMBEDDING_GENERATION_FAILED,
-          '임베딩 생성에 실패했습니다',
-          undefined,
-          { query, searchId, preferredProvider }
-        );
-      }
-
-      const actualProvider = (embeddingResult.provider || preferredProvider) as EmbeddingProvider;
-      const embeddingTime = Number(process.hrtime.bigint() - embeddingStart) / 1_000_000;
-
-      this.logger.logSearchStep(searchId, '임베딩 생성 완료', {
-        embeddingTime: `${embeddingTime.toFixed(2)}ms`,
-        vectorLength: embeddingResult.embedding.length,
-        provider: actualProvider
-      });
-
-      return { embedding: embeddingResult.embedding, actualProvider };
-    } catch (error) {
-      if (error instanceof SearchError) {
-        throw error;
-      }
-
-      throw new SearchError(
-        SearchErrorType.EMBEDDING_GENERATION_FAILED,
-        `임베딩 생성 중 오류가 발생했습니다 (provider: ${preferredProvider})`,
-        error instanceof Error ? error : new Error(String(error)),
-        { query, searchId, preferredProvider }
-      );
-    }
+    return this.vectorExecutor.generateQueryVector(query, searchId, preferredProvider);
   }
 
-  /**
-   * Given: 검색 결과들과 관계 가중치, 통합 점수, Procedural Memory 매칭 정보
-   * When: normalizeScores()가 호출됨
-   * Then: 각 결과의 finalScore가 정규화됨
-   * 
-   * 점수 정규화 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
-   */
-  /**
-   * Given: 텍스트 검색 결과와 벡터 검색 결과, 가중치
-   * When: mergeResults()가 호출됨
-   * Then: 결과가 올바르게 병합됨
-   * 
-   * 결과 병합 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
-   */
-  /**
-   * Given: 중복된 ID를 가진 검색 결과 배열
-   * When: deduplicateResults()가 호출됨
-   * Then: 중복이 제거되고 더 높은 finalScore를 가진 결과가 유지됨
-   * 
-   * 중복 제거 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
-   * 방어적 프로그래밍 차원에서 추가적인 중복 제거를 수행합니다.
-   */
-  private deduplicateResults(results: HybridSearchResult[]): HybridSearchResult[] {
-    const resultMap = new Map<string, HybridSearchResult>();
-    
-    results.forEach(result => {
-      const existing = resultMap.get(result.id);
-      
-      if (!existing) {
-        // 새로운 결과이면 추가
-        resultMap.set(result.id, result);
-      } else {
-        // 중복된 ID가 있으면 더 높은 finalScore를 가진 결과를 유지
-        if (result.finalScore > existing.finalScore) {
-          resultMap.set(result.id, result);
-        }
-      }
-    });
-    
-    return Array.from(resultMap.values());
-  }
-
-  /**
-   * Given: 검색 결과 배열
-   * When: sortByFinalScore()가 호출됨
-   * Then: 결과가 finalScore 내림차순으로 정렬됨
-   * 
-   * 정렬 로직을 별도 메서드로 분리하여 combineAndSortResults()의 복잡도를 감소시킵니다.
-   */
-  private sortByFinalScore(results: HybridSearchResult[]): HybridSearchResult[] {
-    return [...results].sort((a, b) => b.finalScore - a.finalScore);
-  }
-
-  private mergeResults(
-    textResults: unknown[],
-    vectorResults: VectorSearchResult[],
-    weights: { textWeight: number; vectorWeight: number }
-  ): HybridSearchResult[] {
-    return this.resultCombiner.combine(
-      textResults,
-      vectorResults,
-      weights.textWeight,
-      weights.vectorWeight
-    );
-  }
-
-  private normalizeScores(
-    results: HybridSearchResult[],
-    relationWeights: Map<string, number>,
-    relationInfo: Map<string, RelationInfoRow[]>,
-    consolidationScores: Map<string, number>,
-    proceduralMemoryMatches: Map<string, ProceduralMemoryMatch>,
-    includeRelations: boolean,
-    processAttributes: ProcessAttribute | null = null,
-    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }> = new Map(),
-    feedbackNetByMemory: Map<string, number> = new Map(),
-    includeScoreBreakdown: boolean = false
-  ): void {
-    results.forEach(result => {
-      const relationWeight = relationWeights.get(result.id);
-      
-      // relationGraph가 있고 실제 관계가 존재하는 경우에만 관계 가중치를 설정하여 정확성을 보장합니다.
-      if (relationWeight !== undefined && relationWeight > 0) {
-        result.relation_weight = relationWeight;
-      }
-      
-      // 사용자가 요청한 경우에만 관계 정보를 포함하여 상세한 분석을 지원합니다.
-      if (includeRelations) {
-        const relations = relationInfo.get(result.id);
-        if (relations && relations.length > 0) {
-          result.relations = relations.map(r => ({
-            target_id: r.target_id,
-            relation_type: r.relation_type,
-            confidence: r.confidence
-          }));
-        }
-      }
-      
-      // Procedural Memory 매칭 정보 가져오기
-      const proceduralMatch = proceduralMemoryMatches.get(result.id);
-      
-      const consolidationScore = consolidationScores.get(result.id);
-      
-      // Process Attribute 적합도 (Issue #91): process_id 검색 시에만 반영
-      const memoryDetails = memoryDetailsMap.get(result.id);
-      const processAttributeFit =
-        processAttributes != null && memoryDetails != null
-          ? computeProcessAttributeFit(processAttributes, memoryDetails)
-          : undefined;
-
-      const net = feedbackNetByMemory.get(result.id) ?? 0;
-      const feedback_score = sigmoidNormalizedNet(net);
-
-      const applyScores = (features: SearchFeatures): void => {
-        if (includeScoreBreakdown) {
-          const { score, breakdown } = this.ranking.calculateFinalScoreAndBreakdown(features, {
-            includeBreakdown: true
-          });
-          result.finalScore = score;
-          if (breakdown) {
-            result.score_breakdown = breakdown;
-          }
-        } else {
-          result.finalScore = this.ranking.calculateFinalScore(features);
-        }
-      };
-      
-      if (consolidationScore !== undefined) {
-        // 통합 점수가 있는 경우 더 정교한 점수 계산 방식을 사용하여 검색 품질을 향상시키기 위해
-        result.consolidation_score = consolidationScore;
-        const vectorSimilarity = result.vectorScore;
-        
-        // Procedural Memory 특화 가중치를 포함한 SearchFeatures 구성
-        const features = {
-          relevance: vectorSimilarity,
-          recency: this.calculateRecency(result.created_at),
-          importance: result.importance || 0.5,
-          usage: this.calculateUsage(result.last_accessed),
-          relation_weight: relationWeight || 0,
-          duplication_penalty: 0,
-          consolidation_score: consolidationScore,
-          workflow_name_match: proceduralMatch?.workflow_name_match || false,
-          skill_name_match: proceduralMatch?.skill_name_match || false,
-          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,
-          feedback_score,
-          ...(processAttributeFit !== undefined && { process_attribute_fit: processAttributeFit })
-        };
-        
-        applyScores(features);
-      } else {
-        // 관계 가중치를 포함한 finalScore 재계산
-        // SearchFeatures 구성 (Procedural Memory 특화 가중치 포함)
-        const features = {
-          relevance: result.vectorScore || result.textScore || 0,
-          recency: this.calculateRecency(result.created_at),
-          importance: result.importance || 0.5,
-          usage: this.calculateUsage(result.last_accessed),
-          relation_weight: relationWeight || 0, // relationWeight가 undefined면 0 사용
-          duplication_penalty: 0, // 중복 패널티는 이미 결과 결합 시 처리됨
-          workflow_name_match: proceduralMatch?.workflow_name_match || false,
-          skill_name_match: proceduralMatch?.skill_name_match || false,
-          trigger_conditions_match: proceduralMatch?.trigger_conditions_match || false,
-          feedback_score,
-          ...(processAttributeFit !== undefined && { process_attribute_fit: processAttributeFit })
-        };
-        
-        applyScores(features);
-      }
-    });
-  }
-
-  /**
-   * Given: 텍스트 검색 결과, 벡터 검색 결과, 가중치, 제한 개수, 데이터베이스, 옵션
-   * When: combineAndSortResults()가 호출됨
-   * Then: 병합, 정규화, 중복 제거, 정렬된 검색 결과를 반환함
-   * 
-   * 검색 결과를 병합하고 정렬하는 메인 메서드입니다.
-   * 분리된 메서드들(mergeResults, normalizeScores, deduplicateResults, sortByFinalScore)을 조합하여 사용합니다.
-   */
-  private async combineAndSortResults(
-    textResults: unknown[],
-    vectorResults: VectorSearchResult[],
-    weights: HybridWeights, 
-    limit: number,
-    db?: Database.Database,
-    includeRelations: boolean = false,
-    query?: HybridSearchQuery
-  ): Promise<HybridSearchResult[]> {
-    try {
-      // Step 1: 결과 병합
-      const combinedResults = this.mergeResults(
-        textResults,
-        vectorResults,
-        weights
-      );
-      
-      // Step 2: 랭킹 컨텍스트 조회 및 점수 정규화
-      if (db) {
-        const memoryIds = combinedResults.map(r => r.id);
-        if (memoryIds.length > 0) {
-          const processId =
-            query?.filters?.process_id != null
-              ? Array.isArray(query.filters.process_id)
-                ? query.filters.process_id[0]
-                : query.filters.process_id
-              : undefined;
-          const ctx = await this.buildRankingContext(db, memoryIds, processId, query);
-          this.normalizeScores(
-            combinedResults,
-            ctx.relationWeights,
-            ctx.relationInfo,
-            ctx.consolidationScores,
-            ctx.proceduralMatches,
-            includeRelations,
-            ctx.processAttributes,
-            ctx.memoryDetailsMap,
-            ctx.feedbackScores,
-            query?.include_score_breakdown === true
-          );
-        }
-      }
-      
-      // Step 3: 중복 제거 (방어적 프로그래밍)
-      const deduplicatedResults = this.deduplicateResults(combinedResults);
-
-      // Step 4: finalScore 기준 내림차순 정렬
-      const sortedResults = this.sortByFinalScore(deduplicatedResults);
-
-      // Step 5: 제한 개수만큼 반환
-      return sortedResults.slice(0, limit);
-    } catch (error) {
-      throw new SearchError(
-        SearchErrorType.RESULT_COMBINATION_FAILED,
-        '결과 결합 중 오류가 발생했습니다',
-        error instanceof Error ? error : new Error(String(error)),
-        { textResultsCount: textResults.length, vectorResultsCount: vectorResults.length, weights }
-      );
-    }
-  }
-
-  /**
-   * 데이터베이스에서 consolidation_score 조회
-   */
-  private fetchConsolidationScores(db: Database.Database, memoryIds: string[]): Map<string, number> {
-    const scores = new Map<string, number>();
-    
-    if (memoryIds.length === 0) {
-      return scores;
-    }
-    
-    try {
-      // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
-      const placeholders = memoryIds.map(() => '?').join(',');
-      const sql = `SELECT id, consolidation_score FROM memory_item WHERE id IN (${placeholders})`;
-      const results = db.prepare(sql).all(...memoryIds) as Array<{ id: string; consolidation_score: number | null }>;
-      
-      results.forEach(row => {
-        if (row.consolidation_score !== null && row.consolidation_score !== undefined) {
-          scores.set(row.id, Number(row.consolidation_score));
-        }
-      });
-    } catch (error) {
-      // 에러 발생 시 빈 Map 반환 (기존 finalScore 유지)
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.warn('Consolidation Score 조회 실패', {
-        error: maskedError.message
-      });
-    }
-    
-    return scores;
-  }
-
-  private fetchFeedbackScores(
-    db: Database.Database,
-    memoryIds: string[]
-  ): Map<string, number> {
-    try {
-      const feedbackRepo = new FeedbackRepository(db);
-      return feedbackRepo.getNetScores(memoryIds, 90);
-    } catch (err) {
-      const maskedError = err instanceof Error ? PIIMasker.maskError(err) : { message: String(err), name: 'Error' };
-      logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
-        error: maskedError.message,
-      });
-      return new Map();
-    }
-  }
-
-  private fetchProcessAttributeContext(
-    db: Database.Database,
-    memoryIds: string[],
-    processId: string | undefined
-  ): {
-    processAttributes: ProcessAttribute | null;
-    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }>;
-  } {
-    if (!processId) {
-      return { processAttributes: null, memoryDetailsMap: new Map() };
-    }
-    const attrRepo = new ProcessAttributeRepository(db);
-    const processAttributes = attrRepo.getByProcessId(processId);
-    const memoryDetailsMap = new Map<
-      string,
-      { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }
-    >();
-    if (memoryIds.length > 0) {
-      const placeholders = memoryIds.map(() => '?').join(',');
-      const rows = db
-        .prepare(
-          `SELECT id, tags, workflow_name, skill_name FROM memory_item WHERE id IN (${placeholders})`
-        )
-        .all(...memoryIds) as Array<{
-        id: string;
-        tags: string | null;
-        workflow_name: string | null;
-        skill_name: string | null;
-      }>;
-      for (const row of rows) {
-        let tags: string[] = [];
-        if (row.tags) {
-          try {
-            const parsed = JSON.parse(row.tags);
-            tags = Array.isArray(parsed) ? parsed : [];
-          } catch {
-            tags = [];
-          }
-        }
-        memoryDetailsMap.set(row.id, {
-          tags,
-          workflow_name: row.workflow_name ?? null,
-          skill_name: row.skill_name ?? null,
-        });
-      }
-    }
-    return { processAttributes, memoryDetailsMap };
-  }
-
-  private async buildRankingContext(
-    db: Database.Database,
-    memoryIds: string[],
-    processId: string | undefined,
-    query?: HybridSearchQuery
-  ): Promise<{
-    relationWeights: Map<string, number>;
-    relationInfo: Map<string, RelationInfoRow[]>;
-    consolidationScores: Map<string, number>;
-    proceduralMatches: Map<string, ProceduralMemoryMatch>;
-    processAttributes: ProcessAttribute | null;
-    memoryDetailsMap: Map<string, { tags?: string[]; workflow_name?: string | null; skill_name?: string | null }>;
-    feedbackScores: Map<string, number>;
-  }> {
-    const relationData = await this.fetchRelationWeights(db, memoryIds);
-
-    let consolidationScores: Map<string, number> = new Map();
-    if (mementoConfig.consolidationScoreEnabled) {
-      consolidationScores = this.fetchConsolidationScores(db, memoryIds);
-    }
-
-    const proceduralMatches = this.proceduralMemoryMatcher.fetchProceduralMemoryMatches(
-      db,
-      memoryIds,
-      query
-    );
-
-    const { processAttributes, memoryDetailsMap } = this.fetchProcessAttributeContext(
-      db,
-      memoryIds,
-      processId
-    );
-
-    const feedbackScores = this.fetchFeedbackScores(db, memoryIds);
-
-    return {
-      relationWeights: relationData.weights,
-      relationInfo: relationData.relations,
-      consolidationScores,
-      proceduralMatches,
-      processAttributes,
-      memoryDetailsMap,
-      feedbackScores,
-    };
-  }
-
-  // fetchProceduralMemoryMatches 메서드는 ProceduralMemoryMatcher 클래스로 분리됨
-
-  /**
-   * 관계 가중치 계산 및 조회
-   * 관계 정보도 함께 반환 (선택적)
-   */
-  private async fetchRelationWeights(
-    db: Database.Database, 
-    memoryIds: string[]
-  ): Promise<{
-    weights: Map<string, number>;
-    relations: Map<string, Array<{ target_id: string; relation_type: string; confidence: number }>>;
-  }> {
-    const weights = new Map<string, number>();
-    const relations = new Map<string, Array<{ target_id: string; relation_type: string; confidence: number }>>();
-    
-    if (memoryIds.length === 0 || !this.relationGraph) {
-      return { weights, relations };
-    }
-    
-    try {
-      const config = getRankingWeights();
-      const maxRelations = config.relation_weights.max_relations;
-
-      const relationsByMemory = await this.relationGraph.getRelationsBatch(memoryIds, {
-        direction: 'both',
-        minConfidence: 0.5
-      });
-
-      for (const memoryId of memoryIds) {
-        const memoryRelations = relationsByMemory.get(memoryId) ?? [];
-        if (memoryRelations.length > 0) {
-          const relationData = memoryRelations.map(r => ({
-            confidence: r.confidence,
-            relation_type: r.relation_type
-          }));
-          const relationWeight = this.ranking.calculateRelationWeight(relationData, maxRelations);
-          weights.set(memoryId, relationWeight);
-          const simplifiedRelations = memoryRelations.map(r => ({
-            target_id: r.source_id === memoryId ? r.target_id : r.source_id,
-            relation_type: r.relation_type,
-            confidence: r.confidence
-          }));
-          relations.set(memoryId, simplifiedRelations);
-        }
-      }
-    } catch (error) {
-      // 에러 발생 시 빈 Map 반환 (관계 가중치 없이 진행)
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.warn('관계 가중치 계산 실패', {
-        error: maskedError.message
-      });
-    }
-    
-    return { weights, relations };
-  }
-
-  /**
-   * 최근성 점수 계산 (간단한 구현)
-   */
-  private calculateRecency(createdAt: string | Date | undefined): number {
-    if (!createdAt) return 0.5;
-    
-    const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
-    const ageDays = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
-    
-    // 30일 반감기
-    return Math.exp(-Math.log(2) * ageDays / 30);
-  }
-
-  /**
-   * 사용성 점수 계산 (간단한 구현)
-   */
-  private calculateUsage(lastAccessed: string | Date | undefined): number {
-    if (!lastAccessed) return 0.1;
-    
-    const accessed = typeof lastAccessed === 'string' ? new Date(lastAccessed) : lastAccessed;
-    const daysSinceAccess = (Date.now() - accessed.getTime()) / (1000 * 60 * 60 * 24);
-    
-    return Math.exp(-daysSinceAccess / 30);
-  }
-
-  private calculateQueryTime(startTime: bigint): number {
-    const endTime = process.hrtime.bigint();
-    return Number(endTime - startTime) / 1_000_000;
-  }
-
-
-  /**
-   * 검색 통계 업데이트
-   */
   private updateSearchStats(query: string, textHits: number, vectorHits: number): void {
     const queryKey = this.normalizeQuery(query);
     const stats = this.searchStats.get(queryKey) || { textHits: 0, vectorHits: 0, totalSearches: 0 };
-    
+
     stats.textHits += textHits;
     stats.vectorHits += vectorHits;
     stats.totalSearches += 1;
-    
+
     this.searchStats.set(queryKey, stats);
   }
 
@@ -1573,34 +314,15 @@ export class HybridSearchEngine {
     return query.toLowerCase().trim().replace(/\s+/g, ' ');
   }
 
-  /**
-   * 검색 통계 정보
-   */
-  async getSearchStats(db: Database.Database): Promise<{
-    textSearchAvailable: boolean;
-    vectorSearchAvailable: boolean;
-    embeddingStats: unknown;
-    searchStats: Map<string, { textHits: number, vectorHits: number, totalSearches: number }>;
-  }> {
-    const embeddingStats = await this.embeddingService.getEmbeddingStats(db);
-    
-    return {
-      textSearchAvailable: true,
-      vectorSearchAvailable: this.embeddingService.isAvailable(),
-      embeddingStats,
-      searchStats: this.searchStats,
-    };
+  private calculateQueryTime(startTime: bigint): number {
+    return Number(process.hrtime.bigint() - startTime) / 1_000_000;
   }
 
-  /**
-   * 임베딩 서비스 사용 가능 여부 확인
-   */
-  isEmbeddingAvailable(): boolean {
-    return this.embeddingService.isAvailable();
+  private generateSearchId(): string {
+    return `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
 
-// 팩토리 함수들
 export function createHybridSearchEngine(
   textSearchEngine?: ITextSearchEngine,
   embeddingService?: IEmbeddingService,
@@ -1622,7 +344,6 @@ export function createHybridSearchEngine(
   );
 }
 
-// 기존 호환성을 위한 싱글톤 (deprecated)
 let hybridSearchEngineInstance: HybridSearchEngine | null = null;
 
 export function getHybridSearchEngine(): HybridSearchEngine {

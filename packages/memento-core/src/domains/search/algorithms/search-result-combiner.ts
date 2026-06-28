@@ -5,7 +5,7 @@
  * 단일 책임 원칙을 준수하여 HybridSearchEngine에서 분리되었습니다.
  */
 
-import type { ISearchResultCombiner, HybridSearchResult } from './hybrid-search-engine.js';
+import type { ISearchResultCombiner, HybridSearchResult } from './hybrid-search-types.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 
