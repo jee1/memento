@@ -442,7 +442,7 @@ describe('logger', () => {
 
     describe('토큰 마스킹', () => {
       it('JWT 토큰을 자동으로 마스킹해야 함', () => {
-        // Given: 전체 JWT 토큰이 포함된 메시지 (xxx.yyy.zzz 형식)
+        // Given: 전체 JWT 토큰이 포함된 메시지 (3-segment JWT 형식)
         // PIIMasker는 JWT 토큰을 [JWT_TOKEN] 또는 [TOKEN]으로 마스킹할 수 있음
         const message = 'Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl8w5c_X12LmpQZ8FYi';
 

@@ -1,0 +1,23 @@
+# MCP `type` 파라미터 롤아웃 가이드
+
+## 요약
+
+- `remember` / `recall` 등 메모리 도구에서는 가능하면 **`type`을 항상 명시**하는 것이 좋다.
+- 복수 타입을 한 번에 필터링하려면 `recall`의 **`memory_types`** 를 사용할 수 있다. `memory_types`만으로도 타입 의도가 드러나므로, 일부 경고는 생략된다(세부 동작은 릴리스 노트·코드 주석 참고).
+
+## 환경 변수 `MEMENTO_TYPE_PARAM_MODE`
+
+- `warn`(기본): `type`이 없으면 기본값 `episodic`을 쓰고 경고를 남길 수 있다(조건은 구현 참고).
+- `deprecate`: 경고 문구에 마이그레이션 안내가 포함된다.
+- `error`: `type`이 없으면 호출이 거절된다(엄격 모드).
+
+배포 환경에서 단계적으로 `warn` → `deprecate` → `error`로 올려 클라이언트를 정리할 수 있다.
+
+## 권장 마이그레이션
+
+1. 모든 `recall` 호출에 명시적으로 `type`을 넣는다 (예: 하이브리드 검색: `episodic` 외 타입이 필요하면 해당 타입).
+2. 복수 타입이 필요하면 `memory_types` 배열을 사용하고, 가능하면 **`type`도 함께 지정**해 의도를 명확히 한다.
+
+## 관련 문서
+
+- [Core Deprecated API Inventory](../../architecture/core-deprecated-inventory.md) — `[LEGACY TYPE]` 런타임 경고

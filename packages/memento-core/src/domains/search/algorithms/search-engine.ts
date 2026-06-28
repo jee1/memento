@@ -303,7 +303,7 @@ export class SearchEngine {
     const { usedFtsQuery } = initialStatement;
     
     // 구성된 쿼리를 실행하여 실제 검색 결과를 획득합니다.
-    // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
+    // 진단 레벨 로깅 — 기본 비활성 (LOG_LEVEL=trace 이하일 때만 출력)
     mcpLogger.logServer('debug', '검색 쿼리 실행', {
       query: sql,
       params: params
@@ -371,7 +371,7 @@ export class SearchEngine {
    * 아키텍처 문서의 전처리 규칙을 적용하여 검색 정확도를 향상시킵니다.
    */
   private buildFTSQuery(query: string): string {
-    // 디버그 레벨로 로깅하여 기본적으로 비활성화 (LOG_LEVEL=debug일 때만 출력)
+    // 진단 레벨 로깅 — 기본 비활성 (LOG_LEVEL=trace 이하일 때만 출력)
     mcpLogger.logServer('debug', '원본 쿼리', { query });
 
     // 사용자 입력의 형식이 다양하므로 정규화하여 검색 일관성을 보장합니다.

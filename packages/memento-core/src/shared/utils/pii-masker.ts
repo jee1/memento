@@ -202,7 +202,7 @@ export class PIIMasker {
         totalMaskedCount += bearerMatches.length;
       }
 
-      // JWT 토큰 (xxx.yyy.zzz 형식)
+      // JWT 토큰 (header.payload.signature 3-segment 형식)
       const jwtPattern = /\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g;
       const jwtMatches = masked.match(jwtPattern);
       if (jwtMatches) {

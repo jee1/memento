@@ -69,7 +69,7 @@ export function validateTypeParam(
       return {
         isValid: true,
         mode: 'deprecate',
-        message: `⚠️  [DEPRECATED] ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다. 'type' 파라미터는 필수로 지정해주세요. 마이그레이션 가이드: https://github.com/jee1/memento/blob/main/docs/guides/ko/type-param-rollout.md`,
+        message: `⚠️  [LEGACY TYPE] ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다. 'type' 파라미터는 필수로 지정해주세요. 마이그레이션 가이드: https://github.com/jee1/memento/blob/main/docs/guides/ko/type-param-rollout.md`,
         defaultType
       };
 

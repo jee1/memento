@@ -2,6 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { RememberTool } from '../remember-tool.js';
+import {
+  getExistingMemoriesForRelationExtraction,
+  getMemoryById,
+} from '../remember-tool-db-helpers.js';
+import type { RememberToolHost } from '../remember-tool-host.js';
 
 /**
  * 운영 DB와 동일: memory_item에 embedding 컬럼 없음, is_consolidated 있음.
@@ -25,14 +30,25 @@ function initializeProductionLikeSchema(db: Database.Database): void {
   `);
 }
 
+function createHost(tool: RememberTool): RememberToolHost {
+  return {
+    logInfo: (msg, data) => (tool as any).logInfo(msg, data),
+    logWarning: (msg, data) => (tool as any).logWarning(msg, data),
+    logError: (err, ctx, data) => (tool as any).logError(err, ctx, data),
+    createSuccessResult: (data) => (tool as any).createSuccessResult(data),
+  };
+}
+
 describe('RememberTool relation load (Issue #544)', () => {
   let db: Database.Database;
   let tool: RememberTool;
+  let host: RememberToolHost;
 
   beforeEach(() => {
     db = new Database(':memory:');
     initializeProductionLikeSchema(db);
     tool = new RememberTool();
+    host = createHost(tool);
   });
 
   afterEach(() => {
@@ -57,10 +73,11 @@ describe('RememberTool relation load (Issue #544)', () => {
 
       const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
 
-      const existing = await (tool as any).getExistingMemoriesForRelationExtraction(
+      const existing = await getExistingMemoriesForRelationExtraction(
         db,
         'mem-new',
-        100
+        100,
+        host
       );
 
       expect(existing).toHaveLength(2);
@@ -88,10 +105,11 @@ describe('RememberTool relation load (Issue #544)', () => {
 
       const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
 
-      const existing = await (tool as any).getExistingMemoriesForRelationExtraction(
+      const existing = await getExistingMemoriesForRelationExtraction(
         db,
         'mem-other',
-        10
+        10,
+        host
       );
 
       expect(existing).toHaveLength(1);
@@ -124,7 +142,7 @@ describe('RememberTool relation load (Issue #544)', () => {
 
       const logWarningSpy = vi.spyOn(tool as any, 'logWarning');
 
-      const memory = await (tool as any).getMemoryById(db, 'mem-target');
+      const memory = await getMemoryById(db, 'mem-target', host);
 
       expect(memory).not.toBeNull();
       expect(memory).toMatchObject({
@@ -147,7 +165,7 @@ describe('RememberTool relation load (Issue #544)', () => {
     });
 
     it('존재하지 않는 id면 null을 반환한다', async () => {
-      const memory = await (tool as any).getMemoryById(db, 'missing-id');
+      const memory = await getMemoryById(db, 'missing-id', host);
       expect(memory).toBeNull();
     });
   });

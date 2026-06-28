@@ -153,7 +153,7 @@ export const searchRankingWeights = {
 export const defaultTags = {
   tech: ['javascript', 'typescript', 'react', 'node', 'sqlite', 'mcp'],
   pref: ['coffee', 'tea', 'morning', 'evening'],
-  task: ['ads-settlement', 'bug-fix', 'feature', 'refactor'],
+  task: ['ads-settlement', 'defect-fix', 'feature', 'refactor'],
   project: ['memento', 'mcp-server', 'ai-agent']
 };
 
