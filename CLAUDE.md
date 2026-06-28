@@ -9,5 +9,6 @@
 | [commands.md](./docs/agents/commands.md) | npm·Docker·DB 운영 |
 | [architecture.md](./docs/agents/architecture.md) | 패키지·도메인 구조 |
 | [agent-workflow.md](./docs/agents/agent-workflow.md) | MCP·graphify·UI |
+| [search-ranking.md](./docs/agents/search-ranking.md) | 검색 랭킹 공식 |
 
 **요구사항:** Node.js ≥24, npm ≥10

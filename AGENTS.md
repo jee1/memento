@@ -36,6 +36,12 @@ npm run lint && npm run type-check  # 커밋 전 필수
 
 상세: [agent-workflow.md](./docs/agents/agent-workflow.md)
 
+## 3.1 Gotchas
+
+- **Docker 배포 전**: `npm run db:pre-docker-deploy` (DB 무결성 점검)
+- **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
+- **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
+
 ## 4. 코딩 에이전트 행동 지침 (Karpathy Guidelines)
 
 > 출처: [andrej-karpathy-skills/CLAUDE.md](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md)
