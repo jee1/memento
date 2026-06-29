@@ -1,1089 +1,133 @@
 /**
- * Anchor Map Visualization
- * D3.js를 사용한 네트워크 그래프 시각화
+ * Anchor Map — initialization, event wiring, and public API.
+ * Depends on: anchor-map-shared.js, anchor-map-render.js, anchor-map-search.js,
+ *             anchor-map-data.js, anchor-map-ws.js (loaded before this file).
  */
+(function (global) {
+  'use strict';
 
-// 전역 변수 (맵 미렌더/빈 데이터에서도 .find/.filter 호출 시 TypeError 방지)
-let svg, simulation, zoomBehavior;
-let nodes = [];
-let links = [];
-let mapData = null;
-let searchResults = null; // 검색 결과 저장
-const highlightedNodeIds = new Set(); // 하이라이트된 노드 ID 집합
-let autoRefreshInterval = null; // 자동 새로고침 인터벌
-let websocket = null; // WebSocket 연결
+  const ns = global.__MEMENTO_ANCHOR_MAP__;
+  if (!ns) return;
 
-// 슬롯별 색상 토큰 정의
-const slotColorTokens = {
-  'A': { fill: '--color-anchor-a', stroke: '--color-anchor-a-stroke' },
-  'B': { fill: '--color-anchor-b', stroke: '--color-anchor-b-stroke' },
-  'C': { fill: '--color-anchor-c', stroke: '--color-anchor-c-stroke' }
-};
+  const state = ns.state;
 
-function readAnchorMapToken(name, fallback = '') {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  if (value) {
-    return value;
-  }
-  if (fallback) {
-    return fallback;
-  }
-  throw new Error(`Missing CSS token: ${name}`);
-}
-
-function getAnchorMapPalette() {
-  return {
-    slotColors: Object.fromEntries(
-      Object.entries(slotColorTokens).map(([slot, tokenNames]) => [slot, {
-        fill: readAnchorMapToken(tokenNames.fill),
-        stroke: readAnchorMapToken(tokenNames.stroke),
-      }])
-    ),
-    memoryFill: readAnchorMapToken('--color-memory-neutral'),
-    memoryStroke: readAnchorMapToken('--color-memory-neutral-stroke'),
-    labelFill: readAnchorMapToken('--color-text-main'),
-  };
-}
-
-/** XSS 방지: HTML 특수문자 이스케이프 */
-function escapeHtml(str) {
-  if (str == null) return '';
-  const s = String(str);
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-/** 검색 결과 item에서 memory ID 추출 */
-function getSearchItemId(item) {
-  if (!item) return '';
-  return item.id || item.memory_id || '';
-}
-
-/** 검색 결과 중 맵에 표시된 노드와 일치하는 개수 */
-function countSearchMapMatches(items, mapNodes) {
-  if (!Array.isArray(items) || !Array.isArray(mapNodes)) {
-    return 0;
-  }
-  const mapIds = new Set(mapNodes.map(n => n.id));
-  let matched = 0;
-  for (const item of items) {
-    if (mapIds.has(getSearchItemId(item))) {
-      matched += 1;
+  function initializeMap() {
+    if (typeof d3 === 'undefined') {
+      const fallbackContainer = document.getElementById('anchor-map');
+      if (fallbackContainer) {
+        fallbackContainer.innerHTML = '<p class="no-data">Anchor Map renderer is unavailable.</p>';
+      }
+      ns.debugAnchorMap('d3-unavailable');
+      return;
     }
-  }
-  return matched;
-}
 
-/** 검색 상태 메시지 생성 */
-function buildSearchStatusMessage(searchResult, mapMatchCount) {
-  const total = searchResult?.items?.length ?? 0;
-  if (total === 0) {
-    return '검색 결과가 없습니다.';
-  }
-  const parts = [`${total}건 검색됨`, `맵 ${mapMatchCount}건 표시`];
-  if (searchResult.fallback_used) {
-    parts.push('전역 검색 사용');
-  }
-  if (searchResult.local_results_count != null && !searchResult.fallback_used) {
-    parts.push(`국소 ${searchResult.local_results_count}건`);
-  }
-  return parts.join(' · ');
-}
+    const container = d3.select('#anchor-map');
+    const width = container.node().getBoundingClientRect().width;
+    const height = container.node().getBoundingClientRect().height;
 
-function normalizeMapData(data) {
-  return {
-    ...(data || {}),
-    anchors: Array.isArray(data?.anchors) ? data.anchors : [],
-    nodes: Array.isArray(data?.nodes) ? data.nodes : [],
-    links: Array.isArray(data?.links) ? data.links : [],
-    timestamp: data?.timestamp || new Date().toISOString(),
-  };
-}
+    state.svg = container.append('svg').attr('width', width).attr('height', height);
 
-function normalizeSearchResults(payload) {
-  const candidate = payload?.result || payload || {};
-  return {
-    ...candidate,
-    items: Array.isArray(candidate.items) ? candidate.items : [],
-  };
-}
+    state.zoomBehavior = d3.zoom()
+      .scaleExtent([0.1, 4])
+      .on('zoom', function (event) { state.svg.select('g').attr('transform', event.transform); });
 
-function getLinkNodeId(value) {
-  return value && typeof value === 'object' ? value.id : value;
-}
+    state.svg.call(state.zoomBehavior);
+    state.svg.append('g');
 
-function updateSearchStatus(message, isActive = false) {
-  const statusEl = document.getElementById('anchor-search-status');
-  if (!statusEl) return;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-active', isActive);
-  statusEl.classList.toggle('no-data', !isActive);
-}
+    state.simulation = d3.forceSimulation()
+      .force('link', d3.forceLink().id(function (d) { return d.id; }).distance(100))
+      .force('charge', d3.forceManyBody().strength(-300))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(30));
 
-function renderSearchResultsList() {
-  const container = document.getElementById('anchor-search-results');
-  if (!container) return;
-
-  if (!searchResults?.items?.length) {
-    container.innerHTML = '<p class="no-data">No search results</p>';
-    return;
-  }
-
-  const mapIds = new Set(Array.isArray(nodes) ? nodes.map(n => n.id) : []);
-  container.innerHTML = searchResults.items
-    .map((item, index) => {
-      const id = getSearchItemId(item);
-      if (!id) return '';
-      const onMap = mapIds.has(id);
-      const preview = escapeHtml((item.content || '').substring(0, 80));
-      const suffix = item.content && item.content.length > 80 ? '...' : '';
-      const similarity = item.similarity != null
-        ? escapeHtml((item.similarity * 100).toFixed(1) + '%')
-        : 'N/A';
-      return `
-        <div class="anchor-search-result-item${onMap ? ' is-on-map' : ''} js-search-result-item"
-             data-memory-id="${escapeHtml(id)}"
-             title="${onMap ? '맵에 표시됨 — 클릭하여 포커스' : '맵 밖 결과 — 클릭하여 상세 보기'}">
-          <div class="search-result-meta">#${index + 1} · ${escapeHtml(id)} · ${similarity}</div>
-          <div class="search-result-preview">${preview}${suffix}</div>
-        </div>
-      `;
-    })
-    .join('');
-}
-
-function focusOnNode(node, scale = 1.5) {
-  if (!node || node.x == null || node.y == null || !zoomBehavior || !svg) {
-    return;
-  }
-  const width = parseFloat(svg.attr('width'));
-  const height = parseFloat(svg.attr('height'));
-  const transform = d3.zoomIdentity
-    .translate(width / 2 - node.x * scale, height / 2 - node.y * scale)
-    .scale(scale);
-  svg.transition().duration(750).call(zoomBehavior.transform, transform);
-}
-
-function displaySearchResultDetails(item) {
-  displayMemoryDetails({
-    id: getSearchItemId(item),
-    type: 'memory',
-    content: item.content || '',
-    hop_distance: item.hop_distance,
-    similarity: item.similarity,
-    importance: item.importance,
-    created_at: item.created_at,
-  });
-}
-
-function debugAnchorMap(eventName, detail) {
-  if (window.localStorage.getItem('memento.debug') !== '1') {
-    return;
-  }
-
-  document.dispatchEvent(new CustomEvent('memento:debug', {
-    bubbles: true,
-    composed: true,
-    detail: { scope: 'anchor-map', eventName, detail },
-  }));
-}
-
-// 초기화
-document.addEventListener('DOMContentLoaded', async () => {
-  initializeMap();
-  setupEventListeners();
-  await loadAgentIdOptions();
-  loadMapData();
-});
-
-/**
- * 맵 초기화
- */
-function initializeMap() {
-  if (typeof d3 === 'undefined') {
-    const fallbackContainer = document.getElementById('anchor-map');
-    if (fallbackContainer) {
-      fallbackContainer.innerHTML = '<p class="no-data">Anchor Map renderer is unavailable.</p>';
-    }
-    debugAnchorMap('d3-unavailable');
-    return;
-  }
-
-  const container = d3.select('#anchor-map');
-  const width = container.node().getBoundingClientRect().width;
-  const height = container.node().getBoundingClientRect().height;
-
-  // SVG 생성
-  svg = container
-    .append('svg')
-    .attr('width', width)
-    .attr('height', height);
-
-  // Zoom 패닝 기능
-  zoomBehavior = d3.zoom()
-    .scaleExtent([0.1, 4])
-    .on('zoom', (event) => {
-      svg.select('g').attr('transform', event.transform);
+    window.addEventListener('resize', function () {
+      const newWidth = container.node().getBoundingClientRect().width;
+      const newHeight = container.node().getBoundingClientRect().height;
+      state.svg.attr('width', newWidth).attr('height', newHeight);
+      state.simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
+      state.simulation.alpha(1).restart();
     });
+  }
 
-  svg.call(zoomBehavior);
-
-  // 그룹 생성 (zoom 적용)
-  svg.append('g');
-
-  // Force simulation 설정
-  simulation = d3.forceSimulation()
-    .force('link', d3.forceLink().id(d => d.id).distance(100))
-    .force('charge', d3.forceManyBody().strength(-300))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(30));
-
-  // 창 크기 변경 시 SVG 크기 조정
-  window.addEventListener('resize', () => {
-    const newWidth = container.node().getBoundingClientRect().width;
-    const newHeight = container.node().getBoundingClientRect().height;
-    svg.attr('width', newWidth).attr('height', newHeight);
-    simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
-    simulation.alpha(1).restart();
-  });
-}
-
-/**
- * 이벤트 리스너 설정
- */
-function setupEventListeners() {
-  document.getElementById('load-map-btn').addEventListener('click', loadMapData);
-  document.getElementById('refresh-btn').addEventListener('click', loadMapData);
-  document.getElementById('search-btn').addEventListener('click', performSearch);
-  document.getElementById('clear-search-btn').addEventListener('click', clearSearch);
-
-  document.getElementById('memory-details')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.js-change-anchor');
-    if (btn && btn.dataset.slot) changeAnchor(btn.dataset.slot);
-  });
-  document.getElementById('anchor-list')?.addEventListener('click', (e) => {
-    const el = e.target.closest('.js-select-anchor');
-    if (el && el.dataset.memoryId) selectAnchorNode(el.dataset.memoryId);
-  });
-
-  document.getElementById('anchor-search-results')?.addEventListener('click', (e) => {
+  function onSearchResultClick(e) {
     const el = e.target.closest('.js-search-result-item');
-    if (!el?.dataset.memoryId || !searchResults?.items) return;
-    const item = searchResults.items.find(i => getSearchItemId(i) === el.dataset.memoryId);
+    if (!el || !el.dataset.memoryId || !state.searchResults || !state.searchResults.items) return;
+    const item = state.searchResults.items.find(function (i) { return ns.getSearchItemId(i) === el.dataset.memoryId; });
     if (!item) return;
-    if (Array.isArray(nodes)) {
-      const node = nodes.find(n => n.id === el.dataset.memoryId);
+    if (Array.isArray(state.nodes)) {
+      const node = state.nodes.find(function (n) { return n.id === el.dataset.memoryId; });
       if (node) {
-        selectNode(node);
-        focusOnNode(node, 1.5);
+        ns.selectNode(node);
+        ns.focusOnNode(node, 1.5);
         return;
       }
     }
-    displaySearchResultDetails(item);
-  });
-  
-  // 자동 새로고침 토글
-  document.getElementById('auto-refresh-toggle').addEventListener('change', (e) => {
-    if (e.target.checked) {
-      startAutoRefresh();
-    } else {
-      stopAutoRefresh();
-    }
-  });
-  
-  // 새로고침 간격 변경
-  document.getElementById('refresh-interval-select').addEventListener('change', () => {
-    if (document.getElementById('auto-refresh-toggle').checked) {
-      stopAutoRefresh();
-      startAutoRefresh();
-    }
-  });
-  
-  document.getElementById('agent-id-select').addEventListener('change', () => {
-    loadMapData();
-    resubscribeWebSocket();
-  });
-  
-  document.getElementById('search-query-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      performSearch();
-    }
-  });
-  
-  // WebSocket 연결 시도 (선택적)
-  tryConnectWebSocket();
-}
-
-/**
- * 선택된 Agent ID 반환
- */
-function getSelectedAgentId() {
-  const select = document.getElementById('agent-id-select');
-  return select?.value || 'default';
-}
-
-/**
- * Agent ID 선택 목록 로드
- */
-async function loadAgentIdOptions() {
-  const select = document.getElementById('agent-id-select');
-  if (!select) return;
-
-  const previousSelection = getSelectedAgentId();
-
-  try {
-    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
-    const response = await fetchFn('/api/anchors/agents');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const payload = await response.json();
-    const agents = Array.isArray(payload.agents) ? payload.agents : [];
-
-    select.innerHTML = '';
-
-    if (agents.length === 0) {
-      const option = document.createElement('option');
-      option.value = 'default';
-      option.textContent = 'default (앵커 없음)';
-      select.appendChild(option);
-    } else {
-      for (const entry of agents) {
-        const option = document.createElement('option');
-        option.value = entry.agent_id;
-        option.textContent = `${entry.agent_id} (${entry.anchor_count} anchors)`;
-        select.appendChild(option);
-      }
-    }
-
-    const validValues = Array.from(select.options).map(option => option.value);
-    if (validValues.includes(previousSelection)) {
-      select.value = previousSelection;
-    } else if (agents.length > 0) {
-      select.value = agents[0].agent_id;
-    } else {
-      select.value = 'default';
-    }
-  } catch (error) {
-    debugAnchorMap('agent-list-load-error', { message: error.message });
-    if (select.options.length === 0) {
-      const option = document.createElement('option');
-      option.value = 'default';
-      option.textContent = 'default (앵커 없음)';
-      select.appendChild(option);
-      select.value = 'default';
-    }
-  }
-}
-
-/**
- * 맵 데이터 로드
- */
-async function loadMapData() {
-  const agentId = getSelectedAgentId();
-  
-  try {
-    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
-    const response = await fetchFn(`/api/anchors/map?agent_id=${encodeURIComponent(agentId)}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const newMapData = normalizeMapData(await response.json());
-    
-    // 데이터 변경 감지
-    const hasChanged = !mapData || 
-      JSON.stringify(mapData.timestamp) !== JSON.stringify(newMapData.timestamp) ||
-      JSON.stringify(mapData.anchors) !== JSON.stringify(newMapData.anchors) ||
-      mapData.nodes.length !== newMapData.nodes.length ||
-      mapData.links.length !== newMapData.links.length;
-    
-    if (hasChanged) {
-      mapData = newMapData;
-      renderMap();
-      updateAnchorList();
-      debugAnchorMap('map-updated', { timestamp: newMapData.timestamp });
-    } else {
-      debugAnchorMap('map-unchanged');
-    }
-
-    await loadAgentIdOptions();
-  } catch (error) {
-    debugAnchorMap('load-error', { message: error.message });
-    // 에러 알림은 자동 새로고침 시에는 표시하지 않음
-    if (!autoRefreshInterval) {
-      alert(`맵 데이터를 불러올 수 없습니다: ${error.message}`);
-    }
-  }
-}
-
-/**
- * 맵 렌더링
- */
-function renderMap() {
-  if (!svg || !simulation) {
-    return;
+    ns.displaySearchResultDetails(item);
   }
 
-  mapData = normalizeMapData(mapData);
+  function setupEventListeners() {
+    document.getElementById('load-map-btn').addEventListener('click', ns.loadMapData);
+    document.getElementById('refresh-btn').addEventListener('click', ns.loadMapData);
+    document.getElementById('search-btn').addEventListener('click', ns.performSearch);
+    document.getElementById('clear-search-btn').addEventListener('click', ns.clearSearch);
 
-  if (!mapData || !mapData.nodes || mapData.nodes.length === 0) {
-    nodes = [];
-    links = [];
-    const g = svg.select('g');
-    if (g.node()) {
-      g.selectAll('*').remove();
-    } else {
-      svg.selectAll('*').remove();
+    const memDetails = document.getElementById('memory-details');
+    if (memDetails) {
+      memDetails.addEventListener('click', function (e) {
+        const btn = e.target.closest('.js-change-anchor');
+        if (btn && btn.dataset.slot) ns.changeAnchor(btn.dataset.slot);
+      });
     }
-    return;
-  }
 
-  const g = svg.select('g');
-  g.selectAll('*').remove();
+    const anchorList = document.getElementById('anchor-list');
+    if (anchorList) {
+      anchorList.addEventListener('click', function (e) {
+        const el = e.target.closest('.js-select-anchor');
+        if (el && el.dataset.memoryId) ns.selectAnchorNode(el.dataset.memoryId);
+      });
+    }
 
-  const palette = getAnchorMapPalette();
+    const searchResults = document.getElementById('anchor-search-results');
+    if (searchResults) searchResults.addEventListener('click', onSearchResultClick);
 
-  // 노드와 링크 데이터 준비
-  nodes = mapData.nodes.map(d => ({
-    ...d,
-    radius: d.type === 'anchor' ? 12 : 8
-  }));
-
-  links = mapData.links
-    .map(d => ({
-      ...d,
-      source: typeof d.source === 'string' ? nodes.find(n => n.id === d.source) : d.source,
-      target: typeof d.target === 'string' ? nodes.find(n => n.id === d.target) : d.target
-    }))
-    .filter(d => d.source && d.target);
-
-  // Hop 거리에 따른 원형 레이어 배치 (초기 위치)
-  layoutNodesByHop();
-
-  // 링크 그리기
-  const link = g.append('g')
-    .selectAll('line')
-    .data(links)
-    .enter()
-    .append('line')
-    .attr('class', d => `link ${d.type}`)
-    .attr('stroke-width', d => d.type === 'hop' ? 2 : 1.5);
-
-  // 노드 그리기
-  const node = g.append('g')
-    .selectAll('circle')
-    .data(nodes)
-    .enter()
-    .append('circle')
-    .attr('class', d => {
-      let classes = `node ${d.type}`;
-      if (d.type === 'anchor' && d.slot) {
-        classes += ` slot-${d.slot.toLowerCase()}`;
-      }
-      return classes;
-    })
-    .attr('r', d => d.radius)
-    .attr('fill', d => {
-      if (d.type === 'anchor' && d.slot) {
-        return palette.slotColors[d.slot].fill;
-      }
-      return palette.memoryFill;
-    })
-    .attr('stroke', d => {
-      if (d.type === 'anchor' && d.slot) {
-        return palette.slotColors[d.slot].stroke;
-      }
-      return palette.memoryStroke;
-    })
-    .attr('stroke-width', d => d.type === 'anchor' ? 3 : 2)
-    .attr('stroke-dasharray', d => d.embedding_missing ? '5,3' : null)
-    .attr('opacity', d => d.embedding_missing ? 0.6 : 1.0)
-    .call(drag(simulation))
-    .on('click', (event, d) => {
-      event.stopPropagation();
-      selectNode(d);
+    document.getElementById('auto-refresh-toggle').addEventListener('change', function (e) {
+      if (e.target.checked) ns.startAutoRefresh();
+      else ns.stopAutoRefresh();
     });
 
-  // 노드 라벨 추가
-  const label = g.append('g')
-    .selectAll('text')
-    .data(nodes)
-    .enter()
-    .append('text')
-    .attr('class', 'node-label')
-    .attr('dx', d => d.radius + 5)
-    .attr('dy', 4)
-    .text(d => {
-      if (d.type === 'anchor' && d.slot) {
-        return `Slot ${d.slot}`;
-      }
-      return d.content.substring(0, 20) + (d.content.length > 20 ? '...' : '');
-    })
-    .style('font-size', '12px')
-    .style('fill', palette.labelFill)
-    .style('pointer-events', 'none');
-
-  // Tooltip 추가
-  node.append('title')
-    .text(d => {
-      if (d.type === 'anchor') {
-        const warning = d.embedding_missing ? '\n⚠ 임베딩 없음 — 연결 메모리 검색 불가' : '';
-        return `Anchor ${d.slot}\n${d.content}${warning}`;
-      }
-      return `Memory\n${d.content}\nHop: ${d.hop_distance || 'N/A'}`;
-    });
-
-  // Force simulation 업데이트
-  simulation.nodes(nodes).on('tick', () => {
-    link
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
-
-    node
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y);
-
-    label
-      .attr('x', d => d.x)
-      .attr('y', d => d.y);
-  });
-
-  simulation.force('link').links(links);
-  simulation.alpha(1).restart();
-
-  if (searchResults?.items?.length) {
-    highlightSearchResults();
-  }
-}
-
-/**
- * Hop 거리에 따른 원형 레이어 배치
- */
-function layoutNodesByHop() {
-  const width = svg.attr('width');
-  const height = svg.attr('height');
-  const centerX = width / 2;
-  const centerY = height / 2;
-
-  // 앵커 노드 찾기
-  const anchorNodes = nodes.filter(n => n.type === 'anchor');
-  
-  anchorNodes.forEach((anchor, anchorIndex) => {
-    // 각 앵커를 중심으로 배치
-    const angle = (anchorIndex / anchorNodes.length) * 2 * Math.PI;
-    const radius = 150;
-    anchor.fx = centerX + Math.cos(angle) * radius;
-    anchor.fy = centerY + Math.sin(angle) * radius;
-
-    // 해당 앵커와 연결된 메모리들을 hop 거리별로 원형 레이어에 배치
-    const relatedMemories = nodes.filter(n => 
-      n.type === 'memory' && 
-      links.some(l => 
-        (l.source.id === anchor.id && l.target.id === n.id) ||
-        (l.target.id === anchor.id && l.source.id === n.id)
-      )
-    );
-
-    relatedMemories.forEach((memory, memIndex) => {
-      const hop = memory.hop_distance || 1;
-      const layerRadius = 100 + (hop - 1) * 80;
-      const memAngle = (memIndex / relatedMemories.length) * 2 * Math.PI + angle;
-      
-      memory.fx = anchor.fx + Math.cos(memAngle) * layerRadius;
-      memory.fy = anchor.fy + Math.sin(memAngle) * layerRadius;
-    });
-  });
-
-  // 연결되지 않은 메모리들은 자유롭게 배치
-  nodes.forEach(node => {
-    if (!node.fx && !node.fy && node.type === 'memory') {
-      node.fx = null;
-      node.fy = null;
-    }
-  });
-}
-
-/**
- * 노드 드래그 핸들러
- */
-function drag(simulation) {
-  function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-  }
-
-  function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-  }
-
-  function dragended(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
-
-  return d3.drag()
-    .on('start', dragstarted)
-    .on('drag', dragged)
-    .on('end', dragended);
-}
-
-/**
- * 노드 선택
- */
-function selectNode(node) {
-  
-  // 노드 하이라이트
-  svg.selectAll('.node')
-    .classed('selected', d => d.id === node.id);
-  
-  // 메모리 상세 정보 표시
-  displayMemoryDetails(node);
-}
-
-/**
- * 메모리 상세 정보 표시
- */
-function displayMemoryDetails(node) {
-  const detailsContainer = document.getElementById('memory-details');
-  
-  if (node.type === 'anchor') {
-    const slot = escapeHtml(node.slot);
-    const id = escapeHtml(node.id);
-    const content = escapeHtml(node.content);
-    const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
-    const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
-    detailsContainer.innerHTML = `
-      <div class="memory-detail-item">
-        <label>Type:</label>
-        <div class="value">Anchor (Slot ${slot})</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Memory ID:</label>
-        <div class="value">${id}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Content:</label>
-        <div class="value">${content}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Hop Distance:</label>
-        <div class="value">0 (Anchor)</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Similarity:</label>
-        <div class="value">1.0 (100.0%)</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Importance:</label>
-        <div class="value">${importance}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Created:</label>
-        <div class="value">${created}</div>
-      </div>
-      <button type="button" class="anchor-change-btn js-change-anchor m-button m-button--primary" data-slot="${slot}">
-        Change Anchor
-      </button>
-    `;
-  } else {
-    const id = escapeHtml(node.id);
-    const content = escapeHtml(node.content);
-    const hopDistance = escapeHtml(node.hop_distance != null ? node.hop_distance : 'N/A');
-    const similarity = node.similarity != null ? escapeHtml((node.similarity * 100).toFixed(1) + '%') : 'N/A';
-    const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
-    const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
-    detailsContainer.innerHTML = `
-      <div class="memory-detail-item">
-        <label>Type:</label>
-        <div class="value">Memory</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Memory ID:</label>
-        <div class="value">${id}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Content:</label>
-        <div class="value">${content}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Hop Distance:</label>
-        <div class="value">${hopDistance}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Similarity:</label>
-        <div class="value">${similarity}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Importance:</label>
-        <div class="value">${importance}</div>
-      </div>
-      <div class="memory-detail-item">
-        <label>Created:</label>
-        <div class="value">${created}</div>
-      </div>
-    `;
-  }
-}
-
-/**
- * 앵커 목록 업데이트
- */
-function updateAnchorList() {
-  const anchorListContainer = document.getElementById('anchor-list');
-  mapData = normalizeMapData(mapData);
-  
-  if (!mapData || !mapData.anchors || mapData.anchors.length === 0) {
-    anchorListContainer.innerHTML = '<p class="no-data">No anchors set</p>';
-    return;
-  }
-
-  anchorListContainer.innerHTML = mapData.anchors
-    .map(anchor => {
-      if (!anchor.memory_id) return '';
-      const memory = mapData.nodes.find(n => n.id === anchor.memory_id);
-      const slot = escapeHtml(anchor.slot);
-      const slotClass = /^[ABC]$/i.test(anchor.slot) ? slot.toLowerCase() : 'a';
-      const memoryId = escapeHtml(anchor.memory_id);
-      const contentPreview = memory ? escapeHtml(memory.content.substring(0, 50)) + '...' : '';
-      return `
-        <div class="anchor-item slot-${slotClass} js-select-anchor" data-memory-id="${memoryId}">
-          <div class="slot-label">Slot ${slot}</div>
-          <div class="memory-id">${memoryId}</div>
-          ${memory ? `<div class="anchor-item-preview">${contentPreview}</div>` : ''}
-        </div>
-      `;
-    })
-    .join('');
-}
-
-/**
- * 앵커 노드 선택
- */
-function selectAnchorNode(memoryId) {
-  if (!Array.isArray(nodes)) {
-    return;
-  }
-  const node = nodes.find(n => n.id === memoryId);
-  if (node) {
-    selectNode(node);
-    focusOnNode(node, 2);
-  }
-}
-
-/**
- * 앵커 변경 (향후 구현)
- */
-function changeAnchor(slot) {
-  // TODO: 앵커 변경 UI 구현
-  alert(`앵커 변경 기능은 향후 구현 예정입니다. Slot: ${slot}`);
-}
-
-/**
- * 검색 수행
- */
-async function performSearch() {
-  const query = document.getElementById('search-query-input').value.trim();
-  const slotSelect = document.getElementById('search-slot-select');
-  const slot = slotSelect ? slotSelect.value : 'A'; // 기본값: A
-  const agentId = getSelectedAgentId();
-  
-  if (!query) {
-    alert('검색어를 입력해주세요.');
-    return;
-  }
-  
-  // slot이 필수이므로 반드시 설정
-  if (!slot || !['A', 'B', 'C'].includes(slot)) {
-    alert('슬롯을 선택해주세요. (A, B, C 중 하나)');
-    return;
-  }
-  
-  try {
-    updateSearchStatus('검색 중...', false);
-
-    const fetchFn = typeof mementoAdminFetch === 'function' ? mementoAdminFetch : fetch;
-    const response = await fetchFn(`/api/anchors/search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        query: query,
-        slot: slot, // 필수 파라미터
-        agent_id: agentId,
-        limit: 100
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    searchResults = normalizeSearchResults(await response.json());
-    
-    highlightSearchResults();
-    
-    const resultCount = searchResults.items ? searchResults.items.length : 0;
-    debugAnchorMap('search-complete', { resultCount });
-    
-  } catch (error) {
-    updateSearchStatus(`검색 실패: ${error.message}`, false);
-    debugAnchorMap('search-error', { message: error.message });
-    alert(`검색 중 오류가 발생했습니다: ${error.message}`);
-  }
-}
-
-/**
- * 검색 결과 하이라이트
- */
-function highlightSearchResults() {
-  if (!searchResults || !searchResults.items) {
-    updateSearchStatus('검색 결과가 없습니다.', false);
-    renderSearchResultsList();
-    return;
-  }
-  
-  highlightedNodeIds.clear();
-  searchResults.items.forEach(item => {
-    const id = getSearchItemId(item);
-    if (id) highlightedNodeIds.add(id);
-  });
-  
-  updateNodeHighlight();
-
-  const mapMatchCount = countSearchMapMatches(searchResults.items, nodes);
-  updateSearchStatus(buildSearchStatusMessage(searchResults, mapMatchCount), true);
-  renderSearchResultsList();
-  
-  if (searchResults.items.length > 0 && Array.isArray(nodes)) {
-    const firstOnMap = searchResults.items
-      .map(item => nodes.find(n => n.id === getSearchItemId(item)))
-      .find(Boolean);
-    if (firstOnMap) {
-      selectNode(firstOnMap);
-      focusOnNode(firstOnMap, 1.5);
-    }
-  }
-}
-
-/**
- * 노드 하이라이트 업데이트
- */
-function updateNodeHighlight() {
-  if (!svg) {
-    return;
-  }
-
-  const nodeElements = svg.selectAll('.node');
-  const mapMatchCount = Array.isArray(nodes)
-    ? nodes.filter(n => highlightedNodeIds.has(n.id)).length
-    : 0;
-  const shouldDimOthers = highlightedNodeIds.size > 0 && mapMatchCount > 0;
-  
-  nodeElements
-    .classed('highlighted', d => highlightedNodeIds.has(d.id))
-    .attr('stroke-width', d => {
-      if (highlightedNodeIds.has(d.id)) {
-        return d.type === 'anchor' ? 5 : 4;
-      }
-      return d.type === 'anchor' ? 3 : 2;
-    })
-    .attr('opacity', d => {
-      if (shouldDimOthers && !highlightedNodeIds.has(d.id)) {
-        return 0.3;
-      }
-      return d.embedding_missing ? 0.6 : 1.0;
-    });
-  
-  const linkElements = svg.selectAll('.link');
-  linkElements
-    .attr('opacity', d => {
-      if (shouldDimOthers) {
-        const sourceHighlighted = highlightedNodeIds.has(getLinkNodeId(d.source));
-        const targetHighlighted = highlightedNodeIds.has(getLinkNodeId(d.target));
-        if (sourceHighlighted || targetHighlighted) {
-          return 1.0;
-        }
-        return 0.2;
-      }
-      return 0.6;
-    })
-    .attr('stroke-width', d => {
-      if (highlightedNodeIds.size > 0) {
-        const sourceHighlighted = highlightedNodeIds.has(getLinkNodeId(d.source));
-        const targetHighlighted = highlightedNodeIds.has(getLinkNodeId(d.target));
-        if (sourceHighlighted && targetHighlighted) {
-          return 3;
-        } else if (sourceHighlighted || targetHighlighted) {
-          return 2;
-        }
-      }
-      return d.type === 'hop' ? 2 : 1.5;
-    });
-  
-  // 라벨도 하이라이트
-  const labelElements = svg.selectAll('.node-label');
-  labelElements
-    .style('font-weight', d => highlightedNodeIds.has(d.id) ? 'bold' : 'normal')
-    .style('font-size', d => highlightedNodeIds.has(d.id) ? '14px' : '12px');
-}
-
-/**
- * 검색 하이라이트 제거
- */
-function clearSearch() {
-  searchResults = null;
-  highlightedNodeIds.clear();
-  document.getElementById('search-query-input').value = '';
-  document.getElementById('search-slot-select').value = 'A';
-  
-  updateSearchStatus('검색 후 결과가 여기에 표시됩니다.', false);
-  renderSearchResultsList();
-  updateNodeHighlight();
-  
-  debugAnchorMap('search-cleared');
-}
-
-/**
- * 자동 새로고침 시작
- */
-function startAutoRefresh() {
-  stopAutoRefresh(); // 기존 인터벌 정리
-  
-  const interval = parseInt(document.getElementById('refresh-interval-select').value, 10);
-  autoRefreshInterval = setInterval(() => {
-    loadMapData();
-  }, interval);
-  
-  debugAnchorMap('auto-refresh-started', { intervalMs: interval });
-}
-
-/**
- * 자동 새로고침 중지
- */
-function stopAutoRefresh() {
-  if (autoRefreshInterval) {
-    clearInterval(autoRefreshInterval);
-    autoRefreshInterval = null;
-    debugAnchorMap('auto-refresh-stopped');
-  }
-}
-
-/**
- * WebSocket 연결 시도
- */
-function tryConnectWebSocket() {
-  // WebSocket이 지원되는 경우에만 시도
-  if (typeof WebSocket === 'undefined') {
-    debugAnchorMap('websocket-unsupported');
-    return;
-  }
-  
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}`;
-  
-  try {
-    websocket = new WebSocket(wsUrl);
-    
-    websocket.onopen = () => {
-      debugAnchorMap('websocket-open');
-      resubscribeWebSocket();
-    };
-    
-    websocket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        
-        if (message.type === 'anchor_map_update') {
-          // Anchor Map 업데이트 수신
-          debugAnchorMap('websocket-update', { hasData: Boolean(message.data) });
-          if (message.data) {
-            mapData = message.data;
-            renderMap();
-            updateAnchorList();
-          }
-        } else if (message.type === 'ping') {
-          // Keep-alive ping 응답
-          websocket.send(JSON.stringify({ type: 'pong' }));
-        }
-      } catch (error) {
-        debugAnchorMap('websocket-parse-error', { message: error.message });
-      }
-    };
-    
-    websocket.onerror = (error) => {
-      debugAnchorMap('websocket-error', { type: error?.type ?? 'unknown' });
-      // WebSocket 실패 시 polling으로 fallback
-      if (!autoRefreshInterval && document.getElementById('auto-refresh-toggle').checked) {
-        startAutoRefresh();
-      }
-    };
-    
-    websocket.onclose = () => {
-      debugAnchorMap('websocket-closed');
-      websocket = null;
-      
-      // 자동 재연결 시도 (5초 후)
+    document.getElementById('refresh-interval-select').addEventListener('change', function () {
       if (document.getElementById('auto-refresh-toggle').checked) {
-        setTimeout(() => {
-          if (!websocket) {
-            tryConnectWebSocket();
-          }
-        }, 5000);
+        ns.stopAutoRefresh();
+        ns.startAutoRefresh();
       }
-    };
-  } catch (error) {
-    debugAnchorMap('websocket-connect-failed', { message: error.message });
-    // WebSocket 실패 시 polling으로 fallback
-    if (!autoRefreshInterval && document.getElementById('auto-refresh-toggle').checked) {
-      startAutoRefresh();
-    }
+    });
+
+    document.getElementById('agent-id-select').addEventListener('change', function () {
+      ns.loadMapData();
+      ns.resubscribeWebSocket();
+    });
+
+    document.getElementById('search-query-input').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') ns.performSearch();
+    });
+
+    ns.tryConnectWebSocket();
   }
-}
 
-/**
- * WebSocket 재구독
- */
-function resubscribeWebSocket() {
-  if (websocket && websocket.readyState === WebSocket.OPEN) {
-    websocket.send(JSON.stringify({
-      method: 'subscribe',
-      params: {
-        type: 'anchor_map_updates',
-        agent_id: getSelectedAgentId()
-      }
-    }));
-  }
-}
+  document.addEventListener('DOMContentLoaded', async function () {
+    initializeMap();
+    setupEventListeners();
+    await ns.loadAgentIdOptions();
+    ns.loadMapData();
+  });
 
-/**
- * WebSocket 연결 종료
- */
-function disconnectWebSocket() {
-  if (websocket) {
-    websocket.close();
-    websocket = null;
-  }
-}
+  window.addEventListener('beforeunload', function () {
+    ns.stopAutoRefresh();
+    ns.disconnectWebSocket();
+  });
 
-// 페이지 언로드 시 정리
-window.addEventListener('beforeunload', () => {
-  stopAutoRefresh();
-  disconnectWebSocket();
-});
+  // Public API
+  window.selectAnchorNode = ns.selectAnchorNode;
+  window.changeAnchor = ns.changeAnchor;
 
-// 전역 함수로 노출 (HTML에서 호출 가능)
-window.selectAnchorNode = selectAnchorNode;
-window.changeAnchor = changeAnchor;
-
+})(typeof window !== 'undefined' ? window : globalThis);
