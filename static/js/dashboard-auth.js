@@ -108,39 +108,42 @@
     messageEl.dataset.tone = tone || 'neutral';
   }
 
-  function setAuthState(nextState, message) {
-    authState = nextState;
-    if (rootEl) {
-      rootEl.dataset.authState = nextState;
-    }
+  function updateFormVisibility(nextState) {
+    if (formEl) formEl.hidden = nextState === 'signed-in';
+    if (sessionBoxEl) sessionBoxEl.hidden = nextState !== 'signed-in';
+  }
 
-    if (formEl) {
-      formEl.hidden = nextState === 'signed-in';
-    }
-    if (sessionBoxEl) {
-      sessionBoxEl.hidden = nextState !== 'signed-in';
-    }
-    if (keyInputEl) {
-      keyInputEl.disabled = nextState === 'checking' || nextState === 'signing-in';
-    }
+  function updateInputElements(nextState) {
+    const busy = nextState === 'checking' || nextState === 'signing-in';
+    if (keyInputEl) keyInputEl.disabled = busy;
     if (signInButtonEl) {
-      signInButtonEl.disabled = nextState === 'checking' || nextState === 'signing-in';
+      signInButtonEl.disabled = busy;
       signInButtonEl.textContent = nextState === 'signing-in' ? 'Signing in…' : 'Sign in';
     }
     if (signOutButtonEl) {
       signOutButtonEl.disabled = nextState === 'signing-out';
       signOutButtonEl.textContent = nextState === 'signing-out' ? 'Signing out…' : 'Sign out';
     }
+  }
 
-    if (statusEl) {
-      if (nextState === 'signed-in') {
-        statusEl.textContent = 'Session active';
-      } else if (nextState === 'checking') {
-        statusEl.textContent = 'Checking session…';
-      } else {
-        statusEl.textContent = 'Session required';
-      }
+  function updateStatusLabel(nextState) {
+    if (!statusEl) return;
+    if (nextState === 'signed-in') {
+      statusEl.textContent = 'Session active';
+    } else if (nextState === 'checking') {
+      statusEl.textContent = 'Checking session…';
+    } else {
+      statusEl.textContent = 'Session required';
     }
+  }
+
+  function setAuthState(nextState, message) {
+    authState = nextState;
+    if (rootEl) rootEl.dataset.authState = nextState;
+
+    updateFormVisibility(nextState);
+    updateInputElements(nextState);
+    updateStatusLabel(nextState);
 
     setMessage(message, nextState === 'signed-out' ? 'error' : 'neutral');
     maybeActivateTabForAuth(nextState);

@@ -8,22 +8,31 @@ function readStaticFile(relativePath: string): string {
 
 describe('static design contracts', () => {
   it('anchor-map.js avoids console calls, hex colors, and inline html styles', () => {
-    const source = readStaticFile('static/js/anchor-map.js');
+    const anchorMapFiles = [
+      'static/js/anchor-map-shared.js',
+      'static/js/anchor-map-render.js',
+      'static/js/anchor-map-search.js',
+      'static/js/anchor-map-data.js',
+      'static/js/anchor-map-ws.js',
+      'static/js/anchor-map.js',
+    ].map(readStaticFile).join('\n');
 
-    expect(source).not.toContain('console.');
-    expect(source).not.toMatch(/#[0-9A-Fa-f]{3,8}(?![0-9A-Za-z_-])/);
-    expect(source).not.toMatch(/style\s*=/);
+    expect(anchorMapFiles).not.toContain('console.');
+    expect(anchorMapFiles).not.toMatch(/#[0-9A-Fa-f]{3,8}(?![0-9A-Za-z_-])/);
+    expect(anchorMapFiles).not.toMatch(/style\s*=/);
   });
 
   it('anchor-map.js uses session-protected /api/anchors/search instead of /tools/search_local', () => {
-    const source = readStaticFile('static/js/anchor-map.js');
+    // /api/anchors/search lives in the search module after the god-function split (#596)
+    const source = readStaticFile('static/js/anchor-map-search.js');
 
     expect(source).toContain('/api/anchors/search');
     expect(source).not.toContain('/tools/search_local');
   });
 
   it('anchor-map.js emits observable debug events for document-level listeners', () => {
-    const source = readStaticFile('static/js/anchor-map.js');
+    // debugAnchorMap lives in the shared module after the god-function split (#596)
+    const source = readStaticFile('static/js/anchor-map-shared.js');
 
     expect(source).toMatch(/document\.dispatchEvent\(new CustomEvent\('memento:debug', \{/);
     expect(source).toMatch(/bubbles:\s*true/);
@@ -31,7 +40,8 @@ describe('static design contracts', () => {
   });
 
   it('token readers fail in a bounded way when a required token is missing', () => {
-    const anchorMapSource = readStaticFile('static/js/anchor-map.js');
+    // readAnchorMapToken lives in the shared module after the god-function split (#596)
+    const anchorMapSource = readStaticFile('static/js/anchor-map-shared.js');
     const graphSource = readStaticFile('static/js/graph.js');
 
     expect(anchorMapSource).toMatch(/function readAnchorMapToken\(name, fallback = ''\)/);
