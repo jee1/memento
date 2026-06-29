@@ -27,11 +27,11 @@
     C: { fill: '--color-anchor-c', stroke: '--color-anchor-c-stroke' },
   };
 
-  ns.readAnchorMapToken = function readAnchorMapToken(name, fallback) {
+  ns.readAnchorMapToken = function readAnchorMapToken(name, fallback = '') {
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     if (value) return value;
     if (fallback) return fallback;
-    throw new Error('Missing CSS token: ' + name);
+    throw new Error(`Missing CSS token: ${name}`);
   };
 
   ns.getAnchorMapPalette = function getAnchorMapPalette() {
