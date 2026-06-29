@@ -39,6 +39,18 @@ describe('QualityMetricsCollector', () => {
     });
   });
 
+  describe('module boundaries', () => {
+    it('keeps the public collector orchestrator under the issue 597 size budget', () => {
+      const collectorPath = join(
+        process.cwd(),
+        'packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.ts'
+      );
+      const lineCount = readFileSync(collectorPath, 'utf-8').split('\n').length;
+
+      expect(lineCount).toBeLessThanOrEqual(500);
+    });
+  });
+
   describe('collectSearchMetrics', () => {
     it('should return search metrics structure', async () => {
       // Given: 기본 컨텍스트
