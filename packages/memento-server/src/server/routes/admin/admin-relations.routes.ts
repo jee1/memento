@@ -14,6 +14,46 @@ import {
   logger
 } from '@memento/core';
 
+type RelationType =
+  | 'CAUSES'
+  | 'DEPENDS_ON'
+  | 'FOLLOWS'
+  | 'CONTRASTS_WITH'
+  | 'REFERENCES'
+  | 'BELONGS_TO'
+  | 'VERSION_OF';
+
+type RelationCategory = 'Causal' | 'Temporal' | 'Structural' | 'Semantic';
+type RelationDirection = 'outgoing' | 'incoming' | 'both';
+
+const ALL_RELATION_TYPES: readonly RelationType[] = [
+  'CAUSES',
+  'DEPENDS_ON',
+  'FOLLOWS',
+  'CONTRASTS_WITH',
+  'REFERENCES',
+  'BELONGS_TO',
+  'VERSION_OF'
+];
+
+const RELATION_CATEGORIES: readonly RelationCategory[] = ['Causal', 'Temporal', 'Structural', 'Semantic'];
+
+function getQueryString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function isRelationType(value: string): value is RelationType {
+  return (ALL_RELATION_TYPES as readonly string[]).includes(value);
+}
+
+function isRelationCategory(value: string): value is RelationCategory {
+  return (RELATION_CATEGORIES as readonly string[]).includes(value);
+}
+
+function isRelationDirection(value: string): value is RelationDirection {
+  return value === 'outgoing' || value === 'incoming' || value === 'both';
+}
+
 export function registerAdminRelationRoutes(router: Router, db: Database.Database | null): void {
   router.post('/relations/extract', async (req, res) => {
     try {
@@ -69,6 +109,9 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
 
       const { memory_id } = req.params;
       const { relation_type, category, direction } = req.query;
+      const relationType = getQueryString(relation_type);
+      const relationCategory = getQueryString(category);
+      const relationDirection = getQueryString(direction);
 
       const relationGraph = createRelationGraph(db);
       const context = {
@@ -77,11 +120,13 @@ export function registerAdminRelationRoutes(router: Router, db: Database.Databas
       };
 
       const getTool = new GetRelationsTool();
+      const safeDirection: RelationDirection =
+        relationDirection && isRelationDirection(relationDirection) ? relationDirection : 'both';
       const result = await getTool.handle({
         memory_id,
-        relation_type: relation_type as any,
-        category: category as any,
-        direction: (direction as any) || 'both'
+        ...(relationType && isRelationType(relationType) ? { relation_type: relationType } : {}),
+        ...(relationCategory && isRelationCategory(relationCategory) ? { category: relationCategory } : {}),
+        direction: safeDirection
       }, context);
 
       const resultText = result.content[0]?.text || '{}';

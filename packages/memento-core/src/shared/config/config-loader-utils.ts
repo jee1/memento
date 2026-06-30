@@ -203,15 +203,16 @@ export function mergeWithDefaults<T extends Record<string, unknown>>(
   defaults: T
 ): T {
   const merged = { ...defaults };
+  const mutableMerged = merged as Record<keyof T, unknown>;
 
   for (const [key, value] of Object.entries(config)) {
     if (value !== undefined && value !== null) {
       const typedKey = key as keyof T;
       if (typeof value === 'object' && !Array.isArray(value) && typeof defaults[typedKey] === 'object' && !Array.isArray(defaults[typedKey])) {
         // 중첩 객체 재귀적 병합
-        (merged as any)[typedKey] = mergeWithDefaults(value as Record<string, unknown>, defaults[typedKey] as Record<string, unknown>);
+        mutableMerged[typedKey] = mergeWithDefaults(value as Record<string, unknown>, defaults[typedKey] as Record<string, unknown>);
       } else {
-        (merged as any)[typedKey] = value;
+        mutableMerged[typedKey] = value;
       }
     }
   }
@@ -261,4 +262,3 @@ export function clearConfigCacheByPrefix(prefix: string): void {
     }
   }
 }
-

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { normalizeChatMessagesToText } from '../services/triple-extraction/triple-input-normalizer.js';
+import { normalizeChatMessagesToText, type ChatMessageInput } from '../services/triple-extraction/triple-input-normalizer.js';
 import { TripleExtractionService } from '../services/triple-extraction/triple-extraction-service.js';
 import { TriplePipelineOrchestrator } from '../services/triple-extraction/triple-pipeline-orchestrator.js';
 import { KgTripleRepository } from '../../memory/repositories/kg-triple-repository.js';
@@ -100,7 +100,7 @@ export class ExtractTriplesTool extends BaseTool {
     if (d.content !== undefined && d.content.trim().length > 0) {
       text = d.content.trim();
     } else {
-      text = normalizeChatMessagesToText(d.messages as any);
+      text = normalizeChatMessagesToText(toChatMessageInputs(d.messages));
     }
 
     const chunkSize = d.chunk_size ?? 8000;
@@ -171,4 +171,12 @@ export class ExtractTriplesTool extends BaseTool {
       return this.createErrorResult('EXTRACTION_FAILED', message);
     }
   }
+}
+
+function toChatMessageInputs(messages: Array<{ role?: string; content?: string }> | undefined): ChatMessageInput[] {
+  return (messages ?? []).flatMap((message) => (
+    typeof message.role === 'string' && typeof message.content === 'string'
+      ? [{ role: message.role, content: message.content }]
+      : []
+  ));
 }

@@ -10,12 +10,14 @@
  * 타입별 검색/필터링을 위해 중요한 키는 토큰으로 포함
  */
 const KEY_TOKEN_FIELDS = ['failure_type', 'phase'] as const;
+type KeyTokenField = typeof KEY_TOKEN_FIELDS[number];
 
 /**
  * 제외할 필드 목록
  * 검색에 불필요한 필드는 토큰화하지 않음
  */
 const EXCLUDED_FIELDS = ['timestamp'] as const;
+type ExcludedField = typeof EXCLUDED_FIELDS[number];
 
 /**
  * 키 토큰 접두사 매핑
@@ -59,7 +61,7 @@ function normalizeReflectionNoteObject(note: unknown): string {
   // 값 필드 토큰화 (모든 값 필드 추출)
   for (const [key, value] of Object.entries(noteObj)) {
     // 키 토큰 필드와 제외 필드는 이미 처리했거나 제외
-    if (KEY_TOKEN_FIELDS.includes(key as any) || EXCLUDED_FIELDS.includes(key as any)) {
+    if (isKeyTokenField(key) || isExcludedField(key)) {
       continue;
     }
 
@@ -75,6 +77,14 @@ function normalizeReflectionNoteObject(note: unknown): string {
   }
 
   return tokens.join(' ');
+}
+
+function isKeyTokenField(key: string): key is KeyTokenField {
+  return (KEY_TOKEN_FIELDS as readonly string[]).includes(key);
+}
+
+function isExcludedField(key: string): key is ExcludedField {
+  return (EXCLUDED_FIELDS as readonly string[]).includes(key);
 }
 
 /**
@@ -183,4 +193,3 @@ export function getSearchQueryExamples(): {
     }
   ];
 }
-

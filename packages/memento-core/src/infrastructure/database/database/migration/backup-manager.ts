@@ -11,6 +11,14 @@ import { mementoConfig } from '../../../../shared/config/index.js';
 import { PIIMasker } from '../../../../shared/utils/pii-masker.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
+type BackupCapableDatabase = Database.Database & {
+  name?: string;
+};
+
+function isInMemoryDatabase(db: BackupCapableDatabase): boolean {
+  return db.name === ':memory:';
+}
+
 /**
  * 백업 생성 결과
  */
@@ -73,7 +81,12 @@ export class BackupManager {
 
     try {
       // 데이터베이스 파일 경로 가져오기
-      const dbPath = (db as any).name || mementoConfig.dbPath;
+      const backupDb = db as BackupCapableDatabase;
+      if (isInMemoryDatabase(backupDb)) {
+        throw new Error('메모리 데이터베이스는 파일 백업을 지원하지 않습니다');
+      }
+
+      const dbPath = backupDb.name || mementoConfig.dbPath;
       
       // 파일 시스템을 통한 백업 (더 안정적)
       if (fs.existsSync(dbPath)) {
@@ -81,23 +94,7 @@ export class BackupManager {
       } else {
         // 메모리 데이터베이스인 경우 backup API 사용 시도
         try {
-          const backup = (db as any).backup(backupPath);
-          if (backup && typeof backup.step === 'function') {
-            await new Promise<void>((resolve, reject) => {
-              backup.step(-1, (err: Error | null) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve();
-                }
-              });
-            });
-            if (typeof backup.finish === 'function') {
-              backup.finish();
-            }
-          } else {
-            throw new Error('백업 API를 사용할 수 없습니다');
-          }
+          await backupDb.backup(backupPath);
         } catch (backupError) {
           throw new Error(`백업 생성 실패: ${backupError}`);
         }
@@ -245,4 +242,3 @@ export class BackupManager {
     return this.backupsDir;
   }
 }
-

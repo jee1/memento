@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-06-30)
 
 ## Corpus Check
-- 1232 files · ~1,541,027 words
+- 1232 files · ~1,521,618 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5983 nodes · 7224 edges · 1224 communities detected
+- 6008 nodes · 7268 edges · 1224 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1422,380 +1422,380 @@ Cohesion: 0.17
 Nodes (11): addsDiversity(), AgentContextRecallService, clamp01(), contentSimilarity(), deduplicateCandidates(), diversityOrder(), diversityOrderWithinScope(), nonNegativeInteger() (+3 more)
 
 ### Community 40 - "Community 40"
+Cohesion: 0.16
+Nodes (3): getEmbeddingIterable(), hasEmbeddingData(), MiniLMEmbeddingService
+
+### Community 41 - "Community 41"
 Cohesion: 0.13
 Nodes (2): MockDatabase, MockPreparedStatement
 
-### Community 41 - "Community 41"
+### Community 42 - "Community 42"
 Cohesion: 0.17
 Nodes (1): ReflexionWorker
 
-### Community 42 - "Community 42"
+### Community 43 - "Community 43"
 Cohesion: 0.14
 Nodes (1): KnowledgeVaultRepositorySqlite
 
-### Community 43 - "Community 43"
+### Community 44 - "Community 44"
 Cohesion: 0.18
 Nodes (1): SearchEngine
 
-### Community 44 - "Community 44"
+### Community 45 - "Community 45"
 Cohesion: 0.16
 Nodes (3): createHybridSearchEngine(), getHybridSearchEngine(), HybridSearchEngine
 
-### Community 45 - "Community 45"
+### Community 46 - "Community 46"
 Cohesion: 0.2
 Nodes (1): VectorSearchRepositoryImpl
 
-### Community 46 - "Community 46"
+### Community 47 - "Community 47"
 Cohesion: 0.2
 Nodes (1): EmbeddingProviderFactory
 
-### Community 47 - "Community 47"
+### Community 48 - "Community 48"
 Cohesion: 0.22
 Nodes (14): adaptLegacyLongMemEvalS(), adaptLongMemEvalS(), adaptOfficialLongMemEvalS(), assertDatasetSafe(), assertLongMemEvalSRecord(), assertNoSecretMarkers(), assertOfficialLongMemEvalSRecord(), defaultGateThresholds() (+6 more)
 
-### Community 48 - "Community 48"
+### Community 49 - "Community 49"
+Cohesion: 0.21
+Nodes (13): cleanup(), createAllRouters(), createContextInjectionService(), getHttpAuthMissingAdminKeyWarning(), getHttpAuthTrustModelNotice(), initializeCoreServices(), initializeServer(), logEmbeddingProviderInfo() (+5 more)
+
+### Community 50 - "Community 50"
 Cohesion: 0.24
 Nodes (7): getCurrentLogLevel(), getTimestamp(), MCPLogger, MCPLoggerStub, safeStderrWrite(), shouldLog(), shouldSendMCPProtocolLog()
 
-### Community 49 - "Community 49"
+### Community 51 - "Community 51"
 Cohesion: 0.23
 Nodes (16): registerAllRecurringJobs(), scheduleAnchorAutoRefresh(), scheduleAugmentationAndTelemetryJobs(), scheduleCleanupJob(), scheduleConsolidationRelationAndLogJobs(), scheduleConsolidationScoreFullSweep(), scheduleCoreMaintenanceJobs(), scheduleHealthcheckJob() (+8 more)
 
-### Community 50 - "Community 50"
+### Community 52 - "Community 52"
 Cohesion: 0.19
 Nodes (1): AnchorSearchService
 
-### Community 51 - "Community 51"
+### Community 53 - "Community 53"
 Cohesion: 0.2
 Nodes (1): HybridResultRanker
 
-### Community 52 - "Community 52"
+### Community 54 - "Community 54"
 Cohesion: 0.21
 Nodes (2): HybridVectorSearchExecutor, resolveHybridVectorPrefetchLimit()
 
-### Community 53 - "Community 53"
+### Community 55 - "Community 55"
 Cohesion: 0.15
 Nodes (3): AdaptiveReviewScheduler, DefaultReviewScheduler, PriorityBasedReviewScheduler
 
-### Community 54 - "Community 54"
+### Community 56 - "Community 56"
 Cohesion: 0.19
 Nodes (1): ForgetTool
 
-### Community 55 - "Community 55"
+### Community 57 - "Community 57"
 Cohesion: 0.18
 Nodes (1): TripleExtractionService
 
-### Community 56 - "Community 56"
+### Community 58 - "Community 58"
 Cohesion: 0.2
 Nodes (1): TripleExtractor
 
-### Community 57 - "Community 57"
+### Community 59 - "Community 59"
 Cohesion: 0.15
 Nodes (2): AgentLifecycleService, boundedNumber()
 
-### Community 58 - "Community 58"
-Cohesion: 0.18
-Nodes (1): MiniLMEmbeddingService
-
-### Community 59 - "Community 59"
+### Community 60 - "Community 60"
 Cohesion: 0.2
 Nodes (1): LightweightEmbeddingService
 
-### Community 60 - "Community 60"
+### Community 61 - "Community 61"
 Cohesion: 0.21
 Nodes (1): OpenAIEmbeddingService
 
-### Community 61 - "Community 61"
+### Community 62 - "Community 62"
 Cohesion: 0.21
 Nodes (1): FailureDetector
 
-### Community 62 - "Community 62"
+### Community 63 - "Community 63"
 Cohesion: 0.2
 Nodes (1): ToolRegistry
 
-### Community 63 - "Community 63"
+### Community 64 - "Community 64"
 Cohesion: 0.21
 Nodes (14): addNodeTooltips(), buildAnchorDetailHtml(), buildLabelSelection(), buildLinkSelection(), buildMemoryDetailHtml(), buildNodeSelection(), displayMemoryDetails(), focusOnNode() (+6 more)
 
-### Community 64 - "Community 64"
+### Community 65 - "Community 65"
 Cohesion: 0.13
 Nodes (3): createDashboardHarness(), FakeDocument, FakeElement
 
-### Community 65 - "Community 65"
+### Community 66 - "Community 66"
 Cohesion: 0.12
 Nodes (1): ServerState
 
-### Community 66 - "Community 66"
+### Community 67 - "Community 67"
 Cohesion: 0.23
 Nodes (1): ReflexionReflectionRecorder
 
-### Community 67 - "Community 67"
+### Community 68 - "Community 68"
 Cohesion: 0.21
 Nodes (1): MigrationLogger
 
-### Community 68 - "Community 68"
+### Community 69 - "Community 69"
 Cohesion: 0.17
 Nodes (2): convertAlwaysLoad(), CoreMemoryRepositorySqliteImpl
 
-### Community 69 - "Community 69"
+### Community 70 - "Community 70"
 Cohesion: 0.17
 Nodes (1): VectorSearchEngine
 
-### Community 70 - "Community 70"
+### Community 71 - "Community 71"
 Cohesion: 0.23
 Nodes (1): ForgettingPolicyService
 
-### Community 71 - "Community 71"
+### Community 72 - "Community 72"
 Cohesion: 0.18
 Nodes (1): RelationGraphMutations
 
-### Community 72 - "Community 72"
+### Community 73 - "Community 73"
 Cohesion: 0.2
 Nodes (1): EmbeddingService
 
-### Community 73 - "Community 73"
+### Community 74 - "Community 74"
 Cohesion: 0.23
 Nodes (1): UnifiedEmbeddingService
 
-### Community 74 - "Community 74"
+### Community 75 - "Community 75"
 Cohesion: 0.24
 Nodes (15): countConsoleLogs(), findConsoleLogs(), findFiles(), isCliScript(), isCoreModule(), isTestFile(), main(), matchesPattern() (+7 more)
 
-### Community 75 - "Community 75"
+### Community 76 - "Community 76"
 Cohesion: 0.3
 Nodes (2): IntegrationTester, runIntegrationTests()
 
-### Community 76 - "Community 76"
+### Community 77 - "Community 77"
 Cohesion: 0.17
 Nodes (3): LegacyClient, migrationExample(), ModernClient
 
-### Community 77 - "Community 77"
+### Community 78 - "Community 78"
 Cohesion: 0.24
 Nodes (6): AgentTranscriptImporter, AgentTranscriptImportError, identityOf(), identityOfSession(), safeError(), sameIdentity()
 
-### Community 78 - "Community 78"
+### Community 79 - "Community 79"
 Cohesion: 0.23
 Nodes (1): MetaMemoryStatsSchemaMigration
 
-### Community 79 - "Community 79"
+### Community 80 - "Community 80"
 Cohesion: 0.25
 Nodes (1): FTS5ReflectionNotesMigration
 
-### Community 80 - "Community 80"
+### Community 81 - "Community 81"
 Cohesion: 0.13
 Nodes (7): AnchorError, AnchorNotFoundError, DatabaseValidationError, EmbeddingNotFoundError, MemoryNotFoundError, ServiceNotInitializedError, VectorDimensionMismatchError
 
-### Community 81 - "Community 81"
+### Community 82 - "Community 82"
 Cohesion: 0.16
 Nodes (1): VectorSearchFacade
 
-### Community 82 - "Community 82"
+### Community 83 - "Community 83"
 Cohesion: 0.13
 Nodes (1): SpacedRepetitionAlgorithmRefactored
 
-### Community 83 - "Community 83"
+### Community 84 - "Community 84"
 Cohesion: 0.15
 Nodes (1): TelemetryService
 
-### Community 84 - "Community 84"
+### Community 85 - "Community 85"
 Cohesion: 0.22
 Nodes (1): MetaMemoryService
 
-### Community 85 - "Community 85"
+### Community 86 - "Community 86"
 Cohesion: 0.22
 Nodes (6): AgentMemoryPromotionService, aggregatePromotions(), extractFromPayload(), fingerprintPromotion(), normalizeContent(), readString()
 
-### Community 86 - "Community 86"
+### Community 87 - "Community 87"
 Cohesion: 0.19
 Nodes (1): ErrorLoggingService
 
-### Community 87 - "Community 87"
+### Community 88 - "Community 88"
 Cohesion: 0.14
 Nodes (2): handleFailure(), logError()
 
-### Community 88 - "Community 88"
+### Community 89 - "Community 89"
 Cohesion: 0.2
 Nodes (7): generateSampleEmbeddings(), generateSampleMemoryItems(), generateScenarioBasedTestData(), generateSeededEmbeddings(), initializeTestDatabase(), SeededRandom, seedTestDatabase()
 
-### Community 89 - "Community 89"
+### Community 90 - "Community 90"
 Cohesion: 0.48
 Nodes (14): checkDependencies(), checkNodeVersion(), createDataDirectory(), createEnvFile(), createStartScripts(), initializeDatabase(), log(), logError() (+6 more)
 
-### Community 90 - "Community 90"
+### Community 91 - "Community 91"
 Cohesion: 0.26
 Nodes (13): buildInjectionExtraData(), buildRouterCtx(), buildSummarizer(), clampTokenBudget(), createDefaultPersonalAgentLlm(), createPersonalKnowledgeAgent(), makeBuildInjection(), makePromotionTelemetryCallback() (+5 more)
 
-### Community 91 - "Community 91"
+### Community 92 - "Community 92"
 Cohesion: 0.27
 Nodes (12): agentAskHelpText(), debugErr(), jsonFailure(), parseAgentAskInvocation(), resolveDbPath(), runAgentAskMain(), stripGlobalCliArgs(), teardownAgentAsk() (+4 more)
 
-### Community 92 - "Community 92"
+### Community 93 - "Community 93"
 Cohesion: 0.32
 Nodes (13): addMissingColumn(), bootstrapNewDatabaseSchema(), closeDatabase(), configureSqliteSession(), ensureLegacyEmbeddingModelRegistryProjectionType(), ensureLegacyMemoryEmbeddingColumns(), _ensureLegacySchema(), initializeDatabase() (+5 more)
 
-### Community 93 - "Community 93"
+### Community 94 - "Community 94"
 Cohesion: 0.23
 Nodes (1): ConsolidationScoreFieldsMigration
 
-### Community 94 - "Community 94"
+### Community 95 - "Community 95"
 Cohesion: 0.15
 Nodes (1): JobQueue
 
-### Community 95 - "Community 95"
+### Community 96 - "Community 96"
 Cohesion: 0.23
 Nodes (2): isSqliteBusy(), UnpinTool
 
-### Community 96 - "Community 96"
+### Community 97 - "Community 97"
 Cohesion: 0.2
 Nodes (1): MockCoreMemoryRepository
 
-### Community 97 - "Community 97"
+### Community 98 - "Community 98"
 Cohesion: 0.27
 Nodes (1): RelationQualityValidator
 
-### Community 98 - "Community 98"
+### Community 99 - "Community 99"
 Cohesion: 0.23
 Nodes (9): AgentContextInjectionService, boundedTimeout(), elapsedMs(), InjectionTimeoutError, nonNegativeInteger(), percentile(), summarizeAgentInjectionTelemetry(), toRecallRequest() (+1 more)
 
-### Community 99 - "Community 99"
+### Community 100 - "Community 100"
 Cohesion: 0.23
 Nodes (1): GeminiEmbeddingService
 
-### Community 100 - "Community 100"
+### Community 101 - "Community 101"
 Cohesion: 0.16
 Nodes (1): PerformanceAlertManager
 
-### Community 101 - "Community 101"
+### Community 102 - "Community 102"
 Cohesion: 0.16
 Nodes (1): QualityAssuranceService
 
-### Community 102 - "Community 102"
+### Community 103 - "Community 103"
 Cohesion: 0.33
 Nodes (1): PerformanceBenchmark
 
-### Community 103 - "Community 103"
+### Community 104 - "Community 104"
 Cohesion: 0.23
 Nodes (1): EmbeddingMigration
 
-### Community 104 - "Community 104"
+### Community 105 - "Community 105"
 Cohesion: 0.27
 Nodes (11): buildExactMatchQuery(), calculateSimilarity(), determineMergeStrategy(), extractProceduralMemory(), extractSkillName(), extractSteps(), extractWorkflowName(), generateTriggerConditions() (+3 more)
 
-### Community 105 - "Community 105"
+### Community 106 - "Community 106"
 Cohesion: 0.19
 Nodes (1): AnchorManager
 
-### Community 106 - "Community 106"
+### Community 107 - "Community 107"
 Cohesion: 0.28
 Nodes (1): ForgettingAlgorithm
 
-### Community 107 - "Community 107"
+### Community 108 - "Community 108"
 Cohesion: 0.18
 Nodes (3): AdaptiveIntervalStrategy, ConservativeIntervalStrategy, DefaultIntervalStrategy
 
-### Community 108 - "Community 108"
+### Community 109 - "Community 109"
+Cohesion: 0.26
+Nodes (2): getErrorCode(), PinTool
+
+### Community 110 - "Community 110"
 Cohesion: 0.19
 Nodes (5): buildPendingMemoryReviewCandidateSelector(), countPendingMemoryReviewCandidatesBySelector(), countPendingMemoryReviewCandidatesBySelectorUnsafe(), getMemoryReviewCandidateById(), mapRow()
 
-### Community 109 - "Community 109"
+### Community 111 - "Community 111"
 Cohesion: 0.36
 Nodes (11): executeTelemetry(), fmt(), fmtMs(), fmtPct(), formatMemoryQuality(), formatSearchQuality(), formatSystemMetrics(), main() (+3 more)
 
-### Community 110 - "Community 110"
+### Community 112 - "Community 112"
 Cohesion: 0.17
 Nodes (0):
 
-### Community 111 - "Community 111"
+### Community 113 - "Community 113"
 Cohesion: 0.32
 Nodes (1): ConsolidationScoreWorker
 
-### Community 112 - "Community 112"
+### Community 114 - "Community 114"
 Cohesion: 0.29
 Nodes (1): WalCheckpointScheduler
 
-### Community 113 - "Community 113"
+### Community 115 - "Community 115"
 Cohesion: 0.26
 Nodes (1): MigrationMonitorService
 
-### Community 114 - "Community 114"
+### Community 116 - "Community 116"
 Cohesion: 0.32
 Nodes (11): buildQuarantinePath(), extractPragmaMessages(), findRecentQuarantineSnapshot(), formatTimestamp(), isOkResult(), looksLikeCorruption(), maskError(), quarantineDatabaseFile() (+3 more)
 
-### Community 115 - "Community 115"
+### Community 117 - "Community 117"
 Cohesion: 0.27
 Nodes (1): RelationEngineSchemaMigration
 
-### Community 116 - "Community 116"
+### Community 118 - "Community 118"
 Cohesion: 0.2
 Nodes (2): SqliteCoreMemoryAdapter, SqliteCoreMemoryPreparedStatement
 
-### Community 117 - "Community 117"
+### Community 119 - "Community 119"
+Cohesion: 0.27
+Nodes (2): getErrorCode(), TripleExtractionBatchJob
+
+### Community 120 - "Community 120"
+Cohesion: 0.35
+Nodes (11): cacheMigrationStatus(), forceSetMigrationStatus(), getMigrationStatus(), initializeMigrationStatusTable(), isMigrationCompleted(), isMigrationFailed(), isValidStatusTransition(), loadMigrationStatusToConfig() (+3 more)
+
+### Community 121 - "Community 121"
 Cohesion: 0.26
 Nodes (1): SpacedRepetitionAlgorithm
 
-### Community 118 - "Community 118"
+### Community 122 - "Community 122"
 Cohesion: 0.2
 Nodes (3): AdaptiveRecallProbabilityCalculator, DefaultRecallProbabilityCalculator, EnhancedRecallProbabilityCalculator
 
-### Community 119 - "Community 119"
+### Community 123 - "Community 123"
 Cohesion: 0.29
 Nodes (1): ConvertEpisodicToSemanticTool
 
-### Community 120 - "Community 120"
-Cohesion: 0.27
-Nodes (1): PinTool
-
-### Community 121 - "Community 121"
+### Community 124 - "Community 124"
 Cohesion: 0.29
 Nodes (8): buildScoreBreakdown(), computeStaleDays(), isMemoryRowActive(), isNonEmptyDeletedAt(), isTruthyFlag(), parseSqliteInstant(), passesEligibility(), resolveStaleAnchor()
 
-### Community 122 - "Community 122"
+### Community 125 - "Community 125"
 Cohesion: 0.32
 Nodes (11): aggregateJudgeResults(), assertJudgeResults(), createManifest(), graphRrfStatus(), main(), parseCli(), readJsonLines(), runLongMemEvalValidation() (+3 more)
 
-### Community 123 - "Community 123"
+### Community 126 - "Community 126"
 Cohesion: 0.35
 Nodes (10): batchProcessingExample(), benchmarkExample(), cachingExample(), compressedSearchExample(), memoryOptimizationExample(), parallelSearchExample(), processPageData(), realTimeMonitoringExample() (+2 more)
 
-### Community 124 - "Community 124"
-Cohesion: 0.31
-Nodes (7): cleanup(), getHttpAuthMissingAdminKeyWarning(), getHttpAuthTrustModelNotice(), initializeServer(), registerCleanupHandlers(), startServer(), writeRuntimeDiagnosticsEvent()
-
-### Community 125 - "Community 125"
+### Community 127 - "Community 127"
 Cohesion: 0.22
 Nodes (5): buildEmbeddingMapResponse(), distSq(), EmbeddingMapBuildError, getCacheKey(), kMeans()
 
-### Community 126 - "Community 126"
+### Community 128 - "Community 128"
 Cohesion: 0.31
 Nodes (2): CaptureRuntime, TimeoutError
 
-### Community 127 - "Community 127"
+### Community 129 - "Community 129"
 Cohesion: 0.18
 Nodes (5): AuthenticationError, ConnectionError, MementoError, NotFoundError, ValidationError
 
-### Community 128 - "Community 128"
+### Community 130 - "Community 130"
 Cohesion: 0.31
 Nodes (1): AriGraphSchemaExpansionMigration
 
-### Community 129 - "Community 129"
+### Community 131 - "Community 131"
 Cohesion: 0.27
 Nodes (1): ProceduralMemoryEnhancementMigration
 
-### Community 130 - "Community 130"
+### Community 132 - "Community 132"
 Cohesion: 0.33
 Nodes (1): AddCoreMemoryVersionMigration
 
-### Community 131 - "Community 131"
+### Community 133 - "Community 133"
 Cohesion: 0.27
 Nodes (1): QualityAssuranceSchemaMigration
-
-### Community 132 - "Community 132"
-Cohesion: 0.29
-Nodes (1): TripleExtractionBatchJob
-
-### Community 133 - "Community 133"
-Cohesion: 0.35
-Nodes (9): getMigrationStatus(), initializeMigrationStatusTable(), isMigrationCompleted(), isMigrationFailed(), isValidStatusTransition(), loadMigrationStatusToConfig(), prepareMigrationRetry(), setMigrationStatus() (+1 more)
 
 ### Community 134 - "Community 134"
 Cohesion: 0.24
@@ -1938,804 +1938,804 @@ Cohesion: 0.22
 Nodes (1): MementoAssistant
 
 ### Community 169 - "Community 169"
+Cohesion: 0.31
+Nodes (2): HttpTransport, toClientSearchFilters()
+
+### Community 170 - "Community 170"
+Cohesion: 0.36
+Nodes (3): getToolResponseContent(), parseToolJson(), StdioTransport
+
+### Community 171 - "Community 171"
 Cohesion: 0.39
 Nodes (8): findSubcommandWithIndex(), main(), parseCli(), parseGlobalFlags(), stripGlobalArgvForAgentDetection(), subcommandArgvFrom(), writeStderr(), writeStdout()
 
-### Community 170 - "Community 170"
+### Community 172 - "Community 172"
 Cohesion: 0.28
 Nodes (4): registerHandlers(), runHeavyInit(), Semaphore, startServer()
 
-### Community 171 - "Community 171"
+### Community 173 - "Community 173"
 Cohesion: 0.44
 Nodes (8): applySizePolicy(), buildBatch(), cloneEvent(), reducibleText(), removeOptionalFields(), truncateToFit(), utf8Size(), validateBatch()
 
-### Community 172 - "Community 172"
+### Community 174 - "Community 174"
 Cohesion: 0.47
 Nodes (6): hasOnlyKeys(), isRecord(), validateAgentEvent(), validatePayload(), validIdentifier(), validJsonValue()
 
-### Community 173 - "Community 173"
+### Community 175 - "Community 175"
 Cohesion: 0.44
 Nodes (7): defaultGit(), detectClaudeCodeScope(), detectCodexScope(), explicit(), normalizeRemote(), processFromBranch(), value()
 
-### Community 174 - "Community 174"
+### Community 176 - "Community 176"
 Cohesion: 0.36
 Nodes (1): TripleExtractionLogger
 
-### Community 175 - "Community 175"
+### Community 177 - "Community 177"
 Cohesion: 0.31
 Nodes (1): MigrationRunner
 
-### Community 176 - "Community 176"
+### Community 178 - "Community 178"
 Cohesion: 0.25
 Nodes (1): BackupManager
 
-### Community 177 - "Community 177"
+### Community 179 - "Community 179"
 Cohesion: 0.33
 Nodes (1): AnchorTableMigration
 
-### Community 178 - "Community 178"
+### Community 180 - "Community 180"
 Cohesion: 0.36
 Nodes (1): FactMetadataFieldsMigration
 
-### Community 179 - "Community 179"
+### Community 181 - "Community 181"
 Cohesion: 0.39
 Nodes (1): MemoryItemIsConsolidatedMigration
 
-### Community 180 - "Community 180"
+### Community 182 - "Community 182"
 Cohesion: 0.39
 Nodes (1): TripleExtractionFieldsMigration
 
-### Community 181 - "Community 181"
+### Community 183 - "Community 183"
 Cohesion: 0.42
 Nodes (1): FeedbackEventAttributionMigration
 
-### Community 182 - "Community 182"
+### Community 184 - "Community 184"
 Cohesion: 0.33
 Nodes (1): ProceduralVersionIndexesMigration
 
-### Community 183 - "Community 183"
+### Community 185 - "Community 185"
 Cohesion: 0.36
 Nodes (1): MemoryItemAttributionMigration
 
-### Community 184 - "Community 184"
+### Community 186 - "Community 186"
 Cohesion: 0.36
 Nodes (1): KgTripleTableMigration
 
-### Community 185 - "Community 185"
+### Community 187 - "Community 187"
 Cohesion: 0.39
 Nodes (1): SoftDeleteFieldsMigration
 
-### Community 186 - "Community 186"
+### Community 188 - "Community 188"
 Cohesion: 0.36
 Nodes (1): MemoryItemOwnerIdMigration
 
-### Community 187 - "Community 187"
+### Community 189 - "Community 189"
 Cohesion: 0.25
 Nodes (1): RetryManager
 
-### Community 188 - "Community 188"
+### Community 190 - "Community 190"
 Cohesion: 0.36
 Nodes (1): FileLogger
 
-### Community 189 - "Community 189"
+### Community 191 - "Community 191"
 Cohesion: 0.28
 Nodes (3): convertMemoryRowToItem(), isMemoryType(), isPrivacyScope()
 
-### Community 190 - "Community 190"
+### Community 192 - "Community 192"
 Cohesion: 0.31
 Nodes (1): LoggingRateLimiter
 
-### Community 191 - "Community 191"
+### Community 193 - "Community 193"
 Cohesion: 0.36
 Nodes (7): canonicalizeHttpBindHostForListen(), formatHttpBindHostForUrl(), getMementoHttpSecurityStartupViolationMessage(), isHttpBindHostRemotelyReachable(), isIpv4Loopback127Block(), isIpv4MappedLoopback(), MementoHttpSecurityStartupError
 
-### Community 192 - "Community 192"
+### Community 194 - "Community 194"
 Cohesion: 0.22
 Nodes (2): DefaultSearchLogger, HybridSearchFactory
 
-### Community 193 - "Community 193"
+### Community 195 - "Community 195"
 Cohesion: 0.22
 Nodes (0):
 
-### Community 194 - "Community 194"
+### Community 196 - "Community 196"
 Cohesion: 0.36
 Nodes (6): checkDbConnection(), getRetryCount(), runEmbeddingAndNeighbors(), runRelationExtraction(), runTripleExtractionJob(), updateTripleStatus()
 
-### Community 195 - "Community 195"
+### Community 197 - "Community 197"
 Cohesion: 0.36
 Nodes (1): LlmProceduralExtractor
 
-### Community 196 - "Community 196"
+### Community 198 - "Community 198"
 Cohesion: 0.44
 Nodes (8): buildWindowCounts(), computeMemoryReviewQueueHealthLive(), countCandidates(), listMemoryReviewQueueHealthSnapshots(), maybeRecordMemoryReviewQueueHealthSnapshot(), memoryReviewQueueHealthSnapshotTableReady(), recordMemoryReviewQueueHealthSnapshot(), snapshotTableReady()
 
-### Community 197 - "Community 197"
+### Community 199 - "Community 199"
 Cohesion: 0.42
 Nodes (7): buildKnowledgeContextBundle(), estimateTokens(), filterByOwner(), formatMemoryPrompt(), summarizeMemories(), summarizeMemoryContent(), updateConsolidationScoreMetadata()
 
-### Community 198 - "Community 198"
+### Community 200 - "Community 200"
 Cohesion: 0.22
 Nodes (1): MockUnifiedEmbeddingService
 
-### Community 199 - "Community 199"
+### Community 201 - "Community 201"
 Cohesion: 0.39
 Nodes (1): RuleBasedRelationExtractor
 
-### Community 200 - "Community 200"
+### Community 202 - "Community 202"
 Cohesion: 0.39
 Nodes (1): RelationCache
 
-### Community 201 - "Community 201"
+### Community 203 - "Community 203"
 Cohesion: 0.36
 Nodes (1): EntityLinker
 
-### Community 202 - "Community 202"
+### Community 204 - "Community 204"
 Cohesion: 0.36
 Nodes (5): AgentSessionSummaryService, buildAgentSessionSummary(), formatPayload(), redactSecrets(), truncateUtf8()
 
-### Community 203 - "Community 203"
+### Community 205 - "Community 205"
 Cohesion: 0.33
 Nodes (1): QualityThresholdManager
 
-### Community 204 - "Community 204"
+### Community 206 - "Community 206"
 Cohesion: 0.28
 Nodes (1): QualityEvaluator
 
-### Community 205 - "Community 205"
+### Community 207 - "Community 207"
 Cohesion: 0.42
 Nodes (8): benchmarkWeightCombinations(), compareWithBaseline(), generateBenchmarkGroundTruth(), generateTuningGuidelines(), loadBaselineSnapshot(), measureQualityWithWeights(), runConsolidationQualityBenchmark(), saveBaselineSnapshot()
 
-### Community 206 - "Community 206"
+### Community 208 - "Community 208"
 Cohesion: 0.42
 Nodes (6): loadBenchmarkCorpus(), loadBenchmarkGroundTruth(), loadBenchmarkManifest(), loadBenchmarkQueries(), readJsonFile(), resolveBenchmarkDir()
 
-### Community 207 - "Community 207"
-Cohesion: 0.42
-Nodes (8): checkAllFiles(), checkFile(), findFiles(), main(), parseArgs(), printHelp(), printResults(), shouldExclude()
-
-### Community 208 - "Community 208"
-Cohesion: 0.42
-Nodes (8): checkAllFiles(), checkFile(), findFiles(), main(), parseArgs(), printHelp(), printResults(), shouldExclude()
-
 ### Community 209 - "Community 209"
+Cohesion: 0.42
+Nodes (8): checkAllFiles(), checkFile(), findFiles(), main(), parseArgs(), printHelp(), printResults(), shouldExclude()
+
+### Community 210 - "Community 210"
+Cohesion: 0.42
+Nodes (8): checkAllFiles(), checkFile(), findFiles(), main(), parseArgs(), printHelp(), printResults(), shouldExclude()
+
+### Community 211 - "Community 211"
 Cohesion: 0.33
 Nodes (5): countExternalAPICalls(), findExternalAPICalls(), getAllTsFiles(), isCoreModule(), main()
 
-### Community 210 - "Community 210"
+### Community 212 - "Community 212"
 Cohesion: 0.44
 Nodes (8): argument(), check(), derivedMemoryCounts(), evaluateAgentIntegrationReleaseGate(), main(), percentile(), scanSecrets(), tableExists()
 
-### Community 211 - "Community 211"
+### Community 213 - "Community 213"
 Cohesion: 0.56
 Nodes (8): dispatchDashboardResize(), dispatchGraphIframeResize(), initAgentSessionsTab(), initEmbeddingTab(), initEvolutionDemo(), initGraphTab(), initReviewTab(), runTabInit()
 
-### Community 212 - "Community 212"
+### Community 214 - "Community 214"
 Cohesion: 0.39
 Nodes (8): clearRowSelection(), getPreviewActionsEl(), loadMemoryPreview(), onRowActivate(), resetPreviewPanel(), setPreviewActionsBusy(), setPreviewCandidateFields(), syncReviewDismissButtons()
 
-### Community 213 - "Community 213"
+### Community 215 - "Community 215"
 Cohesion: 0.47
 Nodes (8): applyListSuccess(), fetchReviewCandidateListJson(), hideTable(), loadList(), renderTable(), showEmpty(), showLoading(), wireTableBody()
 
-### Community 214 - "Community 214"
-Cohesion: 0.39
-Nodes (2): parseToolJson(), StdioTransport
-
-### Community 215 - "Community 215"
+### Community 216 - "Community 216"
 Cohesion: 0.25
 Nodes (1): MockTransport
 
-### Community 216 - "Community 216"
+### Community 217 - "Community 217"
 Cohesion: 0.36
 Nodes (4): deleteServerInfo(), readServerInfo(), serverInfoPath(), writeServerInfo()
 
-### Community 217 - "Community 217"
+### Community 218 - "Community 218"
 Cohesion: 0.29
 Nodes (2): handleCaptureSessionEvent(), maybePreCompactInjection()
 
-### Community 218 - "Community 218"
+### Community 219 - "Community 219"
 Cohesion: 0.43
 Nodes (6): buildRecentEvents(), handleGetOperationsStatus(), queryInjectionCounts(), queryInjectionRows(), queryObservationCounts(), queryObservationRows()
 
-### Community 219 - "Community 219"
+### Community 220 - "Community 220"
 Cohesion: 0.25
 Nodes (0):
 
-### Community 220 - "Community 220"
+### Community 221 - "Community 221"
 Cohesion: 0.39
 Nodes (5): handleGetProvenanceDetail(), loadProvenanceMemories(), loadProvenanceObservations(), loadProvenanceSessions(), resolveProvenanceFilter()
 
-### Community 221 - "Community 221"
+### Community 222 - "Community 222"
 Cohesion: 0.46
 Nodes (7): runTests(), setupTestDatabase(), testAdminAPIs(), testBasicEndpoints(), testMCPTools(), testSSE(), testWebSocket()
 
-### Community 222 - "Community 222"
+### Community 223 - "Community 223"
 Cohesion: 0.43
 Nodes (7): agentInjectionIntegrationFixture(), claudeCodeInjectionFixture(), codexInjectionFixture(), injectionBundleFixture(), isNonNegativeInteger(), isRecord(), validateInjectionBundle()
 
-### Community 223 - "Community 223"
+### Community 224 - "Community 224"
 Cohesion: 0.39
 Nodes (1): ProcessAttributeTableMigration
 
-### Community 224 - "Community 224"
+### Community 225 - "Community 225"
 Cohesion: 0.39
 Nodes (1): AddProjectIdMigration
 
-### Community 225 - "Community 225"
+### Community 226 - "Community 226"
 Cohesion: 0.46
 Nodes (1): MemoryReviewCandidateSchemaMigration
 
-### Community 226 - "Community 226"
+### Community 227 - "Community 227"
 Cohesion: 0.39
 Nodes (1): TelemetryEventsEventTypeCreatedAtIndexMigration
 
-### Community 227 - "Community 227"
+### Community 228 - "Community 228"
 Cohesion: 0.39
 Nodes (1): FixTfidfDimensionTriggerMigration
 
-### Community 228 - "Community 228"
+### Community 229 - "Community 229"
 Cohesion: 0.43
 Nodes (1): FeedbackEventScoreBreakdownMigration
 
-### Community 229 - "Community 229"
+### Community 230 - "Community 230"
 Cohesion: 0.43
 Nodes (1): FeedbackEventCommentMigration
 
-### Community 230 - "Community 230"
+### Community 231 - "Community 231"
 Cohesion: 0.43
 Nodes (1): ProceduralVersionFieldsMigration
 
-### Community 231 - "Community 231"
+### Community 232 - "Community 232"
 Cohesion: 0.39
 Nodes (1): FeedbackEventMemoryCreatedAtIndexMigration
 
-### Community 232 - "Community 232"
+### Community 233 - "Community 233"
 Cohesion: 0.46
 Nodes (1): ReviewQueueHealthSnapshotMigration
 
-### Community 233 - "Community 233"
+### Community 234 - "Community 234"
 Cohesion: 0.32
 Nodes (1): BatchJobExecutionCoordinator
 
-### Community 234 - "Community 234"
+### Community 235 - "Community 235"
 Cohesion: 0.29
 Nodes (2): escapeDotString(), RelationVisualizer
 
-### Community 235 - "Community 235"
+### Community 236 - "Community 236"
 Cohesion: 0.46
 Nodes (6): getObjectSize(), limitArraySize(), mergeReflectionNotes(), normalizeNewReflectionNotes(), validateAndCleanupTotalSize(), validateSingleObjectSize()
 
-### Community 236 - "Community 236"
+### Community 237 - "Community 237"
 Cohesion: 0.5
 Nodes (2): isPIIMaskingEnabled(), PIIMasker
 
-### Community 237 - "Community 237"
+### Community 238 - "Community 238"
 Cohesion: 0.25
 Nodes (0):
 
-### Community 238 - "Community 238"
+### Community 239 - "Community 239"
 Cohesion: 0.25
 Nodes (1): LocalSearchService
 
-### Community 239 - "Community 239"
+### Community 240 - "Community 240"
 Cohesion: 0.32
 Nodes (1): ProceduralMemoryMatcher
 
-### Community 240 - "Community 240"
+### Community 241 - "Community 241"
+Cohesion: 0.32
+Nodes (1): VectorPerformanceRepositoryImpl
+
+### Community 242 - "Community 242"
 Cohesion: 0.46
 Nodes (7): applyVersionFilter(), collectMetaMemoryStats(), enrichProceduralVersionInfo(), filterLatestOnly(), filterSpecificVersion(), runMemoryItemPostSearchPipeline(), updateConsolidationScoreMetadata()
 
-### Community 241 - "Community 241"
+### Community 243 - "Community 243"
 Cohesion: 0.29
 Nodes (2): MemoryNeighborService, MemoryNotFoundError
 
-### Community 242 - "Community 242"
+### Community 244 - "Community 244"
 Cohesion: 0.29
 Nodes (1): SemanticMemoryUpdatePipeline
 
-### Community 243 - "Community 243"
+### Community 245 - "Community 245"
 Cohesion: 0.36
 Nodes (1): SemanticMemoryRelations
 
-### Community 244 - "Community 244"
+### Community 246 - "Community 246"
 Cohesion: 0.36
 Nodes (1): RelationExtractor
 
-### Community 245 - "Community 245"
+### Community 247 - "Community 247"
 Cohesion: 0.39
 Nodes (1): RelationGraphCache
 
-### Community 246 - "Community 246"
+### Community 248 - "Community 248"
 Cohesion: 0.32
 Nodes (1): TripleExtractionStatisticsService
 
-### Community 247 - "Community 247"
+### Community 249 - "Community 249"
 Cohesion: 0.36
 Nodes (3): deterministicHash(), generateMockEmbedding(), MockEmbeddingService
 
-### Community 248 - "Community 248"
+### Community 250 - "Community 250"
 Cohesion: 0.29
 Nodes (1): AlertNotificationService
 
-### Community 249 - "Community 249"
+### Community 251 - "Community 251"
 Cohesion: 0.32
 Nodes (1): QualityRecorder
 
-### Community 250 - "Community 250"
+### Community 252 - "Community 252"
 Cohesion: 0.39
 Nodes (1): MultiProviderSearchBenchmark
 
-### Community 251 - "Community 251"
+### Community 253 - "Community 253"
 Cohesion: 0.39
 Nodes (5): checkCode(), checkDocumentation(), checkGitHistory(), checkLegacyScriptUsage(), checkPackageJson()
 
-### Community 252 - "Community 252"
+### Community 254 - "Community 254"
 Cohesion: 0.46
 Nodes (7): assertRankingProfileFilesExist(), calcP95(), evaluateProfile(), main(), mean(), pairedPermutationPValue(), parseArgs()
 
-### Community 253 - "Community 253"
-Cohesion: 0.46
-Nodes (7): createBaseSchema(), createTestMemory(), extractRelations(), generateMarkdownReport(), loadTestDataset(), main(), parseArgs()
-
-### Community 254 - "Community 254"
-Cohesion: 0.46
-Nodes (7): createBaseSchema(), createTestMemory(), extractRelations(), generateMarkdownReport(), loadTestDataset(), main(), parseArgs()
-
 ### Community 255 - "Community 255"
+Cohesion: 0.46
+Nodes (7): createBaseSchema(), createTestMemory(), extractRelations(), generateMarkdownReport(), loadTestDataset(), main(), parseArgs()
+
+### Community 256 - "Community 256"
+Cohesion: 0.46
+Nodes (7): createBaseSchema(), createTestMemory(), extractRelations(), generateMarkdownReport(), loadTestDataset(), main(), parseArgs()
+
+### Community 257 - "Community 257"
 Cohesion: 0.46
 Nodes (7): checkAllFiles(), checkRetryUsage(), getAllTsFiles(), main(), printResultsCSV(), printResultsJSON(), printResultsText()
 
-### Community 256 - "Community 256"
+### Community 258 - "Community 258"
 Cohesion: 0.36
 Nodes (1): GitHubIssueClient
 
-### Community 257 - "Community 257"
+### Community 259 - "Community 259"
 Cohesion: 0.39
 Nodes (5): fallbackToPolling(), resubscribeWebSocket(), startAutoRefresh(), stopAutoRefresh(), tryConnectWebSocket()
 
-### Community 258 - "Community 258"
-Cohesion: 0.38
-Nodes (1): HttpTransport
-
-### Community 259 - "Community 259"
+### Community 260 - "Community 260"
 Cohesion: 0.29
 Nodes (1): RetryQueue
 
-### Community 260 - "Community 260"
+### Community 261 - "Community 261"
 Cohesion: 0.29
 Nodes (0):
 
-### Community 261 - "Community 261"
+### Community 262 - "Community 262"
 Cohesion: 0.52
 Nodes (6): buildReviewQueueBootInjectionHtml(), clampIntervalMs(), injectReviewQueueBootIntoDashboardHtml(), parseBackoffCsv(), parsePositiveIntMs(), resolveReviewQueueDashboardBootFromEnv()
 
-### Community 262 - "Community 262"
+### Community 263 - "Community 263"
 Cohesion: 0.43
 Nodes (4): jsonSafeDetails(), recordManualBatchRunFailure(), recordManualBatchRunSuccess(), trimEntries()
 
-### Community 263 - "Community 263"
+### Community 264 - "Community 264"
 Cohesion: 0.48
 Nodes (5): broadcastAnchorMapUpdate(), broadcastToSubscribers(), buildAnchorMapData(), buildNetworkLinks(), buildNetworkNodesAndLinks()
 
-### Community 264 - "Community 264"
+### Community 265 - "Community 265"
 Cohesion: 0.38
 Nodes (3): optionalOwnerId(), optionalString(), optionalStringArray()
 
-### Community 265 - "Community 265"
+### Community 266 - "Community 266"
 Cohesion: 0.33
 Nodes (2): exportObservationDto(), observationDto()
 
-### Community 266 - "Community 266"
+### Community 267 - "Community 267"
 Cohesion: 0.33
 Nodes (2): countSearchMapMatches(), getSearchItemId()
 
-### Community 267 - "Community 267"
+### Community 268 - "Community 268"
 Cohesion: 0.52
 Nodes (6): increment(), metadata(), redactAgentEvent(), redactString(), redactValue(), scanBlocked()
 
-### Community 268 - "Community 268"
+### Community 269 - "Community 269"
 Cohesion: 0.33
 Nodes (2): eventPriority(), PriorityEventQueue
 
-### Community 269 - "Community 269"
+### Community 270 - "Community 270"
 Cohesion: 0.43
 Nodes (1): MigrationDetector
 
-### Community 270 - "Community 270"
+### Community 271 - "Community 271"
 Cohesion: 0.43
 Nodes (2): AgentIntegrationSchemaMigration, objectExists()
 
-### Community 271 - "Community 271"
+### Community 272 - "Community 272"
 Cohesion: 0.43
 Nodes (1): BackfillKgTripleFromMemoryItemMigration
 
-### Community 272 - "Community 272"
+### Community 273 - "Community 273"
 Cohesion: 0.43
 Nodes (2): AgentMemoryPromotionSchemaMigration, objectExists()
 
-### Community 273 - "Community 273"
+### Community 274 - "Community 274"
 Cohesion: 0.38
 Nodes (3): parseJsonArray(), ProcessAttributeRepositorySqlite, stringifyJsonArray()
 
-### Community 274 - "Community 274"
+### Community 275 - "Community 275"
 Cohesion: 0.29
 Nodes (0):
 
-### Community 275 - "Community 275"
+### Community 276 - "Community 276"
+Cohesion: 0.43
+Nodes (4): isExcludedField(), isKeyTokenField(), normalizeReflectionNoteObject(), normalizeReflectionNotes()
+
+### Community 277 - "Community 277"
 Cohesion: 0.48
 Nodes (6): computeJsonHash(), computeReflectionNotesCount(), createProceduralMemorySnapshot(), hasProceduralMemoryChanged(), isEqual(), normalizeJson()
 
-### Community 276 - "Community 276"
+### Community 278 - "Community 278"
+Cohesion: 0.43
+Nodes (5): isValidMemoryType(), validateProceduralMemoryFields(), validateTriggerConditions(), validateTypeParam(), validateWorkflowOrSkillName()
+
+### Community 279 - "Community 279"
 Cohesion: 0.48
 Nodes (5): containsPathTraversal(), getAllowedDirs(), isAbsolutePath(), isWithinAllowedDirs(), validateFilePath()
 
-### Community 277 - "Community 277"
+### Community 280 - "Community 280"
 Cohesion: 0.38
 Nodes (1): PromptTemplateLoader
 
-### Community 278 - "Community 278"
+### Community 281 - "Community 281"
 Cohesion: 0.29
 Nodes (1): QueryFilterService
 
-### Community 279 - "Community 279"
+### Community 282 - "Community 282"
 Cohesion: 0.29
 Nodes (1): SearchLogger
 
-### Community 280 - "Community 280"
+### Community 283 - "Community 283"
 Cohesion: 0.38
 Nodes (1): VectorPerformanceTester
 
-### Community 281 - "Community 281"
+### Community 284 - "Community 284"
 Cohesion: 0.33
 Nodes (1): VectorIndexManager
 
-### Community 282 - "Community 282"
+### Community 285 - "Community 285"
 Cohesion: 0.43
 Nodes (3): FeedbackTool, findApprovedPromotionCandidate(), normalizeFeedbackCreatedAtToIso()
 
-### Community 283 - "Community 283"
+### Community 286 - "Community 286"
 Cohesion: 0.38
 Nodes (1): SemanticMemoryStatisticsService
 
-### Community 284 - "Community 284"
+### Community 287 - "Community 287"
 Cohesion: 0.29
 Nodes (1): SemanticMemoryScoring
 
-### Community 285 - "Community 285"
+### Community 288 - "Community 288"
 Cohesion: 0.48
 Nodes (1): ClusteringService
 
-### Community 286 - "Community 286"
+### Community 289 - "Community 289"
+Cohesion: 0.43
+Nodes (4): ExtractTriplesTool, normalizeChunkOverlapForPipeline(), resolveExtractTriplesOwner(), toChatMessageInputs()
+
+### Community 290 - "Community 290"
 Cohesion: 0.29
 Nodes (3): CyclicRelationError, DuplicateRelationError, RelationGraphError
 
-### Community 287 - "Community 287"
+### Community 291 - "Community 291"
 Cohesion: 0.33
 Nodes (2): createMockEmbeddingService(), getMockEmbeddingFunctions()
 
-### Community 288 - "Community 288"
+### Community 292 - "Community 292"
 Cohesion: 0.48
 Nodes (4): checkOllamaModelInstalled(), extractRawWithOllama(), getStringField(), isRecord()
 
-### Community 289 - "Community 289"
+### Community 293 - "Community 293"
 Cohesion: 0.33
 Nodes (2): createEmptyStats(), SearchMetricsStore
 
-### Community 290 - "Community 290"
+### Community 294 - "Community 294"
 Cohesion: 0.38
 Nodes (3): executeTool(), resolveTelemetryOwnerId(), telemetryParamsContext()
 
-### Community 291 - "Community 291"
+### Community 295 - "Community 295"
 Cohesion: 0.71
 Nodes (6): createAnchorTable(), expect(), runAllTests(), testAnchorSystemWorkflow(), testFallbackMechanism(), testMultiClientScenario()
 
-### Community 292 - "Community 292"
+### Community 296 - "Community 296"
 Cohesion: 0.52
 Nodes (6): calculateRecency(), generateRecencyData(), main(), printConsoleGraph(), printCSV(), printKeyPoints()
 
-### Community 293 - "Community 293"
+### Community 297 - "Community 297"
 Cohesion: 0.57
 Nodes (6): compareWithAndWithoutConsolidation(), convertToSearchResults(), generateGroundTruth(), measureSearchQuality(), testConsolidationSearchQuality(), verifyRankingOrder()
 
-### Community 294 - "Community 294"
+### Community 298 - "Community 298"
 Cohesion: 0.57
 Nodes (6): buildReviewChecklistMarkdown(), findGroundTruth(), loadLabelCandidates(), renderCandidate(), renderRelevantEntry(), summarizeContent()
 
-### Community 295 - "Community 295"
+### Community 299 - "Community 299"
 Cohesion: 0.48
 Nodes (4): expectExactScript(), normalizeCommand(), readScript(), splitSequentialCommands()
 
-### Community 296 - "Community 296"
+### Community 300 - "Community 300"
 Cohesion: 0.38
 Nodes (3): installDashboardRoutes(), observation(), session()
 
-### Community 297 - "Community 297"
+### Community 301 - "Community 301"
 Cohesion: 0.48
 Nodes (5): buildMemoryIdToBenchmarkIdMap(), main(), parseArgs(), printHelp(), sampleDeterministicNegatives()
 
-### Community 298 - "Community 298"
+### Community 302 - "Community 302"
 Cohesion: 0.52
 Nodes (6): extractKeywordsFromMemories(), generateGroundTruthFromSearch(), getMemoryIds(), main(), parseArgs(), printHelp()
 
-### Community 299 - "Community 299"
+### Community 303 - "Community 303"
 Cohesion: 0.52
 Nodes (6): compositeScore(), generateCandidate(), main(), mulberry32(), parseTuneArgs(), selectBest()
 
-### Community 300 - "Community 300"
+### Community 304 - "Community 304"
 Cohesion: 0.48
 Nodes (6): callHttpTool(), checkServerHealth(), getHttpTools(), handleRequest(), main(), sendResponse()
 
-### Community 301 - "Community 301"
+### Community 305 - "Community 305"
 Cohesion: 0.57
 Nodes (6): detectAppLogEvent(), detectDockerAnomaly(), detectRuntimeAnomaly(), nowIso(), redactDockerInspectEnv(), truncateTitle()
 
-### Community 302 - "Community 302"
+### Community 306 - "Community 306"
 Cohesion: 0.52
 Nodes (6): booleanFromEnv(), defaultLogsRoot(), labelsFromEnv(), loadMonitorConfig(), numberFromEnv(), optionalString()
 
-### Community 303 - "Community 303"
+### Community 307 - "Community 307"
 Cohesion: 0.67
 Nodes (6): buildRequestOptions(), getDashboardAuth(), isProgrammaticToolsRequest(), mementoAdminFetch(), performFetch(), waitForSession()
 
-### Community 304 - "Community 304"
+### Community 308 - "Community 308"
 Cohesion: 0.67
 Nodes (6): postBulkAction(), resetBulkSelection(), setAllVisibleSelected(), syncBulkControls(), wireBulkReviewActions(), wireBulkTableSelection()
 
-### Community 305 - "Community 305"
+### Community 309 - "Community 309"
 Cohesion: 0.52
 Nodes (5): clearSearch(), highlightSearchResults(), performSearch(), renderSearchResultsList(), updateNodeHighlight()
 
-### Community 306 - "Community 306"
+### Community 310 - "Community 310"
 Cohesion: 0.43
 Nodes (5): formatDurationMs(), formatHealthMetricCard(), ratioText(), renderBatchRunHistoryTable(), renderLiveHealthHtml()
 
-### Community 307 - "Community 307"
+### Community 311 - "Community 311"
 Cohesion: 0.33
 Nodes (1): CircuitBreaker
 
-### Community 308 - "Community 308"
+### Community 312 - "Community 312"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 309 - "Community 309"
+### Community 313 - "Community 313"
 Cohesion: 0.67
 Nodes (4): errorHandler(), isAppErrorContract(), resolveSeverityAndCategory(), resolveStatusCode()
 
-### Community 310 - "Community 310"
+### Community 314 - "Community 314"
 Cohesion: 0.47
 Nodes (3): cleanupTestDatabase(), createTestDatabaseWithoutServices(), setupTestDatabase()
 
-### Community 311 - "Community 311"
+### Community 315 - "Community 315"
 Cohesion: 0.4
 Nodes (2): createJsonRpcError(), processMcpMessage()
 
-### Community 312 - "Community 312"
+### Community 316 - "Community 316"
 Cohesion: 0.47
 Nodes (4): getAdmin(), getEmbeddingMapHandler(), seedEmbeddings(), vecJson()
 
-### Community 313 - "Community 313"
+### Community 317 - "Community 317"
+Cohesion: 0.33
+Nodes (0):
+
+### Community 318 - "Community 318"
 Cohesion: 0.6
 Nodes (5): assertReviewQueueSchema(), parsePositiveInteger(), parseReviewQueueCleanupArgs(), resolveDatabasePath(), runReviewQueueCleanup()
 
-### Community 314 - "Community 314"
+### Community 319 - "Community 319"
 Cohesion: 0.6
 Nodes (5): forgetParams(), memoryInjectionParams(), parseArgvToParams(), recallParams(), rememberParams()
 
-### Community 315 - "Community 315"
+### Community 320 - "Community 320"
 Cohesion: 0.53
 Nodes (5): defaultProbe(), options(), readSettings(), runCodex(), runCodexConnect()
 
-### Community 316 - "Community 316"
+### Community 321 - "Community 321"
 Cohesion: 0.53
 Nodes (1): ReflexionProceduralMemoryService
 
-### Community 317 - "Community 317"
+### Community 322 - "Community 322"
 Cohesion: 0.53
 Nodes (1): DependencyValidator
 
-### Community 318 - "Community 318"
+### Community 323 - "Community 323"
 Cohesion: 0.33
 Nodes (1): TestMigration
 
-### Community 319 - "Community 319"
+### Community 324 - "Community 324"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 320 - "Community 320"
+### Community 325 - "Community 325"
 Cohesion: 0.33
 Nodes (1): FlipConsolidationRelationDirectionsMigration
 
-### Community 321 - "Community 321"
+### Community 326 - "Community 326"
 Cohesion: 0.33
 Nodes (1): TelemetryDailyMetricsMigration
 
-### Community 322 - "Community 322"
+### Community 327 - "Community 327"
 Cohesion: 0.33
 Nodes (1): TelemetryEventsMigration
 
-### Community 323 - "Community 323"
+### Community 328 - "Community 328"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 324 - "Community 324"
+### Community 329 - "Community 329"
 Cohesion: 0.33
 Nodes (1): ExampleMigration
 
-### Community 325 - "Community 325"
+### Community 330 - "Community 330"
 Cohesion: 0.4
 Nodes (1): FeedbackRepositorySQLite
 
-### Community 326 - "Community 326"
+### Community 331 - "Community 331"
 Cohesion: 0.47
 Nodes (2): generateId(), KgTripleRepositorySqlite
 
-### Community 327 - "Community 327"
+### Community 332 - "Community 332"
 Cohesion: 0.33
 Nodes (1): HealthChecker
 
-### Community 328 - "Community 328"
+### Community 333 - "Community 333"
 Cohesion: 0.47
 Nodes (3): RelationValidatorExecutor, resolveMementoRepoRoot(), resolveTsxCommand()
 
-### Community 329 - "Community 329"
-Cohesion: 0.47
-Nodes (3): validateProceduralMemoryFields(), validateTriggerConditions(), validateWorkflowOrSkillName()
-
-### Community 330 - "Community 330"
+### Community 334 - "Community 334"
 Cohesion: 0.33
 Nodes (1): CacheKeyGenerator
 
-### Community 331 - "Community 331"
+### Community 335 - "Community 335"
 Cohesion: 0.53
 Nodes (4): getRankingWeights(), loadRankingWeights(), resolveRankingWeightsFilePath(), validateRankingWeights()
 
-### Community 332 - "Community 332"
+### Community 336 - "Community 336"
 Cohesion: 0.53
 Nodes (4): getRetryOptions(), loadRetryOptions(), validateRetryConfig(), validateRetryOptions()
 
-### Community 333 - "Community 333"
+### Community 337 - "Community 337"
 Cohesion: 0.33
 Nodes (1): VectorSearchFactory
 
-### Community 334 - "Community 334"
+### Community 338 - "Community 338"
 Cohesion: 0.47
 Nodes (3): defaultTfidfVecRegistry(), mockSqliteMaster(), sqliteMasterPreparedMock()
 
-### Community 335 - "Community 335"
-Cohesion: 0.47
-Nodes (1): VectorPerformanceRepositoryImpl
-
-### Community 336 - "Community 336"
+### Community 339 - "Community 339"
 Cohesion: 0.53
 Nodes (5): parseImportanceThreshold(), parseMemoryReviewQueueControlEnv(), parseMemoryReviewSelectionEnv(), parseNonNegativeInt(), parsePositiveInt()
 
-### Community 337 - "Community 337"
+### Community 340 - "Community 340"
 Cohesion: 0.47
 Nodes (1): SemanticMemorySimilarity
 
-### Community 338 - "Community 338"
+### Community 341 - "Community 341"
 Cohesion: 0.4
 Nodes (1): SemanticMemoryUpdateService
 
-### Community 339 - "Community 339"
+### Community 342 - "Community 342"
 Cohesion: 0.53
 Nodes (1): SummarizationService
 
-### Community 340 - "Community 340"
-Cohesion: 0.47
-Nodes (3): ExtractTriplesTool, normalizeChunkOverlapForPipeline(), resolveExtractTriplesOwner()
-
-### Community 341 - "Community 341"
+### Community 343 - "Community 343"
 Cohesion: 0.47
 Nodes (3): chunkSucceeded(), failureMessageFromResult(), TriplePipelineOrchestrator
 
-### Community 342 - "Community 342"
+### Community 344 - "Community 344"
 Cohesion: 0.6
 Nodes (5): executePerformanceAlerts(), handleList(), handleResolve(), handleSearch(), handleStats()
 
-### Community 343 - "Community 343"
+### Community 345 - "Community 345"
 Cohesion: 0.47
 Nodes (1): RuntimeDiagnosticsLogger
 
-### Community 344 - "Community 344"
+### Community 346 - "Community 346"
 Cohesion: 0.47
 Nodes (1): MigrateEmbeddingsTool
 
-### Community 345 - "Community 345"
+### Community 347 - "Community 347"
 Cohesion: 0.53
 Nodes (5): collectTsFiles(), isIgnoredLine(), main(), parseArgs(), scanFile()
 
-### Community 346 - "Community 346"
+### Community 348 - "Community 348"
 Cohesion: 0.6
 Nodes (5): findThrows(), isTestFile(), main(), scanDirectory(), shouldExcludeDir()
 
-### Community 347 - "Community 347"
+### Community 349 - "Community 349"
 Cohesion: 0.4
 Nodes (2): emptyState(), loadState()
 
-### Community 348 - "Community 348"
+### Community 350 - "Community 350"
 Cohesion: 0.6
 Nodes (5): recordJsonlSkip(), recordMonitorError(), runMonitorCycle(), syncFingerprint(), withFingerprint()
 
-### Community 349 - "Community 349"
+### Community 351 - "Community 351"
 Cohesion: 0.6
 Nodes (5): loadEmbeddingMap(), readParams(), setError(), setLoading(), updateCacheInfo()
 
-### Community 350 - "Community 350"
+### Community 352 - "Community 352"
 Cohesion: 0.53
 Nodes (4): loadSessions(), loadTimeline(), selectSession(), value()
 
-### Community 351 - "Community 351"
+### Community 353 - "Community 353"
 Cohesion: 0.4
 Nodes (2): number(), setCount()
 
-### Community 352 - "Community 352"
+### Community 354 - "Community 354"
 Cohesion: 0.6
 Nodes (5): invalidateDryRun(), readTranscriptFile(), renderImportResult(), submitTranscript(), transcriptValue()
 
-### Community 353 - "Community 353"
+### Community 355 - "Community 355"
 Cohesion: 0.6
 Nodes (3): broadcastReviewCandidatesChanged(), buildReviewCandidatesChangedEnvelope(), parseReviewCandidatesChangedRelayUrls()
 
-### Community 354 - "Community 354"
-Cohesion: 0.4
-Nodes (0):
-
-### Community 355 - "Community 355"
-Cohesion: 0.4
-Nodes (0):
-
 ### Community 356 - "Community 356"
+Cohesion: 0.4
+Nodes (0):
+
+### Community 357 - "Community 357"
+Cohesion: 0.4
+Nodes (0):
+
+### Community 358 - "Community 358"
 Cohesion: 0.6
 Nodes (3): attachReviewCandidatesSse(), notifyReviewCandidatesChanged(), writeSafe()
 
-### Community 357 - "Community 357"
+### Community 359 - "Community 359"
 Cohesion: 0.6
 Nodes (3): getLockFilePath(), isProcessAlive(), tryAcquireLock()
 
-### Community 358 - "Community 358"
+### Community 360 - "Community 360"
 Cohesion: 0.5
 Nodes (1): StdioServer
 
-### Community 359 - "Community 359"
-Cohesion: 0.4
-Nodes (1): SseServer
-
-### Community 360 - "Community 360"
-Cohesion: 0.4
-Nodes (0):
-
 ### Community 361 - "Community 361"
 Cohesion: 0.4
-Nodes (0):
+Nodes (1): SseServer
 
 ### Community 362 - "Community 362"
 Cohesion: 0.4
 Nodes (0):
 
 ### Community 363 - "Community 363"
-Cohesion: 0.6
-Nodes (3): createClaudeCodeHttpTransport(), readStream(), runClaudeCodeHookCommand()
+Cohesion: 0.4
+Nodes (0):
 
 ### Community 364 - "Community 364"
-Cohesion: 0.5
-Nodes (2): seedTwoProjectMemories(), stopBatchSchedulerSingleton()
+Cohesion: 0.4
+Nodes (0):
 
 ### Community 365 - "Community 365"
 Cohesion: 0.6
-Nodes (3): createCodexHttpTransport(), readStream(), runCodexHookCommand()
+Nodes (3): createClaudeCodeHttpTransport(), readStream(), runClaudeCodeHookCommand()
 
 ### Community 366 - "Community 366"
-Cohesion: 0.6
-Nodes (3): parseOptions(), readSettings(), runClaudeCodeConnect()
+Cohesion: 0.5
+Nodes (2): seedTwoProjectMemories(), stopBatchSchedulerSingleton()
 
 ### Community 367 - "Community 367"
-Cohesion: 0.4
-Nodes (0):
+Cohesion: 0.6
+Nodes (3): createCodexHttpTransport(), readStream(), runCodexHookCommand()
 
 ### Community 368 - "Community 368"
-Cohesion: 0.4
-Nodes (0):
+Cohesion: 0.6
+Nodes (3): parseOptions(), readSettings(), runClaudeCodeConnect()
 
 ### Community 369 - "Community 369"
 Cohesion: 0.4
@@ -2758,8 +2758,8 @@ Cohesion: 0.4
 Nodes (0):
 
 ### Community 374 - "Community 374"
-Cohesion: 0.5
-Nodes (2): countMonitoringAlertBuckets(), runMonitoring()
+Cohesion: 0.4
+Nodes (0):
 
 ### Community 375 - "Community 375"
 Cohesion: 0.4
@@ -2767,19 +2767,19 @@ Nodes (0):
 
 ### Community 376 - "Community 376"
 Cohesion: 0.5
-Nodes (2): normalizeReflectionNoteObject(), normalizeReflectionNotes()
+Nodes (2): countMonitoringAlertBuckets(), runMonitoring()
 
 ### Community 377 - "Community 377"
 Cohesion: 0.4
 Nodes (0):
 
 ### Community 378 - "Community 378"
-Cohesion: 0.5
-Nodes (2): getStopWords(), isStopWord()
-
-### Community 379 - "Community 379"
 Cohesion: 0.4
 Nodes (0):
+
+### Community 379 - "Community 379"
+Cohesion: 0.5
+Nodes (2): getStopWords(), isStopWord()
 
 ### Community 380 - "Community 380"
 Cohesion: 0.4
@@ -2790,224 +2790,224 @@ Cohesion: 0.4
 Nodes (0):
 
 ### Community 382 - "Community 382"
-Cohesion: 0.5
-Nodes (1): QueryFilterStrategy
+Cohesion: 0.4
+Nodes (0):
 
 ### Community 383 - "Community 383"
 Cohesion: 0.5
-Nodes (1): NHopSearchStrategy
+Nodes (1): QueryFilterStrategy
 
 ### Community 384 - "Community 384"
+Cohesion: 0.5
+Nodes (1): NHopSearchStrategy
+
+### Community 385 - "Community 385"
 Cohesion: 0.4
 Nodes (1): FallbackSearchService
 
-### Community 385 - "Community 385"
+### Community 386 - "Community 386"
 Cohesion: 0.5
 Nodes (1): FallbackStrategy
 
-### Community 386 - "Community 386"
+### Community 387 - "Community 387"
 Cohesion: 0.4
 Nodes (1): EvolutionDemoNotFoundError
 
-### Community 387 - "Community 387"
+### Community 388 - "Community 388"
 Cohesion: 0.6
 Nodes (1): AdaptiveWeightCalculator
 
-### Community 388 - "Community 388"
+### Community 389 - "Community 389"
 Cohesion: 0.6
 Nodes (3): computeNormalizationRange(), selectScore(), VectorSearchResultNormalizer
 
-### Community 389 - "Community 389"
+### Community 390 - "Community 390"
 Cohesion: 0.7
 Nodes (4): makeConsolidationQuality(), makeContext(), makeMemoryQuality(), makeSearchQuality()
 
-### Community 390 - "Community 390"
+### Community 391 - "Community 391"
 Cohesion: 0.5
 Nodes (2): parseRememberSuccess(), ToolContextRememberPersistenceAdapter
 
-### Community 391 - "Community 391"
+### Community 392 - "Community 392"
 Cohesion: 0.4
 Nodes (1): ToolContextKnowledgeContextAdapter
 
-### Community 392 - "Community 392"
+### Community 393 - "Community 393"
 Cohesion: 0.5
 Nodes (1): DeterministicMockLlmAdapter
 
-### Community 393 - "Community 393"
+### Community 394 - "Community 394"
 Cohesion: 0.7
 Nodes (4): assertUnreachable(), buildProceduralStepsJson(), mapKnowledgeCandidateToRememberParams(), normalizeOwnerId()
 
-### Community 394 - "Community 394"
+### Community 395 - "Community 395"
 Cohesion: 0.4
 Nodes (1): PersonalKnowledgeAgentService
 
-### Community 395 - "Community 395"
+### Community 396 - "Community 396"
 Cohesion: 0.6
 Nodes (3): getExistingReflectionNotes(), parseReflectionNotes(), prepareReflectionNotes()
 
-### Community 396 - "Community 396"
-Cohesion: 0.4
-Nodes (0):
-
 ### Community 397 - "Community 397"
 Cohesion: 0.4
-Nodes (1): RecallTool
+Nodes (0):
 
 ### Community 398 - "Community 398"
 Cohesion: 0.4
-Nodes (1): MemoryReviewCandidateError
+Nodes (1): RecallTool
 
 ### Community 399 - "Community 399"
 Cohesion: 0.4
-Nodes (1): IntrospectionScanCache
+Nodes (1): MemoryReviewCandidateError
 
 ### Community 400 - "Community 400"
 Cohesion: 0.4
-Nodes (1): SemanticMemoryCrud
+Nodes (1): IntrospectionScanCache
 
 ### Community 401 - "Community 401"
 Cohesion: 0.4
-Nodes (1): FailingRepo
+Nodes (1): SemanticMemoryCrud
 
 ### Community 402 - "Community 402"
 Cohesion: 0.4
-Nodes (1): RelationGraphQuery
+Nodes (1): FailingRepo
 
 ### Community 403 - "Community 403"
+Cohesion: 0.4
+Nodes (1): RelationGraphQuery
+
+### Community 404 - "Community 404"
 Cohesion: 0.5
 Nodes (1): RelationGraphCycleDetector
 
-### Community 404 - "Community 404"
+### Community 405 - "Community 405"
 Cohesion: 0.4
 Nodes (1): TokenBucketRateLimiter
 
-### Community 405 - "Community 405"
+### Community 406 - "Community 406"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 406 - "Community 406"
+### Community 407 - "Community 407"
 Cohesion: 0.6
 Nodes (1): TripleParser
 
-### Community 407 - "Community 407"
+### Community 408 - "Community 408"
 Cohesion: 0.7
 Nodes (4): extractJsonObjectFromLlmText(), parseLlmRelationsResponse(), prepareOllamaRelationJsonContent(), trimToValidJsonObject()
 
-### Community 408 - "Community 408"
+### Community 409 - "Community 409"
 Cohesion: 0.4
 Nodes (1): DatabaseMetricsReader
 
-### Community 409 - "Community 409"
+### Community 410 - "Community 410"
 Cohesion: 0.4
 Nodes (1): CpuUsageTracker
 
-### Community 410 - "Community 410"
+### Community 411 - "Community 411"
 Cohesion: 0.5
 Nodes (2): analyzeTrend(), getPerformanceSummary()
 
-### Community 411 - "Community 411"
+### Community 412 - "Community 412"
 Cohesion: 0.5
 Nodes (2): createMetrics(), toBytes()
 
-### Community 412 - "Community 412"
+### Community 413 - "Community 413"
+Cohesion: 0.4
+Nodes (1): RelationMetricsCollector
+
+### Community 414 - "Community 414"
 Cohesion: 0.5
 Nodes (2): calculateMRR(), SearchMetricsCollector
 
-### Community 413 - "Community 413"
+### Community 415 - "Community 415"
 Cohesion: 0.4
 Nodes (1): PerformanceBenchmark
 
-### Community 414 - "Community 414"
+### Community 416 - "Community 416"
 Cohesion: 0.7
 Nodes (4): createSeededBenchmarkDatabase(), mulberry32(), normalizeMemoryType(), seedOneCorpusRow()
 
-### Community 415 - "Community 415"
+### Community 417 - "Community 417"
 Cohesion: 0.7
 Nodes (4): main(), parseArgs(), printHelp(), printThresholds()
 
-### Community 416 - "Community 416"
+### Community 418 - "Community 418"
 Cohesion: 0.7
 Nodes (4): checkMigrationVersion(), fixTriggers(), getTriggerInfo(), main()
 
-### Community 417 - "Community 417"
+### Community 419 - "Community 419"
 Cohesion: 0.6
 Nodes (4): buildComparisonHintMarkup(), renderPointSegment(), syncSegmentSelection(), updateComparisonHint()
 
-### Community 418 - "Community 418"
+### Community 420 - "Community 420"
 Cohesion: 0.7
 Nodes (4): renderConsolidationPanel(), renderEpisodicSources(), renderSearchComparison(), renderSemanticResult()
 
-### Community 419 - "Community 419"
+### Community 421 - "Community 421"
 Cohesion: 0.7
 Nodes (4): activateTab(), focusActiveTabButton(), getTabButtons(), setRovingTabindex()
 
-### Community 420 - "Community 420"
+### Community 422 - "Community 422"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 421 - "Community 421"
+### Community 423 - "Community 423"
 Cohesion: 0.83
 Nodes (3): findFreePort(), startTestHttpServer(), waitForHealth()
 
-### Community 422 - "Community 422"
+### Community 424 - "Community 424"
 Cohesion: 0.67
 Nodes (2): collectEnvKeys(), expectNoDuplicateKeys()
 
-### Community 423 - "Community 423"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 424 - "Community 424"
-Cohesion: 0.5
-Nodes (0):
-
 ### Community 425 - "Community 425"
-Cohesion: 0.67
-Nodes (2): handlePostPersonalRun(), parsePersonalRunBody()
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 426 - "Community 426"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 427 - "Community 427"
-Cohesion: 0.5
-Nodes (0):
+Cohesion: 0.67
+Nodes (2): handlePostPersonalRun(), parsePersonalRunBody()
 
 ### Community 428 - "Community 428"
 Cohesion: 0.5
-Nodes (1): BraveSearchProvider
+Nodes (0):
 
 ### Community 429 - "Community 429"
+Cohesion: 0.5
+Nodes (0):
+
+### Community 430 - "Community 430"
+Cohesion: 0.5
+Nodes (1): BraveSearchProvider
+
+### Community 431 - "Community 431"
 Cohesion: 0.83
 Nodes (3): canonicalize(), normalizeAgentEvent(), normalizeJson()
 
-### Community 430 - "Community 430"
+### Community 432 - "Community 432"
 Cohesion: 0.83
 Nodes (3): diagnoseClaudeCode(), parseVersion(), versionAtLeast()
 
-### Community 431 - "Community 431"
+### Community 433 - "Community 433"
 Cohesion: 0.67
 Nodes (2): fixture(), fixtureUrl()
 
-### Community 432 - "Community 432"
+### Community 434 - "Community 434"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 433 - "Community 433"
+### Community 435 - "Community 435"
 Cohesion: 0.83
 Nodes (3): createServerContext(), createToolContext(), createToolContextFromServerContext()
 
-### Community 434 - "Community 434"
-Cohesion: 0.5
-Nodes (1): DatabaseOptimizeTool
-
-### Community 435 - "Community 435"
-Cohesion: 0.5
-Nodes (0):
-
 ### Community 436 - "Community 436"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): DatabaseOptimizeTool
 
 ### Community 437 - "Community 437"
 Cohesion: 0.5
@@ -3026,204 +3026,204 @@ Cohesion: 0.5
 Nodes (0):
 
 ### Community 441 - "Community 441"
+Cohesion: 0.5
+Nodes (0):
+
+### Community 442 - "Community 442"
+Cohesion: 0.5
+Nodes (0):
+
+### Community 443 - "Community 443"
 Cohesion: 0.67
 Nodes (2): isTripleExtractionQueueJob(), resolveBatchJobTimeout()
 
-### Community 442 - "Community 442"
+### Community 444 - "Community 444"
 Cohesion: 0.67
 Nodes (2): buildMemoryReviewCandidateUpsertInputs(), runMemoryReviewCandidatesJob()
 
-### Community 443 - "Community 443"
+### Community 445 - "Community 445"
 Cohesion: 0.5
 Nodes (1): QualityMeasurementBatchJob
 
-### Community 444 - "Community 444"
+### Community 446 - "Community 446"
 Cohesion: 0.5
 Nodes (1): SleepConsolidationBatchJob
 
-### Community 445 - "Community 445"
+### Community 447 - "Community 447"
 Cohesion: 0.5
 Nodes (1): TelemetryCleanupBatchJob
 
-### Community 446 - "Community 446"
+### Community 448 - "Community 448"
 Cohesion: 0.83
 Nodes (3): isTestEnvironment(), isValidationDisabled(), isValidConfigurationEnvironment()
 
-### Community 447 - "Community 447"
+### Community 449 - "Community 449"
 Cohesion: 0.67
 Nodes (2): validateReflectionNote(), validateReflectionNotes()
 
-### Community 448 - "Community 448"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 449 - "Community 449"
-Cohesion: 0.5
-Nodes (1): SearchLocalTool
-
 ### Community 450 - "Community 450"
 Cohesion: 0.5
-Nodes (1): GetAnchorTool
+Nodes (0):
 
 ### Community 451 - "Community 451"
 Cohesion: 0.5
-Nodes (1): SetAnchorTool
+Nodes (1): SearchLocalTool
 
 ### Community 452 - "Community 452"
 Cohesion: 0.5
-Nodes (1): ClearAnchorTool
+Nodes (1): GetAnchorTool
 
 ### Community 453 - "Community 453"
 Cohesion: 0.5
-Nodes (1): RestoreAnchorsTool
+Nodes (1): SetAnchorTool
 
 ### Community 454 - "Community 454"
-Cohesion: 0.83
-Nodes (3): buildSnapshotsFromFixture(), getFixtureSnapshot(), key()
+Cohesion: 0.5
+Nodes (1): ClearAnchorTool
 
 ### Community 455 - "Community 455"
 Cohesion: 0.5
-Nodes (1): SearchResultCombiner
+Nodes (1): RestoreAnchorsTool
 
 ### Community 456 - "Community 456"
+Cohesion: 0.83
+Nodes (3): buildSnapshotsFromFixture(), getFixtureSnapshot(), key()
+
+### Community 457 - "Community 457"
+Cohesion: 0.5
+Nodes (1): SearchResultCombiner
+
+### Community 458 - "Community 458"
 Cohesion: 0.67
 Nodes (2): createProviderVectorSearchTask(), runSingleProviderVectorSearch()
 
-### Community 457 - "Community 457"
+### Community 459 - "Community 459"
 Cohesion: 0.67
 Nodes (2): computeProcessAttributeFit(), toSet()
 
-### Community 458 - "Community 458"
+### Community 460 - "Community 460"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 459 - "Community 459"
+### Community 461 - "Community 461"
 Cohesion: 0.5
 Nodes (1): ForgettingStatsTool
 
-### Community 460 - "Community 460"
+### Community 462 - "Community 462"
 Cohesion: 0.5
 Nodes (1): GetTelemetrySummaryTool
 
-### Community 461 - "Community 461"
+### Community 463 - "Community 463"
 Cohesion: 0.83
 Nodes (3): baseTags(), extractKnowledgeCandidates(), pushUnique()
 
-### Community 462 - "Community 462"
+### Community 464 - "Community 464"
 Cohesion: 0.5
 Nodes (1): PersonalAgentLlmError
 
-### Community 463 - "Community 463"
+### Community 465 - "Community 465"
 Cohesion: 0.5
 Nodes (1): OpenAiChatLlmAdapter
 
-### Community 464 - "Community 464"
+### Community 466 - "Community 466"
 Cohesion: 0.5
 Nodes (1): OllamaChatLlmAdapter
 
-### Community 465 - "Community 465"
+### Community 467 - "Community 467"
 Cohesion: 0.5
 Nodes (1): GeminiChatLlmAdapter
 
-### Community 466 - "Community 466"
+### Community 468 - "Community 468"
 Cohesion: 0.83
 Nodes (3): buildSimilarityWarning(), handleMemoryItem(), persistMemoryItem()
 
-### Community 467 - "Community 467"
+### Community 469 - "Community 469"
 Cohesion: 0.5
 Nodes (1): RememberTool
 
-### Community 468 - "Community 468"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 469 - "Community 469"
-Cohesion: 0.5
-Nodes (1): MemoryInjectionPrompt
-
 ### Community 470 - "Community 470"
 Cohesion: 0.5
-Nodes (1): GetMemoryNeighborsTool
+Nodes (0):
 
 ### Community 471 - "Community 471"
 Cohesion: 0.5
-Nodes (1): ProceduralRollbackTool
+Nodes (1): MemoryInjectionPrompt
 
 ### Community 472 - "Community 472"
 Cohesion: 0.5
-Nodes (1): CleanupMemoryTool
+Nodes (1): GetMemoryNeighborsTool
 
 ### Community 473 - "Community 473"
 Cohesion: 0.5
-Nodes (1): ProceduralDiffTool
+Nodes (1): ProceduralRollbackTool
 
 ### Community 474 - "Community 474"
 Cohesion: 0.5
-Nodes (1): GetIntrospectionSummaryTool
+Nodes (1): CleanupMemoryTool
 
 ### Community 475 - "Community 475"
 Cohesion: 0.5
-Nodes (1): RememberProcedureTool
+Nodes (1): ProceduralDiffTool
 
 ### Community 476 - "Community 476"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): GetIntrospectionSummaryTool
 
 ### Community 477 - "Community 477"
-Cohesion: 0.83
-Nodes (3): computeProceduralDiff(), fieldDiff(), parseStepsJson()
+Cohesion: 0.5
+Nodes (1): RememberProcedureTool
 
 ### Community 478 - "Community 478"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 479 - "Community 479"
-Cohesion: 0.5
-Nodes (1): GetRelationsTool
+Cohesion: 0.83
+Nodes (3): computeProceduralDiff(), fieldDiff(), parseStepsJson()
 
 ### Community 480 - "Community 480"
 Cohesion: 0.5
-Nodes (1): VisualizeRelationsTool
+Nodes (0):
 
 ### Community 481 - "Community 481"
 Cohesion: 0.5
-Nodes (1): RemoveRelationTool
+Nodes (1): GetRelationsTool
 
 ### Community 482 - "Community 482"
 Cohesion: 0.5
-Nodes (1): ExtractRelationsTool
+Nodes (1): VisualizeRelationsTool
 
 ### Community 483 - "Community 483"
 Cohesion: 0.5
-Nodes (1): AddRelationTool
+Nodes (1): RemoveRelationTool
 
 ### Community 484 - "Community 484"
 Cohesion: 0.5
-Nodes (1): RelationRetryManager
+Nodes (1): ExtractRelationsTool
 
 ### Community 485 - "Community 485"
-Cohesion: 0.67
-Nodes (2): filterRelationRows(), filterRelationRowsWithWarning()
+Cohesion: 0.5
+Nodes (1): AddRelationTool
 
 ### Community 486 - "Community 486"
 Cohesion: 0.5
-Nodes (1): RelationGraphTraversal
+Nodes (1): RelationRetryManager
 
 ### Community 487 - "Community 487"
-Cohesion: 0.5
-Nodes (0):
+Cohesion: 0.67
+Nodes (2): filterRelationRows(), filterRelationRowsWithWarning()
 
 ### Community 488 - "Community 488"
-Cohesion: 0.67
-Nodes (2): createBulkMemories(), createTestMemory()
+Cohesion: 0.5
+Nodes (1): RelationGraphTraversal
 
 ### Community 489 - "Community 489"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 490 - "Community 490"
-Cohesion: 0.5
-Nodes (1): TripleNormalizer
+Cohesion: 0.67
+Nodes (2): createBulkMemories(), createTestMemory()
 
 ### Community 491 - "Community 491"
 Cohesion: 0.5
@@ -3231,7 +3231,7 @@ Nodes (0):
 
 ### Community 492 - "Community 492"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): TripleNormalizer
 
 ### Community 493 - "Community 493"
 Cohesion: 0.5
@@ -3239,59 +3239,59 @@ Nodes (0):
 
 ### Community 494 - "Community 494"
 Cohesion: 0.5
-Nodes (1): GetMetaMemoryStatsTool
+Nodes (0):
 
 ### Community 495 - "Community 495"
 Cohesion: 0.5
-Nodes (1): PerformanceStatsTool
+Nodes (0):
 
 ### Community 496 - "Community 496"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): GetMetaMemoryStatsTool
 
 ### Community 497 - "Community 497"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): PerformanceStatsTool
 
 ### Community 498 - "Community 498"
 Cohesion: 0.5
-Nodes (1): RelationMetricsCollector
+Nodes (0):
 
 ### Community 499 - "Community 499"
 Cohesion: 0.5
-Nodes (1): CategoryQualityAggregator
+Nodes (0):
 
 ### Community 500 - "Community 500"
 Cohesion: 0.5
-Nodes (1): ConsolidationMetricsCollector
+Nodes (1): CategoryQualityAggregator
 
 ### Community 501 - "Community 501"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): ConsolidationMetricsCollector
 
 ### Community 502 - "Community 502"
 Cohesion: 0.5
-Nodes (1): StorageMetricsCollector
+Nodes (0):
 
 ### Community 503 - "Community 503"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): StorageMetricsCollector
 
 ### Community 504 - "Community 504"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 505 - "Community 505"
-Cohesion: 0.67
-Nodes (2): buildBenchmarkCorpus(), normalizeTags()
-
-### Community 506 - "Community 506"
 Cohesion: 0.5
 Nodes (0):
 
+### Community 506 - "Community 506"
+Cohesion: 0.67
+Nodes (2): buildBenchmarkCorpus(), normalizeTags()
+
 ### Community 507 - "Community 507"
-Cohesion: 0.83
-Nodes (3): main(), parseArgs(), printHelp()
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 508 - "Community 508"
 Cohesion: 0.83
@@ -3299,111 +3299,111 @@ Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 509 - "Community 509"
 Cohesion: 0.83
-Nodes (3): acquireLongMemEval(), buildLongMemEvalDatasetUrl(), main()
+Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 510 - "Community 510"
-Cohesion: 0.5
-Nodes (0):
+Cohesion: 0.83
+Nodes (3): acquireLongMemEval(), buildLongMemEvalDatasetUrl(), main()
 
 ### Community 511 - "Community 511"
-Cohesion: 0.83
-Nodes (3): main(), parseArgs(), printHelp()
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 512 - "Community 512"
 Cohesion: 0.83
-Nodes (3): anyCategoryFailsMrrGate(), formatCategoryReportLine(), main()
+Nodes (3): main(), parseArgs(), printHelp()
 
 ### Community 513 - "Community 513"
+Cohesion: 0.83
+Nodes (3): anyCategoryFailsMrrGate(), formatCategoryReportLine(), main()
+
+### Community 514 - "Community 514"
 Cohesion: 1.0
 Nodes (3): checkDatabaseIntegrity(), log(), main()
 
-### Community 514 - "Community 514"
+### Community 515 - "Community 515"
 Cohesion: 0.83
 Nodes (3): findLatestRunDir(), main(), parseReportArgs()
 
-### Community 515 - "Community 515"
+### Community 516 - "Community 516"
 Cohesion: 1.0
 Nodes (3): renderManagedIssueBody(), startMarker(), upsertManagedIssueBody()
 
-### Community 516 - "Community 516"
+### Community 517 - "Community 517"
 Cohesion: 0.67
 Nodes (2): inferLevel(), parseAppLogLine()
 
-### Community 517 - "Community 517"
+### Community 518 - "Community 518"
 Cohesion: 0.67
 Nodes (2): createMonitorRuntime(), runForever()
 
-### Community 518 - "Community 518"
+### Community 519 - "Community 519"
 Cohesion: 0.67
 Nodes (2): main(), runExample()
 
-### Community 519 - "Community 519"
+### Community 520 - "Community 520"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 520 - "Community 520"
+### Community 521 - "Community 521"
 Cohesion: 0.67
 Nodes (2): clusterColor(), renderScatter()
 
-### Community 521 - "Community 521"
+### Community 522 - "Community 522"
 Cohesion: 0.83
 Nodes (3): postCandidateAction(), showActionToast(), showError()
 
-### Community 522 - "Community 522"
+### Community 523 - "Community 523"
 Cohesion: 0.67
 Nodes (2): ensureTooltip(), showTooltip()
 
-### Community 523 - "Community 523"
+### Community 524 - "Community 524"
 Cohesion: 0.83
 Nodes (3): initAgentSessionsPanel(), on(), wirePanel()
 
-### Community 524 - "Community 524"
+### Community 525 - "Community 525"
 Cohesion: 1.0
 Nodes (3): getSelectedAgentId(), loadAgentIdOptions(), loadMapData()
 
-### Community 525 - "Community 525"
+### Community 526 - "Community 526"
 Cohesion: 0.83
 Nodes (3): renderMemoryGroups(), renderMemoryStats(), renderSnapshot()
 
-### Community 526 - "Community 526"
+### Community 527 - "Community 527"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 527 - "Community 527"
+### Community 528 - "Community 528"
 Cohesion: 0.83
 Nodes (3): appendLabeledLine(), closeSidePanel(), openSidePanel()
 
-### Community 528 - "Community 528"
+### Community 529 - "Community 529"
 Cohesion: 0.67
 Nodes (1): SlowTransport
 
-### Community 529 - "Community 529"
+### Community 530 - "Community 530"
 Cohesion: 1.0
 Nodes (2): beforeUserTurn(), withTimeout()
 
-### Community 530 - "Community 530"
+### Community 531 - "Community 531"
 Cohesion: 0.67
 Nodes (0):
 
-### Community 531 - "Community 531"
+### Community 532 - "Community 532"
 Cohesion: 1.0
 Nodes (2): createMockResponse(), sendOptions()
 
-### Community 532 - "Community 532"
+### Community 533 - "Community 533"
 Cohesion: 0.67
 Nodes (0):
-
-### Community 533 - "Community 533"
-Cohesion: 1.0
-Nodes (2): createMockResponse(), runAdminAuthProbe()
 
 ### Community 534 - "Community 534"
 Cohesion: 1.0
-Nodes (2): buildMcpManualCorsHeaders(), resolveCorsAllowOrigin()
+Nodes (2): createMockResponse(), runAdminAuthProbe()
 
 ### Community 535 - "Community 535"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): buildMcpManualCorsHeaders(), resolveCorsAllowOrigin()
 
 ### Community 536 - "Community 536"
 Cohesion: 0.67
@@ -3418,12 +3418,12 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 539 - "Community 539"
-Cohesion: 1.0
-Nodes (2): loadEnv(), resolveEnvPath()
-
-### Community 540 - "Community 540"
 Cohesion: 0.67
 Nodes (0):
+
+### Community 540 - "Community 540"
+Cohesion: 1.0
+Nodes (2): loadEnv(), resolveEnvPath()
 
 ### Community 541 - "Community 541"
 Cohesion: 0.67
@@ -3438,52 +3438,52 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 544 - "Community 544"
-Cohesion: 1.0
-Nodes (2): compareServices(), testServerSynchronization()
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 545 - "Community 545"
 Cohesion: 1.0
-Nodes (2): assert(), testMementoClient()
+Nodes (2): compareServices(), testServerSynchronization()
 
 ### Community 546 - "Community 546"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): assert(), testMementoClient()
 
 ### Community 547 - "Community 547"
 Cohesion: 0.67
-Nodes (1): NoopSearchProvider
+Nodes (0):
 
 ### Community 548 - "Community 548"
 Cohesion: 0.67
-Nodes (1): git()
+Nodes (1): NoopSearchProvider
 
 ### Community 549 - "Community 549"
-Cohesion: 1.0
-Nodes (2): invalid(), runClaudeCodeHook()
+Cohesion: 0.67
+Nodes (1): git()
 
 ### Community 550 - "Community 550"
 Cohesion: 1.0
-Nodes (2): log(), shouldLog()
+Nodes (2): invalid(), runClaudeCodeHook()
 
 ### Community 551 - "Community 551"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): log(), shouldLog()
 
 ### Community 552 - "Community 552"
 Cohesion: 0.67
 Nodes (0):
 
 ### Community 553 - "Community 553"
-Cohesion: 1.0
-Nodes (2): addMissingColumn(), ensureMemoryItemTripleExtractionColumns()
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 554 - "Community 554"
 Cohesion: 1.0
-Nodes (2): isDuplicateColumnError(), migrateDatabase()
+Nodes (2): addMissingColumn(), ensureMemoryItemTripleExtractionColumns()
 
 ### Community 555 - "Community 555"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): isDuplicateColumnError(), migrateDatabase()
 
 ### Community 556 - "Community 556"
 Cohesion: 0.67
@@ -3498,12 +3498,12 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 559 - "Community 559"
-Cohesion: 1.0
-Nodes (2): buildMemoryReviewCandidatesRunDiagnosticsPayload(), readRunDetails()
-
-### Community 560 - "Community 560"
 Cohesion: 0.67
 Nodes (0):
+
+### Community 560 - "Community 560"
+Cohesion: 1.0
+Nodes (2): buildMemoryReviewCandidatesRunDiagnosticsPayload(), readRunDetails()
 
 ### Community 561 - "Community 561"
 Cohesion: 0.67
@@ -3522,16 +3522,16 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 565 - "Community 565"
-Cohesion: 1.0
-Nodes (2): getVectorTableName(), validateTableName()
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 566 - "Community 566"
 Cohesion: 1.0
-Nodes (2): issue(), validateConfiguration()
+Nodes (2): getVectorTableName(), validateTableName()
 
 ### Community 567 - "Community 567"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): issue(), validateConfiguration()
 
 ### Community 568 - "Community 568"
 Cohesion: 0.67
@@ -3542,32 +3542,32 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 570 - "Community 570"
+Cohesion: 0.67
+Nodes (0):
+
+### Community 571 - "Community 571"
 Cohesion: 1.0
 Nodes (2): resolveLlmModel(), resolveProviderDefaultModel()
 
-### Community 571 - "Community 571"
-Cohesion: 0.67
-Nodes (0):
-
 ### Community 572 - "Community 572"
 Cohesion: 0.67
-Nodes (1): SearchError
+Nodes (0):
 
 ### Community 573 - "Community 573"
 Cohesion: 0.67
-Nodes (0):
+Nodes (1): SearchError
 
 ### Community 574 - "Community 574"
+Cohesion: 0.67
+Nodes (0):
+
+### Community 575 - "Community 575"
 Cohesion: 1.0
 Nodes (2): parsePersonalAgentLlmEnv(), readProviderToken()
 
-### Community 575 - "Community 575"
-Cohesion: 0.67
-Nodes (1): FeedbackRepository
-
 ### Community 576 - "Community 576"
 Cohesion: 0.67
-Nodes (0):
+Nodes (1): FeedbackRepository
 
 ### Community 577 - "Community 577"
 Cohesion: 0.67
@@ -3578,12 +3578,12 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 579 - "Community 579"
-Cohesion: 1.0
-Nodes (2): finalizeMemoryItemRecallEnvelope(), getMetaStatsForResults()
-
-### Community 580 - "Community 580"
 Cohesion: 0.67
 Nodes (0):
+
+### Community 580 - "Community 580"
+Cohesion: 1.0
+Nodes (2): finalizeMemoryItemRecallEnvelope(), getMetaStatsForResults()
 
 ### Community 581 - "Community 581"
 Cohesion: 0.67
@@ -3595,19 +3595,19 @@ Nodes (0):
 
 ### Community 583 - "Community 583"
 Cohesion: 0.67
-Nodes (1): MetaMemoryIntrospectionService
+Nodes (0):
 
 ### Community 584 - "Community 584"
-Cohesion: 1.0
-Nodes (2): generateMemoryId(), rollbackToVersion()
+Cohesion: 0.67
+Nodes (1): MetaMemoryIntrospectionService
 
 ### Community 585 - "Community 585"
 Cohesion: 1.0
-Nodes (2): selectionWindowLimit(), selectMemoryReviewCandidates()
+Nodes (2): generateMemoryId(), rollbackToVersion()
 
 ### Community 586 - "Community 586"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): selectionWindowLimit(), selectMemoryReviewCandidates()
 
 ### Community 587 - "Community 587"
 Cohesion: 0.67
@@ -3634,24 +3634,24 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 593 - "Community 593"
-Cohesion: 1.0
-Nodes (2): mergeTripleLists(), tripleDedupeKey()
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 594 - "Community 594"
 Cohesion: 1.0
-Nodes (2): determineRelationLlmProvider(), isOllamaPreferredSlotAvailable()
+Nodes (2): mergeTripleLists(), tripleDedupeKey()
 
 ### Community 595 - "Community 595"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): determineRelationLlmProvider(), isOllamaPreferredSlotAvailable()
 
 ### Community 596 - "Community 596"
 Cohesion: 0.67
-Nodes (1): AgentIntegrationError
+Nodes (0):
 
 ### Community 597 - "Community 597"
 Cohesion: 0.67
-Nodes (0):
+Nodes (1): AgentIntegrationError
 
 ### Community 598 - "Community 598"
 Cohesion: 0.67
@@ -3662,16 +3662,16 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 600 - "Community 600"
-Cohesion: 1.0
-Nodes (2): compareToolResults(), testToolConsistency()
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 601 - "Community 601"
 Cohesion: 1.0
-Nodes (2): createQualityTables(), testQualityAssuranceE2E()
+Nodes (2): compareToolResults(), testToolConsistency()
 
 ### Community 602 - "Community 602"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): createQualityTables(), testQualityAssuranceE2E()
 
 ### Community 603 - "Community 603"
 Cohesion: 0.67
@@ -3682,47 +3682,47 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 605 - "Community 605"
+Cohesion: 0.67
+Nodes (0):
+
+### Community 606 - "Community 606"
 Cohesion: 1.0
 Nodes (2): listUstarGzipEntryPaths(), readTarString()
 
-### Community 606 - "Community 606"
+### Community 607 - "Community 607"
 Cohesion: 0.67
 Nodes (0):
-
-### Community 607 - "Community 607"
-Cohesion: 1.0
-Nodes (2): fetchJson(), testDockerServer()
 
 ### Community 608 - "Community 608"
 Cohesion: 1.0
-Nodes (2): fixTfidfDimensions(), loadVecExtension()
+Nodes (2): fetchJson(), testDockerServer()
 
 ### Community 609 - "Community 609"
 Cohesion: 1.0
-Nodes (2): main(), reappearanceRate()
+Nodes (2): fixTfidfDimensions(), loadVecExtension()
 
 ### Community 610 - "Community 610"
 Cohesion: 1.0
-Nodes (2): createBackup(), removeBenchmarkTestData()
+Nodes (2): main(), reappearanceRate()
 
 ### Community 611 - "Community 611"
 Cohesion: 1.0
-Nodes (2): createFingerprint(), normalizeMessage()
+Nodes (2): createBackup(), removeBenchmarkTestData()
 
 ### Community 612 - "Community 612"
 Cohesion: 1.0
-Nodes (2): limitUtf8Bytes(), sanitizeExcerpt()
+Nodes (2): createFingerprint(), normalizeMessage()
 
 ### Community 613 - "Community 613"
-Cohesion: 0.67
-Nodes (0):
+Cohesion: 1.0
+Nodes (2): limitUtf8Bytes(), sanitizeExcerpt()
 
 ### Community 614 - "Community 614"
 Cohesion: 0.67
 Nodes (0):
 
 ### Community 615 - "Community 615"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0):
 
 ### Community 616 - "Community 616"
@@ -6160,79 +6160,77 @@ Nodes (0):
 ## Knowledge Gaps
 - **3 isolated node(s):** `TimeoutError`, `FeedbackRepository`, `InjectionTimeoutError`
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 615`** (2 nodes): `afterAssistantTurn()`, `after-assistant-turn.ts`
+- **Thin community `Community 616`** (2 nodes): `afterAssistantTurn()`, `after-assistant-turn.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 616`** (2 nodes): `shouldAutoRecall()`, `auto-recall-policy.ts`
+- **Thin community `Community 617`** (2 nodes): `shouldAutoRecall()`, `auto-recall-policy.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 617`** (2 nodes): `rememberDispatch()`, `auto-remember-policy.ts`
+- **Thin community `Community 618`** (2 nodes): `rememberDispatch()`, `auto-remember-policy.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 618`** (2 nodes): `createTransportFromEnv()`, `factory.ts`
+- **Thin community `Community 619`** (2 nodes): `createTransportFromEnv()`, `factory.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 619`** (2 nodes): `test-basic.js`, `testBasicFunctionality()`
+- **Thin community `Community 620`** (2 nodes): `test-basic.js`, `testBasicFunctionality()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 620`** (2 nodes): `basicUsageExample()`, `basic-usage.ts`
+- **Thin community `Community 621`** (2 nodes): `basicUsageExample()`, `basic-usage.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 621`** (2 nodes): `advancedUsageExample()`, `advanced-usage.ts`
+- **Thin community `Community 622`** (2 nodes): `advancedUsageExample()`, `advanced-usage.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 622`** (2 nodes): `telemetry-cli.spec.ts`, `makeNullRunner()`
+- **Thin community `Community 623`** (2 nodes): `telemetry-cli.spec.ts`, `makeNullRunner()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 623`** (2 nodes): `readShellSources()`, `dashboard-memory-evolution-demo-shell.spec.ts`
+- **Thin community `Community 624`** (2 nodes): `readShellSources()`, `dashboard-memory-evolution-demo-shell.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 624`** (2 nodes): `readReviewCandidatesPanelSources()`, `dashboard-review-candidates-panel.spec.ts`
+- **Thin community `Community 625`** (2 nodes): `readReviewCandidatesPanelSources()`, `dashboard-review-candidates-panel.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 625`** (2 nodes): `server-factory.ts`, `createServerFactory()`
+- **Thin community `Community 626`** (2 nodes): `server-factory.ts`, `createServerFactory()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 626`** (2 nodes): `stdio-server-impl.ts`, `startStdioServer()`
+- **Thin community `Community 627`** (2 nodes): `stdio-server-impl.ts`, `startStdioServer()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 627`** (2 nodes): `simple-mcp-server.ts`, `startSimpleMcpServer()`
+- **Thin community `Community 628`** (2 nodes): `simple-mcp-server.ts`, `startSimpleMcpServer()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 628`** (2 nodes): `mapToolExecutionErrorToJsonRpc()`, `mcp-tool-call-error.ts`
+- **Thin community `Community 629`** (2 nodes): `mapToolExecutionErrorToJsonRpc()`, `mcp-tool-call-error.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 629`** (2 nodes): `tool-result.utils.ts`, `extractToolResultPayload()`
+- **Thin community `Community 630`** (2 nodes): `tool-result.utils.ts`, `extractToolResultPayload()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 630`** (2 nodes): `createAnchorSchema()`, `anchor-map.handler.spec.ts`
+- **Thin community `Community 631`** (2 nodes): `createAnchorSchema()`, `anchor-map.handler.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 631`** (2 nodes): `makeMocks()`, `admin-auth.middleware.spec.ts`
+- **Thin community `Community 632`** (2 nodes): `makeMocks()`, `admin-auth.middleware.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 632`** (2 nodes): `tool-context.middleware.ts`, `createToolContextMiddleware()`
+- **Thin community `Community 633`** (2 nodes): `tool-context.middleware.ts`, `createToolContextMiddleware()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 633`** (2 nodes): `session-auth.middleware.spec.ts`, `createMockResponse()`
+- **Thin community `Community 634`** (2 nodes): `session-auth.middleware.spec.ts`, `createMockResponse()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 634`** (2 nodes): `service-injector.middleware.ts`, `createServiceInjector()`
+- **Thin community `Community 635`** (2 nodes): `service-injector.middleware.ts`, `createServiceInjector()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 635`** (2 nodes): `createAdminAuthMiddleware()`, `admin-auth.middleware.ts`
+- **Thin community `Community 636`** (2 nodes): `createAdminAuthMiddleware()`, `admin-auth.middleware.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 636`** (2 nodes): `programmatic-auth.middleware.spec.ts`, `createMockResponse()`
+- **Thin community `Community 637`** (2 nodes): `programmatic-auth.middleware.spec.ts`, `createMockResponse()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 637`** (2 nodes): `session-store.ts`, `createSessionStore()`
+- **Thin community `Community 638`** (2 nodes): `session-store.ts`, `createSessionStore()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 638`** (2 nodes): `createAgentRouter()`, `agent.routes.ts`
+- **Thin community `Community 639`** (2 nodes): `createAgentRouter()`, `agent.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 639`** (2 nodes): `invoke()`, `agent-personal.routes.spec.ts`
+- **Thin community `Community 640`** (2 nodes): `invoke()`, `agent-personal.routes.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 640`** (2 nodes): `prepareEvent()`, `agent.routes.events.ts`
+- **Thin community `Community 641`** (2 nodes): `prepareEvent()`, `agent.routes.events.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 641`** (2 nodes): `createAdminRouter()`, `admin.routes.ts`
+- **Thin community `Community 642`** (2 nodes): `createAdminRouter()`, `admin.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 642`** (2 nodes): `tools.routes.ts`, `createToolsRouter()`
+- **Thin community `Community 643`** (2 nodes): `tools.routes.ts`, `createToolsRouter()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 643`** (2 nodes): `createApiRouter()`, `api.routes.ts`
+- **Thin community `Community 644`** (2 nodes): `createApiRouter()`, `api.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 644`** (2 nodes): `quality.routes.ts`, `createQualityRouter()`
+- **Thin community `Community 645`** (2 nodes): `quality.routes.ts`, `createQualityRouter()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 645`** (2 nodes): `registerAdminEvolutionDemoRoutes()`, `admin-evolution-demo.routes.ts`
+- **Thin community `Community 646`** (2 nodes): `registerAdminEvolutionDemoRoutes()`, `admin-evolution-demo.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 646`** (2 nodes): `registerAdminStatsAndHealthRoutes()`, `admin-stats-and-health.routes.ts`
+- **Thin community `Community 647`** (2 nodes): `registerAdminStatsAndHealthRoutes()`, `admin-stats-and-health.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 647`** (2 nodes): `buildGraphResponse()`, `admin-graph-response.ts`
+- **Thin community `Community 648`** (2 nodes): `buildGraphResponse()`, `admin-graph-response.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 648`** (2 nodes): `registerAdminToolRoutes()`, `admin-tools.routes.ts`
+- **Thin community `Community 649`** (2 nodes): `registerAdminToolRoutes()`, `admin-tools.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 649`** (2 nodes): `registerAdminBatchRoutes()`, `admin-batch.routes.ts`
+- **Thin community `Community 650`** (2 nodes): `registerAdminBatchRoutes()`, `admin-batch.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 650`** (2 nodes): `registerAdminGraphRoute()`, `admin-graph.routes.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 651`** (2 nodes): `registerAdminRelationRoutes()`, `admin-relations.routes.ts`
+- **Thin community `Community 651`** (2 nodes): `registerAdminGraphRoute()`, `admin-graph.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 652`** (2 nodes): `registerAdminRuntimePerformanceRoutes()`, `admin-runtime-performance.routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.

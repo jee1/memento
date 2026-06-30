@@ -71,13 +71,13 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
   /**
    * 테이블 분석
    */
-  private async analyzeTables(): Promise<Record<string, any>> {
+  private async analyzeTables(): Promise<DatabaseStats['tableStats']> {
     const tables = await DatabaseUtils.all(this.db, `
       SELECT name FROM sqlite_master 
       WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
     `);
 
-    const stats: Record<string, any> = {};
+    const stats: DatabaseStats['tableStats'] = {};
 
     for (const table of tables as Array<{ name: string }>) {
       const tableName = table.name;
@@ -119,14 +119,14 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
   /**
    * 인덱스 분석
    */
-  private async analyzeIndexes(): Promise<Record<string, any>> {
+  private async analyzeIndexes(): Promise<DatabaseStats['indexStats']> {
     const indexes = await DatabaseUtils.all(this.db, `
       SELECT name, tbl_name, sql 
       FROM sqlite_master 
       WHERE type = 'index' AND name NOT LIKE 'sqlite_%'
     `);
 
-    const stats: Record<string, any> = {};
+    const stats: DatabaseStats['indexStats'] = {};
 
     for (const index of indexes as Array<{ name: string; tbl_name: string; sql: string | null }>) {
       // 인덱스 크기 (간단한 추정 - 인덱스는 테이블이 아니므로 페이지 정보를 직접 가져올 수 없음)
@@ -154,7 +154,7 @@ export class DatabaseOptimizer implements IDatabaseOptimizer {
   /**
    * 쿼리 분석
    */
-  private async analyzeQueries(): Promise<any> {
+  private async analyzeQueries(): Promise<DatabaseStats['queryStats']> {
     const totalQueries = Array.from(this.queryHistory.values())
       .reduce((sum, q) => sum + q.count, 0);
     

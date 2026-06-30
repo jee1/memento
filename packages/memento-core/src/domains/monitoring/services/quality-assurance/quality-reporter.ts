@@ -294,7 +294,7 @@ export class QualityReporter {
         this.db,
         'SELECT metrics FROM quality_measurement_history WHERE id = ?',
         [h.id]
-      ) as any;
+      ) as { metrics?: string } | undefined;
 
       if (fullRecord && fullRecord.metrics) {
         try {
@@ -792,4 +792,3 @@ export class QualityReporter {
     }
   }
 }
-

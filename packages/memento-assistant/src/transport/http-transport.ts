@@ -1,11 +1,20 @@
 // packages/memento-assistant/src/transport/http-transport.ts
 import { MementoClient } from '@memento/client';
-import type { Transport, RecallResult, RememberParams, RememberResult } from './transport.js';
+import type { CreateMemoryParams, RememberResult as ClientRememberResult, SearchFilters } from '@memento/client';
+import type { Transport, RecallParams, RecallResult, RememberParams, RememberResult } from './transport.js';
 
 export interface HttpTransportOptions {
   baseUrl: string;
   token?: string;
 }
+
+type AssistantCreateMemoryParams = CreateMemoryParams & {
+  update_existing?: { id: string };
+};
+
+type ClientRememberResultWithLegacyId = ClientRememberResult & {
+  id?: string;
+};
 
 export class HttpTransport implements Transport {
   private client: MementoClient;
@@ -27,26 +36,24 @@ export class HttpTransport implements Transport {
     return this.connecting;
   }
 
-  async recall(query: string, filters?: any, limit?: number): Promise<RecallResult> {
+  async recall(query: string, filters?: RecallParams['filters'], limit?: number): Promise<RecallResult> {
     if (!this.connected) await this.connect();
-    // filters shape from Transport ({ tags?, ownerId?, type? }) is a subset of
-    // MementoClient SearchFilters; pass through with `as any` to avoid type friction
-    const r = await this.client.recall(query, filters as any, limit);
+    const r = await this.client.recall(query, toClientSearchFilters(filters), limit);
     return { items: r.items };
   }
 
   async remember(params: RememberParams): Promise<RememberResult> {
     if (!this.connected) await this.connect();
-    const r = await this.client.remember({
+    const createParams: AssistantCreateMemoryParams = {
       content: params.content,
       type: params.type,
       tags: params.tags,
       importance: params.importance,
-      // update_existing is not in CreateMemoryParams — cast to any
       ...(params.updateExisting ? { update_existing: { id: params.updateExisting.id } } : {}),
-    } as any);
+    };
+    const r: ClientRememberResultWithLegacyId = await this.client.remember(createParams);
     // MementoClient RememberResult uses memory_id; Transport RememberResult uses id
-    return { id: (r as any).memory_id ?? (r as any).id };
+    return { id: r.memory_id ?? r.id ?? '' };
   }
 
   async close(): Promise<void> {
@@ -54,4 +61,19 @@ export class HttpTransport implements Transport {
     try { await this.client.disconnect(); } catch { /* ignore */ }
     this.connected = false;
   }
+}
+
+function toClientSearchFilters(filters: RecallParams['filters']): SearchFilters | undefined {
+  if (!filters) return undefined;
+  const out: SearchFilters = {
+    tags: filters.tags,
+  };
+  if (filters.type) {
+    out.type = filters.type.filter(isClientMemoryType);
+  }
+  return out;
+}
+
+function isClientMemoryType(type: string): type is NonNullable<SearchFilters['type']>[number] {
+  return type === 'working' || type === 'episodic' || type === 'semantic' || type === 'procedural';
 }

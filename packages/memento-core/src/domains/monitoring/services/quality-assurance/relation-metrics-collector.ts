@@ -3,7 +3,12 @@ import { logger } from '../../../../shared/utils/logger.js';
 import {
   RelationQualityValidator,
 } from '../../../relation/services/relation-quality-validator.js';
+import { ALL_RELATION_TYPES, type RelationType } from '../../../../shared/types/relation.js';
 import type { CollectedMetrics, RelationMetricsOptions } from './quality-metrics-types.js';
+
+function isRelationType(value: string): value is RelationType {
+  return (ALL_RELATION_TYPES as readonly string[]).includes(value);
+}
 
 export class RelationMetricsCollector {
   constructor(private db: Database.Database) {}
@@ -29,12 +34,12 @@ export class RelationMetricsCollector {
           confidence: number | null;
         }>;
 
-        extractedRelations = relationsResult.map(r => ({
+        extractedRelations = relationsResult.flatMap(r => isRelationType(r.relation_type) ? [{
           source_id: r.source_id,
           target_id: r.target_id,
-          relation_type: r.relation_type as any,
+          relation_type: r.relation_type,
           confidence: r.confidence || 0
-        }));
+        }] : []);
 
         if (extractedRelations.length > 0) {
           logger.info('추출된 관계 자동 조회 완료', {
@@ -83,7 +88,7 @@ export class RelationMetricsCollector {
       }
 
       // 메타데이터에 관계 유형별 정확도 포함
-      const metadata: Record<string, any> = {
+      const metadata: Record<string, unknown> = {
         has_ground_truth: true,
         expected_relations_count: expectedRelations.length,
         extracted_relations_count: extractedRelations.length,

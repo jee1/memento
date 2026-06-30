@@ -42,6 +42,12 @@ export interface CoreMemoryCache {
   size(): number;
 }
 
+interface VersionedCoreMemoryCache extends CoreMemoryCache {
+  getWithVersion?(key: string): { version: number; record: CoreMemoryRecord } | undefined;
+  invalidateByVersion?(key: string, version: number): void;
+  invalidate?(key: string, reason: string): void;
+}
+
 export interface CreateCoreMemoryServiceInput {
   agent_id?: string;
   key: string;
@@ -69,11 +75,11 @@ function generateCoreId(): string {
  * Core Memory Service
  */
 export class CoreMemoryService {
-  private cache: CoreMemoryCache | null = null;
+  private cache: VersionedCoreMemoryCache | null = null;
 
   constructor(
     private repository: CoreMemoryRepository,
-    cache?: CoreMemoryCache
+    cache?: VersionedCoreMemoryCache
   ) {
     this.cache = cache || null;
   }
@@ -81,7 +87,7 @@ export class CoreMemoryService {
   /**
    * 캐시 서비스 설정
    */
-  setCache(cache: CoreMemoryCache): void {
+  setCache(cache: VersionedCoreMemoryCache): void {
     this.cache = cache;
   }
 
@@ -137,7 +143,7 @@ export class CoreMemoryService {
     
     // 캐시에서 먼저 조회
     if (this.cache) {
-      const cachedEntry = (this.cache as any).getWithVersion?.(cacheKey);
+      const cachedEntry = this.cache.getWithVersion?.(cacheKey);
       if (cachedEntry) {
         // DB에서 최신 버전 조회하여 비교
         const dbRecord = await this.repository.findByKey(agent_id, key);
@@ -151,7 +157,7 @@ export class CoreMemoryService {
         // 버전 비교: DB 버전이 캐시 버전보다 높으면 캐시 무효화 및 재로드
         if (dbRecord.version > cachedEntry.version) {
           // 캐시 무효화
-          (this.cache as any).invalidateByVersion?.(cacheKey, dbRecord.version);
+          this.cache.invalidateByVersion?.(cacheKey, dbRecord.version);
           
           // always_load=true인 경우 캐시에 재로드
           if (dbRecord.always_load) {
@@ -234,7 +240,7 @@ export class CoreMemoryService {
       const cacheKey = this.getCacheKey(updated.agent_id, updated.key);
       
       // 캐시 무효화 (버전이 증가했으므로)
-      (this.cache as any).invalidate?.(cacheKey, 'update');
+      this.cache.invalidate?.(cacheKey, 'update');
       
       if (updated.always_load) {
         // always_load=true인 경우 캐시에 재로드 (새로운 버전)
@@ -270,7 +276,7 @@ export class CoreMemoryService {
       const cacheKey = this.getCacheKey(agent_id, key);
       
       // 캐시 무효화 (버전이 증가했으므로)
-      (this.cache as any).invalidate?.(cacheKey, 'updateByKey');
+      this.cache.invalidate?.(cacheKey, 'updateByKey');
       
       if (updated.always_load) {
         // always_load=true인 경우 캐시에 재로드 (새로운 버전)
@@ -296,7 +302,7 @@ export class CoreMemoryService {
     // 캐시에서도 제거 (무효화)
     if (deleted && this.cache) {
       const cacheKey = this.getCacheKey(existing.agent_id, existing.key);
-      (this.cache as any).invalidate?.(cacheKey, 'delete');
+      this.cache.invalidate?.(cacheKey, 'delete');
     }
 
     return deleted;
@@ -316,7 +322,7 @@ export class CoreMemoryService {
     // 캐시에서도 제거 (무효화)
     if (deleted && this.cache) {
       const cacheKey = this.getCacheKey(agent_id, key);
-      (this.cache as any).invalidate?.(cacheKey, 'deleteByKey');
+      this.cache.invalidate?.(cacheKey, 'deleteByKey');
     }
 
     return deleted;
@@ -335,7 +341,7 @@ export class CoreMemoryService {
       for (const record of cached) {
         if (record.agent_id === agent_id) {
           const cacheKey = this.getCacheKey(agent_id, record.key);
-          (this.cache as any).invalidate?.(cacheKey, 'deleteByAgentId');
+          this.cache.invalidate?.(cacheKey, 'deleteByAgentId');
         }
       }
     }
@@ -382,4 +388,3 @@ export class CoreMemoryService {
     }
   }
 }
-

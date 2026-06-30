@@ -9,6 +9,11 @@ import type { ISearchResultCombiner, HybridSearchResult } from './hybrid-search-
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 
+type HybridSearchResultWithAttribution = HybridSearchResult & {
+  process_id?: string;
+  session_id?: string;
+};
+
 /**
  * 검색 결과를 결합하는 클래스
  * 
@@ -35,7 +40,7 @@ export class SearchResultCombiner implements ISearchResultCombiner {
     textResults.forEach((rawResult) => {
       const result = rawResult as { id: string; content: string; type: string; importance: number; created_at: string; last_accessed: string; pinned: number | boolean; tags: string[]; score?: number; recall_reason?: string; project_id?: string; owner_id?: string; process_id?: string; session_id?: string };
       const textScore = typeof result.score === 'number' ? result.score : HYBRID_SEARCH.DEFAULT_TEXT_WEIGHT * 0; // 0
-      const entry: HybridSearchResult = {
+      const entry: HybridSearchResultWithAttribution = {
         id: result.id,
         content: result.content,
         type: result.type,
@@ -53,8 +58,8 @@ export class SearchResultCombiner implements ISearchResultCombiner {
       if (result.project_id !== undefined) entry.project_id = result.project_id;
       // 기타 extended 필드 전달
       if (result.owner_id !== undefined) entry.owner_id = result.owner_id;
-      if (result.process_id !== undefined) (entry as any).process_id = result.process_id;
-      if (result.session_id !== undefined) (entry as any).session_id = result.session_id;
+      if (result.process_id !== undefined) entry.process_id = result.process_id;
+      if (result.session_id !== undefined) entry.session_id = result.session_id;
       resultMap.set(result.id, entry);
     });
 

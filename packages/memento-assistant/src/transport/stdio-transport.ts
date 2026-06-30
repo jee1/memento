@@ -1,7 +1,7 @@
 // packages/memento-assistant/src/transport/stdio-transport.ts
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import type { Transport, RecallResult, RememberParams, RememberResult } from './transport.js';
+import type { Transport, RecallParams, RecallResult, RememberParams, RememberResult } from './transport.js';
 
 export interface StdioTransportOptions {
   command: string;
@@ -32,7 +32,7 @@ export class StdioTransport implements Transport {
       try {
         await client.connect(inner);
       } catch (err) {
-        try { await (inner as any).close?.(); } catch { /* ignore */ }
+        try { await inner.close(); } catch { /* ignore */ }
         throw err;
       }
       this.inner = inner;
@@ -42,23 +42,21 @@ export class StdioTransport implements Transport {
     return this.connecting;
   }
 
-  async recall(query: string, filters?: any, limit?: number): Promise<RecallResult> {
+  async recall(query: string, filters?: RecallParams['filters'], limit?: number): Promise<RecallResult> {
     if (!this.connected) await this.connect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r = await this.client!.callTool({
       name: 'recall',
       arguments: { query, ...(filters ?? {}), limit },
-    }) as any; // SDK return type is a Zod-inferred object; cast to avoid structural mismatch
+    });
     return parseToolJson<RecallResult>(r) ?? { items: [] };
   }
 
   async remember(params: RememberParams): Promise<RememberResult> {
     if (!this.connected) await this.connect();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r = await this.client!.callTool({
       name: 'remember',
-      arguments: params as any, // RememberParams lacks index signature required by SDK
-    }) as any; // SDK return type is a Zod-inferred object; cast to avoid structural mismatch
+      arguments: { ...params },
+    });
     const out = parseToolJson<RememberResult>(r);
     if (!out) throw new Error('memento remember: empty response');
     return out;
@@ -73,12 +71,33 @@ export class StdioTransport implements Transport {
   }
 }
 
-function parseToolJson<T>(resp: { content?: Array<{ type: string; json?: unknown; text?: string }> }): T | null {
-  for (const part of resp.content ?? []) {
+function parseToolJson<T>(resp: unknown): T | null {
+  const content = getToolResponseContent(resp);
+  for (const part of content) {
     if (part.type === 'json' && part.json !== undefined) return part.json as T;
     if (part.type === 'text' && part.text) {
       try { return JSON.parse(part.text) as T; } catch { /* continue */ }
     }
   }
   return null;
+}
+
+function getToolResponseContent(resp: unknown): Array<{ type: string; json?: unknown; text?: string }> {
+  if (typeof resp !== 'object' || resp === null || !('content' in resp)) {
+    return [];
+  }
+  const content = (resp as { content?: unknown }).content;
+  if (!Array.isArray(content)) {
+    return [];
+  }
+  return content.flatMap((part) => {
+    if (typeof part !== 'object' || part === null) return [];
+    const candidate = part as { type?: unknown; json?: unknown; text?: unknown };
+    if (typeof candidate.type !== 'string') return [];
+    return [{
+      type: candidate.type,
+      json: candidate.json,
+      ...(typeof candidate.text === 'string' ? { text: candidate.text } : {})
+    }];
+  });
 }

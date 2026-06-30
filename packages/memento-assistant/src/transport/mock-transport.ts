@@ -1,9 +1,9 @@
 // packages/memento-assistant/src/transport/mock-transport.ts
-import type { Transport, RecallResult, RememberParams, RememberResult } from './transport.js';
+import type { Transport, RecallParams, RecallResult, RememberParams, RememberResult } from './transport.js';
 
 export class MockTransport implements Transport {
   rememberCalls: RememberParams[] = [];
-  recallCalls: { query: string; filters?: any; limit?: number }[] = [];
+  recallCalls: { query: string; filters?: RecallParams['filters']; limit?: number }[] = [];
   closed = false;
   private fixtures = new Map<string, { content: string; type: string; importance?: number; score?: number }>();
   private nextRecallError: Error | null = null;
@@ -16,7 +16,7 @@ export class MockTransport implements Transport {
   throwOnNextRecall(err: Error) { this.nextRecallError = err; }
   throwOnNextRemember(err: Error) { this.nextRememberError = err; }
 
-  async recall(query: string, filters?: any, limit?: number): Promise<RecallResult> {
+  async recall(query: string, filters?: RecallParams['filters'], limit?: number): Promise<RecallResult> {
     this.recallCalls.push({ query, filters, limit });
     if (this.nextRecallError) {
       const e = this.nextRecallError; this.nextRecallError = null; throw e;

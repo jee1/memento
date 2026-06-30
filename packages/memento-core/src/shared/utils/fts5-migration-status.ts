@@ -14,6 +14,10 @@ export type FTS5MigrationStatus = 'pending' | 'in_progress' | 'completed' | 'fai
 
 const MIGRATION_KEY = 'fts5-reflection-notes';
 
+function cacheMigrationStatus(status: FTS5MigrationStatus): void {
+  mementoConfig.fts5MigrationStatus = status;
+}
+
 /**
  * 마이그레이션 상태 테이블 초기화
  * 테이블이 없으면 생성하고, 초기 상태 'pending' 삽입
@@ -169,7 +173,7 @@ export function setMigrationStatus(
     }
 
     // Config 캐시 업데이트
-    (mementoConfig as any).fts5MigrationStatus = status;
+    cacheMigrationStatus(status);
   } catch (error) {
     throw new Error(
       `마이그레이션 상태 업데이트 실패: ${error instanceof Error ? error.message : String(error)}`
@@ -219,12 +223,12 @@ function isValidStatusTransition(
 export function loadMigrationStatusToConfig(db: Database.Database): void {
   try {
     const status = getMigrationStatus(db);
-    (mementoConfig as any).fts5MigrationStatus = status;
+    cacheMigrationStatus(status);
   } catch (error) {
     // 로드 실패 시 기본값 설정
     const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
     console.warn('마이그레이션 상태 로드 실패, 기본값 사용:', maskedError.message);
-    (mementoConfig as any).fts5MigrationStatus = 'pending';
+    cacheMigrationStatus('pending');
   }
 }
 
@@ -343,7 +347,6 @@ export function forceSetMigrationStatus(
 
   if (updateSql) {
     DatabaseUtils.run(db, updateSql, params);
-    (mementoConfig as any).fts5MigrationStatus = status;
+    cacheMigrationStatus(status);
   }
 }
-

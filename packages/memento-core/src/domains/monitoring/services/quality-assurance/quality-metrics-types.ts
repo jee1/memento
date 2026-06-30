@@ -27,7 +27,7 @@ export interface CollectedMetrics {
   /**
    * 메타데이터 (선택적)
    */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SearchQualityMetrics {
