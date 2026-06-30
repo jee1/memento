@@ -24,7 +24,7 @@ export interface DependencyValidationResult {
   /**
    * 검증 상세 정보
    */
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -366,4 +366,3 @@ export class DependencyValidator {
     }
   }
 }
-

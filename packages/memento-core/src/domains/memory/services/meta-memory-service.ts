@@ -299,7 +299,7 @@ export class MetaMemoryService {
         WHERE memory_id = ?
       `);
 
-      const row = stmt.get(memoryId) as any;
+      const row = stmt.get(memoryId) as MetaMemoryStatsRow | undefined;
 
       if (!row) {
         // 기본값 반환

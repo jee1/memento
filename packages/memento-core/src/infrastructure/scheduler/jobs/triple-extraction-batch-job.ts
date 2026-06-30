@@ -27,6 +27,12 @@ import { logger } from '../../../shared/utils/logger.js';
 import { createRelationGraph } from '../../relation-graph-factory.js';
 import type { BatchJobResult } from '../batch-scheduler.js';
 
+function getErrorCode(error: unknown): unknown {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? error.code
+    : undefined;
+}
+
 /**
  * Triple 추출 배치 작업 설정
  */
@@ -493,7 +499,7 @@ export class TripleExtractionBatchJob {
             // 성공 상태 업데이트 (트랜잭션 내부)
             const confidenceAvg = await this.calculateAverageConfidence(db, memory.id);
             
-            const successMetadata: Record<string, any> = {
+            const successMetadata: Record<string, unknown> = {
               triple_count: extractionResult.triples.length,
               extracted_at: new Date().toISOString()
             };
@@ -583,7 +589,7 @@ export class TripleExtractionBatchJob {
         logger.error('Error processing episodic memory in batch job', {
           memory_id: memory.id,
           error: error instanceof Error ? error.message : String(error),
-          error_code: (error as any)?.code
+          error_code: getErrorCode(error)
         });
       }
     }
@@ -772,7 +778,7 @@ export class TripleExtractionBatchJob {
     db: Database.Database,
     memoryId: string,
     status: 'success' | 'failed' | 'abandoned',
-    metadata: Record<string, any>
+    metadata: Record<string, unknown>
   ): Promise<void> {
     // 필드 조합 규칙에 따른 triple_extracted boolean 동기화
     // PRD 1.4 필드 조합 규칙 준수:
@@ -857,4 +863,3 @@ export class TripleExtractionBatchJob {
     }
   }
 }
-

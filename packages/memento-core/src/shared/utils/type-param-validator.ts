@@ -13,6 +13,11 @@ export type TypeParamMode = 'warn' | 'deprecate' | 'error';
  * MemoryTypeRequest: 'working' | 'episodic' | 'semantic' | 'procedural' | 'core' | 'vault'
  */
 const VALID_MEMORY_TYPES = ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'] as const;
+type ValidMemoryType = typeof VALID_MEMORY_TYPES[number];
+
+function isValidMemoryType(type: string): type is ValidMemoryType {
+  return (VALID_MEMORY_TYPES as readonly string[]).includes(type);
+}
 
 export interface TypeParamValidationResult {
   isValid: boolean;
@@ -38,7 +43,7 @@ export function validateTypeParam(
   if (type !== undefined && type !== null && type !== '') {
     // whitelist 검증: 지원되는 타입인지 확인
     const normalizedType = type.toLowerCase().trim();
-    if (!VALID_MEMORY_TYPES.includes(normalizedType as any)) {
+    if (!isValidMemoryType(normalizedType)) {
       return {
         isValid: false,
         mode: 'error',
@@ -205,4 +210,3 @@ export function validateProceduralMemoryFields(params: {
   // trigger_conditions JSON 검증
   validateTriggerConditions(params.trigger_conditions);
 }
-

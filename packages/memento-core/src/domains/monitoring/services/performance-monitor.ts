@@ -32,6 +32,13 @@ export type {
   PerformanceMetrics
 } from './performance-monitor-types.js';
 
+export type PerformanceMetricsSnapshot = PerformanceMetrics & {
+  system: {
+    cpuUsage: number;
+    memoryUsage: number;
+  };
+};
+
 export class PerformanceMonitor implements CpuUsageHost {
   private db: Database.Database | null = null;
   private alertManager: PerformanceAlertManager;
@@ -88,7 +95,7 @@ export class PerformanceMonitor implements CpuUsageHost {
    * tick=true: 스케줄된 모니터링 호출 — scheduled baseline을 갱신하고 lastCpuPercent를 기록합니다.
    * tick=false(기본): 온디맨드 읽기 — on-demand baseline만 갱신하여 scheduled baseline과 간섭하지 않습니다.
    */
-  async collectMetrics(options?: { tick?: boolean }): Promise<any> {
+  async collectMetrics(options?: { tick?: boolean }): Promise<PerformanceMetricsSnapshot> {
     const tick = options?.tick ?? false;
     const startTime = Date.now();
 
@@ -104,7 +111,7 @@ export class PerformanceMonitor implements CpuUsageHost {
     const memoryUsagePercent = memoryRatioToPercent(memUsage.rss, getMemoryPressureDenominatorBytes());
     const cpuUsagePercent = this.calculateCpuUsage(tick);
 
-    const metrics: PerformanceMetrics = {
+    const metrics: PerformanceMetricsSnapshot = {
       timestamp: new Date(),
       database: dbMetricsForPerformance,
       memory: {
@@ -118,6 +125,10 @@ export class PerformanceMonitor implements CpuUsageHost {
         user: this.latestCpuSnapshot.user,
         system: this.latestCpuSnapshot.system,
         percent: cpuUsagePercent
+      },
+      system: {
+        cpuUsage: cpuUsagePercent,
+        memoryUsage: memUsage.rss
       },
       uptime: process.uptime(),
       search: {
@@ -168,7 +179,7 @@ export class PerformanceMonitor implements CpuUsageHost {
     return this.alertManager.resolveAlert(alertId);
   }
 
-  async getMetrics(): Promise<any> {
+  async getMetrics(): Promise<PerformanceMetricsSnapshot> {
     return await this.collectMetrics();
   }
 

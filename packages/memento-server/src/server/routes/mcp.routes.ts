@@ -33,7 +33,27 @@ export interface SSETransport {
 type McpRequestMessage = {
   id?: unknown;
   method?: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
+};
+
+type MemoryResourceListRow = {
+  id: string;
+};
+
+type MemoryResourceData = {
+  id: string;
+  type: string;
+  content: string;
+  importance: number;
+  privacy_scope: string;
+  tags: unknown[];
+  source: string | null;
+  created_at: string;
+  last_accessed: string | null;
+  pinned: boolean;
+  neighbors?: unknown[];
+  neighbors_count?: number;
+  neighbors_query_time?: number;
 };
 
 type JsonRpcResponse = {
@@ -131,6 +151,10 @@ async function processMcpMessage(
 
   if (message.method === 'tools/call') {
     const { name, arguments: args } = message.params ?? {};
+
+    if (typeof name !== 'string') {
+      return createJsonRpcError(message.id, -32602, 'Invalid params', 'Tool name is required');
+    }
 
     if (!serverServices) {
       return createJsonRpcError(message.id, -32603, 'Internal error', '서비스가 초기화되지 않았습니다');
@@ -268,13 +292,13 @@ async function processMcpMessage(
     }
 
     try {
-      const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000');
+      const memories = await DatabaseUtils.all(db, 'SELECT id FROM memory_item ORDER BY created_at DESC LIMIT 1000') as MemoryResourceListRow[];
 
       return {
         jsonrpc: '2.0',
         id: message.id,
         result: {
-          resources: memories.map((memory: any) => ({
+          resources: memories.map((memory) => ({
             uri: `memory://${memory.id}`,
             name: `Memory ${memory.id}`,
             description: `Memory item with ID: ${memory.id}`,
@@ -300,7 +324,7 @@ async function processMcpMessage(
 
     const { uri } = message.params ?? {};
 
-    if (!uri) {
+    if (typeof uri !== 'string' || uri.length === 0) {
       return createJsonRpcError(message.id, -32602, 'Invalid params', 'URI parameter is required');
     }
 
@@ -343,7 +367,7 @@ async function processMcpMessage(
         return createJsonRpcError(message.id, -32602, 'Invalid params', `Memory not found: ${memoryId}`);
       }
 
-      const memoryData: any = {
+      const memoryData: MemoryResourceData = {
         id: memory.id,
         type: memory.type,
         content: memory.content,

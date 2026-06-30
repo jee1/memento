@@ -24,6 +24,7 @@ ListToolsRequestSchema,
 ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from 'better-sqlite3';
+import type { Server as HttpServer } from 'node:http';
 import packageJson from '../../package.json' with { type: 'json' };
 import { mcpLogger } from './mcp-logger.js';
 import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
@@ -34,7 +35,7 @@ import { releaseLock } from './utils/instance-lock.js';
 let server: Server;
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
-let mgmtHttpServer: any = null; // 타입 추론 간소화
+let mgmtHttpServer: HttpServer | null = null;
 
 const serverState = ServerState.getInstance();
 serverState.setMcpServerInitialized(false);
@@ -71,12 +72,16 @@ const concurrencyLimiter = new Semaphore(20);
 // process.stderr.write 가드 (Issue #179 방어)
 // Node 20+에서 stderr.write(undefined/null) 호출 시 발생하는 ERR_INVALID_ARG_TYPE 방지
 const originalStderrWrite = process.stderr.write.bind(process.stderr);
-process.stderr.write = ((chunk: any, encoding?: any, cb?: any) => {
+const guardedStderrWrite = ((chunk: unknown, encoding?: BufferEncoding | ((err?: Error | null) => void), cb?: (err?: Error | null) => void) => {
   if (chunk === undefined || chunk === null) {
     return true;
   }
-  return originalStderrWrite(chunk, encoding, cb);
-}) as any;
+  if (typeof encoding === 'function') {
+    return originalStderrWrite(chunk as string | Uint8Array, encoding);
+  }
+  return originalStderrWrite(chunk as string | Uint8Array, encoding, cb);
+}) as typeof process.stderr.write;
+process.stderr.write = guardedStderrWrite;
 
 // 서버 지침
 const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors, extract_triples).`;
@@ -161,8 +166,9 @@ export async function startServer() {
       process.on('SIGINT', () => handleShutdown('SIGINT'));
       process.on('SIGTERM', () => handleShutdown('SIGTERM'));
     });
-  } catch (error: any) {
-    process.stderr.write(`\n[ERROR] MCP Server Start Failed: ${error.message}\n`);
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    process.stderr.write(`\n[ERROR] MCP Server Start Failed: ${err.message}\n`);
     process.exit(1);
   }
 }
@@ -230,7 +236,7 @@ export const __test = {
 };
 
 // Global error handlers
-process.on('uncaughtException', (error: any) => {
+process.on('uncaughtException', (error: Error) => {
   process.stderr.write(`\n[FATAL ERROR] Uncaught Exception: ${error.message}\n`);
   cleanup().then(() => process.exit(1));
 });
@@ -248,8 +254,9 @@ const isMainModule = currentFileName === 'index.js' || (scriptPath && (scriptPat
 if (isMainModule) {
   const factory = createServerFactory();
   const srv = factory.createServerFromEnv();
-  srv.start().catch((error: any) => {
-    process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${error.message}\n`);
+  srv.start().catch((error: unknown) => {
+    const err = error instanceof Error ? error : new Error(String(error));
+    process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
     process.exit(1);
   });
 }

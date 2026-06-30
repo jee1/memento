@@ -733,7 +733,7 @@ export const __test: {
   setTestDependencies: (deps: TestDependencies) => void;
   initializeServer: () => Promise<void>;
   getApp: () => express.Application;
-  getServer: () => any;
+  getServer: () => typeof server;
   getDatabase: () => Database.Database | null;
   getSearchEngine: () => ServerServices['searchEngine'];
   getHybridSearchEngine: () => ServerServices['hybridSearchEngine'];

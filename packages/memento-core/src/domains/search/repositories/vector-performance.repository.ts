@@ -44,7 +44,7 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
         ? tableStatement.all()
         : [];
       const tableCheck = Array.isArray(tableRows)
-        ? (tableRows as Array<{ name: string; type: string }>)
+        ? tableRows.filter(isSqliteTableRow)
         : [];
 
       if (tableCheck.length === 0) {
@@ -54,9 +54,7 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
 
       // VEC 함수 사용 가능 여부 확인
       try {
-        const testTableEntry = tableCheck.find((table): table is { name: string; type: string } => 
-          typeof table === 'object' && table !== null && typeof (table as any).name === 'string'
-        );
+        const testTableEntry = tableCheck.find(isSqliteTableRow);
         const testTable = testTableEntry?.name ?? 'memory_item_vec_tfidf';
         const testStatement = this.db.prepare(`
           SELECT distance FROM ${testTable} 
@@ -137,7 +135,7 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
   /**
    * 실제 검색 실행 (성능 테스트용)
    */
-  private async executeSearch(queryVector: number[]): Promise<any[]> {
+  private async executeSearch(queryVector: number[]): Promise<Array<{ memory_id: string | number; similarity: number }>> {
     if (!this.db) return [];
 
     try {
@@ -159,9 +157,20 @@ export class VectorPerformanceRepositoryImpl implements VectorPerformanceReposit
         return [];
       }
       const rawResults = statement.all(JSON.stringify(queryVector));
-      return Array.isArray(rawResults) ? rawResults : [];
+      return Array.isArray(rawResults) ? rawResults.filter(isVectorPerformanceRow) : [];
     } catch (error) {
       throw new Error(`검색 실행 실패: ${error}`);
     }
   }
+}
+
+function isSqliteTableRow(row: unknown): row is { name: string } {
+  return typeof row === 'object' && row !== null && typeof (row as { name?: unknown }).name === 'string';
+}
+
+function isVectorPerformanceRow(row: unknown): row is { memory_id: string | number; similarity: number } {
+  if (typeof row !== 'object' || row === null) return false;
+  const candidate = row as { memory_id?: unknown; similarity?: unknown };
+  return (typeof candidate.memory_id === 'string' || typeof candidate.memory_id === 'number')
+    && typeof candidate.similarity === 'number';
 }

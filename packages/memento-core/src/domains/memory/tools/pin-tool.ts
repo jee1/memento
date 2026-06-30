@@ -20,6 +20,20 @@ const PinSchema = z.object({
   message: "id 또는 batch 중 하나는 필수입니다"
 });
 
+type MemoryPinRow = {
+  id: string;
+  content?: string;
+  type?: string;
+  importance?: number;
+  created_at?: string;
+  last_accessed?: string | null;
+  pinned?: boolean | number;
+};
+
+type PinStats = Record<string, unknown> & {
+  recent_pins: unknown[];
+};
+
 export class PinTool extends BaseTool {
   constructor() {
     super(
@@ -131,7 +145,7 @@ export class PinTool extends BaseTool {
       
     } catch (error) {
       // 데이터베이스 락 문제 처리
-      if ((error as any).code === 'SQLITE_BUSY') {
+      if (getErrorCode(error) === 'SQLITE_BUSY') {
         await this.handleDatabaseLock(context);
       }
       throw error;
@@ -189,25 +203,25 @@ export class PinTool extends BaseTool {
   /**
    * 기억 조회
    */
-  private async getMemoryById(id: string, context: ToolContext): Promise<any> {
+  private async getMemoryById(id: string, context: ToolContext): Promise<MemoryPinRow | undefined> {
     return await DatabaseUtils.get(
       context.db!,
       'SELECT * FROM memory_item WHERE id = ?',
       [id]
-    );
+    ) as MemoryPinRow | undefined;
   }
 
   /**
    * 여러 기억 일괄 조회 (N+1 완화)
    */
-  private async getMemoriesByIds(ids: string[], context: ToolContext): Promise<Map<string, any>> {
+  private async getMemoriesByIds(ids: string[], context: ToolContext): Promise<Map<string, MemoryPinRow>> {
     if (ids.length === 0) return new Map();
     const placeholders = ids.map(() => '?').join(',');
     const rows = await DatabaseUtils.all(
       context.db!,
       `SELECT * FROM memory_item WHERE id IN (${placeholders})`,
       ids
-    ) as any[];
+    ) as MemoryPinRow[];
     return new Map(rows.map((r) => [r.id, r]));
   }
 
@@ -253,7 +267,7 @@ export class PinTool extends BaseTool {
   /**
    * 고정된 기억 목록 조회
    */
-  async getPinnedMemories(context: ToolContext, limit: number = 50): Promise<any[]> {
+  async getPinnedMemories(context: ToolContext, limit: number = 50): Promise<MemoryPinRow[]> {
     this.validateDatabase(context);
     
     return await DatabaseUtils.all(
@@ -264,13 +278,13 @@ export class PinTool extends BaseTool {
        ORDER BY importance DESC, created_at DESC 
        LIMIT ?`,
       [limit]
-    );
+    ) as MemoryPinRow[];
   }
 
   /**
    * 고정 통계 조회
    */
-  async getPinStats(context: ToolContext): Promise<any> {
+  async getPinStats(context: ToolContext): Promise<PinStats> {
     this.validateDatabase(context);
     
     const stats = await DatabaseUtils.get(
@@ -297,4 +311,10 @@ export class PinTool extends BaseTool {
       recent_pins: recentPins
     };
   }
+}
+
+function getErrorCode(error: unknown): unknown {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? error.code
+    : undefined;
 }

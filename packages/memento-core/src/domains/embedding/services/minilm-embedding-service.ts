@@ -18,6 +18,16 @@ import type {
   EmbeddingData 
 } from '../../../shared/types/embedding.types.js';
 
+type FeatureExtractionModel = (
+  text: string,
+  options: { pooling: 'mean'; normalize: boolean }
+) => Promise<{ data?: Iterable<number> } | Iterable<number>>;
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __minilmModelLoadWarningShown: boolean | undefined;
+}
+
 // Node.js 환경에서 Worker 스레드 사용 비활성화
 // 이는 ERR_WORKER_PATH 에러를 방지합니다
 if (typeof process !== 'undefined' && process.env) {
@@ -49,7 +59,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
   private readonly maxTokens = MiniLMEmbeddingService.MAX_TOKENS;
   private model: unknown = null;
-  private loadingPromise: Promise<any> | null = null;
+  private loadingPromise: Promise<FeatureExtractionModel> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
 
   constructor() {
@@ -79,7 +89,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       });
 
       // result가 이미 배열이거나 data 속성을 가진 객체일 수 있음
-      const embedding = Array.isArray(result) ? result : Array.from(result.data || result);
+      const embedding = Array.from(getEmbeddingIterable(result));
       const embeddingResult: EmbeddingResult = {
         embedding,
         model: this.modelName,
@@ -189,9 +199,9 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    * 모델 로딩 (지연 로딩)
    * 클린코드: 단일 책임 원칙 - 모델 로딩만 담당
    */
-  private async getModel(): Promise<any> {
+  private async getModel(): Promise<FeatureExtractionModel> {
     if (this.model) {
-      return this.model;
+      return this.model as FeatureExtractionModel;
     }
 
     if (this.loadingPromise) {
@@ -199,8 +209,9 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     }
 
     this.loadingPromise = this.loadModel();
-    this.model = await this.loadingPromise;
-    return this.model;
+    const model = await this.loadingPromise;
+    this.model = model;
+    return model;
   }
 
   /**
@@ -212,7 +223,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    * - ERR_WORKER_PATH 에러 발생 시 TF-IDF fallback으로 전환
    * - fallback 시 차원 정보(512)가 명시적으로 전달되어야 함
    */
-  private async loadModel(): Promise<any> {
+  private async loadModel(): Promise<FeatureExtractionModel> {
     try {
       // Node.js 환경에서 Worker 스레드 사용을 비활성화
       // 이는 ERR_WORKER_PATH 에러를 방지합니다
@@ -225,7 +236,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         }
       );
       if (!isCliQuiet()) process.stderr.write('✅ MiniLM 모델 로딩 완료\n');
-      return model;
+      return model as FeatureExtractionModel;
     } catch (error) {
       // ERR_WORKER_PATH 에러는 Node.js 환경에서 onnxruntime-web의 Worker가 
       // blob URL을 지원하지 않아 발생하는 환경 문제입니다.
@@ -236,7 +247,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       
       // 에러 로깅을 한 번만 출력하도록 조건부 처리
       // 왜 필요한가? 로그 스팸 방지 및 MCP 프로토콜 준수
-      if (!(global as any).__minilmModelLoadWarningShown) {
+      if (!globalThis.__minilmModelLoadWarningShown) {
         if (!isCliQuiet()) {
           if (isWorkerPathError) {
             process.stderr.write(`⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용): ${errorMessage}\n`);
@@ -247,7 +258,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
             process.stderr.write(`❌ MiniLM 모델 로딩 실패: ${maskedError.message}\n`);
           }
         }
-        (global as any).__minilmModelLoadWarningShown = true;
+        globalThis.__minilmModelLoadWarningShown = true;
       }
       
       throw new Error(`모델 로딩 실패: ${errorMessage}`);
@@ -332,4 +343,15 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   getCacheSize(): number {
     return this.cache.size;
   }
+}
+
+function getEmbeddingIterable(result: Awaited<ReturnType<FeatureExtractionModel>>): Iterable<number> {
+  if (hasEmbeddingData(result)) {
+    return result.data ?? [];
+  }
+  return result;
+}
+
+function hasEmbeddingData(value: Awaited<ReturnType<FeatureExtractionModel>>): value is { data?: Iterable<number> } {
+  return typeof value === 'object' && value !== null && 'data' in value;
 }

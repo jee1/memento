@@ -47,6 +47,11 @@ interface MemoryEmbeddingRow {
   embedding_provider?: string;
 }
 
+type ConfigurableVectorSearchEngine = VectorSearchEngine & {
+  setDatabase?: (db: Database.Database) => void;
+  initialize?: (db: Database.Database) => void;
+};
+
 /**
  * 메모리를 찾을 수 없을 때 발생하는 에러
  */
@@ -100,8 +105,9 @@ export class MemoryNeighborService {
     }
     this.db = db;
     // VectorSearchEngine에도 데이터베이스 설정 (메서드가 있는 경우)
-    if (this.vectorSearchEngine && typeof (this.vectorSearchEngine as any).setDatabase === 'function') {
-      (this.vectorSearchEngine as any).setDatabase(db);
+    const configurableVectorSearch = this.vectorSearchEngine as ConfigurableVectorSearchEngine;
+    if (typeof configurableVectorSearch.setDatabase === 'function') {
+      configurableVectorSearch.setDatabase(db);
     }
   }
 
@@ -221,8 +227,9 @@ export class MemoryNeighborService {
       // VectorSearchEngine에 데이터베이스가 설정되어 있는지 확인
       // (initialize 메서드가 있는 경우 호출)
       try {
-        if (typeof (this.vectorSearchEngine as any).initialize === 'function') {
-          (this.vectorSearchEngine as any).initialize(this.db);
+        const configurableVectorSearch = this.vectorSearchEngine as ConfigurableVectorSearchEngine;
+        if (typeof configurableVectorSearch.initialize === 'function') {
+          configurableVectorSearch.initialize(this.db);
         }
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
@@ -376,8 +383,9 @@ export class MemoryNeighborService {
       const embeddingProvider = embeddingRecord.embedding_provider || 'tfidf';
 
       // VectorSearchEngine 초기화
-      if (typeof (this.vectorSearchEngine as any).initialize === 'function') {
-        (this.vectorSearchEngine as any).initialize(this.db);
+      const configurableVectorSearch = this.vectorSearchEngine as ConfigurableVectorSearchEngine;
+      if (typeof configurableVectorSearch.initialize === 'function') {
+        configurableVectorSearch.initialize(this.db);
       }
 
       // 기존 모든 기억과의 유사도 계산
@@ -423,4 +431,3 @@ export class MemoryNeighborService {
     }
   }
 }
-

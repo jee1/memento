@@ -22,6 +22,24 @@ const ForgetSchema = z.object({
   message: "id 또는 batch 중 하나는 필수입니다"
 });
 
+type MemoryDeleteRow = {
+  id: string;
+  content?: string;
+  type?: string;
+  importance?: number;
+  pinned?: boolean | number;
+  created_at?: string;
+};
+
+type DeleteOperationResult = {
+  type: 'hard' | 'soft';
+  changes: number;
+};
+
+type DeleteStats = Record<string, unknown> & {
+  recent_deletes: unknown[];
+};
+
 export class ForgetTool extends BaseTool {
   constructor() {
     super(
@@ -232,7 +250,7 @@ export class ForgetTool extends BaseTool {
   /**
    * 하드 삭제 실행
    */
-  private async performHardDelete(id: string, context: ToolContext): Promise<any> {
+  private async performHardDelete(id: string, context: ToolContext): Promise<DeleteOperationResult> {
     // 메인 테이블에서 삭제
     const deleteResult = await DatabaseUtils.run(
       context.db!, 
@@ -269,7 +287,7 @@ export class ForgetTool extends BaseTool {
   /**
    * 소프트 삭제 실행
    */
-  private async performSoftDelete(id: string, context: ToolContext): Promise<any> {
+  private async performSoftDelete(id: string, context: ToolContext): Promise<DeleteOperationResult> {
     // pinned 해제하고 삭제 플래그 설정
     const updateResult = await DatabaseUtils.run(
       context.db!, 
@@ -287,12 +305,12 @@ export class ForgetTool extends BaseTool {
   /**
    * 기억 조회
    */
-  private async getMemoryById(id: string, context: ToolContext): Promise<any> {
+  private async getMemoryById(id: string, context: ToolContext): Promise<MemoryDeleteRow | undefined> {
     return await DatabaseUtils.get(
       context.db!, 
       'SELECT * FROM memory_item WHERE id = ?', 
       [id]
-    );
+    ) as MemoryDeleteRow | undefined;
   }
 
   /**
@@ -419,7 +437,7 @@ export class ForgetTool extends BaseTool {
   /**
    * 삭제 가능한 기억 목록 조회
    */
-  async getDeletableMemories(context: ToolContext, limit: number = 50): Promise<any[]> {
+  async getDeletableMemories(context: ToolContext, limit: number = 50): Promise<MemoryDeleteRow[]> {
     this.validateDatabase(context);
     
     return await DatabaseUtils.all(
@@ -430,13 +448,13 @@ export class ForgetTool extends BaseTool {
        ORDER BY importance ASC, created_at ASC 
        LIMIT ?`,
       [limit]
-    );
+    ) as MemoryDeleteRow[];
   }
 
   /**
    * 삭제 통계 조회
    */
-  async getDeleteStats(context: ToolContext): Promise<any> {
+  async getDeleteStats(context: ToolContext): Promise<DeleteStats> {
     this.validateDatabase(context);
     
     const stats = await DatabaseUtils.get(
