@@ -34,6 +34,7 @@ npm run test:search  # 검색 시나리오 테스트
 
 ```bash
 git worktree add -b 031-feature-name ../memento-issue-123 main
+# 형제 디렉터리 예: git worktree add ../memento-worktrees/032-feature-name -b 032-feature-name origin/main
 cd ../memento-issue-123 && npm install
 git worktree list
 git worktree remove ../memento-issue-123   # 브랜치 삭제 전 필수

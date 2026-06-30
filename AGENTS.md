@@ -41,11 +41,13 @@ npm run lint && npm run type-check  # 커밋 전 필수
 - **Docker 배포 전**: `npm run db:pre-docker-deploy` (DB 무결성 점검)
 - **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
+- **graphify 커밋**: 루트 `graphify-out/`만; `packages/memento-core/graphify-out/cache/`는 무시
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
 - **git worktree**: 브랜치 삭제·`gh pr merge --delete-branch` 전에 `git worktree remove <path>` 필수 (attach 상태면 로컬 브랜치 삭제 실패)
 - **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)
+- **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 
 ## 4. 코딩 에이전트 행동 지침 (Karpathy Guidelines)
 

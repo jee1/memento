@@ -21,6 +21,8 @@
 python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
 ```
 
+- **커밋 범위**: 저장소 루트 `graphify-out/`만 PR에 포함 (`packages/memento-core/graphify-out/cache/` 제외)
+
 ## 기술 부채·아키텍처 검사
 
 - **정량 스캔**: `python3 ~/.agents/skills/tech-debt-analyzer/scripts/detect_code_smells.py packages scripts static tests --output markdown`
@@ -37,9 +39,10 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 ## Spec Kit · 이슈 격리 워크트리
 
 - **초기화됨**: `.specify/`, `specs/NNN-short-name/` (spec · plan · tasks)
+- **브랜치 생성**: `.specify/scripts/bash/create-new-feature.sh '설명' --short-name 'short-name'` (NNN 자동 부여)
 - **격리 작업**: `git worktree add -b NNN-name ../memento-issue-NNN main` → worktree에서 `npm install` → spec/plan/tasks → 구현 → PR (`Closes #이슈`)
 - **정리 순서**: `git worktree remove ../memento-issue-NNN` → `git branch -D NNN-name` → `git pull origin main`
-- **god node 분해** (#593 계열): public import 경로·export surface 유지, 내부만 composition sub-module; 선행 `performance-monitor.spec.ts` green
+- **god node 분해** (#593 계열): public import·export 유지, 내부 composition sub-module(단일 파일 ≤500줄); 선행 spec green — monitoring: `performance-monitor.spec.ts`; relation: `relation-graph.spec.ts` + `relation-graph.integration.spec.ts`; memory: `semantic-memory-update-service.spec.ts`; 참조 오케스트레이터 (`performance-monitor.ts`, `relation-graph.ts`, `semantic-memory-update-service.ts`)
 
 ## PR·지식 복리
 
