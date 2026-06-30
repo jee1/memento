@@ -250,151 +250,132 @@ app.get('/graph', (req, res) => {
   });
 });
 
-// Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
-// 주석 처리된 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
-// 서버 초기화
+async function initializeCoreServices(): Promise<void> {
+  if (!db || !serverServices) {
+    const core = await createMementoCore({
+      dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
+    });
+    db = core.db;
+    serverServices = core.services;
+  }
+}
+
+function setupMiddleware(): void {
+  getVectorSearchEngine().initialize(db!);
+  app.use(createServiceInjector(serverServices!, db!));
+  adminSessionStore = createSessionStore({
+    idleTtlMs: DASHBOARD_SESSION_IDLE_TTL_MS,
+    absoluteTtlMs: DASHBOARD_SESSION_ABSOLUTE_TTL_MS
+  });
+}
+
+function createContextInjectionService(): AgentContextInjectionService {
+  const injectionTimeoutMs = Number(process.env.MEMENTO_AGENT_INJECTION_TIMEOUT_MS);
+  return new AgentContextInjectionService({
+    recallService: new AgentContextRecallService({
+      sources: [
+        new SqliteHybridAgentContextSource({
+          db: db!,
+          hybridSearchEngine: serverServices!.hybridSearchEngine,
+        }),
+      ],
+    }),
+    timeoutMs: Number.isFinite(injectionTimeoutMs) ? injectionTimeoutMs : undefined,
+  });
+}
+
+function createAllRouters(): void {
+  const retentionDays = Number(process.env.MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS);
+  const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
+  const initialInjectionTokenBudget = Number(process.env.MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET);
+
+  toolsRouter = createToolsRouter(db!, serverServices!, anchorMapSubscribers);
+  adminRouter = createAdminRouter(db!, serverServices!);
+  apiRouter = createApiRouter(db!, serverServices!);
+  authRouter = createAuthRouter({
+    expectedKey: mementoConfig.adminApiKey,
+    store: adminSessionStore!,
+    cookieName: DASHBOARD_SESSION_COOKIE_NAME,
+    secureCookie: process.env.NODE_ENV === 'production'
+  });
+  mcpRouter = createMcpRouter(db!, serverServices!, transports);
+
+  const qualityRouter = createQualityRouter(db!);
+  const agentRouter = createAgentRouter(db!, {
+    retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
+    abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
+    contextInjectionService: createContextInjectionService(),
+    initialInjectionTokenBudget: Number.isFinite(initialInjectionTokenBudget) ? initialInjectionTokenBudget : undefined,
+    serverServices: serverServices!,
+  });
+
+  registerRoutes(qualityRouter, agentRouter);
+}
+
+function registerRoutes(qualityRouter: express.Router, agentRouter: express.Router): void {
+  const browserSessionAuth = createSessionAuthMiddleware({
+    store: adminSessionStore!,
+    cookieName: DASHBOARD_SESSION_COOKIE_NAME
+  });
+  const adminAuth = createAdminAuthMiddleware();
+  const programmaticAuth = createProgrammaticAuthMiddleware({ expectedKey: mementoConfig.adminApiKey });
+  const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
+    expectedKey: mementoConfig.adminApiKey,
+    errorFormat: 'agent',
+  });
+  const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
+    if (req.method === 'OPTIONS') return void next();
+    if (isProtectedMcpProgrammaticPath(req.path)) return void programmaticAuth(req, res, next);
+    next();
+  };
+
+  app.use('/tools', programmaticAuth, createToolContextMiddleware, toolsRouter!);
+  app.use('/auth', authRouter!);
+  app.use('/admin', browserSessionAuth, adminRouter!);
+  app.use('/api/v1/quality', adminAuth, qualityRouter, (_req, res) => {
+    res.status(404).json({ error: 'Not Found', message: 'Quality API route not found.' });
+  });
+  app.use('/api/v1/agent', agentProgrammaticAuth, agentRouter);
+  app.use('/api', browserSessionAuth, apiRouter!);
+  app.use('/', mcpProgrammaticAuth, mcpRouter!);
+  app.use(errorHandler);
+}
+
+function logEmbeddingProviderInfo(): void {
+  const providerInfo: Record<string, unknown> = {
+    provider: mementoConfig.embeddingProvider.toUpperCase()
+  };
+  if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
+    providerInfo.model = mementoConfig.openaiModel;
+    providerInfo.dimensions = mementoConfig.embeddingDimensions;
+  } else if (mementoConfig.embeddingProvider === 'gemini' && mementoConfig.geminiApiKey) {
+    providerInfo.model = mementoConfig.geminiModel;
+    providerInfo.dimensions = mementoConfig.embeddingDimensions;
+  } else if (mementoConfig.embeddingProvider === 'lightweight') {
+    providerInfo.model = 'lightweight-hybrid';
+    providerInfo.dimensions = 512;
+  }
+  logger.info('임베딩 프로바이더 설정', providerInfo);
+}
+
 async function initializeServer() {
   try {
     logger.info('Memento HTTP/WebSocket MCP Server 시작', { version: packageJson.version });
     logger.info('HTTP/WebSocket MCP 서버 v2 시작 중');
 
-    if (!db || !serverServices) {
-      // @memento/core로 DB·서비스 초기화
-      const core = await createMementoCore({
-        dbPath: process.env.DB_PATH ?? mementoConfig.dbPath
-      });
-      db = core.db;
-      serverServices = core.services;
-    }
+    await initializeCoreServices();
+    setupMiddleware();
+    createAllRouters();
 
-    const _services = serverServices;
-
-    // Vector Search Engine 초기화 (HTTP 서버 전용)
-    const vectorSearchEngine = getVectorSearchEngine();
-    vectorSearchEngine.initialize(db);
-    
-    // Phase 0: 공통 미들웨어 적용
-    // 서비스 주입 미들웨어 (모든 라우터에 적용)
-    app.use(createServiceInjector(serverServices, db));
-    
-    adminSessionStore = createSessionStore({
-      idleTtlMs: DASHBOARD_SESSION_IDLE_TTL_MS,
-      absoluteTtlMs: DASHBOARD_SESSION_ABSOLUTE_TTL_MS
-    });
-
-    // Phase 1.2: 라우터 초기화 및 등록
-    toolsRouter = createToolsRouter(db, serverServices, anchorMapSubscribers);
-    adminRouter = createAdminRouter(db, serverServices);
-    apiRouter = createApiRouter(db, serverServices);
-    authRouter = createAuthRouter({
-      expectedKey: mementoConfig.adminApiKey,
-      store: adminSessionStore,
-      cookieName: DASHBOARD_SESSION_COOKIE_NAME,
-      secureCookie: process.env.NODE_ENV === 'production'
-    });
-    mcpRouter = createMcpRouter(db, serverServices, transports);
-    const qualityRouter = createQualityRouter(db);
-    const retentionDays = Number(process.env.MEMENTO_AGENT_OBSERVATION_RETENTION_DAYS);
-    const abandonedTtlMs = Number(process.env.MEMENTO_AGENT_SESSION_ABANDONED_TTL_MS);
-    const injectionTimeoutMs = Number(process.env.MEMENTO_AGENT_INJECTION_TIMEOUT_MS);
-    const initialInjectionTokenBudget = Number(
-      process.env.MEMENTO_AGENT_INITIAL_INJECTION_TOKEN_BUDGET,
-    );
-    const contextInjectionService = new AgentContextInjectionService({
-      recallService: new AgentContextRecallService({
-        sources: [
-          new SqliteHybridAgentContextSource({
-            db,
-            hybridSearchEngine: serverServices.hybridSearchEngine,
-          }),
-        ],
-      }),
-      timeoutMs: Number.isFinite(injectionTimeoutMs) ? injectionTimeoutMs : undefined,
-    });
-    const agentRouter = createAgentRouter(db, {
-      retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
-      abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
-      contextInjectionService,
-      initialInjectionTokenBudget: Number.isFinite(initialInjectionTokenBudget)
-        ? initialInjectionTokenBudget
-        : undefined,
-      serverServices,
-    });
-    
-    // 라우터 등록 (/admin, /api는 브라우저 세션; /api/v1/quality, /tools, /mcp는 API 키)
-    const browserSessionAuth = createSessionAuthMiddleware({
-      store: adminSessionStore,
-      cookieName: DASHBOARD_SESSION_COOKIE_NAME
-    });
-    const adminAuth = createAdminAuthMiddleware();
-    const programmaticAuth = createProgrammaticAuthMiddleware({
-      expectedKey: mementoConfig.adminApiKey
-    });
-    const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
-      expectedKey: mementoConfig.adminApiKey,
-      errorFormat: 'agent',
-    });
-    const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
-      if (req.method === 'OPTIONS') {
-        next();
-        return;
-      }
-
-      if (isProtectedMcpProgrammaticPath(req.path)) {
-        programmaticAuth(req, res, next);
-        return;
-      }
-
-      next();
-    };
-
-    app.use('/tools', programmaticAuth, createToolContextMiddleware, toolsRouter);
-    app.use('/auth', authRouter);
-    app.use('/admin', browserSessionAuth, adminRouter);
-    app.use(
-      '/api/v1/quality',
-      adminAuth,
-      qualityRouter,
-      (_req, res) => {
-        res.status(404).json({
-          error: 'Not Found',
-          message: 'Quality API route not found.'
-        });
-      }
-    );
-    app.use('/api/v1/agent', agentProgrammaticAuth, agentRouter);
-    app.use('/api', browserSessionAuth, apiRouter);
-    app.use('/', mcpProgrammaticAuth, mcpRouter); // /mcp, /messages는 루트에 등록
-    
-    // Phase 0: 공통 에러 핸들러 미들웨어 (모든 라우터 이후에 적용)
-    app.use(errorHandler);
-    
     logger.info('서비스 초기화 완료');
     await writeRuntimeDiagnosticsEvent('server_start');
-    // 배치 스케줄러는 core bootstrap에서 이미 시작됨 (services.batchScheduler)
 
-    // 임베딩 프로바이더 정보 표시
-    const providerInfo: Record<string, unknown> = {
-      provider: mementoConfig.embeddingProvider.toUpperCase()
-    };
-    if (mementoConfig.embeddingProvider === 'openai' && mementoConfig.openaiApiKey) {
-      providerInfo.model = mementoConfig.openaiModel;
-      providerInfo.dimensions = mementoConfig.embeddingDimensions;
-    } else if (mementoConfig.embeddingProvider === 'gemini' && mementoConfig.geminiApiKey) {
-      providerInfo.model = mementoConfig.geminiModel;
-      providerInfo.dimensions = mementoConfig.embeddingDimensions;
-    } else if (mementoConfig.embeddingProvider === 'lightweight') {
-      providerInfo.model = 'lightweight-hybrid';
-      providerInfo.dimensions = 512;
-    }
-    logger.info('임베딩 프로바이더 설정', providerInfo);
-    
+    logEmbeddingProviderInfo();
     logger.info('서버 초기화 완료', {
       server: mementoConfig.serverName,
       version: mementoConfig.serverVersion,
       database: mementoConfig.dbPath
     });
-    
   } catch (error) {
     logger.error('서버 초기화 실패', { error });
     throw error instanceof Error ? error : new Error(String(error));
