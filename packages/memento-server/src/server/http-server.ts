@@ -8,14 +8,9 @@ import {
   AgentContextInjectionService,
   AgentContextRecallService,
   canonicalizeHttpBindHostForListen,
-  closeDatabase,
   createMementoCore,
-  createToolContext,
-  executeTool,
   formatHttpBindHostForUrl,
-  getBatchScheduler,
   getMementoHttpSecurityStartupViolationMessage,
-  getToolRegistry,
   getVectorSearchEngine,
   isHttpBindHostRemotelyReachable,
   logger,
@@ -39,8 +34,7 @@ import {
 import type { WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
 import packageJson from '../../package.json' with { type: 'json' };
-import { deleteServerInfo,resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
-// Phase 1.2: 라우터 import
+import { resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
 import { createSessionStore,type SessionStore } from './auth/session-store.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createAgentRouter } from './routes/agent.routes.js';
@@ -49,7 +43,6 @@ import { createAuthRouter } from './routes/auth.routes.js';
 import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 import { createToolsRouter } from './routes/tools.routes.js';
-// Phase 0: 공통 미들웨어 import
 import {
 createAdminAuthMiddleware,
 createProgrammaticAuthMiddleware,
@@ -58,14 +51,18 @@ createSessionAuthMiddleware,
 createToolContextMiddleware,
 errorHandler
 } from './middleware/index.js';
+import {
+  createRuntimeDiagnosticsWriter,
+  performCleanup,
+  registerCleanupHandlers,
+} from './http-server-lifecycle.js';
+import { setupWebSocketServer } from './http-server-websocket.js';
 
 // 전역 변수 (서비스는 serverServices로만 접근)
 let db: Database.Database | null = null;
 let serverServices: ServerServices | null = null;
 let adminSessionStore: SessionStore | null = null;
 
-// Phase 1.2: 라우터에서 사용할 전역 변수들
-// SSE Transport 저장소 (MCP 라우터용)
 const transports: Record<string, SSETransport> = {};
 
 type TestDependencies = {
@@ -93,25 +90,7 @@ function setTestDependencies(_deps: TestDependencies): void {
   }
 }
 
-async function writeRuntimeDiagnosticsEvent(
-  type: string,
-  payload: Record<string, unknown> = {}
-): Promise<void> {
-  if (!serverServices?.runtimeDiagnosticsLogger) {
-    return;
-  }
-
-  try {
-    await serverServices.runtimeDiagnosticsLogger.writeEvent({
-      type,
-      timestamp: new Date().toISOString(),
-      transport: 'http',
-      ...payload
-    });
-  } catch {
-    return;
-  }
-}
+const writeRuntimeDiagnosticsEvent = createRuntimeDiagnosticsWriter(() => serverServices);
 
 /**
  * 정적 UI(graph.html 등) 위치 — Docker(/app/static), 로컬 모노레포 루트(./static),
@@ -181,8 +160,8 @@ app.use('/static', express.static(staticRoot));
 
 // 기본 API 엔드포인트
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     server: mementoConfig.serverName,
     version: mementoConfig.serverVersion,
     database: db ? 'connected' : 'disconnected',
@@ -190,9 +169,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Phase 1.2: 라우터 등록
-// WebSocket 클라이언트 관리 (Anchor Map 업데이트용) - 라우터에서도 사용
-const anchorMapSubscribers = new Map<string, Set<WebSocket>>(); // agent_id -> WebSocket Set
+// WebSocket 클라이언트 관리 (Anchor Map 업데이트용)
+const anchorMapSubscribers = new Map<string, Set<WebSocket>>();
 
 // 라우터 등록 (서비스 초기화 후 업데이트됨)
 let toolsRouter: express.Router | null = null;
@@ -221,9 +199,6 @@ export function getHttpAuthTrustModelNotice(): string {
 export function getHttpAuthMissingAdminKeyWarning(): string {
   return HTTP_AUTH_MISSING_ADMIN_KEY_WARNING;
 }
-
-// Phase 1.2: 기존 엔드포인트는 모두 라우터로 이동됨
-// 주석 처리된 기존 코드는 제거됨 (tools.routes.ts, admin.routes.ts, api.routes.ts, mcp.routes.ts로 이동)
 
 // 대시보드 라우트: Review Queue 폴링 부트를 환경 변수 기준으로 인라인 주입 (#274)
 app.get('/dashboard', (req, res) => {
@@ -382,263 +357,22 @@ async function initializeServer() {
   }
 }
 
-// 정리 함수
-let isCleaningUp = false;
-async function cleanup() {
-  if (isCleaningUp) {
-    return;
-  }
-  
-  isCleaningUp = true;
-
-  try {
-    // delete server.json on shutdown
-    const configDirForCleanup = resolveServerInfoConfigDir();
-    try {
-      await deleteServerInfo(configDirForCleanup);
-    } catch {
-      // ignore cleanup errors
-    }
-
-    await writeRuntimeDiagnosticsEvent('server_cleanup_start');
-
-    // WAL 체크포인트 스케줄러 및 데이터베이스 락 모니터 중지
-    if (serverServices) {
-      if (serverServices.runtimeDiagnosticsSamplerCleanup) {
-        try {
-          await serverServices.runtimeDiagnosticsSamplerCleanup();
-          logger.info('런타임 진단 샘플러 중지됨');
-        } catch (error) {
-          logger.error('런타임 진단 샘플러 중지 실패', { error });
-        }
-      }
-
-      try {
-        await serverServices.walCheckpointScheduler.stop();
-        logger.info('WAL 체크포인트 스케줄러 중지됨');
-      } catch (error) {
-        logger.error('WAL 체크포인트 스케줄러 중지 실패', { error });
-      }
-      
-      try {
-        serverServices.databaseLockMonitor.stop();
-        logger.info('데이터베이스 락 모니터 중지됨');
-      } catch (error) {
-        logger.error('데이터베이스 락 모니터 중지 실패', { error });
-      }
-    }
-    
-    // Write Coalescing Manager 정리
-    if (serverServices?.writeCoalescingManager) {
-      await serverServices.writeCoalescingManager.flush();
-      await serverServices.writeCoalescingManager.destroy();
-      logger.info('Write Coalescing Manager 정리 완료');
-    }
-    
-    // 배치 스케줄러 중지
-    const batchScheduler = getBatchScheduler();
-    await batchScheduler.stop();
-    logger.info('배치 스케줄러 중지됨');
-    
-    if (db) {
-      closeDatabase(db);
-      db = null;
-    }
-    logger.info('HTTP/WebSocket MCP 서버 v2 종료');
-    await writeRuntimeDiagnosticsEvent('server_cleanup_finish');
-    serverServices = null;
-  } catch (error) {
-    logger.error('정리 중 오류', { error });
-  } finally {
-    isCleaningUp = false;
-  }
-}
-
-// 프로세스 종료 시 정리
-let cleanupRegistered = false;
-function registerCleanupHandlers() {
-  if (cleanupRegistered) {
-    return;
-  }
-  
-  cleanupRegistered = true;
-  
-  process.on('SIGINT', async () => {
-    await writeRuntimeDiagnosticsEvent('server_shutdown_signal', { signal: 'SIGINT' });
-    await cleanup();
-    process.exit(0);
-  });
-  
-  process.on('SIGTERM', async () => {
-    await writeRuntimeDiagnosticsEvent('server_shutdown_signal', { signal: 'SIGTERM' });
-    await cleanup();
-    process.exit(0);
-  });
-  
-  process.on('uncaughtException', async (error) => {
-    logger.error('예상치 못한 오류', { error });
-    await writeRuntimeDiagnosticsEvent('uncaught_exception', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
-    await cleanup();
-    process.exit(1);
+export async function cleanup() {
+  await performCleanup({
+    getDb: () => db,
+    setDb: (v) => { db = v; },
+    getServerServices: () => serverServices,
+    setServerServices: (v) => { serverServices = v; },
+    writeDiagnostics: writeRuntimeDiagnosticsEvent,
   });
 }
 
 // WebSocket 서버 설정
 const wss = new WebSocketServer({ server });
-
-// Phase 1.2: anchorMapSubscribers는 위에서 이미 선언됨
-
-wss.on('connection', (ws: WebSocket) => {
-  logger.info('WebSocket 클라이언트 연결됨');
-  
-  ws.on('message', async (data) => {
-    // WebSocket 메시지 타입 정의
-    interface WebSocketMessage {
-      method?: string;
-      params?: Record<string, unknown>;
-      id?: string | number;
-      [key: string]: unknown; // 기타 필드 허용
-    }
-    
-    let message: WebSocketMessage;
-    try {
-      message = JSON.parse(data.toString()) as WebSocketMessage;
-      
-      // Anchor Map 업데이트 구독 처리
-      if (message.method === 'subscribe' && message.params?.type === 'anchor_map_updates') {
-        const agentId = typeof message.params.agent_id === 'string' ? message.params.agent_id : 'default';
-        
-        if (!anchorMapSubscribers.has(agentId)) {
-          anchorMapSubscribers.set(agentId, new Set<WebSocket>());
-        }
-        anchorMapSubscribers.get(agentId)!.add(ws);
-        
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { subscribed: true, agent_id: agentId }
-        }));
-        
-        logger.info('Anchor Map 업데이트 구독', { agent_id: agentId });
-        return;
-      }
-      
-      // Keep-alive ping/pong 처리
-      if (message.type === 'pong') {
-        return; // ping 응답만 처리
-      }
-      
-      if (message.method === 'tools/list') {
-        const toolRegistry = getToolRegistry();
-        const tools = toolRegistry.getAll();
-        
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { tools }
-        }));
-      } else if (message.method === 'tools/call') {
-        // params가 Record<string, unknown>이므로 타입 단언 필요
-        const params = message.params as { name?: string; arguments?: unknown } | undefined;
-        const name = params?.name;
-        const args = params?.arguments;
-        
-        if (!name) {
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32602,
-              message: 'Invalid params',
-              data: 'name parameter is required'
-            }
-          }));
-          return;
-        }
-        
-        // 부트스트랩에서 초기화된 서비스 객체를 사용하여 ToolContext 생성
-        if (!serverServices) {
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32603,
-              message: 'Internal error',
-              data: '서비스가 초기화되지 않았습니다'
-            }
-          }));
-          return;
-        }
-        
-        if (!db) {
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32603,
-              message: 'Internal error',
-              data: '데이터베이스가 초기화되지 않았습니다'
-            }
-          }));
-          return;
-        }
-        
-        // Phase 7.4: 표준 팩토리 함수 사용
-        const context = createToolContext(db, serverServices);
-        
-        // 도구 실행
-        const result = await executeTool(name, args, context);
-        
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: message.id,
-          result: { content: [{ type: 'text', text: JSON.stringify(result) }] }
-        }));
-      }
-    } catch (error) {
-      logger.error('WebSocket 메시지 처리 실패', { error });
-      // message가 할당되지 않았을 수 있으므로 안전하게 처리
-      let messageId: string | number | null = null;
-      try {
-        const parsedMessage = JSON.parse(data.toString()) as { id?: string | number };
-        messageId = parsedMessage.id || null;
-      } catch {
-        // 파싱 실패 시 null 사용
-      }
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        id: messageId,
-        error: {
-          code: -32603,
-          message: 'Internal error',
-          data: error instanceof Error ? error.message : 'Unknown error'
-        }
-      }));
-    }
-  });
-  
-  ws.on('close', () => {
-    logger.info('WebSocket 클라이언트 연결 해제됨');
-    
-    // 구독 목록에서 제거
-    for (const [agentId, subscribers] of anchorMapSubscribers.entries()) {
-      subscribers.delete(ws);
-      if (subscribers.size === 0) {
-        anchorMapSubscribers.delete(agentId);
-      }
-    }
-  });
-  
-  ws.on('error', (error) => {
-    logger.error('WebSocket 에러', { error });
-  });
-});
+setupWebSocketServer(wss, anchorMapSubscribers, () => db, () => serverServices);
 
 // 서버 시작
-async function startServer() {
+export async function startServer() {
   // DB·스케줄러 기동 전에 설정·보안 정책을 검사해 실패 시 리소스가 남지 않게 한다.
   validateConfig();
 
@@ -686,7 +420,7 @@ async function startServer() {
   }
 
   // 정리 핸들러 등록 (초기화 성공 후)
-  registerCleanupHandlers();
+  registerCleanupHandlers(cleanup, writeRuntimeDiagnosticsEvent);
 
   // 이미 리스닝 중이면 먼저 종료
   if (server.listening) {
@@ -697,9 +431,7 @@ async function startServer() {
       });
     });
   }
-  
-  // HTTP 서버를 사용하여 Express app과 WebSocket 서버 모두 바인딩
-  // app.listen() 대신 server.listen()을 사용하여 WebSocket 서버와 동일한 인스턴스 사용
+
   server.listen(Number(PORT), bindHostListen, () => {
     logger.info('서버 시작 완료', {
       http: `http://${bindHostForUrl}:${PORT}`,
@@ -708,13 +440,11 @@ async function startServer() {
       health: `http://${bindHostForUrl}:${PORT}/health`
     });
   });
-  
-  // 추가: 모든 인터페이스에 바인딩 확인
+
   server.on('listening', () => {
     const address = server.address();
     if (address && typeof address === 'object') {
       logger.info('서버 바인딩 완료', { address: address.address, port: address.port });
-      // write server.json for CLI discovery
       const configDir = resolveServerInfoConfigDir();
       void writeServerInfo(configDir, address.port).catch((error) => {
         logger.error('server.json 기록 실패', {
@@ -725,9 +455,6 @@ async function startServer() {
     }
   });
 }
-
-// 서버 시작 함수는 export만 유지 (팩토리 패턴 사용)
-// 직접 실행 코드는 제거됨 - 팩토리를 통해 서버를 시작해야 함
 
 export const __test: {
   setTestDependencies: (deps: TestDependencies) => void;
@@ -750,5 +477,3 @@ export const __test: {
   getEmbeddingService: () => serverServices!.embeddingService,
   isProtectedMcpProgrammaticPath
 };
-
-export { cleanup,startServer };
