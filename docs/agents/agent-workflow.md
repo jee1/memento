@@ -41,8 +41,8 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 - **초기화됨**: `.specify/`, `specs/NNN-short-name/` (spec · plan · tasks)
 - **브랜치 생성**: `.specify/scripts/bash/create-new-feature.sh '설명' --short-name 'short-name'` (NNN 자동 부여)
 - **격리 작업**: `git worktree add -b NNN-name ../memento-issue-NNN main` → worktree에서 `npm install` → spec/plan/tasks → 구현 → PR (`Closes #이슈`)
-- **정리 순서**: `git worktree remove ../memento-issue-NNN` → `git branch -D NNN-name` → `git pull origin main`
-- **god node 분해** (#593 계열): public import·export 유지, 내부 composition sub-module(단일 파일 ≤500줄); 선행 spec green — monitoring: `performance-monitor.spec.ts`; relation: `relation-graph.spec.ts` + `relation-graph.integration.spec.ts`; memory: `semantic-memory-update-service.spec.ts`; 참조 오케스트레이터 (`performance-monitor.ts`, `relation-graph.ts`, `semantic-memory-update-service.ts`)
+- **정리 순서**: `git worktree remove <worktree-path>` → `git branch -d NNN-name` → `git pull origin main` → `git fetch --prune origin`
+- **god node 분해** (#593 계열): public import·export 유지, 내부 composition sub-module(단일 파일 ≤500줄); 선행 spec green — monitoring: `performance-monitor.spec.ts`; relation: `relation-graph.spec.ts` + `relation-graph.integration.spec.ts`; memory: `semantic-memory-update-service.spec.ts`; agent-integration DB: `sqlite-agent-integration-repository.spec.ts` + `domains/agent-integration/`; 참조 오케스트레이터 (`performance-monitor.ts`, `relation-graph.ts`, `semantic-memory-update-service.ts`, `sqlite-agent-integration-repository.ts`); infrastructure repo는 `*-store.ts`·`*-row-utils.ts`·`*-cursor-utils.ts`로 분해 (#610)
 
 ## PR·지식 복리
 
