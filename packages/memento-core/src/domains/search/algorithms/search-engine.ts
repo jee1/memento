@@ -154,6 +154,11 @@ export class SearchEngine {
   }
 
   /** @internal 테스트·하위 호환용 위임 */
+  private buildReflectionNotesSearchCondition(db: Database.Database, searchQuery: string): string | null {
+    return this.ftsAvailability.buildReflectionNotesSearchCondition(db, searchQuery);
+  }
+
+  /** @internal 테스트·하위 호환용 위임 */
   private applyRanking(
     results: SearchEngineRow[],
     query: string,
