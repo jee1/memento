@@ -84,9 +84,9 @@ export async function getTripleExtractionTargetMemories(
   config: ResolvedTripleExtractionBatchJobConfig
 ): Promise<TripleExtractionTargetMemory[]> {
   const memories = DatabaseUtils.all(db, `
-      SELECT 
-        id, 
-        content, 
+      SELECT
+        id,
+        content,
         importance,
         triple_extracted,
         triple_extracted_status,

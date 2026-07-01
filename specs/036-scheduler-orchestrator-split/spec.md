@@ -1,8 +1,8 @@
 # Feature Specification: scheduler-orchestrator-split
 
-**Feature Branch**: `036-scheduler-orchestrator-split`  
-**Created**: 2026-07-01  
-**Status**: Implemented  
+**Feature Branch**: `036-scheduler-orchestrator-split`
+**Created**: 2026-07-01
+**Status**: Implemented
 **Input**: GitHub Issue #612 — refactor(scheduler): batch-scheduler.ts·triple-extraction-batch-job.ts 분해 (부모 #593)
 
 ## User Scenarios & Testing *(mandatory)*
