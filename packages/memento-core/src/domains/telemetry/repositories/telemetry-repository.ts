@@ -6,12 +6,19 @@ import type Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import type {
 EventType,
-Outcome,
 TelemetryEventInput,
 TelemetryEventQueryFilters,
 TelemetryEventRow,
 TelemetryPeriod
 } from '../types/telemetry.types.js';
+import {
+  queryConsolidationQuality,
+  queryMemoryQuality
+} from './telemetry-memory-quality-query.js';
+import { querySearchQuality } from './telemetry-search-quality-query.js';
+import { querySystemMetrics } from './telemetry-system-metrics-query.js';
+import { rolling24hCutoffIso } from './telemetry-repository-utils.js';
+export { percentile95Sorted } from './telemetry-repository-utils.js';
 
 export interface SearchQualityResult {
   period: TelemetryPeriod;
@@ -91,66 +98,15 @@ export interface SchedulerJobSnapshot {
   avgDurationMs24h: number | null;
 }
 
-function periodCutoffIso(period: TelemetryPeriod): string {
-  const d = new Date();
-  if (period === '24h') {
-    d.setTime(d.getTime() - 24 * 60 * 60 * 1000);
-  } else if (period === '7d') {
-    d.setTime(d.getTime() - 7 * 24 * 60 * 60 * 1000);
-  } else {
-    d.setTime(d.getTime() - 30 * 24 * 60 * 60 * 1000);
-  }
-  return d.toISOString();
-}
-
-function rolling24hCutoffIso(): string {
-  const d = new Date();
-  d.setTime(d.getTime() - 24 * 60 * 60 * 1000);
-  return d.toISOString();
-}
-
-/** UTC 롤링 24h 윈도우의 background 잡 텔레메트리 집계 (contracts/admin-api.md `background_jobs` 24h 필드) */
+/** UTC 롤링 24h 윈도우의 background 잡 텔레메트리 집계. */
 export interface BackgroundJobRolling24hStats {
   successRuns24h: number;
   failureRuns24h: number;
   avgDurationMs24h: number | null;
 }
 
-/** p95 from sorted ascending latencies (1-based rank) */
-export function percentile95Sorted(sorted: number[]): number | null {
-  if (sorted.length === 0) return null;
-  const idx = Math.ceil(sorted.length * 0.95) - 1;
-  return sorted[Math.max(0, idx)]!;
-}
-
 export class TelemetryRepository {
   constructor(private readonly db: Database.Database) {}
-
-  /** candidates_retrieved의 candidate_count 평균 — DB에서 json_extract·AVG로 집계(대량 행 JS 파싱 회피) */
-  private avgCandidateCountForPeriod(
-    cutoffIso: string,
-    ownerId: string | null | undefined
-  ): number | null {
-    const ownerClause =
-      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-    const qParams: Record<string, unknown> = { cutoff: cutoffIso };
-    if (ownerId !== undefined && ownerId !== null) {
-      qParams.owner = ownerId;
-    }
-    const row = this.db
-      .prepare(
-        `SELECT AVG(CAST(json_extract(extra_data, '$.candidate_count') AS REAL)) AS a
-         FROM telemetry_events
-         WHERE event_type = 'memory.search.candidates_retrieved'
-           AND created_at >= @cutoff
-           AND extra_data IS NOT NULL
-           ${ownerClause}
-           AND json_extract(extra_data, '$.candidate_count') IS NOT NULL`
-      )
-      .get(qParams) as { a: number | null } | undefined;
-    if (row?.a == null || Number.isNaN(row.a)) return null;
-    return row.a;
-  }
 
   insertEventSync(event: TelemetryEventInput): void {
     const id = randomUUID();
@@ -250,355 +206,18 @@ export class TelemetryRepository {
   }
 
   querySearchQuality(period: TelemetryPeriod, ownerId?: string | null): SearchQualityResult {
-    const now = new Date().toISOString();
-    const cutoff = periodCutoffIso(period);
-    const ownerClause =
-      ownerId === undefined || ownerId === null
-        ? ''
-        : ' AND owner_id = @owner ';
-    const params: Record<string, unknown> = { cutoff };
-    if (ownerId !== undefined && ownerId !== null) {
-      params.owner = ownerId;
-    }
-
-    const requested = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE event_type = 'memory.search.requested' AND created_at >= @cutoff ${ownerClause}`
-      )
-      .get(params) as { c: number };
-
-    const emptyC = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE event_type = 'memory.search.empty' AND created_at >= @cutoff ${ownerClause}`
-      )
-      .get(params) as { c: number };
-
-    const candC = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE event_type = 'memory.search.candidates_retrieved' AND created_at >= @cutoff ${ownerClause}`
-      )
-      .get(params) as { c: number };
-
-    const selC = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE event_type = 'memory.search.selected' AND created_at >= @cutoff ${ownerClause}`
-      )
-      .get(params) as { c: number };
-
-    const searchCount = requested.c;
-    const emptyRate =
-      searchCount > 0 ? emptyC.c / searchCount : searchCount === 0 ? null : 0;
-    const topKRate = candC.c > 0 ? selC.c / candC.c : candC.c === 0 && selC.c === 0 ? null : 0;
-
-    let avgLatency: number | null = null;
-    let p95: number | null = null;
-    let avgCand: number | null = null;
-
-    if (period === '24h') {
-      const latRows = this.db
-        .prepare(
-          `SELECT latency_ms FROM telemetry_events
-           WHERE event_type IN ('memory.search.selected', 'memory.search.empty')
-             AND created_at >= @cutoff
-             AND latency_ms IS NOT NULL
-             ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner '}
-           ORDER BY latency_ms ASC`
-        )
-        .all(params) as { latency_ms: number }[];
-      const lats = latRows.map(r => r.latency_ms);
-      p95 = percentile95Sorted(lats);
-      avgLatency =
-        lats.length > 0 ? lats.reduce((a, b) => a + b, 0) / lats.length : null;
-
-      avgCand = this.avgCandidateCountForPeriod(cutoff, ownerId);
-    } else {
-      const dateFrom = cutoff.slice(0, 10);
-      const daily = this.db
-        .prepare(
-          `SELECT SUM(event_count) AS total, SUM(event_count * IFNULL(avg_latency_ms, 0)) AS latSum
-           FROM telemetry_daily_metrics
-           WHERE event_type IN ('memory.search.selected', 'memory.search.empty')
-             AND date >= @dateFrom
-             ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner '}`
-        )
-        .get({ ...params, dateFrom }) as { total: number | null; latSum: number | null };
-      const t = daily.total ?? 0;
-      avgLatency = t > 0 && daily.latSum != null ? daily.latSum / t : null;
-
-      const lat24 = this.db
-        .prepare(
-          `SELECT latency_ms FROM telemetry_events
-           WHERE event_type IN ('memory.search.selected', 'memory.search.empty')
-             AND created_at >= @cutoff24
-             AND latency_ms IS NOT NULL
-             ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner '}
-           ORDER BY latency_ms ASC`
-        )
-        .all({ ...params, cutoff24: rolling24hCutoffIso() }) as { latency_ms: number }[];
-      const l24 = lat24.map(r => r.latency_ms);
-      p95 = percentile95Sorted(l24);
-
-      avgCand = this.avgCandidateCountForPeriod(cutoff, ownerId);
-    }
-
-    return {
-      period,
-      owner_id: ownerId ?? null,
-      search_count: searchCount > 0 ? searchCount : searchCount === 0 ? 0 : null,
-      avg_latency_ms: avgLatency,
-      p95_latency_ms: p95,
-      empty_retrieval_rate: emptyRate,
-      avg_candidate_count: avgCand,
-      top_k_selected_rate: topKRate,
-      timestamp: now
-    };
+    return querySearchQuality(this.db, period, ownerId);
   }
 
   queryMemoryQuality(ownerId?: string | null): MemoryQualityResult {
-    const now = new Date().toISOString();
-    const since24h = rolling24hCutoffIso();
-    const oClause =
-      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-    const params: Record<string, unknown> = {};
-    if (ownerId !== undefined && ownerId !== null) params.owner = ownerId;
-
-    const total = this.db
-      .prepare(`SELECT COUNT(*) AS c FROM memory_item WHERE 1=1 ${oClause}`)
-      .get(params) as { c: number };
-
-    const byType = this.db
-      .prepare(
-        `SELECT type, COUNT(*) AS c FROM memory_item WHERE 1=1 ${oClause} GROUP BY type`
-      )
-      .all(params) as { type: string; c: number }[];
-
-    const dist: Record<string, number> = {};
-    const t = total.c;
-    for (const row of byType) {
-      dist[row.type] = t > 0 ? row.c / t : 0;
-    }
-
-    const relOwner =
-      ownerId === undefined || ownerId === null
-        ? ''
-        : ' AND m.owner_id = @owner ';
-    const withRel = this.db
-      .prepare(
-        `SELECT COUNT(DISTINCT m.id) AS c
-         FROM memory_item m
-         WHERE EXISTS (
-           SELECT 1 FROM memory_relation r
-           WHERE r.source_id = m.id OR r.target_id = m.id
-         ) ${relOwner}`
-      )
-      .get(params) as { c: number };
-
-    const coverage = t > 0 ? withRel.c / t : null;
-    const orphan = coverage != null ? 1 - coverage : null;
-
-    const dupParams = { since24h, ...params };
-    const dupClause =
-      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-    const completed = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE event_type = 'memory.write.completed' AND created_at >= @since24h ${dupClause}`
-      )
-      .get(dupParams) as { c: number };
-    const dupes = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE event_type = 'memory.write.completed' AND created_at >= @since24h
-           AND json_extract(extra_data, '$.is_duplicate') = 1 ${dupClause}`
-      )
-      .get(dupParams) as { c: number };
-    const dupRate = completed.c > 0 ? dupes.c / completed.c : null;
-
-    return {
-      owner_id: ownerId ?? null,
-      total_memories: t > 0 ? t : 0,
-      type_distribution: t > 0 ? dist : null,
-      duplicate_write_rate_24h: dupRate,
-      relation_coverage_ratio: coverage,
-      orphan_memory_ratio: orphan,
-      timestamp: now
-    };
+    return queryMemoryQuality(this.db, ownerId);
   }
 
   /**
    * Sleep 공고화·트리플 추출 등 구조화 파이프라인 품질 지표 (최근 7일 윈도우, owner 선택)
    */
   queryConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
-    const now = new Date().toISOString();
-    const cutoff7d = periodCutoffIso('7d');
-    const memOwner =
-      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-    const telOwner =
-      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-    const params: Record<string, unknown> = { cutoff: cutoff7d };
-    if (ownerId !== undefined && ownerId !== null) {
-      params.owner = ownerId;
-    }
-
-    const ep = this.db
-      .prepare(
-        `SELECT
-           SUM(CASE WHEN type = 'episodic' AND COALESCE(is_consolidated, 0) = 1 THEN 1 ELSE 0 END) AS cons,
-           SUM(CASE WHEN type = 'episodic' THEN 1 ELSE 0 END) AS total
-         FROM memory_item WHERE 1 = 1 ${memOwner}`
-      )
-      .get(params) as { cons: number | null; total: number | null } | undefined;
-    const totalEp = ep?.total ?? 0;
-    const episodic_consolidation_rate =
-      totalEp > 0 && ep?.cons != null ? ep.cons / totalEp : null;
-
-    const tr = this.db
-      .prepare(
-        `SELECT
-           SUM(CASE WHEN triple_extracted_status = 'success' THEN 1 ELSE 0 END) AS ok,
-           SUM(CASE WHEN COALESCE(triple_extracted, 0) = 1 THEN 1 ELSE 0 END) AS te
-         FROM memory_item WHERE type = 'episodic' ${memOwner}`
-      )
-      .get(params) as { ok: number | null; te: number | null } | undefined;
-    const teCount = tr?.te ?? 0;
-    const triple_extraction_success_rate =
-      teCount > 0 && tr?.ok != null ? tr.ok / teCount : null;
-
-    const telParams = { cutoff: cutoff7d, ...params };
-    const perfRows = this.db
-      .prepare(
-        `SELECT extra_data FROM telemetry_events
-         WHERE event_type = 'consolidation.performed'
-           AND outcome = 'success'
-           AND created_at >= @cutoff ${telOwner}`
-      )
-      .all(telParams) as { extra_data: string | null }[];
-    let effSum = 0;
-    let effN = 0;
-    for (const r of perfRows) {
-      if (!r.extra_data) {
-        continue;
-      }
-      try {
-        const j = JSON.parse(r.extra_data) as {
-          clusters_processed?: number;
-          clusters_found?: number;
-        };
-        const cf = j.clusters_found ?? 0;
-        const cp = j.clusters_processed ?? 0;
-        if (cf > 0) {
-          effSum += cp / cf;
-          effN++;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    const cluster_processing_efficiency = effN > 0 ? effSum / effN : null;
-
-    const semRow = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM memory_item
-         WHERE type = 'semantic' AND datetime(created_at) >= datetime(@cutoff) ${memOwner}`
-      )
-      .get(params) as { c: number };
-    const recent_semantic_count_7d = semRow?.c ?? 0;
-
-    const errRow = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events
-         WHERE outcome = 'failure'
-           AND created_at >= @cutoff
-           AND event_type IN ('consolidation.performed', 'telemetry.cleanup.performed') ${telOwner}`
-      )
-      .get(params) as { c: number };
-    /** 트리플 추출 실패(FR-009 파이프라인 오류) — 텔레메트리 미발행 경로 포함 */
-    const tripleFailRow = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM memory_item
-         WHERE type = 'episodic'
-           AND triple_extracted_status = 'failed'
-           AND COALESCE(is_deleted, 0) = 0
-           AND (
-             (
-               triple_extraction_metadata IS NOT NULL
-               AND json_extract(triple_extraction_metadata, '$.last_attempt') IS NOT NULL
-               AND datetime(json_extract(triple_extraction_metadata, '$.last_attempt')) >= datetime(@cutoff)
-             )
-             OR (
-               (
-                 triple_extraction_metadata IS NULL
-                 OR json_extract(triple_extraction_metadata, '$.last_attempt') IS NULL
-               )
-               AND datetime(created_at) >= datetime(@cutoff)
-             )
-           )
-           ${memOwner}`
-      )
-      .get(params) as { c: number };
-    const pipeline_error_count = (errRow?.c ?? 0) + (tripleFailRow?.c ?? 0);
-
-    return {
-      episodic_consolidation_rate,
-      triple_extraction_success_rate,
-      cluster_processing_efficiency,
-      recent_semantic_count_7d,
-      pipeline_error_count,
-      timestamp: now
-    };
-  }
-
-  private toolBucketFromEvents(
-    eventTypes: { req: EventType; terminal?: EventType[] },
-    cutoff: string,
-    ownerId?: string | null
-  ): ToolMetricBucket {
-    const o =
-      ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-    const params: Record<string, unknown> = { cutoff };
-    if (ownerId !== undefined && ownerId !== null) params.owner = ownerId;
-
-    const reqC = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events WHERE event_type = @et AND created_at >= @cutoff ${o}`
-      )
-      .get({ ...params, et: eventTypes.req }) as { c: number };
-
-    const terminalTypes = eventTypes.terminal ?? [];
-    let successC = 0;
-    let errC = 0;
-    const latencies: number[] = [];
-    if (terminalTypes.length > 0) {
-      const placeholders = terminalTypes.map(() => '?').join(',');
-      const args: unknown[] = [...terminalTypes, cutoff];
-      const sql = `SELECT outcome, latency_ms FROM telemetry_events WHERE event_type IN (${placeholders}) AND created_at >= ? ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = ?'}`;
-      if (ownerId !== undefined && ownerId !== null) args.push(ownerId);
-      const rows = this.db.prepare(sql).all(...args) as { outcome: Outcome; latency_ms: number | null }[];
-      for (const r of rows) {
-        if (r.outcome === 'failure') errC++;
-        else successC++;
-        if (r.latency_ms != null) latencies.push(r.latency_ms);
-      }
-    }
-    latencies.sort((a, b) => a - b);
-    const p95 = percentile95Sorted(latencies);
-    const avg =
-      latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : null;
-    const total = reqC.c;
-    const errRate = total > 0 ? errC / total : null;
-
-    return {
-      request_count: total > 0 ? total : total === 0 ? 0 : null,
-      success_count: successC > 0 ? successC : successC === 0 && terminalTypes.length > 0 ? 0 : null,
-      error_count: errC > 0 ? errC : errC === 0 && terminalTypes.length > 0 ? 0 : null,
-      error_rate: errRate,
-      avg_latency_ms: avg,
-      p95_latency_ms: p95
-    };
+    return queryConsolidationQuality(this.db, ownerId);
   }
 
   querySystemMetrics(
@@ -609,86 +228,7 @@ export class TelemetryRepository {
       telemetryCleanup: SchedulerJobSnapshot;
     }
   ): SystemMetricsResult {
-    const cutoff = periodCutoffIso(period);
-    const recall = this.toolBucketFromEvents(
-      {
-        req: 'memory.search.requested',
-        terminal: ['memory.search.selected', 'memory.search.empty', 'memory.search.failed']
-      },
-      cutoff,
-      ownerId
-    );
-    const remember = this.toolBucketFromEvents(
-      { req: 'memory.write.requested', terminal: ['memory.write.completed'] },
-      cutoff,
-      ownerId
-    );
-    const fbPos = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events WHERE event_type = 'memory.feedback.positive' AND created_at >= @cutoff ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner'}`
-      )
-      .get(
-        ownerId === undefined || ownerId === null
-          ? { cutoff }
-          : { cutoff, owner: ownerId }
-      ) as { c: number };
-    const fbNeg = this.db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM telemetry_events WHERE event_type = 'memory.feedback.negative' AND created_at >= @cutoff ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner'}`
-      )
-      .get(
-        ownerId === undefined || ownerId === null
-          ? { cutoff }
-          : { cutoff, owner: ownerId }
-      ) as { c: number };
-    const fbTotal = fbPos.c + fbNeg.c;
-    const fbLat = this.db
-      .prepare(
-        `SELECT latency_ms FROM telemetry_events
-         WHERE event_type IN ('memory.feedback.positive','memory.feedback.negative')
-           AND created_at >= @cutoff
-           AND latency_ms IS NOT NULL
-           ${ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner'}
-         ORDER BY latency_ms ASC`
-      )
-      .all(
-        ownerId === undefined || ownerId === null
-          ? { cutoff }
-          : { cutoff, owner: ownerId }
-      ) as { latency_ms: number }[];
-    const fl = fbLat.map(x => x.latency_ms);
-    const feedback: ToolMetricBucket = {
-      request_count: fbTotal > 0 ? fbTotal : fbTotal === 0 ? 0 : null,
-      success_count: fbTotal > 0 ? fbTotal : fbTotal === 0 ? 0 : null,
-      error_count: 0,
-      error_rate: 0,
-      avg_latency_ms: fl.length > 0 ? fl.reduce((a, b) => a + b, 0) / fl.length : null,
-      p95_latency_ms: percentile95Sorted(fl)
-    };
-
-    const mapJob = (s: SchedulerJobSnapshot): BackgroundJobMetric => ({
-      last_run_at: s.lastExecution ? s.lastExecution.toISOString() : null,
-      last_outcome:
-        s.lastSuccess === true ? 'success' : s.lastSuccess === false ? 'failure' : null,
-      total_runs_24h:
-        s.successRuns24h != null && s.failureRuns24h != null
-          ? s.successRuns24h + s.failureRuns24h
-          : null,
-      success_runs_24h: s.successRuns24h,
-      failure_runs_24h: s.failureRuns24h,
-      avg_duration_ms: s.avgDurationMs24h ?? null,
-      last_duration_ms: s.lastDurationMs ?? null
-    });
-
-    return {
-      period,
-      tools: { recall, remember, feedback },
-      background_jobs: {
-        sleep_consolidation: mapJob(jobMeta.sleep),
-        telemetry_cleanup: mapJob(jobMeta.telemetryCleanup)
-      },
-      timestamp: new Date().toISOString()
-    };
+    return querySystemMetrics(this.db, period, ownerId, jobMeta);
   }
 
   queryEvents(filters: TelemetryEventQueryFilters): {
