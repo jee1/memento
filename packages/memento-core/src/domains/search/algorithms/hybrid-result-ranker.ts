@@ -4,8 +4,9 @@ import { getRankingWeights } from '../../../shared/config/ranking-weights-loader
 import type { ProcessAttribute } from '../../../shared/types/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
-import { FeedbackRepository, sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.js';
-import { ProcessAttributeRepository } from '../../memory/repositories/process-attribute-repository.js';
+import { sigmoidNormalizedNet } from '../../memory/repositories/feedback-repository.interface.js';
+import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
+import { ProcessAttributeRepositorySqlite } from '../../../infrastructure/database/repositories/process-attribute-repository-sqlite.impl.js';
 import type { VectorSearchResult } from '../../memory/services/memory-embedding-service.js';
 import { computeProcessAttributeFit } from './process-attribute-fit.js';
 import { SearchRanking, type SearchFeatures } from './search-ranking.js';
@@ -265,7 +266,7 @@ export class HybridResultRanker {
     memoryIds: string[]
   ): Map<string, number> {
     try {
-      return new FeedbackRepository(db).getNetScores(memoryIds, 90);
+      return new FeedbackRepositorySQLite(db).getNetScores(memoryIds, 90);
     } catch (err) {
       const maskedError = err instanceof Error
         ? PIIMasker.maskError(err)
@@ -289,7 +290,7 @@ export class HybridResultRanker {
       return { processAttributes: null, memoryDetailsMap: new Map() };
     }
 
-    const attrRepo = new ProcessAttributeRepository(db);
+    const attrRepo = new ProcessAttributeRepositorySqlite(db);
     const processAttributes = attrRepo.getByProcessId(processId);
     const memoryDetailsMap = new Map<string, MemoryRankingDetails>();
 

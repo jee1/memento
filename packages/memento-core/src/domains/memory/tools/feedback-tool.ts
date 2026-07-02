@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
-import { FeedbackRepository } from '../repositories/feedback-repository.js';
+import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { logger } from '../../../shared/utils/logger.js';
 
 /** SQLite CURRENT_TIMESTAMP 등 비 ISO 문자열을 RFC3339(UTC)로 통일 */
@@ -152,7 +152,7 @@ export class FeedbackTool extends BaseTool {
         scoreBreakdownJson = JSON.stringify(parsed.score_breakdown);
       }
 
-      const repo = new FeedbackRepository(context.db!);
+      const repo = new FeedbackRepositorySQLite(context.db!);
       const event = parsed.helpful ? 'helpful' : 'not_helpful';
       const inserted = repo.insertFeedback({
         memory_id: parsed.memory_id,

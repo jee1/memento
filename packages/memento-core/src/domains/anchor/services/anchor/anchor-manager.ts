@@ -329,22 +329,6 @@ export class AnchorManager implements IAnchorManager {
   }
 
   /**
-   * 검색 서비스 접근 (하위 호환성을 위해 유지)
-   * @deprecated 직접 searchService를 사용하세요
-   */
-  getSearchService(): IAnchorSearchService {
-    return this.searchService;
-  }
-
-  /**
-   * 캐시 서비스 접근 (하위 호환성을 위해 유지)
-   * @deprecated 직접 cacheService를 사용하세요
-   */
-  getCacheService(): IAnchorCacheService {
-    return this.cacheService;
-  }
-
-  /**
    * DB에서 캐시 복원
    * @param db - 데이터베이스 인스턴스
    */

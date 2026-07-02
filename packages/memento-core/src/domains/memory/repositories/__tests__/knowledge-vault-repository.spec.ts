@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { KnowledgeVaultRepository } from '../knowledge-vault-repository.js';
+import { KnowledgeVaultRepositorySqlite as KnowledgeVaultRepository } from '../../../../infrastructure/database/repositories/knowledge-vault-repository-sqlite.impl.js';
 
 /**
  * knowledge_vault 테이블 생성

@@ -5,3 +5,7 @@ export interface IFeedbackRepository {
   getNetScores(memoryIds: string[], windowDays?: number): Map<string, number>;
   getNetScoreRows(memoryIds: string[], windowDays?: number): FeedbackNetScore[];
 }
+
+export function sigmoidNormalizedNet(net: number): number {
+  return 1 / (1 + Math.exp(-net));
+}

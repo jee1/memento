@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
-import { FeedbackRepository, sigmoidNormalizedNet } from '../feedback-repository.js';
+import { sigmoidNormalizedNet } from '../feedback-repository.interface.js';
+import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 
 describe('FeedbackRepository', () => {
   let db: Database.Database;

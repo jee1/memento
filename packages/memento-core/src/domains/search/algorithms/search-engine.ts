@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import { mcpLogger } from '../../../server/mcp-logger.js';
 import type { MemorySearchResult } from '../../../shared/types/index.js';
 import { logger } from '../../../shared/utils/logger.js';
-import { FeedbackRepository } from '../../memory/repositories/feedback-repository.js';
+import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { SearchRanking } from './search-ranking.js';
 import { SearchEngineFtsAvailability } from './search-engine/search-engine-fts-availability.js';
 import { buildFTSQuery as buildFTSQueryImpl, makeFTSSafe as makeFTSSafeImpl, preprocessQuery as preprocessQueryImpl } from './search-engine/search-engine-fts-query.js';
@@ -98,7 +98,7 @@ export class SearchEngine {
         .filter((id): id is string => typeof id === 'string');
       if (ids.length > 0) {
         try {
-          feedbackNetByMemory = new FeedbackRepository(db).getNetScores(ids, 90);
+          feedbackNetByMemory = new FeedbackRepositorySQLite(db).getNetScores(ids, 90);
         } catch (err) {
           logger.warn('피드백 순합 조회 실패 — 피드백 없이 진행', {
             error: err instanceof Error ? err.message : String(err),

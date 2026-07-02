@@ -5,7 +5,7 @@
 import Database from 'better-sqlite3';
 import type { ExtractionInfo, Triple, TripleExtractionResult } from '../../../../shared/types/triple-extraction.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
+import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import { SemanticMemoryStatisticsService } from './semantic-memory-statistics.js';
 import type { SemanticMemoryCrud } from './semantic-memory-crud.js';
 import type { SemanticMemoryRelations } from './semantic-memory-relations.js';

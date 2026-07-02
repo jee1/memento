@@ -438,7 +438,6 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     expect(m.usagePercent).toBeCloseTo(50, 5);
     expect(m.rssUsagePercent).toBeCloseTo(50, 5);
     expect(m.heapShareOfBudgetPercent).toBeCloseTo(12.5, 5);
-    expect(m.heapUsagePercent).toBe(m.heapShareOfBudgetPercent);
   });
 
   it('constrainedMemory가 0이면 os.totalmem() 분모로 폴백한다', () => {

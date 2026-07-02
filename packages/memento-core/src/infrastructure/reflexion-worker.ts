@@ -316,17 +316,6 @@ export class ReflexionWorker implements IReflexionWorker {
   }
 
   /**
-   * 가장 오래된 큐 이벤트 제거 (FIFO)
-   * AsyncTaskQueue의 큐 크기 제한 기능을 사용하므로 여기서는 더 이상 필요 없음
-   * @deprecated AsyncTaskQueue가 자동으로 처리하므로 사용하지 않음
-   */
-  private removeOldestQueuedEvent(): string | null {
-    // AsyncTaskQueue의 addTask에서 자동으로 큐 크기 제한을 처리하므로
-    // 여기서는 더 이상 필요 없음
-    return null;
-  }
-
-  /**
    * 실패 이벤트 처리 (재시도 및 백오프 포함)
    */
   async processFailureEvent(event: FailureEvent): Promise<void> {

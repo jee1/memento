@@ -3,7 +3,7 @@
  */
 
 import { createHash } from 'crypto';
-import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { KnowledgeVaultRepositorySqlite as KnowledgeVaultRepository } from '../../../infrastructure/database/repositories/knowledge-vault-repository-sqlite.impl.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';

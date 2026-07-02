@@ -8,7 +8,7 @@ import Database from 'better-sqlite3';
 import type { TripleExtractionResult } from '../../../../shared/types/triple-extraction.js';
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { RelationGraphPort } from '../../../relation/ports/relation-graph.port.js';
-import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
+import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import { SemanticMemoryCrud } from './semantic-memory-crud.js';
 import { SemanticMemoryRelations } from './semantic-memory-relations.js';
 import { SemanticMemoryScoring } from './semantic-memory-scoring.js';

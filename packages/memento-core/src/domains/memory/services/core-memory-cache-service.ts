@@ -8,7 +8,7 @@
  * - 빠른 조회: Map 기반 O(1) 조회 성능
  */
 
-import type { CoreMemoryRecord } from '../repositories/core-memory-repository.js';
+import type { CoreMemoryRecord } from '../repositories/core-memory-repository.interface.js';
 import type { CoreMemoryCache } from './core-memory-service.js';
 import { logger } from '../../../shared/utils/logger.js';
 

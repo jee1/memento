@@ -7,17 +7,22 @@ Issue #586 · 부모 [#580](https://github.com/jee1/memento/issues/580)
 
 | Symbol / location | Replacement | Notes |
 |-------------------|-------------|-------|
-| `FeedbackRepository` (`feedback-repository.ts`) | `IFeedbackRepository` + `FeedbackRepositorySQLite` | Re-export shim; import interface/impl directly |
-| `CoreMemoryRepository` (`core-memory-repository.ts`) | domain repository interface + SQLite impl | Compatibility re-export |
-| `KgTripleRepository` (`kg-triple-repository.ts`) | interface + SQLite impl | Compatibility re-export |
-| `KnowledgeVaultRepository` (`knowledge-vault-repository.ts`) | `IKnowledgeVaultRepository` + `KnowledgeVaultRepositorySqlite` | Compatibility re-export |
-| `ProcessAttributeRepository` (`process-attribute-repository.ts`) | `IProcessAttributeRepository` + SQLite impl | Compatibility re-export |
-| `EmbeddingService` (`embedding-service.ts`) | `EmbeddingManager` / factory | Class unused; file retained for import stability |
-| `AnchorManager` search/cache helpers | `searchService` / `cacheService` directly | Private deprecated wrappers |
-| `PerformanceMonitor.getMemoryMetrics().heapUsagePercent` | `heapShareOfBudgetPercent` | Same value; misleading name. Implementation: `memory-pressure-utils.ts` (`getMemoryPressureDenominatorBytes`, `memoryRatioToPercent`); exposed via `performance-monitor.ts` `getMemoryMetrics()` |
-| `ReflexionWorker` legacy queue hook | `AsyncTaskQueue` | No-op deprecated method |
-| `type-param-validator` runtime warning `[LEGACY TYPE]` | Always pass MCP `type` param | [type-param-rollout.md](../guides/ko/type-param-rollout.md) |
-| `@google/generative-ai` (llm-client-initializer note) | `@google/genai` migration | Upstream SDK sunset 2025-08-31 |
+| `type-param-validator` runtime warning `[LEGACY TYPE]` | Always pass MCP `type` param | [type-param-rollout.md](../guides/ko/type-param-rollout.md) — 제거 조건: `MEMENTO_TYPE_PARAM_MODE` 기본값이 `error`로 전환된 후 |
+| `@google/generative-ai` (llm-client-initializer note) | `@google/genai` migration | 아직 광범위 사용 중; 마이그레이션 미완료 |
+
+## Removed in #617
+
+| Item | Reason |
+|------|--------|
+| `FeedbackRepository` (`feedback-repository.ts`) | 모든 호출자가 `FeedbackRepositorySQLite` 직접 사용으로 전환; `sigmoidNormalizedNet`은 `feedback-repository.interface.ts`로 이동 |
+| `CoreMemoryRepository` (`core-memory-repository.ts`) | 타입 re-export 전용 shim 삭제; 호출자가 `core-memory-repository.interface.ts` 직접 import로 전환 |
+| `KgTripleRepository` (`kg-triple-repository.ts`) | 모든 호출자가 `KgTripleRepositorySqlite` 직접 사용으로 전환 |
+| `KnowledgeVaultRepository` (`knowledge-vault-repository.ts`) | 모든 호출자가 `KnowledgeVaultRepositorySqlite` 직접 사용으로 전환 |
+| `ProcessAttributeRepository` (`process-attribute-repository.ts`) | 모든 호출자가 `ProcessAttributeRepositorySqlite` 직접 사용으로 전환 |
+| `EmbeddingService` (`embedding-service.ts`) | 사용처 없음; `EmbeddingManager` / `MemoryEmbeddingService` 사용 |
+| `AnchorManager.getSearchService()` / `.getCacheService()` | private 필드 직접 접근으로 대체; 테스트에서만 사용됐던 no-op wrapper |
+| `PerformanceMonitor.getMemoryMetrics().heapUsagePercent` | `heapShareOfBudgetPercent` 사용 |
+| `ReflexionWorker` legacy queue hook (`removeOldestQueuedEvent`) | `AsyncTaskQueue` 자동 처리; no-op private 메서드 |
 
 ## Removed in #586
 
