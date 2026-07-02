@@ -50,6 +50,7 @@ npm run lint && npm run type-check  # 커밋 전 필수
 - **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 - **infrastructure repo 분해**: `packages/memento-core/src/infrastructure/database/repositories/` — composition(`*-store.ts`); public export는 오케스트레이터 파일만 (#610)
 - **composition 분해 후 CI**: `test-core`는 memento-core 전체 vitest — 도메인 `__tests__`만 green이면 부족; 다른 경로 spec이 `(orchestrator as any).privateMethod` 호출 시 orchestrator에 위임 래퍼 필수 (예: `006-fts5-reflection-notes.spec.ts` → `buildReflectionNotesSearchCondition`)
+- **scheduler jobs 타입**: `BatchJobResult` 등은 `batch-scheduler-types.js`에서 import (`batch-scheduler.js`는 jobs↔scheduler 순환 참조)
 
 ## 4. 코딩 에이전트 행동 지침 (Karpathy Guidelines)
 

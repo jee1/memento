@@ -43,6 +43,7 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 - **격리 작업**: `git worktree add -b NNN-name ../memento-issue-NNN main` → worktree에서 `npm install` → spec/plan/tasks → 구현 → PR (`Closes #이슈`)
 - **정리 순서**: `git worktree remove <worktree-path>` → `git branch -d NNN-name` → `git pull origin main` → `git fetch --prune origin`
 - **god node 분해** (#593 계열): public import·export 유지, 내부 composition sub-module(단일 파일 ≤500줄); 선행 spec green — monitoring: `performance-monitor.spec.ts`; relation: `relation-graph.spec.ts` + `relation-graph.integration.spec.ts`; memory: `semantic-memory-update-service.spec.ts`; search: `vector-search.repository.spec.ts` + `search-engine.spec.ts` + `search-engine-reflection-notes.spec.ts` + `006-fts5-reflection-notes.spec.ts`; agent-integration DB: `sqlite-agent-integration-repository.spec.ts` + `domains/agent-integration/`; 참조 오케스트레이터 (`performance-monitor.ts`, `relation-graph.ts`, `semantic-memory-update-service.ts`, `vector-search.repository.ts`, `search-engine.ts`, `sqlite-agent-integration-repository.ts`); search sub-dir `vector-search/`·`search-engine/`; infrastructure repo는 `*-store.ts`·`*-row-utils.ts`·`*-cursor-utils.ts`로 분해 (#610)
+- **scheduler god node** (#612): 오케스트레이터 `batch-scheduler.ts`·`triple-extraction-batch-job.ts`; helpers `batch-scheduler/`, run 본문 `handlers/`; 선행 spec — `infrastructure/scheduler/__tests__/batch-scheduler/` + `jobs/__tests__/triple-extraction-batch-job.spec.ts`
 
 ## PR·지식 복리
 
