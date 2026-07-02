@@ -46,18 +46,16 @@ vi.mock('openai', () => {
   };
 });
 
-// GoogleGenerativeAI 모킹
-vi.mock('@google/generative-ai', () => {
+// GoogleGenAI 모킹
+vi.mock('@google/genai', () => {
   const mockGenerateContent = vi.fn();
-  const mockGetGenerativeModel = vi.fn(() => ({
-    generateContent: mockGenerateContent
-  }));
   return {
-    GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-      getGenerativeModel: mockGetGenerativeModel
+    GoogleGenAI: vi.fn().mockImplementation(() => ({
+      models: {
+        generateContent: mockGenerateContent
+      }
     })),
-    __mockGenerateContent: mockGenerateContent,
-    __mockGetGenerativeModel: mockGetGenerativeModel
+    __mockGenerateContent: mockGenerateContent
   };
 });
 

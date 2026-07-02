@@ -102,9 +102,9 @@ describe('LLM Provider 통합 테스트', () => {
       mockMementoConfig.geminiApiKey = 'test-gemini-api-key';
       
       // Gemini 모킹 - 초기화 실패
-      const geminiModule = await import('@google/generative-ai');
-      const MockGoogleGenerativeAI = geminiModule.GoogleGenerativeAI;
-      vi.mocked(MockGoogleGenerativeAI).mockImplementation(() => {
+      const geminiModule = await import('@google/genai');
+      const MockGoogleGenAI = geminiModule.GoogleGenAI;
+      vi.mocked(MockGoogleGenAI).mockImplementation(() => {
         throw new Error('Gemini initialization failed');
       });
       
@@ -145,7 +145,7 @@ describe('LLM Provider 통합 테스트', () => {
         expect.any(Object)
       );
       
-      vi.mocked(MockGoogleGenerativeAI).mockRestore();
+      vi.mocked(MockGoogleGenAI).mockRestore();
       loggerWarnSpy.mockRestore();
     });
 

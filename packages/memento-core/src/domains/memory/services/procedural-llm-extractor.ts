@@ -138,18 +138,17 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     const retryOptions = getRetryOptions();
     return await this.retryManager.retry(
       async () => {
-        const model = client.getGenerativeModel({
-          model: resolveLlmModel('gemini', 'procedural')
-        });
+        const model = resolveLlmModel('gemini', 'procedural');
         const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         try {
-          const gen = await model.generateContent({
+          const gen = await client.models.generateContent({
+            model,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+            config: { temperature: 0.3, maxOutputTokens: 1024 },
           });
-          return gen.response.text() || '{}';
+          return gen.text || '{}';
         } finally {
           clearTimeout(timeoutId);
         }

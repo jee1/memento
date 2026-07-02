@@ -3,7 +3,7 @@
  * TripleExtractionService에서 분리해 복잡도를 낮춘다.
  */
 
-import type { GoogleGenerativeAI } from '@google/generative-ai';
+import type { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 import type { Triple, TripleExtractionOptions, TripleExtractionResult } from '../../../../shared/types/triple-extraction.js';
@@ -38,7 +38,7 @@ export type TripleLlmActiveProvider = 'openai' | 'gemini' | 'ollama';
 export async function invokeTripleProviderRawOutput(params: {
   actualProvider: TripleLlmActiveProvider;
   openaiClient: OpenAI | null;
-  geminiClient: GoogleGenerativeAI | null;
+  geminiClient: GoogleGenAI | null;
   deps: TripleLlmCallDeps;
   prompt: string;
   options: TripleExtractionOptions;

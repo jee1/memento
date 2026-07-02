@@ -10,7 +10,7 @@ import { LLMClientInitializer } from '../../../../../shared/services/llm-client-
 import type { LLMClientInitializationResult } from '../../../../../shared/services/llm-client-initializer.js';
 import { logger } from '../../../../../shared/utils/logger.js';
 import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 // Config 모킹
 vi.mock('../../../../../shared/config/index.js', () => {
@@ -46,18 +46,16 @@ vi.mock('openai', () => {
   };
 });
 
-// GoogleGenerativeAI 모킹
-vi.mock('@google/generative-ai', () => {
+// GoogleGenAI 모킹
+vi.mock('@google/genai', () => {
   const mockGenerateContent = vi.fn();
-  const mockGetGenerativeModel = vi.fn(() => ({
-    generateContent: mockGenerateContent
-  }));
   return {
-    GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-      getGenerativeModel: mockGetGenerativeModel
+    GoogleGenAI: vi.fn().mockImplementation(() => ({
+      models: {
+        generateContent: mockGenerateContent
+      }
     })),
-    __mockGenerateContent: mockGenerateContent,
-    __mockGetGenerativeModel: mockGetGenerativeModel
+    __mockGenerateContent: mockGenerateContent
   };
 });
 
@@ -67,7 +65,6 @@ global.fetch = vi.fn();
 describe('TripleExtractor', () => {
   let mockOpenAICreate: any;
   let mockGeminiGenerateContent: any;
-  let mockGeminiGetGenerativeModel: any;
 
   beforeEach(async () => {
     // 환경 변수 모킹
@@ -79,9 +76,8 @@ describe('TripleExtractor', () => {
     const openaiModule = await import('openai');
     mockOpenAICreate = (openaiModule as any).__mockCreate;
     
-    const geminiModule = await import('@google/generative-ai');
+    const geminiModule = await import('@google/genai');
     mockGeminiGenerateContent = (geminiModule as any).__mockGenerateContent;
-    mockGeminiGetGenerativeModel = (geminiModule as any).__mockGetGenerativeModel;
 
     // 기본 모킹된 응답 설정
     const defaultTripleResponse = JSON.stringify({
@@ -99,14 +95,8 @@ describe('TripleExtractor', () => {
       }]
     });
 
-    // Gemini 모킹 응답
-    mockGeminiGetGenerativeModel.mockReturnValue({
-      generateContent: mockGeminiGenerateContent
-    });
     mockGeminiGenerateContent.mockResolvedValue({
-      response: {
-        text: () => defaultTripleResponse
-      }
+      text: defaultTripleResponse
     });
 
     // Ollama 모킹 응답 (모델 존재 여부 확인 및 채팅 응답)
@@ -275,7 +265,7 @@ describe('TripleExtractor', () => {
     it('Given: TripleExtractor 인스턴스가 생성됨, When: extract 메서드를 호출함, Then: initializeClients()가 LLMClientInitializer.initialize()를 호출해야 함', async () => {
       // Given: LLMClientInitializer를 모킹하고 initialize() 메서드를 모킹
       const mockOpenAIClient = new OpenAI({ apiKey: 'test-openai-key' });
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'openai',
@@ -304,7 +294,7 @@ describe('TripleExtractor', () => {
     it('TripleExtractor에서 preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
       // Given: preferredProvider와 warnings를 함께 반환하는 LLMClientInitializer 결과를 모킹
       const mockOpenAIClient = new OpenAI({ apiKey: 'test-openai-key' });
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockWarnings = ['Warning 1', 'Warning 2'];
       
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -381,7 +371,7 @@ describe('TripleExtractor', () => {
 
     it('Given: OpenAI 클라이언트가 초기화되지 않고 Gemini 클라이언트만 초기화된 상태, When: openai provider를 요청함, Then: fallback으로 gemini provider를 반환해야 함', async () => {
       // Given: OpenAI 클라이언트가 초기화되지 않고 Gemini 클라이언트만 초기화된 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'gemini',
         openaiClient: null,
@@ -477,7 +467,7 @@ describe('TripleExtractor', () => {
   describe('fallback 로직', () => {
     it('Given: preferredProvider가 null이고 openaiClient가 null이지만 geminiClient가 사용 가능한 상태, When: auto provider를 요청함, Then: 사용 가능한 gemini provider를 반환해야 함', async () => {
       // Given: preferredProvider가 null이고 openaiClient가 null이지만 geminiClient가 사용 가능한 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: null,
         openaiClient: null,
@@ -540,7 +530,7 @@ describe('TripleExtractor', () => {
 
     it("Given: preferredProvider가 'openai'이지만 openaiClient가 null이고 geminiClient가 사용 가능한 상태, When: openai provider를 요청함, Then: fallback으로 gemini provider를 반환해야 함", async () => {
       // Given: preferredProvider가 'openai'이지만 openaiClient가 null이고 geminiClient가 사용 가능한 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'openai',
         openaiClient: null,
@@ -633,7 +623,7 @@ describe('TripleExtractor', () => {
 
     it("Given: preferredProvider가 'ollama'이지만 ollama가 초기화되지 않고 openaiClient도 null이지만 geminiClient가 사용 가능한 상태, When: ollama provider를 요청함, Then: fallback으로 gemini provider를 반환해야 함", async () => {
       // Given: preferredProvider가 'ollama'이지만 ollama가 초기화되지 않고 openaiClient도 null이지만 geminiClient가 사용 가능한 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'ollama',
         openaiClient: null,

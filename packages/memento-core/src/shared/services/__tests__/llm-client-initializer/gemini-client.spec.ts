@@ -17,7 +17,7 @@ describe('LLMClientInitializer', () => {
     /**
      * Given: GEMINI_API_KEY가 설정되어 있음
      * When: initialize() 메서드를 호출함
-     * Then: GoogleGenerativeAI 클라이언트가 생성되고 initializedProviders에 'gemini'가 추가되어야 함
+     * Then: GoogleGenAI 클라이언트가 생성되고 initializedProviders에 'gemini'가 추가되어야 함
      * 
      * Note: 현재 구현에서는 Gemini 초기화 로직이 없으므로 이 테스트는 실패할 것임 (RED 단계)
      */
@@ -25,19 +25,19 @@ describe('LLMClientInitializer', () => {
       // Given: GEMINI_API_KEY가 설정되어 있음
       mockMementoConfig.geminiApiKey = 'test-gemini-api-key';
       
-      // GoogleGenerativeAI 모킹된 인스턴스 가져오기
-      const geminiModule = await import('@google/generative-ai');
-      const MockGoogleGenerativeAI = geminiModule.GoogleGenerativeAI;
-      vi.mocked(MockGoogleGenerativeAI).mockClear();
+      // GoogleGenAI 모킹된 인스턴스 가져오기
+      const geminiModule = await import('@google/genai');
+      const MockGoogleGenAI = geminiModule.GoogleGenAI;
+      vi.mocked(MockGoogleGenAI).mockClear();
       
       const initializer = new LLMClientInitializer();
 
       // When: initialize() 메서드 호출
       const result = await initializer.initialize();
 
-      // Then: GoogleGenerativeAI 클라이언트가 생성되어야 함
+      // Then: GoogleGenAI 클라이언트가 생성되어야 함
       // 현재 구현에서는 Gemini 초기화 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
-      expect(MockGoogleGenerativeAI).toHaveBeenCalledWith('test-gemini-api-key');
+      expect(MockGoogleGenAI).toHaveBeenCalledWith({ apiKey: 'test-gemini-api-key' });
       expect(result.geminiClient).not.toBeNull();
       expect(result.initializedProviders).toContain('gemini');
     });
@@ -83,10 +83,10 @@ describe('LLMClientInitializer', () => {
       // Given: GEMINI_API_KEY가 설정되어 있지만 초기화 중 에러 발생
       mockMementoConfig.geminiApiKey = 'test-gemini-api-key';
       
-      // GoogleGenerativeAI 모킹 - 에러 발생하도록 설정
-      const geminiModule = await import('@google/generative-ai');
-      const MockGoogleGenerativeAI = geminiModule.GoogleGenerativeAI;
-      vi.mocked(MockGoogleGenerativeAI).mockImplementation(() => {
+      // GoogleGenAI 모킹 - 에러 발생하도록 설정
+      const geminiModule = await import('@google/genai');
+      const MockGoogleGenAI = geminiModule.GoogleGenAI;
+      vi.mocked(MockGoogleGenAI).mockImplementation(() => {
         throw new Error('Gemini initialization failed');
       });
       
@@ -105,7 +105,7 @@ describe('LLMClientInitializer', () => {
       expect(loggerWarnSpy).toHaveBeenCalled();
       // TODO: 실제 구현 후에는 경고 메시지 내용도 확인해야 함
       
-      vi.mocked(MockGoogleGenerativeAI).mockRestore();
+      vi.mocked(MockGoogleGenAI).mockRestore();
       loggerWarnSpy.mockRestore();
     });
   });

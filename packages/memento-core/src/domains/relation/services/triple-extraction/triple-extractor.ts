@@ -8,7 +8,7 @@
  */
 
 import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
@@ -27,7 +27,7 @@ import { RelationRetryManager } from '../relation-retry-manager.js';
  */
 export class TripleExtractor implements ITripleExtractor {
   private openaiClient: OpenAI | null = null;
-  private geminiClient: GoogleGenerativeAI | null = null;
+  private geminiClient: GoogleGenAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
   private readonly retryManager: IRetryManager;
@@ -199,16 +199,16 @@ export class TripleExtractor implements ITripleExtractor {
     }
 
     const modelName = resolveLlmModel('gemini', 'triple_extraction');
-    const model = this.geminiClient.getGenerativeModel({ model: modelName });
     const temperature = options?.temperature ?? this.DEFAULT_TEMPERATURE;
     const maxTokens = options?.maxTokens ?? this.DEFAULT_MAX_TOKENS;
     const retryOptions = getRetryOptions();
 
     const result = await this.retryManager.retry(
       async () => {
-        return await model.generateContent({
+        return await this.geminiClient!.models.generateContent({
+          model: modelName,
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
+          config: {
             temperature,
             maxOutputTokens: maxTokens,
             responseMimeType: 'application/json'
@@ -227,7 +227,7 @@ export class TripleExtractor implements ITripleExtractor {
       }
     );
 
-    const text = result.response.text();
+    const text = result.text;
     if (!text) {
       throw new Error('Gemini 응답이 비어있습니다.');
     }

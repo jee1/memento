@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAI } from '@google/generative-ai';
+import type { GoogleGenAI } from '@google/genai';
 import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
@@ -19,7 +19,7 @@ export interface GeminiRelationExtractDeps {
 }
 
 export async function extractRelationsWithGemini(
-  geminiClient: GoogleGenerativeAI,
+  geminiClient: GoogleGenAI,
   prompt: string,
   deps: GeminiRelationExtractDeps
 ): Promise<ParseResult> {
@@ -35,15 +35,15 @@ export async function extractRelationsWithGemini(
       const retryOptions = getRetryOptions();
       const result = await deps.retryManager.retry(
         async () => {
-          const model = geminiClient!.getGenerativeModel({ model: modelName });
-          return await model.generateContent({
+          return await geminiClient.models.generateContent({
+            model: modelName,
             contents: [
               {
                 role: 'user',
                 parts: [{ text: prompt }]
               }
             ],
-            generationConfig: {
+            config: {
               temperature: 0.3,
               maxOutputTokens: LIMITS.MAX_RESPONSE_TOKENS,
               responseMimeType: 'application/json'
@@ -68,8 +68,7 @@ export async function extractRelationsWithGemini(
         }
       );
 
-      const response = result.response;
-      const text = response.text();
+      const text = result.text;
       if (!text) {
         throw new Error('Gemini 응답이 비어있습니다.');
       }

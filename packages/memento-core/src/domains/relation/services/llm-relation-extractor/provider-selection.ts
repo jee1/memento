@@ -1,12 +1,12 @@
 import type OpenAI from 'openai';
-import type { GoogleGenerativeAI } from '@google/generative-ai';
+import type { GoogleGenAI } from '@google/genai';
 
 export type ResolvedLlmProvider = 'openai' | 'gemini' | 'ollama' | null;
 export type RequestedLlmProvider = 'openai' | 'gemini' | 'ollama' | 'auto';
 
 export interface RelationProviderSelectionContext {
   openaiClient: OpenAI | null;
-  geminiClient: GoogleGenerativeAI | null;
+  geminiClient: GoogleGenAI | null;
   preferredProvider: ResolvedLlmProvider;
   /** mementoConfig.llmProvider */
   llmProviderConfig: string;
