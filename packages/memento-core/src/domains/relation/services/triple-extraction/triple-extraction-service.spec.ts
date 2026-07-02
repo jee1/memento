@@ -11,7 +11,7 @@ import { LLMClientInitializer } from '../../../../shared/services/llm-client-ini
 import type { LLMClientInitializationResult } from '../../../../shared/services/llm-client-initializer.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 describe('TripleExtractionService', () => {
   let service: TripleExtractionService;
@@ -314,7 +314,7 @@ describe('TripleExtractionService', () => {
     it('TripleExtractionService에서 preferredProvider가 있으면 warnings가 있어도 LLM 초기화 경고를 logger.warn으로 재출력하지 않아야 함', async () => {
       // Given: preferredProvider와 warnings를 함께 반환하는 LLMClientInitializer 결과를 모킹
       const mockOpenAIClient = new OpenAI({ apiKey: 'test-openai-key' });
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockWarnings = ['Warning 1', 'Warning 2'];
       
       const mockInitializeResult: LLMClientInitializationResult = {
@@ -393,7 +393,7 @@ describe('TripleExtractionService', () => {
 
     it('요청된 provider가 사용 불가능하고 fallback 가능한 경우 fallback provider를 반환해야 함', async () => {
       // Given: OpenAI 클라이언트가 초기화되지 않고 Gemini 클라이언트만 초기화된 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'gemini',
         openaiClient: null,
@@ -485,7 +485,7 @@ describe('TripleExtractionService', () => {
 
     it("'auto' 모드일 때 OpenAI가 사용 불가능하면 Gemini를 반환해야 함", async () => {
       // Given: OpenAI 클라이언트가 초기화되지 않고 Gemini 클라이언트만 초기화된 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'gemini',
         openaiClient: null,
@@ -546,7 +546,7 @@ describe('TripleExtractionService', () => {
 
     it("'gemini' provider 요청 시 Gemini가 사용 가능하면 Gemini를 반환해야 함", async () => {
       // Given: Gemini 클라이언트가 초기화된 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'gemini',
         openaiClient: null,
@@ -610,7 +610,7 @@ describe('TripleExtractionService', () => {
   describe('fallback 로직', () => {
     it('preferredProvider가 null이고 openaiClient가 null이지만 geminiClient가 사용 가능한 경우 gemini를 반환해야 함', async () => {
       // Given: preferredProvider가 null이고 openaiClient가 null이지만 geminiClient가 사용 가능한 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: null,
         openaiClient: null,
@@ -671,7 +671,7 @@ describe('TripleExtractionService', () => {
 
     it("preferredProvider가 'openai'이지만 openaiClient가 null이고 geminiClient가 사용 가능한 경우 gemini를 반환해야 함 (fallback)", async () => {
       // Given: preferredProvider가 'openai'이지만 openaiClient가 null이고 geminiClient가 사용 가능한 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'openai',
         openaiClient: null,
@@ -794,7 +794,7 @@ describe('TripleExtractionService', () => {
 
     it("preferredProvider가 'ollama'이지만 ollama가 사용 불가능하고 openaiClient도 null이지만 geminiClient가 사용 가능한 경우 gemini를 반환해야 함 (fallback)", async () => {
       // Given: preferredProvider가 'ollama'이지만 ollama가 사용 불가능하고 openaiClient도 null이지만 geminiClient가 사용 가능한 상태
-      const mockGeminiClient = new GoogleGenerativeAI('test-gemini-key');
+      const mockGeminiClient = new GoogleGenAI({ apiKey: 'test-gemini-key' });
       const mockInitializeResult: LLMClientInitializationResult = {
         preferredProvider: 'ollama',
         openaiClient: null,

@@ -154,7 +154,6 @@
   "license": "MIT",
   "dependencies": {
     "@google/genai": "^2.10.0",
-    "@google/generative-ai": "^0.24.1",
     "@huggingface/transformers": "^4.2.0",
     "@iarna/toml": "^2.2.5",
     "@memento/core": "1.17.0",

@@ -34,8 +34,8 @@ vi.mock('openai', () => {
   };
 });
 
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({}))
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: vi.fn().mockImplementation(() => ({ models: {} }))
 }));
 
 vi.mock('../../../../../shared/utils/logger.js', () => ({

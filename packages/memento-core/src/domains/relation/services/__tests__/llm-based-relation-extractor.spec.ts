@@ -143,18 +143,16 @@ vi.mock('openai', () => {
   };
 });
 
-// GoogleGenerativeAI 모킹
-vi.mock('@google/generative-ai', () => {
+// GoogleGenAI 모킹
+vi.mock('@google/genai', () => {
   const mockGenerateContent = vi.fn();
-  const mockGetGenerativeModel = vi.fn(() => ({
-    generateContent: mockGenerateContent
-  }));
   return {
-    GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-      getGenerativeModel: mockGetGenerativeModel
+    GoogleGenAI: vi.fn().mockImplementation(() => ({
+      models: {
+        generateContent: mockGenerateContent
+      }
     })),
-    __mockGenerateContent: mockGenerateContent,
-    __mockGetGenerativeModel: mockGetGenerativeModel
+    __mockGenerateContent: mockGenerateContent
   };
 });
 
@@ -198,7 +196,6 @@ describe('LLMBasedRelationExtractor', () => {
   let mockCacheService: any;
   let mockOpenAICreate: any;
   let mockGeminiGenerateContent: any;
-  let mockGeminiGetGenerativeModel: any;
   let mockGenerateEmbedding: any;
   let mockSearchSimilar: any;
 
@@ -220,9 +217,8 @@ describe('LLMBasedRelationExtractor', () => {
     // 모킹된 함수 가져오기
     const openaiModule = await import('openai');
     mockOpenAICreate = (openaiModule as any).__mockCreate;
-    const geminiModule = await import('@google/generative-ai');
+    const geminiModule = await import('@google/genai');
     mockGeminiGenerateContent = (geminiModule as any).__mockGenerateContent;
-    mockGeminiGetGenerativeModel = (geminiModule as any).__mockGetGenerativeModel;
 
     // UnifiedEmbeddingService 모킹 함수 가져오기
     const mockFunctions = await getMockEmbeddingFunctions();
@@ -249,9 +245,6 @@ describe('LLMBasedRelationExtractor', () => {
     }
     if (mockGeminiGenerateContent && typeof mockGeminiGenerateContent.mockClear === 'function') {
       mockGeminiGenerateContent.mockClear();
-    }
-    if (mockGeminiGetGenerativeModel && typeof mockGeminiGetGenerativeModel.mockClear === 'function') {
-      mockGeminiGetGenerativeModel.mockClear();
     }
     mockCacheService.get.mockReturnValue(null);
     mockCacheService.set.mockClear();

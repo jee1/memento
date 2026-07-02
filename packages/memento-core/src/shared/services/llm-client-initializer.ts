@@ -10,7 +10,7 @@
  */
 
 import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../config/index.js';
 import { resolveLlmModel } from '../config/llm-model-resolver.js';
 import { logger } from '../utils/logger.js';
@@ -29,7 +29,7 @@ export interface LLMClientInitializationResult {
   /** OpenAI 클라이언트 인스턴스 (초기화 실패 시 null) */
   openaiClient: OpenAI | null;
   /** Gemini 클라이언트 인스턴스 (초기화 실패 시 null) */
-  geminiClient: GoogleGenerativeAI | null;
+  geminiClient: GoogleGenAI | null;
   /** 성공적으로 초기화된 provider 목록 */
   initializedProviders: ('openai' | 'gemini' | 'ollama')[];
   /** 초기화 과정에서 발생한 경고 메시지 목록 */
@@ -235,15 +235,13 @@ export class LLMClientInitializer {
    * @returns Gemini 클라이언트 인스턴스 또는 null
    * 
    * @note
-   * - `@google/generative-ai` 라이브러리를 사용합니다 (LLM completion용)
-   * - 생성자에 API 키를 직접 전달하는 방식을 사용합니다: `new GoogleGenerativeAI(apiKey)`
-   * - 참고: `gemini-embedding-service.ts`는 `@google/genai`를 사용하며 객체 전달 방식을 사용합니다
-   * - 향후 `@google/genai`로 마이그레이션 검토 필요 (deprecated 예정: 2025-08-31)
+   * - `@google/genai` 라이브러리를 사용합니다.
+   * - 생성자에 API 키 객체를 전달합니다: `new GoogleGenAI({ apiKey })`
    */
   private initializeGemini(
     result: LLMClientInitializationResult,
     selectedProvider: LLMProvider
-  ): GoogleGenerativeAI | null {
+  ): GoogleGenAI | null {
     if (!mementoConfig.geminiApiKey) {
       if (this.shouldWarnMissingGeminiKey(selectedProvider)) {
         const warningMessage = 'GEMINI_API_KEY가 없습니다.';
@@ -264,7 +262,7 @@ export class LLMClientInitializer {
     const apiKey: string = mementoConfig.geminiApiKey;
 
     try {
-      const client = new GoogleGenerativeAI(apiKey);
+      const client = new GoogleGenAI({ apiKey });
       result.initializedProviders.push('gemini');
       return client;
     } catch (error) {

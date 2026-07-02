@@ -12,7 +12,7 @@
  * - 비용 모니터링
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import type { ICacheService } from '../../../shared/interfaces/cache.interface.js';
 import type { IRetryManager } from '../../../shared/interfaces/retry-manager.interface.js';
@@ -72,7 +72,7 @@ interface LLMCostMetrics {
  */
 export class LLMBasedRelationExtractor implements IRelationExtractor {
   private openaiClient: OpenAI | null = null;
-  private geminiClient: GoogleGenerativeAI | null = null;
+  private geminiClient: GoogleGenAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private readonly initializationPromise: Promise<void>;
   private initializationCompleted = false;

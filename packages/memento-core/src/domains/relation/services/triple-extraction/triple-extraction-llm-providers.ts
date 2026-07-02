@@ -2,7 +2,7 @@
  * Triple 추출용 LLM 프로바이더별 원시 텍스트 호출
  */
 
-import type { GoogleGenerativeAI } from '@google/generative-ai';
+import type { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
@@ -91,27 +91,27 @@ export async function extractRawWithOpenAI(
 }
 
 export async function extractRawWithGemini(
-  geminiClient: GoogleGenerativeAI,
+  geminiClient: GoogleGenAI,
   deps: TripleLlmCallDeps,
   prompt: string,
   options: TripleExtractionOptions
 ): Promise<string> {
   const modelName = resolveLlmModel('gemini', 'triple_extraction');
-  const model = geminiClient.getGenerativeModel({ model: modelName });
   const temperature = options.temperature ?? deps.defaultTemperature;
   const maxTokens = options.maxTokens ?? deps.defaultMaxTokens;
 
   const retryOptions = getRetryOptions();
   const result = await deps.retryManager.retry(
     async () => {
-      return await model.generateContent({
+      return await geminiClient.models.generateContent({
+        model: modelName,
         contents: [
           {
             role: 'user',
             parts: [{ text: prompt }],
           },
         ],
-        generationConfig: {
+        config: {
           temperature,
           maxOutputTokens: maxTokens,
           responseMimeType: 'application/json',
@@ -133,8 +133,7 @@ export async function extractRawWithGemini(
     }
   );
 
-  const response = result.response;
-  const text = response.text();
+  const text = result.text;
   if (!text) {
     throw new Error('Gemini 응답이 비어있습니다.');
   }

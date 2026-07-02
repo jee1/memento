@@ -1,9 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
 type RootPackageJson = {
+  dependencies?: Record<string, string>;
   scripts?: Record<string, string>;
 };
 
@@ -39,6 +40,27 @@ function readScript(pkg: RootPackageJson, name: string): string {
 
 function expectExactScript(pkg: RootPackageJson, name: string, expected: string): void {
   expect(readScript(pkg, name)).toBe(normalizeCommand(expected));
+}
+
+function collectSourceFiles(dir: string): string[] {
+  const entries = readdirSync(dir);
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const path = join(dir, entry);
+    const stat = statSync(path);
+
+    if (stat.isDirectory()) {
+      files.push(...collectSourceFiles(path));
+      continue;
+    }
+
+    if (/\.(ts|tsx)$/.test(entry)) {
+      files.push(path);
+    }
+  }
+
+  return files;
 }
 
 function splitSequentialCommands(command: string): string[] {
@@ -115,5 +137,24 @@ describe('root quality gate contracts', () => {
     const tsConfig = await eslint.calculateConfigForFile('packages/memento-server/src/cli.ts');
 
     expect(ruleSeverity(tsConfig.rules?.['@typescript-eslint/no-unused-vars'])).toBe(2);
+  });
+
+  it('uses @google/genai as the only Gemini SDK dependency in runtime code', () => {
+    const pkg = readJson<RootPackageJson>('package.json');
+    const packageLock = readJson<{ packages?: Record<string, unknown> }>('package-lock.json');
+
+    expect(pkg.dependencies?.['@google/genai']).toBeDefined();
+    expect(pkg.dependencies?.['@google/generative-ai']).toBeUndefined();
+    expect(packageLock.packages?.['node_modules/@google/genai']).toBeDefined();
+    expect(packageLock.packages?.['node_modules/@google/generative-ai']).toBeUndefined();
+
+    const sourceFiles = collectSourceFiles(join(process.cwd(), 'packages'))
+      .filter((file) => !file.includes('/_archived/'));
+
+    const offenders = sourceFiles.filter((file) =>
+      readFileSync(file, 'utf-8').includes('@google/generative-ai')
+    );
+
+    expect(offenders).toEqual([]);
   });
 });

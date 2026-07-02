@@ -4,29 +4,27 @@ const { mockGenerateContent } = vi.hoisted(() => ({
   mockGenerateContent: vi.fn(),
 }));
 
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn().mockReturnValue({
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: vi.fn().mockImplementation(() => ({
+    models: {
       generateContent: mockGenerateContent,
-    }),
+    },
   })),
 }));
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { GeminiChatLlmAdapter } from './gemini-chat-llm-adapter.js';
 import { PersonalAgentLlmError } from '../errors/personal-agent-llm-error.js';
 
 describe('GeminiChatLlmAdapter', () => {
   beforeEach(() => {
     mockGenerateContent.mockReset();
-    vi.mocked(GoogleGenerativeAI).mockClear();
+    vi.mocked(GoogleGenAI).mockClear();
   });
 
   it('calls generateContent with merged prompt and returns gemini metadata', async () => {
     mockGenerateContent.mockResolvedValue({
-      response: {
-        text: () => 'hello gemini',
-      },
+      text: 'hello gemini',
     });
     const adapter = new GeminiChatLlmAdapter({
       apiKey: 'AIza-test',
@@ -36,8 +34,9 @@ describe('GeminiChatLlmAdapter', () => {
       { role: 'system', content: 'You are helpful.' },
       { role: 'user', content: 'Hi' },
     ]);
-    expect(GoogleGenerativeAI).toHaveBeenCalledWith('AIza-test');
+    expect(GoogleGenAI).toHaveBeenCalledWith({ apiKey: 'AIza-test' });
     expect(mockGenerateContent).toHaveBeenCalledWith({
+      model: 'gemini-2.0-flash',
       contents: [
         {
           role: 'user',
@@ -56,7 +55,7 @@ describe('GeminiChatLlmAdapter', () => {
 
   it('omits empty system block', async () => {
     mockGenerateContent.mockResolvedValue({
-      response: { text: () => 'ok' },
+      text: 'ok',
     });
     const adapter = new GeminiChatLlmAdapter({
       apiKey: 'k',
@@ -64,6 +63,7 @@ describe('GeminiChatLlmAdapter', () => {
     });
     await adapter.complete([{ role: 'user', content: 'only user' }]);
     expect(mockGenerateContent).toHaveBeenCalledWith({
+      model: 'gemini-2.0-flash',
       contents: [{ role: 'user', parts: [{ text: 'user: only user' }] }],
     });
   });

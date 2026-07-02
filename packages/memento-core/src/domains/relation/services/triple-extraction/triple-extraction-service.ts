@@ -12,7 +12,7 @@
  * - 에러 처리 및 폴백
  */
 
-import type { GoogleGenerativeAI } from '@google/generative-ai';
+import type { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import { tripleExtractionLogger } from '../../../../infrastructure/logging/triple-extraction-logger.js';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
@@ -68,7 +68,7 @@ interface LLMCostMetrics {
  */
 export class TripleExtractionService {
   private openaiClient: OpenAI | null = null;
-  private geminiClient: GoogleGenerativeAI | null = null;
+  private geminiClient: GoogleGenAI | null = null;
   private preferredProvider: 'openai' | 'gemini' | 'ollama' | null = null;
   private initializedProviders: ('openai' | 'gemini' | 'ollama')[] = [];
   private readonly cache: TripleCacheService;
