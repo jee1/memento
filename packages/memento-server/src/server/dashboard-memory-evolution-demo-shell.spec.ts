@@ -14,7 +14,24 @@ const DASHBOARD_TABS_SCRIPTS = [
 const tabsJs = DASHBOARD_TABS_SCRIPTS.map((name) =>
   readFileSync(resolve(root, 'static/js', name), 'utf8'),
 ).join('\n');
-const authJs = readFileSync(resolve(root, 'static/js/dashboard-auth.js'), 'utf8');
+const DASHBOARD_AUTH_SCRIPTS = [
+  'dashboard-auth-state.js',
+  'dashboard-auth-dom.js',
+  'dashboard-auth-render-tabs.js',
+  'dashboard-auth-render-message.js',
+  'dashboard-auth-render-form.js',
+  'dashboard-auth-render-status.js',
+  'dashboard-auth-render.js',
+  'dashboard-auth-ui.js',
+  'dashboard-auth-error.js',
+  'dashboard-auth-session-check.js',
+  'dashboard-auth-sign-in.js',
+  'dashboard-auth-requests.js',
+  'dashboard-auth.js',
+] as const;
+const authJs = DASHBOARD_AUTH_SCRIPTS.map((name) =>
+  readFileSync(resolve(root, 'static/js', name), 'utf8'),
+).join('\n');
 const dashboardCss = readFileSync(resolve(root, 'static/css/dashboard.css'), 'utf8');
 
 const SHELL_COMPANION_SCRIPTS = [

@@ -7,7 +7,21 @@ import { describe, expect, it, vi } from 'vitest';
 const dashboardHtmlPath = resolve(process.cwd(), 'static/dashboard.html');
 const graphHtmlPath = resolve(process.cwd(), 'static/graph.html');
 const dashboardFetchPath = resolve(process.cwd(), 'static/js/memento-admin-fetch.js');
-const dashboardAuthPath = resolve(process.cwd(), 'static/js/dashboard-auth.js');
+const DASHBOARD_AUTH_SCRIPTS = [
+  'dashboard-auth-state.js',
+  'dashboard-auth-dom.js',
+  'dashboard-auth-render-tabs.js',
+  'dashboard-auth-render-message.js',
+  'dashboard-auth-render-form.js',
+  'dashboard-auth-render-status.js',
+  'dashboard-auth-render.js',
+  'dashboard-auth-ui.js',
+  'dashboard-auth-error.js',
+  'dashboard-auth-session-check.js',
+  'dashboard-auth-sign-in.js',
+  'dashboard-auth-requests.js',
+  'dashboard-auth.js',
+] as const;
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -143,7 +157,9 @@ function createDashboardHarness(fetchImpl: (url: string, opts?: Record<string, a
   sandbox.globalThis = sandbox;
 
   const context = vm.createContext(sandbox);
-  const authSource = readFileSync(dashboardAuthPath, 'utf8');
+  const authSource = DASHBOARD_AUTH_SCRIPTS.map((name) =>
+    readFileSync(resolve(process.cwd(), 'static/js', name), 'utf8'),
+  ).join('\n');
   const fetchSource = readFileSync(dashboardFetchPath, 'utf8');
   vm.runInContext(authSource, context, { filename: 'dashboard-auth.js' });
   vm.runInContext(fetchSource, context, { filename: 'memento-admin-fetch.js' });
@@ -181,6 +197,22 @@ describe('dashboard auth assets', () => {
     const graphHtml = readFileSync(graphHtmlPath, 'utf8');
 
     expect(graphHtml).toContain('/static/js/dashboard-auth.js');
+  });
+
+  it('loads dashboard auth companion scripts before the auth bootstrap', () => {
+    const dashboardHtml = readFileSync(dashboardHtmlPath, 'utf8');
+    const graphHtml = readFileSync(graphHtmlPath, 'utf8');
+
+    for (const name of DASHBOARD_AUTH_SCRIPTS) {
+      expect(dashboardHtml).toContain(`/static/js/${name}`);
+      expect(graphHtml).toContain(`/static/js/${name}`);
+    }
+    expect(dashboardHtml.indexOf('/static/js/dashboard-auth-requests.js')).toBeLessThan(
+      dashboardHtml.indexOf('/static/js/dashboard-auth.js'),
+    );
+    expect(graphHtml.indexOf('/static/js/dashboard-auth-requests.js')).toBeLessThan(
+      graphHtml.indexOf('/static/js/dashboard-auth.js'),
+    );
   });
 
   it('renders a graph auth form so signed-out users can start a session from /graph', () => {

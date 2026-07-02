@@ -6,6 +6,30 @@ function readStaticFile(relativePath: string): string {
   return readFileSync(join(process.cwd(), relativePath), 'utf-8');
 }
 
+function getFunctionMetrics(source: string): Array<{ name: string; lines: number; complexity: number }> {
+  const functionStarts = source.matchAll(/function\s+([A-Za-z_$][\w$]*)?\s*\([^)]*\)\s*\{/g);
+  const metrics: Array<{ name: string; lines: number; complexity: number }> = [];
+  for (const match of functionStarts) {
+    const start = match.index ?? 0;
+    let depth = 0;
+    let end = start;
+    for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+      const char = source[i];
+      if (char === '{') depth += 1;
+      if (char === '}') depth -= 1;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    const name = match[1] || '<anonymous>';
+    const body = source.slice(start, end + 1);
+    const branches = body.match(/\b(if|for|while|case|catch)\b|&&|\|\||\?/g) ?? [];
+    metrics.push({ name, lines: body.split('\n').length, complexity: branches.length + 1 });
+  }
+  return metrics;
+}
+
 describe('static design contracts', () => {
   it('anchor-map.js avoids console calls, hex colors, and inline html styles', () => {
     const anchorMapFiles = [
@@ -97,5 +121,40 @@ describe('static design contracts', () => {
     expect(source).not.toContain('color: white;');
     expect(source).not.toContain('background: rgba(');
     expect(source).not.toContain('border: 1px solid rgba(');
+  });
+
+  it('issue #616 admin static modules keep individual functions bounded', () => {
+    const files = [
+      'static/js/review-candidates-panel-poll-config.js',
+      'static/js/review-candidates-panel-poll-badge.js',
+      'static/js/review-candidates-panel-poll-prompt.js',
+      'static/js/review-candidates-panel-poll-toast.js',
+      'static/js/review-candidates-panel-poll-notify-os.js',
+      'static/js/review-candidates-panel-poll-snapshot.js',
+      'static/js/review-candidates-panel-poll-fetch.js',
+      'static/js/review-candidates-panel-poll-cycle.js',
+      'static/js/review-candidates-panel-poll-stream.js',
+      'static/js/review-candidates-panel-poll.js',
+      'static/js/dashboard-auth-state.js',
+      'static/js/dashboard-auth-dom.js',
+      'static/js/dashboard-auth-render-tabs.js',
+      'static/js/dashboard-auth-render-message.js',
+      'static/js/dashboard-auth-render-form.js',
+      'static/js/dashboard-auth-render-status.js',
+      'static/js/dashboard-auth-render.js',
+      'static/js/dashboard-auth-ui.js',
+      'static/js/dashboard-auth-error.js',
+      'static/js/dashboard-auth-session-check.js',
+      'static/js/dashboard-auth-sign-in.js',
+      'static/js/dashboard-auth-requests.js',
+      'static/js/dashboard-auth.js',
+    ];
+    const violations = files.flatMap((file) =>
+      getFunctionMetrics(readStaticFile(file))
+        .filter((entry) => entry.lines > 50 || entry.complexity > 15)
+        .map((entry) => `${file}:${entry.name}:lines=${entry.lines}:complexity=${entry.complexity}`),
+    );
+
+    expect(violations).toEqual([]);
   });
 });
