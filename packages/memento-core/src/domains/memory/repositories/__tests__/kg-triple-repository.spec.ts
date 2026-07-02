@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { KgTripleRepository } from '../kg-triple-repository.js';
+import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 
 function createKgTripleTable(db: Database.Database): void {
   db.exec(`

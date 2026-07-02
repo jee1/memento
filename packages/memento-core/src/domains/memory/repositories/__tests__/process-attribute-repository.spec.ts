@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { ProcessAttributeRepository } from '../process-attribute-repository.js';
+import { ProcessAttributeRepositorySqlite as ProcessAttributeRepository } from '../../../../infrastructure/database/repositories/process-attribute-repository-sqlite.impl.js';
 
 function createProcessAttributeTable(db: Database.Database): void {
   db.exec(`

@@ -15,7 +15,7 @@ import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from 
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
 import type { EmbeddingProvider } from '../../../../shared/types/embedding.types.js';
 import type { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
-import { FeedbackRepository } from '../../../memory/repositories/feedback-repository.js';
+import { FeedbackRepositorySQLite as FeedbackRepository } from '../../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 
 // Mock @huggingface/transformers to prevent onnxruntime-node loading
 vi.mock('@huggingface/transformers', () => {

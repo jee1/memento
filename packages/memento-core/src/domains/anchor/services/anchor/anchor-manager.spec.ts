@@ -160,28 +160,6 @@ describe('AnchorManager', () => {
     });
   });
 
-  describe('getSearchService', () => {
-    it('검색 서비스를 반환해야 함', () => {
-      // When: 검색 서비스 조회
-      const service = manager.getSearchService();
-
-      // Then: 검색 서비스 반환
-      expect(service).toBeDefined();
-      expect(service).toBe(searchService);
-    });
-  });
-
-  describe('getCacheService', () => {
-    it('캐시 서비스를 반환해야 함', () => {
-      // When: 캐시 서비스 조회
-      const service = manager.getCacheService();
-
-      // Then: 캐시 서비스 반환
-      expect(service).toBeDefined();
-      expect(service).toBe(cacheService);
-    });
-  });
-
   describe('setDatabase', () => {
     it('데이터베이스를 설정해야 함', () => {
       // Given: 새로운 매니저

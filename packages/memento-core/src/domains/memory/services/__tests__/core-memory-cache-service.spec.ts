@@ -12,7 +12,7 @@ import {
   type CacheEntry,
   type CacheInvalidationListener
 } from '../core-memory-cache-service.js';
-import type { CoreMemoryRecord } from '../repositories/core-memory-repository.js';
+import type { CoreMemoryRecord } from '../repositories/core-memory-repository.interface.js';
 import { vi } from 'vitest';
 
 describe('CoreMemoryCacheService', () => {

@@ -5,7 +5,7 @@
 import { mementoConfig } from '../../../../shared/config/index.js';
 import type { MemorySearchResult } from '../../../../shared/types/index.js';
 import type { ScoreBreakdown } from '../../../../shared/types/search.types.js';
-import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.js';
+import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.interface.js';
 import { SearchRanking, type SearchFeatures } from '../search-ranking.js';
 import type { SearchEngineRow } from './search-engine.types.js';
 

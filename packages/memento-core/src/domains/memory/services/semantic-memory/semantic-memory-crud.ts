@@ -6,7 +6,7 @@ import Database from 'better-sqlite3';
 import type { Triple } from '../../../../shared/types/triple-extraction.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { KgTripleRepository } from '../../repositories/kg-triple-repository.js';
+import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
 import {
   generateSemanticMemoryId,

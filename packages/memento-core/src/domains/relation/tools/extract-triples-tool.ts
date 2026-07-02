@@ -9,7 +9,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import { normalizeChatMessagesToText, type ChatMessageInput } from '../services/triple-extraction/triple-input-normalizer.js';
 import { TripleExtractionService } from '../services/triple-extraction/triple-extraction-service.js';
 import { TriplePipelineOrchestrator } from '../services/triple-extraction/triple-pipeline-orchestrator.js';
-import { KgTripleRepository } from '../../memory/repositories/kg-triple-repository.js';
+import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
 import type { TripleExtractionOptions } from '../../../shared/types/triple-extraction.js';
 
 const ExtractTriplesSchema = z

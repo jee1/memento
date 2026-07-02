@@ -4,7 +4,7 @@
 
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
-import { KnowledgeVaultRepository } from '../repositories/knowledge-vault-repository.js';
+import { KnowledgeVaultRepositorySqlite as KnowledgeVaultRepository } from '../../../infrastructure/database/repositories/knowledge-vault-repository-sqlite.impl.js';
 import { CoreMemoryService } from '../services/core-memory-service.js';
 import { KnowledgeVaultService } from '../services/knowledge-vault-service.js';
 import type { RecallToolHost } from './recall-tool-host.js';

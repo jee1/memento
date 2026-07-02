@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **[BREAKING] Deprecated repository compatibility shims 제거** (#617): 다음 re-export shim 파일들이 삭제됩니다. 직접 구현체 또는 인터페이스로 교체하세요.
+  - `feedback-repository.ts` → `FeedbackRepositorySQLite` (impl), `sigmoidNormalizedNet`은 `feedback-repository.interface.ts`로 이동
+  - `core-memory-repository.ts` → `core-memory-repository.interface.ts` 직접 import
+  - `kg-triple-repository.ts` → `KgTripleRepositorySqlite` (impl)
+  - `knowledge-vault-repository.ts` → `KnowledgeVaultRepositorySqlite` (impl)
+  - `process-attribute-repository.ts` → `ProcessAttributeRepositorySqlite` (impl)
+  - `embedding-service.ts` → `MemoryEmbeddingService` / `EmbeddingManager`
+- **`AnchorManager.getSearchService()` / `.getCacheService()` 제거** (#617): 하위 호환 wrapper 메서드 삭제. `searchService` / `cacheService` 직접 주입 패턴 사용.
+- **`PerformanceMonitor.getMemoryMetrics().heapUsagePercent` 필드 제거** (#617): `heapShareOfBudgetPercent` 사용.
+- **`ReflexionWorker.removeOldestQueuedEvent()` 제거** (#617): `AsyncTaskQueue`가 자동 처리하는 no-op private 메서드.
+
 ### Changed
 - **VectorSearchRepository.hybridSearch**: `project_id` / `owner_id` 스코프가 vector·text CTE SQL에 반영되어 `search()`와 동작이 정렬됩니다. 텍스트 하이브리드 UNION의 `last_accessed`·ORDER BY SQL 오류도 함께 수정합니다 (#387).
 - **하이브리드·텍스트·벡터 검색**: `MemorySearchFilters`의 `project_id` / `owner_id`가 FTS·VEC SQL 및 임베딩 유사도(`searchBySimilarity`) fallback까지 전달되어, DB 단계에서 스코프가 적용됩니다. `memory_injection` / `buildKnowledgeContextBundle` 경로에서 좁은 스코프일 때 후보 부족을 줄이기 위해 검색 `limit` 배수를 키웁니다 (#232, PR #386 후속).

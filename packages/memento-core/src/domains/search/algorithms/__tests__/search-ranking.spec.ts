@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SearchRanking, type SearchFeatures, type RelevanceInput, type UsageMetrics, type SearchProfile } from '../search-ranking.js';
-import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.js';
+import { sigmoidNormalizedNet } from '../../../memory/repositories/feedback-repository.interface.js';
 
 describe('SearchRanking', () => {
   let ranking: SearchRanking;
