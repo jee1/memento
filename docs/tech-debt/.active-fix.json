@@ -25,5 +25,7 @@
     "exit_code": 0,
     "attempt": 1
   },
-  "verify_passed": true
+  "verify_passed": true,
+  "committed": true,
+  "commit_message": "fix(기술부채): packages/memento-core/src/shared/services/__tests__/llm-client-initializ (#638)"
 }
