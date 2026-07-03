@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-07-03",
+  "workspace": "/home/jee1lee/git/memento",
+  "source_raw": "docs/tech-debt/2026-07-03-raw-audit.json",
+  "enrichment_mode": "mechanical",
+  "skipped_findings": [
+    "docs/_work/reviews/ko/code-review-comprehensive-report.md에 T (리뷰/부채 마커 문서(의도적 TODO))",
+    "specs/030-core-debt-markers/spec.md에 TODO/FIXME 과다 (리뷰/부채 마커 문서(의도적 TODO))"
+  ],
+  "items": [
+    {
+      "id": "TD-001",
+      "fingerprint": "e5d02ce4cc25b1ad",
+      "category": "code_debt",
+      "title": "packages/memento-core/src/shared/services/__tests__/llm-client-initializer/ollama-connection.spec.ts — TODO/FIXME 정리 필요",
+      "description": "TODO/FIXME 마커 6개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "// TODO: GREEN 단계에서 initialize()가 async가 되면 await를 사용하고 아래 검증을 활성화",
+        "// TODO: 실제 구현 후에는 경고 메시지 내용도 확인해야 함",
+        "// TODO: GREEN 단계에서 initialize()가 async가 되면 await를 사용하고 아래 검증을 활성화",
+        "// TODO: 실제 구현 후에는 경고 메시지 내용도 확인해야 함",
+        "// TODO: GREEN 단계에서 initialize()가 async가 되면 await를 사용하고 아래 검증을 활성화"
+      ],
+      "impact": 3,
+      "risk": 3,
+      "effort": 2,
+      "priority": 24,
+      "business_justification": "테스트의 TODO는 미완성 검증·GREEN 단계 지연을 의미합니다.",
+      "suggested_fix": "TODO를 이슈/작업으로 전환하거나 코드에서 제거·구현 완료합니다.",
+      "affected_paths": [
+        "packages/memento-core/src/shared/services/__tests__/llm-client-initializer/ollama-connection.spec.ts"
+      ],
+      "estimated_files": 1,
+      "splittable": false,
+      "sub_items": [],
+      "auto_fix_eligible": true,
+      "enrichment": "mechanical",
+      "issue_number": 638
+    }
+  ],
+  "top_item_id": "TD-001",
+  "skipped_duplicates": [],
+  "synced_at": "2026-07-03"
+}

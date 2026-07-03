@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "updated_at": "2026-07-03",
+  "items": {
+    "e5d02ce4cc25b1ad": {
+      "id": "TD-001",
+      "title": "packages/memento-core/src/shared/services/__tests__/llm-client-initializer/ollama-connection.spec.ts — TODO/FIXME 정리 필요",
+      "status": "candidate",
+      "last_seen": "2026-07-03"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "issue": 638,
+  "issue_url": "https://github.com/jee1/memento/issues/638",
+  "title": "[기술부채] packages/memento-core/src/shared/services/__tests__/llm-client-initializer/ollama-connection.spec.ts — TODO/FIXME 정리 필요",
+  "branch": "tech-debt/638-ollama-connection-spec",
+  "base_branch": "main",
+  "td_id": "TD-001",
+  "fingerprint": "e5d02ce4cc25b1ad",
+  "audit_path": "docs/tech-debt/2026-07-03-audit.json",
+  "auto_fix_eligible": true,
+  "affected_paths": [
+    "packages/memento-core/src/shared/services/__tests__/llm-client-initializer/ollama-connection.spec.ts"
+  ],
+  "started_at": "2026-07-04",
+  "origin": "https://github.com/jee1/memento.git",
+  "last_verify": {
+    "cmd": [
+      "npx",
+      "vitest",
+      "run",
+      "packages/memento-core/src/shared/services/__tests__/llm-client-initializer/ollama-connection.spec.ts",
+      "--run"
+    ],
+    "scope": "affected",
+    "exit_code": 0,
+    "attempt": 1
+  },
+  "verify_passed": true
+}
