@@ -46,7 +46,12 @@ npm run lint && npm run type-check  # 커밋 전 필수
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
 - **git worktree**: 브랜치 삭제·`gh pr merge --delete-branch` 전에 `git worktree remove <path>` 필수 (attach 상태면 로컬 브랜치 삭제 실패)
+- **gh pr merge**: 머지는 성공해도 worktree 미제거 시 로컬 브랜치 삭제만 실패 — `worktree remove` 후 `git branch -d`·`git fetch --prune`
 - **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)
+- **병렬 이슈 worktree**: `~/git/memento-worktrees/issue-<num>-<slug>`; Spec Kit는 `specs/0NN-<slug>/` (번호는 기존 최대+1)
+- **`MEMENTO_TYPE_PARAM_MODE`**: 기본값 `error` (#636, v1.18+); `type` 생략 시 `remember`/`recall` 거절 — 레거시는 env `warn`/`deprecate`; spec·통합테스트는 `type` 명시 또는 `mementoConfig.typeParamMode='warn'` mock
+- **core-deprecated-inventory**: 활성 표 먼저 확인 (#617 후 shim 제거 완료; #636은 type-param 롤아웃); merge 전 inventory·CHANGELOG 갱신
+- **deps minor/patch**: `npm outdated` → wanted만; `better-sqlite3` 후 `npm run rebuild-native`; major(eslint 10·vitest 4)는 별도 이슈
 - **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 - **infrastructure repo 분해**: `packages/memento-core/src/infrastructure/database/repositories/` — composition(`*-store.ts`); public export는 오케스트레이터 파일만 (#610)
 - **composition 분해 후 CI**: `test-core`는 memento-core 전체 vitest — 도메인 `__tests__`만 green이면 부족; 다른 경로 spec이 `(orchestrator as any).privateMethod` 호출 시 orchestrator에 위임 래퍼 필수 (예: `006-fts5-reflection-notes.spec.ts` → `buildReflectionNotesSearchCondition`)
