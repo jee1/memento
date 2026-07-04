@@ -96,6 +96,8 @@ export class RecallTool extends BaseTool {
         include_score_breakdown
       } = RecallSchema.parse(params);
 
+      const effectiveAutoSetAnchor = auto_set_anchor ?? mementoConfig.autoSetAnchorDefault;
+
       const actualTriggerContext = triggerContext || trigger_context;
 
       const typeParamMode = mementoConfig.typeParamMode;
@@ -286,7 +288,7 @@ export class RecallTool extends BaseTool {
           searchStartTime,
           enableHybrid,
           includeMetadata,
-          auto_set_anchor,
+          auto_set_anchor: effectiveAutoSetAnchor,
           include_neighbors,
           neighbors_limit,
           neighbors_per_item,

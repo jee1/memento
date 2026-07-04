@@ -61,7 +61,7 @@ export const RecallSchema = z
     include_metadata: z.boolean().optional(),
     provider_filter: z.array(z.enum(['tfidf', 'lightweight', 'minilm', 'openai', 'gemini'] as const)).optional(),
     // 자동 앵커 설정 및 이웃 기억 포함 파라미터
-    auto_set_anchor: z.boolean().optional().default(false),
+    auto_set_anchor: z.boolean().optional(),
     include_neighbors: z.boolean().optional().default(false),
     neighbors_limit: z.number().min(1).max(10).optional().default(3),
     neighbors_per_item: z.number().min(1).max(50).optional().default(5),

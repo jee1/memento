@@ -133,8 +133,9 @@ export const RECALL_TOOL_INPUT_SCHEMA = {
     },
     auto_set_anchor: {
       type: 'boolean',
-      default: false,
-      description: '가장 관련성 높은 기억(첫 번째 결과)을 슬롯 A에 자동으로 앵커로 설정 (기본값: false)'
+      default: true,
+      description:
+        '가장 관련성 높은 기억(첫 번째 결과)을 슬롯 A에 자동으로 앵커로 설정 (기본값: true, MEMENTO_AUTO_SET_ANCHOR_DEFAULT=false로 비활성화 가능)'
     },
     include_neighbors: {
       type: 'boolean',
