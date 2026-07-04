@@ -34,6 +34,7 @@ export function closeDatabase(db: import('better-sqlite3').Database): void {
   closeDb(db);
 }
 
+export { initializeDatabase } from './infrastructure/database/database/init.js';
 export { createToolContext, createServerContext } from './context.js';
 export { getToolRegistry, executeTool, resolveTelemetryOwnerId } from './tools/index.js';
 export { initializeServices } from './bootstrap.js';
@@ -122,6 +123,9 @@ export { getBatchScheduler, resetBatchScheduler } from './infrastructure/schedul
 
 // --- 도메인·인프라 re-export (서버 thin화용) ---
 export { getVectorSearchEngine } from './domains/search/algorithms/vector-search-engine.js';
+export { SearchEngine } from './domains/search/algorithms/search-engine.js';
+export { HybridSearchEngine, createHybridSearchEngine } from './domains/search/algorithms/hybrid-search-engine.js';
+export { MemoryEmbeddingService } from './domains/memory/services/memory-embedding-service.js';
 export { MemoryNeighborService, MemoryNotFoundError } from './domains/memory/services/memory-neighbor-service.js';
 export { ErrorLoggingService } from './domains/monitoring/services/error-logging-service.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';

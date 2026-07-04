@@ -3,12 +3,16 @@
  * 모듈화된 구조의 HTTP 서버 v2 기능 검증
  */
 
-import { startServer, cleanup, __test } from '../server/http-server.js';
-import { closeDatabase } from '@memento/core/infrastructure/database/database/init.js';
-import { SearchEngine } from '@memento/coresearch/algorithms/search-engine.js';
-import { HybridSearchEngine } from '@memento/coresearch/algorithms/hybrid-search-engine.js';
-import { MemoryEmbeddingService } from '@memento/core/domains/memory/services/memory-embedding-service.js';
-import { PIIMasker } from '@memento/core/shared/utils/pii-masker.js';
+import {
+  closeDatabase,
+  createHybridSearchEngine,
+  getBatchScheduler,
+  initializeDatabase,
+  MemoryEmbeddingService,
+  mementoConfig,
+  PIIMasker,
+  SearchEngine
+} from '@memento/core';
 import Database from 'better-sqlite3';
 import WebSocket from 'ws';
 // eventsource는 CommonJS 모듈이므로 createRequire 사용
@@ -20,6 +24,10 @@ const EventSource = EventSourceModule.EventSource || EventSourceModule.default |
 
 // 테스트용 데이터베이스 설정
 const TEST_DB_PATH = 'data/memory-test-v2.db';
+const TEST_ADMIN_API_KEY = 'test-http-v2-admin-key';
+const PROGRAMMATIC_AUTH_HEADERS = {
+  Authorization: `Bearer ${TEST_ADMIN_API_KEY}`
+};
 
 async function setupTestDatabase() {
   console.log('🗄️ 테스트 데이터베이스 설정 중...');
@@ -35,7 +43,7 @@ async function setupTestDatabase() {
   }
   
   // 새 테스트 DB 생성
-  const db = new Database(TEST_DB_PATH);
+  const db = await initializeDatabase(TEST_DB_PATH);
   
   // 스키마 생성
   const schema = `
@@ -166,6 +174,18 @@ const TEST_PORT = process.env.PORT ? Number(process.env.PORT) : 9001;
 const BASE_URL = `http://localhost:${TEST_PORT}`;
 const WS_URL = `ws://localhost:${TEST_PORT}`;
 
+async function createAdminSessionCookie(): Promise<string> {
+  const response = await fetch(`${BASE_URL}/auth/session`, {
+    method: 'POST',
+    headers: PROGRAMMATIC_AUTH_HEADERS
+  });
+  const setCookie = response.headers.get('set-cookie') ?? '';
+  if (!response.ok || !setCookie.includes('memento_admin_session=')) {
+    throw new Error(`관리자 세션 생성 실패: HTTP ${response.status}`);
+  }
+  return setCookie.split(';')[0]!;
+}
+
 async function testBasicEndpoints() {
   console.log('\n🧪 1️⃣ 기본 엔드포인트 테스트');
   
@@ -183,7 +203,9 @@ async function testBasicEndpoints() {
     
     // 도구 목록 테스트
     console.log('  📋 도구 목록 테스트...');
-    const toolsResponse = await fetch(`${BASE_URL}/tools`);
+    const toolsResponse = await fetch(`${BASE_URL}/tools`, {
+      headers: PROGRAMMATIC_AUTH_HEADERS
+    });
     const toolsData = await toolsResponse.json();
     
     if (toolsResponse.ok && toolsData.tools && toolsData.tools.length >= 5) {
@@ -210,7 +232,7 @@ async function testMCPTools() {
     console.log('  📝 remember 도구 테스트...');
     const rememberResponse = await fetch(`${BASE_URL}/tools/remember`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...PROGRAMMATIC_AUTH_HEADERS, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         content: 'HTTP 서버 v2 테스트를 위한 새로운 기억입니다.',
         type: 'episodic',
@@ -248,7 +270,7 @@ async function testMCPTools() {
       console.log('  🔍 recall 도구 테스트...');
       const recallResponse = await fetch(`${BASE_URL}/tools/recall`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...PROGRAMMATIC_AUTH_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: 'HTTP 서버 v2',
           limit: 5
@@ -266,7 +288,7 @@ async function testMCPTools() {
       console.log('  📌 pin 도구 테스트...');
       const pinResponse = await fetch(`${BASE_URL}/tools/pin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...PROGRAMMATIC_AUTH_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testMemoryId })
       });
       
@@ -281,7 +303,7 @@ async function testMCPTools() {
       console.log('  📌 unpin 도구 테스트...');
       const unpinResponse = await fetch(`${BASE_URL}/tools/unpin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...PROGRAMMATIC_AUTH_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testMemoryId })
       });
       
@@ -296,7 +318,7 @@ async function testMCPTools() {
       console.log('  🗑️ forget 도구 테스트...');
       const forgetResponse = await fetch(`${BASE_URL}/tools/forget`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...PROGRAMMATIC_AUTH_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testMemoryId, hard: false })
       });
       
@@ -318,9 +340,14 @@ async function testAdminAPIs() {
   console.log('\n🧪 3️⃣ 관리자 API 테스트');
   
   try {
+    const adminCookie = await createAdminSessionCookie();
+    const adminHeaders = { Cookie: adminCookie };
+
     // 성능 통계 테스트
     console.log('  📊 성능 통계 테스트...');
-    const perfResponse = await fetch(`${BASE_URL}/admin/stats/performance`);
+    const perfResponse = await fetch(`${BASE_URL}/admin/stats/performance`, {
+      headers: adminHeaders
+    });
     const perfData = await perfResponse.json();
     
     if (perfResponse.ok && perfData.message) {
@@ -331,7 +358,9 @@ async function testAdminAPIs() {
     
     // 망각 통계 테스트
     console.log('  📊 망각 통계 테스트...');
-    const forgetResponse = await fetch(`${BASE_URL}/admin/stats/forgetting`);
+    const forgetResponse = await fetch(`${BASE_URL}/admin/stats/forgetting`, {
+      headers: adminHeaders
+    });
     const forgetData = await forgetResponse.json();
     
     if (forgetResponse.ok && forgetData.message) {
@@ -343,7 +372,8 @@ async function testAdminAPIs() {
     // 데이터베이스 최적화 테스트
     console.log('  🔧 데이터베이스 최적화 테스트...');
     const optimizeResponse = await fetch(`${BASE_URL}/admin/database/optimize`, {
-      method: 'POST'
+      method: 'POST',
+      headers: adminHeaders
     });
     const optimizeData = await optimizeResponse.json();
     
@@ -356,7 +386,8 @@ async function testAdminAPIs() {
     // 메모리 정리 테스트
     console.log('  🧹 메모리 정리 테스트...');
     const cleanupResponse = await fetch(`${BASE_URL}/admin/memory/cleanup`, {
-      method: 'POST'
+      method: 'POST',
+      headers: adminHeaders
     });
     const cleanupData = await cleanupResponse.json();
     
@@ -464,7 +495,16 @@ async function testSSE() {
     const totalTests = 3;
     
     // SSE 연결
-    const eventSource = new EventSource(`${BASE_URL}/mcp`);
+    const eventSource = new EventSource(`${BASE_URL}/mcp`, {
+      fetch: (input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]) =>
+        fetch(input, {
+          ...init,
+          headers: {
+            ...(init?.headers ?? {}),
+            ...PROGRAMMATIC_AUTH_HEADERS
+          }
+        })
+    });
     
     eventSource.onopen = () => {
       console.log('  🔗 SSE 연결 성공');
@@ -538,7 +578,7 @@ async function testSSE() {
       
       fetch(`${BASE_URL}/messages?sessionId=${sessionId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...PROGRAMMATIC_AUTH_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify(message)
       }).catch(error => {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
@@ -559,9 +599,14 @@ async function testSSE() {
 
 async function runTests() {
   console.log('🚀 HTTP 서버 v2 테스트 시작');
+  process.env.ADMIN_API_KEY = process.env.ADMIN_API_KEY || TEST_ADMIN_API_KEY;
+  process.env.DB_PATH = process.env.DB_PATH || TEST_DB_PATH;
+  mementoConfig.adminApiKey = process.env.ADMIN_API_KEY;
+  mementoConfig.dbPath = process.env.DB_PATH;
   
   let testDb: Database.Database | null = null;
   let serverStarted = false;
+  let cleanupServer: (() => Promise<void>) | null = null;
   
   // 테스트에서 사용할 포트 (환경 변수 또는 기본값)
   const TEST_PORT = process.env.PORT ? Number(process.env.PORT) : 9001;
@@ -572,7 +617,6 @@ async function runTests() {
   try {
     // 0. 이전 테스트에서 남아있을 수 있는 BatchScheduler 정리
     try {
-      const { getBatchScheduler } = await import('@memento/core/infrastructure/scheduler/batch-scheduler.js');
       const batchScheduler = getBatchScheduler();
       if (batchScheduler.getStatus().isRunning) {
         console.log('🧹 이전 테스트의 BatchScheduler 정리 중...');
@@ -586,9 +630,11 @@ async function runTests() {
     testDb = await setupTestDatabase();
     
     // 2. 서버 의존성 설정
+    const { startServer, cleanup, __test } = await import('../server/http-server.js');
+    cleanupServer = cleanup;
     const searchEngine = new SearchEngine();
-    const hybridSearchEngine = new HybridSearchEngine();
     const embeddingService = new MemoryEmbeddingService();
+    const hybridSearchEngine = createHybridSearchEngine(searchEngine, embeddingService);
     
     __test.setTestDependencies({
       database: testDb,
@@ -651,7 +697,7 @@ async function runTests() {
     // 5. 정리
     if (serverStarted) {
       console.log('\n🧹 서버 정리 중...');
-      await cleanup();
+      await cleanupServer?.();
     }
     
     if (testDb) {
@@ -676,7 +722,12 @@ async function runTests() {
 
 // 테스트 실행
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runTests().catch(console.error);
+  runTests()
+    .then(() => process.exit(0))
+    .catch(error => {
+      console.error(error);
+      process.exit(1);
+    });
 }
 
 export { runTests };
