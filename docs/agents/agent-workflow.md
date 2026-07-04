@@ -48,6 +48,9 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 
 ## PR·지식 복리
 
+- 커밋 시 Cursor `beforeShellExecution` 훅이 `revise-claude-md`로 `AGENTS.md`·`CLAUDE.md`를 갱신한 뒤 스테이징 (`.cursor/hooks.json` → `pre-commit-revise-claude-md.sh`; 스킵: `REVISE_CLAUDE_MD_SKIP=1`)
+- 이후 전역 훅: `npm run lint` / `test` / `build` → staged diff 리뷰 (`~/.cursor/hooks.json`)
+
 - 재현 어려운 버그·운영 함정 해결 후 PR 준비 시 `/ce-compound` 제안 (검증 완료 후)
 - 해결 사례 경로: `docs/_work/solutions/` ([docs/README.md](../README.md))
 - PR 템플릿 「지식 복리」: [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)
