@@ -27,6 +27,7 @@ describe('LLMClientInitializer', () => {
       // Given: process.env['LLM_PROVIDER']가 'openai'로 설정되고, mementoConfig.llmProvider는 'gemini'로 설정됨
       process.env.LLM_PROVIDER = 'openai';
       mockMementoConfig.llmProvider = 'gemini';
+      mockMementoConfig.openaiApiKey = 'test-openai-api-key';
       
       // getRawEnvValue 함수를 스파이로 모킹하여 호출 여부 확인
       const envModule = await import('../../../config/environment.js');
@@ -40,8 +41,7 @@ describe('LLMClientInitializer', () => {
       // Then: getRawEnvValue('LLM_PROVIDER')가 호출되어야 함
       // 현재 구현에서는 provider 선택 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
       expect(getRawEnvValueSpy).toHaveBeenCalledWith('LLM_PROVIDER');
-      // TODO: 실제 구현 후에는 선택된 provider가 'openai'인지 확인해야 함
-      // 예: expect(selectedProvider).toBe('openai');
+      expect(result.preferredProvider).toBe('openai');
       
       getRawEnvValueSpy.mockRestore();
     });
@@ -57,6 +57,7 @@ describe('LLMClientInitializer', () => {
       // Given: process.env['LLM_PROVIDER']가 설정되지 않고, mementoConfig.llmProvider는 'gemini'로 설정됨
       delete process.env.LLM_PROVIDER;
       mockMementoConfig.llmProvider = 'gemini';
+      mockMementoConfig.geminiApiKey = 'test-gemini-api-key';
       
       const initializer = new LLMClientInitializer();
 
@@ -66,8 +67,7 @@ describe('LLMClientInitializer', () => {
       // Then: mementoConfig.llmProvider 값이 사용되어야 함
       // 현재 구현에서는 provider 선택 로직이 없으므로 이 검증은 실패할 것임
       expect(process.env.LLM_PROVIDER).toBeUndefined();
-      // TODO: 실제 구현 후에는 선택된 provider가 'gemini'인지 확인해야 함
-      // 예: expect(selectedProvider).toBe('gemini');
+      expect(result.preferredProvider).toBe('gemini');
     });
 
     /**
@@ -81,6 +81,7 @@ describe('LLMClientInitializer', () => {
       // Given: process.env['LLM_PROVIDER']와 mementoConfig.llmProvider 모두 설정되지 않음
       delete process.env.LLM_PROVIDER;
       mockMementoConfig.llmProvider = 'auto';
+      mockMementoConfig.openaiApiKey = 'test-openai-api-key';
       
       const initializer = new LLMClientInitializer();
 
@@ -90,8 +91,7 @@ describe('LLMClientInitializer', () => {
       // Then: 기본값 'auto'가 사용되어야 함
       // 현재 구현에서는 provider 선택 로직이 없으므로 이 검증은 실패할 것임
       expect(process.env.LLM_PROVIDER).toBeUndefined();
-      // TODO: 실제 구현 후에는 선택된 provider가 'auto'인지 확인해야 함
-      // 예: expect(selectedProvider).toBe('auto');
+      expect(result.preferredProvider).toBe('openai');
     });
   });
 });
