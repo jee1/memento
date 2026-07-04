@@ -46,7 +46,6 @@ const IGNORE_LINE_PATTERNS: RegExp[] = [
   /DEBUG 레벨/,
   /\/\/\s*.*진단\s*레벨/,
   /status IN \([^)]*'deprecated'[^)]*\)/,
-  /\[LEGACY TYPE\]/,
   /\[deprecated\]/i,
   /deprecated 예정/,
   /deprecated\s+—/i,

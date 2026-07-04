@@ -35,7 +35,7 @@ export async function runExample(dbPath: string): Promise<number> {
 
     await registry.execute(
       'recall',
-      { query: 'experimental-example', limit: 5 },
+      { query: 'experimental-example', type: 'episodic', limit: 5 },
       context,
     );
 

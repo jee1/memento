@@ -5,9 +5,14 @@ Issue #586 · 부모 [#580](https://github.com/jee1/memento/issues/580)
 `packages/memento-core` 프로덕션 경로의 `@deprecated`·런타임 레거시 경고를 추적한다.  
 제거 일정은 **2026-Q4** (v1.18+) unless noted.
 
-| Symbol / location | Replacement | Notes |
-|-------------------|-------------|-------|
-| `type-param-validator` runtime warning `[LEGACY TYPE]` | Always pass MCP `type` param | [type-param-rollout.md](../guides/ko/type-param-rollout.md) — 제거 조건: `MEMENTO_TYPE_PARAM_MODE` 기본값이 `error`로 전환된 후 |
+현재 활성 deprecated 항목 없음.
+
+## Removed in #636
+
+| Item | Reason |
+|------|--------|
+| `type-param-validator` runtime warning `[LEGACY TYPE]` | `MEMENTO_TYPE_PARAM_MODE` 기본값 `error` 전환; `type` 미지정 시 거절. `warn`/`deprecate`는 명시적 env로만 사용 |
+
 ## Removed in #628
 
 | Item | Reason |

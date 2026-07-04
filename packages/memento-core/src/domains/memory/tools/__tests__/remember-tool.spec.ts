@@ -744,9 +744,6 @@ describe('RememberTool', () => {
 
         expect(resultData.memory_id).toBeDefined();
         expect(logWarningSpy).toHaveBeenCalledWith(
-          expect.stringContaining('LEGACY TYPE')
-        );
-        expect(logWarningSpy).toHaveBeenCalledWith(
           expect.stringContaining('마이그레이션')
         );
       });

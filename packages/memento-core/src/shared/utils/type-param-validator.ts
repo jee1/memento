@@ -74,7 +74,7 @@ export function validateTypeParam(
       return {
         isValid: true,
         mode: 'deprecate',
-        message: `⚠️  [LEGACY TYPE] ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다. 'type' 파라미터는 필수로 지정해주세요. 마이그레이션 가이드: https://github.com/jee1/memento/blob/main/docs/guides/ko/type-param-rollout.md`,
+        message: `⚠️  ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다. 'type' 파라미터는 필수로 지정해주세요. 마이그레이션 가이드: https://github.com/jee1/memento/blob/main/docs/guides/ko/type-param-rollout.md`,
         defaultType
       };
 
@@ -86,12 +86,10 @@ export function validateTypeParam(
       };
 
     default:
-      // 알 수 없는 모드인 경우 warn 모드로 처리
       return {
-        isValid: true,
-        mode: 'warn',
-        message: `⚠️  ${toolName}: 'type' 파라미터가 지정되지 않았습니다. 기본값 'episodic'을 사용합니다.`,
-        defaultType
+        isValid: false,
+        mode: 'error',
+        message: `❌ ${toolName}: 'type' 파라미터는 필수입니다. 지원되는 타입: ${VALID_MEMORY_TYPES.join(' | ')}`
       };
   }
 }
@@ -100,11 +98,11 @@ export function validateTypeParam(
  * 환경 변수에서 롤아웃 모드 읽기
  * 
  * @param envValue - 환경 변수 값
- * @returns 유효한 모드 또는 기본값 'warn'
+ * @returns 유효한 모드 또는 기본값 'error'
  */
 export function parseTypeParamMode(envValue: string | undefined): TypeParamMode {
   if (!envValue) {
-    return 'warn';
+    return 'error';
   }
 
   const normalized = envValue.toLowerCase().trim();
@@ -113,8 +111,8 @@ export function parseTypeParamMode(envValue: string | undefined): TypeParamMode 
   }
 
   // 유효하지 않은 값인 경우 기본값 반환
-  console.warn(`⚠️  Invalid MEMENTO_TYPE_PARAM_MODE value: ${envValue}. Using default 'warn'.`);
-  return 'warn';
+  console.warn(`⚠️  Invalid MEMENTO_TYPE_PARAM_MODE value: ${envValue}. Using default 'error'.`);
+  return 'error';
 }
 
 /**

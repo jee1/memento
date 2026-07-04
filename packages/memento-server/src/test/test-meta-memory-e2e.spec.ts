@@ -48,6 +48,7 @@ describe('Meta-Memory 통합 E2E 테스트', () => {
     // 2. recall 호출 (통계 수집) - 저장한 메모리를 검색
     const recallResult = await executeTool('recall', {
       query: 'Meta-Memory E2E 테스트용 메모리',
+      type: 'episodic',
       limit: 10
     }, toolContext);
 

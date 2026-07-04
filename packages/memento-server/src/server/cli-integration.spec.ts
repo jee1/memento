@@ -99,6 +99,7 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
   it('callToolViaHttp로 recall 호출이 성공한다', async () => {
     const result = await callToolViaHttp(port, 'recall', {
       query: '통합 테스트용 기억',
+      type: 'semantic',
     });
     expect(result).toBeDefined();
   });
@@ -138,6 +139,7 @@ describe('CLI 통합 (server-info + callToolViaHttp)', () => {
 
     const recallResult = await callToolViaHttp(port, 'recall', {
       query: '동시성 테스트',
+      type: 'semantic',
     });
     expect(recallResult).toBeDefined();
   });
