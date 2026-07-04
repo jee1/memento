@@ -37,10 +37,11 @@ import {
 import type { TripleLlmCallDeps } from './triple-extraction-llm-providers.js';
 import {
   createTripleLlmUnavailableResponse,
-  invokeTripleProviderRawOutput,
+  invokeTripleProviderWithFallback,
   logTripleExtractionClientInitResult,
   resolveTripleParseOrFailure,
   TRIPLE_EXTRACTION_LLM_UNAVAILABLE_MESSAGE,
+  type TripleLlmActiveProvider,
 } from './triple-extraction-llm-pipeline.js';
 import { TokenBucketRateLimiter } from './triple-extraction-rate-limiter.js';
 import {
@@ -300,6 +301,21 @@ export class TripleExtractionService {
     }
   }
 
+  private isProviderReady(provider: TripleLlmActiveProvider): boolean {
+    switch (provider) {
+      case 'openai':
+        return this.openaiClient !== null;
+      case 'gemini':
+        return this.geminiClient !== null;
+      case 'ollama':
+        return this.initializedProviders.includes('ollama');
+      default: {
+        const _exhaustive: never = provider;
+        return _exhaustive;
+      }
+    }
+  }
+
   private async extractWithLLM(
     observation: string,
     provider: 'openai' | 'gemini' | 'ollama' | 'auto',
@@ -328,14 +344,16 @@ export class TripleExtractionService {
 
     let rawLLMOutput: string;
     try {
-      rawLLMOutput = await invokeTripleProviderRawOutput({
-        actualProvider,
+      const invocation = await invokeTripleProviderWithFallback({
+        primaryProvider: actualProvider,
         openaiClient: this.openaiClient,
         geminiClient: this.geminiClient,
+        isProviderReady: (provider) => this.isProviderReady(provider),
         deps,
         prompt,
         options,
       });
+      rawLLMOutput = invocation.rawOutput;
     } catch (error) {
       const errorType = classifyTripleExtractionErrorType(error);
       const errorMessage = error instanceof Error ? error.message : String(error);

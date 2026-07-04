@@ -12,6 +12,7 @@ import { GoogleGenAI } from '@google/genai';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { PromptTemplateLoader } from '../../../../shared/utils/prompt-template-loader.js';
+import { logExternalApiRetry } from '../../../../shared/utils/external-api-retry-logging.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import type { IRetryManager } from '../../../../shared/interfaces/retry-manager.interface.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
@@ -173,8 +174,8 @@ export class TripleExtractor implements ITripleExtractor {
         baseDelay: retryOptions.external_api.baseDelay,
         shouldRetry: this.shouldRetry,
         onRetry: (error: Error, attempt: number, delay: number) => {
-          logger.warn('TripleExtractor: OpenAI API 호출 재시도', {
-            attempt, delay, error: error.message, model
+          logExternalApiRetry('TripleExtractor: OpenAI API 호출 재시도', error, {
+            attempt, delay, model
           });
         }
       }
@@ -220,8 +221,8 @@ export class TripleExtractor implements ITripleExtractor {
         baseDelay: retryOptions.external_api.baseDelay,
         shouldRetry: this.shouldRetry,
         onRetry: (error: Error, attempt: number, delay: number) => {
-          logger.warn('TripleExtractor: Gemini API 호출 재시도', {
-            attempt, delay, error: error.message, model: modelName
+          logExternalApiRetry('TripleExtractor: Gemini API 호출 재시도', error, {
+            attempt, delay, model: modelName
           });
         }
       }
@@ -294,10 +295,9 @@ export class TripleExtractor implements ITripleExtractor {
                  error.message.toLowerCase().includes('enotfound');
         },
         onRetry: (error: Error, attempt: number, delay: number) => {
-          logger.warn('TripleExtractor: Ollama API 호출 재시도', {
+          logExternalApiRetry('TripleExtractor: Ollama API 호출 재시도', error, {
             attempt,
             delay,
-            error: error.message,
             baseUrl,
             model
           });

@@ -35,6 +35,72 @@ export function createTripleLlmUnavailableResponse(
 
 export type TripleLlmActiveProvider = 'openai' | 'gemini' | 'ollama';
 
+const TRIPLE_LLM_PROVIDER_ORDER: TripleLlmActiveProvider[] = ['openai', 'gemini', 'ollama'];
+
+export function buildTripleLlmProviderAttemptOrder(
+  primary: TripleLlmActiveProvider,
+  isProviderReady: (provider: TripleLlmActiveProvider) => boolean
+): TripleLlmActiveProvider[] {
+  const fallbacks = TRIPLE_LLM_PROVIDER_ORDER.filter(
+    (provider) => provider !== primary && isProviderReady(provider)
+  );
+  return isProviderReady(primary) ? [primary, ...fallbacks] : fallbacks;
+}
+
+export async function invokeTripleProviderWithFallback(params: {
+  primaryProvider: TripleLlmActiveProvider;
+  openaiClient: OpenAI | null;
+  geminiClient: GoogleGenAI | null;
+  isProviderReady: (provider: TripleLlmActiveProvider) => boolean;
+  deps: TripleLlmCallDeps;
+  prompt: string;
+  options: TripleExtractionOptions;
+}): Promise<{ rawOutput: string; provider: TripleLlmActiveProvider }> {
+  const {
+    primaryProvider,
+    openaiClient,
+    geminiClient,
+    isProviderReady,
+    deps,
+    prompt,
+    options,
+  } = params;
+
+  const attemptOrder = buildTripleLlmProviderAttemptOrder(primaryProvider, isProviderReady);
+  if (attemptOrder.length === 0) {
+    throw new Error('사용 가능한 LLM provider가 없습니다.');
+  }
+
+  let lastError: Error | undefined;
+  let previousProvider: TripleLlmActiveProvider | undefined;
+  for (const provider of attemptOrder) {
+    if (previousProvider !== undefined) {
+      logger.info('TripleExtractionService: LLM provider 폴백', {
+        from: previousProvider,
+        to: provider,
+        reason: lastError?.message,
+      });
+    }
+
+    try {
+      const rawOutput = await invokeTripleProviderRawOutput({
+        actualProvider: provider,
+        openaiClient,
+        geminiClient,
+        deps,
+        prompt,
+        options,
+      });
+      return { rawOutput, provider };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      previousProvider = provider;
+    }
+  }
+
+  throw lastError ?? new Error('LLM provider 호출에 실패했습니다.');
+}
+
 export async function invokeTripleProviderRawOutput(params: {
   actualProvider: TripleLlmActiveProvider;
   openaiClient: OpenAI | null;

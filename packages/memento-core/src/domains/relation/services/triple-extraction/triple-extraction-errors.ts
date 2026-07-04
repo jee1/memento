@@ -103,7 +103,11 @@ export function classifyTripleExtractionErrorType(
     errorMessage.includes('rate limit') ||
     errorMessage.includes('ratelimit') ||
     errorMessage.includes('too many requests') ||
-    errorMessage.includes('429')
+    errorMessage.includes('429') ||
+    errorMessage.includes('503') ||
+    errorMessage.includes('502') ||
+    errorMessage.includes('service unavailable') ||
+    errorMessage.includes('high demand')
   ) {
     return 'rate_limit';
   }
