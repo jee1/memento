@@ -50,6 +50,34 @@ export async function handleAutoSetAnchor(
   }
 
   try {
+    // 이미 앵커 슬롯에 있는 기억이면 중복 setAnchor 오류 없이 처리
+    for (const existingSlot of ['A', 'B', 'C'] as const) {
+      const existingAnchor = await context.services.anchorManager.getAnchor(agentId, existingSlot);
+      if (
+        existingAnchor
+        && typeof existingAnchor === 'object'
+        && 'memory_id' in existingAnchor
+        && existingAnchor.memory_id === memoryId
+      ) {
+        if (existingSlot === 'A') {
+          host.logInfo('검색 1위가 이미 슬롯 A 앵커이므로 회전을 건너뜁니다', {
+            agent_id: agentId,
+            memory_id: memoryId
+          });
+          return {
+            success: true,
+            anchor_set: {
+              memory_id: memoryId,
+              slot: 'A',
+              agent_id: agentId
+            }
+          };
+        }
+        await context.services.anchorManager.clearAnchor(agentId, existingSlot);
+        break;
+      }
+    }
+
     const slotAAnchor = await context.services.anchorManager.getAnchor(agentId, 'A');
 
     if (slotAAnchor && typeof slotAAnchor === 'object' && 'memory_id' in slotAAnchor) {

@@ -137,7 +137,9 @@ export const mementoConfig: MementoConfig = {
   recallProfileEnabled: getRawEnvValue('MEMENTO_RECALL_PROFILE') === '1',
   fts5FallbackEnabled: resolveBoolean('MEMENTO_FTS5_FALLBACK_ENABLED', { defaultValue: false }),
 
-  telemetryStoreQueryPlaintext: resolveBoolean('TELEMETRY_STORE_QUERY_PLAINTEXT', { defaultValue: false })
+  telemetryStoreQueryPlaintext: resolveBoolean('TELEMETRY_STORE_QUERY_PLAINTEXT', { defaultValue: false }),
+
+  autoSetAnchorDefault: resolveBoolean('MEMENTO_AUTO_SET_ANCHOR_DEFAULT', { defaultValue: true })
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

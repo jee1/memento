@@ -317,6 +317,8 @@ export interface MementoConfig {
   fts5FallbackEnabled: boolean;
   /** FR-014: true이면 recall 텔레메트리에 query 전문을 저장(기본 false = 해시만) */
   telemetryStoreQueryPlaintext: boolean;
+  /** recall/memory_injection에서 auto_set_anchor 미지정 시 기본값 (MEMENTO_AUTO_SET_ANCHOR_DEFAULT) */
+  autoSetAnchorDefault: boolean;
 }
 
 /**
