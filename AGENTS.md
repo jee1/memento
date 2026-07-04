@@ -53,6 +53,7 @@ npm run lint && npm run type-check  # 커밋 전 필수
 - **scheduler jobs 타입**: `BatchJobResult` 등은 `batch-scheduler-types.js`에서 import (`batch-scheduler.js`는 jobs↔scheduler 순환 참조)
 - **infrastructure async·reflexion** (#615): `async-optimizer/`(types·parsers·queue·worker·batch-processor), `reflexion-procedural-memory-service/`(extraction·create·update-*); orchestrator는 re-export·early-return; Worker↔Queue는 `import type`으로 순환 방지; 선행 spec — `reflexion-worker.spec.ts` + `failure-detector.spec.ts`
 - **composition import 깊이**: `infrastructure/foo.ts` → `../shared/`; `infrastructure/foo/bar.ts` → `../../shared/` (`tsc` 모듈 not found 시 우선 확인)
+- **커밋 훅 (revise-claude-md)**: `git commit` 직전 `.cursor/hooks/pre-commit-revise-claude-md.sh`가 `AGENTS.md` §3.1 등을 갱신·스테이징; 스킵 `REVISE_CLAUDE_MD_SKIP=1`
 
 ## 4. 코딩 에이전트 행동 지침 (Karpathy Guidelines)
 
