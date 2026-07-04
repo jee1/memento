@@ -8,7 +8,11 @@ Issue #586 · 부모 [#580](https://github.com/jee1/memento/issues/580)
 | Symbol / location | Replacement | Notes |
 |-------------------|-------------|-------|
 | `type-param-validator` runtime warning `[LEGACY TYPE]` | Always pass MCP `type` param | [type-param-rollout.md](../guides/ko/type-param-rollout.md) — 제거 조건: `MEMENTO_TYPE_PARAM_MODE` 기본값이 `error`로 전환된 후 |
-| `@google/generative-ai` (llm-client-initializer note) | `@google/genai` migration | 아직 광범위 사용 중; 마이그레이션 미완료 |
+## Removed in #628
+
+| Item | Reason |
+|------|--------|
+| `@google/generative-ai` SDK (전체 런타임 경로) | `@google/genai`로 통일 완료; package.json·package-lock.json에서 제거; root quality gate가 재유입 방지 |
 
 ## Removed in #617
 
