@@ -9,7 +9,7 @@ import { mementoConfig } from '../../../../shared/config/index.js';
 import { resolveLlmModel } from '../../../../shared/config/llm-model-resolver.js';
 import { getRetryOptions } from '../../../../shared/config/retry-options-loader.js';
 import type { TripleExtractionOptions } from '../../../../shared/types/triple-extraction.js';
-import { logger } from '../../../../shared/utils/logger.js';
+import { logExternalApiRetry } from '../../../../shared/utils/external-api-retry-logging.js';
 
 export interface TripleLlmCallDeps {
   retryManager: IRetryManager;
@@ -68,10 +68,9 @@ export async function extractRawWithOpenAI(
       baseDelay: retryOptions.external_api.baseDelay,
       shouldRetry: (error: Error) => deps.shouldRetry(error),
       onRetry: (error: Error, attempt: number, delay: number) => {
-        logger.warn('TripleExtractionService: OpenAI API 호출 재시도', {
+        logExternalApiRetry('TripleExtractionService: OpenAI API 호출 재시도', error, {
           attempt,
           delay,
-          error: error.message,
           model,
         });
       },
@@ -123,10 +122,9 @@ export async function extractRawWithGemini(
       baseDelay: retryOptions.external_api.baseDelay,
       shouldRetry: (error: Error) => deps.shouldRetry(error),
       onRetry: (error: Error, attempt: number, delay: number) => {
-        logger.warn('TripleExtractionService: Gemini API 호출 재시도', {
+        logExternalApiRetry('TripleExtractionService: Gemini API 호출 재시도', error, {
           attempt,
           delay,
-          error: error.message,
           model: modelName,
         });
       },
@@ -210,10 +208,9 @@ export async function extractRawWithOllama(
       baseDelay: retryOptions.external_api.baseDelay,
       shouldRetry: (error: Error) => deps.shouldRetry(error),
       onRetry: (error: Error, attempt: number, delay: number) => {
-        logger.warn('TripleExtractionService: Ollama API 호출 재시도', {
+        logExternalApiRetry('TripleExtractionService: Ollama API 호출 재시도', error, {
           attempt,
           delay,
-          error: error.message,
           baseUrl,
           model,
         });

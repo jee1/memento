@@ -36,6 +36,7 @@
 - `docs/guides/ko/embedding-service-guide.md`: 예제 import 경로를 `packages/memento-core/src/domains/embedding/services/`로 정리하고, 상대 경로 가정(cwd)을 명시 (#362).
 
 ### Fixed
+- **Triple extraction Gemini 503 재시도 WARN 노이즈 완화** (#551): 일시 용량 오류(503/502/429/high demand) 재시도 로그를 DEBUG로 내리고, primary provider 실패 시 대체 provider 폴백을 시도합니다.
 - **[회귀] stdio MCP 서버가 1.25.0에서 시작되지 않는 버그 수정** (#302): `capabilities`에 `logging: {}` 누락 + `SetLevelRequestSchema` 핸들러 수동 등록이 결합되어 MCP SDK가 예외를 throw, `process.exit(1)`으로 프로세스가 종료되던 문제. `logging: {}` capability 추가 및 중복 핸들러 제거로 수정 (SDK가 자동 처리).
 - 잘못 추적되던 `.claude/worktrees/*` gitlink 제거: `actions/checkout` Post 단계의 `git submodule foreach`가 exit 128로 경고 나던 문제 방지
 - CLI(`memento remember` 등)가 HTTP/stdio MCP 서버와 동시에 실행될 때 발생하던 WAL 체크포인트 충돌 및 DB 손상 버그 수정 (#160)
