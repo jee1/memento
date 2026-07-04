@@ -66,7 +66,7 @@ describe('static design contracts', () => {
   it('token readers fail in a bounded way when a required token is missing', () => {
     // readAnchorMapToken lives in the shared module after the god-function split (#596)
     const anchorMapSource = readStaticFile('static/js/anchor-map-shared.js');
-    const graphSource = readStaticFile('static/js/graph.js');
+    const graphSource = readStaticFile('static/js/graph-shared.js');
 
     expect(anchorMapSource).toMatch(/function readAnchorMapToken\(name, fallback = ''\)/);
     expect(anchorMapSource).toMatch(/throw new Error\(`Missing CSS token: \$\{name\}`\);/);
@@ -74,8 +74,17 @@ describe('static design contracts', () => {
     expect(graphSource).toMatch(/throw new Error\(`Missing CSS token: \$\{name\}`\);/);
   });
 
-  it('graph.js reads colors from tokens instead of hardcoded hex or inline styles', () => {
-    const source = readStaticFile('static/js/graph.js');
+  it('graph modules read colors from tokens instead of hardcoded hex or inline styles', () => {
+    const source = [
+      'graph-shared.js',
+      'graph-render.js',
+      'graph-detail.js',
+      'graph-search.js',
+      'graph-fetch.js',
+      'graph.js',
+    ]
+      .map((name) => readStaticFile('static/js/' + name))
+      .join('\n');
 
     expect(source).not.toMatch(/#[0-9A-Fa-f]{3,8}(?![0-9A-Za-z_-])/);
     expect(source).not.toMatch(/style\s*=/);
