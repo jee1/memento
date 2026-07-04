@@ -122,10 +122,13 @@ describe('RecallTool', () => {
   let searchService: AnchorSearchService;
   let vectorSearchEngine: VectorSearchEngine;
   let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
+  let savedAutoSetAnchorDefault: boolean;
 
   beforeEach(() => {
     savedTypeParamMode = mementoConfig.typeParamMode;
     mementoConfig.typeParamMode = 'warn';
+    savedAutoSetAnchorDefault = mementoConfig.autoSetAnchorDefault;
+    mementoConfig.autoSetAnchorDefault = false;
 
     db = new Database(':memory:');
     initializeTestDatabase(db);
@@ -172,6 +175,7 @@ describe('RecallTool', () => {
 
   afterEach(() => {
     mementoConfig.typeParamMode = savedTypeParamMode;
+    mementoConfig.autoSetAnchorDefault = savedAutoSetAnchorDefault;
     if (db) {
       db.close();
     }

@@ -23,7 +23,7 @@ interface MemoryCandidate {
  * path back to a stale anchor.  This job bypasses that limitation by querying the
  * DB directly for recent/important memories and calling setAnchor explicitly.
  *
- * Staleness threshold: 7 days.  Only slots whose `updated_at` is older than that
+ * Staleness threshold: 1 day.  Only slots whose `updated_at` is older than that
  * are touched, so anchors updated by normal recall flow are never overwritten.
  */
 export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
@@ -52,7 +52,7 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
     }
 
     let totalMoved = 0;
-    const stalenessThresholdDays = 7;
+    const stalenessThresholdDays = 1;
     const now = Date.now();
 
     for (const agentId of agentIds) {

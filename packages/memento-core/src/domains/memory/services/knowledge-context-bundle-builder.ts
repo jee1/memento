@@ -39,6 +39,8 @@ export interface KnowledgeContextBundle {
   /** Agent Loop 메타용 한 줄 요약 */
   contextSummary: string;
   query: string;
+  /** 하이브리드 검색 1위 기억 ID (앵커 자동 설정용) */
+  topMemoryId?: string;
 }
 
 function estimateTokens(text: string): number {
@@ -374,5 +376,6 @@ export async function buildKnowledgeContextBundle(
     tokenEstimate,
     contextSummary,
     query,
+    topMemoryId: summary[0]?.id,
   };
 }

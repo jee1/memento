@@ -4,12 +4,15 @@
  */
 
 import { z } from 'zod';
+import { mementoConfig } from '../../../shared/config/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import { CommonSchemas, type ToolContext, type ToolResult } from '../../../tools/types.js';
 import { buildKnowledgeContextBundle } from '../services/knowledge-context-bundle-builder.js';
 import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
+import { handleAutoSetAnchor } from './recall-tool-anchor-rotation.js';
+import type { RecallToolHost } from './recall-tool-host.js';
 
 const MemoryInjectionSchema = z.object({
   query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
@@ -138,6 +141,36 @@ export class MemoryInjectionPrompt extends BaseTool {
         memoryCount: bundle.itemCount,
         tokenCount: bundle.tokenEstimate,
       });
+
+      if (
+        mementoConfig.autoSetAnchorDefault
+        && bundle.topMemoryId
+        && context.services?.anchorManager
+      ) {
+        const anchorHost: RecallToolHost = {
+          logInfo: (message, additionalData) => this.logInfo(message, additionalData),
+          logWarning: (message, additionalData) => this.logWarning(message, additionalData),
+          logError: (error, contextLabel, additionalData) =>
+            this.logError(error, contextLabel, additionalData),
+          validateService: <T>(service: T | undefined, serviceName: string): asserts service is T => {
+            this.validateService(service, serviceName);
+          },
+          createSuccessResult: (data) => this.createSuccessResult(data),
+        };
+        await handleAutoSetAnchor(
+          anchorHost,
+          [{
+            id: bundle.topMemoryId,
+            memory_id: bundle.topMemoryId,
+            content: '',
+            type: 'episodic',
+            importance: 0,
+            created_at: new Date().toISOString(),
+          }],
+          'default',
+          context
+        );
+      }
 
       return this.createSuccessResult({
         message: bundle.promptText,
