@@ -65,9 +65,8 @@ describe('LLMClientInitializer', () => {
       // Then: geminiClient는 null이고 경고가 추가되어야 함
       // 현재 구현에서는 Gemini 초기화 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
       expect(result.geminiClient).toBeNull();
-      expect(result.warnings.length).toBeGreaterThan(0);
-      // TODO: 실제 구현 후에는 경고 메시지 내용도 확인해야 함
-      // 예: expect(result.warnings.some(w => w.includes('GEMINI_API_KEY'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('GEMINI_API_KEY'))).toBe(true);
+      expect(loggerWarnSpy).toHaveBeenCalled();
       
       loggerWarnSpy.mockRestore();
     });
@@ -102,8 +101,11 @@ describe('LLMClientInitializer', () => {
       // Then: geminiClient는 null이고 경고가 추가되어야 함
       // 현재 구현에서는 Gemini 초기화 로직이 없으므로 이 검증은 실패할 것임 (RED 단계)
       expect(result.geminiClient).toBeNull();
-      expect(loggerWarnSpy).toHaveBeenCalled();
-      // TODO: 실제 구현 후에는 경고 메시지 내용도 확인해야 함
+      expect(result.warnings.some((w) => w.includes('Gemini 클라이언트 초기화 실패'))).toBe(true);
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        'Gemini 클라이언트 초기화 중 오류가 발생했습니다.',
+        expect.objectContaining({ requestedProvider: expect.any(String) })
+      );
       
       vi.mocked(MockGoogleGenAI).mockRestore();
       loggerWarnSpy.mockRestore();

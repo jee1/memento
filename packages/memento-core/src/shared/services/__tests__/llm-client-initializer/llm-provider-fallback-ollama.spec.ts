@@ -238,8 +238,7 @@ describe('LLMClientInitializer', () => {
         expect(result.openaiClient).toBeNull();
         expect(result.geminiClient).toBeNull();
         expect(result.warnings.length).toBeGreaterThan(0);
-        // TODO: 실제 구현 후에는 모든 provider 실패 시 logger.error()가 호출되어야 함
-        // expect(loggerErrorSpy).toHaveBeenCalled();
+        expect(loggerErrorSpy).toHaveBeenCalled();
         
         loggerWarnSpy.mockRestore();
         loggerErrorSpy.mockRestore();
