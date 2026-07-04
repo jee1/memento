@@ -20,4 +20,4 @@
 - [x] T010 init + migration vitest + full CI green
 - [x] T011 `npm run db:pre-docker-deploy` 통과
 - [x] T012 graphify rebuild
-- [ ] T013 PR 등록 (Closes #631)
+- [x] T013 PR 등록 (Closes #631)
