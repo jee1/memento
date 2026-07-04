@@ -7,11 +7,10 @@
 import type Database from 'better-sqlite3';
 import type { HybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
-import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
-import { DatabaseValidationError, ServiceNotInitializedError, VectorDimensionMismatchError } from './anchor-interfaces.js';
+import { DatabaseValidationError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import { RelationGraph } from '../../../relation/services/relation-graph.js';
+import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { NHopSearchService } from './n-hop-search-service.js';
 import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';
@@ -20,6 +19,8 @@ import { NHopSearchStrategy } from './n-hop-search-strategy.js';
 import { QueryFilterStrategy } from './query-filter-strategy.js';
 import { FallbackStrategy } from './fallback-strategy.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
+import { AnchorReanchorService } from './anchor-reanchor-service.js';
+import type { AutoReanchorResult } from './anchor-reanchor-service.js';
 
 /**
  * Anchor Search Service 구현
@@ -29,14 +30,13 @@ export class AnchorSearchService implements IAnchorSearchService {
   private cacheService: IAnchorCacheService;
   private hybridSearchEngine: HybridSearchEngine | null = null;
   private vectorSearchEngine: VectorSearchEngine | null = null;
-  private queryEmbeddingService: UnifiedEmbeddingService = new UnifiedEmbeddingService();
-  private relationGraph: RelationGraph | null = null;
   private errorLoggingService: ErrorLoggingService | null = null;
   
   // Phase 2.3-2.5: 분리된 서비스들
   private nHopSearchService: NHopSearchService;
   private queryFilterService: QueryFilterService;
   private fallbackSearchService: FallbackSearchService;
+  private reanchorService: AnchorReanchorService;
   
   // Phase 3.6: LocalSearchService
   private localSearchService: LocalSearchService | null = null;
@@ -58,6 +58,13 @@ export class AnchorSearchService implements IAnchorSearchService {
     this.nHopSearchService = new NHopSearchService(cacheService);
     this.queryFilterService = new QueryFilterService(cacheService);
     this.fallbackSearchService = new FallbackSearchService();
+    this.reanchorService = new AnchorReanchorService(
+      cacheService,
+      this.nHopSearchService,
+      () => this.db,
+      () => this.errorLoggingService,
+      (slot) => this.getSlotConfig(slot)
+    );
 
     if (options?.db) this.setDatabase(options.db);
     if (options?.hybridSearchEngine) this.setHybridSearchEngine(options.hybridSearchEngine);
@@ -78,7 +85,6 @@ export class AnchorSearchService implements IAnchorSearchService {
    * RelationGraph 설정 (선택적)
    */
   setRelationGraph(relationGraph: RelationGraph): void {
-    this.relationGraph = relationGraph;
     // Phase 2.3: N-hop 검색 서비스에도 관계 그래프 설정
     this.nHopSearchService.setRelationGraph(relationGraph);
   }
@@ -339,47 +345,6 @@ export class AnchorSearchService implements IAnchorSearchService {
   }
 
   /**
-   * 코사인 유사도 계산
-   * Phase 2.7.3: calculateReanchorScore에서 사용하므로 유지
-   */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) {
-      // Phase 8.4: 커스텀 에러 클래스 사용
-      const error = new VectorDimensionMismatchError(a.length, b.length);
-      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
-      if (this.errorLoggingService) {
-        this.errorLoggingService.logError(
-          error,
-          ErrorSeverity.MEDIUM,
-          ErrorCategory.VALIDATION,
-          {
-            component: 'AnchorSearchService',
-            operation: 'cosineSimilarity',
-            vectorA_length: a.length,
-            vectorB_length: b.length
-          }
-        );
-      }
-      throw error;
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      const aVal = a[i] ?? 0;
-      const bVal = b[i] ?? 0;
-      dotProduct += aVal * bVal;
-      normA += aVal * aVal;
-      normB += bVal * bVal;
-    }
-
-    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-    return magnitude === 0 ? 0 : dotProduct / magnitude;
-  }
-
-  /**
    * 전역 검색으로 Fallback
    * Phase 2.5: FallbackSearchService 위임
    */
@@ -399,84 +364,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     queryEmbedding?: number[],
     anchorEmbedding?: number[]
   ): Promise<number> {
-    if (!this.db) {
-      return 0;
-    }
-
-    try {
-      const memory = this.db.prepare(`
-        SELECT 
-          view_count,
-          cite_count,
-          edit_count,
-          last_accessed,
-          created_at,
-          importance
-        FROM memory_item
-        WHERE id = ?
-      `).get(memoryId) as {
-        view_count: number;
-        cite_count: number;
-        edit_count: number;
-        last_accessed: string | null;
-        created_at: string;
-        importance: number;
-      } | undefined;
-
-      if (!memory) {
-        return 0;
-      }
-
-      const usageScore = Math.min(
-        1.0,
-        (Math.log(1 + memory.view_count) +
-         2 * Math.log(1 + memory.cite_count) +
-         0.5 * Math.log(1 + memory.edit_count)) / 10
-      );
-
-      let recencyScore = 0.5;
-      if (memory.last_accessed) {
-        const lastAccessed = new Date(memory.last_accessed);
-        const now = new Date();
-        const daysSinceAccess = (now.getTime() - lastAccessed.getTime()) / (1000 * 60 * 60 * 24);
-        recencyScore = Math.max(0, 1.0 - daysSinceAccess / 30);
-      }
-
-      const importanceScore = memory.importance || 0.5;
-
-      let semanticScore = 0.5;
-      if (queryEmbedding) {
-        const memoryEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
-        if (memoryEmbedding && memoryEmbedding.embedding) {
-          const similarity = this.cosineSimilarity(queryEmbedding, memoryEmbedding.embedding);
-          semanticScore = similarity;
-        }
-      }
-
-      let anchorComparisonScore = 0.5;
-      if (anchorEmbedding) {
-        const memoryEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
-        if (memoryEmbedding && memoryEmbedding.embedding) {
-          const similarity = this.cosineSimilarity(anchorEmbedding, memoryEmbedding.embedding);
-          anchorComparisonScore = 1.0 - similarity;
-        }
-      }
-
-      const finalScore =
-        usageScore * 0.3 +
-        recencyScore * 0.2 +
-        importanceScore * 0.2 +
-        semanticScore * 0.2 +
-        anchorComparisonScore * 0.1;
-
-      return Math.min(1.0, Math.max(0.0, finalScore));
-    } catch (error) {
-      logger.error('Reanchor score calculation failed', {
-        memoryId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return 0;
-    }
+    return this.reanchorService.calculateReanchorScore(memoryId, queryEmbedding, anchorEmbedding);
   }
 
   /**
@@ -489,90 +377,13 @@ export class AnchorSearchService implements IAnchorSearchService {
     anchorEmbedding: { embedding: number[]; provider: string },
     queryEmbedding?: number[]
   ): Promise<Array<{ memory_id: string; score: number; reason: string }>> {
-    if (!this.db) {
-      // Phase 8.4: 커스텀 에러 클래스 사용
-      const error = new DatabaseValidationError('Database is not set.');
-      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
-      if (this.errorLoggingService) {
-        this.errorLoggingService.logError(
-          error,
-          ErrorSeverity.MEDIUM,
-          ErrorCategory.VALIDATION,
-          {
-            component: 'AnchorSearchService',
-            operation: 'getAnchorWithEmbedding',
-            agentId,
-            slot
-          }
-        );
-      }
-      throw error;
-    }
-
-    try {
-      const slotConfig = this.getSlotConfig(slot);
-      // Phase 2.3: N-hop 검색 서비스 사용
-      const nearbyMemories = await this.nHopSearchService.searchNHop(
-        anchorEmbedding.embedding,
-        anchorEmbedding.provider,
-        anchorMemoryId,
-        slotConfig.vector_threshold * 0.8,
-        slotConfig.hop_limit,
-        20,
-        true // useRelations 기본값
-      );
-
-      const candidates: Array<{ memory_id: string; score: number; reason: string }> = [];
-
-      for (const memory of nearbyMemories) {
-        const score = await this.calculateReanchorScore(
-          memory.memory_id,
-          queryEmbedding,
-          anchorEmbedding.embedding
-        );
-
-        if (score > 0.5) {
-          const reason = this.generateReanchorReason(memory, score);
-          candidates.push({
-            memory_id: memory.memory_id,
-            score,
-            reason
-          });
-        }
-      }
-
-      candidates.sort((a, b) => b.score - a.score);
-      return candidates;
-    } catch (error) {
-      logger.error('Anchor usage analysis failed', {
-        agentId,
-        slot,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return [];
-    }
-  }
-
-  /**
-   * 앵커 이동 이유 생성
-   */
-  private generateReanchorReason(
-    memory: { memory_id: string; content: string; similarity?: number; hop_distance?: number },
-    score: number
-  ): string {
-    const reasons: string[] = [];
-
-    if (score > 0.7) {
-      reasons.push('높은 사용 빈도');
-    }
-    if (memory.similarity && memory.similarity > 0.8) {
-      reasons.push('쿼리와 높은 유사도');
-    }
-    if (memory.hop_distance === 1) {
-      reasons.push('앵커와 직접 연결');
-    }
-
-    return reasons.length > 0 ? reasons.join(', ') : '종합 점수 우수';
+    return this.reanchorService.analyzeAnchorUsage(
+      agentId,
+      slot,
+      anchorMemoryId,
+      anchorEmbedding,
+      queryEmbedding
+    );
   }
 
   /**
@@ -585,123 +396,15 @@ export class AnchorSearchService implements IAnchorSearchService {
     queryEmbedding?: number[],
     threshold: number = 0.7,
     strategy: 'gradual' | 'immediate' = 'gradual'
-  ): Promise<{
-    moved: boolean;
-    old_anchor: string | null;
-    new_anchor: string | null;
-    score: number;
-    reason: string;
-  }> {
-    if (!this.db) {
-      const error = new Error('Database is not set.');
-      // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
-      if (this.errorLoggingService) {
-        this.errorLoggingService.logError(
-          error,
-          ErrorSeverity.MEDIUM,
-          ErrorCategory.VALIDATION,
-          {
-            component: 'AnchorSearchService',
-            operation: 'getAnchorWithEmbedding',
-            agentId,
-            slot
-          }
-        );
-      }
-      throw error;
-    }
-
-    try {
-      const currentAnchor = await anchorManager.getAnchor(agentId, slot);
-      if (!currentAnchor || Array.isArray(currentAnchor) || !currentAnchor.memory_id) {
-        return {
-          moved: false,
-          old_anchor: null,
-          new_anchor: null,
-          score: 0,
-          reason: '앵커가 설정되지 않았습니다'
-        };
-      }
-
-      const anchorEmbedding = await this.cacheService.getAnchorEmbedding(currentAnchor.memory_id);
-      if (!anchorEmbedding) {
-        return {
-          moved: false,
-          old_anchor: currentAnchor.memory_id,
-          new_anchor: null,
-          score: 0,
-          reason: '앵커 임베딩을 찾을 수 없습니다'
-        };
-      }
-
-      const candidates = await this.analyzeAnchorUsage(
-        agentId,
-        slot,
-        currentAnchor.memory_id,
-        anchorEmbedding,
-        queryEmbedding
-      );
-
-      if (candidates.length === 0 || !candidates[0] || candidates[0].score < threshold) {
-        return {
-          moved: false,
-          old_anchor: currentAnchor.memory_id,
-          new_anchor: null,
-          score: candidates[0]?.score || 0,
-          reason: `임계값(${threshold}) 미만 또는 후보 없음`
-        };
-      }
-
-      const bestCandidate = candidates[0];
-      if (!bestCandidate) {
-        return {
-          moved: false,
-          old_anchor: currentAnchor.memory_id,
-          new_anchor: null,
-          score: 0,
-          reason: '후보 없음'
-        };
-      }
-
-      if (strategy === 'gradual') {
-        if (slot === 'A') {
-          const bAnchor = await anchorManager.getAnchor(agentId, 'B');
-          if (bAnchor && !Array.isArray(bAnchor) && bAnchor.memory_id) {
-            await anchorManager.setAnchor(agentId, bAnchor.memory_id, 'C');
-          }
-          await anchorManager.setAnchor(agentId, currentAnchor.memory_id, 'B');
-        } else if (slot === 'B') {
-          await anchorManager.setAnchor(agentId, currentAnchor.memory_id, 'C');
-        }
-        await anchorManager.setAnchor(agentId, bestCandidate.memory_id, slot);
-      } else {
-        await anchorManager.setAnchor(agentId, bestCandidate.memory_id, slot);
-      }
-
-      logger.info('Auto reanchor completed', {
-        agentId,
-        slot,
-        oldAnchor: currentAnchor.memory_id,
-        newAnchor: bestCandidate.memory_id,
-        score: bestCandidate.score,
-        reason: bestCandidate.reason
-      });
-
-      return {
-        moved: true,
-        old_anchor: currentAnchor.memory_id,
-        new_anchor: bestCandidate.memory_id,
-        score: bestCandidate.score,
-        reason: bestCandidate.reason
-      };
-    } catch (error) {
-      logger.error('Auto reanchor failed', {
-        agentId,
-        slot,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
-    }
+  ): Promise<AutoReanchorResult> {
+    return this.reanchorService.autoReanchor(
+      agentId,
+      slot,
+      anchorManager,
+      queryEmbedding,
+      threshold,
+      strategy
+    );
   }
 
   /**
@@ -713,25 +416,13 @@ export class AnchorSearchService implements IAnchorSearchService {
     anchorManager: IAnchorManager,
     queryEmbedding?: number[],
     autoMoveEnabled: boolean = false
-  ): Promise<{
-    moved: boolean;
-    old_anchor: string | null;
-    new_anchor: string | null;
-    score: number;
-    reason: string;
-  } | null> {
-    if (!autoMoveEnabled) {
-      return null;
-    }
-
-    try {
-      return await this.autoReanchor(agentId, slot, anchorManager, queryEmbedding, 0.7, 'gradual');
-    } catch (error) {
-      logger.debug('Auto reanchor check failed (ignored)', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return null;
-    }
+  ): Promise<AutoReanchorResult | null> {
+    return this.reanchorService.checkAndAutoReanchor(
+      agentId,
+      slot,
+      anchorManager,
+      queryEmbedding,
+      autoMoveEnabled
+    );
   }
 }
-

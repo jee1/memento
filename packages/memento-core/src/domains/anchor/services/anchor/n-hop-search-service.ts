@@ -4,13 +4,12 @@
  */
 
 import type Database from 'better-sqlite3';
-import type {
-  VectorSearchEngine,
-  VectorSearchResult
-} from '../../../search/algorithms/vector-search-engine.js';
+import type { VectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { isInitializableVectorSearchEngine } from './vector-search-engine-types.js';
+import { getRelationTypeBoost, NHopLinkedMemoryService } from './n-hop-linked-memory-service.js';
+import type { LinkedMemorySummary } from './n-hop-linked-memory-service.js';
 import { logger } from '../../../../shared/utils/logger.js';
 
 /**
@@ -40,19 +39,6 @@ export interface OneHopSearchResult {
   created_at: string;
   tags?: string[];
 }
-
-/** memory_link / relation 그래프에서 수집한 1차 연결 메모리 요약 */
-type LinkedMemorySummary = {
-  memory_id: string;
-  content: string;
-  type: string;
-  similarity: number;
-  importance: number;
-  created_at: string;
-  tags?: string[];
-};
-
-type HopCandidate = LinkedMemorySummary & { isLinked: boolean };
 
 /**
  * N-hop 검색 서비스 인터페이스
@@ -88,12 +74,16 @@ export interface INHopSearchService {
  */
 export class NHopSearchService implements INHopSearchService {
   private db: Database.Database | null = null;
-  private cacheService: IAnchorCacheService;
   private vectorSearchEngine: VectorSearchEngine | null = null;
   private relationGraph: RelationGraph | null = null;
+  private linkedMemoryService: NHopLinkedMemoryService;
 
   constructor(cacheService: IAnchorCacheService) {
-    this.cacheService = cacheService;
+    this.linkedMemoryService = new NHopLinkedMemoryService(
+      cacheService,
+      () => this.db,
+      () => this.relationGraph
+    );
   }
 
   /**
@@ -143,111 +133,6 @@ export class NHopSearchService implements INHopSearchService {
     return { engine, db };
   }
 
-  private mergeHopCandidates(
-    linkedMemories: LinkedMemorySummary[],
-    vectorSearchResults: VectorSearchResult[],
-    discoveredMemoryIds: Set<string>,
-    threshold: number
-  ): Map<string, HopCandidate> {
-    const allCandidates = new Map<string, HopCandidate>();
-    const relaxedThreshold = threshold * 0.5;
-
-    for (const linked of linkedMemories) {
-      if (!discoveredMemoryIds.has(linked.memory_id)) {
-        allCandidates.set(linked.memory_id, {
-          ...linked,
-          isLinked: true
-        });
-      }
-    }
-
-    for (const result of vectorSearchResults) {
-      if (!allCandidates.has(result.memory_id) && !discoveredMemoryIds.has(result.memory_id)) {
-        if (result.similarity >= relaxedThreshold) {
-          allCandidates.set(result.memory_id, {
-            memory_id: result.memory_id,
-            content: result.content,
-            type: result.type,
-            similarity: result.similarity,
-            importance: result.importance,
-            created_at: result.created_at,
-            tags: result.tags,
-            isLinked: false
-          });
-        }
-      } else if (allCandidates.has(result.memory_id)) {
-        const existing = allCandidates.get(result.memory_id)!;
-        existing.similarity = Math.max(existing.similarity, result.similarity);
-      }
-    }
-
-    return allCandidates;
-  }
-
-  private async tryGetNextHopSeed(
-    memoryId: string
-  ): Promise<{ memory_id: string; embedding: number[] } | null> {
-    try {
-      const nextEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
-      if (nextEmbedding?.embedding) {
-        return { memory_id: memoryId, embedding: nextEmbedding.embedding };
-      }
-    } catch (error) {
-      logger.debug('Skipping memory for next hop (no embedding)', {
-        memoryId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-    return null;
-  }
-
-  private async materializeHopDiscoveries(
-    hop: number,
-    maxHops: number,
-    allCandidates: Map<string, HopCandidate>,
-    discoveredMemoryIds: Set<string>,
-    threshold: number
-  ): Promise<{
-    hopResults: NHopSearchResult[];
-    nextHopSeeds: Array<{ memory_id: string; embedding: number[] }>;
-  }> {
-    const hopResults: NHopSearchResult[] = [];
-    const nextHopSeeds: Array<{ memory_id: string; embedding: number[] }> = [];
-
-    for (const [memoryId, candidate] of allCandidates.entries()) {
-      if (discoveredMemoryIds.has(memoryId)) {
-        continue;
-      }
-
-      const effectiveThreshold = candidate.isLinked ? threshold * 0.8 : threshold;
-      if (candidate.similarity < effectiveThreshold) {
-        continue;
-      }
-
-      discoveredMemoryIds.add(memoryId);
-      hopResults.push({
-        memory_id: candidate.memory_id,
-        content: candidate.content,
-        type: candidate.type,
-        similarity: candidate.similarity,
-        hop_distance: hop,
-        importance: candidate.importance,
-        created_at: candidate.created_at,
-        tags: candidate.tags,
-        hasRelation: candidate.isLinked
-      });
-
-      if (hop < maxHops) {
-        const seed = await this.tryGetNextHopSeed(candidate.memory_id);
-        if (seed) {
-          nextHopSeeds.push(seed);
-        }
-      }
-    }
-
-    return { hopResults, nextHopSeeds };
-  }
-
   private compareNHopRankedResults(a: NHopSearchResult, b: NHopSearchResult): number {
     if (a.hasRelation && !b.hasRelation) {
       return -1;
@@ -279,7 +164,7 @@ export class NHopSearchService implements INHopSearchService {
           hasRelation = true;
           const avgConfidence = relations.reduce((sum, r) => sum + r.confidence, 0) / relations.length;
           const avgBoost =
-            relations.reduce((sum, r) => sum + this.getRelationTypeBoost(r.relation_type), 0) /
+            relations.reduce((sum, r) => sum + getRelationTypeBoost(r.relation_type), 0) /
             relations.length;
           relationWeight = Math.min(1.0, avgConfidence * avgBoost);
         }
@@ -393,7 +278,7 @@ export class NHopSearchService implements INHopSearchService {
 
       const memoryIdsThisHop = currentHopMemories.map(m => m.memory_id);
       const linkedByMemory = useRelations
-        ? await this.getLinkedMemoriesBatch(memoryIdsThisHop)
+        ? await this.linkedMemoryService.getLinkedMemoriesBatch(memoryIdsThisHop)
         : new Map<string, LinkedMemorySummary[]>();
 
       const vectorResults = await Promise.all(
@@ -417,13 +302,13 @@ export class NHopSearchService implements INHopSearchService {
         const linkedMemories = linkedByMemory.get(currentMemory.memory_id) ?? [];
         const vectorSearchResults = vectorResults[idx] ?? [];
         try {
-          const merged = this.mergeHopCandidates(
+          const merged = this.linkedMemoryService.mergeHopCandidates(
             linkedMemories,
             vectorSearchResults,
             discoveredMemoryIds,
             threshold
           );
-          const { hopResults: batchHop, nextHopSeeds } = await this.materializeHopDiscoveries(
+          const { hopResults: batchHop, nextHopSeeds } = await this.linkedMemoryService.materializeHopDiscoveries(
             hop,
             maxHops,
             merged,
@@ -453,174 +338,6 @@ export class NHopSearchService implements INHopSearchService {
     }
 
     return this.rankAndTruncateNHopResults(allResults, useRelations, limit);
-  }
-
-  /**
-   * 여러 메모리에 대한 연결 메모리 일괄 조회 (N+1 완화)
-   */
-  private async getLinkedMemoriesBatch(memoryIds: string[]): Promise<Map<string, LinkedMemorySummary[]>> {
-    const result = new Map<string, LinkedMemorySummary[]>();
-    memoryIds.forEach(id => result.set(id, []));
-    if (memoryIds.length === 0 || !this.db) return result;
-
-    if (this.relationGraph) {
-      const relationsByMemory = await this.relationGraph.getRelationsBatch(memoryIds, {
-        direction: 'outgoing',
-        minConfidence: 0.5
-      });
-      const allTargetIds = new Set<string>();
-      relationsByMemory.forEach((rels) => {
-        rels.forEach((r) => allTargetIds.add(r.target_id));
-      });
-      if (allTargetIds.size === 0) return result;
-      const placeholders = Array.from(allTargetIds).map(() => '?').join(',');
-      const memoryRecords = this.db.prepare(
-        `SELECT id, content, type, importance, created_at, tags FROM memory_item WHERE id IN (${placeholders})`
-      ).all(...Array.from(allTargetIds)) as Array<{ id: string; content: string; type: string; importance: number; created_at: string; tags?: string }>;
-      const memoryMap = new Map(memoryRecords.map(m => [m.id, m]));
-
-      relationsByMemory.forEach((rels, sourceId) => {
-        const items = rels.map((relation) => {
-          const memory = memoryMap.get(relation.target_id);
-          if (!memory) return null;
-          const typeBoost = this.getRelationTypeBoost(relation.relation_type);
-          const similarity = Math.min(1.0, relation.confidence * typeBoost);
-          return {
-            memory_id: memory.id,
-            content: memory.content,
-            type: memory.type,
-            similarity,
-            importance: memory.importance,
-            created_at: memory.created_at,
-            tags: memory.tags ? (typeof memory.tags === 'string' ? JSON.parse(memory.tags) : memory.tags) : undefined
-          };
-        }).filter((item): item is NonNullable<typeof item> => item !== null);
-        result.set(sourceId, items);
-      });
-      return result;
-    }
-
-    const batchResults = await Promise.all(memoryIds.map((id) => this.getLinkedMemories(id)));
-    memoryIds.forEach((id, i) => result.set(id, batchResults[i] ?? []));
-    return result;
-  }
-
-  /**
-   * 연결된 메모리 조회 (관계 그래프 또는 memory_link 사용)
-   */
-  private async getLinkedMemories(memoryId: string): Promise<LinkedMemorySummary[]> {
-    if (!this.db) {
-      return [];
-    }
-
-    try {
-      // 관계 그래프가 있으면 우선 사용
-      if (this.relationGraph) {
-        const relations = await this.relationGraph.getRelations(memoryId, {
-          direction: 'outgoing',
-          minConfidence: 0.5
-        });
-
-        if (relations.length > 0) {
-          // 관계를 메모리 정보와 결합
-          // SQL Injection 방지: placeholders는 이미 ? 플레이스홀더로 구성되어 있어 안전함
-          const memoryIds = relations.map(r => r.target_id);
-          const placeholders = memoryIds.map(() => '?').join(',');
-          const memoryRecords = this.db.prepare(
-            `SELECT id, content, type, importance, created_at, tags ` +
-            `FROM memory_item ` +
-            `WHERE id IN (${placeholders})`
-          ).all(...memoryIds) as Array<{
-            id: string;
-            content: string;
-            type: string;
-            importance: number;
-            created_at: string;
-            tags?: string;
-          }>;
-
-          // 관계 정보와 메모리 정보 결합
-          const memoryMap = new Map(memoryRecords.map(m => [m.id, m]));
-          
-          return relations.map(relation => {
-            const memory = memoryMap.get(relation.target_id);
-            if (!memory) {
-              return null;
-            }
-
-            // 관계 confidence를 similarity로 사용 (관계가 있으면 높은 유사도)
-            // 관계 유형별 부스트 적용
-            const typeBoost = this.getRelationTypeBoost(relation.relation_type);
-            const similarity = Math.min(1.0, relation.confidence * typeBoost);
-
-            return {
-              memory_id: memory.id,
-              content: memory.content,
-              type: memory.type,
-              similarity,
-              importance: memory.importance,
-              created_at: memory.created_at,
-              tags: memory.tags ? JSON.parse(memory.tags) : undefined
-            };
-          }).filter((item): item is NonNullable<typeof item> => item !== null);
-        }
-      }
-
-      // 관계 그래프가 없거나 관계가 없으면 memory_link 사용 (하위 호환성)
-      const linkedRecords = this.db.prepare(`
-        SELECT 
-          ml.target_id as memory_id,
-          mi.content,
-          mi.type,
-          mi.importance,
-          mi.created_at,
-          mi.tags,
-          ml.relation_type
-        FROM memory_link ml
-        JOIN memory_item mi ON mi.id = ml.target_id
-        WHERE ml.source_id = ?
-        ORDER BY ml.created_at DESC
-      `).all(memoryId) as Array<{
-        memory_id: string;
-        content: string;
-        type: string;
-        importance: number;
-        created_at: string;
-        tags?: string;
-        relation_type: string;
-      }>;
-
-      return linkedRecords.map(record => ({
-        memory_id: record.memory_id,
-        content: record.content,
-        type: record.type,
-        similarity: 0.9, // memory_link는 기본 유사도 0.9
-        importance: record.importance,
-        created_at: record.created_at,
-        tags: record.tags ? (typeof record.tags === 'string' ? JSON.parse(record.tags) : record.tags) : undefined
-      }));
-    } catch (error) {
-      logger.error('memory_link retrieval failed', {
-        memoryId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return [];
-    }
-  }
-
-  /**
-   * 관계 유형별 부스트 가중치 반환
-   */
-  private getRelationTypeBoost(relationType: string): number {
-    const boostMap: Record<string, number> = {
-      'CAUSES': 1.2,
-      'DEPENDS_ON': 1.1,
-      'FOLLOWS': 1.0,
-      'CONTRASTS_WITH': 0.9,
-      'REFERENCES': 0.8,
-      'BELONGS_TO': 1.0
-    };
-    return boostMap[relationType] || 1.0;
   }
 
   /**
