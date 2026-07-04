@@ -7,11 +7,11 @@
 
 ## 환경 변수 `MEMENTO_TYPE_PARAM_MODE`
 
-- `warn`(기본): `type`이 없으면 기본값 `episodic`을 쓰고 경고를 남길 수 있다(조건은 구현 참고).
+- `error`(기본, v1.18+): `type`이 없으면 호출이 거절된다.
+- `warn`: `type`이 없으면 기본값 `episodic`을 쓰고 경고를 남길 수 있다(레거시 클라이언트 마이그레이션용).
 - `deprecate`: 경고 문구에 마이그레이션 안내가 포함된다.
-- `error`: `type`이 없으면 호출이 거절된다(엄격 모드).
 
-배포 환경에서 단계적으로 `warn` → `deprecate` → `error`로 올려 클라이언트를 정리할 수 있다.
+배포 환경에서 단계적으로 `warn` → `deprecate` → `error`로 올려 클라이언트를 정리할 수 있다. **신규 배포는 기본 `error`를 권장한다.**
 
 ## 권장 마이그레이션
 
@@ -20,4 +20,4 @@
 
 ## 관련 문서
 
-- [Core Deprecated API Inventory](../../architecture/core-deprecated-inventory.md) — `[LEGACY TYPE]` 런타임 경고
+- [Core Deprecated API Inventory](../../architecture/core-deprecated-inventory.md) — `type` 파라미터 롤아웃 이력

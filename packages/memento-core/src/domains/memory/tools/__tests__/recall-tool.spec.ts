@@ -121,8 +121,12 @@ describe('RecallTool', () => {
   let cacheService: AnchorCacheService;
   let searchService: AnchorSearchService;
   let vectorSearchEngine: VectorSearchEngine;
+  let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
 
   beforeEach(() => {
+    savedTypeParamMode = mementoConfig.typeParamMode;
+    mementoConfig.typeParamMode = 'warn';
+
     db = new Database(':memory:');
     initializeTestDatabase(db);
 
@@ -167,6 +171,7 @@ describe('RecallTool', () => {
   });
 
   afterEach(() => {
+    mementoConfig.typeParamMode = savedTypeParamMode;
     if (db) {
       db.close();
     }

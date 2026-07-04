@@ -47,7 +47,6 @@ describe('type-param-validator', () => {
         expect(result.isValid).toBe(true);
         expect(result.mode).toBe('deprecate');
         expect(result.defaultType).toBe('episodic');
-        expect(result.message).toContain('LEGACY TYPE');
         expect(result.message).toContain('마이그레이션');
         expect(result.message).toContain('type-param-rollout');
       });
@@ -102,23 +101,23 @@ describe('type-param-validator', () => {
     });
 
     describe('invalid mode', () => {
-      it('should default to warn mode for invalid mode', () => {
+      it('should reject missing type for invalid mode', () => {
         const result = validateTypeParam(undefined, 'invalid' as TypeParamMode, 'test-tool');
         
-        expect(result.isValid).toBe(true);
-        expect(result.mode).toBe('warn');
-        expect(result.defaultType).toBe('episodic');
+        expect(result.isValid).toBe(false);
+        expect(result.mode).toBe('error');
+        expect(result.message).toContain('필수');
       });
     });
   });
 
   describe('parseTypeParamMode', () => {
-    it('should return warn for undefined', () => {
-      expect(parseTypeParamMode(undefined)).toBe('warn');
+    it('should return error for undefined', () => {
+      expect(parseTypeParamMode(undefined)).toBe('error');
     });
 
-    it('should return warn for empty string', () => {
-      expect(parseTypeParamMode('')).toBe('warn');
+    it('should return error for empty string', () => {
+      expect(parseTypeParamMode('')).toBe('error');
     });
 
     it('should return warn for valid lowercase value', () => {
@@ -139,10 +138,10 @@ describe('type-param-validator', () => {
       expect(parseTypeParamMode('Error')).toBe('error');
     });
 
-    it('should return warn for invalid value', () => {
+    it('should return error for invalid value', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
-      expect(parseTypeParamMode('invalid')).toBe('warn');
+      expect(parseTypeParamMode('invalid')).toBe('error');
       expect(consoleSpy).toHaveBeenCalled();
       
       consoleSpy.mockRestore();

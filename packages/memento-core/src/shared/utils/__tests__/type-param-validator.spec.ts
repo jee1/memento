@@ -122,8 +122,8 @@ describe('Type Param Validator', () => {
         expect(result.isValid).toBe(true);
         expect(result.mode).toBe('deprecate');
         expect(result.defaultType).toBe('episodic');
-        expect(result.message).toContain('[LEGACY TYPE]');
         expect(result.message).toContain('필수');
+        expect(result.message).toContain('마이그레이션');
       });
 
       it('should return isValid=false for error mode', () => {
@@ -149,17 +149,17 @@ describe('Type Param Validator', () => {
         expect(result.message).toContain(toolName);
       });
 
-      it('should handle unknown mode as warn', () => {
+      it('should reject missing type for unknown mode', () => {
         // Given: 알 수 없는 모드 (타입 체크 우회를 위해 any 사용)
         const unknownMode = 'unknown' as any;
 
         // When: 검증
         const result = validateTypeParam(undefined, unknownMode, 'test-tool');
 
-        // Then: warn 모드로 처리
-        expect(result.isValid).toBe(true);
-        expect(result.mode).toBe('warn');
-        expect(result.defaultType).toBe('episodic');
+        // Then: error 모드로 처리
+        expect(result.isValid).toBe(false);
+        expect(result.mode).toBe('error');
+        expect(result.message).toContain('필수');
       });
     });
   });
@@ -178,24 +178,24 @@ describe('Type Param Validator', () => {
       });
     });
 
-    it('should return warn for undefined', () => {
+    it('should return error for undefined', () => {
       // Given: undefined
       // When: 파싱
       const result = parseTypeParamMode(undefined);
 
-      // Then: 기본값 warn 반환
-      expect(result).toBe('warn');
+      // Then: 기본값 error 반환
+      expect(result).toBe('error');
     });
 
-    it('should return warn for invalid values', () => {
+    it('should return error for invalid values', () => {
       // Given: 유효하지 않은 값들
       const invalidValues = ['invalid', 'test', 'unknown', ''];
 
       // When: 각 값 파싱
-      // Then: 모두 기본값 warn 반환
+      // Then: 모두 기본값 error 반환
       invalidValues.forEach(value => {
         const result = parseTypeParamMode(value);
-        expect(result).toBe('warn');
+        expect(result).toBe('error');
       });
     });
 

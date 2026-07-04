@@ -9,6 +9,7 @@
 
 ### Removed
 
+- **[BREAKING] MCP `type` 파라미터 기본 필수화** (#636): `MEMENTO_TYPE_PARAM_MODE` 기본값이 `warn`에서 `error`로 변경됩니다. `remember` / `recall` 호출 시 `type`을 생략하면 거절됩니다. 레거시 클라이언트는 `MEMENTO_TYPE_PARAM_MODE=warn` 또는 `deprecate`로 완화할 수 있습니다.
 - **[BREAKING] Deprecated repository compatibility shims 제거** (#617): 다음 re-export shim 파일들이 삭제됩니다. 직접 구현체 또는 인터페이스로 교체하세요.
   - `feedback-repository.ts` → `FeedbackRepositorySQLite` (impl), `sigmoidNormalizedNet`은 `feedback-repository.interface.ts`로 이동
   - `core-memory-repository.ts` → `core-memory-repository.interface.ts` 직접 import
