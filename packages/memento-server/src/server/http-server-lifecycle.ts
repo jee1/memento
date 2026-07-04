@@ -59,18 +59,22 @@ export async function performCleanup(refs: CleanupRefs): Promise<void> {
         }
       }
 
-      try {
-        await serverServices.walCheckpointScheduler.stop();
-        logger.info('WAL 체크포인트 스케줄러 중지됨');
-      } catch (error) {
-        logger.error('WAL 체크포인트 스케줄러 중지 실패', { error });
+      if (serverServices.walCheckpointScheduler) {
+        try {
+          await serverServices.walCheckpointScheduler.stop();
+          logger.info('WAL 체크포인트 스케줄러 중지됨');
+        } catch (error) {
+          logger.error('WAL 체크포인트 스케줄러 중지 실패', { error });
+        }
       }
 
-      try {
-        serverServices.databaseLockMonitor.stop();
-        logger.info('데이터베이스 락 모니터 중지됨');
-      } catch (error) {
-        logger.error('데이터베이스 락 모니터 중지 실패', { error });
+      if (serverServices.databaseLockMonitor) {
+        try {
+          serverServices.databaseLockMonitor.stop();
+          logger.info('데이터베이스 락 모니터 중지됨');
+        } catch (error) {
+          logger.error('데이터베이스 락 모니터 중지 실패', { error });
+        }
       }
     }
 
