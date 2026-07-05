@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **HTTP scoped API tokens (#662)**: `MEMENTO_API_TOKENS` JSON env로 `tools:invoke` / `admin:destructive` 스코프 분리. Legacy `ADMIN_API_KEY`는 synthetic `legacy-admin` 토큰으로 양쪽 스코프 유지(deprecation warn once). tools-only 토큰은 `/api/v1/quality/*` 403.
+
 ### Removed
 
 - **[BREAKING] MCP `type` 파라미터 기본 필수화** (#636): `MEMENTO_TYPE_PARAM_MODE` 기본값이 `warn`에서 `error`로 변경됩니다. `remember` / `recall` 호출 시 `type`을 생략하면 거절됩니다. 레거시 클라이언트는 `MEMENTO_TYPE_PARAM_MODE=warn` 또는 `deprecate`로 완화할 수 있습니다.
