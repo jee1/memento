@@ -1,0 +1,31 @@
+# Multi-agent orchestration — single writer template (#673)
+# DB는 호스트 ~/.memento/data 와 공유 (단일 writer 전제)
+
+services:
+  memento-orchestrator:
+    image: memento-prod:latest
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      DB_PATH: /app/data/memory.db
+      MEMENTO_HTTP_BIND_HOST: "0.0.0.0"
+      MCP_SERVER_PORT: "9001"
+      PORT: "9001"
+      # strict: recall 시 owner_id / X-Memento-Agent-Id 필수
+      MEMENTO_OWNER_SCOPE_MODE: strict
+      MEMENTO_HTTP_DEFAULT_AGENT_ID: orchestrator
+      # API 토큰은 secrets 또는 호스트 env에서 주입 (평문 compose 금지)
+      MEMENTO_API_TOKENS: ${MEMENTO_API_TOKENS:-}
+    ports:
+      - "9001:9001"
+    volumes:
+      - ${HOME}/.memento/data:/app/data
+      - ${HOME}/.memento/logs:/app/logs
+    restart: unless-stopped
+    # 동일 DB에 두 번째 writer 컨테이너를 띄우지 마세요 (memento-mcp.lock)
+
+networks:
+  default:
+    name: memento-orchestration

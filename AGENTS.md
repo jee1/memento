@@ -46,7 +46,13 @@ npm run lint && npm run type-check  # 커밋 전 필수
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
 - **git worktree**: 브랜치 삭제·`gh pr merge --delete-branch` 전에 `git worktree remove <path>` 필수 (attach 상태면 로컬 브랜치 삭제 실패)
-- **gh pr merge**: 머지는 성공해도 worktree 미제거 시 로컬 브랜치 삭제만 실패 — `worktree remove` 후 `git branch -d`·`git fetch --prune`
+- **gh pr merge**: 머지는 성공해도 worktree 미제거 시 로컬 브랜치 삭제만 실패 — `worktree remove` 후 `git branch -D`(squash merge는 `-d` 불가)·`git fetch --prune`
+- **병렬 HTTP 보안 PR**: #662→#663→#664 순 merge·rebase 권장(토큰→audit `keyId`→owner scope); 독립 CI(#665)는 선행 가능 — **CHANGELOG·http-server·graphify-out 충돌** 예상
+- **graphify merge 충돌**: `git checkout origin/main -- graphify-out/` 후 graphify 재빌드가 수동 conflict보다 빠름
+- **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → toolContext → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
+- **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
+- **Express `programmaticAuth`**: `declare global`은 `programmatic-auth.middleware.ts` 한 곳만 — audit 등 다른 미들웨어에서 중복 선언 시 TS2717
+- **CI npm ci flake**: `onnxruntime-node` NuGet `ETIMEDOUT`은 코드 버그 아님 — `gh run rerun --failed`
 - **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)
 - **병렬 이슈 worktree**: `~/git/memento-worktrees/issue-<num>-<slug>`; Spec Kit는 `specs/0NN-<slug>/` (번호는 기존 최대+1)
 - **`MEMENTO_TYPE_PARAM_MODE`**: 기본값 `error` (#636, v1.18+); `type` 생략 시 `remember`/`recall` 거절 — 레거시는 env `warn`/`deprecate`; spec·통합테스트는 `type` 명시 또는 `mementoConfig.typeParamMode='warn'` mock

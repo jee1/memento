@@ -129,6 +129,11 @@
 - **SC-005**: A/B 실험에서 MRR 차이가 0.05 이상인 프로파일 쌍에 대해 통계적 유의성(p < 0.05)이 검출된다.
 - **SC-006**: 카테고리별 품질 리포트 단계(`npm run quality:benchmark:category-report`)에서, 벤치마크 DB **시드 완료 후** `collectCategoryMetrics` 실행부터 리포트 출력까지의 **스크립트 구간 벽시계**가 30초 이내다. CI 워크플로 전체(체크아웃·install·전체 테스트 등)의 총 벽시계 상한은 본 스펙의 자동 게이트 범위 밖이며, 운영에서 별도로 관리한다(FR-004·SC-003의 p95 지연과 구분).
 
+### Client & telemetry observability (Issue #666)
+
+- [x] `@memento/client` `recordRecallFeedback(recallResult, memoryId, helpful)` — recall `score_breakdown` 자동 전달
+- [x] `get_telemetry_summary` / `GET /admin/telemetry/feedback` — `feedback_quality` 집계 (helpful_rate, ranking context count)
+
 ---
 
 ## Assumptions

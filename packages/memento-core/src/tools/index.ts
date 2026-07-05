@@ -23,6 +23,10 @@ import { GetIntrospectionSummaryTool } from '../domains/memory/tools/get-introsp
 import { FeedbackTool } from '../domains/memory/tools/feedback-tool.js';
 import { GetTelemetrySummaryTool } from '../domains/telemetry/tools/get-telemetry-summary-tool.js';
 import { ExtractTriplesTool } from '../domains/relation/tools/extract-triples-tool.js';
+import { AddRelationTool } from '../domains/relation/tools/add-relation-tool.js';
+import { GetRelationsTool } from '../domains/relation/tools/get-relations-tool.js';
+import { RemoveRelationTool } from '../domains/relation/tools/remove-relation-tool.js';
+import { ExportMemoriesTool } from '../domains/memory/tools/export-memories-tool.js';
 
 const coreTools = [
   new RememberTool(),
@@ -43,6 +47,10 @@ const coreTools = [
   new GetIntrospectionSummaryTool(),
   new GetTelemetrySummaryTool(),
   new ExtractTriplesTool(),
+  new AddRelationTool(),
+  new GetRelationsTool(),
+  new RemoveRelationTool(),
+  new ExportMemoriesTool(),
 ];
 
 export const toolRegistry = new ToolRegistry({

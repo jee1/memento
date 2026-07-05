@@ -4717,4 +4717,40 @@ describe('RecallTool', () => {
       expect(metaMemoryService.recordRecall).toHaveBeenCalled();
     });
   });
+
+  describe('source 필드 round-trip (#671)', () => {
+    const sourceUri = 'https://github.com/jee1/memento/issues/671';
+
+    beforeEach(() => {
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: 'mem_source_1',
+            memory_id: 'mem_source_1',
+            content: 'source round-trip test',
+            type: 'semantic',
+            importance: 0.7,
+            created_at: new Date().toISOString(),
+            source: sourceUri,
+            final_score: 0.9,
+          },
+        ],
+        total_count: 1,
+        query_time: 5,
+        text_count: 1,
+        vector_count: 0,
+      });
+    });
+
+    it('remember 시 저장한 source가 recall 응답에 포함된다', async () => {
+      const result = await tool.handle(
+        { query: 'source', type: 'semantic', include_metadata: true, limit: 5 },
+        context,
+      );
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(resultData.items).toHaveLength(1);
+      expect(resultData.items[0].source).toBe(sourceUri);
+    });
+  });
 });

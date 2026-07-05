@@ -18,6 +18,8 @@ import { registerAdminRuntimePerformanceRoutes } from './admin/admin-runtime-per
 import { registerAdminToolRoutes } from './admin/admin-tools.routes.js';
 import { registerAdminProjectMemoryRoutes } from './admin/admin-project-memory.routes.js';
 import { registerAdminEvolutionDemoRoutes } from './admin/admin-evolution-demo.routes.js';
+import { registerAdminForgettingRoutes } from './admin/admin-forgetting.routes.js';
+import { registerAdminExportRoutes } from './admin/admin-export.routes.js';
 
 export type { GraphNode, GraphEdge, GraphFilter, GraphResponse } from './admin/admin-graph-response.js';
 
@@ -43,6 +45,8 @@ export function createAdminRouter(
   registerAdminGraphRoute(router, db);
   registerAdminEmbeddingMapRoute(router, db);
   registerAdminEvolutionDemoRoutes(router);
+  registerAdminExportRoutes(router, db, serverServices);
+  registerAdminForgettingRoutes(router, db);
 
   return router;
 }

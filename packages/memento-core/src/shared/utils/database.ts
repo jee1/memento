@@ -492,6 +492,20 @@ export class DatabaseUtils {
       `);
 
       this.run(db, `
+        CREATE TABLE IF NOT EXISTS memory_forgetting_event (
+          id TEXT PRIMARY KEY,
+          memory_id TEXT NOT NULL,
+          action TEXT NOT NULL CHECK (action IN ('soft', 'hard', 'review')),
+          reason TEXT NOT NULL,
+          policy TEXT NOT NULL,
+          forget_score REAL,
+          ttl_days INTEGER,
+          created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+          metadata_json TEXT
+        )
+      `);
+
+      this.run(db, `
         CREATE TABLE IF NOT EXISTS wm_buffer (
           session_id TEXT PRIMARY KEY,
           items TEXT NOT NULL,
@@ -558,6 +572,19 @@ export class DatabaseUtils {
       this.run(
         db,
         'CREATE INDEX IF NOT EXISTS idx_feedback_memory_created_at ON feedback_event(memory_id, created_at)'
+      );
+
+      this.run(
+        db,
+        'CREATE INDEX IF NOT EXISTS idx_memory_forgetting_event_memory_id ON memory_forgetting_event(memory_id)'
+      );
+      this.run(
+        db,
+        'CREATE INDEX IF NOT EXISTS idx_memory_forgetting_event_action ON memory_forgetting_event(action)'
+      );
+      this.run(
+        db,
+        'CREATE INDEX IF NOT EXISTS idx_memory_forgetting_event_created_at ON memory_forgetting_event(created_at)'
       );
 
       this.run(db, 'CREATE INDEX IF NOT EXISTS idx_wm_buffer_expires_at ON wm_buffer(expires_at)');

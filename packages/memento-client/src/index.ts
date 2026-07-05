@@ -76,6 +76,7 @@ export type {
   ExportResult,
   FeedbackResult,
   FeedbackCallOptions,
+  RecordRecallFeedbackOptions,
   
   // 컨텍스트 주입
   ContextInjectionParams,

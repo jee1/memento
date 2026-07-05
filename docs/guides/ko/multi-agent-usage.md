@@ -90,6 +90,13 @@ HTTP 서버는 `X-Memento-Agent-Id` 요청 헤더(대소문자 무시) 또는 `M
 
 strict owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세요.
 
+## 오케스트레이션 템플릿 (#673)
+
+여러 reader 에이전트 + **단일 writer** 패턴의 참조 구현:
+
+- [`apps/multi-agent-orchestration/README.md`](../../../apps/multi-agent-orchestration/README.md)
+- GitHub [#664](https://github.com/jee1/memento/issues/664) — writer lock·orchestration 설계
+
 ## 하위 호환성
 
 owner_id 기능은 기존 코드와 완전히 하위 호환됩니다. 기존 데이터는 모두 `owner_id = NULL`을 유지하며, `owner_id`를 지정하지 않은 기존 코드는 변경 없이 이전과 동일하게 동작합니다. 새로운 필드를 사용해야만 다중 에이전트 분리 기능이 활성화됩니다.

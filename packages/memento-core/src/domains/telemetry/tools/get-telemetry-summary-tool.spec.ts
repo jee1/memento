@@ -9,7 +9,8 @@ import type { TelemetryService } from '../services/telemetry-service.js';
 import type {
   SearchQualityResult,
   MemoryQualityResult,
-  ConsolidationQualityResult
+  ConsolidationQualityResult,
+  FeedbackQualityResult
 } from '../repositories/telemetry-repository.js';
 
 function makeSearchQuality(overrides: Partial<SearchQualityResult> = {}): SearchQualityResult {
@@ -40,6 +41,21 @@ function makeMemoryQuality(overrides: Partial<MemoryQualityResult> = {}): Memory
   };
 }
 
+function makeFeedbackQuality(
+  overrides: Partial<FeedbackQualityResult> = {}
+): FeedbackQualityResult {
+  return {
+    period: '24h',
+    owner_id: null,
+    helpful_rate: 0.75,
+    positive_count: 3,
+    negative_count: 1,
+    feedback_with_ranking_context_count: 2,
+    timestamp: '2026-03-29T10:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function makeConsolidationQuality(
   overrides: Partial<ConsolidationQualityResult> = {}
 ): ConsolidationQualityResult {
@@ -62,6 +78,7 @@ function makeContext(
     getSearchQualityImpl: (...args: unknown[]) => SearchQualityResult;
     getMemoryQualityImpl: (...args: unknown[]) => MemoryQualityResult;
     getConsolidationQualityImpl: (...args: unknown[]) => ConsolidationQualityResult;
+    getFeedbackQualityImpl: (...args: unknown[]) => FeedbackQualityResult;
   }> = {}
 ): ToolContext {
   const {
@@ -71,6 +88,7 @@ function makeContext(
     getSearchQualityImpl,
     getMemoryQualityImpl,
     getConsolidationQualityImpl,
+    getFeedbackQualityImpl,
   } = overrides;
 
   const mockTelemetryService = {
@@ -84,6 +102,9 @@ function makeContext(
     getConsolidationQuality: getConsolidationQualityImpl
       ? vi.fn().mockImplementation(getConsolidationQualityImpl)
       : vi.fn().mockReturnValue(makeConsolidationQuality()),
+    getFeedbackQuality: getFeedbackQualityImpl
+      ? vi.fn().mockImplementation(getFeedbackQualityImpl)
+      : vi.fn().mockReturnValue(makeFeedbackQuality()),
   } as unknown as TelemetryService;
 
   return {
@@ -163,5 +184,26 @@ describe('GetTelemetrySummaryTool', () => {
     const data = JSON.parse(result.content[0].text);
     expect(data.error).toBeDefined();
     expect(data.error).toContain('telemetry_events');
+  });
+
+  it('6) feedback_quality 필드를 포함한다', async () => {
+    const context = makeContext({
+      getFeedbackQualityImpl: () =>
+        makeFeedbackQuality({
+          helpful_rate: 0.5,
+          positive_count: 1,
+          negative_count: 1,
+          feedback_with_ranking_context_count: 0,
+        }),
+    });
+    const result = await tool.handle({ period: '30d' }, context);
+    const data = JSON.parse(result.content[0].text);
+    expect(data.feedback_quality).toEqual({
+      helpful_rate: 0.5,
+      positive_count: 1,
+      negative_count: 1,
+      feedback_with_ranking_context_count: 0,
+    });
+    expect(context.services.telemetryService!.getFeedbackQuality).toHaveBeenCalledWith('30d', null);
   });
 });
