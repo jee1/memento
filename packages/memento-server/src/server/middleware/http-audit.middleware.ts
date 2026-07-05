@@ -122,6 +122,11 @@ function extractOwnerId(req: Request): string | null {
 }
 
 function extractAgentId(req: Request): string | null {
+  const mementoAgentHeader = req.headers['x-memento-agent-id'];
+  if (typeof mementoAgentHeader === 'string' && mementoAgentHeader.trim() !== '') {
+    return mementoAgentHeader.trim();
+  }
+
   const header = req.headers['x-agent-id'];
   if (typeof header === 'string' && header.trim() !== '') {
     return header.trim();

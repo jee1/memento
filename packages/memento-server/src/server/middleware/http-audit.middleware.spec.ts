@@ -35,6 +35,39 @@ describe('createHttpAuditMiddleware', () => {
     }
   });
 
+  it('prefers X-Memento-Agent-Id over X-Agent-Id for agent_id field', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'memento-http-audit-'));
+    const logPath = join(tempDir, 'audit-memento-agent.jsonl');
+
+    const middleware = createHttpAuditMiddleware({ logPath });
+    const req = {
+      baseUrl: '/tools',
+      path: '/recall',
+      originalUrl: '/tools/recall',
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer test-admin-key',
+        'x-memento-agent-id': 'memento-agent-a',
+        'x-agent-id': 'legacy-agent',
+      },
+      body: { query: 'test' },
+    } as Request;
+    const res = createMockResponse();
+    const next = vi.fn<Parameters<NextFunction>, ReturnType<NextFunction>>();
+
+    middleware(req, res, next);
+    res.status(200);
+    res.emit('finish');
+
+    await vi.waitFor(async () => {
+      const raw = await readFile(logPath, 'utf8');
+      expect(raw.trim()).not.toBe('');
+    });
+
+    const entry = JSON.parse((await readFile(logPath, 'utf8')).trim().split('\n')[0]!);
+    expect(entry.agent_id).toBe('memento-agent-a');
+  });
+
   it('writes a JSONL audit line with the expected field contract on finish', async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'memento-http-audit-'));
     const logPath = join(tempDir, 'audit.jsonl');
