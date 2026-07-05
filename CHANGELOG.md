@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **HTTP owner scope enforcement** (#664): `MEMENTO_OWNER_SCOPE_MODE`(`strict`|`warn`|`off`, HTTP 기본 `strict`), `MEMENTO_HTTP_DEFAULT_AGENT_ID`, `X-Memento-Agent-Id` 헤더 → `ToolContext.agentId`. strict 모드에서 `/tools/recall`·`/tools/memory_injection`은 `owner_id` 미지정 시 에이전트 ID로 자동 필터; 식별자 없으면 400. 레거시 NULL 데이터는 `warn`/`off`로 opt-out.
+
 ### Removed
 
 - **[BREAKING] MCP `type` 파라미터 기본 필수화** (#636): `MEMENTO_TYPE_PARAM_MODE` 기본값이 `warn`에서 `error`로 변경됩니다. `remember` / `recall` 호출 시 `type`을 생략하면 거절됩니다. 레거시 클라이언트는 `MEMENTO_TYPE_PARAM_MODE=warn` 또는 `deprecate`로 완화할 수 있습니다.

@@ -45,6 +45,7 @@ import { createQualityRouter } from './routes/quality.routes.js';
 import { createToolsRouter } from './routes/tools.routes.js';
 import {
 createAdminAuthMiddleware,
+createOwnerScopeMiddleware,
 createProgrammaticAuthMiddleware,
 createServiceInjector,
 createSessionAuthMiddleware,
@@ -294,6 +295,7 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
   });
   const adminAuth = createAdminAuthMiddleware();
   const programmaticAuth = createProgrammaticAuthMiddleware({ expectedKey: mementoConfig.adminApiKey });
+  const ownerScopeMiddleware = createOwnerScopeMiddleware();
   const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
     expectedKey: mementoConfig.adminApiKey,
     errorFormat: 'agent',
@@ -304,7 +306,7 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
     next();
   };
 
-  app.use('/tools', programmaticAuth, createToolContextMiddleware, toolsRouter!);
+  app.use('/tools', programmaticAuth, createToolContextMiddleware, ownerScopeMiddleware, toolsRouter!);
   app.use('/auth', authRouter!);
   app.use('/admin', browserSessionAuth, adminRouter!);
   app.use('/api/v1/quality', adminAuth, qualityRouter, (_req, res) => {

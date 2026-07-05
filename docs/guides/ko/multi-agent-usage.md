@@ -46,15 +46,49 @@ Memento는 이를 위해 `owner_id` 필드를 지원합니다. 기억을 저장�
 }
 ```
 
-`owner_id`를 지정하지 않으면 모든 기억을 소유자 구분 없이 검색합니다. 이는 기존 동작과 동일합니다.
+`owner_id`를 지정하지 않으면 모든 기억을 소유자 구분 없이 검색합니다. **HTTP `/tools/recall`·`/tools/memory_injection`은 기본적으로 `MEMENTO_OWNER_SCOPE_MODE=strict`이며**, 이 경우 `owner_id`가 없으면 요청 헤더·환경 변수에서 읽은 에이전트 ID로 자동 필터됩니다.
 
 조회 결과에는 각 기억 항목의 `owner_id`가 포함됩니다(`include_metadata: true` 설정 시).
 
+## HTTP owner scope (strict / warn / off)
+
+HTTP 프로그램matic API(`/tools/*`)는 다중 에이전트 환경에서 타 에이전트 기억 유출을 막기 위해 owner scope를 적용할 수 있습니다.
+
+| 환경 변수 | 값 | 동작 |
+|-----------|-----|------|
+| `MEMENTO_OWNER_SCOPE_MODE` | `strict` (기본) | `recall` / `memory_injection`에 `owner_id`가 없으면 `X-Memento-Agent-Id` 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID`로 `owner_id`를 자동 주입. 둘 다 없으면 **400** |
+| | `warn` | 자동 주입 없이 경고 로그만 남기고 레거시(전체) 조회 허용 |
+| | `off` | 강제 없음 (레거시와 동일) |
+
+### 에이전트 ID 전달
+
+1. **요청 헤더** (권장): `X-Memento-Agent-Id: code-reviewer`
+2. **서버 기본값**: `MEMENTO_HTTP_DEFAULT_AGENT_ID=code-reviewer` (헤더가 없을 때만)
+
+헤더·환경 변수로 읽은 값은 `ToolContext.agentId`에 설정되며, strict 모드에서는 `owner_id` 미지정 recall에 자동으로 사용됩니다.
+
+```bash
+curl -sS -X POST http://127.0.0.1:9001/tools/recall \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "X-Memento-Agent-Id: code-reviewer" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"TypeScript 설정","type":"semantic"}'
+```
+
+### 레거시 NULL 데이터 opt-out
+
+기존 DB에 `owner_id = NULL`인 기억이 많고, HTTP recall에서 **소유자 미지정 전체 조회**를 유지해야 한다면:
+
+- 단기: `MEMENTO_OWNER_SCOPE_MODE=warn` — 경고만 남기고 이전 동작 유지
+- 완전 해제: `MEMENTO_OWNER_SCOPE_MODE=off`
+
+strict 모드에서는 `owner_id`가 NULL인 기억은 특정 에이전트 스코프 recall 결과에 **포함되지 않습니다**. NULL 데이터를 계속 공유하려면 마이그레이션으로 `owner_id`를 채우거나, 위 opt-out을 사용하세요.
+
 ## context.agentId 자동 설정
 
-HTTP 서버나 MCP 클라이언트를 사용하는 환경에서는 세션 또는 요청 헤더에서 에이전트 식별자를 읽어 `ToolContext.agentId`에 설정할 수 있습니다. 이 방식을 사용하면 매 호출마다 `owner_id`를 명시하지 않아도 자동으로 소유권이 지정됩니다.
+HTTP 서버는 `X-Memento-Agent-Id` 요청 헤더(대소문자 무시) 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID` 환경 변수에서 에이전트 식별자를 읽어 `ToolContext.agentId`에 설정합니다. MCP stdio 경로는 클라이언트·어댑터가 `context.agentId`를 설정하는 방식을 그대로 사용합니다.
 
-구체적인 구현 방식은 서버 레이어와 클라이언트 라이브러리 설정에 따라 다릅니다.
+strict owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세요.
 
 ## 하위 호환성
 

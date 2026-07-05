@@ -10,6 +10,8 @@ import type { ToolContext } from './tools/types.js';
 export interface ServerContext {
   db: Database.Database;
   services: ServerServices;
+  /** HTTP/MCP 요청별 에이전트 식별자 (미설정 시 ToolContext.agentId 생략) */
+  agentId?: string;
 }
 
 export function createServerContext(
@@ -37,6 +39,7 @@ export function createToolContext(
 function createToolContextFromServerContext(serverContext: ServerContext): ToolContext {
   return {
     db: serverContext.db,
+    ...(serverContext.agentId ? { agentId: serverContext.agentId } : {}),
     services: {
       searchEngine: serverContext.services.searchEngine,
       hybridSearchEngine: serverContext.services.hybridSearchEngine,

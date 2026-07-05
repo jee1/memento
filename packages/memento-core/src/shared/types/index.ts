@@ -319,6 +319,10 @@ export interface MementoConfig {
   telemetryStoreQueryPlaintext: boolean;
   /** recall/memory_injection에서 auto_set_anchor 미지정 시 기본값 (MEMENTO_AUTO_SET_ANCHOR_DEFAULT) */
   autoSetAnchorDefault: boolean;
+  /** HTTP /tools/* 기본 에이전트 ID (MEMENTO_HTTP_DEFAULT_AGENT_ID) */
+  httpDefaultAgentId: string | undefined;
+  /** HTTP recall/memory_injection owner 스코프 강제 (MEMENTO_OWNER_SCOPE_MODE, 기본 strict) */
+  ownerScopeMode: 'strict' | 'warn' | 'off';
 }
 
 /**
