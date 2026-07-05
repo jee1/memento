@@ -8,6 +8,10 @@
 ## [Unreleased]
 
 ### Added
+
+- **CI search-quality PR gate** (#665): `.github/workflows/ci.yml`에 `test-search-quality` job 추가 — `npm run test:vector-search-quality:ci`로 랭킹·벡터 검색 benchmark 회귀를 PR에서 차단.
+- **Weekly nightly tests** (#665): `.github/workflows/nightly-tests.yml` — `SKIP_DB_TESTS=false`, `SKIP_INTEGRATION_TESTS=false`로 search-quality 전체 env 및 integration subset( migration-runner, lock-scenarios, memory-embedding ) 실행.
+- **CI exclude inventory** (#665): `docs/reference/ko/ci-test-timeout-guide.md`에 Vitest CI exclude 패턴 표·만료 정책(2026-09-01) 문서화.
 - **HTTP programmatic 감사 JSONL + rate limit** (#663): `/tools`, `/api/v1/agent`, `/api/v1/quality`, 보호 MCP HTTP 경로에 `{ ts, key_id, route, tool, owner_id, agent_id, latency_ms, status }` audit 미들웨어(best-effort). `/tools`·`/admin` bucket별 rate limit(429 + `Retry-After`). #660 hash-chained audit과 필드 계약 정렬.
 
 ### Removed
