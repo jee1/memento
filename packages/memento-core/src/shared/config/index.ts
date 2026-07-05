@@ -7,6 +7,7 @@ import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../types/ind
 import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
 import { parseTypeParamMode } from '../utils/type-param-validator.js';
+import { resolveApiTokens } from './api-tokens.js';
 import {
   providerDimensionDefaults,
   resolveNumber,
@@ -124,6 +125,7 @@ export const mementoConfig: MementoConfig = {
 
   // Admin/API/Quality 인증 (ADMIN_API_KEY 설정 시 해당 라우트에 Bearer 또는 X-API-Key 필요)
   adminApiKey: resolveOptionalString('ADMIN_API_KEY'),
+  apiTokens: resolveApiTokens(resolveOptionalString('ADMIN_API_KEY')),
 
   // HTTP 바인드·보안 (원격 바인딩 시 ADMIN_API_KEY 또는 루프백/명시적 insecure 필요)
   httpListenHost: resolveString('MEMENTO_HTTP_BIND_HOST', {

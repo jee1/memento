@@ -43,16 +43,17 @@ import { createAuthRouter } from './routes/auth.routes.js';
 import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 import { createToolsRouter } from './routes/tools.routes.js';
+import { createApiTokenRegistry } from './auth/api-token-registry.js';
 import {
-createAdminAuthMiddleware,
-createAdminRateLimitMiddleware,
-createHttpAuditMiddleware,
-createProgrammaticAuthMiddleware,
-createServiceInjector,
-createSessionAuthMiddleware,
-createToolContextMiddleware,
-createToolsRateLimitMiddleware,
-errorHandler
+  createAdminAuthMiddleware,
+  createAdminRateLimitMiddleware,
+  createHttpAuditMiddleware,
+  createProgrammaticAuthMiddleware,
+  createServiceInjector,
+  createSessionAuthMiddleware,
+  createToolContextMiddleware,
+  createToolsRateLimitMiddleware,
+  errorHandler
 } from './middleware/index.js';
 import {
   createRuntimeDiagnosticsWriter,
@@ -187,9 +188,9 @@ const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
 const HTTP_AUTH_TRUST_MODEL_NOTICE =
-  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages require Authorization Bearer or X-API-Key.';
+  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality requires admin:destructive scope; /api/v1/agent, /tools, /mcp, and /messages require tools:invoke scope (Authorization Bearer or X-API-Key).';
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
-  'ADMIN_API_KEY is not configured: /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until ADMIN_API_KEY is set.';
+  'No programmatic API tokens configured: /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until MEMENTO_API_TOKENS or ADMIN_API_KEY is set.';
 
 function isProtectedMcpProgrammaticPath(pathname: string): boolean {
   return /^\/(?:mcp|messages)\/?$/.test(pathname);
@@ -295,10 +296,15 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
     store: adminSessionStore!,
     cookieName: DASHBOARD_SESSION_COOKIE_NAME
   });
-  const adminAuth = createAdminAuthMiddleware();
-  const programmaticAuth = createProgrammaticAuthMiddleware({ expectedKey: mementoConfig.adminApiKey });
+  const tokenRegistry = createApiTokenRegistry(mementoConfig.apiTokens);
+  const adminAuth = createAdminAuthMiddleware(tokenRegistry);
+  const programmaticAuth = createProgrammaticAuthMiddleware({
+    registry: tokenRegistry,
+    requiredScope: 'tools:invoke',
+  });
   const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
-    expectedKey: mementoConfig.adminApiKey,
+    registry: tokenRegistry,
+    requiredScope: 'tools:invoke',
     errorFormat: 'agent',
   });
   const mcpProgrammaticAuth: express.RequestHandler = (req, res, next) => {
@@ -400,6 +406,7 @@ export async function startServer() {
   const securityViolation = getMementoHttpSecurityStartupViolationMessage({
     httpListenHost: bindHostRaw,
     adminApiKey: mementoConfig.adminApiKey,
+    apiTokens: mementoConfig.apiTokens,
     allowInsecureHttpAdmin: mementoConfig.allowInsecureHttpAdmin
   });
   if (securityViolation) {
@@ -415,11 +422,13 @@ export async function startServer() {
     );
   }
 
-  // FR-003: ADMIN_API_KEY 미설정 시 경고 (loopback 포함 항상 emit)
-  const adminKey = mementoConfig.adminApiKey;
-  if (!adminKey || adminKey.trim() === '') {
+  // FR-003: programmatic API 토큰 미설정 시 경고 (loopback 포함 항상 emit)
+  if (mementoConfig.apiTokens.length === 0) {
     logger.warn(getHttpAuthMissingAdminKeyWarning());
-  } else if ([...adminKey].some((char) => char.charCodeAt(0) > 0x7f)) {
+  } else if (
+    mementoConfig.adminApiKey &&
+    [...mementoConfig.adminApiKey].some((char) => char.charCodeAt(0) > 0x7f)
+  ) {
     logger.warn(
       'ADMIN_API_KEY contains non-ASCII characters: browser-based dashboard sign-in or programmatic clients may fail to send Authorization reliably (use ASCII-only keys, e.g. hex or base64url).'
     );

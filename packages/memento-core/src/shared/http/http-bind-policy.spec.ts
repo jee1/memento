@@ -98,13 +98,24 @@ describe('http-bind-policy', () => {
       ).toBeNull();
     });
 
+    it('returns null when scoped API tokens are configured on public bind', () => {
+      expect(
+        getMementoHttpSecurityStartupViolationMessage({
+          httpListenHost: '0.0.0.0',
+          adminApiKey: undefined,
+          apiTokens: [{ id: 'tools-1', secret: 'x', scopes: ['tools:invoke'] }],
+          allowInsecureHttpAdmin: false,
+        }),
+      ).toBeNull();
+    });
+
     it('returns message when public bind without key or insecure', () => {
       const msg = getMementoHttpSecurityStartupViolationMessage({
         httpListenHost: '0.0.0.0',
         adminApiKey: undefined,
         allowInsecureHttpAdmin: false
       });
-      expect(msg).toContain('ADMIN_API_KEY');
+      expect(msg).toContain('MEMENTO_API_TOKENS');
     });
   });
 });
