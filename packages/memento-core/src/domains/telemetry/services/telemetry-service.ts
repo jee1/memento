@@ -9,6 +9,7 @@ import type { BatchScheduler } from '../../../infrastructure/scheduler/batch-sch
 import {
   TelemetryRepository,
   type ConsolidationQualityResult,
+  type FeedbackQualityResult,
   type MemoryQualityResult,
   type SchedulerJobSnapshot,
   type SearchQualityResult,
@@ -90,6 +91,10 @@ export class TelemetryService {
 
   getConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
     return this.repository.queryConsolidationQuality(ownerId);
+  }
+
+  getFeedbackQuality(period: TelemetryPeriod, ownerId?: string | null): FeedbackQualityResult {
+    return this.repository.queryFeedbackQuality(period, ownerId);
   }
 
   getSystemMetrics(period: TelemetryPeriod, ownerId?: string | null): SystemMetricsResult {

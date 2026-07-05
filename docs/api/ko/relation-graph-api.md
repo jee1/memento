@@ -4,6 +4,29 @@
 
 `RelationGraph` 서비스는 기억 간의 의미적 관계를 저장하고 관리하는 핵심 서비스입니다. 관계 그래프를 통해 기억 간의 인과, 의존, 시간, 맥락 관계를 추적하고, 검색 랭킹 및 앵커 시스템에 활용할 수 있습니다.
 
+관계 **타입 표준** 및 MCP/HTTP 1급 API 계약 정합은 GitHub [#657](https://github.com/jee1/memento/issues/657)을 참고하세요.
+
+## MCP 관계 도구 (Issue #667)
+
+| 도구 | 설명 |
+|------|------|
+| `add_relation` | 수동 관계 추가 (`source_id`, `target_id`, `relation_type`, `confidence?`) |
+| `get_relations` | 기억의 관계 조회 (`memory_id`, 필터 옵션) |
+| `remove_relation` | `relation_id` 또는 `source_id`/`target_id`/`relation_type` 조합으로 삭제 |
+
+HTTP Admin API는 `/admin/relations/*` 라우트를 사용합니다.
+
+## 랭킹 가중치 ζ (relation_weight) 런타임 설정
+
+하이브리드 검색 랭킹의 관계 부스트 계수 `ζ`는 `config/ranking-weights.toml`의 `[ranking_weights].zeta`에서 읽습니다.
+
+**코드 배포 없이 가중치 변경:**
+
+1. TOML 파일을 수정하거나, `MEMENTO_RANKING_WEIGHTS_PATH` 환경 변수로 대체 TOML 경로를 지정합니다.
+2. **프로세스 재시작**이 필요합니다. 가중치는 기동 시 `getRankingWeights()`로 캐시되며, 파일 변경만으로는 실행 중인 MCP/HTTP 서버에 반영되지 않습니다.
+
+자세한 공식: [search-ranking.md](../../agents/search-ranking.md)
+
 ## 인터페이스 정의
 
 ### IRelationGraph

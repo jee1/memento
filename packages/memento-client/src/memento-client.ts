@@ -40,6 +40,7 @@ import type {
   ExportResult,
   FeedbackResult,
   FeedbackCallOptions,
+  RecordRecallFeedbackOptions,
   ContextInjectionParams,
   ContextInjectionResult,
   HealthCheck,
@@ -532,6 +533,27 @@ export class MementoClient extends EventEmitter {
 
     const result = response.data.result;
     return result;
+  }
+
+  /**
+   * recall 결과 항목의 score_breakdown을 추출해 feedback()을 호출합니다 (Issue #666).
+   */
+  async recordRecallFeedback(
+    recallResult: SearchResult,
+    memoryId: string,
+    helpful: boolean,
+    options?: RecordRecallFeedbackOptions
+  ): Promise<FeedbackResult> {
+    const item = recallResult.items.find(i => i.id === memoryId);
+    const scoreBreakdown = item?.score_breakdown;
+    return this.feedback(
+      memoryId,
+      helpful,
+      options?.comment,
+      options?.score,
+      scoreBreakdown,
+      options
+    );
   }
 
   /**

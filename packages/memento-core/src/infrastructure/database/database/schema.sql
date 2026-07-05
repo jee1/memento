@@ -738,6 +738,25 @@ CREATE INDEX IF NOT EXISTS idx_agent_memory_promotion_queue
 CREATE INDEX IF NOT EXISTS idx_agent_memory_promotion_session
   ON agent_memory_promotion_candidate(session_id, created_at);
 
+-- Explainable forgetting audit log (migration 037, Issue #669)
+CREATE TABLE IF NOT EXISTS memory_forgetting_event (
+  id TEXT PRIMARY KEY,
+  memory_id TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('soft', 'hard', 'review')),
+  reason TEXT NOT NULL,
+  policy TEXT NOT NULL,
+  forget_score REAL,
+  ttl_days INTEGER,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  metadata_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_memory_forgetting_event_memory_id
+  ON memory_forgetting_event(memory_id);
+CREATE INDEX IF NOT EXISTS idx_memory_forgetting_event_action
+  ON memory_forgetting_event(action);
+CREATE INDEX IF NOT EXISTS idx_memory_forgetting_event_created_at
+  ON memory_forgetting_event(created_at);
+
 -- 초기 데이터 삽입 (선택사항)
 -- INSERT OR IGNORE INTO memory_item (id, type, content, importance, privacy_scope, pinned)
 -- VALUES ('welcome', 'semantic', 'Memento MCP Server에 오신 것을 환영합니다!', 1.0, 'private', TRUE);

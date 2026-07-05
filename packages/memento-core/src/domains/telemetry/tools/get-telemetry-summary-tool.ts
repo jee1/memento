@@ -57,6 +57,7 @@ export class GetTelemetrySummaryTool extends BaseTool {
       const searchResult = telemetryService.getSearchQuality(period, ownerId);
       const memoryResult = telemetryService.getMemoryQuality(ownerId);
       const consolidationQuality = telemetryService.getConsolidationQuality(ownerId);
+      const feedbackQuality = telemetryService.getFeedbackQuality(period, ownerId);
 
       const result = {
         period,
@@ -82,6 +83,12 @@ export class GetTelemetrySummaryTool extends BaseTool {
           cluster_processing_efficiency: consolidationQuality.cluster_processing_efficiency,
           recent_semantic_count_7d: consolidationQuality.recent_semantic_count_7d,
           pipeline_error_count: consolidationQuality.pipeline_error_count,
+        },
+        feedback_quality: {
+          helpful_rate: feedbackQuality.helpful_rate,
+          positive_count: feedbackQuality.positive_count,
+          negative_count: feedbackQuality.negative_count,
+          feedback_with_ranking_context_count: feedbackQuality.feedback_with_ranking_context_count,
         },
         timestamp: new Date().toISOString(),
       };

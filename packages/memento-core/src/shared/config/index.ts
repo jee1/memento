@@ -145,7 +145,8 @@ export const mementoConfig: MementoConfig = {
   autoSetAnchorDefault: resolveBoolean('MEMENTO_AUTO_SET_ANCHOR_DEFAULT', { defaultValue: true }),
 
   httpDefaultAgentId: resolveOptionalString('MEMENTO_HTTP_DEFAULT_AGENT_ID'),
-  ownerScopeMode: parseOwnerScopeMode(getRawEnvValue('MEMENTO_OWNER_SCOPE_MODE'))
+  ownerScopeMode: parseOwnerScopeMode(getRawEnvValue('MEMENTO_OWNER_SCOPE_MODE')),
+  sourceStrict: resolveBoolean('MEMENTO_SOURCE_STRICT', { defaultValue: false }),
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

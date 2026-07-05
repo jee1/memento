@@ -16,6 +16,7 @@ import {
   queryMemoryQuality
 } from './telemetry-memory-quality-query.js';
 import { querySearchQuality } from './telemetry-search-quality-query.js';
+import { queryFeedbackQuality } from './telemetry-feedback-quality-query.js';
 import { querySystemMetrics } from './telemetry-system-metrics-query.js';
 import { rolling24hCutoffIso } from './telemetry-repository-utils.js';
 export { percentile95Sorted } from './telemetry-repository-utils.js';
@@ -39,6 +40,17 @@ export interface MemoryQualityResult {
   duplicate_write_rate_24h: number | null;
   relation_coverage_ratio: number | null;
   orphan_memory_ratio: number | null;
+  timestamp: string;
+}
+
+/** recall 피드백 품질 (Issue #666) */
+export interface FeedbackQualityResult {
+  period: TelemetryPeriod;
+  owner_id: string | null;
+  helpful_rate: number | null;
+  positive_count: number;
+  negative_count: number;
+  feedback_with_ranking_context_count: number;
   timestamp: string;
 }
 
@@ -218,6 +230,10 @@ export class TelemetryRepository {
    */
   queryConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
     return queryConsolidationQuality(this.db, ownerId);
+  }
+
+  queryFeedbackQuality(period: TelemetryPeriod, ownerId?: string | null): FeedbackQualityResult {
+    return queryFeedbackQuality(this.db, period, ownerId);
   }
 
   querySystemMetrics(

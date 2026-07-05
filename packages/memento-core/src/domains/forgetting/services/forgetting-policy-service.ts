@@ -7,6 +7,10 @@ import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import {
+  DEFAULT_FORGETTING_POLICY_NAME,
+  ForgettingEventRepository,
+} from '../repositories/forgetting-event-repository.js';
 import { ForgettingAlgorithm } from '../algorithms/forgetting-algorithm.js';
 import { SpacedRepetitionAlgorithm,type ReviewSchedule } from '../algorithms/spaced-repetition.js';
 
@@ -68,10 +72,12 @@ export class ForgettingPolicyService {
   private forgettingAlgorithm: ForgettingAlgorithm;
   private spacedRepetition: SpacedRepetitionAlgorithm;
   private config: ForgettingPolicyConfig;
+  private forgettingEventRepository: ForgettingEventRepository;
 
   constructor(config?: Partial<ForgettingPolicyConfig>) {
     this.forgettingAlgorithm = new ForgettingAlgorithm();
     this.spacedRepetition = new SpacedRepetitionAlgorithm();
+    this.forgettingEventRepository = new ForgettingEventRepository();
     
     this.config = {
       forgetThreshold: 0.6,
@@ -139,7 +145,12 @@ export class ForgettingPolicyService {
       for (const candidate of softDeleteCandidates) {
         const memory = memoryById.get(candidate.memory_id);
         if (memory && this.isSoftDeleteCandidate(memory, candidate.forget_score)) {
-          await this.softDeleteMemory(db, candidate.memory_id);
+          const ttlDays = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
+          await this.softDeleteMemory(db, candidate.memory_id, {
+            forgetScore: candidate.forget_score,
+            reason: candidate.reason,
+            ttlDays,
+          });
           result.softDeleted.push(candidate.memory_id);
           result.summary.actualSoftDeletes++;
         }
@@ -155,7 +166,12 @@ export class ForgettingPolicyService {
       for (const candidate of hardDeleteCandidates) {
         const memory = memoryById.get(candidate.memory_id);
         if (memory && this.isHardDeleteCandidate(memory, candidate.forget_score)) {
-          await this.hardDeleteMemory(db, candidate.memory_id);
+          const ttlDays = this.config.ttlHard[memory.type as keyof typeof this.config.ttlHard];
+          await this.hardDeleteMemory(db, candidate.memory_id, {
+            forgetScore: candidate.forget_score,
+            reason: candidate.reason,
+            ttlDays,
+          });
           result.hardDeleted.push(candidate.memory_id);
           result.summary.actualHardDeletes++;
         }
@@ -303,17 +319,21 @@ export class ForgettingPolicyService {
     `, [days])) as Array<{ id: string }>;
     const deleted: string[] = [];
     for (const r of rows) {
-      await DatabaseUtils.run(
-        db,
-        'DELETE FROM memory_item WHERE id = ? AND COALESCE(pinned, 0) = 0',
-        [r.id]
-      );
+      await this.hardDeleteMemory(db, r.id, {
+        forgetScore: null,
+        reason: 'soft_delete_grace_period_expired',
+        ttlDays: days,
+      });
       deleted.push(r.id);
     }
     return deleted;
   }
 
-  private async softDeleteMemory(db: Database.Database, memoryId: string): Promise<void> {
+  private async softDeleteMemory(
+    db: Database.Database,
+    memoryId: string,
+    event: { forgetScore: number; reason: string; ttlDays: number },
+  ): Promise<void> {
     const now = new Date().toISOString();
     await DatabaseUtils.run(
       db,
@@ -328,29 +348,63 @@ export class ForgettingPolicyService {
     `,
       [now, memoryId]
     );
+    this.forgettingEventRepository.insert(db, {
+      memory_id: memoryId,
+      action: 'soft',
+      reason: event.reason,
+      policy: DEFAULT_FORGETTING_POLICY_NAME,
+      forget_score: event.forgetScore,
+      ttl_days: event.ttlDays,
+      metadata_json: JSON.stringify({ deleted_at: now }),
+    });
   }
 
   /**
    * 하드 삭제 실행
    */
-  private async hardDeleteMemory(db: Database.Database, memoryId: string): Promise<void> {
+  private async hardDeleteMemory(
+    db: Database.Database,
+    memoryId: string,
+    event: { forgetScore: number | null; reason: string; ttlDays: number },
+  ): Promise<void> {
     await DatabaseUtils.run(
       db,
       'DELETE FROM memory_item WHERE id = ? AND COALESCE(pinned, 0) = 0',
       [memoryId]
     );
+    this.forgettingEventRepository.insert(db, {
+      memory_id: memoryId,
+      action: 'hard',
+      reason: event.reason,
+      policy: DEFAULT_FORGETTING_POLICY_NAME,
+      forget_score: event.forgetScore,
+      ttl_days: event.ttlDays,
+    });
   }
 
   /**
    * 리뷰 스케줄 업데이트
    */
   private async updateReviewSchedule(db: Database.Database, schedule: ReviewSchedule): Promise<void> {
-    // 실제로는 별도의 리뷰 스케줄 테이블에 저장
     await DatabaseUtils.run(db, `
       UPDATE memory_item 
       SET last_accessed = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [schedule.memory_id]);
+    this.forgettingEventRepository.insert(db, {
+      memory_id: schedule.memory_id,
+      action: 'review',
+      reason: 'spaced_repetition_due',
+      policy: DEFAULT_FORGETTING_POLICY_NAME,
+      forget_score: schedule.recall_probability ?? null,
+      ttl_days: schedule.current_interval ?? null,
+      metadata_json: JSON.stringify({
+        needs_review: schedule.needs_review,
+        next_review: schedule.next_review instanceof Date
+          ? schedule.next_review.toISOString()
+          : schedule.next_review,
+      }),
+    });
   }
 
   /**

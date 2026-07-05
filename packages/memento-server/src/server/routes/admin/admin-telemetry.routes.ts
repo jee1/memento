@@ -92,6 +92,33 @@ export function registerAdminTelemetryRoutes(
     }
   });
 
+  router.get('/telemetry/feedback', (req, res) => {
+    try {
+      if (!db || !serverServices?.telemetryService) {
+        return res.status(503).json({ error: 'DB unavailable' });
+      }
+      const periodRaw = req.query.period as string | undefined;
+      const effectivePeriod = effectiveTelemetryPeriod(periodRaw);
+      if (!TELEMETRY_PERIODS.includes(effectivePeriod as TelemetryPeriod)) {
+        return res.status(400).json({ error: 'Invalid period', allowed: TELEMETRY_PERIODS });
+      }
+      const ownerQ = req.query.owner_id as string | undefined;
+      const data = serverServices.telemetryService.getFeedbackQuality(
+        effectivePeriod as TelemetryPeriod,
+        ownerQ === undefined || ownerQ === '' ? null : ownerQ
+      );
+      return res.json(data);
+    } catch (error) {
+      logger.error('telemetry feedback failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: 'Internal error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   router.get('/telemetry/events', (req, res) => {
     try {
       if (!db || !serverServices?.telemetryService) {

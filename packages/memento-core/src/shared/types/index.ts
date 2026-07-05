@@ -328,6 +328,8 @@ export interface MementoConfig {
   httpDefaultAgentId: string | undefined;
   /** HTTP recall/memory_injection owner 스코프 강제 (MEMENTO_OWNER_SCOPE_MODE, 기본 strict) */
   ownerScopeMode: 'strict' | 'warn' | 'off';
+  /** remember source URI strict 검증 (MEMENTO_SOURCE_STRICT=true 시 잘못된 source 거절) */
+  sourceStrict: boolean;
 }
 
 /**

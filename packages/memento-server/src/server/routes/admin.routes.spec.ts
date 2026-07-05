@@ -370,6 +370,42 @@ describe('admin.routes telemetry', () => {
     }
   });
 
+  it('GET /admin/telemetry/feedback 200 및 period=7d', async () => {
+    const getFeedbackQuality = vi.fn().mockImplementation((period: string) => ({
+      period,
+      owner_id: null,
+      helpful_rate: 0.8,
+      positive_count: 4,
+      negative_count: 1,
+      feedback_with_ranking_context_count: 2,
+      timestamp: '2026-07-05T00:00:00.000Z'
+    }));
+    const app = express();
+    app.use(
+      '/admin',
+      createAdminRouter(db, {
+        telemetryService: {
+          getSearchQuality: vi.fn(),
+          getMemoryQuality: vi.fn(),
+          getSystemMetrics: vi.fn(),
+          getFeedbackQuality,
+          getEvents: vi.fn()
+        }
+      } as unknown as ServerServices)
+    );
+    const { server, port } = await listen(app);
+    try {
+      const res = await getAdmin(port, '/admin/telemetry/feedback?period=7d');
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { period: string; helpful_rate: number };
+      expect(body.period).toBe('7d');
+      expect(body.helpful_rate).toBe(0.8);
+      expect(getFeedbackQuality).toHaveBeenCalledWith('7d', null);
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+    }
+  });
+
   it('GET /admin/telemetry/system 잘못된 period는 400 (FR-013)', async () => {
     const app = express();
     app.use(

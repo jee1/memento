@@ -41,3 +41,40 @@
 - **기본값**: tools 100회/15분, admin 30회/15분.
 - **환경 변수**: `MEMENTO_HTTP_RATE_LIMIT_TOOLS`, `MEMENTO_HTTP_RATE_LIMIT_ADMIN` (정수, 창당 최대 요청 수). `MEMENTO_HTTP_RATE_LIMIT_DISABLED=1` 또는 `NODE_ENV=test`면 비활성화.
 - **429 응답**: 초과 시 `429 Too Many Requests`와 `Retry-After`(초) 헤더를 반환합니다.
+
+## 파일 기반 시크릿 (File-based secrets)
+
+운영 환경에서 API 키·토큰을 **환경 변수에 평문으로 두지 않는** 것을 권장합니다.
+
+- **`.env`**: 로컬 개발 전용. Git에 커밋하지 말 것. `.gitignore`에 `.env`가 포함되어 있는지 확인하세요.
+- **파일 마운트**: Docker·systemd에서 `secrets/openai_api_key` 같은 파일을 읽고, 컨테이너/프로세스 시작 스크립트가 `export OPENAI_API_KEY="$(cat /run/secrets/openai_api_key)"` 형태로 주입합니다.
+- **권한**: 시크릿 파일은 `chmod 600`, 소유자는 서비스 계정만. 로그·stderr에 값이 출력되지 않도록 스크립트를 검토하세요.
+- **`MEMENTO_API_TOKENS`**: JSON 배열 전체를 파일로 두고 `MEMENTO_API_TOKENS_FILE=/run/secrets/memento_api_tokens.json`처럼 래퍼 스크립트에서 읽어 env에 설정할 수 있습니다 (공식 env 키는 `MEMENTO_API_TOKENS` — 파일 경로 env는 배포 스크립트 관례).
+
+## Docker secrets
+
+Docker Swarm 또는 Compose secrets로 민감 값을 이미지·compose YAML에 넣지 않습니다.
+
+- **예시**: `docker-compose.prod.secrets.example.yml` — `secrets:` 블록과 `file:` 기반 external secret 정의 (평문 API 키 없음).
+- **컨테이너 내 경로**: `/run/secrets/<name>`에 마운트. `start-container.sh` 또는 entrypoint에서 해당 파일을 읽어 `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MEMENTO_API_TOKENS` 등에 주입합니다.
+- **볼륨과 분리**: DB 데이터 볼륨(`~/.memento/data`)과 시크릿 마운트를 혼동하지 마세요. 백업·복제 시 시크릿 파일이 포함되지 않게 합니다.
+
+## 유출 방지 체크리스트 (Leak prevention)
+
+| 항목 | 확인 |
+|------|------|
+| `.env`, `*.pem`, `*api*key*`가 git에 없음 | `git status`, `.gitignore` |
+| HTTP audit JSONL에 Bearer 전체가 아닌 `key_id` 해시만 기록 | `http-audit.jsonl` 샘플 검토 |
+| `TELEMETRY_STORE_QUERY_PLAINTEXT` 기본 false (recall 쿼리 전문 미저장) | env 확인 |
+| 브라우저 대시보드에 API secret 미노출 | `/dashboard` 네트워크 탭 |
+| `MEMENTO_HTTP_BIND_HOST` 의도적 노출 시 스코프드 토큰 필수 | 배포 체크리스트 |
+| CI 로그에 `ADMIN_API_KEY` 마스킹 | workflow `secrets.*` 사용 |
+| DB 백업·export에 시크릿 경로 미포함 | `npm run db:backup` 산출물 검토 |
+
+## SQLCipher / 볼륨 암호화 (선택, 비공식)
+
+Memento는 **공식적으로 SQLCipher 또는 디스크 암호화를 내장하지 않습니다.** 아래는 운영자가 인프라 레벨에서 적용할 때의 참고 메모입니다.
+
+- **SQLCipher**: `better-sqlite3`를 SQLCipher 빌드로 교체하는 것은 **지원되지 않는** 커스텀 빌드 경로입니다. 시도 시 마이그레이션·네이티브 재빌드·호환성을 직접 검증해야 합니다.
+- **볼륨 암호화**: LUKS, cloud provider disk encryption, encrypted NFS 등으로 `DB_PATH` 디렉터리가 위치한 볼륨을 암호화하는 방식이 일반적입니다.
+- **백업**: 암호화 볼륨의 키 관리(KMS, 오프라인 키)와 `db:backup` 산출물 보관 정책을 함께 문서화하세요.

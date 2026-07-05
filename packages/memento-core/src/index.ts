@@ -154,6 +154,8 @@ export { ConvertEpisodicToSemanticTool } from './domains/memory/tools/convert-ep
 export { GetMetaMemoryStatsTool } from './domains/monitoring/tools/get-meta-memory-stats-tool.js';
 export { GetIntrospectionSummaryTool } from './domains/memory/tools/get-introspection-summary-tool.js';
 export { FeedbackTool } from './domains/memory/tools/feedback-tool.js';
+export { ExportMemoriesTool } from './domains/memory/tools/export-memories-tool.js';
+export { validateSource } from './shared/validation/source-uri.js';
 export { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
 export {
@@ -305,3 +307,34 @@ export type {
   EvolutionDemoScenario,
   EvolutionDemoScenarioCatalog,
 } from './domains/evolution-demo/index.js';
+
+export { MEMENTO_LATEST_SCHEMA_VERSION } from './shared/constants/schema-version.js';
+export {
+  MEMORY_JSONL_FORMAT_VERSION,
+  exportMemoryJsonl,
+  exportMemoryJsonlSync,
+  importMemoryJsonl,
+  parseMemoryJsonl,
+  resolveExportSchemaVersion,
+  MemoryJsonlSchemaError,
+  MemoryJsonlChecksumError,
+} from './domains/memory/services/memory-jsonl-portability.js';
+export type {
+  MemoryJsonlManifest,
+  MemoryJsonlRecord,
+  MemoryExportOptions,
+  MemoryImportOptions,
+  MemoryImportResult,
+} from './domains/memory/services/memory-jsonl-portability.js';
+export {
+  ForgettingEventRepository,
+  listForgettingEvents,
+  DEFAULT_FORGETTING_POLICY_NAME,
+} from './domains/forgetting/repositories/forgetting-event-repository.js';
+export type {
+  ForgettingEventAction,
+  ForgettingEventInsert,
+  ForgettingEventRow,
+  ListForgettingEventsOptions,
+} from './domains/forgetting/repositories/forgetting-event-repository.js';
+export { MemoryForgettingEventMigration } from './infrastructure/database/database/migration/migrations/037-memory-forgetting-event.js';

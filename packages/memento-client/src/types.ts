@@ -238,6 +238,12 @@ export interface FeedbackCallOptions {
   agent_id?: string;
 }
 
+/** `recordRecallFeedback()` — comment·score·attribution을 한 번에 전달 */
+export interface RecordRecallFeedbackOptions extends FeedbackCallOptions {
+  comment?: string;
+  score?: number;
+}
+
 // ============================================================================
 // 컨텍스트 주입 관련 타입들
 // ============================================================================

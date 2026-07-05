@@ -9,6 +9,7 @@
  */
 
 import { mementoConfig } from '../../../shared/config/index.js';
+import { validateSource } from '../../../shared/validation/source-uri.js';
 import { validateProceduralMemoryFields, validateTypeParam } from '../../../shared/utils/type-param-validator.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
@@ -136,7 +137,8 @@ export class RememberTool extends BaseTool {
         owner_id: owner_id_param, process_id: process_id_param,
         session_id: session_id_param, project_id: project_id_param,
         num_times: num_times_param, last_mentioned_at: last_mentioned_at_param,
-        source_session_id: source_session_id_param, confidence: confidence_param
+        source_session_id: source_session_id_param, confidence: confidence_param,
+        source: source_param,
       } = parsedParams;
 
       const ownerId = owner_id_param ?? context.agentId ?? null;
@@ -153,6 +155,15 @@ export class RememberTool extends BaseTool {
       }
       if (typeValidation.message) {
         this.logWarning(typeValidation.message);
+      }
+
+      const sourceValidation = validateSource(source_param);
+      if (!sourceValidation.isValid) {
+        const msg = sourceValidation.message ?? 'source URI 형식이 유효하지 않습니다';
+        if (mementoConfig.sourceStrict) {
+          throw new Error(`❌ remember: ${msg}`);
+        }
+        this.logWarning(`⚠️  remember: ${msg} (source='${source_param}')`);
       }
 
       const type = (rawType || typeValidation.defaultType || 'episodic') as MemoryTypeRequest;
