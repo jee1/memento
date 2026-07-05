@@ -7,6 +7,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import type { ToolContext } from '@memento/core';
+import { mementoConfig } from '@memento/core';
 import { createToolContext, type ServerContext } from '../context.js';
 
 /**
@@ -43,10 +44,15 @@ export function createToolContextMiddleware(
     return;
   }
 
-  // ServerContext 생성
+  // ServerContext 생성 (HTTP agentId: 헤더 → env 기본값)
+  const headerAgentId = req.get('x-memento-agent-id')?.trim();
+  const defaultAgentId = mementoConfig.httpDefaultAgentId?.trim();
+  const agentId = headerAgentId || defaultAgentId || undefined;
+
   const serverContext: ServerContext = {
     db: req.db,
-    services: req.services
+    services: req.services,
+    ...(agentId ? { agentId } : {})
   };
 
   // ToolContext 생성 및 주입

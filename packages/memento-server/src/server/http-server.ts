@@ -48,6 +48,7 @@ import {
   createAdminAuthMiddleware,
   createAdminRateLimitMiddleware,
   createHttpAuditMiddleware,
+  createOwnerScopeMiddleware,
   createProgrammaticAuthMiddleware,
   createServiceInjector,
   createSessionAuthMiddleware,
@@ -155,7 +156,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-API-Key']
 }));
-// DoS 완화: body 제한 1MB (리뷰 S4). /tools·/admin rate limit은 registerRoutes에서 bucket별 적용 (#663).
+// DoS 완화: body 제한 1MB (리뷰 S4). 운영 시 rate limiting(예: express-rate-limit) 적용 권장.
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -302,6 +303,7 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
     registry: tokenRegistry,
     requiredScope: 'tools:invoke',
   });
+  const ownerScopeMiddleware = createOwnerScopeMiddleware();
   const agentProgrammaticAuth = createProgrammaticAuthMiddleware({
     registry: tokenRegistry,
     requiredScope: 'tools:invoke',
@@ -312,6 +314,7 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
     if (isProtectedMcpProgrammaticPath(req.path)) return void programmaticAuth(req, res, next);
     next();
   };
+
   const toolsRateLimit = createToolsRateLimitMiddleware();
   const adminRateLimit = createAdminRateLimitMiddleware();
   const httpAudit = createHttpAuditMiddleware();
@@ -324,6 +327,7 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
     toolsRateLimit,
     programmaticAuth,
     createToolContextMiddleware,
+    ownerScopeMiddleware,
     httpAudit,
     toolsRouter!,
   );

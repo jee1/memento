@@ -6,6 +6,7 @@ import { config } from 'dotenv';
 import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../types/index.js';
 import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
+import { parseOwnerScopeMode } from '../utils/owner-scope-mode.js';
 import { parseTypeParamMode } from '../utils/type-param-validator.js';
 import { resolveApiTokens } from './api-tokens.js';
 import {
@@ -141,7 +142,10 @@ export const mementoConfig: MementoConfig = {
 
   telemetryStoreQueryPlaintext: resolveBoolean('TELEMETRY_STORE_QUERY_PLAINTEXT', { defaultValue: false }),
 
-  autoSetAnchorDefault: resolveBoolean('MEMENTO_AUTO_SET_ANCHOR_DEFAULT', { defaultValue: true })
+  autoSetAnchorDefault: resolveBoolean('MEMENTO_AUTO_SET_ANCHOR_DEFAULT', { defaultValue: true }),
+
+  httpDefaultAgentId: resolveOptionalString('MEMENTO_HTTP_DEFAULT_AGENT_ID'),
+  ownerScopeMode: parseOwnerScopeMode(getRawEnvValue('MEMENTO_OWNER_SCOPE_MODE'))
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

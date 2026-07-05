@@ -7,6 +7,7 @@ export { createServiceInjector } from './service-injector.middleware.js';
 export { createToolContextMiddleware } from './tool-context.middleware.js';
 export { createAdminAuthMiddleware } from './admin-auth.middleware.js';
 export { createSessionAuthMiddleware } from './session-auth.middleware.js';
+export { createOwnerScopeMiddleware } from './owner-scope.middleware.js';
 export { createProgrammaticAuthMiddleware } from './programmatic-auth.middleware.js';
 export { createHttpAuditMiddleware } from './http-audit.middleware.js';
 export {
