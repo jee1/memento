@@ -46,10 +46,13 @@ import { createToolsRouter } from './routes/tools.routes.js';
 import { createApiTokenRegistry } from './auth/api-token-registry.js';
 import {
   createAdminAuthMiddleware,
+  createAdminRateLimitMiddleware,
+  createHttpAuditMiddleware,
   createProgrammaticAuthMiddleware,
   createServiceInjector,
   createSessionAuthMiddleware,
   createToolContextMiddleware,
+  createToolsRateLimitMiddleware,
   errorHandler
 } from './middleware/index.js';
 import {
@@ -152,7 +155,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-API-Key']
 }));
-// DoS 완화: body 제한 1MB (리뷰 S4). 운영 시 rate limiting(예: express-rate-limit) 적용 권장.
+// DoS 완화: body 제한 1MB (리뷰 S4). /tools·/admin rate limit은 registerRoutes에서 bucket별 적용 (#663).
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -309,16 +312,29 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
     if (isProtectedMcpProgrammaticPath(req.path)) return void programmaticAuth(req, res, next);
     next();
   };
+  const toolsRateLimit = createToolsRateLimitMiddleware();
+  const adminRateLimit = createAdminRateLimitMiddleware();
+  const httpAudit = createHttpAuditMiddleware();
+  const mcpHttpAudit = createHttpAuditMiddleware({
+    shouldAudit: (req) => isProtectedMcpProgrammaticPath(req.path),
+  });
 
-  app.use('/tools', programmaticAuth, createToolContextMiddleware, toolsRouter!);
+  app.use(
+    '/tools',
+    toolsRateLimit,
+    programmaticAuth,
+    createToolContextMiddleware,
+    httpAudit,
+    toolsRouter!,
+  );
   app.use('/auth', authRouter!);
-  app.use('/admin', browserSessionAuth, adminRouter!);
-  app.use('/api/v1/quality', adminAuth, qualityRouter, (_req, res) => {
+  app.use('/admin', adminRateLimit, browserSessionAuth, adminRouter!);
+  app.use('/api/v1/quality', adminAuth, httpAudit, qualityRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Quality API route not found.' });
   });
-  app.use('/api/v1/agent', agentProgrammaticAuth, agentRouter);
+  app.use('/api/v1/agent', agentProgrammaticAuth, httpAudit, agentRouter);
   app.use('/api', browserSessionAuth, apiRouter!);
-  app.use('/', mcpProgrammaticAuth, mcpRouter!);
+  app.use('/', mcpProgrammaticAuth, mcpHttpAudit, mcpRouter!);
   app.use(errorHandler);
 }
 
