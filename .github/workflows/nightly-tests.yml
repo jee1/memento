@@ -1,0 +1,77 @@
+# Weekly: CI에서 스킵되는 무거운·통합 테스트 subset 복원 (SKIP_*=false)
+# PR gate(search-quality)는 ci.yml test-search-quality job 참고
+
+name: Nightly Tests
+
+on:
+  schedule:
+    # 매주 일요일 02:00 UTC (한국 11:00)
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+env:
+  CI: true
+  NODE_ENV: test
+  SKIP_DB_TESTS: false
+  SKIP_INTEGRATION_TESTS: false
+  DB_PATH: /tmp/memento-nightly-test.db
+
+jobs:
+  test-search-quality:
+    name: Vector search quality (full env)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+      - run: npm ci
+      - name: Run vector search quality benchmark
+        run: npm run test:vector-search-quality:ci
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: nightly-search-quality-results
+          path: test-results/
+          retention-days: 14
+        continue-on-error: true
+
+  test-integration-subset:
+    name: Integration subset (vitest CI exclude 복원)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+      - run: npm ci
+      - name: Build @memento/core
+        run: npm run build -w @memento/core
+      # vitest CI exclude 대상 중 핵심 integration·migration만 직접 실행 (전체 test:ci는 wall-clock 과다)
+      - name: Run integration subset
+        run: |
+          npx vitest --run \
+            packages/memento-core/src/infrastructure/database/database/migration/migration-runner.integration.spec.ts \
+            packages/memento-core/src/infrastructure/database/database-lock-scenarios.integration.spec.ts \
+            packages/memento-core/src/domains/memory/services/__tests__/memory-embedding-service.integration.spec.ts
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: nightly-integration-results
+          path: test-results/
+          retention-days: 14
+        continue-on-error: true
