@@ -18,6 +18,8 @@ export function parseOwnerScopeMode(envValue: string | undefined): OwnerScopeMod
     return normalized;
   }
 
-  console.warn(`⚠️  Invalid MEMENTO_OWNER_SCOPE_MODE value: ${envValue}. Using default 'strict'.`);
+  process.stderr.write(
+    `[CONFIG WARN] Invalid MEMENTO_OWNER_SCOPE_MODE value: ${envValue}. Using default 'strict'.\n`,
+  );
   return 'strict';
 }
