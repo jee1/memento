@@ -12,6 +12,8 @@
 - **CI search-quality PR gate** (#665): `.github/workflows/ci.yml`에 `test-search-quality` job 추가 — `npm run test:vector-search-quality:ci`로 랭킹·벡터 검색 benchmark 회귀를 PR에서 차단.
 - **Weekly nightly tests** (#665): `.github/workflows/nightly-tests.yml` — `SKIP_DB_TESTS=false`, `SKIP_INTEGRATION_TESTS=false`로 search-quality 전체 env 및 integration subset( migration-runner, lock-scenarios, memory-embedding ) 실행.
 - **CI exclude inventory** (#665): `docs/reference/ko/ci-test-timeout-guide.md`에 Vitest CI exclude 패턴 표·만료 정책(2026-09-01) 문서화.
+- **HTTP scoped API tokens (#662)**: `MEMENTO_API_TOKENS` JSON env로 `tools:invoke` / `admin:destructive` 스코프 분리. Legacy `ADMIN_API_KEY`는 synthetic `legacy-admin` 토큰으로 양쪽 스코프 유지(deprecation warn once). tools-only 토큰은 `/api/v1/quality/*` 403.
+- **HTTP programmatic 감사 JSONL + rate limit** (#663): `/tools`, `/api/v1/agent`, `/api/v1/quality`, 보호 MCP HTTP 경로에 audit JSONL·rate limit.
 - **HTTP owner scope enforcement** (#664): `MEMENTO_OWNER_SCOPE_MODE`(`strict`|`warn`|`off`, HTTP 기본 `strict`), `MEMENTO_HTTP_DEFAULT_AGENT_ID`, `X-Memento-Agent-Id` 헤더 → `ToolContext.agentId`. strict 모드에서 `/tools/recall`·`/tools/memory_injection`은 `owner_id` 미지정 시 에이전트 ID로 자동 필터; 식별자 없으면 400. 레거시 NULL 데이터는 `warn`/`off`로 opt-out.
 
 ### Removed

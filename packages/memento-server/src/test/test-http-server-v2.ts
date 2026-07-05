@@ -602,6 +602,9 @@ async function runTests() {
   process.env.ADMIN_API_KEY = process.env.ADMIN_API_KEY || TEST_ADMIN_API_KEY;
   process.env.DB_PATH = process.env.DB_PATH || TEST_DB_PATH;
   mementoConfig.adminApiKey = process.env.ADMIN_API_KEY;
+  mementoConfig.apiTokens = process.env.ADMIN_API_KEY
+    ? [{ id: 'legacy-admin', secret: process.env.ADMIN_API_KEY, scopes: ['tools:invoke', 'admin:destructive'] }]
+    : [];
   mementoConfig.dbPath = process.env.DB_PATH;
   
   let testDb: Database.Database | null = null;

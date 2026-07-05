@@ -87,21 +87,23 @@ export function isHttpBindHostRemotelyReachable(host: string): boolean {
 export function getMementoHttpSecurityStartupViolationMessage(config: {
   httpListenHost: string;
   adminApiKey: string | undefined;
+  apiTokens?: readonly unknown[];
   allowInsecureHttpAdmin: boolean;
 }): string | null {
   if (!isHttpBindHostRemotelyReachable(config.httpListenHost)) {
     return null;
   }
-  const hasKey = !!(config.adminApiKey && config.adminApiKey.trim() !== '');
-  if (hasKey) {
+  const hasLegacyKey = !!(config.adminApiKey && config.adminApiKey.trim() !== '');
+  const hasTokens = (config.apiTokens?.length ?? 0) > 0;
+  if (hasLegacyKey || hasTokens) {
     return null;
   }
   if (config.allowInsecureHttpAdmin) {
     return null;
   }
   return (
-    'HTTP 서버가 루프백이 아닌 주소에 바인딩되어 있는데 ADMIN_API_KEY가 없습니다. ' +
-    '관리·API·품질 경로 무인증 노출을 막으려면 ADMIN_API_KEY를 설정하거나, ' +
+    'HTTP 서버가 루프백이 아닌 주소에 바인딩되어 있는데 programmatic API 토큰이 없습니다. ' +
+    '관리·API·품질 경로 무인증 노출을 막으려면 MEMENTO_API_TOKENS 또는 ADMIN_API_KEY를 설정하거나, ' +
     '로컬 전용으로 루프백 주소(예: 127.0.0.1, ::1)를 MEMENTO_HTTP_BIND_HOST에 두세요. ' +
     '개발 전용 위험 허용은 MEMENTO_ALLOW_INSECURE_HTTP_ADMIN=true (문서 필독).'
   );

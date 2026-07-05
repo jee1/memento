@@ -9,4 +9,10 @@ export { createAdminAuthMiddleware } from './admin-auth.middleware.js';
 export { createSessionAuthMiddleware } from './session-auth.middleware.js';
 export { createOwnerScopeMiddleware } from './owner-scope.middleware.js';
 export { createProgrammaticAuthMiddleware } from './programmatic-auth.middleware.js';
+export { createHttpAuditMiddleware } from './http-audit.middleware.js';
+export {
+  createAdminRateLimitMiddleware,
+  createToolsRateLimitMiddleware,
+  isHttpRateLimitDisabled,
+} from './http-rate-limit.middleware.js';
 export { errorHandler, asyncHandler } from './error-handler.middleware.js';

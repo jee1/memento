@@ -235,6 +235,9 @@ export interface StoredEmbeddingProviderStats {
   avg_dimensions: number;
 }
 
+export type { ApiScope, ApiTokenEntry } from './api-token.js';
+import type { ApiTokenEntry } from './api-token.js';
+
 export interface MementoConfig {
   dbPath: string;
   serverName: string;
@@ -305,6 +308,8 @@ export interface MementoConfig {
   corsAllowedOrigins: string[];
   // Admin/API/Quality 라우트 인증: 설정 시 Authorization: Bearer <key> 또는 X-API-Key: <key> 필요
   adminApiKey: string | undefined;
+  /** MEMENTO_API_TOKENS 또는 legacy ADMIN_API_KEY에서 파생된 programmatic API 토큰 */
+  apiTokens: ApiTokenEntry[];
   /** HTTP 서버 바인드 주소 (MEMENTO_HTTP_BIND_HOST, 미설정 시 기본 127.0.0.1) */
   httpListenHost: string;
   /**
