@@ -16,16 +16,6 @@ export type HttpAuditEntry = {
   status: number;
 };
 
-declare global {
-  namespace Express {
-    interface Request {
-      programmaticAuth?: {
-        keyId?: string;
-      };
-    }
-  }
-}
-
 export type HttpAuditMiddlewareConfig = {
   logPath?: string;
   shouldAudit?: (req: Request) => boolean;
