@@ -94,7 +94,7 @@ strict owner scope와의 연동은 위 **HTTP owner scope** 절을 참고하세�
 
 여러 reader 에이전트 + **단일 writer** 패턴의 참조 구현:
 
-- [`apps/multi-agent-orchestration/README.md`](../../apps/multi-agent-orchestration/README.md)
+- [`apps/multi-agent-orchestration/README.md`](../../../apps/multi-agent-orchestration/README.md)
 - GitHub [#664](https://github.com/jee1/memento/issues/664) — writer lock·orchestration 설계
 
 ## 하위 호환성
