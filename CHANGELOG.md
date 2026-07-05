@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+### Added
+- **HTTP programmatic 감사 JSONL + rate limit** (#663): `/tools`, `/api/v1/agent`, `/api/v1/quality`, 보호 MCP HTTP 경로에 `{ ts, key_id, route, tool, owner_id, agent_id, latency_ms, status }` audit 미들웨어(best-effort). `/tools`·`/admin` bucket별 rate limit(429 + `Retry-After`). #660 hash-chained audit과 필드 계약 정렬.
+
 ### Removed
 
 - **[BREAKING] MCP `type` 파라미터 기본 필수화** (#636): `MEMENTO_TYPE_PARAM_MODE` 기본값이 `warn`에서 `error`로 변경됩니다. `remember` / `recall` 호출 시 `type`을 생략하면 거절됩니다. 레거시 클라이언트는 `MEMENTO_TYPE_PARAM_MODE=warn` 또는 `deprecate`로 완화할 수 있습니다.
