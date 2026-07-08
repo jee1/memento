@@ -123,7 +123,7 @@ export const answerOverTimeFixture = {
 npm run dev:http
 ```
 
-기본 URL은 환경에 따라 `http://localhost:9001` 또는 `http://localhost:8080`입니다 (`PORT` / `MCP_SERVER_PORT`). 터미널에 표시된 주소를 사용하세요.
+기본 URL은 `http://localhost:9001`입니다 (`PORT` / `MCP_SERVER_PORT`). 터미널에 표시된 주소를 사용하세요.
 
 ### 2. 대시보드 열기
 

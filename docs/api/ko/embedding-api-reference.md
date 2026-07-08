@@ -1,8 +1,10 @@
 # 임베딩 서비스 API 레퍼런스
 
+`remember`·`recall`·하이브리드 검색은 모두 임베딩 벡터를 거칩니다. `@memento/core`의 **`UnifiedEmbeddingService`**가 제공자 우선순위·폴백·차원 검증을 한곳에서 처리하므로, MCP 도구나 HTTP API를 직접 건드리지 않고 임베딩 동작을 바꾸려면 이 클래스의 계약을 보면 됩니다. 아래는 TypeScript 호출면 기준 레퍼런스이며, 환경 변수 설정은 [embedding-configuration.md](../../guides/ko/embedding-configuration.md)를 참고하세요.
+
 ## UnifiedEmbeddingService
 
-통합 임베딩 서비스의 메인 클래스입니다.
+통합 임베딩 서비스의 메인 클래스입니다. 여러 `EmbeddingProvider` 구현을 등록해 두고, `generateEmbedding` 호출 시 가용한 제공자 중 하나를 선택합니다.
 
 ### 생성자
 

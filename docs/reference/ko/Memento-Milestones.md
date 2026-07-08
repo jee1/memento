@@ -39,7 +39,7 @@ services:
   memory-server:
     build: .
     ports:
-      - "8080:8080"
+      - "9001:9001"
     volumes:
       - ./data:/app/data
     environment:

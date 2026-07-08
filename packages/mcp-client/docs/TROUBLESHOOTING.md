@@ -79,7 +79,7 @@ ConnectionError: Failed to connect to server
 ```typescript
 // 1. 서버 상태 확인
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
   logLevel: 'debug'
 });
 
@@ -91,7 +91,7 @@ try {
 }
 
 // 2. 네트워크 연결 확인
-const response = await fetch('http://localhost:8080/health');
+const response = await fetch('http://localhost:9001/health');
 console.log('HTTP 응답:', response.status);
 ```
 
@@ -99,7 +99,7 @@ console.log('HTTP 응답:', response.status);
 ```typescript
 // 서버 URL 확인
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080', // 올바른 URL인지 확인
+  serverUrl: 'http://localhost:9001', // 올바른 URL인지 확인
   timeout: 15000, // 타임아웃 증가
   retryCount: 5   // 재시도 횟수 증가
 });
@@ -391,7 +391,7 @@ Property 'xxx' is optional but required
 ```typescript
 // 기본값 제공
 const options: MementoClientOptions = {
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
   timeout: 10000,
   retryCount: 3,
   logLevel: 'info'
@@ -399,7 +399,7 @@ const options: MementoClientOptions = {
 
 // 또는 Partial 타입 사용
 const partialOptions: Partial<MementoClientOptions> = {
-  serverUrl: 'http://localhost:8080'
+  serverUrl: 'http://localhost:9001'
 };
 ```
 

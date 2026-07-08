@@ -30,13 +30,15 @@ AI가 "기억하는 척"하는 것이 아니라, 기억을 생성·분류·강�
 
 ### 📦 모노레포 구조
 
-이 저장소는 **npm workspaces** 기반 모노레포다.
+이 저장소는 **npm workspaces** 모노레포입니다. `@memento/core`가 도메인·DB·MCP 도구를 담고, `memento-server`가 stdio/HTTP로 이를 노출합니다. 앱이나 스크립트에서 REST로 붙을 때는 `@memento/client`, OpenClaw 같은 외부 비서에는 `@memento/assistant`, 에이전트 세션·프로버넌스 계약에는 `@memento/agent-integration`을 씁니다. 실험 코드는 `apps/` 아래에 두었습니다.
 
 | 경로 | 설명 |
 |------|------|
 | **packages/memento-core** (`@memento/core`) | 도메인·인프라·공유 라이브러리. 진입점: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB 초기화·마이그레이션은 루트에서 `npm run db:init` / `npm run db:migrate`로 실행. |
 | **packages/memento-server** | core를 사용하는 MCP/HTTP 서버. 루트 `npm run dev`, `npm start`, `npm run dev:http` 등으로 실행. |
 | **packages/memento-client** (`@memento/client`) | 서버 연결용 클라이언트 라이브러리. |
+| **packages/memento-assistant** (`@memento/assistant`) | 외부 AI 비서용 recall/remember SDK. |
+| **packages/memento-agent-integration** (`@memento/agent-integration`) | 에이전트 통합 계약·어댑터. |
 | **apps/** | 실험용 앱 (예: `experimental-example`은 `@memento/core`를 in-process로 사용). |
 
 상세 구조·빌드·테스트 명령은 [AGENTS.md](AGENTS.md)를 참조하세요.
@@ -116,11 +118,11 @@ npm run build && npm run start:http       # 프로덕션
       "args": ["/path/to/memento/packages/memento-server/dist/server/http-server.js"],
       "env": {
         "DB_PATH": "/absolute/path/to/data/memory.db",
-        "MCP_SERVER_PORT": "7777"
+        "MCP_SERVER_PORT": "9001"
       },
       "transport": {
         "type": "http",
-        "url": "http://127.0.0.1:7777"
+        "url": "http://127.0.0.1:9001/mcp"
       }
     }
   }
@@ -229,7 +231,7 @@ MCP 호스트 앱에서 Memento를 사용하려면 설정 파일에 서버 정�
 #### HTTP MCP 모드 (다중 에이전트 공유 서버)
 
 ```bash
-npm run build && npm run start:http   # 기본 포트: 8080
+npm run build && npm run start:http   # 기본 포트: 9001 (env.example·Docker와 동일)
 ```
 
 ```json
@@ -237,7 +239,7 @@ npm run build && npm run start:http   # 기본 포트: 8080
   "mcpServers": {
     "memento": {
       "type": "http",
-      "url": "http://127.0.0.1:8080/mcp"
+      "url": "http://127.0.0.1:9001/mcp"
     }
   }
 }
@@ -280,7 +282,7 @@ await client.connect({
 await client.connect({
   transport: {
     type: "http",
-    url: "http://127.0.0.1:7777"
+    url: "http://127.0.0.1:9001/mcp"
   }
 });
 ```
@@ -314,7 +316,7 @@ const results = await client.callTool({
 import { MementoClient } from "@memento/client";
 
 const client = new MementoClient({
-  serverUrl: "http://localhost:8080",
+  serverUrl: "http://localhost:9001",
   apiKey: "your-api-key"
 });
 
@@ -366,7 +368,7 @@ await client.forget(result.memory_id);
 
 - **망각 알고리즘**: 최근성·사용성·중복 비율 기반 망각 점수 계산
 - **간격 반복**: 중요도와 사용성 기반 리뷰 스케줄링
-- **TTL 관리**: 타입별 수명 관리 (working 2일, episodic 30일, semantic 180일, procedural 90일)
+- **TTL 관리**: 타입별 수명 관리 (working 48시간, episodic 90일, semantic·procedural 무기한)
 - **자동 정리**: 소프트/하드 삭제 자동화
 
 ### 📊 성능 모니터링 (HTTP 관리 API)
@@ -393,6 +395,8 @@ http://localhost:9001/graph
 
 ## 📚 문서
 
+전체 문서 목록·KO/EN 매핑: [docs/README.md](docs/README.md)
+
 - [임베딩 서비스 가이드](docs/guides/ko/embedding-service-guide.md)
 - [성능 벤치마크](docs/reference/ko/embedding-performance-benchmark.md)
 - [API 레퍼런스](docs/api/ko/api-reference.md)
@@ -401,15 +405,16 @@ http://localhost:9001/graph
 
 ## 📋 API 문서
 
-### MCP Tools (핵심 14개)
+### MCP Tools (핵심 22개)
 
-> **중요**: MCP 클라이언트는 핵심 메모리 관리 기능 14개를 노출합니다. 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.
+> **중요**: MCP 클라이언트는 핵심 메모리·관계·텔레메트리 도구 22개를 노출합니다. 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.
 
-#### 기본 메모리 관리 (7개)
+#### 기본 메모리 관리 (8개)
 | Tool | 설명 | 파라미터 |
 |------|------|----------|
 | `remember` | 기억 저장 | content, type, tags, importance, source, privacy_scope |
 | `recall` | 기억 검색 | query, filters, limit |
+| `feedback` | recall 결과 helpful/not_helpful 피드백 | memory_id, helpful |
 | `pin` | 기억 고정 | memory_id |
 | `unpin` | 기억 고정 해제 | memory_id |
 | `forget` | 기억 삭제 | memory_id, hard |
@@ -424,12 +429,27 @@ http://localhost:9001/graph
 | `search_local` | 앵커 주변 검색 | slot, query, limit |
 | `clear_anchor` | 앵커 제거 | slot |
 
-#### 절차 기억·고급 (3개)
+#### 절차 기억 (3개)
 | Tool | 설명 | 파라미터 |
 |------|------|----------|
 | `remember_procedure` | 절차 기억 저장 | content, workflow_name, skill_name, steps 등 |
 | `procedural_diff` | 절차 기억 버전 간 차이 비교 | left_id, right_id |
 | `procedural_rollback` | 절차 기억 이전 버전으로 복원 | current_id, target_version_id |
+
+#### 관계·지식 그래프 (4개)
+| Tool | 설명 | 파라미터 |
+|------|------|----------|
+| `extract_triples` | 본문에서 SPO 트리플 추출 | content 또는 messages |
+| `add_relation` | 기억 간 관계 추가 | source_id, target_id, relation_type |
+| `get_relations` | 관계 조회 | memory_id 등 |
+| `remove_relation` | 관계 삭제 | relation_id |
+
+#### 품질·내보내기 (3개)
+| Tool | 설명 | 파라미터 |
+|------|------|----------|
+| `get_introspection_summary` | 저신뢰·고실패 기억 요약 | — |
+| `get_telemetry_summary` | 검색·메모리 품질 텔레메트리 | period |
+| `export_memories` | 기억 내보내기 | filters 등 |
 
 **HTTP 전용 (MCP에 없음)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — 아래 HTTP 관리 API 참조.
 
@@ -500,7 +520,7 @@ http://localhost:9001/graph
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
 | `NODE_ENV` | development | 실행 환경 |
-| `PORT` / `MCP_SERVER_PORT` | 3000 (코드 기본) | HTTP/MCP 서버 포트 (env.example 권장: 8080) |
+| `PORT` / `MCP_SERVER_PORT` | 9001 (http-server fallback) | HTTP/MCP 서버 포트 (`env.example`·Docker 권장: 9001) |
 | `DB_PATH` | ./data/memory.db | 데이터베이스 경로 |
 | `LOG_LEVEL` | info | 로그 레벨 |
 | `OPENAI_API_KEY` | - | OpenAI API 키 (선택사항) |
@@ -593,7 +613,7 @@ npm run test -- --coverage
 
 Memento는 개인용 로컬 서버로 시작해, 팀 협업을 거쳐, 조직 규모의 메모리 플랫폼으로 성장하도록 설계되어 있다.
 
-**M1: 개인용 (현재)** — 지금 사용할 수 있는 형태다. SQLite 임베디드, FTS5 + sqlite-vec 인덱스, 로컬 실행. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구). 14개 MCP 도구, 관리 기능은 HTTP API로 분리.
+**M1: 개인용 (현재)** — 지금 사용할 수 있는 형태다. SQLite 임베디드, FTS5 + sqlite-vec 인덱스, 로컬 실행. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구). 22개 MCP 도구, 관리 기능은 HTTP API로 분리.
 
 **M2: 팀 협업 (계획)** — SQLite 서버 모드, API Key 인증, Docker 단일 컨테이너. 여러 팀원이 하나의 기억 백엔드를 공유한다.
 

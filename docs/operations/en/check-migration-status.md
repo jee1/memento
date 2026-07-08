@@ -1,6 +1,6 @@
 # Database migration status check guide
 
-How to verify that the database in use has been migrated.
+If the schema lags behind the code, recall can fail or indexes may be missing. After upgrades or before deploy, confirm **which migrations are applied** on the DB you actually use. Any of the methods below prints pending vs applied versions.
 
 ## Quick check (CLI script)
 

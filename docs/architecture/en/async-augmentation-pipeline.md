@@ -1,8 +1,10 @@
 # Async Augmentation Pipeline (Issue #89)
 
+Agents should not block on triple extraction or consolidation every time they call `remember`. This pipeline **writes memories immediately** and defers enrichment—fact/triple extraction, consolidation scoring, deduplication, and quality measurement—to **background workers** scheduled by `BatchScheduler`. The contract is simple: the MCP response returns as soon as the row is durable; anything slower runs in the queue or on cron.
+
 ## Overview
 
-Conversations and events are **saved immediately without delay**; fact/triple extraction, consolidation scoring, deduplication, and quality measurement run in **background workers**. This "zero-latency write" design means agents never wait on enrichment.
+The following sections describe the immediate-write path, which jobs run later, and how retries and admin monitoring expose worker health.
 
 ## Immediate Write
 

@@ -1,6 +1,6 @@
 # @memento/core
 
-도메인 로직, SQLite 스키마·마이그레이션, 하이브리드 검색, 임베딩, MCP 도구 구현을 담는 **라이브러리** 패키지입니다. MCP/HTTP 서버는 `memento-server`에서 이 패키지를 사용합니다.
+Memento의 **심장**에 해당하는 라이브러리입니다. 기억 저장·검색·망각·앵커·관계·절차 메모리 같은 도메인 로직과 SQLite 스키마, 하이브리드 검색, 임베딩, MCP 도구 구현이 모두 여기에 있습니다. MCP/HTTP로 노출하는 실행 파일은 `memento-server`가 담당하고, 이 패키지는 그 아래에서 재사용되는 코어입니다.
 
 ## 스크립트
 
@@ -20,3 +20,5 @@
 ## 문서
 
 저장소 루트의 [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)를 참고하세요.
+
+**MCP 도구**: 22개 — `src/tools/index.ts`의 `coreTools` 배열과 동기화합니다.

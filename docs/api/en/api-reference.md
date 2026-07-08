@@ -2,28 +2,13 @@
 
 ## Overview
 
-Memento MCP Server communicates with AI Agents through the Model Context Protocol (MCP). This document provides detailed API reference for all available Tools, Resources, and Prompts.
+Memento talks to AI agents through the **Model Context Protocol (MCP)**. Agents read and write memory via **Tools** such as `remember` and `recall`, and can pull single memories or cached search results through **Resources**. This document is the full contract reference in one place.
+
+If you are integrating for the first time, start the server using the [User Manual](../guides/en/user-manual.md) and [Cursor MCP Setup](../guides/en/cursor-mcp-setup.md), then use this page for **call shapes and parameters**. HTTP admin routes (`/admin/*`, `/tools/*`) use a different browser-session and API-key boundary—see [Security](../reference/en/security.md).
 
 ## 🔄 Lightweight Hybrid Embedding
 
-### Lightweight Embedding Service
-
-A fallback solution used when OpenAI API is not available.
-
-**Features:**
-- **TF-IDF + Keyword Matching**: Generates fixed 512-dimensional vectors
-- **Multilingual Support**: Korean/English stopword removal and text preprocessing
-- **Cosine Similarity**: Search through vector similarity calculations
-- **Transparent Interface**: Provides same interface as existing embedding API
-
-**Automatic Fallback:**
-- Automatically switches to lightweight service when OpenAI API fails in `EmbeddingService`
-- Works transparently without code changes
-
-**Performance Characteristics:**
-- **Fast Processing**: Quick response through local TF-IDF calculation
-- **Memory Efficient**: Lightweight implementation without pre-trained models
-- **Accuracy**: Specialized accuracy for keyword-based search
+When cloud APIs are unavailable or fail, Memento can fall back to **TF-IDF lightweight embeddings** without changing your call sites. The `EmbeddingService` interface stays the same. Lightweight mode uses 512-dimensional vectors, Korean/English stopword handling, and cosine similarity; OpenAI failures trigger a transparent fallback. It is fast and light on memory but closer to keyword search than deep semantic matching.
 
 ### Performance Monitoring Tools
 
@@ -154,40 +139,30 @@ Optimizes database performance.
 }
 ```
 
-## MCP Tools (Core 15)
+## MCP Tools (Core 22)
 
-> **Important**: MCP client exposes 15 core memory management functions.  
-> Management functions are separated into HTTP API endpoints.  
-> See [Administrator API](#administrator-api) section for details.
+Tools exposed over MCP are what **agents call during a session**: memory, relations, and quality helpers. Operational work—anchor restore, embedding migration, episodic→semantic batch conversion, meta stats—lives on the HTTP [Administrator API](#administrator-api) only. The list below is a category index; parameters and examples follow in each subsection.
 
-### Core Memory Management Tools (7)
+### Memory (8)
+`remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `get_memory_neighbors`, `memory_injection`
 
-1. **remember** - Store memories
-2. **recall** - Search memories
-3. **forget** - Delete memories
-4. **pin** - Pin memories
-5. **unpin** - Unpin memories
-6. **get_memory_neighbors** - Get similar memories
-7. **memory_injection** - Inject related memories into context (Prompt)
+### Anchor (4)
+`set_anchor`, `get_anchor`, `search_local`, `clear_anchor`
 
-### Anchor System Tools (4)
+### Procedural (3)
+`remember_procedure`, `procedural_diff`, `procedural_rollback`
 
-8. **set_anchor** - Set a memory as anchor
-9. **get_anchor** - Get current anchors
-10. **search_local** - Search around anchors
-11. **clear_anchor** - Clear anchors
+### Relations (4)
+`extract_triples`, `add_relation`, `get_relations`, `remove_relation`
 
-### Procedural & Advanced Tools (3)
+### Quality & export (3)
+`get_introspection_summary`, `get_telemetry_summary`, `export_memories`
 
-12. **remember_procedure** - Store procedural memory (workflow/skill, steps)
-13. **procedural_diff** - Compare two procedural memory versions
-14. **procedural_rollback** - Roll back procedural memory to a previous version
-
-**HTTP only (not exposed on MCP):** `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see [Administrator API](#administrator-api).
+**HTTP only (not MCP):** `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see [Administrator API](#administrator-api).
 
 ### remember
 
-Tool for storing memories.
+Stores a new memory. Use `type` to pick working/episodic/semantic/procedural; from v1.18+ omitting `type` is rejected. Embedding and relation extraction may run asynchronously after save.
 
 #### Parameters
 
@@ -240,7 +215,7 @@ const result = await client.callTool('remember', {
 
 ### recall
 
-Tool for searching memories.
+Runs hybrid search (FTS5 + vectors) for a natural-language `query`. Narrow layers with `type` or `memory_types`, and combine `owner_id`, `project_id`, tags, and time filters. Often paired with `memory_injection` before agent work.
 
 #### Parameters
 
@@ -301,9 +276,37 @@ const result = await client.callTool('recall', {
 });
 ```
 
+### feedback
+
+Records whether a memory returned by `recall` was actually helpful. This feeds search ranking and quality telemetry; agents often call it asynchronously right after recall with `helpful: true|false`. You may optionally attach a `score_breakdown` snapshot and comment.
+
+#### Parameters
+
+```typescript
+interface FeedbackParams {
+  memory_id: string;                // Target memory ID (required)
+  helpful: boolean;                 // true=helpful, false=not helpful (required)
+  comment?: string;                 // Optional comment (max 4096 chars)
+  score?: number;                   // Optional score
+  score_breakdown?: object;         // recall item score_breakdown snapshot (JSON, size limit applies)
+  session_id?: string;              // Session identifier (optional)
+  agent_id?: string;                // Agent identifier (optional)
+}
+```
+
+#### Usage Example
+
+```typescript
+await client.callTool('feedback', {
+  memory_id: 'mem_abc123',
+  helpful: true,
+  comment: 'Matched our previous JWT expiry handling'
+});
+```
+
 ### get_memory_neighbors
 
-Tool for retrieving neighbor memories similar to a specific memory. Automatically finds and recommends semantically similar memories based on vector similarity.
+When you already have one memory from `recall` and want more in the same vein, this tool walks vector similarity to find neighbors. Tune `similarity_threshold` to cut noise; useful for expanding context before graph hops.
 
 #### Parameters
 
@@ -359,7 +362,7 @@ result.neighbors.forEach(neighbor => {
 
 ### pin / unpin
 
-Tool for pinning or unpinning memories.
+`pin` exempts a memory from forgetting and boosts search rank. `unpin` clears the pin. Both take a single `memory_id`.
 
 #### pin Parameters
 
@@ -403,7 +406,7 @@ const result = await client.callTool('unpin', {
 
 ### forget
 
-Tool for deleting memories.
+Deletes a memory. Default is soft delete (`hard: false`); `hard: true` removes data in a way that is difficult to recover.
 
 #### Parameters
 
@@ -441,7 +444,7 @@ const result = await client.callTool('forget', {
 
 ### set_anchor
 
-Tool for setting a memory as an anchor for context management.
+Pins the "current center" memory to slot A (immediate), B (secondary), or C (extended) during long tasks. With anchors set, `search_local` can search around that point and follow the relation graph.
 
 #### Parameters
 
@@ -483,7 +486,7 @@ const result = await client.callTool('set_anchor', {
 
 ### get_anchor
 
-Tool for retrieving current anchors.
+Shows which memories are pinned in slots A/B/C for an agent. Omit `slot` to read all three at once.
 
 #### Parameters
 
@@ -533,7 +536,7 @@ const result = await client.callTool('get_anchor', {});
 
 ### search_local
 
-Tool for searching memories around anchors.
+Instead of global `recall`, search narrowly from a pinned anchor via hop distance and the relation graph (`use_relations`). Handy when context is long and you only need memories near the current topic.
 
 #### Parameters
 
@@ -580,7 +583,7 @@ const result = await client.callTool('search_local', {
 
 ### clear_anchor
 
-Tool for clearing anchors.
+Clears anchors when a task ends or the topic shifts. Omit `slot` to clear every slot for the given `agent_id`.
 
 #### Parameters
 
@@ -1006,9 +1009,8 @@ The following tools have been removed from MCP client:
 
 - `hybrid_search` - Hybrid search (replaced by basic `recall`)
 - `summarize_thread` - Session summary (planned for future implementation)
-- `link` - Memory relationship creation (planned for future implementation)
-- `export` - Memory export (planned for future implementation)
-- `feedback` - Feedback provision (planned for future implementation)
+- `link` - Memory relationship creation (partially replaced by `add_relation` / `get_relations` / `remove_relation`)
+- `export` - Memory export (replaced by `export_memories` MCP tool)
 - `apply_forgetting_policy` - Forgetting policy application (moved to HTTP API)
 - `schedule_review` - Review scheduling (moved to HTTP API)
 - `get_performance_metrics` - Performance metrics retrieval (moved to HTTP API)
@@ -1088,7 +1090,7 @@ interface SearchResource {
 
 ### memory_injection
 
-Prompt for injecting related memories into AI Agent's context.
+Use before a task to gather context in one shot. The MCP **tool** `memory_injection` returns a token-budgeted summary of relevant memories; the schema below is for the same-named **prompt** (`getPrompt`) path. In practice, the tool call is more common.
 
 #### Parameters
 

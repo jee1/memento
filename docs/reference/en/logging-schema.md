@@ -1,22 +1,11 @@
 # Logging field schema
 
-This document describes the logging field schema of the standard logger module in the Memento monorepo. The standard logger lives at `packages/memento-core/src/shared/utils/logger.ts`; the MCP logger lives at `packages/memento-server/src/server/mcp-logger.ts`.
+Structured logs flow through `packages/memento-core/src/shared/utils/logger.ts`; MCP stdio mode also uses `packages/memento-server/src/server/mcp-logger.ts`. Use one logger entry point so levels and metadata stay consistent across domains.
 
 ## Overview
 
-Memento uses a centralized logging system for consistent logs. All logging goes through the standard `logger`; MCP mode and normal mode are detected automatically and the appropriate logging behavior is used.
+All production paths should call the shared `logger` (`debug` / `info` / `warn` / `error`) with optional `meta` objects. MCP vs HTTP mode is detected automatically.
 
-## Logger interface
+Field naming, PII rules, and example payloads are documented in Korean.
 
-The standard logger provides:
-
-```typescript
-interface Logger {
-  debug(message: string, meta?: Record<string, unknown>): void;
-  info(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  error(message: string, meta?: Record<string, unknown>): void;
-}
-```
-
-For full field descriptions and conventions, see the [Korean version](../ko/logging-schema.md).
+Full schema (KO): [logging-schema.md (KO)](../ko/logging-schema.md).

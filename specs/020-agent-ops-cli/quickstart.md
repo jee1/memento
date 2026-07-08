@@ -5,7 +5,7 @@
 ```bash
 memento doctor
 memento doctor --json
-memento doctor --endpoint http://127.0.0.1:8080
+memento doctor --endpoint http://127.0.0.1:9001
 ```
 
 확인 항목:

@@ -125,7 +125,7 @@ await client.connect(); // stdio 연결
 import { MementoClient } from '@memento/client';
 
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080' // HTTP 연결
+  serverUrl: 'http://localhost:9001' // HTTP 연결
 });
 await client.connect();
 ```
@@ -143,7 +143,7 @@ await client.connect();
 ```typescript
 // 명시적 서버 URL 설정
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080',
+  serverUrl: 'http://localhost:9001',
   apiKey: 'your-api-key', // M2+에서 필요
   timeout: 15000
 });
@@ -254,7 +254,7 @@ injectProjectContext(projectId: string, query: string, tokenBudget?: number): Pr
 ```typescript
 // 해결 방법
 const client = new MementoClient({
-  serverUrl: 'http://localhost:8080', // 올바른 URL 확인
+  serverUrl: 'http://localhost:9001', // 올바른 URL 확인
   timeout: 30000, // 타임아웃 증가
   retryCount: 5   // 재시도 횟수 증가
 });

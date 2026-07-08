@@ -23,7 +23,7 @@ new MementoClient(options?: MementoClientOptions)
 
 | 속성 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `serverUrl` | `string` | `'http://localhost:8080'` | MCP 서버 URL |
+| `serverUrl` | `string` | `'http://localhost:9001'` | MCP 서버 URL |
 | `apiKey` | `string` | `''` | API 키 (M2+에서 사용) |
 | `timeout` | `number` | `10000` | 연결 타임아웃 (밀리초) |
 | `retryCount` | `number` | `3` | 재시도 횟수 |

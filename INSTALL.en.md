@@ -6,6 +6,8 @@
 
 Provides various installation methods for the AI Agent Memory Assistant MCP Server.
 
+How you install Memento depends on **how fast you want to try it** and **how much of the stack you want to control**. The one-click script is fastest; npx runs without cloning; Docker fits teams; source is for contributors. Pick a path below and follow it through.
+
 ## 📋 Installation Method Selection
 
 ### 🥇 **1st Priority: One-click Installation (Recommended)**
@@ -45,17 +47,7 @@ npm run quick-start
 
 ## 🎯 Recommended Installation Method by User Type
 
-### 👨‍💻 **Developers/Researchers**
-- **npx method** or **source code method** recommended
-- Optimized for rapid prototyping and debugging
-
-### 👤 **General Users**
-- **One-click installation** or **Docker method** recommended
-- Simple installation and stable execution
-
-### 🏢 **Teams/Organizations**
-- **Docker method** required
-- Standardized deployment and scalability
+**Developers and researchers** usually prefer npx or a source clone so they can debug and patch quickly. **General users** can start with the one-click script or Docker when they mainly want a stable server. **Teams and organizations** should standardize on Docker so everyone runs the same image and the same `memory.db` mount policy.
 
 ## 📚 Detailed Installation Methods
 
@@ -239,10 +231,10 @@ npm run regenerate:embeddings # Regenerate embeddings
 
 After installation, you can access the following addresses:
 
-- **MCP Server**: `stdio` or `ws://localhost:8080/mcp`
-- **HTTP API**: `http://localhost:8080`
-- **WebSocket**: `ws://localhost:8080`
-- **Admin Dashboard**: `http://localhost:8080/admin`
+- **MCP Server**: `stdio` or `http://localhost:9001/mcp`
+- **HTTP API**: `http://localhost:9001`
+- **WebSocket**: `ws://localhost:9001`
+- **Admin Dashboard**: `http://localhost:9001/dashboard`
 
 ## 🪟 Platform-Specific Execution
 
@@ -316,20 +308,20 @@ npx memento-mcp-server@latest dev
 
 #### 2. Node.js Version Error
 ```bash
-# Node.js 20+ required
+# Node.js 24+ required (package.json engines: >=24)
 node --version
 
 # Install Node.js with nvm (Linux/macOS)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 20
-nvm use 20
+nvm install 24
+nvm use 24
 ```
 
 #### 2. Port Conflict
 ```bash
-# If port 8080 is in use
-# Change PORT in .env file
-PORT=8081
+# If port 9001 is in use
+# Change PORT / MCP_SERVER_PORT in .env file
+PORT=9002
 ```
 
 #### 3. Database Error
@@ -370,7 +362,7 @@ journalctl -u memento-mcp-server -f
 
 After installation, proceed with the following steps:
 
-1. **Check Server Status**: `http://localhost:8080/health`
+1. **Check Server Status**: `http://localhost:9001/health`
 2. **Connect MCP Client**: [Client Guide](packages/mcp-client/README.md)
 3. **Test API**: [API Documentation](docs/api/en/api-reference.md)
 4. **Learn Usage**: [User Manual](docs/guides/en/user-manual.md)

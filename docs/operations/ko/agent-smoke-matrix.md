@@ -31,7 +31,7 @@ npm run quality:agent-smoke -- \
 독립 서버가 준비된 환경에서는 다음 변수를 지정한다.
 
 ```bash
-MEMENTO_SMOKE_ENDPOINT=http://127.0.0.1:8080 \
+MEMENTO_SMOKE_ENDPOINT=http://127.0.0.1:9001 \
 MEMENTO_SMOKE_API_KEY=... \
 npm run quality:agent-smoke
 ```

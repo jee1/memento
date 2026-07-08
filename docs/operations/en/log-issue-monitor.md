@@ -1,6 +1,6 @@
 # Log Issue Monitor Operations Guide
 
-Log Issue Monitor is an opt-in process that periodically scans Memento runtime logs and Docker diagnostics files. It records every detected occurrence locally and creates or updates GitHub Issues for severe or recurring fingerprints.
+Log Issue Monitor is an **opt-in overlay** that periodically scans Memento runtime logs and Docker diagnostics. It records fingerprints locally and opens or updates GitHub Issues when the same error pattern repeats or crosses severity thresholds. Use it when you run Memento under Docker Compose and want ops noise routed into trackable issues instead of only log tailing.
 
 ## Run
 

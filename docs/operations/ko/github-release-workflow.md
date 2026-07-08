@@ -1,5 +1,7 @@
 # GitHub Release 워크플로우 가이드
 
+릴리스 태그를 푸시하면 GitHub Actions가 npm 게시·Release 노트 생성까지 이어집니다. 그런데 **Release를 수동으로 먼저 만들어 두면** 워크플로가 같은 `tag_name`으로 다시 만들려다 `already_exists`에 걸릴 수 있습니다. 이 문서는 그 충돌이 왜 생기는지, 현재 워크플로가 어떻게 완화하는지, 트리거를 어떻게 바꾸면 깔끔한지를 정리합니다.
+
 ## 🚨 문제: "already_exists" 오류
 
 GitHub Release 생성 시 다음 오류가 발생할 수 있습니다:

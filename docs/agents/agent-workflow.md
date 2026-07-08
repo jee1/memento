@@ -2,56 +2,44 @@
 
 [DEVELOPMENT_RULES.md §4](../../DEVELOPMENT_RULES.md#4-ai-에이전트-전용-지침-specialized-agent-rules)와 함께 적용합니다.
 
-## MCP·메모리
+## MCP·메모리 — 작업 전후 기억 루프
 
-- **작업 전**: `recall` 또는 `memory_injection`
-- **작업 후**: `remember` (타입: working/episodic/semantic/procedural 구분)
+Memento를 사용하는 에이전트는 **두 번의 MCP 호출**이 습관이 되어야 합니다. 작업을 시작하기 전에 `recall` 또는 `memory_injection`으로 관련 기억을 불러와 맥락을 채웁니다. 작업이 끝난 뒤에는 `remember`로 결과를 남기되, 기억 타입을 구분합니다. 48시간 안에 다시 쓸 컨텍스트는 `working`, 에피소드·사건 기록은 `episodic`, 재사용 가능한 지식은 `semantic`, 반복 절차는 `procedural`입니다. 이 구분이 나중에 검색 품질을 결정합니다.
 
-## 코드 탐색 (Serena)
+## 코드 탐색 — Serena 심볼 우선
 
-- 파일 전체 읽기 전 `get_symbols_overview`·`find_symbol` 우선
-- 50줄 미만 파일만 전체 읽기
+코드를 읽기 전에 파일 전체를 무작정 읽지 마세요. `get_symbols_overview`나 `find_symbol`로 원하는 심볼을 찾은 뒤 필요한 부분만 확인하는 것이 훨씬 빠릅니다. 파일이 50줄 미만이면 전체를 읽어도 괜찮지만, 그 이상이면 심볼 도구를 먼저 쓰는 것을 규칙으로 삼으세요.
 
-## graphify
+## graphify — 코드 지도를 먼저 보기
 
-- **분석 전**: `graphify-out/GRAPH_REPORT.md` 확인; `graphify-out/wiki/index.md` 있으면 위키 우선
-- **코드 수정 후** 재빌드:
+코드를 분석하거나 리팩터를 시작하기 전에 `graphify-out/GRAPH_REPORT.md`를 확인하면 전체 구조를 추측 없이 파악할 수 있습니다. `graphify-out/wiki/index.md`가 있다면 위키를 우선 참고하세요. 코드를 수정한 뒤에는 반드시 graphify를 재빌드해야 리포트가 최신 상태를 반영합니다.
 
 ```bash
 python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
 ```
 
-- **커밋 범위**: 저장소 루트 `graphify-out/`만 PR에 포함 (`packages/memento-core/graphify-out/cache/` 제외)
+PR에 포함하는 graphify 아티팩트는 저장소 루트 `graphify-out/`만입니다. `packages/memento-core/graphify-out/cache/`는 제외하세요.
 
 ## 기술 부채·아키텍처 검사
 
-- **정량 스캔**: `python3 ~/.agents/skills/tech-debt-analyzer/scripts/detect_code_smells.py packages scripts static tests --output markdown`
-- **actionable 마커**: `npm run check-debt-markers -- --production-only` (memento-core 프로덕션)
-- **아키텍처**: graphify → `$analyze`(read-only) → 리팩터 전 `gstack-plan-eng-review`
-- **formal 감사(선택)**: `helderberto/skills@architecture-audit` 또는 `nkootstra/skills@code-complexity-audit` (`npx skills add …`)
-- **추적 이슈**: #593 · deprecated inventory: [core-deprecated-inventory.md](../architecture/core-deprecated-inventory.md)
+코드 냄새를 정량적으로 파악하고 싶다면 `python3 ~/.agents/skills/tech-debt-analyzer/scripts/detect_code_smells.py packages scripts static tests --output markdown`으로 스캔합니다. 실제로 프로덕션에서 처리해야 할 마커는 `npm run check-debt-markers -- --production-only`로 확인하세요. tech-debt-analyzer가 `debug` 같은 키워드를 false positive로 잡는 경향이 있어 두 가지를 함께 보는 것이 좋습니다. 아키텍처 레벨의 변경은 graphify로 현황을 파악한 뒤 `$analyze`(read-only) 단계를 거쳐 리팩터 계획을 세우고, 필요하면 `gstack-plan-eng-review`로 검토를 요청하세요. 기술 부채 추적 이슈는 #593이고, deprecated API 목록은 [core-deprecated-inventory.md](../architecture/core-deprecated-inventory.md)에 있습니다.
 
 ## 대시보드 UI
 
-- `static/css/tokens.css` 디자인 토큰 우선 ([DESIGN.md](../DESIGN.md))
-- 리터럴 색·간격 값 지양
+UI를 손볼 때는 `static/css/tokens.css`에 정의된 디자인 토큰부터 확인하세요([DESIGN.md](../DESIGN.md) 참조). 색이나 간격 값을 리터럴로 박으면 테마 일관성이 깨집니다.
 
 ## Spec Kit · 이슈 격리 워크트리
 
-- **초기화됨**: `.specify/`, `specs/NNN-short-name/` (spec · plan · tasks)
-- **브랜치 생성**: `.specify/scripts/bash/create-new-feature.sh '설명' --short-name 'short-name'` (NNN 자동 부여)
-- **격리 작업**: `git worktree add -b NNN-name ../memento-issue-NNN main` → worktree에서 `npm install` → spec/plan/tasks → 구현 → PR (`Closes #이슈`)
-- **정리 순서**: `git worktree remove <worktree-path>` → `git branch -d NNN-name` → `git pull origin main` → `git fetch --prune origin`
-- **god node 분해** (#593 계열): public import·export 유지, 내부 composition sub-module(단일 파일 ≤500줄); 선행 spec green — monitoring: `performance-monitor.spec.ts`; relation: `relation-graph.spec.ts` + `relation-graph.integration.spec.ts`; memory: `semantic-memory-update-service.spec.ts`; search: `vector-search.repository.spec.ts` + `search-engine.spec.ts` + `search-engine-reflection-notes.spec.ts` + `006-fts5-reflection-notes.spec.ts`; agent-integration DB: `sqlite-agent-integration-repository.spec.ts` + `domains/agent-integration/`; 참조 오케스트레이터 (`performance-monitor.ts`, `relation-graph.ts`, `semantic-memory-update-service.ts`, `vector-search.repository.ts`, `search-engine.ts`, `sqlite-agent-integration-repository.ts`); search sub-dir `vector-search/`·`search-engine/`; infrastructure repo는 `*-store.ts`·`*-row-utils.ts`·`*-cursor-utils.ts`로 분해 (#610)
-- **scheduler god node** (#612): 오케스트레이터 `batch-scheduler.ts`·`triple-extraction-batch-job.ts`; helpers `batch-scheduler/`, run 본문 `handlers/`; 선행 spec — `infrastructure/scheduler/__tests__/batch-scheduler/` + `jobs/__tests__/triple-extraction-batch-job.spec.ts`
-- **infrastructure async·reflexion** (#615): `async-optimizer.ts`·`reflexion-procedural-memory-service.ts` re-export orchestrator; sub-dir `async-optimizer/`·`reflexion-procedural-memory-service/`; 참고 spec — `specs/037-infrastructure-refactor/`
+저장소에는 Spec Kit가 초기화되어 있어 `.specify/`와 `specs/NNN-short-name/`(spec·plan·tasks) 구조를 씁니다. 새 기능이나 이슈 작업을 시작할 때는 `.specify/scripts/bash/create-new-feature.sh '설명' --short-name 'short-name'`으로 브랜치와 spec 디렉터리를 한 번에 만드세요. NNN은 자동으로 부여됩니다.
+
+이슈를 격리해서 작업하려면 `git worktree add -b NNN-name ../memento-issue-NNN main`으로 워크트리를 만든 뒤, 그 경로에서 `npm install`을 실행해 의존성을 맞춥니다. 작업 흐름은 spec → plan → tasks → 구현 → PR(`Closes #이슈`) 순입니다. 작업이 끝나면 `git worktree remove <worktree-path>`로 먼저 연결을 끊고, 그 다음에 브랜치를 삭제해야 합니다. 순서가 바뀌면 로컬 브랜치 삭제에 실패합니다.
+
+대형 리팩터(god node 분해 #593 계열)는 public import·export를 그대로 두고 내부를 composition sub-module(단일 파일 ≤500줄)로 나눕니다. 선행 spec이 green인지 확인하고 시작하세요.
 
 ## PR·지식 복리
 
-- 커밋 시 Cursor `beforeShellExecution` 훅이 `revise-claude-md`로 `AGENTS.md`·`CLAUDE.md`를 갱신한 뒤 스테이징 (`.cursor/hooks.json` → `pre-commit-revise-claude-md.sh`; 스킵: `REVISE_CLAUDE_MD_SKIP=1`)
-- 이후 전역 훅: `npm run lint` / `test` / `build` → staged diff 리뷰 (`~/.cursor/hooks.json`)
+커밋할 때 `.cursor/hooks.json`에 설정된 `revise-claude-md` 훅이 `AGENTS.md`·`CLAUDE.md`를 자동으로 갱신·스테이징합니다. 이 훅을 건너뛰고 싶으면 `REVISE_CLAUDE_MD_SKIP=1` 환경변수를 설정하세요. 이후 전역 훅으로 `npm run lint` / `test` / `build`와 staged diff 리뷰가 이어집니다.
 
-- 재현 어려운 버그·운영 함정 해결 후 PR 준비 시 `/ce-compound` 제안 (검증 완료 후)
-- 해결 사례 경로: `docs/_work/solutions/` ([docs/README.md](../README.md))
-- PR 템플릿 「지식 복리」: [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)
-- 기여 절차: [CONTRIBUTING.md](../../CONTRIBUTING.md)
+재현이 어려운 버그나 운영 함정을 해결한 뒤 PR을 준비할 때는 `/ce-compound`를 제안받을 수 있습니다(검증 완료 후). 해결 사례는 `docs/_work/solutions/`에 남기고, PR 템플릿의 「지식 복리」 섹션을 채워 팀이 같은 함정에 다시 빠지지 않도록 하세요.
+
+관련 문서: [docs/README.md](../README.md) · [CONTRIBUTING.md](../../CONTRIBUTING.md) · [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)

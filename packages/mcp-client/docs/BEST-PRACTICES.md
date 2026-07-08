@@ -407,7 +407,7 @@ describe('Integration Tests', () => {
   
   beforeAll(async () => {
     client = new MementoClient({
-      serverUrl: 'http://localhost:8080'
+      serverUrl: 'http://localhost:9001'
     });
     await client.connect();
     manager = new MemoryManager(client);
@@ -476,7 +476,7 @@ const getClientConfig = () => {
   
   const configs = {
     development: {
-      serverUrl: 'http://localhost:8080',
+      serverUrl: 'http://localhost:9001',
       logLevel: 'debug' as const,
       timeout: 10000
     },

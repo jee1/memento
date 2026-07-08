@@ -1,12 +1,14 @@
 # Memento 문서 포털
 
-`docs/`는 **공식 문서**(사용자·개발자·운영)와 **내부 작업 문서**(`_work/`)로 나뉩니다. 분류 체계는 [docs-classification.md](docs-classification.md)를 참고하세요.
+Memento 문서는 **제품을 쓰는 사람**과 **제품을 만드는 사람**이 같은 저장소 안에서 길을 잃지 않도록 설계되어 있습니다. `docs/` 아래에는 설치부터 API, 배포까지 이어지는 **공식 문서**가 있고, 진행 중인 설계·리뷰·검증 기록은 **`_work/`** 에 모여 있습니다. 카테고리가 헷갈릴 때는 [docs-classification.md](docs-classification.md)를 보면, 각 폴더가 어떤 질문에 답하는지 정리되어 있습니다.
 
 ---
 
 ## Memento 사용하기
 
-MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입니다.
+Memento를 처음 켜 보려면, 아래 **시작하기** 문서부터 읽는 것이 가장 빠릅니다. Cursor나 Claude Desktop에 MCP를 연결하고 싶다면 설정 가이드를, 터미널에서 `recall`/`remember`를 쓰고 싶다면 CLI 가이드를 따라가면 됩니다. API 스펙이나 보안 모델이 필요해지면 **연동·레퍼런스**로 넘어가고, 멀티 에이전트·검색 튜닝처럼 특정 과제가 생겼을 때 **How-to**를 골라 읽으면 됩니다.
+
+저장소 루트의 [README.md](../README.md)와 [INSTALL.md](../INSTALL.md)는 제품 소개와 설치의 첫 관문입니다. AI 에이전트가 저장소 안에서 작업할 때는 [AGENTS.md](../AGENTS.md)와 [agents/](agents/README.md)가 상세 가이드 역할을 합니다.
 
 ### 시작하기
 
@@ -14,11 +16,12 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 |------|----|----|
 | 사용자 매뉴얼 | [user-manual.md](guides/ko/user-manual.md) | [user-manual.md](guides/en/user-manual.md) |
 | Cursor / MCP 설정 | [cursor-mcp-setup.md](guides/ko/cursor-mcp-setup.md) | [cursor-mcp-setup.md](guides/en/cursor-mcp-setup.md) |
-| Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | — |
-
-- **저장소 루트**: [README.md](../README.md), [README.en.md](../README.en.md), [GEMINI.md](../GEMINI.md), [AGENTS.md](../AGENTS.md) (상세: [agents/](agents/README.md))
+| Memento CLI for AI | [memento-cli-for-ai.md](guides/ko/memento-cli-for-ai.md) | [memento-cli-for-ai.md](guides/en/memento-cli-for-ai.md) |
+| type 파라미터 롤아웃 | [type-param-rollout.md](guides/ko/type-param-rollout.md) | [type-param-rollout.md](guides/en/type-param-rollout.md) |
 
 ### 연동·레퍼런스
+
+Memento를 다른 앱이나 에이전트에 붙일 때는, **무엇을 호출할 수 있는지**와 **어떻게 보호되는지**를 함께 봐야 합니다. API 레퍼런스와 보안 문서가 그 역할을 합니다. OpenClaw 같은 외부 비서와 연동하려면 [integrations/README.md](integrations/README.md)가 출발점입니다.
 
 | 문서 | KO | EN |
 |------|----|----|
@@ -30,22 +33,26 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 
 ### How-to
 
+아래 문서들은 **특정 문제를 풀 때** 읽는 가이드입니다. 예를 들어 여러 에이전트가 하나의 DB를 공유해야 한다면 멀티 에이전트 가이드를, recall이 느리다면 성능 튜닝 가이드를 열면 됩니다.
+
 | 주제 | KO | EN |
 |------|----|----|
 | 멀티 에이전트 | [multi-agent-usage.md](guides/ko/multi-agent-usage.md) | [multi-agent-usage.md](guides/en/multi-agent-usage.md) |
 | 관계 라벨링 | [relation-labeling-guide.md](guides/ko/relation-labeling-guide.md) | [relation-labeling-guide.md](guides/en/relation-labeling-guide.md) |
 | 앵커 연결 확인 | [how-to-check-anchor-connections.md](guides/ko/how-to-check-anchor-connections.md) | [how-to-check-anchor-connections.md](guides/en/how-to-check-anchor-connections.md) |
 | Recall 성능 튜닝 | [recall-performance-tuning.md](guides/ko/recall-performance-tuning.md) | [recall-performance-tuning.md](guides/en/recall-performance-tuning.md) |
+| 검색 품질 튜닝 | [search-quality-tuning.md](guides/ko/search-quality-tuning.md) | [search-quality-tuning.md](guides/en/search-quality-tuning.md) |
 | 마이그레이션 시스템 | [migration-system-guide.md](guides/ko/migration-system-guide.md) | [migration-system-guide.md](guides/en/migration-system-guide.md) |
-| MCP 서버 사용 지침 | [mcp-server-instructions.md](guides/ko/mcp-server-instructions.md) | — |
+| MCP 서버 사용 지침 | [mcp-server-instructions.md](guides/ko/mcp-server-instructions.md) | [mcp-server-instructions.md](guides/en/mcp-server-instructions.md) |
 | SDD 워크플로 | [sdd-workflow.md](guides/ko/sdd-workflow.md) | — |
+| 개인 지식 에이전트 (CLI·HTTP) | [personal-knowledge-agent-mvp.md](guides/ko/personal-knowledge-agent-mvp.md) | [personal-knowledge-agent-mvp.md](guides/en/personal-knowledge-agent-mvp.md) |
 | 기억 진화 데모 (시드·운영) | [evolution-demo.md](ko/evolution-demo.md) | — |
 
 ---
 
 ## Memento 개발·기여하기
 
-코어·서버·클라이언트를 **빌드·수정·배포**할 때 쓰는 공식 문서입니다.
+코드를 수정하거나 PR을 올릴 때는, **환경을 맞추는 방법**과 **아키텍처를 이해하는 방법**이 순서대로 필요합니다. [developer-guide.md](guides/ko/developer-guide.md)가 그 흐름을 한 번에 설명하고, [AGENTS.md](../AGENTS.md)는 에이전트·기여자가 매일 참고하는 운영 메모에 가깝습니다.
 
 ### 개발자 온보딩
 
@@ -54,10 +61,11 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 | 개발자 가이드 | [developer-guide.md](guides/ko/developer-guide.md) | [developer-guide.md](guides/en/developer-guide.md) |
 | DB 설계 명세 | [database-design.md](architecture/ko/database-design.md) | [database-design.md](architecture/en/database-design.md) |
 
-- **저장소 가이드**: [AGENTS.md](../AGENTS.md) — 워크스페이스, 빌드·테스트·DB 명령
-- **기타 가이드**: 임베딩 서비스·설정, 레거시 스크립트, 캐시 동기화 등은 [guides/ko/](guides/ko/) · [guides/en/](guides/en/)
+임베딩 설정, 캐시 동기화, 레거시 스크립트처럼 주제가 더 넓어지면 [guides/ko/](guides/ko/) · [guides/en/](guides/en/) 전체를 탐색하면 됩니다.
 
 ### 아키텍처·설계
+
+Memento가 **왜 이렇게 나뉘어 있는지**를 이해하려면 아키텍처 문서를 읽습니다. DB ERD와 비동기 보강 파이프라인, FTS5 마이그레이션 전략처럼 설계 결정이 드러나는 문서들이 여기에 모여 있습니다.
 
 - DB ERD: [KO](architecture/ko/database-erd.md) / [EN](architecture/en/database-erd.md) (영문은 KO 링크 안내)
 - 비동기 보강 파이프라인: [KO](architecture/ko/async-augmentation-pipeline.md) / [EN](architecture/en/async-augmentation-pipeline.md)
@@ -68,6 +76,8 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 - 아키텍처 결정 기록(ADR): [adr/](adr/)
 
 ### 운영·도구
+
+프로덕션에 올리거나 장애를 추적할 때는 **운영 문서**를 따릅니다. Docker 배포 전 DB 백업, 릴리스 절차, npx 트러블슈팅, 검토 큐 정리 같은 작업이 여기에 정리되어 있습니다.
 
 | 문서 | KO | EN |
 |------|----|----|
@@ -82,20 +92,19 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 
 ### 참조 (reference)
 
-- 코드베이스 분석·로깅·외부 API·마일스톤·수식 등: [reference/ko/](reference/ko/) · [reference/en/](reference/en/)
+로깅 형식, 보안 수칙, 마일스톤, 검색 수식처럼 **한 번 찾아두고 다시 보는** 자료는 [reference/ko/](reference/ko/) · [reference/en/](reference/en/)에 있습니다.
 
 ### 명세·태스크 (저장소 루트)
 
-- [specs/](../specs/) — 기능별 명세(Spec Kit 등)
-- [tasks/](../tasks/) — PRD·작업 목록 ([tasks/README.md](../tasks/README.md))
+기능 단위 설계와 작업 목록은 루트 [specs/](../specs/)와 [tasks/](../tasks/)에 있습니다. Spec Kit으로 진행하는 이슈는 `specs/0NN-<slug>/` 패턴을 따릅니다.
 
 ### 블로그
 
-- [blog/](blog/)
+비정기 회고와 공지는 [blog/](blog/)에 올라갑니다.
 
 ### 내부 작업 문서 (`docs/_work/`)
 
-계획·설계 초안·코드 리뷰·검증 보고·품질 시나리오 등 **기여·자동화 작업용** 산출물입니다. 최종 사용자가 반드시 읽을 필요는 없습니다.
+`_work/`는 **아직 제품 문서로 굳지 않은** 산출물의 보관함입니다. 이슈별 계획, 코드 리뷰 초안, 검증 보고, 품질 시나리오가 시간순으로 쌓입니다. 최종 사용자가 꼭 읽을 필요는 없지만, 기여자와 에이전트가 맥락을 이어 붙일 때 자주 참조합니다.
 
 | 경로 | 설명 |
 |------|------|
@@ -113,4 +122,4 @@ MCP·CLI·대시보드를 **설치·연동·운영**할 때 필요한 문서입�
 
 ---
 
-*공식 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/` 등에서 언어별 `ko/`·`en/` 하위를 기본으로 합니다. `_work/`는 작업 문서이며 하위에 `ko/`·`en/`가 혼재할 수 있습니다.*
+공식 문서는 `guides/`, `architecture/`, `api/`, `operations/`, `reference/` 아래 **언어별 `ko/`·`en/`** 폴더를 기본으로 합니다. `_work/`는 작업 문서라 경로마다 언어 배치가 다를 수 있습니다. 새 문서를 쓸 때는 [docs-classification.md](docs-classification.md)의 **네러티브 문체** 지침을 따르는 것을 권장합니다.

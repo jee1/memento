@@ -1,15 +1,14 @@
 # Transports
 
-Memento는 두 가지 transport로 동일한 MCP 도구 세트를 노출합니다.
+Memento는 **stdio**와 **HTTP** 두 경로로 같은 MCP 도구 세트를 노출합니다. stdio는 비서가 `memento-mcp-server`를 자식 프로세스로 띄워 파이프로 통신하는 방식이고, HTTP는 Memento를 별도 서비스로 두고 `/mcp`에 Bearer 토큰으로 접속하는 방식입니다.
 
-- **stdio**: 비서가 `memento-mcp-server`를 자식 프로세스로 spawn해서 stdin/stdout으로 통신. 단일 머신, 5분 셋업.
-- **HTTP**: Memento를 별도 프로세스(또는 컨테이너)로 띄우고 비서는 `/mcp` 엔드포인트로 접속. 멀티 디바이스, Bearer 토큰 인증.
-
-이 문서는 **어느 트랙을 쓸지 결정**하고 **각 트랙을 띄우는 1줄 명령**까지만 다룹니다. 토큰 관리·시스템 프롬프트·트러블슈팅은 별도 문서를 참조하세요.
+이 문서는 **어느 쪽을 쓸지 정한 뒤 한 줄로 기동하는 것**까지만 다룹니다. 토큰·프롬프트·장애 대응은 [auth.md](./auth.md), [system-prompt.md](./system-prompt.md), [troubleshooting.md](./troubleshooting.md)를 이어서 읽으세요.
 
 ---
 
 ## 트랙 결정
+
+헷갈리면 stdio로 시작했다가 두 번째 기기가 생기면 HTTP로 옮기는 흐름이 가장 흔합니다. 데이터 이전은 [§ 트랙 전환 / 마이그레이션](#트랙-전환--마이그레이션)을 참고하세요.
 
 | 상황 | 권장 트랙 | 이유 |
 |---|---|---|
@@ -19,8 +18,6 @@ Memento는 두 가지 transport로 동일한 MCP 도구 세트를 노출합니�
 | 비서가 컨테이너 안에서 돌고 SQLite를 마운트하기 어려움 (예: NanoClaw) | **HTTP** | 컨테이너는 호스트의 Memento에 HTTP로만 접근 |
 | HTTPS·외부 노출이 필요 (집 밖에서 접속) | **HTTP** + reverse proxy | stdio는 같은 머신 한정 |
 | 빠르게 한 번 시험해 보고 싶음 | **stdio** | `npx` 한 줄로 끝 |
-
-> 헷갈리면 **stdio로 시작 → 두 번째 디바이스가 생기면 HTTP로 전환**하는 흐름이 가장 흔합니다. 데이터 마이그레이션은 [§ 트랙 전환 / 마이그레이션](#트랙-전환--마이그레이션)에서 다룹니다.
 
 ---
 

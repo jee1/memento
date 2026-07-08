@@ -30,13 +30,15 @@ The goal is not to make AI "pretend to remember." It's to make AI an **agent tha
 
 ### 📦 Monorepo Structure
 
-This repository is an **npm workspaces** monorepo.
+This repository is an **npm workspaces** monorepo. `@memento/core` holds domain logic, the database, and MCP tools; `memento-server` exposes them over stdio and HTTP. Use `@memento/client` for REST from your apps, `@memento/assistant` to wire external assistants, and `@memento/agent-integration` for session and provenance contracts. Experiments live under `apps/`.
 
 | Path | Description |
 |------|-------------|
 | **packages/memento-core** (`@memento/core`) | Domain, infrastructure, and shared library. Entry points: `createMementoCore`, `createToolContext`, `getToolRegistry`, `closeDatabase`. DB init and migration run from the root via `npm run db:init` / `npm run db:migrate`. |
 | **packages/memento-server** | MCP/HTTP server built on core. Run via root `npm run dev`, `npm start`, `npm run dev:http`, etc. |
 | **packages/memento-client** (`@memento/client`) | Client library for connecting to the server. |
+| **packages/memento-assistant** (`@memento/assistant`) | SDK for external AI assistants (recall/remember). |
+| **packages/memento-agent-integration** (`@memento/agent-integration`) | Agent integration contracts and adapters. |
 | **apps/** | Experimental apps (e.g., `experimental-example` uses `@memento/core` in-process). |
 
 For detailed structure, build, and test commands, see [AGENTS.md](AGENTS.md).
@@ -125,7 +127,7 @@ After `npm run build`:
 #### HTTP MCP mode (shared multi-agent server)
 
 ```bash
-npm run build && npm run start:http   # default port: 8080
+npm run build && npm run start:http   # default port: 9001 (matches env.example and Docker)
 ```
 
 ```json
@@ -133,7 +135,7 @@ npm run build && npm run start:http   # default port: 8080
   "mcpServers": {
     "memento": {
       "type": "http",
-      "url": "http://127.0.0.1:8080/mcp"
+      "url": "http://127.0.0.1:9001/mcp"
     }
   }
 }
@@ -176,7 +178,7 @@ await client.connect({
 await client.connect({
   transport: {
     type: "http",
-    url: "http://127.0.0.1:7777"
+    url: "http://127.0.0.1:9001/mcp"
   }
 });
 ```
@@ -212,7 +214,7 @@ const results = await client.callTool({
 import { MementoClient } from "@memento/client";
 
 const client = new MementoClient({
-  serverUrl: "http://localhost:8080",
+  serverUrl: "http://localhost:9001",
   apiKey: "your-api-key"
 });
 
@@ -239,7 +241,7 @@ await client.forget(result.memory_id);
 
 ### Core Memory Management (MCP Client)
 
-14 tools are exposed via MCP. Operational functions (anchor restore, embedding migration, episodic→semantic conversion, meta stats) are HTTP API only.
+22 tools are exposed via MCP. Operational functions (anchor restore, embedding migration, episodic→semantic conversion, meta stats) are HTTP API only.
 
 - **Memory storage**: `working`, `episodic`, `semantic`, `procedural` types
 - **Memory search**: Hybrid search (FTS5 text + vector)
@@ -294,15 +296,16 @@ http://localhost:9001/graph
 
 ## 📋 API Reference
 
-### MCP Tools (Core 14)
+### MCP Tools (Core 22)
 
-> **Important**: MCP client exposes 14 core memory management functions. Operational functions are exposed through the HTTP Management API below, not through MCP.
+> **Important**: MCP exposes 22 core memory, relation, and telemetry tools. Operational functions (anchor restore, embedding migration, episodic→semantic conversion, meta memory stats) are HTTP API only.
 
-#### Basic Memory Management (7)
+#### Basic Memory Management (8)
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `remember` | Store memory | content, type, tags, importance, source, privacy_scope |
 | `recall` | Search memory | query, filters, limit |
+| `feedback` | helpful/not_helpful feedback on recall results | memory_id, helpful |
 | `pin` | Pin memory | memory_id |
 | `unpin` | Unpin memory | memory_id |
 | `forget` | Delete memory | memory_id, hard |
@@ -323,6 +326,21 @@ http://localhost:9001/graph
 | `remember_procedure` | Store procedural memory | content, workflow_name, skill_name, steps, etc. |
 | `procedural_diff` | Compare procedural memory versions | left_id, right_id |
 | `procedural_rollback` | Roll back procedural memory to a previous version | current_id, target_version_id |
+
+#### Relations & Knowledge Graph (4)
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `extract_triples` | Extract SPO triples from text | content or messages |
+| `add_relation` | Add relation between memories | source_id, target_id, relation_type |
+| `get_relations` | List relations | memory_id, etc. |
+| `remove_relation` | Remove relation | relation_id |
+
+#### Quality & Export (3)
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_introspection_summary` | Low-confidence / high-failure memory summary | — |
+| `get_telemetry_summary` | Search and memory quality telemetry | period |
+| `export_memories` | Export memories | filters, etc. |
 
 **HTTP-only (not MCP)**: `restore_anchors`, `migrate_embeddings`, `convert_episodic_to_semantic`, `get_meta_memory_stats` — see HTTP Management API below.
 
@@ -362,7 +380,7 @@ http://localhost:9001/graph
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NODE_ENV` | development | Runtime environment |
-| `PORT` / `MCP_SERVER_PORT` | 3000 (code default) | HTTP/MCP server port (env.example recommends 8080) |
+| `PORT` / `MCP_SERVER_PORT` | 9001 (http-server fallback) | HTTP/MCP server port (`env.example` and Docker recommend 9001) |
 | `DB_PATH` | ./data/memory.db | Database path |
 | `LOG_LEVEL` | info | Log level |
 | `OPENAI_API_KEY` | - | OpenAI API key (optional) |
@@ -447,7 +465,7 @@ npm run test -- --coverage
 
 Memento is designed to grow: from a personal local server, through team collaboration, to an organization-scale memory platform.
 
-**M1: Personal (current)** — the form you can use today. SQLite embedded, FTS5 + sqlite-vec indexes, local execution. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key). 14 MCP tools, management functions separated into HTTP API.
+**M1: Personal (current)** — the form you can use today. SQLite embedded, FTS5 + sqlite-vec indexes, local execution. **Authentication**: Split browser-session and header-based trust model (`/auth/session` cookie flow, `/admin`·`/api` require browser session, `/tools`·`/mcp` require Bearer/API-Key). 22 MCP tools, management functions separated into HTTP API.
 
 **M2: Team (planned)** — SQLite server mode, API Key auth, Docker single container. Multiple teammates share one memory backend.
 

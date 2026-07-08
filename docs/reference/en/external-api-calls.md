@@ -1,6 +1,8 @@
 # External API call list
 
-This document identifies external API calls in the codebase and their priority. For the full list and update instructions, see the [Korean version](../ko/external-api-calls.md).
+This inventory lists **outbound HTTP/API calls** from memento-core and memento-server (OpenAI, Gemini, Ollama, etc.) with priority for compliance and outage planning. Regenerate JSON snapshots when providers or endpoints change.
+
+Full categorized list and maintenance notes (KO): [external-api-calls.md (KO)](../ko/external-api-calls.md).
 
 ## Updating the list
 

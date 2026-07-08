@@ -2,28 +2,13 @@
 
 ## 개요
 
-Memento MCP Server는 Model Context Protocol (MCP)을 통해 AI Agent와 통신합니다. 이 문서는 제공되는 모든 Tools, Resources, Prompts에 대한 상세한 API 참조를 제공합니다.
+Memento는 **Model Context Protocol(MCP)** 을 통해 AI 에이전트와 대화합니다. 에이전트는 `remember`·`recall` 같은 **Tools**로 기억을 쓰고 읽고, 필요하면 **Resources**로 단일 기억이나 검색 결과를 가져옵니다. 이 문서는 그 계약 전체를 한곳에 모아 둔 레퍼런스입니다.
+
+처음 통합한다면 [사용자 매뉴얼](../guides/ko/user-manual.md)과 [Cursor MCP 설정](../guides/ko/cursor-mcp-setup.md)으로 서버를 띄운 뒤, 여기서는 **호출 형태와 파라미터**만 확인하면 됩니다. HTTP 관리 API(`/admin/*`, `/tools/*`)는 브라우저 세션·API 키 경계가 다르므로 [보안 문서](../reference/ko/security.md)와 함께 보세요.
 
 ## 🔄 경량 하이브리드 임베딩
 
-### 경량 임베딩 서비스
-
-OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
-
-**특징:**
-- **TF-IDF + 키워드 매칭**: 512차원 고정 벡터 생성
-- **다국어 지원**: 한국어/영어 불용어 제거 및 텍스트 전처리
-- **코사인 유사도**: 벡터 간 유사도 계산을 통한 검색
-- **투명한 인터페이스**: 기존 임베딩 API와 동일한 인터페이스 제공
-
-**자동 Fallback:**
-- `EmbeddingService`에서 OpenAI API 실패 시 자동으로 경량 서비스로 전환
-- 기존 코드 변경 없이 투명하게 작동
-
-**성능 특성:**
-- **빠른 처리**: 로컬 TF-IDF 계산으로 빠른 응답
-- **메모리 효율**: 사전 학습된 모델 없이 가벼운 구현
-- **정확도**: 키워드 기반 검색에 특화된 정확도
+OpenAI 등 클라우드 API를 쓰지 않거나 장애가 났을 때, Memento는 **TF-IDF 기반 경량 임베딩**으로 자동 전환할 수 있습니다. `EmbeddingService` 인터페이스는 그대로이므로 호출 코드를 바꿀 필요는 없습니다. 경량 모드는 512차원 벡터·한영 불용어 처리·코사인 유사도 검색을 제공하며, OpenAI 호출 실패 시 투명하게 폴백합니다. 처리 속도는 빠르고 메모리 footprint는 작지만, 의미 검색보다는 키워드에 가깝습니다.
 
 ### 성능 모니터링 Tools
 
@@ -154,45 +139,28 @@ OpenAI API가 없을 때 사용하는 fallback 솔루션입니다.
 }
 ```
 
-## MCP Tools (핵심 도구)
+## MCP Tools (핵심 22개)
 
-> **핵심 원칙**: AI Agent가 직접 사용하는 핵심 기능만 노출  
-> **중요**: 관리/운영성 기능(앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 변환, 메타 메모리 통계)은 HTTP API로만 제공됩니다.  
-> 자세한 내용은 [관리자 API](#관리자-api) 섹션을 참조하세요.
+MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는** 기억·관계·품질 API입니다. 앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 일괄 변환, 메타 통계처럼 **운영·배치 성격**은 HTTP [관리자 API](#관리자-api)에만 있습니다. 아래 목록은 카테고리별 색인이며, 각 도구의 파라미터·예시는 이어지는 절을 보세요.
 
-### 1. 핵심 메모리 관리 도구 (5개)
+### 메모리 (8)
+`remember`, `recall`, `feedback`, `forget`, `pin`, `unpin`, `get_memory_neighbors`, `memory_injection`
 
-1. **remember** - 기억 저장
-2. **recall** - 기억 검색
-3. **forget** - 기억 삭제
-4. **pin** - 기억 고정
-5. **unpin** - 기억 고정 해제
+### 앵커 (4)
+`set_anchor`, `get_anchor`, `search_local`, `clear_anchor`
 
-### 2. 고급 메모리 기능 (2개)
+### 절차 (3)
+`remember_procedure`, `procedural_diff`, `procedural_rollback`
 
-6. **get_memory_neighbors** - 유사한 기억 조회
-7. **memory_injection** - 관련 기억을 컨텍스트에 주입 (Prompt)
+### 관계 (4)
+`extract_triples`, `add_relation`, `get_relations`, `remove_relation`
 
-### 3. 앵커 시스템 도구 (4개)
-
-8. **set_anchor** - 기억을 앵커로 설정
-9. **get_anchor** - 현재 앵커 조회
-10. **search_local** - 앵커 주변 검색
-11. **clear_anchor** - 앵커 제거
-
-### 4. 절차 기억·고급 도구 (3개)
-
-12. **remember_procedure** - 절차 기억 저장 (workflow_name, skill_name, steps 등)
-13. **procedural_diff** - 절차 기억 버전 간 차이 비교
-14. **procedural_rollback** - 절차 기억 이전 버전으로 복원
-
-### 5. 관계·트리플 (1개)
-
-15. **extract_triples** - 대화·본문 텍스트에서 트리플을 추출하고, 선택한 항목만 지식 그래프에 저장합니다.
+### 품질·보내기 (3)
+`get_introspection_summary`, `get_telemetry_summary`, `export_memories`
 
 ### remember
 
-기억을 저장하는 도구입니다.
+새 기억을 저장합니다. `type`으로 working/episodic/semantic/procedural 층을 지정하고, v1.18+에서는 `type` 생략 시 호출이 거절됩니다. 저장 직후 임베딩·관계 추출이 비동기로 이어질 수 있습니다.
 
 #### 파라미터
 
@@ -245,7 +213,7 @@ const result = await client.callTool('remember', {
 
 ### recall
 
-기억을 검색하는 도구입니다.
+자연어 `query`로 하이브리드 검색(FTS5 + 벡터)을 실행합니다. `type` 또는 `memory_types`로 층을 좁히고, `owner_id`·`project_id`·태그·시간 필터를 조합할 수 있습니다. 작업 전 맥락 수집에는 `memory_injection`과 함께 쓰는 경우가 많습니다.
 
 #### 파라미터
 
@@ -306,9 +274,37 @@ const result = await client.callTool('recall', {
 });
 ```
 
+### feedback
+
+`recall`로 가져온 기억이 실제로 도움이 되었는지 기록합니다. 검색 랭킹·품질 텔레메트리 개선에 쓰이므로, 에이전트가 recall 직후 비동기로 `helpful: true|false`를 남기는 패턴을 권장합니다. 선택적으로 `score_breakdown` 스냅샷·코멘트를 함께 넘길 수 있습니다.
+
+#### 파라미터
+
+```typescript
+interface FeedbackParams {
+  memory_id: string;                // 피드백 대상 기억 ID (필수)
+  helpful: boolean;                 // true=도움됨, false=도움 안 됨 (필수)
+  comment?: string;                 // 선택 코멘트 (최대 4096자)
+  score?: number;                   // 선택 점수
+  score_breakdown?: object;         // recall 항목의 score_breakdown 스냅샷 (JSON, 크기 상한 있음)
+  session_id?: string;              // 세션 식별자 (선택)
+  agent_id?: string;                // 에이전트 식별자 (선택)
+}
+```
+
+#### 사용 예시
+
+```typescript
+await client.callTool('feedback', {
+  memory_id: 'mem_abc123',
+  helpful: true,
+  comment: '이전 JWT 만료 처리 절차와 일치함'
+});
+```
+
 ### get_memory_neighbors
 
-특정 기억과 유사한 이웃 기억을 조회하는 도구입니다. 벡터 유사도를 기반으로 의미적으로 유사한 기억들을 자동으로 찾아 추천합니다.
+`recall` 결과 한 건을 기준으로, 벡터 유사도가 높은 이웃 기억을 더 찾고 싶을 때 씁니다. `similarity_threshold`로 노이즈를 줄이고, 그래프 탐색 전에 "비슷한 맥락"을 빠르게 확장하는 용도에 맞습니다.
 
 #### 파라미터
 
@@ -364,7 +360,7 @@ result.neighbors.forEach(neighbor => {
 
 ### pin / unpin
 
-기억을 고정하거나 고정 해제하는 도구입니다.
+`pin`은 망각 정책에서 제외하고 검색 우선순위를 올립니다. `unpin`은 고정을 해제합니다. 둘 다 `memory_id` 하나면 됩니다.
 
 #### pin 파라미터
 
@@ -408,7 +404,7 @@ const result = await client.callTool('unpin', {
 
 ### forget
 
-기억을 삭제하는 도구입니다.
+기억을 삭제합니다. 기본은 소프트 삭제(`hard: false`)이며, `hard: true`면 복구가 어려운 물리 삭제에 가깝게 동작합니다.
 
 #### 파라미터
 
@@ -446,7 +442,7 @@ const result = await client.callTool('forget', {
 
 ### set_anchor
 
-기억을 앵커로 설정하여 컨텍스트 관리를 하는 도구입니다.
+긴 작업 흐름에서 "지금의 중심 기억"을 슬롯 A(즉시)·B(보조)·C(확장)에 고정합니다. 앵커를 잡아 두면 `search_local`이 해당 지점 주변과 관계 그래프를 따라 국소 검색을 이어갈 수 있습니다.
 
 #### 파라미터
 
@@ -488,7 +484,7 @@ const result = await client.callTool('set_anchor', {
 
 ### get_anchor
 
-현재 설정된 앵커를 조회하는 도구입니다.
+에이전트별로 어떤 기억이 슬롯 A/B/C에 고정돼 있는지 확인합니다. `slot`을 생략하면 세 슬롯 전체를 한 번에 봅니다.
 
 #### 파라미터
 
@@ -538,7 +534,7 @@ const result = await client.callTool('get_anchor', {});
 
 ### search_local
 
-앵커 주변의 기억을 검색하는 도구입니다.
+전역 `recall` 대신, 이미 고정한 앵커를 출발점으로 hop·관계 그래프(`use_relations`)를 따라 좁은 범위를 검색합니다. 맥락이 길어졌을 때 "지금 주제 주변만" 다시 읽을 때 유용합니다.
 
 #### 파라미터
 
@@ -585,7 +581,7 @@ const result = await client.callTool('search_local', {
 
 ### clear_anchor
 
-앵커를 제거하는 도구입니다.
+작업이 끝나거나 주제가 바뀌면 슬롯별·전체 앵커를 해제합니다. `slot`을 생략하면 해당 `agent_id`의 모든 슬롯을 비웁니다.
 
 #### 파라미터
 
@@ -1139,9 +1135,8 @@ POST /admin/database/optimize
 
 - `hybrid_search` - 하이브리드 검색 (기본 `recall`로 대체)
 - `summarize_thread` - 세션 요약 (향후 구현 예정)
-- `link` - 기억 관계 생성 (향후 구현 예정)
-- `export` - 기억 내보내기 (향후 구현 예정)
-- `feedback` - 피드백 제공 (향후 구현 예정)
+- `link` - 기억 관계 생성 (부분 대체: `add_relation` / `get_relations` / `remove_relation`)
+- `export` - 기억보내기 (대체: `export_memories` MCP 도구)
 - `apply_forgetting_policy` - 망각 정책 적용 (HTTP API로 이동)
 - `schedule_review` - 리뷰 스케줄링 (HTTP API로 이동)
 - `get_performance_metrics` - 성능 메트릭 조회 (HTTP API로 이동)
@@ -1221,7 +1216,7 @@ interface SearchResource {
 
 ### memory_injection
 
-AI Agent의 컨텍스트에 관련 기억을 주입하는 프롬프트입니다.
+작업 전 맥락을 한 덩어리로 모을 때 씁니다. MCP **도구** `memory_injection`은 토큰 예산 안에서 관련 기억 요약을 반환하고, 아래 스키마는 동일 이름의 **프롬프트**(`getPrompt`) 호출 예시입니다. 실무에서는 도구 호출이 더 흔합니다.
 
 #### 파라미터
 

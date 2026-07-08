@@ -1,6 +1,6 @@
 # Memento Agent Guidelines (Master Guide)
 
-에이전트 가이드 **진입점**입니다. 상세는 [docs/agents/](./docs/agents/README.md)에 분리되어 있으며, **Karpathy 코딩 행동 지침(§4)은 이 파일에 유지**합니다. `CLAUDE.md`·`GEMINI.md`는 여기를 가리킵니다.
+이 파일은 Memento 저장소에서 일하는 **사람과 AI 에이전트**가 공통으로 참조하는 진입점입니다. 패키지 구조·npm 명령·MCP 워크플로 같은 상세는 [docs/agents/](./docs/agents/README.md)로 나뉘어 있고, **코딩 행동 지침(§4)** 은 여기에만 둡니다. `CLAUDE.md`·`GEMINI.md`도 이 문서를 가리킵니다.
 
 | 문서 | 내용 |
 |------|------|
@@ -12,12 +12,11 @@
 
 ## 1. 프로젝트 개요
 
-Memento는 AI 에이전트용 MCP 메모리 서버입니다.
-- **메모리**: Working (48h), Episodic (90d), Semantic/Procedural (∞)
-- **스택**: Node.js ≥24, TypeScript, SQLite, Vitest
-- **기능**: 하이브리드 검색(FTS5+Vector), 망각 정책, 다중 임베딩
+Memento는 AI 에이전트가 **대화가 끝난 뒤에도 맥락을 잃지 않도록** 돕는 MCP 메모리 서버입니다. 기억은 working(48h), episodic(90d), semantic·procedural(무기한) 네 층으로 나뉘고, FTS5와 벡터를 함께 쓰는 하이브리드 검색·망각 정책·다중 임베딩으로 운영됩니다. 스택은 Node.js ≥24, TypeScript, SQLite, Vitest입니다.
 
 ## 2. 빠른 시작
+
+저장소에 처음 들어왔다면, 의존성 설치와 빌드·테스트를 한 번에 돌려 본 뒤 개발 모드를 켜면 됩니다.
 
 ```bash
 npm install && npm run build && npm test
@@ -26,15 +25,13 @@ npm run dev:http     # HTTP 관리
 npm run lint && npm run type-check  # 커밋 전 필수
 ```
 
-전체 명령·환경: [commands.md](./docs/agents/commands.md) · 구조: [architecture.md](./docs/agents/architecture.md)
+명령 전체와 Docker·DB 운영은 [commands.md](./docs/agents/commands.md)에, 패키지·도메인 구조는 [architecture.md](./docs/agents/architecture.md)에 정리되어 있습니다.
 
 ## 3. 에이전트 필수 습관
 
-- 작업 전 `recall`/`memory_injection`, 후 `remember`
-- 아키텍처 질문 전 `graphify-out/GRAPH_REPORT.md` 확인; 코드 수정 후 graphify 재빌드
-- 커밋 전 `lint`, `type-check`, `test`
+Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다. **코드를 고치는** 에이전트는 구조를 추측하기 전에 `graphify-out/GRAPH_REPORT.md`를 보고, 수정 후 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
 
-상세: [agent-workflow.md](./docs/agents/agent-workflow.md)
+상세 워크플로: [agent-workflow.md](./docs/agents/agent-workflow.md)
 
 ## 3.1 Gotchas
 

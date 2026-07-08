@@ -2,13 +2,11 @@
 
 Memento is an MCP (Model Context Protocol) server designed for AI agents to store and retrieve information across conversations and work sessions. An agent can save important decisions, technical knowledge, and in-progress context to Memento, then recover that continuity in later sessions using `recall` or `memory_injection`.
 
-This manual covers everyone from first-time installers to developers integrating programmatically through the HTTP client.
+This manual covers everyone from first-time installers to developers integrating programmatically through the HTTP client. Work through **Getting Started** for install and MCP wiring, then the later sections for memory types, tools, and the dashboard.
 
 ## Getting Started
 
-### Installation
-
-Clone the repository, install dependencies, and build.
+To run from a local clone, install dependencies and build the repository.
 
 ```bash
 git clone https://github.com/jee1/memento.git
@@ -107,7 +105,7 @@ The CLI equivalent looks like this:
 memento remember "React Hook usage patterns" --type semantic --tags "react,hooks,programming"
 ```
 
-For full CLI documentation, see the [Memento CLI for AI Guide](../ko/memento-cli-for-ai.md).
+For full CLI documentation, see the [Memento CLI for AI Guide](./memento-cli-for-ai.md).
 
 ## Understanding Memory Types
 

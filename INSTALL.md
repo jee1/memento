@@ -6,6 +6,8 @@
 
 AI Agent 기억 보조 MCP 서버의 다양한 설치 방법을 제공합니다.
 
+Memento를 설치하는 방법은 **얼마나 빨리 써 보고 싶은지**, **어디까지 직접 제어하고 싶은지**에 따라 달라집니다. 가장 빠른 길은 원클릭 스크립트이고, 패키지만 받아 바로 실행하려면 npx, 팀 배포와 격리가 필요하면 Docker, 코드까지 수정하려면 소스 클론이 맞습니다. 아래 순서대로 시도해 보시면 됩니다.
+
 ## 📋 설치 방법 선택
 
 ### 🥇 **1순위: 원클릭 설치 (권장)**
@@ -45,17 +47,7 @@ npm run quick-start
 
 ## 🎯 사용자별 권장 설치 방법
 
-### 👨‍💻 **개발자/연구자**
-- **npx 방식** 또는 **소스코드 방식** 권장
-- 빠른 프로토타이핑과 디버깅에 최적화
-
-### 👤 **일반 사용자**
-- **원클릭 설치** 또는 **Docker 방식** 권장
-- 간단한 설치와 안정적인 실행
-
-### 🏢 **팀/조직**
-- **Docker 방식** 필수
-- 표준화된 배포와 확장성
+**개발자·연구자**는 npx나 소스 방식이 디버깅에 유리합니다. **일반 사용자**는 원클릭 설치나 Docker로 충분한 경우가 많고, **팀·조직**은 Docker로 환경을 표준화하는 편이 안전합니다.
 
 ## 📚 상세 설치 방법
 
@@ -252,10 +244,10 @@ npm run regenerate:embeddings # 임베딩 재생성
 
 설치 완료 후 다음 주소로 접속할 수 있습니다:
 
-- **MCP 서버**: `stdio` 또는 `ws://localhost:8080/mcp`
-- **HTTP API**: `http://localhost:8080`
-- **WebSocket**: `ws://localhost:8080`
-- **관리 대시보드**: `http://localhost:8080/admin`
+- **MCP 서버**: `stdio` 또는 `http://localhost:9001/mcp`
+- **HTTP API**: `http://localhost:9001`
+- **WebSocket**: `ws://localhost:9001`
+- **관리 대시보드**: `http://localhost:9001/dashboard`
 
 ## 🎯 Cursor MCP 설정
 
@@ -278,7 +270,7 @@ Cursor에서 Memento MCP Server를 사용하려면:
   "mcpServers": {
     "memento": {
       "command": "node",
-      "args": ["C:\\Users\\YOUR_USERNAME\\git\\memento\\dist\\server\\index.js"]
+      "args": ["C:\\Users\\YOUR_USERNAME\\git\\memento\\packages\\memento-server\\dist\\server\\index.js"]
     }
   }
 }
@@ -358,25 +350,25 @@ npx memento-mcp-server@latest dev
 
 #### 2. Node.js 버전 오류
 ```bash
-# Node.js 20 이상 필요
+# Node.js 24 이상 필요 (package.json engines: >=24)
 node --version
 
 # nvm으로 Node.js 설치 (Linux/macOS)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 20
-nvm use 20
+nvm install 24
+nvm use 24
 
 # Windows에서 nvm 사용
 # nvm-windows 설치: https://github.com/coreybutler/nvm-windows
-nvm install 20
-nvm use 20
+nvm install 24
+nvm use 24
 ```
 
 #### 3. 포트 충돌
 ```bash
-# 포트 8080이 사용 중인 경우
-# .env 파일에서 PORT 변경
-PORT=8081
+# 포트 9001이 사용 중인 경우
+# .env 파일에서 PORT / MCP_SERVER_PORT 변경
+PORT=9002
 ```
 
 #### 4. 데이터베이스 오류
@@ -405,8 +397,8 @@ npm rebuild better-sqlite3 sqlite-vec
 # 방법 2: 소스에서 빌드
 npm install better-sqlite3 sqlite-vec --build-from-source
 
-# 방법 3: Node.js 버전 확인 및 변경 (20.x 권장)
-node --version  # 20.x 이상이어야 함
+# 방법 3: Node.js 버전 확인 및 변경 (24.x 권장)
+node --version  # 24.x 이상이어야 함
 
 # 방법 4: 완전 재설치
 rm -rf node_modules package-lock.json
@@ -449,7 +441,7 @@ journalctl -u memento-mcp-server -f
 
 설치가 완료되면 다음 단계를 진행하세요:
 
-1. **서버 상태 확인**: `http://localhost:8080/health`
+1. **서버 상태 확인**: `http://localhost:9001/health`
 2. **MCP 클라이언트 연결**: [클라이언트 가이드](packages/mcp-client/README.md)
 3. **API 테스트**: [API 문서](docs/api/ko/api-reference.md)
 4. **사용법 학습**: [사용자 매뉴얼](docs/guides/ko/user-manual.md)

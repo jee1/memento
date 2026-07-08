@@ -1,12 +1,15 @@
 # 기여하기 (Contributing)
 
-Memento MCP Server 프로젝트에 기여해주셔서 감사합니다! 이 문서는 프로젝트에 기여하는 방법을 안내합니다.
+Memento에 기여해 주셔서 감사합니다. 이 문서는 **처음 PR을 올리는 사람**이 어디서부터 손대면 되는지, 버그·기능·문서 기여 시 무엇을 적어야 하는지를 안내합니다. 개발 환경은 [developer-guide.md](docs/guides/ko/developer-guide.md)와 [AGENTS.md](AGENTS.md)가 더 깊게 다룹니다.
 
 ## 🚀 빠른 시작
 
+GitHub에서 [memento 저장소](https://github.com/jee1/memento)를 포크한 뒤 로컬에 클론하고, 의존성을 설치한 다음 개발 서버와 테스트를 한 번 돌려 보면 준비가 끝납니다.
+
 ### 1. 저장소 포크
-1. GitHub에서 [memento 저장소](https://github.com/jee1/memento)를 포크합니다.
-2. 포크한 저장소를 로컬에 클론합니다:
+
+1. GitHub에서 저장소를 포크합니다.
+2. 포크한 저장소를 클론합니다:
    ```bash
    git clone https://github.com/your-username/memento.git
    cd memento
@@ -27,45 +30,29 @@ npm run test
 ## 📋 기여 방법
 
 ### 버그 리포트
-버그를 발견하셨나요? 다음 정보를 포함하여 이슈를 생성해주세요:
-- **버그 설명**: 무엇이 잘못되었는지 명확한 설명
-- **재현 단계**: 버그를 재현하는 단계별 방법
-- **예상 동작**: 어떻게 동작해야 하는지
-- **실제 동작**: 실제로 어떻게 동작하는지
-- **환경 정보**: OS, Node.js 버전, 브라우저 등
+
+버그를 발견했다면 GitHub Issue에 **무엇이 기대와 다른지**, **어떻게 재현하는지**, **어떤 환경인지**를 적어 주세요. 재현 단계는 numbered list로, 환경은 OS·Node.js 버전 정도면 충분합니다.
 
 ### 기능 제안
-새로운 기능을 제안하고 싶으신가요? 다음을 포함해주세요:
-- **기능 설명**: 어떤 기능을 원하는지
-- **사용 사례**: 왜 이 기능이 필요한지
-- **구현 아이디어**: 어떻게 구현할 수 있을지 (선택사항)
+
+새 기능은 **어떤 문제를 풀려는지**와 **누가 쓰는지**가 핵심입니다. 구현 아이디어가 있다면 덧붙여 주시면 논의가 빨라집니다.
 
 ### 코드 기여
-코드로 기여하고 싶으신가요? 다음 단계를 따라주세요:
 
-1. **이슈 생성**: 먼저 작업할 내용에 대해 이슈를 생성하세요.
-2. **브랜치 생성**: `feature/기능명` 또는 `fix/버그명` 형식으로 브랜치를 생성하세요.
-3. **코드 작성**: 변경사항을 구현하세요.
-4. **테스트**: 테스트를 작성하고 실행하세요.
-5. **커밋**: [Conventional Commits](https://www.conventionalcommits.org/) 형식을 따라 커밋하세요.
-6. **PR 생성**: Pull Request를 생성하세요.
+코드 PR은 보통 **이슈로 범위를 맞춘 뒤** `feature/` 또는 `fix/` 브랜치에서 구현하고, 테스트와 Conventional Commits를 거쳐 PR을 올립니다. GitHub PR 템플릿(`.github/PULL_REQUEST_TEMPLATE.md`)과 [PR 설명 예시](docs/operations/ko/pr-description-example-npm-workflow.md)를 참고하면 리뷰가 빨라집니다. 지식 복리(Compound Engineering `/ce-compound`)는 템플릿의 **「지식 복리」** 섹션을 따릅니다.
 
-**PR 본문 참고:**
-- GitHub에서 PR을 만들면 **템플릿**으로 `.github/PULL_REQUEST_TEMPLATE.md`가 사용됩니다.
-- 본문 작성 시 참고할 **예시**로 [docs/operations/ko/pr-description-example-npm-workflow.md](docs/operations/ko/pr-description-example-npm-workflow.md)가 있습니다(형식·상세도 참고용).
-- 조건부 **지식 문서화**(Compound Engineering **`/ce-compound`**)는 템플릿의 **「지식 복리」** 섹션을 따릅니다.
+1. **이슈 생성** — 작업 범위·수용 기준을 먼저 적습니다.
+2. **브랜치 생성** — `feature/<slug>` 또는 `fix/<slug>`.
+3. **구현·테스트** — Vitest 스펙을 추가하거나 갱신합니다.
+4. **커밋·PR** — `feat:`, `fix:`, `docs:` 등 Conventional Commits 형식.
 
 ## 🛠️ 개발 가이드라인
 
-### 코딩 스타일
-- **언어**: TypeScript (Node.js ≥ 24)
-- **들여쓰기**: 2칸 공백
-- **따옴표**: 단일 따옴표 (`'`)
-- **세미콜론**: 사용
-- **ESLint**: 프로젝트의 ESLint 설정을 따릅니다.
+TypeScript(Node.js ≥24), 2칸 들여쓰기, 단일 따옴표, 세미콜론을 사용합니다. 포맷과 린트는 저장소 ESLint 설정을 따르며, PR 전 `npm run lint`, `npm run type-check`, `npm test`를 통과시킵니다.
 
 ### 커밋 메시지
-[Conventional Commits](https://www.conventionalcommits.org/) 형식을 사용합니다:
+
+[Conventional Commits](https://www.conventionalcommits.org/) 형식을 사용합니다. 스코프는 패키지나 도메인 이름을 쓰면 검색하기 좋습니다.
 
 ```
 type(scope): description
@@ -92,17 +79,12 @@ docs(readme): 설치 가이드 업데이트
 ```
 
 ### 테스트
-- **테스트 프레임워크**: Vitest
-- **단위 테스트**: `*.spec.ts` 파일로 작성
-- **통합·시나리오 테스트**: 루트 `tests/` 및 필요 시 `packages/memento-core/src/test/`, `packages/memento-server/src/test/` 등에 두고, 단위 스펙은 각 패키지 `src/` 아래 `*.spec.ts`로 작성
-- **테스트 실행**: `npm run test`
+
+Vitest로 단위 스펙(`*.spec.ts`)은 각 패키지 `src/` 아래에 두고, 워크스페이스·통합 시나리오는 루트 `tests/`에 둡니다. PR 전 `npm run test`로 전체 스위트를 돌리는 것을 권장합니다.
 
 ### 브랜치 전략
-- `main`: 안정적인 릴리스 브랜치
-- `feature/*`: 새로운 기능 개발
-- `fix/*`: 버그 수정
-- `docs/*`: 문서 업데이트
-- `chore/*`: 유지보수 작업
+
+`main`은 릴리스용 안정 브랜치입니다. 기능은 `feature/*`, 수정은 `fix/*`, 문서는 `docs/*`, 유지보수는 `chore/*` 패턴을 씁니다.
 
 ## 📁 프로젝트 구조
 
@@ -123,26 +105,15 @@ tests/                # 루트 워크스페이스 통합·품질 게이트 스�
 
 ## 🔍 코드 리뷰 프로세스
 
-1. **자동 검사**: CI/CD 파이프라인이 자동으로 실행됩니다.
-2. **리뷰 요청**: 최소 1명의 리뷰어가 승인해야 합니다.
-3. **피드백 반영**: 리뷰어의 피드백을 반영하여 수정합니다.
-4. **병합**: 승인 후 `main` 브랜치에 병합됩니다.
+PR이 올라오면 CI가 lint·type-check·test를 돌리고, 최소 한 명의 리뷰어 승인 후 `main`에 병합합니다. 피드백은 같은 브랜치에 커밋으로 반영하면 됩니다.
 
 ## 🐛 버그 수정
 
-버그를 수정할 때:
-1. **재현 테스트**: 버그를 재현하는 테스트를 작성합니다.
-2. **수정**: 버그를 수정합니다.
-3. **테스트 통과**: 모든 테스트가 통과하는지 확인합니다.
-4. **문서 업데이트**: 필요시 관련 문서를 업데이트합니다.
+버그 PR은 **재현 테스트 → 수정 → 전체 테스트 green → 관련 문서 갱신** 순서를 권장합니다. 재현이 어렵다면 Issue에 환경·로그를 남겨 두면 리뷰어가 따라가기 쉽습니다.
 
 ## ✨ 기능 추가
 
-새로운 기능을 추가할 때:
-1. **설계 검토**: 기능 설계에 대해 이슈에서 논의합니다.
-2. **테스트 작성**: 기능에 대한 테스트를 작성합니다.
-3. **구현**: 기능을 구현합니다.
-4. **문서 작성**: API 문서와 사용법을 작성합니다.
+기능은 Issue에서 설계·수용 기준을 먼저 맞춘 뒤, 테스트와 구현, 사용자/API 문서를 함께 PR에 넣습니다. 공개 API나 MCP 도구 시그니처가 바뀌면 `docs/api`와 CHANGELOG를 함께 갱신하세요.
 
 ## 📚 문서화
 

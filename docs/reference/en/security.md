@@ -1,5 +1,7 @@
 # Security Notes
 
+The HTTP admin server uses **several trust surfaces at once**: cookie sessions for browser dashboards, scoped API tokens for programmatic MCP and quality endpoints, and a legacy single-key fallback when `MEMENTO_API_TOKENS` is unset. Before exposing Memento beyond loopback, decide which routes must be reachable and configure tokens and bind addresses accordingly.
+
 ## HTTP API authentication and authorization
 
 - **Current state**: The HTTP server uses a **split trust model**. `/auth/session` starts the cookie-backed browser-session flow. `/admin/*` and `/api/*` require that browser session. `/api/v1/quality/*`, `/tools/*`, `/mcp`, and `/messages` require `Authorization: Bearer <ADMIN_API_KEY>` or `X-API-Key: <ADMIN_API_KEY>`.

@@ -1,8 +1,10 @@
 # Embedding Configuration
 
+Recall and `remember` both route text through the same embedding stack. Whether you start Memento via **stdio MCP**, the **HTTP admin server**, or the **CLI**, one set of environment variables controls the active provider—set them in the project-root `.env` or export them in your shell before launch. After you pick a provider below, add API keys and model names as needed; every entry point reads the same configuration.
+
 ## Overview
 
-Memento's embedding configuration is controlled entirely through environment variables. The same variables apply regardless of how you run the server — stdio MCP, HTTP server, or CLI. You can place them in a `.env` file at the project root or export them in your shell environment.
+The sections that follow list each `EMBEDDING_PROVIDER` value and its required variables.
 
 ## EMBEDDING_PROVIDER
 

@@ -1,10 +1,6 @@
 # @memento/assistant
 
-Memento를 외부 AI 비서의 자동 회상/저장 백엔드로 연결하는 SDK 패키지.
-
-LLM 호출 없이 두 가지 라이프사이클 훅만 붙이면 됩니다:
-- `beforeUserTurn` — 사용자 메시지 수신 전 관련 기억 회상
-- `afterAssistantTurn` — 비서 응답 완료 후 대화 자동 저장
+외부 AI 비서(OpenClaw 등)가 Memento를 **공유 장기 기억**으로 쓰게 해 주는 SDK입니다. LLM 호출은 비서 쪽에 그대로 두고, Memento 쪽에는 두 훅만 붙이면 됩니다. 사용자 턴 직전에 `beforeUserTurn`으로 관련 기억을 끌어오고, 비서 응답이 끝난 뒤 `afterAssistantTurn`으로 대화를 저장합니다.
 
 ## 설치
 

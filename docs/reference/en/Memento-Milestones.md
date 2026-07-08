@@ -1,4 +1,7 @@
 # 📄 MCP Memory Server Design and Milestones Document
+
+Memento started as a **personal MCP memory server** (M1) and grows toward team and organization deployments with stronger storage and auth. This document records the original milestone ladder—SQLite MVP through Postgres and SSO—so you can see which capabilities belong to which stage and what is already shipped in the open-source tree.
+
 ## 🎯 Vision
 
 Implement an AI Agent memory assistant MCP server that mimics human memory structure (working memory, episodic memory, semantic memory).
@@ -40,7 +43,7 @@ services:
   memory-server:
     build: .
     ports:
-      - "8080:8080"
+      - "9001:9001"
     volumes:
       - ./data:/app/data
     environment:

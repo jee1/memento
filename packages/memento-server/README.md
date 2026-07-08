@@ -1,6 +1,6 @@
 # memento-server
 
-`@memento/core`를 사용하는 **MCP(stdio) 서버**와 **HTTP(+ 관리 API)** 서버 패키지입니다.
+`@memento/core` 위에 **MCP(stdio)** 와 **HTTP(+ 관리 API)** 를 올린 실행 패키지입니다. Cursor에 stdio로 붙이거나, 여러 에이전트가 HTTP로 같은 DB를 공유하게 할 때 이 패키지를 띄웁니다.
 
 ## 스크립트
 
@@ -25,3 +25,5 @@
 ## 문서
 
 [AGENTS.md](../../AGENTS.md), [CLAUDE.md](../../CLAUDE.md), [docs/README.md](../../docs/README.md)
+
+기본 HTTP 포트는 `9001` (`MCP_SERVER_PORT` / `PORT`, `env.example` 참고).

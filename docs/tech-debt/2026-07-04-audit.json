@@ -1,0 +1,291 @@
+{
+  "generated_at": "2026-07-04",
+  "workspace": "/home/jee1lee/git/memento",
+  "source_raw": "docs/tech-debt/2026-07-04-raw-audit.json",
+  "items": [
+    {
+      "id": "TD-002",
+      "fingerprint": "llm-client-initializer-576",
+      "category": "architecture_debt",
+      "title": "llm-client-initializer.ts 분해 (576줄)",
+      "description": "Gemini·OpenAI·Ollama 초기화·연결 검증이 단일 모듈에 집중. graphify god node (21 edges).",
+      "evidence": [
+        "wc -l llm-client-initializer.ts → 576",
+        "graphify God Node #9: LLMClientInitializer - 21 edges"
+      ],
+      "impact": 4,
+      "risk": 3,
+      "effort": 3,
+      "priority": 21,
+      "business_justification": "LLM 프로바이더 추가·변경이 빈번; 단일 파일이 병목. #551(Gemini 재시도 경고)과 겹침.",
+      "suggested_fix": "프로바이더별 initializer를 이미 있는 __tests__/llm-client-initializer/ 구조에 맞춰 src로 승격.",
+      "affected_paths": [
+        "packages/memento-core/src/shared/services/llm-client-initializer.ts"
+      ],
+      "estimated_files": 5,
+      "splittable": true,
+      "sub_items": [],
+      "auto_fix_eligible": true
+    },
+    {
+      "id": "TD-001",
+      "fingerprint": "reflexion-worker-residual-450",
+      "category": "architecture_debt",
+      "title": "reflexion-worker.ts 잔여 분해 (450줄)",
+      "description": "#599에서 1069→450줄로 축소됐으나 async-optimizer·procedural-memory-service 분리 후에도 오케스트레이터가 450줄로 잔존. graphify 연결도 높음.",
+      "evidence": [
+        "wc -l reflexion-worker.ts → 450",
+        "#599 CLOSED (2026-06)",
+        "graphify: ReflexionWorker 관련 community 다수"
+      ],
+      "impact": 3,
+      "risk": 3,
+      "effort": 3,
+      "priority": 18,
+      "business_justification": "반사적 절차 메모리 파이프라인 변경 시 회귀 위험·리뷰 비용 증가. #615 분해 패턴 재사용 가능.",
+      "suggested_fix": "큐 처리·이벤트 라우팅·에러 복구를 별도 모듈로 추출; reflexion-worker.spec.ts 선행 green 유지.",
+      "affected_paths": [
+        "packages/memento-core/src/infrastructure/reflexion-worker.ts"
+      ],
+      "estimated_files": 4,
+      "splittable": true,
+      "sub_items": [],
+      "auto_fix_eligible": true
+    },
+    {
+      "id": "TD-003",
+      "fingerprint": "search-ranking-672",
+      "category": "code_debt",
+      "title": "search-ranking.ts 분해 (672줄)",
+      "description": "하이브리드 검색 랭킹 공식·가중치·정규화 로직이 단일 파일에 집중. graphify god node (30 edges).",
+      "evidence": [
+        "wc -l search-ranking.ts → 672",
+        "graphify God Node #4: SearchRanking - 30 edges",
+        "docs/agents/search-ranking.md 존재 — 변경 시 문서 동기화 필요"
+      ],
+      "impact": 4,
+      "risk": 4,
+      "effort": 4,
+      "priority": 16,
+      "business_justification": "검색 품질 핵심 경로. 랭킹 튜닝·A/B 시 파일 크기가 실험 속도를 저하.",
+      "suggested_fix": "스코어 컴포넌트별 모듈 분리(search-ranking-fts.ts, search-ranking-vector.ts 등); search-ranking.spec.ts 회귀 유지.",
+      "affected_paths": [
+        "packages/memento-core/src/domains/search/algorithms/search-ranking.ts"
+      ],
+      "estimated_files": 4,
+      "splittable": true,
+      "sub_items": [],
+      "auto_fix_eligible": false
+    },
+    {
+      "id": "TD-009",
+      "fingerprint": "dependency-minor-updates",
+      "category": "dependency_debt",
+      "title": "패치·마이너 의존성 업데이트",
+      "description": "npm audit 0건이나 better-sqlite3(12.4→12.11), playwright, helmet, tsx 등 패치 누락.",
+      "evidence": [
+        "npm audit → 0 vulnerabilities",
+        "npm outdated: better-sqlite3, @playwright/test, helmet, tsx 등"
+      ],
+      "impact": 2,
+      "risk": 2,
+      "effort": 2,
+      "priority": 16,
+      "business_justification": "보안 패치·버그픽스 누락 방지. 마이너 범위라 회귀 위험 낮음.",
+      "suggested_fix": "better-sqlite3·playwright·helmet·tsx 일괄 업데이트 후 npm test.",
+      "affected_paths": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "estimated_files": 2,
+      "splittable": false,
+      "sub_items": [],
+      "auto_fix_eligible": true
+    },
+    {
+      "id": "TD-005",
+      "fingerprint": "memento-client-687",
+      "category": "architecture_debt",
+      "title": "memento-client.ts 분해 (687줄)",
+      "description": "클라이언트 SDK가 단일 진입점에 API·재시도·타입 변환을 모두 포함.",
+      "evidence": [
+        "wc -l memento-client.ts → 687",
+        "graphify God Node #3: MementoClient - 35 edges"
+      ],
+      "impact": 3,
+      "risk": 2,
+      "effort": 3,
+      "priority": 15,
+      "business_justification": "외부 통합 패키지. API surface 확장 시 유지보수 부담.",
+      "suggested_fix": "도메인별 client 모듈(memory-client, search-client)로 분리; utils.ts(500줄)와 함께 검토.",
+      "affected_paths": [
+        "packages/memento-client/src/memento-client.ts",
+        "packages/memento-client/src/utils.ts"
+      ],
+      "estimated_files": 5,
+      "splittable": true,
+      "sub_items": [],
+      "auto_fix_eligible": true
+    },
+    {
+      "id": "TD-006",
+      "fingerprint": "batch-scheduler-god-492",
+      "category": "architecture_debt",
+      "title": "batch-scheduler.ts 분해 (492줄, graphify #1 god node)",
+      "description": "배치 스케줄러가 graphify 최다 연결 노드(45 edges). job 등록·실행·결과 집계가 한 파일.",
+      "evidence": [
+        "wc -l batch-scheduler.ts → 492",
+        "graphify God Node #1: BatchScheduler - 45 edges",
+        "AGENTS.md: BatchJobResult는 batch-scheduler-types.js에서 import"
+      ],
+      "impact": 4,
+      "risk": 3,
+      "effort": 4,
+      "priority": 14,
+      "business_justification": "백그라운드 job 추가 시 순환 참조·타입 이슈 이력. jobs/ 하위 분리 권장.",
+      "suggested_fix": "scheduler/jobs/ 개별 job 파일로 분해; batch-scheduler-types.ts 유지.",
+      "affected_paths": [
+        "packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts"
+      ],
+      "estimated_files": 6,
+      "splittable": true,
+      "sub_items": [
+        {
+          "title": "개별 batch job을 scheduler/jobs/로 분리",
+          "effort": 3
+        },
+        {
+          "title": "스케줄러 코어(등록·tick·결과 집계)만 batch-scheduler.ts에 유지",
+          "effort": 3
+        }
+      ],
+      "auto_fix_eligible": false
+    },
+    {
+      "id": "TD-007",
+      "fingerprint": "database-utils-635",
+      "category": "code_debt",
+      "title": "shared/utils/database.ts 분해 (635줄)",
+      "description": "DB 유틸·쿼리 빌더·트랜잭션 헬퍼가 공유 모듈에 집중.",
+      "evidence": [
+        "wc -l database.ts → 635",
+        "infrastructure 전역에서 광범위 import"
+      ],
+      "impact": 3,
+      "risk": 4,
+      "effort": 4,
+      "priority": 14,
+      "business_justification": "DB 레이어 변경의 단일 실패 지점. repository 분해(#610)와 정합성 필요.",
+      "suggested_fix": "transaction-helpers, query-builders, sqlite-pragmas 등 주제별 분리.",
+      "affected_paths": [
+        "packages/memento-core/src/shared/utils/database.ts"
+      ],
+      "estimated_files": 4,
+      "splittable": true,
+      "sub_items": [],
+      "auto_fix_eligible": false
+    },
+    {
+      "id": "TD-004",
+      "fingerprint": "relation-quality-validator-684",
+      "category": "code_debt",
+      "title": "relation-quality-validator.ts 분해 (684줄)",
+      "description": "관계 추출 품질 검증·스코어링·임계값 로직이 단일 서비스에 집중.",
+      "evidence": [
+        "wc -l relation-quality-validator.ts → 684",
+        "프로덕션 파일 상위 1위 (테스트 제외)"
+      ],
+      "impact": 3,
+      "risk": 3,
+      "effort": 4,
+      "priority": 12,
+      "business_justification": "KG 트리플 품질 게이트. 분해 시 검증 규칙 단위 테스트 용이.",
+      "suggested_fix": "검증 규칙을 rule 객체·작은 validator 함수로 분리.",
+      "affected_paths": [
+        "packages/memento-core/src/domains/relation/services/relation-quality-validator.ts"
+      ],
+      "estimated_files": 3,
+      "splittable": true,
+      "sub_items": [],
+      "auto_fix_eligible": false
+    },
+    {
+      "id": "TD-010",
+      "fingerprint": "dependency-major-upgrades",
+      "category": "dependency_debt",
+      "title": "메이저 의존성 업그레이드 계획 (vitest 4, eslint 10, @types/node 26)",
+      "description": "메이저 버전 갭 존재. 즉시 업그레이드보다 계획·스파이크 필요.",
+      "evidence": [
+        "npm outdated: vitest 3.2→4.1, eslint 8→10, @types/node 20→26, openai 4→6"
+      ],
+      "impact": 2,
+      "risk": 3,
+      "effort": 5,
+      "priority": 5,
+      "business_justification": "장기적으로 EOL·보안·타입 정합성. 단기 급하지 않음.",
+      "suggested_fix": "별도 스파이크 브랜치에서 vitest 4 마이그레이션 먼저; eslint flat config 검토.",
+      "affected_paths": [
+        "package.json",
+        "vitest.config.ts",
+        "eslint.config.js"
+      ],
+      "estimated_files": 10,
+      "splittable": true,
+      "sub_items": [
+        {
+          "title": "vitest 3→4 마이그레이션 스파이크",
+          "effort": 4
+        },
+        {
+          "title": "eslint 8→10 flat config 전환",
+          "effort": 4
+        },
+        {
+          "title": "@types/node 20→26 정합성",
+          "effort": 3
+        }
+      ],
+      "auto_fix_eligible": false
+    },
+    {
+      "id": "TD-008",
+      "fingerprint": "vector-search-quality-metrics-3505",
+      "category": "test_debt",
+      "title": "vector-search-quality-metrics.ts 테스트 헬퍼 분해 (3505줄)",
+      "description": "검색 품질 벤치마크 헬퍼가 단일 파일에 KPI·통계·리포트 생성을 모두 포함.",
+      "evidence": [
+        "wc -l vector-search-quality-metrics.ts → 3505",
+        "관련 spec 3건 (1516+줄) 추가 존재"
+      ],
+      "impact": 2,
+      "risk": 2,
+      "effort": 5,
+      "priority": 4,
+      "business_justification": "프로덕션 런타임에는 영향 없으나 검색 품질 실험·CI 유지보수 비용 높음.",
+      "suggested_fix": "kendall-tau, spearman, top-k-retention 등 graphify community 단위로 파일 분리.",
+      "affected_paths": [
+        "packages/memento-core/src/test/helpers/vector-search-quality-metrics.ts"
+      ],
+      "estimated_files": 8,
+      "splittable": true,
+      "sub_items": [
+        {
+          "title": "통계 함수 분리 (Kendall/Spearman/TopK)",
+          "effort": 3
+        },
+        {
+          "title": "리포트·비교 로직 분리",
+          "effort": 3
+        }
+      ],
+      "auto_fix_eligible": false
+    }
+  ],
+  "top_item_id": "TD-002",
+  "excluded_raw_findings": [
+    "4dc7bf23dfb061f5",
+    "501fb18644c06d57",
+    "6c6fb8073ae426e1"
+  ],
+  "excluded_reason": "docs/specs 내 TODO 언급은 메타 문서 false positive — 프로덕션 check-debt-markers OK"
+}

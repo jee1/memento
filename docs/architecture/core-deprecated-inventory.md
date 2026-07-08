@@ -1,11 +1,8 @@
 # Core Deprecated API Inventory
 
-Issue #586 · 부모 [#580](https://github.com/jee1/memento/issues/580)
+`packages/memento-core`에 남아 있는 `@deprecated` 표시와 런타임 레거시 경고는 **언제 제거할지**를 추적하기 위한 표입니다. 부모 이슈 [#580](https://github.com/jee1/memento/issues/580), 정리 작업 [#586](https://github.com/jee1/memento/issues/586)을 따르며, 기본 제거 시점은 **2026-Q4 (v1.18+)** 입니다(별도 표기 없는 한). merge 전에는 이 표와 [CHANGELOG](../../CHANGELOG.md)를 함께 갱신하세요.
 
-`packages/memento-core` 프로덕션 경로의 `@deprecated`·런타임 레거시 경고를 추적한다.  
-제거 일정은 **2026-Q4** (v1.18+) unless noted.
-
-현재 활성 deprecated 항목 없음.
+현재 **활성 deprecated 항목은 없습니다.** 아래는 이미 제거된 항목의 기록입니다.
 
 ## Removed in #636
 

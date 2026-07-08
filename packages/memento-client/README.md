@@ -1,6 +1,6 @@
 # @memento/client
 
-Memento MCP 서버에 연결하기 위한 **TypeScript 클라이언트 라이브러리**입니다.
+TypeScript/JavaScript 앱에서 Memento HTTP API(`/tools/*`)를 **프로그래밍 방식으로** 호출할 때 쓰는 클라이언트입니다. MCP 프로토콜 대신 REST 래퍼가 필요한 백엔드·스크립트·테스트에 맞습니다.
 
 ## 스크립트
 

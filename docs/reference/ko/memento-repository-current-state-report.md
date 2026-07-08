@@ -140,10 +140,10 @@
 - **stdio MCP**
   - 한 프로세스당 하나의 MCP 서버. Cursor, Claude Desktop 등에서 `memento-mcp-server`(또는 `memento-mcp`)를 stdio 전송으로 실행해 연결.
 - **HTTP MCP**
-  - 다중 에이전트 시 권장: MCP 서버를 HTTP/WebSocket으로 한 번만 띄우고, 모든 클라이언트가 같은 포트(예: 7777)로 접속. `mcp.json` 등에 HTTP MCP 서버 URL/포트 설정.
+  - 다중 에이전트 시 권장: MCP 서버를 HTTP/WebSocket으로 한 번만 띄우고, 모든 클라이언트가 같은 포트(예: 9001)로 접속. `mcp.json` 등에 HTTP MCP 서버 URL/포트 설정.
 - **노출 도구**
-  - MCP에는 핵심 14개 수준(remember, recall, forget, pin, unpin, memory_injection, get_memory_neighbors, set_anchor, get_anchor, search_local, clear_anchor, procedural_diff, procedural_rollback, remember_procedure).
-  - 관리/운영(앵커 복원, 임베딩 마이그레이션, episodic→semantic 변환, 메타 메모리 통계) 및 관계 엔진 도구는 MCP에 없고 HTTP로만 제공.
+  - MCP에는 핵심 22개(remember, recall, feedback, forget, pin, unpin, memory_injection, get_memory_neighbors, set/get/search_local/clear_anchor, procedural_*, extract_triples, add/get/remove_relation, get_introspection_summary, get_telemetry_summary, export_memories).
+  - 관리/운영(앵커 복원, 임베딩 마이그레이션, episodic→semantic 변환, 메타 메모리 통계)은 MCP에 없고 HTTP로만 제공.
 
 ### 4.3 HTTP API
 
