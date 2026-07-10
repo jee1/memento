@@ -4,7 +4,7 @@
 
 Memento talks to AI agents through the **Model Context Protocol (MCP)**. Agents read and write memory via **Tools** such as `remember` and `recall`, and can pull single memories or cached search results through **Resources**. This document is the full contract reference in one place.
 
-If you are integrating for the first time, start the server using the [User Manual](../guides/en/user-manual.md) and [Cursor MCP Setup](../guides/en/cursor-mcp-setup.md), then use this page for **call shapes and parameters**. HTTP admin routes (`/admin/*`, `/tools/*`) use a different browser-session and API-key boundary—see [Security](../reference/en/security.md).
+If you are integrating for the first time, start the server using the [User Manual](../../guides/en/user-manual.md) and [Cursor MCP Setup](../../guides/en/cursor-mcp-setup.md), then use this page for **call shapes and parameters**. HTTP admin routes (`/admin/*`, `/tools/*`) use a different browser-session and API-key boundary—see [Security](../../reference/en/security.md).
 
 ## 🔄 Lightweight Hybrid Embedding
 

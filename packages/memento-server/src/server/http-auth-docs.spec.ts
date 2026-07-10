@@ -75,7 +75,7 @@ describe('HTTP auth docs and startup messaging', () => {
 
     const englishMcpSection = sectionBetween(
       english,
-      '### MCP Tools (Core 14)',
+      '### MCP Tools (Core 22)',
       '> **Important**'
     );
     expect(englishMcpSection).not.toContain('restore_anchors');

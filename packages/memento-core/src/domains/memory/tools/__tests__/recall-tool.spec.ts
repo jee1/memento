@@ -248,6 +248,77 @@ describe('RecallTool', () => {
     });
   });
 
+  describe('type 파라미터 거절 시 로그 레벨 (issue 653)', () => {
+    // MEMENTO_TYPE_PARAM_MODE=error(기본값)에서 type/query 누락은 호출자 입력 오류이지
+    // 서버 결함이 아니므로 logError가 아닌 logWarning으로 기록되어야 한다.
+    // logError로 기록되면 log-issue-monitor가 첫 발생 즉시 "bug" 이슈를 자동 등록한다(#653).
+    //
+    // 프로덕션에서는 bootstrap.ts가 항상 failureDetector를 초기화해서 넘기므로
+    // BaseTool.handleFailure의 "FailureDetector 미초기화" logError 폴백은 실제로 타지 않는다.
+    // 이 테스트도 동일하게 failureDetector를 채워 그 폴백 경로를 배제하고,
+    // recall-tool.ts 자체의 로그 레벨 분기만 검증한다.
+    let savedTypeParamMode: (typeof mementoConfig)['typeParamMode'];
+
+    beforeEach(() => {
+      savedTypeParamMode = mementoConfig.typeParamMode;
+      mementoConfig.typeParamMode = 'error';
+      context.services.failureDetector = {
+        detectToolError: vi.fn().mockReturnValue({ detected: false }),
+      } as unknown as ToolContext['services']['failureDetector'];
+    });
+
+    afterEach(() => {
+      mementoConfig.typeParamMode = savedTypeParamMode;
+    });
+
+    it('type·memory_types 모두 없으면 error 모드에서 거절 시 logWarning만 호출되고 logError는 호출되지 않는다', async () => {
+      const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
+      const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
+
+      await expect(tool.handle({ query: 'q', limit: 5 }, context)).rejects.toThrow(
+        "type' 파라미터는 필수입니다",
+      );
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        'Recall 도구 실행 실패 (입력 검증)',
+        expect.objectContaining({ error: expect.stringContaining("type' 파라미터는 필수입니다") }),
+      );
+      expect(logErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it("type='core'가 아닌데 query가 없으면 error 모드 여부와 무관하게 logWarning만 호출되고 logError는 호출되지 않는다", async () => {
+      const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
+      const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
+
+      await expect(tool.handle({ type: 'episodic' }, context)).rejects.toThrow();
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        'Recall 도구 실행 실패 (입력 검증)',
+        expect.anything(),
+      );
+      expect(logErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('실제 시스템 오류(DB 미초기화)는 여전히 logError로 기록된다', async () => {
+      const logWarningSpy = vi.spyOn(tool as unknown as { logWarning: (...args: unknown[]) => void }, 'logWarning');
+      const logErrorSpy = vi.spyOn(tool as unknown as { logError: (...args: unknown[]) => void }, 'logError');
+
+      db.close();
+
+      await expect(tool.handle({ type: 'core' }, context)).rejects.toThrow();
+
+      expect(logErrorSpy).toHaveBeenCalledWith(
+        expect.any(Error),
+        'Recall 도구 실행 실패',
+        expect.objectContaining({ params: { type: 'core' } }),
+      );
+      const inputValidationWarnCalls = logWarningSpy.mock.calls.filter(
+        (c) => c[0] === 'Recall 도구 실행 실패 (입력 검증)',
+      );
+      expect(inputValidationWarnCalls).toHaveLength(0);
+    });
+  });
+
   describe('agent_id 무시 경고 (issue 291)', () => {
     beforeEach(() => {
       vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
