@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-07-10",
+  "workspace": "/home/jee1lee/git/memento",
+  "finding_count": 6,
+  "findings": [
+    {
+      "category": "code_debt",
+      "title": ".claude/worktrees/issue-653-recall-type-required/docs/_work/reviews/ko/code-review-comprehensive-report.md에 TODO/FIXME 과다",
+      "description": "TODO/FIXME 마커 10개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "- **TODO 주석**: 181개 발견 (일부는 향후 작업으로 정리 필요)",
+        "### 3. TODO 주석 - **우선순위: 낮음** 🟢",
+        "- **TODO 주석**: 181개 발견",
+        "const agent_id = 'default'; // TODO: 향후 context에서 가져오기",
+        "'extracted_from' as any, // TODO: RelationType 타입 확장 필요"
+      ],
+      "affected_paths": [
+        ".claude/worktrees/issue-653-recall-type-required/docs/_work/reviews/ko/code-review-comprehensive-report.md"
+      ],
+      "source": "todo-scan",
+      "fingerprint": "122d3be10c1bff29"
+    },
+    {
+      "category": "code_debt",
+      "title": ".claude/worktrees/issue-653-recall-type-required/specs/030-core-debt-markers/spec.md에 TODO/FIXME 과다",
+      "description": "TODO/FIXME 마커 6개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "**Input**: GitHub Issue #586 — core debt markers (BUG/TODO/DEPRECATED/XXX) 정리 (부모 #580)",
+        "### User Story 1 — 프로덕션 경로 BUG/XXX 0건 (Priority: P1)",
+        "유지보수자가 `packages/memento-core/src` 프로덕션 경로(테스트·`__tests__` 제외)를 스캔할 때 의도적이지 않은 BUG/XXX 마커가 0건이어야 한다. 로그 레벨 `'debug'`·`logger.debug()` 등 false positive는 스캐너 allowlist로 제외한다.",
+        "**Independent Test**: `npm run check-debt-markers -- --production-only` exit 0, BUG/XXX 0건.",
+        "1. **Given** 2026-06-27 tech-debt-analyzer가 보고한 core BUG 위치(주석·문구), **When** 재스캔, **Then** `buggy`·`xxx.yyy` 등 false positive 문구가 제거·대체된다."
+      ],
+      "affected_paths": [
+        ".claude/worktrees/issue-653-recall-type-required/specs/030-core-debt-markers/spec.md"
+      ],
+      "source": "todo-scan",
+      "fingerprint": "8463ea84a1288987"
+    },
+    {
+      "category": "code_debt",
+      "title": ".claude/worktrees/issue-653-recall-type-required/specs/038-ollama-connection-debt-markers/spec.md에 TODO/FIXME 과다",
+      "description": "TODO/FIXME 마커 6개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "# Feature Specification: ollama-connection.spec.ts TODO 정리",
+        "**Input**: GitHub Issue #638 — `ollama-connection.spec.ts` TODO/FIXME 정리",
+        "**Independent Test**: `ollama-connection.spec.ts` 4건 통과 + 파일 내 TODO 0건.",
+        "- **FR-001**: `ollama-connection.spec.ts`의 TODO 6건 제거.",
+        "- 다른 llm-client-initializer 테스트 파일의 TODO"
+      ],
+      "affected_paths": [
+        ".claude/worktrees/issue-653-recall-type-required/specs/038-ollama-connection-debt-markers/spec.md"
+      ],
+      "source": "todo-scan",
+      "fingerprint": "b418dfe3311b3b6b"
+    },
+    {
+      "category": "code_debt",
+      "title": "docs/_work/reviews/ko/code-review-comprehensive-report.md에 TODO/FIXME 과다",
+      "description": "TODO/FIXME 마커 10개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "- **TODO 주석**: 181개 발견 (일부는 향후 작업으로 정리 필요)",
+        "### 3. TODO 주석 - **우선순위: 낮음** 🟢",
+        "- **TODO 주석**: 181개 발견",
+        "const agent_id = 'default'; // TODO: 향후 context에서 가져오기",
+        "'extracted_from' as any, // TODO: RelationType 타입 확장 필요"
+      ],
+      "affected_paths": [
+        "docs/_work/reviews/ko/code-review-comprehensive-report.md"
+      ],
+      "source": "todo-scan",
+      "fingerprint": "4dc7bf23dfb061f5"
+    },
+    {
+      "category": "code_debt",
+      "title": "specs/030-core-debt-markers/spec.md에 TODO/FIXME 과다",
+      "description": "TODO/FIXME 마커 6개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "**Input**: GitHub Issue #586 — core debt markers (BUG/TODO/DEPRECATED/XXX) 정리 (부모 #580)",
+        "### User Story 1 — 프로덕션 경로 BUG/XXX 0건 (Priority: P1)",
+        "유지보수자가 `packages/memento-core/src` 프로덕션 경로(테스트·`__tests__` 제외)를 스캔할 때 의도적이지 않은 BUG/XXX 마커가 0건이어야 한다. 로그 레벨 `'debug'`·`logger.debug()` 등 false positive는 스캐너 allowlist로 제외한다.",
+        "**Independent Test**: `npm run check-debt-markers -- --production-only` exit 0, BUG/XXX 0건.",
+        "1. **Given** 2026-06-27 tech-debt-analyzer가 보고한 core BUG 위치(주석·문구), **When** 재스캔, **Then** `buggy`·`xxx.yyy` 등 false positive 문구가 제거·대체된다."
+      ],
+      "affected_paths": [
+        "specs/030-core-debt-markers/spec.md"
+      ],
+      "source": "todo-scan",
+      "fingerprint": "501fb18644c06d57"
+    },
+    {
+      "category": "code_debt",
+      "title": "specs/038-ollama-connection-debt-markers/spec.md에 TODO/FIXME 과다",
+      "description": "TODO/FIXME 마커 6개 — 미뤄진 작업이 누적됨.",
+      "evidence": [
+        "# Feature Specification: ollama-connection.spec.ts TODO 정리",
+        "**Input**: GitHub Issue #638 — `ollama-connection.spec.ts` TODO/FIXME 정리",
+        "**Independent Test**: `ollama-connection.spec.ts` 4건 통과 + 파일 내 TODO 0건.",
+        "- **FR-001**: `ollama-connection.spec.ts`의 TODO 6건 제거.",
+        "- 다른 llm-client-initializer 테스트 파일의 TODO"
+      ],
+      "affected_paths": [
+        "specs/038-ollama-connection-debt-markers/spec.md"
+      ],
+      "source": "todo-scan",
+      "fingerprint": "6c6fb8073ae426e1"
+    }
+  ],
+  "next_id_hint": "TD-001",
+  "agent_note": "에이전트가 impact/risk/effort/suggested_fix 를 채운 점수화 audit로 enrichment 한 뒤 prioritize.py 실행. tech-debt-harness/SKILL.md Phase 2 참고. title/description 등은 한글 권장."
+}

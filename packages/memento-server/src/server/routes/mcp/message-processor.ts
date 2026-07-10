@@ -205,7 +205,8 @@ async function handleToolsCall(
     return {
       jsonrpc: '2.0',
       id: message.id,
-      result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
+      // stdio MCP 경로(index.ts CallTool)와 동일: executeTool ToolResult를 그대로 반환
+      result: toolResult
     };
   } catch (error) {
     const mapped = mapToolExecutionErrorToJsonRpc(error);
