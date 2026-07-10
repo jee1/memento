@@ -14,5 +14,5 @@
 - [x] T12 #689 relation-quality-validator split
 - [x] T13 #691 major-deps spike doc
 - [x] T14 #692 vector-search-quality-metrics split
-- [ ] T15 CHANGELOG + graphify rebuild
-- [ ] T16 CI green + PR
+- [x] T15 CHANGELOG + graphify rebuild
+- [x] T16 CI green + PR
