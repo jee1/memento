@@ -4,7 +4,7 @@
 
 Memento는 **Model Context Protocol(MCP)** 을 통해 AI 에이전트와 대화합니다. 에이전트는 `remember`·`recall` 같은 **Tools**로 기억을 쓰고 읽고, 필요하면 **Resources**로 단일 기억이나 검색 결과를 가져옵니다. 이 문서는 그 계약 전체를 한곳에 모아 둔 레퍼런스입니다.
 
-처음 통합한다면 [사용자 매뉴얼](../guides/ko/user-manual.md)과 [Cursor MCP 설정](../guides/ko/cursor-mcp-setup.md)으로 서버를 띄운 뒤, 여기서는 **호출 형태와 파라미터**만 확인하면 됩니다. HTTP 관리 API(`/admin/*`, `/tools/*`)는 브라우저 세션·API 키 경계가 다르므로 [보안 문서](../reference/ko/security.md)와 함께 보세요.
+처음 통합한다면 [사용자 매뉴얼](../../guides/ko/user-manual.md)과 [Cursor MCP 설정](../../guides/ko/cursor-mcp-setup.md)으로 서버를 띄운 뒤, 여기서는 **호출 형태와 파라미터**만 확인하면 됩니다. HTTP 관리 API(`/admin/*`, `/tools/*`)는 브라우저 세션·API 키 경계가 다르므로 [보안 문서](../../reference/ko/security.md)와 함께 보세요.
 
 ## 🔄 경량 하이브리드 임베딩
 
