@@ -12,6 +12,27 @@ import { ReflexionProceduralMemoryService } from './reflexion-procedural-memory-
 import { ReflexionReflectionRecorder } from './reflexion-reflection-recorder.js';
 import type { ExtractedProceduralMemory } from '../shared/utils/procedural-memory-extractor.js';
 import type { ReflectionNotes } from '../shared/utils/procedural-memory-extractor.types.js';
+import {
+  attemptRestart,
+  startHealthCheck as startHealthCheckModule,
+  type ReflexionWorkerHealthDeps
+} from './reflexion-worker/reflexion-worker-health.js';
+import {
+  checkQueueBacklog as checkQueueBacklogModule,
+  processFailureEvent as processFailureEventModule,
+  queueFailureEvent as queueFailureEventModule,
+  type ReflexionWorkerEventQueueDeps
+} from './reflexion-worker/reflexion-worker-event-queue.js';
+import {
+  registerHandler as registerHandlerModule,
+  updateProceduralMemory as updateProceduralMemoryModule,
+  type ReflexionWorkerFailureHandlerDeps
+} from './reflexion-worker/reflexion-worker-failure-handler.js';
+import {
+  getIntegratedMetrics as getIntegratedMetricsModule,
+  getReflexionMetrics as getReflexionMetricsModule,
+  type ReflexionWorkerMetricsDeps
+} from './reflexion-worker/reflexion-worker-metrics.js';
 
 /**
  * Worker 상태 (내부 구현용, IWorkerStatus와 호환)
@@ -62,11 +83,60 @@ export class ReflexionWorker implements IReflexionWorker {
       this.proceduralMemoryService,
       this.WINDOW_SIZE_MS
     );
-    
+
     // 중복 윈도우 정리 (1분마다)
     this.cleanupInterval = setInterval(() => {
       this.reflectionRecorder.cleanupDuplicateWindow();
     }, 60 * 1000);
+  }
+
+  private getHealthDeps(): ReflexionWorkerHealthDeps {
+    return {
+      getStatus: () => this.status,
+      incrementRestartCount: () => {
+        this.status.restartCount++;
+      },
+      setIsRunning: (running: boolean) => {
+        this.status.isRunning = running;
+      },
+      getEventQueue: () => this.eventQueue,
+      checkQueueBacklog: () => this.checkQueueBacklog(),
+      getLastHealthCheck: () => this.lastHealthCheck,
+      setLastHealthCheck: (timestamp: number) => {
+        this.lastHealthCheck = timestamp;
+      },
+      getHealthCheckInterval: () => this.healthCheckInterval,
+      setHealthCheckInterval: (interval: ReturnType<typeof setInterval> | null) => {
+        this.healthCheckInterval = interval;
+      },
+      maxRestartAttempts: this.MAX_RESTART_ATTEMPTS
+    };
+  }
+
+  private getEventQueueDeps(): ReflexionWorkerEventQueueDeps {
+    return {
+      eventQueue: this.eventQueue,
+      reflectionRecorder: this.reflectionRecorder,
+      status: this.status,
+      maxRetries: this.MAX_RETRIES,
+      retryDelays: this.RETRY_DELAYS,
+      queueWarningThreshold: this.QUEUE_WARNING_THRESHOLD,
+      processFailureEvent: (event: FailureEvent) => this.processFailureEvent(event)
+    };
+  }
+
+  private getFailureHandlerDeps(): ReflexionWorkerFailureHandlerDeps {
+    return {
+      proceduralMemoryService: this.proceduralMemoryService
+    };
+  }
+
+  private getMetricsDeps(): ReflexionWorkerMetricsDeps {
+    return {
+      getStatus: () => this.getStatus(),
+      eventQueue: this.eventQueue,
+      failureDetector: this.failureDetector
+    };
   }
 
   /**
@@ -81,17 +151,17 @@ export class ReflexionWorker implements IReflexionWorker {
     try {
       // FailureDetector의 큐에 핸들러 등록
       await this.failureDetector.startQueue();
-      
+
       // 이벤트 큐 시작
       await this.eventQueue.start();
-      
+
       // 헬스체크 시작
       this.startHealthCheck();
-      
+
       this.status.isRunning = true;
       this.lastHealthCheck = Date.now();
       logger.info('ReflexionWorker 시작됨');
-      
+
       return true;
     } catch (error) {
       logger.error('ReflexionWorker 시작 실패', {
@@ -114,20 +184,20 @@ export class ReflexionWorker implements IReflexionWorker {
     try {
       await this.eventQueue.stop();
       await this.failureDetector.stopQueue();
-      
+
       if (this.cleanupInterval) {
         clearInterval(this.cleanupInterval);
         this.cleanupInterval = null;
       }
-      
+
       if (this.healthCheckInterval) {
         clearInterval(this.healthCheckInterval);
         this.healthCheckInterval = null;
       }
-      
+
       this.status.isRunning = false;
       logger.info('ReflexionWorker 중지됨');
-      
+
       return true;
     } catch (error) {
       logger.error('ReflexionWorker 중지 실패', {
@@ -141,101 +211,38 @@ export class ReflexionWorker implements IReflexionWorker {
    * 헬스체크 시작
    */
   private startHealthCheck(): void {
-    // 30초마다 헬스체크
-    this.healthCheckInterval = setInterval(() => {
-      this.performHealthCheck();
-    }, 30 * 1000);
-  }
-
-  /**
-   * 헬스체크 수행
-   */
-  private performHealthCheck(): void {
-    try {
-      const now = Date.now();
-      
-      // 큐 적체 확인
-      this.checkQueueBacklog();
-      
-      // Worker 상태 확인
-      if (!this.eventQueue.isRunning() && this.status.isRunning) {
-        logger.warn('ReflexionWorker 큐가 중지됨, 재시작 시도', {
-          queue_running: this.eventQueue.isRunning(),
-          worker_running: this.status.isRunning
-        });
-        this.attemptRestart();
-      }
-      
-      this.lastHealthCheck = now;
-    } catch (error) {
-      logger.error('헬스체크 실패', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      // 헬스체크 실패 시 재시작 시도
-      this.attemptRestart();
-    }
+    startHealthCheckModule(this.getHealthDeps());
   }
 
   /**
    * Worker 재시작 시도
    */
   private async attemptRestart(): Promise<void> {
-    if (this.status.restartCount >= this.MAX_RESTART_ATTEMPTS) {
-      logger.error('ReflexionWorker 최대 재시작 횟수 초과', {
-        restart_count: this.status.restartCount,
-        max_attempts: this.MAX_RESTART_ATTEMPTS
-      });
-      this.status.isRunning = false;
-      return;
-    }
-
-    this.status.restartCount++;
-    logger.warn('ReflexionWorker 재시작 시도', {
-      attempt: this.status.restartCount,
-      max_attempts: this.MAX_RESTART_ATTEMPTS
-    });
-
-    try {
-      // 현재 상태 정리
-      await this.eventQueue.stop();
-      
-      // 재시작
-      await this.eventQueue.start();
-      
-      logger.info('ReflexionWorker 재시작 성공', {
-        restart_count: this.status.restartCount
-      });
-    } catch (error) {
-      logger.error('ReflexionWorker 재시작 실패', {
-        error: error instanceof Error ? error.message : String(error),
-        restart_count: this.status.restartCount
-      });
-      
-      // 재시작 실패 시 일정 시간 후 재시도
-      setTimeout(() => {
-        this.attemptRestart();
-      }, 5000); // 5초 후 재시도
-    }
+    await attemptRestart(this.getHealthDeps());
   }
 
   /**
-   * auto_reflect 내부 함수
-   * 실패 정보를 바탕으로 Reflexion 데이터 생성 및 저장
+   * FailureDetector의 큐에 핸들러 등록
+   * FailureDetector가 실패 이벤트를 큐에 추가할 때 이 핸들러를 사용하도록 설정
    */
-  private async autoReflect(event: FailureEvent): Promise<void> {
-    try {
-      const recorded = await this.reflectionRecorder.record(event);
-      if (recorded) {
-        this.status.processedCount++;
-      }
-    } catch (error) {
-      this.status.failedCount++;
-      logger.error('auto_reflect 실행 실패', {
-        error: error instanceof Error ? error.message : String(error),
-        event_id: event.id
-      });
-      throw error;
-    }
+  registerHandler(): void {
+    registerHandlerModule();
+  }
+
+  /**
+   * 실패 이벤트를 큐에 추가 (큐 크기 제한 포함)
+   * FailureDetector의 queueFailureEvent를 대체하는 메서드
+   * AsyncTaskQueue가 자동으로 큐 크기 제한을 처리함
+   */
+  async queueFailureEvent(event: FailureEvent): Promise<boolean> {
+    return queueFailureEventModule(this.getEventQueueDeps(), event);
+  }
+
+  /**
+   * 실패 이벤트 처리 (재시도 및 백오프 포함)
+   */
+  async processFailureEvent(event: FailureEvent): Promise<void> {
+    await processFailureEventModule(this.getEventQueueDeps(), event);
   }
 
   private async updateProceduralMemory(
@@ -245,109 +252,14 @@ export class ReflexionWorker implements IReflexionWorker {
     reflectionNote: ReflectionNotes | Record<string, unknown>,
     event: FailureEvent
   ): Promise<void> {
-    await this.proceduralMemoryService.updateProceduralMemory(
+    await updateProceduralMemoryModule(
+      this.getFailureHandlerDeps(),
       memoryId,
       extracted,
       updateMode,
       reflectionNote,
       event
     );
-  }
-
-  /**
-   * FailureDetector의 큐에 핸들러 등록
-   * FailureDetector가 실패 이벤트를 큐에 추가할 때 이 핸들러를 사용하도록 설정
-   */
-  registerHandler(): void {
-    // FailureDetector의 queueFailureEvent를 래핑하여
-    // 큐 크기 제한 및 processFailureEvent를 호출하도록 설정
-    // 실제로는 FailureDetector에 직접 등록하는 대신,
-    // BaseTool의 handleFailure에서 이 메서드를 호출하도록 수정 필요
-    // 또는 FailureDetector에 setHandler 메서드를 추가
-  }
-
-  /**
-   * 실패 이벤트를 큐에 추가 (큐 크기 제한 포함)
-   * FailureDetector의 queueFailureEvent를 대체하는 메서드
-   * AsyncTaskQueue가 자동으로 큐 크기 제한을 처리함
-   */
-  async queueFailureEvent(event: FailureEvent): Promise<boolean> {
-    try {
-      // 큐에 추가 (processFailureEvent를 핸들러로 사용)
-      // AsyncTaskQueue의 addTask에서 자동으로 큐 크기 제한 처리
-      const taskId = this.eventQueue.addTask({
-        id: event.id,
-        type: 'failure_event',
-        data: {
-          event,
-          handler: (evt: FailureEvent) => this.processFailureEvent(evt)
-        },
-        priority: event.priority,
-        maxRetries: this.MAX_RETRIES,
-        timeout: 30000 // 30초 타임아웃
-      });
-
-      if (taskId === false) {
-        logger.warn('실패 이벤트 큐 추가 실패 (중복 또는 큐 가득참)', {
-          event_id: event.id,
-          tool: event.tool_name
-        });
-        return false;
-      }
-
-      // 큐 적체 경고 확인
-      this.checkQueueBacklog();
-
-      logger.debug('실패 이벤트 큐에 추가됨', {
-        event_id: event.id,
-        tool: event.tool_name,
-        priority: event.priority,
-        queue_size: this.eventQueue.getStats().pending
-      });
-
-      return true;
-    } catch (error) {
-      logger.error('실패 이벤트 큐 추가 중 오류 발생', {
-        error: error instanceof Error ? error.message : String(error),
-        event_id: event.id
-      });
-      return false;
-    }
-  }
-
-  /**
-   * 실패 이벤트 처리 (재시도 및 백오프 포함)
-   */
-  async processFailureEvent(event: FailureEvent): Promise<void> {
-    let lastError: Error | null = null;
-    
-    for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
-      try {
-        await this.autoReflect(event);
-        return; // 성공
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        
-        if (attempt < this.MAX_RETRIES - 1) {
-          const delay = this.RETRY_DELAYS[attempt] || this.RETRY_DELAYS[this.RETRY_DELAYS.length - 1];
-          logger.warn('Reflexion 기록 실패, 재시도 예정', {
-            attempt: attempt + 1,
-            max_retries: this.MAX_RETRIES,
-            delay_ms: delay,
-            event_id: event.id
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    // 모든 재시도 실패
-    logger.error('Reflexion 기록 최종 실패', {
-      event_id: event.id,
-      error: lastError?.message,
-      retry_count: this.MAX_RETRIES
-    });
-    throw lastError || new Error('Reflexion 기록 실패');
   }
 
   /**
@@ -366,13 +278,7 @@ export class ReflexionWorker implements IReflexionWorker {
    * 큐 적체 경고 확인
    */
   checkQueueBacklog(): void {
-    const queueStats = this.eventQueue.getStats();
-    if (queueStats.pending > this.QUEUE_WARNING_THRESHOLD) {
-      logger.warn('ReflexionWorker 큐 적체 경고', {
-        queue_size: queueStats.pending,
-        threshold: this.QUEUE_WARNING_THRESHOLD
-      });
-    }
+    checkQueueBacklogModule(this.getEventQueueDeps());
   }
 
   /**
@@ -387,20 +293,7 @@ export class ReflexionWorker implements IReflexionWorker {
     activeWorkers: number;
     restartCount: number;
   } {
-    const status = this.getStatus();
-    const queueStats = this.eventQueue.getStats();
-    const total = status.processedCount + status.failedCount;
-    const successRate = total > 0 ? status.processedCount / total : 0.0;
-    
-    return {
-      processedCount: status.processedCount,
-      failedCount: status.failedCount,
-      successRate,
-      averageProcessingTime: queueStats.averageProcessingTime,
-      queueSize: status.queueSize,
-      activeWorkers: status.activeWorkers,
-      restartCount: status.restartCount
-    };
+    return getReflexionMetricsModule(this.getMetricsDeps());
   }
 
   /**
@@ -429,22 +322,6 @@ export class ReflexionWorker implements IReflexionWorker {
       reflexionSuccessRate: number; // Reflexion 기록 성공률
     };
   } {
-    const detectionMetrics = this.failureDetector.getDetectionMetrics();
-    const reflexionMetrics = this.getReflexionMetrics();
-    
-    // 전체 메트릭 계산
-    const recall = detectionMetrics.detectionRate; // 재현율 (간단히 감지율로 근사)
-    const precision = 1.0; // 정밀도 (모든 감지가 올바르다고 가정, 실제로는 검증 필요)
-    const reflexionSuccessRate = reflexionMetrics.successRate;
-    
-    return {
-      detection: detectionMetrics,
-      reflexion: reflexionMetrics,
-      overall: {
-        recall,
-        precision,
-        reflexionSuccessRate
-      }
-    };
+    return getIntegratedMetricsModule(this.getMetricsDeps());
   }
 }

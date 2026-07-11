@@ -9,12 +9,22 @@
 
 ### Added
 
+- **MCP transport parity spec** (#681): `runtime-transport-parity.spec.ts` — stdio·HTTP·WebSocket `tools/call`이 동일한 `ToolResult`를 반환하는지 검증.
+- **Tech-debt epic #680** spec kit: `specs/049-tech-debt-680-epic/` — 2026-07-10 감사 추적 (#681–#692).
 - **CI search-quality PR gate** (#665): `.github/workflows/ci.yml`에 `test-search-quality` job 추가 — `npm run test:vector-search-quality:ci`로 랭킹·벡터 검색 benchmark 회귀를 PR에서 차단.
 - **Weekly nightly tests** (#665): `.github/workflows/nightly-tests.yml` — `SKIP_DB_TESTS=false`, `SKIP_INTEGRATION_TESTS=false`로 search-quality 전체 env 및 integration subset( migration-runner, lock-scenarios, memory-embedding ) 실행.
 - **CI exclude inventory** (#665): `docs/reference/ko/ci-test-timeout-guide.md`에 Vitest CI exclude 패턴 표·만료 정책(2026-09-01) 문서화.
 - **HTTP scoped API tokens (#662)**: `MEMENTO_API_TOKENS` JSON env로 `tools:invoke` / `admin:destructive` 스코프 분리. Legacy `ADMIN_API_KEY`는 synthetic `legacy-admin` 토큰으로 양쪽 스코프 유지(deprecation warn once). tools-only 토큰은 `/api/v1/quality/*` 403.
 - **HTTP programmatic 감사 JSONL + rate limit** (#663): `/tools`, `/api/v1/agent`, `/api/v1/quality`, 보호 MCP HTTP 경로에 `{ ts, key_id, route, tool, owner_id, agent_id, latency_ms, status }` audit 미들웨어(best-effort). `/tools`·`/admin` bucket별 rate limit(429 + `Retry-After`). #660 hash-chained audit과 필드 계약 정렬.
 - **HTTP owner scope enforcement** (#664): `MEMENTO_OWNER_SCOPE_MODE`(`strict`|`warn`|`off`, HTTP 기본 `strict`), `MEMENTO_HTTP_DEFAULT_AGENT_ID`, `X-Memento-Agent-Id` 헤더 → `ToolContext.agentId`. strict 모드에서 `/tools/recall`·`/tools/memory_injection`은 `owner_id` 미지정 시 에이전트 ID로 자동 필터; 식별자 없으면 400. 레거시 NULL 데이터는 `warn`/`off`로 opt-out.
+
+### Changed
+
+- **MCP HTTP/WebSocket tools/call** (#681): `message-processor`·`http-server-websocket`이 stdio와 동일하게 raw `ToolResult` 반환 (content JSON 래핑 제거).
+- **Mechanical module splits** (#680): `llm-client-initializer`, `search-ranking`, `batch-scheduler`, `reflexion-worker`, `memento-client`, `embedding-migration-service`, `database` utils, `relation-quality-validator`, `vector-search-quality-metrics` — orchestrator ≤500줄, 동작 변경 없음.
+- **Minor dependency updates** (#690): vitest, @typescript-eslint, @google/genai 등 wanted 범위 패치.
+- **VectorSearchRepository.hybridSearch**: `project_id` / `owner_id` 스코프가 vector·text CTE SQL에 반영되어 `search()`와 동작이 정렬됩니다. 텍스트 하이브리드 UNION의 `last_accessed`·ORDER BY SQL 오류도 함께 수정합니다 (#387).
+- **하이브리드·텍스트·벡터 검색**: `MemorySearchFilters`의 `project_id` / `owner_id`가 FTS·VEC SQL 및 임베딩 유사도(`searchBySimilarity`) fallback까지 전달되어, DB 단계에서 스코프가 적용됩니다. `memory_injection` / `buildKnowledgeContextBundle` 경로에서 좁은 스코프일 때 후보 부족을 줄이기 위해 검색 `limit` 배수를 키웁니다 (#232, PR #386 후속).
 
 ### Removed
 
@@ -29,10 +39,6 @@
 - **`AnchorManager.getSearchService()` / `.getCacheService()` 제거** (#617): 하위 호환 wrapper 메서드 삭제. `searchService` / `cacheService` 직접 주입 패턴 사용.
 - **`PerformanceMonitor.getMemoryMetrics().heapUsagePercent` 필드 제거** (#617): `heapShareOfBudgetPercent` 사용.
 - **`ReflexionWorker.removeOldestQueuedEvent()` 제거** (#617): `AsyncTaskQueue`가 자동 처리하는 no-op private 메서드.
-
-### Changed
-- **VectorSearchRepository.hybridSearch**: `project_id` / `owner_id` 스코프가 vector·text CTE SQL에 반영되어 `search()`와 동작이 정렬됩니다. 텍스트 하이브리드 UNION의 `last_accessed`·ORDER BY SQL 오류도 함께 수정합니다 (#387).
-- **하이브리드·텍스트·벡터 검색**: `MemorySearchFilters`의 `project_id` / `owner_id`가 FTS·VEC SQL 및 임베딩 유사도(`searchBySimilarity`) fallback까지 전달되어, DB 단계에서 스코프가 적용됩니다. `memory_injection` / `buildKnowledgeContextBundle` 경로에서 좁은 스코프일 때 후보 부족을 줄이기 위해 검색 `limit` 배수를 키웁니다 (#232, PR #386 후속).
 
 ### Documentation
 - 루트 SSOT 문서(README, README.en, CONTRIBUTING)의 디렉터리·테스트 경로 설명을 현재 npm workspaces 트리에 맞게 정리 (#359).

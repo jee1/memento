@@ -95,7 +95,7 @@ export function setupWebSocketServer(
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             id: message.id,
-            result: { content: [{ type: 'text', text: JSON.stringify(result) }] },
+            result,
           }));
         }
       } catch (error) {

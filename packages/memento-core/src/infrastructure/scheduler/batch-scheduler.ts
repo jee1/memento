@@ -1,59 +1,57 @@
 /* Batch job scheduler: async augmentation pipeline. See docs/architecture/async-augmentation-pipeline.md */
 
 import type { IBatchScheduler } from '../../shared/interfaces/batch-scheduler.interface.js';
-import { ForgettingPolicyService } from '../../domains/forgetting/services/forgetting-policy-service.js';
-import { getPerformanceMonitor } from '../../domains/monitoring/services/performance-monitor.js';
 import type { RuntimeDiagnosticsLogger } from '../../domains/monitoring/services/runtime-diagnostics-logger.js';
 import Database from 'better-sqlite3';
-import { ConsolidationScoreWorker } from '../../workers/consolidation-score-worker.js';
 import type { IReflexionWorker } from '../../shared/interfaces/reflexion-worker.interface.js';
-import { mementoConfig } from '../../shared/config/index.js';
 import { JobQueue } from './job-queue.js';
 import { RetryManager } from './retry-manager.js';
 import { HealthChecker } from './health-checker.js';
 import { FileLogger } from './file-logger.js';
 import { RelationValidatorExecutor } from './relation-validator-executor.js';
-import { TripleExtractionBatchJob } from './jobs/triple-extraction-batch-job.js';
-import { QualityMeasurementBatchJob } from './jobs/quality-measurement-batch-job.js';
-import { SleepConsolidationBatchJob } from './jobs/sleep-consolidation-batch-job.js';
-import { TelemetryCleanupBatchJob } from './jobs/telemetry-cleanup-batch-job.js';
 import type { SleepConsolidationService } from '../../domains/consolidation/services/sleep-consolidation-service.js';
 import type { TelemetryRepository } from '../../domains/telemetry/repositories/telemetry-repository.js';
 import type { IntrospectionScanCache } from '../../domains/memory/services/introspection-scan-cache.js';
 import type { AnchorManager } from '../../domains/anchor/services/anchor/anchor-manager.js';
 import type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
 export type { BatchJobConfig, BatchJobResult, SchedulerStatus } from './batch-scheduler-types.js';
-import { validateBatchJobConfig } from './batch-scheduler-validate-config.js';
-import { mergeBatchSchedulerJobConfig } from './batch-scheduler-default-config.js';
-import { BatchJobExecutionCoordinator } from './batch-job-execution-coordinator.js';
-import {
-  scheduleCleanupJob,
-  scheduleHealthcheckJob,
-  scheduleMemoryReviewCandidatesInterval,
-  scheduleMonitoringJob
-} from './batch-recurring-schedules.js';
-import { logBatchSchedulerMessage } from './batch-scheduler/batch-scheduler-logging.js';
-import {
-  buildBatchRecurringScheduleContext,
-  type BatchSchedulerContextSource,
-  type BatchSchedulerRecurringContextSource
-} from './batch-scheduler/batch-scheduler-context.js';
-import {
-  emitMemoryReviewCandidatesRunRecord as emitMemoryReviewCandidatesRunRecordImpl,
-  writeBatchSchedulerDiagnosticsEvent
-} from './batch-scheduler/batch-scheduler-diagnostics.js';
-import {
-  scheduleBatchJob,
-  waitForRunningBatchJobs
-} from './batch-scheduler/batch-scheduler-interval.js';
-import { getBatchSchedulerDetailedStats } from './batch-scheduler/batch-scheduler-stats.js';
-import { checkBatchSchedulerHealth } from './batch-scheduler/batch-scheduler-health.js';
-import {
-  createBatchSchedulerJobRunners,
-  runManualBatchSchedulerJob,
-  type ManualBatchSchedulerJobType
-} from './batch-scheduler/batch-scheduler-job-runners.js';
 import { startBatchScheduler, stopBatchScheduler } from './batch-scheduler/batch-scheduler-lifecycle.js';
+import {
+  createBatchSchedulerWiring,
+  emitBatchSchedulerMemoryReviewCandidatesRunRecord,
+  getBatchSchedulerContextSource,
+  getBatchSchedulerRecurringContextSource,
+  logBatchScheduler,
+  writeBatchSchedulerDiagnostics,
+  type BatchSchedulerDependencyOverrides,
+  type BatchSchedulerRecurringState,
+  type BatchSchedulerServiceState
+} from './batch-scheduler/batch-scheduler-service-wiring.js';
+import {
+  addBatchSchedulerJob,
+  clearBatchSchedulerJobProcessorInterval,
+  createBatchSchedulerJobRunnerCallbacks,
+  scheduleBatchSchedulerJob,
+  startBatchSchedulerJobProcessor,
+  waitForBatchSchedulerJobs,
+  type BatchSchedulerJobProcessorState,
+  type ManualBatchSchedulerJobType
+} from './batch-scheduler/batch-scheduler-job-processor.js';
+import {
+  isBatchSchedulerJobQueued,
+  isBatchSchedulerJobRunning,
+  restartBatchSchedulerJob,
+  runBatchSchedulerJob,
+  stopBatchSchedulerJob
+} from './batch-scheduler/batch-scheduler-job-control.js';
+import {
+  checkBatchSchedulerSchedulerHealth,
+  getBatchSchedulerDetailedStatsReport,
+  getBatchSchedulerLastJobRunMeta,
+  getBatchSchedulerStatus,
+  updateBatchSchedulerConfig,
+  type BatchSchedulerStatusState
+} from './batch-scheduler/batch-scheduler-status.js';
 
 export {
   getBatchScheduler,
@@ -61,12 +59,14 @@ export {
   resetBatchScheduler
 } from './batch-scheduler/batch-scheduler-singleton.js';
 
+export type { ManualBatchSchedulerJobType };
+
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
   private config: BatchJobConfig;
-  private forgettingService: ForgettingPolicyService;
-  private performanceMonitor: ReturnType<typeof getPerformanceMonitor>;
-  private consolidationScoreWorker: ConsolidationScoreWorker | null = null;
+  private forgettingService: BatchSchedulerServiceState['forgettingService'];
+  private performanceMonitor: BatchSchedulerServiceState['performanceMonitor'];
+  private consolidationScoreWorker: BatchSchedulerServiceState['consolidationScoreWorker'];
   private reflexionWorker: IReflexionWorker | null = null;
   private db: Database.Database | null = null;
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
@@ -76,62 +76,28 @@ export class BatchScheduler implements IBatchScheduler {
   private lastJobRunMeta: Map<string, { at: Date; success: boolean; durationMs: number }> = new Map();
   private totalExecutions: Map<string, number> = new Map();
   private introspectionScanCache: IntrospectionScanCache | null = null;
-  private jobProcessorInterval: ReturnType<typeof setInterval> | null = null;
+  private jobProcessorState: BatchSchedulerJobProcessorState = { jobProcessorInterval: null };
 
   private jobQueue: JobQueue;
   private retryManager: RetryManager;
   private healthChecker: HealthChecker;
   private fileLogger: FileLogger;
   private relationValidatorExecutor: RelationValidatorExecutor;
-  private tripleExtractionBatchJob: TripleExtractionBatchJob | null = null;
-  private qualityMeasurementBatchJob: QualityMeasurementBatchJob | null = null;
+  private tripleExtractionBatchJob: BatchSchedulerServiceState['tripleExtractionBatchJob'] = null;
+  private qualityMeasurementBatchJob: BatchSchedulerServiceState['qualityMeasurementBatchJob'] = null;
   private sleepConsolidationService: SleepConsolidationService | null = null;
-  private sleepConsolidationBatchJob: SleepConsolidationBatchJob | null = null;
+  private sleepConsolidationBatchJob: BatchSchedulerServiceState['sleepConsolidationBatchJob'] = null;
   private telemetryCleanupRepository: TelemetryRepository | null = null;
-  private telemetryCleanupBatchJob: TelemetryCleanupBatchJob | null = null;
+  private telemetryCleanupBatchJob: BatchSchedulerServiceState['telemetryCleanupBatchJob'] = null;
   private diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
   private anchorManager: AnchorManager | null = null;
-  private jobExecutionCoordinator!: BatchJobExecutionCoordinator;
+  private jobExecutionCoordinator!: ReturnType<typeof createBatchSchedulerWiring>['jobExecutionCoordinator'];
 
   constructor(
     config?: Partial<BatchJobConfig>,
-    dependencies?: {
-      jobQueue?: JobQueue;
-      retryManager?: RetryManager;
-      healthChecker?: HealthChecker;
-      fileLogger?: FileLogger;
-      relationValidatorExecutor?: RelationValidatorExecutor;
-      diagnosticsLogger?: Pick<RuntimeDiagnosticsLogger, 'writeEvent'>;
-    }
+    dependencies?: BatchSchedulerDependencyOverrides
   ) {
-    this.config = mergeBatchSchedulerJobConfig(config);
-    validateBatchJobConfig(this.config);
-
-    this.forgettingService = new ForgettingPolicyService();
-    this.performanceMonitor = getPerformanceMonitor();
-
-    if (mementoConfig.consolidationScoreEnabled) {
-      this.consolidationScoreWorker = new ConsolidationScoreWorker();
-    }
-
-    this.jobQueue = dependencies?.jobQueue ?? new JobQueue();
-    this.retryManager = dependencies?.retryManager ?? new RetryManager({
-      maxAttempts: this.config.retryAttempts,
-      baseDelay: this.config.retryDelay,
-      maxErrorCount: this.config.retryAttempts * 3
-    });
-    this.healthChecker = dependencies?.healthChecker ?? new HealthChecker();
-    this.fileLogger = dependencies?.fileLogger ?? new FileLogger({
-      enabled: this.config.enableLogging
-    });
-    this.relationValidatorExecutor = dependencies?.relationValidatorExecutor ?? new RelationValidatorExecutor({
-      timeout: this.config.weeklyRelationValidationTimeout ?? this.config.jobTimeout
-    });
-    this.diagnosticsLogger = dependencies?.diagnosticsLogger;
-
-    this.jobExecutionCoordinator = new BatchJobExecutionCoordinator({
-      jobQueue: this.jobQueue,
-      retryManager: this.retryManager,
+    const wiring = createBatchSchedulerWiring(config, dependencies, {
       getConfig: () => this.config,
       getIsRunning: () => this.isRunning,
       lastExecution: this.lastExecution,
@@ -141,9 +107,21 @@ export class BatchScheduler implements IBatchScheduler {
       log: (m, d, l) => this.log(m, d, l),
       checkSchedulerHealth: () => this.checkSchedulerHealth()
     });
+
+    this.config = wiring.config;
+    this.forgettingService = wiring.forgettingService;
+    this.performanceMonitor = wiring.performanceMonitor;
+    this.consolidationScoreWorker = wiring.consolidationScoreWorker;
+    this.jobQueue = wiring.jobQueue;
+    this.retryManager = wiring.retryManager;
+    this.healthChecker = wiring.healthChecker;
+    this.fileLogger = wiring.fileLogger;
+    this.relationValidatorExecutor = wiring.relationValidatorExecutor;
+    this.diagnosticsLogger = wiring.diagnosticsLogger;
+    this.jobExecutionCoordinator = wiring.jobExecutionCoordinator;
   }
 
-  private getContextSource(): BatchSchedulerContextSource {
+  private getServiceState(): BatchSchedulerServiceState {
     return {
       db: this.db,
       config: this.config,
@@ -164,18 +142,33 @@ export class BatchScheduler implements IBatchScheduler {
       lastExecution: this.lastExecution,
       totalExecutions: this.totalExecutions,
       anchorManager: this.anchorManager,
-      log: this.log.bind(this),
-      emitMemoryReviewCandidatesRunRecord: this.emitMemoryReviewCandidatesRunRecord.bind(this)
+      diagnosticsLogger: this.diagnosticsLogger,
+      startTime: this.startTime
     };
   }
 
-  private getRecurringContextSource(): BatchSchedulerRecurringContextSource {
+  private getRecurringState(): BatchSchedulerRecurringState {
     return {
-      ...this.getContextSource(),
-      consolidationScoreEnabled: mementoConfig.consolidationScoreEnabled,
       intervals: this.intervals,
-      jobExecutionCoordinator: this.jobExecutionCoordinator,
-      scheduleJob: (name, interval, job, priority) => this.scheduleJob(name, interval, job, priority),
+      jobExecutionCoordinator: this.jobExecutionCoordinator
+    };
+  }
+
+  private getStatusState(): BatchSchedulerStatusState {
+    return {
+      isRunning: this.isRunning,
+      intervals: this.intervals,
+      lastExecution: this.lastExecution,
+      totalExecutions: this.totalExecutions,
+      startTime: this.startTime,
+      config: this.config
+    };
+  }
+
+  private getJobRunnerCallbacks() {
+    return {
+      scheduleJob: (name: string, interval: number, job: () => Promise<void>, priority: number) =>
+        this.scheduleJob(name, interval, job, priority),
       runMemoryCleanup: () => this.runMemoryCleanup(),
       runMemoryReviewCandidatesJob: () => this.runMemoryReviewCandidatesJob(),
       runMonitoring: () => this.runMonitoring(),
@@ -191,6 +184,16 @@ export class BatchScheduler implements IBatchScheduler {
       runTelemetryCleanupBatch: () => this.runTelemetryCleanupBatch(),
       runAnchorAutoRefresh: () => this.runAnchorAutoRefresh()
     };
+  }
+
+  private getRecurringContextSource() {
+    return getBatchSchedulerRecurringContextSource(
+      this.getServiceState(),
+      this.getRecurringState(),
+      this.getJobRunnerCallbacks(),
+      this.log.bind(this),
+      this.emitMemoryReviewCandidatesRunRecord.bind(this)
+    );
   }
 
   async start(db: Database.Database, reflexionWorker?: IReflexionWorker): Promise<void> {
@@ -228,40 +231,48 @@ export class BatchScheduler implements IBatchScheduler {
       log: this.log.bind(this),
       writeDiagnosticsEvent: e => this.writeDiagnosticsEvent(e),
       waitForRunningJobs: () => this.waitForRunningJobs(),
-      clearJobProcessorInterval: () => {
-        if (this.jobProcessorInterval) {
-          clearInterval(this.jobProcessorInterval);
-          this.jobProcessorInterval = null;
-        }
-      },
+      clearJobProcessorInterval: () => clearBatchSchedulerJobProcessorInterval(this.jobProcessorState),
       setIsRunning: isRunning => { this.isRunning = isRunning; }
     });
   }
 
   public addJob(name: string, job: () => Promise<void>, priority: number = 10, retryCount: number = 0): boolean {
-    const added = this.jobExecutionCoordinator.addJobToQueue(name, job, priority, retryCount);
-    this.jobExecutionCoordinator.afterEnqueueAttempt(name, added, this.jobProcessorInterval);
-    return added;
+    return addBatchSchedulerJob(
+      this.jobExecutionCoordinator,
+      this.jobProcessorState,
+      name,
+      job,
+      priority,
+      retryCount
+    );
   }
 
   private scheduleJob(name: string, interval: number, job: () => Promise<void>, priority: number): void {
-    scheduleBatchJob(this.getIntervalDeps(), name, interval, job, priority);
+    scheduleBatchSchedulerJob(
+      this.getRecurringState(),
+      this.jobQueue,
+      this.log.bind(this),
+      name,
+      interval,
+      job,
+      priority
+    );
   }
 
   private startJobProcessor(): void {
-    this.jobProcessorInterval = this.jobExecutionCoordinator.startJobProcessor();
+    startBatchSchedulerJobProcessor(this.jobExecutionCoordinator, this.jobProcessorState);
   }
 
   private async waitForRunningJobs(): Promise<void> {
-    await waitForRunningBatchJobs(this.getIntervalDeps());
+    await waitForBatchSchedulerJobs(this.getRecurringState(), this.jobQueue, this.log.bind(this));
   }
 
   private async writeDiagnosticsEvent(event: Record<string, unknown>): Promise<void> {
-    await writeBatchSchedulerDiagnosticsEvent(this.diagnosticsLogger, event);
+    await writeBatchSchedulerDiagnostics(this.diagnosticsLogger, event);
   }
 
   private async emitMemoryReviewCandidatesRunRecord(result: BatchJobResult): Promise<void> {
-    await emitMemoryReviewCandidatesRunRecordImpl(
+    await emitBatchSchedulerMemoryReviewCandidatesRunRecord(
       {
         diagnosticsLogger: this.diagnosticsLogger,
         log: this.log.bind(this),
@@ -272,7 +283,7 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   private getJobRunners() {
-    return createBatchSchedulerJobRunners(this.getContextSource());
+    return createBatchSchedulerJobRunnerCallbacks(this.getContextSource());
   }
 
   private async runMemoryCleanup(): Promise<BatchJobResult> {
@@ -332,116 +343,70 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   private log(message: string, data?: unknown, level: 'info' | 'warn' | 'error' = 'info'): void {
-    logBatchSchedulerMessage(this.getLoggingDeps(), message, data, level);
+    logBatchScheduler(this.getServiceState(), message, data, level);
   }
 
   async runJob(jobType: ManualBatchSchedulerJobType): Promise<BatchJobResult> {
-    const result = await runManualBatchSchedulerJob(jobType, this.getJobRunners());
+    return runBatchSchedulerJob(
+      jobType,
+      this.getContextSource(),
+      this.lastExecution,
+      this.totalExecutions,
+      this.lastJobRunMeta
+    );
+  }
 
-    this.lastExecution.set(jobType, new Date());
-    this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
-
-    if (jobType === 'memory_review_candidates') {
-      this.lastJobRunMeta.set(jobType, {
-        at: result.endTime,
-        success: result.success,
-        durationMs: result.duration
-      });
-    }
-
-    return result;
+  private getContextSource() {
+    return getBatchSchedulerContextSource(
+      this.getServiceState(),
+      this.log.bind(this),
+      this.emitMemoryReviewCandidatesRunRecord.bind(this)
+    );
   }
 
   getStatus(): SchedulerStatus {
-    const errorCountMap = new Map<string, number>();
-    for (const jobName of this.intervals.keys()) {
-      const errorCount = this.retryManager.getErrorCount(jobName);
-      if (errorCount > 0) {
-        errorCountMap.set(jobName, errorCount);
-      }
-    }
-
-    return {
-      isRunning: this.isRunning,
-      activeJobs: Array.from(this.intervals.keys()),
-      lastExecution: new Map(this.lastExecution),
-      totalExecutions: new Map(this.totalExecutions),
-      errorCount: errorCountMap,
-      uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0,
-      config: { ...this.config }
-    };
+    return getBatchSchedulerStatus(this.getStatusState(), this.retryManager);
   }
 
   updateConfig(newConfig: Partial<BatchJobConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-    validateBatchJobConfig(this.config);
-    this.log('Configuration updated', { config: this.config });
+    this.config = updateBatchSchedulerConfig(this.config, newConfig, this.log.bind(this));
   }
 
   stopJob(jobName: string): boolean {
-    const interval = this.intervals.get(jobName);
-    if (interval) {
-      clearInterval(interval);
-      this.intervals.delete(jobName);
-      this.log(`Stopped job: ${jobName}`);
-      return true;
-    }
-    return false;
+    return stopBatchSchedulerJob(this.intervals, this.log.bind(this), jobName);
   }
 
   restartJob(jobName: string): boolean {
-    const ctx = buildBatchRecurringScheduleContext(this.getRecurringContextSource());
-    if (jobName === 'cleanup') {
-      scheduleCleanupJob(ctx);
-    } else if (jobName === 'monitoring') {
-      scheduleMonitoringJob(ctx);
-    } else if (jobName === 'healthcheck') {
-      scheduleHealthcheckJob(ctx);
-    } else if (jobName === 'memory_review_candidates') {
-      if (!this.config.memoryReviewCandidatesSchedulerEnabled) {
-        this.log('restartJob(memory_review_candidates): periodic schedule is disabled; enable MEMORY_REVIEW_CANDIDATES_SCHEDULER_ENABLED or use runJob', {
-          level: 'warn'
-        });
-        return false;
-      }
-      scheduleMemoryReviewCandidatesInterval(ctx);
-    } else {
-      this.log(`Unknown job type for restart: ${jobName}`);
-      return false;
-    }
-
-    this.log(`Restarted job: ${jobName}`);
-    return true;
+    return restartBatchSchedulerJob(
+      this.getServiceState(),
+      this.getRecurringState(),
+      this.getJobRunnerCallbacks(),
+      this.log.bind(this),
+      this.emitMemoryReviewCandidatesRunRecord.bind(this),
+      jobName
+    );
   }
 
   private async checkSchedulerHealth(): Promise<void> {
-    await checkBatchSchedulerHealth({
-      db: this.db,
-      healthChecker: this.healthChecker,
-      jobQueue: this.jobQueue,
-      maxConcurrentJobs: this.config.maxConcurrentJobs,
-      log: this.log.bind(this)
-    });
+    await checkBatchSchedulerSchedulerHealth(
+      this.db,
+      this.healthChecker,
+      this.jobQueue,
+      this.config.maxConcurrentJobs,
+      this.log.bind(this)
+    );
   }
 
   getDetailedStats() {
-    return getBatchSchedulerDetailedStats({
-      getStatus: () => this.getStatus(),
-      intervals: this.intervals,
-      lastExecution: this.lastExecution,
-      totalExecutions: this.totalExecutions,
-      retryManager: this.retryManager,
-      jobQueue: this.jobQueue,
-      startTime: this.startTime
-    });
+    return getBatchSchedulerDetailedStatsReport(this.getStatusState(), this.retryManager, this.jobQueue);
   }
 
   isJobQueued(name: string): boolean {
-    return this.jobQueue.isQueued(name);
+    return isBatchSchedulerJobQueued(this.jobQueue, name);
   }
 
   isJobRunning(name: string): boolean {
-    return this.jobQueue.isRunning(name);
+    return isBatchSchedulerJobRunning(this.jobQueue, name);
   }
 
   setIntrospectionScanCache(cache: IntrospectionScanCache | null): void {
@@ -469,24 +434,6 @@ export class BatchScheduler implements IBatchScheduler {
   getLastJobRunMeta(
     name: string
   ): { at: Date; success: boolean; durationMs: number } | undefined {
-    return this.lastJobRunMeta.get(name);
-  }
-
-  private getLoggingDeps() {
-    return {
-      enableLogging: this.config.enableLogging,
-      startTime: this.startTime,
-      jobQueue: this.jobQueue,
-      fileLogger: this.fileLogger
-    };
-  }
-
-  private getIntervalDeps() {
-    return {
-      jobExecutionCoordinator: this.jobExecutionCoordinator,
-      intervals: this.intervals,
-      jobQueue: this.jobQueue,
-      log: this.log.bind(this)
-    };
+    return getBatchSchedulerLastJobRunMeta(this.lastJobRunMeta, name);
   }
 }
