@@ -52,11 +52,26 @@ describe('FeedbackTool', () => {
     expect(typeof data.feedback_id).toBe('string');
     expect(data.helpful).toBe(true);
     expect(typeof data.created_at).toBe('string');
+    expect(data.uri).toBe('memento://default/memory/mem_tool_fb_1');
     const row = db
       .prepare('SELECT comment, score FROM feedback_event WHERE memory_id = ? ORDER BY id DESC LIMIT 1')
       .get('mem_tool_fb_1') as { comment: string | null; score: number | null };
     expect(row.comment).toBe('nice');
     expect(row.score).toBeCloseTo(0.8, 5);
+  });
+
+  it('절차형 기억에는 procedure URI를 반환한다', async () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, owner_id)
+       VALUES ('mem_tool_fb_procedure', 'procedural', 'deploy', 'agent-ops')`
+    ).run();
+
+    const result = await tool.handle(
+      { memory_id: 'mem_tool_fb_procedure', helpful: true },
+      context
+    );
+
+    expect(parseData(result).uri).toBe('memento://agent-ops/procedure/mem_tool_fb_procedure');
   });
 
   it('반복 제출은 독립 이벤트로 저장된다', async () => {

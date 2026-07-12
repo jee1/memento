@@ -38,9 +38,11 @@ import { resolveServerInfoConfigDir,writeServerInfo } from './server-info.js';
 import { createSessionStore,type SessionStore } from './auth/session-store.js';
 import { createAdminRouter } from './routes/admin.routes.js';
 import { createAgentRouter } from './routes/agent.routes.js';
+import { createAuditRouter } from './routes/audit.routes.js';
 import { createApiRouter } from './routes/api.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createMcpRouter,type SSETransport } from './routes/mcp.routes.js';
+import { createMaintenanceRouter } from './routes/maintenance.routes.js';
 import { createQualityRouter } from './routes/quality.routes.js';
 import { createToolsRouter } from './routes/tools.routes.js';
 import { createApiTokenRegistry } from './auth/api-token-registry.js';
@@ -48,6 +50,7 @@ import {
   createAdminAuthMiddleware,
   createAdminRateLimitMiddleware,
   createHttpAuditMiddleware,
+  createStrictAuditCoverageMiddleware,
   createOwnerScopeMiddleware,
   createProgrammaticAuthMiddleware,
   createServiceInjector,
@@ -189,9 +192,9 @@ const DASHBOARD_SESSION_IDLE_TTL_MS = 15 * 60 * 1000;
 const DASHBOARD_SESSION_ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000;
 
 const HTTP_AUTH_TRUST_MODEL_NOTICE =
-  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality requires admin:destructive scope; /api/v1/agent, /tools, /mcp, and /messages require tools:invoke scope (Authorization Bearer or X-API-Key).';
+  'HTTP trust model: /auth/session starts the browser-session cookie flow; /admin and /api require a browser session; /api/v1/quality and /api/v1/maintenance require admin:destructive scope; /api/v1/agent, /tools, /mcp, and /messages require tools:invoke scope (Authorization Bearer or X-API-Key).';
 const HTTP_AUTH_MISSING_ADMIN_KEY_WARNING =
-  'No programmatic API tokens configured: /api/v1/quality, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until MEMENTO_API_TOKENS or ADMIN_API_KEY is set.';
+  'No programmatic API tokens configured: /api/v1/quality, /api/v1/maintenance, /api/v1/agent, /tools, /mcp, and /messages fail closed with 401 until MEMENTO_API_TOKENS or ADMIN_API_KEY is set.';
 
 function isProtectedMcpProgrammaticPath(pathname: string): boolean {
   return /^\/(?:mcp|messages)\/?$/.test(pathname);
@@ -281,6 +284,7 @@ function createAllRouters(): void {
   mcpRouter = createMcpRouter(db!, serverServices!, transports);
 
   const qualityRouter = createQualityRouter(db!);
+  const maintenanceRouter = createMaintenanceRouter(db!, serverServices!);
   const agentRouter = createAgentRouter(db!, {
     retentionDays: Number.isFinite(retentionDays) ? retentionDays : undefined,
     abandonedTtlMs: Number.isFinite(abandonedTtlMs) ? abandonedTtlMs : undefined,
@@ -289,10 +293,16 @@ function createAllRouters(): void {
     serverServices: serverServices!,
   });
 
-  registerRoutes(qualityRouter, agentRouter);
+  const auditRouter = createAuditRouter(db!);
+  registerRoutes(qualityRouter, maintenanceRouter, agentRouter, auditRouter);
 }
 
-function registerRoutes(qualityRouter: express.Router, agentRouter: express.Router): void {
+function registerRoutes(
+  qualityRouter: express.Router,
+  maintenanceRouter: express.Router,
+  agentRouter: express.Router,
+  auditRouter: express.Router,
+): void {
   const browserSessionAuth = createSessionAuthMiddleware({
     store: adminSessionStore!,
     cookieName: DASHBOARD_SESSION_COOKIE_NAME
@@ -317,28 +327,39 @@ function registerRoutes(qualityRouter: express.Router, agentRouter: express.Rout
 
   const toolsRateLimit = createToolsRateLimitMiddleware();
   const adminRateLimit = createAdminRateLimitMiddleware();
-  const httpAudit = createHttpAuditMiddleware();
+  const httpAudit = createHttpAuditMiddleware({ database: db! });
   const mcpHttpAudit = createHttpAuditMiddleware({
+    database: db!,
     shouldAudit: (req) => isProtectedMcpProgrammaticPath(req.path),
   });
+  const adminHttpAudit = createHttpAuditMiddleware({ database: db!, transport: 'http_admin' });
+  const strictToolsAudit = createStrictAuditCoverageMiddleware({ database: db! });
+  const strictAdminAudit = createStrictAuditCoverageMiddleware({ database: db!, transport: 'http_admin' });
 
   app.use(
     '/tools',
     toolsRateLimit,
+    httpAudit,
     programmaticAuth,
+    strictToolsAudit,
     createToolContextMiddleware,
     ownerScopeMiddleware,
-    httpAudit,
     toolsRouter!,
   );
   app.use('/auth', authRouter!);
   app.use('/admin', adminRateLimit, browserSessionAuth, adminRouter!);
-  app.use('/api/v1/quality', adminAuth, httpAudit, qualityRouter, (_req, res) => {
+  app.use('/api/v1/quality', adminHttpAudit, adminAuth, strictAdminAudit, qualityRouter, (_req, res) => {
     res.status(404).json({ error: 'Not Found', message: 'Quality API route not found.' });
   });
-  app.use('/api/v1/agent', agentProgrammaticAuth, httpAudit, agentRouter);
+  app.use('/api/v1/maintenance', adminHttpAudit, adminAuth, strictAdminAudit, maintenanceRouter, (_req, res) => {
+    res.status(404).json({ error: 'Not Found', message: 'Maintenance API route not found.' });
+  });
+  app.use('/api/v1/audit', adminHttpAudit, adminAuth, strictAdminAudit, auditRouter, (_req, res) => {
+    res.status(404).json({ error: 'Not Found', message: 'Audit API route not found.' });
+  });
+  app.use('/api/v1/agent', httpAudit, agentProgrammaticAuth, agentRouter);
   app.use('/api', browserSessionAuth, apiRouter!);
-  app.use('/', mcpProgrammaticAuth, mcpHttpAudit, mcpRouter!);
+  app.use('/', mcpHttpAudit, mcpProgrammaticAuth, strictToolsAudit, mcpRouter!);
   app.use(errorHandler);
 }
 

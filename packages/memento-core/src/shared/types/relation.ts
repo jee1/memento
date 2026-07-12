@@ -20,7 +20,11 @@ export interface RelationCandidate {
 
 /**
  * 관계 유형
- * 관계 추론 엔진에서 지원하는 관계 유형들
+ * 관계 추론 엔진에서 지원하는 관계 유형들입니다.
+ *
+ * 새 `memory_relation` 레코드와 공개 MCP 계약은 대문자 유형만 사용합니다.
+ * `extracted_from`과 `supported_by`는 내부 provenance 에지로 유지하며,
+ * 새 공개 API 입력으로 노출하지 않습니다.
  */
 export type RelationType =
   | 'CAUSES' // 인과 관계

@@ -61,6 +61,7 @@ describe('ExportMemoriesTool', () => {
     expect(data.count).toBe(1);
     expect(data.content).toContain('---');
     expect(data.content).toContain('type: procedural');
+    expect(data.content).toContain('uri: memento://default/procedure/mem_export_1');
     expect(data.content).toContain('source: "https://docs.example.com/deploy"');
     expect(data.content).toContain('## Steps');
     expect(data.content).toContain('빌드');
@@ -78,6 +79,7 @@ describe('ExportMemoriesTool', () => {
 
     expect(data.format).toBe('jsonl');
     expect(line.id).toBe('mem_export_2');
+    expect(line.uri).toBe('memento://default/memory/mem_export_2');
     expect(line.source).toBe('doc:facts-v1');
   });
 });

@@ -2,7 +2,16 @@ import { createHash } from 'node:crypto';
 import { appendFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { mementoConfig } from '@memento/core';
+import {
+  AuditHashChainService,
+  assertAuditCoverage,
+  getAuditMode,
+  isStrictAuditAction,
+  type AuditAction,
+  type AuditTransport,
+  mementoConfig,
+} from '@memento/core';
+import type Database from 'better-sqlite3';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
 export type HttpAuditEntry = {
@@ -19,6 +28,13 @@ export type HttpAuditEntry = {
 export type HttpAuditMiddlewareConfig = {
   logPath?: string;
   shouldAudit?: (req: Request) => boolean;
+  database?: Database.Database;
+  transport?: AuditTransport;
+};
+
+export type StrictAuditCoverageMiddlewareConfig = {
+  database: Database.Database;
+  transport?: AuditTransport;
 };
 
 const DEFAULT_AUDIT_MODE = 'best-effort';
@@ -137,6 +153,26 @@ function extractAgentId(req: Request): string | null {
   return null;
 }
 
+function extractTargetUri(req: Request): string | null {
+  const body = req.body;
+  if (!body || typeof body !== 'object') return null;
+  const target = (body as Record<string, unknown>).target_uri ?? (body as Record<string, unknown>).uri;
+  return typeof target === 'string' && target.startsWith('memento://') ? target : null;
+}
+
+function resolveAuditAction(req: Request, status: number, tool: string | null, transport: AuditTransport): AuditAction {
+  if (status === 401 || status === 403) return 'auth_denied';
+  if (transport === 'http_admin') return 'admin';
+  if (req.method === 'DELETE' || tool === 'forget' || tool?.startsWith('remove_')) return 'delete';
+  if (tool === 'recall' || tool === 'get_relations' || tool === 'export_memories' || req.method === 'GET') return 'read';
+  return 'write';
+}
+
+function resolveAuditResultStatus(status: number): 'success' | 'failure' | 'denied' {
+  if (status === 401 || status === 403) return 'denied';
+  return status >= 200 && status < 400 ? 'success' : 'failure';
+}
+
 async function appendAuditLine(logPath: string, entry: HttpAuditEntry): Promise<void> {
   const line = `${JSON.stringify(entry)}\n`;
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- log path from env or dataDir default
@@ -147,6 +183,8 @@ export function createHttpAuditMiddleware(config: HttpAuditMiddlewareConfig = {}
   const logPath = resolveAuditLogPath(config.logPath);
   const shouldAudit = config.shouldAudit ?? (() => true);
   const auditMode = process.env.MEMENTO_HTTP_AUDIT_MODE?.trim() || DEFAULT_AUDIT_MODE;
+  const auditTransport = config.transport ?? 'mcp_http';
+  const auditChain = config.database ? new AuditHashChainService(config.database) : null;
 
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!shouldAudit(req)) {
@@ -169,6 +207,30 @@ export function createHttpAuditMiddleware(config: HttpAuditMiddlewareConfig = {}
         status: res.statusCode,
       };
 
+      if (auditChain) {
+        try {
+          const tool = entry.tool;
+          auditChain.append({
+            actorId: entry.key_id === 'anonymous' ? null : entry.key_id,
+            ownerId: entry.owner_id,
+            agentId: entry.agent_id,
+            transport: auditTransport,
+            toolOrEndpoint: tool ?? entry.route,
+            action: resolveAuditAction(req, entry.status, tool, auditTransport),
+            targetUri: extractTargetUri(req),
+            resultStatus: resolveAuditResultStatus(entry.status),
+            evidenceMode: 'metadata_only',
+            requestSeen: true,
+            responseSeen: true,
+            toolArgsState: 'omitted',
+            outputState: 'omitted',
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          process.stderr.write(`[memento-http-audit] failed to append audit chain (${auditMode}): ${message}\n`);
+        }
+      }
+
       void appendAuditLine(logPath, entry).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         process.stderr.write(
@@ -181,5 +243,42 @@ export function createHttpAuditMiddleware(config: HttpAuditMiddlewareConfig = {}
     });
 
     next();
+  };
+}
+
+/**
+ * Strict mode checks its prerequisites before a sensitive operation runs. The
+ * finish listener still writes the final result, but an unavailable audit
+ * table or an unverified actor cannot allow delete/admin operations through.
+ */
+export function createStrictAuditCoverageMiddleware(config: StrictAuditCoverageMiddlewareConfig): RequestHandler {
+  const transport = config.transport ?? 'mcp_http';
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (getAuditMode() !== 'strict') return void next();
+    const tool = extractHttpAuditToolName(req);
+    const action = resolveAuditAction(req, 200, tool, transport);
+    if (!isStrictAuditAction(action)) return void next();
+
+    try {
+      const actorId = req.programmaticAuth?.keyId ?? null;
+      assertAuditCoverage({
+        actorId,
+        transport,
+        toolOrEndpoint: tool ?? extractRoute(req),
+        action,
+        resultStatus: 'success',
+        evidenceMode: 'metadata_only',
+        requestSeen: true,
+        responseSeen: false,
+        toolArgsState: 'omitted',
+        outputState: 'omitted',
+      });
+      config.database.prepare('SELECT 1 FROM audit_log LIMIT 1').get();
+      next();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(503).json({ error: 'Audit coverage unavailable', message });
+    }
   };
 }

@@ -4,7 +4,7 @@
 
 `RelationGraph` 서비스는 기억 간의 의미적 관계를 저장하고 관리하는 핵심 서비스입니다. 관계 그래프를 통해 기억 간의 인과, 의존, 시간, 맥락 관계를 추적하고, 검색 랭킹 및 앵커 시스템에 활용할 수 있습니다.
 
-관계 **타입 표준** 및 MCP/HTTP 1급 API 계약 정합은 GitHub [#657](https://github.com/jee1/memento/issues/657)을 참고하세요.
+관계 타입의 표준 어휘, 방향, 레거시 별칭 정책은 [관계 타입 표준](../../reference/ko/relation-type-vocabulary.md)을 따릅니다. 새 MCP/HTTP 요청은 그 문서의 공개 대문자 유형만 사용합니다.
 
 ## MCP 관계 도구 (Issue #667)
 
@@ -106,7 +106,7 @@ interface MemoryRelation {
   id?: number; // 자동 생성 (추가 시)
   source_id: string; // 소스 기억 ID
   target_id: string; // 타겟 기억 ID
-  relation_type: string; // 관계 유형 (CAUSES, DEPENDS_ON, FOLLOWS, CONTRASTS_WITH, REFERENCES, BELONGS_TO)
+  relation_type: string; // 공개 유형: CAUSES, DEPENDS_ON, FOLLOWS, CONTRASTS_WITH, REFERENCES, BELONGS_TO, VERSION_OF
   confidence: number; // 신뢰도 (0.0~1.0, 기본: 0.7)
   created_at?: string; // 생성 시각 (자동 생성)
   updated_at?: string; // 수정 시각 (자동 생성)

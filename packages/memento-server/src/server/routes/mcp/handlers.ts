@@ -6,6 +6,7 @@ import { logger, mementoConfig } from '@memento/core';
 import { buildMcpManualCorsHeaders } from '../../utils/cors-policy.js';
 import { createJsonRpcError, isInitializeRequest, isJsonRpcNotification } from './json-rpc.js';
 import { processMcpMessage } from './message-processor.js';
+import type { ToolAuditContext } from '../../audit-tool-dispatch.js';
 import type { McpRequestMessage, SSETransport } from './types.js';
 
 export type ApplyMcpCorsHeaders = (req: Request, res: Response) => void;
@@ -125,7 +126,12 @@ export async function handleStreamableMcpPost(
   }
 
   try {
-    const result = await processMcpMessage(message, db, serverServices);
+    const auditContext: ToolAuditContext = {
+      transport: 'mcp_http',
+      actorId: req.programmaticAuth?.keyId,
+      agentId: req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+    };
+    const result = await processMcpMessage(message, db, serverServices, auditContext);
     if (notificationOnly) {
       res.status(202).end();
       return;
@@ -178,7 +184,12 @@ export async function handleSseMessagePost(
 
   const message = req.body;
   try {
-    const result = await processMcpMessage(message, db, serverServices);
+    const auditContext: ToolAuditContext = {
+      transport: 'mcp_http',
+      actorId: req.programmaticAuth?.keyId,
+      agentId: req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
+    };
+    const result = await processMcpMessage(message, db, serverServices, auditContext);
     if (!writeSseJson(transport, result)) {
       res.status(500).json({ error: 'SSE transport invalid' });
       return;

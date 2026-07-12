@@ -143,6 +143,38 @@ export {
   type ExtractedRelation,
 } from './domains/relation/services/relation-quality-validator.js';
 export { RelationEngineSchemaMigration } from './infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
+export { EmbeddingReindexService } from './domains/embedding/services/embedding-reindex-service.js';
+export type { EmbeddingHealthDiagnostics, EmbeddingReindexOptions, EmbeddingReindexResult } from './domains/embedding/services/embedding-reindex-service.js';
+export type { EmbeddingProvider } from './shared/types/embedding.types.js';
+export {
+  EventOutboxService,
+  EVENT_OUTBOX_ENABLED_ENV,
+  isEventOutboxEnabled,
+  type EventOutboxEvent,
+  type EventOutboxEventType,
+  type EventOutboxPublisher,
+} from './domains/telemetry/services/event-outbox-service.js';
+export {
+  AuditHashChainService,
+  AuditCoverageError,
+  AUDIT_MODE_ENV,
+  assertAuditCoverage,
+  getAuditMode,
+  isStrictAuditAction,
+  type AuditAction,
+  type AuditChainVerification,
+  type AuditCoverageGap,
+  type AuditEvidenceMode,
+  type AuditLogInput,
+  type AuditLogQuery,
+  type AuditLogRecord,
+  type AuditMode,
+  type AuditOutputState,
+  type AuditPayloadState,
+  type AuditResultStatus,
+  type AuditTransport,
+  type AuditVerdict,
+} from './domains/telemetry/services/audit-hash-chain-service.js';
 export { ExtractRelationsTool } from './domains/relation/tools/extract-relations-tool.js';
 export { GetRelationsTool } from './domains/relation/tools/get-relations-tool.js';
 export { AddRelationTool } from './domains/relation/tools/add-relation-tool.js';
@@ -156,6 +188,15 @@ export { GetIntrospectionSummaryTool } from './domains/memory/tools/get-introspe
 export { FeedbackTool } from './domains/memory/tools/feedback-tool.js';
 export { ExportMemoriesTool } from './domains/memory/tools/export-memories-tool.js';
 export { validateSource } from './shared/validation/source-uri.js';
+export {
+  formatMementoResourceUri,
+  isMementoResourceKind,
+  memoryItemResourceKind,
+  parseMementoResourceUri,
+  type FormatMementoResourceUriInput,
+  type MementoResourceKind,
+  type MementoResourceUriParts,
+} from './shared/utils/memento-resource-uri.js';
 export { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
 export {
@@ -338,3 +379,4 @@ export type {
   ListForgettingEventsOptions,
 } from './domains/forgetting/repositories/forgetting-event-repository.js';
 export { MemoryForgettingEventMigration } from './infrastructure/database/database/migration/migrations/037-memory-forgetting-event.js';
+export { AuditHashChainMigration } from './infrastructure/database/database/migration/migrations/040-audit-hash-chain.js';

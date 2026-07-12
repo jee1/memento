@@ -31,6 +31,7 @@ function createBaseSchema(db: Database.Database): void {
       view_count INTEGER DEFAULT 0,
       cite_count INTEGER DEFAULT 0,
       edit_count INTEGER DEFAULT 0,
+      owner_id TEXT,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT
@@ -119,6 +120,9 @@ describe('AddRelationTool', () => {
       expect(data.relation_id).toBeDefined();
       expect(data.source_id).toBe('mem1');
       expect(data.target_id).toBe('mem2');
+      expect(data.uri).toMatch(/^memento:\/\/default\/relation\/\d+$/);
+      expect(data.source_uri).toBe('memento://default/memory/mem1');
+      expect(data.target_uri).toBe('memento://default/memory/mem2');
       expect(data.relation_type).toBe('CAUSES');
       expect(data.confidence).toBe(0.8);
       expect(data.message).toContain('관계가 추가되었습니다');

@@ -274,7 +274,7 @@ A memory system is only useful if it also forgets. Memories that only accumulate
 
 ### 📊 Performance Monitoring (HTTP Management API)
 
-- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
+- **Security**: HTTP server splits browser-session and header-based trust. `/auth/session` starts the cookie-backed browser flow; `/admin` and `/api` require a browser session; `/api/v1/quality`, `/api/v1/maintenance`, `/tools`, and `/mcp` require `Authorization: Bearer` or `X-API-Key`. See [docs/reference/en/security.md](docs/reference/en/security.md).
 
 - **Real-time metrics**: Database, search, memory performance monitoring
 - **Real-time alerts**: Automatic performance checks every 30 seconds with threshold-based alerts

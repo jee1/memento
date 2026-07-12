@@ -10,6 +10,11 @@ import {
   getVectorSearchEngine
 } from '@memento/core';
 import { mapToolExecutionErrorToJsonRpc } from '../../utils/mcp-tool-call-error.js';
+import {
+  assertToolAuditCoverage,
+  recordToolAudit,
+  type ToolAuditContext,
+} from '../../audit-tool-dispatch.js';
 import { createJsonRpcError } from './json-rpc.js';
 import type { JsonRpcResponse, McpRequestMessage } from './types.js';
 
@@ -49,7 +54,8 @@ type MemoryResourceRow = {
 export async function processMcpMessage(
   message: McpRequestMessage,
   db: Database.Database | null,
-  serverServices: ServerServices | null
+  serverServices: ServerServices | null,
+  auditContext: ToolAuditContext = { transport: 'mcp_http' },
 ): Promise<JsonRpcResponse> {
   if (message.method === 'initialize') {
     logger.info('MCP initialize request processing');
@@ -83,7 +89,7 @@ export async function processMcpMessage(
   }
 
   if (message.method === 'tools/call') {
-    return handleToolsCall(message, db, serverServices);
+    return handleToolsCall(message, db, serverServices, auditContext);
   }
 
   if (message.method === 'prompts/list') {
@@ -188,7 +194,8 @@ function handleToolsList(message: McpRequestMessage): JsonRpcResponse {
 async function handleToolsCall(
   message: McpRequestMessage,
   db: Database.Database | null,
-  serverServices: ServerServices | null
+  serverServices: ServerServices | null,
+  auditContext: ToolAuditContext,
 ): Promise<JsonRpcResponse> {
   const { name, arguments: args } = message.params ?? {};
   if (typeof name !== 'string') {
@@ -201,7 +208,9 @@ async function handleToolsCall(
   }
 
   try {
+    assertToolAuditCoverage(db!, name, args, auditContext);
     const toolResult = await executeTool(name, args, toolContext);
+    recordToolAudit(db!, name, args, auditContext, 'success');
     return {
       jsonrpc: '2.0',
       id: message.id,
@@ -209,6 +218,14 @@ async function handleToolsCall(
       result: toolResult
     };
   } catch (error) {
+    try {
+      recordToolAudit(db!, name, args, auditContext, 'failure');
+    } catch (auditError) {
+      logger.warn('MCP tool audit record failed', {
+        tool: name,
+        error: auditError instanceof Error ? auditError.message : String(auditError),
+      });
+    }
     const mapped = mapToolExecutionErrorToJsonRpc(error);
     if (mapped) {
       logger.warn('MCP tools/call rejected invalid params', { tool: name, error: mapped.data });

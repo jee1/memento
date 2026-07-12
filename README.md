@@ -373,7 +373,7 @@ await client.forget(result.memory_id);
 
 ### 📊 성능 모니터링 (HTTP 관리 API)
 
-> **보안**: HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다. `/auth/session`은 쿠키 기반 브라우저 세션을 시작하고, `/admin`과 `/api`는 브라우저 세션이 필요하며, `/api/v1/quality`, `/tools`, `/mcp`는 `Authorization: Bearer` 또는 `X-API-Key`가 필요합니다. 자세한 내용: [docs/reference/ko/security.md](docs/reference/ko/security.md)
+> **보안**: HTTP 서버는 브라우저 세션과 헤더 기반 신뢰 경계를 분리합니다. `/auth/session`은 쿠키 기반 브라우저 세션을 시작하고, `/admin`과 `/api`는 브라우저 세션이 필요하며, `/api/v1/quality`, `/api/v1/maintenance`, `/tools`, `/mcp`는 `Authorization: Bearer` 또는 `X-API-Key`가 필요합니다. 자세한 내용: [docs/reference/ko/security.md](docs/reference/ko/security.md)
 
 - **실시간 메트릭**: 데이터베이스, 검색, 메모리 성능 모니터링
 - **실시간 알림**: 30초마다 자동 성능 체크 및 임계값 기반 알림

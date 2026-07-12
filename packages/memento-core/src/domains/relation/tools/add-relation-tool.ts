@@ -6,8 +6,17 @@
 import { z } from 'zod';
 import { CyclicRelationError, DuplicateRelationError } from '../services/relation-errors.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
+import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
+
+type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
+
+function memoryItemHasOwnerIdColumn(db: NonNullable<ToolContext['db']>): boolean {
+  const columns = DatabaseUtils.all(db, 'PRAGMA table_info(memory_item)') as Array<{ name: string }>;
+  return columns.some((column) => column.name === 'owner_id');
+}
 
 const AddRelationSchema = z.object({
   source_id: z.string().min(1, 'source_id는 필수입니다'),
@@ -61,9 +70,10 @@ export class AddRelationTool extends BaseTool {
 
     try {
       // Given: 소스 및 타겟 메모리 존재 확인
+      const ownerIdColumn = memoryItemHasOwnerIdColumn(db) ? ', owner_id' : '';
       const sourceMemory = DatabaseUtils.get(db, `
-        SELECT id FROM memory_item WHERE id = ?
-      `, [source_id]) as { id: string } | undefined;
+        SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?
+      `, [source_id]) as RelationMemoryRow | undefined;
 
       if (!sourceMemory) {
         return {
@@ -79,8 +89,8 @@ export class AddRelationTool extends BaseTool {
       }
 
       const targetMemory = DatabaseUtils.get(db, `
-        SELECT id FROM memory_item WHERE id = ?
-      `, [target_id]) as { id: string } | undefined;
+        SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?
+      `, [target_id]) as RelationMemoryRow | undefined;
 
       if (!targetMemory) {
         return {
@@ -138,11 +148,37 @@ export class AddRelationTool extends BaseTool {
           }
         );
 
+        const relationUri = formatMementoResourceUri({ ownerId: sourceMemory.owner_id ?? null, kind: 'relation', id: relationId });
+        try {
+          new EventOutboxService(db).enqueue({
+            eventType: 'relation.added',
+            targetUri: relationUri,
+            ownerId: sourceMemory.owner_id ?? null,
+            payload: { source_id, target_id, relation_type, confidence: confidence || 0.7 },
+            idempotencyKey: `relation.added:${relationUri}`,
+          });
+        } catch (error) {
+          this.logWarning('Outbox event enqueue failed after relation add', {
+            error: error instanceof Error ? error.message : String(error), relation_id: relationId,
+          });
+        }
+
         // Then: 결과 반환
         return this.createSuccessResult({
           relation_id: relationId,
+          uri: relationUri,
           source_id,
+          source_uri: formatMementoResourceUri({
+            ownerId: sourceMemory.owner_id ?? null,
+            kind: memoryItemResourceKind(sourceMemory.type),
+            id: source_id,
+          }),
           target_id,
+          target_uri: formatMementoResourceUri({
+            ownerId: targetMemory.owner_id ?? null,
+            kind: memoryItemResourceKind(targetMemory.type),
+            id: target_id,
+          }),
           relation_type,
           confidence: confidence || 0.7,
           message: `관계가 추가되었습니다: ${source_id} --[${relation_type}]--> ${target_id}`

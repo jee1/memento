@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 
@@ -80,6 +81,7 @@ function formatMemoryMarkdown(row: MemoryExportRow): string {
     '---',
     `id: ${row.id}`,
     `type: ${row.type}`,
+    `uri: ${formatMementoResourceUri({ ownerId: row.owner_id, kind: memoryItemResourceKind(row.type), id: row.id })}`,
   ];
 
   if (tags.length > 0) {
@@ -185,6 +187,7 @@ export class ExportMemoriesTool extends BaseTool {
     if (parsed.format === 'jsonl') {
       const lines = rows.map((row) => JSON.stringify({
         id: row.id,
+        uri: formatMementoResourceUri({ ownerId: row.owner_id, kind: memoryItemResourceKind(row.type), id: row.id }),
         type: row.type,
         content: row.content,
         tags: parseTags(row.tags),

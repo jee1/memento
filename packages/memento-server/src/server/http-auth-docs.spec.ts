@@ -28,6 +28,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(notice).toContain('/admin');
     expect(notice).toContain('/api');
     expect(notice).toContain('/api/v1/quality');
+    expect(notice).toContain('/api/v1/maintenance');
     expect(notice).toContain('/tools');
     expect(notice).toContain('/mcp');
     expect(notice).toContain('/messages');
@@ -44,6 +45,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(warning).not.toContain('/admin');
     expect(warning).not.toContain('/api,');
     expect(warning).toContain('/api/v1/quality');
+    expect(warning).toContain('/api/v1/maintenance');
     expect(warning).toContain('/tools');
     expect(warning).toContain('/mcp');
     expect(warning).toContain('/messages');
@@ -60,6 +62,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(english).toContain('/admin` and `/api` require a browser session');
     expect(english).not.toContain('/admin` and `/api` require a browser session or `ADMIN_API_KEY`');
     expect(english).toContain('/api/v1/quality');
+    expect(english).toContain('/api/v1/maintenance');
     expect(english).toContain('`/dashboard` is the preferred entry point');
     expect(english).toContain('opening `/graph` directly now offers the same `/auth/session` re-auth path');
     expect(english).toContain('HTTP-only (not MCP)');
@@ -69,6 +72,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(korean).toContain('/admin`과 `/api`는 브라우저 세션');
     expect(korean).not.toContain('/admin`과 `/api`는 브라우저 세션 또는 `ADMIN_API_KEY`');
     expect(korean).toContain('/api/v1/quality');
+    expect(korean).toContain('/api/v1/maintenance');
     expect(korean).toContain('전체 관리 흐름은 `/dashboard`에서 여는 편이 가장 안전');
     expect(korean).toContain('`/graph`를 직접 열어도 동일한 `/auth/session` 기반 재인증 패널');
     expect(korean).toContain('HTTP 전용 (MCP에 없음)');
@@ -105,6 +109,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(englishSecurity).toContain('require that browser session');
     expect(englishSecurity).not.toContain('or `ADMIN_API_KEY`');
     expect(englishSecurity).toContain('/api/v1/quality');
+    expect(englishSecurity).toContain('/api/v1/maintenance');
     expect(englishSecurity).toContain('/dashboard` is the recommended entry point');
     expect(englishSecurity).toContain('opening `/graph` directly now offers the same session-backed sign-in/re-auth path');
     expect(englishSecurity).toContain('requires a browser session before the graph surface unlocks');
@@ -118,6 +123,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(koreanSecurity).toContain('브라우저 세션이 필요합니다');
     expect(koreanSecurity).not.toContain('브라우저 세션 또는 `ADMIN_API_KEY`');
     expect(koreanSecurity).toContain('/api/v1/quality');
+    expect(koreanSecurity).toContain('/api/v1/maintenance');
     expect(koreanSecurity).toContain('/dashboard`가 권장 진입점');
     expect(koreanSecurity).toContain('/graph`를 직접 열어도 같은 세션 모델로 로그인/재인증');
     expect(koreanSecurity).toContain('브라우저 세션이 생긴 뒤에만 그래프 화면이 열립니다');
@@ -127,6 +133,7 @@ describe('HTTP auth docs and startup messaging', () => {
     expect(developerGuide).toContain('/admin`, `/api`');
     expect(developerGuide).not.toContain('/admin`, `/api`, `/api/v1/quality`');
     expect(developerGuide).toContain('/api/v1/quality');
+    expect(developerGuide).toContain('/api/v1/maintenance');
     expect(developerGuide).toContain('브라우저 세션');
     expect(developerGuide).toContain('헤더 기반');
   });

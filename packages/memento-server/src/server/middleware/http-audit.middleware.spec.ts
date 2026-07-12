@@ -5,6 +5,8 @@ import { join } from 'node:path';
 
 import type { NextFunction, Request, Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import Database from 'better-sqlite3';
+import { AuditHashChainMigration, AuditHashChainService } from '@memento/core';
 
 import {
   createHttpAuditMiddleware,
@@ -118,6 +120,34 @@ describe('createHttpAuditMiddleware', () => {
       status: 201,
     });
     expect(new Date(entry.ts).toString()).not.toBe('Invalid Date');
+  });
+
+  it('adds a metadata-only hash-chain record without storing request content', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'memento-http-audit-'));
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE memory_item (id TEXT PRIMARY KEY)');
+    await new AuditHashChainMigration().up(db);
+    const middleware = createHttpAuditMiddleware({ logPath: join(tempDir, 'audit.jsonl'), database: db });
+    const req = {
+      baseUrl: '/tools', path: '/remember', originalUrl: '/tools/remember', method: 'POST',
+      headers: { authorization: 'Bearer test-admin-key' },
+      body: { owner_id: 'owner-1', content: 'must not be audited' },
+      programmaticAuth: { keyId: 'key-662' },
+    } as Request;
+    const res = createMockResponse();
+
+    middleware(req, res, vi.fn());
+    res.status(201);
+    res.emit('finish');
+
+    await vi.waitFor(() => {
+      expect(new AuditHashChainService(db).list()).toHaveLength(1);
+    });
+    expect(new AuditHashChainService(db).list()[0]).toMatchObject({
+      transport: 'mcp_http', action: 'write', evidenceMode: 'metadata_only', toolArgsState: 'omitted',
+    });
+    expect(JSON.stringify(new AuditHashChainService(db).list())).not.toContain('must not be audited');
+    db.close();
   });
 
   it('skips logging when shouldAudit returns false', async () => {

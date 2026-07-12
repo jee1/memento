@@ -8,8 +8,41 @@ import type { GetRelationsOptions,MemoryRelation } from '../../../shared/types/r
 import type { RelationType } from '../../../shared/types/relation.js';
 import { RELATION_TYPE_CATEGORY_MAP } from '../../../shared/types/relation.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
+
+type RelationMemoryRow = { id: string; owner_id?: string | null; type: string };
+
+function memoryItemHasOwnerIdColumn(db: NonNullable<ToolContext['db']>): boolean {
+  const columns = DatabaseUtils.all(db, 'PRAGMA table_info(memory_item)') as Array<{ name: string }>;
+  return columns.some((column) => column.name === 'owner_id');
+}
+
+function getRelationMemoryRows(
+  db: NonNullable<ToolContext['db']>,
+  memoryIds: string[],
+): Map<string, RelationMemoryRow> {
+  const uniqueIds = [...new Set(memoryIds)];
+  if (uniqueIds.length === 0) return new Map();
+  const ownerIdColumn = memoryItemHasOwnerIdColumn(db) ? ', owner_id' : '';
+
+  const rows = DatabaseUtils.all(
+    db,
+    `SELECT id, type${ownerIdColumn} FROM memory_item WHERE id IN (${uniqueIds.map(() => '?').join(', ')})`,
+    uniqueIds,
+  ) as RelationMemoryRow[];
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+function formatMemoryUri(row: RelationMemoryRow | undefined): string | undefined {
+  if (!row) return undefined;
+  return formatMementoResourceUri({
+    ownerId: row.owner_id ?? null,
+    kind: memoryItemResourceKind(row.type),
+    id: row.id,
+  });
+}
 
 const GetRelationsSchema = z.object({
   memory_id: z.string().min(1, 'memory_id는 필수입니다'),
@@ -63,9 +96,10 @@ export class GetRelationsTool extends BaseTool {
 
     try {
       // Given: 메모리 존재 확인
+      const ownerIdColumn = memoryItemHasOwnerIdColumn(db) ? ', owner_id' : '';
       const memory = DatabaseUtils.get(db, `
-        SELECT id FROM memory_item WHERE id = ?
-      `, [memory_id]) as { id: string } | undefined;
+        SELECT id, type${ownerIdColumn} FROM memory_item WHERE id = ?
+      `, [memory_id]) as RelationMemoryRow | undefined;
 
       if (!memory) {
         return {
@@ -135,6 +169,7 @@ export class GetRelationsTool extends BaseTool {
       if (options.relationTypes && options.relationTypes.length === 0) {
         return this.createSuccessResult({
           memory_id,
+          memory_uri: formatMemoryUri(memory),
           relation_count: 0,
           relations: [],
           filters: {
@@ -147,15 +182,29 @@ export class GetRelationsTool extends BaseTool {
       }
 
       const relations = await relationGraph.getRelations(memory_id, options);
+      const memoryRows = getRelationMemoryRows(
+        db,
+        relations.flatMap((relation) => [relation.source_id, relation.target_id]),
+      );
 
       // Then: 결과 반환
       return this.createSuccessResult({
         memory_id,
+        memory_uri: formatMemoryUri(memory),
         relation_count: relations.length,
         relations: relations.map((r: MemoryRelation) => ({
           relation_id: r.id,
+          uri: r.id === undefined
+            ? undefined
+            : formatMementoResourceUri({
+              ownerId: memoryRows.get(r.source_id)?.owner_id,
+              kind: 'relation',
+              id: r.id,
+            }),
           source_id: r.source_id,
+          source_uri: formatMemoryUri(memoryRows.get(r.source_id)),
           target_id: r.target_id,
+          target_uri: formatMemoryUri(memoryRows.get(r.target_id)),
           relation_type: r.relation_type,
           confidence: r.confidence,
           metadata: r.metadata,

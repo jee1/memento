@@ -84,12 +84,33 @@ A warning is logged whenever a fallback occurs. This means that even if you conf
 
 Switching providers changes the dimension of newly generated vectors. Existing vectors stored under a different dimension remain in the database and become incompatible with the new vectors. Vector similarity search will produce incorrect results when the database contains vectors of mixed dimensions.
 
-When changing providers, choose one of these approaches:
+When changing providers, regenerate derived embeddings after changing the environment variable. Use the same provider value in the command and environment; a fallback response is reported as a failed row rather than silently stored under the requested provider.
 
-- Start fresh by clearing your database and reindexing.
-- Regenerate all existing memory embeddings using the new provider.
+```bash
+npm run reindex-embeddings -- --provider minilm --dry-run
+npm run reindex-embeddings -- --provider minilm --batch-size 100
+npm run reindex-embeddings -- --provider minilm --owner-id agent-42
+```
+
+The JSON result reports missing embeddings, dimension mismatches, and provider drift. Reindexing writes only native embeddings for the requested provider; FTS remains available when a vector provider is unavailable.
 
 Do not simply update the environment variable and leave existing data as-is.
+
+### HTTP maintenance API
+
+The HTTP server can run the same work asynchronously when a local CLI is not available. It requires a token with the `admin:destructive` scope; use the returned `statusUrl` to observe completion.
+
+```bash
+curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/reindex \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"minilm","batchSize":100}'
+
+curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+  http://127.0.0.1:9001/api/v1/maintenance/reindex/<job-id>
+```
+
+Jobs and their status are held in the HTTP server process. A server restart loses job history, but never rolls back embeddings already written to SQLite. Run a `--dry-run` first when changing providers, then review `missingEmbeddingCount`, `dimensionMismatchCount`, and `providerDriftCount` after completion.
 
 ## Complete Configuration Examples
 

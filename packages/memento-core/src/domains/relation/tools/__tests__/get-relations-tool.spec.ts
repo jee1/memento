@@ -31,6 +31,7 @@ function createBaseSchema(db: Database.Database): void {
       view_count INTEGER DEFAULT 0,
       cite_count INTEGER DEFAULT 0,
       edit_count INTEGER DEFAULT 0,
+      owner_id TEXT,
           project_id TEXT,
           is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
           deleted_at TEXT
@@ -158,6 +159,9 @@ describe('GetRelationsTool', () => {
       expect(data.memory_id).toBe('mem1');
       expect(data.relation_count).toBe(2); // mem1 -> mem2, mem1 -> mem3
       expect(data.relations.length).toBe(2);
+      expect(data.memory_uri).toBe('memento://default/memory/mem1');
+      expect(data.relations[0].uri).toMatch(/^memento:\/\/default\/relation\/\d+$/);
+      expect(data.relations[0].source_uri).toBe('memento://default/memory/mem1');
       expect(data.filters.direction).toBe('both');
     });
 

@@ -9,6 +9,10 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { FeedbackRepositorySQLite } from '../../../infrastructure/database/repositories/feedback-repository-sqlite.impl.js';
 import { logger } from '../../../shared/utils/logger.js';
+import {
+  formatMementoResourceUri,
+  memoryItemResourceKind,
+} from '../../../shared/utils/memento-resource-uri.js';
 
 /** SQLite CURRENT_TIMESTAMP 등 비 ISO 문자열을 RFC3339(UTC)로 통일 */
 function normalizeFeedbackCreatedAtToIso(createdAt: string): string {
@@ -141,8 +145,8 @@ export class FeedbackTool extends BaseTool {
 
     try {
       const row = context.db!
-        .prepare('SELECT id FROM memory_item WHERE id = ?')
-        .get(parsed.memory_id) as { id: string } | undefined;
+        .prepare('SELECT id, owner_id, type FROM memory_item WHERE id = ?')
+        .get(parsed.memory_id) as { id: string; owner_id: string | null; type: string } | undefined;
       if (!row) {
         return this.feedbackContractError('memory not found');
       }
@@ -190,6 +194,11 @@ export class FeedbackTool extends BaseTool {
       return this.createSuccessResult({
         success: true,
         memory_id: parsed.memory_id,
+        uri: formatMementoResourceUri({
+          ownerId: row.owner_id,
+          kind: memoryItemResourceKind(row.type),
+          id: parsed.memory_id,
+        }),
         feedback_id: String(inserted.id),
         helpful: parsed.helpful,
         created_at: normalizeFeedbackCreatedAtToIso(inserted.created_at)

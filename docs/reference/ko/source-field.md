@@ -10,7 +10,8 @@
 | `https://` | `https://github.com/org/repo/pull/42` | 웹 문서·이슈·PR |
 | `commit:` | `commit:abc1234def5678` | Git 커밋 SHA (7–64자 hex) |
 | `doc:` | `doc:security-guide-v2` | 내부 문서 ID |
-| `memento://memory/` | `memento://memory/mem_123_abc` | 다른 Memento 기억 참조 |
+| `memento://{owner}/{kind}/{id}` | `memento://agent-a/memory/mem_123_abc` | 다른 Memento 리소스 참조 |
+| `memento://memory/` | `memento://memory/mem_123_abc` | 기존 source 값용 legacy alias |
 
 `source`는 **선택 필드**입니다. 생략하면 `NULL`로 저장됩니다.
 
@@ -41,7 +42,7 @@ export MEMENTO_SOURCE_STRICT=true
 {
   "content": "이전 회의 결정을 인용",
   "type": "episodic",
-  "source": "memento://memory/mem_1700000000_abc"
+  "source": "memento://default/memory/mem_1700000000_abc"
 }
 ```
 
@@ -56,4 +57,5 @@ export MEMENTO_SOURCE_STRICT=true
 ## 관련 문서
 
 - [보안 참고](./security.md)
+- [Memento 리소스 URI](./resource-uri.md)
 - [다중 에이전트 사용 가이드](../../guides/ko/multi-agent-usage.md)
