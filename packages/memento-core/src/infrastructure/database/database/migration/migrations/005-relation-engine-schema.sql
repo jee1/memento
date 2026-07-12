@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_relation_type_registry_category ON relation_type_
 -- 5. Insert initial relation types into registry (OR IGNORE so schema.sql pre-seed does not conflict)
 -- Causal (인과 관계군)
 INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
-VALUES ('CAUSES', 'Causal', '인과 관계: 한 기억이 다른 기억의 원인이 되는 관계', '["episodic", "semantic"]', 0.7, 1.2);
+VALUES ('CAUSES', 'Causal', '인과 관계: 한 기억이 다른 기억의 원인이 되는 관계', '["episodic"]', 0.7, 1.2);
 
 -- Temporal (시간 관계군)
 INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
@@ -54,11 +54,21 @@ INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, 
 VALUES ('DEPENDS_ON', 'Structural', '의존 관계: 한 기억이 다른 기억에 의존하는 관계', '["semantic", "procedural"]', 0.7, 1.1);
 
 INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
-VALUES ('BELONGS_TO', 'Structural', '포함 관계: 한 기억이 다른 기억에 속하는 관계', '["semantic", "episodic"]', 0.7, 1.0);
+VALUES ('BELONGS_TO', 'Structural', '포함 관계: 한 기억이 다른 기억에 속하는 관계', '["episodic", "semantic"]', 0.7, 1.0);
+
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+VALUES ('VERSION_OF', 'Structural', '버전 관계: 새 절차 기억이 이전 절차 기억을 대체하는 관계', '["procedural"]', 0.7, 1.0);
 
 -- Semantic (의미 관계군)
 INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
-VALUES ('CONTRASTS_WITH', 'Semantic', '대조 관계: 한 기억이 다른 기억과 대조되는 관계', '["semantic", "episodic"]', 0.7, 0.9);
+VALUES ('CONTRASTS_WITH', 'Semantic', '대조 관계: 한 기억이 다른 기억과 대조되는 관계', '["episodic", "semantic"]', 0.7, 0.9);
 
 INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
 VALUES ('REFERENCES', 'Semantic', '참조 관계: 한 기억이 다른 기억을 참조하는 관계', '["working", "episodic", "semantic", "procedural"]', 0.7, 0.8);
+
+-- Internal provenance edges. They are not direct user-selectable relation types.
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+VALUES ('extracted_from', 'Structural', '추출 근거 관계: 의미 기억이 원본 기억에서 추출된 관계', '[]', 0.7, 0.7);
+
+INSERT OR IGNORE INTO relation_type_registry (type_name, category, description, applicable_types, default_confidence, search_boost)
+VALUES ('supported_by', 'Structural', '근거 관계: 한 기억이 다른 기억의 근거가 되는 관계', '[]', 0.7, 0.7);

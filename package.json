@@ -120,6 +120,7 @@
     "quick-start": "npm install && npm run setup && npm run dev",
     "backup:embeddings": "node scripts/backup-embeddings.js",
     "regenerate:embeddings": "node scripts/regenerate-embeddings.js",
+    "reindex-embeddings": "tsx scripts/reindex-embeddings.ts",
     "debug:embeddings": "node scripts/debug-embeddings.js",
     "fix:vector-dimensions": "node scripts/fix-vector-dimensions.js",
     "fix:tfidf-dimensions": "tsx scripts/fix-tfidf-dimensions.ts",

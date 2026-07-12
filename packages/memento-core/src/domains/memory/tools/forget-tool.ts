@@ -7,7 +7,9 @@ import { z } from 'zod';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { getVectorTableName as getValidatedVectorTableName } from '../../../shared/utils/sql-security-validator.js';
+import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
@@ -29,6 +31,7 @@ type MemoryDeleteRow = {
   importance?: number;
   pinned?: boolean | number;
   created_at?: string;
+  owner_id?: string | null;
 };
 
 type DeleteOperationResult = {
@@ -191,6 +194,25 @@ export class ForgetTool extends BaseTool {
       
       // 관련 데이터 정리
       await this.cleanupRelatedData(id, hard, context);
+
+      try {
+        const targetUri = formatMementoResourceUri({
+          ownerId: memory.owner_id,
+          kind: memoryItemResourceKind(memory.type ?? 'memory'),
+          id,
+        });
+        new EventOutboxService(context.db!).enqueue({
+          eventType: 'memory.forgotten',
+          targetUri,
+          ownerId: memory.owner_id ?? null,
+          payload: { memory_id: id, deletion_type: hard ? 'hard' : 'soft', reason: reason ?? null },
+          idempotencyKey: `memory.forgotten:${targetUri}:${hard ? 'hard' : 'soft'}:${memory.created_at ?? ''}`,
+        });
+      } catch (error) {
+        this.logWarning('Outbox event enqueue failed after memory deletion', {
+          error: error instanceof Error ? error.message : String(error), memory_id: id,
+        });
+      }
       
       return this.createSuccessResult({
         memory_id: id,

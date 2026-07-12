@@ -1,3 +1,5 @@
+import { parseMementoResourceUri } from '../utils/memento-resource-uri.js';
+
 /**
  * remember `source` 필드 URI 검증 (#671)
  *
@@ -6,7 +8,8 @@
  * - https://example.com/path
  * - commit:<sha>
  * - doc:<id>
- * - memento://memory/<memory_id>
+ * - memento://<owner>/<resource-kind>/<resource-id>
+ * - memento://memory/<memory_id> (legacy alias)
  */
 
 export type SourceUriType = 'file' | 'https' | 'commit' | 'doc' | 'memento';
@@ -49,10 +52,16 @@ export function validateSource(source: string | undefined | null): SourceValidat
   if (MEMENTO_URI.test(trimmed)) {
     return { isValid: true, type: 'memento' };
   }
+  try {
+    parseMementoResourceUri(trimmed);
+    return { isValid: true, type: 'memento' };
+  } catch {
+    // Continue to the shared invalid-source response below.
+  }
 
   return {
     isValid: false,
     message:
-      "source는 file://, https://, commit:<sha>, doc:<id>, memento://memory/{id} 형식이어야 합니다",
+      "source는 file://, https://, commit:<sha>, doc:<id>, memento://{owner}/{kind}/{id} 형식이어야 합니다",
   };
 }

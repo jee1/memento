@@ -8,7 +8,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
   - `/auth/session` — 쿠키 기반 브라우저 세션 시작
   - `/admin/*`, `/api/*` — **브라우저 세션이 필요합니다**
   - `/tools/*`, `/mcp`, `/messages`, `/api/v1/agent` — **`tools:invoke` 스코프** 토큰 (`Authorization: Bearer` 또는 `X-API-Key`)
-  - `/api/v1/quality/*` — **`admin:destructive` 스코프** 토큰 (programmatic quality API)
+  - `/api/v1/quality/*`, `/api/v1/maintenance/*`, `/api/v1/audit/*` — **`admin:destructive` 스코프** 토큰 (programmatic 관리 API)
 - **스코프드 토큰 (`MEMENTO_API_TOKENS`)**: JSON 배열로 여러 키를 설정합니다. 예:
   ```json
   [
@@ -28,14 +28,15 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 - **`/tools/recall`·`/tools/memory_injection`**: 기본 `MEMENTO_OWNER_SCOPE_MODE=strict` — `owner_id` 미지정 시 `X-Memento-Agent-Id` 또는 `MEMENTO_HTTP_DEFAULT_AGENT_ID`로 자동 필터. 식별자가 없으면 **400**.
 - **레거시 opt-out**: `owner_id = NULL` 데이터를 HTTP recall에서 전역 조회하려면 `MEMENTO_OWNER_SCOPE_MODE=warn`(경고만) 또는 `off`(강제 없음)로 완화하세요. 상세: [`docs/guides/ko/multi-agent-usage.md`](../../guides/ko/multi-agent-usage.md).
 
-## HTTP programmatic 감사 로그 (JSONL)
+## HTTP programmatic 감사 로그 (JSONL + hash chain)
 
-- **범위**: `/tools/*`, `/api/v1/agent/*`, `/api/v1/quality/*`, 보호된 MCP HTTP 경로(`/mcp`, `/messages`)의 programmatic 호출을 **best-effort**로 JSONL에 기록합니다.
+- **범위**: `/tools/*`, `/api/v1/agent/*`, `/api/v1/quality/*`, `/api/v1/maintenance/*`, `/api/v1/audit/*`, 보호된 MCP HTTP 경로(`/mcp`, `/messages`)의 programmatic 호출을 JSONL과 SQLite hash chain에 기록합니다. MCP stdio tool dispatch도 SQLite chain에 기록합니다.
 - **기본 경로**: `MEMENTO_HTTP_AUDIT_LOG_PATH` 미설정 시 DB 파일과 같은 디렉터리의 `http-audit.jsonl` (`{dirname(DB_PATH)}/http-audit.jsonl`).
-- **필드 계약**: `{ ts, key_id, route, tool, owner_id, agent_id, latency_ms, status }` — #660 hash-chained audit과 병합 가능하도록 동일 키를 사용합니다 (#660에서 `previous_hash`/`current_hash`·`transport`·`action` 확장 예정).
+- **JSONL 필드 계약**: `{ ts, key_id, route, tool, owner_id, agent_id, latency_ms, status }`. SQLite `audit_log`는 `transport`, `action`, `target_uri`, evidence/coverage 상태, `previous_hash`, `current_hash`를 추가합니다. raw credential·argument·output·memory content는 기록하지 않습니다.
 - **key_id**: `req.programmaticAuth.keyId`(향후 #662 API 키 테이블) 우선, 없으면 Bearer/X-API-Key 자격 증명 SHA-256 접두(12자), 비표준 `Authorization`은 `legacy-key`, 브라우저 세션 쿠키는 `session`, 그 외 `anonymous`.
-- **정책**: 기본 `MEMENTO_HTTP_AUDIT_MODE=best-effort` — append 실패 시 stderr 경고만 하고 요청은 계속 처리합니다. `strict`는 #660 통합 시 audit 실패 시 거절용으로 예약되어 있습니다.
+- **정책**: JSONL은 `MEMENTO_HTTP_AUDIT_MODE=best-effort`로 유지합니다. SQLite chain은 `MEMENTO_AUDIT_MODE=best-effort`가 기본이며, `strict`에서는 actor/table coverage를 확보하지 못한 `delete`·`admin`을 실행 전에 거절합니다. `auth_denied`는 이미 401/403으로 거절된 상태로, 가능한 경우 불완전 record를 남깁니다.
 - **owner_id / agent_id**: 요청 body의 `owner_id`·`agent_id`, 헤더 `X-Memento-Agent-Id`·`X-Agent-Id`, ToolContext(`agentId`)에서 best-effort 추출합니다.
+- **조회·보존**: `/api/v1/audit/entries`, `/api/v1/audit/export`는 `admin:destructive` scope가 필요합니다. append-only chain에는 자동 purge가 없으므로 DB backup과 verified export archive를 사용합니다. 자세한 evidence/retention 정책은 [해시 체인 감사 로그](./audit-log.md)를 보세요.
 
 ## HTTP rate limit
 

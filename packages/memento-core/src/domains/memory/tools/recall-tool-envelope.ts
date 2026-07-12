@@ -6,9 +6,11 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { INTROSPECTION_HINT_SUFFIX } from '../../../shared/constants/introspection-constants.js';
 import type { EmbeddingProvider, MemorySearchFilters } from '../../../shared/types/index.js';
 import { emitTfidfFallbackWarningIfNeeded } from '../../../shared/utils/embedding-provider-diagnostics.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { NeighborMemory } from '../services/memory-neighbor-service.js';
 import type { MetaMemoryService } from '../services/meta-memory-service.js';
+import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { getAppliedRecallFilters } from './recall-tool-filters.js';
 import { handleAutoSetAnchor } from './recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from './recall-tool-host.js';
@@ -274,6 +276,27 @@ export async function finalizeMemoryItemRecallEnvelope(
         retrieval_strategy: retrievalStrategy,
         selected_count: processedResults.length
       }
+    });
+  }
+  try {
+    const outbox = new EventOutboxService(context.db);
+    for (const item of processedResults) {
+      const targetUri = item.uri ?? formatMementoResourceUri({
+        ownerId: input.agentId,
+        kind: memoryItemResourceKind(item.type),
+        id: item.memory_id,
+      });
+      outbox.enqueue({
+        eventType: 'memory.recalled',
+        targetUri,
+        ownerId: input.agentId,
+        payload: { memory_id: item.memory_id, query_hash: input.queryHash },
+        idempotencyKey: `memory.recalled:${targetUri}:${input.startTime}`,
+      });
+    }
+  } catch (error) {
+    host.logWarning('Outbox event enqueue failed after memory recall', {
+      error: error instanceof Error ? error.message : String(error), selected_count: processedResults.length,
     });
   }
   return host.createSuccessResult(resultObj);

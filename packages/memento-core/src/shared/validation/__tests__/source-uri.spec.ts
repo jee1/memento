@@ -38,6 +38,12 @@ describe('validateSource', () => {
     expect(result.type).toBe('memento');
   });
 
+  it('owner-scoped canonical memento URI를 허용한다', () => {
+    const result = validateSource('memento://agent-a/memory/mem_123_abc');
+    expect(result.isValid).toBe(true);
+    expect(result.type).toBe('memento');
+  });
+
   it('임의 문자열은 거절한다', () => {
     const result = validateSource('just-a-note');
     expect(result.isValid).toBe(false);

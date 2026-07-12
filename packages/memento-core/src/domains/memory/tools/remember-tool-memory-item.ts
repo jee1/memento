@@ -9,7 +9,9 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { isMemoryItemType } from '../../../shared/types/index.js';
 import type { MemoryTypeRequest } from '../../../shared/types/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
+import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { getNextVersionNumber } from '../services/procedural-versioning.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
@@ -261,6 +263,21 @@ export async function handleMemoryItem(
     latencyMs: Date.now() - startTime,
     extraData: { memory_type: type, memory_id: id, content_hash: contentHash, is_duplicate: isDuplicate }
   });
+
+  try {
+    const targetUri = formatMementoResourceUri({ ownerId, kind: memoryItemResourceKind(type), id });
+    new EventOutboxService(context.db!).enqueue({
+      eventType: existingMemoryId ? 'procedure.updated' : 'memory.remembered',
+      targetUri,
+      ownerId,
+      payload: { memory_id: id, memory_type: type, content_hash: contentHash },
+      idempotencyKey: `${existingMemoryId ? 'procedure.updated' : 'memory.remembered'}:${targetUri}:${contentHash}`,
+    });
+  } catch (error) {
+    host.logWarning('Outbox event enqueue failed after memory write', {
+      error: error instanceof Error ? error.message : String(error), memory_id: id,
+    });
+  }
 
   const similarity_warning = await buildSimilarityWarning(context.db!, content, id, type, ownerId, context);
 

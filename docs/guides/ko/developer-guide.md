@@ -154,7 +154,7 @@ git push origin feature/your-feature
 
 HTTP 서버를 원격에서 접근 가능하게 배포할 때는 다음 항목을 확인합니다.
 
-HTTP 라우트는 신뢰 경계를 분리합니다. `/admin`, `/api`는 `/auth/session`에서 시작한 브라우저 세션이 필요합니다. `/api/v1/quality`, `/tools`, `/mcp`, `/messages`는 `Authorization: Bearer` 또는 `X-API-Key`를 사용하는 헤더 기반 프로그램용 표면입니다.
+HTTP 라우트는 신뢰 경계를 분리합니다. `/admin`, `/api`는 `/auth/session`에서 시작한 브라우저 세션이 필요합니다. `/api/v1/quality`, `/api/v1/maintenance`, `/tools`, `/mcp`, `/messages`는 `Authorization: Bearer` 또는 `X-API-Key`를 사용하는 헤더 기반 프로그램용 표면입니다.
 
 | 항목 | 환경 변수 | 설명 |
 |------|-----------|------|

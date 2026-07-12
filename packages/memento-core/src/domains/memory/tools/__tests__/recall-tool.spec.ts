@@ -881,6 +881,7 @@ describe('RecallTool', () => {
       expect(data.items).toHaveLength(1);
       expect(data.items[0].memory_id).toBe('mem-a');
       expect(data.items[0].owner_id).toBe('agent-a');
+      expect(data.items[0].uri).toBe('memento://agent-a/memory/mem-a');
     });
   });
 

@@ -3,6 +3,7 @@
  */
 
 import { mementoConfig } from '../../../shared/config/index.js';
+import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import type { RecallResultItem, RecallSearchItem } from './recall-tool-types.js';
 
 /**
@@ -26,6 +27,14 @@ export function mapRecallSearchItemsToResultItems(
       created_at: createdAt,
       final_score: item.finalScore ?? item.score ?? 0
     };
+
+    if (memoryId) {
+      processed.uri = formatMementoResourceUri({
+        ownerId: item.owner_id,
+        kind: memoryItemResourceKind(item.type),
+        id: memoryId,
+      });
+    }
 
     if (includeMetadata) {
       processed.last_accessed = item.last_accessed;

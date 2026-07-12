@@ -1,6 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { RelationEngineSchemaMigration } from './005-relation-engine-schema.js';
+import {
+  ALL_RELATION_TYPES,
+  MEMORY_TYPE_RELATION_MAP,
+  RELATION_TYPE_BOOST_MAP,
+  RELATION_TYPE_CATEGORY_MAP,
+  type RelationType,
+} from '../../../../../shared/types/relation.js';
+
+function applicableTypesFor(relationType: RelationType): string[] {
+  return Object.entries(MEMORY_TYPE_RELATION_MAP)
+    .filter(([, relationTypes]) => relationTypes.includes(relationType))
+    .map(([memoryType]) => memoryType);
+}
 
 /**
  * 기본 스키마 생성 (memory_item 테이블만)
@@ -232,23 +245,35 @@ describe('RelationEngineSchemaMigration', () => {
       }
     });
 
-    it('should insert initial relation types into registry', async () => {
+    it('should seed a registry that matches the RelationType contract', async () => {
       // Given: 기본 스키마가 있는 경우
       createBaseSchema(db);
 
       // When: 마이그레이션 실행
       await migration.up(db);
 
-      // Then: 6가지 관계 유형이 삽입되어야 함
+      // Then: 모든 RelationType과 동일한 시드가 삽입되어야 함
       const relationTypes = db.prepare(`
-        SELECT type_name FROM relation_type_registry
-      `).all() as Array<{ type_name: string }>;
+        SELECT type_name, category, applicable_types, search_boost
+        FROM relation_type_registry
+        ORDER BY type_name
+      `).all() as Array<{
+        type_name: RelationType;
+        category: string;
+        applicable_types: string;
+        search_boost: number;
+      }>;
 
-      const expectedTypes = ['CAUSES', 'DEPENDS_ON', 'FOLLOWS', 'CONTRASTS_WITH', 'REFERENCES', 'BELONGS_TO'];
-      const actualTypes = relationTypes.map(r => r.type_name);
+      expect(relationTypes.map(({ type_name }) => type_name)).toEqual(
+        [...ALL_RELATION_TYPES].sort(),
+      );
 
-      for (const expectedType of expectedTypes) {
-        expect(actualTypes).toContain(expectedType);
+      for (const relationType of relationTypes) {
+        expect(relationType.category).toBe(RELATION_TYPE_CATEGORY_MAP[relationType.type_name]);
+        expect(JSON.parse(relationType.applicable_types), relationType.type_name).toEqual(
+          applicableTypesFor(relationType.type_name),
+        );
+        expect(relationType.search_boost).toBe(RELATION_TYPE_BOOST_MAP[relationType.type_name]);
       }
     });
 
@@ -493,7 +518,7 @@ describe('RelationEngineSchemaMigration', () => {
       const relationTypes = db.prepare(`
         SELECT COUNT(*) as count FROM relation_type_registry
       `).get() as { count: number };
-      expect(relationTypes.count).toBe(6);
+      expect(relationTypes.count).toBe(ALL_RELATION_TYPES.length);
     });
 
     it('should validate dependencies after migration', async () => {

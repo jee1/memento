@@ -9,7 +9,7 @@ export { createAdminAuthMiddleware } from './admin-auth.middleware.js';
 export { createSessionAuthMiddleware } from './session-auth.middleware.js';
 export { createOwnerScopeMiddleware } from './owner-scope.middleware.js';
 export { createProgrammaticAuthMiddleware } from './programmatic-auth.middleware.js';
-export { createHttpAuditMiddleware } from './http-audit.middleware.js';
+export { createHttpAuditMiddleware, createStrictAuditCoverageMiddleware } from './http-audit.middleware.js';
 export {
   createAdminRateLimitMiddleware,
   createToolsRateLimitMiddleware,

@@ -30,6 +30,7 @@ import { mcpLogger } from './mcp-logger.js';
 import { deleteServerInfo, resolveServerInfoConfigDir } from './server-info.js';
 import { ServerState } from './server-state.js';
 import { releaseLock } from './utils/instance-lock.js';
+import { assertToolAuditCoverage, recordToolAudit } from './audit-tool-dispatch.js';
 
 // 전역 상태 및 인스턴스
 let server: Server;
@@ -120,7 +121,16 @@ function registerHandlers() {
     return await concurrencyLimiter.acquire().then(async () => {
       try {
         const context = createToolContext(db!, serverServices!);
-        return await executeTool(request.params.name, request.params.arguments, context);
+        const auditContext = { transport: 'mcp_stdio' as const };
+        assertToolAuditCoverage(db!, request.params.name, request.params.arguments, auditContext);
+        try {
+          const result = await executeTool(request.params.name, request.params.arguments, context);
+          recordToolAudit(db!, request.params.name, request.params.arguments, auditContext, 'success');
+          return result;
+        } catch (error) {
+          recordToolAudit(db!, request.params.name, request.params.arguments, auditContext, 'failure');
+          throw error;
+        }
       } finally {
         concurrencyLimiter.release();
       }

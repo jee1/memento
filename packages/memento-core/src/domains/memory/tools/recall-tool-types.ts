@@ -41,6 +41,7 @@ export interface RecallResultItem {
   importance: number;
   created_at: string;
   final_score: number;
+  uri?: string;
   neighbors?: NeighborMemoryItem[]; // optional: neighbors_limit보다 많은 결과는 필드 없음
   /** MCP 응답 확장 시 타입 안정성을 위해 unknown으로 제한 */
   [key: string]: string | number | NeighborMemoryItem[] | undefined;

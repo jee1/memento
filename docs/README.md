@@ -28,6 +28,9 @@ Memento를 다른 앱이나 에이전트에 붙일 때는, **무엇을 호출할
 | 전체 API | [api-reference.md](api/ko/api-reference.md) | [api-reference.md](api/en/api-reference.md) |
 | 임베딩 API | [embedding-api-reference.md](api/ko/embedding-api-reference.md) | — |
 | 관계 그래프 API | [relation-graph-api.md](api/ko/relation-graph-api.md) | [relation-graph-api.md](api/en/relation-graph-api.md) |
+| 관계 타입 표준 | [relation-type-vocabulary.md](reference/ko/relation-type-vocabulary.md) | - |
+| 리소스 URI | [resource-uri.md](reference/ko/resource-uri.md) | - |
+| 감사 해시 체인 | [audit-log.md](reference/ko/audit-log.md) | [audit-log.md](reference/en/audit-log.md) |
 | 보안 | [security.md](reference/ko/security.md) | [security.md](reference/en/security.md) |
 | 외부 비서 통합 | [integrations/README.md](integrations/README.md) | — |
 
