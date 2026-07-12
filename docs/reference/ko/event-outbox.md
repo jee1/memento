@@ -11,6 +11,7 @@
 | `memory.recalled` | `memory.search.selected` | 선택된 `memory_id`, `query_hash`, `target_uri` |
 | `memory.forgotten` | 신규 외부 이벤트 | 삭제 방식, 사유, `target_uri` |
 | `relation.added` | 신규 외부 이벤트 | 관계 source, target, `target_uri` |
+| `consolidation.completed` | `consolidation.performed` | `cluster_id`, `semantic_id`, `episodic_count`, `merged`, `method`, `target_uri` |
 
 모든 row는 `memento://owner-a/memory/mem_123` 형태의 canonical `target_uri`, 같은 URI를 포함하는 JSON payload, 호출자가 지정한 idempotency key를 보관합니다.
 
@@ -19,3 +20,7 @@
 `EventOutboxService.publishPending()`은 `EventOutboxPublisher` adapter로 전달할 시점이 된 row를 polling합니다. `publish()`가 성공한 뒤에만 `processed_at`을 기록하고, 실패하면 `attempts`와 `last_error`를 갱신한 뒤 bounded exponential backoff로 재시도하므로 at-least-once 전달을 제공합니다.
 
 core는 네트워크 목적지를 구성하지 않습니다. Redis Stream과 webhook은 adapter interface 뒤에서 독립 배포하며, outbox 테이블은 SQLite 백업 대상에 포함해야 합니다.
+
+## Consolidation을 분리된 consumer로 (PoC)
+
+`SleepConsolidationService`는 시맨틱 기억을 생성하거나 병합할 때마다 후속 로직을 직접 호출하는 대신 `consolidation.completed`를 outbox에 적재합니다. `ConsolidationOutboxWorker`(`packages/memento-core/src/domains/consolidation/services/consolidation-outbox-worker.ts`)는 `EventOutboxPublisher`를 구현해 이 이벤트 유형에만 반응하며, consolidation 후속 작업(알림, export, 외부 집계)이 `BatchScheduler`에 내장되지 않고 별도 outbox consumer로 분리될 수 있음을 보여줍니다. 전체 예시는 `consolidation-outbox-worker.spec.ts`를 참고하세요.

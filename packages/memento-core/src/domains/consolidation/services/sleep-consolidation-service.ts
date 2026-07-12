@@ -8,10 +8,12 @@ import type { SleepConsolidationRunResult } from '../../../shared/types/consolid
 import type { RelationType } from '../../../shared/types/relation.js';
 import type { MemoryType } from '../../../shared/types/index.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { formatMementoResourceUri } from '../../../shared/utils/memento-resource-uri.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
 import { ConsolidationRepository, type EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 import { ClusteringService } from './clustering-service.js';
 import { SummarizationService } from './summarization-service.js';
+import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
 import type { TelemetryService } from '../../telemetry/services/telemetry-service.js';
 import type { Outcome } from '../../telemetry/types/telemetry.types.js';
 
@@ -126,6 +128,36 @@ export class SleepConsolidationService {
    */
   isRunning(): boolean {
     return this.activeRun !== null;
+  }
+
+  /**
+   * #659 PoC: consolidation 산출물을 outbox에 태워, 외부 consumer(예: ConsolidationOutboxWorker)가
+   * BatchScheduler에 직접 결합하지 않고도 완료 이벤트를 구독할 수 있게 한다. 기본은 비활성화(feature flag).
+   */
+  private enqueueConsolidationCompleted(
+    clusterId: string,
+    semanticId: string,
+    ownerId: string | null,
+    detail: { episodicCount: number; merged: boolean; method: string }
+  ): void {
+    try {
+      const targetUri = formatMementoResourceUri({ ownerId, kind: 'memory', id: semanticId });
+      new EventOutboxService(this.db).enqueue({
+        eventType: 'consolidation.completed',
+        targetUri,
+        ownerId,
+        payload: {
+          cluster_id: clusterId,
+          semantic_id: semanticId,
+          episodic_count: detail.episodicCount,
+          merged: detail.merged,
+          method: detail.method,
+        },
+        idempotencyKey: `consolidation.completed:${targetUri}:${clusterId}`,
+      });
+    } catch {
+      // best-effort — consolidation 결과는 이미 커밋되어 있고, outbox 실패가 이를 롤백하지 않는다.
+    }
   }
 
   async run(options: SleepConsolidationRunOptions = {}): Promise<SleepConsolidationRunResult> {
@@ -269,6 +301,11 @@ export class SleepConsolidationService {
               result.clustersProcessed++;
               result.semanticsMerged++;
               result.episodicsConsolidated += cluster.episodicIds.length;
+              this.enqueueConsolidationCompleted(clusterId, mergeTarget.id, cluster.ownerId, {
+                episodicCount: cluster.episodicIds.length,
+                merged: true,
+                method: merged.method,
+              });
               continue;
             }
           }
@@ -336,6 +373,11 @@ export class SleepConsolidationService {
           result.clustersProcessed++;
           result.semanticsCreated++;
           result.episodicsConsolidated += cluster.episodicIds.length;
+          this.enqueueConsolidationCompleted(clusterId, semanticId, cluster.ownerId, {
+            episodicCount: cluster.episodicIds.length,
+            merged: false,
+            method,
+          });
         } catch (e) {
           result.clustersSkipped++;
           result.errors.push({
