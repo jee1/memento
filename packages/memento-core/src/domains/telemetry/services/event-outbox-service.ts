@@ -8,7 +8,8 @@ export type EventOutboxEventType =
   | 'memory.recalled'
   | 'memory.forgotten'
   | 'relation.added'
-  | 'procedure.updated';
+  | 'procedure.updated'
+  | 'consolidation.completed';
 
 export interface EventOutboxEvent {
   id: string;

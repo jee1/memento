@@ -11,6 +11,7 @@
 | `memory.recalled` | `memory.search.selected` | selected `memory_id`, `query_hash`, `target_uri` |
 | `memory.forgotten` | new external event | deletion type, reason, `target_uri` |
 | `relation.added` | new external event | relation source, target, and `target_uri` |
+| `consolidation.completed` | `consolidation.performed` | `cluster_id`, `semantic_id`, `episodic_count`, `merged`, `method`, `target_uri` |
 
 Every row has a canonical `target_uri` such as `memento://owner-a/memory/mem_123`, a JSON payload containing the same `target_uri`, and a caller-provided idempotency key.
 
@@ -19,3 +20,7 @@ Every row has a canonical `target_uri` such as `memento://owner-a/memory/mem_123
 `EventOutboxService.publishPending()` polls rows due for delivery through an `EventOutboxPublisher` adapter. It marks `processed_at` only after `publish()` resolves. Failures increment `attempts`, retain `last_error`, and delay the next attempt with bounded exponential backoff, so delivery is at-least-once.
 
 The core does not configure a network destination. Redis Streams and webhook publishers belong behind the adapter interface and can be deployed independently. The outbox table is SQLite state, so include it in normal database backups.
+
+## Consolidation as a Decoupled Consumer (PoC)
+
+`SleepConsolidationService` enqueues `consolidation.completed` for every semantic memory it creates or merges, instead of calling downstream logic directly. `ConsolidationOutboxWorker` (`packages/memento-core/src/domains/consolidation/services/consolidation-outbox-worker.ts`) implements `EventOutboxPublisher` and only reacts to that event type, proving that consolidation follow-up (notification, export, external aggregation) can run as a separate outbox consumer instead of being embedded in `BatchScheduler`. See `consolidation-outbox-worker.spec.ts` for the end-to-end example.

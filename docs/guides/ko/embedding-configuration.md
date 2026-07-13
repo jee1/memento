@@ -89,6 +89,34 @@ EMBEDDING_DIMENSIONS=384
 
 단순히 환경 변수만 바꾸고 기존 데이터를 그대로 사용하면 검색 품질이 저하될 수 있습니다.
 
+환경 변수를 바꾼 뒤에는 파생 임베딩을 재생성하세요. 명령의 provider 값과 환경 변수 값을 동일하게 맞춰야 합니다. 폴백이 발생하면 요청한 provider로 조용히 저장되는 대신 실패한 행으로 보고됩니다.
+
+```bash
+npm run reindex-embeddings -- --provider minilm --dry-run
+npm run reindex-embeddings -- --provider minilm --batch-size 100
+npm run reindex-embeddings -- --provider minilm --owner-id agent-42
+```
+
+JSON 결과에는 누락된 임베딩, 차원 불일치, provider drift 개수가 담깁니다. 재색인은 요청한 provider의 네이티브 임베딩만 기록하며, 벡터 provider를 사용할 수 없는 동안에도 FTS는 계속 사용할 수 있습니다.
+
+환경 변수만 바꾸고 기존 데이터를 그대로 두지 마세요.
+
+### HTTP 관리 API
+
+로컬 CLI를 사용할 수 없는 환경에서는 HTTP 서버가 동일한 작업을 비동기로 실행할 수 있습니다. `admin:destructive` 스코프 토큰이 필요하며, 완료 여부는 응답의 `statusUrl`로 확인합니다.
+
+```bash
+curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/reindex \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"minilm","batchSize":100}'
+
+curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+  http://127.0.0.1:9001/api/v1/maintenance/reindex/<job-id>
+```
+
+작업과 상태는 HTTP 서버 프로세스 메모리에 보관됩니다. 서버를 재시작하면 작업 이력은 사라지지만, 이미 SQLite에 기록된 임베딩은 롤백되지 않습니다. provider를 바꿀 때는 먼저 `--dry-run`으로 실행한 뒤, 완료 후 `missingEmbeddingCount`, `dimensionMismatchCount`, `providerDriftCount`를 확인하세요.
+
 ## 완성된 설정 예시
 
 ### 로컬 전용 (API 없음, 권장 기본 설정)
