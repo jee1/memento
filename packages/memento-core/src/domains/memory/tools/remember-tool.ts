@@ -164,6 +164,9 @@ export class RememberTool extends BaseTool {
           throw new Error(`❌ remember: ${msg}`);
         }
         this.logWarning(`⚠️  remember: ${msg} (source='${source_param}')`);
+      } else if (sourceValidation.normalizedSource) {
+        // bare agent/workflow id → agent:<id> (#696)
+        parsedParams.source = sourceValidation.normalizedSource;
       }
 
       const type = (rawType || typeValidation.defaultType || 'episodic') as MemoryTypeRequest;

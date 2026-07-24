@@ -47,7 +47,7 @@ describe('mapKnowledgeCandidateToRememberParams', () => {
     expect(r.params.type).toBe('semantic');
     expect(r.params.content).toBe('본문');
     expect(r.params.tags).toEqual(['personal-agent', 'preference']);
-    expect(r.params.source).toBe('personal-knowledge-agent');
+    expect(r.params.source).toBe('agent:personal-knowledge-agent');
     expect(r.params.project_id).toBe('p1');
     expect(r.params.owner_id).toBe('agent-1');
     expect(r.params.session_id).toBe('s1');

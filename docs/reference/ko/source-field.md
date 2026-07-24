@@ -1,4 +1,4 @@
-# source 필드 표준 (#671)
+# source 필드 표준 (#671, #696)
 
 `remember`·`remember_procedure`의 `source` 파라미터는 기억의 **출처(provenance)** 를 기계가 파싱 가능한 URI로 기록합니다. 자유 텍스트 대신 아래 형식을 사용하면 recall·export·감사 로그에서 일관되게 추적할 수 있습니다.
 
@@ -10,14 +10,17 @@
 | `https://` | `https://github.com/org/repo/pull/42` | 웹 문서·이슈·PR |
 | `commit:` | `commit:abc1234def5678` | Git 커밋 SHA (7–64자 hex) |
 | `doc:` | `doc:security-guide-v2` | 내부 문서 ID |
+| `agent:` | `agent:paperclip-ceo-heartbeat` | 에이전트·워크플로 식별자 (#696) |
 | `memento://{owner}/{kind}/{id}` | `memento://agent-a/memory/mem_123_abc` | 다른 Memento 리소스 참조 |
 | `memento://memory/` | `memento://memory/mem_123_abc` | 기존 source 값용 legacy alias |
 
 `source`는 **선택 필드**입니다. 생략하면 `NULL`로 저장됩니다.
 
+`doc:`·`agent:`의 `<id>`는 `[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}` 입니다. 같은 charset의 **bare 식별자**(예: `paperclip-ceo-heartbeat`)는 저장 시 `agent:<id>`로 정규화됩니다. 공백 등이 포함된 free-text는 유효하지 않습니다.
+
 ## 검증 동작
 
-- **기본 (관대)**: 형식이 맞지 않으면 **경고 로그**만 남기고 저장을 계속합니다.
+- **기본 (관대)**: 형식이 맞지 않으면 **경고 로그**만 남기고 저장을 계속합니다. bare agent id는 경고 없이 `agent:`로 정규화합니다.
 - **strict**: `MEMENTO_SOURCE_STRICT=true` 이면 잘못된 `source`로 **remember 요청을 거절**합니다.
 
 ```bash
