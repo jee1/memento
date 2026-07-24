@@ -165,7 +165,6 @@ export class RememberTool extends BaseTool {
         }
         this.logWarning(`⚠️  remember: ${msg} (source='${source_param}')`);
       } else if (sourceValidation.normalizedSource) {
-        // bare agent/workflow id → agent:<id> (#696)
         parsedParams.source = sourceValidation.normalizedSource;
       }
 

@@ -8,8 +8,7 @@ import { parseMementoResourceUri } from '../utils/memento-resource-uri.js';
  * - https://example.com/path
  * - commit:<sha>
  * - doc:<id>
- * - agent:<id> (에이전트·워크플로 식별자)
- * - bare <id> → agent:<id>로 정규화 (#696)
+ * - agent:<id> (에이전트·워크플로 식별자; bare <id> → agent:<id> 정규화)
  * - memento://<owner>/<resource-kind>/<resource-id>
  * - memento://memory/<memory_id> (legacy alias)
  */
@@ -30,14 +29,12 @@ const COMMIT_URI = /^commit:[0-9a-f]{7,64}$/i;
 /** doc·agent id charset (#671 / #696) */
 const ID_BODY = '[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}';
 const DOC_URI = new RegExp(`^doc:${ID_BODY}$`);
-const AGENT_URI = new RegExp(`^agent:${ID_BODY}$`);
-const BARE_AGENT_ID = new RegExp(`^${ID_BODY}$`);
+const AGENT_OR_BARE = new RegExp(`^(?:agent:)?(${ID_BODY})$`);
 const MEMENTO_URI = /^memento:\/\/memory\/mem_[a-zA-Z0-9_]+$/;
 
 /**
  * source 문자열이 지원 URI 형식인지 검증합니다.
  * 빈 문자열·undefined는 유효(선택 필드)로 처리합니다.
- * bare agent/workflow id는 agent:<id>로 정규화합니다 (#696).
  */
 export function validateSource(source: string | undefined | null): SourceValidationResult {
   if (source === undefined || source === null || source.trim() === '') {
@@ -58,9 +55,17 @@ export function validateSource(source: string | undefined | null): SourceValidat
   if (DOC_URI.test(trimmed)) {
     return { isValid: true, type: 'doc' };
   }
-  if (AGENT_URI.test(trimmed)) {
-    return { isValid: true, type: 'agent' };
+
+  const agentMatch = AGENT_OR_BARE.exec(trimmed);
+  if (agentMatch) {
+    const canonical = `agent:${agentMatch[1]}`;
+    return {
+      isValid: true,
+      type: 'agent',
+      ...(trimmed === canonical ? {} : { normalizedSource: canonical }),
+    };
   }
+
   if (MEMENTO_URI.test(trimmed)) {
     return { isValid: true, type: 'memento' };
   }
@@ -68,14 +73,7 @@ export function validateSource(source: string | undefined | null): SourceValidat
     parseMementoResourceUri(trimmed);
     return { isValid: true, type: 'memento' };
   } catch {
-    // Continue — may still be a bare agent id (#696).
-  }
-  if (BARE_AGENT_ID.test(trimmed)) {
-    return {
-      isValid: true,
-      type: 'agent',
-      normalizedSource: `agent:${trimmed}`,
-    };
+    // not a memento URI
   }
 
   return {
