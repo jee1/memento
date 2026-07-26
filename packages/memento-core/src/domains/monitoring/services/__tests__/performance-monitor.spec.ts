@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { PERF_ALERT_REARM_MS_DEFAULT } from '../../../../shared/config/environment.js';
 import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
 import os from 'os';
@@ -151,15 +152,8 @@ describe('PerformanceMonitor 임계값', () => {
   });
 
   it('기본 databaseSizeMB 임계값이 500이어야 함 (#697)', () => {
-    const original = process.env.PERF_DATABASE_WARN_MB;
-    delete process.env.PERF_DATABASE_WARN_MB;
-    try {
-      const monitor = new PerformanceMonitor();
-      expect((monitor as any).thresholds.databaseSizeMB).toBe(500);
-    } finally {
-      if (original === undefined) delete process.env.PERF_DATABASE_WARN_MB;
-      else process.env.PERF_DATABASE_WARN_MB = original;
-    }
+    const monitor = new PerformanceMonitor();
+    expect((monitor as any).thresholds.databaseSizeMB).toBe(500);
   });
 
   it('PERF_DATABASE_WARN_MB 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
@@ -175,15 +169,8 @@ describe('PerformanceMonitor 임계값', () => {
   });
 
   it('기본 alertRearmMs가 30분이어야 함 (#697)', () => {
-    const original = process.env.PERF_ALERT_REARM_MS;
-    delete process.env.PERF_ALERT_REARM_MS;
-    try {
-      const monitor = new PerformanceMonitor();
-      expect((monitor as any).thresholds.alertRearmMs).toBe(30 * 60 * 1000);
-    } finally {
-      if (original === undefined) delete process.env.PERF_ALERT_REARM_MS;
-      else process.env.PERF_ALERT_REARM_MS = original;
-    }
+    const monitor = new PerformanceMonitor();
+    expect((monitor as any).thresholds.alertRearmMs).toBe(PERF_ALERT_REARM_MS_DEFAULT);
   });
 
   it('PERF_MEMORY_WARN_PERCENT 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
@@ -283,7 +270,6 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     cpuUsagePercent?: number;
     alertRearmMs?: number;
   }) {
-    // 기존 resolve→재생성 회귀는 rearm 비활성(0) 전제
     return new PerformanceMonitor({ alertRearmMs: 0, ...thresholds });
   }
 
@@ -391,7 +377,7 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
       arrayBuffers: 0
     });
 
-    const monitor = makeMonitor({ cpuUsagePercent: 10, alertRearmMs: 0 });
+    const monitor = makeMonitor({ cpuUsagePercent: 10 });
     await monitor.collectMetrics();
     monitor.clearAlerts();
 
@@ -430,11 +416,10 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   it('warning severity Performance alert generated는 info로 기록한다 (#697)', async () => {
     const infoSpy = vi.spyOn(logger, 'info');
     const warnSpy = vi.spyOn(logger, 'warn');
-    const MB = 1024 * 1024;
     const monitor = new PerformanceMonitor({ databaseSizeMB: 100, alertRearmMs: 0 });
 
     await (monitor as any).checkAlerts(
-      createMetrics({ database: { size: 120 * MB, memoryCount: 100, queryTime: 0 } })
+      createMetrics({ database: { size: toBytes(120), memoryCount: 100, queryTime: 0 } })
     );
 
     const infoHits = infoSpy.mock.calls.filter(args => args[0] === 'Performance alert generated');
@@ -456,19 +441,11 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
   });
 
   it('기본 DB 임계값(500MB) 아래 크기에서는 database 알림이 없다 (#697)', async () => {
-    const MB = 1024 * 1024;
-    const original = process.env.PERF_DATABASE_WARN_MB;
-    delete process.env.PERF_DATABASE_WARN_MB;
-    try {
-      const monitor = new PerformanceMonitor({ alertRearmMs: 0 });
-      await (monitor as any).checkAlerts(
-        createMetrics({ database: { size: 150 * MB, memoryCount: 100, queryTime: 0 } })
-      );
-      expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(0);
-    } finally {
-      if (original === undefined) delete process.env.PERF_DATABASE_WARN_MB;
-      else process.env.PERF_DATABASE_WARN_MB = original;
-    }
+    const monitor = new PerformanceMonitor({ alertRearmMs: 0 });
+    await (monitor as any).checkAlerts(
+      createMetrics({ database: { size: toBytes(150), memoryCount: 100, queryTime: 0 } })
+    );
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(0);
   });
 
   it('critical alert는 logger.warn을 사용하고 logger.error를 사용하지 않는다', async () => {

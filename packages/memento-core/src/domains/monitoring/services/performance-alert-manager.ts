@@ -2,7 +2,7 @@
  * Performance alert detection, lifecycle, and statistics
  */
 
-import { resolveValidatedNumber } from '../../../shared/config/environment.js';
+import { PERF_ALERT_REARM_MS_DEFAULT, resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { alertNotificationService } from './alert-notification-service.js';
 import { getMemoryPressureDenominatorBytes, memoryRatioToPercent } from './memory-pressure-utils.js';
@@ -14,12 +14,9 @@ export interface CheckAlertsDeps {
   onCritical: (alert: PerformanceAlert, metrics: PerformanceMetrics) => Promise<void>;
 }
 
-const DEFAULT_ALERT_REARM_MS = 30 * 60 * 1000;
-
 export class PerformanceAlertManager {
   thresholds: AlertThresholds;
   private alerts: Map<string, PerformanceAlert> = new Map();
-  /** type → last resolve timestamp (ms); used for re-arm cooldown (#697) */
   private lastResolvedAtByType: Map<PerformanceAlert['type'], number> = new Map();
   queryConsecutiveOkCount: number = 0;
 
@@ -32,7 +29,7 @@ export class PerformanceAlertManager {
       queryResolveWindow: 3,
       alertRearmMs: resolveValidatedNumber(
         'PERF_ALERT_REARM_MS',
-        DEFAULT_ALERT_REARM_MS,
+        PERF_ALERT_REARM_MS_DEFAULT,
         n => n >= 0 && n <= 7 * 24 * 60 * 60 * 1000,
         '범위 0-604800000'
       ),
@@ -182,21 +179,16 @@ export class PerformanceAlertManager {
       }
     }
 
-    // 알림 저장 및 로깅
+    // 알림 저장 및 로깅 (warning→info: log-issue-monitor 승격 노이즈 방지)
     for (const alert of alerts) {
       this.alerts.set(alert.id, alert);
-      // #697: warning은 log-issue-monitor 승격 대상이 아닌 info, critical만 warn
-      const logPayload = {
+      const logFn = alert.severity === 'critical' ? logger.warn : logger.info;
+      logFn('Performance alert generated', {
         type: alert.type,
         severity: alert.severity,
         value: alert.value,
         threshold: alert.threshold
-      };
-      if (alert.severity === 'critical') {
-        logger.warn('Performance alert generated', logPayload);
-      } else {
-        logger.info('Performance alert generated', logPayload);
-      }
+      });
       alertNotificationService.emitAlert({
         id: alert.id,
         source: 'performance',
@@ -286,6 +278,7 @@ export class PerformanceAlertManager {
 
   importAlerts(alerts: PerformanceAlert[]): void {
     this.alerts.clear();
+    this.lastResolvedAtByType.clear();
     alerts.forEach(alert => {
       this.alerts.set(alert.id, alert);
     });
