@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { PERF_ALERT_REARM_MS_DEFAULT } from '../../../../shared/config/environment.js';
 import { PerformanceMonitor } from '../performance-monitor.js';
 import type { PerformanceMetrics } from '../performance-monitor.js';
 import os from 'os';
@@ -150,6 +151,28 @@ describe('PerformanceMonitor 임계값', () => {
     expect((monitor as any).thresholds.cpuUsagePercent).toBe(75);
   });
 
+  it('기본 databaseSizeMB 임계값이 500이어야 함 (#697)', () => {
+    const monitor = new PerformanceMonitor();
+    expect((monitor as any).thresholds.databaseSizeMB).toBe(500);
+  });
+
+  it('PERF_DATABASE_WARN_MB 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
+    const original = process.env.PERF_DATABASE_WARN_MB;
+    process.env.PERF_DATABASE_WARN_MB = '200';
+    try {
+      const monitor = new PerformanceMonitor();
+      expect((monitor as any).thresholds.databaseSizeMB).toBe(200);
+    } finally {
+      if (original === undefined) delete process.env.PERF_DATABASE_WARN_MB;
+      else process.env.PERF_DATABASE_WARN_MB = original;
+    }
+  });
+
+  it('기본 alertRearmMs가 30분이어야 함 (#697)', () => {
+    const monitor = new PerformanceMonitor();
+    expect((monitor as any).thresholds.alertRearmMs).toBe(PERF_ALERT_REARM_MS_DEFAULT);
+  });
+
   it('PERF_MEMORY_WARN_PERCENT 환경 변수로 임계값을 재정의할 수 있어야 함', () => {
     const original = process.env.PERF_MEMORY_WARN_PERCENT;
     process.env.PERF_MEMORY_WARN_PERCENT = '90';
@@ -242,8 +265,12 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     }
   }
 
-  function makeMonitor(thresholds?: { memoryUsagePercent?: number; cpuUsagePercent?: number }) {
-    return new PerformanceMonitor(thresholds);
+  function makeMonitor(thresholds?: {
+    memoryUsagePercent?: number;
+    cpuUsagePercent?: number;
+    alertRearmMs?: number;
+  }) {
+    return new PerformanceMonitor({ alertRearmMs: 0, ...thresholds });
   }
 
   it('V8 힙 충전율이 높아도 rss가 낮으면 알림을 생성하지 않는다', async () => {
@@ -370,6 +397,57 @@ describe('PerformanceMonitor 메모리 메트릭 (rss/totalmem 축)', () => {
     expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(1);
   });
 
+  it('cpu: rearm 쿨다운 중에는 resolve 후 재발화하지 않는다 (#697)', async () => {
+    const monitor = new PerformanceMonitor({ cpuUsagePercent: 10, alertRearmMs: 60_000 });
+    const base = createMetrics({ cpu: { user: 1, system: 1, percent: 5 } });
+    const high = { ...base, cpu: { ...base.cpu, percent: 95 } };
+    const low = { ...base, cpu: { ...base.cpu, percent: 5 } };
+
+    await (monitor as any).checkAlerts(high);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(1);
+
+    await (monitor as any).checkAlerts(low);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(0);
+
+    await (monitor as any).checkAlerts(high);
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'cpu')).toHaveLength(0);
+  });
+
+  it('warning severity Performance alert generated는 info로 기록한다 (#697)', async () => {
+    const infoSpy = vi.spyOn(logger, 'info');
+    const warnSpy = vi.spyOn(logger, 'warn');
+    const monitor = new PerformanceMonitor({ databaseSizeMB: 100, alertRearmMs: 0 });
+
+    await (monitor as any).checkAlerts(
+      createMetrics({ database: { size: toBytes(120), memoryCount: 100, queryTime: 0 } })
+    );
+
+    const infoHits = infoSpy.mock.calls.filter(args => args[0] === 'Performance alert generated');
+    const warnHits = warnSpy.mock.calls.filter(args => args[0] === 'Performance alert generated');
+    expect(infoHits.length).toBeGreaterThanOrEqual(1);
+    expect(warnHits).toHaveLength(0);
+  });
+
+  it('critical severity Performance alert generated는 warn으로 기록한다 (#697)', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    const monitor = new PerformanceMonitor({ cpuUsagePercent: 75, alertRearmMs: 0 });
+
+    await (monitor as any).checkAlerts(
+      createMetrics({ cpu: { user: 1, system: 1, percent: 100 } })
+    );
+
+    const warnHits = warnSpy.mock.calls.filter(args => args[0] === 'Performance alert generated');
+    expect(warnHits.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('기본 DB 임계값(500MB) 아래 크기에서는 database 알림이 없다 (#697)', async () => {
+    const monitor = new PerformanceMonitor({ alertRearmMs: 0 });
+    await (monitor as any).checkAlerts(
+      createMetrics({ database: { size: toBytes(150), memoryCount: 100, queryTime: 0 } })
+    );
+    expect(monitor.getActiveAlerts().filter(a => a.type === 'database')).toHaveLength(0);
+  });
+
   it('critical alert는 logger.warn을 사용하고 logger.error를 사용하지 않는다', async () => {
     mockNoConstrainedMemory();
     const warnSpy = vi.spyOn(logger, 'warn');
@@ -467,7 +545,7 @@ describe('PerformanceMonitor database/query auto-resolve', () => {
 
   // database: threshold 이하로 크기 감소 시 auto-resolve
   it('database: 알림 발생 후 크기 임계값 이하로 감소 시 auto-resolve', async () => {
-    const monitor = new PerformanceMonitor({ databaseSizeMB: 100 });
+    const monitor = new PerformanceMonitor({ databaseSizeMB: 100, alertRearmMs: 0 });
 
     const highDbMetrics = createMetrics({ database: { size: 120 * MB, memoryCount: 5000, queryTime: 0 } });
     await (monitor as any).checkAlerts(highDbMetrics);
@@ -480,7 +558,7 @@ describe('PerformanceMonitor database/query auto-resolve', () => {
 
   // database: auto-resolve 후 재발생 시 새 알림 생성
   it('database: auto-resolve 후 크기 재증가 시 새 알림 생성', async () => {
-    const monitor = new PerformanceMonitor({ databaseSizeMB: 100 });
+    const monitor = new PerformanceMonitor({ databaseSizeMB: 100, alertRearmMs: 0 });
 
     const highDbMetrics = createMetrics({ database: { size: 120 * MB, memoryCount: 5000, queryTime: 0 } });
     const lowDbMetrics = createMetrics({ database: { size: 80 * MB, memoryCount: 4000, queryTime: 0 } });
@@ -495,7 +573,7 @@ describe('PerformanceMonitor database/query auto-resolve', () => {
 
   // query: 연속 N회(기본 3) 임계값 이하 시 auto-resolve
   it('query: 연속 3회 임계값 이하 시 auto-resolve', async () => {
-    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3 });
+    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3, alertRearmMs: 0 });
 
     const highQueryMetrics = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 1500 } });
     const okQueryMetrics   = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 500  } });
@@ -518,7 +596,7 @@ describe('PerformanceMonitor database/query auto-resolve', () => {
 
   // query: 스파이크 발생 시 카운터 리셋
   it('query: ok 중 스파이크 발생 시 카운터 리셋 후 N회 다시 채워야 resolve', async () => {
-    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3 });
+    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3, alertRearmMs: 0 });
 
     const highQueryMetrics = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 1500 } });
     const okQueryMetrics   = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 500  } });
@@ -541,7 +619,7 @@ describe('PerformanceMonitor database/query auto-resolve', () => {
 
   // clearAlerts() 시 query window 카운터 리셋
   it('clearAlerts() 호출 시 query 연속 카운터가 리셋된다', async () => {
-    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3 });
+    const monitor = new PerformanceMonitor({ queryTimeMs: 1000, queryResolveWindow: 3, alertRearmMs: 0 });
 
     const highQueryMetrics = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 1500 } });
     const okQueryMetrics   = createMetrics({ database: { size: 10 * MB, memoryCount: 100, queryTime: 500  } });

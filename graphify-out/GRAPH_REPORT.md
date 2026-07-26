@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-07-24)
+# Graph Report - .  (2026-07-26)
 
 ## Corpus Check
-- 1429 files · ~1,567,612 words
+- 1429 files · ~1,568,964 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6590 nodes · 7517 edges · 1421 communities detected
+- 6591 nodes · 7519 edges · 1421 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1771,60 +1771,60 @@ Cohesion: 0.22
 Nodes (6): AgentMemoryPromotionService, aggregatePromotions(), extractFromPayload(), fingerprintPromotion(), normalizeContent(), readString()
 
 ### Community 78 - "Community 78"
+Cohesion: 0.16
+Nodes (1): PerformanceAlertManager
+
+### Community 79 - "Community 79"
 Cohesion: 0.19
 Nodes (1): ErrorLoggingService
 
-### Community 79 - "Community 79"
+### Community 80 - "Community 80"
 Cohesion: 0.14
 Nodes (2): handleFailure(), logError()
 
-### Community 80 - "Community 80"
+### Community 81 - "Community 81"
 Cohesion: 0.2
 Nodes (7): generateSampleEmbeddings(), generateSampleMemoryItems(), generateScenarioBasedTestData(), generateSeededEmbeddings(), initializeTestDatabase(), SeededRandom, seedTestDatabase()
 
-### Community 81 - "Community 81"
+### Community 82 - "Community 82"
 Cohesion: 0.48
 Nodes (14): checkDependencies(), checkNodeVersion(), createDataDirectory(), createEnvFile(), createStartScripts(), initializeDatabase(), log(), logError() (+6 more)
 
-### Community 82 - "Community 82"
+### Community 83 - "Community 83"
 Cohesion: 0.18
 Nodes (6): createHttpAuditMiddleware(), extractHttpAuditToolName(), extractRoute(), readAuthCredential(), resolveAuditLogPath(), resolveHttpAuditKeyId()
 
-### Community 83 - "Community 83"
+### Community 84 - "Community 84"
 Cohesion: 0.26
 Nodes (13): buildInjectionExtraData(), buildRouterCtx(), buildSummarizer(), clampTokenBudget(), createDefaultPersonalAgentLlm(), createPersonalKnowledgeAgent(), makeBuildInjection(), makePromotionTelemetryCallback() (+5 more)
 
-### Community 84 - "Community 84"
+### Community 85 - "Community 85"
 Cohesion: 0.23
 Nodes (1): ConsolidationScoreFieldsMigration
 
-### Community 85 - "Community 85"
+### Community 86 - "Community 86"
 Cohesion: 0.15
 Nodes (1): JobQueue
 
-### Community 86 - "Community 86"
+### Community 87 - "Community 87"
 Cohesion: 0.23
 Nodes (2): isSqliteBusy(), UnpinTool
 
-### Community 87 - "Community 87"
+### Community 88 - "Community 88"
 Cohesion: 0.2
 Nodes (1): MockCoreMemoryRepository
 
-### Community 88 - "Community 88"
+### Community 89 - "Community 89"
 Cohesion: 0.14
 Nodes (1): RelationQualityValidator
 
-### Community 89 - "Community 89"
+### Community 90 - "Community 90"
 Cohesion: 0.23
 Nodes (9): AgentContextInjectionService, boundedTimeout(), elapsedMs(), InjectionTimeoutError, nonNegativeInteger(), percentile(), summarizeAgentInjectionTelemetry(), toRecallRequest() (+1 more)
 
-### Community 90 - "Community 90"
+### Community 91 - "Community 91"
 Cohesion: 0.23
 Nodes (1): GeminiEmbeddingService
-
-### Community 91 - "Community 91"
-Cohesion: 0.16
-Nodes (1): PerformanceAlertManager
 
 ### Community 92 - "Community 92"
 Cohesion: 0.16

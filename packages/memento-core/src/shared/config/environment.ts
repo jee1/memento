@@ -7,6 +7,9 @@
 import os from 'os';
 import path from 'path';
 
+/** PERF_ALERT_REARM_MS 단일 소스 (#697). ENV_DEFAULTS·resolveValidatedNumber fallback이 여기만 참조. */
+export const PERF_ALERT_REARM_MS_DEFAULT = 1_800_000;
+
 const ENV_DEFAULTS: Record<string, string> = {
   NODE_ENV: 'development',
   MCP_SERVER_NAME: 'memento-memory',
@@ -53,6 +56,8 @@ const ENV_DEFAULTS: Record<string, string> = {
   // 성능 경고 임계값
   PERF_MEMORY_WARN_PERCENT: '85',   // 메모리 경고 임계값 (기본: 85%)
   PERF_CPU_WARN_PERCENT: '75',      // CPU 경고 임계값 (기본: 75%)
+  PERF_DATABASE_WARN_MB: '500',     // DB 크기 경고 임계값 (기본: 500MB)
+  PERF_ALERT_REARM_MS: String(PERF_ALERT_REARM_MS_DEFAULT), // 알림 resolve 후 재무장 대기 (기본: 30분)
   // 배치 스케줄러 간격
   BATCH_HEALTH_CHECK_INTERVAL_MS: '300000',    // 헬스체크 주기 (기본: 5분)
   BATCH_MONITORING_INTERVAL_MS: '300000',      // 모니터링 수집 주기 (기본: 5분)

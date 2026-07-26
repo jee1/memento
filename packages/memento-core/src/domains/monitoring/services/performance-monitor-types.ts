@@ -34,9 +34,10 @@ export interface PerformanceMetrics {
 export interface AlertThresholds {
   memoryUsagePercent: number;      // 메모리 사용률 임계값 (기본: 85%)
   cpuUsagePercent: number;         // CPU 사용률 임계값 (기본: 75%)
-  databaseSizeMB: number;          // DB 크기 임계값 (기본: 100MB)
+  databaseSizeMB: number;          // DB 크기 임계값 (기본: 500MB)
   queryTimeMs: number;             // 쿼리 시간 임계값 (기본: 1000ms)
   queryResolveWindow: number;      // query auto-resolve에 필요한 연속 ok 횟수 (기본: 3)
+  alertRearmMs: number;            // resolve 후 재무장 대기(ms). 0=즉시. PERF_ALERT_REARM_MS
 }
 
 export interface PerformanceAlert {

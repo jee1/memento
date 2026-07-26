@@ -2,7 +2,7 @@
  * Performance alert detection, lifecycle, and statistics
  */
 
-import { resolveValidatedNumber } from '../../../shared/config/environment.js';
+import { PERF_ALERT_REARM_MS_DEFAULT, resolveValidatedNumber } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { alertNotificationService } from './alert-notification-service.js';
 import { getMemoryPressureDenominatorBytes, memoryRatioToPercent } from './memory-pressure-utils.js';
@@ -17,17 +17,32 @@ export interface CheckAlertsDeps {
 export class PerformanceAlertManager {
   thresholds: AlertThresholds;
   private alerts: Map<string, PerformanceAlert> = new Map();
+  private lastResolvedAtByType: Map<PerformanceAlert['type'], number> = new Map();
   queryConsecutiveOkCount: number = 0;
 
   constructor(thresholds?: Partial<AlertThresholds>) {
     this.thresholds = {
       memoryUsagePercent: resolveValidatedNumber('PERF_MEMORY_WARN_PERCENT', 85, n => n >= 1 && n <= 100, '범위 1-100'),
       cpuUsagePercent: resolveValidatedNumber('PERF_CPU_WARN_PERCENT', 75, n => n >= 1 && n <= 100, '범위 1-100'),
-      databaseSizeMB: 100,
+      databaseSizeMB: resolveValidatedNumber('PERF_DATABASE_WARN_MB', 500, n => n >= 1 && n <= 1_000_000, '범위 1-1000000'),
       queryTimeMs: 1000,
       queryResolveWindow: 3,
+      alertRearmMs: resolveValidatedNumber(
+        'PERF_ALERT_REARM_MS',
+        PERF_ALERT_REARM_MS_DEFAULT,
+        n => n >= 0 && n <= 7 * 24 * 60 * 60 * 1000,
+        '범위 0-604800000'
+      ),
       ...thresholds
     };
+  }
+
+  private isWithinRearmCooldown(type: PerformanceAlert['type']): boolean {
+    const rearmMs = this.thresholds.alertRearmMs;
+    if (rearmMs <= 0) return false;
+    const lastResolved = this.lastResolvedAtByType.get(type);
+    if (lastResolved === undefined) return false;
+    return Date.now() - lastResolved < rearmMs;
   }
 
   /**
@@ -55,7 +70,7 @@ export class PerformanceAlertManager {
       const existingMemoryAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'memory' && !alert.resolved);
 
-      if (!existingMemoryAlert) {
+      if (!existingMemoryAlert && !this.isWithinRearmCooldown('memory')) {
         alerts.push({
           id: alertId,
           type: 'memory',
@@ -85,7 +100,7 @@ export class PerformanceAlertManager {
       const existingDbAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'database' && !alert.resolved);
 
-      if (!existingDbAlert) {
+      if (!existingDbAlert && !this.isWithinRearmCooldown('database')) {
         alerts.push({
           id: alertId,
           type: 'database',
@@ -121,7 +136,7 @@ export class PerformanceAlertManager {
       const existingQueryAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'query' && !alert.resolved);
 
-      if (!existingQueryAlert) {
+      if (!existingQueryAlert && !this.isWithinRearmCooldown('query')) {
         alerts.push({
           id: alertId,
           type: 'query',
@@ -150,7 +165,7 @@ export class PerformanceAlertManager {
       const existingCpuAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'cpu' && !alert.resolved);
 
-      if (!existingCpuAlert) {
+      if (!existingCpuAlert && !this.isWithinRearmCooldown('cpu')) {
         alerts.push({
           id: alertId,
           type: 'cpu',
@@ -164,10 +179,11 @@ export class PerformanceAlertManager {
       }
     }
 
-    // 알림 저장 및 로깅
+    // 알림 저장 및 로깅 (warning→info: log-issue-monitor 승격 노이즈 방지)
     for (const alert of alerts) {
       this.alerts.set(alert.id, alert);
-      logger.warn('Performance alert generated', {
+      const logFn = alert.severity === 'critical' ? logger.warn : logger.info;
+      logFn('Performance alert generated', {
         type: alert.type,
         severity: alert.severity,
         value: alert.value,
@@ -234,6 +250,7 @@ export class PerformanceAlertManager {
     const alert = this.alerts.get(alertId);
     if (alert) {
       alert.resolved = true;
+      this.lastResolvedAtByType.set(alert.type, Date.now());
       logger.info('Performance alert resolved', { alertId });
       alertNotificationService.acknowledgeAlert(alertId);
       return true;
@@ -255,11 +272,13 @@ export class PerformanceAlertManager {
 
   clearAlerts(): void {
     this.alerts.clear();
+    this.lastResolvedAtByType.clear();
     this.queryConsecutiveOkCount = 0;
   }
 
   importAlerts(alerts: PerformanceAlert[]): void {
     this.alerts.clear();
+    this.lastResolvedAtByType.clear();
     alerts.forEach(alert => {
       this.alerts.set(alert.id, alert);
     });
