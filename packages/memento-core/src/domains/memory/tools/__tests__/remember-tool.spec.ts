@@ -395,7 +395,24 @@ describe('RememberTool', () => {
       const record = DatabaseUtils.get(db, 'SELECT * FROM memory_item WHERE id = ?', [resultData.memory_id]);
       expect(record.content).toBe('React is a JavaScript library for building user interfaces');
       expect(record.type).toBe('semantic');
+      expect(record.source).toBe('agent:documentation');
       expect(record.origin_source).toBeDefined();
+    });
+
+    it('bare workflow source를 agent:로 정규화해 저장한다 (#696)', async () => {
+      const params = {
+        type: 'episodic',
+        content: 'CEO heartbeat completed',
+        source: 'paperclip-ceo-heartbeat',
+      };
+
+      const result = await tool.handle(params, context);
+      const resultData = JSON.parse(result.content[0].text);
+      const record = DatabaseUtils.get(db, 'SELECT source FROM memory_item WHERE id = ?', [
+        resultData.memory_id,
+      ]) as { source: string };
+
+      expect(record.source).toBe('agent:paperclip-ceo-heartbeat');
     });
 
     it('Given: semantic remember 호출 시, When: Fact 메타 미지정, Then: num_times=1·last_mentioned_at·source_session_id·confidence 기본 저장 (Issue #88)', async () => {

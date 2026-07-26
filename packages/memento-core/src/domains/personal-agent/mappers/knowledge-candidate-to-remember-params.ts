@@ -52,7 +52,7 @@ export function mapKnowledgeCandidateToRememberParams(
   > = {
     tags: candidate.tags,
     importance: candidate.importance,
-    source: 'personal-knowledge-agent',
+    source: 'agent:personal-knowledge-agent',
     privacy_scope: 'private',
     project_id: ctx.projectId,
     owner_id,

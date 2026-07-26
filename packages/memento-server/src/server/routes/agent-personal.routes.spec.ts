@@ -107,7 +107,7 @@ describe('personal knowledge agent HTTP routes', () => {
     const stored = ctx.db.prepare(`
       SELECT content, type, project_id, session_id, process_id
       FROM memory_item
-      WHERE source = 'personal-knowledge-agent'
+      WHERE source = 'agent:personal-knowledge-agent'
     `).get() as {
       content: string;
       type: string;

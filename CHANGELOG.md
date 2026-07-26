@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **remember source agent id** (#696): `agent:<id>` URI와 bare 워크플로/에이전트 식별자(`paperclip-ceo-heartbeat` 등)를 허용·`agent:`로 정규화해 운영 WARN 노이즈를 제거합니다. personal-knowledge-agent 저장 `source`도 `agent:personal-knowledge-agent`로 통일합니다.
+
 ### Added
 
 - **MCP transport parity spec** (#681): `runtime-transport-parity.spec.ts` — stdio·HTTP·WebSocket `tools/call`이 동일한 `ToolResult`를 반환하는지 검증.

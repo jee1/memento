@@ -44,8 +44,22 @@ describe('validateSource', () => {
     expect(result.type).toBe('memento');
   });
 
-  it('임의 문자열은 거절한다', () => {
-    const result = validateSource('just-a-note');
+  it('agent:<id>를 허용한다', () => {
+    const result = validateSource('agent:paperclip-ceo-heartbeat');
+    expect(result.isValid).toBe(true);
+    expect(result.type).toBe('agent');
+    expect(result.normalizedSource).toBeUndefined();
+  });
+
+  it('bare agent id는 agent:로 정규화한다', () => {
+    const result = validateSource('paperclip-ceo-heartbeat');
+    expect(result.isValid).toBe(true);
+    expect(result.type).toBe('agent');
+    expect(result.normalizedSource).toBe('agent:paperclip-ceo-heartbeat');
+  });
+
+  it('공백이 있는 free-text는 거절한다', () => {
+    const result = validateSource('just a note');
     expect(result.isValid).toBe(false);
     expect(result.message).toBeDefined();
   });
