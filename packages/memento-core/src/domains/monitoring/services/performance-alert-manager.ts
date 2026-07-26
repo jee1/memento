@@ -14,20 +14,38 @@ export interface CheckAlertsDeps {
   onCritical: (alert: PerformanceAlert, metrics: PerformanceMetrics) => Promise<void>;
 }
 
+const DEFAULT_ALERT_REARM_MS = 30 * 60 * 1000;
+
 export class PerformanceAlertManager {
   thresholds: AlertThresholds;
   private alerts: Map<string, PerformanceAlert> = new Map();
+  /** type → last resolve timestamp (ms); used for re-arm cooldown (#697) */
+  private lastResolvedAtByType: Map<PerformanceAlert['type'], number> = new Map();
   queryConsecutiveOkCount: number = 0;
 
   constructor(thresholds?: Partial<AlertThresholds>) {
     this.thresholds = {
       memoryUsagePercent: resolveValidatedNumber('PERF_MEMORY_WARN_PERCENT', 85, n => n >= 1 && n <= 100, '범위 1-100'),
       cpuUsagePercent: resolveValidatedNumber('PERF_CPU_WARN_PERCENT', 75, n => n >= 1 && n <= 100, '범위 1-100'),
-      databaseSizeMB: 100,
+      databaseSizeMB: resolveValidatedNumber('PERF_DATABASE_WARN_MB', 500, n => n >= 1 && n <= 1_000_000, '범위 1-1000000'),
       queryTimeMs: 1000,
       queryResolveWindow: 3,
+      alertRearmMs: resolveValidatedNumber(
+        'PERF_ALERT_REARM_MS',
+        DEFAULT_ALERT_REARM_MS,
+        n => n >= 0 && n <= 7 * 24 * 60 * 60 * 1000,
+        '범위 0-604800000'
+      ),
       ...thresholds
     };
+  }
+
+  private isWithinRearmCooldown(type: PerformanceAlert['type']): boolean {
+    const rearmMs = this.thresholds.alertRearmMs;
+    if (rearmMs <= 0) return false;
+    const lastResolved = this.lastResolvedAtByType.get(type);
+    if (lastResolved === undefined) return false;
+    return Date.now() - lastResolved < rearmMs;
   }
 
   /**
@@ -55,7 +73,7 @@ export class PerformanceAlertManager {
       const existingMemoryAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'memory' && !alert.resolved);
 
-      if (!existingMemoryAlert) {
+      if (!existingMemoryAlert && !this.isWithinRearmCooldown('memory')) {
         alerts.push({
           id: alertId,
           type: 'memory',
@@ -85,7 +103,7 @@ export class PerformanceAlertManager {
       const existingDbAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'database' && !alert.resolved);
 
-      if (!existingDbAlert) {
+      if (!existingDbAlert && !this.isWithinRearmCooldown('database')) {
         alerts.push({
           id: alertId,
           type: 'database',
@@ -121,7 +139,7 @@ export class PerformanceAlertManager {
       const existingQueryAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'query' && !alert.resolved);
 
-      if (!existingQueryAlert) {
+      if (!existingQueryAlert && !this.isWithinRearmCooldown('query')) {
         alerts.push({
           id: alertId,
           type: 'query',
@@ -150,7 +168,7 @@ export class PerformanceAlertManager {
       const existingCpuAlert = Array.from(this.alerts.values())
         .find(alert => alert.type === 'cpu' && !alert.resolved);
 
-      if (!existingCpuAlert) {
+      if (!existingCpuAlert && !this.isWithinRearmCooldown('cpu')) {
         alerts.push({
           id: alertId,
           type: 'cpu',
@@ -167,12 +185,18 @@ export class PerformanceAlertManager {
     // 알림 저장 및 로깅
     for (const alert of alerts) {
       this.alerts.set(alert.id, alert);
-      logger.warn('Performance alert generated', {
+      // #697: warning은 log-issue-monitor 승격 대상이 아닌 info, critical만 warn
+      const logPayload = {
         type: alert.type,
         severity: alert.severity,
         value: alert.value,
         threshold: alert.threshold
-      });
+      };
+      if (alert.severity === 'critical') {
+        logger.warn('Performance alert generated', logPayload);
+      } else {
+        logger.info('Performance alert generated', logPayload);
+      }
       alertNotificationService.emitAlert({
         id: alert.id,
         source: 'performance',
@@ -234,6 +258,7 @@ export class PerformanceAlertManager {
     const alert = this.alerts.get(alertId);
     if (alert) {
       alert.resolved = true;
+      this.lastResolvedAtByType.set(alert.type, Date.now());
       logger.info('Performance alert resolved', { alertId });
       alertNotificationService.acknowledgeAlert(alertId);
       return true;
@@ -255,6 +280,7 @@ export class PerformanceAlertManager {
 
   clearAlerts(): void {
     this.alerts.clear();
+    this.lastResolvedAtByType.clear();
     this.queryConsecutiveOkCount = 0;
   }
 

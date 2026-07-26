@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- **performance alert log noise** (#697): warning severity `Performance alert generated`는 INFO로 내리고, DB 크기 기본 임계값을 500MB(`PERF_DATABASE_WARN_MB`)로 상향하며, resolve 후 `PERF_ALERT_REARM_MS`(기본 30분) 재무장 쿨다운으로 CPU/DB 플랩 WARN이 log-issue-monitor에 반복 승격되지 않게 합니다.
 - **remember source agent id** (#696): `agent:<id>` URI와 bare 워크플로/에이전트 식별자(`paperclip-ceo-heartbeat` 등)를 허용·`agent:`로 정규화해 운영 WARN 노이즈를 제거합니다. personal-knowledge-agent 저장 `source`도 `agent:personal-knowledge-agent`로 통일합니다.
 
 ### Added
