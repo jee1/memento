@@ -168,14 +168,25 @@ node -e "require('sqlite-vec')"
 | Node.js 버전 | better-sqlite3 | sqlite-vec | 상태 |
 |-------------|----------------|------------|------|
 | ≤22.x | ⚠️ ABI 불일치 가능 | ⚠️ | `engines.node`≥24와 불일치 — 사용 금지 |
-| **24.x** | ✅ | ✅ | **권장** (`engines`·CI; Docker는 #702) |
+| **24.x** | ✅ | ✅ | **권장** (`engines`·CI·Docker) |
 | 25.x+ | ⚠️ 테스트 필요 | ⚠️ | major 전환 후 `rebuild-native` 필수 |
+
+## ✅ Node 24 전환 검증 체크리스트
+
+클린 환경·Docker·로컬 major 전환 후 아래 순서로 확인합니다.
+
+1. `npm ci` (또는 `npm install`)
+2. `npm run rebuild-native` (`better-sqlite3`, `sqlite-vec`)
+3. smoke require: `node -e "require('better-sqlite3'); require('sqlite-vec'); require('sharp'); require('onnxruntime-node'); console.log('ok')"`
+4. `npm run type-check` (가능하면 `npm test`도)
+
+Cursor agent PATH가 nvm을 가릴 수 있으므로, rebuild에 쓴 `node -v`와 이후 셸의 `node -v`가 같은 major인지 확인하세요.
 
 ## 🎯 빠른 해결 체크리스트
 
 1. ✅ Node.js 버전 확인 (**24.x 권장**)
 2. ✅ 개발 도구 설치 확인
-3. ✅ 네이티브 모듈 재빌드 시도
+3. ✅ 네이티브 모듈 재빌드 시도 (`npm run rebuild-native`)
 4. ✅ 소스에서 빌드 시도
 5. ✅ 완전 재설치 시도
 
