@@ -57,6 +57,20 @@ nvm install 24
 nvm use 24
 ```
 
+### 로컬 검증 (저장소 `.nvmrc`)
+
+루트 `.nvmrc`는 major `24`를 가리킵니다. nvm 사용 시 디렉터리 진입 후:
+
+```bash
+nvm use          # .nvmrc → 24
+nvm alias default 24   # 선택: 기본값도 24로
+node -v          # v24.x 여야 함
+which node       # nvm 경로인지 확인
+npm run rebuild-native
+```
+
+**주의:** Cursor agent 등 IDE 번들 Node가 PATH에서 nvm보다 앞에 있으면 `which node` / `node -v`만으로 오판할 수 있습니다. 에이전트 셸과 일반 터미널을 각각 확인하세요. Node major를 바꾼 뒤에는 반드시 `npm run rebuild-native`로 `better-sqlite3`·`sqlite-vec` ABI를 맞추세요.
+
 ### 방법 3: 소스에서 빌드
 
 네이티브 모듈을 소스에서 빌드하여 설치:

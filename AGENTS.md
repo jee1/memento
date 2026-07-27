@@ -36,6 +36,7 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 ## 3.1 Gotchas
 
 - **Docker 배포 전**: `npm run db:pre-docker-deploy` (DB 무결성 점검)
+- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`·`which node` 확인(Cursor agent PATH가 nvm을 가릴 수 있음). major 전환 후 `npm run rebuild-native`. Docker는 #702 (`node:24-*`)
 - **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
 - **graphify 커밋**: 루트 `graphify-out/`만; `packages/memento-core/graphify-out/cache/`는 무시
