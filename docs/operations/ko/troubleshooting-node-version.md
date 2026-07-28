@@ -168,7 +168,7 @@ node -e "require('sqlite-vec')"
 | Node.js 버전 | better-sqlite3 | sqlite-vec | 상태 |
 |-------------|----------------|------------|------|
 | ≤22.x | ⚠️ ABI 불일치 가능 | ⚠️ | `engines.node`≥24와 불일치 — 사용 금지 |
-| **24.x** | ✅ | ✅ | **권장** (`engines`·CI·Docker) |
+| **24.x** | ✅ | ✅ | **권장** (`engines`·CI; Docker는 #702) |
 | 25.x+ | ⚠️ 테스트 필요 | ⚠️ | major 전환 후 `rebuild-native` 필수 |
 
 ## 🎯 빠른 해결 체크리스트
