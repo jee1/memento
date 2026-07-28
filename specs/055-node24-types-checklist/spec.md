@@ -1,9 +1,9 @@
 # Feature Specification: @types/node@24 및 native 검증 체크리스트
 
-**Feature Branch**: `issue-703-types-node24`  
-**Created**: 2026-07-27  
-**Status**: Active  
-**Input**: GitHub Issue #703 — chore(deps): @types/node@24 정렬 및 Node 24 native 검증 체크리스트  
+**Feature Branch**: `issue-703-types-node24`
+**Created**: 2026-07-27
+**Status**: Active
+**Input**: GitHub Issue #703 — chore(deps): @types/node@24 정렬 및 Node 24 native 검증 체크리스트
 **Parent**: #700
 
 ## User Scenarios & Testing *(mandatory)*
