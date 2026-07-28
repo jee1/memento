@@ -1,9 +1,9 @@
 # Feature Specification: Node 24용 .nvmrc 및 로컬 가이드
 
-**Feature Branch**: `issue-701-node24-nvmrc`  
-**Created**: 2026-07-27  
-**Status**: Active  
-**Input**: GitHub Issue #701 — chore(tooling): Node 24용 .nvmrc 추가 및 로컬 가이드 보강  
+**Feature Branch**: `issue-701-node24-nvmrc`
+**Created**: 2026-07-27
+**Status**: Active
+**Input**: GitHub Issue #701 — chore(tooling): Node 24용 .nvmrc 추가 및 로컬 가이드 보강
 **Parent**: #700
 
 ## User Scenarios & Testing *(mandatory)*

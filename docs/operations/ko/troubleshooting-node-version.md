@@ -128,7 +128,7 @@ brew install python3 sqlite3
 rm -rf node_modules package-lock.json
 npm cache clean --force
 
-# 2. Node.js 버전 확인 (20.x 권장)
+# 2. Node.js 버전 확인 (24.x 권장)
 node --version
 
 # 3. 재설치 (소스에서 빌드)
@@ -167,14 +167,13 @@ node -e "require('sqlite-vec')"
 
 | Node.js 버전 | better-sqlite3 | sqlite-vec | 상태 |
 |-------------|----------------|------------|------|
-| 18.x | ✅ 지원 | ⚠️ 제한적 | 권장하지 않음 |
-| 20.x LTS | ✅ 완전 지원 | ✅ 완전 지원 | **권장** |
-| 22.x | ✅ 지원 | ✅ 지원 | 지원 |
-| 23.x+ | ⚠️ 테스트 필요 | ⚠️ 테스트 필요 | 최신 버전은 호환성 확인 필요 |
+| ≤22.x | ⚠️ ABI 불일치 가능 | ⚠️ | `engines.node`≥24와 불일치 — 사용 금지 |
+| **24.x** | ✅ | ✅ | **권장** (`engines`·CI·Docker) |
+| 25.x+ | ⚠️ 테스트 필요 | ⚠️ | major 전환 후 `rebuild-native` 필수 |
 
 ## 🎯 빠른 해결 체크리스트
 
-1. ✅ Node.js 버전 확인 (20.x 권장)
+1. ✅ Node.js 버전 확인 (**24.x 권장**)
 2. ✅ 개발 도구 설치 확인
 3. ✅ 네이티브 모듈 재빌드 시도
 4. ✅ 소스에서 빌드 시도
