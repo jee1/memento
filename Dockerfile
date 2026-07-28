@@ -1,5 +1,5 @@
 # Multi-stage build for Memento MCP Server
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ RUN npm run postinstall
 RUN npm run build:packages
 
 # Production stage
-FROM node:20-slim AS production
+FROM node:24-slim AS production
 
 # Use the same cache directory as the builder stage
 ENV XDG_CACHE_HOME=/app/.cache
