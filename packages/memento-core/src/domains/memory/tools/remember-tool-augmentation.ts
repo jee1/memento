@@ -11,6 +11,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { MemoryNeighborService } from '../services/memory-neighbor-service.js';
 import { RelationExtractor } from '../../relation/services/relation-extractor.js';
+import type { RelationCandidate } from '../../../shared/types/relation.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { TripleExtractionService } from '../../relation/services/triple-extraction/triple-extraction-service.js';
 import type { TripleExtractionResult } from '../../../shared/types/triple-extraction.js';
@@ -85,7 +86,53 @@ async function runEmbeddingAndNeighbors(
   }
 }
 
-async function runRelationExtraction(
+/**
+ * 관계 추출 후보를 RelationGraph에 배치로 영속화한다 (#711).
+ * 실패는 warning으로만 남기고 remember 흐름에 영향을 주지 않는다 (isolate).
+ */
+async function persistRelationCandidates(
+  candidates: RelationCandidate[],
+  context: ToolContext,
+  host: RememberToolHost,
+  savedMemoryId: string
+): Promise<void> {
+  const relationGraph = context.services.relationGraph;
+  if (!relationGraph) {
+    host.logWarning('관계 그래프를 사용할 수 없어 추출된 관계를 저장하지 않습니다', { memory_id: savedMemoryId });
+    return;
+  }
+
+  try {
+    const extractedAt = new Date().toISOString();
+    const batchResult = await relationGraph.addRelationsBatch(
+      candidates.map(candidate => ({
+        source_id: candidate.source_id,
+        target_id: candidate.target_id,
+        relation_type: candidate.relation_type,
+        confidence: candidate.confidence,
+        metadata: {
+          method: candidate.method,
+          evidence: candidate.evidence,
+          extracted_at: extractedAt
+        }
+      }))
+    );
+
+    if (batchResult.failedCount > 0) {
+      host.logWarning('추출된 관계 중 일부 저장 실패', {
+        memory_id: savedMemoryId,
+        failed_count: batchResult.failedCount,
+        success_count: batchResult.success
+      });
+    }
+  } catch (error) {
+    host.logWarning(`추출된 관계 저장 실패 (${savedMemoryId})`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+export async function runRelationExtraction(
   params: AugmentationParams,
   context: ToolContext,
   host: RememberToolHost
@@ -123,6 +170,8 @@ async function runRelationExtraction(
           method: c.method
         }))
       });
+
+      await persistRelationCandidates(candidates, context, host, savedMemoryId);
     } else {
       host.logInfo('관계 추출 완료 (관계 없음)', { memory_id: savedMemoryId });
     }
