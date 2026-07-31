@@ -72,19 +72,16 @@ export async function setupTestDatabase(): Promise<Database.Database> {
   }
   
   // 3. 벡터 테이블 초기화 (VEC 확장이 로드된 경우에만)
+  // distance_metric=cosine 계약(issue #713)은 vec-schema.ts를 단일 원본으로 따른다.
   if (vecExtensionLoaded) {
-    const vecTables = [
-      { name: 'memory_item_vec', dimension: 384 },
-      { name: 'memory_item_vec_tfidf', dimension: 512 },
-      { name: 'memory_item_vec_minilm', dimension: 384 },
-      { name: 'memory_item_vec_openai', dimension: 1536 },
-      { name: 'memory_item_vec_gemini', dimension: 768 }
-    ];
-    
-    for (const table of vecTables) {
+    const { VEC_TABLES, buildVecTableDdl } = await import(
+      '../../infrastructure/database/database/vec-schema.js'
+    );
+
+    for (const table of VEC_TABLES) {
       try {
         db.exec(`DROP TABLE IF EXISTS ${table.name}`);
-        db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${table.name} USING vec0(embedding float[${table.dimension}])`);
+        db.exec(buildVecTableDdl(table));
       } catch (error) {
         // 벡터 테이블 생성 실패는 무시
       }
