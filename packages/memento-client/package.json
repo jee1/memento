@@ -42,7 +42,7 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.0.0",
     "rimraf": "^5.0.0",
     "typescript": "^5.3.0",
     "vitest": "^3.2.6"

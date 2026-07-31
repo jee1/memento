@@ -56,6 +56,8 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **`MEMENTO_TYPE_PARAM_MODE`**: 기본값 `error` (#636, v1.18+); `type` 생략 시 `remember`/`recall` 거절 — 레거시는 env `warn`/`deprecate`; spec·통합테스트는 `type` 명시 또는 `mementoConfig.typeParamMode='warn'` mock
 - **core-deprecated-inventory**: 활성 표 먼저 확인 (#617 후 shim 제거 완료; #636은 type-param 롤아웃); merge 전 inventory·CHANGELOG 갱신
 - **deps minor/patch**: `npm outdated` → wanted만; `better-sqlite3` 후 `npm run rebuild-native`; major(eslint 10·vitest 4)는 별도 이슈
+- **`@types/node`**: major는 `engines.node`(≥24)와 맞춤 — root·워크스페이스 package.json 동시 갱신
+- **Node major 전환**: `npm ci` → `npm run rebuild-native` → smoke(`better-sqlite3`/`sqlite-vec`/`sharp`/`onnxruntime-node`) → type-check; Cursor agent PATH가 nvm을 가릴 수 있음
 - **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 - **infrastructure repo 분해**: `packages/memento-core/src/infrastructure/database/repositories/` — composition(`*-store.ts`); public export는 오케스트레이터 파일만 (#610)
 - **composition 분해 후 CI**: `test-core`는 memento-core 전체 vitest — 도메인 `__tests__`만 green이면 부족; 다른 경로 spec이 `(orchestrator as any).privateMethod` 호출 시 orchestrator에 위임 래퍼 필수 (예: `006-fts5-reflection-notes.spec.ts` → `buildReflectionNotesSearchCondition`)
