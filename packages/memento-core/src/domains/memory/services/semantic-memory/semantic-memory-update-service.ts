@@ -9,6 +9,7 @@ import type { TripleExtractionResult } from '../../../../shared/types/triple-ext
 import { UnifiedEmbeddingService } from '../../../embedding/services/unified-embedding-service.js';
 import type { RelationGraphPort } from '../../../relation/ports/relation-graph.port.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
+import type { MemoryEmbeddingService } from '../memory-embedding-service.js';
 import { SemanticMemoryCrud } from './semantic-memory-crud.js';
 import { SemanticMemoryRelations } from './semantic-memory-relations.js';
 import { SemanticMemoryScoring } from './semantic-memory-scoring.js';
@@ -42,7 +43,8 @@ export class SemanticMemoryUpdateService {
     private db: Database.Database,
     relationGraph: RelationGraphPort,
     embeddingService?: UnifiedEmbeddingService,
-    kgTripleRepo?: KgTripleRepository
+    kgTripleRepo?: KgTripleRepository,
+    memoryEmbeddingService?: MemoryEmbeddingService
   ) {
     const resolvedEmbeddingService = this.resolveEmbeddingService(embeddingService);
     this.embeddingService = resolvedEmbeddingService;
@@ -50,7 +52,7 @@ export class SemanticMemoryUpdateService {
     this.scoring = new SemanticMemoryScoring();
     this.kgTripleRepo = kgTripleRepo ?? new KgTripleRepository(db);
     this.similarity = new SemanticMemorySimilarity(db, resolvedEmbeddingService, this.scoring);
-    this.crud = new SemanticMemoryCrud(db, this.kgTripleRepo, this.scoring);
+    this.crud = new SemanticMemoryCrud(db, this.kgTripleRepo, this.scoring, memoryEmbeddingService);
     this.relations = new SemanticMemoryRelations(db, relationGraph);
     this.statistics = new SemanticMemoryStatisticsService();
     this.pipeline = new SemanticMemoryUpdatePipeline(

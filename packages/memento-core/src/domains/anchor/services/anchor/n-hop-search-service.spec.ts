@@ -360,6 +360,46 @@ describe('NHopSearchService', () => {
       expect(Array.isArray(results)).toBe(true);
     });
 
+    it('#710 회귀: 임베딩이 없는 relation 이웃도 1-hop 결과에 유지되어야 함', async () => {
+      // Given: relationGraph가 실제로 준비되어 있어야 하는 테스트 (스킵 방지)
+      if (!relationGraph) {
+        throw new Error('relationGraph 초기화 실패 - 테스트 전제 조건 불충족');
+      }
+
+      const anchorMemoryId = createTestMemory(db, {
+        id: 'anchor-with-linked-neighbor',
+        type: 'episodic',
+        content: '앵커 메모리 (임베딩 보유)'
+      });
+      const linkedMemoryId = createTestMemory(db, {
+        id: 'semantic-no-embedding',
+        type: 'semantic',
+        content: 'Triple에서 파생된 semantic memory (임베딩 없음)'
+      });
+
+      await relationGraph.addRelation(anchorMemoryId, linkedMemoryId, 'REFERENCES', { confidence: 0.8 });
+
+      // 벡터 검색 결과 없음 (linkedMemoryId는 임베딩이 없어 벡터 검색으로는 발견되지 않음)
+      (mockVectorSearchEngine.search as any).mockResolvedValue([]);
+
+      const anchorEmbedding = [0.1, 0.2, 0.3];
+      const results = await service.searchNHop(
+        anchorEmbedding,
+        'test-provider',
+        anchorMemoryId,
+        0.6,
+        1,
+        10,
+        true
+      );
+
+      // Then: 벡터 결과가 없어도 relation으로 연결된 이웃은 1-hop 결과에 포함됨
+      const linkedResult = results.find(r => r.memory_id === linkedMemoryId);
+      expect(linkedResult).toBeDefined();
+      expect(linkedResult?.hop_distance).toBe(1);
+      expect(linkedResult?.hasRelation).toBe(true);
+    });
+
     it('VectorSearchEngine이 설정되지 않았으면 에러를 던져야 함', async () => {
       // Given: VectorSearchEngine이 설정되지 않은 서비스일 때
       const serviceWithoutEngine = new NHopSearchService(cacheService);

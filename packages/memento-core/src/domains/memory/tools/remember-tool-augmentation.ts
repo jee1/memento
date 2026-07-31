@@ -278,7 +278,13 @@ async function runTripleExtractionJob(
         throw new Error(RELATION_GRAPH_UNAVAILABLE_ERROR);
       }
 
-      const semanticMemoryUpdateService = new SemanticMemoryUpdateService(dbRef, relationGraph, unifiedEmbeddingService);
+      const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
+        dbRef,
+        relationGraph,
+        unifiedEmbeddingService,
+        undefined,
+        embeddingServiceRef
+      );
       await semanticMemoryUpdateService.updateSemanticMemory(extractionResult, {
         episodicMemoryId: savedMemoryId,
         episodicImportance: importance || 0.5

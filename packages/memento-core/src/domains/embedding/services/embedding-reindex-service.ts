@@ -27,6 +27,22 @@ export interface EmbeddingReindexResult extends EmbeddingHealthDiagnostics {
   failedCount: number;
 }
 
+export interface SemanticEndpointBackfillOptions {
+  provider: EmbeddingProvider;
+  /** 제한적 backfill: 한 번에 처리할 최대 후보 수 (기본 200, 최대 1000) */
+  limit?: number;
+  dryRun?: boolean;
+}
+
+export interface SemanticEndpointBackfillResult {
+  provider: EmbeddingProvider;
+  candidateCount: number;
+  dryRun: boolean;
+  processedCount: number;
+  storedCount: number;
+  failedCount: number;
+}
+
 type MemoryRow = { id: string; content: string; type: MemoryType };
 
 type ReindexEmbeddingService = {
@@ -132,5 +148,80 @@ export class EmbeddingReindexService {
     }
 
     return { ...this.diagnose(options), dryRun: false, processedCount: memories.length, storedCount, failedCount };
+  }
+
+  /**
+   * #710: memory_relation의 endpoint(source 또는 target)인 semantic 메모리 중
+   * 임베딩이 없는 항목을 찾는다. Triple → semantic 경로로 생성된 관계 이웃이
+   * n-hop/벡터 확장에서 소외되는 문제(#707)를 겨냥한 제한적 backfill 대상 조회.
+   */
+  findSemanticRelationEndpointsMissingEmbedding(
+    provider: EmbeddingProvider,
+    limit: number,
+  ): MemoryRow[] {
+    return this.db.prepare(`
+      SELECT DISTINCT mi.id, mi.content, mi.type
+      FROM memory_item mi
+      WHERE mi.type = 'semantic'
+        AND COALESCE(mi.is_deleted, 0) = 0
+        AND NOT EXISTS (
+          SELECT 1 FROM memory_embedding me
+          WHERE me.memory_id = mi.id AND me.embedding_provider = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM memory_relation mr
+          WHERE mr.source_id = mi.id OR mr.target_id = mi.id
+        )
+      ORDER BY mi.id
+      LIMIT ?
+    `).all(provider, limit) as MemoryRow[];
+  }
+
+  /**
+   * #710: 제한된 개수만큼 semantic relation-endpoint 임베딩을 채워 넣는다.
+   * 전체 재색인(reindex)과 달리 memory_relation에 연결된 semantic 메모리로 범위를 좁혀
+   * 재색인을 반복하지 않고도 n-hop 확장에 필요한 최소 임베딩을 확보한다.
+   */
+  async backfillSemanticRelationEndpoints(
+    options: SemanticEndpointBackfillOptions,
+  ): Promise<SemanticEndpointBackfillResult> {
+    const limit = options.limit ?? 200;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1_000) {
+      throw new Error('limit must be an integer between 1 and 1000');
+    }
+    if (!this.embeddingService.isAvailable()) {
+      throw new Error('embedding service is unavailable');
+    }
+
+    const candidates = this.findSemanticRelationEndpointsMissingEmbedding(options.provider, limit);
+    const candidateCount = candidates.length;
+
+    if (options.dryRun) {
+      return { provider: options.provider, candidateCount, dryRun: true, processedCount: candidateCount, storedCount: 0, failedCount: 0 };
+    }
+
+    let storedCount = 0;
+    let failedCount = 0;
+
+    for (const memory of candidates) {
+      try {
+        const result = await this.embeddingService.createAndStoreEmbedding(
+          this.db,
+          memory.id,
+          memory.content,
+          memory.type,
+          options.provider,
+        );
+        if (!result || result.provider !== options.provider) {
+          failedCount++;
+          continue;
+        }
+        storedCount++;
+      } catch {
+        failedCount++;
+      }
+    }
+
+    return { provider: options.provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
   }
 }
