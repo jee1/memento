@@ -89,6 +89,7 @@ type FakeSearchItem = {
   hop_distance?: number;
   importance?: number;
   created_at?: string;
+  predecessor_id?: string;
 };
 
 function buildFakeAnchorManager(
@@ -234,5 +235,108 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     expect(result.links.filter(l => l.type === 'link')).toHaveLength(0);
     expect(result.nodes.find(n => n.id === 'mem-not-on-map')).toBeUndefined();
+  });
+});
+
+describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
+  let db: Database.Database;
+
+  beforeEach(() => {
+    db = new Database(':memory:');
+    createMemoryItemSchema(db);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  function insertMemory(id: string, content = `content-${id}`): void {
+    db.prepare(
+      `INSERT INTO memory_item (id, content, type, importance, created_at) VALUES (?, ?, 'episodic', 0.5, datetime('now'))`
+    ).run(id, content);
+  }
+
+  const noRelations = {
+    getRelationsBatch: vi.fn().mockResolvedValue(new Map()),
+  } as unknown as ServerServices['relationGraph'];
+
+  it('2-hop fixture anchor→m1→m2에서 실제 경로 edge 2개가 생성되고, anchor→m2 직결 edge는 생성되지 않아야 함', async () => {
+    insertMemory('anchor-a');
+    insertMemory('m1');
+    insertMemory('m2');
+
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'B', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      {
+        B: [
+          { id: 'm1', content: 'hop1', type: 'episodic', hop_distance: 1, similarity: 0.8, predecessor_id: 'anchor-a' } as FakeSearchItem,
+          { id: 'm2', content: 'hop2', type: 'episodic', hop_distance: 2, similarity: 0.6, predecessor_id: 'm1' } as FakeSearchItem,
+        ],
+      }
+    );
+
+    const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
+
+    const result = await buildAnchorMapData(db, serverServices, 'default');
+
+    expect(result.nodes.map(n => n.id).sort()).toEqual(['anchor-a', 'm1', 'm2']);
+
+    const hopEdges = result.links.filter(l => l.type === 'hop');
+    expect(hopEdges).toHaveLength(2);
+    expect(hopEdges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'anchor-a', target: 'm1', hop_distance: 1 }),
+        expect.objectContaining({ source: 'm1', target: 'm2', hop_distance: 2 }),
+      ])
+    );
+
+    // 존재하지 않는 anchor→m2 직결 edge가 생성되지 않아야 함
+    expect(hopEdges.find(l => l.source === 'anchor-a' && l.target === 'm2')).toBeUndefined();
+  });
+
+  it('predecessor_id가 map에 없는 노드를 가리키면 hop≥2 edge를 생성하지 않아야 함 (가짜 edge 방지)', async () => {
+    insertMemory('anchor-a');
+    insertMemory('m2');
+
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'B', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      {
+        // m1(predecessor)이 결과에서 필터링되어 빠지고 m2만 남은 경우
+        B: [
+          { id: 'm2', content: 'hop2', type: 'episodic', hop_distance: 2, similarity: 0.6, predecessor_id: 'm1' } as FakeSearchItem,
+        ],
+      }
+    );
+
+    const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
+
+    const result = await buildAnchorMapData(db, serverServices, 'default');
+
+    expect(result.links.filter(l => l.type === 'hop')).toHaveLength(0);
+  });
+
+  it('hop 결과 배열 순서가 hop 오름차순이 아니어도(hop2가 먼저 와도) 경로 edge를 올바르게 연결해야 함', async () => {
+    insertMemory('anchor-a');
+    insertMemory('m1');
+    insertMemory('m2');
+
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'B', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      {
+        // m2(hop2)가 m1(hop1)보다 먼저 배열에 위치 (랭킹 정렬로 인해 hop 순서가 아닐 수 있음)
+        B: [
+          { id: 'm2', content: 'hop2', type: 'episodic', hop_distance: 2, similarity: 0.9, predecessor_id: 'm1' } as FakeSearchItem,
+          { id: 'm1', content: 'hop1', type: 'episodic', hop_distance: 1, similarity: 0.5, predecessor_id: 'anchor-a' } as FakeSearchItem,
+        ],
+      }
+    );
+
+    const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
+
+    const result = await buildAnchorMapData(db, serverServices, 'default');
+
+    const hopEdges = result.links.filter(l => l.type === 'hop');
+    expect(hopEdges).toHaveLength(2);
+    expect(hopEdges.find(l => l.source === 'm1' && l.target === 'm2')).toBeDefined();
   });
 });

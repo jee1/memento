@@ -25,6 +25,8 @@ export interface NHopSearchResult {
   created_at: string;
   tags?: string[];
   hasRelation?: boolean;
+  /** 이 메모리를 발견한 실제 경로상의 직전 노드 (hop 1이면 anchor memory id) */
+  predecessor_id?: string;
 }
 
 /**
@@ -313,7 +315,8 @@ export class NHopSearchService implements INHopSearchService {
             maxHops,
             merged,
             discoveredMemoryIds,
-            threshold
+            threshold,
+            currentMemory.memory_id
           );
           hopResults.push(...batchHop);
           nextHopMemories.push(...nextHopSeeds);

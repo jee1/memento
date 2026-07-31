@@ -97,7 +97,8 @@ export class NHopLinkedMemoryService {
     maxHops: number,
     allCandidates: Map<string, HopCandidate>,
     discoveredMemoryIds: Set<string>,
-    threshold: number
+    threshold: number,
+    predecessorId: string
   ): Promise<{
     hopResults: NHopSearchResult[];
     nextHopSeeds: HopSeed[];
@@ -125,7 +126,8 @@ export class NHopLinkedMemoryService {
         importance: candidate.importance,
         created_at: candidate.created_at,
         tags: candidate.tags,
-        hasRelation: candidate.isLinked
+        hasRelation: candidate.isLinked,
+        predecessor_id: predecessorId
       });
 
       if (hop < maxHops) {
