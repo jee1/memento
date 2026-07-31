@@ -190,6 +190,18 @@ export interface IRelationGraph {
   ): Promise<MemoryRelation[]>;
 
   /**
+   * 여러 기억에 대한 관계 일괄 조회 (N+1 완화)
+   *
+   * @param memoryIds 기억 ID 목록
+   * @param options 조회 옵션
+   * @returns 기억 ID별 관계 목록 맵
+   */
+  getRelationsBatch(
+    memoryIds: string[],
+    options?: GetRelationsOptions
+  ): Promise<Map<string, MemoryRelation[]>>;
+
+  /**
    * 관련 기억 조회 (N-hop 관계 탐색)
    * 
    * @param memoryId 시작 기억 ID

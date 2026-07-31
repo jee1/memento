@@ -110,7 +110,8 @@ export async function buildAnchorMapData(
     db,
     anchorManager,
     agentId,
-    anchorList
+    anchorList,
+    serverServices.relationGraph
   );
 
   return {
@@ -135,11 +136,14 @@ async function buildNetworkNodesAndLinks(
     memory_id: string | null;
     created_at: string;
     updated_at: string;
-  }>
+  }>,
+  relationGraph: ServerServices['relationGraph']
 ): Promise<{ nodes: AnchorMapNode[]; links: AnchorMapLink[] }> {
   const nodes: AnchorMapNode[] = [];
   const links: AnchorMapLink[] = [];
-  const processedMemoryIds = new Set<string>();
+  // 노드 dedup(메모리 id당 1개)과 별개로, slot→memory 엣지는 슬롯마다 생성한다
+  // (같은 메모리가 slot A/B에 모두 잡히면 노드는 1개, 엣지는 2개)
+  const nodeIds = new Set<string>();
 
   // 각 앵커에 대해 처리
   for (const anchor of anchorList) {
@@ -159,15 +163,17 @@ async function buildNetworkNodesAndLinks(
     } | undefined;
 
     if (anchorMemory) {
-      nodes.push({
-        id: anchor.memory_id,
-        type: 'anchor',
-        slot: anchor.slot,
-        content: anchorMemory.content.substring(0, 100),
-        importance: anchorMemory.importance,
-        created_at: anchorMemory.created_at
-      });
-      processedMemoryIds.add(anchor.memory_id);
+      if (!nodeIds.has(anchor.memory_id)) {
+        nodes.push({
+          id: anchor.memory_id,
+          type: 'anchor',
+          slot: anchor.slot,
+          content: anchorMemory.content.substring(0, 100),
+          importance: anchorMemory.importance,
+          created_at: anchorMemory.created_at
+        });
+        nodeIds.add(anchor.memory_id);
+      }
 
       // 앵커 주변 메모리 검색
       try {
@@ -182,20 +188,20 @@ async function buildNetworkNodesAndLinks(
 
         // 검색 결과를 노드와 링크로 변환
         for (const item of searchResult.items) {
-          if (processedMemoryIds.has(item.id)) continue;
+          if (!nodeIds.has(item.id)) {
+            nodes.push({
+              id: item.id,
+              type: 'memory',
+              content: item.content.substring(0, 100),
+              hop_distance: item.hop_distance || 0,
+              similarity: item.similarity,
+              importance: item.importance,
+              created_at: item.created_at
+            });
+            nodeIds.add(item.id);
+          }
 
-          nodes.push({
-            id: item.id,
-            type: 'memory',
-            content: item.content.substring(0, 100),
-            hop_distance: item.hop_distance || 0,
-            similarity: item.similarity,
-            importance: item.importance,
-            created_at: item.created_at
-          });
-          processedMemoryIds.add(item.id);
-
-          // 링크 추가 (앵커에서 메모리로)
+          // 링크 추가 (앵커에서 메모리로) - 슬롯마다 별도 엣지로 추가
           if (item.hop_distance === 1) {
             links.push({
               source: anchor.memory_id,
@@ -225,56 +231,50 @@ async function buildNetworkNodesAndLinks(
     }
   }
 
-  // memory_link 테이블을 활용한 직접 연결 정보 추가
-  const memoryLinks = buildNetworkLinks(db, nodes, processedMemoryIds);
-  links.push(...memoryLinks);
+  // memory_relation 테이블(RelationGraph)을 활용한 직접 연결 정보 추가
+  const relationLinks = await buildRelationLinks(relationGraph, nodeIds);
+  links.push(...relationLinks);
 
   return { nodes, links };
 }
 
 /**
- * memory_link 테이블을 활용한 네트워크 링크 생성
+ * RelationGraph(memory_relation)를 활용한 네트워크 링크 생성.
+ * 노드로 등록된 메모리끼리의 관계만 엣지로 반영하며, confidence를 가중치로 사용한다.
+ * hop 2/3 경로 엣지는 범위 밖(#715)이므로 다루지 않는다.
  */
-function buildNetworkLinks(
-  db: Database.Database,
-  nodes: AnchorMapNode[],
-  processedMemoryIds: Set<string>
-): AnchorMapLink[] {
+async function buildRelationLinks(
+  relationGraph: ServerServices['relationGraph'],
+  nodeIds: Set<string>
+): Promise<AnchorMapLink[]> {
   const links: AnchorMapLink[] = [];
+  if (nodeIds.size === 0) return links;
 
-  for (const node of nodes) {
-    if (node.type === 'anchor') continue;
+  const memoryIds = Array.from(nodeIds);
 
-    // memory_link 테이블 조회
-    const linkedMemories = db.prepare(`
-      SELECT target_id, relation_type, created_at
-      FROM memory_link
-      WHERE source_id = ?
-      UNION
-      SELECT source_id, relation_type, created_at
-      FROM memory_link
-      WHERE target_id = ?
-    `).all(node.id, node.id) as Array<{
-      target_id?: string;
-      source_id?: string;
-      relation_type: string;
-      created_at: string;
-    }>;
+  try {
+    const relationsByMemory = await relationGraph.getRelationsBatch(memoryIds, { direction: 'both' });
 
-    for (const link of linkedMemories) {
-      const linkedId = link.target_id || link.source_id;
-      if (linkedId && processedMemoryIds.has(linkedId)) {
-        // relation_type을 기반으로 similarity 추정
-        const similarity = link.relation_type === 'derived_from' ? 0.9 :
-                          link.relation_type === 'cause_of' ? 0.8 : 0.7;
+    const seenRelationIds = new Set<number>();
+    for (const memoryId of memoryIds) {
+      for (const relation of relationsByMemory.get(memoryId) ?? []) {
+        if (seenRelationIds.has(relation.id)) continue;
+        const otherId = relation.source_id === memoryId ? relation.target_id : relation.source_id;
+        if (otherId === memoryId || !nodeIds.has(otherId)) continue;
+
+        seenRelationIds.add(relation.id);
         links.push({
-          source: node.id,
-          target: linkedId,
+          source: relation.source_id,
+          target: relation.target_id,
           type: 'link',
-          similarity: similarity
+          similarity: relation.confidence
         });
       }
     }
+  } catch (error) {
+    logger.error('Relation link lookup failed', {
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 
   return links;
