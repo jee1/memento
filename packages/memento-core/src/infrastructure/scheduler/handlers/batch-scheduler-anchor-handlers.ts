@@ -13,6 +13,26 @@ interface AnchorRow {
 
 interface MemoryCandidate {
   id: string;
+  has_relation: number;
+  has_embedding: number;
+}
+
+/**
+ * A candidate is "isolated" only when it has neither a relation edge nor an
+ * embedding (GitHub #714). A candidate with a relation must never be
+ * disadvantaged solely for missing an embedding, since relation-based n-hop
+ * recovery (#708/#709) does not require one.
+ */
+function isIsolatedCandidate(candidate: MemoryCandidate): boolean {
+  return !candidate.has_relation && !candidate.has_embedding;
+}
+
+/**
+ * Reorders candidates so isolated ones sort last, without disturbing the
+ * relative importance/recency order within each group (stable sort).
+ */
+function prioritizeConnectedCandidates(candidates: MemoryCandidate[]): MemoryCandidate[] {
+  return [...candidates].sort((a, b) => Number(isIsolatedCandidate(a)) - Number(isIsolatedCandidate(b)));
 }
 
 /**
@@ -25,6 +45,10 @@ interface MemoryCandidate {
  *
  * Staleness threshold: 1 day.  Only slots whose `updated_at` is older than that
  * are touched, so anchors updated by normal recall flow are never overwritten.
+ *
+ * Candidate scoring (#714): candidates with neither a relation nor an embedding
+ * ("isolated") are deprioritized behind every other candidate, so a slot is only
+ * ever pinned to an isolated memory when no connected alternative exists.
  */
 export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   const result = createEmptyBatchJobResult('anchor_auto_refresh');
@@ -52,6 +76,7 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
     }
 
     let totalMoved = 0;
+    let isolatedPicks = 0;
     const stalenessThresholdDays = 1;
     const now = Date.now();
 
@@ -75,17 +100,27 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
         const slotIndex = SLOTS.indexOf(slot as Slot);
         const candidates = db
           .prepare(
-            `SELECT id FROM memory_item
-             WHERE (owner_id = ? OR owner_id IS NULL)
-               AND deleted_at IS NULL
-             ORDER BY importance DESC, created_at DESC
+            `SELECT
+               m.id AS id,
+               EXISTS(SELECT 1 FROM memory_relation r WHERE r.source_id = m.id OR r.target_id = m.id) AS has_relation,
+               EXISTS(SELECT 1 FROM memory_embedding e WHERE e.memory_id = m.id) AS has_embedding
+             FROM memory_item m
+             WHERE (m.owner_id = ? OR m.owner_id IS NULL)
+               AND m.deleted_at IS NULL
+             ORDER BY m.importance DESC, m.created_at DESC
              LIMIT ?`
           )
           .all(agentId, slotIndex + 3) as MemoryCandidate[];
 
-        const candidate = candidates[slotIndex] ?? candidates[candidates.length - 1];
+        const prioritized = prioritizeConnectedCandidates(candidates);
+        const candidate = prioritized[slotIndex] ?? prioritized[prioritized.length - 1];
         if (!candidate) {
           continue;
+        }
+
+        if (isIsolatedCandidate(candidate)) {
+          isolatedPicks++;
+          ctx.log(`anchor_auto_refresh: isolated candidate selected for ${agentId}/${slot} → ${candidate.id} (no connected alternative)`, undefined, 'warn');
         }
 
         try {
@@ -102,7 +137,8 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
 
     result.success = result.errors.length === 0;
     result.processed = totalMoved;
-    ctx.log('anchor_auto_refresh completed', { moved: totalMoved, agents: agentIds.length });
+    result.details = { moved: totalMoved, isolatedPicks };
+    ctx.log('anchor_auto_refresh completed', { moved: totalMoved, agents: agentIds.length, isolatedPicks });
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : String(error));
     ctx.log('anchor_auto_refresh failed', error, 'error');
