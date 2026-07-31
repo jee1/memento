@@ -57,6 +57,20 @@ nvm install 24
 nvm use 24
 ```
 
+### 로컬 검증 (저장소 `.nvmrc`)
+
+루트 `.nvmrc`는 major `24`를 가리킵니다. nvm 사용 시 디렉터리 진입 후:
+
+```bash
+nvm use          # .nvmrc → 24
+nvm alias default 24   # 선택: 기본값도 24로
+node -v          # v24.x 여야 함
+which node       # nvm 경로인지 확인
+npm run rebuild-native
+```
+
+**주의:** Cursor agent 등 IDE 번들 Node가 PATH에서 nvm보다 앞에 있으면 `which node` / `node -v`만으로 오판할 수 있습니다. 에이전트 셸과 일반 터미널을 각각 확인하세요. Node major를 바꾼 뒤에는 반드시 `npm run rebuild-native`로 `better-sqlite3`·`sqlite-vec` ABI를 맞추세요.
+
 ### 방법 3: 소스에서 빌드
 
 네이티브 모듈을 소스에서 빌드하여 설치:
@@ -114,7 +128,7 @@ brew install python3 sqlite3
 rm -rf node_modules package-lock.json
 npm cache clean --force
 
-# 2. Node.js 버전 확인 (20.x 권장)
+# 2. Node.js 버전 확인 (24.x 권장)
 node --version
 
 # 3. 재설치 (소스에서 빌드)
@@ -153,14 +167,13 @@ node -e "require('sqlite-vec')"
 
 | Node.js 버전 | better-sqlite3 | sqlite-vec | 상태 |
 |-------------|----------------|------------|------|
-| 18.x | ✅ 지원 | ⚠️ 제한적 | 권장하지 않음 |
-| 20.x LTS | ✅ 완전 지원 | ✅ 완전 지원 | **권장** |
-| 22.x | ✅ 지원 | ✅ 지원 | 지원 |
-| 23.x+ | ⚠️ 테스트 필요 | ⚠️ 테스트 필요 | 최신 버전은 호환성 확인 필요 |
+| ≤22.x | ⚠️ ABI 불일치 가능 | ⚠️ | `engines.node`≥24와 불일치 — 사용 금지 |
+| **24.x** | ✅ | ✅ | **권장** (`engines`·CI; Docker는 #702) |
+| 25.x+ | ⚠️ 테스트 필요 | ⚠️ | major 전환 후 `rebuild-native` 필수 |
 
 ## 🎯 빠른 해결 체크리스트
 
-1. ✅ Node.js 버전 확인 (20.x 권장)
+1. ✅ Node.js 버전 확인 (**24.x 권장**)
 2. ✅ 개발 도구 설치 확인
 3. ✅ 네이티브 모듈 재빌드 시도
 4. ✅ 소스에서 빌드 시도
