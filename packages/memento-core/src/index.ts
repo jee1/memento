@@ -380,3 +380,10 @@ export type {
 } from './domains/forgetting/repositories/forgetting-event-repository.js';
 export { MemoryForgettingEventMigration } from './infrastructure/database/database/migration/migrations/037-memory-forgetting-event.js';
 export { AuditHashChainMigration } from './infrastructure/database/database/migration/migrations/040-audit-hash-chain.js';
+export { VecCosineMetricMigration } from './infrastructure/database/database/migration/migrations/041-vec-cosine-metric.js';
+export {
+  VEC_DISTANCE_METRIC,
+  VEC_TABLES,
+  checkVecCardinality,
+} from './infrastructure/database/database/vec-schema.js';
+export type { VecCardinalityRow } from './infrastructure/database/database/vec-schema.js';

@@ -5,6 +5,14 @@
 
 import type { VectorSearchConfig } from '../types/vector-search.types';
 
+/**
+ * vec0 가상 테이블의 거리 척도 계약 (issue #713).
+ *
+ * 모든 vec 테이블은 `distance_metric=cosine`으로 생성되며, 검색 similarity는
+ * `clamp(1 - cosine_distance, 0, 1)`인 cosine similarity다. threshold(0.8/0.6/0.4)도 이 기준이다.
+ */
+export const VECTOR_SEARCH_DISTANCE_METRIC = 'cosine' as const;
+
 export const VECTOR_SEARCH_CONFIG: VectorSearchConfig = {
   defaultDimensions: 384,
   defaultThreshold: 0.7,

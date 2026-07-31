@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- **sqlite-vec distance metric 계약** (#713): 모든 vec0 가상 테이블(`memory_item_vec` 및 제공자별 `tfidf`/`minilm`/`openai`/`gemini`/`mock`)을 `distance_metric=cosine`으로 생성합니다. 기존에는 metric 미명시로 sqlite-vec 기본값인 L2가 적용되어, `1 - distance`를 cosine similarity로 해석하는 결과 mapper와 slot threshold(0.8/0.6/0.4)가 어긋나 vector-only 검색이 threshold를 거의 통과하지 못했습니다. similarity는 `clamp(1 - cosine_distance, 0, 1)`로 고정되고(반대 방향 벡터는 0으로 clamp), 정의는 `vec-schema.ts`(`VEC_TABLES`) 단일 원본에서 `schema.sql`·`init-legacy-schema`·`migrate`·마이그레이션 041이 공유합니다. 기존 DB는 마이그레이션 **041 (`vec-cosine-metric`)** 이 vec 테이블을 재생성·재적재하고 insert/update/delete 트리거를 다시 만듭니다(mock 테이블 누락도 함께 수정).
 - **performance alert log noise** (#697): warning severity `Performance alert generated`는 INFO로 내리고, DB 크기 기본 임계값을 500MB(`PERF_DATABASE_WARN_MB`)로 상향하며, resolve 후 `PERF_ALERT_REARM_MS`(기본 30분) 재무장 쿨다운으로 CPU/DB 플랩 WARN이 log-issue-monitor에 반복 승격되지 않게 합니다.
 - **remember source agent id** (#696): `agent:<id>` URI와 bare 워크플로/에이전트 식별자(`paperclip-ceo-heartbeat` 등)를 허용·`agent:`로 정규화해 운영 WARN 노이즈를 제거합니다. personal-knowledge-agent 저장 `source`도 `agent:personal-knowledge-agent`로 통일합니다.
 
