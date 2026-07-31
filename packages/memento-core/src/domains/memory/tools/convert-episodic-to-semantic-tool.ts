@@ -313,7 +313,9 @@ export class ConvertEpisodicToSemanticTool extends BaseTool {
     const semanticMemoryUpdateService = new SemanticMemoryUpdateService(
       db,
       relationGraph,
-      unifiedForSemantic
+      unifiedForSemantic,
+      undefined,
+      context.services.embeddingService
     );
 
     const updateResult = await semanticMemoryUpdateService.updateSemanticMemory(
