@@ -186,7 +186,8 @@ async function buildNetworkNodesAndLinks(
           { limit: 50 }
         );
 
-        // 검색 결과를 노드와 링크로 변환
+        // 검색 결과를 노드로 변환 (dedup) - 링크 연결 전에 노드를 먼저 모두 등록해야
+        // 랭킹 정렬로 hop 순서가 뒤섞여도(예: hop2가 hop1보다 먼저 옴) predecessor 조회가 가능하다
         for (const item of searchResult.items) {
           if (!nodeIds.has(item.id)) {
             nodes.push({
@@ -200,8 +201,11 @@ async function buildNetworkNodesAndLinks(
             });
             nodeIds.add(item.id);
           }
+        }
 
-          // 링크 추가 (앵커에서 메모리로) - 슬롯마다 별도 엣지로 추가
+        // 링크 추가: hop 1은 앵커→메모리, hop 2/3은 실제 경로(predecessor_id)의 edge만 생성
+        // (#715: 존재하지 않는 anchor→hop2/3 직결 edge는 만들지 않는다)
+        for (const item of searchResult.items) {
           if (item.hop_distance === 1) {
             links.push({
               source: anchor.memory_id,
@@ -210,6 +214,17 @@ async function buildNetworkNodesAndLinks(
               hop_distance: 1,
               similarity: item.similarity
             });
+          } else if (typeof item.hop_distance === 'number' && item.hop_distance >= 2) {
+            const predecessorId = typeof item.predecessor_id === 'string' ? item.predecessor_id : undefined;
+            if (predecessorId && nodeIds.has(predecessorId)) {
+              links.push({
+                source: predecessorId,
+                target: item.id,
+                type: 'hop',
+                hop_distance: item.hop_distance,
+                similarity: item.similarity
+              });
+            }
           }
         }
       } catch (error) {
@@ -241,7 +256,8 @@ async function buildNetworkNodesAndLinks(
 /**
  * RelationGraph(memory_relation)를 활용한 네트워크 링크 생성.
  * 노드로 등록된 메모리끼리의 관계만 엣지로 반영하며, confidence를 가중치로 사용한다.
- * hop 2/3 경로 엣지는 범위 밖(#715)이므로 다루지 않는다.
+ * hop 2/3의 anchor→memory 경로 엣지는 buildNetworkNodesAndLinks에서
+ * n-hop 검색 결과의 predecessor_id로 생성하므로(#715) 이 함수는 다루지 않는다.
  */
 async function buildRelationLinks(
   relationGraph: ServerServices['relationGraph'],

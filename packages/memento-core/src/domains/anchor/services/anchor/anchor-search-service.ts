@@ -301,7 +301,8 @@ export class AnchorSearchService implements IAnchorSearchService {
       hop_distance: result.hop_distance,
       importance: result.importance,
       created_at: result.created_at,
-      tags: result.tags
+      tags: result.tags,
+      predecessor_id: result.predecessor_id
     }));
 
     // 최종 limit 적용
