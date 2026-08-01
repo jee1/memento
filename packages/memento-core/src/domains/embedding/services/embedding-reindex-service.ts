@@ -237,6 +237,14 @@ export class EmbeddingReindexService {
           failedCount++;
           continue;
         }
+        // MEDIUM(#722 review): 반환된 벡터 길이만으로는 "native" 저장을 보장하지 못한다.
+        // MemoryEmbeddingService가 source-dimension mismatch로 zero_pad/average_pool 등
+        // non-native projection을 DB에 저장하고도 target-length 벡터를 반환할 수 있어,
+        // #713 vec 계약(projection_type='native')과 어긋나는 성공 판정이 발생한다.
+        if (!this.hasNativeEmbeddingRow(memory.id, provider, expected)) {
+          failedCount++;
+          continue;
+        }
         storedCount++;
       } catch {
         failedCount++;
@@ -244,5 +252,18 @@ export class EmbeddingReindexService {
     }
 
     return { provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
+  }
+
+  /**
+   * #722 MEDIUM: `memory_embedding`에 canonical provider + `projection_type='native'` +
+   * 기대 차원(dimensions) 행이 실제로 존재하는지 확인한다. #713 vec 계약과 동일한 조건이며,
+   * 이 조건을 만족해야만 vec 트리거·후보 필터에서 "임베딩 있음"으로 인정된다.
+   */
+  private hasNativeEmbeddingRow(memoryId: string, provider: EmbeddingProvider, dimensions: number): boolean {
+    const row = this.db.prepare(`
+      SELECT 1 FROM memory_embedding
+      WHERE memory_id = ? AND embedding_provider = ? AND projection_type = 'native' AND dimensions = ?
+    `).get(memoryId, provider, dimensions);
+    return row !== undefined;
   }
 }
