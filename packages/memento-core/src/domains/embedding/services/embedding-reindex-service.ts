@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { MemoryType } from '../../../shared/types/index.js';
-import { VECTOR_SEARCH } from '../../../shared/config/constants.js';
+import { vectorCompatibilityService } from './vector-compatibility-service.js';
 
 export interface EmbeddingReindexOptions {
   provider: EmbeddingProvider;
@@ -56,9 +56,18 @@ type ReindexEmbeddingService = {
   ): Promise<{ embedding: number[]; provider?: EmbeddingProvider } | null>;
 };
 
+/**
+ * #722: `lightweight`는 vec 테이블이 없는 입력 별칭이며, embedding-provider-factory가
+ * 서비스 생성 시 `tfidf`로 정규화한다. 이 정규화 없이는 `lightweight` 요청의
+ * expectedDimensions(384)가 실제로 저장되는 tfidf(512) 결과와 어긋난다.
+ */
+function normalizeProvider(provider: EmbeddingProvider): EmbeddingProvider {
+  return provider === 'lightweight' ? 'tfidf' : provider;
+}
+
+/** #713 vec 계약의 단일 원본(VectorCompatibilityService)에서 provider별 native 차원을 가져온다. */
 function expectedDimensions(provider: EmbeddingProvider): number {
-  if (provider === 'mock') return VECTOR_SEARCH.DEFAULT_DIMENSIONS;
-  return VECTOR_SEARCH.PROVIDER_DIMENSIONS[provider];
+  return vectorCompatibilityService.getNativeDimensions(provider);
 }
 
 export class EmbeddingReindexService {
@@ -68,6 +77,7 @@ export class EmbeddingReindexService {
   ) {}
 
   diagnose(options: Pick<EmbeddingReindexOptions, 'provider' | 'ownerId'>): EmbeddingHealthDiagnostics {
+    const provider = normalizeProvider(options.provider);
     const ownerClause = options.ownerId ? ' AND mi.owner_id = ?' : '';
     const row = this.db.prepare(`
       SELECT
@@ -86,14 +96,14 @@ export class EmbeddingReindexService {
         AND other.embedding_provider != ?
         AND other.projection_type = 'native'
       WHERE COALESCE(mi.is_deleted, 0) = 0${ownerClause}
-    `).get(expectedDimensions(options.provider), options.provider, options.provider, ...(options.ownerId ? [options.ownerId] : [])) as {
+    `).get(expectedDimensions(provider), provider, provider, ...(options.ownerId ? [options.ownerId] : [])) as {
       memory_count: number; provider_embedding_count: number; missing_embedding_count: number;
       dimension_mismatch_count: number; provider_drift_count: number;
     };
 
     return {
-      provider: options.provider,
-      expectedDimensions: expectedDimensions(options.provider),
+      provider,
+      expectedDimensions: expectedDimensions(provider),
       memoryCount: row.memory_count,
       providerEmbeddingCount: row.provider_embedding_count,
       missingEmbeddingCount: row.missing_embedding_count,
@@ -111,7 +121,8 @@ export class EmbeddingReindexService {
       throw new Error('embedding service is unavailable');
     }
 
-    const diagnostics = this.diagnose(options);
+    const provider = normalizeProvider(options.provider);
+    const diagnostics = this.diagnose({ ...options, provider });
     const ownerClause = options.ownerId ? ' AND owner_id = ?' : '';
     const memories = this.db.prepare(`
       SELECT id, content, type FROM memory_item
@@ -134,9 +145,9 @@ export class EmbeddingReindexService {
             memory.id,
             memory.content,
             memory.type,
-            options.provider,
+            provider,
           );
-          if (!result || result.provider !== options.provider || result.embedding.length !== diagnostics.expectedDimensions) {
+          if (!result || result.provider !== provider || result.embedding.length !== diagnostics.expectedDimensions) {
             failedCount++;
             continue;
           }
@@ -147,7 +158,7 @@ export class EmbeddingReindexService {
       }
     }
 
-    return { ...this.diagnose(options), dryRun: false, processedCount: memories.length, storedCount, failedCount };
+    return { ...this.diagnose({ ...options, provider }), dryRun: false, processedCount: memories.length, storedCount, failedCount };
   }
 
   /**
@@ -163,6 +174,7 @@ export class EmbeddingReindexService {
     provider: EmbeddingProvider,
     limit: number,
   ): MemoryRow[] {
+    const normalized = normalizeProvider(provider);
     return this.db.prepare(`
       SELECT DISTINCT mi.id, mi.content, mi.type
       FROM memory_item mi
@@ -181,7 +193,7 @@ export class EmbeddingReindexService {
         )
       ORDER BY mi.id
       LIMIT ?
-    `).all(provider, expectedDimensions(provider), limit) as MemoryRow[];
+    `).all(normalized, expectedDimensions(normalized), limit) as MemoryRow[];
   }
 
   /**
@@ -200,15 +212,17 @@ export class EmbeddingReindexService {
       throw new Error('embedding service is unavailable');
     }
 
-    const candidates = this.findSemanticRelationEndpointsMissingEmbedding(options.provider, limit);
+    const provider = normalizeProvider(options.provider);
+    const candidates = this.findSemanticRelationEndpointsMissingEmbedding(provider, limit);
     const candidateCount = candidates.length;
 
     if (options.dryRun) {
-      return { provider: options.provider, candidateCount, dryRun: true, processedCount: candidateCount, storedCount: 0, failedCount: 0 };
+      return { provider, candidateCount, dryRun: true, processedCount: candidateCount, storedCount: 0, failedCount: 0 };
     }
 
     let storedCount = 0;
     let failedCount = 0;
+    const expected = expectedDimensions(provider);
 
     for (const memory of candidates) {
       try {
@@ -217,9 +231,9 @@ export class EmbeddingReindexService {
           memory.id,
           memory.content,
           memory.type,
-          options.provider,
+          provider,
         );
-        if (!result || result.provider !== options.provider) {
+        if (!result || result.provider !== provider || result.embedding.length !== expected) {
           failedCount++;
           continue;
         }
@@ -229,6 +243,6 @@ export class EmbeddingReindexService {
       }
     }
 
-    return { provider: options.provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
+    return { provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
   }
 }

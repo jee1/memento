@@ -34,6 +34,35 @@ describe('EmbeddingReindexService', () => {
     });
   });
 
+  it('#713: mock provider의 native/64 임베딩을 missing으로 오판하지 않아야 함', () => {
+    db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('two', 'mock', 'native', '[]', 64, 64)").run();
+    const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+    expect(service.diagnose({ provider: 'mock', ownerId: 'b' })).toMatchObject({
+      provider: 'mock', expectedDimensions: 64, missingEmbeddingCount: 0, providerEmbeddingCount: 1,
+    });
+  });
+
+  it('#722: lightweight 요청은 tfidf(provider factory 별칭)로 정규화되어야 함', () => {
+    db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('two', 'tfidf', 'native', '[]', 512, 512)").run();
+    const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+    expect(service.diagnose({ provider: 'lightweight', ownerId: 'b' })).toMatchObject({
+      provider: 'tfidf', expectedDimensions: 512, missingEmbeddingCount: 0, providerEmbeddingCount: 1,
+    });
+  });
+
+  it('#722: reindex(lightweight)는 tfidf로 저장된 결과를 성공으로 인식해야 함', async () => {
+    const service = new EmbeddingReindexService(db, {
+      isAvailable: () => true,
+      createAndStoreEmbedding: vi.fn().mockImplementation(async (_db, memoryId) => {
+        db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'tfidf', 'native', '[]', 512, 512)").run(memoryId);
+        return { provider: 'tfidf', embedding: Array(512).fill(0) };
+      }),
+    });
+    await expect(service.reindex({ provider: 'lightweight', ownerId: 'b' })).resolves.toMatchObject({
+      provider: 'tfidf', storedCount: 1, failedCount: 0,
+    });
+  });
+
   it('dry-runs without generating or storing embeddings', async () => {
     const createAndStoreEmbedding = vi.fn();
     const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
@@ -119,6 +148,33 @@ describe('EmbeddingReindexService', () => {
 
       expect(result).toMatchObject({ candidateCount: 1, dryRun: false, processedCount: 1, storedCount: 1, failedCount: 0 });
       expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'three'").get()).toEqual({ dim: 384 });
+    });
+
+    it('#722: provider는 일치하지만 저장된 차원이 기대 차원과 다르면 실패로 처리해야 함', async () => {
+      const service = new EmbeddingReindexService(db, {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async () => {
+          return { provider: 'minilm', embedding: Array(64).fill(0) };
+        })
+      });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 100 });
+
+      expect(result).toMatchObject({ candidateCount: 1, dryRun: false, processedCount: 1, storedCount: 0, failedCount: 1 });
+    });
+
+    it('#722: lightweight 요청은 tfidf로 정규화되어 후보 조회·저장이 일관되어야 함', async () => {
+      const service = new EmbeddingReindexService(db, {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async (_db, memoryId) => {
+          db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'tfidf', 'native', '[]', 512, 512)").run(memoryId);
+          return { provider: 'tfidf', embedding: Array(512).fill(0) };
+        })
+      });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'lightweight', limit: 100 });
+
+      expect(result).toMatchObject({ provider: 'tfidf', candidateCount: 1, storedCount: 1, failedCount: 0 });
     });
 
     it('임베딩 서비스가 사용 불가능하면 에러를 던져야 함', async () => {
