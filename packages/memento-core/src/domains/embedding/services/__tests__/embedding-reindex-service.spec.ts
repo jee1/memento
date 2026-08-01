@@ -73,6 +73,19 @@ describe('EmbeddingReindexService', () => {
       expect(candidates.map(c => c.id)).toEqual(['three']);
     });
 
+    it('#713 vec 계약: non-native projection이거나 예상 차원과 다른 행만 있으면 여전히 후보여야 함', () => {
+      // 'three'는 임베딩 행이 있지만 non-native projection이라 vec 인덱스에는 적재되지 않음
+      db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('three', 'minilm', 'reduced', '[]', 384, 384)").run();
+      // 'orphan-semantic'은 native지만 예상 차원(384)과 다른 차원이라 vec 인덱스에는 적재되지 않음
+      db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('orphan-semantic', 'minilm', 'native', '[]', 128, 128)").run();
+      db.prepare("INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('two', 'orphan-semantic', 'extracted_from')").run();
+
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+      const candidates = service.findSemanticRelationEndpointsMissingEmbedding('minilm', 100);
+
+      expect(candidates.map(c => c.id).sort()).toEqual(['orphan-semantic', 'three']);
+    });
+
     it('limit 파라미터로 제한된 개수만 반환해야 함', () => {
       db.prepare("INSERT INTO memory_item (id, content, type, owner_id) VALUES ('four', 'fourth', 'semantic', 'a')").run();
       db.prepare("INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('two', 'four', 'extracted_from')").run();

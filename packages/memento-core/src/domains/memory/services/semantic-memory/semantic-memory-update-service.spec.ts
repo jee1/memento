@@ -2379,10 +2379,14 @@ describe('SemanticMemoryUpdateService', () => {
       expect(result.created).toBe(1);
       const semanticMemoryId = result.semanticMemoryIds[0];
 
-      // Then: 생성된 Semantic Memory에 임베딩 row가 존재해야 함
-      const embeddingRow = DatabaseUtils.get(db, `
-        SELECT memory_id, embedding_provider FROM memory_embedding WHERE memory_id = ?
-      `, [semanticMemoryId]) as { memory_id: string; embedding_provider: string } | undefined;
+      // Then: 임베딩 생성은 fire-and-forget이므로 완료될 때까지 짧게 대기 후 row 존재를 확인
+      let embeddingRow: { memory_id: string; embedding_provider: string } | undefined;
+      for (let attempt = 0; attempt < 20 && !embeddingRow; attempt++) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 5));
+        embeddingRow = DatabaseUtils.get(db, `
+          SELECT memory_id, embedding_provider FROM memory_embedding WHERE memory_id = ?
+        `, [semanticMemoryId]) as { memory_id: string; embedding_provider: string } | undefined;
+      }
 
       expect(embeddingRow).toBeDefined();
       expect(embeddingRow?.memory_id).toBe(semanticMemoryId);

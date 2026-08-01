@@ -154,6 +154,10 @@ export class EmbeddingReindexService {
    * #710: memory_relation의 endpoint(source 또는 target)인 semantic 메모리 중
    * 임베딩이 없는 항목을 찾는다. Triple → semantic 경로로 생성된 관계 이웃이
    * n-hop/벡터 확장에서 소외되는 문제(#707)를 겨냥한 제한적 backfill 대상 조회.
+   *
+   * #713 vec 계약(`embedding_provider` + `dimensions`(예상 차원) + `projection_type='native'`)과
+   * 동일한 조건으로 "임베딩 있음"을 판정한다. non-native projection이거나 예상 차원과 다른
+   * 행만 있는 경우는 vec 인덱스에 적재되지 않으므로 여전히 backfill 대상으로 남겨야 한다.
    */
   findSemanticRelationEndpointsMissingEmbedding(
     provider: EmbeddingProvider,
@@ -166,7 +170,10 @@ export class EmbeddingReindexService {
         AND COALESCE(mi.is_deleted, 0) = 0
         AND NOT EXISTS (
           SELECT 1 FROM memory_embedding me
-          WHERE me.memory_id = mi.id AND me.embedding_provider = ?
+          WHERE me.memory_id = mi.id
+            AND me.embedding_provider = ?
+            AND me.projection_type = 'native'
+            AND me.dimensions = ?
         )
         AND EXISTS (
           SELECT 1 FROM memory_relation mr
@@ -174,7 +181,7 @@ export class EmbeddingReindexService {
         )
       ORDER BY mi.id
       LIMIT ?
-    `).all(provider, limit) as MemoryRow[];
+    `).all(provider, expectedDimensions(provider), limit) as MemoryRow[];
   }
 
   /**
