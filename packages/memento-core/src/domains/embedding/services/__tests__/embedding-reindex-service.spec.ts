@@ -150,6 +150,22 @@ describe('EmbeddingReindexService', () => {
       expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'three'").get()).toEqual({ dim: 384 });
     });
 
+    it('MEDIUM: 반환 벡터는 목표 차원이지만 DB에 non-native(zero_pad) projection으로 저장되면 storedCount를 증가시키지 말아야 함', async () => {
+      const createAndStoreEmbedding = vi.fn().mockImplementation(async (_db, memoryId) => {
+        // MemoryEmbeddingService가 source-dimension mismatch로 zero_pad projection한 경우:
+        // DB에는 projection_type='zero_pad'로 저장되지만, 반환값은 target-length 벡터임
+        db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'minilm', 'zero_pad', '[]', 384, 384)").run(memoryId);
+        return { provider: 'minilm', embedding: Array(384).fill(0) };
+      });
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 100 });
+
+      expect(result).toMatchObject({ candidateCount: 1, dryRun: false, processedCount: 1, storedCount: 0, failedCount: 1 });
+      // native 임베딩이 없으므로 후보에서 여전히 빠지지 않아야 함(다음 회차에도 재시도 대상)
+      expect(service.findSemanticRelationEndpointsMissingEmbedding('minilm', 100).map(c => c.id)).toEqual(['three']);
+    });
+
     it('#722: provider는 일치하지만 저장된 차원이 기대 차원과 다르면 실패로 처리해야 함', async () => {
       const service = new EmbeddingReindexService(db, {
         isAvailable: () => true,
