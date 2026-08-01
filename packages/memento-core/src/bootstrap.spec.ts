@@ -70,6 +70,14 @@ const mockState = vi.hoisted(() => {
   const clearTimeoutSpy = vi.fn();
   const mockTimerCallbacks: Array<(...args: unknown[]) => unknown> = [];
 
+  const anchorSearchServiceInstance = {
+    setRelationGraph: vi.fn()
+  };
+
+  const hybridSearchEngineInstance = {
+    setRelationGraph: vi.fn()
+  };
+
   return {
     mementoConfig,
     logger,
@@ -81,7 +89,9 @@ const mockState = vi.hoisted(() => {
     runtimeDiagnosticsLoggerCtor,
     clearTimeoutSpy,
     lastTimeoutHandle: null as ReturnType<typeof setTimeout> | null,
-    mockTimerCallbacks
+    mockTimerCallbacks,
+    anchorSearchServiceInstance,
+    hybridSearchEngineInstance
   };
 });
 
@@ -103,7 +113,7 @@ vi.mock('./domains/search/algorithms/hybrid-search-engine.js', () => ({
 
 vi.mock('./domains/search/factories/hybrid-search.factory.js', () => ({
   HybridSearchFactory: {
-    createDefaultEngine: vi.fn(() => ({}))
+    createDefaultEngine: () => mockState.hybridSearchEngineInstance
   }
 }));
 
@@ -149,7 +159,9 @@ vi.mock('./domains/anchor/services/anchor/anchor-cache-service.js', () => ({
 }));
 
 vi.mock('./domains/anchor/services/anchor/anchor-search-service.js', () => ({
-  AnchorSearchService: vi.fn().mockImplementation(() => ({}))
+  AnchorSearchService: class {
+    setRelationGraph = mockState.anchorSearchServiceInstance.setRelationGraph;
+  }
 }));
 
 vi.mock('./domains/monitoring/services/failure-detector.js', () => ({
@@ -428,5 +440,17 @@ describe('initializeServices bootstrap wiring', () => {
     expect(cleanupResolved).toBe(true);
     expect(mockState.runtimeDiagnosticsLogger.writeSample).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // #708: bootstrap이 relationGraph를 AnchorSearchService/HybridSearchEngine에 주입해야 한다
+  it('relationGraph를 anchorSearchService와 hybridSearchEngine에 주입해야 한다', async () => {
+    const { initializeServices } = await loadBootstrap();
+    const services = await initializeServices({} as never);
+
+    expect(services.relationGraph).toBeDefined();
+    expect(mockState.anchorSearchServiceInstance.setRelationGraph).toHaveBeenCalledTimes(1);
+    expect(mockState.anchorSearchServiceInstance.setRelationGraph).toHaveBeenCalledWith(services.relationGraph);
+    expect(mockState.hybridSearchEngineInstance.setRelationGraph).toHaveBeenCalledTimes(1);
+    expect(mockState.hybridSearchEngineInstance.setRelationGraph).toHaveBeenCalledWith(services.relationGraph);
   });
 });

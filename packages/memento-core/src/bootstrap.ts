@@ -80,7 +80,7 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
     } = createSearchEmbeddingAndOptimizerServices(db);
     const errorLoggingService = new ErrorLoggingService();
     const performanceAlertService = new PerformanceAlertService('./logs');
-    const { vectorSearchEngine, anchorManager } = await createAnchorStack(
+    const { vectorSearchEngine, anchorManager, anchorSearchService } = await createAnchorStack(
       db,
       embeddingService,
       hybridSearchEngine,
@@ -108,6 +108,8 @@ export async function initializeServices(db: Database.Database): Promise<ServerS
       reflexionWorker,
       anchorManager
     );
+    anchorSearchService.setRelationGraph(relationGraph);
+    hybridSearchEngine.setRelationGraph(relationGraph);
     const { runtimeDiagnosticsSamplerCleanup } = createRuntimeDiagnosticsSampler({
       mementoConfig,
       batchScheduler,
