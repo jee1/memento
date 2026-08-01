@@ -4,13 +4,38 @@
  */
 
 import Database from 'better-sqlite3';
+import { createRequire } from 'module';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
+import {
+  checkVecCardinality,
+  listExistingVecTables,
+  reconcileVecDistanceMetric,
+  recreateVecTriggers
+} from './vec-schema.js';
 
 function isDuplicateColumnError(err: unknown): boolean {
   return err instanceof Error && err.message.includes('duplicate column name');
+}
+
+/**
+ * vec0 가상 테이블을 조작하려면 확장이 로드돼 있어야 한다.
+ * CLI 스크립트라 초기화 경로(configureSqliteSession)를 거치지 않으므로 여기서 직접 로드한다.
+ */
+function loadVecExtension(db: Database.Database): boolean {
+  try {
+    const requireFromHere = createRequire(import.meta.url);
+    const { getLoadablePath } = requireFromHere('sqlite-vec') as { getLoadablePath: () => string };
+    db.loadExtension(getLoadablePath());
+    return true;
+  } catch (error) {
+    logger.warn('⚠️  sqlite-vec 확장 로드 실패 — vec 테이블 metric 정비를 건너뜁니다', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return false;
+  }
 }
 
 function migrateDatabase() {
@@ -191,73 +216,27 @@ function migrateDatabase() {
       )
     `);
 
-    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
-    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
-    db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete;');
+    // vec0 distance metric 계약 정비 (issue #713): 트리거는 vec-schema.ts 정의를 단일 원본으로 쓴다.
+    // 확장 로드에 실패하면 vec0 테이블이 남아 있어도 이후 prepare/exec가
+    // `no such module: vec0`로 실패하므로, 정비 작업 전체를 건너뛴다.
+    if (loadVecExtension(db)) {
+      const recreated = reconcileVecDistanceMetric(db);
+      if (recreated.length > 0) {
+        logger.info('🧭 vec 테이블을 cosine metric으로 재생성했습니다', { tables: recreated });
+      }
 
-    db.exec(`
-      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_insert AFTER INSERT ON memory_embedding BEGIN
-        INSERT INTO memory_item_vec(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.dimensions = 384;
+      const existingVecTables = listExistingVecTables(db);
+      recreateVecTriggers(db, existingVecTables);
+      if (existingVecTables.length === 0) {
+        logger.warn('⚠️  vec 테이블이 없어 벡터 트리거를 생성하지 않았습니다');
+      } else {
+        const mismatched = checkVecCardinality(db).filter(row => !row.matched);
+        if (mismatched.length > 0) {
+          logger.warn('⚠️  vec 인덱스 cardinality 불일치 (native 필터 기준)', { mismatched });
+        }
+      }
+    }
 
-        INSERT INTO memory_item_vec_tfidf(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
-
-        INSERT INTO memory_item_vec_minilm(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
-
-        INSERT INTO memory_item_vec_openai(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
-
-        INSERT INTO memory_item_vec_gemini(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
-      END
-    `);
-
-    db.exec(`
-      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_update AFTER UPDATE ON memory_embedding BEGIN
-        DELETE FROM memory_item_vec WHERE rowid = NEW.id;
-        DELETE FROM memory_item_vec_tfidf WHERE rowid = NEW.id;
-        DELETE FROM memory_item_vec_minilm WHERE rowid = NEW.id;
-        DELETE FROM memory_item_vec_openai WHERE rowid = NEW.id;
-        DELETE FROM memory_item_vec_gemini WHERE rowid = NEW.id;
-
-        INSERT INTO memory_item_vec(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.dimensions = 384;
-
-        INSERT INTO memory_item_vec_tfidf(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'tfidf' AND NEW.dimensions = 512 AND NEW.projection_type = 'native';
-
-        INSERT INTO memory_item_vec_minilm(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'minilm' AND NEW.dimensions = 384 AND NEW.projection_type = 'native';
-
-        INSERT INTO memory_item_vec_openai(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'openai' AND NEW.dimensions = 1536 AND NEW.projection_type = 'native';
-
-        INSERT INTO memory_item_vec_gemini(rowid, embedding)
-        SELECT NEW.id, json_extract(NEW.embedding, '$')
-        WHERE NEW.embedding_provider = 'gemini' AND NEW.dimensions = 768 AND NEW.projection_type = 'native';
-      END
-    `);
-
-    db.exec(`
-      CREATE TRIGGER IF NOT EXISTS memory_embedding_vec_delete AFTER DELETE ON memory_embedding BEGIN
-        DELETE FROM memory_item_vec WHERE rowid = OLD.id;
-        DELETE FROM memory_item_vec_tfidf WHERE rowid = OLD.id;
-        DELETE FROM memory_item_vec_minilm WHERE rowid = OLD.id;
-        DELETE FROM memory_item_vec_openai WHERE rowid = OLD.id;
-        DELETE FROM memory_item_vec_gemini WHERE rowid = OLD.id;
-      END
-    `);
     logger.info('✅ 임베딩 인덱스 및 트리거 정비 완료');
     
     // 기존 데이터에 기본값 설정

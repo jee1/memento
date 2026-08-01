@@ -1,11 +1,14 @@
 import type Database from 'better-sqlite3';
 import { log } from './init-log.js';
+import {
+  VEC_TABLES,
+  buildVecTableDdl,
+  hasCosineDistanceMetric,
+  repopulateVecTable,
+  type VecTableConfig
+} from './vec-schema.js';
 
-export interface VecTableConfig {
-  name: string;
-  dimension: number;
-  filter: string;
-}
+export type { VecTableConfig };
 
 /**
  * 레거시 스키마 호환성: 누락된 컬럼 추가
@@ -160,48 +163,21 @@ function ensureLegacyEmbeddingModelRegistryProjectionType(db: Database.Database)
 }
 
 /**
- * 제공자별 VEC 테이블 차원 검증 및 재생성 후, 재구축이 필요한 설정 목록을 반환한다.
+ * VEC 테이블의 차원과 distance metric(cosine, issue #713)을 검증하고,
+ * 어긋난 테이블을 재생성한 뒤 재구축이 필요한 설정 목록을 반환한다.
  */
 function reconcileMisalignedVecTables(db: Database.Database): VecTableConfig[] {
   const vecTablesToRepopulate: VecTableConfig[] = [];
 
-  const vecTables: VecTableConfig[] = [
-    {
-      name: 'memory_item_vec',
-      dimension: 384,
-      filter: 'dimensions = 384'
-    },
-    {
-      name: 'memory_item_vec_tfidf',
-      dimension: 512,
-      filter: "embedding_provider = 'tfidf' AND dimensions = 512 AND projection_type = 'native'"
-    },
-    {
-      name: 'memory_item_vec_minilm',
-      dimension: 384,
-      filter: "embedding_provider = 'minilm' AND dimensions = 384 AND projection_type = 'native'"
-    },
-    {
-      name: 'memory_item_vec_openai',
-      dimension: 1536,
-      filter: "embedding_provider = 'openai' AND dimensions = 1536 AND projection_type = 'native'"
-    },
-    {
-      name: 'memory_item_vec_gemini',
-      dimension: 768,
-      filter: "embedding_provider = 'gemini' AND dimensions = 768 AND projection_type = 'native'"
-    }
-  ];
-
-  for (const config of vecTables) {
+  for (const config of VEC_TABLES) {
     const existing = db
       .prepare(`SELECT sql FROM sqlite_master WHERE type IN ('table','view') AND name = ?`)
       .get(config.name) as { sql?: string } | undefined;
-    const expectedToken = `float[${config.dimension}]`;
+    const hasExpectedDimension = existing?.sql?.includes(`float[${config.dimension}]`) ?? false;
 
-    if (!existing?.sql || !existing.sql.includes(expectedToken)) {
+    if (!hasExpectedDimension || !hasCosineDistanceMetric(existing?.sql)) {
       db.exec(`DROP TABLE IF EXISTS ${config.name}`);
-      db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS ${config.name} USING vec0(embedding float[${config.dimension}])`);
+      db.exec(buildVecTableDdl(config));
       vecTablesToRepopulate.push(config);
     }
   }
@@ -247,30 +223,8 @@ export function populateVecTables(db: Database.Database, configs: VecTableConfig
 
   for (const config of configs) {
     try {
-      const allowedTableNames = [
-        'memory_item_vec',
-        'memory_item_vec_tfidf',
-        'memory_item_vec_minilm',
-        'memory_item_vec_openai',
-        'memory_item_vec_gemini'
-      ];
-      if (!allowedTableNames.includes(config.name)) {
-        log(`[WARN] 허용되지 않은 테이블명: ${config.name}`);
-        continue;
-      }
-
-      const tableNamePattern = /^[a-z0-9_]+$/;
-      if (!tableNamePattern.test(config.name)) {
-        log(`[WARN] 잘못된 테이블명 패턴: ${config.name}`);
-        continue;
-      }
-
-      const query =
-        `INSERT OR IGNORE INTO ${config.name}(rowid, embedding) ` +
-        `SELECT id, json_extract(embedding, '$') ` +
-        `FROM memory_embedding ` +
-        `WHERE ${config.filter}`;
-      db.exec(query);
+      // repopulateVecTable이 VEC_TABLES 화이트리스트로 테이블명을 검증한다.
+      repopulateVecTable(db, config);
     } catch (error) {
       log(`[WARN] ${config.name} 재구축 중 오류 발생:`, error);
     }

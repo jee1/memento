@@ -324,17 +324,21 @@ CREATE TABLE IF NOT EXISTS embedding_model_registry (
 
 -- VEC 가상 테이블 (벡터 검색) - sqlite-vec 확장 필요
 -- 주의: sqlite-vec 확장이 설치되어 있어야 함
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384]);
+-- distance_metric=cosine 필수 (issue #713): 미명시 시 vec0 기본값은 L2인데
+-- 검색 mapper는 `1 - distance`를 cosine similarity로 해석하고 threshold(0.8/0.6/0.4)도 같은 가정을 쓴다.
+-- 정의는 src/infrastructure/database/database/vec-schema.ts(VEC_TABLES)와 동기화되어야 하며,
+-- vec-schema.spec.ts가 이 파일과의 정합을 검증한다.
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec USING vec0(embedding float[384] distance_metric=cosine);
 
 -- 제공자별 VEC 테이블들
 -- 왜 각 제공자별로 다른 차원인가? 각 임베딩 제공자가 다른 차원을 생성함
 -- TF-IDF: 512차원 (VECTOR_SEARCH.PROVIDER_DIMENSIONS.tfidf)
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf USING vec0(embedding float[512]);
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_minilm USING vec0(embedding float[384]);
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_openai USING vec0(embedding float[1536]);
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_gemini USING vec0(embedding float[768]);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_tfidf USING vec0(embedding float[512] distance_metric=cosine);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_minilm USING vec0(embedding float[384] distance_metric=cosine);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_openai USING vec0(embedding float[1536] distance_metric=cosine);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_gemini USING vec0(embedding float[768] distance_metric=cosine);
 -- Mock 임베딩 제공자 (오프라인 벤치마크 전용, 결정론적 64차원 해시 벡터)
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_mock USING vec0(embedding float[64]);
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_item_vec_mock USING vec0(embedding float[64] distance_metric=cosine);
 
 -- VEC 테이블 트리거 (임베딩이 생성될 때 자동으로 VEC 테이블에 추가)
 -- 제공자별 테이블에 저장하도록 수정
