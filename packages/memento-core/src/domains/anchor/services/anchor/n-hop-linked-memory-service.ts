@@ -51,6 +51,12 @@ export class NHopLinkedMemoryService {
     private readonly getRelationGraph: () => RelationGraphReader | null
   ) {}
 
+  /**
+   * 이 hop 배치(linked + vector 검색 결과)의 후보를 병합한다.
+   * discoveredMemoryIds로 이미 노드가 확정된 메모리도 후보에서 제외하지 않는다 —
+   * anchor→m1→x, anchor→m2→x처럼 다른 predecessor를 통해 재발견된 경우 그 경로를
+   * materializeHopDiscoveries가 predecessor edge로 보존해야 하기 때문이다 (#715 MEDIUM#1).
+   */
   mergeHopCandidates(
     linkedMemories: LinkedMemorySummary[],
     vectorSearchResults: VectorSearchResult[],
@@ -61,16 +67,14 @@ export class NHopLinkedMemoryService {
     const relaxedThreshold = threshold * 0.5;
 
     for (const linked of linkedMemories) {
-      if (!discoveredMemoryIds.has(linked.memory_id)) {
-        allCandidates.set(linked.memory_id, {
-          ...linked,
-          isLinked: true
-        });
-      }
+      allCandidates.set(linked.memory_id, {
+        ...linked,
+        isLinked: true
+      });
     }
 
     for (const result of vectorSearchResults) {
-      if (!allCandidates.has(result.memory_id) && !discoveredMemoryIds.has(result.memory_id)) {
+      if (!allCandidates.has(result.memory_id)) {
         if (result.similarity >= relaxedThreshold) {
           allCandidates.set(result.memory_id, {
             memory_id: result.memory_id,
@@ -83,7 +87,7 @@ export class NHopLinkedMemoryService {
             isLinked: false
           });
         }
-      } else if (allCandidates.has(result.memory_id)) {
+      } else {
         const existing = allCandidates.get(result.memory_id)!;
         existing.similarity = Math.max(existing.similarity, result.similarity);
       }
@@ -98,7 +102,8 @@ export class NHopLinkedMemoryService {
     allCandidates: Map<string, HopCandidate>,
     discoveredMemoryIds: Set<string>,
     threshold: number,
-    predecessorId: string
+    predecessorId: string,
+    predecessorsByMemoryId: Map<string, Set<string>>
   ): Promise<{
     hopResults: NHopSearchResult[];
     nextHopSeeds: HopSeed[];
@@ -107,16 +112,22 @@ export class NHopLinkedMemoryService {
     const nextHopSeeds: HopSeed[] = [];
 
     for (const [memoryId, candidate] of allCandidates.entries()) {
-      if (discoveredMemoryIds.has(memoryId)) {
-        continue;
-      }
-
       const effectiveThreshold = candidate.isLinked ? threshold * 0.8 : threshold;
       if (candidate.similarity < effectiveThreshold) {
         continue;
       }
 
+      if (discoveredMemoryIds.has(memoryId)) {
+        // 이미 노드로 확정된 메모리라도, 다른 predecessor를 통한 유효한 경로가 있다면
+        // path edge로 보존한다 (anchor→m1→x, anchor→m2→x 모두 유지, #715 MEDIUM#1)
+        if (memoryId !== predecessorId) {
+          predecessorsByMemoryId.get(memoryId)?.add(predecessorId);
+        }
+        continue;
+      }
+
       discoveredMemoryIds.add(memoryId);
+      predecessorsByMemoryId.set(memoryId, new Set([predecessorId]));
       hopResults.push({
         memory_id: candidate.memory_id,
         content: candidate.content,

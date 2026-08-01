@@ -90,6 +90,7 @@ type FakeSearchItem = {
   importance?: number;
   created_at?: string;
   predecessor_id?: string;
+  predecessor_ids?: string[];
 };
 
 function buildFakeAnchorManager(
@@ -294,7 +295,7 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
     expect(hopEdges.find(l => l.source === 'anchor-a' && l.target === 'm2')).toBeUndefined();
   });
 
-  it('predecessor_id가 map에 없는 노드를 가리키면 hop≥2 edge를 생성하지 않아야 함 (가짜 edge 방지)', async () => {
+  it('predecessor_id가 map에 없는 노드를 가리키면 hop≥2 edge와 노드 모두 생성하지 않아야 함 (경로 폐쇄성, #715 MEDIUM#2)', async () => {
     insertMemory('anchor-a');
     insertMemory('m2');
 
@@ -313,6 +314,45 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
     const result = await buildAnchorMapData(db, serverServices, 'default');
 
     expect(result.links.filter(l => l.type === 'hop')).toHaveLength(0);
+    // 경로가 끊긴 hop≥2 노드는 부유(floating) 상태로 지도에 남지 않아야 함
+    expect(result.nodes.find(n => n.id === 'm2')).toBeUndefined();
+  });
+
+  it('anchor→m1→x, anchor→m2→x처럼 두 경로가 같은 메모리로 합류하면 노드는 1개, edge는 2개 보존되어야 함 (#715 MEDIUM#1)', async () => {
+    insertMemory('anchor-a');
+    insertMemory('m1');
+    insertMemory('m2');
+    insertMemory('x');
+
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'B', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      {
+        B: [
+          { id: 'm1', content: 'hop1-a', type: 'episodic', hop_distance: 1, similarity: 0.8, predecessor_id: 'anchor-a' } as FakeSearchItem,
+          { id: 'm2', content: 'hop1-b', type: 'episodic', hop_distance: 1, similarity: 0.75, predecessor_id: 'anchor-a' } as FakeSearchItem,
+          {
+            id: 'x',
+            content: 'hop2-shared',
+            type: 'episodic',
+            hop_distance: 2,
+            similarity: 0.6,
+            predecessor_id: 'm1',
+            predecessor_ids: ['m1', 'm2'],
+          } as FakeSearchItem,
+        ],
+      }
+    );
+
+    const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
+
+    const result = await buildAnchorMapData(db, serverServices, 'default');
+
+    const xNodes = result.nodes.filter(n => n.id === 'x');
+    expect(xNodes).toHaveLength(1);
+
+    const xEdges = result.links.filter(l => l.type === 'hop' && l.target === 'x');
+    expect(xEdges).toHaveLength(2);
+    expect(xEdges.map(l => l.source).sort()).toEqual(['m1', 'm2']);
   });
 
   it('hop 결과 배열 순서가 hop 오름차순이 아니어도(hop2가 먼저 와도) 경로 edge를 올바르게 연결해야 함', async () => {
