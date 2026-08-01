@@ -216,22 +216,24 @@ function migrateDatabase() {
       )
     `);
 
-    // vec0 distance metric 계약 정비 (issue #713): 트리거는 vec-schema.ts 정의를 단일 원본으로 쓴다
+    // vec0 distance metric 계약 정비 (issue #713): 트리거는 vec-schema.ts 정의를 단일 원본으로 쓴다.
+    // 확장 로드에 실패하면 vec0 테이블이 남아 있어도 이후 prepare/exec가
+    // `no such module: vec0`로 실패하므로, 정비 작업 전체를 건너뛴다.
     if (loadVecExtension(db)) {
       const recreated = reconcileVecDistanceMetric(db);
       if (recreated.length > 0) {
         logger.info('🧭 vec 테이블을 cosine metric으로 재생성했습니다', { tables: recreated });
       }
-    }
 
-    const existingVecTables = listExistingVecTables(db);
-    recreateVecTriggers(db, existingVecTables);
-    if (existingVecTables.length === 0) {
-      logger.warn('⚠️  vec 테이블이 없어 벡터 트리거를 생성하지 않았습니다');
-    } else {
-      const mismatched = checkVecCardinality(db).filter(row => !row.matched);
-      if (mismatched.length > 0) {
-        logger.warn('⚠️  vec 인덱스 cardinality 불일치 (native 필터 기준)', { mismatched });
+      const existingVecTables = listExistingVecTables(db);
+      recreateVecTriggers(db, existingVecTables);
+      if (existingVecTables.length === 0) {
+        logger.warn('⚠️  vec 테이블이 없어 벡터 트리거를 생성하지 않았습니다');
+      } else {
+        const mismatched = checkVecCardinality(db).filter(row => !row.matched);
+        if (mismatched.length > 0) {
+          logger.warn('⚠️  vec 인덱스 cardinality 불일치 (native 필터 기준)', { mismatched });
+        }
       }
     }
 

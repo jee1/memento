@@ -59,6 +59,71 @@ describe('Database Migration', () => {
       }
     });
 
+    it('Given: 기존 DB에 vec0 테이블이 있지만 확장 로드가 실패할 때, When: migrateDatabase를 호출하면, Then: vec 정비 전체를 건너뛰고 "no such module" 없이 완료해야 함', async () => {
+      let vecAvailable = false;
+      try {
+        const probe = new Database(':memory:');
+        try {
+          const { getLoadablePath } = await import('sqlite-vec');
+          probe.loadExtension(getLoadablePath());
+          vecAvailable = true;
+        } finally {
+          probe.close();
+        }
+      } catch {
+        vecAvailable = false;
+      }
+      if (!vecAvailable) {
+        // sqlite-vec 미설치 환경(CI 등)에서는 이 회귀 테스트를 스킵한다
+        return;
+      }
+
+      const dir = mkdtempSync(join(tmpdir(), 'memento-migrate-vec-skip-'));
+      const dbPath = join(dir, 'memory.db');
+
+      const setupDb = new Database(dbPath);
+      const { getLoadablePath } = await import('sqlite-vec');
+      setupDb.loadExtension(getLoadablePath());
+      setupDb.exec(`
+        CREATE TABLE memory_item (
+          id TEXT PRIMARY KEY, type TEXT NOT NULL, content TEXT NOT NULL,
+          project_id TEXT, is_deleted BOOLEAN DEFAULT FALSE NOT NULL, deleted_at TEXT
+        );
+        CREATE TABLE memory_embedding (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, memory_id TEXT NOT NULL,
+          embedding_provider TEXT NOT NULL DEFAULT 'tfidf', projection_type TEXT NOT NULL DEFAULT 'native',
+          embedding TEXT NOT NULL, dim INTEGER NOT NULL, dimensions INTEGER DEFAULT 0,
+          model TEXT, version INTEGER DEFAULT 1
+        );
+        CREATE VIRTUAL TABLE memory_item_vec_mock USING vec0(embedding float[64] distance_metric=cosine);
+      `);
+      setupDb.close();
+
+      const previousDbPath = process.env.DB_PATH;
+      const loadExtensionSpy = vi
+        .spyOn(Database.prototype, 'loadExtension')
+        .mockImplementation(() => {
+          throw new Error('시뮬레이션: 이 실행 환경에서는 확장을 로드할 수 없음');
+        });
+
+      try {
+        vi.resetModules();
+        process.env.DB_PATH = dbPath;
+        const migrateModule = await import('./migrate.js');
+
+        // vec0 테이블이 이미 존재하는데 확장 로드가 실패해도
+        // "no such module: vec0" 없이 마이그레이션이 완료돼야 한다 (건너뛰기)
+        expect(() => migrateModule.migrateDatabase()).not.toThrow();
+      } finally {
+        loadExtensionSpy.mockRestore();
+        if (previousDbPath === undefined) {
+          delete process.env.DB_PATH;
+        } else {
+          process.env.DB_PATH = previousDbPath;
+        }
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
 
     it('Given: 레거시 스키마에 embedding 컬럼이 없을 때, When: 마이그레이션을 실행하면, Then: embedding 컬럼을 추가해야 함', () => {
       // Given: 레거시 스키마 (embedding 컬럼 없음)
