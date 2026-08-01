@@ -117,6 +117,18 @@ curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
 
 작업과 상태는 HTTP 서버 프로세스 메모리에 보관됩니다. 서버를 재시작하면 작업 이력은 사라지지만, 이미 SQLite에 기록된 임베딩은 롤백되지 않습니다. provider를 바꿀 때는 먼저 `--dry-run`으로 실행한 뒤, 완료 후 `missingEmbeddingCount`, `dimensionMismatchCount`, `providerDriftCount`를 확인하세요.
 
+전체 재색인 대신 `memory_relation`의 endpoint(triple → semantic 경로로 생성된 관계 이웃)이면서 임베딩이 없는 기존 semantic memory만 제한된 개수로 채우려면 `/backfill-relation-endpoints`를 사용하세요(#710).
+
+```bash
+curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"minilm","limit":200}'
+
+curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+  http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints/<job-id>
+```
+
 ## 완성된 설정 예시
 
 ### 로컬 전용 (API 없음, 권장 기본 설정)

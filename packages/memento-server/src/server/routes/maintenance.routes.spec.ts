@@ -35,7 +35,13 @@ describe('maintenance.routes', () => {
         dimensions INTEGER, model TEXT, created_by TEXT, created_at TEXT,
         UNIQUE(memory_id, embedding_provider, projection_type)
       );
+      CREATE TABLE memory_relation (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, source_id TEXT NOT NULL, target_id TEXT NOT NULL, relation_type TEXT NOT NULL
+      );
       INSERT INTO memory_item (id, content, owner_id) VALUES ('memory-1', 'reindex me', 'owner-1');
+      INSERT INTO memory_item (id, content, type, owner_id) VALUES ('endpoint-1', 'relation endpoint', 'semantic', 'owner-2');
+      INSERT INTO memory_item (id, content, type, owner_id) VALUES ('endpoint-2', 'relation endpoint 2', 'semantic', 'owner-2');
+      INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('endpoint-1', 'endpoint-2', 'extracted_from');
     `);
     const app = express();
     app.use(express.json());
@@ -81,5 +87,32 @@ describe('maintenance.routes', () => {
     const response = await request(port, 'POST', '/reindex', { provider: 'other' });
     expect(response.status).toBe(400);
     expect(response.body.error).toContain('provider must be one of');
+  });
+
+  it('#710: queues relation-endpoint backfill work and exposes its completed result', async () => {
+    const accepted = await request(port, 'POST', '/backfill-relation-endpoints', { provider: 'minilm', limit: 10 });
+    expect(accepted.status).toBe(202);
+    expect(accepted.body.status).toBe('queued');
+    const jobId = accepted.body.jobId as string;
+
+    let status = await request(port, 'GET', `/backfill-relation-endpoints/${jobId}`);
+    for (let attempt = 0; attempt < 20 && status.body.status !== 'completed'; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+      status = await request(port, 'GET', `/backfill-relation-endpoints/${jobId}`);
+    }
+    expect(status.status).toBe(200);
+    expect(status.body.status).toBe('completed');
+    expect(status.body.result).toMatchObject({ candidateCount: 2, storedCount: 2, failedCount: 0 });
+  });
+
+  it('rejects an unknown provider before queuing a backfill job', async () => {
+    const response = await request(port, 'POST', '/backfill-relation-endpoints', { provider: 'other' });
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('provider must be one of');
+  });
+
+  it('returns 404 for an unknown backfill job id', async () => {
+    const response = await request(port, 'GET', '/backfill-relation-endpoints/unknown-job');
+    expect(response.status).toBe(404);
   });
 });
