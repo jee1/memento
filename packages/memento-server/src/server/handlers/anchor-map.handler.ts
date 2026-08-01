@@ -123,6 +123,81 @@ export async function buildAnchorMapData(
   };
 }
 
+type HopSearchItem = {
+  id: string;
+  content: string;
+  type: string;
+  similarity?: number;
+  hop_distance?: number;
+  importance?: number;
+  created_at?: string;
+  [key: string]: unknown;
+};
+
+type HopPathEdge = { source: string; target: string; hop_distance: number; similarity?: number };
+
+/**
+ * 검색 결과 항목이 가리키는 predecessor id 목록을 얻는다.
+ * n-hop 검색이 여러 경로로 같은 메모리를 재발견하면 predecessor_ids(복수)에 모두 기록되므로
+ * (#715 MEDIUM#1), 있으면 그것을 우선하고 없으면 predecessor_id(단수)로 대체한다.
+ */
+function getPredecessorIds(item: HopSearchItem): string[] {
+  const ids = item.predecessor_ids;
+  if (Array.isArray(ids)) {
+    return ids.filter((id): id is string => typeof id === 'string');
+  }
+  return typeof item.predecessor_id === 'string' ? [item.predecessor_id] : [];
+}
+
+/**
+ * hop 오름차순으로 경로 폐쇄성(path-closure)을 검증하며 노드/엣지를 확정한다.
+ * predecessor가 랭킹/limit/쿼리 필터로 탈락해 경로가 끊긴 hop≥2 노드는
+ * 부유(floating) 상태로 지도에 남기지 않고 제외한다 (#715 MEDIUM#2).
+ */
+function resolvePathClosedItems(
+  items: HopSearchItem[],
+  anchorMemoryId: string
+): { reachableItems: HopSearchItem[]; edges: HopPathEdge[] } {
+  const itemsByHop = new Map<number, HopSearchItem[]>();
+  for (const item of items) {
+    const hop = typeof item.hop_distance === 'number' ? item.hop_distance : 0;
+    const bucket = itemsByHop.get(hop) ?? [];
+    bucket.push(item);
+    itemsByHop.set(hop, bucket);
+  }
+
+  const reachableIds = new Set<string>([anchorMemoryId]);
+  const reachableItems: HopSearchItem[] = [];
+  const edges: HopPathEdge[] = [];
+
+  const hopsAscending = Array.from(itemsByHop.keys())
+    .filter(hop => hop >= 1)
+    .sort((a, b) => a - b);
+
+  for (const hop of hopsAscending) {
+    for (const item of itemsByHop.get(hop) ?? []) {
+      if (hop === 1) {
+        reachableIds.add(item.id);
+        reachableItems.push(item);
+        edges.push({ source: anchorMemoryId, target: item.id, hop_distance: 1, similarity: item.similarity });
+        continue;
+      }
+
+      const validPredecessorIds = getPredecessorIds(item).filter(id => reachableIds.has(id));
+      if (validPredecessorIds.length === 0) {
+        continue; // 경로가 끊긴 노드는 지도에 포함하지 않음
+      }
+      reachableIds.add(item.id);
+      reachableItems.push(item);
+      for (const predecessorId of validPredecessorIds) {
+        edges.push({ source: predecessorId, target: item.id, hop_distance: hop, similarity: item.similarity });
+      }
+    }
+  }
+
+  return { reachableItems, edges };
+}
+
 /**
  * 네트워크 노드 및 링크 생성
  */
@@ -186,8 +261,12 @@ async function buildNetworkNodesAndLinks(
           { limit: 50 }
         );
 
-        // 검색 결과를 노드와 링크로 변환
-        for (const item of searchResult.items) {
+        // hop 오름차순으로 경로 폐쇄성을 검증해, predecessor가 랭킹/limit/쿼리 필터로
+        // 탈락한 hop≥2 노드는 부유(floating) 상태로 남기지 않고 제외한다 (#715 MEDIUM#2).
+        // 노드 dedup과 별개로, 하나의 메모리로 여러 경로가 합류하면 edge는 모두 보존한다 (#715 MEDIUM#1).
+        const { reachableItems, edges } = resolvePathClosedItems(searchResult.items, anchor.memory_id);
+
+        for (const item of reachableItems) {
           if (!nodeIds.has(item.id)) {
             nodes.push({
               id: item.id,
@@ -200,17 +279,16 @@ async function buildNetworkNodesAndLinks(
             });
             nodeIds.add(item.id);
           }
+        }
 
-          // 링크 추가 (앵커에서 메모리로) - 슬롯마다 별도 엣지로 추가
-          if (item.hop_distance === 1) {
-            links.push({
-              source: anchor.memory_id,
-              target: item.id,
-              type: 'hop',
-              hop_distance: 1,
-              similarity: item.similarity
-            });
-          }
+        for (const edge of edges) {
+          links.push({
+            source: edge.source,
+            target: edge.target,
+            type: 'hop',
+            hop_distance: edge.hop_distance,
+            similarity: edge.similarity
+          });
         }
       } catch (error) {
         const isEmbeddingMissing = error instanceof Error && error.name === 'EmbeddingNotFoundError';
@@ -241,7 +319,8 @@ async function buildNetworkNodesAndLinks(
 /**
  * RelationGraph(memory_relation)를 활용한 네트워크 링크 생성.
  * 노드로 등록된 메모리끼리의 관계만 엣지로 반영하며, confidence를 가중치로 사용한다.
- * hop 2/3 경로 엣지는 범위 밖(#715)이므로 다루지 않는다.
+ * hop 2/3의 anchor→memory 경로 엣지는 buildNetworkNodesAndLinks에서
+ * n-hop 검색 결과의 predecessor_id로 생성하므로(#715) 이 함수는 다루지 않는다.
  */
 async function buildRelationLinks(
   relationGraph: ServerServices['relationGraph'],

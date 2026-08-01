@@ -426,5 +426,189 @@ describe('NHopSearchService', () => {
       ).rejects.toThrow('VectorSearchEngine or Database is not set');
     });
   });
+
+  describe('searchNHop - predecessor provenance (#715)', () => {
+    it('1-hop 결과의 predecessor_id는 앵커 메모리여야 함', async () => {
+      // Given: anchor-memory-1에서 memory-1이 1-hop으로 발견될 때
+      const anchorEmbedding = [0.1, 0.2, 0.3];
+      const provider = 'test-provider';
+      const anchorMemoryId = 'anchor-memory-1';
+      const threshold = 0.1;
+      const maxHops = 1;
+      const limit = 10;
+
+      (mockVectorSearchEngine.search as any).mockResolvedValue([
+        {
+          memory_id: 'memory-1',
+          content: 'hop1 content',
+          type: 'episodic',
+          similarity: 0.8,
+          importance: 0.7,
+          created_at: '2024-01-01T00:00:00Z'
+        }
+      ]);
+
+      // When: searchNHop을 호출하면
+      const results = await service.searchNHop(
+        anchorEmbedding,
+        provider,
+        anchorMemoryId,
+        threshold,
+        maxHops,
+        limit,
+        false // useRelations
+      );
+
+      // Then: memory-1의 predecessor_id는 앵커여야 함 (path provenance)
+      const memory1 = results.find(r => r.memory_id === 'memory-1');
+      expect(memory1).toBeDefined();
+      expect(memory1?.predecessor_id).toBe(anchorMemoryId);
+    });
+
+    it('2-hop 결과는 실제 경로(anchor→m1→m2)의 predecessor_id를 가져야 함', async () => {
+      // Given: anchor-memory-1 -> memory-1 -> memory-2의 실제 경로가 존재할 때
+      const anchorEmbedding = [0.1, 0.2, 0.3];
+      const memory1Embedding = [0.4, 0.5, 0.6];
+      const provider = 'test-provider';
+      const anchorMemoryId = 'anchor-memory-1';
+      const threshold = 0.1;
+      const maxHops = 2;
+      const limit = 10;
+
+      // hop1 시드(anchorEmbedding)로 검색하면 memory-1, memory-1 시드로 검색하면 memory-2를 반환
+      (mockVectorSearchEngine.search as any).mockImplementation(async (embedding: number[]) => {
+        if (embedding === anchorEmbedding) {
+          return [
+            {
+              memory_id: 'memory-1',
+              content: 'hop1 content',
+              type: 'episodic',
+              similarity: 0.8,
+              importance: 0.7,
+              created_at: '2024-01-01T00:00:00Z'
+            }
+          ];
+        }
+        if (embedding === memory1Embedding) {
+          return [
+            {
+              memory_id: 'memory-2',
+              content: 'hop2 content',
+              type: 'episodic',
+              similarity: 0.7,
+              importance: 0.6,
+              created_at: '2024-01-02T00:00:00Z'
+            }
+          ];
+        }
+        return [];
+      });
+
+      // memory-1의 다음 hop 임베딩 조회를 위해 cacheService를 스텁 처리
+      vi.spyOn(cacheService, 'getAnchorEmbedding').mockImplementation(async (memoryId: string) => {
+        if (memoryId === 'memory-1') {
+          return { embedding: memory1Embedding, provider: 'test-provider' };
+        }
+        return null;
+      });
+
+      // When: searchNHop(maxHops=2)을 호출하면
+      const results = await service.searchNHop(
+        anchorEmbedding,
+        provider,
+        anchorMemoryId,
+        threshold,
+        maxHops,
+        limit,
+        false // useRelations
+      );
+
+      // Then: memory-1은 앵커를, memory-2는 memory-1을 predecessor로 가져야 함
+      const memory1 = results.find(r => r.memory_id === 'memory-1');
+      const memory2 = results.find(r => r.memory_id === 'memory-2');
+      expect(memory1?.hop_distance).toBe(1);
+      expect(memory1?.predecessor_id).toBe(anchorMemoryId);
+      expect(memory2?.hop_distance).toBe(2);
+      expect(memory2?.predecessor_id).toBe('memory-1');
+      // 실제 경로가 아닌 anchor→memory-2 직결은 존재하지 않아야 함
+      expect(memory2?.predecessor_id).not.toBe(anchorMemoryId);
+    });
+
+    it('anchor→m1→x, anchor→m2→x처럼 두 경로가 같은 메모리로 합류하면 노드는 dedup되어도 모든 predecessor가 보존되어야 함 (#715 MEDIUM#1)', async () => {
+      // Given: anchor-memory-1 -> memory-1, memory-2 (hop1) -> 둘 다 memory-x (hop2)를 가리킬 때
+      const anchorEmbedding = [0.1, 0.2, 0.3];
+      const memory1Embedding = [0.4, 0.5, 0.6];
+      const memory2Embedding = [0.7, 0.8, 0.9];
+      const provider = 'test-provider';
+      const anchorMemoryId = 'anchor-memory-1';
+      const threshold = 0.1;
+      const maxHops = 2;
+      const limit = 10;
+
+      (mockVectorSearchEngine.search as any).mockImplementation(async (embedding: number[]) => {
+        if (embedding === anchorEmbedding) {
+          return [
+            {
+              memory_id: 'memory-1',
+              content: 'hop1 content 1',
+              type: 'episodic',
+              similarity: 0.8,
+              importance: 0.7,
+              created_at: '2024-01-01T00:00:00Z'
+            },
+            {
+              memory_id: 'memory-2',
+              content: 'hop1 content 2',
+              type: 'episodic',
+              similarity: 0.75,
+              importance: 0.7,
+              created_at: '2024-01-01T00:00:00Z'
+            }
+          ];
+        }
+        if (embedding === memory1Embedding || embedding === memory2Embedding) {
+          return [
+            {
+              memory_id: 'memory-x',
+              content: 'hop2 shared content',
+              type: 'episodic',
+              similarity: 0.7,
+              importance: 0.6,
+              created_at: '2024-01-02T00:00:00Z'
+            }
+          ];
+        }
+        return [];
+      });
+
+      vi.spyOn(cacheService, 'getAnchorEmbedding').mockImplementation(async (memoryId: string) => {
+        if (memoryId === 'memory-1') {
+          return { embedding: memory1Embedding, provider: 'test-provider' };
+        }
+        if (memoryId === 'memory-2') {
+          return { embedding: memory2Embedding, provider: 'test-provider' };
+        }
+        return null;
+      });
+
+      // When: searchNHop(maxHops=2)을 호출하면
+      const results = await service.searchNHop(
+        anchorEmbedding,
+        provider,
+        anchorMemoryId,
+        threshold,
+        maxHops,
+        limit,
+        false // useRelations
+      );
+
+      // Then: memory-x 노드는 1개만 존재하지만(dedup), 두 predecessor 경로가 모두 보존되어야 함
+      const memoryXResults = results.filter(r => r.memory_id === 'memory-x');
+      expect(memoryXResults).toHaveLength(1);
+      const memoryX = memoryXResults[0];
+      expect(memoryX?.predecessor_ids).toBeDefined();
+      expect(new Set(memoryX?.predecessor_ids)).toEqual(new Set(['memory-1', 'memory-2']));
+    });
+  });
 });
 

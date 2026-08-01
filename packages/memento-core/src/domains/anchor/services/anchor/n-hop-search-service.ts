@@ -25,6 +25,11 @@ export interface NHopSearchResult {
   created_at: string;
   tags?: string[];
   hasRelation?: boolean;
+  /** 이 메모리를 발견한 실제 경로상의 직전 노드 (hop 1이면 anchor memory id) */
+  predecessor_id?: string;
+  /** 이 메모리로 이어지는 모든 유효 경로의 직전 노드 목록 (anchor→m1→x, anchor→m2→x처럼
+   *  여러 경로가 같은 메모리로 합류할 때, 노드는 dedup되어도 경로 edge는 모두 보존한다, #715) */
+  predecessor_ids?: string[];
 }
 
 /**
@@ -263,6 +268,8 @@ export class NHopSearchService implements INHopSearchService {
     const { engine } = this.requireVectorContext();
 
     const discoveredMemoryIds = new Set<string>([anchorMemoryId]);
+    // memory_id -> 그 메모리로 이어지는 모든 유효 경로의 predecessor id 집합 (#715 MEDIUM#1)
+    const predecessorsByMemoryId = new Map<string, Set<string>>();
     const allResults: NHopSearchResult[] = [];
     let currentHopMemories: Array<{ memory_id: string; embedding: number[] }> = [
       { memory_id: anchorMemoryId, embedding: anchorEmbedding }
@@ -313,7 +320,9 @@ export class NHopSearchService implements INHopSearchService {
             maxHops,
             merged,
             discoveredMemoryIds,
-            threshold
+            threshold,
+            currentMemory.memory_id,
+            predecessorsByMemoryId
           );
           hopResults.push(...batchHop);
           nextHopMemories.push(...nextHopSeeds);
@@ -335,6 +344,14 @@ export class NHopSearchService implements INHopSearchService {
         break;
       }
       currentHopMemories = nextHopMemories;
+    }
+
+    // 여러 경로가 같은 메모리로 합류한 경우, 모든 predecessor를 결과에 반영한다 (#715 MEDIUM#1)
+    for (const result of allResults) {
+      const predecessors = predecessorsByMemoryId.get(result.memory_id);
+      if (predecessors && predecessors.size > 0) {
+        result.predecessor_ids = Array.from(predecessors);
+      }
     }
 
     return this.rankAndTruncateNHopResults(allResults, useRelations, limit);
