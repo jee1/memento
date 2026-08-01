@@ -21,6 +21,23 @@ describe('SemanticMemoryUpdateService', () => {
   beforeEach(async () => {
     db = await setupTestDatabase();
     service = new SemanticMemoryUpdateService(db, createRelationGraph(db));
+
+    // setupTestDatabase()는 #713 이전 legacy memory_embedding 스키마를 사용하므로
+    // migration 003(embedding compatibility)의 컬럼을 보강한다.
+    // #710에서 createSemanticMemory가 항상 임베딩 생성을 시도하므로 전체 스위트에 적용한다.
+    const embeddingColumns = (DatabaseUtils.all(db, `SELECT name FROM pragma_table_info('memory_embedding')`) as Array<{ name: string }>).map(c => c.name);
+    if (!embeddingColumns.includes('projection_type')) {
+      db.exec(`ALTER TABLE memory_embedding ADD COLUMN projection_type TEXT NOT NULL DEFAULT 'native'`);
+    }
+    if (!embeddingColumns.includes('precision')) {
+      db.exec(`ALTER TABLE memory_embedding ADD COLUMN precision INTEGER DEFAULT 32`);
+    }
+    if (!embeddingColumns.includes('normalized')) {
+      db.exec(`ALTER TABLE memory_embedding ADD COLUMN normalized BOOLEAN DEFAULT FALSE`);
+    }
+    if (!embeddingColumns.includes('version')) {
+      db.exec(`ALTER TABLE memory_embedding ADD COLUMN version INTEGER DEFAULT 1`);
+    }
   });
 
   afterEach(async () => {
@@ -2335,6 +2352,122 @@ describe('SemanticMemoryUpdateService', () => {
       // 실제 호출 테스트는 isAvailable()을 통해 간접적으로 확인
       const isAvailable = (newService as any).embeddingService.isAvailable();
       expect(typeof isAvailable).toBe('boolean');
+    });
+  });
+
+  describe('#710: Triple → Semantic Memory 임베딩 생성', () => {
+    it('Given: Triple로 신규 Semantic Memory를 생성할 때, When: updateSemanticMemory를 호출하면, Then: memory_embedding row가 생성되어야 함', async () => {
+      // Given: Triple 배열과 Episodic Memory
+      const triples: Triple[] = [
+        { subject: '사용자', predicate: '선호', object: '커피' }
+      ];
+      const extractionResult: TripleExtractionResult = {
+        triples,
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      };
+      const options: SemanticMemoryUpdateOptions = {
+        episodicMemoryId: 'episodic-embed-1',
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
+      };
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+      // When: updateSemanticMemory 호출 (기본 embeddingService 사용)
+      const result = await service.updateSemanticMemory(extractionResult, options);
+      expect(result.created).toBe(1);
+      const semanticMemoryId = result.semanticMemoryIds[0];
+
+      // Then: 임베딩 생성은 fire-and-forget이므로 완료될 때까지 짧게 대기 후 row 존재를 확인
+      let embeddingRow: { memory_id: string; embedding_provider: string } | undefined;
+      for (let attempt = 0; attempt < 20 && !embeddingRow; attempt++) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 5));
+        embeddingRow = DatabaseUtils.get(db, `
+          SELECT memory_id, embedding_provider FROM memory_embedding WHERE memory_id = ?
+        `, [semanticMemoryId]) as { memory_id: string; embedding_provider: string } | undefined;
+      }
+
+      expect(embeddingRow).toBeDefined();
+      expect(embeddingRow?.memory_id).toBe(semanticMemoryId);
+    });
+
+    it('Given: MemoryEmbeddingService가 주입되었을 때, When: Semantic Memory를 생성하면, Then: 주입된 인스턴스로 임베딩을 생성해야 함', async () => {
+      // Given: createAndStoreEmbedding을 스파이하는 MemoryEmbeddingService 목
+      const createAndStoreEmbedding = vi.fn().mockResolvedValue({ embedding: [0.1], provider: 'mock' });
+      const mockMemoryEmbeddingService = { createAndStoreEmbedding } as any;
+      const serviceWithMock = new SemanticMemoryUpdateService(
+        db,
+        createRelationGraph(db),
+        undefined,
+        undefined,
+        mockMemoryEmbeddingService
+      );
+
+      const triples: Triple[] = [
+        { subject: '사용자', predicate: '선호', object: '차' }
+      ];
+      const extractionResult: TripleExtractionResult = {
+        triples,
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      };
+      const options: SemanticMemoryUpdateOptions = {
+        episodicMemoryId: 'episodic-embed-2',
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
+      };
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+      // When: updateSemanticMemory 호출
+      const result = await serviceWithMock.updateSemanticMemory(extractionResult, options);
+      const semanticMemoryId = result.semanticMemoryIds[0];
+
+      // Then: 주입된 MemoryEmbeddingService.createAndStoreEmbedding이 호출되어야 함
+      expect(createAndStoreEmbedding).toHaveBeenCalledTimes(1);
+      expect(createAndStoreEmbedding).toHaveBeenCalledWith(db, semanticMemoryId, expect.any(String), 'semantic');
+    });
+
+    it('Given: 임베딩 생성이 실패할 때, When: Semantic Memory를 생성하면, Then: 생성 자체는 성공해야 함', async () => {
+      // Given: 항상 실패하는 MemoryEmbeddingService 목
+      const mockMemoryEmbeddingService = {
+        createAndStoreEmbedding: vi.fn().mockRejectedValue(new Error('embedding provider unavailable'))
+      } as any;
+      const serviceWithFailingEmbedding = new SemanticMemoryUpdateService(
+        db,
+        createRelationGraph(db),
+        undefined,
+        undefined,
+        mockMemoryEmbeddingService
+      );
+
+      const triples: Triple[] = [
+        { subject: '사용자', predicate: '선호', object: '주스' }
+      ];
+      const extractionResult: TripleExtractionResult = {
+        triples,
+        extractionInfo: { steps: { canonicalization: true, entityLinking: true } }
+      };
+      const options: SemanticMemoryUpdateOptions = {
+        episodicMemoryId: 'episodic-embed-3',
+        episodicImportance: 0.5,
+        confidenceThreshold: 0.25
+      };
+      await DatabaseUtils.run(db, `
+        INSERT INTO memory_item (id, type, content, importance) VALUES (?, ?, ?, ?)
+      `, [options.episodicMemoryId, 'episodic', 'Test episodic memory', 0.5]);
+
+      // When: updateSemanticMemory 호출 (임베딩 실패해도 예외가 전파되지 않아야 함)
+      const result = await serviceWithFailingEmbedding.updateSemanticMemory(extractionResult, options);
+
+      // Then: Semantic Memory 생성은 정상적으로 완료됨
+      expect(result.created).toBe(1);
+      expect(result.semanticMemoryIds.length).toBe(1);
+      const semanticMemory = DatabaseUtils.get(db, `
+        SELECT id FROM memory_item WHERE id = ?
+      `, [result.semanticMemoryIds[0]]);
+      expect(semanticMemory).toBeDefined();
     });
   });
 });

@@ -7,6 +7,7 @@ import type { Triple } from '../../../../shared/types/triple-extraction.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { KgTripleRepositorySqlite as KgTripleRepository } from '../../../../infrastructure/database/repositories/kg-triple-repository-sqlite.impl.js';
+import { MemoryEmbeddingService } from '../memory-embedding-service.js';
 import type { SemanticMemoryScoring } from './semantic-memory-scoring.js';
 import {
   generateSemanticMemoryId,
@@ -14,11 +15,16 @@ import {
 } from './semantic-memory-update-types.js';
 
 export class SemanticMemoryCrud {
+  private readonly memoryEmbeddingService: MemoryEmbeddingService;
+
   constructor(
     private db: Database.Database,
     private kgTripleRepo: KgTripleRepository,
-    private scoring: SemanticMemoryScoring
-  ) {}
+    private scoring: SemanticMemoryScoring,
+    memoryEmbeddingService?: MemoryEmbeddingService
+  ) {
+    this.memoryEmbeddingService = memoryEmbeddingService ?? new MemoryEmbeddingService();
+  }
 
   async createSemanticMemory(
     triple: Triple,
@@ -72,6 +78,19 @@ export class SemanticMemoryCrud {
       confidence,
       importance
     });
+
+    // #710: 신규 semantic memory는 임베딩이 없으면 벡터/n-hop 확장에서 소외되므로 생성을 트리거한다.
+    // remember 증강 파이프라인(launchBackgroundAugmentation)과 동일하게 fire-and-forget으로
+    // 처리한다 — 느린 provider가 semantic memory 생성 응답을 지연시키면 안 된다. 실패해도
+    // memory 생성 자체는 이미 커밋되었으므로 로그만 남기고 무시한다.
+    this.memoryEmbeddingService
+      .createAndStoreEmbedding(this.db, id, content, 'semantic')
+      .catch((embeddingError) => {
+        logger.warn('SemanticMemoryUpdateService: Semantic Memory 임베딩 생성 실패 (무시)', {
+          id,
+          error: embeddingError instanceof Error ? embeddingError.message : String(embeddingError)
+        });
+      });
 
     return id;
   }

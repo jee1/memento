@@ -14,6 +14,9 @@ describe('EmbeddingReindexService', () => {
         embedding TEXT NOT NULL, dim INTEGER NOT NULL, dimensions INTEGER, model TEXT, created_by TEXT, created_at TEXT,
         UNIQUE(memory_id, embedding_provider, projection_type)
       );
+      CREATE TABLE memory_relation (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, source_id TEXT NOT NULL, target_id TEXT NOT NULL, relation_type TEXT NOT NULL
+      );
     `);
     db.prepare("INSERT INTO memory_item (id, content, owner_id) VALUES ('one', 'first', 'a'), ('two', 'second', 'b')").run();
     db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('one', 'minilm', 'native', '[]', 512, 512)").run();
@@ -28,6 +31,35 @@ describe('EmbeddingReindexService', () => {
     });
     expect(service.diagnose({ provider: 'minilm', ownerId: 'b' })).toMatchObject({
       memoryCount: 1, providerEmbeddingCount: 0, missingEmbeddingCount: 1, providerDriftCount: 0,
+    });
+  });
+
+  it('#713: mock provider의 native/64 임베딩을 missing으로 오판하지 않아야 함', () => {
+    db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('two', 'mock', 'native', '[]', 64, 64)").run();
+    const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+    expect(service.diagnose({ provider: 'mock', ownerId: 'b' })).toMatchObject({
+      provider: 'mock', expectedDimensions: 64, missingEmbeddingCount: 0, providerEmbeddingCount: 1,
+    });
+  });
+
+  it('#722: lightweight 요청은 tfidf(provider factory 별칭)로 정규화되어야 함', () => {
+    db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('two', 'tfidf', 'native', '[]', 512, 512)").run();
+    const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+    expect(service.diagnose({ provider: 'lightweight', ownerId: 'b' })).toMatchObject({
+      provider: 'tfidf', expectedDimensions: 512, missingEmbeddingCount: 0, providerEmbeddingCount: 1,
+    });
+  });
+
+  it('#722: reindex(lightweight)는 tfidf로 저장된 결과를 성공으로 인식해야 함', async () => {
+    const service = new EmbeddingReindexService(db, {
+      isAvailable: () => true,
+      createAndStoreEmbedding: vi.fn().mockImplementation(async (_db, memoryId) => {
+        db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'tfidf', 'native', '[]', 512, 512)").run(memoryId);
+        return { provider: 'tfidf', embedding: Array(512).fill(0) };
+      }),
+    });
+    await expect(service.reindex({ provider: 'lightweight', ownerId: 'b' })).resolves.toMatchObject({
+      provider: 'tfidf', storedCount: 1, failedCount: 0,
     });
   });
 
@@ -50,5 +82,126 @@ describe('EmbeddingReindexService', () => {
     });
     await expect(service.reindex({ provider: 'minilm', ownerId: 'b' })).resolves.toMatchObject({ storedCount: 1, failedCount: 0 });
     expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'minilm'").get()).toEqual({ dim: 384 });
+  });
+
+  describe('#710: backfillSemanticRelationEndpoints', () => {
+    beforeEach(() => {
+      // 'one'은 이미 임베딩이 있음. 'two'는 semantic이 아니므로 대상에서 제외되어야 함(기본 type='semantic')
+      db.prepare("UPDATE memory_item SET type = 'episodic' WHERE id = 'two'").run();
+      db.prepare("INSERT INTO memory_item (id, content, type, owner_id) VALUES ('three', 'third', 'semantic', 'a')").run();
+      db.prepare("INSERT INTO memory_item (id, content, type, owner_id) VALUES ('orphan-semantic', 'orphan', 'semantic', 'a')").run();
+      // 'three'는 memory_relation의 endpoint (target)
+      db.prepare("INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('two', 'three', 'extracted_from')").run();
+    });
+
+    it('semantic이면서 relation endpoint이고 임베딩이 없는 메모리만 대상으로 삼아야 함', () => {
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+      const candidates = service.findSemanticRelationEndpointsMissingEmbedding('minilm', 100);
+
+      // 'orphan-semantic'은 relation endpoint가 아니므로 제외
+      expect(candidates.map(c => c.id)).toEqual(['three']);
+    });
+
+    it('#713 vec 계약: non-native projection이거나 예상 차원과 다른 행만 있으면 여전히 후보여야 함', () => {
+      // 'three'는 임베딩 행이 있지만 non-native projection이라 vec 인덱스에는 적재되지 않음
+      db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('three', 'minilm', 'reduced', '[]', 384, 384)").run();
+      // 'orphan-semantic'은 native지만 예상 차원(384)과 다른 차원이라 vec 인덱스에는 적재되지 않음
+      db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('orphan-semantic', 'minilm', 'native', '[]', 128, 128)").run();
+      db.prepare("INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('two', 'orphan-semantic', 'extracted_from')").run();
+
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+      const candidates = service.findSemanticRelationEndpointsMissingEmbedding('minilm', 100);
+
+      expect(candidates.map(c => c.id).sort()).toEqual(['orphan-semantic', 'three']);
+    });
+
+    it('limit 파라미터로 제한된 개수만 반환해야 함', () => {
+      db.prepare("INSERT INTO memory_item (id, content, type, owner_id) VALUES ('four', 'fourth', 'semantic', 'a')").run();
+      db.prepare("INSERT INTO memory_relation (source_id, target_id, relation_type) VALUES ('two', 'four', 'extracted_from')").run();
+
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+      const candidates = service.findSemanticRelationEndpointsMissingEmbedding('minilm', 1);
+
+      expect(candidates.length).toBe(1);
+    });
+
+    it('dry-run이면 임베딩을 생성하지 않고 후보 수만 반환해야 함', async () => {
+      const createAndStoreEmbedding = vi.fn();
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 100, dryRun: true });
+
+      expect(result).toMatchObject({ candidateCount: 1, dryRun: true, processedCount: 1, storedCount: 0, failedCount: 0 });
+      expect(createAndStoreEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('임베딩을 생성하고 저장해야 함', async () => {
+      const service = new EmbeddingReindexService(db, {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async (_db, memoryId) => {
+          db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'minilm', 'native', '[]', 384, 384)").run(memoryId);
+          return { provider: 'minilm', embedding: Array(384).fill(0) };
+        })
+      });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 100 });
+
+      expect(result).toMatchObject({ candidateCount: 1, dryRun: false, processedCount: 1, storedCount: 1, failedCount: 0 });
+      expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'three'").get()).toEqual({ dim: 384 });
+    });
+
+    it('MEDIUM: 반환 벡터는 목표 차원이지만 DB에 non-native(zero_pad) projection으로 저장되면 storedCount를 증가시키지 말아야 함', async () => {
+      const createAndStoreEmbedding = vi.fn().mockImplementation(async (_db, memoryId) => {
+        // MemoryEmbeddingService가 source-dimension mismatch로 zero_pad projection한 경우:
+        // DB에는 projection_type='zero_pad'로 저장되지만, 반환값은 target-length 벡터임
+        db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'minilm', 'zero_pad', '[]', 384, 384)").run(memoryId);
+        return { provider: 'minilm', embedding: Array(384).fill(0) };
+      });
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 100 });
+
+      expect(result).toMatchObject({ candidateCount: 1, dryRun: false, processedCount: 1, storedCount: 0, failedCount: 1 });
+      // native 임베딩이 없으므로 후보에서 여전히 빠지지 않아야 함(다음 회차에도 재시도 대상)
+      expect(service.findSemanticRelationEndpointsMissingEmbedding('minilm', 100).map(c => c.id)).toEqual(['three']);
+    });
+
+    it('#722: provider는 일치하지만 저장된 차원이 기대 차원과 다르면 실패로 처리해야 함', async () => {
+      const service = new EmbeddingReindexService(db, {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async () => {
+          return { provider: 'minilm', embedding: Array(64).fill(0) };
+        })
+      });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 100 });
+
+      expect(result).toMatchObject({ candidateCount: 1, dryRun: false, processedCount: 1, storedCount: 0, failedCount: 1 });
+    });
+
+    it('#722: lightweight 요청은 tfidf로 정규화되어 후보 조회·저장이 일관되어야 함', async () => {
+      const service = new EmbeddingReindexService(db, {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async (_db, memoryId) => {
+          db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'tfidf', 'native', '[]', 512, 512)").run(memoryId);
+          return { provider: 'tfidf', embedding: Array(512).fill(0) };
+        })
+      });
+
+      const result = await service.backfillSemanticRelationEndpoints({ provider: 'lightweight', limit: 100 });
+
+      expect(result).toMatchObject({ provider: 'tfidf', candidateCount: 1, storedCount: 1, failedCount: 0 });
+    });
+
+    it('임베딩 서비스가 사용 불가능하면 에러를 던져야 함', async () => {
+      const service = new EmbeddingReindexService(db, { isAvailable: () => false } as any);
+      await expect(service.backfillSemanticRelationEndpoints({ provider: 'minilm' })).rejects.toThrow('embedding service is unavailable');
+    });
+
+    it('limit이 범위를 벗어나면 에러를 던져야 함', async () => {
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true } as any);
+      await expect(service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 0 })).rejects.toThrow();
+      await expect(service.backfillSemanticRelationEndpoints({ provider: 'minilm', limit: 5000 })).rejects.toThrow();
+    });
   });
 });

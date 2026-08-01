@@ -112,6 +112,18 @@ curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
 
 Jobs and their status are held in the HTTP server process. A server restart loses job history, but never rolls back embeddings already written to SQLite. Run a `--dry-run` first when changing providers, then review `missingEmbeddingCount`, `dimensionMismatchCount`, and `providerDriftCount` after completion.
 
+Instead of a full reindex, use `/backfill-relation-endpoints` to fill only existing semantic memories that are `memory_relation` endpoints (relation neighbors created via the triple → semantic path) and are still missing an embedding (#710).
+
+```bash
+curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"provider":"minilm","limit":200}'
+
+curl -sS -H "Authorization: Bearer $ADMIN_API_KEY" \
+  http://127.0.0.1:9001/api/v1/maintenance/backfill-relation-endpoints/<job-id>
+```
+
 ## Complete Configuration Examples
 
 ### Local-only (no API required, recommended default)
