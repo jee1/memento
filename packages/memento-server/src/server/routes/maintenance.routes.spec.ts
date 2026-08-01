@@ -83,6 +83,20 @@ describe('maintenance.routes', () => {
     expect(status.body.result).toMatchObject({ storedCount: 1, missingEmbeddingCount: 0 });
   });
 
+  it('#722: lightweight provider는 tfidf로 정규화되어 결과에 반영되어야 함', async () => {
+    const accepted = await request(port, 'POST', '/reindex', { provider: 'lightweight', ownerId: 'owner-1', batchSize: 10 });
+    expect(accepted.status).toBe(202);
+    const jobId = accepted.body.jobId as string;
+
+    let status = await request(port, 'GET', `/reindex/${jobId}`);
+    for (let attempt = 0; attempt < 20 && status.body.status !== 'completed'; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+      status = await request(port, 'GET', `/reindex/${jobId}`);
+    }
+    expect(status.body.status).toBe('completed');
+    expect(status.body.result).toMatchObject({ provider: 'tfidf' });
+  });
+
   it('rejects an unknown provider before queuing a job', async () => {
     const response = await request(port, 'POST', '/reindex', { provider: 'other' });
     expect(response.status).toBe(400);
