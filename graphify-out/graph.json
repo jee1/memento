@@ -74049,7 +74049,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages/memento-core/src/infrastructure/database/database/migrate.ts",
-      "source_location": "L220",
+      "source_location": "L222",
       "weight": 1.0,
       "_src": "migrate_migratedatabase",
       "_tgt": "migrate_loadvecextension",
