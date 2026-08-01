@@ -266,6 +266,33 @@ export interface IRelationGraph {
     targetId: string,
     relationType: RelationType
   ): Promise<boolean>;
+
+  /**
+   * 배치 관계 추가 (개별 실패가 전체 배치를 중단시키지 않음)
+   *
+   * @param relations 추가할 관계 목록
+   * @returns 성공/실패 상세 결과
+   */
+  addRelationsBatch(
+    relations: Array<{
+      source_id: string;
+      target_id: string;
+      relation_type: RelationType;
+      confidence?: number;
+      metadata?: RelationMetadata;
+    }>
+  ): Promise<{
+    insertedIds: number[];
+    failed: Array<{
+      source_id: string;
+      target_id: string;
+      relation_type: RelationType;
+      error: string;
+    }>;
+    total: number;
+    success: number;
+    failedCount: number;
+  }>;
 }
 
 /**
