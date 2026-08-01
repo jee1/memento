@@ -28,14 +28,6 @@ function isIsolatedCandidate(candidate: MemoryCandidate): boolean {
 }
 
 /**
- * Reorders candidates so isolated ones sort last, without disturbing the
- * relative importance/recency order within each group (stable sort).
- */
-function prioritizeConnectedCandidates(candidates: MemoryCandidate[]): MemoryCandidate[] {
-  return [...candidates].sort((a, b) => Number(isIsolatedCandidate(a)) - Number(isIsolatedCandidate(b)));
-}
-
-/**
  * Periodically refreshes anchor slots with recent high-importance memories.
  *
  * Rationale: `autoReanchor` only discovers candidates via N-hop traversal from the
@@ -48,7 +40,12 @@ function prioritizeConnectedCandidates(candidates: MemoryCandidate[]): MemoryCan
  *
  * Candidate scoring (#714): candidates with neither a relation nor an embedding
  * ("isolated") are deprioritized behind every other candidate, so a slot is only
- * ever pinned to an isolated memory when no connected alternative exists.
+ * ever pinned to an isolated memory when no connected alternative exists. The
+ * isolation flag is the *first* SQL `ORDER BY` key (PR #721 review) so a
+ * connected candidate ranked outside the old LIMIT window by
+ * importance/created_at alone is still fetched ahead of higher-importance
+ * isolated candidates, instead of being cut off before a JS-side sort ever
+ * sees it.
  */
 export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   const result = createEmptyBatchJobResult('anchor_auto_refresh');
@@ -107,13 +104,12 @@ export async function runAnchorAutoRefresh(ctx: BatchSchedulerRunContext): Promi
              FROM memory_item m
              WHERE (m.owner_id = ? OR m.owner_id IS NULL)
                AND m.deleted_at IS NULL
-             ORDER BY m.importance DESC, m.created_at DESC
+             ORDER BY (has_relation = 0 AND has_embedding = 0) ASC, m.importance DESC, m.created_at DESC
              LIMIT ?`
           )
           .all(agentId, slotIndex + 3) as MemoryCandidate[];
 
-        const prioritized = prioritizeConnectedCandidates(candidates);
-        const candidate = prioritized[slotIndex] ?? prioritized[prioritized.length - 1];
+        const candidate = candidates[slotIndex] ?? candidates[candidates.length - 1];
         if (!candidate) {
           continue;
         }

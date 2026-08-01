@@ -176,6 +176,30 @@ describe('runAnchorAutoRefresh candidate scoring', () => {
     expect((result.details as { isolatedPicks: number } | undefined)?.isolatedPicks ?? 0).toBe(0);
   });
 
+  it('LIMIT 윈도우 밖에 있는 연결 후보도 고립 후보보다 우선 선택되어야 한다 (PR #721 리뷰)', async () => {
+    // Given: slot A(slotIndex 0, 이전 LIMIT=3)의 상위 importance를 모두 차지하는 고립 후보 4개
+    // + LIMIT 윈도우 밖(importance 낮음)에 있는 연결 후보 1개.
+    // 이전 구현은 SQL LIMIT으로 먼저 잘라낸 뒤 JS에서 연결-우선 정렬을 했기 때문에,
+    // 연결 후보가 애초에 조회되지 않아 고립 후보가 선택되는 버그가 있었다.
+    const isolated1 = createTestMemory(db, { id: 'mem_win_isolated_1', content: 'iso1', importance: 0.95 });
+    createTestMemory(db, { id: 'mem_win_isolated_2', content: 'iso2', importance: 0.94 });
+    createTestMemory(db, { id: 'mem_win_isolated_3', content: 'iso3', importance: 0.93 });
+    createTestMemory(db, { id: 'mem_win_isolated_4', content: 'iso4', importance: 0.92 });
+    const connected = createTestMemory(db, { id: 'mem_win_connected', content: 'connected', importance: 0.5 });
+    addEmbedding(db, connected);
+    seedStaleAnchor(db, agentId, isolated1);
+
+    const ctx = createContext(db, anchorManager);
+
+    // When
+    const result = await runAnchorAutoRefresh(ctx);
+
+    // Then: slot A는 importance가 가장 낮아도 연결된 candidate를 선택해야 한다
+    expect(result.success).toBe(true);
+    const anchorA = (await anchorManager.getAnchor(agentId, 'A')) as { memory_id: string } | null;
+    expect(anchorA?.memory_id).toBe(connected);
+  });
+
   it('수동 set-anchor는 relation/embedding 여부와 무관하게 그대로 동작해야 한다(비파괴)', async () => {
     // Given: relation도 embedding도 없는 메모리
     const memoryId = createTestMemory(db, { content: 'manual anchor target', importance: 0.1 });
