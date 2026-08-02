@@ -39,4 +39,19 @@ describe("CI workflow", () => {
     expect(workflow).toContain("test-scripts:");
     expect(workflow).toContain("npm run test:ci:scripts");
   });
+
+  it("keeps scripts fast lane pattern-based and assistant CI truthful", () => {
+    const rootPkg = JSON.parse(
+      readFileSync(join(process.cwd(), "package.json"), "utf-8")
+    ) as { scripts: Record<string, string> };
+    const assistantPkg = JSON.parse(
+      readFileSync(join(process.cwd(), "packages/memento-assistant/package.json"), "utf-8")
+    ) as { scripts: Record<string, string> };
+
+    expect(rootPkg.scripts["test:ci:scripts"]).toContain("scripts");
+    expect(rootPkg.scripts["test:ci:scripts"]).toContain("*.integration.spec.ts");
+    expect(rootPkg.scripts["test:ci:scripts"]).not.toContain("acquire-longmemeval.spec.ts");
+    expect(assistantPkg.scripts["test:ci"]).toContain("vitest --run src");
+    expect(assistantPkg.scripts["test:ci"]).not.toContain("--passWithNoTests");
+  });
 });
