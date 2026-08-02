@@ -164,6 +164,8 @@ export interface HybridSearchResult {
   score_breakdown?: ScoreBreakdown;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 export type MemoryRankingDetails = {

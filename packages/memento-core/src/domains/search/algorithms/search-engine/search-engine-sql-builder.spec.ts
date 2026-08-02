@@ -33,4 +33,32 @@ describe('buildSearchStatement', () => {
       3,
     ]);
   });
+
+  it('LIKE fallback에서 검색 OR 그룹 뒤에 삭제 및 범위 조건을 적용한다', async () => {
+    const result = await buildSearchStatement({
+      db: {} as never,
+      searchQuery: 'scoped recall',
+      filters: {
+        project_id: 'project-a',
+        process_id: 'process-a',
+        session_id: 'session-a',
+      },
+      limit: 1,
+      hasIdFilter: false,
+      preferFts: false,
+      checkFTS5Availability: async () => false,
+      buildFTSQuery: (query) => query,
+      buildReflectionNotesSearchCondition: () => null,
+    });
+
+    const searchGroupEnd = result.sql.indexOf(')');
+    expect(result.sql).toContain(
+      'WHERE (m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?)',
+    );
+    expect(result.sql.indexOf('(COALESCE(m.is_deleted, 0) = 0)')).toBeGreaterThan(searchGroupEnd);
+    expect(result.sql.indexOf('m.project_id = ?')).toBeGreaterThan(searchGroupEnd);
+    expect(result.sql.indexOf('m.process_id = ?')).toBeGreaterThan(searchGroupEnd);
+    expect(result.sql.indexOf('m.session_id = ?')).toBeGreaterThan(searchGroupEnd);
+  });
+
 });

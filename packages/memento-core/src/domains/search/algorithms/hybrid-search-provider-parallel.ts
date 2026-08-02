@@ -55,6 +55,8 @@ type VectorSearchRow = {
   similarity: number;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
 };
 
 /** Injected from HybridSearchEngine so this module stays free of SearchError / engine imports. */
@@ -117,6 +119,8 @@ export async function runSingleProviderVectorSearch(
         provider,
         ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
         ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
+        ...(result.process_id !== undefined ? { process_id: result.process_id } : {}),
+        ...(result.session_id !== undefined ? { session_id: result.session_id } : {}),
       })),
       success: true,
       timeMs: providerTime,

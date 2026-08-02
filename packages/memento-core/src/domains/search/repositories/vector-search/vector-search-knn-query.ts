@@ -7,6 +7,7 @@ import { mcpLogger } from '../../../../server/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/index.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { mapKnnResults } from './vector-search-result-mapper.js';
+import { SCOPE_PREFETCH_MULTIPLIER } from './vector-search-scope.js';
 import type {
   RawVectorSearchResult,
   RuntimeVectorContext,
@@ -76,7 +77,9 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
   const { tableName } = runtimeContext;
   const { limit } = options;
 
-  const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter ? limit * 5 : limit;
+  const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter
+    ? limit * SCOPE_PREFETCH_MULTIPLIER
+    : limit;
   const outerWhereSql = buildOuterWhereSql(scope);
   const scopeParams = buildScopeParams(scope);
 

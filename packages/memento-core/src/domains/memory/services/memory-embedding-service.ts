@@ -39,6 +39,8 @@ export interface VectorSearchResult {
   score: number;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 /** searchBySimilarity 결과: 쿼리 임베딩에 실제 사용된 provider 진단용 */
@@ -56,6 +58,8 @@ interface SimilaritySearchRow {
   score: number;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 /** Row shape from provider stats GROUP BY query */
@@ -189,6 +193,8 @@ export class MemoryEmbeddingService {
       threshold?: number;
       project_id?: string;
       owner_id?: string | string[];
+      process_id?: string | string[];
+      session_id?: string | string[];
     }
   ): { sql: string; params: unknown[] } {
     const typeFilter = filters?.type
@@ -208,6 +214,23 @@ export class MemoryEmbeddingService {
       ownerClause = 'AND m.owner_id IN (' + o.map(() => '?').join(',') + ')';
       ownerParams.push(...o);
     }
+    const buildScopeClause = (
+      column: 'process_id' | 'session_id',
+      value: string | string[] | undefined,
+    ): { clause: string; params: unknown[] } => {
+      if (typeof value === 'string' && value.length > 0) {
+        return { clause: `AND m.${column} = ?`, params: [value] };
+      }
+      if (Array.isArray(value) && value.length > 0) {
+        return {
+          clause: `AND m.${column} IN (${value.map(() => '?').join(',')})`,
+          params: value,
+        };
+      }
+      return { clause: '', params: [] };
+    };
+    const processScope = buildScopeClause('process_id', filters?.process_id);
+    const sessionScope = buildScopeClause('session_id', filters?.session_id);
     const sql =
       'SELECT ' +
       '  m.id, ' +
@@ -220,6 +243,8 @@ export class MemoryEmbeddingService {
       '  m.tags, ' +
       '  m.project_id, ' +
       '  m.owner_id, ' +
+      '  m.process_id, ' +
+      '  m.session_id, ' +
       '  v.distance as similarity, ' +
       '  (1 - v.distance) as score ' +
       'FROM memory_item m ' +
@@ -234,6 +259,10 @@ export class MemoryEmbeddingService {
       ' ' +
       ownerClause +
       ' ' +
+      processScope.clause +
+      ' ' +
+      sessionScope.clause +
+      ' ' +
       'ORDER BY v.distance ASC ' +
       'LIMIT ?';
 
@@ -245,6 +274,8 @@ export class MemoryEmbeddingService {
       ...(filters?.type || []),
       ...projectParams,
       ...ownerParams,
+      ...processScope.params,
+      ...sessionScope.params,
       filters?.limit || 10,
     ];
     return { sql, params };
@@ -264,6 +295,8 @@ export class MemoryEmbeddingService {
       score: row.score,
       ...(row.project_id !== undefined ? { project_id: row.project_id } : {}),
       ...(row.owner_id !== undefined ? { owner_id: row.owner_id } : {}),
+      ...(row.process_id !== undefined ? { process_id: row.process_id } : {}),
+      ...(row.session_id !== undefined ? { session_id: row.session_id } : {}),
     }));
   }
 
@@ -372,6 +405,8 @@ export class MemoryEmbeddingService {
       threshold?: number;
       project_id?: string;
       owner_id?: string | string[];
+      process_id?: string | string[];
+      session_id?: string | string[];
     }
   ): Promise<SearchBySimilarityOutcome> {
     if (!this.embeddingService.isAvailable()) {

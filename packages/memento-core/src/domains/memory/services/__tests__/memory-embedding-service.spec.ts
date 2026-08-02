@@ -211,6 +211,22 @@ describe('MemoryEmbeddingService', () => {
       }
     });
 
+    it('process/session 범위를 유사도 SQL에 적용해야 함', () => {
+      const { sql, params } = (service as any).buildVecSimilarityQuery(
+        'tfidf',
+        'memory_item_vec_tfidf',
+        {
+          process_id: 'process-a',
+          session_id: 'session-a',
+          limit: 3,
+        },
+      );
+
+      expect(sql).toContain('AND m.process_id = ?');
+      expect(sql).toContain('AND m.session_id = ?');
+      expect(params).toEqual(['tfidf', 'process-a', 'session-a', 3]);
+    });
+
     it('임베딩 서비스가 사용 불가능하면 빈 배열을 반환해야 함', async () => {
       vi.spyOn(service, 'isAvailable').mockReturnValue(false);
 

@@ -81,7 +81,7 @@ export async function buildSearchStatement(
               m.num_times, m.last_mentioned_at, m.project_id,
               0 as fts_rank
             FROM memory_item m
-            WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
+            WHERE (m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?${reflectionNotesLike})`;
       sqlParams.push(likeQuery, likeQuery, likeQuery, ...reflectionNotesParams);
     }
   } else {
@@ -106,7 +106,7 @@ export async function buildSearchStatement(
       const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
       const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
 
-      sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
+      sql += ` WHERE (m.content LIKE ?${reflectionNotesLike})`;
       sqlParams.push(likeQuery, ...reflectionNotesParams);
     }
   }

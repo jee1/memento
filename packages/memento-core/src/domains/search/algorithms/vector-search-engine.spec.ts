@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchEngine, type VectorSearchResult, type VectorSearchOptions, type VectorIndexStatus } from './vector-search-engine.js';
 import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
+import { SCOPE_PREFETCH_MULTIPLIER } from '../repositories/vector-search/vector-search-scope.js';
 import Database from 'better-sqlite3';
 
 // Mock Database - removed global mock to avoid conflicts with individual mocks
@@ -339,8 +340,11 @@ describe('VectorSearchEngine', () => {
         pinned: row.pinned,
         tags: row.tags
       }));
-      // prefetchLimit 계산: typeFilters.length > 0 ? limit * 5 : limit
-      const prefetchLimit = options.types && options.types.length > 0 ? options.limit! * 5 : options.limit!;
+      // Scoped/type-filtered ANN is bounded prefetch, not exact pre-ANN scope.
+      expect(SCOPE_PREFETCH_MULTIPLIER).toBe(5);
+      const prefetchLimit = options.types && options.types.length > 0
+        ? options.limit! * SCOPE_PREFETCH_MULTIPLIER
+        : options.limit!;
       
       const allMock = vi.fn((...params: any[]) => {
         // 실제 구현의 파라미터 순서: query, prefetchLimit, type1, type2, limit

@@ -90,6 +90,8 @@ export class SearchResultCombiner implements ISearchResultCombiner {
         };
         if (result.project_id !== undefined) vectorOnly.project_id = result.project_id;
         if (result.owner_id !== undefined) vectorOnly.owner_id = result.owner_id;
+        if (result.process_id !== undefined) vectorOnly.process_id = result.process_id;
+        if (result.session_id !== undefined) vectorOnly.session_id = result.session_id;
         resultMap.set(result.id, vectorOnly);
       }
     });

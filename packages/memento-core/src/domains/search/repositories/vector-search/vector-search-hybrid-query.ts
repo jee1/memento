@@ -7,6 +7,7 @@ import { mcpLogger } from '../../../../server/mcp-logger.js';
 import type { SqlParam } from '../../../../shared/types/index.js';
 import type { VectorSearchResult } from '../../../../shared/types/vector-search.types.js';
 import { mapHybridResults } from './vector-search-result-mapper.js';
+import { SCOPE_PREFETCH_MULTIPLIER } from './vector-search-scope.js';
 import type {
   RawVectorSearchResult,
   RuntimeVectorContext,
@@ -112,7 +113,9 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       : '';
     const textScopeClause = buildItemScopeClause(scope);
     const vectorWhereSql = buildItemWhereSql(scope).replace(/^WHERE /, '  WHERE ');
-    const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter ? limit * 5 : limit;
+    const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter
+      ? limit * SCOPE_PREFETCH_MULTIPLIER
+      : limit;
 
     hybridQuery =
       'WITH vector_search AS (' +
@@ -240,7 +243,9 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
     ];
   } else {
     const outerWhereSql = buildItemWhereSql(scope);
-    const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter ? limit * 5 : limit;
+    const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter
+      ? limit * SCOPE_PREFETCH_MULTIPLIER
+      : limit;
 
     hybridQuery =
       'SELECT ' +
