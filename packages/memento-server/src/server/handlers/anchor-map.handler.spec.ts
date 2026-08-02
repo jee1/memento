@@ -337,7 +337,8 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
           { id: 'm1', content: 'hop1', type: 'episodic', hop_distance: 1, similarity: 0.8, predecessor_id: 'anchor-a' } as FakeSearchItem,
           { id: 'm2', content: 'hop2', type: 'episodic', hop_distance: 2, similarity: 0.6, predecessor_id: 'm1' } as FakeSearchItem,
         ],
-      }
+      },
+      new Set(['B'])
     );
 
     const serverServices = { anchorManager, relationGraph: noRelations } as unknown as ServerServices;
@@ -348,6 +349,7 @@ describe('buildAnchorMapData - hop 2/3 path edges (#715)', () => {
 
     const hopEdges = result.links.filter(l => l.type === 'hop');
     expect(hopEdges).toHaveLength(2);
+    expect(result.nodes.find(node => node.id === 'anchor-a')?.embedding_missing).toBe(true);
     expect(hopEdges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ source: 'anchor-a', target: 'm1', hop_distance: 1 }),
