@@ -64,7 +64,7 @@ export interface INHopSearchService {
    * N-hop 검색: 앵커를 기준으로 최대 N-hop까지 확장 검색
    */
   searchNHop(
-    anchorEmbedding: number[],
+    anchorEmbedding: number[] | null,
     provider: string,
     anchorMemoryId: string,
     threshold: number,
@@ -257,7 +257,7 @@ export class NHopSearchService implements INHopSearchService {
    * N-hop 검색: 앵커를 기준으로 최대 N-hop까지 확장 검색
    */
   async searchNHop(
-    anchorEmbedding: number[],
+    anchorEmbedding: number[] | null,
     provider: string,
     anchorMemoryId: string,
     threshold: number,
@@ -265,18 +265,30 @@ export class NHopSearchService implements INHopSearchService {
     limit: number,
     useRelations: boolean = true
   ): Promise<NHopSearchResult[]> {
-    const { engine } = this.requireVectorContext();
+    if (!this.db) {
+      throw new Error('Database is not set.');
+    }
+
+    const engine = anchorEmbedding
+      ? this.requireVectorContext().engine
+      : this.vectorSearchEngine;
+    if (engine && isInitializableVectorSearchEngine(engine)) {
+      engine.initialize(this.db);
+    }
 
     const discoveredMemoryIds = new Set<string>([anchorMemoryId]);
     // memory_id -> 그 메모리로 이어지는 모든 유효 경로의 predecessor id 집합 (#715 MEDIUM#1)
     const predecessorsByMemoryId = new Map<string, Set<string>>();
     const allResults: NHopSearchResult[] = [];
-    let currentHopMemories: Array<{ memory_id: string; embedding: number[] }> = [
-      { memory_id: anchorMemoryId, embedding: anchorEmbedding }
+    let currentHopMemories: Array<{ memory_id: string; embedding?: number[]; provider?: string }> = [
+      {
+        memory_id: anchorMemoryId,
+        ...(anchorEmbedding ? { embedding: anchorEmbedding, provider } : {})
+      }
     ];
 
     for (let hop = 1; hop <= maxHops; hop++) {
-      const nextHopMemories: Array<{ memory_id: string; embedding: number[] }> = [];
+      const nextHopMemories: Array<{ memory_id: string; embedding?: number[]; provider?: string }> = [];
       const hopResults: NHopSearchResult[] = [];
       const vectorSearchLimit = Math.min(
         100,
@@ -290,16 +302,18 @@ export class NHopSearchService implements INHopSearchService {
 
       const vectorResults = await Promise.all(
         currentHopMemories.map((m) =>
-          engine.search(
-            m.embedding,
-            {
-              limit: vectorSearchLimit,
-              threshold: 0.0,
-              includeContent: true,
-              includeMetadata: true
-            },
-            provider
-          )
+          engine && m.embedding
+            ? engine.search(
+                m.embedding,
+                {
+                  limit: vectorSearchLimit,
+                  threshold: 0.0,
+                  includeContent: true,
+                  includeMetadata: true
+                },
+                m.provider ?? provider
+              )
+            : Promise.resolve([])
         )
       );
 

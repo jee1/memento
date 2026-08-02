@@ -23,7 +23,7 @@ export type LinkedMemorySummary = {
 
 export type HopCandidate = LinkedMemorySummary & { isLinked: boolean };
 
-type HopSeed = { memory_id: string; embedding: number[] };
+type HopSeed = { memory_id: string; embedding?: number[]; provider?: string };
 
 type RelationGraphReader = Pick<RelationGraphPort, 'getRelations'> & {
   getRelationsBatch(
@@ -112,8 +112,7 @@ export class NHopLinkedMemoryService {
     const nextHopSeeds: HopSeed[] = [];
 
     for (const [memoryId, candidate] of allCandidates.entries()) {
-      const effectiveThreshold = candidate.isLinked ? threshold * 0.8 : threshold;
-      if (candidate.similarity < effectiveThreshold) {
+      if (!candidate.isLinked && candidate.similarity < threshold) {
         continue;
       }
 
@@ -142,10 +141,7 @@ export class NHopLinkedMemoryService {
       });
 
       if (hop < maxHops) {
-        const seed = await this.tryGetNextHopSeed(candidate.memory_id);
-        if (seed) {
-          nextHopSeeds.push(seed);
-        }
+        nextHopSeeds.push(await this.getNextHopSeed(candidate.memory_id));
       }
     }
 
@@ -201,19 +197,23 @@ export class NHopLinkedMemoryService {
     return result;
   }
 
-  private async tryGetNextHopSeed(memoryId: string): Promise<HopSeed | null> {
+  private async getNextHopSeed(memoryId: string): Promise<HopSeed> {
     try {
       const nextEmbedding = await this.cacheService.getAnchorEmbedding(memoryId);
       if (nextEmbedding?.embedding) {
-        return { memory_id: memoryId, embedding: nextEmbedding.embedding };
+        return {
+          memory_id: memoryId,
+          embedding: nextEmbedding.embedding,
+          provider: nextEmbedding.provider
+        };
       }
     } catch (error) {
-      logger.debug('Skipping memory for next hop (no embedding)', {
+      logger.debug('Continuing relation traversal without vector augmentation', {
         memoryId,
         error: error instanceof Error ? error.message : String(error)
       });
     }
-    return null;
+    return { memory_id: memoryId };
   }
 
   private async getLinkedMemories(memoryId: string): Promise<LinkedMemorySummary[]> {

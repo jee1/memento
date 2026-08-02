@@ -95,7 +95,8 @@ type FakeSearchItem = {
 
 function buildFakeAnchorManager(
   anchors: Array<{ agent_id: string; slot: string; memory_id: string | null; created_at: string; updated_at: string }>,
-  searchResultsBySlot: Record<string, FakeSearchItem[]>
+  searchResultsBySlot: Record<string, FakeSearchItem[]>,
+  embeddingMissingSlots: Set<string> = new Set()
 ): ServerServices['anchorManager'] {
   return {
     getAnchor: vi.fn().mockResolvedValue(anchors),
@@ -106,6 +107,12 @@ function buildFakeAnchorManager(
       local_results_count: (searchResultsBySlot[slot] ?? []).length,
       fallback_used: false,
       query_time: 0,
+      anchor_info: {
+        agent_id: _agentId,
+        slot,
+        memory_id: anchors.find(anchor => anchor.slot === slot)?.memory_id ?? null,
+        embedding_missing: embeddingMissingSlots.has(slot),
+      },
     })),
   } as unknown as ServerServices['anchorManager'];
 }
@@ -236,6 +243,63 @@ describe('buildAnchorMapData - anchor map network edges (#709)', () => {
 
     expect(result.links.filter(l => l.type === 'link')).toHaveLength(0);
     expect(result.nodes.find(n => n.id === 'mem-not-on-map')).toBeUndefined();
+  });
+
+  it('marks vector augmentation as unavailable without hiding relation results (#725)', async () => {
+    insertMemory('anchor-a');
+    insertMemory('mem-neighbor');
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      { A: [{ id: 'mem-neighbor', content: 'neighbor', type: 'semantic', hop_distance: 1 }] },
+      new Set(['A'])
+    );
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockResolvedValue(new Map()),
+    } as unknown as ServerServices['relationGraph'];
+
+    const result = await buildAnchorMapData(
+      db,
+      { anchorManager, relationGraph } as unknown as ServerServices,
+      'default'
+    );
+
+    expect(result.nodes.find(node => node.id === 'anchor-a')?.embedding_missing).toBe(true);
+    expect(result.nodes.find(node => node.id === 'mem-neighbor')).toBeDefined();
+  });
+
+  it('does not disguise RelationGraph lookup failures as a successful empty map (#725)', async () => {
+    insertMemory('anchor-a');
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      { A: [] }
+    );
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockRejectedValue(new Error('relation unavailable')),
+    } as unknown as ServerServices['relationGraph'];
+
+    await expect(buildAnchorMapData(
+      db,
+      { anchorManager, relationGraph } as unknown as ServerServices,
+      'default'
+    )).rejects.toThrow('relation unavailable');
+  });
+
+  it('does not disguise RelationGraph failures from local search as a partial map (#725)', async () => {
+    insertMemory('anchor-a');
+    const anchorManager = buildFakeAnchorManager(
+      [{ agent_id: 'default', slot: 'A', memory_id: 'anchor-a', created_at: 'now', updated_at: 'now' }],
+      { A: [] }
+    );
+    vi.mocked(anchorManager.searchLocal).mockRejectedValue(new Error('relation search unavailable'));
+    const relationGraph = {
+      getRelationsBatch: vi.fn().mockResolvedValue(new Map()),
+    } as unknown as ServerServices['relationGraph'];
+
+    await expect(buildAnchorMapData(
+      db,
+      { anchorManager, relationGraph } as unknown as ServerServices,
+      'default'
+    )).rejects.toThrow('relation search unavailable');
   });
 });
 

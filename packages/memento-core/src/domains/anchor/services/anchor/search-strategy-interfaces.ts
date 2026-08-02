@@ -35,7 +35,7 @@ export interface INHopSearchStrategy extends ISearchStrategy {
    * N-hop 검색 수행
    */
   search(
-    anchorEmbedding: number[],
+    anchorEmbedding: number[] | null,
     provider: string,
     anchorMemoryId: string,
     threshold: number,
@@ -72,4 +72,3 @@ export interface IFallbackStrategy extends ISearchStrategy {
     startTime: number | undefined
   ): Promise<SearchResult>;
 }
-

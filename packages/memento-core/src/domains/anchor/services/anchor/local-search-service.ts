@@ -88,7 +88,7 @@ export class LocalSearchService {
    * N-hop 검색 수행
    */
   async performNHopSearch(
-    anchorEmbedding: number[],
+    anchorEmbedding: number[] | null,
     provider: string,
     anchorMemoryId: string,
     threshold: number,
@@ -217,4 +217,3 @@ export class LocalSearchService {
     }
   }
 }
-

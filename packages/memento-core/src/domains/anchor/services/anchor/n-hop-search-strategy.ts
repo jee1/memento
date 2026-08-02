@@ -25,7 +25,7 @@ export class NHopSearchStrategy implements INHopSearchStrategy {
    * N-hop 검색 수행
    */
   async search(
-    anchorEmbedding: number[],
+    anchorEmbedding: number[] | null,
     provider: string,
     anchorMemoryId: string,
     threshold: number,
@@ -49,7 +49,7 @@ export class NHopSearchStrategy implements INHopSearchStrategy {
    */
   async execute(...args: unknown[]): Promise<NHopSearchResult[]> {
     return this.search(
-      args[0] as number[], // anchorEmbedding
+      args[0] as number[] | null, // anchorEmbedding
       args[1] as string, // provider
       args[2] as string, // anchorMemoryId
       args[3] as number, // threshold
@@ -59,4 +59,3 @@ export class NHopSearchStrategy implements INHopSearchStrategy {
     );
   }
 }
-

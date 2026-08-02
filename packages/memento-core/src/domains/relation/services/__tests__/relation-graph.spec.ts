@@ -273,6 +273,39 @@ describe('RelationGraph', () => {
       expect(relations).toHaveLength(3);
     });
 
+    it('should apply relation type filters to both directions', async () => {
+      const relations = await relationGraph.getRelations('mem1', {
+        direction: 'both',
+        relationTypes: ['CAUSES']
+      });
+
+      expect(relations).toHaveLength(1);
+      expect(relations.every(relation => relation.relation_type === 'CAUSES')).toBe(true);
+    });
+
+    it('should apply minimum confidence to both directions', async () => {
+      const relations = await relationGraph.getRelations('mem1', {
+        direction: 'both',
+        minConfidence: 0.8
+      });
+
+      expect(relations).toHaveLength(2);
+      expect(relations.every(relation => relation.confidence >= 0.8)).toBe(true);
+    });
+
+    it('should apply filters symmetrically in batch both-direction queries', async () => {
+      const relationsByMemory = await relationGraph.getRelationsBatch(['mem1', 'mem2'], {
+        direction: 'both',
+        minConfidence: 0.8
+      });
+
+      expect(relationsByMemory.get('mem1')?.every(relation => relation.confidence >= 0.8)).toBe(true);
+      expect(relationsByMemory.get('mem2')?.every(relation => relation.confidence >= 0.8)).toBe(true);
+      expect(relationsByMemory.get('mem2')).toEqual([
+        expect.objectContaining({ source_id: 'mem1', target_id: 'mem2', confidence: 0.9 })
+      ]);
+    });
+
     it('should filter by relation type', async () => {
       // When: 특정 관계 유형으로 필터링
       const relations = await relationGraph.getRelations('mem1', {

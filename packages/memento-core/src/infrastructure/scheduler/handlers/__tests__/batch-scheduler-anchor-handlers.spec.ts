@@ -14,6 +14,7 @@ import type { BatchSchedulerRunContext } from '../batch-scheduler-run-context.js
 import { AnchorManager } from '../../../../domains/anchor/services/anchor/anchor-manager.js';
 import { AnchorCacheService } from '../../../../domains/anchor/services/anchor/anchor-cache-service.js';
 import { AnchorSearchService } from '../../../../domains/anchor/services/anchor/anchor-search-service.js';
+import { createRelationGraph } from '../../../relation-graph-factory.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 
 function addRelation(db: Database.Database, sourceId: string, targetId: string): void {
@@ -59,6 +60,7 @@ describe('runAnchorAutoRefresh candidate scoring', () => {
     cacheService.setDatabase(db);
     const searchService = new AnchorSearchService(cacheService);
     searchService.setDatabase(db);
+    searchService.setRelationGraph(createRelationGraph(db));
     anchorManager = new AnchorManager(cacheService, searchService);
     anchorManager.setDatabase(db);
   });
@@ -117,6 +119,43 @@ describe('runAnchorAutoRefresh candidate scoring', () => {
     expect(pickedIds).toContain(embeddingOnly);
     expect(pickedIds).toContain(extraConnected);
     expect(pickedIds).not.toContain(isolated);
+  });
+
+  it('auto-refresh가 선택한 relation-only anchor는 즉시 local search 가능해야 한다 (#725)', async () => {
+    const relationOnly = createTestMemory(db, {
+      id: 'mem_searchable_relation_only',
+      content: 'searchable relation-only anchor',
+      importance: 0.99
+    });
+    const neighbor = createTestMemory(db, {
+      id: 'mem_searchable_neighbor',
+      content: 'relation neighbor',
+      importance: 0.9
+    });
+    const embeddingOnly = createTestMemory(db, {
+      id: 'mem_searchable_embedding',
+      content: 'embedding candidate',
+      importance: 0.8
+    });
+    const stale = createTestMemory(db, {
+      id: 'mem_searchable_stale',
+      content: 'stale isolated anchor',
+      importance: 0.1
+    });
+    addRelation(db, relationOnly, neighbor);
+    addEmbedding(db, embeddingOnly);
+    seedStaleAnchor(db, agentId, stale);
+
+    const refreshResult = await runAnchorAutoRefresh(createContext(db, anchorManager));
+    const anchorA = await anchorManager.getAnchor(agentId, 'A') as { memory_id: string } | null;
+    const searchResult = await anchorManager.searchLocal(agentId, 'A', undefined, 1, { limit: 10 });
+
+    expect(refreshResult.success).toBe(true);
+    expect(anchorA?.memory_id).toBe(relationOnly);
+    expect(searchResult.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: neighbor, hop_distance: 1 })
+    ]));
+    expect(searchResult.anchor_info?.embedding_missing).toBe(true);
   });
 
   it('고립 후보만 존재하면(대체 후보가 없으면) 폴백으로 여전히 앵커를 채워야 한다', async () => {
