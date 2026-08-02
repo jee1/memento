@@ -59,6 +59,7 @@ export interface SearchResult {
     agent_id: string;
     slot: AnchorSlot;
     memory_id: string | null;
+    embedding_missing?: boolean;
   };
 }
 
@@ -108,7 +109,7 @@ export interface IAnchorSearchService {
     hopLimit: number | undefined,
     options: SearchOptions | undefined,
     anchorMemoryId: string,
-    anchorEmbedding: { embedding: number[]; provider: string },
+    anchorEmbedding: { embedding: number[]; provider: string } | null,
     startTime: number
   ): Promise<SearchResult>;
 

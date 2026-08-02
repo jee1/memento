@@ -198,7 +198,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     hopLimit: number | undefined,
     options: SearchOptions | undefined,
     anchorMemoryId: string,
-    anchorEmbedding: { embedding: number[]; provider: string },
+    anchorEmbedding: { embedding: number[]; provider: string } | null,
     startTime: number
   ): Promise<SearchResult> {
     if (!this.db) {
@@ -251,8 +251,8 @@ export class AnchorSearchService implements IAnchorSearchService {
     const minResults = options?.min_results ?? 3;
     const useRelations = options?.use_relations ?? true; // 기본값: true
 
-    // VectorSearchEngine이 없으면 에러
-    if (!this.vectorSearchEngine) {
+    // 임베딩이 있으면 vector augmentation도 사용할 수 있어야 한다.
+    if (anchorEmbedding && !this.vectorSearchEngine) {
       // Phase 8.4: 커스텀 에러 클래스 사용
       const error = new ServiceNotInitializedError('VectorSearchEngine', 'setVectorSearchEngine()');
       // Phase 8.3: ErrorLoggingService를 통한 에러 로깅
@@ -275,8 +275,8 @@ export class AnchorSearchService implements IAnchorSearchService {
     // Phase 3.6: LocalSearchService를 사용하여 파이프라인 실행
     // 1. N-hop 검색 수행
     const allHopResults = await this.localSearchService.performNHopSearch(
-      anchorEmbedding.embedding,
-      anchorEmbedding.provider,
+      anchorEmbedding?.embedding ?? null,
+      anchorEmbedding?.provider ?? '',
       anchorMemoryId,
       vectorThreshold,
       finalHopLimit,
@@ -288,7 +288,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     const filteredResults = await this.localSearchService.applyQueryFilter(
       query,
       allHopResults,
-      anchorEmbedding.provider
+      anchorEmbedding?.provider ?? ''
     );
 
 
@@ -329,7 +329,8 @@ export class AnchorSearchService implements IAnchorSearchService {
       anchor_info: {
         agent_id: agentId,
         slot: slot,
-        memory_id: anchorMemoryId
+        memory_id: anchorMemoryId,
+        embedding_missing: !anchorEmbedding
       }
     };
   }

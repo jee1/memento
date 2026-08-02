@@ -349,5 +349,31 @@ describe('AnchorManager', () => {
       expect(configC.vector_threshold).toBe(0.4);
     });
   });
-});
 
+  describe('searchLocal', () => {
+    it('embedding이 없는 anchor도 relation search 계약으로 전달해야 함 (#725)', async () => {
+      const memoryId = createTestMemory(db, { content: 'relation-only anchor', type: 'semantic' });
+      await manager.setAnchor(agentId, memoryId, 'A');
+      vi.spyOn(cacheService, 'getAnchorEmbedding').mockResolvedValue(null);
+      const searchLocal = vi.spyOn(searchService, 'searchLocal').mockResolvedValue({
+        items: [],
+        total_count: 0,
+        local_results_count: 0,
+        fallback_used: false,
+        query_time: 0
+      });
+
+      await expect(manager.searchLocal(agentId, 'A')).resolves.toBeDefined();
+      expect(searchLocal).toHaveBeenCalledWith(
+        agentId,
+        'A',
+        undefined,
+        undefined,
+        undefined,
+        memoryId,
+        null,
+        expect.any(Number)
+      );
+    });
+  });
+});

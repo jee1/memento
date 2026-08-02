@@ -400,6 +400,114 @@ describe('NHopSearchService', () => {
       expect(linkedResult?.hasRelation).toBe(true);
     });
 
+    it('embedding이 있으면 vector 후보와 relation 후보를 함께 반환해야 함 (#725)', async () => {
+      if (!relationGraph) {
+        throw new Error('relationGraph 초기화 실패 - 테스트 전제 조건 불충족');
+      }
+
+      const anchorMemoryId = createTestMemory(db, { id: 'hybrid-anchor', content: 'anchor' });
+      const linkedMemoryId = createTestMemory(db, { id: 'hybrid-relation', content: 'relation' });
+      await relationGraph.addRelation(anchorMemoryId, linkedMemoryId, 'REFERENCES', { confidence: 0.9 });
+      (mockVectorSearchEngine.search as any).mockResolvedValue([
+        {
+          memory_id: 'hybrid-vector',
+          content: 'vector',
+          type: 'semantic',
+          similarity: 0.8,
+          importance: 0.5,
+          created_at: '2026-08-02T00:00:00Z'
+        }
+      ]);
+
+      const results = await service.searchNHop(
+        [0.1, 0.2, 0.3],
+        'test-provider',
+        anchorMemoryId,
+        0.7,
+        1,
+        10,
+        true
+      );
+
+      expect(results.map(result => result.memory_id)).toEqual(
+        expect.arrayContaining([linkedMemoryId, 'hybrid-vector'])
+      );
+      expect(results.find(result => result.memory_id === linkedMemoryId)?.hasRelation).toBe(true);
+      expect(results.find(result => result.memory_id === 'hybrid-vector')?.hasRelation).toBe(false);
+    });
+
+    it('relation-only anchor는 embedding과 vector threshold 없이 1-hop 이웃을 반환해야 함 (#725)', async () => {
+      if (!relationGraph) {
+        throw new Error('relationGraph 초기화 실패 - 테스트 전제 조건 불충족');
+      }
+
+      const anchorMemoryId = createTestMemory(db, {
+        id: 'relation-only-anchor',
+        content: 'relation-only anchor'
+      });
+      const linkedMemoryId = createTestMemory(db, {
+        id: 'relation-only-neighbor',
+        content: 'relation-only neighbor'
+      });
+      await relationGraph.addRelation(anchorMemoryId, linkedMemoryId, 'REFERENCES', { confidence: 0.6 });
+
+      const results = await service.searchNHop(
+        null,
+        '',
+        anchorMemoryId,
+        0.8,
+        1,
+        10,
+        true
+      );
+
+      expect(results).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          memory_id: linkedMemoryId,
+          hop_distance: 1,
+          predecessor_id: anchorMemoryId,
+          hasRelation: true
+        })
+      ]));
+      expect(mockVectorSearchEngine.search).not.toHaveBeenCalled();
+    });
+
+    it('relation-only chain은 중간 embedding 없이 2-hop까지 확장해야 함 (#725)', async () => {
+      if (!relationGraph) {
+        throw new Error('relationGraph 초기화 실패 - 테스트 전제 조건 불충족');
+      }
+
+      const anchorMemoryId = createTestMemory(db, { id: 'relation-chain-anchor', content: 'anchor' });
+      const firstHopId = createTestMemory(db, { id: 'relation-chain-m1', content: 'm1' });
+      const secondHopId = createTestMemory(db, { id: 'relation-chain-m2', content: 'm2' });
+      await relationGraph.addRelation(anchorMemoryId, firstHopId, 'CAUSES', { confidence: 0.9 });
+      await relationGraph.addRelation(firstHopId, secondHopId, 'CAUSES', { confidence: 0.9 });
+
+      const results = await service.searchNHop(
+        null,
+        '',
+        anchorMemoryId,
+        0.8,
+        2,
+        10,
+        true
+      );
+
+      expect(results).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          memory_id: firstHopId,
+          hop_distance: 1,
+          predecessor_id: anchorMemoryId
+        }),
+        expect.objectContaining({
+          memory_id: secondHopId,
+          hop_distance: 2,
+          predecessor_id: firstHopId
+        })
+      ]));
+      expect(mockVectorSearchEngine.search).not.toHaveBeenCalled();
+    });
+
     it('VectorSearchEngine이 설정되지 않았으면 에러를 던져야 함', async () => {
       // Given: VectorSearchEngine이 설정되지 않은 서비스일 때
       const serviceWithoutEngine = new NHopSearchService(cacheService);
@@ -611,4 +719,3 @@ describe('NHopSearchService', () => {
     });
   });
 });
-

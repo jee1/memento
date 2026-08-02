@@ -6,7 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorSlot, AnchorInfo, SearchOptions, SearchResult } from './anchor-interfaces.js';
-import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError, EmbeddingNotFoundError } from './anchor-interfaces.js';
+import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
 
@@ -416,9 +416,6 @@ export class AnchorManager implements IAnchorManager {
 
     // 앵커 임베딩 가져오기
     const anchorEmbedding = await this.cacheService.getAnchorEmbedding(anchorMemoryId);
-    if (!anchorEmbedding) {
-      throw new EmbeddingNotFoundError(anchorMemoryId);
-    }
 
     const startTime = Date.now();
     return this.searchService.searchLocal(
@@ -433,4 +430,3 @@ export class AnchorManager implements IAnchorManager {
     );
   }
 }
-

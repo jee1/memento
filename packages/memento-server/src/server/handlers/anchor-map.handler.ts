@@ -261,6 +261,11 @@ async function buildNetworkNodesAndLinks(
           { limit: 50 }
         );
 
+        const anchorNode = nodes.find(n => n.id === anchor.memory_id);
+        if (anchorNode && searchResult.anchor_info?.embedding_missing) {
+          anchorNode.embedding_missing = true;
+        }
+
         // hop 오름차순으로 경로 폐쇄성을 검증해, predecessor가 랭킹/limit/쿼리 필터로
         // 탈락한 hop≥2 노드는 부유(floating) 상태로 남기지 않고 제외한다 (#715 MEDIUM#2).
         // 노드 dedup과 별개로, 하나의 메모리로 여러 경로가 합류하면 edge는 모두 보존한다 (#715 MEDIUM#1).
@@ -304,6 +309,7 @@ async function buildNetworkNodesAndLinks(
             slot: anchor.slot,
             error: error instanceof Error ? error.message : String(error)
           });
+          throw error;
         }
       }
     }
@@ -315,7 +321,6 @@ async function buildNetworkNodesAndLinks(
 
   return { nodes, links };
 }
-
 /**
  * RelationGraph(memory_relation)를 활용한 네트워크 링크 생성.
  * 노드로 등록된 메모리끼리의 관계만 엣지로 반영하며, confidence를 가중치로 사용한다.
@@ -354,6 +359,7 @@ async function buildRelationLinks(
     logger.error('Relation link lookup failed', {
       error: error instanceof Error ? error.message : String(error)
     });
+    throw error;
   }
 
   return links;
@@ -418,4 +424,3 @@ export async function broadcastAnchorMapUpdate(
     });
   }
 }
-

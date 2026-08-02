@@ -53,7 +53,7 @@ export class RelationGraphQuery {
     } else {
       query = `
         SELECT * FROM memory_relation
-        WHERE source_id = ? OR target_id = ?
+        WHERE (source_id = ? OR target_id = ?)
       `;
       params.push(memoryId, memoryId);
     }
@@ -120,7 +120,7 @@ export class RelationGraphQuery {
       query = `SELECT * FROM memory_relation WHERE target_id IN (${placeholders})`;
       params.push(...memoryIds);
     } else {
-      query = `SELECT * FROM memory_relation WHERE source_id IN (${placeholders}) OR target_id IN (${placeholders})`;
+      query = `SELECT * FROM memory_relation WHERE (source_id IN (${placeholders}) OR target_id IN (${placeholders}))`;
       params.push(...memoryIds, ...memoryIds);
     }
 
