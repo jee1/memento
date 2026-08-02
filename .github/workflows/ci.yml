@@ -27,7 +27,7 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm ci
-      - run: npm run lint -- --max-warnings 0 || echo "Linting completed with warnings"
+      - run: npm run lint
       - run: npx tsx scripts/count-console-logs.ts --core-only --ci
         continue-on-error: false
       - run: npx tsx scripts/archive/check-retry-usage.ts --ci
@@ -145,6 +145,50 @@ jobs:
           path: test-results/
           retention-days: 7
         continue-on-error: true
+
+  test-agent-integration:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run tests (@memento/agent-integration)
+        run: npm run test:ci -w @memento/agent-integration
+
+  test-assistant:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build @memento/client (required for assistant test resolution)
+        run: npm run build -w @memento/client
+      - name: Run tests (@memento/assistant)
+        run: npm run test:ci -w @memento/assistant
+
+  test-scripts:
+    needs: [ lint-typecheck ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run scripts unit tests
+        run: npm run test:ci:scripts
 
   test-search-quality:
     needs: [ lint-typecheck ]

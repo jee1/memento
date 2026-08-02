@@ -39,6 +39,7 @@
     "test:ci:root": "vitest --run --reporter=basic tests/",
     "test:ci:core": "vitest --run --reporter=basic packages/memento-core/src/",
     "test:ci:server": "vitest --run --reporter=basic packages/memento-server/src/",
+    "test:ci:scripts": "vitest --run --reporter=basic scripts/acquire-longmemeval.spec.ts scripts/agent-integration-release-gate.spec.ts scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts scripts/agent-smoke-matrix.spec.ts scripts/compare-weight-profiles.spec.ts scripts/longmemeval-validation.spec.ts scripts/quality-benchmark-category-report.spec.ts scripts/quality-feedback-reappearance-report.spec.ts scripts/__tests__/check-magic-numbers.spec.ts scripts/__tests__/count-console-logs.spec.ts scripts/__tests__/legacy-script-removal.spec.ts scripts/__tests__/legacy-script-verification.spec.ts scripts/log-issue-monitor/__tests__/",
     "test:vector-search-quality": "vitest --run packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "npm run lint:ts && npm run lint:js",
