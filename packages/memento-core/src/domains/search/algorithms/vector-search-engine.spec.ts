@@ -5,7 +5,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VectorSearchEngine, type VectorSearchResult, type VectorSearchOptions, type VectorIndexStatus } from './vector-search-engine.js';
 import { VectorSearchContainer } from '../services/vector-search/vector-search-container.js';
-import { SCOPE_PREFETCH_MULTIPLIER } from '../repositories/vector-search/vector-search-scope.js';
 import Database from 'better-sqlite3';
 
 // Mock Database - removed global mock to avoid conflicts with individual mocks
@@ -340,19 +339,19 @@ describe('VectorSearchEngine', () => {
         pinned: row.pinned,
         tags: row.tags
       }));
-      // Scoped/type-filtered ANN is bounded prefetch, not exact pre-ANN scope.
-      expect(SCOPE_PREFETCH_MULTIPLIER).toBe(5);
-      const prefetchLimit = options.types && options.types.length > 0
-        ? options.limit! * SCOPE_PREFETCH_MULTIPLIER
-        : options.limit!;
-      
       const allMock = vi.fn((...params: any[]) => {
-        // 실제 구현의 파라미터 순서: query, prefetchLimit, type1, type2, limit
+        // 실제 구현의 파라미터 순서: query, k, candidate provider/types, outer types, limit
         expect(params[0]).toBe(JSON.stringify(queryVector));
-        expect(params[1]).toBe(prefetchLimit);
-        expect(params[2]).toBe('episodic');
-        expect(params[3]).toBe('semantic');
-        expect(params[4]).toBe(options.limit);
+        expect(params).toEqual([
+          JSON.stringify(queryVector),
+          options.limit,
+          'tfidf',
+          'episodic',
+          'semantic',
+          'episodic',
+          'semantic',
+          options.limit,
+        ]);
         return mockResults;
       });
 
@@ -377,6 +376,8 @@ describe('VectorSearchEngine', () => {
         if (isVectorSearchQuery) {
           if (sql.includes('mi.type IN')) {
             expect(sql).toContain('mi.type IN (?,?)');
+            expect(sql).toContain('AND k = ?');
+            expect(sql).toContain('rowid IN (SELECT scoped_me.id');
           }
           // allMock이 함수이므로 직접 호출 가능하도록 설정
           const mockStatement = { all: allMock };

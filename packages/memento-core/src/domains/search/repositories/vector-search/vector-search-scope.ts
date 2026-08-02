@@ -5,13 +5,6 @@
 import type { VectorSearchQuery } from '../../../../shared/types/vector-search.types.js';
 import type { VectorSearchScope } from './vector-search.types.js';
 
-/**
- * sqlite-vec applies MATCH LIMIT before memory_item scopes can be joined.
- * Scoped ANN recall is therefore bounded prefetch: correctness holds while
- * nearer out-of-scope neighbors do not exhaust this prefetch window.
- */
-export const SCOPE_PREFETCH_MULTIPLIER = 5;
-
 export function parseVectorSearchScope(query: VectorSearchQuery): VectorSearchScope {
   const normalizedOptions = query.options ?? {};
   const {

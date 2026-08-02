@@ -187,6 +187,7 @@ export class MemoryEmbeddingService {
   private buildVecSimilarityQuery(
     provider: EmbeddingProvider,
     tableName: string,
+    queryVector: number[],
     filters?: {
       type?: MemoryType[];
       limit?: number;
@@ -197,7 +198,7 @@ export class MemoryEmbeddingService {
       session_id?: string | string[];
     }
   ): { sql: string; params: unknown[] } {
-    const typeFilter = filters?.type
+    const typeFilter = filters?.type?.length
       ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')'
       : '';
     const projectClause =
@@ -231,6 +232,30 @@ export class MemoryEmbeddingService {
     };
     const processScope = buildScopeClause('process_id', filters?.process_id);
     const sessionScope = buildScopeClause('session_id', filters?.session_id);
+    const projectParams: unknown[] =
+      typeof filters?.project_id === 'string' && filters.project_id.length > 0 ? [filters.project_id] : [];
+    const filterParams: unknown[] = [
+      ...(filters?.type || []),
+      ...projectParams,
+      ...ownerParams,
+      ...processScope.params,
+      ...sessionScope.params,
+    ];
+    const hasScopedCandidates = filterParams.length > 0;
+    const scopedFilters = [typeFilter, projectClause, ownerClause, processScope.clause, sessionScope.clause]
+      .filter(Boolean)
+      .join(' ')
+      .replaceAll('m.', 'scoped_m.');
+    const scopedCandidateSql = hasScopedCandidates
+      ? ' AND rowid IN (' +
+        'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
+        'JOIN memory_item scoped_m ON scoped_m.id = scoped_me.memory_id ' +
+        'WHERE scoped_me.embedding_provider = ? ' +
+        'AND (COALESCE(scoped_m.is_deleted, 0) = 0) ' +
+        scopedFilters +
+        ') '
+      : '';
+    const limit = filters?.limit || 10;
     const sql =
       'SELECT ' +
       '  m.id, ' +
@@ -247,11 +272,16 @@ export class MemoryEmbeddingService {
       '  m.session_id, ' +
       '  v.distance as similarity, ' +
       '  (1 - v.distance) as score ' +
-      'FROM memory_item m ' +
-      'JOIN memory_embedding me ON m.id = me.memory_id ' +
-      'JOIN ' +
-      tableName +
-      ' v ON me.id = v.rowid ' +
+      'FROM (' +
+      '  SELECT rowid, distance ' +
+      `  FROM ${tableName} ` +
+      '  WHERE embedding MATCH ? ' +
+      '  AND k = ? ' +
+      scopedCandidateSql +
+      '  ORDER BY distance ASC' +
+      ') v ' +
+      'JOIN memory_embedding me ON me.id = v.rowid ' +
+      'JOIN memory_item m ON m.id = me.memory_id ' +
       'WHERE me.embedding_provider = ? ' +
       'AND (COALESCE(m.is_deleted, 0) = 0) ' +
       typeFilter +
@@ -266,19 +296,17 @@ export class MemoryEmbeddingService {
       'ORDER BY v.distance ASC ' +
       'LIMIT ?';
 
-    const projectParams: unknown[] =
-      typeof filters?.project_id === 'string' && filters.project_id.length > 0 ? [filters.project_id] : [];
-
-    const params: unknown[] = [
-      provider,
-      ...(filters?.type || []),
-      ...projectParams,
-      ...ownerParams,
-      ...processScope.params,
-      ...sessionScope.params,
-      filters?.limit || 10,
-    ];
-    return { sql, params };
+    return {
+      sql,
+      params: [
+        JSON.stringify(queryVector),
+        limit,
+        ...(hasScopedCandidates ? [provider, ...filterParams] : []),
+        provider,
+        ...filterParams,
+        limit,
+      ],
+    };
   }
 
   private mapSimilaritySearchRows(rows: SimilaritySearchRow[]): VectorSearchResult[] {
@@ -428,7 +456,12 @@ export class MemoryEmbeddingService {
       const provider = this.normalizeProvider(queryEmbedding.provider);
       queryEmbeddingProviders = [provider];
       const tableName = this.getVectorTableName(provider);
-      const { sql, params } = this.buildVecSimilarityQuery(provider, tableName, filters);
+      const { sql, params } = this.buildVecSimilarityQuery(
+        provider,
+        tableName,
+        queryEmbedding.embedding,
+        filters,
+      );
       const similarities = await DatabaseUtils.all(db, sql, params);
 
       return {

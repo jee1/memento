@@ -511,6 +511,58 @@ describe('VectorSearchRepositoryImpl', () => {
       expect(results.map((result) => result.memory_id)).toEqual(['mem_hybrid_scope_b']);
     });
 
+    it('project_id 스코프가 가까운 범위 밖 이웃보다 먼저 KNN 후보를 제한해야 함', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
+      const outOfScopeVector = JSON.stringify(new Array(512).fill(0));
+      const inScopeVector = JSON.stringify(new Array(512).fill(0.01));
+      const insertItem = db.prepare(
+        `INSERT INTO memory_item (id, type, content, importance, created_at, project_id)
+         VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?)`
+      );
+      const insertEmbedding = db.prepare(
+        `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
+         VALUES (?, ?, 512, 'tfidf', 512)`
+      );
+
+      for (let index = 0; index < 12; index += 1) {
+        const memoryId = `mem_out_of_scope_${index}`;
+        insertItem.run(memoryId, `out of scope ${index}`, 'other-project');
+        insertEmbedding.run(memoryId, outOfScopeVector);
+        const embedding = db.prepare(
+          'SELECT id FROM memory_embedding WHERE memory_id = ?'
+        ).get(memoryId) as { id: number };
+        db.exec(
+          `INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+           VALUES (${embedding.id}, '${outOfScopeVector}')`
+        );
+      }
+
+      insertItem.run('mem_in_scope_exact', 'in scope exact candidate', 'target-project');
+      insertEmbedding.run('mem_in_scope_exact', inScopeVector);
+      const inScopeEmbedding = db.prepare(
+        'SELECT id FROM memory_embedding WHERE memory_id = ?'
+      ).get('mem_in_scope_exact') as { id: number };
+      db.exec(
+        `INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+         VALUES (${inScopeEmbedding.id}, '${inScopeVector}')`
+      );
+
+      const results = await repository.search({
+        queryVector: new Array(512).fill(0),
+        provider: 'tfidf',
+        options: {
+          limit: 1,
+          threshold: 0,
+          project_id: 'target-project',
+        },
+      });
+
+      expect(results.map((result) => result.memory_id)).toEqual(['mem_in_scope_exact']);
+    });
+
     it('owner_id 배열 스코프가 hybridSearch에 적용되어야 함', async () => {
       if (!(await seedScopedHybridMemories())) {
         return;
