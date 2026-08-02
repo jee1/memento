@@ -411,8 +411,8 @@ describe('VectorSearchRepositoryImpl', () => {
 
       const insertItem = db.prepare(
         `INSERT INTO memory_item (
-          id, type, content, importance, created_at, project_id, owner_id
-        ) VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?, ?)`
+          id, type, content, importance, created_at, project_id, owner_id, process_id, session_id
+        ) VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?, ?, ?, ?)`
       );
       const insertEmb = db.prepare(
         `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
@@ -420,12 +420,12 @@ describe('VectorSearchRepositoryImpl', () => {
       );
 
       const rows = [
-        { id: 'mem_hybrid_scope_a', content: 'alpha scoped hybrid content', projectId: 'proj-a', ownerId: 'owner-a' },
-        { id: 'mem_hybrid_scope_b', content: 'beta scoped hybrid content', projectId: 'proj-b', ownerId: 'owner-b' },
+        { id: 'mem_hybrid_scope_a', content: 'alpha scoped hybrid content', projectId: 'proj-a', ownerId: 'owner-a', processId: 'process-a', sessionId: 'session-a' },
+        { id: 'mem_hybrid_scope_b', content: 'beta scoped hybrid content', projectId: 'proj-b', ownerId: 'owner-b', processId: 'process-b', sessionId: 'session-b' },
       ] as const;
 
       for (const row of rows) {
-        insertItem.run(row.id, row.content, row.projectId, row.ownerId);
+        insertItem.run(row.id, row.content, row.projectId, row.ownerId, row.processId, row.sessionId);
         insertEmb.run(row.id, embeddingJson, 512, 512);
 
         const embeddingId = db.prepare(
@@ -487,6 +487,28 @@ describe('VectorSearchRepositoryImpl', () => {
 
       expect(memoryIds).toContain('mem_hybrid_scope_b');
       expect(memoryIds).not.toContain('mem_hybrid_scope_a');
+    });
+
+    it('process_id·session_id 스코프가 hybridSearch 후보 LIMIT 전에 적용되어야 함', async () => {
+      if (!(await seedScopedHybridMemories())) {
+        return;
+      }
+
+      const query: VectorSearchQuery = {
+        queryVector,
+        textQuery: 'scoped hybrid',
+        provider: 'tfidf',
+        options: {
+          limit: 1,
+          threshold: 0,
+          process_id: 'process-b',
+          session_id: 'session-b',
+        },
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      expect(results.map((result) => result.memory_id)).toEqual(['mem_hybrid_scope_b']);
     });
 
     it('owner_id 배열 스코프가 hybridSearch에 적용되어야 함', async () => {

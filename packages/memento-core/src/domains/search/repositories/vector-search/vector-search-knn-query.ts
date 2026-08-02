@@ -32,6 +32,16 @@ function buildScopeParams(scope: VectorSearchScope): SqlParam[] {
   } else if (scope.ownerArrayScope.length > 0) {
     scopeParams.push(...(scope.ownerArrayScope as SqlParam[]));
   }
+  if (scope.hasProcessStringScope && typeof scope.scopeProcessId === 'string') {
+    scopeParams.push(scope.scopeProcessId);
+  } else if (scope.processArrayScope.length > 0) {
+    scopeParams.push(...(scope.processArrayScope as SqlParam[]));
+  }
+  if (scope.hasSessionStringScope && typeof scope.scopeSessionId === 'string') {
+    scopeParams.push(scope.scopeSessionId);
+  } else if (scope.sessionArrayScope.length > 0) {
+    scopeParams.push(...(scope.sessionArrayScope as SqlParam[]));
+  }
   return scopeParams;
 }
 
@@ -47,6 +57,16 @@ function buildOuterWhereSql(scope: VectorSearchScope): string {
     whereParts.push('mi.owner_id = ?');
   } else if (scope.ownerArrayScope.length > 0) {
     whereParts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasProcessStringScope) {
+    whereParts.push('mi.process_id = ?');
+  } else if (scope.processArrayScope.length > 0) {
+    whereParts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasSessionStringScope) {
+    whereParts.push('mi.session_id = ?');
+  } else if (scope.sessionArrayScope.length > 0) {
+    whereParts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
   }
   return whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
 }
@@ -73,6 +93,8 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
     '  mi.tags, ' +
     '  mi.project_id, ' +
     '  mi.owner_id, ' +
+    '  mi.process_id, ' +
+    '  mi.session_id, ' +
     '  mi.task_goal, ' +
     '  mi.steps, ' +
     '  mi.reflection_notes, ' +

@@ -33,6 +33,16 @@ function buildScopeParams(scope: VectorSearchScope): SqlParam[] {
   } else if (scope.ownerArrayScope.length > 0) {
     scopeParams.push(...(scope.ownerArrayScope as SqlParam[]));
   }
+  if (scope.hasProcessStringScope && typeof scope.scopeProcessId === 'string') {
+    scopeParams.push(scope.scopeProcessId);
+  } else if (scope.processArrayScope.length > 0) {
+    scopeParams.push(...(scope.processArrayScope as SqlParam[]));
+  }
+  if (scope.hasSessionStringScope && typeof scope.scopeSessionId === 'string') {
+    scopeParams.push(scope.scopeSessionId);
+  } else if (scope.sessionArrayScope.length > 0) {
+    scopeParams.push(...(scope.sessionArrayScope as SqlParam[]));
+  }
   return scopeParams;
 }
 
@@ -45,6 +55,16 @@ function buildItemScopeClause(scope: VectorSearchScope): string {
     parts.push('mi.owner_id = ?');
   } else if (scope.ownerArrayScope.length > 0) {
     parts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasProcessStringScope) {
+    parts.push('mi.process_id = ?');
+  } else if (scope.processArrayScope.length > 0) {
+    parts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasSessionStringScope) {
+    parts.push('mi.session_id = ?');
+  } else if (scope.sessionArrayScope.length > 0) {
+    parts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
   }
   return parts.length > 0 ? `${parts.map(part => `AND ${part}`).join(' ')} ` : '';
 }
@@ -61,6 +81,16 @@ function buildItemWhereSql(scope: VectorSearchScope): string {
     whereParts.push('mi.owner_id = ?');
   } else if (scope.ownerArrayScope.length > 0) {
     whereParts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasProcessStringScope) {
+    whereParts.push('mi.process_id = ?');
+  } else if (scope.processArrayScope.length > 0) {
+    whereParts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasSessionStringScope) {
+    whereParts.push('mi.session_id = ?');
+  } else if (scope.sessionArrayScope.length > 0) {
+    whereParts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
   }
   return whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
 }
@@ -96,6 +126,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
       '    mi.pinned, ' +
       '    mi.tags, ' +
+      '    mi.project_id, ' +
+      '    mi.owner_id, ' +
+      '    mi.process_id, ' +
+      '    mi.session_id, ' +
       '    mi.task_goal, ' +
       '    mi.steps, ' +
       '    mi.reflection_notes, ' +
@@ -123,6 +157,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
       '    mi.pinned, ' +
       '    mi.tags, ' +
+      '    mi.project_id, ' +
+      '    mi.owner_id, ' +
+      '    mi.process_id, ' +
+      '    mi.session_id, ' +
       '    mi.task_goal, ' +
       '    mi.steps, ' +
       '    mi.reflection_notes, ' +
@@ -148,6 +186,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  COALESCE(vs.last_accessed_at, ts.last_accessed_at) as last_accessed_at, ' +
       '  COALESCE(vs.pinned, ts.pinned) as pinned, ' +
       '  COALESCE(vs.tags, ts.tags) as tags, ' +
+      '  COALESCE(vs.project_id, ts.project_id) as project_id, ' +
+      '  COALESCE(vs.owner_id, ts.owner_id) as owner_id, ' +
+      '  COALESCE(vs.process_id, ts.process_id) as process_id, ' +
+      '  COALESCE(vs.session_id, ts.session_id) as session_id, ' +
       '  COALESCE(vs.task_goal, ts.task_goal) as task_goal, ' +
       '  COALESCE(vs.steps, ts.steps) as steps, ' +
       '  COALESCE(vs.reflection_notes, ts.reflection_notes) as reflection_notes, ' +
@@ -169,6 +211,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  ts.last_accessed_at as last_accessed_at, ' +
       '  ts.pinned, ' +
       '  ts.tags, ' +
+      '  ts.project_id, ' +
+      '  ts.owner_id, ' +
+      '  ts.process_id, ' +
+      '  ts.session_id, ' +
       '  ts.task_goal, ' +
       '  ts.steps, ' +
       '  ts.reflection_notes, ' +
@@ -208,6 +254,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
       '  mi.pinned, ' +
       '  mi.tags, ' +
+      '  mi.project_id, ' +
+      '  mi.owner_id, ' +
+      '  mi.process_id, ' +
+      '  mi.session_id, ' +
       '  mi.task_goal, ' +
       '  mi.steps, ' +
       '  mi.reflection_notes, ' +

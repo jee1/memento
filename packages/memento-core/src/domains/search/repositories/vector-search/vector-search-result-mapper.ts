@@ -66,6 +66,8 @@ export function mapKnnResults(
         tags: includeMetadata ? safeParseTags(result.tags) : undefined,
         ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
         ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
+        ...(result.process_id !== undefined ? { process_id: result.process_id } : {}),
+        ...(result.session_id !== undefined ? { session_id: result.session_id } : {}),
       };
     })
     .filter(result => result.similarity >= threshold);
@@ -103,7 +105,11 @@ export function mapHybridResults(
           ? (typeof result.last_accessed_at === 'string' ? result.last_accessed_at : undefined)
           : undefined,
         pinned: includeMetadata ? Boolean(result.pinned) : false,
-        tags: includeMetadata ? safeParseTags(result.tags) : undefined
+        tags: includeMetadata ? safeParseTags(result.tags) : undefined,
+        ...(result.project_id !== undefined ? { project_id: result.project_id } : {}),
+        ...(result.owner_id !== undefined ? { owner_id: result.owner_id } : {}),
+        ...(result.process_id !== undefined ? { process_id: result.process_id } : {}),
+        ...(result.session_id !== undefined ? { session_id: result.session_id } : {}),
       };
     })
     .filter(result => result.similarity >= threshold);
