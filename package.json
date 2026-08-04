@@ -39,6 +39,7 @@
     "test:ci:root": "vitest --run --reporter=basic tests/",
     "test:ci:core": "vitest --run --reporter=basic packages/memento-core/src/",
     "test:ci:server": "vitest --run --reporter=basic packages/memento-server/src/",
+    "test:ci:scripts": "vitest --run --reporter=basic scripts --exclude '**/*.integration.spec.ts'",
     "test:vector-search-quality": "vitest --run packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "test:vector-search-quality:ci": "vitest --run --reporter=junit --reporter=json --outputFile.junit=./test-results/vector-search-quality-junit.xml --outputFile.json=./test-results/vector-search-quality-results.json packages/memento-core/src/test/test-vector-search-quality-with-consolidation.spec.ts",
     "lint": "npm run lint:ts && npm run lint:js",
