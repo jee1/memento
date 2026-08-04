@@ -16,6 +16,7 @@
 
 ### Added
 
+- **Production agent-memory recall benchmark** (#737): synthetic reciprocal-rank fusion baseline is now `rrf_sim`; opt-in `npm run quality:agent-memory:production` seeds a disposable fixture-ID-preserving database and runs production `HybridSearchEngine.search` (same engine as RecallTool / memory_injection) with TF-IDF embeddings. The `memento_prod` scorecard records dataset revision/hash, ranking profile, provider, retrieval metrics, p95 budget, abstentions, failed queries, and a non-degradation gate against `fts_only`.
 - **MCP transport parity spec** (#681): `runtime-transport-parity.spec.ts` — stdio·HTTP·WebSocket `tools/call`이 동일한 `ToolResult`를 반환하는지 검증.
 - **Tech-debt epic #680** spec kit: `specs/049-tech-debt-680-epic/` — 2026-07-10 감사 추적 (#681–#692).
 - **CI search-quality PR gate** (#665): `.github/workflows/ci.yml`에 `test-search-quality` job 추가 — `npm run test:vector-search-quality:ci`로 랭킹·벡터 검색 benchmark 회귀를 PR에서 차단.

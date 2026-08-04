@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   deterministicProjection,
   evaluateGraphAdoptionGate,
+  evaluateProductionVsFtsGate,
   evaluateRankedResults,
   reciprocalRankFusion,
+  runProductionAgentMemoryBenchmark,
   runAgentMemoryBenchmark,
   tokenize,
 } from './agent-memory-benchmark.js';
@@ -90,6 +92,34 @@ describe('agent memory benchmark metrics', () => {
       ndcg_at_10: 0.64,
     }, thresholds).adoption_candidate).toBe(false);
   });
+
+  it('rejects production quality regressions against fts_only', () => {
+    const ftsOnly = {
+      query_count: 4,
+      top_k: 10,
+      recall_at_5: 0.5,
+      recall_at_10: 0.7,
+      mrr: 0.6,
+      ndcg_at_10: 0.65,
+      latency_ms: { p50: 5, p95: 10 },
+      injected_tokens: { total: 100, mean: 10 },
+      duplicate_rate: 0,
+      max_session_concentration: 0.5,
+    };
+    const production = {
+      ...ftsOnly,
+      recall_at_10: 0.69,
+    };
+
+    expect(evaluateProductionVsFtsGate(ftsOnly, production, {
+      min_recall_at_10_delta: 0.05,
+      max_quality_regression: 0,
+      max_p95_latency_ms: 100,
+      max_p95_latency_ratio: 2,
+      max_duplicate_rate: 0.1,
+      max_session_concentration: 0.8,
+    }).adoption_candidate).toBe(false);
+  });
 });
 
 describe('agent memory benchmark runner', () => {
@@ -107,9 +137,10 @@ describe('agent memory benchmark runner', () => {
       'grep',
       'fts_only',
       'vector',
-      'memento',
+      'rrf_sim',
     ]);
-    expect(withoutGraph.end_to_end.memento).toEqual(expect.objectContaining({
+    expect(withoutGraph.retrieval.memento).toBeUndefined();
+    expect(withoutGraph.end_to_end.rrf_sim).toEqual(expect.objectContaining({
       case_count: expect.any(Number),
       completion_rate: expect.any(Number),
       evidence_coverage: expect.any(Number),
@@ -144,5 +175,28 @@ describe('agent memory benchmark runner', () => {
 
     expect(report.reproduction.fixture_dir).toContain('agent-memory-benchmark');
     expect(report.reproduction.fixture_dir).not.toContain('benchmark-v3');
+  });
+
+  it('records a production scorecard and separate production baseline', async () => {
+    const report = await runProductionAgentMemoryBenchmark({
+      fixtureDir: FIXTURE_DIR,
+    });
+
+    expect(report.retrieval.memento_prod).toEqual(expect.objectContaining({
+      recall_at_10: expect.any(Number),
+      mrr: expect.any(Number),
+      ndcg_at_10: expect.any(Number),
+      latency_ms: expect.objectContaining({ p95: expect.any(Number) }),
+    }));
+    expect(report.end_to_end.memento_prod).toBeDefined();
+    expect(report.scorecard).toEqual(expect.objectContaining({
+      dataset_revision: expect.any(String),
+      dataset_sha256: report.reproduction.fixture_sha256,
+      ranking_profile: expect.any(String),
+      embedding_provider: 'tfidf',
+      failed_queries: expect.any(Array),
+      p95_budget_ms: expect.any(Number),
+    }));
+    expect(report.gates.production_vs_fts.enabled).toBe(true);
   });
 });
