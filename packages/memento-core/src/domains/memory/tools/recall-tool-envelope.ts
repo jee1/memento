@@ -227,9 +227,17 @@ export async function finalizeMemoryItemRecallEnvelope(
   if (mementoConfig.recallProfileEnabled) {
     host.logInfo('recall_profile', { total_ms: Date.now() - startTime });
   }
+  const hasExplicitScopeFilter = [
+    filters.project_id,
+    filters.owner_id,
+    filters.process_id,
+    filters.session_id,
+  ].some(value => Array.isArray(value) ? value.length > 0 : Boolean(value));
   const resultObj: Record<string, unknown> = {
     items: processedResults,
-    total_count: searchResult?.total_count || processedResults.length,
+    total_count: hasExplicitScopeFilter
+      ? processedResults.length
+      : (searchResult?.total_count || processedResults.length),
     query_time: executionTime,
     search_type: enableHybrid ? 'hybrid' : 'text',
     vector_search_available: context.services.hybridSearchEngine?.isEmbeddingAvailable() || false,

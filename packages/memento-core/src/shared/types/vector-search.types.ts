@@ -19,6 +19,9 @@ export interface VectorSearchResult {
   project_id?: string | null;
   /** Multi-agent (Issue #57) */
   owner_id?: string | null;
+  /** Memori Attribution (Issue #87) */
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 export interface VectorSearchOptions {
@@ -30,6 +33,8 @@ export interface VectorSearchOptions {
   includeMetadata?: boolean;
   project_id?: string;
   owner_id?: string | string[];
+  process_id?: string | string[];
+  session_id?: string | string[];
 }
 
 export interface VectorSearchQuery {

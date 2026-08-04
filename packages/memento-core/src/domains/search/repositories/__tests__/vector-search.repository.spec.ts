@@ -411,8 +411,8 @@ describe('VectorSearchRepositoryImpl', () => {
 
       const insertItem = db.prepare(
         `INSERT INTO memory_item (
-          id, type, content, importance, created_at, project_id, owner_id
-        ) VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?, ?)`
+          id, type, content, importance, created_at, project_id, owner_id, process_id, session_id
+        ) VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?, ?, ?, ?)`
       );
       const insertEmb = db.prepare(
         `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
@@ -420,12 +420,12 @@ describe('VectorSearchRepositoryImpl', () => {
       );
 
       const rows = [
-        { id: 'mem_hybrid_scope_a', content: 'alpha scoped hybrid content', projectId: 'proj-a', ownerId: 'owner-a' },
-        { id: 'mem_hybrid_scope_b', content: 'beta scoped hybrid content', projectId: 'proj-b', ownerId: 'owner-b' },
+        { id: 'mem_hybrid_scope_a', content: 'alpha scoped hybrid content', projectId: 'proj-a', ownerId: 'owner-a', processId: 'process-a', sessionId: 'session-a' },
+        { id: 'mem_hybrid_scope_b', content: 'beta scoped hybrid content', projectId: 'proj-b', ownerId: 'owner-b', processId: 'process-b', sessionId: 'session-b' },
       ] as const;
 
       for (const row of rows) {
-        insertItem.run(row.id, row.content, row.projectId, row.ownerId);
+        insertItem.run(row.id, row.content, row.projectId, row.ownerId, row.processId, row.sessionId);
         insertEmb.run(row.id, embeddingJson, 512, 512);
 
         const embeddingId = db.prepare(
@@ -487,6 +487,80 @@ describe('VectorSearchRepositoryImpl', () => {
 
       expect(memoryIds).toContain('mem_hybrid_scope_b');
       expect(memoryIds).not.toContain('mem_hybrid_scope_a');
+    });
+
+    it('process_id·session_id 스코프가 hybridSearch 후보 LIMIT 전에 적용되어야 함', async () => {
+      if (!(await seedScopedHybridMemories())) {
+        return;
+      }
+
+      const query: VectorSearchQuery = {
+        queryVector,
+        textQuery: 'scoped hybrid',
+        provider: 'tfidf',
+        options: {
+          limit: 1,
+          threshold: 0,
+          process_id: 'process-b',
+          session_id: 'session-b',
+        },
+      };
+
+      const results = await repository.hybridSearch(query);
+
+      expect(results.map((result) => result.memory_id)).toEqual(['mem_hybrid_scope_b']);
+    });
+
+    it('project_id 스코프가 가까운 범위 밖 이웃보다 먼저 KNN 후보를 제한해야 함', async () => {
+      if (!repository.checkVecAvailability()) {
+        return;
+      }
+
+      const outOfScopeVector = JSON.stringify(new Array(512).fill(0));
+      const inScopeVector = JSON.stringify(new Array(512).fill(0.01));
+      const insertItem = db.prepare(
+        `INSERT INTO memory_item (id, type, content, importance, created_at, project_id)
+         VALUES (?, 'episodic', ?, 0.5, datetime('now'), ?)`
+      );
+      const insertEmbedding = db.prepare(
+        `INSERT INTO memory_embedding (memory_id, embedding, dim, embedding_provider, dimensions)
+         VALUES (?, ?, 512, 'tfidf', 512)`
+      );
+
+      for (let index = 0; index < 12; index += 1) {
+        const memoryId = `mem_out_of_scope_${index}`;
+        insertItem.run(memoryId, `out of scope ${index}`, 'other-project');
+        insertEmbedding.run(memoryId, outOfScopeVector);
+        const embedding = db.prepare(
+          'SELECT id FROM memory_embedding WHERE memory_id = ?'
+        ).get(memoryId) as { id: number };
+        db.exec(
+          `INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+           VALUES (${embedding.id}, '${outOfScopeVector}')`
+        );
+      }
+
+      insertItem.run('mem_in_scope_exact', 'in scope exact candidate', 'target-project');
+      insertEmbedding.run('mem_in_scope_exact', inScopeVector);
+      const inScopeEmbedding = db.prepare(
+        'SELECT id FROM memory_embedding WHERE memory_id = ?'
+      ).get('mem_in_scope_exact') as { id: number };
+      db.exec(
+        `INSERT INTO memory_item_vec_tfidf (rowid, embedding)
+         VALUES (${inScopeEmbedding.id}, '${inScopeVector}')`
+      );
+
+      const results = await repository.search({
+        queryVector: new Array(512).fill(0),
+        provider: 'tfidf',
+        options: {
+          limit: 1,
+          threshold: 0,
+          project_id: 'target-project',
+        },
+      });
+
+      expect(results.map((result) => result.memory_id)).toEqual(['mem_in_scope_exact']);
     });
 
     it('owner_id 배열 스코프가 hybridSearch에 적용되어야 함', async () => {

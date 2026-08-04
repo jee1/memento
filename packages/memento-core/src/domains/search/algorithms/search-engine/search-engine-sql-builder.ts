@@ -81,7 +81,7 @@ export async function buildSearchStatement(
               m.num_times, m.last_mentioned_at, m.project_id,
               0 as fts_rank
             FROM memory_item m
-            WHERE m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?` + reflectionNotesLike;
+            WHERE (m.content LIKE ? OR m.tags LIKE ? OR m.source LIKE ?${reflectionNotesLike})`;
       sqlParams.push(likeQuery, likeQuery, likeQuery, ...reflectionNotesParams);
     }
   } else {
@@ -106,7 +106,7 @@ export async function buildSearchStatement(
       const reflectionNotesLike = reflectionNotesCondition ? ` OR ${reflectionNotesCondition}` : '';
       const reflectionNotesParams = reflectionNotesCondition ? [likeQuery] : [];
 
-      sql += ` WHERE m.content LIKE ?${reflectionNotesLike}`;
+      sql += ` WHERE (m.content LIKE ?${reflectionNotesLike})`;
       sqlParams.push(likeQuery, ...reflectionNotesParams);
     }
   }
@@ -166,15 +166,17 @@ export async function buildSearchStatement(
     sqlParams.push(filters.project_id);
   }
 
-  if (filters?.owner_id !== undefined && filters.owner_id !== null) {
-    if (Array.isArray(filters.owner_id)) {
-      if (filters.owner_id.length > 0) {
-        conditions.push(`m.owner_id IN (${filters.owner_id.map(() => '?').join(',')})`);
-        sqlParams.push(...filters.owner_id);
-      }
-    } else if (typeof filters.owner_id === 'string' && filters.owner_id.length > 0) {
-      conditions.push(`m.owner_id = ?`);
-      sqlParams.push(filters.owner_id);
+  for (const [column, value] of [
+    ['owner_id', filters?.owner_id],
+    ['process_id', filters?.process_id],
+    ['session_id', filters?.session_id],
+  ] as const) {
+    if (Array.isArray(value) && value.length > 0) {
+      conditions.push(`m.${column} IN (${value.map(() => '?').join(',')})`);
+      sqlParams.push(...value);
+    } else if (typeof value === 'string' && value.length > 0) {
+      conditions.push(`m.${column} = ?`);
+      sqlParams.push(value);
     }
   }
 

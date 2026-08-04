@@ -38,6 +38,8 @@ export interface VectorSearchOptions {
   includeMetadata?: boolean; // 상세한 분석을 위해 메타데이터 포함 여부를 제어합니다.
   project_id?: string;
   owner_id?: string | string[];
+  process_id?: string | string[];
+  session_id?: string | string[];
 }
 
 export interface VectorIndexStatus {

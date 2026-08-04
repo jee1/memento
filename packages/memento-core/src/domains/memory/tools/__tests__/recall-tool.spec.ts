@@ -941,8 +941,15 @@ describe('RecallTool', () => {
       const result = await tool.handle(params, context);
       const data = JSON.parse(result.content[0].text);
       expect(data.items).toHaveLength(1);
+      expect(data.total_count).toBe(1);
       expect(data.items[0].memory_id).toBe('mem-proj-a');
       expect(data.items[0].project_id).toBe('proj-a');
+      expect(hybridSearchEngine.search).toHaveBeenCalledWith(
+        db,
+        expect.objectContaining({
+          filters: expect.objectContaining({ project_id: 'proj-a' }),
+        }),
+      );
     });
 
     it('Given: project_id 미지정, When: recall 호출 시, Then: 모든 project 메모리 반환', async () => {

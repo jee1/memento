@@ -18,6 +18,8 @@ export interface RawVectorSearchResult {
   tags?: string | null;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
   vector_similarity?: number;
   text_similarity?: number;
   task_goal?: string | null;
@@ -43,9 +45,17 @@ export interface VectorSearchScope {
   hasOwnerStringScope: boolean;
   ownerArrayScope: string[];
   hasOwnerScope: boolean;
+  hasProcessStringScope: boolean;
+  processArrayScope: string[];
+  hasProcessScope: boolean;
+  hasSessionStringScope: boolean;
+  sessionArrayScope: string[];
+  hasSessionScope: boolean;
   hasScopeFilter: boolean;
   scopeProjectId?: string;
   scopeOwnerId?: string | string[];
+  scopeProcessId?: string | string[];
+  scopeSessionId?: string | string[];
 }
 
 export interface VectorSearchExecutionOptions {

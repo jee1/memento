@@ -240,7 +240,8 @@ export class RecallTool extends BaseTool {
           include_diff_with,
           owner_id: owner_id_filter,
           process_id: process_id_filter,
-          session_id: session_id_filter
+          session_id: session_id_filter,
+          project_id: project_id_filter
         };
 
         const vectorWeight = vector_weight ?? 0.6;

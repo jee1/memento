@@ -12,6 +12,8 @@ export function parseVectorSearchScope(query: VectorSearchQuery): VectorSearchSc
     types,
     project_id: scopeProjectId,
     owner_id: scopeOwnerId,
+    process_id: scopeProcessId,
+    session_id: scopeSessionId,
   } = normalizedOptions;
 
   const typeFilters = Array.isArray(types) && types.length > 0
@@ -22,7 +24,13 @@ export function parseVectorSearchScope(query: VectorSearchQuery): VectorSearchSc
   const hasOwnerStringScope = typeof scopeOwnerId === 'string' && scopeOwnerId.length > 0;
   const ownerArrayScope = Array.isArray(scopeOwnerId) ? scopeOwnerId.filter(Boolean) : [];
   const hasOwnerScope = hasOwnerStringScope || ownerArrayScope.length > 0;
-  const hasScopeFilter = hasProjectScope || hasOwnerScope;
+  const hasProcessStringScope = typeof scopeProcessId === 'string' && scopeProcessId.length > 0;
+  const processArrayScope = Array.isArray(scopeProcessId) ? scopeProcessId.filter(Boolean) : [];
+  const hasProcessScope = hasProcessStringScope || processArrayScope.length > 0;
+  const hasSessionStringScope = typeof scopeSessionId === 'string' && scopeSessionId.length > 0;
+  const sessionArrayScope = Array.isArray(scopeSessionId) ? scopeSessionId.filter(Boolean) : [];
+  const hasSessionScope = hasSessionStringScope || sessionArrayScope.length > 0;
+  const hasScopeFilter = hasProjectScope || hasOwnerScope || hasProcessScope || hasSessionScope;
 
   return {
     typeFilters,
@@ -30,8 +38,16 @@ export function parseVectorSearchScope(query: VectorSearchQuery): VectorSearchSc
     hasOwnerStringScope,
     ownerArrayScope,
     hasOwnerScope,
+    hasProcessStringScope,
+    processArrayScope,
+    hasProcessScope,
+    hasSessionStringScope,
+    sessionArrayScope,
+    hasSessionScope,
     hasScopeFilter,
     ...(hasProjectScope ? { scopeProjectId } : {}),
     ...(scopeOwnerId !== undefined ? { scopeOwnerId } : {}),
+    ...(scopeProcessId !== undefined ? { scopeProcessId } : {}),
+    ...(scopeSessionId !== undefined ? { scopeSessionId } : {}),
   };
 }

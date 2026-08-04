@@ -88,7 +88,9 @@ describe('SearchResultCombiner Consolidation Score 통합', () => {
           created_at: '2024-01-01T00:00:00Z',
           last_accessed: null,
           pinned: false,
-          tags: []
+          tags: [],
+          process_id: 'process-a',
+          session_id: 'session-a',
         }
       ];
 
@@ -98,6 +100,10 @@ describe('SearchResultCombiner Consolidation Score 통합', () => {
       expect(combined[0].vectorScore).toBe(0.9);
       expect(combined[0].textScore).toBe(0);
       expect(combined[0].finalScore).toBeCloseTo(0.9 * 0.6, 3);
+      expect(combined[0]).toMatchObject({
+        process_id: 'process-a',
+        session_id: 'session-a',
+      });
     });
   });
 

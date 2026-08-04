@@ -33,6 +33,16 @@ function buildScopeParams(scope: VectorSearchScope): SqlParam[] {
   } else if (scope.ownerArrayScope.length > 0) {
     scopeParams.push(...(scope.ownerArrayScope as SqlParam[]));
   }
+  if (scope.hasProcessStringScope && typeof scope.scopeProcessId === 'string') {
+    scopeParams.push(scope.scopeProcessId);
+  } else if (scope.processArrayScope.length > 0) {
+    scopeParams.push(...(scope.processArrayScope as SqlParam[]));
+  }
+  if (scope.hasSessionStringScope && typeof scope.scopeSessionId === 'string') {
+    scopeParams.push(scope.scopeSessionId);
+  } else if (scope.sessionArrayScope.length > 0) {
+    scopeParams.push(...(scope.sessionArrayScope as SqlParam[]));
+  }
   return scopeParams;
 }
 
@@ -45,6 +55,16 @@ function buildItemScopeClause(scope: VectorSearchScope): string {
     parts.push('mi.owner_id = ?');
   } else if (scope.ownerArrayScope.length > 0) {
     parts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasProcessStringScope) {
+    parts.push('mi.process_id = ?');
+  } else if (scope.processArrayScope.length > 0) {
+    parts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasSessionStringScope) {
+    parts.push('mi.session_id = ?');
+  } else if (scope.sessionArrayScope.length > 0) {
+    parts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
   }
   return parts.length > 0 ? `${parts.map(part => `AND ${part}`).join(' ')} ` : '';
 }
@@ -62,16 +82,67 @@ function buildItemWhereSql(scope: VectorSearchScope): string {
   } else if (scope.ownerArrayScope.length > 0) {
     whereParts.push(`mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
   }
+  if (scope.hasProcessStringScope) {
+    whereParts.push('mi.process_id = ?');
+  } else if (scope.processArrayScope.length > 0) {
+    whereParts.push(`mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasSessionStringScope) {
+    whereParts.push('mi.session_id = ?');
+  } else if (scope.sessionArrayScope.length > 0) {
+    whereParts.push(`mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
+  }
   return whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')} ` : '';
+}
+
+function buildScopedCandidateSql(scope: VectorSearchScope): string {
+  const whereParts = ['scoped_me.embedding_provider = ?', '(COALESCE(scoped_mi.is_deleted, 0) = 0)'];
+  if (scope.typeFilters.length > 0) {
+    whereParts.push(`scoped_mi.type IN (${scope.typeFilters.map(() => '?').join(',')})`);
+  }
+  if (scope.hasProjectScope) {
+    whereParts.push('scoped_mi.project_id = ?');
+  }
+  if (scope.hasOwnerStringScope) {
+    whereParts.push('scoped_mi.owner_id = ?');
+  } else if (scope.ownerArrayScope.length > 0) {
+    whereParts.push(`scoped_mi.owner_id IN (${scope.ownerArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasProcessStringScope) {
+    whereParts.push('scoped_mi.process_id = ?');
+  } else if (scope.processArrayScope.length > 0) {
+    whereParts.push(`scoped_mi.process_id IN (${scope.processArrayScope.map(() => '?').join(',')})`);
+  }
+  if (scope.hasSessionStringScope) {
+    whereParts.push('scoped_mi.session_id = ?');
+  } else if (scope.sessionArrayScope.length > 0) {
+    whereParts.push(`scoped_mi.session_id IN (${scope.sessionArrayScope.map(() => '?').join(',')})`);
+  }
+  return (
+    '    AND rowid IN (' +
+    'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
+    'JOIN memory_item scoped_mi ON scoped_mi.id = scoped_me.memory_id ' +
+    `WHERE ${whereParts.join(' AND ')}` +
+    ') '
+  );
 }
 
 export function executeHybridQuery(params: HybridQueryParams): VectorSearchResult[] {
   const { db, effectiveQueryVector, textQuery, runtimeContext, scope, options } = params;
-  const { tableName } = runtimeContext;
+  const { tableName, provider } = runtimeContext;
   const { limit } = options;
 
   const hasTextQuery = Boolean(textQuery && textQuery.trim().length > 0);
   const scopeParams = buildScopeParams(scope);
+  const hasScopedCandidates = scope.typeFilters.length > 0 || scope.hasScopeFilter;
+  const scopedCandidateSql = hasScopedCandidates ? buildScopedCandidateSql(scope) : '';
+  const knnFilterSql = hasScopedCandidates ? '    AND k = ? ' + scopedCandidateSql : '';
+  const knnLimitSql = hasScopedCandidates ? '' : '    LIMIT ?';
+  const vectorKnnParams: SqlParam[] = [
+    JSON.stringify(effectiveQueryVector),
+    limit,
+    ...(hasScopedCandidates ? [provider, ...scope.typeFilters, ...scopeParams] : []),
+  ];
 
   let hybridQuery: string;
   let sqlParams: SqlParam[];
@@ -82,8 +153,6 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       : '';
     const textScopeClause = buildItemScopeClause(scope);
     const vectorWhereSql = buildItemWhereSql(scope).replace(/^WHERE /, '  WHERE ');
-    const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter ? limit * 5 : limit;
-
     hybridQuery =
       'WITH vector_search AS (' +
       '  SELECT ' +
@@ -96,6 +165,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
       '    mi.pinned, ' +
       '    mi.tags, ' +
+      '    mi.project_id, ' +
+      '    mi.owner_id, ' +
+      '    mi.process_id, ' +
+      '    mi.session_id, ' +
       '    mi.task_goal, ' +
       '    mi.steps, ' +
       '    mi.reflection_notes, ' +
@@ -106,8 +179,9 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    SELECT rowid, distance ' +
       `    FROM ${tableName} ` +
       '    WHERE embedding MATCH ? ' +
+      knnFilterSql +
       '    ORDER BY distance ASC ' +
-      '    LIMIT ?' +
+      knnLimitSql +
       '  ) t ' +
       '  JOIN memory_embedding me ON t.rowid = me.id ' +
       '  JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
@@ -123,6 +197,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
       '    mi.pinned, ' +
       '    mi.tags, ' +
+      '    mi.project_id, ' +
+      '    mi.owner_id, ' +
+      '    mi.process_id, ' +
+      '    mi.session_id, ' +
       '    mi.task_goal, ' +
       '    mi.steps, ' +
       '    mi.reflection_notes, ' +
@@ -148,6 +226,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  COALESCE(vs.last_accessed_at, ts.last_accessed_at) as last_accessed_at, ' +
       '  COALESCE(vs.pinned, ts.pinned) as pinned, ' +
       '  COALESCE(vs.tags, ts.tags) as tags, ' +
+      '  COALESCE(vs.project_id, ts.project_id) as project_id, ' +
+      '  COALESCE(vs.owner_id, ts.owner_id) as owner_id, ' +
+      '  COALESCE(vs.process_id, ts.process_id) as process_id, ' +
+      '  COALESCE(vs.session_id, ts.session_id) as session_id, ' +
       '  COALESCE(vs.task_goal, ts.task_goal) as task_goal, ' +
       '  COALESCE(vs.steps, ts.steps) as steps, ' +
       '  COALESCE(vs.reflection_notes, ts.reflection_notes) as reflection_notes, ' +
@@ -169,6 +251,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  ts.last_accessed_at as last_accessed_at, ' +
       '  ts.pinned, ' +
       '  ts.tags, ' +
+      '  ts.project_id, ' +
+      '  ts.owner_id, ' +
+      '  ts.process_id, ' +
+      '  ts.session_id, ' +
       '  ts.task_goal, ' +
       '  ts.steps, ' +
       '  ts.reflection_notes, ' +
@@ -183,8 +269,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       'LIMIT ?';
 
     sqlParams = [
-      JSON.stringify(effectiveQueryVector),
-      prefetchLimit,
+      ...vectorKnnParams,
       ...scope.typeFilters,
       ...scopeParams,
       textQuery.trim(),
@@ -194,7 +279,6 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
     ];
   } else {
     const outerWhereSql = buildItemWhereSql(scope);
-    const prefetchLimit = scope.typeFilters.length > 0 || scope.hasScopeFilter ? limit * 5 : limit;
 
     hybridQuery =
       'SELECT ' +
@@ -208,6 +292,10 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
       '  mi.pinned, ' +
       '  mi.tags, ' +
+      '  mi.project_id, ' +
+      '  mi.owner_id, ' +
+      '  mi.process_id, ' +
+      '  mi.session_id, ' +
       '  mi.task_goal, ' +
       '  mi.steps, ' +
       '  mi.reflection_notes, ' +
@@ -218,8 +306,11 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  SELECT rowid, distance ' +
       `  FROM ${tableName} ` +
       '  WHERE embedding MATCH ? ' +
+      (hasScopedCandidates
+        ? '  AND k = ? ' + scopedCandidateSql.replace(/^ {4}/, '  ')
+        : '') +
       '  ORDER BY distance ASC ' +
-      '  LIMIT ?' +
+      (hasScopedCandidates ? '' : '  LIMIT ?') +
       ') t ' +
       'JOIN memory_embedding me ON t.rowid = me.id ' +
       'JOIN memory_item mi ON mi.id = me.memory_id AND (COALESCE(mi.is_deleted, 0) = 0) ' +
@@ -228,8 +319,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       'LIMIT ?';
 
     sqlParams = [
-      JSON.stringify(effectiveQueryVector),
-      prefetchLimit,
+      ...vectorKnnParams,
       ...scope.typeFilters,
       ...scopeParams,
       limit

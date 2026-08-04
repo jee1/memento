@@ -39,6 +39,8 @@ export interface VectorSearchResult {
   score: number;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 /** searchBySimilarity 결과: 쿼리 임베딩에 실제 사용된 provider 진단용 */
@@ -56,6 +58,8 @@ interface SimilaritySearchRow {
   score: number;
   project_id?: string | null;
   owner_id?: string | null;
+  process_id?: string | null;
+  session_id?: string | null;
 }
 
 /** Row shape from provider stats GROUP BY query */
@@ -183,15 +187,18 @@ export class MemoryEmbeddingService {
   private buildVecSimilarityQuery(
     provider: EmbeddingProvider,
     tableName: string,
+    queryVector: number[],
     filters?: {
       type?: MemoryType[];
       limit?: number;
       threshold?: number;
       project_id?: string;
       owner_id?: string | string[];
+      process_id?: string | string[];
+      session_id?: string | string[];
     }
   ): { sql: string; params: unknown[] } {
-    const typeFilter = filters?.type
+    const typeFilter = filters?.type?.length
       ? 'AND m.type IN (' + filters.type.map(() => '?').join(',') + ')'
       : '';
     const projectClause =
@@ -208,6 +215,47 @@ export class MemoryEmbeddingService {
       ownerClause = 'AND m.owner_id IN (' + o.map(() => '?').join(',') + ')';
       ownerParams.push(...o);
     }
+    const buildScopeClause = (
+      column: 'process_id' | 'session_id',
+      value: string | string[] | undefined,
+    ): { clause: string; params: unknown[] } => {
+      if (typeof value === 'string' && value.length > 0) {
+        return { clause: `AND m.${column} = ?`, params: [value] };
+      }
+      if (Array.isArray(value) && value.length > 0) {
+        return {
+          clause: `AND m.${column} IN (${value.map(() => '?').join(',')})`,
+          params: value,
+        };
+      }
+      return { clause: '', params: [] };
+    };
+    const processScope = buildScopeClause('process_id', filters?.process_id);
+    const sessionScope = buildScopeClause('session_id', filters?.session_id);
+    const projectParams: unknown[] =
+      typeof filters?.project_id === 'string' && filters.project_id.length > 0 ? [filters.project_id] : [];
+    const filterParams: unknown[] = [
+      ...(filters?.type || []),
+      ...projectParams,
+      ...ownerParams,
+      ...processScope.params,
+      ...sessionScope.params,
+    ];
+    const hasScopedCandidates = filterParams.length > 0;
+    const scopedFilters = [typeFilter, projectClause, ownerClause, processScope.clause, sessionScope.clause]
+      .filter(Boolean)
+      .join(' ')
+      .replaceAll('m.', 'scoped_m.');
+    const scopedCandidateSql = hasScopedCandidates
+      ? ' AND rowid IN (' +
+        'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
+        'JOIN memory_item scoped_m ON scoped_m.id = scoped_me.memory_id ' +
+        'WHERE scoped_me.embedding_provider = ? ' +
+        'AND (COALESCE(scoped_m.is_deleted, 0) = 0) ' +
+        scopedFilters +
+        ') '
+      : '';
+    const limit = filters?.limit || 10;
     const sql =
       'SELECT ' +
       '  m.id, ' +
@@ -220,13 +268,20 @@ export class MemoryEmbeddingService {
       '  m.tags, ' +
       '  m.project_id, ' +
       '  m.owner_id, ' +
+      '  m.process_id, ' +
+      '  m.session_id, ' +
       '  v.distance as similarity, ' +
       '  (1 - v.distance) as score ' +
-      'FROM memory_item m ' +
-      'JOIN memory_embedding me ON m.id = me.memory_id ' +
-      'JOIN ' +
-      tableName +
-      ' v ON me.id = v.rowid ' +
+      'FROM (' +
+      '  SELECT rowid, distance ' +
+      `  FROM ${tableName} ` +
+      '  WHERE embedding MATCH ? ' +
+      '  AND k = ? ' +
+      scopedCandidateSql +
+      '  ORDER BY distance ASC' +
+      ') v ' +
+      'JOIN memory_embedding me ON me.id = v.rowid ' +
+      'JOIN memory_item m ON m.id = me.memory_id ' +
       'WHERE me.embedding_provider = ? ' +
       'AND (COALESCE(m.is_deleted, 0) = 0) ' +
       typeFilter +
@@ -234,20 +289,24 @@ export class MemoryEmbeddingService {
       ' ' +
       ownerClause +
       ' ' +
+      processScope.clause +
+      ' ' +
+      sessionScope.clause +
+      ' ' +
       'ORDER BY v.distance ASC ' +
       'LIMIT ?';
 
-    const projectParams: unknown[] =
-      typeof filters?.project_id === 'string' && filters.project_id.length > 0 ? [filters.project_id] : [];
-
-    const params: unknown[] = [
-      provider,
-      ...(filters?.type || []),
-      ...projectParams,
-      ...ownerParams,
-      filters?.limit || 10,
-    ];
-    return { sql, params };
+    return {
+      sql,
+      params: [
+        JSON.stringify(queryVector),
+        limit,
+        ...(hasScopedCandidates ? [provider, ...filterParams] : []),
+        provider,
+        ...filterParams,
+        limit,
+      ],
+    };
   }
 
   private mapSimilaritySearchRows(rows: SimilaritySearchRow[]): VectorSearchResult[] {
@@ -264,6 +323,8 @@ export class MemoryEmbeddingService {
       score: row.score,
       ...(row.project_id !== undefined ? { project_id: row.project_id } : {}),
       ...(row.owner_id !== undefined ? { owner_id: row.owner_id } : {}),
+      ...(row.process_id !== undefined ? { process_id: row.process_id } : {}),
+      ...(row.session_id !== undefined ? { session_id: row.session_id } : {}),
     }));
   }
 
@@ -372,6 +433,8 @@ export class MemoryEmbeddingService {
       threshold?: number;
       project_id?: string;
       owner_id?: string | string[];
+      process_id?: string | string[];
+      session_id?: string | string[];
     }
   ): Promise<SearchBySimilarityOutcome> {
     if (!this.embeddingService.isAvailable()) {
@@ -393,7 +456,12 @@ export class MemoryEmbeddingService {
       const provider = this.normalizeProvider(queryEmbedding.provider);
       queryEmbeddingProviders = [provider];
       const tableName = this.getVectorTableName(provider);
-      const { sql, params } = this.buildVecSimilarityQuery(provider, tableName, filters);
+      const { sql, params } = this.buildVecSimilarityQuery(
+        provider,
+        tableName,
+        queryEmbedding.embedding,
+        filters,
+      );
       const similarities = await DatabaseUtils.all(db, sql, params);
 
       return {

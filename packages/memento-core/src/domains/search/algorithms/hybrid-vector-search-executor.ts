@@ -130,6 +130,12 @@ export class HybridVectorSearchExecutor {
         ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
           ? { owner_id: query.filters.owner_id }
           : {}),
+        ...(query.filters?.process_id !== undefined && query.filters.process_id !== null
+          ? { process_id: query.filters.process_id }
+          : {}),
+        ...(query.filters?.session_id !== undefined && query.filters.session_id !== null
+          ? { session_id: query.filters.session_id }
+          : {}),
       };
 
       const providerVectorDeps = this.getProviderVectorSearchDeps();
@@ -314,6 +320,12 @@ export class HybridVectorSearchExecutor {
         : {}),
       ...(query.filters?.owner_id !== undefined && query.filters.owner_id !== null
         ? { owner_id: query.filters.owner_id }
+        : {}),
+      ...(query.filters?.process_id !== undefined && query.filters.process_id !== null
+        ? { process_id: query.filters.process_id }
+        : {}),
+      ...(query.filters?.session_id !== undefined && query.filters.session_id !== null
+        ? { session_id: query.filters.session_id }
         : {}),
     });
     const { results, query_embedding_providers } = normalizeSearchBySimilarityOutcome(raw);
