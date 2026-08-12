@@ -24,13 +24,14 @@ export function recallTelemetryRetrievalStrategy(
 export function recallSearchRequestedExtra(
   queryHash: string,
   query: string,
-  retrievalStrategy: RecallRetrievalStrategyTelemetry
+  retrievalStrategy: RecallRetrievalStrategyTelemetry,
+  rankingVersion: string
 ): Record<string, unknown> {
   const extra: Record<string, unknown> = {
     query_hash: queryHash,
     retrieval_strategy: retrievalStrategy,
     embedding_provider: mementoConfig.embeddingProvider,
-    ranking_version: 'ranking-weights-default-v1'
+    ranking_version: rankingVersion
   };
   if (mementoConfig.telemetryStoreQueryPlaintext) {
     extra.query = query;

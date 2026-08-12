@@ -501,6 +501,12 @@ describe('HybridSearchEngine', () => {
       expect(result).toBeDefined();
       expect(result.items).toHaveLength(2);
       expect(result.total_count).toBe(2);
+      expect(result).toMatchObject({
+        text_count: 1,
+        vector_count: 1,
+        union_count: 2,
+        reranked_count: 2
+      });
       expect(result.query_time).toBeGreaterThan(0);
 
       // Mock 호출 검증

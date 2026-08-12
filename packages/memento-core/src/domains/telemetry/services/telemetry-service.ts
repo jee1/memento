@@ -85,12 +85,12 @@ export class TelemetryService {
     return this.repository.querySearchQuality(period, ownerId);
   }
 
-  getMemoryQuality(ownerId?: string | null): MemoryQualityResult {
-    return this.repository.queryMemoryQuality(ownerId);
+  getMemoryQuality(period: TelemetryPeriod, ownerId?: string | null): MemoryQualityResult {
+    return this.repository.queryMemoryQuality(period, ownerId);
   }
 
-  getConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
-    return this.repository.queryConsolidationQuality(ownerId);
+  getConsolidationQuality(period: TelemetryPeriod, ownerId?: string | null): ConsolidationQualityResult {
+    return this.repository.queryConsolidationQuality(period, ownerId);
   }
 
   getFeedbackQuality(period: TelemetryPeriod, ownerId?: string | null): FeedbackQualityResult {

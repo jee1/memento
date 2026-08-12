@@ -23,6 +23,12 @@ function makeSearchQuality(overrides: Partial<SearchQualityResult> = {}): Search
     empty_retrieval_rate: 0.125,
     avg_candidate_count: 8.3,
     top_k_selected_rate: 0.87,
+    text_candidate_count: 100,
+    vector_candidate_count: 120,
+    union_candidate_count: 140,
+    reranked_count: 90,
+    selected_count: 70,
+    ranking_versions: ['ranking-sha256:abc123def456'],
     timestamp: '2026-03-29T10:00:00.000Z',
     ...overrides,
   };
@@ -136,7 +142,8 @@ describe('GetTelemetrySummaryTool', () => {
     const data = JSON.parse(result.content[0].text);
     expect(data.owner_id).toBe('agent-123');
     expect(context.services.telemetryService!.getSearchQuality).toHaveBeenCalledWith('7d', 'agent-123');
-    expect(context.services.telemetryService!.getMemoryQuality).toHaveBeenCalledWith('agent-123');
+    expect(context.services.telemetryService!.getMemoryQuality).toHaveBeenCalledWith('7d', 'agent-123');
+    expect(context.services.telemetryService!.getConsolidationQuality).toHaveBeenCalledWith('7d', 'agent-123');
   });
 
   it('3) 잘못된 period → createErrorResult() 반환', async () => {

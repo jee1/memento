@@ -1,16 +1,18 @@
 import type Database from 'better-sqlite3';
+import type { TelemetryPeriod } from '../types/telemetry.types.js';
 import type {
   ConsolidationQualityResult,
   MemoryQualityResult
 } from './telemetry-repository.js';
-import { periodCutoffIso, rolling24hCutoffIso } from './telemetry-repository-utils.js';
+import { periodCutoffIso } from './telemetry-repository-utils.js';
 
 export function queryMemoryQuality(
   db: Database.Database,
+  period: TelemetryPeriod,
   ownerId?: string | null
 ): MemoryQualityResult {
   const now = new Date().toISOString();
-  const since24h = rolling24hCutoffIso();
+  const cutoff = periodCutoffIso(period);
   const oClause =
     ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
   const params: Record<string, unknown> = {};
@@ -50,19 +52,19 @@ export function queryMemoryQuality(
   const coverage = t > 0 ? withRel.c / t : null;
   const orphan = coverage != null ? 1 - coverage : null;
 
-  const dupParams = { since24h, ...params };
+  const dupParams = { cutoff, ...params };
   const dupClause =
     ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
   const completed = db
     .prepare(
       `SELECT COUNT(*) AS c FROM telemetry_events
-       WHERE event_type = 'memory.write.completed' AND created_at >= @since24h ${dupClause}`
+       WHERE event_type = 'memory.write.completed' AND created_at >= @cutoff ${dupClause}`
     )
     .get(dupParams) as { c: number };
   const dupes = db
     .prepare(
       `SELECT COUNT(*) AS c FROM telemetry_events
-       WHERE event_type = 'memory.write.completed' AND created_at >= @since24h
+       WHERE event_type = 'memory.write.completed' AND created_at >= @cutoff
          AND json_extract(extra_data, '$.is_duplicate') = 1 ${dupClause}`
     )
     .get(dupParams) as { c: number };
@@ -81,15 +83,16 @@ export function queryMemoryQuality(
 
 export function queryConsolidationQuality(
   db: Database.Database,
+  period: TelemetryPeriod,
   ownerId?: string | null
 ): ConsolidationQualityResult {
   const now = new Date().toISOString();
-  const cutoff7d = periodCutoffIso('7d');
+  const cutoff = periodCutoffIso(period);
   const memOwner =
     ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
   const telOwner =
     ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @owner ';
-  const params: Record<string, unknown> = { cutoff: cutoff7d };
+  const params: Record<string, unknown> = { cutoff };
   if (ownerId !== undefined && ownerId !== null) {
     params.owner = ownerId;
   }
@@ -99,7 +102,7 @@ export function queryConsolidationQuality(
       `SELECT
          SUM(CASE WHEN type = 'episodic' AND COALESCE(is_consolidated, 0) = 1 THEN 1 ELSE 0 END) AS cons,
          SUM(CASE WHEN type = 'episodic' THEN 1 ELSE 0 END) AS total
-       FROM memory_item WHERE 1 = 1 ${memOwner}`
+       FROM memory_item WHERE datetime(created_at) >= datetime(@cutoff) ${memOwner}`
     )
     .get(params) as { cons: number | null; total: number | null } | undefined;
   const totalEp = ep?.total ?? 0;
@@ -110,15 +113,24 @@ export function queryConsolidationQuality(
     .prepare(
       `SELECT
          SUM(CASE WHEN triple_extracted_status = 'success' THEN 1 ELSE 0 END) AS ok,
-         SUM(CASE WHEN COALESCE(triple_extracted, 0) = 1 THEN 1 ELSE 0 END) AS te
-       FROM memory_item WHERE type = 'episodic' ${memOwner}`
+         SUM(CASE WHEN triple_extracted_status IN ('success', 'failed') THEN 1 ELSE 0 END) AS te
+       FROM memory_item
+       WHERE type = 'episodic'
+         AND triple_extracted_status IN ('success', 'failed')
+         AND datetime(
+           CASE
+             WHEN triple_extracted_status = 'success'
+               THEN COALESCE(json_extract(triple_extraction_metadata, '$.extracted_at'), created_at)
+             ELSE COALESCE(json_extract(triple_extraction_metadata, '$.last_attempt'), created_at)
+           END
+         ) >= datetime(@cutoff)
+         ${memOwner}`
     )
     .get(params) as { ok: number | null; te: number | null } | undefined;
   const teCount = tr?.te ?? 0;
   const triple_extraction_success_rate =
     teCount > 0 && tr?.ok != null ? tr.ok / teCount : null;
 
-  const telParams = { cutoff: cutoff7d, ...params };
   const perfRows = db
     .prepare(
       `SELECT extra_data FROM telemetry_events
@@ -126,7 +138,7 @@ export function queryConsolidationQuality(
          AND outcome = 'success'
          AND created_at >= @cutoff ${telOwner}`
     )
-    .all(telParams) as { extra_data: string | null }[];
+    .all(params) as { extra_data: string | null }[];
   let effSum = 0;
   let effN = 0;
   for (const r of perfRows) {

@@ -125,7 +125,7 @@ export function parseCliOptions(argv: string[]): CliOptions {
 
 export interface TelemetryRunner {
   getSearchQuality(period: TelemetryPeriod, ownerId: string | null): SearchQualityResult;
-  getMemoryQuality(ownerId: string | null): MemoryQualityResult;
+  getMemoryQuality(period: TelemetryPeriod, ownerId: string | null): MemoryQualityResult;
   getSystemMetrics(period: TelemetryPeriod, ownerId: string | null): SystemMetricsResult;
 }
 
@@ -147,7 +147,7 @@ export function executeTelemetry(runner: TelemetryRunner, options: CliOptions): 
       ? runner.getSearchQuality(period, null)
       : null;
     const memoryResult: MemoryQualityResult | null = (type === 'memory-quality' || type === 'all')
-      ? runner.getMemoryQuality(null)
+      ? runner.getMemoryQuality(period, null)
       : null;
     const systemResult: SystemMetricsResult | null = (type === 'system' || type === 'all')
       ? runner.getSystemMetrics(period, null)
