@@ -38,8 +38,6 @@ export async function getMetaStatsForResults(
   metaMemoryService: MetaMemoryService
 ): Promise<Record<string, MetaStatsItem> | undefined> {
   try {
-    await new Promise(resolve => setTimeout(resolve, 150));
-
     const memoryIds = Array.from(
       new Set(
         processedResults

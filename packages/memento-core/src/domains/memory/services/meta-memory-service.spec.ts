@@ -964,4 +964,34 @@ describe('MetaMemoryService', () => {
       expect(stats2.success_count).toBe(1); // 마지막 호출이 성공
     });
   });
+
+  describe('pending stats overlay (#735)', () => {
+    it('given: recordRecall 직후 타이머를 진행하지 않을 때, when: getStatsById와 getStats를 호출하면, then: pending 통계가 이번 recall을 반영해야 함', async () => {
+      const searchResults: RecallResultItem[] = [
+        {
+          memory_id: 'mem_1',
+          content: 'Test content 1',
+          type: 'episodic',
+          importance: 0.8,
+          created_at: '2024-01-01T00:00:00.000Z',
+          final_score: 0.95,
+          consolidation_score: 0.8,
+          vectorScore: 0.9
+        }
+      ];
+
+      await service.recordRecall(searchResults);
+
+      const byId = await service.getStatsById('mem_1');
+      expect(byId.recall_count).toBe(1);
+      expect(byId.success_count).toBe(1);
+      expect(byId.failure_count).toBe(0);
+
+      const listed = await service.getStats({ memory_ids: ['mem_1'] });
+      const item = listed.items.find(stat => stat.memory_id === 'mem_1');
+      expect(item).toBeDefined();
+      expect(item?.recall_count).toBe(1);
+      expect(item?.success_count).toBe(1);
+    });
+  });
 });
