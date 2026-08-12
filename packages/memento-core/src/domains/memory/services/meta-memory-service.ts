@@ -112,22 +112,13 @@ export class MetaMemoryService {
         // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리하기 위해
         // 먼저 현재 호출의 버퍼를 확인하고, 없으면 DB에서 가져옴
         // 다른 호출 사이에서는 debounce가 작동하여 마지막 호출만 반영됨
-        let baseStats = await this.getStatsById(memoryId);
+        let baseStats = this.readPersistedStatsById(memoryId);
         
         // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리
         // 현재 호출의 버퍼에 같은 memoryId가 이미 있으면 그 값을 기반으로 계산
         const currentCallBufferedWrite = currentCallBuffer.get(memoryId);
         if (currentCallBufferedWrite) {
-          baseStats = {
-            memory_id: memoryId,
-            recall_count: currentCallBufferedWrite.recallCount,
-            success_count: currentCallBufferedWrite.successCount,
-            failure_count: currentCallBufferedWrite.failureCount,
-            avg_confidence: currentCallBufferedWrite.avgConfidence,
-            last_recalled_at: currentCallBufferedWrite.lastRecalledAt ? new Date(currentCallBufferedWrite.lastRecalledAt) : undefined,
-            created_at: new Date(),
-            updated_at: new Date()
-          };
+          baseStats = this.mapWriteToMetaMemoryStats(currentCallBufferedWrite, baseStats);
         }
 
         // 통계 업데이트 계산
@@ -284,6 +275,14 @@ export class MetaMemoryService {
       throw new Error('memoryId는 필수이며 문자열이어야 합니다');
     }
 
+    const persisted = this.readPersistedStatsById(memoryId);
+    return this.overlayPendingWrite(memoryId, persisted);
+  }
+
+  /**
+   * DB에 flush된 통계만 읽는다. recordRecall의 debounce last-write-wins 기준값.
+   */
+  private readPersistedStatsById(memoryId: string): MetaMemoryStats {
     try {
       const stmt = this.db.prepare(`
         SELECT 
@@ -300,37 +299,53 @@ export class MetaMemoryService {
       `);
 
       const row = stmt.get(memoryId) as MetaMemoryStatsRow | undefined;
-
       if (!row) {
-        // 기본값 반환
-        return {
-          memory_id: memoryId,
-          recall_count: 0,
-          success_count: 0,
-          failure_count: 0,
-          avg_confidence: 0.0,
-          created_at: new Date(),
-          updated_at: new Date()
-        };
+        return this.emptyStats(memoryId);
       }
-
       return this.mapRowToMetaMemoryStats(row);
     } catch (error) {
       logger.error('MetaMemoryService: 통계 조회 실패', {
         error: error instanceof Error ? error.message : String(error),
         memory_id: memoryId
       });
-      // 에러 발생 시 기본값 반환 (서비스가 계속 동작하도록)
-      return {
-        memory_id: memoryId,
-        recall_count: 0,
-        success_count: 0,
-        failure_count: 0,
-        avg_confidence: 0.0,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
+      return this.emptyStats(memoryId);
     }
+  }
+
+  private emptyStats(memoryId: string): MetaMemoryStats {
+    return {
+      memory_id: memoryId,
+      recall_count: 0,
+      success_count: 0,
+      failure_count: 0,
+      avg_confidence: 0.0,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+  }
+
+  private overlayPendingWrite(memoryId: string, persisted: MetaMemoryStats): MetaMemoryStats {
+    const pending = this.statsBuffer.get(memoryId);
+    if (!pending) {
+      return persisted;
+    }
+    return this.mapWriteToMetaMemoryStats(pending, persisted);
+  }
+
+  private mapWriteToMetaMemoryStats(
+    write: MetaMemoryStatsWrite,
+    persisted: MetaMemoryStats
+  ): MetaMemoryStats {
+    return this.mapRowToMetaMemoryStats({
+      memory_id: write.memoryId,
+      recall_count: write.recallCount,
+      success_count: write.successCount,
+      failure_count: write.failureCount,
+      avg_confidence: write.avgConfidence,
+      last_recalled_at: write.lastRecalledAt,
+      created_at: persisted.created_at.toISOString(),
+      updated_at: new Date().toISOString()
+    });
   }
 
   /**
@@ -430,11 +445,36 @@ export class MetaMemoryService {
 
       const rows = dataStmt.all(...queryParams, limit) as MetaMemoryStatsRow[];
 
-      const items: MetaMemoryStats[] = rows.map(row => this.mapRowToMetaMemoryStats(row));
+      const items: MetaMemoryStats[] = rows.map(row =>
+        this.overlayPendingWrite(row.memory_id, this.mapRowToMetaMemoryStats(row))
+      );
+      const seen = new Set(items.map(item => item.memory_id));
+      const pendingIds = memory_ids && memory_ids.length > 0
+        ? memory_ids
+        : memory_id
+          ? [memory_id]
+          : Array.from(this.statsBuffer.keys());
+      for (const pendingId of pendingIds) {
+        if (seen.has(pendingId) || items.length >= limit) {
+          continue;
+        }
+        if (!this.statsBuffer.has(pendingId)) {
+          continue;
+        }
+        const overlaid = this.overlayPendingWrite(pendingId, this.emptyStats(pendingId));
+        if (min_recall_count !== undefined && overlaid.recall_count < min_recall_count) {
+          continue;
+        }
+        if (min_confidence !== undefined && overlaid.avg_confidence < min_confidence) {
+          continue;
+        }
+        items.push(overlaid);
+        seen.add(pendingId);
+      }
 
       return {
         items,
-        total_count: totalCount
+        total_count: totalCount + (items.length - rows.length)
       };
     } catch (error) {
       logger.error('MetaMemoryService: 통계 조회 실패', {

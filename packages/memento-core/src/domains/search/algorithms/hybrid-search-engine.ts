@@ -137,8 +137,9 @@ export class HybridSearchEngine {
       this.logger.logSearchStep(searchId, '적응형 가중치 계산 완료', weights);
       this.logRankingExperimentIfApplicable(searchId, query, weights);
 
-      const textResults = await this.executeTextSearch(db, query, searchId);
-      const vectorOut = await this.vectorExecutor.execute(db, query, searchId);
+      const vectorPromise = this.vectorExecutor.execute(db, query, searchId);
+      const textPromise = this.executeTextSearch(db, query, searchId);
+      const [textResults, vectorOut] = await Promise.all([textPromise, vectorPromise]);
       const finalResults = await this.resultRanker.combineAndSortResults(
         textResults,
         vectorOut.results,

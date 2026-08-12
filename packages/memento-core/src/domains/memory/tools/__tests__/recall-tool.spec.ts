@@ -4629,6 +4629,49 @@ describe('RecallTool', () => {
       expect(stats2.last_recalled_at).toBeDefined();
     });
 
+    it('given: include_metadata=true, when: recall이 반환되면, then: 고정 150ms 대기 없이 이번 호출 meta_stats가 포함되어야 함', async () => {
+      const memoryId = 'mem_test_meta_stats_no_sleep';
+
+      db.exec(`
+        INSERT INTO memory_item (id, type, content, importance, created_at) VALUES ('${memoryId}', 'episodic', 'Test memory', 0.8, CURRENT_TIMESTAMP)
+      `);
+
+      const { MetaMemoryService } = await import('../../services/meta-memory-service.js');
+      const metaMemoryService = new MetaMemoryService(db);
+      context.services.metaMemoryService = metaMemoryService;
+
+      vi.spyOn(hybridSearchEngine, 'search').mockResolvedValue({
+        items: [
+          {
+            id: memoryId,
+            memory_id: memoryId,
+            content: 'Test memory',
+            type: 'episodic',
+            importance: 0.8,
+            created_at: new Date().toISOString(),
+            final_score: 0.95,
+            consolidation_score: 0.9,
+            vectorScore: 0.85
+          }
+        ],
+        total_count: 1,
+        query_time: 10
+      });
+
+      const started = Date.now();
+      const result = await tool.handle(
+        { query: 'test', type: 'episodic', limit: 10, include_metadata: true },
+        context
+      );
+      const elapsedMs = Date.now() - started;
+      const resultData = JSON.parse(result.content[0].text);
+
+      expect(elapsedMs).toBeLessThan(80);
+      expect(resultData.meta_stats?.[memoryId]?.recall_count).toBe(1);
+
+      await metaMemoryService.destroy();
+    });
+
     it('given: 같은 memory_id가 여러 번 검색 결과에 포함될 때, when: 통계를 확인하면, then: 각각 별도로 통계가 업데이트되어야 함', async () => {
       // Given: 메모리 항목 생성 및 검색 결과에 같은 memory_id가 2번 포함
       const memoryId = 'mem_test_meta_duplicate';

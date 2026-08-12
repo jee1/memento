@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-08-04)
+# Graph Report - .  (2026-08-12)
 
 ## Corpus Check
-- 1440 files · ~1,587,931 words
+- 1440 files · ~1,591,059 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6658 nodes · 7616 edges · 1432 communities detected
+- 6662 nodes · 7628 edges · 1432 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -1583,199 +1583,199 @@ Nodes (6): getSpacedRepetitionService(), initializeSpacedRepetition(), initializ
 
 ### Community 28 - "Community 28"
 Cohesion: 0.2
-Nodes (2): CoreMemoryService, generateCoreId()
+Nodes (1): MetaMemoryService
 
 ### Community 29 - "Community 29"
+Cohesion: 0.2
+Nodes (2): CoreMemoryService, generateCoreId()
+
+### Community 30 - "Community 30"
 Cohesion: 0.17
 Nodes (11): addsDiversity(), AgentContextRecallService, clamp01(), contentSimilarity(), deduplicateCandidates(), diversityOrder(), diversityOrderWithinScope(), nonNegativeInteger() (+3 more)
 
-### Community 30 - "Community 30"
+### Community 31 - "Community 31"
 Cohesion: 0.16
 Nodes (3): getEmbeddingIterable(), hasEmbeddingData(), MiniLMEmbeddingService
 
-### Community 31 - "Community 31"
+### Community 32 - "Community 32"
 Cohesion: 0.13
 Nodes (2): MockDatabase, MockPreparedStatement
 
-### Community 32 - "Community 32"
+### Community 33 - "Community 33"
 Cohesion: 0.14
 Nodes (1): KnowledgeVaultRepositorySqlite
 
-### Community 33 - "Community 33"
+### Community 34 - "Community 34"
 Cohesion: 0.16
 Nodes (3): createHybridSearchEngine(), getHybridSearchEngine(), HybridSearchEngine
 
-### Community 34 - "Community 34"
+### Community 35 - "Community 35"
 Cohesion: 0.17
 Nodes (1): TripleExtractionService
 
-### Community 35 - "Community 35"
+### Community 36 - "Community 36"
 Cohesion: 0.2
 Nodes (1): EmbeddingProviderFactory
 
-### Community 36 - "Community 36"
+### Community 37 - "Community 37"
 Cohesion: 0.22
 Nodes (14): adaptLegacyLongMemEvalS(), adaptLongMemEvalS(), adaptOfficialLongMemEvalS(), assertDatasetSafe(), assertLongMemEvalSRecord(), assertNoSecretMarkers(), assertOfficialLongMemEvalSRecord(), defaultGateThresholds() (+6 more)
 
-### Community 37 - "Community 37"
+### Community 38 - "Community 38"
 Cohesion: 0.24
 Nodes (7): getCurrentLogLevel(), getTimestamp(), MCPLogger, MCPLoggerStub, safeStderrWrite(), shouldLog(), shouldSendMCPProtocolLog()
 
-### Community 38 - "Community 38"
+### Community 39 - "Community 39"
 Cohesion: 0.23
 Nodes (16): registerAllRecurringJobs(), scheduleAnchorAutoRefresh(), scheduleAugmentationAndTelemetryJobs(), scheduleCleanupJob(), scheduleConsolidationRelationAndLogJobs(), scheduleConsolidationScoreFullSweep(), scheduleCoreMaintenanceJobs(), scheduleHealthcheckJob() (+8 more)
 
-### Community 39 - "Community 39"
+### Community 40 - "Community 40"
 Cohesion: 0.2
 Nodes (1): HybridResultRanker
 
-### Community 40 - "Community 40"
+### Community 41 - "Community 41"
 Cohesion: 0.21
 Nodes (2): HybridVectorSearchExecutor, resolveHybridVectorPrefetchLimit()
 
-### Community 41 - "Community 41"
+### Community 42 - "Community 42"
 Cohesion: 0.12
 Nodes (1): SearchRanking
 
-### Community 42 - "Community 42"
+### Community 43 - "Community 43"
 Cohesion: 0.15
 Nodes (3): AdaptiveReviewScheduler, DefaultReviewScheduler, PriorityBasedReviewScheduler
 
-### Community 43 - "Community 43"
+### Community 44 - "Community 44"
 Cohesion: 0.19
 Nodes (1): ForgetTool
 
-### Community 44 - "Community 44"
+### Community 45 - "Community 45"
 Cohesion: 0.2
 Nodes (1): TripleExtractor
 
-### Community 45 - "Community 45"
+### Community 46 - "Community 46"
 Cohesion: 0.15
 Nodes (2): AgentLifecycleService, boundedNumber()
 
-### Community 46 - "Community 46"
+### Community 47 - "Community 47"
 Cohesion: 0.2
 Nodes (1): LightweightEmbeddingService
 
-### Community 47 - "Community 47"
+### Community 48 - "Community 48"
 Cohesion: 0.21
 Nodes (1): OpenAIEmbeddingService
 
-### Community 48 - "Community 48"
+### Community 49 - "Community 49"
 Cohesion: 0.21
 Nodes (1): FailureDetector
 
-### Community 49 - "Community 49"
+### Community 50 - "Community 50"
 Cohesion: 0.2
 Nodes (1): ToolRegistry
 
-### Community 50 - "Community 50"
+### Community 51 - "Community 51"
 Cohesion: 0.21
 Nodes (14): addNodeTooltips(), buildAnchorDetailHtml(), buildLabelSelection(), buildLinkSelection(), buildMemoryDetailHtml(), buildNodeSelection(), displayMemoryDetails(), focusOnNode() (+6 more)
 
-### Community 51 - "Community 51"
+### Community 52 - "Community 52"
 Cohesion: 0.13
 Nodes (3): createDashboardHarness(), FakeDocument, FakeElement
 
-### Community 52 - "Community 52"
+### Community 53 - "Community 53"
 Cohesion: 0.12
 Nodes (1): ServerState
 
-### Community 53 - "Community 53"
+### Community 54 - "Community 54"
 Cohesion: 0.23
 Nodes (1): ReflexionReflectionRecorder
 
-### Community 54 - "Community 54"
+### Community 55 - "Community 55"
 Cohesion: 0.21
 Nodes (1): MigrationLogger
 
-### Community 55 - "Community 55"
+### Community 56 - "Community 56"
 Cohesion: 0.17
 Nodes (2): convertAlwaysLoad(), CoreMemoryRepositorySqliteImpl
 
-### Community 56 - "Community 56"
+### Community 57 - "Community 57"
 Cohesion: 0.17
 Nodes (1): VectorSearchEngine
 
-### Community 57 - "Community 57"
+### Community 58 - "Community 58"
 Cohesion: 0.23
 Nodes (1): ForgettingPolicyService
 
-### Community 58 - "Community 58"
+### Community 59 - "Community 59"
 Cohesion: 0.14
 Nodes (1): TelemetryService
 
-### Community 59 - "Community 59"
+### Community 60 - "Community 60"
 Cohesion: 0.19
 Nodes (12): buildInsertStatement(), buildMemoryJsonlContent(), exportMemoryJsonl(), exportMemoryJsonlSync(), importMemoryJsonl(), insertRow(), MemoryJsonlChecksumError, MemoryJsonlSchemaError (+4 more)
 
-### Community 60 - "Community 60"
+### Community 61 - "Community 61"
 Cohesion: 0.18
 Nodes (1): RelationGraphMutations
 
-### Community 61 - "Community 61"
+### Community 62 - "Community 62"
 Cohesion: 0.23
 Nodes (1): UnifiedEmbeddingService
 
-### Community 62 - "Community 62"
+### Community 63 - "Community 63"
 Cohesion: 0.24
 Nodes (15): countConsoleLogs(), findConsoleLogs(), findFiles(), isCliScript(), isCoreModule(), isTestFile(), main(), matchesPattern() (+7 more)
 
-### Community 63 - "Community 63"
+### Community 64 - "Community 64"
 Cohesion: 0.3
 Nodes (2): IntegrationTester, runIntegrationTests()
 
-### Community 64 - "Community 64"
+### Community 65 - "Community 65"
 Cohesion: 0.17
 Nodes (3): LegacyClient, migrationExample(), ModernClient
 
-### Community 65 - "Community 65"
+### Community 66 - "Community 66"
 Cohesion: 0.23
 Nodes (11): cleanup(), createAllRouters(), createContextInjectionService(), getHttpAuthMissingAdminKeyWarning(), getHttpAuthTrustModelNotice(), initializeCoreServices(), initializeServer(), logEmbeddingProviderInfo() (+3 more)
 
-### Community 66 - "Community 66"
+### Community 67 - "Community 67"
 Cohesion: 0.24
 Nodes (6): AgentTranscriptImporter, AgentTranscriptImportError, identityOf(), identityOfSession(), safeError(), sameIdentity()
 
-### Community 67 - "Community 67"
+### Community 68 - "Community 68"
 Cohesion: 0.23
 Nodes (1): MetaMemoryStatsSchemaMigration
 
-### Community 68 - "Community 68"
+### Community 69 - "Community 69"
 Cohesion: 0.25
 Nodes (1): FTS5ReflectionNotesMigration
 
-### Community 69 - "Community 69"
+### Community 70 - "Community 70"
 Cohesion: 0.15
 Nodes (4): getBatchSchedulerContextSource(), getBatchSchedulerLoggingDeps(), getBatchSchedulerRecurringContextSource(), logBatchScheduler()
 
-### Community 70 - "Community 70"
+### Community 71 - "Community 71"
 Cohesion: 0.13
 Nodes (7): AnchorError, AnchorNotFoundError, DatabaseValidationError, EmbeddingNotFoundError, MemoryNotFoundError, ServiceNotInitializedError, VectorDimensionMismatchError
 
-### Community 71 - "Community 71"
+### Community 72 - "Community 72"
 Cohesion: 0.17
 Nodes (1): AnchorSearchService
 
-### Community 72 - "Community 72"
+### Community 73 - "Community 73"
 Cohesion: 0.16
 Nodes (1): VectorSearchFacade
 
-### Community 73 - "Community 73"
+### Community 74 - "Community 74"
 Cohesion: 0.13
 Nodes (1): SpacedRepetitionAlgorithmRefactored
 
-### Community 74 - "Community 74"
+### Community 75 - "Community 75"
 Cohesion: 0.14
 Nodes (1): TelemetryRepository
 
-### Community 75 - "Community 75"
-Cohesion: 0.22
-Nodes (9): assertAuditCoverage(), AuditCoverageError, AuditHashChainService, getAuditMode(), hashRecord(), inferCoverageGap(), isStrictAuditAction(), normalizeRecord() (+1 more)
-
 ### Community 76 - "Community 76"
 Cohesion: 0.22
-Nodes (1): MetaMemoryService
+Nodes (9): assertAuditCoverage(), AuditCoverageError, AuditHashChainService, getAuditMode(), hashRecord(), inferCoverageGap(), isStrictAuditAction(), normalizeRecord() (+1 more)
 
 ### Community 77 - "Community 77"
 Cohesion: 0.22

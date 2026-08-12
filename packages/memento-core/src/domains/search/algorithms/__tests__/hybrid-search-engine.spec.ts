@@ -255,6 +255,9 @@ describe('HybridSearchEngine', () => {
       const mockError = new Error('텍스트 검색 실패');
       (mockTextEngine.search as Mock).mockRejectedValue(mockError);
       (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+      (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (mockEmbeddingService.isAvailable as Mock).mockReturnValue(false);
+      (mockEmbeddingService.searchBySimilarity as Mock).mockResolvedValue([]);
 
       const query = {
         query: 'test query',
@@ -439,6 +442,56 @@ describe('HybridSearchEngine', () => {
           limit: 10,
           threshold: 0.38
         })
+      );
+    });
+  });
+
+  describe('FTS·vector 병렬화 (#735)', () => {
+    it('given: FTS와 vector에 서로 다른 지연 mock, when: hybrid search, then: 완료 시간은 합이 아니라 최대 분기에 가깝고 ranker는 두 분기 결과를 받는다', async () => {
+      const TEXT_DELAY_MS = 80;
+      const VECTOR_DELAY_MS = 40;
+      const textItems = [{ id: 't1', memory_id: 't1', content: 'text hit', type: 'episodic' }];
+      const vectorResults = [{
+        memory_id: 'v1',
+        content: 'vector hit',
+        type: 'episodic',
+        similarity: 0.9,
+        created_at: '',
+        importance: 0.5
+      }];
+
+      (mockWeightCalculator.calculateWeights as Mock).mockReturnValue({ vectorWeight: 0.6, textWeight: 0.4 });
+
+      const engine = hybridSearchEngine as unknown as {
+        executeTextSearch: (...args: unknown[]) => Promise<unknown[]>;
+        vectorExecutor: { execute: (...args: unknown[]) => Promise<{ results: unknown[]; fallback_used: boolean }> };
+        resultRanker: { combineAndSortResults: (...args: unknown[]) => Promise<unknown[]> };
+      };
+
+      vi.spyOn(engine, 'executeTextSearch').mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, TEXT_DELAY_MS));
+        return textItems;
+      });
+      vi.spyOn(engine.vectorExecutor, 'execute').mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, VECTOR_DELAY_MS));
+        return { results: vectorResults, fallback_used: false };
+      });
+      const rankerSpy = vi.spyOn(engine.resultRanker, 'combineAndSortResults').mockResolvedValue([]);
+
+      const started = Date.now();
+      await hybridSearchEngine.search(mockDb, { query: 'q', limit: 10 });
+      const elapsedMs = Date.now() - started;
+
+      expect(elapsedMs).toBeGreaterThanOrEqual(TEXT_DELAY_MS - 15);
+      expect(elapsedMs).toBeLessThan(TEXT_DELAY_MS + VECTOR_DELAY_MS - 20);
+      expect(rankerSpy).toHaveBeenCalledWith(
+        textItems,
+        vectorResults,
+        expect.anything(),
+        10,
+        mockDb,
+        false,
+        expect.objectContaining({ query: 'q' })
       );
     });
   });

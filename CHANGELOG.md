@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Recall latency** (#735): `include_metadata` 경로의 고정 150ms 대기를 제거하고, pending `recordRecall` 통계를 `getStats`/`getStatsById`에서 즉시 읽는다. hybrid search는 FTS와 vector 분기를 `Promise.all`로 동시에 시작한다. ranking weight·score breakdown은 그대로다.
+
 ### Fixed
 
 - **Triple → semantic memory 임베딩 누락** (#710): `SemanticMemoryCrud.createSemanticMemory`가 관계 추출(triple)로 생성한 semantic memory에 대해 임베딩 생성을 fire-and-forget으로 트리거합니다(느린 provider가 memory 생성 응답을 지연시키지 않음, 실패해도 memory 생성은 차단하지 않음). `EmbeddingReindexService.backfillSemanticRelationEndpoints`는 `memory_relation`의 endpoint이면서 #713 vec 계약(`embedding_provider` + 예상 `dimensions` + `projection_type='native'`)을 만족하는 임베딩이 없는 기존 semantic memory를 제한된 개수(기본 200, 최대 1000)만큼 채워 넣습니다(non-native projection·차원 불일치 행만 있는 경우도 backfill 대상으로 판단). 신규 `POST /api/v1/maintenance/backfill-relation-endpoints` (+ `GET .../:jobId`)로 운영 중 backfill을 실행할 수 있습니다. n-hop 검색은 임베딩이 없는 relation 이웃도 1-hop 결과에 유지합니다(#708 회귀 테스트 추가).
