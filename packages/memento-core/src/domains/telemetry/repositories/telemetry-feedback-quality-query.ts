@@ -39,10 +39,25 @@ export function queryFeedbackQuality(
     )
     .get(params) as { c: number };
 
+  // 채택 갭 관측 (Issue #729): feedback_event에 request_id가 없어 recall 1건↔feedback 1건을
+  // 정확히 매칭할 수는 없다 — memory.search.requested(memory_injection 포함) 총량 대비
+  // helpful/not_helpful 총량의 대략 비율로 "미피드백 recall 비율"을 근사한다.
+  const ownerClause =
+    ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @agent ';
+  const recallRow = db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM telemetry_events
+       WHERE event_type = 'memory.search.requested' AND created_at >= @cutoff ${ownerClause}`
+    )
+    .get(params) as { c: number };
+
   const positive_count = positiveRow.c;
   const negative_count = negativeRow.c;
   const total = positive_count + negative_count;
   const helpful_rate = total > 0 ? positive_count / total : null;
+  const recall_count = recallRow.c;
+  const recall_without_feedback_rate =
+    recall_count > 0 ? Math.max(0, Math.min(1, 1 - total / recall_count)) : null;
 
   return {
     period,
@@ -51,6 +66,8 @@ export function queryFeedbackQuality(
     positive_count,
     negative_count,
     feedback_with_ranking_context_count: ctxRow.c,
+    recall_count,
+    recall_without_feedback_rate,
     timestamp: new Date().toISOString()
   };
 }

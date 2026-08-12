@@ -6,11 +6,12 @@ import { describe, it, expect } from 'vitest';
 import {
   formatSearchQuality,
   formatMemoryQuality,
+  formatFeedbackQuality,
   formatSystemMetrics,
   parseCliOptions,
   executeTelemetry,
 } from './telemetry-cli.js';
-import type { TelemetryRunner } from './telemetry-cli.js';
+import type { TelemetryRunner, FeedbackQualityResult } from './telemetry-cli.js';
 
 // 인라인 타입 정의 (서브패스 export 미노출)
 interface SearchQualityResult {
@@ -92,6 +93,41 @@ describe('formatMemoryQuality', () => {
   });
 });
 
+describe('formatFeedbackQuality', () => {
+  it('정상 데이터 → recall count·helpful rate·미피드백 비율 포함', () => {
+    const output = formatFeedbackQuality({
+      period: '24h',
+      owner_id: null,
+      helpful_rate: 0.75,
+      positive_count: 3,
+      negative_count: 1,
+      feedback_with_ranking_context_count: 2,
+      recall_count: 40,
+      recall_without_feedback_rate: 0.9,
+      timestamp: '2026-03-29T10:00:00.000Z',
+    });
+    expect(output).toContain('[Feedback Quality]');
+    expect(output).toContain('40');
+    expect(output).toContain('75.0 %');
+    expect(output).toContain('90.0 %');
+  });
+
+  it('null 필드 → N/A 표시', () => {
+    const output = formatFeedbackQuality({
+      period: '24h',
+      owner_id: null,
+      helpful_rate: null,
+      positive_count: 0,
+      negative_count: 0,
+      feedback_with_ranking_context_count: 0,
+      recall_count: 0,
+      recall_without_feedback_rate: null,
+      timestamp: '2026-03-29T10:00:00.000Z',
+    });
+    expect(output).toContain('N/A');
+  });
+});
+
 describe('formatSystemMetrics', () => {
   it('정상 데이터 → Recall/Remember/Feedback 섹션 포함 및 퍼센트 표시', () => {
     const output = formatSystemMetrics({
@@ -158,6 +194,17 @@ describe('executeTelemetry', () => {
           feedback: { request_count: null, success_count: null, error_count: null, error_rate: null, avg_latency_ms: null, p95_latency_ms: null },
         },
         background_jobs: {},
+        timestamp: '2026-03-29T10:00:00.000Z',
+      }),
+      getFeedbackQuality: (): FeedbackQualityResult => ({
+        period: '24h',
+        owner_id: null,
+        helpful_rate: null,
+        positive_count: 0,
+        negative_count: 0,
+        feedback_with_ranking_context_count: 0,
+        recall_count: 0,
+        recall_without_feedback_rate: null,
         timestamp: '2026-03-29T10:00:00.000Z',
       }),
     };
@@ -267,5 +314,10 @@ describe('parseCliOptions', () => {
 
   it('9) --type invalid → 잘못된 type 에러', () => {
     expect(() => parseCliOptions(['--type', 'invalid'])).toThrow();
+  });
+
+  it('10) --type feedback-quality → { period: "24h", type: "feedback-quality" }', () => {
+    const result = parseCliOptions(['--type', 'feedback-quality']);
+    expect(result).toEqual({ period: '24h', type: 'feedback-quality' });
   });
 });

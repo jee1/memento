@@ -57,6 +57,10 @@ export interface FeedbackQualityResult {
   positive_count: number;
   negative_count: number;
   feedback_with_ranking_context_count: number;
+  /** 기간 내 memory.search.requested 총량 (Issue #729 채택 갭 관측) */
+  recall_count: number;
+  /** 1 - (helpful+not_helpful)/recall_count, recall_count=0이면 null */
+  recall_without_feedback_rate: number | null;
   timestamp: string;
 }
 

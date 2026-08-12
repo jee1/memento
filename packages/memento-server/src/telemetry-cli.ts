@@ -30,6 +30,19 @@ export interface MemoryQualityResult {
   timestamp: string;
 }
 
+/** recall 대비 feedback 채택 갭 (Issue #729) */
+export interface FeedbackQualityResult {
+  period: string;
+  owner_id: string | null;
+  helpful_rate: number | null;
+  positive_count: number;
+  negative_count: number;
+  feedback_with_ranking_context_count: number;
+  recall_count: number;
+  recall_without_feedback_rate: number | null;
+  timestamp: string;
+}
+
 interface ToolMetricBucket {
   request_count: number | null;
   success_count: number | null;
@@ -55,7 +68,7 @@ export interface SystemMetricsResult {
 // ---------------------------------------------------------------------------
 
 export type TelemetryPeriod = '24h' | '7d' | '30d';
-export type TelemetryType = 'search-quality' | 'memory-quality' | 'system' | 'all';
+export type TelemetryType = 'search-quality' | 'memory-quality' | 'feedback-quality' | 'system' | 'all';
 
 export interface CliOptions {
   period: TelemetryPeriod;
@@ -63,7 +76,7 @@ export interface CliOptions {
 }
 
 const ALLOWED_PERIODS: TelemetryPeriod[] = ['24h', '7d', '30d'];
-const ALLOWED_TYPES: TelemetryType[] = ['search-quality', 'memory-quality', 'system', 'all'];
+const ALLOWED_TYPES: TelemetryType[] = ['search-quality', 'memory-quality', 'feedback-quality', 'system', 'all'];
 
 // ---------------------------------------------------------------------------
 // 옵션 파싱
@@ -127,6 +140,7 @@ export interface TelemetryRunner {
   getSearchQuality(period: TelemetryPeriod, ownerId: string | null): SearchQualityResult;
   getMemoryQuality(period: TelemetryPeriod, ownerId: string | null): MemoryQualityResult;
   getSystemMetrics(period: TelemetryPeriod, ownerId: string | null): SystemMetricsResult;
+  getFeedbackQuality(period: TelemetryPeriod, ownerId: string | null): FeedbackQualityResult;
 }
 
 export interface TelemetryRunResult {
@@ -152,6 +166,9 @@ export function executeTelemetry(runner: TelemetryRunner, options: CliOptions): 
     const systemResult: SystemMetricsResult | null = (type === 'system' || type === 'all')
       ? runner.getSystemMetrics(period, null)
       : null;
+    const feedbackResult: FeedbackQualityResult | null = (type === 'feedback-quality' || type === 'all')
+      ? runner.getFeedbackQuality(period, null)
+      : null;
 
     const isSearchEmpty = searchResult === null || (
       searchResult.search_count === null &&
@@ -168,12 +185,18 @@ export function executeTelemetry(runner: TelemetryRunner, options: CliOptions): 
       systemResult.tools.remember.request_count === null &&
       systemResult.tools.feedback.request_count === null
     );
+    const isFeedbackEmpty = feedbackResult === null || (
+      feedbackResult.recall_count === 0 &&
+      feedbackResult.positive_count === 0 &&
+      feedbackResult.negative_count === 0
+    );
 
     const allEmpty =
-      (type === 'all' && isSearchEmpty && isMemoryEmpty && isSystemEmpty) ||
+      (type === 'all' && isSearchEmpty && isMemoryEmpty && isSystemEmpty && isFeedbackEmpty) ||
       (type === 'search-quality' && isSearchEmpty) ||
       (type === 'memory-quality' && isMemoryEmpty) ||
-      (type === 'system' && isSystemEmpty);
+      (type === 'system' && isSystemEmpty) ||
+      (type === 'feedback-quality' && isFeedbackEmpty);
 
     if (allEmpty) {
       return { stdout: '기록된 텔레메트리 데이터가 없습니다.\n', stderr: '', exitCode: 0 };
@@ -186,6 +209,9 @@ export function executeTelemetry(runner: TelemetryRunner, options: CliOptions): 
     }
     if (memoryResult !== null) {
       parts.push('\n' + formatMemoryQuality(memoryResult) + '\n');
+    }
+    if (feedbackResult !== null) {
+      parts.push('\n' + formatFeedbackQuality(feedbackResult) + '\n');
     }
     if (systemResult !== null) {
       parts.push('\n' + formatSystemMetrics(systemResult) + '\n');
@@ -261,6 +287,20 @@ export function formatMemoryQuality(data: MemoryQualityResult): string {
 }
 
 /**
+ * FeedbackQualityResult를 포맷된 텍스트로 변환합니다.
+ */
+export function formatFeedbackQuality(data: FeedbackQualityResult): string {
+  const lines: string[] = [
+    '[Feedback Quality]',
+    `  ${pad('Recall count')} : ${fmt(data.recall_count)}`,
+    `  ${pad('Helpful rate')} : ${fmtPct(data.helpful_rate)}`,
+    `  ${pad('Positive / negative')} : ${fmt(data.positive_count)} / ${fmt(data.negative_count)}`,
+    `  ${pad('No-feedback recall rate')} : ${fmtPct(data.recall_without_feedback_rate)}`,
+  ];
+  return lines.join('\n');
+}
+
+/**
  * SystemMetricsResult를 포맷된 텍스트로 변환합니다.
  */
 export function formatSystemMetrics(data: SystemMetricsResult): string {
@@ -290,7 +330,7 @@ function printHelp(): void {
     '',
     'Options:',
     '  --period  <24h|7d|30d>                    조회 기간 (기본: 24h)',
-    '  --type    <search-quality|memory-quality|system|all>',
+    '  --type    <search-quality|memory-quality|feedback-quality|system|all>',
     '                                             지표 유형 (기본: all)',
     '  --help, -h                                 도움말 출력',
     '',
