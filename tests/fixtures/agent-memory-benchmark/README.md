@@ -15,3 +15,8 @@ LongMemEval content.
 
 `longmemeval-judge-results.jsonl` documents the task-completion judge result
 protocol with synthetic values.
+
+## Baselines (#737)
+
+- `rrf_sim` — offline in-memory FTS + TF-IDF reciprocal rank fusion (synthetic)
+- `memento_prod` — disposable DB + production RecallTool / HybridSearchEngine path (`npm run quality:agent-memory:production`)

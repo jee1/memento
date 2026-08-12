@@ -62,7 +62,7 @@ describe('LongMemEval validation artifacts', () => {
       'grep',
       'fts_only',
       'vector',
-      'memento',
+      'rrf_sim',
     ]);
     expect(results.task_completion).toEqual(expect.objectContaining({
       status: 'not_run',

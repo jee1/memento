@@ -15,8 +15,9 @@ import {
   type AgentMemoryE2ECase,
   type AgentMemoryRetrievalQuery,
 } from './agent-memory-benchmark-adapter.js';
+import { runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
 
-type BaselineName = 'grep' | 'fts_only' | 'vector' | 'memento' | 'graph_rrf';
+type BaselineName = 'grep' | 'fts_only' | 'vector' | 'rrf_sim' | 'memento_prod' | 'graph_rrf';
 
 interface RankedDocument extends AgentMemoryDocument {
   tokenEstimate: number;
@@ -71,6 +72,25 @@ interface GraphGateReport {
   checks: GateCheck[];
 }
 
+export interface ProductionScorecard {
+  dataset_revision: string;
+  dataset_sha256: string;
+  seed: number;
+  ranking_profile: string;
+  embedding_provider: string;
+  production_path: string;
+  query_count: number;
+  abstention_count: number;
+  non_abstention_query_count: number;
+  recall_at_5: number;
+  recall_at_10: number;
+  mrr: number;
+  ndcg_at_10: number;
+  latency_ms: { p50: number; p95: number };
+  p95_budget_ms: number;
+  failed_queries: string[];
+}
+
 export interface AgentMemoryBenchmarkReport {
   schema_version: 1;
   reproduction: {
@@ -83,23 +103,28 @@ export interface AgentMemoryBenchmarkReport {
     architecture: string;
     seed: number;
     graph_rrf: boolean;
+    production?: boolean;
   };
   retrieval: Partial<Record<BaselineName, BaselineMetrics>>;
   end_to_end: Partial<Record<BaselineName, EndToEndMetrics>>;
   gates: {
     graph_rrf: GraphGateReport;
+    production_vs_fts: GraphGateReport;
   };
+  scorecard?: ProductionScorecard;
 }
 
-interface RunOptions {
+export interface RunOptions {
   fixtureDir?: string;
   longMemEvalSPath?: string;
   graphRrf?: boolean;
   seed?: number;
+  production?: boolean;
 }
 
 interface CliOptions extends RunOptions {
   outputPath?: string;
+  scorecardOut?: string;
 }
 
 const DEFAULT_FIXTURE_DIR = join(process.cwd(), 'tests/fixtures/agent-memory-benchmark');
@@ -240,6 +265,40 @@ export function evaluateGraphAdoptionGate(
   };
 }
 
+export function evaluateProductionVsFtsGate(
+  ftsOnly: BaselineMetrics,
+  production: BaselineMetrics,
+  thresholds: AgentMemoryBenchmarkGateThresholds,
+): GraphGateReport {
+  const checks: GateCheck[] = [
+    minimumCheck(
+      'recall_at_10_non_degradation',
+      -thresholds.max_quality_regression,
+      production.recall_at_10 - ftsOnly.recall_at_10,
+    ),
+    minimumCheck(
+      'mrr_non_degradation',
+      -thresholds.max_quality_regression,
+      production.mrr - ftsOnly.mrr,
+    ),
+    minimumCheck(
+      'ndcg_at_10_non_degradation',
+      -thresholds.max_quality_regression,
+      production.ndcg_at_10 - ftsOnly.ndcg_at_10,
+    ),
+    maximumCheck(
+      'p95_latency_ms',
+      thresholds.max_p95_latency_ms,
+      production.latency_ms.p95,
+    ),
+  ];
+  return {
+    enabled: true,
+    adoption_candidate: checks.every((check) => check.passed),
+    checks,
+  };
+}
+
 export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBenchmarkReport {
   const fixtureDir = resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR);
   const dataset = options.longMemEvalSPath
@@ -266,10 +325,10 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
     );
   }
 
-  const memento = retrieval.memento ?? emptyMetrics();
+  const rrfSim = retrieval.rrf_sim ?? emptyMetrics();
   const graph = retrieval.graph_rrf;
   const graphGate = graphRrf && graph
-    ? evaluateGraphAdoptionGate(memento, graph, dataset.manifest.gates)
+    ? evaluateGraphAdoptionGate(rrfSim, graph, dataset.manifest.gates)
     : {
         enabled: false,
         adoption_candidate: false,
@@ -295,8 +354,68 @@ export function runAgentMemoryBenchmark(options: RunOptions = {}): AgentMemoryBe
     end_to_end: endToEnd,
     gates: {
       graph_rrf: graphGate,
+      production_vs_fts: {
+        enabled: false,
+        adoption_candidate: false,
+        checks: [],
+      },
     },
   };
+}
+
+export async function runProductionAgentMemoryBenchmark(
+  options: RunOptions = {},
+): Promise<AgentMemoryBenchmarkReport> {
+  const report = runAgentMemoryBenchmark(options);
+  const fixtureDir = resolve(options.fixtureDir ?? DEFAULT_FIXTURE_DIR);
+  const dataset = options.longMemEvalSPath
+    ? adaptLongMemEvalS(resolve(options.longMemEvalSPath))
+    : loadAgentMemoryFixture(fixtureDir);
+  const production = await runProductionRecallBenchmark(dataset, dataset.manifest.top_k);
+  const metrics = evaluateRankedResults(
+    production.evaluations,
+    dataset.manifest.top_k,
+    dataset.manifest.token_budget,
+  );
+  const abstentionCount = (dataset.taskCases ?? []).filter((testCase) => testCase.abstention).length;
+  const failedQueries = production.evaluations
+    .filter((evaluation) => !evaluation.ranked.some(
+      (document) => evaluation.relevantIds.includes(document.id),
+    ))
+    .map((evaluation) => evaluation.queryId)
+    .sort((a, b) => a.localeCompare(b));
+
+  report.reproduction.production = true;
+  report.retrieval.memento_prod = metrics;
+  report.end_to_end.memento_prod = evaluateEndToEnd(
+    dataset.e2eCases,
+    dataset.queries,
+    production.evaluations,
+  );
+  report.gates.production_vs_fts = evaluateProductionVsFtsGate(
+    report.retrieval.fts_only ?? emptyMetrics(),
+    metrics,
+    dataset.manifest.gates,
+  );
+  report.scorecard = {
+    production_path: production.production_path,
+    dataset_revision: dataset.manifest.source_revision,
+    dataset_sha256: report.reproduction.fixture_sha256,
+    ranking_profile: production.ranking_profile,
+    embedding_provider: production.embedding_provider,
+    seed: report.reproduction.seed,
+    query_count: metrics.query_count,
+    abstention_count: abstentionCount,
+    non_abstention_query_count: dataset.queries.length,
+    recall_at_5: metrics.recall_at_5,
+    recall_at_10: metrics.recall_at_10,
+    mrr: metrics.mrr,
+    ndcg_at_10: metrics.ndcg_at_10,
+    latency_ms: metrics.latency_ms,
+    p95_budget_ms: dataset.manifest.gates.max_p95_latency_ms,
+    failed_queries: failedQueries,
+  };
+  return report;
 }
 
 export function deterministicProjection(report: AgentMemoryBenchmarkReport): unknown {
@@ -332,7 +451,7 @@ function evaluateBaselines(
     ['grep', []],
     ['fts_only', []],
     ['vector', []],
-    ['memento', []],
+    ['rrf_sim', []],
   ]);
   if (graphRrf) {
     byBaseline.set('graph_rrf', []);
@@ -348,7 +467,7 @@ function evaluateBaselines(
       const grepResult = timedRank(() => rankByGrep(scopedDocuments, query.query, topK));
       const ftsResult = timedRank(() => rankByFts(fts, query.query, topK));
       const vectorResult = timedRank(() => rankByVector(vectorIndex, query.query, topK));
-      const mementoResult = timedRank(() => reciprocalRankFusion(
+      const rrfSimResult = timedRank(() => reciprocalRankFusion(
         [ftsResult.ids, vectorResult.ids],
       ).slice(0, topK));
 
@@ -357,10 +476,10 @@ function evaluateBaselines(
       pushEvaluation(byBaseline, 'vector', query, vectorResult.ids, vectorResult.latencyMs, documentById);
       pushEvaluation(
         byBaseline,
-        'memento',
+        'rrf_sim',
         query,
-        mementoResult.ids,
-        ftsResult.latencyMs + vectorResult.latencyMs + mementoResult.latencyMs,
+        rrfSimResult.ids,
+        ftsResult.latencyMs + vectorResult.latencyMs + rrfSimResult.latencyMs,
         documentById,
       );
 
@@ -784,6 +903,10 @@ function parseArgs(argv: string[]): CliOptions {
       options.seed = seed;
     } else if (arg === '--graph-rrf') {
       options.graphRrf = true;
+    } else if (arg === '--production') {
+      options.production = true;
+    } else if (arg === '--scorecard-out' && argv[index + 1]) {
+      options.scorecardOut = argv[++index];
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -794,9 +917,11 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
-  const report = runAgentMemoryBenchmark(options);
+  const report = options.production
+    ? await runProductionAgentMemoryBenchmark(options)
+    : runAgentMemoryBenchmark(options);
   const json = `${JSON.stringify(report, null, 2)}\n`;
   if (options.outputPath) {
     const outputPath = resolve(options.outputPath);
@@ -807,13 +932,16 @@ function main(): void {
   } else {
     process.stdout.write(json);
   }
+  if (options.scorecardOut && report.scorecard) {
+    writeFileSync(resolve(options.scorecardOut), `${JSON.stringify(report.scorecard, null, 2)}\n`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? '')) {
-  try {
-    main();
-  } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exitCode = 1;
-  }
+  main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      process.exit(1);
+    });
 }
