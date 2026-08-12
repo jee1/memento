@@ -43,6 +43,14 @@ export interface SemanticEndpointBackfillResult {
   failedCount: number;
 }
 
+export interface ReindexByIdsResult {
+  provider: EmbeddingProvider;
+  dryRun: boolean;
+  processedCount: number;
+  storedCount: number;
+  failedCount: number;
+}
+
 type MemoryRow = { id: string; content: string; type: MemoryType };
 
 type ReindexEmbeddingService = {
@@ -252,6 +260,69 @@ export class EmbeddingReindexService {
     }
 
     return { provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
+  }
+
+  /**
+   * #728: 스캔으로 이미 좁혀진 소수 ID만 재임베딩한다. `reindex()`는 provider의 전체
+   * 메모리를 훑지만, introspection heal 대상은 이미 결정된 ID 목록이라 그럴 필요가 없다.
+   */
+  async reindexByIds(
+    ids: string[],
+    options: { provider: EmbeddingProvider; dryRun?: boolean },
+  ): Promise<ReindexByIdsResult> {
+    const provider = normalizeProvider(options.provider);
+    if (ids.length === 0) {
+      return { provider, dryRun: !!options.dryRun, processedCount: 0, storedCount: 0, failedCount: 0 };
+    }
+    if (!this.embeddingService.isAvailable()) {
+      throw new Error('embedding service is unavailable');
+    }
+
+    // SQLite 파라미터 상한(기본 999) 회피용 청크 조회
+    const CHUNK = 500;
+    const memories: MemoryRow[] = [];
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const chunk = ids.slice(i, i + CHUNK);
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = this.db.prepare(`
+        SELECT id, content, type FROM memory_item
+        WHERE id IN (${placeholders}) AND COALESCE(is_deleted, 0) = 0
+      `).all(...chunk) as MemoryRow[];
+      memories.push(...rows);
+    }
+
+    if (options.dryRun) {
+      return { provider, dryRun: true, processedCount: memories.length, storedCount: 0, failedCount: 0 };
+    }
+
+    const expected = expectedDimensions(provider);
+    let storedCount = 0;
+    let failedCount = 0;
+
+    for (const memory of memories) {
+      try {
+        const result = await this.embeddingService.createAndStoreEmbedding(
+          this.db,
+          memory.id,
+          memory.content,
+          memory.type,
+          provider,
+        );
+        if (!result || result.provider !== provider || result.embedding.length !== expected) {
+          failedCount++;
+          continue;
+        }
+        if (!this.hasNativeEmbeddingRow(memory.id, provider, expected)) {
+          failedCount++;
+          continue;
+        }
+        storedCount++;
+      } catch {
+        failedCount++;
+      }
+    }
+
+    return { provider, dryRun: false, processedCount: memories.length, storedCount, failedCount };
   }
 
   /**

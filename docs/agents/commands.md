@@ -73,3 +73,29 @@ npm run docker:up                 # 컨테이너 기동
 | `MEMENTO_HTTP_BIND_HOST` | HTTP 바인드 (기본 `127.0.0.1`) |
 
 전체 환경 변수 목록과 거버넌스 정책은 [environment-variable-governance.md](../guides/ko/environment-variable-governance.md)에서, 배포 체크리스트는 [env-deployment-checklist.md](../operations/env-deployment-checklist.md)에서 확인하세요.
+
+## Introspection 치유 (#728)
+
+`meta_memory_introspection` 스캔이 찾은 저신뢰·고실패 메모리를 re-embed/demote/soft-delete/review로
+분류·처리합니다. **먼저 dry-run으로 분류 결과를 확인한 뒤 apply(`dry_run: false`)를 실행하세요.**
+
+```bash
+# dry-run (기본값, DB 변경 없음)
+curl -X POST http://localhost:9001/admin/introspection/heal \
+  -H "Authorization: Bearer $ADMIN_API_KEY" -H "Content-Type: application/json" -d '{}'
+
+# apply
+curl -X POST http://localhost:9001/admin/introspection/heal \
+  -H "Authorization: Bearer $ADMIN_API_KEY" -H "Content-Type: application/json" \
+  -d '{"dry_run": false}'
+```
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `INTROSPECTION_HEAL_DEMOTE_FACTOR` | `0.8` | demote 시 importance 곱셈 계수 |
+| `INTROSPECTION_HEAL_MIN_IMPORTANCE` | `0.1` | demote 하한선 |
+| `INTROSPECTION_HEAL_SOFT_DELETE_IMPORTANCE_THRESHOLD` | `0.3` | soft-delete 판단 importance 상한 |
+
+soft-delete는 기존 `ForgettingPolicyService`와 동일한 가역적 메커니즘을 재사용합니다
+(`SOFT_DELETE_GRACE_PERIOD_DAYS` 유예 기간 후 물리 삭제). pinned 메모리는 자동 조치 대상에서
+완전히 제외되고 review로 분류됩니다.
