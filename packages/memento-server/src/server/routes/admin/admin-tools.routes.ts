@@ -9,6 +9,7 @@ import {
   MigrateEmbeddingsTool,
   ConvertEpisodicToSemanticTool,
   GetMetaMemoryStatsTool,
+  IntrospectionHealTool,
   logger,
   createToolContext
 } from '@memento/core';
@@ -135,6 +136,57 @@ export function registerAdminToolRoutes(
       });
       return res.status(500).json({
         error: 'Episodic → Semantic 변환 실패',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  router.post('/introspection/heal', async (req, res) => {
+    try {
+      if (!db || !serverServices) {
+        return res.status(500).json({ error: '데이터베이스 또는 서비스가 연결되지 않았습니다' });
+      }
+
+      const {
+        provider,
+        dry_run,
+        low_confidence_threshold,
+        high_failure_count_threshold,
+        demote_factor,
+        min_importance,
+        soft_delete_importance_threshold
+      } = req.body ?? {};
+
+      const toolContext = createToolContext({ db, services: serverServices });
+      const healTool = new IntrospectionHealTool();
+      const result = await healTool.handle({
+        provider,
+        dry_run,
+        low_confidence_threshold,
+        high_failure_count_threshold,
+        demote_factor,
+        min_importance,
+        soft_delete_importance_threshold
+      }, toolContext);
+
+      const resultText = result.content[0]?.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      if (resultData.success === false) {
+        return res.status(400).json(resultData);
+      }
+
+      return res.json({
+        message: 'Introspection heal 완료',
+        ...resultData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Introspection heal failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return res.status(500).json({
+        error: 'Introspection heal 실패',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

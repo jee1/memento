@@ -144,7 +144,7 @@ export {
 } from './domains/relation/services/relation-quality-validator.js';
 export { RelationEngineSchemaMigration } from './infrastructure/database/database/migration/migrations/005-relation-engine-schema.js';
 export { EmbeddingReindexService } from './domains/embedding/services/embedding-reindex-service.js';
-export type { EmbeddingHealthDiagnostics, EmbeddingReindexOptions, EmbeddingReindexResult } from './domains/embedding/services/embedding-reindex-service.js';
+export type { EmbeddingHealthDiagnostics, EmbeddingReindexOptions, EmbeddingReindexResult, ReindexByIdsResult } from './domains/embedding/services/embedding-reindex-service.js';
 export type { EmbeddingProvider } from './shared/types/embedding.types.js';
 export {
   EventOutboxService,
@@ -199,6 +199,15 @@ export {
 } from './shared/utils/memento-resource-uri.js';
 export { IntrospectionScanCache } from './domains/memory/services/introspection-scan-cache.js';
 export { MigrateEmbeddingsTool } from './tools/migrate-embeddings-tool.js';
+export { IntrospectionHealTool } from './domains/memory/tools/introspection-heal-tool.js';
+export {
+  IntrospectionHealingService,
+  INTROSPECTION_HEAL_POLICY_NAME,
+} from './domains/memory/services/introspection-healing-service.js';
+export type {
+  IntrospectionHealOptions,
+  IntrospectionHealResult,
+} from './domains/memory/services/introspection-healing-service.js';
 export {
   SleepConsolidationService,
   ConsolidationAlreadyRunningError

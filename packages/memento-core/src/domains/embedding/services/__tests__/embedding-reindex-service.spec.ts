@@ -84,6 +84,52 @@ describe('EmbeddingReindexService', () => {
     expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'minilm'").get()).toEqual({ dim: 384 });
   });
 
+  describe('#728: reindexByIds', () => {
+    it('빈 ID 배열이면 아무것도 조회하지 않고 즉시 반환해야 함', async () => {
+      const createAndStoreEmbedding = vi.fn();
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
+      await expect(service.reindexByIds([], { provider: 'minilm' })).resolves.toEqual({
+        provider: 'minilm', dryRun: false, processedCount: 0, storedCount: 0, failedCount: 0,
+      });
+      expect(createAndStoreEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('dry-run이면 대상 개수만 세고 임베딩을 생성하지 않아야 함', async () => {
+      const createAndStoreEmbedding = vi.fn();
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
+      const result = await service.reindexByIds(['one', 'two'], { provider: 'minilm', dryRun: true });
+      expect(result).toMatchObject({ dryRun: true, processedCount: 2, storedCount: 0, failedCount: 0 });
+      expect(createAndStoreEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('지정된 ID만 재임베딩하고 나머지는 건드리지 않아야 함', async () => {
+      const service = new EmbeddingReindexService(db, {
+        isAvailable: () => true,
+        createAndStoreEmbedding: vi.fn().mockImplementation(async (_db, memoryId) => {
+          db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES (?, 'minilm', 'native', '[]', 384, 384)").run(memoryId);
+          return { provider: 'minilm', embedding: Array(384).fill(0) };
+        }),
+      });
+      const result = await service.reindexByIds(['two'], { provider: 'minilm' });
+      expect(result).toMatchObject({ dryRun: false, processedCount: 1, storedCount: 1, failedCount: 0 });
+      expect(db.prepare("SELECT dim FROM memory_embedding WHERE memory_id = 'two' AND embedding_provider = 'minilm'").get()).toEqual({ dim: 384 });
+    });
+
+    it('is_deleted 메모리는 대상에서 제외해야 함', async () => {
+      db.prepare("UPDATE memory_item SET is_deleted = 1 WHERE id = 'two'").run();
+      const createAndStoreEmbedding = vi.fn();
+      const service = new EmbeddingReindexService(db, { isAvailable: () => true, createAndStoreEmbedding });
+      const result = await service.reindexByIds(['two'], { provider: 'minilm' });
+      expect(result.processedCount).toBe(0);
+      expect(createAndStoreEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('임베딩 서비스가 사용 불가능하면 에러를 던져야 함', async () => {
+      const service = new EmbeddingReindexService(db, { isAvailable: () => false } as any);
+      await expect(service.reindexByIds(['two'], { provider: 'minilm' })).rejects.toThrow('embedding service is unavailable');
+    });
+  });
+
   describe('#710: backfillSemanticRelationEndpoints', () => {
     beforeEach(() => {
       // 'one'은 이미 임베딩이 있음. 'two'는 semantic이 아니므로 대상에서 제외되어야 함(기본 type='semantic')
