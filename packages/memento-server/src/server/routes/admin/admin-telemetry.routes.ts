@@ -51,6 +51,7 @@ export function registerAdminTelemetryRoutes(
       }
       const ownerQ = req.query.owner_id as string | undefined;
       const data = serverServices.telemetryService.getMemoryQuality(
+        '24h',
         ownerQ === undefined || ownerQ === '' ? null : ownerQ
       );
       return res.json(data);

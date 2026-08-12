@@ -3,6 +3,7 @@
  */
 
 import type { MemorySearchFilters } from '../../../shared/types/index.js';
+import { getRankingVersion } from '../../../shared/config/ranking-weights-loader.js';
 import type { ToolContext } from '../../../tools/types.js';
 import {
   recallQueryCorrelationExtra,
@@ -57,7 +58,15 @@ export async function executeHybridOrTextSearchForMemoryItem(
   tel?.record({
     eventType: 'memory.search.requested',
     outcome: 'success',
-    extraData: recallSearchRequestedExtra(queryHash, query, retrievalStrategy)
+    extraData: recallSearchRequestedExtra(
+      queryHash,
+      query,
+      retrievalStrategy,
+      useHybridRecall &&
+        typeof context.services.hybridSearchEngine?.getRankingVersion === 'function'
+        ? context.services.hybridSearchEngine.getRankingVersion()
+        : getRankingVersion()
+    )
   });
 
   let searchResult: RecallHybridOrTextSearchResult;
@@ -116,16 +125,32 @@ export async function executeHybridOrTextSearchForMemoryItem(
     throw new Error(`검색 실행 실패: ${msg}`);
   }
 
-  const candCount = searchResult?.items?.length ?? 0;
+  const rerankedCount = 'reranked_count' in searchResult
+    ? searchResult.reranked_count
+    : searchResult.items.length;
+  const unionCount = 'union_count' in searchResult
+    ? searchResult.union_count
+    : searchResult.items.length;
+  const textCount = 'text_count' in searchResult
+    ? searchResult.text_count ?? unionCount
+    : unionCount;
+  const vectorCount = 'vector_count' in searchResult
+    ? searchResult.vector_count ?? 0
+    : 0;
   tel?.record({
     eventType: 'memory.search.candidates_retrieved',
     outcome: 'success',
-    extraData: { candidate_count: candCount }
+    extraData: {
+      candidate_count: unionCount,
+      text_candidate_count: textCount,
+      vector_candidate_count: vectorCount,
+      union_candidate_count: unionCount
+    }
   });
   tel?.record({
     eventType: 'memory.search.reranked',
     outcome: 'success',
-    extraData: { candidate_count: candCount }
+    extraData: { candidate_count: rerankedCount, reranked_count: rerankedCount }
   });
 
   const executionTime = Date.now() - searchStartTime;

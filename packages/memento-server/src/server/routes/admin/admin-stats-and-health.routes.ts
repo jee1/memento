@@ -118,7 +118,7 @@ export function registerAdminStatsAndHealthRoutes(
       const rawOwner = req.query.owner_id;
       const ownerId =
         typeof rawOwner === 'string' && rawOwner.length > 0 ? rawOwner : null;
-      const consolidation_quality = telemetry.getConsolidationQuality(ownerId);
+      const consolidation_quality = telemetry.getConsolidationQuality('7d', ownerId);
       return res.json({
         message: 'Consolidation stats',
         consolidation_quality,

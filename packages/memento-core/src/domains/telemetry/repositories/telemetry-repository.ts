@@ -30,6 +30,12 @@ export interface SearchQualityResult {
   empty_retrieval_rate: number | null;
   avg_candidate_count: number | null;
   top_k_selected_rate: number | null;
+  text_candidate_count: number;
+  vector_candidate_count: number;
+  union_candidate_count: number;
+  reranked_count: number;
+  selected_count: number;
+  ranking_versions: string[];
   timestamp: string;
 }
 
@@ -221,15 +227,13 @@ export class TelemetryRepository {
     return querySearchQuality(this.db, period, ownerId);
   }
 
-  queryMemoryQuality(ownerId?: string | null): MemoryQualityResult {
-    return queryMemoryQuality(this.db, ownerId);
+  queryMemoryQuality(period: TelemetryPeriod, ownerId?: string | null): MemoryQualityResult {
+    return queryMemoryQuality(this.db, period, ownerId);
   }
 
-  /**
-   * Sleep 공고화·트리플 추출 등 구조화 파이프라인 품질 지표 (최근 7일 윈도우, owner 선택)
-   */
-  queryConsolidationQuality(ownerId?: string | null): ConsolidationQualityResult {
-    return queryConsolidationQuality(this.db, ownerId);
+  /** Sleep 공고화·트리플 추출 등 구조화 파이프라인 품질 지표 (기간·owner 선택) */
+  queryConsolidationQuality(period: TelemetryPeriod, ownerId?: string | null): ConsolidationQualityResult {
+    return queryConsolidationQuality(this.db, period, ownerId);
   }
 
   queryFeedbackQuality(period: TelemetryPeriod, ownerId?: string | null): FeedbackQualityResult {
