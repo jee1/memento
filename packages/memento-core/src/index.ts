@@ -40,6 +40,11 @@ export { getToolRegistry, executeTool, resolveTelemetryOwnerId } from './tools/i
 export { initializeServices } from './bootstrap.js';
 export type { ServerServices } from './bootstrap.js';
 export type { ServerContext } from './context.js';
+export type {
+  SearchQualityResult,
+  MemoryQualityResult,
+  FeedbackQualityResult
+} from './domains/telemetry/repositories/telemetry-repository.js';
 
 // --- shared (설정·유틸·타입) re-export (서버 thin화용) ---
 export { mementoConfig, validateConfig } from './shared/config/index.js';

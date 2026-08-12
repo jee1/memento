@@ -6,42 +6,13 @@
  */
 
 import { loadEnv } from './cli/env-loader.js';
+import type {
+  SearchQualityResult,
+  MemoryQualityResult,
+  FeedbackQualityResult
+} from '@memento/core';
 
-// 타입 정의 (telemetry-repository의 타입 로컬 미러링 — 서브패스 export 미노출)
-export interface SearchQualityResult {
-  period: string;
-  owner_id: string | null;
-  search_count: number | null;
-  avg_latency_ms: number | null;
-  p95_latency_ms: number | null;
-  empty_retrieval_rate: number | null;
-  avg_candidate_count: number | null;
-  top_k_selected_rate: number | null;
-  timestamp: string;
-}
-
-export interface MemoryQualityResult {
-  owner_id: string | null;
-  total_memories: number | null;
-  type_distribution: Record<string, number> | null;
-  duplicate_write_rate_24h: number | null;
-  relation_coverage_ratio: number | null;
-  orphan_memory_ratio: number | null;
-  timestamp: string;
-}
-
-/** recall 대비 feedback 채택 갭 (Issue #729) */
-export interface FeedbackQualityResult {
-  period: string;
-  owner_id: string | null;
-  helpful_rate: number | null;
-  positive_count: number;
-  negative_count: number;
-  feedback_with_ranking_context_count: number;
-  recall_count: number;
-  recall_without_feedback_rate: number | null;
-  timestamp: string;
-}
+export type { SearchQualityResult, MemoryQualityResult, FeedbackQualityResult };
 
 interface ToolMetricBucket {
   request_count: number | null;

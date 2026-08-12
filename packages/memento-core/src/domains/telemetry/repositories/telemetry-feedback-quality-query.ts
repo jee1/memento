@@ -9,10 +9,11 @@ export function queryFeedbackQuality(
   ownerId?: string | null
 ): FeedbackQualityResult {
   const cutoff = periodCutoffIso(period);
-  const agentFilter =
-    ownerId === undefined || ownerId === null ? '' : ' AND agent_id = @agent ';
+  const hasOwner = ownerId !== undefined && ownerId !== null;
+  const agentFilter = hasOwner ? ' AND agent_id = @agent ' : '';
+  const ownerClause = hasOwner ? ' AND owner_id = @agent ' : '';
   const params: Record<string, unknown> = { cutoff };
-  if (ownerId !== undefined && ownerId !== null) params.agent = ownerId;
+  if (hasOwner) params.agent = ownerId;
 
   const positiveRow = db
     .prepare(
@@ -42,8 +43,6 @@ export function queryFeedbackQuality(
   // 채택 갭 관측 (Issue #729): feedback_event에 request_id가 없어 recall 1건↔feedback 1건을
   // 정확히 매칭할 수는 없다 — memory.search.requested(memory_injection 포함) 총량 대비
   // helpful/not_helpful 총량의 대략 비율로 "미피드백 recall 비율"을 근사한다.
-  const ownerClause =
-    ownerId === undefined || ownerId === null ? '' : ' AND owner_id = @agent ';
   const recallRow = db
     .prepare(
       `SELECT COUNT(*) AS c FROM telemetry_events
@@ -56,8 +55,10 @@ export function queryFeedbackQuality(
   const total = positive_count + negative_count;
   const helpful_rate = total > 0 ? positive_count / total : null;
   const recall_count = recallRow.c;
+  // total(helpful+not_helpful)이 recall_count를 넘을 수 있어(매칭 미보장) 0으로만 clamp —
+  // total>=0이므로 1 - total/recall_count는 1을 초과할 수 없다.
   const recall_without_feedback_rate =
-    recall_count > 0 ? Math.max(0, Math.min(1, 1 - total / recall_count)) : null;
+    recall_count > 0 ? Math.max(0, 1 - total / recall_count) : null;
 
   return {
     period,

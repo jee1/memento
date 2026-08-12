@@ -11,30 +11,12 @@ import {
   parseCliOptions,
   executeTelemetry,
 } from './telemetry-cli.js';
-import type { TelemetryRunner, FeedbackQualityResult } from './telemetry-cli.js';
-
-// 인라인 타입 정의 (서브패스 export 미노출)
-interface SearchQualityResult {
-  period: string;
-  owner_id: string | null;
-  search_count: number | null;
-  avg_latency_ms: number | null;
-  p95_latency_ms: number | null;
-  empty_retrieval_rate: number | null;
-  avg_candidate_count: number | null;
-  top_k_selected_rate: number | null;
-  timestamp: string;
-}
-
-interface MemoryQualityResult {
-  owner_id: string | null;
-  total_memories: number | null;
-  type_distribution: Record<string, number> | null;
-  duplicate_write_rate_24h: number | null;
-  relation_coverage_ratio: number | null;
-  orphan_memory_ratio: number | null;
-  timestamp: string;
-}
+import type {
+  TelemetryRunner,
+  SearchQualityResult,
+  MemoryQualityResult,
+  FeedbackQualityResult
+} from './telemetry-cli.js';
 
 // Phase 3 — 포맷터 테스트
 
@@ -49,6 +31,12 @@ describe('formatSearchQuality', () => {
       empty_retrieval_rate: null,
       avg_candidate_count: null,
       top_k_selected_rate: null,
+      text_candidate_count: 0,
+      vector_candidate_count: 0,
+      union_candidate_count: 0,
+      reranked_count: 0,
+      selected_count: 0,
+      ranking_versions: [],
       timestamp: '2026-03-29T10:00:00.000Z',
     };
     const output = formatSearchQuality(input);
@@ -67,6 +55,12 @@ describe('formatSearchQuality', () => {
       empty_retrieval_rate: 0.125,
       avg_candidate_count: 8.3,
       top_k_selected_rate: 0.87,
+      text_candidate_count: 100,
+      vector_candidate_count: 120,
+      union_candidate_count: 140,
+      reranked_count: 90,
+      selected_count: 70,
+      ranking_versions: [],
       timestamp: '2026-03-29T10:00:00.000Z',
     };
     const output = formatSearchQuality(input);
@@ -175,6 +169,12 @@ describe('executeTelemetry', () => {
         empty_retrieval_rate: null,
         avg_candidate_count: null,
         top_k_selected_rate: null,
+        text_candidate_count: 0,
+        vector_candidate_count: 0,
+        union_candidate_count: 0,
+        reranked_count: 0,
+        selected_count: 0,
+        ranking_versions: [],
         timestamp: '2026-03-29T10:00:00.000Z',
       }),
       getMemoryQuality: () => ({
@@ -243,6 +243,12 @@ describe('output line length', () => {
       empty_retrieval_rate: 0.125,
       avg_candidate_count: 8.3,
       top_k_selected_rate: 0.87,
+      text_candidate_count: 100,
+      vector_candidate_count: 120,
+      union_candidate_count: 140,
+      reranked_count: 90,
+      selected_count: 70,
+      ranking_versions: [],
       timestamp: '2026-03-29T10:00:00.000Z',
     });
     for (const line of searchOutput.split('\n')) {

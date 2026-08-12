@@ -3,6 +3,22 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import { queryFeedbackQuality } from './telemetry-feedback-quality-query.js';
 
+function createFeedbackEventTable(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE feedback_event (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memory_id TEXT NOT NULL,
+      event TEXT NOT NULL,
+      score REAL,
+      comment TEXT,
+      session_id TEXT,
+      agent_id TEXT,
+      score_breakdown_json TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+}
+
 function createTelemetryEventsTable(db: Database.Database): void {
   db.exec(`
     CREATE TABLE telemetry_events (
@@ -33,19 +49,7 @@ function insertSearchRequested(
 describe('queryFeedbackQuality', () => {
   it('helpful_rate와 ranking context 집계를 반환한다', () => {
     const db = new Database(':memory:');
-    db.exec(`
-      CREATE TABLE feedback_event (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        memory_id TEXT NOT NULL,
-        event TEXT NOT NULL,
-        score REAL,
-        comment TEXT,
-        session_id TEXT,
-        agent_id TEXT,
-        score_breakdown_json TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-    `);
+    createFeedbackEventTable(db);
     createTelemetryEventsTable(db);
     const insert = db.prepare(
       `INSERT INTO feedback_event (memory_id, event, agent_id, score_breakdown_json, created_at)
@@ -80,16 +84,7 @@ describe('queryFeedbackQuality', () => {
 
   it('피드백이 없으면 helpful_rate는 null', () => {
     const db = new Database(':memory:');
-    db.exec(`
-      CREATE TABLE feedback_event (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        memory_id TEXT NOT NULL,
-        event TEXT NOT NULL,
-        agent_id TEXT,
-        score_breakdown_json TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-    `);
+    createFeedbackEventTable(db);
     createTelemetryEventsTable(db);
     const result = queryFeedbackQuality(db, '7d', null);
     expect(result.positive_count).toBe(0);
@@ -103,16 +98,7 @@ describe('queryFeedbackQuality', () => {
 
   it('recall은 있지만 feedback이 전혀 없으면 미피드백 비율은 1', () => {
     const db = new Database(':memory:');
-    db.exec(`
-      CREATE TABLE feedback_event (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        memory_id TEXT NOT NULL,
-        event TEXT NOT NULL,
-        agent_id TEXT,
-        score_breakdown_json TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-    `);
+    createFeedbackEventTable(db);
     createTelemetryEventsTable(db);
     insertSearchRequested(db, null);
     insertSearchRequested(db, null);
