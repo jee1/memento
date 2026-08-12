@@ -4,7 +4,13 @@
 
 ## MCP·메모리 — 작업 전후 기억 루프
 
-Memento를 사용하는 에이전트는 **두 번의 MCP 호출**이 습관이 되어야 합니다. 작업을 시작하기 전에 `recall` 또는 `memory_injection`으로 관련 기억을 불러와 맥락을 채웁니다. 작업이 끝난 뒤에는 `remember`로 결과를 남기되, 기억 타입을 구분합니다. 48시간 안에 다시 쓸 컨텍스트는 `working`, 에피소드·사건 기록은 `episodic`, 재사용 가능한 지식은 `semantic`, 반복 절차는 `procedural`입니다. 이 구분이 나중에 검색 품질을 결정합니다.
+Memento를 사용하는 에이전트는 아래 순서가 습관이 되어야 합니다(Issue #729 — feedback은 인프라가 있어도 안 쓰면 랭킹에 반영되지 않습니다).
+
+1. **작업 전**: `recall` 또는 `memory_injection`으로 관련 기억을 불러와 맥락을 채운다.
+2. **recall 결과를 실제로 썼다면**: 그 자리에서 `feedback` MCP 도구(helpful/not_helpful)를 호출한다. 예: `client.recordRecallFeedback(recallResult, memoryId, true)` — 랭킹 공식의 `ζ_fb·(feedback_norm − 0.5)` 항은 이 신호로만 갱신됩니다([search-ranking.md](./search-ranking.md)).
+3. **작업 후**: `remember`로 결과를 남기되 기억 타입을 구분한다. 48시간 안에 다시 쓸 컨텍스트는 `working`, 에피소드·사건 기록은 `episodic`, 재사용 가능한 지식은 `semantic`, 반복 절차는 `procedural`입니다. 이 구분이 나중에 검색 품질을 결정합니다.
+
+**관측**: `feedback` 채택률(1단계 대비 2단계 실행 비율)은 `get_telemetry_summary`의 `feedback_quality.recall_without_feedback_rate`, HTTP `GET /admin/telemetry/feedback`, 또는 `npm run telemetry -- --type feedback-quality`로 확인합니다. 1에 가까울수록 recall만 하고 feedback을 남기지 않는 비율이 높다는 뜻입니다.
 
 ## 코드 탐색 — Serena 심볼 우선
 

@@ -57,6 +57,8 @@ function makeFeedbackQuality(
     positive_count: 3,
     negative_count: 1,
     feedback_with_ranking_context_count: 2,
+    recall_count: 40,
+    recall_without_feedback_rate: 0.9,
     timestamp: '2026-03-29T10:00:00.000Z',
     ...overrides,
   };
@@ -201,6 +203,8 @@ describe('GetTelemetrySummaryTool', () => {
           positive_count: 1,
           negative_count: 1,
           feedback_with_ranking_context_count: 0,
+          recall_count: 20,
+          recall_without_feedback_rate: 0.9,
         }),
     });
     const result = await tool.handle({ period: '30d' }, context);
@@ -210,7 +214,27 @@ describe('GetTelemetrySummaryTool', () => {
       positive_count: 1,
       negative_count: 1,
       feedback_with_ranking_context_count: 0,
+      recall_count: 20,
+      recall_without_feedback_rate: 0.9,
     });
     expect(context.services.telemetryService!.getFeedbackQuality).toHaveBeenCalledWith('30d', null);
+  });
+
+  it('7) recall은 있지만 feedback이 전혀 없으면 recall_without_feedback_rate=1을 그대로 노출한다', async () => {
+    const context = makeContext({
+      getFeedbackQualityImpl: () =>
+        makeFeedbackQuality({
+          helpful_rate: null,
+          positive_count: 0,
+          negative_count: 0,
+          feedback_with_ranking_context_count: 0,
+          recall_count: 12,
+          recall_without_feedback_rate: 1,
+        }),
+    });
+    const result = await tool.handle({}, context);
+    const data = JSON.parse(result.content[0].text);
+    expect(data.feedback_quality.recall_count).toBe(12);
+    expect(data.feedback_quality.recall_without_feedback_rate).toBe(1);
   });
 });
