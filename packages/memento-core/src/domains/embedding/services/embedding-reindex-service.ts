@@ -69,13 +69,33 @@ type ReindexEmbeddingService = {
  * 서비스 생성 시 `tfidf`로 정규화한다. 이 정규화 없이는 `lightweight` 요청의
  * expectedDimensions(384)가 실제로 저장되는 tfidf(512) 결과와 어긋난다.
  */
-function normalizeProvider(provider: EmbeddingProvider): EmbeddingProvider {
+export function normalizeProvider(provider: EmbeddingProvider): EmbeddingProvider {
   return provider === 'lightweight' ? 'tfidf' : provider;
 }
 
 /** #713 vec 계약의 단일 원본(VectorCompatibilityService)에서 provider별 native 차원을 가져온다. */
-function expectedDimensions(provider: EmbeddingProvider): number {
+export function expectedDimensions(provider: EmbeddingProvider): number {
   return vectorCompatibilityService.getNativeDimensions(provider);
+}
+
+/** SQLite IN절 파라미터 상한(기본 999) 회피용 기본 청크 크기 */
+export const ID_CHUNK_SIZE = 500;
+
+/**
+ * #728: ID 목록을 청크로 나눠 `IN (...)` 조회를 반복하고 결과를 이어붙인다.
+ * `introspection-healing-service.ts`와 이 파일의 `reindexByIds`가 공유하는 패턴.
+ */
+export function chunkedIn<T>(
+  ids: string[],
+  size: number,
+  query: (chunk: string[], placeholders: string) => T[],
+): T[] {
+  const results: T[] = [];
+  for (let i = 0; i < ids.length; i += size) {
+    const chunk = ids.slice(i, i + size);
+    results.push(...query(chunk, chunk.map(() => '?').join(',')));
+  }
+  return results;
 }
 
 export class EmbeddingReindexService {
@@ -228,11 +248,52 @@ export class EmbeddingReindexService {
       return { provider, candidateCount, dryRun: true, processedCount: candidateCount, storedCount: 0, failedCount: 0 };
     }
 
+    const { storedCount, failedCount } = await this.embedAndStore(candidates, provider);
+    return { provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
+  }
+
+  /**
+   * #728: 스캔으로 이미 좁혀진 소수 ID만 재임베딩한다. `reindex()`는 provider의 전체
+   * 메모리를 훑지만, introspection heal 대상은 이미 결정된 ID 목록이라 그럴 필요가 없다.
+   */
+  async reindexByIds(
+    ids: string[],
+    options: { provider: EmbeddingProvider; dryRun?: boolean },
+  ): Promise<ReindexByIdsResult> {
+    const provider = normalizeProvider(options.provider);
+    if (ids.length === 0) {
+      return { provider, dryRun: !!options.dryRun, processedCount: 0, storedCount: 0, failedCount: 0 };
+    }
+    if (!this.embeddingService.isAvailable()) {
+      throw new Error('embedding service is unavailable');
+    }
+
+    const memories = chunkedIn(ids, ID_CHUNK_SIZE, (chunk, placeholders) => this.db.prepare(`
+      SELECT id, content, type FROM memory_item
+      WHERE id IN (${placeholders}) AND COALESCE(is_deleted, 0) = 0
+    `).all(...chunk) as MemoryRow[]);
+
+    if (options.dryRun) {
+      return { provider, dryRun: true, processedCount: memories.length, storedCount: 0, failedCount: 0 };
+    }
+
+    const { storedCount, failedCount } = await this.embedAndStore(memories, provider);
+    return { provider, dryRun: false, processedCount: memories.length, storedCount, failedCount };
+  }
+
+  /**
+   * #728: `backfillSemanticRelationEndpoints`·`reindexByIds`가 공유하는
+   * "임베딩 생성 → provider/차원 검증 → native 저장 검증" 루프.
+   */
+  private async embedAndStore(
+    memories: MemoryRow[],
+    provider: EmbeddingProvider,
+  ): Promise<{ storedCount: number; failedCount: number }> {
+    const expected = expectedDimensions(provider);
     let storedCount = 0;
     let failedCount = 0;
-    const expected = expectedDimensions(provider);
 
-    for (const memory of candidates) {
+    for (const memory of memories) {
       try {
         const result = await this.embeddingService.createAndStoreEmbedding(
           this.db,
@@ -259,70 +320,7 @@ export class EmbeddingReindexService {
       }
     }
 
-    return { provider, candidateCount, dryRun: false, processedCount: candidateCount, storedCount, failedCount };
-  }
-
-  /**
-   * #728: 스캔으로 이미 좁혀진 소수 ID만 재임베딩한다. `reindex()`는 provider의 전체
-   * 메모리를 훑지만, introspection heal 대상은 이미 결정된 ID 목록이라 그럴 필요가 없다.
-   */
-  async reindexByIds(
-    ids: string[],
-    options: { provider: EmbeddingProvider; dryRun?: boolean },
-  ): Promise<ReindexByIdsResult> {
-    const provider = normalizeProvider(options.provider);
-    if (ids.length === 0) {
-      return { provider, dryRun: !!options.dryRun, processedCount: 0, storedCount: 0, failedCount: 0 };
-    }
-    if (!this.embeddingService.isAvailable()) {
-      throw new Error('embedding service is unavailable');
-    }
-
-    // SQLite 파라미터 상한(기본 999) 회피용 청크 조회
-    const CHUNK = 500;
-    const memories: MemoryRow[] = [];
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      const chunk = ids.slice(i, i + CHUNK);
-      const placeholders = chunk.map(() => '?').join(',');
-      const rows = this.db.prepare(`
-        SELECT id, content, type FROM memory_item
-        WHERE id IN (${placeholders}) AND COALESCE(is_deleted, 0) = 0
-      `).all(...chunk) as MemoryRow[];
-      memories.push(...rows);
-    }
-
-    if (options.dryRun) {
-      return { provider, dryRun: true, processedCount: memories.length, storedCount: 0, failedCount: 0 };
-    }
-
-    const expected = expectedDimensions(provider);
-    let storedCount = 0;
-    let failedCount = 0;
-
-    for (const memory of memories) {
-      try {
-        const result = await this.embeddingService.createAndStoreEmbedding(
-          this.db,
-          memory.id,
-          memory.content,
-          memory.type,
-          provider,
-        );
-        if (!result || result.provider !== provider || result.embedding.length !== expected) {
-          failedCount++;
-          continue;
-        }
-        if (!this.hasNativeEmbeddingRow(memory.id, provider, expected)) {
-          failedCount++;
-          continue;
-        }
-        storedCount++;
-      } catch {
-        failedCount++;
-      }
-    }
-
-    return { provider, dryRun: false, processedCount: memories.length, storedCount, failedCount };
+    return { storedCount, failedCount };
   }
 
   /**

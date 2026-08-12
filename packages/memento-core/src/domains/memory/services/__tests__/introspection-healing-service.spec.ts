@@ -133,6 +133,19 @@ describe('IntrospectionHealingService', () => {
     expect(result.scanned.union).toBe(6); // mem_ok 제외
   });
 
+  it('차원이 기대값과 다른 native 임베딩은 re-embed 대상으로 분류해야 함 (#713 vec 계약)', async () => {
+    insertMemory(db, 'mem_dim_mismatch', { importance: 0.5, avgConfidence: 0.3, failureCount: 0, hasEmbedding: false });
+    db.prepare(
+      `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions)
+       VALUES ('mem_dim_mismatch', ?, 'native', '[]', 128, 128)`,
+    ).run(PROVIDER);
+
+    const service = new IntrospectionHealingService(db, fakeEmbeddingService() as any);
+    const result = await service.heal({ provider: PROVIDER });
+
+    expect(result.reEmbed.memoryIds).toContain('mem_dim_mismatch');
+  });
+
   it('apply 모드는 각 액션을 정확히 실행해야 함', async () => {
     const embeddingService = fakeEmbeddingService();
     const service = new IntrospectionHealingService(db, embeddingService as any);

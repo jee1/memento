@@ -14,7 +14,13 @@ import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { MetaMemoryIntrospectionService } from './meta-memory-introspection-service.js';
 import type { MemoryEmbeddingService } from './memory-embedding-service.js';
-import { EmbeddingReindexService } from '../../embedding/services/embedding-reindex-service.js';
+import {
+  EmbeddingReindexService,
+  ID_CHUNK_SIZE,
+  chunkedIn,
+  expectedDimensions,
+  normalizeProvider,
+} from '../../embedding/services/embedding-reindex-service.js';
 import {
   ForgettingEventRepository,
 } from '../../forgetting/repositories/forgetting-event-repository.js';
@@ -64,13 +70,9 @@ function readEnvRatio(name: string, fallback: number): number {
   return Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback;
 }
 
-/** SQLite 파라미터 상한(기본 999) 회피용 청크 크기 */
-const ID_CHUNK_SIZE = 500;
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
+/** 옵션값이 있으면 그대로, 없으면 env 플래그, 그것도 없으면 기본값 — 0~1로 clamp */
+function resolveRatio(optionValue: number | undefined, envName: string, fallback: number): number {
+  return clamp01(optionValue ?? readEnvRatio(envName, fallback));
 }
 
 export class IntrospectionHealingService {
@@ -82,11 +84,11 @@ export class IntrospectionHealingService {
 
   async heal(options: IntrospectionHealOptions = {}): Promise<IntrospectionHealResult> {
     const dryRun = options.dryRun ?? true;
-    const provider = options.provider ?? mementoConfig.embeddingProvider;
-    const demoteFactor = clamp01(options.demoteFactor ?? readEnvRatio('INTROSPECTION_HEAL_DEMOTE_FACTOR', 0.8));
-    const minImportance = clamp01(options.minImportance ?? readEnvRatio('INTROSPECTION_HEAL_MIN_IMPORTANCE', 0.1));
-    const softDeleteImportanceThreshold = clamp01(
-      options.softDeleteImportanceThreshold ?? readEnvRatio('INTROSPECTION_HEAL_SOFT_DELETE_IMPORTANCE_THRESHOLD', 0.3),
+    const provider = normalizeProvider(options.provider ?? mementoConfig.embeddingProvider);
+    const demoteFactor = resolveRatio(options.demoteFactor, 'INTROSPECTION_HEAL_DEMOTE_FACTOR', 0.8);
+    const minImportance = resolveRatio(options.minImportance, 'INTROSPECTION_HEAL_MIN_IMPORTANCE', 0.1);
+    const softDeleteImportanceThreshold = resolveRatio(
+      options.softDeleteImportanceThreshold, 'INTROSPECTION_HEAL_SOFT_DELETE_IMPORTANCE_THRESHOLD', 0.3,
     );
 
     const scan = await MetaMemoryIntrospectionService.runScan(this.db, {
@@ -138,39 +140,39 @@ export class IntrospectionHealingService {
       return result;
     }
 
+    // re-embed는 임베딩 생성에서 await가 걸리므로 트랜잭션 밖에서 실행 (락 보유 시간 최소화).
+    // soft-delete·demote는 순수 동기 쓰기라 하나의 트랜잭션으로 묶어 커밋 횟수를 줄인다.
     await this.applyReEmbed(result, provider);
-    this.applySoftDelete(result);
-    this.applyDemote(result, rowById, demoteFactor, minImportance);
+    await DatabaseUtils.runTransaction(this.db, () => {
+      this.applySoftDelete(result);
+      this.applyDemote(result, rowById, demoteFactor, minImportance);
+    });
 
     return result;
   }
 
   private loadMemoryRows(ids: string[]): Map<string, HealMemoryRow> {
-    const rowById = new Map<string, HealMemoryRow>();
-    for (const idChunk of chunk(ids, ID_CHUNK_SIZE)) {
-      const placeholders = idChunk.map(() => '?').join(',');
-      const rows = DatabaseUtils.all(
-        this.db,
-        `SELECT id, importance, pinned FROM memory_item WHERE id IN (${placeholders}) AND COALESCE(is_deleted, 0) = 0`,
-        idChunk,
-      ) as HealMemoryRow[];
-      for (const row of rows) rowById.set(row.id, row);
-    }
-    return rowById;
+    const rows = chunkedIn(ids, ID_CHUNK_SIZE, (chunk, placeholders) => DatabaseUtils.all(
+      this.db,
+      `SELECT id, importance, pinned FROM memory_item WHERE id IN (${placeholders}) AND COALESCE(is_deleted, 0) = 0`,
+      chunk,
+    ) as HealMemoryRow[]);
+    return new Map(rows.map((row) => [row.id, row]));
   }
 
+  /**
+   * #713 vec 계약(embedding_provider + projection_type='native' + dimensions=기대차원)을
+   * 만족하는 행이 없는 ID를 "임베딩 누락·차원 불일치"로 판정한다 (EmbeddingReindexService의
+   * hasNativeEmbeddingRow/findSemanticRelationEndpointsMissingEmbedding과 동일 조건).
+   */
   private findMissingEmbeddingIds(ids: string[], provider: EmbeddingProvider): Set<string> {
-    const present = new Set<string>();
-    for (const idChunk of chunk(ids, ID_CHUNK_SIZE)) {
-      const placeholders = idChunk.map(() => '?').join(',');
-      const rows = DatabaseUtils.all(
-        this.db,
-        `SELECT DISTINCT memory_id FROM memory_embedding
-         WHERE memory_id IN (${placeholders}) AND embedding_provider = ? AND projection_type = 'native'`,
-        [...idChunk, provider],
-      ) as { memory_id: string }[];
-      for (const row of rows) present.add(row.memory_id);
-    }
+    const dimensions = expectedDimensions(provider);
+    const present = new Set(chunkedIn(ids, ID_CHUNK_SIZE, (chunk, placeholders) => (DatabaseUtils.all(
+      this.db,
+      `SELECT DISTINCT memory_id FROM memory_embedding
+       WHERE memory_id IN (${placeholders}) AND embedding_provider = ? AND projection_type = 'native' AND dimensions = ?`,
+      [...chunk, provider, dimensions],
+    ) as { memory_id: string }[]).map((row) => row.memory_id)));
     return new Set(ids.filter((id) => !present.has(id)));
   }
 
