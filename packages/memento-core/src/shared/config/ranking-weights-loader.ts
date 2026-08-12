@@ -5,6 +5,7 @@
 
 import { join, resolve } from 'path';
 import { existsSync } from 'fs';
+import { createHash } from 'crypto';
 import {
   loadTOMLConfig,
   mergeWithDefaults,
@@ -182,6 +183,14 @@ function validateRankingWeights(config: RankingWeightsConfig): void {
 export function getRankingWeights(configPath?: string): RankingWeightsConfig {
   const cacheKey = `ranking-weights:${resolveRankingWeightsFilePath(configPath)}`;
   return getCachedConfig(cacheKey, () => loadRankingWeights(configPath));
+}
+
+export function getRankingVersion(configPath?: string): string {
+  const hash = createHash('sha256')
+    .update(JSON.stringify(getRankingWeights(configPath)))
+    .digest('hex')
+    .slice(0, 12);
+  return `ranking-sha256:${hash}`;
 }
 
 /**

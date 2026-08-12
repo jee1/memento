@@ -134,8 +134,84 @@ describe('TelemetryRepository', () => {
       outcome: 'failure'
     });
 
-    const q = repo.queryConsolidationQuality('o1');
+    const q = repo.queryConsolidationQuality('7d', 'o1');
     expect(q.pipeline_error_count).toBe(2);
+  });
+
+  it('queryConsolidationQuality는 요청 기간의 success + failed attempts로 triple 추출 성공률을 계산한다', () => {
+    db.exec(`
+      CREATE TABLE memory_item (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        owner_id TEXT,
+        is_consolidated INTEGER DEFAULT 0,
+        triple_extracted INTEGER DEFAULT 0,
+        triple_extracted_status TEXT,
+        triple_extraction_metadata TEXT,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE memory_relation (source_id TEXT, target_id TEXT);
+    `);
+    const recent = new Date().toISOString();
+    const old = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    const insert = db.prepare(`
+      INSERT INTO memory_item (
+        id, type, owner_id, triple_extracted, triple_extracted_status,
+        triple_extraction_metadata, created_at
+      ) VALUES (?, 'episodic', 'o1', ?, ?, ?, ?)
+    `);
+    for (let i = 0; i < 8; i++) {
+      insert.run(`recent-success-${i}`, 1, 'success', JSON.stringify({ extracted_at: recent }), recent);
+    }
+    for (let i = 0; i < 2; i++) {
+      insert.run(`recent-failed-${i}`, 0, 'failed', JSON.stringify({ last_attempt: recent }), recent);
+      insert.run(`old-failed-${i}`, 0, 'failed', JSON.stringify({ last_attempt: old }), old);
+    }
+
+    expect(repo.queryConsolidationQuality('24h', 'o1').triple_extraction_success_rate).toBe(0.8);
+    expect(repo.queryConsolidationQuality('7d', 'o1').triple_extraction_success_rate).toBe(8 / 12);
+  });
+
+  it('querySearchQuality는 owner별 ranking funnel item 수를 합산한다', () => {
+    const recordFunnel = (ownerId: string, requestId: string, scale = 1) => {
+      repo.insertEventSync({
+        eventType: 'memory.search.requested', requestId, ownerId, outcome: 'success',
+        extraData: { ranking_version: `ranking-${ownerId}` }
+      });
+      repo.insertEventSync({
+        eventType: 'memory.search.candidates_retrieved', requestId, ownerId, outcome: 'success',
+        extraData: {
+          candidate_count: 20 * scale,
+          text_candidate_count: 12 * scale,
+          vector_candidate_count: 14 * scale,
+          union_candidate_count: 20 * scale
+        }
+      });
+      repo.insertEventSync({
+        eventType: 'memory.search.reranked', requestId, ownerId, outcome: 'success',
+        extraData: { candidate_count: 10 * scale, reranked_count: 10 * scale }
+      });
+      repo.insertEventSync({
+        eventType: 'memory.search.selected', requestId, ownerId, outcome: 'success',
+        extraData: { selected_count: 5 * scale }
+      });
+    };
+    recordFunnel('o1', 'r1');
+    recordFunnel('o2', 'r2', 10);
+
+    const result = repo.querySearchQuality('24h', 'o1');
+    expect(result).toMatchObject({
+      text_candidate_count: 12,
+      vector_candidate_count: 14,
+      union_candidate_count: 20,
+      reranked_count: 10,
+      selected_count: 5,
+      avg_candidate_count: 20,
+      top_k_selected_rate: 0.25,
+      ranking_versions: ['ranking-o1']
+    });
   });
 
   it('hasPriorWriteCompletedWithContentHash는 동일 owner·해시·기간 내 완료 이벤트를 본다', () => {

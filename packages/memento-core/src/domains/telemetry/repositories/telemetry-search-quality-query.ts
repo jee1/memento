@@ -64,24 +64,57 @@ export function querySearchQuality(
     )
     .get(params) as { c: number };
 
-  const candC = db
+  const funnel = db
     .prepare(
-      `SELECT COUNT(*) AS c FROM telemetry_events
-       WHERE event_type = 'memory.search.candidates_retrieved' AND created_at >= @cutoff ${ownerClause}`
+      `SELECT
+         SUM(CASE WHEN event_type = 'memory.search.candidates_retrieved'
+           THEN COALESCE(json_extract(extra_data, '$.text_candidate_count'), 0) ELSE 0 END) AS text_count,
+         SUM(CASE WHEN event_type = 'memory.search.candidates_retrieved'
+           THEN COALESCE(json_extract(extra_data, '$.vector_candidate_count'), 0) ELSE 0 END) AS vector_count,
+         SUM(CASE WHEN event_type = 'memory.search.candidates_retrieved'
+           THEN COALESCE(
+             json_extract(extra_data, '$.union_candidate_count'),
+             json_extract(extra_data, '$.candidate_count'), 0
+           ) ELSE 0 END) AS union_count,
+         SUM(CASE WHEN event_type = 'memory.search.reranked'
+           THEN COALESCE(
+             json_extract(extra_data, '$.reranked_count'),
+             json_extract(extra_data, '$.candidate_count'), 0
+           ) ELSE 0 END) AS reranked_count,
+         SUM(CASE WHEN event_type = 'memory.search.selected'
+           THEN COALESCE(json_extract(extra_data, '$.selected_count'), 0) ELSE 0 END) AS selected_count
+       FROM telemetry_events
+       WHERE event_type IN (
+         'memory.search.candidates_retrieved', 'memory.search.reranked', 'memory.search.selected'
+       ) AND created_at >= @cutoff ${ownerClause}`
     )
-    .get(params) as { c: number };
-
-  const selC = db
+    .get(params) as {
+      text_count: number | null;
+      vector_count: number | null;
+      union_count: number | null;
+      reranked_count: number | null;
+      selected_count: number | null;
+    };
+  const rankingRows = db
     .prepare(
-      `SELECT COUNT(*) AS c FROM telemetry_events
-       WHERE event_type = 'memory.search.selected' AND created_at >= @cutoff ${ownerClause}`
+      `SELECT DISTINCT json_extract(extra_data, '$.ranking_version') AS version
+       FROM telemetry_events
+       WHERE event_type = 'memory.search.requested'
+         AND created_at >= @cutoff
+         AND json_extract(extra_data, '$.ranking_version') IS NOT NULL
+         ${ownerClause}
+       ORDER BY version`
     )
-    .get(params) as { c: number };
+    .all(params) as Array<{ version: string }>;
 
   const searchCount = requested.c;
   const emptyRate =
     searchCount > 0 ? emptyC.c / searchCount : searchCount === 0 ? null : 0;
-  const topKRate = candC.c > 0 ? selC.c / candC.c : candC.c === 0 && selC.c === 0 ? null : 0;
+  const unionCandidateCount = funnel.union_count ?? 0;
+  const selectedCount = funnel.selected_count ?? 0;
+  const topKRate = unionCandidateCount > 0
+    ? selectedCount / unionCandidateCount
+    : selectedCount === 0 ? null : 0;
 
   let avgLatency: number | null = null;
   let p95: number | null = null;
@@ -143,6 +176,12 @@ export function querySearchQuality(
     empty_retrieval_rate: emptyRate,
     avg_candidate_count: avgCand,
     top_k_selected_rate: topKRate,
+    text_candidate_count: funnel.text_count ?? 0,
+    vector_candidate_count: funnel.vector_count ?? 0,
+    union_candidate_count: unionCandidateCount,
+    reranked_count: funnel.reranked_count ?? 0,
+    selected_count: selectedCount,
+    ranking_versions: rankingRows.map(row => row.version),
     timestamp: now
   };
 }

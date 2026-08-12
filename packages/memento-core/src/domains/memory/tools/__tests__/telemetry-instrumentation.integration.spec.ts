@@ -217,4 +217,67 @@ describe('telemetry instrumentation (feedback + service)', () => {
     ]);
     expect(rows[3].outcome).toBe('empty');
   });
+
+  it('recall은 실제 ranking profile과 text/vector/union/reranked funnel 수를 기록한다', async () => {
+    const recall = new RecallTool();
+    const items = Array.from({ length: 10 }, (_, i) => ({
+      id: `m-${i}`,
+      content: `memory ${i}`,
+      type: 'episodic',
+      importance: 0.5,
+      created_at: new Date().toISOString(),
+      owner_id: i < 5 ? 'agent-funnel' : 'other-agent',
+      finalScore: 1 - i / 100
+    }));
+    const hybrid = {
+      isEmbeddingAvailable: () => true,
+      getRankingVersion: () => 'ranking-sha256:custom123',
+      search: async () => ({
+        items,
+        total_count: 10,
+        text_count: 12,
+        vector_count: 14,
+        union_count: 20,
+        reranked_count: 10
+      })
+    };
+    const context = {
+      db,
+      agentId: 'agent-funnel',
+      services: { telemetryService, hybridSearchEngine: hybrid }
+    } as ToolContext;
+
+    await telemetryService.runWithContext('agent-funnel', () =>
+      recall.handle({
+        query: 'funnel',
+        type: 'episodic',
+        limit: 5,
+        owner_id: 'agent-funnel'
+      }, context)
+    );
+    await new Promise<void>(resolve => setImmediate(resolve));
+
+    const rows = db.prepare(`
+      SELECT event_type, extra_data FROM telemetry_events
+      WHERE owner_id = 'agent-funnel'
+      ORDER BY created_at,
+        CASE event_type
+          WHEN 'memory.search.requested' THEN 0
+          WHEN 'memory.search.candidates_retrieved' THEN 1
+          WHEN 'memory.search.reranked' THEN 2
+          WHEN 'memory.search.selected' THEN 3
+          ELSE 9
+        END
+    `).all() as Array<{ event_type: string; extra_data: string }>;
+    const extras = Object.fromEntries(rows.map(row => [row.event_type, JSON.parse(row.extra_data)]));
+    expect(extras['memory.search.requested'].ranking_version).toBe('ranking-sha256:custom123');
+    expect(extras['memory.search.candidates_retrieved']).toMatchObject({
+      candidate_count: 20,
+      text_candidate_count: 12,
+      vector_candidate_count: 14,
+      union_candidate_count: 20
+    });
+    expect(extras['memory.search.reranked']).toMatchObject({ candidate_count: 10, reranked_count: 10 });
+    expect(extras['memory.search.selected']).toMatchObject({ selected_count: 5 });
+  });
 });

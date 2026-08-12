@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
+import { getRankingVersion, getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import type { EmbeddingProvider, StoredEmbeddingProviderStats } from '../../../shared/types/index.js';
 import { UnifiedEmbeddingService } from '../../embedding/services/unified-embedding-service.js';
 import { MemoryEmbeddingService } from '../../memory/services/memory-embedding-service.js';
@@ -68,6 +68,7 @@ export class HybridSearchEngine {
   private proceduralMemoryMatcher: IProceduralMemoryMatcher;
   private vectorExecutor: HybridVectorSearchExecutor;
   private resultRanker: HybridResultRanker;
+  private readonly rankingVersion: string;
 
   constructor(
     private textSearchEngine: ITextSearchEngine,
@@ -83,6 +84,7 @@ export class HybridSearchEngine {
   ) {
     this.proceduralMemoryMatcher = proceduralMemoryMatcher ?? new ProceduralMemoryMatcher();
     const config = getRankingWeights(rankingWeightsPath);
+    this.rankingVersion = getRankingVersion(rankingWeightsPath);
     this.ranking = new SearchRanking({
       relevance: config.ranking_weights.alpha,
       recency: config.ranking_weights.beta,
@@ -114,6 +116,10 @@ export class HybridSearchEngine {
     this.relationGraph = relationGraph;
   }
 
+  getRankingVersion(): string {
+    return this.rankingVersion;
+  }
+
   async search(
     db: Database.Database,
     query: HybridSearchQuery
@@ -125,6 +131,8 @@ export class HybridSearchEngine {
     vector_count?: number;
     fallback_used?: boolean;
     query_embedding_providers?: EmbeddingProvider[];
+    union_count: number;
+    reranked_count: number;
     tfidf_query_embedding_fallback?: boolean;
     tfidf_query_embedding_fallback_providers?: EmbeddingProvider[];
   }> {
@@ -140,6 +148,11 @@ export class HybridSearchEngine {
       const vectorPromise = this.vectorExecutor.execute(db, query, searchId);
       const textPromise = this.executeTextSearch(db, query, searchId);
       const [textResults, vectorOut] = await Promise.all([textPromise, vectorPromise]);
+      const unionCount = new Set(
+        [...textResults, ...vectorOut.results]
+          .map(result => (result as { id?: unknown }).id)
+          .filter((id): id is string => typeof id === 'string')
+      ).size;
       const finalResults = await this.resultRanker.combineAndSortResults(
         textResults,
         vectorOut.results,
@@ -165,6 +178,8 @@ export class HybridSearchEngine {
         query_time: queryTime,
         text_count: textResults.length,
         vector_count: vectorOut.results.length,
+        union_count: unionCount,
+        reranked_count: finalResults.length,
         fallback_used: vectorOut.fallback_used,
         query_embedding_providers: vectorOut.query_embedding_providers,
         tfidf_query_embedding_fallback: vectorOut.tfidf_query_embedding_fallback,

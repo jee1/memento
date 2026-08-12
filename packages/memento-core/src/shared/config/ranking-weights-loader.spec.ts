@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import {
   loadRankingWeights,
   getRankingWeights,
+  getRankingVersion,
   resetRankingWeightsCache,
   type RankingWeightsConfig
 } from './ranking-weights-loader.js';
@@ -162,6 +163,16 @@ alpha = 0.45
   });
 
   describe('getRankingWeights', () => {
+    it('custom ranking config는 내용 기반의 안정적인 식별자를 가진다', () => {
+      writeFileSync(tempConfigPath, `[ranking_weights]\nalpha = 0.51\n`, 'utf-8');
+      const first = getRankingVersion(tempConfigPath);
+      resetRankingWeightsCache();
+      const second = getRankingVersion(tempConfigPath);
+      expect(first).toMatch(/^ranking-sha256:[a-f0-9]{12}$/);
+      expect(second).toBe(first);
+      expect(first).not.toBe(getRankingVersion());
+    });
+
     it('should cache loaded config', () => {
       // Given: 유효한 TOML 설정 파일
       const validConfig = `[ranking_weights]

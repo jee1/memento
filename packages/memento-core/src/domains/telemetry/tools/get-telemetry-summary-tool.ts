@@ -55,8 +55,8 @@ export class GetTelemetrySummaryTool extends BaseTool {
       }
 
       const searchResult = telemetryService.getSearchQuality(period, ownerId);
-      const memoryResult = telemetryService.getMemoryQuality(ownerId);
-      const consolidationQuality = telemetryService.getConsolidationQuality(ownerId);
+      const memoryResult = telemetryService.getMemoryQuality(period, ownerId);
+      const consolidationQuality = telemetryService.getConsolidationQuality(period, ownerId);
       const feedbackQuality = telemetryService.getFeedbackQuality(period, ownerId);
 
       const result = {
@@ -69,6 +69,12 @@ export class GetTelemetrySummaryTool extends BaseTool {
           empty_retrieval_rate: searchResult.empty_retrieval_rate,
           avg_candidate_count: searchResult.avg_candidate_count,
           top_k_selected_rate: searchResult.top_k_selected_rate,
+          text_candidate_count: searchResult.text_candidate_count,
+          vector_candidate_count: searchResult.vector_candidate_count,
+          union_candidate_count: searchResult.union_candidate_count,
+          reranked_count: searchResult.reranked_count,
+          selected_count: searchResult.selected_count,
+          ranking_versions: searchResult.ranking_versions,
         },
         memory_quality: {
           total_memories: memoryResult.total_memories,
