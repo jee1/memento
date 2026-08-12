@@ -34,6 +34,8 @@ jobs:
       - run: npm ci
       - name: Run vector search quality benchmark
         run: npm run test:vector-search-quality:ci
+      - name: Gate category search quality (MRR >= 0.5)
+        run: npm run quality:benchmark:category-report
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v6

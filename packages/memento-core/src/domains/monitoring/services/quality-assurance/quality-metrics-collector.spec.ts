@@ -1240,6 +1240,21 @@ describe('QualityMetricsCollector', () => {
   });
 
   describe('collectCategoryMetrics', () => {
+    it('relevantIds가 없는 쿼리는 데이터 부족으로 집계에서 제외한다', async () => {
+      const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
+      const reports = await collector.collectCategoryMetrics(
+        benchmarkDir,
+        join(benchmarkDir, 'category-mapping.json')
+      );
+
+      expect(reports.map(({ macro_category, query_count }) => [macro_category, query_count])).toEqual([
+        ['episodic_recent', 1],
+        ['procedural', 4],
+        ['conceptual', 9],
+        ['tag_filter', 2],
+      ]);
+    });
+
     it('category-mapping에 없는 category면 에러', async () => {
       const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
       const dir = join(tmpdir(), `bm-cat-${Date.now()}`);

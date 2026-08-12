@@ -18,6 +18,15 @@ function sampleReport(over: Partial<CategoryQualityReport> = {}): CategoryQualit
   };
 }
 
+function passingReports(): CategoryQualityReport[] {
+  return [
+    sampleReport(),
+    sampleReport({ macro_category: 'procedural' }),
+    sampleReport({ macro_category: 'conceptual' }),
+    sampleReport({ macro_category: 'tag_filter' }),
+  ];
+}
+
 describe('quality-benchmark-category-report (T015)', () => {
   it('WALL_MS는 SC-006 상한(시드 이후 스크립트 구간, 30s)과 일치한다', () => {
     expect(WALL_MS).toBe(30_000);
@@ -29,7 +38,16 @@ describe('quality-benchmark-category-report (T015)', () => {
   });
 
   it('anyCategoryFailsMrrGate는 MRR이 임계 미만인 카테고리가 있으면 true', () => {
-    expect(anyCategoryFailsMrrGate([sampleReport({ threshold_passed: true })])).toBe(false);
-    expect(anyCategoryFailsMrrGate([sampleReport({ mrr: 0.4, threshold_passed: false })])).toBe(true);
+    expect(anyCategoryFailsMrrGate(passingReports())).toBe(false);
+    expect(
+      anyCategoryFailsMrrGate([
+        ...passingReports().slice(0, 3),
+        sampleReport({ macro_category: 'tag_filter', mrr: 0.4, threshold_passed: false }),
+      ])
+    ).toBe(true);
+  });
+
+  it('평가 가능한 Ground Truth가 없는 필수 카테고리는 gate 실패', () => {
+    expect(anyCategoryFailsMrrGate(passingReports().slice(0, 3))).toBe(true);
   });
 });

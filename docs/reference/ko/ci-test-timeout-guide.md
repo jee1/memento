@@ -18,6 +18,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
   - 각 테스트 job은 **해당 영역만** 실행 (`test:ci:root`, `test:ci:core`, `test:ci:server`, `test:ci -w @memento/client`, `test:vector-search-quality:ci`).
   - **중복 제거**: 루트 test:ci로 “전체”를 한 번에 돌리지 않고, 영역별로 나눠 한 번씩만 실행.
   - **test-search-quality** (#665): 랭킹·벡터 검색 benchmark 회귀 감지. 랭킹 가중치 변경 PR에서 실패 시 merge 차단.
+  - **nightly category-report** (#731): 매주 `quality:benchmark:category-report`를 실행하고, 필수 카테고리의 평가 가능한 Ground Truth가 없거나 MRR이 하나라도 0.5 미만이면 실패.
 
 - **효과**:  
   - 총 소요 시간 ≈ **lint-typecheck 시간 + max(test-root, test-core, test-server, test-client)**.  
@@ -37,7 +38,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 - test-root / test-core: 각 45분  
 - test-server: 20분  
 - test-client: 25분 (build 포함)  
-- test-search-quality: 45분 (`test:vector-search-quality:ci`, JUnit/JSON 리포트)
+- test-search-quality: 45분 (`test:vector-search-quality:ci` + `quality:benchmark:category-report`, JUnit/JSON 리포트)
 
 필요 시 각 job의 `timeout-minutes`만 조정하면 됨.
 
@@ -65,6 +66,7 @@ PR job(`test:ci:*`)은 `CI=true`일 때 아래 패턴을 **자동 제외**합니
 | `SKIP_INTEGRATION_TESTS` | `true` | `false` |
 
 **검색 품질 benchmark**는 exclude 대상이 아니며, PR gate **`test-search-quality`** job에서 `npm run test:vector-search-quality:ci`로 항상 실행합니다 (#665).
+카테고리 리포트도 Vitest exclude 대상이 아니며 weekly **`nightly-tests.yml`**의 `test-search-quality` job에서 별도 blocking gate로 실행합니다 (#731). 이 gate를 PR로 승격할지, nightly 범위를 조정할지는 exclude inventory와 함께 **2026-09-01**까지 재검토합니다.
 
 ---
 

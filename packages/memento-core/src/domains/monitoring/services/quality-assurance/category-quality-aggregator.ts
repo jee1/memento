@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
+import { logger } from '../../../../shared/utils/logger.js';
 import {
   assertMacroCategory,
   BENCHMARK_OFFLINE_VECTOR_PROVIDER_FILTER,
@@ -34,7 +35,15 @@ export class CategoryQualityAggregator {
       query_id_to_category: Record<string, string>;
     };
     const queries = loadBenchmarkQueries(benchmarkDir);
-    const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir);
+    const groundTruths = normalizeBenchmarkGroundTruths(benchmarkDir).filter((groundTruth) => {
+      if (groundTruth.relevantIds.length > 0) {
+        return true;
+      }
+      logger.warn('카테고리 품질 측정에서 Ground Truth 없는 쿼리 제외', {
+        query: groundTruth.queryId,
+      });
+      return false;
+    });
     const corpus = loadBenchmarkCorpus(benchmarkDir);
     const memoryIdToBenchmarkId = new Map(corpus.map((e) => [e.source_memory_id, e.benchmark_id]));
 
@@ -107,6 +116,10 @@ export class CategoryQualityAggregator {
 
     for (const macro of ALL_MACROS) {
       const subsetGts = groundTruths.filter(gt => queryIdToMacro.get(gt.queryId) === macro);
+      if (subsetGts.length === 0) {
+        logger.warn('Ground Truth 없는 카테고리는 품질 측정에서 제외', { macro_category: macro });
+        continue;
+      }
       const subMap = new Map<string, SearchResult[]>();
       for (const gt of subsetGts) {
         const r = queryResultsByQueryId.get(gt.queryId);
