@@ -170,7 +170,8 @@ export async function resolveDockerLogsRef(
   execImpl: ExecFileLike = execFile,
 ): Promise<string | undefined> {
   try {
-    await runDocker(['inspect', '-f', '{{.Id}}', preferred], execImpl);
+    // Restrict to containers: bare `docker inspect <name>` also matches images (e.g. memento-mcp-server:latest).
+    await runDocker(['inspect', '--type', 'container', '-f', '{{.Id}}', preferred], execImpl);
     return preferred;
   } catch {
     // fall through — e.g. Compose-assigned container name
@@ -190,7 +191,10 @@ export async function resolveDockerLogsRef(
 
   for (const id of ids) {
     try {
-      const { stdout: nameOut } = await runDocker(['inspect', '-f', '{{.Name}}', id], execImpl);
+      const { stdout: nameOut } = await runDocker(
+        ['inspect', '--type', 'container', '-f', '{{.Name}}', id],
+        execImpl,
+      );
       const containerName = nameOut.trim().replace(/^\//, '');
       if (containerName === preferred) {
         return id;
