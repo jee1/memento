@@ -27,6 +27,9 @@ import { AddRelationTool } from '../domains/relation/tools/add-relation-tool.js'
 import { GetRelationsTool } from '../domains/relation/tools/get-relations-tool.js';
 import { RemoveRelationTool } from '../domains/relation/tools/remove-relation-tool.js';
 import { ExportMemoriesTool } from '../domains/memory/tools/export-memories-tool.js';
+import { flattenNestedToolFilters } from './flatten-tool-params.js';
+
+export { flattenNestedToolFilters } from './flatten-tool-params.js';
 
 const coreTools = [
   new RememberTool(),
@@ -116,10 +119,12 @@ export function resolveTelemetryOwnerId(context: ToolContext, params: unknown): 
 }
 
 export async function executeTool(name: string, params: unknown, context: ToolContext) {
+  // Client HTTP posts nested `filters`; MCP stdio uses top-level. Flatten once here.
+  const normalizedParams = flattenNestedToolFilters(params);
   const tel = context.services?.telemetryService;
   if (!tel) {
-    return await toolRegistry.execute(name, params, context);
+    return await toolRegistry.execute(name, normalizedParams, context);
   }
-  const ownerId = resolveTelemetryOwnerId(context, params);
-  return tel.runWithContext(ownerId, async () => toolRegistry.execute(name, params, context));
+  const ownerId = resolveTelemetryOwnerId(context, normalizedParams);
+  return tel.runWithContext(ownerId, async () => toolRegistry.execute(name, normalizedParams, context));
 }

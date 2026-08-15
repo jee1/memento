@@ -123,6 +123,16 @@ export async function buildSearchStatement(
     sqlParams.push(...filters.type);
   }
 
+  // tags ⊇ filter set (AND). Channel isolation relies on this (#754).
+  if (filters?.tags && filters.tags.length > 0) {
+    for (const tag of filters.tags) {
+      conditions.push(
+        `EXISTS (SELECT 1 FROM json_each(COALESCE(m.tags, '[]')) WHERE value = ?)`,
+      );
+      sqlParams.push(tag);
+    }
+  }
+
   if (filters?.privacy_scope && filters.privacy_scope.length > 0) {
     conditions.push(`m.privacy_scope IN (${filters.privacy_scope.map(() => '?').join(',')})`);
     sqlParams.push(...filters.privacy_scope);

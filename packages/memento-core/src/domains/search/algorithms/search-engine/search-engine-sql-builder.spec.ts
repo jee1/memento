@@ -61,4 +61,31 @@ describe('buildSearchStatement', () => {
     expect(result.sql.indexOf('m.session_id = ?')).toBeGreaterThan(searchGroupEnd);
   });
 
+  it('tags 필터를 후보 LIMIT 전에 AND(⊇)로 적용한다 (#754)', async () => {
+    const result = await buildSearchStatement({
+      db: {} as never,
+      searchQuery: 'channel isolation',
+      filters: {
+        tags: ['channel:discord', 'conv:c2'],
+      },
+      limit: 2,
+      hasIdFilter: false,
+      preferFts: true,
+      checkFTS5Availability: async () => true,
+      buildFTSQuery: (query) => query,
+      buildReflectionNotesSearchCondition: () => null,
+    });
+
+    const candidateLimitIndex = result.sql.lastIndexOf('LIMIT ?');
+    const tagExists = "EXISTS (SELECT 1 FROM json_each(COALESCE(m.tags, '[]')) WHERE value = ?)";
+    expect(result.sql).toContain(tagExists);
+    expect(result.sql.indexOf(tagExists)).toBeLessThan(candidateLimitIndex);
+    expect(result.params).toEqual([
+      'channel isolation',
+      'channel:discord',
+      'conv:c2',
+      6,
+    ]);
+  });
+
 });

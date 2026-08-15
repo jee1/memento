@@ -13,7 +13,7 @@ import type { ToolContext } from '../../../tools/types.js';
 import { computeProceduralDiff } from '../services/procedural-memory-diff.js';
 import { getVersionChain } from '../services/procedural-versioning.js';
 import type { MetaMemoryService } from '../services/meta-memory-service.js';
-import { filterRecallItemsByTriggerConditions } from './recall-tool-filters.js';
+import { filterRecallItemsByTags, filterRecallItemsByTriggerConditions } from './recall-tool-filters.js';
 import type { RecallToolHost } from './recall-tool-host.js';
 import { mapRecallSearchItemsToResultItems } from './recall-tool-results.js';
 import type { RecallHybridOrTextSearchResult, RecallParams } from './recall-tool-schema.js';
@@ -267,6 +267,7 @@ export async function runMemoryItemPostSearchPipeline(
     process_id_filter: RecallParams['process_id'];
     session_id_filter: RecallParams['session_id'];
     project_id_filter: RecallParams['project_id'];
+    tags_filter: RecallParams['tags'];
     match_trigger_conditions: boolean;
     actualTriggerContext: Record<string, unknown> | undefined;
     includeMetadata: boolean;
@@ -284,6 +285,7 @@ export async function runMemoryItemPostSearchPipeline(
     process_id_filter,
     session_id_filter,
     project_id_filter,
+    tags_filter,
     match_trigger_conditions,
     actualTriggerContext,
     includeMetadata,
@@ -294,6 +296,10 @@ export async function runMemoryItemPostSearchPipeline(
 
   if (version_filter && searchItems.length > 0) {
     searchItems = applyVersionFilter(searchItems, version_filter, version_series_id, version_number);
+  }
+
+  if (tags_filter && tags_filter.length > 0 && searchItems.length > 0) {
+    searchItems = filterRecallItemsByTags(searchItems, tags_filter);
   }
 
   if (owner_id_filter && owner_id_filter.length > 0 && searchItems.length > 0) {

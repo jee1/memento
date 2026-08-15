@@ -23,6 +23,9 @@ export async function startTestHttpServer(): Promise<TestServer> {
       DB_PATH: ':memory:',
       ADMIN_API_KEY: apiKey,
       MEMENTO_ALLOW_INSECURE_HTTP_ADMIN: 'true',
+      // Assistant e2e omits type / X-Memento-Agent-Id; exercise filters.tags (#636 / #664 / #754).
+      MEMENTO_TYPE_PARAM_MODE: 'warn',
+      MEMENTO_OWNER_SCOPE_MODE: 'off',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

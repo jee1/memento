@@ -10,7 +10,11 @@ describe('stdio integration', { timeout: 30_000 }, () => {
   const bin = resolve(__dirname, '../../../memento-server/dist/server/index.js');
 
   beforeAll(async () => {
-    t = new StdioTransport({ command: 'node', args: [bin], env: { DB_PATH: ':memory:' } });
+    t = new StdioTransport({
+      command: 'node',
+      args: [bin],
+      env: { DB_PATH: ':memory:', MEMENTO_TYPE_PARAM_MODE: 'warn' },
+    });
     await t.connect();
   });
 
