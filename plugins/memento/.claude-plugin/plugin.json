@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "memento",
+  "displayName": "Memento Memory",
+  "version": "0.1.0",
+  "description": "Long-term memory for Claude Code: recall before work, remember after, with forgetting and procedural version control.",
+  "author": {
+    "name": "jee1",
+    "url": "https://github.com/jee1"
+  },
+  "homepage": "https://github.com/jee1/memento#readme",
+  "repository": "https://github.com/jee1/memento",
+  "license": "MIT",
+  "keywords": ["mcp", "memory", "recall", "knowledge-graph", "sqlite"]
+}

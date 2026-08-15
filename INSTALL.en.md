@@ -10,6 +10,13 @@ How you install Memento depends on **how fast you want to try it** and **how muc
 
 ## 📋 Installation Method Selection
 
+### 🧩 **Claude Code users: install the plugin**
+```
+/plugin marketplace add jee1/memento
+/plugin install memento@memento
+```
+This registers the MCP server and ships a skill for the `recall` → `remember` loop. The memory database lives at `${CLAUDE_PLUGIN_DATA}/memory.db` and survives plugin updates.
+
 ### 🥇 **1st Priority: One-click Installation (Recommended)**
 ```bash
 # Run automatic installation script

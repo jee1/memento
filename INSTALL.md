@@ -10,6 +10,13 @@ Memento를 설치하는 방법은 **얼마나 빨리 써 보고 싶은지**, **�
 
 ## 📋 설치 방법 선택
 
+### 🧩 **Claude Code 사용자: 플러그인 설치**
+```
+/plugin marketplace add jee1/memento
+/plugin install memento@memento
+```
+MCP 서버 등록과 `recall`→`remember` 습관 skill이 함께 설치되고, 기억 DB는 `${CLAUDE_PLUGIN_DATA}/memory.db`에 보관되어 업데이트 후에도 유지됩니다.
+
 ### 🥇 **1순위: 원클릭 설치 (권장)**
 ```bash
 # 자동 설치 스크립트 실행

@@ -84,6 +84,17 @@ npx memento-mcp-server@latest setup
 
 **반복 사용 시 주의**: 매번 npx로 실행하면 다운로드가 발생할 수 있으므로 반복 사용에는 **글로벌 설치**(`npm i -g memento-mcp-server`) 또는 로컬 설치 후 `./node_modules/.bin/memento` 사용을 권장합니다. 모드 구분: MCP 서버(`memento-mcp-server` / stdio), HTTP 서버(`memento-dev`), CLI(`memento` — recall, remember, forget, memory_injection). CLI 가이드: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
 
+### Claude Code 플러그인 (권장 — 설정 없이 한 번에)
+
+이 저장소 자체가 플러그인 마켓플레이스입니다. MCP 서버 등록과 `recall`→`remember` 사용 습관 skill이 함께 설치됩니다.
+
+```
+/plugin marketplace add jee1/memento
+/plugin install memento@memento
+```
+
+기억 DB는 `${CLAUDE_PLUGIN_DATA}/memory.db`에 저장되어 플러그인을 업데이트해도 유지됩니다. 설치 후 `/plugin` 패널에서 `memento` MCP 서버가 연결됐는지 확인하세요.
+
 ### MCP 공식 레지스트리
 
 Memento는 MCP 공식 레지스트리에 `io.github.jee1/memento-mcp-server` 이름으로 등재됩니다. 레지스트리를 읽는 클라이언트·마켓플레이스에서 이 이름으로 찾을 수 있습니다.

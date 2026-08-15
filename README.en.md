@@ -73,6 +73,17 @@ npx memento-mcp-server@latest start
 
 **Repeated use**: Running via npx each time triggers a download. For frequent use, prefer **global install** (`npm i -g memento-mcp-server`) or local install with `./node_modules/.bin/memento`. Mode breakdown: MCP server (`memento-mcp-server` / stdio), HTTP server (`memento-dev`), CLI (`memento` — recall, remember, forget, memory_injection). CLI guide: [docs/guides/ko/memento-cli-for-ai.md](docs/guides/ko/memento-cli-for-ai.md).
 
+### Claude Code Plugin (recommended — zero config)
+
+This repository is itself a plugin marketplace. Installing the plugin registers the MCP server and ships a skill that teaches the `recall` → `remember` loop.
+
+```
+/plugin marketplace add jee1/memento
+/plugin install memento@memento
+```
+
+The memory database lives at `${CLAUDE_PLUGIN_DATA}/memory.db`, so it survives plugin updates. After installing, check the `/plugin` panel to confirm the `memento` MCP server is connected.
+
 ### Official MCP Registry
 
 Memento is listed in the official MCP registry as `io.github.jee1/memento-mcp-server`. Registry-aware clients and marketplaces resolve it by that name.

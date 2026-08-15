@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "memento": {
+      "command": "npx",
+      "args": ["-y", "memento-mcp-server@latest"],
+      "env": {
+        "DB_PATH": "${CLAUDE_PLUGIN_DATA}/memory.db"
+      }
+    }
+  }
+}
