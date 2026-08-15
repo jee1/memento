@@ -46,7 +46,18 @@ function createHost(): RememberToolHost & { logInfo: ReturnType<typeof vi.fn>; l
     logInfo: vi.fn(),
     logWarning: vi.fn(),
     logError: vi.fn(),
-    createSuccessResult: vi.fn((data: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(data) }] }))
+    createSuccessResult: vi.fn((data: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(data) }] })),
+    createErrorResult: vi.fn((error, message, data) => ({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: false,
+          error: { code: error, message: message ?? error },
+          ...(data ? { data } : {}),
+        }),
+      }],
+      error,
+    })),
   };
 }
 
