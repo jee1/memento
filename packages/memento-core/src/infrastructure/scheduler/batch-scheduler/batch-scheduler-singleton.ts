@@ -1,19 +1,10 @@
-import { BatchScheduler } from '../batch-scheduler.js';
-import type { BatchJobConfig } from '../batch-scheduler-types.js';
-
-let schedulerInstance: BatchScheduler | null = null;
-
-export function getBatchScheduler(): BatchScheduler {
-  if (!schedulerInstance) {
-    schedulerInstance = new BatchScheduler();
-  }
-  return schedulerInstance;
-}
-
-export function createBatchScheduler(config?: Partial<BatchJobConfig>): BatchScheduler {
-  return new BatchScheduler(config);
-}
-
-export function resetBatchScheduler(): void {
-  schedulerInstance = null;
-}
+/**
+ * Re-export singleton helpers from the orchestrator.
+ * Implementation lives in `batch-scheduler.ts` to avoid a runtime cycle
+ * (singleton → BatchScheduler class ← re-export singleton).
+ */
+export {
+  getBatchScheduler,
+  createBatchScheduler,
+  resetBatchScheduler,
+} from '../batch-scheduler.js';

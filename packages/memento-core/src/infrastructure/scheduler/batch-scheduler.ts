@@ -53,12 +53,6 @@ import {
   type BatchSchedulerStatusState
 } from './batch-scheduler/batch-scheduler-status.js';
 
-export {
-  getBatchScheduler,
-  createBatchScheduler,
-  resetBatchScheduler
-} from './batch-scheduler/batch-scheduler-singleton.js';
-
 export type { ManualBatchSchedulerJobType };
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
@@ -436,4 +430,23 @@ export class BatchScheduler implements IBatchScheduler {
   ): { at: Date; success: boolean; durationMs: number } | undefined {
     return getBatchSchedulerLastJobRunMeta(this.lastJobRunMeta, name);
   }
+}
+
+// Singleton helpers live here (not implemented in batch-scheduler-singleton) to avoid
+// runtime cycle: singleton → BatchScheduler class ← re-export singleton.
+let schedulerInstance: BatchScheduler | null = null;
+
+export function getBatchScheduler(): BatchScheduler {
+  if (!schedulerInstance) {
+    schedulerInstance = new BatchScheduler();
+  }
+  return schedulerInstance;
+}
+
+export function createBatchScheduler(config?: Partial<BatchJobConfig>): BatchScheduler {
+  return new BatchScheduler(config);
+}
+
+export function resetBatchScheduler(): void {
+  schedulerInstance = null;
 }
