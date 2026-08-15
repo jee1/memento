@@ -2,6 +2,19 @@
 
 The HTTP admin server uses **several trust surfaces at once**: cookie sessions for browser dashboards, scoped API tokens for programmatic MCP and quality endpoints, and a legacy single-key fallback when `MEMENTO_API_TOKENS` is unset. Before exposing Memento beyond loopback, decide which routes must be reachable and configure tokens and bind addresses accordingly.
 
+## Production dependency audit (#756)
+
+- **CI gate**: `.github/workflows/security-check.yml` runs `node scripts/check-production-audit-fixable.mjs`, which executes `npm audit --omit=dev` and **fails if any fixable High/Moderate/Critical** remains.
+- **Policy**: resolve only within wanted (minor/patch) ranges. Do not use `npm audit fix --force` or `overrides` to yank the ML stack (`AGENTS.md` wanted-only deps).
+- **Upstream-blocked (accepted risk, no force-override)** — remeasured 2026-08-15:
+
+| Package path | Advisory / notes | Why blocked | Tracking |
+|--------------|------------------|-------------|----------|
+| `adm-zip` ← `onnxruntime-node` ← `@huggingface/transformers` | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) (High) — crafted ZIP → large allocation | Upstream `onnxruntime-node` pins vulnerable `adm-zip`; no non-force fix in our lockfile | Re-check on `@huggingface/transformers` / `onnxruntime-node` upgrades; issue #756 |
+| `sharp` ← `@huggingface/transformers` | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) (High) — libvips CVEs; needs `sharp>=0.35` | Parent still depends on `sharp<0.35`; force override risks native/ABI breakage | Same; prefer upstream bump over override |
+
+- **Exploitability**: these transitives load on the MiniLM / local embedding path. Exposure is limited when ZIP/image inputs are untrusted. New fixable High/Moderate still fail CI.
+
 ## HTTP API authentication and authorization
 
 - **Current state**: The HTTP server uses a **split trust model**. `/auth/session` starts the cookie-backed browser-session flow. `/admin/*` and `/api/*` require that browser session. `/api/v1/quality/*`, `/api/v1/maintenance/*`, `/tools/*`, `/mcp`, and `/messages` require `Authorization: Bearer <ADMIN_API_KEY>` or `X-API-Key: <ADMIN_API_KEY>`.
