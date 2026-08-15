@@ -92,6 +92,25 @@ describe('ensureMemoryEmbeddingMetadataDefaults (#753)', () => {
     expect(row.dim).toBe(8);
   });
 
+  it('Given: memory_embedding without precision column, When: ensure, Then: no-op without throw', () => {
+    db = new Database(':memory:');
+    db.exec(`
+      CREATE TABLE memory_embedding (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memory_id TEXT NOT NULL,
+        embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
+        projection_type TEXT NOT NULL DEFAULT 'native',
+        embedding TEXT NOT NULL,
+        dim INTEGER NOT NULL,
+        dimensions INTEGER DEFAULT 0,
+        model TEXT,
+        version INTEGER DEFAULT 1
+      )
+    `);
+
+    expect(() => ensureMemoryEmbeddingMetadataDefaults(db, 'tfidf')).not.toThrow();
+  });
+
   it('Given: legacy null metadata DB, When: migrateDatabase runs, Then: repair fills created_by=legacy', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'memento-meta-defaults-'));
     const dbPath = join(dir, 'memory.db');

@@ -63,5 +63,28 @@ export function ensureMemoryEmbeddingMetadataDefaults(
     return;
   }
 
+  // Mid-era schemas can have embedding/projection_type without precision.
+  // migrate rebuilds only when those two are missing; UPDATE must not throw.
+  const columnNames = new Set(
+    (db.prepare(`PRAGMA table_info(memory_embedding)`).all() as Array<{ name: string }>).map(
+      column => column.name
+    )
+  );
+  const requiredColumns = [
+    'embedding_provider',
+    'projection_type',
+    'precision',
+    'normalized',
+    'version',
+    'dim',
+    'dimensions',
+    'created_by',
+    'embedding',
+    'model'
+  ];
+  if (requiredColumns.some(column => !columnNames.has(column))) {
+    return;
+  }
+
   db.prepare(MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL).run(defaultProvider);
 }
