@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.build.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest --run --passWithNoTests",
-    "test:ci": "vitest --run src --reporter=basic"
+    "test:ci": "vitest --run src test --reporter=basic"
   },
   "keywords": [
     "memento",

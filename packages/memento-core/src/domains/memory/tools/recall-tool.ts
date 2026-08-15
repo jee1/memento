@@ -291,6 +291,7 @@ export class RecallTool extends BaseTool {
           process_id_filter,
           session_id_filter,
           project_id_filter,
+          tags_filter: tags,
           match_trigger_conditions,
           actualTriggerContext,
           includeMetadata,

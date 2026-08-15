@@ -5,6 +5,22 @@
 import type { AppliedFilters, RecallFilters, RecallSearchItem } from './recall-tool-types.js';
 
 /**
+ * tags ⊇ requiredTags (AND). Vector/hybrid paths may omit SQL tag filters (#754).
+ */
+export function filterRecallItemsByTags(
+  items: RecallSearchItem[],
+  requiredTags: string[] | undefined
+): RecallSearchItem[] {
+  if (!requiredTags || requiredTags.length === 0) {
+    return items;
+  }
+  return items.filter((item) => {
+    const itemTags = item.tags ?? [];
+    return requiredTags.every((tag) => itemTags.includes(tag));
+  });
+}
+
+/**
  * trigger_conditions로 필터링
  * match_trigger_conditions=true일 때, 현재 컨텍스트와 trigger_conditions가 매칭되는 항목만 반환
  *

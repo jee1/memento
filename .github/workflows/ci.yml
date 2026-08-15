@@ -163,7 +163,7 @@ jobs:
   test-assistant:
     needs: [ lint-typecheck ]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -171,6 +171,8 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm ci
+      - name: Build workspace dist for assistant e2e/http tests
+        run: npm run test:prepare
       - name: Build @memento/client (required for assistant test resolution)
         run: npm run build -w @memento/client
       - name: Run tests (@memento/assistant)

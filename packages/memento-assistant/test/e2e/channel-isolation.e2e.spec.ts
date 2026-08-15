@@ -9,7 +9,7 @@ describe('E2E: channel isolation', { timeout: 60_000 }, () => {
   beforeAll(async () => { server = await startTestHttpServer(); });
   afterAll(async () => { await server.stop(); });
 
-  it.skip('fact stored on telegram NOT recalled on discord when crossChannelRecall=off (server does not enforce tags filter — tracked separately)', async () => {
+  it('fact stored on telegram NOT recalled on discord when crossChannelRecall=off', async () => {
     const tgTransport = new HttpTransport({ baseUrl: server.url, token: server.apiKey });
     const tg = MementoAssistant.fromEnv(
       { transport: tgTransport, ownerId: 'u2', channel: 'telegram', policy: { autoRemember: 'off' } },
@@ -24,6 +24,7 @@ describe('E2E: channel isolation', { timeout: 60_000 }, () => {
     );
     const ctx = await dc.beforeUserTurn({ userMessage: 'isolation-only-telegram?', conversationId: 'c2' });
     // channel:discord filter → no match for channel:telegram item
+    expect(ctx.degraded).toBe(false);
     expect(ctx.systemContext).not.toContain('isolation-only-telegram');
     await tgTransport.close();
     await dcTransport.close();
