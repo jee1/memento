@@ -9,11 +9,10 @@
  *   - 프로덕션: npm run build && node dist/scripts/fix-tfidf-dimensions.js [--confirm]
  */
 
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { UnifiedEmbeddingService } from '../src/domains/embedding/services/unified-embedding-service.js';
-import { vectorCompatibilityService } from '../src/domains/embedding/services/vector-compatibility-service.js';
-import { DatabaseUtils } from '../src/shared/utils/database.js';
-import { VECTOR_SEARCH_CONFIG } from '../src/shared/config/vector-search.config.js';
+import { initializeDatabase, closeDatabase, DatabaseUtils } from '@memento/core';
+import { UnifiedEmbeddingService } from '@memento/core/domains/embedding/services/unified-embedding-service.js';
+import { vectorCompatibilityService } from '@memento/core/domains/embedding/services/vector-compatibility-service.js';
+import { VECTOR_SEARCH_CONFIG } from '@memento/core/shared/config/vector-search.config.js';
 
 /**
  * sqlite-vec 확장 로드

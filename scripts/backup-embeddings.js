@@ -11,13 +11,11 @@
  *   - 프로덕션: npm run build && node dist/scripts/backup-embeddings.js
  */
 
-// TypeScript 소스를 직접 import (tsx로 실행 시)
-// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '@memento/core';
+import { validateFilePath, sanitizeFileName } from '@memento/core/shared/utils/path-validator.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { validateFilePath, sanitizeFileName } from '../src/shared/utils/path-validator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

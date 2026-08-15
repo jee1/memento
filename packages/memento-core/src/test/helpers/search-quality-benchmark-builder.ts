@@ -17,7 +17,8 @@ export interface BenchmarkSourceMemory {
 
 function extractBenchmarkSequence(benchmarkId: string): number | null {
   const match = benchmarkId.match(/^bench_mem_(\d+)$/);
-  return match ? parseInt(match[1], 10) : null;
+  const seq = match?.[1];
+  return seq !== undefined ? parseInt(seq, 10) : null;
 }
 
 function normalizeTags(tags?: string[] | string | null): string[] {

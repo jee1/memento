@@ -21,8 +21,7 @@
 
 import Database from 'better-sqlite3';
 import { join } from 'path';
-import { QualityThresholdManager } from '../src/services/quality-assurance/quality-threshold-manager.js';
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { QualityThresholdManager, initializeDatabase } from '@memento/core';
 
 /**
  * CLI 옵션

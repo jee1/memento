@@ -3,15 +3,15 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { isAbsolute, join } from 'path';
 import Database from 'better-sqlite3';
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { HybridSearchFactory } from '../src/domains/search/factories/hybrid-search.factory.js';
+import { initializeDatabase, closeDatabase } from '@memento/core';
+import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
 import {
   loadBenchmarkQueries,
   loadBenchmarkCorpus,
   type BenchmarkQuery,
   type BenchmarkCorpusEntry,
-} from '../src/test/helpers/search-quality-benchmark-fixtures.js';
-import { mergeCandidateIds } from '../src/test/helpers/search-quality-candidate-builder.js';
+} from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
+import { mergeCandidateIds } from '@memento/core/shared/ops/search-quality-cli-helpers.js';
 
 interface CliOptions {
   benchmarkDir: string;

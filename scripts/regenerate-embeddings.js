@@ -11,10 +11,8 @@
  *   - 프로덕션: npm run build && node dist/scripts/regenerate-embeddings.js
  */
 
-// TypeScript 소스를 직접 import (tsx로 실행 시)
-// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { EmbeddingService } from '../dist/services/embedding-service.js';
+import { initializeDatabase, closeDatabase } from '@memento/core';
+import { UnifiedEmbeddingService } from '@memento/core/domains/embedding/services/unified-embedding-service.js';
 
 async function regenerateEmbeddings() {
   console.log('🔄 임베딩 재생성 시작...');
@@ -26,7 +24,7 @@ async function regenerateEmbeddings() {
     // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
     db = await initializeDatabase();
     
-    const embeddingService = new EmbeddingService();
+    const embeddingService = new UnifiedEmbeddingService();
     
     // 임베딩 서비스 사용 가능 여부 확인
     if (!embeddingService.isAvailable()) {
