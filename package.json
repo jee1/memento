@@ -58,6 +58,7 @@
     "forgetting:events": "tsx scripts/forgetting-events-query.ts",
     "generate-relation-report": "tsx scripts/generate-relation-report.ts",
     "weekly-relation-validation": "tsx scripts/weekly-relation-validation.ts",
+    "mcp:tool-surface": "npm run build -w @memento/core && tsx scripts/measure-mcp-tool-surface.ts",
     "quality:thresholds": "tsx scripts/quality-thresholds.ts",
     "quality:report": "tsx scripts/quality-report.ts",
     "quality:ground-truth:generate": "tsx scripts/generate-ground-truth.ts",

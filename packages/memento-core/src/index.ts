@@ -36,7 +36,16 @@ export function closeDatabase(db: import('better-sqlite3').Database): void {
 
 export { initializeDatabase } from './infrastructure/database/database/init.js';
 export { createToolContext, createServerContext } from './context.js';
-export { getToolRegistry, executeTool, resolveTelemetryOwnerId, flattenNestedToolFilters } from './tools/index.js';
+export {
+  getToolRegistry,
+  getExposedTools,
+  resolveToolsetMode,
+  CORE_TOOLSET,
+  executeTool,
+  resolveTelemetryOwnerId,
+  flattenNestedToolFilters,
+} from './tools/index.js';
+export type { ToolsetMode } from './tools/index.js';
 export { initializeServices } from './bootstrap.js';
 export type { ServerServices } from './bootstrap.js';
 export type { ServerContext } from './context.js';

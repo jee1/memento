@@ -1,7 +1,7 @@
 import {
   createToolContext,
   executeTool,
-  getToolRegistry,
+  getExposedTools,
   logger,
   type ServerServices,
 } from '@memento/core';
@@ -49,8 +49,7 @@ export function setupWebSocketServer(
         if (message.type === 'pong') return;
 
         if (message.method === 'tools/list') {
-          const toolRegistry = getToolRegistry();
-          const tools = toolRegistry.getAll();
+          const tools = getExposedTools();
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             id: message.id,

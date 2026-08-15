@@ -8,7 +8,7 @@ closeDatabase,
 createMementoCore,
 createToolContext,
 executeTool,
-getToolRegistry,
+getExposedTools,
 mementoConfig,
 validateConfig,
 type ServerServices
@@ -111,7 +111,7 @@ async function runHeavyInit() {
  */
 function registerHandlers() {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getToolRegistry().getAll(),
+    tools: getExposedTools(),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {

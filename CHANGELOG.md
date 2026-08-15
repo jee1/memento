@@ -9,6 +9,10 @@
 
 ### Breaking
 
+- **[BREAKING] MCP `tools/list` 기본 노출을 4개로 축소** (#769): 등록 도구는 22개 그대로지만 `tools/list`는 기본적으로 `recall`·`remember`·`memory_injection`·`feedback`만 반환합니다. 도구 정의는 세션 내내 클라이언트 컨텍스트를 점유하고, Memento는 늘 켜두는 서버라 상시 점유 비용이 큽니다 — 측정 결과 직렬화된 목록이 23,440 → 11,817 바이트(추정 5,860 → 2,954 토큰, **49.6% 감소**)입니다.
+
+  **마이그레이션**: 나머지 18개는 **등록된 채로 남아 `tools/call`로 그대로 호출됩니다** — 목록에서만 빠지므로 도구 이름을 이미 아는 클라이언트·스킬·스크립트는 영향이 없습니다. 영향을 받는 것은 `tools/list` 결과만 보고 도구를 고르는 에이전트입니다. 이전처럼 22개를 전부 나열하려면 MCP 호스트 설정에 `MEMENTO_TOOLSET=full`을 추가하세요(stdio·HTTP·WebSocket 모두 동일). 잘못된 값은 경고 후 `core`로 폴백합니다. 측정 재현: `npm run mcp:tool-surface`.
+
 - **CLI bin alias `memento-mcp` removed** (#766): use `memento-mcp-server` only (same stdio entrypoint). The short alias collided with the unrelated npm/GitHub project `gannonh/memento-mcp`. Update MCP host configs and scripts that invoked `memento-mcp`. npm package name remains `memento-mcp-server`.
 
 ### Changed

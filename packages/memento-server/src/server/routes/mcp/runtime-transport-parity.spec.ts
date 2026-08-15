@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToolRegistry } from '@memento/core';
+import { CORE_TOOLSET, getExposedTools, getToolRegistry } from '@memento/core';
 import * as core from '@memento/core';
 import { processMcpMessage } from './message-processor.js';
 import {
@@ -25,17 +25,51 @@ describe('runtime transport parity (stdio vs HTTP MCP)', () => {
     await cleanupTestDatabase(ctx);
   });
 
-  it('tools/list exposes the same registry as getToolRegistry()', async () => {
-    const direct = getToolRegistry().getAll().map((t) => t.name).sort();
+  async function listToolNames(): Promise<string[]> {
     const response = await processMcpMessage(
       { jsonrpc: '2.0', id: 1, method: 'tools/list' },
       ctx.db,
       ctx.services,
     );
-    const viaHttp = (response.result as { tools: { name: string }[] }).tools
+    return (response.result as { tools: { name: string }[] }).tools
       .map((t) => t.name)
       .sort();
-    expect(viaHttp).toEqual(direct);
+  }
+
+  it('tools/list exposes the same set as getExposedTools()', async () => {
+    // Both transports read getExposedTools(), so the listings cannot drift apart.
+    expect(await listToolNames()).toEqual(getExposedTools().map((t) => t.name).sort());
+  });
+
+  it('lists only the core toolset by default and the full registry under MEMENTO_TOOLSET=full', async () => {
+    vi.stubEnv('MEMENTO_TOOLSET', '');
+    expect(await listToolNames()).toEqual([...CORE_TOOLSET].sort());
+
+    vi.stubEnv('MEMENTO_TOOLSET', 'full');
+    expect(await listToolNames()).toEqual(
+      getToolRegistry().getAll().map((t) => t.name).sort(),
+    );
+
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps unlisted tools callable so progressive disclosure never breaks a client', async () => {
+    vi.stubEnv('MEMENTO_TOOLSET', '');
+    expect(await listToolNames()).not.toContain('get_telemetry_summary');
+
+    const response = await processMcpMessage(
+      {
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: { name: 'get_telemetry_summary', arguments: {} },
+      },
+      ctx.db,
+      ctx.services,
+    );
+
+    expect(response.error).toBeUndefined();
+    vi.unstubAllEnvs();
   });
 
   it('tools/call passes executeTool ToolResult through unchanged (stdio parity)', async () => {

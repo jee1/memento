@@ -139,7 +139,9 @@ OpenAI 등 클라우드 API를 쓰지 않거나 장애가 났을 때, Memento는
 }
 ```
 
-## MCP Tools (핵심 22개)
+## MCP Tools (등록 22개 · 기본 노출 4개)
+
+> 기본 `tools/list`는 `recall`·`remember`·`memory_injection`·`feedback` 4개만 반환합니다. 나머지는 등록된 채 호출만 가능하며, 전부 나열하려면 `MEMENTO_TOOLSET=full`을 설정합니다 (#769).
 
 MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는** 기억·관계·품질 API입니다. 앵커 복원, 임베딩 마이그레이션, Episodic→Semantic 일괄 변환, 메타 통계처럼 **운영·배치 성격**은 HTTP [관리자 API](#관리자-api)에만 있습니다. 아래 목록은 카테고리별 색인이며, 각 도구의 파라미터·예시는 이어지는 절을 보세요.
 

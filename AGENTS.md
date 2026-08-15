@@ -59,6 +59,7 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **CI npm ci flake**: `onnxruntime-node` NuGet `ETIMEDOUT`은 코드 버그 아님 — `gh run rerun --failed`
 - **신규 worktree**: 생성 직후 해당 경로에서 `npm install` 후 테스트 (`tsc: not found` 방지)
 - **병렬 이슈 worktree**: `~/git/memento-worktrees/issue-<num>-<slug>`; Spec Kit는 `specs/0NN-<slug>/` (번호는 기존 최대+1)
+- **`MEMENTO_TOOLSET` (#769)**: 기본 `core` — `tools/list`는 `recall`·`remember`·`memory_injection`·`feedback` 4개만 노출(v1.18+). 나머지 18개는 등록·호출 가능하고 목록에서만 빠짐; 전체 나열은 `full`. 노출 지점은 `getExposedTools()` 한 곳이며 stdio·HTTP·WebSocket 4개 호출부가 모두 이걸 씀 — `getAll()`로 되돌리면 transport 간 목록이 갈라짐(`runtime-transport-parity.spec.ts`). 측정: `npm run mcp:tool-surface`
 - **`MEMENTO_TYPE_PARAM_MODE`**: 기본값 `error` (#636, v1.18+); `type` 생략 시 `remember`/`recall` 거절 — 레거시는 env `warn`/`deprecate`; spec·통합테스트는 `type` 명시 또는 `mementoConfig.typeParamMode='warn'` mock
 - **core-deprecated-inventory**: 활성 표 먼저 확인 (#617 후 shim 제거 완료; #636은 type-param 롤아웃); merge 전 inventory·CHANGELOG 갱신
 - **deps minor/patch**: `npm outdated` → wanted만; `better-sqlite3` 후 `npm run rebuild-native`; major(eslint 10·vitest 4)는 별도 이슈

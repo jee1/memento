@@ -70,6 +70,49 @@ export function getToolRegistry(): ToolRegistry {
   return toolRegistry;
 }
 
+export type ToolsetMode = 'core' | 'full';
+
+/**
+ * Tools listed by default. Everything else stays registered and callable — only
+ * its definition is withheld from `tools/list`, which is what actually occupies
+ * the client's context for the whole session (#769).
+ */
+export const CORE_TOOLSET = [
+  'recall',
+  'remember',
+  'memory_injection',
+  'feedback',
+] as const;
+
+const DEFAULT_TOOLSET: ToolsetMode = 'core';
+
+/** `MEMENTO_TOOLSET=full` restores the complete listing; anything else falls back to the default. */
+export function resolveToolsetMode(value: string | undefined = process.env.MEMENTO_TOOLSET): ToolsetMode {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'full' || normalized === 'core') {
+    return normalized;
+  }
+  if (normalized) {
+    process.stderr.write(
+      `[CONFIG WARN] Unknown MEMENTO_TOOLSET "${value}"; falling back to "${DEFAULT_TOOLSET}"\n`,
+    );
+  }
+  return DEFAULT_TOOLSET;
+}
+
+/**
+ * The tool definitions a transport should advertise. Both stdio and HTTP read
+ * this so the two listings cannot drift apart.
+ */
+export function getExposedTools(mode: ToolsetMode = resolveToolsetMode()) {
+  const all = toolRegistry.getAll();
+  if (mode === 'full') {
+    return all;
+  }
+  const core = new Set<string>(CORE_TOOLSET);
+  return all.filter((tool) => core.has(tool.name));
+}
+
 export function getTool(name: string) {
   return toolRegistry.get(name);
 }

@@ -4,7 +4,7 @@
  * Phase 1.2: http-server.ts 리팩토링
  */
 
-import { executeTool,getToolRegistry,logger } from '@memento/core';
+import { executeTool,getExposedTools,getToolRegistry,logger } from '@memento/core';
 import type Database from 'better-sqlite3';
 import { Router } from 'express';
 import type { WebSocket } from 'ws';
@@ -26,8 +26,7 @@ export function createToolsRouter(
   // 도구 목록 조회
   router.get('/', (req, res) => {
     try {
-      const toolRegistry = getToolRegistry();
-      const tools = toolRegistry.getAll();
+      const tools = getExposedTools();
       res.json({
         tools,
         count: tools.length,
