@@ -171,6 +171,8 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm ci
+      - name: Build server dist for assistant e2e/http tests
+        run: npm run build -w @memento/core && npm run build -w memento-server
       - name: Build @memento/client (required for assistant test resolution)
         run: npm run build -w @memento/client
       - name: Run tests (@memento/assistant)
