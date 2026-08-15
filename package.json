@@ -14,7 +14,6 @@
   "bin": {
     "memento-mcp-server": "./dist/server/index.js",
     "memento-dev": "./dist/server/http-server.js",
-    "memento-mcp": "./dist/server/index.js",
     "memento-setup": "./scripts/auto-setup.js"
   },
   "scripts": {
