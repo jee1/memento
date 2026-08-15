@@ -17,6 +17,8 @@ Memento를 설치하는 방법은 **얼마나 빨리 써 보고 싶은지**, **�
 ```
 MCP 서버 등록과 `recall`→`remember` 습관 skill이 함께 설치되고, 기억 DB는 `${CLAUDE_PLUGIN_DATA}/memory.db`에 보관되어 업데이트 후에도 유지됩니다.
 
+기본으로 노출되는 MCP 도구는 `recall`·`remember`·`memory_injection`·`feedback` 4개입니다. 앵커·절차 버전관리·introspection 같은 나머지 도구까지 쓰려면 사용자/프로젝트 MCP 설정의 `memento` 서버 `env`에 `MEMENTO_TOOLSET=full`을 추가하세요 (플러그인 내부 `.mcp.json` 수정은 업데이트 시 사라집니다).
+
 ### 🥇 **1순위: 원클릭 설치 (권장)**
 ```bash
 # 자동 설치 스크립트 실행

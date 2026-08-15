@@ -49,6 +49,21 @@ remember(
 
 Write a memory whenever a turn produced real work — a code change, a decision, a configuration, a fix. Search first (`recall`) so you update instead of duplicating.
 
+## The rest of the toolset
+
+Everything below this line uses tools the server does **not** advertise by default. Memento registers 22 tools but lists only `recall`, `remember`, `memory_injection`, and `feedback`, because tool definitions occupy your context for the whole session and Memento is a server people leave running. The unlisted tools are still registered and still execute — but a tool you never saw in `tools/list` is a tool you cannot call.
+
+To get all 22, add `MEMENTO_TOOLSET=full` to the `memento` server's `env` block in your MCP config:
+
+```json
+"env": {
+  "DB_PATH": "${CLAUDE_PLUGIN_DATA}/memory.db",
+  "MEMENTO_TOOLSET": "full"
+}
+```
+
+Editing the plugin's own `.mcp.json` will not survive a plugin update — set it in your user or project MCP config instead. If the tools below are missing, this is why; say so rather than working around it.
+
 ## Procedures evolve
 
 Store repeated processes with `remember_procedure`. When a step changes, save the new version and use `procedural_diff` / `procedural_rollback` to see or undo the change — that history is the point.

@@ -17,6 +17,8 @@ How you install Memento depends on **how fast you want to try it** and **how muc
 ```
 This registers the MCP server and ships a skill for the `recall` → `remember` loop. The memory database lives at `${CLAUDE_PLUGIN_DATA}/memory.db` and survives plugin updates.
 
+Four MCP tools are advertised by default: `recall`, `remember`, `memory_injection`, and `feedback`. To reach the rest — anchors, procedural versioning, introspection — add `MEMENTO_TOOLSET=full` to the `memento` server's `env` block in your user or project MCP config (edits to the plugin's own `.mcp.json` are lost on update).
+
 ### 🥇 **1st Priority: One-click Installation (Recommended)**
 ```bash
 # Run automatic installation script
