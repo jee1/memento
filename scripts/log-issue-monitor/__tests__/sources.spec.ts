@@ -12,15 +12,33 @@ describe('splitJsonlLines', () => {
 });
 
 describe('resolveDockerLogsRef', () => {
-  it('returns preferred when docker inspect succeeds', async () => {
+  it('returns preferred when docker container inspect succeeds', async () => {
     const exec = vi.fn((file, args, opts, cb) => {
       expect(file).toBe('docker');
-      expect(args?.[0]).toBe('inspect');
-      (cb as (e: Error | null, so?: string, se?: string) => void)(null, 'sha256:abc\n', '');
+      expect(args).toEqual(['inspect', '--type', 'container', '-f', '{{.Id}}', 'memento-mcp-server']);
+      (cb as (e: Error | null, so?: string, se?: string) => void)(null, 'containerid\n', '');
     }) as unknown as ExecFileLike;
 
     await expect(resolveDockerLogsRef('memento-mcp-server', exec)).resolves.toBe('memento-mcp-server');
     expect(exec).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to docker ps when inspect matches only an image name', async () => {
+    const exec = vi.fn((file, args, opts, cb) => {
+      const callback = cb as (e: Error | null, so?: string, se?: string) => void;
+      expect(file).toBe('docker');
+      if (args?.[0] === 'inspect' && args?.[5] === 'memento-mcp-server') {
+        callback(new Error('No such container: memento-mcp-server'));
+        return;
+      }
+      if (args?.[0] === 'ps' && args?.[1] === '-aq') {
+        callback(null, 'memento-memento-mcp-server-1\n', '');
+        return;
+      }
+      callback(new Error('unexpected'));
+    }) as unknown as ExecFileLike;
+
+    await expect(resolveDockerLogsRef('memento-mcp-server', exec)).resolves.toBe('memento-memento-mcp-server-1');
   });
 
   it('resolves via docker ps when inspect fails and one id matches name filter', async () => {
@@ -45,7 +63,7 @@ describe('resolveDockerLogsRef', () => {
     const exec = vi.fn((file, args, opts, cb) => {
       const callback = cb as (e: Error | null, so?: string, se?: string) => void;
       expect(file).toBe('docker');
-      if (args?.[0] === 'inspect' && args?.[3] === 'memento-mcp-server') {
+      if (args?.[0] === 'inspect' && args?.[5] === 'memento-mcp-server') {
         callback(new Error('no such object'));
         return;
       }
@@ -53,11 +71,11 @@ describe('resolveDockerLogsRef', () => {
         callback(null, 'idA\nidB\n', '');
         return;
       }
-      if (args?.[0] === 'inspect' && args?.[3] === 'idA') {
+      if (args?.[0] === 'inspect' && args?.[5] === 'idA') {
         callback(null, '/memento-memento-mcp-server-1\n', '');
         return;
       }
-      if (args?.[0] === 'inspect' && args?.[3] === 'idB') {
+      if (args?.[0] === 'inspect' && args?.[5] === 'idB') {
         callback(null, '/memento-mcp-server\n', '');
         return;
       }

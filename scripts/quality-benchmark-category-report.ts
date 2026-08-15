@@ -11,9 +11,9 @@
 
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { createSeededBenchmarkDatabase } from '@memento/core/test/helpers/benchmark-search-database.js';
-import { QualityMetricsCollector } from '@memento/core/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
-import type { CategoryQualityReport } from '@memento/core/shared/types/benchmark.types.js';
+import { createSeededBenchmarkDatabase } from '../packages/memento-core/src/test/helpers/benchmark-search-database.js';
+import { QualityMetricsCollector } from '../packages/memento-core/src/domains/monitoring/services/quality-assurance/quality-metrics-collector.js';
+import type { CategoryQualityReport } from '../packages/memento-core/src/shared/types/benchmark.types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -24,13 +24,24 @@ const MAPPING_PATH = join(BENCHMARK_DIR, 'category-mapping.json');
 /** 벽시계 상한 (SC-006) — 테스트에서 동일 값으로 검증 */
 export const WALL_MS = 30_000;
 
+const REQUIRED_MACRO_CATEGORIES: CategoryQualityReport['macro_category'][] = [
+  'episodic_recent',
+  'procedural',
+  'conceptual',
+  'tag_filter',
+];
+
 export function formatCategoryReportLine(r: CategoryQualityReport): string {
   const gate = r.threshold_passed ? 'PASS' : 'FAIL';
   return `${r.macro_category} | ${r.query_count} | ${r.mrr.toFixed(4)} | ${r.ndcg_at_5.toFixed(4)} | ${r.ndcg_at_10.toFixed(4)} | ${gate}`;
 }
 
 export function anyCategoryFailsMrrGate(reports: CategoryQualityReport[]): boolean {
-  return reports.some((x) => !x.threshold_passed);
+  const reportedCategories = new Set(reports.map((report) => report.macro_category));
+  return (
+    REQUIRED_MACRO_CATEGORIES.some((category) => !reportedCategories.has(category)) ||
+    reports.some((report) => !report.threshold_passed)
+  );
 }
 
 async function main(): Promise<void> {

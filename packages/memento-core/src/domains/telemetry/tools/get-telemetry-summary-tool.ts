@@ -95,6 +95,8 @@ export class GetTelemetrySummaryTool extends BaseTool {
           positive_count: feedbackQuality.positive_count,
           negative_count: feedbackQuality.negative_count,
           feedback_with_ranking_context_count: feedbackQuality.feedback_with_ranking_context_count,
+          recall_count: feedbackQuality.recall_count,
+          recall_without_feedback_rate: feedbackQuality.recall_without_feedback_rate,
         },
         timestamp: new Date().toISOString(),
       };

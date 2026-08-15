@@ -29,7 +29,7 @@ npm run lint && npm run type-check  # 커밋 전 필수
 
 ## 3. 에이전트 필수 습관
 
-Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다. **코드를 고치는** 에이전트는 구조를 추측하기 전에 `graphify-out/GRAPH_REPORT.md`를 보고, 수정 후 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
+Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 그 결과를 실제로 썼다면 `feedback`(helpful/not_helpful)을 남기고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다 — 체크리스트는 [agent-workflow.md §MCP·메모리](./docs/agents/agent-workflow.md#mcp메모리--작업-전후-기억-루프)를 보세요. **코드를 고치는** 에이전트는 구조를 추측하기 전에 `graphify-out/GRAPH_REPORT.md`를 보고, 수정 후 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
 
 상세 워크플로: [agent-workflow.md](./docs/agents/agent-workflow.md)
 
@@ -60,6 +60,8 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **Node major 전환**: `npm ci` → `npm run rebuild-native` → smoke(`better-sqlite3`/`sqlite-vec`/`sharp`/`onnxruntime-node`) → type-check; Cursor agent PATH가 nvm을 가릴 수 있음
 - **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 - **recall search_quality 텔레메트리**: `ranking_version`은 hybrid면 `HybridSearchEngine.getRankingVersion()`(생성 시 캐시, `ranking-sha256:`+가중치 SHA12) 아니면 `getRankingVersion()`; funnel은 SQL `json_extract`로 `text_candidate_count`/`vector_candidate_count`/`union_candidate_count`(없으면 `candidate_count`) — extra_data 전량 JS 파싱 금지, 키 변경 시 admin `/telemetry/search-quality`·`get_telemetry_summary`·telemetry-cli 동시 갱신
+- **feedback_quality 텔레메트리 (#729)**: `recall_without_feedback_rate` 등 키 변경 시 `get_telemetry_summary`·admin `/telemetry/feedback`·`npm run telemetry -- --type feedback-quality` 동시 갱신; 관측 지표는 [agent-workflow.md](./docs/agents/agent-workflow.md)
+- **nightly category-report (#731)**: weekly `nightly-tests.yml`이 `npm run quality:benchmark:category-report` 실행 — `REQUIRED_MACRO_CATEGORIES` 누락·평가 불가 GT 또는 카테고리 MRR < 0.5면 exit 1; PR gate 아님(승격·범위는 2026-09-01까지 재검토)
 - **infrastructure repo 분해**: `packages/memento-core/src/infrastructure/database/repositories/` — composition(`*-store.ts`); public export는 오케스트레이터 파일만 (#610)
 - **composition 분해 후 CI**: `test-core`는 memento-core 전체 vitest — 도메인 `__tests__`만 green이면 부족; 다른 경로 spec이 `(orchestrator as any).privateMethod` 호출 시 orchestrator에 위임 래퍼 필수 (예: `006-fts5-reflection-notes.spec.ts` → `buildReflectionNotesSearchCondition`)
 - **scheduler jobs 타입**: `BatchJobResult` 등은 `batch-scheduler-types.js`에서 import (`batch-scheduler.js`는 jobs↔scheduler 순환 참조)
