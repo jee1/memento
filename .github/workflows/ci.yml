@@ -189,6 +189,8 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm ci
+      - name: Build @memento/core (ops scripts import dist)
+        run: npm run build -w @memento/core
       - name: Run scripts unit tests
         run: npm run test:ci:scripts
 
