@@ -6,6 +6,24 @@
 
 Memento를 사용하는 에이전트는 **두 번의 MCP 호출**이 습관이 되어야 합니다. 작업을 시작하기 전에 `recall` 또는 `memory_injection`으로 관련 기억을 불러와 맥락을 채웁니다. 작업이 끝난 뒤에는 `remember`로 결과를 남기되, 기억 타입을 구분합니다. 48시간 안에 다시 쓸 컨텍스트는 `working`, 에피소드·사건 기록은 `episodic`, 재사용 가능한 지식은 `semantic`, 반복 절차는 `procedural`입니다. 이 구분이 나중에 검색 품질을 결정합니다.
 
+### remember near-duplicate (write-path, #730)
+
+`remember`는 저장 **직전**에 동일 `type`·`owner_id`·`project_id` 스코프에서 유사 기억을 검색합니다. 기본(`MEMENTO_REMEMBER_DEDUP_MODE=warn`)은 저장은 성공하고 응답에 `similarity_warning`을 붙입니다.
+
+**권장 루프:** 유사 후보가 있으면(`similarity_warning.action='warned'`) 같은 content로 `update_mode=incremental`을 넣어 **재호출**해 top 후보를 UPDATE(새 row 없음, `action='merged'`)하세요. `strict` 모드는 INSERT를 거절하고 후보만 반환합니다(`action='rejected'`).
+
+응답 필드(하위 호환 additive):
+
+| 필드 | 설명 |
+|------|------|
+| `similarity_warning.count` | 임계값 이상 후보 수 |
+| `similarity_warning.similar_ids` | 후보 memory_id 목록 |
+| `similarity_warning.candidates` | `{ id, similarity }[]` |
+| `similarity_warning.suggestion` | `'incremental'` — 병합 재호출 권장 |
+| `similarity_warning.action` | `warned` \| `merged` \| `rejected` |
+
+env: [commands.md — remember dedup](./commands.md#remember-near-duplicate-730)
+
 ## 코드 탐색 — Serena 심볼 우선
 
 코드를 읽기 전에 파일 전체를 무작정 읽지 마세요. `get_symbols_overview`나 `find_symbol`로 원하는 심볼을 찾은 뒤 필요한 부분만 확인하는 것이 훨씬 빠릅니다. 파일이 50줄 미만이면 전체를 읽어도 괜찮지만, 그 이상이면 심볼 도구를 먼저 쓰는 것을 규칙으로 삼으세요.

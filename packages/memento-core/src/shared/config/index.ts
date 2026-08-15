@@ -7,6 +7,10 @@ import type { MementoConfig, EmbeddingProvider, LLMProvider } from '../types/ind
 import { validateConfiguration } from '../utils/configuration-validator.js';
 import { isValidConfigurationEnvironment } from '../utils/environment-check.js';
 import { parseOwnerScopeMode } from '../utils/owner-scope-mode.js';
+import {
+  parseRememberDedupMode,
+  parseRememberDedupThreshold,
+} from '../utils/remember-dedup-config.js';
 import { parseTypeParamMode } from '../utils/type-param-validator.js';
 import { resolveApiTokens } from './api-tokens.js';
 import {
@@ -147,6 +151,8 @@ export const mementoConfig: MementoConfig = {
   httpDefaultAgentId: resolveOptionalString('MEMENTO_HTTP_DEFAULT_AGENT_ID'),
   ownerScopeMode: parseOwnerScopeMode(getRawEnvValue('MEMENTO_OWNER_SCOPE_MODE')),
   sourceStrict: resolveBoolean('MEMENTO_SOURCE_STRICT', { defaultValue: false }),
+  rememberDedupThreshold: parseRememberDedupThreshold(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_THRESHOLD')),
+  rememberDedupMode: parseRememberDedupMode(getRawEnvValue('MEMENTO_REMEMBER_DEDUP_MODE')),
 };
 
 // 검색 랭킹 가중치 (Memento-Goals.md 참조)

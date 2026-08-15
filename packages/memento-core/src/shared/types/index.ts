@@ -330,6 +330,10 @@ export interface MementoConfig {
   ownerScopeMode: 'strict' | 'warn' | 'off';
   /** remember source URI strict 검증 (MEMENTO_SOURCE_STRICT=true 시 잘못된 source 거절) */
   sourceStrict: boolean;
+  /** remember near-duplicate similarity threshold (MEMENTO_REMEMBER_DEDUP_THRESHOLD, default 0.85) */
+  rememberDedupThreshold: number;
+  /** remember near-duplicate policy (MEMENTO_REMEMBER_DEDUP_MODE: warn|strict|off) */
+  rememberDedupMode: 'warn' | 'strict' | 'off';
 }
 
 /**

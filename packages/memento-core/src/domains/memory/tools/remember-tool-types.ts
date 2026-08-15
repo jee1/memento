@@ -27,4 +27,5 @@ export type ProceduralMemoryItem = MemoryItem & {
   version_series_id?: string;
   version?: number;
   consolidation_score?: number;
+  num_times?: number;
 };

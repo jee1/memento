@@ -10,4 +10,5 @@ export interface RememberToolHost {
   logWarning(message: string, additionalData?: Record<string, unknown>): void;
   logError(error: Error, context: string, additionalData?: Record<string, unknown>): void;
   createSuccessResult(data: unknown): ToolResult;
+  createErrorResult(error: string, message?: string, data?: Record<string, unknown>): ToolResult;
 }

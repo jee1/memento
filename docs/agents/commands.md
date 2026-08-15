@@ -72,6 +72,15 @@ npm run docker:up                 # 컨테이너 기동
 | `ADMIN_API_KEY` | HTTP 관리 API 키 (프로덕션 필수) |
 | `MEMENTO_HTTP_BIND_HOST` | HTTP 바인드 (기본 `127.0.0.1`) |
 
+### remember near-duplicate (#730)
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `MEMENTO_REMEMBER_DEDUP_THRESHOLD` | `0.85` | 유사도 임계값 `(0, 1]`; invalid → `0.85` + stderr |
+| `MEMENTO_REMEMBER_DEDUP_MODE` | `warn` | `warn`(저장+경고) \| `strict`(거절) \| `off`(검색 스킵) |
+
+에이전트 습관(warn → `update_mode=incremental` 재호출): [agent-workflow.md](./agent-workflow.md#remember-near-duplicate-write-path-730)
+
 전체 환경 변수 목록과 거버넌스 정책은 [environment-variable-governance.md](../guides/ko/environment-variable-governance.md)에서, 배포 체크리스트는 [env-deployment-checklist.md](../operations/env-deployment-checklist.md)에서 확인하세요.
 
 ## Introspection 치유 (#728)

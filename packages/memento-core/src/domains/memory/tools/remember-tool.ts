@@ -188,7 +188,24 @@ export class RememberTool extends BaseTool {
         logInfo: (msg, data) => this.logInfo(msg, data),
         logWarning: (msg, data) => this.logWarning(msg, data),
         logError: (err, ctx, data) => this.logError(err, ctx, data),
-        createSuccessResult: (data) => this.createSuccessResult(data)
+        createSuccessResult: (data) => this.createSuccessResult(data),
+        createErrorResult: (error, message, data) => {
+          const payload = {
+            success: false,
+            error: { code: error, message: message ?? error },
+            ...(data ? { data } : {}),
+          };
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify(payload, null, 2),
+              },
+            ],
+            error,
+            ...(message ? { message } : {}),
+          };
+        },
       };
 
       const origin_source = JSON.stringify({

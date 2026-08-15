@@ -12,7 +12,6 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { formatMementoResourceUri, memoryItemResourceKind } from '../../../shared/utils/memento-resource-uri.js';
 import { toDbRelationType } from '../../../shared/utils/relation-type-converter.js';
 import { EventOutboxService } from '../../telemetry/services/event-outbox-service.js';
-import { getVectorSearchEngine } from '../../search/algorithms/vector-search-engine.js';
 import { getNextVersionNumber } from '../services/procedural-versioning.js';
 import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import type { RememberToolHost } from './remember-tool-host.js';
@@ -21,6 +20,15 @@ import { findExistingProceduralMemory } from './remember-tool-db-helpers.js';
 import { prepareReflectionNotes } from './remember-tool-reflection.js';
 import { launchBackgroundAugmentation } from './remember-tool-augmentation.js';
 import type { RememberParams } from './remember-tool-schema.js';
+import {
+  applyNearDupMergeInputs,
+  buildSimilarityWarningFromCandidates,
+  findNearDuplicateCandidates,
+  isNearDupMergeType,
+  loadMemoryItemForNearDupMerge,
+  type NearDuplicateCandidate,
+  type SimilarityWarning,
+} from './remember-near-duplicate.js';
 
 export interface MemoryItemContext {
   type: MemoryTypeRequest;
@@ -34,38 +42,6 @@ export interface MemoryItemContext {
   startTime: number;
   project_id_param: string | undefined | null;
   last_mentioned_at_param: string | undefined | null;
-}
-
-async function buildSimilarityWarning(
-  db: Database.Database,
-  content: string,
-  id: string,
-  type: MemoryTypeRequest,
-  ownerId: string | null,
-  context: ToolContext
-): Promise<{ count: number; similar_ids: string[] } | undefined> {
-  try {
-    const embSvc = context.services?.embeddingService;
-    if (!embSvc?.isAvailable()) return undefined;
-
-    const vecEng = context.services?.vectorSearchEngine ?? getVectorSearchEngine();
-    vecEng.initialize(db);
-    const unified = embSvc.getUnifiedEmbeddingService();
-    const qEmb = await unified.generateEmbedding(content);
-    if (!qEmb?.embedding || !Array.isArray(qEmb.embedding)) return undefined;
-
-    const prov = unified.getCurrentProviderName() ?? 'tfidf';
-    const hits = await vecEng.search(qEmb.embedding, { limit: 8, threshold: 0.85, types: [type] }, prov);
-    const sameOwner = hits.filter(h => {
-      if (h.memory_id === id) return false;
-      const row = DatabaseUtils.get(db, `SELECT owner_id FROM memory_item WHERE id = ?`, [h.memory_id]) as { owner_id: string | null } | undefined;
-      return String(row?.owner_id ?? '') === String(ownerId ?? '');
-    });
-
-    return sameOwner.length > 0 ? { count: sameOwner.length, similar_ids: sameOwner.map(s => s.memory_id) } : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 async function persistMemoryItem(
@@ -192,14 +168,25 @@ async function persistMemoryItem(
   });
 }
 
+function shouldSkipNearDupSearch(
+  type: MemoryTypeRequest,
+  update_mode: RememberParams['update_mode'],
+  existingProceduralHit: boolean,
+): boolean {
+  return mementoConfig.rememberDedupMode === 'off'
+    || (type === 'procedural' && !!update_mode && existingProceduralHit);
+}
+
 export async function handleMemoryItem(
   params: RememberParams,
   context: ToolContext,
   ctx: MemoryItemContext,
   host: RememberToolHost
 ): Promise<ToolResult> {
-  const { type, ownerId, startTime } = ctx;
-  const { content, update_mode, workflow_name, skill_name, task_goal, reflection_notes, enable_triple_extraction, importance } = params;
+  const { type, ownerId, startTime, project_id_param } = ctx;
+  let { numTimes } = ctx;
+  let workingParams = params;
+  const { content, update_mode, workflow_name, skill_name, task_goal, reflection_notes, enable_triple_extraction, importance } = workingParams;
 
   if (!content) {
     throw new Error("type이 'core' 또는 'vault'가 아닐 때는 content가 필수입니다");
@@ -222,17 +209,70 @@ export async function handleMemoryItem(
 
   let existingMemory: ProceduralMemoryItem | null = null;
   let existingMemoryId: string | null = null;
+  let proceduralHit = false;
   if (type === 'procedural' && update_mode) {
     existingMemory = await findExistingProceduralMemory(context.db!, workflow_name, skill_name, host);
     if (existingMemory && (update_mode === 'replace' || update_mode === 'incremental')) {
       existingMemoryId = existingMemory.id;
+      proceduralHit = true;
     }
+  }
+
+  const projectId = project_id_param ?? null;
+  let nearDupCandidates: NearDuplicateCandidate[] = [];
+  let nearDupMerged = false;
+
+  if (!shouldSkipNearDupSearch(type, update_mode, proceduralHit)) {
+    nearDupCandidates = await findNearDuplicateCandidates(
+      context.db!,
+      content,
+      { type, ownerId, projectId },
+      mementoConfig.rememberDedupThreshold,
+      context,
+      host,
+    );
+  }
+
+  if (
+    !existingMemoryId
+    && update_mode === 'incremental'
+    && nearDupCandidates.length > 0
+    && isNearDupMergeType(type)
+  ) {
+    const topCandidate = nearDupCandidates[0]!;
+    const loaded = await loadMemoryItemForNearDupMerge(context.db!, topCandidate.id, host);
+    if (loaded) {
+      const merged = applyNearDupMergeInputs(workingParams, numTimes, loaded, type);
+      workingParams = { ...merged.params, update_mode: 'incremental' };
+      numTimes = merged.numTimes;
+      existingMemory = merged.existing;
+      existingMemoryId = topCandidate.id;
+      nearDupMerged = true;
+    }
+  }
+
+  if (!existingMemoryId && mementoConfig.rememberDedupMode === 'strict' && nearDupCandidates.length > 0) {
+    const similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'rejected');
+    return host.createErrorResult(
+      'NEAR_DUPLICATE',
+      '유사한 기억이 이미 존재하여 저장이 거절되었습니다. update_mode=incremental로 병합하세요.',
+      { similarity_warning },
+    );
   }
 
   const id = existingMemoryId || `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   try {
-    await persistMemoryItem(context.db!, id, params, ctx, existingMemory, finalReflectionNotes, context, host);
+    await persistMemoryItem(
+      context.db!,
+      id,
+      workingParams,
+      { ...ctx, numTimes },
+      existingMemory,
+      finalReflectionNotes,
+      context,
+      host,
+    );
   } catch (error) {
     const errorWithCode = error as { code?: string };
     if (errorWithCode.code === 'SQLITE_BUSY') {
@@ -261,13 +301,21 @@ export async function handleMemoryItem(
     eventType: 'memory.write.completed',
     outcome: 'success',
     latencyMs: Date.now() - startTime,
-    extraData: { memory_type: type, memory_id: id, content_hash: contentHash, is_duplicate: isDuplicate }
+    extraData: {
+      memory_type: type,
+      memory_id: id,
+      content_hash: contentHash,
+      is_duplicate: isDuplicate,
+      dedup_mode: mementoConfig.rememberDedupMode,
+      dedup_action: nearDupMerged ? 'merged' : (nearDupCandidates.length > 0 ? 'warned' : undefined),
+    }
   });
 
   try {
     const targetUri = formatMementoResourceUri({ ownerId, kind: memoryItemResourceKind(type), id });
+    const isProceduralUpdate = type === 'procedural' && !!existingMemoryId;
     new EventOutboxService(context.db!).enqueue({
-      eventType: existingMemoryId ? 'procedure.updated' : 'memory.remembered',
+      eventType: isProceduralUpdate ? 'procedure.updated' : 'memory.remembered',
       targetUri,
       ownerId,
       payload: { memory_id: id, memory_type: type, content_hash: contentHash },
@@ -279,7 +327,12 @@ export async function handleMemoryItem(
     });
   }
 
-  const similarity_warning = await buildSimilarityWarning(context.db!, content, id, type, ownerId, context);
+  let similarity_warning: SimilarityWarning | undefined;
+  if (nearDupMerged) {
+    similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'merged');
+  } else if (mementoConfig.rememberDedupMode === 'warn' && nearDupCandidates.length > 0) {
+    similarity_warning = buildSimilarityWarningFromCandidates(nearDupCandidates, 'warned');
+  }
 
   return host.createSuccessResult({
     memory_id: id,
