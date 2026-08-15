@@ -91,88 +91,94 @@ function migrateDatabase() {
     if (needsRebuild) {
       logger.info('🧱 memory_embedding 테이블 재구성 중...');
 
-      db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
-      db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
-      db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete;');
-
-      db.exec(`
-        CREATE TABLE memory_embedding__new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          memory_id TEXT NOT NULL,
-          embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
-          projection_type TEXT NOT NULL DEFAULT 'native',
-          embedding TEXT NOT NULL,
-          dim INTEGER NOT NULL,
-          dimensions INTEGER DEFAULT 0,
-          model TEXT,
-          precision INTEGER DEFAULT 32,
-          normalized BOOLEAN DEFAULT FALSE,
-          version INTEGER DEFAULT 1,
-          created_by TEXT DEFAULT 'system',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
-          UNIQUE(memory_id, embedding_provider, projection_type)
-        )
-      `);
-
-      if (hasEmbeddingTable) {
-        // 레거시 스키마 호환성: 각 컬럼 존재 여부 확인
-        const hasEmbeddingColumn = columnInfo.some(column => column.name === 'embedding');
-        const hasProvider = columnInfo.some(column => column.name === 'embedding_provider');
-        const hasDimensions = columnInfo.some(column => column.name === 'dimensions');
-        const hasCreatedBy = columnInfo.some(column => column.name === 'created_by');
-
-        // embedding 컬럼이 없으면 기본값 '[]' 사용 (레거시 스키마)
-        const embeddingSelect = hasEmbeddingColumn
-          ? "COALESCE(NULLIF(embedding, ''), '[]')"
-          : "'[]'";
-        const providerSelect = hasProvider
-          ? "COALESCE(NULLIF(embedding_provider, ''), 'tfidf')"
-          : "'tfidf'";
-        const dimensionsSelect = hasDimensions
-          ? 'COALESCE(NULLIF(dimensions, 0), dim)'
-          : 'dim';
-        const createdBySelect = hasCreatedBy
-          ? "COALESCE(NULLIF(created_by, ''), 'system')"
-          : "'system'";
+      // #755: create/copy/drop/rename(+ vec trigger drop)을 단일 트랜잭션으로.
+      // 트리거 DROP도 원자 단위 안에 두어 실패 시 테이블·트리거가 함께 롤백되게 한다.
+      // (이후 recreateVecTriggers는 트랜잭션 밖에서 성공 경로만 정비)
+      const rebuildMemoryEmbedding = db.transaction(() => {
+        db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_insert;');
+        db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_update;');
+        db.exec('DROP TRIGGER IF EXISTS memory_embedding_vec_delete;');
 
         db.exec(`
-          INSERT INTO memory_embedding__new (
-            id,
-            memory_id,
-            embedding_provider,
-            projection_type,
-            embedding,
-            dim,
-            dimensions,
-            model,
-            precision,
-            normalized,
-            version,
-            created_by,
-            created_at
+          CREATE TABLE memory_embedding__new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            memory_id TEXT NOT NULL,
+            embedding_provider TEXT NOT NULL DEFAULT 'tfidf',
+            projection_type TEXT NOT NULL DEFAULT 'native',
+            embedding TEXT NOT NULL,
+            dim INTEGER NOT NULL,
+            dimensions INTEGER DEFAULT 0,
+            model TEXT,
+            precision INTEGER DEFAULT 32,
+            normalized BOOLEAN DEFAULT FALSE,
+            version INTEGER DEFAULT 1,
+            created_by TEXT DEFAULT 'system',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (memory_id) REFERENCES memory_item(id) ON DELETE CASCADE,
+            UNIQUE(memory_id, embedding_provider, projection_type)
           )
-          SELECT
-            id,
-            memory_id,
-            ${providerSelect},
-            'native',
-            ${embeddingSelect},
-            dim,
-            ${dimensionsSelect},
-            model,
-            32,
-            0,
-            1,
-            ${createdBySelect},
-            created_at
-          FROM memory_embedding
         `);
 
-        db.exec('DROP TABLE memory_embedding;');
-      }
+        if (hasEmbeddingTable) {
+          // 레거시 스키마 호환성: 각 컬럼 존재 여부 확인
+          const hasEmbeddingColumn = columnInfo.some(column => column.name === 'embedding');
+          const hasProvider = columnInfo.some(column => column.name === 'embedding_provider');
+          const hasDimensions = columnInfo.some(column => column.name === 'dimensions');
+          const hasCreatedBy = columnInfo.some(column => column.name === 'created_by');
 
-      db.exec('ALTER TABLE memory_embedding__new RENAME TO memory_embedding;');
+          // embedding 컬럼이 없으면 기본값 '[]' 사용 (레거시 스키마)
+          const embeddingSelect = hasEmbeddingColumn
+            ? "COALESCE(NULLIF(embedding, ''), '[]')"
+            : "'[]'";
+          const providerSelect = hasProvider
+            ? "COALESCE(NULLIF(embedding_provider, ''), 'tfidf')"
+            : "'tfidf'";
+          const dimensionsSelect = hasDimensions
+            ? 'COALESCE(NULLIF(dimensions, 0), dim)'
+            : 'dim';
+          const createdBySelect = hasCreatedBy
+            ? "COALESCE(NULLIF(created_by, ''), 'system')"
+            : "'system'";
+
+          db.exec(`
+            INSERT INTO memory_embedding__new (
+              id,
+              memory_id,
+              embedding_provider,
+              projection_type,
+              embedding,
+              dim,
+              dimensions,
+              model,
+              precision,
+              normalized,
+              version,
+              created_by,
+              created_at
+            )
+            SELECT
+              id,
+              memory_id,
+              ${providerSelect},
+              'native',
+              ${embeddingSelect},
+              dim,
+              ${dimensionsSelect},
+              model,
+              32,
+              0,
+              1,
+              ${createdBySelect},
+              created_at
+            FROM memory_embedding
+          `);
+
+          db.exec('DROP TABLE memory_embedding;');
+        }
+
+        db.exec('ALTER TABLE memory_embedding__new RENAME TO memory_embedding;');
+      });
+      rebuildMemoryEmbedding();
       logger.info('✅ memory_embedding 테이블 재구성 완료');
     } else {
       logger.info('✅ memory_embedding 테이블은 최신 구조입니다');
