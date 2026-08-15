@@ -100,9 +100,9 @@ npx memento-mcp-server@latest dev
 npm install -g memento-mcp-server
 
 # 사용법
-memento-mcp dev
-memento-mcp start
-memento-mcp setup
+memento-mcp-server dev
+memento-mcp-server start
+memento-mcp-server setup
 ```
 
 ### 3. Docker 방식

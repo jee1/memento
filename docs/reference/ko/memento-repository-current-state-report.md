@@ -16,7 +16,7 @@
 - **단일 npm 패키지**: `memento-mcp-server` (버전 1.17.0).
 - **main**: `dist/server/index.js` — Node에서 `require`/`import` 시 노출되는 진입점은 **서버 진입점** 하나뿐이며, “라이브러리만 import”하는 공식 진입점은 없음.
 - **bin**:
-  - `memento-mcp-server`, `memento-mcp` → `dist/server/index.js` (stdio MCP 서버)
+  - `memento-mcp-server` → `dist/server/index.js` (stdio MCP 서버)
   - `memento-dev` → `dist/server/http-server.js` (HTTP/WebSocket MCP 서버)
   - `memento-setup` → `scripts/auto-setup.js`
 - **별도 패키지**: `packages/mcp-client` — 현재는 `packages/memento-client`로 이전됨. `@memento/client`로 npm 배포 가능한 MCP 클라이언트 라이브러리.
@@ -138,7 +138,7 @@
 ### 4.2 MCP 클라이언트 (에이전트/호스트)
 
 - **stdio MCP**
-  - 한 프로세스당 하나의 MCP 서버. Cursor, Claude Desktop 등에서 `memento-mcp-server`(또는 `memento-mcp`)를 stdio 전송으로 실행해 연결.
+  - 한 프로세스당 하나의 MCP 서버. Cursor, Claude Desktop 등에서 `memento-mcp-server`를 stdio 전송으로 실행해 연결.
 - **HTTP MCP**
   - 다중 에이전트 시 권장: MCP 서버를 HTTP/WebSocket으로 한 번만 띄우고, 모든 클라이언트가 같은 포트(예: 9001)로 접속. `mcp.json` 등에 HTTP MCP 서버 URL/포트 설정.
 - **노출 도구**

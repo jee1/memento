@@ -87,9 +87,9 @@ npx memento-mcp-server@latest setup
 npm install -g memento-mcp-server
 
 # Usage
-memento-mcp dev
-memento-mcp start
-memento-mcp setup
+memento-mcp-server dev
+memento-mcp-server start
+memento-mcp-server setup
 ```
 
 ### 3. Docker Method
