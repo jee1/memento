@@ -243,11 +243,11 @@
 
 **Purpose**: 에픽 마무리. 자식 PR 머지 후 또는 마지막 PR과 함께.
 
-- [ ] T050 Confirm each merged PR had `Fixes #<n>` + `Part of #748`; epic checklist in #748 updated
-- [ ] T051 [P] Epic-level CHANGELOG Unreleased rollup if child PRs omitted notes
-- [ ] T052 [P] Final baseline: `npm run check-debt-markers -- --production-only` · `npm run type-check` · `npm run lint`
-- [ ] T053 After last production-code PR: graphify rebuild `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` and commit root `graphify-out/` only
-- [ ] T054 Mark `specs/060-chore-tech-debt-2026-08/spec.md` Status → Implemented when all child issues closed; close/complete epic #748
+- [x] T050 Confirm each merged PR had `Fixes #<n>` + `Part of #748`; epic checklist in #748 updated
+- [x] T051 [P] Epic-level CHANGELOG Unreleased rollup if child PRs omitted notes
+- [x] T052 [P] Final baseline: `npm run check-debt-markers -- --production-only` · `npm run type-check` · `npm run lint`
+- [x] T053 After last production-code PR: graphify rebuild `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` and commit root `graphify-out/` only
+- [x] T054 Mark `specs/060-chore-tech-debt-2026-08/spec.md` Status → Implemented when all child issues closed; close/complete epic #748
 
 ---
 
