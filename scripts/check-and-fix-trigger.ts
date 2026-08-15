@@ -9,9 +9,8 @@
  *   npx tsx scripts/check-and-fix-trigger.ts [--fix]
  */
 
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase, mementoConfig } from '@memento/core';
 import Database from 'better-sqlite3';
-import { mementoConfig } from '../src/shared/config/index.js';
 
 interface TriggerInfo {
   name: string;

@@ -19,18 +19,23 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 import Database from 'better-sqlite3';
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
-import { DatabaseUtils } from '../src/shared/utils/database.js';
+import { initializeDatabase, DatabaseUtils } from '@memento/core';
 import {
   generateGroundTruth,
   saveGroundTruth,
   loadGroundTruth,
   type GroundTruthGenerationOptions,
   type GroundTruth
-} from '../src/test/helpers/vector-search-quality-metrics.js';
-import { HybridSearchFactory } from '../src/domains/search/factories/hybrid-search.factory.js';
-import type { HybridSearchQuery } from '../src/domains/search/algorithms/hybrid-search-engine.js';
-import { getStopWords } from '../src/shared/utils/stopwords.js';
+} from '@memento/core/test/helpers/vector-search-quality-metrics.js';
+import { HybridSearchFactory } from '@memento/core/domains/search/factories/hybrid-search.factory.js';
+import { getStopWords } from '@memento/core/shared/utils/stopwords.js';
+
+/** Minimal query shape for HybridSearchFactory engine.search */
+type HybridSearchQuery = {
+  query: string;
+  limit?: number;
+  [key: string]: unknown;
+};
 
 /**
  * CLI 옵션

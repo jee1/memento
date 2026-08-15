@@ -2,7 +2,7 @@
 
 import { mkdirSync, writeFileSync } from 'fs';
 import { isAbsolute, join } from 'path';
-import { buildReviewChecklistMarkdown } from '../src/test/helpers/search-quality-review-checklist.js';
+import { buildReviewChecklistMarkdown } from '@memento/core/shared/ops/search-quality-cli-helpers.js';
 
 interface CliOptions {
   benchmarkDir: string;

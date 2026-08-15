@@ -51,6 +51,41 @@
       "types": "./dist/shared/types/benchmark.types.d.ts",
       "import": "./dist/shared/types/benchmark.types.js",
       "default": "./dist/shared/types/benchmark.types.js"
+    },
+    "./shared/ops/search-quality-cli-helpers.js": {
+      "types": "./dist/shared/ops/search-quality-cli-helpers.d.ts",
+      "import": "./dist/shared/ops/search-quality-cli-helpers.js",
+      "default": "./dist/shared/ops/search-quality-cli-helpers.js"
+    },
+    "./test/helpers/vector-search-quality-metrics.js": {
+      "types": "./dist/test/helpers/vector-search-quality-metrics.d.ts",
+      "import": "./dist/test/helpers/vector-search-quality-metrics.js",
+      "default": "./dist/test/helpers/vector-search-quality-metrics.js"
+    },
+    "./shared/utils/path-validator.js": {
+      "types": "./dist/shared/utils/path-validator.d.ts",
+      "import": "./dist/shared/utils/path-validator.js",
+      "default": "./dist/shared/utils/path-validator.js"
+    },
+    "./shared/utils/stopwords.js": {
+      "types": "./dist/shared/utils/stopwords.d.ts",
+      "import": "./dist/shared/utils/stopwords.js",
+      "default": "./dist/shared/utils/stopwords.js"
+    },
+    "./shared/config/vector-search.config.js": {
+      "types": "./dist/shared/config/vector-search.config.d.ts",
+      "import": "./dist/shared/config/vector-search.config.js",
+      "default": "./dist/shared/config/vector-search.config.js"
+    },
+    "./domains/embedding/services/unified-embedding-service.js": {
+      "types": "./dist/domains/embedding/services/unified-embedding-service.d.ts",
+      "import": "./dist/domains/embedding/services/unified-embedding-service.js",
+      "default": "./dist/domains/embedding/services/unified-embedding-service.js"
+    },
+    "./domains/embedding/services/vector-compatibility-service.js": {
+      "types": "./dist/domains/embedding/services/vector-compatibility-service.d.ts",
+      "import": "./dist/domains/embedding/services/vector-compatibility-service.js",
+      "default": "./dist/domains/embedding/services/vector-compatibility-service.js"
     }
   },
   "scripts": {

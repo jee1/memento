@@ -21,9 +21,17 @@
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import Database from 'better-sqlite3';
-import { QualityAssuranceService } from '../src/services/quality-assurance/quality-assurance-service.js';
-import { initializeDatabase } from '../src/infrastructure/database/database/init.js';
-import type { ReportFormat, ReportOptions } from '../src/services/quality-assurance/quality-reporter.js';
+import { QualityAssuranceService, initializeDatabase } from '@memento/core';
+
+type ReportFormat = 'markdown' | 'json' | 'html';
+interface ReportOptions {
+  format?: ReportFormat;
+  namespace?: string;
+  context?: string;
+  from?: string;
+  to?: string;
+  historyLimit?: number;
+}
 
 /**
  * CLI 옵션

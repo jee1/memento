@@ -3,14 +3,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { basename, join, resolve } from 'path';
 import Database from 'better-sqlite3';
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { DatabaseUtils } from '../src/shared/utils/database.js';
+import { initializeDatabase, closeDatabase, DatabaseUtils } from '@memento/core';
 import {
   buildBenchmarkCorpus,
   type BenchmarkCorpusEntry,
   type BenchmarkSourceMemory,
-} from '../src/test/helpers/search-quality-benchmark-builder.js';
-import { loadBenchmarkCorpus, type BenchmarkManifest } from '../src/test/helpers/search-quality-benchmark-fixtures.js';
+} from '@memento/core/shared/ops/search-quality-cli-helpers.js';
+import { loadBenchmarkCorpus, type BenchmarkManifest } from '@memento/core/test/helpers/search-quality-benchmark-fixtures.js';
 
 interface CliOptions {
   outputDir: string;

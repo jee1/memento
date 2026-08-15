@@ -11,9 +11,7 @@
  *   - 프로덕션: npm run build && node dist/scripts/debug-embeddings.js
  */
 
-// TypeScript 소스를 직접 import (tsx로 실행 시)
-// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
+import { initializeDatabase, closeDatabase } from '@memento/core';
 
 async function debugEmbeddings() {
   console.log('🔍 임베딩 상태 디버깅 시작...');

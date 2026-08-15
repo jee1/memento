@@ -11,10 +11,8 @@
  *   - 프로덕션: npm run build && node dist/scripts/fix-vector-dimensions.js
  */
 
-// TypeScript 소스를 직접 import (tsx로 실행 시)
-// 빌드된 파일을 사용하려면 '../dist/infrastructure/database/database/init.js'로 변경
-import { initializeDatabase, closeDatabase } from '../src/infrastructure/database/database/init.js';
-import { EmbeddingService } from '../dist/services/embedding-service.js';
+import { initializeDatabase, closeDatabase } from '@memento/core';
+import { UnifiedEmbeddingService } from '@memento/core/domains/embedding/services/unified-embedding-service.js';
 
 async function fixVectorDimensions() {
   console.log('🔧 벡터 차원 통일 작업 시작...');
@@ -26,7 +24,7 @@ async function fixVectorDimensions() {
     // initializeDatabase는 DB 파일이 없으면 자동으로 생성하고 초기화함
     db = await initializeDatabase();
     
-    const embeddingService = new EmbeddingService();
+    const embeddingService = new UnifiedEmbeddingService();
     
     // 1. 현재 상태 확인
     console.log('\n📊 현재 상태:');
