@@ -4,6 +4,8 @@
   <img src="static/logo.png" alt="Memento Logo" width="200" height="200">
 
   [🇰🇷 한국어](README.md) | [🇺🇸 English](README.en.md)
+
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 </div>
 
 ---
@@ -490,7 +492,7 @@ npm run test
 
 ## 📄 License
 
-MIT License. See the `LICENSE` file for details.
+This project is released under the [MIT License](LICENSE). Matches `package.json` `"license": "MIT"`.
 
 ## 📞 Support
 
