@@ -29,7 +29,7 @@ npm run lint && npm run type-check  # 커밋 전 필수
 
 ## 3. 에이전트 필수 습관
 
-Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 그 결과를 실제로 썼다면 `feedback`(helpful/not_helpful)을 남기고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다 — 체크리스트는 [agent-workflow.md §MCP·메모리](./docs/agents/agent-workflow.md#mcp메모리--작업-전후-기억-루프)를 보세요. **코드를 고치는** 에이전트는 구조를 추측하기 전에 `graphify-out/GRAPH_REPORT.md`를 보고, 수정 후 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
+Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injection`으로 관련 기억을 불러오고, 그 결과를 실제로 썼다면 `feedback`(helpful/not_helpful)을 남기고, 작업이 끝나면 `remember`로 결과를 남기는 습관이 품질 차이를 만듭니다. 저신뢰·고실패 기억이 쌓이면(`introspection_hint`/`get_introspection_summary`) 운영자가 `POST /admin/introspection/heal`(dry-run 우선)로 정리합니다 — recall→feedback→heal 체크리스트는 [agent-workflow.md §MCP·메모리](./docs/agents/agent-workflow.md#mcp메모리--작업-전후-기억-루프)를 보세요. **코드를 고치는** 에이전트는 구조를 추측하기 전에 `graphify-out/GRAPH_REPORT.md`를 보고, 수정 후 graphify를 재빌드합니다. PR을 내보내기 전에는 `lint`, `type-check`, `test`를 통과시킵니다.
 
 상세 워크플로: [agent-workflow.md](./docs/agents/agent-workflow.md)
 

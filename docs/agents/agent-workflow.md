@@ -12,6 +12,14 @@ Memento를 사용하는 에이전트는 아래 순서가 습관이 되어야 합
 
 **관측**: `feedback` 채택률(1단계 대비 2단계 실행 비율)은 `get_telemetry_summary`의 `feedback_quality.recall_without_feedback_rate`, HTTP `GET /admin/telemetry/feedback`, 또는 `npm run telemetry -- --type feedback-quality`로 확인합니다. 1에 가까울수록 recall만 하고 feedback을 남기지 않는 비율이 높다는 뜻입니다.
 
+recall·feedback만으로는 이미 쌓인 저품질 기억(저신뢰·고실패)까지 정리되지 않습니다 — 아래 heal 단계가 그 갭을 메웁니다.
+
+| 단계 | 도구 | 종류 |
+|------|------|------|
+| 조회 | `recall`(`introspection_hint`) / `get_introspection_summary` | MCP |
+| 피드백 | `feedback` | MCP |
+| 치유 | `POST /admin/introspection/heal` | HTTP(admin 전용, MCP 미노출) |
+
 ### remember near-duplicate (write-path, #730)
 
 `remember`는 저장 **직전**에 동일 `type`·`owner_id`·`project_id` 스코프에서 유사 기억을 검색합니다. 기본(`MEMENTO_REMEMBER_DEDUP_MODE=warn`)은 저장은 성공하고 응답에 `similarity_warning`을 붙입니다.
@@ -29,6 +37,12 @@ Memento를 사용하는 에이전트는 아래 순서가 습관이 되어야 합
 | `similarity_warning.action` | `warned` \| `merged` \| `rejected` |
 
 env: [commands.md — remember dedup](./commands.md#remember-near-duplicate-730)
+
+### Introspection 치유 — recall·feedback으로 못 거르는 저품질 기억 (#728)
+
+저신뢰·고실패 기억은 `recall` 응답의 `introspection_hint`나 `get_introspection_summary`(MCP)로 알 수 있지만, 정리는 자동이 아닙니다. 운영자가 **주기적으로** `POST /admin/introspection/heal`을 호출해(기본 dry-run으로 분류 결과를 먼저 검토한 뒤 `dry_run: false`로 apply) 스캔 결과를 re-embed·demote·soft-delete·review 4가지 액션으로 분류·실행합니다. **에이전트는 이 엔드포인트를 스스로 호출하지 않습니다** — 대량 삭제·importance 변경을 막기 위해 MCP 도구로는 등록되어 있지 않고 HTTP admin API로만 노출됩니다.
+
+절차·env 플래그·curl 예시: [commands.md — Introspection 치유](./commands.md#introspection-치유-728)
 
 ## 코드 탐색 — Serena 심볼 우선
 
