@@ -1,0 +1,68 @@
+[
+  {
+    "sample_id": "synthetic-conv-1",
+    "conversation": {
+      "speaker_a": "Ari",
+      "speaker_b": "Boma",
+      "session_1_date_time": "1:56 pm on 8 May, 2023",
+      "session_1": [
+        { "speaker": "Ari", "dia_id": "D1:1", "text": "I finally repotted the fig tree this morning." },
+        { "speaker": "Boma", "dia_id": "D1:2", "text": "Nice. Did the roots look healthy?" },
+        { "speaker": "Ari", "dia_id": "D1:3", "text": "Healthy enough, though I trimmed two of them." }
+      ],
+      "session_2_date_time": "7:05 am on 25 May, 2023",
+      "session_2": [
+        { "speaker": "Boma", "dia_id": "D2:1", "text": "The fig tree looks taller in your photo." },
+        {
+          "speaker": "Ari",
+          "dia_id": "D2:2",
+          "text": "It grew a lot after the repotting.",
+          "blip_caption": "a potted fig tree beside a window"
+        }
+      ],
+      "session_3_date_time": "9:30 pm on 2 June, 2023",
+      "session_3": [
+        { "speaker": "Ari", "dia_id": "D3:1", "text": "I signed up for a ceramics class downtown." },
+        { "speaker": "Boma", "dia_id": "D3:2", "text": "Which studio did you pick?" }
+      ]
+    },
+    "qa": [
+      {
+        "question": "What did Ari repot?",
+        "answer": "The fig tree",
+        "evidence": ["D1:1"],
+        "category": 4
+      },
+      {
+        "question": "When did Ari repot the fig tree?",
+        "answer": "8 May 2023",
+        "evidence": ["D1:1"],
+        "category": 2
+      },
+      {
+        "question": "How did the fig tree respond to the repotting?",
+        "answer": "It grew taller",
+        "evidence": ["D1:1; D2:2"],
+        "category": 1
+      },
+      {
+        "question": "What hobby might Ari take up next?",
+        "answer": "Pottery; ceramics",
+        "evidence": [],
+        "category": 3
+      },
+      {
+        "question": "Which studio did Ari choose for the ceramics class?",
+        "evidence": ["D3:1"],
+        "category": 5,
+        "adversarial_answer": "the studio downtown"
+      },
+      {
+        "question": "What did Ari trim, and when was the follow-up photo taken?",
+        "answer": "Two roots; 25 May 2023",
+        "evidence": ["D", "D1:3 D2:99"],
+        "category": 1
+      }
+    ]
+  }
+]

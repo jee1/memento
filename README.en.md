@@ -463,6 +463,8 @@ npm run test -- --watch
 npm run test -- --coverage
 ```
 
+Retrieval quality against public datasets (LongMemEval-S, LoCoMo) runs through the same harness: acquire with `npm run quality:longmemeval:acquire` / `npm run quality:locomo:acquire`, then run `npm run quality:locomo:benchmark`. Raw datasets are never committed, and LoCoMo is **CC BY-NC 4.0 (NonCommercial)**, so its numbers cannot back commercial claims. The procedure and current results live in [benchmark-datasets.md](docs/_work/testing/ko/benchmark-datasets.md); the production search path does not yet beat a plain FTS baseline, so these figures are kept as an internal regression metric rather than published.
+
 ## 📚 Developer Guidelines
 
 - **Project structure**: npm workspaces — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. See [AGENTS.md](AGENTS.md).

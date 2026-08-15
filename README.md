@@ -611,6 +611,8 @@ npm run test -- --watch
 npm run test -- --coverage
 ```
 
+공개 데이터셋(LongMemEval-S·LoCoMo)으로 검색 품질을 재는 하네스는 `npm run quality:longmemeval:acquire`·`npm run quality:locomo:acquire`로 데이터를 받은 뒤 `npm run quality:locomo:benchmark`로 돌립니다. 원본 데이터는 커밋하지 않으며, LoCoMo는 **CC BY-NC 4.0(비상업)** 이라 상업적 사용이 불가합니다. 절차와 현재 수치는 [benchmark-datasets.md](docs/_work/testing/ko/benchmark-datasets.md)에 있고, 프로덕션 검색이 단순 FTS 베이스라인을 넘지 못한 상태라 대외 수치로 쓰지 않습니다.
+
 ## 📚 개발자 가이드라인
 
 - **프로젝트 구조**: npm workspaces 모노레포 — `packages/memento-core`, `packages/memento-server`, `packages/memento-client`, `apps/*`. 상세: [AGENTS.md](AGENTS.md)
