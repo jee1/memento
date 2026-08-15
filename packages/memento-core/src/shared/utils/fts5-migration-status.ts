@@ -6,7 +6,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { DatabaseUtils } from './database.js';
+import { getQuery, runQuery } from './database/query-helpers.js';
 import { mementoConfig } from '../config/index.js';
 import { PIIMasker } from './pii-masker.js';
 
@@ -25,7 +25,7 @@ function cacheMigrationStatus(status: FTS5MigrationStatus): void {
 export function initializeMigrationStatusTable(db: Database.Database): void {
   try {
     // 테이블 생성
-    DatabaseUtils.run(db, `
+    runQuery(db, `
       CREATE TABLE IF NOT EXISTS fts5_migration_status (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         migration_key TEXT NOT NULL UNIQUE DEFAULT 'fts5-reflection-notes',
@@ -41,15 +41,15 @@ export function initializeMigrationStatusTable(db: Database.Database): void {
     `);
 
     // 인덱스 생성
-    DatabaseUtils.run(db, `
+    runQuery(db, `
       CREATE INDEX IF NOT EXISTS idx_fts5_migration_status_key ON fts5_migration_status(migration_key)
     `);
-    DatabaseUtils.run(db, `
+    runQuery(db, `
       CREATE INDEX IF NOT EXISTS idx_fts5_migration_status_status ON fts5_migration_status(status)
     `);
 
     // 초기 상태 삽입 (없는 경우)
-    DatabaseUtils.run(db, `
+    runQuery(db, `
       INSERT OR IGNORE INTO fts5_migration_status (migration_key, status)
       VALUES (?, 'pending')
     `, [MIGRATION_KEY]);
@@ -69,7 +69,7 @@ export function initializeMigrationStatusTable(db: Database.Database): void {
 export function getMigrationStatus(db: Database.Database): FTS5MigrationStatus {
   try {
     // 먼저 테이블이 존재하는지 확인
-    const tableExists = DatabaseUtils.get(db, `
+    const tableExists = getQuery(db, `
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='fts5_migration_status'
     `) as { name: string } | undefined;
@@ -81,7 +81,7 @@ export function getMigrationStatus(db: Database.Database): FTS5MigrationStatus {
     }
 
     // 테이블이 있으면 상태 조회
-    const result = DatabaseUtils.get(db, `
+    const result = getQuery(db, `
       SELECT status FROM fts5_migration_status
       WHERE migration_key = ?
     `, [MIGRATION_KEY]) as { status: string } | undefined;
@@ -169,7 +169,7 @@ export function setMigrationStatus(
     }
 
     if (updateSql) {
-      DatabaseUtils.run(db, updateSql, params);
+      runQuery(db, updateSql, params);
     }
 
     // Config 캐시 업데이트
@@ -346,7 +346,7 @@ export function forceSetMigrationStatus(
   }
 
   if (updateSql) {
-    DatabaseUtils.run(db, updateSql, params);
+    runQuery(db, updateSql, params);
     cacheMigrationStatus(status);
   }
 }

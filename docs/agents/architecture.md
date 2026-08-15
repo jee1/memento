@@ -18,7 +18,7 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 
 ## 개발 원칙
 
-의존성은 `shared` ← `domains` ← `infrastructure` 방향으로만 흘러야 합니다. 이 경계를 지키면 도메인 로직이 인프라 세부에 오염되지 않습니다. 전체 원칙은 [DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md)에서 다룹니다(**Functional Core, Structured Shell** 지침 참조).
+의존성은 `shared` ← `domains` ← `infrastructure` 방향으로만 흘러야 합니다. 이 경계를 지키면 도메인 로직이 인프라 세부에 오염되지 않습니다. 신규 금지 방향(domain→infra, shared→infra/server)과 확인된 runtime cycle은 `packages/memento-core/src/test/architecture/dependency-boundaries.spec.ts`가 CI에서 막습니다(기존 위반은 allowlist+rationale로 freeze; allowlist 증가는 frozen size bump가 필요해 명시 리뷰를 강제). 전체 원칙은 [DEVELOPMENT_RULES.md](../../DEVELOPMENT_RULES.md)에서 다룹니다(**Functional Core, Structured Shell** 지침 참조).
 
 ## 최근 활성 기술
 

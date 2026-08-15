@@ -66,6 +66,9 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **infrastructure repo 분해**: `packages/memento-core/src/infrastructure/database/repositories/` — composition(`*-store.ts`); public export는 오케스트레이터 파일만 (#610)
 - **composition 분해 후 CI**: `test-core`는 memento-core 전체 vitest — 도메인 `__tests__`만 green이면 부족; 다른 경로 spec이 `(orchestrator as any).privateMethod` 호출 시 orchestrator에 위임 래퍼 필수 (예: `006-fts5-reflection-notes.spec.ts` → `buildReflectionNotesSearchCondition`)
 - **scheduler jobs 타입**: `BatchJobResult` 등은 `batch-scheduler-types.js`에서 import (`batch-scheduler.js`는 jobs↔scheduler 순환 참조)
+- **batch-scheduler singleton (#749)**: `getBatchScheduler`/`create`/`reset` 구현은 `batch-scheduler.ts`에 두고 `batch-scheduler-singleton.ts`는 re-export만 — singleton→class←re-export runtime cycle 방지 (`dependency-boundaries.spec.ts`)
+- **dependency-boundaries (#749)**: domain→infra·shared→infra|server는 allowlist+rationale로 freeze; 신규 위반·allowlist 추가는 `FROZEN_*_SIZE` bump 필요 — `packages/memento-core/src/test/architecture/dependency-boundaries.spec.ts`
+- **fts5↔database cycle (#749)**: `fts5-migration-status.ts`는 `DatabaseUtils`/`database.ts` 대신 `shared/utils/database/query-helpers.js`의 `getQuery`/`runQuery` 사용 (schema-init 순환 차단)
 - **infrastructure async·reflexion** (#615): `async-optimizer/`(types·parsers·queue·worker·batch-processor), `reflexion-procedural-memory-service/`(extraction·create·update-*); orchestrator는 re-export·early-return; Worker↔Queue는 `import type`으로 순환 방지; 선행 spec — `reflexion-worker.spec.ts` + `failure-detector.spec.ts`
 - **composition import 깊이**: `infrastructure/foo.ts` → `../shared/`; `infrastructure/foo/bar.ts` → `../../shared/` (`tsc` 모듈 not found 시 우선 확인)
 - **커밋 훅 (revise-claude-md)**: `git commit` 직전 `.cursor/hooks/pre-commit-revise-claude-md.sh`가 `AGENTS.md` §3.1 등을 갱신·스테이징; 스킵 `REVISE_CLAUDE_MD_SKIP=1`
