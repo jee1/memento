@@ -2,7 +2,7 @@
 
 **Feature Branch**: `060-chore-tech-debt-2026-08`  
 **Created**: 2026-08-15  
-**Status**: Draft  
+**Status**: Implemented  
 **Parent Epic**: #748  
 **Input**: User description: "GitHub epic #748 — chore(tech-debt): 2026-08 운영·보안·배포 부채 해소. 데이터 손실·채널 격리 실패·배포 실패·거짓 CI green 위험이 큰 부채를 독립 소형 PR로 제거. 신규 기능·대형 재설계 없음."
 
