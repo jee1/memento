@@ -19,6 +19,7 @@ import { createCoreMemoryRepository } from '../factories/core-memory-repository.
 import { ensureMemoryItemTripleExtractionColumns } from './ensure-memory-item-triple-extraction-columns.js';
 import { runDatabaseIntegrityPreflight } from './db-integrity-preflight.js';
 import { bootstrapNewDatabaseSchema } from './init-bootstrap-new-db.js';
+import { ensureMemoryEmbeddingMetadataDefaults } from './ensure-memory-embedding-metadata-defaults.js';
 import { log } from './init-log.js';
 import { migrateExistingDatabaseIfNeeded } from './init-migrate-existing.js';
 import { configureSqliteSession } from './init-sqlite-session.js';
@@ -65,6 +66,8 @@ export async function initializeDatabase(overrideDbPath?: string): Promise<Datab
     ensureMetaMemoryStatsSchema(db);
     ensureQualityAssuranceSchema(db);
     ensureMemoryReviewCandidateSchema(db);
+    // #753: CLI migrate를 거치지 않는 기존 DB도 기동 시 1회 보정 (hot path 아님)
+    ensureMemoryEmbeddingMetadataDefaults(db);
 
     try {
       log('[MIG] Core Memory 자동 로드 중...');
