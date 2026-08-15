@@ -76,6 +76,26 @@ describe('buildKnowledgeContextBundle', () => {
     expect(bundle.promptText).toContain('알파');
     expect(bundle.promptText).not.toContain('베타');
   });
+
+  it('옛 triple 템플릿이 남긴 이중 활용 문장은 주입에서 제외한다 (#768)', async () => {
+    db.exec(`
+      INSERT INTO memory_item (id, type, content, importance, created_at)
+      VALUES
+        ('ctx_broken', 'semantic', 'injectfilter 인터페이스는 모든 타입를 정의됨합니다', 0.9, datetime('now')),
+        ('ctx_clean', 'semantic', 'injectfilter 인터페이스는 모든 타입을 정의합니다', 0.9, datetime('now'))
+    `);
+
+    const bundle = await buildKnowledgeContextBundle(
+      {
+        db,
+        hybridSearchEngine: context.services!.hybridSearchEngine!,
+      },
+      { query: 'injectfilter', maxMemories: 5, tokenBudget: 2000 },
+    );
+
+    expect(bundle.promptText).toContain('정의합니다');
+    expect(bundle.promptText).not.toContain('정의됨합니다');
+  });
 });
 
 describe('ToolContextKnowledgeContextAdapter', () => {

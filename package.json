@@ -148,7 +148,8 @@
     "lint:js": "eslint \"static/js/**/*.js\"",
     "sync:root-server-dist": "node scripts/sync-root-server-dist.js",
     "build:root": "npm run build -w memento-server && npm run sync:root-server-dist",
-    "quality:slop:gate": "bash scripts/slop-gate-scan.sh"
+    "quality:slop:gate": "bash scripts/slop-gate-scan.sh",
+    "memory:repair-triple-sentences": "tsx scripts/repair-triple-sentence-memories.ts"
   },
   "keywords": [
     "mcp",

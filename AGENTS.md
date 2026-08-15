@@ -42,8 +42,8 @@ Memento를 **쓰는** 에이전트는 작업 전에 `recall`이나 `memory_injec
 - **memory_embedding metadata repair (#753)**: `ensureMemoryEmbeddingMetadataDefaults`는 `migrate.ts`·`initializeDatabase` 1회만 — `MemoryEmbeddingService` create/search/stats hot path에 테이블 전역 UPDATE 금지
 - **npm 발행 대상 (#765)**: `memento-mcp-server`(루트)·`@jee1/memento-client`·`@jee1/memento-assistant`만 발행. `@memento/core`·`@memento/agent-integration`은 `private: true`(루트 tarball에 번들). `@memento` scope는 타인 소유라 사용 불가. SDK는 **워크스페이스 version을 올려야** 릴리스에서 발행됨(동일 버전이면 skip)
 - **MCP 레지스트리 (#763)**: 루트 `server.json`의 `name`은 `package.json.mcpName`과, `version`·`packages[0].version`은 `package.json.version`과 일치해야 함 (`tests/mcp-registry-metadata.spec.ts`). 릴리스 시 `release.yml`이 태그 버전으로 재작성 후 `mcp-publisher`로 등재(정식 릴리스만)
-
 - **Claude Code 플러그인 (#764)**: 마켓플레이스는 루트 `.claude-plugin/marketplace.json`, 플러그인 본체는 `plugins/memento/`(`.mcp.json`·`skills/`). 수정 후 `claude plugin validate . --strict` 통과 필수이고, 사용자에게 업데이트가 나가려면 `plugins/memento/.claude-plugin/plugin.json`의 `version`을 올려야 함
+- **triple 문장 재조립 (#768)**: canonical predicate는 `사용함`·`정의됨` 같은 ㅁ 명사화형 — 문자열에 `합니다`를 덧붙이지 말고 `buildTripleSentence()`를 쓸 것(조사·활용 처리, 재조립 불가 시 `null`→원문 폴백). 기존 손상 행은 `npm run memory:repair-triple-sentences`(dry-run) → `-- --apply`
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
 - **graphify 커밋**: 루트 `graphify-out/`만; `packages/memento-core/graphify-out/cache/`는 무시
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)

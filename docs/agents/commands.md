@@ -83,6 +83,20 @@ npm run docker:up                 # 컨테이너 기동
 
 전체 환경 변수 목록과 거버넌스 정책은 [environment-variable-governance.md](../guides/ko/environment-variable-governance.md)에서, 배포 체크리스트는 [env-deployment-checklist.md](../operations/env-deployment-checklist.md)에서 확인하세요.
 
+## 손상된 triple 문장 복구 (#768)
+
+옛 템플릿(`${subject}는 ${object}를 ${predicate}합니다`)이 만든 semantic 기억은 `정의됨합니다`처럼
+활용이 깨져 있습니다. subject/predicate/object 컬럼이 남아 있는 행만 새 렌더러로 다시 만들며,
+**기본값은 dry-run**입니다. 적용 시 임베딩도 다시 생성합니다.
+
+```bash
+DB_PATH=./data/memory.db npm run memory:repair-triple-sentences            # dry-run
+DB_PATH=./data/memory.db npm run memory:repair-triple-sentences -- --apply # 적용
+```
+
+triple 컬럼이 없는 손상 행은 복구 불가로 ID만 보고합니다. 주입 단계에서는
+`memory_injection`이 이중 활용 문장을 자동으로 제외하므로, 복구 전에도 프롬프트는 오염되지 않습니다.
+
 ## Introspection 치유 (#728)
 
 `meta_memory_introspection` 스캔이 찾은 저신뢰·고실패 메모리를 re-embed/demote/soft-delete/review로

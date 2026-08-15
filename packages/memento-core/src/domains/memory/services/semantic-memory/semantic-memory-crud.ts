@@ -26,6 +26,25 @@ export class SemanticMemoryCrud {
     this.memoryEmbeddingService = memoryEmbeddingService ?? new MemoryEmbeddingService();
   }
 
+  /** 폴백용 원문. 조회 실패는 폴백 품질 문제일 뿐 생성 자체를 막지 않는다. */
+  private getEpisodicContent(episodicMemoryId: string): string | undefined {
+    if (!episodicMemoryId) {
+      return undefined;
+    }
+    try {
+      const row = this.db
+        .prepare('SELECT content FROM memory_item WHERE id = ?')
+        .get(episodicMemoryId) as { content?: string } | undefined;
+      return row?.content;
+    } catch (error) {
+      logger.debug('SemanticMemoryUpdateService: 폴백 원문 조회 실패 (무시)', {
+        episodicMemoryId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return undefined;
+    }
+  }
+
   async createSemanticMemory(
     triple: Triple,
     options: SemanticMemoryUpdateOptions,
@@ -34,10 +53,12 @@ export class SemanticMemoryCrud {
     const { normalizedSubject, normalizedPredicate, normalizedObject } =
       this.scoring.canonicalizeAndLink(triple);
 
+    // #768: 재조립이 불가능한 triple은 합성 문장 대신 원본 episodic 본문을 보존한다.
     const content = this.scoring.tripleToNaturalLanguage(
       normalizedSubject,
       normalizedPredicate,
-      normalizedObject
+      normalizedObject,
+      this.getEpisodicContent(options.episodicMemoryId)
     );
 
     const id = generateSemanticMemoryId();
